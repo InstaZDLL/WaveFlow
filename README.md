@@ -64,7 +64,7 @@ bun run format
 
 ## Structure du projet
 
-```text
+```bash
 waveflow/
 ├── src/                          # Frontend React
 │   ├── components/
