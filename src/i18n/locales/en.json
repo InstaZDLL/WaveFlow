@@ -1,0 +1,340 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "back": "Back",
+    "save": "Save",
+    "close": "Close",
+    "confirm": "Confirm",
+    "open": "Open",
+    "optional": "(optional)"
+  },
+  "sidebar": {
+    "brand": {
+      "beta": "Beta"
+    },
+    "nav": {
+      "home": "Home"
+    },
+    "sections": {
+      "open": "Open",
+      "library": "Library",
+      "playlists": "Playlists"
+    },
+    "open": {
+      "file": "File",
+      "folder": "Folder"
+    },
+    "library": {
+      "tracksCount_zero": "0 tracks",
+      "tracksCount_one": "{{count}} track",
+      "tracksCount_other": "{{count}} tracks",
+      "createLibraryAria": "Create a new library",
+      "none": "No library",
+      "popover": {
+        "label": "Library selection",
+        "header": "Libraries",
+        "countLine": "{{tracks}} · {{albums}}",
+        "tracks_zero": "0 tracks",
+        "tracks_one": "{{count}} track",
+        "tracks_other": "{{count}} tracks",
+        "albums_zero": "0 albums",
+        "albums_one": "{{count}} album",
+        "albums_other": "{{count}} albums",
+        "see": "View",
+        "new": "New"
+      },
+      "nav": {
+        "tracks": "Tracks",
+        "albums": "Albums",
+        "artists": "Artists",
+        "genres": "Genres",
+        "explorer": "Explorer"
+      }
+    },
+    "playlists": {
+      "createPlaylistAria": "Create a new playlist",
+      "liked": "Liked tracks",
+      "recent": "Recently played",
+      "emptySubtext_zero": "0 tracks",
+      "emptySubtext_one": "{{count}} track",
+      "emptySubtext_other": "{{count}} tracks"
+    }
+  },
+  "topbar": {
+    "search": {
+      "placeholder": "Search for a track, artist, album..."
+    },
+    "theme": {
+      "enableLight": "Switch to light mode",
+      "enableDark": "Switch to dark mode"
+    },
+    "profile": {
+      "user": "User",
+      "changeProfile": "Switch profile",
+      "statistics": "Statistics",
+      "settings": "Settings",
+      "feedback": "Feedback",
+      "about": "About",
+      "quit": "Quit application"
+    }
+  },
+  "home": {
+    "greeting": {
+      "morning": "Good morning",
+      "evening": "Good evening",
+      "night": "Good night"
+    },
+    "banner": {
+      "badge": "Ready to listen",
+      "subtitle": "Discover your favorite music and explore new sounds.",
+      "openFile": "Open a file",
+      "openFolder": "Open a folder",
+      "importFiles": "Import files",
+      "importFolder": "Import folder"
+    },
+    "stats": {
+      "library": "Library",
+      "liked": "Liked tracks",
+      "recent": "Recently played",
+      "playlists": "Playlists"
+    },
+    "recentlyPlayed": {
+      "title": "Recently played",
+      "emptyTitle": "No track played yet",
+      "emptyDescription": "Play a track to see it appear here. Your listening history builds up as you discover."
+    }
+  },
+  "library": {
+    "header": {
+      "addFolder": "Add a folder",
+      "subtext": {
+        "morceaux_zero": "0 Tracks",
+        "morceaux_one": "{{count}} Track",
+        "morceaux_other": "{{count}} Tracks",
+        "albums_zero": "0 Albums",
+        "albums_one": "{{count}} Album",
+        "albums_other": "{{count}} Albums",
+        "artistes_zero": "0 Artists",
+        "artistes_one": "{{count}} Artist",
+        "artistes_other": "{{count}} Artists",
+        "genres_zero": "0 Genres",
+        "genres_one": "{{count}} Genre",
+        "genres_other": "{{count}} Genres",
+        "dossiers": "Explorer"
+      }
+    },
+    "tabs": {
+      "morceaux": "Tracks",
+      "albums": "Albums",
+      "artistes": "Artists",
+      "genres": "Genres",
+      "dossiers": "Folders"
+    },
+    "empty": {
+      "morceaux": {
+        "title": "Empty library",
+        "description": "Import audio files or a folder to populate your library."
+      },
+      "albums": {
+        "title": "No albums found",
+        "description": "Import audio files to automatically build albums."
+      },
+      "artistes": {
+        "title": "No artists found",
+        "description": "Import audio files to get started."
+      },
+      "genres": {
+        "title": "No genres found",
+        "description": "Import audio files to discover genres."
+      },
+      "dossiers": {
+        "title": "No folder imported",
+        "description": "Import a folder from the action bar to browse it here."
+      }
+    },
+    "actions": {
+      "importFiles": "Import files",
+      "importFolder": "Import folder"
+    }
+  },
+  "liked": {
+    "badge": "Collection",
+    "title": "Liked tracks",
+    "count_zero": "0 tracks",
+    "count_one": "{{count}} track",
+    "count_other": "{{count}} tracks",
+    "emptyTitle": "No liked track",
+    "emptyDescription": "Tracks you like will appear here. Explore your library and like your favorites."
+  },
+  "recent": {
+    "badge": "History",
+    "title": "Recently played",
+    "count_zero": "0 tracks",
+    "count_one": "{{count}} track",
+    "count_other": "{{count}} tracks",
+    "emptyTitle": "No recent track",
+    "emptyDescription": "Tracks you listen to will appear here automatically."
+  },
+  "statistics": {
+    "title": "Statistics",
+    "emptyTitle": "No statistics available",
+    "emptyDescription": "Listen to music to start seeing your listening statistics appear here."
+  },
+  "about": {
+    "title": "About",
+    "hero": {
+      "subtitle": "Cross-platform HD music player",
+      "checkUpdates": "Check for updates",
+      "developedBy": "Developed by"
+    },
+    "sections": {
+      "frameworkDesktop": "Desktop Framework",
+      "frontend": "Frontend",
+      "backend": "Backend (Rust)",
+      "audio": "Audio",
+      "shortcuts": "Keyboard shortcuts",
+      "credits": "Credits"
+    },
+    "shortcuts": {
+      "playPause": "Play / Pause",
+      "previousTrack": "Previous track",
+      "nextTrack": "Next track",
+      "volume": "Volume",
+      "mute": "Mute",
+      "keys": {
+        "space": "Space"
+      }
+    },
+    "credits": {
+      "text": "Designed and built with passion. Powered by open source technologies.",
+      "icons": "Icons by Lucide, Phosphor, Mynaui and Iconify."
+    }
+  },
+  "feedback": {
+    "title": "Feedback",
+    "hero": {
+      "title": "Help us improve WaveFlow",
+      "description": "Spotted a bug, have an improvement idea, or just want to share some thoughts? We read every message and take your suggestions to heart."
+    },
+    "contact": {
+      "section": "Contact us",
+      "subtitle": "Bug, suggestion or question — we read every message"
+    }
+  },
+  "player": {
+    "noTrack": "No track",
+    "inactive": "Inactive",
+    "controls": {
+      "play": "Play",
+      "pause": "Pause",
+      "previous": "Previous",
+      "next": "Next",
+      "shuffleOn": "Disable shuffle",
+      "shuffleOff": "Enable shuffle",
+      "repeatOff": "Enable repeat",
+      "repeatAll": "Repeat one track",
+      "repeatOne": "Disable repeat"
+    },
+    "volume": {
+      "label": "Volume",
+      "mute": "Mute",
+      "unmute": "Unmute"
+    }
+  },
+  "queue": {
+    "title": "Queue",
+    "inactive": "INACTIVE",
+    "count_zero": "0 tracks",
+    "count_one": "{{count}} track",
+    "count_other": "{{count}} tracks",
+    "emptyTitle": "Nothing to play",
+    "emptyDescription": "Play some music from your library to fill the queue."
+  },
+  "deviceMenu": {
+    "activeLabel": "Discard all samples (playback)"
+  },
+  "profiles": {
+    "select": {
+      "title": "Who's listening?",
+      "subtitle": "Select your profile to find your libraries and playlists",
+      "add": "Add",
+      "edit": "Edit"
+    },
+    "create": {
+      "title": "New profile",
+      "subtitle": "Create a profile to personalize your experience",
+      "nameLabel": "Profile name",
+      "namePlaceholder": "Enter a name...",
+      "colorLabel": "Profile color",
+      "colorAria": "{{color}} color",
+      "submit": "Create profile"
+    }
+  },
+  "libraryModal": {
+    "title": "Create a Library",
+    "previewDefault": "Create a Library",
+    "previewSubtitle": "0 track · Library",
+    "nameLabel": "Library name",
+    "namePlaceholder": "E.g. Rock, Jazz, Classical...",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "A short description...",
+    "submit": "Create a Library"
+  },
+  "playlistModal": {
+    "title": "Playlists",
+    "previewDefault": "New playlist",
+    "previewSubtitle": "0 track · Playlist",
+    "nameLabel": "Name",
+    "namePlaceholder": "E.g. Chill Vibes, Workout Mix...",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "A short description...",
+    "colorLabel": "Color",
+    "colorAria": "{{color}} color",
+    "iconLabel": "Icon",
+    "iconAria": "{{icon}} icon",
+    "submit": "Create"
+  },
+  "settings": {
+    "title": "Settings",
+    "sections": {
+      "general": "General",
+      "storage": "Storage & Data"
+    },
+    "language": {
+      "title": "Language",
+      "subtitle": "Interface language"
+    },
+    "autoStart": {
+      "title": "Launch on startup",
+      "subtitle": "Automatically start WaveFlow when the system boots"
+    },
+    "minimizeToTray": {
+      "title": "Minimize to system tray",
+      "subtitle": "Closing the window minimizes the app to the tray"
+    },
+    "scanOnStart": {
+      "title": "Scan on startup",
+      "subtitle": "Automatically rescan libraries when the app opens"
+    },
+    "rescan": {
+      "title": "Rescan library",
+      "subtitle": "Re-walk all folders and import new files",
+      "action": "Rescan"
+    },
+    "artistImages": {
+      "title": "Artist images",
+      "subtitle": "Fetch artist artwork from Deezer",
+      "action": "Fetch"
+    },
+    "dataFolder": {
+      "title": "Data folder",
+      "subtitle": "Open the folder containing the database and cover art",
+      "action": "Open"
+    },
+    "reset": {
+      "title": "Reset the application",
+      "subtitle": "Delete all data and return to the initial state",
+      "action": "Reset"
+    }
+  }
+}

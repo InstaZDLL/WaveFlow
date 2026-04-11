@@ -1,0 +1,60 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+dist-ssr
+*.local
+
+# Rust / Cargo (scoped ignore in src-tauri/.gitignore also applies)
+target
+**/*.rs.bk
+*.pdb
+
+# TypeScript / bundler caches
+*.tsbuildinfo
+.eslintcache
+.stylelintcache
+.cache
+.parcel-cache
+.vite/
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Test coverage
+coverage
+*.lcov
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# AI related files
+.agents/*
+.claude/*
+.mcp.json
+skills-lock.json
+CLAUDE.md
+AGENTS.md
+.codex

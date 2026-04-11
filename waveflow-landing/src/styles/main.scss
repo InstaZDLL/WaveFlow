@@ -1,0 +1,122 @@
+@layer vuetify-overrides {
+  code, pre, .v-code {
+    font-family: var(--font-mono);
+  }
+
+  html, body {
+    background-color: #0A0A0A;
+    color: #E5E7EB;
+    overflow-x: hidden;
+    font-family: 'Inter', 'Roboto', sans-serif;
+  }
+}
+
+/* Noise overlay */
+.noise-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.025;
+  background: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
+}
+
+/* Glass card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.5rem;
+  transition: all 0.4s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.1);
+  transform: translateY(-5px);
+}
+
+/* Emerald glow */
+.glow-emerald {
+  box-shadow: 0 0 60px rgba(16, 185, 129, 0.15);
+}
+
+/* Logo animation */
+@keyframes eq-pulse {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.4); }
+}
+
+.eq-bar {
+  transform-origin: center;
+  animation: eq-pulse 1.5s ease-in-out infinite;
+}
+
+.eq-bar-1 { animation-delay: 0.0s; }
+.eq-bar-2 { animation-delay: 0.2s; }
+.eq-bar-3 { animation-delay: 0.4s; }
+.eq-bar-4 { animation-delay: 0.2s; }
+.eq-bar-5 { animation-delay: 0.0s; }
+
+/* Text gradient */
+.text-gradient {
+  background: linear-gradient(135deg, #34D399 0%, #10B981 50%, #059669 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+}
+
+.reveal.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 3D Mockup */
+.perspective-container {
+  perspective: 1200px;
+}
+
+.mockup-3d {
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+@media (min-width: 1024px) {
+  .mockup-3d-rotate {
+    transform: rotateX(8deg) rotateY(-12deg) rotateZ(2deg);
+  }
+  .perspective-container:hover .mockup-3d-rotate {
+    transform: rotateX(0) rotateY(0) rotateZ(0);
+  }
+}
+
+/* Aurora blob animation */
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+
+.animate-blob {
+  animation: blob 15s infinite alternate;
+}
+
+.delay-2000 { animation-delay: 2s; }
+.delay-4000 { animation-delay: 4s; }
+
+/* Gradient background utility */
+.bg-gradient-emerald {
+  background: linear-gradient(135deg, #34D399 0%, #10B981 50%, #059669 100%);
+}

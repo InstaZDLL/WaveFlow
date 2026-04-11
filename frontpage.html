@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaveFlow | Votre musique. Votre contrôle.</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        emerald: {
+                            400: '#34D399',
+                            500: '#10B981',
+                            600: '#059669',
+                        },
+                        dark: {
+                            bg: '#0A0A0A',
+                            surface1: '#121212',
+                            surface2: '#181818',
+                        },
+                        text: {
+                            main: '#E5E7EB',
+                            secondary: '#9CA3AF',
+                            tertiary: '#6B7280',
+                        }
+                    },
+                    backgroundImage: {
+                        'gradient-emerald': 'linear-gradient(135deg, #34D399 0%, #10B981 50%, #059669 100%)',
+                    },
+                    animation: {
+                        'blob': 'blob 15s infinite alternate',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Base styles & Noise overlay */
+        body {
+            background-color: #0A0A0A;
+            color: #E5E7EB;
+            overflow-x: hidden;
+        }
+
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0.025;
+            background: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
+        }
+
+        /* Glassmorphism Cards */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1.5rem;
+            transition: all 0.4s ease;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(16, 185, 129, 0.5);
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.1);
+            transform: translateY(-5px);
+        }
+
+        /* Emerald Glow */
+        .glow-emerald {
+            box-shadow: 0 0 60px rgba(16, 185, 129, 0.15);
+        }
+
+        /* Animated Logo Variables & Keyframes */
+        @keyframes eq-pulse {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.4); }
+        }
+        
+        .eq-bar {
+            transform-origin: center;
+            animation: eq-pulse 1.5s ease-in-out infinite;
+        }
+        
+        .eq-bar-1 { animation-delay: 0.0s; }
+        .eq-bar-2 { animation-delay: 0.2s; }
+        .eq-bar-3 { animation-delay: 0.4s; }
+        .eq-bar-4 { animation-delay: 0.2s; }
+        .eq-bar-5 { animation-delay: 0.0s; }
+
+        /* Text Gradient */
+        .text-gradient {
+            background: linear-gradient(135deg, #34D399 0%, #10B981 50%, #059669 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        /* Scroll Reveal Utility */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 3D Mockup Container */
+        .perspective-container {
+            perspective: 1200px;
+        }
+        
+        .mockup-3d {
+            transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        @media (min-width: 1024px) {
+            .mockup-3d-rotate {
+                transform: rotateX(8deg) rotateY(-12deg) rotateZ(2deg);
+            }
+            .perspective-container:hover .mockup-3d-rotate {
+                transform: rotateX(0) rotateY(0) rotateZ(0);
+            }
+        }
+
+        /* Delay classes for aurora */
+        .delay-2000 { animation-delay: 2s; }
+        .delay-4000 { animation-delay: 4s; }
+    </style>
+</head>
+<body class="antialiased selection:bg-emerald-500/30 selection:text-emerald-400">
+
+    <!-- Global Noise Overlay -->
+    <div class="noise-overlay"></div>
+
+    <!-- Aurora Background (Hero) -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none z-[-1]">
+        <div class="absolute top-[10%] left-[20%] w-[500px] h-[500px] bg-emerald-500 rounded-full mix-blend-screen filter blur-[120px] opacity-20 animate-blob"></div>
+        <div class="absolute top-[20%] right-[10%] w-[400px] h-[400px] bg-emerald-400 rounded-full mix-blend-screen filter blur-[120px] opacity-15 animate-blob delay-2000"></div>
+        <div class="absolute bottom-[-10%] left-[40%] w-[600px] h-[600px] bg-emerald-600 rounded-full mix-blend-screen filter blur-[150px] opacity-20 animate-blob delay-4000"></div>
+    </div>
+
+    <!-- 1. HERO SECTION -->
+    <section class="relative min-h-screen flex flex-col items-center justify-center px-6 pt-20 pb-16 text-center z-10">
+        
+        <!-- Logo animé -->
+        <div class="mb-8 reveal">
+            <svg width="80" height="80" viewBox="0 0 64 64" class="mx-auto drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]">
+                <defs>
+                    <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#34D399" />
+                        <stop offset="50%" stop-color="#10B981" />
+                        <stop offset="100%" stop-color="#059669" />
+                    </linearGradient>
+                </defs>
+                <!-- 5 barres, hauteurs: 48, 32, 16, 32, 48. Largeur 8, espace 4 -->
+                <rect x="4" y="8" width="8" height="48" rx="4" fill="url(#logo-gradient)" class="eq-bar eq-bar-1" />
+                <rect x="16" y="16" width="8" height="32" rx="4" fill="url(#logo-gradient)" class="eq-bar eq-bar-2" />
+                <rect x="28" y="24" width="8" height="16" rx="4" fill="url(#logo-gradient)" class="eq-bar eq-bar-3" />
+                <rect x="40" y="16" width="8" height="32" rx="4" fill="url(#logo-gradient)" class="eq-bar eq-bar-4" />
+                <rect x="52" y="8" width="8" height="48" rx="4" fill="url(#logo-gradient)" class="eq-bar eq-bar-5" />
+            </svg>
+        </div>
+
+        <h1 class="font-display font-extrabold text-6xl md:text-8xl tracking-tight mb-4 reveal" style="transition-delay: 0.1s;">
+            <span class="text-gradient">WaveFlow</span>
+        </h1>
+        
+        <h2 class="text-2xl md:text-3xl font-medium text-text-main mb-6 reveal" style="transition-delay: 0.2s;">
+            Votre musique. Votre contrôle.
+        </h2>
+        
+        <p class="text-text-secondary text-lg md:text-xl max-w-2xl mx-auto mb-10 reveal" style="transition-delay: 0.3s;">
+            Un lecteur de musique local, élégant et performant. Construit pour ceux qui possèdent leur bibliothèque musicale.
+        </p>
+        
+        <div class="flex flex-col sm:flex-row items-center gap-4 reveal" style="transition-delay: 0.4s;">
+            <button class="w-full sm:w-auto px-8 py-4 bg-gradient-emerald text-white rounded-full font-semibold text-lg shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(16,185,129,0.5)] hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2">
+                <i data-lucide="download" class="w-5 h-5"></i>
+                Télécharger
+            </button>
+            <button class="w-full sm:w-auto px-8 py-4 bg-transparent border border-white/20 text-text-main rounded-full font-semibold text-lg hover:bg-white/5 hover:border-white/40 transition-all duration-300 flex items-center justify-center gap-2">
+                <i data-lucide="github" class="w-5 h-5"></i>
+                Voir sur GitHub
+            </button>
+        </div>
+    </section>
+
+    <!-- 2. FONCTIONNALITÉS -->
+    <section class="py-24 px-6 max-w-7xl mx-auto z-10 relative">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            <!-- Carte 1 -->
+            <div class="glass-card p-8 reveal" style="transition-delay: 0.1s;">
+                <div class="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6 text-emerald-400">
+                    <i data-lucide="folder-music" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-xl font-bold text-text-main mb-3">Lecture locale</h3>
+                <p class="text-text-secondary text-sm leading-relaxed">
+                    Lisez vos fichiers audio directement depuis votre disque. Aucun streaming, aucune connexion requise.
+                </p>
+            </div>
+
+            <!-- Carte 2 -->
+            <div class="glass-card p-8 reveal" style="transition-delay: 0.2s;">
+                <div class="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6 text-emerald-400">
+                    <i data-lucide="moon" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-xl font-bold text-text-main mb-3">Thèmes sombre & clair</h3>
+                <p class="text-text-secondary text-sm leading-relaxed">
+                    Une interface qui s'adapte à vos préférences avec un mode sombre immersif et élégant.
+                </p>
+            </div>
+
+            <!-- Carte 3 -->
+            <div class="glass-card p-8 reveal" style="transition-delay: 0.3s;">
+                <div class="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6 text-emerald-400">
+                    <i data-lucide="library" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-xl font-bold text-text-main mb-3">Gestion de bibliothèque</h3>
+                <p class="text-text-secondary text-sm leading-relaxed">
+                    Organisez, recherchez et parcourez votre collection musicale locale avec une facilité déconcertante.
+                </p>
+            </div>
+
+            <!-- Carte 4 -->
+            <div class="glass-card p-8 reveal" style="transition-delay: 0.4s;">
+                <div class="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6 text-emerald-400">
+                    <i data-lucide="list-music" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-xl font-bold text-text-main mb-3">File d'attente</h3>
+                <p class="text-text-secondary text-sm leading-relaxed">
+                    Gérez votre file d'attente de lecture avec un panneau latéral intuitif et toujours accessible.
+                </p>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- 3. APERÇU DE L'APPLICATION (MOCKUP) -->
+    <section class="py-24 px-6 overflow-hidden relative z-10">
+        <div class="text-center max-w-3xl mx-auto mb-16 reveal">
+            <h2 class="font-display font-bold text-4xl md:text-5xl mb-4 text-text-main">Découvrez l'interface</h2>
+            <p class="text-text-secondary text-lg">Une expérience inspirée de Spotify, conçue sur mesure pour vos fichiers locaux.</p>
+        </div>
+
+        <div class="perspective-container max-w-6xl mx-auto reveal">
+            <!-- Container du Mockup avec effet 3D -->
+            <div class="mockup-3d mockup-3d-rotate w-full aspect-[4/3] md:aspect-[16/10] bg-dark-surface1 rounded-2xl border border-white/10 glow-emerald flex flex-col overflow-hidden shadow-2xl">
+                
+                <!-- Zone supérieure (3 panneaux) -->
+                <div class="flex flex-1 overflow-hidden">
+                    
+                    <!-- Sidebar (Hidden on mobile) -->
+                    <div class="hidden md:flex flex-col w-64 bg-dark-bg border-r border-white/5 p-4">
+                        <div class="flex items-center gap-2 mb-8 px-2">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                        <div class="space-y-4 mb-8">
+                            <div class="flex items-center gap-3 text-text-secondary hover:text-white px-2 py-1 rounded cursor-pointer transition"><i data-lucide="home" class="w-5 h-5"></i> Accueil</div>
+                            <div class="flex items-center gap-3 text-emerald-400 px-2 py-1 rounded bg-white/5 cursor-pointer transition"><i data-lucide="search" class="w-5 h-5"></i> Recherche</div>
+                            <div class="flex items-center gap-3 text-text-secondary hover:text-white px-2 py-1 rounded cursor-pointer transition"><i data-lucide="library" class="w-5 h-5"></i> Bibliothèque</div>
+                        </div>
+                        <div class="text-xs font-bold text-text-tertiary uppercase tracking-wider mb-3 px-2">Playlists</div>
+                        <div class="space-y-2 overflow-y-auto flex-1">
+                            <div class="text-text-secondary text-sm px-2 py-1 hover:text-white cursor-pointer">Synthwave Mix</div>
+                            <div class="text-text-secondary text-sm px-2 py-1 hover:text-white cursor-pointer">Chill Vibes</div>
+                            <div class="text-text-secondary text-sm px-2 py-1 hover:text-white cursor-pointer">Focus Session</div>
+                            <div class="text-text-secondary text-sm px-2 py-1 hover:text-white cursor-pointer">Electronic 2025</div>
+                        </div>
+                    </div>
+
+                    <!-- Contenu Principal -->
+                    <div class="flex-1 bg-gradient-to-b from-dark-surface2 to-dark-surface1 p-6 overflow-hidden flex flex-col">
+                        <!-- Header -->
+                        <div class="flex justify-between items-center mb-8">
+                            <div class="flex gap-2">
+                                <button class="w-8 h-8 rounded-full bg-dark-bg flex items-center justify-center text-text-secondary"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                                <button class="w-8 h-8 rounded-full bg-dark-bg flex items-center justify-center text-text-secondary"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+                            </div>
+                            <div class="w-8 h-8 rounded-full bg-dark-surface2 border border-white/10 flex items-center justify-center">
+                                <i data-lucide="user" class="w-4 h-4 text-text-secondary"></i>
+                            </div>
+                        </div>
+
+                        <!-- Content Grid -->
+                        <h2 class="text-2xl font-bold mb-4 text-white">Récemment écouté</h2>
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            <!-- Album Cards -->
+                            <div class="bg-dark-surface2/50 p-4 rounded-xl border border-white/5 hover:bg-dark-surface2 transition cursor-pointer group">
+                                <div class="aspect-square bg-dark-bg rounded-lg mb-3 relative overflow-hidden shadow-lg">
+                                    <div class="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-blue-500/20"></div>
+                                    <!-- Play button overlay -->
+                                    <div class="absolute bottom-2 right-2 w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0">
+                                        <i data-lucide="play" class="w-5 h-5 text-dark-bg fill-current ml-1"></i>
+                                    </div>
+                                </div>
+                                <div class="font-semibold text-white truncate">Midnight City</div>
+                                <div class="text-sm text-text-secondary truncate">Synthwave Artists</div>
+                            </div>
+                            <div class="bg-dark-surface2/50 p-4 rounded-xl border border-white/5 hover:bg-dark-surface2 transition cursor-pointer group">
+                                <div class="aspect-square bg-dark-bg rounded-lg mb-3 relative overflow-hidden shadow-lg">
+                                     <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-teal-500/20"></div>
+                                </div>
+                                <div class="font-semibold text-white truncate">Deep Focus</div>
+                                <div class="text-sm text-text-secondary truncate">Ambient</div>
+                            </div>
+                            <div class="hidden lg:block bg-dark-surface2/50 p-4 rounded-xl border border-white/5 hover:bg-dark-surface2 transition cursor-pointer group">
+                                <div class="aspect-square bg-dark-bg rounded-lg mb-3 relative overflow-hidden shadow-lg">
+                                     <div class="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-red-500/20"></div>
+                                </div>
+                                <div class="font-semibold text-white truncate">Lo-Fi Beats</div>
+                                <div class="text-sm text-text-secondary truncate">Chillhop</div>
+                            </div>
+                            <div class="hidden lg:block bg-dark-surface2/50 p-4 rounded-xl border border-white/5 hover:bg-dark-surface2 transition cursor-pointer group">
+                                <div class="aspect-square bg-dark-bg rounded-lg mb-3 relative overflow-hidden shadow-lg">
+                                     <div class="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-rose-500/20"></div>
+                                </div>
+                                <div class="font-semibold text-white truncate">Night Drive</div>
+                                <div class="text-sm text-text-secondary truncate">Electronic</div>
+                            </div>
+                        </div>
+
+                        <!-- Tracklist Mockup -->
+                        <div class="flex-1 overflow-hidden">
+                            <div class="flex items-center text-text-tertiary text-xs border-b border-white/5 pb-2 mb-2 px-4">
+                                <div class="w-8">#</div>
+                                <div class="flex-1">TITRE</div>
+                                <div class="hidden lg:block flex-1">ALBUM</div>
+                                <div class="w-12"><i data-lucide="clock" class="w-4 h-4"></i></div>
+                            </div>
+                            <div class="flex items-center text-sm px-4 py-2 hover:bg-white/5 rounded-lg group">
+                                <div class="w-8 text-emerald-400"><i data-lucide="bar-chart-2" class="w-4 h-4"></i></div>
+                                <div class="flex-1">
+                                    <div class="text-emerald-400 font-medium">Resonance</div>
+                                    <div class="text-text-secondary text-xs">HOME</div>
+                                </div>
+                                <div class="hidden lg:block flex-1 text-text-secondary">Odyssey</div>
+                                <div class="w-12 text-text-secondary">3:32</div>
+                            </div>
+                            <div class="flex items-center text-sm px-4 py-2 hover:bg-white/5 rounded-lg">
+                                <div class="w-8 text-text-secondary">2</div>
+                                <div class="flex-1">
+                                    <div class="text-white font-medium">Tech Noir</div>
+                                    <div class="text-text-secondary text-xs">Gunship</div>
+                                </div>
+                                <div class="hidden lg:block flex-1 text-text-secondary">Gunship</div>
+                                <div class="w-12 text-text-secondary">4:57</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Queue (Hidden on Mobile/Tablet) -->
+                    <div class="hidden lg:flex flex-col w-72 bg-dark-bg border-l border-white/5 p-4">
+                        <h3 class="font-bold text-white mb-4 px-2">File d'attente</h3>
+                        <div class="text-xs font-bold text-text-tertiary uppercase tracking-wider mb-3 px-2">En cours</div>
+                        
+                        <div class="flex items-center gap-3 p-2 bg-white/5 rounded-lg border border-white/5 mb-4">
+                            <div class="w-10 h-10 bg-dark-surface2 rounded flex-shrink-0 relative overflow-hidden">
+                                <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/40 to-teal-500/40"></div>
+                            </div>
+                            <div class="overflow-hidden">
+                                <div class="text-emerald-400 text-sm font-semibold truncate">Resonance</div>
+                                <div class="text-text-secondary text-xs truncate">HOME</div>
+                            </div>
+                        </div>
+
+                        <div class="text-xs font-bold text-text-tertiary uppercase tracking-wider mb-3 px-2">À suivre</div>
+                        <div class="space-y-1 overflow-y-auto">
+                            <div class="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg cursor-pointer">
+                                <div class="w-8 h-8 bg-dark-surface2 rounded flex-shrink-0 relative overflow-hidden"><div class="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-blue-500/20"></div></div>
+                                <div class="overflow-hidden">
+                                    <div class="text-white text-sm truncate">Tech Noir</div>
+                                    <div class="text-text-secondary text-xs truncate">Gunship</div>
+                                </div>
+                            </div>
+                             <div class="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg cursor-pointer">
+                                <div class="w-8 h-8 bg-dark-surface2 rounded flex-shrink-0 relative overflow-hidden"><div class="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-red-500/20"></div></div>
+                                <div class="overflow-hidden">
+                                    <div class="text-white text-sm truncate">Kavinsky</div>
+                                    <div class="text-text-secondary text-xs truncate">Nightcall</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Barre de Lecture (Bottom Player) -->
+                <div class="h-24 bg-dark-surface2 border-t border-white/10 flex items-center px-4 md:px-6 justify-between">
+                    
+                    <!-- Track Info -->
+                    <div class="flex items-center gap-4 w-1/3 min-w-0">
+                        <div class="w-14 h-14 bg-dark-bg rounded-md shadow-md relative overflow-hidden flex-shrink-0">
+                            <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/40 to-teal-500/40"></div>
+                        </div>
+                        <div class="truncate">
+                            <div class="text-white font-medium truncate">Resonance</div>
+                            <div class="text-text-secondary text-xs truncate">HOME</div>
+                        </div>
+                        <button class="text-emerald-400 ml-2 hidden sm:block"><i data-lucide="heart" class="w-4 h-4 fill-current"></i></button>
+                    </div>
+
+                    <!-- Player Controls -->
+                    <div class="flex flex-col items-center justify-center w-1/3 max-w-md">
+                        <div class="flex items-center gap-4 md:gap-6 mb-2">
+                            <button class="text-text-secondary hover:text-white hidden sm:block"><i data-lucide="shuffle" class="w-4 h-4"></i></button>
+                            <button class="text-text-secondary hover:text-white"><i data-lucide="skip-back" class="w-5 h-5 fill-current"></i></button>
+                            <button class="w-8 h-8 md:w-10 md:h-10 bg-white rounded-full flex items-center justify-center hover:scale-105 transition shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                                <i data-lucide="pause" class="w-4 h-4 md:w-5 md:h-5 text-dark-bg fill-current"></i>
+                            </button>
+                            <button class="text-text-secondary hover:text-white"><i data-lucide="skip-forward" class="w-5 h-5 fill-current"></i></button>
+                            <button class="text-text-secondary hover:text-white hidden sm:block"><i data-lucide="repeat" class="w-4 h-4"></i></button>
+                        </div>
+                        <!-- Progress Bar -->
+                        <div class="w-full flex items-center gap-2 text-xs text-text-tertiary">
+                            <span>1:24</span>
+                            <div class="flex-1 h-1.5 bg-dark-bg rounded-full overflow-hidden flex">
+                                <div class="w-1/3 h-full bg-gradient-emerald relative">
+                                    <div class="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white rounded-full shadow"></div>
+                                </div>
+                            </div>
+                            <span>3:32</span>
+                        </div>
+                    </div>
+
+                    <!-- Volume & Extra Controls (Hidden on mobile) -->
+                    <div class="hidden md:flex items-center justify-end gap-3 w-1/3 text-text-secondary">
+                        <button class="hover:text-white"><i data-lucide="mic-2" class="w-4 h-4"></i></button>
+                        <button class="hover:text-white"><i data-lucide="list-video" class="w-4 h-4"></i></button>
+                        <button class="hover:text-white"><i data-lucide="monitor-speaker" class="w-4 h-4"></i></button>
+                        <div class="flex items-center gap-2 w-24">
+                            <i data-lucide="volume-2" class="w-4 h-4"></i>
+                            <div class="flex-1 h-1.5 bg-dark-bg rounded-full overflow-hidden">
+                                <div class="w-2/3 h-full bg-white hover:bg-emerald-400 transition-colors"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. TECHNOLOGIES -->
+    <section class="py-16 border-y border-white/5 bg-dark-bg/50 backdrop-blur-sm relative z-10">
+        <div class="max-w-4xl mx-auto px-6 text-center reveal">
+            <h4 class="text-text-tertiary text-xs font-bold uppercase tracking-[0.2em] mb-8">Construit avec</h4>
+            <div class="flex flex-wrap justify-center items-center gap-10 md:gap-16">
+                <!-- Badges textuels épurés pour les technos -->
+                <div class="text-text-secondary opacity-50 hover:opacity-100 hover:text-white transition-all duration-300 font-display font-bold text-xl tracking-wider flex items-center gap-2">
+                    <i data-lucide="hexagon" class="w-6 h-6"></i> TAURI
+                </div>
+                <div class="text-text-secondary opacity-50 hover:opacity-100 hover:text-[#61DAFB] transition-all duration-300 font-display font-bold text-xl tracking-wider flex items-center gap-2">
+                    <i data-lucide="atom" class="w-6 h-6"></i> REACT
+                </div>
+                <div class="text-text-secondary opacity-50 hover:opacity-100 hover:text-[#3178C6] transition-all duration-300 font-display font-bold text-xl tracking-wider flex items-center gap-2">
+                    <i data-lucide="file-code-2" class="w-6 h-6"></i> TYPESCRIPT
+                </div>
+                <div class="text-text-secondary opacity-50 hover:opacity-100 hover:text-[#DEA584] transition-all duration-300 font-display font-bold text-xl tracking-wider flex items-center gap-2">
+                    <i data-lucide="cog" class="w-6 h-6"></i> RUST
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. FOOTER -->
+    <footer class="border-t border-white/[0.06] py-10 relative z-10">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+            
+            <div class="flex items-center gap-3">
+                <svg width="24" height="24" viewBox="0 0 64 64">
+                    <!-- Petit logo statique pour le footer -->
+                    <rect x="4" y="8" width="8" height="48" rx="4" fill="#10B981" />
+                    <rect x="16" y="16" width="8" height="32" rx="4" fill="#10B981" />
+                    <rect x="28" y="24" width="8" height="16" rx="4" fill="#10B981" />
+                    <rect x="40" y="16" width="8" height="32" rx="4" fill="#10B981" />
+                    <rect x="52" y="8" width="8" height="48" rx="4" fill="#10B981" />
+                </svg>
+                <span class="font-display font-bold text-lg text-white tracking-wide">WaveFlow</span>
+            </div>
+
+            <div class="text-text-tertiary text-sm">
+                &copy; 2025 WaveFlow. Tous droits réservés.
+            </div>
+
+            <div class="flex items-center gap-6 text-sm text-text-secondary">
+                <a href="#" class="hover:text-white transition-colors">GitHub</a>
+                <a href="#" class="hover:text-white transition-colors">Licence MIT</a>
+            </div>
+
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // Initialisation des icônes Lucide
+        lucide.createIcons();
+
+        // Animation au scroll (Intersection Observer)
+        document.addEventListener('DOMContentLoaded', () => {
+            const reveals = document.querySelectorAll('.reveal');
+
+            const revealOnScroll = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                        // Optionnel: on peut arrêter d'observer une fois révélé pour la perf
+                        // observer.unobserve(entry.target); 
+                    }
+                });
+            }, {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.15
+            });
+
+            reveals.forEach(element => {
+                revealOnScroll.observe(element);
+            });
+        });
+    </script>
+</body>
+</html>
