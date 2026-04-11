@@ -4,14 +4,18 @@
 //! (running any pending migrations) and exposes the initial set of Tauri
 //! commands to the frontend.
 
+mod audio;
 mod commands;
 mod db;
 mod error;
 mod paths;
 mod state;
 
+use std::sync::Arc;
+
 use tauri::Manager;
 
+use audio::AudioEngine;
 use state::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -40,6 +44,14 @@ pub fn run() {
             })?;
 
             app.manage(state);
+
+            // Audio engine lives alongside AppState. Later checkpoints will
+            // spawn the decoder thread and open the cpal output stream from
+            // inside `AudioEngine::new`; for now it's a no-op placeholder so
+            // player_* commands can type-check against the managed handle.
+            let engine: Arc<AudioEngine> = AudioEngine::new();
+            app.manage(engine);
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -30,6 +30,9 @@ pub enum AppError {
     #[error("app data directory is unavailable")]
     MissingAppDataDir,
 
+    #[error("audio error: {0}")]
+    Audio(String),
+
     #[error("{0}")]
     Other(String),
 }
