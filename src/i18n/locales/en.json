@@ -120,7 +120,9 @@
         "genres_zero": "0 Genres",
         "genres_one": "{{count}} Genre",
         "genres_other": "{{count}} Genres",
-        "dossiers": "Explorer"
+        "dossiers_zero": "0 Folders",
+        "dossiers_one": "{{count}} Folder",
+        "dossiers_other": "{{count}} Folders"
       }
     },
     "tabs": {
@@ -154,7 +156,53 @@
     },
     "actions": {
       "importFiles": "Import files",
-      "importFolder": "Import folder"
+      "importFolder": "Import folder",
+      "share": "Share (soon)",
+      "rescan": "Rescan library",
+      "rescanning": "Rescanning…",
+      "changeArtwork": "Change artwork (soon)",
+      "edit": "Edit library",
+      "delete": "Delete library",
+      "deleteConfirm": "Click again to confirm"
+    },
+    "table": {
+      "number": "#",
+      "title": "Title",
+      "artist": "Artist",
+      "album": "Album",
+      "duration": "Duration",
+      "unknown": "—"
+    },
+    "viewToggle": {
+      "label": "View mode",
+      "list": "List",
+      "compact": "Compact"
+    },
+    "albumGrid": {
+      "trackCount_zero": "0 tracks",
+      "trackCount_one": "{{count}} track",
+      "trackCount_other": "{{count}} tracks"
+    },
+    "artistList": {
+      "trackCount_zero": "0 tracks",
+      "trackCount_one": "{{count}} track",
+      "trackCount_other": "{{count}} tracks",
+      "albumCount_zero": "0 albums",
+      "albumCount_one": "{{count}} album",
+      "albumCount_other": "{{count}} albums"
+    },
+    "genreList": {
+      "trackCount_zero": "0 tracks",
+      "trackCount_one": "{{count}} track",
+      "trackCount_other": "{{count}} tracks"
+    },
+    "folderList": {
+      "trackCount_zero": "0 tracks",
+      "trackCount_one": "{{count}} track",
+      "trackCount_other": "{{count}} tracks",
+      "lastScanned": "Scanned: {{date}}",
+      "neverScanned": "never",
+      "watched": "Watched"
     }
   },
   "liked": {
@@ -258,7 +306,9 @@
       "title": "Who's listening?",
       "subtitle": "Select your profile to find your libraries and playlists",
       "add": "Add",
-      "edit": "Edit"
+      "edit": "Edit",
+      "active": "Active profile",
+      "switchTo": "Switch"
     },
     "create": {
       "title": "New profile",
@@ -272,13 +322,15 @@
   },
   "libraryModal": {
     "title": "Create a Library",
+    "editTitle": "Edit Library",
     "previewDefault": "Create a Library",
     "previewSubtitle": "0 track · Library",
     "nameLabel": "Library name",
     "namePlaceholder": "E.g. Rock, Jazz, Classical...",
     "descriptionLabel": "Description",
     "descriptionPlaceholder": "A short description...",
-    "submit": "Create a Library"
+    "submit": "Create a Library",
+    "submitEdit": "Save"
   },
   "playlistModal": {
     "title": "Playlists",

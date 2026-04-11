@@ -22,6 +22,10 @@ import { NavItem } from "../common/NavItem";
 import { WaveFlowLogo } from "../common/WaveFlowLogo";
 import { CreateLibraryModal } from "../common/CreateLibraryModal";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
+import { useProfile } from "../../hooks/useProfile";
+import { useLibrary } from "../../hooks/useLibrary";
+import { getProfileColor, profileInitial } from "../../lib/profileColors";
+import { pickFolder } from "../../lib/tauri/dialog";
 
 interface SidebarProps {
   activeView: ViewId;
@@ -30,33 +34,55 @@ interface SidebarProps {
   setLibraryTab: (tab: LibraryTab) => void;
 }
 
-interface LibraryEntry {
-  id: string;
-  name: string;
-  tracks: number;
-  albums: number;
-}
-
 export function Sidebar({ activeView, setActiveView, libraryTab, setLibraryTab }: SidebarProps) {
   const { t } = useTranslation();
+  const { activeProfile } = useProfile();
+  const {
+    libraries,
+    selectedLibraryId,
+    selectedLibrary,
+    selectLibrary,
+    createLibrary,
+    importFolder,
+  } = useLibrary();
+  const profileColor = getProfileColor(activeProfile?.color_id);
   const [isLibraryPopoverOpen, setIsLibraryPopoverOpen] = useState(false);
   const [isCreateLibraryModalOpen, setIsCreateLibraryModalOpen] =
     useState(false);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
-  const [libraries, setLibraries] = useState<LibraryEntry[]>([
-    { id: "lofi-base", name: "lofi Base", tracks: 0, albums: 0 },
-  ]);
-  const [selectedLibraryId, setSelectedLibraryId] = useState("lofi-base");
+  const [isImporting, setIsImporting] = useState(false);
   const libraryPopoverRef = useRef<HTMLDivElement>(null);
 
-  const handleCreateLibrary = (name: string, _description: string) => {
-    const id = `${name.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`;
-    setLibraries((prev) => [...prev, { id, name, tracks: 0, albums: 0 }]);
-    setSelectedLibraryId(id);
+  const handleCreateLibrary = async (name: string, description: string) => {
+    try {
+      await createLibrary({
+        name,
+        description: description || null,
+      });
+    } catch (err) {
+      console.error("[Sidebar] failed to create library", err);
+    }
   };
 
-  const selectedLibrary = libraries.find((lib) => lib.id === selectedLibraryId);
+  const handleImportFolder = async () => {
+    if (isImporting) return;
+    const libraryId = selectedLibraryId;
+    if (libraryId == null) {
+      setIsCreateLibraryModalOpen(true);
+      return;
+    }
+    try {
+      const path = await pickFolder(t("sidebar.open.folder"));
+      if (!path) return;
+      setIsImporting(true);
+      await importFolder(libraryId, path);
+    } catch (err) {
+      console.error("[Sidebar] import failed", err);
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   useEffect(() => {
     if (!isLibraryPopoverOpen) return;
@@ -95,13 +121,17 @@ export function Sidebar({ activeView, setActiveView, libraryTab, setLibraryTab }
         </div>
 
         <button className="w-full flex items-center justify-between p-2 rounded-xl border transition-colors border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/50 dark:hover:bg-zinc-800 dark:text-zinc-200">
-          <div className="flex items-center space-x-3">
-            <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold">
-              D
+          <div className="flex items-center space-x-3 min-w-0">
+            <div
+              className={`w-6 h-6 rounded-full ${profileColor.avatarBg} ${profileColor.avatarText} flex items-center justify-center text-xs font-bold shrink-0`}
+            >
+              {activeProfile ? profileInitial(activeProfile.name) : ""}
             </div>
-            <span className="text-sm font-medium">Default</span>
+            <span className="text-sm font-medium truncate">
+              {activeProfile?.name ?? ""}
+            </span>
           </div>
-          <div className="w-2 h-2 rounded-full bg-emerald-500" />
+          <div className={`w-2 h-2 rounded-full ${profileColor.dot} shrink-0`} />
         </button>
       </div>
 
@@ -125,7 +155,12 @@ export function Sidebar({ activeView, setActiveView, libraryTab, setLibraryTab }
             <button className="flex-1 flex items-center justify-center space-x-2 py-2 rounded-xl border text-xs font-medium transition-colors border-zinc-200 hover:bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:hover:bg-zinc-800 dark:text-zinc-300">
               <File size={14} /> <span>{t("sidebar.open.file")}</span>
             </button>
-            <button className="flex-1 flex items-center justify-center space-x-2 py-2 rounded-xl border text-xs font-medium transition-colors border-zinc-200 hover:bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:hover:bg-zinc-800 dark:text-zinc-300">
+            <button
+              type="button"
+              onClick={handleImportFolder}
+              disabled={isImporting}
+              className="flex-1 flex items-center justify-center space-x-2 py-2 rounded-xl border text-xs font-medium transition-colors border-zinc-200 hover:bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:hover:bg-zinc-800 dark:text-zinc-300 disabled:opacity-60 disabled:cursor-wait"
+            >
               <Folder size={14} /> <span>{t("sidebar.open.folder")}</span>
             </button>
           </div>
@@ -150,7 +185,13 @@ export function Sidebar({ activeView, setActiveView, libraryTab, setLibraryTab }
             <div className="relative" ref={libraryPopoverRef}>
               <button
                 type="button"
-                onClick={() => setIsLibraryPopoverOpen((prev) => !prev)}
+                onClick={() => {
+                  if (libraries.length === 0) {
+                    setIsCreateLibraryModalOpen(true);
+                    return;
+                  }
+                  setIsLibraryPopoverOpen((prev) => !prev);
+                }}
                 aria-haspopup="listbox"
                 aria-expanded={isLibraryPopoverOpen}
                 className={`w-full flex items-center justify-between p-2 rounded-xl border transition-colors ${
@@ -169,16 +210,17 @@ export function Sidebar({ activeView, setActiveView, libraryTab, setLibraryTab }
                     </div>
                     <div className="text-xs text-zinc-500">
                       {t("sidebar.library.tracksCount", {
-                        count: selectedLibrary?.tracks ?? 0,
+                        count: selectedLibrary?.track_count ?? 0,
                       })}
                     </div>
                   </div>
                 </div>
-                {isLibraryPopoverOpen ? (
-                  <ChevronUp size={16} className="text-zinc-400 shrink-0" />
-                ) : (
-                  <ChevronDown size={16} className="text-zinc-400 shrink-0" />
-                )}
+                {libraries.length > 0 &&
+                  (isLibraryPopoverOpen ? (
+                    <ChevronUp size={16} className="text-zinc-400 shrink-0" />
+                  ) : (
+                    <ChevronDown size={16} className="text-zinc-400 shrink-0" />
+                  ))}
               </button>
 
               {isLibraryPopoverOpen && (
@@ -201,7 +243,7 @@ export function Sidebar({ activeView, setActiveView, libraryTab, setLibraryTab }
                           role="option"
                           aria-selected={isSelected}
                           onClick={() => {
-                            setSelectedLibraryId(lib.id);
+                            selectLibrary(lib.id);
                             setIsLibraryPopoverOpen(false);
                           }}
                           className={`w-full flex items-center space-x-2 p-2 rounded-lg text-left transition-colors ${
@@ -236,10 +278,10 @@ export function Sidebar({ activeView, setActiveView, libraryTab, setLibraryTab }
                             <div className="text-[11px] text-zinc-500">
                               {t("sidebar.library.popover.countLine", {
                                 tracks: t("sidebar.library.popover.tracks", {
-                                  count: lib.tracks,
+                                  count: lib.track_count,
                                 }),
                                 albums: t("sidebar.library.popover.albums", {
-                                  count: lib.albums,
+                                  count: lib.album_count,
                                 }),
                               })}
                             </div>

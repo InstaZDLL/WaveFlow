@@ -1,29 +1,52 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Library, Plus } from "lucide-react";
+import { Library, Plus, Check } from "lucide-react";
+
+type ModalMode = "create" | "edit";
 
 interface CreateLibraryModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Create mode submit handler (kept for backwards compatibility). */
   onCreate?: (name: string, description: string) => void;
+  /** Edit mode submit handler. When provided alongside `mode = "edit"`
+   *  the modal calls this instead of `onCreate`. */
+  onSubmit?: (name: string, description: string) => void;
+  /** Dictates which labels and initial values are shown. */
+  mode?: ModalMode;
+  /** Prefilled name when in edit mode. */
+  initialName?: string;
+  /** Prefilled description when in edit mode. */
+  initialDescription?: string;
 }
 
 export function CreateLibraryModal({
   isOpen,
   onClose,
   onCreate,
+  onSubmit,
+  mode = "create",
+  initialName = "",
+  initialDescription = "",
 }: CreateLibraryModalProps) {
   const { t } = useTranslation();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [name, setName] = useState(initialName);
+  const [description, setDescription] = useState(initialDescription);
 
-  // Reset when the modal closes
+  // Re-seed the form from props whenever the modal opens — a closed modal
+  // keeps its stale values so the next open starts from whatever library
+  // the user clicked Edit on. We can't use `key` here because the parent
+  // keeps the component mounted while `isOpen` toggles.
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setName(initialName);
+      setDescription(initialDescription);
+    } else {
       setName("");
       setDescription("");
     }
-  }, [isOpen]);
+  }, [isOpen, initialName, initialDescription]);
 
   // Close on Escape
   useEffect(() => {
@@ -39,10 +62,19 @@ export function CreateLibraryModal({
 
   const canSubmit = name.trim().length > 0;
   const displayName = name.trim() || t("libraryModal.previewDefault");
+  const titleKey = mode === "edit" ? "libraryModal.editTitle" : "libraryModal.title";
+  const submitKey = mode === "edit" ? "libraryModal.submitEdit" : "libraryModal.submit";
+  const SubmitIcon = mode === "edit" ? Check : Plus;
 
-  const handleCreate = () => {
+  const handleSubmit = () => {
     if (!canSubmit) return;
-    onCreate?.(name.trim(), description.trim());
+    const trimmedName = name.trim();
+    const trimmedDescription = description.trim();
+    if (mode === "edit") {
+      onSubmit?.(trimmedName, trimmedDescription);
+    } else {
+      onCreate?.(trimmedName, trimmedDescription);
+    }
     onClose();
   };
 
@@ -56,7 +88,7 @@ export function CreateLibraryModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">
-          {t("libraryModal.title")}
+          {t(titleKey)}
         </h2>
 
         {/* Live preview card */}
@@ -90,7 +122,7 @@ export function CreateLibraryModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && canSubmit) handleCreate();
+              if (e.key === "Enter" && canSubmit) handleSubmit();
             }}
             placeholder={t("libraryModal.namePlaceholder")}
             autoFocus
@@ -130,12 +162,12 @@ export function CreateLibraryModal({
           </button>
           <button
             type="button"
-            onClick={handleCreate}
+            onClick={handleSubmit}
             disabled={!canSubmit}
             className="px-5 py-2 rounded-xl text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-white flex items-center space-x-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
           >
-            <Plus size={16} />
-            <span>{t("libraryModal.submit")}</span>
+            <SubmitIcon size={16} />
+            <span>{t(submitKey)}</span>
           </button>
         </div>
       </div>

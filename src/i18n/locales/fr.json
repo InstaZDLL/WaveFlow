@@ -120,7 +120,9 @@
         "genres_zero": "0 Genre",
         "genres_one": "{{count}} Genre",
         "genres_other": "{{count}} Genres",
-        "dossiers": "Explorateur"
+        "dossiers_zero": "0 Dossier",
+        "dossiers_one": "{{count}} Dossier",
+        "dossiers_other": "{{count}} Dossiers"
       }
     },
     "tabs": {
@@ -154,7 +156,53 @@
     },
     "actions": {
       "importFiles": "Importer des fichiers",
-      "importFolder": "Importer un dossier"
+      "importFolder": "Importer un dossier",
+      "share": "Partager (bientôt)",
+      "rescan": "Rescanner la bibliothèque",
+      "rescanning": "Rescan en cours…",
+      "changeArtwork": "Changer l'image (bientôt)",
+      "edit": "Modifier la bibliothèque",
+      "delete": "Supprimer la bibliothèque",
+      "deleteConfirm": "Cliquez à nouveau pour confirmer"
+    },
+    "table": {
+      "number": "#",
+      "title": "Titre",
+      "artist": "Artiste",
+      "album": "Album",
+      "duration": "Durée",
+      "unknown": "—"
+    },
+    "viewToggle": {
+      "label": "Mode d'affichage",
+      "list": "Liste",
+      "compact": "Compact"
+    },
+    "albumGrid": {
+      "trackCount_zero": "0 titre",
+      "trackCount_one": "{{count}} titre",
+      "trackCount_other": "{{count}} titres"
+    },
+    "artistList": {
+      "trackCount_zero": "0 titre",
+      "trackCount_one": "{{count}} titre",
+      "trackCount_other": "{{count}} titres",
+      "albumCount_zero": "0 album",
+      "albumCount_one": "{{count}} album",
+      "albumCount_other": "{{count}} albums"
+    },
+    "genreList": {
+      "trackCount_zero": "0 titre",
+      "trackCount_one": "{{count}} titre",
+      "trackCount_other": "{{count}} titres"
+    },
+    "folderList": {
+      "trackCount_zero": "0 titre",
+      "trackCount_one": "{{count}} titre",
+      "trackCount_other": "{{count}} titres",
+      "lastScanned": "Scanné : {{date}}",
+      "neverScanned": "jamais",
+      "watched": "Surveillé"
     }
   },
   "liked": {
@@ -258,7 +306,9 @@
       "title": "Qui écoute ?",
       "subtitle": "Sélectionne ton profil pour retrouver tes bibliothèques et playlists",
       "add": "Ajouter",
-      "edit": "Modifier"
+      "edit": "Modifier",
+      "active": "Profil actif",
+      "switchTo": "Basculer"
     },
     "create": {
       "title": "Nouveau profil",
@@ -272,13 +322,15 @@
   },
   "libraryModal": {
     "title": "Créer une Bibliothèque",
+    "editTitle": "Modifier la Bibliothèque",
     "previewDefault": "Créer une Bibliothèque",
     "previewSubtitle": "0 titre · Bibliothèque",
     "nameLabel": "Nom de la Bibliothèque",
     "namePlaceholder": "Ex : Rock, Jazz, Classique...",
     "descriptionLabel": "Description",
     "descriptionPlaceholder": "Une courte description...",
-    "submit": "Créer une Bibliothèque"
+    "submit": "Créer une Bibliothèque",
+    "submitEdit": "Enregistrer"
   },
   "playlistModal": {
     "title": "Playlists",

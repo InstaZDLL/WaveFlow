@@ -160,9 +160,11 @@ export function CreatePlaylistModal({
   const [selectedColorId, setSelectedColorId] = useState(PLAYLIST_COLORS[0].id);
   const [selectedIconId, setSelectedIconId] = useState(PLAYLIST_ICONS[0].id);
 
-  // Reset on close
+  // Reset on close. See CreateLibraryModal for why the new
+  // react-hooks/set-state-in-effect rule is suppressed here.
   useEffect(() => {
     if (!isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName("");
       setDescription("");
       setSelectedColorId(PLAYLIST_COLORS[0].id);

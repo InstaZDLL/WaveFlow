@@ -11,6 +11,7 @@ export default tseslint.config(
       "**/dist/**",
       "**/target/**",
       "src-tauri/**",
+      "waveflow-landing/**",
       "**/*.config.ts",
       "**/*.config.js",
     ],

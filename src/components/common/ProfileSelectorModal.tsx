@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Plus, ArrowLeft } from "lucide-react";
+import { X, Plus, ArrowLeft, Check } from "lucide-react";
+import { useProfile } from "../../hooks/useProfile";
+import type { Profile } from "../../lib/tauri/profile";
+import {
+  PROFILE_COLORS,
+  DEFAULT_PROFILE_COLOR_ID,
+  getProfileColor,
+  profileInitial,
+} from "../../lib/profileColors";
 
 interface ProfileSelectorModalProps {
   isOpen: boolean;
@@ -9,124 +17,27 @@ interface ProfileSelectorModalProps {
 
 type ProfileModalView = "select" | "create";
 
-interface ProfileColor {
-  id: string;
-  swatch: string;
-  ring: string;
-  glow: string;
-  iconBorder: string;
-  iconText: string;
-  button: string;
-}
-
-const PROFILE_COLORS: ProfileColor[] = [
-  {
-    id: "emerald",
-    swatch: "bg-emerald-500",
-    ring: "ring-emerald-400",
-    glow: "bg-emerald-500/25",
-    iconBorder: "border-emerald-500/40",
-    iconText: "text-emerald-400",
-    button: "bg-emerald-500 hover:bg-emerald-400 shadow-emerald-500/20",
-  },
-  {
-    id: "violet",
-    swatch: "bg-violet-500",
-    ring: "ring-violet-400",
-    glow: "bg-violet-500/25",
-    iconBorder: "border-violet-500/40",
-    iconText: "text-violet-400",
-    button: "bg-violet-500 hover:bg-violet-400 shadow-violet-500/20",
-  },
-  {
-    id: "sky",
-    swatch: "bg-sky-500",
-    ring: "ring-sky-400",
-    glow: "bg-sky-500/25",
-    iconBorder: "border-sky-500/40",
-    iconText: "text-sky-400",
-    button: "bg-sky-500 hover:bg-sky-400 shadow-sky-500/20",
-  },
-  {
-    id: "amber",
-    swatch: "bg-amber-500",
-    ring: "ring-amber-400",
-    glow: "bg-amber-500/25",
-    iconBorder: "border-amber-500/40",
-    iconText: "text-amber-400",
-    button: "bg-amber-500 hover:bg-amber-400 shadow-amber-500/20",
-  },
-  {
-    id: "red",
-    swatch: "bg-red-500",
-    ring: "ring-red-400",
-    glow: "bg-red-500/25",
-    iconBorder: "border-red-500/40",
-    iconText: "text-red-400",
-    button: "bg-red-500 hover:bg-red-400 shadow-red-500/20",
-  },
-  {
-    id: "indigo",
-    swatch: "bg-indigo-500",
-    ring: "ring-indigo-400",
-    glow: "bg-indigo-500/25",
-    iconBorder: "border-indigo-500/40",
-    iconText: "text-indigo-400",
-    button: "bg-indigo-500 hover:bg-indigo-400 shadow-indigo-500/20",
-  },
-  {
-    id: "lime",
-    swatch: "bg-lime-500",
-    ring: "ring-lime-400",
-    glow: "bg-lime-500/25",
-    iconBorder: "border-lime-500/40",
-    iconText: "text-lime-400",
-    button: "bg-lime-500 hover:bg-lime-400 shadow-lime-500/20",
-  },
-  {
-    id: "orange",
-    swatch: "bg-orange-500",
-    ring: "ring-orange-400",
-    glow: "bg-orange-500/25",
-    iconBorder: "border-orange-500/40",
-    iconText: "text-orange-400",
-    button: "bg-orange-500 hover:bg-orange-400 shadow-orange-500/20",
-  },
-  {
-    id: "rose",
-    swatch: "bg-rose-500",
-    ring: "ring-rose-400",
-    glow: "bg-rose-500/25",
-    iconBorder: "border-rose-500/40",
-    iconText: "text-rose-400",
-    button: "bg-rose-500 hover:bg-rose-400 shadow-rose-500/20",
-  },
-  {
-    id: "teal",
-    swatch: "bg-teal-500",
-    ring: "ring-teal-400",
-    glow: "bg-teal-500/25",
-    iconBorder: "border-teal-500/40",
-    iconText: "text-teal-400",
-    button: "bg-teal-500 hover:bg-teal-400 shadow-teal-500/20",
-  },
-];
-
 export function ProfileSelectorModal({
   isOpen,
   onClose,
 }: ProfileSelectorModalProps) {
   const { t } = useTranslation();
+  const { profiles, activeProfile, createProfile, switchProfile } = useProfile();
+
   const [view, setView] = useState<ProfileModalView>("select");
   const [newProfileName, setNewProfileName] = useState("");
-  const [selectedColorId, setSelectedColorId] = useState(PROFILE_COLORS[0].id);
+  const [selectedColorId, setSelectedColorId] = useState(DEFAULT_PROFILE_COLOR_ID);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Reset internal state when the modal closes
   useEffect(() => {
     if (!isOpen) {
       setView("select");
       setNewProfileName("");
-      setSelectedColorId(PROFILE_COLORS[0].id);
+      setSelectedColorId(DEFAULT_PROFILE_COLOR_ID);
+      setIsSubmitting(false);
+      setSubmitError(null);
     }
   }, [isOpen]);
 
@@ -147,14 +58,41 @@ export function ProfileSelectorModal({
 
   if (!isOpen) return null;
 
-  const canSubmit = newProfileName.trim().length > 0;
-  const currentColor =
-    PROFILE_COLORS.find((c) => c.id === selectedColorId) ?? PROFILE_COLORS[0];
+  const canSubmit = newProfileName.trim().length > 0 && !isSubmitting;
+  const currentColor = getProfileColor(selectedColorId);
 
-  const handleCreateProfile = () => {
+  const handleSelectProfile = async (profile: Profile) => {
+    if (profile.id === activeProfile?.id) {
+      onClose();
+      return;
+    }
+    try {
+      await switchProfile(profile.id);
+      onClose();
+    } catch (err) {
+      console.error("[ProfileSelectorModal] switch failed", err);
+    }
+  };
+
+  const handleCreateProfile = async () => {
     if (!canSubmit) return;
-    // TODO: persist the profile once the backend layer lands
-    onClose();
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const created = await createProfile({
+        name: newProfileName.trim(),
+        color_id: selectedColorId,
+      });
+      // Auto-activate the freshly created profile so the user lands directly
+      // in their new environment — matches what most profile managers do.
+      await switchProfile(created.id);
+      onClose();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setSubmitError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -181,21 +119,44 @@ export function ProfileSelectorModal({
               {t("profiles.select.subtitle")}
             </p>
 
-            <div className="flex items-center justify-center space-x-8">
-              {/* Default Profile */}
-              <button
-                type="button"
-                onClick={onClose}
-                className="group flex flex-col items-center space-y-3"
-              >
-                <div className="w-32 h-32 rounded-2xl bg-zinc-800 border-2 border-emerald-500 flex items-center justify-center text-5xl font-bold text-zinc-400 group-hover:border-emerald-400 transition-colors shadow-lg shadow-emerald-500/20">
-                  D
-                </div>
-                <span className="text-white font-medium">Default</span>
-                <span className="text-xs text-zinc-500">
-                  {t("profiles.select.edit")}
-                </span>
-              </button>
+            <div className="flex flex-wrap items-start justify-center gap-8 max-w-3xl">
+              {profiles.map((profile) => {
+                const color = getProfileColor(profile.color_id);
+                const isActive = profile.id === activeProfile?.id;
+                return (
+                  <button
+                    key={profile.id}
+                    type="button"
+                    onClick={() => handleSelectProfile(profile)}
+                    className="group flex flex-col items-center space-y-3"
+                  >
+                    <div
+                      className={`relative w-32 h-32 rounded-2xl bg-zinc-800 border-2 flex items-center justify-center text-5xl font-bold text-zinc-300 transition-colors shadow-lg ${
+                        isActive
+                          ? `${color.iconBorder.replace("/40", "")} shadow-black/40`
+                          : "border-zinc-700 group-hover:border-zinc-500"
+                      }`}
+                    >
+                      {profileInitial(profile.name)}
+                      {isActive && (
+                        <div
+                          className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-full ${color.avatarBg} text-white flex items-center justify-center shadow-lg ring-4 ring-zinc-900`}
+                        >
+                          <Check size={16} strokeWidth={3} />
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-white font-medium">
+                      {profile.name}
+                    </span>
+                    <span className="text-xs text-zinc-500">
+                      {isActive
+                        ? t("profiles.select.active")
+                        : t("profiles.select.switchTo")}
+                    </span>
+                  </button>
+                );
+              })}
 
               {/* Add Profile */}
               <button
@@ -240,7 +201,11 @@ export function ProfileSelectorModal({
               <div
                 className={`relative w-20 h-20 rounded-2xl bg-zinc-800 border flex items-center justify-center shadow-sm transition-colors duration-300 ${currentColor.iconBorder} ${currentColor.iconText}`}
               >
-                <span className="text-5xl font-bold leading-none">?</span>
+                <span className="text-5xl font-bold leading-none">
+                  {newProfileName.trim()
+                    ? profileInitial(newProfileName)
+                    : "?"}
+                </span>
               </div>
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">
@@ -267,7 +232,9 @@ export function ProfileSelectorModal({
               value={newProfileName}
               onChange={(e) => setNewProfileName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && canSubmit) handleCreateProfile();
+                if (e.key === "Enter" && canSubmit) {
+                  void handleCreateProfile();
+                }
               }}
               placeholder={t("profiles.create.namePlaceholder")}
               autoFocus
@@ -300,6 +267,12 @@ export function ProfileSelectorModal({
               })}
             </div>
           </div>
+
+          {submitError && (
+            <div className="mb-4 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/40 text-sm text-red-400">
+              {submitError}
+            </div>
+          )}
 
           {/* Footer actions */}
           <div className="flex items-center justify-end space-x-3">

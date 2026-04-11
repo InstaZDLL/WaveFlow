@@ -19,13 +19,17 @@ pub fn run() {
     // Initialize structured logging. `RUST_LOG` overrides the default filter.
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info,sqlx=warn")),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                // Keep the default filter terse — lofty is noisy on malformed
+                // MP4 atoms and sqlx logs every query at info level.
+                tracing_subscriber::EnvFilter::new("info,sqlx=warn,lofty=error")
+            }),
         )
         .init();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let handle = app.handle().clone();
 
@@ -45,6 +49,18 @@ pub fn run() {
             commands::profile::create_profile,
             commands::profile::switch_profile,
             commands::profile::deactivate_profile,
+            commands::library::list_libraries,
+            commands::library::create_library,
+            commands::library::update_library,
+            commands::library::delete_library,
+            commands::library::rescan_library,
+            commands::library::add_folder_to_library,
+            commands::scan::scan_folder,
+            commands::track::list_tracks,
+            commands::browse::list_albums,
+            commands::browse::list_artists,
+            commands::browse::list_genres,
+            commands::browse::list_folders,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

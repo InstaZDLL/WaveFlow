@@ -5,6 +5,8 @@ import { ActionLink } from "../common/ActionLink";
 import { StatCard } from "../common/StatCard";
 import { EmptyState } from "../common/EmptyState";
 import { UploadIcon, DownloadIcon } from "../common/Icons";
+import { useProfile } from "../../hooks/useProfile";
+import { useLibrary } from "../../hooks/useLibrary";
 
 interface HomeViewProps {
   onNavigate: (view: ViewId) => void;
@@ -30,6 +32,10 @@ function getGreetingKey(): "morning" | "evening" | "night" {
 
 export function HomeView({ onNavigate }: HomeViewProps) {
   const { t } = useTranslation();
+  const { activeProfile } = useProfile();
+  const { libraries } = useLibrary();
+  const greetingName = activeProfile?.name ?? "";
+  const libraryCount = libraries.length;
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20">
       {/* Welcome Banner */}
@@ -51,7 +57,8 @@ export function HomeView({ onNavigate }: HomeViewProps) {
           </div>
 
           <h1 className="text-4xl font-bold mb-2 text-zinc-900 dark:text-white">
-            {t(`home.greeting.${getGreetingKey()}`)}, Default
+            {t(`home.greeting.${getGreetingKey()}`)}
+            {greetingName && `, ${greetingName}`}
           </h1>
           <p className="text-zinc-500 dark:text-zinc-400 mb-8">
             {t("home.banner.subtitle")}
@@ -82,7 +89,7 @@ export function HomeView({ onNavigate }: HomeViewProps) {
         <StatCard
           icon={<Library />}
           accent="emerald"
-          count="1"
+          count={libraryCount.toString()}
           label={t("home.stats.library")}
           onClick={() => onNavigate("library")}
         />

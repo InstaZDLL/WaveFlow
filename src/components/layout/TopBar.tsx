@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import type { ViewId } from "../../types";
 import { useTheme } from "../../hooks/useTheme";
+import { useProfile } from "../../hooks/useProfile";
+import { getProfileColor, profileInitial } from "../../lib/profileColors";
 import { MenuActionItem } from "../common/MenuActionItem";
 
 interface TopBarProps {
@@ -39,6 +41,10 @@ export function TopBar({
 }: TopBarProps) {
   const { t } = useTranslation();
   const { isDark, toggleTheme } = useTheme();
+  const { activeProfile } = useProfile();
+  const profileColor = getProfileColor(activeProfile?.color_id);
+  const profileName = activeProfile?.name ?? "";
+  const profileLetter = activeProfile ? profileInitial(activeProfile.name) : "";
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -159,10 +165,12 @@ export function TopBar({
                   : "border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-200"
               }`}
           >
-            <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold">
-              D
+            <div
+              className={`w-6 h-6 rounded-full ${profileColor.avatarBg} ${profileColor.avatarText} flex items-center justify-center text-xs font-bold`}
+            >
+              {profileLetter}
             </div>
-            <span className="text-sm font-medium">Default</span>
+            <span className="text-sm font-medium">{profileName}</span>
             {isProfileOpen ? (
               <ChevronUp size={14} className="text-zinc-400" />
             ) : (
@@ -174,12 +182,14 @@ export function TopBar({
             <div className="absolute top-full right-0 mt-2 w-56 rounded-xl shadow-lg border overflow-hidden z-50 bg-white border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 animate-fade-in">
               {/* Profile Header */}
               <div className="p-4 flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                  D
+                <div
+                  className={`w-10 h-10 rounded-full ${profileColor.avatarBg} ${profileColor.avatarText} flex items-center justify-center font-bold text-lg shadow-sm`}
+                >
+                  {profileLetter}
                 </div>
-                <div className="flex flex-col text-left">
-                  <div className="font-semibold text-sm text-zinc-900 dark:text-white">
-                    Default
+                <div className="flex flex-col text-left min-w-0">
+                  <div className="font-semibold text-sm text-zinc-900 dark:text-white truncate">
+                    {profileName}
                   </div>
                   <div className="text-xs text-zinc-400">{t("topbar.profile.user")}</div>
                 </div>
