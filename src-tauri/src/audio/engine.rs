@@ -76,7 +76,7 @@ impl AudioEngine {
         // rows and self-send the next `LoadAndPlay`.
         let (analytics_tx, analytics_rx) = unbounded_channel::<AnalyticsMsg>();
 
-        let (output, decoder) = match spawn_output_thread(shared.clone()) {
+        let (output, decoder) = match spawn_output_thread(shared.clone(), app.clone()) {
             Ok((producer, handle)) => {
                 // `spawn_output_thread` returns only after the cpal
                 // stream has opened, so `shared.sample_rate` /

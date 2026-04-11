@@ -21,4 +21,4 @@ pub mod output;
 pub mod resampler;
 pub mod state;
 
-pub use engine::AudioEngine;
+pub use engine::{AudioCmd, AudioEngine};

@@ -25,10 +25,12 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{SampleFormat, Stream, StreamConfig};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use rtrb::{Consumer, Producer, RingBuffer};
+use serde_json::json;
+use tauri::{AppHandle, Emitter};
 
 use crate::error::{AppError, AppResult};
 
-use super::state::SharedPlayback;
+use super::state::{PlayerState, SharedPlayback};
 
 /// Capacity of the SPSC sample ring, in f32 samples. At 48 kHz stereo
 /// this is ~1 second of audio, which gives the decoder thread plenty of
@@ -63,17 +65,25 @@ impl OutputHandle {
 /// profilers / `perf top`. Any error during Stream construction is
 /// surfaced via an init-result channel before this function returns, so
 /// the caller learns synchronously whether playback is usable.
+///
+/// Takes an [`AppHandle`] so the cpal error callback can emit
+/// `player:error` + `player:state` events on device loss (headphones
+/// unplugged mid-playback).
 pub fn spawn_output_thread(
     shared: Arc<SharedPlayback>,
+    app: AppHandle,
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
     let (producer, consumer) = RingBuffer::<f32>::new(RING_CAPACITY);
     let (shutdown_tx, shutdown_rx) = bounded::<()>(1);
     let (init_tx, init_rx) = bounded::<AppResult<()>>(1);
 
     let thread_shared = shared.clone();
+    let thread_app = app.clone();
     let join = std::thread::Builder::new()
         .name("waveflow-audio-output".into())
-        .spawn(move || output_thread_main(thread_shared, consumer, shutdown_rx, init_tx))
+        .spawn(move || {
+            output_thread_main(thread_shared, consumer, shutdown_rx, init_tx, thread_app)
+        })
         .map_err(|e| AppError::Audio(format!("spawn output thread: {e}")))?;
 
     // Block until the thread reports whether the Stream opened cleanly.
@@ -104,8 +114,9 @@ fn output_thread_main(
     consumer: Consumer<f32>,
     shutdown_rx: Receiver<()>,
     init_tx: Sender<AppResult<()>>,
+    app: AppHandle,
 ) {
-    let stream = match build_stream(shared.clone(), consumer) {
+    let stream = match build_stream(shared.clone(), consumer, app.clone()) {
         Ok(s) => s,
         Err(err) => {
             let _ = init_tx.send(Err(err));
@@ -133,6 +144,7 @@ fn output_thread_main(
 fn build_stream(
     shared: Arc<SharedPlayback>,
     consumer: Consumer<f32>,
+    app: AppHandle,
 ) -> AppResult<Stream> {
     let host = cpal::default_host();
     let device = host
@@ -161,9 +173,9 @@ fn build_stream(
     );
 
     match sample_format {
-        SampleFormat::F32 => open_stream::<f32>(&device, &config, consumer, shared),
-        SampleFormat::I16 => open_stream::<i16>(&device, &config, consumer, shared),
-        SampleFormat::U16 => open_stream::<u16>(&device, &config, consumer, shared),
+        SampleFormat::F32 => open_stream::<f32>(&device, &config, consumer, shared, app),
+        SampleFormat::I16 => open_stream::<i16>(&device, &config, consumer, shared, app),
+        SampleFormat::U16 => open_stream::<u16>(&device, &config, consumer, shared, app),
         other => Err(AppError::Audio(format!(
             "unsupported sample format: {other:?}"
         ))),
@@ -178,11 +190,30 @@ fn open_stream<T>(
     config: &StreamConfig,
     mut consumer: Consumer<f32>,
     shared: Arc<SharedPlayback>,
+    app: AppHandle,
 ) -> AppResult<Stream>
 where
     T: cpal::SizedSample + cpal::FromSample<f32> + Send + 'static,
 {
-    let err_fn = |err| tracing::warn!(?err, "cpal stream error");
+    // On device loss (headphones unplugged, sound server restart)
+    // cpal fires this callback on a random thread. We flip state to
+    // Paused, emit player:state + player:error so the UI can surface
+    // the problem, and keep the Stream itself untouched — it's about
+    // to be dropped by cpal anyway.
+    let err_shared = shared.clone();
+    let err_app = app.clone();
+    let err_fn = move |err: cpal::StreamError| {
+        tracing::warn!(?err, "cpal stream error");
+        err_shared.set_state(PlayerState::Paused);
+        let _ = err_app.emit(
+            "player:state",
+            json!({ "state": "paused", "track_id": null }),
+        );
+        let _ = err_app.emit(
+            "player:error",
+            json!({ "message": format!("audio device error: {err}") }),
+        );
+    };
 
     let stream = device
         .build_output_stream(

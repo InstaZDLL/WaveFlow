@@ -31,13 +31,13 @@ interface PlayerContextValue {
   setVolume: (value: number) => void;
   toggleMute: () => void;
 
-  // Shuffle / repeat are UI flags for checkpoint 11 — checkpoint 12
-  // will wire them to new player_toggle_shuffle / player_cycle_repeat
-  // commands.
+  // Shuffle / repeat are backend-synced via player_toggle_shuffle /
+  // player_cycle_repeat. The UI flips optimistically and rolls back
+  // on backend error.
   isShuffled: boolean;
-  toggleShuffle: () => void;
+  toggleShuffle: () => Promise<void>;
   repeatMode: RepeatMode;
-  cycleRepeatMode: () => void;
+  cycleRepeatMode: () => Promise<void>;
 
   // Backend actions
   playTracks: (

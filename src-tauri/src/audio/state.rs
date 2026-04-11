@@ -4,7 +4,7 @@
 //! any locks. The decoder thread and tauri command handlers write, the
 //! audio callback and UI reads.
 
-use std::sync::atomic::{AtomicU16, AtomicU32, AtomicU64, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicI64, AtomicU16, AtomicU32, AtomicU64, AtomicU8, Ordering};
 
 /// High-level player lifecycle. Stored as `AtomicU8` — see [`PlayerState::from_u8`]
 /// for the inverse of `as u8`.
@@ -61,6 +61,10 @@ pub struct SharedPlayback {
     pub volume_bits: AtomicU32,
     pub seek_generation: AtomicU64,
     pub base_offset_ms: AtomicU64,
+    /// ID of the track currently loaded in the decoder (0 = none).
+    /// Written by the decoder thread at `LoadAndPlay` time, read by
+    /// the shutdown hook so it can persist the resume point.
+    pub current_track_id: AtomicI64,
 }
 
 impl SharedPlayback {
@@ -73,6 +77,7 @@ impl SharedPlayback {
             volume_bits: AtomicU32::new(1.0_f32.to_bits()),
             seek_generation: AtomicU64::new(0),
             base_offset_ms: AtomicU64::new(0),
+            current_track_id: AtomicI64::new(0),
         }
     }
 

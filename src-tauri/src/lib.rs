@@ -12,11 +12,12 @@ mod paths;
 mod queue;
 mod state;
 
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
-use tauri::Manager;
+use tauri::{Manager, WindowEvent};
 
-use audio::AudioEngine;
+use audio::{AudioCmd, AudioEngine};
 use state::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -85,7 +86,42 @@ pub fn run() {
             commands::player::player_play_tracks,
             commands::player::player_next,
             commands::player::player_previous,
+            commands::player::player_toggle_shuffle,
+            commands::player::player_cycle_repeat,
+            commands::player::player_resume_last,
         ])
+        .on_window_event(|window, event| {
+            if let WindowEvent::Destroyed = event {
+                // Persist the resume point before the app tears down
+                // so the next launch can pick up where the user left
+                // off. Block_on is acceptable here — the window is
+                // already gone and we're on the shutdown path.
+                let app = window.app_handle().clone();
+                let _ = tauri::async_runtime::block_on(async move {
+                    let state = app.state::<AppState>();
+                    let engine = app.state::<Arc<AudioEngine>>();
+                    let track_id = engine
+                        .shared()
+                        .current_track_id
+                        .load(Ordering::Acquire);
+                    let position_ms = engine.shared().current_position_ms();
+                    if track_id > 0 {
+                        if let Ok(pool) = state.require_profile_pool().await {
+                            let _ = queue::persist_resume_point(
+                                &pool,
+                                track_id,
+                                position_ms,
+                            )
+                            .await;
+                        }
+                    }
+                    // Tell the decoder thread to stop and drop the
+                    // cpal stream cleanly.
+                    let _ = engine.send(AudioCmd::Shutdown);
+                    Ok::<_, error::AppError>(())
+                });
+            }
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

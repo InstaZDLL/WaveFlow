@@ -1,6 +1,20 @@
 import { invoke } from "@tauri-apps/api/core";
 
 /**
+ * Subset of a track sent back by `player_get_state`. Matches the
+ * fields needed by the PlayerBar (not the full `Track` row).
+ */
+export interface QueueTrackPayload {
+  id: number;
+  title: string;
+  artist_name: string | null;
+  album_title: string | null;
+  duration_ms: number;
+  file_path: string;
+  artwork_path: string | null;
+}
+
+/**
  * Mirror of `commands::player::PlayerStateSnapshot` — lock-free read
  * of the current engine state, returned by `player_get_state`.
  */
@@ -10,6 +24,9 @@ export interface PlayerStateSnapshot {
   volume: number;
   sample_rate: number;
   channels: number;
+  shuffle: boolean;
+  repeat_mode: "off" | "all" | "one";
+  current_track: QueueTrackPayload | null;
 }
 
 /** Event payloads emitted by the Rust decoder thread. */
@@ -93,4 +110,19 @@ export function playerNext(): Promise<void> {
 
 export function playerPrevious(): Promise<void> {
   return invoke<void>("player_previous");
+}
+
+/** Returns the new shuffle state (true = shuffled). */
+export function playerToggleShuffle(): Promise<boolean> {
+  return invoke<boolean>("player_toggle_shuffle");
+}
+
+/** Returns the new repeat mode. */
+export function playerCycleRepeat(): Promise<"off" | "all" | "one"> {
+  return invoke<"off" | "all" | "one">("player_cycle_repeat");
+}
+
+/** Resume from the persisted last-track + position. */
+export function playerResumeLast(): Promise<void> {
+  return invoke<void>("player_resume_last");
 }

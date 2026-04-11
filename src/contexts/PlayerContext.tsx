@@ -9,19 +9,50 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { PlayerContext, type PlaybackState, type RepeatMode } from "../hooks/usePlayer";
 import type { Track } from "../lib/tauri/track";
 import {
+  playerCycleRepeat,
   playerGetState,
   playerNext,
   playerPause,
   playerPlayTracks,
   playerPrevious,
   playerResume,
+  playerResumeLast,
   playerSeek,
   playerSetVolume,
+  playerToggleShuffle,
   type PlayerErrorPayload,
   type PlayerPositionPayload,
   type PlayerStatePayload,
   type QueueSource,
+  type QueueTrackPayload,
 } from "../lib/tauri/player";
+
+/**
+ * Minimal conversion from the thin `QueueTrackPayload` returned by
+ * `player_get_state` to the full `Track` shape the rest of the UI
+ * consumes. Fields we don't carry (bitrate, sample rate, file size,
+ * year, …) are nulled out — they're not needed for the PlayerBar.
+ */
+function queuePayloadToTrack(payload: QueueTrackPayload): Track {
+  return {
+    id: payload.id,
+    library_id: 0,
+    title: payload.title,
+    album_title: payload.album_title,
+    artist_name: payload.artist_name,
+    duration_ms: payload.duration_ms,
+    track_number: null,
+    disc_number: null,
+    year: null,
+    bitrate: null,
+    sample_rate: null,
+    channels: null,
+    file_path: payload.file_path,
+    file_size: 0,
+    added_at: 0,
+    artwork_path: payload.artwork_path,
+  };
+}
 
 /**
  * Provides the audio player state + actions to the whole React tree.
@@ -73,6 +104,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         // Volume arrives as 0..1 from the snapshot; UI uses 0..100.
         setVolumeState(Math.round(snap.volume * 100));
         previousVolumeRef.current = Math.round(snap.volume * 100);
+        setIsShuffled(snap.shuffle);
+        setRepeatMode(snap.repeat_mode);
+        if (snap.current_track) {
+          setCurrentTrack(queuePayloadToTrack(snap.current_track));
+          setDurationMs(snap.current_track.duration_ms);
+        }
       } catch (err) {
         console.error("[PlayerContext] initial snapshot failed", err);
       }
@@ -199,14 +236,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         await playerPause();
       } else if (playbackState === "paused") {
         await playerResume();
+      } else if (currentTrack != null) {
+        // Idle / ended with a restored current track: load it at the
+        // persisted position and start playing.
+        setPlaybackState("loading");
+        await playerResumeLast();
       }
-      // When state is idle/ended, there's nothing to resume — the
-      // user must pick a track first. Checkpoint 13 will restore the
-      // last-played track so this path becomes "resume from last".
     } catch (err) {
       console.error("[PlayerContext] toggle playback failed", err);
+      setPlaybackState("idle");
     }
-  }, [playbackState]);
+  }, [playbackState, currentTrack]);
 
   const next = useCallback(async () => {
     try {
@@ -239,17 +279,31 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     isSeekingRef.current = value;
   }, []);
 
-  // --- Shuffle / repeat (local only at checkpoint 11) ---
-  const toggleShuffle = useCallback(() => {
+  // --- Shuffle / repeat (backend-wired) ---
+  const toggleShuffle = useCallback(async () => {
+    // Optimistic UI flip; on backend error we rollback.
     setIsShuffled((prev) => !prev);
+    try {
+      const next = await playerToggleShuffle();
+      setIsShuffled(next);
+    } catch (err) {
+      console.error("[PlayerContext] toggle shuffle failed", err);
+      setIsShuffled((prev) => !prev);
+    }
   }, []);
-  const cycleRepeatMode = useCallback(() => {
-    setRepeatMode((prev) => {
-      if (prev === "off") return "all";
-      if (prev === "all") return "one";
-      return "off";
-    });
-  }, []);
+
+  const cycleRepeatMode = useCallback(async () => {
+    const nextMode: RepeatMode =
+      repeatMode === "off" ? "all" : repeatMode === "all" ? "one" : "off";
+    setRepeatMode(nextMode);
+    try {
+      const confirmed = await playerCycleRepeat();
+      setRepeatMode(confirmed);
+    } catch (err) {
+      console.error("[PlayerContext] cycle repeat failed", err);
+      setRepeatMode(repeatMode); // rollback
+    }
+  }, [repeatMode]);
 
   const toggleQueue = useCallback(() => setIsQueueOpen((p) => !p), []);
   const toggleDeviceMenu = useCallback(

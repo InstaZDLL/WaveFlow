@@ -141,6 +141,9 @@ fn decoder_loop(
                 // (or from start_ms on a mid-track resume).
                 shared.samples_played.store(0, Ordering::Relaxed);
                 shared.base_offset_ms.store(start_ms, Ordering::Relaxed);
+                shared
+                    .current_track_id
+                    .store(track_id, Ordering::Release);
 
                 let outcome = play_track(
                     &path,

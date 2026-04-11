@@ -17,11 +17,14 @@ use crate::{
     state::AppState,
 };
 
-/// Extensions considered "audio files" by the scanner. Matches what lofty can
-/// actually decode at runtime — anything else is silently skipped during the
-/// directory walk so the summary counts only real candidates.
+/// Extensions considered "audio files" by the scanner. Limited to
+/// formats the symphonia + cpal engine can actually decode and play,
+/// so the library never displays tracks that would error at play
+/// time. Opus / WMA / AIFF are intentionally absent — symphonia
+/// doesn't ship a mainline decoder for Opus, WMA is Microsoft
+/// proprietary, and AIFF isn't in the default feature set.
 const AUDIO_EXTENSIONS: &[&str] = &[
-    "mp3", "flac", "wav", "ogg", "m4a", "opus", "aac", "wma", "aiff", "aif",
+    "mp3", "flac", "wav", "ogg", "oga", "m4a", "mp4", "aac",
 ];
 
 /// Outcome of a `scan_folder` call, returned to the frontend so the UI can
