@@ -24,6 +24,7 @@ import { Artwork } from "../common/Artwork";
 import { Tooltip } from "../common/Tooltip";
 import { CreateLibraryModal } from "../common/CreateLibraryModal";
 import { useLibrary } from "../../hooks/useLibrary";
+import { usePlayer } from "../../hooks/usePlayer";
 import { pickFolder } from "../../lib/tauri/dialog";
 import { formatDuration, listTracks, type Track } from "../../lib/tauri/track";
 import {
@@ -81,6 +82,7 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
     deleteLibrary,
     rescanLibrary,
   } = useLibrary();
+  const { playTracks, currentTrack } = usePlayer();
   const [isImporting, setIsImporting] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -439,6 +441,13 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
               isLoading={isLoading}
               view={tracksView}
               t={t}
+              onPlayTrack={(index) =>
+                playTracks(tracks, index, {
+                  type: "library",
+                  id: selectedLibraryId,
+                })
+              }
+              currentTrackId={currentTrack?.id ?? null}
             />
           )}
           {activeTab === "albums" && (
@@ -500,9 +509,18 @@ interface TrackTableProps {
   isLoading: boolean;
   view: TracksView;
   t: Translator;
+  onPlayTrack: (index: number) => void;
+  currentTrackId: number | null;
 }
 
-function TrackTable({ tracks, isLoading, view, t }: TrackTableProps) {
+function TrackTable({
+  tracks,
+  isLoading,
+  view,
+  t,
+  onPlayTrack,
+  currentTrackId,
+}: TrackTableProps) {
   const unknown = t("library.table.unknown");
   // List mode inserts a 2.75rem cover column between # and Title; compact
   // mode keeps the plain 5-column grid.
@@ -533,37 +551,57 @@ function TrackTable({ tracks, isLoading, view, t }: TrackTableProps) {
           isLoading ? "opacity-50" : ""
         }`}
       >
-        {tracks.map((track, index) => (
-          <li
-            key={track.id}
-            className={`grid ${gridCols} gap-4 px-5 ${rowPadding} items-center hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors`}
-          >
-            <span className="text-right text-sm tabular-nums text-zinc-400">
-              {index + 1}
-            </span>
-            {view === "list" && (
-              <Artwork
-                path={track.artwork_path}
-                className="w-10 h-10"
-                iconSize={18}
-                alt={track.album_title ?? track.title}
-                rounded="md"
-              />
-            )}
-            <span className="text-sm text-zinc-800 dark:text-zinc-200 truncate">
-              {track.title}
-            </span>
-            <span className="text-sm text-zinc-500 truncate">
-              {track.artist_name ?? unknown}
-            </span>
-            <span className="text-sm text-zinc-500 truncate">
-              {track.album_title ?? unknown}
-            </span>
-            <span className="text-sm tabular-nums text-zinc-400 text-right">
-              {formatDuration(track.duration_ms)}
-            </span>
-          </li>
-        ))}
+        {tracks.map((track, index) => {
+          const isCurrent = track.id === currentTrackId;
+          return (
+            <li
+              key={track.id}
+              onDoubleClick={() => onPlayTrack(index)}
+              className={`grid ${gridCols} gap-4 px-5 ${rowPadding} items-center select-none transition-colors cursor-pointer ${
+                isCurrent
+                  ? "bg-emerald-50 dark:bg-emerald-900/20"
+                  : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
+              }`}
+            >
+              <span
+                className={`text-right text-sm tabular-nums ${
+                  isCurrent
+                    ? "text-emerald-500 font-semibold"
+                    : "text-zinc-400"
+                }`}
+              >
+                {index + 1}
+              </span>
+              {view === "list" && (
+                <Artwork
+                  path={track.artwork_path}
+                  className="w-10 h-10"
+                  iconSize={18}
+                  alt={track.album_title ?? track.title}
+                  rounded="md"
+                />
+              )}
+              <span
+                className={`text-sm truncate ${
+                  isCurrent
+                    ? "text-emerald-600 dark:text-emerald-400 font-semibold"
+                    : "text-zinc-800 dark:text-zinc-200"
+                }`}
+              >
+                {track.title}
+              </span>
+              <span className="text-sm text-zinc-500 truncate">
+                {track.artist_name ?? unknown}
+              </span>
+              <span className="text-sm text-zinc-500 truncate">
+                {track.album_title ?? unknown}
+              </span>
+              <span className="text-sm tabular-nums text-zinc-400 text-right">
+                {formatDuration(track.duration_ms)}
+              </span>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

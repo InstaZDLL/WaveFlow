@@ -9,6 +9,7 @@ mod commands;
 mod db;
 mod error;
 mod paths;
+mod queue;
 mod state;
 
 use std::sync::Arc;
@@ -35,21 +36,23 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            let handle = app.handle().clone();
+            let init_handle = app.handle().clone();
+            let engine_handle = app.handle().clone();
 
             // Block on the async init — this runs once at startup before any
             // command can be dispatched, so blocking here is acceptable.
             let state = tauri::async_runtime::block_on(async move {
-                AppState::init(&handle).await
+                AppState::init(&init_handle).await
             })?;
 
             app.manage(state);
 
-            // Audio engine lives alongside AppState. Later checkpoints will
-            // spawn the decoder thread and open the cpal output stream from
-            // inside `AudioEngine::new`; for now it's a no-op placeholder so
-            // player_* commands can type-check against the managed handle.
-            let engine: Arc<AudioEngine> = AudioEngine::new();
+            // Audio engine lives alongside AppState. `new` spawns the cpal
+            // output thread (silence callback) and the decoder thread, both
+            // receiving a clone of the AppHandle so they can emit Tauri
+            // events (player:position, player:state, player:track-ended,
+            // player:error) directly.
+            let engine: Arc<AudioEngine> = AudioEngine::new(engine_handle);
             app.manage(engine);
 
             Ok(())
@@ -73,6 +76,15 @@ pub fn run() {
             commands::browse::list_artists,
             commands::browse::list_genres,
             commands::browse::list_folders,
+            commands::player::player_get_state,
+            commands::player::player_pause,
+            commands::player::player_resume,
+            commands::player::player_stop,
+            commands::player::player_seek,
+            commands::player::player_set_volume,
+            commands::player::player_play_tracks,
+            commands::player::player_next,
+            commands::player::player_previous,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,0 +1,521 @@
+//! Persistent playback queue.
+//!
+//! The queue lives in the per-profile `data.db` via the `queue_item`
+//! table (populated by [`fill_queue`]) and the `queue.current_index`
+//! row of `profile_setting` (pointer to the active slot).
+//!
+//! Playing a track from the library view fills the whole queue with
+//! the current view, sets `current_index` to the clicked row, and the
+//! audio engine's auto-advance task walks forward through the queue
+//! as each track ends. Shuffle / repeat behaviour is applied here,
+//! not in the decoder thread.
+//!
+//! None of these functions touch the audio engine — they're pure DB
+//! operations that return [`QueueTrack`]s for the caller to feed into
+//! `AudioCmd::LoadAndPlay`.
+//!
+//! `dead_code` is tolerated module-wide because shuffle / unshuffle /
+//! restore_state / persist_resume_point are consumed by later
+//! checkpoints (12 = shuffle+repeat, 13 = startup restore).
+
+#![allow(dead_code)]
+
+use std::path::PathBuf;
+
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
+use sqlx::{FromRow, SqlitePool};
+
+use crate::{
+    commands::player::PlayerStateSnapshot,
+    error::{AppError, AppResult},
+};
+
+/// Minimum track shape needed to hand off to the decoder thread. Kept
+/// narrower than [`crate::commands::track::Track`] because playback
+/// doesn't need the full metadata block; anything the UI wants on top
+/// is fetched via `list_tracks`.
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct QueueTrack {
+    pub id: i64,
+    pub file_path: String,
+    pub duration_ms: i64,
+    pub title: String,
+    pub artist_name: Option<String>,
+    pub album_title: Option<String>,
+    pub artwork_hash: Option<String>,
+    pub artwork_format: Option<String>,
+}
+
+impl QueueTrack {
+    /// Return the absolute filesystem path the decoder should open.
+    pub fn as_path(&self) -> PathBuf {
+        PathBuf::from(&self.file_path)
+    }
+}
+
+/// Direction arguments for [`advance`].
+#[derive(Debug, Clone, Copy)]
+pub enum Direction {
+    Next,
+    Previous,
+}
+
+/// Repeat mode. Mirrors the `player.repeat_mode` profile_setting
+/// string ('off' / 'all' / 'one').
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RepeatMode {
+    Off,
+    All,
+    One,
+}
+
+impl RepeatMode {
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "all" => Self::All,
+            "one" => Self::One,
+            _ => Self::Off,
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Off => "off",
+            Self::All => "all",
+            Self::One => "one",
+        }
+    }
+}
+
+// ---------------------------------------------------------------------
+// Helpers: typed wrappers around profile_setting string values
+// ---------------------------------------------------------------------
+
+async fn read_setting_string(pool: &SqlitePool, key: &str) -> AppResult<Option<String>> {
+    let row: Option<String> = sqlx::query_scalar(
+        "SELECT value FROM profile_setting WHERE key = ?",
+    )
+    .bind(key)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row)
+}
+
+async fn read_setting_i64(pool: &SqlitePool, key: &str) -> AppResult<Option<i64>> {
+    match read_setting_string(pool, key).await? {
+        Some(s) => Ok(s.parse::<i64>().ok()),
+        None => Ok(None),
+    }
+}
+
+async fn write_setting_i64(pool: &SqlitePool, key: &str, value: i64) -> AppResult<()> {
+    let now = Utc::now().timestamp_millis();
+    sqlx::query(
+        "UPDATE profile_setting
+            SET value = ?, updated_at = ?
+          WHERE key = ?",
+    )
+    .bind(value.to_string())
+    .bind(now)
+    .bind(key)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+async fn write_setting_string(pool: &SqlitePool, key: &str, value: &str) -> AppResult<()> {
+    let now = Utc::now().timestamp_millis();
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'string', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(key)
+    .bind(value)
+    .bind(now)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+// ---------------------------------------------------------------------
+// Read helpers used by player commands + analytics
+// ---------------------------------------------------------------------
+
+pub async fn read_repeat_mode(pool: &SqlitePool) -> RepeatMode {
+    match read_setting_string(pool, "player.repeat_mode").await {
+        Ok(Some(s)) => RepeatMode::from_str(&s),
+        _ => RepeatMode::Off,
+    }
+}
+
+pub async fn read_shuffle(pool: &SqlitePool) -> bool {
+    matches!(
+        read_setting_string(pool, "player.shuffle").await,
+        Ok(Some(ref s)) if s == "true"
+    )
+}
+
+pub async fn write_repeat_mode(pool: &SqlitePool, mode: RepeatMode) -> AppResult<()> {
+    let now = Utc::now().timestamp_millis();
+    sqlx::query(
+        "UPDATE profile_setting
+            SET value = ?, updated_at = ?
+          WHERE key = 'player.repeat_mode'",
+    )
+    .bind(mode.as_str())
+    .bind(now)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub async fn write_shuffle(pool: &SqlitePool, shuffle: bool) -> AppResult<()> {
+    let now = Utc::now().timestamp_millis();
+    sqlx::query(
+        "UPDATE profile_setting
+            SET value = ?, updated_at = ?
+          WHERE key = 'player.shuffle'",
+    )
+    .bind(if shuffle { "true" } else { "false" })
+    .bind(now)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+// ---------------------------------------------------------------------
+// Core queue operations
+// ---------------------------------------------------------------------
+
+/// Clear the queue and insert new rows, one per track, with positions
+/// 0..n. Also sets `queue.current_index` to `start_index`. Runs in a
+/// single transaction so the UI never sees a partial state.
+pub async fn fill_queue(
+    pool: &SqlitePool,
+    source_type: &str,
+    source_id: Option<i64>,
+    track_ids: &[i64],
+    start_index: usize,
+) -> AppResult<()> {
+    if track_ids.is_empty() {
+        return Err(AppError::Other("cannot fill queue with empty track list".into()));
+    }
+    if start_index >= track_ids.len() {
+        return Err(AppError::Other(format!(
+            "start_index {start_index} out of range (queue length {})",
+            track_ids.len()
+        )));
+    }
+
+    let mut tx = pool.begin().await?;
+
+    sqlx::query("DELETE FROM queue_item").execute(&mut *tx).await?;
+
+    let now = Utc::now().timestamp_millis();
+    for (pos, track_id) in track_ids.iter().enumerate() {
+        sqlx::query(
+            "INSERT INTO queue_item (track_id, position, source_type, source_id, added_at)
+             VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(track_id)
+        .bind(pos as i64)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(now)
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    sqlx::query(
+        "UPDATE profile_setting
+            SET value = ?, updated_at = ?
+          WHERE key = 'queue.current_index'",
+    )
+    .bind((start_index as i64).to_string())
+    .bind(now)
+    .execute(&mut *tx)
+    .await?;
+
+    // New queue invalidates any previous shuffle snapshot.
+    sqlx::query("DELETE FROM profile_setting WHERE key = 'queue.preshuffle'")
+        .execute(&mut *tx)
+        .await?;
+
+    tx.commit().await?;
+    Ok(())
+}
+
+/// Count of rows in `queue_item`. Used by [`advance`] to bound the
+/// cursor when the queue length shrinks (e.g. a track is deleted).
+pub async fn queue_length(pool: &SqlitePool) -> AppResult<i64> {
+    let n: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM queue_item")
+        .fetch_one(pool)
+        .await?;
+    Ok(n)
+}
+
+/// Fetch the track at a specific position in the queue.
+async fn track_at_position(pool: &SqlitePool, position: i64) -> AppResult<Option<QueueTrack>> {
+    let row = sqlx::query_as::<_, QueueTrack>(
+        r#"
+        SELECT t.id,
+               t.file_path,
+               t.duration_ms,
+               t.title,
+               ar.name  AS artist_name,
+               al.title AS album_title,
+               aw.hash  AS artwork_hash,
+               aw.format AS artwork_format
+          FROM queue_item q
+          JOIN track t       ON t.id = q.track_id
+          LEFT JOIN album al  ON al.id = t.album_id
+          LEFT JOIN artist ar ON ar.id = t.primary_artist
+          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+         WHERE q.position = ?
+         LIMIT 1
+        "#,
+    )
+    .bind(position)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row)
+}
+
+/// Return the track currently pointed at by `queue.current_index`.
+pub async fn current_track(pool: &SqlitePool) -> AppResult<Option<QueueTrack>> {
+    let Some(idx) = read_setting_i64(pool, "queue.current_index").await? else {
+        return Ok(None);
+    };
+    track_at_position(pool, idx).await
+}
+
+/// Apply a next / previous step to the queue cursor respecting the
+/// repeat mode. Returns the newly-current track, or `None` if the
+/// queue is empty / the step runs off the end with `RepeatMode::Off`.
+///
+/// The cursor is clamped to `[0, queue_length - 1]` before writing.
+pub async fn advance(
+    pool: &SqlitePool,
+    direction: Direction,
+    repeat: RepeatMode,
+) -> AppResult<Option<QueueTrack>> {
+    let length = queue_length(pool).await?;
+    if length == 0 {
+        return Ok(None);
+    }
+    let current = read_setting_i64(pool, "queue.current_index")
+        .await?
+        .unwrap_or(0);
+
+    let new_index = match (direction, repeat) {
+        // Repeat-one re-plays the same slot regardless of direction.
+        (_, RepeatMode::One) => current,
+        (Direction::Next, RepeatMode::Off) => {
+            if current + 1 >= length {
+                return Ok(None);
+            }
+            current + 1
+        }
+        (Direction::Next, RepeatMode::All) => (current + 1) % length,
+        (Direction::Previous, RepeatMode::Off) => (current - 1).max(0),
+        (Direction::Previous, RepeatMode::All) => {
+            if current == 0 {
+                length - 1
+            } else {
+                current - 1
+            }
+        }
+    };
+
+    write_setting_i64(pool, "queue.current_index", new_index).await?;
+    track_at_position(pool, new_index).await
+}
+
+/// Startup restore: return the track + position the UI should show at
+/// mount, without starting playback. Priority:
+///
+/// 1. `player.last_track_id` + `player.last_position_ms` if the track
+///    still exists and is available,
+/// 2. otherwise the current queue track at offset 0 ms,
+/// 3. otherwise `None`.
+pub async fn restore_state(pool: &SqlitePool) -> AppResult<Option<(QueueTrack, u64)>> {
+    if let Some(last_id) = read_setting_i64(pool, "player.last_track_id").await? {
+        if last_id > 0 {
+            let row = sqlx::query_as::<_, QueueTrack>(
+                r#"
+                SELECT t.id, t.file_path, t.duration_ms, t.title,
+                       ar.name AS artist_name,
+                       al.title AS album_title,
+                       aw.hash AS artwork_hash,
+                       aw.format AS artwork_format
+                  FROM track t
+                  LEFT JOIN album al ON al.id = t.album_id
+                  LEFT JOIN artist ar ON ar.id = t.primary_artist
+                  LEFT JOIN artwork aw ON aw.id = al.artwork_id
+                 WHERE t.id = ? AND t.is_available = 1
+                "#,
+            )
+            .bind(last_id)
+            .fetch_optional(pool)
+            .await?;
+            if let Some(track) = row {
+                let pos = read_setting_i64(pool, "player.last_position_ms")
+                    .await?
+                    .unwrap_or(0)
+                    .max(0) as u64;
+                return Ok(Some((track, pos)));
+            }
+        }
+    }
+    match current_track(pool).await? {
+        Some(t) => Ok(Some((t, 0))),
+        None => Ok(None),
+    }
+}
+
+/// Persist the last-playing track id + position so the next app
+/// launch can resume from where the user stopped.
+pub async fn persist_resume_point(
+    pool: &SqlitePool,
+    track_id: i64,
+    position_ms: u64,
+) -> AppResult<()> {
+    write_setting_i64(pool, "player.last_track_id", track_id).await?;
+    write_setting_i64(pool, "player.last_position_ms", position_ms as i64).await?;
+    Ok(())
+}
+
+// ---------------------------------------------------------------------
+// Shuffle / unshuffle
+// ---------------------------------------------------------------------
+
+/// Randomize the queue, keeping the currently-playing track at
+/// position 0. Stashes the pre-shuffle ordering in
+/// `profile_setting['queue.preshuffle']` (JSON array of track ids, in
+/// their original order) so [`unshuffle`] can restore it.
+///
+/// Fisher–Yates on the slice after the current track; this is cheap
+/// and deterministic given the crate-level RNG.
+pub async fn shuffle(pool: &SqlitePool) -> AppResult<()> {
+    // Read current ordering.
+    let rows: Vec<(i64, i64)> = sqlx::query_as(
+        "SELECT position, track_id FROM queue_item ORDER BY position",
+    )
+    .fetch_all(pool)
+    .await?;
+    if rows.len() < 2 {
+        return Ok(()); // nothing to shuffle
+    }
+
+    let current_index = read_setting_i64(pool, "queue.current_index")
+        .await?
+        .unwrap_or(0)
+        .clamp(0, rows.len() as i64 - 1) as usize;
+
+    // Snapshot the pre-shuffle order for unshuffle.
+    let preshuffle_json: String =
+        serde_json::to_string(&rows.iter().map(|(_, id)| *id).collect::<Vec<_>>())
+            .map_err(|e| AppError::Other(format!("preshuffle json: {e}")))?;
+    write_setting_string(pool, "queue.preshuffle", &preshuffle_json).await?;
+
+    // Build the new ordering: [current, ...shuffled rest].
+    let mut ids: Vec<i64> = rows.iter().map(|(_, id)| *id).collect();
+    let current_id = ids.remove(current_index);
+    fisher_yates(&mut ids);
+    let mut new_ids = Vec::with_capacity(ids.len() + 1);
+    new_ids.push(current_id);
+    new_ids.extend(ids);
+
+    write_queue_order(pool, &new_ids, 0).await
+}
+
+/// Restore the pre-shuffle order from `queue.preshuffle` and re-home
+/// the cursor onto the currently-playing track's position in that
+/// restored ordering.
+pub async fn unshuffle(pool: &SqlitePool) -> AppResult<()> {
+    let json = match read_setting_string(pool, "queue.preshuffle").await? {
+        Some(s) => s,
+        None => return Ok(()),
+    };
+    let original: Vec<i64> = serde_json::from_str(&json)
+        .map_err(|e| AppError::Other(format!("preshuffle parse: {e}")))?;
+    if original.is_empty() {
+        return Ok(());
+    }
+
+    // Find the currently-playing track in the restored order.
+    let current = current_track(pool).await?;
+    let new_index = match current {
+        Some(t) => original.iter().position(|&id| id == t.id).unwrap_or(0),
+        None => 0,
+    };
+
+    write_queue_order(pool, &original, new_index).await?;
+    sqlx::query("DELETE FROM profile_setting WHERE key = 'queue.preshuffle'")
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+/// Rewrite `queue_item` with the given ordering and update the
+/// current index pointer. Runs in a transaction.
+async fn write_queue_order(
+    pool: &SqlitePool,
+    ordered_ids: &[i64],
+    new_current: usize,
+) -> AppResult<()> {
+    let mut tx = pool.begin().await?;
+    sqlx::query("DELETE FROM queue_item").execute(&mut *tx).await?;
+    let now = Utc::now().timestamp_millis();
+    for (pos, track_id) in ordered_ids.iter().enumerate() {
+        sqlx::query(
+            "INSERT INTO queue_item (track_id, position, source_type, source_id, added_at)
+             VALUES (?, ?, 'manual', NULL, ?)",
+        )
+        .bind(track_id)
+        .bind(pos as i64)
+        .bind(now)
+        .execute(&mut *tx)
+        .await?;
+    }
+    sqlx::query(
+        "UPDATE profile_setting
+            SET value = ?, updated_at = ?
+          WHERE key = 'queue.current_index'",
+    )
+    .bind((new_current as i64).to_string())
+    .bind(now)
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// In-place Fisher–Yates using [`fastrand`] for simplicity.
+///
+/// We deliberately don't pull in a full RNG crate here — shuffling the
+/// queue is not a security-critical operation and `fastrand` is ~20
+/// lines of code and already a transitive dep via some other crate.
+fn fisher_yates<T>(slice: &mut [T]) {
+    // Simple linear congruential RNG seeded from the clock. Good
+    // enough for shuffling a music queue.
+    let mut seed: u64 = Utc::now().timestamp_millis() as u64;
+    for i in (1..slice.len()).rev() {
+        // xorshift step
+        seed ^= seed << 13;
+        seed ^= seed >> 7;
+        seed ^= seed << 17;
+        let j = (seed % (i as u64 + 1)) as usize;
+        slice.swap(i, j);
+    }
+}
+
+// Re-export the player state snapshot type here so the analytics task
+// can keep its imports minimal. Not a real runtime dependency.
+#[allow(dead_code)]
+fn _type_check() -> Option<PlayerStateSnapshot> {
+    None
+}

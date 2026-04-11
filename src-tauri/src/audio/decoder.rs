@@ -14,10 +14,11 @@ use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread::JoinHandle;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crossbeam_channel::{Receiver, TryRecvError};
 use rtrb::{chunks::ChunkError, CopyToUninit, Producer};
+use serde::Serialize;
 use symphonia::core::audio::SampleBuffer;
 use symphonia::core::codecs::{DecoderOptions, CODEC_TYPE_NULL};
 use symphonia::core::errors::Error as SymphoniaError;
@@ -26,17 +27,74 @@ use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
 use symphonia::core::units::Time;
+use tauri::{AppHandle, Emitter};
 
+use tokio::sync::mpsc::UnboundedSender;
+
+use super::analytics::AnalyticsMsg;
 use super::engine::AudioCmd;
 use super::resampler::Resampler;
 use super::state::{PlayerState, SharedPlayback};
+
+/// Minimum interval between `player:position` events emitted during
+/// playback. Keeps UI traffic bounded to ~4 Hz regardless of packet
+/// cadence.
+const POSITION_EMIT_INTERVAL: Duration = Duration::from_millis(250);
+
+// Tauri event names (no scheme prefix — the convention is `domain:event`).
+const EVENT_POSITION: &str = "player:position";
+const EVENT_STATE: &str = "player:state";
+const EVENT_TRACK_ENDED: &str = "player:track-ended";
+const EVENT_ERROR: &str = "player:error";
+
+#[derive(Serialize, Clone)]
+struct PositionPayload {
+    ms: u64,
+}
+
+#[derive(Serialize, Clone)]
+struct StatePayload {
+    state: &'static str,
+    track_id: Option<i64>,
+}
+
+#[derive(Serialize, Clone)]
+struct TrackEndedPayload {
+    track_id: i64,
+    completed: bool,
+    listened_ms: u64,
+}
+
+#[derive(Serialize, Clone)]
+struct ErrorPayload {
+    message: String,
+}
+
+/// Transition [`SharedPlayback`] state and emit a `player:state` event
+/// in one place so the UI always sees transitions in order.
+fn transition_state(
+    shared: &SharedPlayback,
+    app: &AppHandle,
+    state: PlayerState,
+    track_id: Option<i64>,
+) {
+    shared.set_state(state);
+    let _ = app.emit(
+        EVENT_STATE,
+        StatePayload {
+            state: state.as_str(),
+            track_id,
+        },
+    );
+}
 
 /// Spawn the decoder thread.
 ///
 /// Takes ownership of:
 /// - the command receiver,
 /// - the rtrb producer feeding the cpal callback,
-/// - a clone of [`SharedPlayback`] for state transitions and volume.
+/// - a clone of [`SharedPlayback`] for state transitions and volume,
+/// - a clone of the Tauri [`AppHandle`] so the thread can emit events.
 ///
 /// The device's sample rate and channel count are read from `shared`
 /// after [`super::output::spawn_output_thread`] has stamped them in.
@@ -44,11 +102,13 @@ pub fn spawn_decoder_thread(
     cmd_rx: Receiver<AudioCmd>,
     mut producer: Producer<f32>,
     shared: Arc<SharedPlayback>,
+    app: AppHandle,
+    analytics_tx: UnboundedSender<AnalyticsMsg>,
 ) -> std::io::Result<JoinHandle<()>> {
     std::thread::Builder::new()
         .name("waveflow-audio-decoder".into())
         .spawn(move || {
-            decoder_loop(cmd_rx, &mut producer, shared);
+            decoder_loop(cmd_rx, &mut producer, shared, app, analytics_tx);
         })
 }
 
@@ -57,6 +117,8 @@ fn decoder_loop(
     cmd_rx: Receiver<AudioCmd>,
     producer: &mut Producer<f32>,
     shared: Arc<SharedPlayback>,
+    app: AppHandle,
+    analytics_tx: UnboundedSender<AnalyticsMsg>,
 ) {
     loop {
         // Block until there's something to do. Idle = cheap.
@@ -71,14 +133,16 @@ fn decoder_loop(
                 start_ms,
                 track_id,
                 duration_ms,
+                source_type,
+                source_id,
             } => {
-                shared.set_state(PlayerState::Loading);
+                transition_state(&shared, &app, PlayerState::Loading, Some(track_id));
                 // Reset position counters so the UI clock starts from 0
                 // (or from start_ms on a mid-track resume).
                 shared.samples_played.store(0, Ordering::Relaxed);
                 shared.base_offset_ms.store(start_ms, Ordering::Relaxed);
 
-                if let Err(err) = play_track(
+                let outcome = play_track(
                     &path,
                     start_ms,
                     track_id,
@@ -86,9 +150,32 @@ fn decoder_loop(
                     producer,
                     &shared,
                     &cmd_rx,
-                ) {
-                    tracing::warn!(?err, path = %path.display(), "playback failed");
-                    shared.set_state(PlayerState::Idle);
+                    &app,
+                );
+                match outcome {
+                    Ok(listened_ms) => {
+                        // Tell the analytics task this track finished.
+                        // It'll write a play_event row and self-send
+                        // the next LoadAndPlay per queue + repeat.
+                        let completed = listened_ms + 2000 >= duration_ms && duration_ms > 0;
+                        let _ = analytics_tx.send(AnalyticsMsg::TrackEnded {
+                            track_id,
+                            completed,
+                            listened_ms,
+                            source_type,
+                            source_id,
+                        });
+                    }
+                    Err(err) => {
+                        tracing::warn!(?err, path = %path.display(), "playback failed");
+                        let _ = app.emit(
+                            EVENT_ERROR,
+                            ErrorPayload {
+                                message: err.clone(),
+                            },
+                        );
+                        transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
+                    }
                 }
             }
             AudioCmd::Shutdown => return,
@@ -110,16 +197,21 @@ enum PushOutcome {
 }
 
 /// Decode a single track start-to-finish, honoring any commands that
-/// arrive on `cmd_rx` between packets.
+/// arrive on `cmd_rx` between packets. Emits `player:position` /
+/// `player:state` / `player:track-ended` events via `app`.
+///
+/// Returns the final listened-ms position on success so the decoder
+/// loop can forward it to the analytics task.
 fn play_track(
     path: &Path,
     start_ms: u64,
-    _track_id: i64,
-    _duration_ms: u64,
+    track_id: i64,
+    duration_ms: u64,
     producer: &mut Producer<f32>,
     shared: &SharedPlayback,
     cmd_rx: &Receiver<AudioCmd>,
-) -> Result<(), String> {
+    app: &AppHandle,
+) -> Result<u64, String> {
     let file = File::open(path).map_err(|e| format!("open: {e}"))?;
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
 
@@ -138,13 +230,13 @@ fn play_track(
         .map_err(|e| format!("probe: {e}"))?;
 
     let mut format = probed.format;
-    let track = format
+    let track_symphonia = format
         .tracks()
         .iter()
         .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
         .ok_or_else(|| "no decodable track found".to_string())?;
-    let track_id = track.id;
-    let codec_params = track.codec_params.clone();
+    let symphonia_track_id = track_symphonia.id;
+    let codec_params = track_symphonia.codec_params.clone();
 
     let mut decoder = symphonia::default::get_codecs()
         .make(&codec_params, &DecoderOptions::default())
@@ -176,7 +268,7 @@ fn play_track(
     // If the caller asked for a mid-track start (resume from persisted
     // position), apply an initial seek BEFORE entering the packet loop.
     if start_ms > 0 {
-        apply_seek(&mut format, track_id, start_ms);
+        apply_seek(&mut format, symphonia_track_id, start_ms);
     }
 
     // Channel conversion: we always emit `dst_channels`-wide frames.
@@ -188,8 +280,9 @@ fn play_track(
     let mut interleaved_scratch: Vec<f32> = Vec::with_capacity(8192);
     let mut resampled_scratch: Vec<f32> = Vec::with_capacity(8192);
     let mut sample_buf: Option<SampleBuffer<f32>> = None;
+    let mut last_position_emit = Instant::now();
 
-    shared.set_state(PlayerState::Playing);
+    transition_state(shared, app, PlayerState::Playing, Some(track_id));
 
     'pkt: loop {
         // Drain any pending commands between packets.
@@ -197,16 +290,20 @@ fn play_track(
             ControlFlow::Continue => {}
             ControlFlow::Break => break 'pkt,
             ControlFlow::Shutdown => {
-                shared.set_state(PlayerState::Idle);
-                return Ok(());
+                transition_state(shared, app, PlayerState::Idle, Some(track_id));
+                return Ok(shared.current_position_ms());
             }
             ControlFlow::Seek(ms) => {
-                apply_seek(&mut format, track_id, ms);
+                apply_seek(&mut format, symphonia_track_id, ms);
                 reset_clock(shared, ms);
                 resampler.flush();
                 // Drop the decoder's internal state so the first decoded
                 // packet after a seek doesn't carry pre-seek residue.
                 decoder.reset();
+                // Fire an immediate position event so the progress bar
+                // snaps to the target without waiting for the next tick.
+                let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
+                last_position_emit = Instant::now();
                 continue;
             }
         }
@@ -222,7 +319,7 @@ fn play_track(
             Err(SymphoniaError::ResetRequired) => break 'pkt,
             Err(e) => return Err(format!("next_packet: {e}")),
         };
-        if packet.track_id() != track_id {
+        if packet.track_id() != symphonia_track_id {
             continue;
         }
 
@@ -259,23 +356,49 @@ fn play_track(
             PushOutcome::Ok => {}
             PushOutcome::Stop => break 'pkt,
             PushOutcome::Shutdown => {
-                shared.set_state(PlayerState::Idle);
-                return Ok(());
+                transition_state(shared, app, PlayerState::Idle, Some(track_id));
+                return Ok(shared.current_position_ms());
             }
             PushOutcome::Seek(ms) => {
-                apply_seek(&mut format, track_id, ms);
+                apply_seek(&mut format, symphonia_track_id, ms);
                 reset_clock(shared, ms);
                 resampler.flush();
                 decoder.reset();
+                let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
+                last_position_emit = Instant::now();
                 continue;
             }
+        }
+
+        // Throttled position event. 250ms cadence keeps the UI smooth
+        // without flooding the event bus.
+        if last_position_emit.elapsed() >= POSITION_EMIT_INTERVAL
+            && shared.state() == PlayerState::Playing
+        {
+            let _ = app.emit(
+                EVENT_POSITION,
+                PositionPayload {
+                    ms: shared.current_position_ms(),
+                },
+            );
+            last_position_emit = Instant::now();
         }
     }
 
     // Flush any trailing resampler state so we don't tail-cut the track.
     resampler.flush();
-    shared.set_state(PlayerState::Ended);
-    Ok(())
+    let listened_ms = shared.current_position_ms();
+    let completed = listened_ms + 2000 >= duration_ms && duration_ms > 0;
+    let _ = app.emit(
+        EVENT_TRACK_ENDED,
+        TrackEndedPayload {
+            track_id,
+            completed,
+            listened_ms,
+        },
+    );
+    transition_state(shared, app, PlayerState::Ended, Some(track_id));
+    Ok(listened_ms)
 }
 
 /// Reset the position counters so the UI clock jumps to `ms`. Must be
@@ -293,7 +416,7 @@ fn reset_clock(shared: &SharedPlayback, ms: u64) {
 /// seeking past EOF on a VBR MP3, for instance, is not fatal.
 fn apply_seek(
     format: &mut Box<dyn symphonia::core::formats::FormatReader>,
-    track_id: u32,
+    symphonia_track_id: u32,
     ms: u64,
 ) {
     let time = Time::from(Duration::from_millis(ms));
@@ -301,7 +424,7 @@ fn apply_seek(
         SeekMode::Accurate,
         SeekTo::Time {
             time,
-            track_id: Some(track_id),
+            track_id: Some(symphonia_track_id),
         },
     ) {
         tracing::warn!(?err, ms, "format seek failed");

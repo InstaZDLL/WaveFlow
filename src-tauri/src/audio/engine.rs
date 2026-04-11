@@ -10,16 +10,17 @@ use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
 use crossbeam_channel::{unbounded, Sender};
+use tauri::AppHandle;
+use tokio::sync::mpsc::unbounded_channel;
 
 use crate::error::{AppError, AppResult};
 
+use super::analytics::{analytics_task, AnalyticsMsg};
 use super::decoder::spawn_decoder_thread;
 use super::output::{spawn_output_thread, OutputHandle};
 use super::state::SharedPlayback;
 
-/// Commands accepted by the decoder thread. Variants are added as the
-/// feature set grows — at the stub stage we only need `Shutdown` so the
-/// channel type is concrete.
+/// Commands accepted by the decoder thread.
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum AudioCmd {
@@ -28,6 +29,11 @@ pub enum AudioCmd {
         start_ms: u64,
         track_id: i64,
         duration_ms: u64,
+        /// Identifies where the queue this track came from originated,
+        /// so the analytics task can stamp the matching `play_event`
+        /// row with the same source for later filtering.
+        source_type: String,
+        source_id: Option<i64>,
     },
     Pause,
     Resume,
@@ -57,9 +63,18 @@ impl AudioEngine {
     /// the decoder thread with the producer side of the ring. Failures
     /// to open the device are logged but non-fatal — the engine still
     /// spins up and commands will error until the stream comes back.
-    pub fn new() -> Arc<Self> {
+    ///
+    /// Takes an `AppHandle` so the decoder thread can emit Tauri events
+    /// (`player:state`, `player:position`, `player:track-ended`,
+    /// `player:error`) without routing through tokio.
+    pub fn new(app: AppHandle) -> Arc<Self> {
         let (cmd_tx, cmd_rx) = unbounded::<AudioCmd>();
         let shared = Arc::new(SharedPlayback::new());
+
+        // Analytics channel: decoder pushes `AnalyticsMsg`s at EOF, the
+        // tokio `analytics_task` consumes them to write `play_event`
+        // rows and self-send the next `LoadAndPlay`.
+        let (analytics_tx, analytics_rx) = unbounded_channel::<AnalyticsMsg>();
 
         let (output, decoder) = match spawn_output_thread(shared.clone()) {
             Ok((producer, handle)) => {
@@ -67,12 +82,16 @@ impl AudioEngine {
                 // stream has opened, so `shared.sample_rate` /
                 // `shared.channels` are already populated by the time
                 // the decoder thread spawns.
-                match spawn_decoder_thread(cmd_rx, producer, shared.clone()) {
+                match spawn_decoder_thread(
+                    cmd_rx,
+                    producer,
+                    shared.clone(),
+                    app.clone(),
+                    analytics_tx,
+                ) {
                     Ok(join) => (Some(handle), Some(join)),
                     Err(err) => {
                         tracing::error!(?err, "failed to spawn decoder thread");
-                        // Tear down the output so we don't leave an
-                        // orphan cpal stream running.
                         handle.stop();
                         (None, None)
                     }
@@ -80,12 +99,16 @@ impl AudioEngine {
             }
             Err(err) => {
                 tracing::warn!(?err, "failed to open audio output at startup");
-                // The decoder receiver is dropped with `cmd_rx` — any
-                // future `send` on `cmd_tx` will fail, which bubbles up
-                // as `AppError::Audio` through the command layer.
                 (None, None)
             }
         };
+
+        // Spawn the analytics task inside Tauri's runtime.
+        tauri::async_runtime::spawn(analytics_task(
+            analytics_rx,
+            cmd_tx.clone(),
+            app.clone(),
+        ));
 
         Arc::new(Self {
             cmd_tx,
@@ -97,7 +120,6 @@ impl AudioEngine {
 
     /// Send a command to the decoder. Returns `AppError::Audio` if the
     /// channel is disconnected (decoder thread has exited).
-    #[allow(dead_code)]
     pub fn send(&self, cmd: AudioCmd) -> AppResult<()> {
         self.cmd_tx
             .send(cmd)
@@ -106,7 +128,6 @@ impl AudioEngine {
 
     /// Borrow the shared atomic state — used by commands that need to read
     /// current position / volume / state without hitting the decoder.
-    #[allow(dead_code)]
     pub fn shared(&self) -> &Arc<SharedPlayback> {
         &self.shared
     }
