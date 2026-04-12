@@ -34,6 +34,26 @@ export function listTracks(libraryId: number | null): Promise<Track[]> {
   return invoke<Track[]>("list_tracks", { libraryId });
 }
 
+/** Full-text search across title, album and artist. Returns up to 50 results. */
+export function searchTracks(query: string): Promise<Track[]> {
+  return invoke<Track[]>("search_tracks", { query });
+}
+
+/** Toggle liked state. Returns `true` if the track is now liked. */
+export function toggleLikeTrack(trackId: number): Promise<boolean> {
+  return invoke<boolean>("toggle_like_track", { trackId });
+}
+
+/** All liked track IDs (cheap — no full rows, just IDs). */
+export function listLikedTrackIds(): Promise<number[]> {
+  return invoke<number[]>("list_liked_track_ids");
+}
+
+/** All liked tracks with full metadata, ordered by most recently liked. */
+export function listLikedTracks(): Promise<Track[]> {
+  return invoke<Track[]>("list_liked_tracks");
+}
+
 /**
  * Format a duration in milliseconds as `m:ss` or `h:mm:ss`. Used by the
  * library views that display track durations in a column.

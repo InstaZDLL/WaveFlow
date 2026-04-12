@@ -79,7 +79,10 @@
   },
   "topbar": {
     "search": {
-      "placeholder": "Rechercher un titre, un artiste, un album..."
+      "placeholder": "Rechercher un titre, un artiste, un album...",
+      "results_zero": "Aucun résultat",
+      "results_one": "{{count}} résultat",
+      "results_other": "{{count}} résultats"
     },
     "theme": {
       "enableLight": "Activer le mode clair",
@@ -229,7 +232,10 @@
     "count_one": "{{count}} titre",
     "count_other": "{{count}} titres",
     "emptyTitle": "Aucun titre liké",
-    "emptyDescription": "Les morceaux que vous aimez apparaîtront ici. Explorez votre bibliothèque et likez vos titres favoris."
+    "emptyDescription": "Les morceaux que vous aimez apparaîtront ici. Explorez votre bibliothèque et likez vos titres favoris.",
+    "playAll": "Tout lire",
+    "unlike": "Retirer des likés",
+    "like": "Ajouter aux likés"
   },
   "recent": {
     "badge": "Historique",

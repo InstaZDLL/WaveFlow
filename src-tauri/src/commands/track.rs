@@ -130,3 +130,200 @@ pub async fn list_tracks(
 
     Ok(tracks)
 }
+
+/// Full-text search via the `track_fts` FTS5 virtual table (kept in sync
+/// by triggers). Returns up to 50 matching tracks, ranked by relevance.
+/// The query is sanitized: double-quotes are stripped and a trailing `*`
+/// is appended for prefix matching so "moon" finds "Moonlight".
+#[tauri::command]
+pub async fn search_tracks(
+    state: tauri::State<'_, AppState>,
+    query: String,
+) -> AppResult<Vec<Track>> {
+    let trimmed = query.trim().replace('"', "");
+    if trimmed.is_empty() {
+        return Ok(vec![]);
+    }
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+
+    // Build FTS5 query: split words and add * for prefix matching.
+    let fts_query = trimmed
+        .split_whitespace()
+        .map(|w| format!("{w}*"))
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    let rows = sqlx::query_as::<_, TrackRow>(
+        r#"
+        SELECT t.id, t.library_id, t.title,
+               al.title AS album_title,
+               ar.name  AS artist_name,
+               t.duration_ms, t.track_number, t.disc_number, t.year,
+               t.bitrate, t.sample_rate, t.channels,
+               t.file_path, t.file_size, t.added_at,
+               aw.hash   AS artwork_hash,
+               aw.format AS artwork_format
+          FROM track_fts fts
+          JOIN track t        ON t.id  = fts.rowid
+          LEFT JOIN album   al ON al.id = t.album_id
+          LEFT JOIN artist  ar ON ar.id = t.primary_artist
+          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+         WHERE track_fts MATCH ? AND t.is_available = 1
+         ORDER BY rank
+         LIMIT 50
+        "#,
+    )
+    .bind(&fts_query)
+    .fetch_all(&pool)
+    .await?;
+
+    let tracks = rows
+        .into_iter()
+        .map(|row| {
+            let artwork_path = match (row.artwork_hash, row.artwork_format) {
+                (Some(hash), Some(format)) => Some(
+                    artwork_dir
+                        .join(format!("{}.{}", hash, format))
+                        .to_string_lossy()
+                        .to_string(),
+                ),
+                _ => None,
+            };
+            Track {
+                id: row.id,
+                library_id: row.library_id,
+                title: row.title,
+                album_title: row.album_title,
+                artist_name: row.artist_name,
+                duration_ms: row.duration_ms,
+                track_number: row.track_number,
+                disc_number: row.disc_number,
+                year: row.year,
+                bitrate: row.bitrate,
+                sample_rate: row.sample_rate,
+                channels: row.channels,
+                file_path: row.file_path,
+                file_size: row.file_size,
+                added_at: row.added_at,
+                artwork_path,
+            }
+        })
+        .collect();
+
+    Ok(tracks)
+}
+
+/// Toggle the liked state of a track. If already liked → unlike (DELETE),
+/// if not → like (INSERT). Returns `true` if the track is now liked.
+#[tauri::command]
+pub async fn toggle_like_track(
+    state: tauri::State<'_, AppState>,
+    track_id: i64,
+) -> AppResult<bool> {
+    let pool = state.require_profile_pool().await?;
+
+    let exists: Option<i64> =
+        sqlx::query_scalar("SELECT track_id FROM liked_track WHERE track_id = ?")
+            .bind(track_id)
+            .fetch_optional(&pool)
+            .await?;
+
+    if exists.is_some() {
+        sqlx::query("DELETE FROM liked_track WHERE track_id = ?")
+            .bind(track_id)
+            .execute(&pool)
+            .await?;
+        Ok(false)
+    } else {
+        let now = chrono::Utc::now().timestamp_millis();
+        sqlx::query("INSERT INTO liked_track (track_id, liked_at) VALUES (?, ?)")
+            .bind(track_id)
+            .bind(now)
+            .execute(&pool)
+            .await?;
+        Ok(true)
+    }
+}
+
+/// Return the set of liked track IDs so the frontend can render hearts
+/// without N+1 queries. Cheap because `liked_track` is indexed.
+#[tauri::command]
+pub async fn list_liked_track_ids(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Vec<i64>> {
+    let pool = state.require_profile_pool().await?;
+    let ids = sqlx::query_scalar("SELECT track_id FROM liked_track ORDER BY liked_at DESC")
+        .fetch_all(&pool)
+        .await?;
+    Ok(ids)
+}
+
+/// List every liked track with full metadata, ordered by most recently
+/// liked first. Used by the LikedView.
+#[tauri::command]
+pub async fn list_liked_tracks(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Vec<Track>> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+
+    let rows = sqlx::query_as::<_, TrackRow>(
+        r#"
+        SELECT t.id, t.library_id, t.title,
+               al.title AS album_title,
+               ar.name  AS artist_name,
+               t.duration_ms, t.track_number, t.disc_number, t.year,
+               t.bitrate, t.sample_rate, t.channels,
+               t.file_path, t.file_size, t.added_at,
+               aw.hash   AS artwork_hash,
+               aw.format AS artwork_format
+          FROM liked_track lt
+          JOIN track t        ON t.id  = lt.track_id
+          LEFT JOIN album   al ON al.id = t.album_id
+          LEFT JOIN artist  ar ON ar.id = t.primary_artist
+          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+         WHERE t.is_available = 1
+         ORDER BY lt.liked_at DESC
+        "#,
+    )
+    .fetch_all(&pool)
+    .await?;
+
+    let tracks = rows
+        .into_iter()
+        .map(|row| {
+            let artwork_path = match (row.artwork_hash, row.artwork_format) {
+                (Some(hash), Some(format)) => Some(
+                    artwork_dir
+                        .join(format!("{}.{}", hash, format))
+                        .to_string_lossy()
+                        .to_string(),
+                ),
+                _ => None,
+            };
+            Track {
+                id: row.id,
+                library_id: row.library_id,
+                title: row.title,
+                album_title: row.album_title,
+                artist_name: row.artist_name,
+                duration_ms: row.duration_ms,
+                track_number: row.track_number,
+                disc_number: row.disc_number,
+                year: row.year,
+                bitrate: row.bitrate,
+                sample_rate: row.sample_rate,
+                channels: row.channels,
+                file_path: row.file_path,
+                file_size: row.file_size,
+                added_at: row.added_at,
+                artwork_path,
+            }
+        })
+        .collect();
+
+    Ok(tracks)
+}

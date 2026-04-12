@@ -79,7 +79,10 @@
   },
   "topbar": {
     "search": {
-      "placeholder": "Search for a track, artist, album..."
+      "placeholder": "Search for a track, artist, album...",
+      "results_zero": "No results",
+      "results_one": "{{count}} result",
+      "results_other": "{{count}} results"
     },
     "theme": {
       "enableLight": "Switch to light mode",
@@ -229,7 +232,10 @@
     "count_one": "{{count}} track",
     "count_other": "{{count}} tracks",
     "emptyTitle": "No liked track",
-    "emptyDescription": "Tracks you like will appear here. Explore your library and like your favorites."
+    "emptyDescription": "Tracks you like will appear here. Explore your library and like your favorites.",
+    "playAll": "Play all",
+    "unlike": "Remove from liked",
+    "like": "Add to liked"
   },
   "recent": {
     "badge": "History",

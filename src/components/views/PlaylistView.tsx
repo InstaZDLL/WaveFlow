@@ -7,6 +7,7 @@ import {
   Trash2,
   Clock,
   Music2,
+  Heart,
 } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { Tooltip } from "../common/Tooltip";
@@ -14,7 +15,12 @@ import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
-import { formatDuration, type Track } from "../../lib/tauri/track";
+import {
+  formatDuration,
+  listLikedTrackIds,
+  toggleLikeTrack,
+  type Track,
+} from "../../lib/tauri/track";
 import { getPlaylist, type Playlist } from "../../lib/tauri/playlist";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
@@ -36,6 +42,7 @@ export function PlaylistView({ playlistId, onAfterDelete }: PlaylistViewProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const confirmTimeoutRef = useRef<number | null>(null);
 
@@ -46,6 +53,23 @@ export function PlaylistView({ playlistId, onAfterDelete }: PlaylistViewProps) {
       }
     };
   }, []);
+
+  // Load liked IDs so hearts render correctly.
+  useEffect(() => {
+    listLikedTrackIds()
+      .then((ids) => setLikedIds(new Set(ids)))
+      .catch(() => {});
+  }, [playlistId]);
+
+  const handleToggleLike = async (trackId: number) => {
+    const nowLiked = await toggleLikeTrack(trackId);
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      if (nowLiked) next.add(trackId);
+      else next.delete(trackId);
+      return next;
+    });
+  };
 
   // Fetch playlist + its tracks whenever the focused id changes. Also
   // re-runs when the playlist list itself updates (e.g. after rename via
@@ -305,6 +329,8 @@ export function PlaylistView({ playlistId, onAfterDelete }: PlaylistViewProps) {
               id: playlistId,
             })
           }
+          likedIds={likedIds}
+          onToggleLike={handleToggleLike}
           unknownLabel={t("library.table.unknown")}
           headerLabels={{
             number: t("library.table.number"),
@@ -313,6 +339,8 @@ export function PlaylistView({ playlistId, onAfterDelete }: PlaylistViewProps) {
             album: t("library.table.album"),
             duration: t("library.table.duration"),
           }}
+          likeLabel={t("liked.like")}
+          unlikeLabel={t("liked.unlike")}
         />
       ) : (
         <EmptyState
@@ -338,6 +366,8 @@ interface PlaylistTrackTableProps {
   isLoading: boolean;
   currentTrackId: number | null;
   onPlayTrack: (index: number) => void;
+  likedIds: Set<number>;
+  onToggleLike: (trackId: number) => void;
   unknownLabel: string;
   headerLabels: {
     number: string;
@@ -346,22 +376,23 @@ interface PlaylistTrackTableProps {
     album: string;
     duration: string;
   };
+  likeLabel: string;
+  unlikeLabel: string;
 }
 
-/**
- * Compact track table for the playlist view. Mirrors the "list" mode of
- * the LibraryView TrackTable but kept local to avoid extracting a shared
- * component just for two callsites.
- */
 function PlaylistTrackTable({
   tracks,
   isLoading,
   currentTrackId,
   onPlayTrack,
+  likedIds,
+  onToggleLike,
   unknownLabel,
   headerLabels,
+  likeLabel,
+  unlikeLabel,
 }: PlaylistTrackTableProps) {
-  const gridCols = "grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem]";
+  const gridCols = "grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem_2rem]";
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40 overflow-hidden">
       <div
@@ -375,6 +406,7 @@ function PlaylistTrackTable({
         <span className="flex justify-end" aria-label={headerLabels.duration}>
           <Clock size={14} />
         </span>
+        <span aria-hidden="true" />
       </div>
       <ul
         className={`divide-y divide-zinc-100 dark:divide-zinc-800/60 ${
@@ -427,6 +459,26 @@ function PlaylistTrackTable({
               <span className="text-sm tabular-nums text-zinc-400 text-right">
                 {formatDuration(track.duration_ms)}
               </span>
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleLike(track.id);
+                  }}
+                  aria-label={likedIds.has(track.id) ? unlikeLabel : likeLabel}
+                  className={`p-1 rounded-full transition-colors ${
+                    likedIds.has(track.id)
+                      ? "text-pink-500"
+                      : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
+                  }`}
+                >
+                  <Heart
+                    size={14}
+                    className={likedIds.has(track.id) ? "fill-current" : ""}
+                  />
+                </button>
+              </div>
             </li>
           );
         })}

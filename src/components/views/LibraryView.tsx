@@ -11,6 +11,7 @@ import {
   LayoutList,
   AlignJustify,
   Plus,
+  Heart,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { LibraryTab } from "../../types";
@@ -27,7 +28,13 @@ import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import type { Playlist } from "../../lib/tauri/playlist";
 import { pickFolder } from "../../lib/tauri/dialog";
-import { formatDuration, listTracks, type Track } from "../../lib/tauri/track";
+import {
+  formatDuration,
+  listTracks,
+  listLikedTrackIds,
+  toggleLikeTrack,
+  type Track,
+} from "../../lib/tauri/track";
 import {
   listAlbums,
   listArtists,
@@ -95,6 +102,7 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
   const [folders, setFolders] = useState<FolderRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [tracksView, setTracksView] = useState<TracksView>("list");
+  const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const EmptyIcon = emptyStateIcons[activeTab];
   const HeaderIcon = headerIcons[activeTab];
 
@@ -147,6 +155,15 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
       cancelled = true;
     };
   }, [activeTab, librariesSignature]);
+
+  // Load liked track IDs once on mount so the TrackTable can show
+  // filled hearts. Re-fetches when the libraries change (scan might
+  // add new tracks whose liked state we need to know).
+  useEffect(() => {
+    listLikedTrackIds()
+      .then((ids) => setLikedIds(new Set(ids)))
+      .catch((err) => console.error("[LibraryView] liked ids failed", err));
+  }, [librariesSignature]);
 
   // Per-tab header subtext uses the fetched data lengths since we
   // aggregate across all libraries (no single Library to read counts from).
@@ -335,6 +352,20 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
                 })
               }
               currentTrackId={currentTrack?.id ?? null}
+              likedIds={likedIds}
+              onToggleLike={async (trackId) => {
+                try {
+                  const nowLiked = await toggleLikeTrack(trackId);
+                  setLikedIds((prev) => {
+                    const next = new Set(prev);
+                    if (nowLiked) next.add(trackId);
+                    else next.delete(trackId);
+                    return next;
+                  });
+                } catch (err) {
+                  console.error("[LibraryView] toggle like failed", err);
+                }
+              }}
               playlists={playlists}
               onAddToPlaylist={async (playlistId, trackId) => {
                 try {
@@ -442,6 +473,8 @@ interface TrackTableProps {
   t: Translator;
   onPlayTrack: (index: number) => void;
   currentTrackId: number | null;
+  likedIds: Set<number>;
+  onToggleLike: (trackId: number) => void;
   playlists: Playlist[];
   onAddToPlaylist: (playlistId: number, trackId: number) => void;
   onCreatePlaylist: () => void;
@@ -454,6 +487,8 @@ function TrackTable({
   t,
   onPlayTrack,
   currentTrackId,
+  likedIds,
+  onToggleLike,
   playlists,
   onAddToPlaylist,
   onCreatePlaylist,
@@ -492,8 +527,8 @@ function TrackTable({
 
   const gridCols =
     view === "list"
-      ? "grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem_2.5rem]"
-      : "grid-cols-[3rem_1fr_1fr_1fr_5rem_2.5rem]";
+      ? "grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem_2rem_2.5rem]"
+      : "grid-cols-[3rem_1fr_1fr_1fr_5rem_2rem_2.5rem]";
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40 overflow-hidden">
@@ -512,6 +547,7 @@ function TrackTable({
         >
           <Clock size={14} />
         </span>
+        <span aria-hidden="true" />
         <span aria-hidden="true" />
       </div>
 
@@ -584,6 +620,26 @@ function TrackTable({
                 <span className="text-sm tabular-nums text-zinc-400 text-right">
                   {formatDuration(track.duration_ms)}
                 </span>
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleLike(track.id);
+                    }}
+                    aria-label={likedIds.has(track.id) ? t("liked.unlike") : t("liked.like")}
+                    className={`p-1 rounded-full transition-colors ${
+                      likedIds.has(track.id)
+                        ? "text-pink-500"
+                        : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
+                    }`}
+                  >
+                    <Heart
+                      size={14}
+                      className={likedIds.has(track.id) ? "fill-current" : ""}
+                    />
+                  </button>
+                </div>
                 <div className="relative flex justify-center">
                   <button
                     type="button"

@@ -1,10 +1,12 @@
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Menu, MonitorSpeaker } from "lucide-react";
+import { Menu, MonitorSpeaker, Heart } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { Artwork } from "../common/Artwork";
 import { PlaybackControls } from "./PlaybackControls";
 import { ProgressBar } from "./ProgressBar";
 import { VolumeControl } from "./VolumeControl";
+import { toggleLikeTrack, listLikedTrackIds } from "../../lib/tauri/track";
 
 export function PlayerBar() {
   const { t } = useTranslation();
@@ -15,6 +17,29 @@ export function PlayerBar() {
     toggleDeviceMenu,
     currentTrack,
   } = usePlayer();
+
+  const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+
+  // Load liked IDs on mount + refresh when track changes (the user
+  // might have liked/unliked from the library view).
+  useEffect(() => {
+    listLikedTrackIds()
+      .then((ids) => setLikedIds(new Set(ids)))
+      .catch(() => {});
+  }, [currentTrack?.id]);
+
+  const isLiked = currentTrack != null && likedIds.has(currentTrack.id);
+
+  const handleToggleLike = async () => {
+    if (!currentTrack) return;
+    const nowLiked = await toggleLikeTrack(currentTrack.id);
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      if (nowLiked) next.add(currentTrack.id);
+      else next.delete(currentTrack.id);
+      return next;
+    });
+  };
 
   const title = currentTrack?.title ?? t("player.noTrack");
   const subtitle =
@@ -41,6 +66,23 @@ export function PlayerBar() {
             {subtitle}
           </span>
         </div>
+        {currentTrack && (
+          <button
+            type="button"
+            onClick={handleToggleLike}
+            aria-label={isLiked ? t("liked.unlike") : t("liked.like")}
+            className={`p-1.5 rounded-full transition-colors shrink-0 ${
+              isLiked
+                ? "text-pink-500"
+                : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
+            }`}
+          >
+            <Heart
+              size={16}
+              className={isLiked ? "fill-current" : ""}
+            />
+          </button>
+        )}
       </div>
 
       {/* Center: Controls */}
