@@ -86,7 +86,9 @@ export function Sidebar({
     return () => {
       if (unlisten) unlisten();
     };
-  }, [refreshStats]);
+    // Re-fetch when the active profile changes so counters reflect
+    // the new profile's data immediately (not just after a track swap).
+  }, [refreshStats, activeProfile]);
 
   // Import a folder: auto-create a library if none exists, then scan.
   const handleImportFolder = async () => {
