@@ -37,6 +37,9 @@ export function ArtistDetailView({
   // Deezer enrichment
   const [pictureUrl, setPictureUrl] = useState<string | null>(null);
   const [fansCount, setFansCount] = useState<number | null>(null);
+  const [bioShort, setBioShort] = useState<string | null>(null);
+  const [bioFull, setBioFull] = useState<string | null>(null);
+  const [bioExpanded, setBioExpanded] = useState(false);
 
   // Load artist detail
   useEffect(() => {
@@ -50,6 +53,9 @@ export function ArtistDetailView({
       setIsLoading(true);
       setPictureUrl(null);
       setFansCount(null);
+      setBioShort(null);
+      setBioFull(null);
+      setBioExpanded(false);
       try {
         const [detail, allTracks] = await Promise.all([
           getArtistDetail(artistId),
@@ -61,6 +67,8 @@ export function ArtistDetailView({
         // instantly on re-visits (not just after enrichment resolves).
         if (detail.picture_url) setPictureUrl(detail.picture_url);
         if (detail.fans_count != null) setFansCount(detail.fans_count);
+        if (detail.bio_short) setBioShort(detail.bio_short);
+        if (detail.bio_full) setBioFull(detail.bio_full);
         // Match any track where this artist appears in the multi-artist
         // string (split on ", ") — covers both primary and feature
         // credits from the same list_tracks payload.
@@ -102,6 +110,8 @@ export function ArtistDetailView({
         if (cancelled) return;
         if (e.picture_url) setPictureUrl(e.picture_url);
         if (e.fans_count != null) setFansCount(e.fans_count);
+        if (e.bio_short) setBioShort(e.bio_short);
+        if (e.bio_full) setBioFull(e.bio_full);
       })
       .catch(() => {});
     return () => {
@@ -219,6 +229,31 @@ export function ArtistDetailView({
           </div>
         </div>
       </div>
+
+      {/* Bio */}
+      {bioShort && (
+        <div className="space-y-3">
+          <h2 className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-1">
+            {t("artistDetail.bio.title")}
+          </h2>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-800/40">
+            <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-300 whitespace-pre-line">
+              {bioExpanded ? (bioFull ?? bioShort) : bioShort}
+            </p>
+            {bioFull && bioFull.length > bioShort.length && (
+              <button
+                type="button"
+                onClick={() => setBioExpanded((p) => !p)}
+                className="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
+              >
+                {bioExpanded
+                  ? t("nowPlaying.readLess")
+                  : t("nowPlaying.readMore")}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Discography */}
       {artist.albums.length > 0 && (

@@ -429,14 +429,46 @@
     "albumTrackCount_one": "{{count}} track",
     "albumTrackCount_other": "{{count}} tracks",
     "emptyTitle": "Artist not found",
-    "emptyDescription": "This artist no longer exists in the active profile."
+    "emptyDescription": "This artist no longer exists in the active profile.",
+    "bio": {
+      "title": "Biography"
+    }
+  },
+  "nowPlaying": {
+    "title": "Now playing",
+    "empty": "No track playing",
+    "aboutArtist": "About the artist",
+    "readMore": "Read more",
+    "readLess": "Read less",
+    "noBio": "No biography available. Configure your Last.fm key in Settings.",
+    "lyrics": {
+      "title": "Lyrics",
+      "comingSoon": "Coming soon"
+    }
+  },
+  "playerBar": {
+    "lyrics": "Lyrics (coming soon)",
+    "nowPlaying": "Now playing view",
+    "queue": "Queue"
   },
   "settings": {
     "title": "Settings",
     "sections": {
       "general": "General",
       "playback": "Playback",
+      "integrations": "Integrations",
       "storage": "Storage & Data"
+    },
+    "integrations": {
+      "lastfm": {
+        "title": "Last.fm API Key",
+        "subtitle": "Used to fetch artist biographies. Create a key at last.fm/api/account/create",
+        "placeholder": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "save": "Save",
+        "saved": "Saved ✓",
+        "show": "Show key",
+        "hide": "Hide key"
+      }
     },
     "crossfade": {
       "title": "Crossfade songs",

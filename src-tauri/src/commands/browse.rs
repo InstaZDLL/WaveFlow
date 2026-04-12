@@ -577,6 +577,8 @@ pub struct ArtistDetail {
     pub artwork_path: Option<String>,
     pub picture_url: Option<String>,
     pub fans_count: Option<i64>,
+    pub bio_short: Option<String>,
+    pub bio_full: Option<String>,
     pub track_count: i64,
     pub album_count: i64,
     pub albums: Vec<ArtistAlbumRow>,
@@ -590,6 +592,8 @@ struct ArtistDetailRaw {
     artwork_format: Option<String>,
     picture_url: Option<String>,
     fans_count: Option<i64>,
+    bio_short: Option<String>,
+    bio_full: Option<String>,
     track_count: i64,
     album_count: i64,
 }
@@ -631,6 +635,8 @@ pub async fn get_artist_detail(
                aw.hash AS artwork_hash, aw.format AS artwork_format,
                da.picture_url AS picture_url,
                da.fans_count  AS fans_count,
+               da.bio_short   AS bio_short,
+               da.bio_full    AS bio_full,
                COUNT(DISTINCT t.id) AS track_count,
                COUNT(DISTINCT t.album_id) AS album_count
           FROM artist ar
@@ -705,6 +711,8 @@ pub async fn get_artist_detail(
         artwork_path,
         picture_url: header.picture_url,
         fans_count: header.fans_count,
+        bio_short: header.bio_short,
+        bio_full: header.bio_full,
         track_count: header.track_count,
         album_count: header.album_count,
         albums,

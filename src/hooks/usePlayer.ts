@@ -16,6 +16,8 @@ interface PlayerContextValue {
   // UI-only state (not persisted)
   isQueueOpen: boolean;
   toggleQueue: () => void;
+  isNowPlayingOpen: boolean;
+  toggleNowPlaying: () => void;
   isDeviceMenuOpen: boolean;
   toggleDeviceMenu: () => void;
 

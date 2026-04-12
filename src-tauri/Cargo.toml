@@ -70,3 +70,6 @@ crossbeam-channel = "0.5"
 
 # HTTP client for Deezer public API metadata enrichment
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+# Regex for stripping HTML from Last.fm bio summaries
+regex = "1"

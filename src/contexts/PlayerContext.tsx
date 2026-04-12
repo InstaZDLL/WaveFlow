@@ -72,8 +72,11 @@ function queuePayloadToTrack(payload: QueueTrackPayload): Track {
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const { activeProfile } = useProfile();
 
-  // UI-only state
+  // UI-only state. Queue and NowPlaying share the same right-edge slot
+  // (w-80) so only one can be open at a time; toggling either closes
+  // the other.
   const [isQueueOpen, setIsQueueOpen] = useState(false);
+  const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
   const [isDeviceMenuOpen, setIsDeviceMenuOpen] = useState(false);
 
   // Backend-synced state
@@ -330,7 +333,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [repeatMode]);
 
-  const toggleQueue = useCallback(() => setIsQueueOpen((p) => !p), []);
+  const toggleQueue = useCallback(() => {
+    setIsQueueOpen((p) => {
+      if (!p) setIsNowPlayingOpen(false); // mutual exclusion
+      return !p;
+    });
+  }, []);
+  const toggleNowPlaying = useCallback(() => {
+    setIsNowPlayingOpen((p) => {
+      if (!p) setIsQueueOpen(false);
+      return !p;
+    });
+  }, []);
   const toggleDeviceMenu = useCallback(
     () => setIsDeviceMenuOpen((p) => !p),
     []
@@ -341,6 +355,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       value={{
         isQueueOpen,
         toggleQueue,
+        isNowPlayingOpen,
+        toggleNowPlaying,
         isDeviceMenuOpen,
         toggleDeviceMenu,
         playbackState,

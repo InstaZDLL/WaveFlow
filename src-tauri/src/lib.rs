@@ -9,6 +9,7 @@ mod commands;
 mod db;
 mod deezer;
 mod error;
+mod lastfm;
 mod paths;
 mod queue;
 mod state;
@@ -99,6 +100,8 @@ pub fn run() {
             commands::browse::get_artist_detail,
             commands::deezer::enrich_album_deezer,
             commands::deezer::enrich_artist_deezer,
+            commands::integration::get_lastfm_api_key,
+            commands::integration::set_lastfm_api_key,
             commands::player::player_get_state,
             commands::player::player_pause,
             commands::player::player_resume,

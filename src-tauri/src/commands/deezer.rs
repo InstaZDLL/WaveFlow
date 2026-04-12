@@ -15,8 +15,10 @@ use chrono::Utc;
 use serde::Serialize;
 
 use crate::{
+    commands::integration::read_lastfm_api_key,
     deezer::DeezerClient,
     error::AppResult,
+    lastfm::LastfmClient,
     state::AppState,
 };
 
@@ -171,6 +173,11 @@ pub struct DeezerArtistEnrichment {
     pub deezer_id: Option<i64>,
     pub picture_url: Option<String>,
     pub fans_count: Option<i64>,
+    /// Short biography from Last.fm (if an API key is configured and
+    /// the artist matches). HTML stripped.
+    pub bio_short: Option<String>,
+    /// Full biography from Last.fm. HTML stripped.
+    pub bio_full: Option<String>,
 }
 
 impl DeezerArtistEnrichment {
@@ -179,6 +186,8 @@ impl DeezerArtistEnrichment {
             deezer_id: None,
             picture_url: None,
             fans_count: None,
+            bio_short: None,
+            bio_full: None,
         }
     }
 }
@@ -192,38 +201,47 @@ pub async fn enrich_artist_deezer(
     let now = now_ms();
 
     // 1. Read local artist.
-    let local: Option<(String, Option<i64>)> = sqlx::query_as(
-        "SELECT name, deezer_id FROM artist WHERE id = ?",
-    )
-    .bind(artist_id)
-    .fetch_optional(&pool)
-    .await?;
+    let local: Option<(String, Option<i64>)> =
+        sqlx::query_as("SELECT name, deezer_id FROM artist WHERE id = ?")
+            .bind(artist_id)
+            .fetch_optional(&pool)
+            .await?;
 
     let Some((artist_name, existing_deezer_id)) = local else {
         return Ok(DeezerArtistEnrichment::empty());
     };
 
-    // 2. Cache hit?
+    // 2. Cache hit? (includes bio fields populated by Last.fm in a
+    //    previous enrichment pass)
     if let Some(did) = existing_deezer_id {
-        let cached: Option<(Option<String>, Option<i64>, i64)> = sqlx::query_as(
-            "SELECT picture_url, fans_count, expires_at FROM deezer_artist WHERE deezer_id = ?",
+        let cached: Option<(
+            Option<String>,
+            Option<i64>,
+            Option<String>,
+            Option<String>,
+            i64,
+        )> = sqlx::query_as(
+            "SELECT picture_url, fans_count, bio_short, bio_full, expires_at
+               FROM deezer_artist WHERE deezer_id = ?",
         )
         .bind(did)
         .fetch_optional(&pool)
         .await?;
 
-        if let Some((picture_url, fans_count, expires_at)) = cached {
+        if let Some((picture_url, fans_count, bio_short, bio_full, expires_at)) = cached {
             if expires_at > now {
                 return Ok(DeezerArtistEnrichment {
                     deezer_id: Some(did),
                     picture_url,
                     fans_count,
+                    bio_short,
+                    bio_full,
                 });
             }
         }
     }
 
-    // 3. Fetch from Deezer.
+    // 3. Fetch from Deezer (picture + fans).
     let client = DeezerClient::new();
     let hit = if let Some(did) = existing_deezer_id {
         match client.get_artist(did).await {
@@ -239,16 +257,9 @@ pub async fn enrich_artist_deezer(
     } else {
         match client.search_artist(&artist_name).await {
             Ok(hits) => {
-                // Pick the first result whose name closely matches the local name
-                // to avoid linking the wrong artist.
                 let canonical = artist_name.to_lowercase();
                 hits.into_iter()
                     .find(|h| h.name.to_lowercase() == canonical)
-                    .or_else(|| {
-                        // Fallback: take the first result from a fresh search
-                        // (Deezer ranks by relevance).
-                        None
-                    })
             }
             Err(err) => {
                 tracing::warn!(?err, "Deezer search_artist failed");
@@ -261,15 +272,38 @@ pub async fn enrich_artist_deezer(
         return Ok(DeezerArtistEnrichment::empty());
     };
 
-    // 4. Upsert cache.
+    // 4. Fetch bio from Last.fm if an API key is configured. Network
+    //    failures and missing matches are non-fatal — we still persist
+    //    the Deezer portion so the next refresh doesn't spam the
+    //    network.
+    let (bio_short, bio_full) = match read_lastfm_api_key(&state).await? {
+        Some(api_key) => {
+            let lastfm = LastfmClient::new();
+            match lastfm.artist_get_info(&artist_name, &api_key).await {
+                Ok(Some(info)) => (info.bio_summary, info.bio_full),
+                Ok(None) => (None, None),
+                Err(err) => {
+                    tracing::warn!(?err, "Last.fm artist_get_info failed");
+                    (None, None)
+                }
+            }
+        }
+        None => (None, None),
+    };
+
+    // 5. Upsert into the metadata cache (both Deezer and Last.fm
+    //    fields live in the historically-named `deezer_artist` table).
     let expires = now + CACHE_TTL_MS;
     sqlx::query(
-        "INSERT INTO deezer_artist (deezer_id, name, picture_url, fans_count, fetched_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?)
+        "INSERT INTO deezer_artist
+            (deezer_id, name, picture_url, fans_count, bio_short, bio_full, fetched_at, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(deezer_id) DO UPDATE SET
            name = excluded.name,
            picture_url = excluded.picture_url,
            fans_count = excluded.fans_count,
+           bio_short = excluded.bio_short,
+           bio_full = excluded.bio_full,
            fetched_at = excluded.fetched_at,
            expires_at = excluded.expires_at",
     )
@@ -277,12 +311,14 @@ pub async fn enrich_artist_deezer(
     .bind(&hit.name)
     .bind(hit.picture_xl.as_deref().or(hit.picture_big.as_deref()))
     .bind(hit.nb_fan)
+    .bind(bio_short.as_deref())
+    .bind(bio_full.as_deref())
     .bind(now)
     .bind(expires)
     .execute(&pool)
     .await?;
 
-    // 5. Link deezer_id on the local artist.
+    // 6. Link deezer_id on the local artist.
     if existing_deezer_id.is_none() {
         sqlx::query("UPDATE artist SET deezer_id = ? WHERE id = ?")
             .bind(hit.id)
@@ -295,5 +331,7 @@ pub async fn enrich_artist_deezer(
         deezer_id: Some(hit.id),
         picture_url: hit.picture_xl.or(hit.picture_big),
         fans_count: hit.nb_fan,
+        bio_short,
+        bio_full,
     })
 }

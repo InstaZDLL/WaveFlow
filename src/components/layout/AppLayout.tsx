@@ -4,6 +4,7 @@ import { useTheme } from "../../hooks/useTheme";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { QueuePanel } from "./QueuePanel";
+import { NowPlayingPanel } from "./NowPlayingPanel";
 import { DeviceMenu } from "./DeviceMenu";
 import { PlayerBar } from "../player/PlayerBar";
 import { HomeView } from "../views/HomeView";
@@ -155,9 +156,10 @@ export function AppLayout() {
               {renderView()}
             </div>
 
-            {/* Right Panels (Overlays) */}
+            {/* Right Panels (Overlays) — mutually exclusive via PlayerContext */}
             <DeviceMenu />
             <QueuePanel />
+            <NowPlayingPanel onNavigateToArtist={navigateToArtist} />
           </div>
         </div>
 

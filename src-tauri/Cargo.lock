@@ -6094,6 +6094,7 @@ dependencies = [
  "cpal",
  "crossbeam-channel",
  "lofty",
+ "regex",
  "reqwest 0.12.28",
  "rtrb",
  "rubato",

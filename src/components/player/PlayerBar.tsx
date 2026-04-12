@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Menu, MonitorSpeaker, Heart } from "lucide-react";
+import { Menu, MonitorSpeaker, Heart, Mic2, PanelRight } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
@@ -18,6 +18,8 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   const {
     isQueueOpen,
     toggleQueue,
+    isNowPlayingOpen,
+    toggleNowPlaying,
     isDeviceMenuOpen,
     toggleDeviceMenu,
     currentTrack,
@@ -102,8 +104,36 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
       {/* Right: Extra Controls */}
       <div className="w-1/3 flex items-center justify-end space-x-4">
+        {/* Lyrics (coming soon — separate panel, not wired yet) */}
+        <button
+          type="button"
+          disabled
+          aria-label={t("playerBar.lyrics")}
+          title={t("playerBar.lyrics")}
+          className="p-2 rounded-lg text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
+        >
+          <Mic2 size={20} />
+        </button>
+
+        {/* Now Playing panel */}
+        <button
+          type="button"
+          onClick={toggleNowPlaying}
+          aria-label={t("playerBar.nowPlaying")}
+          title={t("playerBar.nowPlaying")}
+          className={`p-2 rounded-lg transition-colors ${
+            isNowPlayingOpen
+              ? "text-emerald-500"
+              : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
+          }`}
+        >
+          <PanelRight size={20} />
+        </button>
+
         <button
           onClick={toggleQueue}
+          aria-label={t("playerBar.queue")}
+          title={t("playerBar.queue")}
           className={`p-2 rounded-lg transition-colors ${
             isQueueOpen
               ? "text-emerald-500"

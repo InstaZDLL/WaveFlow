@@ -429,14 +429,46 @@
     "albumTrackCount_one": "{{count}} titre",
     "albumTrackCount_other": "{{count}} titres",
     "emptyTitle": "Artiste introuvable",
-    "emptyDescription": "Cet artiste n'existe plus dans le profil actif."
+    "emptyDescription": "Cet artiste n'existe plus dans le profil actif.",
+    "bio": {
+      "title": "Biographie"
+    }
+  },
+  "nowPlaying": {
+    "title": "En cours de lecture",
+    "empty": "Aucun titre en cours",
+    "aboutArtist": "À propos de l'artiste",
+    "readMore": "Lire la suite",
+    "readLess": "Réduire",
+    "noBio": "Aucune biographie disponible. Configure ta clé Last.fm dans les paramètres.",
+    "lyrics": {
+      "title": "Paroles",
+      "comingSoon": "Bientôt disponible"
+    }
+  },
+  "playerBar": {
+    "lyrics": "Paroles (bientôt)",
+    "nowPlaying": "Vue en cours de lecture",
+    "queue": "File d'attente"
   },
   "settings": {
     "title": "Paramètres",
     "sections": {
       "general": "Général",
       "playback": "Lecture",
+      "integrations": "Intégrations",
       "storage": "Stockage & Données"
+    },
+    "integrations": {
+      "lastfm": {
+        "title": "Clé API Last.fm",
+        "subtitle": "Pour récupérer les biographies d'artistes. Créer une clé sur last.fm/api/account/create",
+        "placeholder": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "save": "Enregistrer",
+        "saved": "Enregistré ✓",
+        "show": "Afficher la clé",
+        "hide": "Masquer la clé"
+      }
     },
     "crossfade": {
       "title": "Fondu enchaîné",

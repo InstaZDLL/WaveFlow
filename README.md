@@ -26,9 +26,13 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
 - **Audio playback** — symphonia decoder + cpal output, supports MP3, FLAC, WAV, OGG Vorbis, AAC, ALAC (M4A)
 - **Real-time engine** — lock-free 3-thread architecture (decoder, ring buffer, cpal callback), zero allocations in the hot path
 - **Library scanning** — point to any folder, metadata extraction via lofty, embedded artwork extraction
+- **Multi-artist** — automatic split of `"Artist A, Artist B"` into individual, independently-linkable artists
+- **Album & artist detail pages** — clickable album/artist cards open a dedicated view with tracklist, discography, and stats
+- **Now Playing panel** — Spotify-style right-edge panel with large artwork, clickable artists, and artist biography
+- **Metadata enrichment** — Deezer public API (artist images, album covers, labels) + Last.fm (artist biographies) cached 30 days locally
 - **Playlists** — create, edit, delete, add tracks from folders/albums/artists in bulk
 - **Likes** — heart any track, dedicated "Liked tracks" view
-- **Search** — instant full-text search (FTS5) across titles, artists, albums with prefix matching
+- **Search** — instant full-text search (FTS5 contentless) across titles, artists, albums with prefix matching
 - **Queue** — persistent queue with shuffle (Fisher-Yates), repeat (off/all/one), auto-advance
 - **Resume** — remembers last track + position across app restarts
 - **Audio settings** — volume normalization (-3 dB), mono downmix, crossfade slider (UI ready)
@@ -44,8 +48,9 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
 |-------|-------------|
 | **Desktop shell** | Tauri 2.10 |
 | **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS 4, Lucide icons |
-| **Backend** | Rust, SQLite (sqlx), FTS5 full-text search |
+| **Backend** | Rust, SQLite (sqlx), FTS5 contentless full-text search |
 | **Audio** | symphonia 0.5 (decode), cpal 0.15 (output), rubato 0.15 (resample), rtrb 0.3 (SPSC ring) |
+| **External metadata** | Deezer public API (no auth) + Last.fm (user-provided API key) via reqwest 0.12 with rustls |
 | **Package manager** | Bun |
 
 ## Getting Started
@@ -77,14 +82,14 @@ bun run format       # Prettier
 waveflow/
 ├── src/                              # React frontend
 │   ├── components/
-│   │   ├── common/                   # Reusable UI (NavItem, Artwork, modals, EmptyState)
-│   │   ├── layout/                   # Sidebar, TopBar, AppLayout, QueuePanel
+│   │   ├── common/                   # Reusable UI (NavItem, Artwork, ArtistLink, modals, EmptyState)
+│   │   ├── layout/                   # Sidebar, TopBar, AppLayout, QueuePanel, NowPlayingPanel
 │   │   ├── player/                   # PlayerBar, PlaybackControls, VolumeControl, ProgressBar
-│   │   └── views/                    # Home, Library, Playlist, Liked, Recent, Settings, etc.
-│   ├── contexts/                     # ThemeContext, PlayerContext, LibraryContext, PlaylistContext
+│   │   └── views/                    # Home, Library, Playlist, AlbumDetail, ArtistDetail, Liked, Recent, Settings, etc.
+│   ├── contexts/                     # ThemeContext, PlayerContext, LibraryContext, PlaylistContext, ProfileContext
 │   ├── hooks/                        # useTheme, usePlayer, useLibrary, usePlaylist, useProfile
 │   ├── lib/
-│   │   ├── tauri/                    # Typed invoke() wrappers (track, browse, player, playlist)
+│   │   ├── tauri/                    # Typed invoke() wrappers (track, browse, player, playlist, detail, integration)
 │   │   ├── playlistVisuals.ts        # Shared color/icon constants for playlists
 │   │   └── PlaylistIcon.tsx          # Icon dispatcher component
 │   ├── i18n/locales/                 # fr.json, en.json
@@ -94,15 +99,18 @@ waveflow/
 ├── src-tauri/                        # Rust backend
 │   ├── src/
 │   │   ├── audio/                    # Audio engine (engine, decoder, output, resampler, state, analytics)
-│   │   ├── commands/                 # Tauri commands (library, playlist, track, browse, player, scan, profile)
-│   │   ├── db/                       # Database open/migrate helpers
+│   │   ├── commands/                 # Tauri commands (library, playlist, track, browse, player, scan, profile, deezer, integration)
+│   │   ├── db/                       # Database open/migrate helpers (app.db + per-profile data.db)
+│   │   ├── deezer.rs                 # Deezer public API client (search/get artist & album)
+│   │   ├── lastfm.rs                 # Last.fm API client (artist.getInfo with HTML strip)
 │   │   ├── queue.rs                  # Persistent queue operations (fill, advance, shuffle, restore)
-│   │   ├── state.rs                  # AppState (profile pool, paths)
+│   │   ├── state.rs                  # AppState (profile pool, paths, global app_db)
 │   │   ├── paths.rs                  # Filesystem layout
 │   │   ├── error.rs                  # AppError + AppResult
 │   │   └── lib.rs                    # Tauri setup, command registration, shutdown hook
 │   ├── migrations/
-│   │   └── profile/                  # Per-profile SQLite schema (FTS5, triggers, indexes)
+│   │   ├── app/                      # Global app.db schema (profile list, app_setting)
+│   │   └── profile/                  # Per-profile SQLite schema (FTS5 contentless, triggers, indexes, deezer cache tables)
 │   ├── Cargo.toml
 │   └── tauri.conf.json
 └── package.json
