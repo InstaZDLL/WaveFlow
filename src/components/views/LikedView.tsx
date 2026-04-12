@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Heart, Clock, Play } from "lucide-react";
 import { EmptyState } from "../common/EmptyState";
 import { Artwork } from "../common/Artwork";
+import { ArtistLink } from "../common/ArtistLink";
 import { usePlayer } from "../../hooks/usePlayer";
 import {
   listLikedTracks,
@@ -11,7 +12,11 @@ import {
   type Track,
 } from "../../lib/tauri/track";
 
-export function LikedView() {
+interface LikedViewProps {
+  onNavigateToArtist: (artistId: number) => void;
+}
+
+export function LikedView({ onNavigateToArtist }: LikedViewProps) {
   const { t } = useTranslation();
   const { playTracks, currentTrack, playbackState } = usePlayer();
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -141,9 +146,13 @@ export function LikedView() {
                   >
                     {track.title}
                   </span>
-                  <span className="text-sm text-zinc-500 truncate">
-                    {track.artist_name ?? unknown}
-                  </span>
+                  <ArtistLink
+                    name={track.artist_name}
+                    artistIds={track.artist_ids}
+                    onNavigate={onNavigateToArtist}
+                    fallback={unknown}
+                    className="text-sm text-zinc-500 truncate"
+                  />
                   <span className="text-sm text-zinc-500 truncate">
                     {track.album_title ?? unknown}
                   </span>

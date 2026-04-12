@@ -18,6 +18,8 @@ export interface ArtistRow {
   name: string;
   track_count: number;
   album_count: number;
+  /** Deezer CDN URL, populated after the artist has been enriched at least once. */
+  picture_url: string | null;
 }
 
 /** Genre row returned by `list_genres`. */
@@ -56,7 +58,9 @@ export function listFolders(libraryId: number | null): Promise<FolderRow[]> {
 export interface RecentPlay {
   track_id: number;
   title: string;
+  artist_id: number | null;
   artist_name: string | null;
+  artist_ids: string | null;
   album_title: string | null;
   duration_ms: number;
   played_at: number;

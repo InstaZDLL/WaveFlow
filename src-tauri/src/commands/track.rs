@@ -17,7 +17,12 @@ pub struct Track {
     pub library_id: i64,
     pub title: String,
     pub album_title: Option<String>,
+    pub artist_id: Option<i64>,
     pub artist_name: Option<String>,
+    /// Comma-joined artist IDs in the same order as `artist_name`'s
+    /// `", "`-joined names. Used by the frontend `ArtistLink` to make
+    /// each name individually clickable.
+    pub artist_ids: Option<String>,
     pub duration_ms: i64,
     pub track_number: Option<i64>,
     pub disc_number: Option<i64>,
@@ -40,7 +45,9 @@ struct TrackRow {
     library_id: i64,
     title: String,
     album_title: Option<String>,
+    artist_id: Option<i64>,
     artist_name: Option<String>,
+    artist_ids: Option<String>,
     duration_ms: i64,
     track_number: Option<i64>,
     disc_number: Option<i64>,
@@ -72,7 +79,18 @@ pub async fn list_tracks(
         r#"
         SELECT t.id, t.library_id, t.title,
                al.title AS album_title,
-               ar.name  AS artist_name,
+               t.primary_artist AS artist_id,
+               (SELECT GROUP_CONCAT(name, ', ') FROM (
+                  SELECT ar2.name FROM track_artist ta2
+                  JOIN artist ar2 ON ar2.id = ta2.artist_id
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_name,
+               (SELECT GROUP_CONCAT(id, ',') FROM (
+                  SELECT ta2.artist_id AS id FROM track_artist ta2
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_ids,
                t.duration_ms, t.track_number, t.disc_number, t.year,
                t.bitrate, t.sample_rate, t.channels,
                t.file_path, t.file_size, t.added_at,
@@ -112,7 +130,9 @@ pub async fn list_tracks(
                 library_id: row.library_id,
                 title: row.title,
                 album_title: row.album_title,
+                artist_id: row.artist_id,
                 artist_name: row.artist_name,
+                artist_ids: row.artist_ids,
                 duration_ms: row.duration_ms,
                 track_number: row.track_number,
                 disc_number: row.disc_number,
@@ -159,7 +179,18 @@ pub async fn search_tracks(
         r#"
         SELECT t.id, t.library_id, t.title,
                al.title AS album_title,
-               ar.name  AS artist_name,
+               t.primary_artist AS artist_id,
+               (SELECT GROUP_CONCAT(name, ', ') FROM (
+                  SELECT ar2.name FROM track_artist ta2
+                  JOIN artist ar2 ON ar2.id = ta2.artist_id
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_name,
+               (SELECT GROUP_CONCAT(id, ',') FROM (
+                  SELECT ta2.artist_id AS id FROM track_artist ta2
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_ids,
                t.duration_ms, t.track_number, t.disc_number, t.year,
                t.bitrate, t.sample_rate, t.channels,
                t.file_path, t.file_size, t.added_at,
@@ -196,7 +227,9 @@ pub async fn search_tracks(
                 library_id: row.library_id,
                 title: row.title,
                 album_title: row.album_title,
+                artist_id: row.artist_id,
                 artist_name: row.artist_name,
+                artist_ids: row.artist_ids,
                 duration_ms: row.duration_ms,
                 track_number: row.track_number,
                 disc_number: row.disc_number,
@@ -274,7 +307,18 @@ pub async fn list_liked_tracks(
         r#"
         SELECT t.id, t.library_id, t.title,
                al.title AS album_title,
-               ar.name  AS artist_name,
+               t.primary_artist AS artist_id,
+               (SELECT GROUP_CONCAT(name, ', ') FROM (
+                  SELECT ar2.name FROM track_artist ta2
+                  JOIN artist ar2 ON ar2.id = ta2.artist_id
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_name,
+               (SELECT GROUP_CONCAT(id, ',') FROM (
+                  SELECT ta2.artist_id AS id FROM track_artist ta2
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_ids,
                t.duration_ms, t.track_number, t.disc_number, t.year,
                t.bitrate, t.sample_rate, t.channels,
                t.file_path, t.file_size, t.added_at,
@@ -309,7 +353,9 @@ pub async fn list_liked_tracks(
                 library_id: row.library_id,
                 title: row.title,
                 album_title: row.album_title,
+                artist_id: row.artist_id,
                 artist_name: row.artist_name,
+                artist_ids: row.artist_ids,
                 duration_ms: row.duration_ms,
                 track_number: row.track_number,
                 disc_number: row.disc_number,

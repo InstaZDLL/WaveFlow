@@ -3,12 +3,17 @@ import { useTranslation } from "react-i18next";
 import { Menu, MonitorSpeaker, Heart } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { Artwork } from "../common/Artwork";
+import { ArtistLink } from "../common/ArtistLink";
 import { PlaybackControls } from "./PlaybackControls";
 import { ProgressBar } from "./ProgressBar";
 import { VolumeControl } from "./VolumeControl";
 import { toggleLikeTrack, listLikedTrackIds } from "../../lib/tauri/track";
 
-export function PlayerBar() {
+interface PlayerBarProps {
+  onNavigateToArtist: (artistId: number) => void;
+}
+
+export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   const { t } = useTranslation();
   const {
     isQueueOpen,
@@ -42,10 +47,6 @@ export function PlayerBar() {
   };
 
   const title = currentTrack?.title ?? t("player.noTrack");
-  const subtitle =
-    currentTrack?.artist_name ??
-    currentTrack?.album_title ??
-    t("player.inactive");
 
   return (
     <div className="h-24 px-6 flex items-center justify-between border-t z-50 bg-[#FAFAFA] border-zinc-200 text-zinc-600 dark:bg-surface-dark-elevated dark:border-zinc-800 dark:text-zinc-300">
@@ -63,7 +64,15 @@ export function PlayerBar() {
             {title}
           </span>
           <span className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
-            {subtitle}
+            {currentTrack?.artist_name ? (
+              <ArtistLink
+                name={currentTrack.artist_name}
+                artistIds={currentTrack.artist_ids}
+                onNavigate={onNavigateToArtist}
+              />
+            ) : (
+              (currentTrack?.album_title ?? t("player.inactive"))
+            )}
           </span>
         </div>
         {currentTrack && (

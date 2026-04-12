@@ -399,6 +399,38 @@
     "noPlaylists": "Aucune playlist. Crée-en une ci-dessous.",
     "createPlaylist": "Nouvelle playlist"
   },
+  "albumDetail": {
+    "badge": "Album",
+    "playAll": "Tout lire",
+    "shuffle": "Lecture aléatoire",
+    "trackCount_zero": "0 titre",
+    "trackCount_one": "{{count}} titre",
+    "trackCount_other": "{{count}} titres",
+    "discHeader": "Disque {{number}}",
+    "releaseDate": "Sortie",
+    "emptyTitle": "Album introuvable",
+    "emptyDescription": "Cet album n'existe plus dans le profil actif.",
+    "emptyTracksTitle": "Aucun morceau",
+    "emptyTracksDescription": "Cet album ne contient aucun morceau disponible."
+  },
+  "artistDetail": {
+    "badge": "Artiste",
+    "playAll": "Tout lire",
+    "shuffle": "Lecture aléatoire",
+    "discography": "Discographie",
+    "allTracks": "Tous les titres",
+    "trackCount_zero": "0 titre",
+    "trackCount_one": "{{count}} titre",
+    "trackCount_other": "{{count}} titres",
+    "albumCount_zero": "0 album",
+    "albumCount_one": "{{count}} album",
+    "albumCount_other": "{{count}} albums",
+    "albumTrackCount_zero": "0 titre",
+    "albumTrackCount_one": "{{count}} titre",
+    "albumTrackCount_other": "{{count}} titres",
+    "emptyTitle": "Artiste introuvable",
+    "emptyDescription": "Cet artiste n'existe plus dans le profil actif."
+  },
   "settings": {
     "title": "Paramètres",
     "sections": {

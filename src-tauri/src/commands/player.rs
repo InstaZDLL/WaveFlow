@@ -50,7 +50,9 @@ pub struct PlayerStateSnapshot {
 pub struct QueueTrackPayload {
     pub id: i64,
     pub title: String,
+    pub artist_id: Option<i64>,
     pub artist_name: Option<String>,
+    pub artist_ids: Option<String>,
     pub album_title: Option<String>,
     pub duration_ms: i64,
     pub file_path: String,
@@ -110,7 +112,9 @@ fn queue_track_to_payload_with_paths(
     QueueTrackPayload {
         id: track.id,
         title: track.title,
+        artist_id: track.artist_id,
         artist_name: track.artist_name,
+        artist_ids: track.artist_ids,
         album_title: track.album_title,
         duration_ms: track.duration_ms,
         file_path: track.file_path,

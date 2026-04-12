@@ -16,7 +16,10 @@ export interface Track {
   library_id: number;
   title: string;
   album_title: string | null;
+  artist_id: number | null;
   artist_name: string | null;
+  /** Comma-joined artist IDs matching the `", "`-joined `artist_name`. */
+  artist_ids: string | null;
   duration_ms: number;
   track_number: number | null;
   disc_number: number | null;

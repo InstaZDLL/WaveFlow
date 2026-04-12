@@ -337,12 +337,30 @@ CREATE TRIGGER track_fts_insert AFTER INSERT ON track BEGIN
     );
 END;
 
+-- `track_fts` is declared contentless (content=''), so DELETE / UPDATE
+-- on it must use the special FTS5 `'delete'` / `'delete-all'` commands
+-- with the OLD values of the indexed columns. See:
+-- https://www.sqlite.org/fts5.html#the_delete_command
 CREATE TRIGGER track_fts_delete AFTER DELETE ON track BEGIN
-    DELETE FROM track_fts WHERE rowid = old.id;
+    INSERT INTO track_fts(track_fts, rowid, title, album_title, artist_name)
+    VALUES(
+        'delete',
+        old.id,
+        old.title,
+        COALESCE((SELECT title FROM album  WHERE id = old.album_id),       ''),
+        COALESCE((SELECT name  FROM artist WHERE id = old.primary_artist), '')
+    );
 END;
 
 CREATE TRIGGER track_fts_update AFTER UPDATE OF title, album_id, primary_artist ON track BEGIN
-    DELETE FROM track_fts WHERE rowid = old.id;
+    INSERT INTO track_fts(track_fts, rowid, title, album_title, artist_name)
+    VALUES(
+        'delete',
+        old.id,
+        old.title,
+        COALESCE((SELECT title FROM album  WHERE id = old.album_id),       ''),
+        COALESCE((SELECT name  FROM artist WHERE id = old.primary_artist), '')
+    );
     INSERT INTO track_fts (rowid, title, album_title, artist_name) VALUES (
         new.id,
         new.title,
@@ -351,15 +369,36 @@ CREATE TRIGGER track_fts_update AFTER UPDATE OF title, album_id, primary_artist 
     );
 END;
 
--- Keep FTS in sync when the denormalized fields change upstream -------------
+-- Keep FTS in sync when the denormalized fields change upstream.
+-- Contentless FTS5 tables don't support UPDATE either — re-emit the
+-- affected rows via delete + insert. Each trigger loops through the
+-- matched tracks and re-syncs their FTS row.
 CREATE TRIGGER album_title_fts_update AFTER UPDATE OF title ON album BEGIN
-    UPDATE track_fts
-       SET album_title = new.title
-     WHERE rowid IN (SELECT id FROM track WHERE album_id = new.id);
+    INSERT INTO track_fts(track_fts, rowid, title, album_title, artist_name)
+    SELECT 'delete', t.id,
+           t.title,
+           old.title,
+           COALESCE((SELECT name FROM artist WHERE id = t.primary_artist), '')
+      FROM track t WHERE t.album_id = new.id;
+    INSERT INTO track_fts (rowid, title, album_title, artist_name)
+    SELECT t.id,
+           t.title,
+           new.title,
+           COALESCE((SELECT name FROM artist WHERE id = t.primary_artist), '')
+      FROM track t WHERE t.album_id = new.id;
 END;
 
 CREATE TRIGGER artist_name_fts_update AFTER UPDATE OF name ON artist BEGIN
-    UPDATE track_fts
-       SET artist_name = new.name
-     WHERE rowid IN (SELECT id FROM track WHERE primary_artist = new.id);
+    INSERT INTO track_fts(track_fts, rowid, title, album_title, artist_name)
+    SELECT 'delete', t.id,
+           t.title,
+           COALESCE((SELECT title FROM album WHERE id = t.album_id), ''),
+           old.name
+      FROM track t WHERE t.primary_artist = new.id;
+    INSERT INTO track_fts (rowid, title, album_title, artist_name)
+    SELECT t.id,
+           t.title,
+           COALESCE((SELECT title FROM album WHERE id = t.album_id), ''),
+           new.name
+      FROM track t WHERE t.primary_artist = new.id;
 END;

@@ -399,6 +399,38 @@
     "noPlaylists": "No playlist yet. Create one below.",
     "createPlaylist": "New playlist"
   },
+  "albumDetail": {
+    "badge": "Album",
+    "playAll": "Play all",
+    "shuffle": "Shuffle",
+    "trackCount_zero": "0 tracks",
+    "trackCount_one": "{{count}} track",
+    "trackCount_other": "{{count}} tracks",
+    "discHeader": "Disc {{number}}",
+    "releaseDate": "Released",
+    "emptyTitle": "Album not found",
+    "emptyDescription": "This album no longer exists in the active profile.",
+    "emptyTracksTitle": "No tracks",
+    "emptyTracksDescription": "This album has no available tracks."
+  },
+  "artistDetail": {
+    "badge": "Artist",
+    "playAll": "Play all",
+    "shuffle": "Shuffle",
+    "discography": "Discography",
+    "allTracks": "All tracks",
+    "trackCount_zero": "0 tracks",
+    "trackCount_one": "{{count}} track",
+    "trackCount_other": "{{count}} tracks",
+    "albumCount_zero": "0 albums",
+    "albumCount_one": "{{count}} album",
+    "albumCount_other": "{{count}} albums",
+    "albumTrackCount_zero": "0 tracks",
+    "albumTrackCount_one": "{{count}} track",
+    "albumTrackCount_other": "{{count}} tracks",
+    "emptyTitle": "Artist not found",
+    "emptyDescription": "This artist no longer exists in the active profile."
+  },
   "settings": {
     "title": "Settings",
     "sections": {

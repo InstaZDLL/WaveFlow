@@ -7,6 +7,7 @@
 mod audio;
 mod commands;
 mod db;
+mod deezer;
 mod error;
 mod paths;
 mod queue;
@@ -94,6 +95,10 @@ pub fn run() {
             commands::browse::list_folders,
             commands::browse::list_recent_plays,
             commands::browse::get_profile_stats,
+            commands::browse::get_album_detail,
+            commands::browse::get_artist_detail,
+            commands::deezer::enrich_album_deezer,
+            commands::deezer::enrich_artist_deezer,
             commands::player::player_get_state,
             commands::player::player_pause,
             commands::player::player_resume,
@@ -123,6 +128,19 @@ pub fn run() {
                 let _ = tauri::async_runtime::block_on(async move {
                     let state = app.state::<AppState>();
                     let engine = app.state::<Arc<AudioEngine>>();
+
+                    // Silence the cpal output IMMEDIATELY. The rtrb
+                    // ring still holds a few hundred ms of decoded
+                    // samples from before the user paused; without
+                    // this flag, those samples flush to the device
+                    // while we persist resume state and the stream
+                    // tears down, producing a jarring ~2 s of audio
+                    // at shutdown.
+                    engine
+                        .shared()
+                        .paused_output
+                        .store(true, Ordering::Release);
+
                     let track_id = engine
                         .shared()
                         .current_track_id

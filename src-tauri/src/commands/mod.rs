@@ -5,6 +5,7 @@
 
 pub mod app_info;
 pub mod browse;
+pub mod deezer;
 pub mod library;
 pub mod player;
 pub mod playlist;

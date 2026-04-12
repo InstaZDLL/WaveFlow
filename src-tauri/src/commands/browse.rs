@@ -42,6 +42,9 @@ pub struct ArtistRow {
     pub name: String,
     pub track_count: i64,
     pub album_count: i64,
+    /// Deezer CDN URL from the `deezer_artist` cache, if the artist
+    /// has been enriched at least once.
+    pub picture_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -105,7 +108,9 @@ pub async fn get_profile_stats(
 pub struct RecentPlay {
     pub track_id: i64,
     pub title: String,
+    pub artist_id: Option<i64>,
     pub artist_name: Option<String>,
+    pub artist_ids: Option<String>,
     pub album_title: Option<String>,
     pub duration_ms: i64,
     pub played_at: i64,
@@ -119,7 +124,9 @@ pub struct RecentPlay {
 struct RecentPlayRaw {
     track_id: i64,
     title: String,
+    artist_id: Option<i64>,
     artist_name: Option<String>,
+    artist_ids: Option<String>,
     album_title: Option<String>,
     duration_ms: i64,
     played_at: i64,
@@ -205,9 +212,12 @@ pub async fn list_artists(
         SELECT ar.id,
                ar.name,
                COUNT(DISTINCT t.id)       AS track_count,
-               COUNT(DISTINCT t.album_id) AS album_count
+               COUNT(DISTINCT t.album_id) AS album_count,
+               da.picture_url             AS picture_url
           FROM artist ar
-          JOIN track t ON t.primary_artist = ar.id
+          JOIN track_artist ta ON ta.artist_id = ar.id
+          JOIN track t ON t.id = ta.track_id
+          LEFT JOIN deezer_artist da ON da.deezer_id = ar.deezer_id
          WHERE (? IS NULL OR t.library_id = ?) AND t.is_available = 1
          GROUP BY ar.id
          ORDER BY ar.canonical_name COLLATE NOCASE
@@ -270,7 +280,18 @@ pub async fn list_recent_plays(
         r#"
         SELECT t.id                         AS track_id,
                t.title                      AS title,
-               ar.name                      AS artist_name,
+               t.primary_artist             AS artist_id,
+               (SELECT GROUP_CONCAT(name, ', ') FROM (
+                  SELECT ar2.name FROM track_artist ta2
+                  JOIN artist ar2 ON ar2.id = ta2.artist_id
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_name,
+               (SELECT GROUP_CONCAT(id, ',') FROM (
+                  SELECT ta2.artist_id AS id FROM track_artist ta2
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_ids,
                al.title                     AS album_title,
                t.duration_ms                AS duration_ms,
                MAX(pe.played_at)            AS played_at,
@@ -310,7 +331,9 @@ pub async fn list_recent_plays(
             RecentPlay {
                 track_id: row.track_id,
                 title: row.title,
+                artist_id: row.artist_id,
                 artist_name: row.artist_name,
+                artist_ids: row.artist_ids,
                 album_title: row.album_title,
                 duration_ms: row.duration_ms,
                 played_at: row.played_at,
@@ -352,4 +375,338 @@ pub async fn list_folders(
     .await?;
 
     Ok(rows)
+}
+
+// ── Album detail ────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AlbumDetail {
+    pub id: i64,
+    pub title: String,
+    pub artist_id: Option<i64>,
+    pub artist_name: Option<String>,
+    pub year: Option<i64>,
+    pub track_count: i64,
+    pub total_duration_ms: i64,
+    pub artwork_path: Option<String>,
+    pub label: Option<String>,
+    pub release_date: Option<String>,
+    pub genres: Vec<String>,
+    pub tracks: Vec<AlbumTrack>,
+}
+
+#[derive(FromRow)]
+struct AlbumDetailRaw {
+    id: i64,
+    title: String,
+    artist_id: Option<i64>,
+    artist_name: Option<String>,
+    year: Option<i64>,
+    release_date: Option<String>,
+    track_count: i64,
+    total_duration_ms: i64,
+    artwork_hash: Option<String>,
+    artwork_format: Option<String>,
+    label: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AlbumTrack {
+    pub id: i64,
+    pub title: String,
+    pub artist_id: Option<i64>,
+    pub artist_name: Option<String>,
+    pub artist_ids: Option<String>,
+    pub duration_ms: i64,
+    pub track_number: Option<i64>,
+    pub disc_number: Option<i64>,
+    pub artwork_path: Option<String>,
+    pub file_path: String,
+}
+
+#[derive(FromRow)]
+struct AlbumTrackRaw {
+    id: i64,
+    title: String,
+    artist_id: Option<i64>,
+    artist_name: Option<String>,
+    artist_ids: Option<String>,
+    duration_ms: i64,
+    track_number: Option<i64>,
+    disc_number: Option<i64>,
+    artwork_hash: Option<String>,
+    artwork_format: Option<String>,
+    file_path: String,
+}
+
+/// Return full album detail: header (with Deezer-cached label), genres,
+/// and tracks ordered by disc then track number.
+#[tauri::command]
+pub async fn get_album_detail(
+    state: tauri::State<'_, AppState>,
+    album_id: i64,
+) -> AppResult<AlbumDetail> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+
+    let header = sqlx::query_as::<_, AlbumDetailRaw>(
+        r#"
+        SELECT al.id, al.title, al.artist_id, ar.name AS artist_name,
+               al.year, al.release_date,
+               COUNT(t.id) AS track_count,
+               COALESCE(SUM(t.duration_ms), 0) AS total_duration_ms,
+               aw.hash AS artwork_hash, aw.format AS artwork_format,
+               da.label
+          FROM album al
+          LEFT JOIN artist ar ON ar.id = al.artist_id
+          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+          LEFT JOIN deezer_album da ON da.deezer_id = al.deezer_id
+          JOIN track t ON t.album_id = al.id AND t.is_available = 1
+         WHERE al.id = ?
+         GROUP BY al.id
+        "#,
+    )
+    .bind(album_id)
+    .fetch_optional(&pool)
+    .await?
+    .ok_or_else(|| crate::error::AppError::Other("album not found".into()))?;
+
+    let artwork_path = match (header.artwork_hash.as_deref(), header.artwork_format.as_deref()) {
+        (Some(hash), Some(format)) => Some(
+            artwork_dir
+                .join(format!("{hash}.{format}"))
+                .to_string_lossy()
+                .to_string(),
+        ),
+        _ => None,
+    };
+
+    let genres: Vec<String> = sqlx::query_scalar(
+        r#"
+        SELECT DISTINCT g.name
+          FROM genre g
+          JOIN track_genre tg ON tg.genre_id = g.id
+          JOIN track t ON t.id = tg.track_id
+         WHERE t.album_id = ?
+         ORDER BY g.name COLLATE NOCASE
+        "#,
+    )
+    .bind(album_id)
+    .fetch_all(&pool)
+    .await?;
+
+    let tracks_raw = sqlx::query_as::<_, AlbumTrackRaw>(
+        r#"
+        SELECT t.id, t.title,
+               t.primary_artist AS artist_id,
+               (SELECT GROUP_CONCAT(name, ', ') FROM (
+                  SELECT ar2.name FROM track_artist ta2
+                  JOIN artist ar2 ON ar2.id = ta2.artist_id
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_name,
+               (SELECT GROUP_CONCAT(id, ',') FROM (
+                  SELECT ta2.artist_id AS id FROM track_artist ta2
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_ids,
+               t.duration_ms, t.track_number, t.disc_number,
+               t.file_path,
+               aw.hash AS artwork_hash, aw.format AS artwork_format
+          FROM track t
+          LEFT JOIN album al ON al.id = t.album_id
+          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+         WHERE t.album_id = ? AND t.is_available = 1
+         ORDER BY t.disc_number, t.track_number
+        "#,
+    )
+    .bind(album_id)
+    .fetch_all(&pool)
+    .await?;
+
+    let tracks = tracks_raw
+        .into_iter()
+        .map(|row| {
+            let track_artwork = match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
+                (Some(hash), Some(fmt)) => Some(
+                    artwork_dir
+                        .join(format!("{hash}.{fmt}"))
+                        .to_string_lossy()
+                        .to_string(),
+                ),
+                _ => None,
+            };
+            AlbumTrack {
+                id: row.id,
+                title: row.title,
+                artist_id: row.artist_id,
+                artist_name: row.artist_name,
+                artist_ids: row.artist_ids,
+                duration_ms: row.duration_ms,
+                track_number: row.track_number,
+                disc_number: row.disc_number,
+                artwork_path: track_artwork,
+                file_path: row.file_path,
+            }
+        })
+        .collect();
+
+    Ok(AlbumDetail {
+        id: header.id,
+        title: header.title,
+        artist_id: header.artist_id,
+        artist_name: header.artist_name,
+        year: header.year,
+        track_count: header.track_count,
+        total_duration_ms: header.total_duration_ms,
+        artwork_path,
+        label: header.label,
+        release_date: header.release_date,
+        genres,
+        tracks,
+    })
+}
+
+// ── Artist detail ───────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ArtistDetail {
+    pub id: i64,
+    pub name: String,
+    pub artwork_path: Option<String>,
+    pub picture_url: Option<String>,
+    pub fans_count: Option<i64>,
+    pub track_count: i64,
+    pub album_count: i64,
+    pub albums: Vec<ArtistAlbumRow>,
+}
+
+#[derive(FromRow)]
+struct ArtistDetailRaw {
+    id: i64,
+    name: String,
+    artwork_hash: Option<String>,
+    artwork_format: Option<String>,
+    picture_url: Option<String>,
+    fans_count: Option<i64>,
+    track_count: i64,
+    album_count: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ArtistAlbumRow {
+    pub id: i64,
+    pub title: String,
+    pub year: Option<i64>,
+    pub track_count: i64,
+    pub total_duration_ms: i64,
+    pub artwork_path: Option<String>,
+}
+
+#[derive(FromRow)]
+struct ArtistAlbumRawRow {
+    id: i64,
+    title: String,
+    year: Option<i64>,
+    track_count: i64,
+    total_duration_ms: i64,
+    artwork_hash: Option<String>,
+    artwork_format: Option<String>,
+}
+
+/// Return full artist detail: header, discography, and track count.
+#[tauri::command]
+pub async fn get_artist_detail(
+    state: tauri::State<'_, AppState>,
+    artist_id: i64,
+) -> AppResult<ArtistDetail> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+
+    let header = sqlx::query_as::<_, ArtistDetailRaw>(
+        r#"
+        SELECT ar.id, ar.name,
+               aw.hash AS artwork_hash, aw.format AS artwork_format,
+               da.picture_url AS picture_url,
+               da.fans_count  AS fans_count,
+               COUNT(DISTINCT t.id) AS track_count,
+               COUNT(DISTINCT t.album_id) AS album_count
+          FROM artist ar
+          LEFT JOIN artwork aw ON aw.id = ar.artwork_id
+          LEFT JOIN deezer_artist da ON da.deezer_id = ar.deezer_id
+          JOIN track_artist ta ON ta.artist_id = ar.id
+          JOIN track t ON t.id = ta.track_id AND t.is_available = 1
+         WHERE ar.id = ?
+         GROUP BY ar.id
+        "#,
+    )
+    .bind(artist_id)
+    .fetch_optional(&pool)
+    .await?
+    .ok_or_else(|| crate::error::AppError::Other("artist not found".into()))?;
+
+    let artwork_path = match (header.artwork_hash.as_deref(), header.artwork_format.as_deref()) {
+        (Some(hash), Some(format)) => Some(
+            artwork_dir
+                .join(format!("{hash}.{format}"))
+                .to_string_lossy()
+                .to_string(),
+        ),
+        _ => None,
+    };
+
+    let albums_raw = sqlx::query_as::<_, ArtistAlbumRawRow>(
+        r#"
+        SELECT al.id, al.title, al.year,
+               COUNT(DISTINCT t.id) AS track_count,
+               COALESCE(SUM(t.duration_ms), 0) AS total_duration_ms,
+               aw.hash AS artwork_hash, aw.format AS artwork_format
+          FROM album al
+          JOIN track t ON t.album_id = al.id AND t.is_available = 1
+          JOIN track_artist ta ON ta.track_id = t.id
+          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+         WHERE ta.artist_id = ?
+         GROUP BY al.id
+         ORDER BY al.year DESC, al.canonical_title COLLATE NOCASE
+        "#,
+    )
+    .bind(artist_id)
+    .fetch_all(&pool)
+    .await?;
+
+    let albums = albums_raw
+        .into_iter()
+        .map(|row| {
+            let album_artwork = match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
+                (Some(hash), Some(fmt)) => Some(
+                    artwork_dir
+                        .join(format!("{hash}.{fmt}"))
+                        .to_string_lossy()
+                        .to_string(),
+                ),
+                _ => None,
+            };
+            ArtistAlbumRow {
+                id: row.id,
+                title: row.title,
+                year: row.year,
+                track_count: row.track_count,
+                total_duration_ms: row.total_duration_ms,
+                artwork_path: album_artwork,
+            }
+        })
+        .collect();
+
+    Ok(ArtistDetail {
+        id: header.id,
+        name: header.name,
+        artwork_path,
+        picture_url: header.picture_url,
+        fans_count: header.fans_count,
+        track_count: header.track_count,
+        album_count: header.album_count,
+        albums,
+    })
 }

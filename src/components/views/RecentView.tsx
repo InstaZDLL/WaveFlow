@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Clock } from "lucide-react";
 import { EmptyState } from "../common/EmptyState";
 import { Artwork } from "../common/Artwork";
+import { ArtistLink } from "../common/ArtistLink";
 
 import { usePlayer } from "../../hooks/usePlayer";
 import { listRecentPlays, type RecentPlay } from "../../lib/tauri/browse";
@@ -32,7 +33,11 @@ function formatPlayedAt(ts: number, locale: string): string {
   return new Date(ts).toLocaleDateString();
 }
 
-export function RecentView() {
+interface RecentViewProps {
+  onNavigateToArtist: (artistId: number) => void;
+}
+
+export function RecentView({ onNavigateToArtist }: RecentViewProps) {
   const { t, i18n } = useTranslation();
   const { playbackState, currentTrack } = usePlayer();
   const [tracks, setTracks] = useState<RecentPlay[]>([]);
@@ -130,9 +135,13 @@ export function RecentView() {
                     >
                       {track.title}
                     </div>
-                    <div className="text-xs text-zinc-500 truncate">
-                      {track.artist_name ?? "—"}
-                    </div>
+                    <ArtistLink
+                      name={track.artist_name}
+                      artistIds={track.artist_ids}
+                      onNavigate={onNavigateToArtist}
+                      fallback="—"
+                      className="text-xs text-zinc-500 truncate block"
+                    />
                   </div>
                   <span className="text-sm text-zinc-500 truncate">
                     {track.album_title ?? "—"}

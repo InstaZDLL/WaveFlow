@@ -241,6 +241,21 @@ async fn upsert_artwork(
     Ok(result.last_insert_rowid())
 }
 
+/// Split a raw artist string like `"Elior, DJ Garlik"` into individual
+/// names. Conservative: only splits on `", "` and `"; "` so that artist
+/// names containing `&`, `/`, or `feat.` (e.g. `"AC/DC"`, `"Simon &
+/// Garfunkel"`) stay intact.
+///
+/// Returns the trimmed, non-empty names in the order they appeared —
+/// the first entry is treated as the primary artist by the caller.
+fn split_artist_name(raw: &str) -> Vec<String> {
+    raw.split(|c| c == ',' || c == ';')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .collect()
+}
+
 async fn upsert_artist(pool: &SqlitePool, raw_name: &str) -> AppResult<Option<i64>> {
     let name = raw_name.trim();
     if name.is_empty() {
@@ -482,15 +497,87 @@ pub(crate) async fn scan_folder_inner(
                             .await?;
                     }
                 }
+
+                // Reconcile multi-artist splits even when the track content
+                // hasn't changed. An earlier scan may have stored
+                // "Elior, DJ Garlik" as a single artist; re-running the
+                // scanner after we taught it to split should normalize
+                // existing rows without requiring a full DB reset.
+                if let Some(raw) = &extracted.artist {
+                    let splits = split_artist_name(raw);
+                    let current_count: i64 = sqlx::query_scalar(
+                        "SELECT COUNT(*) FROM track_artist WHERE track_id = ?",
+                    )
+                    .bind(existing_track_id)
+                    .fetch_one(pool)
+                    .await?;
+                    if current_count as usize != splits.len() {
+                        let mut ids = Vec::new();
+                        for name in splits {
+                            if let Some(id) = upsert_artist(pool, &name).await? {
+                                ids.push(id);
+                            }
+                        }
+                        sqlx::query("DELETE FROM track_artist WHERE track_id = ?")
+                            .bind(existing_track_id)
+                            .execute(pool)
+                            .await?;
+                        for (position, aid) in ids.iter().enumerate() {
+                            sqlx::query(
+                                "INSERT INTO track_artist (track_id, artist_id, role, position)
+                                 VALUES (?, ?, 'main', ?)",
+                            )
+                            .bind(existing_track_id)
+                            .bind(aid)
+                            .bind(position as i64)
+                            .execute(pool)
+                            .await?;
+                        }
+                        sqlx::query("UPDATE track SET primary_artist = ? WHERE id = ?")
+                            .bind(ids.first().copied())
+                            .bind(existing_track_id)
+                            .execute(pool)
+                            .await?;
+                        // Also re-link the album to the new primary artist
+                        // so "Ma musique > Albums" stays consistent.
+                        if let Some(first_id) = ids.first().copied() {
+                            sqlx::query(
+                                "UPDATE album SET artist_id = ?
+                                 WHERE id = (SELECT album_id FROM track WHERE id = ?)
+                                   AND artist_id != ?",
+                            )
+                            .bind(first_id)
+                            .bind(existing_track_id)
+                            .bind(first_id)
+                            .execute(pool)
+                            .await?;
+                        }
+                    }
+                }
+
                 summary.skipped += 1;
                 continue;
             }
         }
 
-        let artist_id = match &extracted.artist {
-            Some(a) => upsert_artist(pool, a).await?,
-            None => None,
+        // Split multi-artist strings (e.g. "Elior, DJ Garlik") so each
+        // contributor gets its own row in `artist` and its own link in
+        // `track_artist`. The first entry becomes the track's
+        // `primary_artist` (and album's `artist_id`) for backwards-
+        // compatible ordering.
+        let artist_ids: Vec<i64> = match &extracted.artist {
+            Some(a) => {
+                let mut ids = Vec::new();
+                for name in split_artist_name(a) {
+                    if let Some(id) = upsert_artist(pool, &name).await? {
+                        ids.push(id);
+                    }
+                }
+                ids
+            }
+            None => Vec::new(),
         };
+        let artist_id = artist_ids.first().copied();
         let album_id = match &extracted.album {
             Some(a) => upsert_album(pool, a, artist_id, extracted.year).await?,
             None => None,
@@ -547,13 +634,14 @@ pub(crate) async fn scan_folder_inner(
                 .bind(track_id)
                 .execute(pool)
                 .await?;
-            if let Some(aid) = artist_id {
+            for (position, aid) in artist_ids.iter().enumerate() {
                 sqlx::query(
                     "INSERT INTO track_artist (track_id, artist_id, role, position)
-                     VALUES (?, ?, 'main', 0)",
+                     VALUES (?, ?, 'main', ?)",
                 )
                 .bind(track_id)
                 .bind(aid)
+                .bind(position as i64)
                 .execute(pool)
                 .await?;
             }
@@ -602,13 +690,14 @@ pub(crate) async fn scan_folder_inner(
             .await?;
             let track_id = insert.last_insert_rowid();
 
-            if let Some(aid) = artist_id {
+            for (position, aid) in artist_ids.iter().enumerate() {
                 sqlx::query(
                     "INSERT INTO track_artist (track_id, artist_id, role, position)
-                     VALUES (?, ?, 'main', 0)",
+                     VALUES (?, ?, 'main', ?)",
                 )
                 .bind(track_id)
                 .bind(aid)
+                .bind(position as i64)
                 .execute(pool)
                 .await?;
             }

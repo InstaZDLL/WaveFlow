@@ -10,6 +10,7 @@ import {
   Heart,
 } from "lucide-react";
 import { Artwork } from "../common/Artwork";
+import { ArtistLink } from "../common/ArtistLink";
 import { Tooltip } from "../common/Tooltip";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
@@ -29,9 +30,10 @@ interface PlaylistViewProps {
   playlistId: number | null;
   /** Called when the active playlist gets deleted so AppLayout can swap. */
   onAfterDelete: () => void;
+  onNavigateToArtist: (artistId: number) => void;
 }
 
-export function PlaylistView({ playlistId, onAfterDelete }: PlaylistViewProps) {
+export function PlaylistView({ playlistId, onAfterDelete, onNavigateToArtist }: PlaylistViewProps) {
   const { t } = useTranslation();
   const { playTracks, currentTrack, toggleShuffle } = usePlayer();
   const { updatePlaylist, deletePlaylist, getPlaylistTracks, playlists } =
@@ -331,6 +333,7 @@ export function PlaylistView({ playlistId, onAfterDelete }: PlaylistViewProps) {
           }
           likedIds={likedIds}
           onToggleLike={handleToggleLike}
+          onNavigateToArtist={onNavigateToArtist}
           unknownLabel={t("library.table.unknown")}
           headerLabels={{
             number: t("library.table.number"),
@@ -368,6 +371,7 @@ interface PlaylistTrackTableProps {
   onPlayTrack: (index: number) => void;
   likedIds: Set<number>;
   onToggleLike: (trackId: number) => void;
+  onNavigateToArtist: (artistId: number) => void;
   unknownLabel: string;
   headerLabels: {
     number: string;
@@ -387,6 +391,7 @@ function PlaylistTrackTable({
   onPlayTrack,
   likedIds,
   onToggleLike,
+  onNavigateToArtist,
   unknownLabel,
   headerLabels,
   likeLabel,
@@ -450,9 +455,13 @@ function PlaylistTrackTable({
               >
                 {track.title}
               </span>
-              <span className="text-sm text-zinc-500 truncate">
-                {track.artist_name ?? unknownLabel}
-              </span>
+              <ArtistLink
+                name={track.artist_name}
+                artistIds={track.artist_ids}
+                onNavigate={onNavigateToArtist}
+                fallback={unknownLabel}
+                className="text-sm text-zinc-500 truncate"
+              />
               <span className="text-sm text-zinc-500 truncate">
                 {track.album_title ?? unknownLabel}
               </span>

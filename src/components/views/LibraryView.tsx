@@ -19,6 +19,7 @@ import { Tab } from "../common/Tab";
 import { EmptyState } from "../common/EmptyState";
 import { UploadIcon } from "../common/Icons";
 import { Artwork } from "../common/Artwork";
+import { ArtistLink } from "../common/ArtistLink";
 import { Tooltip } from "../common/Tooltip";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { useLibrary } from "../../hooks/useLibrary";
@@ -52,6 +53,8 @@ type TracksView = "list" | "compact";
 interface LibraryViewProps {
   activeTab: LibraryTab;
   setActiveTab: (tab: LibraryTab) => void;
+  onNavigateToAlbum: (albumId: number) => void;
+  onNavigateToArtist: (artistId: number) => void;
 }
 
 type Translator = (key: string, options?: Record<string, unknown>) => string;
@@ -80,7 +83,7 @@ const headerIcons: Record<LibraryTab, typeof Music2> = {
   dossiers: Folder,
 };
 
-export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
+export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavigateToArtist }: LibraryViewProps) {
   const { t } = useTranslation();
   const {
     libraries,
@@ -375,6 +378,7 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
                 }
               }}
               onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+              onNavigateToArtist={onNavigateToArtist}
             />
           )}
           {activeTab === "albums" && (
@@ -387,6 +391,7 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
                 addSourceToPlaylist(playlistId, "album", albumId)
               }
               onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+              onAlbumClick={onNavigateToAlbum}
             />
           )}
           {activeTab === "artistes" && (
@@ -399,6 +404,7 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
                 addSourceToPlaylist(playlistId, "artist", artistId)
               }
               onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+              onArtistClick={onNavigateToArtist}
             />
           )}
           {activeTab === "genres" && (
@@ -478,6 +484,7 @@ interface TrackTableProps {
   playlists: Playlist[];
   onAddToPlaylist: (playlistId: number, trackId: number) => void;
   onCreatePlaylist: () => void;
+  onNavigateToArtist: (artistId: number) => void;
 }
 
 function TrackTable({
@@ -492,6 +499,7 @@ function TrackTable({
   playlists,
   onAddToPlaylist,
   onCreatePlaylist,
+  onNavigateToArtist,
 }: TrackTableProps) {
   const unknown = t("library.table.unknown");
   const [openMenuTrackId, setOpenMenuTrackId] = useState<number | null>(null);
@@ -611,9 +619,13 @@ function TrackTable({
                 >
                   {track.title}
                 </span>
-                <span className="text-sm text-zinc-500 truncate">
-                  {track.artist_name ?? unknown}
-                </span>
+                <ArtistLink
+                  name={track.artist_name}
+                  artistIds={track.artist_ids}
+                  onNavigate={onNavigateToArtist}
+                  fallback={unknown}
+                  className="text-sm text-zinc-500 truncate"
+                />
                 <span className="text-sm text-zinc-500 truncate">
                   {track.album_title ?? unknown}
                 </span>
@@ -767,9 +779,10 @@ interface AlbumGridProps {
   playlists: Playlist[];
   onAddToPlaylist: (playlistId: number, albumId: number) => void;
   onCreatePlaylist: () => void;
+  onAlbumClick: (albumId: number) => void;
 }
 
-function AlbumGrid({ albums, isLoading, t, playlists, onAddToPlaylist, onCreatePlaylist }: AlbumGridProps) {
+function AlbumGrid({ albums, isLoading, t, playlists, onAddToPlaylist, onCreatePlaylist, onAlbumClick }: AlbumGridProps) {
   const unknown = t("library.table.unknown");
   const [openMenuAlbumId, setOpenMenuAlbumId] = useState<number | null>(null);
 
@@ -803,6 +816,7 @@ function AlbumGrid({ albums, isLoading, t, playlists, onAddToPlaylist, onCreateP
         return (
           <div
             key={album.id}
+            onClick={() => onAlbumClick(album.id)}
             className="group flex flex-col space-y-2 cursor-pointer relative"
           >
             <div className="relative">
@@ -871,9 +885,10 @@ interface ArtistListProps {
   playlists: Playlist[];
   onAddToPlaylist: (playlistId: number, artistId: number) => void;
   onCreatePlaylist: () => void;
+  onArtistClick: (artistId: number) => void;
 }
 
-function ArtistList({ artists, isLoading, t, playlists, onAddToPlaylist, onCreatePlaylist }: ArtistListProps) {
+function ArtistList({ artists, isLoading, t, playlists, onAddToPlaylist, onCreatePlaylist, onArtistClick }: ArtistListProps) {
   const [openMenuArtistId, setOpenMenuArtistId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -906,14 +921,24 @@ function ArtistList({ artists, isLoading, t, playlists, onAddToPlaylist, onCreat
         return (
           <div
             key={artist.id}
+            onClick={() => onArtistClick(artist.id)}
             className="group flex flex-col items-center space-y-3 cursor-pointer relative"
           >
             <div className="relative w-full">
-              <div className="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center overflow-hidden shadow-sm group-hover:shadow-md transition-shadow">
-                <span className="text-5xl font-bold text-violet-500/70 dark:text-violet-400/60">
-                  {artist.name.trim().charAt(0).toUpperCase() || "?"}
-                </span>
-              </div>
+              {artist.picture_url ? (
+                <img
+                  src={artist.picture_url}
+                  alt={artist.name}
+                  loading="lazy"
+                  className="w-full aspect-square rounded-full object-cover shadow-sm group-hover:shadow-md transition-shadow"
+                />
+              ) : (
+                <div className="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center overflow-hidden shadow-sm group-hover:shadow-md transition-shadow">
+                  <span className="text-5xl font-bold text-violet-500/70 dark:text-violet-400/60">
+                    {artist.name.trim().charAt(0).toUpperCase() || "?"}
+                  </span>
+                </div>
+              )}
               <button
                 type="button"
                 data-add-to-playlist-trigger

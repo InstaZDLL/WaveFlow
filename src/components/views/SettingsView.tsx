@@ -24,6 +24,7 @@ import {
   playerSetMono,
   playerSetCrossfade,
 } from "../../lib/tauri/player";
+import { useLibrary } from "../../hooks/useLibrary";
 
 interface SettingsViewProps {
   onNavigate: (view: ViewId) => void;
@@ -207,9 +208,25 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
 
 export function SettingsView({ onNavigate }: SettingsViewProps) {
   const { t, i18n } = useTranslation();
+  const { libraries, rescanLibrary } = useLibrary();
+  const [isRescanning, setIsRescanning] = useState(false);
   const [autoStart, setAutoStart] = useState(false);
   const [minimizeToTray, setMinimizeToTray] = useState(true);
   const [scanOnStart, setScanOnStart] = useState(false);
+
+  const handleRescan = async () => {
+    if (isRescanning) return;
+    setIsRescanning(true);
+    try {
+      for (const lib of libraries) {
+        await rescanLibrary(lib.id);
+      }
+    } catch (err) {
+      console.error("[SettingsView] rescan failed", err);
+    } finally {
+      setIsRescanning(false);
+    }
+  };
 
   // Audio settings — hydrated from backend at mount.
   const [normalize, setNormalize] = useState(false);
@@ -510,9 +527,15 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             </div>
             <button
               type="button"
-              className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              onClick={handleRescan}
+              disabled={isRescanning || libraries.length === 0}
+              className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <RefreshCcw size={14} aria-hidden="true" />
+              <RefreshCcw
+                size={14}
+                aria-hidden="true"
+                className={isRescanning ? "animate-spin" : ""}
+              />
               <span>{t("settings.rescan.action")}</span>
             </button>
           </div>

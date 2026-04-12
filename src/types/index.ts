@@ -9,7 +9,9 @@ export type ViewId =
   | "feedback"
   | "statistics"
   | "liked"
-  | "recent";
+  | "recent"
+  | "album-detail"
+  | "artist-detail";
 
 export type LibraryTab = "morceaux" | "albums" | "artistes" | "genres" | "dossiers";
 

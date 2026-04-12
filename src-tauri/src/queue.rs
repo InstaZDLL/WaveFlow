@@ -41,7 +41,9 @@ pub struct QueueTrack {
     pub file_path: String,
     pub duration_ms: i64,
     pub title: String,
+    pub artist_id: Option<i64>,
     pub artist_name: Option<String>,
+    pub artist_ids: Option<String>,
     pub album_title: Option<String>,
     pub artwork_hash: Option<String>,
     pub artwork_format: Option<String>,
@@ -278,7 +280,18 @@ pub async fn list_queue(pool: &SqlitePool) -> AppResult<Vec<QueueTrack>> {
                t.file_path,
                t.duration_ms,
                t.title,
-               ar.name  AS artist_name,
+               t.primary_artist AS artist_id,
+               (SELECT GROUP_CONCAT(name, ', ') FROM (
+                  SELECT ar2.name FROM track_artist ta2
+                  JOIN artist ar2 ON ar2.id = ta2.artist_id
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_name,
+               (SELECT GROUP_CONCAT(id, ',') FROM (
+                  SELECT ta2.artist_id AS id FROM track_artist ta2
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_ids,
                al.title AS album_title,
                aw.hash  AS artwork_hash,
                aw.format AS artwork_format
@@ -303,7 +316,18 @@ async fn track_at_position(pool: &SqlitePool, position: i64) -> AppResult<Option
                t.file_path,
                t.duration_ms,
                t.title,
-               ar.name  AS artist_name,
+               t.primary_artist AS artist_id,
+               (SELECT GROUP_CONCAT(name, ', ') FROM (
+                  SELECT ar2.name FROM track_artist ta2
+                  JOIN artist ar2 ON ar2.id = ta2.artist_id
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_name,
+               (SELECT GROUP_CONCAT(id, ',') FROM (
+                  SELECT ta2.artist_id AS id FROM track_artist ta2
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_ids,
                al.title AS album_title,
                aw.hash  AS artwork_hash,
                aw.format AS artwork_format

@@ -649,7 +649,12 @@ fn drain_commands(
                             break;
                         }
                         Ok(AudioCmd::Shutdown) => {
-                            shared.paused_output.store(false, Ordering::Release);
+                            // Do NOT reset paused_output here — the
+                            // shutdown handler in lib.rs has already
+                            // forced it to `true` so the cpal callback
+                            // stays silent while the process tears
+                            // down. Clearing it would cause leftover
+                            // ring samples to flush to the device.
                             return ControlFlow::Shutdown;
                         }
                         Ok(AudioCmd::Stop) => {
@@ -669,7 +674,10 @@ fn drain_commands(
                         }
                         Ok(AudioCmd::Pause) => {} // already paused, ignore
                         Err(_) => {
-                            shared.paused_output.store(false, Ordering::Release);
+                            // Channel closed = engine dropped. Keep
+                            // paused_output as-is (the shutdown handler
+                            // in lib.rs set it to true to silence the
+                            // device during teardown).
                             return ControlFlow::Shutdown;
                         }
                     }

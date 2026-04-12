@@ -15,6 +15,8 @@ import { StatisticsView } from "../views/StatisticsView";
 import { LikedView } from "../views/LikedView";
 import { RecentView } from "../views/RecentView";
 import { PlaylistView } from "../views/PlaylistView";
+import { AlbumDetailView } from "../views/AlbumDetailView";
+import { ArtistDetailView } from "../views/ArtistDetailView";
 import { ProfileSelectorModal } from "../common/ProfileSelectorModal";
 
 export function AppLayout() {
@@ -27,6 +29,8 @@ export function AppLayout() {
   // re-fetches when this id changes; the sidebar uses it to highlight
   // the active row.
   const [activePlaylistId, setActivePlaylistId] = useState<number | null>(null);
+  const [activeAlbumId, setActiveAlbumId] = useState<number | null>(null);
+  const [activeArtistId, setActiveArtistId] = useState<number | null>(null);
 
   const activeView = viewHistory[historyIndex];
 
@@ -49,12 +53,35 @@ export function AppLayout() {
     if (canGoForward) setHistoryIndex((i) => i + 1);
   }, [canGoForward]);
 
+  const navigateToAlbum = useCallback(
+    (albumId: number) => {
+      setActiveAlbumId(albumId);
+      setActiveView("album-detail");
+    },
+    [setActiveView],
+  );
+
+  const navigateToArtist = useCallback(
+    (artistId: number) => {
+      setActiveArtistId(artistId);
+      setActiveView("artist-detail");
+    },
+    [setActiveView],
+  );
+
   function renderView() {
     switch (activeView) {
       case "home":
         return <HomeView onNavigate={setActiveView} />;
       case "library":
-        return <LibraryView activeTab={libraryTab} setActiveTab={setLibraryTab} />;
+        return (
+          <LibraryView
+            activeTab={libraryTab}
+            setActiveTab={setLibraryTab}
+            onNavigateToAlbum={navigateToAlbum}
+            onNavigateToArtist={navigateToArtist}
+          />
+        );
       case "settings":
         return <SettingsView onNavigate={setActiveView} />;
       case "about":
@@ -64,9 +91,9 @@ export function AppLayout() {
       case "statistics":
         return <StatisticsView onNavigate={setActiveView} />;
       case "liked":
-        return <LikedView />;
+        return <LikedView onNavigateToArtist={navigateToArtist} />;
       case "recent":
-        return <RecentView />;
+        return <RecentView onNavigateToArtist={navigateToArtist} />;
       case "playlist":
         return (
           <PlaylistView
@@ -75,6 +102,21 @@ export function AppLayout() {
               setActivePlaylistId(null);
               setActiveView("home");
             }}
+            onNavigateToArtist={navigateToArtist}
+          />
+        );
+      case "album-detail":
+        return (
+          <AlbumDetailView
+            albumId={activeAlbumId}
+            onNavigateToArtist={navigateToArtist}
+          />
+        );
+      case "artist-detail":
+        return (
+          <ArtistDetailView
+            artistId={activeArtistId}
+            onNavigateToAlbum={navigateToAlbum}
           />
         );
     }
@@ -120,7 +162,7 @@ export function AppLayout() {
         </div>
 
         {/* Bottom Player Bar */}
-        <PlayerBar />
+        <PlayerBar onNavigateToArtist={navigateToArtist} />
       </div>
 
       <ProfileSelectorModal

@@ -7,7 +7,9 @@ import { invoke } from "@tauri-apps/api/core";
 export interface QueueTrackPayload {
   id: number;
   title: string;
+  artist_id: number | null;
   artist_name: string | null;
+  artist_ids: string | null;
   album_title: string | null;
   duration_ms: number;
   file_path: string;
