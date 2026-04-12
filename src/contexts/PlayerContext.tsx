@@ -143,6 +143,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           })
         );
         unlisten.push(
+          await listen<QueueTrackPayload>("player:track-changed", (e) => {
+            // Backend just selected a new track (via play_tracks,
+            // next, previous, resume_last, or the analytics task's
+            // auto-advance). Reflect it in the PlayerBar
+            // immediately — we can't wait for the first position
+            // event because it carries no metadata.
+            setCurrentTrack(queuePayloadToTrack(e.payload));
+            setDurationMs(e.payload.duration_ms);
+            setPositionMs(0);
+          })
+        );
+        unlisten.push(
           await listen<PlayerErrorPayload>("player:error", (e) => {
             console.error("[player:error]", e.payload.message);
           })

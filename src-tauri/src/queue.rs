@@ -186,6 +186,17 @@ pub async fn write_shuffle(pool: &SqlitePool, shuffle: bool) -> AppResult<()> {
     Ok(())
 }
 
+/// Read the persisted player volume (`player.volume` key, stored as
+/// an integer 0-100 in `profile_setting`) and convert to the
+/// `f32 in [0.0, 1.0]` range used by the audio engine. Returns
+/// `None` if the row is missing or not parseable.
+pub async fn read_player_volume(pool: &SqlitePool) -> Option<f32> {
+    let raw = read_setting_string(pool, "player.volume").await.ok()??;
+    raw.parse::<i64>()
+        .ok()
+        .map(|v| (v.clamp(0, 100) as f32) / 100.0)
+}
+
 // ---------------------------------------------------------------------
 // Core queue operations
 // ---------------------------------------------------------------------
@@ -257,6 +268,33 @@ pub async fn queue_length(pool: &SqlitePool) -> AppResult<i64> {
     Ok(n)
 }
 
+/// Fetch the full queue as an ordered `Vec<QueueTrack>`. Joined
+/// with track / album / artist / artwork so the frontend doesn't
+/// have to issue N extra queries to render the panel.
+pub async fn list_queue(pool: &SqlitePool) -> AppResult<Vec<QueueTrack>> {
+    let rows = sqlx::query_as::<_, QueueTrack>(
+        r#"
+        SELECT t.id,
+               t.file_path,
+               t.duration_ms,
+               t.title,
+               ar.name  AS artist_name,
+               al.title AS album_title,
+               aw.hash  AS artwork_hash,
+               aw.format AS artwork_format
+          FROM queue_item q
+          JOIN track t       ON t.id = q.track_id
+          LEFT JOIN album al  ON al.id = t.album_id
+          LEFT JOIN artist ar ON ar.id = t.primary_artist
+          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+         ORDER BY q.position
+        "#,
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(rows)
+}
+
 /// Fetch the track at a specific position in the queue.
 async fn track_at_position(pool: &SqlitePool, position: i64) -> AppResult<Option<QueueTrack>> {
     let row = sqlx::query_as::<_, QueueTrack>(
@@ -290,6 +328,19 @@ pub async fn current_track(pool: &SqlitePool) -> AppResult<Option<QueueTrack>> {
         return Ok(None);
     };
     track_at_position(pool, idx).await
+}
+
+/// Move the cursor to an arbitrary position in the existing queue
+/// and return the track there. Used when the user double-clicks a
+/// row in the QueuePanel to jump.
+pub async fn jump_to(pool: &SqlitePool, position: i64) -> AppResult<Option<QueueTrack>> {
+    let length = queue_length(pool).await?;
+    if length == 0 {
+        return Ok(None);
+    }
+    let clamped = position.clamp(0, length - 1);
+    write_setting_i64(pool, "queue.current_index", clamped).await?;
+    track_at_position(pool, clamped).await
 }
 
 /// Apply a next / previous step to the queue cursor respecting the

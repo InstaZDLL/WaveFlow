@@ -219,6 +219,38 @@ where
         .build_output_stream(
             config,
             move |out: &mut [T], _info: &cpal::OutputCallbackInfo| {
+                // Hard pause: while paused, the decoder stops pushing
+                // into the ring, and we stop draining it so the next
+                // `resume` picks right back up where it left off. We
+                // just write silence into the device buffer — users
+                // hear the pause within ~WASAPI's internal latency
+                // (~50-200 ms) instead of the full ring length.
+                if shared.paused_output.load(Ordering::Acquire) {
+                    for slot in out.iter_mut() {
+                        *slot = T::from_sample(0.0_f32);
+                    }
+                    return;
+                }
+
+                // Drain-silent mode: drop whatever's left in the
+                // ring as fast as possible and write silence. Used
+                // during a track switch so the tail of the old
+                // track never reaches the device. We still
+                // `consumer.pop()` so `producer.slots()` reflects
+                // the drop (the decoder's spin-wait needs this).
+                if shared.drain_silent.load(Ordering::Acquire) {
+                    for slot in out.iter_mut() {
+                        let _ = consumer.pop();
+                        *slot = T::from_sample(0.0_f32);
+                    }
+                    return;
+                }
+
+                // Read the current volume once per buffer: cheap
+                // relaxed atomic load, applied to every sample. We
+                // don't re-read per-sample because that would be ~5k
+                // redundant atomic ops per callback at 48 kHz stereo.
+                let volume = shared.volume();
                 // Drain one sample per output slot. Buffer underrun is
                 // normal when idle / paused / between tracks: we write
                 // silence for those slots and let the consumer catch up.
@@ -231,7 +263,7 @@ where
                         }
                         Err(_) => 0.0,
                     };
-                    *slot = T::from_sample(sample);
+                    *slot = T::from_sample(sample * volume);
                 }
                 if written > 0 {
                     shared

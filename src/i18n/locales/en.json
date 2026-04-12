@@ -296,7 +296,11 @@
     "count_one": "{{count}} track",
     "count_other": "{{count}} tracks",
     "emptyTitle": "Nothing to play",
-    "emptyDescription": "Play some music from your library to fill the queue."
+    "emptyDescription": "Play some music from your library to fill the queue.",
+    "nowPlaying": "Now playing",
+    "upNext_zero": "Up next",
+    "upNext_one": "Up next · {{count}} track",
+    "upNext_other": "Up next · {{count}} tracks"
   },
   "deviceMenu": {
     "activeLabel": "Discard all samples (playback)"

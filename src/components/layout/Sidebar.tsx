@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import {
   Home,
   File,
@@ -26,6 +27,7 @@ import { useProfile } from "../../hooks/useProfile";
 import { useLibrary } from "../../hooks/useLibrary";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";
 import { pickFolder } from "../../lib/tauri/dialog";
+import { getProfileStats, type ProfileStats } from "../../lib/tauri/browse";
 
 interface SidebarProps {
   activeView: ViewId;
@@ -52,7 +54,43 @@ export function Sidebar({ activeView, setActiveView, libraryTab, setLibraryTab }
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [stats, setStats] = useState<ProfileStats>({
+    liked_count: 0,
+    recent_plays_count: 0,
+  });
   const libraryPopoverRef = useRef<HTMLDivElement>(null);
+
+  // Seq-guarded stats fetch: multiple events can fire in quick
+  // succession (track-changed + queue-changed), and we don't want
+  // a stale response to overwrite a fresh one.
+  const statsSeqRef = useRef(0);
+  const refreshStats = useCallback(() => {
+    const seq = ++statsSeqRef.current;
+    getProfileStats()
+      .then((s) => {
+        if (seq === statsSeqRef.current) setStats(s);
+      })
+      .catch((err) => console.error("[Sidebar] profile stats failed", err));
+  }, []);
+
+  // Initial load + refresh when playback events might have produced
+  // a new play_event row (track-changed signals a swap, which is
+  // when the previous track may have been credited via the
+  // TrackListened / TrackEnded analytics path).
+  useEffect(() => {
+    refreshStats();
+    let unlisten: UnlistenFn | null = null;
+    (async () => {
+      try {
+        unlisten = await listen("player:track-changed", () => refreshStats());
+      } catch (err) {
+        console.error("[Sidebar] listen failed", err);
+      }
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [refreshStats]);
 
   const handleCreateLibrary = async (name: string, description: string) => {
     try {
@@ -376,7 +414,9 @@ export function Sidebar({ activeView, setActiveView, libraryTab, setLibraryTab }
                 </div>
               }
               label={t("sidebar.playlists.liked")}
-              subtext={t("sidebar.playlists.emptySubtext", { count: 0 })}
+              subtext={t("sidebar.playlists.emptySubtext", {
+                count: stats.liked_count,
+              })}
               active={activeView === "liked"}
               onClick={() => setActiveView("liked")}
             />
@@ -387,7 +427,9 @@ export function Sidebar({ activeView, setActiveView, libraryTab, setLibraryTab }
                 </div>
               }
               label={t("sidebar.playlists.recent")}
-              subtext={t("sidebar.playlists.emptySubtext", { count: 0 })}
+              subtext={t("sidebar.playlists.emptySubtext", {
+                count: stats.recent_plays_count,
+              })}
               active={activeView === "recent"}
               onClick={() => setActiveView("recent")}
             />

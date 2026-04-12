@@ -20,6 +20,7 @@ use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::{
     audio::engine::AudioCmd,
+    commands::player::{emit_queue_changed, emit_track_changed},
     queue::{self, Direction, QueueTrack},
     state::AppState,
 };
@@ -29,12 +30,22 @@ use crate::{
 /// is non-blocking and doesn't need a runtime handle.
 #[derive(Debug, Clone)]
 pub enum AnalyticsMsg {
-    /// A track just finished decoding. `listened_ms` is the final
-    /// position at EOF, `completed` is true when the play reached
-    /// within 2s of the declared duration.
+    /// A track just finished decoding naturally (EOF reached).
+    /// Writes a `play_event` row AND triggers auto-advance to the
+    /// next track in the queue.
     TrackEnded {
         track_id: i64,
         completed: bool,
+        listened_ms: u64,
+        source_type: String,
+        source_id: Option<i64>,
+    },
+    /// A track was interrupted by the user (Next, jump, new load)
+    /// BUT had been listened to long enough to count as a "real"
+    /// play (≥ 15 s). Writes a `play_event` row, does NOT trigger
+    /// auto-advance — that path is reserved for natural ends.
+    TrackListened {
+        track_id: i64,
         listened_ms: u64,
         source_type: String,
         source_id: Option<i64>,
@@ -69,6 +80,10 @@ async fn handle_message(
         .await
         .map_err(|e| format!("profile pool: {e}"))?;
 
+    // Both variants write a play_event row. Only `TrackEnded` also
+    // triggers auto-advance — `TrackListened` is the user-skipped
+    // case where we still credit the listen but don't touch the
+    // queue cursor.
     match msg {
         AnalyticsMsg::TrackEnded {
             track_id,
@@ -77,40 +92,25 @@ async fn handle_message(
             source_type,
             source_id,
         } => {
-            // 1. Persist the listen event. Best-effort: analytics is
-            //    never allowed to abort playback.
-            let now = chrono::Utc::now().timestamp_millis();
-            if let Err(e) = sqlx::query(
-                "INSERT INTO play_event
-                    (track_id, played_at, listened_ms, completed, skipped,
-                     source_type, source_id)
-                 VALUES (?, ?, ?, ?, 0, ?, ?)",
+            insert_play_event(
+                &pool,
+                *track_id,
+                *listened_ms,
+                *completed,
+                source_type,
+                *source_id,
             )
-            .bind(track_id)
-            .bind(now)
-            .bind(*listened_ms as i64)
-            .bind(if *completed { 1 } else { 0 })
-            .bind(source_type)
-            .bind(source_id)
-            .execute(&pool)
-            .await
-            {
-                tracing::warn!(?e, "failed to insert play_event");
-            }
+            .await;
 
-            // 2. Advance the queue cursor per the current repeat
-            //    mode. Shuffle was already baked into the queue
-            //    ordering by `queue::shuffle`, so advance just
-            //    walks forward.
+            // Auto-advance.
             let repeat = queue::read_repeat_mode(&pool).await;
             let next: Option<QueueTrack> = queue::advance(&pool, Direction::Next, repeat)
                 .await
                 .map_err(|e| format!("advance: {e}"))?;
-
-            // 3. Self-send a LoadAndPlay if there's a next track,
-            //    otherwise the decoder stays in Ended state until the
-            //    user does something.
             if let Some(track) = next {
+                let profile_id = state.require_profile_id().await.ok();
+                emit_track_changed(app, &state.paths, &track, profile_id);
+                emit_queue_changed(app);
                 let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
                     path: track.as_path(),
                     start_ms: 0,
@@ -121,7 +121,64 @@ async fn handle_message(
                 });
             }
         }
+        AnalyticsMsg::TrackListened {
+            track_id,
+            listened_ms,
+            source_type,
+            source_id,
+        } => {
+            // User skipped but listened long enough — credit the
+            // play without advancing the queue (the user already
+            // picked what's next by clicking).
+            insert_play_event(
+                &pool,
+                *track_id,
+                *listened_ms,
+                false,
+                source_type,
+                *source_id,
+            )
+            .await;
+        }
     }
 
     Ok(())
+}
+
+/// Insert a row into `play_event`. Best-effort: errors are logged
+/// and swallowed so analytics never blocks playback.
+async fn insert_play_event(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+    listened_ms: u64,
+    completed: bool,
+    source_type: &str,
+    source_id: Option<i64>,
+) {
+    let now = chrono::Utc::now().timestamp_millis();
+    tracing::info!(
+        track_id,
+        listened_ms,
+        completed,
+        source_type,
+        source_id,
+        "insert play_event"
+    );
+    if let Err(e) = sqlx::query(
+        "INSERT INTO play_event
+            (track_id, played_at, listened_ms, completed, skipped,
+             source_type, source_id)
+         VALUES (?, ?, ?, ?, 0, ?, ?)",
+    )
+    .bind(track_id)
+    .bind(now)
+    .bind(listened_ms as i64)
+    .bind(if completed { 1 } else { 0 })
+    .bind(source_type)
+    .bind(source_id)
+    .execute(pool)
+    .await
+    {
+        tracing::warn!(?e, "failed to insert play_event");
+    }
 }

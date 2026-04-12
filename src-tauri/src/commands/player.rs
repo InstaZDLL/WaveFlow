@@ -13,11 +13,13 @@
 use std::sync::Arc;
 
 use serde::Serialize;
+use tauri::{AppHandle, Emitter};
 
 use crate::{
     audio::{engine::AudioCmd, state::SharedPlayback, AudioEngine},
     error::{AppError, AppResult},
-    queue::{self, Direction},
+    paths::AppPaths,
+    queue::{self, Direction, QueueTrack},
     state::AppState,
 };
 
@@ -44,7 +46,7 @@ pub struct PlayerStateSnapshot {
 /// the frontend expects for `Track` display (title / artist / album
 /// / artwork path). We rebuild the artwork absolute path on the way
 /// out so the UI can pass it straight to the asset protocol.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct QueueTrackPayload {
     pub id: i64,
     pub title: String,
@@ -80,13 +82,24 @@ impl PlayerStateSnapshot {
 /// data directory. Returns `None` if the profile paths aren't ready.
 fn queue_track_to_payload(
     state: &AppState,
-    track: crate::queue::QueueTrack,
+    track: QueueTrack,
     profile_id: Option<i64>,
 ) -> QueueTrackPayload {
-    let artwork_path = match (track.artwork_hash.as_deref(), track.artwork_format.as_deref(), profile_id) {
+    queue_track_to_payload_with_paths(&state.paths, track, profile_id)
+}
+
+fn queue_track_to_payload_with_paths(
+    paths: &AppPaths,
+    track: QueueTrack,
+    profile_id: Option<i64>,
+) -> QueueTrackPayload {
+    let artwork_path = match (
+        track.artwork_hash.as_deref(),
+        track.artwork_format.as_deref(),
+        profile_id,
+    ) {
         (Some(hash), Some(format), Some(pid)) => Some(
-            state
-                .paths
+            paths
                 .profile_artwork_dir(pid)
                 .join(format!("{hash}.{format}"))
                 .to_string_lossy()
@@ -105,6 +118,28 @@ fn queue_track_to_payload(
     }
 }
 
+/// Emit `player:track-changed` with the full track payload so the
+/// frontend can update the PlayerBar metadata (title, artist, album,
+/// cover, duration) at the same moment the decoder starts decoding
+/// the new track. Used by every command that kicks off a
+/// `LoadAndPlay` plus the analytics task's auto-advance path.
+pub(crate) fn emit_track_changed(
+    app: &AppHandle,
+    paths: &AppPaths,
+    track: &QueueTrack,
+    profile_id: Option<i64>,
+) {
+    let payload = queue_track_to_payload_with_paths(paths, track.clone(), profile_id);
+    let _ = app.emit("player:track-changed", payload);
+}
+
+/// Emit an empty `player:queue-changed` signal. The frontend uses
+/// this as "refetch the queue" — payload is intentionally empty so
+/// the event bus doesn't carry the full 100+ track list.
+pub(crate) fn emit_queue_changed(app: &AppHandle) {
+    let _ = app.emit("player:queue-changed", ());
+}
+
 /// Return the current player snapshot. Also resolves the "resume
 /// track" on the very first call after app launch by reading
 /// `player.last_track_id` / `player.last_position_ms`, so the
@@ -121,6 +156,15 @@ pub async fn player_get_state(
             let shuffle = queue::read_shuffle(&pool).await;
             let repeat_mode = queue::read_repeat_mode(&pool).await;
             let profile_id = state.require_profile_id().await.ok();
+
+            // Restore the persisted volume into the atomic shared
+            // with the cpal callback. Without this, the volume knob
+            // jumps back to 100 % on every app launch.
+            if let Some(persisted) =
+                queue::read_player_volume(&pool).await
+            {
+                engine.shared().set_volume(persisted);
+            }
             // Prefer the actively-playing track (non-zero track_id in
             // SharedPlayback), fall back to the persisted resume point
             // at startup when the engine is still Idle.
@@ -165,18 +209,88 @@ pub async fn player_get_state(
     Ok(snapshot)
 }
 
+/// Jump the queue cursor to an arbitrary position and start playing
+/// the track there. Used by the QueuePanel when the user
+/// double-clicks a row.
+#[tauri::command]
+pub async fn player_jump_to_index(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    position: i64,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await.ok();
+    let Some(track) = queue::jump_to(&pool, position).await? else {
+        return Err(AppError::Other("queue is empty".into()));
+    };
+    emit_track_changed(&app, &state.paths, &track, profile_id);
+    emit_queue_changed(&app);
+    engine.send(AudioCmd::LoadAndPlay {
+        path: track.as_path(),
+        start_ms: 0,
+        track_id: track.id,
+        duration_ms: track.duration_ms.max(0) as u64,
+        source_type: "manual".into(),
+        source_id: None,
+    })
+}
+
+/// Response shape for `player_get_queue`: the full list of tracks
+/// currently in `queue_item`, plus the active cursor position.
+#[derive(Debug, Serialize)]
+pub struct PlayerQueueSnapshot {
+    pub current_index: i64,
+    pub items: Vec<QueueTrackPayload>,
+}
+
+/// Return the live playback queue (joined with track metadata and
+/// artwork paths) plus the current cursor. Used by the QueuePanel
+/// frontend component; re-called every time a `player:queue-changed`
+/// event fires.
+#[tauri::command]
+pub async fn player_get_queue(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<PlayerQueueSnapshot> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await.ok();
+    let items = queue::list_queue(&pool).await?;
+    let current_index: i64 =
+        sqlx::query_scalar::<_, Option<String>>(
+            "SELECT value FROM profile_setting WHERE key = 'queue.current_index'",
+        )
+        .fetch_optional(&pool)
+        .await?
+        .flatten()
+        .and_then(|s| s.parse::<i64>().ok())
+        .unwrap_or(0);
+
+    let payload_items = items
+        .into_iter()
+        .map(|t| queue_track_to_payload_with_paths(&state.paths, t, profile_id))
+        .collect();
+
+    Ok(PlayerQueueSnapshot {
+        current_index,
+        items: payload_items,
+    })
+}
+
 /// Resume playback from the persisted last-track + position. Used by
 /// the frontend when the user hits Play from the idle state without
 /// having clicked a specific track yet.
 #[tauri::command]
 pub async fn player_resume_last(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await.ok();
     let Some((track, position_ms)) = queue::restore_state(&pool).await? else {
         return Err(AppError::Other("no resume point available".into()));
     };
+    emit_track_changed(&app, &state.paths, &track, profile_id);
     engine.send(AudioCmd::LoadAndPlay {
         path: track.as_path(),
         start_ms: position_ms,
@@ -192,6 +306,7 @@ pub async fn player_resume_last(
 /// in slot 0). When turning off, restores the pre-shuffle order.
 #[tauri::command]
 pub async fn player_toggle_shuffle(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> AppResult<bool> {
     let pool = state.require_profile_pool().await?;
@@ -203,6 +318,8 @@ pub async fn player_toggle_shuffle(
     } else {
         queue::unshuffle(&pool).await?;
     }
+    // Queue content changed (reordered in place) — tell the panel.
+    emit_queue_changed(&app);
     Ok(next)
 }
 
@@ -288,6 +405,7 @@ pub async fn player_set_volume(
 /// 'liked'|'manual'|'radio').
 #[tauri::command]
 pub async fn player_play_tracks(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     source_type: String,
@@ -296,12 +414,38 @@ pub async fn player_play_tracks(
     start_index: usize,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await.ok();
 
     queue::fill_queue(&pool, &source_type, source_id, &track_ids, start_index).await?;
+
+    // Spotify-style: if the user has shuffle enabled, randomize the
+    // queue in place immediately after filling it, keeping the track
+    // they clicked in position 0. Without this, enabling shuffle
+    // before clicking a track would leave the queue sequential and
+    // Next would advance alphabetically — visibly "not random".
+    let shuffled = queue::read_shuffle(&pool).await;
+    if shuffled {
+        queue::shuffle(&pool).await?;
+    }
 
     let track = queue::current_track(&pool)
         .await?
         .ok_or_else(|| AppError::Other("queue empty after fill".into()))?;
+
+    tracing::info!(
+        source_type = %source_type,
+        source_id = ?source_id,
+        shuffled,
+        queue_len = track_ids.len(),
+        start_index,
+        current_track_id = track.id,
+        current_title = %track.title,
+        "player_play_tracks"
+    );
+
+    // Tell the QueuePanel to refetch — the queue content and cursor
+    // both just changed.
+    emit_queue_changed(&app);
 
     let pb = std::path::PathBuf::from(&track.file_path);
     if !pb.is_file() {
@@ -310,6 +454,11 @@ pub async fn player_play_tracks(
             track.file_path
         )));
     }
+
+    // Tell the frontend about the new track BEFORE dispatching the
+    // decoder command so the PlayerBar updates without waiting on
+    // the first position/state event.
+    emit_track_changed(&app, &state.paths, &track, profile_id);
 
     engine.send(AudioCmd::LoadAndPlay {
         path: pb,
@@ -326,14 +475,34 @@ pub async fn player_play_tracks(
 /// end with repeat off.
 #[tauri::command]
 pub async fn player_next(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await.ok();
     let repeat = queue::read_repeat_mode(&pool).await;
-    let Some(track) = queue::advance(&pool, Direction::Next, repeat).await? else {
+    let queue_len = queue::queue_length(&pool).await?;
+    let next_opt = queue::advance(&pool, Direction::Next, repeat).await?;
+    match &next_opt {
+        Some(track) => tracing::info!(
+            next_track_id = track.id,
+            next_title = %track.title,
+            queue_len,
+            ?repeat,
+            "player_next advanced"
+        ),
+        None => tracing::info!(
+            queue_len,
+            ?repeat,
+            "player_next: queue exhausted, no-op"
+        ),
+    }
+    let Some(track) = next_opt else {
         return Ok(());
     };
+    emit_track_changed(&app, &state.paths, &track, profile_id);
+    emit_queue_changed(&app);
     engine.send(AudioCmd::LoadAndPlay {
         path: track.as_path(),
         start_ms: 0,
@@ -349,6 +518,7 @@ pub async fn player_next(
 /// of jumping tracks.
 #[tauri::command]
 pub async fn player_previous(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<()> {
@@ -356,10 +526,13 @@ pub async fn player_previous(
         return engine.send(AudioCmd::Seek(0));
     }
     let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await.ok();
     let repeat = queue::read_repeat_mode(&pool).await;
     let Some(track) = queue::advance(&pool, Direction::Previous, repeat).await? else {
         return Ok(());
     };
+    emit_track_changed(&app, &state.paths, &track, profile_id);
+    emit_queue_changed(&app);
     engine.send(AudioCmd::LoadAndPlay {
         path: track.as_path(),
         start_ms: 0,

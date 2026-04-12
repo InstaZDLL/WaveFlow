@@ -126,3 +126,18 @@ export function playerCycleRepeat(): Promise<"off" | "all" | "one"> {
 export function playerResumeLast(): Promise<void> {
   return invoke<void>("player_resume_last");
 }
+
+/** Live playback queue returned by `player_get_queue`. */
+export interface PlayerQueueSnapshot {
+  current_index: number;
+  items: QueueTrackPayload[];
+}
+
+export function playerGetQueue(): Promise<PlayerQueueSnapshot> {
+  return invoke<PlayerQueueSnapshot>("player_get_queue");
+}
+
+/** Jump the queue cursor to an arbitrary position and play from there. */
+export function playerJumpToIndex(position: number): Promise<void> {
+  return invoke<void>("player_jump_to_index", { position });
+}

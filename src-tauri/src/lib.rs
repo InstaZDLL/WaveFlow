@@ -77,6 +77,8 @@ pub fn run() {
             commands::browse::list_artists,
             commands::browse::list_genres,
             commands::browse::list_folders,
+            commands::browse::list_recent_plays,
+            commands::browse::get_profile_stats,
             commands::player::player_get_state,
             commands::player::player_pause,
             commands::player::player_resume,
@@ -89,6 +91,8 @@ pub fn run() {
             commands::player::player_toggle_shuffle,
             commands::player::player_cycle_repeat,
             commands::player::player_resume_last,
+            commands::player::player_get_queue,
+            commands::player::player_jump_to_index,
         ])
         .on_window_event(|window, event| {
             if let WindowEvent::Destroyed = event {

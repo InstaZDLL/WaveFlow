@@ -4,7 +4,9 @@
 //! any locks. The decoder thread and tauri command handlers write, the
 //! audio callback and UI reads.
 
-use std::sync::atomic::{AtomicI64, AtomicU16, AtomicU32, AtomicU64, AtomicU8, Ordering};
+use std::sync::atomic::{
+    AtomicBool, AtomicI64, AtomicU16, AtomicU32, AtomicU64, AtomicU8, Ordering,
+};
 
 /// High-level player lifecycle. Stored as `AtomicU8` — see [`PlayerState::from_u8`]
 /// for the inverse of `as u8`.
@@ -65,6 +67,18 @@ pub struct SharedPlayback {
     /// Written by the decoder thread at `LoadAndPlay` time, read by
     /// the shutdown hook so it can persist the resume point.
     pub current_track_id: AtomicI64,
+    /// When `true`, the cpal output callback writes silence instead of
+    /// draining the SPSC ring — making pause audibly instant even when
+    /// the decoder has ~1 s of pre-buffered samples. The decoder
+    /// thread flips this alongside `state` in `drain_commands`.
+    pub paused_output: AtomicBool,
+    /// When `true`, the cpal output callback pops from the ring AND
+    /// writes silence. Used by the decoder thread to quickly empty
+    /// the ring during a track switch without letting any of the
+    /// old track's samples reach the device. Distinct from
+    /// `paused_output`: the latter preserves the ring for an
+    /// instant resume; this one intentionally drops it.
+    pub drain_silent: AtomicBool,
 }
 
 impl SharedPlayback {
@@ -78,6 +92,8 @@ impl SharedPlayback {
             seek_generation: AtomicU64::new(0),
             base_offset_ms: AtomicU64::new(0),
             current_track_id: AtomicI64::new(0),
+            paused_output: AtomicBool::new(false),
+            drain_silent: AtomicBool::new(false),
         }
     }
 
@@ -99,15 +115,31 @@ impl SharedPlayback {
             .store(clamped.to_bits(), Ordering::Relaxed);
     }
 
-    /// Current wall-clock position in ms, derived from the callback-advanced
-    /// sample counter + the base offset written on load / seek. Returns 0
-    /// before the stream opens (sample_rate / channels are still 0).
+    /// Current position **inside the track** in ms, derived from the
+    /// callback-advanced sample counter plus the base offset written
+    /// on load / seek. Use this to drive the progress bar and seek
+    /// display — the user wants to know "where am I in the song",
+    /// not "how long has this session been running".
     pub fn current_position_ms(&self) -> u64 {
         let sr = self.sample_rate.load(Ordering::Relaxed).max(1) as u64;
         let ch = self.channels.load(Ordering::Relaxed).max(1) as u64;
         let played = self.samples_played.load(Ordering::Relaxed);
         let delta_ms = (played * 1000) / (sr * ch);
         self.base_offset_ms.load(Ordering::Relaxed) + delta_ms
+    }
+
+    /// Number of ms actually heard **in the current session** — i.e.
+    /// since the last `LoadAndPlay` reset `samples_played` to zero.
+    /// Distinct from [`Self::current_position_ms`] which adds the
+    /// `base_offset_ms` for resumes / seeks. Analytics uses this one
+    /// so that resuming a track at 2:30 and listening for 3 s counts
+    /// as a 3 s listen (not a 2:33 listen), which matters for the
+    /// "Recently played" 15 s credit threshold.
+    pub fn session_listened_ms(&self) -> u64 {
+        let sr = self.sample_rate.load(Ordering::Relaxed).max(1) as u64;
+        let ch = self.channels.load(Ordering::Relaxed).max(1) as u64;
+        let played = self.samples_played.load(Ordering::Relaxed);
+        (played * 1000) / (sr * ch)
     }
 }
 

@@ -51,3 +51,31 @@ export function listGenres(libraryId: number): Promise<GenreRow[]> {
 export function listFolders(libraryId: number): Promise<FolderRow[]> {
   return invoke<FolderRow[]>("list_folders", { libraryId });
 }
+
+/** Row shape returned by `list_recent_plays`. */
+export interface RecentPlay {
+  track_id: number;
+  title: string;
+  artist_name: string | null;
+  album_title: string | null;
+  duration_ms: number;
+  played_at: number;
+  artwork_path: string | null;
+}
+
+export function listRecentPlays(
+  libraryId: number,
+  limit: number
+): Promise<RecentPlay[]> {
+  return invoke<RecentPlay[]>("list_recent_plays", { libraryId, limit });
+}
+
+/** Profile-wide counters for the sidebar. */
+export interface ProfileStats {
+  liked_count: number;
+  recent_plays_count: number;
+}
+
+export function getProfileStats(): Promise<ProfileStats> {
+  return invoke<ProfileStats>("get_profile_stats");
+}
