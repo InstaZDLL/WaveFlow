@@ -2,7 +2,10 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
+use std::sync::Arc;
+
 use crate::{
+    audio::{AudioCmd, AudioEngine},
     error::{AppError, AppResult},
     paths::AppPaths,
     state::AppState,
@@ -137,6 +140,7 @@ pub async fn create_profile(
 #[tauri::command]
 pub async fn switch_profile(
     state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
     profile_id: i64,
 ) -> AppResult<Profile> {
     let profile = sqlx::query_as::<_, Profile>(
@@ -147,6 +151,16 @@ pub async fn switch_profile(
     .fetch_optional(&state.app_db)
     .await?
     .ok_or(AppError::ProfileNotFound(profile_id))?;
+
+    // Stop playback before swapping the pool — the queue references
+    // track IDs from the old profile's database, which would become
+    // dangling after the pool swap.
+    let _ = engine.send(AudioCmd::Stop);
+    engine.shared().set_state(crate::audio::state::PlayerState::Idle);
+    engine
+        .shared()
+        .current_track_id
+        .store(0, std::sync::atomic::Ordering::Release);
 
     state.activate_profile(profile_id).await?;
 

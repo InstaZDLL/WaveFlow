@@ -7,6 +7,7 @@ import {
 } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { PlayerContext, type PlaybackState, type RepeatMode } from "../hooks/usePlayer";
+import { useProfile } from "../hooks/useProfile";
 import type { Track } from "../lib/tauri/track";
 import {
   playerCycleRepeat,
@@ -67,6 +68,8 @@ function queuePayloadToTrack(payload: QueueTrackPayload): Track {
  *    fast drag doesn't flood the command channel.
  */
 export function PlayerProvider({ children }: { children: ReactNode }) {
+  const { activeProfile } = useProfile();
+
   // UI-only state
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [isDeviceMenuOpen, setIsDeviceMenuOpen] = useState(false);
@@ -92,8 +95,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const isPlaying = playbackState === "playing";
 
-  // --- initial snapshot ---
+  // --- initial snapshot (re-runs on profile switch) ---
   useEffect(() => {
+    // Reset all playback state immediately so stale data from the
+    // previous profile doesn't linger during the async fetch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPlaybackState("idle");
+    setCurrentTrack(null);
+    setPositionMs(0);
+    setDurationMs(0);
+
     let cancelled = false;
     (async () => {
       try {
@@ -117,7 +128,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [activeProfile]);
 
   // --- Tauri event listeners ---
   useEffect(() => {
