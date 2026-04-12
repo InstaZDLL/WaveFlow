@@ -1,135 +1,134 @@
-# WaveFlow
+<p align="center">
+  <img src="logo.svg" width="80" alt="WaveFlow logo" />
+</p>
 
-**WaveFlow** est une application desktop de lecture musicale locale, construite avec Tauri 2. Elle offre une interface 3 panneaux inspirée des lecteurs modernes pour parcourir et écouter votre collection audio personnelle, avec support complet du mode clair/sombre et de plusieurs langues.
+<h1 align="center">WaveFlow</h1>
 
-## Stack technique
+<p align="center">
+  <strong>Local music player for desktop — built with Tauri 2, React 19 & Rust</strong>
+</p>
 
-### Frontend
+<p align="center">
+  <img src="https://img.shields.io/badge/version-0.1.0-emerald?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/tauri-2.10-blue?style=flat-square&logo=tauri" alt="Tauri 2" />
+  <img src="https://img.shields.io/badge/react-19-61dafb?style=flat-square&logo=react" alt="React 19" />
+  <img src="https://img.shields.io/badge/rust-stable-orange?style=flat-square&logo=rust" alt="Rust" />
+  <img src="https://img.shields.io/badge/license-GPL--3.0-green?style=flat-square" alt="License" />
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square" alt="Platform" />
+</p>
 
-- **React 19** — composants et gestion d'état
-- **TypeScript** — typage strict
-- **Vite** — dev server et bundler
-- **Tailwind CSS 4** — système de design
-- **i18next + react-i18next** — internationalisation (FR/EN)
-- **Lucide React** — icônes
+---
 
-### Backend / Desktop
+WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI. It scans your local audio folders, organizes tracks by album/artist/genre, and plays them with a real-time audio engine — no streaming, no cloud, your music stays on your machine.
 
-- **Tauri 2** — shell desktop multi-plateforme
-- **Rust** — backend natif
+## Features
 
-### Outils
+- **Audio playback** — symphonia decoder + cpal output, supports MP3, FLAC, WAV, OGG Vorbis, AAC, ALAC (M4A)
+- **Real-time engine** — lock-free 3-thread architecture (decoder, ring buffer, cpal callback), zero allocations in the hot path
+- **Library scanning** — point to any folder, metadata extraction via lofty, embedded artwork extraction
+- **Playlists** — create, edit, delete, add tracks from folders/albums/artists in bulk
+- **Likes** — heart any track, dedicated "Liked tracks" view
+- **Search** — instant full-text search (FTS5) across titles, artists, albums with prefix matching
+- **Queue** — persistent queue with shuffle (Fisher-Yates), repeat (off/all/one), auto-advance
+- **Resume** — remembers last track + position across app restarts
+- **Audio settings** — volume normalization (-3 dB), mono downmix, crossfade slider (UI ready)
+- **Virtual scroll** — handles 6000+ tracks without UI freeze (@tanstack/react-virtual)
+- **Dark mode** — animated radial transition via View Transitions API
+- **i18n** — French & English, auto-detected, switchable in settings
+- **Accessibility** — keyboard navigation, ARIA roles, focus rings, `prefers-reduced-motion`
+- **Profiles** — isolated per-profile database (libraries, playlists, settings, play history)
 
-- **Bun** — gestionnaire de paquets et runtime
-- **ESLint** + **Prettier** — lint et formatage
+## Tech Stack
 
-## Fonctionnalités actuelles (scaffolding UI)
+| Layer | Technologies |
+|-------|-------------|
+| **Desktop shell** | Tauri 2.10 |
+| **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS 4, Lucide icons |
+| **Backend** | Rust, SQLite (sqlx), FTS5 full-text search |
+| **Audio** | symphonia 0.5 (decode), cpal 0.15 (output), rubato 0.15 (resample), rtrb 0.3 (SPSC ring) |
+| **Package manager** | Bun |
 
-- Interface 3 panneaux (sidebar, contenu principal, file de lecture)
-- Mode clair / sombre avec transition radiale animée (View Transitions API)
-- Internationalisation FR/EN avec détection automatique et persistance locale
-- Accessibilité : navigation clavier, ARIA, `role="listbox"`, `role="switch"`, `role="slider"`
-- Système de profils avec création (nom + couleur)
-- Sélection de bibliothèque via popover
-- Création de bibliothèques et playlists (nom, description, couleur, icône)
-- Contrôles de lecture : play/pause, shuffle, repeat (off/all/one)
-- Slider de volume interactif (pointer + clavier + mute)
-- Empty states unifiés avec animation "breathing" du halo
-
-## Commandes
+## Getting Started
 
 ```bash
-# Installer les dépendances
+# Install dependencies
 bun install
 
-# Lancer l'app desktop en mode dev (Vite + shell Tauri)
+# Run the desktop app in development mode
 bun run tauri dev
 
-# Builder l'app desktop en production
+# Build for production
 bun run tauri build
-
-# Lancer uniquement le dev server Vite (sans shell Tauri)
-bun run dev
-
-# Vérifier les types
-bun run typecheck
-
-# Linter
-bun run lint
-bun run lint:fix
-
-# Formater
-bun run format
 ```
 
-## Structure du projet
+## Development Commands
 
 ```bash
+bun run dev          # Vite dev server only (no Tauri shell)
+bun run typecheck    # TypeScript check
+bun run lint         # ESLint
+bun run lint:fix     # ESLint with auto-fix
+bun run format       # Prettier
+```
+
+## Project Structure
+
+```
 waveflow/
-├── src/                          # Frontend React
+├── src/                              # React frontend
 │   ├── components/
-│   │   ├── common/               # Composants réutilisables (StatCard, EmptyState, modals...)
-│   │   ├── layout/               # Sidebar, TopBar, AppLayout, QueuePanel, DeviceMenu
-│   │   ├── player/               # PlayerBar, PlaybackControls, VolumeControl, ProgressBar
-│   │   └── views/                # HomeView, LibraryView, LikedView, RecentView, SettingsView, etc.
-│   ├── contexts/                 # ThemeContext, PlayerContext
-│   ├── hooks/                    # useTheme, usePlayer
-│   ├── i18n/
-│   │   ├── index.ts              # Configuration i18next
-│   │   └── locales/
-│   │       ├── fr.json           # Traductions françaises
-│   │       └── en.json           # Traductions anglaises
-│   ├── types/                    # Types TypeScript partagés
-│   ├── app.css                   # Tailwind + utilities custom (animations, scrollbar)
-│   ├── App.tsx
-│   └── main.tsx
-├── src-tauri/                    # Backend Rust / Tauri
+│   │   ├── common/                   # Reusable UI (NavItem, Artwork, modals, EmptyState)
+│   │   ├── layout/                   # Sidebar, TopBar, AppLayout, QueuePanel
+│   │   ├── player/                   # PlayerBar, PlaybackControls, VolumeControl, ProgressBar
+│   │   └── views/                    # Home, Library, Playlist, Liked, Recent, Settings, etc.
+│   ├── contexts/                     # ThemeContext, PlayerContext, LibraryContext, PlaylistContext
+│   ├── hooks/                        # useTheme, usePlayer, useLibrary, usePlaylist, useProfile
+│   ├── lib/
+│   │   ├── tauri/                    # Typed invoke() wrappers (track, browse, player, playlist)
+│   │   ├── playlistVisuals.ts        # Shared color/icon constants for playlists
+│   │   └── PlaylistIcon.tsx          # Icon dispatcher component
+│   ├── i18n/locales/                 # fr.json, en.json
+│   ├── types/                        # ViewId, LibraryTab, NavItemProps, etc.
+│   ├── App.tsx                       # Provider tree
+│   └── main.tsx                      # Entry point
+├── src-tauri/                        # Rust backend
 │   ├── src/
-│   │   ├── main.rs
-│   │   └── lib.rs                # Commands Tauri
+│   │   ├── audio/                    # Audio engine (engine, decoder, output, resampler, state, analytics)
+│   │   ├── commands/                 # Tauri commands (library, playlist, track, browse, player, scan, profile)
+│   │   ├── db/                       # Database open/migrate helpers
+│   │   ├── queue.rs                  # Persistent queue operations (fill, advance, shuffle, restore)
+│   │   ├── state.rs                  # AppState (profile pool, paths)
+│   │   ├── paths.rs                  # Filesystem layout
+│   │   ├── error.rs                  # AppError + AppResult
+│   │   └── lib.rs                    # Tauri setup, command registration, shutdown hook
+│   ├── migrations/
+│   │   └── profile/                  # Per-profile SQLite schema (FTS5, triggers, indexes)
 │   ├── Cargo.toml
-│   ├── tauri.conf.json           # Config fenêtre, bundle, permissions
-│   └── capabilities/
-├── public/                       # Assets statiques
+│   └── tauri.conf.json
 └── package.json
 ```
 
-## Internationalisation
+## Audio Architecture
 
-Les strings sont externalisés dans [src/i18n/locales/](src/i18n/locales/). Pour ajouter une nouvelle clé :
-
-1. Ajouter la clé dans `fr.json` et `en.json` au bon namespace (ex. `home.banner.title`)
-2. Dans le composant : `const { t } = useTranslation();` puis `t("home.banner.title")`
-3. Pour les pluriels : utiliser les suffixes `_zero`, `_one`, `_other` et appeler avec `t("key", { count: n })`
-
-Pour ajouter une langue :
-
-1. Créer `src/i18n/locales/xx.json` avec la même structure que `fr.json`
-2. L'importer dans [src/i18n/index.ts](src/i18n/index.ts) et l'ajouter à `SUPPORTED_LANGUAGES`
-3. Elle apparaîtra automatiquement dans le sélecteur de langue des paramètres
-
-## Accessibilité
-
-- Tous les boutons interactifs ont un `aria-label` explicite
-- Focus rings visibles au clavier (`focus-visible:ring-*`)
-- `prefers-reduced-motion` respecté (animations `breathing` désactivées)
-- Structure sémantique avec `<section aria-labelledby>` et `<h1>/<h2>`
-- Toggles : `role="switch"` + `aria-checked`
-- Sliders : `role="slider"` + `aria-valuemin/max/now`
-- Dropdowns : `role="listbox"` + `aria-activedescendant` + navigation flèches
-
-## Architecture Tauri
-
-Les commandes Tauri sont définies dans [src-tauri/src/lib.rs](src-tauri/src/lib.rs) avec `#[tauri::command]` et enregistrées dans `invoke_handler`. Côté frontend, on les appelle avec :
-
-```ts
-import { invoke } from "@tauri-apps/api/core";
-
-const result = await invoke("command_name", { arg: value });
+```
+┌─ Tauri commands (tokio)     ┌─ Decoder thread (std)        ┌─ cpal callback (real-time)
+│  player_play, pause, seek   │  symphonia FormatReader +     │  pop f32 from SPSC ring
+│  → crossbeam::Sender ──────►│  Decoder + rubato Resampler   │  × volume × normalization
+│                              │  push f32 → rtrb::Producer ──►│  mono downmix (if enabled)
+│                              │  emit position/state events   │  → device native format
+└──────────────────────────────┴───────────────────────────────┴──────────────────────────
 ```
 
-L'identifiant de l'application est défini dans [src-tauri/tauri.conf.json](src-tauri/tauri.conf.json) : `app.waveflow`.
+**Rules:** the cpal callback never allocates, never locks, never logs. It only touches `rtrb::Consumer` and `Atomic*` fields in `SharedPlayback`.
 
-## Licence
+## i18n
 
-GPL-3.0 — voir [LICENSE](LICENSE)
+Strings are externalized in `src/i18n/locales/`. To add a language:
+
+1. Create `src/i18n/locales/xx.json` (same structure as `fr.json`)
+2. Import it in `src/i18n/index.ts` and add to `SUPPORTED_LANGUAGES`
+3. It will appear in the Settings language selector automatically
+
+## License
+
+GPL-3.0 — see [LICENSE](LICENSE)
