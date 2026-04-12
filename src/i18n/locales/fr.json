@@ -58,6 +58,23 @@
       "emptySubtext_zero": "0 titre",
       "emptySubtext_one": "{{count}} titre",
       "emptySubtext_other": "{{count}} titres"
+    },
+    "myMusic": {
+      "title": "Ma musique",
+      "addFolderAria": "Importer un dossier",
+      "tracks": "Morceaux",
+      "albums": "Albums",
+      "artists": "Artistes",
+      "genres": "Genres",
+      "folders": "Dossiers"
+    },
+    "playlistSection": {
+      "title": "Playlists"
+    },
+    "myLibrary": {
+      "playlistSubtext_zero": "0 titre",
+      "playlistSubtext_one": "{{count}} titre",
+      "playlistSubtext_other": "{{count}} titres"
     }
   },
   "topbar": {
@@ -337,7 +354,8 @@
     "submitEdit": "Enregistrer"
   },
   "playlistModal": {
-    "title": "Playlists",
+    "title": "Nouvelle playlist",
+    "editTitle": "Modifier la playlist",
     "previewDefault": "Nouvelle playlist",
     "previewSubtitle": "0 titre · Playlist",
     "nameLabel": "Nom",
@@ -348,7 +366,32 @@
     "colorAria": "Couleur {{color}}",
     "iconLabel": "Icône",
     "iconAria": "Icône {{icon}}",
-    "submit": "Créer"
+    "submit": "Créer",
+    "editSubmit": "Enregistrer"
+  },
+  "playlistView": {
+    "badge": "Playlist",
+    "trackCount_zero": "0 titre",
+    "trackCount_one": "{{count}} titre",
+    "trackCount_other": "{{count}} titres",
+    "actions": {
+      "play": "Lecture",
+      "shuffle": "Lecture aléatoire",
+      "edit": "Modifier la playlist",
+      "delete": "Supprimer la playlist",
+      "deleteConfirm": "Cliquez à nouveau pour confirmer"
+    },
+    "emptyTitle": "Cette playlist est vide",
+    "emptyDescription": "Ajoute des morceaux depuis tes bibliothèques via le bouton + de chaque ligne.",
+    "noneTitle": "Aucune playlist sélectionnée",
+    "noneDescription": "Choisis une playlist dans la barre latérale pour la voir ici.",
+    "notFoundTitle": "Playlist introuvable",
+    "notFoundDescription": "Cette playlist n'existe plus dans le profil actif."
+  },
+  "trackActions": {
+    "addToPlaylist": "Ajouter à une playlist",
+    "noPlaylists": "Aucune playlist. Crée-en une ci-dessous.",
+    "createPlaylist": "Nouvelle playlist"
   },
   "settings": {
     "title": "Paramètres",

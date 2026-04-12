@@ -21,8 +21,7 @@ INSERT INTO profile_setting (key, value, value_type, updated_at) VALUES
     ('player.repeat_mode',   'off',   'string', strftime('%s','now') * 1000),
     ('player.last_track_id', '0',     'int',    strftime('%s','now') * 1000),
     ('player.last_position_ms','0',   'int',    strftime('%s','now') * 1000),
-    ('queue.current_index',  '0',     'int',    strftime('%s','now') * 1000),
-    ('library.last_id',      '0',     'int',    strftime('%s','now') * 1000);
+    ('queue.current_index',  '0',     'int',    strftime('%s','now') * 1000);
 
 -- =============================================================================
 -- 2. Artwork cache (files live at <profile_dir>/artwork/<hash>.<format>)
@@ -167,6 +166,7 @@ CREATE TABLE track (
 );
 
 CREATE INDEX idx_track_library       ON track(library_id, is_available);
+CREATE INDEX idx_track_folder        ON track(folder_id);
 CREATE INDEX idx_track_album         ON track(album_id);
 CREATE INDEX idx_track_primary_artist ON track(primary_artist);
 CREATE INDEX idx_track_hash          ON track(file_hash);

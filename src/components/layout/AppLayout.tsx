@@ -14,6 +14,7 @@ import { FeedbackView } from "../views/FeedbackView";
 import { StatisticsView } from "../views/StatisticsView";
 import { LikedView } from "../views/LikedView";
 import { RecentView } from "../views/RecentView";
+import { PlaylistView } from "../views/PlaylistView";
 import { ProfileSelectorModal } from "../common/ProfileSelectorModal";
 
 export function AppLayout() {
@@ -22,6 +23,10 @@ export function AppLayout() {
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [libraryTab, setLibraryTab] = useState<LibraryTab>("morceaux");
+  // Currently focused playlist for the "playlist" view. The view itself
+  // re-fetches when this id changes; the sidebar uses it to highlight
+  // the active row.
+  const [activePlaylistId, setActivePlaylistId] = useState<number | null>(null);
 
   const activeView = viewHistory[historyIndex];
 
@@ -62,6 +67,16 @@ export function AppLayout() {
         return <LikedView />;
       case "recent":
         return <RecentView />;
+      case "playlist":
+        return (
+          <PlaylistView
+            playlistId={activePlaylistId}
+            onAfterDelete={() => {
+              setActivePlaylistId(null);
+              setActiveView("home");
+            }}
+          />
+        );
     }
   }
 
@@ -72,7 +87,14 @@ export function AppLayout() {
       <div className="flex flex-col h-screen bg-white text-zinc-600 dark:bg-surface-dark dark:text-zinc-300">
         {/* Main Container */}
         <div className="flex flex-1 overflow-hidden">
-          <Sidebar activeView={activeView} setActiveView={setActiveView} libraryTab={libraryTab} setLibraryTab={setLibraryTab} />
+          <Sidebar
+            activeView={activeView}
+            setActiveView={setActiveView}
+            libraryTab={libraryTab}
+            setLibraryTab={setLibraryTab}
+            activePlaylistId={activePlaylistId}
+            setActivePlaylistId={setActivePlaylistId}
+          />
 
           {/* Center Content */}
           <div className="flex flex-col flex-1 relative bg-zinc-50 dark:bg-zinc-900/50">

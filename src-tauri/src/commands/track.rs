@@ -55,13 +55,14 @@ struct TrackRow {
     artwork_format: Option<String>,
 }
 
-/// List all tracks of a library. `is_available = 1` filter skips rows that
-/// point to files that vanished since the last scan but haven't been garbage
-/// collected yet.
+/// List tracks. When `library_id` is `Some`, only tracks from that library
+/// are returned. When `None`, tracks across **all** libraries are shown —
+/// the "Ma musique" mode where the concept of multiple libraries is hidden
+/// from the user.
 #[tauri::command]
 pub async fn list_tracks(
     state: tauri::State<'_, AppState>,
-    library_id: i64,
+    library_id: Option<i64>,
 ) -> AppResult<Vec<Track>> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
@@ -81,7 +82,7 @@ pub async fn list_tracks(
           LEFT JOIN album   al ON al.id = t.album_id
           LEFT JOIN artist  ar ON ar.id = t.primary_artist
           LEFT JOIN artwork aw ON aw.id = al.artwork_id
-         WHERE t.library_id = ? AND t.is_available = 1
+         WHERE (? IS NULL OR t.library_id = ?) AND t.is_available = 1
          ORDER BY ar.canonical_name COLLATE NOCASE,
                   al.canonical_title COLLATE NOCASE,
                   t.disc_number,
@@ -89,6 +90,7 @@ pub async fn list_tracks(
                   t.title COLLATE NOCASE
         "#,
     )
+    .bind(library_id)
     .bind(library_id)
     .fetch_all(&pool)
     .await?;

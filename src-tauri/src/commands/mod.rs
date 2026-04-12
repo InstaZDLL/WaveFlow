@@ -7,6 +7,7 @@ pub mod app_info;
 pub mod browse;
 pub mod library;
 pub mod player;
+pub mod playlist;
 pub mod profile;
 pub mod scan;
 pub mod track;

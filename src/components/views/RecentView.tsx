@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Clock } from "lucide-react";
 import { EmptyState } from "../common/EmptyState";
 import { Artwork } from "../common/Artwork";
-import { useLibrary } from "../../hooks/useLibrary";
+
 import { usePlayer } from "../../hooks/usePlayer";
 import { listRecentPlays, type RecentPlay } from "../../lib/tauri/browse";
 import { formatDuration } from "../../lib/tauri/track";
@@ -34,7 +34,6 @@ function formatPlayedAt(ts: number, locale: string): string {
 
 export function RecentView() {
   const { t, i18n } = useTranslation();
-  const { selectedLibraryId } = useLibrary();
   const { playbackState, currentTrack } = usePlayer();
   const [tracks, setTracks] = useState<RecentPlay[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,14 +43,11 @@ export function RecentView() {
   // written by the analytics task).
   useEffect(() => {
     let cancelled = false;
-    if (selectedLibraryId == null) {
-      setTracks([]);
-      return;
-    }
     (async () => {
       setIsLoading(true);
       try {
-        const list = await listRecentPlays(selectedLibraryId, LIMIT);
+        // Pass null to get recent plays across all libraries.
+        const list = await listRecentPlays(null, LIMIT);
         if (!cancelled) setTracks(list);
       } catch (err) {
         if (!cancelled) {
@@ -68,7 +64,7 @@ export function RecentView() {
     // The `playbackState === "ended"` re-fetch captures auto-advance
     // naturally — when a track finishes, play_event is inserted
     // before the next LoadAndPlay fires.
-  }, [selectedLibraryId, playbackState]);
+  }, [playbackState]);
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20">

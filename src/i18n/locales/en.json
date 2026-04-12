@@ -58,6 +58,23 @@
       "emptySubtext_zero": "0 tracks",
       "emptySubtext_one": "{{count}} track",
       "emptySubtext_other": "{{count}} tracks"
+    },
+    "myMusic": {
+      "title": "My Music",
+      "addFolderAria": "Import a folder",
+      "tracks": "Tracks",
+      "albums": "Albums",
+      "artists": "Artists",
+      "genres": "Genres",
+      "folders": "Folders"
+    },
+    "playlistSection": {
+      "title": "Playlists"
+    },
+    "myLibrary": {
+      "playlistSubtext_zero": "0 tracks",
+      "playlistSubtext_one": "{{count}} track",
+      "playlistSubtext_other": "{{count}} tracks"
     }
   },
   "topbar": {
@@ -337,7 +354,8 @@
     "submitEdit": "Save"
   },
   "playlistModal": {
-    "title": "Playlists",
+    "title": "New playlist",
+    "editTitle": "Edit playlist",
     "previewDefault": "New playlist",
     "previewSubtitle": "0 track · Playlist",
     "nameLabel": "Name",
@@ -348,7 +366,32 @@
     "colorAria": "{{color}} color",
     "iconLabel": "Icon",
     "iconAria": "{{icon}} icon",
-    "submit": "Create"
+    "submit": "Create",
+    "editSubmit": "Save"
+  },
+  "playlistView": {
+    "badge": "Playlist",
+    "trackCount_zero": "0 tracks",
+    "trackCount_one": "{{count}} track",
+    "trackCount_other": "{{count}} tracks",
+    "actions": {
+      "play": "Play",
+      "shuffle": "Shuffle play",
+      "edit": "Edit playlist",
+      "delete": "Delete playlist",
+      "deleteConfirm": "Click again to confirm"
+    },
+    "emptyTitle": "This playlist is empty",
+    "emptyDescription": "Add tracks from your libraries using the + button on each row.",
+    "noneTitle": "No playlist selected",
+    "noneDescription": "Pick a playlist from the sidebar to view it here.",
+    "notFoundTitle": "Playlist not found",
+    "notFoundDescription": "This playlist no longer exists in the active profile."
+  },
+  "trackActions": {
+    "addToPlaylist": "Add to a playlist",
+    "noPlaylists": "No playlist yet. Create one below.",
+    "createPlaylist": "New playlist"
   },
   "settings": {
     "title": "Settings",

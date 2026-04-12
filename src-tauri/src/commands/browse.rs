@@ -133,7 +133,7 @@ struct RecentPlayRaw {
 #[tauri::command]
 pub async fn list_albums(
     state: tauri::State<'_, AppState>,
-    library_id: i64,
+    library_id: Option<i64>,
 ) -> AppResult<Vec<AlbumRow>> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
@@ -153,12 +153,13 @@ pub async fn list_albums(
           JOIN track t        ON t.album_id = al.id
           LEFT JOIN artist ar ON ar.id = al.artist_id
           LEFT JOIN artwork aw ON aw.id = al.artwork_id
-         WHERE t.library_id = ? AND t.is_available = 1
+         WHERE (? IS NULL OR t.library_id = ?) AND t.is_available = 1
          GROUP BY al.id
          ORDER BY ar.canonical_name COLLATE NOCASE,
                   al.canonical_title COLLATE NOCASE
         "#,
     )
+    .bind(library_id)
     .bind(library_id)
     .fetch_all(&pool)
     .await?;
@@ -195,7 +196,7 @@ pub async fn list_albums(
 #[tauri::command]
 pub async fn list_artists(
     state: tauri::State<'_, AppState>,
-    library_id: i64,
+    library_id: Option<i64>,
 ) -> AppResult<Vec<ArtistRow>> {
     let pool = state.require_profile_pool().await?;
 
@@ -207,11 +208,12 @@ pub async fn list_artists(
                COUNT(DISTINCT t.album_id) AS album_count
           FROM artist ar
           JOIN track t ON t.primary_artist = ar.id
-         WHERE t.library_id = ? AND t.is_available = 1
+         WHERE (? IS NULL OR t.library_id = ?) AND t.is_available = 1
          GROUP BY ar.id
          ORDER BY ar.canonical_name COLLATE NOCASE
         "#,
     )
+    .bind(library_id)
     .bind(library_id)
     .fetch_all(&pool)
     .await?;
@@ -224,7 +226,7 @@ pub async fn list_artists(
 #[tauri::command]
 pub async fn list_genres(
     state: tauri::State<'_, AppState>,
-    library_id: i64,
+    library_id: Option<i64>,
 ) -> AppResult<Vec<GenreRow>> {
     let pool = state.require_profile_pool().await?;
 
@@ -236,11 +238,12 @@ pub async fn list_genres(
           FROM genre g
           JOIN track_genre tg ON tg.genre_id = g.id
           JOIN track t         ON t.id = tg.track_id
-         WHERE t.library_id = ? AND t.is_available = 1
+         WHERE (? IS NULL OR t.library_id = ?) AND t.is_available = 1
          GROUP BY g.id
          ORDER BY g.canonical_name COLLATE NOCASE
         "#,
     )
+    .bind(library_id)
     .bind(library_id)
     .fetch_all(&pool)
     .await?;
@@ -255,7 +258,7 @@ pub async fn list_genres(
 #[tauri::command]
 pub async fn list_recent_plays(
     state: tauri::State<'_, AppState>,
-    library_id: i64,
+    library_id: Option<i64>,
     limit: i64,
 ) -> AppResult<Vec<RecentPlay>> {
     let pool = state.require_profile_pool().await?;
@@ -263,10 +266,6 @@ pub async fn list_recent_plays(
     let artwork_dir =
         profile_id.map(|pid| state.paths.profile_artwork_dir(pid));
 
-    // Only count "real" plays: either the track ran to completion,
-    // or the user listened to at least 15 s of it. Without this
-    // threshold, every failed / skipped track from past sessions
-    // leaves a listened_ms = 0 row that pollutes the view.
     let raw = sqlx::query_as::<_, RecentPlayRaw>(
         r#"
         SELECT t.id                         AS track_id,
@@ -282,7 +281,7 @@ pub async fn list_recent_plays(
           LEFT JOIN album al  ON al.id = t.album_id
           LEFT JOIN artist ar ON ar.id = t.primary_artist
           LEFT JOIN artwork aw ON aw.id = al.artwork_id
-         WHERE t.library_id = ?
+         WHERE (? IS NULL OR t.library_id = ?)
            AND t.is_available = 1
            AND (pe.completed = 1 OR pe.listened_ms >= 15000)
          GROUP BY t.id
@@ -290,6 +289,7 @@ pub async fn list_recent_plays(
          LIMIT ?
         "#,
     )
+    .bind(library_id)
     .bind(library_id)
     .bind(limit)
     .fetch_all(&pool)
@@ -327,7 +327,7 @@ pub async fn list_recent_plays(
 #[tauri::command]
 pub async fn list_folders(
     state: tauri::State<'_, AppState>,
-    library_id: i64,
+    library_id: Option<i64>,
 ) -> AppResult<Vec<FolderRow>> {
     let pool = state.require_profile_pool().await?;
 
@@ -341,11 +341,12 @@ pub async fn list_folders(
           FROM library_folder lf
           LEFT JOIN track t
             ON t.folder_id = lf.id AND t.is_available = 1
-         WHERE lf.library_id = ?
+         WHERE (? IS NULL OR lf.library_id = ?)
          GROUP BY lf.id
          ORDER BY lf.path COLLATE NOCASE
         "#,
     )
+    .bind(library_id)
     .bind(library_id)
     .fetch_all(&pool)
     .await?;

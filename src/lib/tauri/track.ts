@@ -30,7 +30,7 @@ export interface Track {
   artwork_path: string | null;
 }
 
-export function listTracks(libraryId: number): Promise<Track[]> {
+export function listTracks(libraryId: number | null): Promise<Track[]> {
   return invoke<Track[]>("list_tracks", { libraryId });
 }
 

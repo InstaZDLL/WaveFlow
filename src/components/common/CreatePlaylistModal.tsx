@@ -1,176 +1,64 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Plus, Check } from "lucide-react";
 import {
-  Music2,
-  Heart,
-  Star,
-  Flame,
-  Moon,
-  Sun,
-  Cloud,
-  Coffee,
-  Leaf,
-  Gift,
-  Headphones,
-  Plus,
-  type LucideIcon,
-} from "lucide-react";
+  PLAYLIST_COLORS,
+  PLAYLIST_ICONS,
+} from "../../lib/playlistVisuals";
+import type { Playlist } from "../../lib/tauri/playlist";
 
 interface CreatePlaylistModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /**
+   * Submit handler. Called with the form data when the user clicks the
+   * primary button. Edit mode is triggered by passing `existing` — the
+   * handler then receives the original playlist's id via `existing.id`
+   * and should invoke `updatePlaylist` instead of `createPlaylist`.
+   */
   onCreate?: (data: {
     name: string;
     description: string;
     colorId: string;
     iconId: string;
   }) => void;
+  /**
+   * When provided, the modal switches to edit mode: title + button label
+   * change, fields pre-fill from this playlist, and the submit action is
+   * interpreted by the parent as an update.
+   */
+  existing?: Playlist | null;
 }
-
-interface PlaylistColor {
-  id: string;
-  swatch: string;
-  ring: string;
-  tileBg: string;
-  tileText: string;
-  previewBg: string;
-  button: string;
-}
-
-const PLAYLIST_COLORS: PlaylistColor[] = [
-  {
-    id: "violet",
-    swatch: "bg-violet-500",
-    ring: "ring-violet-400",
-    tileBg: "bg-violet-100 dark:bg-violet-950/60",
-    tileText: "text-violet-500 dark:text-violet-400",
-    previewBg: "bg-violet-50 dark:bg-violet-900/20",
-    button: "bg-violet-500 hover:bg-violet-400 shadow-violet-500/20",
-  },
-  {
-    id: "emerald",
-    swatch: "bg-emerald-500",
-    ring: "ring-emerald-400",
-    tileBg: "bg-emerald-100 dark:bg-emerald-950/60",
-    tileText: "text-emerald-500 dark:text-emerald-400",
-    previewBg: "bg-emerald-50 dark:bg-emerald-900/20",
-    button: "bg-emerald-500 hover:bg-emerald-400 shadow-emerald-500/20",
-  },
-  {
-    id: "sky",
-    swatch: "bg-sky-500",
-    ring: "ring-sky-400",
-    tileBg: "bg-sky-100 dark:bg-sky-950/60",
-    tileText: "text-sky-500 dark:text-sky-400",
-    previewBg: "bg-sky-50 dark:bg-sky-900/20",
-    button: "bg-sky-500 hover:bg-sky-400 shadow-sky-500/20",
-  },
-  {
-    id: "amber",
-    swatch: "bg-amber-500",
-    ring: "ring-amber-400",
-    tileBg: "bg-amber-100 dark:bg-amber-950/60",
-    tileText: "text-amber-500 dark:text-amber-400",
-    previewBg: "bg-amber-50 dark:bg-amber-900/20",
-    button: "bg-amber-500 hover:bg-amber-400 shadow-amber-500/20",
-  },
-  {
-    id: "rose",
-    swatch: "bg-rose-500",
-    ring: "ring-rose-400",
-    tileBg: "bg-rose-100 dark:bg-rose-950/60",
-    tileText: "text-rose-500 dark:text-rose-400",
-    previewBg: "bg-rose-50 dark:bg-rose-900/20",
-    button: "bg-rose-500 hover:bg-rose-400 shadow-rose-500/20",
-  },
-  {
-    id: "purple",
-    swatch: "bg-purple-500",
-    ring: "ring-purple-400",
-    tileBg: "bg-purple-100 dark:bg-purple-950/60",
-    tileText: "text-purple-500 dark:text-purple-400",
-    previewBg: "bg-purple-50 dark:bg-purple-900/20",
-    button: "bg-purple-500 hover:bg-purple-400 shadow-purple-500/20",
-  },
-  {
-    id: "pink",
-    swatch: "bg-pink-500",
-    ring: "ring-pink-400",
-    tileBg: "bg-pink-100 dark:bg-pink-950/60",
-    tileText: "text-pink-500 dark:text-pink-400",
-    previewBg: "bg-pink-50 dark:bg-pink-900/20",
-    button: "bg-pink-500 hover:bg-pink-400 shadow-pink-500/20",
-  },
-  {
-    id: "teal",
-    swatch: "bg-teal-500",
-    ring: "ring-teal-400",
-    tileBg: "bg-teal-100 dark:bg-teal-950/60",
-    tileText: "text-teal-500 dark:text-teal-400",
-    previewBg: "bg-teal-50 dark:bg-teal-900/20",
-    button: "bg-teal-500 hover:bg-teal-400 shadow-teal-500/20",
-  },
-  {
-    id: "orange",
-    swatch: "bg-orange-500",
-    ring: "ring-orange-400",
-    tileBg: "bg-orange-100 dark:bg-orange-950/60",
-    tileText: "text-orange-500 dark:text-orange-400",
-    previewBg: "bg-orange-50 dark:bg-orange-900/20",
-    button: "bg-orange-500 hover:bg-orange-400 shadow-orange-500/20",
-  },
-  {
-    id: "lime",
-    swatch: "bg-lime-500",
-    ring: "ring-lime-400",
-    tileBg: "bg-lime-100 dark:bg-lime-950/60",
-    tileText: "text-lime-500 dark:text-lime-400",
-    previewBg: "bg-lime-50 dark:bg-lime-900/20",
-    button: "bg-lime-500 hover:bg-lime-400 shadow-lime-500/20",
-  },
-];
-
-interface PlaylistIconEntry {
-  id: string;
-  Icon: LucideIcon;
-}
-
-const PLAYLIST_ICONS: PlaylistIconEntry[] = [
-  { id: "music", Icon: Music2 },
-  { id: "heart", Icon: Heart },
-  { id: "star", Icon: Star },
-  { id: "flame", Icon: Flame },
-  { id: "moon", Icon: Moon },
-  { id: "sun", Icon: Sun },
-  { id: "cloud", Icon: Cloud },
-  { id: "coffee", Icon: Coffee },
-  { id: "leaf", Icon: Leaf },
-  { id: "gift", Icon: Gift },
-  { id: "headphones", Icon: Headphones },
-];
 
 export function CreatePlaylistModal({
   isOpen,
   onClose,
   onCreate,
+  existing,
 }: CreatePlaylistModalProps) {
   const { t } = useTranslation();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [selectedColorId, setSelectedColorId] = useState(PLAYLIST_COLORS[0].id);
-  const [selectedIconId, setSelectedIconId] = useState(PLAYLIST_ICONS[0].id);
+  const isEdit = existing != null;
+  const [name, setName] = useState(existing?.name ?? "");
+  const [description, setDescription] = useState(existing?.description ?? "");
+  const [selectedColorId, setSelectedColorId] = useState(
+    existing?.color_id ?? PLAYLIST_COLORS[0].id
+  );
+  const [selectedIconId, setSelectedIconId] = useState(
+    existing?.icon_id ?? PLAYLIST_ICONS[0].id
+  );
 
-  // Reset on close. See CreateLibraryModal for why the new
+  // Reset on close OR re-sync when `existing` changes (reopening the modal
+  // on a different playlist). See CreateLibraryModal for why the new
   // react-hooks/set-state-in-effect rule is suppressed here.
   useEffect(() => {
     if (!isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setName("");
-      setDescription("");
-      setSelectedColorId(PLAYLIST_COLORS[0].id);
-      setSelectedIconId(PLAYLIST_ICONS[0].id);
+      setName(existing?.name ?? "");
+      setDescription(existing?.description ?? "");
+      setSelectedColorId(existing?.color_id ?? PLAYLIST_COLORS[0].id);
+      setSelectedIconId(existing?.icon_id ?? PLAYLIST_ICONS[0].id);
     }
-  }, [isOpen]);
+  }, [isOpen, existing]);
 
   // Escape handler
   useEffect(() => {
@@ -214,7 +102,7 @@ export function CreatePlaylistModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">
-          {t("playlistModal.title")}
+          {isEdit ? t("playlistModal.editTitle") : t("playlistModal.title")}
         </h2>
 
         {/* Live preview card */}
@@ -351,8 +239,12 @@ export function CreatePlaylistModal({
             disabled={!canSubmit}
             className={`px-5 py-2 rounded-xl text-sm font-semibold text-white flex items-center space-x-2 shadow-lg transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none ${currentColor.button}`}
           >
-            <Plus size={16} />
-            <span>{t("playlistModal.submit")}</span>
+            {isEdit ? <Check size={16} /> : <Plus size={16} />}
+            <span>
+              {isEdit
+                ? t("playlistModal.editSubmit")
+                : t("playlistModal.submit")}
+            </span>
           </button>
         </div>
       </div>

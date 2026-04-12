@@ -36,19 +36,19 @@ export interface FolderRow {
   track_count: number;
 }
 
-export function listAlbums(libraryId: number): Promise<AlbumRow[]> {
+export function listAlbums(libraryId: number | null): Promise<AlbumRow[]> {
   return invoke<AlbumRow[]>("list_albums", { libraryId });
 }
 
-export function listArtists(libraryId: number): Promise<ArtistRow[]> {
+export function listArtists(libraryId: number | null): Promise<ArtistRow[]> {
   return invoke<ArtistRow[]>("list_artists", { libraryId });
 }
 
-export function listGenres(libraryId: number): Promise<GenreRow[]> {
+export function listGenres(libraryId: number | null): Promise<GenreRow[]> {
   return invoke<GenreRow[]>("list_genres", { libraryId });
 }
 
-export function listFolders(libraryId: number): Promise<FolderRow[]> {
+export function listFolders(libraryId: number | null): Promise<FolderRow[]> {
   return invoke<FolderRow[]>("list_folders", { libraryId });
 }
 
@@ -64,7 +64,7 @@ export interface RecentPlay {
 }
 
 export function listRecentPlays(
-  libraryId: number,
+  libraryId: number | null,
   limit: number
 ): Promise<RecentPlay[]> {
   return invoke<RecentPlay[]>("list_recent_plays", { libraryId, limit });

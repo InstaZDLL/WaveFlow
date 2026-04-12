@@ -1,6 +1,15 @@
 import type { ReactNode } from "react";
 
-export type ViewId = "home" | "library" | "settings" | "about" | "feedback" | "statistics" | "liked" | "recent";
+export type ViewId =
+  | "home"
+  | "library"
+  | "playlist"
+  | "settings"
+  | "about"
+  | "feedback"
+  | "statistics"
+  | "liked"
+  | "recent";
 
 export type LibraryTab = "morceaux" | "albums" | "artistes" | "genres" | "dossiers";
 

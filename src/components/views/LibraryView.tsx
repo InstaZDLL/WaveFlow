@@ -1,19 +1,16 @@
 import { useEffect, useRef, useState } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
-  Library,
   Music2,
   Disc,
   Mic2,
   Tags,
   Folder,
-  Share,
   RefreshCcw,
-  Image as ImageIcon,
-  Edit2,
-  Trash2,
   Clock,
   LayoutList,
   AlignJustify,
+  Plus,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { LibraryTab } from "../../types";
@@ -22,9 +19,13 @@ import { EmptyState } from "../common/EmptyState";
 import { UploadIcon } from "../common/Icons";
 import { Artwork } from "../common/Artwork";
 import { Tooltip } from "../common/Tooltip";
-import { CreateLibraryModal } from "../common/CreateLibraryModal";
+import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { useLibrary } from "../../hooks/useLibrary";
 import { usePlayer } from "../../hooks/usePlayer";
+import { usePlaylist } from "../../hooks/usePlaylist";
+import { resolvePlaylistColor } from "../../lib/playlistVisuals";
+import { PlaylistIcon } from "../../lib/PlaylistIcon";
+import type { Playlist } from "../../lib/tauri/playlist";
 import { pickFolder } from "../../lib/tauri/dialog";
 import { formatDuration, listTracks, type Track } from "../../lib/tauri/track";
 import {
@@ -75,19 +76,18 @@ const headerIcons: Record<LibraryTab, typeof Music2> = {
 export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
   const { t } = useTranslation();
   const {
-    selectedLibrary,
+    libraries,
     selectedLibraryId,
+    selectLibrary,
+    createLibrary,
     importFolder,
-    updateLibrary,
-    deleteLibrary,
     rescanLibrary,
   } = useLibrary();
   const { playTracks, currentTrack } = usePlayer();
+  const { playlists, addTracksToPlaylist, addSourceToPlaylist, createPlaylist } = usePlaylist();
   const [isImporting, setIsImporting] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [albums, setAlbums] = useState<AlbumRow[]>([]);
   const [artists, setArtists] = useState<ArtistRow[]>([]);
@@ -95,60 +95,42 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
   const [folders, setFolders] = useState<FolderRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [tracksView, setTracksView] = useState<TracksView>("list");
-  const confirmTimeoutRef = useRef<number | null>(null);
   const EmptyIcon = emptyStateIcons[activeTab];
   const HeaderIcon = headerIcons[activeTab];
 
-  // Tear down any pending "confirm delete" revert timer on unmount so we
-  // don't setState after the component is gone.
-  useEffect(() => {
-    return () => {
-      if (confirmTimeoutRef.current != null) {
-        window.clearTimeout(confirmTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Reload the dataset for the currently selected tab whenever the library
-  // changes or its `updated_at` bumps (end of scan). Keying off `updated_at`
-  // means a fresh import auto-refreshes the view without any manual trigger.
-  const selectedLibraryUpdatedAt = selectedLibrary?.updated_at;
+  // Re-fetch when any library's updated_at changes (e.g. after a scan).
+  const librariesSignature = libraries
+    .map((l) => `${l.id}:${l.updated_at}`)
+    .join(",");
   useEffect(() => {
     let cancelled = false;
-    if (selectedLibraryId == null) {
-      setTracks([]);
-      setAlbums([]);
-      setArtists([]);
-      setGenres([]);
-      setFolders([]);
-      return;
-    }
     (async () => {
       setIsLoading(true);
       try {
+        // Pass null → aggregate across ALL libraries ("Ma musique" mode).
         switch (activeTab) {
           case "morceaux": {
-            const list = await listTracks(selectedLibraryId);
+            const list = await listTracks(null);
             if (!cancelled) setTracks(list);
             break;
           }
           case "albums": {
-            const list = await listAlbums(selectedLibraryId);
+            const list = await listAlbums(null);
             if (!cancelled) setAlbums(list);
             break;
           }
           case "artistes": {
-            const list = await listArtists(selectedLibraryId);
+            const list = await listArtists(null);
             if (!cancelled) setArtists(list);
             break;
           }
           case "genres": {
-            const list = await listGenres(selectedLibraryId);
+            const list = await listGenres(null);
             if (!cancelled) setGenres(list);
             break;
           }
           case "dossiers": {
-            const list = await listFolders(selectedLibraryId);
+            const list = await listFolders(null);
             if (!cancelled) setFolders(list);
             break;
           }
@@ -164,22 +146,17 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, selectedLibraryId, selectedLibraryUpdatedAt]);
+  }, [activeTab, librariesSignature]);
 
-  // Per-tab header subtext: each tab surfaces the count relevant to what it
-  // actually lists, using the pre-aggregated counts on `Library`.
+  // Per-tab header subtext uses the fetched data lengths since we
+  // aggregate across all libraries (no single Library to read counts from).
   const countForTab = (tab: LibraryTab): number => {
     switch (tab) {
-      case "morceaux":
-        return selectedLibrary?.track_count ?? 0;
-      case "albums":
-        return selectedLibrary?.album_count ?? 0;
-      case "artistes":
-        return selectedLibrary?.artist_count ?? 0;
-      case "genres":
-        return selectedLibrary?.genre_count ?? 0;
-      case "dossiers":
-        return selectedLibrary?.folder_count ?? 0;
+      case "morceaux": return tracks.length;
+      case "albums": return albums.length;
+      case "artistes": return artists.length;
+      case "genres": return genres.length;
+      case "dossiers": return folders.length;
     }
   };
   const headerSubtext =
@@ -187,15 +164,25 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
       ? t("library.header.subtext.dossiers", { count: countForTab("dossiers") })
       : t(`library.header.subtext.${activeTab}`, { count: countForTab(activeTab) });
 
-  const libraryName = selectedLibrary?.name ?? t("sidebar.library.none");
-
   const handleImport = async () => {
-    if (isImporting || selectedLibraryId == null) return;
+    if (isImporting) return;
     try {
       const path = await pickFolder(t("library.actions.importFolder"));
       if (!path) return;
       setIsImporting(true);
-      await importFolder(selectedLibraryId, path);
+      // Auto-create a default library if the profile has none.
+      let libId = selectedLibraryId;
+      if (libId == null) {
+        if (libraries.length > 0) {
+          libId = libraries[0].id;
+          selectLibrary(libId);
+        } else {
+          const lib = await createLibrary({ name: "Ma musique" });
+          libId = lib.id;
+          selectLibrary(libId);
+        }
+      }
+      await importFolder(libId, path);
     } catch (err) {
       console.error("[LibraryView] import failed", err);
     } finally {
@@ -204,61 +191,17 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
   };
 
   const handleRescan = async () => {
-    if (isRescanning || selectedLibraryId == null) return;
+    if (isRescanning) return;
     setIsRescanning(true);
     try {
-      await rescanLibrary(selectedLibraryId);
+      // Rescan every library the profile owns.
+      for (const lib of libraries) {
+        await rescanLibrary(lib.id);
+      }
     } catch (err) {
       console.error("[LibraryView] rescan failed", err);
     } finally {
       setIsRescanning(false);
-    }
-  };
-
-  const handleEditSubmit = async (name: string, description: string) => {
-    if (selectedLibraryId == null) return;
-    try {
-      await updateLibrary(selectedLibraryId, {
-        name,
-        description: description || null,
-      });
-    } catch (err) {
-      console.error("[LibraryView] update failed", err);
-    }
-  };
-
-  /**
-   * Two-step delete: the first click flips the button into a "confirm?"
-   * state that auto-reverts after 3s. The second click within that window
-   * actually deletes the library. Avoids the ugly `window.confirm` dialog
-   * without needing a full modal component.
-   */
-  const handleDeleteClick = async () => {
-    if (selectedLibraryId == null || isDeleting) return;
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      if (confirmTimeoutRef.current != null) {
-        window.clearTimeout(confirmTimeoutRef.current);
-      }
-      confirmTimeoutRef.current = window.setTimeout(() => {
-        setConfirmDelete(false);
-        confirmTimeoutRef.current = null;
-      }, 3000);
-      return;
-    }
-    // Confirmed — actually delete.
-    if (confirmTimeoutRef.current != null) {
-      window.clearTimeout(confirmTimeoutRef.current);
-      confirmTimeoutRef.current = null;
-    }
-    setIsDeleting(true);
-    try {
-      await deleteLibrary(selectedLibraryId);
-    } catch (err) {
-      console.error("[LibraryView] delete failed", err);
-    } finally {
-      setIsDeleting(false);
-      setConfirmDelete(false);
     }
   };
 
@@ -275,11 +218,11 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
       <div className="flex items-start justify-between">
         <div className="flex items-center space-x-6">
           <div className="w-24 h-24 rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 flex items-center justify-center shadow-sm">
-            <Library size={48} />
+            <Music2 size={48} />
           </div>
           <div>
             <h1 className="text-4xl font-bold mb-2 text-zinc-900 dark:text-white">
-              {libraryName}
+              {t("sidebar.myMusic.title")}
             </h1>
             <div className="flex items-center text-sm text-zinc-500 space-x-2">
               <HeaderIcon size={16} />
@@ -292,7 +235,7 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
           <button
             type="button"
             onClick={handleImport}
-            disabled={isImporting || selectedLibraryId == null}
+            disabled={isImporting}
             className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm shadow-emerald-500/30 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Folder size={16} />
@@ -300,17 +243,6 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
           </button>
 
           <div className="flex items-center space-x-1 p-1 rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/50">
-            <Tooltip label={t("library.actions.share")}>
-              <button
-                type="button"
-                disabled
-                aria-label={t("library.actions.share")}
-                className="p-2 rounded-lg text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
-              >
-                <Share size={18} />
-              </button>
-            </Tooltip>
-
             <Tooltip
               label={
                 isRescanning
@@ -321,7 +253,7 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
               <button
                 type="button"
                 onClick={handleRescan}
-                disabled={selectedLibraryId == null || isRescanning}
+                disabled={libraries.length === 0 || isRescanning}
                 aria-label={t("library.actions.rescan")}
                 aria-busy={isRescanning}
                 className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
@@ -330,51 +262,6 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
                   size={18}
                   className={isRescanning ? "animate-spin" : ""}
                 />
-              </button>
-            </Tooltip>
-
-            <Tooltip label={t("library.actions.changeArtwork")}>
-              <button
-                type="button"
-                disabled
-                aria-label={t("library.actions.changeArtwork")}
-                className="p-2 rounded-lg text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
-              >
-                <ImageIcon size={18} />
-              </button>
-            </Tooltip>
-
-            <Tooltip label={t("library.actions.edit")}>
-              <button
-                type="button"
-                onClick={() => setIsEditModalOpen(true)}
-                disabled={selectedLibraryId == null}
-                aria-label={t("library.actions.edit")}
-                className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Edit2 size={18} />
-              </button>
-            </Tooltip>
-
-            <Tooltip
-              label={
-                confirmDelete
-                  ? t("library.actions.deleteConfirm")
-                  : t("library.actions.delete")
-              }
-            >
-              <button
-                type="button"
-                onClick={handleDeleteClick}
-                disabled={selectedLibraryId == null || isDeleting}
-                aria-label={t("library.actions.delete")}
-                className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  confirmDelete
-                    ? "bg-red-500 text-white hover:bg-red-600"
-                    : "text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"
-                }`}
-              >
-                <Trash2 size={18} />
               </button>
             </Tooltip>
           </div>
@@ -444,23 +331,59 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
               onPlayTrack={(index) =>
                 playTracks(tracks, index, {
                   type: "library",
-                  id: selectedLibraryId,
+                  id: null,
                 })
               }
               currentTrackId={currentTrack?.id ?? null}
+              playlists={playlists}
+              onAddToPlaylist={async (playlistId, trackId) => {
+                try {
+                  await addTracksToPlaylist(playlistId, [trackId]);
+                } catch (err) {
+                  console.error("[LibraryView] add to playlist failed", err);
+                }
+              }}
+              onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
             />
           )}
           {activeTab === "albums" && (
-            <AlbumGrid albums={albums} isLoading={isLoading} t={t} />
+            <AlbumGrid
+              albums={albums}
+              isLoading={isLoading}
+              t={t}
+              playlists={playlists}
+              onAddToPlaylist={(playlistId, albumId) =>
+                addSourceToPlaylist(playlistId, "album", albumId)
+              }
+              onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+            />
           )}
           {activeTab === "artistes" && (
-            <ArtistList artists={artists} isLoading={isLoading} t={t} />
+            <ArtistList
+              artists={artists}
+              isLoading={isLoading}
+              t={t}
+              playlists={playlists}
+              onAddToPlaylist={(playlistId, artistId) =>
+                addSourceToPlaylist(playlistId, "artist", artistId)
+              }
+              onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+            />
           )}
           {activeTab === "genres" && (
             <GenreList genres={genres} isLoading={isLoading} t={t} />
           )}
           {activeTab === "dossiers" && (
-            <FolderList folders={folders} isLoading={isLoading} t={t} />
+            <FolderList
+              folders={folders}
+              isLoading={isLoading}
+              t={t}
+              playlists={playlists}
+              onAddToPlaylist={(playlistId, folderId) =>
+                addSourceToPlaylist(playlistId, "folder", folderId)
+              }
+              onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+            />
           )}
         </>
       ) : (
@@ -478,7 +401,7 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
             <button
               type="button"
               onClick={handleImport}
-              disabled={isImporting || selectedLibraryId == null}
+              disabled={isImporting}
               className="px-6 py-3 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-300 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Folder size={18} />
@@ -488,13 +411,21 @@ export function LibraryView({ activeTab, setActiveTab }: LibraryViewProps) {
         </EmptyState>
       )}
 
-      <CreateLibraryModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        mode="edit"
-        initialName={selectedLibrary?.name ?? ""}
-        initialDescription={selectedLibrary?.description ?? ""}
-        onSubmit={handleEditSubmit}
+      <CreatePlaylistModal
+        isOpen={isCreatePlaylistModalOpen}
+        onClose={() => setIsCreatePlaylistModalOpen(false)}
+        onCreate={async (data) => {
+          try {
+            await createPlaylist({
+              name: data.name,
+              description: data.description || null,
+              color_id: data.colorId,
+              icon_id: data.iconId,
+            });
+          } catch (err) {
+            console.error("[LibraryView] create playlist failed", err);
+          }
+        }}
       />
     </div>
   );
@@ -511,6 +442,9 @@ interface TrackTableProps {
   t: Translator;
   onPlayTrack: (index: number) => void;
   currentTrackId: number | null;
+  playlists: Playlist[];
+  onAddToPlaylist: (playlistId: number, trackId: number) => void;
+  onCreatePlaylist: () => void;
 }
 
 function TrackTable({
@@ -520,17 +454,50 @@ function TrackTable({
   t,
   onPlayTrack,
   currentTrackId,
+  playlists,
+  onAddToPlaylist,
+  onCreatePlaylist,
 }: TrackTableProps) {
   const unknown = t("library.table.unknown");
-  // List mode inserts a 2.75rem cover column between # and Title; compact
-  // mode keeps the plain 5-column grid.
+  const [openMenuTrackId, setOpenMenuTrackId] = useState<number | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Virtual scroll — only the visible rows are in the DOM.
+  const ROW_HEIGHT = view === "list" ? 56 : 44;
+  const virtualizer = useVirtualizer({
+    count: tracks.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 15,
+  });
+
+  useEffect(() => {
+    if (openMenuTrackId == null) return;
+    const handleMouseDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.closest("[data-add-to-playlist-popover]")) return;
+      if (target.closest("[data-add-to-playlist-trigger]")) return;
+      setOpenMenuTrackId(null);
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenMenuTrackId(null);
+    };
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [openMenuTrackId]);
+
   const gridCols =
     view === "list"
-      ? "grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem]"
-      : "grid-cols-[3rem_1fr_1fr_1fr_5rem]";
-  const rowPadding = view === "list" ? "py-2" : "py-2.5";
+      ? "grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem_2.5rem]"
+      : "grid-cols-[3rem_1fr_1fr_1fr_5rem_2.5rem]";
+
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40 overflow-hidden">
+      {/* Fixed header */}
       <div
         className={`grid ${gridCols} gap-4 px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-100 dark:border-zinc-800`}
       >
@@ -545,64 +512,194 @@ function TrackTable({
         >
           <Clock size={14} />
         </span>
+        <span aria-hidden="true" />
       </div>
-      <ul
-        className={`divide-y divide-zinc-100 dark:divide-zinc-800/60 ${
+
+      {/* Virtualized body */}
+      <div
+        ref={scrollRef}
+        className={`max-h-[65vh] overflow-y-auto scrollbar-hide ${
           isLoading ? "opacity-50" : ""
         }`}
       >
-        {tracks.map((track, index) => {
-          const isCurrent = track.id === currentTrackId;
-          return (
-            <li
-              key={track.id}
-              onDoubleClick={() => onPlayTrack(index)}
-              className={`grid ${gridCols} gap-4 px-5 ${rowPadding} items-center select-none transition-colors cursor-pointer ${
-                isCurrent
-                  ? "bg-emerald-50 dark:bg-emerald-900/20"
-                  : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
-              }`}
-            >
-              <span
-                className={`text-right text-sm tabular-nums ${
+        <div
+          style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}
+        >
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const index = virtualRow.index;
+            const track = tracks[index];
+            const isCurrent = track.id === currentTrackId;
+            const isMenuOpen = openMenuTrackId === track.id;
+            return (
+              <div
+                key={track.id}
+                onDoubleClick={() => onPlayTrack(index)}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: `${virtualRow.size}px`,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+                className={`group grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 ${
                   isCurrent
-                    ? "text-emerald-500 font-semibold"
-                    : "text-zinc-400"
+                    ? "bg-emerald-50 dark:bg-emerald-900/20"
+                    : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
                 }`}
               >
-                {index + 1}
-              </span>
-              {view === "list" && (
-                <Artwork
-                  path={track.artwork_path}
-                  className="w-10 h-10"
-                  iconSize={18}
-                  alt={track.album_title ?? track.title}
-                  rounded="md"
-                />
-              )}
-              <span
-                className={`text-sm truncate ${
-                  isCurrent
-                    ? "text-emerald-600 dark:text-emerald-400 font-semibold"
-                    : "text-zinc-800 dark:text-zinc-200"
-                }`}
+                <span
+                  className={`text-right text-sm tabular-nums ${
+                    isCurrent
+                      ? "text-emerald-500 font-semibold"
+                      : "text-zinc-400"
+                  }`}
+                >
+                  {index + 1}
+                </span>
+                {view === "list" && (
+                  <Artwork
+                    path={track.artwork_path}
+                    className="w-10 h-10"
+                    iconSize={18}
+                    alt={track.album_title ?? track.title}
+                    rounded="md"
+                  />
+                )}
+                <span
+                  className={`text-sm truncate ${
+                    isCurrent
+                      ? "text-emerald-600 dark:text-emerald-400 font-semibold"
+                      : "text-zinc-800 dark:text-zinc-200"
+                  }`}
+                >
+                  {track.title}
+                </span>
+                <span className="text-sm text-zinc-500 truncate">
+                  {track.artist_name ?? unknown}
+                </span>
+                <span className="text-sm text-zinc-500 truncate">
+                  {track.album_title ?? unknown}
+                </span>
+                <span className="text-sm tabular-nums text-zinc-400 text-right">
+                  {formatDuration(track.duration_ms)}
+                </span>
+                <div className="relative flex justify-center">
+                  <button
+                    type="button"
+                    data-add-to-playlist-trigger
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuTrackId(isMenuOpen ? null : track.id);
+                    }}
+                    aria-label={t("trackActions.addToPlaylist")}
+                    aria-haspopup="menu"
+                    aria-expanded={isMenuOpen}
+                    className={`p-1.5 rounded-full transition-all ${
+                      isMenuOpen
+                        ? "opacity-100 bg-zinc-100 dark:bg-zinc-700 text-zinc-800 dark:text-white"
+                        : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                    }`}
+                  >
+                    <Plus size={16} />
+                  </button>
+                  {isMenuOpen && (
+                    <AddToPlaylistPopover
+                      playlists={playlists}
+                      trackId={track.id}
+                      onPick={(playlistId) => {
+                        onAddToPlaylist(playlistId, track.id);
+                        setOpenMenuTrackId(null);
+                      }}
+                      onCreate={() => {
+                        setOpenMenuTrackId(null);
+                        onCreatePlaylist();
+                      }}
+                      t={t}
+                    />
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface AddToPlaylistPopoverProps {
+  playlists: Playlist[];
+  trackId: number;
+  onPick: (playlistId: number) => void;
+  onCreate: () => void;
+  t: Translator;
+}
+
+/**
+ * Tiny popover anchored to the trigger button. Lists every playlist of
+ * the active profile (resolved color tile + name) plus a "create new"
+ * shortcut at the bottom. Picking a row calls `onPick(playlistId)`.
+ *
+ * Stops `onDoubleClick` from bubbling to the parent `<li>` so clicking a
+ * playlist doesn't accidentally start playback of the row underneath.
+ */
+function AddToPlaylistPopover({
+  playlists,
+  onPick,
+  onCreate,
+  t,
+}: AddToPlaylistPopoverProps) {
+  return (
+    <div
+      data-add-to-playlist-popover
+      role="menu"
+      onDoubleClick={(e) => e.stopPropagation()}
+      className="absolute top-full right-0 mt-1 z-50 w-56 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden animate-fade-in"
+    >
+      <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-3 pt-3 pb-2">
+        {t("trackActions.addToPlaylist")}
+      </div>
+      <div className="px-2 max-h-64 overflow-y-auto">
+        {playlists.length === 0 ? (
+          <div className="px-2 py-3 text-xs text-zinc-400 text-center">
+            {t("trackActions.noPlaylists")}
+          </div>
+        ) : (
+          playlists.map((pl) => {
+            const color = resolvePlaylistColor(pl.color_id);
+            return (
+              <button
+                key={pl.id}
+                type="button"
+                role="menuitem"
+                onClick={() => onPick(pl.id)}
+                className="w-full flex items-center space-x-2 p-2 rounded-lg text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
               >
-                {track.title}
-              </span>
-              <span className="text-sm text-zinc-500 truncate">
-                {track.artist_name ?? unknown}
-              </span>
-              <span className="text-sm text-zinc-500 truncate">
-                {track.album_title ?? unknown}
-              </span>
-              <span className="text-sm tabular-nums text-zinc-400 text-right">
-                {formatDuration(track.duration_ms)}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
+                <div
+                  className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${color.tileBg} ${color.tileText}`}
+                >
+                  <PlaylistIcon iconId={pl.icon_id} size={14} />
+                </div>
+                <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                  {pl.name}
+                </span>
+              </button>
+            );
+          })
+        )}
+      </div>
+      <div className="border-t border-zinc-100 dark:border-zinc-700/50">
+        <button
+          type="button"
+          role="menuitem"
+          onClick={onCreate}
+          className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm font-medium text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+        >
+          <Plus size={14} />
+          <span>{t("trackActions.createPlaylist")}</span>
+        </button>
+      </div>
     </div>
   );
 }
@@ -611,42 +708,102 @@ interface AlbumGridProps {
   albums: AlbumRow[];
   isLoading: boolean;
   t: Translator;
+  playlists: Playlist[];
+  onAddToPlaylist: (playlistId: number, albumId: number) => void;
+  onCreatePlaylist: () => void;
 }
 
-function AlbumGrid({ albums, isLoading, t }: AlbumGridProps) {
+function AlbumGrid({ albums, isLoading, t, playlists, onAddToPlaylist, onCreatePlaylist }: AlbumGridProps) {
   const unknown = t("library.table.unknown");
+  const [openMenuAlbumId, setOpenMenuAlbumId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (openMenuAlbumId == null) return;
+    const handleMouseDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.closest("[data-add-to-playlist-popover]")) return;
+      if (target.closest("[data-add-to-playlist-trigger]")) return;
+      setOpenMenuAlbumId(null);
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenMenuAlbumId(null);
+    };
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [openMenuAlbumId]);
+
   return (
     <div
       className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5 ${
         isLoading ? "opacity-50" : ""
       }`}
     >
-      {albums.map((album) => (
-        <div
-          key={album.id}
-          className="group flex flex-col space-y-2 cursor-pointer"
-        >
-          <Artwork
-            path={album.artwork_path}
-            alt={album.title}
-            className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
-            iconSize={44}
-            rounded="2xl"
-          />
-          <div className="px-1">
-            <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
-              {album.title}
+      {albums.map((album) => {
+        const isMenuOpen = openMenuAlbumId === album.id;
+        return (
+          <div
+            key={album.id}
+            className="group flex flex-col space-y-2 cursor-pointer relative"
+          >
+            <div className="relative">
+              <Artwork
+                path={album.artwork_path}
+                alt={album.title}
+                className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
+                iconSize={44}
+                rounded="2xl"
+              />
+              <button
+                type="button"
+                data-add-to-playlist-trigger
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenMenuAlbumId(isMenuOpen ? null : album.id);
+                }}
+                aria-label={t("trackActions.addToPlaylist")}
+                className={`absolute bottom-2 right-2 p-1.5 rounded-full shadow-sm transition-all ${
+                  isMenuOpen
+                    ? "opacity-100 bg-emerald-500 text-white"
+                    : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
+                }`}
+              >
+                <Plus size={16} />
+              </button>
             </div>
-            <div className="text-xs text-zinc-500 truncate">
-              {album.artist_name ?? unknown}
+            <div className="px-1">
+              <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+                {album.title}
+              </div>
+              <div className="text-xs text-zinc-500 truncate">
+                {album.artist_name ?? unknown}
+              </div>
+              <div className="text-[11px] text-zinc-400 mt-1">
+                {t("library.albumGrid.trackCount", { count: album.track_count })}
+                {album.year ? ` · ${album.year}` : ""}
+              </div>
             </div>
-            <div className="text-[11px] text-zinc-400 mt-1">
-              {t("library.albumGrid.trackCount", { count: album.track_count })}
-              {album.year ? ` · ${album.year}` : ""}
-            </div>
+            {isMenuOpen && (
+              <AddToPlaylistPopover
+                playlists={playlists}
+                trackId={album.id}
+                onPick={(playlistId) => {
+                  onAddToPlaylist(playlistId, album.id);
+                  setOpenMenuAlbumId(null);
+                }}
+                onCreate={() => {
+                  setOpenMenuAlbumId(null);
+                  onCreatePlaylist();
+                }}
+                t={t}
+              />
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -655,38 +812,98 @@ interface ArtistListProps {
   artists: ArtistRow[];
   isLoading: boolean;
   t: Translator;
+  playlists: Playlist[];
+  onAddToPlaylist: (playlistId: number, artistId: number) => void;
+  onCreatePlaylist: () => void;
 }
 
-function ArtistList({ artists, isLoading, t }: ArtistListProps) {
+function ArtistList({ artists, isLoading, t, playlists, onAddToPlaylist, onCreatePlaylist }: ArtistListProps) {
+  const [openMenuArtistId, setOpenMenuArtistId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (openMenuArtistId == null) return;
+    const handleMouseDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.closest("[data-add-to-playlist-popover]")) return;
+      if (target.closest("[data-add-to-playlist-trigger]")) return;
+      setOpenMenuArtistId(null);
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenMenuArtistId(null);
+    };
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [openMenuArtistId]);
+
   return (
     <div
       className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5 ${
         isLoading ? "opacity-50" : ""
       }`}
     >
-      {artists.map((artist) => (
-        <div
-          key={artist.id}
-          className="group flex flex-col items-center space-y-3 cursor-pointer"
-        >
-          <div className="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center overflow-hidden shadow-sm group-hover:shadow-md transition-shadow">
-            <span className="text-5xl font-bold text-violet-500/70 dark:text-violet-400/60">
-              {artist.name.trim().charAt(0).toUpperCase() || "?"}
-            </span>
-          </div>
-          <div className="text-center px-1 w-full">
-            <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
-              {artist.name}
+      {artists.map((artist) => {
+        const isMenuOpen = openMenuArtistId === artist.id;
+        return (
+          <div
+            key={artist.id}
+            className="group flex flex-col items-center space-y-3 cursor-pointer relative"
+          >
+            <div className="relative w-full">
+              <div className="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center overflow-hidden shadow-sm group-hover:shadow-md transition-shadow">
+                <span className="text-5xl font-bold text-violet-500/70 dark:text-violet-400/60">
+                  {artist.name.trim().charAt(0).toUpperCase() || "?"}
+                </span>
+              </div>
+              <button
+                type="button"
+                data-add-to-playlist-trigger
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenMenuArtistId(isMenuOpen ? null : artist.id);
+                }}
+                aria-label={t("trackActions.addToPlaylist")}
+                className={`absolute bottom-1 right-1 p-1.5 rounded-full shadow-sm transition-all ${
+                  isMenuOpen
+                    ? "opacity-100 bg-emerald-500 text-white"
+                    : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
+                }`}
+              >
+                <Plus size={16} />
+              </button>
             </div>
-            <div className="text-xs text-zinc-500">
-              {t("library.artistList.trackCount", { count: artist.track_count })}
-              {artist.album_count > 0
-                ? ` · ${t("library.artistList.albumCount", { count: artist.album_count })}`
-                : ""}
+            <div className="text-center px-1 w-full">
+              <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+                {artist.name}
+              </div>
+              <div className="text-xs text-zinc-500">
+                {t("library.artistList.trackCount", { count: artist.track_count })}
+                {artist.album_count > 0
+                  ? ` · ${t("library.artistList.albumCount", { count: artist.album_count })}`
+                  : ""}
+              </div>
             </div>
+            {isMenuOpen && (
+              <AddToPlaylistPopover
+                playlists={playlists}
+                trackId={artist.id}
+                onPick={(playlistId) => {
+                  onAddToPlaylist(playlistId, artist.id);
+                  setOpenMenuArtistId(null);
+                }}
+                onCreate={() => {
+                  setOpenMenuArtistId(null);
+                  onCreatePlaylist();
+                }}
+                t={t}
+              />
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -730,9 +947,33 @@ interface FolderListProps {
   folders: FolderRow[];
   isLoading: boolean;
   t: Translator;
+  playlists: Playlist[];
+  onAddToPlaylist: (playlistId: number, folderId: number) => void;
+  onCreatePlaylist: () => void;
 }
 
-function FolderList({ folders, isLoading, t }: FolderListProps) {
+function FolderList({ folders, isLoading, t, playlists, onAddToPlaylist, onCreatePlaylist }: FolderListProps) {
+  const [openMenuFolderId, setOpenMenuFolderId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (openMenuFolderId == null) return;
+    const handleMouseDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.closest("[data-add-to-playlist-popover]")) return;
+      if (target.closest("[data-add-to-playlist-trigger]")) return;
+      setOpenMenuFolderId(null);
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenMenuFolderId(null);
+    };
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [openMenuFolderId]);
+
   const formatScannedAt = (ts: number | null): string => {
     if (ts == null) return t("library.folderList.neverScanned");
     const d = new Date(ts);
@@ -744,33 +985,69 @@ function FolderList({ folders, isLoading, t }: FolderListProps) {
         isLoading ? "opacity-50" : ""
       }`}
     >
-      {folders.map((folder) => (
-        <div
-          key={folder.id}
-          className="flex items-center space-x-4 p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors"
-        >
-          <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 flex items-center justify-center shrink-0">
-            <Folder size={20} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
-              {folder.path}
+      {folders.map((folder) => {
+        const isMenuOpen = openMenuFolderId === folder.id;
+        return (
+          <div
+            key={folder.id}
+            className="group flex items-center space-x-4 p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors relative"
+          >
+            <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <Folder size={20} />
             </div>
-            <div className="text-xs text-zinc-500">
-              {t("library.folderList.trackCount", { count: folder.track_count })}
-              {" · "}
-              {t("library.folderList.lastScanned", {
-                date: formatScannedAt(folder.last_scanned_at),
-              })}
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                {folder.path}
+              </div>
+              <div className="text-xs text-zinc-500">
+                {t("library.folderList.trackCount", { count: folder.track_count })}
+                {" · "}
+                {t("library.folderList.lastScanned", {
+                  date: formatScannedAt(folder.last_scanned_at),
+                })}
+              </div>
+            </div>
+            {folder.is_watched === 1 && (
+              <span className="text-[10px] font-bold tracking-widest text-emerald-500 uppercase">
+                {t("library.folderList.watched")}
+              </span>
+            )}
+            <div className="relative">
+              <button
+                type="button"
+                data-add-to-playlist-trigger
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenMenuFolderId(isMenuOpen ? null : folder.id);
+                }}
+                aria-label={t("trackActions.addToPlaylist")}
+                className={`p-1.5 rounded-full transition-all ${
+                  isMenuOpen
+                    ? "opacity-100 bg-emerald-500 text-white"
+                    : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                }`}
+              >
+                <Plus size={16} />
+              </button>
+              {isMenuOpen && (
+                <AddToPlaylistPopover
+                  playlists={playlists}
+                  trackId={folder.id}
+                  onPick={(playlistId) => {
+                    onAddToPlaylist(playlistId, folder.id);
+                    setOpenMenuFolderId(null);
+                  }}
+                  onCreate={() => {
+                    setOpenMenuFolderId(null);
+                    onCreatePlaylist();
+                  }}
+                  t={t}
+                />
+              )}
             </div>
           </div>
-          {folder.is_watched === 1 && (
-            <span className="text-[10px] font-bold tracking-widest text-emerald-500 uppercase">
-              {t("library.folderList.watched")}
-            </span>
-          )}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
