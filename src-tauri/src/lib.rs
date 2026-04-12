@@ -104,6 +104,10 @@ pub fn run() {
             commands::player::player_resume_last,
             commands::player::player_get_queue,
             commands::player::player_jump_to_index,
+            commands::player::player_set_normalize,
+            commands::player::player_set_mono,
+            commands::player::player_set_crossfade,
+            commands::player::player_get_audio_settings,
         ])
         .on_window_event(|window, event| {
             if let WindowEvent::Destroyed = event {

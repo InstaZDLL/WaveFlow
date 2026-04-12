@@ -397,7 +397,20 @@
     "title": "Settings",
     "sections": {
       "general": "General",
+      "playback": "Playback",
       "storage": "Storage & Data"
+    },
+    "crossfade": {
+      "title": "Crossfade songs",
+      "subtitle": "Smooth transition between tracks (coming soon)"
+    },
+    "normalize": {
+      "title": "Normalize volume",
+      "subtitle": "Reduce volume on loud tracks for a consistent listening level"
+    },
+    "mono": {
+      "title": "Mono audio",
+      "subtitle": "Mix left and right channels into a single signal"
     },
     "language": {
       "title": "Language",

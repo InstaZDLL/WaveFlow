@@ -79,6 +79,14 @@ pub struct SharedPlayback {
     /// `paused_output`: the latter preserves the ring for an
     /// instant resume; this one intentionally drops it.
     pub drain_silent: AtomicBool,
+    /// When `true`, the cpal callback applies a −3 dB gain reduction
+    /// (× 0.707) to all samples to prevent clipping on loud tracks.
+    /// Toggled from the Settings "Normalize volume" switch.
+    pub normalize_enabled: AtomicBool,
+    /// When `true`, the cpal callback averages L+R channels so that
+    /// every output channel receives the same mono signal. Useful
+    /// for single-speaker setups or users with hearing impairment.
+    pub mono_enabled: AtomicBool,
 }
 
 impl SharedPlayback {
@@ -94,6 +102,8 @@ impl SharedPlayback {
             current_track_id: AtomicI64::new(0),
             paused_output: AtomicBool::new(false),
             drain_silent: AtomicBool::new(false),
+            normalize_enabled: AtomicBool::new(false),
+            mono_enabled: AtomicBool::new(false),
         }
     }
 

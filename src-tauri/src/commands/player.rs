@@ -165,6 +165,23 @@ pub async fn player_get_state(
             {
                 engine.shared().set_volume(persisted);
             }
+            // Restore audio settings (normalize, mono).
+            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
+                "SELECT value FROM profile_setting WHERE key = 'audio.normalize'"
+            ).fetch_optional(&pool).await {
+                engine.shared().normalize_enabled.store(
+                    v == "true",
+                    std::sync::atomic::Ordering::Release,
+                );
+            }
+            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
+                "SELECT value FROM profile_setting WHERE key = 'audio.mono'"
+            ).fetch_optional(&pool).await {
+                engine.shared().mono_enabled.store(
+                    v == "true",
+                    std::sync::atomic::Ordering::Release,
+                );
+            }
             // Prefer the actively-playing track (non-zero track_id in
             // SharedPlayback), fall back to the persisted resume point
             // at startup when the engine is still Idle.
@@ -397,6 +414,117 @@ pub async fn player_set_volume(
     }
 
     Ok(())
+}
+
+/// Toggle volume normalization (−3 dB gain reduction on loud tracks).
+/// Persisted in `profile_setting['audio.normalize']`.
+#[tauri::command]
+pub async fn player_set_normalize(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    engine.send(AudioCmd::SetNormalize(enabled))?;
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.normalize', ?, 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(if enabled { "true" } else { "false" })
+        .bind(now)
+        .execute(&pool)
+        .await;
+    }
+    Ok(())
+}
+
+/// Toggle mono downmix (average L+R into both channels).
+/// Persisted in `profile_setting['audio.mono']`.
+#[tauri::command]
+pub async fn player_set_mono(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    engine.send(AudioCmd::SetMono(enabled))?;
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.mono', ?, 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(if enabled { "true" } else { "false" })
+        .bind(now)
+        .execute(&pool)
+        .await;
+    }
+    Ok(())
+}
+
+/// Persist the crossfade duration. The actual crossfade DSP is not
+/// implemented yet — this just saves the user's preference for a
+/// future release.
+#[tauri::command]
+pub async fn player_set_crossfade(
+    state: tauri::State<'_, AppState>,
+    seconds: f64,
+) -> AppResult<()> {
+    if let Ok(pool) = state.require_profile_pool().await {
+        let ms = (seconds * 1000.0).round() as i64;
+        let now = chrono::Utc::now().timestamp_millis();
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.crossfade_ms', ?, 'int', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(ms.to_string())
+        .bind(now)
+        .execute(&pool)
+        .await;
+    }
+    Ok(())
+}
+
+/// Return current audio settings so the Settings view can hydrate.
+#[tauri::command]
+pub async fn player_get_audio_settings(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+) -> AppResult<AudioSettingsSnapshot> {
+    let shared = engine.shared();
+    let normalize = shared
+        .normalize_enabled
+        .load(std::sync::atomic::Ordering::Relaxed);
+    let mono = shared
+        .mono_enabled
+        .load(std::sync::atomic::Ordering::Relaxed);
+
+    let mut crossfade_ms: i64 = 0;
+    if let Ok(pool) = state.require_profile_pool().await {
+        if let Ok(Some(val)) =
+            sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = 'audio.crossfade_ms'")
+                .fetch_optional(&pool)
+                .await
+        {
+            crossfade_ms = val.parse().unwrap_or(0);
+        }
+    }
+
+    Ok(AudioSettingsSnapshot {
+        normalize,
+        mono,
+        crossfade_ms,
+    })
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct AudioSettingsSnapshot {
+    pub normalize: bool,
+    pub mono: bool,
+    pub crossfade_ms: i64,
 }
 
 /// Replace the queue with the given track list and start playing at

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
@@ -12,9 +12,18 @@ import {
   Trash2,
   ChevronDown,
   Check,
+  Volume2,
+  Headphones,
+  Shuffle,
 } from "lucide-react";
 import type { ViewId } from "../../types";
 import { SUPPORTED_LANGUAGES } from "../../i18n";
+import {
+  playerGetAudioSettings,
+  playerSetNormalize,
+  playerSetMono,
+  playerSetCrossfade,
+} from "../../lib/tauri/player";
 
 interface SettingsViewProps {
   onNavigate: (view: ViewId) => void;
@@ -202,6 +211,53 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [minimizeToTray, setMinimizeToTray] = useState(true);
   const [scanOnStart, setScanOnStart] = useState(false);
 
+  // Audio settings — hydrated from backend at mount.
+  const [normalize, setNormalize] = useState(false);
+  const [mono, setMono] = useState(false);
+  const [crossfadeSec, setCrossfadeSec] = useState(0);
+
+  useEffect(() => {
+    playerGetAudioSettings()
+      .then((s) => {
+        setNormalize(s.normalize);
+        setMono(s.mono);
+        setCrossfadeSec(Math.round(s.crossfade_ms / 1000));
+      })
+      .catch((err) => console.error("[Settings] audio settings load failed", err));
+  }, []);
+
+  const handleToggleNormalize = useCallback(() => {
+    const next = !normalize;
+    setNormalize(next);
+    playerSetNormalize(next).catch((err) => {
+      console.error("[Settings] set normalize failed", err);
+      setNormalize(!next); // rollback
+    });
+  }, [normalize]);
+
+  const handleToggleMono = useCallback(() => {
+    const next = !mono;
+    setMono(next);
+    playerSetMono(next).catch((err) => {
+      console.error("[Settings] set mono failed", err);
+      setMono(!next);
+    });
+  }, [mono]);
+
+  // Debounce crossfade slider changes to avoid spamming the backend.
+  const crossfadeTimerRef = useRef<number | null>(null);
+  const handleCrossfadeChange = useCallback((sec: number) => {
+    setCrossfadeSec(sec);
+    if (crossfadeTimerRef.current != null) {
+      window.clearTimeout(crossfadeTimerRef.current);
+    }
+    crossfadeTimerRef.current = window.setTimeout(() => {
+      playerSetCrossfade(sec).catch((err) =>
+        console.error("[Settings] set crossfade failed", err)
+      );
+    }, 300);
+  }, []);
+
   const handleLanguageChange = (code: string) => {
     i18n.changeLanguage(code);
   };
@@ -327,6 +383,101 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               enabled={scanOnStart}
               onToggle={() => setScanOnStart(!scanOnStart)}
               label={t("settings.scanOnStart.title")}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Lecture (Audio) */}
+      <section aria-labelledby="settings-playback-heading">
+        <h2
+          id="settings-playback-heading"
+          className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
+        >
+          {t("settings.sections.playback")}
+        </h2>
+        <div className="space-y-1">
+          {/* Crossfade */}
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4">
+              <Shuffle
+                size={20}
+                className="text-zinc-400"
+                aria-hidden="true"
+              />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.crossfade.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.crossfade.subtitle")}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <input
+                type="range"
+                min={0}
+                max={12}
+                step={1}
+                value={crossfadeSec}
+                onChange={(e) =>
+                  handleCrossfadeChange(Number(e.target.value))
+                }
+                className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
+                aria-label={t("settings.crossfade.title")}
+              />
+              <span className="text-sm font-medium text-zinc-500 w-10 text-right tabular-nums">
+                {crossfadeSec} s
+              </span>
+            </div>
+          </div>
+
+          {/* Normaliser le volume */}
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4">
+              <Volume2
+                size={20}
+                className="text-zinc-400"
+                aria-hidden="true"
+              />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.normalize.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.normalize.subtitle")}
+                </div>
+              </div>
+            </div>
+            <ToggleSwitch
+              enabled={normalize}
+              onToggle={handleToggleNormalize}
+              label={t("settings.normalize.title")}
+            />
+          </div>
+
+          {/* Audio mono */}
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4">
+              <Headphones
+                size={20}
+                className="text-zinc-400"
+                aria-hidden="true"
+              />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.mono.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.mono.subtitle")}
+                </div>
+              </div>
+            </div>
+            <ToggleSwitch
+              enabled={mono}
+              onToggle={handleToggleMono}
+              label={t("settings.mono.title")}
             />
           </div>
         </div>

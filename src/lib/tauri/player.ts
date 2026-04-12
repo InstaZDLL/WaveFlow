@@ -141,3 +141,27 @@ export function playerGetQueue(): Promise<PlayerQueueSnapshot> {
 export function playerJumpToIndex(position: number): Promise<void> {
   return invoke<void>("player_jump_to_index", { position });
 }
+
+// ── Audio settings ──────────────────────────────────────────────────
+
+export interface AudioSettingsSnapshot {
+  normalize: boolean;
+  mono: boolean;
+  crossfade_ms: number;
+}
+
+export function playerGetAudioSettings(): Promise<AudioSettingsSnapshot> {
+  return invoke<AudioSettingsSnapshot>("player_get_audio_settings");
+}
+
+export function playerSetNormalize(enabled: boolean): Promise<void> {
+  return invoke<void>("player_set_normalize", { enabled });
+}
+
+export function playerSetMono(enabled: boolean): Promise<void> {
+  return invoke<void>("player_set_mono", { enabled });
+}
+
+export function playerSetCrossfade(seconds: number): Promise<void> {
+  return invoke<void>("player_set_crossfade", { seconds });
+}

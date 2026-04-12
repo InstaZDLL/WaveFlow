@@ -397,7 +397,20 @@
     "title": "Paramètres",
     "sections": {
       "general": "Général",
+      "playback": "Lecture",
       "storage": "Stockage & Données"
+    },
+    "crossfade": {
+      "title": "Fondu enchaîné",
+      "subtitle": "Transition fluide entre les morceaux (bientôt)"
+    },
+    "normalize": {
+      "title": "Normaliser le volume",
+      "subtitle": "Réduire le volume des morceaux trop forts pour un niveau homogène"
+    },
+    "mono": {
+      "title": "Audio mono",
+      "subtitle": "Mélange les canaux gauche et droit en un signal unique"
     },
     "language": {
       "title": "Langue",

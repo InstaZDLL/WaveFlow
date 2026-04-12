@@ -658,6 +658,8 @@ fn drain_commands(
                         }
                         Ok(AudioCmd::Seek(ms)) => pending_seek = Some(ms),
                         Ok(AudioCmd::SetVolume(v)) => shared.set_volume(v),
+                        Ok(AudioCmd::SetNormalize(on)) => shared.normalize_enabled.store(on, Ordering::Release),
+                        Ok(AudioCmd::SetMono(on)) => shared.mono_enabled.store(on, Ordering::Release),
                         Ok(cmd @ AudioCmd::LoadAndPlay { .. }) => {
                             // User picked a new track while paused —
                             // stash for decoder_loop and exit pause.
@@ -677,6 +679,8 @@ fn drain_commands(
                 }
             }
             Ok(AudioCmd::SetVolume(v)) => shared.set_volume(v),
+            Ok(AudioCmd::SetNormalize(on)) => shared.normalize_enabled.store(on, Ordering::Release),
+            Ok(AudioCmd::SetMono(on)) => shared.mono_enabled.store(on, Ordering::Release),
             // Resume is a no-op when already playing.
             Ok(_) => {}
             Err(TryRecvError::Empty) => return ControlFlow::Continue,

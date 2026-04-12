@@ -40,6 +40,8 @@ pub enum AudioCmd {
     Stop,
     Seek(u64),
     SetVolume(f32),
+    SetNormalize(bool),
+    SetMono(bool),
     Shutdown,
 }
 

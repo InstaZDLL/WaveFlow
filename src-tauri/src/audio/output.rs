@@ -246,25 +246,63 @@ where
                     return;
                 }
 
-                // Read the current volume once per buffer: cheap
-                // relaxed atomic load, applied to every sample. We
-                // don't re-read per-sample because that would be ~5k
-                // redundant atomic ops per callback at 48 kHz stereo.
+                // Read atomic flags once per buffer — cheap relaxed
+                // loads that avoid ~5k redundant ops per callback.
                 let volume = shared.volume();
-                // Drain one sample per output slot. Buffer underrun is
-                // normal when idle / paused / between tracks: we write
-                // silence for those slots and let the consumer catch up.
+                let normalize = shared.normalize_enabled.load(Ordering::Relaxed);
+                let mono = shared.mono_enabled.load(Ordering::Relaxed);
+                let channels = shared.channels.load(Ordering::Relaxed).max(1) as usize;
+                // Normalization applies a −3 dB gain reduction (× 0.707)
+                // to prevent clipping on loud source material.
+                let norm_gain: f32 = if normalize { 0.707 } else { 1.0 };
+
                 let mut written: u64 = 0;
-                for slot in out.iter_mut() {
-                    let sample = match consumer.pop() {
-                        Ok(s) => {
-                            written += 1;
-                            s
+
+                if mono && channels >= 2 {
+                    // Mono downmix: read `channels` samples at a time,
+                    // average them, and write the same value to every
+                    // output channel. This loop processes one frame (all
+                    // channels) per iteration. If the ring underruns
+                    // mid-frame we still write silence for the remaining
+                    // channels so the device buffer stays aligned.
+                    for frame in out.chunks_mut(channels) {
+                        let mut sum: f32 = 0.0;
+                        let mut got: usize = 0;
+                        for _ in 0..channels {
+                            match consumer.pop() {
+                                Ok(s) => {
+                                    sum += s;
+                                    got += 1;
+                                }
+                                Err(_) => {}
+                            }
                         }
-                        Err(_) => 0.0,
-                    };
-                    *slot = T::from_sample(sample * volume);
+                        if got > 0 {
+                            written += got as u64;
+                            let mono_sample = (sum / channels as f32) * volume * norm_gain;
+                            for slot in frame.iter_mut() {
+                                *slot = T::from_sample(mono_sample);
+                            }
+                        } else {
+                            for slot in frame.iter_mut() {
+                                *slot = T::from_sample(0.0_f32);
+                            }
+                        }
+                    }
+                } else {
+                    // Normal stereo/multi-channel path.
+                    for slot in out.iter_mut() {
+                        let sample = match consumer.pop() {
+                            Ok(s) => {
+                                written += 1;
+                                s
+                            }
+                            Err(_) => 0.0,
+                        };
+                        *slot = T::from_sample(sample * volume * norm_gain);
+                    }
                 }
+
                 if written > 0 {
                     shared
                         .samples_played
