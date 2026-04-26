@@ -29,7 +29,7 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
 - **Multi-artist** — automatic split of `"Artist A, Artist B"` into individual, independently-linkable artists
 - **Album & artist detail pages** — clickable album/artist cards open a dedicated view with tracklist, discography, and stats
 - **Now Playing panel** — Spotify-style right-edge panel with large artwork, clickable artists, and artist biography
-- **Metadata enrichment** — Deezer public API (artist images, album covers, labels) + Last.fm (artist biographies) cached 30 days locally
+- **Metadata enrichment** — Deezer public API (artist images, album covers, labels) + Last.fm (artist biographies) cached 30 days locally; artwork is downloaded into a hash-addressed on-disk cache so it renders offline on re-visits
 - **Playlists** — create, edit, delete, add tracks from folders/albums/artists in bulk
 - **Likes** — heart any track, dedicated "Liked tracks" view
 - **Search** — instant full-text search (FTS5 contentless) across titles, artists, albums with prefix matching
@@ -103,14 +103,16 @@ waveflow/
 │   │   ├── db/                       # Database open/migrate helpers (app.db + per-profile data.db)
 │   │   ├── deezer.rs                 # Deezer public API client (search/get artist & album)
 │   │   ├── lastfm.rs                 # Last.fm API client (artist.getInfo with HTML strip)
+│   │   ├── lrclib.rs                 # LRCLIB API client (synchronized lyrics)
+│   │   ├── metadata_artwork.rs       # Shared on-disk cache for remote artwork (blake3-hashed)
 │   │   ├── queue.rs                  # Persistent queue operations (fill, advance, shuffle, restore)
 │   │   ├── state.rs                  # AppState (profile pool, paths, global app_db)
 │   │   ├── paths.rs                  # Filesystem layout
 │   │   ├── error.rs                  # AppError + AppResult
 │   │   └── lib.rs                    # Tauri setup, command registration, shutdown hook
 │   ├── migrations/
-│   │   ├── app/                      # Global app.db schema (profile list, app_setting)
-│   │   └── profile/                  # Per-profile SQLite schema (FTS5 contentless, triggers, indexes, deezer cache tables)
+│   │   ├── app/                      # Global app.db schema (profile list, app_setting, deezer cache tables)
+│   │   └── profile/                  # Per-profile SQLite schema (FTS5 contentless, triggers, indexes, lyrics)
 │   ├── Cargo.toml
 │   └── tauri.conf.json
 └── package.json
