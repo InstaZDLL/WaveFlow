@@ -39,8 +39,8 @@ React 19 + TypeScript. Entry point: `src/main.tsx` → `src/App.tsx`. Vite dev s
 
 - **Contexts**: `ThemeContext`, `PlayerContext`, `LibraryContext`, `PlaylistContext`, `ProfileContext` — mounted in `App.tsx` as a provider tree.
 - **Hooks**: `useTheme`, `usePlayer`, `useLibrary`, `usePlaylist`, `useProfile` — each wraps its context.
-- **Tauri wrappers** (`src/lib/tauri/`): typed `invoke()` wrappers for every backend command (`track.ts`, `browse.ts`, `player.ts`, `playlist.ts`, `library.ts`, `detail.ts`, `integration.ts`). All commands are camelCase on the frontend, snake_case on the backend.
-- **Views**: `HomeView`, `LibraryView`, `PlaylistView`, `AlbumDetailView`, `ArtistDetailView`, `LikedView`, `RecentView`, `SettingsView`, etc.
+- **Tauri wrappers** (`src/lib/tauri/`): typed `invoke()` wrappers for every backend command (`track.ts`, `browse.ts`, `player.ts`, `playlist.ts`, `library.ts`, `detail.ts`, `integration.ts`, `lyrics.ts`, `stats.ts`, `artwork.ts`). All commands are camelCase on the frontend, snake_case on the backend.
+- **Views**: `HomeView`, `LibraryView`, `PlaylistView`, `AlbumDetailView`, `ArtistDetailView`, `LikedView`, `RecentView`, `StatisticsView`, `SettingsView`, etc.
 - **Common components**: `ArtistLink` (per-name clickable multi-artist renderer), `Artwork` (file-scoped asset protocol resolver), playlist visuals.
 - **Layout**: Apple Music-style sidebar (Ma musique sub-navs + Playlists section), TopBar with search, PlayerBar at bottom, two right-edge panels (`QueuePanel` + `NowPlayingPanel`) mutually exclusive via `PlayerContext`.
 
@@ -48,7 +48,7 @@ React 19 + TypeScript. Entry point: `src/main.tsx` → `src/App.tsx`. Vite dev s
 
 Rust/Tauri 2. Entry point: `src-tauri/src/main.rs` → `lib.rs`.
 
-- **Commands** (`src-tauri/src/commands/`): organized by domain — `library.rs`, `playlist.rs`, `track.rs`, `browse.rs`, `player.rs`, `scan.rs`, `profile.rs`, `deezer.rs` (metadata enrichment), `integration.rs` (Last.fm API key storage), `app_info.rs`. All registered in `lib.rs` via `generate_handler![]`.
+- **Commands** (`src-tauri/src/commands/`): organized by domain — `library.rs`, `playlist.rs`, `track.rs`, `browse.rs`, `player.rs`, `scan.rs`, `profile.rs`, `deezer.rs` (metadata enrichment), `lyrics.rs` (LRCLIB + embedded fallback + .lrc import), `stats.rs` (listening analytics from `play_event`), `integration.rs` (Last.fm API key storage), `app_info.rs`. All registered in `lib.rs` via `generate_handler![]`.
 - **External API clients** (crate-root modules): `deezer.rs` (public Deezer API, no auth) and `lastfm.rs` (Last.fm `artist.getInfo`, requires user-provided API key). Both use `reqwest` with `rustls-tls`.
 - **Audio engine** (`src-tauri/src/audio/`): 3-thread lock-free architecture:
   - `engine.rs` — `AudioCmd` enum, `AudioEngine` handle
