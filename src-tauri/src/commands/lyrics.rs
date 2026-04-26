@@ -134,24 +134,25 @@ fn read_embedded_lyrics(path: &Path) -> Option<String> {
     }
 }
 
-/// Insert (or replace) the lyrics row for `track_id`.
+/// Insert (or replace) the lyrics row, keyed by file content hash so the
+/// cache is shared across profiles that contain the same audio file.
 async fn upsert_lyrics(
     pool: &sqlx::SqlitePool,
-    track_id: i64,
+    file_hash: &str,
     content: &str,
     format: &LyricsFormat,
     source: &LyricsSource,
 ) -> AppResult<()> {
     sqlx::query(
-        "INSERT INTO lyrics (track_id, content, format, source, language, fetched_at)
+        "INSERT INTO app.lyrics (file_hash, content, format, source, language, fetched_at)
          VALUES (?, ?, ?, ?, NULL, ?)
-         ON CONFLICT(track_id) DO UPDATE SET
+         ON CONFLICT(file_hash) DO UPDATE SET
             content = excluded.content,
             format = excluded.format,
             source = excluded.source,
             fetched_at = excluded.fetched_at",
     )
-    .bind(track_id)
+    .bind(file_hash)
     .bind(content)
     .bind(format_to_db(format))
     .bind(source_to_db(source))
@@ -161,14 +162,18 @@ async fn upsert_lyrics(
     Ok(())
 }
 
-/// Read the cached lyrics row, if any. Cheap — used by the frontend on
-/// every panel open before deciding whether to fetch.
+/// Read the cached lyrics row, if any. The frontend identifies tracks by
+/// numeric `track_id` so we look up the file hash first, then key into the
+/// shared `app.lyrics` cache.
 async fn read_cached(
     pool: &sqlx::SqlitePool,
     track_id: i64,
 ) -> AppResult<Option<LyricsPayload>> {
     let row: Option<(String, String, String)> = sqlx::query_as(
-        "SELECT content, format, source FROM lyrics WHERE track_id = ?",
+        "SELECT l.content, l.format, l.source
+           FROM track t
+           JOIN app.lyrics l ON l.file_hash = t.file_hash
+          WHERE t.id = ?",
     )
     .bind(track_id)
     .fetch_optional(pool)
@@ -187,30 +192,35 @@ async fn read_track_meta(
     pool: &sqlx::SqlitePool,
     track_id: i64,
 ) -> AppResult<Option<TrackMeta>> {
-    let row: Option<(String, String, Option<String>, Option<String>, i64)> = sqlx::query_as(
-        "SELECT t.file_path, t.title,
-                ar.name AS artist_name,
-                al.title AS album_title,
-                t.duration_ms
-           FROM track t
-           LEFT JOIN artist ar ON ar.id = t.primary_artist
-           LEFT JOIN album  al ON al.id = t.album_id
-          WHERE t.id = ?",
-    )
-    .bind(track_id)
-    .fetch_optional(pool)
-    .await?;
-    Ok(row.map(|(file_path, title, artist_name, album_title, duration_ms)| TrackMeta {
-        file_path,
-        title,
-        artist_name,
-        album_title,
-        duration_ms,
-    }))
+    let row: Option<(String, String, String, Option<String>, Option<String>, i64)> =
+        sqlx::query_as(
+            "SELECT t.file_path, t.file_hash, t.title,
+                    ar.name AS artist_name,
+                    al.title AS album_title,
+                    t.duration_ms
+               FROM track t
+               LEFT JOIN artist ar ON ar.id = t.primary_artist
+               LEFT JOIN album  al ON al.id = t.album_id
+              WHERE t.id = ?",
+        )
+        .bind(track_id)
+        .fetch_optional(pool)
+        .await?;
+    Ok(row.map(
+        |(file_path, file_hash, title, artist_name, album_title, duration_ms)| TrackMeta {
+            file_path,
+            file_hash,
+            title,
+            artist_name,
+            album_title,
+            duration_ms,
+        },
+    ))
 }
 
 struct TrackMeta {
     file_path: String,
+    file_hash: String,
     title: String,
     artist_name: Option<String>,
     album_title: Option<String>,
@@ -261,7 +271,7 @@ pub async fn fetch_lyrics(
     if let Some(content) = embedded {
         let format = detect_format(&content);
         let source = LyricsSource::Embedded;
-        upsert_lyrics(&pool, track_id, &content, &format, &source).await?;
+        upsert_lyrics(&pool, &meta.file_hash, &content, &format, &source).await?;
         return Ok(Some(LyricsPayload {
             track_id,
             content,
@@ -300,7 +310,7 @@ pub async fn fetch_lyrics(
         let empty = String::new();
         upsert_lyrics(
             &pool,
-            track_id,
+            &meta.file_hash,
             &empty,
             &LyricsFormat::Plain,
             &LyricsSource::Api,
@@ -323,7 +333,7 @@ pub async fn fetch_lyrics(
     };
 
     let source = LyricsSource::Api;
-    upsert_lyrics(&pool, track_id, &content, &format, &source).await?;
+    upsert_lyrics(&pool, &meta.file_hash, &content, &format, &source).await?;
     Ok(Some(LyricsPayload {
         track_id,
         content,
@@ -342,6 +352,12 @@ pub async fn import_lrc_file(
     file_path: String,
 ) -> AppResult<LyricsPayload> {
     let pool = state.require_profile_pool().await?;
+    let file_hash: String = sqlx::query_scalar("SELECT file_hash FROM track WHERE id = ?")
+        .bind(track_id)
+        .fetch_optional(&pool)
+        .await?
+        .ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
+
     let path = file_path.clone();
     let content = tokio::task::spawn_blocking(move || std::fs::read_to_string(&path))
         .await
@@ -353,7 +369,7 @@ pub async fn import_lrc_file(
     }
     let format = detect_format(trimmed);
     let source = LyricsSource::LrcFile;
-    upsert_lyrics(&pool, track_id, trimmed, &format, &source).await?;
+    upsert_lyrics(&pool, &file_hash, trimmed, &format, &source).await?;
     Ok(LyricsPayload {
         track_id,
         content: trimmed.to_string(),
@@ -369,7 +385,10 @@ pub async fn clear_lyrics(
     track_id: i64,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
-    sqlx::query("DELETE FROM lyrics WHERE track_id = ?")
+    sqlx::query(
+        "DELETE FROM app.lyrics
+          WHERE file_hash = (SELECT file_hash FROM track WHERE id = ?)",
+    )
         .bind(track_id)
         .execute(&pool)
         .await?;

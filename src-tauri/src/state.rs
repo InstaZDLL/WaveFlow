@@ -101,7 +101,11 @@ impl AppState {
             .await?;
 
         self.paths.ensure_profile_dirs(profile_id)?;
-        let pool = db::profile_db::open(&self.paths.profile_db(profile_id)).await?;
+        let pool = db::profile_db::open(
+            &self.paths.profile_db(profile_id),
+            &self.paths.app_db,
+        )
+        .await?;
         pool.close().await;
 
         tracing::info!(profile_id, "created default profile");
@@ -149,7 +153,7 @@ impl AppState {
         self.paths.ensure_profile_dirs(profile_id)?;
 
         let db_path = self.paths.profile_db(profile_id);
-        let pool = db::profile_db::open(&db_path).await?;
+        let pool = db::profile_db::open(&db_path, &self.paths.app_db).await?;
 
         let mut guard = self.profile.write().await;
         if let Some(previous) = guard.take() {

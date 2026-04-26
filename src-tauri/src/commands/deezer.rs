@@ -75,7 +75,7 @@ pub async fn enrich_album_deezer(
     // 2. Cache hit?
     if let Some(did) = existing_deezer_id {
         let cached: Option<(Option<String>, Option<String>, Option<String>, i64)> = sqlx::query_as(
-            "SELECT label, release_date, cover_url, expires_at FROM deezer_album WHERE deezer_id = ?",
+            "SELECT label, release_date, cover_url, expires_at FROM app.deezer_album WHERE deezer_id = ?",
         )
         .bind(did)
         .fetch_optional(&pool)
@@ -129,7 +129,7 @@ pub async fn enrich_album_deezer(
     // 4. Upsert into cache.
     let expires = now + CACHE_TTL_MS;
     sqlx::query(
-        "INSERT INTO deezer_album (deezer_id, title, release_date, cover_url, label, fetched_at, expires_at)
+        "INSERT INTO app.deezer_album (deezer_id, title, release_date, cover_url, label, fetched_at, expires_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(deezer_id) DO UPDATE SET
            title = excluded.title,
@@ -222,7 +222,7 @@ pub async fn enrich_artist_deezer(
             i64,
         )> = sqlx::query_as(
             "SELECT picture_url, fans_count, bio_short, bio_full, expires_at
-               FROM deezer_artist WHERE deezer_id = ?",
+               FROM app.deezer_artist WHERE deezer_id = ?",
         )
         .bind(did)
         .fetch_optional(&pool)
@@ -292,10 +292,11 @@ pub async fn enrich_artist_deezer(
     };
 
     // 5. Upsert into the metadata cache (both Deezer and Last.fm
-    //    fields live in the historically-named `deezer_artist` table).
+    //    fields live in the historically-named `deezer_artist` table,
+    //    now stored in app.db so all profiles share the same cache).
     let expires = now + CACHE_TTL_MS;
     sqlx::query(
-        "INSERT INTO deezer_artist
+        "INSERT INTO app.deezer_artist
             (deezer_id, name, picture_url, fans_count, bio_short, bio_full, fetched_at, expires_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(deezer_id) DO UPDATE SET

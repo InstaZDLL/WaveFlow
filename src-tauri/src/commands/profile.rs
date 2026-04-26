@@ -120,7 +120,11 @@ pub async fn create_profile(
 
     // Materialize the filesystem layout and initialize the per-profile DB.
     state.paths.ensure_profile_dirs(profile_id)?;
-    let pool = crate::db::profile_db::open(&state.paths.profile_db(profile_id)).await?;
+    let pool = crate::db::profile_db::open(
+        &state.paths.profile_db(profile_id),
+        &state.paths.app_db,
+    )
+    .await?;
     pool.close().await;
 
     Ok(Profile {
