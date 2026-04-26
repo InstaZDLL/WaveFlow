@@ -25,6 +25,7 @@ import {
   type TopArtistRow,
   type TopTrackRow,
 } from "../../lib/tauri/stats";
+import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { RangeSelector } from "./statistics/RangeSelector";
 import { KpiCard } from "./statistics/KpiCard";
 import { BarChart } from "./statistics/BarChart";
@@ -248,14 +249,19 @@ export function StatisticsView({
               title={t("statistics.topArtists.title")}
               emptyText={t("statistics.topArtists.empty")}
             >
-              {topArtists.map((artist, i) => (
+              {topArtists.map((artist, i) => {
+                const artistSrc = resolveRemoteImage(
+                  artist.picture_path,
+                  artist.picture_url,
+                );
+                return (
                 <TopRow
                   key={artist.artist_id}
                   rank={i + 1}
                   artwork={
-                    artist.picture_url ? (
+                    artistSrc ? (
                       <img
-                        src={artist.picture_url}
+                        src={artistSrc}
                         alt={artist.name}
                         loading="lazy"
                         className="w-10 h-10 rounded-full object-cover shrink-0 bg-zinc-100 dark:bg-zinc-800"
@@ -274,7 +280,8 @@ export function StatisticsView({
                   metric={t("statistics.plays", { count: artist.plays })}
                   onClick={() => onNavigateToArtist(artist.artist_id)}
                 />
-              ))}
+                );
+              })}
             </TopList>
             <TopList
               title={t("statistics.topAlbums.title")}

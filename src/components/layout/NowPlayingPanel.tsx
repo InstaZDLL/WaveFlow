@@ -5,6 +5,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { enrichArtistDeezer } from "../../lib/tauri/detail";
+import { resolveRemoteImage } from "../../lib/tauri/artwork";
 
 interface NowPlayingPanelProps {
   onNavigateToArtist: (artistId: number) => void;
@@ -27,7 +28,7 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
 
   // Enrichment (picture + bio) for the current artist. Re-fetched
   // whenever the primary artist_id changes.
-  const [pictureUrl, setPictureUrl] = useState<string | null>(null);
+  const [pictureSrc, setPictureSrc] = useState<string | null>(null);
   const [bioShort, setBioShort] = useState<string | null>(null);
   const [bioFull, setBioFull] = useState<string | null>(null);
   const [bioExpanded, setBioExpanded] = useState(false);
@@ -36,7 +37,7 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
     // Reset enrichment state whenever the focused artist changes so
     // stale bios don't flash during the async fetch.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPictureUrl(null);
+    setPictureSrc(null);
     setBioShort(null);
     setBioFull(null);
     setBioExpanded(false);
@@ -46,7 +47,8 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
     enrichArtistDeezer(artistId)
       .then((e) => {
         if (cancelled) return;
-        if (e.picture_url) setPictureUrl(e.picture_url);
+        const resolved = resolveRemoteImage(e.picture_path, e.picture_url);
+        if (resolved) setPictureSrc(resolved);
         if (e.bio_short) setBioShort(e.bio_short);
         if (e.bio_full) setBioFull(e.bio_full);
       })
@@ -123,9 +125,9 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
                   {t("nowPlaying.aboutArtist")}
                 </h3>
                 <div className="flex items-center space-x-3">
-                  {pictureUrl ? (
+                  {pictureSrc ? (
                     <img
-                      src={pictureUrl}
+                      src={pictureSrc}
                       alt={primaryArtistName}
                       loading="lazy"
                       className="w-14 h-14 rounded-full object-cover shrink-0"

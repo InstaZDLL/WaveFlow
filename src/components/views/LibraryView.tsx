@@ -26,6 +26,7 @@ import { useLibrary } from "../../hooks/useLibrary";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
+import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import type { Playlist } from "../../lib/tauri/playlist";
 import { pickFolder } from "../../lib/tauri/dialog";
@@ -918,6 +919,10 @@ function ArtistList({ artists, isLoading, t, playlists, onAddToPlaylist, onCreat
     >
       {artists.map((artist) => {
         const isMenuOpen = openMenuArtistId === artist.id;
+        const artistPictureSrc = resolveRemoteImage(
+          artist.picture_path,
+          artist.picture_url,
+        );
         return (
           <div
             key={artist.id}
@@ -925,9 +930,9 @@ function ArtistList({ artists, isLoading, t, playlists, onAddToPlaylist, onCreat
             className="group flex flex-col items-center space-y-3 cursor-pointer relative"
           >
             <div className="relative w-full">
-              {artist.picture_url ? (
+              {artistPictureSrc ? (
                 <img
-                  src={artist.picture_url}
+                  src={artistPictureSrc}
                   alt={artist.name}
                   loading="lazy"
                   className="w-full aspect-square rounded-full object-cover shadow-sm group-hover:shadow-md transition-shadow"

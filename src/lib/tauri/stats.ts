@@ -30,6 +30,7 @@ export interface TopArtistRow {
   plays: number;
   listened_ms: number;
   picture_url: string | null;
+  picture_path: string | null;
 }
 
 export interface TopAlbumRow {

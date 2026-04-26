@@ -20,6 +20,8 @@ export interface ArtistRow {
   album_count: number;
   /** Deezer CDN URL, populated after the artist has been enriched at least once. */
   picture_url: string | null;
+  /** Absolute filesystem path to the locally-cached picture, when available. */
+  picture_path: string | null;
 }
 
 /** Genre row returned by `list_genres`. */

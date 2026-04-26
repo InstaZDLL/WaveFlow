@@ -51,6 +51,7 @@ export interface ArtistDetail {
   name: string;
   artwork_path: string | null;
   picture_url: string | null;
+  picture_path: string | null;
   fans_count: number | null;
   bio_short: string | null;
   bio_full: string | null;
@@ -70,11 +71,13 @@ export interface DeezerAlbumEnrichment {
   label: string | null;
   release_date: string | null;
   cover_url: string | null;
+  cover_path: string | null;
 }
 
 export interface DeezerArtistEnrichment {
   deezer_id: number | null;
   picture_url: string | null;
+  picture_path: string | null;
   fans_count: number | null;
   /** Short biography from Last.fm (HTML stripped). */
   bio_short: string | null;

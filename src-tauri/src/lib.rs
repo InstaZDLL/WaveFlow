@@ -11,6 +11,7 @@ mod deezer;
 mod error;
 mod lastfm;
 mod lrclib;
+mod metadata_artwork;
 mod paths;
 mod queue;
 mod state;

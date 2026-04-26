@@ -12,6 +12,7 @@ use crate::error::{AppError, AppResult};
 /// <app_data>/waveflow/
 /// ├── app.db                    (global registry + app settings)
 /// ├── avatars/                  (shared profile avatars, hash-addressed)
+/// ├── metadata_artwork/         (shared remote artwork cache, hash-addressed)
 /// └── profiles/
 ///     └── <profile_id>/
 ///         ├── data.db           (per-profile database)
@@ -22,6 +23,7 @@ pub struct AppPaths {
     pub root: PathBuf,
     pub app_db: PathBuf,
     pub avatars_dir: PathBuf,
+    pub metadata_artwork_dir: PathBuf,
     pub profiles_dir: PathBuf,
 }
 
@@ -41,6 +43,7 @@ impl AppPaths {
         Ok(Self {
             app_db: root.join("app.db"),
             avatars_dir: root.join("avatars"),
+            metadata_artwork_dir: root.join("metadata_artwork"),
             profiles_dir: root.join("profiles"),
             root,
         })
@@ -53,6 +56,7 @@ impl AppPaths {
     pub fn ensure_dirs(&self) -> AppResult<()> {
         std::fs::create_dir_all(&self.root)?;
         std::fs::create_dir_all(&self.avatars_dir)?;
+        std::fs::create_dir_all(&self.metadata_artwork_dir)?;
         std::fs::create_dir_all(&self.profiles_dir)?;
         Ok(())
     }

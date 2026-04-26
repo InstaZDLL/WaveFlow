@@ -36,15 +36,29 @@ struct AlbumRawRow {
     artwork_format: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArtistRow {
     pub id: i64,
     pub name: String,
     pub track_count: i64,
     pub album_count: i64,
     /// Deezer CDN URL from the `deezer_artist` cache, if the artist
-    /// has been enriched at least once.
+    /// has been enriched at least once. Kept as a fallback — the UI
+    /// should prefer `picture_path` when present.
     pub picture_url: Option<String>,
+    /// Absolute filesystem path to the locally-cached picture, when
+    /// the metadata cache holds a hash and the file still exists.
+    pub picture_path: Option<String>,
+}
+
+#[derive(FromRow)]
+struct ArtistRowRaw {
+    id: i64,
+    name: String,
+    track_count: i64,
+    album_count: i64,
+    picture_url: Option<String>,
+    picture_hash: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -207,13 +221,14 @@ pub async fn list_artists(
 ) -> AppResult<Vec<ArtistRow>> {
     let pool = state.require_profile_pool().await?;
 
-    let rows = sqlx::query_as::<_, ArtistRow>(
+    let raw = sqlx::query_as::<_, ArtistRowRaw>(
         r#"
         SELECT ar.id,
                ar.name,
                COUNT(DISTINCT t.id)       AS track_count,
                COUNT(DISTINCT t.album_id) AS album_count,
-               da.picture_url             AS picture_url
+               da.picture_url             AS picture_url,
+               da.picture_hash            AS picture_hash
           FROM artist ar
           JOIN track_artist ta ON ta.artist_id = ar.id
           JOIN track t ON t.id = ta.track_id
@@ -227,6 +242,22 @@ pub async fn list_artists(
     .bind(library_id)
     .fetch_all(&pool)
     .await?;
+
+    let metadata_dir = &state.paths.metadata_artwork_dir;
+    let rows = raw
+        .into_iter()
+        .map(|r| ArtistRow {
+            id: r.id,
+            name: r.name,
+            track_count: r.track_count,
+            album_count: r.album_count,
+            picture_path: r
+                .picture_hash
+                .as_deref()
+                .and_then(|h| crate::metadata_artwork::existing_path(metadata_dir, h)),
+            picture_url: r.picture_url,
+        })
+        .collect();
 
     Ok(rows)
 }
@@ -576,6 +607,7 @@ pub struct ArtistDetail {
     pub name: String,
     pub artwork_path: Option<String>,
     pub picture_url: Option<String>,
+    pub picture_path: Option<String>,
     pub fans_count: Option<i64>,
     pub bio_short: Option<String>,
     pub bio_full: Option<String>,
@@ -591,6 +623,7 @@ struct ArtistDetailRaw {
     artwork_hash: Option<String>,
     artwork_format: Option<String>,
     picture_url: Option<String>,
+    picture_hash: Option<String>,
     fans_count: Option<i64>,
     bio_short: Option<String>,
     bio_full: Option<String>,
@@ -633,10 +666,11 @@ pub async fn get_artist_detail(
         r#"
         SELECT ar.id, ar.name,
                aw.hash AS artwork_hash, aw.format AS artwork_format,
-               da.picture_url AS picture_url,
-               da.fans_count  AS fans_count,
-               da.bio_short   AS bio_short,
-               da.bio_full    AS bio_full,
+               da.picture_url  AS picture_url,
+               da.picture_hash AS picture_hash,
+               da.fans_count   AS fans_count,
+               da.bio_short    AS bio_short,
+               da.bio_full     AS bio_full,
                COUNT(DISTINCT t.id) AS track_count,
                COUNT(DISTINCT t.album_id) AS album_count
           FROM artist ar
@@ -705,11 +739,17 @@ pub async fn get_artist_detail(
         })
         .collect();
 
+    let picture_path = header
+        .picture_hash
+        .as_deref()
+        .and_then(|h| crate::metadata_artwork::existing_path(&state.paths.metadata_artwork_dir, h));
+
     Ok(ArtistDetail {
         id: header.id,
         name: header.name,
         artwork_path,
         picture_url: header.picture_url,
+        picture_path,
         fans_count: header.fans_count,
         bio_short: header.bio_short,
         bio_full: header.bio_full,

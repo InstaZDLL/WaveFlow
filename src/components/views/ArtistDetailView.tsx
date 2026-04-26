@@ -9,6 +9,7 @@ import {
   enrichArtistDeezer,
   type ArtistDetail,
 } from "../../lib/tauri/detail";
+import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import {
   formatDuration,
   listTracks,
@@ -34,8 +35,11 @@ export function ArtistDetailView({
   const [isLoading, setIsLoading] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
 
-  // Deezer enrichment
-  const [pictureUrl, setPictureUrl] = useState<string | null>(null);
+  // Deezer enrichment. `pictureSrc` is already resolved against the
+  // local file cache (via `convertFileSrc`) when available so the
+  // component never has to know whether the source is a remote CDN
+  // URL or an `asset://` path.
+  const [pictureSrc, setPictureSrc] = useState<string | null>(null);
   const [fansCount, setFansCount] = useState<number | null>(null);
   const [bioShort, setBioShort] = useState<string | null>(null);
   const [bioFull, setBioFull] = useState<string | null>(null);
@@ -52,7 +56,7 @@ export function ArtistDetailView({
     let cancelled = false;
     (async () => {
       setIsLoading(true);
-      setPictureUrl(null);
+      setPictureSrc(null);
       setFansCount(null);
       setBioShort(null);
       setBioFull(null);
@@ -66,7 +70,8 @@ export function ArtistDetailView({
         setArtist(detail);
         // Seed Deezer cache from the detail response so images render
         // instantly on re-visits (not just after enrichment resolves).
-        if (detail.picture_url) setPictureUrl(detail.picture_url);
+        const seeded = resolveRemoteImage(detail.picture_path, detail.picture_url);
+        if (seeded) setPictureSrc(seeded);
         if (detail.fans_count != null) setFansCount(detail.fans_count);
         if (detail.bio_short) setBioShort(detail.bio_short);
         if (detail.bio_full) setBioFull(detail.bio_full);
@@ -109,7 +114,8 @@ export function ArtistDetailView({
     enrichArtistDeezer(artistId)
       .then((e) => {
         if (cancelled) return;
-        if (e.picture_url) setPictureUrl(e.picture_url);
+        const resolved = resolveRemoteImage(e.picture_path, e.picture_url);
+        if (resolved) setPictureSrc(resolved);
         if (e.fans_count != null) setFansCount(e.fans_count);
         if (e.bio_short) setBioShort(e.bio_short);
         if (e.bio_full) setBioFull(e.bio_full);
@@ -168,9 +174,9 @@ export function ArtistDetailView({
       {/* Header */}
       <div className="flex items-center space-x-8">
         {/* Artist photo */}
-        {pictureUrl ? (
+        {pictureSrc ? (
           <img
-            src={pictureUrl}
+            src={pictureSrc}
             alt={artist.name}
             className="w-48 h-48 rounded-full object-cover shadow-lg shrink-0"
           />

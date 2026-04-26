@@ -193,13 +193,24 @@ pub async fn stats_top_tracks(
     Ok(rows)
 }
 
-#[derive(Debug, Clone, Serialize, FromRow)]
+#[derive(Debug, Clone, Serialize)]
 pub struct TopArtistRow {
     pub artist_id: i64,
     pub name: String,
     pub plays: i64,
     pub listened_ms: i64,
     pub picture_url: Option<String>,
+    pub picture_path: Option<String>,
+}
+
+#[derive(FromRow)]
+struct TopArtistRaw {
+    artist_id: i64,
+    name: String,
+    plays: i64,
+    listened_ms: i64,
+    picture_url: Option<String>,
+    picture_hash: Option<String>,
 }
 
 #[tauri::command]
@@ -211,13 +222,14 @@ pub async fn stats_top_artists(
     let pool = state.require_profile_pool().await?;
     let since = range_to_since_ms(&range);
 
-    let rows = sqlx::query_as::<_, TopArtistRow>(
+    let raw = sqlx::query_as::<_, TopArtistRaw>(
         r#"
         SELECT ar.id                         AS artist_id,
                ar.name                       AS name,
                COUNT(*)                      AS plays,
                COALESCE(SUM(pe.listened_ms), 0) AS listened_ms,
-               da.picture_url                AS picture_url
+               da.picture_url                AS picture_url,
+               da.picture_hash               AS picture_hash
           FROM play_event pe
           JOIN track_artist ta ON ta.track_id = pe.track_id
           JOIN artist ar       ON ar.id = ta.artist_id
@@ -232,6 +244,22 @@ pub async fn stats_top_artists(
     .bind(limit)
     .fetch_all(&pool)
     .await?;
+
+    let metadata_dir = &state.paths.metadata_artwork_dir;
+    let rows = raw
+        .into_iter()
+        .map(|r| TopArtistRow {
+            artist_id: r.artist_id,
+            name: r.name,
+            plays: r.plays,
+            listened_ms: r.listened_ms,
+            picture_path: r
+                .picture_hash
+                .as_deref()
+                .and_then(|h| crate::metadata_artwork::existing_path(metadata_dir, h)),
+            picture_url: r.picture_url,
+        })
+        .collect();
 
     Ok(rows)
 }
