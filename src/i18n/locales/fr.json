@@ -447,9 +447,27 @@
     }
   },
   "playerBar": {
-    "lyrics": "Paroles (bientôt)",
+    "lyrics": "Paroles",
     "nowPlaying": "Vue en cours de lecture",
     "queue": "File d'attente"
+  },
+  "lyrics": {
+    "title": "Paroles",
+    "loading": "Recherche des paroles…",
+    "noTrack": "Aucun titre en cours",
+    "notFound": "Aucune parole trouvée pour ce titre. Tu peux importer un fichier .lrc.",
+    "importTitle": "Importer un fichier .lrc",
+    "actions": {
+      "import": "Importer un fichier .lrc",
+      "refetch": "Relancer la recherche",
+      "clear": "Effacer les paroles"
+    },
+    "source": {
+      "embedded": "Paroles intégrées au fichier",
+      "lrc_file": "Fichier .lrc importé",
+      "api": "LRCLIB",
+      "manual": "Saisie manuelle"
+    }
   },
   "settings": {
     "title": "Paramètres",

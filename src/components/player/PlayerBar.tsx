@@ -20,6 +20,8 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
     toggleQueue,
     isNowPlayingOpen,
     toggleNowPlaying,
+    isLyricsOpen,
+    toggleLyrics,
     isDeviceMenuOpen,
     toggleDeviceMenu,
     currentTrack,
@@ -104,13 +106,17 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
       {/* Right: Extra Controls */}
       <div className="w-1/3 flex items-center justify-end space-x-4">
-        {/* Lyrics (coming soon — separate panel, not wired yet) */}
+        {/* Lyrics panel toggle */}
         <button
           type="button"
-          disabled
+          onClick={toggleLyrics}
           aria-label={t("playerBar.lyrics")}
           title={t("playerBar.lyrics")}
-          className="p-2 rounded-lg text-zinc-300 dark:text-zinc-600 cursor-not-allowed"
+          className={`p-2 rounded-lg transition-colors ${
+            isLyricsOpen
+              ? "text-emerald-500"
+              : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
+          }`}
         >
           <Mic2 size={20} />
         </button>

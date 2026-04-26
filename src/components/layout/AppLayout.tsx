@@ -5,6 +5,7 @@ import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { QueuePanel } from "./QueuePanel";
 import { NowPlayingPanel } from "./NowPlayingPanel";
+import { LyricsPanel } from "./LyricsPanel";
 import { DeviceMenu } from "./DeviceMenu";
 import { PlayerBar } from "../player/PlayerBar";
 import { HomeView } from "../views/HomeView";
@@ -160,6 +161,7 @@ export function AppLayout() {
             <DeviceMenu />
             <QueuePanel />
             <NowPlayingPanel onNavigateToArtist={navigateToArtist} />
+            <LyricsPanel />
           </div>
         </div>
 

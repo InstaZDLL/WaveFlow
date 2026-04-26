@@ -18,3 +18,26 @@ export async function pickFolder(title?: string): Promise<string | null> {
   if (Array.isArray(result)) return result[0] ?? null;
   return result;
 }
+
+/**
+ * Open the native file picker filtered to a list of extensions
+ * (without the leading dot, e.g. `["lrc", "txt"]`). Returns the
+ * absolute path or `null` when the user cancelled.
+ */
+export async function pickFile(
+  extensions: string[],
+  title?: string,
+): Promise<string | null> {
+  const result = await open({
+    directory: false,
+    multiple: false,
+    title,
+    filters:
+      extensions.length > 0
+        ? [{ name: extensions.join(", ").toUpperCase(), extensions }]
+        : undefined,
+  });
+  if (result == null) return null;
+  if (Array.isArray(result)) return result[0] ?? null;
+  return result;
+}

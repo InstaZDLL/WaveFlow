@@ -72,11 +72,12 @@ function queuePayloadToTrack(payload: QueueTrackPayload): Track {
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const { activeProfile } = useProfile();
 
-  // UI-only state. Queue and NowPlaying share the same right-edge slot
-  // (w-80) so only one can be open at a time; toggling either closes
-  // the other.
+  // UI-only state. Queue, NowPlaying, and Lyrics share the same
+  // right-edge slot (w-80) so only one can be open at a time;
+  // toggling any closes the others.
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
+  const [isLyricsOpen, setIsLyricsOpen] = useState(false);
   const [isDeviceMenuOpen, setIsDeviceMenuOpen] = useState(false);
 
   // Backend-synced state
@@ -335,13 +336,28 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const toggleQueue = useCallback(() => {
     setIsQueueOpen((p) => {
-      if (!p) setIsNowPlayingOpen(false); // mutual exclusion
+      if (!p) {
+        setIsNowPlayingOpen(false);
+        setIsLyricsOpen(false);
+      }
       return !p;
     });
   }, []);
   const toggleNowPlaying = useCallback(() => {
     setIsNowPlayingOpen((p) => {
-      if (!p) setIsQueueOpen(false);
+      if (!p) {
+        setIsQueueOpen(false);
+        setIsLyricsOpen(false);
+      }
+      return !p;
+    });
+  }, []);
+  const toggleLyrics = useCallback(() => {
+    setIsLyricsOpen((p) => {
+      if (!p) {
+        setIsQueueOpen(false);
+        setIsNowPlayingOpen(false);
+      }
       return !p;
     });
   }, []);
@@ -357,6 +373,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         toggleQueue,
         isNowPlayingOpen,
         toggleNowPlaying,
+        isLyricsOpen,
+        toggleLyrics,
         isDeviceMenuOpen,
         toggleDeviceMenu,
         playbackState,

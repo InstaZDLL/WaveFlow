@@ -83,6 +83,7 @@ export function PlaylistView({ playlistId, onAfterDelete, onNavigateToArtist }: 
   useEffect(() => {
     let cancelled = false;
     if (playlistId == null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPlaylist(null);
       setTracks([]);
       return;

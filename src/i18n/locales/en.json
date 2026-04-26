@@ -447,9 +447,27 @@
     }
   },
   "playerBar": {
-    "lyrics": "Lyrics (coming soon)",
+    "lyrics": "Lyrics",
     "nowPlaying": "Now playing view",
     "queue": "Queue"
+  },
+  "lyrics": {
+    "title": "Lyrics",
+    "loading": "Searching for lyrics…",
+    "noTrack": "No track playing",
+    "notFound": "No lyrics found for this track. You can import a .lrc file.",
+    "importTitle": "Import .lrc file",
+    "actions": {
+      "import": "Import .lrc file",
+      "refetch": "Re-fetch lyrics",
+      "clear": "Clear lyrics"
+    },
+    "source": {
+      "embedded": "Embedded in audio file",
+      "lrc_file": "Imported .lrc file",
+      "api": "LRCLIB",
+      "manual": "Manual entry"
+    }
   },
   "settings": {
     "title": "Settings",

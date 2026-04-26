@@ -18,6 +18,8 @@ interface PlayerContextValue {
   toggleQueue: () => void;
   isNowPlayingOpen: boolean;
   toggleNowPlaying: () => void;
+  isLyricsOpen: boolean;
+  toggleLyrics: () => void;
   isDeviceMenuOpen: boolean;
   toggleDeviceMenu: () => void;
 

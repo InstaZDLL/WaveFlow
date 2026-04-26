@@ -10,6 +10,7 @@ mod db;
 mod deezer;
 mod error;
 mod lastfm;
+mod lrclib;
 mod paths;
 mod queue;
 mod state;
@@ -102,6 +103,10 @@ pub fn run() {
             commands::deezer::enrich_artist_deezer,
             commands::integration::get_lastfm_api_key,
             commands::integration::set_lastfm_api_key,
+            commands::lyrics::get_lyrics,
+            commands::lyrics::fetch_lyrics,
+            commands::lyrics::import_lrc_file,
+            commands::lyrics::clear_lyrics,
             commands::player::player_get_state,
             commands::player::player_pause,
             commands::player::player_resume,

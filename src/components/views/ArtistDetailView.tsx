@@ -44,6 +44,7 @@ export function ArtistDetailView({
   // Load artist detail
   useEffect(() => {
     if (artistId == null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setArtist(null);
       setTracks([]);
       return;

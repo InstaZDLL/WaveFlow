@@ -33,6 +33,7 @@ export function ProfileSelectorModal({
   // Reset internal state when the modal closes
   useEffect(() => {
     if (!isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setView("select");
       setNewProfileName("");
       setSelectedColorId(DEFAULT_PROFILE_COLOR_ID);

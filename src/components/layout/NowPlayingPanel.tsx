@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Music2, Mic2 } from "lucide-react";
+import { X, Music2 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
@@ -175,16 +175,6 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
               </div>
             )}
 
-            {/* Lyrics placeholder */}
-            <div className="space-y-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-              <h3 className="text-[10px] font-bold tracking-widest uppercase text-zinc-400 flex items-center space-x-2">
-                <Mic2 size={12} />
-                <span>{t("nowPlaying.lyrics.title")}</span>
-              </h3>
-              <p className="text-xs italic text-zinc-400">
-                {t("nowPlaying.lyrics.comingSoon")}
-              </p>
-            </div>
           </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-12 text-zinc-400">

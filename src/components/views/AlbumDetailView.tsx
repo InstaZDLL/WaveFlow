@@ -41,6 +41,7 @@ export function AlbumDetailView({
   // Load album detail
   useEffect(() => {
     if (albumId == null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAlbum(null);
       return;
     }
