@@ -91,7 +91,13 @@ export function AppLayout() {
       case "feedback":
         return <FeedbackView onNavigate={setActiveView} />;
       case "statistics":
-        return <StatisticsView onNavigate={setActiveView} />;
+        return (
+          <StatisticsView
+            onNavigate={setActiveView}
+            onNavigateToAlbum={navigateToAlbum}
+            onNavigateToArtist={navigateToArtist}
+          />
+        );
       case "liked":
         return <LikedView onNavigateToArtist={navigateToArtist} />;
       case "recent":

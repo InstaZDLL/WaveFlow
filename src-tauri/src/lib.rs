@@ -125,6 +125,12 @@ pub fn run() {
             commands::player::player_set_mono,
             commands::player::player_set_crossfade,
             commands::player::player_get_audio_settings,
+            commands::stats::stats_overview,
+            commands::stats::stats_top_tracks,
+            commands::stats::stats_top_artists,
+            commands::stats::stats_top_albums,
+            commands::stats::stats_listening_by_day,
+            commands::stats::stats_listening_by_hour,
         ])
         .on_window_event(|window, event| {
             if let WindowEvent::Destroyed = event {

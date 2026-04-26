@@ -249,7 +249,48 @@
   "statistics": {
     "title": "Statistiques",
     "emptyTitle": "Aucune statistique disponible",
-    "emptyDescription": "Écoutez de la musique pour commencer à voir vos statistiques d'écoute apparaître ici."
+    "emptyDescription": "Écoutez de la musique pour commencer à voir vos statistiques d'écoute apparaître ici.",
+    "range": {
+      "label": "Période",
+      "7d": "7 jours",
+      "30d": "30 jours",
+      "90d": "90 jours",
+      "1y": "1 an",
+      "all": "Tout"
+    },
+    "kpi": {
+      "totalPlays": "Écoutes",
+      "totalTime": "Temps d'écoute",
+      "uniqueTracks": "Titres uniques",
+      "uniqueArtists_zero": "0 artiste",
+      "uniqueArtists_one": "{{count}} artiste",
+      "uniqueArtists_other": "{{count}} artistes",
+      "completionRate": "Taux d'écoute complète"
+    },
+    "byDay": {
+      "title": "Activité par jour",
+      "empty": "Pas d'écoute sur cette période."
+    },
+    "byHour": {
+      "title": "Heures préférées",
+      "empty": "Pas d'écoute sur cette période.",
+      "tooltip": "{{hour}}h — {{plays}} écoutes"
+    },
+    "topTracks": {
+      "title": "Top titres",
+      "empty": "Aucun titre écouté."
+    },
+    "topArtists": {
+      "title": "Top artistes",
+      "empty": "Aucun artiste écouté."
+    },
+    "topAlbums": {
+      "title": "Top albums",
+      "empty": "Aucun album écouté."
+    },
+    "plays_zero": "0 écoute",
+    "plays_one": "{{count}} écoute",
+    "plays_other": "{{count}} écoutes"
   },
   "about": {
     "title": "À propos",

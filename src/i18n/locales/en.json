@@ -249,7 +249,48 @@
   "statistics": {
     "title": "Statistics",
     "emptyTitle": "No statistics available",
-    "emptyDescription": "Listen to music to start seeing your listening statistics appear here."
+    "emptyDescription": "Listen to music to start seeing your listening statistics appear here.",
+    "range": {
+      "label": "Range",
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days",
+      "1y": "1 year",
+      "all": "All time"
+    },
+    "kpi": {
+      "totalPlays": "Plays",
+      "totalTime": "Listening time",
+      "uniqueTracks": "Unique tracks",
+      "uniqueArtists_zero": "0 artists",
+      "uniqueArtists_one": "{{count}} artist",
+      "uniqueArtists_other": "{{count}} artists",
+      "completionRate": "Completion rate"
+    },
+    "byDay": {
+      "title": "Daily activity",
+      "empty": "No listens in this period."
+    },
+    "byHour": {
+      "title": "Listening by hour",
+      "empty": "No listens in this period.",
+      "tooltip": "{{hour}}h — {{plays}} plays"
+    },
+    "topTracks": {
+      "title": "Top tracks",
+      "empty": "No tracks played."
+    },
+    "topArtists": {
+      "title": "Top artists",
+      "empty": "No artists played."
+    },
+    "topAlbums": {
+      "title": "Top albums",
+      "empty": "No albums played."
+    },
+    "plays_zero": "0 plays",
+    "plays_one": "{{count}} play",
+    "plays_other": "{{count}} plays"
   },
   "about": {
     "title": "About",
