@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -37,6 +38,11 @@ pub struct ScanSummary {
     pub updated: u32,
     pub skipped: u32,
     pub errors: u32,
+    /// Tracks marked `is_available = 0` because their file vanished
+    /// from disk between scans. The row stays around (and keeps its
+    /// liked / playlist / play-event history) so the user can recover
+    /// it by putting the file back.
+    pub removed: u32,
 }
 
 /// Normalize a title/name for dedup purposes: lowercase + strip punctuation
@@ -437,6 +443,20 @@ pub(crate) async fn scan_folder_inner(
     };
     let now = now_millis();
 
+    // Snapshot of the paths currently flagged available in this folder.
+    // We strike each one off as the walk processes it; whatever's left
+    // at the end was deleted from disk and gets marked unavailable.
+    // Tracks already at `is_available = 0` are excluded — bringing them
+    // back is handled by the upsert path which re-sets the flag to 1.
+    let mut existing_available: HashSet<String> = sqlx::query_scalar::<_, String>(
+        "SELECT file_path FROM track WHERE folder_id = ? AND is_available = 1",
+    )
+    .bind(folder_id)
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .collect();
+
     for path in audio_files {
         summary.scanned += 1;
 
@@ -459,6 +479,9 @@ pub(crate) async fn scan_folder_inner(
                 continue;
             }
         };
+
+        // File is on disk → keep it out of the deletion sweep below.
+        existing_available.remove(&extracted.abs_path);
 
         let existing: Option<(i64, i64, String)> = sqlx::query_as(
             "SELECT id, file_modified, file_hash FROM track WHERE library_id = ? AND file_path = ?",
@@ -713,6 +736,27 @@ pub(crate) async fn scan_folder_inner(
         }
     }
 
+    // Anything still in the set was on disk last time but isn't now.
+    // Mark it unavailable rather than deleting — preserves play_event
+    // history and lets the user "undelete" by restoring the file.
+    // SQLite caps bound parameters at ~999, so we update one row at a
+    // time. Removed counts are normally tiny (a handful per scan); for
+    // bulk wipes the loop is still acceptable since we're already
+    // off the audio thread.
+    for missing_path in &existing_available {
+        let res = sqlx::query(
+            "UPDATE track SET is_available = 0
+              WHERE folder_id = ? AND file_path = ? AND is_available = 1",
+        )
+        .bind(folder_id)
+        .bind(missing_path)
+        .execute(pool)
+        .await?;
+        if res.rows_affected() > 0 {
+            summary.removed += 1;
+        }
+    }
+
     sqlx::query("UPDATE library_folder SET last_scanned_at = ? WHERE id = ?")
         .bind(now)
         .bind(folder_id)
@@ -731,6 +775,7 @@ pub(crate) async fn scan_folder_inner(
         added = summary.added,
         updated = summary.updated,
         skipped = summary.skipped,
+        removed = summary.removed,
         errors = summary.errors,
         "scan complete"
     );

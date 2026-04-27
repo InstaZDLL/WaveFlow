@@ -222,7 +222,9 @@
       "trackCount_other": "{{count}} titres",
       "lastScanned": "Scanné : {{date}}",
       "neverScanned": "jamais",
-      "watched": "Surveillé"
+      "watched": "Surveillé",
+      "watchOn": "Surveiller automatiquement les changements",
+      "watchOff": "Arrêter la surveillance"
     }
   },
   "liked": {

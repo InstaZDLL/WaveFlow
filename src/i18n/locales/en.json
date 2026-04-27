@@ -222,7 +222,9 @@
       "trackCount_other": "{{count}} tracks",
       "lastScanned": "Scanned: {{date}}",
       "neverScanned": "never",
-      "watched": "Watched"
+      "watched": "Watched",
+      "watchOn": "Watch this folder for changes",
+      "watchOff": "Stop watching this folder"
     }
   },
   "liked": {

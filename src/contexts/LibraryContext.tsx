@@ -5,6 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { LibraryContext } from "../hooks/useLibrary";
 import { useProfile } from "../hooks/useProfile";
 import {
@@ -86,6 +87,35 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [activeProfile]);
+
+  // The filesystem watcher emits `library:rescanned` after each
+  // debounced rescan completes. Refreshing here bumps each library's
+  // `updated_at`, which propagates through the `librariesSignature`
+  // memo in views and re-fetches their visible track / album lists
+  // without manual reloads.
+  useEffect(() => {
+    if (!activeProfile) return;
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const off = await listen("library:rescanned", () => {
+          refresh().catch(() => {});
+        });
+        if (cancelled) {
+          off();
+        } else {
+          unlisten = off;
+        }
+      } catch (err) {
+        console.error("[LibraryContext] listen library:rescanned failed", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [activeProfile, refresh]);
 
   const selectLibrary = useCallback((libraryId: number | null) => {
     setSelectedLibraryId(libraryId);

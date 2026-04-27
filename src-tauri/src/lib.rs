@@ -15,6 +15,7 @@ mod metadata_artwork;
 mod paths;
 mod queue;
 mod state;
+mod watcher;
 
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -23,6 +24,7 @@ use tauri::{Manager, WindowEvent};
 
 use audio::{AudioCmd, AudioEngine};
 use state::AppState;
+use watcher::WatcherManager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -60,6 +62,26 @@ pub fn run() {
             let engine: Arc<AudioEngine> = AudioEngine::new(engine_handle);
             app.manage(engine);
 
+            // Filesystem watcher manager. Holds one notify watcher per
+            // `library_folder.is_watched=1` row in the active profile;
+            // the boot-time hydration walks the DB and arms each one
+            // so users don't need to re-toggle after a restart.
+            let watcher_handle = app.handle().clone();
+            let watcher = Arc::new(WatcherManager::new(watcher_handle));
+            let watcher_for_init = watcher.clone();
+            let restore_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let state = restore_handle.state::<AppState>();
+                if let Ok(pool) = state.require_profile_pool().await {
+                    if let Err(err) =
+                        watcher_for_init.restore_from_db(&pool).await
+                    {
+                        tracing::warn!(%err, "watcher boot restore failed");
+                    }
+                }
+            });
+            app.manage(watcher);
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -75,6 +97,8 @@ pub fn run() {
             commands::library::delete_library,
             commands::library::rescan_library,
             commands::library::add_folder_to_library,
+            commands::library::list_library_folders,
+            commands::library::set_folder_watched,
             commands::playlist::list_playlists,
             commands::playlist::get_playlist,
             commands::playlist::create_playlist,

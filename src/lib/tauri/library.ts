@@ -44,6 +44,10 @@ export interface ScanSummary {
   updated: number;
   skipped: number;
   errors: number;
+  /** Tracks the scanner could no longer find on disk and flagged
+   *  `is_available = 0`. Their rows stay around so the user keeps
+   *  liked / playlist / play-event history if the file comes back. */
+  removed: number;
 }
 
 /** Aggregate result of `rescan_library` — summed across every folder. */
@@ -55,6 +59,7 @@ export interface RescanSummary {
   updated: number;
   skipped: number;
   errors: number;
+  removed: number;
 }
 
 export function listLibraries(): Promise<Library[]> {
@@ -89,4 +94,30 @@ export function addFolderToLibrary(
 
 export function scanFolder(folderId: number): Promise<ScanSummary> {
   return invoke<ScanSummary>("scan_folder", { folderId });
+}
+
+/**
+ * Per-library folder row used by the folder management UI: just the
+ * raw `library_folder` columns the user can see and act on (path,
+ * last scan timestamp, watch flag). Counts come from `listFolders`.
+ */
+export interface LibraryFolder {
+  id: number;
+  library_id: number;
+  path: string;
+  last_scanned_at: number | null;
+  is_watched: number;
+}
+
+export function listLibraryFolders(libraryId: number): Promise<LibraryFolder[]> {
+  return invoke<LibraryFolder[]>("list_library_folders", { libraryId });
+}
+
+/**
+ * Toggle whether a folder is watched for filesystem changes. The
+ * backend updates `library_folder.is_watched` and (un)mounts the
+ * notify watcher in one call so the change takes effect immediately.
+ */
+export function setFolderWatched(folderId: number, enable: boolean): Promise<void> {
+  return invoke<void>("set_folder_watched", { folderId, enable });
 }

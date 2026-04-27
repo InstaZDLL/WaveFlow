@@ -6,6 +6,7 @@ use crate::{
     commands::scan::{scan_folder_inner, ScanSummary},
     error::{AppError, AppResult},
     state::AppState,
+    watcher::{apply_toggle, WatcherManager},
 };
 
 /// Library row returned to the frontend, with denormalized counts computed on
@@ -58,6 +59,7 @@ pub struct RescanSummary {
     pub updated: u32,
     pub skipped: u32,
     pub errors: u32,
+    pub removed: u32,
 }
 
 fn now_millis() -> i64 {
@@ -274,6 +276,7 @@ pub async fn rescan_library(
                     updated,
                     skipped,
                     errors,
+                    removed,
                     ..
                 } = summary;
                 total.scanned += scanned;
@@ -281,6 +284,7 @@ pub async fn rescan_library(
                 total.updated += updated;
                 total.skipped += skipped;
                 total.errors += errors;
+                total.removed += removed;
             }
             Err(err) => {
                 tracing::warn!(folder_id, error = %err, "rescan folder failed");
@@ -338,4 +342,52 @@ pub async fn add_folder_to_library(
     .await?;
 
     Ok(result.last_insert_rowid())
+}
+
+/// Row shape for the per-library folder list — only the bits the UI
+/// needs (path, scan timestamp, watch flag). Counts come from
+/// `list_folders` in `browse.rs`; this command is dedicated to the
+/// folder management surface (toggle watcher, see scan timestamps).
+#[derive(Debug, Clone, Serialize, FromRow)]
+pub struct LibraryFolder {
+    pub id: i64,
+    pub library_id: i64,
+    pub path: String,
+    pub last_scanned_at: Option<i64>,
+    pub is_watched: i64,
+}
+
+/// List every folder for a library, with its watch flag. Returned
+/// straight from `library_folder` so toggling reflects on next fetch
+/// without going through the heavier `list_folders` aggregation.
+#[tauri::command]
+pub async fn list_library_folders(
+    state: tauri::State<'_, AppState>,
+    library_id: i64,
+) -> AppResult<Vec<LibraryFolder>> {
+    let pool = state.require_profile_pool().await?;
+    let rows = sqlx::query_as::<_, LibraryFolder>(
+        "SELECT id, library_id, path, last_scanned_at, is_watched
+           FROM library_folder
+          WHERE library_id = ?
+          ORDER BY id",
+    )
+    .bind(library_id)
+    .fetch_all(&pool)
+    .await?;
+    Ok(rows)
+}
+
+/// Toggle whether a folder is watched for filesystem changes. Updates
+/// `library_folder.is_watched` and arms or disarms the in-memory
+/// watcher so the change takes effect without restarting the app.
+#[tauri::command]
+pub async fn set_folder_watched(
+    state: tauri::State<'_, AppState>,
+    watcher: tauri::State<'_, std::sync::Arc<WatcherManager>>,
+    folder_id: i64,
+    enable: bool,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    apply_toggle(&watcher, &pool, folder_id, enable).await
 }

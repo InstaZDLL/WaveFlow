@@ -145,6 +145,7 @@ pub async fn create_profile(
 pub async fn switch_profile(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
+    watcher: tauri::State<'_, Arc<crate::watcher::WatcherManager>>,
     profile_id: i64,
 ) -> AppResult<Profile> {
     let profile = sqlx::query_as::<_, Profile>(
@@ -166,7 +167,18 @@ pub async fn switch_profile(
         .current_track_id
         .store(0, std::sync::atomic::Ordering::Release);
 
+    // Stop the previous profile's watchers before swapping pools so
+    // their next scan can't race a stale pool reference.
+    watcher.unwatch_all();
+
     state.activate_profile(profile_id).await?;
+
+    // Re-arm watchers from the new profile's library_folder rows.
+    if let Ok(pool) = state.require_profile_pool().await {
+        if let Err(err) = watcher.restore_from_db(&pool).await {
+            tracing::warn!(%err, "watcher restore after profile switch failed");
+        }
+    }
 
     let now = now_millis();
 
@@ -196,7 +208,11 @@ pub async fn switch_profile(
 /// Close the active profile without activating a new one. Useful for a
 /// "logout" flow.
 #[tauri::command]
-pub async fn deactivate_profile(state: tauri::State<'_, AppState>) -> AppResult<()> {
+pub async fn deactivate_profile(
+    state: tauri::State<'_, AppState>,
+    watcher: tauri::State<'_, Arc<crate::watcher::WatcherManager>>,
+) -> AppResult<()> {
+    watcher.unwatch_all();
     state.deactivate_profile().await;
     Ok(())
 }

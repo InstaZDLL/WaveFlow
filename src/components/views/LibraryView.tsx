@@ -12,6 +12,8 @@ import {
   AlignJustify,
   Plus,
   Heart,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { LibraryTab } from "../../types";
@@ -31,6 +33,7 @@ import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import type { Playlist } from "../../lib/tauri/playlist";
 import { pickFolder } from "../../lib/tauri/dialog";
+import { setFolderWatched } from "../../lib/tauri/library";
 import {
   formatDuration,
   listTracks,
@@ -437,6 +440,24 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
                 addSourceToPlaylist(playlistId, "folder", folderId)
               }
               onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+              onToggleWatched={(folderId, enable) => {
+                // Optimistic flip — the watcher hookup is fire-and-
+                // forget on the backend so the UI shouldn't block on it.
+                setFolders((prev) =>
+                  prev.map((f) =>
+                    f.id === folderId ? { ...f, is_watched: enable ? 1 : 0 } : f,
+                  ),
+                );
+                setFolderWatched(folderId, enable).catch((err) => {
+                  console.error("[LibraryView] toggle watched failed", err);
+                  // Roll back on error.
+                  setFolders((prev) =>
+                    prev.map((f) =>
+                      f.id === folderId ? { ...f, is_watched: enable ? 0 : 1 } : f,
+                    ),
+                  );
+                });
+              }}
             />
           )}
         </>
@@ -1057,9 +1078,18 @@ interface FolderListProps {
   playlists: Playlist[];
   onAddToPlaylist: (playlistId: number, folderId: number) => void;
   onCreatePlaylist: () => void;
+  onToggleWatched: (folderId: number, enable: boolean) => void;
 }
 
-function FolderList({ folders, isLoading, t, playlists, onAddToPlaylist, onCreatePlaylist }: FolderListProps) {
+function FolderList({
+  folders,
+  isLoading,
+  t,
+  playlists,
+  onAddToPlaylist,
+  onCreatePlaylist,
+  onToggleWatched,
+}: FolderListProps) {
   const [openMenuFolderId, setOpenMenuFolderId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -1114,11 +1144,34 @@ function FolderList({ folders, isLoading, t, playlists, onAddToPlaylist, onCreat
                 })}
               </div>
             </div>
-            {folder.is_watched === 1 && (
-              <span className="text-[10px] font-bold tracking-widest text-emerald-500 uppercase">
-                {t("library.folderList.watched")}
-              </span>
-            )}
+            <Tooltip
+              label={
+                folder.is_watched === 1
+                  ? t("library.folderList.watchOff")
+                  : t("library.folderList.watchOn")
+              }
+            >
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleWatched(folder.id, folder.is_watched !== 1);
+                }}
+                aria-label={
+                  folder.is_watched === 1
+                    ? t("library.folderList.watchOff")
+                    : t("library.folderList.watchOn")
+                }
+                aria-pressed={folder.is_watched === 1}
+                className={`p-1.5 rounded-full transition-colors ${
+                  folder.is_watched === 1
+                    ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                    : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                }`}
+              >
+                {folder.is_watched === 1 ? <Eye size={16} /> : <EyeOff size={16} />}
+              </button>
+            </Tooltip>
             <div className="relative">
               <button
                 type="button"
