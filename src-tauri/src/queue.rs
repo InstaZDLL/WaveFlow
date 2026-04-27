@@ -372,6 +372,129 @@ pub async fn insert_after_current(
     Ok(())
 }
 
+/// Move the queue item at `from` to the slot at `to`, shifting the
+/// items between them in the opposite direction so positions stay
+/// dense and unique. Also adjusts `queue.current_index` so the
+/// playing track keeps playing — only the user's drag of the very
+/// item that's playing should change which position is "current".
+///
+/// `from` / `to` are clamped to `[0, len-1]`; out-of-range drops
+/// snap to the nearest end. SQLite's UNIQUE(position) is honored by
+/// parking the moved row at a high offset before the shift, then
+/// dropping it back to the target slot.
+pub async fn reorder(pool: &SqlitePool, from: i64, to: i64) -> AppResult<()> {
+    let len = queue_length(pool).await?;
+    if len == 0 {
+        return Ok(());
+    }
+    let from = from.clamp(0, len - 1);
+    let to = to.clamp(0, len - 1);
+    if from == to {
+        return Ok(());
+    }
+
+    const PARK: i64 = 10_000_000;
+    let mut tx = pool.begin().await?;
+
+    // 1. Park the moved row out of the way.
+    sqlx::query("UPDATE queue_item SET position = ? WHERE position = ?")
+        .bind(PARK)
+        .bind(from)
+        .execute(&mut *tx)
+        .await?;
+
+    // 2. Shift the affected range, again via PARK detour to keep the
+    //    UNIQUE constraint from firing mid-update on a contiguous
+    //    range — SQLite checks per row, so a direct
+    //    `position = position ± 1` would collide on the first step.
+    if to > from {
+        // Items in (from, to] shift down by 1.
+        sqlx::query(
+            "UPDATE queue_item SET position = position + ?
+              WHERE position > ? AND position <= ?",
+        )
+        .bind(PARK)
+        .bind(from)
+        .bind(to)
+        .execute(&mut *tx)
+        .await?;
+        sqlx::query(
+            "UPDATE queue_item SET position = position - ? - 1
+              WHERE position > ? AND position <= ?",
+        )
+        .bind(PARK)
+        .bind(from + PARK)
+        .bind(to + PARK)
+        .execute(&mut *tx)
+        .await?;
+    } else {
+        // Items in [to, from) shift up by 1.
+        sqlx::query(
+            "UPDATE queue_item SET position = position + ?
+              WHERE position >= ? AND position < ?",
+        )
+        .bind(PARK)
+        .bind(to)
+        .bind(from)
+        .execute(&mut *tx)
+        .await?;
+        sqlx::query(
+            "UPDATE queue_item SET position = position - ? + 1
+              WHERE position >= ? AND position < ?",
+        )
+        .bind(PARK)
+        .bind(to + PARK)
+        .bind(from + PARK)
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    // 3. Drop the parked row at its target.
+    sqlx::query("UPDATE queue_item SET position = ? WHERE position = ?")
+        .bind(to)
+        .bind(PARK)
+        .execute(&mut *tx)
+        .await?;
+
+    // 4. Adjust the cursor so the currently-playing track keeps
+    //    pointing at itself even when we shifted rows around it.
+    let raw: Option<String> = sqlx::query_scalar(
+        "SELECT value FROM profile_setting WHERE key = 'queue.current_index'",
+    )
+    .fetch_optional(&mut *tx)
+    .await?;
+    let current = raw.and_then(|s| s.parse::<i64>().ok()).unwrap_or(0);
+    let new_current = if current == from {
+        to
+    } else if from < to && current > from && current <= to {
+        current - 1
+    } else if to < from && current >= to && current < from {
+        current + 1
+    } else {
+        current
+    };
+    if new_current != current {
+        let now = Utc::now().timestamp_millis();
+        sqlx::query(
+            "UPDATE profile_setting SET value = ?, updated_at = ?
+              WHERE key = 'queue.current_index'",
+        )
+        .bind(new_current.to_string())
+        .bind(now)
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    // Reordering invalidates the pre-shuffle snapshot — the original
+    // order can't be reconstructed from a manually-tweaked queue.
+    sqlx::query("DELETE FROM profile_setting WHERE key = 'queue.preshuffle'")
+        .execute(&mut *tx)
+        .await?;
+
+    tx.commit().await?;
+    Ok(())
+}
+
 /// Count of rows in `queue_item`. Used by [`advance`] to bound the
 /// cursor when the queue length shrinks (e.g. a track is deleted).
 pub async fn queue_length(pool: &SqlitePool) -> AppResult<i64> {

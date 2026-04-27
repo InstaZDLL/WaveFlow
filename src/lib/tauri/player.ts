@@ -120,6 +120,21 @@ export function playerPlayNext(trackIds: number[]): Promise<void> {
   return invoke<void>("player_play_next", { trackIds });
 }
 
+/**
+ * Move the queue item at `fromPosition` to `toPosition`. The backend
+ * shifts the surrounding items so positions stay dense and adjusts
+ * `queue.current_index` so the playing track keeps playing.
+ */
+export function playerReorderQueue(
+  fromPosition: number,
+  toPosition: number,
+): Promise<void> {
+  return invoke<void>("player_reorder_queue", {
+    fromPosition,
+    toPosition,
+  });
+}
+
 export function playerPrevious(): Promise<void> {
   return invoke<void>("player_previous");
 }

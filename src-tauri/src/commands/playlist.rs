@@ -509,10 +509,14 @@ pub async fn remove_track_from_playlist(
     Ok(())
 }
 
-/// Move a track to a new absolute position. v1 stub — a drag-and-drop reorder
-/// UI would likely need a "shift the others" helper, which we defer. For now
-/// this writes the absolute position and lets the caller handle renumbering
-/// if it cares.
+/// Move a track to a new absolute position inside a playlist, shifting
+/// the surrounding rows so positions stay dense. Used by the
+/// drag-and-drop UI. `new_position` is clamped to `[0, length - 1]`
+/// so an out-of-range drop snaps to the nearest end instead of erroring.
+///
+/// `playlist_track.position` is non-UNIQUE (just an index for ORDER BY)
+/// so the shift is a single bulk UPDATE per direction; no offset
+/// gymnastics needed unlike the queue's UNIQUE-positioned variant.
 #[tauri::command]
 pub async fn reorder_playlist_track(
     state: tauri::State<'_, AppState>,
@@ -521,30 +525,77 @@ pub async fn reorder_playlist_track(
     new_position: i64,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
+    let mut tx = pool.begin().await?;
 
-    let result = sqlx::query(
-        "UPDATE playlist_track
-            SET position = ?
-          WHERE playlist_id = ? AND track_id = ?",
+    let from: Option<i64> = sqlx::query_scalar(
+        "SELECT position FROM playlist_track WHERE playlist_id = ? AND track_id = ?",
     )
-    .bind(new_position)
     .bind(playlist_id)
     .bind(track_id)
-    .execute(&pool)
+    .fetch_optional(&mut *tx)
     .await?;
-
-    if result.rows_affected() == 0 {
-        return Err(AppError::Other(format!(
+    let from = from.ok_or_else(|| {
+        AppError::Other(format!(
             "track {track_id} not in playlist {playlist_id}"
-        )));
+        ))
+    })?;
+
+    let len: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM playlist_track WHERE playlist_id = ?",
+    )
+    .bind(playlist_id)
+    .fetch_one(&mut *tx)
+    .await?;
+    let to = new_position.clamp(0, (len - 1).max(0));
+
+    if from == to {
+        tx.commit().await?;
+        return Ok(());
     }
+
+    if to > from {
+        // Items in (from, to] shift down by 1.
+        sqlx::query(
+            "UPDATE playlist_track
+                SET position = position - 1
+              WHERE playlist_id = ? AND position > ? AND position <= ?",
+        )
+        .bind(playlist_id)
+        .bind(from)
+        .bind(to)
+        .execute(&mut *tx)
+        .await?;
+    } else {
+        // Items in [to, from) shift up by 1.
+        sqlx::query(
+            "UPDATE playlist_track
+                SET position = position + 1
+              WHERE playlist_id = ? AND position >= ? AND position < ?",
+        )
+        .bind(playlist_id)
+        .bind(to)
+        .bind(from)
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    sqlx::query(
+        "UPDATE playlist_track SET position = ?
+          WHERE playlist_id = ? AND track_id = ?",
+    )
+    .bind(to)
+    .bind(playlist_id)
+    .bind(track_id)
+    .execute(&mut *tx)
+    .await?;
 
     sqlx::query("UPDATE playlist SET updated_at = ? WHERE id = ?")
         .bind(now_millis())
         .bind(playlist_id)
-        .execute(&pool)
+        .execute(&mut *tx)
         .await?;
 
+    tx.commit().await?;
     Ok(())
 }
 

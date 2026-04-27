@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Play,
@@ -8,7 +8,26 @@ import {
   Clock,
   Music2,
   Heart,
+  GripVertical,
 } from "lucide-react";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { CSS } from "@dnd-kit/utilities";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { Tooltip } from "../common/Tooltip";
@@ -23,7 +42,11 @@ import {
   toggleLikeTrack,
   type Track,
 } from "../../lib/tauri/track";
-import { getPlaylist, type Playlist } from "../../lib/tauri/playlist";
+import {
+  getPlaylist,
+  reorderPlaylistTrack,
+  type Playlist,
+} from "../../lib/tauri/playlist";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 
@@ -89,6 +112,23 @@ export function PlaylistView({
       console.error("[PlaylistView] remove track from playlist failed", err);
     }
   };
+
+  const handleReorder = useCallback(
+    (fromIdx: number, toIdx: number) => {
+      if (playlistId == null || fromIdx === toIdx) return;
+      const moved = tracks[fromIdx];
+      if (!moved) return;
+      // Optimistic local reorder so the row settles in place before
+      // the round-trip; if the backend rejects it, the playlist
+      // refetch on update_at change snaps things back.
+      setTracks((prev) => arrayMove(prev, fromIdx, toIdx));
+      reorderPlaylistTrack(playlistId, moved.id, toIdx).catch((err) => {
+        console.error("[PlaylistView] reorder failed", err);
+        setTracks((prev) => arrayMove(prev, toIdx, fromIdx));
+      });
+    },
+    [playlistId, tracks],
+  );
 
   const trackContextMenu = useTrackContextMenu({
     likedIds,
@@ -379,6 +419,7 @@ export function PlaylistView({
           likeLabel={t("liked.like")}
           unlikeLabel={t("liked.unlike")}
           onContextMenuRow={trackContextMenu.open}
+          onReorder={handleReorder}
         />
       ) : (
         <EmptyState
@@ -437,6 +478,7 @@ interface PlaylistTrackTableProps {
   likeLabel: string;
   unlikeLabel: string;
   onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
+  onReorder: (fromIndex: number, toIndex: number) => void;
 }
 
 function PlaylistTrackTable({
@@ -452,13 +494,49 @@ function PlaylistTrackTable({
   likeLabel,
   unlikeLabel,
   onContextMenuRow,
+  onReorder,
 }: PlaylistTrackTableProps) {
-  const gridCols = "grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem_2rem]";
+  const gridCols = "grid-cols-[1.5rem_3rem_2.75rem_1fr_1fr_1fr_5rem_2rem]";
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+  );
+  // Per-row stable IDs: `track.id` is the playlist's PRIMARY KEY and
+  // can't repeat (a track is in a playlist either zero or one times),
+  // so it doubles as the dnd-kit handle.
+  const ids = useMemo(() => tracks.map((t) => String(t.id)), [tracks]);
+
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const handleDragStart = useCallback((e: DragStartEvent) => {
+    setActiveId(String(e.active.id));
+  }, []);
+
+  const handleDragEnd = useCallback(
+    (e: DragEndEvent) => {
+      setActiveId(null);
+      const { active, over } = e;
+      if (!over || active.id === over.id) return;
+      const fromId = String(active.id);
+      const toId = String(over.id);
+      const from = tracks.findIndex((t) => String(t.id) === fromId);
+      const to = tracks.findIndex((t) => String(t.id) === toId);
+      if (from === -1 || to === -1) return;
+      onReorder(from, to);
+    },
+    [tracks, onReorder],
+  );
+
+  const handleDragCancel = useCallback(() => setActiveId(null), []);
+
+  const activeTrack = activeId
+    ? tracks.find((t) => String(t.id) === activeId)
+    : null;
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40 overflow-hidden">
       <div
         className={`grid ${gridCols} gap-4 px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-100 dark:border-zinc-800`}
       >
+        <span aria-hidden="true" />
         <span className="text-right">{headerLabels.number}</span>
         <span aria-hidden="true" />
         <span>{headerLabels.title}</span>
@@ -469,86 +547,206 @@ function PlaylistTrackTable({
         </span>
         <span aria-hidden="true" />
       </div>
-      <ul
-        className={`divide-y divide-zinc-100 dark:divide-zinc-800/60 ${
-          isLoading ? "opacity-50" : ""
-        }`}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        modifiers={[restrictToVerticalAxis]}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
       >
-        {tracks.map((track, index) => {
-          const isCurrent = track.id === currentTrackId;
-          return (
-            <li
-              key={`${track.id}-${index}`}
-              onDoubleClick={() => onPlayTrack(index)}
-              onContextMenu={(e) => onContextMenuRow(e, track)}
-              className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer ${
-                isCurrent
-                  ? "bg-emerald-50 dark:bg-emerald-900/20"
-                  : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
-              }`}
-            >
-              <span
-                className={`text-right text-sm tabular-nums ${
-                  isCurrent
-                    ? "text-emerald-500 font-semibold"
-                    : "text-zinc-400"
-                }`}
-              >
-                {index + 1}
-              </span>
-              <Artwork
-                path={track.artwork_path}
-                className="w-10 h-10"
-                iconSize={18}
-                alt={track.album_title ?? track.title}
-                rounded="md"
+        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+          <ul
+            className={`divide-y divide-zinc-100 dark:divide-zinc-800/60 ${
+              isLoading ? "opacity-50" : ""
+            }`}
+          >
+            {tracks.map((track, index) => (
+              <SortablePlaylistRow
+                key={track.id}
+                track={track}
+                index={index}
+                gridCols={gridCols}
+                isCurrent={track.id === currentTrackId}
+                isLiked={likedIds.has(track.id)}
+                likeLabel={likeLabel}
+                unlikeLabel={unlikeLabel}
+                unknownLabel={unknownLabel}
+                onPlayTrack={onPlayTrack}
+                onContextMenuRow={onContextMenuRow}
+                onToggleLike={onToggleLike}
+                onNavigateToArtist={onNavigateToArtist}
               />
-              <span
-                className={`text-sm truncate ${
-                  isCurrent
-                    ? "text-emerald-600 dark:text-emerald-400 font-semibold"
-                    : "text-zinc-800 dark:text-zinc-200"
-                }`}
-              >
-                {track.title}
-              </span>
-              <ArtistLink
-                name={track.artist_name}
-                artistIds={track.artist_ids}
-                onNavigate={onNavigateToArtist}
-                fallback={unknownLabel}
-                className="text-sm text-zinc-500 truncate"
-              />
-              <span className="text-sm text-zinc-500 truncate">
-                {track.album_title ?? unknownLabel}
-              </span>
-              <span className="text-sm tabular-nums text-zinc-400 text-right">
-                {formatDuration(track.duration_ms)}
-              </span>
-              <div className="flex justify-center">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleLike(track.id);
-                  }}
-                  aria-label={likedIds.has(track.id) ? unlikeLabel : likeLabel}
-                  className={`p-1 rounded-full transition-colors ${
-                    likedIds.has(track.id)
-                      ? "text-pink-500"
-                      : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
-                  }`}
-                >
-                  <Heart
-                    size={14}
-                    className={likedIds.has(track.id) ? "fill-current" : ""}
-                  />
-                </button>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+            ))}
+          </ul>
+        </SortableContext>
+        {/* Active row gets cloned into this overlay so it follows the
+            cursor in a layer detached from `SortableContext`. The
+            in-list copy stays mounted at opacity 0 to preserve its
+            slot for the layout calculations. */}
+        <DragOverlay dropAnimation={null}>
+          {activeTrack ? (
+            <PlaylistRowPreview track={activeTrack} unknownLabel={unknownLabel} />
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 }
+
+function PlaylistRowPreview({
+  track,
+  unknownLabel,
+}: {
+  track: Track;
+  unknownLabel: string;
+}) {
+  return (
+    <div className="flex items-center space-x-3 p-2 rounded-lg bg-white dark:bg-zinc-800 shadow-lg border border-zinc-200 dark:border-zinc-700 select-none">
+      <div className="shrink-0 p-1 -ml-1 text-zinc-400">
+        <GripVertical size={14} />
+      </div>
+      <Artwork
+        path={track.artwork_path}
+        className="w-10 h-10"
+        iconSize={18}
+        alt={track.album_title ?? track.title}
+        rounded="md"
+      />
+      <div className="flex-1 min-w-0">
+        <div className="text-sm truncate text-zinc-800 dark:text-zinc-200">
+          {track.title}
+        </div>
+        <div className="text-xs text-zinc-500 truncate">
+          {track.artist_name ?? unknownLabel}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface SortablePlaylistRowProps {
+  track: Track;
+  index: number;
+  gridCols: string;
+  isCurrent: boolean;
+  isLiked: boolean;
+  likeLabel: string;
+  unlikeLabel: string;
+  unknownLabel: string;
+  onPlayTrack: (index: number) => void;
+  onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
+  onToggleLike: (trackId: number) => void;
+  onNavigateToArtist: (artistId: number) => void;
+}
+
+const SortablePlaylistRow = memo(function SortablePlaylistRow({
+  track,
+  index,
+  gridCols,
+  isCurrent,
+  isLiked,
+  likeLabel,
+  unlikeLabel,
+  unknownLabel,
+  onPlayTrack,
+  onContextMenuRow,
+  onToggleLike,
+  onNavigateToArtist,
+}: SortablePlaylistRowProps) {
+  // Disable dnd-kit's per-item layout animations: they trigger CSS
+  // transitions on every neighbour the drag crosses, which is what
+  // makes the row feel sluggish on long playlists. The visual jump
+  // when items snap into their new slot is barely noticeable, and
+  // the drag itself is now silky-smooth.
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({
+    id: String(track.id),
+    animateLayoutChanges: () => false,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    // While this row is the drag source, `<DragOverlay>` shows the
+    // visible copy that follows the cursor. We hide the in-place
+    // copy but keep it mounted to preserve its slot for neighbour
+    // layout calculations.
+    opacity: isDragging ? 0 : 1,
+  };
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      onDoubleClick={() => onPlayTrack(index)}
+      onContextMenu={(e) => onContextMenuRow(e, track)}
+      className={`group grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer ${
+        isCurrent
+          ? "bg-emerald-50 dark:bg-emerald-900/20"
+          : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
+      }`}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder"
+        className="shrink-0 p-1 -ml-1 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
+      >
+        <GripVertical size={14} />
+      </button>
+      <span
+        className={`text-right text-sm tabular-nums ${
+          isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
+        }`}
+      >
+        {index + 1}
+      </span>
+      <Artwork
+        path={track.artwork_path}
+        className="w-10 h-10"
+        iconSize={18}
+        alt={track.album_title ?? track.title}
+        rounded="md"
+      />
+      <span
+        className={`text-sm truncate ${
+          isCurrent
+            ? "text-emerald-600 dark:text-emerald-400 font-semibold"
+            : "text-zinc-800 dark:text-zinc-200"
+        }`}
+      >
+        {track.title}
+      </span>
+      <ArtistLink
+        name={track.artist_name}
+        artistIds={track.artist_ids}
+        onNavigate={onNavigateToArtist}
+        fallback={unknownLabel}
+        className="text-sm text-zinc-500 truncate"
+      />
+      <span className="text-sm text-zinc-500 truncate">
+        {track.album_title ?? unknownLabel}
+      </span>
+      <span className="text-sm tabular-nums text-zinc-400 text-right">
+        {formatDuration(track.duration_ms)}
+      </span>
+      <div className="flex justify-center">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleLike(track.id);
+          }}
+          aria-label={isLiked ? unlikeLabel : likeLabel}
+          className={`p-1 rounded-full transition-colors ${
+            isLiked
+              ? "text-pink-500"
+              : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
+          }`}
+        >
+          <Heart size={14} className={isLiked ? "fill-current" : ""} />
+        </button>
+      </div>
+    </li>
+  );
+});

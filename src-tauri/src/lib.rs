@@ -141,6 +141,7 @@ pub fn run() {
             commands::player::player_play_tracks,
             commands::player::player_add_to_queue,
             commands::player::player_play_next,
+            commands::player::player_reorder_queue,
             commands::player::player_next,
             commands::player::player_previous,
             commands::player::player_toggle_shuffle,

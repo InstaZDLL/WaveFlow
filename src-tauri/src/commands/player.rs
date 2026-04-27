@@ -614,6 +614,23 @@ pub async fn player_play_tracks(
     })
 }
 
+/// Move the queue item at `from_position` to `to_position`, used by
+/// the queue panel's drag-and-drop. The backend re-numbers the
+/// surrounding items so positions stay dense and adjusts
+/// `queue.current_index` so the playing track keeps playing.
+#[tauri::command]
+pub async fn player_reorder_queue(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+    from_position: i64,
+    to_position: i64,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    queue::reorder(&pool, from_position, to_position).await?;
+    emit_queue_changed(&app);
+    Ok(())
+}
+
 /// Append a list of tracks to the end of the playback queue without
 /// disturbing the current cursor. Used by the context menu's
 /// "Add to queue" action.
