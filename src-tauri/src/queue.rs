@@ -261,6 +261,117 @@ pub async fn fill_queue(
     Ok(())
 }
 
+/// Append `track_ids` to the end of the queue without disturbing the
+/// current cursor. Used by the "Add to queue" context menu action so
+/// the user can stack tracks without losing what's currently playing.
+pub async fn append(
+    pool: &SqlitePool,
+    track_ids: &[i64],
+    source_type: &str,
+    source_id: Option<i64>,
+) -> AppResult<()> {
+    if track_ids.is_empty() {
+        return Ok(());
+    }
+    let mut tx = pool.begin().await?;
+    let max_pos: Option<i64> =
+        sqlx::query_scalar("SELECT MAX(position) FROM queue_item")
+            .fetch_one(&mut *tx)
+            .await?;
+    let mut next = max_pos.map(|p| p + 1).unwrap_or(0);
+    let now = Utc::now().timestamp_millis();
+    for id in track_ids {
+        sqlx::query(
+            "INSERT INTO queue_item (track_id, position, source_type, source_id, added_at)
+             VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(id)
+        .bind(next)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(now)
+        .execute(&mut *tx)
+        .await?;
+        next += 1;
+    }
+    // Order changed → shuffle snapshot is no longer reusable.
+    sqlx::query("DELETE FROM profile_setting WHERE key = 'queue.preshuffle'")
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// Insert `track_ids` immediately after the current cursor position.
+/// Existing items past the cursor are pushed down to keep the queue
+/// dense. Returns nothing — the cursor itself doesn't move so the
+/// currently-playing track keeps playing.
+pub async fn insert_after_current(
+    pool: &SqlitePool,
+    track_ids: &[i64],
+    source_type: &str,
+    source_id: Option<i64>,
+) -> AppResult<()> {
+    if track_ids.is_empty() {
+        return Ok(());
+    }
+    let len = queue_length(pool).await?;
+    if len == 0 {
+        // No queue yet — fall back to filling it and starting at 0.
+        return fill_queue(pool, source_type, source_id, track_ids, 0).await;
+    }
+    let current = read_setting_i64(pool, "queue.current_index")
+        .await?
+        .unwrap_or(0)
+        .clamp(0, len - 1);
+    let insert_at = current + 1;
+    let count = track_ids.len() as i64;
+    let mut tx = pool.begin().await?;
+
+    // Push existing items down to make room. SQLite checks the
+    // UNIQUE(position) constraint per row, so a direct
+    // `position = position + N` would collide mid-update. Bump the
+    // affected rows into a high range first, then bring them back
+    // down past the inserted block. The 10_000_000 offset is well
+    // above any realistic queue length.
+    const OFFSET: i64 = 10_000_000;
+    sqlx::query("UPDATE queue_item SET position = position + ? WHERE position >= ?")
+        .bind(OFFSET)
+        .bind(insert_at)
+        .execute(&mut *tx)
+        .await?;
+
+    let now = Utc::now().timestamp_millis();
+    for (offset, id) in track_ids.iter().enumerate() {
+        sqlx::query(
+            "INSERT INTO queue_item (track_id, position, source_type, source_id, added_at)
+             VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(id)
+        .bind(insert_at + offset as i64)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(now)
+        .execute(&mut *tx)
+        .await?;
+    }
+    // Bring the bumped rows back down past the freshly-inserted block.
+    sqlx::query(
+        "UPDATE queue_item SET position = position - ? + ? WHERE position >= ?",
+    )
+    .bind(OFFSET)
+    .bind(count)
+    .bind(insert_at + OFFSET)
+    .execute(&mut *tx)
+    .await?;
+
+    sqlx::query("DELETE FROM profile_setting WHERE key = 'queue.preshuffle'")
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
 /// Count of rows in `queue_item`. Used by [`advance`] to bound the
 /// cursor when the queue length shrinks (e.g. a track is deleted).
 pub async fn queue_length(pool: &SqlitePool) -> AppResult<i64> {

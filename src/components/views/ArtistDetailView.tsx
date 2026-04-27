@@ -3,7 +3,10 @@ import { useTranslation } from "react-i18next";
 import { Play, Shuffle, Music2, Clock, Heart } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { EmptyState } from "../common/EmptyState";
+import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { usePlayer } from "../../hooks/usePlayer";
+import { usePlaylist } from "../../hooks/usePlaylist";
+import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import {
   getArtistDetail,
   enrichArtistDeezer,
@@ -29,11 +32,27 @@ export function ArtistDetailView({
 }: ArtistDetailViewProps) {
   const { t } = useTranslation();
   const { playTracks, currentTrack, toggleShuffle } = usePlayer();
+  const { createPlaylist } = usePlaylist();
 
   const [artist, setArtist] = useState<ArtistDetail | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
+
+  const trackContextMenu = useTrackContextMenu({
+    likedIds,
+    onLikedChanged: (trackId, nowLiked) =>
+      setLikedIds((prev) => {
+        const next = new Set(prev);
+        if (nowLiked) next.add(trackId);
+        else next.delete(trackId);
+        return next;
+      }),
+    onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
+    onNavigateToAlbum,
+    // No `onNavigateToArtist` — we're already on the artist page.
+  });
 
   // Deezer enrichment. `pictureSrc` is already resolved against the
   // local file cache (via `convertFileSrc`) when available so the
@@ -316,10 +335,30 @@ export function ArtistDetailView({
             onPlayTrack={(index) =>
               playTracks(tracks, index, { type: "library", id: null })
             }
+            onContextMenuRow={trackContextMenu.open}
             t={t}
           />
         </div>
       )}
+
+      <CreatePlaylistModal
+        isOpen={isCreatePlaylistModalOpen}
+        onClose={() => setIsCreatePlaylistModalOpen(false)}
+        onCreate={async (data) => {
+          try {
+            await createPlaylist({
+              name: data.name,
+              description: data.description || null,
+              color_id: data.colorId,
+              icon_id: data.iconId,
+            });
+          } catch (err) {
+            console.error("[ArtistDetailView] create playlist failed", err);
+          }
+        }}
+      />
+
+      {trackContextMenu.render()}
     </div>
   );
 }
@@ -333,6 +372,7 @@ function ArtistTrackTable({
   likedIds,
   onToggleLike,
   onPlayTrack,
+  onContextMenuRow,
   t,
 }: {
   tracks: Track[];
@@ -341,6 +381,7 @@ function ArtistTrackTable({
   likedIds: Set<number>;
   onToggleLike: (trackId: number) => void;
   onPlayTrack: (index: number) => void;
+  onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
   const gridCols = "grid-cols-[3rem_2.75rem_1fr_1fr_5rem_2rem]";
@@ -370,6 +411,7 @@ function ArtistTrackTable({
             <li
               key={`${track.id}-${index}`}
               onDoubleClick={() => onPlayTrack(index)}
+              onContextMenu={(e) => onContextMenuRow(e, track)}
               className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer ${
                 isCurrent
                   ? "bg-emerald-50 dark:bg-emerald-900/20"

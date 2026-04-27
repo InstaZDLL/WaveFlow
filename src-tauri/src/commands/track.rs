@@ -16,6 +16,7 @@ pub struct Track {
     pub id: i64,
     pub library_id: i64,
     pub title: String,
+    pub album_id: Option<i64>,
     pub album_title: Option<String>,
     pub artist_id: Option<i64>,
     pub artist_name: Option<String>,
@@ -44,6 +45,7 @@ struct TrackRow {
     id: i64,
     library_id: i64,
     title: String,
+    album_id: Option<i64>,
     album_title: Option<String>,
     artist_id: Option<i64>,
     artist_name: Option<String>,
@@ -78,6 +80,7 @@ pub async fn list_tracks(
     let rows = sqlx::query_as::<_, TrackRow>(
         r#"
         SELECT t.id, t.library_id, t.title,
+               t.album_id,
                al.title AS album_title,
                t.primary_artist AS artist_id,
                (SELECT GROUP_CONCAT(name, ', ') FROM (
@@ -129,6 +132,7 @@ pub async fn list_tracks(
                 id: row.id,
                 library_id: row.library_id,
                 title: row.title,
+                album_id: row.album_id,
                 album_title: row.album_title,
                 artist_id: row.artist_id,
                 artist_name: row.artist_name,
@@ -178,6 +182,7 @@ pub async fn search_tracks(
     let rows = sqlx::query_as::<_, TrackRow>(
         r#"
         SELECT t.id, t.library_id, t.title,
+               t.album_id,
                al.title AS album_title,
                t.primary_artist AS artist_id,
                (SELECT GROUP_CONCAT(name, ', ') FROM (
@@ -226,6 +231,7 @@ pub async fn search_tracks(
                 id: row.id,
                 library_id: row.library_id,
                 title: row.title,
+                album_id: row.album_id,
                 album_title: row.album_title,
                 artist_id: row.artist_id,
                 artist_name: row.artist_name,
@@ -306,6 +312,7 @@ pub async fn list_liked_tracks(
     let rows = sqlx::query_as::<_, TrackRow>(
         r#"
         SELECT t.id, t.library_id, t.title,
+               t.album_id,
                al.title AS album_title,
                t.primary_artist AS artist_id,
                (SELECT GROUP_CONCAT(name, ', ') FROM (
@@ -352,6 +359,7 @@ pub async fn list_liked_tracks(
                 id: row.id,
                 library_id: row.library_id,
                 title: row.title,
+                album_id: row.album_id,
                 album_title: row.album_title,
                 artist_id: row.artist_id,
                 artist_name: row.artist_name,

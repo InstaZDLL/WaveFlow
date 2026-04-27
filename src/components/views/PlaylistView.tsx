@@ -16,6 +16,7 @@ import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
+import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import {
   formatDuration,
   listLikedTrackIds,
@@ -30,14 +31,21 @@ interface PlaylistViewProps {
   playlistId: number | null;
   /** Called when the active playlist gets deleted so AppLayout can swap. */
   onAfterDelete: () => void;
+  onNavigateToAlbum: (albumId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
 }
 
-export function PlaylistView({ playlistId, onAfterDelete, onNavigateToArtist }: PlaylistViewProps) {
+export function PlaylistView({
+  playlistId,
+  onAfterDelete,
+  onNavigateToAlbum,
+  onNavigateToArtist,
+}: PlaylistViewProps) {
   const { t } = useTranslation();
   const { playTracks, currentTrack, toggleShuffle } = usePlayer();
-  const { updatePlaylist, deletePlaylist, getPlaylistTracks, playlists } =
+  const { updatePlaylist, deletePlaylist, getPlaylistTracks, playlists, removeTrackFromPlaylist, createPlaylist } =
     usePlaylist();
+  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
 
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -72,6 +80,31 @@ export function PlaylistView({ playlistId, onAfterDelete, onNavigateToArtist }: 
       return next;
     });
   };
+
+  const handleRemoveFromPlaylist = async (pid: number, trackId: number) => {
+    try {
+      await removeTrackFromPlaylist(pid, trackId);
+      setTracks((prev) => prev.filter((t) => t.id !== trackId));
+    } catch (err) {
+      console.error("[PlaylistView] remove track from playlist failed", err);
+    }
+  };
+
+  const trackContextMenu = useTrackContextMenu({
+    likedIds,
+    onLikedChanged: (trackId, nowLiked) =>
+      setLikedIds((prev) => {
+        const next = new Set(prev);
+        if (nowLiked) next.add(trackId);
+        else next.delete(trackId);
+        return next;
+      }),
+    onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
+    onNavigateToAlbum,
+    onNavigateToArtist,
+    currentPlaylistId: playlistId,
+    onRemoveFromPlaylist: handleRemoveFromPlaylist,
+  });
 
   // Fetch playlist + its tracks whenever the focused id changes. Also
   // re-runs when the playlist list itself updates (e.g. after rename via
@@ -345,6 +378,7 @@ export function PlaylistView({ playlistId, onAfterDelete, onNavigateToArtist }: 
           }}
           likeLabel={t("liked.like")}
           unlikeLabel={t("liked.unlike")}
+          onContextMenuRow={trackContextMenu.open}
         />
       ) : (
         <EmptyState
@@ -361,6 +395,25 @@ export function PlaylistView({ playlistId, onAfterDelete, onNavigateToArtist }: 
         existing={playlist}
         onCreate={handleEditSubmit}
       />
+
+      <CreatePlaylistModal
+        isOpen={isCreatePlaylistModalOpen}
+        onClose={() => setIsCreatePlaylistModalOpen(false)}
+        onCreate={async (data) => {
+          try {
+            await createPlaylist({
+              name: data.name,
+              description: data.description || null,
+              color_id: data.colorId,
+              icon_id: data.iconId,
+            });
+          } catch (err) {
+            console.error("[PlaylistView] create playlist failed", err);
+          }
+        }}
+      />
+
+      {trackContextMenu.render()}
     </div>
   );
 }
@@ -383,6 +436,7 @@ interface PlaylistTrackTableProps {
   };
   likeLabel: string;
   unlikeLabel: string;
+  onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
 }
 
 function PlaylistTrackTable({
@@ -397,6 +451,7 @@ function PlaylistTrackTable({
   headerLabels,
   likeLabel,
   unlikeLabel,
+  onContextMenuRow,
 }: PlaylistTrackTableProps) {
   const gridCols = "grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem_2rem]";
   return (
@@ -425,6 +480,7 @@ function PlaylistTrackTable({
             <li
               key={`${track.id}-${index}`}
               onDoubleClick={() => onPlayTrack(index)}
+              onContextMenu={(e) => onContextMenuRow(e, track)}
               className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer ${
                 isCurrent
                   ? "bg-emerald-50 dark:bg-emerald-900/20"

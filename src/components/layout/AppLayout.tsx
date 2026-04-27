@@ -99,9 +99,19 @@ export function AppLayout() {
           />
         );
       case "liked":
-        return <LikedView onNavigateToArtist={navigateToArtist} />;
+        return (
+          <LikedView
+            onNavigateToAlbum={navigateToAlbum}
+            onNavigateToArtist={navigateToArtist}
+          />
+        );
       case "recent":
-        return <RecentView onNavigateToArtist={navigateToArtist} />;
+        return (
+          <RecentView
+            onNavigateToAlbum={navigateToAlbum}
+            onNavigateToArtist={navigateToArtist}
+          />
+        );
       case "playlist":
         return (
           <PlaylistView
@@ -110,6 +120,7 @@ export function AppLayout() {
               setActivePlaylistId(null);
               setActiveView("home");
             }}
+            onNavigateToAlbum={navigateToAlbum}
             onNavigateToArtist={navigateToArtist}
           />
         );

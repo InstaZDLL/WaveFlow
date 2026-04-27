@@ -4,7 +4,10 @@ import { Play, Shuffle, Clock, Music2, Heart } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { EmptyState } from "../common/EmptyState";
+import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { usePlayer } from "../../hooks/usePlayer";
+import { usePlaylist } from "../../hooks/usePlaylist";
+import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import {
   getAlbumDetail,
   enrichAlbumDeezer,
@@ -29,10 +32,26 @@ export function AlbumDetailView({
 }: AlbumDetailViewProps) {
   const { t } = useTranslation();
   const { playTracks, currentTrack, toggleShuffle } = usePlayer();
+  const { createPlaylist } = usePlaylist();
 
   const [album, setAlbum] = useState<AlbumDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
+
+  const trackContextMenu = useTrackContextMenu({
+    likedIds,
+    onLikedChanged: (trackId, nowLiked) =>
+      setLikedIds((prev) => {
+        const next = new Set(prev);
+        if (nowLiked) next.add(trackId);
+        else next.delete(trackId);
+        return next;
+      }),
+    onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
+    // No `onNavigateToAlbum` — we're already on the album page.
+    onNavigateToArtist,
+  });
 
   // Deezer enrichment overlay
   const [enrichedLabel, setEnrichedLabel] = useState<string | null>(null);
@@ -116,6 +135,7 @@ export function AlbumDetailView({
     id: at.id,
     library_id: 0,
     title: at.title,
+    album_id: album.id,
     album_title: album.title,
     artist_id: at.artist_id,
     artist_name: at.artist_name,
@@ -263,6 +283,7 @@ export function AlbumDetailView({
             })
           }
           onNavigateToArtist={onNavigateToArtist}
+          onContextMenuRow={trackContextMenu.open}
           t={t}
         />
       ) : (
@@ -273,6 +294,25 @@ export function AlbumDetailView({
           className="py-20"
         />
       )}
+
+      <CreatePlaylistModal
+        isOpen={isCreatePlaylistModalOpen}
+        onClose={() => setIsCreatePlaylistModalOpen(false)}
+        onCreate={async (data) => {
+          try {
+            await createPlaylist({
+              name: data.name,
+              description: data.description || null,
+              color_id: data.colorId,
+              icon_id: data.iconId,
+            });
+          } catch (err) {
+            console.error("[AlbumDetailView] create playlist failed", err);
+          }
+        }}
+      />
+
+      {trackContextMenu.render()}
     </div>
   );
 }
@@ -290,11 +330,13 @@ interface AlbumTrackTableProps {
   onToggleLike: (trackId: number) => void;
   onPlayTrack: (index: number) => void;
   onNavigateToArtist: (artistId: number) => void;
+  onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
 
 function AlbumTrackTable({
   tracks,
+  playableTracks,
   isLoading,
   isMultiDisc,
   discNumbers,
@@ -303,6 +345,7 @@ function AlbumTrackTable({
   onToggleLike,
   onPlayTrack,
   onNavigateToArtist,
+  onContextMenuRow,
   t,
 }: AlbumTrackTableProps) {
   const gridCols = "grid-cols-[3rem_1fr_1fr_5rem_2rem]";
@@ -313,6 +356,7 @@ function AlbumTrackTable({
       <li
         key={`${track.id}-${globalIndex}`}
         onDoubleClick={() => onPlayTrack(globalIndex)}
+        onContextMenu={(e) => onContextMenuRow(e, playableTracks[globalIndex])}
         className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer ${
           isCurrent
             ? "bg-emerald-50 dark:bg-emerald-900/20"

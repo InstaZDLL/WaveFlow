@@ -4,7 +4,10 @@ import { Heart, Clock, Play } from "lucide-react";
 import { EmptyState } from "../common/EmptyState";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
+import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { usePlayer } from "../../hooks/usePlayer";
+import { usePlaylist } from "../../hooks/usePlaylist";
+import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import {
   listLikedTracks,
   toggleLikeTrack,
@@ -13,14 +16,33 @@ import {
 } from "../../lib/tauri/track";
 
 interface LikedViewProps {
+  onNavigateToAlbum: (albumId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
 }
 
-export function LikedView({ onNavigateToArtist }: LikedViewProps) {
+export function LikedView({ onNavigateToAlbum, onNavigateToArtist }: LikedViewProps) {
   const { t } = useTranslation();
   const { playTracks, currentTrack, playbackState } = usePlayer();
+  const { createPlaylist } = usePlaylist();
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
+  // Local liked-set built from `tracks`: every loaded row is liked by
+  // definition, so we just rebuild on each fetch / unlike.
+  const likedIds = new Set(tracks.map((t) => t.id));
+
+  const trackContextMenu = useTrackContextMenu({
+    likedIds,
+    onLikedChanged: (trackId, nowLiked) => {
+      // Unliking from the menu also drops the row from the list.
+      if (!nowLiked) {
+        setTracks((prev) => prev.filter((t) => t.id !== trackId));
+      }
+    },
+    onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
+    onNavigateToAlbum,
+    onNavigateToArtist,
+  });
 
   // Reload when the view mounts and when playback ends (a new
   // play_event might bump the sidebar counter — keep in sync).
@@ -117,6 +139,7 @@ export function LikedView({ onNavigateToArtist }: LikedViewProps) {
                   onDoubleClick={() =>
                     playTracks(tracks, index, { type: "liked", id: null })
                   }
+                  onContextMenu={(e) => trackContextMenu.open(e, track)}
                   className={`group grid grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem_2.5rem] gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer ${
                     isCurrent
                       ? "bg-emerald-50 dark:bg-emerald-900/20"
@@ -187,6 +210,25 @@ export function LikedView({ onNavigateToArtist }: LikedViewProps) {
           className="py-20"
         />
       )}
+
+      <CreatePlaylistModal
+        isOpen={isCreatePlaylistModalOpen}
+        onClose={() => setIsCreatePlaylistModalOpen(false)}
+        onCreate={async (data) => {
+          try {
+            await createPlaylist({
+              name: data.name,
+              description: data.description || null,
+              color_id: data.colorId,
+              icon_id: data.iconId,
+            });
+          } catch (err) {
+            console.error("[LikedView] create playlist failed", err);
+          }
+        }}
+      />
+
+      {trackContextMenu.render()}
     </div>
   );
 }

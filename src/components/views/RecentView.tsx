@@ -4,10 +4,17 @@ import { Clock } from "lucide-react";
 import { EmptyState } from "../common/EmptyState";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
+import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 
 import { usePlayer } from "../../hooks/usePlayer";
+import { usePlaylist } from "../../hooks/usePlaylist";
+import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { listRecentPlays, type RecentPlay } from "../../lib/tauri/browse";
-import { formatDuration } from "../../lib/tauri/track";
+import {
+  formatDuration,
+  listLikedTrackIds,
+  type Track,
+} from "../../lib/tauri/track";
 
 const LIMIT = 50;
 
@@ -34,14 +41,66 @@ function formatPlayedAt(ts: number, locale: string): string {
 }
 
 interface RecentViewProps {
+  onNavigateToAlbum: (albumId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
 }
 
-export function RecentView({ onNavigateToArtist }: RecentViewProps) {
+/**
+ * Lift a `RecentPlay` row to the full `Track` shape expected by the
+ * context menu. The fields the menu doesn't read are nulled out.
+ */
+function recentPlayToTrack(rp: RecentPlay): Track {
+  return {
+    id: rp.track_id,
+    library_id: 0,
+    title: rp.title,
+    album_id: rp.album_id,
+    album_title: rp.album_title,
+    artist_id: rp.artist_id,
+    artist_name: rp.artist_name,
+    artist_ids: rp.artist_ids,
+    duration_ms: rp.duration_ms,
+    track_number: null,
+    disc_number: null,
+    year: null,
+    bitrate: null,
+    sample_rate: null,
+    channels: null,
+    file_path: rp.file_path,
+    file_size: 0,
+    added_at: 0,
+    artwork_path: rp.artwork_path,
+  };
+}
+
+export function RecentView({ onNavigateToAlbum, onNavigateToArtist }: RecentViewProps) {
   const { t, i18n } = useTranslation();
   const { playbackState, currentTrack } = usePlayer();
+  const { createPlaylist } = usePlaylist();
   const [tracks, setTracks] = useState<RecentPlay[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
+
+  useEffect(() => {
+    listLikedTrackIds()
+      .then((ids) => setLikedIds(new Set(ids)))
+      .catch(() => {});
+  }, []);
+
+  const trackContextMenu = useTrackContextMenu({
+    likedIds,
+    onLikedChanged: (trackId, nowLiked) =>
+      setLikedIds((prev) => {
+        const next = new Set(prev);
+        if (nowLiked) next.add(trackId);
+        else next.delete(trackId);
+        return next;
+      }),
+    onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
+    onNavigateToAlbum,
+    onNavigateToArtist,
+  });
 
   // Reload on library change + whenever playback transitions to a
   // new "ended" state (which means a play_event row has just been
@@ -112,7 +171,10 @@ export function RecentView({ onNavigateToArtist }: RecentViewProps) {
               return (
                 <li
                   key={track.track_id}
-                  className={`grid grid-cols-[3rem_1fr_1fr_8rem_5rem] gap-4 px-5 py-2 items-center transition-colors ${
+                  onContextMenu={(e) =>
+                    trackContextMenu.open(e, recentPlayToTrack(track))
+                  }
+                  className={`grid grid-cols-[3rem_1fr_1fr_8rem_5rem] gap-4 px-5 py-2 items-center transition-colors cursor-default ${
                     isCurrent
                       ? "bg-emerald-50 dark:bg-emerald-900/20"
                       : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
@@ -158,6 +220,25 @@ export function RecentView({ onNavigateToArtist }: RecentViewProps) {
           </ul>
         </div>
       )}
+
+      <CreatePlaylistModal
+        isOpen={isCreatePlaylistModalOpen}
+        onClose={() => setIsCreatePlaylistModalOpen(false)}
+        onCreate={async (data) => {
+          try {
+            await createPlaylist({
+              name: data.name,
+              description: data.description || null,
+              color_id: data.colorId,
+              icon_id: data.iconId,
+            });
+          } catch (err) {
+            console.error("[RecentView] create playlist failed", err);
+          }
+        }}
+      />
+
+      {trackContextMenu.render()}
     </div>
   );
 }

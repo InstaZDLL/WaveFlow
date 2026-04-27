@@ -25,6 +25,7 @@ import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { useLibrary } from "../../hooks/useLibrary";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
+import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
@@ -109,6 +110,20 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const EmptyIcon = emptyStateIcons[activeTab];
   const HeaderIcon = headerIcons[activeTab];
+
+  const trackContextMenu = useTrackContextMenu({
+    likedIds,
+    onLikedChanged: (trackId, nowLiked) =>
+      setLikedIds((prev) => {
+        const next = new Set(prev);
+        if (nowLiked) next.add(trackId);
+        else next.delete(trackId);
+        return next;
+      }),
+    onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
+    onNavigateToAlbum,
+    onNavigateToArtist,
+  });
 
   // Re-fetch when any library's updated_at changes (e.g. after a scan).
   const librariesSignature = libraries
@@ -380,6 +395,7 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
               }}
               onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
               onNavigateToArtist={onNavigateToArtist}
+              onContextMenuRow={trackContextMenu.open}
             />
           )}
           {activeTab === "albums" && (
@@ -449,6 +465,8 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
         </EmptyState>
       )}
 
+      {trackContextMenu.render()}
+
       <CreatePlaylistModal
         isOpen={isCreatePlaylistModalOpen}
         onClose={() => setIsCreatePlaylistModalOpen(false)}
@@ -486,6 +504,7 @@ interface TrackTableProps {
   onAddToPlaylist: (playlistId: number, trackId: number) => void;
   onCreatePlaylist: () => void;
   onNavigateToArtist: (artistId: number) => void;
+  onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
 }
 
 function TrackTable({
@@ -501,6 +520,7 @@ function TrackTable({
   onAddToPlaylist,
   onCreatePlaylist,
   onNavigateToArtist,
+  onContextMenuRow,
 }: TrackTableProps) {
   const unknown = t("library.table.unknown");
   const [openMenuTrackId, setOpenMenuTrackId] = useState<number | null>(null);
@@ -579,6 +599,7 @@ function TrackTable({
               <div
                 key={track.id}
                 onDoubleClick={() => onPlayTrack(index)}
+                onContextMenu={(e) => onContextMenuRow(e, track)}
                 style={{
                   position: "absolute",
                   top: 0,

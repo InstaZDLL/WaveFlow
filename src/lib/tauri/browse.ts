@@ -63,10 +63,12 @@ export interface RecentPlay {
   artist_id: number | null;
   artist_name: string | null;
   artist_ids: string | null;
+  album_id: number | null;
   album_title: string | null;
   duration_ms: number;
   played_at: number;
   artwork_path: string | null;
+  file_path: string;
 }
 
 export function listRecentPlays(

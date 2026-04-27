@@ -614,6 +614,35 @@ pub async fn player_play_tracks(
     })
 }
 
+/// Append a list of tracks to the end of the playback queue without
+/// disturbing the current cursor. Used by the context menu's
+/// "Add to queue" action.
+#[tauri::command]
+pub async fn player_add_to_queue(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+    track_ids: Vec<i64>,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    queue::append(&pool, &track_ids, "manual", None).await?;
+    emit_queue_changed(&app);
+    Ok(())
+}
+
+/// Insert a list of tracks immediately after the currently-playing
+/// position. Used by "Play next" — does not interrupt playback.
+#[tauri::command]
+pub async fn player_play_next(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+    track_ids: Vec<i64>,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    queue::insert_after_current(&pool, &track_ids, "manual", None).await?;
+    emit_queue_changed(&app);
+    Ok(())
+}
+
 /// Advance to the next track in the queue, respecting the current
 /// repeat mode. No-op when the queue is empty or the user is at the
 /// end with repeat off.

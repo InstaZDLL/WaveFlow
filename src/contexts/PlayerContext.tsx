@@ -39,6 +39,7 @@ function queuePayloadToTrack(payload: QueueTrackPayload): Track {
     id: payload.id,
     library_id: 0,
     title: payload.title,
+    album_id: null,
     album_title: payload.album_title,
     artist_id: payload.artist_id,
     artist_name: payload.artist_name,

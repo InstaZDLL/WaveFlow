@@ -438,7 +438,16 @@
   "trackActions": {
     "addToPlaylist": "Ajouter à une playlist",
     "noPlaylists": "Aucune playlist. Crée-en une ci-dessous.",
-    "createPlaylist": "Nouvelle playlist"
+    "createPlaylist": "Nouvelle playlist",
+    "playNext": "Lire la suite",
+    "addToQueue": "Ajouter à la file d'attente",
+    "like": "Ajouter aux titres likés",
+    "unlike": "Retirer des titres likés",
+    "removeFromPlaylist": "Retirer de cette playlist",
+    "goToAlbum": "Aller à l'album",
+    "goToArtist": "Aller à l'artiste",
+    "showInExplorer": "Afficher dans l'explorateur",
+    "copyPath": "Copier le chemin du fichier"
   },
   "albumDetail": {
     "badge": "Album",

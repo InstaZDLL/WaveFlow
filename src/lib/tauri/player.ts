@@ -110,6 +110,16 @@ export function playerNext(): Promise<void> {
   return invoke<void>("player_next");
 }
 
+/** Append `trackIds` to the end of the queue, no playback interruption. */
+export function playerAddToQueue(trackIds: number[]): Promise<void> {
+  return invoke<void>("player_add_to_queue", { trackIds });
+}
+
+/** Insert `trackIds` immediately after the currently-playing slot. */
+export function playerPlayNext(trackIds: number[]): Promise<void> {
+  return invoke<void>("player_play_next", { trackIds });
+}
+
 export function playerPrevious(): Promise<void> {
   return invoke<void>("player_previous");
 }

@@ -125,10 +125,12 @@ pub struct RecentPlay {
     pub artist_id: Option<i64>,
     pub artist_name: Option<String>,
     pub artist_ids: Option<String>,
+    pub album_id: Option<i64>,
     pub album_title: Option<String>,
     pub duration_ms: i64,
     pub played_at: i64,
     pub artwork_path: Option<String>,
+    pub file_path: String,
 }
 
 /// Internal row shape — the SQL query returns the artwork hash and
@@ -141,11 +143,13 @@ struct RecentPlayRaw {
     artist_id: Option<i64>,
     artist_name: Option<String>,
     artist_ids: Option<String>,
+    album_id: Option<i64>,
     album_title: Option<String>,
     duration_ms: i64,
     played_at: i64,
     artwork_hash: Option<String>,
     artwork_format: Option<String>,
+    file_path: String,
 }
 
 /// List every album that has at least one available track in the given
@@ -323,11 +327,13 @@ pub async fn list_recent_plays(
                   WHERE ta2.track_id = t.id
                   ORDER BY ta2.position
                )) AS artist_ids,
+               t.album_id                   AS album_id,
                al.title                     AS album_title,
                t.duration_ms                AS duration_ms,
                MAX(pe.played_at)            AS played_at,
                aw.hash                      AS artwork_hash,
-               aw.format                    AS artwork_format
+               aw.format                    AS artwork_format,
+               t.file_path                  AS file_path
           FROM play_event pe
           JOIN track t        ON t.id = pe.track_id
           LEFT JOIN album al  ON al.id = t.album_id
@@ -365,10 +371,12 @@ pub async fn list_recent_plays(
                 artist_id: row.artist_id,
                 artist_name: row.artist_name,
                 artist_ids: row.artist_ids,
+                album_id: row.album_id,
                 album_title: row.album_title,
                 duration_ms: row.duration_ms,
                 played_at: row.played_at,
                 artwork_path,
+                file_path: row.file_path,
             }
         })
         .collect();
