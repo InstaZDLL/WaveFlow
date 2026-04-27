@@ -58,3 +58,7 @@ skills-lock.json
 CLAUDE.md
 AGENTS.md
 .codex
+
+# Standalone landing page (separate Vue project + prototype)
+waveflow-landing/
+frontpage.html
