@@ -3,8 +3,8 @@
 //!
 //! Files live at `<root>/metadata_artwork/<blake3_hash>.jpg` so identical
 //! images coming from different lookups dedupe to a single file. The blake3
-//! hash is also persisted in the `deezer_artist.picture_hash` /
-//! `deezer_album.cover_hash` columns so a cache hit on the metadata table
+//! hash is also persisted in the `metadata_artist.picture_hash` /
+//! `metadata_album.cover_hash` columns so a cache hit on the metadata table
 //! avoids re-downloading the bytes.
 //!
 //! Deezer always serves JPEG, so the extension is hardcoded to keep the

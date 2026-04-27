@@ -42,7 +42,7 @@ pub struct ArtistRow {
     pub name: String,
     pub track_count: i64,
     pub album_count: i64,
-    /// Deezer CDN URL from the `deezer_artist` cache, if the artist
+    /// Deezer CDN URL from the `metadata_artist` cache, if the artist
     /// has been enriched at least once. Kept as a fallback — the UI
     /// should prefer `picture_path` when present.
     pub picture_url: Option<String>,
@@ -236,7 +236,7 @@ pub async fn list_artists(
           FROM artist ar
           JOIN track_artist ta ON ta.artist_id = ar.id
           JOIN track t ON t.id = ta.track_id
-          LEFT JOIN app.deezer_artist da ON da.deezer_id = ar.deezer_id
+          LEFT JOIN app.metadata_artist da ON da.deezer_id = ar.deezer_id
          WHERE (? IS NULL OR t.library_id = ?) AND t.is_available = 1
          GROUP BY ar.id
          ORDER BY ar.canonical_name COLLATE NOCASE
@@ -500,7 +500,7 @@ pub async fn get_album_detail(
           FROM album al
           LEFT JOIN artist ar ON ar.id = al.artist_id
           LEFT JOIN artwork aw ON aw.id = al.artwork_id
-          LEFT JOIN app.deezer_album da ON da.deezer_id = al.deezer_id
+          LEFT JOIN app.metadata_album da ON da.deezer_id = al.deezer_id
           JOIN track t ON t.album_id = al.id AND t.is_available = 1
          WHERE al.id = ?
          GROUP BY al.id
@@ -683,7 +683,7 @@ pub async fn get_artist_detail(
                COUNT(DISTINCT t.album_id) AS album_count
           FROM artist ar
           LEFT JOIN artwork aw ON aw.id = ar.artwork_id
-          LEFT JOIN app.deezer_artist da ON da.deezer_id = ar.deezer_id
+          LEFT JOIN app.metadata_artist da ON da.deezer_id = ar.deezer_id
           JOIN track_artist ta ON ta.artist_id = ar.id
           JOIN track t ON t.id = ta.track_id AND t.is_available = 1
          WHERE ar.id = ?

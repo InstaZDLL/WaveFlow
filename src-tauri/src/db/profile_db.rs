@@ -9,8 +9,8 @@ use crate::error::AppResult;
 
 /// Open (and create if missing) a per-profile `data.db`, apply any pending
 /// migrations, and ATTACH the global `app.db` as `app` so queries can JOIN
-/// across the metadata caches that live there (`deezer_artist`,
-/// `deezer_album`, `lyrics`).
+/// across the metadata caches that live there (`metadata_artist`,
+/// `metadata_album`, `lyrics`).
 ///
 /// `app_db_path` must point at an existing `app.db` — it's opened in the
 /// `app_db::open()` step before any profile pool is created, so by the time

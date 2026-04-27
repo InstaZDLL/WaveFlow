@@ -233,7 +233,7 @@ pub async fn stats_top_artists(
           FROM play_event pe
           JOIN track_artist ta ON ta.track_id = pe.track_id
           JOIN artist ar       ON ar.id = ta.artist_id
-          LEFT JOIN app.deezer_artist da ON da.deezer_id = ar.deezer_id
+          LEFT JOIN app.metadata_artist da ON da.deezer_id = ar.deezer_id
          WHERE (?1 IS NULL OR pe.played_at >= ?1)
          GROUP BY ar.id
          ORDER BY plays DESC, listened_ms DESC
