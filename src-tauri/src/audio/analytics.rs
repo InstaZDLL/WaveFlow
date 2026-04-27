@@ -50,6 +50,22 @@ pub enum AnalyticsMsg {
         source_type: String,
         source_id: Option<i64>,
     },
+    /// Sent by the decoder when it's approaching the end of the
+    /// current track and crossfade is enabled. Triggers a
+    /// `peek_next` and a `SetNextTrack` reply so the decoder can
+    /// open the second decoder before the fade window starts.
+    PrefetchNext,
+    /// Sent by the decoder right after the crossfade swap has
+    /// happened and the second decoder is now the primary. Writes a
+    /// `play_event` for the just-faded-out track AND advances the
+    /// queue cursor (without firing a new LoadAndPlay — the new
+    /// track is already playing).
+    CrossfadeStarted {
+        finished_track_id: i64,
+        finished_listened_ms: u64,
+        finished_source_type: String,
+        finished_source_id: Option<i64>,
+    },
 }
 
 /// Top-level task body. Loops forever, exiting only when the sender
@@ -139,6 +155,58 @@ async fn handle_message(
                 *source_id,
             )
             .await;
+        }
+        AnalyticsMsg::PrefetchNext => {
+            // Look up what would be played next without bumping the
+            // cursor (the cursor is bumped only when the crossfade
+            // actually starts, via CrossfadeStarted).
+            let repeat = queue::read_repeat_mode(&pool).await;
+            let next: Option<QueueTrack> = queue::peek_next(&pool, repeat)
+                .await
+                .map_err(|e| format!("peek_next: {e}"))?;
+            if let Some(track) = next {
+                let _ = cmd_tx.send(AudioCmd::SetNextTrack {
+                    path: track.as_path(),
+                    track_id: track.id,
+                    duration_ms: track.duration_ms.max(0) as u64,
+                    // The next track inherits the same source as the
+                    // current one for analytics — auto-advance never
+                    // crosses a source boundary in this app.
+                    source_type: "manual".into(),
+                    source_id: None,
+                });
+            }
+        }
+        AnalyticsMsg::CrossfadeStarted {
+            finished_track_id,
+            finished_listened_ms,
+            finished_source_type,
+            finished_source_id,
+        } => {
+            // Credit the just-finished track (treated as completed
+            // since the crossfade window only starts at the tail).
+            insert_play_event(
+                &pool,
+                *finished_track_id,
+                *finished_listened_ms,
+                true,
+                finished_source_type,
+                *finished_source_id,
+            )
+            .await;
+
+            // Bump the cursor so the QueuePanel reflects the new
+            // current track. The decoder is already playing it — do
+            // NOT send LoadAndPlay.
+            let repeat = queue::read_repeat_mode(&pool).await;
+            let advanced: Option<QueueTrack> = queue::advance(&pool, Direction::Next, repeat)
+                .await
+                .map_err(|e| format!("advance after crossfade: {e}"))?;
+            if let Some(track) = advanced {
+                let profile_id = state.require_profile_id().await.ok();
+                emit_track_changed(app, &state.paths, &track, profile_id);
+                emit_queue_changed(app);
+            }
         }
     }
 

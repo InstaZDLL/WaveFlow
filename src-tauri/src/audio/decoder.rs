@@ -9,7 +9,6 @@
 //! Commands are polled between packets via `cmd_rx.try_recv()` so
 //! pause / stop / seek feel responsive even during long tracks.
 
-use std::fs::File;
 use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -19,21 +18,15 @@ use std::time::{Duration, Instant};
 use crossbeam_channel::{Receiver, TryRecvError};
 use rtrb::{chunks::ChunkError, CopyToUninit, Producer};
 use serde::Serialize;
-use symphonia::core::audio::SampleBuffer;
-use symphonia::core::codecs::{DecoderOptions, CODEC_TYPE_NULL};
-use symphonia::core::errors::Error as SymphoniaError;
-use symphonia::core::formats::{FormatOptions, SeekMode, SeekTo};
-use symphonia::core::io::MediaSourceStream;
-use symphonia::core::meta::MetadataOptions;
-use symphonia::core::probe::Hint;
+use symphonia::core::formats::{SeekMode, SeekTo};
 use symphonia::core::units::Time;
 use tauri::{AppHandle, Emitter};
 
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::analytics::AnalyticsMsg;
+use super::crossfade::{equal_power_gains, ActiveStream};
 use super::engine::AudioCmd;
-use super::resampler::Resampler;
 use super::state::{PlayerState, SharedPlayback};
 
 /// Minimum interval between `player:position` events emitted during
@@ -185,54 +178,46 @@ fn decoder_loop(
                     start_ms,
                     track_id,
                     duration_ms,
+                    source_type.clone(),
+                    source_id,
                     producer,
                     &shared,
                     &cmd_rx,
                     &app,
                     &mut pending_cmd,
+                    &analytics_tx,
                 );
                 match outcome {
-                    Ok((PlaybackEnd::Natural, listened_ms)) => {
-                        // Only natural EOF triggers the auto-advance
-                        // path. Analytics writes a play_event row
-                        // and self-sends the next LoadAndPlay per
-                        // queue + repeat.
-                        let completed = listened_ms + 2000 >= duration_ms && duration_ms > 0;
+                    Ok((PlaybackEnd::Natural, listened_ms, finished)) => {
+                        let completed =
+                            listened_ms + 2000 >= finished.duration_ms && finished.duration_ms > 0;
                         tracing::info!(
-                            track_id,
+                            finished_track_id = finished.track_id,
                             listened_ms,
                             completed,
                             "play_track ended naturally"
                         );
                         let _ = analytics_tx.send(AnalyticsMsg::TrackEnded {
-                            track_id,
+                            track_id: finished.track_id,
                             completed,
                             listened_ms,
-                            source_type,
-                            source_id,
+                            source_type: finished.source_type,
+                            source_id: finished.source_id,
                         });
                     }
-                    Ok((PlaybackEnd::Interrupted, listened_ms)) => {
+                    Ok((PlaybackEnd::Interrupted, listened_ms, finished)) => {
                         tracing::info!(
-                            track_id,
+                            finished_track_id = finished.track_id,
                             listened_ms,
                             will_credit = listened_ms >= 15_000,
                             "play_track interrupted"
                         );
-                        // User interrupted (Stop / LoadNext /
-                        // Shutdown). Still credit the play if they
-                        // heard ≥ 15 s — this is what makes the
-                        // "Récemment joués" view populate when the
-                        // user skips through tracks instead of
-                        // letting them finish. No auto-advance: the
-                        // new track is already queued via
-                        // `pending_cmd`.
                         if listened_ms >= 15_000 {
                             let _ = analytics_tx.send(AnalyticsMsg::TrackListened {
-                                track_id,
+                                track_id: finished.track_id,
                                 listened_ms,
-                                source_type,
-                                source_id,
+                                source_type: finished.source_type,
+                                source_id: finished.source_id,
                             });
                         }
                     }
@@ -282,232 +267,365 @@ pub enum PlaybackEnd {
     Interrupted,
 }
 
-/// Decode a single track start-to-finish, honoring any commands that
-/// arrive on `cmd_rx` between packets. Emits `player:position` /
-/// `player:state` / `player:track-ended` events via `app`.
+/// Track-level metadata returned from [`play_track`] so the caller
+/// can credit the right track in analytics — distinct from the
+/// initial parameters because crossfade may swap the active stream
+/// mid-flight, and the analytics row must reflect whichever track
+/// actually finished.
+pub struct FinishedTrack {
+    pub track_id: i64,
+    pub duration_ms: u64,
+    pub source_type: String,
+    pub source_id: Option<i64>,
+}
+
+/// Decode tracks until either an interruption or a track ends naturally.
+/// Honors crossfade: if `shared.crossfade_ms > 0` and there's a pending
+/// next track (delivered by `AudioCmd::SetNextTrack`), this function
+/// transparently mixes the two streams over the fade window, swaps the
+/// secondary into primary on EOF, sends `AnalyticsMsg::CrossfadeStarted`
+/// for the just-finished primary, and continues decoding the swapped
+/// stream.
 ///
-/// Returns `(PlaybackEnd, listened_ms)`. The caller distinguishes
-/// between a natural EOF (triggers analytics + auto-advance) and a
-/// user-initiated interruption (just unwinds cleanly).
+/// Returns `(PlaybackEnd, listened_ms_of_final_track, FinishedTrack)`.
 fn play_track(
-    path: &Path,
-    start_ms: u64,
-    track_id: i64,
-    duration_ms: u64,
+    initial_path: &Path,
+    initial_start_ms: u64,
+    initial_track_id: i64,
+    initial_duration_ms: u64,
+    initial_source_type: String,
+    initial_source_id: Option<i64>,
     producer: &mut Producer<f32>,
     shared: &SharedPlayback,
     cmd_rx: &Receiver<AudioCmd>,
     app: &AppHandle,
     pending_cmd: &mut Option<AudioCmd>,
-) -> Result<(PlaybackEnd, u64), String> {
-    let file = File::open(path).map_err(|e| format!("open: {e}"))?;
-    let mss = MediaSourceStream::new(Box::new(file), Default::default());
-
-    let mut hint = Hint::new();
-    if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
-        hint.with_extension(ext);
-    }
-
-    let probed = symphonia::default::get_probe()
-        .format(
-            &hint,
-            mss,
-            &FormatOptions::default(),
-            &MetadataOptions::default(),
-        )
-        .map_err(|e| format!("probe: {e}"))?;
-
-    let mut format = probed.format;
-    let track_symphonia = format
-        .tracks()
-        .iter()
-        .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
-        .ok_or_else(|| "no decodable track found".to_string())?;
-    let symphonia_track_id = track_symphonia.id;
-    let codec_params = track_symphonia.codec_params.clone();
-
-    let mut decoder = symphonia::default::get_codecs()
-        .make(&codec_params, &DecoderOptions::default())
-        .map_err(|e| format!("codec init: {e}"))?;
-
+    analytics_tx: &UnboundedSender<AnalyticsMsg>,
+) -> Result<(PlaybackEnd, u64, FinishedTrack), String> {
     let dst_sample_rate = shared.sample_rate.load(Ordering::Relaxed);
     let dst_channels = shared.channels.load(Ordering::Relaxed) as usize;
     if dst_sample_rate == 0 || dst_channels == 0 {
         return Err("cpal output not initialized (sample_rate=0)".into());
     }
 
+    let mut stream = ActiveStream::open(
+        initial_path,
+        initial_track_id,
+        initial_duration_ms,
+        initial_source_type,
+        initial_source_id,
+    )?;
+    if initial_start_ms > 0 {
+        apply_seek(&mut stream.format, stream.symphonia_track_id, initial_start_ms);
+    }
+
     tracing::info!(
         dst_sample_rate,
         dst_channels,
-        path = %path.display(),
-        "decoding start (src layout detected from first packet)"
+        path = %initial_path.display(),
+        "decoding start"
     );
 
-    // If the caller asked for a mid-track start (resume from persisted
-    // position), apply an initial seek BEFORE entering the packet loop.
-    if start_ms > 0 {
-        apply_seek(&mut format, symphonia_track_id, start_ms);
-    }
-
-    // Source layout is discovered lazily from the first decoded
-    // packet's `SignalSpec`, because:
-    //   - AAC / M4A does not populate codec_params.channels (the info
-    //     only lands in the decoded AudioBuffer);
-    //   - AAC+SBR reports one sample_rate in codec_params and a
-    //     different (doubled) rate at decode time;
-    //   - some OGG/Vorbis streams similarly deliver channel counts
-    //     after the first Setup packet.
-    //
-    // Keeping these `Option` until first decode lets every supported
-    // codec go through the same path.
-    let mut resampler: Option<Resampler> = None;
-    let mut src_channels: usize = 0;
+    // Crossfade locals — reset on every track swap.
+    let mut pending_next: Option<ActiveStream> = None;
+    let mut next_requested = false;
+    let mut mix_active = false;
+    let mut mix_frames_written: u64 = 0;
+    let mut mix_frames_total: u64 = 0;
+    // EOF flags persist across iterations so we don't keep poking
+    // an exhausted stream — flipped back to false on a track swap.
+    let mut primary_at_eof = false;
+    let mut secondary_at_eof = false;
 
     let mut interleaved_scratch: Vec<f32> = Vec::with_capacity(8192);
-    let mut resampled_scratch: Vec<f32> = Vec::with_capacity(8192);
-    let mut sample_buf: Option<SampleBuffer<f32>> = None;
+    // Persistent decoded-sample buffers in mix mode: each iteration
+    // tops them up via `decode_next`, mixes the min of both, then
+    // drains the consumed prefix. Without this, two streams with
+    // different source rates produce different frame counts per
+    // packet, the surplus gets discarded, and the shorter stream
+    // appears to play fast (~9 % at 48k vs 44.1k boundaries).
+    let mut primary_resampled: Vec<f32> = Vec::with_capacity(8192);
+    let mut secondary_resampled: Vec<f32> = Vec::with_capacity(8192);
+    let mut mix_scratch: Vec<f32> = Vec::with_capacity(8192);
     let mut last_position_emit = Instant::now();
+    // Minimum frames each side should hold before mixing — keeps
+    // both buffers topped up so a slow decoder doesn't starve the mix.
+    const CROSSFADE_MIN_FRAMES: usize = 1024;
 
-    transition_state(shared, app, PlayerState::Playing, Some(track_id));
+    transition_state(shared, app, PlayerState::Playing, Some(stream.track_id));
 
-    // Whether the loop exited for a "natural" EOF reason. Set to
-    // true only after `format.next_packet()` returns EOF below.
     let mut ended_naturally = false;
 
     'pkt: loop {
-        // Drain any pending commands between packets.
-        match drain_commands(cmd_rx, shared, app, track_id, pending_cmd) {
-            ControlFlow::Continue => {}
-            ControlFlow::Break => break 'pkt,
-            ControlFlow::Shutdown => {
-                transition_state(shared, app, PlayerState::Idle, Some(track_id));
-                return Ok((PlaybackEnd::Interrupted, shared.session_listened_ms()));
-            }
-            ControlFlow::LoadNext => {
-                // The new load is in `*pending_cmd`. Bail out of this
-                // track without emitting a TrackEnded — the outer
-                // loop will start the new track from a clean state.
-                return Ok((PlaybackEnd::Interrupted, shared.session_listened_ms()));
-            }
-            ControlFlow::Seek(ms) => {
-                apply_seek(&mut format, symphonia_track_id, ms);
-                reset_clock(shared, ms);
-                if let Some(r) = resampler.as_mut() {
-                    r.flush();
-                }
-                // Drop the decoder's internal state so the first decoded
-                // packet after a seek doesn't carry pre-seek residue.
-                decoder.reset();
-                // Fire an immediate position event so the progress bar
-                // snaps to the target without waiting for the next tick.
-                let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
-                last_position_emit = Instant::now();
-                continue;
-            }
-        }
-
-        let packet = match format.next_packet() {
-            Ok(p) => p,
-            Err(SymphoniaError::IoError(e))
-                if e.kind() == std::io::ErrorKind::UnexpectedEof =>
-            {
-                // End of stream — fall through to drain resampler.
-                ended_naturally = true;
-                break 'pkt;
-            }
-            Err(SymphoniaError::ResetRequired) => {
-                ended_naturally = true;
-                break 'pkt;
-            }
-            Err(e) => return Err(format!("next_packet: {e}")),
-        };
-        if packet.track_id() != symphonia_track_id {
-            continue;
-        }
-
-        let decoded = match decoder.decode(&packet) {
-            Ok(d) => d,
-            Err(SymphoniaError::DecodeError(e)) => {
-                tracing::warn!(error = %e, "decode error, skipping packet");
-                continue;
-            }
-            Err(e) => return Err(format!("decode fatal: {e}")),
-        };
-
-        // First packet: capture the real source layout from the
-        // decoded buffer's SignalSpec, and lazily build the
-        // SampleBuffer + Resampler now that we know the rate and
-        // channel count.
-        if sample_buf.is_none() {
-            let spec = *decoded.spec();
-            let capacity = decoded.capacity() as u64;
-            sample_buf = Some(SampleBuffer::<f32>::new(capacity, spec));
-            src_channels = spec.channels.count();
-            let src_sample_rate = spec.rate;
-            tracing::info!(
-                src_sample_rate,
-                src_channels,
-                dst_sample_rate,
-                dst_channels,
-                path = %path.display(),
-                "first packet decoded, resampler initialized"
-            );
-            match Resampler::new(src_sample_rate, dst_sample_rate, dst_channels) {
-                Ok(r) => resampler = Some(r),
-                Err(e) => return Err(format!("resampler init: {e}")),
-            }
-        }
-        let sb = sample_buf.as_mut().unwrap();
-        sb.copy_interleaved_ref(decoded);
-
-        // Channel layout conversion: source -> destination channel count.
-        interleaved_scratch.clear();
-        convert_channels(sb.samples(), src_channels, dst_channels, &mut interleaved_scratch);
-
-        // Resample if source and dest rates differ.
-        resampled_scratch.clear();
-        let resampler_ref = resampler
-            .as_mut()
-            .expect("resampler initialized on first packet");
-        if let Err(e) = resampler_ref.process(&interleaved_scratch, &mut resampled_scratch) {
-            return Err(format!("resample: {e}"));
-        }
-
-        // Push into the ring, blocking (with short sleeps) when full so
-        // we never drop samples.
-        match push_samples(
-            &resampled_scratch,
-            producer,
+        match drain_commands(
             cmd_rx,
             shared,
             app,
-            track_id,
+            stream.track_id,
             pending_cmd,
+            &mut pending_next,
         ) {
-            PushOutcome::Ok => {}
-            PushOutcome::Stop => break 'pkt,
-            PushOutcome::Shutdown => {
-                transition_state(shared, app, PlayerState::Idle, Some(track_id));
-                return Ok((PlaybackEnd::Interrupted, shared.session_listened_ms()));
+            ControlFlow::Continue => {}
+            ControlFlow::Break => break 'pkt,
+            ControlFlow::Shutdown => {
+                transition_state(shared, app, PlayerState::Idle, Some(stream.track_id));
+                return Ok((
+                    PlaybackEnd::Interrupted,
+                    shared.session_listened_ms(),
+                    finished_from(&stream),
+                ));
             }
-            PushOutcome::LoadNext => {
-                return Ok((PlaybackEnd::Interrupted, shared.session_listened_ms()));
+            ControlFlow::LoadNext => {
+                return Ok((
+                    PlaybackEnd::Interrupted,
+                    shared.session_listened_ms(),
+                    finished_from(&stream),
+                ));
             }
-            PushOutcome::Seek(ms) => {
-                apply_seek(&mut format, symphonia_track_id, ms);
-                reset_clock(shared, ms);
-                if let Some(r) = resampler.as_mut() {
-                    r.flush();
+            ControlFlow::Seek(ms) => {
+                if mix_active {
+                    // Cancel the in-progress crossfade — the user
+                    // jumping inside the current track means we should
+                    // restart from the new position with no fade.
+                    pending_next = None;
+                    mix_active = false;
+                    next_requested = false;
                 }
-                decoder.reset();
+                apply_seek(&mut stream.format, stream.symphonia_track_id, ms);
+                reset_clock(shared, ms);
+                stream.resampler.flush();
+                stream.decoder.reset();
+                drain_ring_silent(producer, shared);
                 let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
                 last_position_emit = Instant::now();
                 continue;
             }
         }
 
-        // Throttled position event. 250ms cadence keeps the UI smooth
-        // without flooding the event bus.
+        // Crossfade trigger evaluation, only when not already mixing.
+        if !mix_active && stream.duration_ms > 0 {
+            let cf_ms = shared.crossfade_ms.load(Ordering::Relaxed) as u64;
+            if cf_ms > 0 {
+                // Effective fade window — never longer than half the
+                // track, so a 30 s clip with crossfade=12 s doesn't
+                // start mixing at the 18 s mark.
+                let effective_ms = cf_ms.min(stream.duration_ms / 2);
+                let pos = shared.current_position_ms();
+                let remaining = stream.duration_ms.saturating_sub(pos);
+
+                // Pre-fetch ~500 ms before the window starts so the
+                // file open + first packet decode have time to complete.
+                if !next_requested
+                    && pending_next.is_none()
+                    && remaining <= effective_ms + 500
+                {
+                    let _ = analytics_tx.send(AnalyticsMsg::PrefetchNext);
+                    next_requested = true;
+                }
+
+                if pending_next.is_some() && remaining <= effective_ms {
+                    mix_active = true;
+                    mix_frames_written = 0;
+                    mix_frames_total =
+                        (effective_ms * dst_sample_rate as u64) / 1000;
+                }
+            }
+        }
+
+        if mix_active {
+            // Top up the primary buffer (one packet per iteration is
+            // enough — the resampler may yield fewer frames than the
+            // packet held, so we keep going until we hit the minimum
+            // or EOF).
+            while !primary_at_eof
+                && primary_resampled.len() / dst_channels < CROSSFADE_MIN_FRAMES
+            {
+                primary_at_eof = stream.decode_next(
+                    &mut primary_resampled,
+                    &mut interleaved_scratch,
+                    dst_sample_rate,
+                    dst_channels,
+                )?;
+            }
+            let secondary = pending_next
+                .as_mut()
+                .expect("mix_active requires pending_next");
+            while !secondary_at_eof
+                && secondary_resampled.len() / dst_channels < CROSSFADE_MIN_FRAMES
+            {
+                secondary_at_eof = secondary.decode_next(
+                    &mut secondary_resampled,
+                    &mut interleaved_scratch,
+                    dst_sample_rate,
+                    dst_channels,
+                )?;
+            }
+
+            let primary_frames = primary_resampled.len() / dst_channels;
+            let secondary_frames = secondary_resampled.len() / dst_channels;
+            let mix_frames = primary_frames.min(secondary_frames);
+            let denom = mix_frames_total.max(1) as f32;
+
+            if mix_frames > 0 {
+                mix_scratch.clear();
+                mix_scratch.reserve(mix_frames * dst_channels);
+                for f in 0..mix_frames {
+                    let t = (mix_frames_written as f32 / denom).min(1.0);
+                    let (g_out, g_in) = equal_power_gains(t);
+                    for ch in 0..dst_channels {
+                        let p = primary_resampled[f * dst_channels + ch] * g_out;
+                        let s = secondary_resampled[f * dst_channels + ch] * g_in;
+                        mix_scratch.push(p + s);
+                    }
+                    mix_frames_written += 1;
+                }
+                // Drop only what we mixed; surplus stays for next iter.
+                primary_resampled.drain(..mix_frames * dst_channels);
+                secondary_resampled.drain(..mix_frames * dst_channels);
+
+                match push_samples(
+                    &mix_scratch,
+                    producer,
+                    cmd_rx,
+                    shared,
+                    app,
+                    stream.track_id,
+                    pending_cmd,
+                    &mut pending_next,
+                ) {
+                    PushOutcome::Ok => {}
+                    PushOutcome::Stop => break 'pkt,
+                    PushOutcome::Shutdown => {
+                        transition_state(shared, app, PlayerState::Idle, Some(stream.track_id));
+                        return Ok((
+                            PlaybackEnd::Interrupted,
+                            shared.session_listened_ms(),
+                            finished_from(&stream),
+                        ));
+                    }
+                    PushOutcome::LoadNext => {
+                        return Ok((
+                            PlaybackEnd::Interrupted,
+                            shared.session_listened_ms(),
+                            finished_from(&stream),
+                        ));
+                    }
+                    PushOutcome::Seek(ms) => {
+                        pending_next = None;
+                        mix_active = false;
+                        next_requested = false;
+                        primary_at_eof = false;
+                        secondary_at_eof = false;
+                        primary_resampled.clear();
+                        secondary_resampled.clear();
+                        apply_seek(&mut stream.format, stream.symphonia_track_id, ms);
+                        reset_clock(shared, ms);
+                        stream.resampler.flush();
+                        stream.decoder.reset();
+                        drain_ring_silent(producer, shared);
+                        let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
+                        last_position_emit = Instant::now();
+                        continue;
+                    }
+                }
+            }
+
+            // Swap when the primary is fully drained or the fade
+            // window has elapsed. We also swap if both sides EOF'd
+            // simultaneously and there's nothing left to mix —
+            // otherwise we'd loop forever with mix_frames == 0.
+            let primary_drained = primary_at_eof && primary_resampled.is_empty();
+            let window_done = mix_frames_written >= mix_frames_total;
+            let dead_loop = mix_frames == 0 && primary_at_eof && secondary_at_eof;
+            if primary_drained || window_done || dead_loop {
+                let listened = shared.session_listened_ms();
+                let _ = analytics_tx.send(AnalyticsMsg::CrossfadeStarted {
+                    finished_track_id: stream.track_id,
+                    finished_listened_ms: listened,
+                    finished_source_type: stream.source_type.clone(),
+                    finished_source_id: stream.source_id,
+                });
+
+                stream = pending_next.take().expect("pending_next set during mix");
+                // Move the secondary's leftover decoded samples into
+                // the primary buffer so they aren't re-decoded /
+                // dropped — without this we'd hear a tiny gap right
+                // after the swap.
+                primary_resampled = std::mem::take(&mut secondary_resampled);
+                primary_at_eof = secondary_at_eof;
+                secondary_at_eof = false;
+                next_requested = false;
+                mix_active = false;
+                mix_frames_written = 0;
+                mix_frames_total = 0;
+
+                shared.samples_played.store(0, Ordering::Relaxed);
+                shared.base_offset_ms.store(0, Ordering::Relaxed);
+                shared.current_track_id.store(stream.track_id, Ordering::Release);
+                shared.seek_generation.fetch_add(1, Ordering::Release);
+
+                let _ = app.emit(EVENT_POSITION, PositionPayload { ms: 0 });
+                last_position_emit = Instant::now();
+                continue;
+            }
+        } else {
+            // Refill only when buffer empty — `primary_resampled`
+            // may already hold leftover frames moved over from the
+            // secondary stream during a recent crossfade swap.
+            if primary_resampled.is_empty() && !primary_at_eof {
+                primary_at_eof = stream.decode_next(
+                    &mut primary_resampled,
+                    &mut interleaved_scratch,
+                    dst_sample_rate,
+                    dst_channels,
+                )?;
+            }
+            if primary_resampled.is_empty() && primary_at_eof {
+                ended_naturally = true;
+                break 'pkt;
+            }
+            match push_samples(
+                &primary_resampled,
+                producer,
+                cmd_rx,
+                shared,
+                app,
+                stream.track_id,
+                pending_cmd,
+                &mut pending_next,
+            ) {
+                PushOutcome::Ok => primary_resampled.clear(),
+                PushOutcome::Stop => break 'pkt,
+                PushOutcome::Shutdown => {
+                    transition_state(shared, app, PlayerState::Idle, Some(stream.track_id));
+                    return Ok((
+                        PlaybackEnd::Interrupted,
+                        shared.session_listened_ms(),
+                        finished_from(&stream),
+                    ));
+                }
+                PushOutcome::LoadNext => {
+                    return Ok((
+                        PlaybackEnd::Interrupted,
+                        shared.session_listened_ms(),
+                        finished_from(&stream),
+                    ));
+                }
+                PushOutcome::Seek(ms) => {
+                    primary_resampled.clear();
+                    primary_at_eof = false;
+                    apply_seek(&mut stream.format, stream.symphonia_track_id, ms);
+                    reset_clock(shared, ms);
+                    stream.resampler.flush();
+                    stream.decoder.reset();
+                    drain_ring_silent(producer, shared);
+                    let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
+                    last_position_emit = Instant::now();
+                    continue;
+                }
+            }
+        }
+
         if last_position_emit.elapsed() >= POSITION_EMIT_INTERVAL
             && shared.state() == PlayerState::Playing
         {
@@ -521,39 +639,57 @@ fn play_track(
         }
     }
 
-    // Flush any trailing resampler state so we don't tail-cut the track.
-    if let Some(r) = resampler.as_mut() {
-        r.flush();
-    }
-    // Session listened, not absolute track position: analytics
-    // measures "how long did the user hear audio from this track
-    // in this session", not "how far into the song did we reach".
+    stream.resampler.flush();
     let listened_ms = shared.session_listened_ms();
+    let finished = finished_from(&stream);
     if ended_naturally {
-        let completed = listened_ms + 2000 >= duration_ms && duration_ms > 0;
+        let completed = listened_ms + 2000 >= stream.duration_ms && stream.duration_ms > 0;
         let _ = app.emit(
             EVENT_TRACK_ENDED,
             TrackEndedPayload {
-                track_id,
+                track_id: stream.track_id,
                 completed,
                 listened_ms,
             },
         );
-        transition_state(shared, app, PlayerState::Ended, Some(track_id));
-        Ok((PlaybackEnd::Natural, listened_ms))
+        transition_state(shared, app, PlayerState::Ended, Some(stream.track_id));
+        Ok((PlaybackEnd::Natural, listened_ms, finished))
     } else {
-        // User-initiated Stop: leave state as-is for decoder_loop to
-        // decide (most likely Idle). Do NOT emit TrackEnded — the
-        // user didn't let the track finish.
-        Ok((PlaybackEnd::Interrupted, listened_ms))
+        Ok((PlaybackEnd::Interrupted, listened_ms, finished))
     }
+}
+
+fn finished_from(stream: &ActiveStream) -> FinishedTrack {
+    FinishedTrack {
+        track_id: stream.track_id,
+        duration_ms: stream.duration_ms,
+        source_type: stream.source_type.clone(),
+        source_id: stream.source_id,
+    }
+}
+
+/// Engage `drain_silent` mode on the cpal callback so the contents of
+/// the SPSC ring are popped + replaced with silence, then wait (bounded)
+/// for the ring to empty. Used after a seek so pre-seek samples don't
+/// reach the device — particularly important in the Resume-then-Seek
+/// sequence where `paused_output` gets cleared before the seek lands.
+fn drain_ring_silent(producer: &Producer<f32>, shared: &SharedPlayback) {
+    if producer.slots() == super::output::RING_CAPACITY {
+        return;
+    }
+    shared.drain_silent.store(true, Ordering::Release);
+    let start = Instant::now();
+    while producer.slots() < super::output::RING_CAPACITY
+        && start.elapsed() < Duration::from_millis(500)
+    {
+        std::thread::sleep(Duration::from_millis(1));
+    }
+    shared.drain_silent.store(false, Ordering::Release);
 }
 
 /// Reset the position counters so the UI clock jumps to `ms`. Must be
 /// called after `format.seek()` to keep `SharedPlayback::current_position_ms`
-/// in sync. Note: the cpal callback may keep draining ~1 s of stale
-/// samples still in the ring buffer before the new audio is audible —
-/// acceptable gap for MVP.
+/// in sync.
 fn reset_clock(shared: &SharedPlayback, ms: u64) {
     shared.samples_played.store(0, Ordering::Relaxed);
     shared.base_offset_ms.store(ms, Ordering::Release);
@@ -613,6 +749,7 @@ fn drain_commands(
     app: &AppHandle,
     track_id: i64,
     pending_cmd: &mut Option<AudioCmd>,
+    pending_next: &mut Option<ActiveStream>,
 ) -> ControlFlow {
     loop {
         match cmd_rx.try_recv() {
@@ -620,22 +757,26 @@ fn drain_commands(
             Ok(AudioCmd::Stop) => return ControlFlow::Break,
             Ok(AudioCmd::Seek(ms)) => return ControlFlow::Seek(ms),
             Ok(cmd @ AudioCmd::LoadAndPlay { .. }) => {
-                // Stash the new load for `decoder_loop` to pick up on
-                // its next iteration, and break out of the current
-                // track. Any leftover paused-output flag is cleared
-                // so the new track's samples aren't blocked.
                 shared.paused_output.store(false, Ordering::Release);
                 *pending_cmd = Some(cmd);
                 return ControlFlow::LoadNext;
             }
+            Ok(AudioCmd::SetCrossfade(ms)) => {
+                shared.crossfade_ms.store(ms, Ordering::Release);
+            }
+            Ok(AudioCmd::SetNextTrack {
+                path,
+                track_id: next_id,
+                duration_ms,
+                source_type,
+                source_id,
+            }) => {
+                store_next(pending_next, path, next_id, duration_ms, source_type, source_id);
+            }
             Ok(AudioCmd::Pause) => {
                 transition_state(shared, app, PlayerState::Paused, Some(track_id));
-                // Flip the callback's silencer flag. The cpal thread
-                // will stop draining the ring within a few ms
-                // (one callback period).
                 shared.paused_output.store(true, Ordering::Release);
                 let mut pending_seek: Option<u64> = None;
-                // Block for the next command.
                 loop {
                     match cmd_rx.recv() {
                         Ok(AudioCmd::Resume) => {
@@ -648,38 +789,43 @@ fn drain_commands(
                             );
                             break;
                         }
-                        Ok(AudioCmd::Shutdown) => {
-                            // Do NOT reset paused_output here — the
-                            // shutdown handler in lib.rs has already
-                            // forced it to `true` so the cpal callback
-                            // stays silent while the process tears
-                            // down. Clearing it would cause leftover
-                            // ring samples to flush to the device.
-                            return ControlFlow::Shutdown;
-                        }
+                        Ok(AudioCmd::Shutdown) => return ControlFlow::Shutdown,
                         Ok(AudioCmd::Stop) => {
                             shared.paused_output.store(false, Ordering::Release);
                             return ControlFlow::Break;
                         }
                         Ok(AudioCmd::Seek(ms)) => pending_seek = Some(ms),
                         Ok(AudioCmd::SetVolume(v)) => shared.set_volume(v),
-                        Ok(AudioCmd::SetNormalize(on)) => shared.normalize_enabled.store(on, Ordering::Release),
-                        Ok(AudioCmd::SetMono(on)) => shared.mono_enabled.store(on, Ordering::Release),
+                        Ok(AudioCmd::SetNormalize(on)) => {
+                            shared.normalize_enabled.store(on, Ordering::Release)
+                        }
+                        Ok(AudioCmd::SetMono(on)) => {
+                            shared.mono_enabled.store(on, Ordering::Release)
+                        }
+                        Ok(AudioCmd::SetCrossfade(ms)) => {
+                            shared.crossfade_ms.store(ms, Ordering::Release)
+                        }
+                        Ok(AudioCmd::SetNextTrack {
+                            path,
+                            track_id: next_id,
+                            duration_ms,
+                            source_type,
+                            source_id,
+                        }) => store_next(
+                            pending_next,
+                            path,
+                            next_id,
+                            duration_ms,
+                            source_type,
+                            source_id,
+                        ),
                         Ok(cmd @ AudioCmd::LoadAndPlay { .. }) => {
-                            // User picked a new track while paused —
-                            // stash for decoder_loop and exit pause.
                             shared.paused_output.store(false, Ordering::Release);
                             *pending_cmd = Some(cmd);
                             return ControlFlow::LoadNext;
                         }
-                        Ok(AudioCmd::Pause) => {} // already paused, ignore
-                        Err(_) => {
-                            // Channel closed = engine dropped. Keep
-                            // paused_output as-is (the shutdown handler
-                            // in lib.rs set it to true to silence the
-                            // device during teardown).
-                            return ControlFlow::Shutdown;
-                        }
+                        Ok(AudioCmd::Pause) => {}
+                        Err(_) => return ControlFlow::Shutdown,
                     }
                 }
                 if let Some(ms) = pending_seek {
@@ -689,10 +835,34 @@ fn drain_commands(
             Ok(AudioCmd::SetVolume(v)) => shared.set_volume(v),
             Ok(AudioCmd::SetNormalize(on)) => shared.normalize_enabled.store(on, Ordering::Release),
             Ok(AudioCmd::SetMono(on)) => shared.mono_enabled.store(on, Ordering::Release),
-            // Resume is a no-op when already playing.
             Ok(_) => {}
             Err(TryRecvError::Empty) => return ControlFlow::Continue,
             Err(TryRecvError::Disconnected) => return ControlFlow::Shutdown,
+        }
+    }
+}
+
+/// Open the supplied next-track file into an [`ActiveStream`] and
+/// stash it for the crossfade pipeline. Failures are logged but
+/// non-fatal — playback continues without crossfade.
+fn store_next(
+    pending_next: &mut Option<ActiveStream>,
+    path: std::path::PathBuf,
+    track_id: i64,
+    duration_ms: u64,
+    source_type: String,
+    source_id: Option<i64>,
+) {
+    match ActiveStream::open(&path, track_id, duration_ms, source_type, source_id) {
+        Ok(s) => {
+            *pending_next = Some(s);
+        }
+        Err(err) => {
+            tracing::warn!(
+                ?err,
+                path = %path.display(),
+                "failed to open next track for crossfade — skipping fade"
+            );
         }
     }
 }
@@ -713,6 +883,7 @@ fn push_samples(
     app: &AppHandle,
     track_id: i64,
     pending_cmd: &mut Option<AudioCmd>,
+    pending_next: &mut Option<ActiveStream>,
 ) -> PushOutcome {
     let mut written = 0;
     while written < samples.len() {
@@ -726,7 +897,14 @@ fn push_samples(
                     // Ring full. Yield briefly and poll commands so
                     // pause/stop/seek aren't blocked by a saturated
                     // buffer.
-                    match drain_commands(cmd_rx, shared, app, track_id, pending_cmd) {
+                    match drain_commands(
+                        cmd_rx,
+                        shared,
+                        app,
+                        track_id,
+                        pending_cmd,
+                        pending_next,
+                    ) {
                         ControlFlow::Shutdown => return PushOutcome::Shutdown,
                         ControlFlow::Break => return PushOutcome::Stop,
                         ControlFlow::Seek(ms) => return PushOutcome::Seek(ms),
@@ -772,7 +950,7 @@ fn push_samples(
 /// - stereo (2) → mono (1): average
 /// - ≥3 → 2: Lo/Ro downmix on the first 6 channels (ITU BS.775)
 /// - anything else: take the first `min(src, dst)` channels, pad zeros
-fn convert_channels(
+pub(super) fn convert_channels(
     input: &[f32],
     src_chans: usize,
     dst_chans: usize,

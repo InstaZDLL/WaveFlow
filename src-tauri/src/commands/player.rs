@@ -186,6 +186,16 @@ pub async fn player_get_state(
                     std::sync::atomic::Ordering::Release,
                 );
             }
+            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
+                "SELECT value FROM profile_setting WHERE key = 'audio.crossfade_ms'"
+            ).fetch_optional(&pool).await {
+                if let Ok(ms) = v.parse::<u32>() {
+                    engine.shared().crossfade_ms.store(
+                        ms,
+                        std::sync::atomic::Ordering::Release,
+                    );
+                }
+            }
             // Prefer the actively-playing track (non-zero track_id in
             // SharedPlayback), fall back to the persisted resume point
             // at startup when the engine is still Idle.
@@ -468,16 +478,18 @@ pub async fn player_set_mono(
     Ok(())
 }
 
-/// Persist the crossfade duration. The actual crossfade DSP is not
-/// implemented yet — this just saves the user's preference for a
-/// future release.
+/// Update the crossfade duration. Pushes the new value live to the
+/// audio engine so the next track transition uses it, and persists
+/// to `profile_setting['audio.crossfade_ms']` so it survives a restart.
 #[tauri::command]
 pub async fn player_set_crossfade(
     state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
     seconds: f64,
 ) -> AppResult<()> {
+    let ms = (seconds.max(0.0) * 1000.0).round() as i64;
+    engine.send(AudioCmd::SetCrossfade(ms.max(0) as u32))?;
     if let Ok(pool) = state.require_profile_pool().await {
-        let ms = (seconds * 1000.0).round() as i64;
         let now = chrono::Utc::now().timestamp_millis();
         let _ = sqlx::query(
             "INSERT INTO profile_setting (key, value, value_type, updated_at)

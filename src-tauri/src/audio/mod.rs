@@ -15,6 +15,7 @@
 #![allow(dead_code)]
 
 pub mod analytics;
+pub mod crossfade;
 pub mod decoder;
 pub mod engine;
 pub mod output;

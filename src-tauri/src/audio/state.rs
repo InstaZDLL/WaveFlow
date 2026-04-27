@@ -87,6 +87,10 @@ pub struct SharedPlayback {
     /// every output channel receives the same mono signal. Useful
     /// for single-speaker setups or users with hearing impairment.
     pub mono_enabled: AtomicBool,
+    /// Crossfade duration in milliseconds (0 = disabled). The decoder
+    /// thread reads this each packet to decide when to prefetch the
+    /// next track and when to start mixing.
+    pub crossfade_ms: AtomicU32,
 }
 
 impl SharedPlayback {
@@ -104,6 +108,7 @@ impl SharedPlayback {
             drain_silent: AtomicBool::new(false),
             normalize_enabled: AtomicBool::new(false),
             mono_enabled: AtomicBool::new(false),
+            crossfade_ms: AtomicU32::new(0),
         }
     }
 

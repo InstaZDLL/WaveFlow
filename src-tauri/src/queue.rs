@@ -409,6 +409,36 @@ pub async fn advance(
     track_at_position(pool, new_index).await
 }
 
+/// Non-mutating sibling of [`advance`]: returns what the next track
+/// *would* be without moving the cursor. Used by the crossfade
+/// prefetcher so it can hand the decoder a candidate without
+/// committing to a queue advance — the cursor is bumped only when
+/// the crossfade actually starts.
+pub async fn peek_next(
+    pool: &SqlitePool,
+    repeat: RepeatMode,
+) -> AppResult<Option<QueueTrack>> {
+    let length = queue_length(pool).await?;
+    if length == 0 {
+        return Ok(None);
+    }
+    let current = read_setting_i64(pool, "queue.current_index")
+        .await?
+        .unwrap_or(0);
+
+    let next_index = match repeat {
+        RepeatMode::One => current,
+        RepeatMode::Off => {
+            if current + 1 >= length {
+                return Ok(None);
+            }
+            current + 1
+        }
+        RepeatMode::All => (current + 1) % length,
+    };
+    track_at_position(pool, next_index).await
+}
+
 /// Startup restore: return the track + position the UI should show at
 /// mount, without starting playback. Priority:
 ///

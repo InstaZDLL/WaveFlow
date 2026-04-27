@@ -42,6 +42,18 @@ pub enum AudioCmd {
     SetVolume(f32),
     SetNormalize(bool),
     SetMono(bool),
+    /// Update the crossfade window length (ms). 0 disables crossfade.
+    SetCrossfade(u32),
+    /// Hand the decoder thread the next track to prefetch for
+    /// crossfade. Sent by the analytics task in response to a
+    /// `PrefetchNext` request from the decoder.
+    SetNextTrack {
+        path: PathBuf,
+        track_id: i64,
+        duration_ms: u64,
+        source_type: String,
+        source_id: Option<i64>,
+    },
     Shutdown,
 }
 
