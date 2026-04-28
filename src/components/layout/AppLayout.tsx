@@ -20,6 +20,7 @@ import { PlaylistView } from "../views/PlaylistView";
 import { AlbumDetailView } from "../views/AlbumDetailView";
 import { ArtistDetailView } from "../views/ArtistDetailView";
 import { ProfileSelectorModal } from "../common/ProfileSelectorModal";
+import { LastfmReauthBanner } from "../common/LastfmReauthBanner";
 
 export function AppLayout() {
   const { isDark } = useTheme();
@@ -190,6 +191,8 @@ export function AppLayout() {
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
       />
+
+      <LastfmReauthBanner onGoToSettings={() => setActiveView("settings")} />
     </div>
   );
 }

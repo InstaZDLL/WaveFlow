@@ -8,6 +8,11 @@
     "open": "Open",
     "optional": "(optional)"
   },
+  "lastfmReauth": {
+    "title": "Last.fm session expired",
+    "message": "Your scrobbles are no longer being sent. Sign in again to resume.",
+    "action": "Open settings"
+  },
   "sidebar": {
     "brand": {
       "beta": "Beta"

@@ -8,6 +8,11 @@
     "open": "Öffnen",
     "optional": "(optional)"
   },
+  "lastfmReauth": {
+    "title": "Last.fm-Sitzung abgelaufen",
+    "message": "Deine Scrobbles werden nicht mehr gesendet. Melde dich neu an, um fortzufahren.",
+    "action": "Einstellungen öffnen"
+  },
   "sidebar": {
     "brand": {
       "beta": "Beta"

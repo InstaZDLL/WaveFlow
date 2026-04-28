@@ -226,7 +226,7 @@ fn schedule_now_playing(app: &AppHandle, track: &QueueTrack) {
         } else {
             None
         };
-        if let Err(err) = client
+        match client
             .update_now_playing(
                 &api_key,
                 &api_secret,
@@ -238,9 +238,21 @@ fn schedule_now_playing(app: &AppHandle, track: &QueueTrack) {
             )
             .await
         {
-            tracing::warn!(track_id, %err, "lastfm updateNowPlaying failed");
-        } else {
-            tracing::debug!(track_id, "lastfm updateNowPlaying ok");
+            Ok(()) => {
+                tracing::debug!(track_id, "lastfm updateNowPlaying ok");
+            }
+            Err(crate::lastfm::LastfmError::Api { code: 9, .. }) => {
+                // Same recovery as the scrobbler: wipe the dead
+                // session + raise the re-auth banner. Pulling the
+                // pool here is best-effort — failure to acquire it
+                // means we just drop the event.
+                if let Ok(pool) = state.require_profile_pool().await {
+                    crate::scrobbler::handle_invalid_session(&app, &pool).await;
+                }
+            }
+            Err(err) => {
+                tracing::warn!(track_id, %err, "lastfm updateNowPlaying failed");
+            }
         }
     });
 }

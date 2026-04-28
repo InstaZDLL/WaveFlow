@@ -22,7 +22,7 @@
 use std::time::Duration;
 
 use sqlx::SqlitePool;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::time;
 
 use crate::{
@@ -30,6 +30,18 @@ use crate::{
     lastfm::{is_permanent_error, LastfmClient, LastfmError},
     state::AppState,
 };
+
+/// Last.fm error code that signals our session key is no longer
+/// valid (the user revoked the app, changed password, or Last.fm
+/// invalidated stale tokens). Distinct from the other permanent
+/// errors because the recovery isn't "drop the queued item" but
+/// "drop the entire session and ask the user to sign in again".
+const ERR_INVALID_SESSION: i64 = 9;
+
+/// Tauri event raised once the worker discovers the session is
+/// invalid. The frontend banner consumes it to surface a toast
+/// linking to the Last.fm Settings section.
+const EVENT_REAUTH_REQUIRED: &str = "lastfm:reauth-required";
 
 /// How often the worker wakes up to look at the queue. 30 s is a
 /// gentle balance between "scrobbles appear quickly on the user's
@@ -112,6 +124,15 @@ async fn run_once(app: &AppHandle) -> Result<(), String> {
                     "permanent scrobble error, dropping"
                 );
                 let _ = delete_item(&pool, item.id).await;
+                // Code 9 = invalid session: the cached session_key
+                // is dead, so future scrobbles will keep failing
+                // until the user signs in again. Wipe the row +
+                // surface a banner; bail out of the loop because
+                // every remaining queued item would also fail.
+                if code == ERR_INVALID_SESSION {
+                    handle_invalid_session(app, &pool).await;
+                    return Ok(());
+                }
             }
             Err(err) => {
                 tracing::warn!(item_id = item.id, %err, "scrobble retry");
@@ -280,4 +301,22 @@ pub fn is_eligible(duration_ms: i64, listened_ms: i64) -> bool {
         return false;
     }
     listened_ms >= duration_ms / 2 || listened_ms >= 240_000
+}
+
+/// Dropped session recovery: wipe the per-profile credential row
+/// + the queued scrobbles (every one of them would re-trigger the
+/// same code 9), then emit a Tauri event so the UI can prompt the
+/// user to sign in again.
+///
+/// Public so `track.updateNowPlaying` can reuse it — the now-playing
+/// path can hit the same expiry condition as a regular scrobble.
+pub async fn handle_invalid_session(app: &AppHandle, pool: &SqlitePool) {
+    let _ = sqlx::query("DELETE FROM auth_credential WHERE provider = 'lastfm'")
+        .execute(pool)
+        .await;
+    let _ = sqlx::query("DELETE FROM scrobble_queue WHERE provider = 'lastfm'")
+        .execute(pool)
+        .await;
+    tracing::warn!("Last.fm session invalidated; dropped credentials and pending scrobbles");
+    let _ = app.emit(EVENT_REAUTH_REQUIRED, ());
 }

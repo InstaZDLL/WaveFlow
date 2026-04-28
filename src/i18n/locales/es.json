@@ -8,6 +8,11 @@
     "open": "Abrir",
     "optional": "(opcional)"
   },
+  "lastfmReauth": {
+    "title": "Sesión Last.fm caducada",
+    "message": "Tus scrobbles ya no se envían. Inicia sesión de nuevo para reanudar.",
+    "action": "Abrir ajustes"
+  },
   "sidebar": {
     "brand": {
       "beta": "Beta"

@@ -8,6 +8,11 @@
     "open": "Ouvrir",
     "optional": "(optionnel)"
   },
+  "lastfmReauth": {
+    "title": "Session Last.fm expirée",
+    "message": "Tes scrobbles ne sont plus envoyés. Reconnecte-toi pour reprendre.",
+    "action": "Ouvrir les paramètres"
+  },
   "sidebar": {
     "brand": {
       "beta": "Beta"
