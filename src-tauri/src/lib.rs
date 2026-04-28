@@ -4,6 +4,7 @@
 //! (running any pending migrations) and exposes the initial set of Tauri
 //! commands to the frontend.
 
+mod analysis;
 mod audio;
 mod commands;
 mod db;
@@ -181,6 +182,9 @@ pub fn run() {
             commands::library::add_folder_to_library,
             commands::library::list_library_folders,
             commands::library::set_folder_watched,
+            commands::analysis::analyze_track,
+            commands::analysis::analyze_library,
+            commands::analysis::get_track_analysis,
             commands::playlist::list_playlists,
             commands::playlist::get_playlist,
             commands::playlist::create_playlist,

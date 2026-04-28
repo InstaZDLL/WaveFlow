@@ -19,6 +19,7 @@ import {
   Eye,
   EyeOff,
   MousePointerClick,
+  Sparkles,
 } from "lucide-react";
 import {
   getProfileSetting,
@@ -232,6 +233,12 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
 export function SettingsView({ onNavigate }: SettingsViewProps) {
   const { t, i18n } = useTranslation();
   const { libraries, rescanLibrary } = useLibrary();
+  const [isAnalyzingLib, setIsAnalyzingLib] = useState(false);
+  const [analyzeProgress, setAnalyzeProgress] = useState<{
+    processed: number;
+    total: number;
+    failed: number;
+  } | null>(null);
   const { activeProfile } = useProfile();
   const [isRescanning, setIsRescanning] = useState(false);
   const [autoStart, setAutoStart] = useState(false);
@@ -276,6 +283,50 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       console.error("[SettingsView] rescan failed", err);
     } finally {
       setIsRescanning(false);
+    }
+  };
+
+  // Subscribe once to `analysis:progress` so the bar updates while
+  // the worker grinds through the library. The backend always emits
+  // a final event with `current_track_id = null` after the run, so
+  // we don't need a manual reset on success.
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    listen<{
+      processed: number;
+      total: number;
+      current_track_id: number | null;
+      failed: number;
+    }>("analysis:progress", (event) => {
+      setAnalyzeProgress({
+        processed: event.payload.processed,
+        total: event.payload.total,
+        failed: event.payload.failed,
+      });
+    })
+      .then((un) => {
+        unlisten = un;
+      })
+      .catch(() => {});
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, []);
+
+  const handleAnalyzeLibrary = async () => {
+    if (isAnalyzingLib) return;
+    setIsAnalyzingLib(true);
+    setAnalyzeProgress({ processed: 0, total: 0, failed: 0 });
+    try {
+      const { analyzeLibrary } = await import("../../lib/tauri/analysis");
+      await analyzeLibrary();
+    } catch (err) {
+      console.error("[SettingsView] analyze library failed", err);
+    } finally {
+      setIsAnalyzingLib(false);
+      // Clear the progress card after a short delay so the user
+      // sees the final 100% state before it disappears.
+      window.setTimeout(() => setAnalyzeProgress(null), 1500);
     }
   };
 
@@ -948,6 +999,69 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               />
               <span>{t("settings.rescan.action")}</span>
             </button>
+          </div>
+
+          <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <Sparkles size={20} className="text-zinc-400" aria-hidden="true" />
+                <div>
+                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                    {t("settings.analyze.title")}
+                  </div>
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.analyze.subtitle")}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleAnalyzeLibrary}
+                disabled={isAnalyzingLib || libraries.length === 0}
+                className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Sparkles
+                  size={14}
+                  aria-hidden="true"
+                  className={isAnalyzingLib ? "animate-pulse" : ""}
+                />
+                <span>{t("settings.analyze.action")}</span>
+              </button>
+            </div>
+            {/* Progress strip — shown during a run + briefly after
+                completion so the user sees the final tally. */}
+            {analyzeProgress && (
+              <div className="mt-3 ml-9">
+                <div className="flex justify-between text-[11px] text-zinc-500 mb-1">
+                  <span>
+                    {analyzeProgress.processed} / {analyzeProgress.total}
+                  </span>
+                  {analyzeProgress.failed > 0 && (
+                    <span className="text-rose-500">
+                      {t("settings.analyze.failed", {
+                        count: analyzeProgress.failed,
+                      })}
+                    </span>
+                  )}
+                </div>
+                <div className="h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-500 transition-all duration-200"
+                    style={{
+                      width: `${
+                        analyzeProgress.total > 0
+                          ? Math.round(
+                              (analyzeProgress.processed /
+                                analyzeProgress.total) *
+                                100,
+                            )
+                          : 0
+                      }%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">

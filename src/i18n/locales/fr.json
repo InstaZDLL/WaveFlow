@@ -465,8 +465,16 @@
     "sections": {
       "metadata": "Métadonnées",
       "audio": "Audio",
+      "analysis": "Analyse",
       "file": "Fichier"
     },
+    "bpm": "BPM",
+    "loudness": "Volume sonore",
+    "replayGain": "ReplayGain",
+    "peak": "Peak",
+    "analyze": "Analyser",
+    "reanalyze": "Réanalyser",
+    "analyzing": "Analyse…",
     "year": "Année",
     "trackNumber": "Piste",
     "duration": "Durée",
@@ -641,6 +649,13 @@
       "title": "Rescanner la bibliothèque",
       "subtitle": "Re-parcourir tous les dossiers et importer les nouveaux fichiers",
       "action": "Rescanner"
+    },
+    "analyze": {
+      "title": "Analyser la bibliothèque",
+      "subtitle": "Calculer BPM, volume sonore et peak pour les titres non analysés",
+      "action": "Analyser",
+      "failed_one": "{{count}} échec",
+      "failed_other": "{{count}} échecs"
     },
     "artistImages": {
       "title": "Images artistes",

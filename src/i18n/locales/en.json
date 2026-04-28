@@ -465,8 +465,16 @@
     "sections": {
       "metadata": "Metadata",
       "audio": "Audio",
+      "analysis": "Analysis",
       "file": "File"
     },
+    "bpm": "BPM",
+    "loudness": "Loudness",
+    "replayGain": "ReplayGain",
+    "peak": "Peak",
+    "analyze": "Analyze",
+    "reanalyze": "Re-analyze",
+    "analyzing": "Analyzing…",
     "year": "Year",
     "trackNumber": "Track #",
     "duration": "Duration",
@@ -636,6 +644,13 @@
     "singleClickPlay": {
       "title": "Single-click to play",
       "subtitle": "A single click on a track starts playback (otherwise double-click)"
+    },
+    "analyze": {
+      "title": "Analyze library",
+      "subtitle": "Compute BPM, loudness and peak for tracks not yet analyzed",
+      "action": "Analyze",
+      "failed_one": "{{count}} failure",
+      "failed_other": "{{count}} failures"
     },
     "rescan": {
       "title": "Rescan library",

@@ -132,6 +132,7 @@ export function useTrackContextMenu({
           />
         )}
         <TrackPropertiesModal
+          key={propertiesTrack?.id ?? "none"}
           track={propertiesTrack}
           onClose={closeProperties}
         />

@@ -1,9 +1,15 @@
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ExternalLink, X } from "lucide-react";
+import { ExternalLink, Sparkles, X } from "lucide-react";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { Artwork } from "./Artwork";
 import { HiResBadge } from "./HiResBadge";
 import { formatDuration, type Track } from "../../lib/tauri/track";
+import {
+  analyzeTrack,
+  getTrackAnalysis,
+  type TrackAnalysis,
+} from "../../lib/tauri/analysis";
 
 interface TrackPropertiesModalProps {
   track: Track | null;
@@ -24,7 +30,42 @@ export function TrackPropertiesModal({
   onClose,
 }: TrackPropertiesModalProps) {
   const { t, i18n } = useTranslation();
+  const [analysis, setAnalysis] = useState<TrackAnalysis | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  // Fetch the cached analysis whenever the dialog opens on a new
+  // track. The parent re-mounts this component (keyed on track.id)
+  // so we don't need a reset path here — every fresh mount starts
+  // with `analysis = null` and `analyzing = false`.
+  useEffect(() => {
+    if (!track) return;
+    let cancelled = false;
+    getTrackAnalysis(track.id)
+      .then((row) => {
+        if (!cancelled) setAnalysis(row);
+      })
+      .catch((err) =>
+        console.error("[TrackProperties] get_track_analysis failed", err),
+      );
+    return () => {
+      cancelled = true;
+    };
+  }, [track]);
+
   if (!track) return null;
+
+  const handleAnalyze = async () => {
+    if (analyzing) return;
+    setAnalyzing(true);
+    try {
+      const row = await analyzeTrack(track.id);
+      setAnalysis(row);
+    } catch (err) {
+      console.error("[TrackProperties] analyze_track failed", err);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const handleShowInExplorer = () => {
     revealItemInDir(track.file_path).catch((err) =>
@@ -132,6 +173,58 @@ export function TrackPropertiesModal({
             <Row label={t("trackProperties.bitrate")} value={bitrate} />
           </Section>
 
+          <Section
+            title={t("trackProperties.sections.analysis")}
+            action={
+              <button
+                type="button"
+                onClick={handleAnalyze}
+                disabled={analyzing}
+                className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-md text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10 disabled:opacity-50 transition-colors"
+              >
+                <Sparkles size={12} />
+                <span>
+                  {analyzing
+                    ? t("trackProperties.analyzing")
+                    : analysis
+                      ? t("trackProperties.reanalyze")
+                      : t("trackProperties.analyze")}
+                </span>
+              </button>
+            }
+          >
+            <Row
+              label={t("trackProperties.bpm")}
+              value={
+                analysis?.bpm != null ? Math.round(analysis.bpm) : "—"
+              }
+            />
+            <Row
+              label={t("trackProperties.loudness")}
+              value={
+                analysis?.loudness_lufs != null
+                  ? `${analysis.loudness_lufs.toFixed(1)} dB`
+                  : "—"
+              }
+            />
+            <Row
+              label={t("trackProperties.replayGain")}
+              value={
+                analysis?.replay_gain_db != null
+                  ? `${analysis.replay_gain_db >= 0 ? "+" : ""}${analysis.replay_gain_db.toFixed(1)} dB`
+                  : "—"
+              }
+            />
+            <Row
+              label={t("trackProperties.peak")}
+              value={
+                analysis?.peak != null
+                  ? analysis.peak.toFixed(3)
+                  : "—"
+              }
+            />
+          </Section>
+
           <Section title={t("trackProperties.sections.file")}>
             <Row label={t("trackProperties.fileSize")} value={fileSizeMB} />
             <Row label={t("trackProperties.addedAt")} value={addedAt} />
@@ -171,15 +264,20 @@ export function TrackPropertiesModal({
 function Section({
   title,
   children,
+  action,
 }: {
   title: string;
   children: React.ReactNode;
+  action?: React.ReactNode;
 }) {
   return (
     <section>
-      <h3 className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-2">
-        {title}
-      </h3>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">
+          {title}
+        </h3>
+        {action}
+      </div>
       <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60 rounded-xl border border-zinc-100 dark:border-zinc-800/60 overflow-hidden">
         {children}
       </div>
