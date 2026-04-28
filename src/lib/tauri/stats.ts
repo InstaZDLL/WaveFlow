@@ -22,6 +22,8 @@ export interface TopTrackRow {
   plays: number;
   listened_ms: number;
   artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
 }
 
 export interface TopArtistRow {
@@ -31,6 +33,8 @@ export interface TopArtistRow {
   listened_ms: number;
   picture_url: string | null;
   picture_path: string | null;
+  picture_path_1x: string | null;
+  picture_path_2x: string | null;
 }
 
 export interface TopAlbumRow {
@@ -41,6 +45,8 @@ export interface TopAlbumRow {
   plays: number;
   listened_ms: number;
   artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
 }
 
 export interface ListeningByDayRow {

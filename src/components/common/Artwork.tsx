@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { convertFileSrc } from "@tauri-apps/api/core";
 import { Disc } from "lucide-react";
+import { resolveArtwork, type ArtworkSize } from "../../lib/tauri/artwork";
 
 interface ArtworkProps {
   /**
@@ -8,6 +8,18 @@ interface ArtworkProps {
    * or `list_albums`). `null` renders the placeholder tile.
    */
   path: string | null;
+  /** Pre-resized 64×64 variant from the thumbnails pipeline. */
+  path1x?: string | null;
+  /** Pre-resized 128×128 variant from the thumbnails pipeline. */
+  path2x?: string | null;
+  /**
+   * Optional remote URL fallback (e.g. Deezer CDN) used only when no
+   * local variant is available — typical of an artist whose enrichment
+   * just landed but whose download hasn't completed yet.
+   */
+  remoteUrl?: string | null;
+  /** Display size hint. Defaults to `2x` (grid tile). */
+  size?: ArtworkSize;
   /** Tailwind sizing classes applied to the wrapper. */
   className?: string;
   /** Size of the fallback icon, in pixels. */
@@ -22,22 +34,34 @@ interface ArtworkProps {
 }
 
 /**
- * Render a hash-addressed cover image served via Tauri's `asset://` protocol.
- *
- * `convertFileSrc` turns the absolute filesystem path into a URL the webview
- * can actually load — the scope allowlist in `tauri.conf.json` restricts
- * which paths are authorized. Paths outside `<appdata>/waveflow/profiles/**`
- * will return an opaque error; we don't try to catch it here because it
- * should never happen in practice.
+ * Render a hash-addressed cover image served via Tauri's `asset://`
+ * protocol, picking the closest pre-resized variant for the requested
+ * display `size`.
  */
 export function Artwork({
   path,
+  path1x,
+  path2x,
+  remoteUrl,
+  size = "2x",
   className = "w-10 h-10",
   iconSize = 18,
   alt,
   rounded = "lg",
 }: ArtworkProps) {
-  const src = useMemo(() => (path ? convertFileSrc(path) : null), [path]);
+  const src = useMemo(
+    () =>
+      resolveArtwork(
+        {
+          full: path,
+          x1: path1x ?? null,
+          x2: path2x ?? null,
+          remoteUrl: remoteUrl ?? null,
+        },
+        size,
+      ),
+    [path, path1x, path2x, remoteUrl, size],
+  );
   const radiusClass = {
     md: "rounded-md",
     lg: "rounded-lg",

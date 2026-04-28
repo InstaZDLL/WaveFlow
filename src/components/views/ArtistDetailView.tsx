@@ -4,6 +4,7 @@ import { Play, Shuffle, Music2, Clock, Heart } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
+import { Lightbox } from "../common/Lightbox";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
@@ -12,7 +13,7 @@ import {
   enrichArtistDeezer,
   type ArtistDetail,
 } from "../../lib/tauri/detail";
-import { resolveRemoteImage } from "../../lib/tauri/artwork";
+import { resolveArtwork } from "../../lib/tauri/artwork";
 import {
   formatDuration,
   listTracks,
@@ -63,6 +64,7 @@ export function ArtistDetailView({
   const [bioShort, setBioShort] = useState<string | null>(null);
   const [bioFull, setBioFull] = useState<string | null>(null);
   const [bioExpanded, setBioExpanded] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   // Load artist detail
   useEffect(() => {
@@ -89,7 +91,15 @@ export function ArtistDetailView({
         setArtist(detail);
         // Seed Deezer cache from the detail response so images render
         // instantly on re-visits (not just after enrichment resolves).
-        const seeded = resolveRemoteImage(detail.picture_path, detail.picture_url);
+        const seeded = resolveArtwork(
+          {
+            full: detail.picture_path,
+            x1: detail.picture_path_1x,
+            x2: detail.picture_path_2x,
+            remoteUrl: detail.picture_url,
+          },
+          "full",
+        );
         if (seeded) setPictureSrc(seeded);
         if (detail.fans_count != null) setFansCount(detail.fans_count);
         if (detail.bio_short) setBioShort(detail.bio_short);
@@ -133,7 +143,15 @@ export function ArtistDetailView({
     enrichArtistDeezer(artistId)
       .then((e) => {
         if (cancelled) return;
-        const resolved = resolveRemoteImage(e.picture_path, e.picture_url);
+        const resolved = resolveArtwork(
+          {
+            full: e.picture_path,
+            x1: e.picture_path_1x,
+            x2: e.picture_path_2x,
+            remoteUrl: e.picture_url,
+          },
+          "full",
+        );
         if (resolved) setPictureSrc(resolved);
         if (e.fans_count != null) setFansCount(e.fans_count);
         if (e.bio_short) setBioShort(e.bio_short);
@@ -197,7 +215,8 @@ export function ArtistDetailView({
           <img
             src={pictureSrc}
             alt={artist.name}
-            className="w-48 h-48 rounded-full object-cover shadow-lg shrink-0"
+            onDoubleClick={() => setIsLightboxOpen(true)}
+            className="w-48 h-48 rounded-full object-cover shadow-lg shrink-0 cursor-zoom-in"
           />
         ) : (
           <div className="w-48 h-48 rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center shadow-lg shrink-0">
@@ -297,6 +316,9 @@ export function ArtistDetailView({
               >
                 <Artwork
                   path={album.artwork_path}
+                  path1x={album.artwork_path_1x}
+                  path2x={album.artwork_path_2x}
+                  size="2x"
                   alt={album.title}
                   className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
                   iconSize={44}
@@ -359,6 +381,13 @@ export function ArtistDetailView({
       />
 
       {trackContextMenu.render()}
+
+      <Lightbox
+        src={pictureSrc}
+        alt={artist.name}
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+      />
     </div>
   );
 }
@@ -429,6 +458,9 @@ function ArtistTrackTable({
               </span>
               <Artwork
                 path={track.artwork_path}
+                path1x={track.artwork_path_1x}
+                path2x={track.artwork_path_2x}
+                size="1x"
                 className="w-10 h-10"
                 iconSize={18}
                 alt={track.album_title ?? track.title}

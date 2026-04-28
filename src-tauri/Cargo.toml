@@ -77,3 +77,11 @@ regex = "1"
 # Filesystem watcher for auto-detecting new audio files in watched
 # library folders without a manual rescan.
 notify = "8"
+
+# Thumbnail pipeline (Piste E): decode source covers via `image`, then
+# resize with SIMD acceleration via `fast_image_resize`. Output is
+# re-encoded to JPEG via `image` so the asset protocol scope can stay
+# extension-locked.
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "bmp", "gif", "tiff"] }
+fast_image_resize = "6"
+anyhow = "1"

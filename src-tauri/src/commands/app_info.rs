@@ -1,6 +1,9 @@
 use serde::Serialize;
 
-use crate::{error::AppResult, state::AppState};
+use crate::{
+    error::{AppError, AppResult},
+    state::AppState,
+};
 
 /// High-level app info returned to the frontend on startup.
 ///
@@ -28,4 +31,18 @@ pub async fn get_app_info(state: tauri::State<'_, AppState>) -> AppResult<AppInf
         app_db_path: state.paths.app_db.display().to_string(),
         active_profile_id,
     })
+}
+
+#[tauri::command]
+pub async fn open_data_folder(
+    state: tauri::State<'_, AppState>,
+    profile_id: Option<i64>,
+) -> AppResult<()> {
+    let path = match profile_id {
+        Some(pid) => state.paths.profile_dir(pid),
+        None => state.paths.root.clone(),
+    };
+    tauri_plugin_opener::open_path(path, None::<&str>)
+        .map_err(|e| AppError::Other(format!("open_path: {e}")))?;
+    Ok(())
 }

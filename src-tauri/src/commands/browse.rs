@@ -20,6 +20,8 @@ pub struct AlbumRow {
     pub track_count: i64,
     pub total_duration_ms: i64,
     pub artwork_path: Option<String>,
+    pub artwork_path_1x: Option<String>,
+    pub artwork_path_2x: Option<String>,
 }
 
 /// Private SQL row — the public `AlbumRow` derives `artwork_path` from the
@@ -49,6 +51,8 @@ pub struct ArtistRow {
     /// Absolute filesystem path to the locally-cached picture, when
     /// the metadata cache holds a hash and the file still exists.
     pub picture_path: Option<String>,
+    pub picture_path_1x: Option<String>,
+    pub picture_path_2x: Option<String>,
 }
 
 #[derive(FromRow)]
@@ -130,6 +134,8 @@ pub struct RecentPlay {
     pub duration_ms: i64,
     pub played_at: i64,
     pub artwork_path: Option<String>,
+    pub artwork_path_1x: Option<String>,
+    pub artwork_path_2x: Option<String>,
     pub file_path: String,
 }
 
@@ -152,6 +158,60 @@ struct RecentPlayRaw {
     file_path: String,
 }
 
+/// Whitelisted ORDER BY clause builder for `list_albums`. Falls back to
+/// the default "Artist → Album" sort whenever the spec isn't recognized.
+fn album_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'static str {
+    let dir_default_desc = matches!(order_by, Some("year") | Some("added_at"));
+    let dir = match direction {
+        Some(d) if d.eq_ignore_ascii_case("asc") => "ASC",
+        Some(d) if d.eq_ignore_ascii_case("desc") => "DESC",
+        _ => {
+            if dir_default_desc {
+                "DESC"
+            } else {
+                "ASC"
+            }
+        }
+    };
+    match (order_by, dir) {
+        (Some("title"), "ASC") => "ORDER BY al.canonical_title COLLATE NOCASE ASC",
+        (Some("title"), "DESC") => "ORDER BY al.canonical_title COLLATE NOCASE DESC",
+        (Some("artist"), "ASC") => "ORDER BY ar.canonical_name COLLATE NOCASE ASC, al.canonical_title COLLATE NOCASE",
+        (Some("artist"), "DESC") => "ORDER BY ar.canonical_name COLLATE NOCASE DESC, al.canonical_title COLLATE NOCASE",
+        (Some("year"), "ASC") => "ORDER BY al.year ASC, al.canonical_title COLLATE NOCASE",
+        (Some("year"), "DESC") => "ORDER BY al.year DESC, al.canonical_title COLLATE NOCASE",
+        (Some("added_at"), "ASC") => "ORDER BY MIN(t.added_at) ASC",
+        (Some("added_at"), "DESC") => "ORDER BY MIN(t.added_at) DESC",
+        _ => "ORDER BY ar.canonical_name COLLATE NOCASE,\n                  al.canonical_title COLLATE NOCASE",
+    }
+}
+
+/// Whitelisted ORDER BY clause builder for `list_artists`.
+fn artist_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'static str {
+    let dir_default_desc =
+        matches!(order_by, Some("albums_count") | Some("tracks_count"));
+    let dir = match direction {
+        Some(d) if d.eq_ignore_ascii_case("asc") => "ASC",
+        Some(d) if d.eq_ignore_ascii_case("desc") => "DESC",
+        _ => {
+            if dir_default_desc {
+                "DESC"
+            } else {
+                "ASC"
+            }
+        }
+    };
+    match (order_by, dir) {
+        (Some("name"), "ASC") => "ORDER BY ar.canonical_name COLLATE NOCASE ASC",
+        (Some("name"), "DESC") => "ORDER BY ar.canonical_name COLLATE NOCASE DESC",
+        (Some("albums_count"), "ASC") => "ORDER BY album_count ASC, ar.canonical_name COLLATE NOCASE",
+        (Some("albums_count"), "DESC") => "ORDER BY album_count DESC, ar.canonical_name COLLATE NOCASE",
+        (Some("tracks_count"), "ASC") => "ORDER BY track_count ASC, ar.canonical_name COLLATE NOCASE",
+        (Some("tracks_count"), "DESC") => "ORDER BY track_count DESC, ar.canonical_name COLLATE NOCASE",
+        _ => "ORDER BY ar.canonical_name COLLATE NOCASE",
+    }
+}
+
 /// List every album that has at least one available track in the given
 /// library, sorted by artist → album title. Track count and total duration
 /// are computed on the fly so the UI can display "Album · N titres · h:mm".
@@ -159,12 +219,18 @@ struct RecentPlayRaw {
 pub async fn list_albums(
     state: tauri::State<'_, AppState>,
     library_id: Option<i64>,
+    filter_no_cover: Option<bool>,
+    order_by: Option<String>,
+    direction: Option<String>,
 ) -> AppResult<Vec<AlbumRow>> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
-    let raw = sqlx::query_as::<_, AlbumRawRow>(
+    let no_cover = filter_no_cover.unwrap_or(false);
+    let order_clause = album_order_clause(order_by.as_deref(), direction.as_deref());
+
+    let sql = format!(
         r#"
         SELECT al.id,
                al.title,
@@ -178,29 +244,37 @@ pub async fn list_albums(
           JOIN track t        ON t.album_id = al.id
           LEFT JOIN artist ar ON ar.id = al.artist_id
           LEFT JOIN artwork aw ON aw.id = al.artwork_id
-         WHERE (? IS NULL OR t.library_id = ?) AND t.is_available = 1
+         WHERE (? IS NULL OR t.library_id = ?)
+           AND t.is_available = 1
+           AND (? = 0 OR al.artwork_id IS NULL)
          GROUP BY al.id
-         ORDER BY ar.canonical_name COLLATE NOCASE,
-                  al.canonical_title COLLATE NOCASE
-        "#,
-    )
-    .bind(library_id)
-    .bind(library_id)
-    .fetch_all(&pool)
-    .await?;
+         {order_clause}
+        "#
+    );
+
+    let raw = sqlx::query_as::<_, AlbumRawRow>(&sql)
+        .bind(library_id)
+        .bind(library_id)
+        .bind(if no_cover { 1_i64 } else { 0_i64 })
+        .fetch_all(&pool)
+        .await?;
 
     let rows = raw
         .into_iter()
         .map(|row| {
-            let artwork_path = match (row.artwork_hash, row.artwork_format) {
-                (Some(hash), Some(format)) => Some(
-                    artwork_dir
-                        .join(format!("{}.{}", hash, format))
-                        .to_string_lossy()
-                        .to_string(),
-                ),
-                _ => None,
-            };
+            let (artwork_path, artwork_path_1x, artwork_path_2x) =
+                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
+                    (Some(hash), Some(format)) => {
+                        let full = artwork_dir
+                            .join(format!("{}.{}", hash, format))
+                            .to_string_lossy()
+                            .to_string();
+                        let (p1, p2) =
+                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        (Some(full), p1, p2)
+                    }
+                    _ => (None, None, None),
+                };
             AlbumRow {
                 id: row.id,
                 title: row.title,
@@ -209,6 +283,8 @@ pub async fn list_albums(
                 track_count: row.track_count,
                 total_duration_ms: row.total_duration_ms,
                 artwork_path,
+                artwork_path_1x,
+                artwork_path_2x,
             }
         })
         .collect();
@@ -222,10 +298,14 @@ pub async fn list_albums(
 pub async fn list_artists(
     state: tauri::State<'_, AppState>,
     library_id: Option<i64>,
+    order_by: Option<String>,
+    direction: Option<String>,
 ) -> AppResult<Vec<ArtistRow>> {
     let pool = state.require_profile_pool().await?;
 
-    let raw = sqlx::query_as::<_, ArtistRowRaw>(
+    let order_clause = artist_order_clause(order_by.as_deref(), direction.as_deref());
+
+    let sql = format!(
         r#"
         SELECT ar.id,
                ar.name,
@@ -239,27 +319,37 @@ pub async fn list_artists(
           LEFT JOIN app.metadata_artist da ON da.deezer_id = ar.deezer_id
          WHERE (? IS NULL OR t.library_id = ?) AND t.is_available = 1
          GROUP BY ar.id
-         ORDER BY ar.canonical_name COLLATE NOCASE
-        "#,
-    )
-    .bind(library_id)
-    .bind(library_id)
-    .fetch_all(&pool)
-    .await?;
+         {order_clause}
+        "#
+    );
+
+    let raw = sqlx::query_as::<_, ArtistRowRaw>(&sql)
+        .bind(library_id)
+        .bind(library_id)
+        .fetch_all(&pool)
+        .await?;
 
     let metadata_dir = &state.paths.metadata_artwork_dir;
     let rows = raw
         .into_iter()
-        .map(|r| ArtistRow {
-            id: r.id,
-            name: r.name,
-            track_count: r.track_count,
-            album_count: r.album_count,
-            picture_path: r
-                .picture_hash
-                .as_deref()
-                .and_then(|h| crate::metadata_artwork::existing_path(metadata_dir, h)),
-            picture_url: r.picture_url,
+        .map(|r| {
+            let (picture_path_1x, picture_path_2x) = match r.picture_hash.as_deref() {
+                Some(h) => crate::thumbnails::thumbnail_paths_for(metadata_dir, h),
+                None => (None, None),
+            };
+            ArtistRow {
+                id: r.id,
+                name: r.name,
+                track_count: r.track_count,
+                album_count: r.album_count,
+                picture_path: r
+                    .picture_hash
+                    .as_deref()
+                    .and_then(|h| crate::metadata_artwork::existing_path(metadata_dir, h)),
+                picture_url: r.picture_url,
+                picture_path_1x,
+                picture_path_2x,
+            }
         })
         .collect();
 
@@ -356,15 +446,21 @@ pub async fn list_recent_plays(
     let rows = raw
         .into_iter()
         .map(|row| {
-            let artwork_path =
-                match (row.artwork_hash, row.artwork_format, artwork_dir.as_ref()) {
-                    (Some(hash), Some(format), Some(dir)) => Some(
-                        dir.join(format!("{hash}.{format}"))
-                            .to_string_lossy()
-                            .to_string(),
-                    ),
-                    _ => None,
-                };
+            let (artwork_path, artwork_path_1x, artwork_path_2x) = match (
+                row.artwork_hash.as_deref(),
+                row.artwork_format.as_deref(),
+                artwork_dir.as_ref(),
+            ) {
+                (Some(hash), Some(format), Some(dir)) => {
+                    let full = dir
+                        .join(format!("{hash}.{format}"))
+                        .to_string_lossy()
+                        .to_string();
+                    let (p1, p2) = crate::thumbnails::thumbnail_paths_for(dir, hash);
+                    (Some(full), p1, p2)
+                }
+                _ => (None, None, None),
+            };
             RecentPlay {
                 track_id: row.track_id,
                 title: row.title,
@@ -376,6 +472,8 @@ pub async fn list_recent_plays(
                 duration_ms: row.duration_ms,
                 played_at: row.played_at,
                 artwork_path,
+                artwork_path_1x,
+                artwork_path_2x,
                 file_path: row.file_path,
             }
         })
@@ -428,6 +526,8 @@ pub struct AlbumDetail {
     pub track_count: i64,
     pub total_duration_ms: i64,
     pub artwork_path: Option<String>,
+    pub artwork_path_1x: Option<String>,
+    pub artwork_path_2x: Option<String>,
     pub label: Option<String>,
     pub release_date: Option<String>,
     pub genres: Vec<String>,
@@ -460,6 +560,8 @@ pub struct AlbumTrack {
     pub track_number: Option<i64>,
     pub disc_number: Option<i64>,
     pub artwork_path: Option<String>,
+    pub artwork_path_1x: Option<String>,
+    pub artwork_path_2x: Option<String>,
     pub file_path: String,
 }
 
@@ -511,15 +613,19 @@ pub async fn get_album_detail(
     .await?
     .ok_or_else(|| crate::error::AppError::Other("album not found".into()))?;
 
-    let artwork_path = match (header.artwork_hash.as_deref(), header.artwork_format.as_deref()) {
-        (Some(hash), Some(format)) => Some(
-            artwork_dir
-                .join(format!("{hash}.{format}"))
-                .to_string_lossy()
-                .to_string(),
-        ),
-        _ => None,
-    };
+    let (artwork_path, artwork_path_1x, artwork_path_2x) =
+        match (header.artwork_hash.as_deref(), header.artwork_format.as_deref()) {
+            (Some(hash), Some(format)) => {
+                let full = artwork_dir
+                    .join(format!("{hash}.{format}"))
+                    .to_string_lossy()
+                    .to_string();
+                let (p1, p2) =
+                    crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                (Some(full), p1, p2)
+            }
+            _ => (None, None, None),
+        };
 
     let genres: Vec<String> = sqlx::query_scalar(
         r#"
@@ -567,15 +673,19 @@ pub async fn get_album_detail(
     let tracks = tracks_raw
         .into_iter()
         .map(|row| {
-            let track_artwork = match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
-                (Some(hash), Some(fmt)) => Some(
-                    artwork_dir
-                        .join(format!("{hash}.{fmt}"))
-                        .to_string_lossy()
-                        .to_string(),
-                ),
-                _ => None,
-            };
+            let (track_artwork, track_artwork_1x, track_artwork_2x) =
+                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
+                    (Some(hash), Some(fmt)) => {
+                        let full = artwork_dir
+                            .join(format!("{hash}.{fmt}"))
+                            .to_string_lossy()
+                            .to_string();
+                        let (p1, p2) =
+                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        (Some(full), p1, p2)
+                    }
+                    _ => (None, None, None),
+                };
             AlbumTrack {
                 id: row.id,
                 title: row.title,
@@ -586,6 +696,8 @@ pub async fn get_album_detail(
                 track_number: row.track_number,
                 disc_number: row.disc_number,
                 artwork_path: track_artwork,
+                artwork_path_1x: track_artwork_1x,
+                artwork_path_2x: track_artwork_2x,
                 file_path: row.file_path,
             }
         })
@@ -600,6 +712,8 @@ pub async fn get_album_detail(
         track_count: header.track_count,
         total_duration_ms: header.total_duration_ms,
         artwork_path,
+        artwork_path_1x,
+        artwork_path_2x,
         label: header.label,
         release_date: header.release_date,
         genres,
@@ -614,8 +728,12 @@ pub struct ArtistDetail {
     pub id: i64,
     pub name: String,
     pub artwork_path: Option<String>,
+    pub artwork_path_1x: Option<String>,
+    pub artwork_path_2x: Option<String>,
     pub picture_url: Option<String>,
     pub picture_path: Option<String>,
+    pub picture_path_1x: Option<String>,
+    pub picture_path_2x: Option<String>,
     pub fans_count: Option<i64>,
     pub bio_short: Option<String>,
     pub bio_full: Option<String>,
@@ -647,6 +765,8 @@ pub struct ArtistAlbumRow {
     pub track_count: i64,
     pub total_duration_ms: i64,
     pub artwork_path: Option<String>,
+    pub artwork_path_1x: Option<String>,
+    pub artwork_path_2x: Option<String>,
 }
 
 #[derive(FromRow)]
@@ -695,15 +815,19 @@ pub async fn get_artist_detail(
     .await?
     .ok_or_else(|| crate::error::AppError::Other("artist not found".into()))?;
 
-    let artwork_path = match (header.artwork_hash.as_deref(), header.artwork_format.as_deref()) {
-        (Some(hash), Some(format)) => Some(
-            artwork_dir
-                .join(format!("{hash}.{format}"))
-                .to_string_lossy()
-                .to_string(),
-        ),
-        _ => None,
-    };
+    let (artwork_path, artwork_path_1x, artwork_path_2x) =
+        match (header.artwork_hash.as_deref(), header.artwork_format.as_deref()) {
+            (Some(hash), Some(format)) => {
+                let full = artwork_dir
+                    .join(format!("{hash}.{format}"))
+                    .to_string_lossy()
+                    .to_string();
+                let (p1, p2) =
+                    crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                (Some(full), p1, p2)
+            }
+            _ => (None, None, None),
+        };
 
     let albums_raw = sqlx::query_as::<_, ArtistAlbumRawRow>(
         r#"
@@ -727,15 +851,19 @@ pub async fn get_artist_detail(
     let albums = albums_raw
         .into_iter()
         .map(|row| {
-            let album_artwork = match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
-                (Some(hash), Some(fmt)) => Some(
-                    artwork_dir
-                        .join(format!("{hash}.{fmt}"))
-                        .to_string_lossy()
-                        .to_string(),
-                ),
-                _ => None,
-            };
+            let (album_artwork, album_artwork_1x, album_artwork_2x) =
+                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
+                    (Some(hash), Some(fmt)) => {
+                        let full = artwork_dir
+                            .join(format!("{hash}.{fmt}"))
+                            .to_string_lossy()
+                            .to_string();
+                        let (p1, p2) =
+                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        (Some(full), p1, p2)
+                    }
+                    _ => (None, None, None),
+                };
             ArtistAlbumRow {
                 id: row.id,
                 title: row.title,
@@ -743,21 +871,32 @@ pub async fn get_artist_detail(
                 track_count: row.track_count,
                 total_duration_ms: row.total_duration_ms,
                 artwork_path: album_artwork,
+                artwork_path_1x: album_artwork_1x,
+                artwork_path_2x: album_artwork_2x,
             }
         })
         .collect();
 
+    let metadata_dir = &state.paths.metadata_artwork_dir;
     let picture_path = header
         .picture_hash
         .as_deref()
-        .and_then(|h| crate::metadata_artwork::existing_path(&state.paths.metadata_artwork_dir, h));
+        .and_then(|h| crate::metadata_artwork::existing_path(metadata_dir, h));
+    let (picture_path_1x, picture_path_2x) = match header.picture_hash.as_deref() {
+        Some(h) => crate::thumbnails::thumbnail_paths_for(metadata_dir, h),
+        None => (None, None),
+    };
 
     Ok(ArtistDetail {
         id: header.id,
         name: header.name,
         artwork_path,
+        artwork_path_1x,
+        artwork_path_2x,
         picture_url: header.picture_url,
         picture_path,
+        picture_path_1x,
+        picture_path_2x,
         fans_count: header.fans_count,
         bio_short: header.bio_short,
         bio_full: header.bio_full,

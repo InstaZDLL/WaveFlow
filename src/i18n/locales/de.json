@@ -1,0 +1,629 @@
+{
+  "common": {
+    "cancel": "Abbrechen",
+    "back": "Zurück",
+    "save": "Speichern",
+    "close": "Schließen",
+    "confirm": "Bestätigen",
+    "open": "Öffnen",
+    "optional": "(optional)"
+  },
+  "sidebar": {
+    "brand": {
+      "beta": "Beta"
+    },
+    "nav": {
+      "home": "Startseite"
+    },
+    "sections": {
+      "open": "Öffnen",
+      "library": "Bibliothek",
+      "playlists": "Wiedergabelisten"
+    },
+    "open": {
+      "file": "Datei",
+      "folder": "Ordner"
+    },
+    "library": {
+      "tracksCount_zero": "0 Titel",
+      "tracksCount_one": "{{count}} Titel",
+      "tracksCount_other": "{{count}} Titel",
+      "createLibraryAria": "Eine neue Bibliothek erstellen",
+      "none": "Keine Bibliothek",
+      "popover": {
+        "label": "Bibliotheksauswahl",
+        "header": "Bibliotheken",
+        "countLine": "{{tracks}} · {{albums}}",
+        "tracks_zero": "0 Titel",
+        "tracks_one": "{{count}} Titel",
+        "tracks_other": "{{count}} Titel",
+        "albums_zero": "0 Alben",
+        "albums_one": "{{count}} Album",
+        "albums_other": "{{count}} Alben",
+        "see": "Anzeigen",
+        "new": "Neu"
+      },
+      "nav": {
+        "tracks": "Titel",
+        "albums": "Alben",
+        "artists": "Künstler",
+        "genres": "Genres",
+        "explorer": "Explorer"
+      }
+    },
+    "playlists": {
+      "createPlaylistAria": "Eine neue Wiedergabeliste erstellen",
+      "liked": "Lieblingstitel",
+      "recent": "Zuletzt gespielt",
+      "emptySubtext_zero": "0 Titel",
+      "emptySubtext_one": "{{count}} Titel",
+      "emptySubtext_other": "{{count}} Titel"
+    },
+    "myMusic": {
+      "title": "Meine Musik",
+      "addFolderAria": "Einen Ordner importieren",
+      "tracks": "Titel",
+      "albums": "Alben",
+      "artists": "Künstler",
+      "genres": "Genres",
+      "folders": "Ordner"
+    },
+    "playlistSection": {
+      "title": "Wiedergabelisten"
+    },
+    "myLibrary": {
+      "playlistSubtext_zero": "0 Titel",
+      "playlistSubtext_one": "{{count}} Titel",
+      "playlistSubtext_other": "{{count}} Titel"
+    }
+  },
+  "topbar": {
+    "search": {
+      "placeholder": "Titel, Künstler oder Album suchen...",
+      "results_zero": "Keine Ergebnisse",
+      "results_one": "{{count}} Ergebnis",
+      "results_other": "{{count}} Ergebnisse"
+    },
+    "theme": {
+      "enableLight": "Hellen Modus aktivieren",
+      "enableDark": "Dunklen Modus aktivieren"
+    },
+    "profile": {
+      "user": "Benutzer",
+      "changeProfile": "Profil wechseln",
+      "statistics": "Statistik",
+      "settings": "Einstellungen",
+      "feedback": "Feedback",
+      "about": "Über",
+      "quit": "Anwendung beenden"
+    }
+  },
+  "home": {
+    "greeting": {
+      "morning": "Guten Morgen",
+      "evening": "Guten Abend",
+      "night": "Gute Nacht"
+    },
+    "banner": {
+      "badge": "Bereit zum Hören",
+      "subtitle": "Entdecke deine Lieblingsmusik und erkunde neue Klänge.",
+      "openFile": "Datei öffnen",
+      "openFolder": "Ordner öffnen",
+      "importFiles": "Dateien importieren",
+      "importFolder": "Ordner importieren"
+    },
+    "stats": {
+      "library": "Bibliothek",
+      "liked": "Lieblingstitel",
+      "recent": "Zuletzt gespielt",
+      "playlists": "Wiedergabelisten"
+    },
+    "recentlyPlayed": {
+      "title": "Zuletzt gespielt",
+      "emptyTitle": "Noch kein Titel gehört",
+      "emptyDescription": "Spiele einen Titel ab, damit er hier erscheint. Dein Hörverlauf entsteht beim Entdecken."
+    }
+  },
+  "library": {
+    "header": {
+      "addFolder": "Einen Ordner hinzufügen",
+      "subtext": {
+        "morceaux_zero": "0 Titel",
+        "morceaux_one": "{{count}} Titel",
+        "morceaux_other": "{{count}} Titel",
+        "albums_zero": "0 Alben",
+        "albums_one": "{{count}} Album",
+        "albums_other": "{{count}} Alben",
+        "artistes_zero": "0 Künstler",
+        "artistes_one": "{{count}} Künstler",
+        "artistes_other": "{{count}} Künstler",
+        "genres_zero": "0 Genres",
+        "genres_one": "{{count}} Genre",
+        "genres_other": "{{count}} Genres",
+        "dossiers_zero": "0 Ordner",
+        "dossiers_one": "{{count}} Ordner",
+        "dossiers_other": "{{count}} Ordner"
+      }
+    },
+    "tabs": {
+      "morceaux": "Titel",
+      "albums": "Alben",
+      "artistes": "Künstler",
+      "genres": "Genres",
+      "dossiers": "Ordner"
+    },
+    "empty": {
+      "morceaux": {
+        "title": "Bibliothek leer",
+        "description": "Importiere Audiodateien oder einen Ordner, um deine Bibliothek zu füllen."
+      },
+      "albums": {
+        "title": "Keine Alben gefunden",
+        "description": "Importiere Audiodateien, um automatisch Alben zu erstellen."
+      },
+      "artistes": {
+        "title": "Keine Künstler gefunden",
+        "description": "Importiere Audiodateien, um zu beginnen."
+      },
+      "genres": {
+        "title": "Keine Genres gefunden",
+        "description": "Importiere Audiodateien, um Genres zu entdecken."
+      },
+      "dossiers": {
+        "title": "Kein Ordner importiert",
+        "description": "Importiere einen Ordner aus der Aktionsleiste, um ihn hier zu durchsuchen."
+      }
+    },
+    "actions": {
+      "importFiles": "Dateien importieren",
+      "importFolder": "Ordner importieren",
+      "share": "Teilen (bald)",
+      "rescan": "Bibliothek neu scannen",
+      "rescanning": "Scan läuft…",
+      "changeArtwork": "Bild ändern (bald)",
+      "edit": "Bibliothek bearbeiten",
+      "delete": "Bibliothek löschen",
+      "deleteConfirm": "Erneut klicken zum Bestätigen"
+    },
+    "table": {
+      "number": "#",
+      "title": "Titel",
+      "artist": "Künstler",
+      "album": "Album",
+      "duration": "Dauer",
+      "unknown": "—"
+    },
+    "rating": "Bewertung",
+    "noRating": "Keine Bewertung",
+    "viewToggle": {
+      "label": "Anzeigemodus",
+      "list": "Liste",
+      "compact": "Kompakt"
+    },
+    "albumGrid": {
+      "trackCount_zero": "0 Titel",
+      "trackCount_one": "{{count}} Titel",
+      "trackCount_other": "{{count}} Titel"
+    },
+    "artistList": {
+      "trackCount_zero": "0 Titel",
+      "trackCount_one": "{{count}} Titel",
+      "trackCount_other": "{{count}} Titel",
+      "albumCount_zero": "0 Alben",
+      "albumCount_one": "{{count}} Album",
+      "albumCount_other": "{{count}} Alben"
+    },
+    "genreList": {
+      "trackCount_zero": "0 Titel",
+      "trackCount_one": "{{count}} Titel",
+      "trackCount_other": "{{count}} Titel"
+    },
+    "folderList": {
+      "trackCount_zero": "0 Titel",
+      "trackCount_one": "{{count}} Titel",
+      "trackCount_other": "{{count}} Titel",
+      "lastScanned": "Gescannt: {{date}}",
+      "neverScanned": "nie",
+      "watched": "Überwacht",
+      "watchOn": "Änderungen automatisch überwachen",
+      "watchOff": "Überwachung beenden"
+    }
+  },
+  "liked": {
+    "badge": "Sammlung",
+    "title": "Lieblingstitel",
+    "count_zero": "0 Titel",
+    "count_one": "{{count}} Titel",
+    "count_other": "{{count}} Titel",
+    "emptyTitle": "Kein Lieblingstitel",
+    "emptyDescription": "Titel, die dir gefallen, erscheinen hier. Erkunde deine Bibliothek und markiere deine Favoriten.",
+    "playAll": "Alle abspielen",
+    "unlike": "Aus Favoriten entfernen",
+    "like": "Zu Favoriten hinzufügen"
+  },
+  "recent": {
+    "badge": "Verlauf",
+    "title": "Zuletzt gespielt",
+    "count_zero": "0 Titel",
+    "count_one": "{{count}} Titel",
+    "count_other": "{{count}} Titel",
+    "emptyTitle": "Kein aktueller Titel",
+    "emptyDescription": "Titel, die du hörst, erscheinen hier automatisch."
+  },
+  "statistics": {
+    "title": "Statistik",
+    "emptyTitle": "Keine Statistik verfügbar",
+    "emptyDescription": "Höre Musik, damit hier deine Hörstatistik erscheint.",
+    "range": {
+      "label": "Zeitraum",
+      "7d": "7 Tage",
+      "30d": "30 Tage",
+      "90d": "90 Tage",
+      "1y": "1 Jahr",
+      "all": "Alle"
+    },
+    "kpi": {
+      "totalPlays": "Wiedergaben",
+      "totalTime": "Hörzeit",
+      "uniqueTracks": "Eindeutige Titel",
+      "uniqueArtists_zero": "0 Künstler",
+      "uniqueArtists_one": "{{count}} Künstler",
+      "uniqueArtists_other": "{{count}} Künstler",
+      "completionRate": "Vollständige Wiedergabequote"
+    },
+    "byDay": {
+      "title": "Aktivität pro Tag",
+      "empty": "Keine Wiedergaben in diesem Zeitraum."
+    },
+    "byHour": {
+      "title": "Lieblingsstunden",
+      "empty": "Keine Wiedergaben in diesem Zeitraum.",
+      "tooltip": "{{hour}} Uhr — {{plays}} Wiedergaben"
+    },
+    "topTracks": {
+      "title": "Top-Titel",
+      "empty": "Kein Titel gehört."
+    },
+    "topArtists": {
+      "title": "Top-Künstler",
+      "empty": "Kein Künstler gehört."
+    },
+    "topAlbums": {
+      "title": "Top-Alben",
+      "empty": "Kein Album gehört."
+    },
+    "plays_zero": "0 Wiedergaben",
+    "plays_one": "{{count}} Wiedergabe",
+    "plays_other": "{{count}} Wiedergaben"
+  },
+  "about": {
+    "title": "Über",
+    "hero": {
+      "subtitle": "Plattformübergreifender HD-Musikplayer",
+      "checkUpdates": "Auf Updates prüfen",
+      "developedBy": "Entwickelt von"
+    },
+    "sections": {
+      "frameworkDesktop": "Desktop-Framework",
+      "frontend": "Frontend",
+      "backend": "Backend (Rust)",
+      "audio": "Audio",
+      "shortcuts": "Tastenkürzel",
+      "credits": "Mitwirkende"
+    },
+    "shortcuts": {
+      "playPause": "Wiedergabe / Pause",
+      "previousTrack": "Vorheriger Titel",
+      "nextTrack": "Nächster Titel",
+      "volume": "Lautstärke",
+      "mute": "Stummschalten",
+      "keys": {
+        "space": "Leertaste"
+      }
+    },
+    "credits": {
+      "text": "Mit Leidenschaft entworfen und entwickelt. Mit Open-Source-Technologien gebaut.",
+      "icons": "Icons von Lucide, Phosphor, Mynaui und Iconify."
+    }
+  },
+  "feedback": {
+    "title": "Feedback",
+    "hero": {
+      "title": "Hilf uns, WaveFlow zu verbessern",
+      "description": "Hast du einen Fehler entdeckt, eine Idee zur Verbesserung oder einfach nur eine Rückmeldung? Wir lesen jede Nachricht und berücksichtigen deine Vorschläge."
+    },
+    "contact": {
+      "section": "Kontakt",
+      "subtitle": "Fehler, Vorschlag oder Frage — wir lesen jede Nachricht"
+    }
+  },
+  "player": {
+    "noTrack": "Kein Titel",
+    "inactive": "Inaktiv",
+    "controls": {
+      "play": "Wiedergabe",
+      "pause": "Pause",
+      "previous": "Vorheriger",
+      "next": "Nächster",
+      "shuffleOn": "Zufallswiedergabe deaktivieren",
+      "shuffleOff": "Zufallswiedergabe aktivieren",
+      "repeatOff": "Wiederholung aktivieren",
+      "repeatAll": "Einmal wiederholen",
+      "repeatOne": "Wiederholung deaktivieren"
+    },
+    "volume": {
+      "label": "Lautstärke",
+      "mute": "Stummschalten",
+      "unmute": "Ton aktivieren"
+    }
+  },
+  "queue": {
+    "title": "Warteschlange",
+    "inactive": "INAKTIV",
+    "count_zero": "0 Titel",
+    "count_one": "{{count}} Titel",
+    "count_other": "{{count}} Titel",
+    "emptyTitle": "Nichts zu hören",
+    "emptyDescription": "Spiele Musik aus deiner Bibliothek, um die Warteschlange zu füllen.",
+    "nowPlaying": "Wird gespielt",
+    "upNext_zero": "Als Nächstes",
+    "upNext_one": "Als Nächstes · {{count}} Titel",
+    "upNext_other": "Als Nächstes · {{count}} Titel"
+  },
+  "deviceMenu": {
+    "activeLabel": "Discard all samples (playback)"
+  },
+  "profiles": {
+    "select": {
+      "title": "Wer hört zu?",
+      "subtitle": "Wähle dein Profil, um deine Bibliotheken und Wiedergabelisten zu finden",
+      "add": "Hinzufügen",
+      "edit": "Bearbeiten",
+      "active": "Aktives Profil",
+      "switchTo": "Wechseln"
+    },
+    "create": {
+      "title": "Neues Profil",
+      "subtitle": "Erstelle ein Profil, um dein Erlebnis anzupassen",
+      "nameLabel": "Profilname",
+      "namePlaceholder": "Namen eingeben...",
+      "colorLabel": "Profilfarbe",
+      "colorAria": "Farbe {{color}}",
+      "submit": "Profil erstellen"
+    }
+  },
+  "libraryModal": {
+    "title": "Bibliothek erstellen",
+    "editTitle": "Bibliothek bearbeiten",
+    "previewDefault": "Bibliothek erstellen",
+    "previewSubtitle": "0 Titel · Bibliothek",
+    "nameLabel": "Bibliotheksname",
+    "namePlaceholder": "Z. B. Rock, Jazz, Klassik...",
+    "descriptionLabel": "Beschreibung",
+    "descriptionPlaceholder": "Eine kurze Beschreibung...",
+    "submit": "Bibliothek erstellen",
+    "submitEdit": "Speichern"
+  },
+  "playlistModal": {
+    "title": "Neue Wiedergabeliste",
+    "editTitle": "Wiedergabeliste bearbeiten",
+    "previewDefault": "Neue Wiedergabeliste",
+    "previewSubtitle": "0 Titel · Wiedergabeliste",
+    "nameLabel": "Name",
+    "namePlaceholder": "Z. B. Chill Vibes, Workout Mix...",
+    "descriptionLabel": "Beschreibung",
+    "descriptionPlaceholder": "Eine kurze Beschreibung...",
+    "colorLabel": "Farbe",
+    "colorAria": "Farbe {{color}}",
+    "iconLabel": "Symbol",
+    "iconAria": "Symbol {{icon}}",
+    "submit": "Erstellen",
+    "editSubmit": "Speichern"
+  },
+  "playlistView": {
+    "badge": "Wiedergabeliste",
+    "trackCount_zero": "0 Titel",
+    "trackCount_one": "{{count}} Titel",
+    "trackCount_other": "{{count}} Titel",
+    "actions": {
+      "play": "Wiedergabe",
+      "shuffle": "Zufallswiedergabe",
+      "edit": "Wiedergabeliste bearbeiten",
+      "delete": "Wiedergabeliste löschen",
+      "deleteConfirm": "Erneut klicken zum Bestätigen"
+    },
+    "emptyTitle": "Diese Wiedergabeliste ist leer",
+    "emptyDescription": "Füge Titel aus deinen Bibliotheken über die Schaltfläche + jeder Zeile hinzu.",
+    "noneTitle": "Keine Wiedergabeliste ausgewählt",
+    "noneDescription": "Wähle eine Wiedergabeliste aus der Seitenleiste, um sie hier anzuzeigen.",
+    "notFoundTitle": "Wiedergabeliste nicht gefunden",
+    "notFoundDescription": "Diese Wiedergabeliste existiert nicht mehr im aktiven Profil."
+  },
+  "trackActions": {
+    "addToPlaylist": "Zu einer Wiedergabeliste hinzufügen",
+    "noPlaylists": "Keine Wiedergabeliste. Erstelle unten eine.",
+    "createPlaylist": "Neue Wiedergabeliste",
+    "playNext": "Als Nächstes abspielen",
+    "addToQueue": "Zur Warteschlange hinzufügen",
+    "like": "Zu Favoriten hinzufügen",
+    "unlike": "Aus Favoriten entfernen",
+    "removeFromPlaylist": "Aus dieser Wiedergabeliste entfernen",
+    "goToAlbum": "Zum Album",
+    "goToArtist": "Zum Künstler",
+    "showInExplorer": "Im Explorer anzeigen",
+    "copyPath": "Dateipfad kopieren"
+  },
+  "selection": {
+    "toolbarLabel": "Auswahlaktionen",
+    "count_zero": "0 ausgewählt",
+    "count_one": "{{count}} ausgewählt",
+    "count_other": "{{count}} ausgewählt",
+    "play": "Wiedergeben",
+    "addToQueue": "Zur Warteschlange hinzufügen",
+    "playNext": "Als Nächstes spielen",
+    "addToPlaylist": "Zur Wiedergabeliste hinzufügen",
+    "removeFromPlaylist": "Aus Wiedergabeliste entfernen",
+    "clear": "Aufheben"
+  },
+  "albumDetail": {
+    "badge": "Album",
+    "playAll": "Alle abspielen",
+    "shuffle": "Zufallswiedergabe",
+    "trackCount_zero": "0 Titel",
+    "trackCount_one": "{{count}} Titel",
+    "trackCount_other": "{{count}} Titel",
+    "discHeader": "CD {{number}}",
+    "releaseDate": "Veröffentlicht",
+    "emptyTitle": "Album nicht gefunden",
+    "emptyDescription": "Dieses Album existiert nicht mehr im aktiven Profil.",
+    "emptyTracksTitle": "Keine Titel",
+    "emptyTracksDescription": "Dieses Album enthält keine verfügbaren Titel."
+  },
+  "artistDetail": {
+    "badge": "Künstler",
+    "playAll": "Alle abspielen",
+    "shuffle": "Zufallswiedergabe",
+    "discography": "Diskografie",
+    "allTracks": "Alle Titel",
+    "trackCount_zero": "0 Titel",
+    "trackCount_one": "{{count}} Titel",
+    "trackCount_other": "{{count}} Titel",
+    "albumCount_zero": "0 Alben",
+    "albumCount_one": "{{count}} Album",
+    "albumCount_other": "{{count}} Alben",
+    "albumTrackCount_zero": "0 Titel",
+    "albumTrackCount_one": "{{count}} Titel",
+    "albumTrackCount_other": "{{count}} Titel",
+    "emptyTitle": "Künstler nicht gefunden",
+    "emptyDescription": "Dieser Künstler existiert nicht mehr im aktiven Profil.",
+    "bio": {
+      "title": "Biografie"
+    }
+  },
+  "nowPlaying": {
+    "title": "Wird gerade gespielt",
+    "empty": "Kein Titel wird gespielt",
+    "aboutArtist": "Über den Künstler",
+    "readMore": "Mehr lesen",
+    "readLess": "Weniger lesen",
+    "noBio": "Keine Biografie verfügbar. Konfiguriere deinen Last.fm-Schlüssel in den Einstellungen.",
+    "lyrics": {
+      "title": "Liedtext",
+      "comingSoon": "Bald verfügbar"
+    }
+  },
+  "playerBar": {
+    "lyrics": "Liedtext",
+    "nowPlaying": "Wiedergabeansicht",
+    "queue": "Warteschlange"
+  },
+  "lyrics": {
+    "title": "Liedtext",
+    "loading": "Suche nach Liedtext…",
+    "noTrack": "Kein Titel wird gespielt",
+    "notFound": "Kein Liedtext für diesen Titel gefunden. Du kannst eine .lrc-Datei importieren.",
+    "importTitle": ".lrc-Datei importieren",
+    "actions": {
+      "import": ".lrc-Datei importieren",
+      "refetch": "Erneut suchen",
+      "clear": "Liedtext löschen"
+    },
+    "source": {
+      "embedded": "In Audiodatei eingebettet",
+      "lrc_file": "Importierte .lrc-Datei",
+      "api": "LRCLIB",
+      "manual": "Manuelle Eingabe"
+    }
+  },
+  "sort": {
+    "title": "Titel",
+    "artist": "Künstler",
+    "album": "Album",
+    "duration": "Dauer",
+    "year": "Jahr",
+    "addedAt": "Hinzugefügt",
+    "rating": "Bewertung",
+    "name": "Name",
+    "albumsCount": "Alben",
+    "tracksCount": "Titel",
+    "ascending": "Aufsteigend",
+    "descending": "Absteigend"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "sections": {
+      "general": "Allgemein",
+      "playback": "Wiedergabe",
+      "integrations": "Integrationen",
+      "storage": "Speicher und Daten"
+    },
+    "integrations": {
+      "lastfm": {
+        "title": "Last.fm-API-Schlüssel",
+        "subtitle": "Zum Abrufen von Künstlerbiografien. Erstelle einen Schlüssel auf last.fm/api/account/create",
+        "placeholder": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "save": "Speichern",
+        "saved": "Gespeichert ✓",
+        "show": "Schlüssel anzeigen",
+        "hide": "Schlüssel verbergen"
+      }
+    },
+    "crossfade": {
+      "title": "Überblendung",
+      "subtitle": "Sanfter Übergang zwischen Titeln (bald)"
+    },
+    "normalize": {
+      "title": "Lautstärke normalisieren",
+      "subtitle": "Lautstärke zu lauter Titel für ein einheitliches Niveau reduzieren"
+    },
+    "mono": {
+      "title": "Mono-Audio",
+      "subtitle": "Mischt linken und rechten Kanal zu einem einzigen Signal"
+    },
+    "language": {
+      "title": "Sprache",
+      "subtitle": "Sprache der Benutzeroberfläche"
+    },
+    "autoStart": {
+      "title": "Beim Systemstart starten",
+      "subtitle": "WaveFlow automatisch beim Systemstart starten"
+    },
+    "minimizeToTray": {
+      "title": "In Systemleiste minimieren",
+      "subtitle": "Beim Schließen des Fensters wird die Anwendung in die Systemleiste minimiert"
+    },
+    "scanOnStart": {
+      "title": "Beim Start scannen",
+      "subtitle": "Bibliotheken beim Öffnen automatisch erneut scannen"
+    },
+    "singleClickPlay": {
+      "title": "Mit Einfachklick wiedergeben",
+      "subtitle": "Ein einzelner Klick auf einen Titel startet die Wiedergabe (sonst Doppelklick)"
+    },
+    "rescan": {
+      "title": "Bibliothek neu scannen",
+      "subtitle": "Alle Ordner erneut durchsuchen und neue Dateien importieren",
+      "action": "Neu scannen"
+    },
+    "artistImages": {
+      "title": "Künstlerbilder",
+      "subtitle": "Künstlerbilder von Deezer abrufen",
+      "action": "Abrufen"
+    },
+    "dataFolder": {
+      "title": "Datenordner",
+      "subtitle": "Den Ordner mit Datenbank und Albumcovern öffnen",
+      "action": "Öffnen"
+    },
+    "openDataFolder": "Datenordner öffnen",
+    "regenerateThumbnails": "Vorschaubilder neu generieren",
+    "regenerateThumbnailsSubtitle": "Fehlende 1x/2x-Varianten für jedes Cover neu erstellen",
+    "regenerateThumbnailsAction": "Neu generieren",
+    "regenerateThumbnailsDone": "{{count}} Vorschaubilder neu generiert",
+    "reset": {
+      "title": "Anwendung zurücksetzen",
+      "subtitle": "Alle Daten löschen und in den Ausgangszustand zurückkehren",
+      "action": "Zurücksetzen"
+    }
+  }
+}

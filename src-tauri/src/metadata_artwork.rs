@@ -82,5 +82,6 @@ pub async fn download_and_cache(url: &str, dir: &Path) -> Option<String> {
             return None;
         }
     }
+    crate::thumbnails::spawn_thumbnail_job(out, dir.to_path_buf(), hash.clone());
     Some(hash)
 }

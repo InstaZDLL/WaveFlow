@@ -13,13 +13,17 @@
 //! fields `None`) rather than propagating an error — the frontend can
 //! display local data without interruption.
 
+use std::path::Path;
+
 use chrono::Utc;
 use serde::Serialize;
+use sqlx::SqlitePool;
+use tauri::{AppHandle, Emitter};
 
 use crate::{
     commands::integration::read_lastfm_api_key,
     deezer::DeezerClient,
-    error::AppResult,
+    error::{AppError, AppResult},
     lastfm::LastfmClient,
     metadata_artwork,
     state::AppState,
@@ -45,6 +49,8 @@ pub struct DeezerAlbumEnrichment {
     /// Absolute filesystem path to the locally-cached cover, or `None` if
     /// the download has not happened yet (or failed).
     pub cover_path: Option<String>,
+    pub cover_path_1x: Option<String>,
+    pub cover_path_2x: Option<String>,
 }
 
 impl DeezerAlbumEnrichment {
@@ -55,6 +61,8 @@ impl DeezerAlbumEnrichment {
             release_date: None,
             cover_url: None,
             cover_path: None,
+            cover_path_1x: None,
+            cover_path_2x: None,
         }
     }
 }
@@ -66,6 +74,14 @@ pub async fn enrich_album_deezer(
 ) -> AppResult<DeezerAlbumEnrichment> {
     let pool = state.require_profile_pool().await?;
     let artwork_dir = state.paths.metadata_artwork_dir.clone();
+    enrich_album_inner(&pool, &artwork_dir, album_id).await
+}
+
+async fn enrich_album_inner(
+    pool: &SqlitePool,
+    artwork_dir: &Path,
+    album_id: i64,
+) -> AppResult<DeezerAlbumEnrichment> {
     let now = now_ms();
 
     // 1. Read the local album + its existing deezer_id.
@@ -75,7 +91,7 @@ pub async fn enrich_album_deezer(
           WHERE al.id = ?",
     )
     .bind(album_id)
-    .fetch_optional(&pool)
+    .fetch_optional(pool)
     .await?;
 
     let Some((album_title, artist_name, existing_deezer_id)) = local else {
@@ -95,20 +111,26 @@ pub async fn enrich_album_deezer(
                FROM app.metadata_album WHERE deezer_id = ?",
         )
         .bind(did)
-        .fetch_optional(&pool)
+        .fetch_optional(pool)
         .await?;
 
         if let Some((label, release_date, cover_url, cover_hash, expires_at)) = cached {
             if expires_at > now {
                 let cover_path = cover_hash
                     .as_deref()
-                    .and_then(|h| metadata_artwork::existing_path(&artwork_dir, h));
+                    .and_then(|h| metadata_artwork::existing_path(artwork_dir, h));
+                let (cover_path_1x, cover_path_2x) = match cover_hash.as_deref() {
+                    Some(h) => crate::thumbnails::thumbnail_paths_for(artwork_dir, h),
+                    None => (None, None),
+                };
                 return Ok(DeezerAlbumEnrichment {
                     deezer_id: Some(did),
                     label,
                     release_date,
                     cover_url,
                     cover_path,
+                    cover_path_1x,
+                    cover_path_2x,
                 });
             }
         }
@@ -149,12 +171,16 @@ pub async fn enrich_album_deezer(
 
     // 4. Download artwork into the shared cache (best-effort).
     let cover_hash = match cover_url.as_deref() {
-        Some(url) => metadata_artwork::download_and_cache(url, &artwork_dir).await,
+        Some(url) => metadata_artwork::download_and_cache(url, artwork_dir).await,
         None => None,
     };
     let cover_path = cover_hash
         .as_deref()
-        .and_then(|h| metadata_artwork::existing_path(&artwork_dir, h));
+        .and_then(|h| metadata_artwork::existing_path(artwork_dir, h));
+    let (cover_path_1x, cover_path_2x) = match cover_hash.as_deref() {
+        Some(h) => crate::thumbnails::thumbnail_paths_for(artwork_dir, h),
+        None => (None, None),
+    };
 
     // 5. Upsert into cache (now stores the hash too).
     let expires = now + CACHE_TTL_MS;
@@ -179,7 +205,7 @@ pub async fn enrich_album_deezer(
     .bind(hit.label.as_deref())
     .bind(now)
     .bind(expires)
-    .execute(&pool)
+    .execute(pool)
     .await?;
 
     // 6. Link deezer_id on the local album.
@@ -187,7 +213,7 @@ pub async fn enrich_album_deezer(
         sqlx::query("UPDATE album SET deezer_id = ? WHERE id = ?")
             .bind(hit.id)
             .bind(album_id)
-            .execute(&pool)
+            .execute(pool)
             .await?;
     }
 
@@ -197,6 +223,8 @@ pub async fn enrich_album_deezer(
         release_date: hit.release_date,
         cover_url,
         cover_path,
+        cover_path_1x,
+        cover_path_2x,
     })
 }
 
@@ -209,6 +237,8 @@ pub struct DeezerArtistEnrichment {
     pub picture_url: Option<String>,
     /// Absolute filesystem path to the locally-cached picture.
     pub picture_path: Option<String>,
+    pub picture_path_1x: Option<String>,
+    pub picture_path_2x: Option<String>,
     pub fans_count: Option<i64>,
     /// Short biography from Last.fm (if an API key is configured and
     /// the artist matches). HTML stripped.
@@ -223,6 +253,8 @@ impl DeezerArtistEnrichment {
             deezer_id: None,
             picture_url: None,
             picture_path: None,
+            picture_path_1x: None,
+            picture_path_2x: None,
             fans_count: None,
             bio_short: None,
             bio_full: None,
@@ -275,10 +307,16 @@ pub async fn enrich_artist_deezer(
                 let picture_path = picture_hash
                     .as_deref()
                     .and_then(|h| metadata_artwork::existing_path(&artwork_dir, h));
+                let (picture_path_1x, picture_path_2x) = match picture_hash.as_deref() {
+                    Some(h) => crate::thumbnails::thumbnail_paths_for(&artwork_dir, h),
+                    None => (None, None),
+                };
                 return Ok(DeezerArtistEnrichment {
                     deezer_id: Some(did),
                     picture_url,
                     picture_path,
+                    picture_path_1x,
+                    picture_path_2x,
                     fans_count,
                     bio_short,
                     bio_full,
@@ -347,6 +385,10 @@ pub async fn enrich_artist_deezer(
     let picture_path = picture_hash
         .as_deref()
         .and_then(|h| metadata_artwork::existing_path(&artwork_dir, h));
+    let (picture_path_1x, picture_path_2x) = match picture_hash.as_deref() {
+        Some(h) => crate::thumbnails::thumbnail_paths_for(&artwork_dir, h),
+        None => (None, None),
+    };
 
     // 6. Upsert into the metadata cache (both Deezer and Last.fm
     //    fields land in the unified `metadata_artist` table, stored
@@ -391,8 +433,241 @@ pub async fn enrich_artist_deezer(
         deezer_id: Some(hit.id),
         picture_url,
         picture_path,
+        picture_path_1x,
+        picture_path_2x,
         fans_count: hit.nb_fan,
         bio_short,
         bio_full,
     })
+}
+
+// ── Cover management ────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DeezerAlbumLite {
+    pub deezer_id: i64,
+    pub title: String,
+    pub artist: String,
+    pub cover_url: Option<String>,
+}
+
+#[tauri::command]
+pub async fn search_albums_deezer(query: String) -> AppResult<Vec<DeezerAlbumLite>> {
+    let client = DeezerClient::new();
+    let hits = client
+        .search_album(&query)
+        .await
+        .map_err(|err| AppError::Other(format!("deezer search failed: {err}")))?;
+
+    let lite: Vec<DeezerAlbumLite> = hits
+        .into_iter()
+        .take(20)
+        .map(|h| DeezerAlbumLite {
+            deezer_id: h.id,
+            title: h.title,
+            artist: h.artist.map(|a| a.name).unwrap_or_default(),
+            cover_url: h.cover_xl.or(h.cover_medium),
+        })
+        .collect();
+    Ok(lite)
+}
+
+#[tauri::command]
+pub async fn set_album_artwork_from_deezer(
+    state: tauri::State<'_, AppState>,
+    album_id: i64,
+    deezer_album_id: i64,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let profile_artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    std::fs::create_dir_all(&profile_artwork_dir)?;
+
+    let client = DeezerClient::new();
+    let hit = client
+        .get_album(deezer_album_id)
+        .await
+        .map_err(|err| AppError::Other(format!("deezer get_album failed: {err}")))?;
+
+    let cover_url = hit
+        .cover_xl
+        .clone()
+        .or_else(|| hit.cover_big.clone())
+        .or_else(|| hit.cover_medium.clone())
+        .ok_or_else(|| AppError::Other("deezer album has no cover".into()))?;
+
+    let bytes = download_image_bytes(&cover_url).await?;
+    let hash = blake3::hash(&bytes).to_hex().to_string();
+    let format = "jpg";
+    let target = profile_artwork_dir.join(format!("{hash}.{format}"));
+    if !target.exists() {
+        std::fs::write(&target, &bytes)?;
+    }
+    crate::thumbnails::spawn_thumbnail_job(
+        target,
+        profile_artwork_dir.clone(),
+        hash.clone(),
+    );
+
+    let artwork_id = upsert_artwork_row(&pool, &hash, format, "deezer").await?;
+    sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
+        .bind(artwork_id)
+        .bind(album_id)
+        .execute(&pool)
+        .await?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn set_album_artwork_from_file(
+    state: tauri::State<'_, AppState>,
+    album_id: i64,
+    file_path: String,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let profile_artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    std::fs::create_dir_all(&profile_artwork_dir)?;
+
+    let bytes = std::fs::read(&file_path)?;
+    let format = detect_image_format(&bytes)
+        .ok_or_else(|| AppError::Other("unsupported image format (expected jpg/png/webp)".into()))?;
+
+    let hash = blake3::hash(&bytes).to_hex().to_string();
+    let target = profile_artwork_dir.join(format!("{hash}.{format}"));
+    if !target.exists() {
+        std::fs::write(&target, &bytes)?;
+    }
+    crate::thumbnails::spawn_thumbnail_job(
+        target,
+        profile_artwork_dir.clone(),
+        hash.clone(),
+    );
+
+    let artwork_id = upsert_artwork_row(&pool, &hash, format, "manual").await?;
+    sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
+        .bind(artwork_id)
+        .bind(album_id)
+        .execute(&pool)
+        .await?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn batch_fetch_missing_album_covers(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<u32> {
+    let pool = state.require_profile_pool().await?;
+    let artwork_dir = state.paths.metadata_artwork_dir.clone();
+
+    let rows: Vec<(i64, String)> = sqlx::query_as(
+        "SELECT a.id, a.title FROM album a WHERE a.artwork_id IS NULL",
+    )
+    .fetch_all(&pool)
+    .await?;
+
+    let total = rows.len();
+    let mut success: u32 = 0;
+    for (i, (album_id, title)) in rows.into_iter().enumerate() {
+        let _ = app.emit(
+            "cover-fetch-progress",
+            serde_json::json!({
+                "current": i + 1,
+                "total": total,
+                "album_title": title,
+            }),
+        );
+        match enrich_album_inner(&pool, &artwork_dir, album_id).await {
+            Ok(enrich) => {
+                if enrich.cover_path.is_some() {
+                    success += 1;
+                }
+            }
+            Err(err) => {
+                tracing::warn!(album_id, ?err, "batch cover fetch failed");
+            }
+        }
+    }
+
+    Ok(success)
+}
+
+async fn upsert_artwork_row(
+    pool: &SqlitePool,
+    hash: &str,
+    format: &str,
+    source: &str,
+) -> AppResult<i64> {
+    let existing: Option<i64> =
+        sqlx::query_scalar("SELECT id FROM artwork WHERE hash = ?")
+            .bind(hash)
+            .fetch_optional(pool)
+            .await?;
+    if let Some(id) = existing {
+        return Ok(id);
+    }
+
+    let result = sqlx::query(
+        "INSERT INTO artwork (hash, format, source, created_at) VALUES (?, ?, ?, ?)",
+    )
+    .bind(hash)
+    .bind(format)
+    .bind(source)
+    .bind(now_ms())
+    .execute(pool)
+    .await?;
+    Ok(result.last_insert_rowid())
+}
+
+fn detect_image_format(bytes: &[u8]) -> Option<&'static str> {
+    if bytes.len() >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF {
+        return Some("jpg");
+    }
+    if bytes.len() >= 8
+        && bytes[0] == 0x89
+        && bytes[1] == 0x50
+        && bytes[2] == 0x4E
+        && bytes[3] == 0x47
+        && bytes[4] == 0x0D
+        && bytes[5] == 0x0A
+        && bytes[6] == 0x1A
+        && bytes[7] == 0x0A
+    {
+        return Some("png");
+    }
+    if bytes.len() >= 12
+        && &bytes[0..4] == b"RIFF"
+        && &bytes[8..12] == b"WEBP"
+    {
+        return Some("webp");
+    }
+    None
+}
+
+async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
+    let client = reqwest::Client::builder()
+        .user_agent("WaveFlow/0.1")
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|err| AppError::Other(format!("http client build failed: {err}")))?;
+
+    let resp = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|err| AppError::Other(format!("download failed: {err}")))?;
+    if !resp.status().is_success() {
+        return Err(AppError::Other(format!(
+            "download status {}",
+            resp.status()
+        )));
+    }
+    let bytes = resp
+        .bytes()
+        .await
+        .map_err(|err| AppError::Other(format!("read failed: {err}")))?;
+    Ok(bytes.to_vec())
 }

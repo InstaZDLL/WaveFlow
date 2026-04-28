@@ -13,6 +13,8 @@ export interface AlbumTrack {
   track_number: number | null;
   disc_number: number | null;
   artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
   file_path: string;
 }
 
@@ -25,6 +27,8 @@ export interface AlbumDetail {
   track_count: number;
   total_duration_ms: number;
   artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
   label: string | null;
   release_date: string | null;
   genres: string[];
@@ -44,14 +48,20 @@ export interface ArtistAlbumRow {
   track_count: number;
   total_duration_ms: number;
   artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
 }
 
 export interface ArtistDetail {
   id: number;
   name: string;
   artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
   picture_url: string | null;
   picture_path: string | null;
+  picture_path_1x: string | null;
+  picture_path_2x: string | null;
   fans_count: number | null;
   bio_short: string | null;
   bio_full: string | null;
@@ -72,12 +82,16 @@ export interface DeezerAlbumEnrichment {
   release_date: string | null;
   cover_url: string | null;
   cover_path: string | null;
+  cover_path_1x: string | null;
+  cover_path_2x: string | null;
 }
 
 export interface DeezerArtistEnrichment {
   deezer_id: number | null;
   picture_url: string | null;
   picture_path: string | null;
+  picture_path_1x: string | null;
+  picture_path_2x: string | null;
   fans_count: number | null;
   /** Short biography from Last.fm (HTML stripped). */
   bio_short: string | null;

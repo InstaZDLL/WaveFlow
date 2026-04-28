@@ -1,0 +1,635 @@
+{
+  "common": {
+    "cancel": "Cancelar",
+    "back": "Atrás",
+    "save": "Guardar",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "open": "Abrir",
+    "optional": "(opcional)"
+  },
+  "sidebar": {
+    "brand": {
+      "beta": "Beta"
+    },
+    "nav": {
+      "home": "Inicio"
+    },
+    "sections": {
+      "open": "Abrir",
+      "library": "Biblioteca",
+      "playlists": "Listas de reproducción"
+    },
+    "open": {
+      "file": "Archivo",
+      "folder": "Carpeta"
+    },
+    "library": {
+      "tracksCount_zero": "0 canciones",
+      "tracksCount_one": "{{count}} canción",
+      "tracksCount_other": "{{count}} canciones",
+      "createLibraryAria": "Crear una nueva biblioteca",
+      "none": "Sin biblioteca",
+      "popover": {
+        "label": "Selección de biblioteca",
+        "header": "Bibliotecas",
+        "countLine": "{{tracks}} · {{albums}}",
+        "tracks_zero": "0 canciones",
+        "tracks_one": "{{count}} canción",
+        "tracks_other": "{{count}} canciones",
+        "albums_zero": "0 álbumes",
+        "albums_one": "{{count}} álbum",
+        "albums_other": "{{count}} álbumes",
+        "see": "Ver",
+        "new": "Nueva"
+      },
+      "nav": {
+        "tracks": "Canciones",
+        "albums": "Álbumes",
+        "artists": "Artistas",
+        "genres": "Géneros",
+        "explorer": "Explorador"
+      }
+    },
+    "playlists": {
+      "createPlaylistAria": "Crear una nueva lista de reproducción",
+      "liked": "Canciones que me gustan",
+      "recent": "Reproducidas recientemente",
+      "emptySubtext_zero": "0 canciones",
+      "emptySubtext_one": "{{count}} canción",
+      "emptySubtext_other": "{{count}} canciones"
+    },
+    "myMusic": {
+      "title": "Mi música",
+      "addFolderAria": "Importar una carpeta",
+      "tracks": "Canciones",
+      "albums": "Álbumes",
+      "artists": "Artistas",
+      "genres": "Géneros",
+      "folders": "Carpetas"
+    },
+    "playlistSection": {
+      "title": "Listas de reproducción"
+    },
+    "myLibrary": {
+      "playlistSubtext_zero": "0 canciones",
+      "playlistSubtext_one": "{{count}} canción",
+      "playlistSubtext_other": "{{count}} canciones"
+    }
+  },
+  "topbar": {
+    "search": {
+      "placeholder": "Buscar una canción, un artista, un álbum...",
+      "results_zero": "Sin resultados",
+      "results_one": "{{count}} resultado",
+      "results_other": "{{count}} resultados"
+    },
+    "theme": {
+      "enableLight": "Activar el modo claro",
+      "enableDark": "Activar el modo oscuro"
+    },
+    "profile": {
+      "user": "Usuario",
+      "changeProfile": "Cambiar de perfil",
+      "statistics": "Estadísticas",
+      "settings": "Ajustes",
+      "feedback": "Comentarios",
+      "about": "Acerca de",
+      "quit": "Salir de la aplicación"
+    }
+  },
+  "home": {
+    "greeting": {
+      "morning": "Buenos días",
+      "evening": "Buenas tardes",
+      "night": "Buenas noches"
+    },
+    "banner": {
+      "badge": "Listo para escuchar",
+      "subtitle": "Descubre tu música favorita y explora nuevos sonidos.",
+      "openFile": "Abrir un archivo",
+      "openFolder": "Abrir una carpeta",
+      "importFiles": "Importar archivos",
+      "importFolder": "Importar carpeta"
+    },
+    "stats": {
+      "library": "Biblioteca",
+      "liked": "Canciones que me gustan",
+      "recent": "Reproducidas recientemente",
+      "playlists": "Listas de reproducción"
+    },
+    "recentlyPlayed": {
+      "title": "Reproducidas recientemente",
+      "emptyTitle": "Aún no se ha reproducido ninguna canción",
+      "emptyDescription": "Reproduce una canción para que aparezca aquí. Tu historial de escucha se construye a medida que descubres."
+    }
+  },
+  "library": {
+    "header": {
+      "addFolder": "Añadir una carpeta",
+      "subtext": {
+        "morceaux_zero": "0 canciones",
+        "morceaux_one": "{{count}} canción",
+        "morceaux_other": "{{count}} canciones",
+        "albums_zero": "0 álbumes",
+        "albums_one": "{{count}} álbum",
+        "albums_other": "{{count}} álbumes",
+        "artistes_zero": "0 artistas",
+        "artistes_one": "{{count}} artista",
+        "artistes_other": "{{count}} artistas",
+        "genres_zero": "0 géneros",
+        "genres_one": "{{count}} género",
+        "genres_other": "{{count}} géneros",
+        "dossiers_zero": "0 carpetas",
+        "dossiers_one": "{{count}} carpeta",
+        "dossiers_other": "{{count}} carpetas"
+      }
+    },
+    "tabs": {
+      "morceaux": "Canciones",
+      "albums": "Álbumes",
+      "artistes": "Artistas",
+      "genres": "Géneros",
+      "dossiers": "Carpetas"
+    },
+    "empty": {
+      "morceaux": {
+        "title": "Biblioteca vacía",
+        "description": "Importa archivos de audio o una carpeta para llenar tu biblioteca."
+      },
+      "albums": {
+        "title": "No se encontraron álbumes",
+        "description": "Importa archivos de audio para generar automáticamente los álbumes."
+      },
+      "artistes": {
+        "title": "No se encontraron artistas",
+        "description": "Importa archivos de audio para empezar."
+      },
+      "genres": {
+        "title": "No se encontraron géneros",
+        "description": "Importa archivos de audio para descubrir los géneros."
+      },
+      "dossiers": {
+        "title": "Ninguna carpeta importada",
+        "description": "Importa una carpeta desde la barra de acciones para explorarla aquí."
+      }
+    },
+    "actions": {
+      "importFiles": "Importar archivos",
+      "importFolder": "Importar una carpeta",
+      "share": "Compartir (próximamente)",
+      "rescan": "Volver a escanear la biblioteca",
+      "rescanning": "Escaneando…",
+      "changeArtwork": "Cambiar la imagen (próximamente)",
+      "edit": "Editar la biblioteca",
+      "delete": "Eliminar la biblioteca",
+      "deleteConfirm": "Haz clic de nuevo para confirmar"
+    },
+    "changeCover": "Cambiar la portada",
+    "searchDeezer": "Búsqueda en Deezer",
+    "localFile": "Archivo local",
+    "fetchMissingCovers": "Recuperar todas las portadas faltantes",
+    "noCover": "Sin portada",
+    "fetchingCovers": "Recuperando portadas... ({{current}}/{{total}})",
+    "table": {
+      "number": "#",
+      "title": "Título",
+      "artist": "Artista",
+      "album": "Álbum",
+      "duration": "Duración",
+      "unknown": "—"
+    },
+    "rating": "Valoración",
+    "noRating": "Sin valoración",
+    "viewToggle": {
+      "label": "Modo de visualización",
+      "list": "Lista",
+      "compact": "Compacto"
+    },
+    "albumGrid": {
+      "trackCount_zero": "0 canciones",
+      "trackCount_one": "{{count}} canción",
+      "trackCount_other": "{{count}} canciones"
+    },
+    "artistList": {
+      "trackCount_zero": "0 canciones",
+      "trackCount_one": "{{count}} canción",
+      "trackCount_other": "{{count}} canciones",
+      "albumCount_zero": "0 álbumes",
+      "albumCount_one": "{{count}} álbum",
+      "albumCount_other": "{{count}} álbumes"
+    },
+    "genreList": {
+      "trackCount_zero": "0 canciones",
+      "trackCount_one": "{{count}} canción",
+      "trackCount_other": "{{count}} canciones"
+    },
+    "folderList": {
+      "trackCount_zero": "0 canciones",
+      "trackCount_one": "{{count}} canción",
+      "trackCount_other": "{{count}} canciones",
+      "lastScanned": "Escaneada: {{date}}",
+      "neverScanned": "nunca",
+      "watched": "Vigilada",
+      "watchOn": "Vigilar automáticamente los cambios",
+      "watchOff": "Detener la vigilancia"
+    }
+  },
+  "liked": {
+    "badge": "Colección",
+    "title": "Canciones que me gustan",
+    "count_zero": "0 canciones",
+    "count_one": "{{count}} canción",
+    "count_other": "{{count}} canciones",
+    "emptyTitle": "Ninguna canción marcada como me gusta",
+    "emptyDescription": "Las canciones que te gusten aparecerán aquí. Explora tu biblioteca y marca tus favoritas.",
+    "playAll": "Reproducir todo",
+    "unlike": "Quitar de me gusta",
+    "like": "Añadir a me gusta"
+  },
+  "recent": {
+    "badge": "Historial",
+    "title": "Reproducidas recientemente",
+    "count_zero": "0 canciones",
+    "count_one": "{{count}} canción",
+    "count_other": "{{count}} canciones",
+    "emptyTitle": "Ninguna canción reciente",
+    "emptyDescription": "Las canciones que escuches aparecerán aquí automáticamente."
+  },
+  "statistics": {
+    "title": "Estadísticas",
+    "emptyTitle": "No hay estadísticas disponibles",
+    "emptyDescription": "Escucha música para empezar a ver aquí tus estadísticas de reproducción.",
+    "range": {
+      "label": "Período",
+      "7d": "7 días",
+      "30d": "30 días",
+      "90d": "90 días",
+      "1y": "1 año",
+      "all": "Todo"
+    },
+    "kpi": {
+      "totalPlays": "Reproducciones",
+      "totalTime": "Tiempo de escucha",
+      "uniqueTracks": "Canciones únicas",
+      "uniqueArtists_zero": "0 artistas",
+      "uniqueArtists_one": "{{count}} artista",
+      "uniqueArtists_other": "{{count}} artistas",
+      "completionRate": "Tasa de escucha completa"
+    },
+    "byDay": {
+      "title": "Actividad por día",
+      "empty": "Sin reproducciones en este período."
+    },
+    "byHour": {
+      "title": "Horas favoritas",
+      "empty": "Sin reproducciones en este período.",
+      "tooltip": "{{hour}}h — {{plays}} reproducciones"
+    },
+    "topTracks": {
+      "title": "Canciones más escuchadas",
+      "empty": "Ninguna canción reproducida."
+    },
+    "topArtists": {
+      "title": "Artistas más escuchados",
+      "empty": "Ningún artista reproducido."
+    },
+    "topAlbums": {
+      "title": "Álbumes más escuchados",
+      "empty": "Ningún álbum reproducido."
+    },
+    "plays_zero": "0 reproducciones",
+    "plays_one": "{{count}} reproducción",
+    "plays_other": "{{count}} reproducciones"
+  },
+  "about": {
+    "title": "Acerca de",
+    "hero": {
+      "subtitle": "Reproductor de música HD multiplataforma",
+      "checkUpdates": "Buscar actualizaciones",
+      "developedBy": "Desarrollado por"
+    },
+    "sections": {
+      "frameworkDesktop": "Framework de escritorio",
+      "frontend": "Frontend",
+      "backend": "Backend (Rust)",
+      "audio": "Audio",
+      "shortcuts": "Atajos de teclado",
+      "credits": "Créditos"
+    },
+    "shortcuts": {
+      "playPause": "Reproducción / Pausa",
+      "previousTrack": "Canción anterior",
+      "nextTrack": "Canción siguiente",
+      "volume": "Volumen",
+      "mute": "Silenciar",
+      "keys": {
+        "space": "Espacio"
+      }
+    },
+    "credits": {
+      "text": "Diseñado y desarrollado con pasión. Construido con tecnologías de código abierto.",
+      "icons": "Iconos por Lucide, Phosphor, Mynaui e Iconify."
+    }
+  },
+  "feedback": {
+    "title": "Comentarios",
+    "hero": {
+      "title": "Ayúdanos a mejorar WaveFlow",
+      "description": "¿Has detectado un error, tienes una idea de mejora o simplemente un comentario que hacernos? Leemos cada mensaje y tenemos en cuenta tus sugerencias."
+    },
+    "contact": {
+      "section": "Contáctanos",
+      "subtitle": "Error, sugerencia o pregunta — leemos cada mensaje"
+    }
+  },
+  "player": {
+    "noTrack": "Sin canción",
+    "inactive": "Inactivo",
+    "controls": {
+      "play": "Reproducir",
+      "pause": "Pausa",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "shuffleOn": "Desactivar la reproducción aleatoria",
+      "shuffleOff": "Activar la reproducción aleatoria",
+      "repeatOff": "Activar la repetición",
+      "repeatAll": "Repetir una sola vez",
+      "repeatOne": "Desactivar la repetición"
+    },
+    "volume": {
+      "label": "Volumen",
+      "mute": "Silenciar",
+      "unmute": "Activar el sonido"
+    }
+  },
+  "queue": {
+    "title": "Cola de reproducción",
+    "inactive": "INACTIVO",
+    "count_zero": "0 canciones",
+    "count_one": "{{count}} canción",
+    "count_other": "{{count}} canciones",
+    "emptyTitle": "Nada que reproducir",
+    "emptyDescription": "Reproduce música desde tu biblioteca para llenar la cola.",
+    "nowPlaying": "En reproducción",
+    "upNext_zero": "A continuación",
+    "upNext_one": "A continuación · {{count}} canción",
+    "upNext_other": "A continuación · {{count}} canciones"
+  },
+  "deviceMenu": {
+    "activeLabel": "Discard all samples (playback)"
+  },
+  "profiles": {
+    "select": {
+      "title": "¿Quién está escuchando?",
+      "subtitle": "Selecciona tu perfil para encontrar tus bibliotecas y listas de reproducción",
+      "add": "Añadir",
+      "edit": "Editar",
+      "active": "Perfil activo",
+      "switchTo": "Cambiar"
+    },
+    "create": {
+      "title": "Nuevo perfil",
+      "subtitle": "Crea un perfil para personalizar tu experiencia",
+      "nameLabel": "Nombre del perfil",
+      "namePlaceholder": "Introduce un nombre...",
+      "colorLabel": "Color del perfil",
+      "colorAria": "Color {{color}}",
+      "submit": "Crear el perfil"
+    }
+  },
+  "libraryModal": {
+    "title": "Crear una biblioteca",
+    "editTitle": "Editar la biblioteca",
+    "previewDefault": "Crear una biblioteca",
+    "previewSubtitle": "0 canciones · Biblioteca",
+    "nameLabel": "Nombre de la biblioteca",
+    "namePlaceholder": "Ej.: Rock, Jazz, Clásica...",
+    "descriptionLabel": "Descripción",
+    "descriptionPlaceholder": "Una breve descripción...",
+    "submit": "Crear una biblioteca",
+    "submitEdit": "Guardar"
+  },
+  "playlistModal": {
+    "title": "Nueva lista de reproducción",
+    "editTitle": "Editar la lista de reproducción",
+    "previewDefault": "Nueva lista de reproducción",
+    "previewSubtitle": "0 canciones · Lista de reproducción",
+    "nameLabel": "Nombre",
+    "namePlaceholder": "Ej.: Chill Vibes, Workout Mix...",
+    "descriptionLabel": "Descripción",
+    "descriptionPlaceholder": "Una breve descripción...",
+    "colorLabel": "Color",
+    "colorAria": "Color {{color}}",
+    "iconLabel": "Icono",
+    "iconAria": "Icono {{icon}}",
+    "submit": "Crear",
+    "editSubmit": "Guardar"
+  },
+  "playlistView": {
+    "badge": "Lista de reproducción",
+    "trackCount_zero": "0 canciones",
+    "trackCount_one": "{{count}} canción",
+    "trackCount_other": "{{count}} canciones",
+    "actions": {
+      "play": "Reproducir",
+      "shuffle": "Reproducción aleatoria",
+      "edit": "Editar la lista de reproducción",
+      "delete": "Eliminar la lista de reproducción",
+      "deleteConfirm": "Haz clic de nuevo para confirmar"
+    },
+    "emptyTitle": "Esta lista de reproducción está vacía",
+    "emptyDescription": "Añade canciones desde tus bibliotecas mediante el botón + de cada fila.",
+    "noneTitle": "Ninguna lista de reproducción seleccionada",
+    "noneDescription": "Elige una lista de reproducción en la barra lateral para verla aquí.",
+    "notFoundTitle": "Lista de reproducción no encontrada",
+    "notFoundDescription": "Esta lista de reproducción ya no existe en el perfil activo."
+  },
+  "trackActions": {
+    "addToPlaylist": "Añadir a una lista de reproducción",
+    "noPlaylists": "Ninguna lista de reproducción. Crea una abajo.",
+    "createPlaylist": "Nueva lista de reproducción",
+    "playNext": "Reproducir a continuación",
+    "addToQueue": "Añadir a la cola de reproducción",
+    "like": "Añadir a las canciones que me gustan",
+    "unlike": "Quitar de las canciones que me gustan",
+    "removeFromPlaylist": "Quitar de esta lista de reproducción",
+    "goToAlbum": "Ir al álbum",
+    "goToArtist": "Ir al artista",
+    "showInExplorer": "Mostrar en el explorador",
+    "copyPath": "Copiar la ruta del archivo"
+  },
+  "selection": {
+    "toolbarLabel": "Acciones de selección",
+    "count_zero": "0 seleccionados",
+    "count_one": "{{count}} seleccionado",
+    "count_other": "{{count}} seleccionados",
+    "play": "Reproducir",
+    "addToQueue": "Añadir a la cola",
+    "playNext": "Reproducir a continuación",
+    "addToPlaylist": "Añadir a lista",
+    "removeFromPlaylist": "Eliminar de la lista",
+    "clear": "Deseleccionar"
+  },
+  "albumDetail": {
+    "badge": "Álbum",
+    "playAll": "Reproducir todo",
+    "shuffle": "Reproducción aleatoria",
+    "trackCount_zero": "0 canciones",
+    "trackCount_one": "{{count}} canción",
+    "trackCount_other": "{{count}} canciones",
+    "discHeader": "Disco {{number}}",
+    "releaseDate": "Lanzamiento",
+    "emptyTitle": "Álbum no encontrado",
+    "emptyDescription": "Este álbum ya no existe en el perfil activo.",
+    "emptyTracksTitle": "Ninguna canción",
+    "emptyTracksDescription": "Este álbum no contiene ninguna canción disponible."
+  },
+  "artistDetail": {
+    "badge": "Artista",
+    "playAll": "Reproducir todo",
+    "shuffle": "Reproducción aleatoria",
+    "discography": "Discografía",
+    "allTracks": "Todas las canciones",
+    "trackCount_zero": "0 canciones",
+    "trackCount_one": "{{count}} canción",
+    "trackCount_other": "{{count}} canciones",
+    "albumCount_zero": "0 álbumes",
+    "albumCount_one": "{{count}} álbum",
+    "albumCount_other": "{{count}} álbumes",
+    "albumTrackCount_zero": "0 canciones",
+    "albumTrackCount_one": "{{count}} canción",
+    "albumTrackCount_other": "{{count}} canciones",
+    "emptyTitle": "Artista no encontrado",
+    "emptyDescription": "Este artista ya no existe en el perfil activo.",
+    "bio": {
+      "title": "Biografía"
+    }
+  },
+  "nowPlaying": {
+    "title": "Reproduciendo ahora",
+    "empty": "Ninguna canción en reproducción",
+    "aboutArtist": "Acerca del artista",
+    "readMore": "Leer más",
+    "readLess": "Leer menos",
+    "noBio": "No hay biografía disponible. Configura tu clave Last.fm en los ajustes.",
+    "lyrics": {
+      "title": "Letras",
+      "comingSoon": "Próximamente"
+    }
+  },
+  "playerBar": {
+    "lyrics": "Letras",
+    "nowPlaying": "Vista de reproducción",
+    "queue": "Cola de reproducción"
+  },
+  "lyrics": {
+    "title": "Letras",
+    "loading": "Buscando las letras…",
+    "noTrack": "Ninguna canción en reproducción",
+    "notFound": "No se encontraron letras para esta canción. Puedes importar un archivo .lrc.",
+    "importTitle": "Importar un archivo .lrc",
+    "actions": {
+      "import": "Importar un archivo .lrc",
+      "refetch": "Volver a buscar",
+      "clear": "Borrar las letras"
+    },
+    "source": {
+      "embedded": "Letras incluidas en el archivo",
+      "lrc_file": "Archivo .lrc importado",
+      "api": "LRCLIB",
+      "manual": "Entrada manual"
+    }
+  },
+  "sort": {
+    "title": "Título",
+    "artist": "Artista",
+    "album": "Álbum",
+    "duration": "Duración",
+    "year": "Año",
+    "addedAt": "Añadido",
+    "rating": "Valoración",
+    "name": "Nombre",
+    "albumsCount": "Álbumes",
+    "tracksCount": "Pistas",
+    "ascending": "Ascendente",
+    "descending": "Descendente"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "sections": {
+      "general": "General",
+      "playback": "Reproducción",
+      "integrations": "Integraciones",
+      "storage": "Almacenamiento y datos"
+    },
+    "integrations": {
+      "lastfm": {
+        "title": "Clave API de Last.fm",
+        "subtitle": "Para recuperar las biografías de los artistas. Crea una clave en last.fm/api/account/create",
+        "placeholder": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "save": "Guardar",
+        "saved": "Guardado ✓",
+        "show": "Mostrar la clave",
+        "hide": "Ocultar la clave"
+      }
+    },
+    "crossfade": {
+      "title": "Fundido encadenado",
+      "subtitle": "Transición fluida entre canciones (próximamente)"
+    },
+    "normalize": {
+      "title": "Normalizar el volumen",
+      "subtitle": "Reducir el volumen de las canciones demasiado altas para un nivel homogéneo"
+    },
+    "mono": {
+      "title": "Audio mono",
+      "subtitle": "Mezcla los canales izquierdo y derecho en una sola señal"
+    },
+    "language": {
+      "title": "Idioma",
+      "subtitle": "Idioma de la interfaz"
+    },
+    "autoStart": {
+      "title": "Iniciar al arrancar",
+      "subtitle": "Iniciar WaveFlow automáticamente al arrancar el sistema"
+    },
+    "minimizeToTray": {
+      "title": "Minimizar a la bandeja del sistema",
+      "subtitle": "Cerrar la ventana minimiza la aplicación a la bandeja"
+    },
+    "scanOnStart": {
+      "title": "Escanear al arrancar",
+      "subtitle": "Volver a escanear automáticamente las bibliotecas al abrir"
+    },
+    "singleClickPlay": {
+      "title": "Reproducir con un clic",
+      "subtitle": "Un solo clic en una pista inicia la reproducción (si no, doble clic)"
+    },
+    "rescan": {
+      "title": "Volver a escanear la biblioteca",
+      "subtitle": "Recorrer todas las carpetas e importar los archivos nuevos",
+      "action": "Volver a escanear"
+    },
+    "artistImages": {
+      "title": "Imágenes de artistas",
+      "subtitle": "Recuperar las carátulas de artistas desde Deezer",
+      "action": "Recuperar"
+    },
+    "dataFolder": {
+      "title": "Carpeta de datos",
+      "subtitle": "Abrir la carpeta que contiene la base de datos y las carátulas",
+      "action": "Abrir"
+    },
+    "openDataFolder": "Abrir carpeta de datos",
+    "regenerateThumbnails": "Regenerar miniaturas",
+    "regenerateThumbnailsSubtitle": "Reconstruir las variantes 1x/2x que faltan para cada carátula",
+    "regenerateThumbnailsAction": "Regenerar",
+    "regenerateThumbnailsDone": "{{count}} miniaturas regeneradas",
+    "reset": {
+      "title": "Restablecer la aplicación",
+      "subtitle": "Eliminar todos los datos y volver al estado inicial",
+      "action": "Restablecer"
+    }
+  }
+}

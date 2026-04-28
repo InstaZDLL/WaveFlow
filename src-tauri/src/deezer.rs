@@ -49,6 +49,13 @@ pub struct DeezerAlbumHit {
     pub nb_tracks: Option<i64>,
     pub label: Option<String>,
     pub release_date: Option<String>,
+    /// Present on `/search/album` results; absent on `/album/{id}`.
+    pub artist: Option<DeezerAlbumArtist>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DeezerAlbumArtist {
+    pub name: String,
 }
 
 // ── Client implementation ───────────────────────────────────────────

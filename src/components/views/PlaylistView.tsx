@@ -36,9 +36,11 @@ import { ArtistLink } from "../common/ArtistLink";
 import { Tooltip } from "../common/Tooltip";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
+import { SelectionActionBar } from "../common/SelectionActionBar";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
+import { useMultiSelect } from "../../hooks/useMultiSelect";
 import {
   formatDuration,
   listLikedTrackIds,
@@ -80,6 +82,7 @@ export function PlaylistView({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
+  const selection = useMultiSelect<Track>();
   const confirmTimeoutRef = useRef<number | null>(null);
   // Latest tracks snapshot kept in a ref so row callbacks (play, reorder)
   // can stay reference-stable across optimistic reorders. Without this
@@ -104,6 +107,26 @@ export function PlaylistView({
       .then((ids) => setLikedIds(new Set(ids)))
       .catch(() => {});
   }, [playlistId]);
+
+  // Clear selection when switching playlists.
+  const clearSelection = selection.clear;
+  useEffect(() => {
+    clearSelection();
+  }, [playlistId, clearSelection]);
+
+  const handleRowSelect = useCallback(
+    (track: Track, e: React.MouseEvent) => {
+      const items = tracksRef.current;
+      if (e.shiftKey) {
+        selection.selectRange(track.id, items);
+      } else if (e.ctrlKey || e.metaKey) {
+        selection.toggleOne(track.id);
+      } else {
+        selection.setSingle(track.id);
+      }
+    },
+    [selection],
+  );
 
   const handleToggleLike = useCallback(async (trackId: number) => {
     const nowLiked = await toggleLikeTrack(trackId);
@@ -461,6 +484,8 @@ export function PlaylistView({
           unlikeLabel={unlikeLabel}
           onContextMenuRow={onContextMenuRow}
           onReorder={handleReorder}
+          isSelected={selection.isSelected}
+          onRowSelect={handleRowSelect}
         />
       ) : (
         <EmptyState
@@ -496,6 +521,19 @@ export function PlaylistView({
       />
 
       {trackContextMenu.render()}
+
+      {playlistId != null && (
+        <SelectionActionBar
+          trackIds={[...selection.selectedIds]}
+          context={{ type: "playlist", playlistId }}
+          onClear={selection.clear}
+          onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+          onAfterRemoveFromPlaylist={(removedIds) => {
+            const removed = new Set(removedIds);
+            setTracks((prev) => prev.filter((t) => !removed.has(t.id)));
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -520,6 +558,8 @@ interface PlaylistTrackTableProps {
   unlikeLabel: string;
   onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
+  isSelected: (id: number) => boolean;
+  onRowSelect: (track: Track, e: React.MouseEvent) => void;
 }
 
 const PLAYLIST_ROW_HEIGHT = 56;
@@ -538,7 +578,10 @@ function PlaylistTrackTable({
   unlikeLabel,
   onContextMenuRow,
   onReorder,
+  isSelected,
+  onRowSelect,
 }: PlaylistTrackTableProps) {
+  "use no memo";
   const gridCols = "grid-cols-[1.5rem_3rem_2.75rem_1fr_1fr_1fr_5rem_2rem]";
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -555,6 +598,7 @@ function PlaylistTrackTable({
   // so dnd-kit knows the abstract ordering, even for items that aren't
   // currently mounted — only the on-screen window pays the useSortable
   // cost. This is what makes grab-on-300+-tracks feel instant.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
     count: tracks.length,
     getScrollElement: () => scrollRef.current,
@@ -641,6 +685,7 @@ function PlaylistTrackTable({
                     gridCols={gridCols}
                     isCurrent={track.id === currentTrackId}
                     isLiked={likedIds.has(track.id)}
+                    isRowSelected={isSelected(track.id)}
                     likeLabel={likeLabel}
                     unlikeLabel={unlikeLabel}
                     unknownLabel={unknownLabel}
@@ -648,6 +693,7 @@ function PlaylistTrackTable({
                     onContextMenuRow={onContextMenuRow}
                     onToggleLike={onToggleLike}
                     onNavigateToArtist={onNavigateToArtist}
+                    onRowSelect={onRowSelect}
                   />
                 );
               })}
@@ -711,6 +757,7 @@ interface SortablePlaylistRowProps {
   gridCols: string;
   isCurrent: boolean;
   isLiked: boolean;
+  isRowSelected: boolean;
   likeLabel: string;
   unlikeLabel: string;
   unknownLabel: string;
@@ -718,6 +765,7 @@ interface SortablePlaylistRowProps {
   onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
   onToggleLike: (trackId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
+  onRowSelect: (track: Track, e: React.MouseEvent) => void;
 }
 
 const SortablePlaylistRow = memo(function SortablePlaylistRow({
@@ -728,6 +776,7 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
   gridCols,
   isCurrent,
   isLiked,
+  isRowSelected,
   likeLabel,
   unlikeLabel,
   unknownLabel,
@@ -735,6 +784,7 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
   onContextMenuRow,
   onToggleLike,
   onNavigateToArtist,
+  onRowSelect,
 }: SortablePlaylistRowProps) {
   // Disable dnd-kit's per-item layout animations: they trigger CSS
   // transitions on every neighbour the drag crosses, which is what
@@ -773,10 +823,13 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
     <div
       ref={setNodeRef}
       style={style}
+      onClick={(e) => onRowSelect(track, e)}
       onDoubleClick={() => onPlayTrack(index)}
       onContextMenu={(e) => onContextMenuRow(e, track)}
       className={`group grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 ${
-        isCurrent
+        isRowSelected
+          ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
+          : isCurrent
           ? "bg-emerald-50 dark:bg-emerald-900/20"
           : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
       }`}

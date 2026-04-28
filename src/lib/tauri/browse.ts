@@ -10,6 +10,8 @@ export interface AlbumRow {
   total_duration_ms: number;
   /** Absolute filesystem path to the extracted cover image, if any. */
   artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
 }
 
 /** Artist row returned by `list_artists`. */
@@ -22,6 +24,8 @@ export interface ArtistRow {
   picture_url: string | null;
   /** Absolute filesystem path to the locally-cached picture, when available. */
   picture_path: string | null;
+  picture_path_1x: string | null;
+  picture_path_2x: string | null;
 }
 
 /** Genre row returned by `list_genres`. */
@@ -40,12 +44,31 @@ export interface FolderRow {
   track_count: number;
 }
 
-export function listAlbums(libraryId: number | null): Promise<AlbumRow[]> {
-  return invoke<AlbumRow[]>("list_albums", { libraryId });
+export function listAlbums(
+  libraryId: number | null,
+  options?: {
+    filterNoCover?: boolean;
+    orderBy?: string;
+    direction?: "asc" | "desc";
+  },
+): Promise<AlbumRow[]> {
+  return invoke<AlbumRow[]>("list_albums", {
+    libraryId,
+    filterNoCover: options?.filterNoCover ?? null,
+    orderBy: options?.orderBy ?? null,
+    direction: options?.direction ?? null,
+  });
 }
 
-export function listArtists(libraryId: number | null): Promise<ArtistRow[]> {
-  return invoke<ArtistRow[]>("list_artists", { libraryId });
+export function listArtists(
+  libraryId: number | null,
+  sort?: { orderBy?: string; direction?: "asc" | "desc" },
+): Promise<ArtistRow[]> {
+  return invoke<ArtistRow[]>("list_artists", {
+    libraryId,
+    orderBy: sort?.orderBy ?? null,
+    direction: sort?.direction ?? null,
+  });
 }
 
 export function listGenres(libraryId: number | null): Promise<GenreRow[]> {
@@ -68,6 +91,8 @@ export interface RecentPlay {
   duration_ms: number;
   played_at: number;
   artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
   file_path: string;
 }
 

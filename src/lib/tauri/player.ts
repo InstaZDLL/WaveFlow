@@ -14,6 +14,8 @@ export interface QueueTrackPayload {
   duration_ms: number;
   file_path: string;
   artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
 }
 
 /**

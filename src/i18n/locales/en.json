@@ -185,6 +185,12 @@
       "delete": "Delete library",
       "deleteConfirm": "Click again to confirm"
     },
+    "changeCover": "Change cover",
+    "searchDeezer": "Deezer search",
+    "localFile": "Local file",
+    "fetchMissingCovers": "Fetch all missing covers",
+    "noCover": "No cover",
+    "fetchingCovers": "Fetching covers... ({{current}}/{{total}})",
     "table": {
       "number": "#",
       "title": "Title",
@@ -193,6 +199,8 @@
       "duration": "Duration",
       "unknown": "—"
     },
+    "rating": "Rating",
+    "noRating": "No rating",
     "viewToggle": {
       "label": "View mode",
       "list": "List",
@@ -451,6 +459,18 @@
     "showInExplorer": "Show in file explorer",
     "copyPath": "Copy file path"
   },
+  "selection": {
+    "toolbarLabel": "Selection actions",
+    "count_zero": "0 selected",
+    "count_one": "{{count}} selected",
+    "count_other": "{{count}} selected",
+    "play": "Play",
+    "addToQueue": "Add to queue",
+    "playNext": "Play next",
+    "addToPlaylist": "Add to playlist",
+    "removeFromPlaylist": "Remove from playlist",
+    "clear": "Clear"
+  },
   "albumDetail": {
     "badge": "Album",
     "playAll": "Play all",
@@ -521,6 +541,20 @@
       "manual": "Manual entry"
     }
   },
+  "sort": {
+    "title": "Title",
+    "artist": "Artist",
+    "album": "Album",
+    "duration": "Duration",
+    "year": "Year",
+    "addedAt": "Added",
+    "rating": "Rating",
+    "name": "Name",
+    "albumsCount": "Albums",
+    "tracksCount": "Tracks",
+    "ascending": "Ascending",
+    "descending": "Descending"
+  },
   "settings": {
     "title": "Settings",
     "sections": {
@@ -568,6 +602,10 @@
       "title": "Scan on startup",
       "subtitle": "Automatically rescan libraries when the app opens"
     },
+    "singleClickPlay": {
+      "title": "Single-click to play",
+      "subtitle": "A single click on a track starts playback (otherwise double-click)"
+    },
     "rescan": {
       "title": "Rescan library",
       "subtitle": "Re-walk all folders and import new files",
@@ -583,6 +621,11 @@
       "subtitle": "Open the folder containing the database and cover art",
       "action": "Open"
     },
+    "openDataFolder": "Open data folder",
+    "regenerateThumbnails": "Regenerate thumbnails",
+    "regenerateThumbnailsSubtitle": "Rebuild the missing 1x/2x variants for every cover",
+    "regenerateThumbnailsAction": "Regenerate",
+    "regenerateThumbnailsDone": "{{count}} thumbnails regenerated",
     "reset": {
       "title": "Reset the application",
       "subtitle": "Delete all data and return to the initial state",

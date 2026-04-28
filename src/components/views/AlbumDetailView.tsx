@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Play, Shuffle, Clock, Music2, Heart } from "lucide-react";
+import { Play, Shuffle, Clock, Music2, Heart, ImageIcon } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
+import { CoverPickerModal } from "../common/CoverPickerModal";
+import { SelectionActionBar } from "../common/SelectionActionBar";
+import { Lightbox } from "../common/Lightbox";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
+import { useMultiSelect } from "../../hooks/useMultiSelect";
 import {
   getAlbumDetail,
   enrichAlbumDeezer,
@@ -38,6 +43,10 @@ export function AlbumDetailView({
   const [isLoading, setIsLoading] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
+  const [isCoverPickerOpen, setIsCoverPickerOpen] = useState(false);
+  const [coverReloadKey, setCoverReloadKey] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const selection = useMultiSelect<Track>();
 
   const trackContextMenu = useTrackContextMenu({
     likedIds,
@@ -82,7 +91,7 @@ export function AlbumDetailView({
     return () => {
       cancelled = true;
     };
-  }, [albumId]);
+  }, [albumId, coverReloadKey]);
 
   // Load liked IDs
   useEffect(() => {
@@ -90,6 +99,12 @@ export function AlbumDetailView({
       .then((ids) => setLikedIds(new Set(ids)))
       .catch(() => {});
   }, [albumId]);
+
+  // Clear selection when switching albums.
+  const clearSelection = selection.clear;
+  useEffect(() => {
+    clearSelection();
+  }, [albumId, clearSelection]);
 
   // Deezer enrichment (async, fire-and-forget)
   useEffect(() => {
@@ -151,6 +166,9 @@ export function AlbumDetailView({
     file_size: 0,
     added_at: 0,
     artwork_path: at.artwork_path,
+    artwork_path_1x: at.artwork_path_1x,
+    artwork_path_2x: at.artwork_path_2x,
+    rating: null,
   }));
 
   const handlePlayAll = async () => {
@@ -177,13 +195,23 @@ export function AlbumDetailView({
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20">
       {/* Header */}
       <div className="flex items-start space-x-8">
-        <Artwork
-          path={album.artwork_path}
-          className="w-48 h-48 shadow-lg"
-          iconSize={64}
-          alt={album.title}
-          rounded="2xl"
-        />
+        <div
+          onDoubleClick={() => {
+            if (album.artwork_path) setIsLightboxOpen(true);
+          }}
+          className={album.artwork_path ? "cursor-zoom-in" : undefined}
+        >
+          <Artwork
+            path={album.artwork_path}
+            path1x={album.artwork_path_1x}
+            path2x={album.artwork_path_2x}
+            size="full"
+            className="w-48 h-48 shadow-lg"
+            iconSize={64}
+            alt={album.title}
+            rounded="2xl"
+          />
+        </div>
 
         <div className="flex-1 min-w-0 pt-2">
           <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
@@ -261,6 +289,14 @@ export function AlbumDetailView({
               <Shuffle size={16} />
               <span>{t("albumDetail.shuffle")}</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setIsCoverPickerOpen(true)}
+              className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm"
+            >
+              <ImageIcon size={16} />
+              <span>{t("library.changeCover")}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -285,6 +321,16 @@ export function AlbumDetailView({
           onNavigateToArtist={onNavigateToArtist}
           onContextMenuRow={trackContextMenu.open}
           t={t}
+          isSelected={selection.isSelected}
+          onRowSelect={(track, e) => {
+            if (e.shiftKey) {
+              selection.selectRange(track.id, playableTracks);
+            } else if (e.ctrlKey || e.metaKey) {
+              selection.toggleOne(track.id);
+            } else {
+              selection.setSingle(track.id);
+            }
+          }}
         />
       ) : (
         <EmptyState
@@ -312,7 +358,35 @@ export function AlbumDetailView({
         }}
       />
 
+      <CoverPickerModal
+        albumId={album.id}
+        initialQuery={
+          album.artist_name
+            ? `${album.title} ${album.artist_name}`
+            : album.title
+        }
+        isOpen={isCoverPickerOpen}
+        onClose={() => setIsCoverPickerOpen(false)}
+        onSuccess={() => setCoverReloadKey((k) => k + 1)}
+      />
+
       {trackContextMenu.render()}
+
+      <Lightbox
+        src={album.artwork_path ? convertFileSrc(album.artwork_path) : null}
+        alt={album.title}
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+      />
+
+      {albumId != null && (
+        <SelectionActionBar
+          trackIds={[...selection.selectedIds]}
+          context={{ type: "album", albumId }}
+          onClear={selection.clear}
+          onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+        />
+      )}
     </div>
   );
 }
@@ -332,6 +406,8 @@ interface AlbumTrackTableProps {
   onNavigateToArtist: (artistId: number) => void;
   onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
+  isSelected: (id: number) => boolean;
+  onRowSelect: (track: Track, e: React.MouseEvent) => void;
 }
 
 function AlbumTrackTable({
@@ -347,18 +423,24 @@ function AlbumTrackTable({
   onNavigateToArtist,
   onContextMenuRow,
   t,
+  isSelected,
+  onRowSelect,
 }: AlbumTrackTableProps) {
   const gridCols = "grid-cols-[3rem_1fr_1fr_5rem_2rem]";
 
   const renderTrackRow = (track: AlbumTrack, globalIndex: number) => {
     const isCurrent = track.id === currentTrackId;
+    const isRowSelected = isSelected(track.id);
     return (
       <li
         key={`${track.id}-${globalIndex}`}
+        onClick={(e) => onRowSelect(playableTracks[globalIndex], e)}
         onDoubleClick={() => onPlayTrack(globalIndex)}
         onContextMenu={(e) => onContextMenuRow(e, playableTracks[globalIndex])}
         className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer ${
-          isCurrent
+          isRowSelected
+            ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
+            : isCurrent
             ? "bg-emerald-50 dark:bg-emerald-900/20"
             : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
         }`}

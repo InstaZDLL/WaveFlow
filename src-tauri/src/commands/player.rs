@@ -57,6 +57,8 @@ pub struct QueueTrackPayload {
     pub duration_ms: i64,
     pub file_path: String,
     pub artwork_path: Option<String>,
+    pub artwork_path_1x: Option<String>,
+    pub artwork_path_2x: Option<String>,
 }
 
 impl PlayerStateSnapshot {
@@ -95,19 +97,21 @@ fn queue_track_to_payload_with_paths(
     track: QueueTrack,
     profile_id: Option<i64>,
 ) -> QueueTrackPayload {
-    let artwork_path = match (
+    let (artwork_path, artwork_path_1x, artwork_path_2x) = match (
         track.artwork_hash.as_deref(),
         track.artwork_format.as_deref(),
         profile_id,
     ) {
-        (Some(hash), Some(format), Some(pid)) => Some(
-            paths
-                .profile_artwork_dir(pid)
+        (Some(hash), Some(format), Some(pid)) => {
+            let dir = paths.profile_artwork_dir(pid);
+            let full = dir
                 .join(format!("{hash}.{format}"))
                 .to_string_lossy()
-                .to_string(),
-        ),
-        _ => None,
+                .to_string();
+            let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&dir, hash);
+            (Some(full), p1, p2)
+        }
+        _ => (None, None, None),
     };
     QueueTrackPayload {
         id: track.id,
@@ -119,6 +123,8 @@ fn queue_track_to_payload_with_paths(
         duration_ms: track.duration_ms,
         file_path: track.file_path,
         artwork_path,
+        artwork_path_1x,
+        artwork_path_2x,
     }
 }
 

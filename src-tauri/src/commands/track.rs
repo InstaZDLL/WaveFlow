@@ -35,6 +35,12 @@ pub struct Track {
     pub file_size: i64,
     pub added_at: i64,
     pub artwork_path: Option<String>,
+    pub artwork_path_1x: Option<String>,
+    pub artwork_path_2x: Option<String>,
+    /// Raw POPM byte (0-255). `None` when no rating was extracted from
+    /// the file's tags or set by the user. The frontend converts this
+    /// to a 0-5 star scale with half-step increments.
+    pub rating: Option<i64>,
 }
 
 /// Raw row shape as it comes out of the SQL query — kept private because the
@@ -62,22 +68,71 @@ struct TrackRow {
     added_at: i64,
     artwork_hash: Option<String>,
     artwork_format: Option<String>,
+    rating: Option<i64>,
+}
+
+/// Resolve a sort spec to a SQL `ORDER BY` clause. Whitelisted columns
+/// only — never interpolate user input directly. Returns the default
+/// "Artist → Album → Disc → Track" ordering when the spec is invalid
+/// or absent.
+fn track_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'static str {
+    let dir_default_desc = matches!(
+        order_by,
+        Some("rating") | Some("duration_ms") | Some("added_at") | Some("year"),
+    );
+    let dir = match direction {
+        Some(d) if d.eq_ignore_ascii_case("asc") => "ASC",
+        Some(d) if d.eq_ignore_ascii_case("desc") => "DESC",
+        _ => {
+            if dir_default_desc {
+                "DESC"
+            } else {
+                "ASC"
+            }
+        }
+    };
+    match (order_by, dir) {
+        (Some("title"), "ASC") => "ORDER BY t.title COLLATE NOCASE ASC",
+        (Some("title"), "DESC") => "ORDER BY t.title COLLATE NOCASE DESC",
+        (Some("artist"), "ASC") => "ORDER BY ar.canonical_name COLLATE NOCASE ASC, t.title COLLATE NOCASE",
+        (Some("artist"), "DESC") => "ORDER BY ar.canonical_name COLLATE NOCASE DESC, t.title COLLATE NOCASE",
+        (Some("album"), "ASC") => "ORDER BY al.canonical_title COLLATE NOCASE ASC, t.disc_number, t.track_number",
+        (Some("album"), "DESC") => "ORDER BY al.canonical_title COLLATE NOCASE DESC, t.disc_number, t.track_number",
+        (Some("duration_ms"), "ASC") => "ORDER BY t.duration_ms ASC",
+        (Some("duration_ms"), "DESC") => "ORDER BY t.duration_ms DESC",
+        (Some("year"), "ASC") => "ORDER BY t.year ASC, t.title COLLATE NOCASE",
+        (Some("year"), "DESC") => "ORDER BY t.year DESC, t.title COLLATE NOCASE",
+        (Some("added_at"), "ASC") => "ORDER BY t.added_at ASC",
+        (Some("added_at"), "DESC") => "ORDER BY t.added_at DESC",
+        (Some("rating"), "ASC") => "ORDER BY t.rating ASC, t.title COLLATE NOCASE",
+        (Some("rating"), "DESC") => "ORDER BY t.rating DESC, t.title COLLATE NOCASE",
+        _ => {
+            "ORDER BY ar.canonical_name COLLATE NOCASE,\n                  al.canonical_title COLLATE NOCASE,\n                  t.disc_number,\n                  t.track_number,\n                  t.title COLLATE NOCASE"
+        }
+    }
 }
 
 /// List tracks. When `library_id` is `Some`, only tracks from that library
 /// are returned. When `None`, tracks across **all** libraries are shown —
 /// the "Ma musique" mode where the concept of multiple libraries is hidden
 /// from the user.
+///
+/// `order_by` and `direction` are whitelisted in [`track_order_clause`]
+/// to keep this command injection-free.
 #[tauri::command]
 pub async fn list_tracks(
     state: tauri::State<'_, AppState>,
     library_id: Option<i64>,
+    order_by: Option<String>,
+    direction: Option<String>,
 ) -> AppResult<Vec<Track>> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
-    let rows = sqlx::query_as::<_, TrackRow>(
+    let order_clause = track_order_clause(order_by.as_deref(), direction.as_deref());
+
+    let sql = format!(
         r#"
         SELECT t.id, t.library_id, t.title,
                t.album_id,
@@ -98,36 +153,39 @@ pub async fn list_tracks(
                t.bitrate, t.sample_rate, t.channels,
                t.file_path, t.file_size, t.added_at,
                aw.hash   AS artwork_hash,
-               aw.format AS artwork_format
+               aw.format AS artwork_format,
+               t.rating  AS rating
           FROM track t
           LEFT JOIN album   al ON al.id = t.album_id
           LEFT JOIN artist  ar ON ar.id = t.primary_artist
           LEFT JOIN artwork aw ON aw.id = al.artwork_id
          WHERE (? IS NULL OR t.library_id = ?) AND t.is_available = 1
-         ORDER BY ar.canonical_name COLLATE NOCASE,
-                  al.canonical_title COLLATE NOCASE,
-                  t.disc_number,
-                  t.track_number,
-                  t.title COLLATE NOCASE
-        "#,
-    )
-    .bind(library_id)
-    .bind(library_id)
-    .fetch_all(&pool)
-    .await?;
+         {order_clause}
+        "#
+    );
+
+    let rows = sqlx::query_as::<_, TrackRow>(&sql)
+        .bind(library_id)
+        .bind(library_id)
+        .fetch_all(&pool)
+        .await?;
 
     let tracks = rows
         .into_iter()
         .map(|row| {
-            let artwork_path = match (row.artwork_hash, row.artwork_format) {
-                (Some(hash), Some(format)) => Some(
-                    artwork_dir
-                        .join(format!("{}.{}", hash, format))
-                        .to_string_lossy()
-                        .to_string(),
-                ),
-                _ => None,
-            };
+            let (artwork_path, artwork_path_1x, artwork_path_2x) =
+                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
+                    (Some(hash), Some(format)) => {
+                        let full = artwork_dir
+                            .join(format!("{}.{}", hash, format))
+                            .to_string_lossy()
+                            .to_string();
+                        let (p1, p2) =
+                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        (Some(full), p1, p2)
+                    }
+                    _ => (None, None, None),
+                };
             Track {
                 id: row.id,
                 library_id: row.library_id,
@@ -148,6 +206,9 @@ pub async fn list_tracks(
                 file_size: row.file_size,
                 added_at: row.added_at,
                 artwork_path,
+                artwork_path_1x,
+                artwork_path_2x,
+                rating: row.rating,
             }
         })
         .collect();
@@ -200,7 +261,8 @@ pub async fn search_tracks(
                t.bitrate, t.sample_rate, t.channels,
                t.file_path, t.file_size, t.added_at,
                aw.hash   AS artwork_hash,
-               aw.format AS artwork_format
+               aw.format AS artwork_format,
+               t.rating  AS rating
           FROM track_fts fts
           JOIN track t        ON t.id  = fts.rowid
           LEFT JOIN album   al ON al.id = t.album_id
@@ -218,15 +280,19 @@ pub async fn search_tracks(
     let tracks = rows
         .into_iter()
         .map(|row| {
-            let artwork_path = match (row.artwork_hash, row.artwork_format) {
-                (Some(hash), Some(format)) => Some(
-                    artwork_dir
-                        .join(format!("{}.{}", hash, format))
-                        .to_string_lossy()
-                        .to_string(),
-                ),
-                _ => None,
-            };
+            let (artwork_path, artwork_path_1x, artwork_path_2x) =
+                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
+                    (Some(hash), Some(format)) => {
+                        let full = artwork_dir
+                            .join(format!("{}.{}", hash, format))
+                            .to_string_lossy()
+                            .to_string();
+                        let (p1, p2) =
+                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        (Some(full), p1, p2)
+                    }
+                    _ => (None, None, None),
+                };
             Track {
                 id: row.id,
                 library_id: row.library_id,
@@ -247,11 +313,32 @@ pub async fn search_tracks(
                 file_size: row.file_size,
                 added_at: row.added_at,
                 artwork_path,
+                artwork_path_1x,
+                artwork_path_2x,
+                rating: row.rating,
             }
         })
         .collect();
 
     Ok(tracks)
+}
+
+/// Set or clear a track's rating. The value is the raw POPM byte (0-255);
+/// passing `None` clears the rating. Currently only writes to the database
+/// — write-back into the file's tags is deferred to a later iteration.
+#[tauri::command]
+pub async fn set_track_rating(
+    state: tauri::State<'_, AppState>,
+    track_id: i64,
+    rating: Option<u8>,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    sqlx::query("UPDATE track SET rating = ? WHERE id = ?")
+        .bind(rating.map(|r| r as i64))
+        .bind(track_id)
+        .execute(&pool)
+        .await?;
+    Ok(())
 }
 
 /// Toggle the liked state of a track. If already liked → unlike (DELETE),
@@ -330,7 +417,8 @@ pub async fn list_liked_tracks(
                t.bitrate, t.sample_rate, t.channels,
                t.file_path, t.file_size, t.added_at,
                aw.hash   AS artwork_hash,
-               aw.format AS artwork_format
+               aw.format AS artwork_format,
+               t.rating  AS rating
           FROM liked_track lt
           JOIN track t        ON t.id  = lt.track_id
           LEFT JOIN album   al ON al.id = t.album_id
@@ -346,15 +434,19 @@ pub async fn list_liked_tracks(
     let tracks = rows
         .into_iter()
         .map(|row| {
-            let artwork_path = match (row.artwork_hash, row.artwork_format) {
-                (Some(hash), Some(format)) => Some(
-                    artwork_dir
-                        .join(format!("{}.{}", hash, format))
-                        .to_string_lossy()
-                        .to_string(),
-                ),
-                _ => None,
-            };
+            let (artwork_path, artwork_path_1x, artwork_path_2x) =
+                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
+                    (Some(hash), Some(format)) => {
+                        let full = artwork_dir
+                            .join(format!("{}.{}", hash, format))
+                            .to_string_lossy()
+                            .to_string();
+                        let (p1, p2) =
+                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        (Some(full), p1, p2)
+                    }
+                    _ => (None, None, None),
+                };
             Track {
                 id: row.id,
                 library_id: row.library_id,
@@ -375,6 +467,9 @@ pub async fn list_liked_tracks(
                 file_size: row.file_size,
                 added_at: row.added_at,
                 artwork_path,
+                artwork_path_1x,
+                artwork_path_2x,
+                rating: row.rating,
             }
         })
         .collect();

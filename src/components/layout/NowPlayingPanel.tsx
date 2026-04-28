@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Music2 } from "lucide-react";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { usePlayer } from "../../hooks/usePlayer";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
+import { Lightbox } from "../common/Lightbox";
 import { enrichArtistDeezer } from "../../lib/tauri/detail";
-import { resolveRemoteImage } from "../../lib/tauri/artwork";
+import { resolveArtwork } from "../../lib/tauri/artwork";
 
 interface NowPlayingPanelProps {
   onNavigateToArtist: (artistId: number) => void;
@@ -32,6 +34,7 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
   const [bioShort, setBioShort] = useState<string | null>(null);
   const [bioFull, setBioFull] = useState<string | null>(null);
   const [bioExpanded, setBioExpanded] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   useEffect(() => {
     // Reset enrichment state whenever the focused artist changes so
@@ -47,7 +50,15 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
     enrichArtistDeezer(artistId)
       .then((e) => {
         if (cancelled) return;
-        const resolved = resolveRemoteImage(e.picture_path, e.picture_url);
+        const resolved = resolveArtwork(
+          {
+            full: e.picture_path,
+            x1: e.picture_path_1x,
+            x2: e.picture_path_2x,
+            remoteUrl: e.picture_url,
+          },
+          "1x",
+        );
         if (resolved) setPictureSrc(resolved);
         if (e.bio_short) setBioShort(e.bio_short);
         if (e.bio_full) setBioFull(e.bio_full);
@@ -88,13 +99,25 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
         {currentTrack ? (
           <div className="p-6 space-y-6">
             {/* Large artwork */}
-            <Artwork
-              path={currentTrack.artwork_path}
-              alt={currentTrack.album_title ?? currentTrack.title}
-              className="w-full aspect-square shadow-lg"
-              iconSize={80}
-              rounded="2xl"
-            />
+            <div
+              onDoubleClick={() => {
+                if (currentTrack.artwork_path) setIsLightboxOpen(true);
+              }}
+              className={
+                currentTrack.artwork_path ? "cursor-zoom-in" : undefined
+              }
+            >
+              <Artwork
+                path={currentTrack.artwork_path}
+                path1x={currentTrack.artwork_path_1x}
+                path2x={currentTrack.artwork_path_2x}
+                size="full"
+                alt={currentTrack.album_title ?? currentTrack.title}
+                className="w-full aspect-square shadow-lg"
+                iconSize={80}
+                rounded="2xl"
+              />
+            </div>
 
             {/* Track info */}
             <div className="space-y-1">
@@ -185,6 +208,17 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
           </div>
         )}
       </div>
+
+      <Lightbox
+        src={
+          currentTrack?.artwork_path
+            ? convertFileSrc(currentTrack.artwork_path)
+            : null
+        }
+        alt={currentTrack?.album_title ?? currentTrack?.title}
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+      />
     </div>
   );
 }

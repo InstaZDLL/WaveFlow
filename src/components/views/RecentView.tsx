@@ -70,6 +70,9 @@ function recentPlayToTrack(rp: RecentPlay): Track {
     file_size: 0,
     added_at: 0,
     artwork_path: rp.artwork_path,
+    artwork_path_1x: rp.artwork_path_1x,
+    artwork_path_2x: rp.artwork_path_2x,
+    rating: null,
   };
 }
 

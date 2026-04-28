@@ -18,7 +18,12 @@ import {
   Radio,
   Eye,
   EyeOff,
+  MousePointerClick,
 } from "lucide-react";
+import {
+  getProfileSetting,
+  setProfileSetting,
+} from "../../lib/tauri/profile";
 import type { ViewId } from "../../types";
 import { SUPPORTED_LANGUAGES } from "../../i18n";
 import {
@@ -28,7 +33,12 @@ import {
   playerSetCrossfade,
 } from "../../lib/tauri/player";
 import { getLastfmApiKey, setLastfmApiKey } from "../../lib/tauri/integration";
+import { batchFetchMissingAlbumCovers } from "../../lib/tauri/deezer";
+import { listen } from "@tauri-apps/api/event";
 import { useLibrary } from "../../hooks/useLibrary";
+import { useProfile } from "../../hooks/useProfile";
+import { invoke } from "@tauri-apps/api/core";
+import { regenerateThumbnails } from "../../lib/tauri/library";
 
 interface SettingsViewProps {
   onNavigate: (view: ViewId) => void;
@@ -213,10 +223,38 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
 export function SettingsView({ onNavigate }: SettingsViewProps) {
   const { t, i18n } = useTranslation();
   const { libraries, rescanLibrary } = useLibrary();
+  const { activeProfile } = useProfile();
   const [isRescanning, setIsRescanning] = useState(false);
   const [autoStart, setAutoStart] = useState(false);
   const [minimizeToTray, setMinimizeToTray] = useState(true);
   const [scanOnStart, setScanOnStart] = useState(false);
+  const [singleClickPlay, setSingleClickPlay] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getProfileSetting("ui.single_click_play")
+      .then((v) => {
+        if (cancelled) return;
+        if (v === "true" || v === "1") setSingleClickPlay(true);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleToggleSingleClickPlay = useCallback(() => {
+    const next = !singleClickPlay;
+    setSingleClickPlay(next);
+    setProfileSetting(
+      "ui.single_click_play",
+      next ? "true" : "false",
+      "bool",
+    ).catch((err) => {
+      console.error("[Settings] set single_click_play failed", err);
+      setSingleClickPlay(!next);
+    });
+  }, [singleClickPlay]);
 
   const handleRescan = async () => {
     if (isRescanning) return;
@@ -231,6 +269,68 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       setIsRescanning(false);
     }
   };
+
+  // Cover batch fetch
+  const [isFetchingCovers, setIsFetchingCovers] = useState(false);
+  const [coverProgress, setCoverProgress] = useState<{
+    current: number;
+    total: number;
+    albumTitle: string;
+  } | null>(null);
+
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    listen<{ current: number; total: number; album_title: string }>(
+      "cover-fetch-progress",
+      (event) => {
+        setCoverProgress({
+          current: event.payload.current,
+          total: event.payload.total,
+          albumTitle: event.payload.album_title,
+        });
+      },
+    )
+      .then((un) => {
+        unlisten = un;
+      })
+      .catch(() => {});
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, []);
+
+  const handleFetchMissingCovers = async () => {
+    if (isFetchingCovers) return;
+    setIsFetchingCovers(true);
+    setCoverProgress(null);
+    try {
+      await batchFetchMissingAlbumCovers();
+    } catch (err) {
+      console.error("[SettingsView] fetch missing covers failed", err);
+    } finally {
+      setIsFetchingCovers(false);
+      window.setTimeout(() => setCoverProgress(null), 3000);
+    }
+  };
+
+  // Thumbnail regeneration
+  const [isRegeneratingThumbs, setIsRegeneratingThumbs] = useState(false);
+  const [thumbsStatus, setThumbsStatus] = useState<string | null>(null);
+
+  const handleRegenerateThumbnails = useCallback(async () => {
+    if (isRegeneratingThumbs) return;
+    setIsRegeneratingThumbs(true);
+    setThumbsStatus(null);
+    try {
+      const count = await regenerateThumbnails();
+      setThumbsStatus(t("settings.regenerateThumbnailsDone", { count }));
+    } catch (err) {
+      console.error("[SettingsView] regenerate thumbnails failed", err);
+    } finally {
+      setIsRegeneratingThumbs(false);
+      window.setTimeout(() => setThumbsStatus(null), 4000);
+    }
+  }, [isRegeneratingThumbs, t]);
 
   // Audio settings — hydrated from backend at mount.
   const [normalize, setNormalize] = useState(false);
@@ -311,6 +411,16 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const handleLanguageChange = (code: string) => {
     i18n.changeLanguage(code);
   };
+
+  const handleOpenDataFolder = useCallback(async () => {
+    try {
+      await invoke("open_data_folder", {
+        profileId: activeProfile?.id ?? null,
+      });
+    } catch (err) {
+      console.error("[SettingsView] open data folder failed", err);
+    }
+  }, [activeProfile]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-20">
@@ -433,6 +543,30 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               enabled={scanOnStart}
               onToggle={() => setScanOnStart(!scanOnStart)}
               label={t("settings.scanOnStart.title")}
+            />
+          </div>
+
+          {/* Lecture au clic simple */}
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4">
+              <MousePointerClick
+                size={20}
+                className="text-zinc-400"
+                aria-hidden="true"
+              />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.singleClickPlay.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.singleClickPlay.subtitle")}
+                </div>
+              </div>
+            </div>
+            <ToggleSwitch
+              enabled={singleClickPlay}
+              onToggle={handleToggleSingleClickPlay}
+              label={t("settings.singleClickPlay.title")}
             />
           </div>
         </div>
@@ -670,6 +804,96 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           </div>
 
           <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4 flex-1 min-w-0">
+              <ImageIcon
+                size={20}
+                className="text-zinc-400 shrink-0"
+                aria-hidden="true"
+              />
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("library.fetchMissingCovers")}
+                </div>
+                {coverProgress && isFetchingCovers ? (
+                  <div className="text-xs text-zinc-500 mt-1 truncate">
+                    {t("library.fetchingCovers", {
+                      current: coverProgress.current,
+                      total: coverProgress.total,
+                    })}
+                    {coverProgress.albumTitle
+                      ? ` — ${coverProgress.albumTitle}`
+                      : ""}
+                  </div>
+                ) : (
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.artistImages.subtitle")}
+                  </div>
+                )}
+                {coverProgress && coverProgress.total > 0 && (
+                  <div className="mt-2 h-1.5 w-full max-w-xs rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 transition-all"
+                      style={{
+                        width: `${Math.min(100, (coverProgress.current / coverProgress.total) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleFetchMissingCovers}
+              disabled={isFetchingCovers}
+              className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ImageIcon
+                size={14}
+                aria-hidden="true"
+                className={isFetchingCovers ? "animate-pulse" : ""}
+              />
+              <span>{t("settings.artistImages.action")}</span>
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4 flex-1 min-w-0">
+              <ImageIcon
+                size={20}
+                className="text-zinc-400 shrink-0"
+                aria-hidden="true"
+              />
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.regenerateThumbnails")}
+                </div>
+                {thumbsStatus ? (
+                  <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
+                    {thumbsStatus}
+                  </div>
+                ) : (
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.regenerateThumbnailsSubtitle")}
+                  </div>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleRegenerateThumbnails}
+              disabled={isRegeneratingThumbs}
+              className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCcw
+                size={14}
+                aria-hidden="true"
+                className={isRegeneratingThumbs ? "animate-spin" : ""}
+              />
+              <span>{t("settings.regenerateThumbnailsAction")}</span>
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
             <div className="flex items-center space-x-4">
               <FolderOpen
                 size={20}
@@ -687,6 +911,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             </div>
             <button
               type="button"
+              onClick={handleOpenDataFolder}
+              aria-label={t("settings.openDataFolder")}
               className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
             >
               <FolderOpen size={14} aria-hidden="true" />

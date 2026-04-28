@@ -58,6 +58,9 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
       <div className="w-1/3 flex items-center space-x-4 min-w-0">
         <Artwork
           path={currentTrack?.artwork_path ?? null}
+          path1x={currentTrack?.artwork_path_1x ?? null}
+          path2x={currentTrack?.artwork_path_2x ?? null}
+          size="1x"
           className="w-14 h-14 shadow-sm border border-zinc-200 dark:border-transparent"
           iconSize={24}
           alt={title}

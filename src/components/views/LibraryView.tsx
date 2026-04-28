@@ -14,6 +14,11 @@ import {
   Heart,
   Eye,
   EyeOff,
+  ImageIcon,
+  ArrowUpDown,
+  ArrowDown,
+  ArrowUp,
+  Check,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { LibraryTab } from "../../types";
@@ -24,12 +29,19 @@ import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { Tooltip } from "../common/Tooltip";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
+import { CoverPickerModal } from "../common/CoverPickerModal";
+import { StarRating } from "../common/StarRating";
+import { SelectionActionBar } from "../common/SelectionActionBar";
+import { AlphabetIndex } from "../common/AlphabetIndex";
+import { useSortMemory } from "../../hooks/useSortMemory";
+import { getProfileSetting } from "../../lib/tauri/profile";
 import { useLibrary } from "../../hooks/useLibrary";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
+import { useMultiSelect } from "../../hooks/useMultiSelect";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
-import { resolveRemoteImage } from "../../lib/tauri/artwork";
+import { resolveArtwork } from "../../lib/tauri/artwork";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import type { Playlist } from "../../lib/tauri/playlist";
 import { pickFolder } from "../../lib/tauri/dialog";
@@ -38,6 +50,7 @@ import {
   formatDuration,
   listTracks,
   listLikedTrackIds,
+  setTrackRating,
   toggleLikeTrack,
   type Track,
 } from "../../lib/tauri/track";
@@ -103,6 +116,8 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
   const [isImporting, setIsImporting] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
+  const [coverPickerAlbumId, setCoverPickerAlbumId] = useState<number | null>(null);
+  const [coverReloadKey, setCoverReloadKey] = useState(0);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [albums, setAlbums] = useState<AlbumRow[]>([]);
   const [artists, setArtists] = useState<ArtistRow[]>([]);
@@ -110,9 +125,47 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
   const [folders, setFolders] = useState<FolderRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [tracksView, setTracksView] = useState<TracksView>("list");
+  const [albumsNoCoverFilter, setAlbumsNoCoverFilter] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+  const selection = useMultiSelect<Track>();
   const EmptyIcon = emptyStateIcons[activeTab];
   const HeaderIcon = headerIcons[activeTab];
+
+  // Sort memory per tab — restored from `profile_setting['sort.<ctx>']`
+  // and persisted on every change. The lists wait for `isLoaded` before
+  // their first fetch so we don't query twice on mount.
+  const tracksSort = useSortMemory("tracks", {
+    orderBy: "title",
+    direction: "asc",
+  });
+  const albumsSort = useSortMemory("albums", {
+    orderBy: "title",
+    direction: "asc",
+  });
+  const artistsSort = useSortMemory("artists", {
+    orderBy: "name",
+    direction: "asc",
+  });
+
+  // Single-click play. Coexists with multi-select: ctrl/shift always
+  // takes precedence (selection), single-click triggers play only on a
+  // bare click and only when the toggle is on.
+  const [singleClickPlay, setSingleClickPlay] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    getProfileSetting("ui.single_click_play")
+      .then((v) => {
+        if (cancelled) return;
+        if (v === "true" || v === "1") setSingleClickPlay(true);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Scroll target for the AlphabetIndex (artists tab uses it).
+  const artistGridRef = useRef<HTMLDivElement>(null);
 
   const trackContextMenu = useTrackContextMenu({
     likedIds,
@@ -132,7 +185,19 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
   const librariesSignature = libraries
     .map((l) => `${l.id}:${l.updated_at}`)
     .join(",");
+  const clearSelection = selection.clear;
   useEffect(() => {
+    clearSelection();
+  }, [activeTab, clearSelection]);
+
+  useEffect(() => {
+    // Hold off the first fetch until the relevant sort memory has
+    // resolved — otherwise we'd query the default ordering and then
+    // re-query the persisted one a tick later.
+    if (activeTab === "morceaux" && !tracksSort.isLoaded) return;
+    if (activeTab === "albums" && !albumsSort.isLoaded) return;
+    if (activeTab === "artistes" && !artistsSort.isLoaded) return;
+
     let cancelled = false;
     (async () => {
       setIsLoading(true);
@@ -140,17 +205,21 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
         // Pass null → aggregate across ALL libraries ("Ma musique" mode).
         switch (activeTab) {
           case "morceaux": {
-            const list = await listTracks(null);
+            const list = await listTracks(null, tracksSort.sort);
             if (!cancelled) setTracks(list);
             break;
           }
           case "albums": {
-            const list = await listAlbums(null);
+            const list = await listAlbums(null, {
+              filterNoCover: albumsNoCoverFilter,
+              orderBy: albumsSort.sort.orderBy,
+              direction: albumsSort.sort.direction,
+            });
             if (!cancelled) setAlbums(list);
             break;
           }
           case "artistes": {
-            const list = await listArtists(null);
+            const list = await listArtists(null, artistsSort.sort);
             if (!cancelled) setArtists(list);
             break;
           }
@@ -176,7 +245,18 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
     return () => {
       cancelled = true;
     };
-  }, [activeTab, librariesSignature]);
+  }, [
+    activeTab,
+    librariesSignature,
+    albumsNoCoverFilter,
+    coverReloadKey,
+    tracksSort.isLoaded,
+    tracksSort.sort,
+    albumsSort.isLoaded,
+    albumsSort.sort,
+    artistsSort.isLoaded,
+    artistsSort.sort,
+  ]);
 
   // Load liked track IDs once on mount so the TrackTable can show
   // filled hearts. Re-fetches when the libraries change (scan might
@@ -362,70 +442,151 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
       {hasContent ? (
         <>
           {activeTab === "morceaux" && (
-            <TrackTable
-              tracks={tracks}
-              isLoading={isLoading}
-              view={tracksView}
-              t={t}
-              onPlayTrack={(index) =>
-                playTracks(tracks, index, {
-                  type: "library",
-                  id: null,
-                })
-              }
-              currentTrackId={currentTrack?.id ?? null}
-              likedIds={likedIds}
-              onToggleLike={async (trackId) => {
-                try {
-                  const nowLiked = await toggleLikeTrack(trackId);
-                  setLikedIds((prev) => {
-                    const next = new Set(prev);
-                    if (nowLiked) next.add(trackId);
-                    else next.delete(trackId);
-                    return next;
-                  });
-                } catch (err) {
-                  console.error("[LibraryView] toggle like failed", err);
+            <>
+              <div className="flex items-center justify-end -mt-4">
+                <SortDropdown
+                  options={trackSortOptions(t)}
+                  current={tracksSort.sort}
+                  onChange={tracksSort.setSort}
+                  t={t}
+                />
+              </div>
+              <TrackTable
+                tracks={tracks}
+                isLoading={isLoading}
+                view={tracksView}
+                t={t}
+                onPlayTrack={(index) =>
+                  playTracks(tracks, index, {
+                    type: "library",
+                    id: null,
+                  })
                 }
-              }}
-              playlists={playlists}
-              onAddToPlaylist={async (playlistId, trackId) => {
-                try {
-                  await addTracksToPlaylist(playlistId, [trackId]);
-                } catch (err) {
-                  console.error("[LibraryView] add to playlist failed", err);
-                }
-              }}
-              onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
-              onNavigateToArtist={onNavigateToArtist}
-              onContextMenuRow={trackContextMenu.open}
-            />
+                currentTrackId={currentTrack?.id ?? null}
+                likedIds={likedIds}
+                onToggleLike={async (trackId) => {
+                  try {
+                    const nowLiked = await toggleLikeTrack(trackId);
+                    setLikedIds((prev) => {
+                      const next = new Set(prev);
+                      if (nowLiked) next.add(trackId);
+                      else next.delete(trackId);
+                      return next;
+                    });
+                  } catch (err) {
+                    console.error("[LibraryView] toggle like failed", err);
+                  }
+                }}
+                playlists={playlists}
+                onAddToPlaylist={async (playlistId, trackId) => {
+                  try {
+                    await addTracksToPlaylist(playlistId, [trackId]);
+                  } catch (err) {
+                    console.error("[LibraryView] add to playlist failed", err);
+                  }
+                }}
+                onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+                onNavigateToArtist={onNavigateToArtist}
+                onContextMenuRow={trackContextMenu.open}
+                isSelected={selection.isSelected}
+                onRowSelect={(track, e) => {
+                  // Modifier-driven selection always wins so multi-select
+                  // remains accessible even with single-click play on.
+                  if (e.shiftKey) {
+                    selection.selectRange(track.id, tracks);
+                    return;
+                  }
+                  if (e.ctrlKey || e.metaKey) {
+                    selection.toggleOne(track.id);
+                    return;
+                  }
+                  if (singleClickPlay) {
+                    const idx = tracks.findIndex((tr) => tr.id === track.id);
+                    if (idx >= 0) {
+                      playTracks(tracks, idx, { type: "library", id: null });
+                    }
+                    selection.clear();
+                    return;
+                  }
+                  selection.setSingle(track.id);
+                }}
+              />
+            </>
           )}
           {activeTab === "albums" && (
-            <AlbumGrid
-              albums={albums}
-              isLoading={isLoading}
-              t={t}
-              playlists={playlists}
-              onAddToPlaylist={(playlistId, albumId) =>
-                addSourceToPlaylist(playlistId, "album", albumId)
-              }
-              onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
-              onAlbumClick={onNavigateToAlbum}
-            />
+            <>
+              <div className="flex items-center justify-end space-x-3 -mt-4">
+                <label className="inline-flex items-center space-x-2 cursor-pointer select-none text-sm text-zinc-600 dark:text-zinc-300">
+                  <input
+                    type="checkbox"
+                    checked={albumsNoCoverFilter}
+                    onChange={(e) => setAlbumsNoCoverFilter(e.target.checked)}
+                    className="accent-emerald-500"
+                  />
+                  <span>{t("library.noCover")}</span>
+                </label>
+                <SortDropdown
+                  options={albumSortOptions(t)}
+                  current={albumsSort.sort}
+                  onChange={albumsSort.setSort}
+                  t={t}
+                />
+              </div>
+              <AlbumGrid
+                albums={albums}
+                isLoading={isLoading}
+                t={t}
+                playlists={playlists}
+                onAddToPlaylist={(playlistId, albumId) =>
+                  addSourceToPlaylist(playlistId, "album", albumId)
+                }
+                onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+                onAlbumClick={onNavigateToAlbum}
+                onChangeCover={(albumId) => setCoverPickerAlbumId(albumId)}
+              />
+            </>
           )}
           {activeTab === "artistes" && (
-            <ArtistList
-              artists={artists}
-              isLoading={isLoading}
-              t={t}
-              playlists={playlists}
-              onAddToPlaylist={(playlistId, artistId) =>
-                addSourceToPlaylist(playlistId, "artist", artistId)
-              }
-              onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
-              onArtistClick={onNavigateToArtist}
-            />
+            <>
+              <div className="flex items-center justify-end -mt-4">
+                <SortDropdown
+                  options={artistSortOptions(t)}
+                  current={artistsSort.sort}
+                  onChange={artistsSort.setSort}
+                  t={t}
+                />
+              </div>
+              <div className="relative">
+                <ArtistList
+                  artists={artists}
+                  isLoading={isLoading}
+                  t={t}
+                  playlists={playlists}
+                  onAddToPlaylist={(playlistId, artistId) =>
+                    addSourceToPlaylist(playlistId, "artist", artistId)
+                  }
+                  onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+                  onArtistClick={onNavigateToArtist}
+                  gridRef={artistGridRef}
+                />
+                {artistsSort.sort.orderBy === "name" && artists.length > 0 && (
+                  <AlphabetIndex
+                    items={artists}
+                    onLetterClick={(idx) => {
+                      const grid = artistGridRef.current;
+                      if (!grid) return;
+                      const target = grid.querySelector<HTMLElement>(
+                        `[data-artist-index="${idx}"]`,
+                      );
+                      if (target) {
+                        target.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }
+                    }}
+                    className="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 z-30 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm rounded-full py-2 px-1.5 shadow-sm"
+                  />
+                )}
+              </div>
+            </>
           )}
           {activeTab === "genres" && (
             <GenreList genres={genres} isLoading={isLoading} t={t} />
@@ -504,6 +665,175 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
           }
         }}
       />
+
+      {coverPickerAlbumId != null && (
+        <CoverPickerModal
+          albumId={coverPickerAlbumId}
+          initialQuery={(() => {
+            const a = albums.find((al) => al.id === coverPickerAlbumId);
+            if (!a) return "";
+            return a.artist_name ? `${a.title} ${a.artist_name}` : a.title;
+          })()}
+          isOpen={coverPickerAlbumId != null}
+          onClose={() => setCoverPickerAlbumId(null)}
+          onSuccess={() => setCoverReloadKey((k) => k + 1)}
+        />
+      )}
+
+      {activeTab === "morceaux" && (
+        <SelectionActionBar
+          trackIds={[...selection.selectedIds]}
+          onClear={selection.clear}
+          onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+        />
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// Sort dropdown
+// =============================================================================
+
+interface SortOption {
+  value: string;
+  label: string;
+}
+
+function trackSortOptions(t: Translator): SortOption[] {
+  return [
+    { value: "title", label: t("sort.title") },
+    { value: "artist", label: t("sort.artist") },
+    { value: "album", label: t("sort.album") },
+    { value: "duration_ms", label: t("sort.duration") },
+    { value: "year", label: t("sort.year") },
+    { value: "added_at", label: t("sort.addedAt") },
+    { value: "rating", label: t("sort.rating") },
+  ];
+}
+
+function albumSortOptions(t: Translator): SortOption[] {
+  return [
+    { value: "title", label: t("sort.title") },
+    { value: "artist", label: t("sort.artist") },
+    { value: "year", label: t("sort.year") },
+    { value: "added_at", label: t("sort.addedAt") },
+  ];
+}
+
+function artistSortOptions(t: Translator): SortOption[] {
+  return [
+    { value: "name", label: t("sort.name") },
+    { value: "albums_count", label: t("sort.albumsCount") },
+    { value: "tracks_count", label: t("sort.tracksCount") },
+  ];
+}
+
+interface SortDropdownProps {
+  options: SortOption[];
+  current: { orderBy: string; direction: "asc" | "desc" };
+  onChange: (next: { orderBy: string; direction: "asc" | "desc" }) => void;
+  t: Translator;
+}
+
+function SortDropdown({ options, current, onChange, t }: SortDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [isOpen]);
+
+  const currentLabel =
+    options.find((o) => o.value === current.orderBy)?.label ?? current.orderBy;
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen((p) => !p)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className="flex items-center space-x-2 px-3 py-1.5 rounded-lg border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+      >
+        <ArrowUpDown size={14} />
+        <span>{currentLabel}</span>
+        {current.direction === "desc" ? (
+          <ArrowDown size={12} />
+        ) : (
+          <ArrowUp size={12} />
+        )}
+      </button>
+      {isOpen && (
+        <ul
+          role="listbox"
+          className="absolute top-full right-0 mt-2 min-w-56 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated overflow-hidden z-50 animate-fade-in py-1"
+        >
+          {options.map((opt) => {
+            const isSelected = opt.value === current.orderBy;
+            return (
+              <li key={opt.value} role="presentation">
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={() => {
+                    onChange({ orderBy: opt.value, direction: current.direction });
+                  }}
+                  className={`w-full flex items-center justify-between px-4 py-2 text-sm text-left transition-colors ${
+                    isSelected
+                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
+                      : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30"
+                  }`}
+                >
+                  <span>{opt.label}</span>
+                  {isSelected && <Check size={14} />}
+                </button>
+              </li>
+            );
+          })}
+          <li className="border-t border-zinc-100 dark:border-zinc-700/50 mt-1 pt-1">
+            <button
+              type="button"
+              onClick={() =>
+                onChange({
+                  orderBy: current.orderBy,
+                  direction: current.direction === "asc" ? "desc" : "asc",
+                })
+              }
+              className="w-full flex items-center justify-between px-4 py-2 text-sm text-left text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
+            >
+              <span>
+                {current.direction === "asc"
+                  ? t("sort.descending")
+                  : t("sort.ascending")}
+              </span>
+              {current.direction === "asc" ? (
+                <ArrowDown size={14} />
+              ) : (
+                <ArrowUp size={14} />
+              )}
+            </button>
+          </li>
+        </ul>
+      )}
     </div>
   );
 }
@@ -526,6 +856,8 @@ interface TrackTableProps {
   onCreatePlaylist: () => void;
   onNavigateToArtist: (artistId: number) => void;
   onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
+  isSelected: (id: number) => boolean;
+  onRowSelect: (track: Track, e: React.MouseEvent) => void;
 }
 
 function TrackTable({
@@ -542,13 +874,20 @@ function TrackTable({
   onCreatePlaylist,
   onNavigateToArtist,
   onContextMenuRow,
+  isSelected,
+  onRowSelect,
 }: TrackTableProps) {
+  "use no memo";
   const unknown = t("library.table.unknown");
   const [openMenuTrackId, setOpenMenuTrackId] = useState<number | null>(null);
+  const [ratingOverrides, setRatingOverrides] = useState<Map<number, number | null>>(
+    new Map(),
+  );
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Virtual scroll — only the visible rows are in the DOM.
   const ROW_HEIGHT = view === "list" ? 56 : 44;
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: tracks.length,
     getScrollElement: () => scrollRef.current,
@@ -577,8 +916,8 @@ function TrackTable({
 
   const gridCols =
     view === "list"
-      ? "grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem_2rem_2.5rem]"
-      : "grid-cols-[3rem_1fr_1fr_1fr_5rem_2rem_2.5rem]";
+      ? "grid-cols-[3rem_2.75rem_1fr_1fr_1fr_7rem_5rem_2rem_2.5rem]"
+      : "grid-cols-[3rem_1fr_1fr_1fr_7rem_5rem_2rem_2.5rem]";
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40 overflow-hidden">
@@ -591,6 +930,7 @@ function TrackTable({
         <span>{t("library.table.title")}</span>
         <span>{t("library.table.artist")}</span>
         <span>{t("library.table.album")}</span>
+        <span>{t("library.rating")}</span>
         <span
           className="flex justify-end"
           aria-label={t("library.table.duration")}
@@ -616,9 +956,11 @@ function TrackTable({
             const track = tracks[index];
             const isCurrent = track.id === currentTrackId;
             const isMenuOpen = openMenuTrackId === track.id;
+            const isRowSelected = isSelected(track.id);
             return (
               <div
                 key={track.id}
+                onClick={(e) => onRowSelect(track, e)}
                 onDoubleClick={() => onPlayTrack(index)}
                 onContextMenu={(e) => onContextMenuRow(e, track)}
                 style={{
@@ -630,7 +972,9 @@ function TrackTable({
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
                 className={`group grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 ${
-                  isCurrent
+                  isRowSelected
+                    ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
+                    : isCurrent
                     ? "bg-emerald-50 dark:bg-emerald-900/20"
                     : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
                 }`}
@@ -647,6 +991,7 @@ function TrackTable({
                 {view === "list" && (
                   <Artwork
                     path={track.artwork_path}
+                    size="1x"
                     className="w-10 h-10"
                     iconSize={18}
                     alt={track.album_title ?? track.title}
@@ -672,6 +1017,34 @@ function TrackTable({
                 <span className="text-sm text-zinc-500 truncate">
                   {track.album_title ?? unknown}
                 </span>
+                <div
+                  className="flex items-center"
+                  onDoubleClick={(e) => e.stopPropagation()}
+                >
+                  <StarRating
+                    value={
+                      ratingOverrides.has(track.id)
+                        ? ratingOverrides.get(track.id) ?? null
+                        : track.rating
+                    }
+                    size="sm"
+                    onChange={(rating) => {
+                      setRatingOverrides((prev) => {
+                        const next = new Map(prev);
+                        next.set(track.id, rating);
+                        return next;
+                      });
+                      setTrackRating(track.id, rating).catch((err) => {
+                        console.error("[LibraryView] set rating failed", err);
+                        setRatingOverrides((prev) => {
+                          const next = new Map(prev);
+                          next.delete(track.id);
+                          return next;
+                        });
+                      });
+                    }}
+                  />
+                </div>
                 <span className="text-sm tabular-nums text-zinc-400 text-right">
                   {formatDuration(track.duration_ms)}
                 </span>
@@ -823,11 +1196,33 @@ interface AlbumGridProps {
   onAddToPlaylist: (playlistId: number, albumId: number) => void;
   onCreatePlaylist: () => void;
   onAlbumClick: (albumId: number) => void;
+  onChangeCover: (albumId: number) => void;
 }
 
-function AlbumGrid({ albums, isLoading, t, playlists, onAddToPlaylist, onCreatePlaylist, onAlbumClick }: AlbumGridProps) {
+function AlbumGrid({ albums, isLoading, t, playlists, onAddToPlaylist, onCreatePlaylist, onAlbumClick, onChangeCover }: AlbumGridProps) {
   const unknown = t("library.table.unknown");
   const [openMenuAlbumId, setOpenMenuAlbumId] = useState<number | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    albumId: number;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (contextMenu == null) return;
+    const handleClick = () => setContextMenu(null);
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setContextMenu(null);
+    };
+    document.addEventListener("click", handleClick);
+    document.addEventListener("contextmenu", handleClick);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("click", handleClick);
+      document.removeEventListener("contextmenu", handleClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [contextMenu]);
 
   useEffect(() => {
     if (openMenuAlbumId == null) return;
@@ -849,6 +1244,7 @@ function AlbumGrid({ albums, isLoading, t, playlists, onAddToPlaylist, onCreateP
   }, [openMenuAlbumId]);
 
   return (
+    <>
     <div
       className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5 ${
         isLoading ? "opacity-50" : ""
@@ -860,11 +1256,18 @@ function AlbumGrid({ albums, isLoading, t, playlists, onAddToPlaylist, onCreateP
           <div
             key={album.id}
             onClick={() => onAlbumClick(album.id)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setContextMenu({ albumId: album.id, x: e.clientX, y: e.clientY });
+            }}
             className="group flex flex-col space-y-2 cursor-pointer relative"
           >
             <div className="relative">
               <Artwork
                 path={album.artwork_path}
+                path1x={album.artwork_path_1x}
+                path2x={album.artwork_path_2x}
+                size="2x"
                 alt={album.title}
                 className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
                 iconSize={44}
@@ -918,6 +1321,29 @@ function AlbumGrid({ albums, isLoading, t, playlists, onAddToPlaylist, onCreateP
         );
       })}
     </div>
+    {contextMenu && (
+      <div
+        role="menu"
+        style={{ top: contextMenu.y, left: contextMenu.x }}
+        className="fixed z-100 min-w-48 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden animate-fade-in py-1"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => {
+            const id = contextMenu.albumId;
+            setContextMenu(null);
+            onChangeCover(id);
+          }}
+          className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
+        >
+          <ImageIcon size={14} />
+          <span>{t("library.changeCover")}</span>
+        </button>
+      </div>
+    )}
+    </>
   );
 }
 
@@ -929,9 +1355,10 @@ interface ArtistListProps {
   onAddToPlaylist: (playlistId: number, artistId: number) => void;
   onCreatePlaylist: () => void;
   onArtistClick: (artistId: number) => void;
+  gridRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-function ArtistList({ artists, isLoading, t, playlists, onAddToPlaylist, onCreatePlaylist, onArtistClick }: ArtistListProps) {
+function ArtistList({ artists, isLoading, t, playlists, onAddToPlaylist, onCreatePlaylist, onArtistClick, gridRef }: ArtistListProps) {
   const [openMenuArtistId, setOpenMenuArtistId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -955,19 +1382,26 @@ function ArtistList({ artists, isLoading, t, playlists, onAddToPlaylist, onCreat
 
   return (
     <div
+      ref={gridRef}
       className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5 ${
         isLoading ? "opacity-50" : ""
       }`}
     >
-      {artists.map((artist) => {
+      {artists.map((artist, idx) => {
         const isMenuOpen = openMenuArtistId === artist.id;
-        const artistPictureSrc = resolveRemoteImage(
-          artist.picture_path,
-          artist.picture_url,
+        const artistPictureSrc = resolveArtwork(
+          {
+            full: artist.picture_path,
+            x1: artist.picture_path_1x,
+            x2: artist.picture_path_2x,
+            remoteUrl: artist.picture_url,
+          },
+          "2x",
         );
         return (
           <div
             key={artist.id}
+            data-artist-index={idx}
             onClick={() => onArtistClick(artist.id)}
             className="group flex flex-col items-center space-y-3 cursor-pointer relative"
           >

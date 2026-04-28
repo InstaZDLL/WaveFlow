@@ -185,6 +185,12 @@
       "delete": "Supprimer la bibliothèque",
       "deleteConfirm": "Cliquez à nouveau pour confirmer"
     },
+    "changeCover": "Changer la pochette",
+    "searchDeezer": "Recherche Deezer",
+    "localFile": "Fichier local",
+    "fetchMissingCovers": "Récupérer toutes les pochettes manquantes",
+    "noCover": "Sans pochette",
+    "fetchingCovers": "Récupération des pochettes... ({{current}}/{{total}})",
     "table": {
       "number": "#",
       "title": "Titre",
@@ -193,6 +199,8 @@
       "duration": "Durée",
       "unknown": "—"
     },
+    "rating": "Note",
+    "noRating": "Pas de note",
     "viewToggle": {
       "label": "Mode d'affichage",
       "list": "Liste",
@@ -451,6 +459,18 @@
     "showInExplorer": "Afficher dans l'explorateur",
     "copyPath": "Copier le chemin du fichier"
   },
+  "selection": {
+    "toolbarLabel": "Actions de sélection",
+    "count_zero": "0 sélectionné",
+    "count_one": "{{count}} sélectionné",
+    "count_other": "{{count}} sélectionnés",
+    "play": "Lecture",
+    "addToQueue": "Ajouter à la file",
+    "playNext": "Lire ensuite",
+    "addToPlaylist": "Ajouter à une playlist",
+    "removeFromPlaylist": "Retirer de la playlist",
+    "clear": "Désélectionner"
+  },
   "albumDetail": {
     "badge": "Album",
     "playAll": "Tout lire",
@@ -521,6 +541,20 @@
       "manual": "Saisie manuelle"
     }
   },
+  "sort": {
+    "title": "Titre",
+    "artist": "Artiste",
+    "album": "Album",
+    "duration": "Durée",
+    "year": "Année",
+    "addedAt": "Ajouté le",
+    "rating": "Note",
+    "name": "Nom",
+    "albumsCount": "Nb albums",
+    "tracksCount": "Nb morceaux",
+    "ascending": "Croissant",
+    "descending": "Décroissant"
+  },
   "settings": {
     "title": "Paramètres",
     "sections": {
@@ -568,6 +602,10 @@
       "title": "Scanner au démarrage",
       "subtitle": "Rescanner automatiquement les bibliothèques à l'ouverture"
     },
+    "singleClickPlay": {
+      "title": "Lecture au clic simple",
+      "subtitle": "Un clic sur une piste lance la lecture (sinon double-clic)"
+    },
     "rescan": {
       "title": "Rescanner la bibliothèque",
       "subtitle": "Re-parcourir tous les dossiers et importer les nouveaux fichiers",
@@ -583,6 +621,11 @@
       "subtitle": "Ouvrir le dossier contenant la base de données et les covers",
       "action": "Ouvrir"
     },
+    "openDataFolder": "Ouvrir le dossier de données",
+    "regenerateThumbnails": "Régénérer les vignettes",
+    "regenerateThumbnailsSubtitle": "Reconstruire les variantes 1x/2x manquantes pour toutes les pochettes",
+    "regenerateThumbnailsAction": "Régénérer",
+    "regenerateThumbnailsDone": "{{count}} vignettes régénérées",
     "reset": {
       "title": "Réinitialiser l'application",
       "subtitle": "Supprimer toutes les données et revenir à l'état initial",

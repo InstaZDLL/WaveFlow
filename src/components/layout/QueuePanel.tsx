@@ -253,6 +253,9 @@ function QueueRow({
     >
       <Artwork
         path={item.artwork_path}
+        path1x={item.artwork_path_1x}
+        path2x={item.artwork_path_2x}
+        size="1x"
         className="w-10 h-10"
         iconSize={18}
         alt={item.album_title ?? item.title}
@@ -302,6 +305,7 @@ function SortableUpNext({
   onJump,
   onReorder,
 }: SortableUpNextProps) {
+  "use no memo";
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   );
@@ -320,6 +324,7 @@ function SortableUpNext({
   // hit). Virtualization keeps the rendered rows around ~20 even on
   // huge queues, and the SortableContext below still receives the full
   // id list so dnd-kit knows the abstract ordering.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => scrollRef.current,
@@ -427,6 +432,9 @@ function QueueRowPreview({ item }: { item: QueueTrackPayload }) {
       </div>
       <Artwork
         path={item.artwork_path}
+        path1x={item.artwork_path_1x}
+        path2x={item.artwork_path_2x}
+        size="1x"
         className="w-10 h-10"
         iconSize={18}
         alt={item.album_title ?? item.title}

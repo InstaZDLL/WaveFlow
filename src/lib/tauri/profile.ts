@@ -41,3 +41,17 @@ export function switchProfile(profileId: number): Promise<Profile> {
 export function deactivateProfile(): Promise<void> {
   return invoke<void>("deactivate_profile");
 }
+
+/** Read a single value from the active profile's `profile_setting` table. */
+export function getProfileSetting(key: string): Promise<string | null> {
+  return invoke<string | null>("get_profile_setting", { key });
+}
+
+/** Upsert a typed value into the active profile's `profile_setting` table. */
+export function setProfileSetting(
+  key: string,
+  value: string,
+  valueType: "bool" | "int" | "string" | "json",
+): Promise<void> {
+  return invoke<void>("set_profile_setting", { key, value, valueType });
+}

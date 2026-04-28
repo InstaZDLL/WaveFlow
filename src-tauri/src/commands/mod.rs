@@ -9,6 +9,7 @@ pub mod deezer;
 pub mod integration;
 pub mod library;
 pub mod lyrics;
+pub mod maintenance;
 pub mod player;
 pub mod playlist;
 pub mod profile;

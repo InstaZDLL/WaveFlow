@@ -32,10 +32,27 @@ export interface Track {
   file_size: number;
   added_at: number;
   artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
+  /** Raw POPM byte (0-255). `null` when no rating is set. */
+  rating: number | null;
 }
 
-export function listTracks(libraryId: number | null): Promise<Track[]> {
-  return invoke<Track[]>("list_tracks", { libraryId });
+/** Sort spec accepted by `listTracks` / `listAlbums` / `listArtists`. */
+export interface SortSpec {
+  orderBy?: string;
+  direction?: "asc" | "desc";
+}
+
+export function listTracks(
+  libraryId: number | null,
+  sort?: SortSpec,
+): Promise<Track[]> {
+  return invoke<Track[]>("list_tracks", {
+    libraryId,
+    orderBy: sort?.orderBy ?? null,
+    direction: sort?.direction ?? null,
+  });
 }
 
 /** Full-text search across title, album and artist. Returns up to 50 results. */
@@ -46,6 +63,11 @@ export function searchTracks(query: string): Promise<Track[]> {
 /** Toggle liked state. Returns `true` if the track is now liked. */
 export function toggleLikeTrack(trackId: number): Promise<boolean> {
   return invoke<boolean>("toggle_like_track", { trackId });
+}
+
+/** Set or clear a track rating. `rating` is the raw POPM byte 0-255, or null to clear. */
+export function setTrackRating(trackId: number, rating: number | null): Promise<void> {
+  return invoke<void>("set_track_rating", { trackId, rating });
 }
 
 /** All liked track IDs (cheap — no full rows, just IDs). */

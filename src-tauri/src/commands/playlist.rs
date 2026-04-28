@@ -78,6 +78,7 @@ struct PlaylistTrackRow {
     added_at: i64,
     artwork_hash: Option<String>,
     artwork_format: Option<String>,
+    rating: Option<i64>,
 }
 
 fn now_millis() -> i64 {
@@ -313,7 +314,8 @@ pub async fn list_playlist_tracks(
                t.bitrate, t.sample_rate, t.channels,
                t.file_path, t.file_size, t.added_at,
                aw.hash   AS artwork_hash,
-               aw.format AS artwork_format
+               aw.format AS artwork_format,
+               t.rating  AS rating
           FROM playlist_track pt
           JOIN track   t  ON t.id  = pt.track_id
           LEFT JOIN album   al ON al.id = t.album_id
@@ -330,15 +332,19 @@ pub async fn list_playlist_tracks(
     let tracks = rows
         .into_iter()
         .map(|row| {
-            let artwork_path = match (row.artwork_hash, row.artwork_format) {
-                (Some(hash), Some(format)) => Some(
-                    artwork_dir
-                        .join(format!("{}.{}", hash, format))
-                        .to_string_lossy()
-                        .to_string(),
-                ),
-                _ => None,
-            };
+            let (artwork_path, artwork_path_1x, artwork_path_2x) =
+                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
+                    (Some(hash), Some(format)) => {
+                        let full = artwork_dir
+                            .join(format!("{}.{}", hash, format))
+                            .to_string_lossy()
+                            .to_string();
+                        let (p1, p2) =
+                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        (Some(full), p1, p2)
+                    }
+                    _ => (None, None, None),
+                };
             Track {
                 id: row.id,
                 library_id: row.library_id,
@@ -359,6 +365,9 @@ pub async fn list_playlist_tracks(
                 file_size: row.file_size,
                 added_at: row.added_at,
                 artwork_path,
+                artwork_path_1x,
+                artwork_path_2x,
+                rating: row.rating,
             }
         })
         .collect();

@@ -86,7 +86,7 @@ pub async fn stats_overview(
     })
 }
 
-#[derive(Debug, Clone, Serialize, FromRow)]
+#[derive(Debug, Clone, Serialize)]
 pub struct TopTrackRow {
     pub track_id: i64,
     pub title: String,
@@ -98,6 +98,8 @@ pub struct TopTrackRow {
     pub plays: i64,
     pub listened_ms: i64,
     pub artwork_path: Option<String>,
+    pub artwork_path_1x: Option<String>,
+    pub artwork_path_2x: Option<String>,
 }
 
 #[derive(FromRow)]
@@ -166,15 +168,19 @@ pub async fn stats_top_tracks(
     let rows = raw
         .into_iter()
         .map(|row| {
-            let artwork_path = match (row.artwork_hash, row.artwork_format) {
-                (Some(hash), Some(fmt)) => Some(
-                    artwork_dir
-                        .join(format!("{hash}.{fmt}"))
-                        .to_string_lossy()
-                        .to_string(),
-                ),
-                _ => None,
-            };
+            let (artwork_path, artwork_path_1x, artwork_path_2x) =
+                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
+                    (Some(hash), Some(fmt)) => {
+                        let full = artwork_dir
+                            .join(format!("{hash}.{fmt}"))
+                            .to_string_lossy()
+                            .to_string();
+                        let (p1, p2) =
+                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        (Some(full), p1, p2)
+                    }
+                    _ => (None, None, None),
+                };
             TopTrackRow {
                 track_id: row.track_id,
                 title: row.title,
@@ -186,6 +192,8 @@ pub async fn stats_top_tracks(
                 plays: row.plays,
                 listened_ms: row.listened_ms,
                 artwork_path,
+                artwork_path_1x,
+                artwork_path_2x,
             }
         })
         .collect();
@@ -201,6 +209,8 @@ pub struct TopArtistRow {
     pub listened_ms: i64,
     pub picture_url: Option<String>,
     pub picture_path: Option<String>,
+    pub picture_path_1x: Option<String>,
+    pub picture_path_2x: Option<String>,
 }
 
 #[derive(FromRow)]
@@ -248,23 +258,31 @@ pub async fn stats_top_artists(
     let metadata_dir = &state.paths.metadata_artwork_dir;
     let rows = raw
         .into_iter()
-        .map(|r| TopArtistRow {
-            artist_id: r.artist_id,
-            name: r.name,
-            plays: r.plays,
-            listened_ms: r.listened_ms,
-            picture_path: r
-                .picture_hash
-                .as_deref()
-                .and_then(|h| crate::metadata_artwork::existing_path(metadata_dir, h)),
-            picture_url: r.picture_url,
+        .map(|r| {
+            let (picture_path_1x, picture_path_2x) = match r.picture_hash.as_deref() {
+                Some(h) => crate::thumbnails::thumbnail_paths_for(metadata_dir, h),
+                None => (None, None),
+            };
+            TopArtistRow {
+                artist_id: r.artist_id,
+                name: r.name,
+                plays: r.plays,
+                listened_ms: r.listened_ms,
+                picture_path: r
+                    .picture_hash
+                    .as_deref()
+                    .and_then(|h| crate::metadata_artwork::existing_path(metadata_dir, h)),
+                picture_url: r.picture_url,
+                picture_path_1x,
+                picture_path_2x,
+            }
         })
         .collect();
 
     Ok(rows)
 }
 
-#[derive(Debug, Clone, Serialize, FromRow)]
+#[derive(Debug, Clone, Serialize)]
 pub struct TopAlbumRow {
     pub album_id: i64,
     pub title: String,
@@ -273,6 +291,8 @@ pub struct TopAlbumRow {
     pub plays: i64,
     pub listened_ms: i64,
     pub artwork_path: Option<String>,
+    pub artwork_path_1x: Option<String>,
+    pub artwork_path_2x: Option<String>,
 }
 
 #[derive(FromRow)]
@@ -327,15 +347,19 @@ pub async fn stats_top_albums(
     let rows = raw
         .into_iter()
         .map(|row| {
-            let artwork_path = match (row.artwork_hash, row.artwork_format) {
-                (Some(hash), Some(fmt)) => Some(
-                    artwork_dir
-                        .join(format!("{hash}.{fmt}"))
-                        .to_string_lossy()
-                        .to_string(),
-                ),
-                _ => None,
-            };
+            let (artwork_path, artwork_path_1x, artwork_path_2x) =
+                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
+                    (Some(hash), Some(fmt)) => {
+                        let full = artwork_dir
+                            .join(format!("{hash}.{fmt}"))
+                            .to_string_lossy()
+                            .to_string();
+                        let (p1, p2) =
+                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        (Some(full), p1, p2)
+                    }
+                    _ => (None, None, None),
+                };
             TopAlbumRow {
                 album_id: row.album_id,
                 title: row.title,
@@ -344,6 +368,8 @@ pub async fn stats_top_albums(
                 plays: row.plays,
                 listened_ms: row.listened_ms,
                 artwork_path,
+                artwork_path_1x,
+                artwork_path_2x,
             }
         })
         .collect();

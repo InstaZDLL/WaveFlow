@@ -55,6 +55,9 @@ function queuePayloadToTrack(payload: QueueTrackPayload): Track {
     file_size: 0,
     added_at: 0,
     artwork_path: payload.artwork_path,
+    artwork_path_1x: payload.artwork_path_1x,
+    artwork_path_2x: payload.artwork_path_2x,
+    rating: null,
   };
 }
 

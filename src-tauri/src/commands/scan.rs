@@ -8,7 +8,7 @@ use chrono::Utc;
 use lofty::file::TaggedFileExt;
 use lofty::picture::MimeType;
 use lofty::prelude::{Accessor, AudioFile};
-use lofty::tag::Tag;
+use lofty::tag::{ItemKey, Tag, TagType};
 use serde::Serialize;
 use sqlx::SqlitePool;
 use walkdir::WalkDir;
@@ -103,6 +103,10 @@ struct ExtractedFile {
     /// the first picture is kept (lofty exposes them in order and the first
     /// is usually the `CoverFront`). `None` when the tag has no pictures.
     cover_art: Option<ExtractedCover>,
+    /// Raw POPM byte (0-255) for ID3v2 files, or a normalised value
+    /// derived from the `RATING` text field for Vorbis/FLAC/MP4. `None`
+    /// when neither tag carries a rating.
+    rating: Option<u8>,
 }
 
 struct ExtractedCover {
@@ -150,7 +154,34 @@ fn extract_cover(tag: &Tag, artwork_dir: &Path) -> Option<ExtractedCover> {
             return None;
         }
     }
+    crate::thumbnails::spawn_thumbnail_job(
+        out_path,
+        artwork_dir.to_path_buf(),
+        hash.clone(),
+    );
     Some(ExtractedCover { hash, format })
+}
+
+/// Extract a 0-255 rating from a tag. POPM frames (ID3v2) are stored by
+/// lofty as raw `ItemValue::Binary` under `ItemKey::Popularimeter`: the
+/// frame body is `<email>\0<rating:u8><counter:u32+>`, so the rating is
+/// the byte right after the first NUL terminator. Vorbis/FLAC/MP4 expose
+/// `RATING` as plain text 0-100 which we rescale to 0-255.
+fn extract_rating(tag: &Tag) -> Option<u8> {
+    if matches!(tag.tag_type(), TagType::Id3v2) {
+        if let Some(bytes) = tag.get_binary(&ItemKey::Popularimeter, false) {
+            let nul_pos = bytes.iter().position(|b| *b == 0)?;
+            return bytes.get(nul_pos + 1).copied();
+        }
+    }
+    if let Some(text) = tag.get_string(&ItemKey::Popularimeter) {
+        let trimmed = text.trim();
+        if let Ok(val) = trimmed.parse::<u16>() {
+            let clamped = val.min(100);
+            return Some((clamped * 255 / 100) as u8);
+        }
+    }
+    None
 }
 
 fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String> {
@@ -173,20 +204,21 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
     let channels = props.channels().map(|c| c as i64);
 
     let tag = tagged.primary_tag().or_else(|| tagged.first_tag());
-    let (title, artist, album, genre, year, track_number, disc_number, cover_art) = match tag
-    {
-        Some(tag) => (
-            tag.title().map(|s| s.into_owned()),
-            tag.artist().map(|s| s.into_owned()),
-            tag.album().map(|s| s.into_owned()),
-            tag.genre().map(|s| s.into_owned()),
-            tag.year().map(|y| y as i64),
-            tag.track().map(|n| n as i64),
-            tag.disk().map(|n| n as i64),
-            extract_cover(tag, artwork_dir),
-        ),
-        None => (None, None, None, None, None, None, None, None),
-    };
+    let (title, artist, album, genre, year, track_number, disc_number, cover_art, rating) =
+        match tag {
+            Some(tag) => (
+                tag.title().map(|s| s.into_owned()),
+                tag.artist().map(|s| s.into_owned()),
+                tag.album().map(|s| s.into_owned()),
+                tag.genre().map(|s| s.into_owned()),
+                tag.year().map(|y| y as i64),
+                tag.track().map(|n| n as i64),
+                tag.disk().map(|n| n as i64),
+                extract_cover(tag, artwork_dir),
+                extract_rating(tag),
+            ),
+            None => (None, None, None, None, None, None, None, None, None),
+        };
 
     // Fall back to the file stem when the tag has no title — better than
     // displaying an empty string in the library grid.
@@ -214,6 +246,7 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
         sample_rate,
         channels,
         cover_art,
+        rating,
     })
 }
 
@@ -632,6 +665,7 @@ pub(crate) async fn scan_folder_inner(
                     title = ?, album_id = ?, primary_artist = ?,
                     track_number = ?, disc_number = ?, year = ?,
                     duration_ms = ?, bitrate = ?, sample_rate = ?, channels = ?,
+                    rating = ?,
                     is_available = 1
                  WHERE id = ?",
             )
@@ -649,6 +683,7 @@ pub(crate) async fn scan_folder_inner(
             .bind(extracted.bitrate)
             .bind(extracted.sample_rate)
             .bind(extracted.channels)
+            .bind(extracted.rating.map(|r| r as i64))
             .bind(track_id)
             .execute(pool)
             .await?;
@@ -689,8 +724,9 @@ pub(crate) async fn scan_folder_inner(
                     title, album_id, primary_artist,
                     track_number, disc_number, year,
                     duration_ms, bitrate, sample_rate, channels,
+                    rating,
                     added_at, is_available
-                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
+                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
             )
             .bind(library_id)
             .bind(folder_id)
@@ -708,6 +744,7 @@ pub(crate) async fn scan_folder_inner(
             .bind(extracted.bitrate)
             .bind(extracted.sample_rate)
             .bind(extracted.channels)
+            .bind(extracted.rating.map(|r| r as i64))
             .bind(now)
             .execute(pool)
             .await?;

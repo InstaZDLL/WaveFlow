@@ -216,3 +216,49 @@ pub async fn deactivate_profile(
     state.deactivate_profile().await;
     Ok(())
 }
+
+/// Read a single key from the active profile's `profile_setting` table.
+/// Returns `None` when the key is missing — the caller is responsible
+/// for falling back to a default. Generic enough to back the UI's sort
+/// memory and single-click toggle.
+#[tauri::command]
+pub async fn get_profile_setting(
+    state: tauri::State<'_, AppState>,
+    key: String,
+) -> AppResult<Option<String>> {
+    let pool = state.require_profile_pool().await?;
+    let value: Option<(String,)> =
+        sqlx::query_as("SELECT value FROM profile_setting WHERE key = ?")
+            .bind(&key)
+            .fetch_optional(&pool)
+            .await?;
+    Ok(value.map(|(v,)| v))
+}
+
+/// Upsert a `profile_setting` row. `value_type` is the typed marker
+/// stored alongside the raw string ("bool", "int", "json", ...).
+#[tauri::command]
+pub async fn set_profile_setting(
+    state: tauri::State<'_, AppState>,
+    key: String,
+    value: String,
+    value_type: String,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    sqlx::query(
+        r#"
+        INSERT INTO profile_setting (key, value, value_type, updated_at)
+        VALUES (?, ?, ?, strftime('%s','now')*1000)
+        ON CONFLICT(key) DO UPDATE
+           SET value = excluded.value,
+               value_type = excluded.value_type,
+               updated_at = excluded.updated_at
+        "#,
+    )
+    .bind(&key)
+    .bind(&value)
+    .bind(&value_type)
+    .execute(&pool)
+    .await?;
+    Ok(())
+}

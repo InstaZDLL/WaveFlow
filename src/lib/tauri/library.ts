@@ -121,3 +121,12 @@ export function listLibraryFolders(libraryId: number): Promise<LibraryFolder[]> 
 export function setFolderWatched(folderId: number, enable: boolean): Promise<void> {
   return invoke<void>("set_folder_watched", { folderId, enable });
 }
+
+/**
+ * Walk every artwork directory and (re)build the `_1x` / `_2x` JPEG
+ * thumbnails for any full-size cover that is missing them. Returns
+ * the count of source images successfully processed.
+ */
+export function regenerateThumbnails(): Promise<number> {
+  return invoke<number>("regenerate_thumbnails");
+}

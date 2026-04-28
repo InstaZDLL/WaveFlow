@@ -15,6 +15,7 @@ mod metadata_artwork;
 mod paths;
 mod queue;
 mod state;
+mod thumbnails;
 mod watcher;
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -157,11 +158,14 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::app_info::get_app_info,
+            commands::app_info::open_data_folder,
             commands::profile::list_profiles,
             commands::profile::get_active_profile,
             commands::profile::create_profile,
             commands::profile::switch_profile,
             commands::profile::deactivate_profile,
+            commands::profile::get_profile_setting,
+            commands::profile::set_profile_setting,
             commands::library::list_libraries,
             commands::library::create_library,
             commands::library::update_library,
@@ -187,6 +191,7 @@ pub fn run() {
             commands::track::toggle_like_track,
             commands::track::list_liked_track_ids,
             commands::track::list_liked_tracks,
+            commands::track::set_track_rating,
             commands::browse::list_albums,
             commands::browse::list_artists,
             commands::browse::list_genres,
@@ -197,6 +202,10 @@ pub fn run() {
             commands::browse::get_artist_detail,
             commands::deezer::enrich_album_deezer,
             commands::deezer::enrich_artist_deezer,
+            commands::deezer::search_albums_deezer,
+            commands::deezer::set_album_artwork_from_deezer,
+            commands::deezer::set_album_artwork_from_file,
+            commands::deezer::batch_fetch_missing_album_covers,
             commands::integration::get_lastfm_api_key,
             commands::integration::set_lastfm_api_key,
             commands::lyrics::get_lyrics,
@@ -230,6 +239,7 @@ pub fn run() {
             commands::stats::stats_top_albums,
             commands::stats::stats_listening_by_day,
             commands::stats::stats_listening_by_hour,
+            commands::maintenance::regenerate_thumbnails,
         ])
         .on_window_event(|window, event| match event {
             // Close-to-tray: when the user clicks the window's "X" we
