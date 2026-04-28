@@ -127,6 +127,9 @@ fn queue_track_to_payload_with_paths(
 /// cover, duration) at the same moment the decoder starts decoding
 /// the new track. Used by every command that kicks off a
 /// `LoadAndPlay` plus the analytics task's auto-advance path.
+///
+/// Also refreshes the system-tray tooltip so right-clicking the tray
+/// icon shows what's currently playing without opening the window.
 pub(crate) fn emit_track_changed(
     app: &AppHandle,
     paths: &AppPaths,
@@ -134,7 +137,14 @@ pub(crate) fn emit_track_changed(
     profile_id: Option<i64>,
 ) {
     let payload = queue_track_to_payload_with_paths(paths, track.clone(), profile_id);
+    let tooltip = match payload.artist_name.as_deref() {
+        Some(artist) if !artist.is_empty() => format!("{} — {}", payload.title, artist),
+        _ => payload.title.clone(),
+    };
     let _ = app.emit("player:track-changed", payload);
+    if let Some(tray) = app.tray_by_id("waveflow") {
+        let _ = tray.set_tooltip(Some(tooltip));
+    }
 }
 
 /// Emit an empty `player:queue-changed` signal. The frontend uses
