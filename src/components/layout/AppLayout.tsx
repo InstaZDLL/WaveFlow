@@ -158,7 +158,7 @@ export function AppLayout() {
           />
 
           {/* Center Content */}
-          <div className="flex flex-col flex-1 relative bg-zinc-50 dark:bg-zinc-900/50">
+          <div className="flex flex-col flex-1 relative bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
             <TopBar
               activeView={activeView}
               setActiveView={setActiveView}

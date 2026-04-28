@@ -366,9 +366,7 @@
     "nowPlaying": "En cours",
     "upNext_zero": "À suivre",
     "upNext_one": "À suivre · {{count}} titre",
-    "upNext_other": "À suivre · {{count}} titres",
-    "overflow_one": "+ {{count}} titre supplémentaire après ceux-ci",
-    "overflow_other": "+ {{count}} titres supplémentaires après ceux-ci"
+    "upNext_other": "À suivre · {{count}} titres"
   },
   "deviceMenu": {
     "activeLabel": "Discard all samples (playback)"

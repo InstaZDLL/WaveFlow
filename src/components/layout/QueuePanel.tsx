@@ -1,10 +1,12 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { X, ListMusic, GripVertical } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
+  MeasuringStrategy,
   PointerSensor,
   useSensor,
   useSensors,
@@ -20,6 +22,7 @@ import {
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { usePlayer } from "../../hooks/usePlayer";
 import { Artwork } from "../common/Artwork";
 import {
@@ -107,22 +110,13 @@ export function QueuePanel() {
     currentIndex >= 0 && currentIndex < items.length
       ? items[currentIndex]
       : null;
-  const upNextFull = useMemo(
+  // Up Next is everything after the currently playing item. Virtualization
+  // (see `SortableUpNext`) makes the full list cheap, so no slice / cap is
+  // needed any more.
+  const upNext = useMemo(
     () => items.slice(Math.max(0, currentIndex + 1)),
     [items, currentIndex],
   );
-  // Cap the visible (and dnd-mounted) Up Next slice to keep dnd-kit
-  // collision detection bounded. With 800+ tracks every mouse move
-  // would walk the full list to figure out where to drop, freezing
-  // the cursor. Beyond this cutoff the user can still see how many
-  // tracks remain via the section header and queue total — they
-  // need to play a few first to surface deeper drag targets.
-  const UP_NEXT_VISIBLE_LIMIT = 100;
-  const upNext = useMemo(
-    () => upNextFull.slice(0, UP_NEXT_VISIBLE_LIMIT),
-    [upNextFull],
-  );
-  const upNextOverflow = upNextFull.length - upNext.length;
   const total = items.length;
 
   const handleJump = useCallback((absoluteIndex: number) => {
@@ -220,7 +214,7 @@ export function QueuePanel() {
             {upNext.length > 0 && (
               <section>
                 <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-2 px-1">
-                  {t("queue.upNext", { count: upNextFull.length })}
+                  {t("queue.upNext", { count: upNext.length })}
                 </div>
                 <SortableUpNext
                   items={upNext}
@@ -228,11 +222,6 @@ export function QueuePanel() {
                   onJump={handleJump}
                   onReorder={handleReorder}
                 />
-                {upNextOverflow > 0 && (
-                  <div className="mt-2 px-1 text-xs text-zinc-400 italic">
-                    {t("queue.overflow", { count: upNextOverflow })}
-                  </div>
-                )}
               </section>
             )}
           </div>
@@ -305,6 +294,8 @@ interface SortableUpNextProps {
  * a row jumps to that track, only an actual drag past 4 px starts the
  * sort.
  */
+const QUEUE_ROW_HEIGHT = 56;
+
 function SortableUpNext({
   items,
   startIndex,
@@ -321,6 +312,20 @@ function SortableUpNext({
     () => items.map((_, i) => String(startIndex + i)),
     [items, startIndex],
   );
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Virtualize the Up Next list. Without this, dnd-kit measures every
+  // row's bounding rect on the first dragmove — with 800-track queues
+  // that pegs the main thread for hundreds of ms (the "freeze" the user
+  // hit). Virtualization keeps the rendered rows around ~20 even on
+  // huge queues, and the SortableContext below still receives the full
+  // id list so dnd-kit knows the abstract ordering.
+  const rowVirtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => QUEUE_ROW_HEIGHT,
+    overscan: 6,
+  });
 
   const handleDragStart = useCallback((e: DragStartEvent) => {
     setActiveId(String(e.active.id));
@@ -353,33 +358,58 @@ function SortableUpNext({
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis]}
+      // Always-measure plays well with virtualization: rows entering
+      // the window mid-drag get measured on the fly instead of in a
+      // synchronous burst at first dragmove.
+      measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-        <ul className="space-y-1">
-          {items.map((item, i) => {
-            const absoluteIndex = startIndex + i;
-            return (
-              <SortableQueueRow
-                key={absoluteIndex}
-                id={String(absoluteIndex)}
-                absoluteIndex={absoluteIndex}
-                item={item}
-                onJump={onJump}
-              />
-            );
-          })}
-        </ul>
+        <div
+          ref={scrollRef}
+          className="max-h-[55vh] overflow-y-auto scrollbar-hide"
+        >
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              position: "relative",
+              width: "100%",
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const item = items[virtualRow.index];
+              if (!item) return null;
+              const absoluteIndex = startIndex + virtualRow.index;
+              return (
+                <SortableQueueRow
+                  key={absoluteIndex}
+                  id={String(absoluteIndex)}
+                  absoluteIndex={absoluteIndex}
+                  item={item}
+                  top={virtualRow.start}
+                  rowHeight={QUEUE_ROW_HEIGHT}
+                  onJump={onJump}
+                />
+              );
+            })}
+          </div>
+        </div>
       </SortableContext>
-      {/* Overlay clones the dragged row into a layer that follows the
-          cursor at 60 fps, decoupled from `SortableContext`'s
-          re-renders. The row in the list goes invisible (kept mounted
-          for layout) so neighbouring items still know its slot. */}
-      <DragOverlay dropAnimation={null}>
-        {activeItem ? <QueueRowPreview item={activeItem} /> : null}
-      </DragOverlay>
+      {/* Portal the overlay to <body>: the QueuePanel itself carries a
+          CSS `transform` (translate-x-…) for its slide-in animation,
+          which makes it the containing block for any `position: fixed`
+          descendant. Without the portal, dnd-kit's overlay (fixed) is
+          positioned relative to the panel, so the dragged track sits
+          off-screen and the user sees a "drag-but-no-preview" freeze.
+          Rendering through `document.body` escapes the transform. */}
+      {createPortal(
+        <DragOverlay dropAnimation={null}>
+          {activeItem ? <QueueRowPreview item={activeItem} /> : null}
+        </DragOverlay>,
+        document.body,
+      )}
     </DndContext>
   );
 }
@@ -428,11 +458,15 @@ const SortableQueueRow = memo(function SortableQueueRow({
   id,
   absoluteIndex,
   item,
+  top,
+  rowHeight,
   onJump,
 }: {
   id: string;
   absoluteIndex: number;
   item: QueueTrackPayload;
+  top: number;
+  rowHeight: number;
   onJump: (absoluteIndex: number) => void;
 }) {
   // `animateLayoutChanges: () => false` disables the CSS transition
@@ -443,8 +477,23 @@ const SortableQueueRow = memo(function SortableQueueRow({
     id,
     animateLayoutChanges: () => false,
   });
-  const style = {
-    transform: CSS.Transform.toString(transform),
+  // Place the row's slot via CSS `top` (not via a translateY
+  // transform): dnd-kit anchors the drag overlay and resolves drop
+  // targets from `offsetTop`, which doesn't see CSS transforms. With
+  // `transform: translateY(start)` every row reports `offsetTop = 0`
+  // and the overlay snaps to viewport top + drops never land on the
+  // intended target (the song appears to "snap back" because the
+  // collision picks the row that's already at the same index). Using
+  // CSS `top` keeps offsetTop honest. useSortable's own transform
+  // stays as the only `transform` on the element.
+  const sortableTransform = CSS.Transform.toString(transform);
+  const style: React.CSSProperties = {
+    position: "absolute",
+    top: `${top}px`,
+    left: 0,
+    width: "100%",
+    height: `${rowHeight}px`,
+    transform: sortableTransform || undefined,
     // While the row is the active drag, hide it in place — the
     // `<DragOverlay>` renders the visible copy that follows the
     // cursor. Keeping the original mounted (not unmounted) preserves
@@ -452,7 +501,7 @@ const SortableQueueRow = memo(function SortableQueueRow({
     opacity: isDragging ? 0 : 1,
   };
   return (
-    <li ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={style}>
       <div
         onDoubleClick={() => onJump(absoluteIndex)}
         className="group flex items-center space-x-2 p-2 rounded-lg transition-colors select-none cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
@@ -484,6 +533,6 @@ const SortableQueueRow = memo(function SortableQueueRow({
           </div>
         </div>
       </div>
-    </li>
+    </div>
   );
 });

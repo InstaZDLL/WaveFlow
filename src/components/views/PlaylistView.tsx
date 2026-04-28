@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
   Play,
@@ -13,6 +14,7 @@ import {
 import {
   DndContext,
   DragOverlay,
+  MeasuringStrategy,
   PointerSensor,
   useSensor,
   useSensors,
@@ -28,6 +30,7 @@ import {
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { Tooltip } from "../common/Tooltip";
@@ -78,6 +81,14 @@ export function PlaylistView({
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const confirmTimeoutRef = useRef<number | null>(null);
+  // Latest tracks snapshot kept in a ref so row callbacks (play, reorder)
+  // can stay reference-stable across optimistic reorders. Without this
+  // they'd close over `tracks` and bust the memo() on every row each time
+  // the array changes mid-drag.
+  const tracksRef = useRef<Track[]>(tracks);
+  useEffect(() => {
+    tracksRef.current = tracks;
+  }, [tracks]);
 
   useEffect(() => {
     return () => {
@@ -94,7 +105,7 @@ export function PlaylistView({
       .catch(() => {});
   }, [playlistId]);
 
-  const handleToggleLike = async (trackId: number) => {
+  const handleToggleLike = useCallback(async (trackId: number) => {
     const nowLiked = await toggleLikeTrack(trackId);
     setLikedIds((prev) => {
       const next = new Set(prev);
@@ -102,21 +113,25 @@ export function PlaylistView({
       else next.delete(trackId);
       return next;
     });
-  };
+  }, []);
 
-  const handleRemoveFromPlaylist = async (pid: number, trackId: number) => {
-    try {
-      await removeTrackFromPlaylist(pid, trackId);
-      setTracks((prev) => prev.filter((t) => t.id !== trackId));
-    } catch (err) {
-      console.error("[PlaylistView] remove track from playlist failed", err);
-    }
-  };
+  const handleRemoveFromPlaylist = useCallback(
+    async (pid: number, trackId: number) => {
+      try {
+        await removeTrackFromPlaylist(pid, trackId);
+        setTracks((prev) => prev.filter((t) => t.id !== trackId));
+      } catch (err) {
+        console.error("[PlaylistView] remove track from playlist failed", err);
+      }
+    },
+    [removeTrackFromPlaylist],
+  );
 
   const handleReorder = useCallback(
     (fromIdx: number, toIdx: number) => {
       if (playlistId == null || fromIdx === toIdx) return;
-      const moved = tracks[fromIdx];
+      const current = tracksRef.current;
+      const moved = current[fromIdx];
       if (!moved) return;
       // Optimistic local reorder so the row settles in place before
       // the round-trip; if the backend rejects it, the playlist
@@ -127,24 +142,45 @@ export function PlaylistView({
         setTracks((prev) => arrayMove(prev, toIdx, fromIdx));
       });
     },
-    [playlistId, tracks],
+    [playlistId],
   );
 
-  const trackContextMenu = useTrackContextMenu({
-    likedIds,
-    onLikedChanged: (trackId, nowLiked) =>
+  const handlePlayTrackByIndex = useCallback(
+    (index: number) => {
+      if (playlistId == null) return;
+      const current = tracksRef.current;
+      if (index < 0 || index >= current.length) return;
+      void playTracks(current, index, { type: "playlist", id: playlistId });
+    },
+    [playTracks, playlistId],
+  );
+
+  const handleLikedChanged = useCallback(
+    (trackId: number, nowLiked: boolean) =>
       setLikedIds((prev) => {
         const next = new Set(prev);
         if (nowLiked) next.add(trackId);
         else next.delete(trackId);
         return next;
       }),
-    onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
+    [],
+  );
+
+  const handleOpenCreatePlaylistModal = useCallback(
+    () => setIsCreatePlaylistModalOpen(true),
+    [],
+  );
+
+  const trackContextMenu = useTrackContextMenu({
+    likedIds,
+    onLikedChanged: handleLikedChanged,
+    onCreatePlaylist: handleOpenCreatePlaylistModal,
     onNavigateToAlbum,
     onNavigateToArtist,
     currentPlaylistId: playlistId,
     onRemoveFromPlaylist: handleRemoveFromPlaylist,
   });
+  const onContextMenuRow = trackContextMenu.open;
 
   // Fetch playlist + its tracks whenever the focused id changes. Also
   // re-runs when the playlist list itself updates (e.g. after rename via
@@ -185,6 +221,22 @@ export function PlaylistView({
       cancelled = true;
     };
   }, [playlistId, playlistsSignature, getPlaylistTracks]);
+
+  // Pre-translated table labels — pulled out before any early return so
+  // the hook order stays stable across render branches.
+  const unknownLabel = t("library.table.unknown");
+  const likeLabel = t("liked.like");
+  const unlikeLabel = t("liked.unlike");
+  const headerLabels = useMemo(
+    () => ({
+      number: t("library.table.number"),
+      title: t("library.table.title"),
+      artist: t("library.table.artist"),
+      album: t("library.table.album"),
+      duration: t("library.table.duration"),
+    }),
+    [t],
+  );
 
   if (playlistId == null) {
     return (
@@ -399,26 +451,15 @@ export function PlaylistView({
           tracks={tracks}
           isLoading={isLoading}
           currentTrackId={currentTrack?.id ?? null}
-          onPlayTrack={(index) =>
-            playTracks(tracks, index, {
-              type: "playlist",
-              id: playlistId,
-            })
-          }
+          onPlayTrack={handlePlayTrackByIndex}
           likedIds={likedIds}
           onToggleLike={handleToggleLike}
           onNavigateToArtist={onNavigateToArtist}
-          unknownLabel={t("library.table.unknown")}
-          headerLabels={{
-            number: t("library.table.number"),
-            title: t("library.table.title"),
-            artist: t("library.table.artist"),
-            album: t("library.table.album"),
-            duration: t("library.table.duration"),
-          }}
-          likeLabel={t("liked.like")}
-          unlikeLabel={t("liked.unlike")}
-          onContextMenuRow={trackContextMenu.open}
+          unknownLabel={unknownLabel}
+          headerLabels={headerLabels}
+          likeLabel={likeLabel}
+          unlikeLabel={unlikeLabel}
+          onContextMenuRow={onContextMenuRow}
           onReorder={handleReorder}
         />
       ) : (
@@ -481,6 +522,8 @@ interface PlaylistTrackTableProps {
   onReorder: (fromIndex: number, toIndex: number) => void;
 }
 
+const PLAYLIST_ROW_HEIGHT = 56;
+
 function PlaylistTrackTable({
   tracks,
   isLoading,
@@ -506,6 +549,18 @@ function PlaylistTrackTable({
   const ids = useMemo(() => tracks.map((t) => String(t.id)), [tracks]);
 
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Virtualize the row list. SortableContext keeps the *full* id array
+  // so dnd-kit knows the abstract ordering, even for items that aren't
+  // currently mounted — only the on-screen window pays the useSortable
+  // cost. This is what makes grab-on-300+-tracks feel instant.
+  const rowVirtualizer = useVirtualizer({
+    count: tracks.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => PLAYLIST_ROW_HEIGHT,
+    overscan: 8,
+  });
 
   const handleDragStart = useCallback((e: DragStartEvent) => {
     setActiveId(String(e.active.id));
@@ -551,44 +606,66 @@ function PlaylistTrackTable({
         sensors={sensors}
         collisionDetection={closestCenter}
         modifiers={[restrictToVerticalAxis]}
+        // Always-measure works best with virtualization: rows entering the
+        // window during a drag scroll get measured on the fly instead of
+        // a single synchronous burst on the first dragmove.
+        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-          <ul
-            className={`divide-y divide-zinc-100 dark:divide-zinc-800/60 ${
+          <div
+            ref={scrollRef}
+            className={`max-h-[65vh] overflow-y-auto ${
               isLoading ? "opacity-50" : ""
             }`}
           >
-            {tracks.map((track, index) => (
-              <SortablePlaylistRow
-                key={track.id}
-                track={track}
-                index={index}
-                gridCols={gridCols}
-                isCurrent={track.id === currentTrackId}
-                isLiked={likedIds.has(track.id)}
-                likeLabel={likeLabel}
-                unlikeLabel={unlikeLabel}
-                unknownLabel={unknownLabel}
-                onPlayTrack={onPlayTrack}
-                onContextMenuRow={onContextMenuRow}
-                onToggleLike={onToggleLike}
-                onNavigateToArtist={onNavigateToArtist}
-              />
-            ))}
-          </ul>
+            <div
+              style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                position: "relative",
+                width: "100%",
+              }}
+            >
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const track = tracks[virtualRow.index];
+                if (!track) return null;
+                return (
+                  <SortablePlaylistRow
+                    key={track.id}
+                    track={track}
+                    index={virtualRow.index}
+                    rowHeight={PLAYLIST_ROW_HEIGHT}
+                    top={virtualRow.start}
+                    gridCols={gridCols}
+                    isCurrent={track.id === currentTrackId}
+                    isLiked={likedIds.has(track.id)}
+                    likeLabel={likeLabel}
+                    unlikeLabel={unlikeLabel}
+                    unknownLabel={unknownLabel}
+                    onPlayTrack={onPlayTrack}
+                    onContextMenuRow={onContextMenuRow}
+                    onToggleLike={onToggleLike}
+                    onNavigateToArtist={onNavigateToArtist}
+                  />
+                );
+              })}
+            </div>
+          </div>
         </SortableContext>
-        {/* Active row gets cloned into this overlay so it follows the
-            cursor in a layer detached from `SortableContext`. The
-            in-list copy stays mounted at opacity 0 to preserve its
-            slot for the layout calculations. */}
-        <DragOverlay dropAnimation={null}>
-          {activeTrack ? (
-            <PlaylistRowPreview track={activeTrack} unknownLabel={unknownLabel} />
-          ) : null}
-        </DragOverlay>
+        {/* Portal the overlay to <body> so it stays positioned relative
+            to the viewport even if a future ancestor introduces a
+            `transform` (which would make it the containing block for
+            `position: fixed` and pin the overlay off-screen). */}
+        {createPortal(
+          <DragOverlay dropAnimation={null}>
+            {activeTrack ? (
+              <PlaylistRowPreview track={activeTrack} unknownLabel={unknownLabel} />
+            ) : null}
+          </DragOverlay>,
+          document.body,
+        )}
       </DndContext>
     </div>
   );
@@ -628,6 +705,9 @@ function PlaylistRowPreview({
 interface SortablePlaylistRowProps {
   track: Track;
   index: number;
+  /** Pixel offset from the virtualizer for this row's slot. */
+  top: number;
+  rowHeight: number;
   gridCols: string;
   isCurrent: boolean;
   isLiked: boolean;
@@ -643,6 +723,8 @@ interface SortablePlaylistRowProps {
 const SortablePlaylistRow = memo(function SortablePlaylistRow({
   track,
   index,
+  top,
+  rowHeight,
   gridCols,
   isCurrent,
   isLiked,
@@ -663,8 +745,24 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
     id: String(track.id),
     animateLayoutChanges: () => false,
   });
-  const style = {
-    transform: CSS.Transform.toString(transform),
+  // Place the row's slot via CSS `top` (not via a translateY
+  // transform): dnd-kit anchors the drag overlay and resolves drop
+  // targets from `offsetTop`, which doesn't see CSS transforms. With
+  // `transform: translateY(start)` every row reports `offsetTop = 0`
+  // and dnd-kit thinks they're all stacked at the parent's top edge,
+  // making the overlay snap to viewport top and collisions resolve to
+  // whichever row is first in the DOM. Using `top` keeps offsetTop
+  // honest. useSortable's own transform (intra-drag displacement) is
+  // kept as the only `transform` on the element so it composes
+  // cleanly with `top` instead of fighting it.
+  const sortableTransform = CSS.Transform.toString(transform);
+  const style: React.CSSProperties = {
+    position: "absolute",
+    top: `${top}px`,
+    left: 0,
+    width: "100%",
+    height: `${rowHeight}px`,
+    transform: sortableTransform || undefined,
     // While this row is the drag source, `<DragOverlay>` shows the
     // visible copy that follows the cursor. We hide the in-place
     // copy but keep it mounted to preserve its slot for neighbour
@@ -672,12 +770,12 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
     opacity: isDragging ? 0 : 1,
   };
   return (
-    <li
+    <div
       ref={setNodeRef}
       style={style}
       onDoubleClick={() => onPlayTrack(index)}
       onContextMenu={(e) => onContextMenuRow(e, track)}
-      className={`group grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer ${
+      className={`group grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 ${
         isCurrent
           ? "bg-emerald-50 dark:bg-emerald-900/20"
           : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
@@ -747,6 +845,6 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
           <Heart size={14} className={isLiked ? "fill-current" : ""} />
         </button>
       </div>
-    </li>
+    </div>
   );
 });

@@ -366,9 +366,7 @@
     "nowPlaying": "Now playing",
     "upNext_zero": "Up next",
     "upNext_one": "Up next · {{count}} track",
-    "upNext_other": "Up next · {{count}} tracks",
-    "overflow_one": "+ {{count}} more track after these",
-    "overflow_other": "+ {{count}} more tracks after these"
+    "upNext_other": "Up next · {{count}} tracks"
   },
   "deviceMenu": {
     "activeLabel": "Discard all samples (playback)"
