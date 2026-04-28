@@ -23,6 +23,27 @@ use crate::{
     state::AppState,
 };
 
+/// Look up the analyzed ReplayGain for a track. Returns `None` if the
+/// track has never been analyzed or if the lookup fails — both cases
+/// mean "leave the signal untouched", which is the safe default.
+///
+/// Called at every `LoadAndPlay` / `SetNextTrack` dispatch site so the
+/// decoder thread never has to reach into SQLite from the audio path.
+pub(crate) async fn fetch_replay_gain_db(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+) -> Option<f64> {
+    sqlx::query_scalar::<_, Option<f64>>(
+        "SELECT replay_gain_db FROM track_analysis WHERE track_id = ?",
+    )
+    .bind(track_id)
+    .fetch_optional(pool)
+    .await
+    .ok()
+    .flatten()
+    .flatten()
+}
+
 /// Snapshot of the player state, returned to the frontend on demand.
 ///
 /// `current_track` is populated from the persisted resume point at
@@ -316,6 +337,14 @@ pub async fn player_get_state(
                     );
                 }
             }
+            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
+                "SELECT value FROM profile_setting WHERE key = 'audio.replaygain'"
+            ).fetch_optional(&pool).await {
+                engine.shared().replaygain_enabled.store(
+                    v == "true",
+                    std::sync::atomic::Ordering::Release,
+                );
+            }
             // Prefer the actively-playing track (non-zero track_id in
             // SharedPlayback), fall back to the persisted resume point
             // at startup when the engine is still Idle.
@@ -377,6 +406,7 @@ pub async fn player_jump_to_index(
     };
     emit_track_changed(&app, &state.paths, &track, profile_id);
     emit_queue_changed(&app);
+    let replay_gain_db = fetch_replay_gain_db(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
         path: track.as_path(),
         start_ms: 0,
@@ -384,6 +414,7 @@ pub async fn player_jump_to_index(
         duration_ms: track.duration_ms.max(0) as u64,
         source_type: "manual".into(),
         source_id: None,
+        replay_gain_db,
     })
 }
 
@@ -442,6 +473,7 @@ pub async fn player_resume_last(
         return Err(AppError::Other("no resume point available".into()));
     };
     emit_track_changed(&app, &state.paths, &track, profile_id);
+    let replay_gain_db = fetch_replay_gain_db(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
         path: track.as_path(),
         start_ms: position_ms,
@@ -449,6 +481,7 @@ pub async fn player_resume_last(
         duration_ms: track.duration_ms.max(0) as u64,
         source_type: "manual".into(),
         source_id: None,
+        replay_gain_db,
     })
 }
 
@@ -574,6 +607,31 @@ pub async fn player_set_normalize(
     Ok(())
 }
 
+/// Toggle ReplayGain — multiply each track by its analyzed gain to
+/// even out perceived loudness across the library.
+/// Persisted in `profile_setting['audio.replaygain']`.
+#[tauri::command]
+pub async fn player_set_replaygain(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    engine.send(AudioCmd::SetReplayGain(enabled))?;
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.replaygain', ?, 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(if enabled { "true" } else { "false" })
+        .bind(now)
+        .execute(&pool)
+        .await;
+    }
+    Ok(())
+}
+
 /// Toggle mono downmix (average L+R into both channels).
 /// Persisted in `profile_setting['audio.mono']`.
 #[tauri::command]
@@ -637,6 +695,9 @@ pub async fn player_get_audio_settings(
     let mono = shared
         .mono_enabled
         .load(std::sync::atomic::Ordering::Relaxed);
+    let replaygain = shared
+        .replaygain_enabled
+        .load(std::sync::atomic::Ordering::Relaxed);
 
     let mut crossfade_ms: i64 = 0;
     if let Ok(pool) = state.require_profile_pool().await {
@@ -653,6 +714,7 @@ pub async fn player_get_audio_settings(
         normalize,
         mono,
         crossfade_ms,
+        replaygain,
     })
 }
 
@@ -661,6 +723,7 @@ pub struct AudioSettingsSnapshot {
     pub normalize: bool,
     pub mono: bool,
     pub crossfade_ms: i64,
+    pub replaygain: bool,
 }
 
 /// Replace the queue with the given track list and start playing at
@@ -724,6 +787,7 @@ pub async fn player_play_tracks(
     // the first position/state event.
     emit_track_changed(&app, &state.paths, &track, profile_id);
 
+    let replay_gain_db = fetch_replay_gain_db(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
         path: pb,
         start_ms: 0,
@@ -731,6 +795,7 @@ pub async fn player_play_tracks(
         duration_ms: track.duration_ms.max(0) as u64,
         source_type,
         source_id,
+        replay_gain_db,
     })
 }
 
@@ -813,6 +878,7 @@ pub async fn player_next(
     };
     emit_track_changed(&app, &state.paths, &track, profile_id);
     emit_queue_changed(&app);
+    let replay_gain_db = fetch_replay_gain_db(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
         path: track.as_path(),
         start_ms: 0,
@@ -820,6 +886,7 @@ pub async fn player_next(
         duration_ms: track.duration_ms.max(0) as u64,
         source_type: "manual".into(),
         source_id: None,
+        replay_gain_db,
     })
 }
 
@@ -843,6 +910,7 @@ pub async fn player_previous(
     };
     emit_track_changed(&app, &state.paths, &track, profile_id);
     emit_queue_changed(&app);
+    let replay_gain_db = fetch_replay_gain_db(&pool, track.id).await;
     engine.send(AudioCmd::LoadAndPlay {
         path: track.as_path(),
         start_ms: 0,
@@ -850,5 +918,6 @@ pub async fn player_previous(
         duration_ms: track.duration_ms.max(0) as u64,
         source_type: "manual".into(),
         source_id: None,
+        replay_gain_db,
     })
 }

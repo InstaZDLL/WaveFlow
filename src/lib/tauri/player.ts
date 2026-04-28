@@ -184,6 +184,7 @@ export interface AudioSettingsSnapshot {
   normalize: boolean;
   mono: boolean;
   crossfade_ms: number;
+  replaygain: boolean;
 }
 
 export function playerGetAudioSettings(): Promise<AudioSettingsSnapshot> {
@@ -200,4 +201,8 @@ export function playerSetMono(enabled: boolean): Promise<void> {
 
 export function playerSetCrossfade(seconds: number): Promise<void> {
   return invoke<void>("player_set_crossfade", { seconds });
+}
+
+export function playerSetReplayGain(enabled: boolean): Promise<void> {
+  return invoke<void>("player_set_replaygain", { enabled });
 }

@@ -91,6 +91,11 @@ pub struct SharedPlayback {
     /// thread reads this each packet to decide when to prefetch the
     /// next track and when to start mixing.
     pub crossfade_ms: AtomicU32,
+    /// When `true`, the decoder thread multiplies decoded samples by
+    /// each track's stored ReplayGain factor (computed by `analysis.rs`
+    /// and read from `track_analysis.replay_gain_db` at load time).
+    /// Toggled from the Settings "Apply ReplayGain" switch.
+    pub replaygain_enabled: AtomicBool,
 }
 
 impl SharedPlayback {
@@ -109,6 +114,7 @@ impl SharedPlayback {
             normalize_enabled: AtomicBool::new(false),
             mono_enabled: AtomicBool::new(false),
             crossfade_ms: AtomicU32::new(0),
+            replaygain_enabled: AtomicBool::new(false),
         }
     }
 

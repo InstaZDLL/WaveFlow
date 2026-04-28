@@ -250,6 +250,7 @@ pub fn run() {
             commands::player::player_set_normalize,
             commands::player::player_set_mono,
             commands::player::player_set_crossfade,
+            commands::player::player_set_replaygain,
             commands::player::player_get_audio_settings,
             commands::stats::stats_overview,
             commands::stats::stats_top_tracks,
@@ -378,6 +379,7 @@ fn spawn_next(app: &AppHandle) {
         };
         commands::player::emit_track_changed(&app, &state.paths, &next, profile_id);
         commands::player::emit_queue_changed(&app);
+        let replay_gain_db = commands::player::fetch_replay_gain_db(&pool, next.id).await;
         let _ = engine.send(AudioCmd::LoadAndPlay {
             path: next.as_path(),
             start_ms: 0,
@@ -385,6 +387,7 @@ fn spawn_next(app: &AppHandle) {
             duration_ms: next.duration_ms.max(0) as u64,
             source_type: "manual".into(),
             source_id: None,
+            replay_gain_db,
         });
     });
 }
@@ -419,6 +422,7 @@ fn spawn_previous(app: &AppHandle) {
         };
         commands::player::emit_track_changed(&app, &state.paths, &prev, profile_id);
         commands::player::emit_queue_changed(&app);
+        let replay_gain_db = commands::player::fetch_replay_gain_db(&pool, prev.id).await;
         let _ = engine.send(AudioCmd::LoadAndPlay {
             path: prev.as_path(),
             start_ms: 0,
@@ -426,6 +430,7 @@ fn spawn_previous(app: &AppHandle) {
             duration_ms: prev.duration_ms.max(0) as u64,
             source_type: "manual".into(),
             source_id: None,
+            replay_gain_db,
         });
     });
 }

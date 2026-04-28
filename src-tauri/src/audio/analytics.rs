@@ -127,6 +127,8 @@ async fn handle_message(
                 let profile_id = state.require_profile_id().await.ok();
                 emit_track_changed(app, &state.paths, &track, profile_id);
                 emit_queue_changed(app);
+                let replay_gain_db =
+                    crate::commands::player::fetch_replay_gain_db(&pool, track.id).await;
                 let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
                     path: track.as_path(),
                     start_ms: 0,
@@ -134,6 +136,7 @@ async fn handle_message(
                     duration_ms: track.duration_ms.max(0) as u64,
                     source_type: source_type.clone(),
                     source_id: *source_id,
+                    replay_gain_db,
                 });
             }
         }
@@ -165,6 +168,8 @@ async fn handle_message(
                 .await
                 .map_err(|e| format!("peek_next: {e}"))?;
             if let Some(track) = next {
+                let replay_gain_db =
+                    crate::commands::player::fetch_replay_gain_db(&pool, track.id).await;
                 let _ = cmd_tx.send(AudioCmd::SetNextTrack {
                     path: track.as_path(),
                     track_id: track.id,
@@ -174,6 +179,7 @@ async fn handle_message(
                     // crosses a source boundary in this app.
                     source_type: "manual".into(),
                     source_id: None,
+                    replay_gain_db,
                 });
             }
         }

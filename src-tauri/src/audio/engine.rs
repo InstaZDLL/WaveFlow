@@ -34,6 +34,12 @@ pub enum AudioCmd {
         /// row with the same source for later filtering.
         source_type: String,
         source_id: Option<i64>,
+        /// ReplayGain in dB for this track if analysis has computed it.
+        /// `None` means "no gain known" (track never analyzed) — the
+        /// decoder leaves the signal untouched even when the toggle is
+        /// on. Lookup is done at command time so the decoder thread
+        /// stays out of the SQLite path.
+        replay_gain_db: Option<f64>,
     },
     Pause,
     Resume,
@@ -44,6 +50,9 @@ pub enum AudioCmd {
     SetMono(bool),
     /// Update the crossfade window length (ms). 0 disables crossfade.
     SetCrossfade(u32),
+    /// Toggle whether the decoder applies the per-track ReplayGain
+    /// factor when pushing samples to the ring.
+    SetReplayGain(bool),
     /// Hand the decoder thread the next track to prefetch for
     /// crossfade. Sent by the analytics task in response to a
     /// `PrefetchNext` request from the decoder.
@@ -53,6 +62,7 @@ pub enum AudioCmd {
         duration_ms: u64,
         source_type: String,
         source_id: Option<i64>,
+        replay_gain_db: Option<f64>,
     },
     Shutdown,
 }

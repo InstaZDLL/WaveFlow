@@ -32,6 +32,11 @@ pub struct ActiveStream {
     pub duration_ms: u64,
     pub source_type: String,
     pub source_id: Option<i64>,
+    /// Linear gain factor derived from `track_analysis.replay_gain_db`
+    /// for this track. `1.0` means "no gain known / disabled". Stored
+    /// per-stream so the crossfade dual-decoder mix gives each track
+    /// its own gain before they are summed.
+    pub replay_gain_linear: f32,
 }
 
 impl ActiveStream {
@@ -45,6 +50,7 @@ impl ActiveStream {
         duration_ms: u64,
         source_type: String,
         source_id: Option<i64>,
+        replay_gain_db: Option<f64>,
     ) -> Result<Self, String> {
         let file = File::open(path).map_err(|e| format!("open: {e}"))?;
         let mss = MediaSourceStream::new(Box::new(file), Default::default());
@@ -85,6 +91,7 @@ impl ActiveStream {
             duration_ms,
             source_type,
             source_id,
+            replay_gain_linear: replay_gain_db_to_linear(replay_gain_db),
         })
     }
 
@@ -148,6 +155,18 @@ impl ActiveStream {
                 .map_err(|e| format!("resample: {e}"))?;
             return Ok(false);
         }
+    }
+}
+
+/// Convert a ReplayGain dB value into a linear scalar applicable to
+/// f32 samples. Returns `1.0` when no gain is known or when the value
+/// looks suspicious (NaN, ±∞, beyond ±24 dB) so a buggy analysis row
+/// can never blow the speakers.
+#[inline]
+pub fn replay_gain_db_to_linear(db: Option<f64>) -> f32 {
+    match db {
+        Some(v) if v.is_finite() && v.abs() <= 24.0 => 10f64.powf(v / 20.0) as f32,
+        _ => 1.0,
     }
 }
 

@@ -621,6 +621,10 @@
       "title": "Lautstärke normalisieren",
       "subtitle": "Lautstärke zu lauter Titel für ein einheitliches Niveau reduzieren"
     },
+    "replayGain": {
+      "title": "ReplayGain anwenden",
+      "subtitle": "Die analysierte Verstärkung jedes Titels nutzen, um die wahrgenommene Lautstärke anzugleichen"
+    },
     "mono": {
       "title": "Mono-Audio",
       "subtitle": "Mischt linken und rechten Kanal zu einem einzigen Signal"

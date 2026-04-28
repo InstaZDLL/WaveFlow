@@ -136,6 +136,7 @@ fn decoder_loop(
                 duration_ms,
                 source_type,
                 source_id,
+                replay_gain_db,
             } => {
                 transition_state(&shared, &app, PlayerState::Loading, Some(track_id));
                 // Drain whatever's left of the previous track's
@@ -180,6 +181,7 @@ fn decoder_loop(
                     duration_ms,
                     source_type.clone(),
                     source_id,
+                    replay_gain_db,
                     producer,
                     &shared,
                     &cmd_rx,
@@ -295,6 +297,7 @@ fn play_track(
     initial_duration_ms: u64,
     initial_source_type: String,
     initial_source_id: Option<i64>,
+    initial_replay_gain_db: Option<f64>,
     producer: &mut Producer<f32>,
     shared: &SharedPlayback,
     cmd_rx: &Receiver<AudioCmd>,
@@ -314,6 +317,7 @@ fn play_track(
         initial_duration_ms,
         initial_source_type,
         initial_source_id,
+        initial_replay_gain_db,
     )?;
     if initial_start_ms > 0 {
         apply_seek(&mut stream.format, stream.symphonia_track_id, initial_start_ms);
@@ -440,12 +444,18 @@ fn play_track(
             while !primary_at_eof
                 && primary_resampled.len() / dst_channels < CROSSFADE_MIN_FRAMES
             {
+                let prev_len = primary_resampled.len();
                 primary_at_eof = stream.decode_next(
                     &mut primary_resampled,
                     &mut interleaved_scratch,
                     dst_sample_rate,
                     dst_channels,
                 )?;
+                apply_replay_gain(
+                    &mut primary_resampled[prev_len..],
+                    shared,
+                    stream.replay_gain_linear,
+                );
             }
             let secondary = pending_next
                 .as_mut()
@@ -453,12 +463,18 @@ fn play_track(
             while !secondary_at_eof
                 && secondary_resampled.len() / dst_channels < CROSSFADE_MIN_FRAMES
             {
+                let prev_len = secondary_resampled.len();
                 secondary_at_eof = secondary.decode_next(
                     &mut secondary_resampled,
                     &mut interleaved_scratch,
                     dst_sample_rate,
                     dst_channels,
                 )?;
+                apply_replay_gain(
+                    &mut secondary_resampled[prev_len..],
+                    shared,
+                    secondary.replay_gain_linear,
+                );
             }
 
             let primary_frames = primary_resampled.len() / dst_channels;
@@ -573,12 +589,18 @@ fn play_track(
             // may already hold leftover frames moved over from the
             // secondary stream during a recent crossfade swap.
             if primary_resampled.is_empty() && !primary_at_eof {
+                let prev_len = primary_resampled.len();
                 primary_at_eof = stream.decode_next(
                     &mut primary_resampled,
                     &mut interleaved_scratch,
                     dst_sample_rate,
                     dst_channels,
                 )?;
+                apply_replay_gain(
+                    &mut primary_resampled[prev_len..],
+                    shared,
+                    stream.replay_gain_linear,
+                );
             }
             if primary_resampled.is_empty() && primary_at_eof {
                 ended_naturally = true;
@@ -770,8 +792,20 @@ fn drain_commands(
                 duration_ms,
                 source_type,
                 source_id,
+                replay_gain_db,
             }) => {
-                store_next(pending_next, path, next_id, duration_ms, source_type, source_id);
+                store_next(
+                    pending_next,
+                    path,
+                    next_id,
+                    duration_ms,
+                    source_type,
+                    source_id,
+                    replay_gain_db,
+                );
+            }
+            Ok(AudioCmd::SetReplayGain(on)) => {
+                shared.replaygain_enabled.store(on, Ordering::Release)
             }
             Ok(AudioCmd::Pause) => {
                 transition_state(shared, app, PlayerState::Paused, Some(track_id));
@@ -811,6 +845,7 @@ fn drain_commands(
                             duration_ms,
                             source_type,
                             source_id,
+                            replay_gain_db,
                         }) => store_next(
                             pending_next,
                             path,
@@ -818,7 +853,11 @@ fn drain_commands(
                             duration_ms,
                             source_type,
                             source_id,
+                            replay_gain_db,
                         ),
+                        Ok(AudioCmd::SetReplayGain(on)) => {
+                            shared.replaygain_enabled.store(on, Ordering::Release)
+                        }
                         Ok(cmd @ AudioCmd::LoadAndPlay { .. }) => {
                             shared.paused_output.store(false, Ordering::Release);
                             *pending_cmd = Some(cmd);
@@ -842,6 +881,22 @@ fn drain_commands(
     }
 }
 
+/// Multiply the trailing `len_before..` slice of a freshly-decoded
+/// buffer by the active stream's stored ReplayGain factor, gated on
+/// the live `replaygain_enabled` toggle. Done here (rather than in the
+/// cpal callback) so each stream gets its own gain even during the
+/// crossfade dual-decoder mix, where two tracks with different gains
+/// are summed before reaching the ring.
+#[inline]
+fn apply_replay_gain(buf: &mut [f32], shared: &SharedPlayback, gain: f32) {
+    if gain == 1.0 || !shared.replaygain_enabled.load(Ordering::Relaxed) {
+        return;
+    }
+    for s in buf.iter_mut() {
+        *s *= gain;
+    }
+}
+
 /// Open the supplied next-track file into an [`ActiveStream`] and
 /// stash it for the crossfade pipeline. Failures are logged but
 /// non-fatal — playback continues without crossfade.
@@ -852,8 +907,16 @@ fn store_next(
     duration_ms: u64,
     source_type: String,
     source_id: Option<i64>,
+    replay_gain_db: Option<f64>,
 ) {
-    match ActiveStream::open(&path, track_id, duration_ms, source_type, source_id) {
+    match ActiveStream::open(
+        &path,
+        track_id,
+        duration_ms,
+        source_type,
+        source_id,
+        replay_gain_db,
+    ) {
         Ok(s) => {
             *pending_next = Some(s);
         }

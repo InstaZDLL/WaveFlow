@@ -32,6 +32,7 @@ import {
   playerSetNormalize,
   playerSetMono,
   playerSetCrossfade,
+  playerSetReplayGain,
 } from "../../lib/tauri/player";
 import {
   getLastfmApiKey,
@@ -430,6 +431,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [normalize, setNormalize] = useState(false);
   const [mono, setMono] = useState(false);
   const [crossfadeSec, setCrossfadeSec] = useState(0);
+  const [replayGain, setReplayGain] = useState(false);
 
   // Integrations
   const [lastfmKey, setLastfmKey] = useState("");
@@ -519,6 +521,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         setNormalize(s.normalize);
         setMono(s.mono);
         setCrossfadeSec(Math.round(s.crossfade_ms / 1000));
+        setReplayGain(s.replaygain);
       })
       .catch((err) => console.error("[Settings] audio settings load failed", err));
   }, []);
@@ -531,6 +534,15 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       setNormalize(!next); // rollback
     });
   }, [normalize]);
+
+  const handleToggleReplayGain = useCallback(() => {
+    const next = !replayGain;
+    setReplayGain(next);
+    playerSetReplayGain(next).catch((err) => {
+      console.error("[Settings] set replaygain failed", err);
+      setReplayGain(!next); // rollback
+    });
+  }, [replayGain]);
 
   const handleToggleMono = useCallback(() => {
     const next = !mono;
@@ -785,6 +797,30 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               enabled={normalize}
               onToggle={handleToggleNormalize}
               label={t("settings.normalize.title")}
+            />
+          </div>
+
+          {/* ReplayGain */}
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4">
+              <Volume2
+                size={20}
+                className="text-zinc-400"
+                aria-hidden="true"
+              />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.replayGain.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.replayGain.subtitle")}
+                </div>
+              </div>
+            </div>
+            <ToggleSwitch
+              enabled={replayGain}
+              onToggle={handleToggleReplayGain}
+              label={t("settings.replayGain.title")}
             />
           </div>
 

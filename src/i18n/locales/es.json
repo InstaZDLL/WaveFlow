@@ -627,6 +627,10 @@
       "title": "Normalizar el volumen",
       "subtitle": "Reducir el volumen de las canciones demasiado altas para un nivel homogéneo"
     },
+    "replayGain": {
+      "title": "Aplicar ReplayGain",
+      "subtitle": "Usar la ganancia analizada de cada canción para igualar el volumen percibido"
+    },
     "mono": {
       "title": "Audio mono",
       "subtitle": "Mezcla los canales izquierdo y derecho en una sola señal"
