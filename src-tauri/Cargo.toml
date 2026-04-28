@@ -85,3 +85,8 @@ notify = "8"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "bmp", "gif", "tiff"] }
 fast_image_resize = "6"
 anyhow = "1"
+
+# Last.fm signed API methods (auth.getMobileSession, track.scrobble,
+# track.updateNowPlaying) need an md5 of the param block + secret.
+md-5 = "0.10"
+hex = "0.4"

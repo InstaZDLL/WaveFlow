@@ -565,13 +565,21 @@
     },
     "integrations": {
       "lastfm": {
-        "title": "Last.fm API Key",
-        "subtitle": "Used to fetch artist biographies. Create a key at last.fm/api/account/create",
-        "placeholder": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "title": "Last.fm",
+        "subtitle": "Artist biographies and scrobbling. Create a key at last.fm/api/account/create",
+        "placeholder": "API key",
+        "secretPlaceholder": "Shared secret",
         "save": "Save",
         "saved": "Saved ✓",
-        "show": "Show key",
-        "hide": "Hide key"
+        "show": "Show",
+        "hide": "Hide",
+        "connectedAs": "Signed in as",
+        "disconnect": "Sign out",
+        "loginPrompt": "Sign in to scrobble your listens:",
+        "usernamePlaceholder": "Username",
+        "passwordPlaceholder": "Password",
+        "connect": "Sign in",
+        "connecting": "Signing in…"
       }
     },
     "crossfade": {

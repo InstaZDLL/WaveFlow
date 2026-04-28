@@ -248,5 +248,33 @@ async fn insert_play_event(
     .await
     {
         tracing::warn!(?e, "failed to insert play_event");
+        return;
+    }
+
+    // Last.fm scrobble enqueue. We check eligibility *before* hitting
+    // the queue so a session of 12 s previews never floods the
+    // `scrobble_queue` table with rows the worker would then have to
+    // discard. The worker itself is responsible for actually POSTing
+    // to Last.fm — keeping the analytics task off the network.
+    let duration_ms: Option<i64> = match sqlx::query_scalar(
+        "SELECT duration_ms FROM track WHERE id = ?",
+    )
+    .bind(track_id)
+    .fetch_optional(pool)
+    .await
+    {
+        Ok(v) => v,
+        Err(e) => {
+            tracing::warn!(?e, "scrobble eligibility lookup failed");
+            return;
+        }
+    };
+    let Some(duration_ms) = duration_ms else { return };
+    if crate::scrobbler::is_eligible(duration_ms, listened_ms as i64) {
+        if let Err(e) =
+            crate::scrobbler::enqueue(pool, track_id, now, listened_ms as i64).await
+        {
+            tracing::warn!(?e, track_id, "failed to enqueue scrobble");
+        }
     }
 }

@@ -565,13 +565,21 @@
     },
     "integrations": {
       "lastfm": {
-        "title": "Clé API Last.fm",
-        "subtitle": "Pour récupérer les biographies d'artistes. Créer une clé sur last.fm/api/account/create",
-        "placeholder": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "title": "Last.fm",
+        "subtitle": "Bio d'artistes et scrobbling. Créer une clé sur last.fm/api/account/create",
+        "placeholder": "Clé API",
+        "secretPlaceholder": "Secret partagé",
         "save": "Enregistrer",
         "saved": "Enregistré ✓",
-        "show": "Afficher la clé",
-        "hide": "Masquer la clé"
+        "show": "Afficher",
+        "hide": "Masquer",
+        "connectedAs": "Connecté en tant que",
+        "disconnect": "Se déconnecter",
+        "loginPrompt": "Connecte-toi pour scrobbler tes écoutes :",
+        "usernamePlaceholder": "Nom d'utilisateur",
+        "passwordPlaceholder": "Mot de passe",
+        "connect": "Se connecter",
+        "connecting": "Connexion…"
       }
     },
     "crossfade": {

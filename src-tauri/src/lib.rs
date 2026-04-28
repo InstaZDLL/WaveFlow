@@ -14,6 +14,7 @@ mod lrclib;
 mod metadata_artwork;
 mod paths;
 mod queue;
+mod scrobbler;
 mod state;
 mod thumbnails;
 mod watcher;
@@ -96,6 +97,12 @@ pub fn run() {
                 }
             });
             app.manage(watcher);
+
+            // Last.fm scrobble worker. Polls scrobble_queue every 30 s
+            // and posts eligible items to track.scrobble; survives
+            // profile switches because it always reads the active
+            // profile's pool fresh per tick.
+            scrobbler::spawn(app.handle().clone());
 
             // System tray (status icon).
             //
@@ -208,6 +215,11 @@ pub fn run() {
             commands::deezer::batch_fetch_missing_album_covers,
             commands::integration::get_lastfm_api_key,
             commands::integration::set_lastfm_api_key,
+            commands::integration::get_lastfm_api_secret,
+            commands::integration::set_lastfm_api_secret,
+            commands::integration::lastfm_get_status,
+            commands::integration::lastfm_login,
+            commands::integration::lastfm_logout,
             commands::lyrics::get_lyrics,
             commands::lyrics::fetch_lyrics,
             commands::lyrics::import_lrc_file,

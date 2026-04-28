@@ -559,13 +559,21 @@
     },
     "integrations": {
       "lastfm": {
-        "title": "Last.fm-API-Schlüssel",
-        "subtitle": "Zum Abrufen von Künstlerbiografien. Erstelle einen Schlüssel auf last.fm/api/account/create",
-        "placeholder": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "title": "Last.fm",
+        "subtitle": "Künstlerbiografien und Scrobbling. Erstelle einen Schlüssel auf last.fm/api/account/create",
+        "placeholder": "API-Schlüssel",
+        "secretPlaceholder": "Gemeinsames Geheimnis",
         "save": "Speichern",
         "saved": "Gespeichert ✓",
-        "show": "Schlüssel anzeigen",
-        "hide": "Schlüssel verbergen"
+        "show": "Anzeigen",
+        "hide": "Verbergen",
+        "connectedAs": "Angemeldet als",
+        "disconnect": "Abmelden",
+        "loginPrompt": "Melde dich an, um deine Wiedergaben zu scrobbeln:",
+        "usernamePlaceholder": "Benutzername",
+        "passwordPlaceholder": "Passwort",
+        "connect": "Anmelden",
+        "connecting": "Verbinde…"
       }
     },
     "crossfade": {

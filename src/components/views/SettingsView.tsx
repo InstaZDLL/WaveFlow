@@ -32,7 +32,16 @@ import {
   playerSetMono,
   playerSetCrossfade,
 } from "../../lib/tauri/player";
-import { getLastfmApiKey, setLastfmApiKey } from "../../lib/tauri/integration";
+import {
+  getLastfmApiKey,
+  getLastfmApiSecret,
+  lastfmGetStatus,
+  lastfmLogin,
+  lastfmLogout,
+  setLastfmApiKey,
+  setLastfmApiSecret,
+  type LastfmStatus,
+} from "../../lib/tauri/integration";
 import { batchFetchMissingAlbumCovers } from "../../lib/tauri/deezer";
 import { listen } from "@tauri-apps/api/event";
 import { useLibrary } from "../../hooks/useLibrary";
@@ -340,8 +349,17 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // Integrations
   const [lastfmKey, setLastfmKey] = useState("");
   const [lastfmKeyVisible, setLastfmKeyVisible] = useState(false);
+  const [lastfmSecret, setLastfmSecret] = useState("");
+  const [lastfmSecretVisible, setLastfmSecretVisible] = useState(false);
   const [lastfmSaving, setLastfmSaving] = useState(false);
   const [lastfmSaved, setLastfmSaved] = useState(false);
+  // Login form state — only shown when keys are set + user not yet
+  // connected. Cleared aggressively so the password never lingers.
+  const [lastfmStatus, setLastfmStatus] = useState<LastfmStatus | null>(null);
+  const [lastfmUsername, setLastfmUsername] = useState("");
+  const [lastfmPassword, setLastfmPassword] = useState("");
+  const [lastfmLoggingIn, setLastfmLoggingIn] = useState(false);
+  const [lastfmLoginError, setLastfmLoginError] = useState<string | null>(null);
 
   useEffect(() => {
     getLastfmApiKey()
@@ -349,6 +367,20 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         if (v) setLastfmKey(v);
       })
       .catch(() => {});
+    getLastfmApiSecret()
+      .then((v) => {
+        if (v) setLastfmSecret(v);
+      })
+      .catch(() => {});
+    lastfmGetStatus()
+      .then(setLastfmStatus)
+      .catch((err) => console.error("[SettingsView] Last.fm status failed", err));
+  }, []);
+
+  const refreshLastfmStatus = useCallback(() => {
+    lastfmGetStatus()
+      .then(setLastfmStatus)
+      .catch((err) => console.error("[SettingsView] Last.fm status failed", err));
   }, []);
 
   const handleSaveLastfmKey = async () => {
@@ -357,12 +389,42 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     setLastfmSaved(false);
     try {
       await setLastfmApiKey(lastfmKey);
+      await setLastfmApiSecret(lastfmSecret);
       setLastfmSaved(true);
       window.setTimeout(() => setLastfmSaved(false), 2000);
+      refreshLastfmStatus();
     } catch (err) {
-      console.error("[SettingsView] save Last.fm key failed", err);
+      console.error("[SettingsView] save Last.fm credentials failed", err);
     } finally {
       setLastfmSaving(false);
+    }
+  };
+
+  const handleLastfmLogin = async () => {
+    if (lastfmLoggingIn) return;
+    if (!lastfmUsername.trim() || !lastfmPassword) return;
+    setLastfmLoggingIn(true);
+    setLastfmLoginError(null);
+    try {
+      const status = await lastfmLogin(lastfmUsername.trim(), lastfmPassword);
+      setLastfmStatus(status);
+      setLastfmUsername("");
+      setLastfmPassword("");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setLastfmLoginError(message);
+      console.error("[SettingsView] Last.fm login failed", err);
+    } finally {
+      setLastfmLoggingIn(false);
+    }
+  };
+
+  const handleLastfmLogout = async () => {
+    try {
+      await lastfmLogout();
+      refreshLastfmStatus();
+    } catch (err) {
+      console.error("[SettingsView] Last.fm logout failed", err);
     }
   };
 
@@ -690,7 +752,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 <div className="text-xs text-zinc-400 mb-3">
                   {t("settings.integrations.lastfm.subtitle")}
                 </div>
-                <div className="flex items-center space-x-2">
+
+                {/* API key */}
+                <div className="flex items-center space-x-2 mb-2">
                   <div className="relative flex-1">
                     <input
                       type={lastfmKeyVisible ? "text" : "password"}
@@ -717,6 +781,36 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                       {lastfmKeyVisible ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
+                </div>
+
+                {/* API secret */}
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="relative flex-1">
+                    <input
+                      type={lastfmSecretVisible ? "text" : "password"}
+                      value={lastfmSecret}
+                      onChange={(e) => {
+                        setLastfmSecret(e.target.value);
+                        setLastfmSaved(false);
+                      }}
+                      placeholder={t("settings.integrations.lastfm.secretPlaceholder")}
+                      spellCheck={false}
+                      autoComplete="off"
+                      className="w-full pr-10 pl-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLastfmSecretVisible((v) => !v)}
+                      aria-label={
+                        lastfmSecretVisible
+                          ? t("settings.integrations.lastfm.hide")
+                          : t("settings.integrations.lastfm.show")
+                      }
+                      className="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                    >
+                      {lastfmSecretVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                   <button
                     type="button"
                     onClick={handleSaveLastfmKey}
@@ -732,6 +826,84 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                       : t("settings.integrations.lastfm.save")}
                   </button>
                 </div>
+
+                {/* Account login / status — only shown once API
+                    credentials are present. The session stays per
+                    profile so two profiles can scrobble to two
+                    different Last.fm accounts. */}
+                {lastfmStatus?.configured && (
+                  <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                    {lastfmStatus.connected ? (
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs">
+                          <span className="text-zinc-500">
+                            {t("settings.integrations.lastfm.connectedAs")}{" "}
+                          </span>
+                          <span className="font-medium text-emerald-500">
+                            {lastfmStatus.username}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleLastfmLogout}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+                        >
+                          {t("settings.integrations.lastfm.disconnect")}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="text-xs text-zinc-500">
+                          {t("settings.integrations.lastfm.loginPrompt")}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={lastfmUsername}
+                            onChange={(e) => {
+                              setLastfmUsername(e.target.value);
+                              setLastfmLoginError(null);
+                            }}
+                            placeholder={t("settings.integrations.lastfm.usernamePlaceholder")}
+                            autoComplete="username"
+                            spellCheck={false}
+                            className="flex-1 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
+                          />
+                          <input
+                            type="password"
+                            value={lastfmPassword}
+                            onChange={(e) => {
+                              setLastfmPassword(e.target.value);
+                              setLastfmLoginError(null);
+                            }}
+                            placeholder={t("settings.integrations.lastfm.passwordPlaceholder")}
+                            autoComplete="current-password"
+                            className="flex-1 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleLastfmLogin}
+                            disabled={
+                              lastfmLoggingIn ||
+                              !lastfmUsername.trim() ||
+                              !lastfmPassword
+                            }
+                            className="px-4 py-2 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {lastfmLoggingIn
+                              ? t("settings.integrations.lastfm.connecting")
+                              : t("settings.integrations.lastfm.connect")}
+                          </button>
+                        </div>
+                        {lastfmLoginError && (
+                          <div className="text-xs text-rose-500">
+                            {lastfmLoginError}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
