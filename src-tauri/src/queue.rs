@@ -47,6 +47,16 @@ pub struct QueueTrack {
     pub album_title: Option<String>,
     pub artwork_hash: Option<String>,
     pub artwork_format: Option<String>,
+    /// Audio quality fields, surfaced on the PlayerBar footer and on
+    /// the Hi-Res badge overlays. `None` when the scanner couldn't
+    /// extract them (lossy formats often skip bit_depth, very old
+    /// files may miss bitrate, …).
+    pub bitrate: Option<i64>,
+    pub sample_rate: Option<i64>,
+    pub channels: Option<i64>,
+    pub bit_depth: Option<i64>,
+    pub codec: Option<String>,
+    pub file_size: i64,
 }
 
 impl QueueTrack {
@@ -528,7 +538,10 @@ pub async fn list_queue(pool: &SqlitePool) -> AppResult<Vec<QueueTrack>> {
                )) AS artist_ids,
                al.title AS album_title,
                aw.hash  AS artwork_hash,
-               aw.format AS artwork_format
+               aw.format AS artwork_format,
+               t.bitrate, t.sample_rate, t.channels,
+               t.bit_depth, t.codec,
+               t.file_size
           FROM queue_item q
           JOIN track t       ON t.id = q.track_id
           LEFT JOIN album al  ON al.id = t.album_id
@@ -564,7 +577,10 @@ async fn track_at_position(pool: &SqlitePool, position: i64) -> AppResult<Option
                )) AS artist_ids,
                al.title AS album_title,
                aw.hash  AS artwork_hash,
-               aw.format AS artwork_format
+               aw.format AS artwork_format,
+               t.bitrate, t.sample_rate, t.channels,
+               t.bit_depth, t.codec,
+               t.file_size
           FROM queue_item q
           JOIN track t       ON t.id = q.track_id
           LEFT JOIN album al  ON al.id = t.album_id
@@ -689,7 +705,10 @@ pub async fn restore_state(pool: &SqlitePool) -> AppResult<Option<(QueueTrack, u
                        ar.name AS artist_name,
                        al.title AS album_title,
                        aw.hash AS artwork_hash,
-                       aw.format AS artwork_format
+                       aw.format AS artwork_format,
+                       t.bitrate, t.sample_rate, t.channels,
+                       t.bit_depth, t.codec,
+                       t.file_size
                   FROM track t
                   LEFT JOIN album al ON al.id = t.album_id
                   LEFT JOIN artist ar ON ar.id = t.primary_artist

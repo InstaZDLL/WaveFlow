@@ -457,7 +457,30 @@
     "goToAlbum": "Go to album",
     "goToArtist": "Go to artist",
     "showInExplorer": "Show in file explorer",
-    "copyPath": "Copy file path"
+    "copyPath": "Copy file path",
+    "properties": "Properties"
+  },
+  "trackProperties": {
+    "title": "Track properties",
+    "sections": {
+      "metadata": "Metadata",
+      "audio": "Audio",
+      "file": "File"
+    },
+    "year": "Year",
+    "trackNumber": "Track #",
+    "duration": "Duration",
+    "codec": "Codec",
+    "bitDepth": "Bit depth",
+    "sampleRate": "Sample rate",
+    "channels": "Channels",
+    "bitrate": "Bitrate",
+    "fileSize": "File size",
+    "addedAt": "Added",
+    "filePath": "Path",
+    "showInExplorer": "Show in file explorer",
+    "mono": "Mono",
+    "stereo": "Stereo"
   },
   "selection": {
     "toolbarLabel": "Selection actions",

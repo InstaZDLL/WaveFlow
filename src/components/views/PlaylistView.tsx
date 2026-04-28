@@ -36,6 +36,7 @@ import { ArtistLink } from "../common/ArtistLink";
 import { Tooltip } from "../common/Tooltip";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
+import { HiResBadge } from "../common/HiResBadge";
 import { SelectionActionBar } from "../common/SelectionActionBar";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
@@ -860,13 +861,18 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
         rounded="md"
       />
       <span
-        className={`text-sm truncate ${
+        className={`text-sm truncate flex items-center gap-2 ${
           isCurrent
             ? "text-emerald-600 dark:text-emerald-400 font-semibold"
             : "text-zinc-800 dark:text-zinc-200"
         }`}
       >
-        {track.title}
+        <span className="truncate">{track.title}</span>
+        <HiResBadge
+          bitDepth={track.bit_depth}
+          sampleRate={track.sample_rate}
+          variant="inline"
+        />
       </span>
       <ArtistLink
         name={track.artist_name}

@@ -3,6 +3,7 @@ import {
   TrackContextMenu,
   type TrackContextMenuProps,
 } from "../components/common/TrackContextMenu";
+import { TrackPropertiesModal } from "../components/common/TrackPropertiesModal";
 import type { Track } from "../lib/tauri/track";
 import { toggleLikeTrack } from "../lib/tauri/track";
 import { playerAddToQueue, playerPlayNext } from "../lib/tauri/player";
@@ -49,6 +50,11 @@ export function useTrackContextMenu({
     point: ContextMenuPoint;
     track: Track;
   } | null>(null);
+  // Track currently shown in the Properties modal — `null` means
+  // the modal is closed. Keeping it separate from the context-menu
+  // state means closing the menu doesn't immediately dismiss the
+  // dialog the user just opened.
+  const [propertiesTrack, setPropertiesTrack] = useState<Track | null>(null);
 
   const open = useCallback((event: ReactMouseEvent, track: Track) => {
     event.preventDefault();
@@ -97,25 +103,39 @@ export function useTrackContextMenu({
     [onLikedChanged],
   );
 
+  const handleShowProperties = useCallback((track: Track) => {
+    setPropertiesTrack(track);
+  }, []);
+
+  const closeProperties = useCallback(() => setPropertiesTrack(null), []);
+
   const render = useCallback(() => {
-    if (state == null) return null;
     return (
-      <TrackContextMenu
-        point={state.point}
-        track={state.track}
-        playlists={playlists}
-        isLiked={likedIds.has(state.track.id)}
-        currentPlaylistId={currentPlaylistId ?? null}
-        onClose={close}
-        onPlayNext={handlePlayNext}
-        onAddToQueue={handleAddToQueue}
-        onAddToPlaylist={handleAddToPlaylist}
-        onCreatePlaylist={onCreatePlaylist}
-        onToggleLike={handleToggleLike}
-        onRemoveFromPlaylist={onRemoveFromPlaylist}
-        onNavigateToAlbum={onNavigateToAlbum}
-        onNavigateToArtist={onNavigateToArtist}
-      />
+      <>
+        {state != null && (
+          <TrackContextMenu
+            point={state.point}
+            track={state.track}
+            playlists={playlists}
+            isLiked={likedIds.has(state.track.id)}
+            currentPlaylistId={currentPlaylistId ?? null}
+            onClose={close}
+            onPlayNext={handlePlayNext}
+            onAddToQueue={handleAddToQueue}
+            onAddToPlaylist={handleAddToPlaylist}
+            onCreatePlaylist={onCreatePlaylist}
+            onToggleLike={handleToggleLike}
+            onRemoveFromPlaylist={onRemoveFromPlaylist}
+            onNavigateToAlbum={onNavigateToAlbum}
+            onNavigateToArtist={onNavigateToArtist}
+            onShowProperties={handleShowProperties}
+          />
+        )}
+        <TrackPropertiesModal
+          track={propertiesTrack}
+          onClose={closeProperties}
+        />
+      </>
     );
   }, [
     state,
@@ -131,6 +151,9 @@ export function useTrackContextMenu({
     onRemoveFromPlaylist,
     onNavigateToAlbum,
     onNavigateToArtist,
+    handleShowProperties,
+    propertiesTrack,
+    closeProperties,
   ]);
 
   return { open, close, render };

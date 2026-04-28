@@ -3,6 +3,7 @@ import {
   Disc3,
   ExternalLink,
   Heart,
+  Info,
   ListEnd,
   ListPlus,
   Plus,
@@ -39,6 +40,7 @@ export interface TrackContextMenuProps {
   onRemoveFromPlaylist?: (playlistId: number, trackId: number) => void;
   onNavigateToAlbum?: (albumId: number) => void;
   onNavigateToArtist?: (artistId: number) => void;
+  onShowProperties: (track: Track) => void;
 }
 
 interface ArtistEntry {
@@ -68,6 +70,7 @@ export function TrackContextMenu({
   onRemoveFromPlaylist,
   onNavigateToAlbum,
   onNavigateToArtist,
+  onShowProperties,
 }: TrackContextMenuProps) {
   const { t } = useTranslation();
   const artists = parseArtistList(track.artist_ids, track.artist_name);
@@ -199,6 +202,11 @@ export function TrackContextMenu({
         icon={<ExternalLink size={14} />}
         label={t("trackActions.showInExplorer")}
         onSelect={showInExplorer}
+      />
+      <ContextMenuItem
+        icon={<Info size={14} />}
+        label={t("trackActions.properties")}
+        onSelect={closeAfter(() => onShowProperties(track))}
       />
     </ContextMenu>
   );

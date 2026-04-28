@@ -12,6 +12,11 @@ export interface AlbumRow {
   artwork_path: string | null;
   artwork_path_1x: string | null;
   artwork_path_2x: string | null;
+  /** Best-quality bit depth across the album's tracks, used by the
+   *  Hi-Res badge on the cover. `null` when no track has a known
+   *  bit depth (e.g. all-MP3 album). */
+  max_bit_depth: number | null;
+  max_sample_rate: number | null;
 }
 
 /** Artist row returned by `list_artists`. */

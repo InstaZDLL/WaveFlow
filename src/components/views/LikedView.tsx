@@ -4,6 +4,7 @@ import { Heart, Clock, Play } from "lucide-react";
 import { EmptyState } from "../common/EmptyState";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
+import { HiResBadge } from "../common/HiResBadge";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
@@ -161,13 +162,18 @@ export function LikedView({ onNavigateToAlbum, onNavigateToArtist }: LikedViewPr
                     rounded="md"
                   />
                   <span
-                    className={`text-sm truncate ${
+                    className={`text-sm truncate flex items-center gap-2 ${
                       isCurrent
                         ? "text-emerald-600 dark:text-emerald-400 font-semibold"
                         : "text-zinc-800 dark:text-zinc-200"
                     }`}
                   >
-                    {track.title}
+                    <span className="truncate">{track.title}</span>
+                    <HiResBadge
+                      bitDepth={track.bit_depth}
+                      sampleRate={track.sample_rate}
+                      variant="inline"
+                    />
                   </span>
                   <ArtistLink
                     name={track.artist_name}

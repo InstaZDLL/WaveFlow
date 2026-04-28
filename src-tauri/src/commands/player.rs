@@ -59,6 +59,16 @@ pub struct QueueTrackPayload {
     pub artwork_path: Option<String>,
     pub artwork_path_1x: Option<String>,
     pub artwork_path_2x: Option<String>,
+    /// Audio quality fields used by the PlayerBar footer / Hi-Res
+    /// badge. Carried through here so the frontend doesn't have to
+    /// issue a separate `list_tracks` lookup just to learn the
+    /// codec of what's playing.
+    pub bitrate: Option<i64>,
+    pub sample_rate: Option<i64>,
+    pub channels: Option<i64>,
+    pub bit_depth: Option<i64>,
+    pub codec: Option<String>,
+    pub file_size: i64,
 }
 
 impl PlayerStateSnapshot {
@@ -122,6 +132,12 @@ fn queue_track_to_payload_with_paths(
         album_title: track.album_title,
         duration_ms: track.duration_ms,
         file_path: track.file_path,
+        bitrate: track.bitrate,
+        sample_rate: track.sample_rate,
+        channels: track.channels,
+        bit_depth: track.bit_depth,
+        codec: track.codec,
+        file_size: track.file_size,
         artwork_path,
         artwork_path_1x,
         artwork_path_2x,

@@ -4,6 +4,7 @@ import { Play, Shuffle, Music2, Clock, Heart } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
+import { HiResBadge } from "../common/HiResBadge";
 import { Lightbox } from "../common/Lightbox";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
@@ -467,13 +468,18 @@ function ArtistTrackTable({
                 rounded="md"
               />
               <span
-                className={`text-sm truncate ${
+                className={`text-sm truncate flex items-center gap-2 ${
                   isCurrent
                     ? "text-emerald-600 dark:text-emerald-400 font-semibold"
                     : "text-zinc-800 dark:text-zinc-200"
                 }`}
               >
-                {track.title}
+                <span className="truncate">{track.title}</span>
+                <HiResBadge
+                  bitDepth={track.bit_depth}
+                  sampleRate={track.sample_rate}
+                  variant="inline"
+                />
               </span>
               <span className="text-sm text-zinc-500 truncate">
                 {track.album_title ?? t("library.table.unknown")}

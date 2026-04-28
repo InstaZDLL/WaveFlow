@@ -6,6 +6,7 @@ import { ArtistLink } from "../common/ArtistLink";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { CoverPickerModal } from "../common/CoverPickerModal";
+import { HiResBadge } from "../common/HiResBadge";
 import { SelectionActionBar } from "../common/SelectionActionBar";
 import { Lightbox } from "../common/Lightbox";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -160,8 +161,10 @@ export function AlbumDetailView({
     disc_number: at.disc_number,
     year: album.year,
     bitrate: null,
-    sample_rate: null,
+    sample_rate: at.sample_rate,
     channels: null,
+    bit_depth: at.bit_depth,
+    codec: null,
     file_path: at.file_path,
     file_size: 0,
     added_at: 0,
@@ -456,13 +459,18 @@ function AlbumTrackTable({
         </span>
         <div className="min-w-0">
           <span
-            className={`text-sm truncate block ${
+            className={`text-sm truncate flex items-center gap-2 ${
               isCurrent
                 ? "text-emerald-600 dark:text-emerald-400 font-semibold"
                 : "text-zinc-800 dark:text-zinc-200"
             }`}
           >
-            {track.title}
+            <span className="truncate">{track.title}</span>
+            <HiResBadge
+              bitDepth={track.bit_depth}
+              sampleRate={track.sample_rate}
+              variant="inline"
+            />
           </span>
           {track.artist_name && (
             <span className="text-xs text-zinc-500 truncate block">

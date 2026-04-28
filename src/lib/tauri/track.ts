@@ -28,6 +28,11 @@ export interface Track {
   bitrate: number | null;
   sample_rate: number | null;
   channels: number | null;
+  /** Bits per sample. `null` for lossy codecs (MP3, AAC) and for
+   *  pre-migration rows that haven't been re-scanned yet. */
+  bit_depth: number | null;
+  /** Short codec / container label, e.g. `"FLAC"`, `"MP3"`. */
+  codec: string | null;
   file_path: string;
   file_size: number;
   added_at: number;

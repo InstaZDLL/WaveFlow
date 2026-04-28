@@ -27,6 +27,7 @@ import { EmptyState } from "../common/EmptyState";
 import { UploadIcon } from "../common/Icons";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
+import { HiResBadge } from "../common/HiResBadge";
 import { Tooltip } from "../common/Tooltip";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { CoverPickerModal } from "../common/CoverPickerModal";
@@ -999,13 +1000,18 @@ function TrackTable({
                   />
                 )}
                 <span
-                  className={`text-sm truncate ${
+                  className={`text-sm truncate flex items-center gap-2 ${
                     isCurrent
                       ? "text-emerald-600 dark:text-emerald-400 font-semibold"
                       : "text-zinc-800 dark:text-zinc-200"
                   }`}
                 >
-                  {track.title}
+                  <span className="truncate">{track.title}</span>
+                  <HiResBadge
+                    bitDepth={track.bit_depth}
+                    sampleRate={track.sample_rate}
+                    variant="inline"
+                  />
                 </span>
                 <ArtistLink
                   name={track.artist_name}
@@ -1272,6 +1278,10 @@ function AlbumGrid({ albums, isLoading, t, playlists, onAddToPlaylist, onCreateP
                 className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
                 iconSize={44}
                 rounded="2xl"
+              />
+              <HiResBadge
+                bitDepth={album.max_bit_depth}
+                sampleRate={album.max_sample_rate}
               />
               <button
                 type="button"

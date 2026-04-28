@@ -457,7 +457,30 @@
     "goToAlbum": "Ir al álbum",
     "goToArtist": "Ir al artista",
     "showInExplorer": "Mostrar en el explorador",
-    "copyPath": "Copiar la ruta del archivo"
+    "copyPath": "Copiar la ruta del archivo",
+    "properties": "Propiedades"
+  },
+  "trackProperties": {
+    "title": "Propiedades del título",
+    "sections": {
+      "metadata": "Metadatos",
+      "audio": "Audio",
+      "file": "Archivo"
+    },
+    "year": "Año",
+    "trackNumber": "Pista",
+    "duration": "Duración",
+    "codec": "Códec",
+    "bitDepth": "Profundidad",
+    "sampleRate": "Muestreo",
+    "channels": "Canales",
+    "bitrate": "Tasa de bits",
+    "fileSize": "Tamaño",
+    "addedAt": "Añadido",
+    "filePath": "Ruta",
+    "showInExplorer": "Mostrar en el explorador",
+    "mono": "Mono",
+    "stereo": "Estéreo"
   },
   "selection": {
     "toolbarLabel": "Acciones de selección",

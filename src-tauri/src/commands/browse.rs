@@ -22,6 +22,12 @@ pub struct AlbumRow {
     pub artwork_path: Option<String>,
     pub artwork_path_1x: Option<String>,
     pub artwork_path_2x: Option<String>,
+    /// Best-quality bit depth across the album's tracks. Drives the
+    /// Hi-Res cover badge — if any track in the album is mastered at
+    /// 24-bit, the badge shows on the cover. `None` when no track
+    /// has a known bit depth (e.g. all MP3s).
+    pub max_bit_depth: Option<i64>,
+    pub max_sample_rate: Option<i64>,
 }
 
 /// Private SQL row — the public `AlbumRow` derives `artwork_path` from the
@@ -36,6 +42,8 @@ struct AlbumRawRow {
     total_duration_ms: i64,
     artwork_hash: Option<String>,
     artwork_format: Option<String>,
+    max_bit_depth: Option<i64>,
+    max_sample_rate: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -239,7 +247,9 @@ pub async fn list_albums(
                COUNT(t.id)                     AS track_count,
                COALESCE(SUM(t.duration_ms), 0) AS total_duration_ms,
                aw.hash                         AS artwork_hash,
-               aw.format                       AS artwork_format
+               aw.format                       AS artwork_format,
+               MAX(t.bit_depth)                AS max_bit_depth,
+               MAX(t.sample_rate)              AS max_sample_rate
           FROM album al
           JOIN track t        ON t.album_id = al.id
           LEFT JOIN artist ar ON ar.id = al.artist_id
@@ -249,7 +259,7 @@ pub async fn list_albums(
            AND (? = 0 OR al.artwork_id IS NULL)
          GROUP BY al.id
          {order_clause}
-        "#
+"#
     );
 
     let raw = sqlx::query_as::<_, AlbumRawRow>(&sql)
@@ -285,6 +295,8 @@ pub async fn list_albums(
                 artwork_path,
                 artwork_path_1x,
                 artwork_path_2x,
+                max_bit_depth: row.max_bit_depth,
+                max_sample_rate: row.max_sample_rate,
             }
         })
         .collect();
@@ -563,6 +575,10 @@ pub struct AlbumTrack {
     pub artwork_path_1x: Option<String>,
     pub artwork_path_2x: Option<String>,
     pub file_path: String,
+    /// Per-track quality fields surfaced for the inline Hi-Res
+    /// badge on the AlbumDetailView track list.
+    pub bit_depth: Option<i64>,
+    pub sample_rate: Option<i64>,
 }
 
 #[derive(FromRow)]
@@ -578,6 +594,8 @@ struct AlbumTrackRaw {
     artwork_hash: Option<String>,
     artwork_format: Option<String>,
     file_path: String,
+    bit_depth: Option<i64>,
+    sample_rate: Option<i64>,
 }
 
 /// Return full album detail: header (with Deezer-cached label), genres,
@@ -658,6 +676,7 @@ pub async fn get_album_detail(
                )) AS artist_ids,
                t.duration_ms, t.track_number, t.disc_number,
                t.file_path,
+               t.bit_depth, t.sample_rate,
                aw.hash AS artwork_hash, aw.format AS artwork_format
           FROM track t
           LEFT JOIN album al ON al.id = t.album_id
@@ -699,6 +718,8 @@ pub async fn get_album_detail(
                 artwork_path_1x: track_artwork_1x,
                 artwork_path_2x: track_artwork_2x,
                 file_path: row.file_path,
+                bit_depth: row.bit_depth,
+                sample_rate: row.sample_rate,
             }
         })
         .collect();

@@ -1,0 +1,11 @@
+-- Capture the bit depth per track so the player UI can show the
+-- "24bit" pill on the quality strip and badge Hi-Res masters on
+-- artwork. `codec` was already added by the v0.1.4 initial migration,
+-- so we don't re-add it here — the column comes free with the
+-- baseline schema.
+--
+-- Existing rows scanned before this migration will keep `bit_depth =
+-- NULL` until the scanner re-touches them; the watcher re-scan or a
+-- manual rescan will fill them in via the backfill path in
+-- `scan.rs`.
+ALTER TABLE track ADD COLUMN bit_depth INTEGER;

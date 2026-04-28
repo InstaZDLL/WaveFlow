@@ -16,6 +16,8 @@ export interface AlbumTrack {
   artwork_path_1x: string | null;
   artwork_path_2x: string | null;
   file_path: string;
+  bit_depth: number | null;
+  sample_rate: number | null;
 }
 
 export interface AlbumDetail {

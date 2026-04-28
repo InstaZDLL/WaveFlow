@@ -7,6 +7,7 @@ import { ArtistLink } from "../common/ArtistLink";
 import { PlaybackControls } from "./PlaybackControls";
 import { ProgressBar } from "./ProgressBar";
 import { VolumeControl } from "./VolumeControl";
+import { AudioQualityFooter } from "./AudioQualityFooter";
 import { toggleLikeTrack, listLikedTrackIds } from "../../lib/tauri/track";
 
 interface PlayerBarProps {
@@ -53,7 +54,8 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   const title = currentTrack?.title ?? t("player.noTrack");
 
   return (
-    <div className="h-24 px-6 flex items-center justify-between border-t z-50 bg-[#FAFAFA] border-zinc-200 text-zinc-600 dark:bg-surface-dark-elevated dark:border-zinc-800 dark:text-zinc-300">
+    <div className="flex flex-col z-50 border-t bg-[#FAFAFA] border-zinc-200 text-zinc-600 dark:bg-surface-dark-elevated dark:border-zinc-800 dark:text-zinc-300">
+    <div className="h-24 px-6 flex items-center justify-between">
       {/* Left: Track Info */}
       <div className="w-1/3 flex items-center space-x-4 min-w-0">
         <Artwork
@@ -167,6 +169,8 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
         <VolumeControl />
       </div>
+      </div>
+      <AudioQualityFooter track={currentTrack ?? null} />
     </div>
   );
 }

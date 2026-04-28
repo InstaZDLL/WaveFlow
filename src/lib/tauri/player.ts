@@ -16,6 +16,13 @@ export interface QueueTrackPayload {
   artwork_path: string | null;
   artwork_path_1x: string | null;
   artwork_path_2x: string | null;
+  /** Quality fields used by the PlayerBar footer + Hi-Res badge. */
+  bitrate: number | null;
+  sample_rate: number | null;
+  channels: number | null;
+  bit_depth: number | null;
+  codec: string | null;
+  file_size: number;
 }
 
 /**

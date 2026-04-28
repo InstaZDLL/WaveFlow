@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
 use chrono::Utc;
-use lofty::file::TaggedFileExt;
+use lofty::file::{FileType, TaggedFileExt};
 use lofty::picture::MimeType;
 use lofty::prelude::{Accessor, AudioFile};
 use lofty::tag::{ItemKey, Tag, TagType};
@@ -99,6 +99,15 @@ struct ExtractedFile {
     bitrate: Option<i64>,
     sample_rate: Option<i64>,
     channels: Option<i64>,
+    /// Bits per sample (16 for CD-quality, 24/32 for Hi-Res masters).
+    /// Lossy codecs (MP3, AAC) typically don't expose this — left as
+    /// `None` so the UI's Hi-Res badge logic can short-circuit without
+    /// inspecting the codec separately.
+    bit_depth: Option<i64>,
+    /// Short codec / container label inferred from the file type
+    /// (e.g. `"FLAC"`, `"MP3"`, `"AAC"`, `"WAV"`). Drives the format
+    /// chip on the player footer.
+    codec: Option<String>,
     /// Embedded cover art extracted and hash-addressed during the scan. Only
     /// the first picture is kept (lofty exposes them in order and the first
     /// is usually the `CoverFront`). `None` when the tag has no pictures.
@@ -116,6 +125,28 @@ struct ExtractedCover {
     hash: String,
     /// File extension matching the picture's MIME type (jpg/png/webp/...).
     format: String,
+}
+
+/// Map lofty's `FileType` enum to a short uppercase label suitable
+/// for the UI's format chip. Falls back to `None` when lofty can't
+/// determine a recognized container — we'd rather hide the chip
+/// than print "Unknown".
+fn file_type_label(ft: FileType) -> Option<String> {
+    match ft {
+        FileType::Mpeg => Some("MP3".into()),
+        FileType::Flac => Some("FLAC".into()),
+        FileType::Mp4 => Some("AAC".into()),
+        FileType::Aac => Some("AAC".into()),
+        FileType::Wav => Some("WAV".into()),
+        FileType::Vorbis => Some("Vorbis".into()),
+        FileType::Opus => Some("Opus".into()),
+        FileType::Aiff => Some("AIFF".into()),
+        FileType::Speex => Some("Speex".into()),
+        FileType::Ape => Some("APE".into()),
+        FileType::WavPack => Some("WavPack".into()),
+        FileType::Custom(name) => Some(name.to_string()),
+        _ => None,
+    }
 }
 
 /// Pick a reasonable filename extension for lofty's MIME type enum. Unknown
@@ -202,6 +233,11 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
     let bitrate = props.audio_bitrate().map(|b| b as i64);
     let sample_rate = props.sample_rate().map(|s| s as i64);
     let channels = props.channels().map(|c| c as i64);
+    // Bit depth: lossless codecs report a real PCM bit count; lossy
+    // formats either return None or 0 (which we coalesce away so the
+    // UI doesn't badge a 320 kbps MP3 as "0-bit Hi-Res").
+    let bit_depth = props.bit_depth().map(|b| b as i64).filter(|d| *d > 0);
+    let codec = file_type_label(tagged.file_type());
 
     let tag = tagged.primary_tag().or_else(|| tagged.first_tag());
     let (title, artist, album, genre, year, track_number, disc_number, cover_art, rating) =
@@ -245,6 +281,8 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
         bitrate,
         sample_rate,
         channels,
+        bit_depth,
+        codec,
         cover_art,
         rating,
     })
@@ -554,6 +592,22 @@ pub(crate) async fn scan_folder_inner(
                     }
                 }
 
+                // Backfill bit_depth + codec for tracks scanned before
+                // the audio-quality migration shipped. Uses COALESCE
+                // so an existing value (e.g. set by a more recent
+                // scan that flipped through the full path) wins.
+                sqlx::query(
+                    "UPDATE track
+                        SET bit_depth = COALESCE(bit_depth, ?),
+                            codec     = COALESCE(codec, ?)
+                      WHERE id = ?",
+                )
+                .bind(extracted.bit_depth)
+                .bind(extracted.codec.as_deref())
+                .bind(existing_track_id)
+                .execute(pool)
+                .await?;
+
                 // Reconcile multi-artist splits even when the track content
                 // hasn't changed. An earlier scan may have stored
                 // "Elior, DJ Garlik" as a single artist; re-running the
@@ -665,6 +719,7 @@ pub(crate) async fn scan_folder_inner(
                     title = ?, album_id = ?, primary_artist = ?,
                     track_number = ?, disc_number = ?, year = ?,
                     duration_ms = ?, bitrate = ?, sample_rate = ?, channels = ?,
+                    bit_depth = ?, codec = ?,
                     rating = ?,
                     is_available = 1
                  WHERE id = ?",
@@ -683,6 +738,8 @@ pub(crate) async fn scan_folder_inner(
             .bind(extracted.bitrate)
             .bind(extracted.sample_rate)
             .bind(extracted.channels)
+            .bind(extracted.bit_depth)
+            .bind(extracted.codec.as_deref())
             .bind(extracted.rating.map(|r| r as i64))
             .bind(track_id)
             .execute(pool)
@@ -724,9 +781,10 @@ pub(crate) async fn scan_folder_inner(
                     title, album_id, primary_artist,
                     track_number, disc_number, year,
                     duration_ms, bitrate, sample_rate, channels,
+                    bit_depth, codec,
                     rating,
                     added_at, is_available
-                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
+                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
             )
             .bind(library_id)
             .bind(folder_id)
@@ -744,6 +802,8 @@ pub(crate) async fn scan_folder_inner(
             .bind(extracted.bitrate)
             .bind(extracted.sample_rate)
             .bind(extracted.channels)
+            .bind(extracted.bit_depth)
+            .bind(extracted.codec.as_deref())
             .bind(extracted.rating.map(|r| r as i64))
             .bind(now)
             .execute(pool)
