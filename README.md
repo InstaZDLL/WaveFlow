@@ -23,34 +23,69 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
 
 ## Features
 
+### Playback engine
+
 - **Audio playback** — symphonia decoder + cpal output, supports MP3, FLAC, WAV, OGG Vorbis, AAC, ALAC (M4A)
 - **Real-time engine** — lock-free 3-thread architecture (decoder, ring buffer, cpal callback), zero allocations in the hot path
-- **Library scanning** — point to any folder, metadata extraction via lofty, embedded artwork extraction
-- **Multi-artist** — automatic split of `"Artist A, Artist B"` into individual, independently-linkable artists
-- **Album & artist detail pages** — clickable album/artist cards open a dedicated view with tracklist, discography, and stats
-- **Now Playing panel** — Spotify-style right-edge panel with large artwork, clickable artists, and artist biography
-- **Metadata enrichment** — Deezer public API (artist images, album covers, labels) + Last.fm (artist biographies) cached 30 days locally; artwork is downloaded into a hash-addressed on-disk cache so it renders offline on re-visits
-- **Playlists** — create, edit, delete, add tracks from folders/albums/artists in bulk
-- **Likes** — heart any track, dedicated "Liked tracks" view
-- **Search** — instant full-text search (FTS5 contentless) across titles, artists, albums with prefix matching
-- **Queue** — persistent queue with shuffle (Fisher-Yates), repeat (off/all/one), auto-advance
+- **Crossfade DSP** — real dual-decoder mix with equal-power gains (cos/sin) over the user-set window
+- **Audio settings** — volume normalization (-3 dB), mono downmix, configurable crossfade
 - **Resume** — remembers last track + position across app restarts
-- **Audio settings** — volume normalization (-3 dB), mono downmix, crossfade slider (UI ready)
-- **Virtual scroll** — handles 6000+ tracks without UI freeze (@tanstack/react-virtual)
+- **Queue** — persistent queue with shuffle (Fisher-Yates), repeat (off/all/one), auto-advance, drag-and-drop reorder
+
+### Library
+
+- **Scanning** — point to any folder, metadata extraction via lofty, embedded artwork extraction
+- **Watch folders** — `notify`-driven filesystem watcher, debounced rescans so dropped-in files appear automatically; deleted files are flagged unavailable rather than purged so play history survives
+- **Track analysis** — on-demand or auto-after-scan: peak, loudness (dB), ReplayGain, BPM via autocorrelation; tagged musical key (`TKEY` / `INITIALKEY`) read at scan time
+- **Audio quality surfacing** — sample rate / bitrate / size / codec / bit depth strip under the player; Hi-Res badges (≥ 24-bit, ≥ 44.1 kHz) on covers and rows
+- **Track Properties dialog** — foobar2000-style modal with metadata, audio specs, analysis results, file path, and Show in Explorer
+- **POPM ratings** — 5-star ratings (with half-steps) extracted from tags + editable inline
+- **Multi-select** — ctrl/shift selection across views with floating action bar (Play / Add to queue / Add to playlist / Remove)
+- **Multi-artist** — automatic split of `"Artist A, Artist B"` into individual, independently-linkable artists
+- **Album & artist detail pages** — clickable cards open dedicated views with tracklist, discography, biography, and stats
+- **Cover picker** — manual Deezer search, local file upload (magic-byte validation), batch fetch for albums missing artwork
+- **A-Z navigator** — letter rail on the artists tab, NFD-normalized for diacritics
+- **Lightbox** — double-click any cover or artist photo to view full-size
+
+### Playlists & navigation
+
+- **Playlists** — create, edit, delete; add tracks from folders/albums/artists in bulk; drag-and-drop reorder (virtualized for large playlists)
+- **Likes** — heart any track, dedicated "Liked tracks" view
+- **Recent** — automatic 50-track recency list driven by `play_event`
+- **Search** — instant full-text search (FTS5 contentless) across titles, artists, albums with prefix matching
+- **Right-click context menu** — Spotify-style: Play next, Add to queue, Add to playlist (submenu), Like, Go to album, Go to artist (submenu when multi-artist), Properties, Show in explorer
+
+### Integrations
+
+- **Metadata enrichment** — Deezer public API (artist images, album covers, labels) + Last.fm (artist biographies) cached 30 days locally; artwork downloaded into a hash-addressed on-disk cache so it renders offline on re-visits
+- **Last.fm scrobbling** — signed `auth.getMobileSession` login, retry queue with exponential backoff, live `track.updateNowPlaying`, automatic re-auth prompt on session expiry
+- **Synchronized lyrics** — LRCLIB lookup with embedded-tag fallback and `.lrc` file import
+
+### UI & UX
+
+- **System tray** — quick playback controls + close-to-tray
+- **Now Playing / Lyrics panels** — Spotify-style right-edge panels (large artwork, clickable artists, artist biography, synchronized lyrics)
+- **Statistics view** — KPIs, listening-by-day / listening-by-hour charts, top tracks / artists / albums
+- **Thumbnails** — SIMD-accelerated 1x / 2x covers via `fast_image_resize`
+- **Virtual scroll** — handles 6000+ tracks without UI freeze (`@tanstack/react-virtual`)
+- **Single-click play** — optional toggle, sort memory persisted per context
 - **Dark mode** — animated radial transition via View Transitions API
-- **i18n** — French & English, auto-detected, switchable in settings
+- **i18n** — French, English, Spanish, German; auto-detected, switchable in settings
 - **Accessibility** — keyboard navigation, ARIA roles, focus rings, `prefers-reduced-motion`
-- **Profiles** — isolated per-profile database (libraries, playlists, settings, play history)
+- **Profiles** — isolated per-profile database (libraries, playlists, settings, play history); shared metadata cache across profiles
 
 ## Tech Stack
 
 | Layer | Technologies |
 |-------|-------------|
-| **Desktop shell** | Tauri 2.10 |
-| **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS 4, Lucide icons |
+| **Desktop shell** | Tauri 2.10 (tray icon, opener, dialog plugins) |
+| **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS 4, Lucide icons, `@dnd-kit` (drag-and-drop), `@tanstack/react-virtual` (virtualization) |
 | **Backend** | Rust, SQLite (sqlx), FTS5 contentless full-text search |
 | **Audio** | symphonia 0.5 (decode), cpal 0.15 (output), rubato 0.15 (resample), rtrb 0.3 (SPSC ring) |
-| **External metadata** | Deezer public API (no auth) + Last.fm (user-provided API key) via reqwest 0.12 with rustls |
+| **Metadata extraction** | lofty 0.22 (tags, embedded art, POPM, INITIALKEY) |
+| **Imaging** | image 0.25 + fast_image_resize 6 (SIMD thumbnails) |
+| **Filesystem watcher** | notify 8 (debounced rescans of watched folders) |
+| **External APIs** | Deezer public API (no auth) + Last.fm (read + signed methods via md-5 + reqwest 0.12 with rustls) + LRCLIB (synchronized lyrics) |
 | **Package manager** | Bun |
 
 ## Getting Started
@@ -82,37 +117,43 @@ bun run format       # Prettier
 waveflow/
 ├── src/                              # React frontend
 │   ├── components/
-│   │   ├── common/                   # Reusable UI (NavItem, Artwork, ArtistLink, modals, EmptyState)
-│   │   ├── layout/                   # Sidebar, TopBar, AppLayout, QueuePanel, NowPlayingPanel
-│   │   ├── player/                   # PlayerBar, PlaybackControls, VolumeControl, ProgressBar
-│   │   └── views/                    # Home, Library, Playlist, AlbumDetail, ArtistDetail, Liked, Recent, Settings, etc.
+│   │   ├── common/                   # Reusable UI (Artwork, ArtistLink, ContextMenu, TrackContextMenu, TrackPropertiesModal, HiResBadge, Lightbox, CoverPickerModal, StarRating, SelectionActionBar, modals, EmptyState…)
+│   │   ├── layout/                   # Sidebar, TopBar, AppLayout, QueuePanel, NowPlayingPanel, LyricsPanel, DeviceMenu
+│   │   ├── player/                   # PlayerBar, PlaybackControls, VolumeControl, ProgressBar, AudioQualityFooter
+│   │   └── views/                    # Home, Library, Playlist, AlbumDetail, ArtistDetail, Liked, Recent, Settings, Statistics…
 │   ├── contexts/                     # ThemeContext, PlayerContext, LibraryContext, PlaylistContext, ProfileContext
-│   ├── hooks/                        # useTheme, usePlayer, useLibrary, usePlaylist, useProfile
+│   ├── hooks/                        # useTheme, usePlayer, useLibrary, usePlaylist, useProfile, useTrackContextMenu, useMultiSelect, useSortMemory
 │   ├── lib/
-│   │   ├── tauri/                    # Typed invoke() wrappers (track, browse, player, playlist, detail, integration)
+│   │   ├── tauri/                    # Typed invoke() wrappers (track, browse, player, playlist, detail, integration, analysis, lyrics, stats, profile, dialog, deezer, library, artwork)
+│   │   ├── hiRes.ts                  # `isHiRes` helper (≥ 24-bit, ≥ 44.1 kHz threshold)
+│   │   ├── imageCache.ts             # In-memory LRU for resolved artwork URLs
 │   │   ├── playlistVisuals.ts        # Shared color/icon constants for playlists
 │   │   └── PlaylistIcon.tsx          # Icon dispatcher component
-│   ├── i18n/locales/                 # fr.json, en.json
+│   ├── i18n/locales/                 # fr.json, en.json, es.json, de.json
 │   ├── types/                        # ViewId, LibraryTab, NavItemProps, etc.
 │   ├── App.tsx                       # Provider tree
 │   └── main.tsx                      # Entry point
 ├── src-tauri/                        # Rust backend
 │   ├── src/
-│   │   ├── audio/                    # Audio engine (engine, decoder, output, resampler, state, analytics)
-│   │   ├── commands/                 # Tauri commands (library, playlist, track, browse, player, scan, profile, deezer, integration)
+│   │   ├── audio/                    # Audio engine (engine, decoder, output, resampler, state, analytics, crossfade)
+│   │   ├── commands/                 # Tauri commands (library, playlist, track, browse, player, scan, profile, deezer, integration, lyrics, stats, analysis, maintenance, app_info)
 │   │   ├── db/                       # Database open/migrate helpers (app.db + per-profile data.db)
+│   │   ├── analysis.rs               # Per-track audio analysis (peak, loudness dB, ReplayGain, BPM)
 │   │   ├── deezer.rs                 # Deezer public API client (search/get artist & album)
-│   │   ├── lastfm.rs                 # Last.fm API client (artist.getInfo with HTML strip)
+│   │   ├── lastfm.rs                 # Last.fm API client (artist.getInfo + signed mobile-session / scrobble / now-playing)
 │   │   ├── lrclib.rs                 # LRCLIB API client (synchronized lyrics)
 │   │   ├── metadata_artwork.rs       # Shared on-disk cache for remote artwork (blake3-hashed)
-│   │   ├── queue.rs                  # Persistent queue operations (fill, advance, shuffle, restore)
+│   │   ├── queue.rs                  # Persistent queue operations (fill, advance, shuffle, reorder, restore)
+│   │   ├── scrobbler.rs              # Last.fm scrobble worker (queue drain, retry/backoff, re-auth prompt)
+│   │   ├── thumbnails.rs             # SIMD-accelerated 1x/2x cover thumbnails
+│   │   ├── watcher.rs                # Filesystem watcher manager (per-folder notify watchers, debounced rescans)
 │   │   ├── state.rs                  # AppState (profile pool, paths, global app_db)
 │   │   ├── paths.rs                  # Filesystem layout
 │   │   ├── error.rs                  # AppError + AppResult
-│   │   └── lib.rs                    # Tauri setup, command registration, shutdown hook
+│   │   └── lib.rs                    # Tauri setup, command registration, system tray, shutdown hook
 │   ├── migrations/
-│   │   ├── app/                      # Global app.db schema (profile list, app_setting, deezer cache tables)
-│   │   └── profile/                  # Per-profile SQLite schema (FTS5 contentless, triggers, indexes, lyrics)
+│   │   ├── app/                      # Global app.db schema (profile list, app_setting, shared metadata cache: metadata_artist, metadata_album, lyrics)
+│   │   └── profile/                  # Per-profile SQLite schema (FTS5 contentless, triggers, indexes, scrobble_queue, track_analysis, audio quality columns)
 │   ├── Cargo.toml
 │   └── tauri.conf.json
 └── package.json
@@ -133,9 +174,11 @@ waveflow/
 
 ## i18n
 
+Currently shipping **French**, **English**, **Spanish** and **German** — auto-detected at first launch from the OS locale, switchable from Settings.
+
 Strings are externalized in `src/i18n/locales/`. To add a language:
 
-1. Create `src/i18n/locales/xx.json` (same structure as `fr.json`)
+1. Create `src/i18n/locales/xx.json` (same structure as `fr.json` — keep all keys translated, the loader doesn't fall back per-key)
 2. Import it in `src/i18n/index.ts` and add to `SUPPORTED_LANGUAGES`
 3. It will appear in the Settings language selector automatically
 
