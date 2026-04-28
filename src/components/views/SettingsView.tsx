@@ -239,6 +239,40 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     total: number;
     failed: number;
   } | null>(null);
+  const [autoAnalyze, setAutoAnalyzeState] = useState(false);
+
+  // Hydrate the auto-analyze flag once at mount. The setter below
+  // handles flips optimistically + rollback on failure so the toggle
+  // never feels laggy.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { getAutoAnalyze } = await import("../../lib/tauri/analysis");
+        const v = await getAutoAnalyze();
+        if (!cancelled) setAutoAnalyzeState(v);
+      } catch (err) {
+        console.error("[SettingsView] get auto_analyze failed", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleToggleAutoAnalyze = useCallback(() => {
+    const next = !autoAnalyze;
+    setAutoAnalyzeState(next);
+    void (async () => {
+      try {
+        const { setAutoAnalyze } = await import("../../lib/tauri/analysis");
+        await setAutoAnalyze(next);
+      } catch (err) {
+        console.error("[SettingsView] set auto_analyze failed", err);
+        setAutoAnalyzeState(!next);
+      }
+    })();
+  }, [autoAnalyze]);
   const { activeProfile } = useProfile();
   const [isRescanning, setIsRescanning] = useState(false);
   const [autoStart, setAutoStart] = useState(false);
@@ -1027,6 +1061,26 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 />
                 <span>{t("settings.analyze.action")}</span>
               </button>
+            </div>
+            {/* Auto-analyze toggle: when on, every scan that
+                adds new tracks fires the analyzer in the
+                background. Sits inside the same card so users
+                see it as a related option rather than a
+                disconnected setting. */}
+            <div className="mt-3 ml-9 flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.analyze.autoTitle")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.analyze.autoSubtitle")}
+                </div>
+              </div>
+              <ToggleSwitch
+                enabled={autoAnalyze}
+                onToggle={handleToggleAutoAnalyze}
+                label={t("settings.analyze.autoTitle")}
+              />
             </div>
             {/* Progress strip — shown during a run + briefly after
                 completion so the user sees the final tally. */}

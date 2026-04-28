@@ -247,6 +247,7 @@ pub async fn delete_library(
 /// [`scan_folder_inner`] keeps re-scans cheap when nothing has changed.
 #[tauri::command]
 pub async fn rescan_library(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     library_id: i64,
 ) -> AppResult<RescanSummary> {
@@ -300,6 +301,10 @@ pub async fn rescan_library(
         .bind(library_id)
         .execute(&pool)
         .await?;
+
+    if total.added > 0 {
+        crate::commands::analysis::maybe_auto_analyze(&app);
+    }
 
     Ok(total)
 }

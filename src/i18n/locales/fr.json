@@ -654,6 +654,8 @@
       "title": "Analyser la bibliothèque",
       "subtitle": "Calculer BPM, volume sonore et peak pour les titres non analysés",
       "action": "Analyser",
+      "autoTitle": "Analyse automatique",
+      "autoSubtitle": "Lancer l'analyse en arrière-plan après chaque scan qui ajoute de nouveaux titres",
       "failed_one": "{{count}} échec",
       "failed_other": "{{count}} échecs"
     },

@@ -649,6 +649,8 @@
       "title": "Analyze library",
       "subtitle": "Compute BPM, loudness and peak for tracks not yet analyzed",
       "action": "Analyze",
+      "autoTitle": "Auto-analyze",
+      "autoSubtitle": "Run the analyzer in the background after every scan that adds new tracks",
       "failed_one": "{{count}} failure",
       "failed_other": "{{count}} failures"
     },

@@ -18,13 +18,16 @@ use std::path::PathBuf;
 
 use chrono::Utc;
 use serde::Serialize;
-use tauri::{AppHandle, Emitter};
+use sqlx::SqlitePool;
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{
     analysis::{analyze_file, AnalysisResult},
     error::{AppError, AppResult},
     state::AppState,
 };
+
+const AUTO_ANALYZE_KEY: &str = "audio.auto_analyze";
 
 /// Row shape returned by `get_track_analysis` and `analyze_track`.
 /// Mirrors the columns of `track_analysis` but exposes the fields
@@ -165,6 +168,16 @@ pub async fn analyze_library(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<LibraryAnalysisSummary> {
     let pool = state.require_profile_pool().await?;
+    run_analyze_library(&app, &pool).await
+}
+
+/// Inner worker shared by the user-triggered command and the
+/// auto-analyze hook fired after a scan. Takes the pool directly so
+/// the caller can decide whether to spawn or await.
+pub async fn run_analyze_library(
+    app: &AppHandle,
+    pool: &SqlitePool,
+) -> AppResult<LibraryAnalysisSummary> {
     let pending: Vec<(i64, String)> = sqlx::query_as(
         "SELECT t.id, t.file_path
            FROM track t
@@ -172,7 +185,7 @@ pub async fn analyze_library(
           WHERE t.is_available = 1 AND ta.track_id IS NULL
           ORDER BY t.id",
     )
-    .fetch_all(&pool)
+    .fetch_all(pool)
     .await?;
 
     let total = pending.len() as u32;
@@ -213,7 +226,7 @@ pub async fn analyze_library(
                 .bind(result.replay_gain_db)
                 .bind(result.peak)
                 .bind(now)
-                .execute(&pool)
+                .execute(pool)
                 .await
                 {
                     tracing::warn!(?e, track_id, "persist analysis failed");
@@ -250,4 +263,74 @@ pub async fn analyze_library(
         },
     );
     Ok(summary)
+}
+
+/// Read the per-profile auto-analyze flag. `true` when the user has
+/// opted in to running the analyzer in the background after each
+/// scan; defaults to `false` so the first scan stays fast and free.
+#[tauri::command]
+pub async fn get_auto_analyze(state: tauri::State<'_, AppState>) -> AppResult<bool> {
+    let pool = match state.require_profile_pool().await {
+        Ok(p) => p,
+        Err(_) => return Ok(false),
+    };
+    Ok(read_auto_analyze(&pool).await)
+}
+
+/// Toggle the per-profile auto-analyze flag. Persisted in
+/// `profile_setting` so it survives restarts; `false` removes the
+/// row instead of writing `false` so the table stays sparse.
+#[tauri::command]
+pub async fn set_auto_analyze(
+    state: tauri::State<'_, AppState>,
+    enable: bool,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    let now = Utc::now().timestamp_millis();
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'bool', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(AUTO_ANALYZE_KEY)
+    .bind(if enable { "true" } else { "false" })
+    .bind(now)
+    .execute(&pool)
+    .await?;
+    Ok(())
+}
+
+async fn read_auto_analyze(pool: &SqlitePool) -> bool {
+    let raw: Option<String> = sqlx::query_scalar(
+        "SELECT value FROM profile_setting WHERE key = ?",
+    )
+    .bind(AUTO_ANALYZE_KEY)
+    .fetch_optional(pool)
+    .await
+    .ok()
+    .flatten();
+    matches!(raw.as_deref(), Some("true"))
+}
+
+/// Spawn a background task that runs the full analyzer if the
+/// auto-analyze flag is set for the active profile. Called from
+/// scan callers after `summary.added > 0`. No-op when the flag is
+/// off, when there's no active profile, or when the spawn itself
+/// fails — auto-analyze is best-effort by definition.
+pub fn maybe_auto_analyze(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let state = app.state::<AppState>();
+        let pool = match state.require_profile_pool().await {
+            Ok(p) => p,
+            Err(_) => return,
+        };
+        if !read_auto_analyze(&pool).await {
+            return;
+        }
+        if let Err(err) = run_analyze_library(&app, &pool).await {
+            tracing::warn!(%err, "auto analyze run failed");
+        }
+    });
 }

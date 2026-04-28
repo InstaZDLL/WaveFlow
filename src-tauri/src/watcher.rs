@@ -284,6 +284,9 @@ async fn run_scan(app: &AppHandle, folder_id: i64, library_id: i64) {
                     changed,
                 },
             );
+            if summary.added > 0 {
+                crate::commands::analysis::maybe_auto_analyze(app);
+            }
         }
         Err(err) => {
             tracing::warn!(folder_id, %err, "watcher rescan failed");

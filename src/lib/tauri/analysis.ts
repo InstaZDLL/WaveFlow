@@ -40,3 +40,16 @@ export interface LibraryAnalysisSummary {
 export function analyzeLibrary(): Promise<LibraryAnalysisSummary> {
   return invoke<LibraryAnalysisSummary>("analyze_library");
 }
+
+/**
+ * Read the per-profile auto-analyze flag. When `true`, every scan
+ * that adds new tracks fires the analyzer in the background so the
+ * library acquires BPM / loudness data without any manual click.
+ */
+export function getAutoAnalyze(): Promise<boolean> {
+  return invoke<boolean>("get_auto_analyze");
+}
+
+export function setAutoAnalyze(enable: boolean): Promise<void> {
+  return invoke<void>("set_auto_analyze", { enable });
+}

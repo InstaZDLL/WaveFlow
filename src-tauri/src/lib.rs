@@ -185,6 +185,8 @@ pub fn run() {
             commands::analysis::analyze_track,
             commands::analysis::analyze_library,
             commands::analysis::get_track_analysis,
+            commands::analysis::get_auto_analyze,
+            commands::analysis::set_auto_analyze,
             commands::playlist::list_playlists,
             commands::playlist::get_playlist,
             commands::playlist::create_playlist,

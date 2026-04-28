@@ -451,13 +451,21 @@ async fn upsert_genre(pool: &SqlitePool, raw_name: &str) -> AppResult<Option<i64
 /// many files were rejected.
 #[tauri::command]
 pub async fn scan_folder(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     folder_id: i64,
 ) -> AppResult<ScanSummary> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
-    scan_folder_inner(&pool, &artwork_dir, folder_id).await
+    let summary = scan_folder_inner(&pool, &artwork_dir, folder_id).await?;
+    // Fire the auto-analyzer in the background when the user has
+    // opted in. Spawned so the IPC reply doesn't block on a
+    // potentially long analysis pass.
+    if summary.added > 0 {
+        crate::commands::analysis::maybe_auto_analyze(&app);
+    }
+    Ok(summary)
 }
 
 /// Inner scan implementation shared between the `scan_folder` command and
