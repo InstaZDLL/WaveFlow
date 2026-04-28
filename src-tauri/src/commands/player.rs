@@ -13,7 +13,7 @@
 use std::sync::Arc;
 
 use serde::Serialize;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{
     audio::{engine::AudioCmd, state::SharedPlayback, AudioEngine},
@@ -167,6 +167,82 @@ pub(crate) fn emit_track_changed(
     if let Some(tray) = app.tray_by_id("waveflow") {
         let _ = tray.set_tooltip(Some(tooltip));
     }
+
+    // Schedule a Last.fm `track.updateNowPlaying` ping after a short
+    // settling delay. The delay filters out rapid skipping — if the
+    // user blasts through five tracks looking for the right one, we
+    // only announce the one they actually settle on. Best-effort: any
+    // failure is logged but never surfaced to the UI.
+    schedule_now_playing(app, track);
+}
+
+/// Spawn a tokio task that, after a 4 s settling window, posts
+/// `track.updateNowPlaying` to Last.fm if the user is still on the
+/// same track. The settling check is the cheap atomic read of
+/// `current_track_id` — no DB hit before we know we'll actually
+/// fire the request.
+fn schedule_now_playing(app: &AppHandle, track: &QueueTrack) {
+    let app = app.clone();
+    let track_id = track.id;
+    let title = track.title.clone();
+    let artist = track.artist_name.clone();
+    let album = track.album_title.clone();
+    let duration_ms = track.duration_ms;
+
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_secs(4)).await;
+
+        // Still on the same track? If the user skipped during the
+        // settling window, current_track_id has moved on — don't
+        // announce a track we've already left.
+        let engine = app.state::<Arc<AudioEngine>>();
+        let still_current = engine
+            .shared()
+            .current_track_id
+            .load(std::sync::atomic::Ordering::Acquire)
+            == track_id;
+        if !still_current {
+            return;
+        }
+
+        // Need a real artist for Last.fm — the API rejects calls
+        // without one, and our scanner falls back to the file name
+        // when tags are empty.
+        let Some(artist) = artist.filter(|s| !s.trim().is_empty()) else {
+            return;
+        };
+
+        let state = app.state::<AppState>();
+        let creds = match crate::commands::integration::read_lastfm_credentials(&state).await
+        {
+            Ok(Some(c)) => c,
+            _ => return,
+        };
+        let (api_key, api_secret, session_key, _username) = creds;
+
+        let client = crate::lastfm::LastfmClient::new();
+        let duration_s = if duration_ms > 0 {
+            Some(duration_ms / 1000)
+        } else {
+            None
+        };
+        if let Err(err) = client
+            .update_now_playing(
+                &api_key,
+                &api_secret,
+                &session_key,
+                &artist,
+                &title,
+                album.as_deref(),
+                duration_s,
+            )
+            .await
+        {
+            tracing::warn!(track_id, %err, "lastfm updateNowPlaying failed");
+        } else {
+            tracing::debug!(track_id, "lastfm updateNowPlaying ok");
+        }
+    });
 }
 
 /// Emit an empty `player:queue-changed` signal. The frontend uses
