@@ -554,8 +554,6 @@ struct AlbumDetailRaw {
     artist_name: Option<String>,
     year: Option<i64>,
     release_date: Option<String>,
-    track_count: i64,
-    total_duration_ms: i64,
     artwork_hash: Option<String>,
     artwork_format: Option<String>,
     label: Option<String>,
@@ -613,17 +611,13 @@ pub async fn get_album_detail(
         r#"
         SELECT al.id, al.title, al.artist_id, ar.name AS artist_name,
                al.year, al.release_date,
-               COUNT(t.id) AS track_count,
-               COALESCE(SUM(t.duration_ms), 0) AS total_duration_ms,
                aw.hash AS artwork_hash, aw.format AS artwork_format,
                da.label
           FROM album al
           LEFT JOIN artist ar ON ar.id = al.artist_id
           LEFT JOIN artwork aw ON aw.id = al.artwork_id
           LEFT JOIN app.metadata_album da ON da.deezer_id = al.deezer_id
-          JOIN track t ON t.album_id = al.id AND t.is_available = 1
          WHERE al.id = ?
-         GROUP BY al.id
         "#,
     )
     .bind(album_id)
@@ -659,8 +653,28 @@ pub async fn get_album_detail(
     .fetch_all(&pool)
     .await?;
 
+    // Collapse duplicate files (same album/disc/track_number) — e.g. when the
+    // same song was scanned in both FLAC and MP3 form. We keep the highest-
+    // quality variant per slot: bit_depth desc, then sample_rate desc, then
+    // file_size desc, then id asc as a stable tie-breaker. Tracks without a
+    // track_number get their own slot (-id) so they're never collapsed
+    // together blindly.
     let tracks_raw = sqlx::query_as::<_, AlbumTrackRaw>(
         r#"
+        WITH ranked AS (
+            SELECT t.id,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY COALESCE(t.disc_number, 1),
+                                    COALESCE(t.track_number, -t.id)
+                       ORDER BY (t.bit_depth IS NULL),
+                                t.bit_depth DESC,
+                                t.sample_rate DESC,
+                                t.file_size DESC,
+                                t.id ASC
+                   ) AS rn
+              FROM track t
+             WHERE t.album_id = ? AND t.is_available = 1
+        )
         SELECT t.id, t.title,
                t.primary_artist AS artist_id,
                (SELECT GROUP_CONCAT(name, ', ') FROM (
@@ -678,10 +692,11 @@ pub async fn get_album_detail(
                t.file_path,
                t.bit_depth, t.sample_rate,
                aw.hash AS artwork_hash, aw.format AS artwork_format
-          FROM track t
+          FROM ranked r
+          JOIN track t ON t.id = r.id
           LEFT JOIN album al ON al.id = t.album_id
           LEFT JOIN artwork aw ON aw.id = al.artwork_id
-         WHERE t.album_id = ? AND t.is_available = 1
+         WHERE r.rn = 1
          ORDER BY t.disc_number, t.track_number
         "#,
     )
@@ -689,7 +704,7 @@ pub async fn get_album_detail(
     .fetch_all(&pool)
     .await?;
 
-    let tracks = tracks_raw
+    let tracks: Vec<AlbumTrack> = tracks_raw
         .into_iter()
         .map(|row| {
             let (track_artwork, track_artwork_1x, track_artwork_2x) =
@@ -724,14 +739,17 @@ pub async fn get_album_detail(
         })
         .collect();
 
+    let track_count = tracks.len() as i64;
+    let total_duration_ms = tracks.iter().map(|t| t.duration_ms).sum();
+
     Ok(AlbumDetail {
         id: header.id,
         title: header.title,
         artist_id: header.artist_id,
         artist_name: header.artist_name,
         year: header.year,
-        track_count: header.track_count,
-        total_duration_ms: header.total_duration_ms,
+        track_count,
+        total_duration_ms,
         artwork_path,
         artwork_path_1x,
         artwork_path_2x,
