@@ -53,6 +53,7 @@ function queuePayloadToTrack(payload: QueueTrackPayload): Track {
     channels: payload.channels,
     bit_depth: payload.bit_depth,
     codec: payload.codec,
+    musical_key: null,
     file_path: payload.file_path,
     file_size: payload.file_size,
     added_at: 0,

@@ -33,6 +33,10 @@ export interface Track {
   bit_depth: number | null;
   /** Short codec / container label, e.g. `"FLAC"`, `"MP3"`. */
   codec: string | null;
+  /** Tagged musical key (e.g. `"Am"`, `"F#"`, Camelot `"8A"`).
+   *  Read at scan time from `TKEY` (ID3v2) or `INITIALKEY` (Vorbis,
+   *  MP4, APE, WavPack). `null` when the file has no key tag. */
+  musical_key: string | null;
   file_path: string;
   file_size: number;
   added_at: number;

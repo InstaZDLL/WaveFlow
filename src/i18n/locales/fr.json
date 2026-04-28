@@ -488,6 +488,7 @@
     "sampleRate": "Échantillonnage",
     "channels": "Canaux",
     "bitrate": "Débit",
+    "key": "Tonalité",
     "fileSize": "Taille",
     "addedAt": "Ajouté le",
     "filePath": "Chemin",

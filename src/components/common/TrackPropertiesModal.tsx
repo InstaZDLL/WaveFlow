@@ -171,6 +171,7 @@ export function TrackPropertiesModal({
             <Row label={t("trackProperties.sampleRate")} value={sampleRateKHz} />
             <Row label={t("trackProperties.channels")} value={channels} />
             <Row label={t("trackProperties.bitrate")} value={bitrate} />
+            <Row label={t("trackProperties.key")} value={track.musical_key ?? "—"} />
           </Section>
 
           <Section

@@ -68,6 +68,7 @@ function recentPlayToTrack(rp: RecentPlay): Track {
     channels: null,
     bit_depth: null,
     codec: null,
+    musical_key: null,
     file_path: rp.file_path,
     file_size: 0,
     added_at: 0,

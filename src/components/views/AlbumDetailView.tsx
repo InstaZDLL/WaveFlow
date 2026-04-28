@@ -165,6 +165,7 @@ export function AlbumDetailView({
     channels: null,
     bit_depth: at.bit_depth,
     codec: null,
+    musical_key: null,
     file_path: at.file_path,
     file_size: 0,
     added_at: 0,

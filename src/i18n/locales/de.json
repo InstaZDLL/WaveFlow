@@ -482,6 +482,7 @@
     "sampleRate": "Abtastrate",
     "channels": "Kanäle",
     "bitrate": "Bitrate",
+    "key": "Tonart",
     "fileSize": "Größe",
     "addedAt": "Hinzugefügt",
     "filePath": "Pfad",

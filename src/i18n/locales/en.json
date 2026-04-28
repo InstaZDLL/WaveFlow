@@ -488,6 +488,7 @@
     "sampleRate": "Sample rate",
     "channels": "Channels",
     "bitrate": "Bitrate",
+    "key": "Key",
     "fileSize": "File size",
     "addedAt": "Added",
     "filePath": "Path",
