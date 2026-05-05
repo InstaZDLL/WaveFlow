@@ -56,9 +56,23 @@ pub fn run() {
         )
         .init();
 
-    tauri::Builder::default()
+    // `mut` is only consumed when the updater plugin is wired in (release
+    // builds); the lint would fire in debug otherwise.
+    #[allow(unused_mut)]
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_dialog::init());
+
+    // Auto-updater is wired in release builds only. In dev (`tauri dev`)
+    // the binary points at the local source tree, the version is the
+    // working copy, and there's no signed manifest to fetch — the
+    // plugin would just spam errors. Ship-only by design.
+    #[cfg(not(debug_assertions))]
+    {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+
+    builder
         .manage(QuitGate(AtomicBool::new(false)))
         .setup(|app| {
             let init_handle = app.handle().clone();

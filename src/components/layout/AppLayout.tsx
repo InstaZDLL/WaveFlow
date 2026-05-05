@@ -21,6 +21,7 @@ import { AlbumDetailView } from "../views/AlbumDetailView";
 import { ArtistDetailView } from "../views/ArtistDetailView";
 import { ProfileSelectorModal } from "../common/ProfileSelectorModal";
 import { LastfmReauthBanner } from "../common/LastfmReauthBanner";
+import { UpdateBanner } from "../common/UpdateBanner";
 
 export function AppLayout() {
   const { isDark } = useTheme();
@@ -193,6 +194,7 @@ export function AppLayout() {
       />
 
       <LastfmReauthBanner onGoToSettings={() => setActiveView("settings")} />
+      <UpdateBanner />
     </div>
   );
 }

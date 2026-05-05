@@ -13,6 +13,24 @@
     "message": "Your scrobbles are no longer being sent. Sign in again to resume.",
     "action": "Open settings"
   },
+  "updater": {
+    "available": {
+      "title": "Update available (v{{version}})",
+      "message": "A new version of WaveFlow is ready to install.",
+      "action": "Install now",
+      "later": "Later"
+    },
+    "downloading": {
+      "title": "Downloading update…"
+    },
+    "installed": {
+      "title": "Update installed",
+      "message": "Restart WaveFlow to apply the new version."
+    },
+    "error": {
+      "title": "Update failed"
+    }
+  },
   "sidebar": {
     "brand": {
       "beta": "Beta"
