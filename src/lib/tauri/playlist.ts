@@ -111,3 +111,29 @@ export function addSourceToPlaylist(
     sourceId,
   });
 }
+
+export interface ImportPlaylistResult {
+  playlist_id: number;
+  imported: number;
+  missing: number;
+  /** Up to 20 unmatched paths from the imported file. */
+  missing_paths: string[];
+}
+
+/** Write the playlist out as a UTF-8 .m3u8 file at `destPath`. */
+export function exportPlaylistM3u(
+  playlistId: number,
+  destPath: string,
+): Promise<void> {
+  return invoke<void>("export_playlist_m3u", { playlistId, destPath });
+}
+
+/**
+ * Parse an .m3u/.m3u8 file, match its entries against the active
+ * library, and create a new playlist holding the resolved tracks.
+ */
+export function importPlaylistM3u(
+  sourcePath: string,
+): Promise<ImportPlaylistResult> {
+  return invoke<ImportPlaylistResult>("import_playlist_m3u", { sourcePath });
+}

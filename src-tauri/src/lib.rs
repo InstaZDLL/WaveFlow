@@ -198,6 +198,8 @@ pub fn run() {
             commands::playlist::remove_track_from_playlist,
             commands::playlist::reorder_playlist_track,
             commands::playlist::add_source_to_playlist,
+            commands::playlist::export_playlist_m3u,
+            commands::playlist::import_playlist_m3u,
             commands::scan::scan_folder,
             commands::track::list_tracks,
             commands::track::search_tracks,

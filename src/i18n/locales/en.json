@@ -58,6 +58,8 @@
     },
     "playlists": {
       "createPlaylistAria": "Create a new playlist",
+      "importM3uAria": "Import an M3U playlist",
+      "importDialogTitle": "Import an M3U playlist",
       "liked": "Liked tracks",
       "recent": "Recently played",
       "emptySubtext_zero": "0 tracks",
@@ -440,8 +442,12 @@
       "play": "Play",
       "shuffle": "Shuffle play",
       "edit": "Edit playlist",
+      "exportM3u": "Export as M3U",
       "delete": "Delete playlist",
       "deleteConfirm": "Click again to confirm"
+    },
+    "export": {
+      "dialogTitle": "Export playlist as M3U"
     },
     "emptyTitle": "This playlist is empty",
     "emptyDescription": "Add tracks from your libraries using the + button on each row.",

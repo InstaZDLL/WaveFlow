@@ -1,4 +1,4 @@
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 
 /**
  * Open the native folder picker and return the absolute path the user
@@ -40,4 +40,26 @@ export async function pickFile(
   if (result == null) return null;
   if (Array.isArray(result)) return result[0] ?? null;
   return result;
+}
+
+/**
+ * Open the native save dialog. Returns the absolute path the user
+ * picked, or `null` when they cancelled. `defaultName` pre-fills the
+ * suggested filename (with extension), `extensions` constrains the
+ * picker to specific suffixes.
+ */
+export async function pickSaveFile(
+  defaultName: string,
+  extensions: string[],
+  title?: string,
+): Promise<string | null> {
+  const result = await save({
+    title,
+    defaultPath: defaultName,
+    filters:
+      extensions.length > 0
+        ? [{ name: extensions.join(", ").toUpperCase(), extensions }]
+        : undefined,
+  });
+  return result ?? null;
 }

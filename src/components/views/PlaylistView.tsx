@@ -10,6 +10,7 @@ import {
   Music2,
   Heart,
   GripVertical,
+  Download,
 } from "lucide-react";
 import {
   DndContext,
@@ -49,10 +50,12 @@ import {
   type Track,
 } from "../../lib/tauri/track";
 import {
+  exportPlaylistM3u,
   getPlaylist,
   reorderPlaylistTrack,
   type Playlist,
 } from "../../lib/tauri/playlist";
+import { pickSaveFile } from "../../lib/tauri/dialog";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 
@@ -138,6 +141,22 @@ export function PlaylistView({
       return next;
     });
   }, []);
+
+  const handleExportM3u = useCallback(async () => {
+    if (!playlist) return;
+    const safeName = playlist.name.replace(/[\\/:*?"<>|]/g, "_").trim() || "playlist";
+    const dest = await pickSaveFile(
+      `${safeName}.m3u8`,
+      ["m3u8", "m3u"],
+      t("playlistView.export.dialogTitle"),
+    );
+    if (!dest) return;
+    try {
+      await exportPlaylistM3u(playlist.id, dest);
+    } catch (err) {
+      console.error("[PlaylistView] export m3u failed", err);
+    }
+  }, [playlist, t]);
 
   const handleRemoveFromPlaylist = useCallback(
     async (pid: number, trackId: number) => {
@@ -441,6 +460,18 @@ export function PlaylistView({
                 className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white"
               >
                 <Edit2 size={18} />
+              </button>
+            </Tooltip>
+
+            <Tooltip label={t("playlistView.actions.exportM3u")}>
+              <button
+                type="button"
+                onClick={handleExportM3u}
+                disabled={tracks.length === 0}
+                aria-label={t("playlistView.actions.exportM3u")}
+                className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download size={18} />
               </button>
             </Tooltip>
 

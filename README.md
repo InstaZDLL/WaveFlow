@@ -28,7 +28,7 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
 - **Audio playback** — symphonia decoder + cpal output, supports MP3, FLAC, WAV, OGG Vorbis, AAC, ALAC (M4A)
 - **Real-time engine** — lock-free 3-thread architecture (decoder, ring buffer, cpal callback), zero allocations in the hot path
 - **Crossfade DSP** — real dual-decoder mix with equal-power gains (cos/sin) over the user-set window
-- **Audio settings** — volume normalization (-3 dB), mono downmix, configurable crossfade
+- **Audio settings** — volume normalization (-3 dB), mono downmix, configurable crossfade, optional per-track ReplayGain application (uses the value from `track_analysis`, applied per-stream so the crossfade mix gives each side its own gain)
 - **Resume** — remembers last track + position across app restarts
 - **Queue** — persistent queue with shuffle (Fisher-Yates), repeat (off/all/one), auto-advance, drag-and-drop reorder
 
@@ -50,6 +50,7 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
 ### Playlists & navigation
 
 - **Playlists** — create, edit, delete; add tracks from folders/albums/artists in bulk; drag-and-drop reorder (virtualized for large playlists)
+- **Import / export M3U** — write any playlist out as a `.m3u8` (UTF-8, with `#EXTINF` metadata) and re-import `.m3u` / `.m3u8` files from foobar2000, VLC, Rekordbox or hand-written sets. Imports match against the active library by canonical path with a basename fallback for moved files; unmatched entries are surfaced (truncated to 20) for the user to investigate
 - **Likes** — heart any track, dedicated "Liked tracks" view
 - **Recent** — automatic 50-track recency list driven by `play_event`
 - **Search** — instant full-text search (FTS5 contentless) across titles, artists, albums with prefix matching

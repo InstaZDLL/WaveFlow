@@ -11,6 +11,7 @@ import {
   Heart,
   Clock,
   Plus,
+  Upload,
 } from "lucide-react";
 import type { ViewId, LibraryTab } from "../../types";
 import { NavItem } from "../common/NavItem";
@@ -20,7 +21,8 @@ import { useProfile } from "../../hooks/useProfile";
 import { useLibrary } from "../../hooks/useLibrary";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";
-import { pickFolder } from "../../lib/tauri/dialog";
+import { pickFile, pickFolder } from "../../lib/tauri/dialog";
+import { importPlaylistM3u } from "../../lib/tauri/playlist";
 import { getProfileStats, type ProfileStats } from "../../lib/tauri/browse";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
@@ -52,7 +54,7 @@ export function Sidebar({
     createLibrary,
     importFolder,
   } = useLibrary();
-  const { playlists, createPlaylist } = usePlaylist();
+  const { playlists, createPlaylist, refresh: refreshPlaylists } = usePlaylist();
   const profileColor = getProfileColor(activeProfile?.color_id);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
@@ -142,6 +144,28 @@ export function Sidebar({
     setActivePlaylistId(playlistId);
     setActiveView("playlist");
   };
+
+  const handleImportM3u = useCallback(async () => {
+    const path = await pickFile(
+      ["m3u8", "m3u"],
+      t("sidebar.playlists.importDialogTitle"),
+    );
+    if (!path) return;
+    try {
+      const result = await importPlaylistM3u(path);
+      await refreshPlaylists();
+      setActivePlaylistId(result.playlist_id);
+      setActiveView("playlist");
+      if (result.missing > 0) {
+        console.warn(
+          `[Sidebar] m3u import: ${result.missing} entries not found in library`,
+          result.missing_paths,
+        );
+      }
+    } catch (err) {
+      console.error("[Sidebar] import m3u failed", err);
+    }
+  }, [t, refreshPlaylists, setActivePlaylistId, setActiveView]);
 
   const isPlaylistRowActive = (id: number) =>
     activeView === "playlist" && activePlaylistId === id;
@@ -275,14 +299,25 @@ export function Sidebar({
         <div className="flex-1 flex flex-col min-h-0">
           <div className="flex items-center justify-between text-[10px] font-bold tracking-widest text-zinc-400 mb-1 px-2 uppercase shrink-0">
             <span>{t("sidebar.playlistSection.title")}</span>
-            <button
-              type="button"
-              onClick={() => setIsCreatePlaylistModalOpen(true)}
-              aria-label={t("sidebar.playlists.createPlaylistAria")}
-              className="p-0.5 rounded hover:text-emerald-500 transition-colors"
-            >
-              <Plus size={14} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={handleImportM3u}
+                aria-label={t("sidebar.playlists.importM3uAria")}
+                title={t("sidebar.playlists.importM3uAria")}
+                className="p-0.5 rounded hover:text-emerald-500 transition-colors"
+              >
+                <Upload size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsCreatePlaylistModalOpen(true)}
+                aria-label={t("sidebar.playlists.createPlaylistAria")}
+                className="p-0.5 rounded hover:text-emerald-500 transition-colors"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto space-y-1 scrollbar-hide pr-1">

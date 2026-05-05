@@ -58,6 +58,8 @@
     },
     "playlists": {
       "createPlaylistAria": "Crear una nueva lista de reproducción",
+      "importM3uAria": "Importar una lista de reproducción M3U",
+      "importDialogTitle": "Importar una lista de reproducción M3U",
       "liked": "Canciones que me gustan",
       "recent": "Reproducidas recientemente",
       "emptySubtext_zero": "0 canciones",
@@ -440,8 +442,12 @@
       "play": "Reproducir",
       "shuffle": "Reproducción aleatoria",
       "edit": "Editar la lista de reproducción",
+      "exportM3u": "Exportar como M3U",
       "delete": "Eliminar la lista de reproducción",
       "deleteConfirm": "Haz clic de nuevo para confirmar"
+    },
+    "export": {
+      "dialogTitle": "Exportar la lista de reproducción como M3U"
     },
     "emptyTitle": "Esta lista de reproducción está vacía",
     "emptyDescription": "Añade canciones desde tus bibliotecas mediante el botón + de cada fila.",

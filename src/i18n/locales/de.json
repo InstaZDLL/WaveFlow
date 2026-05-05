@@ -58,6 +58,8 @@
     },
     "playlists": {
       "createPlaylistAria": "Eine neue Wiedergabeliste erstellen",
+      "importM3uAria": "Eine M3U-Wiedergabeliste importieren",
+      "importDialogTitle": "Eine M3U-Wiedergabeliste importieren",
       "liked": "Lieblingstitel",
       "recent": "Zuletzt gespielt",
       "emptySubtext_zero": "0 Titel",
@@ -434,8 +436,12 @@
       "play": "Wiedergabe",
       "shuffle": "Zufallswiedergabe",
       "edit": "Wiedergabeliste bearbeiten",
+      "exportM3u": "Als M3U exportieren",
       "delete": "Wiedergabeliste löschen",
       "deleteConfirm": "Erneut klicken zum Bestätigen"
+    },
+    "export": {
+      "dialogTitle": "Wiedergabeliste als M3U exportieren"
     },
     "emptyTitle": "Diese Wiedergabeliste ist leer",
     "emptyDescription": "Füge Titel aus deinen Bibliotheken über die Schaltfläche + jeder Zeile hinzu.",
