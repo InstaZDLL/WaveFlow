@@ -104,3 +104,9 @@ souvlaki = "0.8"
 # Build proper file:// URIs for cover art paths handed to MPRIS / SMTC.
 # `url` is already in our transitive tree via reqwest.
 url = "2"
+
+# Tiny synchronous HTTP server bound to 127.0.0.1:0 — used solely to
+# serve cover-art bytes to Windows SMTC, which only accepts http(s)
+# URIs in `RandomAccessStreamReference::CreateFromUri` (file:// is
+# rejected). The server is gated to localhost.
+tiny_http = "0.12"

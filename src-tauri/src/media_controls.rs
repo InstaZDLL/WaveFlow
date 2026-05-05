@@ -14,7 +14,17 @@
 //! - The souvlaki callback runs on souvlaki's own thread. We forward
 //!   each `MediaControlEvent` into Tauri's tokio runtime where the
 //!   queue/database side of the player commands is at home.
+//!
+//! Cover art on Windows:
+//! - SMTC's `RandomAccessStreamReference::CreateFromUri` only accepts
+//!   `http(s)`, `ms-appx`, `ms-appdata` schemes. `file://` makes the
+//!   entire `set_metadata` call fail. To work around this we run a
+//!   tiny tiny_http server on `127.0.0.1:<random>` that serves files
+//!   from a whitelist registry built up as covers are advertised, and
+//!   hand SMTC `http://127.0.0.1:<port>/artwork/<basename>` URLs.
 
+use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -67,9 +77,25 @@ enum Msg {
     },
 }
 
+/// Whitelist of cover-art files the local artwork server is allowed to
+/// serve. Keyed by URL-safe basename (e.g. `<blake3>.jpeg`); SMTC fetches
+/// `/artwork/<basename>` and the server resolves to the absolute path.
+type ArtworkRegistry = Arc<std::sync::RwLock<HashMap<String, PathBuf>>>;
+
 /// Handle exposed via `tauri::State`. Cheap to clone.
 pub struct MediaControlsHandle {
     tx: Sender<Msg>,
+    /// Port + registry of the local artwork server. `None` when the
+    /// server failed to bind (then covers fall back to `file://` on
+    /// non-Windows or to no cover on Windows).
+    #[allow(dead_code)] // unused on non-Windows targets
+    artwork: Option<ArtworkServer>,
+}
+
+#[derive(Clone)]
+struct ArtworkServer {
+    port: u16,
+    registry: ArtworkRegistry,
 }
 
 impl MediaControlsHandle {
@@ -81,7 +107,7 @@ impl MediaControlsHandle {
         cover_path: Option<String>,
         duration_ms: i64,
     ) {
-        let cover_url = build_cover_url(cover_path.as_deref());
+        let cover_url = build_cover_url(cover_path.as_deref(), self.artwork.as_ref());
         let _ = self.tx.send(Msg::Metadata(CachedMetadata {
             title,
             artist,
@@ -96,26 +122,126 @@ impl MediaControlsHandle {
     }
 }
 
-/// Resolve a local cover-art path into a URL that the platform's media
-/// overlay can actually fetch. MPRIS happily takes a `file://` URI;
-/// SMTC's `RandomAccessStreamReference::CreateFromUri` only accepts
-/// `http(s)`, `ms-appx`, and `ms-appdata` schemes — passing `file://`
-/// makes the entire `set_metadata` call fail (the whole tile drops,
-/// not just the thumbnail), so on Windows we deliberately ship the
-/// metadata without a cover. Wiring SMTC artwork properly requires
-/// either a patched souvlaki or a hand-rolled SMTC binding that uses
-/// `CreateFromFile(StorageFile)`.
-fn build_cover_url(path: Option<&str>) -> Option<String> {
+/// Resolve a local cover-art path into a URL the OS media overlay can
+/// fetch. On Windows we register the file with the local artwork
+/// server and return its `http://127.0.0.1:<port>/artwork/<basename>`
+/// URL. On Linux/macOS MPRIS / MediaRemote take `file://` directly.
+fn build_cover_url(path: Option<&str>, artwork: Option<&ArtworkServer>) -> Option<String> {
     let path = path?;
+
     #[cfg(target_os = "windows")]
     {
-        let _ = path; // silence unused warning when the cover is dropped
-        None
+        let server = artwork?;
+        let pb = PathBuf::from(path);
+        let basename = pb.file_name()?.to_str()?.to_string();
+        // Register the absolute path so the HTTP handler can resolve
+        // it. Same-basename overwrites are fine — covers are content-
+        // hashed so the path under a given basename is stable.
+        if let Ok(mut map) = server.registry.write() {
+            map.insert(basename.clone(), pb);
+        }
+        // Basenames are blake3 hex + a known extension, so no URL
+        // encoding is needed in practice.
+        Some(format!(
+            "http://127.0.0.1:{}/artwork/{}",
+            server.port, basename
+        ))
     }
+
     #[cfg(not(target_os = "windows"))]
     {
+        let _ = artwork; // server isn't spawned on these platforms
         url::Url::from_file_path(path).ok().map(|u| u.to_string())
     }
+}
+
+/// Bind a tiny localhost HTTP server that serves cover art to SMTC.
+/// Returns `None` if binding fails — callers fall back to no cover.
+///
+/// Only spawned on Windows because MPRIS / MediaRemote consume
+/// `file://` directly and there's no benefit to opening a TCP port on
+/// those platforms (and Snap/Flatpak sandboxes may forbid it).
+#[cfg(target_os = "windows")]
+fn spawn_artwork_server() -> Option<ArtworkServer> {
+    let server = match tiny_http::Server::http("127.0.0.1:0") {
+        Ok(s) => s,
+        Err(err) => {
+            tracing::warn!(%err, "artwork server: bind failed");
+            return None;
+        }
+    };
+    let port = match server.server_addr().to_ip() {
+        Some(addr) => addr.port(),
+        None => {
+            tracing::warn!("artwork server: missing TCP address");
+            return None;
+        }
+    };
+    let registry: ArtworkRegistry = Arc::new(std::sync::RwLock::new(HashMap::new()));
+    let registry_for_thread = registry.clone();
+
+    let spawn = std::thread::Builder::new()
+        .name("waveflow-artwork-http".into())
+        .spawn(move || {
+            for request in server.incoming_requests() {
+                let response = serve_artwork(&registry_for_thread, request.url());
+                let _ = match response {
+                    Some((bytes, content_type)) => {
+                        let header = tiny_http::Header::from_bytes(
+                            &b"Content-Type"[..],
+                            content_type.as_bytes(),
+                        )
+                        .ok();
+                        let mut resp = tiny_http::Response::from_data(bytes);
+                        if let Some(h) = header {
+                            resp = resp.with_header(h);
+                        }
+                        request.respond(resp)
+                    }
+                    None => request.respond(tiny_http::Response::empty(404)),
+                };
+            }
+        });
+
+    if let Err(err) = spawn {
+        tracing::warn!(%err, "artwork server: thread spawn failed");
+        return None;
+    }
+
+    tracing::info!(port, "artwork server bound on 127.0.0.1");
+    Some(ArtworkServer { port, registry })
+}
+
+/// Resolve a `/artwork/<basename>` request to the file bytes plus a
+/// content-type guess, or `None` for any unknown / malformed path.
+#[cfg(target_os = "windows")]
+fn serve_artwork(registry: &ArtworkRegistry, url: &str) -> Option<(Vec<u8>, &'static str)> {
+    // tiny_http URLs include the query string; strip it.
+    let path_only = url.split('?').next().unwrap_or(url);
+    let basename = path_only.strip_prefix("/artwork/")?;
+    // Reject any path traversal — registry keys are flat basenames.
+    if basename.contains('/') || basename.contains('\\') || basename.contains("..") {
+        return None;
+    }
+    let abs = {
+        let map = registry.read().ok()?;
+        map.get(basename).cloned()?
+    };
+    let bytes = std::fs::read(&abs).ok()?;
+    let ext = abs
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    let content_type = match ext.as_str() {
+        "jpg" | "jpeg" => "image/jpeg",
+        "png" => "image/png",
+        "webp" => "image/webp",
+        "bmp" => "image/bmp",
+        "gif" => "image/gif",
+        _ => "application/octet-stream",
+    };
+    Some((bytes, content_type))
 }
 
 /// Initialize the OS media controls. Returns `None` if the platform
@@ -140,6 +266,12 @@ pub fn init(app: AppHandle) -> Option<MediaControlsHandle> {
 
     #[cfg(not(target_os = "windows"))]
     let hwnd_carrier = HwndCarrier(None);
+
+    #[cfg(target_os = "windows")]
+    let artwork = spawn_artwork_server();
+
+    #[cfg(not(target_os = "windows"))]
+    let artwork: Option<ArtworkServer> = None;
 
     let (tx, rx) = unbounded::<Msg>();
     let event_app = app.clone();
@@ -196,7 +328,7 @@ pub fn init(app: AppHandle) -> Option<MediaControlsHandle> {
         });
 
     match spawn {
-        Ok(_join) => Some(MediaControlsHandle { tx }),
+        Ok(_join) => Some(MediaControlsHandle { tx, artwork }),
         Err(err) => {
             tracing::warn!(%err, "media_controls: failed to spawn thread");
             None
