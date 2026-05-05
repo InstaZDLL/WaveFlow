@@ -100,6 +100,26 @@ impl RepeatMode {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn repeat_mode_round_trips_through_string() {
+        for mode in [RepeatMode::Off, RepeatMode::All, RepeatMode::One] {
+            assert_eq!(RepeatMode::from_str(mode.as_str()), mode);
+        }
+    }
+
+    #[test]
+    fn repeat_mode_unknown_string_falls_back_to_off() {
+        // The DB stores user-facing strings; an old / corrupted value
+        // must not panic. "Off" is the conservative default.
+        assert_eq!(RepeatMode::from_str("garbage"), RepeatMode::Off);
+        assert_eq!(RepeatMode::from_str(""), RepeatMode::Off);
+    }
+}
+
 // ---------------------------------------------------------------------
 // Helpers: typed wrappers around profile_setting string values
 // ---------------------------------------------------------------------

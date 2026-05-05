@@ -169,3 +169,61 @@ impl Default for SharedPlayback {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn position_zero_when_idle() {
+        // Right after construction nothing has been written: position
+        // is just the (zero) base offset — must not divide-by-zero on
+        // the empty sample_rate / channels fields.
+        let s = SharedPlayback::new();
+        assert_eq!(s.current_position_ms(), 0);
+        assert_eq!(s.session_listened_ms(), 0);
+    }
+
+    #[test]
+    fn position_combines_base_offset_and_played_samples() {
+        // 44.1 kHz stereo, 44_100 frames played → 1000 ms of audio
+        // delivered. With a 5_000 ms base offset (a resume point), the
+        // wall-clock track position is 6_000 ms.
+        let s = SharedPlayback::new();
+        s.sample_rate.store(44_100, Ordering::Relaxed);
+        s.channels.store(2, Ordering::Relaxed);
+        // samples_played counts interleaved frames * channels.
+        s.samples_played.store(44_100 * 2, Ordering::Relaxed);
+        s.base_offset_ms.store(5_000, Ordering::Relaxed);
+
+        assert_eq!(s.current_position_ms(), 6_000);
+        // session counter ignores the base offset on purpose.
+        assert_eq!(s.session_listened_ms(), 1_000);
+    }
+
+    #[test]
+    fn state_round_trips_through_atomic() {
+        let s = SharedPlayback::new();
+        for state in [
+            PlayerState::Idle,
+            PlayerState::Loading,
+            PlayerState::Playing,
+            PlayerState::Paused,
+            PlayerState::Ended,
+        ] {
+            s.set_state(state);
+            assert_eq!(s.state(), state);
+        }
+    }
+
+    #[test]
+    fn volume_clamps_to_unit_range() {
+        let s = SharedPlayback::new();
+        s.set_volume(2.5);
+        assert_eq!(s.volume(), 1.0);
+        s.set_volume(-1.0);
+        assert_eq!(s.volume(), 0.0);
+        s.set_volume(0.5);
+        assert_eq!(s.volume(), 0.5);
+    }
+}
