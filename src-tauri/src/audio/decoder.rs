@@ -20,7 +20,7 @@ use rtrb::{chunks::ChunkError, CopyToUninit, Producer};
 use serde::Serialize;
 use symphonia::core::formats::{SeekMode, SeekTo};
 use symphonia::core::units::Time;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -79,6 +79,18 @@ fn transition_state(
             track_id,
         },
     );
+    // Mirror the transition to the OS media overlay so the SMTC /
+    // MPRIS play/pause icon flips at the same moment the in-app one
+    // does. `Loading` is intentionally skipped — it's a brief
+    // transient that would render as `Stopped` on the overlay and
+    // flash the controls off for ~50 ms before Playing arrives.
+    if !matches!(state, PlayerState::Loading) {
+        if let Some(controls) =
+            app.try_state::<crate::media_controls::MediaControlsHandle>()
+        {
+            controls.update_playback(state, shared.current_position_ms());
+        }
+    }
 }
 
 /// Spawn the decoder thread.

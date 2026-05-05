@@ -12,6 +12,7 @@ mod deezer;
 mod error;
 mod lastfm;
 mod lrclib;
+mod media_controls;
 mod metadata_artwork;
 mod paths;
 mod queue;
@@ -98,6 +99,15 @@ pub fn run() {
                 }
             });
             app.manage(watcher);
+
+            // OS media controls (SMTC / MPRIS / MediaRemote) via
+            // souvlaki. Needs the main window to exist for HWND on
+            // Windows; on Linux/macOS the platform integration owns
+            // its own connection. Failure is non-fatal — playback
+            // keeps working without the OS overlay.
+            if let Some(controls) = media_controls::init(app.handle().clone()) {
+                app.manage(controls);
+            }
 
             // Last.fm scrobble worker. Polls scrobble_queue every 30 s
             // and posts eligible items to track.scrobble; survives

@@ -184,9 +184,28 @@ pub(crate) fn emit_track_changed(
         Some(artist) if !artist.is_empty() => format!("{} — {}", payload.title, artist),
         _ => payload.title.clone(),
     };
-    let _ = app.emit("player:track-changed", payload);
+    let _ = app.emit("player:track-changed", payload.clone());
     if let Some(tray) = app.tray_by_id("waveflow") {
         let _ = tray.set_tooltip(Some(tooltip));
+    }
+
+    // Push the new track to the OS media overlay (SMTC / MPRIS /
+    // MediaRemote). Optional — `init` returns None on platforms
+    // where souvlaki failed to start.
+    if let Some(controls) = app.try_state::<crate::media_controls::MediaControlsHandle>() {
+        controls.update_metadata(
+            payload.title,
+            payload.artist_name,
+            payload.album_title,
+            payload.artwork_path,
+            payload.duration_ms,
+        );
+        // Reset the OS progress bar to zero so the overlay's
+        // scrubber matches the freshly loaded track. The decoder
+        // will follow up with the Loading → Playing transition,
+        // which keeps the OS state in sync after the actual
+        // first samples reach the device.
+        controls.update_playback(crate::audio::PlayerState::Playing, 0);
     }
 
     // Schedule a Last.fm `track.updateNowPlaying` ping after a short
@@ -546,10 +565,19 @@ pub async fn player_stop(engine: tauri::State<'_, Arc<AudioEngine>>) -> AppResul
 /// Seek the current track to an absolute position in milliseconds.
 #[tauri::command]
 pub async fn player_seek(
+    app: AppHandle,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     ms: u64,
 ) -> AppResult<()> {
-    engine.send(AudioCmd::Seek(ms))
+    engine.send(AudioCmd::Seek(ms))?;
+    // Resync the OS overlay's progress bar. The decoder doesn't
+    // transition state on a seek (Playing stays Playing), so the
+    // automatic state-change hook wouldn't fire here.
+    if let Some(controls) = app.try_state::<crate::media_controls::MediaControlsHandle>() {
+        let state = engine.shared().state();
+        controls.update_playback(state, ms);
+    }
+    Ok(())
 }
 
 /// Set playback volume. `value` is clamped to `[0.0, 1.0]` on the

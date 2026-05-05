@@ -26,7 +26,7 @@ use cpal::{SampleFormat, Stream, StreamConfig};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use rtrb::{Consumer, Producer, RingBuffer};
 use serde_json::json;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::error::{AppError, AppResult};
 
@@ -213,6 +213,11 @@ where
             "player:error",
             json!({ "message": format!("audio device error: {err}") }),
         );
+        if let Some(controls) =
+            err_app.try_state::<crate::media_controls::MediaControlsHandle>()
+        {
+            controls.update_playback(PlayerState::Paused, err_shared.current_position_ms());
+        }
     };
 
     let stream = device

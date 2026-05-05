@@ -95,3 +95,12 @@ anyhow = "1"
 # track.updateNowPlaying) need an md5 of the param block + secret.
 md-5 = "0.10"
 hex = "0.4"
+
+# OS-level media controls: SMTC on Windows, MPRIS on Linux,
+# MediaRemoteCommandCenter on macOS. Souvlaki abstracts the three
+# behind a single API; the integration lives in `media_controls.rs`.
+souvlaki = "0.8"
+
+# Build proper file:// URIs for cover art paths handed to MPRIS / SMTC.
+# `url` is already in our transitive tree via reqwest.
+url = "2"
