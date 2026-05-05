@@ -1,6 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import type { ViewId, LibraryTab } from "../../types";
 import { useTheme } from "../../hooks/useTheme";
+import { useLibrary } from "../../hooks/useLibrary";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { QueuePanel } from "./QueuePanel";
@@ -22,6 +23,7 @@ import { ArtistDetailView } from "../views/ArtistDetailView";
 import { ProfileSelectorModal } from "../common/ProfileSelectorModal";
 import { LastfmReauthBanner } from "../common/LastfmReauthBanner";
 import { UpdateBanner } from "../common/UpdateBanner";
+import { OnboardingModal } from "../common/OnboardingModal";
 
 export function AppLayout() {
   const { isDark } = useTheme();
@@ -35,6 +37,17 @@ export function AppLayout() {
   const [activePlaylistId, setActivePlaylistId] = useState<number | null>(null);
   const [activeAlbumId, setActiveAlbumId] = useState<number | null>(null);
   const [activeArtistId, setActiveArtistId] = useState<number | null>(null);
+
+  // First-run onboarding: prompt the user to point WaveFlow at a music
+  // folder when no library has been populated yet. Skipping is session-
+  // only — if they restart with an empty library, the modal returns.
+  const { libraries, isLoading: isLibraryLoading } = useLibrary();
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const showOnboarding = useMemo(() => {
+    if (isLibraryLoading || onboardingDismissed) return false;
+    if (libraries.length === 0) return true;
+    return libraries.every((l) => l.folder_count === 0);
+  }, [isLibraryLoading, libraries, onboardingDismissed]);
 
   const activeView = viewHistory[historyIndex];
 
@@ -195,6 +208,9 @@ export function AppLayout() {
 
       <LastfmReauthBanner onGoToSettings={() => setActiveView("settings")} />
       <UpdateBanner />
+      {showOnboarding && (
+        <OnboardingModal onSkip={() => setOnboardingDismissed(true)} />
+      )}
     </div>
   );
 }

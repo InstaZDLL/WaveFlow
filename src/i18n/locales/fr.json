@@ -31,6 +31,27 @@
       "title": "Échec de la mise à jour"
     }
   },
+  "onboarding": {
+    "defaultLibraryName": "Musique",
+    "welcome": {
+      "title": "Bienvenue dans WaveFlow",
+      "message": "Pour commencer, indique le dossier qui contient ta musique. WaveFlow va le scanner et organiser ta bibliothèque automatiquement.",
+      "action": "Choisir mon dossier de musique",
+      "skip": "Configurer plus tard"
+    },
+    "scanning": {
+      "title": "Analyse de ta musique…"
+    },
+    "done": {
+      "title": "{{count}} morceaux ajoutés",
+      "message": "Ta bibliothèque est prête. Bonne écoute !",
+      "action": "Commencer à écouter"
+    },
+    "error": {
+      "title": "L'analyse a échoué",
+      "retry": "Réessayer"
+    }
+  },
   "sidebar": {
     "brand": {
       "beta": "Beta"

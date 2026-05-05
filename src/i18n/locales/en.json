@@ -31,6 +31,27 @@
       "title": "Update failed"
     }
   },
+  "onboarding": {
+    "defaultLibraryName": "Music",
+    "welcome": {
+      "title": "Welcome to WaveFlow",
+      "message": "To get started, point WaveFlow at the folder where your music lives. We'll scan it and build your library automatically.",
+      "action": "Choose my music folder",
+      "skip": "Set up later"
+    },
+    "scanning": {
+      "title": "Scanning your music…"
+    },
+    "done": {
+      "title": "{{count}} tracks added",
+      "message": "Your library is ready. Enjoy!",
+      "action": "Start listening"
+    },
+    "error": {
+      "title": "Scan failed",
+      "retry": "Retry"
+    }
+  },
   "sidebar": {
     "brand": {
       "beta": "Beta"

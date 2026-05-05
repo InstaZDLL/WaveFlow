@@ -31,6 +31,27 @@
       "title": "Update fehlgeschlagen"
     }
   },
+  "onboarding": {
+    "defaultLibraryName": "Musik",
+    "welcome": {
+      "title": "Willkommen bei WaveFlow",
+      "message": "Wähle zum Starten den Ordner aus, in dem deine Musik liegt. WaveFlow scannt ihn und baut deine Bibliothek automatisch auf.",
+      "action": "Musikordner auswählen",
+      "skip": "Später einrichten"
+    },
+    "scanning": {
+      "title": "Musik wird analysiert…"
+    },
+    "done": {
+      "title": "{{count}} Titel hinzugefügt",
+      "message": "Deine Bibliothek ist bereit. Viel Spaß beim Hören!",
+      "action": "Jetzt loslegen"
+    },
+    "error": {
+      "title": "Analyse fehlgeschlagen",
+      "retry": "Erneut versuchen"
+    }
+  },
   "sidebar": {
     "brand": {
       "beta": "Beta"

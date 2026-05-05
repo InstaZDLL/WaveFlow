@@ -31,6 +31,27 @@
       "title": "Error al actualizar"
     }
   },
+  "onboarding": {
+    "defaultLibraryName": "Música",
+    "welcome": {
+      "title": "Bienvenido a WaveFlow",
+      "message": "Para empezar, indica la carpeta donde guardas tu música. WaveFlow la analizará y organizará tu biblioteca automáticamente.",
+      "action": "Elegir mi carpeta de música",
+      "skip": "Configurar más tarde"
+    },
+    "scanning": {
+      "title": "Analizando tu música…"
+    },
+    "done": {
+      "title": "{{count}} pistas añadidas",
+      "message": "Tu biblioteca está lista. ¡Disfruta!",
+      "action": "Empezar a escuchar"
+    },
+    "error": {
+      "title": "El análisis falló",
+      "retry": "Reintentar"
+    }
+  },
   "sidebar": {
     "brand": {
       "beta": "Beta"
