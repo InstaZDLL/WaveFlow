@@ -423,7 +423,10 @@
     "upNext_other": "Up next · {{count}} tracks"
   },
   "deviceMenu": {
-    "activeLabel": "Discard all samples (playback)"
+    "activeLabel": "Active output",
+    "loading": "Looking for devices…",
+    "empty": "No output device available",
+    "systemDefault": "System default"
   },
   "profiles": {
     "select": {

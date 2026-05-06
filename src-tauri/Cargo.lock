@@ -6475,6 +6475,7 @@ dependencies = [
 name = "waveflow"
 version = "0.1.0"
 dependencies = [
+ "alsa",
  "anyhow",
  "blake3",
  "chrono",
@@ -6483,6 +6484,7 @@ dependencies = [
  "fast_image_resize",
  "hex",
  "image",
+ "libc",
  "lofty",
  "md-5",
  "notify",

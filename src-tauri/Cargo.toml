@@ -111,3 +111,12 @@ url = "2"
 # URIs in `RandomAccessStreamReference::CreateFromUri` (file:// is
 # rejected). The server is gated to localhost.
 tiny_http = "0.12"
+
+# Linux-only: direct ALSA enumeration so the output-device picker can
+# show human-readable descriptions ("HDA Intel PCH, ALC897 Analog
+# Stereo") instead of cpal's short identifiers ("hdmi:CARD=PCH,DEV=0").
+# Also lets us silence ALSA's noisy stderr probe warnings around cpal
+# enumeration.
+[target.'cfg(target_os = "linux")'.dependencies]
+alsa = "0.9"
+libc = "0.2"

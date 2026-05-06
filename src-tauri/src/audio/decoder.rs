@@ -105,7 +105,7 @@ fn transition_state(
 /// after [`super::output::spawn_output_thread`] has stamped them in.
 pub fn spawn_decoder_thread(
     cmd_rx: Receiver<AudioCmd>,
-    mut producer: Producer<f32>,
+    producer: Producer<f32>,
     shared: Arc<SharedPlayback>,
     app: AppHandle,
     analytics_tx: UnboundedSender<AnalyticsMsg>,
@@ -113,6 +113,11 @@ pub fn spawn_decoder_thread(
     std::thread::Builder::new()
         .name("waveflow-audio-decoder".into())
         .spawn(move || {
+            // The decoder owns its `Producer<f32>`. It is never lent
+            // out across threads; only swapped wholesale via
+            // `AudioCmd::SwapProducer` when the engine rebuilds the
+            // cpal output thread on a different device.
+            let mut producer = producer;
             decoder_loop(cmd_rx, &mut producer, shared, app, analytics_tx);
         })
 }
@@ -246,6 +251,15 @@ fn decoder_loop(
                         transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                     }
                 }
+            }
+            AudioCmd::SwapProducer(new_producer) => {
+                // The output thread was rebuilt on a different cpal
+                // device; the consumer half of the old ring went with
+                // it, so any further `producer.push()` would silently
+                // discard samples. Replace the local handle so the
+                // next `LoadAndPlay` writes to the live ring.
+                *producer = new_producer;
+                tracing::info!("decoder picked up new ring producer");
             }
             AudioCmd::Shutdown => return,
             // All other commands are no-ops when no track is playing —
@@ -876,6 +890,14 @@ fn drain_commands(
                             return ControlFlow::LoadNext;
                         }
                         Ok(AudioCmd::Pause) => {}
+                        // SwapProducer can't reach this loop in
+                        // practice — `set_output_device` always sends
+                        // a `Stop` first, which breaks us out before
+                        // the new producer arrives — but the match
+                        // has to be exhaustive. Drop it on the floor;
+                        // the producer goes out of scope and tears
+                        // the orphaned ring down.
+                        Ok(AudioCmd::SwapProducer(_)) => {}
                         Err(_) => return ControlFlow::Shutdown,
                     }
                 }

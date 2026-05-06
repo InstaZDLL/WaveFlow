@@ -754,6 +754,109 @@ pub struct AudioSettingsSnapshot {
     pub replaygain: bool,
 }
 
+/// One row in the output-device picker that powers the PlayerBar
+/// device menu. `id` and `name` are both the cpal device name (cpal
+/// gives us no stable ID, and the UI matches selections by name on
+/// the way back). `is_active` is true for the device the engine is
+/// currently driving — `None` in `current_output_device` means
+/// "tracking the OS default", which is selected if no row matches.
+#[derive(Debug, serde::Serialize)]
+pub struct OutputDeviceRow {
+    pub id: String,
+    pub name: String,
+    pub is_default: bool,
+    pub is_active: bool,
+}
+
+/// Enumerate every output device and flag which one the engine is
+/// currently driving. The frontend re-fetches this whenever the
+/// device menu opens so freshly-attached USB DACs / Bluetooth sinks
+/// show up without an app restart.
+///
+/// On Linux ALSA, `output_devices()` probes every card and prints
+/// scary `pcm_dmix` / `pcm_route` warnings for cards that are
+/// enumerable but not openable (HDMI sinks with no monitor attached,
+/// Bluetooth profiles in the wrong state, …). The errors don't
+/// indicate a real problem on our side — they're cpal internals
+/// leaking through ALSA's stderr. We still return whatever names
+/// cpal hands us; clicking a broken device is handled by the engine
+/// keeping the previous device alive.
+#[tauri::command]
+pub async fn player_list_output_devices(
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+) -> AppResult<Vec<OutputDeviceRow>> {
+    let active = engine.current_output_device();
+    // cpal enumeration walks the OS audio stack and can block for
+    // ~100 ms+ on Linux. Push it onto the blocking pool so the tokio
+    // runtime stays responsive — without this the WebView freezes
+    // while the menu is opening.
+    let devices = tokio::task::spawn_blocking(crate::audio::list_output_devices)
+        .await
+        .map_err(|e| AppError::Audio(format!("device enumeration task: {e}")))??;
+    Ok(devices
+        .into_iter()
+        .map(|d| {
+            // When the engine isn't pinned to a specific device
+            // (`active = None`), it's tracking the OS default — so
+            // show the OS-default row as active. Without this the
+            // header reads "Active output" with nothing highlighted
+            // on first open, which looks broken even though playback
+            // works fine.
+            let is_active = match active.as_deref() {
+                Some(name) => d.id == name,
+                None => d.is_default,
+            };
+            OutputDeviceRow {
+                is_active,
+                id: d.id,
+                name: d.name,
+                is_default: d.is_default,
+            }
+        })
+        .collect())
+}
+
+/// Switch playback to a different cpal output device. `device_id =
+/// None` follows the OS default (the engine's startup state). The
+/// engine validates the new device, releases the old one, then
+/// resumes the same track at the same position. If the new device
+/// can't be opened (broken HDMI sink, busy exclusive output, …) the
+/// engine keeps the previous device active and the error is
+/// surfaced to the frontend.
+///
+/// Persisted in `profile_setting['audio.output_device']` so the
+/// choice survives an app restart.
+#[tauri::command]
+pub async fn player_set_output_device(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    device_id: Option<String>,
+) -> AppResult<()> {
+    let engine_clone: Arc<AudioEngine> = engine.inner().clone();
+    let device_for_engine = device_id.clone();
+    // Same rationale as `player_list_output_devices`: opening /
+    // tearing down a cpal stream blocks. Don't wedge the runtime.
+    tokio::task::spawn_blocking(move || engine_clone.set_output_device(device_for_engine))
+        .await
+        .map_err(|e| AppError::Audio(format!("set output device task: {e}")))??;
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        // Empty string represents "default" so the column stays
+        // NOT NULL — the load path translates back to None.
+        let stored = device_id.unwrap_or_default();
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.output_device', ?, 'string', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(stored)
+        .bind(now)
+        .execute(&pool)
+        .await;
+    }
+    Ok(())
+}
+
 /// Replace the queue with the given track list and start playing at
 /// `start_index`. `source_type` must match one of the enum values on
 /// `queue_item.source_type` ('album'|'playlist'|'artist'|'library'|

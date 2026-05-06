@@ -417,7 +417,10 @@
     "upNext_other": "Als Nächstes · {{count}} Titel"
   },
   "deviceMenu": {
-    "activeLabel": "Discard all samples (playback)"
+    "activeLabel": "Aktive Ausgabe",
+    "loading": "Geräte werden gesucht…",
+    "empty": "Kein Ausgabegerät verfügbar",
+    "systemDefault": "Systemstandard"
   },
   "profiles": {
     "select": {

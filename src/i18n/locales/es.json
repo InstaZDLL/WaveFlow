@@ -423,7 +423,10 @@
     "upNext_other": "A continuación · {{count}} canciones"
   },
   "deviceMenu": {
-    "activeLabel": "Discard all samples (playback)"
+    "activeLabel": "Salida activa",
+    "loading": "Buscando dispositivos…",
+    "empty": "No hay dispositivos de salida disponibles",
+    "systemDefault": "Predeterminado"
   },
   "profiles": {
     "select": {

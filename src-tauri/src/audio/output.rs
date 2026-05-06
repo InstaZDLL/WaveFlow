@@ -25,12 +25,177 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{SampleFormat, Stream, StreamConfig};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use rtrb::{Consumer, Producer, RingBuffer};
+use serde::Serialize;
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::error::{AppError, AppResult};
 
 use super::state::{PlayerState, SharedPlayback};
+
+/// Description of one available output device, returned to the
+/// frontend by [`list_output_devices`]. The `id` field is the cpal
+/// device name — there is no stable platform-independent ID, so we
+/// match by name when the user picks one.
+#[derive(Debug, Clone, Serialize)]
+pub struct OutputDeviceInfo {
+    pub id: String,
+    pub name: String,
+    pub is_default: bool,
+}
+
+/// Enumerate every output device available on the default audio host.
+/// The OS default is flagged so the UI can highlight it.
+///
+/// On Linux we deliberately **avoid** `cpal::HostTrait::output_devices()`
+/// here: cpal's ALSA backend calls `snd_pcm_open()` on every card to
+/// build its iterator, which probes hardware (HDMI sinks, Bluetooth
+/// profiles, …) and can take 1-2 seconds plus spam stderr with
+/// `pcm_dmix` / `pcm_route` warnings. That's the source of the
+/// 2-second freeze the user sees when opening the device menu —
+/// webkit2gtk renders a black frame while waiting on the IPC. Instead
+/// we read the ALSA hint database (`snd_device_name_hint("pcm")`),
+/// which is just a config parse and finishes in a few ms with no
+/// probing. cpal stays in charge of actually opening the device when
+/// the user picks one — we just don't need it for the listing step.
+pub fn list_output_devices() -> AppResult<Vec<OutputDeviceInfo>> {
+    #[cfg(target_os = "linux")]
+    {
+        list_output_devices_alsa_hints()
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        list_output_devices_cpal()
+    }
+}
+
+/// Fallback enumeration via cpal — used on non-Linux platforms where
+/// the host's enumeration is fast enough not to need a workaround.
+#[cfg(not(target_os = "linux"))]
+fn list_output_devices_cpal() -> AppResult<Vec<OutputDeviceInfo>> {
+    let host = cpal::default_host();
+    let default_name = host.default_output_device().and_then(|d| d.name().ok());
+    let devices = host
+        .output_devices()
+        .map_err(|e| AppError::Audio(format!("enumerate output devices: {e}")))?;
+    let mut out = Vec::new();
+    for device in devices {
+        let Ok(name) = device.name() else { continue };
+        let is_default = default_name.as_deref().is_some_and(|n| n == name);
+        out.push(OutputDeviceInfo {
+            id: name.clone(),
+            name,
+            is_default,
+        });
+    }
+    Ok(out)
+}
+
+/// Linux-only fast enumeration via ALSA's hint API. Same data as
+/// `aplay -L` exposes — config-level info, no PCM probing — so it
+/// returns instantly even on systems with many HDMI cards.
+///
+/// We still need cpal for the *default device's name* so we can flag
+/// the right row, but `default_output_device()` is a single-device
+/// lookup that doesn't iterate.
+#[cfg(target_os = "linux")]
+fn list_output_devices_alsa_hints() -> AppResult<Vec<OutputDeviceInfo>> {
+    use std::collections::HashSet;
+    use std::ffi::CString;
+
+    // cpal's `default_output_device` opens just the "default" alias
+    // (one open, fast) and reports its resolved name. We use that to
+    // mark which hint row should carry `is_default = true`. Wrapped
+    // in `silence_alsa_stderr` to swallow any tangential probe noise.
+    let default_name = silence_alsa_stderr(|| {
+        cpal::default_host()
+            .default_output_device()
+            .and_then(|d| d.name().ok())
+    });
+
+    let pcm = CString::new("pcm")
+        .map_err(|e| AppError::Audio(format!("CString: {e}")))?;
+    let iter = alsa::device_name::HintIter::new(None, pcm.as_c_str())
+        .map_err(|e| AppError::Audio(format!("ALSA HintIter: {e}")))?;
+
+    let mut seen: HashSet<String> = HashSet::new();
+    let mut out = Vec::new();
+    for hint in iter {
+        // Filter to playback-capable devices. ALSA hints with no
+        // `direction` field can be either, so we keep them.
+        let direction_ok = matches!(
+            hint.direction,
+            None | Some(alsa::Direction::Playback)
+        );
+        if !direction_ok {
+            continue;
+        }
+        let Some(name) = hint.name else { continue };
+        // `null` is ALSA's bit bucket — useless to the user.
+        if name == "null" {
+            continue;
+        }
+        // ALSA reports the same hint multiple times in some configs
+        // (once per profile). Dedupe by name.
+        if !seen.insert(name.clone()) {
+            continue;
+        }
+        let display = hint
+            .desc
+            .map(|d| d.replace('\n', ", "))
+            .unwrap_or_else(|| name.clone());
+        let is_default = default_name.as_deref().is_some_and(|d| d == name);
+        out.push(OutputDeviceInfo {
+            id: name,
+            name: display,
+            is_default,
+        });
+    }
+    Ok(out)
+}
+
+/// Run the closure while ALSA library error messages are redirected
+/// to /dev/null. On Linux, cpal's enumeration probes every PCM card
+/// and ALSA helpfully prints `pcm_dmix` / `pcm_route` warnings for
+/// cards that aren't currently usable (HDMI sinks with no monitor
+/// attached, Bluetooth profiles in the wrong state, …). The warnings
+/// are noise — failure to open during a probe is expected — so we
+/// hide them while we're enumerating.
+///
+/// On non-Linux platforms this is a passthrough.
+#[cfg(target_os = "linux")]
+fn silence_alsa_stderr<R, F: FnOnce() -> R>(f: F) -> R {
+    use std::os::unix::io::AsRawFd;
+
+    // Open /dev/null + dup the current stderr (fd 2) so we can put it
+    // back. If anything fails, just run `f` with stderr untouched —
+    // we'd rather show the spam than skip enumeration.
+    let dev_null = match std::fs::OpenOptions::new().write(true).open("/dev/null") {
+        Ok(f) => f,
+        Err(_) => return f(),
+    };
+    let saved = unsafe { libc::dup(2) };
+    if saved < 0 {
+        return f();
+    }
+    if unsafe { libc::dup2(dev_null.as_raw_fd(), 2) } < 0 {
+        unsafe { libc::close(saved) };
+        return f();
+    }
+    let result = f();
+    // Restore stderr — best-effort. If `dup2` fails here we can't do
+    // much, but the OS will reclaim the fd at process exit.
+    unsafe {
+        libc::dup2(saved, 2);
+        libc::close(saved);
+    }
+    result
+}
+
+#[cfg(not(target_os = "linux"))]
+fn silence_alsa_stderr<R, F: FnOnce() -> R>(f: F) -> R {
+    f()
+}
 
 /// Capacity of the SPSC sample ring, in f32 samples. At 48 kHz stereo
 /// this is ~1 second of audio, which gives the decoder thread plenty of
@@ -44,6 +209,10 @@ pub const RING_CAPACITY: usize = 96_000;
 pub struct OutputHandle {
     pub shutdown_tx: Sender<()>,
     pub join: JoinHandle<()>,
+    /// Resolved device name actually used by this output thread —
+    /// `None` means the OS default device. Saved so a hot-swap can
+    /// no-op when the user picks the same device again.
+    pub device_name: Option<String>,
 }
 
 impl OutputHandle {
@@ -72,6 +241,7 @@ impl OutputHandle {
 pub fn spawn_output_thread(
     shared: Arc<SharedPlayback>,
     app: AppHandle,
+    device_name: Option<String>,
 ) -> AppResult<(Producer<f32>, OutputHandle)> {
     let (producer, consumer) = RingBuffer::<f32>::new(RING_CAPACITY);
     let (shutdown_tx, shutdown_rx) = bounded::<()>(1);
@@ -79,10 +249,18 @@ pub fn spawn_output_thread(
 
     let thread_shared = shared.clone();
     let thread_app = app.clone();
+    let thread_device = device_name.clone();
     let join = std::thread::Builder::new()
         .name("waveflow-audio-output".into())
         .spawn(move || {
-            output_thread_main(thread_shared, consumer, shutdown_rx, init_tx, thread_app)
+            output_thread_main(
+                thread_shared,
+                consumer,
+                shutdown_rx,
+                init_tx,
+                thread_app,
+                thread_device,
+            )
         })
         .map_err(|e| AppError::Audio(format!("spawn output thread: {e}")))?;
 
@@ -94,6 +272,7 @@ pub fn spawn_output_thread(
             OutputHandle {
                 shutdown_tx,
                 join,
+                device_name,
             },
         )),
         Ok(Err(err)) => {
@@ -115,8 +294,9 @@ fn output_thread_main(
     shutdown_rx: Receiver<()>,
     init_tx: Sender<AppResult<()>>,
     app: AppHandle,
+    device_name: Option<String>,
 ) {
-    let stream = match build_stream(shared.clone(), consumer, app.clone()) {
+    let stream = match build_stream(shared.clone(), consumer, app.clone(), device_name) {
         Ok(s) => s,
         Err(err) => {
             let _ = init_tx.send(Err(err));
@@ -145,11 +325,50 @@ fn build_stream(
     shared: Arc<SharedPlayback>,
     consumer: Consumer<f32>,
     app: AppHandle,
+    device_name: Option<String>,
+) -> AppResult<Stream> {
+    silence_alsa_stderr(|| build_stream_inner(shared, consumer, app, device_name))
+}
+
+fn build_stream_inner(
+    shared: Arc<SharedPlayback>,
+    consumer: Consumer<f32>,
+    app: AppHandle,
+    device_name: Option<String>,
 ) -> AppResult<Stream> {
     let host = cpal::default_host();
-    let device = host
-        .default_output_device()
-        .ok_or_else(|| AppError::Audio("no default audio output device".into()))?;
+    // If a specific device was requested, look it up by name. If the
+    // user picked a device that since vanished (USB DAC unplugged
+    // between sessions), fall back to the OS default rather than
+    // erroring out — the alternative is a silent app on next launch.
+    let device = match device_name.as_deref() {
+        Some(name) => {
+            let mut found = None;
+            if let Ok(iter) = host.output_devices() {
+                for d in iter {
+                    if d.name().ok().as_deref() == Some(name) {
+                        found = Some(d);
+                        break;
+                    }
+                }
+            }
+            match found {
+                Some(d) => d,
+                None => {
+                    tracing::warn!(
+                        device = %name,
+                        "requested output device not found, falling back to default"
+                    );
+                    host.default_output_device().ok_or_else(|| {
+                        AppError::Audio("no default audio output device".into())
+                    })?
+                }
+            }
+        }
+        None => host
+            .default_output_device()
+            .ok_or_else(|| AppError::Audio("no default audio output device".into()))?,
+    };
 
     let default_cfg = device
         .default_output_config()

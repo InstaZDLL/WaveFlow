@@ -23,4 +23,5 @@ pub mod resampler;
 pub mod state;
 
 pub use engine::{AudioCmd, AudioEngine};
+pub use output::list_output_devices;
 pub use state::PlayerState;

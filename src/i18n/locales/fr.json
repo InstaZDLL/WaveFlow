@@ -423,7 +423,10 @@
     "upNext_other": "À suivre · {{count}} titres"
   },
   "deviceMenu": {
-    "activeLabel": "Discard all samples (playback)"
+    "activeLabel": "Sortie active",
+    "loading": "Recherche des périphériques…",
+    "empty": "Aucun périphérique de sortie disponible",
+    "systemDefault": "Par défaut"
   },
   "profiles": {
     "select": {

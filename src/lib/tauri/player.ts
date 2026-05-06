@@ -206,3 +206,35 @@ export function playerSetCrossfade(seconds: number): Promise<void> {
 export function playerSetReplayGain(enabled: boolean): Promise<void> {
   return invoke<void>("player_set_replaygain", { enabled });
 }
+
+// ── Output device picker ───────────────────────────────────────────
+
+/**
+ * Mirrors `commands::player::OutputDeviceRow`. `id` is the cpal
+ * device name (cpal does not surface stable IDs across hosts) and
+ * doubles as the value passed back to `playerSetOutputDevice`.
+ * `is_active` flags the device the engine is currently driving;
+ * `is_default` flags the OS default device so the UI can show
+ * something like "(System default)" next to it.
+ */
+export interface OutputDevice {
+  id: string;
+  name: string;
+  is_default: boolean;
+  is_active: boolean;
+}
+
+export function playerListOutputDevices(): Promise<OutputDevice[]> {
+  return invoke<OutputDevice[]>("player_list_output_devices");
+}
+
+/**
+ * `deviceId = null` (or `undefined`) means "follow the OS default".
+ * The backend pauses, releases the old device, opens the new one,
+ * and resumes the same track at the same position.
+ */
+export function playerSetOutputDevice(
+  deviceId: string | null
+): Promise<void> {
+  return invoke<void>("player_set_output_device", { deviceId });
+}
