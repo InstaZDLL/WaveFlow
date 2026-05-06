@@ -9,19 +9,19 @@
     "optional": "(optional)"
   },
   "lastfmReauth": {
-    "title": "Last.fm session expired",
-    "message": "Your scrobbles are no longer being sent. Sign in again to resume.",
-    "action": "Open settings"
+    "title": "Last.fm session has expired",
+    "message": "Your scrobbles are no longer being sent. Please log in again to resume.",
+    "action": "Open Settings"
   },
   "updater": {
     "available": {
-      "title": "Update available (v{{version}})",
-      "message": "A new version of WaveFlow is ready to install.",
-      "action": "Install now",
+      "title": "Update available ({{version}})",
+      "message": "A new version of WaveFlow is ready to be installed.",
+      "action": "Install Now",
       "later": "Later"
     },
     "downloading": {
-      "title": "Downloading update…"
+      "title": "Downloading the update…"
     },
     "installed": {
       "title": "Update installed",
@@ -35,21 +35,21 @@
     "defaultLibraryName": "Music",
     "welcome": {
       "title": "Welcome to WaveFlow",
-      "message": "To get started, point WaveFlow at the folder where your music lives. We'll scan it and build your library automatically.",
-      "action": "Choose my music folder",
+      "message": "To get started, select the folder that contains your music. WaveFlow will scan it and organize your library automatically.",
+      "action": "Select my music folder",
       "skip": "Set up later"
     },
     "scanning": {
-      "title": "Scanning your music…"
+      "title": "Analysis of your music…"
     },
     "done": {
-      "title": "{{count}} tracks added",
+      "title": "{{count}} songs added",
       "message": "Your library is ready. Enjoy!",
       "action": "Start listening"
     },
     "error": {
-      "title": "Scan failed",
-      "retry": "Retry"
+      "title": "The analysis failed",
+      "retry": "Try again"
     }
   },
   "sidebar": {
@@ -66,29 +66,29 @@
     },
     "open": {
       "file": "File",
-      "folder": "Folder"
+      "folder": "File"
     },
     "library": {
-      "tracksCount_zero": "0 tracks",
-      "tracksCount_one": "{{count}} track",
-      "tracksCount_other": "{{count}} tracks",
+      "tracksCount_zero": "0 titles",
+      "tracksCount_one": "{{count}} title",
+      "tracksCount_other": "{{count}} titles",
       "createLibraryAria": "Create a new library",
-      "none": "No library",
+      "none": "No libraries",
       "popover": {
-        "label": "Library selection",
+        "label": "Library Selection",
         "header": "Libraries",
         "countLine": "{{tracks}} · {{albums}}",
-        "tracks_zero": "0 tracks",
-        "tracks_one": "{{count}} track",
-        "tracks_other": "{{count}} tracks",
+        "tracks_zero": "0 titles",
+        "tracks_one": "{{count}} title",
+        "tracks_other": "{{count}} titles",
         "albums_zero": "0 albums",
         "albums_one": "{{count}} album",
         "albums_other": "{{count}} albums",
-        "see": "View",
-        "new": "New"
+        "see": "See",
+        "new": "News"
       },
       "nav": {
-        "tracks": "Tracks",
+        "tracks": "Songs",
         "albums": "Albums",
         "artists": "Artists",
         "genres": "Genres",
@@ -99,54 +99,54 @@
       "createPlaylistAria": "Create a new playlist",
       "importM3uAria": "Import an M3U playlist",
       "importDialogTitle": "Import an M3U playlist",
-      "liked": "Liked tracks",
+      "liked": "Liked posts",
       "recent": "Recently played",
-      "emptySubtext_zero": "0 tracks",
-      "emptySubtext_one": "{{count}} track",
-      "emptySubtext_other": "{{count}} tracks"
+      "emptySubtext_zero": "0 titles",
+      "emptySubtext_one": "{{count}} title",
+      "emptySubtext_other": "{{count}} titles"
     },
     "myMusic": {
-      "title": "My Music",
+      "title": "My music",
       "addFolderAria": "Import a folder",
-      "tracks": "Tracks",
+      "tracks": "Songs",
       "albums": "Albums",
       "artists": "Artists",
       "genres": "Genres",
-      "folders": "Folders"
+      "folders": "Files"
     },
     "playlistSection": {
       "title": "Playlists"
     },
     "myLibrary": {
-      "playlistSubtext_zero": "0 tracks",
-      "playlistSubtext_one": "{{count}} track",
-      "playlistSubtext_other": "{{count}} tracks"
+      "playlistSubtext_zero": "0 titles",
+      "playlistSubtext_one": "{{count}} title",
+      "playlistSubtext_other": "{{count}} titles"
     }
   },
   "topbar": {
     "search": {
-      "placeholder": "Search for a track, artist, album...",
+      "placeholder": "Search for a song, an artist, an album...",
       "results_zero": "No results",
       "results_one": "{{count}} result",
       "results_other": "{{count}} results"
     },
     "theme": {
-      "enableLight": "Switch to light mode",
-      "enableDark": "Switch to dark mode"
+      "enableLight": "Turn on light mode",
+      "enableDark": "Turn on dark mode"
     },
     "profile": {
       "user": "User",
-      "changeProfile": "Switch profile",
+      "changeProfile": "Change profile",
       "statistics": "Statistics",
       "settings": "Settings",
       "feedback": "Feedback",
       "about": "About",
-      "quit": "Quit application"
+      "quit": "Exit the app"
     }
   },
   "home": {
     "greeting": {
-      "morning": "Good morning",
+      "morning": "Hello",
       "evening": "Good evening",
       "night": "Good night"
     },
@@ -154,49 +154,49 @@
       "badge": "Ready to listen",
       "subtitle": "Discover your favorite music and explore new sounds.",
       "openFile": "Open a file",
-      "openFolder": "Open a folder",
+      "openFolder": "Open a file",
       "importFiles": "Import files",
       "importFolder": "Import folder"
     },
     "stats": {
       "library": "Library",
-      "liked": "Liked tracks",
+      "liked": "Liked posts",
       "recent": "Recently played",
       "playlists": "Playlists"
     },
     "recentlyPlayed": {
       "title": "Recently played",
-      "emptyTitle": "No track played yet",
-      "emptyDescription": "Play a track to see it appear here. Your listening history builds up as you discover."
+      "emptyTitle": "No tracks played",
+      "emptyDescription": "Play a song to have it appear here. Your listening history builds up as you discover new music."
     }
   },
   "library": {
     "header": {
       "addFolder": "Add a folder",
       "subtext": {
-        "morceaux_zero": "0 Tracks",
+        "morceaux_zero": "0 Track",
         "morceaux_one": "{{count}} Track",
-        "morceaux_other": "{{count}} Tracks",
+        "morceaux_other": "{{count}} Songs",
         "albums_zero": "0 Albums",
         "albums_one": "{{count}} Album",
         "albums_other": "{{count}} Albums",
         "artistes_zero": "0 Artists",
         "artistes_one": "{{count}} Artist",
         "artistes_other": "{{count}} Artists",
-        "genres_zero": "0 Genres",
+        "genres_zero": "0 Genre",
         "genres_one": "{{count}} Genre",
         "genres_other": "{{count}} Genres",
-        "dossiers_zero": "0 Folders",
-        "dossiers_one": "{{count}} Folder",
-        "dossiers_other": "{{count}} Folders"
+        "dossiers_zero": "0 File",
+        "dossiers_one": "{{count}} File",
+        "dossiers_other": "{{count}} Files"
       }
     },
     "tabs": {
-      "morceaux": "Tracks",
+      "morceaux": "Songs",
       "albums": "Albums",
       "artistes": "Artists",
       "genres": "Genres",
-      "dossiers": "Folders"
+      "dossiers": "Files"
     },
     "empty": {
       "morceaux": {
@@ -205,38 +205,38 @@
       },
       "albums": {
         "title": "No albums found",
-        "description": "Import audio files to automatically build albums."
+        "description": "Import audio files to automatically create albums."
       },
       "artistes": {
         "title": "No artists found",
-        "description": "Import audio files to get started."
+        "description": "Import some audio files to get started."
       },
       "genres": {
-        "title": "No genres found",
-        "description": "Import audio files to discover genres."
+        "title": "No genre found",
+        "description": "Import audio files to explore different genres."
       },
       "dossiers": {
-        "title": "No folder imported",
+        "title": "No files imported",
         "description": "Import a folder from the action bar to browse it here."
       }
     },
     "actions": {
       "importFiles": "Import files",
-      "importFolder": "Import folder",
-      "share": "Share (soon)",
-      "rescan": "Rescan library",
-      "rescanning": "Rescanning…",
-      "changeArtwork": "Change artwork (soon)",
-      "edit": "Edit library",
-      "delete": "Delete library",
+      "importFolder": "Import a folder",
+      "share": "Share (coming soon)",
+      "rescan": "Rescan the library",
+      "rescanning": "Rescan in progress…",
+      "changeArtwork": "Change the image (coming soon)",
+      "edit": "Edit the library",
+      "delete": "Delete the library",
       "deleteConfirm": "Click again to confirm"
     },
-    "changeCover": "Change cover",
-    "searchDeezer": "Deezer search",
+    "changeCover": "Change the cover",
+    "searchDeezer": "Search Deezer",
     "localFile": "Local file",
-    "fetchMissingCovers": "Fetch all missing covers",
-    "noCover": "No cover",
-    "fetchingCovers": "Fetching covers... ({{current}}/{{total}})",
+    "fetchMissingCovers": "Retrieve all missing sleeves",
+    "noCover": "Without a sleeve",
+    "fetchingCovers": "Download the covers... ({{current}} / {{total}})",
     "table": {
       "number": "#",
       "title": "Title",
@@ -245,108 +245,108 @@
       "duration": "Duration",
       "unknown": "—"
     },
-    "rating": "Rating",
+    "rating": "Note",
     "noRating": "No rating",
     "viewToggle": {
-      "label": "View mode",
+      "label": "Display mode",
       "list": "List",
       "compact": "Compact"
     },
     "albumGrid": {
-      "trackCount_zero": "0 tracks",
-      "trackCount_one": "{{count}} track",
-      "trackCount_other": "{{count}} tracks"
+      "trackCount_zero": "0 titles",
+      "trackCount_one": "{{count}} title",
+      "trackCount_other": "{{count}} titles"
     },
     "artistList": {
-      "trackCount_zero": "0 tracks",
-      "trackCount_one": "{{count}} track",
-      "trackCount_other": "{{count}} tracks",
+      "trackCount_zero": "0 titles",
+      "trackCount_one": "{{count}} title",
+      "trackCount_other": "{{count}} titles",
       "albumCount_zero": "0 albums",
       "albumCount_one": "{{count}} album",
       "albumCount_other": "{{count}} albums"
     },
     "genreList": {
-      "trackCount_zero": "0 tracks",
-      "trackCount_one": "{{count}} track",
-      "trackCount_other": "{{count}} tracks"
+      "trackCount_zero": "0 titles",
+      "trackCount_one": "{{count}} title",
+      "trackCount_other": "{{count}} titles"
     },
     "folderList": {
-      "trackCount_zero": "0 tracks",
-      "trackCount_one": "{{count}} track",
-      "trackCount_other": "{{count}} tracks",
-      "lastScanned": "Scanned: {{date}}",
+      "trackCount_zero": "0 titles",
+      "trackCount_one": "{{count}} title",
+      "trackCount_other": "{{count}} titles",
+      "lastScanned": "Scanned from: {{date}}",
       "neverScanned": "never",
-      "watched": "Watched",
-      "watchOn": "Watch this folder for changes",
-      "watchOff": "Stop watching this folder"
+      "watched": "Monitored",
+      "watchOn": "Automatically monitor changes",
+      "watchOff": "Stop surveillance"
     }
   },
   "liked": {
     "badge": "Collection",
-    "title": "Liked tracks",
-    "count_zero": "0 tracks",
-    "count_one": "{{count}} track",
-    "count_other": "{{count}} tracks",
-    "emptyTitle": "No liked track",
-    "emptyDescription": "Tracks you like will appear here. Explore your library and like your favorites.",
-    "playAll": "Play all",
-    "unlike": "Remove from liked",
-    "like": "Add to liked"
+    "title": "Liked posts",
+    "count_zero": "0 titles",
+    "count_one": "{{count}} title",
+    "count_other": "{{count}} titles",
+    "emptyTitle": "No liked posts",
+    "emptyDescription": "The songs you like will appear here. Browse your library and like your favorite tracks.",
+    "playAll": "Read more",
+    "unlike": "Unfollow",
+    "like": "Add to Favorites"
   },
   "recent": {
     "badge": "History",
     "title": "Recently played",
-    "count_zero": "0 tracks",
-    "count_one": "{{count}} track",
-    "count_other": "{{count}} tracks",
-    "emptyTitle": "No recent track",
-    "emptyDescription": "Tracks you listen to will appear here automatically."
+    "count_zero": "0 titles",
+    "count_one": "{{count}} title",
+    "count_other": "{{count}} titles",
+    "emptyTitle": "No recent titles",
+    "emptyDescription": "The songs you're listening to will appear here automatically."
   },
   "statistics": {
     "title": "Statistics",
     "emptyTitle": "No statistics available",
-    "emptyDescription": "Listen to music to start seeing your listening statistics appear here.",
+    "emptyDescription": "Play some music to start seeing your listening stats appear here.",
     "range": {
-      "label": "Range",
+      "label": "Period",
       "7d": "7 days",
       "30d": "30 days",
       "90d": "90 days",
       "1y": "1 year",
-      "all": "All time"
+      "all": "Everything"
     },
     "kpi": {
-      "totalPlays": "Plays",
+      "totalPlays": "Wiretapping",
       "totalTime": "Listening time",
-      "uniqueTracks": "Unique tracks",
+      "uniqueTracks": "Unique titles",
       "uniqueArtists_zero": "0 artists",
       "uniqueArtists_one": "{{count}} artist",
       "uniqueArtists_other": "{{count}} artists",
-      "completionRate": "Completion rate"
+      "completionRate": "Full-listening rate"
     },
     "byDay": {
-      "title": "Daily activity",
-      "empty": "No listens in this period."
+      "title": "Daily Activity",
+      "empty": "No monitoring during this period."
     },
     "byHour": {
-      "title": "Listening by hour",
-      "empty": "No listens in this period.",
-      "tooltip": "{{hour}}h — {{plays}} plays"
+      "title": "Favorite times",
+      "empty": "No monitoring during this period.",
+      "tooltip": "{{hour}} h — {{plays}} plays"
     },
     "topTracks": {
-      "title": "Top tracks",
+      "title": "Top Stories",
       "empty": "No tracks played."
     },
     "topArtists": {
-      "title": "Top artists",
-      "empty": "No artists played."
+      "title": "Top Artists",
+      "empty": "No artists were played."
     },
     "topAlbums": {
-      "title": "Top albums",
+      "title": "Top Albums",
       "empty": "No albums played."
     },
     "plays_zero": "0 plays",
-    "plays_one": "{{count}} play",
-    "plays_other": "{{count}} plays"
+    "plays_one": "{{count}} listen",
+    "plays_other": "{{count}} wiretaps"
   },
   "about": {
     "title": "About",
@@ -368,65 +368,65 @@
       "previousTrack": "Previous track",
       "nextTrack": "Next track",
       "volume": "Volume",
-      "mute": "Mute",
+      "mute": "Mute the sound",
       "keys": {
         "space": "Space"
       }
     },
     "credits": {
-      "text": "Designed and built with passion. Powered by open source technologies.",
-      "icons": "Icons by Lucide, Phosphor, Mynaui and Iconify."
+      "text": "Designed and developed with passion. Built using open-source technologies.",
+      "icons": "Icons by Lucide, Phosphor, Mynaui, and Iconify."
     }
   },
   "feedback": {
     "title": "Feedback",
     "hero": {
       "title": "Help us improve WaveFlow",
-      "description": "Spotted a bug, have an improvement idea, or just want to share some thoughts? We read every message and take your suggestions to heart."
+      "description": "Have you found a bug, have an idea for improvement, or just want to give us some feedback? We read every message and take your suggestions into account."
     },
     "contact": {
-      "section": "Contact us",
-      "subtitle": "Bug, suggestion or question — we read every message"
+      "section": "Contact Us",
+      "subtitle": "Whether it's a bug, a suggestion, or a question—we read every message"
     }
   },
   "player": {
-    "noTrack": "No track",
+    "noTrack": "No title",
     "inactive": "Inactive",
     "controls": {
-      "play": "Play",
+      "play": "Reading",
       "pause": "Pause",
       "previous": "Previous",
       "next": "Next",
-      "shuffleOn": "Disable shuffle",
+      "shuffleOn": "Turn off shuffle",
       "shuffleOff": "Enable shuffle",
       "repeatOff": "Enable repeat",
-      "repeatAll": "Repeat one track",
-      "repeatOne": "Disable repeat"
+      "repeatAll": "Repeat once",
+      "repeatOne": "Turn off repeat"
     },
     "volume": {
       "label": "Volume",
       "mute": "Mute",
-      "unmute": "Unmute"
+      "unmute": "Turn on the sound"
     }
   },
   "queue": {
-    "title": "Queue",
+    "title": "Read queue",
     "inactive": "INACTIVE",
     "count_zero": "0 tracks",
-    "count_one": "{{count}} track",
-    "count_other": "{{count}} tracks",
-    "emptyTitle": "Nothing to play",
-    "emptyDescription": "Play some music from your library to fill the queue.",
-    "nowPlaying": "Now playing",
-    "upNext_zero": "Up next",
-    "upNext_one": "Up next · {{count}} track",
-    "upNext_other": "Up next · {{count}} tracks"
+    "count_one": "{{count}} song",
+    "count_other": "{{count}} songs",
+    "emptyTitle": "Nothing to listen to",
+    "emptyDescription": "Play a song from your library to fill the queue.",
+    "nowPlaying": "In progress",
+    "upNext_zero": "To be continued",
+    "upNext_one": "Coming soon · {{count}} title",
+    "upNext_other": "Coming up · {{count}} headlines"
   },
   "deviceMenu": {
     "activeLabel": "Active output",
-    "loading": "Looking for devices…",
+    "loading": "Searching for devices…",
     "empty": "No output device available",
-    "systemDefault": "System default"
+    "systemDefault": "By default"
   },
   "profiles": {
     "select": {
@@ -435,41 +435,41 @@
       "add": "Add",
       "edit": "Edit",
       "active": "Active profile",
-      "switchTo": "Switch"
+      "switchTo": "Toggle"
     },
     "create": {
       "title": "New profile",
       "subtitle": "Create a profile to personalize your experience",
-      "nameLabel": "Profile name",
+      "nameLabel": "Profile Name",
       "namePlaceholder": "Enter a name...",
       "colorLabel": "Profile color",
-      "colorAria": "{{color}} color",
+      "colorAria": "Color{{color}}",
       "submit": "Create profile"
     }
   },
   "libraryModal": {
     "title": "Create a Library",
-    "editTitle": "Edit Library",
+    "editTitle": "Edit the Library",
     "previewDefault": "Create a Library",
-    "previewSubtitle": "0 track · Library",
-    "nameLabel": "Library name",
-    "namePlaceholder": "E.g. Rock, Jazz, Classical...",
+    "previewSubtitle": "0 titles · Library",
+    "nameLabel": "Library Name",
+    "namePlaceholder": "e.g., Rock, Jazz, Classical...",
     "descriptionLabel": "Description",
-    "descriptionPlaceholder": "A short description...",
+    "descriptionPlaceholder": "A brief description...",
     "submit": "Create a Library",
     "submitEdit": "Save"
   },
   "playlistModal": {
     "title": "New playlist",
-    "editTitle": "Edit playlist",
+    "editTitle": "Edit the playlist",
     "previewDefault": "New playlist",
-    "previewSubtitle": "0 track · Playlist",
-    "nameLabel": "Name",
-    "namePlaceholder": "E.g. Chill Vibes, Workout Mix...",
+    "previewSubtitle": "0 tracks · Playlist",
+    "nameLabel": "Last Name",
+    "namePlaceholder": "Examples: Chill Vibes, Workout Mix...",
     "descriptionLabel": "Description",
-    "descriptionPlaceholder": "A short description...",
+    "descriptionPlaceholder": "A brief description...",
     "colorLabel": "Color",
-    "colorAria": "{{color}} color",
+    "colorAria": "Color{{color}}",
     "iconLabel": "Icon",
     "iconAria": "{{icon}} icon",
     "submit": "Create",
@@ -477,44 +477,44 @@
   },
   "playlistView": {
     "badge": "Playlist",
-    "trackCount_zero": "0 tracks",
-    "trackCount_one": "{{count}} track",
-    "trackCount_other": "{{count}} tracks",
+    "trackCount_zero": "0 titles",
+    "trackCount_one": "{{count}} title",
+    "trackCount_other": "{{count}} titles",
     "actions": {
-      "play": "Play",
-      "shuffle": "Shuffle play",
-      "edit": "Edit playlist",
+      "play": "Reading",
+      "shuffle": "Random playback",
+      "edit": "Edit the playlist",
       "exportM3u": "Export as M3U",
-      "delete": "Delete playlist",
+      "delete": "Delete the playlist",
       "deleteConfirm": "Click again to confirm"
     },
     "export": {
-      "dialogTitle": "Export playlist as M3U"
+      "dialogTitle": "Export the playlist as an M3U file"
     },
     "emptyTitle": "This playlist is empty",
     "emptyDescription": "Add tracks from your libraries using the + button on each row.",
     "noneTitle": "No playlist selected",
-    "noneDescription": "Pick a playlist from the sidebar to view it here.",
+    "noneDescription": "Select a playlist from the sidebar to view it here.",
     "notFoundTitle": "Playlist not found",
     "notFoundDescription": "This playlist no longer exists in the active profile."
   },
   "trackActions": {
     "addToPlaylist": "Add to a playlist",
-    "noPlaylists": "No playlist yet. Create one below.",
+    "noPlaylists": "No playlists. Create one below.",
     "createPlaylist": "New playlist",
-    "playNext": "Play next",
+    "playNext": "Read more",
     "addToQueue": "Add to queue",
-    "like": "Add to liked songs",
-    "unlike": "Remove from liked songs",
+    "like": "Add to Liked Titles",
+    "unlike": "Remove liked posts",
     "removeFromPlaylist": "Remove from this playlist",
-    "goToAlbum": "Go to album",
-    "goToArtist": "Go to artist",
-    "showInExplorer": "Show in file explorer",
-    "copyPath": "Copy file path",
+    "goToAlbum": "Go to the album",
+    "goToArtist": "Go to the artist",
+    "showInExplorer": "View in Explorer",
+    "copyPath": "Copy the file path",
     "properties": "Properties"
   },
   "trackProperties": {
-    "title": "Track properties",
+    "title": "Title Properties",
     "sections": {
       "metadata": "Metadata",
       "audio": "Audio",
@@ -522,82 +522,82 @@
       "file": "File"
     },
     "bpm": "BPM",
-    "loudness": "Loudness",
+    "loudness": "Volume",
     "replayGain": "ReplayGain",
     "peak": "Peak",
     "analyze": "Analyze",
     "reanalyze": "Re-analyze",
-    "analyzing": "Analyzing…",
+    "analyzing": "Analysis…",
     "year": "Year",
-    "trackNumber": "Track #",
+    "trackNumber": "Track",
     "duration": "Duration",
     "codec": "Codec",
-    "bitDepth": "Bit depth",
-    "sampleRate": "Sample rate",
+    "bitDepth": "Depth",
+    "sampleRate": "Sampling",
     "channels": "Channels",
-    "bitrate": "Bitrate",
+    "bitrate": "Flow rate",
     "key": "Key",
-    "fileSize": "File size",
-    "addedAt": "Added",
+    "fileSize": "Size",
+    "addedAt": "Added on",
     "filePath": "Path",
-    "showInExplorer": "Show in file explorer",
+    "showInExplorer": "View in Explorer",
     "mono": "Mono",
     "stereo": "Stereo"
   },
   "selection": {
-    "toolbarLabel": "Selection actions",
+    "toolbarLabel": "Selection activities",
     "count_zero": "0 selected",
     "count_one": "{{count}} selected",
     "count_other": "{{count}} selected",
-    "play": "Play",
+    "play": "Reading",
     "addToQueue": "Add to queue",
-    "playNext": "Play next",
-    "addToPlaylist": "Add to playlist",
+    "playNext": "Read more",
+    "addToPlaylist": "Add to a playlist",
     "removeFromPlaylist": "Remove from playlist",
-    "clear": "Clear"
+    "clear": "Deselect"
   },
   "albumDetail": {
     "badge": "Album",
-    "playAll": "Play all",
-    "shuffle": "Shuffle",
-    "trackCount_zero": "0 tracks",
-    "trackCount_one": "{{count}} track",
-    "trackCount_other": "{{count}} tracks",
-    "discHeader": "Disc {{number}}",
-    "releaseDate": "Released",
+    "playAll": "Read more",
+    "shuffle": "Random playback",
+    "trackCount_zero": "0 titles",
+    "trackCount_one": "{{count}} title",
+    "trackCount_other": "{{count}} titles",
+    "discHeader": "{{number}} Album",
+    "releaseDate": "Exit",
     "emptyTitle": "Album not found",
-    "emptyDescription": "This album no longer exists in the active profile.",
+    "emptyDescription": "This album is no longer available in the active profile.",
     "emptyTracksTitle": "No tracks",
-    "emptyTracksDescription": "This album has no available tracks."
+    "emptyTracksDescription": "This album does not contain any available tracks."
   },
   "artistDetail": {
     "badge": "Artist",
-    "playAll": "Play all",
-    "shuffle": "Shuffle",
+    "playAll": "Read more",
+    "shuffle": "Random playback",
     "discography": "Discography",
-    "allTracks": "All tracks",
-    "trackCount_zero": "0 tracks",
-    "trackCount_one": "{{count}} track",
-    "trackCount_other": "{{count}} tracks",
+    "allTracks": "All titles",
+    "trackCount_zero": "0 titles",
+    "trackCount_one": "{{count}} title",
+    "trackCount_other": "{{count}} titles",
     "albumCount_zero": "0 albums",
     "albumCount_one": "{{count}} album",
     "albumCount_other": "{{count}} albums",
-    "albumTrackCount_zero": "0 tracks",
-    "albumTrackCount_one": "{{count}} track",
-    "albumTrackCount_other": "{{count}} tracks",
+    "albumTrackCount_zero": "0 titles",
+    "albumTrackCount_one": "{{count}} title",
+    "albumTrackCount_other": "{{count}} titles",
     "emptyTitle": "Artist not found",
-    "emptyDescription": "This artist no longer exists in the active profile.",
+    "emptyDescription": "This artist is no longer listed in the active profile.",
     "bio": {
       "title": "Biography"
     }
   },
   "nowPlaying": {
     "title": "Now playing",
-    "empty": "No track playing",
+    "empty": "No active positions",
     "aboutArtist": "About the artist",
     "readMore": "Read more",
-    "readLess": "Read less",
-    "noBio": "No biography available. Configure your Last.fm key in Settings.",
+    "readLess": "Minimize",
+    "noBio": "No biography available. Set up your Last.fm token in the settings.",
     "lyrics": {
       "title": "Lyrics",
       "comingSoon": "Coming soon"
@@ -605,22 +605,22 @@
   },
   "playerBar": {
     "lyrics": "Lyrics",
-    "nowPlaying": "Now playing view",
+    "nowPlaying": "View currently playing",
     "queue": "Queue"
   },
   "lyrics": {
     "title": "Lyrics",
     "loading": "Searching for lyrics…",
-    "noTrack": "No track playing",
-    "notFound": "No lyrics found for this track. You can import a .lrc file.",
-    "importTitle": "Import .lrc file",
+    "noTrack": "No active positions",
+    "notFound": "No lyrics found for this title. You can import an .lrc file.",
+    "importTitle": "Import an .lrc file",
     "actions": {
-      "import": "Import .lrc file",
-      "refetch": "Re-fetch lyrics",
+      "import": "Import an .lrc file",
+      "refetch": "Resume the search",
       "clear": "Clear lyrics"
     },
     "source": {
-      "embedded": "Embedded in audio file",
+      "embedded": "Lyrics included in the file",
       "lrc_file": "Imported .lrc file",
       "api": "LRCLIB",
       "manual": "Manual entry"
@@ -632,109 +632,109 @@
     "album": "Album",
     "duration": "Duration",
     "year": "Year",
-    "addedAt": "Added",
-    "rating": "Rating",
-    "name": "Name",
-    "albumsCount": "Albums",
-    "tracksCount": "Tracks",
-    "ascending": "Ascending",
+    "addedAt": "Added on",
+    "rating": "Note",
+    "name": "Last Name",
+    "albumsCount": "Number of albums",
+    "tracksCount": "Number of tracks",
+    "ascending": "Croissant",
     "descending": "Descending"
   },
   "settings": {
     "title": "Settings",
     "sections": {
       "general": "General",
-      "playback": "Playback",
+      "playback": "Reading",
       "integrations": "Integrations",
       "storage": "Storage & Data"
     },
     "integrations": {
       "lastfm": {
         "title": "Last.fm",
-        "subtitle": "Artist biographies and scrobbling. Create a key at last.fm/api/account/create",
+        "subtitle": "Artist bios and scrobbling. Create a key at last.fm/api/account/create",
         "placeholder": "API key",
-        "secretPlaceholder": "Shared secret",
+        "secretPlaceholder": "A shared secret",
         "save": "Save",
         "saved": "Saved ✓",
-        "show": "Show",
+        "show": "View",
         "hide": "Hide",
-        "connectedAs": "Signed in as",
-        "disconnect": "Sign out",
-        "loginPrompt": "Sign in to scrobble your listens:",
+        "connectedAs": "Logged in as",
+        "disconnect": "Log out",
+        "loginPrompt": "Sign in to scrobble your listening history:",
         "usernamePlaceholder": "Username",
         "passwordPlaceholder": "Password",
         "connect": "Sign in",
-        "connecting": "Signing in…"
+        "connecting": "Logging in…"
       }
     },
     "crossfade": {
-      "title": "Crossfade songs",
-      "subtitle": "Smooth transition between tracks (coming soon)"
+      "title": "Crossfade",
+      "subtitle": "Seamless transitions between tracks (coming soon)"
     },
     "normalize": {
-      "title": "Normalize volume",
-      "subtitle": "Reduce volume on loud tracks for a consistent listening level"
+      "title": "Adjust the volume",
+      "subtitle": "Lower the volume of tracks that are too loud to ensure a consistent volume level"
     },
     "replayGain": {
       "title": "Apply ReplayGain",
-      "subtitle": "Use each track's analyzed gain to even out perceived loudness"
+      "subtitle": "Use the analyzed gain of each track to balance the perceived volume"
     },
     "mono": {
       "title": "Mono audio",
-      "subtitle": "Mix left and right channels into a single signal"
+      "subtitle": "Mixes the left and right channels into a single signal"
     },
     "language": {
       "title": "Language",
       "subtitle": "Interface language"
     },
     "autoStart": {
-      "title": "Launch on startup",
-      "subtitle": "Automatically start WaveFlow when the system boots"
+      "title": "Launch at startup",
+      "subtitle": "Start WaveFlow automatically when the system boots"
     },
     "minimizeToTray": {
-      "title": "Minimize to system tray",
-      "subtitle": "Closing the window minimizes the app to the tray"
+      "title": "Minimize to the system tray",
+      "subtitle": "Closing the window minimizes the application to the system tray"
     },
     "scanOnStart": {
-      "title": "Scan on startup",
-      "subtitle": "Automatically rescan libraries when the app opens"
+      "title": "Scan at startup",
+      "subtitle": "Automatically rescan libraries on startup"
     },
     "singleClickPlay": {
-      "title": "Single-click to play",
-      "subtitle": "A single click on a track starts playback (otherwise double-click)"
+      "title": "One-click playback",
+      "subtitle": "Clicking on a track starts playback (otherwise, double-click)"
+    },
+    "rescan": {
+      "title": "Rescan the library",
+      "subtitle": "Review all folders and import the new files",
+      "action": "Rescan"
     },
     "analyze": {
-      "title": "Analyze library",
-      "subtitle": "Compute BPM, loudness and peak for tracks not yet analyzed",
+      "title": "Analyze the library",
+      "subtitle": "Calculate BPM, volume, and peak for unanalyzed tracks",
       "action": "Analyze",
-      "autoTitle": "Auto-analyze",
-      "autoSubtitle": "Run the analyzer in the background after every scan that adds new tracks",
+      "autoTitle": "Automatic analysis",
+      "autoSubtitle": "Run the analysis in the background after each scan that adds new titles",
       "failed_one": "{{count}} failure",
       "failed_other": "{{count}} failures"
     },
-    "rescan": {
-      "title": "Rescan library",
-      "subtitle": "Re-walk all folders and import new files",
-      "action": "Rescan"
-    },
     "artistImages": {
       "title": "Artist images",
-      "subtitle": "Fetch artist artwork from Deezer",
-      "action": "Fetch"
+      "subtitle": "Retrieve artist covers from Deezer",
+      "action": "Recover"
     },
     "dataFolder": {
-      "title": "Data folder",
-      "subtitle": "Open the folder containing the database and cover art",
+      "title": "Data file",
+      "subtitle": "Open the folder containing the database and the covers",
       "action": "Open"
     },
-    "openDataFolder": "Open data folder",
-    "regenerateThumbnails": "Regenerate thumbnails",
-    "regenerateThumbnailsSubtitle": "Rebuild the missing 1x/2x variants for every cover",
+    "openDataFolder": "Open the data folder",
+    "regenerateThumbnails": "Reload thumbnails",
+    "regenerateThumbnailsSubtitle": "Reconstruct the missing 1x/2x variants for all sleeves",
     "regenerateThumbnailsAction": "Regenerate",
-    "regenerateThumbnailsDone": "{{count}} thumbnails regenerated",
+    "regenerateThumbnailsDone": "{{count}} regenerated thumbnails",
     "reset": {
-      "title": "Reset the application",
-      "subtitle": "Delete all data and return to the initial state",
+      "title": "Reset the app",
+      "subtitle": "Delete all data and restore to factory settings",
       "action": "Reset"
     }
   }

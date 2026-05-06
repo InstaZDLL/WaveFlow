@@ -1,173 +1,173 @@
 {
   "common": {
-    "cancel": "रद्द करना",
-    "back": "पीछे",
-    "save": "बचाना",
-    "close": "बंद करना",
-    "confirm": "पुष्टि करना",
-    "open": "खुला",
+    "cancel": "रद्द करें",
+    "back": "वापस",
+    "save": "बचाएँ",
+    "close": "बंद करें",
+    "confirm": "पुष्टि करें",
+    "open": "खोलें",
     "optional": "(वैकल्पिक)"
   },
   "lastfmReauth": {
-    "title": "Last.fm सत्र समाप्त हो गया",
-    "message": "आपके स्क्रोबल्स अब नहीं भेजे जा रहे हैं. फिर से शुरू करने के लिए फिर से साइन इन करें।",
-    "action": "खुली सेटिंग"
+    "title": "Last.fm सत्र समाप्त हो गया है।",
+    "message": "आपके स्क्रॉबल्स अब भेजे नहीं जा रहे हैं। कृपया फिर से लॉग इन करें।",
+    "action": "सेटिंग्स खोलें"
   },
   "updater": {
     "available": {
-      "title": "अद्यतन उपलब्ध है (v{{version}})",
-      "message": "वेवफ्लो का एक नया संस्करण स्थापित करने के लिए तैयार है।",
-      "action": "अब स्थापित करें",
+      "title": "अपडेट उपलब्ध है ({{version}} संस्करण)",
+      "message": "WaveFlow का एक नया संस्करण इंस्टॉल करने के लिए तैयार है।",
+      "action": "अभी इंस्टॉल करें",
       "later": "बाद में"
     },
     "downloading": {
-      "title": "अद्यतन स्थिति डाउनलोड हो रही है…"
+      "title": "अपडेट डाउनलोड हो रहा है…"
     },
     "installed": {
-      "title": "अद्यतन स्थापित किया गया",
-      "message": "नया संस्करण लागू करने के लिए वेवफ्लो को पुनरारंभ करें।"
+      "title": "अपडेट स्थापित",
+      "message": "नए संस्करण को लागू करने के लिए WaveFlow को पुनः आरंभ करें।"
     },
     "error": {
-      "title": "भार बढ़ाना विफल हुवा"
+      "title": "अपडेट विफल हो गया"
     }
   },
   "onboarding": {
     "defaultLibraryName": "संगीत",
     "welcome": {
-      "title": "WaveFlow में आपका स्वागत है",
-      "message": "आरंभ करने के लिए, वेवफ़्लो को उस फ़ोल्डर पर इंगित करें जहां आपका संगीत रहता है। हम इसे स्कैन करेंगे और आपकी लाइब्रेरी स्वचालित रूप से बनाएंगे।",
+      "title": "वेवफ़्लो में आपका स्वागत है",
+      "message": "सबसे पहले, अपने संगीत वाले फ़ोल्डर का चयन करें। WaveFlow इसे स्कैन करेगा और आपकी लाइब्रेरी को स्वचालित रूप से व्यवस्थित कर देगा।",
       "action": "मेरा संगीत फ़ोल्डर चुनें",
       "skip": "बाद में सेट करें"
     },
     "scanning": {
-      "title": "आपका संगीत स्कैन किया जा रहा है..."
+      "title": "आपके संगीत का विश्लेषण…"
     },
     "done": {
-      "title": "{{count}} ट्रैक जोड़े गए",
-      "message": "आपकी लाइब्रेरी तैयार है। सुनने का आनंद लें!",
+      "title": "{{count}} गीत जोड़े गए",
+      "message": "आपकी लाइब्रेरी तैयार है। आनंद लें!",
       "action": "सुनना शुरू करें"
     },
     "error": {
-      "title": "स्कैन विफल",
-      "retry": "पुन: प्रयास करें"
+      "title": "विश्लेषण विफल हो गया",
+      "retry": "फिर से कोशिश करें"
     }
   },
   "sidebar": {
     "brand": {
-      "beta": "Beta"
+      "beta": "बीटा"
     },
     "nav": {
-      "home": "घर"
+      "home": "होम"
     },
     "sections": {
-      "open": "खुला",
+      "open": "खोलें",
       "library": "पुस्तकालय",
       "playlists": "प्लेलिस्ट"
     },
     "open": {
       "file": "फ़ाइल",
-      "folder": "फ़ोल्डर"
+      "folder": "फ़ाइल"
     },
     "library": {
-      "tracksCount_zero": "0 ट्रैक",
-      "tracksCount_one": "{{count}} ट्रैक",
-      "tracksCount_other": "{{count}} ट्रैक",
-      "createLibraryAria": "एक नई लाइब्रेरी बनाएं",
+      "tracksCount_zero": "0 शीर्षक",
+      "tracksCount_one": "{{count}} शीर्षक",
+      "tracksCount_other": "{{count}} शीर्षक",
+      "createLibraryAria": "एक नई लाइब्रेरी बनाएँ",
       "none": "कोई पुस्तकालय नहीं",
       "popover": {
-        "label": "पुस्तकालय चयन",
+        "label": "लाइब्रेरी का चयन",
         "header": "पुस्तकालय",
         "countLine": "{{tracks}} · {{albums}}",
-        "tracks_zero": "0 ट्रैक",
-        "tracks_one": "{{count}} ट्रैक",
-        "tracks_other": "{{count}} ट्रैक",
+        "tracks_zero": "0 शीर्षक",
+        "tracks_one": "{{count}} शीर्षक",
+        "tracks_other": "{{count}} शीर्षक",
         "albums_zero": "0 एल्बम",
         "albums_one": "{{count}} एल्बम",
         "albums_other": "{{count}} एल्बम",
-        "see": "देखना",
-        "new": "नया"
+        "see": "देखो",
+        "new": "समाचार"
       },
       "nav": {
-        "tracks": "पटरियों",
-        "albums": "एलबम",
+        "tracks": "पटरियाँ",
+        "albums": "एल्बम",
         "artists": "कलाकार",
-        "genres": "शैलियां",
-        "explorer": "एक्सप्लोरर"
+        "genres": "शैलियाँ",
+        "explorer": "अन्वेषक"
       }
     },
     "playlists": {
-      "createPlaylistAria": "एक नई प्लेलिस्ट बनाएं",
-      "importM3uAria": "एक M3U प्लेलिस्ट आयात करें",
-      "importDialogTitle": "एक M3U प्लेलिस्ट आयात करें",
-      "liked": "ट्रैक पसंद आए",
+      "createPlaylistAria": "एक नई प्लेलिस्ट बनाएँ",
+      "importM3uAria": "M3U प्लेलिस्ट आयात करें",
+      "importDialogTitle": "M3U प्लेलिस्ट आयात करें",
+      "liked": "लाइक वाले गाने",
       "recent": "हाल ही में खेला गया",
-      "emptySubtext_zero": "0 ट्रैक",
-      "emptySubtext_one": "{{count}} ट्रैक",
-      "emptySubtext_other": "{{count}} ट्रैक"
+      "emptySubtext_zero": "0 शीर्षक",
+      "emptySubtext_one": "{{count}} शीर्षक",
+      "emptySubtext_other": "{{count}} शीर्षक"
     },
     "myMusic": {
-      "title": "मेरे संगीत",
+      "title": "मेरा संगीत",
       "addFolderAria": "एक फ़ोल्डर आयात करें",
-      "tracks": "पटरियों",
-      "albums": "एलबम",
+      "tracks": "पटरियाँ",
+      "albums": "एल्बम",
       "artists": "कलाकार",
-      "genres": "शैलियां",
-      "folders": "फ़ोल्डर"
+      "genres": "शैलियाँ",
+      "folders": "फ़ाइलें"
     },
     "playlistSection": {
       "title": "प्लेलिस्ट"
     },
     "myLibrary": {
-      "playlistSubtext_zero": "0 ट्रैक",
-      "playlistSubtext_one": "{{count}} ट्रैक",
-      "playlistSubtext_other": "{{count}} ट्रैक"
+      "playlistSubtext_zero": "0 शीर्षक",
+      "playlistSubtext_one": "{{count}} शीर्षक",
+      "playlistSubtext_other": "{{count}} शीर्षक"
     }
   },
   "topbar": {
     "search": {
-      "placeholder": "कोई ट्रैक, कलाकार, एल्बम खोजें...",
+      "placeholder": "किसी गाने, कलाकार, एल्बम की खोज करें...",
       "results_zero": "कोई परिणाम नहीं",
       "results_one": "{{count}} परिणाम",
       "results_other": "{{count}} परिणाम"
     },
     "theme": {
-      "enableLight": "लाइट मोड पर स्विच करें",
-      "enableDark": "डार्क मोड पर स्विच करें"
+      "enableLight": "हल्के मोड में स्विच करें",
+      "enableDark": "डार्क मोड सक्षम करें"
     },
     "profile": {
       "user": "उपयोगकर्ता",
-      "changeProfile": "प्रोफ़ाइल स्विच करें",
-      "statistics": "आंकड़े",
+      "changeProfile": "प्रोफ़ाइल बदलें",
+      "statistics": "सांख्यिकी",
       "settings": "सेटिंग्स",
       "feedback": "प्रतिक्रिया",
       "about": "के बारे में",
-      "quit": "आवेदन छोड़ें"
+      "quit": "ऐप से बाहर निकलें"
     }
   },
   "home": {
     "greeting": {
-      "morning": "शुभ प्रभात",
+      "morning": "नमस्ते",
       "evening": "शुभ संध्या",
       "night": "शुभ रात्रि"
     },
     "banner": {
       "badge": "सुनने के लिए तैयार",
-      "subtitle": "अपना पसंदीदा संगीत खोजें और नई ध्वनियाँ खोजें।",
-      "openFile": "एक फ़ाइल खोलो",
-      "openFolder": "एक फ़ोल्डर खोलें",
+      "subtitle": "अपना पसंदीदा संगीत खोजें और नई ध्वनियों का अन्वेषण करें।",
+      "openFile": "एक फ़ाइल खोलें",
+      "openFolder": "एक फ़ाइल खोलें",
       "importFiles": "फ़ाइलें आयात करें",
       "importFolder": "फ़ोल्डर आयात करें"
     },
     "stats": {
       "library": "पुस्तकालय",
-      "liked": "ट्रैक पसंद आए",
+      "liked": "लाइक वाले गाने",
       "recent": "हाल ही में खेला गया",
       "playlists": "प्लेलिस्ट"
     },
     "recentlyPlayed": {
       "title": "हाल ही में खेला गया",
-      "emptyTitle": "अभी तक कोई ट्रैक नहीं खेला गया",
-      "emptyDescription": "इसे यहां प्रदर्शित होते देखने के लिए कोई ट्रैक चलाएं. जैसे-जैसे आप खोजते हैं, आपका सुनने का इतिहास बनता जाता है।"
+      "emptyTitle": "कोई ट्रैक नहीं चलाया गया",
+      "emptyDescription": "यहाँ दिखाने के लिए एक ट्रैक का शीर्षक दर्ज करें। जैसे-जैसे आप नया संगीत खोजते हैं, आपका सुनने का इतिहास बनता जाता है।"
     }
   },
   "library": {
@@ -176,67 +176,67 @@
       "subtext": {
         "morceaux_zero": "0 ट्रैक",
         "morceaux_one": "{{count}} ट्रैक",
-        "morceaux_other": "{{count}} ट्रैक",
+        "morceaux_other": "{{count}} पटरियाँ",
         "albums_zero": "0 एल्बम",
         "albums_one": "{{count}} एल्बम",
         "albums_other": "{{count}} एल्बम",
         "artistes_zero": "0 कलाकार",
         "artistes_one": "{{count}} कलाकार",
         "artistes_other": "{{count}} कलाकार",
-        "genres_zero": "0 शैलियाँ",
+        "genres_zero": "0 शैली",
         "genres_one": "{{count}} शैली",
         "genres_other": "{{count}} शैलियाँ",
-        "dossiers_zero": "0 फ़ोल्डर",
-        "dossiers_one": "{{count}} फ़ोल्डर",
-        "dossiers_other": "{{count}} फ़ोल्डर"
+        "dossiers_zero": "0 फ़ाइल",
+        "dossiers_one": "{{count}} फ़ाइल",
+        "dossiers_other": "{{count}} फ़ाइलें"
       }
     },
     "tabs": {
-      "morceaux": "पटरियों",
-      "albums": "एलबम",
+      "morceaux": "पटरियाँ",
+      "albums": "एल्बम",
       "artistes": "कलाकार",
-      "genres": "शैलियां",
-      "dossiers": "फ़ोल्डर"
+      "genres": "शैलियाँ",
+      "dossiers": "फ़ाइलें"
     },
     "empty": {
       "morceaux": {
         "title": "खाली पुस्तकालय",
-        "description": "अपनी लाइब्रेरी को भरने के लिए ऑडियो फ़ाइलें या फ़ोल्डर आयात करें।"
+        "description": "अपनी लाइब्रेरी में ऑडियो फ़ाइलें या एक फ़ोल्डर आयात करें।"
       },
       "albums": {
         "title": "कोई एल्बम नहीं मिला",
-        "description": "स्वचालित रूप से एल्बम बनाने के लिए ऑडियो फ़ाइलें आयात करें।"
+        "description": "ऑडियो फ़ाइलों को आयात करके स्वचालित रूप से एल्बम बनाएँ।"
       },
       "artistes": {
         "title": "कोई कलाकार नहीं मिला",
-        "description": "आरंभ करने के लिए ऑडियो फ़ाइलें आयात करें."
+        "description": "शुरू करने के लिए कुछ ऑडियो फ़ाइलें आयात करें।"
       },
       "genres": {
-        "title": "कोई शैलियाँ नहीं मिलीं",
-        "description": "शैलियों को खोजने के लिए ऑडियो फ़ाइलें आयात करें।"
+        "title": "कोई शैली नहीं मिली",
+        "description": "विभिन्न शैलियों का अन्वेषण करने के लिए ऑडियो फ़ाइलें आयात करें।"
       },
       "dossiers": {
-        "title": "कोई फ़ोल्डर आयात नहीं किया गया",
-        "description": "यहां ब्राउज़ करने के लिए एक्शन बार से एक फ़ोल्डर आयात करें।"
+        "title": "कोई फ़ाइलें आयात नहीं हुईं",
+        "description": "इसे यहाँ ब्राउज़ करने के लिए एक्शन बार से एक फ़ोल्डर आयात करें।"
       }
     },
     "actions": {
       "importFiles": "फ़ाइलें आयात करें",
-      "importFolder": "फ़ोल्डर आयात करें",
-      "share": "साझा करें (जल्द ही)",
-      "rescan": "लाइब्रेरी पुनः स्कैन करें",
-      "rescanning": "पुनः स्कैन किया जा रहा है...",
-      "changeArtwork": "कलाकृति बदलें (जल्द ही)",
-      "edit": "लाइब्रेरी संपादित करें",
+      "importFolder": "एक फ़ोल्डर आयात करें",
+      "share": "साझा करें (जल्द आ रहा है)",
+      "rescan": "पुस्तकालय को फिर से स्कैन करें",
+      "rescanning": "पुनः स्कैनिंग जारी है…",
+      "changeArtwork": "छवि बदलें (जल्द आ रहा है)",
+      "edit": "पुस्तकालय संपादित करें",
       "delete": "लाइब्रेरी हटाएँ",
-      "deleteConfirm": "पुष्टि करने के लिए दोबारा क्लिक करें"
+      "deleteConfirm": "पुष्टि करने के लिए फिर से क्लिक करें"
     },
-    "changeCover": "कवर परिवर्तन करें",
-    "searchDeezer": "डीज़र खोज",
+    "changeCover": "कवर बदलें",
+    "searchDeezer": "डीज़र पर खोजें",
     "localFile": "स्थानीय फ़ाइल",
-    "fetchMissingCovers": "सभी गायब कवर प्राप्त करें",
-    "noCover": "बिना सुरक्षा",
-    "fetchingCovers": "कवर लाये जा रहे हैं... ({{current}}/{{total}})",
+    "fetchMissingCovers": "सभी गुमशुदा स्लीव्स पुनः प्राप्त करें",
+    "noCover": "बिना आस्तीन के",
+    "fetchingCovers": "लिफ़ाफ़े इकट्ठा करना... ({{current}} / {{total}})",
     "table": {
       "number": "#",
       "title": "शीर्षक",
@@ -245,385 +245,385 @@
       "duration": "अवधि",
       "unknown": "—"
     },
-    "rating": "रेटिंग",
+    "rating": "ध्यान दें",
     "noRating": "कोई रेटिंग नहीं",
     "viewToggle": {
-      "label": "दृश्य मोड",
+      "label": "प्रदर्शन मोड",
       "list": "सूची",
-      "compact": "सघन"
+      "compact": "संक्षिप्त"
     },
     "albumGrid": {
-      "trackCount_zero": "0 ट्रैक",
-      "trackCount_one": "{{count}} ट्रैक",
-      "trackCount_other": "{{count}} ट्रैक"
+      "trackCount_zero": "0 शीर्षक",
+      "trackCount_one": "{{count}} शीर्षक",
+      "trackCount_other": "{{count}} शीर्षक"
     },
     "artistList": {
-      "trackCount_zero": "0 ट्रैक",
-      "trackCount_one": "{{count}} ट्रैक",
-      "trackCount_other": "{{count}} ट्रैक",
+      "trackCount_zero": "0 शीर्षक",
+      "trackCount_one": "{{count}} शीर्षक",
+      "trackCount_other": "{{count}} शीर्षक",
       "albumCount_zero": "0 एल्बम",
       "albumCount_one": "{{count}} एल्बम",
       "albumCount_other": "{{count}} एल्बम"
     },
     "genreList": {
-      "trackCount_zero": "0 ट्रैक",
-      "trackCount_one": "{{count}} ट्रैक",
-      "trackCount_other": "{{count}} ट्रैक"
+      "trackCount_zero": "0 शीर्षक",
+      "trackCount_one": "{{count}} शीर्षक",
+      "trackCount_other": "{{count}} शीर्षक"
     },
     "folderList": {
-      "trackCount_zero": "0 ट्रैक",
-      "trackCount_one": "{{count}} ट्रैक",
-      "trackCount_other": "{{count}} ट्रैक",
-      "lastScanned": "स्कैन किया गया: {{date}}",
+      "trackCount_zero": "0 शीर्षक",
+      "trackCount_one": "{{count}} शीर्षक",
+      "trackCount_other": "{{count}} शीर्षक",
+      "lastScanned": "स्कैन स्रोत: {{date}}",
       "neverScanned": "कभी नहीं",
-      "watched": "देखे",
-      "watchOn": "परिवर्तनों के लिए इस फ़ोल्डर को देखें",
-      "watchOff": "इस फ़ोल्डर को देखना बंद करें"
+      "watched": "निगरानी में",
+      "watchOn": "स्वचालित रूप से परिवर्तनों की निगरानी करें",
+      "watchOff": "निगरानी बंद करो"
     }
   },
   "liked": {
     "badge": "संग्रह",
-    "title": "ट्रैक पसंद आए",
-    "count_zero": "0 ट्रैक",
-    "count_one": "{{count}} ट्रैक",
-    "count_other": "{{count}} ट्रैक",
-    "emptyTitle": "कोई पसंदीदा ट्रैक नहीं",
-    "emptyDescription": "आपके पसंदीदा ट्रैक यहां दिखाई देंगे. अपनी लाइब्रेरी का अन्वेषण करें और अपने पसंदीदा को पसंद करें।",
-    "playAll": "सभी चलाएँ",
-    "unlike": "पसंद से हटाएँ",
-    "like": "पसंद में जोड़ें"
+    "title": "लाइक वाले गाने",
+    "count_zero": "0 शीर्षक",
+    "count_one": "{{count}} शीर्षक",
+    "count_other": "{{count}} शीर्षक",
+    "emptyTitle": "किसी भी पोस्ट को पसंद नहीं किया गया है।",
+    "emptyDescription": "आपके द्वारा पसंद किए गए ट्रैक यहाँ दिखाई देंगे। अपनी लाइब्रेरी ब्राउज़ करें और अपने पसंदीदा ट्रैक को लाइक करें।",
+    "playAll": "और पढ़ें",
+    "unlike": "अनफ़ॉलो",
+    "like": "पसंदीदा में जोड़ें"
   },
   "recent": {
     "badge": "इतिहास",
     "title": "हाल ही में खेला गया",
-    "count_zero": "0 ट्रैक",
-    "count_one": "{{count}} ट्रैक",
-    "count_other": "{{count}} ट्रैक",
-    "emptyTitle": "कोई हालिया ट्रैक नहीं",
-    "emptyDescription": "आपके द्वारा सुने जाने वाले ट्रैक स्वचालित रूप से यहां दिखाई देंगे।"
+    "count_zero": "0 शीर्षक",
+    "count_one": "{{count}} शीर्षक",
+    "count_other": "{{count}} शीर्षक",
+    "emptyTitle": "कोई हालिया शीर्षक नहीं",
+    "emptyDescription": "आप जो ट्रैक सुन रहे हैं, वे यहाँ स्वचालित रूप से दिखाई देंगे।"
   },
   "statistics": {
-    "title": "आंकड़े",
+    "title": "सांख्यिकी",
     "emptyTitle": "कोई आँकड़े उपलब्ध नहीं हैं",
-    "emptyDescription": "अपने सुनने के आँकड़े यहाँ प्रदर्शित करने के लिए संगीत सुनें।",
+    "emptyDescription": "यहाँ अपने सुनने के आँकड़े दिखाई देने शुरू करने के लिए कुछ संगीत सुनें।",
     "range": {
-      "label": "श्रेणी",
-      "7d": "7 दिन",
+      "label": "अवधि",
+      "7d": "सात दिन",
       "30d": "30 दिन",
       "90d": "90 दिन",
-      "1y": "1 वर्ष",
-      "all": "पूरे समय"
+      "1y": "एक साल",
+      "all": "सब कुछ"
     },
     "kpi": {
-      "totalPlays": "नाटकों",
+      "totalPlays": "वायरटैपिंग",
       "totalTime": "सुनने का समय",
-      "uniqueTracks": "अनोखे ट्रैक",
+      "uniqueTracks": "अनूठे शीर्षक",
       "uniqueArtists_zero": "0 कलाकार",
       "uniqueArtists_one": "{{count}} कलाकार",
       "uniqueArtists_other": "{{count}} कलाकार",
-      "completionRate": "पूर्णता दर"
+      "completionRate": "पूर्ण-लंबाई सुनने की दर"
     },
     "byDay": {
-      "title": "प्रतिदिन की गतिविधि",
-      "empty": "इस अवधि में कोई सुनवाई नहीं."
+      "title": "प्रति दिन गतिविधि",
+      "empty": "इस अवधि के दौरान कोई निगरानी नहीं।"
     },
     "byHour": {
-      "title": "घंटे के हिसाब से सुनना",
-      "empty": "इस अवधि में कोई सुनवाई नहीं.",
-      "tooltip": "{{hour}} बजे — {{plays}} बार चलाया गया"
+      "title": "पसंदीदा समय",
+      "empty": "इस अवधि के दौरान कोई निगरानी नहीं।",
+      "tooltip": "{{hour}} h — {{plays}} का प्रदर्शन"
     },
     "topTracks": {
-      "title": "शीर्ष रास्ता",
-      "empty": "कोई ट्रैक नहीं चलाया गया."
+      "title": "मुख्य समाचार",
+      "empty": "कोई ट्रैक नहीं चला।"
     },
     "topArtists": {
       "title": "शीर्ष कलाकार",
-      "empty": "किसी कलाकार ने नहीं बजाया."
+      "empty": "किसी कलाकार ने नहीं सुना।"
     },
     "topAlbums": {
       "title": "शीर्ष एल्बम",
-      "empty": "कोई एल्बम नहीं चला."
+      "empty": "कोई एल्बम नहीं चलाए गए।"
     },
-    "plays_zero": "0 बार चलाया गया",
-    "plays_one": "{{count}} बार चलाया गया",
-    "plays_other": "{{count}} बार चलाया गया"
+    "plays_zero": "0 प्ले",
+    "plays_one": "{{count}} सुनो",
+    "plays_other": "{{count}} वायरटैप्स"
   },
   "about": {
     "title": "के बारे में",
     "hero": {
-      "subtitle": "क्रॉस-प्लेटफॉर्म एचडी म्यूजिक प्लेयर",
-      "checkUpdates": "अद्यतन के लिए जाँच",
-      "developedBy": "द्वारा विकसित किया गया"
+      "subtitle": "क्रॉस-प्लेटफ़ॉर्म एचडी संगीत प्लेयर",
+      "checkUpdates": "अपडेट्स के लिए जाँच करें",
+      "developedBy": "द्वारा विकसित"
     },
     "sections": {
-      "frameworkDesktop": "डेस्कटॉप फ़्रेमवर्क",
-      "frontend": "फ़्रंट एंड",
-      "backend": "बैकएंड (जंग)",
+      "frameworkDesktop": "डेस्कटॉप फ्रेमवर्क",
+      "frontend": "फ्रंटएंड",
+      "backend": "बैकएंड (रस्ट)",
       "audio": "ऑडियो",
-      "shortcuts": "कुंजीपटल अल्प मार्ग",
-      "credits": "क्रेडिट"
+      "shortcuts": "कीबोर्ड शॉर्टकट",
+      "credits": "श्रेय"
     },
     "shortcuts": {
-      "playPause": "चलाएं/रोकें",
+      "playPause": "चलाएँ / रोकें",
       "previousTrack": "पिछला ट्रैक",
       "nextTrack": "अगला ट्रैक",
       "volume": "आयतन",
-      "mute": "आवाज़ बंद करना",
+      "mute": "ध्वनि म्यूट करें",
       "keys": {
         "space": "अंतरिक्ष"
       }
     },
     "credits": {
-      "text": "जुनून के साथ डिजाइन और निर्माण किया गया। ओपन सोर्स प्रौद्योगिकियों द्वारा संचालित।",
-      "icons": "ल्यूसिड, फॉस्फोर, म्यनौई और आइकोनिफाई द्वारा प्रतीक।"
+      "text": "जोश के साथ डिज़ाइन और विकसित। ओपन-सोर्स तकनीकों का उपयोग करके निर्मित।",
+      "icons": "लुसिड, फॉस्फर, माइनौई और आइकॉनिफाई द्वारा आइकन।"
     }
   },
   "feedback": {
     "title": "प्रतिक्रिया",
     "hero": {
-      "title": "वेवफ्लो को बेहतर बनाने में हमारी सहायता करें",
-      "description": "कोई बग देखा, कोई सुधार का विचार है, या बस कुछ विचार साझा करना चाहते हैं? हम हर संदेश पढ़ते हैं और आपके सुझावों को ध्यान में रखते हैं।"
+      "title": "WaveFlow को बेहतर बनाने में हमारी मदद करें",
+      "description": "क्या आपने कोई बग देखा है, सुधार के लिए कोई सुझाव है, या बस हमें फीडबैक देना चाहते हैं? हम हर संदेश को पढ़ते हैं और आपके सुझावों को ध्यान में रखते हैं।"
     },
     "contact": {
       "section": "हमसे संपर्क करें",
-      "subtitle": "बग, सुझाव या प्रश्न - हम हर संदेश पढ़ते हैं"
+      "subtitle": "चाहे वह बग हो, सुझाव हो या सवाल — हम हर संदेश पढ़ते हैं।"
     }
   },
   "player": {
-    "noTrack": "कोई ट्रैक नहीं",
+    "noTrack": "कोई शीर्षक नहीं",
     "inactive": "निष्क्रिय",
     "controls": {
-      "play": "चलाएँ",
-      "pause": "विराम",
-      "previous": "पहले का",
+      "play": "पढ़ना",
+      "pause": "रुकें",
+      "previous": "पिछला",
       "next": "अगला",
-      "shuffleOn": "फेरबदल अक्षम करें",
-      "shuffleOff": "फेरबदल सक्षम करें",
-      "repeatOff": "दोहराना सक्षम करें",
-      "repeatAll": "एक ट्रैक दोहराएँ",
-      "repeatOne": "दोहराना अक्षम करें"
+      "shuffleOn": "शफल बंद करें",
+      "shuffleOff": "शफल सक्षम करें",
+      "repeatOff": "दोहराएँ सक्षम करें",
+      "repeatAll": "एक बार दोहराएँ",
+      "repeatOne": "दोहराएँ बंद करें"
     },
     "volume": {
       "label": "आयतन",
-      "mute": "आवाज़ बंद करना",
-      "unmute": "अनम्यूट"
+      "mute": "ध्वनि म्यूट करें",
+      "unmute": "ध्वनि चालू करें"
     }
   },
   "queue": {
-    "title": "कतार",
+    "title": "पंक्ति पढ़ें",
     "inactive": "निष्क्रिय",
     "count_zero": "0 ट्रैक",
-    "count_one": "{{count}} ट्रैक",
-    "count_other": "{{count}} ट्रैक",
-    "emptyTitle": "खेलने के लिए कुछ नहीं",
-    "emptyDescription": "कतार भरने के लिए अपनी लाइब्रेरी से कुछ संगीत चलाएँ।",
-    "nowPlaying": "अब खेल रहे हैं",
-    "upNext_zero": "आगे",
-    "upNext_one": "अगला · {{count}} ट्रैक",
-    "upNext_other": "अगला · {{count}} ट्रैक"
+    "count_one": "{{count}} पगडंडी",
+    "count_other": "{{count}} टुकड़े",
+    "emptyTitle": "सुनने के लिए कुछ भी नहीं",
+    "emptyDescription": "कतार भरने के लिए अपनी लाइब्रेरी से कोई ट्रैक चलाएँ।",
+    "nowPlaying": "प्रगति में",
+    "upNext_zero": "जारी रहेगा",
+    "upNext_one": "जारी रहेगा · {{count}} शीर्षक",
+    "upNext_other": "आने वाले · {{count}} की मुख्य खबरें"
   },
   "deviceMenu": {
     "activeLabel": "सक्रिय आउटपुट",
-    "loading": "डिवाइस ढूंढ रहे हैं...",
-    "empty": "कोई आउटपुट डिवाइस उपलब्ध नहीं है",
-    "systemDefault": "प्रणालीगत चूक"
+    "loading": "डिवाइस खोज रहे हैं…",
+    "empty": "कोई आउटपुट डिवाइस उपलब्ध नहीं है।",
+    "systemDefault": "डिफ़ॉल्ट रूप से"
   },
   "profiles": {
     "select": {
       "title": "कौन सुन रहा है?",
-      "subtitle": "अपनी लाइब्रेरी और प्लेलिस्ट ढूंढने के लिए अपनी प्रोफ़ाइल चुनें",
-      "add": "जोड़ना",
-      "edit": "संपादन करना",
+      "subtitle": "अपनी लाइब्रेरी और प्लेलिस्ट खोजने के लिए अपनी प्रोफ़ाइल चुनें।",
+      "add": "जोड़ें",
+      "edit": "संपादित करें",
       "active": "सक्रिय प्रोफ़ाइल",
-      "switchTo": "बदलना"
+      "switchTo": "स्विच"
     },
     "create": {
-      "title": "नई प्रोफ़ाइल",
-      "subtitle": "अपने अनुभव को निजीकृत करने के लिए एक प्रोफ़ाइल बनाएं",
+      "title": "नया प्रोफ़ाइल",
+      "subtitle": "अपने अनुभव को निजीकृत करने के लिए एक प्रोफ़ाइल बनाएँ",
       "nameLabel": "प्रोफ़ाइल नाम",
-      "namePlaceholder": "नाम डालें...",
-      "colorLabel": "प्रोफ़ाइल का रंग",
-      "colorAria": "{{color}} रंग",
-      "submit": "प्रोफ़ाइल बनाएं"
+      "namePlaceholder": "एक नाम दर्ज करें...",
+      "colorLabel": "प्रोफ़ाइल रंग",
+      "colorAria": "Colour{{color}}",
+      "submit": "प्रोफ़ाइल बनाएँ"
     }
   },
   "libraryModal": {
-    "title": "एक लाइब्रेरी बनाएं",
-    "editTitle": "लाइब्रेरी संपादित करें",
-    "previewDefault": "एक लाइब्रेरी बनाएं",
-    "previewSubtitle": "0 ट्रैक · लाइब्रेरी",
+    "title": "एक पुस्तकालय बनाएँ",
+    "editTitle": "पुस्तकालय संपादित करें",
+    "previewDefault": "एक पुस्तकालय बनाएँ",
+    "previewSubtitle": "0 शीर्षक · पुस्तकालय",
     "nameLabel": "पुस्तकालय का नाम",
-    "namePlaceholder": "जैसे रॉक, जैज़, शास्त्रीय...",
+    "namePlaceholder": "उदाहरण के लिए: रॉक, जैज़, शास्त्रीय...",
     "descriptionLabel": "विवरण",
     "descriptionPlaceholder": "एक संक्षिप्त विवरण...",
-    "submit": "एक लाइब्रेरी बनाएं",
-    "submitEdit": "बचाना"
+    "submit": "एक पुस्तकालय बनाएँ",
+    "submitEdit": "बचाएँ"
   },
   "playlistModal": {
     "title": "नई प्लेलिस्ट",
     "editTitle": "प्लेलिस्ट संपादित करें",
     "previewDefault": "नई प्लेलिस्ट",
     "previewSubtitle": "0 ट्रैक · प्लेलिस्ट",
-    "nameLabel": "नाम",
-    "namePlaceholder": "जैसे चिल वाइब्स, वर्कआउट मिक्स...",
+    "nameLabel": "उपनाम",
+    "namePlaceholder": "उदाहरण के लिए: चिल वाइब्स, वर्कआउट मिक्स...",
     "descriptionLabel": "विवरण",
     "descriptionPlaceholder": "एक संक्षिप्त विवरण...",
     "colorLabel": "रंग",
-    "colorAria": "{{color}} रंग",
-    "iconLabel": "आइकन",
-    "iconAria": "{{icon}} चिह्न",
-    "submit": "बनाएं",
-    "editSubmit": "बचाना"
+    "colorAria": "Colour{{color}}",
+    "iconLabel": "चिह्न",
+    "iconAria": "{{icon}} आइकन",
+    "submit": "बनाएँ",
+    "editSubmit": "बचाएँ"
   },
   "playlistView": {
     "badge": "प्लेलिस्ट",
-    "trackCount_zero": "0 ट्रैक",
-    "trackCount_one": "{{count}} ट्रैक",
-    "trackCount_other": "{{count}} ट्रैक",
+    "trackCount_zero": "0 शीर्षक",
+    "trackCount_one": "{{count}} शीर्षक",
+    "trackCount_other": "{{count}} शीर्षक",
     "actions": {
-      "play": "चलाएँ",
-      "shuffle": "खेल को शफ़ल करें",
+      "play": "पढ़ना",
+      "shuffle": "यादृच्छिक प्लेबैक",
       "edit": "प्लेलिस्ट संपादित करें",
       "exportM3u": "M3U के रूप में निर्यात करें",
       "delete": "प्लेलिस्ट हटाएँ",
-      "deleteConfirm": "पुष्टि करने के लिए दोबारा क्लिक करें"
+      "deleteConfirm": "पुष्टि करने के लिए फिर से क्लिक करें"
     },
     "export": {
-      "dialogTitle": "प्लेलिस्ट को M3U के रूप में निर्यात करें"
+      "dialogTitle": "प्लेलिस्ट को M3U फ़ाइल के रूप में निर्यात करें"
     },
     "emptyTitle": "यह प्लेलिस्ट खाली है",
-    "emptyDescription": "प्रत्येक पंक्ति पर + बटन का उपयोग करके अपनी लाइब्रेरी से ट्रैक जोड़ें।",
-    "noneTitle": "कोई प्लेलिस्ट चयनित नहीं",
-    "noneDescription": "यहां देखने के लिए साइडबार से एक प्लेलिस्ट चुनें।",
+    "emptyDescription": "प्रत्येक पंक्ति पर + बटन का उपयोग करके अपनी लाइब्रेरियों से ट्रैक्स जोड़ें।",
+    "noneTitle": "कोई प्लेलिस्ट चयनित नहीं है",
+    "noneDescription": "इसे यहाँ देखने के लिए साइडबार से एक प्लेलिस्ट चुनें।",
     "notFoundTitle": "प्लेलिस्ट नहीं मिली",
-    "notFoundDescription": "यह प्लेलिस्ट अब सक्रिय प्रोफ़ाइल में मौजूद नहीं है."
+    "notFoundDescription": "यह प्लेलिस्ट अब सक्रिय प्रोफ़ाइल में मौजूद नहीं है।"
   },
   "trackActions": {
-    "addToPlaylist": "किसी प्लेलिस्ट में जोड़ें",
-    "noPlaylists": "अभी तक कोई प्लेलिस्ट नहीं. नीचे एक बनाएं.",
+    "addToPlaylist": "प्लेलिस्ट में जोड़ें",
+    "noPlaylists": "कोई प्लेलिस्ट नहीं। नीचे एक बनाएँ।",
     "createPlaylist": "नई प्लेलिस्ट",
-    "playNext": "अगला चलाएँ",
-    "addToQueue": "क़तार में जोड़ें",
-    "like": "पसंद किये गये गानों में जोड़ें",
-    "unlike": "पसंद किए गए गानों से हटाएं",
+    "playNext": "और पढ़ें",
+    "addToQueue": "कतार में जोड़ें",
+    "like": "पसंदीदा ट्रैकों में जोड़ें",
+    "unlike": "पसंद की गई पोस्ट हटाएँ",
     "removeFromPlaylist": "इस प्लेलिस्ट से हटाएँ",
     "goToAlbum": "एल्बम पर जाएँ",
-    "goToArtist": "कलाकार के पास जाओ",
-    "showInExplorer": "फ़ाइल एक्सप्लोरर में दिखाएँ",
-    "copyPath": "फ़ाइल पथ कॉपी करें",
-    "properties": "गुण"
+    "goToArtist": "कलाकार के पास जाएँ",
+    "showInExplorer": "फ़ाइल एक्सप्लोरर में देखें",
+    "copyPath": "फ़ाइल पथ की प्रतिलिपि बनाएँ",
+    "properties": "गुणधर्म"
   },
   "trackProperties": {
-    "title": "संपत्तियों को ट्रैक करें",
+    "title": "शीर्षक गुण",
     "sections": {
-      "metadata": "मेटाडाटा",
+      "metadata": "मेटाडेटा",
       "audio": "ऑडियो",
       "analysis": "विश्लेषण",
       "file": "फ़ाइल"
     },
-    "bpm": "BPM",
-    "loudness": "प्रबलता",
-    "replayGain": "ReplayGain",
-    "peak": "चोटी",
+    "bpm": "बीपीएम",
+    "loudness": "आयतन",
+    "replayGain": "रीप्लेगेन",
+    "peak": "शिखर",
     "analyze": "विश्लेषण करें",
-    "reanalyze": "फिर से विश्लेषण",
-    "analyzing": "विश्लेषण कर रहा हूँ...",
+    "reanalyze": "पुनः विश्लेषण",
+    "analyzing": "विश्लेषण…",
     "year": "वर्ष",
-    "trackNumber": "रास्ता #",
+    "trackNumber": "ट्रैक",
     "duration": "अवधि",
     "codec": "कोडेक",
-    "bitDepth": "थोड़ी गहराई",
-    "sampleRate": "नमूना दर",
+    "bitDepth": "गहराई",
+    "sampleRate": "नमूनाकरण",
     "channels": "चैनल",
-    "bitrate": "बिटरेट",
-    "key": "चाबी",
-    "fileSize": "फ़ाइल का साइज़",
-    "addedAt": "जोड़ा",
-    "filePath": "पथ",
-    "showInExplorer": "फ़ाइल एक्सप्लोरर में दिखाएँ",
-    "mono": "मोनो",
+    "bitrate": "प्रवाह दर",
+    "key": "मुख्य",
+    "fileSize": "आकार",
+    "addedAt": "जोड़ा गया",
+    "filePath": "मार्ग",
+    "showInExplorer": "फ़ाइल एक्सप्लोरर में देखें",
+    "mono": "एकल",
     "stereo": "स्टीरियो"
   },
   "selection": {
-    "toolbarLabel": "चयन क्रियाएँ",
+    "toolbarLabel": "चयन गतिविधियाँ",
     "count_zero": "0 चयनित",
     "count_one": "{{count}} चयनित",
     "count_other": "{{count}} चयनित",
-    "play": "चलाएँ",
-    "addToQueue": "क़तार में जोड़ें",
-    "playNext": "अगला चलाएँ",
+    "play": "पढ़ना",
+    "addToQueue": "कतार में जोड़ें",
+    "playNext": "आगे पढ़ें",
     "addToPlaylist": "प्लेलिस्ट में जोड़ें",
     "removeFromPlaylist": "प्लेलिस्ट से हटाएँ",
-    "clear": "स्पष्ट"
+    "clear": "अनचयन करें"
   },
   "albumDetail": {
     "badge": "एल्बम",
-    "playAll": "सभी चलाएँ",
-    "shuffle": "मिश्रण",
-    "trackCount_zero": "0 ट्रैक",
-    "trackCount_one": "{{count}} ट्रैक",
-    "trackCount_other": "{{count}} ट्रैक",
-    "discHeader": "डिस्क {{number}}",
-    "releaseDate": "जारी किया",
+    "playAll": "और पढ़ें",
+    "shuffle": "यादृच्छिक प्लेबैक",
+    "trackCount_zero": "0 शीर्षक",
+    "trackCount_one": "{{count}} शीर्षक",
+    "trackCount_other": "{{count}} शीर्षक",
+    "discHeader": "{{number}} का एल्बम",
+    "releaseDate": "निकास",
     "emptyTitle": "एल्बम नहीं मिला",
-    "emptyDescription": "यह एल्बम अब सक्रिय प्रोफ़ाइल में मौजूद नहीं है.",
+    "emptyDescription": "यह एल्बम अब सक्रिय प्रोफ़ाइल में उपलब्ध नहीं है।",
     "emptyTracksTitle": "कोई ट्रैक नहीं",
-    "emptyTracksDescription": "इस एल्बम में कोई ट्रैक उपलब्ध नहीं है."
+    "emptyTracksDescription": "इस एल्बम में कोई ट्रैक नहीं हैं।"
   },
   "artistDetail": {
     "badge": "कलाकार",
-    "playAll": "सभी चलाएँ",
-    "shuffle": "मिश्रण",
+    "playAll": "और पढ़ें",
+    "shuffle": "यादृच्छिक प्लेबैक",
     "discography": "डिस्कोग्राफी",
-    "allTracks": "सभी ट्रैक",
-    "trackCount_zero": "0 ट्रैक",
-    "trackCount_one": "{{count}} ट्रैक",
-    "trackCount_other": "{{count}} ट्रैक",
+    "allTracks": "सभी शीर्षक",
+    "trackCount_zero": "0 शीर्षक",
+    "trackCount_one": "{{count}} शीर्षक",
+    "trackCount_other": "{{count}} शीर्षक",
     "albumCount_zero": "0 एल्बम",
     "albumCount_one": "{{count}} एल्बम",
     "albumCount_other": "{{count}} एल्बम",
-    "albumTrackCount_zero": "0 ट्रैक",
-    "albumTrackCount_one": "{{count}} ट्रैक",
-    "albumTrackCount_other": "{{count}} ट्रैक",
+    "albumTrackCount_zero": "0 शीर्षक",
+    "albumTrackCount_one": "{{count}} शीर्षक",
+    "albumTrackCount_other": "{{count}} शीर्षक",
     "emptyTitle": "कलाकार नहीं मिला",
-    "emptyDescription": "यह कलाकार अब सक्रिय प्रोफ़ाइल में मौजूद नहीं है.",
+    "emptyDescription": "यह कलाकार अब सक्रिय प्रोफ़ाइल में सूचीबद्ध नहीं है।",
     "bio": {
       "title": "जीवनी"
     }
   },
   "nowPlaying": {
-    "title": "अब खेल रहे हैं",
-    "empty": "कोई ट्रैक नहीं बज रहा है",
+    "title": "अब चल रहा है",
+    "empty": "कोई वर्तमान शीर्षक नहीं",
     "aboutArtist": "कलाकार के बारे में",
     "readMore": "और पढ़ें",
-    "readLess": "कम पढ़ें",
-    "noBio": "कोई जीवनी उपलब्ध नहीं है. सेटिंग्स में अपनी Last.fm कुंजी कॉन्फ़िगर करें।",
+    "readLess": "न्यूनतम करें",
+    "noBio": "कोई जीवनी उपलब्ध नहीं है। सेटिंग्स में अपना Last.fm टोकन सेट करें।",
     "lyrics": {
-      "title": "गीत",
+      "title": "गीत के बोल",
       "comingSoon": "जल्द आ रहा है"
     }
   },
   "playerBar": {
-    "lyrics": "गीत",
-    "nowPlaying": "अभी दृश्य चल रहा है",
-    "queue": "कतार"
+    "lyrics": "गीत के बोल",
+    "nowPlaying": "वर्तमान में चल रहा दृश्य",
+    "queue": "पंक्ति"
   },
   "lyrics": {
-    "title": "गीत",
-    "loading": "गीत के बोल खोज रहे हैं...",
-    "noTrack": "कोई ट्रैक नहीं बज रहा है",
-    "notFound": "इस ट्रैक के लिए कोई गीत नहीं मिला. आप .lrc फ़ाइल आयात कर सकते हैं.",
+    "title": "गीत के बोल",
+    "loading": "गीत के बोल खोज रहे हैं…",
+    "noTrack": "कोई वर्तमान शीर्षक नहीं",
+    "notFound": "इस ट्रैक के लिए कोई गीत नहीं मिला। आप एक .lrc फ़ाइल आयात कर सकते हैं।",
     "importTitle": ".lrc फ़ाइल आयात करें",
     "actions": {
       "import": ".lrc फ़ाइल आयात करें",
-      "refetch": "गीत पुनः प्राप्त करें",
-      "clear": "स्पष्ट गीत"
+      "refetch": "खोज फिर से शुरू करें",
+      "clear": "स्पष्ट बोल"
     },
     "source": {
-      "embedded": "ऑडियो फ़ाइल में एंबेडेड",
+      "embedded": "फ़ाइल में शामिल गीत",
       "lrc_file": "आयातित .lrc फ़ाइल",
-      "api": "LRCLIB",
-      "manual": "मैन्युअल प्रविष्टि"
+      "api": "एलआरसीएलआईबी",
+      "manual": "मैनुअल प्रविष्टि"
     }
   },
   "sort": {
@@ -632,110 +632,110 @@
     "album": "एल्बम",
     "duration": "अवधि",
     "year": "वर्ष",
-    "addedAt": "जोड़ा",
-    "rating": "रेटिंग",
-    "name": "नाम",
-    "albumsCount": "एलबम",
-    "tracksCount": "पटरियों",
-    "ascending": "आरोही",
-    "descending": "अवरोही"
+    "addedAt": "जोड़ा गया",
+    "rating": "ध्यान दें",
+    "name": "उपनाम",
+    "albumsCount": "एल्बमों की संख्या",
+    "tracksCount": "ट्रैकों की संख्या",
+    "ascending": "क्रोइसाँ",
+    "descending": "उतरता हुआ"
   },
   "settings": {
     "title": "सेटिंग्स",
     "sections": {
       "general": "सामान्य",
-      "playback": "प्लेबैक",
+      "playback": "पढ़ना",
       "integrations": "एकीकरण",
-      "storage": "भंडारण एवं डेटा"
+      "storage": "भंडारण और डेटा"
     },
     "integrations": {
       "lastfm": {
-        "title": "Last.fm",
-        "subtitle": "कलाकारों की जीवनियाँ और स्क्रोब्लिंग। Last.fm/api/account/create पर एक कुंजी बनाएं",
+        "title": "लास्ट.एफएम",
+        "subtitle": "कलाकार प्रोफाइल और स्क्रॉबलिंग। last.fm/api/account/create पर एक कुंजी बनाएँ।",
         "placeholder": "एपीआई कुंजी",
-        "secretPlaceholder": "साझा रहस्य",
-        "save": "बचाना",
+        "secretPlaceholder": "एक साझा रहस्य",
+        "save": "बचाएँ",
         "saved": "सहेजा गया ✓",
-        "show": "दिखाओ",
-        "hide": "छिपाना",
-        "connectedAs": "इस रूप में साइन इन किया",
-        "disconnect": "साइन आउट",
-        "loginPrompt": "अपनी बात सुनने के लिए साइन इन करें:",
+        "show": "प्रदर्शन",
+        "hide": "छिपाएँ",
+        "connectedAs": "के रूप में लॉग इन",
+        "disconnect": "लॉग आउट करें",
+        "loginPrompt": "अपने ट्रैक्स को स्क्रॉबल करने के लिए लॉग इन करें:",
         "usernamePlaceholder": "उपयोगकर्ता नाम",
         "passwordPlaceholder": "पासवर्ड",
-        "connect": "दाखिल करना",
-        "connecting": "इन कर रहे हैं…"
+        "connect": "लॉग इन करें",
+        "connecting": "लॉग इन…"
       }
     },
     "crossfade": {
-      "title": "क्रॉसफ़ेड गाने",
-      "subtitle": "ट्रैक के बीच सहज संक्रमण (जल्द ही आ रहा है)"
+      "title": "क्रॉस-फ़ेड",
+      "subtitle": "ट्रैकों के बीच निर्बाध संक्रमण (जल्द आ रहा है)"
     },
     "normalize": {
-      "title": "वॉल्यूम सामान्य करें",
-      "subtitle": "लगातार सुनने के स्तर के लिए तेज़ ट्रैक पर आवाज़ कम करें"
+      "title": "वॉल्यूम समायोजित करें",
+      "subtitle": "एक समान स्तर सुनिश्चित करने के लिए बहुत ज़्यादा तेज़ ट्रैकों की मात्रा कम करें।"
     },
     "replayGain": {
-      "title": "रिप्लेगेन लागू करें",
-      "subtitle": "कथित ज़ोर को बराबर करने के लिए प्रत्येक ट्रैक के विश्लेषण किए गए लाभ का उपयोग करें"
+      "title": "रीप्लेगेन लागू करें",
+      "subtitle": "प्रत्येक ट्रैक के विश्लेषित गेन का उपयोग करके अनुभूत वॉल्यूम को संतुलित करें।"
     },
     "mono": {
       "title": "मोनो ऑडियो",
-      "subtitle": "बाएँ और दाएँ चैनल को एक ही सिग्नल में मिलाएँ"
+      "subtitle": "बाएँ और दाएँ चैनलों को एक ही सिग्नल में मिलाता है।"
     },
     "language": {
       "title": "भाषा",
-      "subtitle": "इंटरफ़ेस भाषा"
+      "subtitle": "अंतरफलक भाषा"
     },
     "autoStart": {
       "title": "स्टार्टअप पर लॉन्च करें",
-      "subtitle": "सिस्टम बूट होने पर वेवफ्लो स्वचालित रूप से प्रारंभ हो जाता है"
+      "subtitle": "सिस्टम चालू होने पर WaveFlow स्वचालित रूप से लॉन्च करें"
     },
     "minimizeToTray": {
-      "title": "सिस्टम ट्रे में छोटा करें",
-      "subtitle": "विंडो बंद करने से ऐप ट्रे में छोटा हो जाता है"
+      "title": "टास्कबार में न्यूनतम करें",
+      "subtitle": "विंडो बंद करने पर एप्लिकेशन सिस्टम ट्रे में संकुचित हो जाता है।"
     },
     "scanOnStart": {
-      "title": "स्टार्टअप पर स्कैन करें",
-      "subtitle": "ऐप खुलने पर लाइब्रेरीज़ को स्वचालित रूप से पुनः स्कैन करें"
+      "title": "शुरुआत पर स्कैन करें",
+      "subtitle": "स्टार्टअप पर स्वचालित रूप से पुस्तकालयों को पुनः स्कैन करें"
     },
     "singleClickPlay": {
-      "title": "खेलने के लिए सिंगल-क्लिक करें",
-      "subtitle": "ट्रैक पर एक सिंगल क्लिक से प्लेबैक शुरू हो जाता है (अन्यथा डबल-क्लिक करें)"
+      "title": "एक-क्लिक प्लेबैक",
+      "subtitle": "ट्रैक पर क्लिक करने से प्लेबैक शुरू होता है (अन्यथा डबल-क्लिक करें)"
+    },
+    "rescan": {
+      "title": "पुस्तकालय को फिर से स्कैन करें",
+      "subtitle": "सभी फ़ोल्डरों को फिर से देखें और नई फ़ाइलों को आयात करें।",
+      "action": "दोबारा स्कैन करें"
     },
     "analyze": {
-      "title": "लाइब्रेरी का विश्लेषण करें",
-      "subtitle": "अभी तक विश्लेषण नहीं किए गए ट्रैक के लिए बीपीएम, ध्वनि और शिखर की गणना करें",
+      "title": "पुस्तकालय का विश्लेषण करें",
+      "subtitle": "अनविश्लेषित ट्रैकों के लिए बीपीएम, वॉल्यूम और पीक स्तरों की गणना करें।",
       "action": "विश्लेषण करें",
-      "autoTitle": "ऑटो का विश्लेषण",
-      "autoSubtitle": "हर स्कैन के बाद बैकग्राउंड में एनालाइजर चलाएं जो नए ट्रैक जोड़ता है",
+      "autoTitle": "स्वचालित विश्लेषण",
+      "autoSubtitle": "हर ऐसे स्कैन के बाद जो नए ट्रैक जोड़ता है, विश्लेषण को पृष्ठभूमि में चलाएँ।",
       "failed_one": "{{count}} विफलता",
       "failed_other": "{{count}} विफलताएँ"
     },
-    "rescan": {
-      "title": "लाइब्रेरी पुनः स्कैन करें",
-      "subtitle": "सभी फ़ोल्डरों को फिर से चलाएं और नई फ़ाइलें आयात करें",
-      "action": "पुन: स्कैन"
-    },
     "artistImages": {
-      "title": "कलाकार छवियाँ",
-      "subtitle": "डीज़र से कलाकार की कलाकृतियाँ प्राप्त करें",
-      "action": "लाना"
+      "title": "कलाकारों की छवियाँ",
+      "subtitle": "Deezer से कलाकार कवर प्राप्त करें",
+      "action": "पुनःप्राप्त करें"
     },
     "dataFolder": {
-      "title": "डेटा फ़ोल्डर",
-      "subtitle": "डेटाबेस वाले फ़ोल्डर को खोलें और कला को कवर करें",
-      "action": "खुला"
+      "title": "डेटा शीट",
+      "subtitle": "डेटाबेस और कवर वाले फ़ोल्डर को खोलें।",
+      "action": "खोलें"
     },
     "openDataFolder": "डेटा फ़ोल्डर खोलें",
-    "regenerateThumbnails": "थंबनेल पुन: उत्पन्न करें",
-    "regenerateThumbnailsSubtitle": "प्रत्येक कवर के लिए गायब 1x/2x वेरिएंट का पुनर्निर्माण करें",
-    "regenerateThumbnailsAction": "पुनः जेनरेट",
-    "regenerateThumbnailsDone": "{{count}} थंबनेल पुनर्जीवित",
+    "regenerateThumbnails": "थंबनेल पुनः लोड करें",
+    "regenerateThumbnailsSubtitle": "सभी स्लीव्स के लिए गायब 1x/2x वेरिएंट्स का पुनर्निर्माण करें।",
+    "regenerateThumbnailsAction": "पुनर्जीवित करें",
+    "regenerateThumbnailsDone": "{{count}} पुनर्जीवित थंबनेल",
     "reset": {
-      "title": "एप्लिकेशन को रीसेट करें",
-      "subtitle": "सभी डेटा हटाएं और प्रारंभिक स्थिति पर वापस लौटें",
-      "action": "रीसेट करें"
+      "title": "ऐप को रीसेट करें",
+      "subtitle": "सभी डेटा मिटाएँ और फ़ैक्टरी सेटिंग्स पर पुनर्स्थापित करें।",
+      "action": "पुनः आरंभ करें"
     }
   }
 }
