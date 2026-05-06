@@ -25,7 +25,15 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const { activeProfile } = useProfile();
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [selectedLibraryId, setSelectedLibraryId] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  // Start in the loading state so consumers waiting on a "first
+  // fetch settled" signal don't see the empty initial value as if
+  // the fetch had completed. The mount-time `useEffect` below
+  // resolves it to `false` once `listLibraries` returns. Without
+  // this, the first-run onboarding modal flashes on every launch:
+  // before the effect runs, `libraries.length === 0` is true even
+  // for users with a populated library, and `AppLayout` opens the
+  // modal for one frame before the fetch lands.
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
