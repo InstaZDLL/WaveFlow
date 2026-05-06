@@ -34,8 +34,8 @@
   "onboarding": {
     "defaultLibraryName": "الموسيقى",
     "welcome": {
-      "title": "مرحبًا بكم في WaveFlow",
-      "message": "بادئ ذي بدء، حدد المجلد الذي يحتوي على ملفات الموسيقى الخاصة بك. سيقوم WaveFlow بمسحه وتنظيم مكتبتك تلقائيًا.",
+      "title": "مرحبًا بكم في موقع WaveFlow",
+      "message": "بادئ ذي بدء، حدد المجلد الذي يحتوي على ملفات الموسيقى الخاصة بك. سيقوم برنامج «WaveFlow» بمسح هذا المجلد وتنظيم مكتبتك تلقائيًا.",
       "action": "اختيار مجلد الموسيقى الخاص بي",
       "skip": "تعيين الإعدادات لاحقًا"
     },
@@ -69,8 +69,8 @@
       "folder": "ملف"
     },
     "library": {
-      "tracksCount_zero": "0 عنوان",
-      "tracksCount_one": "{{count}} العنوان",
+      "tracksCount_zero": "0 مقطوعات",
+      "tracksCount_one": "{{count}} المقطوعة",
       "tracksCount_other": "{{count}} العناوين",
       "createLibraryAria": "إنشاء مكتبة جديدة",
       "none": "لا توجد مكتبة",
@@ -78,8 +78,8 @@
         "label": "اختيار المكتبة",
         "header": "المكتبات",
         "countLine": "{{tracks}} · {{albums}}",
-        "tracks_zero": "0 عنوان",
-        "tracks_one": "{{count}} العنوان",
+        "tracks_zero": "0 مقطوعات",
+        "tracks_one": "{{count}} المقطع",
         "tracks_other": "{{count}} العناوين",
         "albums_zero": "0 ألبوم",
         "albums_one": "{{count}} ألبوم",
@@ -101,8 +101,8 @@
       "importDialogTitle": "استيراد قائمة تشغيل M3U",
       "liked": "المنشورات التي حظيت بإعجاب",
       "recent": "تم تشغيلها مؤخرًا",
-      "emptySubtext_zero": "0 عنوان",
-      "emptySubtext_one": "{{count}} العنوان",
+      "emptySubtext_zero": "0 مقطوعات",
+      "emptySubtext_one": "{{count}} المقطوعة",
       "emptySubtext_other": "{{count}} العناوين"
     },
     "myMusic": {
@@ -118,8 +118,8 @@
       "title": "قوائم التشغيل"
     },
     "myLibrary": {
-      "playlistSubtext_zero": "0 عنوان",
-      "playlistSubtext_one": "{{count}} العنوان",
+      "playlistSubtext_zero": "0 مقطوعات",
+      "playlistSubtext_one": "{{count}} المقطع",
       "playlistSubtext_other": "{{count}} العناوين"
     }
   },
@@ -232,7 +232,7 @@
       "deleteConfirm": "انقر مرة أخرى للتأكيد"
     },
     "changeCover": "تغيير الغلاف",
-    "searchDeezer": "البحث في Deezer",
+    "searchDeezer": "البحث عن \"Deezer\"",
     "localFile": "ملف محلي",
     "fetchMissingCovers": "استرداد جميع الأغلفة المفقودة",
     "noCover": "بدون غلاف",
@@ -253,26 +253,26 @@
       "compact": "مضغوط"
     },
     "albumGrid": {
-      "trackCount_zero": "0 عنوان",
-      "trackCount_one": "{{count}} العنوان",
+      "trackCount_zero": "0 مقطوعات",
+      "trackCount_one": "{{count}} المقطع",
       "trackCount_other": "{{count}} العناوين"
     },
     "artistList": {
-      "trackCount_zero": "0 عنوان",
-      "trackCount_one": "{{count}} العنوان",
+      "trackCount_zero": "0 مقطوعات",
+      "trackCount_one": "{{count}} المقطوعة",
       "trackCount_other": "{{count}} العناوين",
       "albumCount_zero": "0 ألبوم",
       "albumCount_one": "{{count}} ألبوم",
       "albumCount_other": "{{count}} ألبومات"
     },
     "genreList": {
-      "trackCount_zero": "0 عنوان",
-      "trackCount_one": "{{count}} العنوان",
+      "trackCount_zero": "0 مقطوعات",
+      "trackCount_one": "{{count}} المقطع",
       "trackCount_other": "{{count}} العناوين"
     },
     "folderList": {
-      "trackCount_zero": "0 عنوان",
-      "trackCount_one": "{{count}} العنوان",
+      "trackCount_zero": "0 مقطوعات",
+      "trackCount_one": "{{count}} المقطع",
       "trackCount_other": "{{count}} العناوين",
       "lastScanned": "مصدر الصورة: {{date}}",
       "neverScanned": "أبدًا",
@@ -284,22 +284,22 @@
   "liked": {
     "badge": "مجموعة",
     "title": "المنشورات التي حصلت على إعجابات",
-    "count_zero": "0 عنوان",
-    "count_one": "{{count}} العنوان",
+    "count_zero": "0 مقطوعات",
+    "count_one": "{{count}} المقطع",
     "count_other": "{{count}} العناوين",
-    "emptyTitle": "لا توجد منشورات تم الإعجاب بها",
+    "emptyTitle": "لا توجد مقطوعات محبوبة",
     "emptyDescription": "ستظهر هنا الأغاني التي تحبها. استكشف مكتبتك الموسيقية وقم بالإعجاب بأغانيك المفضلة.",
-    "playAll": "قراءة الكل",
+    "playAll": "تشغيل الكل",
     "unlike": "إلغاء الإعجابات",
     "like": "إضافة إلى المفضلة"
   },
   "recent": {
     "badge": "التاريخ",
     "title": "الألعاب التي تم لعبها مؤخرًا",
-    "count_zero": "0 عنوان",
-    "count_one": "{{count}} العنوان",
+    "count_zero": "0 مقطوعات",
+    "count_one": "{{count}} المقطع",
     "count_other": "{{count}} العناوين",
-    "emptyTitle": "لا توجد عناوين حديثة",
+    "emptyTitle": "لا توجد مقطوعات حديثة",
     "emptyDescription": "ستظهر الأغاني التي تستمع إليها هنا تلقائيًّا."
   },
   "statistics": {
@@ -364,7 +364,7 @@
       "credits": "الاعتمادات"
     },
     "shortcuts": {
-      "playPause": "تشغيل / إيقاف مؤقت",
+      "playPause": "تشغيل/إيقاف مؤقت",
       "previousTrack": "المقطع السابق",
       "nextTrack": "المقطع التالي",
       "volume": "الحجم",
@@ -381,7 +381,7 @@
   "feedback": {
     "title": "التعليقات",
     "hero": {
-      "title": "ساعدونا في تحسين WaveFlow",
+      "title": "ساعدونا في تحسين موقع WaveFlow",
       "description": "هل لاحظت خطأً ما، أو لديك فكرة لتحسين الخدمة، أو ببساطة تريد إرسال ملاحظاتك إلينا؟ نحن نقرأ كل رسالة ونأخذ اقتراحاتك بعين الاعتبار."
     },
     "contact": {
@@ -390,15 +390,15 @@
     }
   },
   "player": {
-    "noTrack": "بدون عنوان",
+    "noTrack": "لا توجد مقطوعة",
     "inactive": "غير نشط",
     "controls": {
-      "play": "القراءة",
+      "play": "تشغيل",
       "pause": "استراحة",
       "previous": "السابق",
       "next": "التالي",
-      "shuffleOn": "إيقاف تشغيل التشغيل العشوائي",
-      "shuffleOff": "تشغيل التشغيل العشوائي",
+      "shuffleOn": "تعطيل الخلط العشوائي",
+      "shuffleOff": "تمكين خلط ورق اللعب",
       "repeatOff": "تشغيل التكرار",
       "repeatAll": "كرر مرة واحدة فقط",
       "repeatOne": "إيقاف التكرار"
@@ -410,17 +410,17 @@
     }
   },
   "queue": {
-    "title": "مؤشر القراءة",
+    "title": "قائمة انتظار التشغيل",
     "inactive": "غير نشط",
-    "count_zero": "0 أغنية",
-    "count_one": "{{count}} مقطع",
+    "count_zero": "0 مقطوعات",
+    "count_one": "{{count}} المقطع",
     "count_other": "{{count}} مقاطع",
     "emptyTitle": "لا يوجد ما تستمع إليه",
     "emptyDescription": "قم بتشغيل مقطع موسيقي من مكتبتك لملء قائمة الانتظار.",
     "nowPlaying": "قيد التنفيذ",
-    "upNext_zero": "يُتبع",
-    "upNext_one": "تابع · عنوان \"{{count}}\"",
-    "upNext_other": "تابع · {{count}} أخبار"
+    "upNext_zero": "التالي",
+    "upNext_one": "التالي · أغنية \"{{count}}\"",
+    "upNext_other": "التالي - {{count}} المقطوعات الموسيقية"
   },
   "deviceMenu": {
     "activeLabel": "مخرج نشط",
@@ -451,7 +451,7 @@
     "title": "إنشاء مكتبة",
     "editTitle": "تعديل المكتبة",
     "previewDefault": "إنشاء مكتبة",
-    "previewSubtitle": "0 عنوان · المكتبة",
+    "previewSubtitle": "0 مقطوعات · المكتبة",
     "nameLabel": "اسم المكتبة",
     "namePlaceholder": "مثل: موسيقى الروك، الجاز، الموسيقى الكلاسيكية...",
     "descriptionLabel": "الوصف",
@@ -463,7 +463,7 @@
     "title": "قائمة تشغيل جديدة",
     "editTitle": "تعديل قائمة التشغيل",
     "previewDefault": "قائمة تشغيل جديدة",
-    "previewSubtitle": "0 أغنية · قائمة تشغيل",
+    "previewSubtitle": "0 مقطوعات · قائمة التشغيل",
     "nameLabel": "الاسم",
     "namePlaceholder": "مثل: Chill Vibes، Workout Mix...",
     "descriptionLabel": "الوصف",
@@ -477,12 +477,12 @@
   },
   "playlistView": {
     "badge": "قائمة التشغيل",
-    "trackCount_zero": "0 عنوان",
-    "trackCount_one": "{{count}} العنوان",
+    "trackCount_zero": "0 مقطوعات",
+    "trackCount_one": "{{count}} المقطع",
     "trackCount_other": "{{count}} العناوين",
     "actions": {
-      "play": "القراءة",
-      "shuffle": "تشغيل عشوائي",
+      "play": "تشغيل",
+      "shuffle": "خلط ورق اللعب",
       "edit": "تعديل قائمة التشغيل",
       "exportM3u": "تصدير إلى M3U",
       "delete": "حذف قائمة التشغيل",
@@ -502,7 +502,7 @@
     "addToPlaylist": "إضافة إلى قائمة التشغيل",
     "noPlaylists": "لا توجد قائمة تشغيل. أنشئ واحدة أدناه.",
     "createPlaylist": "قائمة تشغيل جديدة",
-    "playNext": "اقرأ المزيد",
+    "playNext": "تشغيل التالي",
     "addToQueue": "إضافة إلى قائمة الانتظار",
     "like": "إضافة إلى العناوين التي أعجبتني",
     "unlike": "إزالة المنشورات التي تمت الإعجاب بها",
@@ -514,7 +514,7 @@
     "properties": "الخصائص"
   },
   "trackProperties": {
-    "title": "خصائص العنوان",
+    "title": "خصائص المسار",
     "sections": {
       "metadata": "البيانات الوصفية",
       "audio": "الصوت",
@@ -529,7 +529,7 @@
     "reanalyze": "إعادة التحليل",
     "analyzing": "تحليل…",
     "year": "السنة",
-    "trackNumber": "المسار",
+    "trackNumber": "رقم المسار",
     "duration": "المدة",
     "codec": "برنامج الترميز",
     "bitDepth": "العمق",
@@ -549,19 +549,19 @@
     "count_zero": "0 تم تحديده",
     "count_one": "{{count}} المحدد",
     "count_other": "{{count}} المختارون",
-    "play": "القراءة",
+    "play": "تشغيل",
     "addToQueue": "إضافة إلى قائمة الانتظار",
-    "playNext": "اقرأ بعد ذلك",
+    "playNext": "تشغيل التالي",
     "addToPlaylist": "إضافة إلى قائمة التشغيل",
     "removeFromPlaylist": "إزالة من قائمة التشغيل",
     "clear": "إلغاء التحديد"
   },
   "albumDetail": {
     "badge": "ألبوم",
-    "playAll": "قراءة الكل",
-    "shuffle": "تشغيل عشوائي",
-    "trackCount_zero": "0 عنوان",
-    "trackCount_one": "{{count}} العنوان",
+    "playAll": "تشغيل الكل",
+    "shuffle": "خلط ورق اللعب",
+    "trackCount_zero": "0 مقطوعات",
+    "trackCount_one": "{{count}} المقطع",
     "trackCount_other": "{{count}} العناوين",
     "discHeader": "قرص صلب من طراز «{{number}}»",
     "releaseDate": "الخروج",
@@ -572,18 +572,18 @@
   },
   "artistDetail": {
     "badge": "فنان",
-    "playAll": "قراءة الكل",
-    "shuffle": "تشغيل عشوائي",
+    "playAll": "تشغيل الكل",
+    "shuffle": "خلط ورق اللعب",
     "discography": "ألبومات",
     "allTracks": "جميع الأغاني",
-    "trackCount_zero": "0 عنوان",
-    "trackCount_one": "{{count}} العنوان",
+    "trackCount_zero": "0 مقطوعات",
+    "trackCount_one": "{{count}} المقطع",
     "trackCount_other": "{{count}} العناوين",
     "albumCount_zero": "0 ألبوم",
     "albumCount_one": "{{count}} ألبوم",
     "albumCount_other": "{{count}} ألبومات",
-    "albumTrackCount_zero": "0 عنوان",
-    "albumTrackCount_one": "{{count}} العنوان",
+    "albumTrackCount_zero": "0 مقطوعات",
+    "albumTrackCount_one": "{{count}} المقطع",
     "albumTrackCount_other": "{{count}} العناوين",
     "emptyTitle": "لا يمكن العثور على الفنان",
     "emptyDescription": "لم يعد هذا الفنان موجودًا في الملف الشخصي النشط.",
@@ -592,12 +592,12 @@
     }
   },
   "nowPlaying": {
-    "title": "قيد القراءة",
-    "empty": "لا توجد قضايا معلقة",
+    "title": "التشغيل الآن",
+    "empty": "لا توجد مقطوعة قيد التشغيل",
     "aboutArtist": "نبذة عن الفنان",
     "readMore": "اقرأ المزيد",
     "readLess": "تصغير",
-    "noBio": "لا توجد سيرة ذاتية متاحة. قم بتكوين مفتاح Last.fm الخاص بك في الإعدادات.",
+    "noBio": "لا توجد سيرة ذاتية متاحة. قم بتكوين مفتاحك Last.fm في الإعدادات.",
     "lyrics": {
       "title": "كلمات الأغنية",
       "comingSoon": "قريبًا"
@@ -605,14 +605,14 @@
   },
   "playerBar": {
     "lyrics": "كلمات الأغنية",
-    "nowPlaying": "العرض قيد التشغيل",
+    "nowPlaying": "إظهار التشغيل الآن",
     "queue": "قائمة الانتظار"
   },
   "lyrics": {
     "title": "كلمات الأغنية",
     "loading": "البحث عن كلمات الأغنية…",
-    "noTrack": "لا توجد قضايا معلقة",
-    "notFound": "لم يتم العثور على أي ترجمة لهذا العنوان. يمكنك استيراد ملف .lrc.",
+    "noTrack": "لا توجد مقطوعة قيد التشغيل",
+    "notFound": "لم يتم العثور على كلمات لهذه الأغنية. يمكنك استيراد ملف .lrc.",
     "importTitle": "استيراد ملف .lrc",
     "actions": {
       "import": "استيراد ملف .lrc",
@@ -644,7 +644,7 @@
     "title": "الإعدادات",
     "sections": {
       "general": "عام",
-      "playback": "القراءة",
+      "playback": "التشغيل",
       "integrations": "عمليات الدمج",
       "storage": "التخزين والبيانات"
     },
@@ -677,7 +677,7 @@
     },
     "replayGain": {
       "title": "تطبيق ReplayGain",
-      "subtitle": "استخدام مستوى الصوت المُحلَّل لكل مقطع لتعديل الإحساس بمستوى الصوت"
+      "subtitle": "استخدم الكسب المحلل لكل مقطع لموازنة مستوى الصوت المسموع"
     },
     "mono": {
       "title": "صوت أحادي",
@@ -700,8 +700,8 @@
       "subtitle": "إعادة فحص المكتبات تلقائيًا عند فتح البرنامج"
     },
     "singleClickPlay": {
-      "title": "القراءة بنقرة واحدة",
-      "subtitle": "النقر مرة واحدة على المقطع يبدأ التشغيل (وإلا انقر نقرًا مزدوجًا)"
+      "title": "تشغيل بنقرة واحدة",
+      "subtitle": "انقر على مقطع لبدء التشغيل (أو انقر نقرًا مزدوجًا)"
     },
     "rescan": {
       "title": "إعادة مسح المكتبة",
@@ -710,16 +710,16 @@
     },
     "analyze": {
       "title": "تحليل المكتبة",
-      "subtitle": "حساب عدد النبضات في الدقيقة (BPM) ومستوى الصوت والقيمة القصوى للأغاني غير المحللة",
+      "subtitle": "حساب معدل التردد (BPM) ومستوى الصوت والقيم القصوى للأغاني التي لم يتم تحليلها",
       "action": "تحليل",
       "autoTitle": "التحليل التلقائي",
-      "autoSubtitle": "بدء التحليل في الخلفية بعد كل عملية مسح تضيف عناوين جديدة",
+      "autoSubtitle": "تشغيل التحليل في الخلفية بعد كل عملية مسح تضيف مقطوعات جديدة",
       "failed_one": "{{count}} الفشل",
       "failed_other": "{{count}} الشطرنج"
     },
     "artistImages": {
       "title": "صور الفنانين",
-      "subtitle": "استيراد ألبومات الفنانين من Deezer",
+      "subtitle": "تنزيل أغلفة ألبومات الفنانين من موقع Deezer",
       "action": "استرداد"
     },
     "dataFolder": {

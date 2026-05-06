@@ -35,7 +35,7 @@
     "defaultLibraryName": "音楽",
     "welcome": {
       "title": "WaveFlowへようこそ",
-      "message": "まず、音楽ファイルが保存されているフォルダを指定してください。WaveFlowがそのフォルダをスキャンし、ライブラリを自動的に整理します。",
+      "message": "まず、音楽ファイルが保存されているフォルダを指定してください。WaveFlowが自動的にスキャンを行い、ライブラリを整理します。",
       "action": "音楽フォルダを選択する",
       "skip": "後で設定する"
     },
@@ -69,8 +69,8 @@
       "folder": "特集"
     },
     "library": {
-      "tracksCount_zero": "0件",
-      "tracksCount_one": "{{count}} タイトル",
+      "tracksCount_zero": "0曲",
+      "tracksCount_one": "{{count}} トラック",
       "tracksCount_other": "{{count}} タイトル",
       "createLibraryAria": "新しいライブラリを作成する",
       "none": "ライブラリはありません",
@@ -78,8 +78,8 @@
         "label": "ライブラリの選択",
         "header": "図書館",
         "countLine": "{{tracks}} · {{albums}}",
-        "tracks_zero": "0件",
-        "tracks_one": "{{count}} タイトル",
+        "tracks_zero": "0曲",
+        "tracks_one": "{{count}} トラック",
         "tracks_other": "{{count}} タイトル",
         "albums_zero": "アルバム0件",
         "albums_one": "{{count}} アルバム",
@@ -101,8 +101,8 @@
       "importDialogTitle": "M3Uプレイリストをインポートする",
       "liked": "「いいね」された投稿",
       "recent": "最近プレイしたゲーム",
-      "emptySubtext_zero": "0件",
-      "emptySubtext_one": "{{count}} タイトル",
+      "emptySubtext_zero": "0曲",
+      "emptySubtext_one": "{{count}} トラック",
       "emptySubtext_other": "{{count}} タイトル"
     },
     "myMusic": {
@@ -118,8 +118,8 @@
       "title": "プレイリスト"
     },
     "myLibrary": {
-      "playlistSubtext_zero": "0件",
-      "playlistSubtext_one": "{{count}} タイトル",
+      "playlistSubtext_zero": "0曲",
+      "playlistSubtext_one": "{{count}} トラック",
       "playlistSubtext_other": "{{count}} タイトル"
     }
   },
@@ -232,7 +232,7 @@
       "deleteConfirm": "もう一度クリックして確認してください"
     },
     "changeCover": "ジャケットを変更する",
-    "searchDeezer": "Deezerで検索",
+    "searchDeezer": "Deezerの検索",
     "localFile": "ローカルファイル",
     "fetchMissingCovers": "不足しているすべてのケースを回収する",
     "noCover": "ケースなし",
@@ -253,26 +253,26 @@
       "compact": "コンパクト"
     },
     "albumGrid": {
-      "trackCount_zero": "0件",
-      "trackCount_one": "{{count}} タイトル",
+      "trackCount_zero": "0曲",
+      "trackCount_one": "{{count}} トラック",
       "trackCount_other": "{{count}} タイトル"
     },
     "artistList": {
-      "trackCount_zero": "0件",
-      "trackCount_one": "{{count}} タイトル",
+      "trackCount_zero": "0曲",
+      "trackCount_one": "{{count}} トラック",
       "trackCount_other": "{{count}} タイトル",
       "albumCount_zero": "アルバム0件",
       "albumCount_one": "{{count}} アルバム",
       "albumCount_other": "{{count}} アルバム"
     },
     "genreList": {
-      "trackCount_zero": "0件",
-      "trackCount_one": "{{count}} タイトル",
+      "trackCount_zero": "0曲",
+      "trackCount_one": "{{count}} トラック",
       "trackCount_other": "{{count}} タイトル"
     },
     "folderList": {
-      "trackCount_zero": "0件",
-      "trackCount_one": "{{count}} タイトル",
+      "trackCount_zero": "0曲",
+      "trackCount_one": "{{count}} トラック",
       "trackCount_other": "{{count}} タイトル",
       "lastScanned": "スキャン元：{{date}}",
       "neverScanned": "決して",
@@ -284,22 +284,22 @@
   "liked": {
     "badge": "コレクション",
     "title": "「いいね」された投稿",
-    "count_zero": "0件",
-    "count_one": "{{count}} タイトル",
+    "count_zero": "0曲",
+    "count_one": "{{count}} トラック",
     "count_other": "{{count}} タイトル",
-    "emptyTitle": "「いいね」された投稿はありません",
+    "emptyTitle": "お気に入りのトラックはありません",
     "emptyDescription": "お気に入りの曲がここに表示されます。ライブラリをチェックして、お気に入りの曲に「いいね」を付けましょう。",
-    "playAll": "すべて読む",
+    "playAll": "すべて再生",
     "unlike": "「いいね」を解除する",
     "like": "「いいね」に追加"
   },
   "recent": {
     "badge": "沿革",
     "title": "最近プレイしたゲーム",
-    "count_zero": "0件",
-    "count_one": "{{count}} タイトル",
+    "count_zero": "0曲",
+    "count_one": "{{count}} トラック",
     "count_other": "{{count}} タイトル",
-    "emptyTitle": "最近のタイトルはありません",
+    "emptyTitle": "最近再生したトラックはありません",
     "emptyDescription": "再生中の曲がここに自動的に表示されます。"
   },
   "statistics": {
@@ -364,7 +364,7 @@
       "credits": "クレジット"
     },
     "shortcuts": {
-      "playPause": "再生 / 一時停止",
+      "playPause": "再生/一時停止",
       "previousTrack": "前の曲",
       "nextTrack": "次の曲",
       "volume": "巻数",
@@ -390,15 +390,15 @@
     }
   },
   "player": {
-    "noTrack": "タイトルなし",
+    "noTrack": "トラックなし",
     "inactive": "非アクティブ",
     "controls": {
-      "play": "読書",
+      "play": "再生",
       "pause": "一息",
       "previous": "前へ",
       "next": "次へ",
-      "shuffleOn": "シャッフル再生をオフにする",
-      "shuffleOff": "シャッフル再生を有効にする",
+      "shuffleOn": "シャッフルを無効にする",
+      "shuffleOff": "シャッフルを有効にする",
       "repeatOff": "リピート機能を有効にする",
       "repeatAll": "1回だけ繰り返す",
       "repeatOne": "リピート機能をオフにする"
@@ -410,17 +410,17 @@
     }
   },
   "queue": {
-    "title": "読み込みキュー",
+    "title": "再生キュー",
     "inactive": "非アクティブ",
     "count_zero": "0曲",
-    "count_one": "{{count}} 曲",
+    "count_one": "{{count}} トラック",
     "count_other": "{{count}} 曲",
     "emptyTitle": "聴くものがない",
     "emptyDescription": "ライブラリから音楽を再生して、キューを埋めてください。",
     "nowPlaying": "進行中",
-    "upNext_zero": "続く",
-    "upNext_one": "続く · {{count}} タイトル",
-    "upNext_other": "続く · {{count}} 記事"
+    "upNext_zero": "次は",
+    "upNext_one": "次へ · {{count}} track",
+    "upNext_other": "次のページ - {{count}} トラック"
   },
   "deviceMenu": {
     "activeLabel": "アクティブ出力",
@@ -451,7 +451,7 @@
     "title": "ライブラリを作成する",
     "editTitle": "ライブラリを編集する",
     "previewDefault": "ライブラリを作成する",
-    "previewSubtitle": "0件 · ライブラリ",
+    "previewSubtitle": "0 曲 · ライブラリ",
     "nameLabel": "図書館名",
     "namePlaceholder": "例：ロック、ジャズ、クラシック…",
     "descriptionLabel": "説明",
@@ -477,12 +477,12 @@
   },
   "playlistView": {
     "badge": "プレイリスト",
-    "trackCount_zero": "0件",
-    "trackCount_one": "{{count}} タイトル",
+    "trackCount_zero": "0曲",
+    "trackCount_one": "{{count}} トラック",
     "trackCount_other": "{{count}} タイトル",
     "actions": {
-      "play": "読書",
-      "shuffle": "ランダム再生",
+      "play": "再生",
+      "shuffle": "シャッフル",
       "edit": "プレイリストを編集する",
       "exportM3u": "M3U形式でエクスポート",
       "delete": "プレイリストを削除する",
@@ -502,7 +502,7 @@
     "addToPlaylist": "プレイリストに追加",
     "noPlaylists": "プレイリストはありません。以下から作成してください。",
     "createPlaylist": "新しいプレイリスト",
-    "playNext": "続きを読む",
+    "playNext": "次を再生",
     "addToQueue": "キューに追加",
     "like": "「いいね」したタイトルに追加",
     "unlike": "「いいね」した投稿を削除する",
@@ -514,7 +514,7 @@
     "properties": "特長"
   },
   "trackProperties": {
-    "title": "タイトルのプロパティ",
+    "title": "トラックのプロパティ",
     "sections": {
       "metadata": "メタデータ",
       "audio": "音声",
@@ -523,13 +523,13 @@
     },
     "bpm": "BPM",
     "loudness": "音量",
-    "replayGain": "リプレイゲイン",
+    "replayGain": "ReplayGain",
     "peak": "ピーク",
     "analyze": "分析する",
     "reanalyze": "再分析する",
     "analyzing": "分析…",
     "year": "年",
-    "trackNumber": "トラック",
+    "trackNumber": "トラック番号",
     "duration": "所要時間",
     "codec": "コーデック",
     "bitDepth": "深さ",
@@ -549,19 +549,19 @@
     "count_zero": "選択された商品はありません",
     "count_one": "{{count}} 選択済み",
     "count_other": "{{count}} 選定された",
-    "play": "読書",
+    "play": "再生",
     "addToQueue": "待ち行列に追加",
-    "playNext": "次へ",
+    "playNext": "次を再生",
     "addToPlaylist": "プレイリストに追加",
     "removeFromPlaylist": "プレイリストから削除する",
     "clear": "選択を解除する"
   },
   "albumDetail": {
     "badge": "アルバム",
-    "playAll": "すべて読む",
-    "shuffle": "ランダム再生",
-    "trackCount_zero": "0件",
-    "trackCount_one": "{{count}} タイトル",
+    "playAll": "すべて再生",
+    "shuffle": "シャッフル",
+    "trackCount_zero": "0曲",
+    "trackCount_one": "{{count}} トラック",
     "trackCount_other": "{{count}} タイトル",
     "discHeader": "{{number}} ディスク",
     "releaseDate": "出口",
@@ -572,18 +572,18 @@
   },
   "artistDetail": {
     "badge": "アーティスト",
-    "playAll": "すべて読む",
-    "shuffle": "ランダム再生",
+    "playAll": "すべて再生",
+    "shuffle": "シャッフル",
     "discography": "ディスコグラフィー",
     "allTracks": "すべてのタイトル",
-    "trackCount_zero": "0件",
-    "trackCount_one": "{{count}} タイトル",
+    "trackCount_zero": "0曲",
+    "trackCount_one": "{{count}} トラック",
     "trackCount_other": "{{count}} タイトル",
     "albumCount_zero": "アルバム0件",
     "albumCount_one": "{{count}} アルバム",
     "albumCount_other": "{{count}} アルバム",
-    "albumTrackCount_zero": "0件",
-    "albumTrackCount_one": "{{count}} タイトル",
+    "albumTrackCount_zero": "0曲",
+    "albumTrackCount_one": "{{count}} トラック",
     "albumTrackCount_other": "{{count}} タイトル",
     "emptyTitle": "アーティストが見つかりません",
     "emptyDescription": "このアーティストは、アクティブなプロフィールには存在しません。",
@@ -593,7 +593,7 @@
   },
   "nowPlaying": {
     "title": "再生中",
-    "empty": "現在進行中のタイトルはありません",
+    "empty": "再生中のトラックはありません",
     "aboutArtist": "アーティストについて",
     "readMore": "続きを読む",
     "readLess": "縮小",
@@ -605,14 +605,14 @@
   },
   "playerBar": {
     "lyrics": "歌詞",
-    "nowPlaying": "再生中の画面",
+    "nowPlaying": "再生中を表示",
     "queue": "待ち行列"
   },
   "lyrics": {
     "title": "歌詞",
     "loading": "歌詞を検索中…",
-    "noTrack": "現在進行中のタイトルはありません",
-    "notFound": "このタイトルに対応する歌詞が見つかりませんでした。.lrcファイルをインポートできます。",
+    "noTrack": "再生中のトラックはありません",
+    "notFound": "このトラックには歌詞が見つかりませんでした。.lrcファイルをインポートできます。",
     "importTitle": ".lrcファイルをインポートする",
     "actions": {
       "import": ".lrcファイルをインポートする",
@@ -644,7 +644,7 @@
     "title": "設定",
     "sections": {
       "general": "概要",
-      "playback": "読書",
+      "playback": "再生",
       "integrations": "連携",
       "storage": "ストレージとデータ"
     },
@@ -677,7 +677,7 @@
     },
     "replayGain": {
       "title": "ReplayGainを適用する",
-      "subtitle": "各楽曲の分析結果に基づいて、音量の感じ方を調整する"
+      "subtitle": "各トラックの分析されたゲインを使用して、知覚される音量のバランスを調整する"
     },
     "mono": {
       "title": "モノラル音声",
@@ -689,7 +689,7 @@
     },
     "autoStart": {
       "title": "起動時の実行",
-      "subtitle": "システムの起動時にWaveFlowを自動的に実行する"
+      "subtitle": "システムの起動時に WaveFlow を自動的に起動する"
     },
     "minimizeToTray": {
       "title": "タスクバーに最小化",
@@ -700,8 +700,8 @@
       "subtitle": "起動時にライブラリを自動的に再スキャンする"
     },
     "singleClickPlay": {
-      "title": "ワンクリックで再生",
-      "subtitle": "トラックをクリックすると再生が開始されます（ダブルクリックでも再生されます）"
+      "title": "シングルクリック再生",
+      "subtitle": "トラックをクリックして再生を開始します（それ以外の場合はダブルクリックしてください）"
     },
     "rescan": {
       "title": "ライブラリを再スキャンする",
@@ -710,16 +710,16 @@
     },
     "analyze": {
       "title": "ライブラリを分析する",
-      "subtitle": "分析されていない楽曲のBPM、音量、ピーク値を算出する",
+      "subtitle": "未分析の楽曲について、BPM、音量、ピーク値を算出する",
       "action": "分析する",
       "autoTitle": "自動分析",
-      "autoSubtitle": "新しいタイトルが追加されるスキャンが終了するたびに、バックグラウンドで分析を実行する",
+      "autoSubtitle": "新しいトラックが追加されるスキャンが終了するたびに、バックグラウンドで分析を実行する",
       "failed_one": "{{count}} 失敗",
       "failed_other": "{{count}} 失敗"
     },
     "artistImages": {
       "title": "アーティストの画像",
-      "subtitle": "Deezerからアーティストのプレイリストを取得する",
+      "subtitle": "Deezerからアーティストのジャケット画像を取得する",
       "action": "復元する"
     },
     "dataFolder": {

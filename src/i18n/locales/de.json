@@ -16,7 +16,7 @@
   "updater": {
     "available": {
       "title": "Update verfügbar (Version {{version}})",
-      "message": "Eine neue Version von WaveFlow steht zur Installation bereit.",
+      "message": "Eine neue Version von „WaveFlow“ steht zur Installation bereit.",
       "action": "Jetzt installieren",
       "later": "Später"
     },
@@ -25,7 +25,7 @@
     },
     "installed": {
       "title": "Update installiert",
-      "message": "Starte WaveFlow neu, um die neue Version zu übernehmen."
+      "message": "Starte „WaveFlow“ neu, um die neue Version zu übernehmen."
     },
     "error": {
       "title": "Das Update ist fehlgeschlagen"
@@ -34,8 +34,8 @@
   "onboarding": {
     "defaultLibraryName": "Musik",
     "welcome": {
-      "title": "Willkommen bei WaveFlow",
-      "message": "Gib zunächst den Ordner an, in dem sich deine Musik befindet. WaveFlow wird diesen scannen und deine Bibliothek automatisch organisieren.",
+      "title": "Willkommen bei „WaveFlow“",
+      "message": "Gib zunächst den Ordner an, in dem sich deine Musik befindet. WaveFlow wird diesen scannen und deine Mediathek automatisch organisieren.",
       "action": "Meinen Musikordner auswählen",
       "skip": "Später konfigurieren"
     },
@@ -232,7 +232,7 @@
       "deleteConfirm": "Klicken Sie erneut, um zu bestätigen"
     },
     "changeCover": "Das Cover austauschen",
-    "searchDeezer": "Suche auf Deezer",
+    "searchDeezer": "Suche nach „Deezer“",
     "localFile": "Lokale Datei",
     "fetchMissingCovers": "Alle fehlenden Hüllen abrufen",
     "noCover": "Ohne Hülle",
@@ -287,9 +287,9 @@
     "count_zero": "0 Titel",
     "count_one": "{{count}} Titel",
     "count_other": "{{count}} Titel",
-    "emptyTitle": "Kein Titel wurde geliked",
+    "emptyTitle": "Keine favorisierten Titel",
     "emptyDescription": "Die Titel, die dir gefallen, werden hier angezeigt. Durchsuche deine Bibliothek und like deine Lieblingstitel.",
-    "playAll": "Alles lesen",
+    "playAll": "Alle abspielen",
     "unlike": "Likes entfernen",
     "like": "Zu den Favoriten hinzufügen"
   },
@@ -299,7 +299,7 @@
     "count_zero": "0 Titel",
     "count_one": "{{count}} Titel",
     "count_other": "{{count}} Titel",
-    "emptyTitle": "Keine aktuellen Titel",
+    "emptyTitle": "Keine kürzlich abgespielten Titel",
     "emptyDescription": "Die Titel, die Sie gerade hören, werden hier automatisch angezeigt."
   },
   "statistics": {
@@ -364,7 +364,7 @@
       "credits": "Impressum"
     },
     "shortcuts": {
-      "playPause": "Wiedergabe / Pause",
+      "playPause": "Wiedergabe/Pause",
       "previousTrack": "Vorheriger Titel",
       "nextTrack": "Nächster Titel",
       "volume": "Umfang",
@@ -393,7 +393,7 @@
     "noTrack": "Kein Titel",
     "inactive": "Inaktiv",
     "controls": {
-      "play": "Lesen",
+      "play": "Wiedergabe",
       "pause": "Pause",
       "previous": "Zurück",
       "next": "Weiter",
@@ -410,17 +410,17 @@
     }
   },
   "queue": {
-    "title": "Wiedergabewarteschlange",
+    "title": "Warteschlange abspielen",
     "inactive": "INAKTIV",
     "count_zero": "0 Titel",
-    "count_one": "{{count}} Stück",
+    "count_one": "{{count}} Titel",
     "count_other": "{{count}} Stücke",
     "emptyTitle": "Nichts zum Anhören",
     "emptyDescription": "Starten Sie einen Titel aus Ihrer Bibliothek, um die Warteschlange zu füllen.",
     "nowPlaying": "In Bearbeitung",
-    "upNext_zero": "Fortsetzung folgt",
-    "upNext_one": "Fortsetzung folgt · {{count}} Titel",
-    "upNext_other": "Fortsetzung folgt · {{count}} Schlagzeilen"
+    "upNext_zero": "Als Nächstes",
+    "upNext_one": "Als Nächstes · Titel „{{count}}“",
+    "upNext_other": "Nächster Punkt - {{count}} Tracks"
   },
   "deviceMenu": {
     "activeLabel": "Aktiver Ausgang",
@@ -481,8 +481,8 @@
     "trackCount_one": "{{count}} Titel",
     "trackCount_other": "{{count}} Titel",
     "actions": {
-      "play": "Lesen",
-      "shuffle": "Zufällige Wiedergabe",
+      "play": "Wiedergabe",
+      "shuffle": "Zufallswiedergabe",
       "edit": "Playlist bearbeiten",
       "exportM3u": "Als M3U exportieren",
       "delete": "Playlist löschen",
@@ -502,7 +502,7 @@
     "addToPlaylist": "Zur Wiedergabeliste hinzufügen",
     "noPlaylists": "Keine Wiedergabeliste. Erstelle unten eine.",
     "createPlaylist": "Neue Playlist",
-    "playNext": "Weiterlesen",
+    "playNext": "Nächsten Titel abspielen",
     "addToQueue": "Zur Warteschlange hinzufügen",
     "like": "Zu den gelikten Titeln hinzufügen",
     "unlike": "Gefundene Titel entfernen",
@@ -514,7 +514,7 @@
     "properties": "Eigenschaften"
   },
   "trackProperties": {
-    "title": "Eigenschaften des Titels",
+    "title": "Titel-Eigenschaften",
     "sections": {
       "metadata": "Metadaten",
       "audio": "Audio",
@@ -529,7 +529,7 @@
     "reanalyze": "Neu analysieren",
     "analyzing": "Analyse…",
     "year": "Jahr",
-    "trackNumber": "Piste",
+    "trackNumber": "Titelnummer",
     "duration": "Dauer",
     "codec": "Codec",
     "bitDepth": "Tiefe",
@@ -549,17 +549,17 @@
     "count_zero": "0 ausgewählt",
     "count_one": "{{count}} ausgewählt",
     "count_other": "{{count}} ausgewählt",
-    "play": "Lesen",
+    "play": "Wiedergabe",
     "addToQueue": "Zur Warteschlange hinzufügen",
-    "playNext": "Weiterlesen",
+    "playNext": "Nächsten Titel abspielen",
     "addToPlaylist": "Zur Wiedergabeliste hinzufügen",
     "removeFromPlaylist": "Aus der Wiedergabeliste entfernen",
     "clear": "Auswahl aufheben"
   },
   "albumDetail": {
     "badge": "Album",
-    "playAll": "Alles lesen",
-    "shuffle": "Zufällige Wiedergabe",
+    "playAll": "Alle abspielen",
+    "shuffle": "Zufallswiedergabe",
     "trackCount_zero": "0 Titel",
     "trackCount_one": "{{count}} Titel",
     "trackCount_other": "{{count}} Titel",
@@ -572,8 +572,8 @@
   },
   "artistDetail": {
     "badge": "Künstler",
-    "playAll": "Alles lesen",
-    "shuffle": "Zufällige Wiedergabe",
+    "playAll": "Alle abspielen",
+    "shuffle": "Zufallswiedergabe",
     "discography": "Diskografie",
     "allTracks": "Alle Titel",
     "trackCount_zero": "0 Titel",
@@ -592,12 +592,12 @@
     }
   },
   "nowPlaying": {
-    "title": "Wird gerade abgespielt",
-    "empty": "Derzeit keine Titel",
+    "title": "Jetzt spielen",
+    "empty": "Es wird kein Titel abgespielt",
     "aboutArtist": "Über den Künstler",
     "readMore": "Weiterlesen",
     "readLess": "Reduzieren",
-    "noBio": "Es ist keine Biografie verfügbar. Konfiguriere deinen Last.fm-Schlüssel in den Einstellungen.",
+    "noBio": "Es ist keine Biografie verfügbar. Konfiguriere deinen Schlüssel „Last.fm“ in den Einstellungen.",
     "lyrics": {
       "title": "Text",
       "comingSoon": "In Kürze erhältlich"
@@ -605,13 +605,13 @@
   },
   "playerBar": {
     "lyrics": "Text",
-    "nowPlaying": "Aktuelle Ansicht",
+    "nowPlaying": "Jetzt abspielen anzeigen",
     "queue": "Warteschlange"
   },
   "lyrics": {
     "title": "Text",
     "loading": "Suche nach Liedtexten…",
-    "noTrack": "Derzeit keine Titel",
+    "noTrack": "Es wird kein Titel abgespielt",
     "notFound": "Für diesen Titel wurden keine Liedtexte gefunden. Du kannst eine .lrc-Datei importieren.",
     "importTitle": "Eine .lrc-Datei importieren",
     "actions": {
@@ -644,7 +644,7 @@
     "title": "Einstellungen",
     "sections": {
       "general": "Allgemeines",
-      "playback": "Lesen",
+      "playback": "Wiedergabe",
       "integrations": "Integrationen",
       "storage": "Speicher & Daten"
     },
@@ -677,7 +677,7 @@
     },
     "replayGain": {
       "title": "ReplayGain anwenden",
-      "subtitle": "Verwende die für jeden Titel berechnete Verstärkung, um die Lautstärkewahrnehmung auszugleichen"
+      "subtitle": "Verwende die analysierte Verstärkung jedes Titels, um die wahrgenommene Lautstärke auszugleichen"
     },
     "mono": {
       "title": "Mono-Ton",
@@ -700,8 +700,8 @@
       "subtitle": "Bibliotheken beim Öffnen automatisch neu scannen"
     },
     "singleClickPlay": {
-      "title": "Wiedergabe per Mausklick",
-      "subtitle": "Ein Klick auf einen Titel startet die Wiedergabe (ansonsten Doppelklick)"
+      "title": "Einzelklick-Wiedergabe",
+      "subtitle": "Klicken Sie auf einen Titel, um die Wiedergabe zu starten (oder doppelklicken Sie darauf)."
     },
     "rescan": {
       "title": "Bibliothek erneut scannen",
@@ -710,16 +710,16 @@
     },
     "analyze": {
       "title": "Die Bibliothek analysieren",
-      "subtitle": "BPM, Lautstärke und Peak für nicht analysierte Titel berechnen",
+      "subtitle": "BPM berechnen, Lautstärke und Spitzenwert für nicht analysierte Titel",
       "action": "Analysieren",
       "autoTitle": "Automatische Analyse",
-      "autoSubtitle": "Die Analyse im Hintergrund starten, nachdem bei jedem Scan neue Titel hinzugefügt wurden",
+      "autoSubtitle": "Führen Sie nach jedem Scan, der neue Titel hinzufügt, eine Analyse im Hintergrund durch",
       "failed_one": "{{count}} Misserfolg",
       "failed_other": "{{count}} Schach"
     },
     "artistImages": {
       "title": "Bilder von Künstlern",
-      "subtitle": "Künstlercover von Deezer abrufen",
+      "subtitle": "Künstlercover von Deezer herunterladen",
       "action": "Wiederherstellen"
     },
     "dataFolder": {

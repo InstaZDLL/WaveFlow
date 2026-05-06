@@ -35,7 +35,7 @@
     "defaultLibraryName": "Musik",
     "welcome": {
       "title": "Selamat datang di WaveFlow",
-      "message": "Untuk memulai, arahkan WaveFlow ke folder tempat musik Anda disimpan. Kami akan memindai folder tersebut dan membuat perpustakaan musik Anda secara otomatis.",
+      "message": "Pertama-tama, tentukan folder yang berisi musikmu. WaveFlow akan memindai dan mengatur perpustakaan musikmu secara otomatis.",
       "action": "Pilih folder musik saya",
       "skip": "Atur nanti"
     },
@@ -69,8 +69,8 @@
       "folder": "Folder"
     },
     "library": {
-      "tracksCount_zero": "0 lagu",
-      "tracksCount_one": "{{count}} jalur",
+      "tracksCount_zero": "0 trek",
+      "tracksCount_one": "{{count}} track",
       "tracksCount_other": "{{count}} lagu",
       "createLibraryAria": "Buat perpustakaan baru",
       "none": "Tidak ada perpustakaan",
@@ -78,8 +78,8 @@
         "label": "Pilihan perpustakaan",
         "header": "Perpustakaan",
         "countLine": "{{tracks}} · {{albums}}",
-        "tracks_zero": "0 lagu",
-        "tracks_one": "{{count}} jalur",
+        "tracks_zero": "0 trek",
+        "tracks_one": "{{count}} track",
         "tracks_other": "{{count}} lagu",
         "albums_zero": "0 album",
         "albums_one": "{{count}} album",
@@ -101,8 +101,8 @@
       "importDialogTitle": "Impor daftar putar M3U",
       "liked": "Lagu yang disukai",
       "recent": "Baru-baru ini dimainkan",
-      "emptySubtext_zero": "0 lagu",
-      "emptySubtext_one": "{{count}} jalur",
+      "emptySubtext_zero": "0 trek",
+      "emptySubtext_one": "{{count}} track",
       "emptySubtext_other": "{{count}} lagu"
     },
     "myMusic": {
@@ -118,8 +118,8 @@
       "title": "Daftar Putar"
     },
     "myLibrary": {
-      "playlistSubtext_zero": "0 lagu",
-      "playlistSubtext_one": "{{count}} jalur",
+      "playlistSubtext_zero": "0 trek",
+      "playlistSubtext_one": "{{count}} track",
       "playlistSubtext_other": "{{count}} lagu"
     }
   },
@@ -253,26 +253,26 @@
       "compact": "Ringkas"
     },
     "albumGrid": {
-      "trackCount_zero": "0 lagu",
-      "trackCount_one": "{{count}} jalur",
+      "trackCount_zero": "0 trek",
+      "trackCount_one": "{{count}} track",
       "trackCount_other": "{{count}} lagu"
     },
     "artistList": {
-      "trackCount_zero": "0 lagu",
-      "trackCount_one": "{{count}} jalur",
+      "trackCount_zero": "0 trek",
+      "trackCount_one": "{{count}} track",
       "trackCount_other": "{{count}} lagu",
       "albumCount_zero": "0 album",
       "albumCount_one": "{{count}} album",
       "albumCount_other": "{{count}} album"
     },
     "genreList": {
-      "trackCount_zero": "0 lagu",
-      "trackCount_one": "{{count}} jalur",
+      "trackCount_zero": "0 trek",
+      "trackCount_one": "{{count}} track",
       "trackCount_other": "{{count}} lagu"
     },
     "folderList": {
-      "trackCount_zero": "0 lagu",
-      "trackCount_one": "{{count}} jalur",
+      "trackCount_zero": "0 trek",
+      "trackCount_one": "{{count}} track",
       "trackCount_other": "{{count}} lagu",
       "lastScanned": "Dipindai: {{date}}",
       "neverScanned": "tidak pernah",
@@ -284,10 +284,10 @@
   "liked": {
     "badge": "Koleksi",
     "title": "Lagu yang disukai",
-    "count_zero": "0 lagu",
-    "count_one": "{{count}} jalur",
+    "count_zero": "0 trek",
+    "count_one": "{{count}} track",
     "count_other": "{{count}} lagu",
-    "emptyTitle": "Tidak ada lagu yang disukai",
+    "emptyTitle": "Tidak ada trek yang disukai",
     "emptyDescription": "Lagu-lagu yang Anda sukai akan muncul di sini. Jelajahi perpustakaan musik Anda dan beri tanda suka pada lagu-lagu favorit Anda.",
     "playAll": "Putar semua",
     "unlike": "Hapus dari daftar yang disukai",
@@ -296,10 +296,10 @@
   "recent": {
     "badge": "Sejarah",
     "title": "Baru-baru ini dimainkan",
-    "count_zero": "0 lagu",
-    "count_one": "{{count}} jalur",
+    "count_zero": "0 trek",
+    "count_one": "{{count}} track",
     "count_other": "{{count}} lagu",
-    "emptyTitle": "Tidak ada riwayat terbaru",
+    "emptyTitle": "Tidak ada lagu terbaru",
     "emptyDescription": "Lagu-lagu yang Anda dengarkan akan muncul di sini secara otomatis."
   },
   "statistics": {
@@ -393,12 +393,12 @@
     "noTrack": "Tidak ada trek",
     "inactive": "Tidak aktif",
     "controls": {
-      "play": "Mainkan",
+      "play": "Putar",
       "pause": "Jeda",
       "previous": "Sebelumnya",
       "next": "Selanjutnya",
-      "shuffleOn": "Nonaktifkan pengacakan",
-      "shuffleOff": "Aktifkan mode acak",
+      "shuffleOn": "Menonaktifkan pengacakan",
+      "shuffleOff": "Mengaktifkan pengacakan",
       "repeatOff": "Aktifkan pengulangan",
       "repeatAll": "Putar ulang satu lagu",
       "repeatOne": "Nonaktifkan pengulangan"
@@ -410,17 +410,17 @@
     }
   },
   "queue": {
-    "title": "Antrean",
+    "title": "Antrian putar",
     "inactive": "TIDAK AKTIF",
-    "count_zero": "0 lagu",
-    "count_one": "{{count}} jalur",
+    "count_zero": "0 trek",
+    "count_one": "{{count}} track",
     "count_other": "{{count}} lagu",
     "emptyTitle": "Tidak ada yang bisa dimainkan",
     "emptyDescription": "Putar beberapa lagu dari perpustakaan musik Anda untuk mengisi antrean.",
     "nowPlaying": "Sedang diputar",
     "upNext_zero": "Selanjutnya",
-    "upNext_one": "Selanjutnya · Lagu \"{{count}}\"",
-    "upNext_other": "Selanjutnya · Lagu-lagu dari album \"{{count}}\""
+    "upNext_one": "Selanjutnya · Lagu '{{count}}'",
+    "upNext_other": "Berikutnya - {{count}} trek"
   },
   "deviceMenu": {
     "activeLabel": "Output aktif",
@@ -451,7 +451,7 @@
     "title": "Buat Perpustakaan",
     "editTitle": "Edit Perpustakaan",
     "previewDefault": "Buat Perpustakaan",
-    "previewSubtitle": "0 lagu · Perpustakaan",
+    "previewSubtitle": "0 trek · Perpustakaan",
     "nameLabel": "Nama perpustakaan",
     "namePlaceholder": "Misalnya: Rock, Jazz, Klasik...",
     "descriptionLabel": "Deskripsi",
@@ -463,7 +463,7 @@
     "title": "Daftar putar baru",
     "editTitle": "Edit daftar putar",
     "previewDefault": "Daftar putar baru",
-    "previewSubtitle": "0 lagu · Daftar Putar",
+    "previewSubtitle": "0 trek · Daftar putar",
     "nameLabel": "Nama",
     "namePlaceholder": "Misalnya: Chill Vibes, Workout Mix...",
     "descriptionLabel": "Deskripsi",
@@ -477,12 +477,12 @@
   },
   "playlistView": {
     "badge": "Daftar Putar",
-    "trackCount_zero": "0 lagu",
-    "trackCount_one": "{{count}} jalur",
+    "trackCount_zero": "0 trek",
+    "trackCount_one": "{{count}} track",
     "trackCount_other": "{{count}} lagu",
     "actions": {
-      "play": "Mainkan",
-      "shuffle": "Putar acak",
+      "play": "Putar",
+      "shuffle": "Acak",
       "edit": "Edit daftar putar",
       "exportM3u": "Ekspor sebagai M3U",
       "delete": "Hapus daftar putar",
@@ -502,7 +502,7 @@
     "addToPlaylist": "Tambahkan ke daftar putar",
     "noPlaylists": "Belum ada daftar putar. Buatlah di bawah ini.",
     "createPlaylist": "Daftar putar baru",
-    "playNext": "Mainkan berikutnya",
+    "playNext": "Putar berikutnya",
     "addToQueue": "Tambahkan ke antrean",
     "like": "Tambahkan ke daftar lagu favorit",
     "unlike": "Hapus dari daftar lagu yang disukai",
@@ -529,7 +529,7 @@
     "reanalyze": "Lakukan analisis ulang",
     "analyzing": "Sedang menganalisis…",
     "year": "Tahun",
-    "trackNumber": "Lagu #",
+    "trackNumber": "Nomor trek",
     "duration": "Durasi",
     "codec": "Codec",
     "bitDepth": "Kedalaman bit",
@@ -549,9 +549,9 @@
     "count_zero": "0 dipilih",
     "count_one": "{{count}} terpilih",
     "count_other": "{{count}} terpilih",
-    "play": "Mainkan",
+    "play": "Putar",
     "addToQueue": "Tambahkan ke antrean",
-    "playNext": "Mainkan berikutnya",
+    "playNext": "Putar berikutnya",
     "addToPlaylist": "Tambahkan ke daftar putar",
     "removeFromPlaylist": "Hapus dari daftar putar",
     "clear": "Jelas"
@@ -560,8 +560,8 @@
     "badge": "Album",
     "playAll": "Putar semua",
     "shuffle": "Acak",
-    "trackCount_zero": "0 lagu",
-    "trackCount_one": "{{count}} jalur",
+    "trackCount_zero": "0 trek",
+    "trackCount_one": "{{count}} track",
     "trackCount_other": "{{count}} lagu",
     "discHeader": "Disk ke-{{number}}",
     "releaseDate": "Dirilis",
@@ -576,14 +576,14 @@
     "shuffle": "Acak",
     "discography": "Diskografi",
     "allTracks": "Semua lagu",
-    "trackCount_zero": "0 lagu",
-    "trackCount_one": "{{count}} jalur",
+    "trackCount_zero": "0 trek",
+    "trackCount_one": "{{count}} track",
     "trackCount_other": "{{count}} lagu",
     "albumCount_zero": "0 album",
     "albumCount_one": "{{count}} album",
     "albumCount_other": "{{count}} album",
-    "albumTrackCount_zero": "0 lagu",
-    "albumTrackCount_one": "{{count}} jalur",
+    "albumTrackCount_zero": "0 trek",
+    "albumTrackCount_one": "{{count}} track",
     "albumTrackCount_other": "{{count}} lagu",
     "emptyTitle": "Seniman tidak ditemukan",
     "emptyDescription": "Seniman ini tidak lagi terdaftar dalam profil aktif.",
@@ -592,12 +592,12 @@
     }
   },
   "nowPlaying": {
-    "title": "Sedang diputar",
-    "empty": "Tidak ada lagu yang diputar",
+    "title": "Sekarang diputar",
+    "empty": "Tidak ada trek yang sedang diputar",
     "aboutArtist": "Tentang seniman",
     "readMore": "Baca selengkapnya",
     "readLess": "Baca lebih sedikit",
-    "noBio": "Tidak ada biografi yang tersedia. Atur kunci Last.fm Anda di Pengaturan.",
+    "noBio": "Tidak ada biografi yang tersedia. Atur kunci \"Last.fm\" di pengaturan.",
     "lyrics": {
       "title": "Lirik",
       "comingSoon": "Segera hadir"
@@ -605,14 +605,14 @@
   },
   "playerBar": {
     "lyrics": "Lirik",
-    "nowPlaying": "Layar yang sedang diputar",
+    "nowPlaying": "Tampilkan sekarang bermain",
     "queue": "Antrean"
   },
   "lyrics": {
     "title": "Lirik",
     "loading": "Mencari lirik…",
-    "noTrack": "Tidak ada lagu yang diputar",
-    "notFound": "Tidak ditemukan lirik untuk lagu ini. Anda dapat mengimpor berkas .lrc.",
+    "noTrack": "Tidak ada trek yang sedang diputar",
+    "notFound": "Tidak ditemukan lirik untuk trek ini. Anda dapat mengimpor berkas .lrc.",
     "importTitle": "Impor berkas .lrc",
     "actions": {
       "import": "Impor berkas .lrc",
@@ -676,8 +676,8 @@
       "subtitle": "Kurangi volume pada lagu-lagu yang keras agar tingkat kenyamanan mendengarkan tetap konsisten"
     },
     "replayGain": {
-      "title": "Terapkan ReplayGain",
-      "subtitle": "Gunakan nilai gain yang telah dianalisis pada setiap trek untuk menyeimbangkan tingkat kenyaringan yang dirasakan"
+      "title": "Lamar di ReplayGain",
+      "subtitle": "Gunakan nilai gain yang dianalisis dari setiap trek untuk menyeimbangkan volume yang dirasakan"
     },
     "mono": {
       "title": "Audio mono",
@@ -689,7 +689,7 @@
     },
     "autoStart": {
       "title": "Jalankan saat startup",
-      "subtitle": "Jalankan WaveFlow secara otomatis saat sistem dinyalakan"
+      "subtitle": "Jalankan WaveFlow secara otomatis saat sistem dimulai"
     },
     "minimizeToTray": {
       "title": "Pindahkan ke baki sistem",
@@ -700,15 +700,15 @@
       "subtitle": "Pindai ulang perpustakaan secara otomatis saat aplikasi dibuka"
     },
     "singleClickPlay": {
-      "title": "Klik sekali untuk memutar",
-      "subtitle": "Cukup klik sekali pada trek untuk memulai pemutaran (jika tidak, klik dua kali)"
+      "title": "Pemutaran dengan sekali klik",
+      "subtitle": "Klik sebuah trek untuk memulai pemutaran (atau klik dua kali)"
     },
     "analyze": {
       "title": "Menganalisis perpustakaan",
-      "subtitle": "Hitung BPM, tingkat kenyaringan, dan nilai puncak untuk trek yang belum dianalisis",
+      "subtitle": "Hitung nilai \"BPM\", volume suara, dan puncak untuk lagu-lagu yang belum dianalisis",
       "action": "Menganalisis",
       "autoTitle": "Analisis otomatis",
-      "autoSubtitle": "Jalankan alat analisis di latar belakang setelah setiap pemindaian yang menambahkan trek baru",
+      "autoSubtitle": "Jalankan analisis di latar belakang setelah setiap pemindaian yang menambahkan trek baru",
       "failed_one": "{{count}} kegagalan",
       "failed_other": "{{count}} kegagalan"
     },
@@ -719,7 +719,7 @@
     },
     "artistImages": {
       "title": "Gambar seniman",
-      "subtitle": "Ambil karya seni artis dari Deezer",
+      "subtitle": "Unduh sampul album artis dari Deezer",
       "action": "Ambil"
     },
     "dataFolder": {

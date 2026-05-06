@@ -9,7 +9,7 @@
     "optional": "（可选）"
   },
   "lastfmReauth": {
-    "title": "Last.fm 会话已过期",
+    "title": "Last.fm会话已过期",
     "message": "您的播放记录不再被发送。请重新登录以继续。",
     "action": "打开设置"
   },
@@ -25,7 +25,7 @@
     },
     "installed": {
       "title": "已安装更新",
-      "message": "重新启动 WaveFlow 以应用新版本。"
+      "message": "重新启动WaveFlow以应用新版本。"
     },
     "error": {
       "title": "更新失败"
@@ -34,8 +34,8 @@
   "onboarding": {
     "defaultLibraryName": "音乐",
     "welcome": {
-      "title": "欢迎来到WaveFlow",
-      "message": "首先，请指定存放音乐的文件夹。WaveFlow 将自动扫描并整理你的音乐库。",
+      "title": "欢迎访问 WaveFlow",
+      "message": "首先，指定存放音乐的文件夹。WaveFlow 将自动扫描并整理你的音乐库。",
       "action": "选择我的音乐文件夹",
       "skip": "稍后配置"
     },
@@ -69,8 +69,8 @@
       "folder": "专题"
     },
     "library": {
-      "tracksCount_zero": "0 标题",
-      "tracksCount_one": "{{count}} 标题",
+      "tracksCount_zero": "0 首曲目",
+      "tracksCount_one": "{{count}} 曲目",
       "tracksCount_other": "{{count}} 标题",
       "createLibraryAria": "创建新库",
       "none": "没有图书馆",
@@ -78,8 +78,8 @@
         "label": "图书馆选择",
         "header": "图书馆",
         "countLine": "{{tracks}} · {{albums}}",
-        "tracks_zero": "0 标题",
-        "tracks_one": "{{count}} 标题",
+        "tracks_zero": "0 首曲目",
+        "tracks_one": "{{count}} 曲目",
         "tracks_other": "{{count}} 标题",
         "albums_zero": "0 个相册",
         "albums_one": "{{count}} 专辑",
@@ -101,8 +101,8 @@
       "importDialogTitle": "导入 M3U 播放列表",
       "liked": "点赞的帖子",
       "recent": "最近播放的",
-      "emptySubtext_zero": "0 标题",
-      "emptySubtext_one": "{{count}} 标题",
+      "emptySubtext_zero": "0 首曲目",
+      "emptySubtext_one": "{{count}} 曲目",
       "emptySubtext_other": "{{count}} 标题"
     },
     "myMusic": {
@@ -118,8 +118,8 @@
       "title": "播放列表"
     },
     "myLibrary": {
-      "playlistSubtext_zero": "0 标题",
-      "playlistSubtext_one": "{{count}} 标题",
+      "playlistSubtext_zero": "0 首曲目",
+      "playlistSubtext_one": "{{count}} 曲目",
       "playlistSubtext_other": "{{count}} 标题"
     }
   },
@@ -232,7 +232,7 @@
       "deleteConfirm": "再次点击以确认"
     },
     "changeCover": "更换封面",
-    "searchDeezer": "搜索 Deezer",
+    "searchDeezer": "搜索Deezer",
     "localFile": "本地文件",
     "fetchMissingCovers": "找回所有缺失的封套",
     "noCover": "无封套",
@@ -253,26 +253,26 @@
       "compact": "紧凑型"
     },
     "albumGrid": {
-      "trackCount_zero": "0 标题",
-      "trackCount_one": "{{count}} 标题",
+      "trackCount_zero": "0 首曲目",
+      "trackCount_one": "{{count}} 曲目",
       "trackCount_other": "{{count}} 标题"
     },
     "artistList": {
-      "trackCount_zero": "0 标题",
-      "trackCount_one": "{{count}} 标题",
+      "trackCount_zero": "0 首曲目",
+      "trackCount_one": "{{count}} 曲目",
       "trackCount_other": "{{count}} 标题",
       "albumCount_zero": "0 个相册",
       "albumCount_one": "{{count}} 专辑",
       "albumCount_other": "{{count}} 专辑"
     },
     "genreList": {
-      "trackCount_zero": "0 标题",
-      "trackCount_one": "{{count}} 标题",
+      "trackCount_zero": "0 首曲目",
+      "trackCount_one": "{{count}} 曲目",
       "trackCount_other": "{{count}} 标题"
     },
     "folderList": {
-      "trackCount_zero": "0 标题",
-      "trackCount_one": "{{count}} 标题",
+      "trackCount_zero": "0 首曲目",
+      "trackCount_one": "{{count}} 曲目",
       "trackCount_other": "{{count}} 标题",
       "lastScanned": "扫描自：{{date}}",
       "neverScanned": "从来没有",
@@ -284,22 +284,22 @@
   "liked": {
     "badge": "系列",
     "title": "点赞的帖子",
-    "count_zero": "0 标题",
-    "count_one": "{{count}} 标题",
+    "count_zero": "0 首曲目",
+    "count_one": "{{count}} 曲目",
     "count_other": "{{count}} 标题",
-    "emptyTitle": "没有点赞的帖子",
+    "emptyTitle": "没有收藏的曲目",
     "emptyDescription": "您喜欢的歌曲将显示在此处。浏览您的音乐库，并为心仪的歌曲点赞。",
-    "playAll": "阅读全文",
+    "playAll": "全部播放",
     "unlike": "取消点赞",
     "like": "添加到收藏"
   },
   "recent": {
     "badge": "历史沿革",
     "title": "最近播放的",
-    "count_zero": "0 标题",
-    "count_one": "{{count}} 标题",
+    "count_zero": "0 首曲目",
+    "count_one": "{{count}} 曲目",
     "count_other": "{{count}} 标题",
-    "emptyTitle": "没有近期文章",
+    "emptyTitle": "没有最近播放的曲目",
     "emptyDescription": "您正在收听的歌曲会自动显示在此处。"
   },
   "statistics": {
@@ -364,7 +364,7 @@
       "credits": "鸣谢"
     },
     "shortcuts": {
-      "playPause": "播放 / 暂停",
+      "playPause": "播放/暂停",
       "previousTrack": "上一首",
       "nextTrack": "下一首",
       "volume": "卷",
@@ -381,7 +381,7 @@
   "feedback": {
     "title": "反馈",
     "hero": {
-      "title": "请帮助我们改进WaveFlow",
+      "title": "请帮助我们改进 WaveFlow",
       "description": "您发现了一个漏洞、有改进建议，还是单纯想给我们反馈？我们会阅读每一条消息，并认真考虑您的建议。"
     },
     "contact": {
@@ -390,14 +390,14 @@
     }
   },
   "player": {
-    "noTrack": "无标题",
+    "noTrack": "没有曲目",
     "inactive": "未激活",
     "controls": {
-      "play": "阅读",
+      "play": "播放",
       "pause": "暂停",
       "previous": "上一页",
       "next": "下一页",
-      "shuffleOn": "关闭随机播放",
+      "shuffleOn": "禁用随机播放",
       "shuffleOff": "启用随机播放",
       "repeatOff": "启用循环播放",
       "repeatAll": "只重复一次",
@@ -410,17 +410,17 @@
     }
   },
   "queue": {
-    "title": "读取队列",
+    "title": "播放列表",
     "inactive": "已停用",
-    "count_zero": "0 首",
+    "count_zero": "0 首曲目",
     "count_one": "{{count}} 曲目",
     "count_other": "{{count}} 片段",
     "emptyTitle": "没什么可听的",
     "emptyDescription": "从您的音乐库中选择一首歌曲，将其加入播放列表。",
     "nowPlaying": "进行中",
-    "upNext_zero": "敬请期待",
-    "upNext_one": "敬请关注 · {{count}} 标题",
-    "upNext_other": "敬请期待 · {{count}} 条新闻"
+    "upNext_zero": "接下来",
+    "upNext_one": "接下来 · {{count}} track",
+    "upNext_other": "下一页 - {{count}} 曲目"
   },
   "deviceMenu": {
     "activeLabel": "有源输出",
@@ -451,7 +451,7 @@
     "title": "创建一个库",
     "editTitle": "编辑库",
     "previewDefault": "创建一个库",
-    "previewSubtitle": "0 条目 · 图书馆",
+    "previewSubtitle": "0 首曲目 · 音乐库",
     "nameLabel": "图书馆名称",
     "namePlaceholder": "例如：摇滚、爵士、古典……",
     "descriptionLabel": "描述",
@@ -463,7 +463,7 @@
     "title": "新歌单",
     "editTitle": "编辑播放列表",
     "previewDefault": "新歌单",
-    "previewSubtitle": "0 首歌曲 · 播放列表",
+    "previewSubtitle": "0 首曲目 · 播放列表",
     "nameLabel": "姓名",
     "namePlaceholder": "例如：Chill Vibes、Workout Mix...",
     "descriptionLabel": "描述",
@@ -477,11 +477,11 @@
   },
   "playlistView": {
     "badge": "播放列表",
-    "trackCount_zero": "0 标题",
-    "trackCount_one": "{{count}} 标题",
+    "trackCount_zero": "0 首曲目",
+    "trackCount_one": "{{count}} 曲目",
     "trackCount_other": "{{count}} 标题",
     "actions": {
-      "play": "阅读",
+      "play": "播放",
       "shuffle": "随机播放",
       "edit": "编辑播放列表",
       "exportM3u": "导出为 M3U",
@@ -502,7 +502,7 @@
     "addToPlaylist": "添加到播放列表",
     "noPlaylists": "没有播放列表。请在下方创建一个。",
     "createPlaylist": "新歌单",
-    "playNext": "阅读更多",
+    "playNext": "播放下一首",
     "addToQueue": "添加到队列",
     "like": "添加到“已点赞的歌曲”中",
     "unlike": "取消点赞",
@@ -514,7 +514,7 @@
     "properties": "属性"
   },
   "trackProperties": {
-    "title": "标题属性",
+    "title": "曲目属性",
     "sections": {
       "metadata": "元数据",
       "audio": "音频",
@@ -529,7 +529,7 @@
     "reanalyze": "重新分析",
     "analyzing": "分析……",
     "year": "年份",
-    "trackNumber": "赛道",
+    "trackNumber": "曲目编号",
     "duration": "时长",
     "codec": "编解码器",
     "bitDepth": "深度",
@@ -549,19 +549,19 @@
     "count_zero": "0 件已选中",
     "count_one": "{{count}} 已选中",
     "count_other": "{{count}} 入选",
-    "play": "阅读",
+    "play": "播放",
     "addToQueue": "加入队列",
-    "playNext": "继续阅读",
+    "playNext": "播放下一首",
     "addToPlaylist": "添加到播放列表",
     "removeFromPlaylist": "从播放列表中移除",
     "clear": "取消选择"
   },
   "albumDetail": {
     "badge": "专辑",
-    "playAll": "阅读全文",
+    "playAll": "全部播放",
     "shuffle": "随机播放",
-    "trackCount_zero": "0 标题",
-    "trackCount_one": "{{count}} 标题",
+    "trackCount_zero": "0 首曲目",
+    "trackCount_one": "{{count}} 曲目",
     "trackCount_other": "{{count}} 标题",
     "discHeader": "{{number}} 硬盘",
     "releaseDate": "退出",
@@ -572,18 +572,18 @@
   },
   "artistDetail": {
     "badge": "艺术家",
-    "playAll": "阅读全文",
+    "playAll": "全部播放",
     "shuffle": "随机播放",
     "discography": "专辑列表",
     "allTracks": "所有标题",
-    "trackCount_zero": "0 标题",
-    "trackCount_one": "{{count}} 标题",
+    "trackCount_zero": "0 首曲目",
+    "trackCount_one": "{{count}} 曲目",
     "trackCount_other": "{{count}} 标题",
     "albumCount_zero": "0 个相册",
     "albumCount_one": "{{count}} 专辑",
     "albumCount_other": "{{count}} 专辑",
-    "albumTrackCount_zero": "0 标题",
-    "albumTrackCount_one": "{{count}} 标题",
+    "albumTrackCount_zero": "0 首曲目",
+    "albumTrackCount_one": "{{count}} 曲目",
     "albumTrackCount_other": "{{count}} 标题",
     "emptyTitle": "找不到该艺术家",
     "emptyDescription": "该艺术家已不在活跃用户列表中。",
@@ -593,11 +593,11 @@
   },
   "nowPlaying": {
     "title": "正在播放",
-    "empty": "目前没有正在进行的项目",
+    "empty": "没有正在播放的曲目",
     "aboutArtist": "关于艺术家",
     "readMore": "阅读更多",
     "readLess": "缩小",
-    "noBio": "暂无个人简介。请在设置中配置您的Last.fm账号。",
+    "noBio": "没有传记信息。请在设置中配置你的Last.fm密钥。",
     "lyrics": {
       "title": "歌词",
       "comingSoon": "即将推出"
@@ -605,14 +605,14 @@
   },
   "playerBar": {
     "lyrics": "歌词",
-    "nowPlaying": "当前正在播放的画面",
+    "nowPlaying": "显示正在播放",
     "queue": "队列"
   },
   "lyrics": {
     "title": "歌词",
     "loading": "搜索歌词……",
-    "noTrack": "目前没有正在进行的项目",
-    "notFound": "未找到该标题的字幕。你可以导入一个 .lrc 文件。",
+    "noTrack": "没有正在播放的曲目",
+    "notFound": "未找到此曲目的歌词。您可以导入 .lrc 文件。",
     "importTitle": "导入 .lrc 文件",
     "actions": {
       "import": "导入 .lrc 文件",
@@ -644,7 +644,7 @@
     "title": "设置",
     "sections": {
       "general": "概述",
-      "playback": "阅读",
+      "playback": "播放",
       "integrations": "集成",
       "storage": "存储与数据"
     },
@@ -676,8 +676,8 @@
       "subtitle": "将音量过大的片段调低，以保持音量一致"
     },
     "replayGain": {
-      "title": "应用 ReplayGain",
-      "subtitle": "利用每首歌曲的分析增益值来调整音量感知"
+      "title": "申请 ReplayGain",
+      "subtitle": "使用每首曲目的分析增益值来平衡感知音量"
     },
     "mono": {
       "title": "单声道",
@@ -689,7 +689,7 @@
     },
     "autoStart": {
       "title": "开机启动",
-      "subtitle": "在系统启动时自动运行 WaveFlow"
+      "subtitle": "系统启动时自动启动 WaveFlow"
     },
     "minimizeToTray": {
       "title": "最小化到任务栏",
@@ -700,8 +700,8 @@
       "subtitle": "启动时自动重新扫描库"
     },
     "singleClickPlay": {
-      "title": "单击即可播放",
-      "subtitle": "单击音轨即可开始播放（否则请双击）"
+      "title": "单击播放",
+      "subtitle": "点击一首曲目开始播放（否则请双击）"
     },
     "rescan": {
       "title": "重新扫描书库",
@@ -713,13 +713,13 @@
       "subtitle": "计算未分析曲目的BPM、音量和峰值",
       "action": "分析",
       "autoTitle": "自动分析",
-      "autoSubtitle": "在每次扫描并添加新标题后，在后台启动分析",
+      "autoSubtitle": "每次扫描并添加新曲目后，在后台运行分析",
       "failed_one": "{{count}} 失败",
       "failed_other": "{{count}} 失败"
     },
     "artistImages": {
       "title": "艺术家作品",
-      "subtitle": "从Deezer获取艺人封面",
+      "subtitle": "从 Deezer 下载艺人专辑封面",
       "action": "恢复"
     },
     "dataFolder": {

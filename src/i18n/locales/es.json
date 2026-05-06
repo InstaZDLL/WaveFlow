@@ -16,7 +16,7 @@
   "updater": {
     "available": {
       "title": "Actualización disponible (v. {{version}})",
-      "message": "Ya está lista para instalarse una nueva versión de WaveFlow.",
+      "message": "Hay una nueva versión de WaveFlow lista para instalar.",
       "action": "Instalar ahora",
       "later": "Más tarde"
     },
@@ -69,8 +69,8 @@
       "folder": "Dossier"
     },
     "library": {
-      "tracksCount_zero": "0 título",
-      "tracksCount_one": "{{count}} título",
+      "tracksCount_zero": "0 pistas",
+      "tracksCount_one": "{{count}} pista",
       "tracksCount_other": "{{count}} títulos",
       "createLibraryAria": "Crear una nueva biblioteca",
       "none": "No hay bibliotecas",
@@ -78,8 +78,8 @@
         "label": "Selección de la biblioteca",
         "header": "Bibliotecas",
         "countLine": "{{tracks}} · {{albums}}",
-        "tracks_zero": "0 título",
-        "tracks_one": "{{count}} título",
+        "tracks_zero": "0 pistas",
+        "tracks_one": "{{count}} pista",
         "tracks_other": "{{count}} títulos",
         "albums_zero": "0 álbumes",
         "albums_one": "{{count}} álbum",
@@ -101,8 +101,8 @@
       "importDialogTitle": "Importar una lista de reproducción M3U",
       "liked": "Títulos con «Me gusta»",
       "recent": "Jugados recientemente",
-      "emptySubtext_zero": "0 título",
-      "emptySubtext_one": "{{count}} título",
+      "emptySubtext_zero": "0 pistas",
+      "emptySubtext_one": "{{count}} pista",
       "emptySubtext_other": "{{count}} títulos"
     },
     "myMusic": {
@@ -118,8 +118,8 @@
       "title": "Listas de reproducción"
     },
     "myLibrary": {
-      "playlistSubtext_zero": "0 título",
-      "playlistSubtext_one": "{{count}} título",
+      "playlistSubtext_zero": "0 pistas",
+      "playlistSubtext_one": "{{count}} pista",
       "playlistSubtext_other": "{{count}} títulos"
     }
   },
@@ -232,7 +232,7 @@
       "deleteConfirm": "Haz clic de nuevo para confirmar"
     },
     "changeCover": "Cambiar la portada",
-    "searchDeezer": "Buscar en Deezer",
+    "searchDeezer": "Búsqueda Deezer",
     "localFile": "Archivo local",
     "fetchMissingCovers": "Recuperar todas las fundas que faltan",
     "noCover": "Sin funda",
@@ -253,26 +253,26 @@
       "compact": "Compacto"
     },
     "albumGrid": {
-      "trackCount_zero": "0 título",
-      "trackCount_one": "{{count}} título",
+      "trackCount_zero": "0 pistas",
+      "trackCount_one": "{{count}} pista",
       "trackCount_other": "{{count}} títulos"
     },
     "artistList": {
-      "trackCount_zero": "0 título",
-      "trackCount_one": "{{count}} título",
+      "trackCount_zero": "0 pistas",
+      "trackCount_one": "{{count}} pista",
       "trackCount_other": "{{count}} títulos",
       "albumCount_zero": "0 álbumes",
       "albumCount_one": "{{count}} álbum",
       "albumCount_other": "{{count}} álbumes"
     },
     "genreList": {
-      "trackCount_zero": "0 título",
-      "trackCount_one": "{{count}} título",
+      "trackCount_zero": "0 pistas",
+      "trackCount_one": "{{count}} pista",
       "trackCount_other": "{{count}} títulos"
     },
     "folderList": {
-      "trackCount_zero": "0 título",
-      "trackCount_one": "{{count}} título",
+      "trackCount_zero": "0 pistas",
+      "trackCount_one": "{{count}} pista",
       "trackCount_other": "{{count}} títulos",
       "lastScanned": "Escaneado: {{date}}",
       "neverScanned": "nunca",
@@ -284,22 +284,22 @@
   "liked": {
     "badge": "Colección",
     "title": "Títulos con «Me gusta»",
-    "count_zero": "0 título",
-    "count_one": "{{count}} título",
+    "count_zero": "0 pistas",
+    "count_one": "{{count}} pista",
     "count_other": "{{count}} títulos",
-    "emptyTitle": "Ningún título con «Me gusta»",
+    "emptyTitle": "No hay canciones marcadas como favoritas",
     "emptyDescription": "Las canciones que te gustan aparecerán aquí. Explora tu biblioteca y dale a «Me gusta» a tus canciones favoritas.",
-    "playAll": "Leer todo",
+    "playAll": "Reproducir todo",
     "unlike": "Retirar los «Me gusta»",
     "like": "Añadir a los favoritos"
   },
   "recent": {
     "badge": "Historia",
     "title": "Jugados recientemente",
-    "count_zero": "0 título",
-    "count_one": "{{count}} título",
+    "count_zero": "0 pistas",
+    "count_one": "{{count}} pista",
     "count_other": "{{count}} títulos",
-    "emptyTitle": "No hay títulos recientes",
+    "emptyTitle": "No hay pistas recientes",
     "emptyDescription": "Las canciones que estés escuchando aparecerán aquí automáticamente."
   },
   "statistics": {
@@ -390,10 +390,10 @@
     }
   },
   "player": {
-    "noTrack": "Sin título",
+    "noTrack": "Sin pista",
     "inactive": "Inactivo",
     "controls": {
-      "play": "Lectura",
+      "play": "Reproducir",
       "pause": "Pausa",
       "previous": "Anterior",
       "next": "Siguiente",
@@ -410,17 +410,17 @@
     }
   },
   "queue": {
-    "title": "Cola de lectura",
+    "title": "Cola de reproducción",
     "inactive": "INACTIVO",
-    "count_zero": "0 canciones",
-    "count_one": "{{count}} pieza",
+    "count_zero": "0 pistas",
+    "count_one": "{{count}} pista",
     "count_other": "{{count}} trozos",
     "emptyTitle": "No hay nada que escuchar",
     "emptyDescription": "Reproduce una canción de tu biblioteca para completar la cola.",
     "nowPlaying": "En curso",
-    "upNext_zero": "Continuará",
-    "upNext_one": "Próximamente · {{count}} título",
-    "upNext_other": "Próximamente · {{count}} titulares"
+    "upNext_zero": "Próximamente",
+    "upNext_one": "Próximo · Pista «{{count}}»",
+    "upNext_other": "Siguiente - {{count}} pistas"
   },
   "deviceMenu": {
     "activeLabel": "Salida activa",
@@ -451,7 +451,7 @@
     "title": "Crear una biblioteca",
     "editTitle": "Modificar la biblioteca",
     "previewDefault": "Crear una biblioteca",
-    "previewSubtitle": "0 títulos · Biblioteca",
+    "previewSubtitle": "0 pistas · Biblioteca",
     "nameLabel": "Nombre de la biblioteca",
     "namePlaceholder": "Por ejemplo: rock, jazz, música clásica...",
     "descriptionLabel": "Descripción",
@@ -463,7 +463,7 @@
     "title": "Nueva lista de reproducción",
     "editTitle": "Modificar la lista de reproducción",
     "previewDefault": "Nueva lista de reproducción",
-    "previewSubtitle": "0 canciones · Lista de reproducción",
+    "previewSubtitle": "0 pistas · Lista de reproducción",
     "nameLabel": "Nombre",
     "namePlaceholder": "Ej.: Chill Vibes, Workout Mix...",
     "descriptionLabel": "Descripción",
@@ -477,12 +477,12 @@
   },
   "playlistView": {
     "badge": "Lista de reproducción",
-    "trackCount_zero": "0 título",
-    "trackCount_one": "{{count}} título",
+    "trackCount_zero": "0 pistas",
+    "trackCount_one": "{{count}} pista",
     "trackCount_other": "{{count}} títulos",
     "actions": {
-      "play": "Lectura",
-      "shuffle": "Reproducción aleatoria",
+      "play": "Reproducir",
+      "shuffle": "Aleatorio",
       "edit": "Modificar la lista de reproducción",
       "exportM3u": "Exportar a M3U",
       "delete": "Eliminar la lista de reproducción",
@@ -502,7 +502,7 @@
     "addToPlaylist": "Añadir a una lista de reproducción",
     "noPlaylists": "No hay ninguna lista de reproducción. Crea una a continuación.",
     "createPlaylist": "Nueva lista de reproducción",
-    "playNext": "Leer más",
+    "playNext": "Reproducir siguiente",
     "addToQueue": "Añadir a la cola",
     "like": "Añadir a los títulos que me gustan",
     "unlike": "Eliminar publicaciones a las que se ha dado «Me gusta»",
@@ -514,7 +514,7 @@
     "properties": "Propiedades"
   },
   "trackProperties": {
-    "title": "Características del título",
+    "title": "Propiedades de la pista",
     "sections": {
       "metadata": "Metadatos",
       "audio": "Audio",
@@ -529,7 +529,7 @@
     "reanalyze": "Volver a analizar",
     "analyzing": "Análisis…",
     "year": "Año",
-    "trackNumber": "Pista",
+    "trackNumber": "Número de pista",
     "duration": "Duración",
     "codec": "Códec",
     "bitDepth": "Profundidad",
@@ -549,19 +549,19 @@
     "count_zero": "0 seleccionados",
     "count_one": "{{count}} seleccionado",
     "count_other": "{{count}} seleccionados",
-    "play": "Lectura",
+    "play": "Reproducir",
     "addToQueue": "Añadir a la cola",
-    "playNext": "Sigue leyendo",
+    "playNext": "Reproducir siguiente",
     "addToPlaylist": "Añadir a una lista de reproducción",
     "removeFromPlaylist": "Eliminar de la lista de reproducción",
     "clear": "Deseleccionar"
   },
   "albumDetail": {
     "badge": "Álbum",
-    "playAll": "Leer todo",
-    "shuffle": "Reproducción aleatoria",
-    "trackCount_zero": "0 título",
-    "trackCount_one": "{{count}} título",
+    "playAll": "Reproducir todo",
+    "shuffle": "Aleatorio",
+    "trackCount_zero": "0 pistas",
+    "trackCount_one": "{{count}} pista",
     "trackCount_other": "{{count}} títulos",
     "discHeader": "Álbum{{number}}",
     "releaseDate": "Salida",
@@ -572,18 +572,18 @@
   },
   "artistDetail": {
     "badge": "Artista",
-    "playAll": "Leer todo",
-    "shuffle": "Reproducción aleatoria",
+    "playAll": "Reproducir todo",
+    "shuffle": "Aleatorio",
     "discography": "Discografía",
     "allTracks": "Todos los títulos",
-    "trackCount_zero": "0 título",
-    "trackCount_one": "{{count}} título",
+    "trackCount_zero": "0 pistas",
+    "trackCount_one": "{{count}} pista",
     "trackCount_other": "{{count}} títulos",
     "albumCount_zero": "0 álbumes",
     "albumCount_one": "{{count}} álbum",
     "albumCount_other": "{{count}} álbumes",
-    "albumTrackCount_zero": "0 título",
-    "albumTrackCount_one": "{{count}} título",
+    "albumTrackCount_zero": "0 pistas",
+    "albumTrackCount_one": "{{count}} pista",
     "albumTrackCount_other": "{{count}} títulos",
     "emptyTitle": "Artista no encontrado",
     "emptyDescription": "Este artista ya no figura en el perfil activo.",
@@ -592,12 +592,12 @@
     }
   },
   "nowPlaying": {
-    "title": "En reproducción",
-    "empty": "No hay títulos en curso",
+    "title": "Reproduciendo",
+    "empty": "No se está reproduciendo ninguna pista",
     "aboutArtist": "Acerca del artista",
     "readMore": "Leer más",
     "readLess": "Reducir",
-    "noBio": "No hay biografía disponible. Configura tu clave de Last.fm en los ajustes.",
+    "noBio": "No hay biografía disponible. Configura tu clave «Last.fm» en los ajustes.",
     "lyrics": {
       "title": "Letra",
       "comingSoon": "Próximamente disponible"
@@ -605,14 +605,14 @@
   },
   "playerBar": {
     "lyrics": "Letra",
-    "nowPlaying": "Vista actual",
+    "nowPlaying": "Mostrar en reproducción",
     "queue": "Cola"
   },
   "lyrics": {
     "title": "Letra",
     "loading": "Buscando la letra…",
-    "noTrack": "No hay títulos en curso",
-    "notFound": "No se han encontrado letras para este título. Puedes importar un archivo .lrc.",
+    "noTrack": "No se está reproduciendo ninguna pista",
+    "notFound": "No se han encontrado letras para esta pista. Puedes importar un archivo .lrc.",
     "importTitle": "Importar un archivo .lrc",
     "actions": {
       "import": "Importar un archivo .lrc",
@@ -644,7 +644,7 @@
     "title": "Configuración",
     "sections": {
       "general": "General",
-      "playback": "Lectura",
+      "playback": "Reproducción",
       "integrations": "Integraciones",
       "storage": "Almacenamiento y datos"
     },
@@ -677,7 +677,7 @@
     },
     "replayGain": {
       "title": "Aplicar ReplayGain",
-      "subtitle": "Utilizar el nivel de ganancia analizado de cada pista para equilibrar la percepción del volumen"
+      "subtitle": "Utiliza la ganancia analizada de cada pista para equilibrar el volumen percibido"
     },
     "mono": {
       "title": "Audio mono",
@@ -701,7 +701,7 @@
     },
     "singleClickPlay": {
       "title": "Reproducción con un solo clic",
-      "subtitle": "Al hacer clic en una pista, se inicia la reproducción (si no, haz doble clic)"
+      "subtitle": "Haz clic en una pista para iniciar la reproducción (o haz doble clic)."
     },
     "rescan": {
       "title": "Volver a escanear la biblioteca",
@@ -710,10 +710,10 @@
     },
     "analyze": {
       "title": "Analizar la biblioteca",
-      "subtitle": "Calcular el BPM, el volumen y el pico de las canciones no analizadas",
+      "subtitle": "Calcular el valor «BPM», el volumen sonoro y el pico para las canciones no analizadas",
       "action": "Analizar",
       "autoTitle": "Análisis automático",
-      "autoSubtitle": "Iniciar el análisis en segundo plano después de cada escaneo que añada nuevos títulos",
+      "autoSubtitle": "Ejecutar un análisis en segundo plano después de cada escaneo que añada nuevas pistas",
       "failed_one": "{{count}} fracaso",
       "failed_other": "{{count}} fracasos"
     },

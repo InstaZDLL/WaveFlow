@@ -9,7 +9,7 @@
     "optional": "(opcional)"
   },
   "lastfmReauth": {
-    "title": "Sessão do Last.fm expirou",
+    "title": "A sessão do `Last.fm` expirou",
     "message": "Seus scrobbles não estão mais sendo enviados. Faça login novamente para continuar.",
     "action": "Abrir as configurações"
   },
@@ -34,8 +34,8 @@
   "onboarding": {
     "defaultLibraryName": "Música",
     "welcome": {
-      "title": "Bem-vindo ao WaveFlow",
-      "message": "Para começar, indique a pasta que contém suas músicas. O WaveFlow irá analisá-la e organizar sua biblioteca automaticamente.",
+      "title": "Bem-vindo ao site WaveFlow",
+      "message": "Para começar, indique a pasta que contém suas músicas. O WaveFlow irá escanear e organizar sua biblioteca automaticamente.",
       "action": "Escolher minha pasta de músicas",
       "skip": "Configurar mais tarde"
     },
@@ -69,8 +69,8 @@
       "folder": "Dossiê"
     },
     "library": {
-      "tracksCount_zero": "0 título",
-      "tracksCount_one": "{{count}} título",
+      "tracksCount_zero": "0 faixas",
+      "tracksCount_one": "{{count}} faixa",
       "tracksCount_other": "{{count}} títulos",
       "createLibraryAria": "Criar uma nova biblioteca",
       "none": "Nenhuma biblioteca",
@@ -78,8 +78,8 @@
         "label": "Seleção da biblioteca",
         "header": "Bibliotecas",
         "countLine": "{{tracks}} · {{albums}}",
-        "tracks_zero": "0 título",
-        "tracks_one": "{{count}} título",
+        "tracks_zero": "0 faixas",
+        "tracks_one": "{{count}} faixa",
         "tracks_other": "{{count}} títulos",
         "albums_zero": "0 álbum",
         "albums_one": "{{count}} álbum",
@@ -101,8 +101,8 @@
       "importDialogTitle": "Importar uma lista de reprodução M3U",
       "liked": "Títulos curtidos",
       "recent": "Jogados recentemente",
-      "emptySubtext_zero": "0 título",
-      "emptySubtext_one": "{{count}} título",
+      "emptySubtext_zero": "0 faixas",
+      "emptySubtext_one": "{{count}} faixa",
       "emptySubtext_other": "{{count}} títulos"
     },
     "myMusic": {
@@ -118,8 +118,8 @@
       "title": "Listas de reprodução"
     },
     "myLibrary": {
-      "playlistSubtext_zero": "0 título",
-      "playlistSubtext_one": "{{count}} título",
+      "playlistSubtext_zero": "0 faixas",
+      "playlistSubtext_one": "{{count}} faixa",
       "playlistSubtext_other": "{{count}} títulos"
     }
   },
@@ -232,7 +232,7 @@
       "deleteConfirm": "Clique novamente para confirmar"
     },
     "changeCover": "Trocar a capa",
-    "searchDeezer": "Pesquisar no Deezer",
+    "searchDeezer": "Pesquisa Deezer",
     "localFile": "Arquivo local",
     "fetchMissingCovers": "Recuperar todas as capas que faltam",
     "noCover": "Sem capa",
@@ -253,26 +253,26 @@
       "compact": "Compacto"
     },
     "albumGrid": {
-      "trackCount_zero": "0 título",
-      "trackCount_one": "{{count}} título",
+      "trackCount_zero": "0 faixas",
+      "trackCount_one": "{{count}} faixa",
       "trackCount_other": "{{count}} títulos"
     },
     "artistList": {
-      "trackCount_zero": "0 título",
-      "trackCount_one": "{{count}} título",
+      "trackCount_zero": "0 faixas",
+      "trackCount_one": "{{count}} faixa",
       "trackCount_other": "{{count}} títulos",
       "albumCount_zero": "0 álbum",
       "albumCount_one": "{{count}} álbum",
       "albumCount_other": "{{count}} álbuns"
     },
     "genreList": {
-      "trackCount_zero": "0 título",
-      "trackCount_one": "{{count}} título",
+      "trackCount_zero": "0 faixas",
+      "trackCount_one": "{{count}} faixa",
       "trackCount_other": "{{count}} títulos"
     },
     "folderList": {
-      "trackCount_zero": "0 título",
-      "trackCount_one": "{{count}} título",
+      "trackCount_zero": "0 faixas",
+      "trackCount_one": "{{count}} faixa",
       "trackCount_other": "{{count}} títulos",
       "lastScanned": "Digitalizado: {{date}}",
       "neverScanned": "nunca",
@@ -284,22 +284,22 @@
   "liked": {
     "badge": "Coleção",
     "title": "Títulos curtidos",
-    "count_zero": "0 título",
-    "count_one": "{{count}} título",
+    "count_zero": "0 faixas",
+    "count_one": "{{count}} faixa",
     "count_other": "{{count}} títulos",
-    "emptyTitle": "Nenhum título curtido",
+    "emptyTitle": "Nenhuma faixa favorita",
     "emptyDescription": "As músicas que você gosta aparecerão aqui. Explore sua biblioteca e curta suas músicas favoritas.",
-    "playAll": "Leia tudo",
+    "playAll": "Reproduzir tudo",
     "unlike": "Retirar curtidas",
     "like": "Adicionar aos favoritos"
   },
   "recent": {
     "badge": "Histórico",
     "title": "Jogados recentemente",
-    "count_zero": "0 título",
-    "count_one": "{{count}} título",
+    "count_zero": "0 faixas",
+    "count_one": "{{count}} faixa",
     "count_other": "{{count}} títulos",
-    "emptyTitle": "Nenhum título recente",
+    "emptyTitle": "Nenhuma faixa recente",
     "emptyDescription": "As músicas que você estiver ouvindo aparecerão aqui automaticamente."
   },
   "statistics": {
@@ -381,7 +381,7 @@
   "feedback": {
     "title": "Feedback",
     "hero": {
-      "title": "Ajude-nos a melhorar o WaveFlow",
+      "title": "Ajude-nos a melhorar o site WaveFlow",
       "description": "Você encontrou um bug, tem uma sugestão de melhoria ou simplesmente quer nos dar um feedback? Nós lemos todas as mensagens e levamos em consideração suas sugestões."
     },
     "contact": {
@@ -390,15 +390,15 @@
     }
   },
   "player": {
-    "noTrack": "Sem título",
+    "noTrack": "Sem faixa",
     "inactive": "Inativo",
     "controls": {
-      "play": "Leitura",
+      "play": "Reproduzir",
       "pause": "Pausa",
       "previous": "Anterior",
       "next": "Próximo",
       "shuffleOn": "Desativar a reprodução aleatória",
-      "shuffleOff": "Ativar a reprodução aleatória",
+      "shuffleOff": "Ativar embaralhamento",
       "repeatOff": "Ativar a repetição",
       "repeatAll": "Repetir apenas uma vez",
       "repeatOne": "Desativar a repetição"
@@ -410,17 +410,17 @@
     }
   },
   "queue": {
-    "title": "Fila de leitura",
+    "title": "Fila de reprodução",
     "inactive": "INATIVO",
-    "count_zero": "0 faixa",
-    "count_one": "{{count}} trecho",
+    "count_zero": "0 faixas",
+    "count_one": "{{count}} faixa",
     "count_other": "{{count}} trechos",
     "emptyTitle": "Nada para ouvir",
     "emptyDescription": "Reproduza uma música da sua biblioteca para preencher a fila.",
     "nowPlaying": "Em andamento",
-    "upNext_zero": "Continua",
-    "upNext_one": "Acompanhe · {{count}} título",
-    "upNext_other": "A seguir · {{count}} títulos"
+    "upNext_zero": "Próximo",
+    "upNext_one": "Próximo · Faixa \"{{count}}\"",
+    "upNext_other": "A seguir - {{count}} faixas"
   },
   "deviceMenu": {
     "activeLabel": "Saída ativa",
@@ -451,7 +451,7 @@
     "title": "Criar uma biblioteca",
     "editTitle": "Editar a Biblioteca",
     "previewDefault": "Criar uma biblioteca",
-    "previewSubtitle": "0 título · Biblioteca",
+    "previewSubtitle": "0 faixas · Biblioteca",
     "nameLabel": "Nome da biblioteca",
     "namePlaceholder": "Ex.: Rock, Jazz, Música Clássica...",
     "descriptionLabel": "Descrição",
@@ -463,7 +463,7 @@
     "title": "Nova lista de reprodução",
     "editTitle": "Editar a lista de reprodução",
     "previewDefault": "Nova lista de reprodução",
-    "previewSubtitle": "0 faixa · Lista de reprodução",
+    "previewSubtitle": "0 faixas · Lista de reprodução",
     "nameLabel": "Nome",
     "namePlaceholder": "Ex.: Chill Vibes, Workout Mix...",
     "descriptionLabel": "Descrição",
@@ -477,12 +477,12 @@
   },
   "playlistView": {
     "badge": "Lista de reprodução",
-    "trackCount_zero": "0 título",
-    "trackCount_one": "{{count}} título",
+    "trackCount_zero": "0 faixas",
+    "trackCount_one": "{{count}} faixa",
     "trackCount_other": "{{count}} títulos",
     "actions": {
-      "play": "Leitura",
-      "shuffle": "Reprodução aleatória",
+      "play": "Reproduzir",
+      "shuffle": "Aleatório",
       "edit": "Editar a lista de reprodução",
       "exportM3u": "Exportar como M3U",
       "delete": "Excluir a lista de reprodução",
@@ -502,7 +502,7 @@
     "addToPlaylist": "Adicionar a uma lista de reprodução",
     "noPlaylists": "Não há nenhuma lista de reprodução. Crie uma abaixo.",
     "createPlaylist": "Nova lista de reprodução",
-    "playNext": "Leia mais",
+    "playNext": "Reproduzir a próxima",
     "addToQueue": "Adicionar à fila",
     "like": "Adicionar aos títulos curtidos",
     "unlike": "Remover títulos curtidos",
@@ -514,7 +514,7 @@
     "properties": "Propriedades"
   },
   "trackProperties": {
-    "title": "Propriedades do título",
+    "title": "Propriedades da faixa",
     "sections": {
       "metadata": "Metadados",
       "audio": "Áudio",
@@ -529,7 +529,7 @@
     "reanalyze": "Reanalisar",
     "analyzing": "Análise…",
     "year": "Ano",
-    "trackNumber": "Pista",
+    "trackNumber": "Número da faixa",
     "duration": "Duração",
     "codec": "Codec",
     "bitDepth": "Profundidade",
@@ -549,19 +549,19 @@
     "count_zero": "0 selecionado",
     "count_one": "{{count}} selecionado",
     "count_other": "{{count}} selecionados",
-    "play": "Leitura",
+    "play": "Reproduzir",
     "addToQueue": "Adicionar à fila",
-    "playNext": "Leia a seguir",
+    "playNext": "Reproduzir a próxima",
     "addToPlaylist": "Adicionar a uma lista de reprodução",
     "removeFromPlaylist": "Remover da lista de reprodução",
     "clear": "Desmarcar"
   },
   "albumDetail": {
     "badge": "Álbum",
-    "playAll": "Leia tudo",
-    "shuffle": "Reprodução aleatória",
-    "trackCount_zero": "0 título",
-    "trackCount_one": "{{count}} título",
+    "playAll": "Reproduzir tudo",
+    "shuffle": "Aleatório",
+    "trackCount_zero": "0 faixas",
+    "trackCount_one": "{{count}} faixa",
     "trackCount_other": "{{count}} títulos",
     "discHeader": "Álbum{{number}}",
     "releaseDate": "Saída",
@@ -572,18 +572,18 @@
   },
   "artistDetail": {
     "badge": "Artista",
-    "playAll": "Leia tudo",
-    "shuffle": "Reprodução aleatória",
+    "playAll": "Reproduzir tudo",
+    "shuffle": "Aleatório",
     "discography": "Discografia",
     "allTracks": "Todos os títulos",
-    "trackCount_zero": "0 título",
-    "trackCount_one": "{{count}} título",
+    "trackCount_zero": "0 faixas",
+    "trackCount_one": "{{count}} faixa",
     "trackCount_other": "{{count}} títulos",
     "albumCount_zero": "0 álbum",
     "albumCount_one": "{{count}} álbum",
     "albumCount_other": "{{count}} álbuns",
-    "albumTrackCount_zero": "0 título",
-    "albumTrackCount_one": "{{count}} título",
+    "albumTrackCount_zero": "0 faixas",
+    "albumTrackCount_one": "{{count}} faixa",
     "albumTrackCount_other": "{{count}} títulos",
     "emptyTitle": "Artista não encontrado",
     "emptyDescription": "Esse artista não consta mais no perfil ativo.",
@@ -592,12 +592,12 @@
     }
   },
   "nowPlaying": {
-    "title": "Em reprodução",
-    "empty": "Nenhum título em andamento",
+    "title": "Reproduzindo agora",
+    "empty": "Nenhuma faixa em reprodução",
     "aboutArtist": "Sobre o artista",
     "readMore": "Leia mais",
     "readLess": "Reduzir",
-    "noBio": "Não há biografia disponível. Configure sua chave do Last.fm nas configurações.",
+    "noBio": "Não há biografia disponível. Configure sua chave Last.fm nas configurações.",
     "lyrics": {
       "title": "Letra",
       "comingSoon": "Em breve"
@@ -605,14 +605,14 @@
   },
   "playerBar": {
     "lyrics": "Letra",
-    "nowPlaying": "Visualização em exibição",
+    "nowPlaying": "Mostrar a reprodução atual",
     "queue": "Fila"
   },
   "lyrics": {
     "title": "Letra",
     "loading": "Pesquisando a letra…",
-    "noTrack": "Nenhum título em andamento",
-    "notFound": "Não foram encontradas legendas para este título. Você pode importar um arquivo .lrc.",
+    "noTrack": "Nenhuma faixa em reprodução",
+    "notFound": "Não foram encontradas letras para esta faixa. Você pode importar um arquivo .lrc.",
     "importTitle": "Importar um arquivo .lrc",
     "actions": {
       "import": "Importar um arquivo .lrc",
@@ -644,7 +644,7 @@
     "title": "Configurações",
     "sections": {
       "general": "Geral",
-      "playback": "Leitura",
+      "playback": "Reprodução",
       "integrations": "Integrações",
       "storage": "Armazenamento e Dados"
     },
@@ -677,7 +677,7 @@
     },
     "replayGain": {
       "title": "Aplicar ReplayGain",
-      "subtitle": "Usar o ganho analisado de cada faixa para equilibrar a percepção de volume"
+      "subtitle": "Use o ganho analisado de cada faixa para equilibrar o volume percebido"
     },
     "mono": {
       "title": "Áudio mono",
@@ -689,7 +689,7 @@
     },
     "autoStart": {
       "title": "Inicialização ao ligar o computador",
-      "subtitle": "Iniciar o WaveFlow automaticamente ao inicializar o sistema"
+      "subtitle": "Inicie o WaveFlow automaticamente ao iniciar o sistema"
     },
     "minimizeToTray": {
       "title": "Minimizar na barra de tarefas",
@@ -700,8 +700,8 @@
       "subtitle": "Verificar automaticamente as bibliotecas ao abrir o programa"
     },
     "singleClickPlay": {
-      "title": "Leitura com um clique",
-      "subtitle": "Um clique em uma faixa inicia a reprodução (ou dê um clique duplo)"
+      "title": "Reprodução com um único clique",
+      "subtitle": "Clique em uma faixa para iniciar a reprodução (ou clique duas vezes)"
     },
     "rescan": {
       "title": "Digitalizar novamente a biblioteca",
@@ -710,16 +710,16 @@
     },
     "analyze": {
       "title": "Analisar a biblioteca",
-      "subtitle": "Calcular BPM, volume sonoro e pico para faixas não analisadas",
+      "subtitle": "Calcular BPM, volume de som e pico para faixas não analisadas",
       "action": "Analisar",
       "autoTitle": "Análise automática",
-      "autoSubtitle": "Iniciar a análise em segundo plano após cada varredura que adicione novos títulos",
+      "autoSubtitle": "Execute uma análise em segundo plano após cada varredura que adicione novas faixas",
       "failed_one": "{{count}} fracasso",
       "failed_other": "{{count}} fracassos"
     },
     "artistImages": {
       "title": "Imagens de artistas",
-      "subtitle": "Recuperar capas de artistas do Deezer",
+      "subtitle": "Baixar as capas dos artistas em Deezer",
       "action": "Recuperar"
     },
     "dataFolder": {

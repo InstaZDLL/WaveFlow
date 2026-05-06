@@ -9,7 +9,7 @@
     "optional": "（可選）"
   },
   "lastfmReauth": {
-    "title": "Last.fm 會話已過期",
+    "title": "Last.fm的連線已過期",
     "message": "您的播放記錄已停止傳送。請重新登入以繼續。",
     "action": "開啟設定"
   },
@@ -25,7 +25,7 @@
     },
     "installed": {
       "title": "已安裝更新",
-      "message": "重新啟動 WaveFlow 以套用新版本。"
+      "message": "重新啟動WaveFlow以套用新版本。"
     },
     "error": {
       "title": "更新失敗"
@@ -34,8 +34,8 @@
   "onboarding": {
     "defaultLibraryName": "音樂",
     "welcome": {
-      "title": "歡迎來到 WaveFlow",
-      "message": "首先，請指定存放音樂的資料夾。WaveFlow 將自動掃描並整理您的音樂庫。",
+      "title": "歡迎光臨 WaveFlow",
+      "message": "首先，請指定存放音樂的資料夾。WaveFlow 會自動掃描並整理您的音樂庫。",
       "action": "選擇我的音樂資料夾",
       "skip": "稍後設定"
     },
@@ -69,8 +69,8 @@
       "folder": "專題"
     },
     "library": {
-      "tracksCount_zero": "0 標題",
-      "tracksCount_one": "{{count}} 標題",
+      "tracksCount_zero": "0 首曲目",
+      "tracksCount_one": "{{count}} 曲目",
       "tracksCount_other": "{{count}} 標題",
       "createLibraryAria": "建立新的資料庫",
       "none": "沒有任何圖書館",
@@ -78,8 +78,8 @@
         "label": "圖書館選書",
         "header": "圖書館",
         "countLine": "{{tracks}} · {{albums}}",
-        "tracks_zero": "0 標題",
-        "tracks_one": "{{count}} 標題",
+        "tracks_zero": "0 首曲目",
+        "tracks_one": "{{count}} 曲目",
         "tracks_other": "{{count}} 標題",
         "albums_zero": "0 張專輯",
         "albums_one": "{{count}} 專輯",
@@ -101,8 +101,8 @@
       "importDialogTitle": "匯入 M3U 播放清單",
       "liked": "已按讚的貼文",
       "recent": "最近播放的",
-      "emptySubtext_zero": "0 標題",
-      "emptySubtext_one": "{{count}} 標題",
+      "emptySubtext_zero": "0 首曲目",
+      "emptySubtext_one": "{{count}} 曲目",
       "emptySubtext_other": "{{count}} 標題"
     },
     "myMusic": {
@@ -118,8 +118,8 @@
       "title": "播放清單"
     },
     "myLibrary": {
-      "playlistSubtext_zero": "0 標題",
-      "playlistSubtext_one": "{{count}} 標題",
+      "playlistSubtext_zero": "0 首曲目",
+      "playlistSubtext_one": "{{count}} 曲目",
       "playlistSubtext_other": "{{count}} 標題"
     }
   },
@@ -232,7 +232,7 @@
       "deleteConfirm": "請再次點擊以確認"
     },
     "changeCover": "更換封面",
-    "searchDeezer": "搜尋 Deezer",
+    "searchDeezer": "搜尋Deezer",
     "localFile": "本機檔案",
     "fetchMissingCovers": "找回所有遺失的封套",
     "noCover": "無外袋",
@@ -253,26 +253,26 @@
       "compact": "緊湊型"
     },
     "albumGrid": {
-      "trackCount_zero": "0 標題",
-      "trackCount_one": "{{count}} 標題",
+      "trackCount_zero": "0 首曲目",
+      "trackCount_one": "{{count}} 曲目",
       "trackCount_other": "{{count}} 標題"
     },
     "artistList": {
-      "trackCount_zero": "0 標題",
-      "trackCount_one": "{{count}} 標題",
+      "trackCount_zero": "0 首曲目",
+      "trackCount_one": "{{count}} 曲目",
       "trackCount_other": "{{count}} 標題",
       "albumCount_zero": "0 張專輯",
       "albumCount_one": "{{count}} 專輯",
       "albumCount_other": "{{count}} 專輯"
     },
     "genreList": {
-      "trackCount_zero": "0 標題",
-      "trackCount_one": "{{count}} 標題",
+      "trackCount_zero": "0 首曲目",
+      "trackCount_one": "{{count}} 曲目",
       "trackCount_other": "{{count}} 標題"
     },
     "folderList": {
-      "trackCount_zero": "0 標題",
-      "trackCount_one": "{{count}} 標題",
+      "trackCount_zero": "0 首曲目",
+      "trackCount_one": "{{count}} 曲目",
       "trackCount_other": "{{count}} 標題",
       "lastScanned": "掃描來源：{{date}}",
       "neverScanned": "從未",
@@ -284,22 +284,22 @@
   "liked": {
     "badge": "系列",
     "title": "已按讚的貼文",
-    "count_zero": "0 標題",
-    "count_one": "{{count}} 標題",
+    "count_zero": "0 首曲目",
+    "count_one": "{{count}} 曲目",
     "count_other": "{{count}} 標題",
-    "emptyTitle": "沒有任何被按讚的文章",
+    "emptyTitle": "沒有喜愛的曲目",
     "emptyDescription": "您喜愛的歌曲將會顯示在此處。瀏覽您的音樂庫，並為喜愛的歌曲按讚。",
-    "playAll": "閱讀全文",
+    "playAll": "全部播放",
     "unlike": "取消按讚",
     "like": "加入「喜歡」清單"
   },
   "recent": {
     "badge": "沿革",
     "title": "最近播放的",
-    "count_zero": "0 標題",
-    "count_one": "{{count}} 標題",
+    "count_zero": "0 首曲目",
+    "count_one": "{{count}} 曲目",
     "count_other": "{{count}} 標題",
-    "emptyTitle": "沒有近期文章",
+    "emptyTitle": "沒有最近播放的曲目",
     "emptyDescription": "您正在聆聽的歌曲將自動顯示於此處。"
   },
   "statistics": {
@@ -381,7 +381,7 @@
   "feedback": {
     "title": "回饋",
     "hero": {
-      "title": "請協助我們改進 WaveFlow",
+      "title": "請協助我們改善 WaveFlow",
       "description": "您發現了錯誤、有改進的建議，或是單純想提供回饋嗎？我們會仔細閱讀每一則訊息，並將您的建議納入考量。"
     },
     "contact": {
@@ -390,14 +390,14 @@
     }
   },
   "player": {
-    "noTrack": "無標題",
+    "noTrack": "沒有曲目",
     "inactive": "未啟用",
     "controls": {
-      "play": "閱讀",
+      "play": "播放",
       "pause": "暫停",
       "previous": "上一頁",
       "next": "下一頁",
-      "shuffleOn": "關閉隨機播放",
+      "shuffleOn": "停用隨機播放",
       "shuffleOff": "啟用隨機播放",
       "repeatOff": "啟用重複播放",
       "repeatAll": "只重複一次",
@@ -410,17 +410,17 @@
     }
   },
   "queue": {
-    "title": "讀取檔",
+    "title": "播放佇列",
     "inactive": "已停用",
-    "count_zero": "0 首",
+    "count_zero": "0 首曲目",
     "count_one": "{{count}} 曲目",
     "count_other": "{{count}} 片段",
     "emptyTitle": "沒什麼可聽的",
     "emptyDescription": "從您的音樂庫中選取一首歌曲，以填滿播放清單。",
     "nowPlaying": "進行中",
-    "upNext_zero": "待續",
-    "upNext_one": "待續 · {{count}} 標題",
-    "upNext_other": "待續 · {{count}} 則文章"
+    "upNext_zero": "接下來",
+    "upNext_one": "接下來 · {{count}} track",
+    "upNext_other": "下一個 - {{count}} 曲目"
   },
   "deviceMenu": {
     "activeLabel": "主動輸出",
@@ -451,7 +451,7 @@
     "title": "建立資料庫",
     "editTitle": "編輯圖庫",
     "previewDefault": "建立資料庫",
-    "previewSubtitle": "0 項 · 圖書庫",
+    "previewSubtitle": "0 首曲目 · 音樂庫",
     "nameLabel": "圖書館名稱",
     "namePlaceholder": "例如：搖滾、爵士、古典……",
     "descriptionLabel": "說明",
@@ -463,7 +463,7 @@
     "title": "新播放清單",
     "editTitle": "編輯播放清單",
     "previewDefault": "新播放清單",
-    "previewSubtitle": "0 首歌曲 · 播放清單",
+    "previewSubtitle": "0 首曲目 · 播放清單",
     "nameLabel": "姓名",
     "namePlaceholder": "例如：Chill Vibes、Workout Mix...",
     "descriptionLabel": "說明",
@@ -477,11 +477,11 @@
   },
   "playlistView": {
     "badge": "播放清單",
-    "trackCount_zero": "0 標題",
-    "trackCount_one": "{{count}} 標題",
+    "trackCount_zero": "0 首曲目",
+    "trackCount_one": "{{count}} 曲目",
     "trackCount_other": "{{count}} 標題",
     "actions": {
-      "play": "閱讀",
+      "play": "播放",
       "shuffle": "隨機播放",
       "edit": "編輯播放清單",
       "exportM3u": "匯出為 M3U",
@@ -502,7 +502,7 @@
     "addToPlaylist": "加入播放清單",
     "noPlaylists": "目前沒有播放清單。請在下方建立一個。",
     "createPlaylist": "新播放清單",
-    "playNext": "閱讀更多",
+    "playNext": "播放下一首",
     "addToQueue": "加入佇列",
     "like": "加入「喜歡」的歌曲",
     "unlike": "移除已按讚的貼文",
@@ -514,7 +514,7 @@
     "properties": "特性"
   },
   "trackProperties": {
-    "title": "標題屬性",
+    "title": "曲目屬性",
     "sections": {
       "metadata": "元資料",
       "audio": "音訊",
@@ -529,7 +529,7 @@
     "reanalyze": "重新分析",
     "analyzing": "分析……",
     "year": "年份",
-    "trackNumber": "賽道",
+    "trackNumber": "曲目編號",
     "duration": "時長",
     "codec": "編解碼器",
     "bitDepth": "深度",
@@ -549,19 +549,19 @@
     "count_zero": "0 項已選中",
     "count_one": "{{count}} 已選取",
     "count_other": "{{count}} 入選",
-    "play": "閱讀",
+    "play": "播放",
     "addToQueue": "加入佇列",
-    "playNext": "繼續閱讀",
+    "playNext": "播放下一首",
     "addToPlaylist": "加入播放清單",
     "removeFromPlaylist": "從播放清單中移除",
     "clear": "取消選取"
   },
   "albumDetail": {
     "badge": "專輯",
-    "playAll": "閱讀全文",
+    "playAll": "全部播放",
     "shuffle": "隨機播放",
-    "trackCount_zero": "0 標題",
-    "trackCount_one": "{{count}} 標題",
+    "trackCount_zero": "0 首曲目",
+    "trackCount_one": "{{count}} 曲目",
     "trackCount_other": "{{count}} 標題",
     "discHeader": "{{number}} 硬碟",
     "releaseDate": "發行",
@@ -572,18 +572,18 @@
   },
   "artistDetail": {
     "badge": "藝術家",
-    "playAll": "閱讀全文",
+    "playAll": "全部播放",
     "shuffle": "隨機播放",
     "discography": "唱片目錄",
     "allTracks": "所有曲目",
-    "trackCount_zero": "0 標題",
-    "trackCount_one": "{{count}} 標題",
+    "trackCount_zero": "0 首曲目",
+    "trackCount_one": "{{count}} 曲目",
     "trackCount_other": "{{count}} 標題",
     "albumCount_zero": "0 張專輯",
     "albumCount_one": "{{count}} 專輯",
     "albumCount_other": "{{count}} 專輯",
-    "albumTrackCount_zero": "0 標題",
-    "albumTrackCount_one": "{{count}} 標題",
+    "albumTrackCount_zero": "0 首曲目",
+    "albumTrackCount_one": "{{count}} 曲目",
     "albumTrackCount_other": "{{count}} 標題",
     "emptyTitle": "找不到該藝術家",
     "emptyDescription": "該藝術家已不在活躍名單中。",
@@ -592,12 +592,12 @@
     }
   },
   "nowPlaying": {
-    "title": "正在播放",
-    "empty": "目前沒有任何頭銜",
+    "title": "現在播放",
+    "empty": "目前沒有正在播放的曲目",
     "aboutArtist": "關於藝術家",
     "readMore": "閱讀更多",
     "readLess": "縮小",
-    "noBio": "目前沒有個人簡介。請在設定中設定您的 Last.fm 金鑰。",
+    "noBio": "沒有傳記資料。請在設定中設定您的Last.fm金鑰。",
     "lyrics": {
       "title": "歌詞",
       "comingSoon": "即將推出"
@@ -605,14 +605,14 @@
   },
   "playerBar": {
     "lyrics": "歌詞",
-    "nowPlaying": "正在播放的畫面",
+    "nowPlaying": "顯示正在播放",
     "queue": "佇列"
   },
   "lyrics": {
     "title": "歌詞",
     "loading": "搜尋歌詞……",
-    "noTrack": "目前沒有任何頭銜",
-    "notFound": "未找到此標題的對應字詞。你可以匯入一個 .lrc 檔案。",
+    "noTrack": "目前沒有正在播放的曲目",
+    "notFound": "找不到此曲目的歌詞。您可以匯入 .lrc 檔案。",
     "importTitle": "匯入 .lrc 檔案",
     "actions": {
       "import": "匯入 .lrc 檔案",
@@ -644,7 +644,7 @@
     "title": "設定",
     "sections": {
       "general": "概述",
-      "playback": "閱讀",
+      "playback": "播放",
       "integrations": "整合",
       "storage": "儲存與資料"
     },
@@ -676,8 +676,8 @@
       "subtitle": "將音量過大的片段調低，以保持整體音量一致"
     },
     "replayGain": {
-      "title": "套用 ReplayGain",
-      "subtitle": "利用每首歌曲的分析增益值來平衡音量感知"
+      "title": "申請 ReplayGain",
+      "subtitle": "使用每首曲目的分析增益值來平衡聽覺音量"
     },
     "mono": {
       "title": "單聲道音訊",
@@ -689,7 +689,7 @@
     },
     "autoStart": {
       "title": "開機時啟動",
-      "subtitle": "在系統啟動時自動執行 WaveFlow"
+      "subtitle": "系統啟動時自動啟動 WaveFlow"
     },
     "minimizeToTray": {
       "title": "最小化至系統列",
@@ -700,8 +700,8 @@
       "subtitle": "開啟時自動重新掃描資料庫"
     },
     "singleClickPlay": {
-      "title": "單擊即讀",
-      "subtitle": "點擊音軌即可開始播放（否則請雙擊）"
+      "title": "單鍵播放",
+      "subtitle": "點擊一首曲目即可開始播放（否則請雙擊）"
     },
     "rescan": {
       "title": "重新掃描書庫",
@@ -710,16 +710,16 @@
     },
     "analyze": {
       "title": "分析該書庫",
-      "subtitle": "計算未經分析曲目的 BPM、音量及峰值",
+      "subtitle": "計算未經分析曲目的BPM、音量及峰值",
       "action": "分析",
       "autoTitle": "自動分析",
-      "autoSubtitle": "在每次掃描並新增標題後，於背景執行分析",
+      "autoSubtitle": "每次掃描並新增曲目後，在背景執行分析",
       "failed_one": "{{count}} 失敗",
       "failed_other": "{{count}} 失敗"
     },
     "artistImages": {
       "title": "藝術家作品",
-      "subtitle": "從 Deezer 取得藝人封面",
+      "subtitle": "從 Deezer 下載藝人專輯封面",
       "action": "恢復"
     },
     "dataFolder": {

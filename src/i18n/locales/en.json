@@ -9,7 +9,7 @@
     "optional": "(optional)"
   },
   "lastfmReauth": {
-    "title": "Last.fm session has expired",
+    "title": "Last.fm's session has expired",
     "message": "Your scrobbles are no longer being sent. Please log in again to resume.",
     "action": "Open Settings"
   },
@@ -35,7 +35,7 @@
     "defaultLibraryName": "Music",
     "welcome": {
       "title": "Welcome to WaveFlow",
-      "message": "To get started, select the folder that contains your music. WaveFlow will scan it and organize your library automatically.",
+      "message": "First, specify the folder that contains your music. WaveFlow will scan it and organize your library automatically.",
       "action": "Select my music folder",
       "skip": "Set up later"
     },
@@ -69,8 +69,8 @@
       "folder": "File"
     },
     "library": {
-      "tracksCount_zero": "0 titles",
-      "tracksCount_one": "{{count}} title",
+      "tracksCount_zero": "0 tracks",
+      "tracksCount_one": "{{count}} track",
       "tracksCount_other": "{{count}} titles",
       "createLibraryAria": "Create a new library",
       "none": "No libraries",
@@ -78,8 +78,8 @@
         "label": "Library Selection",
         "header": "Libraries",
         "countLine": "{{tracks}} · {{albums}}",
-        "tracks_zero": "0 titles",
-        "tracks_one": "{{count}} title",
+        "tracks_zero": "0 tracks",
+        "tracks_one": "{{count}} track",
         "tracks_other": "{{count}} titles",
         "albums_zero": "0 albums",
         "albums_one": "{{count}} album",
@@ -101,8 +101,8 @@
       "importDialogTitle": "Import an M3U playlist",
       "liked": "Liked posts",
       "recent": "Recently played",
-      "emptySubtext_zero": "0 titles",
-      "emptySubtext_one": "{{count}} title",
+      "emptySubtext_zero": "0 tracks",
+      "emptySubtext_one": "{{count}} track",
       "emptySubtext_other": "{{count}} titles"
     },
     "myMusic": {
@@ -118,8 +118,8 @@
       "title": "Playlists"
     },
     "myLibrary": {
-      "playlistSubtext_zero": "0 titles",
-      "playlistSubtext_one": "{{count}} title",
+      "playlistSubtext_zero": "0 tracks",
+      "playlistSubtext_one": "{{count}} track",
       "playlistSubtext_other": "{{count}} titles"
     }
   },
@@ -253,26 +253,26 @@
       "compact": "Compact"
     },
     "albumGrid": {
-      "trackCount_zero": "0 titles",
-      "trackCount_one": "{{count}} title",
+      "trackCount_zero": "0 tracks",
+      "trackCount_one": "{{count}} track",
       "trackCount_other": "{{count}} titles"
     },
     "artistList": {
-      "trackCount_zero": "0 titles",
-      "trackCount_one": "{{count}} title",
+      "trackCount_zero": "0 tracks",
+      "trackCount_one": "{{count}} track",
       "trackCount_other": "{{count}} titles",
       "albumCount_zero": "0 albums",
       "albumCount_one": "{{count}} album",
       "albumCount_other": "{{count}} albums"
     },
     "genreList": {
-      "trackCount_zero": "0 titles",
-      "trackCount_one": "{{count}} title",
+      "trackCount_zero": "0 tracks",
+      "trackCount_one": "{{count}} track",
       "trackCount_other": "{{count}} titles"
     },
     "folderList": {
-      "trackCount_zero": "0 titles",
-      "trackCount_one": "{{count}} title",
+      "trackCount_zero": "0 tracks",
+      "trackCount_one": "{{count}} track",
       "trackCount_other": "{{count}} titles",
       "lastScanned": "Scanned from: {{date}}",
       "neverScanned": "never",
@@ -284,22 +284,22 @@
   "liked": {
     "badge": "Collection",
     "title": "Liked posts",
-    "count_zero": "0 titles",
-    "count_one": "{{count}} title",
+    "count_zero": "0 tracks",
+    "count_one": "{{count}} track",
     "count_other": "{{count}} titles",
-    "emptyTitle": "No liked posts",
+    "emptyTitle": "No liked tracks",
     "emptyDescription": "The songs you like will appear here. Browse your library and like your favorite tracks.",
-    "playAll": "Read more",
+    "playAll": "Play all",
     "unlike": "Unfollow",
     "like": "Add to Favorites"
   },
   "recent": {
     "badge": "History",
     "title": "Recently played",
-    "count_zero": "0 titles",
-    "count_one": "{{count}} title",
+    "count_zero": "0 tracks",
+    "count_one": "{{count}} track",
     "count_other": "{{count}} titles",
-    "emptyTitle": "No recent titles",
+    "emptyTitle": "No recent tracks",
     "emptyDescription": "The songs you're listening to will appear here automatically."
   },
   "statistics": {
@@ -390,14 +390,14 @@
     }
   },
   "player": {
-    "noTrack": "No title",
+    "noTrack": "No track",
     "inactive": "Inactive",
     "controls": {
-      "play": "Reading",
+      "play": "Play",
       "pause": "Pause",
       "previous": "Previous",
       "next": "Next",
-      "shuffleOn": "Turn off shuffle",
+      "shuffleOn": "Disable shuffle",
       "shuffleOff": "Enable shuffle",
       "repeatOff": "Enable repeat",
       "repeatAll": "Repeat once",
@@ -410,17 +410,17 @@
     }
   },
   "queue": {
-    "title": "Read queue",
+    "title": "Play queue",
     "inactive": "INACTIVE",
     "count_zero": "0 tracks",
-    "count_one": "{{count}} song",
+    "count_one": "{{count}} track",
     "count_other": "{{count}} songs",
     "emptyTitle": "Nothing to listen to",
     "emptyDescription": "Play a song from your library to fill the queue.",
     "nowPlaying": "In progress",
-    "upNext_zero": "To be continued",
-    "upNext_one": "Coming soon · {{count}} title",
-    "upNext_other": "Coming up · {{count}} headlines"
+    "upNext_zero": "Up next",
+    "upNext_one": "Up next · {{count}} track",
+    "upNext_other": "Up next · {{count}} tracks"
   },
   "deviceMenu": {
     "activeLabel": "Active output",
@@ -451,7 +451,7 @@
     "title": "Create a Library",
     "editTitle": "Edit the Library",
     "previewDefault": "Create a Library",
-    "previewSubtitle": "0 titles · Library",
+    "previewSubtitle": "0 tracks · Library",
     "nameLabel": "Library Name",
     "namePlaceholder": "e.g., Rock, Jazz, Classical...",
     "descriptionLabel": "Description",
@@ -477,12 +477,12 @@
   },
   "playlistView": {
     "badge": "Playlist",
-    "trackCount_zero": "0 titles",
-    "trackCount_one": "{{count}} title",
+    "trackCount_zero": "0 tracks",
+    "trackCount_one": "{{count}} track",
     "trackCount_other": "{{count}} titles",
     "actions": {
-      "play": "Reading",
-      "shuffle": "Random playback",
+      "play": "Play",
+      "shuffle": "Shuffle",
       "edit": "Edit the playlist",
       "exportM3u": "Export as M3U",
       "delete": "Delete the playlist",
@@ -502,7 +502,7 @@
     "addToPlaylist": "Add to a playlist",
     "noPlaylists": "No playlists. Create one below.",
     "createPlaylist": "New playlist",
-    "playNext": "Read more",
+    "playNext": "Play next",
     "addToQueue": "Add to queue",
     "like": "Add to Liked Titles",
     "unlike": "Remove liked posts",
@@ -514,7 +514,7 @@
     "properties": "Properties"
   },
   "trackProperties": {
-    "title": "Title Properties",
+    "title": "Track properties",
     "sections": {
       "metadata": "Metadata",
       "audio": "Audio",
@@ -529,7 +529,7 @@
     "reanalyze": "Re-analyze",
     "analyzing": "Analysis…",
     "year": "Year",
-    "trackNumber": "Track",
+    "trackNumber": "Track number",
     "duration": "Duration",
     "codec": "Codec",
     "bitDepth": "Depth",
@@ -549,19 +549,19 @@
     "count_zero": "0 selected",
     "count_one": "{{count}} selected",
     "count_other": "{{count}} selected",
-    "play": "Reading",
+    "play": "Play",
     "addToQueue": "Add to queue",
-    "playNext": "Read more",
+    "playNext": "Play next",
     "addToPlaylist": "Add to a playlist",
     "removeFromPlaylist": "Remove from playlist",
     "clear": "Deselect"
   },
   "albumDetail": {
     "badge": "Album",
-    "playAll": "Read more",
-    "shuffle": "Random playback",
-    "trackCount_zero": "0 titles",
-    "trackCount_one": "{{count}} title",
+    "playAll": "Play all",
+    "shuffle": "Shuffle",
+    "trackCount_zero": "0 tracks",
+    "trackCount_one": "{{count}} track",
     "trackCount_other": "{{count}} titles",
     "discHeader": "{{number}} Album",
     "releaseDate": "Exit",
@@ -572,18 +572,18 @@
   },
   "artistDetail": {
     "badge": "Artist",
-    "playAll": "Read more",
-    "shuffle": "Random playback",
+    "playAll": "Play all",
+    "shuffle": "Shuffle",
     "discography": "Discography",
     "allTracks": "All titles",
-    "trackCount_zero": "0 titles",
-    "trackCount_one": "{{count}} title",
+    "trackCount_zero": "0 tracks",
+    "trackCount_one": "{{count}} track",
     "trackCount_other": "{{count}} titles",
     "albumCount_zero": "0 albums",
     "albumCount_one": "{{count}} album",
     "albumCount_other": "{{count}} albums",
-    "albumTrackCount_zero": "0 titles",
-    "albumTrackCount_one": "{{count}} title",
+    "albumTrackCount_zero": "0 tracks",
+    "albumTrackCount_one": "{{count}} track",
     "albumTrackCount_other": "{{count}} titles",
     "emptyTitle": "Artist not found",
     "emptyDescription": "This artist is no longer listed in the active profile.",
@@ -593,11 +593,11 @@
   },
   "nowPlaying": {
     "title": "Now playing",
-    "empty": "No active positions",
+    "empty": "No track playing",
     "aboutArtist": "About the artist",
     "readMore": "Read more",
     "readLess": "Minimize",
-    "noBio": "No biography available. Set up your Last.fm token in the settings.",
+    "noBio": "No biography available. Set your \"Last.fm\" key in the settings.",
     "lyrics": {
       "title": "Lyrics",
       "comingSoon": "Coming soon"
@@ -605,14 +605,14 @@
   },
   "playerBar": {
     "lyrics": "Lyrics",
-    "nowPlaying": "View currently playing",
+    "nowPlaying": "Show now playing",
     "queue": "Queue"
   },
   "lyrics": {
     "title": "Lyrics",
     "loading": "Searching for lyrics…",
-    "noTrack": "No active positions",
-    "notFound": "No lyrics found for this title. You can import an .lrc file.",
+    "noTrack": "No track playing",
+    "notFound": "No lyrics found for this track. You can import a .lrc file.",
     "importTitle": "Import an .lrc file",
     "actions": {
       "import": "Import an .lrc file",
@@ -644,7 +644,7 @@
     "title": "Settings",
     "sections": {
       "general": "General",
-      "playback": "Reading",
+      "playback": "Playback",
       "integrations": "Integrations",
       "storage": "Storage & Data"
     },
@@ -677,7 +677,7 @@
     },
     "replayGain": {
       "title": "Apply ReplayGain",
-      "subtitle": "Use the analyzed gain of each track to balance the perceived volume"
+      "subtitle": "Use each track's analyzed gain to balance perceived volume"
     },
     "mono": {
       "title": "Mono audio",
@@ -689,7 +689,7 @@
     },
     "autoStart": {
       "title": "Launch at startup",
-      "subtitle": "Start WaveFlow automatically when the system boots"
+      "subtitle": "Automatically launch WaveFlow when the system starts up"
     },
     "minimizeToTray": {
       "title": "Minimize to the system tray",
@@ -700,8 +700,8 @@
       "subtitle": "Automatically rescan libraries on startup"
     },
     "singleClickPlay": {
-      "title": "One-click playback",
-      "subtitle": "Clicking on a track starts playback (otherwise, double-click)"
+      "title": "Single-click playback",
+      "subtitle": "Click a track to start playback (otherwise double-click)"
     },
     "rescan": {
       "title": "Rescan the library",
@@ -710,16 +710,16 @@
     },
     "analyze": {
       "title": "Analyze the library",
-      "subtitle": "Calculate BPM, volume, and peak for unanalyzed tracks",
+      "subtitle": "Calculate BPM, volume and peak for non-analyzed tracks",
       "action": "Analyze",
       "autoTitle": "Automatic analysis",
-      "autoSubtitle": "Run the analysis in the background after each scan that adds new titles",
+      "autoSubtitle": "Run analysis in the background after each scan that adds new tracks",
       "failed_one": "{{count}} failure",
       "failed_other": "{{count}} failures"
     },
     "artistImages": {
       "title": "Artist images",
-      "subtitle": "Retrieve artist covers from Deezer",
+      "subtitle": "Download the album covers from Deezer",
       "action": "Recover"
     },
     "dataFolder": {
