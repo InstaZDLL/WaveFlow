@@ -92,7 +92,11 @@ pub struct MediaControlsHandle {
     artwork: Option<ArtworkServer>,
 }
 
+// The struct's existence (Some vs None) is what gates the cover URL
+// path in `update_metadata` — the fields are kept for future debug
+// logging and to keep the type recognisable at a glance.
 #[derive(Clone)]
+#[allow(dead_code)]
 struct ArtworkServer {
     port: u16,
     registry: ArtworkRegistry,

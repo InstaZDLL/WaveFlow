@@ -28,6 +28,7 @@ const TIMEOUT_SECS: u64 = 5;
 // serde will silently ignore unknown keys.
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)] // `message` is captured for diagnostics but unused
 struct LastfmArtistGetInfoResponse {
     artist: Option<LastfmArtistPayload>,
     #[serde(default)]

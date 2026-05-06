@@ -3,6 +3,10 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![allow(clippy::missing_safety_doc)]
 #![allow(renamed_and_removed_lints)]
+// Security backport of glib 0.18.5 for RUSTSEC-2024-0429; cosmetic
+// lints flagged by newer rustc on the upstream code are silenced
+// here since we don't restyle the vendored copy.
+#![allow(unused_parens, mismatched_lifetime_syntaxes)]
 #![doc = include_str!("../README.md")]
 
 pub use bitflags;

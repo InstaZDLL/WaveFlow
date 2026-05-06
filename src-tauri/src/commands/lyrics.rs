@@ -13,7 +13,7 @@ use std::path::Path;
 
 use chrono::Utc;
 use lofty::file::TaggedFileExt;
-use lofty::tag::{Accessor, ItemKey};
+use lofty::tag::ItemKey;
 use serde::Serialize;
 
 use crate::{

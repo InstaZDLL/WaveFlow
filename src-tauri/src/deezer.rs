@@ -26,7 +26,12 @@ pub struct DeezerSearchResponse<T> {
     pub data: Vec<T>,
 }
 
+// Smaller/medium variants and counts come from the API but we only
+// consume the larger images plus a few aggregates downstream — keep
+// them deserialized so the struct stays a faithful mirror of the
+// response payload.
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct DeezerArtistHit {
     pub id: i64,
     pub name: String,
@@ -39,6 +44,7 @@ pub struct DeezerArtistHit {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct DeezerAlbumHit {
     pub id: i64,
     pub title: String,
