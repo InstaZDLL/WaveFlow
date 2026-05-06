@@ -29,6 +29,7 @@ import { ProfileSelectorModal } from "../common/ProfileSelectorModal";
 import { LastfmReauthBanner } from "../common/LastfmReauthBanner";
 import { UpdateBanner } from "../common/UpdateBanner";
 import { OnboardingModal } from "../common/OnboardingModal";
+import { PageScrollContext } from "../../contexts/PageScrollContext";
 
 export function AppLayout() {
   const { isDark } = useTheme();
@@ -68,6 +69,9 @@ export function AppLayout() {
   // Tracks the active profile id we've already evaluated against, so
   // a profile switch re-runs the gate exactly once.
   const evaluatedProfileId = useRef<number | null>(null);
+  // Ref handed down to virtualized tables so they share the page-level
+  // scroller instead of nesting their own.
+  const pageScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isProfileLoading || isLibraryLoading) return;
@@ -250,8 +254,13 @@ export function AppLayout() {
             />
 
             {/* Main Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-8 relative">
-              {renderView()}
+            <div
+              ref={pageScrollRef}
+              className="flex-1 overflow-y-auto p-8 relative"
+            >
+              <PageScrollContext.Provider value={pageScrollRef}>
+                {renderView()}
+              </PageScrollContext.Provider>
             </div>
 
             {/* Right Panels (Overlays) — mutually exclusive via PlayerContext */}

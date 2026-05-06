@@ -1,4 +1,12 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -32,6 +40,7 @@ import {
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { usePageScroll } from "../../hooks/usePageScroll";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { Tooltip } from "../common/Tooltip";
@@ -625,7 +634,28 @@ function PlaylistTrackTable({
 
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const pageScrollRef = usePageScroll();
+  const parentRef = useRef<HTMLDivElement>(null);
+  // Re-anchor the virtualizer whenever the row container moves within the
+  // page scroller (e.g. header expands/collapses). `scrollMargin` tells
+  // tanstack-virtual how far down the scroller our rows actually start.
+  const [scrollMargin, setScrollMargin] = useState(0);
+  useLayoutEffect(() => {
+    const parent = parentRef.current;
+    const scroller = pageScrollRef?.current;
+    if (!parent || !scroller) return;
+    const recompute = () => {
+      const parentRect = parent.getBoundingClientRect();
+      const scrollerRect = scroller.getBoundingClientRect();
+      setScrollMargin(parentRect.top - scrollerRect.top + scroller.scrollTop);
+    };
+    recompute();
+    const ro = new ResizeObserver(recompute);
+    ro.observe(parent);
+    ro.observe(scroller);
+    return () => ro.disconnect();
+  }, [pageScrollRef, tracks.length]);
+
   // Virtualize the row list. SortableContext keeps the *full* id array
   // so dnd-kit knows the abstract ordering, even for items that aren't
   // currently mounted — only the on-screen window pays the useSortable
@@ -633,9 +663,10 @@ function PlaylistTrackTable({
   // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
     count: tracks.length,
-    getScrollElement: () => scrollRef.current,
+    getScrollElement: () => pageScrollRef?.current ?? null,
     estimateSize: () => PLAYLIST_ROW_HEIGHT,
     overscan: 8,
+    scrollMargin,
   });
 
   const handleDragStart = useCallback((e: DragStartEvent) => {
@@ -692,44 +723,39 @@ function PlaylistTrackTable({
       >
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
           <div
-            ref={scrollRef}
-            className={`max-h-[65vh] overflow-y-auto ${
-              isLoading ? "opacity-50" : ""
-            }`}
+            ref={parentRef}
+            className={isLoading ? "opacity-50" : ""}
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              position: "relative",
+              width: "100%",
+            }}
           >
-            <div
-              style={{
-                height: `${rowVirtualizer.getTotalSize()}px`,
-                position: "relative",
-                width: "100%",
-              }}
-            >
-              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                const track = tracks[virtualRow.index];
-                if (!track) return null;
-                return (
-                  <SortablePlaylistRow
-                    key={track.id}
-                    track={track}
-                    index={virtualRow.index}
-                    rowHeight={PLAYLIST_ROW_HEIGHT}
-                    top={virtualRow.start}
-                    gridCols={gridCols}
-                    isCurrent={track.id === currentTrackId}
-                    isLiked={likedIds.has(track.id)}
-                    isRowSelected={isSelected(track.id)}
-                    likeLabel={likeLabel}
-                    unlikeLabel={unlikeLabel}
-                    unknownLabel={unknownLabel}
-                    onPlayTrack={onPlayTrack}
-                    onContextMenuRow={onContextMenuRow}
-                    onToggleLike={onToggleLike}
-                    onNavigateToArtist={onNavigateToArtist}
-                    onRowSelect={onRowSelect}
-                  />
-                );
-              })}
-            </div>
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const track = tracks[virtualRow.index];
+              if (!track) return null;
+              return (
+                <SortablePlaylistRow
+                  key={track.id}
+                  track={track}
+                  index={virtualRow.index}
+                  rowHeight={PLAYLIST_ROW_HEIGHT}
+                  top={virtualRow.start - scrollMargin}
+                  gridCols={gridCols}
+                  isCurrent={track.id === currentTrackId}
+                  isLiked={likedIds.has(track.id)}
+                  isRowSelected={isSelected(track.id)}
+                  likeLabel={likeLabel}
+                  unlikeLabel={unlikeLabel}
+                  unknownLabel={unknownLabel}
+                  onPlayTrack={onPlayTrack}
+                  onContextMenuRow={onContextMenuRow}
+                  onToggleLike={onToggleLike}
+                  onNavigateToArtist={onNavigateToArtist}
+                  onRowSelect={onRowSelect}
+                />
+              );
+            })}
           </div>
         </SortableContext>
         {/* Portal the overlay to <body> so it stays positioned relative

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Music2,
@@ -35,6 +35,7 @@ import { StarRating } from "../common/StarRating";
 import { SelectionActionBar } from "../common/SelectionActionBar";
 import { AlphabetIndex } from "../common/AlphabetIndex";
 import { useSortMemory } from "../../hooks/useSortMemory";
+import { usePageScroll } from "../../hooks/usePageScroll";
 import { getProfileSetting } from "../../lib/tauri/profile";
 import { useLibrary } from "../../hooks/useLibrary";
 import { usePlayer } from "../../hooks/usePlayer";
@@ -884,16 +885,34 @@ function TrackTable({
   const [ratingOverrides, setRatingOverrides] = useState<Map<number, number | null>>(
     new Map(),
   );
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const pageScrollRef = usePageScroll();
+  const parentRef = useRef<HTMLDivElement>(null);
+  const [scrollMargin, setScrollMargin] = useState(0);
+  useLayoutEffect(() => {
+    const parent = parentRef.current;
+    const scroller = pageScrollRef?.current;
+    if (!parent || !scroller) return;
+    const recompute = () => {
+      const parentRect = parent.getBoundingClientRect();
+      const scrollerRect = scroller.getBoundingClientRect();
+      setScrollMargin(parentRect.top - scrollerRect.top + scroller.scrollTop);
+    };
+    recompute();
+    const ro = new ResizeObserver(recompute);
+    ro.observe(parent);
+    ro.observe(scroller);
+    return () => ro.disconnect();
+  }, [pageScrollRef, tracks.length]);
 
   // Virtual scroll — only the visible rows are in the DOM.
   const ROW_HEIGHT = view === "list" ? 56 : 44;
   // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: tracks.length,
-    getScrollElement: () => scrollRef.current,
+    getScrollElement: () => pageScrollRef?.current ?? null,
     estimateSize: () => ROW_HEIGHT,
     overscan: 15,
+    scrollMargin,
   });
 
   useEffect(() => {
@@ -944,42 +963,38 @@ function TrackTable({
 
       {/* Virtualized body */}
       <div
-        ref={scrollRef}
-        className={`max-h-[65vh] overflow-y-auto scrollbar-hide ${
-          isLoading ? "opacity-50" : ""
-        }`}
+        ref={parentRef}
+        className={isLoading ? "opacity-50" : ""}
+        style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}
       >
-        <div
-          style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}
-        >
-          {virtualizer.getVirtualItems().map((virtualRow) => {
-            const index = virtualRow.index;
-            const track = tracks[index];
-            const isCurrent = track.id === currentTrackId;
-            const isMenuOpen = openMenuTrackId === track.id;
-            const isRowSelected = isSelected(track.id);
-            return (
-              <div
-                key={track.id}
-                onClick={(e) => onRowSelect(track, e)}
-                onDoubleClick={() => onPlayTrack(index)}
-                onContextMenu={(e) => onContextMenuRow(e, track)}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: `${virtualRow.size}px`,
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-                className={`group grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 ${
-                  isRowSelected
-                    ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
-                    : isCurrent
-                    ? "bg-emerald-50 dark:bg-emerald-900/20"
-                    : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
-                }`}
-              >
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const index = virtualRow.index;
+          const track = tracks[index];
+          const isCurrent = track.id === currentTrackId;
+          const isMenuOpen = openMenuTrackId === track.id;
+          const isRowSelected = isSelected(track.id);
+          return (
+            <div
+              key={track.id}
+              onClick={(e) => onRowSelect(track, e)}
+              onDoubleClick={() => onPlayTrack(index)}
+              onContextMenu={(e) => onContextMenuRow(e, track)}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+              }}
+              className={`group grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 ${
+                isRowSelected
+                  ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
+                  : isCurrent
+                  ? "bg-emerald-50 dark:bg-emerald-900/20"
+                  : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
+              }`}
+            >
                 <span
                   className={`text-right text-sm tabular-nums ${
                     isCurrent
@@ -1109,10 +1124,9 @@ function TrackTable({
                     />
                   )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
