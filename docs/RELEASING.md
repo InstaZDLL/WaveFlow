@@ -95,6 +95,12 @@ Pushing the tag triggers `.github/workflows/release.yml`:
 - Builds Linux (`AppImage` + `.tar.gz` + `.sig`) on `ubuntu-latest`
 - Builds Windows (`*-setup.exe` + `.sig`) on `windows-latest`, signs
   the installer with the Authenticode PFX
+- Builds macOS (`*.dmg` + `*.app.tar.gz` + `.sig`) on `macos-latest`
+  as a universal binary covering both Intel and Apple Silicon. The
+  bundle is **not** Apple-Developer-signed (no cert configured), so
+  Gatekeeper will warn first-launch users — they have to right-click
+  → Open once. The minisign signature on the updater payload is
+  still produced normally, so auto-updates work.
 - Generates a per-platform `latest-<platform>.json`
 - Creates the GitHub release if missing (with auto-generated notes
   from the commit log) and uploads every artefact
@@ -140,6 +146,11 @@ signature corrupted on upload.
   workflow via `SIGNTOOL_PFX_BASE64` + `SIGNTOOL_PFX_PASSWORD`
   secrets. SmartScreen still warns on first install with a fresh
   cert until enough downloads accumulate reputation; an EV cert
-  shortcuts that. **macOS code signing** (Apple Developer cert)
-  is not configured — there's no macOS job in the release workflow
-  yet either.
+  shortcuts that. **macOS code signing** (Apple Developer cert) is
+  not configured — the macOS job ships an unsigned universal binary
+  that triggers Gatekeeper on first launch. Users right-click the
+  app and pick "Open" once to allow it. To remove that friction,
+  add Apple Developer ID + notarization in the macOS job (set
+  `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_ID`,
+  `APPLE_TEAM_ID`, and `APPLE_PASSWORD` secrets and pass them to
+  `tauri build`).

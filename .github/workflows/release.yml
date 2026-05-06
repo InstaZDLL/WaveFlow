@@ -48,9 +48,15 @@ jobs:
           - os: ubuntu-latest
             platform: linux
             tauri_bundles: appimage
+            tauri_target: ''
           - os: windows-latest
             platform: windows
             tauri_bundles: nsis
+            tauri_target: ''
+          - os: macos-latest
+            platform: macos
+            tauri_bundles: app,dmg
+            tauri_target: universal-apple-darwin
 
     runs-on: ${{ matrix.os }}
 
@@ -99,6 +105,7 @@ jobs:
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # stable
         with:
           toolchain: stable
+          targets: ${{ matrix.platform == 'macos' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Cache Cargo build
         uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
@@ -202,7 +209,13 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           BUNDLES: ${{ matrix.tauri_bundles }}
-        run: bun x tauri build --bundles "$BUNDLES"
+          TARGET: ${{ matrix.tauri_target }}
+        run: |
+          if [ -n "$TARGET" ]; then
+            bun x tauri build --target "$TARGET" --bundles "$BUNDLES"
+          else
+            bun x tauri build --bundles "$BUNDLES"
+          fi
 
       - name: Scrub Authenticode secrets (Windows)
         if: always() && matrix.platform == 'windows'
@@ -344,6 +357,86 @@ jobs:
               encoding="utf-8",
           )
           print(json.dumps({"installer": renamed, "sig": sig_renamed}, indent=2))
+          PY
+          ls -la dist-release/
+
+      - name: Prepare release assets (macOS)
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          mkdir -p dist-release dist-manifest
+          python - <<'PY'
+          import json
+          import os
+          import pathlib
+          import shutil
+          import sys
+          from datetime import datetime, timezone
+
+          # When --target universal-apple-darwin is passed, bundles
+          # land under target/<triple>/release/bundle/ instead of the
+          # default target/release/bundle/.
+          target_dir = pathlib.Path("src-tauri/target/universal-apple-darwin/release/bundle")
+          if not target_dir.exists():
+              target_dir = pathlib.Path("src-tauri/target/release/bundle")
+          dist_release = pathlib.Path("dist-release")
+          dist_manifest = pathlib.Path("dist-manifest")
+          version = os.environ["VERSION"]
+          repo = os.environ.get("GITHUB_REPOSITORY", "")
+          tag_name = os.environ["TAG_NAME"]
+
+          # The DMG is what humans download for installation.
+          dmg_dir = target_dir / "dmg"
+          if not dmg_dir.exists():
+              print("::error::No DMG bundle directory found", file=sys.stderr)
+              sys.exit(1)
+          dmgs = sorted(dmg_dir.glob("*.dmg"))
+          if not dmgs:
+              print("::error::No .dmg produced under bundle/dmg/", file=sys.stderr)
+              sys.exit(1)
+          dmg = dmgs[0]
+          renamed_dmg = f"WaveFlow_{version}_macos-universal.dmg"
+          shutil.copy2(dmg, dist_release / renamed_dmg)
+
+          # The .app.tar.gz + .sig is what the updater consumes.
+          macos_dir = target_dir / "macos"
+          if not macos_dir.exists():
+              print("::error::No macos bundle directory found", file=sys.stderr)
+              sys.exit(1)
+          payloads = sorted(macos_dir.glob("*.app.tar.gz"))
+          sigs = sorted(macos_dir.glob("*.app.tar.gz.sig"))
+          if not payloads or not sigs:
+              print("::error::Missing updater payload/signature for macOS", file=sys.stderr)
+              sys.exit(1)
+          payload_renamed = f"WaveFlow_{version}_macos-universal.app.tar.gz"
+          sig_renamed = f"{payload_renamed}.sig"
+          shutil.copy2(payloads[0], dist_release / payload_renamed)
+          shutil.copy2(sigs[0], dist_release / sig_renamed)
+
+          signature = sigs[0].read_text(encoding="utf-8").strip()
+          download_url = f"https://github.com/{repo}/releases/download/{tag_name}/{payload_renamed}"
+          # Tauri 2's updater accepts a single darwin-universal entry
+          # for universal binaries.
+          manifest = {
+              "version": version,
+              "notes": "",
+              "pub_date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+              "platforms": {
+                  "darwin-x86_64": {
+                      "signature": signature,
+                      "url": download_url,
+                  },
+                  "darwin-aarch64": {
+                      "signature": signature,
+                      "url": download_url,
+                  },
+              },
+          }
+          (dist_manifest / "latest-macos.json").write_text(
+              json.dumps(manifest, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps({"dmg": renamed_dmg, "payload": payload_renamed, "sig": sig_renamed}, indent=2))
           PY
           ls -la dist-release/
 
