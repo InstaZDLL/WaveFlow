@@ -81,12 +81,15 @@ function queuePayloadToTrack(payload: QueueTrackPayload): Track {
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const { activeProfile } = useProfile();
 
-  // UI-only state. Queue, NowPlaying, and Lyrics share the same
-  // right-edge slot (w-80) so only one can be open at a time;
-  // toggling any closes the others.
-  const [isQueueOpen, setIsQueueOpen] = useState(false);
-  const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
-  const [isLyricsOpen, setIsLyricsOpen] = useState(false);
+  // Queue, NowPlaying, and Lyrics share the same right-edge slot (w-80),
+  // so we model "which is open" as a single value rather than three
+  // booleans — that guarantees mutual exclusion by construction.
+  const [activeRightPanel, setActiveRightPanel] = useState<
+    "queue" | "nowPlaying" | "lyrics" | null
+  >(null);
+  const isQueueOpen = activeRightPanel === "queue";
+  const isNowPlayingOpen = activeRightPanel === "nowPlaying";
+  const isLyricsOpen = activeRightPanel === "lyrics";
   const [isDeviceMenuOpen, setIsDeviceMenuOpen] = useState(false);
 
   // Cached output device list. Populated at boot + after every device
@@ -350,31 +353,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [repeatMode]);
 
   const toggleQueue = useCallback(() => {
-    setIsQueueOpen((p) => {
-      if (!p) {
-        setIsNowPlayingOpen(false);
-        setIsLyricsOpen(false);
-      }
-      return !p;
-    });
+    setActiveRightPanel((p) => (p === "queue" ? null : "queue"));
   }, []);
   const toggleNowPlaying = useCallback(() => {
-    setIsNowPlayingOpen((p) => {
-      if (!p) {
-        setIsQueueOpen(false);
-        setIsLyricsOpen(false);
-      }
-      return !p;
-    });
+    setActiveRightPanel((p) => (p === "nowPlaying" ? null : "nowPlaying"));
   }, []);
   const toggleLyrics = useCallback(() => {
-    setIsLyricsOpen((p) => {
-      if (!p) {
-        setIsQueueOpen(false);
-        setIsNowPlayingOpen(false);
-      }
-      return !p;
-    });
+    setActiveRightPanel((p) => (p === "lyrics" ? null : "lyrics"));
   }, []);
   const toggleDeviceMenu = useCallback(
     () => setIsDeviceMenuOpen((p) => !p),
