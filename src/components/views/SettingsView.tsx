@@ -20,6 +20,9 @@ import {
   EyeOff,
   MousePointerClick,
   Sparkles,
+  FileText,
+  Copy,
+  Check as CheckIcon,
 } from "lucide-react";
 import {
   getProfileSetting,
@@ -45,6 +48,7 @@ import {
   type LastfmStatus,
 } from "../../lib/tauri/integration";
 import { batchFetchMissingAlbumCovers } from "../../lib/tauri/deezer";
+import { openLogFolder, readRecentLogs } from "../../lib/tauri/diagnostics";
 import { listen } from "@tauri-apps/api/event";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
@@ -283,6 +287,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [minimizeToTray, setMinimizeToTray] = useState(true);
   const [scanOnStart, setScanOnStart] = useState(false);
   const [singleClickPlay, setSingleClickPlay] = useState(false);
+  // Status of the last "Copy logs" click — null when idle, "ok" or
+  // "fail" briefly during the toast period before clearing back to null.
+  const [copyLogsStatus, setCopyLogsStatus] = useState<"ok" | "fail" | null>(
+    null,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -309,6 +318,26 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       setSingleClickPlay(!next);
     });
   }, [singleClickPlay]);
+
+  const handleCopyLogs = useCallback(async () => {
+    try {
+      const text = await readRecentLogs();
+      await navigator.clipboard.writeText(text);
+      setCopyLogsStatus("ok");
+    } catch (err) {
+      console.error("[Settings] copy logs failed", err);
+      setCopyLogsStatus("fail");
+    }
+    // Clear the toast after a short window so the next click reads
+    // as a fresh action rather than a still-stale confirmation.
+    window.setTimeout(() => setCopyLogsStatus(null), 2000);
+  }, []);
+
+  const handleOpenLogFolder = useCallback(() => {
+    openLogFolder().catch((err) =>
+      console.error("[Settings] open log folder failed", err),
+    );
+  }, []);
 
   const handleRescan = async () => {
     if (isRescanning) return;
@@ -1324,6 +1353,68 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               <Trash2 size={14} aria-hidden="true" />
               <span>{t("settings.reset.action")}</span>
             </button>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="settings-diagnostics-heading">
+        <h2
+          id="settings-diagnostics-heading"
+          className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
+        >
+          {t("settings.sections.diagnostics")}
+        </h2>
+        <div className="space-y-1">
+          <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center space-x-4 min-w-0">
+                <FileText
+                  size={20}
+                  className="text-zinc-400 shrink-0"
+                  aria-hidden="true"
+                />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                    {t("settings.diagnostics.title")}
+                  </div>
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.diagnostics.subtitle")}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleOpenLogFolder}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                >
+                  <FolderOpen size={14} aria-hidden="true" />
+                  <span>{t("settings.diagnostics.openFolder")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCopyLogs}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                >
+                  {copyLogsStatus === "ok" ? (
+                    <CheckIcon
+                      size={14}
+                      aria-hidden="true"
+                      className="text-emerald-500"
+                    />
+                  ) : (
+                    <Copy size={14} aria-hidden="true" />
+                  )}
+                  <span>
+                    {copyLogsStatus === "ok"
+                      ? t("settings.diagnostics.copied")
+                      : copyLogsStatus === "fail"
+                        ? t("settings.diagnostics.copyFailed")
+                        : t("settings.diagnostics.copyLogs")}
+                  </span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>

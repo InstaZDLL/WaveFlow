@@ -646,7 +646,8 @@
       "general": "Genel",
       "playback": "Oynatma",
       "integrations": "Entegrasyonlar",
-      "storage": "Depolama ve Veri"
+      "storage": "Depolama ve Veri",
+      "diagnostics": "Teşhis"
     },
     "integrations": {
       "lastfm": {
@@ -736,6 +737,14 @@
       "title": "Uygulamayı sıfırla",
       "subtitle": "Tüm verileri sil ve başlangıç durumuna dön",
       "action": "Sıfırla"
+    },
+    "diagnostics": {
+      "title": "Uygulama günlüğü",
+      "subtitle": "Bir hatayı bildirmek için günlükler klasörünü açın veya son günlükleri kopyalayarak bir bilete yapıştırın.",
+      "openFolder": "Klasörü açın",
+      "copyLogs": "Günlükleri kopyala",
+      "copied": "Kopyalanan günlükler",
+      "copyFailed": "Günlükler kopyalanamıyor"
     }
   }
 }

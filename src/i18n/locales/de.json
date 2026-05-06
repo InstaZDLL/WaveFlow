@@ -646,7 +646,8 @@
       "general": "Allgemeines",
       "playback": "Wiedergabe",
       "integrations": "Integrationen",
-      "storage": "Speicher & Daten"
+      "storage": "Speicher & Daten",
+      "diagnostics": "Diagnostics"
     },
     "integrations": {
       "lastfm": {
@@ -736,6 +737,14 @@
       "title": "App zurücksetzen",
       "subtitle": "Alle Daten löschen und auf die Werkseinstellungen zurücksetzen",
       "action": "Zurücksetzen"
+    },
+    "diagnostics": {
+      "title": "Anwendungsprotokoll",
+      "subtitle": "Um einen Fehler zu melden, öffne den Log-Ordner oder kopiere die letzten Logs, um sie in ein Ticket einzufügen.",
+      "openFolder": "Ordner öffnen",
+      "copyLogs": "Logs kopieren",
+      "copied": "Kopierte Logs",
+      "copyFailed": "Logs können nicht kopiert werden"
     }
   }
 }

@@ -646,7 +646,8 @@
       "general": "Umum",
       "playback": "Pemutaran",
       "integrations": "Integrasi",
-      "storage": "Penyimpanan & Data"
+      "storage": "Penyimpanan & Data",
+      "diagnostics": "Diagnostik"
     },
     "integrations": {
       "lastfm": {
@@ -736,6 +737,14 @@
       "title": "Atur ulang aplikasi",
       "subtitle": "Hapus semua data dan kembalikan ke kondisi semula",
       "action": "Atur Ulang"
+    },
+    "diagnostics": {
+      "title": "Log aplikasi",
+      "subtitle": "Untuk melaporkan bug, buka folder log atau salin log terbaru untuk menempelkannya ke dalam tiket.",
+      "openFolder": "Buka folder",
+      "copyLogs": "Menyalin log",
+      "copied": "Log yang disalin",
+      "copyFailed": "Tidak dapat menyalin log"
     }
   }
 }

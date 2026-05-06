@@ -646,7 +646,8 @@
       "general": "일반",
       "playback": "재생",
       "integrations": "통합",
-      "storage": "저장소 및 데이터"
+      "storage": "저장소 및 데이터",
+      "diagnostics": "진단"
     },
     "integrations": {
       "lastfm": {
@@ -736,6 +737,14 @@
       "title": "앱 초기화",
       "subtitle": "모든 데이터를 삭제하고 초기 상태로 복원",
       "action": "초기화"
+    },
+    "diagnostics": {
+      "title": "애플리케이션 로그",
+      "subtitle": "버그를 신고하려면 로그 폴더를 열거나 최근 로그를 복사하여 티켓에 붙여넣으세요.",
+      "openFolder": "폴더 열기",
+      "copyLogs": "로그 복사",
+      "copied": "복사된 로그",
+      "copyFailed": "로그를 복사할 수 없음"
     }
   }
 }

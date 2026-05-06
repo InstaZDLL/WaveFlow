@@ -11,6 +11,7 @@ mod db;
 mod deezer;
 mod error;
 mod lastfm;
+mod logging;
 mod lrclib;
 mod media_controls;
 mod metadata_artwork;
@@ -45,16 +46,12 @@ const TRAY_ID: &str = "waveflow";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Initialize structured logging. `RUST_LOG` overrides the default filter.
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                // Keep the default filter terse — lofty is noisy on malformed
-                // MP4 atoms and sqlx logs every query at info level.
-                tracing_subscriber::EnvFilter::new("info,sqlx=warn,lofty=error")
-            }),
-        )
-        .init();
+    // Initialize structured logging. `RUST_LOG` overrides the default
+    // filter. The returned guard owns the non-blocking file writer's
+    // background thread and must be held until the process exits — a
+    // dropped guard flushes and closes the file early, losing the tail
+    // of the log right when a crash report is most useful.
+    let _log_guard = logging::init_tracing();
 
     // `mut` is only consumed when the updater plugin is wired in (release
     // builds); the lint would fire in debug otherwise.
@@ -210,6 +207,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::app_info::get_app_info,
             commands::app_info::open_data_folder,
+            commands::diagnostics::get_log_dir,
+            commands::diagnostics::open_log_folder,
+            commands::diagnostics::read_recent_logs,
             commands::profile::list_profiles,
             commands::profile::get_active_profile,
             commands::profile::create_profile,

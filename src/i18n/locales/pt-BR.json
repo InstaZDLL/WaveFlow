@@ -646,7 +646,8 @@
       "general": "Geral",
       "playback": "Reprodução",
       "integrations": "Integrações",
-      "storage": "Armazenamento e Dados"
+      "storage": "Armazenamento e Dados",
+      "diagnostics": "Diagnóstico"
     },
     "integrations": {
       "lastfm": {
@@ -736,6 +737,14 @@
       "title": "Reiniciar o aplicativo",
       "subtitle": "Apagar todos os dados e restaurar as configurações de fábrica",
       "action": "Reiniciar"
+    },
+    "diagnostics": {
+      "title": "Registro do aplicativo",
+      "subtitle": "Para relatar um erro, abra a pasta de registros ou copie os registros recentes para colá-los em um tíquete.",
+      "openFolder": "Abra a pasta",
+      "copyLogs": "Copiar registros",
+      "copied": "Registros copiados",
+      "copyFailed": "Não é possível copiar os registros"
     }
   }
 }

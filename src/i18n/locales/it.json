@@ -646,7 +646,8 @@
       "general": "Informazioni generali",
       "playback": "Riproduzione",
       "integrations": "Integrazioni",
-      "storage": "Archiviazione e dati"
+      "storage": "Archiviazione e dati",
+      "diagnostics": "Diagnostica"
     },
     "integrations": {
       "lastfm": {
@@ -736,6 +737,14 @@
       "title": "Ripristina l'applicazione",
       "subtitle": "Elimina tutti i dati e ripristina le impostazioni di fabbrica",
       "action": "Reimposta"
+    },
+    "diagnostics": {
+      "title": "Registro dell'applicazione",
+      "subtitle": "Per segnalare un bug, aprire la cartella dei registri o copiare i registri recenti per incollarli in un ticket.",
+      "openFolder": "Aprire la cartella",
+      "copyLogs": "Copiare i registri",
+      "copied": "Registri copiati",
+      "copyFailed": "Impossibile copiare i registri"
     }
   }
 }

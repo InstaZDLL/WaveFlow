@@ -646,7 +646,8 @@
       "general": "Général",
       "playback": "Lecture",
       "integrations": "Intégrations",
-      "storage": "Stockage & Données"
+      "storage": "Stockage & Données",
+      "diagnostics": "Diagnostics"
     },
     "integrations": {
       "lastfm": {
@@ -736,6 +737,14 @@
       "title": "Réinitialiser l'application",
       "subtitle": "Supprimer toutes les données et revenir à l'état initial",
       "action": "Réinitialiser"
+    },
+    "diagnostics": {
+      "title": "Journal de l'application",
+      "subtitle": "Pour signaler un bug, ouvre le dossier des journaux ou copie les logs récents pour les coller dans un ticket.",
+      "openFolder": "Ouvrir le dossier",
+      "copyLogs": "Copier les logs",
+      "copied": "Logs copiés",
+      "copyFailed": "Impossible de copier les logs"
     }
   }
 }

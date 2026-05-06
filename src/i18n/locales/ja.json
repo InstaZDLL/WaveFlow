@@ -646,7 +646,8 @@
       "general": "概要",
       "playback": "再生",
       "integrations": "連携",
-      "storage": "ストレージとデータ"
+      "storage": "ストレージとデータ",
+      "diagnostics": "診断"
     },
     "integrations": {
       "lastfm": {
@@ -736,6 +737,14 @@
       "title": "アプリをリセットする",
       "subtitle": "すべてのデータを削除し、初期状態に戻す",
       "action": "リセット"
+    },
+    "diagnostics": {
+      "title": "アプリケーションログ",
+      "subtitle": "バグを報告するには、ログフォルダを開くか、最近のログをコピーしてチケットに貼り付けます。",
+      "openFolder": "フォルダ",
+      "copyLogs": "ログのコピー",
+      "copied": "コピーされたログ",
+      "copyFailed": "ログをコピーできない"
     }
   }
 }

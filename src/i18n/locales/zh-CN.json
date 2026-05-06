@@ -646,7 +646,8 @@
       "general": "概述",
       "playback": "播放",
       "integrations": "集成",
-      "storage": "存储与数据"
+      "storage": "存储与数据",
+      "diagnostics": "诊断"
     },
     "integrations": {
       "lastfm": {
@@ -736,6 +737,14 @@
       "title": "重置应用程序",
       "subtitle": "删除所有数据并恢复出厂设置",
       "action": "重置"
+    },
+    "diagnostics": {
+      "title": "应用程序日志",
+      "subtitle": "要报告错误，请打开日志文件夹或复制最近的日志粘贴到票单中。",
+      "openFolder": "打开文件夹",
+      "copyLogs": "复制日志",
+      "copied": "复制日志",
+      "copyFailed": "无法复制日志"
     }
   }
 }

@@ -646,7 +646,8 @@
       "general": "General",
       "playback": "Playback",
       "integrations": "Integrations",
-      "storage": "Storage & Data"
+      "storage": "Storage & Data",
+      "diagnostics": "Diagnostics"
     },
     "integrations": {
       "lastfm": {
@@ -736,6 +737,14 @@
       "title": "Reset the app",
       "subtitle": "Delete all data and restore to factory settings",
       "action": "Reset"
+    },
+    "diagnostics": {
+      "title": "Application log",
+      "subtitle": "To report a bug, open the logs folder or copy recent logs and paste them into a ticket.",
+      "openFolder": "Open folder",
+      "copyLogs": "Copy logs",
+      "copied": "Copied logs",
+      "copyFailed": "Unable to copy logs"
     }
   }
 }

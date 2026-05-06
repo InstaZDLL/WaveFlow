@@ -646,7 +646,8 @@
       "general": "Geral",
       "playback": "Reprodução",
       "integrations": "Integrações",
-      "storage": "Armazenamento e dados"
+      "storage": "Armazenamento e dados",
+      "diagnostics": "Diagnóstico"
     },
     "integrations": {
       "lastfm": {
@@ -736,6 +737,14 @@
       "title": "Reiniciar a aplicação",
       "subtitle": "Apagar todos os dados e restaurar as configurações de fábrica",
       "action": "Reiniciar"
+    },
+    "diagnostics": {
+      "title": "Registo da aplicação",
+      "subtitle": "Para comunicar um erro, abra a pasta de registos ou copie os registos recentes para os colar num bilhete.",
+      "openFolder": "Abra a pasta",
+      "copyLogs": "Copiar registos",
+      "copied": "Registos copiados",
+      "copyFailed": "Não é possível copiar os registos"
     }
   }
 }

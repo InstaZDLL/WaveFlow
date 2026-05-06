@@ -646,7 +646,8 @@
       "general": "Algemeen",
       "playback": "Afspelen",
       "integrations": "Integraties",
-      "storage": "Opslag & gegevens"
+      "storage": "Opslag & gegevens",
+      "diagnostics": "Diagnostieken"
     },
     "integrations": {
       "lastfm": {
@@ -736,6 +737,14 @@
       "title": "De app opnieuw opstarten",
       "subtitle": "Alle gegevens verwijderen en terugkeren naar de oorspronkelijke staat",
       "action": "Resetten"
+    },
+    "diagnostics": {
+      "title": "Toepassingslogboek",
+      "subtitle": "Om een bug te melden, open je de logboekmap of kopieer je recente logboeken om ze in een ticket te plakken.",
+      "openFolder": "Open de map",
+      "copyLogs": "Logs kopiëren",
+      "copied": "Gekopieerde logbestanden",
+      "copyFailed": "Kan logs niet kopiëren"
     }
   }
 }

@@ -50,6 +50,10 @@ sqlx = { version = "0.8", features = [
 thiserror = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# Persistent rolling log file so AppImage / packaged users (no terminal
+# attached) can still hand a log to the maintainer when reporting bugs.
+tracing-appender = "0.2"
+dirs = "6"
 
 # Time handling
 chrono = { version = "0.4", features = ["serde"] }

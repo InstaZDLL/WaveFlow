@@ -646,7 +646,8 @@
       "general": "概述",
       "playback": "播放",
       "integrations": "整合",
-      "storage": "儲存與資料"
+      "storage": "儲存與資料",
+      "diagnostics": "診斷"
     },
     "integrations": {
       "lastfm": {
@@ -736,6 +737,14 @@
       "title": "重置應用程式",
       "subtitle": "刪除所有資料並恢復至初始狀態",
       "action": "重設"
+    },
+    "diagnostics": {
+      "title": "應用程式日誌",
+      "subtitle": "若要報告錯誤，請開啟日誌資料夾，或複製最近的日誌貼到票單。",
+      "openFolder": "開啟資料夾",
+      "copyLogs": "複製日誌",
+      "copied": "複製日誌",
+      "copyFailed": "無法複製日誌"
     }
   }
 }
