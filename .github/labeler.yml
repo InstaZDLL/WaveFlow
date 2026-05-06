@@ -1,0 +1,42 @@
+# Path-based labels for actions/labeler
+
+"scope: frontend":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/**"
+          - "index.html"
+          - "vite.config.ts"
+          - "tsconfig*.json"
+          - "eslint.config.js"
+
+"scope: backend":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src-tauri/**"
+
+"scope: i18n":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/i18n/**"
+
+"scope: deps":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "package.json"
+          - "bun.lock"
+          - "src-tauri/Cargo.toml"
+          - "src-tauri/Cargo.lock"
+
+"scope: ci":
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - ".github/dependabot.yml"
+          - ".github/labeler.yml"
+
+"scope: docs":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "docs/**"
+          - "assets/**"

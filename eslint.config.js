@@ -14,6 +14,7 @@ export default tseslint.config(
       "waveflow-landing/**",
       "**/*.config.ts",
       "**/*.config.js",
+      "**/.commitlintrc.cjs",
     ],
   },
   js.configs.recommended,
