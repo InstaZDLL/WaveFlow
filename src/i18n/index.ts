@@ -25,24 +25,34 @@ export interface SupportedLanguage {
   nativeLabel: string;
 }
 
+// Ordered Latin-script first (Western then Eastern), then Cyrillic,
+// then CJK, then Devanagari, then RTL. Mirrors the convention most
+// music apps (Apple Music, Spotify) use so non-Latin scripts cluster
+// at the bottom rather than being sprinkled through the list.
 export const SUPPORTED_LANGUAGES: readonly SupportedLanguage[] = [
-  { code: "fr", nativeLabel: "Français" },
+  // Latin — Western European
   { code: "en", nativeLabel: "English" },
-  { code: "es", nativeLabel: "Español" },
+  { code: "fr", nativeLabel: "Français" },
   { code: "de", nativeLabel: "Deutsch" },
+  { code: "es", nativeLabel: "Español" },
   { code: "it", nativeLabel: "Italiano" },
-  { code: "zh-TW", nativeLabel: "繁體中文" },
-  { code: "zh-CN", nativeLabel: "简体中文" },
+  { code: "nl", nativeLabel: "Nederlands" },
   { code: "pt", nativeLabel: "Português" },
   { code: "pt-BR", nativeLabel: "Português (Brasil)" },
+  // Latin — other
+  { code: "tr", nativeLabel: "Türkçe" },
+  { code: "id", nativeLabel: "Bahasa Indonesia" },
+  // Cyrillic
+  { code: "ru", nativeLabel: "Русский" },
+  // CJK
   { code: "ja", nativeLabel: "日本語" },
   { code: "ko", nativeLabel: "한국어" },
-  { code: "nl", nativeLabel: "Nederlands" },
-  { code: "ar", nativeLabel: "العربية" },
+  { code: "zh-CN", nativeLabel: "简体中文" },
+  { code: "zh-TW", nativeLabel: "繁體中文" },
+  // Devanagari
   { code: "hi", nativeLabel: "हिन्दी" },
-  { code: "ru", nativeLabel: "Русский" },
-  { code: "id", nativeLabel: "Bahasa Indonesia" },
-  { code: "tr", nativeLabel: "Türkçe" },
+  // RTL — last
+  { code: "ar", nativeLabel: "العربية" },
 ] as const;
 
 const LOCAL_STORAGE_KEY = "waveflow-language";
