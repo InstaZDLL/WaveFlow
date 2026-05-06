@@ -21,6 +21,16 @@
 
 WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI. It scans your local audio folders, organizes tracks by album/artist/genre, and plays them with a real-time audio engine — no streaming, no cloud, your music stays on your machine.
 
+## Download
+
+Pre-built bundles for every tagged release are on the [GitHub Releases page](https://github.com/InstaZDLL/WaveFlow/releases/latest):
+
+- **Linux** — `WaveFlow_<ver>_linux-x86_64.AppImage` (chmod +x then run)
+- **Windows** — `WaveFlow_<ver>_windows-x86_64-setup.exe` (Authenticode-signed)
+- **macOS** — `WaveFlow_<ver>_macos-universal.dmg` (Intel + Apple Silicon; not yet Apple-Developer-signed, so right-click → Open on first launch to bypass Gatekeeper)
+
+Once installed, the in-app updater fetches future versions automatically.
+
 ## Features
 
 ### Playback engine
