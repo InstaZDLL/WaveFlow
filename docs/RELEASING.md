@@ -76,6 +76,10 @@ Actions):
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | passphrase for the above key |
 | `SIGNTOOL_PFX_BASE64` | `base64 -w0 < cert.pfx` for Windows Authenticode |
 | `SIGNTOOL_PFX_PASSWORD` | PFX export passphrase |
+| `AUR_SSH_PRIVATE_KEY` | private half of the SSH key registered on the maintainer's AUR account, used by `.github/workflows/aur.yml` to push PKGBUILD updates |
+
+The AUR package itself (`waveflow-bin`) needs a one-off manual setup
+on the maintainer's box — see [`packaging/aur/README.md`](../packaging/aur/README.md).
 
 ### 1. Bump the version
 
@@ -110,6 +114,11 @@ Pushing the tag triggers `.github/workflows/release.yml`:
   from the commit log) and uploads every artefact
 - A follow-up job merges the per-platform manifests into a single
   `latest.json` and uploads that too
+- A separate workflow (`aur.yml`) reacts to the `release.published`
+  event, bumps `packaging/aur/PKGBUILD`, refreshes `sha256sums` /
+  `.SRCINFO`, and pushes the result to
+  `ssh://aur@aur.archlinux.org/waveflow-bin.git` so Arch users get
+  the new version through `yay`/`paru` automatically
 
 The Tauri updater plugin reads
 `https://github.com/<owner>/<repo>/releases/latest/download/latest.json`

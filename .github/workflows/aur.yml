@@ -1,0 +1,78 @@
+name: AUR
+
+# Runs after the Release workflow has finished publishing artefacts to
+# GitHub Releases. Bumps packaging/aur/PKGBUILD's pkgver, refreshes
+# sha256sums + .SRCINFO, and pushes the result to the
+# ssh://aur@aur.archlinux.org/waveflow-bin.git repo.
+#
+# Required repository secret:
+#   AUR_SSH_PRIVATE_KEY — private half of the SSH key registered on
+#   the maintainer's AUR account.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag to publish to AUR, e.g. v0.1.0'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aur-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Resolve tag and version
+        shell: bash
+        env:
+          MANUAL_TAG: ${{ github.event.inputs.tag_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          TAG="${MANUAL_TAG:-$RELEASE_TAG}"
+          if [ -z "$TAG" ]; then
+            echo "::error::No tag resolved (event=${GITHUB_EVENT_NAME:-?})"
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          echo "TAG_NAME=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Publishing $TAG ($VERSION) to AUR"
+
+      - name: Bump PKGBUILD pkgver
+        shell: bash
+        run: |
+          # The PKGBUILD ships with an inert pkgver (the version of the
+          # last release). Rewrite it in-place to match the tag we're
+          # publishing, and reset pkgrel to 1 since this is a new
+          # upstream version.
+          sed -i \
+            -e "s/^pkgver=.*/pkgver=${VERSION}/" \
+            -e "s/^pkgrel=.*/pkgrel=1/" \
+            packaging/aur/PKGBUILD
+          echo "--- packaging/aur/PKGBUILD ---"
+          head -10 packaging/aur/PKGBUILD
+
+      - name: Publish to AUR
+        uses: KSXGitHub/github-actions-deploy-aur@2ac5a4c1d7035885d46b10e3193393be8460b6f1 # v4.1.1
+        with:
+          pkgname: waveflow-bin
+          pkgbuild: packaging/aur/PKGBUILD
+          commit_username: ${{ github.actor }}
+          commit_email: ${{ github.actor }}@users.noreply.github.com
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: 'Update to ${{ env.VERSION }}'
+          ssh_keyscan_types: rsa,ecdsa,ed25519
+          updpkgsums: true
+          test: true
