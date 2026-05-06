@@ -743,7 +743,7 @@
       "subtitle": "若要報告錯誤，請開啟日誌資料夾，或複製最近的日誌貼到票單。",
       "openFolder": "開啟資料夾",
       "copyLogs": "複製日誌",
-      "copied": "複製日誌",
+      "copied": "已複製",
       "copyFailed": "無法複製日誌"
     }
   }

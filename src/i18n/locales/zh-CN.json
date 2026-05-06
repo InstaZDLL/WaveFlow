@@ -743,7 +743,7 @@
       "subtitle": "要报告错误，请打开日志文件夹或复制最近的日志粘贴到票单中。",
       "openFolder": "打开文件夹",
       "copyLogs": "复制日志",
-      "copied": "复制日志",
+      "copied": "已复制",
       "copyFailed": "无法复制日志"
     }
   }
