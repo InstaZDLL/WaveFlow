@@ -47,11 +47,11 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux
-            tauri_bundles: appimage
+            tauri_bundles: appimage,deb,rpm
             tauri_target: ''
           - os: windows-latest
             platform: windows
-            tauri_bundles: nsis
+            tauri_bundles: nsis,msi
             tauri_target: ''
           - os: macos-latest
             platform: macos
@@ -255,6 +255,9 @@ jobs:
           repo = os.environ.get("GITHUB_REPOSITORY", "")
           tag_name = os.environ["TAG_NAME"]
 
+          # AppImage is the updater's payload format on Linux. The
+          # .deb and .rpm are end-user installers for native package
+          # managers (apt/dnf) — they don't carry an updater payload.
           appimage_dir = root / "appimage"
           if not appimage_dir.exists():
               print("::error::No AppImage bundle directory found", file=sys.stderr)
@@ -278,6 +281,18 @@ jobs:
           shutil.copy2(updater_payload, dist_release / payload_renamed)
           shutil.copy2(updater_sig, dist_release / sig_renamed)
 
+          for folder, pattern, suffix in [
+              ("deb", "*.deb", "deb"),
+              ("rpm", "*.rpm", "rpm"),
+          ]:
+              folder_path = root / folder
+              matches = sorted(folder_path.glob(pattern)) if folder_path.exists() else []
+              if not matches:
+                  print(f"::error::No {pattern} produced under bundle/{folder}/", file=sys.stderr)
+                  sys.exit(1)
+              dest = dist_release / f"WaveFlow_{version}_linux-x86_64.{suffix}"
+              shutil.copy2(matches[0], dest)
+
           signature = updater_sig.read_text(encoding="utf-8").strip()
           download_url = f"https://github.com/{repo}/releases/download/{tag_name}/{payload_renamed}"
           manifest = {
@@ -295,7 +310,13 @@ jobs:
               json.dumps(manifest, indent=2) + "\n",
               encoding="utf-8",
           )
-          print(json.dumps({"appimage": renamed, "payload": payload_renamed, "sig": sig_renamed}, indent=2))
+          print(json.dumps({
+              "appimage": renamed,
+              "deb": f"WaveFlow_{version}_linux-x86_64.deb",
+              "rpm": f"WaveFlow_{version}_linux-x86_64.rpm",
+              "updater_payload": payload_renamed,
+              "updater_sig": sig_renamed,
+          }, indent=2))
           PY
           ls -la dist-release/
 
@@ -319,6 +340,11 @@ jobs:
           repo = os.environ.get("GITHUB_REPOSITORY", "")
           tag_name = os.environ["TAG_NAME"]
 
+          # NSIS is the updater's payload format (per-user install
+          # under %LOCALAPPDATA%). The MSI is the system-wide
+          # installer (Program Files) for IT/corporate deployment —
+          # it's signed by the same Authenticode pass but doesn't
+          # carry an updater signature.
           nsis_dir = root / "nsis"
           if not nsis_dir.exists():
               print("::error::No NSIS bundle directory found", file=sys.stderr)
@@ -339,6 +365,14 @@ jobs:
           sig_renamed = f"{renamed}.sig"
           shutil.copy2(updater_sig, dist_release / sig_renamed)
 
+          msi_dir = root / "msi"
+          msi_files = sorted(msi_dir.glob("*.msi")) if msi_dir.exists() else []
+          if not msi_files:
+              print("::error::No MSI produced under bundle/msi/", file=sys.stderr)
+              sys.exit(1)
+          msi_renamed = f"WaveFlow_{version}_windows-x86_64.msi"
+          shutil.copy2(msi_files[0], dist_release / msi_renamed)
+
           signature = updater_sig.read_text(encoding="utf-8").strip()
           download_url = f"https://github.com/{repo}/releases/download/{tag_name}/{renamed}"
           manifest = {
@@ -356,7 +390,11 @@ jobs:
               json.dumps(manifest, indent=2) + "\n",
               encoding="utf-8",
           )
-          print(json.dumps({"installer": renamed, "sig": sig_renamed}, indent=2))
+          print(json.dumps({
+              "nsis_setup": renamed,
+              "msi": f"WaveFlow_{version}_windows-x86_64.msi",
+              "updater_sig": sig_renamed,
+          }, indent=2))
           PY
           ls -la dist-release/
 

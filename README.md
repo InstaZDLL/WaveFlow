@@ -23,16 +23,34 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
 
 ## Download
 
-Pre-built bundles for every tagged release are on the [GitHub Releases page](https://github.com/InstaZDLL/WaveFlow/releases/latest):
+Pre-built bundles for every tagged release are on the [GitHub Releases page](https://github.com/InstaZDLL/WaveFlow/releases/latest). Pick the one that matches your environment:
 
-- **Linux** — `WaveFlow_<ver>_linux-x86_64.AppImage` (`chmod +x` then run)
-- **Windows** — `WaveFlow_<ver>_windows-x86_64-setup.exe` (Authenticode-signed). SmartScreen may still warn the first few users with a fresh certificate — click **More info → Run anyway** until reputation accumulates.
-- **macOS** — `WaveFlow_<ver>_macos-universal.dmg` (Intel + Apple Silicon). The build is **not Apple-Developer-signed yet**, so Gatekeeper will block the first launch:
-  - macOS 14 (Sonoma) and earlier: **right-click the app → Open**, confirm the dialog.
-  - macOS 15 (Sequoia) and later: launch normally, then go to **System Settings → Privacy & Security** and click **Open Anyway** next to the blocked app.
-  - Terminal escape hatch (any version): `xattr -cr /Applications/WaveFlow.app`
+### Linux
 
-Once installed, the in-app updater fetches future versions automatically.
+- `WaveFlow_<ver>_linux-x86_64.deb` — Debian / Ubuntu / Mint / Pop!_OS. Native install via `apt`/`dpkg`, integrates with the system menu.
+- `WaveFlow_<ver>_linux-x86_64.rpm` — Fedora / RHEL / openSUSE / Rocky / Alma. Native install via `dnf`/`rpm`.
+- `WaveFlow_<ver>_linux-x86_64.AppImage` — Anything else (Arch, Calculate Linux, Oracle Linux, NixOS, …). `chmod +x` then run; no install required.
+
+### Windows
+
+- `WaveFlow_<ver>_windows-x86_64-setup.exe` — NSIS installer, **per-user** install under `%LOCALAPPDATA%`, doesn't need admin. This is what the in-app updater patches.
+- `WaveFlow_<ver>_windows-x86_64.msi` — MSI installer, **system-wide** install under `Program Files`, suitable for IT deployment via GPO/SCCM. Requires admin.
+
+Both are Authenticode-signed. SmartScreen may still warn the first few users while a fresh certificate accumulates reputation — click **More info → Run anyway**.
+
+### macOS
+
+- `WaveFlow_<ver>_macos-universal.dmg` — Intel + Apple Silicon in one bundle.
+
+The macOS build is **not Apple-Developer-signed yet**, so Gatekeeper will block the first launch:
+
+- macOS 14 (Sonoma) and earlier: **right-click the app → Open**, confirm the dialog.
+- macOS 15 (Sequoia) and later: launch normally, then go to **System Settings → Privacy & Security** and click **Open Anyway** next to the blocked app.
+- Terminal escape hatch (any version): `xattr -cr /Applications/WaveFlow.app`
+
+### Auto-updates
+
+Once installed (any of the above), the in-app updater fetches future versions automatically — but only the AppImage and the NSIS setup are auto-updatable. DEB / RPM / MSI are managed by their respective package managers and stay on the version you installed until you upgrade them externally.
 
 ## Features
 

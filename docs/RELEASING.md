@@ -92,9 +92,13 @@ git push origin main v0.2.0
 
 Pushing the tag triggers `.github/workflows/release.yml`:
 
-- Builds Linux (`AppImage` + `.tar.gz` + `.sig`) on `ubuntu-latest`
-- Builds Windows (`*-setup.exe` + `.sig`) on `windows-latest`, signs
-  the installer with the Authenticode PFX
+- Builds Linux on `ubuntu-latest` — produces an `.AppImage`
+  (universal, also the updater payload), a `.deb` (Debian/Ubuntu),
+  and an `.rpm` (Fedora/RHEL).
+- Builds Windows on `windows-latest`, signs every artefact with
+  the Authenticode PFX — produces a `*-setup.exe` (NSIS, per-user
+  under `%LOCALAPPDATA%`, also the updater payload) and a `.msi`
+  (system-wide install for IT deployment).
 - Builds macOS (`*.dmg` + `*.app.tar.gz` + `.sig`) on `macos-latest`
   as a universal binary covering both Intel and Apple Silicon. The
   bundle is **not** Apple-Developer-signed (no cert configured), so
