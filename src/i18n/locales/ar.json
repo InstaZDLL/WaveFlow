@@ -1,0 +1,741 @@
+{
+  "common": {
+    "cancel": "إلغاء",
+    "back": "العودة",
+    "save": "حفظ",
+    "close": "إغلاق",
+    "confirm": "تأكيد",
+    "open": "مفتوح",
+    "optional": "(اختياري)"
+  },
+  "lastfmReauth": {
+    "title": "انتهت صلاحية جلسة Last.fm",
+    "message": "لم يعد يتم إرسال الخربشات الخاصة بك. قم بتسجيل الدخول مرة أخرى للاستئناف.",
+    "action": "افتح الإعدادات"
+  },
+  "updater": {
+    "available": {
+      "title": "التحديث متاح (الإصدار {{version}})",
+      "message": "إصدار جديد من WaveFlow جاهز للتثبيت.",
+      "action": "التثبيت الآن",
+      "later": "في وقت لاحق"
+    },
+    "downloading": {
+      "title": "جارٍ تنزيل التحديث…"
+    },
+    "installed": {
+      "title": "تم تثبيت التحديث",
+      "message": "أعد تشغيل WaveFlow لتطبيق الإصدار الجديد."
+    },
+    "error": {
+      "title": "فشل التحديث"
+    }
+  },
+  "onboarding": {
+    "defaultLibraryName": "موسيقى",
+    "welcome": {
+      "title": "مرحبًا بك في WaveFlow",
+      "message": "للبدء، قم بتوجيه WaveFlow نحو المجلد الذي توجد به الموسيقى الخاصة بك. سنقوم بمسحه ضوئيًا وإنشاء مكتبتك تلقائيًا.",
+      "action": "اختر مجلد الموسيقى الخاص بي",
+      "skip": "قم بالإعداد لاحقًا"
+    },
+    "scanning": {
+      "title": "جارٍ مسح الموسيقى الخاصة بك..."
+    },
+    "done": {
+      "title": "تمت إضافة {{count}} من المسارات",
+      "message": "مكتبتك جاهزة. استمتع بالاستماع!",
+      "action": "ابدأ بالاستماع"
+    },
+    "error": {
+      "title": "فشل المسح",
+      "retry": "أعد المحاولة"
+    }
+  },
+  "sidebar": {
+    "brand": {
+      "beta": "Beta"
+    },
+    "nav": {
+      "home": "الصفحة الرئيسية"
+    },
+    "sections": {
+      "open": "مفتوح",
+      "library": "مكتبة",
+      "playlists": "قوائم التشغيل"
+    },
+    "open": {
+      "file": "ملف",
+      "folder": "مجلد"
+    },
+    "library": {
+      "tracksCount_zero": "0 المسارات",
+      "tracksCount_one": "{{count}} المسار",
+      "tracksCount_other": "{{count}} المسارات",
+      "createLibraryAria": "إنشاء مكتبة جديدة",
+      "none": "لا مكتبة",
+      "popover": {
+        "label": "اختيار المكتبة",
+        "header": "المكتبات",
+        "countLine": "{{tracks}} · {{albums}}",
+        "tracks_zero": "0 المسارات",
+        "tracks_one": "{{count}} المسار",
+        "tracks_other": "{{count}} المسارات",
+        "albums_zero": "0 ألبومات",
+        "albums_one": "ألبوم {{count}}.",
+        "albums_other": "{{count}} ألبومات",
+        "see": "عرض",
+        "new": "جديد"
+      },
+      "nav": {
+        "tracks": "المسارات",
+        "albums": "الألبومات",
+        "artists": "الفنانين",
+        "genres": "الأنواع",
+        "explorer": "إكسبلورر"
+      }
+    },
+    "playlists": {
+      "createPlaylistAria": "قم بإنشاء قائمة تشغيل جديدة",
+      "importM3uAria": "استيراد قائمة تشغيل M3U",
+      "importDialogTitle": "استيراد قائمة تشغيل M3U",
+      "liked": "المسارات التي أعجبتني",
+      "recent": "لعبت مؤخرا",
+      "emptySubtext_zero": "0 المسارات",
+      "emptySubtext_one": "{{count}} المسار",
+      "emptySubtext_other": "{{count}} المسارات"
+    },
+    "myMusic": {
+      "title": "موسيقاي",
+      "addFolderAria": "استيراد مجلد",
+      "tracks": "المسارات",
+      "albums": "الألبومات",
+      "artists": "الفنانين",
+      "genres": "الأنواع",
+      "folders": "المجلدات"
+    },
+    "playlistSection": {
+      "title": "قوائم التشغيل"
+    },
+    "myLibrary": {
+      "playlistSubtext_zero": "0 المسارات",
+      "playlistSubtext_one": "{{count}} المسار",
+      "playlistSubtext_other": "{{count}} المسارات"
+    }
+  },
+  "topbar": {
+    "search": {
+      "placeholder": "ابحث عن أغنية أو فنان أو ألبوم...",
+      "results_zero": "لا توجد نتائج",
+      "results_one": "نتيجة {{count}}.",
+      "results_other": "{{count}} نتيجة"
+    },
+    "theme": {
+      "enableLight": "التبديل إلى وضع الضوء",
+      "enableDark": "التبديل إلى الوضع المظلم"
+    },
+    "profile": {
+      "user": "المستخدم",
+      "changeProfile": "تبديل الملف الشخصي",
+      "statistics": "الإحصائيات",
+      "settings": "الإعدادات",
+      "feedback": "ردود الفعل",
+      "about": "حول",
+      "quit": "قم بإنهاء التطبيق"
+    }
+  },
+  "home": {
+    "greeting": {
+      "morning": "صباح الخير",
+      "evening": "مساء الخير",
+      "night": "ليلة سعيدة"
+    },
+    "banner": {
+      "badge": "جاهز للاستماع",
+      "subtitle": "اكتشف موسيقاك المفضلة واستكشف أصواتًا جديدة.",
+      "openFile": "افتح ملفًا",
+      "openFolder": "افتح مجلدًا",
+      "importFiles": "استيراد الملفات",
+      "importFolder": "مجلد الاستيراد"
+    },
+    "stats": {
+      "library": "مكتبة",
+      "liked": "المسارات التي أعجبتني",
+      "recent": "لعبت مؤخرا",
+      "playlists": "قوائم التشغيل"
+    },
+    "recentlyPlayed": {
+      "title": "لعبت مؤخرا",
+      "emptyTitle": "لم يتم تشغيل أي مسار حتى الآن",
+      "emptyDescription": "قم بتشغيل المسار لرؤيته يظهر هنا. يتراكم سجل الاستماع الخاص بك عندما تكتشف ذلك."
+    }
+  },
+  "library": {
+    "header": {
+      "addFolder": "إضافة مجلد",
+      "subtext": {
+        "morceaux_zero": "0 المسارات",
+        "morceaux_one": "{{count}} المسار",
+        "morceaux_other": "{{count}} المسارات",
+        "albums_zero": "0 ألبومات",
+        "albums_one": "{{count}} الألبوم",
+        "albums_other": "{{count}} ألبومات",
+        "artistes_zero": "0 فنانين",
+        "artistes_one": "{{count}} فنان",
+        "artistes_other": "{{count}} فنانين",
+        "genres_zero": "0 الأنواع",
+        "genres_one": "{{count}} النوع",
+        "genres_other": "{{count}} الأنواع",
+        "dossiers_zero": "0 مجلدات",
+        "dossiers_one": "{{count}} مجلد",
+        "dossiers_other": "{{count}} المجلدات"
+      }
+    },
+    "tabs": {
+      "morceaux": "المسارات",
+      "albums": "الألبومات",
+      "artistes": "الفنانين",
+      "genres": "الأنواع",
+      "dossiers": "المجلدات"
+    },
+    "empty": {
+      "morceaux": {
+        "title": "مكتبة فارغة",
+        "description": "قم باستيراد الملفات الصوتية أو المجلد لملء مكتبتك."
+      },
+      "albums": {
+        "title": "لم يتم العثور على ألبومات",
+        "description": "قم باستيراد الملفات الصوتية لإنشاء الألبومات تلقائيًا."
+      },
+      "artistes": {
+        "title": "لم يتم العثور على فنانين",
+        "description": "قم باستيراد الملفات الصوتية للبدء."
+      },
+      "genres": {
+        "title": "لم يتم العثور على أي أنواع",
+        "description": "استيراد الملفات الصوتية لاكتشاف الأنواع."
+      },
+      "dossiers": {
+        "title": "لم يتم استيراد أي مجلد",
+        "description": "قم باستيراد مجلد من شريط الإجراءات لتصفحه هنا."
+      }
+    },
+    "actions": {
+      "importFiles": "استيراد الملفات",
+      "importFolder": "مجلد الاستيراد",
+      "share": "شارك (قريبا)",
+      "rescan": "إعادة فحص المكتبة",
+      "rescanning": "جارٍ إعادة المسح…",
+      "changeArtwork": "تغيير العمل الفني (قريبا)",
+      "edit": "تحرير المكتبة",
+      "delete": "حذف المكتبة",
+      "deleteConfirm": "انقر مرة أخرى للتأكيد"
+    },
+    "changeCover": "تغيير الغطاء",
+    "searchDeezer": "بحث ديزر",
+    "localFile": "الملف المحلي",
+    "fetchMissingCovers": "إحضار كافة الأغطية المفقودة",
+    "noCover": "لا يوجد غطاء",
+    "fetchingCovers": "جارٍ جلب الأغلفة... ({{current}}/{{total}})",
+    "table": {
+      "number": "#",
+      "title": "العنوان",
+      "artist": "فنان",
+      "album": "الألبوم",
+      "duration": "المدة",
+      "unknown": "—"
+    },
+    "rating": "التقييم",
+    "noRating": "لا يوجد تصنيف",
+    "viewToggle": {
+      "label": "وضع العرض",
+      "list": "قائمة",
+      "compact": "مدمج"
+    },
+    "albumGrid": {
+      "trackCount_zero": "0 المسارات",
+      "trackCount_one": "{{count}} المسار",
+      "trackCount_other": "{{count}} المسارات"
+    },
+    "artistList": {
+      "trackCount_zero": "0 المسارات",
+      "trackCount_one": "{{count}} المسار",
+      "trackCount_other": "{{count}} المسارات",
+      "albumCount_zero": "0 ألبومات",
+      "albumCount_one": "ألبوم {{count}}.",
+      "albumCount_other": "{{count}} ألبومات"
+    },
+    "genreList": {
+      "trackCount_zero": "0 المسارات",
+      "trackCount_one": "{{count}} المسار",
+      "trackCount_other": "{{count}} المسارات"
+    },
+    "folderList": {
+      "trackCount_zero": "0 المسارات",
+      "trackCount_one": "{{count}} المسار",
+      "trackCount_other": "{{count}} المسارات",
+      "lastScanned": "تم المسح الضوئي: {{date}}",
+      "neverScanned": "أبدا",
+      "watched": "شاهد",
+      "watchOn": "مشاهدة هذا المجلد للتغييرات",
+      "watchOff": "توقف عن مشاهدة هذا المجلد"
+    }
+  },
+  "liked": {
+    "badge": "المجموعة",
+    "title": "المسارات التي أعجبتني",
+    "count_zero": "0 المسارات",
+    "count_one": "{{count}} المسار",
+    "count_other": "{{count}} المسارات",
+    "emptyTitle": "لا يوجد مسار محبوب",
+    "emptyDescription": "سوف تظهر هنا المسارات التي تريدها. استكشف مكتبتك ومثل المفضلة لديك.",
+    "playAll": "تشغيل الكل",
+    "unlike": "إزالة من الإعجاب",
+    "like": "أضف إلى الإعجاب"
+  },
+  "recent": {
+    "badge": "التاريخ",
+    "title": "لعبت مؤخرا",
+    "count_zero": "0 المسارات",
+    "count_one": "{{count}} المسار",
+    "count_other": "{{count}} المسارات",
+    "emptyTitle": "لا يوجد مسار حديث",
+    "emptyDescription": "ستظهر المسارات التي تستمع إليها هنا تلقائيًا."
+  },
+  "statistics": {
+    "title": "الإحصائيات",
+    "emptyTitle": "لا توجد إحصاءات متاحة",
+    "emptyDescription": "استمع إلى الموسيقى لتبدأ في رؤية إحصائيات الاستماع الخاصة بك تظهر هنا.",
+    "range": {
+      "label": "النطاق",
+      "7d": "7 أيام",
+      "30d": "30 يوما",
+      "90d": "90 يوما",
+      "1y": "1 سنة",
+      "all": "كل الوقت"
+    },
+    "kpi": {
+      "totalPlays": "مسرحيات",
+      "totalTime": "وقت الاستماع",
+      "uniqueTracks": "مسارات فريدة من نوعها",
+      "uniqueArtists_zero": "0 فنانين",
+      "uniqueArtists_one": "{{count}} فنان",
+      "uniqueArtists_other": "{{count}} فنانين",
+      "completionRate": "معدل الإنجاز"
+    },
+    "byDay": {
+      "title": "النشاط اليومي",
+      "empty": "لا يستمع في هذه الفترة."
+    },
+    "byHour": {
+      "title": "الاستماع بالساعة",
+      "empty": "لا يستمع في هذه الفترة.",
+      "tooltip": "{{hour}}س — {{plays}} تشغيل"
+    },
+    "topTracks": {
+      "title": "أعلى المسارات",
+      "empty": "لم يتم تشغيل أي مسارات."
+    },
+    "topArtists": {
+      "title": "كبار الفنانين",
+      "empty": "لم يلعب أي فنانين."
+    },
+    "topAlbums": {
+      "title": "أعلى الألبومات",
+      "empty": "لم يتم تشغيل أي ألبومات."
+    },
+    "plays_zero": "0 تشغيل",
+    "plays_one": "{{count}} تشغيل",
+    "plays_other": "{{count}} تشغيل"
+  },
+  "about": {
+    "title": "حول",
+    "hero": {
+      "subtitle": "مشغل موسيقى عالي الدقة عبر الأنظمة الأساسية",
+      "checkUpdates": "التحقق من وجود تحديثات",
+      "developedBy": "تم تطويره بواسطة"
+    },
+    "sections": {
+      "frameworkDesktop": "إطار سطح المكتب",
+      "frontend": "الواجهة الأمامية",
+      "backend": "الواجهة الخلفية (الصدأ)",
+      "audio": "الصوت",
+      "shortcuts": "اختصارات لوحة المفاتيح",
+      "credits": "الاعتمادات"
+    },
+    "shortcuts": {
+      "playPause": "تشغيل / إيقاف مؤقت",
+      "previousTrack": "المسار السابق",
+      "nextTrack": "المسار التالي",
+      "volume": "الحجم",
+      "mute": "كتم الصوت",
+      "keys": {
+        "space": "الفضاء"
+      }
+    },
+    "credits": {
+      "text": "صممت وبنيت مع العاطفة. مدعوم من تقنيات مفتوحة المصدر.",
+      "icons": "أيقونات من Lucide وPhosphor وMynaui وIconify."
+    }
+  },
+  "feedback": {
+    "title": "ردود الفعل",
+    "hero": {
+      "title": "ساعدنا على تحسين WaveFlow",
+      "description": "هل لاحظت خطأ ما، أو لديك فكرة للتحسين، أو ترغب فقط في مشاركة بعض الأفكار؟ نقرأ كل رسالة ونأخذ اقتراحاتك بعين الاعتبار."
+    },
+    "contact": {
+      "section": "اتصل بنا",
+      "subtitle": "خطأ أو اقتراح أو سؤال - نقرأ كل رسالة"
+    }
+  },
+  "player": {
+    "noTrack": "لا يوجد مسار",
+    "inactive": "غير نشط",
+    "controls": {
+      "play": "تشغيل",
+      "pause": "وقفة",
+      "previous": "السابق",
+      "next": "التالي",
+      "shuffleOn": "تعطيل خلط ورق اللعب",
+      "shuffleOff": "تمكين خلط ورق اللعب",
+      "repeatOff": "تمكين التكرار",
+      "repeatAll": "كرر مسارًا واحدًا",
+      "repeatOne": "تعطيل التكرار"
+    },
+    "volume": {
+      "label": "الحجم",
+      "mute": "كتم الصوت",
+      "unmute": "إلغاء كتم الصوت"
+    }
+  },
+  "queue": {
+    "title": "قائمة الانتظار",
+    "inactive": "غير نشط",
+    "count_zero": "0 المسارات",
+    "count_one": "{{count}} المسار",
+    "count_other": "{{count}} المسارات",
+    "emptyTitle": "لا شيء للعب",
+    "emptyDescription": "قم بتشغيل بعض الموسيقى من مكتبتك لملء قائمة الانتظار.",
+    "nowPlaying": "العب الآن",
+    "upNext_zero": "التالي",
+    "upNext_one": "التالي · المسار {{count}}.",
+    "upNext_other": "التالي · {{count}} من المسارات"
+  },
+  "deviceMenu": {
+    "activeLabel": "الإخراج النشط",
+    "loading": "جارٍ البحث عن أجهزة…",
+    "empty": "لا يوجد جهاز إخراج متاح",
+    "systemDefault": "الافتراضي للنظام"
+  },
+  "profiles": {
+    "select": {
+      "title": "من يستمع؟",
+      "subtitle": "حدد ملف التعريف الخاص بك للعثور على مكتباتك وقوائم التشغيل الخاصة بك",
+      "add": "أضف",
+      "edit": "تحرير",
+      "active": "الملف الشخصي نشط",
+      "switchTo": "التبديل"
+    },
+    "create": {
+      "title": "ملف تعريف جديد",
+      "subtitle": "قم بإنشاء ملف تعريف لتخصيص تجربتك",
+      "nameLabel": "اسم الملف الشخصي",
+      "namePlaceholder": "أدخل اسما...",
+      "colorLabel": "لون الملف الشخصي",
+      "colorAria": "{{color}} لون",
+      "submit": "إنشاء الملف الشخصي"
+    }
+  },
+  "libraryModal": {
+    "title": "إنشاء مكتبة",
+    "editTitle": "تحرير المكتبة",
+    "previewDefault": "إنشاء مكتبة",
+    "previewSubtitle": "0 المسار · المكتبة",
+    "nameLabel": "اسم المكتبة",
+    "namePlaceholder": "على سبيل المثال موسيقى الروك والجاز والكلاسيكية ...",
+    "descriptionLabel": "الوصف",
+    "descriptionPlaceholder": "وصف قصير...",
+    "submit": "إنشاء مكتبة",
+    "submitEdit": "حفظ"
+  },
+  "playlistModal": {
+    "title": "قائمة تشغيل جديدة",
+    "editTitle": "تحرير قائمة التشغيل",
+    "previewDefault": "قائمة تشغيل جديدة",
+    "previewSubtitle": "0 المسار · قائمة التشغيل",
+    "nameLabel": "الاسم",
+    "namePlaceholder": "على سبيل المثال مشاعر البرد، مزيج تجريب...",
+    "descriptionLabel": "الوصف",
+    "descriptionPlaceholder": "وصف قصير...",
+    "colorLabel": "اللون",
+    "colorAria": "{{color}} لون",
+    "iconLabel": "أيقونة",
+    "iconAria": "أيقونة {{icon}}.",
+    "submit": "إنشاء",
+    "editSubmit": "حفظ"
+  },
+  "playlistView": {
+    "badge": "قائمة التشغيل",
+    "trackCount_zero": "0 المسارات",
+    "trackCount_one": "{{count}} المسار",
+    "trackCount_other": "{{count}} المسارات",
+    "actions": {
+      "play": "تشغيل",
+      "shuffle": "اللعب المراوغ",
+      "edit": "تحرير قائمة التشغيل",
+      "exportM3u": "تصدير كـ M3U",
+      "delete": "حذف قائمة التشغيل",
+      "deleteConfirm": "انقر مرة أخرى للتأكيد"
+    },
+    "export": {
+      "dialogTitle": "تصدير قائمة التشغيل بصيغة M3U"
+    },
+    "emptyTitle": "قائمة التشغيل هذه فارغة",
+    "emptyDescription": "أضف مسارات من مكتباتك باستخدام الزر + في كل صف.",
+    "noneTitle": "لم يتم تحديد قائمة تشغيل",
+    "noneDescription": "اختر قائمة تشغيل من الشريط الجانبي لمشاهدتها هنا.",
+    "notFoundTitle": "لم يتم العثور على قائمة التشغيل",
+    "notFoundDescription": "قائمة التشغيل هذه لم تعد موجودة في الملف الشخصي النشط."
+  },
+  "trackActions": {
+    "addToPlaylist": "أضف إلى قائمة التشغيل",
+    "noPlaylists": "لا توجد قائمة تشغيل حتى الآن. قم بإنشاء واحد أدناه.",
+    "createPlaylist": "قائمة تشغيل جديدة",
+    "playNext": "تشغيل التالي",
+    "addToQueue": "أضف إلى قائمة الانتظار",
+    "like": "أضف إلى الأغاني المفضلة",
+    "unlike": "إزالة من الأغاني المفضلة",
+    "removeFromPlaylist": "إزالة من قائمة التشغيل هذه",
+    "goToAlbum": "انتقل إلى الألبوم",
+    "goToArtist": "انتقل إلى الفنان",
+    "showInExplorer": "تظهر في مستكشف الملفات",
+    "copyPath": "نسخ مسار الملف",
+    "properties": "خصائص"
+  },
+  "trackProperties": {
+    "title": "خصائص المسار",
+    "sections": {
+      "metadata": "البيانات الوصفية",
+      "audio": "الصوت",
+      "analysis": "التحليل",
+      "file": "ملف"
+    },
+    "bpm": "BPM",
+    "loudness": "جهارة الصوت",
+    "replayGain": "ReplayGain",
+    "peak": "الذروة",
+    "analyze": "تحليل",
+    "reanalyze": "إعادة التحليل",
+    "analyzing": "جارٍ التحليل…",
+    "year": "سنة",
+    "trackNumber": "المسار #",
+    "duration": "المدة",
+    "codec": "الترميز",
+    "bitDepth": "عمق بت",
+    "sampleRate": "معدل العينة",
+    "channels": "القنوات",
+    "bitrate": "معدل البت",
+    "key": "مفتاح",
+    "fileSize": "حجم الملف",
+    "addedAt": "تمت الإضافة",
+    "filePath": "المسار",
+    "showInExplorer": "تظهر في مستكشف الملفات",
+    "mono": "أحادية",
+    "stereo": "ستيريو"
+  },
+  "selection": {
+    "toolbarLabel": "إجراءات الاختيار",
+    "count_zero": "0 مختارة",
+    "count_one": "تم تحديد {{count}}.",
+    "count_other": "تم تحديد {{count}}.",
+    "play": "تشغيل",
+    "addToQueue": "أضف إلى قائمة الانتظار",
+    "playNext": "تشغيل التالي",
+    "addToPlaylist": "أضف إلى قائمة التشغيل",
+    "removeFromPlaylist": "إزالة من قائمة التشغيل",
+    "clear": "واضح"
+  },
+  "albumDetail": {
+    "badge": "الألبوم",
+    "playAll": "تشغيل الكل",
+    "shuffle": "خلط ورق اللعب",
+    "trackCount_zero": "0 المسارات",
+    "trackCount_one": "{{count}} المسار",
+    "trackCount_other": "{{count}} المسارات",
+    "discHeader": "القرص {{number}}",
+    "releaseDate": "صدر",
+    "emptyTitle": "لم يتم العثور على الألبوم",
+    "emptyDescription": "لم يعد هذا الألبوم موجودًا في الملف الشخصي النشط.",
+    "emptyTracksTitle": "لا المسارات",
+    "emptyTracksDescription": "لا يحتوي هذا الألبوم على مسارات متاحة."
+  },
+  "artistDetail": {
+    "badge": "فنان",
+    "playAll": "تشغيل الكل",
+    "shuffle": "خلط ورق اللعب",
+    "discography": "ديسكغرافيا",
+    "allTracks": "جميع المسارات",
+    "trackCount_zero": "0 المسارات",
+    "trackCount_one": "{{count}} المسار",
+    "trackCount_other": "{{count}} المسارات",
+    "albumCount_zero": "0 ألبومات",
+    "albumCount_one": "ألبوم {{count}}.",
+    "albumCount_other": "{{count}} ألبومات",
+    "albumTrackCount_zero": "0 المسارات",
+    "albumTrackCount_one": "{{count}} المسار",
+    "albumTrackCount_other": "{{count}} المسارات",
+    "emptyTitle": "لم يتم العثور على الفنان",
+    "emptyDescription": "لم يعد هذا الفنان موجودًا في الملف الشخصي النشط.",
+    "bio": {
+      "title": "سيرة ذاتية"
+    }
+  },
+  "nowPlaying": {
+    "title": "العب الآن",
+    "empty": "لا يوجد مسار اللعب",
+    "aboutArtist": "عن الفنان",
+    "readMore": "اقرأ المزيد",
+    "readLess": "اقرأ أقل",
+    "noBio": "لا توجد سيرة ذاتية متاحة. قم بتكوين مفتاح Last.fm الخاص بك في الإعدادات.",
+    "lyrics": {
+      "title": "كلمات",
+      "comingSoon": "قريبا"
+    }
+  },
+  "playerBar": {
+    "lyrics": "كلمات",
+    "nowPlaying": "الآن تشغيل العرض",
+    "queue": "قائمة الانتظار"
+  },
+  "lyrics": {
+    "title": "كلمات",
+    "loading": "جارٍ البحث عن كلمات الأغاني...",
+    "noTrack": "لا يوجد مسار اللعب",
+    "notFound": "لم يتم العثور على كلمات لهذا المسار. يمكنك استيراد ملف .lrc.",
+    "importTitle": "استيراد ملف .lrc",
+    "actions": {
+      "import": "استيراد ملف .lrc",
+      "refetch": "إعادة جلب كلمات الأغاني",
+      "clear": "كلمات واضحة"
+    },
+    "source": {
+      "embedded": "مدمجة في ملف صوتي",
+      "lrc_file": "ملف .lrc المستورد",
+      "api": "LRCLIB",
+      "manual": "الإدخال اليدوي"
+    }
+  },
+  "sort": {
+    "title": "العنوان",
+    "artist": "فنان",
+    "album": "الألبوم",
+    "duration": "المدة",
+    "year": "سنة",
+    "addedAt": "تمت الإضافة",
+    "rating": "التقييم",
+    "name": "الاسم",
+    "albumsCount": "الألبومات",
+    "tracksCount": "المسارات",
+    "ascending": "تصاعدي",
+    "descending": "تنازلي"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "sections": {
+      "general": "عام",
+      "playback": "التشغيل",
+      "integrations": "التكامل",
+      "storage": "التخزين والبيانات"
+    },
+    "integrations": {
+      "lastfm": {
+        "title": "Last.fm",
+        "subtitle": "السيرة الذاتية للفنانين والخربشة. أنشئ مفتاحًا على last.fm/api/account/create",
+        "placeholder": "مفتاح واجهة برمجة التطبيقات",
+        "secretPlaceholder": "سر مشترك",
+        "save": "حفظ",
+        "saved": "تم الحفظ ✓",
+        "show": "عرض",
+        "hide": "إخفاء",
+        "connectedAs": "تم تسجيل الدخول باسم",
+        "disconnect": "تسجيل الخروج",
+        "loginPrompt": "قم بتسجيل الدخول لتتمكن من تمرير استماعاتك:",
+        "usernamePlaceholder": "اسم المستخدم",
+        "passwordPlaceholder": "كلمة المرور",
+        "connect": "تسجيل الدخول",
+        "connecting": "تسجيل الدخول..."
+      }
+    },
+    "crossfade": {
+      "title": "أغاني كروس فايد",
+      "subtitle": "الانتقال السلس بين المسارات (قريبا)"
+    },
+    "normalize": {
+      "title": "تطبيع الحجم",
+      "subtitle": "قم بتقليل مستوى الصوت على المسارات الصاخبة للحصول على مستوى استماع ثابت"
+    },
+    "replayGain": {
+      "title": "تطبيق ReplayGain",
+      "subtitle": "استخدم الكسب الذي تم تحليله لكل مسار لموازنة جهارة الصوت المدركة"
+    },
+    "mono": {
+      "title": "صوت أحادي",
+      "subtitle": "امزج القنوات اليسرى واليمنى في إشارة واحدة"
+    },
+    "language": {
+      "title": "اللغة",
+      "subtitle": "لغة الواجهة"
+    },
+    "autoStart": {
+      "title": "إطلاق عند بدء التشغيل",
+      "subtitle": "بدء تشغيل WaveFlow تلقائيًا عند تشغيل النظام"
+    },
+    "minimizeToTray": {
+      "title": "تصغير إلى علبة النظام",
+      "subtitle": "يؤدي إغلاق النافذة إلى تصغير التطبيق إلى الدرج"
+    },
+    "scanOnStart": {
+      "title": "المسح عند بدء التشغيل",
+      "subtitle": "إعادة فحص المكتبات تلقائيًا عند فتح التطبيق"
+    },
+    "singleClickPlay": {
+      "title": "بنقرة واحدة للعب",
+      "subtitle": "نقرة واحدة على المسار تبدأ التشغيل (وإلا انقر نقرًا مزدوجًا)"
+    },
+    "analyze": {
+      "title": "تحليل المكتبة",
+      "subtitle": "حساب BPM، جهارة الصوت والذروة للمسارات التي لم يتم تحليلها بعد",
+      "action": "تحليل",
+      "autoTitle": "التحليل التلقائي",
+      "autoSubtitle": "قم بتشغيل المحلل في الخلفية بعد كل عملية مسح تضيف مسارات جديدة",
+      "failed_one": "{{count}} فشل",
+      "failed_other": "{{count}} حالات الفشل"
+    },
+    "rescan": {
+      "title": "إعادة فحص المكتبة",
+      "subtitle": "قم بإعادة السير على كافة المجلدات واستيراد ملفات جديدة",
+      "action": "إعادة المسح"
+    },
+    "artistImages": {
+      "title": "صور الفنان",
+      "subtitle": "جلب الأعمال الفنية للفنان من Deezer",
+      "action": "جلب"
+    },
+    "dataFolder": {
+      "title": "مجلد البيانات",
+      "subtitle": "افتح المجلد الذي يحتوي على قاعدة البيانات وصورة الغلاف",
+      "action": "مفتوح"
+    },
+    "openDataFolder": "افتح مجلد البيانات",
+    "regenerateThumbnails": "إعادة إنشاء الصور المصغرة",
+    "regenerateThumbnailsSubtitle": "أعد بناء متغيرات 1x/2x المفقودة لكل غلاف",
+    "regenerateThumbnailsAction": "تجديد",
+    "regenerateThumbnailsDone": "تم إعادة إنشاء {{count}} من الصور المصغرة",
+    "reset": {
+      "title": "إعادة تعيين التطبيق",
+      "subtitle": "احذف جميع البيانات وارجع إلى الحالة الأولية",
+      "action": "إعادة تعيين"
+    }
+  }
+}

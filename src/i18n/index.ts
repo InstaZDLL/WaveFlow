@@ -13,6 +13,9 @@ import pt from "./locales/pt.json";
 import ptBR from "./locales/pt-BR.json";
 import ja from "./locales/ja.json";
 import kr from "./locales/kr.json";
+import nl from "./locales/nl.json";
+import ar from "./locales/ar.json";
+import hi from "./locales/hi.json";
 
 export interface SupportedLanguage {
   code: string;
@@ -31,6 +34,9 @@ export const SUPPORTED_LANGUAGES: readonly SupportedLanguage[] = [
   { code: "pt-BR", nativeLabel: "Português (Brasil)" },
   { code: "ja", nativeLabel: "日本語" },
   { code: "ko", nativeLabel: "한국어" },
+  { code: "nl", nativeLabel: "Nederlands" },
+  { code: "ar", nativeLabel: "العربية" },
+  { code: "hi", nativeLabel: "हिन्दी" },
 ] as const;
 
 const LOCAL_STORAGE_KEY = "waveflow-language";
@@ -47,7 +53,15 @@ export function normalizeSupportedLanguageCode(code: string | undefined) {
   return SUPPORTED_LANGUAGE_CODES.includes(normalized) ? normalized : SUPPORTED_LANGUAGES[0].code;
 }
 
-i18n
+function applyDocumentLanguage(code: string | undefined) {
+  if (typeof document === "undefined") return;
+
+  const normalizedCode = normalizeSupportedLanguageCode(code);
+  document.documentElement.lang = normalizedCode;
+  document.documentElement.dir = i18n.dir(normalizedCode);
+}
+
+void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
@@ -64,6 +78,9 @@ i18n
       ja: { translation: ja },
       ko: { translation: kr },
       kr: { translation: kr },
+      nl: { translation: nl },
+      ar: { translation: ar },
+      hi: { translation: hi },
     },
     fallbackLng: "fr",
     supportedLngs: [...SUPPORTED_LANGUAGE_CODES, "kr"],
@@ -76,6 +93,11 @@ i18n
       caches: ["localStorage"],
       lookupLocalStorage: LOCAL_STORAGE_KEY,
     },
+  })
+  .then(() => {
+    applyDocumentLanguage(i18n.resolvedLanguage ?? i18n.language);
   });
+
+i18n.on("languageChanged", applyDocumentLanguage);
 
 export default i18n;
