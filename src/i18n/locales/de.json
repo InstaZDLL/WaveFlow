@@ -231,6 +231,12 @@
       "delete": "Bibliothek löschen",
       "deleteConfirm": "Erneut klicken zum Bestätigen"
     },
+    "changeCover": "Cover ändern",
+    "searchDeezer": "Deezer-Suche",
+    "localFile": "Lokale Datei",
+    "fetchMissingCovers": "Alle fehlenden Cover abrufen",
+    "noCover": "Kein Cover",
+    "fetchingCovers": "Cover werden abgerufen... ({{current}}/{{total}})",
     "table": {
       "number": "#",
       "title": "Titel",

@@ -26,7 +26,7 @@ import {
   setProfileSetting,
 } from "../../lib/tauri/profile";
 import type { ViewId } from "../../types";
-import { SUPPORTED_LANGUAGES } from "../../i18n";
+import { SUPPORTED_LANGUAGES, normalizeSupportedLanguageCode } from "../../i18n";
 import {
   playerGetAudioSettings,
   playerSetNormalize,
@@ -95,9 +95,10 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
   const [focusedIndex, setFocusedIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const normalizedCurrentCode = normalizeSupportedLanguageCode(currentCode);
 
   const currentLanguage =
-    SUPPORTED_LANGUAGES.find((lang) => lang.code === currentCode) ??
+    SUPPORTED_LANGUAGES.find((lang) => lang.code === normalizedCurrentCode) ??
     SUPPORTED_LANGUAGES[0];
 
   // Click-outside + Escape handling
@@ -140,7 +141,9 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
         // Opening: focus the currently selected option
         const initialIndex = Math.max(
           0,
-          SUPPORTED_LANGUAGES.findIndex((lang) => lang.code === currentCode)
+          SUPPORTED_LANGUAGES.findIndex(
+            (lang) => lang.code === normalizedCurrentCode
+          )
         );
         setFocusedIndex(initialIndex);
       }
@@ -201,7 +204,7 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
           className="absolute top-full right-0 mt-2 min-w-48 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden z-50 animate-fade-in py-1"
         >
           {SUPPORTED_LANGUAGES.map((lang, index) => {
-            const isSelected = lang.code === currentCode;
+            const isSelected = lang.code === normalizedCurrentCode;
             return (
               <li key={lang.code} role="presentation">
                 <button
@@ -628,7 +631,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               </div>
             </div>
             <LanguageDropdown
-              currentCode={i18n.resolvedLanguage ?? "fr"}
+              currentCode={normalizeSupportedLanguageCode(
+                i18n.resolvedLanguage ?? i18n.language
+              )}
               onSelect={handleLanguageChange}
             />
           </div>
