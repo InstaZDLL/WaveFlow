@@ -118,5 +118,5 @@ tiny_http = "0.12"
 # Also lets us silence ALSA's noisy stderr probe warnings around cpal
 # enumeration.
 [target.'cfg(target_os = "linux")'.dependencies]
-alsa = "0.9"
+alsa = "0.10"
 libc = "0.2"
