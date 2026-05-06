@@ -1,0 +1,741 @@
+{
+  "common": {
+    "cancel": "Отменить",
+    "back": "Назад",
+    "save": "Сохранить",
+    "close": "Закрыть",
+    "confirm": "Подтвердить",
+    "open": "Открыть",
+    "optional": "(необязательно)"
+  },
+  "lastfmReauth": {
+    "title": "Сеанс Last.fm истек",
+    "message": "Ваши записи больше не отправляются. Войдите в систему заново, чтобы возобновить отправку.",
+    "action": "Открыть настройки"
+  },
+  "updater": {
+    "available": {
+      "title": "Доступно обновление (версия {{version}})",
+      "message": "Новая версия WaveFlow готова к установке.",
+      "action": "Установить сейчас",
+      "later": "Позже"
+    },
+    "downloading": {
+      "title": "Загрузка обновления…"
+    },
+    "installed": {
+      "title": "Обновление установлено",
+      "message": "Перезапустите WaveFlow, чтобы применить новую версию."
+    },
+    "error": {
+      "title": "Ошибка при обновлении"
+    }
+  },
+  "onboarding": {
+    "defaultLibraryName": "Музыка",
+    "welcome": {
+      "title": "Добро пожаловать в WaveFlow",
+      "message": "Для начала укажите в WaveFlow папку, в которой хранится ваша музыка. Мы просканируем её и автоматически создадим вашу медиатеку.",
+      "action": "Выбрать папку с музыкой",
+      "skip": "Настроить позже"
+    },
+    "scanning": {
+      "title": "Сканирование вашей музыки…"
+    },
+    "done": {
+      "title": "{{count}} добавлены треки",
+      "message": "Ваша библиотека готова. Приятного пользования!",
+      "action": "Начните слушать"
+    },
+    "error": {
+      "title": "Сканирование не удалось",
+      "retry": "Повторить попытку"
+    }
+  },
+  "sidebar": {
+    "brand": {
+      "beta": "Бета-версия"
+    },
+    "nav": {
+      "home": "Главная"
+    },
+    "sections": {
+      "open": "Открыть",
+      "library": "Библиотека",
+      "playlists": "Плейлисты"
+    },
+    "open": {
+      "file": "Файл",
+      "folder": "Папка"
+    },
+    "library": {
+      "tracksCount_zero": "0 треков",
+      "tracksCount_one": "{{count}} трек",
+      "tracksCount_other": "{{count}} треки",
+      "createLibraryAria": "Создать новую библиотеку",
+      "none": "Библиотеки нет",
+      "popover": {
+        "label": "Выбор библиотеки",
+        "header": "Библиотеки",
+        "countLine": "{{tracks}} · {{albums}}",
+        "tracks_zero": "0 треков",
+        "tracks_one": "{{count}} трек",
+        "tracks_other": "{{count}} треки",
+        "albums_zero": "0 альбомов",
+        "albums_one": "{{count}} альбом",
+        "albums_other": "{{count}} альбомы",
+        "see": "Просмотр",
+        "new": "Новое"
+      },
+      "nav": {
+        "tracks": "Треки",
+        "albums": "Альбомы",
+        "artists": "Художники",
+        "genres": "Жанры",
+        "explorer": "Проводник"
+      }
+    },
+    "playlists": {
+      "createPlaylistAria": "Создать новый плейлист",
+      "importM3uAria": "Импортировать плейлист M3U",
+      "importDialogTitle": "Импортировать плейлист M3U",
+      "liked": "Понравившиеся треки",
+      "recent": "Недавно прослушанное",
+      "emptySubtext_zero": "0 треков",
+      "emptySubtext_one": "{{count}} трек",
+      "emptySubtext_other": "{{count}} треки"
+    },
+    "myMusic": {
+      "title": "Моя музыка",
+      "addFolderAria": "Импортировать папку",
+      "tracks": "Треки",
+      "albums": "Альбомы",
+      "artists": "Художники",
+      "genres": "Жанры",
+      "folders": "Папки"
+    },
+    "playlistSection": {
+      "title": "Плейлисты"
+    },
+    "myLibrary": {
+      "playlistSubtext_zero": "0 треков",
+      "playlistSubtext_one": "{{count}} трек",
+      "playlistSubtext_other": "{{count}} треки"
+    }
+  },
+  "topbar": {
+    "search": {
+      "placeholder": "Найти трек, исполнителя, альбом...",
+      "results_zero": "Результатов нет",
+      "results_one": "{{count}} результат",
+      "results_other": "{{count}} результаты"
+    },
+    "theme": {
+      "enableLight": "Переключиться в светлый режим",
+      "enableDark": "Переключиться в тёмный режим"
+    },
+    "profile": {
+      "user": "Пользователь",
+      "changeProfile": "Сменить профиль",
+      "statistics": "Статистика",
+      "settings": "Настройки",
+      "feedback": "Отзывы",
+      "about": "О нас",
+      "quit": "Закрыть приложение"
+    }
+  },
+  "home": {
+    "greeting": {
+      "morning": "Доброе утро",
+      "evening": "Добрый вечер",
+      "night": "Спокойной ночи"
+    },
+    "banner": {
+      "badge": "Готовы слушать",
+      "subtitle": "Откройте для себя любимую музыку и познакомьтесь с новыми звуками.",
+      "openFile": "Открыть файл",
+      "openFolder": "Открыть папку",
+      "importFiles": "Импорт файлов",
+      "importFolder": "Импортировать папку"
+    },
+    "stats": {
+      "library": "Библиотека",
+      "liked": "Понравившиеся треки",
+      "recent": "Недавно прослушанное",
+      "playlists": "Плейлисты"
+    },
+    "recentlyPlayed": {
+      "title": "Недавно прослушанное",
+      "emptyTitle": "Еще ни одна композиция не воспроизведена",
+      "emptyDescription": "Воспроизведите трек, чтобы он появился здесь. Ваша история прослушивания пополняется по мере того, как вы открываете для себя новые композиции."
+    }
+  },
+  "library": {
+    "header": {
+      "addFolder": "Добавить папку",
+      "subtext": {
+        "morceaux_zero": "0 треков",
+        "morceaux_one": "{{count}} Трек",
+        "morceaux_other": "{{count}} Треки",
+        "albums_zero": "0 альбомов",
+        "albums_one": "{{count}} Альбом",
+        "albums_other": "{{count}} Альбомы",
+        "artistes_zero": "0 исполнителей",
+        "artistes_one": "{{count}} Художник",
+        "artistes_other": "{{count}} Художники",
+        "genres_zero": "0 Жанры",
+        "genres_one": "{{count}} Жанр",
+        "genres_other": "{{count}} Жанры",
+        "dossiers_zero": "0 папок",
+        "dossiers_one": "{{count}} Папка",
+        "dossiers_other": "{{count}} Папки"
+      }
+    },
+    "tabs": {
+      "morceaux": "Треки",
+      "albums": "Альбомы",
+      "artistes": "Художники",
+      "genres": "Жанры",
+      "dossiers": "Папки"
+    },
+    "empty": {
+      "morceaux": {
+        "title": "Пустая библиотека",
+        "description": "Импортируйте аудиофайлы или папку, чтобы пополнить свою медиатеку."
+      },
+      "albums": {
+        "title": "Альбомы не найдены",
+        "description": "Импортируйте аудиофайлы для автоматического создания альбомов."
+      },
+      "artistes": {
+        "title": "Художники не найдены",
+        "description": "Для начала импортируйте аудиофайлы."
+      },
+      "genres": {
+        "title": "Жанры не найдены",
+        "description": "Импортируйте аудиофайлы, чтобы определить жанры."
+      },
+      "dossiers": {
+        "title": "Папка не импортирована",
+        "description": "Импортируйте папку из панели действий, чтобы просмотреть её здесь."
+      }
+    },
+    "actions": {
+      "importFiles": "Импорт файлов",
+      "importFolder": "Импортировать папку",
+      "share": "Поделиться (скоро)",
+      "rescan": "Повторно просканировать библиотеку",
+      "rescanning": "Повторное сканирование…",
+      "changeArtwork": "Сменить обложку (в ближайшее время)",
+      "edit": "Редактировать библиотеку",
+      "delete": "Удалить библиотеку",
+      "deleteConfirm": "Нажмите ещё раз для подтверждения"
+    },
+    "changeCover": "Сменить обложку",
+    "searchDeezer": "Поиск в Deezer",
+    "localFile": "Локальный файл",
+    "fetchMissingCovers": "Загрузить все отсутствующие обложки",
+    "noCover": "Без обложки",
+    "fetchingCovers": "Загрузка обложек... ({{current}} / {{total}})",
+    "table": {
+      "number": "#",
+      "title": "Название",
+      "artist": "Художник",
+      "album": "Альбом",
+      "duration": "Продолжительность",
+      "unknown": "—"
+    },
+    "rating": "Рейтинг",
+    "noRating": "Без оценки",
+    "viewToggle": {
+      "label": "Режим просмотра",
+      "list": "Список",
+      "compact": "Компактный"
+    },
+    "albumGrid": {
+      "trackCount_zero": "0 треков",
+      "trackCount_one": "{{count}} трек",
+      "trackCount_other": "{{count}} треки"
+    },
+    "artistList": {
+      "trackCount_zero": "0 треков",
+      "trackCount_one": "{{count}} трек",
+      "trackCount_other": "{{count}} треки",
+      "albumCount_zero": "0 альбомов",
+      "albumCount_one": "{{count}} альбом",
+      "albumCount_other": "{{count}} альбомы"
+    },
+    "genreList": {
+      "trackCount_zero": "0 треков",
+      "trackCount_one": "{{count}} трек",
+      "trackCount_other": "{{count}} треки"
+    },
+    "folderList": {
+      "trackCount_zero": "0 треков",
+      "trackCount_one": "{{count}} трек",
+      "trackCount_other": "{{count}} треки",
+      "lastScanned": "Источник: {{date}}",
+      "neverScanned": "никогда",
+      "watched": "Посмотрел",
+      "watchOn": "Следите за изменениями в этой папке",
+      "watchOff": "Отписаться от этой папки"
+    }
+  },
+  "liked": {
+    "badge": "Коллекция",
+    "title": "Понравившиеся треки",
+    "count_zero": "0 треков",
+    "count_one": "{{count}} трек",
+    "count_other": "{{count}} треки",
+    "emptyTitle": "Нет понравившихся треков",
+    "emptyDescription": "Здесь будут отображаться треки, которые вам понравились. Просмотрите свою медиатеку и отметьте понравившиеся треки.",
+    "playAll": "Воспроизвести все",
+    "unlike": "Удалить из избранного",
+    "like": "Добавить в избранное"
+  },
+  "recent": {
+    "badge": "История",
+    "title": "Недавно прослушанное",
+    "count_zero": "0 треков",
+    "count_one": "{{count}} трек",
+    "count_other": "{{count}} треки",
+    "emptyTitle": "Нет последних записей",
+    "emptyDescription": "Здесь автоматически будут отображаться треки, которые вы слушаете."
+  },
+  "statistics": {
+    "title": "Статистика",
+    "emptyTitle": "Статистика отсутствует",
+    "emptyDescription": "Начните слушать музыку, чтобы здесь появилась статистика прослушивания.",
+    "range": {
+      "label": "Диапазон",
+      "7d": "7 дней",
+      "30d": "30 дней",
+      "90d": "90 дней",
+      "1y": "1 год",
+      "all": "За всю историю"
+    },
+    "kpi": {
+      "totalPlays": "Пьесы",
+      "totalTime": "Продолжительность прослушивания",
+      "uniqueTracks": "Уникальные треки",
+      "uniqueArtists_zero": "0 исполнителей",
+      "uniqueArtists_one": "{{count}} художник",
+      "uniqueArtists_other": "{{count}} художники",
+      "completionRate": "Коэффициент завершения"
+    },
+    "byDay": {
+      "title": "Ежедневная деятельность",
+      "empty": "В этот период прослушиваний не было."
+    },
+    "byHour": {
+      "title": "Прослушивание по часам",
+      "empty": "В этот период прослушиваний не было.",
+      "tooltip": "{{hour}} h — «{{plays}}»"
+    },
+    "topTracks": {
+      "title": "Популярные треки",
+      "empty": "Ни одна композиция не была воспроизведена."
+    },
+    "topArtists": {
+      "title": "Лучшие артисты",
+      "empty": "Ни один из артистов не выступил."
+    },
+    "topAlbums": {
+      "title": "Лучшие альбомы",
+      "empty": "Альбомы не воспроизводились."
+    },
+    "plays_zero": "0 просмотров",
+    "plays_one": "{{count}} играть",
+    "plays_other": "{{count}} спектакли"
+  },
+  "about": {
+    "title": "О нас",
+    "hero": {
+      "subtitle": "Кроссплатформенный музыкальный плеер с поддержкой HD",
+      "checkUpdates": "Проверить наличие обновлений",
+      "developedBy": "Разработано"
+    },
+    "sections": {
+      "frameworkDesktop": "Платформа для настольных компьютеров",
+      "frontend": "Интерфейс",
+      "backend": "Бэкенд (Rust)",
+      "audio": "Аудио",
+      "shortcuts": "Сочетания клавиш",
+      "credits": "Благодарности"
+    },
+    "shortcuts": {
+      "playPause": "Воспроизвести / Приостановить",
+      "previousTrack": "Предыдущий трек",
+      "nextTrack": "Следующий трек",
+      "volume": "Объем",
+      "mute": "Отключить звук",
+      "keys": {
+        "space": "Космос"
+      }
+    },
+    "credits": {
+      "text": "Разработано и создано с любовью. На базе технологий с открытым исходным кодом.",
+      "icons": "Иконки от Lucide, Phosphor, Mynaui и Iconify."
+    }
+  },
+  "feedback": {
+    "title": "Отзывы",
+    "hero": {
+      "title": "Помогите нам улучшить WaveFlow",
+      "description": "Нашли ошибку, у вас есть идеи по улучшению или просто хотите поделиться своими мыслями? Мы читаем каждое сообщение и внимательно прислушиваемся к вашим предложениям."
+    },
+    "contact": {
+      "section": "Свяжитесь с нами",
+      "subtitle": "Ошибка, предложение или вопрос — мы читаем каждое сообщение"
+    }
+  },
+  "player": {
+    "noTrack": "Нет трека",
+    "inactive": "Неактивный",
+    "controls": {
+      "play": "Играть",
+      "pause": "Пауза",
+      "previous": "Предыдущий",
+      "next": "Далее",
+      "shuffleOn": "Отключить перемешивание",
+      "shuffleOff": "Включить случайный порядок",
+      "repeatOff": "Включить повтор",
+      "repeatAll": "Повторить один трек",
+      "repeatOne": "Отключить повтор"
+    },
+    "volume": {
+      "label": "Объем",
+      "mute": "Отключить звук",
+      "unmute": "Включить звук"
+    }
+  },
+  "queue": {
+    "title": "Очередь",
+    "inactive": "НЕАКТИВНЫЙ",
+    "count_zero": "0 треков",
+    "count_one": "{{count}} трек",
+    "count_other": "{{count}} треки",
+    "emptyTitle": "Не в что поиграть",
+    "emptyDescription": "Включите несколько композиций из своей медиатеки, чтобы заполнить очередь.",
+    "nowPlaying": "Сейчас в эфире",
+    "upNext_zero": "Далее",
+    "upNext_one": "Далее · Трек «{{count}}»",
+    "upNext_other": "Далее · Треки из альбома «{{count}}»"
+  },
+  "deviceMenu": {
+    "activeLabel": "Активный выход",
+    "loading": "Поиск устройств…",
+    "empty": "Устройство вывода отсутствует",
+    "systemDefault": "Значение по умолчанию системы"
+  },
+  "profiles": {
+    "select": {
+      "title": "Кто слушает?",
+      "subtitle": "Выберите свой профиль, чтобы найти свои библиотеки и плейлисты",
+      "add": "Добавить",
+      "edit": "Редактировать",
+      "active": "Активный профиль",
+      "switchTo": "Переключатель"
+    },
+    "create": {
+      "title": "Новый профиль",
+      "subtitle": "Создайте профиль, чтобы настроить сайт под свои предпочтения",
+      "nameLabel": "Название профиля",
+      "namePlaceholder": "Введите имя...",
+      "colorLabel": "Цвет профиля",
+      "colorAria": "{{color}} цвет",
+      "submit": "Создать профиль"
+    }
+  },
+  "libraryModal": {
+    "title": "Создать библиотеку",
+    "editTitle": "Редактировать библиотеку",
+    "previewDefault": "Создать библиотеку",
+    "previewSubtitle": "0 треков · Библиотека",
+    "nameLabel": "Название библиотеки",
+    "namePlaceholder": "Например, рок, джаз, классическая музыка...",
+    "descriptionLabel": "Описание",
+    "descriptionPlaceholder": "Краткое описание...",
+    "submit": "Создать библиотеку",
+    "submitEdit": "Сохранить"
+  },
+  "playlistModal": {
+    "title": "Новый плейлист",
+    "editTitle": "Изменить плейлист",
+    "previewDefault": "Новый плейлист",
+    "previewSubtitle": "0 треков · Плейлист",
+    "nameLabel": "Имя",
+    "namePlaceholder": "Например, «Chill Vibes», «Workout Mix»...",
+    "descriptionLabel": "Описание",
+    "descriptionPlaceholder": "Краткое описание...",
+    "colorLabel": "Цвет",
+    "colorAria": "{{color}} цвет",
+    "iconLabel": "Значок",
+    "iconAria": "{{icon}} значок",
+    "submit": "Создать",
+    "editSubmit": "Сохранить"
+  },
+  "playlistView": {
+    "badge": "Плейлист",
+    "trackCount_zero": "0 треков",
+    "trackCount_one": "{{count}} трек",
+    "trackCount_other": "{{count}} треки",
+    "actions": {
+      "play": "Играть",
+      "shuffle": "Воспроизведение в случайном порядке",
+      "edit": "Изменить плейлист",
+      "exportM3u": "Экспорт в формат M3U",
+      "delete": "Удалить плейлист",
+      "deleteConfirm": "Нажмите ещё раз для подтверждения"
+    },
+    "export": {
+      "dialogTitle": "Экспорт плейлиста в формате M3U"
+    },
+    "emptyTitle": "Этот плейлист пуст",
+    "emptyDescription": "Добавляйте треки из своих библиотек с помощью кнопки «+» в каждой строке.",
+    "noneTitle": "Плейлист не выбран",
+    "noneDescription": "Выберите плейлист в боковой панели, чтобы просмотреть его здесь.",
+    "notFoundTitle": "Плейлист не найден",
+    "notFoundDescription": "Этот плейлист больше не существует в активном профиле."
+  },
+  "trackActions": {
+    "addToPlaylist": "Добавить в плейлист",
+    "noPlaylists": "Плейлиста пока нет. Создайте его ниже.",
+    "createPlaylist": "Новый плейлист",
+    "playNext": "Следующий",
+    "addToQueue": "Добавить в очередь",
+    "like": "Добавить в избранное",
+    "unlike": "Удалить из списка понравившихся песен",
+    "removeFromPlaylist": "Удалить из этого плейлиста",
+    "goToAlbum": "Перейти к альбому",
+    "goToArtist": "Перейти к исполнителю",
+    "showInExplorer": "Показать в проводнике",
+    "copyPath": "Скопировать путь к файлу",
+    "properties": "Свойства"
+  },
+  "trackProperties": {
+    "title": "Свойства трека",
+    "sections": {
+      "metadata": "Метаданные",
+      "audio": "Аудио",
+      "analysis": "Анализ",
+      "file": "Файл"
+    },
+    "bpm": "BPM",
+    "loudness": "Громкость",
+    "replayGain": "ReplayGain",
+    "peak": "Пик",
+    "analyze": "Проанализировать",
+    "reanalyze": "Провести повторный анализ",
+    "analyzing": "Анализ…",
+    "year": "Год",
+    "trackNumber": "Номер трека",
+    "duration": "Продолжительность",
+    "codec": "Кодек",
+    "bitDepth": "Разрядность",
+    "sampleRate": "Частота дискретизации",
+    "channels": "Каналы",
+    "bitrate": "Битрейт",
+    "key": "Ключ",
+    "fileSize": "Размер файла",
+    "addedAt": "Добавлено",
+    "filePath": "Путь",
+    "showInExplorer": "Показать в проводнике",
+    "mono": "Моно",
+    "stereo": "Стерео"
+  },
+  "selection": {
+    "toolbarLabel": "Действия по выбору",
+    "count_zero": "Выбрано 0",
+    "count_one": "{{count}} выбранный",
+    "count_other": "{{count}} выбранный",
+    "play": "Играть",
+    "addToQueue": "Добавить в очередь",
+    "playNext": "Следующий",
+    "addToPlaylist": "Добавить в плейлист",
+    "removeFromPlaylist": "Удалить из плейлиста",
+    "clear": "Очистить"
+  },
+  "albumDetail": {
+    "badge": "Альбом",
+    "playAll": "Воспроизвести все",
+    "shuffle": "Перемешать",
+    "trackCount_zero": "0 треков",
+    "trackCount_one": "{{count}} трек",
+    "trackCount_other": "{{count}} треки",
+    "discHeader": "Диск № {{number}}",
+    "releaseDate": "Выпущено",
+    "emptyTitle": "Альбом не найден",
+    "emptyDescription": "Этот альбом больше не существует в активном профиле.",
+    "emptyTracksTitle": "Нет следов",
+    "emptyTracksDescription": "В этом альбоме нет доступных треков."
+  },
+  "artistDetail": {
+    "badge": "Художник",
+    "playAll": "Воспроизвести все",
+    "shuffle": "Перемешать",
+    "discography": "Дискография",
+    "allTracks": "Все треки",
+    "trackCount_zero": "0 треков",
+    "trackCount_one": "{{count}} трек",
+    "trackCount_other": "{{count}} треки",
+    "albumCount_zero": "0 альбомов",
+    "albumCount_one": "{{count}} альбом",
+    "albumCount_other": "{{count}} альбомы",
+    "albumTrackCount_zero": "0 треков",
+    "albumTrackCount_one": "{{count}} трек",
+    "albumTrackCount_other": "{{count}} треки",
+    "emptyTitle": "Исполнитель не найден",
+    "emptyDescription": "Этот артист больше не имеет активного профиля.",
+    "bio": {
+      "title": "Биография"
+    }
+  },
+  "nowPlaying": {
+    "title": "Сейчас в эфире",
+    "empty": "Воспроизведение трека не выполняется",
+    "aboutArtist": "Об авторе",
+    "readMore": "Подробнее",
+    "readLess": "Свернуть",
+    "noBio": "Биография отсутствует. Настройте свой ключ Last.fm в разделе «Настройки».",
+    "lyrics": {
+      "title": "Текст песни",
+      "comingSoon": "Скоро"
+    }
+  },
+  "playerBar": {
+    "lyrics": "Текст песни",
+    "nowPlaying": "Просмотр текущего воспроизведения",
+    "queue": "Очередь"
+  },
+  "lyrics": {
+    "title": "Текст песни",
+    "loading": "Поиск текстов песен…",
+    "noTrack": "Воспроизведение трека не выполняется",
+    "notFound": "Текст песни для этого трека не найден. Вы можете импортировать файл .lrc.",
+    "importTitle": "Импортировать файл .lrc",
+    "actions": {
+      "import": "Импортировать файл .lrc",
+      "refetch": "Загрузить текст песни заново",
+      "clear": "Чистый текст песни"
+    },
+    "source": {
+      "embedded": "Включено в аудиофайл",
+      "lrc_file": "Импортированный файл .lrc",
+      "api": "LRCLIB",
+      "manual": "Ввод вручную"
+    }
+  },
+  "sort": {
+    "title": "Название",
+    "artist": "Художник",
+    "album": "Альбом",
+    "duration": "Продолжительность",
+    "year": "Год",
+    "addedAt": "Добавлено",
+    "rating": "Рейтинг",
+    "name": "Имя",
+    "albumsCount": "Альбомы",
+    "tracksCount": "Треки",
+    "ascending": "По возрастанию",
+    "descending": "По убыванию"
+  },
+  "settings": {
+    "title": "Настройки",
+    "sections": {
+      "general": "Общие сведения",
+      "playback": "Воспроизведение",
+      "integrations": "Интеграции",
+      "storage": "Хранение и данные"
+    },
+    "integrations": {
+      "lastfm": {
+        "title": "Last.fm",
+        "subtitle": "Биографии исполнителей и скроблинг. Создайте ключ по адресу last.fm/api/account/create",
+        "placeholder": "Ключ API",
+        "secretPlaceholder": "Общий секрет",
+        "save": "Сохранить",
+        "saved": "Сохранено ✓",
+        "show": "Показать",
+        "hide": "Скрыть",
+        "connectedAs": "Вошел под именем",
+        "disconnect": "Выйти",
+        "loginPrompt": "Войдите в систему, чтобы отслеживать прослушиваемые треки:",
+        "usernamePlaceholder": "Имя пользователя",
+        "passwordPlaceholder": "Пароль",
+        "connect": "Войти",
+        "connecting": "Вход в систему…"
+      }
+    },
+    "crossfade": {
+      "title": "Плавное переключение между композициями",
+      "subtitle": "Плавный переход между треками (скоро будет доступно)"
+    },
+    "normalize": {
+      "title": "Нормализовать громкость",
+      "subtitle": "Уменьшайте громкость громких треков, чтобы обеспечить стабильный уровень звучания"
+    },
+    "replayGain": {
+      "title": "Применить ReplayGain",
+      "subtitle": "Используйте проанализированный коэффициент усиления каждого трека, чтобы выровнять воспринимаемую громкость"
+    },
+    "mono": {
+      "title": "Монозвук",
+      "subtitle": "Объединить левый и правый каналы в один сигнал"
+    },
+    "language": {
+      "title": "Язык",
+      "subtitle": "Язык интерфейса"
+    },
+    "autoStart": {
+      "title": "Запускать при запуске системы",
+      "subtitle": "Автоматически запускать WaveFlow при загрузке системы"
+    },
+    "minimizeToTray": {
+      "title": "Свернуть в системный трей",
+      "subtitle": "При закрытии окна приложение сворачивается в панель задач"
+    },
+    "scanOnStart": {
+      "title": "Сканировать при запуске",
+      "subtitle": "Автоматически повторно сканировать библиотеки при запуске приложения"
+    },
+    "singleClickPlay": {
+      "title": "Нажмите один раз, чтобы воспроизвести",
+      "subtitle": "Один щелчок по треку запускает воспроизведение (в противном случае — двойной щелчок)"
+    },
+    "analyze": {
+      "title": "Анализ библиотеки",
+      "subtitle": "Рассчитать BPM, громкость и пиковые значения для треков, которые ещё не проанализированы",
+      "action": "Проанализировать",
+      "autoTitle": "Автоматический анализ",
+      "autoSubtitle": "Запускать анализатор в фоновом режиме после каждого сканирования, в результате которого добавляются новые дорожки",
+      "failed_one": "{{count}} неудача",
+      "failed_other": "{{count}} неудачи"
+    },
+    "rescan": {
+      "title": "Повторно просканировать библиотеку",
+      "subtitle": "Повторно пройти все папки и импортировать новые файлы",
+      "action": "Повторить сканирование"
+    },
+    "artistImages": {
+      "title": "Изображения художников",
+      "subtitle": "Загрузить обложки исполнителей из Deezer",
+      "action": "Загрузить"
+    },
+    "dataFolder": {
+      "title": "Папка «Данные»",
+      "subtitle": "Откройте папку, содержащую базу данных и обложки",
+      "action": "Открыть"
+    },
+    "openDataFolder": "Открыть папку с данными",
+    "regenerateThumbnails": "Обновить миниатюры",
+    "regenerateThumbnailsSubtitle": "Восстановить отсутствующие варианты 1x/2x для каждой обложки",
+    "regenerateThumbnailsAction": "Восстановить",
+    "regenerateThumbnailsDone": "{{count}} миниатюры обновлены",
+    "reset": {
+      "title": "Сбросить настройки приложения",
+      "subtitle": "Удалить все данные и вернуться к исходному состоянию",
+      "action": "Сброс"
+    }
+  }
+}

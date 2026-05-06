@@ -16,6 +16,9 @@ import kr from "./locales/kr.json";
 import nl from "./locales/nl.json";
 import ar from "./locales/ar.json";
 import hi from "./locales/hi.json";
+import ru from "./locales/ru.json";
+import id from "./locales/id.json";
+import tr from "./locales/tr.json";
 
 export interface SupportedLanguage {
   code: string;
@@ -37,6 +40,9 @@ export const SUPPORTED_LANGUAGES: readonly SupportedLanguage[] = [
   { code: "nl", nativeLabel: "Nederlands" },
   { code: "ar", nativeLabel: "العربية" },
   { code: "hi", nativeLabel: "हिन्दी" },
+  { code: "ru", nativeLabel: "Русский" },
+  { code: "id", nativeLabel: "Bahasa Indonesia" },
+  { code: "tr", nativeLabel: "Türkçe" },
 ] as const;
 
 const LOCAL_STORAGE_KEY = "waveflow-language";
@@ -81,6 +87,9 @@ void i18n
       nl: { translation: nl },
       ar: { translation: ar },
       hi: { translation: hi },
+      ru: { translation: ru },
+      id: { translation: id },
+      tr: { translation: tr },
     },
     fallbackLng: "fr",
     supportedLngs: [...SUPPORTED_LANGUAGE_CODES, "kr"],

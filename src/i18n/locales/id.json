@@ -1,0 +1,741 @@
+{
+  "common": {
+    "cancel": "Batal",
+    "back": "Kembali",
+    "save": "Simpan",
+    "close": "Tutup",
+    "confirm": "Konfirmasi",
+    "open": "Buka",
+    "optional": "(opsional)"
+  },
+  "lastfmReauth": {
+    "title": "Sesi Last.fm telah kedaluwarsa",
+    "message": "Scrobble Anda tidak lagi terkirim. Silakan masuk kembali untuk melanjutkan.",
+    "action": "Buka pengaturan"
+  },
+  "updater": {
+    "available": {
+      "title": "Tersedia pembaruan (v{{version}})",
+      "message": "Versi baru WaveFlow sudah siap diinstal.",
+      "action": "Pasang sekarang",
+      "later": "Nanti"
+    },
+    "downloading": {
+      "title": "Sedang mengunduh pembaruan…"
+    },
+    "installed": {
+      "title": "Pembaruan telah diinstal",
+      "message": "Mulai ulang WaveFlow untuk menerapkan versi baru."
+    },
+    "error": {
+      "title": "Pembaruan gagal"
+    }
+  },
+  "onboarding": {
+    "defaultLibraryName": "Musik",
+    "welcome": {
+      "title": "Selamat datang di WaveFlow",
+      "message": "Untuk memulai, arahkan WaveFlow ke folder tempat musik Anda disimpan. Kami akan memindai folder tersebut dan membuat perpustakaan musik Anda secara otomatis.",
+      "action": "Pilih folder musik saya",
+      "skip": "Atur nanti"
+    },
+    "scanning": {
+      "title": "Sedang memindai musik Anda…"
+    },
+    "done": {
+      "title": "{{count}} lagu telah ditambahkan",
+      "message": "Perpustakaan Anda sudah siap. Selamat menikmati!",
+      "action": "Mulailah mendengarkan"
+    },
+    "error": {
+      "title": "Pemindaian gagal",
+      "retry": "Coba lagi"
+    }
+  },
+  "sidebar": {
+    "brand": {
+      "beta": "Beta"
+    },
+    "nav": {
+      "home": "Beranda"
+    },
+    "sections": {
+      "open": "Buka",
+      "library": "Perpustakaan",
+      "playlists": "Daftar Putar"
+    },
+    "open": {
+      "file": "Berkas",
+      "folder": "Folder"
+    },
+    "library": {
+      "tracksCount_zero": "0 lagu",
+      "tracksCount_one": "{{count}} jalur",
+      "tracksCount_other": "{{count}} lagu",
+      "createLibraryAria": "Buat perpustakaan baru",
+      "none": "Tidak ada perpustakaan",
+      "popover": {
+        "label": "Pilihan perpustakaan",
+        "header": "Perpustakaan",
+        "countLine": "{{tracks}} · {{albums}}",
+        "tracks_zero": "0 lagu",
+        "tracks_one": "{{count}} jalur",
+        "tracks_other": "{{count}} lagu",
+        "albums_zero": "0 album",
+        "albums_one": "{{count}} album",
+        "albums_other": "{{count}} album",
+        "see": "Lihat",
+        "new": "Baru"
+      },
+      "nav": {
+        "tracks": "Lagu",
+        "albums": "Album",
+        "artists": "Seniman",
+        "genres": "Genre",
+        "explorer": "Penjelajah"
+      }
+    },
+    "playlists": {
+      "createPlaylistAria": "Buat daftar putar baru",
+      "importM3uAria": "Impor daftar putar M3U",
+      "importDialogTitle": "Impor daftar putar M3U",
+      "liked": "Lagu yang disukai",
+      "recent": "Baru-baru ini dimainkan",
+      "emptySubtext_zero": "0 lagu",
+      "emptySubtext_one": "{{count}} jalur",
+      "emptySubtext_other": "{{count}} lagu"
+    },
+    "myMusic": {
+      "title": "Musik Saya",
+      "addFolderAria": "Impor folder",
+      "tracks": "Lagu",
+      "albums": "Album",
+      "artists": "Seniman",
+      "genres": "Genre",
+      "folders": "Folder"
+    },
+    "playlistSection": {
+      "title": "Daftar Putar"
+    },
+    "myLibrary": {
+      "playlistSubtext_zero": "0 lagu",
+      "playlistSubtext_one": "{{count}} jalur",
+      "playlistSubtext_other": "{{count}} lagu"
+    }
+  },
+  "topbar": {
+    "search": {
+      "placeholder": "Cari lagu, artis, album...",
+      "results_zero": "Tidak ada hasil",
+      "results_one": "{{count}} hasil",
+      "results_other": "{{count}} hasil"
+    },
+    "theme": {
+      "enableLight": "Beralih ke mode terang",
+      "enableDark": "Beralih ke mode gelap"
+    },
+    "profile": {
+      "user": "Pengguna",
+      "changeProfile": "Ganti profil",
+      "statistics": "Statistik",
+      "settings": "Pengaturan",
+      "feedback": "Umpan balik",
+      "about": "Tentang",
+      "quit": "Keluar dari aplikasi"
+    }
+  },
+  "home": {
+    "greeting": {
+      "morning": "Selamat pagi",
+      "evening": "Selamat malam",
+      "night": "Selamat malam"
+    },
+    "banner": {
+      "badge": "Siap mendengarkan",
+      "subtitle": "Temukan musik favoritmu dan jelajahi alunan musik baru.",
+      "openFile": "Buka berkas",
+      "openFolder": "Buka folder",
+      "importFiles": "Impor berkas",
+      "importFolder": "Impor folder"
+    },
+    "stats": {
+      "library": "Perpustakaan",
+      "liked": "Lagu yang disukai",
+      "recent": "Baru-baru ini dimainkan",
+      "playlists": "Daftar Putar"
+    },
+    "recentlyPlayed": {
+      "title": "Baru-baru ini dimainkan",
+      "emptyTitle": "Belum ada lagu yang diputar",
+      "emptyDescription": "Putar sebuah lagu untuk melihatnya muncul di sini. Riwayat mendengarkan Anda akan terus bertambah seiring Anda menjelajah."
+    }
+  },
+  "library": {
+    "header": {
+      "addFolder": "Tambahkan folder",
+      "subtext": {
+        "morceaux_zero": "0 Lagu",
+        "morceaux_one": "{{count}} Lintasan",
+        "morceaux_other": "{{count}} Lagu",
+        "albums_zero": "0 Album",
+        "albums_one": "{{count}} Album",
+        "albums_other": "{{count}} Album",
+        "artistes_zero": "0 Seniman",
+        "artistes_one": "{{count}} Seniman",
+        "artistes_other": "{{count}} Seniman",
+        "genres_zero": "0 Genre",
+        "genres_one": "{{count}} Genre",
+        "genres_other": "{{count}} Genre",
+        "dossiers_zero": "0 Folder",
+        "dossiers_one": "{{count}} Folder",
+        "dossiers_other": "{{count}} Folder"
+      }
+    },
+    "tabs": {
+      "morceaux": "Lagu",
+      "albums": "Album",
+      "artistes": "Seniman",
+      "genres": "Genre",
+      "dossiers": "Folder"
+    },
+    "empty": {
+      "morceaux": {
+        "title": "Perpustakaan kosong",
+        "description": "Impor berkas audio atau folder untuk mengisi perpustakaan Anda."
+      },
+      "albums": {
+        "title": "Tidak ditemukan album",
+        "description": "Impor berkas audio untuk membuat album secara otomatis."
+      },
+      "artistes": {
+        "title": "Tidak ditemukan seniman",
+        "description": "Impor berkas audio untuk memulai."
+      },
+      "genres": {
+        "title": "Tidak ditemukan genre",
+        "description": "Impor berkas audio untuk menemukan genre."
+      },
+      "dossiers": {
+        "title": "Tidak ada folder yang diimpor",
+        "description": "Impor folder dari bilah tindakan untuk menelusurinya di sini."
+      }
+    },
+    "actions": {
+      "importFiles": "Impor berkas",
+      "importFolder": "Impor folder",
+      "share": "Bagikan (segera)",
+      "rescan": "Pindai ulang perpustakaan",
+      "rescanning": "Sedang memindai ulang…",
+      "changeArtwork": "Ganti gambar sampul (segera)",
+      "edit": "Edit perpustakaan",
+      "delete": "Hapus perpustakaan",
+      "deleteConfirm": "Klik lagi untuk mengonfirmasi"
+    },
+    "changeCover": "Ganti sampul",
+    "searchDeezer": "Pencarian Deezer",
+    "localFile": "Berkas lokal",
+    "fetchMissingCovers": "Ambil semua sampul yang belum ada",
+    "noCover": "Tanpa sampul",
+    "fetchingCovers": "Muat sampul... ({{current}} / {{total}})",
+    "table": {
+      "number": "#",
+      "title": "Judul",
+      "artist": "Seniman",
+      "album": "Album",
+      "duration": "Durasi",
+      "unknown": "—"
+    },
+    "rating": "Peringkat",
+    "noRating": "Belum ada penilaian",
+    "viewToggle": {
+      "label": "Mode tampilan",
+      "list": "Daftar",
+      "compact": "Ringkas"
+    },
+    "albumGrid": {
+      "trackCount_zero": "0 lagu",
+      "trackCount_one": "{{count}} jalur",
+      "trackCount_other": "{{count}} lagu"
+    },
+    "artistList": {
+      "trackCount_zero": "0 lagu",
+      "trackCount_one": "{{count}} jalur",
+      "trackCount_other": "{{count}} lagu",
+      "albumCount_zero": "0 album",
+      "albumCount_one": "{{count}} album",
+      "albumCount_other": "{{count}} album"
+    },
+    "genreList": {
+      "trackCount_zero": "0 lagu",
+      "trackCount_one": "{{count}} jalur",
+      "trackCount_other": "{{count}} lagu"
+    },
+    "folderList": {
+      "trackCount_zero": "0 lagu",
+      "trackCount_one": "{{count}} jalur",
+      "trackCount_other": "{{count}} lagu",
+      "lastScanned": "Dipindai: {{date}}",
+      "neverScanned": "tidak pernah",
+      "watched": "Telah ditonton",
+      "watchOn": "Perhatikan folder ini untuk mengetahui adanya perubahan",
+      "watchOff": "Berhenti memantau folder ini"
+    }
+  },
+  "liked": {
+    "badge": "Koleksi",
+    "title": "Lagu yang disukai",
+    "count_zero": "0 lagu",
+    "count_one": "{{count}} jalur",
+    "count_other": "{{count}} lagu",
+    "emptyTitle": "Tidak ada lagu yang disukai",
+    "emptyDescription": "Lagu-lagu yang Anda sukai akan muncul di sini. Jelajahi perpustakaan musik Anda dan beri tanda suka pada lagu-lagu favorit Anda.",
+    "playAll": "Putar semua",
+    "unlike": "Hapus dari daftar yang disukai",
+    "like": "Tambahkan ke daftar favorit"
+  },
+  "recent": {
+    "badge": "Sejarah",
+    "title": "Baru-baru ini dimainkan",
+    "count_zero": "0 lagu",
+    "count_one": "{{count}} jalur",
+    "count_other": "{{count}} lagu",
+    "emptyTitle": "Tidak ada riwayat terbaru",
+    "emptyDescription": "Lagu-lagu yang Anda dengarkan akan muncul di sini secara otomatis."
+  },
+  "statistics": {
+    "title": "Statistik",
+    "emptyTitle": "Tidak ada data statistik yang tersedia",
+    "emptyDescription": "Dengarkan musik agar statistik pendengaran Anda mulai muncul di sini.",
+    "range": {
+      "label": "Jangkauan",
+      "7d": "7 hari",
+      "30d": "30 hari",
+      "90d": "90 hari",
+      "1y": "1 tahun",
+      "all": "Sepanjang masa"
+    },
+    "kpi": {
+      "totalPlays": "Pertunjukan",
+      "totalTime": "Durasi mendengarkan",
+      "uniqueTracks": "Lagu-lagu unik",
+      "uniqueArtists_zero": "0 seniman",
+      "uniqueArtists_one": "{{count}} seniman",
+      "uniqueArtists_other": "{{count}} seniman",
+      "completionRate": "Tingkat penyelesaian"
+    },
+    "byDay": {
+      "title": "Aktivitas harian",
+      "empty": "Tidak ada yang mendengarkan selama periode ini."
+    },
+    "byHour": {
+      "title": "Mendengarkan per jam",
+      "empty": "Tidak ada yang mendengarkan selama periode ini.",
+      "tooltip": "{{hour}} h — Pertunjukan \"{{plays}}\""
+    },
+    "topTracks": {
+      "title": "Lagu terpopuler",
+      "empty": "Belum ada lagu yang diputar."
+    },
+    "topArtists": {
+      "title": "Artis terkemuka",
+      "empty": "Tidak ada artis yang tampil."
+    },
+    "topAlbums": {
+      "title": "Album teratas",
+      "empty": "Tidak ada album yang diputar."
+    },
+    "plays_zero": "0 kali diputar",
+    "plays_one": "{{count}} main",
+    "plays_other": "{{count}} pertunjukan"
+  },
+  "about": {
+    "title": "Tentang",
+    "hero": {
+      "subtitle": "Pemutar musik HD lintas platform",
+      "checkUpdates": "Periksa pembaruan",
+      "developedBy": "Dikembangkan oleh"
+    },
+    "sections": {
+      "frameworkDesktop": "Kerangka Kerja Desktop",
+      "frontend": "Antarmuka Pengguna",
+      "backend": "Backend (Rust)",
+      "audio": "Audio",
+      "shortcuts": "Pintasan keyboard",
+      "credits": "Kredit"
+    },
+    "shortcuts": {
+      "playPause": "Putar / Jeda",
+      "previousTrack": "Lagu sebelumnya",
+      "nextTrack": "Lagu berikutnya",
+      "volume": "Volume",
+      "mute": "Bisu",
+      "keys": {
+        "space": "Ruang"
+      }
+    },
+    "credits": {
+      "text": "Dirancang dan dibuat dengan penuh semangat. Didukung oleh teknologi sumber terbuka.",
+      "icons": "Ikon oleh Lucide, Phosphor, Mynaui, dan Iconify."
+    }
+  },
+  "feedback": {
+    "title": "Umpan balik",
+    "hero": {
+      "title": "Bantu kami meningkatkan WaveFlow",
+      "description": "Menemukan bug, punya ide untuk perbaikan, atau sekadar ingin berbagi pendapat? Kami membaca setiap pesan dan sangat menghargai saran-saran Anda."
+    },
+    "contact": {
+      "section": "Hubungi kami",
+      "subtitle": "Ada masalah, saran, atau pertanyaan? — Kami membaca setiap pesan"
+    }
+  },
+  "player": {
+    "noTrack": "Tidak ada trek",
+    "inactive": "Tidak aktif",
+    "controls": {
+      "play": "Mainkan",
+      "pause": "Jeda",
+      "previous": "Sebelumnya",
+      "next": "Selanjutnya",
+      "shuffleOn": "Nonaktifkan pengacakan",
+      "shuffleOff": "Aktifkan mode acak",
+      "repeatOff": "Aktifkan pengulangan",
+      "repeatAll": "Putar ulang satu lagu",
+      "repeatOne": "Nonaktifkan pengulangan"
+    },
+    "volume": {
+      "label": "Volume",
+      "mute": "Bisu",
+      "unmute": "Aktifkan suara"
+    }
+  },
+  "queue": {
+    "title": "Antrean",
+    "inactive": "TIDAK AKTIF",
+    "count_zero": "0 lagu",
+    "count_one": "{{count}} jalur",
+    "count_other": "{{count}} lagu",
+    "emptyTitle": "Tidak ada yang bisa dimainkan",
+    "emptyDescription": "Putar beberapa lagu dari perpustakaan musik Anda untuk mengisi antrean.",
+    "nowPlaying": "Sedang diputar",
+    "upNext_zero": "Selanjutnya",
+    "upNext_one": "Selanjutnya · Lagu \"{{count}}\"",
+    "upNext_other": "Selanjutnya · Lagu-lagu dari album \"{{count}}\""
+  },
+  "deviceMenu": {
+    "activeLabel": "Output aktif",
+    "loading": "Mencari perangkat…",
+    "empty": "Tidak ada perangkat keluaran yang tersedia",
+    "systemDefault": "Pengaturan default sistem"
+  },
+  "profiles": {
+    "select": {
+      "title": "Siapa yang mendengarkan?",
+      "subtitle": "Pilih profil Anda untuk melihat perpustakaan dan daftar putar Anda",
+      "add": "Tambahkan",
+      "edit": "Edit",
+      "active": "Profil aktif",
+      "switchTo": "Tombol"
+    },
+    "create": {
+      "title": "Profil baru",
+      "subtitle": "Buat profil untuk menyesuaikan pengalaman Anda",
+      "nameLabel": "Nama profil",
+      "namePlaceholder": "Masukkan nama...",
+      "colorLabel": "Warna profil",
+      "colorAria": "{{color}} warna",
+      "submit": "Buat profil"
+    }
+  },
+  "libraryModal": {
+    "title": "Buat Perpustakaan",
+    "editTitle": "Edit Perpustakaan",
+    "previewDefault": "Buat Perpustakaan",
+    "previewSubtitle": "0 lagu · Perpustakaan",
+    "nameLabel": "Nama perpustakaan",
+    "namePlaceholder": "Misalnya: Rock, Jazz, Klasik...",
+    "descriptionLabel": "Deskripsi",
+    "descriptionPlaceholder": "Deskripsi singkat...",
+    "submit": "Buat Perpustakaan",
+    "submitEdit": "Simpan"
+  },
+  "playlistModal": {
+    "title": "Daftar putar baru",
+    "editTitle": "Edit daftar putar",
+    "previewDefault": "Daftar putar baru",
+    "previewSubtitle": "0 lagu · Daftar Putar",
+    "nameLabel": "Nama",
+    "namePlaceholder": "Misalnya: Chill Vibes, Workout Mix...",
+    "descriptionLabel": "Deskripsi",
+    "descriptionPlaceholder": "Deskripsi singkat...",
+    "colorLabel": "Warna",
+    "colorAria": "{{color}} warna",
+    "iconLabel": "Ikon",
+    "iconAria": "{{icon}} ikon",
+    "submit": "Buat",
+    "editSubmit": "Simpan"
+  },
+  "playlistView": {
+    "badge": "Daftar Putar",
+    "trackCount_zero": "0 lagu",
+    "trackCount_one": "{{count}} jalur",
+    "trackCount_other": "{{count}} lagu",
+    "actions": {
+      "play": "Mainkan",
+      "shuffle": "Putar acak",
+      "edit": "Edit daftar putar",
+      "exportM3u": "Ekspor sebagai M3U",
+      "delete": "Hapus daftar putar",
+      "deleteConfirm": "Klik lagi untuk mengonfirmasi"
+    },
+    "export": {
+      "dialogTitle": "Ekspor daftar putar sebagai M3U"
+    },
+    "emptyTitle": "Daftar putar ini kosong",
+    "emptyDescription": "Tambahkan lagu dari perpustakaan Anda menggunakan tombol + pada setiap baris.",
+    "noneTitle": "Belum ada daftar putar yang dipilih",
+    "noneDescription": "Pilih daftar putar dari bilah samping untuk melihatnya di sini.",
+    "notFoundTitle": "Daftar putar tidak ditemukan",
+    "notFoundDescription": "Daftar putar ini tidak lagi tersedia di profil aktif."
+  },
+  "trackActions": {
+    "addToPlaylist": "Tambahkan ke daftar putar",
+    "noPlaylists": "Belum ada daftar putar. Buatlah di bawah ini.",
+    "createPlaylist": "Daftar putar baru",
+    "playNext": "Mainkan berikutnya",
+    "addToQueue": "Tambahkan ke antrean",
+    "like": "Tambahkan ke daftar lagu favorit",
+    "unlike": "Hapus dari daftar lagu yang disukai",
+    "removeFromPlaylist": "Hapus dari daftar putar ini",
+    "goToAlbum": "Buka album",
+    "goToArtist": "Lihat artis",
+    "showInExplorer": "Tampilkan di Penjelajah File",
+    "copyPath": "Salin jalur file",
+    "properties": "Properti"
+  },
+  "trackProperties": {
+    "title": "Properti trek",
+    "sections": {
+      "metadata": "Metadata",
+      "audio": "Audio",
+      "analysis": "Analisis",
+      "file": "Berkas"
+    },
+    "bpm": "BPM",
+    "loudness": "Kekerasan suara",
+    "replayGain": "ReplayGain",
+    "peak": "Puncak",
+    "analyze": "Menganalisis",
+    "reanalyze": "Lakukan analisis ulang",
+    "analyzing": "Sedang menganalisis…",
+    "year": "Tahun",
+    "trackNumber": "Lagu #",
+    "duration": "Durasi",
+    "codec": "Codec",
+    "bitDepth": "Kedalaman bit",
+    "sampleRate": "Laju sampel",
+    "channels": "Saluran",
+    "bitrate": "Kecepatan bit",
+    "key": "Kunci",
+    "fileSize": "Ukuran file",
+    "addedAt": "Ditambahkan",
+    "filePath": "Jalur",
+    "showInExplorer": "Tampilkan di Penjelajah File",
+    "mono": "Mono",
+    "stereo": "Stereo"
+  },
+  "selection": {
+    "toolbarLabel": "Tindakan seleksi",
+    "count_zero": "0 dipilih",
+    "count_one": "{{count}} terpilih",
+    "count_other": "{{count}} terpilih",
+    "play": "Mainkan",
+    "addToQueue": "Tambahkan ke antrean",
+    "playNext": "Mainkan berikutnya",
+    "addToPlaylist": "Tambahkan ke daftar putar",
+    "removeFromPlaylist": "Hapus dari daftar putar",
+    "clear": "Jelas"
+  },
+  "albumDetail": {
+    "badge": "Album",
+    "playAll": "Putar semua",
+    "shuffle": "Acak",
+    "trackCount_zero": "0 lagu",
+    "trackCount_one": "{{count}} jalur",
+    "trackCount_other": "{{count}} lagu",
+    "discHeader": "Disk ke-{{number}}",
+    "releaseDate": "Dirilis",
+    "emptyTitle": "Album tidak ditemukan",
+    "emptyDescription": "Album ini tidak lagi ada di profil aktif.",
+    "emptyTracksTitle": "Tidak ada jejak",
+    "emptyTracksDescription": "Album ini tidak memiliki lagu yang tersedia."
+  },
+  "artistDetail": {
+    "badge": "Seniman",
+    "playAll": "Putar semua",
+    "shuffle": "Acak",
+    "discography": "Diskografi",
+    "allTracks": "Semua lagu",
+    "trackCount_zero": "0 lagu",
+    "trackCount_one": "{{count}} jalur",
+    "trackCount_other": "{{count}} lagu",
+    "albumCount_zero": "0 album",
+    "albumCount_one": "{{count}} album",
+    "albumCount_other": "{{count}} album",
+    "albumTrackCount_zero": "0 lagu",
+    "albumTrackCount_one": "{{count}} jalur",
+    "albumTrackCount_other": "{{count}} lagu",
+    "emptyTitle": "Seniman tidak ditemukan",
+    "emptyDescription": "Seniman ini tidak lagi terdaftar dalam profil aktif.",
+    "bio": {
+      "title": "Biografi"
+    }
+  },
+  "nowPlaying": {
+    "title": "Sedang diputar",
+    "empty": "Tidak ada lagu yang diputar",
+    "aboutArtist": "Tentang seniman",
+    "readMore": "Baca selengkapnya",
+    "readLess": "Baca lebih sedikit",
+    "noBio": "Tidak ada biografi yang tersedia. Atur kunci Last.fm Anda di Pengaturan.",
+    "lyrics": {
+      "title": "Lirik",
+      "comingSoon": "Segera hadir"
+    }
+  },
+  "playerBar": {
+    "lyrics": "Lirik",
+    "nowPlaying": "Layar yang sedang diputar",
+    "queue": "Antrean"
+  },
+  "lyrics": {
+    "title": "Lirik",
+    "loading": "Mencari lirik…",
+    "noTrack": "Tidak ada lagu yang diputar",
+    "notFound": "Tidak ditemukan lirik untuk lagu ini. Anda dapat mengimpor berkas .lrc.",
+    "importTitle": "Impor berkas .lrc",
+    "actions": {
+      "import": "Impor berkas .lrc",
+      "refetch": "Muat ulang lirik",
+      "clear": "Lirik yang jelas"
+    },
+    "source": {
+      "embedded": "Tersemat dalam berkas audio",
+      "lrc_file": "Berkas .lrc yang diimpor",
+      "api": "LRCLIB",
+      "manual": "Pencatatan manual"
+    }
+  },
+  "sort": {
+    "title": "Judul",
+    "artist": "Seniman",
+    "album": "Album",
+    "duration": "Durasi",
+    "year": "Tahun",
+    "addedAt": "Ditambahkan",
+    "rating": "Peringkat",
+    "name": "Nama",
+    "albumsCount": "Album",
+    "tracksCount": "Lagu",
+    "ascending": "Naik",
+    "descending": "Menurun"
+  },
+  "settings": {
+    "title": "Pengaturan",
+    "sections": {
+      "general": "Umum",
+      "playback": "Pemutaran",
+      "integrations": "Integrasi",
+      "storage": "Penyimpanan & Data"
+    },
+    "integrations": {
+      "lastfm": {
+        "title": "Last.fm",
+        "subtitle": "Biografi artis dan scrobbling. Buat kunci di last.fm/api/account/create",
+        "placeholder": "Kunci API",
+        "secretPlaceholder": "Rahasia bersama",
+        "save": "Simpan",
+        "saved": "Tersimpan ✓",
+        "show": "Tampilkan",
+        "hide": "Sembunyikan",
+        "connectedAs": "Masuk sebagai",
+        "disconnect": "Keluar",
+        "loginPrompt": "Masuk untuk mencatat lagu yang Anda dengarkan:",
+        "usernamePlaceholder": "Nama Pengguna",
+        "passwordPlaceholder": "Kata sandi",
+        "connect": "Masuk",
+        "connecting": "Sedang masuk…"
+      }
+    },
+    "crossfade": {
+      "title": "Menyambungkan lagu secara bertahap",
+      "subtitle": "Transisi yang mulus antar lagu (segera hadir)"
+    },
+    "normalize": {
+      "title": "Atur volume",
+      "subtitle": "Kurangi volume pada lagu-lagu yang keras agar tingkat kenyamanan mendengarkan tetap konsisten"
+    },
+    "replayGain": {
+      "title": "Terapkan ReplayGain",
+      "subtitle": "Gunakan nilai gain yang telah dianalisis pada setiap trek untuk menyeimbangkan tingkat kenyaringan yang dirasakan"
+    },
+    "mono": {
+      "title": "Audio mono",
+      "subtitle": "Gabungkan saluran kiri dan kanan menjadi satu sinyal"
+    },
+    "language": {
+      "title": "Bahasa",
+      "subtitle": "Bahasa antarmuka"
+    },
+    "autoStart": {
+      "title": "Jalankan saat startup",
+      "subtitle": "Jalankan WaveFlow secara otomatis saat sistem dinyalakan"
+    },
+    "minimizeToTray": {
+      "title": "Pindahkan ke baki sistem",
+      "subtitle": "Menutup jendela akan meminimalkan aplikasi ke area baki"
+    },
+    "scanOnStart": {
+      "title": "Pindai saat startup",
+      "subtitle": "Pindai ulang perpustakaan secara otomatis saat aplikasi dibuka"
+    },
+    "singleClickPlay": {
+      "title": "Klik sekali untuk memutar",
+      "subtitle": "Cukup klik sekali pada trek untuk memulai pemutaran (jika tidak, klik dua kali)"
+    },
+    "analyze": {
+      "title": "Menganalisis perpustakaan",
+      "subtitle": "Hitung BPM, tingkat kenyaringan, dan nilai puncak untuk trek yang belum dianalisis",
+      "action": "Menganalisis",
+      "autoTitle": "Analisis otomatis",
+      "autoSubtitle": "Jalankan alat analisis di latar belakang setelah setiap pemindaian yang menambahkan trek baru",
+      "failed_one": "{{count}} kegagalan",
+      "failed_other": "{{count}} kegagalan"
+    },
+    "rescan": {
+      "title": "Pindai ulang perpustakaan",
+      "subtitle": "Periksa kembali semua folder dan impor file-file baru",
+      "action": "Pindai ulang"
+    },
+    "artistImages": {
+      "title": "Gambar seniman",
+      "subtitle": "Ambil karya seni artis dari Deezer",
+      "action": "Ambil"
+    },
+    "dataFolder": {
+      "title": "Folder data",
+      "subtitle": "Buka folder yang berisi basis data dan gambar sampul",
+      "action": "Buka"
+    },
+    "openDataFolder": "Buka folder data",
+    "regenerateThumbnails": "Buat ulang gambar mini",
+    "regenerateThumbnailsSubtitle": "Buat ulang varian 1x/2x yang hilang untuk setiap sampul",
+    "regenerateThumbnailsAction": "Memperbarui",
+    "regenerateThumbnailsDone": "{{count}} gambar mini telah diperbarui",
+    "reset": {
+      "title": "Atur ulang aplikasi",
+      "subtitle": "Hapus semua data dan kembalikan ke kondisi semula",
+      "action": "Atur Ulang"
+    }
+  }
+}
