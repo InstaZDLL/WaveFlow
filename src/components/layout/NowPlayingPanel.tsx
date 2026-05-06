@@ -26,7 +26,7 @@ interface NowPlayingPanelProps {
  */
 export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
   const { t } = useTranslation();
-  const { isNowPlayingOpen, toggleNowPlaying, currentTrack } = usePlayer();
+  const { toggleNowPlaying, currentTrack } = usePlayer();
 
   // Enrichment (picture + bio) for the current artist. Re-fetched
   // whenever the primary artist_id changes.
@@ -77,8 +77,7 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
 
   return (
     <div
-      className={`absolute top-0 right-0 h-full w-80 shadow-2xl transform transition-transform duration-300 z-40 border-l bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100
-        ${isNowPlayingOpen ? "translate-x-0" : "translate-x-full"}`}
+      className="absolute top-0 right-0 h-full w-80 shadow-2xl z-40 border-l bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100"
     >
       <div className="flex flex-col h-full overflow-y-auto">
         {/* Header */}

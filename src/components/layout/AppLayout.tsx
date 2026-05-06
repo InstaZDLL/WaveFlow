@@ -3,6 +3,7 @@ import type { ViewId, LibraryTab } from "../../types";
 import { useTheme } from "../../hooks/useTheme";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
+import { usePlayer } from "../../hooks/usePlayer";
 import {
   getProfileSetting,
   setProfileSetting,
@@ -12,6 +13,7 @@ import { TopBar } from "./TopBar";
 import { QueuePanel } from "./QueuePanel";
 import { NowPlayingPanel } from "./NowPlayingPanel";
 import { LyricsPanel } from "./LyricsPanel";
+import { NowPlayingChevronTab } from "./NowPlayingChevronTab";
 import { DeviceMenu } from "./DeviceMenu";
 import { PlayerBar } from "../player/PlayerBar";
 import { HomeView } from "../views/HomeView";
@@ -33,6 +35,7 @@ import { PageScrollContext } from "../../contexts/PageScrollContext";
 
 export function AppLayout() {
   const { isDark } = useTheme();
+  const { activeRightPanel } = usePlayer();
   const [viewHistory, setViewHistory] = useState<ViewId[]>(["home"]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -263,11 +266,17 @@ export function AppLayout() {
               </PageScrollContext.Provider>
             </div>
 
-            {/* Right Panels (Overlays) — mutually exclusive via PlayerContext */}
+            {/* Right Panels — only one is mounted at a time. The
+                conditional render is the structural mutex; transitions
+                are intentionally skipped to avoid the previous bug
+                where two panels could be visible mid-animation. */}
             <DeviceMenu />
-            <QueuePanel />
-            <NowPlayingPanel onNavigateToArtist={navigateToArtist} />
-            <LyricsPanel />
+            <NowPlayingChevronTab />
+            {activeRightPanel === "queue" && <QueuePanel />}
+            {activeRightPanel === "nowPlaying" && (
+              <NowPlayingPanel onNavigateToArtist={navigateToArtist} />
+            )}
+            {activeRightPanel === "lyrics" && <LyricsPanel />}
           </div>
         </div>
 

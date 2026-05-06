@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Menu, MonitorSpeaker, Heart, Mic2, PanelRight } from "lucide-react";
+import { Menu, MonitorSpeaker, Heart, Mic2 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
@@ -19,8 +19,6 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   const {
     isQueueOpen,
     toggleQueue,
-    isNowPlayingOpen,
-    toggleNowPlaying,
     isLyricsOpen,
     toggleLyrics,
     isDeviceMenuOpen,
@@ -124,21 +122,6 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
           }`}
         >
           <Mic2 size={20} />
-        </button>
-
-        {/* Now Playing panel */}
-        <button
-          type="button"
-          onClick={toggleNowPlaying}
-          aria-label={t("playerBar.nowPlaying")}
-          title={t("playerBar.nowPlaying")}
-          className={`p-2 rounded-lg transition-colors ${
-            isNowPlayingOpen
-              ? "text-emerald-500"
-              : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
-          }`}
-        >
-          <PanelRight size={20} />
         </button>
 
         <button

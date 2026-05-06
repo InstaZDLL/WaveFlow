@@ -387,6 +387,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   return (
     <PlayerContext.Provider
       value={{
+        activeRightPanel,
         isQueueOpen,
         toggleQueue,
         isNowPlayingOpen,

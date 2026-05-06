@@ -14,6 +14,9 @@ export type PlaybackState =
 
 interface PlayerContextValue {
   // UI-only state (not persisted)
+  /** Which right-edge panel is currently open. Mutually exclusive by
+   *  construction — at most one panel is rendered at a time. */
+  activeRightPanel: "queue" | "nowPlaying" | "lyrics" | null;
   isQueueOpen: boolean;
   toggleQueue: () => void;
   isNowPlayingOpen: boolean;
