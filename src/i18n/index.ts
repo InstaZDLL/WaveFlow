@@ -47,9 +47,57 @@ export const SUPPORTED_LANGUAGES: readonly SupportedLanguage[] = [
 
 const LOCAL_STORAGE_KEY = "waveflow-language";
 const SUPPORTED_LANGUAGE_CODES = SUPPORTED_LANGUAGES.map((lang) => lang.code);
+// Map common BCP-47 regional variants we don't ship explicit resources
+// for back to one of our supported codes. The browser language detector
+// runs detected codes through `normalizeSupportedLanguageCode`, so an
+// OS reporting `fr-FR` or `en-US` lands on `fr` / `en` instead of
+// falling all the way to the fallback language.
 const LANGUAGE_ALIASES: Record<string, string> = {
+  // Korean — historical "kr" code (the file is still kr.json)
   kr: "ko",
   "ko-KR": "ko",
+  // Chinese — pick simplified by default for ambiguous codes; preserve
+  // explicit traditional/simplified BCP-47 distinctions.
+  zh: "zh-CN",
+  "zh-Hans": "zh-CN",
+  "zh-Hans-CN": "zh-CN",
+  "zh-SG": "zh-CN",
+  "zh-Hant": "zh-TW",
+  "zh-Hant-TW": "zh-TW",
+  "zh-HK": "zh-TW",
+  "zh-MO": "zh-TW",
+  // Latin-script regional variants
+  "fr-FR": "fr",
+  "fr-CA": "fr",
+  "fr-BE": "fr",
+  "fr-CH": "fr",
+  "en-US": "en",
+  "en-GB": "en",
+  "en-AU": "en",
+  "en-CA": "en",
+  "en-NZ": "en",
+  "en-IE": "en",
+  "es-ES": "es",
+  "es-MX": "es",
+  "es-AR": "es",
+  "es-CL": "es",
+  "es-CO": "es",
+  "de-DE": "de",
+  "de-AT": "de",
+  "de-CH": "de",
+  "it-IT": "it",
+  "it-CH": "it",
+  "pt-PT": "pt",
+  "ja-JP": "ja",
+  "nl-NL": "nl",
+  "nl-BE": "nl",
+  "ar-SA": "ar",
+  "ar-EG": "ar",
+  "ar-AE": "ar",
+  "hi-IN": "hi",
+  "ru-RU": "ru",
+  "id-ID": "id",
+  "tr-TR": "tr",
 };
 
 export function normalizeSupportedLanguageCode(code: string | undefined) {
@@ -91,9 +139,16 @@ void i18n
       id: { translation: id },
       tr: { translation: tr },
     },
-    fallbackLng: "fr",
+    // English as fallback — universal enough that a user whose locale
+    // we don't ship can still find their way around. (French is the
+    // source language but is much narrower than English in practice.)
+    fallbackLng: "en",
     supportedLngs: [...SUPPORTED_LANGUAGE_CODES, "kr"],
-    nonExplicitSupportedLngs: true,
+    // No `nonExplicitSupportedLngs`: it caused i18next to coerce
+    // `zh-CN` and `zh-TW` to a bare `zh` code that has no resource,
+    // silently falling back to `fallbackLng` even though the user
+    // explicitly picked a Chinese variant. Regional variants are
+    // pre-normalised via `convertDetectedLanguage` instead.
     interpolation: {
       escapeValue: false,
     },
@@ -101,6 +156,7 @@ void i18n
       order: ["localStorage", "navigator"],
       caches: ["localStorage"],
       lookupLocalStorage: LOCAL_STORAGE_KEY,
+      convertDetectedLanguage: normalizeSupportedLanguageCode,
     },
   })
   .then(() => {

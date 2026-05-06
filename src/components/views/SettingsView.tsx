@@ -600,7 +600,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   }, []);
 
   const handleLanguageChange = (code: string) => {
-    i18n.changeLanguage(code);
+    i18n.changeLanguage(code).catch((err) => {
+      console.error("[i18n] changeLanguage failed", err);
+    });
   };
 
   const handleOpenDataFolder = useCallback(async () => {
