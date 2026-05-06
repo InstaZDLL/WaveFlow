@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.svg" width="80" alt="WaveFlow logo" />
+  <img src="assets/logo.svg" width="80" alt="WaveFlow logo" />
 </p>
 
 <h1 align="center">WaveFlow</h1>
