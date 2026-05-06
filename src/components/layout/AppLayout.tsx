@@ -1,7 +1,8 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { ViewId, LibraryTab } from "../../types";
 import { useTheme } from "../../hooks/useTheme";
 import { useLibrary } from "../../hooks/useLibrary";
+import { useProfile } from "../../hooks/useProfile";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { QueuePanel } from "./QueuePanel";
@@ -38,16 +39,49 @@ export function AppLayout() {
   const [activeAlbumId, setActiveAlbumId] = useState<number | null>(null);
   const [activeArtistId, setActiveArtistId] = useState<number | null>(null);
 
-  // First-run onboarding: prompt the user to point WaveFlow at a music
-  // folder when no library has been populated yet. Skipping is session-
-  // only — if they restart with an empty library, the modal returns.
+  // First-run onboarding: prompt the user to point WaveFlow at a
+  // music folder when no library has been populated yet. Skipping is
+  // session-only — if they restart with an empty library, the modal
+  // returns.
+  //
+  // The decision to show the modal is **latched once per session**:
+  // we wait until both `ProfileProvider` and `LibraryProvider` have
+  // settled their first fetch with a non-null active profile, then
+  // commit the answer to a `useState` and never recompute it until
+  // the user dismisses or the active profile changes.
+  //
+  // Why not a memo: the loading flags transition through several
+  // intermediate states during boot (no profile → profile loaded →
+  // library fetching with stale empty list → library settled). A
+  // memo recomputes on every dep change, so any of those steps that
+  // briefly satisfied the "show" condition would flash the modal
+  // before the next render flipped it back off. A latched state
+  // ignores those transients.
   const { libraries, isLoading: isLibraryLoading } = useLibrary();
-  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
-  const showOnboarding = useMemo(() => {
-    if (isLibraryLoading || onboardingDismissed) return false;
-    if (libraries.length === 0) return true;
-    return libraries.every((l) => l.folder_count === 0);
-  }, [isLibraryLoading, libraries, onboardingDismissed]);
+  const { activeProfile, isLoading: isProfileLoading } = useProfile();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  // Tracks the active profile id we've already evaluated against, so
+  // a profile switch re-runs the gate exactly once.
+  const evaluatedProfileId = useRef<number | null>(null);
+
+  useEffect(() => {
+    // Wait for both providers to finish their first fetch.
+    if (isProfileLoading || isLibraryLoading) return;
+    // Backend bootstrap may still be activating a profile.
+    if (!activeProfile) return;
+    // Already decided for this profile — don't second-guess.
+    if (evaluatedProfileId.current === activeProfile.id) return;
+
+    evaluatedProfileId.current = activeProfile.id;
+    const isEmpty =
+      libraries.length === 0 ||
+      libraries.every((l) => l.folder_count === 0);
+    setShowOnboarding(isEmpty);
+  }, [activeProfile, isProfileLoading, isLibraryLoading, libraries]);
+
+  const dismissOnboarding = useCallback(() => {
+    setShowOnboarding(false);
+  }, []);
 
   const activeView = viewHistory[historyIndex];
 
@@ -208,9 +242,7 @@ export function AppLayout() {
 
       <LastfmReauthBanner onGoToSettings={() => setActiveView("settings")} />
       <UpdateBanner />
-      {showOnboarding && (
-        <OnboardingModal onSkip={() => setOnboardingDismissed(true)} />
-      )}
+      {showOnboarding && <OnboardingModal onSkip={dismissOnboarding} />}
     </div>
   );
 }
