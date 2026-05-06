@@ -3,6 +3,10 @@ import type { ViewId, LibraryTab } from "../../types";
 import { useTheme } from "../../hooks/useTheme";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
+import {
+  getProfileSetting,
+  setProfileSetting,
+} from "../../lib/tauri/profile";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { QueuePanel } from "./QueuePanel";
@@ -40,23 +44,24 @@ export function AppLayout() {
   const [activeArtistId, setActiveArtistId] = useState<number | null>(null);
 
   // First-run onboarding: prompt the user to point WaveFlow at a
-  // music folder when no library has been populated yet. Skipping is
-  // session-only — if they restart with an empty library, the modal
-  // returns.
+  // music folder when no library has been populated yet.
   //
-  // The decision to show the modal is **latched once per session**:
-  // we wait until both `ProfileProvider` and `LibraryProvider` have
-  // settled their first fetch with a non-null active profile, then
-  // commit the answer to a `useState` and never recompute it until
-  // the user dismisses or the active profile changes.
+  // The decision is **latched once per profile** at the end of the
+  // initial fetch and persisted across sessions via the
+  // `onboarding.dismissed` profile setting. Concretely:
+  //   1. wait for ProfileProvider + LibraryProvider to settle their
+  //      first fetch with a non-null `activeProfile`;
+  //   2. read `profile_setting['onboarding.dismissed']`. If `true`,
+  //      the user has already said "configure later" or completed
+  //      the flow on a previous launch — never bother them again
+  //      for this profile;
+  //   3. otherwise, show the modal iff the library is empty.
   //
-  // Why not a memo: the loading flags transition through several
-  // intermediate states during boot (no profile → profile loaded →
-  // library fetching with stale empty list → library settled). A
-  // memo recomputes on every dep change, so any of those steps that
-  // briefly satisfied the "show" condition would flash the modal
-  // before the next render flipped it back off. A latched state
-  // ignores those transients.
+  // Why a latched state and not a memo: the loading flags
+  // transition through several intermediate values during boot, and
+  // a memo recomputed on every render would briefly satisfy "show"
+  // mid-boot before flipping back — that's the flash the modal
+  // used to do.
   const { libraries, isLoading: isLibraryLoading } = useLibrary();
   const { activeProfile, isLoading: isProfileLoading } = useProfile();
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -65,22 +70,48 @@ export function AppLayout() {
   const evaluatedProfileId = useRef<number | null>(null);
 
   useEffect(() => {
-    // Wait for both providers to finish their first fetch.
     if (isProfileLoading || isLibraryLoading) return;
-    // Backend bootstrap may still be activating a profile.
     if (!activeProfile) return;
-    // Already decided for this profile — don't second-guess.
     if (evaluatedProfileId.current === activeProfile.id) return;
 
-    evaluatedProfileId.current = activeProfile.id;
-    const isEmpty =
-      libraries.length === 0 ||
-      libraries.every((l) => l.folder_count === 0);
-    setShowOnboarding(isEmpty);
+    const profileId = activeProfile.id;
+    evaluatedProfileId.current = profileId;
+
+    let cancelled = false;
+    (async () => {
+      let dismissed = false;
+      try {
+        const raw = await getProfileSetting("onboarding.dismissed");
+        dismissed = raw === "true";
+      } catch (err) {
+        // Read failure is non-fatal — fall back to "not dismissed"
+        // so a brand new profile still gets the prompt.
+        console.error("[AppLayout] read onboarding.dismissed failed", err);
+      }
+      if (cancelled || evaluatedProfileId.current !== profileId) return;
+      if (dismissed) {
+        setShowOnboarding(false);
+        return;
+      }
+      const isEmpty =
+        libraries.length === 0 ||
+        libraries.every((l) => l.folder_count === 0);
+      setShowOnboarding(isEmpty);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [activeProfile, isProfileLoading, isLibraryLoading, libraries]);
 
   const dismissOnboarding = useCallback(() => {
+    // Persist the choice so the modal doesn't reappear on next
+    // launch — the user already told us to leave them alone, even
+    // if their library is still empty.
     setShowOnboarding(false);
+    setProfileSetting("onboarding.dismissed", "true", "bool").catch((err) =>
+      console.error("[AppLayout] persist onboarding.dismissed failed", err),
+    );
   }, []);
 
   const activeView = viewHistory[historyIndex];
