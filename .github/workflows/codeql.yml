@@ -89,6 +89,14 @@ jobs:
           languages: rust
           build-mode: none
           queries: security-extended
+          config: |
+            paths-ignore:
+              # Vendored glib 0.18.5 with RUSTSEC-2024-0429 backported
+              # (see src-tauri/vendor/glib-0.18.5/PATCHES.md). We don't
+              # review third-party upstream through CodeQL, and Rust
+              # unsafe blocks raise large amounts of false positives.
+              - 'src-tauri/vendor/**'
+              - 'src-tauri/target/**'
 
       - uses: github/codeql-action/analyze@v4
         with:
