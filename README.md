@@ -25,9 +25,12 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
 
 Pre-built bundles for every tagged release are on the [GitHub Releases page](https://github.com/InstaZDLL/WaveFlow/releases/latest):
 
-- **Linux** — `WaveFlow_<ver>_linux-x86_64.AppImage` (chmod +x then run)
-- **Windows** — `WaveFlow_<ver>_windows-x86_64-setup.exe` (Authenticode-signed)
-- **macOS** — `WaveFlow_<ver>_macos-universal.dmg` (Intel + Apple Silicon; not yet Apple-Developer-signed, so right-click → Open on first launch to bypass Gatekeeper)
+- **Linux** — `WaveFlow_<ver>_linux-x86_64.AppImage` (`chmod +x` then run)
+- **Windows** — `WaveFlow_<ver>_windows-x86_64-setup.exe` (Authenticode-signed). SmartScreen may still warn the first few users with a fresh certificate — click **More info → Run anyway** until reputation accumulates.
+- **macOS** — `WaveFlow_<ver>_macos-universal.dmg` (Intel + Apple Silicon). The build is **not Apple-Developer-signed yet**, so Gatekeeper will block the first launch:
+  - macOS 14 (Sonoma) and earlier: **right-click the app → Open**, confirm the dialog.
+  - macOS 15 (Sequoia) and later: launch normally, then go to **System Settings → Privacy & Security** and click **Open Anyway** next to the blocked app.
+  - Terminal escape hatch (any version): `xattr -cr /Applications/WaveFlow.app`
 
 Once installed, the in-app updater fetches future versions automatically.
 
