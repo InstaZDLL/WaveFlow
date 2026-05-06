@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 import type { Track } from "../lib/tauri/track";
-import type { QueueSource } from "../lib/tauri/player";
+import type { OutputDevice, QueueSource } from "../lib/tauri/player";
 
 export type RepeatMode = "off" | "all" | "one";
 
@@ -22,6 +22,13 @@ interface PlayerContextValue {
   toggleLyrics: () => void;
   isDeviceMenuOpen: boolean;
   toggleDeviceMenu: () => void;
+
+  // Output device picker — pre-fetched at boot so the first click on
+  // the device button paints instantly. `refreshOutputDevices` is
+  // called by `DeviceMenu` in the background on each open to catch
+  // hot-plugged USB DACs / Bluetooth sinks without polling.
+  outputDevices: OutputDevice[];
+  refreshOutputDevices: () => Promise<void>;
 
   // Backend-synced state
   playbackState: PlaybackState;

@@ -12,6 +12,7 @@ import type { Track } from "../lib/tauri/track";
 import {
   playerCycleRepeat,
   playerGetState,
+  playerListOutputDevices,
   playerNext,
   playerPause,
   playerPlayTracks,
@@ -21,6 +22,7 @@ import {
   playerSeek,
   playerSetVolume,
   playerToggleShuffle,
+  type OutputDevice,
   type PlayerErrorPayload,
   type PlayerPositionPayload,
   type PlayerStatePayload,
@@ -86,6 +88,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
   const [isLyricsOpen, setIsLyricsOpen] = useState(false);
   const [isDeviceMenuOpen, setIsDeviceMenuOpen] = useState(false);
+
+  // Cached output device list. Populated at boot + after every device
+  // switch so the menu opens instantly with the up-to-date list — the
+  // alternative (fetch-on-open) makes the first click feel laggy
+  // even with the fast ALSA-hint enumeration we now use on Linux.
+  const [outputDevices, setOutputDevices] = useState<OutputDevice[]>([]);
 
   // Backend-synced state
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle");
@@ -373,6 +381,24 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const refreshOutputDevices = useCallback(async () => {
+    try {
+      const list = await playerListOutputDevices();
+      setOutputDevices(list);
+    } catch (err) {
+      console.error("[PlayerContext] refresh output devices failed", err);
+    }
+  }, []);
+
+  // Pre-fetch the device list at mount. Re-runs on profile switch
+  // because `current_output_device` is per-profile (the persisted
+  // pick lives in `profile_setting`), so the active row in the
+  // cached list could change when the user swaps profiles.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refreshOutputDevices();
+  }, [activeProfile, refreshOutputDevices]);
+
   return (
     <PlayerContext.Provider
       value={{
@@ -384,6 +410,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         toggleLyrics,
         isDeviceMenuOpen,
         toggleDeviceMenu,
+        outputDevices,
+        refreshOutputDevices,
         playbackState,
         isPlaying,
         currentTrack,
