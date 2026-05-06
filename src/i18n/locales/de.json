@@ -156,7 +156,8 @@
       "openFile": "Datei öffnen",
       "openFolder": "Einen Ordner öffnen",
       "importFiles": "Dateien importieren",
-      "importFolder": "Ordner importieren"
+      "importFolder": "Ordner importieren",
+      "browseLibrary": "Meine Bibliothek durchsuchen"
     },
     "stats": {
       "library": "Bibliothek",
@@ -168,7 +169,11 @@
       "title": "Zuletzt gespielt",
       "emptyTitle": "Kein Titel angehört",
       "emptyDescription": "Geben Sie einen Titel ein, damit er hier angezeigt wird. Ihr Hörverlauf füllt sich im Laufe Ihrer Entdeckungen."
-    }
+    },
+    "recentlyAdded": {
+      "title": "Kürzlich hinzugefügt"
+    },
+    "seeAll": "Alle anzeigen"
   },
   "library": {
     "header": {
@@ -229,7 +234,8 @@
       "changeArtwork": "Bild ändern (in Kürze)",
       "edit": "Bibliothek bearbeiten",
       "delete": "Bibliothek löschen",
-      "deleteConfirm": "Klicken Sie erneut, um zu bestätigen"
+      "deleteConfirm": "Klicken Sie erneut, um zu bestätigen",
+      "importing": "Wird importiert…"
     },
     "changeCover": "Das Cover austauschen",
     "searchDeezer": "Suche nach „Deezer“",

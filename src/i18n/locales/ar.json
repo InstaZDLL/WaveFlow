@@ -156,7 +156,8 @@
       "openFile": "فتح ملف",
       "openFolder": "إنشاء ملف",
       "importFiles": "استيراد الملفات",
-      "importFolder": "استيراد ملف"
+      "importFolder": "استيراد ملف",
+      "browseLibrary": "تصفح مكتبتي"
     },
     "stats": {
       "library": "المكتبة",
@@ -168,7 +169,11 @@
       "title": "تم تشغيلها مؤخرًا",
       "emptyTitle": "لم يتم الاستماع إلى أي مقطع",
       "emptyDescription": "أدخل عنوانًا ليظهر هنا. يتم إنشاء سجل الاستماع الخاص بك مع كل اكتشاف جديد."
-    }
+    },
+    "recentlyAdded": {
+      "title": "أُضيف حديثاً"
+    },
+    "seeAll": "عرض الكل"
   },
   "library": {
     "header": {
@@ -229,7 +234,8 @@
       "changeArtwork": "تغيير الصورة (قريبًا)",
       "edit": "تعديل المكتبة",
       "delete": "حذف المكتبة",
-      "deleteConfirm": "انقر مرة أخرى للتأكيد"
+      "deleteConfirm": "انقر مرة أخرى للتأكيد",
+      "importing": "جارٍ الاستيراد…"
     },
     "changeCover": "تغيير الغلاف",
     "searchDeezer": "البحث عن \"Deezer\"",

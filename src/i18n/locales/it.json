@@ -156,7 +156,8 @@
       "openFile": "Aprire un file",
       "openFolder": "Aprire una cartella",
       "importFiles": "Importazione file",
-      "importFolder": "Importa cartella"
+      "importFolder": "Importa cartella",
+      "browseLibrary": "Sfoglia la mia libreria"
     },
     "stats": {
       "library": "Biblioteca",
@@ -168,7 +169,11 @@
       "title": "Giocati di recente",
       "emptyTitle": "Nessun brano ascoltato",
       "emptyDescription": "Inserisci un titolo per farlo apparire qui. La tua cronologia di ascolti si arricchisce man mano che scopri nuovi brani."
-    }
+    },
+    "recentlyAdded": {
+      "title": "Aggiunti di recente"
+    },
+    "seeAll": "Vedi tutto"
   },
   "library": {
     "header": {
@@ -229,7 +234,8 @@
       "changeArtwork": "Cambia immagine (presto)",
       "edit": "Modifica la libreria",
       "delete": "Elimina la libreria",
-      "deleteConfirm": "Clicca di nuovo per confermare"
+      "deleteConfirm": "Clicca di nuovo per confermare",
+      "importing": "Importazione in corso…"
     },
     "changeCover": "Cambiare la copertina",
     "searchDeezer": "Ricerca Deezer",

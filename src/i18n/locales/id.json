@@ -156,7 +156,8 @@
       "openFile": "Buka berkas",
       "openFolder": "Buka folder",
       "importFiles": "Impor berkas",
-      "importFolder": "Impor folder"
+      "importFolder": "Impor folder",
+      "browseLibrary": "Telusuri pustakaku"
     },
     "stats": {
       "library": "Perpustakaan",
@@ -168,7 +169,11 @@
       "title": "Baru-baru ini dimainkan",
       "emptyTitle": "Belum ada lagu yang diputar",
       "emptyDescription": "Putar sebuah lagu untuk melihatnya muncul di sini. Riwayat mendengarkan Anda akan terus bertambah seiring Anda menjelajah."
-    }
+    },
+    "recentlyAdded": {
+      "title": "Baru ditambahkan"
+    },
+    "seeAll": "Lihat semua"
   },
   "library": {
     "header": {
@@ -229,7 +234,8 @@
       "changeArtwork": "Ganti gambar sampul (segera)",
       "edit": "Edit perpustakaan",
       "delete": "Hapus perpustakaan",
-      "deleteConfirm": "Klik lagi untuk mengonfirmasi"
+      "deleteConfirm": "Klik lagi untuk mengonfirmasi",
+      "importing": "Mengimpor…"
     },
     "changeCover": "Ganti sampul",
     "searchDeezer": "Pencarian Deezer",

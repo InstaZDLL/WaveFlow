@@ -156,7 +156,8 @@
       "openFile": "打开文件",
       "openFolder": "新建文件夹",
       "importFiles": "导入文件",
-      "importFolder": "导入文件"
+      "importFolder": "导入文件",
+      "browseLibrary": "浏览我的资料库"
     },
     "stats": {
       "library": "图书馆",
@@ -168,7 +169,11 @@
       "title": "最近播放的",
       "emptyTitle": "尚未收听任何歌曲",
       "emptyDescription": "输入歌名，它就会显示在这里。随着您不断发现新歌，您的播放记录也会随之更新。"
-    }
+    },
+    "recentlyAdded": {
+      "title": "最近添加"
+    },
+    "seeAll": "查看全部"
   },
   "library": {
     "header": {
@@ -229,7 +234,8 @@
       "changeArtwork": "更换图片（即将推出）",
       "edit": "编辑库",
       "delete": "删除库",
-      "deleteConfirm": "再次点击以确认"
+      "deleteConfirm": "再次点击以确认",
+      "importing": "正在导入…"
     },
     "changeCover": "更换封面",
     "searchDeezer": "搜索Deezer",

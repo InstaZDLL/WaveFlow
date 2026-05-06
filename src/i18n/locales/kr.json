@@ -156,7 +156,8 @@
       "openFile": "파일 열기",
       "openFolder": "파일 열기",
       "importFiles": "파일 가져오기",
-      "importFolder": "파일 가져오기"
+      "importFolder": "파일 가져오기",
+      "browseLibrary": "내 라이브러리 둘러보기"
     },
     "stats": {
       "library": "도서관",
@@ -168,7 +169,11 @@
       "title": "최근 플레이한 게임",
       "emptyTitle": "듣지 않은 곡이 없습니다",
       "emptyDescription": "제목을 입력하면 여기에 표시됩니다. 새로운 곡을 발견할 때마다 재생 기록이 쌓입니다."
-    }
+    },
+    "recentlyAdded": {
+      "title": "최근 추가됨"
+    },
+    "seeAll": "모두 보기"
   },
   "library": {
     "header": {
@@ -229,7 +234,8 @@
       "changeArtwork": "이미지 변경 (곧 제공 예정)",
       "edit": "라이브러리 수정",
       "delete": "라이브러리 삭제",
-      "deleteConfirm": "확인을 위해 다시 클릭하세요"
+      "deleteConfirm": "확인을 위해 다시 클릭하세요",
+      "importing": "가져오는 중…"
     },
     "changeCover": "표지 변경",
     "searchDeezer": "Deezer 검색",

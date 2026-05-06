@@ -156,7 +156,8 @@
       "openFile": "Een bestand openen",
       "openFolder": "Een dossier openen",
       "importFiles": "Bestanden importeren",
-      "importFolder": "Bestanden importeren"
+      "importFolder": "Bestanden importeren",
+      "browseLibrary": "Mijn bibliotheek doorzoeken"
     },
     "stats": {
       "library": "Bibliotheek",
@@ -168,7 +169,11 @@
       "title": "Onlangs gespeeld",
       "emptyTitle": "Er zijn geen nummers beluisterd",
       "emptyDescription": "Voer een titel in om deze hier te laten verschijnen. Je luistergeschiedenis wordt opgebouwd naarmate je nieuwe nummers ontdekt."
-    }
+    },
+    "recentlyAdded": {
+      "title": "Onlangs toegevoegd"
+    },
+    "seeAll": "Alles tonen"
   },
   "library": {
     "header": {
@@ -229,7 +234,8 @@
       "changeArtwork": "Afbeelding wijzigen (binnenkort)",
       "edit": "De bibliotheek bewerken",
       "delete": "De bibliotheek verwijderen",
-      "deleteConfirm": "Klik nogmaals om te bevestigen"
+      "deleteConfirm": "Klik nogmaals om te bevestigen",
+      "importing": "Importeren…"
     },
     "changeCover": "De hoes vervangen",
     "searchDeezer": "Zoeken Deezer",

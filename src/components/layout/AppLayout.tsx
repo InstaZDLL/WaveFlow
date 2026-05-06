@@ -161,7 +161,13 @@ export function AppLayout() {
   function renderView() {
     switch (activeView) {
       case "home":
-        return <HomeView onNavigate={setActiveView} />;
+        return (
+          <HomeView
+            onNavigate={setActiveView}
+            onNavigateToAlbum={navigateToAlbum}
+            onNavigateToArtist={navigateToArtist}
+          />
+        );
       case "library":
         return (
           <LibraryView

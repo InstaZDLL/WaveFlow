@@ -156,7 +156,8 @@
       "openFile": "開啟檔案",
       "openFolder": "建立檔案",
       "importFiles": "匯入檔案",
-      "importFolder": "匯入檔案"
+      "importFolder": "匯入檔案",
+      "browseLibrary": "瀏覽我的音樂庫"
     },
     "stats": {
       "library": "圖書館",
@@ -168,7 +169,11 @@
       "title": "最近播放的",
       "emptyTitle": "尚未聆聽任何歌曲",
       "emptyDescription": "輸入一首歌曲名稱，它就會顯示在此處。您的聆聽紀錄會隨著您的探索而逐漸建立。"
-    }
+    },
+    "recentlyAdded": {
+      "title": "最近新增"
+    },
+    "seeAll": "查看全部"
   },
   "library": {
     "header": {
@@ -229,7 +234,8 @@
       "changeArtwork": "更換圖片（即將推出）",
       "edit": "編輯資料庫",
       "delete": "刪除資料庫",
-      "deleteConfirm": "請再次點擊以確認"
+      "deleteConfirm": "請再次點擊以確認",
+      "importing": "正在匯入…"
     },
     "changeCover": "更換封面",
     "searchDeezer": "搜尋Deezer",

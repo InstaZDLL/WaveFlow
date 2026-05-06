@@ -156,7 +156,8 @@
       "openFile": "Ouvrir un fichier",
       "openFolder": "Ouvrir un dossier",
       "importFiles": "Import fichiers",
-      "importFolder": "Import dossier"
+      "importFolder": "Importer un dossier",
+      "browseLibrary": "Parcourir ma bibliothèque"
     },
     "stats": {
       "library": "Bibliothèque",
@@ -168,7 +169,11 @@
       "title": "Récemment joués",
       "emptyTitle": "Aucun morceau écouté",
       "emptyDescription": "Lancez un titre pour qu'il apparaisse ici. Votre historique d'écoute se construit au fil de vos découvertes."
-    }
+    },
+    "recentlyAdded": {
+      "title": "Récemment ajoutés"
+    },
+    "seeAll": "Tout voir"
   },
   "library": {
     "header": {
@@ -223,6 +228,7 @@
     "actions": {
       "importFiles": "Importer des fichiers",
       "importFolder": "Importer un dossier",
+      "importing": "Import en cours…",
       "share": "Partager (bientôt)",
       "rescan": "Rescanner la bibliothèque",
       "rescanning": "Rescan en cours…",

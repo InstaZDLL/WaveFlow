@@ -156,7 +156,8 @@
       "openFile": "Bir dosya aç",
       "openFolder": "Bir klasör aç",
       "importFiles": "Dosyaları içe aktar",
-      "importFolder": "Klasörü içe aktar"
+      "importFolder": "Klasörü içe aktar",
+      "browseLibrary": "Kitaplığıma göz at"
     },
     "stats": {
       "library": "Kütüphane",
@@ -168,7 +169,11 @@
       "title": "Son oynananlar",
       "emptyTitle": "Henüz hiçbir parça çalınmadı",
       "emptyDescription": "Bir parçayı çalın, burada görünmesini sağlayın. Keşfettikçe dinleme geçmişiniz oluşur."
-    }
+    },
+    "recentlyAdded": {
+      "title": "Yakın zamanda eklenenler"
+    },
+    "seeAll": "Tümünü gör"
   },
   "library": {
     "header": {
@@ -229,7 +234,8 @@
       "changeArtwork": "Kapak resmini değiştir (yakında)",
       "edit": "Kütüphaneyi düzenle",
       "delete": "Kütüphaneyi sil",
-      "deleteConfirm": "Onaylamak için tekrar tıklayın"
+      "deleteConfirm": "Onaylamak için tekrar tıklayın",
+      "importing": "İçe aktarılıyor…"
     },
     "changeCover": "Kapağı değiştir",
     "searchDeezer": "Deezer'i ara",

@@ -156,7 +156,8 @@
       "openFile": "ファイルを開く",
       "openFolder": "フォルダを開く",
       "importFiles": "ファイルのインポート",
-      "importFolder": "フォルダのインポート"
+      "importFolder": "フォルダのインポート",
+      "browseLibrary": "ライブラリを表示"
     },
     "stats": {
       "library": "図書館",
@@ -168,7 +169,11 @@
       "title": "最近プレイしたゲーム",
       "emptyTitle": "再生した曲はありません",
       "emptyDescription": "タイトルを入力すると、ここに表示されます。新しい曲を見つけるたびに、再生履歴が蓄積されていきます。"
-    }
+    },
+    "recentlyAdded": {
+      "title": "最近追加された曲"
+    },
+    "seeAll": "すべて表示"
   },
   "library": {
     "header": {
@@ -229,7 +234,8 @@
       "changeArtwork": "画像を変更する（近日公開）",
       "edit": "ライブラリを変更する",
       "delete": "ライブラリを削除する",
-      "deleteConfirm": "もう一度クリックして確認してください"
+      "deleteConfirm": "もう一度クリックして確認してください",
+      "importing": "インポート中…"
     },
     "changeCover": "ジャケットを変更する",
     "searchDeezer": "Deezerの検索",
