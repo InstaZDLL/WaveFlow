@@ -52,7 +52,7 @@
       "endpoints": [
         "https://github.com/InstaZDLL/WaveFlow/releases/latest/download/latest.json"
       ],
-      "pubkey": "REPLACE_BEFORE_RELEASE_RUN_BUN_TAURI_SIGNER_GENERATE",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERCRDI5MTdGNDQ2Mjg4QjcKUldTM2lHSkVmNUhTMjAwdnBWVTh1VWNwZHk2SlpqNURwOTBkckcvUTdOckxxTkJjY01sOXB6WUwK",
       "windows": {
         "installMode": "passive"
       }
