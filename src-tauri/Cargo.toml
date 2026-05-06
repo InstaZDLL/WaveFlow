@@ -94,7 +94,7 @@ anyhow = "1"
 
 # Last.fm signed API methods (auth.getMobileSession, track.scrobble,
 # track.updateNowPlaying) need an md5 of the param block + secret.
-md-5 = "0.10"
+md-5 = "0.11"
 hex = "0.4"
 
 # OS-level media controls: SMTC on Windows, MPRIS on Linux,
