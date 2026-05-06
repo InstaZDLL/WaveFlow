@@ -162,7 +162,10 @@ A good pull request includes:
 
 ## Conventional Commits
 
-Commit messages follow Conventional Commits:
+Commit messages follow Conventional Commits. The format is enforced locally:
+`bun install` wires up a husky `commit-msg` hook that runs `commitlint`
+(config in `.commitlintrc.cjs`, headers capped at 100 characters with
+kebab-case scopes), so a malformed subject line is rejected before it lands.
 
 ```text
 type(scope): short summary

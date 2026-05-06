@@ -29,6 +29,8 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
 - **Real-time engine** — lock-free 3-thread architecture (decoder, ring buffer, cpal callback), zero allocations in the hot path
 - **Crossfade DSP** — real dual-decoder mix with equal-power gains (cos/sin) over the user-set window
 - **Audio settings** — volume normalization (-3 dB), mono downmix, configurable crossfade, optional per-track ReplayGain application (uses the value from `track_analysis`, applied per-stream so the crossfade mix gives each side its own gain)
+- **Output device picker** — pick any cpal-enumerated device (ALSA hints on Linux); choice persisted per profile and prefetched on launch so playback stays on the user's preferred sink across restarts
+- **OS media controls** — SMTC on Windows, MPRIS on Linux, MediaRemote on macOS (via `souvlaki`); Now Playing artwork served to SMTC over a tiny localhost HTTP shim
 - **Resume** — remembers last track + position across app restarts
 - **Queue** — persistent queue with shuffle (Fisher-Yates), repeat (off/all/one), auto-advance, drag-and-drop reorder
 
@@ -74,12 +76,15 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
 - **i18n** — French, English, Spanish, German; auto-detected, switchable in settings
 - **Accessibility** — keyboard navigation, ARIA roles, focus rings, `prefers-reduced-motion`
 - **Profiles** — isolated per-profile database (libraries, playlists, settings, play history); shared metadata cache across profiles
+- **First-run onboarding** — modal prompts new profiles to point at a music folder; the "configure later" choice latches per profile so the prompt never reappears
+- **Auto-updater** — Tauri updater plugin with signed update flow; the update banner offers "Install now" without forcing a relaunch interruption
 
 ## Tech Stack
 
 | Layer | Technologies |
 |-------|-------------|
-| **Desktop shell** | Tauri 2.10 (tray icon, opener, dialog plugins) |
+| **Desktop shell** | Tauri 2.10 (tray icon, opener, dialog, updater plugins) |
+| **OS media controls** | souvlaki 0.8 (SMTC / MPRIS / MediaRemote bridge) |
 | **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS 4, Lucide icons, `@dnd-kit` (drag-and-drop), `@tanstack/react-virtual` (virtualization) |
 | **Backend** | Rust, SQLite (sqlx), FTS5 contentless full-text search |
 | **Audio** | symphonia 0.5 (decode), cpal 0.15 (output), rubato 0.15 (resample), rtrb 0.3 (SPSC ring) |
@@ -110,6 +115,10 @@ bun run typecheck    # TypeScript check
 bun run lint         # ESLint
 bun run lint:fix     # ESLint with auto-fix
 bun run format       # Prettier
+
+# Rust backend
+cargo check --manifest-path src-tauri/Cargo.toml --all-targets
+cargo test  --manifest-path src-tauri/Cargo.toml
 ```
 
 ## Project Structure
@@ -122,7 +131,7 @@ waveflow/
 │   │   ├── layout/                   # Sidebar, TopBar, AppLayout, QueuePanel, NowPlayingPanel, LyricsPanel, DeviceMenu
 │   │   ├── player/                   # PlayerBar, PlaybackControls, VolumeControl, ProgressBar, AudioQualityFooter
 │   │   └── views/                    # Home, Library, Playlist, AlbumDetail, ArtistDetail, Liked, Recent, Settings, Statistics…
-│   ├── contexts/                     # ThemeContext, PlayerContext, LibraryContext, PlaylistContext, ProfileContext
+│   ├── contexts/                     # ThemeContext, PlayerContext, LibraryContext, PlaylistContext, ProfileContext, PageScrollContext
 │   ├── hooks/                        # useTheme, usePlayer, useLibrary, usePlaylist, useProfile, useTrackContextMenu, useMultiSelect, useSortMemory
 │   ├── lib/
 │   │   ├── tauri/                    # Typed invoke() wrappers (track, browse, player, playlist, detail, integration, analysis, lyrics, stats, profile, dialog, deezer, library, artwork)
@@ -143,6 +152,7 @@ waveflow/
 │   │   ├── deezer.rs                 # Deezer public API client (search/get artist & album)
 │   │   ├── lastfm.rs                 # Last.fm API client (artist.getInfo + signed mobile-session / scrobble / now-playing)
 │   │   ├── lrclib.rs                 # LRCLIB API client (synchronized lyrics)
+│   │   ├── media_controls.rs         # OS media-key bridge (SMTC / MPRIS / MediaRemote via souvlaki)
 │   │   ├── metadata_artwork.rs       # Shared on-disk cache for remote artwork (blake3-hashed)
 │   │   ├── queue.rs                  # Persistent queue operations (fill, advance, shuffle, reorder, restore)
 │   │   ├── scrobbler.rs              # Last.fm scrobble worker (queue drain, retry/backoff, re-auth prompt)
