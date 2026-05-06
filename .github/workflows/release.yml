@@ -1,0 +1,457 @@
+name: Release
+
+# Triggered when a tag like v0.1.0 lands. Builds Linux (AppImage) and
+# Windows (NSIS) bundles, signs the updater payloads with the project's
+# minisign key, signs the Windows installer with Authenticode, and
+# attaches everything plus a merged latest.json updater manifest to the
+# matching GitHub release.
+#
+# Required repository secrets:
+#   TAURI_SIGNING_PRIVATE_KEY            — raw contents of ~/.tauri/waveflow.key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD   — passphrase for the above key
+#   SIGNTOOL_PFX_BASE64                  — base64-encoded Authenticode PFX
+#   SIGNTOOL_PFX_PASSWORD                — PFX export passphrase
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Existing tag to (re)build, e.g. v0.1.0'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  desktop:
+    name: Build (${{ matrix.platform }})
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            tauri_bundles: appimage
+          - os: windows-latest
+            platform: windows
+            tauri_bundles: nsis
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Resolve tag and version
+        shell: bash
+        env:
+          MANUAL_TAG: ${{ github.event.inputs.tag_name }}
+          GIT_REF: ${{ github.ref }}
+        run: |
+          if [ -n "$MANUAL_TAG" ]; then
+            TAG="$MANUAL_TAG"
+          else
+            TAG="${GIT_REF#refs/tags/}"
+          fi
+          VERSION="${TAG#v}"
+          echo "TAG_NAME=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Building $TAG (version $VERSION)"
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ env.TAG_NAME }}
+
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libjavascriptcoregtk-4.1-dev \
+            libsoup-3.0-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libfuse2 \
+            libasound2-dev
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # stable
+        with:
+          toolchain: stable
+
+      - name: Cache Cargo build
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+        with:
+          workspaces: src-tauri -> target
+          key: ${{ matrix.platform }}-release
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Validate updater signing secrets
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY secret is required"
+            exit 1
+          fi
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ]; then
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY_PASSWORD secret is required"
+            exit 1
+          fi
+
+      - name: Configure Authenticode signing (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        env:
+          PFX_BASE64: ${{ secrets.SIGNTOOL_PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.SIGNTOOL_PFX_PASSWORD }}
+        # Decodes the PFX, locates signtool, and injects an absolute-path
+        # signCommand into tauri.conf.json. Tauri's signCommand spawner
+        # (Rust Command::new) can't reliably launch pwsh wrappers on
+        # windows-latest, so we call signtool.exe directly — the OBJECT
+        # form of signCommand bypasses shell_words quoting quirks.
+        run: |
+          if (-not $env:PFX_BASE64) {
+            Write-Error "SIGNTOOL_PFX_BASE64 secret is required to publish a Windows release"
+            exit 1
+          }
+          if (-not $env:PFX_PASSWORD) {
+            Write-Error "SIGNTOOL_PFX_PASSWORD secret is required alongside SIGNTOOL_PFX_BASE64"
+            exit 1
+          }
+          Write-Host "::add-mask::$env:PFX_PASSWORD"
+
+          $pfxPath = (Join-Path $env:GITHUB_WORKSPACE "cert.pfx") -replace '\\', '/'
+          [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:PFX_BASE64))
+
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+                      Sort-Object -Property @{ Expression = { try { [Version]$_.Directory.Parent.Name } catch { [Version]"0.0.0.0" } } } -Descending |
+                      Select-Object -First 1
+          if (-not $signtool) { Write-Error "signtool.exe not found in Windows Kits SDK"; exit 1 }
+          $signtoolPath = $signtool.FullName -replace '\\', '/'
+          Write-Host "[sign] Using $signtoolPath"
+
+          & $signtool.FullName /? | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "signtool smoke-test failed (exit $LASTEXITCODE)"
+            exit 1
+          }
+
+          $configPath = "src-tauri/tauri.conf.json"
+          $config = Get-Content $configPath -Raw | ConvertFrom-Json
+          $signCommandObj = [pscustomobject]@{
+            cmd = $signtoolPath
+            args = @(
+              "sign",
+              "/fd", "SHA256",
+              "/tr", "http://timestamp.digicert.com",
+              "/td", "SHA256",
+              "/f", $pfxPath,
+              "/p", $env:PFX_PASSWORD,
+              "%1"
+            )
+          }
+          if (-not $config.bundle.windows) {
+            $config.bundle | Add-Member -MemberType NoteProperty -Name windows -Value ([pscustomobject]@{}) -Force
+          }
+          $config.bundle.windows | Add-Member -MemberType NoteProperty -Name signCommand -Value $signCommandObj -Force
+          ($config | ConvertTo-Json -Depth 20) | Set-Content $configPath -Encoding utf8
+          Write-Host "[sign] signCommand injected into $configPath"
+
+      - name: Build Tauri bundles
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          BUNDLES: ${{ matrix.tauri_bundles }}
+        run: bun x tauri build --bundles "$BUNDLES"
+
+      - name: Scrub Authenticode secrets (Windows)
+        if: always() && matrix.platform == 'windows'
+        shell: pwsh
+        # Defence-in-depth: remove the decoded PFX and revert
+        # tauri.conf.json so the embedded password doesn't survive on
+        # the runner FS past this point.
+        run: |
+          $pfx = Join-Path $env:GITHUB_WORKSPACE "cert.pfx"
+          if (Test-Path $pfx) {
+            Remove-Item -LiteralPath $pfx -Force
+            Write-Host "[sign] Removed $pfx"
+          }
+          $config = "src-tauri/tauri.conf.json"
+          if (Test-Path $config) {
+            git checkout -- $config
+            Write-Host "[sign] Reverted $config to HEAD"
+          }
+
+      - name: Prepare release assets (Linux)
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          mkdir -p dist-release dist-manifest
+          python - <<'PY'
+          import json
+          import os
+          import pathlib
+          import shutil
+          import sys
+          from datetime import datetime, timezone
+
+          root = pathlib.Path("src-tauri/target/release/bundle")
+          dist_release = pathlib.Path("dist-release")
+          dist_manifest = pathlib.Path("dist-manifest")
+          version = os.environ["VERSION"]
+          repo = os.environ.get("GITHUB_REPOSITORY", "")
+          tag_name = os.environ["TAG_NAME"]
+
+          appimage_dir = root / "appimage"
+          if not appimage_dir.exists():
+              print("::error::No AppImage bundle directory found", file=sys.stderr)
+              sys.exit(1)
+
+          appimages = sorted(appimage_dir.glob("*.AppImage"))
+          if not appimages:
+              print("::error::No .AppImage produced under bundle/appimage/", file=sys.stderr)
+              sys.exit(1)
+          appimage = appimages[0]
+          renamed = f"WaveFlow_{version}_linux-x86_64.AppImage"
+          shutil.copy2(appimage, dist_release / renamed)
+
+          updater_payload = appimage_dir / f"{appimage.name}.tar.gz"
+          updater_sig = appimage_dir / f"{appimage.name}.tar.gz.sig"
+          if not updater_payload.exists() or not updater_sig.exists():
+              print("::error::Missing updater payload/signature next to AppImage", file=sys.stderr)
+              sys.exit(1)
+          payload_renamed = f"{renamed}.tar.gz"
+          sig_renamed = f"{renamed}.tar.gz.sig"
+          shutil.copy2(updater_payload, dist_release / payload_renamed)
+          shutil.copy2(updater_sig, dist_release / sig_renamed)
+
+          signature = updater_sig.read_text(encoding="utf-8").strip()
+          download_url = f"https://github.com/{repo}/releases/download/{tag_name}/{payload_renamed}"
+          manifest = {
+              "version": version,
+              "notes": "",
+              "pub_date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+              "platforms": {
+                  "linux-x86_64": {
+                      "signature": signature,
+                      "url": download_url,
+                  }
+              },
+          }
+          (dist_manifest / "latest-linux.json").write_text(
+              json.dumps(manifest, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps({"appimage": renamed, "payload": payload_renamed, "sig": sig_renamed}, indent=2))
+          PY
+          ls -la dist-release/
+
+      - name: Prepare release assets (Windows)
+        if: matrix.platform == 'windows'
+        shell: bash
+        run: |
+          mkdir -p dist-release dist-manifest
+          python - <<'PY'
+          import json
+          import os
+          import pathlib
+          import shutil
+          import sys
+          from datetime import datetime, timezone
+
+          root = pathlib.Path("src-tauri/target/release/bundle")
+          dist_release = pathlib.Path("dist-release")
+          dist_manifest = pathlib.Path("dist-manifest")
+          version = os.environ["VERSION"]
+          repo = os.environ.get("GITHUB_REPOSITORY", "")
+          tag_name = os.environ["TAG_NAME"]
+
+          nsis_dir = root / "nsis"
+          if not nsis_dir.exists():
+              print("::error::No NSIS bundle directory found", file=sys.stderr)
+              sys.exit(1)
+
+          installers = sorted(nsis_dir.glob("*-setup.exe"))
+          if not installers:
+              print("::error::No NSIS *-setup.exe produced", file=sys.stderr)
+              sys.exit(1)
+          installer = installers[0]
+          renamed = f"WaveFlow_{version}_windows-x86_64-setup.exe"
+          shutil.copy2(installer, dist_release / renamed)
+
+          updater_sig = installer.with_suffix(installer.suffix + ".sig")
+          if not updater_sig.exists():
+              print("::error::Missing .sig next to NSIS installer", file=sys.stderr)
+              sys.exit(1)
+          sig_renamed = f"{renamed}.sig"
+          shutil.copy2(updater_sig, dist_release / sig_renamed)
+
+          signature = updater_sig.read_text(encoding="utf-8").strip()
+          download_url = f"https://github.com/{repo}/releases/download/{tag_name}/{renamed}"
+          manifest = {
+              "version": version,
+              "notes": "",
+              "pub_date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+              "platforms": {
+                  "windows-x86_64": {
+                      "signature": signature,
+                      "url": download_url,
+                  }
+              },
+          }
+          (dist_manifest / "latest-windows.json").write_text(
+              json.dumps(manifest, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps({"installer": renamed, "sig": sig_renamed}, indent=2))
+          PY
+          ls -la dist-release/
+
+      - name: Upload updater manifest part
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: updater-manifest-${{ matrix.platform }}
+          path: dist-manifest/latest-${{ matrix.platform }}.json
+          if-no-files-found: error
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: dist-release/*
+
+      - name: Upload release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shopt -s nullglob
+          files=(dist-release/*)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "::error::No artefacts found in dist-release/"
+            exit 1
+          fi
+          if ! gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release create "$TAG_NAME" --title "$TAG_NAME" --generate-notes
+          fi
+          for file in "${files[@]}"; do
+            gh release upload "$TAG_NAME" "$file" --clobber
+          done
+
+  updater-manifest:
+    name: Merge updater manifest
+    needs: desktop
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Resolve tag
+        shell: bash
+        env:
+          MANUAL_TAG: ${{ github.event.inputs.tag_name }}
+          GIT_REF: ${{ github.ref }}
+        run: |
+          if [ -n "$MANUAL_TAG" ]; then
+            TAG="$MANUAL_TAG"
+          else
+            TAG="${GIT_REF#refs/tags/}"
+          fi
+          echo "TAG_NAME=$TAG" >> "$GITHUB_ENV"
+
+      - name: Download per-platform updater manifests
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: updater-manifest-*
+          path: manifest-parts
+          merge-multiple: true
+
+      - name: Merge updater manifests
+        shell: bash
+        run: |
+          mkdir -p dist-release
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          paths = sorted(pathlib.Path("manifest-parts").glob("latest-*.json"))
+          if not paths:
+              print("::error::No per-platform manifests found", file=sys.stderr)
+              sys.exit(1)
+
+          merged = None
+          platforms = {}
+          for path in paths:
+              data = json.loads(path.read_text(encoding="utf-8"))
+              if merged is None:
+                  merged = {k: v for k, v in data.items() if k != "platforms"}
+              elif data.get("version") != merged.get("version"):
+                  print(
+                      f"::error::Manifest version mismatch: "
+                      f"{merged.get('version')!r} != {data.get('version')!r}",
+                      file=sys.stderr,
+                  )
+                  sys.exit(1)
+              platform_dict = data.get("platforms")
+              if not isinstance(platform_dict, dict) or not platform_dict:
+                  print(f"::error::Manifest {path} has no platforms entry", file=sys.stderr)
+                  sys.exit(1)
+              overlap = set(platforms).intersection(platform_dict)
+              if overlap:
+                  print(f"::error::Duplicate platform entries: {sorted(overlap)}", file=sys.stderr)
+                  sys.exit(1)
+              platforms.update(platform_dict)
+
+          merged["platforms"] = platforms
+          output = pathlib.Path("dist-release/latest.json")
+          output.write_text(json.dumps(merged, indent=2) + "\n", encoding="utf-8")
+          print(f"Merged manifest -> {output}")
+          PY
+          cat dist-release/latest.json
+
+      - name: Upload merged manifest
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release upload "$TAG_NAME" dist-release/latest.json --clobber

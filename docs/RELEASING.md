@@ -61,72 +61,58 @@ the URL if you include those placeholders.
 
 ## Per-release process
 
+The CI workflow at `.github/workflows/release.yml` does the build,
+sign, and upload steps automatically when a `v*` tag is pushed (or
+when re-run manually via `workflow_dispatch` with an existing tag).
+
+### Required repository secrets
+
+Set these once per repository (Settings → Secrets and variables →
+Actions):
+
+| Secret | What it is |
+|---|---|
+| `TAURI_SIGNING_PRIVATE_KEY` | raw contents of `~/.tauri/waveflow.key` |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | passphrase for the above key |
+| `SIGNTOOL_PFX_BASE64` | `base64 -w0 < cert.pfx` for Windows Authenticode |
+| `SIGNTOOL_PFX_PASSWORD` | PFX export passphrase |
+
 ### 1. Bump the version
 
 Edit `src-tauri/tauri.conf.json` → `version` and `package.json` →
-`version`. Use semver. Commit:
+`version` (keep them in sync). Use semver. Commit and tag:
 
 ```sh
 git commit -am "chore: release v0.2.0"
 git tag v0.2.0
+git push origin main v0.2.0
 ```
 
-### 2. Build & sign
+### 2. Watch the workflow
 
-Set the env vars so Tauri picks up your private key:
+Pushing the tag triggers `.github/workflows/release.yml`:
 
-```sh
-export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/waveflow.key)"
-export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="<password>"
+- Builds Linux (`AppImage` + `.tar.gz` + `.sig`) on `ubuntu-latest`
+- Builds Windows (`*-setup.exe` + `.sig`) on `windows-latest`, signs
+  the installer with the Authenticode PFX
+- Generates a per-platform `latest-<platform>.json`
+- Creates the GitHub release if missing (with auto-generated notes
+  from the commit log) and uploads every artefact
+- A follow-up job merges the per-platform manifests into a single
+  `latest.json` and uploads that too
 
-bun run tauri build
-```
+The Tauri updater plugin reads
+`https://github.com/<owner>/<repo>/releases/latest/download/latest.json`
+on app launch — that URL resolves to the merged manifest the workflow
+just published.
 
-This produces signed bundles in `src-tauri/target/release/bundle/`:
+### 3. (Optional) Re-run a release
 
-- Windows: `nsis/WaveFlow_<ver>_x64-setup.exe` + `.sig`
-- macOS: `macos/WaveFlow.app.tar.gz` + `.sig`
-- Linux: `appimage/waveflow_<ver>_amd64.AppImage` + `.sig`
+If a build fails partway and you want to retry without re-tagging,
+use the **Run workflow** button on the Release workflow page and
+pass the existing tag (e.g. `v0.2.0`) as input.
 
-(`createUpdaterArtifacts: true` in the bundle config gives you the
-`.tar.gz` / `.AppImage` formats the updater needs alongside the
-human-installable formats.)
-
-### 3. Write the manifest
-
-`latest.json` describes the release for the updater:
-
-```json
-{
-  "version": "0.2.0",
-  "notes": "Short release notes shown in the update banner.",
-  "pub_date": "2026-05-05T20:00:00Z",
-  "platforms": {
-    "windows-x86_64": {
-      "signature": "<contents of WaveFlow_0.2.0_x64-setup.exe.sig>",
-      "url": "https://github.com/InstaZDLL/WaveFlow/releases/download/v0.2.0/WaveFlow_0.2.0_x64-setup.exe"
-    },
-    "darwin-aarch64": {
-      "signature": "<contents of .sig>",
-      "url": "https://github.com/InstaZDLL/WaveFlow/releases/download/v0.2.0/WaveFlow.app.tar.gz"
-    },
-    "linux-x86_64": {
-      "signature": "<contents of .sig>",
-      "url": "https://github.com/InstaZDLL/WaveFlow/releases/download/v0.2.0/waveflow_0.2.0_amd64.AppImage"
-    }
-  }
-}
-```
-
-Drop platforms you don't ship.
-
-### 4. Upload to GitHub Releases
-
-Create the release `v0.2.0`, attach the bundle files **and**
-`latest.json`. Mark it as the latest release so the
-`/releases/latest/download/latest.json` URL resolves.
-
-### 5. Verify
+### 4. Verify
 
 On a machine running the previous version:
 
@@ -150,8 +136,10 @@ signature corrupted on upload.
   installer GUI, no clicks needed. Switch to `quiet` for fully
   silent (less obvious to the user) or `basicUi` for the standard
   NSIS dialog.
-- **Code signing** (the OS-level kind, separate from minisign) is
-  not yet configured. On Windows, that means SmartScreen will
-  warn on first install. On macOS, Gatekeeper will block unsigned
-  apps. Plan to set up Apple Developer + Windows EV cert before a
-  public 1.0 release.
+- **Windows Authenticode signing** is wired through the release
+  workflow via `SIGNTOOL_PFX_BASE64` + `SIGNTOOL_PFX_PASSWORD`
+  secrets. SmartScreen still warns on first install with a fresh
+  cert until enough downloads accumulate reputation; an EV cert
+  shortcuts that. **macOS code signing** (Apple Developer cert)
+  is not configured — there's no macOS job in the release workflow
+  yet either.
