@@ -4,8 +4,6 @@ Please keep contributions small, verified, and easy to review. This guide
 explains how to set up the project, change the app, and open a clean pull
 request.
 
-French version: [CONTRIBUTING.fr.md](./CONTRIBUTING.fr.md)
-
 ## Set Up The Environment
 
 WaveFlow is a Tauri 2 desktop app with a React/Vite frontend and a Rust backend.
