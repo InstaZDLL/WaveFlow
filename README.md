@@ -73,7 +73,7 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
 - **Virtual scroll** — handles 6000+ tracks without UI freeze (`@tanstack/react-virtual`)
 - **Single-click play** — optional toggle, sort memory persisted per context
 - **Dark mode** — animated radial transition via View Transitions API
-- **i18n** — French, English, Spanish, German; auto-detected, switchable in settings
+- **i18n** — 17 languages (FR, EN, ES, DE, IT, NL, PT, PT-BR, RU, TR, ID, JA, KO, ZH-CN, ZH-TW, AR, HI); auto-detected, switchable in settings, RTL-aware
 - **Accessibility** — keyboard navigation, ARIA roles, focus rings, `prefers-reduced-motion`
 - **Profiles** — isolated per-profile database (libraries, playlists, settings, play history); shared metadata cache across profiles
 - **First-run onboarding** — modal prompts new profiles to point at a music folder; the "configure later" choice latches per profile so the prompt never reappears
@@ -139,7 +139,7 @@ waveflow/
 │   │   ├── imageCache.ts             # In-memory LRU for resolved artwork URLs
 │   │   ├── playlistVisuals.ts        # Shared color/icon constants for playlists
 │   │   └── PlaylistIcon.tsx          # Icon dispatcher component
-│   ├── i18n/locales/                 # fr.json, en.json, es.json, de.json
+│   ├── i18n/locales/                 # fr/en/es/de/it/nl/pt/pt-BR/ru/tr/id/ja/kr/zh-CN/zh-TW/ar/hi.json
 │   ├── types/                        # ViewId, LibraryTab, NavItemProps, etc.
 │   ├── App.tsx                       # Provider tree
 │   └── main.tsx                      # Entry point
@@ -185,9 +185,9 @@ waveflow/
 
 ## i18n
 
-Currently shipping **French**, **English**, **Spanish** and **German** — auto-detected at first launch from the OS locale, switchable from Settings.
+Currently shipping 17 languages — French, English, Spanish, German, Italian, Dutch, Portuguese (PT and BR), Russian, Turkish, Indonesian, Japanese, Korean, Chinese (Simplified and Traditional), Arabic, and Hindi. Auto-detected at first launch from the OS locale, switchable from Settings. Arabic ships with RTL layout (`dir="rtl"`).
 
-Strings are externalized in `src/i18n/locales/`. To add a language:
+Strings are externalized in `src/i18n/locales/`. The French file is the source of truth — non-French locales were generated from `fr.json` via DeepL with music-player context, then audited for placeholder integrity and brand-name preservation. To add a language:
 
 1. Create `src/i18n/locales/xx.json` (same structure as `fr.json` — keep all keys translated, the loader doesn't fall back per-key)
 2. Import it in `src/i18n/index.ts` and add to `SUPPORTED_LANGUAGES`

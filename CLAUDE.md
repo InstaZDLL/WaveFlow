@@ -87,4 +87,4 @@ Rust/Tauri 2. Entry point: `src-tauri/src/main.rs` → `lib.rs`.
 
 ## Language
 
-The README is in English. The app ships UI copy in **French, English, Spanish, and German** via i18next — strings in `src/i18n/locales/{fr,en,es,de}.json`. There is no per-key fallback, so every locale must include every key.
+The README is in English. The app ships UI copy in **17 locales** via i18next — `fr` (source of truth), `en`, `es`, `de`, `it`, `nl`, `pt`, `pt-BR`, `ru`, `tr`, `id`, `ja`, `kr` (registered as `ko` + `kr` alias), `zh-CN`, `zh-TW`, `ar`, `hi`. Strings live in `src/i18n/locales/<code>.json`. There is no per-key fallback, so every locale must include every key. `index.ts` sets `document.documentElement.dir` per language so Arabic renders RTL automatically. Non-French locales were bulk-translated from `fr.json` through DeepL with explicit music-player context, then post-processed to keep brand tokens (`WaveFlow`, `Last.fm`, `Deezer`, `ReplayGain`, `LRCLIB`, `BPM`) verbatim and preserve i18next `{{placeholder}}` interpolation.

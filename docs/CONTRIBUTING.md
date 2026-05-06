@@ -96,20 +96,26 @@ The first Rust build can take several minutes.
 
 ## Translations
 
-App strings live in `src/i18n/locales/`. WaveFlow does not fall back per key, so
-every language must include every key.
+App strings live in `src/i18n/locales/`. WaveFlow ships 17 locales — `fr`
+(source of truth), `en`, `es`, `de`, `it`, `nl`, `pt`, `pt-BR`, `ru`, `tr`,
+`id`, `ja`, `kr`, `zh-CN`, `zh-TW`, `ar`, `hi`. There is no per-key fallback,
+so every locale must include every key.
 
 To add a language:
 
 1. Create `src/i18n/locales/xx.json` with the same structure as `fr.json`.
-2. Translate every value without renaming keys.
+2. Translate every value without renaming keys. Keep brand tokens
+   (`WaveFlow`, `Last.fm`, `Deezer`, `ReplayGain`, `LRCLIB`, `BPM`) verbatim
+   and leave i18next `{{placeholder}}` interpolation untouched.
 3. Import the file in `src/i18n/index.ts`.
-4. Add the language to `SUPPORTED_LANGUAGES` and `resources`.
+4. Add the language to `SUPPORTED_LANGUAGES` and `resources`. If the script is
+   RTL (Arabic, Hebrew…), `index.ts` already sets `documentElement.dir` from
+   `i18n.dir(code)`.
 5. Run `bun run typecheck` and test the language selector in Settings.
 
 To add a new string:
 
-1. Add the key to every existing locale: `fr`, `en`, `es`, `de`.
+1. Add the key to **every** existing locale (all 17 of them).
 2. Use `t("key.path")` in the React component.
 3. If the string has a variable, keep the same name everywhere, for example
    `{{count}}`.
