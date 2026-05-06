@@ -722,7 +722,18 @@ pub async fn restore_state(pool: &SqlitePool) -> AppResult<Option<(QueueTrack, u
             let row = sqlx::query_as::<_, QueueTrack>(
                 r#"
                 SELECT t.id, t.file_path, t.duration_ms, t.title,
-                       ar.name AS artist_name,
+                       t.primary_artist AS artist_id,
+                       (SELECT GROUP_CONCAT(name, ', ') FROM (
+                          SELECT ar2.name FROM track_artist ta2
+                          JOIN artist ar2 ON ar2.id = ta2.artist_id
+                          WHERE ta2.track_id = t.id
+                          ORDER BY ta2.position
+                       )) AS artist_name,
+                       (SELECT GROUP_CONCAT(id, ',') FROM (
+                          SELECT ta2.artist_id AS id FROM track_artist ta2
+                          WHERE ta2.track_id = t.id
+                          ORDER BY ta2.position
+                       )) AS artist_ids,
                        al.title AS album_title,
                        aw.hash AS artwork_hash,
                        aw.format AS artwork_format,
@@ -731,7 +742,6 @@ pub async fn restore_state(pool: &SqlitePool) -> AppResult<Option<(QueueTrack, u
                        t.file_size
                   FROM track t
                   LEFT JOIN album al ON al.id = t.album_id
-                  LEFT JOIN artist ar ON ar.id = t.primary_artist
                   LEFT JOIN artwork aw ON aw.id = al.artwork_id
                  WHERE t.id = ? AND t.is_available = 1
                 "#,
