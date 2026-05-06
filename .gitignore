@@ -55,8 +55,6 @@ coverage
 .claude/*
 .mcp.json
 skills-lock.json
-CLAUDE.md
-AGENTS.md
 .codex
 
 # Standalone landing page (separate Vue project + prototype)
