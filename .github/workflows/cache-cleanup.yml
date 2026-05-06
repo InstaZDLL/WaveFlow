@@ -1,0 +1,44 @@
+name: Cache Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+  schedule:
+    - cron: "0 3 * * 1" # Every Monday at 03:00 UTC
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Delete branch caches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          BRANCH: refs/pull/${{ github.event.pull_request.number }}/merge
+        run: |
+          echo "Cleaning caches for $BRANCH"
+          gh cache list --ref "$BRANCH" --limit 100 --json id --jq '.[].id' |
+            xargs -I {} gh cache delete {} || true
+
+  cleanup-stale:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Delete stale caches on main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          echo "Cleaning stale caches on main (last accessed > 7 days ago)"
+          CUTOFF=$(date -d '7 days ago' --iso-8601=seconds)
+          gh cache list --ref refs/heads/main --limit 200 \
+            --json id,lastAccessedAt,key --jq ".[] | select(.lastAccessedAt < \"$CUTOFF\") | .id" |
+            xargs -I {} gh cache delete {} || true
