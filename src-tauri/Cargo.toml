@@ -20,6 +20,10 @@ tauri-build = { version = "2", features = [] }
 [patch.crates-io]
 # gtk-rs 0.18 is still required by Tauri's Linux GTK3 stack and cannot move to
 # glib 0.20. Keep the compatible 0.18 crate but backport RUSTSEC-2024-0429.
+# See vendor/glib-0.18.5/PATCHES.md — the unsound Send/Sync impls on
+# VariantStrIter are removed. Public scanners that match the bare
+# version string "0.18.5" against the RustSec database will report a
+# false positive against this copy.
 glib = { path = "vendor/glib-0.18.5" }
 
 [dependencies]
