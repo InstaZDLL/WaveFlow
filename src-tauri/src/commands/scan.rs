@@ -205,12 +205,12 @@ fn extract_cover(tag: &Tag, artwork_dir: &Path) -> Option<ExtractedCover> {
 /// `RATING` as plain text 0-100 which we rescale to 0-255.
 fn extract_rating(tag: &Tag) -> Option<u8> {
     if matches!(tag.tag_type(), TagType::Id3v2) {
-        if let Some(bytes) = tag.get_binary(&ItemKey::Popularimeter, false) {
+        if let Some(bytes) = tag.get_binary(ItemKey::Popularimeter, false) {
             let nul_pos = bytes.iter().position(|b| *b == 0)?;
             return bytes.get(nul_pos + 1).copied();
         }
     }
-    if let Some(text) = tag.get_string(&ItemKey::Popularimeter) {
+    if let Some(text) = tag.get_string(ItemKey::Popularimeter) {
         let trimmed = text.trim();
         if let Ok(val) = trimmed.parse::<u16>() {
             let clamped = val.min(100);
@@ -226,7 +226,7 @@ fn extract_rating(tag: &Tag) -> Option<u8> {
 /// coalesced to `None` so the UI's "—" placeholder kicks in
 /// instead of a blank cell.
 fn extract_musical_key(tag: &Tag) -> Option<String> {
-    let raw = tag.get_string(&ItemKey::InitialKey)?;
+    let raw = tag.get_string(ItemKey::InitialKey)?;
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         None
@@ -277,7 +277,7 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
             tag.artist().map(|s| s.into_owned()),
             tag.album().map(|s| s.into_owned()),
             tag.genre().map(|s| s.into_owned()),
-            tag.year().map(|y| y as i64),
+            tag.date().map(|d| d.year as i64),
             tag.track().map(|n| n as i64),
             tag.disk().map(|n| n as i64),
             extract_cover(tag, artwork_dir),

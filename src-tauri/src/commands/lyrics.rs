@@ -116,13 +116,13 @@ fn read_embedded_lyrics(path: &Path) -> Option<String> {
     let tag = tagged.primary_tag().or_else(|| tagged.first_tag())?;
     // ItemKey::Lyrics maps to the right key for every supported format.
     let raw = tag
-        .get_string(&ItemKey::Lyrics)
+        .get_string(ItemKey::Lyrics)
         .map(|s| s.to_string())
         .or_else(|| {
             // Some MP3s store lyrics under a non-standard key — fall
             // back to the generic `lyrics()` accessor when present.
             #[allow(deprecated)]
-            tag.get_string(&ItemKey::Description)
+            tag.get_string(ItemKey::Description)
                 .filter(|s| s.lines().count() > 3)
                 .map(|s| s.to_string())
         })?;
