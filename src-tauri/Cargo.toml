@@ -78,7 +78,7 @@ symphonia = { version = "0.5", default-features = false, features = [
     "pcm",
 ] }
 cpal = "0.17"
-rubato = "0.15"
+rubato = "2.0"
 rtrb = "0.3"
 crossbeam-channel = "0.5"
 
