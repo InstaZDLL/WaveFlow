@@ -44,6 +44,19 @@ pub struct OutputDeviceInfo {
     pub is_default: bool,
 }
 
+/// `DeviceTrait::name()` was deprecated in cpal 0.17 in favour of
+/// `description()` (structured metadata) and `id()` (stable identifier
+/// across reboots). We keep matching by display name to preserve
+/// `profile_setting['audio.output_device']` values written before this
+/// upgrade — `description().name()` returns the same string the old
+/// `name()` did.
+fn device_display_name(device: &cpal::Device) -> Option<String> {
+    device
+        .description()
+        .ok()
+        .map(|desc| desc.name().to_string())
+}
+
 /// Enumerate every output device available on the default audio host.
 /// The OS default is flagged so the UI can highlight it.
 ///
@@ -74,13 +87,15 @@ pub fn list_output_devices() -> AppResult<Vec<OutputDeviceInfo>> {
 #[cfg(not(target_os = "linux"))]
 fn list_output_devices_cpal() -> AppResult<Vec<OutputDeviceInfo>> {
     let host = cpal::default_host();
-    let default_name = host.default_output_device().and_then(|d| d.name().ok());
+    let default_name = host
+        .default_output_device()
+        .and_then(|d| device_display_name(&d));
     let devices = host
         .output_devices()
         .map_err(|e| AppError::Audio(format!("enumerate output devices: {e}")))?;
     let mut out = Vec::new();
     for device in devices {
-        let Ok(name) = device.name() else { continue };
+        let Some(name) = device_display_name(&device) else { continue };
         let is_default = default_name.as_deref().is_some_and(|n| n == name);
         out.push(OutputDeviceInfo {
             id: name.clone(),
@@ -110,7 +125,7 @@ fn list_output_devices_alsa_hints() -> AppResult<Vec<OutputDeviceInfo>> {
     let default_name = silence_alsa_stderr(|| {
         cpal::default_host()
             .default_output_device()
-            .and_then(|d| d.name().ok())
+            .and_then(|d| device_display_name(&d))
     });
 
     let pcm = CString::new("pcm")
@@ -346,7 +361,7 @@ fn build_stream_inner(
             let mut found = None;
             if let Ok(iter) = host.output_devices() {
                 for d in iter {
-                    if d.name().ok().as_deref() == Some(name) {
+                    if device_display_name(&d).as_deref() == Some(name) {
                         found = Some(d);
                         break;
                     }
@@ -376,7 +391,7 @@ fn build_stream_inner(
 
     let sample_format = default_cfg.sample_format();
     let channels = default_cfg.channels();
-    let sample_rate = default_cfg.sample_rate().0;
+    let sample_rate = default_cfg.sample_rate();
     let config: StreamConfig = default_cfg.into();
 
     // Stamp the device config into the shared state so the decoder and
