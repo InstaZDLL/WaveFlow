@@ -473,13 +473,16 @@ where
 
                 // Drain-silent mode: drop whatever's left in the
                 // ring as fast as possible and write silence. Used
-                // during a track switch so the tail of the old
-                // track never reaches the device. We still
-                // `consumer.pop()` so `producer.slots()` reflects
-                // the drop (the decoder's spin-wait needs this).
+                // during a track switch / seek so the tail of the
+                // old position never reaches the device. We pop in
+                // bulk (not one-per-output-slot) so the decoder's
+                // spin-wait on `producer.slots() == RING_CAPACITY`
+                // completes in a single callback (~10-15 ms) instead
+                // of waiting for the device to consume the whole ring
+                // at its native cadence (~270 ms at 44.1 kHz / 8 ch).
                 if shared.drain_silent.load(Ordering::Acquire) {
+                    while consumer.pop().is_ok() {}
                     for slot in out.iter_mut() {
-                        let _ = consumer.pop();
                         *slot = T::from_sample(0.0_f32);
                     }
                     return;
