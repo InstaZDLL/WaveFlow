@@ -45,16 +45,24 @@ pub struct OutputDeviceInfo {
 }
 
 /// `DeviceTrait::name()` was deprecated in cpal 0.17 in favour of
-/// `description()` (structured metadata) and `id()` (stable identifier
-/// across reboots). We keep matching by display name to preserve
-/// `profile_setting['audio.output_device']` values written before this
-/// upgrade — `description().name()` returns the same string the old
-/// `name()` did.
+/// `description()` + `id()`. On Windows, `description().name()` maps
+/// to `DEVPKEY_Device_DeviceDesc`, which is the *generic* class name
+/// (e.g. literally `"Speakers"`) shared by every endpoint of the same
+/// kind — so a system with three speaker-class outputs (onboard DAC,
+/// USB headset, Steam virtual sink) shows three indistinguishable
+/// `"Speakers"` rows. The disambiguated `DEVPKEY_Device_FriendlyName`
+/// (`"Speakers (Logitech PRO X Wireless Gaming Headset)"`) is
+/// surfaced by cpal in `description().extended()[0]` when it differs
+/// from DeviceDesc — we prefer it for display *and* for the value
+/// persisted in `profile_setting['audio.output_device']`, so device
+/// selection survives a restart even when several outputs share a
+/// class name.
 fn device_display_name(device: &cpal::Device) -> Option<String> {
-    device
-        .description()
-        .ok()
-        .map(|desc| desc.name().to_string())
+    let desc = device.description().ok()?;
+    if let Some(friendly) = desc.extended().first() {
+        return Some(friendly.clone());
+    }
+    Some(desc.name().to_string())
 }
 
 /// Enumerate every output device available on the default audio host.
