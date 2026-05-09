@@ -341,6 +341,7 @@ pub fn run() {
             commands::lyrics::cancel_lyrics_prefetch,
             commands::player::player_get_state,
             commands::player::player_pause,
+            commands::player::player_set_pause_after_track,
             commands::player::player_resume,
             commands::player::player_stop,
             commands::player::player_seek,

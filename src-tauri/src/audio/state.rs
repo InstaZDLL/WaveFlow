@@ -96,6 +96,13 @@ pub struct SharedPlayback {
     /// and read from `track_analysis.replay_gain_db` at load time).
     /// Toggled from the Settings "Apply ReplayGain" switch.
     pub replaygain_enabled: AtomicBool,
+    /// When `true`, the analytics worker skips the auto-advance step
+    /// after the current track ends naturally. Used by the sleep
+    /// timer's "end of current track" mode: the frontend arms this
+    /// flag, the timer fires its fade + pause when the track ends,
+    /// and the queue cursor stays put so the user can resume from
+    /// the same spot. Auto-clears after consumption (one-shot).
+    pub pause_after_current_track: AtomicBool,
 }
 
 impl SharedPlayback {
@@ -115,6 +122,7 @@ impl SharedPlayback {
             mono_enabled: AtomicBool::new(false),
             crossfade_ms: AtomicU32::new(0),
             replaygain_enabled: AtomicBool::new(false),
+            pause_after_current_track: AtomicBool::new(false),
         }
     }
 

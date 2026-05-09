@@ -118,26 +118,43 @@ async fn handle_message(
             )
             .await;
 
-            // Auto-advance.
-            let repeat = queue::read_repeat_mode(&pool).await;
-            let next: Option<QueueTrack> = queue::advance(&pool, Direction::Next, repeat)
-                .await
-                .map_err(|e| format!("advance: {e}"))?;
-            if let Some(track) = next {
-                let profile_id = state.require_profile_id().await.ok();
-                emit_track_changed(app, &state.paths, &track, profile_id);
-                emit_queue_changed(app);
-                let replay_gain_db =
-                    crate::commands::player::fetch_replay_gain_db(&pool, track.id).await;
-                let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
-                    path: track.as_path(),
-                    start_ms: 0,
-                    track_id: track.id,
-                    duration_ms: track.duration_ms.max(0) as u64,
-                    source_type: source_type.clone(),
-                    source_id: *source_id,
-                    replay_gain_db,
-                });
+            // Sleep-timer "end of current track" mode arms a flag
+            // on SharedPlayback. Honour it BEFORE the auto-advance
+            // step: skipping the queue::advance + LoadAndPlay leaves
+            // the queue cursor where it is, and the frontend's
+            // track-ended listener simultaneously fires the fade +
+            // pause. swap()'ing the flag means each arm is honoured
+            // exactly once — the user can re-arm without it
+            // sticking around forever.
+            let engine = app.try_state::<std::sync::Arc<crate::audio::AudioEngine>>();
+            let pause_after = engine
+                .as_deref()
+                .map(|e| e.shared.pause_after_current_track.swap(false, std::sync::atomic::Ordering::AcqRel))
+                .unwrap_or(false);
+            if pause_after {
+                tracing::info!("sleep-timer end-of-track armed: skipping auto-advance");
+            } else {
+                // Auto-advance.
+                let repeat = queue::read_repeat_mode(&pool).await;
+                let next: Option<QueueTrack> = queue::advance(&pool, Direction::Next, repeat)
+                    .await
+                    .map_err(|e| format!("advance: {e}"))?;
+                if let Some(track) = next {
+                    let profile_id = state.require_profile_id().await.ok();
+                    emit_track_changed(app, &state.paths, &track, profile_id);
+                    emit_queue_changed(app);
+                    let replay_gain_db =
+                        crate::commands::player::fetch_replay_gain_db(&pool, track.id).await;
+                    let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
+                        path: track.as_path(),
+                        start_ms: 0,
+                        track_id: track.id,
+                        duration_ms: track.duration_ms.max(0) as u64,
+                        source_type: source_type.clone(),
+                        source_id: *source_id,
+                        replay_gain_db,
+                    });
+                }
             }
         }
         AnalyticsMsg::TrackListened {

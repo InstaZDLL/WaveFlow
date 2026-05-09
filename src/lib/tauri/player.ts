@@ -98,6 +98,18 @@ export function playerSetVolume(value01: number): Promise<void> {
 }
 
 /**
+ * Arm or disarm the backend's "pause when the current track ends"
+ * flag. Used by the sleep timer's "end of current track" mode to
+ * suppress the auto-advance step racing the frontend's pause call.
+ * The flag is one-shot — consumed the next time a track ends
+ * naturally — but disarming explicitly is supported for the cancel
+ * path.
+ */
+export function playerSetPauseAfterTrack(enabled: boolean): Promise<void> {
+  return invoke<void>("player_set_pause_after_track", { enabled });
+}
+
+/**
  * Replace the queue with `trackIds` and start playing at
  * `startIndex`. The backend validates that `startIndex` is in range.
  */

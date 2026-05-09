@@ -115,7 +115,7 @@ impl std::fmt::Debug for AudioCmd {
 /// only sees `cmd_tx` and `shared`.
 pub struct AudioEngine {
     cmd_tx: Sender<AudioCmd>,
-    shared: Arc<SharedPlayback>,
+    pub(crate) shared: Arc<SharedPlayback>,
     output: Mutex<Option<OutputHandle>>,
     decoder: Mutex<Option<JoinHandle<()>>>,
     /// AppHandle clone so we can rebuild the cpal output thread from

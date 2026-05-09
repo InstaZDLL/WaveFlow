@@ -587,6 +587,23 @@ pub async fn player_pause(engine: tauri::State<'_, Arc<AudioEngine>>) -> AppResu
     engine.send(AudioCmd::Pause)
 }
 
+/// Arm or disarm the "pause when the current track ends" flag. Used
+/// by the sleep-timer's "end of current track" mode to suppress the
+/// auto-advance step so the queue cursor stays put. The flag is
+/// one-shot — consumed by the analytics worker the next time a track
+/// ends naturally.
+#[tauri::command]
+pub async fn player_set_pause_after_track(
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    engine
+        .shared
+        .pause_after_current_track
+        .store(enabled, std::sync::atomic::Ordering::Release);
+    Ok(())
+}
+
 /// Resume a paused track. No-op if already playing.
 #[tauri::command]
 pub async fn player_resume(engine: tauri::State<'_, Arc<AudioEngine>>) -> AppResult<()> {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { playerPause } from "../lib/tauri/player";
+import { playerPause, playerSetPauseAfterTrack } from "../lib/tauri/player";
 
 /**
  * Sleep-timer state machine.
@@ -135,6 +135,10 @@ export function useSleepTimer({
   const setDurationMinutes = useCallback(
     (minutes: number) => {
       clearTimers();
+      // Switching from end-of-track to duration must clear the
+      // backend flag so the next natural track end doesn't trigger
+      // an unexpected stop.
+      void playerSetPauseAfterTrack(false).catch(() => {});
       const totalMs = Math.max(1, Math.round(minutes * 60_000));
       const target = Date.now() + totalMs;
       targetTimestampRef.current = target;
@@ -159,11 +163,24 @@ export function useSleepTimer({
   const setEndOfTrack = useCallback(() => {
     clearTimers();
     restoreVolumeRef.current = currentVolume;
+    // Arm the backend flag so the analytics worker skips its
+    // auto-advance step when the current track ends. Without this
+    // the next track starts before our track-ended listener can
+    // fire pause — the queue cursor advances and the user lands on
+    // a new track instead of being paused.
+    void playerSetPauseAfterTrack(true).catch((err) =>
+      console.error("[SleepTimer] arm pause-after-track failed", err),
+    );
     setStatus({ kind: "end-of-track" });
   }, [clearTimers, currentVolume]);
 
   const cancel = useCallback(() => {
     clearTimers();
+    // Always disarm the backend flag on cancel — even if the
+    // current mode wasn't end-of-track, that's the safest reset.
+    void playerSetPauseAfterTrack(false).catch((err) =>
+      console.error("[SleepTimer] disarm pause-after-track failed", err),
+    );
     setStatus({ kind: "off" });
   }, [clearTimers]);
 
