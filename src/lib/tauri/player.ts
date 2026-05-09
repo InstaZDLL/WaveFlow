@@ -179,6 +179,9 @@ export function playerResumeLast(): Promise<void> {
 export interface PlayerQueueSnapshot {
   current_index: number;
   items: QueueTrackPayload[];
+  /** Source label of the queue's first row, or `null` when empty.
+   *  Drives the queue-wide "Radio based on X" banner. */
+  source_type: QueueSource | null;
 }
 
 export function playerGetQueue(): Promise<PlayerQueueSnapshot> {

@@ -440,7 +440,11 @@
     "nowPlaying": "प्रगति में",
     "upNext_zero": "अगला",
     "upNext_one": "अगला · {{count}} ट्रैक",
-    "upNext_other": "अगला · {{count}} ट्रैक"
+    "upNext_other": "अगला · {{count}} ट्रैक",
+    "radio": {
+      "label": "रेडियो",
+      "basedOn": "“{{title}}” पर आधारित"
+    }
   },
   "deviceMenu": {
     "activeLabel": "सक्रिय आउटपुट",

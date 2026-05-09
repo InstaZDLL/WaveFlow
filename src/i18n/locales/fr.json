@@ -440,7 +440,11 @@
     "nowPlaying": "En cours",
     "upNext_zero": "À suivre",
     "upNext_one": "À suivre · {{count}} titre",
-    "upNext_other": "À suivre · {{count}} titres"
+    "upNext_other": "À suivre · {{count}} titres",
+    "radio": {
+      "label": "Radio",
+      "basedOn": "Basée sur « {{title}} »"
+    }
   },
   "deviceMenu": {
     "activeLabel": "Sortie active",

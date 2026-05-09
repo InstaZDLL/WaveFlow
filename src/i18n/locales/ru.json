@@ -440,7 +440,11 @@
     "nowPlaying": "Сейчас в эфире",
     "upNext_zero": "Далее",
     "upNext_one": "Далее · Трек «{{count}}»",
-    "upNext_other": "Далее - {{count}} треков"
+    "upNext_other": "Далее - {{count}} треков",
+    "radio": {
+      "label": "Радио",
+      "basedOn": "На основе «{{title}}»"
+    }
   },
   "deviceMenu": {
     "activeLabel": "Активный выход",

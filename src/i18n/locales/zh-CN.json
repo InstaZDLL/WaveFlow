@@ -440,7 +440,11 @@
     "nowPlaying": "进行中",
     "upNext_zero": "接下来",
     "upNext_one": "接下来 · {{count}} track",
-    "upNext_other": "下一页 - {{count}} 曲目"
+    "upNext_other": "下一页 - {{count}} 曲目",
+    "radio": {
+      "label": "电台",
+      "basedOn": "基于「{{title}}」"
+    }
   },
   "deviceMenu": {
     "activeLabel": "有源输出",

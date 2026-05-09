@@ -440,7 +440,11 @@
     "nowPlaying": "진행 중",
     "upNext_zero": "다음",
     "upNext_one": "다음 · {{count}} track",
-    "upNext_other": "다음 - {{count}} 트랙"
+    "upNext_other": "다음 - {{count}} 트랙",
+    "radio": {
+      "label": "라디오",
+      "basedOn": "“{{title}}” 기반"
+    }
   },
   "deviceMenu": {
     "activeLabel": "출력 활성화",

@@ -440,7 +440,11 @@
     "nowPlaying": "قيد التنفيذ",
     "upNext_zero": "التالي",
     "upNext_one": "التالي · أغنية \"{{count}}\"",
-    "upNext_other": "التالي - {{count}} المقطوعات الموسيقية"
+    "upNext_other": "التالي - {{count}} المقطوعات الموسيقية",
+    "radio": {
+      "label": "راديو",
+      "basedOn": "بناءً على «{{title}}»"
+    }
   },
   "deviceMenu": {
     "activeLabel": "مخرج نشط",

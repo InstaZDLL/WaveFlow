@@ -440,7 +440,11 @@
     "nowPlaying": "In Bearbeitung",
     "upNext_zero": "Als Nächstes",
     "upNext_one": "Als Nächstes · Titel „{{count}}“",
-    "upNext_other": "Nächster Punkt - {{count}} Tracks"
+    "upNext_other": "Nächster Punkt - {{count}} Tracks",
+    "radio": {
+      "label": "Radio",
+      "basedOn": "Basierend auf „{{title}}“"
+    }
   },
   "deviceMenu": {
     "activeLabel": "Aktiver Ausgang",

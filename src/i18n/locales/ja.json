@@ -440,7 +440,11 @@
     "nowPlaying": "進行中",
     "upNext_zero": "次は",
     "upNext_one": "次へ · {{count}} track",
-    "upNext_other": "次のページ - {{count}} トラック"
+    "upNext_other": "次のページ - {{count}} トラック",
+    "radio": {
+      "label": "ラジオ",
+      "basedOn": "「{{title}}」を基に"
+    }
   },
   "deviceMenu": {
     "activeLabel": "アクティブ出力",

@@ -492,6 +492,13 @@ pub async fn player_jump_to_index(
 pub struct PlayerQueueSnapshot {
     pub current_index: i64,
     pub items: Vec<QueueTrackPayload>,
+    /// `queue_item.source_type` of the queue's first item, or `None`
+    /// when the queue is empty. Single value because every row in a
+    /// freshly-filled queue shares the same source — a mixed-source
+    /// queue would only happen via append (`add_to_queue`) and the
+    /// frontend uses this field for the queue-wide "Radio based on
+    /// X" banner, which is only meaningful for fill-queue sources.
+    pub source_type: Option<String>,
 }
 
 /// Return the live playback queue (joined with track metadata and
@@ -520,9 +527,20 @@ pub async fn player_get_queue(
         .map(|t| queue_track_to_payload_with_paths(&state.paths, t, profile_id))
         .collect();
 
+    // Single extra query for the queue-wide source type. Reading
+    // position 0 is fine because fill_queue always rewrites the
+    // whole queue with one source — append paths use 'manual' which
+    // the frontend treats the same as no-source.
+    let source_type: Option<String> = sqlx::query_scalar(
+        "SELECT source_type FROM queue_item WHERE position = 0 LIMIT 1",
+    )
+    .fetch_optional(&pool)
+    .await?;
+
     Ok(PlayerQueueSnapshot {
         current_index,
         items: payload_items,
+        source_type,
     })
 }
 

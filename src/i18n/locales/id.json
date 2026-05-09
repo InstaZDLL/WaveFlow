@@ -440,7 +440,11 @@
     "nowPlaying": "Sedang diputar",
     "upNext_zero": "Selanjutnya",
     "upNext_one": "Selanjutnya · Lagu '{{count}}'",
-    "upNext_other": "Berikutnya - {{count}} trek"
+    "upNext_other": "Berikutnya - {{count}} trek",
+    "radio": {
+      "label": "Radio",
+      "basedOn": "Berdasarkan “{{title}}”"
+    }
   },
   "deviceMenu": {
     "activeLabel": "Output aktif",

@@ -440,7 +440,11 @@
     "nowPlaying": "In uitvoering",
     "upNext_zero": "Volgende",
     "upNext_one": "Volgende · {{count}} track",
-    "upNext_other": "Volgende - {{count}} tracks"
+    "upNext_other": "Volgende - {{count}} tracks",
+    "radio": {
+      "label": "Radio",
+      "basedOn": "Gebaseerd op “{{title}}”"
+    }
   },
   "deviceMenu": {
     "activeLabel": "Actieve uitgang",

@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { X, ListMusic, GripVertical } from "lucide-react";
+import { X, ListMusic, GripVertical, Radio } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -202,6 +202,21 @@ export function QueuePanel() {
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto -mx-2 px-2 space-y-5 scrollbar-hide">
+            {snapshot?.source_type === "radio" && items[0] && (
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40">
+                <div className="shrink-0 w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <Radio size={18} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold tracking-widest uppercase text-emerald-600 dark:text-emerald-400">
+                    {t("queue.radio.label")}
+                  </div>
+                  <div className="text-xs text-zinc-700 dark:text-zinc-200 truncate">
+                    {t("queue.radio.basedOn", { title: items[0].title })}
+                  </div>
+                </div>
+              </div>
+            )}
             {nowPlaying && (
               <section>
                 <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-2 px-1">

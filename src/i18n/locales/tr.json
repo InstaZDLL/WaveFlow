@@ -440,7 +440,11 @@
     "nowPlaying": "Şu anda çalıyor",
     "upNext_zero": "Sıradaki",
     "upNext_one": "Sıradaki · {{count}} track",
-    "upNext_other": "Sıradaki - {{count}} parçalar"
+    "upNext_other": "Sıradaki - {{count}} parçalar",
+    "radio": {
+      "label": "Radyo",
+      "basedOn": "“{{title}}” temel alınarak"
+    }
   },
   "deviceMenu": {
     "activeLabel": "Aktif çıkış",
