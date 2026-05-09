@@ -10,6 +10,7 @@ mod commands;
 mod db;
 mod deezer;
 mod discord_presence;
+mod dlna;
 mod error;
 mod lastfm;
 mod logging;
@@ -170,6 +171,28 @@ pub fn run() {
             // profile's pool fresh per tick.
             scrobbler::spawn(app.handle().clone());
 
+            // DLNA / UPnP MediaServer auto-start. Reads the persisted
+            // `dlna.enabled` flag at boot and forwards the config to
+            // the worker so users don't have to flip the toggle every
+            // launch. Failure is non-fatal — the Settings page will
+            // surface `last_error` next time the user opens it.
+            tauri::async_runtime::spawn({
+                let handle = app.handle().clone();
+                async move {
+                    let state = handle.state::<AppState>();
+                    let cfg = match dlna::config::load(&state.app_db).await {
+                        Ok(c) => c,
+                        Err(err) => {
+                            tracing::warn!(?err, "DLNA config load failed");
+                            return;
+                        }
+                    };
+                    if cfg.enabled {
+                        state.dlna.start(cfg);
+                    }
+                }
+            });
+
             // System tray (status icon).
             //
             // Menu: Lecture/Pause, Précédent, Suivant, Ouvrir WaveFlow,
@@ -295,6 +318,9 @@ pub fn run() {
             commands::deezer::batch_fetch_missing_album_covers,
             commands::deezer::batch_fetch_missing_artist_pictures,
             commands::similar::get_similar_artists,
+            commands::dlna::dlna_get_config,
+            commands::dlna::dlna_set_config,
+            commands::dlna::dlna_get_status,
             commands::integration::get_lastfm_api_key,
             commands::integration::set_lastfm_api_key,
             commands::integration::get_lastfm_api_secret,

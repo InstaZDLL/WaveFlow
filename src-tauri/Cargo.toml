@@ -124,6 +124,30 @@ url = "2"
 # rejected). The server is gated to localhost.
 tiny_http = "0.12"
 
+# DLNA / UPnP MediaServer.
+#
+# - `axum` drives the HTTP server (description.xml, ContentDirectory
+#   SOAP control endpoint, /stream/<id> with Range, /art/<hash>).
+# - `quick-xml` parses incoming SOAP envelopes and writes DIDL-Lite
+#   responses without dragging in a full XML stack.
+# - `socket2` is needed for IP_MULTICAST_TTL / IP_ADD_MEMBERSHIP on the
+#   239.255.255.250:1900 SSDP socket — `tokio::net::UdpSocket` doesn't
+#   surface those flags directly.
+# - `if-addrs` enumerates the host's LAN IPs so the SSDP LOCATION
+#   header advertises the address the client can actually reach
+#   (rather than 127.0.0.1).
+# - `mac_address` derives a stable v4 UUID for the device so
+#   controllers don't see a new MediaServer each launch.
+# - `tower-http` adds the `Range` request handling for /stream — the
+#   built-in axum body types don't ship Range support.
+axum = { version = "0.8", default-features = false, features = ["http1", "tokio", "json"] }
+tower-http = { version = "0.6", features = ["fs"] }
+quick-xml = { version = "0.36", features = ["serialize"] }
+socket2 = "0.5"
+if-addrs = "0.13"
+mac_address = "1"
+uuid = { version = "1", features = ["v4", "v5"] }
+
 # Discord Rich Presence — speaks the local Discord client's IPC named
 # pipe (no network). Mirrors the souvlaki integration in
 # `media_controls.rs`: a dedicated thread owns the IPC client and

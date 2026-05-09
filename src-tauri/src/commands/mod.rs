@@ -8,6 +8,7 @@ pub mod app_info;
 pub mod browse;
 pub mod deezer;
 pub mod diagnostics;
+pub mod dlna;
 pub mod integration;
 pub mod library;
 pub mod lyrics;

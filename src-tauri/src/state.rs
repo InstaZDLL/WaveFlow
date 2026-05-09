@@ -7,6 +7,7 @@ use tokio::sync::RwLock;
 
 use crate::{
     db,
+    dlna::DlnaServer,
     error::{AppError, AppResult},
     paths::AppPaths,
 };
@@ -27,6 +28,10 @@ pub struct AppState {
     pub paths: AppPaths,
     pub app_db: SqlitePool,
     pub profile: Arc<RwLock<Option<ActiveProfile>>>,
+    /// DLNA / UPnP MediaServer worker. Always present (the worker
+    /// thread is spawned at init even when DLNA is disabled) so the
+    /// Settings page can call into it without re-spawning.
+    pub dlna: DlnaServer,
 }
 
 impl AppState {
@@ -51,6 +56,7 @@ impl AppState {
             paths,
             app_db,
             profile: Arc::new(RwLock::new(None)),
+            dlna: DlnaServer::spawn(),
         };
 
         state.bootstrap().await?;
