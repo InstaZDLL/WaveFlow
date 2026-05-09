@@ -40,9 +40,9 @@
 pub mod config;
 pub mod description;
 pub mod http;
+pub mod ssdp;
 
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use crossbeam_channel::{unbounded, Sender};
 use sqlx::SqlitePool;
@@ -159,6 +159,9 @@ struct WorkerState {
     status: DlnaStatus,
     /// Drops when set to `None` to abort the running axum task.
     shutdown: Option<oneshot::Sender<()>>,
+    /// Owns the SSDP announcer + responder background tasks. Replaced
+    /// (and previous handle dropped → tasks aborted) on every Start.
+    ssdp: Option<ssdp::SsdpHandle>,
 }
 
 impl WorkerState {
@@ -222,18 +225,39 @@ impl WorkerState {
             }
         });
 
-        let _ = Arc::new(cfg.clone()); // keep cfg referenced for future SSDP config snapshot
+        // Spawn the SSDP announcer + responder. Failure here doesn't
+        // bring down the HTTP server — controllers that already know
+        // our LOCATION can keep talking to us; only auto-discovery
+        // breaks. Surface the error in `last_error` so the Settings
+        // UI can warn the user.
+        let ssdp_err = match ssdp::spawn(cfg.server_name.clone(), lan_ip.clone(), actual.port()) {
+            Ok(handle) => {
+                self.ssdp = Some(handle);
+                None
+            }
+            Err(err) => {
+                tracing::warn!(?err, "SSDP spawn failed");
+                self.ssdp = None;
+                Some(format!("SSDP: {err}"))
+            }
+        };
+
         self.shutdown = Some(shutdown_tx);
         self.status = DlnaStatus {
             enabled: cfg.enabled,
             running: true,
             server_name: cfg.server_name.clone(),
             bound_url: Some(url),
-            last_error: None,
+            last_error: ssdp_err,
         };
     }
 
     async fn stop(&mut self) {
+        // Drop the SSDP handle first so we stop announcing alive
+        // before the HTTP server goes away — controllers that probe
+        // a stale LOCATION right after we shut down get a clean
+        // connection refused instead of a hanging request.
+        self.ssdp.take();
         if let Some(tx) = self.shutdown.take() {
             let _ = tx.send(());
         }
