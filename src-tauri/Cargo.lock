@@ -6531,6 +6531,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-opener",
  "tauri-plugin-updater",
+ "tempfile",
  "thiserror 2.0.18",
  "tiny_http",
  "tokio",

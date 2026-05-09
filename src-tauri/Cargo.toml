@@ -127,6 +127,12 @@ tiny_http = "0.12"
 # `integrations.discord_rpc` profile setting.
 discord-rich-presence = "1"
 
+[dev-dependencies]
+# Sandboxed scratch directories for unit tests that touch the filesystem
+# (artwork extraction, folder cover fallback, etc.). Auto-cleaned on
+# Drop so a panicked test doesn't leak fixtures across the temp dir.
+tempfile = "3"
+
 # Linux-only: direct ALSA enumeration so the output-device picker can
 # show human-readable descriptions ("HDA Intel PCH, ALC897 Analog
 # Stereo") instead of cpal's short identifiers ("hdmi:CARD=PCH,DEV=0").

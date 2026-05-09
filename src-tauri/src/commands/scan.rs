@@ -130,6 +130,10 @@ struct ExtractedCover {
     hash: String,
     /// File extension matching the picture's MIME type (jpg/png/webp/...).
     format: String,
+    /// Provenance label written to `artwork.source`. Either `"embedded"`
+    /// (lifted from the tag) or `"folder"` (sidecar cover.jpg / folder.png
+    /// / front.webp etc. next to the audio file).
+    source: &'static str,
 }
 
 /// Map lofty's `FileType` enum to a short uppercase label suitable
@@ -195,7 +199,94 @@ fn extract_cover(tag: &Tag, artwork_dir: &Path) -> Option<ExtractedCover> {
         artwork_dir.to_path_buf(),
         hash.clone(),
     );
-    Some(ExtractedCover { hash, format })
+    Some(ExtractedCover { hash, format, source: "embedded" })
+}
+
+/// Canonical filename stems searched for in the track's parent directory
+/// when the audio file carries no embedded picture. Order matters — the
+/// first match wins. Mirrors the convention used by foobar2000, MusicBee,
+/// Plex, Kodi, RustMusic.
+const FOLDER_COVER_STEMS: &[&str] = &[
+    "cover", "folder", "front", "albumart", "album", "artwork",
+];
+
+/// File extensions accepted as folder cover candidates. Limited to formats
+/// the `image` crate decodes via the features enabled in `Cargo.toml`, so
+/// every match downstream of this fn is guaranteed to be readable by the
+/// thumbnail pipeline.
+const FOLDER_COVER_EXTENSIONS: &[&str] =
+    &["jpg", "jpeg", "png", "webp", "bmp", "gif", "tiff"];
+
+/// Look for a sidecar cover image (cover.jpg / folder.png / front.webp / ...)
+/// next to the track. Returns an `ExtractedCover` written to the shared
+/// artwork dir, hash-addressed like embedded pictures.
+///
+/// Used as a fallback when the audio file has no embedded picture — common
+/// for FLAC/WAV libraries ripped from CD where the artwork sits beside the
+/// tracks rather than inside them.
+fn extract_folder_cover(track_path: &Path, artwork_dir: &Path) -> Option<ExtractedCover> {
+    let parent = track_path.parent()?;
+    let entries = fs::read_dir(parent).ok()?;
+
+    // Index siblings by lowercased (stem, ext) for O(1) lookup against the
+    // priority lists above. Single read_dir pass — cheaper than 6×7 = 42
+    // `Path::exists` calls when the directory is large.
+    let mut candidates: std::collections::HashMap<(String, String), PathBuf> =
+        std::collections::HashMap::new();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let stem = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .map(|s| s.to_lowercase());
+        let ext = path
+            .extension()
+            .and_then(|s| s.to_str())
+            .map(|s| s.to_lowercase());
+        if let (Some(s), Some(e)) = (stem, ext) {
+            candidates.insert((s, e), path);
+        }
+    }
+
+    let picked = FOLDER_COVER_STEMS
+        .iter()
+        .flat_map(|stem| {
+            FOLDER_COVER_EXTENSIONS
+                .iter()
+                .map(move |ext| (stem.to_string(), ext.to_string()))
+        })
+        .find_map(|key| candidates.get(&key).cloned())?;
+
+    let bytes = fs::read(&picked).ok()?;
+    if bytes.is_empty() {
+        return None;
+    }
+    let hash = blake3::hash(&bytes).to_hex().to_string();
+    let format = picked
+        .extension()
+        .and_then(|s| s.to_str())
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "jpg".to_string());
+    // Normalise `jpeg` to `jpg` so the artwork dir doesn't end up with two
+    // entries pointing at the same MIME.
+    let format = if format == "jpeg" { "jpg".to_string() } else { format };
+
+    let out_path = artwork_dir.join(format!("{}.{}", &hash, &format));
+    if !out_path.exists() {
+        if let Err(err) = fs::write(&out_path, &bytes) {
+            tracing::warn!(path = %out_path.display(), error = %err, "failed to write folder cover");
+            return None;
+        }
+    }
+    crate::thumbnails::spawn_thumbnail_job(
+        out_path,
+        artwork_dir.to_path_buf(),
+        hash.clone(),
+    );
+    Some(ExtractedCover { hash, format, source: "folder" })
 }
 
 /// Extract a 0-255 rating from a tag. POPM frames (ID3v2) are stored by
@@ -287,6 +378,12 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
         None => (None, None, None, None, None, None, None, None, None, None),
     };
 
+    // Folder cover fallback: scan the track's parent directory for a
+    // sidecar cover.jpg / folder.png / front.webp / ... when the tag had
+    // no embedded picture. Common for CD rips and lossless libraries
+    // where the artwork lives next to the audio files.
+    let cover_art = cover_art.or_else(|| extract_folder_cover(path, artwork_dir));
+
     // Fall back to the file stem when the tag has no title — better than
     // displaying an empty string in the library grid.
     let title = title.unwrap_or_else(|| {
@@ -321,13 +418,14 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
 }
 
 /// Upsert an artwork row keyed on its content hash. Existing rows are
-/// returned as-is; new rows are inserted with `source = 'embedded'` so a
-/// future cleanup job can distinguish scanner-extracted art from Deezer
-/// covers or user-uploaded files.
+/// returned as-is; new rows are inserted with the caller-supplied source
+/// label (`embedded`, `folder`, `deezer`, `user`...) so a future cleanup
+/// job can distinguish scanner-extracted art from remote/manual files.
 async fn upsert_artwork(
     pool: &SqlitePool,
     hash: &str,
     format: &str,
+    source: &str,
 ) -> AppResult<i64> {
     let existing: Option<i64> =
         sqlx::query_scalar("SELECT id FROM artwork WHERE hash = ?")
@@ -340,10 +438,11 @@ async fn upsert_artwork(
 
     let now = now_millis();
     let result = sqlx::query(
-        "INSERT INTO artwork (hash, format, source, created_at) VALUES (?, ?, 'embedded', ?)",
+        "INSERT INTO artwork (hash, format, source, created_at) VALUES (?, ?, ?, ?)",
     )
     .bind(hash)
     .bind(format)
+    .bind(source)
     .bind(now)
     .execute(pool)
     .await?;
@@ -623,7 +722,7 @@ pub(crate) async fn scan_folder_inner(
                     .await?;
                     if let Some((Some(aid), None)) = row {
                         let artwork_id =
-                            upsert_artwork(pool, &cover.hash, &cover.format).await?;
+                            upsert_artwork(pool, &cover.hash, &cover.format, cover.source).await?;
                         sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
                             .bind(artwork_id)
                             .bind(aid)
@@ -744,7 +843,8 @@ pub(crate) async fn scan_folder_inner(
         // want a re-scan to flip the album cover back and forth between
         // variants embedded in different tracks of the same release.
         if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
-            let artwork_id = upsert_artwork(pool, &cover.hash, &cover.format).await?;
+            let artwork_id =
+                upsert_artwork(pool, &cover.hash, &cover.format, cover.source).await?;
             sqlx::query(
                 "UPDATE album SET artwork_id = ? WHERE id = ? AND artwork_id IS NULL",
             )
@@ -924,4 +1024,93 @@ pub(crate) async fn scan_folder_inner(
     );
 
     Ok(summary)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn write_bytes(path: &Path, bytes: &[u8]) {
+        fs::write(path, bytes).expect("write fixture");
+    }
+
+    /// Smallest valid 1x1 JPEG — enough to satisfy the non-empty check
+    /// and exercise the hash + write + spawn_thumbnail_job pipeline
+    /// without dragging the `image` crate into the unit test.
+    const TINY_JPEG: &[u8] = &[
+        0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
+        0xFF, 0xD9,
+    ];
+
+    #[test]
+    fn folder_cover_picks_priority_stem_over_alphabetical_first() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let artwork_dir = dir.path().join("artwork");
+        fs::create_dir_all(&artwork_dir).unwrap();
+        let folder = dir.path().join("album");
+        fs::create_dir_all(&folder).unwrap();
+
+        // `albumart` ranks below `cover` in FOLDER_COVER_STEMS; even though
+        // it sorts first alphabetically, the priority list must win.
+        write_bytes(&folder.join("albumart.jpg"), TINY_JPEG);
+        write_bytes(&folder.join("cover.png"), TINY_JPEG);
+
+        let track = folder.join("01.flac");
+        write_bytes(&track, b"not really audio");
+
+        let cover = extract_folder_cover(&track, &artwork_dir).expect("cover found");
+        assert_eq!(cover.format, "png", "cover.png should win over albumart.jpg");
+        assert_eq!(cover.source, "folder");
+    }
+
+    #[test]
+    fn folder_cover_normalises_jpeg_extension() {
+        let dir = tempfile::tempdir().unwrap();
+        let artwork_dir = dir.path().join("artwork");
+        fs::create_dir_all(&artwork_dir).unwrap();
+        let folder = dir.path().join("album");
+        fs::create_dir_all(&folder).unwrap();
+
+        write_bytes(&folder.join("front.JPEG"), TINY_JPEG);
+        let track = folder.join("01.flac");
+        write_bytes(&track, b"x");
+
+        let cover = extract_folder_cover(&track, &artwork_dir).expect("cover found");
+        // `jpeg` must collapse to `jpg` so the artwork dir has one
+        // canonical extension per MIME.
+        assert_eq!(cover.format, "jpg");
+    }
+
+    #[test]
+    fn folder_cover_returns_none_when_no_match() {
+        let dir = tempfile::tempdir().unwrap();
+        let artwork_dir = dir.path().join("artwork");
+        fs::create_dir_all(&artwork_dir).unwrap();
+        let folder = dir.path().join("album");
+        fs::create_dir_all(&folder).unwrap();
+
+        // Recognised extension but stem isn't in the priority list.
+        write_bytes(&folder.join("scan-of-booklet.jpg"), TINY_JPEG);
+        let track = folder.join("01.flac");
+        write_bytes(&track, b"x");
+
+        assert!(extract_folder_cover(&track, &artwork_dir).is_none());
+    }
+
+    #[test]
+    fn folder_cover_writes_hash_addressed_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let artwork_dir = dir.path().join("artwork");
+        fs::create_dir_all(&artwork_dir).unwrap();
+        let folder = dir.path().join("album");
+        fs::create_dir_all(&folder).unwrap();
+
+        write_bytes(&folder.join("cover.jpg"), TINY_JPEG);
+        let track = folder.join("01.flac");
+        write_bytes(&track, b"x");
+
+        let cover = extract_folder_cover(&track, &artwork_dir).expect("cover");
+        let on_disk = artwork_dir.join(format!("{}.{}", cover.hash, cover.format));
+        assert!(on_disk.exists(), "hash-addressed file must be written");
+    }
 }
