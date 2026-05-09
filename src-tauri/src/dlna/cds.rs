@@ -368,9 +368,7 @@ async fn browse_album_tracks(
 
 async fn browse_metadata(ctx: &ServerCtx, object_id: &str) -> Result<BrowseResult, sqlx::Error> {
     if object_id.is_empty() || object_id == "0" {
-        let body = format!(
-            r#"<container id="0" parentID="-1" restricted="1" childCount="2"><dc:title>WaveFlow</dc:title><upnp:class>object.container</upnp:class></container>"#
-        );
+        let body = r#"<container id="0" parentID="-1" restricted="1" childCount="2"><dc:title>WaveFlow</dc:title><upnp:class>object.container</upnp:class></container>"#.to_string();
         return Ok(BrowseResult {
             didl: didl_envelope(&body),
             number_returned: 1,

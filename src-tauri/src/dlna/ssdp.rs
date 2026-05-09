@@ -73,7 +73,7 @@ impl Drop for SsdpHandle {
 pub fn spawn(server_name: String, lan_ip: String, port: u16) -> std::io::Result<SsdpHandle> {
     let uuid = device_uuid(&server_name).to_string();
     let location = format!("http://{lan_ip}:{port}/description.xml");
-    let server_header = format!("WaveFlow/0.1 UPnP/1.0 WaveFlowMediaServer/1.0",);
+    let server_header = "WaveFlow/0.1 UPnP/1.0 WaveFlowMediaServer/1.0".to_string();
 
     let shared = Arc::new(SsdpShared {
         uuid,

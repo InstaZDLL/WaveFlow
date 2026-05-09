@@ -548,7 +548,7 @@ async fn upsert_artwork(
 /// Returns the trimmed, non-empty names in the order they appeared —
 /// the first entry is treated as the primary artist by the caller.
 fn split_artist_name(raw: &str) -> Vec<String> {
-    raw.split(|c| c == ',' || c == ';')
+    raw.split([',', ';'])
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
         .map(|s| s.to_string())

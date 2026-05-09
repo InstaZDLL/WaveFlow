@@ -517,12 +517,9 @@ where
                         let mut sum: f32 = 0.0;
                         let mut got: usize = 0;
                         for _ in 0..channels {
-                            match consumer.pop() {
-                                Ok(s) => {
-                                    sum += s;
-                                    got += 1;
-                                }
-                                Err(_) => {}
+                            if let Ok(s) = consumer.pop() {
+                                sum += s;
+                                got += 1;
                             }
                         }
                         if got > 0 {
