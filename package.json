@@ -21,7 +21,7 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@tailwindcss/vite": "^4.2.4",
+    "@tailwindcss/vite": "^4.3.0",
     "@tanstack/react-virtual": "^3.13.24",
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-dialog": "^2.7.1",
@@ -33,7 +33,7 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-i18next": "^17.0.7",
-    "tailwindcss": "^4.2.4"
+    "tailwindcss": "^4.3.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.3",
