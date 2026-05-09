@@ -22,3 +22,4 @@
 //! metadata follow in subsequent commits.
 
 pub mod parser;
+pub mod pcm;
