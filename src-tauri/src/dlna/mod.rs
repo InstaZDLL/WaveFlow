@@ -37,6 +37,7 @@
 //! serves `/healthz`; SSDP and ContentDirectory follow in subsequent
 //! commits.
 
+pub mod cds;
 pub mod config;
 pub mod description;
 pub mod http;

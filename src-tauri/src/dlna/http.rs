@@ -19,14 +19,14 @@ use axum::{
     extract::{Path, State},
     http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
     Router,
 };
 use sqlx::SqlitePool;
 use tokio::io::{AsyncSeekExt, SeekFrom};
 use tokio_util::io::ReaderStream;
 
-use crate::dlna::description;
+use crate::dlna::{cds, description};
 
 /// Shared state handed to every axum handler. `pool_factory` returns
 /// the active profile's pool on demand so a profile switch flips the
@@ -58,6 +58,29 @@ pub fn router(ctx: ServerCtx) -> Router {
         )
         .route("/stream/{track_id}", get(serve_stream))
         .route("/art/{hash}", get(serve_art))
+        .route("/control/ContentDirectory", post(cds::handle_control))
+        // Stub the ConnectionManager control endpoint with a 200 OK
+        // empty SOAP body — controllers query GetProtocolInfo right
+        // after discovery; failing it makes them deprioritise us.
+        .route(
+            "/control/ConnectionManager",
+            post(|| async {
+                let body = r#"<?xml version="1.0" encoding="utf-8"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+  <s:Body>
+    <u:GetProtocolInfoResponse xmlns:u="urn:schemas-upnp-org:service:ConnectionManager:1">
+      <Source>http-get:*:audio/mpeg:*,http-get:*:audio/flac:*,http-get:*:audio/wav:*,http-get:*:audio/ogg:*,http-get:*:audio/mp4:*</Source>
+      <Sink></Sink>
+    </u:GetProtocolInfoResponse>
+  </s:Body>
+</s:Envelope>"#;
+                (
+                    StatusCode::OK,
+                    [(header::CONTENT_TYPE, "text/xml; charset=\"utf-8\"")],
+                    body,
+                )
+            }),
+        )
         .with_state(Arc::new(ctx))
 }
 
