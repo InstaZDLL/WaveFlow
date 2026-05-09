@@ -28,6 +28,7 @@ import { UploadIcon } from "../common/Icons";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { HiResBadge } from "../common/HiResBadge";
+import { PlayingIndicator } from "../common/PlayingIndicator";
 import { Tooltip } from "../common/Tooltip";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { CoverPickerModal } from "../common/CoverPickerModal";
@@ -113,7 +114,7 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
     importFolder,
     rescanLibrary,
   } = useLibrary();
-  const { playTracks, currentTrack } = usePlayer();
+  const { playTracks, currentTrack, isPlaying } = usePlayer();
   const { playlists, addTracksToPlaylist, addSourceToPlaylist, createPlaylist } = usePlaylist();
   const [isImporting, setIsImporting] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
@@ -465,6 +466,7 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
                   })
                 }
                 currentTrackId={currentTrack?.id ?? null}
+                isPlaying={isPlaying}
                 likedIds={likedIds}
                 onToggleLike={async (trackId) => {
                   try {
@@ -851,6 +853,7 @@ interface TrackTableProps {
   t: Translator;
   onPlayTrack: (index: number) => void;
   currentTrackId: number | null;
+  isPlaying: boolean;
   likedIds: Set<number>;
   onToggleLike: (trackId: number) => void;
   playlists: Playlist[];
@@ -869,6 +872,7 @@ function TrackTable({
   t,
   onPlayTrack,
   currentTrackId,
+  isPlaying,
   likedIds,
   onToggleLike,
   playlists,
@@ -996,13 +1000,17 @@ function TrackTable({
               }`}
             >
                 <span
-                  className={`text-right text-sm tabular-nums ${
+                  className={`text-right text-sm tabular-nums flex items-center justify-end ${
                     isCurrent
                       ? "text-emerald-500 font-semibold"
                       : "text-zinc-400"
                   }`}
                 >
-                  {index + 1}
+                  {isCurrent ? (
+                    <PlayingIndicator isPlaying={isPlaying} />
+                  ) : (
+                    index + 1
+                  )}
                 </span>
                 {view === "list" && (
                   <Artwork

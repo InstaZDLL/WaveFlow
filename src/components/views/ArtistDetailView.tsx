@@ -5,6 +5,7 @@ import { Artwork } from "../common/Artwork";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { HiResBadge } from "../common/HiResBadge";
+import { PlayingIndicator } from "../common/PlayingIndicator";
 import { Lightbox } from "../common/Lightbox";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
@@ -33,7 +34,7 @@ export function ArtistDetailView({
   onNavigateToAlbum,
 }: ArtistDetailViewProps) {
   const { t } = useTranslation();
-  const { playTracks, currentTrack, toggleShuffle } = usePlayer();
+  const { playTracks, currentTrack, toggleShuffle, isPlaying } = usePlayer();
   const { createPlaylist } = usePlaylist();
 
   const [artist, setArtist] = useState<ArtistDetail | null>(null);
@@ -353,6 +354,7 @@ export function ArtistDetailView({
             tracks={tracks}
             isLoading={isLoading}
             currentTrackId={currentTrack?.id ?? null}
+            isPlaying={isPlaying}
             likedIds={likedIds}
             onToggleLike={handleToggleLike}
             onPlayTrack={(index) =>
@@ -399,6 +401,7 @@ function ArtistTrackTable({
   tracks,
   isLoading,
   currentTrackId,
+  isPlaying,
   likedIds,
   onToggleLike,
   onPlayTrack,
@@ -408,6 +411,7 @@ function ArtistTrackTable({
   tracks: Track[];
   isLoading: boolean;
   currentTrackId: number | null;
+  isPlaying: boolean;
   likedIds: Set<number>;
   onToggleLike: (trackId: number) => void;
   onPlayTrack: (index: number) => void;
@@ -449,13 +453,17 @@ function ArtistTrackTable({
               }`}
             >
               <span
-                className={`text-right text-sm tabular-nums ${
+                className={`text-right text-sm tabular-nums flex items-center justify-end ${
                   isCurrent
                     ? "text-emerald-500 font-semibold"
                     : "text-zinc-400"
                 }`}
               >
-                {index + 1}
+                {isCurrent ? (
+                  <PlayingIndicator isPlaying={isPlaying} />
+                ) : (
+                  index + 1
+                )}
               </span>
               <Artwork
                 path={track.artwork_path}

@@ -47,6 +47,7 @@ import { Tooltip } from "../common/Tooltip";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { HiResBadge } from "../common/HiResBadge";
+import { PlayingIndicator } from "../common/PlayingIndicator";
 import { SelectionActionBar } from "../common/SelectionActionBar";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
@@ -83,7 +84,7 @@ export function PlaylistView({
   onNavigateToArtist,
 }: PlaylistViewProps) {
   const { t } = useTranslation();
-  const { playTracks, currentTrack, toggleShuffle } = usePlayer();
+  const { playTracks, currentTrack, toggleShuffle, isPlaying } = usePlayer();
   const { updatePlaylist, deletePlaylist, getPlaylistTracks, playlists, removeTrackFromPlaylist, createPlaylist } =
     usePlaylist();
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
@@ -515,6 +516,7 @@ export function PlaylistView({
           tracks={tracks}
           isLoading={isLoading}
           currentTrackId={currentTrack?.id ?? null}
+          isPlaying={isPlaying}
           onPlayTrack={handlePlayTrackByIndex}
           likedIds={likedIds}
           onToggleLike={handleToggleLike}
@@ -583,6 +585,7 @@ interface PlaylistTrackTableProps {
   tracks: Track[];
   isLoading: boolean;
   currentTrackId: number | null;
+  isPlaying: boolean;
   onPlayTrack: (index: number) => void;
   likedIds: Set<number>;
   onToggleLike: (trackId: number) => void;
@@ -609,6 +612,7 @@ function PlaylistTrackTable({
   tracks,
   isLoading,
   currentTrackId,
+  isPlaying,
   onPlayTrack,
   likedIds,
   onToggleLike,
@@ -743,6 +747,7 @@ function PlaylistTrackTable({
                   top={virtualRow.start - scrollMargin}
                   gridCols={gridCols}
                   isCurrent={track.id === currentTrackId}
+                  isPlaying={isPlaying}
                   isLiked={likedIds.has(track.id)}
                   isRowSelected={isSelected(track.id)}
                   likeLabel={likeLabel}
@@ -814,6 +819,7 @@ interface SortablePlaylistRowProps {
   rowHeight: number;
   gridCols: string;
   isCurrent: boolean;
+  isPlaying: boolean;
   isLiked: boolean;
   isRowSelected: boolean;
   likeLabel: string;
@@ -833,6 +839,7 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
   rowHeight,
   gridCols,
   isCurrent,
+  isPlaying,
   isLiked,
   isRowSelected,
   likeLabel,
@@ -904,11 +911,11 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
         <GripVertical size={14} />
       </button>
       <span
-        className={`text-right text-sm tabular-nums ${
+        className={`text-right text-sm tabular-nums flex items-center justify-end ${
           isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
         }`}
       >
-        {index + 1}
+        {isCurrent ? <PlayingIndicator isPlaying={isPlaying} /> : index + 1}
       </span>
       <Artwork
         path={track.artwork_path}

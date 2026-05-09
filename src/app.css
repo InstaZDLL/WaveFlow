@@ -44,6 +44,22 @@
   }
 }
 
+@keyframes playingBar {
+  0%, 100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playing-indicator-bar {
+    animation: none !important;
+    transform: scaleY(0.6);
+  }
+}
+
 @utility scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;

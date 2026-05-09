@@ -7,6 +7,7 @@ import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { CoverPickerModal } from "../common/CoverPickerModal";
 import { HiResBadge } from "../common/HiResBadge";
+import { PlayingIndicator } from "../common/PlayingIndicator";
 import { SelectionActionBar } from "../common/SelectionActionBar";
 import { Lightbox } from "../common/Lightbox";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -37,7 +38,7 @@ export function AlbumDetailView({
   onNavigateToArtist,
 }: AlbumDetailViewProps) {
   const { t } = useTranslation();
-  const { playTracks, currentTrack, toggleShuffle } = usePlayer();
+  const { playTracks, currentTrack, toggleShuffle, isPlaying } = usePlayer();
   const { createPlaylist } = usePlaylist();
 
   const [album, setAlbum] = useState<AlbumDetail | null>(null);
@@ -314,6 +315,7 @@ export function AlbumDetailView({
           isMultiDisc={isMultiDisc}
           discNumbers={discNumbers}
           currentTrackId={currentTrack?.id ?? null}
+          isPlaying={isPlaying}
           likedIds={likedIds}
           onToggleLike={handleToggleLike}
           onPlayTrack={(index) =>
@@ -404,6 +406,7 @@ interface AlbumTrackTableProps {
   isMultiDisc: boolean;
   discNumbers: number[];
   currentTrackId: number | null;
+  isPlaying: boolean;
   likedIds: Set<number>;
   onToggleLike: (trackId: number) => void;
   onPlayTrack: (index: number) => void;
@@ -421,6 +424,7 @@ function AlbumTrackTable({
   isMultiDisc,
   discNumbers,
   currentTrackId,
+  isPlaying,
   likedIds,
   onToggleLike,
   onPlayTrack,
@@ -450,13 +454,17 @@ function AlbumTrackTable({
         }`}
       >
         <span
-          className={`text-right text-sm tabular-nums ${
+          className={`text-right text-sm tabular-nums flex items-center justify-end ${
             isCurrent
               ? "text-emerald-500 font-semibold"
               : "text-zinc-400"
           }`}
         >
-          {track.track_number ?? globalIndex + 1}
+          {isCurrent ? (
+            <PlayingIndicator isPlaying={isPlaying} />
+          ) : (
+            track.track_number ?? globalIndex + 1
+          )}
         </span>
         <div className="min-w-0">
           <span
