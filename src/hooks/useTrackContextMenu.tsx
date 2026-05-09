@@ -6,7 +6,12 @@ import {
 import { TrackPropertiesModal } from "../components/common/TrackPropertiesModal";
 import type { Track } from "../lib/tauri/track";
 import { toggleLikeTrack } from "../lib/tauri/track";
-import { playerAddToQueue, playerPlayNext } from "../lib/tauri/player";
+import {
+  playerAddToQueue,
+  playerPlayNext,
+  playerPlayTracks,
+} from "../lib/tauri/player";
+import { startRadio } from "../lib/tauri/radio";
 import { usePlaylist } from "./usePlaylist";
 import type { ContextMenuPoint } from "../components/common/ContextMenu";
 
@@ -91,6 +96,16 @@ export function useTrackContextMenu({
     );
   }, []);
 
+  const handleStartRadio = useCallback(async (trackId: number) => {
+    try {
+      const ids = await startRadio(trackId);
+      if (ids.length === 0) return;
+      await playerPlayTracks("radio", null, ids, 0);
+    } catch (err) {
+      console.error("[trackContextMenu] start radio failed", err);
+    }
+  }, []);
+
   const handleToggleLike = useCallback(
     async (trackId: number) => {
       try {
@@ -122,6 +137,7 @@ export function useTrackContextMenu({
             onClose={close}
             onPlayNext={handlePlayNext}
             onAddToQueue={handleAddToQueue}
+            onStartRadio={handleStartRadio}
             onAddToPlaylist={handleAddToPlaylist}
             onCreatePlaylist={onCreatePlaylist}
             onToggleLike={handleToggleLike}
@@ -146,6 +162,7 @@ export function useTrackContextMenu({
     close,
     handlePlayNext,
     handleAddToQueue,
+    handleStartRadio,
     handleAddToPlaylist,
     onCreatePlaylist,
     handleToggleLike,

@@ -531,7 +531,8 @@
     "goToArtist": "الانتقال إلى الفنان",
     "showInExplorer": "عرض في المستكشف",
     "copyPath": "نسخ مسار الملف",
-    "properties": "الخصائص"
+    "properties": "الخصائص",
+    "startRadio": "تشغيل الراديو"
   },
   "trackProperties": {
     "title": "خصائص المسار",
@@ -628,7 +629,8 @@
     "lyrics": {
       "title": "كلمات الأغنية",
       "comingSoon": "قريبًا"
-    }
+    },
+    "startRadio": "تشغيل الراديو"
   },
   "playerBar": {
     "lyrics": "كلمات الأغنية",

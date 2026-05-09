@@ -531,7 +531,8 @@
     "goToArtist": "Sanatçıya git",
     "showInExplorer": "Dosya Gezgini'nde göster",
     "copyPath": "Dosya yolunu kopyala",
-    "properties": "Özellikler"
+    "properties": "Özellikler",
+    "startRadio": "Radyoyu başlat"
   },
   "trackProperties": {
     "title": "Parça özellikleri",
@@ -628,7 +629,8 @@
     "lyrics": {
       "title": "Şarkı Sözleri",
       "comingSoon": "Yakında"
-    }
+    },
+    "startRadio": "Radyoyu başlat"
   },
   "playerBar": {
     "lyrics": "Şarkı Sözleri",

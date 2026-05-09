@@ -531,7 +531,8 @@
     "goToArtist": "Перейти к исполнителю",
     "showInExplorer": "Показать в проводнике",
     "copyPath": "Скопировать путь к файлу",
-    "properties": "Свойства"
+    "properties": "Свойства",
+    "startRadio": "Включить радио"
   },
   "trackProperties": {
     "title": "Свойства трека",
@@ -628,7 +629,8 @@
     "lyrics": {
       "title": "Текст песни",
       "comingSoon": "Скоро"
-    }
+    },
+    "startRadio": "Включить радио"
   },
   "playerBar": {
     "lyrics": "Текст песни",

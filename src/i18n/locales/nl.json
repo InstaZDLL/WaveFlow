@@ -531,7 +531,8 @@
     "goToArtist": "Naar de artiest",
     "showInExplorer": "Weergeven in de verkenner",
     "copyPath": "Kopieer het pad naar het bestand",
-    "properties": "Eigenschappen"
+    "properties": "Eigenschappen",
+    "startRadio": "Start radio"
   },
   "trackProperties": {
     "title": "Eigenschappen van een track",
@@ -628,7 +629,8 @@
     "lyrics": {
       "title": "Tekst",
       "comingSoon": "Binnenkort beschikbaar"
-    }
+    },
+    "startRadio": "Start radio"
   },
   "playerBar": {
     "lyrics": "Tekst",

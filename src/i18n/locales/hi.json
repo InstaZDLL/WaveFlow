@@ -531,7 +531,8 @@
     "goToArtist": "कलाकार के पास जाएँ",
     "showInExplorer": "फ़ाइल एक्सप्लोरर में देखें",
     "copyPath": "फ़ाइल पथ की प्रतिलिपि बनाएँ",
-    "properties": "गुणधर्म"
+    "properties": "गुणधर्म",
+    "startRadio": "रेडियो शुरू करें"
   },
   "trackProperties": {
     "title": "ट्रैक गुण",
@@ -628,7 +629,8 @@
     "lyrics": {
       "title": "गीत के बोल",
       "comingSoon": "जल्द आ रहा है"
-    }
+    },
+    "startRadio": "रेडियो शुरू करें"
   },
   "playerBar": {
     "lyrics": "गीत के बोल",

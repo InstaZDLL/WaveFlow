@@ -531,7 +531,8 @@
     "goToArtist": "Ir para o artista",
     "showInExplorer": "Exibir no explorador",
     "copyPath": "Copiar o caminho do arquivo",
-    "properties": "Propriedades"
+    "properties": "Propriedades",
+    "startRadio": "Iniciar rádio"
   },
   "trackProperties": {
     "title": "Propriedades da faixa",
@@ -628,7 +629,8 @@
     "lyrics": {
       "title": "Letra",
       "comingSoon": "Em breve"
-    }
+    },
+    "startRadio": "Iniciar rádio"
   },
   "playerBar": {
     "lyrics": "Letra",

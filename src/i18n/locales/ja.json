@@ -531,7 +531,8 @@
     "goToArtist": "アーティストへ",
     "showInExplorer": "エクスプローラーに表示",
     "copyPath": "ファイルのパスをコピーする",
-    "properties": "特長"
+    "properties": "特長",
+    "startRadio": "ラジオを開始"
   },
   "trackProperties": {
     "title": "トラックのプロパティ",
@@ -628,7 +629,8 @@
     "lyrics": {
       "title": "歌詞",
       "comingSoon": "近日公開"
-    }
+    },
+    "startRadio": "ラジオを開始"
   },
   "playerBar": {
     "lyrics": "歌詞",

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Music2 } from "lucide-react";
+import { X, Music2, Radio } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
@@ -11,8 +11,10 @@ import { enrichArtistDeezer } from "../../lib/tauri/detail";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import {
   playerGetQueue,
+  playerPlayTracks,
   type QueueTrackPayload,
 } from "../../lib/tauri/player";
+import { startRadio } from "../../lib/tauri/radio";
 
 interface NowPlayingPanelProps {
   onNavigateToArtist: (artistId: number) => void;
@@ -180,6 +182,26 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
                 </div>
               )}
             </div>
+
+            {/* Quick actions — Spotify's "Start radio" lives here too */}
+            <button
+              type="button"
+              onClick={async () => {
+                if (!currentTrack) return;
+                try {
+                  const ids = await startRadio(currentTrack.id);
+                  if (ids.length > 0) {
+                    await playerPlayTracks("radio", null, ids, 0);
+                  }
+                } catch (err) {
+                  console.error("[NowPlaying] start radio failed", err);
+                }
+              }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-emerald-500 hover:text-emerald-500 text-sm font-semibold text-zinc-700 dark:text-zinc-200 transition-colors"
+            >
+              <Radio size={16} />
+              {t("nowPlaying.startRadio")}
+            </button>
 
             {/* About the artist */}
             {primaryArtistName && (

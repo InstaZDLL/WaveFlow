@@ -7,6 +7,7 @@ import {
   ListEnd,
   ListPlus,
   Plus,
+  Radio,
   Trash2,
   User,
 } from "lucide-react";
@@ -34,6 +35,7 @@ export interface TrackContextMenuProps {
   onClose: () => void;
   onPlayNext: (trackId: number) => void;
   onAddToQueue: (trackId: number) => void;
+  onStartRadio: (trackId: number) => void;
   onAddToPlaylist: (playlistId: number, trackId: number) => void;
   onCreatePlaylist: () => void;
   onToggleLike: (trackId: number) => void;
@@ -64,6 +66,7 @@ export function TrackContextMenu({
   onClose,
   onPlayNext,
   onAddToQueue,
+  onStartRadio,
   onAddToPlaylist,
   onCreatePlaylist,
   onToggleLike,
@@ -100,6 +103,11 @@ export function TrackContextMenu({
         icon={<ListPlus size={14} />}
         label={t("trackActions.addToQueue")}
         onSelect={closeAfter(() => onAddToQueue(track.id))}
+      />
+      <ContextMenuItem
+        icon={<Radio size={14} />}
+        label={t("trackActions.startRadio")}
+        onSelect={closeAfter(() => onStartRadio(track.id))}
       />
 
       <ContextMenuSeparator />

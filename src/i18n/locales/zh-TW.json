@@ -531,7 +531,8 @@
     "goToArtist": "前往該藝術家",
     "showInExplorer": "在檔案總管中顯示",
     "copyPath": "複製檔案路徑",
-    "properties": "特性"
+    "properties": "特性",
+    "startRadio": "開始電台"
   },
   "trackProperties": {
     "title": "曲目屬性",
@@ -628,7 +629,8 @@
     "lyrics": {
       "title": "歌詞",
       "comingSoon": "即將推出"
-    }
+    },
+    "startRadio": "開始電台"
   },
   "playerBar": {
     "lyrics": "歌詞",

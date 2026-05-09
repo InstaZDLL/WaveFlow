@@ -531,7 +531,8 @@
     "goToArtist": "아티스트로 이동",
     "showInExplorer": "탐색기에서 보기",
     "copyPath": "파일 경로 복사",
-    "properties": "특성"
+    "properties": "특성",
+    "startRadio": "라디오 시작"
   },
   "trackProperties": {
     "title": "트랙 속성",
@@ -628,7 +629,8 @@
     "lyrics": {
       "title": "가사",
       "comingSoon": "곧 출시됩니다"
-    }
+    },
+    "startRadio": "라디오 시작"
   },
   "playerBar": {
     "lyrics": "가사",

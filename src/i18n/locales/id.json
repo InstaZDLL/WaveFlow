@@ -531,7 +531,8 @@
     "goToArtist": "Lihat artis",
     "showInExplorer": "Tampilkan di Penjelajah File",
     "copyPath": "Salin jalur file",
-    "properties": "Properti"
+    "properties": "Properti",
+    "startRadio": "Mulai radio"
   },
   "trackProperties": {
     "title": "Properti trek",
@@ -628,7 +629,8 @@
     "lyrics": {
       "title": "Lirik",
       "comingSoon": "Segera hadir"
-    }
+    },
+    "startRadio": "Mulai radio"
   },
   "playerBar": {
     "lyrics": "Lirik",

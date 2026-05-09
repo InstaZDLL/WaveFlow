@@ -531,7 +531,8 @@
     "goToArtist": "前往该艺术家",
     "showInExplorer": "在资源管理器中显示",
     "copyPath": "复制文件路径",
-    "properties": "属性"
+    "properties": "属性",
+    "startRadio": "开始电台"
   },
   "trackProperties": {
     "title": "曲目属性",
@@ -628,7 +629,8 @@
     "lyrics": {
       "title": "歌词",
       "comingSoon": "即将推出"
-    }
+    },
+    "startRadio": "开始电台"
   },
   "playerBar": {
     "lyrics": "歌词",
