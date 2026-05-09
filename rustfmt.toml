@@ -1,0 +1,33 @@
+# rustfmt configuration for WaveFlow
+# Applied to all Rust files under src-tauri/src/ via directory traversal.
+# Run with: cargo fmt --manifest-path src-tauri/Cargo.toml
+
+edition = "2021"
+
+# ── Line width ────────────────────────────────────────────────────────────────
+max_width = 100
+# Let rustfmt choose argument / call / struct layouts based on max_width.
+use_small_heuristics = "Default"
+
+# ── Imports ───────────────────────────────────────────────────────────────────
+# Sort `use` declarations alphabetically within each group.
+reorder_imports = true
+# Sort `mod` declarations alphabetically.
+reorder_modules = true
+
+# ── Style ─────────────────────────────────────────────────────────────────────
+# Remove redundant parentheses wherever safe.
+remove_nested_parens = true
+# Use `x?` instead of `try!(x)`.
+use_try_shorthand = true
+# Use `Struct { field }` shorthand when field name matches variable name.
+use_field_init_shorthand = true
+
+# ── Nightly-only options (uncomment if using `rustup override set nightly`) ───
+# imports_granularity = "Crate"   # merge same-crate imports into one statement
+# group_imports = "StdExternalCrate"  # std / external / crate-local blocks
+# wrap_comments = true
+# comment_width = 100
+# normalize_comments = true
+# blank_lines_upper_bound = 1
+# trailing_comma = "Vertical"
