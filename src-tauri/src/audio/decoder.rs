@@ -18,8 +18,6 @@ use std::time::{Duration, Instant};
 use crossbeam_channel::{Receiver, TryRecvError};
 use rtrb::{chunks::ChunkError, CopyToUninit, Producer};
 use serde::Serialize;
-use symphonia::core::formats::{SeekMode, SeekTo};
-use symphonia::core::units::Time;
 use tauri::{AppHandle, Emitter, Manager};
 
 use tokio::sync::mpsc::UnboundedSender;
@@ -351,7 +349,7 @@ fn play_track(
         initial_replay_gain_db,
     )?;
     if initial_start_ms > 0 {
-        apply_seek(&mut stream.format, stream.symphonia_track_id, initial_start_ms);
+        stream.seek_ms(initial_start_ms);
     }
 
     tracing::info!(
@@ -426,10 +424,10 @@ fn play_track(
                     mix_active = false;
                     next_requested = false;
                 }
-                apply_seek(&mut stream.format, stream.symphonia_track_id, ms);
+                stream.seek_ms(ms);
                 reset_clock(shared, ms);
                 stream.resampler.flush();
-                stream.decoder.reset();
+                stream.reset_decoder();
                 drain_ring_silent(producer, shared);
                 let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
                 last_position_emit = Instant::now();
@@ -565,10 +563,10 @@ fn play_track(
                         secondary_at_eof = false;
                         primary_resampled.clear();
                         secondary_resampled.clear();
-                        apply_seek(&mut stream.format, stream.symphonia_track_id, ms);
+                        stream.seek_ms(ms);
                         reset_clock(shared, ms);
                         stream.resampler.flush();
-                        stream.decoder.reset();
+                        stream.reset_decoder();
                         drain_ring_silent(producer, shared);
                         let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
                         last_position_emit = Instant::now();
@@ -667,10 +665,10 @@ fn play_track(
                 PushOutcome::Seek(ms) => {
                     primary_resampled.clear();
                     primary_at_eof = false;
-                    apply_seek(&mut stream.format, stream.symphonia_track_id, ms);
+                    stream.seek_ms(ms);
                     reset_clock(shared, ms);
                     stream.resampler.flush();
-                    stream.decoder.reset();
+                    stream.reset_decoder();
                     drain_ring_silent(producer, shared);
                     let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
                     last_position_emit = Instant::now();
@@ -747,25 +745,6 @@ fn reset_clock(shared: &SharedPlayback, ms: u64) {
     shared.samples_played.store(0, Ordering::Relaxed);
     shared.base_offset_ms.store(ms, Ordering::Release);
     shared.seek_generation.fetch_add(1, Ordering::Release);
-}
-
-/// Apply a seek to the format reader. Errors are logged and ignored —
-/// seeking past EOF on a VBR MP3, for instance, is not fatal.
-fn apply_seek(
-    format: &mut Box<dyn symphonia::core::formats::FormatReader>,
-    symphonia_track_id: u32,
-    ms: u64,
-) {
-    let time = Time::from(Duration::from_millis(ms));
-    if let Err(err) = format.seek(
-        SeekMode::Accurate,
-        SeekTo::Time {
-            time,
-            track_id: Some(symphonia_track_id),
-        },
-    ) {
-        tracing::warn!(?err, ms, "format seek failed");
-    }
 }
 
 enum ControlFlow {
