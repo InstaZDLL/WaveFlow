@@ -741,6 +741,12 @@
       "action": "打开"
     },
     "openDataFolder": "打开数据文件夹",
+    "lyricsPrefetch": {
+      "title": "预取歌词",
+      "subtitle": "为整个曲库下载歌词以供离线使用",
+      "action": "预取",
+      "progress": "已处理 {{current}}/{{total}} · 找到 {{hits}}"
+    },
     "regenerateThumbnails": "刷新缩略图",
     "regenerateThumbnailsSubtitle": "为所有封面补全缺失的1x/2x版本",
     "regenerateThumbnailsAction": "再生",

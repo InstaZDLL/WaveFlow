@@ -81,12 +81,23 @@ PNG sources live in [`assets/discord/png/`](../../assets/discord/png/), generate
 
 ## LRCLIB (synchronized lyrics)
 
-[`lrclib.rs`](../../src-tauri/src/lrclib.rs) — public lookup by `artist_name + track_name + album_name + duration` against [LRCLIB](https://lrclib.net). Three-tier resolution in [`commands/lyrics.rs`](../../src-tauri/src/commands/lyrics.rs):
+[`lrclib.rs`](../../src-tauri/src/lrclib.rs) — public lookup by `artist_name + track_name + album_name + duration` against [LRCLIB](https://lrclib.net). Three-tier resolution in [`commands/lyrics.rs`](../../src-tauri/src/commands/lyrics.rs), driven on demand by `fetch_lyrics`:
 
-1. **Embedded** — `LYRICS` / `USLT` tag in the file (lofty), incl. synced `LRC` blocks.
-2. **Local file** — `<track_basename>.lrc` next to the audio file.
-3. **LRCLIB** — synced first, falls back to plain. Cached in the `lyrics` table of `app.db` (shared) with no TTL — lyrics don't change.
+1. **Cache** — `app.lyrics` row keyed by `track.file_hash` (BLAKE3). No TTL, shared across profiles.
+2. **Embedded** — `LYRICS` / `USLT` / `©lyr` tag in the file (lofty), incl. synced `LRC` blocks.
+3. **LRCLIB** — synced lyrics first, falls back to plain text. Result cached as a new row.
 
-A failed LRCLIB lookup is cached as an empty row to suppress retries on the same track for a session. `clear_lyrics` flushes that row if the user wants to retry manually after fixing tags.
+In addition, `import_lrc_file` lets the user pick a `.lrc` file by hand and overwrite the cached entry — there is no automatic sidecar pickup.
+
+**Cache discipline.** `clear_lyrics` flushes the row keyed by the track's hash so the next fetch re-runs the waterfall. Cached outcomes:
+
+- Hit (embedded or LRCLIB) → row written.
+- Instrumental flag from LRCLIB → empty row written (suppresses retries).
+- LRCLIB 404 (track unknown) → **not cached** (the track may appear in a future LRCLIB dump).
+- Network error → **not cached** and bubbled up to the UI as `Err` so the panel can show "retry" instead of a misleading "no lyrics" state.
+
+**Network defaults.** 15 s overall timeout + 5 s connect-timeout in `LrclibClient` so a slow LRCLIB instance still gets a chance to respond while a truly unreachable host fails fast.
+
+**Library-wide prefetch.** `prefetch_library_lyrics` walks every available track without a cached row (deduped by `file_hash`), runs the embedded → LRCLIB chain, and persists each hit. Network calls are throttled at 500 ms (~2 req/s) to be a polite guest; embedded hits skip the throttle. Progress streams over `lyrics:prefetch-progress`. A single global run is enforced via an `AtomicBool`; `cancel_lyrics_prefetch` flips a second `AtomicBool` the worker checks per iteration. Resumable — a partial cancel just leaves uncached rows for the next run.
 
 The lyrics panel renders synced lines with auto-scroll and a 200 ms transition; un-synced lyrics fall back to a static block.

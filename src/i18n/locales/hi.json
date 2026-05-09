@@ -741,6 +741,12 @@
       "action": "खोलें"
     },
     "openDataFolder": "डेटा फ़ोल्डर खोलें",
+    "lyricsPrefetch": {
+      "title": "बोल पहले से लोड करें",
+      "subtitle": "ऑफ़लाइन उपयोग के लिए पूरी लाइब्रेरी के बोल डाउनलोड करें",
+      "action": "पहले से लोड करें",
+      "progress": "{{current}}/{{total}} संसाधित · {{hits}} मिले"
+    },
     "regenerateThumbnails": "थंबनेल पुनः लोड करें",
     "regenerateThumbnailsSubtitle": "सभी स्लीव्स के लिए गायब 1x/2x वेरिएंट्स का पुनर्निर्माण करें।",
     "regenerateThumbnailsAction": "पुनर्जीवित करें",

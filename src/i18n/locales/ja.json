@@ -741,6 +741,12 @@
       "action": "開く"
     },
     "openDataFolder": "データフォルダを開く",
+    "lyricsPrefetch": {
+      "title": "歌詞を事前取得",
+      "subtitle": "オフライン利用のためライブラリ全体の歌詞をダウンロードします",
+      "action": "事前取得",
+      "progress": "{{current}}/{{total}} 処理済み · {{hits}} 件取得"
+    },
     "regenerateThumbnails": "サムネイルを更新する",
     "regenerateThumbnailsSubtitle": "すべてのジャケットについて、欠落している1x/2xバージョンを再構築する",
     "regenerateThumbnailsAction": "再生する",

@@ -741,6 +741,12 @@
       "action": "فتح"
     },
     "openDataFolder": "فتح مجلد البيانات",
+    "lyricsPrefetch": {
+      "title": "تحميل كلمات الأغاني مسبقًا",
+      "subtitle": "تنزيل كلمات الأغاني للمكتبة بأكملها للاستخدام دون اتصال",
+      "action": "تحميل مسبق",
+      "progress": "تم معالجة {{current}}/{{total}} · {{hits}} عُثر عليها"
+    },
     "regenerateThumbnails": "تحديث الصور المصغرة",
     "regenerateThumbnailsSubtitle": "إعادة إنشاء المتغيرات 1x/2x المفقودة لجميع الأغلفة",
     "regenerateThumbnailsAction": "تجديد",

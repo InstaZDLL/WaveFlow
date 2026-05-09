@@ -10,17 +10,32 @@
 //! `.lrc` file via [`import_lrc_file`].
 
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 use chrono::Utc;
 use lofty::file::TaggedFileExt;
 use lofty::tag::ItemKey;
 use serde::Serialize;
+use tauri::{AppHandle, Emitter};
 
 use crate::{
     error::{AppError, AppResult},
     lrclib::LrclibClient,
     state::AppState,
 };
+
+/// Guards against two concurrent prefetch runs and exposes a
+/// cancellation flag the user can flip from the UI. Module-local — the
+/// prefetch is a single global operation, so a bare `AtomicBool` pair
+/// is enough; no need to thread a token through `AppState`.
+static PREFETCH_RUNNING: AtomicBool = AtomicBool::new(false);
+static PREFETCH_CANCEL: AtomicBool = AtomicBool::new(false);
+
+/// LRCLIB throttle — be a polite guest on the public instance. 500 ms
+/// per call ≈ 2 req/s, which clears a 10k-track library in ~1h30 even
+/// when every track misses the embedded tag and goes to the network.
+const LRCLIB_THROTTLE: Duration = Duration::from_millis(500);
 
 fn now_ms() -> i64 {
     Utc::now().timestamp_millis()
@@ -383,6 +398,236 @@ pub async fn import_lrc_file(
         format,
         source,
     })
+}
+
+// ── Library-wide prefetch ───────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LyricsPrefetchProgress {
+    pub processed: u32,
+    pub total: u32,
+    pub hits: u32,
+    pub misses: u32,
+    pub failed: u32,
+    pub current_title: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LyricsPrefetchSummary {
+    pub processed: u32,
+    pub hits: u32,
+    pub misses: u32,
+    pub failed: u32,
+    pub cancelled: bool,
+}
+
+/// Walk every available track that doesn't have a cached lyric and try
+/// to populate the cache (embedded tag → LRCLIB). Throttles network
+/// calls at ~2 req/s. Cancellable via [`cancel_lyrics_prefetch`].
+///
+/// Idempotent: the `WHERE l.file_hash IS NULL` filter skips anything
+/// already cached, so re-running after a partial cancel just resumes.
+/// Tracks sharing a `file_hash` are deduped via `GROUP BY` because the
+/// cache is keyed on hash, not track id.
+#[tauri::command]
+pub async fn prefetch_library_lyrics(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<LyricsPrefetchSummary> {
+    if PREFETCH_RUNNING.swap(true, Ordering::SeqCst) {
+        return Err(AppError::Other(
+            "lyrics prefetch already running".into(),
+        ));
+    }
+    PREFETCH_CANCEL.store(false, Ordering::SeqCst);
+
+    // Wrap the body so we always clear the running flag, even on early
+    // return / error.
+    let result = run_prefetch(&app, &state).await;
+    PREFETCH_RUNNING.store(false, Ordering::SeqCst);
+    PREFETCH_CANCEL.store(false, Ordering::SeqCst);
+    result
+}
+
+async fn run_prefetch(
+    app: &AppHandle,
+    state: &tauri::State<'_, AppState>,
+) -> AppResult<LyricsPrefetchSummary> {
+    let pool = state.require_profile_pool().await?;
+
+    // Pending = available tracks without a cached lyric row, deduped by
+    // `file_hash` (the cache key). We pick the lowest `track.id` per
+    // hash to get a stable representative.
+    let pending: Vec<(i64, String, String, String, Option<String>, Option<String>, i64)> =
+        sqlx::query_as(
+            "SELECT t.id, t.file_path, t.file_hash, t.title,
+                    ar.name AS artist_name,
+                    al.title AS album_title,
+                    t.duration_ms
+               FROM track t
+               LEFT JOIN artist ar ON ar.id = t.primary_artist
+               LEFT JOIN album  al ON al.id = t.album_id
+               LEFT JOIN app.lyrics l ON l.file_hash = t.file_hash
+              WHERE t.is_available = 1
+                AND l.file_hash IS NULL
+              GROUP BY t.file_hash
+              ORDER BY t.id",
+        )
+        .fetch_all(&pool)
+        .await?;
+
+    let total = pending.len() as u32;
+    let mut processed = 0u32;
+    let mut hits = 0u32;
+    let mut misses = 0u32;
+    let mut failed = 0u32;
+
+    let client = LrclibClient::new();
+    let mut cancelled = false;
+
+    for (track_id, file_path, file_hash, title, artist_name, album_title, duration_ms) in pending {
+        if PREFETCH_CANCEL.load(Ordering::Relaxed) {
+            cancelled = true;
+            break;
+        }
+
+        let _ = app.emit(
+            "lyrics:prefetch-progress",
+            LyricsPrefetchProgress {
+                processed,
+                total,
+                hits,
+                misses,
+                failed,
+                current_title: Some(title.clone()),
+            },
+        );
+
+        // 1. Embedded tag (free, no network).
+        let path_clone = file_path.clone();
+        let embedded = tokio::task::spawn_blocking(move || {
+            read_embedded_lyrics(Path::new(&path_clone))
+        })
+        .await
+        .ok()
+        .flatten();
+
+        if let Some(content) = embedded {
+            let format = detect_format(&content);
+            let source = LyricsSource::Embedded;
+            if let Err(e) =
+                upsert_lyrics(&pool, &file_hash, &content, &format, &source).await
+            {
+                tracing::warn!(track_id, ?e, "persist embedded lyrics failed");
+                failed += 1;
+            } else {
+                hits += 1;
+            }
+            processed += 1;
+            continue;
+        }
+
+        // 2. LRCLIB. Skip if metadata is too thin to match.
+        let Some(artist) = artist_name.as_deref() else {
+            misses += 1;
+            processed += 1;
+            continue;
+        };
+        let primary_artist = artist.split(", ").next().unwrap_or(artist);
+        let duration_seconds = (duration_ms.max(0) as u64).div_ceil(1000);
+
+        match client
+            .get(
+                primary_artist,
+                &title,
+                album_title.as_deref(),
+                duration_seconds,
+            )
+            .await
+        {
+            Ok(Some(resp)) => {
+                if resp.instrumental == Some(true) {
+                    let _ = upsert_lyrics(
+                        &pool,
+                        &file_hash,
+                        "",
+                        &LyricsFormat::Plain,
+                        &LyricsSource::Api,
+                    )
+                    .await;
+                    hits += 1;
+                } else {
+                    let pick = match (resp.synced_lyrics, resp.plain_lyrics) {
+                        (Some(s), _) if !s.trim().is_empty() => Some((s, LyricsFormat::Lrc)),
+                        (_, Some(p)) if !p.trim().is_empty() => {
+                            Some((p, LyricsFormat::Plain))
+                        }
+                        _ => None,
+                    };
+                    if let Some((content, format)) = pick {
+                        if let Err(e) = upsert_lyrics(
+                            &pool,
+                            &file_hash,
+                            &content,
+                            &format,
+                            &LyricsSource::Api,
+                        )
+                        .await
+                        {
+                            tracing::warn!(track_id, ?e, "persist LRCLIB lyrics failed");
+                            failed += 1;
+                        } else {
+                            hits += 1;
+                        }
+                    } else {
+                        misses += 1;
+                    }
+                }
+            }
+            Ok(None) => misses += 1,
+            Err(err) => {
+                tracing::warn!(track_id, ?err, "LRCLIB prefetch failed");
+                failed += 1;
+            }
+        }
+
+        processed += 1;
+        // Throttle only after a network call; embedded hits skipped above.
+        tokio::time::sleep(LRCLIB_THROTTLE).await;
+    }
+
+    let summary = LyricsPrefetchSummary {
+        processed,
+        hits,
+        misses,
+        failed,
+        cancelled,
+    };
+    let _ = app.emit(
+        "lyrics:prefetch-progress",
+        LyricsPrefetchProgress {
+            processed,
+            total,
+            hits,
+            misses,
+            failed,
+            current_title: None,
+        },
+    );
+    Ok(summary)
+}
+
+/// Flip the cancel flag. The running prefetch picks it up on the next
+/// loop iteration. Returns `true` when a prefetch was actually running
+/// at the time of the call.
+#[tauri::command]
+pub fn cancel_lyrics_prefetch() -> bool {
+    if PREFETCH_RUNNING.load(Ordering::Relaxed) {
+        PREFETCH_CANCEL.store(true, Ordering::SeqCst);
+        true
+    } else {
+        false
+    }
 }
 
 /// Drop the cached lyrics row so the next fetch re-runs the waterfall.

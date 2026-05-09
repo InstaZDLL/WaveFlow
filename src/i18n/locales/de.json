@@ -741,6 +741,12 @@
       "action": "Öffnen"
     },
     "openDataFolder": "Datenordner öffnen",
+    "lyricsPrefetch": {
+      "title": "Songtexte vorab laden",
+      "subtitle": "Songtexte der gesamten Bibliothek für Offline-Nutzung herunterladen",
+      "action": "Vorab laden",
+      "progress": "{{current}}/{{total}} verarbeitet · {{hits}} gefunden"
+    },
     "regenerateThumbnails": "Miniaturansichten neu laden",
     "regenerateThumbnailsSubtitle": "Die fehlenden 1x/2x-Varianten für alle Hüllen neu erstellen",
     "regenerateThumbnailsAction": "Regenerieren",

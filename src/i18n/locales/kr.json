@@ -741,6 +741,12 @@
       "action": "열기"
     },
     "openDataFolder": "데이터 폴더 열기",
+    "lyricsPrefetch": {
+      "title": "가사 미리 가져오기",
+      "subtitle": "오프라인 사용을 위해 전체 라이브러리의 가사를 다운로드합니다",
+      "action": "미리 가져오기",
+      "progress": "{{current}}/{{total}} 처리됨 · {{hits}}곡 찾음"
+    },
     "regenerateThumbnails": "썸네일 새로 고침",
     "regenerateThumbnailsSubtitle": "모든 커버에 대해 누락된 1x/2x 버전을 복원합니다",
     "regenerateThumbnailsAction": "재생",

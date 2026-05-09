@@ -24,6 +24,7 @@ import {
   FileText,
   Copy,
   Check as CheckIcon,
+  Mic2,
 } from "lucide-react";
 import {
   getProfileSetting,
@@ -440,6 +441,69 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     } finally {
       setIsFetchingCovers(false);
       window.setTimeout(() => setCoverProgress(null), 3000);
+    }
+  };
+
+  // Lyrics library prefetch
+  const [isPrefetchingLyrics, setIsPrefetchingLyrics] = useState(false);
+  const [lyricsPrefetchProgress, setLyricsPrefetchProgress] = useState<{
+    processed: number;
+    total: number;
+    hits: number;
+    misses: number;
+    failed: number;
+    currentTitle: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    listen<{
+      processed: number;
+      total: number;
+      hits: number;
+      misses: number;
+      failed: number;
+      current_title: string | null;
+    }>("lyrics:prefetch-progress", (event) => {
+      setLyricsPrefetchProgress({
+        processed: event.payload.processed,
+        total: event.payload.total,
+        hits: event.payload.hits,
+        misses: event.payload.misses,
+        failed: event.payload.failed,
+        currentTitle: event.payload.current_title,
+      });
+    })
+      .then((un) => {
+        unlisten = un;
+      })
+      .catch(() => {});
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, []);
+
+  const handlePrefetchLyrics = async () => {
+    if (isPrefetchingLyrics) return;
+    setIsPrefetchingLyrics(true);
+    setLyricsPrefetchProgress(null);
+    try {
+      const { prefetchLibraryLyrics } = await import("../../lib/tauri/lyrics");
+      await prefetchLibraryLyrics();
+    } catch (err) {
+      console.error("[SettingsView] prefetch lyrics failed", err);
+    } finally {
+      setIsPrefetchingLyrics(false);
+      window.setTimeout(() => setLyricsPrefetchProgress(null), 3000);
+    }
+  };
+
+  const handleCancelPrefetchLyrics = async () => {
+    try {
+      const { cancelLyricsPrefetch } = await import("../../lib/tauri/lyrics");
+      await cancelLyricsPrefetch();
+    } catch (err) {
+      console.error("[SettingsView] cancel prefetch lyrics failed", err);
     }
   };
 
@@ -1314,6 +1378,65 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               />
               <span>{t("settings.artistImages.action")}</span>
             </button>
+          </div>
+
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4 flex-1 min-w-0">
+              <Mic2
+                size={20}
+                className="text-zinc-400 shrink-0"
+                aria-hidden="true"
+              />
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.lyricsPrefetch.title")}
+                </div>
+                {lyricsPrefetchProgress && isPrefetchingLyrics ? (
+                  <div className="text-xs text-zinc-500 mt-1 truncate">
+                    {t("settings.lyricsPrefetch.progress", {
+                      current: lyricsPrefetchProgress.processed,
+                      total: lyricsPrefetchProgress.total,
+                      hits: lyricsPrefetchProgress.hits,
+                    })}
+                    {lyricsPrefetchProgress.currentTitle
+                      ? ` — ${lyricsPrefetchProgress.currentTitle}`
+                      : ""}
+                  </div>
+                ) : (
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.lyricsPrefetch.subtitle")}
+                  </div>
+                )}
+                {lyricsPrefetchProgress && lyricsPrefetchProgress.total > 0 && (
+                  <div className="mt-2 h-1.5 w-full max-w-xs rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 transition-all"
+                      style={{
+                        width: `${Math.min(100, (lyricsPrefetchProgress.processed / lyricsPrefetchProgress.total) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            {isPrefetchingLyrics ? (
+              <button
+                type="button"
+                onClick={handleCancelPrefetchLyrics}
+                className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              >
+                <span>{t("common.cancel")}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handlePrefetchLyrics}
+                className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Mic2 size={14} aria-hidden="true" />
+                <span>{t("settings.lyricsPrefetch.action")}</span>
+              </button>
+            )}
           </div>
 
           <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">

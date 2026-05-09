@@ -741,6 +741,12 @@
       "action": "Aç"
     },
     "openDataFolder": "Açık veri klasörünü aç",
+    "lyricsPrefetch": {
+      "title": "Şarkı sözlerini önceden yükle",
+      "subtitle": "Çevrimdışı kullanım için tüm kütüphanenin şarkı sözlerini indir",
+      "action": "Önceden yükle",
+      "progress": "{{current}}/{{total}} işlendi · {{hits}} bulundu"
+    },
     "regenerateThumbnails": "Küçük resimleri yeniden oluştur",
     "regenerateThumbnailsSubtitle": "Her kapak için eksik olan 1x/2x varyantlarını yeniden oluştur",
     "regenerateThumbnailsAction": "Yeniden oluştur",

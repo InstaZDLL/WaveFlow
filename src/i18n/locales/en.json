@@ -741,6 +741,12 @@
       "action": "Open"
     },
     "openDataFolder": "Open the data folder",
+    "lyricsPrefetch": {
+      "title": "Prefetch lyrics",
+      "subtitle": "Download lyrics for the entire library for offline use",
+      "action": "Prefetch",
+      "progress": "{{current}}/{{total}} processed · {{hits}} found"
+    },
     "regenerateThumbnails": "Reload thumbnails",
     "regenerateThumbnailsSubtitle": "Reconstruct the missing 1x/2x variants for all sleeves",
     "regenerateThumbnailsAction": "Regenerate",

@@ -741,6 +741,12 @@
       "action": "Ouvrir"
     },
     "openDataFolder": "Ouvrir le dossier de données",
+    "lyricsPrefetch": {
+      "title": "Préchargement des paroles",
+      "subtitle": "Télécharger les paroles de toute la bibliothèque pour usage hors-ligne",
+      "action": "Précharger",
+      "progress": "{{current}}/{{total}} traités · {{hits}} trouvés"
+    },
     "regenerateThumbnails": "Régénérer les vignettes",
     "regenerateThumbnailsSubtitle": "Reconstruire les variantes 1x/2x manquantes pour toutes les pochettes",
     "regenerateThumbnailsAction": "Régénérer",

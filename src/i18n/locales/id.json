@@ -741,6 +741,12 @@
       "action": "Buka"
     },
     "openDataFolder": "Buka folder data",
+    "lyricsPrefetch": {
+      "title": "Pramuat lirik",
+      "subtitle": "Unduh lirik untuk seluruh pustaka untuk penggunaan offline",
+      "action": "Pramuat",
+      "progress": "{{current}}/{{total}} diproses · {{hits}} ditemukan"
+    },
     "regenerateThumbnails": "Buat ulang gambar mini",
     "regenerateThumbnailsSubtitle": "Buat ulang varian 1x/2x yang hilang untuk setiap sampul",
     "regenerateThumbnailsAction": "Memperbarui",

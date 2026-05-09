@@ -296,6 +296,8 @@ pub fn run() {
             commands::lyrics::fetch_lyrics,
             commands::lyrics::import_lrc_file,
             commands::lyrics::clear_lyrics,
+            commands::lyrics::prefetch_library_lyrics,
+            commands::lyrics::cancel_lyrics_prefetch,
             commands::player::player_get_state,
             commands::player::player_pause,
             commands::player::player_resume,

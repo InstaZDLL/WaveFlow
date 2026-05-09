@@ -40,6 +40,38 @@ export function clearLyrics(trackId: number): Promise<void> {
   return invoke<void>("clear_lyrics", { trackId });
 }
 
+export interface LyricsPrefetchProgress {
+  processed: number;
+  total: number;
+  hits: number;
+  misses: number;
+  failed: number;
+  current_title: string | null;
+}
+
+export interface LyricsPrefetchSummary {
+  processed: number;
+  hits: number;
+  misses: number;
+  failed: number;
+  cancelled: boolean;
+}
+
+/**
+ * Walk every uncached track in the active profile and try to populate
+ * its lyric (embedded → LRCLIB, throttled at ~2 req/s). Emits
+ * `lyrics:prefetch-progress` events the UI can render as a progress
+ * bar. Resolves with a summary once the run finishes (or is cancelled).
+ */
+export function prefetchLibraryLyrics(): Promise<LyricsPrefetchSummary> {
+  return invoke<LyricsPrefetchSummary>("prefetch_library_lyrics");
+}
+
+/** Flip the prefetch cancel flag. Returns `true` if one was running. */
+export function cancelLyricsPrefetch(): Promise<boolean> {
+  return invoke<boolean>("cancel_lyrics_prefetch");
+}
+
 // ── LRC parser ──────────────────────────────────────────────────────
 
 export interface LrcLine {

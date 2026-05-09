@@ -741,6 +741,12 @@
       "action": "Открыть"
     },
     "openDataFolder": "Открыть папку с данными",
+    "lyricsPrefetch": {
+      "title": "Предзагрузка текстов",
+      "subtitle": "Скачать тексты для всей библиотеки для офлайн-использования",
+      "action": "Предзагрузить",
+      "progress": "{{current}}/{{total}} обработано · {{hits}} найдено"
+    },
     "regenerateThumbnails": "Обновить миниатюры",
     "regenerateThumbnailsSubtitle": "Восстановить отсутствующие варианты 1x/2x для каждой обложки",
     "regenerateThumbnailsAction": "Восстановить",

@@ -741,6 +741,12 @@
       "action": "Apri"
     },
     "openDataFolder": "Aprire la cartella dei dati",
+    "lyricsPrefetch": {
+      "title": "Precarica i testi",
+      "subtitle": "Scarica i testi dell’intera libreria per l’uso offline",
+      "action": "Precarica",
+      "progress": "{{current}}/{{total}} elaborati · {{hits}} trovati"
+    },
     "regenerateThumbnails": "Aggiorna le miniature",
     "regenerateThumbnailsSubtitle": "Ricreare le varianti 1x/2x mancanti per tutte le copertine",
     "regenerateThumbnailsAction": "Rigenerare",

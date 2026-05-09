@@ -741,6 +741,12 @@
       "action": "Openen"
     },
     "openDataFolder": "De gegevensmap openen",
+    "lyricsPrefetch": {
+      "title": "Songteksten vooraf ophalen",
+      "subtitle": "Songteksten van de hele bibliotheek downloaden voor offline gebruik",
+      "action": "Vooraf ophalen",
+      "progress": "{{current}}/{{total}} verwerkt · {{hits}} gevonden"
+    },
     "regenerateThumbnails": "Miniatuurafbeeldingen vernieuwen",
     "regenerateThumbnailsSubtitle": "De ontbrekende 1x/2x-varianten voor alle hoesjes opnieuw samenstellen",
     "regenerateThumbnailsAction": "Herstellen",

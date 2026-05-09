@@ -741,6 +741,12 @@
       "action": "Abrir"
     },
     "openDataFolder": "Abrir la carpeta de datos",
+    "lyricsPrefetch": {
+      "title": "Precargar letras",
+      "subtitle": "Descargar las letras de toda la biblioteca para uso sin conexión",
+      "action": "Precargar",
+      "progress": "{{current}}/{{total}} procesadas · {{hits}} encontradas"
+    },
     "regenerateThumbnails": "Actualizar las miniaturas",
     "regenerateThumbnailsSubtitle": "Reconstruir las variantes 1x/2x que faltan para todas las carátulas",
     "regenerateThumbnailsAction": "Regenerar",
