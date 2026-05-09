@@ -683,6 +683,16 @@
       "discord": {
         "title": "Discord Rich Presence",
         "subtitle": "再生中のトラックを Discord プロフィールに表示"
+      },
+      "dlna": {
+        "title": "DLNA / UPnP サーバー",
+        "subtitle": "ライブラリをローカルネットワーク上の対応アンプ・デバイスへ配信します",
+        "serverName": "名前",
+        "port": "ポート",
+        "portHint": "0 = 自動",
+        "statusRunning": "稼働中",
+        "statusStopped": "停止中",
+        "copyUrl": "URL をコピー"
       }
     },
     "crossfade": {

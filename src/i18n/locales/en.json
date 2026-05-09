@@ -683,6 +683,16 @@
       "discord": {
         "title": "Discord Rich Presence",
         "subtitle": "Show the currently playing track on your Discord profile"
+      },
+      "dlna": {
+        "title": "DLNA / UPnP server",
+        "subtitle": "Stream your library to LAN-compatible amplifiers and devices",
+        "serverName": "Name",
+        "port": "Port",
+        "portHint": "0 = automatic port",
+        "statusRunning": "Running",
+        "statusStopped": "Stopped",
+        "copyUrl": "Copy URL"
       }
     },
     "crossfade": {

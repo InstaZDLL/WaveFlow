@@ -683,6 +683,16 @@
       "discord": {
         "title": "Discord Rich Presence",
         "subtitle": "عرض الأغنية التي يتم تشغيلها حاليًا على ملفك الشخصي في Discord"
+      },
+      "dlna": {
+        "title": "خادم DLNA / UPnP",
+        "subtitle": "بث مكتبتك إلى مكبرات الصوت والأجهزة المتوافقة على الشبكة المحلية",
+        "serverName": "الاسم",
+        "port": "المنفذ",
+        "portHint": "0 = منفذ تلقائي",
+        "statusRunning": "يعمل",
+        "statusStopped": "متوقف",
+        "copyUrl": "نسخ الرابط"
       }
     },
     "crossfade": {

@@ -683,6 +683,16 @@
       "discord": {
         "title": "Discord Rich Presence",
         "subtitle": "Toon het nummer dat nu wordt afgespeeld op je Discord-profiel"
+      },
+      "dlna": {
+        "title": "DLNA / UPnP-server",
+        "subtitle": "Stream je bibliotheek naar compatibele versterkers en apparaten in het lokale netwerk",
+        "serverName": "Naam",
+        "port": "Poort",
+        "portHint": "0 = automatische poort",
+        "statusRunning": "Actief",
+        "statusStopped": "Gestopt",
+        "copyUrl": "URL kopiëren"
       }
     },
     "crossfade": {

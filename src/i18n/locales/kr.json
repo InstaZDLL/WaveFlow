@@ -683,6 +683,16 @@
       "discord": {
         "title": "Discord Rich Presence",
         "subtitle": "현재 재생 중인 곡을 Discord 프로필에 표시합니다"
+      },
+      "dlna": {
+        "title": "DLNA / UPnP 서버",
+        "subtitle": "로컬 네트워크의 호환 앰프 및 기기로 라이브러리를 스트리밍하세요",
+        "serverName": "이름",
+        "port": "포트",
+        "portHint": "0 = 자동 포트",
+        "statusRunning": "실행 중",
+        "statusStopped": "중지됨",
+        "copyUrl": "URL 복사"
       }
     },
     "crossfade": {

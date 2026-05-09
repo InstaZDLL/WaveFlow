@@ -25,6 +25,7 @@ import {
   Copy,
   Check as CheckIcon,
   Mic2,
+  Server,
 } from "lucide-react";
 import {
   getProfileSetting,
@@ -56,6 +57,13 @@ import {
   batchFetchMissingArtistPictures,
 } from "../../lib/tauri/deezer";
 import { openLogFolder, readRecentLogs } from "../../lib/tauri/diagnostics";
+import {
+  dlnaGetConfig,
+  dlnaGetStatus,
+  dlnaSetConfig,
+  type DlnaConfig,
+  type DlnaStatus,
+} from "../../lib/tauri/dlna";
 import { listen } from "@tauri-apps/api/event";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
@@ -597,6 +605,17 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // optimistically with rollback on failure.
   const [discordRpc, setDiscordRpc] = useState(false);
 
+  // DLNA / UPnP MediaServer. `dlnaConfig` carries the persisted
+  // settings (name, port, enabled flag); `dlnaStatus` is the live
+  // worker-thread snapshot (running, bound URL, last error).
+  const [dlnaConfig, setDlnaConfig] = useState<DlnaConfig>({
+    enabled: false,
+    server_name: "WaveFlow",
+    port: 0,
+  });
+  const [dlnaStatus, setDlnaStatus] = useState<DlnaStatus | null>(null);
+  const [dlnaUrlCopied, setDlnaUrlCopied] = useState(false);
+
   useEffect(() => {
     getDiscordRpcEnabled()
       .then(setDiscordRpc)
@@ -613,6 +632,45 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       setDiscordRpc(!next);
     });
   }, [discordRpc]);
+
+  // DLNA — load persisted config + live status at mount.
+  useEffect(() => {
+    dlnaGetConfig()
+      .then(setDlnaConfig)
+      .catch((err) => console.error("[SettingsView] dlna config", err));
+    dlnaGetStatus()
+      .then(setDlnaStatus)
+      .catch((err) => console.error("[SettingsView] dlna status", err));
+  }, []);
+
+  // Push a config change to the backend and immediately refresh the
+  // status so the UI reflects whether the bind succeeded. Optimistic
+  // — the local state already shows the requested value; the status
+  // refresh just confirms.
+  const persistDlna = useCallback(async (next: DlnaConfig) => {
+    setDlnaConfig(next);
+    try {
+      const status = await dlnaSetConfig(next);
+      setDlnaStatus(status);
+    } catch (err) {
+      console.error("[SettingsView] dlna set", err);
+    }
+  }, []);
+
+  const handleToggleDlna = useCallback(() => {
+    persistDlna({ ...dlnaConfig, enabled: !dlnaConfig.enabled });
+  }, [dlnaConfig, persistDlna]);
+
+  const handleDlnaCopyUrl = useCallback(() => {
+    if (!dlnaStatus?.bound_url) return;
+    navigator.clipboard
+      .writeText(dlnaStatus.bound_url)
+      .then(() => {
+        setDlnaUrlCopied(true);
+        setTimeout(() => setDlnaUrlCopied(false), 1500);
+      })
+      .catch(() => {});
+  }, [dlnaStatus]);
 
   useEffect(() => {
     getLastfmApiKey()
@@ -1221,6 +1279,130 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               onToggle={handleToggleDiscordRpc}
               label={t("settings.integrations.discord.title")}
             />
+          </div>
+
+          {/* DLNA / UPnP MediaServer */}
+          <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-start space-x-4">
+              <Server
+                size={20}
+                className="text-zinc-400 mt-0.5"
+                aria-hidden="true"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <div>
+                    <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                      {t("settings.integrations.dlna.title")}
+                    </div>
+                    <div className="text-xs text-zinc-400">
+                      {t("settings.integrations.dlna.subtitle")}
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    enabled={dlnaConfig.enabled}
+                    onToggle={handleToggleDlna}
+                    label={t("settings.integrations.dlna.title")}
+                  />
+                </div>
+
+                {dlnaConfig.enabled && (
+                  <div className="mt-3 space-y-3">
+                    {/* Server name */}
+                    <div className="flex items-center space-x-2">
+                      <label
+                        htmlFor="dlna-name"
+                        className="text-xs text-zinc-500 w-24 shrink-0"
+                      >
+                        {t("settings.integrations.dlna.serverName")}
+                      </label>
+                      <input
+                        id="dlna-name"
+                        type="text"
+                        value={dlnaConfig.server_name}
+                        onChange={(e) =>
+                          setDlnaConfig((c) => ({
+                            ...c,
+                            server_name: e.target.value,
+                          }))
+                        }
+                        onBlur={() => persistDlna(dlnaConfig)}
+                        spellCheck={false}
+                        className="flex-1 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
+                      />
+                    </div>
+
+                    {/* Port */}
+                    <div className="flex items-center space-x-2">
+                      <label
+                        htmlFor="dlna-port"
+                        className="text-xs text-zinc-500 w-24 shrink-0"
+                      >
+                        {t("settings.integrations.dlna.port")}
+                      </label>
+                      <input
+                        id="dlna-port"
+                        type="number"
+                        min={0}
+                        max={65535}
+                        value={dlnaConfig.port}
+                        onChange={(e) =>
+                          setDlnaConfig((c) => ({
+                            ...c,
+                            port: Math.max(0, Math.min(65535, Number(e.target.value) || 0)),
+                          }))
+                        }
+                        onBlur={() => persistDlna(dlnaConfig)}
+                        className="w-32 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100"
+                      />
+                      <span className="text-xs text-zinc-400">
+                        {t("settings.integrations.dlna.portHint")}
+                      </span>
+                    </div>
+
+                    {/* Status */}
+                    <div className="flex items-center space-x-2 pt-1">
+                      <span
+                        className={`inline-block w-2 h-2 rounded-full ${
+                          dlnaStatus?.running ? "bg-emerald-500" : "bg-zinc-400"
+                        }`}
+                        aria-hidden="true"
+                      />
+                      <span className="text-xs text-zinc-500">
+                        {dlnaStatus?.running
+                          ? t("settings.integrations.dlna.statusRunning")
+                          : t("settings.integrations.dlna.statusStopped")}
+                      </span>
+                      {dlnaStatus?.bound_url && (
+                        <>
+                          <span className="text-xs font-mono text-zinc-700 dark:text-zinc-300 truncate">
+                            {dlnaStatus.bound_url}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleDlnaCopyUrl}
+                            aria-label={t("settings.integrations.dlna.copyUrl")}
+                            className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                          >
+                            {dlnaUrlCopied ? (
+                              <CheckIcon size={14} />
+                            ) : (
+                              <Copy size={14} />
+                            )}
+                          </button>
+                        </>
+                      )}
+                    </div>
+
+                    {dlnaStatus?.last_error && (
+                      <div className="text-xs text-rose-500 break-words">
+                        {dlnaStatus.last_error}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </section>

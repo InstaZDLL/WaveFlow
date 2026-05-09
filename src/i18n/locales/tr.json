@@ -683,6 +683,16 @@
       "discord": {
         "title": "Discord Rich Presence",
         "subtitle": "Şu anda çalan parçayı Discord profilinde göster"
+      },
+      "dlna": {
+        "title": "DLNA / UPnP sunucusu",
+        "subtitle": "Kütüphanenizi yerel ağdaki uyumlu amplifikatörlere ve cihazlara aktarın",
+        "serverName": "Ad",
+        "port": "Port",
+        "portHint": "0 = otomatik port",
+        "statusRunning": "Çalışıyor",
+        "statusStopped": "Durduruldu",
+        "copyUrl": "URL kopyala"
       }
     },
     "crossfade": {

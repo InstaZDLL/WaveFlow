@@ -683,6 +683,16 @@
       "discord": {
         "title": "Discord Rich Presence",
         "subtitle": "在你的 Discord 个人资料上显示正在播放的曲目"
+      },
+      "dlna": {
+        "title": "DLNA / UPnP 服务器",
+        "subtitle": "将曲库串流到局域网中兼容的功放和设备",
+        "serverName": "名称",
+        "port": "端口",
+        "portHint": "0 = 自动选择端口",
+        "statusRunning": "运行中",
+        "statusStopped": "已停止",
+        "copyUrl": "复制 URL"
       }
     },
     "crossfade": {

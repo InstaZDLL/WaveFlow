@@ -683,6 +683,16 @@
       "discord": {
         "title": "Discord Rich Presence",
         "subtitle": "Mostra il brano in riproduzione sul tuo profilo Discord"
+      },
+      "dlna": {
+        "title": "Server DLNA / UPnP",
+        "subtitle": "Trasmetti la tua libreria agli amplificatori e dispositivi compatibili sulla rete locale",
+        "serverName": "Nome",
+        "port": "Porta",
+        "portHint": "0 = porta automatica",
+        "statusRunning": "Attivo",
+        "statusStopped": "Fermo",
+        "copyUrl": "Copia URL"
       }
     },
     "crossfade": {

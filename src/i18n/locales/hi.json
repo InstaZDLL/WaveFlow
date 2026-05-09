@@ -683,6 +683,16 @@
       "discord": {
         "title": "Discord Rich Presence",
         "subtitle": "अपनी Discord प्रोफ़ाइल पर वर्तमान में चल रहा ट्रैक दिखाएँ"
+      },
+      "dlna": {
+        "title": "DLNA / UPnP सर्वर",
+        "subtitle": "अपनी लाइब्रेरी को स्थानीय नेटवर्क पर संगत एम्पलीफायरों और उपकरणों पर स्ट्रीम करें",
+        "serverName": "नाम",
+        "port": "पोर्ट",
+        "portHint": "0 = स्वचालित पोर्ट",
+        "statusRunning": "चल रहा है",
+        "statusStopped": "रुका हुआ",
+        "copyUrl": "URL कॉपी करें"
       }
     },
     "crossfade": {

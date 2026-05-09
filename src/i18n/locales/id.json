@@ -683,6 +683,16 @@
       "discord": {
         "title": "Discord Rich Presence",
         "subtitle": "Tampilkan lagu yang sedang diputar di profil Discord-mu"
+      },
+      "dlna": {
+        "title": "Server DLNA / UPnP",
+        "subtitle": "Streamingkan pustaka Anda ke amplifier dan perangkat kompatibel di jaringan lokal",
+        "serverName": "Nama",
+        "port": "Port",
+        "portHint": "0 = port otomatis",
+        "statusRunning": "Aktif",
+        "statusStopped": "Dihentikan",
+        "copyUrl": "Salin URL"
       }
     },
     "crossfade": {
