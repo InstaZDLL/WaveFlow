@@ -59,6 +59,16 @@ pub fn run() {
     // builds); the lint would fire in debug otherwise.
     #[allow(unused_mut)]
     let mut builder = tauri::Builder::default()
+        // Single-instance MUST be the first plugin so a second launch
+        // exits cleanly before any heavy init (pool open, audio engine,
+        // tray, watchers) runs in the duplicate process.
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init());
 
