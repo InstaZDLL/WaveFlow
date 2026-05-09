@@ -654,7 +654,8 @@
     "actions": {
       "import": "Importare un file .lrc",
       "refetch": "Riprendere la ricerca",
-      "clear": "Cancella il testo"
+      "clear": "Cancella il testo",
+      "fullscreen": "Schermo intero"
     },
     "source": {
       "embedded": "Testi integrati nel file",

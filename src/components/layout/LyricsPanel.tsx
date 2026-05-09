@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Music2, Upload, RefreshCcw, Trash2 } from "lucide-react";
+import { X, Music2, Upload, RefreshCcw, Trash2, Maximize2 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { pickFile } from "../../lib/tauri/dialog";
 import {
@@ -12,6 +12,7 @@ import {
   type LrcLine,
   type LyricsPayload,
 } from "../../lib/tauri/lyrics";
+import { FullscreenLyrics } from "../player/FullscreenLyrics";
 
 /**
  * Spotify-style right-edge panel showing the currently-playing track's
@@ -32,6 +33,7 @@ export function LyricsPanel() {
   const [payload, setPayload] = useState<LyricsPayload | null>(null);
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const trackId = currentTrack?.id ?? null;
 
@@ -159,14 +161,26 @@ export function LyricsPanel() {
               </p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={toggleLyrics}
-            aria-label={t("common.close")}
-            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors shrink-0"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(true)}
+              aria-label={t("lyrics.actions.fullscreen")}
+              title={t("lyrics.actions.fullscreen")}
+              disabled={currentTrack == null}
+              className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Maximize2 size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={toggleLyrics}
+              aria-label={t("common.close")}
+              className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Body */}
@@ -213,6 +227,22 @@ export function LyricsPanel() {
             </p>
           )}
         </div>
+
+        {/* Fullscreen overlay — rendered as a sibling so it covers
+            the whole app, not just the panel. */}
+        {isFullscreen && currentTrack && (
+          <FullscreenLyrics
+            track={currentTrack}
+            payload={payload}
+            lrcLines={lrcLines}
+            isSynced={isSynced}
+            activeIndex={activeIndex}
+            isFetching={isFetching}
+            error={error}
+            onClose={() => setIsFullscreen(false)}
+            onSeek={handleSeekToLine}
+          />
+        )}
 
         {/* Footer actions */}
         {currentTrack != null && (

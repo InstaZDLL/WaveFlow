@@ -654,7 +654,8 @@
     "actions": {
       "import": ".lrcファイルをインポートする",
       "refetch": "検索を再開する",
-      "clear": "歌詞を消去する"
+      "clear": "歌詞を消去する",
+      "fullscreen": "フルスクリーン"
     },
     "source": {
       "embedded": "歌詞がファイルに組み込まれている",

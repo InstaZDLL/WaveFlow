@@ -654,7 +654,8 @@
     "actions": {
       "import": "Importer un fichier .lrc",
       "refetch": "Relancer la recherche",
-      "clear": "Effacer les paroles"
+      "clear": "Effacer les paroles",
+      "fullscreen": "Plein écran"
     },
     "source": {
       "embedded": "Paroles intégrées au fichier",

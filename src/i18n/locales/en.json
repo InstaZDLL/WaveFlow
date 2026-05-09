@@ -654,7 +654,8 @@
     "actions": {
       "import": "Import an .lrc file",
       "refetch": "Resume the search",
-      "clear": "Clear lyrics"
+      "clear": "Clear lyrics",
+      "fullscreen": "Fullscreen"
     },
     "source": {
       "embedded": "Lyrics included in the file",

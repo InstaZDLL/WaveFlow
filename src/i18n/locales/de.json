@@ -654,7 +654,8 @@
     "actions": {
       "import": "Eine .lrc-Datei importieren",
       "refetch": "Suche erneut starten",
-      "clear": "Text löschen"
+      "clear": "Text löschen",
+      "fullscreen": "Vollbild"
     },
     "source": {
       "embedded": "In die Datei integrierte Liedtexte",

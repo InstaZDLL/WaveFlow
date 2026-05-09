@@ -654,7 +654,8 @@
     "actions": {
       "import": ".lrc dosyasını içe aktar",
       "refetch": "Şarkı sözlerini yeniden getir",
-      "clear": "Şarkı sözlerini göster"
+      "clear": "Şarkı sözlerini göster",
+      "fullscreen": "Tam ekran"
     },
     "source": {
       "embedded": "Ses dosyasına gömülü",

@@ -654,7 +654,8 @@
     "actions": {
       "import": "导入 .lrc 文件",
       "refetch": "重新开始搜索",
-      "clear": "删除歌词"
+      "clear": "删除歌词",
+      "fullscreen": "全屏"
     },
     "source": {
       "embedded": "歌词已嵌入文件中",

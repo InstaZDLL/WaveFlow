@@ -654,7 +654,8 @@
     "actions": {
       "import": ".lrc 파일 가져오기",
       "refetch": "검색 다시 실행",
-      "clear": "가사 지우기"
+      "clear": "가사 지우기",
+      "fullscreen": "전체 화면"
     },
     "source": {
       "embedded": "파일에 가사가 포함되어 있음",

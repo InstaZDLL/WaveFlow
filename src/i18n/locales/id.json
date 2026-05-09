@@ -654,7 +654,8 @@
     "actions": {
       "import": "Impor berkas .lrc",
       "refetch": "Muat ulang lirik",
-      "clear": "Lirik yang jelas"
+      "clear": "Lirik yang jelas",
+      "fullscreen": "Layar penuh"
     },
     "source": {
       "embedded": "Tersemat dalam berkas audio",

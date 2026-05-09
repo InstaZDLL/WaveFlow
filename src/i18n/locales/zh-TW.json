@@ -654,7 +654,8 @@
     "actions": {
       "import": "匯入 .lrc 檔案",
       "refetch": "重新啟動搜尋",
-      "clear": "刪除歌詞"
+      "clear": "刪除歌詞",
+      "fullscreen": "全螢幕"
     },
     "source": {
       "embedded": "歌詞已嵌入檔案中",

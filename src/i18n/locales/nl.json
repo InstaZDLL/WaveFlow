@@ -654,7 +654,8 @@
     "actions": {
       "import": "Een .lrc-bestand importeren",
       "refetch": "Het onderzoek hervatten",
-      "clear": "Tekst wissen"
+      "clear": "Tekst wissen",
+      "fullscreen": "Volledig scherm"
     },
     "source": {
       "embedded": "Tekst opgenomen in het bestand",

@@ -654,7 +654,8 @@
     "actions": {
       "import": "Importar um arquivo .lrc",
       "refetch": "Reiniciar a pesquisa",
-      "clear": "Apagar a letra"
+      "clear": "Apagar a letra",
+      "fullscreen": "Tela cheia"
     },
     "source": {
       "embedded": "Letra incluída no arquivo",
