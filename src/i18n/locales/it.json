@@ -741,6 +741,10 @@
       "title": "Riproduzione con un solo clic",
       "subtitle": "Fai clic su un brano per avviare la riproduzione (oppure fai doppio clic)"
     },
+    "showSleepTimer": {
+      "title": "Mostra timer di spegnimento",
+      "subtitle": "Mostra l'icona della luna nella barra di riproduzione"
+    },
     "rescan": {
       "title": "Rieseguire la scansione della libreria",
       "subtitle": "Riesaminare tutte le cartelle e importare i nuovi file",

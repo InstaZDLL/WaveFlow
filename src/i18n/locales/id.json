@@ -741,6 +741,10 @@
       "title": "Pemutaran dengan sekali klik",
       "subtitle": "Klik sebuah trek untuk memulai pemutaran (atau klik dua kali)"
     },
+    "showSleepTimer": {
+      "title": "Tampilkan timer tidur",
+      "subtitle": "Tampilkan ikon bulan di bilah pemutar"
+    },
     "analyze": {
       "title": "Menganalisis perpustakaan",
       "subtitle": "Hitung nilai \"BPM\", volume suara, dan puncak untuk lagu-lagu yang belum dianalisis",

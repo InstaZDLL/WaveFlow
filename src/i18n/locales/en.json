@@ -741,6 +741,10 @@
       "title": "Single-click playback",
       "subtitle": "Click a track to start playback (otherwise double-click)"
     },
+    "showSleepTimer": {
+      "title": "Show sleep timer",
+      "subtitle": "Show the moon icon in the player bar"
+    },
     "rescan": {
       "title": "Rescan the library",
       "subtitle": "Review all folders and import the new files",

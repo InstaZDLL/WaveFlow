@@ -11,6 +11,7 @@ import { SleepTimerMenu } from "./SleepTimerMenu";
 import { VolumeControl } from "./VolumeControl";
 import { AudioQualityFooter } from "./AudioQualityFooter";
 import { toggleLikeTrack, listLikedTrackIds } from "../../lib/tauri/track";
+import { getProfileSetting } from "../../lib/tauri/profile";
 
 interface PlayerBarProps {
   onNavigateToArtist: (artistId: number) => void;
@@ -31,6 +32,28 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   } = usePlayer();
 
   const sleepTimer = useSleepTimer({ currentVolume: volume, setVolume });
+
+  // Per-profile preference: hide the sleep-timer icon entirely.
+  // Default: visible. SettingsView dispatches a `waveflow:sleep-
+  // timer-visibility` window event after toggling so we re-read
+  // without polling.
+  const [showSleepTimer, setShowSleepTimer] = useState(true);
+  useEffect(() => {
+    const refresh = () => {
+      getProfileSetting("ui.show_sleep_timer")
+        .then((v) => {
+          // Missing key → treat as "true" so we never hide a
+          // feature on first run.
+          setShowSleepTimer(v == null ? true : v === "1" || v === "true");
+        })
+        .catch(() => {});
+    };
+    refresh();
+    window.addEventListener("waveflow:sleep-timer-visibility", refresh);
+    return () => {
+      window.removeEventListener("waveflow:sleep-timer-visibility", refresh);
+    };
+  }, []);
 
   // Subscribe to the backend's track-ended event so the sleep timer
   // in "end of track" mode triggers when the current track finishes
@@ -139,6 +162,17 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
       {/* Right: Extra Controls */}
       <div className="w-1/3 flex items-center justify-end space-x-4">
+        {/* Sleep timer (sits left of Lyrics; user-hideable from
+            Settings via `ui.show_sleep_timer`). */}
+        {showSleepTimer && (
+          <SleepTimerMenu
+            status={sleepTimer.status}
+            onSetDuration={sleepTimer.setDurationMinutes}
+            onSetEndOfTrack={sleepTimer.setEndOfTrack}
+            onCancel={sleepTimer.cancel}
+          />
+        )}
+
         {/* Lyrics panel toggle */}
         <button
           type="button"
@@ -166,13 +200,6 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
         >
           <Menu size={20} />
         </button>
-
-        <SleepTimerMenu
-          status={sleepTimer.status}
-          onSetDuration={sleepTimer.setDurationMinutes}
-          onSetEndOfTrack={sleepTimer.setEndOfTrack}
-          onCancel={sleepTimer.cancel}
-        />
 
         <div className="relative">
           <button

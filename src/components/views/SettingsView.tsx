@@ -26,6 +26,7 @@ import {
   Check as CheckIcon,
   Mic2,
   Server,
+  Moon,
 } from "lucide-react";
 import {
   getProfileSetting,
@@ -302,6 +303,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [minimizeToTray, setMinimizeToTray] = useState(true);
   const [scanOnStart, setScanOnStart] = useState(false);
   const [singleClickPlay, setSingleClickPlay] = useState(false);
+  // Visibility toggle for the sleep-timer icon in the player bar.
+  // Defaults to true so users discover the feature on first run.
+  const [showSleepTimer, setShowSleepTimer] = useState(true);
   // Status of the last "Copy logs" click — null when idle, "ok" or
   // "fail" briefly during the toast period before clearing back to null.
   const [copyLogsStatus, setCopyLogsStatus] = useState<"ok" | "fail" | null>(
@@ -314,6 +318,15 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       .then((v) => {
         if (cancelled) return;
         if (v === "true" || v === "1") setSingleClickPlay(true);
+      })
+      .catch(() => {});
+    getProfileSetting("ui.show_sleep_timer")
+      .then((v) => {
+        if (cancelled) return;
+        // Missing key is treated as "visible" — same default as the
+        // PlayerBar reader. Avoids hiding a feature on first run
+        // because the row hasn't been written yet.
+        if (v != null) setShowSleepTimer(v === "true" || v === "1");
       })
       .catch(() => {});
     return () => {
@@ -333,6 +346,24 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       setSingleClickPlay(!next);
     });
   }, [singleClickPlay]);
+
+  const handleToggleShowSleepTimer = useCallback(() => {
+    const next = !showSleepTimer;
+    setShowSleepTimer(next);
+    setProfileSetting(
+      "ui.show_sleep_timer",
+      next ? "true" : "false",
+      "bool",
+    )
+      .then(() => {
+        // Notify the PlayerBar to re-read without polling.
+        window.dispatchEvent(new CustomEvent("waveflow:sleep-timer-visibility"));
+      })
+      .catch((err) => {
+        console.error("[Settings] set show_sleep_timer failed", err);
+        setShowSleepTimer(!next);
+      });
+  }, [showSleepTimer]);
 
   const handleCopyLogs = useCallback(async () => {
     try {
@@ -954,6 +985,30 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               enabled={singleClickPlay}
               onToggle={handleToggleSingleClickPlay}
               label={t("settings.singleClickPlay.title")}
+            />
+          </div>
+
+          {/* Visibilité du minuteur de sommeil */}
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4">
+              <Moon
+                size={20}
+                className="text-zinc-400"
+                aria-hidden="true"
+              />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.showSleepTimer.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.showSleepTimer.subtitle")}
+                </div>
+              </div>
+            </div>
+            <ToggleSwitch
+              enabled={showSleepTimer}
+              onToggle={handleToggleShowSleepTimer}
+              label={t("settings.showSleepTimer.title")}
             />
           </div>
         </div>

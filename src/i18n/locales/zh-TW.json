@@ -741,6 +741,10 @@
       "title": "單鍵播放",
       "subtitle": "點擊一首曲目即可開始播放（否則請雙擊）"
     },
+    "showSleepTimer": {
+      "title": "顯示睡眠計時器",
+      "subtitle": "在播放列顯示月亮圖示"
+    },
     "rescan": {
       "title": "重新掃描書庫",
       "subtitle": "重新掃描所有資料夾並匯入新檔案",

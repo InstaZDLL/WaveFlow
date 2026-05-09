@@ -741,6 +741,10 @@
       "title": "Lecture au clic simple",
       "subtitle": "Un clic sur une piste lance la lecture (sinon double-clic)"
     },
+    "showSleepTimer": {
+      "title": "Afficher le minuteur de sommeil",
+      "subtitle": "Affiche l'icône lune dans la barre de lecture"
+    },
     "rescan": {
       "title": "Rescanner la bibliothèque",
       "subtitle": "Re-parcourir tous les dossiers et importer les nouveaux fichiers",

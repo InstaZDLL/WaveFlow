@@ -741,6 +741,10 @@
       "title": "Einzelklick-Wiedergabe",
       "subtitle": "Klicken Sie auf einen Titel, um die Wiedergabe zu starten (oder doppelklicken Sie darauf)."
     },
+    "showSleepTimer": {
+      "title": "Sleep-Timer anzeigen",
+      "subtitle": "Mond-Symbol in der Wiedergabeleiste anzeigen"
+    },
     "rescan": {
       "title": "Bibliothek erneut scannen",
       "subtitle": "Alle Ordner erneut durchsuchen und neue Dateien importieren",

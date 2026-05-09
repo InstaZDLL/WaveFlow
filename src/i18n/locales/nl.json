@@ -741,6 +741,10 @@
       "title": "Afspelen met één klik",
       "subtitle": "Klik op een track om het afspelen te starten (anders dubbelklikken)"
     },
+    "showSleepTimer": {
+      "title": "Slaaptimer weergeven",
+      "subtitle": "Toon het maan-icoon in de afspeelbalk"
+    },
     "rescan": {
       "title": "De bibliotheek opnieuw scannen",
       "subtitle": "Alle mappen opnieuw doorlopen en de nieuwe bestanden importeren",

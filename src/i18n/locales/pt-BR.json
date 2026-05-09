@@ -741,6 +741,10 @@
       "title": "Reprodução com um único clique",
       "subtitle": "Clique em uma faixa para iniciar a reprodução (ou clique duas vezes)"
     },
+    "showSleepTimer": {
+      "title": "Mostrar timer de sono",
+      "subtitle": "Mostra o ícone da lua na barra de reprodução"
+    },
     "rescan": {
       "title": "Digitalizar novamente a biblioteca",
       "subtitle": "Revisar todas as pastas e importar os novos arquivos",
