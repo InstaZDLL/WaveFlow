@@ -161,7 +161,7 @@ export function QueuePanel() {
 
   return (
     <div
-      className="absolute top-0 right-0 h-full w-80 shadow-2xl z-40 border-l bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100"
+      className="h-full w-80 shrink-0 border-l bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100"
     >
       <div className="p-6 flex flex-col h-full">
         <div className="flex items-center justify-between mb-6">

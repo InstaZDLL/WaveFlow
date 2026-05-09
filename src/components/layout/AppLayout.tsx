@@ -250,8 +250,10 @@ export function AppLayout() {
             setActivePlaylistId={setActivePlaylistId}
           />
 
-          {/* Center Content */}
-          <div className="flex flex-col flex-1 relative bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
+          {/* Center Content. `min-w-0` is required so a long playlist
+              title or wide table doesn't blow the flex item's intrinsic
+              width past `flex-1` and push the right panel off-screen. */}
+          <div className="flex flex-col flex-1 min-w-0 relative bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
             <TopBar
               activeView={activeView}
               setActiveView={setActiveView}
@@ -272,18 +274,25 @@ export function AppLayout() {
               </PageScrollContext.Provider>
             </div>
 
-            {/* Right Panels — only one is mounted at a time. The
-                conditional render is the structural mutex; transitions
-                are intentionally skipped to avoid the previous bug
-                where two panels could be visible mid-animation. */}
+            {/* Floating overlays anchored to the center column.
+                DeviceMenu = popup from the player bar's speaker icon;
+                NowPlayingChevronTab = right-edge handle shown only when
+                no right panel is open. Both must stay inside the center
+                container so their `right-0` anchors to the content edge,
+                not to the right panel when one is mounted as a sibling. */}
             <DeviceMenu />
             <NowPlayingChevronTab />
-            {activeRightPanel === "queue" && <QueuePanel />}
-            {activeRightPanel === "nowPlaying" && (
-              <NowPlayingPanel onNavigateToArtist={navigateToArtist} />
-            )}
-            {activeRightPanel === "lyrics" && <LyricsPanel />}
           </div>
+
+          {/* Right Panels — siblings of the center column so opening
+              one shrinks the content area instead of overlapping it
+              (Spotify-style responsive layout). Only one is mounted at
+              a time; the conditional render is the structural mutex. */}
+          {activeRightPanel === "queue" && <QueuePanel />}
+          {activeRightPanel === "nowPlaying" && (
+            <NowPlayingPanel onNavigateToArtist={navigateToArtist} />
+          )}
+          {activeRightPanel === "lyrics" && <LyricsPanel />}
         </div>
 
         {/* Bottom Player Bar */}
