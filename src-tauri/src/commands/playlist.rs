@@ -40,6 +40,12 @@ pub struct Playlist {
     /// frontend prefers this over re-resolving the hash itself so a
     /// stale `cover_hash` (cache wiped) doesn't render a broken image.
     pub cover_path: Option<String>,
+    /// `1` when the cover is managed by the auto-regen pipeline
+    /// (Spotify-style 2×2 grid of the first 4 album artworks; refreshed
+    /// after every mutation that could change the first-4 set). `0` when
+    /// the user uploaded their own image — playlist mutations then leave
+    /// the cover alone.
+    pub cover_is_auto: i64,
     pub position: i64,
     pub created_at: i64,
     pub updated_at: i64,
@@ -121,6 +127,7 @@ pub async fn list_playlists(state: tauri::State<'_, AppState>) -> AppResult<Vec<
         r#"
         SELECT p.id, p.name, p.description, p.color_id, p.icon_id,
                p.is_smart, p.cover_hash, NULL AS cover_path,
+               p.cover_is_auto,
                p.position, p.created_at, p.updated_at,
                COALESCE(pc.track_count,       0) AS track_count,
                COALESCE(pc.total_duration_ms, 0) AS total_duration_ms
@@ -158,6 +165,7 @@ pub async fn get_playlist(
         r#"
         SELECT p.id, p.name, p.description, p.color_id, p.icon_id,
                p.is_smart, p.cover_hash, NULL AS cover_path,
+               p.cover_is_auto,
                p.position, p.created_at, p.updated_at,
                COALESCE(pc.track_count,       0) AS track_count,
                COALESCE(pc.total_duration_ms, 0) AS total_duration_ms
@@ -231,6 +239,7 @@ pub async fn create_playlist(
         is_smart: 0,
         cover_hash: None,
         cover_path: None,
+        cover_is_auto: 1,
         position: 0,
         created_at: now,
         updated_at: now,
@@ -422,6 +431,7 @@ pub async fn add_track_to_playlist(
     track_id: i64,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
     let now = now_millis();
 
     // Compute next position in a single query so concurrent inserts from
@@ -448,6 +458,8 @@ pub async fn add_track_to_playlist(
         .execute(&pool)
         .await?;
 
+    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
+        .await;
     Ok(())
 }
 
@@ -465,6 +477,7 @@ pub async fn add_tracks_to_playlist(
     }
 
     let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
     let now = now_millis();
 
     // Start from the current max + 1 and increment locally. A single
@@ -502,6 +515,8 @@ pub async fn add_tracks_to_playlist(
         .await?;
 
     tx.commit().await?;
+    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
+        .await;
     Ok(inserted)
 }
 
@@ -513,6 +528,7 @@ pub async fn remove_track_from_playlist(
     track_id: i64,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
 
     let removed_position: Option<i64> = sqlx::query_scalar(
         "SELECT position FROM playlist_track WHERE playlist_id = ? AND track_id = ?",
@@ -552,6 +568,8 @@ pub async fn remove_track_from_playlist(
         .await?;
 
     tx.commit().await?;
+    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
+        .await;
     Ok(())
 }
 
@@ -571,6 +589,7 @@ pub async fn reorder_playlist_track(
     new_position: i64,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
     let mut tx = pool.begin().await?;
 
     let from: Option<i64> = sqlx::query_scalar(
@@ -642,6 +661,8 @@ pub async fn reorder_playlist_track(
         .await?;
 
     tx.commit().await?;
+    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
+        .await;
     Ok(())
 }
 
@@ -659,6 +680,7 @@ pub async fn add_source_to_playlist(
     source_id: i64,
 ) -> AppResult<u32> {
     let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
 
     // Resolve the set of track IDs belonging to the source.
     let track_ids: Vec<i64> = match source_type.as_str() {
@@ -735,6 +757,8 @@ pub async fn add_source_to_playlist(
         .await?;
 
     tx.commit().await?;
+    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
+        .await;
     Ok(inserted)
 }
 
@@ -897,6 +921,7 @@ pub async fn import_playlist_m3u(
     source_path: String,
 ) -> AppResult<ImportPlaylistResult> {
     let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
     let src = std::path::PathBuf::from(&source_path);
 
     let raw = std::fs::read(&src).map_err(|e| AppError::Other(format!("read m3u file: {e}")))?;
@@ -1047,6 +1072,8 @@ pub async fn import_playlist_m3u(
     );
 
     let missing_paths: Vec<String> = missing.into_iter().take(20).collect();
+
+    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, new_id).await;
 
     Ok(ImportPlaylistResult {
         playlist_id: new_id,

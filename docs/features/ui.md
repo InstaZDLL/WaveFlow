@@ -43,6 +43,14 @@ Quick playback controls (Play/Pause, Previous, Next, Quitter). Close-to-tray is 
 - Listening-by-day and listening-by-hour bar charts
 - Top tracks / artists / albums for the selected window (7d / 30d / 90d / 1y / all)
 
+## Width & containers
+
+Music browsing views (Home, Library, Playlist, Album, Artist, Liked, Recent, Statistics) render **full width** inside the center column — no `max-w-*` cap. The `p-8` gutter on the page scroller ([`AppLayout.tsx`](../../src/components/layout/AppLayout.tsx)) is the only horizontal breathing room. On a 2.5K display the table area gains ~800 px over the previous `max-w-6xl mx-auto` constraint.
+
+Form-style views (Settings, About, Feedback) keep `max-w-4xl` because dense forms read better with a comfortable line length.
+
+Track tables themselves are **borderless** — no `rounded-2xl border bg-white` card wrapper. The page already provides the visual frame; nesting another card just shrinks every row by ~80 px and breaks the Spotify-style "rows on the page" feel. The column-header `border-b` is the only separator between header and rows.
+
 ## Performance
 
 - **Virtual scroll** — `@tanstack/react-virtual` on every long list (tracks, queue, playlist contents, statistics rows). Tables share the page-level scroller via [`usePageScroll()`](../../src/hooks/usePageScroll.ts) and compute `scrollMargin` from the parent's offset so the virtualiser knows where its content begins. Single Spotify-style scrollbar, no nested overflow.

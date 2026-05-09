@@ -137,7 +137,7 @@ export function RecentView({ onNavigateToAlbum, onNavigateToArtist }: RecentView
   }, [playbackState]);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20">
+    <div className="space-y-8 animate-fade-in pb-20">
       {/* Header */}
       <div className="flex items-center space-x-6">
         <div className="w-24 h-24 rounded-2xl bg-blue-100 text-blue-500 flex items-center justify-center shadow-sm dark:bg-blue-950/60 dark:text-blue-400">

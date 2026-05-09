@@ -61,7 +61,8 @@ Determinism matters: the same input set always produces the same listening order
 [`cover.rs`](../../src-tauri/src/smart_playlists/cover.rs):
 
 - **Image source priority** — try the top 3 artists' Deezer pictures first (shared `metadata_artwork/<hash>.jpg` cache, looks best because portraits crop cleanly). If none of the cluster's artists are Deezer-enriched (common with niche / soundtrack libraries), fall back to **album artwork of the first 3 shuffled tracks** from the per-profile cache (`<root>/profiles/<id>/artwork/<hash>.<format>`). The fallback is what guarantees a real cover even for libraries dominated by obscure artists.
-- 640×640 RGB canvas → split into N equal vertical strips → centre-crop each source via `cover_fit` (matches CSS `object-fit: cover`) → SIMD resize via `fast_image_resize 6` → paint.
+- **Layout auto-pick** — the `build_composite_cover` entry point dispatches by input count: 1 → fill the canvas, 2 → vertical halves, 3 → 3 strips (the Daily Mix look), 4+ → **2×2 grid** (Spotify-style auto-playlist cover, used by the user-playlist auto-cover pipeline; smart playlists never reach this branch since they cap at 3 artist pictures).
+- 640×640 RGB canvas → centre-crop each source via `cover_fit` (matches CSS `object-fit: cover`) → SIMD resize via `fast_image_resize 6` → paint.
 - Apply a `t²` ease-out gradient over the bottom 40 % so the React-rendered "Daily Mix N" label stays legible without baking text into the JPEG.
 - Encode JPEG q=85 → blake3 → write to `metadata_artwork/<hash>.jpg`.
 

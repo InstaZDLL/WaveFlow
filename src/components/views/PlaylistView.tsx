@@ -399,7 +399,7 @@ export function PlaylistView({
     totalDurationMs > 0 ? formatDuration(totalDurationMs) : "—";
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20">
+    <div className="space-y-8 animate-fade-in pb-20">
       {/* Header. Smart playlists (Daily Mix, …) ship a generated cover
           image — render it as a 96×96 tile with a "DAILY MIX" overlay
           label. User-curated playlists fall back to the icon + color
@@ -575,6 +575,18 @@ export function PlaylistView({
         onClose={() => setIsEditOpen(false)}
         existing={playlist}
         onCreate={handleEditSubmit}
+        onCoverChanged={async () => {
+          // Cover backend command already wrote the new hash; pull the
+          // fresh row so `cover_path` updates without waiting for the
+          // next user navigation.
+          if (playlistId == null) return;
+          try {
+            const fresh = await getPlaylist(playlistId);
+            setPlaylist(fresh);
+          } catch (err) {
+            console.error("[PlaylistView] refresh after cover change", err);
+          }
+        }}
       />
 
       <CreatePlaylistModal
@@ -729,9 +741,13 @@ function PlaylistTrackTable({
     ? tracks.find((t) => String(t.id) === activeId)
     : null;
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40 overflow-hidden">
+    // Borderless wrapper so rows span the full content width Spotify-style
+    // — the page-level scroller already provides the visual frame, and a
+    // contained card here just shrunk every row by ~40 px on each side.
+    // The column header keeps its bottom border for the visual separator.
+    <div>
       <div
-        className={`grid ${gridCols} gap-4 px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-100 dark:border-zinc-800`}
+        className={`grid ${gridCols} gap-4 px-5 py-3 text-[10px] font-bold tracking-widest text-zinc-400 uppercase border-b border-zinc-200 dark:border-zinc-800`}
       >
         <span aria-hidden="true" />
         <span className="text-right">{headerLabels.number}</span>

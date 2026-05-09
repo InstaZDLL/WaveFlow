@@ -36,20 +36,31 @@ const JPEG_QUALITY: u8 = 85;
 /// like a contact sheet rather than a curated mix.
 const MAX_STRIPS: usize = 3;
 
-/// Build a composite cover from the supplied artist image paths and write it
-/// to the shared `metadata_artwork` cache. Returns the blake3 hash of the
-/// encoded JPEG, ready to store in `playlist.cover_hash`.
+/// Maximum tiles in the 2×2 grid layout. Anything beyond is ignored so the
+/// callers can pass their full ordered list without manual truncation.
+const MAX_GRID_TILES: usize = 4;
+
+/// Build a composite cover from the supplied image paths and write it to the
+/// shared `metadata_artwork` cache. Returns the blake3 hash of the encoded
+/// JPEG, ready to store in `playlist.cover_hash`.
+///
+/// Layout is picked from the input count so callers don't have to choose:
+/// - 1 image → fills the whole canvas
+/// - 2 images → vertical halves
+/// - 3 images → 3 vertical strips (the Daily Mix look)
+/// - 4+ images → 2×2 grid (Spotify-style auto-playlist cover)
 ///
 /// Images that fail to decode are skipped silently; the function only errors
 /// if the *final* JPEG can't be produced (zero usable inputs, encoder error,
 /// disk write).
-pub fn build_daily_mix_cover(
+pub fn build_composite_cover(
     image_paths: &[PathBuf],
     metadata_dir: &Path,
 ) -> AppResult<String> {
-    let strips: Vec<RgbImage> = image_paths
+    let take = MAX_GRID_TILES.max(MAX_STRIPS);
+    let tiles: Vec<RgbImage> = image_paths
         .iter()
-        .take(MAX_STRIPS)
+        .take(take)
         .filter_map(|p| match image::open(p) {
             Ok(img) => Some(img.to_rgb8()),
             Err(err) => {
@@ -59,13 +70,17 @@ pub fn build_daily_mix_cover(
         })
         .collect();
 
-    if strips.is_empty() {
+    if tiles.is_empty() {
         return Err(AppError::Audio(
-            "smart cover: no decodable artist images".into(),
+            "smart cover: no decodable input images".into(),
         ));
     }
 
-    let canvas = composite_strips(&strips)?;
+    let canvas = if tiles.len() >= 4 {
+        composite_grid_2x2(&tiles[..4])?
+    } else {
+        composite_strips(&tiles)?
+    };
     let bytes = encode_jpeg(&canvas)?;
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let out = metadata_artwork::path_for_hash(metadata_dir, &hash);
@@ -74,6 +89,16 @@ pub fn build_daily_mix_cover(
             .map_err(|e| AppError::Audio(format!("smart cover write: {e}")))?;
     }
     Ok(hash)
+}
+
+/// Backwards-compatible shim — Daily Mix specifically prefers strips for 1-3
+/// inputs (matches Spotify's Daily Mix visual). New callers should use
+/// [`build_composite_cover`] which auto-picks the layout.
+pub fn build_daily_mix_cover(
+    image_paths: &[PathBuf],
+    metadata_dir: &Path,
+) -> AppResult<String> {
+    build_composite_cover(image_paths, metadata_dir)
 }
 
 /// Slice the canvas into N equal vertical strips, centre-crop each source
@@ -105,6 +130,35 @@ fn composite_strips(strips: &[RgbImage]) -> AppResult<RgbImage> {
             for x in 0..dst_w {
                 let p = *resized.get_pixel(x, y);
                 canvas.put_pixel(dst_x0 + x, y, p);
+            }
+        }
+    }
+    apply_bottom_gradient(&mut canvas);
+    Ok(canvas)
+}
+
+/// 2×2 grid composite — top-left, top-right, bottom-left, bottom-right —
+/// at exactly 4 input tiles. Each cell is a centre-cropped square so album
+/// covers (which are nearly always square anyway) drop in without
+/// distortion. Used for user-playlist auto-covers à la Spotify; the smart
+/// playlist family takes the strips path for 1-3 inputs.
+fn composite_grid_2x2(tiles: &[RgbImage]) -> AppResult<RgbImage> {
+    if tiles.len() < 4 {
+        return Err(AppError::Audio(
+            "smart cover: composite_grid_2x2 requires 4 tiles".into(),
+        ));
+    }
+    let cell = CANVAS_PX / 2;
+    let mut canvas = ImageBuffer::from_pixel(CANVAS_PX, CANVAS_PX, Rgb([18, 18, 18]));
+    // Quadrant order matches reading order (TL, TR, BL, BR) so the strip
+    // sequence reflects the playlist's first-4-tracks ordering.
+    let positions = [(0, 0), (cell, 0), (0, cell), (cell, cell)];
+    for (i, (dx, dy)) in positions.iter().enumerate() {
+        let resized = cover_fit(&tiles[i], cell, cell)?;
+        for y in 0..cell {
+            for x in 0..cell {
+                let p = *resized.get_pixel(x, y);
+                canvas.put_pixel(dx + x, dy + y, p);
             }
         }
     }
@@ -232,6 +286,31 @@ mod tests {
     fn empty_input_errors() {
         let strips: Vec<RgbImage> = vec![];
         assert!(composite_strips(&strips).is_err());
+    }
+
+    #[test]
+    fn grid_2x2_paints_all_four_quadrants() {
+        let tiles = vec![
+            solid(800, 800, [200, 50, 50]),  // TL red
+            solid(800, 800, [50, 200, 50]),  // TR green
+            solid(800, 800, [50, 50, 200]),  // BL blue
+            solid(800, 800, [200, 200, 50]), // BR yellow
+        ];
+        let canvas = composite_grid_2x2(&tiles).expect("grid");
+        assert_eq!(canvas.width(), CANVAS_PX);
+        let q = CANVAS_PX / 4;
+        // Sample the centre of each quadrant — colours should match.
+        assert!(canvas.get_pixel(q, q)[0] > 150, "TL red");
+        assert!(canvas.get_pixel(3 * q, q)[1] > 150, "TR green");
+        assert!(canvas.get_pixel(q, 3 * q)[2] > 150, "BL blue");
+        let br = canvas.get_pixel(3 * q, 3 * q);
+        assert!(br[0] > 100 && br[1] > 100, "BR yellow");
+    }
+
+    #[test]
+    fn grid_2x2_rejects_under_four_tiles() {
+        let tiles = vec![solid(100, 100, [255, 255, 255]); 3];
+        assert!(composite_grid_2x2(&tiles).is_err());
     }
 
     #[test]

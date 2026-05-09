@@ -234,7 +234,7 @@ export function HomeView({
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20">
+    <div className="space-y-8 animate-fade-in pb-20">
       {/* Welcome Banner */}
       <div className="relative overflow-hidden rounded-3xl p-10 bg-linear-to-br from-emerald-50 to-white shadow-sm border border-emerald-100/50 dark:from-emerald-900/40 dark:to-zinc-800/40 dark:border-zinc-800 dark:shadow-none">
         <div

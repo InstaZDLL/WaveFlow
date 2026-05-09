@@ -197,7 +197,7 @@ export function AlbumDetailView({
   const isMultiDisc = discNumbers.length > 1;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20">
+    <div className="space-y-8 animate-fade-in pb-20">
       {/* Header */}
       <div className="flex items-start space-x-8">
         <div

@@ -28,6 +28,25 @@ Unmatched entries are surfaced (capped at 20 to keep the toast readable) so the 
 
 [`liked_track`](../../src-tauri/migrations/profile/20260411120000_initial.sql) is a one-column table keyed by `track_id` with a `liked_at` timestamp. The dedicated "Liked" view sorts by `liked_at DESC`; the heart icon in track rows is wired to `toggle_like_track`.
 
+## Cover management
+
+User playlists support custom covers, managed alongside the existing `cover_hash` column added for smart playlists. Two modes, one column flag:
+
+| `cover_is_auto` | Behaviour |
+|-----------------|-----------|
+| `1` (default) | Auto-cover. After **every** mutation (`add_track`, `add_tracks`, `remove_track`, `reorder_track`, `add_source`, `import_m3u`), the backend re-runs the compositor on the first 4 album artworks (Spotify-style 2×2 grid). |
+| `0` | Manual upload. Mutations leave the cover untouched. |
+
+[`commands/playlist_cover.rs`](../../src-tauri/src/commands/playlist_cover.rs) exposes three Tauri commands:
+
+- **`set_playlist_cover_from_file(playlist_id, file_path)`** — magic-byte validates jpg/png/webp (8 MB cap), normalises through the same compositor used for auto-covers (re-encodes to a 640×640 JPEG so every `cover_hash` resolves to one extension), flips `cover_is_auto = 0`.
+- **`regenerate_playlist_auto_cover(playlist_id)`** — explicit "refresh now" escape hatch.
+- **`clear_playlist_cover(playlist_id)`** — drops the manual cover, switches back to `cover_is_auto = 1`, and **immediately** re-runs the auto-pipeline so the visual feedback is instant rather than blank-until-next-mutation.
+
+Smart playlists (`is_smart = 1`) are excluded from every code path here — they're owned by the smart-playlist regen flow. The post-mutation hook (`playlist_cover::maybe_regen_auto_cover`) checks both flags before running and logs a warning on failure (never blocks the mutation it was triggered by).
+
+The frontend exposes the controls in the **edit modal** ([`CreatePlaylistModal.tsx`](../../src/components/common/CreatePlaylistModal.tsx)) Spotify-style: large preview tile on the left, hover overlay with a pencil icon ("Choose photo"), and a `...` menu top-right with "Change photo" / "Remove photo". The remove option is conditional on `cover_hash != null`.
+
 ## Recently played
 
 [`browse.rs::list_recent_plays`](../../src-tauri/src/commands/browse.rs) projects the last 50 distinct tracks from `play_event`, deduplicated by track id (you only see a given track once even if you played it three times in a row). Drives both the "Récents" sidebar entry and the home carousel.

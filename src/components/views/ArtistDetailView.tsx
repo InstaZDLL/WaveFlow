@@ -209,7 +209,7 @@ export function ArtistDetailView({
       : null;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20">
+    <div className="space-y-8 animate-fade-in pb-20">
       {/* Header */}
       <div className="flex items-center space-x-8">
         {/* Artist photo */}

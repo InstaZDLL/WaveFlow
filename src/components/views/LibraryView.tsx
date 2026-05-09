@@ -335,7 +335,7 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
     (activeTab === "dossiers" && folders.length > 0);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20">
+    <div className="space-y-8 animate-fade-in pb-20">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center space-x-6">

@@ -21,6 +21,11 @@ export interface Playlist {
    * `convertFileSrc` to render. `null` means "no custom cover —
    * draw the icon + color gradient instead". */
   cover_path: string | null;
+  /** `1` when the cover is auto-managed (regenerates from the first
+   * 4 album artworks after every mutation). `0` when the user
+   * uploaded their own image; mutations leave it alone until they
+   * click "Remove photo" to switch back to auto. */
+  cover_is_auto: number;
   position: number;
   created_at: number;
   updated_at: number;
@@ -144,4 +149,36 @@ export function importPlaylistM3u(
   sourcePath: string,
 ): Promise<ImportPlaylistResult> {
   return invoke<ImportPlaylistResult>("import_playlist_m3u", { sourcePath });
+}
+
+/**
+ * Upload a user-supplied image as the playlist cover. Validates the file
+ * by magic bytes (jpg/png/webp), normalises through the same compositor
+ * used for auto-covers (re-encodes to a 640×640 JPEG), and flips
+ * `cover_is_auto` to 0 so subsequent mutations stop overwriting it.
+ */
+export function setPlaylistCoverFromFile(
+  playlistId: number,
+  filePath: string,
+): Promise<void> {
+  return invoke<void>("set_playlist_cover_from_file", { playlistId, filePath });
+}
+
+/**
+ * Force a regen of the auto-cover (Spotify-style 2×2 grid of the first
+ * 4 album artworks). Normally the auto pipeline runs implicitly after
+ * every mutation; this command is the "refresh now" escape hatch.
+ */
+export function regeneratePlaylistAutoCover(
+  playlistId: number,
+): Promise<void> {
+  return invoke<void>("regenerate_playlist_auto_cover", { playlistId });
+}
+
+/**
+ * Drop the manual cover and switch back to auto mode. Immediately
+ * re-runs the auto-cover so the visual feedback is instant.
+ */
+export function clearPlaylistCover(playlistId: number): Promise<void> {
+  return invoke<void>("clear_playlist_cover", { playlistId });
 }

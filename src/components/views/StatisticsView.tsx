@@ -122,7 +122,7 @@ export function StatisticsView({
   const isEmpty = !isLoading && overview != null && overview.total_plays === 0;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20">
+    <div className="space-y-8 animate-fade-in pb-20">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center space-x-4">
