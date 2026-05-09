@@ -361,6 +361,7 @@ pub fn run() {
             commands::player::player_set_normalize,
             commands::player::player_set_mono,
             commands::player::player_set_crossfade,
+            commands::player::player_set_gapless,
             commands::player::player_set_replaygain,
             commands::player::player_get_audio_settings,
             commands::player::player_list_output_devices,

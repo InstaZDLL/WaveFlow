@@ -807,6 +807,10 @@
       "copyLogs": "Menyalin log",
       "copied": "Log yang disalin",
       "copyFailed": "Tidak dapat menyalin log"
+    },
+    "gapless": {
+      "title": "Pemutaran tanpa jeda",
+      "subtitle": "Menyambungkan trek berurutan tanpa mikro-jeda (ideal untuk album live dan konsep)"
     }
   }
 }

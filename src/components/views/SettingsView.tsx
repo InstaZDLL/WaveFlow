@@ -27,6 +27,7 @@ import {
   Mic2,
   Server,
   Moon,
+  ChevronsRight,
 } from "lucide-react";
 import {
   getProfileSetting,
@@ -39,6 +40,7 @@ import {
   playerSetNormalize,
   playerSetMono,
   playerSetCrossfade,
+  playerSetGapless,
   playerSetReplayGain,
 } from "../../lib/tauri/player";
 import {
@@ -616,6 +618,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [mono, setMono] = useState(false);
   const [crossfadeSec, setCrossfadeSec] = useState(0);
   const [replayGain, setReplayGain] = useState(false);
+  const [gapless, setGapless] = useState(true);
 
   // Integrations
   const [lastfmKey, setLastfmKey] = useState("");
@@ -777,6 +780,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         setMono(s.mono);
         setCrossfadeSec(Math.round(s.crossfade_ms / 1000));
         setReplayGain(s.replaygain);
+        setGapless(s.gapless);
       })
       .catch((err) => console.error("[Settings] audio settings load failed", err));
   }, []);
@@ -798,6 +802,15 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       setReplayGain(!next); // rollback
     });
   }, [replayGain]);
+
+  const handleToggleGapless = useCallback(() => {
+    const next = !gapless;
+    setGapless(next);
+    playerSetGapless(next).catch((err) => {
+      console.error("[Settings] set gapless failed", err);
+      setGapless(!next); // rollback
+    });
+  }, [gapless]);
 
   const handleToggleMono = useCallback(() => {
     const next = !mono;
@@ -1057,6 +1070,30 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 {crossfadeSec} s
               </span>
             </div>
+          </div>
+
+          {/* Gapless playback */}
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4">
+              <ChevronsRight
+                size={20}
+                className="text-zinc-400"
+                aria-hidden="true"
+              />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.gapless.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.gapless.subtitle")}
+                </div>
+              </div>
+            </div>
+            <ToggleSwitch
+              enabled={gapless}
+              onToggle={handleToggleGapless}
+              label={t("settings.gapless.title")}
+            />
           </div>
 
           {/* Normaliser le volume */}

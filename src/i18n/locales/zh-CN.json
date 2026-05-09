@@ -807,6 +807,10 @@
       "copyLogs": "复制日志",
       "copied": "已复制",
       "copyFailed": "无法复制日志"
+    },
+    "gapless": {
+      "title": "无缝播放",
+      "subtitle": "在连续曲目之间不留微小静音（适合现场和概念专辑）"
     }
   }
 }

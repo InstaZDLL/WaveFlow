@@ -807,6 +807,10 @@
       "copyLogs": "Logs kopieren",
       "copied": "Kopierte Logs",
       "copyFailed": "Logs können nicht kopiert werden"
+    },
+    "gapless": {
+      "title": "Lückenlose Wiedergabe",
+      "subtitle": "Verkettet aufeinanderfolgende Titel ohne Mikropause (ideal für Live- und Konzeptalben)"
     }
   }
 }

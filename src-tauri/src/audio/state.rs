@@ -96,6 +96,14 @@ pub struct SharedPlayback {
     /// and read from `track_analysis.replay_gain_db` at load time).
     /// Toggled from the Settings "Apply ReplayGain" switch.
     pub replaygain_enabled: AtomicBool,
+    /// When `true`, the decoder pre-fetches the next queued track
+    /// ~500 ms before the current one ends and swaps to it the
+    /// instant primary EOFs — no analytics → LoadAndPlay round trip,
+    /// no decoder spin-up gap. Distinct from `crossfade_ms`: gapless
+    /// is a sample-accurate baton hand-off (no fade), crossfade is a
+    /// timed equal-power mix. When `crossfade_ms > 0` crossfade wins
+    /// (the fade implicitly subsumes the gap, no point in both).
+    pub gapless_enabled: AtomicBool,
     /// When `true`, the analytics worker skips the auto-advance step
     /// after the current track ends naturally. Used by the sleep
     /// timer's "end of current track" mode: the frontend arms this
@@ -122,6 +130,7 @@ impl SharedPlayback {
             mono_enabled: AtomicBool::new(false),
             crossfade_ms: AtomicU32::new(0),
             replaygain_enabled: AtomicBool::new(false),
+            gapless_enabled: AtomicBool::new(true),
             pause_after_current_track: AtomicBool::new(false),
         }
     }

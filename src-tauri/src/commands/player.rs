@@ -403,6 +403,16 @@ pub async fn player_get_state(
                     std::sync::atomic::Ordering::Release,
                 );
             }
+            // Gapless defaults to ON, so only override the boot-time
+            // default when an explicit `false` row is found.
+            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
+                "SELECT value FROM profile_setting WHERE key = 'audio.gapless'"
+            ).fetch_optional(&pool).await {
+                engine.shared().gapless_enabled.store(
+                    v == "true",
+                    std::sync::atomic::Ordering::Release,
+                );
+            }
             // Prefer the actively-playing track (non-zero track_id in
             // SharedPlayback), fall back to the persisted resume point
             // at startup when the engine is still Idle.
@@ -743,6 +753,30 @@ pub async fn player_set_mono(
     Ok(())
 }
 
+/// Toggle gapless playback. Pushes the new value live to the audio
+/// engine and persists to `profile_setting['audio.gapless']`.
+#[tauri::command]
+pub async fn player_set_gapless(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    engine.send(AudioCmd::SetGapless(enabled))?;
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.gapless', ?, 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(if enabled { "true" } else { "false" })
+        .bind(now)
+        .execute(&pool)
+        .await;
+    }
+    Ok(())
+}
+
 /// Update the crossfade duration. Pushes the new value live to the
 /// audio engine so the next track transition uses it, and persists
 /// to `profile_setting['audio.crossfade_ms']` so it survives a restart.
@@ -785,6 +819,9 @@ pub async fn player_get_audio_settings(
     let replaygain = shared
         .replaygain_enabled
         .load(std::sync::atomic::Ordering::Relaxed);
+    let gapless = shared
+        .gapless_enabled
+        .load(std::sync::atomic::Ordering::Relaxed);
 
     let mut crossfade_ms: i64 = 0;
     if let Ok(pool) = state.require_profile_pool().await {
@@ -802,6 +839,7 @@ pub async fn player_get_audio_settings(
         mono,
         crossfade_ms,
         replaygain,
+        gapless,
     })
 }
 
@@ -811,6 +849,7 @@ pub struct AudioSettingsSnapshot {
     pub mono: bool,
     pub crossfade_ms: i64,
     pub replaygain: bool,
+    pub gapless: bool,
 }
 
 /// One row in the output-device picker that powers the PlayerBar

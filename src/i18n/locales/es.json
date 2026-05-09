@@ -807,6 +807,10 @@
       "copyLogs": "Copiar registros",
       "copied": "Registros copiados",
       "copyFailed": "No se pueden copiar los registros"
+    },
+    "gapless": {
+      "title": "Reproducción sin pausas",
+      "subtitle": "Encadena los temas siguientes sin micro-silencio (ideal para directos y álbumes conceptuales)"
     }
   }
 }

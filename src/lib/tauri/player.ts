@@ -197,6 +197,7 @@ export interface AudioSettingsSnapshot {
   mono: boolean;
   crossfade_ms: number;
   replaygain: boolean;
+  gapless: boolean;
 }
 
 export function playerGetAudioSettings(): Promise<AudioSettingsSnapshot> {
@@ -217,6 +218,10 @@ export function playerSetCrossfade(seconds: number): Promise<void> {
 
 export function playerSetReplayGain(enabled: boolean): Promise<void> {
   return invoke<void>("player_set_replaygain", { enabled });
+}
+
+export function playerSetGapless(enabled: boolean): Promise<void> {
+  return invoke<void>("player_set_gapless", { enabled });
 }
 
 // ── Output device picker ───────────────────────────────────────────

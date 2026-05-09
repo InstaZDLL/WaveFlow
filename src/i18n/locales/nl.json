@@ -807,6 +807,10 @@
       "copyLogs": "Logs kopiëren",
       "copied": "Gekopieerde logbestanden",
       "copyFailed": "Kan logs niet kopiëren"
+    },
+    "gapless": {
+      "title": "Naadloze weergave",
+      "subtitle": "Sluit opeenvolgende nummers zonder microstilte aan (ideaal voor live- en conceptalbums)"
     }
   }
 }

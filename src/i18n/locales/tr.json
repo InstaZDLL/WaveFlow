@@ -807,6 +807,10 @@
       "copyLogs": "Günlükleri kopyala",
       "copied": "Kopyalanan günlükler",
       "copyFailed": "Günlükler kopyalanamıyor"
+    },
+    "gapless": {
+      "title": "Boşluksuz çalma",
+      "subtitle": "Ardışık parçaları mikro-sessizlik olmadan zincirler (canlı ve konsept albümler için ideal)"
     }
   }
 }

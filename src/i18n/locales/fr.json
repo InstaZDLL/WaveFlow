@@ -807,6 +807,10 @@
       "copyLogs": "Copier les logs",
       "copied": "Logs copiés",
       "copyFailed": "Impossible de copier les logs"
+    },
+    "gapless": {
+      "title": "Lecture sans pause",
+      "subtitle": "Enchaîne les morceaux suivants sans micro-silence (idéal pour les albums live ou concept)"
     }
   }
 }

@@ -435,7 +435,9 @@ fn play_track(
             }
         }
 
-        // Crossfade trigger evaluation, only when not already mixing.
+        // Crossfade / gapless trigger evaluation, only when not
+        // already mixing. Crossfade wins when both are enabled
+        // (the fade implicitly subsumes the gap).
         if !mix_active && stream.duration_ms > 0 {
             let cf_ms = shared.crossfade_ms.load(Ordering::Relaxed) as u64;
             if cf_ms > 0 {
@@ -461,6 +463,18 @@ fn play_track(
                     mix_frames_written = 0;
                     mix_frames_total =
                         (effective_ms * dst_sample_rate as u64) / 1000;
+                }
+            } else if shared.gapless_enabled.load(Ordering::Relaxed) {
+                // Gapless mode: prefetch the next track ~500 ms before
+                // EOF so its decoder is warm and ready. The actual swap
+                // happens in the EOF branch below — no fade, no overlap,
+                // just an immediate baton hand-off the moment the
+                // primary buffer drains.
+                let pos = shared.current_position_ms();
+                let remaining = stream.duration_ms.saturating_sub(pos);
+                if !next_requested && pending_next.is_none() && remaining <= 500 {
+                    let _ = analytics_tx.send(AnalyticsMsg::PrefetchNext);
+                    next_requested = true;
                 }
             }
         }
@@ -663,6 +677,44 @@ fn play_track(
                 );
             }
             if primary_resampled.is_empty() && primary_at_eof {
+                // Gapless hand-off: if a next track was pre-fetched
+                // while crossfade was disabled, swap to it in-place
+                // instead of returning to the analytics → LoadAndPlay
+                // path (which adds a few hundred ms of decoder
+                // spin-up gap). Mirrors the crossfade swap block but
+                // skips the fade math entirely. Keeps the same
+                // `CrossfadeStarted` analytics message so the queue
+                // cursor advances and play_event gets credited
+                // exactly the same way.
+                if pending_next.is_some() {
+                    let listened = shared.session_listened_ms();
+                    let _ = analytics_tx.send(AnalyticsMsg::CrossfadeStarted {
+                        finished_track_id: stream.track_id,
+                        finished_listened_ms: listened,
+                        finished_source_type: stream.source_type.clone(),
+                        finished_source_id: stream.source_id,
+                    });
+
+                    stream = pending_next.take().expect("pending_next set");
+                    primary_resampled.clear();
+                    primary_at_eof = false;
+                    secondary_at_eof = false;
+                    next_requested = false;
+                    mix_active = false;
+                    mix_frames_written = 0;
+                    mix_frames_total = 0;
+
+                    shared.samples_played.store(0, Ordering::Relaxed);
+                    shared.base_offset_ms.store(0, Ordering::Relaxed);
+                    shared
+                        .current_track_id
+                        .store(stream.track_id, Ordering::Release);
+                    shared.seek_generation.fetch_add(1, Ordering::Release);
+
+                    let _ = app.emit(EVENT_POSITION, PositionPayload { ms: 0 });
+                    last_position_emit = Instant::now();
+                    continue;
+                }
                 ended_naturally = true;
                 break 'pkt;
             }
@@ -848,6 +900,9 @@ fn drain_commands(
             Ok(AudioCmd::SetReplayGain(on)) => {
                 shared.replaygain_enabled.store(on, Ordering::Release)
             }
+            Ok(AudioCmd::SetGapless(on)) => {
+                shared.gapless_enabled.store(on, Ordering::Release)
+            }
             Ok(AudioCmd::Pause) => {
                 transition_state(shared, app, PlayerState::Paused, Some(track_id));
                 shared.paused_output.store(true, Ordering::Release);
@@ -898,6 +953,9 @@ fn drain_commands(
                         ),
                         Ok(AudioCmd::SetReplayGain(on)) => {
                             shared.replaygain_enabled.store(on, Ordering::Release)
+                        }
+                        Ok(AudioCmd::SetGapless(on)) => {
+                            shared.gapless_enabled.store(on, Ordering::Release)
                         }
                         Ok(cmd @ AudioCmd::LoadAndPlay { .. }) => {
                             shared.paused_output.store(false, Ordering::Release);

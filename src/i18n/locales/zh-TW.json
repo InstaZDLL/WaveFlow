@@ -807,6 +807,10 @@
       "copyLogs": "複製日誌",
       "copied": "已複製",
       "copyFailed": "無法複製日誌"
+    },
+    "gapless": {
+      "title": "無縫播放",
+      "subtitle": "在連續曲目之間不留微小靜音（適合現場與概念專輯）"
     }
   }
 }

@@ -53,6 +53,9 @@ pub enum AudioCmd {
     /// Toggle whether the decoder applies the per-track ReplayGain
     /// factor when pushing samples to the ring.
     SetReplayGain(bool),
+    /// Toggle gapless playback (sample-accurate hand-off between
+    /// consecutive queued tracks when no crossfade is configured).
+    SetGapless(bool),
     /// Hand the decoder thread the next track to prefetch for
     /// crossfade. Sent by the analytics task in response to a
     /// `PrefetchNext` request from the decoder.
@@ -96,6 +99,7 @@ impl std::fmt::Debug for AudioCmd {
             AudioCmd::SetMono(v) => write!(f, "SetMono({v})"),
             AudioCmd::SetCrossfade(v) => write!(f, "SetCrossfade({v})"),
             AudioCmd::SetReplayGain(v) => write!(f, "SetReplayGain({v})"),
+            AudioCmd::SetGapless(v) => write!(f, "SetGapless({v})"),
             AudioCmd::SetNextTrack { track_id, .. } => {
                 write!(f, "SetNextTrack {{ track_id: {track_id} }}")
             }
