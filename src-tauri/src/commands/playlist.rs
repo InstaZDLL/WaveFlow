@@ -29,6 +29,17 @@ pub struct Playlist {
     pub color_id: String,
     pub icon_id: String,
     pub is_smart: i64,
+    /// Blake3 hash of the cover image stored in the shared
+    /// `metadata_artwork` cache. `None` for user-curated playlists that
+    /// haven't been given a custom cover — the frontend renders the
+    /// `icon_id` + `color_id` gradient instead. Smart playlists populate
+    /// this with a composite generated from the cluster's top artists.
+    pub cover_hash: Option<String>,
+    /// Absolute on-disk path resolved from `cover_hash` if the file is
+    /// actually present, ready to be passed to `convertFileSrc`. The
+    /// frontend prefers this over re-resolving the hash itself so a
+    /// stale `cover_hash` (cache wiped) doesn't render a broken image.
+    pub cover_path: Option<String>,
     pub position: i64,
     pub created_at: i64,
     pub updated_at: i64,
@@ -88,6 +99,17 @@ fn now_millis() -> i64 {
     Utc::now().timestamp_millis()
 }
 
+/// Resolve `cover_hash` to an absolute on-disk path if (and only if) the
+/// file is present in the shared metadata cache. Mutates the playlist in
+/// place — kept as a free function so both list and detail queries share
+/// the resolver without duplicating the path glue.
+fn resolve_cover_path(p: &mut Playlist, paths: &crate::paths::AppPaths) {
+    if let Some(hash) = p.cover_hash.as_deref() {
+        p.cover_path =
+            crate::metadata_artwork::existing_path(&paths.metadata_artwork_dir, hash);
+    }
+}
+
 /// List every playlist in the active profile, ordered by `position` first
 /// (for future manual reordering) then `updated_at DESC` as a tie-break so
 /// recently-edited playlists float to the top by default.
@@ -95,10 +117,11 @@ fn now_millis() -> i64 {
 pub async fn list_playlists(state: tauri::State<'_, AppState>) -> AppResult<Vec<Playlist>> {
     let pool = state.require_profile_pool().await?;
 
-    let playlists = sqlx::query_as::<_, Playlist>(
+    let mut playlists = sqlx::query_as::<_, Playlist>(
         r#"
         SELECT p.id, p.name, p.description, p.color_id, p.icon_id,
-               p.is_smart, p.position, p.created_at, p.updated_at,
+               p.is_smart, p.cover_hash, NULL AS cover_path,
+               p.position, p.created_at, p.updated_at,
                COALESCE(pc.track_count,       0) AS track_count,
                COALESCE(pc.total_duration_ms, 0) AS total_duration_ms
           FROM playlist p
@@ -117,6 +140,9 @@ pub async fn list_playlists(state: tauri::State<'_, AppState>) -> AppResult<Vec<
     .fetch_all(&pool)
     .await?;
 
+    for p in &mut playlists {
+        resolve_cover_path(p, &state.paths);
+    }
     Ok(playlists)
 }
 
@@ -128,10 +154,11 @@ pub async fn get_playlist(
 ) -> AppResult<Playlist> {
     let pool = state.require_profile_pool().await?;
 
-    let playlist = sqlx::query_as::<_, Playlist>(
+    let mut playlist = sqlx::query_as::<_, Playlist>(
         r#"
         SELECT p.id, p.name, p.description, p.color_id, p.icon_id,
-               p.is_smart, p.position, p.created_at, p.updated_at,
+               p.is_smart, p.cover_hash, NULL AS cover_path,
+               p.position, p.created_at, p.updated_at,
                COALESCE(pc.track_count,       0) AS track_count,
                COALESCE(pc.total_duration_ms, 0) AS total_duration_ms
           FROM playlist p
@@ -156,6 +183,7 @@ pub async fn get_playlist(
         ))
     })?;
 
+    resolve_cover_path(&mut playlist, &state.paths);
     Ok(playlist)
 }
 
@@ -201,6 +229,8 @@ pub async fn create_playlist(
         color_id,
         icon_id,
         is_smart: 0,
+        cover_hash: None,
+        cover_path: None,
         position: 0,
         created_at: now,
         updated_at: now,

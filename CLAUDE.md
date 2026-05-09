@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 WaveFlow is a local music player desktop app built with **Tauri 2 + React 19 + TypeScript + Vite**. It uses a Spotify/Apple Music-inspired UI for browsing and playing local audio files. The project uses **bun** as the package manager.
 
+For per-feature deep dives (algorithms, schema, flow diagrams) read the relevant page under [`docs/`](docs/README.md) — that's the source of truth when this file's overview isn't enough. This `CLAUDE.md` only covers the cross-cutting patterns Claude needs in every conversation.
+
 ## Development Commands
 
 ```bash
@@ -52,7 +54,7 @@ React 19 + TypeScript. Entry point: `src/main.tsx` → `src/App.tsx`. Vite dev s
 
 Rust/Tauri 2. Entry point: `src-tauri/src/main.rs` → `lib.rs`.
 
-- **Commands** (`src-tauri/src/commands/`): organized by domain — `library.rs`, `playlist.rs` (CRUD + M3U import/export), `track.rs`, `browse.rs`, `player.rs` (playback + output device list/select), `scan.rs`, `profile.rs`, `analysis.rs` (peak/loudness/ReplayGain/BPM), `deezer.rs` (metadata enrichment), `lyrics.rs` (LRCLIB + embedded fallback + .lrc import), `stats.rs` (listening analytics from `play_event`), `integration.rs` (Last.fm API key storage), `maintenance.rs`, `app_info.rs`. All registered in `lib.rs` via `generate_handler![]`.
+- **Commands** (`src-tauri/src/commands/`): organized by domain — `library.rs`, `playlist.rs` (CRUD + M3U import/export), `smart_playlists.rs` (Daily Mix regen entry point), `track.rs`, `browse.rs`, `player.rs` (playback + output device list/select), `scan.rs`, `profile.rs`, `analysis.rs` (peak/loudness/ReplayGain/BPM), `deezer.rs` (metadata enrichment), `lyrics.rs` (LRCLIB + embedded fallback + .lrc import), `stats.rs` (listening analytics from `play_event`), `integration.rs` (Last.fm API key storage), `maintenance.rs`, `app_info.rs`. All registered in `lib.rs` via `generate_handler![]`.
 - **External API clients** (crate-root modules): `deezer.rs` (public Deezer API, no auth) and `lastfm.rs` (Last.fm `artist.getInfo`, requires user-provided API key). Both use `reqwest` with `rustls-tls`.
 - **OS media controls** (`src-tauri/src/media_controls.rs`): souvlaki bridge wired to SMTC / MPRIS / MediaRemote. Initialized after the main window exists (needs HWND on Windows). Now Playing artwork is served to SMTC over a tiny localhost HTTP shim because Windows expects a URL, not a file path.
 - **Audio engine** (`src-tauri/src/audio/`): 3-thread lock-free architecture:
@@ -63,7 +65,8 @@ Rust/Tauri 2. Entry point: `src-tauri/src/main.rs` → `lib.rs`.
   - `analytics.rs` — tokio task for play_event writes + auto-advance
   - `crossfade.rs` — dual-decoder mix with equal-power gain curves over the user-set window
 - **Queue** (`src-tauri/src/queue.rs`): persistent queue with fill, advance, shuffle (Fisher-Yates), restore.
-- **Database**: per-profile SQLite via sqlx + a global `app.db` for profile list and app-wide settings (`app_setting` table — including the Last.fm API key). Single migration in `migrations/profile/`. FTS5 contentless for search with auto-sync triggers using the `'delete'` command.
+- **Smart playlists** (`src-tauri/src/smart_playlists/`): auto-generated Daily Mix family. `generator.rs` clusters top artists by tempo (BPM from `track_analysis`) and materializes `is_smart = 1` rows in the regular `playlist` table; `cover.rs` renders a composite from up to 3 cached Deezer artist pictures into the shared `metadata_artwork/<hash>.jpg` cache. Idempotent — re-running rewrites the same slot via `LIKE '%"slot":N%'` on `smart_rules`. See [`docs/features/smart-playlists.md`](docs/features/smart-playlists.md).
+- **Database**: per-profile SQLite via sqlx + a global `app.db` for profile list and app-wide settings (`app_setting` table — including the Last.fm API key). Migrations under `migrations/profile/` are append-only and applied at boot. FTS5 contentless for search with auto-sync triggers using the `'delete'` command.
 
 ### Key Patterns
 
@@ -79,6 +82,9 @@ Rust/Tauri 2. Entry point: `src-tauri/src/main.rs` → `lib.rs`.
 - **Output device persistence**: the chosen device's `name` is stored in `profile_setting['audio.output_device']`. `lib.rs` reads it during `setup` and forwards it to the audio engine, so playback resumes on the user's preferred sink without waiting for the frontend to settle.
 - **First-run onboarding**: `AppLayout` latches a single decision per profile via `profile_setting['onboarding.dismissed']`. The modal only appears when the profile is fully resolved AND the library is empty AND the flag isn't set — preventing flashes during boot transitions.
 - **Page-level scrolling**: virtualized tables in `PlaylistView` / `LibraryView` consume `usePageScroll()` for the scroll element instead of nesting their own `overflow-y-auto`. They compute `scrollMargin` from the parent's offset within the page scroller so `useVirtualizer` knows where their content begins. Drives a single Spotify-style scrollbar.
+- **Right panels are flex siblings, not overlays**: `NowPlayingPanel` / `QueuePanel` / `LyricsPanel` are mounted as flex children of the outer row in `AppLayout`, not as `absolute` overlays inside the center column. The center column has `min-w-0` so wide tables collapse instead of pushing the panel off-screen — Spotify-style responsive shrink instead of overlap. `DeviceMenu` and `NowPlayingChevronTab` stay inside the center column so their `right-0` anchors to the content edge.
+- **Output device naming on cpal 0.17**: `device.description().name()` returns Windows' generic `DEVPKEY_Device_DeviceDesc` (literally `"Speakers"` for every speaker-class endpoint). [`audio/output.rs::device_display_name`](src-tauri/src/audio/output.rs) prefers `description().extended()[0]` (the disambiguated `DEVPKEY_Device_FriendlyName`) when available — required so multiple endpoints in the same class stay distinguishable in the picker AND so `profile_setting['audio.output_device']` matches a unique device on next boot.
+- **Smart playlist covers**: `playlist.cover_hash` (added in migration `20260509000000`) points into the shared `metadata_artwork/<hash>.jpg` cache. `list_playlists` / `get_playlist` derive `cover_path` post-fetch via `metadata_artwork::existing_path` so a stale hash (cache wiped) doesn't render a broken image. The "Daily Mix N" label is rendered in HTML/CSS over the JPEG by the frontend — text is intentionally not rasterised in Rust to avoid a font dep and let translations / restyles regenerate without a re-render pass.
 
 ## Conventions
 

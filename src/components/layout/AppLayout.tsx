@@ -158,6 +158,14 @@ export function AppLayout() {
     [setActiveView],
   );
 
+  const navigateToPlaylist = useCallback(
+    (playlistId: number) => {
+      setActivePlaylistId(playlistId);
+      setActiveView("playlist");
+    },
+    [setActiveView],
+  );
+
   function renderView() {
     switch (activeView) {
       case "home":
@@ -166,6 +174,7 @@ export function AppLayout() {
             onNavigate={setActiveView}
             onNavigateToAlbum={navigateToAlbum}
             onNavigateToArtist={navigateToArtist}
+            onNavigateToPlaylist={navigateToPlaylist}
           />
         );
       case "library":

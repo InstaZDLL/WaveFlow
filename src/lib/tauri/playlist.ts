@@ -13,6 +13,14 @@ export interface Playlist {
   color_id: string;
   icon_id: string;
   is_smart: number;
+  /** Blake3 hash of the cover image. Always paired with `cover_path`
+   * when the file is materialized; consumers should prefer `cover_path`
+   * for rendering and only fall back to `cover_hash` for cache busting. */
+  cover_hash: string | null;
+  /** Absolute on-disk path resolved by the backend. Pass through
+   * `convertFileSrc` to render. `null` means "no custom cover —
+   * draw the icon + color gradient instead". */
+  cover_path: string | null;
   position: number;
   created_at: number;
   updated_at: number;

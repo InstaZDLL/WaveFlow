@@ -18,6 +18,7 @@ mod metadata_artwork;
 mod paths;
 mod queue;
 mod scrobbler;
+mod smart_playlists;
 mod state;
 mod thumbnails;
 mod watcher;
@@ -243,6 +244,7 @@ pub fn run() {
             commands::playlist::add_source_to_playlist,
             commands::playlist::export_playlist_m3u,
             commands::playlist::import_playlist_m3u,
+            commands::smart_playlists::regenerate_daily_mixes,
             commands::scan::scan_folder,
             commands::track::list_tracks,
             commands::track::search_tracks,

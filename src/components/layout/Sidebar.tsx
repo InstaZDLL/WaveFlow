@@ -26,6 +26,7 @@ import { importPlaylistM3u } from "../../lib/tauri/playlist";
 import { getProfileStats, type ProfileStats } from "../../lib/tauri/browse";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
+import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import type { Playlist } from "../../lib/tauri/playlist";
 
 interface SidebarProps {
@@ -412,15 +413,26 @@ function PlaylistSidebarRow({
   subtext: string;
 }) {
   const color = resolvePlaylistColor(playlist.color_id);
+  // Custom covers (today: smart playlists with a generated composite;
+  // tomorrow: user-uploaded covers) preempt the icon + gradient tile.
+  const coverUrl = resolveRemoteImage(playlist.cover_path, null);
+  const tile = coverUrl ? (
+    <img
+      src={coverUrl}
+      alt=""
+      className="w-8 h-8 rounded-lg object-cover"
+      loading="lazy"
+    />
+  ) : (
+    <div
+      className={`w-8 h-8 rounded-lg flex items-center justify-center ${color.tileBg} ${color.tileText}`}
+    >
+      <PlaylistIcon iconId={playlist.icon_id} size={16} />
+    </div>
+  );
   return (
     <SidebarRow
-      icon={
-        <div
-          className={`w-8 h-8 rounded-lg flex items-center justify-center ${color.tileBg} ${color.tileText}`}
-        >
-          <PlaylistIcon iconId={playlist.icon_id} size={16} />
-        </div>
-      }
+      icon={tile}
       label={playlist.name}
       subtext={subtext}
       active={active}

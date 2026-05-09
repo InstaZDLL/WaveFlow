@@ -16,5 +16,6 @@ pub mod player;
 pub mod playlist;
 pub mod profile;
 pub mod scan;
+pub mod smart_playlists;
 pub mod stats;
 pub mod track;

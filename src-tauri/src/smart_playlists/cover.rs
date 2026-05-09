@@ -1,0 +1,247 @@
+//! Composite cover generator for smart playlists.
+//!
+//! Given up to N artist images (already cached locally as JPEG by
+//! [`crate::metadata_artwork`]), produce a 640×640 cover that slices each
+//! image into a vertical strip, centre-crops each strip to fill the canvas,
+//! and applies a subtle bottom gradient so the React-rendered "Daily Mix N"
+//! label stays readable on top.
+//!
+//! Output is written into the same `metadata_artwork/<hash>.jpg` shared cache
+//! so a regenerated cover dedupes against an unchanged input set — no
+//! orphaned files between runs unless the cluster's top artists actually
+//! change.
+
+use std::num::NonZeroU32;
+use std::path::{Path, PathBuf};
+
+use fast_image_resize::images::Image as FirImage;
+use fast_image_resize::{PixelType, ResizeOptions, Resizer};
+use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
+
+use crate::error::{AppError, AppResult};
+use crate::metadata_artwork;
+
+/// Final canvas side in pixels. Spotify uses 640×640 for playlist covers and
+/// it's a comfortable retina size — anything larger inflates JPEG bytes
+/// without buying noticeable quality at the sidebar / carousel scale where
+/// the cover is consumed.
+const CANVAS_PX: u32 = 640;
+
+/// JPEG quality for the encoded cover. 85 is the standard "visually
+/// lossless for photographic content" setpoint and keeps each cover under
+/// ~80 KB.
+const JPEG_QUALITY: u8 = 85;
+
+/// Hard cap on the number of strips we composite. More than 3 starts to look
+/// like a contact sheet rather than a curated mix.
+const MAX_STRIPS: usize = 3;
+
+/// Build a composite cover from the supplied artist image paths and write it
+/// to the shared `metadata_artwork` cache. Returns the blake3 hash of the
+/// encoded JPEG, ready to store in `playlist.cover_hash`.
+///
+/// Images that fail to decode are skipped silently; the function only errors
+/// if the *final* JPEG can't be produced (zero usable inputs, encoder error,
+/// disk write).
+pub fn build_daily_mix_cover(
+    image_paths: &[PathBuf],
+    metadata_dir: &Path,
+) -> AppResult<String> {
+    let strips: Vec<RgbImage> = image_paths
+        .iter()
+        .take(MAX_STRIPS)
+        .filter_map(|p| match image::open(p) {
+            Ok(img) => Some(img.to_rgb8()),
+            Err(err) => {
+                tracing::warn!(path = %p.display(), ?err, "smart cover: skip undecodable input");
+                None
+            }
+        })
+        .collect();
+
+    if strips.is_empty() {
+        return Err(AppError::Audio(
+            "smart cover: no decodable artist images".into(),
+        ));
+    }
+
+    let canvas = composite_strips(&strips)?;
+    let bytes = encode_jpeg(&canvas)?;
+    let hash = blake3::hash(&bytes).to_hex().to_string();
+    let out = metadata_artwork::path_for_hash(metadata_dir, &hash);
+    if !out.exists() {
+        std::fs::write(&out, &bytes)
+            .map_err(|e| AppError::Audio(format!("smart cover write: {e}")))?;
+    }
+    Ok(hash)
+}
+
+/// Slice the canvas into N equal vertical strips, centre-crop each source
+/// image to fill its strip, and paint into the output buffer. Errors when
+/// `strips` is empty so callers never silently render an all-black square
+/// — the public entry point pre-checks too, but defending here keeps the
+/// helper safe for future callers.
+fn composite_strips(strips: &[RgbImage]) -> AppResult<RgbImage> {
+    if strips.is_empty() {
+        return Err(AppError::Audio(
+            "smart cover: composite_strips requires at least one strip".into(),
+        ));
+    }
+    let n = strips.len() as u32;
+    let strip_w = CANVAS_PX / n;
+    // Account for integer-division remainder by widening the last strip to
+    // cover the full canvas — otherwise a 640/3 layout leaves a 1 px black
+    // sliver on the right edge.
+    let mut canvas = ImageBuffer::from_pixel(CANVAS_PX, CANVAS_PX, Rgb([18, 18, 18]));
+    for (i, src) in strips.iter().enumerate() {
+        let dst_x0 = (i as u32) * strip_w;
+        let dst_w = if i + 1 == strips.len() {
+            CANVAS_PX - dst_x0
+        } else {
+            strip_w
+        };
+        let resized = cover_fit(src, dst_w, CANVAS_PX)?;
+        for y in 0..CANVAS_PX {
+            for x in 0..dst_w {
+                let p = *resized.get_pixel(x, y);
+                canvas.put_pixel(dst_x0 + x, y, p);
+            }
+        }
+    }
+    apply_bottom_gradient(&mut canvas);
+    Ok(canvas)
+}
+
+/// Centre-crop `src` to the `dst_w × dst_h` aspect ratio, then SIMD-resize
+/// to that exact size. Mirrors CSS `object-fit: cover`.
+fn cover_fit(src: &RgbImage, dst_w: u32, dst_h: u32) -> AppResult<RgbImage> {
+    let (sw, sh) = (src.width(), src.height());
+    if sw == 0 || sh == 0 {
+        return Err(AppError::Audio("smart cover: empty source image".into()));
+    }
+    let src_ratio = sw as f32 / sh as f32;
+    let dst_ratio = dst_w as f32 / dst_h as f32;
+    // Pick the largest centred sub-rect that matches dst's aspect ratio.
+    let (crop_w, crop_h) = if src_ratio > dst_ratio {
+        // Source is wider than target — crop the sides.
+        ((sh as f32 * dst_ratio) as u32, sh)
+    } else {
+        // Source is taller (or equal) — crop the top/bottom.
+        (sw, (sw as f32 / dst_ratio) as u32)
+    };
+    let crop_w = crop_w.max(1).min(sw);
+    let crop_h = crop_h.max(1).min(sh);
+    let crop_x = (sw - crop_w) / 2;
+    let crop_y = (sh - crop_h) / 2;
+    let cropped = image::imageops::crop_imm(src, crop_x, crop_y, crop_w, crop_h).to_image();
+
+    // SIMD resize via fast_image_resize. The crate wants its own image type;
+    // we hand it the raw RGB buffer and read the result back into an
+    // `ImageBuffer` for the compositing step.
+    let src_w_nz = NonZeroU32::new(crop_w).expect("crop_w > 0");
+    let src_h_nz = NonZeroU32::new(crop_h).expect("crop_h > 0");
+    let dst_w_nz = NonZeroU32::new(dst_w).expect("dst_w > 0");
+    let dst_h_nz = NonZeroU32::new(dst_h).expect("dst_h > 0");
+    let _ = (src_w_nz, src_h_nz, dst_w_nz, dst_h_nz); // crate API uses u32 directly in v6
+    let src_fir = FirImage::from_vec_u8(crop_w, crop_h, cropped.into_raw(), PixelType::U8x3)
+        .map_err(|e| AppError::Audio(format!("smart cover: fir from src: {e}")))?;
+    let mut dst_fir = FirImage::new(dst_w, dst_h, PixelType::U8x3);
+    let mut resizer = Resizer::new();
+    resizer
+        .resize(&src_fir, &mut dst_fir, &ResizeOptions::default())
+        .map_err(|e| AppError::Audio(format!("smart cover: resize: {e}")))?;
+    let resized = ImageBuffer::<Rgb<u8>, _>::from_raw(dst_w, dst_h, dst_fir.into_vec())
+        .ok_or_else(|| AppError::Audio("smart cover: rebuild ImageBuffer".into()))?;
+    Ok(resized)
+}
+
+/// Darken the bottom 40 % of the canvas with a smooth ease-out gradient so
+/// the playlist title rendered on top by the frontend stays legible. The
+/// curve is squared (`t²`) so the top of the gradient blends in instead of
+/// showing a hard line.
+fn apply_bottom_gradient(canvas: &mut RgbImage) {
+    let h = canvas.height() as f32;
+    let start = h * 0.6;
+    for y in (start as u32)..canvas.height() {
+        let t = ((y as f32 - start) / (h - start)).clamp(0.0, 1.0);
+        let alpha = (t * t * 0.55).min(0.55);
+        let one_minus = 1.0 - alpha;
+        for x in 0..canvas.width() {
+            let p = canvas.get_pixel_mut(x, y);
+            p[0] = (p[0] as f32 * one_minus) as u8;
+            p[1] = (p[1] as f32 * one_minus) as u8;
+            p[2] = (p[2] as f32 * one_minus) as u8;
+        }
+    }
+}
+
+fn encode_jpeg(canvas: &RgbImage) -> AppResult<Vec<u8>> {
+    let mut buf: Vec<u8> = Vec::with_capacity(96 * 1024);
+    let mut cursor = std::io::Cursor::new(&mut buf);
+    let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut cursor, JPEG_QUALITY);
+    canvas
+        .write_with_encoder(encoder)
+        .map_err(|e| AppError::Audio(format!("smart cover encode: {e}")))?;
+    let _ = ImageFormat::Jpeg; // assert symbol use
+    Ok(buf)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn solid(w: u32, h: u32, color: [u8; 3]) -> RgbImage {
+        ImageBuffer::from_pixel(w, h, Rgb(color))
+    }
+
+    #[test]
+    fn composite_three_strips_fills_canvas() {
+        let strips = vec![
+            solid(800, 800, [200, 50, 50]),
+            solid(800, 800, [50, 200, 50]),
+            solid(800, 800, [50, 50, 200]),
+        ];
+        let canvas = composite_strips(&strips).expect("composite");
+        assert_eq!(canvas.width(), CANVAS_PX);
+        assert_eq!(canvas.height(), CANVAS_PX);
+        // The top row should sample from each colour band exactly once,
+        // proving every strip got painted (not just the last).
+        let r = canvas.get_pixel(CANVAS_PX / 6, 10)[0];
+        let g = canvas.get_pixel(CANVAS_PX / 2, 10)[1];
+        let b = canvas.get_pixel(5 * CANVAS_PX / 6, 10)[2];
+        assert!(r > 150 && g > 150 && b > 150);
+    }
+
+    #[test]
+    fn cover_fit_handles_landscape_source() {
+        // Wider than tall — the centre-crop should keep the middle band.
+        let mut src = ImageBuffer::from_pixel(400, 100, Rgb([0, 0, 0]));
+        for x in 150..250 {
+            for y in 0..100 {
+                src.put_pixel(x, y, Rgb([255, 255, 255]));
+            }
+        }
+        let out = cover_fit(&src, 100, 100).expect("fit");
+        assert_eq!(out.width(), 100);
+        assert_eq!(out.height(), 100);
+        // The centre-crop preserved the white band.
+        assert!(out.get_pixel(50, 50)[0] > 200);
+    }
+
+    #[test]
+    fn empty_input_errors() {
+        let strips: Vec<RgbImage> = vec![];
+        assert!(composite_strips(&strips).is_err());
+    }
+
+    #[test]
+    fn gradient_darkens_bottom_not_top() {
+        let mut canvas = solid(CANVAS_PX, CANVAS_PX, [200, 200, 200]);
+        apply_bottom_gradient(&mut canvas);
+        // Top untouched.
+        assert_eq!(canvas.get_pixel(0, 0)[0], 200);
+        // Bottom row darker than start of gradient.
+        let bottom = canvas.get_pixel(0, CANVAS_PX - 1)[0];
+        assert!(bottom < 200, "expected darkening, got {bottom}");
+    }
+}

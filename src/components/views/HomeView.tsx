@@ -1,6 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Folder, Library, Heart, Clock, ListMusic, Music2 } from "lucide-react";
+import {
+  Folder,
+  Library,
+  Heart,
+  Clock,
+  ListMusic,
+  Music2,
+  Sparkles,
+  RefreshCw,
+} from "lucide-react";
 import type { ViewId } from "../../types";
 import { ActionLink } from "../common/ActionLink";
 import { StatCard } from "../common/StatCard";
@@ -12,6 +21,8 @@ import { useLibrary } from "../../hooks/useLibrary";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { pickFolder } from "../../lib/tauri/dialog";
+import { regenerateDailyMixes } from "../../lib/tauri/smart_playlists";
+import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import {
   getProfileStats,
   listAlbums,
@@ -25,6 +36,7 @@ interface HomeViewProps {
   onNavigate: (view: ViewId) => void;
   onNavigateToAlbum: (albumId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
+  onNavigateToPlaylist: (playlistId: number) => void;
 }
 
 const RECENT_LIMIT = 12;
@@ -85,6 +97,7 @@ export function HomeView({
   onNavigate,
   onNavigateToAlbum,
   onNavigateToArtist,
+  onNavigateToPlaylist,
 }: HomeViewProps) {
   const { t } = useTranslation();
   const { activeProfile } = useProfile();
@@ -96,7 +109,34 @@ export function HomeView({
     importFolder,
   } = useLibrary();
   const { playTracks, playbackState, currentTrack } = usePlayer();
-  const { playlists } = usePlaylist();
+  const { playlists, refresh: refreshPlaylists } = usePlaylist();
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
+  // Smart playlists are stored in the same `playlist` table as user
+  // playlists; the only thing distinguishing them in the UI is the
+  // `is_smart` flag. Filter here so the "Made for you" carousel only
+  // shows the auto-generated ones — user playlists keep their dedicated
+  // sidebar list.
+  const smartPlaylists = useMemo(
+    () => playlists.filter((p) => p.is_smart === 1),
+    [playlists],
+  );
+
+  const handleRegenerateMixes = useCallback(async () => {
+    if (isRegenerating) return;
+    setIsRegenerating(true);
+    try {
+      await regenerateDailyMixes();
+      await refreshPlaylists();
+    } catch (err) {
+      // Non-fatal — empty libraries / not enough listening data return
+      // an empty list rather than throw, so a hard error here means a
+      // SQL or filesystem issue worth surfacing in the console.
+      console.error("[HomeView] regenerate daily mixes failed", err);
+    } finally {
+      setIsRegenerating(false);
+    }
+  }, [isRegenerating, refreshPlaylists]);
 
   const [likedCount, setLikedCount] = useState(0);
   const [recentCount, setRecentCount] = useState(0);
@@ -272,6 +312,89 @@ export function HomeView({
           label={t("home.stats.playlists")}
         />
       </div>
+
+      {/* Daily Mix — generated from listening history. Hidden when the
+          user has too few play_events for a meaningful split (the
+          backend returns an empty list and skips re-generation in that
+          case); the regen button stays available so the section
+          re-appears as soon as enough listening data piles up. */}
+      <section>
+        <div className="flex items-end justify-between mb-6">
+          <h2 className="text-2xl font-bold inline-block border-b-4 border-violet-500 pb-1 text-zinc-900 dark:text-white">
+            {t("home.dailyMix.title", "Pour vous")}
+          </h2>
+          <button
+            type="button"
+            onClick={handleRegenerateMixes}
+            disabled={isRegenerating}
+            className="inline-flex items-center gap-2 text-sm font-medium text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw
+              size={14}
+              className={isRegenerating ? "animate-spin" : ""}
+            />
+            {isRegenerating
+              ? t("home.dailyMix.regenerating", "Génération…")
+              : t("home.dailyMix.regenerate", "Régénérer")}
+          </button>
+        </div>
+        {smartPlaylists.length === 0 ? (
+          <div className="relative overflow-hidden min-h-32 rounded-3xl border flex items-center justify-center p-8 border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/40 dark:shadow-none">
+            <EmptyState
+              icon={<Sparkles size={32} />}
+              title={t(
+                "home.dailyMix.emptyTitle",
+                "Pas encore de Daily Mix",
+              )}
+              description={t(
+                "home.dailyMix.emptyDescription",
+                "Écoute quelques morceaux puis clique sur Régénérer pour créer tes mixes personnalisés.",
+              )}
+              size="sm"
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {smartPlaylists.map((pl) => {
+              const cover = resolveRemoteImage(pl.cover_path, null);
+              return (
+                <button
+                  key={`smart-${pl.id}`}
+                  type="button"
+                  onClick={() => onNavigateToPlaylist(pl.id)}
+                  className="group relative overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-800 aspect-16/7 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 transition-transform hover:-translate-y-0.5"
+                >
+                  {cover ? (
+                    <img
+                      src={cover}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-linear-to-br from-violet-400 to-violet-700" />
+                  )}
+                  <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/30 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-4 text-white">
+                    <div className="text-xs uppercase tracking-widest opacity-80">
+                      {t("home.dailyMix.label", "Daily Mix")}
+                    </div>
+                    <div className="text-xl font-bold leading-tight mt-1 truncate">
+                      {pl.name}
+                    </div>
+                    <div className="text-xs opacity-75 mt-0.5">
+                      {t("home.dailyMix.trackCount", {
+                        defaultValue: "{{count}} morceaux",
+                        count: pl.track_count,
+                      })}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       {/* Récemment joués */}
       <section>
