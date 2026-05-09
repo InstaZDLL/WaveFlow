@@ -38,10 +38,14 @@
 //! commits.
 
 pub mod config;
+pub mod description;
+pub mod http;
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use crossbeam_channel::{unbounded, Sender};
+use sqlx::SqlitePool;
 use tokio::sync::oneshot;
 
 use config::DlnaConfig;
@@ -60,9 +64,20 @@ pub struct DlnaStatus {
     pub last_error: Option<String>,
 }
 
+/// Wired to the active profile's pool + the per-profile artwork dir
+/// so the HTTP layer can serve `/stream/<track_id>` and `/art/<hash>`
+/// without round-tripping through `AppState` (the worker thread has
+/// no `tauri::State` access).
+#[derive(Debug, Clone)]
+pub struct DlnaResources {
+    pub pool: SqlitePool,
+    pub profile_artwork_dir: PathBuf,
+    pub metadata_artwork_dir: PathBuf,
+}
+
 #[derive(Debug)]
 enum Cmd {
-    Start(DlnaConfig),
+    Start(DlnaConfig, DlnaResources),
     Stop,
     Status(oneshot::Sender<DlnaStatus>),
 }
@@ -102,8 +117,8 @@ impl DlnaServer {
                 let mut state = WorkerState::default();
                 while let Ok(cmd) = rx.recv() {
                     match cmd {
-                        Cmd::Start(cfg) => {
-                            runtime.block_on(state.start(cfg));
+                        Cmd::Start(cfg, res) => {
+                            runtime.block_on(state.start(cfg, res));
                         }
                         Cmd::Stop => {
                             runtime.block_on(state.stop());
@@ -119,8 +134,8 @@ impl DlnaServer {
         Self { tx }
     }
 
-    pub fn start(&self, cfg: DlnaConfig) {
-        let _ = self.tx.send(Cmd::Start(cfg));
+    pub fn start(&self, cfg: DlnaConfig, resources: DlnaResources) {
+        let _ = self.tx.send(Cmd::Start(cfg, resources));
     }
 
     pub fn stop(&self) {
@@ -147,7 +162,7 @@ struct WorkerState {
 }
 
 impl WorkerState {
-    async fn start(&mut self, cfg: DlnaConfig) {
+    async fn start(&mut self, cfg: DlnaConfig, resources: DlnaResources) {
         if self.shutdown.is_some() {
             // Reconfigure: stop the previous server before binding a
             // new one. Cheap because the worker owns the runtime.
@@ -183,22 +198,15 @@ impl WorkerState {
         let url = format!("http://{lan_ip}:{}", actual.port());
 
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
-        let cfg = Arc::new(cfg.clone());
 
-        // Étape 1: ship a minimal axum app so the listener actually
-        // serves something. Étape 2 swaps in the full router.
-        let app = axum::Router::new()
-            .route("/healthz", axum::routing::get(|| async { "ok" }))
-            .route(
-                "/",
-                axum::routing::get({
-                    let cfg = cfg.clone();
-                    move || {
-                        let name = cfg.server_name.clone();
-                        async move { format!("WaveFlow DLNA: {name}") }
-                    }
-                }),
-            );
+        let ctx = http::ServerCtx {
+            server_name: cfg.server_name.clone(),
+            base_url: url.clone(),
+            pool: resources.pool.clone(),
+            profile_artwork_dir: resources.profile_artwork_dir.clone(),
+            metadata_artwork_dir: resources.metadata_artwork_dir.clone(),
+        };
+        let app = http::router(ctx);
 
         tokio::spawn(async move {
             let serve = axum::serve(listener, app);
@@ -214,6 +222,7 @@ impl WorkerState {
             }
         });
 
+        let _ = Arc::new(cfg.clone()); // keep cfg referenced for future SSDP config snapshot
         self.shutdown = Some(shutdown_tx);
         self.status = DlnaStatus {
             enabled: cfg.enabled,

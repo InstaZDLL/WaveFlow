@@ -188,7 +188,10 @@ pub fn run() {
                         }
                     };
                     if cfg.enabled {
-                        state.dlna.start(cfg);
+                        match commands::dlna::build_resources(&state).await {
+                            Ok(resources) => state.dlna.start(cfg, resources),
+                            Err(err) => tracing::warn!(?err, "DLNA boot resources unavailable"),
+                        }
                     }
                 }
             });

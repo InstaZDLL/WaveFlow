@@ -142,6 +142,10 @@ tiny_http = "0.12"
 #   built-in axum body types don't ship Range support.
 axum = { version = "0.8", default-features = false, features = ["http1", "tokio", "json"] }
 tower-http = { version = "0.6", features = ["fs"] }
+# Adapter that wraps a tokio AsyncRead as a Stream<Bytes>, used to
+# pipe a fs::File limited to a Range window into axum::body::Body
+# without buffering the whole window in memory.
+tokio-util = { version = "0.7", features = ["io"] }
 quick-xml = { version = "0.36", features = ["serialize"] }
 socket2 = "0.5"
 if-addrs = "0.13"

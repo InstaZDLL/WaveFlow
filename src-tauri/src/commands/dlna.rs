@@ -8,7 +8,7 @@
 //! at launch.
 
 use crate::{
-    dlna::{config::DlnaConfig, DlnaStatus},
+    dlna::{config::DlnaConfig, DlnaResources, DlnaStatus},
     error::AppResult,
     state::AppState,
 };
@@ -25,7 +25,8 @@ pub async fn dlna_set_config(
 ) -> AppResult<DlnaStatus> {
     crate::dlna::config::save(&state.app_db, &cfg).await?;
     if cfg.enabled {
-        state.dlna.start(cfg);
+        let resources = build_resources(&state).await?;
+        state.dlna.start(cfg, resources);
     } else {
         state.dlna.stop();
     }
@@ -36,3 +37,17 @@ pub async fn dlna_set_config(
 pub async fn dlna_get_status(state: tauri::State<'_, AppState>) -> AppResult<DlnaStatus> {
     Ok(state.dlna.status().await)
 }
+
+/// Snapshot the per-profile pool + artwork dirs into a `DlnaResources`
+/// the worker thread can hold across requests. Re-call on every
+/// start so a profile switch picks up the new pool.
+pub async fn build_resources(state: &AppState) -> AppResult<DlnaResources> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    Ok(DlnaResources {
+        pool,
+        profile_artwork_dir: state.paths.profile_artwork_dir(profile_id),
+        metadata_artwork_dir: state.paths.metadata_artwork_dir.clone(),
+    })
+}
+
