@@ -604,6 +604,8 @@
     "readMore": "Lire la suite",
     "readLess": "Réduire",
     "noBio": "Aucune biographie disponible. Configure ta clé Last.fm dans les paramètres.",
+    "nextInQueue": "Suivant dans la file",
+    "openQueue": "Ouvrir la file",
     "lyrics": {
       "title": "Paroles",
       "comingSoon": "Bientôt disponible"

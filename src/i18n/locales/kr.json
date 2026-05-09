@@ -604,6 +604,8 @@
     "readMore": "더 보기",
     "readLess": "축소",
     "noBio": "사용자 정보가 없습니다. 설정에서 ‘Last.fm’ 키를 구성하세요.",
+    "nextInQueue": "대기열의 다음 곡",
+    "openQueue": "대기열 열기",
     "lyrics": {
       "title": "가사",
       "comingSoon": "곧 출시됩니다"

@@ -604,6 +604,8 @@
     "readMore": "Weiterlesen",
     "readLess": "Reduzieren",
     "noBio": "Es ist keine Biografie verfügbar. Konfiguriere deinen Schlüssel „Last.fm“ in den Einstellungen.",
+    "nextInQueue": "Als Nächstes in der Warteschlange",
+    "openQueue": "Warteschlange öffnen",
     "lyrics": {
       "title": "Text",
       "comingSoon": "In Kürze erhältlich"

@@ -604,6 +604,8 @@
     "readMore": "Leer más",
     "readLess": "Reducir",
     "noBio": "No hay biografía disponible. Configura tu clave «Last.fm» en los ajustes.",
+    "nextInQueue": "Siguiente en la cola",
+    "openQueue": "Abrir cola",
     "lyrics": {
       "title": "Letra",
       "comingSoon": "Próximamente disponible"

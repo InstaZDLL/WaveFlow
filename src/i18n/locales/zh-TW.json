@@ -604,6 +604,8 @@
     "readMore": "閱讀更多",
     "readLess": "縮小",
     "noBio": "沒有傳記資料。請在設定中設定您的Last.fm金鑰。",
+    "nextInQueue": "佇列中的下一首",
+    "openQueue": "開啟佇列",
     "lyrics": {
       "title": "歌詞",
       "comingSoon": "即將推出"

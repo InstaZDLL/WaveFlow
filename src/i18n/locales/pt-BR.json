@@ -604,6 +604,8 @@
     "readMore": "Leia mais",
     "readLess": "Reduzir",
     "noBio": "Não há biografia disponível. Configure sua chave Last.fm nas configurações.",
+    "nextInQueue": "Próximo na fila",
+    "openQueue": "Abrir fila",
     "lyrics": {
       "title": "Letra",
       "comingSoon": "Em breve"

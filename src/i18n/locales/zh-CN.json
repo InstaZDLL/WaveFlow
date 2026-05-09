@@ -604,6 +604,8 @@
     "readMore": "阅读更多",
     "readLess": "缩小",
     "noBio": "没有传记信息。请在设置中配置你的Last.fm密钥。",
+    "nextInQueue": "队列中的下一首",
+    "openQueue": "打开队列",
     "lyrics": {
       "title": "歌词",
       "comingSoon": "即将推出"

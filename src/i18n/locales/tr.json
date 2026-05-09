@@ -604,6 +604,8 @@
     "readMore": "Daha fazla bilgi",
     "readLess": "Daha azını oku",
     "noBio": "Biyografi mevcut değil. Ayarlar bölümünden \"Last.fm\" anahtarını yapılandır.",
+    "nextInQueue": "Sırada bir sonraki",
+    "openQueue": "Sırayı aç",
     "lyrics": {
       "title": "Şarkı Sözleri",
       "comingSoon": "Yakında"

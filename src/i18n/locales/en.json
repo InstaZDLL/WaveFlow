@@ -604,6 +604,8 @@
     "readMore": "Read more",
     "readLess": "Minimize",
     "noBio": "No biography available. Set your \"Last.fm\" key in the settings.",
+    "nextInQueue": "Next in queue",
+    "openQueue": "Open queue",
     "lyrics": {
       "title": "Lyrics",
       "comingSoon": "Coming soon"

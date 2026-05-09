@@ -2,12 +2,17 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Music2 } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { Lightbox } from "../common/Lightbox";
 import { enrichArtistDeezer } from "../../lib/tauri/detail";
 import { resolveArtwork } from "../../lib/tauri/artwork";
+import {
+  playerGetQueue,
+  type QueueTrackPayload,
+} from "../../lib/tauri/player";
 
 interface NowPlayingPanelProps {
   onNavigateToArtist: (artistId: number) => void;
@@ -26,7 +31,8 @@ interface NowPlayingPanelProps {
  */
 export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
   const { t } = useTranslation();
-  const { toggleNowPlaying, currentTrack } = usePlayer();
+  const { toggleNowPlaying, toggleQueue, currentTrack, isNowPlayingOpen } =
+    usePlayer();
 
   // Enrichment (picture + bio) for the current artist. Re-fetched
   // whenever the primary artist_id changes.
@@ -35,6 +41,41 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
   const [bioFull, setBioFull] = useState<string | null>(null);
   const [bioExpanded, setBioExpanded] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [nextTrack, setNextTrack] = useState<QueueTrackPayload | null>(null);
+
+  // Pull the next queue item so we can mirror Spotify's "Next in queue"
+  // teaser at the bottom of the panel. Refetched on track change and on
+  // any backend-driven queue mutation.
+  useEffect(() => {
+    if (!isNowPlayingOpen) return;
+    let cancelled = false;
+    const fetchNext = () => {
+      playerGetQueue()
+        .then((q) => {
+          if (cancelled) return;
+          const idx = q.current_index;
+          const upcoming =
+            idx >= 0 && idx + 1 < q.items.length ? q.items[idx + 1] : null;
+          setNextTrack(upcoming);
+        })
+        .catch(() => {
+          if (!cancelled) setNextTrack(null);
+        });
+    };
+    fetchNext();
+    let unlisten: UnlistenFn | null = null;
+    (async () => {
+      try {
+        unlisten = await listen("player:queue-changed", fetchNext);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (unlisten) unlisten();
+    };
+  }, [isNowPlayingOpen, currentTrack?.id]);
 
   useEffect(() => {
     // Reset enrichment state whenever the focused artist changes so
@@ -196,6 +237,47 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
                     {t("nowPlaying.noBio")}
                   </p>
                 )}
+              </div>
+            )}
+
+            {/* Next in queue */}
+            {nextTrack && (
+              <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">
+                    {t("nowPlaying.nextInQueue")}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleNowPlaying();
+                      toggleQueue();
+                    }}
+                    className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                  >
+                    {t("nowPlaying.openQueue")}
+                  </button>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Artwork
+                    path={nextTrack.artwork_path}
+                    path1x={nextTrack.artwork_path_1x}
+                    path2x={nextTrack.artwork_path_2x}
+                    size="1x"
+                    className="w-12 h-12 shrink-0"
+                    iconSize={20}
+                    alt={nextTrack.album_title ?? nextTrack.title}
+                    rounded="md"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate text-zinc-800 dark:text-zinc-200">
+                      {nextTrack.title}
+                    </div>
+                    <div className="text-xs text-zinc-500 truncate">
+                      {nextTrack.artist_name ?? "—"}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 

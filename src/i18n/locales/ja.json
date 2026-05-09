@@ -604,6 +604,8 @@
     "readMore": "続きを読む",
     "readLess": "縮小",
     "noBio": "プロフィール情報はありません。設定でLast.fmキーを設定してください。",
+    "nextInQueue": "次のキュー",
+    "openQueue": "キューを開く",
     "lyrics": {
       "title": "歌詞",
       "comingSoon": "近日公開"
