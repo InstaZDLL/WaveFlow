@@ -672,6 +672,10 @@
         "passwordPlaceholder": "Wachtwoord",
         "connect": "Inloggen",
         "connecting": "Inloggen…"
+      },
+      "discord": {
+        "title": "Discord Rich Presence",
+        "subtitle": "Toon het nummer dat nu wordt afgespeeld op je Discord-profiel"
       }
     },
     "crossfade": {

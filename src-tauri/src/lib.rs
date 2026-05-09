@@ -9,6 +9,7 @@ mod audio;
 mod commands;
 mod db;
 mod deezer;
+mod discord_presence;
 mod error;
 mod lastfm;
 mod logging;
@@ -138,6 +139,19 @@ pub fn run() {
             // keeps working without the OS overlay.
             if let Some(controls) = media_controls::init(app.handle().clone()) {
                 app.manage(controls);
+            }
+
+            // Discord Rich Presence. Always spawn the worker thread —
+            // it stays idle until the user flips the opt-in toggle.
+            // Reading the persisted flag here means the activity is
+            // restored on the very next track-changed event without
+            // waiting for the Settings view to mount.
+            let initial_rpc_enabled = tauri::async_runtime::block_on(async {
+                let state = app.state::<AppState>();
+                discord_presence::read_enabled(&state.app_db).await
+            });
+            if let Some(presence) = discord_presence::init(initial_rpc_enabled) {
+                app.manage(presence);
             }
 
             // Last.fm scrobble worker. Polls scrobble_queue every 30 s
@@ -276,6 +290,8 @@ pub fn run() {
             commands::integration::lastfm_get_status,
             commands::integration::lastfm_login,
             commands::integration::lastfm_logout,
+            commands::integration::get_discord_rpc_enabled,
+            commands::integration::set_discord_rpc_enabled,
             commands::lyrics::get_lyrics,
             commands::lyrics::fetch_lyrics,
             commands::lyrics::import_lrc_file,

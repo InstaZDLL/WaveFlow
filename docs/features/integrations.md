@@ -33,6 +33,52 @@ The frontend helper `lib/tauri/artwork.ts::resolveRemoteImage` prefers the local
 - **Scrobble queue** — `track.scrobble` is queued in the per-profile `scrobble_queue` table and drained with exponential backoff (10 s → 5 min). Survives app restarts.
 - **Re-auth** — on `9` (`Invalid session key`) or `4` (`Authentication failed`), the session is wiped and a `lastfm:reauth` event is emitted. The frontend surfaces a banner (`LastfmReauthBanner`) with a one-click "Re-authenticate" button.
 
+## Discord Rich Presence
+
+[`discord_presence.rs`](../../src-tauri/src/discord_presence.rs) — speaks Discord's local IPC named pipe via the [`discord-rich-presence`](https://crates.io/crates/discord-rich-presence) crate (no network, no auth, no token). Architecture mirrors [`media_controls.rs`](../../src-tauri/src/media_controls.rs): a dedicated thread owns the `DiscordIpcClient` (which is `!Send` on Windows because it wraps a Win32 pipe handle), with a `crossbeam-channel` carrying update messages from the player code.
+
+### Activity layout
+
+Spotify-style card under "Listening to WaveFlow":
+
+| Discord field | Source |
+| --- | --- |
+| `name` | Hard-coded `"WaveFlow"` (required by Discord — without it the IPC accepts the payload silently and nothing renders). |
+| `activity_type` | `Listening` (= 2) so the header reads "Listening to WaveFlow" instead of "Playing WaveFlow". |
+| `details` (line 1) | Track title. |
+| `state` (line 2) | Artist (album-only fallback when the artist tag is missing — Discord requires `state` ≥ 2 chars). |
+| `large_image` | Deezer cover URL when available, otherwise the `waveflow_logo` asset key. |
+| `large_text` | Album title (rendered inline by Discord as line 3). |
+| `small_image` / `small_text` | `play` + "En lecture" while playing, `pause` + "En pause" while paused. |
+| `timestamps.start` / `.end` | Computed from track duration + current position so Discord renders the `00:42 ─── 04:30` progress bar. **Only set while `Playing`** — leaving them on while paused makes Discord keep ticking the bar from the wall clock, which lies. Re-anchored on every play / seek / pause-resume. |
+
+### Cover URL resolution
+
+Discord propagates `large_image` URLs to other users' clients, so local files / our `127.0.0.1` artwork shim are off-limits — only public HTTPS works. [`resolve_cover_url`](../../src-tauri/src/discord_presence.rs) is two-stage:
+
+1. **Cache hit** — `JOIN track → album → deezer_album` in the per-profile pool. Cheap, no network.
+2. **Cache miss** — call `commands::deezer::enrich_album_inner` which searches Deezer by title+artist and persists the result. Subsequent plays of the same album hit stage 1.
+
+The first track of an unenriched album takes ~1 s for the Deezer round-trip; following tracks are instant. Empty Deezer results fall back to the `waveflow_logo` asset key.
+
+### Lifecycle
+
+- **Default ON** — `read_enabled` returns `true` when `app_setting['integrations.discord_rpc']` is missing. Only an explicit toggle-off (writes the literal `"false"`) disables RPC. The UI toggle lives in `SettingsView` under "Intégrations".
+- **Boot** — `lib.rs::setup` reads the persisted flag and spawns the worker. Discord IPC is **not** connected yet — the first connection attempt happens on the first `Msg::Metadata` after a track plays. Keeps the named pipe free when the user never plays anything.
+- **Idle / Ended** — when the decoder transitions to `PlayerState::Idle` (Stop button) or `PlayerState::Ended` (queue exhausted), the worker calls `clear_activity` so the card disappears from the user's profile. Spotify-style: nothing playing → no presence.
+- **Pause** — the activity stays on screen with the `pause` badge and timestamps removed; same UX as Spotify pausing in the middle of a track.
+- **Discord restart** — `set_activity` failures drop the client back to `None`; the next push re-runs the handshake. No reconnect daemon needed — the next track-changed event triggers it organically.
+
+### Assets
+
+The Discord application (ID `1502611865698570291`) hosts three asset keys uploaded under "Rich Presence Art Assets":
+
+- `waveflow_logo` — fallback for tracks with no Deezer cover.
+- `play` — `small_image` while playing.
+- `pause` — `small_image` while paused.
+
+PNG sources live in [`assets/discord/png/`](../../assets/discord/png/), generated from the SVG sources in [`assets/discord/`](../../assets/discord/) via `bun scripts/build-discord-assets.mjs` (uses [`sharp`](https://sharp.pixelplumbing.com/) for SVG → 1024×1024 PNG conversion). Re-running the script after editing an SVG re-emits the PNGs ready to drop on the developer portal — Discord's CDN takes ~10 min to propagate updated assets.
+
 ## LRCLIB (synchronized lyrics)
 
 [`lrclib.rs`](../../src-tauri/src/lrclib.rs) — public lookup by `artist_name + track_name + album_name + duration` against [LRCLIB](https://lrclib.net). Three-tier resolution in [`commands/lyrics.rs`](../../src-tauri/src/commands/lyrics.rs):

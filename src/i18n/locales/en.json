@@ -672,6 +672,10 @@
         "passwordPlaceholder": "Password",
         "connect": "Sign in",
         "connecting": "Logging in…"
+      },
+      "discord": {
+        "title": "Discord Rich Presence",
+        "subtitle": "Show the currently playing track on your Discord profile"
       }
     },
     "crossfade": {

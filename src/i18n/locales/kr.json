@@ -672,6 +672,10 @@
         "passwordPlaceholder": "비밀번호",
         "connect": "로그인",
         "connecting": "로그인 중…"
+      },
+      "discord": {
+        "title": "Discord Rich Presence",
+        "subtitle": "현재 재생 중인 곡을 Discord 프로필에 표시합니다"
       }
     },
     "crossfade": {

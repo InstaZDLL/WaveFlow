@@ -55,3 +55,20 @@ export function lastfmLogin(
 export function lastfmLogout(): Promise<void> {
   return invoke<void>("lastfm_logout");
 }
+
+/**
+ * Read the Discord Rich Presence opt-in flag. Returns `false` (off)
+ * when the user has never enabled it.
+ */
+export function getDiscordRpcEnabled(): Promise<boolean> {
+  return invoke<boolean>("get_discord_rpc_enabled");
+}
+
+/**
+ * Flip the Discord Rich Presence flag. The backend updates its
+ * persisted setting and notifies the running presence worker so the
+ * Discord activity card appears or disappears immediately.
+ */
+export function setDiscordRpcEnabled(enabled: boolean): Promise<void> {
+  return invoke<void>("set_discord_rpc_enabled", { enabled });
+}

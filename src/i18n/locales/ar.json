@@ -672,6 +672,10 @@
         "passwordPlaceholder": "كلمة المرور",
         "connect": "تسجيل الدخول",
         "connecting": "تسجيل الدخول…"
+      },
+      "discord": {
+        "title": "Discord Rich Presence",
+        "subtitle": "عرض الأغنية التي يتم تشغيلها حاليًا على ملفك الشخصي في Discord"
       }
     },
     "crossfade": {

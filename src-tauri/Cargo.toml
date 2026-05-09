@@ -120,6 +120,13 @@ url = "2"
 # rejected). The server is gated to localhost.
 tiny_http = "0.12"
 
+# Discord Rich Presence — speaks the local Discord client's IPC named
+# pipe (no network). Mirrors the souvlaki integration in
+# `media_controls.rs`: a dedicated thread owns the IPC client and
+# reconnects when Discord is restarted. Opt-in via the
+# `integrations.discord_rpc` profile setting.
+discord-rich-presence = "1"
+
 # Linux-only: direct ALSA enumeration so the output-device picker can
 # show human-readable descriptions ("HDA Intel PCH, ALC897 Analog
 # Stereo") instead of cpal's short identifiers ("hdmi:CARD=PCH,DEV=0").

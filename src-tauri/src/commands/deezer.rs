@@ -77,7 +77,7 @@ pub async fn enrich_album_deezer(
     enrich_album_inner(&pool, &artwork_dir, album_id).await
 }
 
-async fn enrich_album_inner(
+pub(crate) async fn enrich_album_inner(
     pool: &SqlitePool,
     artwork_dir: &Path,
     album_id: i64,

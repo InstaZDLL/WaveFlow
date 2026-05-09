@@ -672,6 +672,10 @@
         "passwordPlaceholder": "पासवर्ड",
         "connect": "लॉग इन करें",
         "connecting": "लॉग इन…"
+      },
+      "discord": {
+        "title": "Discord Rich Presence",
+        "subtitle": "अपनी Discord प्रोफ़ाइल पर वर्तमान में चल रहा ट्रैक दिखाएँ"
       }
     },
     "crossfade": {

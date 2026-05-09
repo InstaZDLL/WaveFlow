@@ -672,6 +672,10 @@
         "passwordPlaceholder": "密码",
         "connect": "登录",
         "connecting": "正在登录……"
+      },
+      "discord": {
+        "title": "Discord Rich Presence",
+        "subtitle": "在你的 Discord 个人资料上显示正在播放的曲目"
       }
     },
     "crossfade": {

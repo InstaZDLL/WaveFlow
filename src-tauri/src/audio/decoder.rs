@@ -90,6 +90,11 @@ fn transition_state(
         {
             controls.update_playback(state, shared.current_position_ms());
         }
+        if let Some(presence) =
+            app.try_state::<crate::discord_presence::DiscordPresenceHandle>()
+        {
+            presence.update_playback(state, shared.current_position_ms());
+        }
     }
 }
 

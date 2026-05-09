@@ -20,6 +20,7 @@ import {
   EyeOff,
   MousePointerClick,
   Sparkles,
+  Gamepad2,
   FileText,
   Copy,
   Check as CheckIcon,
@@ -38,11 +39,13 @@ import {
   playerSetReplayGain,
 } from "../../lib/tauri/player";
 import {
+  getDiscordRpcEnabled,
   getLastfmApiKey,
   getLastfmApiSecret,
   lastfmGetStatus,
   lastfmLogin,
   lastfmLogout,
+  setDiscordRpcEnabled,
   setLastfmApiKey,
   setLastfmApiSecret,
   type LastfmStatus,
@@ -479,6 +482,27 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [lastfmPassword, setLastfmPassword] = useState("");
   const [lastfmLoggingIn, setLastfmLoggingIn] = useState(false);
   const [lastfmLoginError, setLastfmLoginError] = useState<string | null>(null);
+
+  // Discord Rich Presence opt-in. Hydrated once at mount, flipped
+  // optimistically with rollback on failure.
+  const [discordRpc, setDiscordRpc] = useState(false);
+
+  useEffect(() => {
+    getDiscordRpcEnabled()
+      .then(setDiscordRpc)
+      .catch((err) =>
+        console.error("[SettingsView] get discord rpc failed", err),
+      );
+  }, []);
+
+  const handleToggleDiscordRpc = useCallback(() => {
+    const next = !discordRpc;
+    setDiscordRpc(next);
+    setDiscordRpcEnabled(next).catch((err) => {
+      console.error("[SettingsView] set discord rpc failed", err);
+      setDiscordRpc(!next);
+    });
+  }, [discordRpc]);
 
   useEffect(() => {
     getLastfmApiKey()
@@ -1063,6 +1087,30 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Discord Rich Presence */}
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4">
+              <Gamepad2
+                size={20}
+                className="text-zinc-400"
+                aria-hidden="true"
+              />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.integrations.discord.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.integrations.discord.subtitle")}
+                </div>
+              </div>
+            </div>
+            <ToggleSwitch
+              enabled={discordRpc}
+              onToggle={handleToggleDiscordRpc}
+              label={t("settings.integrations.discord.title")}
+            />
           </div>
         </div>
       </section>

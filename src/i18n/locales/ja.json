@@ -672,6 +672,10 @@
         "passwordPlaceholder": "パスワード",
         "connect": "ログイン",
         "connecting": "接続中…"
+      },
+      "discord": {
+        "title": "Discord Rich Presence",
+        "subtitle": "再生中のトラックを Discord プロフィールに表示"
       }
     },
     "crossfade": {

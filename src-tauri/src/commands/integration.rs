@@ -19,6 +19,11 @@ use crate::{
 
 const LASTFM_KEY: &str = "app.lastfm_api_key";
 const LASTFM_SECRET: &str = "app.lastfm_api_secret";
+/// Discord Rich Presence opt-in flag. Stored in `app_setting` (shared
+/// across profiles) because users expect the toggle to follow them
+/// across profiles — it's a privacy-style preference, not a per-
+/// account integration like Last.fm scrobbling.
+const DISCORD_RPC_KEY: &str = "integrations.discord_rpc";
 
 fn now_ms() -> i64 {
     Utc::now().timestamp_millis()
@@ -240,6 +245,45 @@ pub async fn lastfm_logout(state: tauri::State<'_, AppState>) -> AppResult<()> {
     sqlx::query("DELETE FROM scrobble_queue WHERE provider = 'lastfm'")
         .execute(&pool)
         .await?;
+    Ok(())
+}
+
+/// Return the current Discord Rich Presence opt-in flag. Defaults
+/// to `false` (off) when never configured.
+#[tauri::command]
+pub async fn get_discord_rpc_enabled(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<bool> {
+    Ok(crate::discord_presence::read_enabled(&state.app_db).await)
+}
+
+/// Toggle Discord Rich Presence on / off. Persists to `app_setting`
+/// and immediately notifies the running presence worker so the
+/// activity card appears/disappears without waiting for the next
+/// track change.
+#[tauri::command]
+pub async fn set_discord_rpc_enabled(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    enabled: bool,
+) -> AppResult<()> {
+    sqlx::query(
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'bool', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(DISCORD_RPC_KEY)
+    .bind(if enabled { "true" } else { "false" })
+    .bind(now_ms())
+    .execute(&state.app_db)
+    .await?;
+
+    if let Some(presence) =
+        tauri::Manager::try_state::<crate::discord_presence::DiscordPresenceHandle>(&app)
+    {
+        presence.set_enabled(enabled);
+    }
     Ok(())
 }
 

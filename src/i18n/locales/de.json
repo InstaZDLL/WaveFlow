@@ -672,6 +672,10 @@
         "passwordPlaceholder": "Passwort",
         "connect": "Anmelden",
         "connecting": "Anmelden…"
+      },
+      "discord": {
+        "title": "Discord Rich Presence",
+        "subtitle": "Aktuell gespielten Titel in deinem Discord-Profil anzeigen"
       }
     },
     "crossfade": {

@@ -214,6 +214,45 @@ pub(crate) fn emit_track_changed(
     // only announce the one they actually settle on. Best-effort: any
     // failure is logged but never surfaced to the UI.
     schedule_now_playing(app, track);
+
+    // Push the new track to Discord Rich Presence (best-effort,
+    // gated on the user-controlled opt-in flag). Done in a tokio
+    // task because we need an async DB lookup for the public Deezer
+    // cover URL — the local artwork path Discord can't reach.
+    schedule_discord_presence(app, track);
+}
+
+/// Spawn a tokio task that resolves the Deezer cover URL for the new
+/// track and pushes the metadata to Discord. Held off the synchronous
+/// path so the audio engine isn't waiting on SQLite.
+fn schedule_discord_presence(app: &AppHandle, track: &QueueTrack) {
+    let app = app.clone();
+    let track_id = track.id;
+    let title = track.title.clone();
+    let artist = track.artist_name.clone();
+    let album = track.album_title.clone();
+    let duration_ms = track.duration_ms;
+
+    tauri::async_runtime::spawn(async move {
+        let Some(presence) =
+            app.try_state::<crate::discord_presence::DiscordPresenceHandle>()
+        else {
+            return;
+        };
+        let state = app.state::<AppState>();
+        let cover_url = match state.require_profile_pool().await {
+            Ok(pool) => {
+                crate::discord_presence::resolve_cover_url(
+                    &pool,
+                    &state.paths.metadata_artwork_dir,
+                    track_id,
+                )
+                .await
+            }
+            Err(_) => None,
+        };
+        presence.update_metadata(title, artist, album, cover_url, duration_ms, 0);
+    });
 }
 
 /// Spawn a tokio task that, after a 4 s settling window, posts
@@ -576,6 +615,9 @@ pub async fn player_seek(
     if let Some(controls) = app.try_state::<crate::media_controls::MediaControlsHandle>() {
         let state = engine.shared().state();
         controls.update_playback(state, ms);
+    }
+    if let Some(presence) = app.try_state::<crate::discord_presence::DiscordPresenceHandle>() {
+        presence.update_playback(engine.shared().state(), ms);
     }
     Ok(())
 }
