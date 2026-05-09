@@ -49,7 +49,7 @@ pub struct ScanSummary {
 /// + collapse whitespace. Good enough to match "The Beatles" / "THE  BEATLES"
 /// / "the beatles!" onto a single canonical key without pulling in a proper
 /// Unicode normalization library.
-fn canonical_name(s: &str) -> String {
+pub(crate) fn canonical_name(s: &str) -> String {
     s.trim()
         .chars()
         .flat_map(|c| c.to_lowercase())

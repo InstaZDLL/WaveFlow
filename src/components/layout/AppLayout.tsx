@@ -238,6 +238,7 @@ export function AppLayout() {
           <ArtistDetailView
             artistId={activeArtistId}
             onNavigateToAlbum={navigateToAlbum}
+            onNavigateToArtist={navigateToArtist}
           />
         );
     }

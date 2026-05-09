@@ -595,6 +595,11 @@
     "emptyDescription": "このアーティストは、アクティブなプロフィールには存在しません。",
     "bio": {
       "title": "略歴"
+    },
+    "similar": {
+      "title": "似ているアーティスト",
+      "inLibrary": "ライブラリにあり",
+      "notInLibrary": "ライブラリにない"
     }
   },
   "nowPlaying": {

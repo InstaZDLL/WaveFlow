@@ -17,6 +17,7 @@ pub mod playlist;
 pub mod playlist_cover;
 pub mod profile;
 pub mod scan;
+pub mod similar;
 pub mod smart_playlists;
 pub mod stats;
 pub mod track;

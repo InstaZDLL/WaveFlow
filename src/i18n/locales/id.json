@@ -595,6 +595,11 @@
     "emptyDescription": "Seniman ini tidak lagi terdaftar dalam profil aktif.",
     "bio": {
       "title": "Biografi"
+    },
+    "similar": {
+      "title": "Artis serupa",
+      "inLibrary": "Di pustaka Anda",
+      "notInLibrary": "Tidak di pustaka Anda"
     }
   },
   "nowPlaying": {

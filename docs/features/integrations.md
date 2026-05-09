@@ -28,6 +28,15 @@ The frontend helper `lib/tauri/artwork.ts::resolveRemoteImage` prefers the local
 
 `artist.getInfo` for biographies, called from `enrich_artist_deezer` after the Deezer pass. Cached in the same `deezer_artist` row (the table name is historical — it holds Last.fm bios too) with the same 30-day TTL. **Optional**: requires a user-supplied API key in `app_setting['lastfm_api_key']`. Without it, bios are skipped silently and the UI shows local data.
 
+### Read-only (similar artists)
+
+[`commands/similar.rs::get_similar_artists`](../../src-tauri/src/commands/similar.rs) drives the "Similar artists" carousel on `ArtistDetailView`. Cascade:
+
+1. **Last.fm `artist.getSimilar`** when an API key is configured — returns up to 12 hits with a real 0-1 affinity score.
+2. **Deezer `/artist/{id}/related`** as a fallback when Last.fm has no key, errors out, or returns an empty list. Score is synthesised from the Deezer ranking (`1.0 - i / N`) so the UI can sort uniformly across providers.
+
+Results are cached in `app.lastfm_similar` (30-day TTL, keyed by the source artist's canonical name — same `canonical_name()` routine as the scanner). Each suggestion is augmented at query time with a `library_artist_id` when its canonical name matches a row in the active profile, so the UI can badge it as "in your library" and route the click back to the local artist page. Suggestions outside the library are rendered greyed out and non-interactive — no in-app destination exists for them yet.
+
 ### Authenticated (scrobbling)
 
 [`scrobbler.rs`](../../src-tauri/src/scrobbler.rs) is the worker thread that drives Last.fm scrobbles:

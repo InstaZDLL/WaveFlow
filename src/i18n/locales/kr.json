@@ -595,6 +595,11 @@
     "emptyDescription": "이 아티스트는 현재 활성 프로필에 더 이상 존재하지 않습니다.",
     "bio": {
       "title": "약력"
+    },
+    "similar": {
+      "title": "비슷한 아티스트",
+      "inLibrary": "라이브러리에 있음",
+      "notInLibrary": "라이브러리에 없음"
     }
   },
   "nowPlaying": {

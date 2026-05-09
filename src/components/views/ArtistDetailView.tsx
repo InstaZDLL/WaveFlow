@@ -15,7 +15,11 @@ import {
   enrichArtistDeezer,
   type ArtistDetail,
 } from "../../lib/tauri/detail";
-import { resolveArtwork } from "../../lib/tauri/artwork";
+import { resolveArtwork, resolveRemoteImage } from "../../lib/tauri/artwork";
+import {
+  getSimilarArtists,
+  type SimilarArtist,
+} from "../../lib/tauri/similar";
 import {
   formatDuration,
   listTracks,
@@ -27,11 +31,16 @@ import {
 interface ArtistDetailViewProps {
   artistId: number | null;
   onNavigateToAlbum: (albumId: number) => void;
+  /// Click target for similar-artist cards that map to a row in the
+  /// user's library. Suggestions without a `library_artist_id` aren't
+  /// clickable — there's no in-app destination for an external artist.
+  onNavigateToArtist: (artistId: number) => void;
 }
 
 export function ArtistDetailView({
   artistId,
   onNavigateToAlbum,
+  onNavigateToArtist,
 }: ArtistDetailViewProps) {
   const { t } = useTranslation();
   const { playTracks, currentTrack, toggleShuffle, isPlaying } = usePlayer();
@@ -67,6 +76,7 @@ export function ArtistDetailView({
   const [bioFull, setBioFull] = useState<string | null>(null);
   const [bioExpanded, setBioExpanded] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [similar, setSimilar] = useState<SimilarArtist[]>([]);
 
   // Load artist detail
   useEffect(() => {
@@ -136,6 +146,25 @@ export function ArtistDetailView({
     listLikedTrackIds()
       .then((ids) => setLikedIds(new Set(ids)))
       .catch(() => {});
+  }, [artistId]);
+
+  // Similar artists (Last.fm primary, Deezer fallback). Loaded after
+  // the main detail so it never blocks the initial paint.
+  useEffect(() => {
+    if (artistId == null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSimilar([]);
+      return;
+    }
+    let cancelled = false;
+    getSimilarArtists(artistId)
+      .then((list) => {
+        if (!cancelled) setSimilar(list);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [artistId]);
 
   // Deezer enrichment
@@ -298,6 +327,66 @@ export function ArtistDetailView({
                   : t("nowPlaying.readMore")}
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Similar artists (Last.fm primary, Deezer fallback) */}
+      {similar.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-1">
+            {t("artistDetail.similar.title")}
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {similar.map((s) => {
+              const inLibrary = s.library_artist_id != null;
+              const imgSrc = resolveRemoteImage(s.picture_path, s.picture_url);
+              const Wrapper = inLibrary ? "button" : "div";
+              return (
+                <Wrapper
+                  key={`${s.source}-${s.name}`}
+                  type={inLibrary ? "button" : undefined}
+                  onClick={
+                    inLibrary
+                      ? () => onNavigateToArtist(s.library_artist_id!)
+                      : undefined
+                  }
+                  className={`group flex flex-col items-center text-center space-y-2 ${
+                    inLibrary ? "cursor-pointer" : "cursor-default opacity-70"
+                  }`}
+                  title={
+                    inLibrary
+                      ? t("artistDetail.similar.inLibrary")
+                      : t("artistDetail.similar.notInLibrary")
+                  }
+                >
+                  {imgSrc ? (
+                    <img
+                      src={imgSrc}
+                      alt={s.name}
+                      loading="lazy"
+                      className="w-24 h-24 rounded-full object-cover shadow-sm group-hover:shadow-md transition-shadow"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 flex items-center justify-center shadow-sm">
+                      <span className="text-3xl font-bold text-violet-500/70 dark:text-violet-400/60">
+                        {s.name.trim().charAt(0).toUpperCase() || "?"}
+                      </span>
+                    </div>
+                  )}
+                  <div className="px-1 w-full">
+                    <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+                      {s.name}
+                    </div>
+                    {inLibrary && (
+                      <div className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 mt-0.5">
+                        {t("artistDetail.similar.inLibrary")}
+                      </div>
+                    )}
+                  </div>
+                </Wrapper>
+              );
+            })}
           </div>
         </div>
       )}

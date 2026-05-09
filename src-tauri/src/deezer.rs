@@ -121,4 +121,23 @@ impl DeezerClient {
             .json()
             .await
     }
+
+    /// Fetch artists Deezer reports as related to the given artist.
+    /// Used as a fallback when Last.fm has no API key or returned no
+    /// similar artists. Deezer's `/artist/{id}/related` returns a fixed
+    /// list ordered by Deezer's own affinity score (no `match` weight
+    /// surfaced — callers should treat the order as the ranking).
+    pub async fn get_related_artists(
+        &self,
+        deezer_id: i64,
+    ) -> reqwest::Result<Vec<DeezerArtistHit>> {
+        let resp: DeezerSearchResponse<DeezerArtistHit> = self
+            .http
+            .get(format!("{BASE_URL}/artist/{deezer_id}/related"))
+            .send()
+            .await?
+            .json()
+            .await?;
+        Ok(resp.data)
+    }
 }

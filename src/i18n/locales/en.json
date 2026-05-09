@@ -595,6 +595,11 @@
     "emptyDescription": "This artist is no longer listed in the active profile.",
     "bio": {
       "title": "Biography"
+    },
+    "similar": {
+      "title": "Similar artists",
+      "inLibrary": "In your library",
+      "notInLibrary": "Not in your library"
     }
   },
   "nowPlaying": {

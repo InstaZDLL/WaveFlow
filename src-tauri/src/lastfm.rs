@@ -132,6 +132,121 @@ impl LastfmClient {
     }
 }
 
+// ── artist.getSimilar ───────────────────────────────────────────────
+
+#[derive(Debug, Deserialize)]
+struct LastfmSimilarResponse {
+    similarartists: Option<LastfmSimilarPayload>,
+    #[serde(default)]
+    error: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct LastfmSimilarPayload {
+    artist: Vec<LastfmSimilarArtist>,
+}
+
+#[derive(Debug, Deserialize)]
+struct LastfmSimilarArtist {
+    name: String,
+    #[serde(default, rename = "match")]
+    match_score: Option<String>,
+    #[serde(default)]
+    image: Vec<LastfmImage>,
+}
+
+#[derive(Debug, Deserialize)]
+struct LastfmImage {
+    #[serde(default, rename = "#text")]
+    url: String,
+    /// Last.fm's image sizes: `small`, `medium`, `large`, `extralarge`,
+    /// `mega`. We pick the largest non-empty one available.
+    #[serde(default)]
+    size: String,
+}
+
+/// Single similar-artist entry returned to the UI. `match_score` is the
+/// 0-1 affinity Last.fm reports — we keep it raw so the frontend can
+/// either sort by it or display it as a percentage.
+#[derive(Debug, Clone)]
+pub struct SimilarArtist {
+    pub name: String,
+    pub match_score: f32,
+    pub picture_url: Option<String>,
+}
+
+impl LastfmClient {
+    /// Fetch up to `limit` similar artists via `artist.getSimilar`.
+    /// Returns an empty vec when Last.fm reports no match (`error=6`)
+    /// or the response carries no `similarartists` payload — callers
+    /// can then fall back to Deezer's `/artist/{id}/related`.
+    pub async fn artist_get_similar(
+        &self,
+        name: &str,
+        api_key: &str,
+        limit: u32,
+    ) -> reqwest::Result<Vec<SimilarArtist>> {
+        let limit_str = limit.to_string();
+        let resp: LastfmSimilarResponse = self
+            .http
+            .get(BASE_URL)
+            .query(&[
+                ("method", "artist.getsimilar"),
+                ("artist", name),
+                ("api_key", api_key),
+                ("format", "json"),
+                ("autocorrect", "1"),
+                ("limit", limit_str.as_str()),
+            ])
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        if resp.error.is_some() {
+            return Ok(Vec::new());
+        }
+        let Some(payload) = resp.similarartists else {
+            return Ok(Vec::new());
+        };
+
+        let out = payload
+            .artist
+            .into_iter()
+            .map(|a| {
+                let match_score = a
+                    .match_score
+                    .as_deref()
+                    .and_then(|s| s.parse::<f32>().ok())
+                    .unwrap_or(0.0);
+                let picture_url = pick_largest_image(&a.image);
+                SimilarArtist {
+                    name: a.name,
+                    match_score,
+                    picture_url,
+                }
+            })
+            .collect();
+        Ok(out)
+    }
+}
+
+/// Pick the largest non-empty Last.fm image URL. Last.fm images are
+/// notoriously the same generic star placeholder for any artist without
+/// a uploaded picture, so callers should still prefer Deezer covers
+/// when available. Returned in priority `mega` > `extralarge` > `large`.
+fn pick_largest_image(images: &[LastfmImage]) -> Option<String> {
+    for size in &["mega", "extralarge", "large"] {
+        if let Some(img) = images
+            .iter()
+            .find(|i| i.size == *size && !i.url.is_empty())
+        {
+            return Some(img.url.clone());
+        }
+    }
+    None
+}
+
 // ── Signed authentication ───────────────────────────────────────────
 
 /// Errors that can come out of the signed-method surface. Network +

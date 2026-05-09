@@ -595,6 +595,11 @@
     "emptyDescription": "该艺术家已不在活跃用户列表中。",
     "bio": {
       "title": "个人简介"
+    },
+    "similar": {
+      "title": "相似艺术家",
+      "inLibrary": "在你的曲库中",
+      "notInLibrary": "不在你的曲库中"
     }
   },
   "nowPlaying": {

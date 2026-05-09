@@ -595,6 +595,11 @@
     "emptyDescription": "Deze artiest staat niet meer in het actieve profiel.",
     "bio": {
       "title": "Biografie"
+    },
+    "similar": {
+      "title": "Vergelijkbare artiesten",
+      "inLibrary": "In je bibliotheek",
+      "notInLibrary": "Niet in je bibliotheek"
     }
   },
   "nowPlaying": {

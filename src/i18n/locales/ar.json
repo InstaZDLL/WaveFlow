@@ -595,6 +595,11 @@
     "emptyDescription": "لم يعد هذا الفنان موجودًا في الملف الشخصي النشط.",
     "bio": {
       "title": "السيرة الذاتية"
+    },
+    "similar": {
+      "title": "فنانون مشابهون",
+      "inLibrary": "في مكتبتك",
+      "notInLibrary": "ليس في مكتبتك"
     }
   },
   "nowPlaying": {

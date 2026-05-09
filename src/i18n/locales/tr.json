@@ -595,6 +595,11 @@
     "emptyDescription": "Bu sanatçının aktif profili artık mevcut değil.",
     "bio": {
       "title": "Biyografi"
+    },
+    "similar": {
+      "title": "Benzer sanatçılar",
+      "inLibrary": "Kütüphanenizde",
+      "notInLibrary": "Kütüphanenizde değil"
     }
   },
   "nowPlaying": {
