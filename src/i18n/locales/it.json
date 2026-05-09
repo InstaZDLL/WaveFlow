@@ -733,7 +733,8 @@
     "artistImages": {
       "title": "Immagini degli artisti",
       "subtitle": "Scaricare le copertine degli artisti da Deezer",
-      "action": "Recuperare"
+      "action": "Recuperare",
+      "progress": "{{current}}/{{total}} elaborati"
     },
     "dataFolder": {
       "title": "Fascicolo dei dati",

@@ -733,7 +733,8 @@
     "artistImages": {
       "title": "작가들의 작품",
       "subtitle": "Deezer에서 아티스트 앨범 커버 다운로드하기",
-      "action": "복구"
+      "action": "복구",
+      "progress": "{{current}}/{{total}} 처리됨"
     },
     "dataFolder": {
       "title": "데이터 세트",

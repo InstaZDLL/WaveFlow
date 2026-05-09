@@ -733,7 +733,8 @@
     "artistImages": {
       "title": "صور الفنانين",
       "subtitle": "تنزيل أغلفة ألبومات الفنانين من موقع Deezer",
-      "action": "استرداد"
+      "action": "استرداد",
+      "progress": "تم معالجة {{current}}/{{total}}"
     },
     "dataFolder": {
       "title": "ملف البيانات",

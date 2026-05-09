@@ -283,6 +283,7 @@ pub fn run() {
             commands::deezer::set_album_artwork_from_deezer,
             commands::deezer::set_album_artwork_from_file,
             commands::deezer::batch_fetch_missing_album_covers,
+            commands::deezer::batch_fetch_missing_artist_pictures,
             commands::integration::get_lastfm_api_key,
             commands::integration::set_lastfm_api_key,
             commands::integration::get_lastfm_api_secret,

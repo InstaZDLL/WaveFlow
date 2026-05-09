@@ -733,7 +733,8 @@
     "artistImages": {
       "title": "Bilder von Künstlern",
       "subtitle": "Künstlercover von Deezer herunterladen",
-      "action": "Wiederherstellen"
+      "action": "Wiederherstellen",
+      "progress": "{{current}}/{{total}} verarbeitet"
     },
     "dataFolder": {
       "title": "Datenblatt",

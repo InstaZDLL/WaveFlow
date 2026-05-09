@@ -29,6 +29,7 @@ import {
   type QueueSource,
   type QueueTrackPayload,
 } from "../lib/tauri/player";
+import { enrichArtistDeezer } from "../lib/tauri/detail";
 
 /**
  * Minimal conversion from the thin `QueueTrackPayload` returned by
@@ -374,6 +375,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       console.error("[PlayerContext] refresh output devices failed", err);
     }
   }, []);
+
+  // Background-prime the Deezer/Last.fm cache for the current artist.
+  // This used to live in NowPlayingPanel, but that only fired when the
+  // panel was open — closing it meant the artist grid in LibraryView
+  // never got a picture for tracks the user actually played. Calling
+  // it here is cheap (the backend cache hit short-circuits the network
+  // path within ~10 ms when the row is fresh).
+  useEffect(() => {
+    const artistId = currentTrack?.artist_id;
+    if (artistId == null) return;
+    enrichArtistDeezer(artistId).catch(() => {});
+  }, [currentTrack?.artist_id]);
 
   // Pre-fetch the device list at mount. Re-runs on profile switch
   // because `current_output_device` is per-profile (the persisted

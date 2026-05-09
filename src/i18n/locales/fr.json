@@ -733,7 +733,8 @@
     "artistImages": {
       "title": "Images artistes",
       "subtitle": "Récupérer les pochettes artistes depuis Deezer",
-      "action": "Récupérer"
+      "action": "Récupérer",
+      "progress": "{{current}}/{{total}} traités"
     },
     "dataFolder": {
       "title": "Dossier de données",

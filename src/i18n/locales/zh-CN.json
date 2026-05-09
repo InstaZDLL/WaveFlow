@@ -733,7 +733,8 @@
     "artistImages": {
       "title": "艺术家作品",
       "subtitle": "从 Deezer 下载艺人专辑封面",
-      "action": "恢复"
+      "action": "恢复",
+      "progress": "已处理 {{current}}/{{total}}"
     },
     "dataFolder": {
       "title": "数据文件",

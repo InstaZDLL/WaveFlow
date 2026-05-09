@@ -733,7 +733,8 @@
     "artistImages": {
       "title": "Sanatçı resimleri",
       "subtitle": "Deezer sitesinden sanatçı albümlerini indirin",
-      "action": "Getir"
+      "action": "Getir",
+      "progress": "{{current}}/{{total}} işlendi"
     },
     "dataFolder": {
       "title": "Veri klasörü",

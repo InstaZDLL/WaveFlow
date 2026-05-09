@@ -733,7 +733,8 @@
     "artistImages": {
       "title": "Imágenes de artistas",
       "subtitle": "Descargar las carátulas de los artistas desde Deezer",
-      "action": "Recuperar"
+      "action": "Recuperar",
+      "progress": "{{current}}/{{total}} procesados"
     },
     "dataFolder": {
       "title": "Archivo de datos",

@@ -733,7 +733,8 @@
     "artistImages": {
       "title": "Imagens de artistas",
       "subtitle": "Baixar as capas dos artistas em Deezer",
-      "action": "Recuperar"
+      "action": "Recuperar",
+      "progress": "{{current}}/{{total}} processados"
     },
     "dataFolder": {
       "title": "Pasta de dados",

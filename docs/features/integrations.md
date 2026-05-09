@@ -6,11 +6,15 @@ External services WaveFlow talks to. All clients use [`reqwest 0.12`](https://cr
 
 [`deezer.rs`](../../src-tauri/src/deezer.rs) — public Deezer API, no auth. Used for:
 
-- Artist pictures (`enrich_artist_deezer`)
-- Album covers (`enrich_album_deezer`, `search_albums_deezer`, `set_album_artwork_from_deezer`)
+- Artist pictures (`enrich_artist_deezer`, `batch_fetch_missing_artist_pictures`)
+- Album covers (`enrich_album_deezer`, `search_albums_deezer`, `set_album_artwork_from_deezer`, `batch_fetch_missing_album_covers`)
 - Label / fan-count metadata
 
 Results are cached in the `deezer_artist` / `deezer_album` tables of the **shared** `app.db` (one cache across every profile) with a 30-day `expires_at` TTL. Cache-first: zero network round-trips when the row is fresh. Failures are non-fatal — the UI degrades to local-only artwork and an empty enrichment payload.
+
+**Auto-enrichment on play.** [`PlayerProvider`](../../src/contexts/PlayerContext.tsx) fires `enrich_artist_deezer(currentTrack.artist_id)` (fire-and-forget) on every track-change. Cache hits are ~10 ms so the duplicate call done by `NowPlayingPanel` when it renders is harmless; the point is to populate the cache for views the user *isn't* looking at right now (e.g. the artist grid in `LibraryView`) so a tile gets its picture as soon as the user plays one of that artist's tracks, regardless of whether the Now Playing panel is open.
+
+**Batch fill-in.** `batch_fetch_missing_artist_pictures` walks every artist with no cached row (or an expired one), runs the standard enrichment per artist, and emits `artist-fetch-progress` so a Settings progress bar can drive the UI. Throttled at 200 ms (~5 req/s) to stay well below Deezer's anonymous rate limit. Same idempotent semantics as `batch_fetch_missing_album_covers`: re-running just resumes on whatever's still missing.
 
 Downloaded images go through [`metadata_artwork::download_and_cache`](../../src-tauri/src/metadata_artwork.rs): Blake3-hashed bytes → `<root>/metadata_artwork/<hash>.jpg`. The hash is persisted in `deezer_artist.picture_hash` / `deezer_album.cover_hash` so a cache hit on the metadata table avoids re-downloading. Thumbnails (1×, 2×) are generated asynchronously by [`thumbnails.rs`](../../src-tauri/src/thumbnails.rs).
 

@@ -733,7 +733,8 @@
     "artistImages": {
       "title": "Изображения художников",
       "subtitle": "Скачать обложки альбомов с сайта Deezer",
-      "action": "Загрузить"
+      "action": "Загрузить",
+      "progress": "{{current}}/{{total}} обработано"
     },
     "dataFolder": {
       "title": "Папка «Данные»",

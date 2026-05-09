@@ -733,7 +733,8 @@
     "artistImages": {
       "title": "कलाकारों की छवियाँ",
       "subtitle": "Deezer से कलाकार कवर डाउनलोड करें।",
-      "action": "पुनःप्राप्त करें"
+      "action": "पुनःप्राप्त करें",
+      "progress": "{{current}}/{{total}} संसाधित"
     },
     "dataFolder": {
       "title": "डेटा शीट",

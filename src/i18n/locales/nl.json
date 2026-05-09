@@ -733,7 +733,8 @@
     "artistImages": {
       "title": "Afbeeldingen van kunstenaars",
       "subtitle": "De albumhoezen downloaden van Deezer",
-      "action": "Terugwinnen"
+      "action": "Terugwinnen",
+      "progress": "{{current}}/{{total}} verwerkt"
     },
     "dataFolder": {
       "title": "Gegevensbestand",

@@ -31,3 +31,7 @@ export function setAlbumArtworkFromFile(
 export function batchFetchMissingAlbumCovers(): Promise<number> {
   return invoke<number>("batch_fetch_missing_album_covers");
 }
+
+export function batchFetchMissingArtistPictures(): Promise<number> {
+  return invoke<number>("batch_fetch_missing_artist_pictures");
+}

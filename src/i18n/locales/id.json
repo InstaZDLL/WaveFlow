@@ -733,7 +733,8 @@
     "artistImages": {
       "title": "Gambar seniman",
       "subtitle": "Unduh sampul album artis dari Deezer",
-      "action": "Ambil"
+      "action": "Ambil",
+      "progress": "{{current}}/{{total}} diproses"
     },
     "dataFolder": {
       "title": "Folder data",

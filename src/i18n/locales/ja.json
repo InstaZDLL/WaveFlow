@@ -733,7 +733,8 @@
     "artistImages": {
       "title": "アーティストの画像",
       "subtitle": "Deezerからアーティストのジャケット画像を取得する",
-      "action": "復元する"
+      "action": "復元する",
+      "progress": "{{current}}/{{total}} 処理済み"
     },
     "dataFolder": {
       "title": "データファイル",

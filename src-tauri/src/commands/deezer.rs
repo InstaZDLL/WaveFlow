@@ -555,6 +555,65 @@ pub async fn set_album_artwork_from_file(
     Ok(())
 }
 
+/// Walk every artist that doesn't have a fresh `metadata_artist`
+/// cache row and run the standard Deezer + Last.fm enrichment on each.
+/// Throttles ~5 req/s so the public Deezer API stays happy. Emits
+/// `artist-fetch-progress` events the UI can render as a progress bar.
+/// Returns the count of artists that ended up with a usable picture.
+#[tauri::command]
+pub async fn batch_fetch_missing_artist_pictures(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<u32> {
+    let pool = state.require_profile_pool().await?;
+    let now = now_ms();
+
+    // Pending = artists whose cached row is missing OR expired. The
+    // LEFT JOIN on a.deezer_id covers both "never linked yet" and
+    // "linked but cache expired" in one pass.
+    let rows: Vec<(i64, String)> = sqlx::query_as(
+        "SELECT a.id, a.name
+           FROM artist a
+           LEFT JOIN app.metadata_artist m ON m.deezer_id = a.deezer_id
+          WHERE a.deezer_id IS NULL
+             OR m.expires_at IS NULL
+             OR m.expires_at <= ?
+          ORDER BY a.name COLLATE NOCASE",
+    )
+    .bind(now)
+    .fetch_all(&pool)
+    .await?;
+
+    let total = rows.len();
+    let mut success: u32 = 0;
+    for (i, (artist_id, name)) in rows.into_iter().enumerate() {
+        let _ = app.emit(
+            "artist-fetch-progress",
+            serde_json::json!({
+                "current": i + 1,
+                "total": total,
+                "artist_name": name,
+            }),
+        );
+        match enrich_artist_deezer(state.clone(), artist_id).await {
+            Ok(e) => {
+                if e.picture_path.is_some() {
+                    success += 1;
+                }
+            }
+            Err(err) => {
+                tracing::warn!(artist_id, ?err, "batch artist fetch failed");
+            }
+        }
+        // Throttle to be polite — Deezer's anonymous API tolerates
+        // ~50 req/5s; 200 ms keeps us comfortably under the limit and
+        // lets a user open another tab without lag.
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    }
+
+    Ok(success)
+}
+
 #[tauri::command]
 pub async fn batch_fetch_missing_album_covers(
     app: AppHandle,

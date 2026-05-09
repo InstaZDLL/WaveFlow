@@ -733,7 +733,8 @@
     "artistImages": {
       "title": "Artist images",
       "subtitle": "Download the album covers from Deezer",
-      "action": "Recover"
+      "action": "Recover",
+      "progress": "{{current}}/{{total}} processed"
     },
     "dataFolder": {
       "title": "Data file",
