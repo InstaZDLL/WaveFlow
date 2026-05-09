@@ -12,6 +12,8 @@ export default tseslint.config(
       "**/target/**",
       "src-tauri/**",
       "waveflow-landing/**",
+      "vscode-discord-rich-presence/**",
+      "scripts/**",
       "**/*.config.ts",
       "**/*.config.js",
       "**/.commitlintrc.cjs",
