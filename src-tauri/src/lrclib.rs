@@ -13,7 +13,13 @@ use serde::Deserialize;
 
 const BASE_URL: &str = "https://lrclib.net/api/get";
 const USER_AGENT: &str = "WaveFlow/0.1 (https://github.com/InstaZDLL/waveflow)";
-const TIMEOUT_SECS: u64 = 6;
+// LRCLIB can be slow under load (the public instance is rate-limited
+// per source IP and the response includes the full lyric body, not just
+// metadata). 6s was too aggressive — bumped to 15s overall with a
+// short connect timeout so we still fail fast when the host is
+// unreachable rather than waiting the full window.
+const TIMEOUT_SECS: u64 = 15;
+const CONNECT_TIMEOUT_SECS: u64 = 5;
 
 /// Subset of the LRCLIB response we actually need.
 #[derive(Debug, Clone, Deserialize)]
@@ -34,6 +40,7 @@ impl LrclibClient {
         let http = reqwest::Client::builder()
             .user_agent(USER_AGENT)
             .timeout(std::time::Duration::from_secs(TIMEOUT_SECS))
+            .connect_timeout(std::time::Duration::from_secs(CONNECT_TIMEOUT_SECS))
             .build()
             .expect("failed to build reqwest client");
         Self { http }

@@ -300,8 +300,15 @@ pub async fn fetch_lyrics(
         Ok(Some(r)) => r,
         Ok(None) => return Ok(None),
         Err(err) => {
+            // Surface transient network failures (timeout, DNS, refused
+            // connection…) as an error so the UI can prompt the user to
+            // retry — silently returning None made it look like LRCLIB
+            // didn't have the track when in reality the request never
+            // completed. A real 404 is already mapped to Ok(None) above.
             tracing::warn!(?err, "LRCLIB fetch failed");
-            return Ok(None);
+            return Err(AppError::Other(format!(
+                "LRCLIB request failed: {err}"
+            )));
         }
     };
 
