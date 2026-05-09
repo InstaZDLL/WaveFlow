@@ -65,7 +65,8 @@ Rust/Tauri 2. Entry point: `src-tauri/src/main.rs` → `lib.rs`.
   - `output.rs` — cpal callback on dedicated thread, SPSC ring buffer (rtrb), output-device enumeration (ALSA hints on Linux, `cpal` elsewhere)
   - `state.rs` — `SharedPlayback` with atomics (no locks in hot path)
   - `analytics.rs` — tokio task for play_event writes + auto-advance
-  - `crossfade.rs` — dual-decoder mix with equal-power gain curves over the user-set window
+  - `crossfade.rs` — dual-decoder mix with equal-power gain curves over the user-set window. `ActiveStream` carries a `StreamBackend` enum (`Symphonia` / `Dsd`) so the seek + reset paths are uniform across formats.
+  - `dsd/` — DSF + DFF parsers, in-house DSD-to-PCM converter (256-tap Blackman-Harris FIR, decimation 64 → DSD64 lands at 44.1 kHz), and a metadata reader (DSF carries an ID3v2 blob in its footer; DFF uses native DIIN/COMT chunks). Symphonia 0.5 doesn't decode DSD natively; this is the entire DSD playback path.
 - **Queue** (`src-tauri/src/queue.rs`): persistent queue with fill, advance, shuffle (Fisher-Yates), restore.
 - **Smart playlists** (`src-tauri/src/smart_playlists/`): auto-generated Daily Mix family. `generator.rs` clusters top artists by tempo (BPM from `track_analysis`) and materializes `is_smart = 1` rows in the regular `playlist` table; `cover.rs` renders a composite from up to 3 cached Deezer artist pictures into the shared `metadata_artwork/<hash>.jpg` cache. Idempotent — re-running rewrites the same slot via `LIKE '%"slot":N%'` on `smart_rules`. See [`docs/features/smart-playlists.md`](docs/features/smart-playlists.md).
 - **Database**: per-profile SQLite via sqlx + a global `app.db` for profile list and app-wide settings (`app_setting` table — including the Last.fm API key). Migrations under `migrations/profile/` are append-only and applied at boot. FTS5 contentless for search with auto-sync triggers using the `'delete'` command.
