@@ -97,7 +97,7 @@ In addition, `import_lrc_file` lets the user pick a `.lrc` file by hand and over
 
 - Hit (embedded or LRCLIB) → row written.
 - Instrumental flag from LRCLIB → empty row written (suppresses retries).
-- LRCLIB 404 (track unknown) → **not cached** (the track may appear in a future LRCLIB dump).
+- LRCLIB 404 / empty payload → empty row written. Without this, lo-fi / ambient libraries would re-hit the network on every panel open since most of their tracks are genuinely missing from LRCLIB. The lyrics panel renders "no lyrics found" against an empty cached row, and the "Refetch" button (`clearLyrics + fetchLyrics`) is the manual escape hatch for the user to retry once they think LRCLIB might have added the track.
 - Network error → **not cached** and bubbled up to the UI as `Err` so the panel can show "retry" instead of a misleading "no lyrics" state.
 
 **Network defaults.** 15 s overall timeout + 5 s connect-timeout in `LrclibClient` so a slow LRCLIB instance still gets a chance to respond while a truly unreachable host fails fast.

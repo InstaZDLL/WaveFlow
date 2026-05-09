@@ -313,7 +313,28 @@ pub async fn fetch_lyrics(
         .await
     {
         Ok(Some(r)) => r,
-        Ok(None) => return Ok(None),
+        Ok(None) => {
+            // LRCLIB 404 — track unknown to the database. Cache as an
+            // empty row so we don't re-hit the network on every panel
+            // open. The user can force a re-search by clicking
+            // "Refetch" in the lyrics panel (clears the row, re-runs
+            // the waterfall) when LRCLIB might have added the track.
+            let empty = String::new();
+            upsert_lyrics(
+                &pool,
+                &meta.file_hash,
+                &empty,
+                &LyricsFormat::Plain,
+                &LyricsSource::Api,
+            )
+            .await?;
+            return Ok(Some(LyricsPayload {
+                track_id,
+                content: empty,
+                format: LyricsFormat::Plain,
+                source: LyricsSource::Api,
+            }));
+        }
         Err(err) => {
             // Surface transient network failures (timeout, DNS, refused
             // connection…) as an error so the UI can prompt the user to
@@ -347,11 +368,29 @@ pub async fn fetch_lyrics(
     }
 
     // Prefer synced lyrics when available — the UI can fall back to
-    // plain rendering if it can't parse them.
+    // plain rendering if it can't parse them. A row with neither
+    // synced nor plain content is treated like a 404 and cached as
+    // empty (same "no re-fetch on every visit" reasoning).
     let (content, format) = match (resp.synced_lyrics, resp.plain_lyrics) {
         (Some(s), _) if !s.trim().is_empty() => (s, LyricsFormat::Lrc),
         (_, Some(p)) if !p.trim().is_empty() => (p, LyricsFormat::Plain),
-        _ => return Ok(None),
+        _ => {
+            let empty = String::new();
+            upsert_lyrics(
+                &pool,
+                &meta.file_hash,
+                &empty,
+                &LyricsFormat::Plain,
+                &LyricsSource::Api,
+            )
+            .await?;
+            return Ok(Some(LyricsPayload {
+                track_id,
+                content: empty,
+                format: LyricsFormat::Plain,
+                source: LyricsSource::Api,
+            }));
+        }
     };
 
     let source = LyricsSource::Api;
@@ -580,11 +619,35 @@ async fn run_prefetch(
                             hits += 1;
                         }
                     } else {
+                        // Row exists but neither synced nor plain
+                        // lyrics — treat like a 404 and cache empty.
+                        let _ = upsert_lyrics(
+                            &pool,
+                            &file_hash,
+                            "",
+                            &LyricsFormat::Plain,
+                            &LyricsSource::Api,
+                        )
+                        .await;
                         misses += 1;
                     }
                 }
             }
-            Ok(None) => misses += 1,
+            Ok(None) => {
+                // LRCLIB 404. Cache as empty so re-runs of the
+                // prefetch and re-opens of the lyrics panel skip this
+                // track. User can force a re-search per-track via the
+                // "Refetch" button in the lyrics panel.
+                let _ = upsert_lyrics(
+                    &pool,
+                    &file_hash,
+                    "",
+                    &LyricsFormat::Plain,
+                    &LyricsSource::Api,
+                )
+                .await;
+                misses += 1;
+            }
             Err(err) => {
                 tracing::warn!(track_id, ?err, "LRCLIB prefetch failed");
                 failed += 1;
