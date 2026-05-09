@@ -42,6 +42,10 @@ pub enum StreamBackend {
         bytes_read: u64,
         /// Reusable scratch for raw DSD bytes pulled from disk.
         dsd_scratch: Vec<u8>,
+        /// Reusable scratch for PCM samples right out of the FIR
+        /// converter, before channel conversion. Held here so we can
+        /// reuse the allocation across decode calls.
+        pcm_src_scratch: Vec<f32>,
     },
 }
 
@@ -179,6 +183,7 @@ impl ActiveStream {
                 converter,
                 bytes_read: 0,
                 dsd_scratch: Vec::with_capacity(DSD_READ_CHUNK),
+                pcm_src_scratch: Vec::with_capacity(DSD_READ_CHUNK),
             },
             // Resampler from DSD output rate (44.1 kHz for DSD64,
             // 88.2 for DSD128, …) to dst is built lazily on the first
@@ -345,6 +350,7 @@ impl ActiveStream {
                 converter,
                 bytes_read,
                 dsd_scratch,
+                pcm_src_scratch,
             } => {
                 if *bytes_read >= layout.data_len_bytes {
                     return Ok(true);
@@ -363,17 +369,34 @@ impl ActiveStream {
                 *bytes_read += read as u64;
                 dsd_scratch.truncate(read);
 
-                interleaved_scratch.clear();
-                converter.decode_block(dsd_scratch, interleaved_scratch);
-                if interleaved_scratch.is_empty() {
+                // Stage 1: DSD bitstream → PCM at source channel count
+                // and the converter's output rate (DSD64 → 44.1 kHz).
+                pcm_src_scratch.clear();
+                converter.decode_block(dsd_scratch, pcm_src_scratch);
+                if pcm_src_scratch.is_empty() {
                     // The FIR is still priming on the first call —
                     // tell the engine we made progress without
                     // emitting samples so it doesn't think we hit EOF.
                     return Ok(false);
                 }
 
-                // Lazily build the resampler now that we know the
-                // converter's actual output rate.
+                // Stage 2: channel-convert from DSD's source channels
+                // (typically 2) to the device's channel count (often
+                // 8 on a 7.1 cpal output). Skipping this step makes
+                // the resampler interpret a stereo buffer as 8-channel
+                // and read 4× too fast — exactly what you hear as
+                // "accelerated + pixelated" playback.
+                interleaved_scratch.clear();
+                super::decoder::convert_channels(
+                    pcm_src_scratch,
+                    self.src_channels,
+                    dst_channels,
+                    interleaved_scratch,
+                );
+
+                // Stage 3: resample from converter rate to device rate.
+                // Lazily built on first decode now that we know the
+                // actual source rate.
                 if matches!(self.resampler, Resampler::Passthrough)
                     && converter.output_rate_hz != dst_sample_rate
                 {
