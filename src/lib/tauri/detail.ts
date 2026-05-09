@@ -18,6 +18,7 @@ export interface AlbumTrack {
   file_path: string;
   bit_depth: number | null;
   sample_rate: number | null;
+  codec: string | null;
 }
 
 export interface AlbumDetail {

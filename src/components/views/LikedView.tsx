@@ -172,6 +172,7 @@ export function LikedView({ onNavigateToAlbum, onNavigateToArtist }: LikedViewPr
                     <HiResBadge
                       bitDepth={track.bit_depth}
                       sampleRate={track.sample_rate}
+                      codec={track.codec}
                       variant="inline"
                     />
                   </span>

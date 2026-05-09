@@ -11,3 +11,14 @@ export function isHiRes(
   if (bitDepth == null || sampleRate == null) return false;
   return bitDepth >= 24 && sampleRate >= 44100;
 }
+
+/**
+ * DSD-specific badge label, derived from the scanner's `codec`
+ * field. The backend stamps `"DSD64"`, `"DSD128"`, … per multiple
+ * of 44.1 kHz. Returns `null` for non-DSD tracks so callers can
+ * fall back to the standard Hi-Res badge.
+ */
+export function dsdLabel(codec: string | null | undefined): string | null {
+  if (!codec) return null;
+  return codec.startsWith("DSD") ? codec : null;
+}

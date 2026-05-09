@@ -26,6 +26,9 @@ use crate::{
 /// proprietary, and AIFF isn't in the default feature set.
 const AUDIO_EXTENSIONS: &[&str] = &[
     "mp3", "flac", "wav", "ogg", "oga", "m4a", "mp4", "aac",
+    // DSD: handled by the in-tree audio::dsd pipeline (symphonia
+    // doesn't decode DSD), with metadata read via audio::dsd::metadata.
+    "dsf", "dff",
 ];
 
 /// Outcome of a `scan_folder` call, returned to the frontend so the UI can
@@ -326,6 +329,86 @@ fn extract_musical_key(tag: &Tag) -> Option<String> {
     }
 }
 
+/// Build the standard `ExtractedFile` payload for a DSF / DFF file.
+///
+/// Bypasses lofty (which doesn't recognise DSD containers) and goes
+/// through the in-tree [`audio::dsd`](crate::audio::dsd) module:
+/// [`parser`](crate::audio::dsd::parser) for layout (rate, channels,
+/// duration) and [`metadata`](crate::audio::dsd::metadata) for tags.
+///
+/// `bit_depth` stays at `1` so the Hi-Res badge logic light up the
+/// "DSD" pill instead of treating it as 1-bit lossy junk; `codec`
+/// reports the human-readable rate label (`DSD64`, `DSD128`, …).
+/// No embedded cover extraction — the bare DSF/DFF specs don't
+/// reserve a picture frame, so the folder cover fallback (cover.jpg
+/// next to the track) does the heavy lifting for DSD libraries.
+fn extract_dsd_file(
+    path: &Path,
+    artwork_dir: &Path,
+    size: i64,
+    modified_ms: i64,
+    hash: String,
+    ext: &str,
+) -> Result<ExtractedFile, String> {
+    use crate::audio::dsd::metadata::read_metadata;
+    use crate::audio::dsd::parser::{parse_dff, parse_dsf, DsdContainer};
+
+    let mut file = std::fs::File::open(path).map_err(|e| format!("dsd open: {e}"))?;
+    let layout = match ext {
+        "dsf" => parse_dsf(&mut file).map_err(|e| format!("dsf parse: {e}"))?,
+        "dff" => parse_dff(&mut file).map_err(|e| format!("dff parse: {e}"))?,
+        _ => return Err(format!("unexpected DSD ext: {ext}")),
+    };
+    let meta = read_metadata(&mut file, layout.container).unwrap_or_default();
+
+    let title = meta
+        .title
+        .clone()
+        .unwrap_or_else(|| {
+            path.file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("Unknown")
+                .to_string()
+        });
+    let codec = layout
+        .dsd_rate_multiple()
+        .map(|m| format!("DSD{m}"))
+        .or_else(|| Some(match layout.container {
+            DsdContainer::Dsf => "DSF".to_string(),
+            DsdContainer::Dff => "DFF".to_string(),
+        }));
+
+    Ok(ExtractedFile {
+        abs_path: path.to_string_lossy().to_string(),
+        size,
+        modified_ms,
+        hash,
+        title,
+        artist: meta.artist,
+        album: meta.album,
+        genre: meta.genre,
+        year: meta.year,
+        track_number: meta.track_number,
+        disc_number: meta.disc_number,
+        duration_ms: layout.duration_ms() as i64,
+        // No bitrate concept for DSD — leave None rather than
+        // computing rate * channels (would mislead the Hi-Res badge).
+        bitrate: None,
+        sample_rate: Some(layout.sample_rate_hz as i64),
+        channels: Some(layout.channels.count() as i64),
+        // Mark as 1-bit so the UI knows this is DSD (not lossy junk).
+        // The Hi-Res badge logic in src/utils/hires.ts handles the
+        // DSD case via the `codec` field starting with "DSD".
+        bit_depth: Some(1),
+        codec,
+        musical_key: None,
+        // No embedded picture in DSF/DFF; folder-cover fallback
+        // takes over via extract_folder_cover (called below).
+        cover_art: extract_folder_cover(path, artwork_dir),
+        rating: None,
+    })
+}
+
 fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String> {
     let metadata = fs::metadata(path).map_err(|e| format!("metadata: {e}"))?;
     let size = metadata.len() as i64;
@@ -337,6 +420,23 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
         .unwrap_or(0);
 
     let hash = hash_file(path).map_err(|e| format!("hash: {e}"))?;
+
+    // DSD has its own pipeline — symphonia/lofty don't read DSF/DFF.
+    // Branch up-front so the rest of the function can keep using
+    // lofty unchanged for every other format.
+    if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
+        let ext_lower = ext.to_ascii_lowercase();
+        if matches!(ext_lower.as_str(), "dsf" | "dff") {
+            return extract_dsd_file(
+                path,
+                artwork_dir,
+                size,
+                modified_ms,
+                hash,
+                &ext_lower,
+            );
+        }
+    }
 
     let tagged = lofty::read_from_path(path).map_err(|e| format!("lofty: {e}"))?;
     let props = tagged.properties();

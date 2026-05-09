@@ -577,6 +577,11 @@ pub struct AlbumTrack {
     /// badge on the AlbumDetailView track list.
     pub bit_depth: Option<i64>,
     pub sample_rate: Option<i64>,
+    /// Codec label from the scanner (e.g. "FLAC", "MP3", "DSD128").
+    /// Lets the inline Hi-Res badge swap to a "DSD64/128/…" label
+    /// for DSF/DFF tracks where bit_depth=1 would otherwise look
+    /// like junk to the badge logic.
+    pub codec: Option<String>,
 }
 
 #[derive(FromRow)]
@@ -594,6 +599,7 @@ struct AlbumTrackRaw {
     file_path: String,
     bit_depth: Option<i64>,
     sample_rate: Option<i64>,
+    codec: Option<String>,
 }
 
 /// Return full album detail: header (with Deezer-cached label), genres,
@@ -690,7 +696,7 @@ pub async fn get_album_detail(
                )) AS artist_ids,
                t.duration_ms, t.track_number, t.disc_number,
                t.file_path,
-               t.bit_depth, t.sample_rate,
+               t.bit_depth, t.sample_rate, t.codec,
                aw.hash AS artwork_hash, aw.format AS artwork_format
           FROM ranked r
           JOIN track t ON t.id = r.id
@@ -735,6 +741,7 @@ pub async fn get_album_detail(
                 file_path: row.file_path,
                 bit_depth: row.bit_depth,
                 sample_rate: row.sample_rate,
+                codec: row.codec,
             }
         })
         .collect();

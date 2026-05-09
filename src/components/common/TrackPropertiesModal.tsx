@@ -148,6 +148,7 @@ export function TrackPropertiesModal({
               <HiResBadge
                 bitDepth={track.bit_depth}
                 sampleRate={track.sample_rate}
+                codec={track.codec}
                 variant="inline"
               />
             </div>
