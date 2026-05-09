@@ -75,7 +75,17 @@ pub struct DsdToPcm {
 impl DsdToPcm {
     pub fn new(layout: &DsdLayout) -> Self {
         let channels = layout.channels.count() as usize;
-        let coeffs = build_blackman_harris_lowpass(FILTER_TAPS, 1.0 / DECIMATION as f32);
+        // Anti-aliasing cutoff. For decimation by N, the filter must
+        // pass nothing above Fs / (2 × N) — Nyquist of the output
+        // rate. The cutoff parameter is a fraction of the input
+        // sample rate where 0.5 = input Nyquist, so the right value
+        // is 0.5 / N and NOT 1 / N. Using 1 / N (an earlier draft)
+        // aliased every Hz between output-Nyquist and output-rate
+        // back into the audible band — catastrophic for DSD because
+        // sigma-delta noise shaping deliberately pushes huge amounts
+        // of energy up there. Audible as ~1 s of grit on every
+        // track start, masked once the music came in at full level.
+        let coeffs = build_blackman_harris_lowpass(FILTER_TAPS, 0.5 / DECIMATION as f32);
         // Discard the first FILTER_TAPS / DECIMATION outputs per
         // channel. After that many emissions the FIR window has
         // been fully overwritten with real audio bits and any bias
@@ -373,7 +383,7 @@ mod tests {
 
     #[test]
     fn fir_dc_gain_is_unity() {
-        let coeffs = build_blackman_harris_lowpass(FILTER_TAPS, 1.0 / DECIMATION as f32);
+        let coeffs = build_blackman_harris_lowpass(FILTER_TAPS, 0.5 / DECIMATION as f32);
         let sum: f32 = coeffs.iter().sum();
         assert!((sum - 1.0).abs() < 1e-5, "dc gain should be 1.0, got {sum}");
     }
