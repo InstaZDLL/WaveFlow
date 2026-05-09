@@ -818,6 +818,35 @@
     "gapless": {
       "title": "無縫播放",
       "subtitle": "在連續曲目之間不留微小靜音（適合現場與概念專輯）"
+    },
+    "equalizer": {
+      "title": "等化器",
+      "subtitle": "六段峰值，±12 dB。拖曳圓點調整曲線。",
+      "presets": "預設",
+      "reset": "重設",
+      "preset": {
+        "custom": "自訂",
+        "flat": "平直",
+        "acoustic": "原聲",
+        "bass_booster": "低音增強",
+        "bass_reducer": "低音減弱",
+        "classical": "古典",
+        "dance": "舞曲",
+        "deep": "深沉",
+        "electronic": "電子",
+        "hip_hop": "嘻哈",
+        "jazz": "爵士",
+        "latin": "拉丁",
+        "loudness": "響度",
+        "lounge": "Lounge",
+        "piano": "鋼琴",
+        "pop": "流行",
+        "rnb": "R&B",
+        "rock": "搖滾",
+        "small_speakers": "小型喇叭",
+        "spoken_word": "語音",
+        "treble_booster": "高音增強"
+      }
     }
   }
 }

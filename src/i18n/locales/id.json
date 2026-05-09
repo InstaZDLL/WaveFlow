@@ -818,6 +818,35 @@
     "gapless": {
       "title": "Pemutaran tanpa jeda",
       "subtitle": "Menyambungkan trek berurutan tanpa mikro-jeda (ideal untuk album live dan konsep)"
+    },
+    "equalizer": {
+      "title": "Equalizer",
+      "subtitle": "Enam band peaking, ±12 dB. Seret titik untuk membentuk kurva.",
+      "presets": "Preset",
+      "reset": "Atur ulang",
+      "preset": {
+        "custom": "Khusus",
+        "flat": "Datar",
+        "acoustic": "Akustik",
+        "bass_booster": "Penguat bass",
+        "bass_reducer": "Pengurang bass",
+        "classical": "Klasik",
+        "dance": "Dance",
+        "deep": "Dalam",
+        "electronic": "Elektronik",
+        "hip_hop": "Hip-Hop",
+        "jazz": "Jazz",
+        "latin": "Latin",
+        "loudness": "Loudness",
+        "lounge": "Lounge",
+        "piano": "Piano",
+        "pop": "Pop",
+        "rnb": "R&B",
+        "rock": "Rock",
+        "small_speakers": "Speaker kecil",
+        "spoken_word": "Vokal bicara",
+        "treble_booster": "Penguat treble"
+      }
     }
   }
 }

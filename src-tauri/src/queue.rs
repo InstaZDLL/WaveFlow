@@ -125,12 +125,10 @@ mod tests {
 // ---------------------------------------------------------------------
 
 async fn read_setting_string(pool: &SqlitePool, key: &str) -> AppResult<Option<String>> {
-    let row: Option<String> = sqlx::query_scalar(
-        "SELECT value FROM profile_setting WHERE key = ?",
-    )
-    .bind(key)
-    .fetch_optional(pool)
-    .await?;
+    let row: Option<String> = sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = ?")
+        .bind(key)
+        .fetch_optional(pool)
+        .await?;
     Ok(row)
 }
 
@@ -244,7 +242,9 @@ pub async fn fill_queue(
     start_index: usize,
 ) -> AppResult<()> {
     if track_ids.is_empty() {
-        return Err(AppError::Other("cannot fill queue with empty track list".into()));
+        return Err(AppError::Other(
+            "cannot fill queue with empty track list".into(),
+        ));
     }
     if start_index >= track_ids.len() {
         return Err(AppError::Other(format!(
@@ -255,7 +255,9 @@ pub async fn fill_queue(
 
     let mut tx = pool.begin().await?;
 
-    sqlx::query("DELETE FROM queue_item").execute(&mut *tx).await?;
+    sqlx::query("DELETE FROM queue_item")
+        .execute(&mut *tx)
+        .await?;
 
     let now = Utc::now().timestamp_millis();
     for (pos, track_id) in track_ids.iter().enumerate() {
@@ -304,10 +306,9 @@ pub async fn append(
         return Ok(());
     }
     let mut tx = pool.begin().await?;
-    let max_pos: Option<i64> =
-        sqlx::query_scalar("SELECT MAX(position) FROM queue_item")
-            .fetch_one(&mut *tx)
-            .await?;
+    let max_pos: Option<i64> = sqlx::query_scalar("SELECT MAX(position) FROM queue_item")
+        .fetch_one(&mut *tx)
+        .await?;
     let mut next = max_pos.map(|p| p + 1).unwrap_or(0);
     let now = Utc::now().timestamp_millis();
     for id in track_ids {
@@ -386,14 +387,12 @@ pub async fn insert_after_current(
         .await?;
     }
     // Bring the bumped rows back down past the freshly-inserted block.
-    sqlx::query(
-        "UPDATE queue_item SET position = position - ? + ? WHERE position >= ?",
-    )
-    .bind(OFFSET)
-    .bind(count)
-    .bind(insert_at + OFFSET)
-    .execute(&mut *tx)
-    .await?;
+    sqlx::query("UPDATE queue_item SET position = position - ? + ? WHERE position >= ?")
+        .bind(OFFSET)
+        .bind(count)
+        .bind(insert_at + OFFSET)
+        .execute(&mut *tx)
+        .await?;
 
     sqlx::query("DELETE FROM profile_setting WHERE key = 'queue.preshuffle'")
         .execute(&mut *tx)
@@ -488,11 +487,10 @@ pub async fn reorder(pool: &SqlitePool, from: i64, to: i64) -> AppResult<()> {
 
     // 4. Adjust the cursor so the currently-playing track keeps
     //    pointing at itself even when we shifted rows around it.
-    let raw: Option<String> = sqlx::query_scalar(
-        "SELECT value FROM profile_setting WHERE key = 'queue.current_index'",
-    )
-    .fetch_optional(&mut *tx)
-    .await?;
+    let raw: Option<String> =
+        sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = 'queue.current_index'")
+            .fetch_optional(&mut *tx)
+            .await?;
     let current = raw.and_then(|s| s.parse::<i64>().ok()).unwrap_or(0);
     let new_current = if current == from {
         to
@@ -684,10 +682,7 @@ pub async fn advance(
 /// prefetcher so it can hand the decoder a candidate without
 /// committing to a queue advance — the cursor is bumped only when
 /// the crossfade actually starts.
-pub async fn peek_next(
-    pool: &SqlitePool,
-    repeat: RepeatMode,
-) -> AppResult<Option<QueueTrack>> {
+pub async fn peek_next(pool: &SqlitePool, repeat: RepeatMode) -> AppResult<Option<QueueTrack>> {
     let length = queue_length(pool).await?;
     if length == 0 {
         return Ok(None);
@@ -789,11 +784,10 @@ pub async fn persist_resume_point(
 /// and deterministic given the crate-level RNG.
 pub async fn shuffle(pool: &SqlitePool) -> AppResult<()> {
     // Read current ordering.
-    let rows: Vec<(i64, i64)> = sqlx::query_as(
-        "SELECT position, track_id FROM queue_item ORDER BY position",
-    )
-    .fetch_all(pool)
-    .await?;
+    let rows: Vec<(i64, i64)> =
+        sqlx::query_as("SELECT position, track_id FROM queue_item ORDER BY position")
+            .fetch_all(pool)
+            .await?;
     if rows.len() < 2 {
         return Ok(()); // nothing to shuffle
     }
@@ -856,7 +850,9 @@ async fn write_queue_order(
     new_current: usize,
 ) -> AppResult<()> {
     let mut tx = pool.begin().await?;
-    sqlx::query("DELETE FROM queue_item").execute(&mut *tx).await?;
+    sqlx::query("DELETE FROM queue_item")
+        .execute(&mut *tx)
+        .await?;
     let now = Utc::now().timestamp_millis();
     for (pos, track_id) in ordered_ids.iter().enumerate() {
         sqlx::query(

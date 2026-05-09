@@ -244,11 +244,7 @@ fn clear_activity(client: &mut Option<DiscordIpcClient>) {
 /// Build and push an Activity for the cached track. Drops the IPC
 /// client on failure so the next push attempts a fresh connection
 /// (Discord can disappear at any time).
-fn push_activity(
-    client: &mut Option<DiscordIpcClient>,
-    meta: &CachedMetadata,
-    state: PlayerState,
-) {
+fn push_activity(client: &mut Option<DiscordIpcClient>, meta: &CachedMetadata, state: PlayerState) {
     let Some(c) = client.as_mut() else {
         return;
     };
@@ -327,13 +323,12 @@ fn push_activity(
 /// can opt out via the Settings toggle, which writes the literal
 /// "false" and switches this branch.
 pub async fn read_enabled(app_db: &sqlx::SqlitePool) -> bool {
-    let raw: Option<String> = sqlx::query_scalar(
-        "SELECT value FROM app_setting WHERE key = 'integrations.discord_rpc'",
-    )
-    .fetch_optional(app_db)
-    .await
-    .ok()
-    .flatten();
+    let raw: Option<String> =
+        sqlx::query_scalar("SELECT value FROM app_setting WHERE key = 'integrations.discord_rpc'")
+            .fetch_optional(app_db)
+            .await
+            .ok()
+            .flatten();
     match raw.as_deref() {
         Some("false") => false,
         _ => true,
@@ -383,13 +378,12 @@ pub async fn resolve_cover_url(
     // helper handles cache check + Deezer search + DB upsert, so a
     // subsequent call will hit the cache. Returns `None` if the
     // album doesn't exist or Deezer has nothing matching.
-    let album_id: Option<i64> =
-        sqlx::query_scalar("SELECT album_id FROM track WHERE id = ?")
-            .bind(track_id)
-            .fetch_optional(pool)
-            .await
-            .ok()
-            .flatten();
+    let album_id: Option<i64> = sqlx::query_scalar("SELECT album_id FROM track WHERE id = ?")
+        .bind(track_id)
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .flatten();
     let album_id = album_id?;
     match crate::commands::deezer::enrich_album_inner(pool, artwork_dir, album_id).await {
         Ok(enrichment) => enrichment.cover_url.filter(|u| !u.is_empty()),

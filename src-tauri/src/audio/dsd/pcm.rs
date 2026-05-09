@@ -205,12 +205,7 @@ impl DsdToPcm {
         interleave_into(&staged, self.channels, out);
     }
 
-    fn decode_block_interleaved(
-        &mut self,
-        input: &[u8],
-        block_size: usize,
-        out: &mut Vec<f32>,
-    ) {
+    fn decode_block_interleaved(&mut self, input: &[u8], block_size: usize, out: &mut Vec<f32>) {
         let stride = block_size * self.channels;
         let mut staged: Vec<Vec<f32>> = vec![Vec::new(); self.channels];
         for chunk in input.chunks(stride) {
@@ -276,9 +271,7 @@ fn build_blackman_harris_lowpass(taps: usize, cutoff: f32) -> Vec<f32> {
             (2.0 * PI * cutoff * x).sin() / (PI * x)
         };
         // Blackman-Harris window
-        let w = 0.35875
-            - 0.48829 * (2.0 * PI * nf / m).cos()
-            + 0.14128 * (4.0 * PI * nf / m).cos()
+        let w = 0.35875 - 0.48829 * (2.0 * PI * nf / m).cos() + 0.14128 * (4.0 * PI * nf / m).cos()
             - 0.01168 * (6.0 * PI * nf / m).cos();
         coeffs[n] = sinc * w;
     }

@@ -73,9 +73,7 @@ impl Drop for SsdpHandle {
 pub fn spawn(server_name: String, lan_ip: String, port: u16) -> std::io::Result<SsdpHandle> {
     let uuid = device_uuid(&server_name).to_string();
     let location = format!("http://{lan_ip}:{port}/description.xml");
-    let server_header = format!(
-        "WaveFlow/0.1 UPnP/1.0 WaveFlowMediaServer/1.0",
-    );
+    let server_header = format!("WaveFlow/0.1 UPnP/1.0 WaveFlowMediaServer/1.0",);
 
     let shared = Arc::new(SsdpShared {
         uuid,
@@ -89,7 +87,10 @@ pub fn spawn(server_name: String, lan_ip: String, port: u16) -> std::io::Result<
     let announcer = tokio::spawn(announce_loop(shared.clone()));
     let responder = tokio::spawn(respond_loop(shared, mcast_socket));
 
-    Ok(SsdpHandle { announcer, responder })
+    Ok(SsdpHandle {
+        announcer,
+        responder,
+    })
 }
 
 #[derive(Debug)]
@@ -295,10 +296,7 @@ mod tests {
 
     #[test]
     fn matching_targets_specific_st_returns_single_match() {
-        let out = matching_targets(
-            "urn:schemas-upnp-org:service:ContentDirectory:1",
-            "abc",
-        );
+        let out = matching_targets("urn:schemas-upnp-org:service:ContentDirectory:1", "abc");
         assert_eq!(
             out,
             vec!["urn:schemas-upnp-org:service:ContentDirectory:1".to_string()]

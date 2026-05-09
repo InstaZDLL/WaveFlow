@@ -818,6 +818,35 @@
     "gapless": {
       "title": "Lückenlose Wiedergabe",
       "subtitle": "Verkettet aufeinanderfolgende Titel ohne Mikropause (ideal für Live- und Konzeptalben)"
+    },
+    "equalizer": {
+      "title": "Equalizer",
+      "subtitle": "Sechs Peaking-Bänder, ±12 dB. Punkte ziehen, um die Kurve zu formen.",
+      "presets": "Presets",
+      "reset": "Zurücksetzen",
+      "preset": {
+        "custom": "Benutzerdefiniert",
+        "flat": "Linear",
+        "acoustic": "Akustisch",
+        "bass_booster": "Bass-Verstärkung",
+        "bass_reducer": "Bass-Reduzierung",
+        "classical": "Klassik",
+        "dance": "Dance",
+        "deep": "Deep",
+        "electronic": "Elektronisch",
+        "hip_hop": "Hip-Hop",
+        "jazz": "Jazz",
+        "latin": "Latin",
+        "loudness": "Loudness",
+        "lounge": "Lounge",
+        "piano": "Klavier",
+        "pop": "Pop",
+        "rnb": "R&B",
+        "rock": "Rock",
+        "small_speakers": "Kleine Lautsprecher",
+        "spoken_word": "Sprache",
+        "treble_booster": "Höhen-Verstärkung"
+      }
     }
   }
 }

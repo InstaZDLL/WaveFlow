@@ -818,6 +818,35 @@
     "gapless": {
       "title": "Reprodução contínua",
       "subtitle": "Encadeia faixas consecutivas sem micro-silêncio (ideal para concertos e álbuns conceituais)"
+    },
+    "equalizer": {
+      "title": "Equalizador",
+      "subtitle": "Seis bandas peaking, ±12 dB. Arraste os pontos para ajustar.",
+      "presets": "Predefinições",
+      "reset": "Repor",
+      "preset": {
+        "custom": "Personalizado",
+        "flat": "Plano",
+        "acoustic": "Acústico",
+        "bass_booster": "Reforço de graves",
+        "bass_reducer": "Redução de graves",
+        "classical": "Clássico",
+        "dance": "Dance",
+        "deep": "Deep",
+        "electronic": "Eletrónica",
+        "hip_hop": "Hip-Hop",
+        "jazz": "Jazz",
+        "latin": "Latino",
+        "loudness": "Loudness",
+        "lounge": "Lounge",
+        "piano": "Piano",
+        "pop": "Pop",
+        "rnb": "R&B",
+        "rock": "Rock",
+        "small_speakers": "Colunas pequenas",
+        "spoken_word": "Voz falada",
+        "treble_booster": "Reforço de agudos"
+      }
     }
   }
 }

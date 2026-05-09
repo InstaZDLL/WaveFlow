@@ -818,6 +818,35 @@
     "gapless": {
       "title": "تشغيل بدون فواصل",
       "subtitle": "يربط المقاطع المتتالية دون صمت دقيق (مثالي للحفلات الحية والألبومات المفاهيمية)"
+    },
+    "equalizer": {
+      "title": "المعادل",
+      "subtitle": "ست نطاقات peaking، ±12 ديسيبل. اسحب النقاط لتشكيل المنحنى.",
+      "presets": "إعدادات مسبقة",
+      "reset": "إعادة تعيين",
+      "preset": {
+        "custom": "مخصص",
+        "flat": "مسطح",
+        "acoustic": "صوتي",
+        "bass_booster": "تعزيز الجهير",
+        "bass_reducer": "تخفيض الجهير",
+        "classical": "كلاسيكي",
+        "dance": "رقص",
+        "deep": "عميق",
+        "electronic": "إلكتروني",
+        "hip_hop": "هيب هوب",
+        "jazz": "جاز",
+        "latin": "لاتيني",
+        "loudness": "Loudness",
+        "lounge": "لاونج",
+        "piano": "بيانو",
+        "pop": "بوب",
+        "rnb": "R&B",
+        "rock": "روك",
+        "small_speakers": "مكبرات صغيرة",
+        "spoken_word": "كلام",
+        "treble_booster": "تعزيز الحدة"
+      }
     }
   }
 }

@@ -173,8 +173,7 @@ pub async fn regenerate_daily_mixes(
             delete_existing_slot(pool, bucket.slot()).await?;
             continue;
         }
-        let id =
-            generate_one_mix(pool, paths, profile_id, bucket, &bucket_artists).await?;
+        let id = generate_one_mix(pool, paths, profile_id, bucket, &bucket_artists).await?;
         created.push(id);
     }
     Ok(created)
@@ -229,7 +228,11 @@ async fn generate_one_mix(
     tracing::info!(
         slot = bucket.slot(),
         deezer_pics,
-        fallback_album_arts = if deezer_pics == 0 { cover_paths.len() } else { 0 },
+        fallback_album_arts = if deezer_pics == 0 {
+            cover_paths.len()
+        } else {
+            0
+        },
         total_paths = cover_paths.len(),
         "smart cover image sources resolved"
     );
@@ -252,7 +255,9 @@ async fn generate_one_mix(
         }
     };
 
-    let rules = SmartPlaylistRules::DailyMix { slot: bucket.slot() };
+    let rules = SmartPlaylistRules::DailyMix {
+        slot: bucket.slot(),
+    };
     upsert_smart_playlist(
         pool,
         bucket.label(),
@@ -429,7 +434,9 @@ async fn first_track_artwork_paths(
         if out.len() >= take {
             break;
         }
-        let Some((hash, format)) = by_id.get(id) else { continue };
+        let Some((hash, format)) = by_id.get(id) else {
+            continue;
+        };
         let p = artwork_dir.join(format!("{hash}.{format}"));
         if p.exists() {
             out.push(p);
@@ -607,7 +614,12 @@ mod tests {
         for bpm_int in 30..=220 {
             let bpm = bpm_int as f64;
             let matches: Vec<_> = Bucket::ALL.iter().filter(|b| b.matches(bpm)).collect();
-            assert_eq!(matches.len(), 1, "bpm {bpm} matched {} buckets", matches.len());
+            assert_eq!(
+                matches.len(),
+                1,
+                "bpm {bpm} matched {} buckets",
+                matches.len()
+            );
         }
     }
 }
@@ -620,7 +632,11 @@ fn shuffle_with_seed<T>(slice: &mut [T], seed: u64) {
     // xorshift requires a nonzero seed; fall back to a magic constant so a
     // zero coming in from the caller doesn't produce a degenerate "no
     // shuffle" output.
-    let mut state: u64 = if seed == 0 { 0x9E37_79B9_7F4A_7C15 } else { seed };
+    let mut state: u64 = if seed == 0 {
+        0x9E37_79B9_7F4A_7C15
+    } else {
+        seed
+    };
     for i in (1..slice.len()).rev() {
         state ^= state << 13;
         state ^= state >> 7;

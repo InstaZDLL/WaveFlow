@@ -72,6 +72,7 @@ import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
 import { invoke } from "@tauri-apps/api/core";
 import { regenerateThumbnails } from "../../lib/tauri/library";
+import { EqualizerCard } from "./settings/EqualizerCard";
 
 interface SettingsViewProps {
   onNavigate: (view: ViewId) => void;
@@ -1142,6 +1143,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               onToggle={handleToggleReplayGain}
               label={t("settings.replayGain.title")}
             />
+          </div>
+
+          {/* Equalizer */}
+          <div className="px-4">
+            <EqualizerCard />
           </div>
 
           {/* Audio mono */}

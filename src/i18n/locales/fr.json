@@ -818,6 +818,35 @@
     "gapless": {
       "title": "Lecture sans pause",
       "subtitle": "Enchaîne les morceaux suivants sans micro-silence (idéal pour les albums live ou concept)"
+    },
+    "equalizer": {
+      "title": "Égaliseur",
+      "subtitle": "Six bandes peaking, ±12 dB. Glissez les points pour ajuster.",
+      "presets": "Préréglages",
+      "reset": "Réinitialiser",
+      "preset": {
+        "custom": "Personnalisé",
+        "flat": "Plat",
+        "acoustic": "Acoustique",
+        "bass_booster": "Boost graves",
+        "bass_reducer": "Réduction graves",
+        "classical": "Classique",
+        "dance": "Dance",
+        "deep": "Profond",
+        "electronic": "Électronique",
+        "hip_hop": "Hip-Hop",
+        "jazz": "Jazz",
+        "latin": "Latin",
+        "loudness": "Loudness",
+        "lounge": "Lounge",
+        "piano": "Piano",
+        "pop": "Pop",
+        "rnb": "R&B",
+        "rock": "Rock",
+        "small_speakers": "Petits haut-parleurs",
+        "spoken_word": "Voix parlée",
+        "treble_booster": "Boost aigus"
+      }
     }
   }
 }

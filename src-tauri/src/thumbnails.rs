@@ -38,12 +38,8 @@ pub fn generate_thumbnails(source_path: &Path, base_dir: &Path, hash: &str) -> R
     let rgba = img.to_rgba8();
     let src_w = rgba.width();
     let src_h = rgba.height();
-    let src_image = fr::images::Image::from_vec_u8(
-        src_w,
-        src_h,
-        rgba.into_raw(),
-        fr::PixelType::U8x4,
-    )?;
+    let src_image =
+        fr::images::Image::from_vec_u8(src_w, src_h, rgba.into_raw(), fr::PixelType::U8x4)?;
 
     let mut resizer = Resizer::new();
     for &target in &[THUMB_SMALL, THUMB_MEDIUM] {

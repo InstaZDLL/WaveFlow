@@ -33,12 +33,10 @@ fn now_ms() -> i64 {
 /// (or cleared by the user).
 #[tauri::command]
 pub async fn get_lastfm_api_key(state: tauri::State<'_, AppState>) -> AppResult<Option<String>> {
-    let value: Option<String> = sqlx::query_scalar(
-        "SELECT value FROM app_setting WHERE key = ?",
-    )
-    .bind(LASTFM_KEY)
-    .fetch_optional(&state.app_db)
-    .await?;
+    let value: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(LASTFM_KEY)
+        .fetch_optional(&state.app_db)
+        .await?;
     Ok(value)
 }
 
@@ -75,36 +73,30 @@ pub async fn set_lastfm_api_key(
 /// Internal helper used by `enrich_artist_deezer` to look up the key
 /// without having to pass it through Tauri's invoke layer.
 pub async fn read_lastfm_api_key(state: &AppState) -> AppResult<Option<String>> {
-    let value: Option<String> = sqlx::query_scalar(
-        "SELECT value FROM app_setting WHERE key = ?",
-    )
-    .bind(LASTFM_KEY)
-    .fetch_optional(&state.app_db)
-    .await?;
+    let value: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(LASTFM_KEY)
+        .fetch_optional(&state.app_db)
+        .await?;
     Ok(value.filter(|v| !v.trim().is_empty()))
 }
 
 /// Internal helper to read the matching shared secret. Both must be
 /// present for any signed call to succeed.
 pub async fn read_lastfm_api_secret(state: &AppState) -> AppResult<Option<String>> {
-    let value: Option<String> = sqlx::query_scalar(
-        "SELECT value FROM app_setting WHERE key = ?",
-    )
-    .bind(LASTFM_SECRET)
-    .fetch_optional(&state.app_db)
-    .await?;
+    let value: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(LASTFM_SECRET)
+        .fetch_optional(&state.app_db)
+        .await?;
     Ok(value.filter(|v| !v.trim().is_empty()))
 }
 
 /// Return the stored Last.fm API secret, mirrors [`get_lastfm_api_key`].
 #[tauri::command]
 pub async fn get_lastfm_api_secret(state: tauri::State<'_, AppState>) -> AppResult<Option<String>> {
-    let value: Option<String> = sqlx::query_scalar(
-        "SELECT value FROM app_setting WHERE key = ?",
-    )
-    .bind(LASTFM_SECRET)
-    .fetch_optional(&state.app_db)
-    .await?;
+    let value: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(LASTFM_SECRET)
+        .fetch_optional(&state.app_db)
+        .await?;
     Ok(value)
 }
 
@@ -152,22 +144,18 @@ pub struct LastfmStatus {
 /// present?", `connected` answers "did we successfully exchange a
 /// session key?".
 #[tauri::command]
-pub async fn lastfm_get_status(
-    state: tauri::State<'_, AppState>,
-) -> AppResult<LastfmStatus> {
+pub async fn lastfm_get_status(state: tauri::State<'_, AppState>) -> AppResult<LastfmStatus> {
     let api_key = read_lastfm_api_key(&state).await?;
     let api_secret = read_lastfm_api_secret(&state).await?;
     let configured = api_key.is_some() && api_secret.is_some();
 
     let username = match state.require_profile_pool().await {
-        Ok(pool) => {
-            sqlx::query_scalar::<_, Option<String>>(
-                "SELECT username FROM auth_credential WHERE provider = 'lastfm'",
-            )
-            .fetch_optional(&pool)
-            .await?
-            .flatten()
-        }
+        Ok(pool) => sqlx::query_scalar::<_, Option<String>>(
+            "SELECT username FROM auth_credential WHERE provider = 'lastfm'",
+        )
+        .fetch_optional(&pool)
+        .await?
+        .flatten(),
         Err(_) => None,
     };
     Ok(LastfmStatus {
@@ -251,9 +239,7 @@ pub async fn lastfm_logout(state: tauri::State<'_, AppState>) -> AppResult<()> {
 /// Return the current Discord Rich Presence opt-in flag. Defaults
 /// to `false` (off) when never configured.
 #[tauri::command]
-pub async fn get_discord_rpc_enabled(
-    state: tauri::State<'_, AppState>,
-) -> AppResult<bool> {
+pub async fn get_discord_rpc_enabled(state: tauri::State<'_, AppState>) -> AppResult<bool> {
     Ok(crate::discord_presence::read_enabled(&state.app_db).await)
 }
 

@@ -818,6 +818,35 @@
     "gapless": {
       "title": "ギャップレス再生",
       "subtitle": "連続するトラックをマイクロサイレンスなしで繋ぎます（ライブやコンセプトアルバムに最適）"
+    },
+    "equalizer": {
+      "title": "イコライザー",
+      "subtitle": "6 バンドのピーキング、±12 dB。ドットをドラッグしてカーブを調整。",
+      "presets": "プリセット",
+      "reset": "リセット",
+      "preset": {
+        "custom": "カスタム",
+        "flat": "フラット",
+        "acoustic": "アコースティック",
+        "bass_booster": "低音ブースト",
+        "bass_reducer": "低音カット",
+        "classical": "クラシック",
+        "dance": "ダンス",
+        "deep": "ディープ",
+        "electronic": "エレクトロニック",
+        "hip_hop": "ヒップホップ",
+        "jazz": "ジャズ",
+        "latin": "ラテン",
+        "loudness": "ラウドネス",
+        "lounge": "ラウンジ",
+        "piano": "ピアノ",
+        "pop": "ポップ",
+        "rnb": "R&B",
+        "rock": "ロック",
+        "small_speakers": "小型スピーカー",
+        "spoken_word": "スポークン",
+        "treble_booster": "高音ブースト"
+      }
     }
   }
 }

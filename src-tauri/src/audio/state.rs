@@ -104,6 +104,11 @@ pub struct SharedPlayback {
     /// timed equal-power mix. When `crossfade_ms > 0` crossfade wins
     /// (the fade implicitly subsumes the gap, no point in both).
     pub gapless_enabled: AtomicBool,
+    /// 6-band peaking equaliser. Bands and bypass are atomics on the
+    /// shared struct (so the UI can mutate them without bouncing
+    /// through a command queue); the per-channel filter state lives
+    /// on the decoder thread inside `EqProcessor`.
+    pub eq: super::eq::EqShared,
     /// When `true`, the analytics worker skips the auto-advance step
     /// after the current track ends naturally. Used by the sleep
     /// timer's "end of current track" mode: the frontend arms this
@@ -131,6 +136,7 @@ impl SharedPlayback {
             crossfade_ms: AtomicU32::new(0),
             replaygain_enabled: AtomicBool::new(false),
             gapless_enabled: AtomicBool::new(true),
+            eq: super::eq::EqShared::new(),
             pause_after_current_track: AtomicBool::new(false),
         }
     }
@@ -149,8 +155,7 @@ impl SharedPlayback {
 
     pub fn set_volume(&self, v: f32) {
         let clamped = v.clamp(0.0, 1.0);
-        self.volume_bits
-            .store(clamped.to_bits(), Ordering::Relaxed);
+        self.volume_bits.store(clamped.to_bits(), Ordering::Relaxed);
     }
 
     /// Current position **inside the track** in ms, derived from the

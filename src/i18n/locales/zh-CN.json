@@ -818,6 +818,35 @@
     "gapless": {
       "title": "无缝播放",
       "subtitle": "在连续曲目之间不留微小静音（适合现场和概念专辑）"
+    },
+    "equalizer": {
+      "title": "均衡器",
+      "subtitle": "六段峰值，±12 dB。拖动圆点调整曲线。",
+      "presets": "预设",
+      "reset": "重置",
+      "preset": {
+        "custom": "自定义",
+        "flat": "平直",
+        "acoustic": "原声",
+        "bass_booster": "低音增强",
+        "bass_reducer": "低音减弱",
+        "classical": "古典",
+        "dance": "舞曲",
+        "deep": "深沉",
+        "electronic": "电子",
+        "hip_hop": "嘻哈",
+        "jazz": "爵士",
+        "latin": "拉丁",
+        "loudness": "响度",
+        "lounge": "Lounge",
+        "piano": "钢琴",
+        "pop": "流行",
+        "rnb": "R&B",
+        "rock": "摇滚",
+        "small_speakers": "小型扬声器",
+        "spoken_word": "语音",
+        "treble_booster": "高音增强"
+      }
     }
   }
 }

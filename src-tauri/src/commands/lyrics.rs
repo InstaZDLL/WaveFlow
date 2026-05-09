@@ -180,10 +180,7 @@ async fn upsert_lyrics(
 /// Read the cached lyrics row, if any. The frontend identifies tracks by
 /// numeric `track_id` so we look up the file hash first, then key into the
 /// shared `app.lyrics` cache.
-async fn read_cached(
-    pool: &sqlx::SqlitePool,
-    track_id: i64,
-) -> AppResult<Option<LyricsPayload>> {
+async fn read_cached(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option<LyricsPayload>> {
     let row: Option<(String, String, String)> = sqlx::query_as(
         "SELECT l.content, l.format, l.source
            FROM track t
@@ -203,10 +200,7 @@ async fn read_cached(
 
 /// Look up the track's metadata needed to call LRCLIB and to read the
 /// embedded tag.
-async fn read_track_meta(
-    pool: &sqlx::SqlitePool,
-    track_id: i64,
-) -> AppResult<Option<TrackMeta>> {
+async fn read_track_meta(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option<TrackMeta>> {
     let row: Option<(String, String, String, Option<String>, Option<String>, i64)> =
         sqlx::query_as(
             "SELECT t.file_path, t.file_hash, t.title,
@@ -276,12 +270,11 @@ pub async fn fetch_lyrics(
     };
 
     let path_clone = meta.file_path.clone();
-    let embedded = tokio::task::spawn_blocking(move || {
-        read_embedded_lyrics(Path::new(&path_clone))
-    })
-    .await
-    .ok()
-    .flatten();
+    let embedded =
+        tokio::task::spawn_blocking(move || read_embedded_lyrics(Path::new(&path_clone)))
+            .await
+            .ok()
+            .flatten();
 
     if let Some(content) = embedded {
         let format = detect_format(&content);
@@ -342,9 +335,7 @@ pub async fn fetch_lyrics(
             // didn't have the track when in reality the request never
             // completed. A real 404 is already mapped to Ok(None) above.
             tracing::warn!(?err, "LRCLIB fetch failed");
-            return Err(AppError::Other(format!(
-                "LRCLIB request failed: {err}"
-            )));
+            return Err(AppError::Other(format!("LRCLIB request failed: {err}")));
         }
     };
 
@@ -474,9 +465,7 @@ pub async fn prefetch_library_lyrics(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<LyricsPrefetchSummary> {
     if PREFETCH_RUNNING.swap(true, Ordering::SeqCst) {
-        return Err(AppError::Other(
-            "lyrics prefetch already running".into(),
-        ));
+        return Err(AppError::Other("lyrics prefetch already running".into()));
     }
     PREFETCH_CANCEL.store(false, Ordering::SeqCst);
 
@@ -497,9 +486,16 @@ async fn run_prefetch(
     // Pending = available tracks without a cached lyric row, deduped by
     // `file_hash` (the cache key). We pick the lowest `track.id` per
     // hash to get a stable representative.
-    let pending: Vec<(i64, String, String, String, Option<String>, Option<String>, i64)> =
-        sqlx::query_as(
-            "SELECT t.id, t.file_path, t.file_hash, t.title,
+    let pending: Vec<(
+        i64,
+        String,
+        String,
+        String,
+        Option<String>,
+        Option<String>,
+        i64,
+    )> = sqlx::query_as(
+        "SELECT t.id, t.file_path, t.file_hash, t.title,
                     ar.name AS artist_name,
                     al.title AS album_title,
                     t.duration_ms
@@ -511,9 +507,9 @@ async fn run_prefetch(
                 AND l.file_hash IS NULL
               GROUP BY t.file_hash
               ORDER BY t.id",
-        )
-        .fetch_all(&pool)
-        .await?;
+    )
+    .fetch_all(&pool)
+    .await?;
 
     let total = pending.len() as u32;
     let mut processed = 0u32;
@@ -544,19 +540,16 @@ async fn run_prefetch(
 
         // 1. Embedded tag (free, no network).
         let path_clone = file_path.clone();
-        let embedded = tokio::task::spawn_blocking(move || {
-            read_embedded_lyrics(Path::new(&path_clone))
-        })
-        .await
-        .ok()
-        .flatten();
+        let embedded =
+            tokio::task::spawn_blocking(move || read_embedded_lyrics(Path::new(&path_clone)))
+                .await
+                .ok()
+                .flatten();
 
         if let Some(content) = embedded {
             let format = detect_format(&content);
             let source = LyricsSource::Embedded;
-            if let Err(e) =
-                upsert_lyrics(&pool, &file_hash, &content, &format, &source).await
-            {
+            if let Err(e) = upsert_lyrics(&pool, &file_hash, &content, &format, &source).await {
                 tracing::warn!(track_id, ?e, "persist embedded lyrics failed");
                 failed += 1;
             } else {
@@ -598,20 +591,13 @@ async fn run_prefetch(
                 } else {
                     let pick = match (resp.synced_lyrics, resp.plain_lyrics) {
                         (Some(s), _) if !s.trim().is_empty() => Some((s, LyricsFormat::Lrc)),
-                        (_, Some(p)) if !p.trim().is_empty() => {
-                            Some((p, LyricsFormat::Plain))
-                        }
+                        (_, Some(p)) if !p.trim().is_empty() => Some((p, LyricsFormat::Plain)),
                         _ => None,
                     };
                     if let Some((content, format)) = pick {
-                        if let Err(e) = upsert_lyrics(
-                            &pool,
-                            &file_hash,
-                            &content,
-                            &format,
-                            &LyricsSource::Api,
-                        )
-                        .await
+                        if let Err(e) =
+                            upsert_lyrics(&pool, &file_hash, &content, &format, &LyricsSource::Api)
+                                .await
                         {
                             tracing::warn!(track_id, ?e, "persist LRCLIB lyrics failed");
                             failed += 1;
@@ -695,17 +681,14 @@ pub fn cancel_lyrics_prefetch() -> bool {
 
 /// Drop the cached lyrics row so the next fetch re-runs the waterfall.
 #[tauri::command]
-pub async fn clear_lyrics(
-    state: tauri::State<'_, AppState>,
-    track_id: i64,
-) -> AppResult<()> {
+pub async fn clear_lyrics(state: tauri::State<'_, AppState>, track_id: i64) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     sqlx::query(
         "DELETE FROM app.lyrics
           WHERE file_hash = (SELECT file_hash FROM track WHERE id = ?)",
     )
-        .bind(track_id)
-        .execute(&pool)
-        .await?;
+    .bind(track_id)
+    .execute(&pool)
+    .await?;
     Ok(())
 }

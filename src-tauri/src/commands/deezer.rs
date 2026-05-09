@@ -503,11 +503,7 @@ pub async fn set_album_artwork_from_deezer(
     if !target.exists() {
         std::fs::write(&target, &bytes)?;
     }
-    crate::thumbnails::spawn_thumbnail_job(
-        target,
-        profile_artwork_dir.clone(),
-        hash.clone(),
-    );
+    crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
 
     let artwork_id = upsert_artwork_row(&pool, &hash, format, "deezer").await?;
     sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
@@ -531,19 +527,16 @@ pub async fn set_album_artwork_from_file(
     std::fs::create_dir_all(&profile_artwork_dir)?;
 
     let bytes = std::fs::read(&file_path)?;
-    let format = detect_image_format(&bytes)
-        .ok_or_else(|| AppError::Other("unsupported image format (expected jpg/png/webp)".into()))?;
+    let format = detect_image_format(&bytes).ok_or_else(|| {
+        AppError::Other("unsupported image format (expected jpg/png/webp)".into())
+    })?;
 
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let target = profile_artwork_dir.join(format!("{hash}.{format}"));
     if !target.exists() {
         std::fs::write(&target, &bytes)?;
     }
-    crate::thumbnails::spawn_thumbnail_job(
-        target,
-        profile_artwork_dir.clone(),
-        hash.clone(),
-    );
+    crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
 
     let artwork_id = upsert_artwork_row(&pool, &hash, format, "manual").await?;
     sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
@@ -622,11 +615,10 @@ pub async fn batch_fetch_missing_album_covers(
     let pool = state.require_profile_pool().await?;
     let artwork_dir = state.paths.metadata_artwork_dir.clone();
 
-    let rows: Vec<(i64, String)> = sqlx::query_as(
-        "SELECT a.id, a.title FROM album a WHERE a.artwork_id IS NULL",
-    )
-    .fetch_all(&pool)
-    .await?;
+    let rows: Vec<(i64, String)> =
+        sqlx::query_as("SELECT a.id, a.title FROM album a WHERE a.artwork_id IS NULL")
+            .fetch_all(&pool)
+            .await?;
 
     let total = rows.len();
     let mut success: u32 = 0;
@@ -660,24 +652,22 @@ async fn upsert_artwork_row(
     format: &str,
     source: &str,
 ) -> AppResult<i64> {
-    let existing: Option<i64> =
-        sqlx::query_scalar("SELECT id FROM artwork WHERE hash = ?")
-            .bind(hash)
-            .fetch_optional(pool)
-            .await?;
+    let existing: Option<i64> = sqlx::query_scalar("SELECT id FROM artwork WHERE hash = ?")
+        .bind(hash)
+        .fetch_optional(pool)
+        .await?;
     if let Some(id) = existing {
         return Ok(id);
     }
 
-    let result = sqlx::query(
-        "INSERT INTO artwork (hash, format, source, created_at) VALUES (?, ?, ?, ?)",
-    )
-    .bind(hash)
-    .bind(format)
-    .bind(source)
-    .bind(now_ms())
-    .execute(pool)
-    .await?;
+    let result =
+        sqlx::query("INSERT INTO artwork (hash, format, source, created_at) VALUES (?, ?, ?, ?)")
+            .bind(hash)
+            .bind(format)
+            .bind(source)
+            .bind(now_ms())
+            .execute(pool)
+            .await?;
     Ok(result.last_insert_rowid())
 }
 
@@ -697,10 +687,7 @@ fn detect_image_format(bytes: &[u8]) -> Option<&'static str> {
     {
         return Some("png");
     }
-    if bytes.len() >= 12
-        && &bytes[0..4] == b"RIFF"
-        && &bytes[8..12] == b"WEBP"
-    {
+    if bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP" {
         return Some("webp");
     }
     None

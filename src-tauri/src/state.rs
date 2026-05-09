@@ -107,11 +107,8 @@ impl AppState {
             .await?;
 
         self.paths.ensure_profile_dirs(profile_id)?;
-        let pool = db::profile_db::open(
-            &self.paths.profile_db(profile_id),
-            &self.paths.app_db,
-        )
-        .await?;
+        let pool =
+            db::profile_db::open(&self.paths.profile_db(profile_id), &self.paths.app_db).await?;
         pool.close().await;
 
         tracing::info!(profile_id, "created default profile");
@@ -125,19 +122,17 @@ impl AppState {
     /// table is genuinely empty (should not happen after `bootstrap` has run
     /// `create_default_profile`, but handled defensively).
     async fn resolve_target_profile(&self) -> AppResult<Option<i64>> {
-        let last_profile_id: Option<String> = sqlx::query_scalar(
-            "SELECT value FROM app_setting WHERE key = 'app.last_profile_id'",
-        )
-        .fetch_optional(&self.app_db)
-        .await?;
+        let last_profile_id: Option<String> =
+            sqlx::query_scalar("SELECT value FROM app_setting WHERE key = 'app.last_profile_id'")
+                .fetch_optional(&self.app_db)
+                .await?;
 
         if let Some(id_str) = last_profile_id {
             if let Ok(id) = id_str.parse::<i64>() {
-                let exists: Option<i64> =
-                    sqlx::query_scalar("SELECT id FROM profile WHERE id = ?")
-                        .bind(id)
-                        .fetch_optional(&self.app_db)
-                        .await?;
+                let exists: Option<i64> = sqlx::query_scalar("SELECT id FROM profile WHERE id = ?")
+                    .bind(id)
+                    .fetch_optional(&self.app_db)
+                    .await?;
                 if exists.is_some() {
                     return Ok(Some(id));
                 }

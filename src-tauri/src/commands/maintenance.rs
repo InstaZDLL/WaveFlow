@@ -14,9 +14,7 @@ use crate::{
 ///
 /// Returns the number of source images successfully (re)processed.
 #[tauri::command]
-pub async fn regenerate_thumbnails(
-    state: tauri::State<'_, AppState>,
-) -> AppResult<u32> {
+pub async fn regenerate_thumbnails(state: tauri::State<'_, AppState>) -> AppResult<u32> {
     let mut total: u32 = 0;
 
     total = total.saturating_add(regen_in_dir(&state.paths.metadata_artwork_dir)?);

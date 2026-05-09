@@ -53,10 +53,7 @@ const MAX_GRID_TILES: usize = 4;
 /// Images that fail to decode are skipped silently; the function only errors
 /// if the *final* JPEG can't be produced (zero usable inputs, encoder error,
 /// disk write).
-pub fn build_composite_cover(
-    image_paths: &[PathBuf],
-    metadata_dir: &Path,
-) -> AppResult<String> {
+pub fn build_composite_cover(image_paths: &[PathBuf], metadata_dir: &Path) -> AppResult<String> {
     let take = MAX_GRID_TILES.max(MAX_STRIPS);
     let tiles: Vec<RgbImage> = image_paths
         .iter()
@@ -94,10 +91,7 @@ pub fn build_composite_cover(
 /// Backwards-compatible shim — Daily Mix specifically prefers strips for 1-3
 /// inputs (matches Spotify's Daily Mix visual). New callers should use
 /// [`build_composite_cover`] which auto-picks the layout.
-pub fn build_daily_mix_cover(
-    image_paths: &[PathBuf],
-    metadata_dir: &Path,
-) -> AppResult<String> {
+pub fn build_daily_mix_cover(image_paths: &[PathBuf], metadata_dir: &Path) -> AppResult<String> {
     build_composite_cover(image_paths, metadata_dir)
 }
 

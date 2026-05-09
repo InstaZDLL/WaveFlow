@@ -203,7 +203,9 @@ impl ActiveStream {
     /// equivalent — callers should skip the seek / reset path for it.
     pub fn symphonia_track_id(&self) -> Option<u32> {
         match &self.backend {
-            StreamBackend::Symphonia { symphonia_track_id, .. } => Some(*symphonia_track_id),
+            StreamBackend::Symphonia {
+                symphonia_track_id, ..
+            } => Some(*symphonia_track_id),
             StreamBackend::Dsd { .. } => None,
         }
     }
@@ -225,7 +227,9 @@ impl ActiveStream {
     pub fn reset_decoder(&mut self) {
         match &mut self.backend {
             StreamBackend::Symphonia { decoder, .. } => decoder.reset(),
-            StreamBackend::Dsd { layout, converter, .. } => {
+            StreamBackend::Dsd {
+                layout, converter, ..
+            } => {
                 *converter = DsdToPcm::new(layout);
             }
         }
@@ -260,10 +264,8 @@ impl ActiveStream {
             } => {
                 // Bytes per ms of DSD: rate × channels / 8 / 1000.
                 // u128 to dodge overflow on DSD512 stereo.
-                let bps = (layout.sample_rate_hz as u128)
-                    * (layout.channels.count() as u128)
-                    / 8
-                    / 1000;
+                let bps =
+                    (layout.sample_rate_hz as u128) * (layout.channels.count() as u128) / 8 / 1000;
                 let target = (ms as u128 * bps) as u64;
                 // Align to a full interleave cycle. For DSF the
                 // bitstream is block-interleaved (block_size bytes
@@ -274,9 +276,7 @@ impl ActiveStream {
                 // alternate one-by-one across channels, so any
                 // multiple of channel-count is safe.
                 let stride = match layout.block_interleave {
-                    Some(block_size) => {
-                        (block_size as u64) * (layout.channels.count() as u64)
-                    }
+                    Some(block_size) => (block_size as u64) * (layout.channels.count() as u64),
                     None => layout.channels.count() as u64,
                 };
                 let aligned = if stride > 0 {
@@ -346,9 +346,8 @@ impl ActiveStream {
                     *sample_buf = Some(SampleBuffer::<f32>::new(capacity, spec));
                     self.src_channels = spec.channels.count();
                     let src_sample_rate = spec.rate;
-                    self.resampler =
-                        Resampler::new(src_sample_rate, dst_sample_rate, dst_channels)
-                            .map_err(|e| format!("resampler init: {e}"))?;
+                    self.resampler = Resampler::new(src_sample_rate, dst_sample_rate, dst_channels)
+                        .map_err(|e| format!("resampler init: {e}"))?;
                 }
                 let sb = sample_buf.as_mut().unwrap();
                 sb.copy_interleaved_ref(decoded);
@@ -450,12 +449,9 @@ impl ActiveStream {
                 if matches!(self.resampler, Resampler::Passthrough)
                     && converter.output_rate_hz != dst_sample_rate
                 {
-                    self.resampler = Resampler::new(
-                        converter.output_rate_hz,
-                        dst_sample_rate,
-                        dst_channels,
-                    )
-                    .map_err(|e| format!("dsd resampler init: {e}"))?;
+                    self.resampler =
+                        Resampler::new(converter.output_rate_hz, dst_sample_rate, dst_channels)
+                            .map_err(|e| format!("dsd resampler init: {e}"))?;
                 }
 
                 self.resampler

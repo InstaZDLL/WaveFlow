@@ -83,14 +83,10 @@ fn transition_state(
     // transient that would render as `Stopped` on the overlay and
     // flash the controls off for ~50 ms before Playing arrives.
     if !matches!(state, PlayerState::Loading) {
-        if let Some(controls) =
-            app.try_state::<crate::media_controls::MediaControlsHandle>()
-        {
+        if let Some(controls) = app.try_state::<crate::media_controls::MediaControlsHandle>() {
             controls.update_playback(state, shared.current_position_ms());
         }
-        if let Some(presence) =
-            app.try_state::<crate::discord_presence::DiscordPresenceHandle>()
-        {
+        if let Some(presence) = app.try_state::<crate::discord_presence::DiscordPresenceHandle>() {
             presence.update_playback(state, shared.current_position_ms());
         }
     }
@@ -190,9 +186,7 @@ fn decoder_loop(
                 // (or from start_ms on a mid-track resume).
                 shared.samples_played.store(0, Ordering::Relaxed);
                 shared.base_offset_ms.store(start_ms, Ordering::Relaxed);
-                shared
-                    .current_track_id
-                    .store(track_id, Ordering::Release);
+                shared.current_track_id.store(track_id, Ordering::Release);
 
                 let outcome = play_track(
                     &path,
@@ -380,6 +374,12 @@ fn play_track(
     let mut primary_resampled: Vec<f32> = Vec::with_capacity(8192);
     let mut secondary_resampled: Vec<f32> = Vec::with_capacity(8192);
     let mut mix_scratch: Vec<f32> = Vec::with_capacity(8192);
+    // 6-band EQ processor — owns per-channel biquad state. The
+    // shared atomics live on `shared.eq`; this struct just caches
+    // coefficients and runs the per-sample filter chain. Cheap to
+    // construct (no heap until the first packet) so creating it per
+    // play_track is fine.
+    let mut eq_processor = super::eq::EqProcessor::new();
     let mut last_position_emit = Instant::now();
     // Minimum frames each side should hold before mixing — keeps
     // both buffers topped up so a slow decoder doesn't starve the mix.
@@ -450,10 +450,7 @@ fn play_track(
 
                 // Pre-fetch ~500 ms before the window starts so the
                 // file open + first packet decode have time to complete.
-                if !next_requested
-                    && pending_next.is_none()
-                    && remaining <= effective_ms + 500
-                {
+                if !next_requested && pending_next.is_none() && remaining <= effective_ms + 500 {
                     let _ = analytics_tx.send(AnalyticsMsg::PrefetchNext);
                     next_requested = true;
                 }
@@ -461,8 +458,7 @@ fn play_track(
                 if pending_next.is_some() && remaining <= effective_ms {
                     mix_active = true;
                     mix_frames_written = 0;
-                    mix_frames_total =
-                        (effective_ms * dst_sample_rate as u64) / 1000;
+                    mix_frames_total = (effective_ms * dst_sample_rate as u64) / 1000;
                 }
             } else if shared.gapless_enabled.load(Ordering::Relaxed) {
                 // Gapless mode: prefetch the next track ~500 ms before
@@ -484,9 +480,7 @@ fn play_track(
             // enough — the resampler may yield fewer frames than the
             // packet held, so we keep going until we hit the minimum
             // or EOF).
-            while !primary_at_eof
-                && primary_resampled.len() / dst_channels < CROSSFADE_MIN_FRAMES
-            {
+            while !primary_at_eof && primary_resampled.len() / dst_channels < CROSSFADE_MIN_FRAMES {
                 let prev_len = primary_resampled.len();
                 primary_at_eof = stream.decode_next(
                     &mut primary_resampled,
@@ -531,8 +525,7 @@ fn play_track(
             // doesn't quite match the duration the fade was timed
             // against (DSD files in particular: the data chunk is
             // block-aligned, not duration-aligned).
-            let remaining_window =
-                mix_frames_total.saturating_sub(mix_frames_written) as usize;
+            let remaining_window = mix_frames_total.saturating_sub(mix_frames_written) as usize;
             let mix_frames = if primary_at_eof {
                 secondary_frames.min(remaining_window)
             } else {
@@ -567,6 +560,12 @@ fn play_track(
                 primary_resampled.drain(..primary_consumed * dst_channels);
                 secondary_resampled.drain(..mix_frames * dst_channels);
 
+                eq_processor.process(
+                    &mut mix_scratch,
+                    dst_channels,
+                    dst_sample_rate as f32,
+                    &shared.eq,
+                );
                 match push_samples(
                     &mix_scratch,
                     producer,
@@ -651,7 +650,9 @@ fn play_track(
 
                 shared.samples_played.store(0, Ordering::Relaxed);
                 shared.base_offset_ms.store(0, Ordering::Relaxed);
-                shared.current_track_id.store(stream.track_id, Ordering::Release);
+                shared
+                    .current_track_id
+                    .store(stream.track_id, Ordering::Release);
                 shared.seek_generation.fetch_add(1, Ordering::Release);
 
                 let _ = app.emit(EVENT_POSITION, PositionPayload { ms: 0 });
@@ -718,6 +719,12 @@ fn play_track(
                 ended_naturally = true;
                 break 'pkt;
             }
+            eq_processor.process(
+                &mut primary_resampled,
+                dst_channels,
+                dst_sample_rate as f32,
+                &shared.eq,
+            );
             match push_samples(
                 &primary_resampled,
                 producer,
@@ -900,9 +907,7 @@ fn drain_commands(
             Ok(AudioCmd::SetReplayGain(on)) => {
                 shared.replaygain_enabled.store(on, Ordering::Release)
             }
-            Ok(AudioCmd::SetGapless(on)) => {
-                shared.gapless_enabled.store(on, Ordering::Release)
-            }
+            Ok(AudioCmd::SetGapless(on)) => shared.gapless_enabled.store(on, Ordering::Release),
             Ok(AudioCmd::Pause) => {
                 transition_state(shared, app, PlayerState::Paused, Some(track_id));
                 shared.paused_output.store(true, Ordering::Release);
@@ -911,12 +916,7 @@ fn drain_commands(
                     match cmd_rx.recv() {
                         Ok(AudioCmd::Resume) => {
                             shared.paused_output.store(false, Ordering::Release);
-                            transition_state(
-                                shared,
-                                app,
-                                PlayerState::Playing,
-                                Some(track_id),
-                            );
+                            transition_state(shared, app, PlayerState::Playing, Some(track_id));
                             break;
                         }
                         Ok(AudioCmd::Shutdown) => return ControlFlow::Shutdown,
@@ -1067,14 +1067,7 @@ fn push_samples(
                     // Ring full. Yield briefly and poll commands so
                     // pause/stop/seek aren't blocked by a saturated
                     // buffer.
-                    match drain_commands(
-                        cmd_rx,
-                        shared,
-                        app,
-                        track_id,
-                        pending_cmd,
-                        pending_next,
-                    ) {
+                    match drain_commands(cmd_rx, shared, app, track_id, pending_cmd, pending_next) {
                         ControlFlow::Shutdown => return PushOutcome::Shutdown,
                         ControlFlow::Break => return PushOutcome::Stop,
                         ControlFlow::Seek(ms) => return PushOutcome::Seek(ms),

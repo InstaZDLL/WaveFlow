@@ -111,8 +111,7 @@ fn now_millis() -> i64 {
 /// the resolver without duplicating the path glue.
 fn resolve_cover_path(p: &mut Playlist, paths: &crate::paths::AppPaths) {
     if let Some(hash) = p.cover_hash.as_deref() {
-        p.cover_path =
-            crate::metadata_artwork::existing_path(&paths.metadata_artwork_dir, hash);
+        p.cover_path = crate::metadata_artwork::existing_path(&paths.metadata_artwork_dir, hash);
     }
 }
 
@@ -301,10 +300,7 @@ pub async fn update_playlist(
 /// track links, but the underlying `track` rows are preserved — they still
 /// belong to their library.
 #[tauri::command]
-pub async fn delete_playlist(
-    state: tauri::State<'_, AppState>,
-    playlist_id: i64,
-) -> AppResult<()> {
+pub async fn delete_playlist(state: tauri::State<'_, AppState>, playlist_id: i64) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
 
     let result = sqlx::query("DELETE FROM playlist WHERE id = ?")
@@ -382,8 +378,7 @@ pub async fn list_playlist_tracks(
                             .join(format!("{}.{}", hash, format))
                             .to_string_lossy()
                             .to_string();
-                        let (p1, p2) =
-                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
                         (Some(full), p1, p2)
                     }
                     _ => (None, None, None),
@@ -600,17 +595,13 @@ pub async fn reorder_playlist_track(
     .fetch_optional(&mut *tx)
     .await?;
     let from = from.ok_or_else(|| {
-        AppError::Other(format!(
-            "track {track_id} not in playlist {playlist_id}"
-        ))
+        AppError::Other(format!("track {track_id} not in playlist {playlist_id}"))
     })?;
 
-    let len: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM playlist_track WHERE playlist_id = ?",
-    )
-    .bind(playlist_id)
-    .fetch_one(&mut *tx)
-    .await?;
+    let len: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM playlist_track WHERE playlist_id = ?")
+        .bind(playlist_id)
+        .fetch_one(&mut *tx)
+        .await?;
     let to = new_position.clamp(0, (len - 1).max(0));
 
     if from == to {
@@ -840,7 +831,9 @@ pub async fn export_playlist_m3u(
         .fetch_optional(&pool)
         .await?;
     let name = name.ok_or_else(|| {
-        AppError::Other(format!("playlist {playlist_id} not found in active profile"))
+        AppError::Other(format!(
+            "playlist {playlist_id} not found in active profile"
+        ))
     })?;
 
     #[derive(FromRow)]
@@ -874,10 +867,7 @@ pub async fn export_playlist_m3u(
 
     let mut out = String::with_capacity(rows.len() * 200 + 64);
     out.push_str("#EXTM3U\n");
-    out.push_str(&format!(
-        "#PLAYLIST:{}\n",
-        name.replace(['\r', '\n'], " ")
-    ));
+    out.push_str(&format!("#PLAYLIST:{}\n", name.replace(['\r', '\n'], " ")));
     for row in &rows {
         let secs = (row.duration_ms / 1000).max(0);
         let artist = row.artist_name.as_deref().unwrap_or("").trim();
@@ -899,8 +889,7 @@ pub async fn export_playlist_m3u(
                 .map_err(|e| AppError::Other(format!("create parent dir: {e}")))?;
         }
     }
-    std::fs::write(&dest, out)
-        .map_err(|e| AppError::Other(format!("write m3u file: {e}")))?;
+    std::fs::write(&dest, out).map_err(|e| AppError::Other(format!("write m3u file: {e}")))?;
 
     tracing::info!(
         playlist_id,
@@ -945,11 +934,7 @@ pub async fn import_playlist_m3u(
             continue;
         }
         let p = std::path::PathBuf::from(line);
-        let resolved = if p.is_absolute() {
-            p
-        } else {
-            parent.join(&p)
-        };
+        let resolved = if p.is_absolute() { p } else { parent.join(&p) };
         candidates.push(resolved);
     }
 
@@ -965,11 +950,10 @@ pub async fn import_playlist_m3u(
         id: i64,
         file_path: String,
     }
-    let all = sqlx::query_as::<_, PathRow>(
-        "SELECT id, file_path FROM track WHERE is_available = 1",
-    )
-    .fetch_all(&pool)
-    .await?;
+    let all =
+        sqlx::query_as::<_, PathRow>("SELECT id, file_path FROM track WHERE is_available = 1")
+            .fetch_all(&pool)
+            .await?;
     let mut by_canonical: std::collections::HashMap<String, i64> =
         std::collections::HashMap::with_capacity(all.len());
     let mut by_basename: std::collections::HashMap<String, i64> =
@@ -1010,8 +994,7 @@ pub async fn import_playlist_m3u(
             .take(3)
             .map(|p| canonical_path_key(p))
             .collect();
-        let library_sample: Vec<String> =
-            by_basename.keys().take(3).cloned().collect();
+        let library_sample: Vec<String> = by_basename.keys().take(3).cloned().collect();
         tracing::warn!(
             ?sample,
             library_sample = ?library_sample,

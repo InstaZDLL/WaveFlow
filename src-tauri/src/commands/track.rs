@@ -194,8 +194,7 @@ pub async fn list_tracks(
                             .join(format!("{}.{}", hash, format))
                             .to_string_lossy()
                             .to_string();
-                        let (p1, p2) =
-                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
                         (Some(full), p1, p2)
                     }
                     _ => (None, None, None),
@@ -305,8 +304,7 @@ pub async fn search_tracks(
                             .join(format!("{}.{}", hash, format))
                             .to_string_lossy()
                             .to_string();
-                        let (p1, p2) =
-                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
                         (Some(full), p1, p2)
                     }
                     _ => (None, None, None),
@@ -479,9 +477,7 @@ pub async fn search_tracks_advanced(
     if filters.bpm_min.is_some() || filters.bpm_max.is_some() {
         // BPM is in track_analysis; require the row to exist when the
         // user filters by tempo.
-        sql.push_str(
-            "  AND EXISTS (SELECT 1 FROM track_analysis ta WHERE ta.track_id = t.id\n",
-        );
+        sql.push_str("  AND EXISTS (SELECT 1 FROM track_analysis ta WHERE ta.track_id = t.id\n");
         if let Some(b) = filters.bpm_min {
             sql.push_str("           AND ta.bpm >= ?\n");
             binds.push(Bind::Real(b));
@@ -561,8 +557,7 @@ pub async fn search_tracks_advanced(
                             .join(format!("{}.{}", hash, format))
                             .to_string_lossy()
                             .to_string();
-                        let (p1, p2) =
-                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
                         (Some(full), p1, p2)
                     }
                     _ => (None, None, None),
@@ -653,9 +648,7 @@ pub async fn toggle_like_track(
 /// Return the set of liked track IDs so the frontend can render hearts
 /// without N+1 queries. Cheap because `liked_track` is indexed.
 #[tauri::command]
-pub async fn list_liked_track_ids(
-    state: tauri::State<'_, AppState>,
-) -> AppResult<Vec<i64>> {
+pub async fn list_liked_track_ids(state: tauri::State<'_, AppState>) -> AppResult<Vec<i64>> {
     let pool = state.require_profile_pool().await?;
     let ids = sqlx::query_scalar("SELECT track_id FROM liked_track ORDER BY liked_at DESC")
         .fetch_all(&pool)
@@ -666,9 +659,7 @@ pub async fn list_liked_track_ids(
 /// List every liked track with full metadata, ordered by most recently
 /// liked first. Used by the LikedView.
 #[tauri::command]
-pub async fn list_liked_tracks(
-    state: tauri::State<'_, AppState>,
-) -> AppResult<Vec<Track>> {
+pub async fn list_liked_tracks(state: tauri::State<'_, AppState>) -> AppResult<Vec<Track>> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
@@ -719,8 +710,7 @@ pub async fn list_liked_tracks(
                             .join(format!("{}.{}", hash, format))
                             .to_string_lossy()
                             .to_string();
-                        let (p1, p2) =
-                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
                         (Some(full), p1, p2)
                     }
                     _ => (None, None, None),

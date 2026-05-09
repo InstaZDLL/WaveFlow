@@ -818,6 +818,35 @@
     "gapless": {
       "title": "Boşluksuz çalma",
       "subtitle": "Ardışık parçaları mikro-sessizlik olmadan zincirler (canlı ve konsept albümler için ideal)"
+    },
+    "equalizer": {
+      "title": "Ekolayzer",
+      "subtitle": "Altı peaking bandı, ±12 dB. Eğriyi şekillendirmek için noktaları sürükleyin.",
+      "presets": "Önayarlar",
+      "reset": "Sıfırla",
+      "preset": {
+        "custom": "Özel",
+        "flat": "Düz",
+        "acoustic": "Akustik",
+        "bass_booster": "Bas yükseltici",
+        "bass_reducer": "Bas azaltıcı",
+        "classical": "Klasik",
+        "dance": "Dans",
+        "deep": "Derin",
+        "electronic": "Elektronik",
+        "hip_hop": "Hip-Hop",
+        "jazz": "Caz",
+        "latin": "Latin",
+        "loudness": "Loudness",
+        "lounge": "Lounge",
+        "piano": "Piyano",
+        "pop": "Pop",
+        "rnb": "R&B",
+        "rock": "Rock",
+        "small_speakers": "Küçük hoparlörler",
+        "spoken_word": "Konuşma",
+        "treble_booster": "Tiz yükseltici"
+      }
     }
   }
 }

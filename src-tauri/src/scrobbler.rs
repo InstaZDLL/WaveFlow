@@ -225,7 +225,11 @@ async fn fetch_due(pool: &SqlitePool) -> Result<Vec<PendingScrobble>, sqlx::Erro
                 artist_name,
                 album_title: album.filter(|s| !s.is_empty()),
                 track_number: track_no.filter(|n| *n > 0),
-                duration_s: if duration_ms > 0 { Some(duration_ms / 1000) } else { None },
+                duration_s: if duration_ms > 0 {
+                    Some(duration_ms / 1000)
+                } else {
+                    None
+                },
                 played_at_unix_s: played_at_ms / 1000,
                 retry_count: retry,
             })

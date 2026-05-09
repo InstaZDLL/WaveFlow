@@ -29,10 +29,7 @@ use crate::{
 ///
 /// Called at every `LoadAndPlay` / `SetNextTrack` dispatch site so the
 /// decoder thread never has to reach into SQLite from the audio path.
-pub(crate) async fn fetch_replay_gain_db(
-    pool: &sqlx::SqlitePool,
-    track_id: i64,
-) -> Option<f64> {
+pub(crate) async fn fetch_replay_gain_db(pool: &sqlx::SqlitePool, track_id: i64) -> Option<f64> {
     sqlx::query_scalar::<_, Option<f64>>(
         "SELECT replay_gain_db FROM track_analysis WHERE track_id = ?",
     )
@@ -103,7 +100,9 @@ impl PlayerStateSnapshot {
             state: shared.state().as_str().to_string(),
             position_ms: shared.current_position_ms(),
             volume: shared.volume(),
-            sample_rate: shared.sample_rate.load(std::sync::atomic::Ordering::Relaxed),
+            sample_rate: shared
+                .sample_rate
+                .load(std::sync::atomic::Ordering::Relaxed),
             channels: shared.channels.load(std::sync::atomic::Ordering::Relaxed),
             shuffle,
             repeat_mode: repeat_mode.as_str().to_string(),
@@ -234,8 +233,7 @@ fn schedule_discord_presence(app: &AppHandle, track: &QueueTrack) {
     let duration_ms = track.duration_ms;
 
     tauri::async_runtime::spawn(async move {
-        let Some(presence) =
-            app.try_state::<crate::discord_presence::DiscordPresenceHandle>()
+        let Some(presence) = app.try_state::<crate::discord_presence::DiscordPresenceHandle>()
         else {
             return;
         };
@@ -292,8 +290,7 @@ fn schedule_now_playing(app: &AppHandle, track: &QueueTrack) {
         };
 
         let state = app.state::<AppState>();
-        let creds = match crate::commands::integration::read_lastfm_credentials(&state).await
-        {
+        let creds = match crate::commands::integration::read_lastfm_credentials(&state).await {
             Ok(Some(c)) => c,
             _ => return,
         };
@@ -363,55 +360,87 @@ pub async fn player_get_state(
             // Restore the persisted volume into the atomic shared
             // with the cpal callback. Without this, the volume knob
             // jumps back to 100 % on every app launch.
-            if let Some(persisted) =
-                queue::read_player_volume(&pool).await
-            {
+            if let Some(persisted) = queue::read_player_volume(&pool).await {
                 engine.shared().set_volume(persisted);
             }
             // Restore audio settings (normalize, mono).
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
-                "SELECT value FROM profile_setting WHERE key = 'audio.normalize'"
-            ).fetch_optional(&pool).await {
-                engine.shared().normalize_enabled.store(
-                    v == "true",
-                    std::sync::atomic::Ordering::Release,
-                );
+                "SELECT value FROM profile_setting WHERE key = 'audio.normalize'",
+            )
+            .fetch_optional(&pool)
+            .await
+            {
+                engine
+                    .shared()
+                    .normalize_enabled
+                    .store(v == "true", std::sync::atomic::Ordering::Release);
             }
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
-                "SELECT value FROM profile_setting WHERE key = 'audio.mono'"
-            ).fetch_optional(&pool).await {
-                engine.shared().mono_enabled.store(
-                    v == "true",
-                    std::sync::atomic::Ordering::Release,
-                );
+                "SELECT value FROM profile_setting WHERE key = 'audio.mono'",
+            )
+            .fetch_optional(&pool)
+            .await
+            {
+                engine
+                    .shared()
+                    .mono_enabled
+                    .store(v == "true", std::sync::atomic::Ordering::Release);
             }
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
-                "SELECT value FROM profile_setting WHERE key = 'audio.crossfade_ms'"
-            ).fetch_optional(&pool).await {
+                "SELECT value FROM profile_setting WHERE key = 'audio.crossfade_ms'",
+            )
+            .fetch_optional(&pool)
+            .await
+            {
                 if let Ok(ms) = v.parse::<u32>() {
-                    engine.shared().crossfade_ms.store(
-                        ms,
-                        std::sync::atomic::Ordering::Release,
-                    );
+                    engine
+                        .shared()
+                        .crossfade_ms
+                        .store(ms, std::sync::atomic::Ordering::Release);
                 }
             }
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
-                "SELECT value FROM profile_setting WHERE key = 'audio.replaygain'"
-            ).fetch_optional(&pool).await {
-                engine.shared().replaygain_enabled.store(
-                    v == "true",
-                    std::sync::atomic::Ordering::Release,
-                );
+                "SELECT value FROM profile_setting WHERE key = 'audio.replaygain'",
+            )
+            .fetch_optional(&pool)
+            .await
+            {
+                engine
+                    .shared()
+                    .replaygain_enabled
+                    .store(v == "true", std::sync::atomic::Ordering::Release);
             }
             // Gapless defaults to ON, so only override the boot-time
             // default when an explicit `false` row is found.
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
-                "SELECT value FROM profile_setting WHERE key = 'audio.gapless'"
-            ).fetch_optional(&pool).await {
-                engine.shared().gapless_enabled.store(
-                    v == "true",
-                    std::sync::atomic::Ordering::Release,
-                );
+                "SELECT value FROM profile_setting WHERE key = 'audio.gapless'",
+            )
+            .fetch_optional(&pool)
+            .await
+            {
+                engine
+                    .shared()
+                    .gapless_enabled
+                    .store(v == "true", std::sync::atomic::Ordering::Release);
+            }
+            // Equalizer settings.
+            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
+                "SELECT value FROM profile_setting WHERE key = 'audio.eq_enabled'",
+            )
+            .fetch_optional(&pool)
+            .await
+            {
+                engine.shared().eq.set_enabled(v == "true");
+            }
+            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
+                "SELECT value FROM profile_setting WHERE key = 'audio.eq_bands'",
+            )
+            .fetch_optional(&pool)
+            .await
+            {
+                if let Ok(bands) = serde_json::from_str::<Vec<f32>>(&v) {
+                    engine.shared().eq.set_all_bands_db(&bands);
+                }
             }
             // Prefer the actively-playing track (non-zero track_id in
             // SharedPlayback), fall back to the persisted resume point
@@ -420,8 +449,7 @@ pub async fn player_get_state(
                 .shared()
                 .current_track_id
                 .load(std::sync::atomic::Ordering::Acquire);
-            let (restored, position): (Option<crate::queue::QueueTrack>, u64) = if active_id > 0
-            {
+            let (restored, position): (Option<crate::queue::QueueTrack>, u64) = if active_id > 0 {
                 // Use `restore_state` with a tweak — if there's an
                 // active track_id, look it up directly instead of
                 // relying on the persisted last-track.
@@ -437,18 +465,13 @@ pub async fn player_get_state(
                     None => (None, 0),
                 }
             };
-            let payload =
-                restored.map(|t| queue_track_to_payload(&state, t, profile_id));
+            let payload = restored.map(|t| queue_track_to_payload(&state, t, profile_id));
             (shuffle, repeat_mode, payload, position)
         }
         Err(_) => (false, queue::RepeatMode::Off, None, 0),
     };
-    let mut snapshot = PlayerStateSnapshot::from_shared(
-        engine.shared(),
-        shuffle,
-        repeat_mode,
-        current_track,
-    );
+    let mut snapshot =
+        PlayerStateSnapshot::from_shared(engine.shared(), shuffle, repeat_mode, current_track);
     // When the engine is Idle but we resolved a resume point, use the
     // persisted position instead of the (zero) live counter.
     if snapshot.state == "idle" && snapshot.position_ms == 0 {
@@ -506,21 +529,18 @@ pub struct PlayerQueueSnapshot {
 /// frontend component; re-called every time a `player:queue-changed`
 /// event fires.
 #[tauri::command]
-pub async fn player_get_queue(
-    state: tauri::State<'_, AppState>,
-) -> AppResult<PlayerQueueSnapshot> {
+pub async fn player_get_queue(state: tauri::State<'_, AppState>) -> AppResult<PlayerQueueSnapshot> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
     let items = queue::list_queue(&pool).await?;
-    let current_index: i64 =
-        sqlx::query_scalar::<_, Option<String>>(
-            "SELECT value FROM profile_setting WHERE key = 'queue.current_index'",
-        )
-        .fetch_optional(&pool)
-        .await?
-        .flatten()
-        .and_then(|s| s.parse::<i64>().ok())
-        .unwrap_or(0);
+    let current_index: i64 = sqlx::query_scalar::<_, Option<String>>(
+        "SELECT value FROM profile_setting WHERE key = 'queue.current_index'",
+    )
+    .fetch_optional(&pool)
+    .await?
+    .flatten()
+    .and_then(|s| s.parse::<i64>().ok())
+    .unwrap_or(0);
 
     let payload_items = items
         .into_iter()
@@ -531,11 +551,10 @@ pub async fn player_get_queue(
     // position 0 is fine because fill_queue always rewrites the
     // whole queue with one source — append paths use 'manual' which
     // the frontend treats the same as no-source.
-    let source_type: Option<String> = sqlx::query_scalar(
-        "SELECT source_type FROM queue_item WHERE position = 0 LIMIT 1",
-    )
-    .fetch_optional(&pool)
-    .await?;
+    let source_type: Option<String> =
+        sqlx::query_scalar("SELECT source_type FROM queue_item WHERE position = 0 LIMIT 1")
+            .fetch_optional(&pool)
+            .await?;
 
     Ok(PlayerQueueSnapshot {
         current_index,
@@ -595,9 +614,7 @@ pub async fn player_toggle_shuffle(
 
 /// Cycle `off → all → one → off` and return the new mode as a string.
 #[tauri::command]
-pub async fn player_cycle_repeat(
-    state: tauri::State<'_, AppState>,
-) -> AppResult<String> {
+pub async fn player_cycle_repeat(state: tauri::State<'_, AppState>) -> AppResult<String> {
     let pool = state.require_profile_pool().await?;
     let current = queue::read_repeat_mode(&pool).await;
     let next = match current {
@@ -795,6 +812,114 @@ pub async fn player_set_gapless(
     Ok(())
 }
 
+// ─── Equalizer ──────────────────────────────────────────────────────
+
+/// Snapshot returned by `player_get_eq` so the Settings view can
+/// hydrate the curve + bypass + preset dropdown without three
+/// round-trips.
+#[derive(Debug, serde::Serialize)]
+pub struct EqSnapshot {
+    pub enabled: bool,
+    pub bands_db: Vec<f32>,
+    pub band_freqs: Vec<f32>,
+    pub max_gain_db: f32,
+    pub presets: Vec<EqPresetEntry>,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct EqPresetEntry {
+    pub key: String,
+    pub gains: Vec<f32>,
+}
+
+#[tauri::command]
+pub async fn player_get_eq(engine: tauri::State<'_, Arc<AudioEngine>>) -> AppResult<EqSnapshot> {
+    let eq = &engine.shared().eq;
+    let bands = eq.read_bands_db().to_vec();
+    let presets = crate::audio::eq::PRESETS
+        .iter()
+        .map(|(k, g)| EqPresetEntry {
+            key: (*k).to_string(),
+            gains: g.to_vec(),
+        })
+        .collect();
+    Ok(EqSnapshot {
+        enabled: eq.is_enabled(),
+        bands_db: bands,
+        band_freqs: crate::audio::eq::BAND_FREQS.to_vec(),
+        max_gain_db: crate::audio::eq::MAX_GAIN_DB,
+        presets,
+    })
+}
+
+#[tauri::command]
+pub async fn player_set_eq_enabled(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    engine.shared().eq.set_enabled(enabled);
+    persist_eq(&state, engine.shared()).await;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn player_set_eq_band(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    index: usize,
+    gain_db: f32,
+) -> AppResult<()> {
+    engine.shared().eq.set_band_db(index, gain_db);
+    persist_eq(&state, engine.shared()).await;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn player_set_eq_preset(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    preset_key: String,
+) -> AppResult<()> {
+    if let Some(gains) = crate::audio::eq::preset_gains(&preset_key) {
+        engine.shared().eq.set_all_bands_db(&gains);
+        persist_eq(&state, engine.shared()).await;
+    }
+    Ok(())
+}
+
+/// Persist the EQ snapshot under two keys: `audio.eq_enabled` (bool)
+/// and `audio.eq_bands` (JSON array of f32). Splitting the bypass
+/// from the bands lets the user toggle the EQ off without losing
+/// their custom curve.
+async fn persist_eq(state: &AppState, shared: &crate::audio::state::SharedPlayback) {
+    let Ok(pool) = state.require_profile_pool().await else {
+        return;
+    };
+    let now = chrono::Utc::now().timestamp_millis();
+    let enabled = shared.eq.is_enabled();
+    let bands = shared.eq.read_bands_db();
+    let bands_json = serde_json::to_string(&bands.to_vec()).unwrap_or_else(|_| "[]".into());
+    let _ = sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+         VALUES ('audio.eq_enabled', ?, 'bool', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(if enabled { "true" } else { "false" })
+    .bind(now)
+    .execute(&pool)
+    .await;
+    let _ = sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+         VALUES ('audio.eq_bands', ?, 'json', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(&bands_json)
+    .bind(now)
+    .execute(&pool)
+    .await;
+}
+
 /// Update the crossfade duration. Pushes the new value live to the
 /// audio engine so the next track transition uses it, and persists
 /// to `profile_setting['audio.crossfade_ms']` so it survives a restart.
@@ -843,10 +968,11 @@ pub async fn player_get_audio_settings(
 
     let mut crossfade_ms: i64 = 0;
     if let Ok(pool) = state.require_profile_pool().await {
-        if let Ok(Some(val)) =
-            sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = 'audio.crossfade_ms'")
-                .fetch_optional(&pool)
-                .await
+        if let Ok(Some(val)) = sqlx::query_scalar::<_, String>(
+            "SELECT value FROM profile_setting WHERE key = 'audio.crossfade_ms'",
+        )
+        .fetch_optional(&pool)
+        .await
         {
             crossfade_ms = val.parse().unwrap_or(0);
         }
@@ -1114,11 +1240,7 @@ pub async fn player_next(
             ?repeat,
             "player_next advanced"
         ),
-        None => tracing::info!(
-            queue_len,
-            ?repeat,
-            "player_next: queue exhausted, no-op"
-        ),
+        None => tracing::info!(queue_len, ?repeat, "player_next: queue exhausted, no-op"),
     }
     let Some(track) = next_opt else {
         return Ok(());

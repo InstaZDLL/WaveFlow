@@ -175,8 +175,7 @@ pub async fn stats_top_tracks(
                             .join(format!("{hash}.{fmt}"))
                             .to_string_lossy()
                             .to_string();
-                        let (p1, p2) =
-                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
                         (Some(full), p1, p2)
                     }
                     _ => (None, None, None),
@@ -354,8 +353,7 @@ pub async fn stats_top_albums(
                             .join(format!("{hash}.{fmt}"))
                             .to_string_lossy()
                             .to_string();
-                        let (p1, p2) =
-                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
                         (Some(full), p1, p2)
                     }
                     _ => (None, None, None),

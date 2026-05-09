@@ -818,6 +818,35 @@
     "gapless": {
       "title": "Riproduzione senza pause",
       "subtitle": "Concatena i brani consecutivi senza micro-silenzio (perfetto per live e concept album)"
+    },
+    "equalizer": {
+      "title": "Equalizzatore",
+      "subtitle": "Sei bande peaking, ±12 dB. Trascina i punti per modellare la curva.",
+      "presets": "Preset",
+      "reset": "Reimposta",
+      "preset": {
+        "custom": "Personalizzato",
+        "flat": "Piatto",
+        "acoustic": "Acustico",
+        "bass_booster": "Boost bassi",
+        "bass_reducer": "Riduzione bassi",
+        "classical": "Classica",
+        "dance": "Dance",
+        "deep": "Profondo",
+        "electronic": "Elettronica",
+        "hip_hop": "Hip-Hop",
+        "jazz": "Jazz",
+        "latin": "Latino",
+        "loudness": "Loudness",
+        "lounge": "Lounge",
+        "piano": "Piano",
+        "pop": "Pop",
+        "rnb": "R&B",
+        "rock": "Rock",
+        "small_speakers": "Casse piccole",
+        "spoken_word": "Parlato",
+        "treble_booster": "Boost acuti"
+      }
     }
   }
 }

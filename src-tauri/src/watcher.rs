@@ -82,12 +82,7 @@ impl WatcherManager {
 
     /// Start watching `path` for `folder_id`. If a watcher already
     /// existed for this id (e.g. after a path edit) it's dropped first.
-    pub fn watch(
-        &self,
-        folder_id: i64,
-        library_id: i64,
-        path: PathBuf,
-    ) -> AppResult<()> {
+    pub fn watch(&self, folder_id: i64, library_id: i64, path: PathBuf) -> AppResult<()> {
         if !path.is_dir() {
             return Err(AppError::Other(format!(
                 "watch path is not a directory: {}",
@@ -116,10 +111,7 @@ impl WatcherManager {
         watcher
             .watch(&watcher_path, RecursiveMode::Recursive)
             .map_err(|e| {
-                AppError::Other(format!(
-                    "notify watch {}: {e}",
-                    watcher_path.display()
-                ))
+                AppError::Other(format!("notify watch {}: {e}", watcher_path.display()))
             })?;
 
         let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
@@ -170,11 +162,10 @@ impl WatcherManager {
     /// logged per-folder so a missing path on one folder doesn't
     /// disable watching everywhere.
     pub async fn restore_from_db(&self, pool: &SqlitePool) -> AppResult<()> {
-        let rows: Vec<(i64, i64, String)> = sqlx::query_as(
-            "SELECT id, library_id, path FROM library_folder WHERE is_watched = 1",
-        )
-        .fetch_all(pool)
-        .await?;
+        let rows: Vec<(i64, i64, String)> =
+            sqlx::query_as("SELECT id, library_id, path FROM library_folder WHERE is_watched = 1")
+                .fetch_all(pool)
+                .await?;
 
         for (folder_id, library_id, path) in rows {
             if let Err(err) = self.watch(folder_id, library_id, PathBuf::from(&path)) {
@@ -266,8 +257,7 @@ async fn run_scan(app: &AppHandle, folder_id: i64, library_id: i64) {
 
     match scan_folder_inner(&pool, &artwork_dir, folder_id).await {
         Ok(summary) => {
-            let changed =
-                summary.added > 0 || summary.updated > 0 || summary.removed > 0;
+            let changed = summary.added > 0 || summary.updated > 0 || summary.removed > 0;
             tracing::info!(
                 folder_id,
                 library_id,
@@ -306,12 +296,11 @@ pub async fn apply_toggle(
     enable: bool,
 ) -> AppResult<()> {
     if enable {
-        let row: Option<(i64, String)> = sqlx::query_as(
-            "SELECT library_id, path FROM library_folder WHERE id = ?",
-        )
-        .bind(folder_id)
-        .fetch_optional(pool)
-        .await?;
+        let row: Option<(i64, String)> =
+            sqlx::query_as("SELECT library_id, path FROM library_folder WHERE id = ?")
+                .bind(folder_id)
+                .fetch_optional(pool)
+                .await?;
         let Some((library_id, path)) = row else {
             return Err(AppError::Other(format!(
                 "library_folder {folder_id} not found"
@@ -333,4 +322,3 @@ pub async fn apply_toggle(
         .await?;
     Ok(())
 }
-

@@ -121,12 +121,9 @@ impl Resampler {
                     }
 
                     let n_out = {
-                        let in_buf = InterleavedSlice::new(
-                            &in_scratch[..in_samples],
-                            chans,
-                            frames_in,
-                        )
-                        .map_err(|e| AppError::Audio(format!("rubato in adapter: {e}")))?;
+                        let in_buf =
+                            InterleavedSlice::new(&in_scratch[..in_samples], chans, frames_in)
+                                .map_err(|e| AppError::Audio(format!("rubato in adapter: {e}")))?;
                         let mut out_buf = InterleavedSlice::new_mut(
                             &mut out_scratch[..frames_out_max * chans],
                             chans,

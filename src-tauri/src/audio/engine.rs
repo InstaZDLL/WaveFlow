@@ -153,40 +153,36 @@ impl AudioEngine {
         // rows and self-send the next `LoadAndPlay`.
         let (analytics_tx, analytics_rx) = unbounded_channel::<AnalyticsMsg>();
 
-        let (output, decoder) =
-            match spawn_output_thread(shared.clone(), app.clone(), device_name) {
-                Ok((producer, handle)) => {
-                    // `spawn_output_thread` returns only after the cpal
-                    // stream has opened, so `shared.sample_rate` /
-                    // `shared.channels` are already populated by the time
-                    // the decoder thread spawns.
-                    match spawn_decoder_thread(
-                        cmd_rx,
-                        producer,
-                        shared.clone(),
-                        app.clone(),
-                        analytics_tx,
-                    ) {
-                        Ok(join) => (Some(handle), Some(join)),
-                        Err(err) => {
-                            tracing::error!(?err, "failed to spawn decoder thread");
-                            handle.stop();
-                            (None, None)
-                        }
+        let (output, decoder) = match spawn_output_thread(shared.clone(), app.clone(), device_name)
+        {
+            Ok((producer, handle)) => {
+                // `spawn_output_thread` returns only after the cpal
+                // stream has opened, so `shared.sample_rate` /
+                // `shared.channels` are already populated by the time
+                // the decoder thread spawns.
+                match spawn_decoder_thread(
+                    cmd_rx,
+                    producer,
+                    shared.clone(),
+                    app.clone(),
+                    analytics_tx,
+                ) {
+                    Ok(join) => (Some(handle), Some(join)),
+                    Err(err) => {
+                        tracing::error!(?err, "failed to spawn decoder thread");
+                        handle.stop();
+                        (None, None)
                     }
                 }
-                Err(err) => {
-                    tracing::warn!(?err, "failed to open audio output at startup");
-                    (None, None)
-                }
-            };
+            }
+            Err(err) => {
+                tracing::warn!(?err, "failed to open audio output at startup");
+                (None, None)
+            }
+        };
 
         // Spawn the analytics task inside Tauri's runtime.
-        tauri::async_runtime::spawn(analytics_task(
-            analytics_rx,
-            cmd_tx.clone(),
-            app.clone(),
-        ));
+        tauri::async_runtime::spawn(analytics_task(analytics_rx, cmd_tx.clone(), app.clone()));
 
         Arc::new(Self {
             cmd_tx,
@@ -290,9 +286,9 @@ impl AudioEngine {
         // output back down so it doesn't outlive the engine.
         let send_result = (|| {
             if was_playing {
-                self.cmd_tx.send(AudioCmd::Stop).map_err(|e| {
-                    AppError::Audio(format!("audio command channel closed: {e}"))
-                })?;
+                self.cmd_tx
+                    .send(AudioCmd::Stop)
+                    .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
             }
             // Step 4 — drop the old output thread (releases the
             // device). Done before SwapProducer so the decoder
@@ -330,14 +326,13 @@ impl AudioEngine {
                         return;
                     }
                 };
-                let row: Option<(String, i64)> = sqlx::query_as(
-                    "SELECT file_path, duration_ms FROM track WHERE id = ?",
-                )
-                .bind(track_id)
-                .fetch_optional(&pool)
-                .await
-                .ok()
-                .flatten();
+                let row: Option<(String, i64)> =
+                    sqlx::query_as("SELECT file_path, duration_ms FROM track WHERE id = ?")
+                        .bind(track_id)
+                        .fetch_optional(&pool)
+                        .await
+                        .ok()
+                        .flatten();
                 let Some((file_path, duration_ms)) = row else {
                     return;
                 };

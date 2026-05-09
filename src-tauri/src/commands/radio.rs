@@ -89,9 +89,8 @@ pub async fn start_radio(
     .bind(seed_track_id)
     .fetch_optional(&pool)
     .await?;
-    let (seed_artist_id, seed_bpm) = row.ok_or_else(|| {
-        AppError::Other(format!("seed track {seed_track_id} not found"))
-    })?;
+    let (seed_artist_id, seed_bpm) =
+        row.ok_or_else(|| AppError::Other(format!("seed track {seed_track_id} not found")))?;
 
     // 2. Make sure the similar-artists cache is fresh for the seed.
     //    The very first "Démarrer la radio" click on a previously
@@ -100,8 +99,7 @@ pub async fn start_radio(
     //    nothing). Best-effort: errors are logged inside the helper
     //    and don't fail the radio.
     let _ = crate::commands::similar::ensure_similar_cached(&state, seed_artist_id).await;
-    let similar_artist_ids =
-        cached_similar_library_ids(&pool, seed_artist_id).await?;
+    let similar_artist_ids = cached_similar_library_ids(&pool, seed_artist_id).await?;
 
     // 3. Build the candidate pool. Seed artist always included so the
     //    radio doesn't drift off-vibe even with zero similar matches.
@@ -136,9 +134,7 @@ pub async fn start_radio(
         let hi = bpm + BPM_WINDOW;
         let in_window: Vec<TrackCandidate> = candidates
             .iter()
-            .filter(|c| {
-                c.bpm.map(|b| b >= lo && b <= hi).unwrap_or(false)
-            })
+            .filter(|c| c.bpm.map(|b| b >= lo && b <= hi).unwrap_or(false))
             .cloned()
             .collect();
         if in_window.len() >= BPM_MIN_SURVIVORS {
@@ -151,8 +147,9 @@ pub async fn start_radio(
     };
 
     // 6. Partition into seed-artist vs others, then assemble.
-    let (seed_artist_tracks, other_tracks): (Vec<_>, Vec<_>) =
-        filtered.into_iter().partition(|c| c.primary_artist == seed_artist_id);
+    let (seed_artist_tracks, other_tracks): (Vec<_>, Vec<_>) = filtered
+        .into_iter()
+        .partition(|c| c.primary_artist == seed_artist_id);
 
     let mut rng_state = seed_track_id as u64 ^ 0x9E37_79B9_7F4A_7C15;
     let mut seed_artist_shuffled = seed_artist_tracks;
@@ -259,15 +256,11 @@ async fn top_played_artists(pool: &SqlitePool, limit: usize) -> AppResult<Vec<i6
 /// `expires_at`) are still used — a slightly outdated similarity list
 /// beats no radio at all. The cache is populated on demand by the
 /// `get_similar_artists` command (artist detail page).
-async fn cached_similar_library_ids(
-    pool: &SqlitePool,
-    seed_artist_id: i64,
-) -> AppResult<Vec<i64>> {
-    let seed_name: Option<String> =
-        sqlx::query_scalar("SELECT name FROM artist WHERE id = ?")
-            .bind(seed_artist_id)
-            .fetch_optional(pool)
-            .await?;
+async fn cached_similar_library_ids(pool: &SqlitePool, seed_artist_id: i64) -> AppResult<Vec<i64>> {
+    let seed_name: Option<String> = sqlx::query_scalar("SELECT name FROM artist WHERE id = ?")
+        .bind(seed_artist_id)
+        .fetch_optional(pool)
+        .await?;
     let Some(name) = seed_name else {
         return Ok(Vec::new());
     };
@@ -276,12 +269,11 @@ async fn cached_similar_library_ids(
         return Ok(Vec::new());
     }
 
-    let payload: Option<String> = sqlx::query_scalar(
-        "SELECT payload FROM app.lastfm_similar WHERE name_canonical = ?",
-    )
-    .bind(&canonical)
-    .fetch_optional(pool)
-    .await?;
+    let payload: Option<String> =
+        sqlx::query_scalar("SELECT payload FROM app.lastfm_similar WHERE name_canonical = ?")
+            .bind(&canonical)
+            .fetch_optional(pool)
+            .await?;
     let Some(payload) = payload else {
         return Ok(Vec::new());
     };
@@ -293,22 +285,16 @@ async fn cached_similar_library_ids(
     // Batch-resolve names to artist IDs. Single query, preserves
     // input order so high-affinity matches stay first.
     let canonicals: Vec<String> = raw.iter().map(|r| canonical_name(&r.name)).collect();
-    let placeholders = canonicals
-        .iter()
-        .map(|_| "?")
-        .collect::<Vec<_>>()
-        .join(",");
-    let sql = format!(
-        "SELECT id, canonical_name FROM artist WHERE canonical_name IN ({placeholders})"
-    );
+    let placeholders = canonicals.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+    let sql =
+        format!("SELECT id, canonical_name FROM artist WHERE canonical_name IN ({placeholders})");
     let mut q = sqlx::query_as::<_, (i64, String)>(&sql);
     for c in &canonicals {
         q = q.bind(c);
     }
     let rows = q.fetch_all(pool).await?;
-    let lookup: std::collections::HashMap<String, i64> = rows.into_iter()
-        .map(|(id, c)| (c, id))
-        .collect();
+    let lookup: std::collections::HashMap<String, i64> =
+        rows.into_iter().map(|(id, c)| (c, id)).collect();
 
     let mut out = Vec::with_capacity(canonicals.len());
     for c in canonicals {

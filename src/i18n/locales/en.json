@@ -818,6 +818,35 @@
     "gapless": {
       "title": "Gapless playback",
       "subtitle": "Chain consecutive tracks with no micro-silence (great for live and concept albums)"
+    },
+    "equalizer": {
+      "title": "Equalizer",
+      "subtitle": "Six peaking bands, ±12 dB. Drag the dots to shape the curve.",
+      "presets": "Presets",
+      "reset": "Reset",
+      "preset": {
+        "custom": "Custom",
+        "flat": "Flat",
+        "acoustic": "Acoustic",
+        "bass_booster": "Bass booster",
+        "bass_reducer": "Bass reducer",
+        "classical": "Classical",
+        "dance": "Dance",
+        "deep": "Deep",
+        "electronic": "Electronic",
+        "hip_hop": "Hip-Hop",
+        "jazz": "Jazz",
+        "latin": "Latin",
+        "loudness": "Loudness",
+        "lounge": "Lounge",
+        "piano": "Piano",
+        "pop": "Pop",
+        "rnb": "R&B",
+        "rock": "Rock",
+        "small_speakers": "Small speakers",
+        "spoken_word": "Spoken word",
+        "treble_booster": "Treble booster"
+      }
     }
   }
 }

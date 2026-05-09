@@ -74,11 +74,10 @@ pub async fn save(pool: &SqlitePool, cfg: &DlnaConfig) -> AppResult<()> {
 }
 
 async fn read_key(pool: &SqlitePool, key: &str) -> AppResult<Option<String>> {
-    let value: Option<String> =
-        sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
-            .bind(key)
-            .fetch_optional(pool)
-            .await?;
+    let value: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(key)
+        .fetch_optional(pool)
+        .await?;
     Ok(value)
 }
 

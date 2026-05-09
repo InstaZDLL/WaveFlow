@@ -103,7 +103,9 @@ fn list_output_devices_cpal() -> AppResult<Vec<OutputDeviceInfo>> {
         .map_err(|e| AppError::Audio(format!("enumerate output devices: {e}")))?;
     let mut out = Vec::new();
     for device in devices {
-        let Some(name) = device_display_name(&device) else { continue };
+        let Some(name) = device_display_name(&device) else {
+            continue;
+        };
         let is_default = default_name.as_deref().is_some_and(|n| n == name);
         out.push(OutputDeviceInfo {
             id: name.clone(),
@@ -136,8 +138,7 @@ fn list_output_devices_alsa_hints() -> AppResult<Vec<OutputDeviceInfo>> {
             .and_then(|d| device_display_name(&d))
     });
 
-    let pcm = CString::new("pcm")
-        .map_err(|e| AppError::Audio(format!("CString: {e}")))?;
+    let pcm = CString::new("pcm").map_err(|e| AppError::Audio(format!("CString: {e}")))?;
     let iter = alsa::device_name::HintIter::new(None, pcm.as_c_str())
         .map_err(|e| AppError::Audio(format!("ALSA HintIter: {e}")))?;
 
@@ -146,10 +147,7 @@ fn list_output_devices_alsa_hints() -> AppResult<Vec<OutputDeviceInfo>> {
     for hint in iter {
         // Filter to playback-capable devices. ALSA hints with no
         // `direction` field can be either, so we keep them.
-        let direction_ok = matches!(
-            hint.direction,
-            None | Some(alsa::Direction::Playback)
-        );
+        let direction_ok = matches!(hint.direction, None | Some(alsa::Direction::Playback));
         if !direction_ok {
             continue;
         }
@@ -327,7 +325,10 @@ fn output_thread_main(
         }
     };
 
-    if let Err(err) = stream.play().map_err(|e| AppError::Audio(format!("stream play: {e}"))) {
+    if let Err(err) = stream
+        .play()
+        .map_err(|e| AppError::Audio(format!("stream play: {e}")))
+    {
         let _ = init_tx.send(Err(err));
         return;
     }
@@ -382,9 +383,8 @@ fn build_stream_inner(
                         device = %name,
                         "requested output device not found, falling back to default"
                     );
-                    host.default_output_device().ok_or_else(|| {
-                        AppError::Audio("no default audio output device".into())
-                    })?
+                    host.default_output_device()
+                        .ok_or_else(|| AppError::Audio("no default audio output device".into()))?
                 }
             }
         }
@@ -455,9 +455,7 @@ where
             "player:error",
             json!({ "message": format!("audio device error: {err}") }),
         );
-        if let Some(controls) =
-            err_app.try_state::<crate::media_controls::MediaControlsHandle>()
-        {
+        if let Some(controls) = err_app.try_state::<crate::media_controls::MediaControlsHandle>() {
             controls.update_playback(PlayerState::Paused, err_shared.current_position_ms());
         }
     };
@@ -554,9 +552,7 @@ where
                 }
 
                 if written > 0 {
-                    shared
-                        .samples_played
-                        .fetch_add(written, Ordering::Relaxed);
+                    shared.samples_played.fetch_add(written, Ordering::Relaxed);
                 }
             },
             err_fn,

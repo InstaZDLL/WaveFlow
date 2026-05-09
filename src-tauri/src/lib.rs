@@ -90,9 +90,8 @@ pub fn run() {
 
             // Block on the async init — this runs once at startup before any
             // command can be dispatched, so blocking here is acceptable.
-            let state = tauri::async_runtime::block_on(async move {
-                AppState::init(&init_handle).await
-            })?;
+            let state =
+                tauri::async_runtime::block_on(async move { AppState::init(&init_handle).await })?;
 
             app.manage(state);
 
@@ -134,9 +133,7 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 let state = restore_handle.state::<AppState>();
                 if let Ok(pool) = state.require_profile_pool().await {
-                    if let Err(err) =
-                        watcher_for_init.restore_from_db(&pool).await
-                    {
+                    if let Err(err) = watcher_for_init.restore_from_db(&pool).await {
                         tracing::warn!(%err, "watcher boot restore failed");
                     }
                 }
@@ -207,13 +204,7 @@ pub fn run() {
             let menu = Menu::with_items(
                 app,
                 &[
-                    &MenuItem::with_id(
-                        app,
-                        "play_pause",
-                        "Lecture / Pause",
-                        true,
-                        None::<&str>,
-                    )?,
+                    &MenuItem::with_id(app, "play_pause", "Lecture / Pause", true, None::<&str>)?,
                     &MenuItem::with_id(app, "previous", "Précédent", true, None::<&str>)?,
                     &MenuItem::with_id(app, "next", "Suivant", true, None::<&str>)?,
                     &PredefinedMenuItem::separator(app)?,
@@ -364,6 +355,10 @@ pub fn run() {
             commands::player::player_set_crossfade,
             commands::player::player_set_gapless,
             commands::player::player_set_replaygain,
+            commands::player::player_get_eq,
+            commands::player::player_set_eq_enabled,
+            commands::player::player_set_eq_band,
+            commands::player::player_set_eq_preset,
             commands::player::player_get_audio_settings,
             commands::player::player_list_output_devices,
             commands::player::player_set_output_device,
@@ -406,24 +401,13 @@ pub fn run() {
                     // while we persist resume state and the stream
                     // tears down, producing a jarring ~2 s of audio
                     // at shutdown.
-                    engine
-                        .shared()
-                        .paused_output
-                        .store(true, Ordering::Release);
+                    engine.shared().paused_output.store(true, Ordering::Release);
 
-                    let track_id = engine
-                        .shared()
-                        .current_track_id
-                        .load(Ordering::Acquire);
+                    let track_id = engine.shared().current_track_id.load(Ordering::Acquire);
                     let position_ms = engine.shared().current_position_ms();
                     if track_id > 0 {
                         if let Ok(pool) = state.require_profile_pool().await {
-                            let _ = queue::persist_resume_point(
-                                &pool,
-                                track_id,
-                                position_ms,
-                            )
-                            .await;
+                            let _ = queue::persist_resume_point(&pool, track_id, position_ms).await;
                         }
                     }
                     // Tell the decoder thread to stop and drop the

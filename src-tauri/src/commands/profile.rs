@@ -55,9 +55,7 @@ pub async fn list_profiles(state: tauri::State<'_, AppState>) -> AppResult<Vec<P
 /// Return the currently active profile (the one whose `data.db` is opened),
 /// or `None` if no profile has been activated yet.
 #[tauri::command]
-pub async fn get_active_profile(
-    state: tauri::State<'_, AppState>,
-) -> AppResult<Option<Profile>> {
+pub async fn get_active_profile(state: tauri::State<'_, AppState>) -> AppResult<Option<Profile>> {
     let Some(profile_id) = ({
         let guard = state.profile.read().await;
         guard.as_ref().map(|p| p.profile_id)
@@ -120,11 +118,9 @@ pub async fn create_profile(
 
     // Materialize the filesystem layout and initialize the per-profile DB.
     state.paths.ensure_profile_dirs(profile_id)?;
-    let pool = crate::db::profile_db::open(
-        &state.paths.profile_db(profile_id),
-        &state.paths.app_db,
-    )
-    .await?;
+    let pool =
+        crate::db::profile_db::open(&state.paths.profile_db(profile_id), &state.paths.app_db)
+            .await?;
     pool.close().await;
 
     Ok(Profile {
@@ -161,7 +157,9 @@ pub async fn switch_profile(
     // track IDs from the old profile's database, which would become
     // dangling after the pool swap.
     let _ = engine.send(AudioCmd::Stop);
-    engine.shared().set_state(crate::audio::state::PlayerState::Idle);
+    engine
+        .shared()
+        .set_state(crate::audio::state::PlayerState::Idle);
     engine
         .shared()
         .current_track_id

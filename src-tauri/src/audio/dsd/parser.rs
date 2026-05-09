@@ -252,10 +252,8 @@ pub fn parse_dff<R: Read + Seek>(reader: &mut R) -> Result<DsdLayout, DsdError> 
         reader.seek(SeekFrom::Start(pad_even(next)))?;
     }
 
-    let sample_rate_hz =
-        sample_rate_hz.ok_or(DsdError::Malformed("DFF missing FS sub-chunk"))?;
-    let channel_count =
-        channel_count.ok_or(DsdError::Malformed("DFF missing CHNL sub-chunk"))?;
+    let sample_rate_hz = sample_rate_hz.ok_or(DsdError::Malformed("DFF missing FS sub-chunk"))?;
+    let channel_count = channel_count.ok_or(DsdError::Malformed("DFF missing CHNL sub-chunk"))?;
     let data_offset = data_offset.ok_or(DsdError::Malformed("DFF missing DSD chunk"))?;
     let data_len_bytes = data_len_bytes.ok_or(DsdError::Malformed("DFF missing DSD chunk"))?;
 
@@ -340,7 +338,7 @@ mod tests {
         out.extend_from_slice(&28u64.to_le_bytes()); // chunk size
         out.extend_from_slice(&0u64.to_le_bytes()); // file size (unused in test)
         out.extend_from_slice(&0u64.to_le_bytes()); // metadata offset
-        // fmt chunk (52 bytes total payload)
+                                                    // fmt chunk (52 bytes total payload)
         out.extend_from_slice(b"fmt ");
         out.extend_from_slice(&52u64.to_le_bytes());
         out.extend_from_slice(&1u32.to_le_bytes()); // format version
@@ -352,7 +350,7 @@ mod tests {
         out.extend_from_slice(&samples_per_channel.to_le_bytes());
         out.extend_from_slice(&4096u32.to_le_bytes()); // block size per channel
         out.extend_from_slice(&0u32.to_le_bytes()); // reserved
-        // data chunk: chunk_size includes 12-byte header per spec
+                                                    // data chunk: chunk_size includes 12-byte header per spec
         let payload_bytes = (samples_per_channel / 8) * channels as u64;
         out.extend_from_slice(b"data");
         out.extend_from_slice(&(payload_bytes + 12).to_le_bytes());

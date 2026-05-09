@@ -129,11 +129,7 @@ pub async fn get_similar_artists(
     //    can badge entries the user already owns. Single batched query
     //    instead of N+1 round-trips.
     let canonicals: Vec<String> = raw.iter().map(|r| canonical_name(&r.name)).collect();
-    let placeholders = canonicals
-        .iter()
-        .map(|_| "?")
-        .collect::<Vec<_>>()
-        .join(",");
+    let placeholders = canonicals.iter().map(|_| "?").collect::<Vec<_>>().join(",");
     let mut local_map: HashMap<String, (i64, Option<String>)> = HashMap::new();
     if !canonicals.is_empty() {
         let sql = format!(
@@ -183,10 +179,7 @@ pub async fn get_similar_artists(
 /// even when the upstream lookup fails — radio is allowed to degrade
 /// gracefully, it should never block the user click on a network
 /// hiccup.
-pub async fn ensure_similar_cached(
-    state: &AppState,
-    artist_id: i64,
-) -> AppResult<()> {
+pub async fn ensure_similar_cached(state: &AppState, artist_id: i64) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     let local: Option<(String, Option<i64>)> =
         sqlx::query_as("SELECT name, deezer_id FROM artist WHERE id = ?")
@@ -202,19 +195,17 @@ pub async fn ensure_similar_cached(
     }
 
     let now = now_ms();
-    let cached: Option<(i64,)> = sqlx::query_as(
-        "SELECT expires_at FROM app.lastfm_similar WHERE name_canonical = ?",
-    )
-    .bind(&canonical)
-    .fetch_optional(&pool)
-    .await?;
+    let cached: Option<(i64,)> =
+        sqlx::query_as("SELECT expires_at FROM app.lastfm_similar WHERE name_canonical = ?")
+            .bind(&canonical)
+            .fetch_optional(&pool)
+            .await?;
     if cached.map(|(exp,)| exp > now).unwrap_or(false) {
         return Ok(());
     }
 
     let api_key = read_lastfm_api_key(state).await?;
-    let _ = fetch_and_cache(&pool, api_key.as_deref(), &name, &canonical, deezer_id, now)
-        .await;
+    let _ = fetch_and_cache(&pool, api_key.as_deref(), &name, &canonical, deezer_id, now).await;
     Ok(())
 }
 
@@ -298,7 +289,9 @@ async fn try_deezer(deezer_id: Option<i64>, source_name: &str) -> Option<Vec<Raw
         None => match client.search_artist(source_name).await {
             Ok(hits) => {
                 let canon = source_name.to_lowercase();
-                hits.into_iter().find(|h| h.name.to_lowercase() == canon)?.id
+                hits.into_iter()
+                    .find(|h| h.name.to_lowercase() == canon)?
+                    .id
             }
             Err(err) => {
                 tracing::warn!(?err, "Deezer search_artist failed");

@@ -237,10 +237,7 @@ impl LastfmClient {
 /// when available. Returned in priority `mega` > `extralarge` > `large`.
 fn pick_largest_image(images: &[LastfmImage]) -> Option<String> {
     for size in &["mega", "extralarge", "large"] {
-        if let Some(img) = images
-            .iter()
-            .find(|i| i.size == *size && !i.url.is_empty())
-        {
+        if let Some(img) = images.iter().find(|i| i.size == *size && !i.url.is_empty()) {
             return Some(img.url.clone());
         }
     }
@@ -345,12 +342,11 @@ impl LastfmClient {
                 message: err.message,
             });
         }
-        let parsed: MobileSessionResponse = serde_json::from_str(&body).map_err(|e| {
-            LastfmError::Api {
+        let parsed: MobileSessionResponse =
+            serde_json::from_str(&body).map_err(|e| LastfmError::Api {
                 code: -1,
                 message: format!("decode mobile session: {e}; body={body}"),
-            }
-        })?;
+            })?;
         let Some(session) = parsed.session else {
             return Err(LastfmError::Api {
                 code: -1,

@@ -129,7 +129,11 @@ async fn handle_message(
             let engine = app.try_state::<std::sync::Arc<crate::audio::AudioEngine>>();
             let pause_after = engine
                 .as_deref()
-                .map(|e| e.shared.pause_after_current_track.swap(false, std::sync::atomic::Ordering::AcqRel))
+                .map(|e| {
+                    e.shared
+                        .pause_after_current_track
+                        .swap(false, std::sync::atomic::Ordering::AcqRel)
+                })
                 .unwrap_or(false);
             if pause_after {
                 tracing::info!("sleep-timer end-of-track armed: skipping auto-advance");
@@ -279,24 +283,23 @@ async fn insert_play_event(
     // `scrobble_queue` table with rows the worker would then have to
     // discard. The worker itself is responsible for actually POSTing
     // to Last.fm — keeping the analytics task off the network.
-    let duration_ms: Option<i64> = match sqlx::query_scalar(
-        "SELECT duration_ms FROM track WHERE id = ?",
-    )
-    .bind(track_id)
-    .fetch_optional(pool)
-    .await
-    {
-        Ok(v) => v,
-        Err(e) => {
-            tracing::warn!(?e, "scrobble eligibility lookup failed");
-            return;
-        }
-    };
-    let Some(duration_ms) = duration_ms else { return };
-    if crate::scrobbler::is_eligible(duration_ms, listened_ms as i64) {
-        if let Err(e) =
-            crate::scrobbler::enqueue(pool, track_id, now, listened_ms as i64).await
+    let duration_ms: Option<i64> =
+        match sqlx::query_scalar("SELECT duration_ms FROM track WHERE id = ?")
+            .bind(track_id)
+            .fetch_optional(pool)
+            .await
         {
+            Ok(v) => v,
+            Err(e) => {
+                tracing::warn!(?e, "scrobble eligibility lookup failed");
+                return;
+            }
+        };
+    let Some(duration_ms) = duration_ms else {
+        return;
+    };
+    if crate::scrobbler::is_eligible(duration_ms, listened_ms as i64) {
+        if let Err(e) = crate::scrobbler::enqueue(pool, track_id, now, listened_ms as i64).await {
             tracing::warn!(?e, track_id, "failed to enqueue scrobble");
         }
     }

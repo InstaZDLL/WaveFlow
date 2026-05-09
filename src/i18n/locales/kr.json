@@ -818,6 +818,35 @@
     "gapless": {
       "title": "갭리스 재생",
       "subtitle": "연속된 트랙을 미세한 무음 없이 이어 재생합니다 (라이브 및 콘셉트 앨범에 적합)"
+    },
+    "equalizer": {
+      "title": "이퀄라이저",
+      "subtitle": "6개 피킹 밴드, ±12 dB. 점을 끌어 곡선을 조정하세요.",
+      "presets": "프리셋",
+      "reset": "재설정",
+      "preset": {
+        "custom": "사용자 지정",
+        "flat": "플랫",
+        "acoustic": "어쿠스틱",
+        "bass_booster": "저음 부스터",
+        "bass_reducer": "저음 감쇠",
+        "classical": "클래식",
+        "dance": "댄스",
+        "deep": "딥",
+        "electronic": "일렉트로닉",
+        "hip_hop": "힙합",
+        "jazz": "재즈",
+        "latin": "라틴",
+        "loudness": "라우드니스",
+        "lounge": "라운지",
+        "piano": "피아노",
+        "pop": "팝",
+        "rnb": "R&B",
+        "rock": "록",
+        "small_speakers": "소형 스피커",
+        "spoken_word": "음성",
+        "treble_booster": "고음 부스터"
+      }
     }
   }
 }

@@ -114,11 +114,7 @@ pub fn read_dff_metadata(file: &mut File) -> std::io::Result<DsdMetadata> {
     Ok(meta)
 }
 
-fn walk_diin(
-    file: &mut File,
-    end: u64,
-    meta: &mut DsdMetadata,
-) -> std::io::Result<()> {
+fn walk_diin(file: &mut File, end: u64, meta: &mut DsdMetadata) -> std::io::Result<()> {
     while file.stream_position()? < end {
         let mut sub_id = [0u8; 4];
         if file.read(&mut sub_id)? != 4 {

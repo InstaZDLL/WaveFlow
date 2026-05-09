@@ -50,4 +50,3 @@ pub async fn build_resources(state: &AppState) -> AppResult<DlnaResources> {
         metadata_artwork_dir: state.paths.metadata_artwork_dir.clone(),
     })
 }
-

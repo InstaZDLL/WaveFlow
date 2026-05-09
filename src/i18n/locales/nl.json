@@ -818,6 +818,35 @@
     "gapless": {
       "title": "Naadloze weergave",
       "subtitle": "Sluit opeenvolgende nummers zonder microstilte aan (ideaal voor live- en conceptalbums)"
+    },
+    "equalizer": {
+      "title": "Equalizer",
+      "subtitle": "Zes peaking-banden, ±12 dB. Sleep de punten om de curve te vormen.",
+      "presets": "Presets",
+      "reset": "Opnieuw instellen",
+      "preset": {
+        "custom": "Aangepast",
+        "flat": "Vlak",
+        "acoustic": "Akoestisch",
+        "bass_booster": "Bass booster",
+        "bass_reducer": "Bass reducer",
+        "classical": "Klassiek",
+        "dance": "Dance",
+        "deep": "Deep",
+        "electronic": "Electronic",
+        "hip_hop": "Hip-Hop",
+        "jazz": "Jazz",
+        "latin": "Latin",
+        "loudness": "Loudness",
+        "lounge": "Lounge",
+        "piano": "Piano",
+        "pop": "Pop",
+        "rnb": "R&B",
+        "rock": "Rock",
+        "small_speakers": "Kleine speakers",
+        "spoken_word": "Gesproken woord",
+        "treble_booster": "Treble booster"
+      }
     }
   }
 }

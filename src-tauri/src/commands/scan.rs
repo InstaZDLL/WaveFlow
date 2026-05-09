@@ -197,28 +197,25 @@ fn extract_cover(tag: &Tag, artwork_dir: &Path) -> Option<ExtractedCover> {
             return None;
         }
     }
-    crate::thumbnails::spawn_thumbnail_job(
-        out_path,
-        artwork_dir.to_path_buf(),
-        hash.clone(),
-    );
-    Some(ExtractedCover { hash, format, source: "embedded" })
+    crate::thumbnails::spawn_thumbnail_job(out_path, artwork_dir.to_path_buf(), hash.clone());
+    Some(ExtractedCover {
+        hash,
+        format,
+        source: "embedded",
+    })
 }
 
 /// Canonical filename stems searched for in the track's parent directory
 /// when the audio file carries no embedded picture. Order matters — the
 /// first match wins. Mirrors the convention used by foobar2000, MusicBee,
 /// Plex, Kodi, RustMusic.
-const FOLDER_COVER_STEMS: &[&str] = &[
-    "cover", "folder", "front", "albumart", "album", "artwork",
-];
+const FOLDER_COVER_STEMS: &[&str] = &["cover", "folder", "front", "albumart", "album", "artwork"];
 
 /// File extensions accepted as folder cover candidates. Limited to formats
 /// the `image` crate decodes via the features enabled in `Cargo.toml`, so
 /// every match downstream of this fn is guaranteed to be readable by the
 /// thumbnail pipeline.
-const FOLDER_COVER_EXTENSIONS: &[&str] =
-    &["jpg", "jpeg", "png", "webp", "bmp", "gif", "tiff"];
+const FOLDER_COVER_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "bmp", "gif", "tiff"];
 
 /// Look for a sidecar cover image (cover.jpg / folder.png / front.webp / ...)
 /// next to the track. Returns an `ExtractedCover` written to the shared
@@ -275,7 +272,11 @@ fn extract_folder_cover(track_path: &Path, artwork_dir: &Path) -> Option<Extract
         .unwrap_or_else(|| "jpg".to_string());
     // Normalise `jpeg` to `jpg` so the artwork dir doesn't end up with two
     // entries pointing at the same MIME.
-    let format = if format == "jpeg" { "jpg".to_string() } else { format };
+    let format = if format == "jpeg" {
+        "jpg".to_string()
+    } else {
+        format
+    };
 
     let out_path = artwork_dir.join(format!("{}.{}", &hash, &format));
     if !out_path.exists() {
@@ -284,12 +285,12 @@ fn extract_folder_cover(track_path: &Path, artwork_dir: &Path) -> Option<Extract
             return None;
         }
     }
-    crate::thumbnails::spawn_thumbnail_job(
-        out_path,
-        artwork_dir.to_path_buf(),
-        hash.clone(),
-    );
-    Some(ExtractedCover { hash, format, source: "folder" })
+    crate::thumbnails::spawn_thumbnail_job(out_path, artwork_dir.to_path_buf(), hash.clone());
+    Some(ExtractedCover {
+        hash,
+        format,
+        source: "folder",
+    })
 }
 
 /// Extract a 0-255 rating from a tag. POPM frames (ID3v2) are stored by
@@ -361,22 +362,21 @@ fn extract_dsd_file(
     };
     let meta = read_metadata(&mut file, layout.container).unwrap_or_default();
 
-    let title = meta
-        .title
-        .clone()
-        .unwrap_or_else(|| {
-            path.file_stem()
-                .and_then(|s| s.to_str())
-                .unwrap_or("Unknown")
-                .to_string()
-        });
+    let title = meta.title.clone().unwrap_or_else(|| {
+        path.file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("Unknown")
+            .to_string()
+    });
     let codec = layout
         .dsd_rate_multiple()
         .map(|m| format!("DSD{m}"))
-        .or_else(|| Some(match layout.container {
-            DsdContainer::Dsf => "DSF".to_string(),
-            DsdContainer::Dff => "DFF".to_string(),
-        }));
+        .or_else(|| {
+            Some(match layout.container {
+                DsdContainer::Dsf => "DSF".to_string(),
+                DsdContainer::Dff => "DFF".to_string(),
+            })
+        });
 
     Ok(ExtractedFile {
         abs_path: path.to_string_lossy().to_string(),
@@ -427,14 +427,7 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
     if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
         let ext_lower = ext.to_ascii_lowercase();
         if matches!(ext_lower.as_str(), "dsf" | "dff") {
-            return extract_dsd_file(
-                path,
-                artwork_dir,
-                size,
-                modified_ms,
-                hash,
-                &ext_lower,
-            );
+            return extract_dsd_file(path, artwork_dir, size, modified_ms, hash, &ext_lower);
         }
     }
 
@@ -527,25 +520,23 @@ async fn upsert_artwork(
     format: &str,
     source: &str,
 ) -> AppResult<i64> {
-    let existing: Option<i64> =
-        sqlx::query_scalar("SELECT id FROM artwork WHERE hash = ?")
-            .bind(hash)
-            .fetch_optional(pool)
-            .await?;
+    let existing: Option<i64> = sqlx::query_scalar("SELECT id FROM artwork WHERE hash = ?")
+        .bind(hash)
+        .fetch_optional(pool)
+        .await?;
     if let Some(id) = existing {
         return Ok(id);
     }
 
     let now = now_millis();
-    let result = sqlx::query(
-        "INSERT INTO artwork (hash, format, source, created_at) VALUES (?, ?, ?, ?)",
-    )
-    .bind(hash)
-    .bind(format)
-    .bind(source)
-    .bind(now)
-    .execute(pool)
-    .await?;
+    let result =
+        sqlx::query("INSERT INTO artwork (hash, format, source, created_at) VALUES (?, ?, ?, ?)")
+            .bind(hash)
+            .bind(format)
+            .bind(source)
+            .bind(now)
+            .execute(pool)
+            .await?;
     Ok(result.last_insert_rowid())
 }
 
@@ -574,12 +565,11 @@ async fn upsert_artist(pool: &SqlitePool, raw_name: &str) -> AppResult<Option<i6
         return Ok(None);
     }
 
-    let existing: Option<i64> = sqlx::query_scalar(
-        "SELECT id FROM artist WHERE canonical_name = ?",
-    )
-    .bind(&canon)
-    .fetch_optional(pool)
-    .await?;
+    let existing: Option<i64> =
+        sqlx::query_scalar("SELECT id FROM artist WHERE canonical_name = ?")
+            .bind(&canon)
+            .fetch_optional(pool)
+            .await?;
     if let Some(id) = existing {
         return Ok(Some(id));
     }
@@ -610,20 +600,16 @@ async fn upsert_album(
     // The `UNIQUE (canonical_title, artist_id)` constraint treats NULL as
     // distinct in SQLite, so we dedup manually for the NULL-artist case.
     let existing: Option<i64> = if let Some(aid) = artist_id {
-        sqlx::query_scalar(
-            "SELECT id FROM album WHERE canonical_title = ? AND artist_id = ?",
-        )
-        .bind(&canon)
-        .bind(aid)
-        .fetch_optional(pool)
-        .await?
+        sqlx::query_scalar("SELECT id FROM album WHERE canonical_title = ? AND artist_id = ?")
+            .bind(&canon)
+            .bind(aid)
+            .fetch_optional(pool)
+            .await?
     } else {
-        sqlx::query_scalar(
-            "SELECT id FROM album WHERE canonical_title = ? AND artist_id IS NULL",
-        )
-        .bind(&canon)
-        .fetch_optional(pool)
-        .await?
+        sqlx::query_scalar("SELECT id FROM album WHERE canonical_title = ? AND artist_id IS NULL")
+            .bind(&canon)
+            .fetch_optional(pool)
+            .await?
     };
     if let Some(id) = existing {
         return Ok(Some(id));
@@ -651,12 +637,10 @@ async fn upsert_genre(pool: &SqlitePool, raw_name: &str) -> AppResult<Option<i64
         return Ok(None);
     }
 
-    let existing: Option<i64> = sqlx::query_scalar(
-        "SELECT id FROM genre WHERE canonical_name = ?",
-    )
-    .bind(&canon)
-    .fetch_optional(pool)
-    .await?;
+    let existing: Option<i64> = sqlx::query_scalar("SELECT id FROM genre WHERE canonical_name = ?")
+        .bind(&canon)
+        .fetch_optional(pool)
+        .await?;
     if let Some(id) = existing {
         return Ok(Some(id));
     }
@@ -714,12 +698,11 @@ pub(crate) async fn scan_folder_inner(
     // user fiddling with the data folder could have deleted it.
     std::fs::create_dir_all(artwork_dir)?;
 
-    let row: Option<(i64, String)> = sqlx::query_as(
-        "SELECT library_id, path FROM library_folder WHERE id = ?",
-    )
-    .bind(folder_id)
-    .fetch_optional(pool)
-    .await?;
+    let row: Option<(i64, String)> =
+        sqlx::query_as("SELECT library_id, path FROM library_folder WHERE id = ?")
+            .bind(folder_id)
+            .fetch_optional(pool)
+            .await?;
     let Some((library_id, folder_path)) = row else {
         return Err(AppError::Other(format!("folder {folder_id} not found")));
     };
@@ -857,12 +840,11 @@ pub(crate) async fn scan_folder_inner(
                 // existing rows without requiring a full DB reset.
                 if let Some(raw) = &extracted.artist {
                     let splits = split_artist_name(raw);
-                    let current_count: i64 = sqlx::query_scalar(
-                        "SELECT COUNT(*) FROM track_artist WHERE track_id = ?",
-                    )
-                    .bind(existing_track_id)
-                    .fetch_one(pool)
-                    .await?;
+                    let current_count: i64 =
+                        sqlx::query_scalar("SELECT COUNT(*) FROM track_artist WHERE track_id = ?")
+                            .bind(existing_track_id)
+                            .fetch_one(pool)
+                            .await?;
                     if current_count as usize != splits.len() {
                         let mut ids = Vec::new();
                         for name in splits {
@@ -943,15 +925,12 @@ pub(crate) async fn scan_folder_inner(
         // want a re-scan to flip the album cover back and forth between
         // variants embedded in different tracks of the same release.
         if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
-            let artwork_id =
-                upsert_artwork(pool, &cover.hash, &cover.format, cover.source).await?;
-            sqlx::query(
-                "UPDATE album SET artwork_id = ? WHERE id = ? AND artwork_id IS NULL",
-            )
-            .bind(artwork_id)
-            .bind(aid)
-            .execute(pool)
-            .await?;
+            let artwork_id = upsert_artwork(pool, &cover.hash, &cover.format, cover.source).await?;
+            sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ? AND artwork_id IS NULL")
+                .bind(artwork_id)
+                .bind(aid)
+                .execute(pool)
+                .await?;
         }
 
         if let Some((track_id, _, _)) = existing {
@@ -1138,8 +1117,7 @@ mod tests {
     /// and exercise the hash + write + spawn_thumbnail_job pipeline
     /// without dragging the `image` crate into the unit test.
     const TINY_JPEG: &[u8] = &[
-        0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
-        0xFF, 0xD9,
+        0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0xFF, 0xD9,
     ];
 
     #[test]
@@ -1159,7 +1137,10 @@ mod tests {
         write_bytes(&track, b"not really audio");
 
         let cover = extract_folder_cover(&track, &artwork_dir).expect("cover found");
-        assert_eq!(cover.format, "png", "cover.png should win over albumart.jpg");
+        assert_eq!(
+            cover.format, "png",
+            "cover.png should win over albumart.jpg"
+        );
         assert_eq!(cover.source, "folder");
     }
 

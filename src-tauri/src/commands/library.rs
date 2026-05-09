@@ -221,10 +221,7 @@ pub async fn update_library(
 /// queue_item / scrobble_queue) so the caller only has to issue the one
 /// DELETE and the DB takes care of the rest.
 #[tauri::command]
-pub async fn delete_library(
-    state: tauri::State<'_, AppState>,
-    library_id: i64,
-) -> AppResult<()> {
+pub async fn delete_library(state: tauri::State<'_, AppState>, library_id: i64) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
 
     let result = sqlx::query("DELETE FROM library WHERE id = ?")
@@ -255,12 +252,11 @@ pub async fn rescan_library(
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
-    let folder_ids: Vec<i64> = sqlx::query_scalar(
-        "SELECT id FROM library_folder WHERE library_id = ? ORDER BY id",
-    )
-    .bind(library_id)
-    .fetch_all(&pool)
-    .await?;
+    let folder_ids: Vec<i64> =
+        sqlx::query_scalar("SELECT id FROM library_folder WHERE library_id = ? ORDER BY id")
+            .bind(library_id)
+            .fetch_all(&pool)
+            .await?;
 
     let mut total = RescanSummary {
         library_id,

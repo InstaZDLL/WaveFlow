@@ -108,23 +108,18 @@ pub async fn analyze_track(
     track_id: i64,
 ) -> AppResult<TrackAnalysisRow> {
     let pool = state.require_profile_pool().await?;
-    let path: Option<String> =
-        sqlx::query_scalar("SELECT file_path FROM track WHERE id = ?")
-            .bind(track_id)
-            .fetch_optional(&pool)
-            .await?;
-    let path = path.ok_or_else(|| {
-        AppError::Other(format!("track {track_id} not found"))
-    })?;
+    let path: Option<String> = sqlx::query_scalar("SELECT file_path FROM track WHERE id = ?")
+        .bind(track_id)
+        .fetch_optional(&pool)
+        .await?;
+    let path = path.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
     let path_buf = PathBuf::from(path);
 
     // Decode is blocking + CPU-bound; keep it off the tokio reactor.
-    let result: AnalysisResult = tokio::task::spawn_blocking(move || {
-        analyze_file(&path_buf)
-    })
-    .await
-    .map_err(|e| AppError::Other(format!("analysis task panicked: {e}")))?
-    .map_err(AppError::Other)?;
+    let result: AnalysisResult = tokio::task::spawn_blocking(move || analyze_file(&path_buf))
+        .await
+        .map_err(|e| AppError::Other(format!("analysis task panicked: {e}")))?
+        .map_err(AppError::Other)?;
 
     let now = Utc::now().timestamp_millis();
     sqlx::query(
@@ -281,10 +276,7 @@ pub async fn get_auto_analyze(state: tauri::State<'_, AppState>) -> AppResult<bo
 /// `profile_setting` so it survives restarts; `false` removes the
 /// row instead of writing `false` so the table stays sparse.
 #[tauri::command]
-pub async fn set_auto_analyze(
-    state: tauri::State<'_, AppState>,
-    enable: bool,
-) -> AppResult<()> {
+pub async fn set_auto_analyze(state: tauri::State<'_, AppState>, enable: bool) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     let now = Utc::now().timestamp_millis();
     sqlx::query(
@@ -302,14 +294,12 @@ pub async fn set_auto_analyze(
 }
 
 async fn read_auto_analyze(pool: &SqlitePool) -> bool {
-    let raw: Option<String> = sqlx::query_scalar(
-        "SELECT value FROM profile_setting WHERE key = ?",
-    )
-    .bind(AUTO_ANALYZE_KEY)
-    .fetch_optional(pool)
-    .await
-    .ok()
-    .flatten();
+    let raw: Option<String> = sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = ?")
+        .bind(AUTO_ANALYZE_KEY)
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .flatten();
     matches!(raw.as_deref(), Some("true"))
 }
 

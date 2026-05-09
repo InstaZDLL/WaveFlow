@@ -103,9 +103,7 @@ pub struct ProfileStats {
 /// [`list_recent_plays`] so the numbers stay in sync with the
 /// view).
 #[tauri::command]
-pub async fn get_profile_stats(
-    state: tauri::State<'_, AppState>,
-) -> AppResult<ProfileStats> {
+pub async fn get_profile_stats(state: tauri::State<'_, AppState>) -> AppResult<ProfileStats> {
     let pool = state.require_profile_pool().await?;
 
     let liked_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM liked_track")
@@ -196,8 +194,7 @@ fn album_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'stat
 
 /// Whitelisted ORDER BY clause builder for `list_artists`.
 fn artist_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'static str {
-    let dir_default_desc =
-        matches!(order_by, Some("albums_count") | Some("tracks_count"));
+    let dir_default_desc = matches!(order_by, Some("albums_count") | Some("tracks_count"));
     let dir = match direction {
         Some(d) if d.eq_ignore_ascii_case("asc") => "ASC",
         Some(d) if d.eq_ignore_ascii_case("desc") => "DESC",
@@ -212,10 +209,18 @@ fn artist_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'sta
     match (order_by, dir) {
         (Some("name"), "ASC") => "ORDER BY ar.canonical_name COLLATE NOCASE ASC",
         (Some("name"), "DESC") => "ORDER BY ar.canonical_name COLLATE NOCASE DESC",
-        (Some("albums_count"), "ASC") => "ORDER BY album_count ASC, ar.canonical_name COLLATE NOCASE",
-        (Some("albums_count"), "DESC") => "ORDER BY album_count DESC, ar.canonical_name COLLATE NOCASE",
-        (Some("tracks_count"), "ASC") => "ORDER BY track_count ASC, ar.canonical_name COLLATE NOCASE",
-        (Some("tracks_count"), "DESC") => "ORDER BY track_count DESC, ar.canonical_name COLLATE NOCASE",
+        (Some("albums_count"), "ASC") => {
+            "ORDER BY album_count ASC, ar.canonical_name COLLATE NOCASE"
+        }
+        (Some("albums_count"), "DESC") => {
+            "ORDER BY album_count DESC, ar.canonical_name COLLATE NOCASE"
+        }
+        (Some("tracks_count"), "ASC") => {
+            "ORDER BY track_count ASC, ar.canonical_name COLLATE NOCASE"
+        }
+        (Some("tracks_count"), "DESC") => {
+            "ORDER BY track_count DESC, ar.canonical_name COLLATE NOCASE"
+        }
         _ => "ORDER BY ar.canonical_name COLLATE NOCASE",
     }
 }
@@ -279,8 +284,7 @@ pub async fn list_albums(
                             .join(format!("{}.{}", hash, format))
                             .to_string_lossy()
                             .to_string();
-                        let (p1, p2) =
-                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
                         (Some(full), p1, p2)
                     }
                     _ => (None, None, None),
@@ -410,8 +414,7 @@ pub async fn list_recent_plays(
 ) -> AppResult<Vec<RecentPlay>> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await.ok();
-    let artwork_dir =
-        profile_id.map(|pid| state.paths.profile_artwork_dir(pid));
+    let artwork_dir = profile_id.map(|pid| state.paths.profile_artwork_dir(pid));
 
     let raw = sqlx::query_as::<_, RecentPlayRaw>(
         r#"
@@ -631,19 +634,20 @@ pub async fn get_album_detail(
     .await?
     .ok_or_else(|| crate::error::AppError::Other("album not found".into()))?;
 
-    let (artwork_path, artwork_path_1x, artwork_path_2x) =
-        match (header.artwork_hash.as_deref(), header.artwork_format.as_deref()) {
-            (Some(hash), Some(format)) => {
-                let full = artwork_dir
-                    .join(format!("{hash}.{format}"))
-                    .to_string_lossy()
-                    .to_string();
-                let (p1, p2) =
-                    crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
-                (Some(full), p1, p2)
-            }
-            _ => (None, None, None),
-        };
+    let (artwork_path, artwork_path_1x, artwork_path_2x) = match (
+        header.artwork_hash.as_deref(),
+        header.artwork_format.as_deref(),
+    ) {
+        (Some(hash), Some(format)) => {
+            let full = artwork_dir
+                .join(format!("{hash}.{format}"))
+                .to_string_lossy()
+                .to_string();
+            let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+            (Some(full), p1, p2)
+        }
+        _ => (None, None, None),
+    };
 
     let genres: Vec<String> = sqlx::query_scalar(
         r#"
@@ -720,8 +724,7 @@ pub async fn get_album_detail(
                             .join(format!("{hash}.{fmt}"))
                             .to_string_lossy()
                             .to_string();
-                        let (p1, p2) =
-                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
                         (Some(full), p1, p2)
                     }
                     _ => (None, None, None),
@@ -861,19 +864,20 @@ pub async fn get_artist_detail(
     .await?
     .ok_or_else(|| crate::error::AppError::Other("artist not found".into()))?;
 
-    let (artwork_path, artwork_path_1x, artwork_path_2x) =
-        match (header.artwork_hash.as_deref(), header.artwork_format.as_deref()) {
-            (Some(hash), Some(format)) => {
-                let full = artwork_dir
-                    .join(format!("{hash}.{format}"))
-                    .to_string_lossy()
-                    .to_string();
-                let (p1, p2) =
-                    crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
-                (Some(full), p1, p2)
-            }
-            _ => (None, None, None),
-        };
+    let (artwork_path, artwork_path_1x, artwork_path_2x) = match (
+        header.artwork_hash.as_deref(),
+        header.artwork_format.as_deref(),
+    ) {
+        (Some(hash), Some(format)) => {
+            let full = artwork_dir
+                .join(format!("{hash}.{format}"))
+                .to_string_lossy()
+                .to_string();
+            let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+            (Some(full), p1, p2)
+        }
+        _ => (None, None, None),
+    };
 
     let albums_raw = sqlx::query_as::<_, ArtistAlbumRawRow>(
         r#"
@@ -904,8 +908,7 @@ pub async fn get_artist_detail(
                             .join(format!("{hash}.{fmt}"))
                             .to_string_lossy()
                             .to_string();
-                        let (p1, p2) =
-                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
                         (Some(full), p1, p2)
                     }
                     _ => (None, None, None),

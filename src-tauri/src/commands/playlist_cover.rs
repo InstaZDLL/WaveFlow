@@ -73,8 +73,8 @@ pub async fn set_playlist_cover_from_file(
     let pool = state.require_profile_pool().await?;
     ensure_user_playlist(&pool, playlist_id).await?;
 
-    let bytes = std::fs::read(&file_path)
-        .map_err(|e| AppError::Other(format!("read upload: {e}")))?;
+    let bytes =
+        std::fs::read(&file_path).map_err(|e| AppError::Other(format!("read upload: {e}")))?;
     if bytes.len() > MAX_UPLOAD_BYTES {
         return Err(AppError::Other(format!(
             "image too large: {} bytes (max {})",
@@ -99,8 +99,7 @@ pub async fn set_playlist_cover_from_file(
         "waveflow-upload-{}.bin",
         blake3::hash(&bytes).to_hex()
     ));
-    std::fs::write(&tmp, &bytes)
-        .map_err(|e| AppError::Other(format!("temp write: {e}")))?;
+    std::fs::write(&tmp, &bytes).map_err(|e| AppError::Other(format!("temp write: {e}")))?;
     let result = cover::build_composite_cover(&[tmp.clone()], &state.paths.metadata_artwork_dir);
     let _ = std::fs::remove_file(&tmp);
     let hash = result?;
@@ -152,14 +151,13 @@ pub async fn maybe_regen_auto_cover(
     profile_id: i64,
     playlist_id: i64,
 ) {
-    let flags: Option<PlaylistFlags> = sqlx::query_as(
-        "SELECT is_smart, cover_is_auto FROM playlist WHERE id = ?",
-    )
-    .bind(playlist_id)
-    .fetch_optional(pool)
-    .await
-    .ok()
-    .flatten();
+    let flags: Option<PlaylistFlags> =
+        sqlx::query_as("SELECT is_smart, cover_is_auto FROM playlist WHERE id = ?")
+            .bind(playlist_id)
+            .fetch_optional(pool)
+            .await
+            .ok()
+            .flatten();
     let Some(flags) = flags else { return };
     if flags.is_smart == 1 || flags.cover_is_auto == 0 {
         return;
@@ -178,14 +176,8 @@ async fn regenerate_inner(
     profile_id: i64,
     playlist_id: i64,
 ) -> AppResult<()> {
-    let paths_for_compose = top_track_artwork_paths(
-        pool,
-        paths,
-        profile_id,
-        playlist_id,
-        AUTO_COVER_TILE_COUNT,
-    )
-    .await;
+    let paths_for_compose =
+        top_track_artwork_paths(pool, paths, profile_id, playlist_id, AUTO_COVER_TILE_COUNT).await;
     if paths_for_compose.is_empty() {
         // Nothing to compose — keep whatever cover is already there
         // (typically NULL for a brand new playlist). The frontend's
@@ -260,12 +252,10 @@ async fn top_track_artwork_paths(
 /// Reject smart playlists and missing ids with a precise error. Keeps every
 /// public command above honest about what they accept.
 async fn ensure_user_playlist(pool: &SqlitePool, playlist_id: i64) -> AppResult<()> {
-    let row: Option<(i64,)> = sqlx::query_as(
-        "SELECT is_smart FROM playlist WHERE id = ?",
-    )
-    .bind(playlist_id)
-    .fetch_optional(pool)
-    .await?;
+    let row: Option<(i64,)> = sqlx::query_as("SELECT is_smart FROM playlist WHERE id = ?")
+        .bind(playlist_id)
+        .fetch_optional(pool)
+        .await?;
     match row {
         None => Err(AppError::Other(format!(
             "playlist {playlist_id} not found in active profile"

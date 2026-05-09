@@ -36,10 +36,7 @@ const MAX_PAGE_SIZE: i64 = 500;
 
 /// SOAP control endpoint handler. Decodes the envelope, dispatches by
 /// action name, returns the appropriate SOAP response (or fault).
-pub async fn handle_control(
-    State(ctx): State<Arc<ServerCtx>>,
-    body: String,
-) -> Response {
+pub async fn handle_control(State(ctx): State<Arc<ServerCtx>>, body: String) -> Response {
     let action = match parse_soap_action(&body) {
         Some(a) => a,
         None => return soap_fault(401, "Invalid Action"),
@@ -53,18 +50,16 @@ pub async fn handle_control(
                 soap_fault(501, "Action Failed")
             }
         },
-        SoapAction::GetSearchCapabilities => soap_response_raw(
-            "GetSearchCapabilitiesResponse",
-            "<SearchCaps></SearchCaps>",
-        ),
+        SoapAction::GetSearchCapabilities => {
+            soap_response_raw("GetSearchCapabilitiesResponse", "<SearchCaps></SearchCaps>")
+        }
         SoapAction::GetSortCapabilities => soap_response_raw(
             "GetSortCapabilitiesResponse",
             "<SortCaps>dc:title</SortCaps>",
         ),
-        SoapAction::GetSystemUpdateID => soap_response_raw(
-            "GetSystemUpdateIDResponse",
-            "<Id>1</Id>",
-        ),
+        SoapAction::GetSystemUpdateID => {
+            soap_response_raw("GetSystemUpdateIDResponse", "<Id>1</Id>")
+        }
     }
 }
 
@@ -96,7 +91,8 @@ fn parse_soap_action(body: &str) -> Option<SoapAction> {
     if body.contains(":Browse>") || body.contains("<Browse ") || body.contains("<u:Browse") {
         let req = BrowseRequest {
             object_id: extract_tag(body, "ObjectID").unwrap_or_else(|| "0".into()),
-            browse_flag: extract_tag(body, "BrowseFlag").unwrap_or_else(|| "BrowseDirectChildren".into()),
+            browse_flag: extract_tag(body, "BrowseFlag")
+                .unwrap_or_else(|| "BrowseDirectChildren".into()),
             starting_index: extract_tag(body, "StartingIndex")
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0),
@@ -218,13 +214,12 @@ async fn browse_artists(
     let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM artist")
         .fetch_one(pool)
         .await?;
-    let rows: Vec<(i64, String)> = sqlx::query_as(
-        "SELECT id, name FROM artist ORDER BY canonical_name LIMIT ? OFFSET ?",
-    )
-    .bind(count)
-    .bind(offset)
-    .fetch_all(pool)
-    .await?;
+    let rows: Vec<(i64, String)> =
+        sqlx::query_as("SELECT id, name FROM artist ORDER BY canonical_name LIMIT ? OFFSET ?")
+            .bind(count)
+            .bind(offset)
+            .fetch_all(pool)
+            .await?;
     let mut body = String::new();
     for (id, name) in &rows {
         body.push_str(&container_xml(
@@ -286,13 +281,12 @@ async fn browse_albums(
     let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM album")
         .fetch_one(pool)
         .await?;
-    let rows: Vec<(i64, String)> = sqlx::query_as(
-        "SELECT id, title FROM album ORDER BY canonical_title LIMIT ? OFFSET ?",
-    )
-    .bind(count)
-    .bind(offset)
-    .fetch_all(pool)
-    .await?;
+    let rows: Vec<(i64, String)> =
+        sqlx::query_as("SELECT id, title FROM album ORDER BY canonical_title LIMIT ? OFFSET ?")
+            .bind(count)
+            .bind(offset)
+            .fetch_all(pool)
+            .await?;
     let mut body = String::new();
     for (id, title) in &rows {
         body.push_str(&container_xml(
@@ -334,10 +328,11 @@ async fn browse_album_tracks(
     count: i64,
     offset: i64,
 ) -> Result<BrowseResult, sqlx::Error> {
-    let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM track WHERE album_id = ? AND is_available = 1")
-        .bind(album_id)
-        .fetch_one(&ctx.pool)
-        .await?;
+    let total: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM track WHERE album_id = ? AND is_available = 1")
+            .bind(album_id)
+            .fetch_one(&ctx.pool)
+            .await?;
     let rows: Vec<TrackRow> = sqlx::query_as(
         "SELECT t.id, t.title,
                 ar.name AS artist_name,
@@ -371,10 +366,7 @@ async fn browse_album_tracks(
     })
 }
 
-async fn browse_metadata(
-    ctx: &ServerCtx,
-    object_id: &str,
-) -> Result<BrowseResult, sqlx::Error> {
+async fn browse_metadata(ctx: &ServerCtx, object_id: &str) -> Result<BrowseResult, sqlx::Error> {
     if object_id.is_empty() || object_id == "0" {
         let body = format!(
             r#"<container id="0" parentID="-1" restricted="1" childCount="2"><dc:title>WaveFlow</dc:title><upnp:class>object.container</upnp:class></container>"#
@@ -458,7 +450,13 @@ fn item_xml(ctx: &ServerCtx, t: &TrackRow, parent: &str) -> String {
     let artist_xml = t
         .artist_name
         .as_deref()
-        .map(|a| format!("<dc:creator>{}</dc:creator><upnp:artist>{}</upnp:artist>", xml_escape(a), xml_escape(a)))
+        .map(|a| {
+            format!(
+                "<dc:creator>{}</dc:creator><upnp:artist>{}</upnp:artist>",
+                xml_escape(a),
+                xml_escape(a)
+            )
+        })
         .unwrap_or_default();
     let album_xml = t
         .album_title
