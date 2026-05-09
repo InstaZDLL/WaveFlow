@@ -106,13 +106,13 @@ struct SsdpShared {
 /// the same machine (e.g. Windows Media Player).
 fn build_multicast_socket(interface: Ipv4Addr) -> std::io::Result<UdpSocket> {
     let sock = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))?;
+    // SO_REUSEADDR is enough for our use case: it lets the SSDP
+    // socket coexist with other UPnP services already bound to
+    // 239.255.255.250:1900 (Windows Media Player, miniDLNA, ...).
+    // SO_REUSEPORT (Linux/macOS-only, requires the socket2 `all`
+    // feature) is not needed — we never share the multicast
+    // membership with another in-process socket.
     sock.set_reuse_address(true)?;
-    #[cfg(unix)]
-    {
-        // `set_reuse_port` is unix-only; Windows does the right thing
-        // with REUSEADDR alone.
-        sock.set_reuse_port(true)?;
-    }
     sock.set_nonblocking(true)?;
     let bind: SocketAddr = SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 1900).into();
     sock.bind(&bind.into())?;
