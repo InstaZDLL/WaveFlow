@@ -621,6 +621,16 @@
     "nowPlaying": "Показать воспроизведение",
     "queue": "Очередь"
   },
+  "sleepTimer": {
+    "title": "Таймер сна",
+    "endOfTrack": "В конце текущего трека",
+    "endOfTrackBadge": "КОН",
+    "cancel": "Отмена",
+    "start": "OK",
+    "customPlaceholder": "Мин.",
+    "minutes_one": "{{count}} мин",
+    "minutes_other": "{{count}} мин"
+  },
   "lyrics": {
     "title": "Текст песни",
     "loading": "Поиск текстов песен…",

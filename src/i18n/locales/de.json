@@ -621,6 +621,16 @@
     "nowPlaying": "Jetzt abspielen anzeigen",
     "queue": "Warteschlange"
   },
+  "sleepTimer": {
+    "title": "Sleep-Timer",
+    "endOfTrack": "Am Ende des aktuellen Titels",
+    "endOfTrackBadge": "ENDE",
+    "cancel": "Abbrechen",
+    "start": "OK",
+    "customPlaceholder": "Min.",
+    "minutes_one": "{{count}} Min.",
+    "minutes_other": "{{count}} Min."
+  },
   "lyrics": {
     "title": "Text",
     "loading": "Suche nach Liedtexten…",

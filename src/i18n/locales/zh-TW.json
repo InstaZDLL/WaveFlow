@@ -621,6 +621,16 @@
     "nowPlaying": "顯示正在播放",
     "queue": "佇列"
   },
+  "sleepTimer": {
+    "title": "睡眠計時器",
+    "endOfTrack": "當前曲目結束時",
+    "endOfTrackBadge": "完",
+    "cancel": "取消",
+    "start": "確定",
+    "customPlaceholder": "分鐘",
+    "minutes_one": "{{count}} 分鐘",
+    "minutes_other": "{{count}} 分鐘"
+  },
   "lyrics": {
     "title": "歌詞",
     "loading": "搜尋歌詞……",

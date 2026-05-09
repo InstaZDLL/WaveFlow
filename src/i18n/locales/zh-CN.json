@@ -621,6 +621,16 @@
     "nowPlaying": "显示正在播放",
     "queue": "队列"
   },
+  "sleepTimer": {
+    "title": "睡眠定时器",
+    "endOfTrack": "当前曲目结束时",
+    "endOfTrackBadge": "完",
+    "cancel": "取消",
+    "start": "确定",
+    "customPlaceholder": "分钟",
+    "minutes_one": "{{count}} 分钟",
+    "minutes_other": "{{count}} 分钟"
+  },
   "lyrics": {
     "title": "歌词",
     "loading": "搜索歌词……",

@@ -621,6 +621,16 @@
     "nowPlaying": "Vue en cours de lecture",
     "queue": "File d'attente"
   },
+  "sleepTimer": {
+    "title": "Minuteur de sommeil",
+    "endOfTrack": "À la fin du titre en cours",
+    "endOfTrackBadge": "EOT",
+    "cancel": "Annuler",
+    "start": "OK",
+    "customPlaceholder": "Min.",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min"
+  },
   "lyrics": {
     "title": "Paroles",
     "loading": "Recherche des paroles…",

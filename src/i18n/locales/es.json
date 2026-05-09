@@ -621,6 +621,16 @@
     "nowPlaying": "Mostrar en reproducción",
     "queue": "Cola"
   },
+  "sleepTimer": {
+    "title": "Temporizador de apagado",
+    "endOfTrack": "Al final de la pista actual",
+    "endOfTrackBadge": "FIN",
+    "cancel": "Cancelar",
+    "start": "OK",
+    "customPlaceholder": "Min.",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min"
+  },
   "lyrics": {
     "title": "Letra",
     "loading": "Buscando la letra…",

@@ -621,6 +621,16 @@
     "nowPlaying": "Tampilkan sekarang bermain",
     "queue": "Antrean"
   },
+  "sleepTimer": {
+    "title": "Timer tidur",
+    "endOfTrack": "Di akhir trek saat ini",
+    "endOfTrackBadge": "AKH",
+    "cancel": "Batal",
+    "start": "OK",
+    "customPlaceholder": "Mnt",
+    "minutes_one": "{{count}} mnt",
+    "minutes_other": "{{count}} mnt"
+  },
   "lyrics": {
     "title": "Lirik",
     "loading": "Mencari lirik…",

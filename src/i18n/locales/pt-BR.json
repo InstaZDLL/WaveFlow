@@ -621,6 +621,16 @@
     "nowPlaying": "Mostrar a reprodução atual",
     "queue": "Fila"
   },
+  "sleepTimer": {
+    "title": "Timer de sono",
+    "endOfTrack": "No fim da faixa atual",
+    "endOfTrackBadge": "FIM",
+    "cancel": "Cancelar",
+    "start": "OK",
+    "customPlaceholder": "Min.",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min"
+  },
   "lyrics": {
     "title": "Letra",
     "loading": "Pesquisando a letra…",

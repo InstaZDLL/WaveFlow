@@ -621,6 +621,16 @@
     "nowPlaying": "再生中を表示",
     "queue": "待ち行列"
   },
+  "sleepTimer": {
+    "title": "スリープタイマー",
+    "endOfTrack": "現在の曲の終わりに",
+    "endOfTrackBadge": "終",
+    "cancel": "キャンセル",
+    "start": "OK",
+    "customPlaceholder": "分",
+    "minutes_one": "{{count}} 分",
+    "minutes_other": "{{count}} 分"
+  },
   "lyrics": {
     "title": "歌詞",
     "loading": "歌詞を検索中…",

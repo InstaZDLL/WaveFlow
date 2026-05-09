@@ -621,6 +621,16 @@
     "nowPlaying": "Mostra ora in riproduzione",
     "queue": "Coda"
   },
+  "sleepTimer": {
+    "title": "Timer di spegnimento",
+    "endOfTrack": "Alla fine del brano attuale",
+    "endOfTrackBadge": "FINE",
+    "cancel": "Annulla",
+    "start": "OK",
+    "customPlaceholder": "Min.",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min"
+  },
   "lyrics": {
     "title": "Testo",
     "loading": "Ricerca dei testi…",

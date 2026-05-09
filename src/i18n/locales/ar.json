@@ -621,6 +621,16 @@
     "nowPlaying": "إظهار التشغيل الآن",
     "queue": "قائمة الانتظار"
   },
+  "sleepTimer": {
+    "title": "مؤقت السكون",
+    "endOfTrack": "في نهاية المسار الحالي",
+    "endOfTrackBadge": "نهاية",
+    "cancel": "إلغاء",
+    "start": "موافق",
+    "customPlaceholder": "دقيقة",
+    "minutes_one": "{{count}} دقيقة",
+    "minutes_other": "{{count}} دقيقة"
+  },
   "lyrics": {
     "title": "كلمات الأغنية",
     "loading": "البحث عن كلمات الأغنية…",

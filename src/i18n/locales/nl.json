@@ -621,6 +621,16 @@
     "nowPlaying": "Nu afspelen tonen",
     "queue": "Wachtrij"
   },
+  "sleepTimer": {
+    "title": "Slaaptimer",
+    "endOfTrack": "Aan het einde van het huidige nummer",
+    "endOfTrackBadge": "EOT",
+    "cancel": "Annuleren",
+    "start": "OK",
+    "customPlaceholder": "Min.",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min"
+  },
   "lyrics": {
     "title": "Tekst",
     "loading": "Zoeken naar songteksten…",

@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Menu, MonitorSpeaker, Heart, Mic2 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useSleepTimer } from "../../hooks/useSleepTimer";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { PlaybackControls } from "./PlaybackControls";
 import { ProgressBar } from "./ProgressBar";
+import { SleepTimerMenu } from "./SleepTimerMenu";
 import { VolumeControl } from "./VolumeControl";
 import { AudioQualityFooter } from "./AudioQualityFooter";
 import { toggleLikeTrack, listLikedTrackIds } from "../../lib/tauri/track";
@@ -24,7 +26,35 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
     isDeviceMenuOpen,
     toggleDeviceMenu,
     currentTrack,
+    volume,
+    setVolume,
   } = usePlayer();
+
+  const sleepTimer = useSleepTimer({ currentVolume: volume, setVolume });
+
+  // Subscribe to the backend's track-ended event so the sleep timer
+  // in "end of track" mode triggers when the current track finishes
+  // naturally (not when the user skips). Listening to the event is
+  // more reliable than diffing currentTrack.id because the player
+  // can flip directly from track A to track B without ever passing
+  // through null in the auto-advance path.
+  useEffect(() => {
+    let unlistenFn: (() => void) | null = null;
+    let cancelled = false;
+    (async () => {
+      const { listen } = await import("@tauri-apps/api/event");
+      const off = await listen("player:track-ended", () => {
+        sleepTimer.notifyTrackEnded();
+      });
+      if (cancelled) off();
+      else unlistenFn = off;
+    })();
+    return () => {
+      cancelled = true;
+      unlistenFn?.();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
 
@@ -136,6 +166,13 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
         >
           <Menu size={20} />
         </button>
+
+        <SleepTimerMenu
+          status={sleepTimer.status}
+          onSetDuration={sleepTimer.setDurationMinutes}
+          onSetEndOfTrack={sleepTimer.setEndOfTrack}
+          onCancel={sleepTimer.cancel}
+        />
 
         <div className="relative">
           <button

@@ -621,6 +621,16 @@
     "nowPlaying": "अभी चल रहा दिखाएँ",
     "queue": "पंक्ति"
   },
+  "sleepTimer": {
+    "title": "स्लीप टाइमर",
+    "endOfTrack": "वर्तमान ट्रैक के अंत में",
+    "endOfTrackBadge": "अंत",
+    "cancel": "रद्द करें",
+    "start": "ठीक",
+    "customPlaceholder": "मिनट",
+    "minutes_one": "{{count}} मिनट",
+    "minutes_other": "{{count}} मिनट"
+  },
   "lyrics": {
     "title": "गीत के बोल",
     "loading": "गीत के बोल खोज रहे हैं…",

@@ -621,6 +621,16 @@
     "nowPlaying": "Şimdi çalındığını göster",
     "queue": "Kuyruk"
   },
+  "sleepTimer": {
+    "title": "Uyku zamanlayıcısı",
+    "endOfTrack": "Geçerli parça sonunda",
+    "endOfTrackBadge": "SON",
+    "cancel": "İptal",
+    "start": "Tamam",
+    "customPlaceholder": "Dak.",
+    "minutes_one": "{{count}} dk",
+    "minutes_other": "{{count}} dk"
+  },
   "lyrics": {
     "title": "Şarkı Sözleri",
     "loading": "Şarkı sözleri aranıyor…",

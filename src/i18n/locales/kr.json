@@ -621,6 +621,16 @@
     "nowPlaying": "지금 재생 중 표시",
     "queue": "대기열"
   },
+  "sleepTimer": {
+    "title": "수면 타이머",
+    "endOfTrack": "현재 트랙 종료 시",
+    "endOfTrackBadge": "끝",
+    "cancel": "취소",
+    "start": "확인",
+    "customPlaceholder": "분",
+    "minutes_one": "{{count}}분",
+    "minutes_other": "{{count}}분"
+  },
   "lyrics": {
     "title": "가사",
     "loading": "가사 검색…",

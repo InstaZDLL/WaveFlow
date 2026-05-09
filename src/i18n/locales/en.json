@@ -621,6 +621,16 @@
     "nowPlaying": "Show now playing",
     "queue": "Queue"
   },
+  "sleepTimer": {
+    "title": "Sleep timer",
+    "endOfTrack": "At end of current track",
+    "endOfTrackBadge": "EOT",
+    "cancel": "Cancel",
+    "start": "OK",
+    "customPlaceholder": "Min.",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min"
+  },
   "lyrics": {
     "title": "Lyrics",
     "loading": "Searching for lyrics…",
