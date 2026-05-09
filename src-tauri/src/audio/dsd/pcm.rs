@@ -69,7 +69,7 @@ impl DsdToPcm {
     pub fn new(layout: &DsdLayout) -> Self {
         let channels = layout.channels.count() as usize;
         let coeffs = build_blackman_harris_lowpass(FILTER_TAPS, 1.0 / DECIMATION as f32);
-        Self {
+        let mut me = Self {
             coeffs,
             channels,
             history: vec![vec![0.0; FILTER_TAPS]; channels],
@@ -78,6 +78,30 @@ impl DsdToPcm {
             output_rate_hz: layout.sample_rate_hz / DECIMATION as u32,
             layout_lsb_first: layout.lsb_first,
             layout_block_interleave: layout.block_interleave,
+        };
+        me.prime_neutral();
+        me
+    }
+
+    /// Pre-fill the FIR history with a +1/-1 alternation. That
+    /// pattern lives at exactly the Nyquist frequency of the DSD
+    /// rate, which the low-pass filter crushes to (near-)zero — so
+    /// any residual samples still in the ring on the first real
+    /// `push_bit` contribute nothing to the convolution. Without
+    /// this priming step the ring starts as zeros and the first
+    /// FILTER_TAPS / DECIMATION ≈ 4 PCM outputs ramp from zero up
+    /// to the real signal level, audible as a click at every track
+    /// start — and very obvious during a crossfade where the
+    /// outgoing stream is at full level.
+    fn prime_neutral(&mut self) {
+        for ch in 0..self.channels {
+            for i in 0..FILTER_TAPS {
+                self.history[ch][i] = if i & 1 == 0 { 1.0 } else { -1.0 };
+            }
+            // Head stays at 0 — the ring is conceptually full and
+            // the next push_bit overwrites the oldest slot. Counter
+            // stays at 0 so the first DECIMATION real bits trigger
+            // the first PCM emission like a fresh start.
         }
     }
 
