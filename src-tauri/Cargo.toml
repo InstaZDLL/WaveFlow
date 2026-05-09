@@ -65,6 +65,11 @@ chrono = { version = "0.4", features = ["serde"] }
 # Library scanning
 walkdir = "2"
 lofty = "0.24"
+# Standalone ID3v2 parser used to read the metadata blob embedded in
+# the DSF container's footer. Lofty doesn't accept a raw byte buffer
+# (it wants a full file), so the simpler `id3` crate is the cleanest
+# fit for the DSD scan path. Not used for anything else.
+id3 = "1"
 blake3 = "1"
 
 # Audio playback: symphonia decodes, cpal outputs, rubato resamples,
