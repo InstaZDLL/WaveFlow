@@ -376,9 +376,39 @@ impl ActiveStream {
                     return Ok(true);
                 }
                 // Pull a fixed-size DSD chunk, capped at whatever's
-                // left in the data block.
+                // left in the data block. Critically, round the
+                // request down to a whole number of interleave
+                // strides — for DSF that's block_size × channels
+                // (typically 8192 bytes). A truncated last chunk
+                // would leave the converter mid-cycle: ch0 would
+                // receive its block, ch1 would receive a partial
+                // one, and at the next call (or EOF) ch0 / ch1
+                // sample counts diverge → channels desynchronise →
+                // grit/noise audible during the primary's tail
+                // (and through the first ~half of the crossfade
+                // because g_out is still > 0 there).
+                let stride = match layout.block_interleave {
+                    Some(block) => (block as u64) * (layout.channels.count() as u64),
+                    None => layout.channels.count() as u64,
+                };
                 let remaining = layout.data_len_bytes - *bytes_read;
-                let want = remaining.min(DSD_READ_CHUNK as u64) as usize;
+                let raw_want = remaining.min(DSD_READ_CHUNK as u64);
+                let aligned = if stride > 0 {
+                    (raw_want / stride) * stride
+                } else {
+                    raw_want
+                };
+                // If the leftover at EOF is smaller than one stride,
+                // we'd never make progress. In that case treat the
+                // residual as EOF — losing < stride / bytes-per-ms
+                // ≈ 12 ms is far less perceptible than the grit it
+                // would otherwise produce.
+                let want = if aligned == 0 {
+                    *bytes_read = layout.data_len_bytes;
+                    return Ok(true);
+                } else {
+                    aligned as usize
+                };
                 dsd_scratch.resize(want, 0);
                 let read = file
                     .read(dsd_scratch)
