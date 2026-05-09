@@ -508,7 +508,22 @@ fn play_track(
 
             let primary_frames = primary_resampled.len() / dst_channels;
             let secondary_frames = secondary_resampled.len() / dst_channels;
-            let mix_frames = primary_frames.min(secondary_frames);
+            // Once the primary stream EOFs we must keep mixing — but
+            // with a primary contribution of zero — for the remainder
+            // of the fade window. Otherwise the swap-on-EOF path
+            // collapses g_in from < 1 straight to "100% secondary at
+            // full amplitude" mid-fade and produces an audible step.
+            // Common when the outgoing track's true sample count
+            // doesn't quite match the duration the fade was timed
+            // against (DSD files in particular: the data chunk is
+            // block-aligned, not duration-aligned).
+            let remaining_window =
+                mix_frames_total.saturating_sub(mix_frames_written) as usize;
+            let mix_frames = if primary_at_eof {
+                secondary_frames.min(remaining_window)
+            } else {
+                primary_frames.min(secondary_frames)
+            };
             let denom = mix_frames_total.max(1) as f32;
 
             if mix_frames > 0 {
@@ -518,14 +533,24 @@ fn play_track(
                     let t = (mix_frames_written as f32 / denom).min(1.0);
                     let (g_out, g_in) = equal_power_gains(t);
                     for ch in 0..dst_channels {
-                        let p = primary_resampled[f * dst_channels + ch] * g_out;
+                        // Use 0 for primary frames past the buffer —
+                        // happens only when primary EOF'd and we're
+                        // running out the rest of the fade.
+                        let p = if f < primary_frames {
+                            primary_resampled[f * dst_channels + ch] * g_out
+                        } else {
+                            0.0
+                        };
                         let s = secondary_resampled[f * dst_channels + ch] * g_in;
                         mix_scratch.push(p + s);
                     }
                     mix_frames_written += 1;
                 }
-                // Drop only what we mixed; surplus stays for next iter.
-                primary_resampled.drain(..mix_frames * dst_channels);
+                // Drain only what each buffer actually contributed,
+                // i.e. clamp to the per-buffer length — the primary
+                // buffer may be empty in the EOF tail.
+                let primary_consumed = mix_frames.min(primary_frames);
+                primary_resampled.drain(..primary_consumed * dst_channels);
                 secondary_resampled.drain(..mix_frames * dst_channels);
 
                 match push_samples(
@@ -575,14 +600,20 @@ fn play_track(
                 }
             }
 
-            // Swap when the primary is fully drained or the fade
-            // window has elapsed. We also swap if both sides EOF'd
-            // simultaneously and there's nothing left to mix —
-            // otherwise we'd loop forever with mix_frames == 0.
-            let primary_drained = primary_at_eof && primary_resampled.is_empty();
+            // Swap once the fade window has fully elapsed. Don't
+            // swap on primary-drained alone — that path used to
+            // collapse the mix to "100% secondary at full amplitude"
+            // mid-fade, audible as a 0.5 s pop on DSD→anything
+            // transitions where the outgoing data ended a few hundred
+            // ms before the announced duration. Now the EOF tail is
+            // mixed with primary=0 instead, so g_in keeps ramping
+            // smoothly to 1 before the swap.
+            //
+            // dead_loop guards against an infinite spin when both
+            // sides are EOF'd and there's nothing left to write.
             let window_done = mix_frames_written >= mix_frames_total;
             let dead_loop = mix_frames == 0 && primary_at_eof && secondary_at_eof;
-            if primary_drained || window_done || dead_loop {
+            if window_done || dead_loop {
                 let listened = shared.session_listened_ms();
                 let _ = analytics_tx.send(AnalyticsMsg::CrossfadeStarted {
                     finished_track_id: stream.track_id,
