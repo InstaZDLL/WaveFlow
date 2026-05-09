@@ -58,6 +58,13 @@ pub struct DsdToPcm {
     /// Decimation counter per channel — increments on every new
     /// sample, emits one PCM output when it reaches `DECIMATION`.
     counter: Vec<usize>,
+    /// PCM samples per channel still to be discarded before the
+    /// converter starts emitting. Counts down from
+    /// `FILTER_TAPS / DECIMATION` at init / reset so the first
+    /// sample we actually push corresponds to a window 100% filled
+    /// with real audio data — no residual transient from priming.
+    /// Time cost: ~90 µs at DSD64, imperceptible.
+    discard_outputs_remaining: Vec<usize>,
     /// Resulting PCM sample rate. Caller stamps it on the
     /// `ActiveStream` so the resampler knows what to convert from.
     pub output_rate_hz: u32,
@@ -69,12 +76,18 @@ impl DsdToPcm {
     pub fn new(layout: &DsdLayout) -> Self {
         let channels = layout.channels.count() as usize;
         let coeffs = build_blackman_harris_lowpass(FILTER_TAPS, 1.0 / DECIMATION as f32);
+        // Discard the first FILTER_TAPS / DECIMATION outputs per
+        // channel. After that many emissions the FIR window has
+        // been fully overwritten with real audio bits and any bias
+        // from the neutral priming is gone.
+        let discard = FILTER_TAPS / DECIMATION;
         let mut me = Self {
             coeffs,
             channels,
             history: vec![vec![0.0; FILTER_TAPS]; channels],
             head: vec![0; channels],
             counter: vec![0; channels],
+            discard_outputs_remaining: vec![discard; channels],
             output_rate_hz: layout.sample_rate_hz / DECIMATION as u32,
             layout_lsb_first: layout.lsb_first,
             layout_block_interleave: layout.block_interleave,
@@ -119,7 +132,16 @@ impl DsdToPcm {
         if self.counter[ch] >= DECIMATION {
             self.counter[ch] = 0;
             let pcm = self.convolve(ch);
-            out.push(pcm);
+            if self.discard_outputs_remaining[ch] > 0 {
+                // Eat this output: it's still partially convolved
+                // against neutral priming samples, not 100% real
+                // audio, so it would carry a residual transient
+                // audible at track start (especially during a
+                // crossfade).
+                self.discard_outputs_remaining[ch] -= 1;
+            } else {
+                out.push(pcm);
+            }
         }
     }
 
