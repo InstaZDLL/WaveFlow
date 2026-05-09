@@ -173,6 +173,51 @@ pub async fn get_similar_artists(
     Ok(out)
 }
 
+/// Populate `app.lastfm_similar` for `artist_id` when the cache row is
+/// missing or stale. Used by `start_radio` so that the very first
+/// "Démarrer la radio" click on a new artist still pulls similar
+/// artists, instead of degrading to a seed-artist-only queue (which
+/// looks like the radio "did nothing" when the seed has few siblings).
+///
+/// No-op on success: the cache row is the side-effect. Returns `Ok(())`
+/// even when the upstream lookup fails — radio is allowed to degrade
+/// gracefully, it should never block the user click on a network
+/// hiccup.
+pub async fn ensure_similar_cached(
+    state: &AppState,
+    artist_id: i64,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    let local: Option<(String, Option<i64>)> =
+        sqlx::query_as("SELECT name, deezer_id FROM artist WHERE id = ?")
+            .bind(artist_id)
+            .fetch_optional(&pool)
+            .await?;
+    let Some((name, deezer_id)) = local else {
+        return Ok(());
+    };
+    let canonical = canonical_name(&name);
+    if canonical.is_empty() {
+        return Ok(());
+    }
+
+    let now = now_ms();
+    let cached: Option<(i64,)> = sqlx::query_as(
+        "SELECT expires_at FROM app.lastfm_similar WHERE name_canonical = ?",
+    )
+    .bind(&canonical)
+    .fetch_optional(&pool)
+    .await?;
+    if cached.map(|(exp,)| exp > now).unwrap_or(false) {
+        return Ok(());
+    }
+
+    let api_key = read_lastfm_api_key(state).await?;
+    let _ = fetch_and_cache(&pool, api_key.as_deref(), &name, &canonical, deezer_id, now)
+        .await;
+    Ok(())
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 struct RawSimilar {
     name: String,

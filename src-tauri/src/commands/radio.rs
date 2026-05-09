@@ -43,6 +43,17 @@ const SEED_ARTIST_CAP: usize = 6;
 /// list (Last.fm's tail gets noisy fast).
 const SIMILAR_ARTIST_CAP: usize = 8;
 
+/// Below this many candidates we widen the net to "user's most-played
+/// artists" so that radios on niche seeds (no Last.fm data + few
+/// library siblings) still produce a meaningful queue instead of a
+/// 3-track loop. Picked so that 40 - SEED_ARTIST_CAP - 1 = 33 still
+/// has room to breathe without triggering on healthy radios.
+const POOL_FALLBACK_THRESHOLD: usize = 20;
+
+/// Number of "your favourite artists" pulled in as a last-resort
+/// filler. Sourced from `play_event` aggregated by primary artist.
+const FALLBACK_ARTIST_COUNT: usize = 12;
+
 /// Half-window (BPM) around the seed track's tempo for soft filtering.
 /// ±18 keeps within the same "groove family" most of the time; small
 /// enough to feel intentional, wide enough not to starve the pool.
@@ -82,9 +93,13 @@ pub async fn start_radio(
         AppError::Other(format!("seed track {seed_track_id} not found"))
     })?;
 
-    // 2. Look up the seed artist's similar artists from cache. Anyone
-    //    who's visited the artist's detail page once will have this
-    //    populated; otherwise we fall back to seed-artist-only.
+    // 2. Make sure the similar-artists cache is fresh for the seed.
+    //    The very first "Démarrer la radio" click on a previously
+    //    unvisited artist would otherwise degrade to seed-artist-only
+    //    (= 3-track radio for niche artists, looks like the click did
+    //    nothing). Best-effort: errors are logged inside the helper
+    //    and don't fail the radio.
+    let _ = crate::commands::similar::ensure_similar_cached(&state, seed_artist_id).await;
     let similar_artist_ids =
         cached_similar_library_ids(&pool, seed_artist_id).await?;
 
@@ -96,7 +111,24 @@ pub async fn start_radio(
     // 4. Pull every available track by these artists, keeping the
     //    play-count signal for ordering. Capped at 200 to keep the
     //    in-memory shuffle bounded.
-    let candidates = pick_candidate_tracks(&pool, &artist_ids).await?;
+    let mut candidates = pick_candidate_tracks(&pool, &artist_ids).await?;
+
+    // 4b. Fallback when the pool is too thin (niche seed + no Last.fm
+    //     data). Widen to the user's most-played artists so radios
+    //     never collapse to a 3-track loop. Skipped silently when the
+    //     fallback would still yield zero (cold-start library).
+    if candidates.len() < POOL_FALLBACK_THRESHOLD {
+        let extra_artists = top_played_artists(&pool, FALLBACK_ARTIST_COUNT).await?;
+        let mut merged_ids: Vec<i64> = artist_ids.clone();
+        for id in extra_artists {
+            if !merged_ids.contains(&id) {
+                merged_ids.push(id);
+            }
+        }
+        if merged_ids.len() != artist_ids.len() {
+            candidates = pick_candidate_tracks(&pool, &merged_ids).await?;
+        }
+    }
 
     // 5. Apply the BPM soft filter when meaningful.
     let filtered: Vec<TrackCandidate> = if let Some(bpm) = seed_bpm {
@@ -198,6 +230,28 @@ async fn pick_candidate_tracks(
         q = q.bind(*id);
     }
     Ok(q.fetch_all(pool).await?)
+}
+
+/// Return the user's top N most-played artist IDs, ordered by total
+/// play_event count desc. Used as a discovery fallback when similar
+/// artists are unavailable. Skips the seed artist's plays (they're
+/// already in the candidate pool).
+async fn top_played_artists(pool: &SqlitePool, limit: usize) -> AppResult<Vec<i64>> {
+    let rows: Vec<(i64,)> = sqlx::query_as(
+        r#"
+        SELECT t.primary_artist AS artist_id
+          FROM play_event pe
+          JOIN track t ON t.id = pe.track_id
+         WHERE t.is_available = 1 AND t.primary_artist IS NOT NULL
+         GROUP BY t.primary_artist
+         ORDER BY COUNT(pe.id) DESC
+         LIMIT ?
+        "#,
+    )
+    .bind(limit as i64)
+    .fetch_all(pool)
+    .await?;
+    Ok(rows.into_iter().map(|(id,)| id).collect())
 }
 
 /// Read the `app.lastfm_similar` cache for the seed artist and resolve
