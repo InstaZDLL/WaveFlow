@@ -68,6 +68,7 @@ import {
 import { pickSaveFile } from "../../lib/tauri/dialog";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
+import { resolveRemoteImage } from "../../lib/tauri/artwork";
 
 interface PlaylistViewProps {
   playlistId: number | null;
@@ -399,20 +400,48 @@ export function PlaylistView({
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20">
-      {/* Header */}
-      <div
-        className={`flex items-start justify-between p-6 rounded-2xl ${color.previewBg}`}
-      >
-        <div className="flex items-center space-x-6">
+      {/* Header. Smart playlists (Daily Mix, …) ship a generated cover
+          image — render it as a 96×96 tile with a "DAILY MIX" overlay
+          label. User-curated playlists fall back to the icon + color
+          gradient tile they always had. */}
+      {(() => {
+        const coverUrl = playlist
+          ? resolveRemoteImage(playlist.cover_path, null)
+          : null;
+        const isSmart = (playlist?.is_smart ?? 0) === 1;
+        return (
           <div
-            className={`w-24 h-24 rounded-2xl flex items-center justify-center shadow-sm ${color.tileBg} ${color.tileText}`}
+            className={`flex items-start justify-between p-6 rounded-2xl ${color.previewBg}`}
           >
-            {playlist ? (
-              <PlaylistIcon iconId={playlist.icon_id} size={48} />
-            ) : (
-              <Music2 size={48} />
-            )}
-          </div>
+            <div className="flex items-center space-x-6">
+              <div
+                className={`relative w-24 h-24 rounded-2xl overflow-hidden shadow-sm flex items-center justify-center ${
+                  coverUrl ? "" : `${color.tileBg} ${color.tileText}`
+                }`}
+              >
+                {coverUrl ? (
+                  <>
+                    <img
+                      src={coverUrl}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    {isSmart && (
+                      <>
+                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-black/70 to-transparent" />
+                        <div className="absolute bottom-1.5 left-2 right-2 text-[9px] font-bold tracking-widest text-white uppercase truncate">
+                          {t("playlistView.smartLabel", "Daily Mix")}
+                        </div>
+                      </>
+                    )}
+                  </>
+                ) : playlist ? (
+                  <PlaylistIcon iconId={playlist.icon_id} size={48} />
+                ) : (
+                  <Music2 size={48} />
+                )}
+              </div>
           <div>
             <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
               {t("playlistView.badge")}
@@ -508,7 +537,9 @@ export function PlaylistView({
             </Tooltip>
           </div>
         </div>
-      </div>
+          </div>
+        );
+      })()}
 
       {/* Tracks list */}
       {tracks.length > 0 ? (

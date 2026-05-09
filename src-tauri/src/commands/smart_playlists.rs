@@ -16,5 +16,6 @@ pub async fn regenerate_daily_mixes(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<Vec<i64>> {
     let pool = state.require_profile_pool().await?;
-    generator::regenerate_daily_mixes(&pool, &state.paths).await
+    let profile_id = state.require_profile_id().await?;
+    generator::regenerate_daily_mixes(&pool, &state.paths, profile_id).await
 }

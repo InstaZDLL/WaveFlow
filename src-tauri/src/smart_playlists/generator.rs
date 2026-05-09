@@ -121,9 +121,15 @@ impl Bucket {
 /// Regenerate every Daily Mix slot from the active profile's listening
 /// history. Returns the playlist ids that were created or refreshed, in slot
 /// order, so the caller can navigate the user straight to the first one.
+///
+/// `profile_id` is needed to resolve the per-profile artwork directory
+/// (`<root>/profiles/<id>/artwork/<hash>.<format>`) used as the cover-image
+/// fallback when none of the cluster's top artists have a Deezer picture in
+/// the shared cache.
 pub async fn regenerate_daily_mixes(
     pool: &SqlitePool,
     paths: &AppPaths,
+    profile_id: i64,
 ) -> AppResult<Vec<i64>> {
     let cutoff_ms = Utc::now().timestamp_millis() - (LOOKBACK_DAYS * 86_400_000);
 
@@ -167,7 +173,8 @@ pub async fn regenerate_daily_mixes(
             delete_existing_slot(pool, bucket.slot()).await?;
             continue;
         }
-        let id = generate_one_mix(pool, paths, bucket, &bucket_artists).await?;
+        let id =
+            generate_one_mix(pool, paths, profile_id, bucket, &bucket_artists).await?;
         created.push(id);
     }
     Ok(created)
@@ -177,6 +184,7 @@ pub async fn regenerate_daily_mixes(
 async fn generate_one_mix(
     pool: &SqlitePool,
     paths: &AppPaths,
+    profile_id: i64,
     bucket: Bucket,
     artists: &[&ArtistListenRow],
 ) -> AppResult<i64> {
@@ -198,11 +206,14 @@ async fn generate_one_mix(
     shuffle_with_seed(&mut shuffled, SHUFFLE_SEED ^ bucket.slot() as u64);
     shuffled.truncate(TRACKS_PER_MIX);
 
-    // Render the cover from the top artists' Deezer pictures. Missing files
-    // are silently skipped by the compositor; we only fail the cover step
-    // if zero usable pictures exist (in which case the playlist is still
-    // created — just with no cover, falling back to the icon gradient).
-    let cover_paths: Vec<PathBuf> = artists
+    // Cover image source priority:
+    //  1. Top 3 artists' Deezer pictures (shared metadata cache) — looks
+    //     best because they're consistent portrait crops.
+    //  2. Fallback: album artwork of the first 3 shuffled tracks (per-profile
+    //     local cache) — always present for any track with embedded art,
+    //     so this guarantees we ship a real cover even when the cluster
+    //     has no Deezer-enriched artists (lots of niche / soundtrack libs).
+    let mut cover_paths: Vec<PathBuf> = artists
         .iter()
         .take(3)
         .filter_map(|a| {
@@ -211,11 +222,29 @@ async fn generate_one_mix(
                 .map(PathBuf::from)
         })
         .collect();
+    let deezer_pics = cover_paths.len();
+    if cover_paths.is_empty() {
+        cover_paths = first_track_artwork_paths(pool, paths, profile_id, &shuffled, 3).await;
+    }
+    tracing::info!(
+        slot = bucket.slot(),
+        deezer_pics,
+        fallback_album_arts = if deezer_pics == 0 { cover_paths.len() } else { 0 },
+        total_paths = cover_paths.len(),
+        "smart cover image sources resolved"
+    );
     let cover_hash = if cover_paths.is_empty() {
+        tracing::warn!(
+            slot = bucket.slot(),
+            "smart cover: no image sources available — playlist will use gradient fallback"
+        );
         None
     } else {
         match cover::build_daily_mix_cover(&cover_paths, &paths.metadata_artwork_dir) {
-            Ok(h) => Some(h),
+            Ok(h) => {
+                tracing::info!(slot = bucket.slot(), hash = %h, "smart cover rendered");
+                Some(h)
+            }
             Err(err) => {
                 tracing::warn!(?err, "smart cover render failed, falling back to gradient");
                 None
@@ -332,6 +361,81 @@ async fn top_artists_with_bpm(
             picture_hash: s.deezer_id.and_then(|id| pictures.get(&id).cloned()),
         })
         .collect())
+}
+
+/// Resolve the on-disk artwork path for the first `take` tracks of the
+/// mix's shuffled order. Used as the cover-image fallback when none of the
+/// cluster's top artists have a Deezer picture cached. Tracks without
+/// embedded artwork are silently skipped — we walk the input until `take`
+/// hits or the source is exhausted.
+async fn first_track_artwork_paths(
+    pool: &SqlitePool,
+    paths: &AppPaths,
+    profile_id: i64,
+    track_ids: &[i64],
+    take: usize,
+) -> Vec<PathBuf> {
+    if track_ids.is_empty() {
+        return vec![];
+    }
+    // Fetch artwork hashes for every candidate in one round-trip; we walk
+    // the shuffled order client-side so the strip layout matches the
+    // playlist's first-track ordering.
+    let placeholders = std::iter::repeat("?")
+        .take(track_ids.len())
+        .collect::<Vec<_>>()
+        .join(",");
+    // Track artwork is reached through the album: `track.album_id`
+    // → `album.artwork_id` → `artwork.hash` + `artwork.format`. There's
+    // no direct `track.artwork_id` column.
+    let sql = format!(
+        r#"
+        SELECT t.id          AS track_id,
+               aw.hash       AS hash,
+               aw.format     AS format
+          FROM track t
+          LEFT JOIN album   al ON al.id = t.album_id
+          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+         WHERE t.id IN ({placeholders})
+           AND aw.hash IS NOT NULL
+        "#
+    );
+    #[derive(FromRow)]
+    struct Row {
+        track_id: i64,
+        hash: String,
+        format: String,
+    }
+    let mut q = sqlx::query_as::<_, Row>(&sql);
+    for id in track_ids {
+        q = q.bind(*id);
+    }
+    let rows = match q.fetch_all(pool).await {
+        Ok(r) => r,
+        Err(err) => {
+            tracing::warn!(?err, "smart cover: artwork fallback query failed");
+            return vec![];
+        }
+    };
+    // Re-order by the shuffled track sequence so the strips reflect "the
+    // first N tracks of the mix" rather than whatever order SQLite chose.
+    let by_id: HashMap<i64, (String, String)> = rows
+        .into_iter()
+        .map(|r| (r.track_id, (r.hash, r.format)))
+        .collect();
+    let artwork_dir = paths.profile_artwork_dir(profile_id);
+    let mut out = Vec::with_capacity(take);
+    for id in track_ids {
+        if out.len() >= take {
+            break;
+        }
+        let Some((hash, format)) = by_id.get(id) else { continue };
+        let p = artwork_dir.join(format!("{hash}.{format}"));
+        if p.exists() {
+            out.push(p);
+        }
+    }
+    out
 }
 
 async fn pick_tracks_for_artists(
