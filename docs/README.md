@@ -10,7 +10,8 @@ User-facing references and per-feature deep dives. The top-level [README](../REA
 | [Library](features/library.md) | Folder scanning, filesystem watcher, on-demand audio analysis, multi-artist split, ratings, A-Z navigator |
 | [Playlists](features/playlists.md) | User playlists CRUD, M3U import/export, likes, recently-played |
 | [Smart playlists](features/smart-playlists.md) | Daily Mix auto-generation: algorithm, cover compositor, regen flow |
-| [Integrations](features/integrations.md) | Deezer / Last.fm / LRCLIB clients, metadata cache, scrobble worker |
+| [Integrations](features/integrations.md) | Deezer / Last.fm / LRCLIB clients, metadata cache, scrobble worker, similar-artists discovery |
+| [DLNA / UPnP server](features/dlna.md) | Built-in MediaServer: SSDP discovery, ContentDirectory Browse, Range streaming to LAN amplifiers |
 | [UI & UX](features/ui.md) | Layout, panels, tray, statistics, dark mode, i18n, profiles, onboarding, auto-updater |
 
 ## Architecture
