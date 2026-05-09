@@ -466,7 +466,13 @@ export function HomeView({
                     path={play.artwork_path}
                     path1x={play.artwork_path_1x}
                     path2x={play.artwork_path_2x}
-                    size="2x"
+                    // Carousel tile renders at ~200 px wide; the 128 px
+                    // 2x thumbnail upscales to a visibly soft image on a
+                    // HiDPI display (effective 400 device px). Serve the
+                    // original artwork — typically 600-1500 px square,
+                    // small enough to decode instantly and crisp at any
+                    // card size.
+                    size="full"
                     alt={play.album_title ?? play.title}
                     className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
                     iconSize={36}
@@ -524,7 +530,8 @@ export function HomeView({
                   path={album.artwork_path}
                   path1x={album.artwork_path_1x}
                   path2x={album.artwork_path_2x}
-                  size="2x"
+                  // See "Récemment joués" comment above — same reason.
+                  size="full"
                   alt={album.title}
                   className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
                   iconSize={36}

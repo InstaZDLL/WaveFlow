@@ -1295,7 +1295,11 @@ function AlbumGrid({ albums, isLoading, t, playlists, onAddToPlaylist, onCreateP
                 path={album.artwork_path}
                 path1x={album.artwork_path_1x}
                 path2x={album.artwork_path_2x}
-                size="2x"
+                // Album grid tile renders ~150-200 px wide; the 128 px
+                // 2x thumbnail upscales soft on a HiDPI display. Source
+                // originals are 600-1500 px square — small enough to
+                // decode instantly and crisp at any tile size.
+                size="full"
                 alt={album.title}
                 className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
                 iconSize={44}

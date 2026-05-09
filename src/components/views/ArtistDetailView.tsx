@@ -320,7 +320,9 @@ export function ArtistDetailView({
                   path={album.artwork_path}
                   path1x={album.artwork_path_1x}
                   path2x={album.artwork_path_2x}
-                  size="2x"
+                  // Discography tile renders ~150-200 px wide; see
+                  // HomeView carousel comment — same reason for full.
+                  size="full"
                   alt={album.title}
                   className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
                   iconSize={44}
