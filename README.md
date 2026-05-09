@@ -61,7 +61,7 @@ Once installed (any of the above), the in-app updater fetches future versions au
 | **Library** | Folder scanning + filesystem watcher, on-demand audio analysis (peak, loudness, ReplayGain, BPM), Hi-Res badges, multi-artist split, POPM 5-star ratings, A-Z navigator, multi-select action bar | [docs](docs/features/library.md) |
 | **Playlists** | Drag-and-drop reorder (virtualised), bulk add from any source, M3U import / export with basename-fallback matching, likes, recently-played | [docs](docs/features/playlists.md) |
 | **Smart playlists** | Auto-generated **Daily Mix** family bucketed by tempo, with composite artist-photo covers rendered from your Deezer cache | [docs](docs/features/smart-playlists.md) |
-| **Integrations** | Deezer (artwork + labels), Last.fm (bios + scrobbling with retry queue), LRCLIB (synchronised lyrics) — all cached locally for offline use | [docs](docs/features/integrations.md) |
+| **Integrations** | Deezer (artwork + labels), Last.fm (bios + scrobbling with retry queue), LRCLIB (synchronised lyrics), Discord Rich Presence ("Listening to WaveFlow" with cover + progress bar) — all cached locally for offline use | [docs](docs/features/integrations.md) |
 | **UI & UX** | Spotify-style 3-panel layout, system tray, statistics dashboard, virtual scroll for 6000+ tracks, dark mode (View Transitions API), 17 locales (RTL-aware), per-profile isolated DB, signed auto-updater | [docs](docs/features/ui.md) |
 
 ## Tech Stack
@@ -70,6 +70,7 @@ Once installed (any of the above), the in-app updater fetches future versions au
 |-------|-------------|
 | **Desktop shell** | Tauri 2.10 (tray icon, opener, dialog, updater plugins) |
 | **OS media controls** | souvlaki 0.8 (SMTC / MPRIS / MediaRemote bridge) |
+| **Discord Rich Presence** | discord-rich-presence 1.1 (local IPC named pipe, no auth) |
 | **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS 4, Lucide icons, `@dnd-kit` (drag-and-drop), `@tanstack/react-virtual` (virtualization) |
 | **Backend** | Rust, SQLite (sqlx), FTS5 contentless full-text search |
 | **Audio** | symphonia 0.5 (decode), cpal 0.17 (output), rubato 2.0 (resample), rtrb 0.3 (SPSC ring) |

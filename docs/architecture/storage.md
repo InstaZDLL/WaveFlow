@@ -26,7 +26,7 @@ The inner `waveflow/` segment is a hardcoded subdirectory in [`paths.rs`](../../
 ### `app.db` (global)
 
 - `profile` — profile list (one row per profile).
-- `app_setting` — typed key/value: `app.last_profile_id`, `lastfm_api_key`, `lastfm_session_key`, `app.theme`, …
+- `app_setting` — typed key/value: `app.last_profile_id`, `lastfm_api_key`, `lastfm_session_key`, `app.theme`, `integrations.discord_rpc`, …
 - `deezer_artist` / `deezer_album` — shared metadata cache (Deezer enrichment + Last.fm bios), 30-day TTL via `expires_at`.
 - `lyrics` — shared LRCLIB cache (no TTL).
 

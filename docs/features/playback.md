@@ -38,6 +38,8 @@ On Linux, enumeration uses ALSA's hint database (`snd_device_name_hint("pcm")`) 
 
 Initialised after the main window exists (needs an HWND on Windows). State transitions are driven through `transition_state()` so the OS overlay flips at the same instant as the in-app controls; the brief `Loading` state is skipped to avoid a 50 ms "controls flash off" between tracks.
 
+The same `transition_state()` hook also feeds [`discord_presence.rs`](../../src-tauri/src/discord_presence.rs) so the user's Discord profile mirrors the playing/paused state. Documented separately under [Integrations → Discord Rich Presence](integrations.md#discord-rich-presence).
+
 ## Queue
 
 [`queue.rs`](../../src-tauri/src/queue.rs) — persistent SQLite-backed queue with shuffle (Fisher-Yates with seeded xorshift), repeat (off/all/one), auto-advance and drag-and-drop reorder. The frontend operates on a virtualised list so a 6000-track shuffle doesn't lock the UI.
