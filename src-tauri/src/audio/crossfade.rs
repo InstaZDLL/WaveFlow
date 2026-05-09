@@ -264,13 +264,33 @@ impl ActiveStream {
                     * (layout.channels.count() as u128)
                     / 8
                     / 1000;
-                let target_data_offset = (ms as u128 * bps) as u64;
-                let absolute = layout.data_offset + target_data_offset.min(layout.data_len_bytes);
+                let target = (ms as u128 * bps) as u64;
+                // Align to a full interleave cycle. For DSF the
+                // bitstream is block-interleaved (block_size bytes
+                // per channel, looped), so a seek that lands inside
+                // a block makes the converter read ch1 bytes as ch0
+                // (and vice versa) — audible as channel-swap noise
+                // / pixelation after every seek. For DFF the bytes
+                // alternate one-by-one across channels, so any
+                // multiple of channel-count is safe.
+                let stride = match layout.block_interleave {
+                    Some(block_size) => {
+                        (block_size as u64) * (layout.channels.count() as u64)
+                    }
+                    None => layout.channels.count() as u64,
+                };
+                let aligned = if stride > 0 {
+                    (target / stride) * stride
+                } else {
+                    target
+                };
+                let aligned = aligned.min(layout.data_len_bytes);
+                let absolute = layout.data_offset + aligned;
                 if let Err(err) = file.seek(SeekFrom::Start(absolute)) {
                     tracing::warn!(?err, ms, "dsd seek failed");
                     return;
                 }
-                *bytes_read = target_data_offset.min(layout.data_len_bytes);
+                *bytes_read = aligned;
             }
         }
     }
