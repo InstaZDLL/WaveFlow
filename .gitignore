@@ -56,10 +56,3 @@ coverage
 .mcp.json
 skills-lock.json
 .codex
-
-# Standalone landing page (separate Vue project + prototype)
-waveflow-landing/
-frontpage.html
-
-# Reference clones kept locally for comparison (not part of the project)
-vscode-discord-rich-presence/
