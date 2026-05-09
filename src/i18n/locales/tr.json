@@ -128,7 +128,21 @@
       "placeholder": "Bir şarkı, sanatçı veya albüm ara...",
       "results_zero": "Sonuç bulunamadı",
       "results_one": "{{count}} sonuç",
-      "results_other": "{{count}} sonuçlar"
+      "results_other": "{{count}} sonuçlar",
+      "empty": "Aramanızla eşleşen sonuç yok",
+      "filters": {
+        "toggle": "Gelişmiş filtreler",
+        "title": "Filtreler",
+        "close": "Kapat",
+        "reset": "Sıfırla",
+        "hiRes": "Yüksek çözünürlük",
+        "likedOnly": "Sadece beğenilenler",
+        "year": "Yıl (–dan → –a)",
+        "bpm": "BPM (–dan → –a)",
+        "durationMin": "Dakika cinsinden süre (–dan → –a)",
+        "format": "Format",
+        "genres": "Türler"
+      }
     },
     "theme": {
       "enableLight": "Aydınlık moda geç",

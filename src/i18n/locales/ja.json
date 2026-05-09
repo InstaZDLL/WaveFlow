@@ -128,7 +128,21 @@
       "placeholder": "曲名、アーティスト名、アルバム名を検索...",
       "results_zero": "結果はありません",
       "results_one": "{{count}} 結果",
-      "results_other": "{{count}} 結果"
+      "results_other": "{{count}} 結果",
+      "empty": "検索に一致する結果はありません",
+      "filters": {
+        "toggle": "詳細フィルター",
+        "title": "フィルター",
+        "close": "閉じる",
+        "reset": "リセット",
+        "hiRes": "ハイレゾ",
+        "likedOnly": "お気に入りのみ",
+        "year": "年 (から → まで)",
+        "bpm": "BPM (から → まで)",
+        "durationMin": "再生時間（分）(から → まで)",
+        "format": "フォーマット",
+        "genres": "ジャンル"
+      }
     },
     "theme": {
       "enableLight": "明るいモードを有効にする",

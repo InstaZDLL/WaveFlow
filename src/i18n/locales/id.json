@@ -128,7 +128,21 @@
       "placeholder": "Cari lagu, artis, album...",
       "results_zero": "Tidak ada hasil",
       "results_one": "{{count}} hasil",
-      "results_other": "{{count}} hasil"
+      "results_other": "{{count}} hasil",
+      "empty": "Tidak ada hasil yang cocok",
+      "filters": {
+        "toggle": "Filter lanjutan",
+        "title": "Filter",
+        "close": "Tutup",
+        "reset": "Atur ulang",
+        "hiRes": "Hi-Res",
+        "likedOnly": "Hanya disukai",
+        "year": "Tahun (dari → ke)",
+        "bpm": "BPM (dari → ke)",
+        "durationMin": "Durasi dalam menit (dari → ke)",
+        "format": "Format",
+        "genres": "Genre"
+      }
     },
     "theme": {
       "enableLight": "Beralih ke mode terang",

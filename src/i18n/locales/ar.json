@@ -128,7 +128,21 @@
       "placeholder": "البحث عن أغنية أو فنان أو ألبوم...",
       "results_zero": "لا توجد نتائج",
       "results_one": "{{count}} النتيجة",
-      "results_other": "{{count}} النتائج"
+      "results_other": "{{count}} النتائج",
+      "empty": "لا توجد نتائج تطابق بحثك",
+      "filters": {
+        "toggle": "مرشحات متقدمة",
+        "title": "مرشحات",
+        "close": "إغلاق",
+        "reset": "إعادة تعيين",
+        "hiRes": "عالي الدقة",
+        "likedOnly": "المفضلة فقط",
+        "year": "السنة (من → إلى)",
+        "bpm": "BPM (من → إلى)",
+        "durationMin": "المدة بالدقائق (من → إلى)",
+        "format": "التنسيق",
+        "genres": "الأنواع"
+      }
     },
     "theme": {
       "enableLight": "تشغيل الوضع الفاتح",

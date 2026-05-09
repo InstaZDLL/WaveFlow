@@ -128,7 +128,21 @@
       "placeholder": "Nach einem Titel, einem Interpreten, einem Album suchen...",
       "results_zero": "Keine Ergebnisse",
       "results_one": "{{count}} Ergebnis",
-      "results_other": "{{count}} Ergebnisse"
+      "results_other": "{{count}} Ergebnisse",
+      "empty": "Keine Ergebnisse für deine Suche",
+      "filters": {
+        "toggle": "Erweiterte Filter",
+        "title": "Filter",
+        "close": "Schließen",
+        "reset": "Zurücksetzen",
+        "hiRes": "Hi-Res",
+        "likedOnly": "Nur Favoriten",
+        "year": "Jahr (von → bis)",
+        "bpm": "BPM (von → bis)",
+        "durationMin": "Dauer in Minuten (von → bis)",
+        "format": "Format",
+        "genres": "Genres"
+      }
     },
     "theme": {
       "enableLight": "Hellmodus aktivieren",

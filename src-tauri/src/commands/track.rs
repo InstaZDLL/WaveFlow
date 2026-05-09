@@ -344,6 +344,262 @@ pub async fn search_tracks(
     Ok(tracks)
 }
 
+/// Optional multi-criteria filters layered on top of the FTS5 search.
+///
+/// Every field is `Option`: when `None`, the corresponding clause is
+/// omitted entirely. The `query` field is itself optional so the command
+/// doubles as a pure-filter browse when the search box is empty (the
+/// user just wants to filter the whole library by genre/year/format).
+///
+/// All filters are AND-combined. Within a multi-value filter
+/// (`genre_ids`, `formats`) the values are OR-combined (at least one
+/// must match).
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+pub struct SearchFilters {
+    pub query: Option<String>,
+    pub genre_ids: Option<Vec<i64>>,
+    pub year_min: Option<i64>,
+    pub year_max: Option<i64>,
+    pub bpm_min: Option<f64>,
+    pub bpm_max: Option<f64>,
+    pub duration_min_ms: Option<i64>,
+    pub duration_max_ms: Option<i64>,
+    pub formats: Option<Vec<String>>,
+    pub min_sample_rate: Option<i64>,
+    pub min_bit_depth: Option<i64>,
+    /// Convenience flag: equivalent to `min_sample_rate >= 48000 AND
+    /// min_bit_depth >= 24`. Applied in addition to (and intersected
+    /// with) the explicit min_* fields if both are set.
+    pub hi_res_only: Option<bool>,
+    pub liked_only: Option<bool>,
+}
+
+/// Advanced search combining FTS5 full-text matching with structured
+/// filters (genre, year, BPM, duration, format, Hi-Res, …).
+///
+/// Returns up to 200 rows (vs. 50 for the simple `search_tracks`)
+/// because users often want to browse the result of a filter-only
+/// query. Ordering: FTS rank when a query is supplied, otherwise the
+/// canonical "Artist → Album → Disc → Track" order.
+#[tauri::command]
+pub async fn search_tracks_advanced(
+    state: tauri::State<'_, AppState>,
+    filters: SearchFilters,
+) -> AppResult<Vec<Track>> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+
+    // Build the FTS query string. Empty/whitespace → pure-filter mode.
+    let fts_query: Option<String> = filters
+        .query
+        .as_deref()
+        .map(|q| q.trim().replace('"', ""))
+        .filter(|q| !q.is_empty())
+        .map(|q| {
+            q.split_whitespace()
+                .map(|w| format!("{w}*"))
+                .collect::<Vec<_>>()
+                .join(" ")
+        });
+
+    let mut sql = String::with_capacity(1024);
+    sql.push_str(
+        "SELECT t.id, t.library_id, t.title,\n\
+                t.album_id,\n\
+                al.title AS album_title,\n\
+                t.primary_artist AS artist_id,\n\
+                (SELECT GROUP_CONCAT(name, ', ') FROM (\n\
+                   SELECT ar2.name FROM track_artist ta2\n\
+                   JOIN artist ar2 ON ar2.id = ta2.artist_id\n\
+                   WHERE ta2.track_id = t.id\n\
+                   ORDER BY ta2.position\n\
+                )) AS artist_name,\n\
+                (SELECT GROUP_CONCAT(id, ',') FROM (\n\
+                   SELECT ta2.artist_id AS id FROM track_artist ta2\n\
+                   WHERE ta2.track_id = t.id\n\
+                   ORDER BY ta2.position\n\
+                )) AS artist_ids,\n\
+                t.duration_ms, t.track_number, t.disc_number, t.year,\n\
+                t.bitrate, t.sample_rate, t.channels,\n\
+                t.bit_depth, t.codec, t.musical_key,\n\
+                t.file_path, t.file_size, t.added_at,\n\
+                aw.hash   AS artwork_hash,\n\
+                aw.format AS artwork_format,\n\
+                t.rating  AS rating\n",
+    );
+
+    if fts_query.is_some() {
+        sql.push_str("FROM track_fts fts JOIN track t ON t.id = fts.rowid\n");
+    } else {
+        sql.push_str("FROM track t\n");
+    }
+    sql.push_str(
+        "LEFT JOIN album   al ON al.id = t.album_id\n\
+         LEFT JOIN artist  ar ON ar.id = t.primary_artist\n\
+         LEFT JOIN artwork aw ON aw.id = al.artwork_id\n",
+    );
+
+    // Bind values are pushed in the same order as their `?` placeholders
+    // appear in the SQL string. We use sqlx::Any-style binds via
+    // `query_as::<_, TrackRow>` and `.bind(...)` chain at the end.
+    enum Bind {
+        Str(String),
+        Int(i64),
+        Real(f64),
+    }
+    let mut binds: Vec<Bind> = Vec::new();
+
+    sql.push_str("WHERE t.is_available = 1\n");
+    if let Some(q) = &fts_query {
+        sql.push_str("  AND track_fts MATCH ?\n");
+        binds.push(Bind::Str(q.clone()));
+    }
+
+    if let Some(ids) = filters.genre_ids.as_ref().filter(|v| !v.is_empty()) {
+        let placeholders = vec!["?"; ids.len()].join(",");
+        sql.push_str(&format!(
+            "  AND EXISTS (SELECT 1 FROM track_genre tg WHERE tg.track_id = t.id AND tg.genre_id IN ({placeholders}))\n"
+        ));
+        for id in ids {
+            binds.push(Bind::Int(*id));
+        }
+    }
+
+    if let Some(y) = filters.year_min {
+        sql.push_str("  AND COALESCE(t.year, al.year) >= ?\n");
+        binds.push(Bind::Int(y));
+    }
+    if let Some(y) = filters.year_max {
+        sql.push_str("  AND COALESCE(t.year, al.year) <= ?\n");
+        binds.push(Bind::Int(y));
+    }
+
+    if filters.bpm_min.is_some() || filters.bpm_max.is_some() {
+        // BPM is in track_analysis; require the row to exist when the
+        // user filters by tempo.
+        sql.push_str(
+            "  AND EXISTS (SELECT 1 FROM track_analysis ta WHERE ta.track_id = t.id\n",
+        );
+        if let Some(b) = filters.bpm_min {
+            sql.push_str("           AND ta.bpm >= ?\n");
+            binds.push(Bind::Real(b));
+        }
+        if let Some(b) = filters.bpm_max {
+            sql.push_str("           AND ta.bpm <= ?\n");
+            binds.push(Bind::Real(b));
+        }
+        sql.push_str("       )\n");
+    }
+
+    if let Some(d) = filters.duration_min_ms {
+        sql.push_str("  AND t.duration_ms >= ?\n");
+        binds.push(Bind::Int(d));
+    }
+    if let Some(d) = filters.duration_max_ms {
+        sql.push_str("  AND t.duration_ms <= ?\n");
+        binds.push(Bind::Int(d));
+    }
+
+    if let Some(fmts) = filters.formats.as_ref().filter(|v| !v.is_empty()) {
+        let placeholders = vec!["?"; fmts.len()].join(",");
+        sql.push_str(&format!(
+            "  AND UPPER(COALESCE(t.codec, '')) IN ({placeholders})\n"
+        ));
+        for f in fmts {
+            binds.push(Bind::Str(f.to_uppercase()));
+        }
+    }
+
+    if let Some(sr) = filters.min_sample_rate {
+        sql.push_str("  AND t.sample_rate >= ?\n");
+        binds.push(Bind::Int(sr));
+    }
+    if let Some(bd) = filters.min_bit_depth {
+        sql.push_str("  AND t.bit_depth >= ?\n");
+        binds.push(Bind::Int(bd));
+    }
+    if filters.hi_res_only.unwrap_or(false) {
+        sql.push_str("  AND t.sample_rate >= 48000 AND t.bit_depth >= 24\n");
+    }
+
+    if filters.liked_only.unwrap_or(false) {
+        sql.push_str("  AND EXISTS (SELECT 1 FROM liked_track lt WHERE lt.track_id = t.id)\n");
+    }
+
+    if fts_query.is_some() {
+        sql.push_str("ORDER BY rank\n");
+    } else {
+        sql.push_str(
+            "ORDER BY ar.canonical_name COLLATE NOCASE,\n\
+                      al.canonical_title COLLATE NOCASE,\n\
+                      t.disc_number,\n\
+                      t.track_number,\n\
+                      t.title COLLATE NOCASE\n",
+        );
+    }
+    sql.push_str("LIMIT 200");
+
+    let mut q = sqlx::query_as::<_, TrackRow>(&sql);
+    for b in binds {
+        q = match b {
+            Bind::Str(s) => q.bind(s),
+            Bind::Int(i) => q.bind(i),
+            Bind::Real(r) => q.bind(r),
+        };
+    }
+    let rows = q.fetch_all(&pool).await?;
+
+    let tracks = rows
+        .into_iter()
+        .map(|row| {
+            let (artwork_path, artwork_path_1x, artwork_path_2x) =
+                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
+                    (Some(hash), Some(format)) => {
+                        let full = artwork_dir
+                            .join(format!("{}.{}", hash, format))
+                            .to_string_lossy()
+                            .to_string();
+                        let (p1, p2) =
+                            crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        (Some(full), p1, p2)
+                    }
+                    _ => (None, None, None),
+                };
+            Track {
+                id: row.id,
+                library_id: row.library_id,
+                title: row.title,
+                album_id: row.album_id,
+                album_title: row.album_title,
+                artist_id: row.artist_id,
+                artist_name: row.artist_name,
+                artist_ids: row.artist_ids,
+                duration_ms: row.duration_ms,
+                track_number: row.track_number,
+                disc_number: row.disc_number,
+                year: row.year,
+                bitrate: row.bitrate,
+                sample_rate: row.sample_rate,
+                channels: row.channels,
+                bit_depth: row.bit_depth,
+                codec: row.codec,
+                musical_key: row.musical_key,
+                file_path: row.file_path,
+                file_size: row.file_size,
+                added_at: row.added_at,
+                artwork_path,
+                artwork_path_1x,
+                artwork_path_2x,
+                rating: row.rating,
+            }
+        })
+        .collect();
+
+    Ok(tracks)
+}
+
 /// Set or clear a track's rating. The value is the raw POPM byte (0-255);
 /// passing `None` clears the rating. Currently only writes to the database
 /// — write-back into the file's tags is deferred to a later iteration.

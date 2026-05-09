@@ -301,6 +301,7 @@ pub fn run() {
             commands::scan::scan_folder,
             commands::track::list_tracks,
             commands::track::search_tracks,
+            commands::track::search_tracks_advanced,
             commands::track::toggle_like_track,
             commands::track::list_liked_track_ids,
             commands::track::list_liked_tracks,

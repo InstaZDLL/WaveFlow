@@ -14,6 +14,8 @@ import {
   LogOut,
   ChevronDown,
   ChevronUp,
+  SlidersHorizontal,
+  X,
 } from "lucide-react";
 import type { ViewId } from "../../types";
 import { useTheme } from "../../hooks/useTheme";
@@ -22,7 +24,14 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";
 import { MenuActionItem } from "../common/MenuActionItem";
 import { Artwork } from "../common/Artwork";
-import { searchTracks, formatDuration, type Track } from "../../lib/tauri/track";
+import {
+  searchTracks,
+  searchTracksAdvanced,
+  formatDuration,
+  type SearchFilters,
+  type Track,
+} from "../../lib/tauri/track";
+import { listGenres, type GenreRow } from "../../lib/tauri/browse";
 
 interface TopBarProps {
   activeView: ViewId;
@@ -59,25 +68,132 @@ export function TopBar({
   const searchRef = useRef<HTMLDivElement>(null);
   const searchTimerRef = useRef<number | null>(null);
 
-  const handleSearchInput = useCallback((value: string) => {
-    setSearchQuery(value);
-    if (searchTimerRef.current != null) {
-      window.clearTimeout(searchTimerRef.current);
-    }
-    if (value.trim().length === 0) {
-      setSearchResults([]);
-      setIsSearchOpen(false);
-      return;
-    }
-    searchTimerRef.current = window.setTimeout(() => {
-      searchTracks(value)
+  // Advanced filters state. Empty/null fields mean "no constraint".
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState<SearchFilters>({});
+  const [genres, setGenres] = useState<GenreRow[]>([]);
+  const [genresLoaded, setGenresLoaded] = useState(false);
+
+  // Lazy-load the genre list the first time the user opens the panel.
+  // Genre lists can grow large in eclectic libraries; no point fetching
+  // up-front for users who never touch advanced search.
+  useEffect(() => {
+    if (!filtersOpen || genresLoaded) return;
+    listGenres(null)
+      .then((g) => {
+        setGenres(g);
+        setGenresLoaded(true);
+      })
+      .catch((err) => console.error("[TopBar] listGenres failed", err));
+  }, [filtersOpen, genresLoaded]);
+
+  const hasActiveFilters =
+    (filters.genre_ids?.length ?? 0) > 0 ||
+    filters.year_min != null ||
+    filters.year_max != null ||
+    filters.bpm_min != null ||
+    filters.bpm_max != null ||
+    filters.duration_min_ms != null ||
+    filters.duration_max_ms != null ||
+    (filters.formats?.length ?? 0) > 0 ||
+    filters.min_sample_rate != null ||
+    filters.min_bit_depth != null ||
+    filters.hi_res_only === true ||
+    filters.liked_only === true;
+
+  const runSearch = useCallback(
+    (query: string, currentFilters: SearchFilters) => {
+      const trimmed = query.trim();
+      const anyFilter =
+        (currentFilters.genre_ids?.length ?? 0) > 0 ||
+        currentFilters.year_min != null ||
+        currentFilters.year_max != null ||
+        currentFilters.bpm_min != null ||
+        currentFilters.bpm_max != null ||
+        currentFilters.duration_min_ms != null ||
+        currentFilters.duration_max_ms != null ||
+        (currentFilters.formats?.length ?? 0) > 0 ||
+        currentFilters.min_sample_rate != null ||
+        currentFilters.min_bit_depth != null ||
+        currentFilters.hi_res_only === true ||
+        currentFilters.liked_only === true;
+
+      if (trimmed.length === 0 && !anyFilter) {
+        setSearchResults([]);
+        setIsSearchOpen(false);
+        return;
+      }
+
+      const promise = anyFilter
+        ? searchTracksAdvanced({
+            ...currentFilters,
+            query: trimmed.length > 0 ? trimmed : null,
+          })
+        : searchTracks(trimmed);
+
+      promise
         .then((results) => {
           setSearchResults(results);
-          setIsSearchOpen(results.length > 0);
+          setIsSearchOpen(true);
         })
         .catch((err) => console.error("[TopBar] search failed", err));
-    }, 250);
-  }, []);
+    },
+    [],
+  );
+
+  const handleSearchInput = useCallback(
+    (value: string) => {
+      setSearchQuery(value);
+      if (searchTimerRef.current != null) {
+        window.clearTimeout(searchTimerRef.current);
+      }
+      searchTimerRef.current = window.setTimeout(() => {
+        runSearch(value, filters);
+      }, 250);
+    },
+    [filters, runSearch],
+  );
+
+  // Re-run the current search whenever the filter set changes so the
+  // dropdown reflects the new constraints without the user having to
+  // re-type anything. Debounced through a timer so the state writes
+  // happen outside the effect body (cascading-render lint).
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      runSearch(searchQuery, filters);
+    }, 0);
+    return () => window.clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
+
+  const updateFilter = <K extends keyof SearchFilters>(
+    key: K,
+    value: SearchFilters[K],
+  ) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const toggleGenre = (id: number) => {
+    setFilters((prev) => {
+      const current = prev.genre_ids ?? [];
+      const next = current.includes(id)
+        ? current.filter((g) => g !== id)
+        : [...current, id];
+      return { ...prev, genre_ids: next.length > 0 ? next : null };
+    });
+  };
+
+  const toggleFormat = (fmt: string) => {
+    setFilters((prev) => {
+      const current = prev.formats ?? [];
+      const next = current.includes(fmt)
+        ? current.filter((f) => f !== fmt)
+        : [...current, fmt];
+      return { ...prev, formats: next.length > 0 ? next : null };
+    });
+  };
+
+  const resetFilters = () => setFilters({});
 
   const handleSearchResultClick = (tracks: Track[], index: number) => {
     playTracks(tracks, index, { type: "library", id: null });
@@ -86,17 +202,19 @@ export function TopBar({
     setSearchResults([]);
   };
 
-  // Close search dropdown on click outside
+  // Close search dropdown / filter panel on click outside.
   useEffect(() => {
-    if (!isSearchOpen) return;
+    if (!isSearchOpen && !filtersOpen) return;
     const handleClick = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setIsSearchOpen(false);
+        setFiltersOpen(false);
       }
     };
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setIsSearchOpen(false);
+        setFiltersOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClick);
@@ -105,7 +223,7 @@ export function TopBar({
       document.removeEventListener("mousedown", handleClick);
       document.removeEventListener("keydown", handleKey);
     };
-  }, [isSearchOpen]);
+  }, [isSearchOpen, filtersOpen]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -169,17 +287,180 @@ export function TopBar({
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearchInput(e.target.value)}
+            onFocus={() => {
+              if (searchResults.length > 0) setIsSearchOpen(true);
+            }}
             placeholder={t("topbar.search.placeholder")}
             className="bg-transparent border-none outline-none w-full text-sm placeholder-zinc-400"
           />
+          <button
+            type="button"
+            onClick={() => {
+              setFiltersOpen((v) => !v);
+              if (!filtersOpen) setIsSearchOpen(false);
+            }}
+            aria-label={t("topbar.search.filters.toggle")}
+            title={t("topbar.search.filters.toggle")}
+            className={`relative ml-2 p-1.5 rounded-full transition-colors ${
+              filtersOpen || hasActiveFilters
+                ? "text-emerald-500 bg-emerald-500/10"
+                : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+            }`}
+          >
+            <SlidersHorizontal size={16} />
+            {hasActiveFilters && !filtersOpen && (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500" />
+            )}
+          </button>
         </div>
 
+        {/* Advanced filter panel */}
+        {filtersOpen && (
+          <div className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 p-5 animate-fade-in max-h-[70vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
+                {t("topbar.search.filters.title")}
+              </span>
+              <div className="flex items-center gap-2">
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 px-2 py-1 rounded"
+                  >
+                    {t("topbar.search.filters.reset")}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setFiltersOpen(false)}
+                  className="p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
+                  aria-label={t("topbar.search.filters.close")}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* Quick toggles */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              <FilterChip
+                active={filters.hi_res_only === true}
+                onClick={() =>
+                  updateFilter("hi_res_only", filters.hi_res_only ? null : true)
+                }
+                label={t("topbar.search.filters.hiRes")}
+              />
+              <FilterChip
+                active={filters.liked_only === true}
+                onClick={() =>
+                  updateFilter("liked_only", filters.liked_only ? null : true)
+                }
+                label={t("topbar.search.filters.likedOnly")}
+              />
+            </div>
+
+            {/* Year range */}
+            <FilterRow label={t("topbar.search.filters.year")}>
+              <RangeInput
+                min={filters.year_min ?? null}
+                max={filters.year_max ?? null}
+                onMin={(v) => updateFilter("year_min", v)}
+                onMax={(v) => updateFilter("year_max", v)}
+                placeholderMin="1900"
+                placeholderMax="2099"
+              />
+            </FilterRow>
+
+            {/* BPM range */}
+            <FilterRow label={t("topbar.search.filters.bpm")}>
+              <RangeInput
+                min={filters.bpm_min ?? null}
+                max={filters.bpm_max ?? null}
+                onMin={(v) => updateFilter("bpm_min", v)}
+                onMax={(v) => updateFilter("bpm_max", v)}
+                placeholderMin="40"
+                placeholderMax="220"
+              />
+            </FilterRow>
+
+            {/* Duration range (in minutes for ergonomics) */}
+            <FilterRow label={t("topbar.search.filters.durationMin")}>
+              <RangeInput
+                min={
+                  filters.duration_min_ms != null
+                    ? Math.round(filters.duration_min_ms / 60_000)
+                    : null
+                }
+                max={
+                  filters.duration_max_ms != null
+                    ? Math.round(filters.duration_max_ms / 60_000)
+                    : null
+                }
+                onMin={(v) =>
+                  updateFilter(
+                    "duration_min_ms",
+                    v != null ? Math.round(v * 60_000) : null,
+                  )
+                }
+                onMax={(v) =>
+                  updateFilter(
+                    "duration_max_ms",
+                    v != null ? Math.round(v * 60_000) : null,
+                  )
+                }
+                placeholderMin="0"
+                placeholderMax="60"
+              />
+            </FilterRow>
+
+            {/* Format chips */}
+            <FilterRow label={t("topbar.search.filters.format")}>
+              <div className="flex flex-wrap gap-1.5">
+                {["FLAC", "WAV", "AIFF", "ALAC", "DSF", "DFF", "MP3", "AAC", "OGG", "OPUS"].map(
+                  (fmt) => (
+                    <FilterChip
+                      key={fmt}
+                      active={(filters.formats ?? []).includes(fmt)}
+                      onClick={() => toggleFormat(fmt)}
+                      label={fmt}
+                      compact
+                    />
+                  ),
+                )}
+              </div>
+            </FilterRow>
+
+            {/* Genres */}
+            {genres.length > 0 && (
+              <FilterRow label={t("topbar.search.filters.genres")}>
+                <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
+                  {genres.map((g) => (
+                    <FilterChip
+                      key={g.id}
+                      active={(filters.genre_ids ?? []).includes(g.id)}
+                      onClick={() => toggleGenre(g.id)}
+                      label={g.name}
+                      compact
+                    />
+                  ))}
+                </div>
+              </FilterRow>
+            )}
+          </div>
+        )}
+
         {/* Search results dropdown */}
-        {isSearchOpen && searchResults.length > 0 && (
+        {isSearchOpen && !filtersOpen && (
           <div className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden animate-fade-in">
             <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-4 pt-3 pb-2">
               {t("topbar.search.results", { count: searchResults.length })}
             </div>
+            {searchResults.length === 0 ? (
+              <div className="px-4 py-6 text-center text-sm text-zinc-500">
+                {t("topbar.search.empty")}
+              </div>
+            ) : (
             <ul className="max-h-80 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800/60">
               {searchResults.map((track, index) => (
                 <li
@@ -208,6 +489,7 @@ export function TopBar({
                 </li>
               ))}
             </ul>
+            )}
           </div>
         )}
       </div>
@@ -336,6 +618,77 @@ export function TopBar({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+interface FilterChipProps {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  compact?: boolean;
+}
+
+function FilterChip({ active, onClick, label, compact }: FilterChipProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`${compact ? "text-[11px] px-2 py-0.5" : "text-xs px-3 py-1"} rounded-full border transition-colors ${
+        active
+          ? "bg-emerald-500 border-emerald-500 text-white"
+          : "border-zinc-200 text-zinc-600 hover:border-zinc-300 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-3 last:mb-0">
+      <div className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase mb-1.5">
+        {label}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+interface RangeInputProps {
+  min: number | null;
+  max: number | null;
+  onMin: (v: number | null) => void;
+  onMax: (v: number | null) => void;
+  placeholderMin: string;
+  placeholderMax: string;
+}
+
+function RangeInput({ min, max, onMin, onMax, placeholderMin, placeholderMax }: RangeInputProps) {
+  const parse = (raw: string): number | null => {
+    const trimmed = raw.trim();
+    if (trimmed.length === 0) return null;
+    const n = Number(trimmed);
+    return Number.isFinite(n) ? n : null;
+  };
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        type="number"
+        value={min ?? ""}
+        onChange={(e) => onMin(parse(e.target.value))}
+        placeholder={placeholderMin}
+        className="w-24 text-xs px-2 py-1 rounded border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+      />
+      <span className="text-xs text-zinc-400">→</span>
+      <input
+        type="number"
+        value={max ?? ""}
+        onChange={(e) => onMax(parse(e.target.value))}
+        placeholder={placeholderMax}
+        className="w-24 text-xs px-2 py-1 rounded border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+      />
     </div>
   );
 }

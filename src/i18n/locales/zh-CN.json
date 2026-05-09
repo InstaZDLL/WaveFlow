@@ -128,7 +128,21 @@
       "placeholder": "搜索歌曲、歌手、专辑……",
       "results_zero": "没有结果",
       "results_one": "{{count}} 结果",
-      "results_other": "{{count}} 结果"
+      "results_other": "{{count}} 结果",
+      "empty": "没有匹配的搜索结果",
+      "filters": {
+        "toggle": "高级筛选",
+        "title": "筛选",
+        "close": "关闭",
+        "reset": "重置",
+        "hiRes": "高解析度",
+        "likedOnly": "仅显示喜欢",
+        "year": "年份（从 → 到）",
+        "bpm": "BPM（从 → 到）",
+        "durationMin": "时长（分钟）（从 → 到）",
+        "format": "格式",
+        "genres": "流派"
+      }
     },
     "theme": {
       "enableLight": "启用浅色模式",

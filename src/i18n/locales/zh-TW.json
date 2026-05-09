@@ -128,7 +128,21 @@
       "placeholder": "搜尋歌曲名稱、歌手、專輯……",
       "results_zero": "沒有結果",
       "results_one": "{{count}} 結果",
-      "results_other": "{{count}} 結果"
+      "results_other": "{{count}} 結果",
+      "empty": "沒有符合的搜尋結果",
+      "filters": {
+        "toggle": "進階篩選",
+        "title": "篩選",
+        "close": "關閉",
+        "reset": "重設",
+        "hiRes": "高解析度",
+        "likedOnly": "僅顯示喜歡",
+        "year": "年份（從 → 至）",
+        "bpm": "BPM（從 → 至）",
+        "durationMin": "時長（分鐘）（從 → 至）",
+        "format": "格式",
+        "genres": "類型"
+      }
     },
     "theme": {
       "enableLight": "啟用淺色模式",

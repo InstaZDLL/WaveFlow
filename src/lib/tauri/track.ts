@@ -69,6 +69,32 @@ export function searchTracks(query: string): Promise<Track[]> {
   return invoke<Track[]>("search_tracks", { query });
 }
 
+/**
+ * Multi-criteria filters layered on top of the FTS5 search. Every field
+ * is optional — `query` itself can be omitted to run a pure-filter
+ * browse (e.g. "all my Hi-Res FLACs from the 90s").
+ */
+export interface SearchFilters {
+  query?: string | null;
+  genre_ids?: number[] | null;
+  year_min?: number | null;
+  year_max?: number | null;
+  bpm_min?: number | null;
+  bpm_max?: number | null;
+  duration_min_ms?: number | null;
+  duration_max_ms?: number | null;
+  formats?: string[] | null;
+  min_sample_rate?: number | null;
+  min_bit_depth?: number | null;
+  hi_res_only?: boolean | null;
+  liked_only?: boolean | null;
+}
+
+/** Advanced search — combines FTS5 with structured filters. Returns up to 200 rows. */
+export function searchTracksAdvanced(filters: SearchFilters): Promise<Track[]> {
+  return invoke<Track[]>("search_tracks_advanced", { filters });
+}
+
 /** Toggle liked state. Returns `true` if the track is now liked. */
 export function toggleLikeTrack(trackId: number): Promise<boolean> {
   return invoke<boolean>("toggle_like_track", { trackId });

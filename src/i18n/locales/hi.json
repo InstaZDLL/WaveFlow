@@ -128,7 +128,21 @@
       "placeholder": "किसी गाने, कलाकार, एल्बम की खोज करें...",
       "results_zero": "कोई परिणाम नहीं",
       "results_one": "{{count}} परिणाम",
-      "results_other": "{{count}} परिणाम"
+      "results_other": "{{count}} परिणाम",
+      "empty": "आपकी खोज से कोई परिणाम मेल नहीं खाता",
+      "filters": {
+        "toggle": "उन्नत फ़िल्टर",
+        "title": "फ़िल्टर",
+        "close": "बंद करें",
+        "reset": "रीसेट करें",
+        "hiRes": "हाई-रेज़",
+        "likedOnly": "केवल पसंदीदा",
+        "year": "वर्ष (से → तक)",
+        "bpm": "BPM (से → तक)",
+        "durationMin": "अवधि मिनटों में (से → तक)",
+        "format": "फ़ॉर्मेट",
+        "genres": "शैलियाँ"
+      }
     },
     "theme": {
       "enableLight": "हल्के मोड में स्विच करें",

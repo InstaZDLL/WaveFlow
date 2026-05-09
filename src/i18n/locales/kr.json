@@ -128,7 +128,21 @@
       "placeholder": "곡명, 아티스트, 앨범 검색...",
       "results_zero": "결과가 없습니다",
       "results_one": "{{count}} 결과",
-      "results_other": "{{count}} 결과"
+      "results_other": "{{count}} 결과",
+      "empty": "검색 결과가 없습니다",
+      "filters": {
+        "toggle": "고급 필터",
+        "title": "필터",
+        "close": "닫기",
+        "reset": "초기화",
+        "hiRes": "고해상도",
+        "likedOnly": "좋아요만",
+        "year": "연도 (부터 → 까지)",
+        "bpm": "BPM (부터 → 까지)",
+        "durationMin": "재생 시간(분) (부터 → 까지)",
+        "format": "포맷",
+        "genres": "장르"
+      }
     },
     "theme": {
       "enableLight": "밝은 모드 켜기",

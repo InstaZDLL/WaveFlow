@@ -128,7 +128,21 @@
       "placeholder": "Zoek een titel, een artiest, een album...",
       "results_zero": "Geen resultaten",
       "results_one": "{{count}} resultaat",
-      "results_other": "{{count}} resultaten"
+      "results_other": "{{count}} resultaten",
+      "empty": "Geen resultaten voor je zoekopdracht",
+      "filters": {
+        "toggle": "Geavanceerde filters",
+        "title": "Filters",
+        "close": "Sluiten",
+        "reset": "Opnieuw instellen",
+        "hiRes": "Hi-Res",
+        "likedOnly": "Alleen favorieten",
+        "year": "Jaar (van → tot)",
+        "bpm": "BPM (van → tot)",
+        "durationMin": "Duur in minuten (van → tot)",
+        "format": "Formaat",
+        "genres": "Genres"
+      }
     },
     "theme": {
       "enableLight": "De lichte modus inschakelen",

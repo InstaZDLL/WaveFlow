@@ -128,7 +128,21 @@
       "placeholder": "Search for a song, an artist, an album...",
       "results_zero": "No results",
       "results_one": "{{count}} result",
-      "results_other": "{{count}} results"
+      "results_other": "{{count}} results",
+      "empty": "No results match your search",
+      "filters": {
+        "toggle": "Advanced filters",
+        "title": "Filters",
+        "close": "Close",
+        "reset": "Reset",
+        "hiRes": "Hi-Res",
+        "likedOnly": "Liked only",
+        "year": "Year (from → to)",
+        "bpm": "BPM (from → to)",
+        "durationMin": "Duration in minutes (from → to)",
+        "format": "Format",
+        "genres": "Genres"
+      }
     },
     "theme": {
       "enableLight": "Turn on light mode",
