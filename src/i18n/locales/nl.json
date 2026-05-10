@@ -567,7 +567,19 @@
     "filePath": "Pad",
     "showInExplorer": "Weergeven in de verkenner",
     "mono": "Mono",
-    "stereo": "Stereo"
+    "stereo": "Stereo",
+    "edit": "Bewerken",
+    "save": "Opslaan",
+    "saving": "Opslaan…",
+    "fields": {
+      "title": "Titel",
+      "artist": "Artiest(en)",
+      "album": "Album",
+      "trackNumber": "Tracknr.",
+      "discNumber": "Schijfnr.",
+      "genre": "Genre",
+      "genrePlaceholder": "Pop, Rock, Jazz…"
+    }
   },
   "selection": {
     "toolbarLabel": "Selectieprocedures",

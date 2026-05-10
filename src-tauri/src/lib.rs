@@ -293,6 +293,7 @@ pub fn run() {
             commands::track::list_tracks,
             commands::track::search_tracks,
             commands::track::search_tracks_advanced,
+            commands::edit::update_track_tags,
             commands::track::toggle_like_track,
             commands::track::list_liked_track_ids,
             commands::track::list_liked_tracks,

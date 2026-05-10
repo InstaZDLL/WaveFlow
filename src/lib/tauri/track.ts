@@ -119,6 +119,32 @@ export function listLikedTracks(): Promise<Track[]> {
 }
 
 /**
+ * Editable track-tag fields. Every property is optional — `null`
+ * (not transmitted) means "leave this field untouched"; an empty
+ * string means "clear this field" where the format allows it.
+ *
+ * `artist` accepts a comma-separated multi-artist string ("A, B"),
+ * which the backend splits via the same parser the scanner uses.
+ */
+export interface TrackEdit {
+  title?: string | null;
+  artist?: string | null;
+  album?: string | null;
+  year?: number | null;
+  track_number?: number | null;
+  disc_number?: number | null;
+  genre?: string | null;
+}
+
+/** Persist the edited tags both to the audio file and to the database. */
+export function updateTrackTags(
+  trackId: number,
+  edit: TrackEdit,
+): Promise<void> {
+  return invoke<void>("update_track_tags", { trackId, edit });
+}
+
+/**
  * Format a duration in milliseconds as `m:ss` or `h:mm:ss`. Used by the
  * library views that display track durations in a column.
  */

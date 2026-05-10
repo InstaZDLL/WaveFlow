@@ -567,7 +567,19 @@
     "filePath": "الطريق",
     "showInExplorer": "عرض في المستكشف",
     "mono": "مونو",
-    "stereo": "ستيريو"
+    "stereo": "ستيريو",
+    "edit": "تعديل",
+    "save": "حفظ",
+    "saving": "جارٍ الحفظ…",
+    "fields": {
+      "title": "العنوان",
+      "artist": "الفنان(ون)",
+      "album": "الألبوم",
+      "trackNumber": "رقم المسار",
+      "discNumber": "رقم القرص",
+      "genre": "النوع",
+      "genrePlaceholder": "بوب، روك، جاز…"
+    }
   },
   "selection": {
     "toolbarLabel": "عمليات الاختيار",

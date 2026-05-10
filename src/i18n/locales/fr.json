@@ -567,7 +567,19 @@
     "filePath": "Chemin",
     "showInExplorer": "Afficher dans l'explorateur",
     "mono": "Mono",
-    "stereo": "Stéréo"
+    "stereo": "Stéréo",
+    "edit": "Modifier",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "fields": {
+      "title": "Titre",
+      "artist": "Artiste(s)",
+      "album": "Album",
+      "trackNumber": "N° de piste",
+      "discNumber": "N° de disque",
+      "genre": "Genre",
+      "genrePlaceholder": "Pop, Rock, Jazz…"
+    }
   },
   "selection": {
     "toolbarLabel": "Actions de sélection",

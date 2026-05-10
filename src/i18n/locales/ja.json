@@ -567,7 +567,19 @@
     "filePath": "道",
     "showInExplorer": "エクスプローラーに表示",
     "mono": "モノ",
-    "stereo": "ステレオ"
+    "stereo": "ステレオ",
+    "edit": "編集",
+    "save": "保存",
+    "saving": "保存中…",
+    "fields": {
+      "title": "タイトル",
+      "artist": "アーティスト",
+      "album": "アルバム",
+      "trackNumber": "トラック番号",
+      "discNumber": "ディスク番号",
+      "genre": "ジャンル",
+      "genrePlaceholder": "ポップ、ロック、ジャズ…"
+    }
   },
   "selection": {
     "toolbarLabel": "選考プロセス",

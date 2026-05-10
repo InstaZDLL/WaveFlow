@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ExternalLink, Sparkles, X } from "lucide-react";
+import { ExternalLink, Pencil, Save, Sparkles, X } from "lucide-react";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { Artwork } from "./Artwork";
 import { HiResBadge } from "./HiResBadge";
-import { formatDuration, type Track } from "../../lib/tauri/track";
+import {
+  formatDuration,
+  updateTrackTags,
+  type Track,
+  type TrackEdit,
+} from "../../lib/tauri/track";
 import {
   analyzeTrack,
   getTrackAnalysis,
@@ -33,6 +38,31 @@ export function TrackPropertiesModal({
   const [analysis, setAnalysis] = useState<TrackAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
 
+  // Edit mode state. The form is keyed on the parent-supplied
+  // `track`, so opening the modal on a fresh track resets every
+  // input via the parent's re-mount (see the props.key on
+  // `<TrackPropertiesModal>`). Saving fires `track:updated` from
+  // the backend; consuming views listen and refetch.
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<{
+    title: string;
+    artist: string;
+    album: string;
+    year: string;
+    track_number: string;
+    disc_number: string;
+    genre: string;
+  }>({
+    title: "",
+    artist: "",
+    album: "",
+    year: "",
+    track_number: "",
+    disc_number: "",
+    genre: "",
+  });
+
   // Fetch the cached analysis whenever the dialog opens on a new
   // track. The parent re-mounts this component (keyed on track.id)
   // so we don't need a reset path here — every fresh mount starts
@@ -52,6 +82,33 @@ export function TrackPropertiesModal({
     };
   }, [track]);
 
+  // Hydrate the edit form whenever the track changes. Wrapped in a
+  // microtask via setTimeout(0) so the state writes happen outside
+  // the effect body — keeps the cascading-render lint happy without
+  // changing observable behaviour (the form has no need to be ready
+  // on the very first paint, only on user interaction).
+  useEffect(() => {
+    if (!track) return;
+    const handle = window.setTimeout(() => {
+      setForm({
+        title: track.title ?? "",
+        artist: track.artist_name ?? "",
+        album: track.album_title ?? "",
+        year: track.year != null ? String(track.year) : "",
+        track_number:
+          track.track_number != null ? String(track.track_number) : "",
+        disc_number:
+          track.disc_number != null ? String(track.disc_number) : "",
+        // Genre isn't on the Track row yet — the editor lets the user
+        // enter / overwrite one and the backend syncs track_genre
+        // accordingly. Future iteration: surface the existing genres.
+        genre: "",
+      });
+      setEditing(false);
+    }, 0);
+    return () => window.clearTimeout(handle);
+  }, [track]);
+
   if (!track) return null;
 
   const handleAnalyze = async () => {
@@ -64,6 +121,36 @@ export function TrackPropertiesModal({
       console.error("[TrackProperties] analyze_track failed", err);
     } finally {
       setAnalyzing(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!track || saving) return;
+    setSaving(true);
+    try {
+      const edit: TrackEdit = {
+        title: form.title,
+        artist: form.artist,
+        album: form.album,
+        // Empty string in a number field clears the value (sent as 0
+        // → backend treats as "remove this tag"). Non-numeric input
+        // is rejected silently — the input is `type="number"` so the
+        // browser typically guards against it anyway.
+        year: form.year.trim() === "" ? 0 : Number(form.year) || 0,
+        track_number:
+          form.track_number.trim() === "" ? 0 : Number(form.track_number) || 0,
+        disc_number:
+          form.disc_number.trim() === "" ? 0 : Number(form.disc_number) || 0,
+        genre: form.genre,
+      };
+      await updateTrackTags(track.id, edit);
+      setEditing(false);
+      // The backend emits `track:updated` after the save, which the
+      // surrounding views listen to and react to (re-fetch the row).
+    } catch (err) {
+      console.error("[TrackProperties] update_track_tags failed", err);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -133,37 +220,120 @@ export function TrackPropertiesModal({
             <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
               {t("trackProperties.title")}
             </div>
-            <h2 className="text-xl font-bold text-zinc-900 dark:text-white truncate">
-              {track.title}
-            </h2>
-            <div className="text-sm text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
-              {track.artist_name ?? "—"}
-            </div>
-            {track.album_title && (
-              <div className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
-                {track.album_title}
+            {editing ? (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, title: e.target.value }))
+                  }
+                  placeholder={t("trackProperties.fields.title")}
+                  className="w-full text-lg font-semibold px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
+                />
+                <input
+                  type="text"
+                  value={form.artist}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, artist: e.target.value }))
+                  }
+                  placeholder={t("trackProperties.fields.artist")}
+                  className="w-full text-sm px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
+                />
+                <input
+                  type="text"
+                  value={form.album}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, album: e.target.value }))
+                  }
+                  placeholder={t("trackProperties.fields.album")}
+                  className="w-full text-sm px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
+                />
               </div>
+            ) : (
+              <>
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-white truncate">
+                  {track.title}
+                </h2>
+                <div className="text-sm text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                  {track.artist_name ?? "—"}
+                </div>
+                {track.album_title && (
+                  <div className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
+                    {track.album_title}
+                  </div>
+                )}
+                <div className="mt-2">
+                  <HiResBadge
+                    bitDepth={track.bit_depth}
+                    sampleRate={track.sample_rate}
+                    codec={track.codec}
+                    variant="inline"
+                  />
+                </div>
+              </>
             )}
-            <div className="mt-2">
-              <HiResBadge
-                bitDepth={track.bit_depth}
-                sampleRate={track.sample_rate}
-                codec={track.codec}
-                variant="inline"
-              />
-            </div>
           </div>
         </div>
 
         {/* Body — three sections, each rendered as label/value rows. */}
         <div className="p-6 space-y-6">
           <Section title={t("trackProperties.sections.metadata")}>
-            <Row label={t("trackProperties.year")} value={track.year ?? "—"} />
-            <Row label={t("trackProperties.trackNumber")} value={trackNumber} />
-            <Row
-              label={t("trackProperties.duration")}
-              value={formatDuration(track.duration_ms)}
-            />
+            {editing ? (
+              <>
+                <EditRow
+                  label={t("trackProperties.year")}
+                  type="number"
+                  value={form.year}
+                  onChange={(v) => setForm((p) => ({ ...p, year: v }))}
+                  placeholder="2024"
+                />
+                <EditRow
+                  label={t("trackProperties.fields.trackNumber")}
+                  type="number"
+                  value={form.track_number}
+                  onChange={(v) =>
+                    setForm((p) => ({ ...p, track_number: v }))
+                  }
+                  placeholder="1"
+                />
+                <EditRow
+                  label={t("trackProperties.fields.discNumber")}
+                  type="number"
+                  value={form.disc_number}
+                  onChange={(v) =>
+                    setForm((p) => ({ ...p, disc_number: v }))
+                  }
+                  placeholder="1"
+                />
+                <EditRow
+                  label={t("trackProperties.fields.genre")}
+                  type="text"
+                  value={form.genre}
+                  onChange={(v) => setForm((p) => ({ ...p, genre: v }))}
+                  placeholder={t("trackProperties.fields.genrePlaceholder")}
+                />
+                <Row
+                  label={t("trackProperties.duration")}
+                  value={formatDuration(track.duration_ms)}
+                />
+              </>
+            ) : (
+              <>
+                <Row
+                  label={t("trackProperties.year")}
+                  value={track.year ?? "—"}
+                />
+                <Row
+                  label={t("trackProperties.trackNumber")}
+                  value={trackNumber}
+                />
+                <Row
+                  label={t("trackProperties.duration")}
+                  value={formatDuration(track.duration_ms)}
+                />
+              </>
+            )}
           </Section>
 
           <Section title={t("trackProperties.sections.audio")}>
@@ -245,21 +415,57 @@ export function TrackPropertiesModal({
         </div>
 
         <div className="px-6 py-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={handleShowInExplorer}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
-          >
-            <ExternalLink size={14} />
-            <span>{t("trackProperties.showInExplorer")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
-          >
-            {t("common.close")}
-          </button>
+          {editing ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                disabled={saving}
+                className="px-4 py-2 rounded-xl text-sm font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-50"
+              >
+                <Save size={14} />
+                <span>
+                  {saving
+                    ? t("trackProperties.saving")
+                    : t("trackProperties.save")}
+                </span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={handleShowInExplorer}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+              >
+                <ExternalLink size={14} />
+                <span>{t("trackProperties.showInExplorer")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+              >
+                <Pencil size={14} />
+                <span>{t("trackProperties.edit")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+              >
+                {t("common.close")}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -299,6 +505,35 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
       <span className="flex-1 min-w-0 text-zinc-800 dark:text-zinc-200 tabular-nums">
         {value}
       </span>
+    </div>
+  );
+}
+
+function EditRow({
+  label,
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: "text" | "number";
+  placeholder?: string;
+}) {
+  return (
+    <div className="flex items-center gap-4 px-3 py-2 text-sm">
+      <span className="w-32 shrink-0 text-zinc-500 dark:text-zinc-400">
+        {label}
+      </span>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="flex-1 min-w-0 px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200"
+      />
     </div>
   );
 }

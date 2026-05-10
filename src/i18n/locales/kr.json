@@ -567,7 +567,19 @@
     "filePath": "경로",
     "showInExplorer": "탐색기에서 보기",
     "mono": "모노",
-    "stereo": "스테레오"
+    "stereo": "스테레오",
+    "edit": "편집",
+    "save": "저장",
+    "saving": "저장 중…",
+    "fields": {
+      "title": "제목",
+      "artist": "아티스트",
+      "album": "앨범",
+      "trackNumber": "트랙 번호",
+      "discNumber": "디스크 번호",
+      "genre": "장르",
+      "genrePlaceholder": "팝, 록, 재즈…"
+    }
   },
   "selection": {
     "toolbarLabel": "선발 활동",

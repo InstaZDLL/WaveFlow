@@ -567,7 +567,19 @@
     "filePath": "Путь",
     "showInExplorer": "Показать в проводнике",
     "mono": "Моно",
-    "stereo": "Стерео"
+    "stereo": "Стерео",
+    "edit": "Редактировать",
+    "save": "Сохранить",
+    "saving": "Сохранение…",
+    "fields": {
+      "title": "Название",
+      "artist": "Исполнитель(и)",
+      "album": "Альбом",
+      "trackNumber": "№ трека",
+      "discNumber": "№ диска",
+      "genre": "Жанр",
+      "genrePlaceholder": "Поп, Рок, Джаз…"
+    }
   },
   "selection": {
     "toolbarLabel": "Действия по выбору",

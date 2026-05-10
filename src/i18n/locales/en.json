@@ -567,7 +567,19 @@
     "filePath": "Path",
     "showInExplorer": "View in Explorer",
     "mono": "Mono",
-    "stereo": "Stereo"
+    "stereo": "Stereo",
+    "edit": "Edit",
+    "save": "Save",
+    "saving": "Saving…",
+    "fields": {
+      "title": "Title",
+      "artist": "Artist(s)",
+      "album": "Album",
+      "trackNumber": "Track #",
+      "discNumber": "Disc #",
+      "genre": "Genre",
+      "genrePlaceholder": "Pop, Rock, Jazz…"
+    }
   },
   "selection": {
     "toolbarLabel": "Selection activities",

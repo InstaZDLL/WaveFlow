@@ -567,7 +567,19 @@
     "filePath": "मार्ग",
     "showInExplorer": "फ़ाइल एक्सप्लोरर में देखें",
     "mono": "एकल",
-    "stereo": "स्टीरियो"
+    "stereo": "स्टीरियो",
+    "edit": "संपादन",
+    "save": "सहेजें",
+    "saving": "सहेज रहा है…",
+    "fields": {
+      "title": "शीर्षक",
+      "artist": "कलाकार",
+      "album": "एल्बम",
+      "trackNumber": "ट्रैक नं.",
+      "discNumber": "डिस्क नं.",
+      "genre": "शैली",
+      "genrePlaceholder": "पॉप, रॉक, जैज़…"
+    }
   },
   "selection": {
     "toolbarLabel": "चयन गतिविधियाँ",

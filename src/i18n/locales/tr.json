@@ -567,7 +567,19 @@
     "filePath": "Yol",
     "showInExplorer": "Dosya Gezgini'nde göster",
     "mono": "Tek sesli",
-    "stereo": "Stereo"
+    "stereo": "Stereo",
+    "edit": "Düzenle",
+    "save": "Kaydet",
+    "saving": "Kaydediliyor…",
+    "fields": {
+      "title": "Başlık",
+      "artist": "Sanatçı(lar)",
+      "album": "Albüm",
+      "trackNumber": "Parça No.",
+      "discNumber": "Disk No.",
+      "genre": "Tür",
+      "genrePlaceholder": "Pop, Rock, Caz…"
+    }
   },
   "selection": {
     "toolbarLabel": "Seçim işlemleri",

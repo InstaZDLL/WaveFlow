@@ -547,7 +547,7 @@ async fn upsert_artwork(
 ///
 /// Returns the trimmed, non-empty names in the order they appeared —
 /// the first entry is treated as the primary artist by the caller.
-fn split_artist_name(raw: &str) -> Vec<String> {
+pub(crate) fn split_artist_name(raw: &str) -> Vec<String> {
     raw.split([',', ';'])
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
@@ -555,7 +555,10 @@ fn split_artist_name(raw: &str) -> Vec<String> {
         .collect()
 }
 
-async fn upsert_artist(pool: &SqlitePool, raw_name: &str) -> AppResult<Option<i64>> {
+pub(crate) async fn upsert_artist(
+    pool: &SqlitePool,
+    raw_name: &str,
+) -> AppResult<Option<i64>> {
     let name = raw_name.trim();
     if name.is_empty() {
         return Ok(None);
@@ -582,7 +585,7 @@ async fn upsert_artist(pool: &SqlitePool, raw_name: &str) -> AppResult<Option<i6
     Ok(Some(result.last_insert_rowid()))
 }
 
-async fn upsert_album(
+pub(crate) async fn upsert_album(
     pool: &SqlitePool,
     title: &str,
     artist_id: Option<i64>,
@@ -627,7 +630,10 @@ async fn upsert_album(
     Ok(Some(result.last_insert_rowid()))
 }
 
-async fn upsert_genre(pool: &SqlitePool, raw_name: &str) -> AppResult<Option<i64>> {
+pub(crate) async fn upsert_genre(
+    pool: &SqlitePool,
+    raw_name: &str,
+) -> AppResult<Option<i64>> {
     let name = raw_name.trim();
     if name.is_empty() {
         return Ok(None);

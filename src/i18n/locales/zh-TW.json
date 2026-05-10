@@ -567,7 +567,19 @@
     "filePath": "路徑",
     "showInExplorer": "在檔案總管中顯示",
     "mono": "單聲道",
-    "stereo": "立體聲"
+    "stereo": "立體聲",
+    "edit": "編輯",
+    "save": "儲存",
+    "saving": "儲存中…",
+    "fields": {
+      "title": "標題",
+      "artist": "藝術家",
+      "album": "專輯",
+      "trackNumber": "曲目號",
+      "discNumber": "碟片號",
+      "genre": "類型",
+      "genrePlaceholder": "流行、搖滾、爵士…"
+    }
   },
   "selection": {
     "toolbarLabel": "篩選條件",

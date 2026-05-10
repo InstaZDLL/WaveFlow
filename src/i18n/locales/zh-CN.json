@@ -567,7 +567,19 @@
     "filePath": "路径",
     "showInExplorer": "在资源管理器中显示",
     "mono": "单声道",
-    "stereo": "立体声"
+    "stereo": "立体声",
+    "edit": "编辑",
+    "save": "保存",
+    "saving": "保存中…",
+    "fields": {
+      "title": "标题",
+      "artist": "艺术家",
+      "album": "专辑",
+      "trackNumber": "曲目号",
+      "discNumber": "碟片号",
+      "genre": "流派",
+      "genrePlaceholder": "流行、摇滚、爵士…"
+    }
   },
   "selection": {
     "toolbarLabel": "筛选操作",

@@ -567,7 +567,19 @@
     "filePath": "Jalur",
     "showInExplorer": "Tampilkan di Penjelajah File",
     "mono": "Mono",
-    "stereo": "Stereo"
+    "stereo": "Stereo",
+    "edit": "Edit",
+    "save": "Simpan",
+    "saving": "Menyimpan…",
+    "fields": {
+      "title": "Judul",
+      "artist": "Artis",
+      "album": "Album",
+      "trackNumber": "No. trek",
+      "discNumber": "No. disk",
+      "genre": "Genre",
+      "genrePlaceholder": "Pop, Rock, Jazz…"
+    }
   },
   "selection": {
     "toolbarLabel": "Tindakan seleksi",

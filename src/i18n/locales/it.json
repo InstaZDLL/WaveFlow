@@ -567,7 +567,19 @@
     "filePath": "Percorso",
     "showInExplorer": "Visualizza in Esplora file",
     "mono": "Mono",
-    "stereo": "Stereo"
+    "stereo": "Stereo",
+    "edit": "Modifica",
+    "save": "Salva",
+    "saving": "Salvataggio…",
+    "fields": {
+      "title": "Titolo",
+      "artist": "Artista/i",
+      "album": "Album",
+      "trackNumber": "N. brano",
+      "discNumber": "N. disco",
+      "genre": "Genere",
+      "genrePlaceholder": "Pop, Rock, Jazz…"
+    }
   },
   "selection": {
     "toolbarLabel": "Azioni di selezione",
