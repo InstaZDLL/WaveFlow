@@ -60,14 +60,14 @@ export function FullscreenNowPlaying({
             path1x={currentTrack.artwork_path_1x}
             path2x={currentTrack.artwork_path_2x}
             size="full"
-            className="w-full h-full scale-125 blur-3xl opacity-60"
+            className="w-full h-full scale-150 blur-3xl"
             alt=""
             rounded="md"
           />
         ) : (
           <div className="w-full h-full bg-linear-to-br from-zinc-800 to-zinc-950" />
         )}
-        <div className="absolute inset-0 bg-black/55" />
+        <div className="absolute inset-0 bg-black/65" />
       </div>
 
       {/* Foreground */}
