@@ -438,7 +438,18 @@ fn play_track(
         // Crossfade / gapless trigger evaluation, only when not
         // already mixing. Crossfade wins when both are enabled
         // (the fade implicitly subsumes the gap).
-        if !mix_active && stream.duration_ms > 0 {
+        //
+        // Sleep-timer "end of current track" mode (`pause_after_current_track`)
+        // is handled here by suppressing the prefetch + the swap entirely
+        // when armed: we want the primary stream to play to its natural
+        // EOF and break out of `play_track` so the analytics worker hits
+        // the `TrackEnded` branch (which checks the same flag and skips
+        // auto-advance). Without this guard, gapless / crossfade would
+        // start playing the next track BEFORE the analytics worker ever
+        // sees `TrackEnded` — which is exactly the user-reported bug
+        // ("sleep timer EOT still plays the next song").
+        let sleep_armed = shared.pause_after_current_track.load(Ordering::Relaxed);
+        if !mix_active && !sleep_armed && stream.duration_ms > 0 {
             let cf_ms = shared.crossfade_ms.load(Ordering::Relaxed) as u64;
             if cf_ms > 0 {
                 // Effective fade window — never longer than half the
@@ -687,7 +698,17 @@ fn play_track(
                 // `CrossfadeStarted` analytics message so the queue
                 // cursor advances and play_event gets credited
                 // exactly the same way.
-                if pending_next.is_some() {
+                //
+                // Skip the swap when the sleep-timer EOT mode is
+                // armed — even though we suppressed the prefetch in
+                // the trigger block above, a fast user can arm the
+                // timer between prefetch and EOF, so we re-check
+                // here as a safety net. Falling through to the
+                // natural EOF path lets the analytics worker hit
+                // the `TrackEnded` branch that pauses cleanly.
+                let sleep_armed_eof =
+                    shared.pause_after_current_track.load(Ordering::Relaxed);
+                if pending_next.is_some() && !sleep_armed_eof {
                     let listened = shared.session_listened_ms();
                     let _ = analytics_tx.send(AnalyticsMsg::CrossfadeStarted {
                         finished_track_id: stream.track_id,
