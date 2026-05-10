@@ -161,6 +161,12 @@ if-addrs = "0.13"
 mac_address = "1"
 uuid = { version = "1", features = ["v4", "v5"] }
 
+# Profile export / import: bundle the per-profile `data.db` + the
+# user's manual artwork into a single `.waveflow` (zip) file. We pick
+# zip 4.x for its `deflate` feature with a pure-Rust backend (no
+# native libz dep), keeping the cross-compile story clean.
+zip = { version = "4", default-features = false, features = ["deflate", "time"] }
+
 # Discord Rich Presence — speaks the local Discord client's IPC named
 # pipe (no network). Mirrors the souvlaki integration in
 # `media_controls.rs`: a dedicated thread owns the IPC client and

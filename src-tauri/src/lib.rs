@@ -261,6 +261,8 @@ pub fn run() {
             commands::profile::deactivate_profile,
             commands::profile::get_profile_setting,
             commands::profile::set_profile_setting,
+            commands::profile_io::export_profile,
+            commands::profile_io::import_profile,
             commands::library::list_libraries,
             commands::library::create_library,
             commands::library::update_library,

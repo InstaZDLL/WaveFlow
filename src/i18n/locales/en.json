@@ -666,7 +666,8 @@
     "queue": "Queue",
     "miniPlayer": "Mini-player (always on top)",
     "previous": "Previous track",
-    "next": "Next track"
+    "next": "Next track",
+    "openFullscreen": "Immersive view"
   },
   "miniPlayer": {
     "idle": "No track playing",
@@ -939,6 +940,22 @@
       "subtitle": "Download the album covers from Deezer",
       "action": "Recover",
       "progress": "{{current}}/{{total}} processed"
+    },
+    "profileIo": {
+      "title": "Profile backup",
+      "subtitle": "Export or import a full profile (playlists, likes, stats, EQ, shortcuts) as a single .waveflow file.",
+      "export": {
+        "action": "Export",
+        "dialogTitle": "Export WaveFlow profile",
+        "done": "Profile exported successfully.",
+        "failed": "Export failed. See the logs for details."
+      },
+      "import": {
+        "action": "Import",
+        "dialogTitle": "Import WaveFlow profile",
+        "done": "Profile imported (id {{id}}). Switch to it from the profile selector.",
+        "failed": "Import failed. The file may be corrupt or incompatible."
+      }
     },
     "dataFolder": {
       "title": "Data file",

@@ -19,6 +19,7 @@ pub mod maintenance;
 pub mod offline;
 pub mod player;
 pub mod playlist;
+pub mod profile_io;
 pub mod playlist_cover;
 pub mod profile;
 pub mod radio;

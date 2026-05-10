@@ -30,6 +30,8 @@ import {
   Repeat2,
   ChevronsRight,
   WifiOff,
+  Download,
+  Upload,
 } from "lucide-react";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
 import type { ViewId } from "../../types";
@@ -63,6 +65,8 @@ import {
 } from "../../lib/tauri/deezer";
 import { openLogFolder, readRecentLogs } from "../../lib/tauri/diagnostics";
 import { getOfflineMode, setOfflineMode } from "../../lib/tauri/offline";
+import { exportProfile, importProfile } from "../../lib/tauri/profile_io";
+import { pickFile, pickSaveFile } from "../../lib/tauri/dialog";
 import {
   dlnaGetConfig,
   dlnaGetStatus,
@@ -681,6 +685,66 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       setOfflineModeState(!next);
     });
   }, [offlineMode]);
+
+  // Profile export / import — both are async operations that show a
+  // transient status string under the row so the user gets feedback
+  // without a modal.
+  const [profileIoBusy, setProfileIoBusy] = useState<"export" | "import" | null>(
+    null,
+  );
+  const [profileIoStatus, setProfileIoStatus] = useState<{
+    kind: "ok" | "fail";
+    message: string;
+  } | null>(null);
+
+  const flashStatus = useCallback(
+    (kind: "ok" | "fail", message: string) => {
+      setProfileIoStatus({ kind, message });
+      window.setTimeout(() => setProfileIoStatus(null), 4000);
+    },
+    [],
+  );
+
+  const handleExportProfile = useCallback(async () => {
+    if (profileIoBusy) return;
+    if (!activeProfile) return;
+    const safeName = activeProfile.name.replace(/[^\w.-]+/g, "_");
+    const target = await pickSaveFile(
+      `${safeName || "profile"}.waveflow`,
+      ["waveflow"],
+      t("settings.profileIo.export.dialogTitle") ?? undefined,
+    );
+    if (!target) return;
+    setProfileIoBusy("export");
+    try {
+      await exportProfile(target, activeProfile.id);
+      flashStatus("ok", t("settings.profileIo.export.done"));
+    } catch (err) {
+      console.error("[SettingsView] export profile failed", err);
+      flashStatus("fail", t("settings.profileIo.export.failed"));
+    } finally {
+      setProfileIoBusy(null);
+    }
+  }, [activeProfile, flashStatus, profileIoBusy, t]);
+
+  const handleImportProfile = useCallback(async () => {
+    if (profileIoBusy) return;
+    const source = await pickFile(
+      ["waveflow"],
+      t("settings.profileIo.import.dialogTitle") ?? undefined,
+    );
+    if (!source) return;
+    setProfileIoBusy("import");
+    try {
+      const newId = await importProfile(source, null);
+      flashStatus("ok", t("settings.profileIo.import.done", { id: newId }));
+    } catch (err) {
+      console.error("[SettingsView] import profile failed", err);
+      flashStatus("fail", t("settings.profileIo.import.failed"));
+    } finally {
+      setProfileIoBusy(null);
+    }
+  }, [flashStatus, profileIoBusy, t]);
 
   // DLNA / UPnP MediaServer. `dlnaConfig` carries the persisted
   // settings (name, port, enabled flag); `dlnaStatus` is the live
@@ -1945,6 +2009,69 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               />
               <span>{t("settings.regenerateThumbnailsAction")}</span>
             </button>
+          </div>
+
+          {/* Profile export / import — packages the per-profile DB
+              + manual artwork into a single .waveflow archive. Useful
+              for backups + machine migration. Shared metadata cache
+              and Last.fm key live in app.db so they're not bundled. */}
+          <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center space-x-4 min-w-0">
+                <Download
+                  size={20}
+                  className="text-zinc-400 shrink-0"
+                  aria-hidden="true"
+                />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                    {t("settings.profileIo.title")}
+                  </div>
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.profileIo.subtitle")}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleExportProfile}
+                  disabled={profileIoBusy != null || !activeProfile}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Download
+                    size={14}
+                    aria-hidden="true"
+                    className={profileIoBusy === "export" ? "animate-pulse" : ""}
+                  />
+                  <span>{t("settings.profileIo.export.action")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleImportProfile}
+                  disabled={profileIoBusy != null}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Upload
+                    size={14}
+                    aria-hidden="true"
+                    className={profileIoBusy === "import" ? "animate-pulse" : ""}
+                  />
+                  <span>{t("settings.profileIo.import.action")}</span>
+                </button>
+              </div>
+            </div>
+            {profileIoStatus && (
+              <div
+                className={`mt-2 ml-9 text-xs ${
+                  profileIoStatus.kind === "ok"
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-red-500"
+                }`}
+              >
+                {profileIoStatus.message}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">

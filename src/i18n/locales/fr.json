@@ -666,7 +666,8 @@
     "queue": "File d'attente",
     "miniPlayer": "Mini-lecteur (toujours au-dessus)",
     "previous": "Piste précédente",
-    "next": "Piste suivante"
+    "next": "Piste suivante",
+    "openFullscreen": "Vue immersive"
   },
   "miniPlayer": {
     "idle": "Aucun titre en cours",
@@ -939,6 +940,22 @@
       "subtitle": "Récupérer les pochettes artistes depuis Deezer",
       "action": "Récupérer",
       "progress": "{{current}}/{{total}} traités"
+    },
+    "profileIo": {
+      "title": "Sauvegarde du profil",
+      "subtitle": "Exporte ou importe un profil entier (playlists, j'aime, statistiques, EQ, raccourcis) sous forme d'un fichier .waveflow.",
+      "export": {
+        "action": "Exporter",
+        "dialogTitle": "Exporter le profil WaveFlow",
+        "done": "Profil exporté avec succès.",
+        "failed": "Échec de l'export. Voir les logs."
+      },
+      "import": {
+        "action": "Importer",
+        "dialogTitle": "Importer un profil WaveFlow",
+        "done": "Profil importé (id {{id}}). Bascule depuis le sélecteur de profil.",
+        "failed": "Échec de l'import. Le fichier est peut-être corrompu ou incompatible."
+      }
     },
     "dataFolder": {
       "title": "Dossier de données",
