@@ -169,9 +169,9 @@ impl SpectrumAnalyzer {
         // result is logged-and-dropped rather than propagated — the
         // decoder thread shouldn't die because the visualizer
         // hiccuped on a degenerate buffer.
-        if let Err(err) = self
-            .plan
-            .process_with_scratch(&mut self.input, &mut self.spectrum, &mut self.scratch)
+        if let Err(err) =
+            self.plan
+                .process_with_scratch(&mut self.input, &mut self.spectrum, &mut self.scratch)
         {
             tracing::warn!(?err, "spectrum FFT failed");
             return;
@@ -231,8 +231,7 @@ fn compute_bands(spectrum: &[Complex<f32>], sample_rate: f32, bands: &mut [f32])
 
     for b in 0..band_count {
         let lo_hz = (log_min + (log_max - log_min) * b as f32 / band_count as f32).exp();
-        let hi_hz =
-            (log_min + (log_max - log_min) * (b + 1) as f32 / band_count as f32).exp();
+        let hi_hz = (log_min + (log_max - log_min) * (b + 1) as f32 / band_count as f32).exp();
         let lo_bin = (lo_hz / bin_hz).floor() as usize;
         let hi_bin = ((hi_hz / bin_hz).ceil() as usize).max(lo_bin + 1);
 
@@ -262,12 +261,17 @@ mod tests {
 
     #[test]
     fn hann_window_is_symmetric_and_unit_peak() {
-        let w = hann_window(8);
+        // Use an odd length so the centre index is an integer and the
+        // window hits exactly 1.0: w[(n-1)/2] = 0.5*(1-cos(π)) = 1.0.
+        // An even-length window (e.g. 8) has its theoretical peak
+        // between two samples (~0.9505 for n=8), which would never
+        // satisfy a 1e-3 tolerance.
+        let w = hann_window(9);
         // First and last samples are zero, middle peaks at 1.0.
         assert!(w[0] < 1e-6);
         assert!(w[w.len() - 1] < 1e-6);
         let max = w.iter().copied().fold(f32::MIN, f32::max);
-        assert!((max - 1.0).abs() < 1e-3);
+        assert!((max - 1.0).abs() < 1e-6);
     }
 
     #[test]
