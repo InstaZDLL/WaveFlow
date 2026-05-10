@@ -419,8 +419,14 @@ pub async fn playlist_tracks(
     access_token: &str,
     playlist_id: &str,
 ) -> AppResult<Vec<SpotifyTrackLite>> {
+    // Dropped the `fields=` filter — since Spotify's Nov 2024 Web API
+    // tightening, requesting nested fields (album images, artists,
+    // ...) on certain playlists triggers a blanket 403 even when the
+    // base /tracks endpoint would succeed without the filter. Asking
+    // for the full payload is slightly heavier but works on every
+    // playlist class the user can actually reach.
     let url = format!(
-        "{API_BASE}/playlists/{}/tracks?limit=50&fields=items(track(id,name,uri,duration_ms,explicit,artists(name),album(id,name,uri,images,artists(name),release_date)))",
+        "{API_BASE}/playlists/{}/tracks?limit=50&market=from_token",
         url_escape(playlist_id)
     );
     let page: Page<PlaylistTrackItem> = get_json(client, access_token, &url).await?;
@@ -495,12 +501,25 @@ async fn parse_spotify_response<T: for<'de> Deserialize<'de>>(
     let text = res.text().await.unwrap_or_default();
     let message = serde_json::from_str::<SpotifyErrorBody>(&text)
         .map(|b| b.error.message)
-        .unwrap_or(text);
-    Err(AppError::Other(format!(
-        "Spotify API error {}: {}",
-        status.as_u16(),
-        message
-    )))
+        .unwrap_or_else(|_| text.clone());
+    // Spotify started returning a blanket 403 for several endpoints
+    // when the requesting app isn't on Extended Quota Mode (since
+    // Nov 2024). The bare "Forbidden" message is unhelpful — surface
+    // the most common cause so the user knows it isn't necessarily
+    // a bug on our side.
+    let friendly = if status == StatusCode::FORBIDDEN {
+        format!(
+            "Spotify a refusé la requête (403 Forbidden). \
+             Cause probable : depuis novembre 2024, Spotify bloque l'accès \
+             aux playlists éditoriales (Daily Mix, Discover Weekly, playlists \
+             de marque…) et à certains endpoints (Audio Features, recommandations) \
+             pour les apps tierces. Détail Spotify : {message}"
+        )
+    } else {
+        format!("Spotify API error {}: {}", status.as_u16(), message)
+    };
+    tracing::warn!(status = %status, body = %text, "spotify API error");
+    Err(AppError::Other(friendly))
 }
 
 fn best_image(images: Option<Vec<ImageResponse>>) -> Option<String> {
