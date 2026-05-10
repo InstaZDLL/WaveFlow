@@ -212,13 +212,18 @@ fn compute_bands(spectrum: &[Complex<f32>], sample_rate: f32, bands: &mut [f32])
         return;
     }
     let bin_hz = sample_rate / (FFT_SIZE as f32);
-    // Hann coherent gain = 0.5, so a unit-amplitude sine ends up
-    // with peak bin magnitude of FFT_SIZE/2 * 0.5 = FFT_SIZE/4.
-    let norm_peak = (FFT_SIZE as f32) * 0.25;
+    // Empirical reference for "loud bin magnitude": for typical
+    // post-Hann music FFT a single dominant bin sits in the 50-300
+    // range. We scale so ~250 maps to 1.0, leaving headroom for
+    // very loud transients to peg without clipping the visual
+    // weeks-of-the-music. (The full theoretical peak is FFT_SIZE/4
+    // for a unit sine, but real music never concentrates that
+    // much energy in a single bin.)
+    let norm_peak = 250.0_f32;
     // Quiet floor: anything below this is treated as silence so the
     // renderer shows zero instead of a constant low-amplitude haze
     // from quantisation / decoder rounding.
-    const FLOOR: f32 = 0.015;
+    const FLOOR: f32 = 0.02;
 
     let log_min = MIN_HZ.ln();
     let log_max = MAX_HZ.ln();
@@ -231,18 +236,19 @@ fn compute_bands(spectrum: &[Complex<f32>], sample_rate: f32, bands: &mut [f32])
         let lo_bin = (lo_hz / bin_hz).floor() as usize;
         let hi_bin = ((hi_hz / bin_hz).ceil() as usize).max(lo_bin + 1);
 
-        let mut sum_sq = 0.0f32;
-        let mut count = 0u32;
+        // Use the per-band peak rather than the mean — averaging
+        // across 20+ bins crushes the very transients that make a
+        // visualizer feel alive. A single strong bin should still
+        // drive its band bar to full height.
+        let mut peak_sq = 0.0f32;
         for bin in lo_bin..hi_bin.min(bin_count) {
-            sum_sq += spectrum[bin].norm_sqr();
-            count += 1;
+            let m = spectrum[bin].norm_sqr();
+            if m > peak_sq {
+                peak_sq = m;
+            }
         }
-        let mean = if count > 0 {
-            (sum_sq / count as f32).sqrt()
-        } else {
-            0.0
-        };
-        let normalised = (mean / norm_peak).clamp(0.0, 1.0);
+        let mag = peak_sq.sqrt();
+        let normalised = (mag / norm_peak).clamp(0.0, 1.0);
         let cut = (normalised - FLOOR).max(0.0) / (1.0 - FLOOR);
         // Perceptual curve — sqrt expands the low end where the
         // human ear is most sensitive to loudness changes.
