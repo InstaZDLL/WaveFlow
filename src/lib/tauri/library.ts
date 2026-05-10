@@ -128,6 +128,15 @@ export function setFolderWatched(
 }
 
 /**
+ * Detach the watcher, delete every track that lived under this
+ * folder, then drop the `library_folder` row. Emits
+ * `library:rescanned` so consumer views auto-refresh.
+ */
+export function removeFolderFromLibrary(folderId: number): Promise<void> {
+  return invoke<void>("remove_folder_from_library", { folderId });
+}
+
+/**
  * Walk every artwork directory and (re)build the `_1x` / `_2x` JPEG
  * thumbnails for any full-size cover that is missing them. Returns
  * the count of source images successfully processed.

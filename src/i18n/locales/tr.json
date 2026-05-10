@@ -299,7 +299,9 @@
       "neverScanned": "asla",
       "watched": "İzledim",
       "watchOn": "Bu klasördeki değişiklikleri takip edin",
-      "watchOff": "Bu klasörü izlemeyi bırak"
+      "watchOff": "Bu klasörü izlemeyi bırak",
+      "remove": "Klasörü kütüphaneden kaldır",
+      "removeConfirm": "Onaylamak için tekrar tıklayın"
     }
   },
   "liked": {

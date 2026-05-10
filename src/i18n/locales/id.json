@@ -299,7 +299,9 @@
       "neverScanned": "tidak pernah",
       "watched": "Telah ditonton",
       "watchOn": "Perhatikan folder ini untuk mengetahui adanya perubahan",
-      "watchOff": "Berhenti memantau folder ini"
+      "watchOff": "Berhenti memantau folder ini",
+      "remove": "Hapus folder dari pustaka",
+      "removeConfirm": "Klik lagi untuk mengonfirmasi"
     }
   },
   "liked": {

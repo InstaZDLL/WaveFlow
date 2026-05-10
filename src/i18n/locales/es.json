@@ -299,7 +299,9 @@
       "neverScanned": "nunca",
       "watched": "Vigilado",
       "watchOn": "Supervisar automáticamente los cambios",
-      "watchOff": "Detener la vigilancia"
+      "watchOff": "Detener la vigilancia",
+      "remove": "Quitar carpeta de la biblioteca",
+      "removeConfirm": "Haz clic de nuevo para confirmar"
     }
   },
   "liked": {

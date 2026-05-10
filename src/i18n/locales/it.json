@@ -299,7 +299,9 @@
       "neverScanned": "mai",
       "watched": "Sotto sorveglianza",
       "watchOn": "Monitorare automaticamente le modifiche",
-      "watchOff": "Interrompere il monitoraggio"
+      "watchOff": "Interrompere il monitoraggio",
+      "remove": "Rimuovi cartella dalla libreria",
+      "removeConfirm": "Clicca di nuovo per confermare"
     }
   },
   "liked": {

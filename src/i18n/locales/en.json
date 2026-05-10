@@ -299,7 +299,9 @@
       "neverScanned": "never",
       "watched": "Monitored",
       "watchOn": "Automatically monitor changes",
-      "watchOff": "Stop surveillance"
+      "watchOff": "Stop surveillance",
+      "remove": "Remove folder from library",
+      "removeConfirm": "Click again to confirm"
     }
   },
   "liked": {

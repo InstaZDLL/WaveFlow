@@ -299,7 +299,9 @@
       "neverScanned": "從未",
       "watched": "受監控",
       "watchOn": "自動監控變更",
-      "watchOff": "停止監控"
+      "watchOff": "停止監控",
+      "remove": "從資料庫中移除資料夾",
+      "removeConfirm": "再次點擊確認"
     }
   },
   "liked": {

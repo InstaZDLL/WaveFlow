@@ -299,7 +299,9 @@
       "neverScanned": "nooit",
       "watched": "In de gaten gehouden",
       "watchOn": "Wijzigingen automatisch bijhouden",
-      "watchOff": "Bewaking stoppen"
+      "watchOff": "Bewaking stoppen",
+      "remove": "Map uit bibliotheek verwijderen",
+      "removeConfirm": "Klik nogmaals om te bevestigen"
     }
   },
   "liked": {

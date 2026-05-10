@@ -299,7 +299,9 @@
       "neverScanned": "결코",
       "watched": "감시 중",
       "watchOn": "변경 사항 자동 모니터링",
-      "watchOff": "감시 중지"
+      "watchOff": "감시 중지",
+      "remove": "라이브러리에서 폴더 제거",
+      "removeConfirm": "확인하려면 다시 클릭"
     }
   },
   "liked": {

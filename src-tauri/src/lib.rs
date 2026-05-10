@@ -267,6 +267,7 @@ pub fn run() {
             commands::library::add_folder_to_library,
             commands::library::list_library_folders,
             commands::library::set_folder_watched,
+            commands::library::remove_folder_from_library,
             commands::analysis::analyze_track,
             commands::analysis::analyze_library,
             commands::analysis::get_track_analysis,

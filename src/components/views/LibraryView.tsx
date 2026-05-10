@@ -20,6 +20,7 @@ import {
   Heart,
   Eye,
   EyeOff,
+  Trash2,
   ImageIcon,
   ArrowUpDown,
   ArrowDown,
@@ -55,7 +56,10 @@ import { resolveArtwork } from "../../lib/tauri/artwork";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import type { Playlist } from "../../lib/tauri/playlist";
 import { pickFolder } from "../../lib/tauri/dialog";
-import { setFolderWatched } from "../../lib/tauri/library";
+import {
+  removeFolderFromLibrary,
+  setFolderWatched,
+} from "../../lib/tauri/library";
 import {
   formatDuration,
   listTracks,
@@ -640,6 +644,15 @@ export function LibraryView({
                 addSourceToPlaylist(playlistId, "folder", folderId)
               }
               onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+              onRemove={(folderId) => {
+                // Optimistic removal — the backend cascade-deletes
+                // tracks too, so the LibraryContext will refresh on
+                // the `library:rescanned` event the command emits.
+                setFolders((prev) => prev.filter((f) => f.id !== folderId));
+                removeFolderFromLibrary(folderId).catch((err) => {
+                  console.error("[LibraryView] remove folder failed", err);
+                });
+              }}
               onToggleWatched={(folderId, enable) => {
                 // Optimistic flip — the watcher hookup is fire-and-
                 // forget on the backend so the UI shouldn't block on it.
@@ -1621,6 +1634,7 @@ interface FolderListProps {
   onAddToPlaylist: (playlistId: number, folderId: number) => void;
   onCreatePlaylist: () => void;
   onToggleWatched: (folderId: number, enable: boolean) => void;
+  onRemove: (folderId: number) => void;
 }
 
 function FolderList({
@@ -1631,8 +1645,18 @@ function FolderList({
   onAddToPlaylist,
   onCreatePlaylist,
   onToggleWatched,
+  onRemove,
 }: FolderListProps) {
   const [openMenuFolderId, setOpenMenuFolderId] = useState<number | null>(null);
+  // Two-step delete: first click arms the confirm state, second click
+  // commits. Auto-clears after 3 s so the button doesn't stay armed
+  // forever after the user wandered off.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  useEffect(() => {
+    if (confirmDeleteId == null) return;
+    const timer = setTimeout(() => setConfirmDeleteId(null), 3_000);
+    return () => clearTimeout(timer);
+  }, [confirmDeleteId]);
 
   useEffect(() => {
     if (openMenuFolderId == null) return;
@@ -1718,6 +1742,38 @@ function FolderList({
                 ) : (
                   <EyeOff size={16} />
                 )}
+              </button>
+            </Tooltip>
+            <Tooltip
+              label={
+                confirmDeleteId === folder.id
+                  ? t("library.folderList.removeConfirm")
+                  : t("library.folderList.remove")
+              }
+            >
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirmDeleteId === folder.id) {
+                    setConfirmDeleteId(null);
+                    onRemove(folder.id);
+                  } else {
+                    setConfirmDeleteId(folder.id);
+                  }
+                }}
+                aria-label={
+                  confirmDeleteId === folder.id
+                    ? t("library.folderList.removeConfirm")
+                    : t("library.folderList.remove")
+                }
+                className={`p-1.5 rounded-full transition-colors ${
+                  confirmDeleteId === folder.id
+                    ? "bg-red-500 text-white"
+                    : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+                }`}
+              >
+                <Trash2 size={16} />
               </button>
             </Tooltip>
             <div className="relative">

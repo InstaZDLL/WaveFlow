@@ -299,7 +299,9 @@
       "neverScanned": "nunca",
       "watched": "Sob vigilância",
       "watchOn": "Monitorizar automaticamente as alterações",
-      "watchOff": "Interromper a vigilância"
+      "watchOff": "Interromper a vigilância",
+      "remove": "Remover pasta da biblioteca",
+      "removeConfirm": "Clique novamente para confirmar"
     }
   },
   "liked": {

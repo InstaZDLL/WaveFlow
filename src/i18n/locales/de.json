@@ -299,7 +299,9 @@
       "neverScanned": "niemals",
       "watched": "Überwacht",
       "watchOn": "Änderungen automatisch überwachen",
-      "watchOff": "Überwachung beenden"
+      "watchOff": "Überwachung beenden",
+      "remove": "Ordner aus Bibliothek entfernen",
+      "removeConfirm": "Erneut klicken zum Bestätigen"
     }
   },
   "liked": {

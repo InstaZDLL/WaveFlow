@@ -379,6 +379,44 @@ pub async fn list_library_folders(
     Ok(rows)
 }
 
+/// Remove a folder from a library. Detaches the in-memory watcher,
+/// deletes every track that lives under this folder (so the library
+/// counts and FTS index stay consistent), then drops the folder row
+/// itself. The schema's `track.folder_id ON DELETE SET NULL` would
+/// otherwise leave orphan tracks with `library_id` still set —
+/// matching the disk would then require a full rescan.
+///
+/// Emits `library:rescanned` so every consumer view (LibraryContext,
+/// FolderList, sidebar counts) refreshes without new wiring.
+#[tauri::command]
+pub async fn remove_folder_from_library(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    watcher: tauri::State<'_, std::sync::Arc<WatcherManager>>,
+    folder_id: i64,
+) -> AppResult<()> {
+    use tauri::Emitter;
+    let pool = state.require_profile_pool().await?;
+
+    // Detach the watcher first so a midway notify event doesn't try
+    // to write back into a row we're about to delete.
+    watcher.unwatch(folder_id);
+
+    let mut tx = pool.begin().await?;
+    sqlx::query("DELETE FROM track WHERE folder_id = ?")
+        .bind(folder_id)
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query("DELETE FROM library_folder WHERE id = ?")
+        .bind(folder_id)
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
+
+    let _ = app.emit("library:rescanned", ());
+    Ok(())
+}
+
 /// Toggle whether a folder is watched for filesystem changes. Updates
 /// `library_folder.is_watched` and arms or disarms the in-memory
 /// watcher so the change takes effect without restarting the app.

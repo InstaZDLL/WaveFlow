@@ -299,7 +299,9 @@
       "neverScanned": "jamais",
       "watched": "Surveillé",
       "watchOn": "Surveiller automatiquement les changements",
-      "watchOff": "Arrêter la surveillance"
+      "watchOff": "Arrêter la surveillance",
+      "remove": "Retirer le dossier de la bibliothèque",
+      "removeConfirm": "Cliquer à nouveau pour confirmer"
     }
   },
   "liked": {

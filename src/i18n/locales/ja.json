@@ -299,7 +299,9 @@
       "neverScanned": "決して",
       "watched": "監視中",
       "watchOn": "変更を自動的に監視する",
-      "watchOff": "監視を停止する"
+      "watchOff": "監視を停止する",
+      "remove": "ライブラリからフォルダを削除",
+      "removeConfirm": "もう一度クリックで確定"
     }
   },
   "liked": {
