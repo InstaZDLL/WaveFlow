@@ -124,27 +124,6 @@ export function FullscreenNowPlaying({
             </div>
           </div>
 
-          {/* Like + controls cluster. Like sits to the left of the
-              transport so it stays one tap away without competing
-              with play/pause for visual weight. */}
-          {currentTrack && (
-            <div className="mt-2 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onToggleLike}
-                aria-label={
-                  isLiked ? t("liked.unlike") : t("liked.like")
-                }
-                className={`p-2 rounded-full transition-colors ${
-                  isLiked
-                    ? "text-pink-400 hover:text-pink-300"
-                    : "text-white/60 hover:text-pink-400"
-                }`}
-              >
-                <Heart size={20} className={isLiked ? "fill-current" : ""} />
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Bottom transport — progress on top, controls below.
@@ -160,7 +139,27 @@ export function FullscreenNowPlaying({
             <SpectrumVisualizer className="w-full h-16 mb-2 opacity-80" glow />
             <ProgressBar />
             <div className="flex items-center justify-between gap-6 mt-2">
-              <div className="flex-1 min-w-0" />
+              {/* Left cluster — like button. Lives down here (not in
+                  the hero) so the visualizer canvas above never sits
+                  underneath an interactive control. */}
+              <div className="flex-1 min-w-0 flex justify-start">
+                {currentTrack && (
+                  <button
+                    type="button"
+                    onClick={onToggleLike}
+                    aria-label={
+                      isLiked ? t("liked.unlike") : t("liked.like")
+                    }
+                    className={`p-2 rounded-full transition-colors ${
+                      isLiked
+                        ? "text-pink-400 hover:text-pink-300"
+                        : "text-white/60 hover:text-pink-400"
+                    }`}
+                  >
+                    <Heart size={20} className={isLiked ? "fill-current" : ""} />
+                  </button>
+                )}
+              </div>
               <PlaybackControls />
               <div className="flex-1 min-w-0 flex justify-end">
                 <VolumeControl />

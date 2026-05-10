@@ -194,11 +194,17 @@ fn hann_window(n: usize) -> Vec<f32> {
         .collect()
 }
 
-/// Map FFT bins to log-spaced bands, normalize to roughly 0..1, then
-/// run a soft compressor so loud snares don't clip the visualizer
-/// while quiet ambient stays visible. The 0..1 range is a target
-/// (peaks may overshoot briefly); the React renderer clamps for
-/// display.
+/// Map FFT bins to log-spaced bands and squash into roughly 0..1.
+///
+/// Normalization is the tricky bit: the raw `realfft` output is
+/// **unnormalised** so a full-scale sine through a Hann window peaks
+/// at `FFT_SIZE / 4`. We divide each band's RMS-like magnitude by
+/// that factor so the result lives in 0..1, then apply a perceptual
+/// `sqrt` curve + a small floor cut so quiet ambient still shows
+/// a hint of motion without typical pop / rock pegging at the top.
+///
+/// The earlier dB-based formula had no FFT normalisation and ended
+/// up clipping every band to 1.0 on most music — see commit history.
 fn compute_bands(spectrum: &[Complex<f32>], sample_rate: f32, bands: &mut [f32]) {
     let bin_count = spectrum.len();
     if bin_count == 0 {
@@ -206,9 +212,14 @@ fn compute_bands(spectrum: &[Complex<f32>], sample_rate: f32, bands: &mut [f32])
         return;
     }
     let bin_hz = sample_rate / (FFT_SIZE as f32);
+    // Hann coherent gain = 0.5, so a unit-amplitude sine ends up
+    // with peak bin magnitude of FFT_SIZE/2 * 0.5 = FFT_SIZE/4.
+    let norm_peak = (FFT_SIZE as f32) * 0.25;
+    // Quiet floor: anything below this is treated as silence so the
+    // renderer shows zero instead of a constant low-amplitude haze
+    // from quantisation / decoder rounding.
+    const FLOOR: f32 = 0.015;
 
-    // Pre-compute log-spaced edges. Cheap (BAND_COUNT+1 logs) and
-    // means each band knows exactly which bins to sum.
     let log_min = MIN_HZ.ln();
     let log_max = MAX_HZ.ln();
     let band_count = bands.len();
@@ -223,8 +234,7 @@ fn compute_bands(spectrum: &[Complex<f32>], sample_rate: f32, bands: &mut [f32])
         let mut sum_sq = 0.0f32;
         let mut count = 0u32;
         for bin in lo_bin..hi_bin.min(bin_count) {
-            let mag = spectrum[bin].norm_sqr();
-            sum_sq += mag;
+            sum_sq += spectrum[bin].norm_sqr();
             count += 1;
         }
         let mean = if count > 0 {
@@ -232,12 +242,11 @@ fn compute_bands(spectrum: &[Complex<f32>], sample_rate: f32, bands: &mut [f32])
         } else {
             0.0
         };
-        // Convert to dB-ish then squash into 0..1. The constants are
-        // chosen empirically to keep typical pop / rock bouncing in
-        // the upper half without clipping.
-        let db = 20.0 * (mean + 1e-6).log10();
-        let normalized = ((db + 80.0) / 80.0).clamp(0.0, 1.0).powf(1.4);
-        bands[b] = normalized;
+        let normalised = (mean / norm_peak).clamp(0.0, 1.0);
+        let cut = (normalised - FLOOR).max(0.0) / (1.0 - FLOOR);
+        // Perceptual curve — sqrt expands the low end where the
+        // human ear is most sensitive to loudness changes.
+        bands[b] = cut.sqrt();
     }
 }
 
