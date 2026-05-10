@@ -136,7 +136,15 @@ pub(crate) async fn enrich_album_inner(
         }
     }
 
-    // 3. Fetch from Deezer API.
+    // 3. Fetch from Deezer API — short-circuit when offline mode is
+    //    on. Returns whatever Deezer-id we already had (so the UI can
+    //    still resolve cached artwork) plus empty enrichment fields.
+    if crate::offline::is_offline() {
+        return Ok(DeezerAlbumEnrichment {
+            deezer_id: existing_deezer_id,
+            ..DeezerAlbumEnrichment::empty()
+        });
+    }
     let client = DeezerClient::new();
     let hit = if let Some(did) = existing_deezer_id {
         match client.get_album(did).await {
@@ -325,7 +333,15 @@ pub async fn enrich_artist_deezer(
         }
     }
 
-    // 3. Fetch from Deezer (picture + fans).
+    // 3. Fetch from Deezer (picture + fans). Short-circuit when
+    //    offline mode is on so we don't poke the network for stale
+    //    cache entries.
+    if crate::offline::is_offline() {
+        return Ok(DeezerArtistEnrichment {
+            deezer_id: existing_deezer_id,
+            ..DeezerArtistEnrichment::empty()
+        });
+    }
     let client = DeezerClient::new();
     let hit = if let Some(did) = existing_deezer_id {
         match client.get_artist(did).await {
@@ -453,6 +469,9 @@ pub struct DeezerAlbumLite {
 
 #[tauri::command]
 pub async fn search_albums_deezer(query: String) -> AppResult<Vec<DeezerAlbumLite>> {
+    if crate::offline::is_offline() {
+        return Ok(Vec::new());
+    }
     let client = DeezerClient::new();
     let hits = client
         .search_album(&query)
@@ -478,6 +497,9 @@ pub async fn set_album_artwork_from_deezer(
     album_id: i64,
     deezer_album_id: i64,
 ) -> AppResult<()> {
+    if crate::offline::is_offline() {
+        return Err(AppError::Other("offline mode is enabled".into()));
+    }
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let profile_artwork_dir = state.paths.profile_artwork_dir(profile_id);
@@ -558,6 +580,9 @@ pub async fn batch_fetch_missing_artist_pictures(
     app: AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> AppResult<u32> {
+    if crate::offline::is_offline() {
+        return Ok(0);
+    }
     let pool = state.require_profile_pool().await?;
     let now = now_ms();
 
@@ -612,6 +637,9 @@ pub async fn batch_fetch_missing_album_covers(
     app: AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> AppResult<u32> {
+    if crate::offline::is_offline() {
+        return Ok(0);
+    }
     let pool = state.require_profile_pool().await?;
     let artwork_dir = state.paths.metadata_artwork_dir.clone();
 

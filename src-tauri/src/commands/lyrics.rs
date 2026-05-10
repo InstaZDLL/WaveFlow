@@ -353,7 +353,11 @@ pub async fn fetch_lyrics(
     }
 
     // 3. LRCLIB fallback. Skip if we have no artist (matching is
-    //    useless without one).
+    //    useless without one) or if offline mode is on (the cache +
+    //    embedded tiers above already ran).
+    if crate::offline::is_offline() {
+        return Ok(None);
+    }
     let Some(artist_name) = meta.artist_name.as_deref() else {
         return Ok(None);
     };
@@ -528,6 +532,9 @@ pub async fn prefetch_library_lyrics(
     app: AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> AppResult<LyricsPrefetchSummary> {
+    if crate::offline::is_offline() {
+        return Err(AppError::Other("offline mode is enabled".into()));
+    }
     if PREFETCH_RUNNING.swap(true, Ordering::SeqCst) {
         return Err(AppError::Other("lyrics prefetch already running".into()));
     }

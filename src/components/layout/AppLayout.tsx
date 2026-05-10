@@ -7,6 +7,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
 import { Sidebar } from "./Sidebar";
 import { useDragDropImport } from "../../hooks/useDragDropImport";
+import { useGlobalShortcuts } from "../../hooks/useGlobalShortcuts";
 import { useTranslation } from "react-i18next";
 import { Loader2, Upload } from "lucide-react";
 import { TopBar } from "./TopBar";
@@ -38,6 +39,10 @@ export function AppLayout() {
   const { isDark } = useTheme();
   const { activeRightPanel } = usePlayer();
   const dragDrop = useDragDropImport();
+  // Global keyboard shortcuts. The hook itself attaches the keydown
+  // listener and re-reads bindings whenever Settings emits the
+  // shortcuts-changed event.
+  useGlobalShortcuts();
   const [viewHistory, setViewHistory] = useState<ViewId[]>(["home"]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);

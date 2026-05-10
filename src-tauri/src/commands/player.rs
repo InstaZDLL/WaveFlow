@@ -288,6 +288,11 @@ fn schedule_now_playing(app: &AppHandle, track: &QueueTrack) {
         let Some(artist) = artist.filter(|s| !s.trim().is_empty()) else {
             return;
         };
+        // Honour offline mode — skip the now-playing ping; the
+        // scrobble queue will also be drained later when offline is off.
+        if crate::offline::is_offline() {
+            return;
+        }
 
         let state = app.state::<AppState>();
         let creds = match crate::commands::integration::read_lastfm_credentials(&state).await {

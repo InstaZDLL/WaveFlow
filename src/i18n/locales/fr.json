@@ -384,6 +384,7 @@
       "backend": "Backend (Rust)",
       "audio": "Audio",
       "shortcuts": "Raccourcis clavier",
+      "changelog": "Journal des modifications",
       "credits": "Crédits"
     },
     "shortcuts": {
@@ -395,6 +396,13 @@
       "keys": {
         "space": "Espace"
       }
+    },
+    "changelog": {
+      "loading": "Chargement…",
+      "empty": "Aucune entrée disponible",
+      "expand": "Voir {{count}} entrées de plus",
+      "collapse": "Voir moins",
+      "breaking": "Rupture"
     },
     "credits": {
       "text": "Conçu et développé avec passion. Construit avec des technologies open source.",
@@ -802,7 +810,33 @@
       "playback": "Lecture",
       "integrations": "Intégrations",
       "storage": "Stockage & Données",
+      "shortcuts": "Raccourcis clavier",
       "diagnostics": "Diagnostics"
+    },
+    "shortcuts": {
+      "subtitle": "Cliquez sur un raccourci puis appuyez sur la combinaison souhaitée. Backspace pour effacer, Échap pour annuler.",
+      "captureHint": "Appuyez sur une touche…",
+      "reset": "Tout réinitialiser",
+      "unbind": "Désactiver",
+      "unbound": "Aucun",
+      "actions": {
+        "togglePlayback": "Lecture / Pause",
+        "next": "Morceau suivant",
+        "previous": "Morceau précédent",
+        "volumeUp": "Augmenter le volume",
+        "volumeDown": "Baisser le volume",
+        "toggleMute": "Couper / Rétablir le son",
+        "toggleShuffle": "Lecture aléatoire",
+        "cycleRepeat": "Mode de répétition",
+        "toggleQueue": "Afficher / Masquer la file",
+        "toggleNowPlaying": "Afficher / Masquer la lecture en cours",
+        "toggleLyrics": "Afficher / Masquer les paroles",
+        "toggleLike": "J'aime / Retirer du j'aime"
+      }
+    },
+    "offlineMode": {
+      "title": "Mode hors-ligne",
+      "subtitle": "Coupe Last.fm, Deezer et LRCLIB. Utilise uniquement les données déjà en cache."
     },
     "integrations": {
       "lastfm": {

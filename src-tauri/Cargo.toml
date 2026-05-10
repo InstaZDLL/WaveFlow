@@ -16,6 +16,10 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+# Build-time changelog generation (build.rs): parses `git log` and
+# emits a JSON array embedded in the binary via include_str!.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 [patch.crates-io]
 # gtk-rs 0.18 is still required by Tauri's Linux GTK3 stack and cannot move to

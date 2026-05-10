@@ -29,6 +29,7 @@ import {
   Moon,
   Repeat2,
   ChevronsRight,
+  WifiOff,
 } from "lucide-react";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
 import type { ViewId } from "../../types";
@@ -61,6 +62,7 @@ import {
   batchFetchMissingArtistPictures,
 } from "../../lib/tauri/deezer";
 import { openLogFolder, readRecentLogs } from "../../lib/tauri/diagnostics";
+import { getOfflineMode, setOfflineMode } from "../../lib/tauri/offline";
 import {
   dlnaGetConfig,
   dlnaGetStatus,
@@ -75,6 +77,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { regenerateThumbnails } from "../../lib/tauri/library";
 import { DuplicatesModal } from "../common/DuplicatesModal";
 import { EqualizerCard } from "./settings/EqualizerCard";
+import { ShortcutsCard } from "./settings/ShortcutsCard";
 
 interface SettingsViewProps {
   onNavigate: (view: ViewId) => void;
@@ -660,6 +663,25 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // optimistically with rollback on failure.
   const [discordRpc, setDiscordRpc] = useState(false);
 
+  // Global offline-mode flag. Persisted in app_setting (process-wide,
+  // not per-profile), hydrated at mount.
+  const [offlineMode, setOfflineModeState] = useState(false);
+
+  useEffect(() => {
+    getOfflineMode()
+      .then(setOfflineModeState)
+      .catch((err) => console.error("[SettingsView] get offline mode", err));
+  }, []);
+
+  const handleToggleOfflineMode = useCallback(() => {
+    const next = !offlineMode;
+    setOfflineModeState(next);
+    setOfflineMode(next).catch((err) => {
+      console.error("[SettingsView] set offline mode failed", err);
+      setOfflineModeState(!next);
+    });
+  }, [offlineMode]);
+
   // DLNA / UPnP MediaServer. `dlnaConfig` carries the persisted
   // settings (name, port, enabled flag); `dlnaStatus` is the live
   // worker-thread snapshot (running, bound URL, last error).
@@ -1205,6 +1227,32 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           {t("settings.sections.integrations")}
         </h2>
         <div className="space-y-1">
+          {/* Mode hors-ligne — coupe Last.fm / Deezer / LRCLIB d'un
+              seul coup. Affiché en tête car il conditionne l'effet
+              de toutes les intégrations en dessous. */}
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4">
+              <WifiOff
+                size={20}
+                className="text-zinc-400"
+                aria-hidden="true"
+              />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.offlineMode.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.offlineMode.subtitle")}
+                </div>
+              </div>
+            </div>
+            <ToggleSwitch
+              enabled={offlineMode}
+              onToggle={handleToggleOfflineMode}
+              label={t("settings.offlineMode.title")}
+            />
+          </div>
+
           <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
             <div className="flex items-start space-x-4">
               <Radio
@@ -1947,6 +1995,17 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             </button>
           </div>
         </div>
+      </section>
+
+      {/* Raccourcis clavier */}
+      <section aria-labelledby="settings-shortcuts-heading">
+        <h2
+          id="settings-shortcuts-heading"
+          className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
+        >
+          {t("settings.sections.shortcuts")}
+        </h2>
+        <ShortcutsCard />
       </section>
 
       <section aria-labelledby="settings-diagnostics-heading">

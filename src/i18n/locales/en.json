@@ -384,6 +384,7 @@
       "backend": "Backend (Rust)",
       "audio": "Audio",
       "shortcuts": "Keyboard shortcuts",
+      "changelog": "Changelog",
       "credits": "Credits"
     },
     "shortcuts": {
@@ -395,6 +396,13 @@
       "keys": {
         "space": "Space"
       }
+    },
+    "changelog": {
+      "loading": "Loading…",
+      "empty": "No entries available",
+      "expand": "Show {{count}} more entries",
+      "collapse": "Show fewer",
+      "breaking": "Breaking"
     },
     "credits": {
       "text": "Designed and developed with passion. Built using open-source technologies.",
@@ -802,7 +810,33 @@
       "playback": "Playback",
       "integrations": "Integrations",
       "storage": "Storage & Data",
+      "shortcuts": "Keyboard shortcuts",
       "diagnostics": "Diagnostics"
+    },
+    "shortcuts": {
+      "subtitle": "Click a shortcut then press the key combination you want. Backspace to clear, Escape to cancel.",
+      "captureHint": "Press a key…",
+      "reset": "Reset all",
+      "unbind": "Unbind",
+      "unbound": "None",
+      "actions": {
+        "togglePlayback": "Play / Pause",
+        "next": "Next track",
+        "previous": "Previous track",
+        "volumeUp": "Volume up",
+        "volumeDown": "Volume down",
+        "toggleMute": "Mute / Unmute",
+        "toggleShuffle": "Shuffle",
+        "cycleRepeat": "Cycle repeat mode",
+        "toggleQueue": "Toggle queue panel",
+        "toggleNowPlaying": "Toggle now-playing panel",
+        "toggleLyrics": "Toggle lyrics panel",
+        "toggleLike": "Like / Unlike current track"
+      }
+    },
+    "offlineMode": {
+      "title": "Offline mode",
+      "subtitle": "Disables Last.fm, Deezer and LRCLIB. Uses cached data only."
     },
     "integrations": {
       "lastfm": {

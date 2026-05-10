@@ -17,6 +17,7 @@ mod logging;
 mod lrclib;
 mod media_controls;
 mod metadata_artwork;
+mod offline;
 mod paths;
 mod queue;
 mod scrobbler;
@@ -249,6 +250,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::app_info::get_app_info,
             commands::app_info::open_data_folder,
+            commands::changelog::get_changelog,
             commands::diagnostics::get_log_dir,
             commands::diagnostics::open_log_folder,
             commands::diagnostics::read_recent_logs,
@@ -338,6 +340,8 @@ pub fn run() {
             commands::integration::lastfm_logout,
             commands::integration::get_discord_rpc_enabled,
             commands::integration::set_discord_rpc_enabled,
+            commands::offline::get_offline_mode,
+            commands::offline::set_offline_mode,
             commands::lyrics::get_lyrics,
             commands::lyrics::fetch_lyrics,
             commands::lyrics::import_lrc_file,
