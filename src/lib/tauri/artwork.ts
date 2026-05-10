@@ -35,6 +35,12 @@ export function resolveArtwork(
     const v = paths[k];
     if (!v) continue;
     if (k === "remoteUrl") return v;
+    // Spotify (and any future remote provider) feeds CDN URLs into
+    // the same `full` slot the local scanner uses for filesystem
+    // paths. Detect them and return verbatim — convertFileSrc would
+    // try to wrap them as `asset://https://...` which Tauri's asset
+    // protocol rightly rejects.
+    if (v.startsWith("http://") || v.startsWith("https://")) return v;
     const cached = getCachedUrl(v);
     if (cached) return cached;
     const url = convertFileSrc(v);
