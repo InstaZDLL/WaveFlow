@@ -2,8 +2,8 @@ import { Window as TauriWindow, currentMonitor } from "@tauri-apps/api/window";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 const MINI_LABEL = "mini";
-const WIDTH = 280;
-const HEIGHT = 360;
+const WIDTH = 240;
+const HEIGHT = 300;
 /** Margin from the screen edge (logical pixels). Matches Spotify's
  *  bottom-right offset, leaving room for the Windows taskbar / macOS
  *  Dock. Smaller offsets feel cramped against the corner. */
@@ -51,8 +51,8 @@ export async function openMiniPlayer(): Promise<void> {
       title: "WaveFlow",
       width: WIDTH,
       height: HEIGHT,
-      minWidth: 240,
-      minHeight: 320,
+      minWidth: 220,
+      minHeight: 280,
       alwaysOnTop: true,
       // We render our own title bar (pin / drag-dots / close) inside
       // the webview so the widget stays compact and on-brand.

@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   Play,
@@ -23,6 +30,7 @@ import {
   listLikedTrackIds,
   toggleLikeTrack,
 } from "../../lib/tauri/track";
+import { formatDuration } from "../../lib/tauri/track";
 
 /**
  * Spotify-style always-on-top widget. Square cover floats centered
@@ -48,6 +56,8 @@ export function MiniPlayer() {
     cycleRepeatMode,
     isShuffled,
     toggleShuffle,
+    seek,
+    setSeeking,
   } = usePlayer();
 
   // ── Like-state mirror (own webview = own React state) ───────────
@@ -152,43 +162,75 @@ export function MiniPlayer() {
 
   const [showControls, setShowControls] = useState(false);
 
-  const progressPct = durationMs > 0 ? (positionMs / durationMs) * 100 : 0;
+  // ── Interactive seek bar ────────────────────────────────────────
+  const [dragMs, setDragMs] = useState<number | null>(null);
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const positionFromPointer = useCallback(
+    (clientX: number): number => {
+      const el = trackRef.current;
+      if (!el || durationMs <= 0) return 0;
+      const rect = el.getBoundingClientRect();
+      const ratio = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+      return Math.round(ratio * durationMs);
+    },
+    [durationMs],
+  );
+  const handleSeekDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!currentTrack || durationMs <= 0) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setSeeking(true);
+    setDragMs(positionFromPointer(e.clientX));
+  };
+  const handleSeekMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragMs == null) return;
+    setDragMs(positionFromPointer(e.clientX));
+  };
+  const handleSeekUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragMs == null) return;
+    const target = dragMs;
+    setDragMs(null);
+    setSeeking(false);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    seek(target).catch(() => {});
+  };
+  const displayMs = dragMs ?? positionMs;
+  const progressPct = durationMs > 0 ? (displayMs / durationMs) * 100 : 0;
 
   return (
     <div
       className="h-screen w-screen flex flex-col overflow-hidden text-white select-none"
       style={{ background: gradient }}
     >
-      {/* Top bar — drag region. The middle dot cluster is the macOS
-          / WinAppSDK drag handle hint; Tauri's data-tauri-drag-region
-          turns it into an OS-level move grip. */}
-      <div
-        data-tauri-drag-region
-        className="flex items-center justify-between px-2 py-1.5 shrink-0"
-      >
+      {/* Top bar. The middle dot strip is the OS-level drag region;
+          everything else captures clicks normally. Splitting the
+          drag region this way avoids buttons fighting the move
+          gesture on Windows where data-tauri-drag-region on a
+          button-bearing parent intermittently swallows clicks. */}
+      <div className="flex items-stretch justify-between px-2 py-1 shrink-0">
         <button
           type="button"
           onClick={handleTogglePin}
           aria-label={t("miniPlayer.pin")}
           title={t("miniPlayer.pin")}
-          className={`p-1.5 rounded-full transition-colors ${
+          className={`p-1 rounded-full transition-colors ${
             pinned
               ? "text-emerald-400 hover:bg-white/10"
               : "text-white/60 hover:text-white hover:bg-white/10"
           }`}
         >
-          <Pin size={14} className={pinned ? "fill-current" : ""} />
+          <Pin size={12} className={pinned ? "fill-current" : ""} />
         </button>
         <div
           data-tauri-drag-region
-          className="flex-1 flex items-center justify-center gap-0.5 text-white/40"
+          className="flex-1 flex items-center justify-center gap-0.5 text-white/40 cursor-grab active:cursor-grabbing"
         >
-          <span className="block w-1 h-1 rounded-full bg-current" />
-          <span className="block w-1 h-1 rounded-full bg-current" />
-          <span className="block w-1 h-1 rounded-full bg-current" />
-          <span className="block w-1 h-1 rounded-full bg-current ml-1" />
-          <span className="block w-1 h-1 rounded-full bg-current" />
-          <span className="block w-1 h-1 rounded-full bg-current" />
+          {Array.from({ length: 6 }).map((_, i) => (
+            <span
+              key={i}
+              data-tauri-drag-region
+              className={`pointer-events-none block w-0.5 h-0.5 rounded-full bg-current${i === 3 ? " ml-1" : ""}`}
+            />
+          ))}
         </div>
         <div className="flex items-center gap-0.5">
           <button
@@ -196,24 +238,24 @@ export function MiniPlayer() {
             onClick={handleMaximize}
             aria-label={t("miniPlayer.maximize")}
             title={t("miniPlayer.maximize")}
-            className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
           >
-            <Maximize2 size={13} />
+            <Maximize2 size={12} />
           </button>
           <button
             type="button"
             onClick={handleClose}
             aria-label={t("miniPlayer.close")}
             title={t("miniPlayer.close")}
-            className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
           >
-            <X size={14} />
+            <X size={13} />
           </button>
         </div>
       </div>
 
       {/* Floating cover with hover overlay */}
-      <div className="px-4 pt-2 pb-3 flex justify-center">
+      <div className="px-3 pt-1 pb-2 flex justify-center">
         <CoverWithControls
           showControls={showControls}
           onMouseEnter={() => setShowControls(true)}
@@ -235,7 +277,7 @@ export function MiniPlayer() {
                 size="full"
                 alt={currentTrack.title}
                 className="w-full h-full object-cover"
-                rounded="2xl"
+                rounded="xl"
               />
             ) : (
               <div className="w-full h-full rounded-2xl bg-white/10 flex items-center justify-center">
@@ -247,16 +289,16 @@ export function MiniPlayer() {
       </div>
 
       {/* Title + artist */}
-      <div className="px-4 pb-1">
+      <div className="px-3 pb-1.5">
         <div
-          className="text-base font-bold truncate"
+          className="text-sm font-semibold truncate leading-tight"
           title={currentTrack?.title}
         >
           {currentTrack?.title ?? t("miniPlayer.idle")}
         </div>
         <div className="flex items-center justify-between gap-2 mt-0.5">
           <div
-            className="text-xs text-white/70 truncate"
+            className="text-[11px] text-white/70 truncate"
             title={currentTrack?.artist_name ?? undefined}
           >
             {currentTrack?.artist_name ?? "—"}
@@ -266,10 +308,10 @@ export function MiniPlayer() {
             onClick={handleLike}
             disabled={!currentTrack}
             aria-label={t("miniPlayer.like")}
-            className="p-1 disabled:opacity-30 shrink-0"
+            className="p-0.5 disabled:opacity-30 shrink-0"
           >
             <Heart
-              size={16}
+              size={14}
               className={
                 isLiked
                   ? "fill-emerald-400 text-emerald-400"
@@ -280,13 +322,31 @@ export function MiniPlayer() {
         </div>
       </div>
 
-      {/* Slim progress bar at the very bottom */}
-      <div className="mt-auto px-4 pb-3">
-        <div className="h-0.5 rounded-full bg-white/15 overflow-hidden">
+      {/* Interactive seek bar — Spotify-style: thin idle, thicker
+          on hover with timestamps revealed at both ends. */}
+      <div className="mt-auto px-3 pb-2 group">
+        <div
+          ref={trackRef}
+          onPointerDown={handleSeekDown}
+          onPointerMove={handleSeekMove}
+          onPointerUp={handleSeekUp}
+          onPointerCancel={handleSeekUp}
+          className={`relative h-1 rounded-full bg-white/20 ${currentTrack && durationMs > 0 ? "cursor-pointer" : "cursor-default"}`}
+        >
           <div
-            className="h-full bg-white transition-[width] duration-200"
+            className="absolute inset-y-0 left-0 rounded-full bg-white"
             style={{ width: `${Math.min(100, progressPct)}%` }}
           />
+          {currentTrack && durationMs > 0 && (
+            <div
+              className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white shadow opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ left: `calc(${Math.min(100, progressPct)}% - 5px)` }}
+            />
+          )}
+        </div>
+        <div className="flex justify-between text-[9px] text-white/60 tabular-nums mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <span>{formatDuration(displayMs)}</span>
+          <span>{formatDuration(durationMs)}</span>
         </div>
       </div>
     </div>
@@ -328,7 +388,7 @@ function CoverWithControls({
       ref={ref}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className="relative aspect-square w-full max-w-65 rounded-2xl shadow-2xl overflow-hidden"
+      className="relative aspect-square w-full max-w-55 rounded-xl shadow-2xl overflow-hidden"
     >
       {artworkSlot}
       {/* Dimming layer + control bar fade in on hover. */}
