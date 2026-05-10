@@ -160,9 +160,7 @@ export function QueuePanel() {
   const isActive = playbackState === "playing" || playbackState === "paused";
 
   return (
-    <div
-      className="h-full w-80 shrink-0 border-l bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100"
-    >
+    <div className="h-full w-80 shrink-0 border-l bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100">
       <div className="p-6 flex flex-col h-full">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -495,10 +493,11 @@ const SortableQueueRow = memo(function SortableQueueRow({
   // dnd-kit applies to every neighbour as the drag crosses them — on
   // a long queue (800+ tracks) animating that many elements in
   // parallel is what makes the cursor feel stuck.
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({
-    id,
-    animateLayoutChanges: () => false,
-  });
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useSortable({
+      id,
+      animateLayoutChanges: () => false,
+    });
   // Place the row's slot via CSS `top` (not via a translateY
   // transform): dnd-kit anchors the drag overlay and resolves drop
   // targets from `offsetTop`, which doesn't see CSS transforms. With

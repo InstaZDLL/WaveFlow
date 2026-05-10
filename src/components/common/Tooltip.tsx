@@ -27,10 +27,7 @@ export function Tooltip({
   side = "bottom",
   className = "",
 }: TooltipProps) {
-  const position =
-    side === "top"
-      ? "bottom-full mb-2"
-      : "top-full mt-2";
+  const position = side === "top" ? "bottom-full mb-2" : "top-full mt-2";
   return (
     <div className={`relative group/tooltip ${className}`}>
       {children}

@@ -44,7 +44,8 @@ export function AlbumDetailView({
   const [album, setAlbum] = useState<AlbumDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
-  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
+  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
+    useState(false);
   const [isCoverPickerOpen, setIsCoverPickerOpen] = useState(false);
   const [coverReloadKey, setCoverReloadKey] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -231,8 +232,7 @@ export function AlbumDetailView({
             <button
               type="button"
               onClick={() =>
-                album.artist_id != null &&
-                onNavigateToArtist(album.artist_id)
+                album.artist_id != null && onNavigateToArtist(album.artist_id)
               }
               className="text-lg font-medium text-emerald-600 dark:text-emerald-400 hover:underline mb-3"
             >
@@ -449,21 +449,19 @@ function AlbumTrackTable({
           isRowSelected
             ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
             : isCurrent
-            ? "bg-emerald-50 dark:bg-emerald-900/20"
-            : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
+              ? "bg-emerald-50 dark:bg-emerald-900/20"
+              : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
         }`}
       >
         <span
           className={`text-right text-sm tabular-nums flex items-center justify-end ${
-            isCurrent
-              ? "text-emerald-500 font-semibold"
-              : "text-zinc-400"
+            isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
           }`}
         >
           {isCurrent ? (
             <PlayingIndicator isPlaying={isPlaying} />
           ) : (
-            track.track_number ?? globalIndex + 1
+            (track.track_number ?? globalIndex + 1)
           )}
         </span>
         <div className="min-w-0">
@@ -533,7 +531,10 @@ function AlbumTrackTable({
         <span className="text-right">{t("library.table.number")}</span>
         <span>{t("library.table.title")}</span>
         <span>{t("library.table.artist")}</span>
-        <span className="flex justify-end" aria-label={t("library.table.duration")}>
+        <span
+          className="flex justify-end"
+          aria-label={t("library.table.duration")}
+        >
           <Clock size={14} />
         </span>
         <span aria-hidden="true" />

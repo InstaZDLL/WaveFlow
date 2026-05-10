@@ -73,7 +73,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         throw err;
       }
     },
-    [refresh]
+    [refresh],
   );
 
   const createProfile = useCallback(
@@ -88,7 +88,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         throw err;
       }
     },
-    [refresh]
+    [refresh],
   );
 
   return (

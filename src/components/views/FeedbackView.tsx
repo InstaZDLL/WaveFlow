@@ -33,10 +33,16 @@ export function FeedbackView({ onNavigate }: FeedbackViewProps) {
       <div className="relative overflow-hidden rounded-3xl p-10 bg-linear-to-br from-emerald-900/80 to-zinc-900 text-white">
         <div className="flex items-start space-x-5">
           <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 flex items-center justify-center shrink-0">
-            <MessageSquare size={28} className="text-emerald-400" aria-hidden="true" />
+            <MessageSquare
+              size={28}
+              className="text-emerald-400"
+              aria-hidden="true"
+            />
           </div>
           <div>
-            <h2 className="text-2xl font-bold mb-3">{t("feedback.hero.title")}</h2>
+            <h2 className="text-2xl font-bold mb-3">
+              {t("feedback.hero.title")}
+            </h2>
             <p className="text-zinc-400 leading-relaxed">
               {t("feedback.hero.description")}
             </p>

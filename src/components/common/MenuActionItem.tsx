@@ -16,9 +16,7 @@ export function MenuActionItem({
             : "text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700/50"
         }`}
     >
-      <span className={danger ? "text-red-400" : "text-zinc-400"}>
-        {icon}
-      </span>
+      <span className={danger ? "text-red-400" : "text-zinc-400"}>{icon}</span>
       <span>{label}</span>
     </button>
   );

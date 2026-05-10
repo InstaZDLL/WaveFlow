@@ -113,10 +113,7 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
 
         {step.kind === "scanning" && (
           <div className="py-8 flex flex-col items-center">
-            <Loader2
-              size={40}
-              className="text-emerald-500 animate-spin mb-5"
-            />
+            <Loader2 size={40} className="text-emerald-500 animate-spin mb-5" />
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {t("onboarding.scanning.title")}
             </h2>

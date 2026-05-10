@@ -106,116 +106,113 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
   return (
     <div className="flex flex-col z-50 border-t bg-[#FAFAFA] border-zinc-200 text-zinc-600 dark:bg-surface-dark-elevated dark:border-zinc-800 dark:text-zinc-300">
-    <div className="h-24 px-6 flex items-center justify-between">
-      {/* Left: Track Info */}
-      <div className="w-1/3 flex items-center space-x-4 min-w-0">
-        <Artwork
-          path={currentTrack?.artwork_path ?? null}
-          path1x={currentTrack?.artwork_path_1x ?? null}
-          path2x={currentTrack?.artwork_path_2x ?? null}
-          size="1x"
-          className="w-14 h-14 shadow-sm border border-zinc-200 dark:border-transparent"
-          iconSize={24}
-          alt={title}
-          rounded="xl"
-        />
-        <div className="flex flex-col min-w-0">
-          <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-            {title}
-          </span>
-          <span className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
-            {currentTrack?.artist_name ? (
-              <ArtistLink
-                name={currentTrack.artist_name}
-                artistIds={currentTrack.artist_ids}
-                onNavigate={onNavigateToArtist}
-              />
-            ) : (
-              (currentTrack?.album_title ?? t("player.inactive"))
-            )}
-          </span>
+      <div className="h-24 px-6 flex items-center justify-between">
+        {/* Left: Track Info */}
+        <div className="w-1/3 flex items-center space-x-4 min-w-0">
+          <Artwork
+            path={currentTrack?.artwork_path ?? null}
+            path1x={currentTrack?.artwork_path_1x ?? null}
+            path2x={currentTrack?.artwork_path_2x ?? null}
+            size="1x"
+            className="w-14 h-14 shadow-sm border border-zinc-200 dark:border-transparent"
+            iconSize={24}
+            alt={title}
+            rounded="xl"
+          />
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+              {title}
+            </span>
+            <span className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+              {currentTrack?.artist_name ? (
+                <ArtistLink
+                  name={currentTrack.artist_name}
+                  artistIds={currentTrack.artist_ids}
+                  onNavigate={onNavigateToArtist}
+                />
+              ) : (
+                (currentTrack?.album_title ?? t("player.inactive"))
+              )}
+            </span>
+          </div>
+          {currentTrack && (
+            <button
+              type="button"
+              onClick={handleToggleLike}
+              aria-label={isLiked ? t("liked.unlike") : t("liked.like")}
+              className={`p-1.5 rounded-full transition-colors shrink-0 ${
+                isLiked
+                  ? "text-pink-500"
+                  : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
+              }`}
+            >
+              <Heart size={16} className={isLiked ? "fill-current" : ""} />
+            </button>
+          )}
         </div>
-        {currentTrack && (
+
+        {/* Center: Controls */}
+        <div className="w-1/3 flex flex-col items-center max-w-md">
+          <PlaybackControls />
+          <ProgressBar />
+        </div>
+
+        {/* Right: Extra Controls */}
+        <div className="w-1/3 flex items-center justify-end space-x-4">
+          {/* Sleep timer (sits left of Lyrics; user-hideable from
+            Settings via `ui.show_sleep_timer`). */}
+          {showSleepTimer && (
+            <SleepTimerMenu
+              status={sleepTimer.status}
+              onSetDuration={sleepTimer.setDurationMinutes}
+              onSetEndOfTrack={sleepTimer.setEndOfTrack}
+              onCancel={sleepTimer.cancel}
+            />
+          )}
+
+          {/* Lyrics panel toggle */}
           <button
             type="button"
-            onClick={handleToggleLike}
-            aria-label={isLiked ? t("liked.unlike") : t("liked.like")}
-            className={`p-1.5 rounded-full transition-colors shrink-0 ${
-              isLiked
-                ? "text-pink-500"
-                : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
+            onClick={toggleLyrics}
+            aria-label={t("playerBar.lyrics")}
+            title={t("playerBar.lyrics")}
+            className={`p-2 rounded-lg transition-colors ${
+              isLyricsOpen
+                ? "text-emerald-500"
+                : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
             }`}
           >
-            <Heart
-              size={16}
-              className={isLiked ? "fill-current" : ""}
-            />
+            <Mic2 size={20} />
           </button>
-        )}
-      </div>
 
-      {/* Center: Controls */}
-      <div className="w-1/3 flex flex-col items-center max-w-md">
-        <PlaybackControls />
-        <ProgressBar />
-      </div>
-
-      {/* Right: Extra Controls */}
-      <div className="w-1/3 flex items-center justify-end space-x-4">
-        {/* Sleep timer (sits left of Lyrics; user-hideable from
-            Settings via `ui.show_sleep_timer`). */}
-        {showSleepTimer && (
-          <SleepTimerMenu
-            status={sleepTimer.status}
-            onSetDuration={sleepTimer.setDurationMinutes}
-            onSetEndOfTrack={sleepTimer.setEndOfTrack}
-            onCancel={sleepTimer.cancel}
-          />
-        )}
-
-        {/* Lyrics panel toggle */}
-        <button
-          type="button"
-          onClick={toggleLyrics}
-          aria-label={t("playerBar.lyrics")}
-          title={t("playerBar.lyrics")}
-          className={`p-2 rounded-lg transition-colors ${
-            isLyricsOpen
-              ? "text-emerald-500"
-              : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
-          }`}
-        >
-          <Mic2 size={20} />
-        </button>
-
-        <button
-          onClick={toggleQueue}
-          aria-label={t("playerBar.queue")}
-          title={t("playerBar.queue")}
-          className={`p-2 rounded-lg transition-colors ${
-            isQueueOpen
-              ? "text-emerald-500"
-              : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
-          }`}
-        >
-          <Menu size={20} />
-        </button>
-
-        <div className="relative">
           <button
-            onClick={toggleDeviceMenu}
-            className={`p-2 rounded-lg transition-colors border ${
-              isDeviceMenuOpen
-                ? "border-emerald-500 text-emerald-500 bg-emerald-500/10"
-                : "border-transparent text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            onClick={toggleQueue}
+            aria-label={t("playerBar.queue")}
+            title={t("playerBar.queue")}
+            className={`p-2 rounded-lg transition-colors ${
+              isQueueOpen
+                ? "text-emerald-500"
+                : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
             }`}
           >
-            <MonitorSpeaker size={20} />
+            <Menu size={20} />
           </button>
-        </div>
 
-        <VolumeControl />
-      </div>
+          <div className="relative">
+            <button
+              onClick={toggleDeviceMenu}
+              className={`p-2 rounded-lg transition-colors border ${
+                isDeviceMenuOpen
+                  ? "border-emerald-500 text-emerald-500 bg-emerald-500/10"
+                  : "border-transparent text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              }`}
+            >
+              <MonitorSpeaker size={20} />
+            </button>
+          </div>
+
+          <VolumeControl />
+        </div>
       </div>
       <AudioQualityFooter track={currentTrack ?? null} />
     </div>

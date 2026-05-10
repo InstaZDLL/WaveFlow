@@ -1,4 +1,8 @@
-import { useCallback, useState, type MouseEvent as ReactMouseEvent } from "react";
+import {
+  useCallback,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import {
   TrackContextMenu,
   type TrackContextMenuProps,

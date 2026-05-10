@@ -62,7 +62,7 @@ export function createPlaylist(input: CreatePlaylistInput): Promise<Playlist> {
 
 export function updatePlaylist(
   playlistId: number,
-  input: UpdatePlaylistInput
+  input: UpdatePlaylistInput,
 ): Promise<void> {
   return invoke<void>("update_playlist", { playlistId, input });
 }
@@ -77,21 +77,21 @@ export function listPlaylistTracks(playlistId: number): Promise<Track[]> {
 
 export function addTrackToPlaylist(
   playlistId: number,
-  trackId: number
+  trackId: number,
 ): Promise<void> {
   return invoke<void>("add_track_to_playlist", { playlistId, trackId });
 }
 
 export function addTracksToPlaylist(
   playlistId: number,
-  trackIds: number[]
+  trackIds: number[],
 ): Promise<number> {
   return invoke<number>("add_tracks_to_playlist", { playlistId, trackIds });
 }
 
 export function removeTrackFromPlaylist(
   playlistId: number,
-  trackId: number
+  trackId: number,
 ): Promise<void> {
   return invoke<void>("remove_track_from_playlist", { playlistId, trackId });
 }
@@ -99,7 +99,7 @@ export function removeTrackFromPlaylist(
 export function reorderPlaylistTrack(
   playlistId: number,
   trackId: number,
-  newPosition: number
+  newPosition: number,
 ): Promise<void> {
   return invoke<void>("reorder_playlist_track", {
     playlistId,
@@ -116,7 +116,7 @@ export function reorderPlaylistTrack(
 export function addSourceToPlaylist(
   playlistId: number,
   sourceType: "folder" | "album" | "artist",
-  sourceId: number
+  sourceId: number,
 ): Promise<number> {
   return invoke<number>("add_source_to_playlist", {
     playlistId,
@@ -169,9 +169,7 @@ export function setPlaylistCoverFromFile(
  * 4 album artworks). Normally the auto pipeline runs implicitly after
  * every mutation; this command is the "refresh now" escape hatch.
  */
-export function regeneratePlaylistAutoCover(
-  playlistId: number,
-): Promise<void> {
+export function regeneratePlaylistAutoCover(playlistId: number): Promise<void> {
   return invoke<void>("regenerate_playlist_auto_cover", { playlistId });
 }
 

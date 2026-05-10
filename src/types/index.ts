@@ -13,7 +13,12 @@ export type ViewId =
   | "album-detail"
   | "artist-detail";
 
-export type LibraryTab = "morceaux" | "albums" | "artistes" | "genres" | "dossiers";
+export type LibraryTab =
+  | "morceaux"
+  | "albums"
+  | "artistes"
+  | "genres"
+  | "dossiers";
 
 export interface NavItemProps {
   icon?: ReactNode;

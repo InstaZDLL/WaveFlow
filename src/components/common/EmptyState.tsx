@@ -22,8 +22,7 @@ const GLOW_CLASSES: Record<EmptyStateAccent, string> = {
 };
 
 const ICON_CONTAINER_CLASSES: Record<EmptyStateAccent, string> = {
-  emerald:
-    "bg-white text-emerald-500 dark:bg-zinc-800 dark:text-emerald-400",
+  emerald: "bg-white text-emerald-500 dark:bg-zinc-800 dark:text-emerald-400",
   pink: "bg-pink-100 text-pink-500 dark:bg-pink-900/30 dark:text-pink-400",
   blue: "bg-blue-100 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400",
 };
@@ -32,8 +31,7 @@ const SIZE_CLASSES = {
   sm: {
     wrapper: "mb-4",
     icon: "w-20 h-20",
-    title:
-      "text-lg font-semibold mb-2 text-zinc-800 dark:text-zinc-200",
+    title: "text-lg font-semibold mb-2 text-zinc-800 dark:text-zinc-200",
     description: "text-sm text-zinc-500 dark:text-zinc-400 max-w-md",
   },
   md: {

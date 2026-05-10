@@ -72,7 +72,7 @@ export function createLibrary(input: CreateLibraryInput): Promise<Library> {
 
 export function updateLibrary(
   libraryId: number,
-  input: UpdateLibraryInput
+  input: UpdateLibraryInput,
 ): Promise<void> {
   return invoke<void>("update_library", { libraryId, input });
 }
@@ -87,7 +87,7 @@ export function rescanLibrary(libraryId: number): Promise<RescanSummary> {
 
 export function addFolderToLibrary(
   libraryId: number,
-  path: string
+  path: string,
 ): Promise<number> {
   return invoke<number>("add_folder_to_library", { libraryId, path });
 }
@@ -109,7 +109,9 @@ export interface LibraryFolder {
   is_watched: number;
 }
 
-export function listLibraryFolders(libraryId: number): Promise<LibraryFolder[]> {
+export function listLibraryFolders(
+  libraryId: number,
+): Promise<LibraryFolder[]> {
   return invoke<LibraryFolder[]>("list_library_folders", { libraryId });
 }
 
@@ -118,7 +120,10 @@ export function listLibraryFolders(libraryId: number): Promise<LibraryFolder[]> 
  * backend updates `library_folder.is_watched` and (un)mounts the
  * notify watcher in one call so the change takes effect immediately.
  */
-export function setFolderWatched(folderId: number, enable: boolean): Promise<void> {
+export function setFolderWatched(
+  folderId: number,
+  enable: boolean,
+): Promise<void> {
   return invoke<void>("set_folder_watched", { folderId, enable });
 }
 

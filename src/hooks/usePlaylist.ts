@@ -16,7 +16,7 @@ interface PlaylistContextValue {
   createPlaylist: (input: CreatePlaylistInput) => Promise<Playlist>;
   updatePlaylist: (
     playlistId: number,
-    input: UpdatePlaylistInput
+    input: UpdatePlaylistInput,
   ) => Promise<void>;
   deletePlaylist: (playlistId: number) => Promise<void>;
   /**
@@ -26,7 +26,7 @@ interface PlaylistContextValue {
    */
   addTracksToPlaylist: (
     playlistId: number,
-    trackIds: number[]
+    trackIds: number[],
   ) => Promise<number>;
   /**
    * One-shot fetch of the tracks in a playlist. Not cached — callers
@@ -36,7 +36,7 @@ interface PlaylistContextValue {
   /** Remove a single track from a playlist and renumber the tail. */
   removeTrackFromPlaylist: (
     playlistId: number,
-    trackId: number
+    trackId: number,
   ) => Promise<void>;
   /**
    * Add all tracks from a source (folder, album, artist) to a playlist.
@@ -45,7 +45,7 @@ interface PlaylistContextValue {
   addSourceToPlaylist: (
     playlistId: number,
     sourceType: "folder" | "album" | "artist",
-    sourceId: number
+    sourceId: number,
   ) => Promise<number>;
 }
 

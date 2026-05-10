@@ -4,10 +4,7 @@ import { useTheme } from "../../hooks/useTheme";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
 import { usePlayer } from "../../hooks/usePlayer";
-import {
-  getProfileSetting,
-  setProfileSetting,
-} from "../../lib/tauri/profile";
+import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { QueuePanel } from "./QueuePanel";
@@ -101,8 +98,7 @@ export function AppLayout() {
         return;
       }
       const isEmpty =
-        libraries.length === 0 ||
-        libraries.every((l) => l.folder_count === 0);
+        libraries.length === 0 || libraries.every((l) => l.folder_count === 0);
       setShowOnboarding(isEmpty);
     })();
 
@@ -128,7 +124,7 @@ export function AppLayout() {
       setViewHistory((prev) => [...prev.slice(0, historyIndex + 1), view]);
       setHistoryIndex((prev) => prev + 1);
     },
-    [historyIndex]
+    [historyIndex],
   );
 
   const canGoBack = historyIndex > 0;
@@ -245,9 +241,7 @@ export function AppLayout() {
   }
 
   return (
-    <div
-      className={`flex flex-col h-screen font-sans ${isDark ? "dark" : ""}`}
-    >
+    <div className={`flex flex-col h-screen font-sans ${isDark ? "dark" : ""}`}>
       <div className="flex flex-col h-screen bg-white text-zinc-600 dark:bg-surface-dark dark:text-zinc-300">
         {/* Main Container */}
         <div className="flex flex-1 overflow-hidden">

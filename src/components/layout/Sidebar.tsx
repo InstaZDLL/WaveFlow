@@ -55,7 +55,11 @@ export function Sidebar({
     createLibrary,
     importFolder,
   } = useLibrary();
-  const { playlists, createPlaylist, refresh: refreshPlaylists } = usePlaylist();
+  const {
+    playlists,
+    createPlaylist,
+    refresh: refreshPlaylists,
+  } = usePlaylist();
   const profileColor = getProfileColor(activeProfile?.color_id);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
@@ -203,13 +207,7 @@ export function Sidebar({
         ),
       },
     ],
-    [
-      t,
-      stats.liked_count,
-      stats.recent_plays_count,
-      activeView,
-      setActiveView,
-    ]
+    [t, stats.liked_count, stats.recent_plays_count, activeView, setActiveView],
   );
 
   return (
@@ -235,7 +233,9 @@ export function Sidebar({
               {activeProfile?.name ?? ""}
             </span>
           </div>
-          <div className={`w-2 h-2 rounded-full ${profileColor.dot} shrink-0`} />
+          <div
+            className={`w-2 h-2 rounded-full ${profileColor.dot} shrink-0`}
+          />
         </button>
       </div>
 
@@ -268,31 +268,46 @@ export function Sidebar({
             icon={<Music2 size={18} />}
             label={t("sidebar.myMusic.tracks")}
             active={activeView === "library" && libraryTab === "morceaux"}
-            onClick={() => { setLibraryTab("morceaux"); setActiveView("library"); }}
+            onClick={() => {
+              setLibraryTab("morceaux");
+              setActiveView("library");
+            }}
           />
           <NavItem
             icon={<Disc size={18} />}
             label={t("sidebar.myMusic.albums")}
             active={activeView === "library" && libraryTab === "albums"}
-            onClick={() => { setLibraryTab("albums"); setActiveView("library"); }}
+            onClick={() => {
+              setLibraryTab("albums");
+              setActiveView("library");
+            }}
           />
           <NavItem
             icon={<Mic2 size={18} />}
             label={t("sidebar.myMusic.artists")}
             active={activeView === "library" && libraryTab === "artistes"}
-            onClick={() => { setLibraryTab("artistes"); setActiveView("library"); }}
+            onClick={() => {
+              setLibraryTab("artistes");
+              setActiveView("library");
+            }}
           />
           <NavItem
             icon={<Tags size={18} />}
             label={t("sidebar.myMusic.genres")}
             active={activeView === "library" && libraryTab === "genres"}
-            onClick={() => { setLibraryTab("genres"); setActiveView("library"); }}
+            onClick={() => {
+              setLibraryTab("genres");
+              setActiveView("library");
+            }}
           />
           <NavItem
             icon={<Folder size={18} />}
             label={t("sidebar.myMusic.folders")}
             active={activeView === "library" && libraryTab === "dossiers"}
-            onClick={() => { setLibraryTab("dossiers"); setActiveView("library"); }}
+            onClick={() => {
+              setLibraryTab("dossiers");
+              setActiveView("library");
+            }}
           />
         </div>
 

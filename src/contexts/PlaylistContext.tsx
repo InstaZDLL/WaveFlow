@@ -72,7 +72,7 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
       await refresh();
       return created;
     },
-    [refresh]
+    [refresh],
   );
 
   const updatePlaylist = useCallback(
@@ -80,7 +80,7 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
       await apiUpdatePlaylist(playlistId, input);
       await refresh();
     },
-    [refresh]
+    [refresh],
   );
 
   const deletePlaylist = useCallback(
@@ -88,7 +88,7 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
       await apiDeletePlaylist(playlistId);
       await refresh();
     },
-    [refresh]
+    [refresh],
   );
 
   const addTracksToPlaylist = useCallback(
@@ -98,7 +98,7 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
       await refresh();
       return inserted;
     },
-    [refresh]
+    [refresh],
   );
 
   const removeTrackFromPlaylist = useCallback(
@@ -106,7 +106,7 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
       await apiRemoveTrackFromPlaylist(playlistId, trackId);
       await refresh();
     },
-    [refresh]
+    [refresh],
   );
 
   const getPlaylistTracks = useCallback((playlistId: number) => {
@@ -117,17 +117,17 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
     async (
       playlistId: number,
       sourceType: "folder" | "album" | "artist",
-      sourceId: number
+      sourceId: number,
     ) => {
       const inserted = await apiAddSourceToPlaylist(
         playlistId,
         sourceType,
-        sourceId
+        sourceId,
       );
       await refresh();
       return inserted;
     },
-    [refresh]
+    [refresh],
   );
 
   return (

@@ -32,7 +32,9 @@ export function EqualizerCard() {
 
   const [enabled, setEnabled] = useState(false);
   const [bands, setBands] = useState<number[]>([0, 0, 0, 0, 0, 0]);
-  const [freqs, setFreqs] = useState<number[]>([60, 150, 400, 1000, 2400, 15000]);
+  const [freqs, setFreqs] = useState<number[]>([
+    60, 150, 400, 1000, 2400, 15000,
+  ]);
   const [maxGain, setMaxGain] = useState(12);
   const [presets, setPresets] = useState<EqPresetEntry[]>([]);
   const [presetOpen, setPresetOpen] = useState(false);
@@ -158,7 +160,9 @@ export function EqualizerCard() {
             >
               {t(`settings.equalizer.preset.${activePresetKey}`, {
                 defaultValue:
-                  activePresetKey === "custom" ? t("settings.equalizer.preset.custom") : activePresetKey,
+                  activePresetKey === "custom"
+                    ? t("settings.equalizer.preset.custom")
+                    : activePresetKey,
               })}
               <ChevronDown size={14} className="text-zinc-400" />
             </button>
@@ -175,7 +179,9 @@ export function EqualizerCard() {
                         : "hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200"
                     }`}
                   >
-                    {t(`settings.equalizer.preset.${p.key}`, { defaultValue: p.key })}
+                    {t(`settings.equalizer.preset.${p.key}`, {
+                      defaultValue: p.key,
+                    })}
                   </button>
                 ))}
               </div>
@@ -263,17 +269,20 @@ function EqCurve({ bands, freqs, maxGain, onUpdateBand }: EqCurveProps) {
     [maxGain, usableH],
   );
 
-  const eventToSvgY = useCallback((e: PointerEvent | ReactPointerEvent) => {
-    const svg = svgRef.current;
-    if (!svg) return midY;
-    const pt = svg.createSVGPoint();
-    pt.x = (e as PointerEvent).clientX;
-    pt.y = (e as PointerEvent).clientY;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return midY;
-    const local = pt.matrixTransform(ctm.inverse());
-    return local.y;
-  }, [midY]);
+  const eventToSvgY = useCallback(
+    (e: PointerEvent | ReactPointerEvent) => {
+      const svg = svgRef.current;
+      if (!svg) return midY;
+      const pt = svg.createSVGPoint();
+      pt.x = (e as PointerEvent).clientX;
+      pt.y = (e as PointerEvent).clientY;
+      const ctm = svg.getScreenCTM();
+      if (!ctm) return midY;
+      const local = pt.matrixTransform(ctm.inverse());
+      return local.y;
+    },
+    [midY],
+  );
 
   const handlePointerDown = useCallback(
     (index: number) => (e: ReactPointerEvent<SVGCircleElement>) => {
@@ -347,128 +356,132 @@ function EqCurve({ bands, freqs, maxGain, onUpdateBand }: EqCurveProps) {
           viewBox={`0 0 ${VB_W} ${VB_H}`}
           className="w-full h-full touch-none"
         >
-        {/* dB scale labels — anchored end so they sit just left of the
+          {/* dB scale labels — anchored end so they sit just left of the
             plot's vertical edge, mirroring Spotify's left gutter. */}
-        <text
-          x={PAD_LEFT - 12}
-          y={PAD_TOP + 6}
-          fontSize={13}
-          textAnchor="end"
-          fill="currentColor"
-          className="text-zinc-400 select-none"
-        >
-          +{maxGain}dB
-        </text>
-        <text
-          x={PAD_LEFT - 12}
-          y={PAD_TOP + usableH + 4}
-          fontSize={13}
-          textAnchor="end"
-          fill="currentColor"
-          className="text-zinc-400 select-none"
-        >
-          -{maxGain}dB
-        </text>
+          <text
+            x={PAD_LEFT - 12}
+            y={PAD_TOP + 6}
+            fontSize={13}
+            textAnchor="end"
+            fill="currentColor"
+            className="text-zinc-400 select-none"
+          >
+            +{maxGain}dB
+          </text>
+          <text
+            x={PAD_LEFT - 12}
+            y={PAD_TOP + usableH + 4}
+            fontSize={13}
+            textAnchor="end"
+            fill="currentColor"
+            className="text-zinc-400 select-none"
+          >
+            -{maxGain}dB
+          </text>
 
-        {/* Mid-axis line */}
-        <line
-          x1={PAD_LEFT}
-          y1={midY}
-          x2={PAD_LEFT + usableW}
-          y2={midY}
-          stroke="currentColor"
-          strokeWidth={1}
-          className="text-zinc-300 dark:text-zinc-700"
-        />
-
-        {/* Vertical guides at each band frequency */}
-        {bands.map((_, i) => (
+          {/* Mid-axis line */}
           <line
-            key={`g-${i}`}
-            x1={xFor(i)}
-            y1={PAD_TOP}
-            x2={xFor(i)}
-            y2={PAD_TOP + usableH}
+            x1={PAD_LEFT}
+            y1={midY}
+            x2={PAD_LEFT + usableW}
+            y2={midY}
             stroke="currentColor"
             strokeWidth={1}
-            className="text-zinc-200/70 dark:text-zinc-700/40"
+            className="text-zinc-300 dark:text-zinc-700"
           />
-        ))}
 
-        {/* Filled gradient under the curve */}
-        <defs>
-          <linearGradient id="eqFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgb(16 185 129)" stopOpacity="0.7" />
-            <stop offset="100%" stopColor="rgb(16 185 129)" stopOpacity="0.08" />
-          </linearGradient>
-        </defs>
-        <path d={fillPath} fill="url(#eqFill)" />
+          {/* Vertical guides at each band frequency */}
+          {bands.map((_, i) => (
+            <line
+              key={`g-${i}`}
+              x1={xFor(i)}
+              y1={PAD_TOP}
+              x2={xFor(i)}
+              y2={PAD_TOP + usableH}
+              stroke="currentColor"
+              strokeWidth={1}
+              className="text-zinc-200/70 dark:text-zinc-700/40"
+            />
+          ))}
 
-        {/* Smooth curve stroke */}
-        <path
-          d={splinePath}
-          fill="none"
-          stroke="rgb(16 185 129)"
-          strokeWidth={2.5}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
+          {/* Filled gradient under the curve */}
+          <defs>
+            <linearGradient id="eqFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="rgb(16 185 129)" stopOpacity="0.7" />
+              <stop
+                offset="100%"
+                stopColor="rgb(16 185 129)"
+                stopOpacity="0.08"
+              />
+            </linearGradient>
+          </defs>
+          <path d={fillPath} fill="url(#eqFill)" />
 
-        {/* Draggable points — slightly larger than the v1 to match
-            Spotify's tap target size. */}
-        {bands.map((g, i) => (
-          <circle
-            key={`p-${i}`}
-            cx={xFor(i)}
-            cy={yFor(g)}
-            r={9}
-            fill="white"
+          {/* Smooth curve stroke */}
+          <path
+            d={splinePath}
+            fill="none"
             stroke="rgb(16 185 129)"
             strokeWidth={2.5}
-            className="cursor-grab active:cursor-grabbing drop-shadow-sm"
-            onPointerDown={handlePointerDown(i)}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
+            strokeLinejoin="round"
+            strokeLinecap="round"
           />
-        ))}
 
-        {/* X-axis frequency labels */}
-        {freqs.map((f, i) => (
-          <text
-            key={`f-${i}`}
-            x={xFor(i)}
-            y={VB_H - 30}
-            fontSize={14}
-            fontWeight={600}
-            textAnchor="middle"
-            fill="currentColor"
-            className="text-zinc-500 dark:text-zinc-400 select-none"
-          >
-            {formatFreq(f)}
-          </text>
-        ))}
+          {/* Draggable points — slightly larger than the v1 to match
+            Spotify's tap target size. */}
+          {bands.map((g, i) => (
+            <circle
+              key={`p-${i}`}
+              cx={xFor(i)}
+              cy={yFor(g)}
+              r={9}
+              fill="white"
+              stroke="rgb(16 185 129)"
+              strokeWidth={2.5}
+              className="cursor-grab active:cursor-grabbing drop-shadow-sm"
+              onPointerDown={handlePointerDown(i)}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+            />
+          ))}
 
-        {/* Live dB readout per band — Logitech-G-style, useful while
+          {/* X-axis frequency labels */}
+          {freqs.map((f, i) => (
+            <text
+              key={`f-${i}`}
+              x={xFor(i)}
+              y={VB_H - 30}
+              fontSize={14}
+              fontWeight={600}
+              textAnchor="middle"
+              fill="currentColor"
+              className="text-zinc-500 dark:text-zinc-400 select-none"
+            >
+              {formatFreq(f)}
+            </text>
+          ))}
+
+          {/* Live dB readout per band — Logitech-G-style, useful while
             dragging because the curve alone doesn't tell you exactly
             where the point sits. */}
-        {bands.map((g, i) => (
-          <text
-            key={`v-${i}`}
-            x={xFor(i)}
-            y={VB_H - 12}
-            fontSize={12}
-            textAnchor="middle"
-            fill="currentColor"
-            className={`select-none tabular-nums ${
-              Math.abs(g) < 0.05
-                ? "text-zinc-400 dark:text-zinc-500"
-                : "text-emerald-600 dark:text-emerald-400 font-semibold"
-            }`}
-          >
-            {formatGain(g)}
-          </text>
-        ))}
+          {bands.map((g, i) => (
+            <text
+              key={`v-${i}`}
+              x={xFor(i)}
+              y={VB_H - 12}
+              fontSize={12}
+              textAnchor="middle"
+              fill="currentColor"
+              className={`select-none tabular-nums ${
+                Math.abs(g) < 0.05
+                  ? "text-zinc-400 dark:text-zinc-500"
+                  : "text-emerald-600 dark:text-emerald-400 font-semibold"
+              }`}
+            >
+              {formatGain(g)}
+            </text>
+          ))}
         </svg>
       </div>
     </div>

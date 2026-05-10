@@ -11,7 +11,9 @@ export interface MultiSelectState<T extends { id: number }> {
   count: number;
 }
 
-export function useMultiSelect<T extends { id: number }>(): MultiSelectState<T> {
+export function useMultiSelect<
+  T extends { id: number },
+>(): MultiSelectState<T> {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
   const [anchorId, setAnchorId] = useState<number | null>(null);
 
@@ -70,6 +72,14 @@ export function useMultiSelect<T extends { id: number }>(): MultiSelectState<T> 
       clear,
       count: selectedIds.size,
     }),
-    [selectedIds, anchorId, isSelected, toggleOne, selectRange, setSingle, clear],
+    [
+      selectedIds,
+      anchorId,
+      isSelected,
+      toggleOne,
+      selectRange,
+      setSingle,
+      clear,
+    ],
   );
 }

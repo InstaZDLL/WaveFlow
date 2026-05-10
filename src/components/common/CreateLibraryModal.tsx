@@ -62,8 +62,10 @@ export function CreateLibraryModal({
 
   const canSubmit = name.trim().length > 0;
   const displayName = name.trim() || t("libraryModal.previewDefault");
-  const titleKey = mode === "edit" ? "libraryModal.editTitle" : "libraryModal.title";
-  const submitKey = mode === "edit" ? "libraryModal.submitEdit" : "libraryModal.submit";
+  const titleKey =
+    mode === "edit" ? "libraryModal.editTitle" : "libraryModal.title";
+  const submitKey =
+    mode === "edit" ? "libraryModal.submitEdit" : "libraryModal.submit";
   const SubmitIcon = mode === "edit" ? Check : Plus;
 
   const handleSubmit = () => {
@@ -114,7 +116,8 @@ export function CreateLibraryModal({
             htmlFor="library-name"
             className="block text-[10px] font-bold tracking-widest text-zinc-500 uppercase mb-2"
           >
-            {t("libraryModal.nameLabel")} <span className="text-red-500">*</span>
+            {t("libraryModal.nameLabel")}{" "}
+            <span className="text-red-500">*</span>
           </label>
           <input
             id="library-name"

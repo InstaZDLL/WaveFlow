@@ -22,11 +22,14 @@ export function ProfileSelectorModal({
   onClose,
 }: ProfileSelectorModalProps) {
   const { t } = useTranslation();
-  const { profiles, activeProfile, createProfile, switchProfile } = useProfile();
+  const { profiles, activeProfile, createProfile, switchProfile } =
+    useProfile();
 
   const [view, setView] = useState<ProfileModalView>("select");
   const [newProfileName, setNewProfileName] = useState("");
-  const [selectedColorId, setSelectedColorId] = useState(DEFAULT_PROFILE_COLOR_ID);
+  const [selectedColorId, setSelectedColorId] = useState(
+    DEFAULT_PROFILE_COLOR_ID,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -203,9 +206,7 @@ export function ProfileSelectorModal({
                 className={`relative w-20 h-20 rounded-2xl bg-zinc-800 border flex items-center justify-center shadow-sm transition-colors duration-300 ${currentColor.iconBorder} ${currentColor.iconText}`}
               >
                 <span className="text-5xl font-bold leading-none">
-                  {newProfileName.trim()
-                    ? profileInitial(newProfileName)
-                    : "?"}
+                  {newProfileName.trim() ? profileInitial(newProfileName) : "?"}
                 </span>
               </div>
             </div>
@@ -256,7 +257,9 @@ export function ProfileSelectorModal({
                     key={color.id}
                     type="button"
                     onClick={() => setSelectedColorId(color.id)}
-                    aria-label={t("profiles.create.colorAria", { color: color.id })}
+                    aria-label={t("profiles.create.colorAria", {
+                      color: color.id,
+                    })}
                     aria-pressed={isSelected}
                     className={`w-8 h-8 rounded-full ${color.swatch} transition-transform hover:scale-110 ${
                       isSelected

@@ -103,7 +103,7 @@ export interface RecentPlay {
 
 export function listRecentPlays(
   libraryId: number | null,
-  limit: number
+  limit: number,
 ): Promise<RecentPlay[]> {
   return invoke<RecentPlay[]>("list_recent_plays", { libraryId, limit });
 }

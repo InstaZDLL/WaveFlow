@@ -182,9 +182,18 @@ export function AboutView({ onNavigate }: AboutViewProps) {
             label={t("about.shortcuts.playPause")}
             keys={[t("about.shortcuts.keys.space")]}
           />
-          <KeyboardShortcut label={t("about.shortcuts.previousTrack")} keys={["←"]} />
-          <KeyboardShortcut label={t("about.shortcuts.nextTrack")} keys={["→"]} />
-          <KeyboardShortcut label={t("about.shortcuts.volume")} keys={["↑", "↓"]} />
+          <KeyboardShortcut
+            label={t("about.shortcuts.previousTrack")}
+            keys={["←"]}
+          />
+          <KeyboardShortcut
+            label={t("about.shortcuts.nextTrack")}
+            keys={["→"]}
+          />
+          <KeyboardShortcut
+            label={t("about.shortcuts.volume")}
+            keys={["↑", "↓"]}
+          />
           <KeyboardShortcut label={t("about.shortcuts.mute")} keys={["M"]} />
         </div>
       </section>
@@ -201,7 +210,9 @@ export function AboutView({ onNavigate }: AboutViewProps) {
           <p className="text-sm text-zinc-700 dark:text-zinc-300 font-medium">
             {t("about.credits.text")}
           </p>
-          <p className="text-xs text-zinc-400 mt-1">{t("about.credits.icons")}</p>
+          <p className="text-xs text-zinc-400 mt-1">
+            {t("about.credits.icons")}
+          </p>
         </div>
       </section>
     </div>

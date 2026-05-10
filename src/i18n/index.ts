@@ -114,7 +114,9 @@ export function normalizeSupportedLanguageCode(code: string | undefined) {
   if (!code) return SUPPORTED_LANGUAGES[0].code;
 
   const normalized = LANGUAGE_ALIASES[code] ?? code;
-  return SUPPORTED_LANGUAGE_CODES.includes(normalized) ? normalized : SUPPORTED_LANGUAGES[0].code;
+  return SUPPORTED_LANGUAGE_CODES.includes(normalized)
+    ? normalized
+    : SUPPORTED_LANGUAGES[0].code;
 }
 
 function applyDocumentLanguage(code: string | undefined) {

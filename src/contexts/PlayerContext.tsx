@@ -6,7 +6,11 @@ import {
   type ReactNode,
 } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { PlayerContext, type PlaybackState, type RepeatMode } from "../hooks/usePlayer";
+import {
+  PlayerContext,
+  type PlaybackState,
+  type RepeatMode,
+} from "../hooks/usePlayer";
 import { useProfile } from "../hooks/useProfile";
 import type { Track } from "../lib/tauri/track";
 import {
@@ -167,7 +171,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             if (!isSeekingRef.current) {
               setPositionMs(e.payload.ms);
             }
-          })
+          }),
         );
         unlisten.push(
           await listen<PlayerStatePayload>("player:state", (e) => {
@@ -176,7 +180,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
               // Keep currentTrack in view so the PlayerBar still
               // shows metadata until auto-advance swaps it.
             }
-          })
+          }),
         );
         unlisten.push(
           await listen<QueueTrackPayload>("player:track-changed", (e) => {
@@ -188,12 +192,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             setCurrentTrack(queuePayloadToTrack(e.payload));
             setDurationMs(e.payload.duration_ms);
             setPositionMs(0);
-          })
+          }),
         );
         unlisten.push(
           await listen<PlayerErrorPayload>("player:error", (e) => {
             console.error("[player:error]", e.payload.message);
-          })
+          }),
         );
       } catch (err) {
         console.error("[PlayerContext] listen setup failed", err);
@@ -218,7 +222,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
     volumeDebounceRef.current = window.setTimeout(() => {
       playerSetVolume(clamped / 100).catch((err) =>
-        console.error("[PlayerContext] set volume failed", err)
+        console.error("[PlayerContext] set volume failed", err),
       );
       volumeDebounceRef.current = null;
     }, 60);
@@ -230,7 +234,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       if (current > 0) previousVolumeRef.current = current;
       // Mute is immediate — no debounce.
       playerSetVolume(next / 100).catch((err) =>
-        console.error("[PlayerContext] toggle mute failed", err)
+        console.error("[PlayerContext] toggle mute failed", err),
       );
       return next;
     });
@@ -250,9 +254,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     async (
       tracks: Track[],
       startIndex: number,
-      source: { type: QueueSource; id: number | null }
+      source: { type: QueueSource; id: number | null },
     ) => {
-      if (tracks.length === 0 || startIndex < 0 || startIndex >= tracks.length) {
+      if (
+        tracks.length === 0 ||
+        startIndex < 0 ||
+        startIndex >= tracks.length
+      ) {
         return;
       }
       const chosen = tracks[startIndex];
@@ -268,14 +276,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           source.type,
           source.id,
           tracks.map((t) => t.id),
-          startIndex
+          startIndex,
         );
       } catch (err) {
         console.error("[PlayerContext] play tracks failed", err);
         setPlaybackState("idle");
       }
     },
-    []
+    [],
   );
 
   const togglePlayback = useCallback(async () => {
@@ -364,7 +372,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, []);
   const toggleDeviceMenu = useCallback(
     () => setIsDeviceMenuOpen((p) => !p),
-    []
+    [],
   );
 
   const refreshOutputDevices = useCallback(async () => {

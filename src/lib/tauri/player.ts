@@ -117,7 +117,7 @@ export function playerPlayTracks(
   sourceType: QueueSource,
   sourceId: number | null,
   trackIds: number[],
-  startIndex: number
+  startIndex: number,
 ): Promise<void> {
   return invoke<void>("player_play_tracks", {
     sourceType,
@@ -253,8 +253,6 @@ export function playerListOutputDevices(): Promise<OutputDevice[]> {
  * The backend pauses, releases the old device, opens the new one,
  * and resumes the same track at the same position.
  */
-export function playerSetOutputDevice(
-  deviceId: string | null
-): Promise<void> {
+export function playerSetOutputDevice(deviceId: string | null): Promise<void> {
   return invoke<void>("player_set_output_device", { deviceId });
 }

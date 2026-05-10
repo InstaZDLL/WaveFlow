@@ -29,7 +29,9 @@ export function NavItem({
         <span className={`text-sm ${active ? "font-medium" : ""}`}>
           {label}
         </span>
-        {subtext && <span className="text-[10px] text-zinc-400">{subtext}</span>}
+        {subtext && (
+          <span className="text-[10px] text-zinc-400">{subtext}</span>
+        )}
       </div>
     </button>
   );

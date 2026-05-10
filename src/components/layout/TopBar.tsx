@@ -229,7 +229,10 @@ export function TopBar({
   useEffect(() => {
     if (!isProfileOpen) return;
     const handleClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setIsProfileOpen(false);
       }
     };
@@ -417,17 +420,26 @@ export function TopBar({
             {/* Format chips */}
             <FilterRow label={t("topbar.search.filters.format")}>
               <div className="flex flex-wrap gap-1.5">
-                {["FLAC", "WAV", "AIFF", "ALAC", "DSF", "DFF", "MP3", "AAC", "OGG", "OPUS"].map(
-                  (fmt) => (
-                    <FilterChip
-                      key={fmt}
-                      active={(filters.formats ?? []).includes(fmt)}
-                      onClick={() => toggleFormat(fmt)}
-                      label={fmt}
-                      compact
-                    />
-                  ),
-                )}
+                {[
+                  "FLAC",
+                  "WAV",
+                  "AIFF",
+                  "ALAC",
+                  "DSF",
+                  "DFF",
+                  "MP3",
+                  "AAC",
+                  "OGG",
+                  "OPUS",
+                ].map((fmt) => (
+                  <FilterChip
+                    key={fmt}
+                    active={(filters.formats ?? []).includes(fmt)}
+                    onClick={() => toggleFormat(fmt)}
+                    label={fmt}
+                    compact
+                  />
+                ))}
               </div>
             </FilterRow>
 
@@ -461,34 +473,36 @@ export function TopBar({
                 {t("topbar.search.empty")}
               </div>
             ) : (
-            <ul className="max-h-80 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800/60">
-              {searchResults.map((track, index) => (
-                <li
-                  key={track.id}
-                  onClick={() => handleSearchResultClick(searchResults, index)}
-                  className="flex items-center space-x-3 px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
-                >
-                  <Artwork
-                    path={track.artwork_path}
-                    className="w-10 h-10"
-                    iconSize={16}
-                    alt={track.title}
-                    rounded="md"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
-                      {track.title}
+              <ul className="max-h-80 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800/60">
+                {searchResults.map((track, index) => (
+                  <li
+                    key={track.id}
+                    onClick={() =>
+                      handleSearchResultClick(searchResults, index)
+                    }
+                    className="flex items-center space-x-3 px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
+                  >
+                    <Artwork
+                      path={track.artwork_path}
+                      className="w-10 h-10"
+                      iconSize={16}
+                      alt={track.title}
+                      rounded="md"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                        {track.title}
+                      </div>
+                      <div className="text-xs text-zinc-500 truncate">
+                        {track.artist_name ?? "—"} · {track.album_title ?? "—"}
+                      </div>
                     </div>
-                    <div className="text-xs text-zinc-500 truncate">
-                      {track.artist_name ?? "—"} · {track.album_title ?? "—"}
-                    </div>
-                  </div>
-                  <span className="text-xs text-zinc-400 tabular-nums shrink-0">
-                    {formatDuration(track.duration_ms)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                    <span className="text-xs text-zinc-400 tabular-nums shrink-0">
+                      {formatDuration(track.duration_ms)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         )}
@@ -500,12 +514,14 @@ export function TopBar({
         <button
           type="button"
           onClick={(e) => toggleTheme(e)}
-          aria-label={isDark ? t("topbar.theme.enableLight") : t("topbar.theme.enableDark")}
+          aria-label={
+            isDark
+              ? t("topbar.theme.enableLight")
+              : t("topbar.theme.enableDark")
+          }
           aria-pressed={isDark}
           className={`relative w-14 h-8 rounded-full border transition-colors duration-500 ease-in-out ${
-            isDark
-              ? "bg-zinc-800 border-zinc-700"
-              : "bg-white border-zinc-300"
+            isDark ? "bg-zinc-800 border-zinc-700" : "bg-white border-zinc-300"
           }`}
         >
           <div
@@ -571,7 +587,9 @@ export function TopBar({
                   <div className="font-semibold text-sm text-zinc-900 dark:text-white truncate">
                     {profileName}
                   </div>
-                  <div className="text-xs text-zinc-400">{t("topbar.profile.user")}</div>
+                  <div className="text-xs text-zinc-400">
+                    {t("topbar.profile.user")}
+                  </div>
                 </div>
               </div>
 
@@ -645,7 +663,13 @@ function FilterChip({ active, onClick, label, compact }: FilterChipProps) {
   );
 }
 
-function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
+function FilterRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="mb-3 last:mb-0">
       <div className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase mb-1.5">
@@ -665,7 +689,14 @@ interface RangeInputProps {
   placeholderMax: string;
 }
 
-function RangeInput({ min, max, onMin, onMax, placeholderMin, placeholderMax }: RangeInputProps) {
+function RangeInput({
+  min,
+  max,
+  onMin,
+  onMax,
+  placeholderMin,
+  placeholderMax,
+}: RangeInputProps) {
   const parse = (raw: string): number | null => {
     const trimmed = raw.trim();
     if (trimmed.length === 0) return null;

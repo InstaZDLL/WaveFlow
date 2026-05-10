@@ -9,10 +9,10 @@ WaveFlow does not have long-term version support yet. The main branch and the
 latest published release should be considered the only supported versions for
 security fixes.
 
-| Version | Supported |
-| --- | --- |
-| `main` / latest published release | Yes |
-| Older versions, snapshots, and unmaintained forks | No |
+| Version                                           | Supported |
+| ------------------------------------------------- | --------- |
+| `main` / latest published release                 | Yes       |
+| Older versions, snapshots, and unmaintained forks | No        |
 
 ## Reporting a Vulnerability
 
@@ -21,8 +21,8 @@ security fixes.
 Use one of these channels, depending on what is available on the public
 repository:
 
-1. **GitHub Security Advisories**: open the repository's *Security* tab, then
-   choose *Report a vulnerability*. This is the recommended confidential
+1. **GitHub Security Advisories**: open the repository's _Security_ tab, then
+   choose _Report a vulnerability_. This is the recommended confidential
    channel.
 2. Contact the maintainers privately if GitHub Security Advisories are not
    available.

@@ -16,10 +16,7 @@ import {
   type ArtistDetail,
 } from "../../lib/tauri/detail";
 import { resolveArtwork, resolveRemoteImage } from "../../lib/tauri/artwork";
-import {
-  getSimilarArtists,
-  type SimilarArtist,
-} from "../../lib/tauri/similar";
+import { getSimilarArtists, type SimilarArtist } from "../../lib/tauri/similar";
 import {
   formatDuration,
   listTracks,
@@ -50,7 +47,8 @@ export function ArtistDetailView({
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
-  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
+  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
+    useState(false);
 
   const trackContextMenu = useTrackContextMenu({
     likedIds,
@@ -120,9 +118,7 @@ export function ArtistDetailView({
         // string (split on ", ") — covers both primary and feature
         // credits from the same list_tracks payload.
         const artistTracks = allTracks.filter((t) => {
-          const names = (t.artist_name ?? "")
-            .split(", ")
-            .map((s) => s.trim());
+          const names = (t.artist_name ?? "").split(", ").map((s) => s.trim());
           return names.includes(detail.name);
         });
         setTracks(artistTracks);
@@ -519,7 +515,10 @@ function ArtistTrackTable({
         <span aria-hidden="true" />
         <span>{t("library.table.title")}</span>
         <span>{t("library.table.album")}</span>
-        <span className="flex justify-end" aria-label={t("library.table.duration")}>
+        <span
+          className="flex justify-end"
+          aria-label={t("library.table.duration")}
+        >
           <Clock size={14} />
         </span>
         <span aria-hidden="true" />
@@ -545,9 +544,7 @@ function ArtistTrackTable({
             >
               <span
                 className={`text-right text-sm tabular-nums flex items-center justify-end ${
-                  isCurrent
-                    ? "text-emerald-500 font-semibold"
-                    : "text-zinc-400"
+                  isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
                 }`}
               >
                 {isCurrent ? (
@@ -595,9 +592,7 @@ function ArtistTrackTable({
                     onToggleLike(track.id);
                   }}
                   aria-label={
-                    likedIds.has(track.id)
-                      ? t("liked.unlike")
-                      : t("liked.like")
+                    likedIds.has(track.id) ? t("liked.unlike") : t("liked.like")
                   }
                   className={`p-1 rounded-full transition-colors ${
                     likedIds.has(track.id)

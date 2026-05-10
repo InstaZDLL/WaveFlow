@@ -27,8 +27,7 @@ export function DeviceMenu() {
 
   if (!isDeviceMenuOpen) return null;
 
-  const activeDevice =
-    outputDevices.find((d) => d.is_active) ?? null;
+  const activeDevice = outputDevices.find((d) => d.is_active) ?? null;
 
   const handleSelect = async (device: OutputDevice) => {
     if (device.is_active || switching != null) return;
@@ -58,9 +57,7 @@ export function DeviceMenu() {
         </span>
       </div>
 
-      {error && (
-        <div className="px-4 py-3 text-sm text-red-500">{error}</div>
-      )}
+      {error && <div className="px-4 py-3 text-sm text-red-500">{error}</div>}
 
       {isEmpty && !error && (
         <div className="px-4 py-3 flex items-center space-x-2 text-sm text-zinc-500 dark:text-zinc-400">

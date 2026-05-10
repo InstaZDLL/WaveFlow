@@ -156,7 +156,9 @@ export const DEFAULT_PROFILE_COLOR_ID = PROFILE_COLORS[0].id;
  * Look up a color by id, falling back to the default palette entry if the id
  * is unknown (e.g. a legacy color was removed from the codebase).
  */
-export function getProfileColor(colorId: string | null | undefined): ProfileColor {
+export function getProfileColor(
+  colorId: string | null | undefined,
+): ProfileColor {
   if (!colorId) return PROFILE_COLORS[0];
   return PROFILE_COLORS.find((c) => c.id === colorId) ?? PROFILE_COLORS[0];
 }

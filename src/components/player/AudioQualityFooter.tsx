@@ -18,7 +18,9 @@ interface AudioQualityFooterProps {
  */
 export function AudioQualityFooter({ track }: AudioQualityFooterProps) {
   if (!track) {
-    return <div className="h-6 px-6 border-t border-zinc-100 dark:border-zinc-800/60" />;
+    return (
+      <div className="h-6 px-6 border-t border-zinc-100 dark:border-zinc-800/60" />
+    );
   }
 
   const sampleRateKHz = track.sample_rate

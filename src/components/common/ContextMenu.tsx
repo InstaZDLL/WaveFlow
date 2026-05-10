@@ -63,10 +63,16 @@ export function ContextMenu({
     let left = point.x;
     let top = point.y;
     if (left + rect.width + MENU_HORIZONTAL_MARGIN > vw) {
-      left = Math.max(MENU_HORIZONTAL_MARGIN, vw - rect.width - MENU_HORIZONTAL_MARGIN);
+      left = Math.max(
+        MENU_HORIZONTAL_MARGIN,
+        vw - rect.width - MENU_HORIZONTAL_MARGIN,
+      );
     }
     if (top + rect.height + MENU_VERTICAL_MARGIN > vh) {
-      top = Math.max(MENU_VERTICAL_MARGIN, vh - rect.height - MENU_VERTICAL_MARGIN);
+      top = Math.max(
+        MENU_VERTICAL_MARGIN,
+        vh - rect.height - MENU_VERTICAL_MARGIN,
+      );
     }
     setPos({ top, left, position: "fixed", width });
   }, [point.x, point.y, width]);
@@ -163,10 +169,7 @@ export function ContextMenuItem({
 
 export function ContextMenuSeparator() {
   return (
-    <div
-      role="separator"
-      className="my-1 h-px bg-zinc-100 dark:bg-zinc-800"
-    />
+    <div role="separator" className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
   );
 }
 
@@ -226,7 +229,10 @@ export function ContextMenuSub({
       left = Math.max(MENU_HORIZONTAL_MARGIN, tRect.left - sRect.width);
     }
     if (top + sRect.height + MENU_VERTICAL_MARGIN > vh) {
-      top = Math.max(MENU_VERTICAL_MARGIN, vh - sRect.height - MENU_VERTICAL_MARGIN);
+      top = Math.max(
+        MENU_VERTICAL_MARGIN,
+        vh - sRect.height - MENU_VERTICAL_MARGIN,
+      );
     }
     setSubPos({ top, left, position: "fixed", width });
   }, [open, width]);
@@ -274,4 +280,3 @@ export function ContextMenuSub({
     </div>
   );
 }
-

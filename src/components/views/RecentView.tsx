@@ -36,7 +36,9 @@ function formatPlayedAt(ts: number, locale: string): string {
   const deltaDay = Math.floor(deltaHour / 24);
   if (deltaDay === 1) return locale === "fr" ? "hier" : "yesterday";
   if (deltaDay < 7)
-    return locale === "fr" ? `il y a ${deltaDay} jours` : `${deltaDay} days ago`;
+    return locale === "fr"
+      ? `il y a ${deltaDay} jours`
+      : `${deltaDay} days ago`;
   return new Date(ts).toLocaleDateString();
 }
 
@@ -79,14 +81,18 @@ function recentPlayToTrack(rp: RecentPlay): Track {
   };
 }
 
-export function RecentView({ onNavigateToAlbum, onNavigateToArtist }: RecentViewProps) {
+export function RecentView({
+  onNavigateToAlbum,
+  onNavigateToArtist,
+}: RecentViewProps) {
   const { t, i18n } = useTranslation();
   const { playbackState, currentTrack } = usePlayer();
   const { createPlaylist } = usePlaylist();
   const [tracks, setTracks] = useState<RecentPlay[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
-  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
+  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
+    useState(false);
 
   useEffect(() => {
     listLikedTrackIds()

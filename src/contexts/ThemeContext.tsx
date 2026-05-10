@@ -1,4 +1,8 @@
-import { useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import {
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+} from "react";
 import { ThemeContext } from "../hooks/useTheme";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -21,7 +25,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const y = event.clientY;
       const endRadius = Math.hypot(
         Math.max(x, window.innerWidth - x),
-        Math.max(y, window.innerHeight - y)
+        Math.max(y, window.innerHeight - y),
       );
 
       transition.ready
@@ -37,7 +41,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
               duration: 600,
               easing: "ease-in-out",
               pseudoElement: "::view-transition-new(root)",
-            }
+            },
           );
         })
         .catch(() => {

@@ -62,7 +62,9 @@ export function VolumeControl() {
         <button
           type="button"
           onClick={toggleMute}
-          aria-label={volume === 0 ? t("player.volume.unmute") : t("player.volume.mute")}
+          aria-label={
+            volume === 0 ? t("player.volume.unmute") : t("player.volume.mute")
+          }
           className="text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
         >
           <Icon size={20} />

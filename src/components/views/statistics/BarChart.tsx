@@ -55,9 +55,7 @@ export function BarChart({
     );
   }
 
-  const labelStep = thinLabels
-    ? Math.max(1, Math.ceil(data.length / 8))
-    : 1;
+  const labelStep = thinLabels ? Math.max(1, Math.ceil(data.length / 8)) : 1;
   const barWidthPct = 100 / data.length;
   const innerBarWidthPct = barWidthPct * 0.7;
   const barOffsetPct = barWidthPct * 0.15;

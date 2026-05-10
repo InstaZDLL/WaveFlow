@@ -84,7 +84,11 @@ export function LyricsPanel() {
 
   useEffect(() => {
     if (!isSynced) return;
-    const idx = findActiveLineIndex(lrcLines, positionMs, Math.max(activeIndex, 0));
+    const idx = findActiveLineIndex(
+      lrcLines,
+      positionMs,
+      Math.max(activeIndex, 0),
+    );
     if (idx !== activeIndex) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveIndex(idx);
@@ -145,9 +149,7 @@ export function LyricsPanel() {
 
   // ── Render ──────────────────────────────────────────────────────
   return (
-    <div
-      className="h-full w-80 shrink-0 border-l bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100"
-    >
+    <div className="h-full w-80 shrink-0 border-l bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100">
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between p-6 pb-4 border-b border-zinc-100 dark:border-zinc-800">
@@ -186,7 +188,10 @@ export function LyricsPanel() {
         {/* Body */}
         <div ref={containerRef} className="flex-1 overflow-y-auto px-6 py-4">
           {currentTrack == null ? (
-            <EmptyState icon={<Music2 size={40} />} text={t("lyrics.noTrack")} />
+            <EmptyState
+              icon={<Music2 size={40} />}
+              text={t("lyrics.noTrack")}
+            />
           ) : isFetching && !payload ? (
             <EmptyState text={t("lyrics.loading")} />
           ) : error ? (

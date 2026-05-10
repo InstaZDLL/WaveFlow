@@ -27,7 +27,7 @@ interface LibraryContextValue {
   /** Patch an existing library's name / description / color / icon. */
   updateLibrary: (
     libraryId: number,
-    input: UpdateLibraryInput
+    input: UpdateLibraryInput,
   ) => Promise<void>;
   /** Permanently delete a library and everything it owns. */
   deleteLibrary: (libraryId: number) => Promise<void>;

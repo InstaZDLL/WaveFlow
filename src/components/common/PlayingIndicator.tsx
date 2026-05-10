@@ -5,7 +5,10 @@ interface PlayingIndicatorProps {
 
 const BAR_DELAYS = ["-0.6s", "-0.2s", "-0.4s"];
 
-export function PlayingIndicator({ isPlaying, className = "" }: PlayingIndicatorProps) {
+export function PlayingIndicator({
+  isPlaying,
+  className = "",
+}: PlayingIndicatorProps) {
   return (
     <span
       role="img"

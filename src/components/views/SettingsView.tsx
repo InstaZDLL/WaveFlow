@@ -29,12 +29,12 @@ import {
   Moon,
   ChevronsRight,
 } from "lucide-react";
-import {
-  getProfileSetting,
-  setProfileSetting,
-} from "../../lib/tauri/profile";
+import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
 import type { ViewId } from "../../types";
-import { SUPPORTED_LANGUAGES, normalizeSupportedLanguageCode } from "../../i18n";
+import {
+  SUPPORTED_LANGUAGES,
+  normalizeSupportedLanguageCode,
+} from "../../i18n";
 import {
   playerGetAudioSettings,
   playerSetNormalize,
@@ -165,8 +165,8 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
         const initialIndex = Math.max(
           0,
           SUPPORTED_LANGUAGES.findIndex(
-            (lang) => lang.code === normalizedCurrentCode
-          )
+            (lang) => lang.code === normalizedCurrentCode,
+          ),
         );
         setFocusedIndex(initialIndex);
       }
@@ -176,7 +176,7 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
 
   const handleOptionKeyDown = (
     event: React.KeyboardEvent<HTMLButtonElement>,
-    index: number
+    index: number,
   ) => {
     if (event.key === "ArrowDown") {
       event.preventDefault();
@@ -184,7 +184,7 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
       setFocusedIndex(
-        (index - 1 + SUPPORTED_LANGUAGES.length) % SUPPORTED_LANGUAGES.length
+        (index - 1 + SUPPORTED_LANGUAGES.length) % SUPPORTED_LANGUAGES.length,
       );
     } else if (event.key === "Home") {
       event.preventDefault();
@@ -353,14 +353,12 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const handleToggleShowSleepTimer = useCallback(() => {
     const next = !showSleepTimer;
     setShowSleepTimer(next);
-    setProfileSetting(
-      "ui.show_sleep_timer",
-      next ? "true" : "false",
-      "bool",
-    )
+    setProfileSetting("ui.show_sleep_timer", next ? "true" : "false", "bool")
       .then(() => {
         // Notify the PlayerBar to re-read without polling.
-        window.dispatchEvent(new CustomEvent("waveflow:sleep-timer-visibility"));
+        window.dispatchEvent(
+          new CustomEvent("waveflow:sleep-timer-visibility"),
+        );
       })
       .catch((err) => {
         console.error("[Settings] set show_sleep_timer failed", err);
@@ -720,13 +718,17 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       .catch(() => {});
     lastfmGetStatus()
       .then(setLastfmStatus)
-      .catch((err) => console.error("[SettingsView] Last.fm status failed", err));
+      .catch((err) =>
+        console.error("[SettingsView] Last.fm status failed", err),
+      );
   }, []);
 
   const refreshLastfmStatus = useCallback(() => {
     lastfmGetStatus()
       .then(setLastfmStatus)
-      .catch((err) => console.error("[SettingsView] Last.fm status failed", err));
+      .catch((err) =>
+        console.error("[SettingsView] Last.fm status failed", err),
+      );
   }, []);
 
   const handleSaveLastfmKey = async () => {
@@ -783,7 +785,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         setReplayGain(s.replaygain);
         setGapless(s.gapless);
       })
-      .catch((err) => console.error("[Settings] audio settings load failed", err));
+      .catch((err) =>
+        console.error("[Settings] audio settings load failed", err),
+      );
   }, []);
 
   const handleToggleNormalize = useCallback(() => {
@@ -831,7 +835,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     }
     crossfadeTimerRef.current = window.setTimeout(() => {
       playerSetCrossfade(sec).catch((err) =>
-        console.error("[Settings] set crossfade failed", err)
+        console.error("[Settings] set crossfade failed", err),
       );
     }, 300);
   }, []);
@@ -884,11 +888,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           {/* Langue */}
           <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
             <div className="flex items-center space-x-4">
-              <Globe
-                size={20}
-                className="text-zinc-400"
-                aria-hidden="true"
-              />
+              <Globe size={20} className="text-zinc-400" aria-hidden="true" />
               <div>
                 <div className="text-sm font-medium text-zinc-900 dark:text-white">
                   {t("settings.language.title")}
@@ -900,7 +900,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             </div>
             <LanguageDropdown
               currentCode={normalizeSupportedLanguageCode(
-                i18n.resolvedLanguage ?? i18n.language
+                i18n.resolvedLanguage ?? i18n.language,
               )}
               onSelect={handleLanguageChange}
             />
@@ -909,11 +909,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           {/* Lancement au démarrage */}
           <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
             <div className="flex items-center space-x-4">
-              <Power
-                size={20}
-                className="text-zinc-400"
-                aria-hidden="true"
-              />
+              <Power size={20} className="text-zinc-400" aria-hidden="true" />
               <div>
                 <div className="text-sm font-medium text-zinc-900 dark:text-white">
                   {t("settings.autoStart.title")}
@@ -1005,11 +1001,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           {/* Visibilité du minuteur de sommeil */}
           <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
             <div className="flex items-center space-x-4">
-              <Moon
-                size={20}
-                className="text-zinc-400"
-                aria-hidden="true"
-              />
+              <Moon size={20} className="text-zinc-400" aria-hidden="true" />
               <div>
                 <div className="text-sm font-medium text-zinc-900 dark:text-white">
                   {t("settings.showSleepTimer.title")}
@@ -1040,11 +1032,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           {/* Crossfade */}
           <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
             <div className="flex items-center space-x-4">
-              <Shuffle
-                size={20}
-                className="text-zinc-400"
-                aria-hidden="true"
-              />
+              <Shuffle size={20} className="text-zinc-400" aria-hidden="true" />
               <div>
                 <div className="text-sm font-medium text-zinc-900 dark:text-white">
                   {t("settings.crossfade.title")}
@@ -1061,9 +1049,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 max={12}
                 step={1}
                 value={crossfadeSec}
-                onChange={(e) =>
-                  handleCrossfadeChange(Number(e.target.value))
-                }
+                onChange={(e) => handleCrossfadeChange(Number(e.target.value))}
                 className="w-32 h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 cursor-pointer"
                 aria-label={t("settings.crossfade.title")}
               />
@@ -1100,11 +1086,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           {/* Normaliser le volume */}
           <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
             <div className="flex items-center space-x-4">
-              <Volume2
-                size={20}
-                className="text-zinc-400"
-                aria-hidden="true"
-              />
+              <Volume2 size={20} className="text-zinc-400" aria-hidden="true" />
               <div>
                 <div className="text-sm font-medium text-zinc-900 dark:text-white">
                   {t("settings.normalize.title")}
@@ -1124,11 +1106,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           {/* ReplayGain */}
           <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
             <div className="flex items-center space-x-4">
-              <Volume2
-                size={20}
-                className="text-zinc-400"
-                aria-hidden="true"
-              />
+              <Volume2 size={20} className="text-zinc-400" aria-hidden="true" />
               <div>
                 <div className="text-sm font-medium text-zinc-900 dark:text-white">
                   {t("settings.replayGain.title")}
@@ -1210,7 +1188,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                         setLastfmKey(e.target.value);
                         setLastfmSaved(false);
                       }}
-                      placeholder={t("settings.integrations.lastfm.placeholder")}
+                      placeholder={t(
+                        "settings.integrations.lastfm.placeholder",
+                      )}
                       spellCheck={false}
                       autoComplete="off"
                       className="w-full pr-10 pl-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
@@ -1225,7 +1205,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                       }
                       className="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
                     >
-                      {lastfmKeyVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                      {lastfmKeyVisible ? (
+                        <EyeOff size={16} />
+                      ) : (
+                        <Eye size={16} />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1240,7 +1224,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                         setLastfmSecret(e.target.value);
                         setLastfmSaved(false);
                       }}
-                      placeholder={t("settings.integrations.lastfm.secretPlaceholder")}
+                      placeholder={t(
+                        "settings.integrations.lastfm.secretPlaceholder",
+                      )}
                       spellCheck={false}
                       autoComplete="off"
                       className="w-full pr-10 pl-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
@@ -1255,7 +1241,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                       }
                       className="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
                     >
-                      {lastfmSecretVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                      {lastfmSecretVisible ? (
+                        <EyeOff size={16} />
+                      ) : (
+                        <Eye size={16} />
+                      )}
                     </button>
                   </div>
                   <button
@@ -1311,7 +1301,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                               setLastfmUsername(e.target.value);
                               setLastfmLoginError(null);
                             }}
-                            placeholder={t("settings.integrations.lastfm.usernamePlaceholder")}
+                            placeholder={t(
+                              "settings.integrations.lastfm.usernamePlaceholder",
+                            )}
                             autoComplete="username"
                             spellCheck={false}
                             className="flex-1 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
@@ -1323,7 +1315,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                               setLastfmPassword(e.target.value);
                               setLastfmLoginError(null);
                             }}
-                            placeholder={t("settings.integrations.lastfm.passwordPlaceholder")}
+                            placeholder={t(
+                              "settings.integrations.lastfm.passwordPlaceholder",
+                            )}
                             autoComplete="current-password"
                             className="flex-1 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
                           />
@@ -1447,7 +1441,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                         onChange={(e) =>
                           setDlnaConfig((c) => ({
                             ...c,
-                            port: Math.max(0, Math.min(65535, Number(e.target.value) || 0)),
+                            port: Math.max(
+                              0,
+                              Math.min(65535, Number(e.target.value) || 0),
+                            ),
                           }))
                         }
                         onBlur={() => persistDlna(dlnaConfig)}
@@ -1548,7 +1545,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <Sparkles size={20} className="text-zinc-400" aria-hidden="true" />
+                <Sparkles
+                  size={20}
+                  className="text-zinc-400"
+                  aria-hidden="true"
+                />
                 <div>
                   <div className="text-sm font-medium text-zinc-900 dark:text-white">
                     {t("settings.analyze.title")}
@@ -1859,11 +1860,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
 
           <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
             <div className="flex items-center space-x-4">
-              <Trash2
-                size={20}
-                className="text-zinc-400"
-                aria-hidden="true"
-              />
+              <Trash2 size={20} className="text-zinc-400" aria-hidden="true" />
               <div>
                 <div className="text-sm font-medium text-zinc-900 dark:text-white">
                   {t("settings.reset.title")}

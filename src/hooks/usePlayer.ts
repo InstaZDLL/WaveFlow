@@ -5,12 +5,7 @@ import type { OutputDevice, QueueSource } from "../lib/tauri/player";
 export type RepeatMode = "off" | "all" | "one";
 
 /** Aggregate `state` field driven by backend `player:state` events. */
-export type PlaybackState =
-  | "idle"
-  | "loading"
-  | "playing"
-  | "paused"
-  | "ended";
+export type PlaybackState = "idle" | "loading" | "playing" | "paused" | "ended";
 
 interface PlayerContextValue {
   // UI-only state (not persisted)
@@ -57,7 +52,7 @@ interface PlayerContextValue {
   playTracks: (
     tracks: Track[],
     startIndex: number,
-    source: { type: QueueSource; id: number | null }
+    source: { type: QueueSource; id: number | null },
   ) => Promise<void>;
   togglePlayback: () => Promise<void>;
   next: () => Promise<void>;
@@ -72,7 +67,6 @@ export const PlayerContext = createContext<PlayerContextValue | null>(null);
 
 export function usePlayer() {
   const context = useContext(PlayerContext);
-  if (!context)
-    throw new Error("usePlayer must be used within PlayerProvider");
+  if (!context) throw new Error("usePlayer must be used within PlayerProvider");
   return context;
 }

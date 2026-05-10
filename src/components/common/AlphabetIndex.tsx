@@ -6,10 +6,7 @@ interface Props {
   className?: string;
 }
 
-const LETTERS: string[] = [
-  "#",
-  ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
-];
+const LETTERS: string[] = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")];
 
 function firstLetterKey(name: string): string {
   // NFD-normalize then strip combining marks so "Émilie" buckets under "E".

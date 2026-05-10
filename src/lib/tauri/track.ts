@@ -101,7 +101,10 @@ export function toggleLikeTrack(trackId: number): Promise<boolean> {
 }
 
 /** Set or clear a track rating. `rating` is the raw POPM byte 0-255, or null to clear. */
-export function setTrackRating(trackId: number, rating: number | null): Promise<void> {
+export function setTrackRating(
+  trackId: number,
+  rating: number | null,
+): Promise<void> {
   return invoke<void>("set_track_rating", { trackId, rating });
 }
 

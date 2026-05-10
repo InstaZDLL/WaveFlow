@@ -119,9 +119,7 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
   const primaryArtistName = currentTrack?.artist_name?.split(", ")[0] ?? null;
 
   return (
-    <div
-      className="h-full w-80 shrink-0 border-l bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100"
-    >
+    <div className="h-full w-80 shrink-0 border-l bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100">
       <div className="flex flex-col h-full overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 pb-4 sticky top-0 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 z-10">
@@ -220,7 +218,8 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
                   ) : (
                     <div className="w-14 h-14 rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 flex items-center justify-center shrink-0">
                       <span className="text-xl font-bold text-violet-500/70 dark:text-violet-400/60">
-                        {primaryArtistName.trim().charAt(0).toUpperCase() || "?"}
+                        {primaryArtistName.trim().charAt(0).toUpperCase() ||
+                          "?"}
                       </span>
                     </div>
                   )}
@@ -302,7 +301,6 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
                 </div>
               </div>
             )}
-
           </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-12 text-zinc-400">

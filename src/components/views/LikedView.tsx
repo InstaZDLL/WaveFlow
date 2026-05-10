@@ -21,13 +21,17 @@ interface LikedViewProps {
   onNavigateToArtist: (artistId: number) => void;
 }
 
-export function LikedView({ onNavigateToAlbum, onNavigateToArtist }: LikedViewProps) {
+export function LikedView({
+  onNavigateToAlbum,
+  onNavigateToArtist,
+}: LikedViewProps) {
   const { t } = useTranslation();
   const { playTracks, currentTrack, playbackState } = usePlayer();
   const { createPlaylist } = usePlaylist();
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
+  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
+    useState(false);
   // Local liked-set built from `tracks`: every loaded row is liked by
   // definition, so we just rebuild on each fetch / unlike.
   const likedIds = new Set(tracks.map((t) => t.id));
@@ -122,7 +126,10 @@ export function LikedView({ onNavigateToAlbum, onNavigateToArtist }: LikedViewPr
             <span>{t("library.table.title")}</span>
             <span>{t("library.table.artist")}</span>
             <span>{t("library.table.album")}</span>
-            <span className="flex justify-end" aria-label={t("library.table.duration")}>
+            <span
+              className="flex justify-end"
+              aria-label={t("library.table.duration")}
+            >
               <Clock size={14} />
             </span>
             <span aria-hidden="true" />
@@ -149,7 +156,9 @@ export function LikedView({ onNavigateToAlbum, onNavigateToArtist }: LikedViewPr
                 >
                   <span
                     className={`text-right text-sm tabular-nums ${
-                      isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
+                      isCurrent
+                        ? "text-emerald-500 font-semibold"
+                        : "text-zinc-400"
                     }`}
                   >
                     {index + 1}

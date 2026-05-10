@@ -1,6 +1,11 @@
 import type { ActionLinkProps } from "../../types";
 
-export function ActionLink({ icon, label, highlight, onClick }: ActionLinkProps) {
+export function ActionLink({
+  icon,
+  label,
+  highlight,
+  onClick,
+}: ActionLinkProps) {
   return (
     <button
       onClick={onClick}

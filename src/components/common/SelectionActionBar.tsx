@@ -1,19 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Play,
-  ListPlus,
-  ListEnd,
-  Plus,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Play, ListPlus, ListEnd, Plus, Trash2, X } from "lucide-react";
 import {
   playerAddToQueue,
   playerPlayNext,
   playerPlayTracks,
 } from "../../lib/tauri/player";
-import { addTracksToPlaylist, removeTrackFromPlaylist } from "../../lib/tauri/playlist";
+import {
+  addTracksToPlaylist,
+  removeTrackFromPlaylist,
+} from "../../lib/tauri/playlist";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
@@ -130,7 +126,10 @@ export function SelectionActionBar({
         {t("selection.count", { count })}
       </span>
 
-      <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-700" aria-hidden="true" />
+      <div
+        className="h-5 w-px bg-zinc-200 dark:bg-zinc-700"
+        aria-hidden="true"
+      />
 
       <Tooltip label={t("selection.play")}>
         <button
@@ -251,7 +250,10 @@ export function SelectionActionBar({
         </Tooltip>
       )}
 
-      <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-700" aria-hidden="true" />
+      <div
+        className="h-5 w-px bg-zinc-200 dark:bg-zinc-700"
+        aria-hidden="true"
+      />
 
       <Tooltip label={t("selection.clear")}>
         <button

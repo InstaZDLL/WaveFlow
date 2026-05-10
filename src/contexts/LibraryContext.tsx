@@ -24,7 +24,9 @@ import {
 export function LibraryProvider({ children }: { children: ReactNode }) {
   const { activeProfile } = useProfile();
   const [libraries, setLibraries] = useState<Library[]>([]);
-  const [selectedLibraryId, setSelectedLibraryId] = useState<number | null>(null);
+  const [selectedLibraryId, setSelectedLibraryId] = useState<number | null>(
+    null,
+  );
   // Start in the loading state so consumers waiting on a "first
   // fetch settled" signal don't see the empty initial value as if
   // the fetch had completed. The mount-time `useEffect` below
@@ -136,7 +138,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       setSelectedLibraryId(created.id);
       return created;
     },
-    [refresh]
+    [refresh],
   );
 
   const importFolder = useCallback(
@@ -146,7 +148,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       await refresh();
       return summary;
     },
-    [refresh]
+    [refresh],
   );
 
   const updateLibrary = useCallback(
@@ -154,7 +156,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       await apiUpdateLibrary(libraryId, input);
       await refresh();
     },
-    [refresh]
+    [refresh],
   );
 
   const deleteLibrary = useCallback(
@@ -165,7 +167,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       // matches anything in the list.
       await refresh();
     },
-    [refresh]
+    [refresh],
   );
 
   const rescanLibrary = useCallback(
@@ -174,15 +176,15 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       await refresh();
       return summary;
     },
-    [refresh]
+    [refresh],
   );
 
   const selectedLibrary = useMemo(
     () =>
       selectedLibraryId == null
         ? null
-        : libraries.find((l) => l.id === selectedLibraryId) ?? null,
-    [libraries, selectedLibraryId]
+        : (libraries.find((l) => l.id === selectedLibraryId) ?? null),
+    [libraries, selectedLibraryId],
   );
 
   return (

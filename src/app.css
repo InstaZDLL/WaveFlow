@@ -45,7 +45,8 @@
 }
 
 @keyframes playingBar {
-  0%, 100% {
+  0%,
+  100% {
     transform: scaleY(0.35);
   }
   50% {

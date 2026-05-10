@@ -64,7 +64,9 @@ export function PlaybackControls() {
         type="button"
         onClick={() => togglePlayback()}
         disabled={disableTransport}
-        aria-label={isPlaying ? t("player.controls.pause") : t("player.controls.play")}
+        aria-label={
+          isPlaying ? t("player.controls.pause") : t("player.controls.play")
+        }
         aria-busy={isLoading}
         className="w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center shadow-md transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
       >

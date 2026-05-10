@@ -1,4 +1,8 @@
-import { createContext, useContext, type MouseEvent as ReactMouseEvent } from "react";
+import {
+  createContext,
+  useContext,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 
 interface ThemeContextValue {
   isDark: boolean;

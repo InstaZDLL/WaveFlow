@@ -127,7 +127,10 @@ export function useSleepTimer({
         setStatus({ kind: "off" });
         return;
       }
-      const next = Math.max(0, Math.round(startVolume - stepVolume * ticksDone));
+      const next = Math.max(
+        0,
+        Math.round(startVolume - stepVolume * ticksDone),
+      );
       setVolume(next);
     }, stepMs);
   }, [setVolume]);

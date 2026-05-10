@@ -342,10 +342,7 @@ export function HomeView({
           <div className="relative overflow-hidden min-h-32 rounded-3xl border flex items-center justify-center p-8 border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/40 dark:shadow-none">
             <EmptyState
               icon={<Sparkles size={32} />}
-              title={t(
-                "home.dailyMix.emptyTitle",
-                "Pas encore de Daily Mix",
-              )}
+              title={t("home.dailyMix.emptyTitle", "Pas encore de Daily Mix")}
               description={t(
                 "home.dailyMix.emptyDescription",
                 "Écoute quelques morceaux puis clique sur Régénérer pour créer tes mixes personnalisés.",

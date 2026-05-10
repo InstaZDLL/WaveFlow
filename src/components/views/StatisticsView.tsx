@@ -255,31 +255,31 @@ export function StatisticsView({
                   artist.picture_url,
                 );
                 return (
-                <TopRow
-                  key={artist.artist_id}
-                  rank={i + 1}
-                  artwork={
-                    artistSrc ? (
-                      <img
-                        src={artistSrc}
-                        alt={artist.name}
-                        loading="lazy"
-                        className="w-10 h-10 rounded-full object-cover shrink-0 bg-zinc-100 dark:bg-zinc-800"
-                      />
-                    ) : (
-                      <div
-                        className="w-10 h-10 rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 flex items-center justify-center text-violet-500/70 dark:text-violet-400/60 text-sm font-bold shrink-0"
-                        aria-label={artist.name}
-                      >
-                        {artist.name.trim().charAt(0).toUpperCase() || "?"}
-                      </div>
-                    )
-                  }
-                  primary={artist.name}
-                  secondary={formatListenTime(artist.listened_ms)}
-                  metric={t("statistics.plays", { count: artist.plays })}
-                  onClick={() => onNavigateToArtist(artist.artist_id)}
-                />
+                  <TopRow
+                    key={artist.artist_id}
+                    rank={i + 1}
+                    artwork={
+                      artistSrc ? (
+                        <img
+                          src={artistSrc}
+                          alt={artist.name}
+                          loading="lazy"
+                          className="w-10 h-10 rounded-full object-cover shrink-0 bg-zinc-100 dark:bg-zinc-800"
+                        />
+                      ) : (
+                        <div
+                          className="w-10 h-10 rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 flex items-center justify-center text-violet-500/70 dark:text-violet-400/60 text-sm font-bold shrink-0"
+                          aria-label={artist.name}
+                        >
+                          {artist.name.trim().charAt(0).toUpperCase() || "?"}
+                        </div>
+                      )
+                    }
+                    primary={artist.name}
+                    secondary={formatListenTime(artist.listened_ms)}
+                    metric={t("statistics.plays", { count: artist.plays })}
+                    onClick={() => onNavigateToArtist(artist.artist_id)}
+                  />
                 );
               })}
             </TopList>

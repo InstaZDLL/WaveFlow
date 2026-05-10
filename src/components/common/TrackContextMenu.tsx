@@ -153,7 +153,10 @@ export function TrackContextMenu({
 
       <ContextMenuItem
         icon={
-          <Heart size={14} className={isLiked ? "fill-current text-pink-500" : ""} />
+          <Heart
+            size={14}
+            className={isLiked ? "fill-current text-pink-500" : ""}
+          />
         }
         label={isLiked ? t("trackActions.unlike") : t("trackActions.like")}
         onSelect={closeAfter(() => onToggleLike(track.id))}
@@ -170,7 +173,9 @@ export function TrackContextMenu({
         />
       )}
 
-      {(track.album_id != null || artists.length > 0) && <ContextMenuSeparator />}
+      {(track.album_id != null || artists.length > 0) && (
+        <ContextMenuSeparator />
+      )}
 
       {track.album_id != null && onNavigateToAlbum != null && (
         <ContextMenuItem
@@ -189,7 +194,10 @@ export function TrackContextMenu({
       )}
 
       {artists.length > 1 && onNavigateToArtist != null && (
-        <ContextMenuSub icon={<User size={14} />} label={t("trackActions.goToArtist")}>
+        <ContextMenuSub
+          icon={<User size={14} />}
+          label={t("trackActions.goToArtist")}
+        >
           {artists.map((artist) => (
             <button
               key={artist.id}
@@ -231,8 +239,14 @@ function parseArtistList(
   nameStr: string | null,
 ): ArtistEntry[] {
   if (!idsStr || !nameStr) return [];
-  const ids = idsStr.split(",").map((s) => Number(s.trim())).filter((n) => Number.isFinite(n));
-  const names = nameStr.split(", ").map((s) => s.trim()).filter(Boolean);
+  const ids = idsStr
+    .split(",")
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isFinite(n));
+  const names = nameStr
+    .split(", ")
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (ids.length === 0 || ids.length !== names.length) return [];
   return ids.map((id, i) => ({ id, name: names[i] }));
 }

@@ -160,9 +160,7 @@ export function CoverPickerModal({
           </button>
         </div>
 
-        {error && (
-          <div className="mb-3 text-xs text-red-500 px-2">{error}</div>
-        )}
+        {error && <div className="mb-3 text-xs text-red-500 px-2">{error}</div>}
 
         {tab === "deezer" ? (
           <div className="flex-1 overflow-hidden flex flex-col">

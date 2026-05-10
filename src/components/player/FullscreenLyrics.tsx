@@ -173,7 +173,13 @@ export function FullscreenLyrics({
   );
 }
 
-function CenteredMessage({ icon, text }: { icon?: React.ReactNode; text: string }) {
+function CenteredMessage({
+  icon,
+  text,
+}: {
+  icon?: React.ReactNode;
+  text: string;
+}) {
   return (
     <div className="h-[80vh] flex flex-col items-center justify-center text-center text-white/70">
       {icon && <div className="mb-4">{icon}</div>}

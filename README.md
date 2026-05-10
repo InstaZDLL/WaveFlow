@@ -27,7 +27,7 @@ Pre-built bundles for every tagged release are on the [GitHub Releases page](htt
 
 ### Linux
 
-- `WaveFlow_<ver>_linux-x86_64.deb` — Debian / Ubuntu / Mint / Pop!_OS. Native install via `apt`/`dpkg`, integrates with the system menu.
+- `WaveFlow_<ver>_linux-x86_64.deb` — Debian / Ubuntu / Mint / Pop!\_OS. Native install via `apt`/`dpkg`, integrates with the system menu.
 - `WaveFlow_<ver>_linux-x86_64.rpm` — Fedora / RHEL / openSUSE / Rocky / Alma. Native install via `dnf`/`rpm`.
 - `WaveFlow_<ver>_linux-x86_64.AppImage` — Anything else (Calculate Linux, Oracle Linux, NixOS, …). `chmod +x` then run; no install required.
 - **Arch / Manjaro / EndeavourOS** — install `waveflow-bin` from the AUR: `yay -S waveflow-bin` (or `paru`, etc.). Tracks the `.deb` artefact above.
@@ -55,30 +55,30 @@ Once installed (any of the above), the in-app updater fetches future versions au
 
 ## Features
 
-| Area | Highlights | Deep dive |
-|------|-----------|-----------|
-| **Playback** | Symphonia + cpal, lock-free 3-thread engine, real dual-decoder crossfade, ReplayGain, output-device picker, OS media controls (SMTC / MPRIS / MediaRemote), persistent queue with shuffle / repeat / auto-advance | [docs](docs/features/playback.md) |
-| **Library** | Folder scanning + filesystem watcher, on-demand audio analysis (peak, loudness, ReplayGain, BPM), Hi-Res badges, multi-artist split, POPM 5-star ratings, A-Z navigator, multi-select action bar | [docs](docs/features/library.md) |
-| **Playlists** | Drag-and-drop reorder (virtualised), bulk add from any source, M3U import / export with basename-fallback matching, likes, recently-played | [docs](docs/features/playlists.md) |
-| **Smart playlists** | Auto-generated **Daily Mix** family bucketed by tempo, with composite artist-photo covers rendered from your Deezer cache | [docs](docs/features/smart-playlists.md) |
-| **Integrations** | Deezer (artwork + labels), Last.fm (bios + scrobbling with retry queue), LRCLIB (synchronised lyrics), Discord Rich Presence ("Listening to WaveFlow" with cover + progress bar) — all cached locally for offline use | [docs](docs/features/integrations.md) |
-| **UI & UX** | Spotify-style 3-panel layout, system tray, statistics dashboard, virtual scroll for 6000+ tracks, dark mode (View Transitions API), 17 locales (RTL-aware), per-profile isolated DB, signed auto-updater | [docs](docs/features/ui.md) |
+| Area                | Highlights                                                                                                                                                                                                            | Deep dive                                |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| **Playback**        | Symphonia + cpal, lock-free 3-thread engine, real dual-decoder crossfade, ReplayGain, output-device picker, OS media controls (SMTC / MPRIS / MediaRemote), persistent queue with shuffle / repeat / auto-advance     | [docs](docs/features/playback.md)        |
+| **Library**         | Folder scanning + filesystem watcher, on-demand audio analysis (peak, loudness, ReplayGain, BPM), Hi-Res badges, multi-artist split, POPM 5-star ratings, A-Z navigator, multi-select action bar                      | [docs](docs/features/library.md)         |
+| **Playlists**       | Drag-and-drop reorder (virtualised), bulk add from any source, M3U import / export with basename-fallback matching, likes, recently-played                                                                            | [docs](docs/features/playlists.md)       |
+| **Smart playlists** | Auto-generated **Daily Mix** family bucketed by tempo, with composite artist-photo covers rendered from your Deezer cache                                                                                             | [docs](docs/features/smart-playlists.md) |
+| **Integrations**    | Deezer (artwork + labels), Last.fm (bios + scrobbling with retry queue), LRCLIB (synchronised lyrics), Discord Rich Presence ("Listening to WaveFlow" with cover + progress bar) — all cached locally for offline use | [docs](docs/features/integrations.md)    |
+| **UI & UX**         | Spotify-style 3-panel layout, system tray, statistics dashboard, virtual scroll for 6000+ tracks, dark mode (View Transitions API), 17 locales (RTL-aware), per-profile isolated DB, signed auto-updater              | [docs](docs/features/ui.md)              |
 
 ## Tech Stack
 
-| Layer | Technologies |
-|-------|-------------|
-| **Desktop shell** | Tauri 2.10 (tray icon, opener, dialog, updater plugins) |
-| **OS media controls** | souvlaki 0.8 (SMTC / MPRIS / MediaRemote bridge) |
-| **Discord Rich Presence** | discord-rich-presence 1.1 (local IPC named pipe, no auth) |
-| **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS 4, Lucide icons, `@dnd-kit` (drag-and-drop), `@tanstack/react-virtual` (virtualization) |
-| **Backend** | Rust, SQLite (sqlx), FTS5 contentless full-text search |
-| **Audio** | symphonia 0.5 (decode), cpal 0.17 (output), rubato 2.0 (resample), rtrb 0.3 (SPSC ring) |
-| **Metadata extraction** | lofty 0.24 (tags, embedded art, POPM, INITIALKEY) |
-| **Imaging** | image 0.25 + fast_image_resize 6 (SIMD thumbnails) |
-| **Filesystem watcher** | notify 8 (debounced rescans of watched folders) |
-| **External APIs** | Deezer public API (no auth) + Last.fm (read + signed methods via md-5 + reqwest 0.12 with rustls) + LRCLIB (synchronized lyrics) |
-| **Package manager** | Bun |
+| Layer                     | Technologies                                                                                                                       |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Desktop shell**         | Tauri 2.10 (tray icon, opener, dialog, updater plugins)                                                                            |
+| **OS media controls**     | souvlaki 0.8 (SMTC / MPRIS / MediaRemote bridge)                                                                                   |
+| **Discord Rich Presence** | discord-rich-presence 1.1 (local IPC named pipe, no auth)                                                                          |
+| **Frontend**              | React 19, TypeScript, Vite 8, Tailwind CSS 4, Lucide icons, `@dnd-kit` (drag-and-drop), `@tanstack/react-virtual` (virtualization) |
+| **Backend**               | Rust, SQLite (sqlx), FTS5 contentless full-text search                                                                             |
+| **Audio**                 | symphonia 0.5 (decode), cpal 0.17 (output), rubato 2.0 (resample), rtrb 0.3 (SPSC ring)                                            |
+| **Metadata extraction**   | lofty 0.24 (tags, embedded art, POPM, INITIALKEY)                                                                                  |
+| **Imaging**               | image 0.25 + fast_image_resize 6 (SIMD thumbnails)                                                                                 |
+| **Filesystem watcher**    | notify 8 (debounced rescans of watched folders)                                                                                    |
+| **External APIs**         | Deezer public API (no auth) + Last.fm (read + signed methods via md-5 + reqwest 0.12 with rustls) + LRCLIB (synchronized lyrics)   |
+| **Package manager**       | Bun                                                                                                                                |
 
 ## Getting Started
 

@@ -86,9 +86,16 @@ export function PlaylistView({
 }: PlaylistViewProps) {
   const { t } = useTranslation();
   const { playTracks, currentTrack, toggleShuffle, isPlaying } = usePlayer();
-  const { updatePlaylist, deletePlaylist, getPlaylistTracks, playlists, removeTrackFromPlaylist, createPlaylist } =
-    usePlaylist();
-  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
+  const {
+    updatePlaylist,
+    deletePlaylist,
+    getPlaylistTracks,
+    playlists,
+    removeTrackFromPlaylist,
+    createPlaylist,
+  } = usePlaylist();
+  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
+    useState(false);
 
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -155,7 +162,8 @@ export function PlaylistView({
 
   const handleExportM3u = useCallback(async () => {
     if (!playlist) return;
-    const safeName = playlist.name.replace(/[\\/:*?"<>|]/g, "_").trim() || "playlist";
+    const safeName =
+      playlist.name.replace(/[\\/:*?"<>|]/g, "_").trim() || "playlist";
     const dest = await pickSaveFile(
       `${safeName}.m3u8`,
       ["m3u8", "m3u"],
@@ -321,20 +329,12 @@ export function PlaylistView({
 
   const handlePlayAll = async () => {
     if (tracks.length === 0) return;
-    await playTracks(
-      tracks,
-      0,
-      { type: "playlist", id: playlistId }
-    );
+    await playTracks(tracks, 0, { type: "playlist", id: playlistId });
   };
 
   const handleShufflePlay = async () => {
     if (tracks.length === 0) return;
-    await playTracks(
-      tracks,
-      0,
-      { type: "playlist", id: playlistId }
-    );
+    await playTracks(tracks, 0, { type: "playlist", id: playlistId });
     // Toggle shuffle on if it isn't already; the backend handles the
     // case where it's already shuffled gracefully.
     await toggleShuffle();
@@ -442,101 +442,101 @@ export function PlaylistView({
                   <Music2 size={48} />
                 )}
               </div>
-          <div>
-            <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
-              {t("playlistView.badge")}
+              <div>
+                <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
+                  {t("playlistView.badge")}
+                </div>
+                <h1 className="text-4xl font-bold mb-2 text-zinc-900 dark:text-white">
+                  {playlist?.name ?? ""}
+                </h1>
+                {playlist?.description && (
+                  <p className="text-sm text-zinc-500 mb-2">
+                    {playlist.description}
+                  </p>
+                )}
+                <div className="flex items-center text-sm text-zinc-500 space-x-2">
+                  <Music2 size={16} />
+                  <span>
+                    {t("playlistView.trackCount", {
+                      count: playlist?.track_count ?? 0,
+                    })}
+                  </span>
+                  <span>·</span>
+                  <span>{totalDurationLabel}</span>
+                </div>
+              </div>
             </div>
-            <h1 className="text-4xl font-bold mb-2 text-zinc-900 dark:text-white">
-              {playlist?.name ?? ""}
-            </h1>
-            {playlist?.description && (
-              <p className="text-sm text-zinc-500 mb-2">
-                {playlist.description}
-              </p>
-            )}
-            <div className="flex items-center text-sm text-zinc-500 space-x-2">
-              <Music2 size={16} />
-              <span>
-                {t("playlistView.trackCount", {
-                  count: playlist?.track_count ?? 0,
-                })}
-              </span>
-              <span>·</span>
-              <span>{totalDurationLabel}</span>
+
+            <div className="flex items-center space-x-3">
+              <button
+                type="button"
+                onClick={handlePlayAll}
+                disabled={tracks.length === 0}
+                className={`text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm ${color.button} disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <Play size={16} className="fill-current" />
+                <span>{t("playlistView.actions.play")}</span>
+              </button>
+
+              <div className="flex items-center space-x-1 p-1 rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/50">
+                <Tooltip label={t("playlistView.actions.shuffle")}>
+                  <button
+                    type="button"
+                    onClick={handleShufflePlay}
+                    disabled={tracks.length === 0}
+                    aria-label={t("playlistView.actions.shuffle")}
+                    className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Shuffle size={18} />
+                  </button>
+                </Tooltip>
+
+                <Tooltip label={t("playlistView.actions.edit")}>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditOpen(true)}
+                    aria-label={t("playlistView.actions.edit")}
+                    className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white"
+                  >
+                    <Edit2 size={18} />
+                  </button>
+                </Tooltip>
+
+                <Tooltip label={t("playlistView.actions.exportM3u")}>
+                  <button
+                    type="button"
+                    onClick={handleExportM3u}
+                    disabled={tracks.length === 0}
+                    aria-label={t("playlistView.actions.exportM3u")}
+                    className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Download size={18} />
+                  </button>
+                </Tooltip>
+
+                <Tooltip
+                  label={
+                    confirmDelete
+                      ? t("playlistView.actions.deleteConfirm")
+                      : t("playlistView.actions.delete")
+                  }
+                >
+                  <button
+                    type="button"
+                    onClick={handleDeleteClick}
+                    disabled={isDeleting}
+                    aria-label={t("playlistView.actions.delete")}
+                    className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      confirmDelete
+                        ? "bg-red-500 text-white hover:bg-red-600"
+                        : "text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"
+                    }`}
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </Tooltip>
+              </div>
             </div>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-3">
-          <button
-            type="button"
-            onClick={handlePlayAll}
-            disabled={tracks.length === 0}
-            className={`text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm ${color.button} disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            <Play size={16} className="fill-current" />
-            <span>{t("playlistView.actions.play")}</span>
-          </button>
-
-          <div className="flex items-center space-x-1 p-1 rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/50">
-            <Tooltip label={t("playlistView.actions.shuffle")}>
-              <button
-                type="button"
-                onClick={handleShufflePlay}
-                disabled={tracks.length === 0}
-                aria-label={t("playlistView.actions.shuffle")}
-                className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Shuffle size={18} />
-              </button>
-            </Tooltip>
-
-            <Tooltip label={t("playlistView.actions.edit")}>
-              <button
-                type="button"
-                onClick={() => setIsEditOpen(true)}
-                aria-label={t("playlistView.actions.edit")}
-                className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white"
-              >
-                <Edit2 size={18} />
-              </button>
-            </Tooltip>
-
-            <Tooltip label={t("playlistView.actions.exportM3u")}>
-              <button
-                type="button"
-                onClick={handleExportM3u}
-                disabled={tracks.length === 0}
-                aria-label={t("playlistView.actions.exportM3u")}
-                className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Download size={18} />
-              </button>
-            </Tooltip>
-
-            <Tooltip
-              label={
-                confirmDelete
-                  ? t("playlistView.actions.deleteConfirm")
-                  : t("playlistView.actions.delete")
-              }
-            >
-              <button
-                type="button"
-                onClick={handleDeleteClick}
-                disabled={isDeleting}
-                aria-label={t("playlistView.actions.delete")}
-                className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  confirmDelete
-                    ? "bg-red-500 text-white hover:bg-red-600"
-                    : "text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"
-                }`}
-              >
-                <Trash2 size={18} />
-              </button>
-            </Tooltip>
-          </div>
-        </div>
           </div>
         );
       })()}
@@ -817,7 +817,10 @@ function PlaylistTrackTable({
         {createPortal(
           <DragOverlay dropAnimation={null}>
             {activeTrack ? (
-              <PlaylistRowPreview track={activeTrack} unknownLabel={unknownLabel} />
+              <PlaylistRowPreview
+                track={activeTrack}
+                unknownLabel={unknownLabel}
+              />
             ) : null}
           </DragOverlay>,
           document.body,
@@ -903,10 +906,11 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
   // makes the row feel sluggish on long playlists. The visual jump
   // when items snap into their new slot is barely noticeable, and
   // the drag itself is now silky-smooth.
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({
-    id: String(track.id),
-    animateLayoutChanges: () => false,
-  });
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useSortable({
+      id: String(track.id),
+      animateLayoutChanges: () => false,
+    });
   // Place the row's slot via CSS `top` (not via a translateY
   // transform): dnd-kit anchors the drag overlay and resolves drop
   // targets from `offsetTop`, which doesn't see CSS transforms. With
@@ -942,8 +946,8 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
         isRowSelected
           ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
           : isCurrent
-          ? "bg-emerald-50 dark:bg-emerald-900/20"
-          : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
+            ? "bg-emerald-50 dark:bg-emerald-900/20"
+            : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
       }`}
     >
       <button

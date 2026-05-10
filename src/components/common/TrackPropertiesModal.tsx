@@ -167,12 +167,21 @@ export function TrackPropertiesModal({
           </Section>
 
           <Section title={t("trackProperties.sections.audio")}>
-            <Row label={t("trackProperties.codec")} value={track.codec ?? "—"} />
+            <Row
+              label={t("trackProperties.codec")}
+              value={track.codec ?? "—"}
+            />
             <Row label={t("trackProperties.bitDepth")} value={bitDepth} />
-            <Row label={t("trackProperties.sampleRate")} value={sampleRateKHz} />
+            <Row
+              label={t("trackProperties.sampleRate")}
+              value={sampleRateKHz}
+            />
             <Row label={t("trackProperties.channels")} value={channels} />
             <Row label={t("trackProperties.bitrate")} value={bitrate} />
-            <Row label={t("trackProperties.key")} value={track.musical_key ?? "—"} />
+            <Row
+              label={t("trackProperties.key")}
+              value={track.musical_key ?? "—"}
+            />
           </Section>
 
           <Section
@@ -197,9 +206,7 @@ export function TrackPropertiesModal({
           >
             <Row
               label={t("trackProperties.bpm")}
-              value={
-                analysis?.bpm != null ? Math.round(analysis.bpm) : "—"
-              }
+              value={analysis?.bpm != null ? Math.round(analysis.bpm) : "—"}
             />
             <Row
               label={t("trackProperties.loudness")}
@@ -219,11 +226,7 @@ export function TrackPropertiesModal({
             />
             <Row
               label={t("trackProperties.peak")}
-              value={
-                analysis?.peak != null
-                  ? analysis.peak.toFixed(3)
-                  : "—"
-              }
+              value={analysis?.peak != null ? analysis.peak.toFixed(3) : "—"}
             />
           </Section>
 
@@ -287,13 +290,7 @@ function Section({
   );
 }
 
-function Row({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start gap-4 px-3 py-2 text-sm">
       <span className="w-32 shrink-0 text-zinc-500 dark:text-zinc-400">

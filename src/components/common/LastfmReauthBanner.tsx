@@ -18,7 +18,9 @@ interface LastfmReauthBannerProps {
  * Visible for 30 s on each event, dismissable via the X button or
  * by clicking the "Open settings" call-to-action.
  */
-export function LastfmReauthBanner({ onGoToSettings }: LastfmReauthBannerProps) {
+export function LastfmReauthBanner({
+  onGoToSettings,
+}: LastfmReauthBannerProps) {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 

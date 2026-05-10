@@ -9,13 +9,17 @@ import { formatDuration } from "../../lib/tauri/track";
  * commit the target to the backend.
  */
 export function ProgressBar() {
-  const { positionMs, durationMs, seek, setSeeking, currentTrack } = usePlayer();
+  const { positionMs, durationMs, seek, setSeeking, currentTrack } =
+    usePlayer();
   const [dragMs, setDragMs] = useState<number | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
 
   const hasTrack = currentTrack != null && durationMs > 0;
   const displayMs = dragMs ?? positionMs;
-  const clampedDisplay = Math.min(Math.max(displayMs, 0), Math.max(durationMs, 1));
+  const clampedDisplay = Math.min(
+    Math.max(displayMs, 0),
+    Math.max(durationMs, 1),
+  );
   const percent = hasTrack ? (clampedDisplay / durationMs) * 100 : 0;
 
   const positionFromPointer = useCallback(
@@ -23,10 +27,13 @@ export function ProgressBar() {
       const el = trackRef.current;
       if (!el || durationMs <= 0) return 0;
       const rect = el.getBoundingClientRect();
-      const ratio = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+      const ratio = Math.min(
+        Math.max((clientX - rect.left) / rect.width, 0),
+        1,
+      );
       return Math.round(ratio * durationMs);
     },
-    [durationMs]
+    [durationMs],
   );
 
   const handlePointerDown = useCallback(
@@ -36,7 +43,7 @@ export function ProgressBar() {
       setSeeking(true);
       setDragMs(positionFromPointer(e.clientX));
     },
-    [hasTrack, positionFromPointer, setSeeking]
+    [hasTrack, positionFromPointer, setSeeking],
   );
 
   const handlePointerMove = useCallback(
@@ -44,7 +51,7 @@ export function ProgressBar() {
       if (dragMs == null) return;
       setDragMs(positionFromPointer(e.clientX));
     },
-    [dragMs, positionFromPointer]
+    [dragMs, positionFromPointer],
   );
 
   const handlePointerUp = useCallback(
@@ -56,7 +63,7 @@ export function ProgressBar() {
       (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
       seek(target);
     },
-    [dragMs, seek, setSeeking]
+    [dragMs, seek, setSeeking],
   );
 
   return (

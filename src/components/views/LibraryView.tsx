@@ -104,7 +104,12 @@ const headerIcons: Record<LibraryTab, typeof Music2> = {
   dossiers: Folder,
 };
 
-export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavigateToArtist }: LibraryViewProps) {
+export function LibraryView({
+  activeTab,
+  setActiveTab,
+  onNavigateToAlbum,
+  onNavigateToArtist,
+}: LibraryViewProps) {
   const { t } = useTranslation();
   const {
     libraries,
@@ -115,11 +120,19 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
     rescanLibrary,
   } = useLibrary();
   const { playTracks, currentTrack, isPlaying } = usePlayer();
-  const { playlists, addTracksToPlaylist, addSourceToPlaylist, createPlaylist } = usePlaylist();
+  const {
+    playlists,
+    addTracksToPlaylist,
+    addSourceToPlaylist,
+    createPlaylist,
+  } = usePlaylist();
   const [isImporting, setIsImporting] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
-  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
-  const [coverPickerAlbumId, setCoverPickerAlbumId] = useState<number | null>(null);
+  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
+    useState(false);
+  const [coverPickerAlbumId, setCoverPickerAlbumId] = useState<number | null>(
+    null,
+  );
   const [coverReloadKey, setCoverReloadKey] = useState(0);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [albums, setAlbums] = useState<AlbumRow[]>([]);
@@ -274,17 +287,24 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
   // aggregate across all libraries (no single Library to read counts from).
   const countForTab = (tab: LibraryTab): number => {
     switch (tab) {
-      case "morceaux": return tracks.length;
-      case "albums": return albums.length;
-      case "artistes": return artists.length;
-      case "genres": return genres.length;
-      case "dossiers": return folders.length;
+      case "morceaux":
+        return tracks.length;
+      case "albums":
+        return albums.length;
+      case "artistes":
+        return artists.length;
+      case "genres":
+        return genres.length;
+      case "dossiers":
+        return folders.length;
     }
   };
   const headerSubtext =
     activeTab === "dossiers"
       ? t("library.header.subtext.dossiers", { count: countForTab("dossiers") })
-      : t(`library.header.subtext.${activeTab}`, { count: countForTab(activeTab) });
+      : t(`library.header.subtext.${activeTab}`, {
+          count: countForTab(activeTab),
+        });
 
   const handleImport = async () => {
     if (isImporting) return;
@@ -583,7 +603,10 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
                         `[data-artist-index="${idx}"]`,
                       );
                       if (target) {
-                        target.scrollIntoView({ behavior: "smooth", block: "start" });
+                        target.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
                       }
                     }}
                     className="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 z-30 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm rounded-full py-2 px-1.5 shadow-sm"
@@ -610,7 +633,9 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
                 // forget on the backend so the UI shouldn't block on it.
                 setFolders((prev) =>
                   prev.map((f) =>
-                    f.id === folderId ? { ...f, is_watched: enable ? 1 : 0 } : f,
+                    f.id === folderId
+                      ? { ...f, is_watched: enable ? 1 : 0 }
+                      : f,
                   ),
                 );
                 setFolderWatched(folderId, enable).catch((err) => {
@@ -618,7 +643,9 @@ export function LibraryView({ activeTab, setActiveTab, onNavigateToAlbum, onNavi
                   // Roll back on error.
                   setFolders((prev) =>
                     prev.map((f) =>
-                      f.id === folderId ? { ...f, is_watched: enable ? 0 : 1 } : f,
+                      f.id === folderId
+                        ? { ...f, is_watched: enable ? 0 : 1 }
+                        : f,
                     ),
                   );
                 });
@@ -799,7 +826,10 @@ function SortDropdown({ options, current, onChange, t }: SortDropdownProps) {
                   role="option"
                   aria-selected={isSelected}
                   onClick={() => {
-                    onChange({ orderBy: opt.value, direction: current.direction });
+                    onChange({
+                      orderBy: opt.value,
+                      direction: current.direction,
+                    });
                   }}
                   className={`w-full flex items-center justify-between px-4 py-2 text-sm text-left transition-colors ${
                     isSelected
@@ -886,9 +916,9 @@ function TrackTable({
   "use no memo";
   const unknown = t("library.table.unknown");
   const [openMenuTrackId, setOpenMenuTrackId] = useState<number | null>(null);
-  const [ratingOverrides, setRatingOverrides] = useState<Map<number, number | null>>(
-    new Map(),
-  );
+  const [ratingOverrides, setRatingOverrides] = useState<
+    Map<number, number | null>
+  >(new Map());
   const pageScrollRef = usePageScroll();
   const parentRef = useRef<HTMLDivElement>(null);
   const [scrollMargin, setScrollMargin] = useState(0);
@@ -969,7 +999,10 @@ function TrackTable({
       <div
         ref={parentRef}
         className={isLoading ? "opacity-50" : ""}
-        style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          position: "relative",
+        }}
       >
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const index = virtualRow.index;
@@ -995,144 +1028,144 @@ function TrackTable({
                 isRowSelected
                   ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
                   : isCurrent
-                  ? "bg-emerald-50 dark:bg-emerald-900/20"
-                  : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
+                    ? "bg-emerald-50 dark:bg-emerald-900/20"
+                    : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
               }`}
             >
-                <span
-                  className={`text-right text-sm tabular-nums flex items-center justify-end ${
-                    isCurrent
-                      ? "text-emerald-500 font-semibold"
-                      : "text-zinc-400"
-                  }`}
-                >
-                  {isCurrent ? (
-                    <PlayingIndicator isPlaying={isPlaying} />
-                  ) : (
-                    index + 1
-                  )}
-                </span>
-                {view === "list" && (
-                  <Artwork
-                    path={track.artwork_path}
-                    size="1x"
-                    className="w-10 h-10"
-                    iconSize={18}
-                    alt={track.album_title ?? track.title}
-                    rounded="md"
-                  />
+              <span
+                className={`text-right text-sm tabular-nums flex items-center justify-end ${
+                  isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
+                }`}
+              >
+                {isCurrent ? (
+                  <PlayingIndicator isPlaying={isPlaying} />
+                ) : (
+                  index + 1
                 )}
-                <span
-                  className={`text-sm truncate flex items-center gap-2 ${
-                    isCurrent
-                      ? "text-emerald-600 dark:text-emerald-400 font-semibold"
-                      : "text-zinc-800 dark:text-zinc-200"
-                  }`}
-                >
-                  <span className="truncate">{track.title}</span>
-                  <HiResBadge
-                    bitDepth={track.bit_depth}
-                    sampleRate={track.sample_rate}
-                    codec={track.codec}
-                    variant="inline"
-                  />
-                </span>
-                <ArtistLink
-                  name={track.artist_name}
-                  artistIds={track.artist_ids}
-                  onNavigate={onNavigateToArtist}
-                  fallback={unknown}
-                  className="text-sm text-zinc-500 truncate"
+              </span>
+              {view === "list" && (
+                <Artwork
+                  path={track.artwork_path}
+                  size="1x"
+                  className="w-10 h-10"
+                  iconSize={18}
+                  alt={track.album_title ?? track.title}
+                  rounded="md"
                 />
-                <span className="text-sm text-zinc-500 truncate">
-                  {track.album_title ?? unknown}
-                </span>
-                <div
-                  className="flex items-center"
-                  onDoubleClick={(e) => e.stopPropagation()}
-                >
-                  <StarRating
-                    value={
-                      ratingOverrides.has(track.id)
-                        ? ratingOverrides.get(track.id) ?? null
-                        : track.rating
-                    }
-                    size="sm"
-                    onChange={(rating) => {
+              )}
+              <span
+                className={`text-sm truncate flex items-center gap-2 ${
+                  isCurrent
+                    ? "text-emerald-600 dark:text-emerald-400 font-semibold"
+                    : "text-zinc-800 dark:text-zinc-200"
+                }`}
+              >
+                <span className="truncate">{track.title}</span>
+                <HiResBadge
+                  bitDepth={track.bit_depth}
+                  sampleRate={track.sample_rate}
+                  codec={track.codec}
+                  variant="inline"
+                />
+              </span>
+              <ArtistLink
+                name={track.artist_name}
+                artistIds={track.artist_ids}
+                onNavigate={onNavigateToArtist}
+                fallback={unknown}
+                className="text-sm text-zinc-500 truncate"
+              />
+              <span className="text-sm text-zinc-500 truncate">
+                {track.album_title ?? unknown}
+              </span>
+              <div
+                className="flex items-center"
+                onDoubleClick={(e) => e.stopPropagation()}
+              >
+                <StarRating
+                  value={
+                    ratingOverrides.has(track.id)
+                      ? (ratingOverrides.get(track.id) ?? null)
+                      : track.rating
+                  }
+                  size="sm"
+                  onChange={(rating) => {
+                    setRatingOverrides((prev) => {
+                      const next = new Map(prev);
+                      next.set(track.id, rating);
+                      return next;
+                    });
+                    setTrackRating(track.id, rating).catch((err) => {
+                      console.error("[LibraryView] set rating failed", err);
                       setRatingOverrides((prev) => {
                         const next = new Map(prev);
-                        next.set(track.id, rating);
+                        next.delete(track.id);
                         return next;
                       });
-                      setTrackRating(track.id, rating).catch((err) => {
-                        console.error("[LibraryView] set rating failed", err);
-                        setRatingOverrides((prev) => {
-                          const next = new Map(prev);
-                          next.delete(track.id);
-                          return next;
-                        });
-                      });
-                    }}
+                    });
+                  }}
+                />
+              </div>
+              <span className="text-sm tabular-nums text-zinc-400 text-right">
+                {formatDuration(track.duration_ms)}
+              </span>
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleLike(track.id);
+                  }}
+                  aria-label={
+                    likedIds.has(track.id) ? t("liked.unlike") : t("liked.like")
+                  }
+                  className={`p-1 rounded-full transition-colors ${
+                    likedIds.has(track.id)
+                      ? "text-pink-500"
+                      : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
+                  }`}
+                >
+                  <Heart
+                    size={14}
+                    className={likedIds.has(track.id) ? "fill-current" : ""}
                   />
-                </div>
-                <span className="text-sm tabular-nums text-zinc-400 text-right">
-                  {formatDuration(track.duration_ms)}
-                </span>
-                <div className="flex justify-center">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleLike(track.id);
+                </button>
+              </div>
+              <div className="relative flex justify-center">
+                <button
+                  type="button"
+                  data-add-to-playlist-trigger
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenMenuTrackId(isMenuOpen ? null : track.id);
+                  }}
+                  aria-label={t("trackActions.addToPlaylist")}
+                  aria-haspopup="menu"
+                  aria-expanded={isMenuOpen}
+                  className={`p-1.5 rounded-full transition-all ${
+                    isMenuOpen
+                      ? "opacity-100 bg-zinc-100 dark:bg-zinc-700 text-zinc-800 dark:text-white"
+                      : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                  }`}
+                >
+                  <Plus size={16} />
+                </button>
+                {isMenuOpen && (
+                  <AddToPlaylistPopover
+                    playlists={playlists}
+                    trackId={track.id}
+                    onPick={(playlistId) => {
+                      onAddToPlaylist(playlistId, track.id);
+                      setOpenMenuTrackId(null);
                     }}
-                    aria-label={likedIds.has(track.id) ? t("liked.unlike") : t("liked.like")}
-                    className={`p-1 rounded-full transition-colors ${
-                      likedIds.has(track.id)
-                        ? "text-pink-500"
-                        : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
-                    }`}
-                  >
-                    <Heart
-                      size={14}
-                      className={likedIds.has(track.id) ? "fill-current" : ""}
-                    />
-                  </button>
-                </div>
-                <div className="relative flex justify-center">
-                  <button
-                    type="button"
-                    data-add-to-playlist-trigger
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenMenuTrackId(isMenuOpen ? null : track.id);
+                    onCreate={() => {
+                      setOpenMenuTrackId(null);
+                      onCreatePlaylist();
                     }}
-                    aria-label={t("trackActions.addToPlaylist")}
-                    aria-haspopup="menu"
-                    aria-expanded={isMenuOpen}
-                    className={`p-1.5 rounded-full transition-all ${
-                      isMenuOpen
-                        ? "opacity-100 bg-zinc-100 dark:bg-zinc-700 text-zinc-800 dark:text-white"
-                        : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                    }`}
-                  >
-                    <Plus size={16} />
-                  </button>
-                  {isMenuOpen && (
-                    <AddToPlaylistPopover
-                      playlists={playlists}
-                      trackId={track.id}
-                      onPick={(playlistId) => {
-                        onAddToPlaylist(playlistId, track.id);
-                        setOpenMenuTrackId(null);
-                      }}
-                      onCreate={() => {
-                        setOpenMenuTrackId(null);
-                        onCreatePlaylist();
-                      }}
-                      t={t}
-                    />
-                  )}
-                </div>
+                    t={t}
+                  />
+                )}
+              </div>
             </div>
           );
         })}
@@ -1228,7 +1261,16 @@ interface AlbumGridProps {
   onChangeCover: (albumId: number) => void;
 }
 
-function AlbumGrid({ albums, isLoading, t, playlists, onAddToPlaylist, onCreatePlaylist, onAlbumClick, onChangeCover }: AlbumGridProps) {
+function AlbumGrid({
+  albums,
+  isLoading,
+  t,
+  playlists,
+  onAddToPlaylist,
+  onCreatePlaylist,
+  onAlbumClick,
+  onChangeCover,
+}: AlbumGridProps) {
   const unknown = t("library.table.unknown");
   const [openMenuAlbumId, setOpenMenuAlbumId] = useState<number | null>(null);
   const [contextMenu, setContextMenu] = useState<{
@@ -1274,112 +1316,118 @@ function AlbumGrid({ albums, isLoading, t, playlists, onAddToPlaylist, onCreateP
 
   return (
     <>
-    <div
-      className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5 ${
-        isLoading ? "opacity-50" : ""
-      }`}
-    >
-      {albums.map((album) => {
-        const isMenuOpen = openMenuAlbumId === album.id;
-        return (
-          <div
-            key={album.id}
-            onClick={() => onAlbumClick(album.id)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              setContextMenu({ albumId: album.id, x: e.clientX, y: e.clientY });
-            }}
-            className="group flex flex-col space-y-2 cursor-pointer relative"
-          >
-            <div className="relative">
-              <Artwork
-                path={album.artwork_path}
-                path1x={album.artwork_path_1x}
-                path2x={album.artwork_path_2x}
-                // Album grid tile renders ~150-200 px wide; the 128 px
-                // 2x thumbnail upscales soft on a HiDPI display. Source
-                // originals are 600-1500 px square — small enough to
-                // decode instantly and crisp at any tile size.
-                size="full"
-                alt={album.title}
-                className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
-                iconSize={44}
-                rounded="2xl"
-              />
-              <HiResBadge
-                bitDepth={album.max_bit_depth}
-                sampleRate={album.max_sample_rate}
-              />
-              <button
-                type="button"
-                data-add-to-playlist-trigger
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOpenMenuAlbumId(isMenuOpen ? null : album.id);
-                }}
-                aria-label={t("trackActions.addToPlaylist")}
-                className={`absolute bottom-2 right-2 p-1.5 rounded-full shadow-sm transition-all ${
-                  isMenuOpen
-                    ? "opacity-100 bg-emerald-500 text-white"
-                    : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
-                }`}
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-            <div className="px-1">
-              <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
-                {album.title}
-              </div>
-              <div className="text-xs text-zinc-500 truncate">
-                {album.artist_name ?? unknown}
-              </div>
-              <div className="text-[11px] text-zinc-400 mt-1">
-                {t("library.albumGrid.trackCount", { count: album.track_count })}
-                {album.year ? ` · ${album.year}` : ""}
-              </div>
-            </div>
-            {isMenuOpen && (
-              <AddToPlaylistPopover
-                playlists={playlists}
-                trackId={album.id}
-                onPick={(playlistId) => {
-                  onAddToPlaylist(playlistId, album.id);
-                  setOpenMenuAlbumId(null);
-                }}
-                onCreate={() => {
-                  setOpenMenuAlbumId(null);
-                  onCreatePlaylist();
-                }}
-                t={t}
-              />
-            )}
-          </div>
-        );
-      })}
-    </div>
-    {contextMenu && (
       <div
-        role="menu"
-        style={{ top: contextMenu.y, left: contextMenu.x }}
-        className="fixed z-100 min-w-48 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden animate-fade-in py-1"
-        onClick={(e) => e.stopPropagation()}
+        className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5 ${
+          isLoading ? "opacity-50" : ""
+        }`}
       >
-        <button
-          type="button"
-          role="menuitem"
-          onClick={() => {
-            const id = contextMenu.albumId;
-            setContextMenu(null);
-            onChangeCover(id);
-          }}
-          className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
-        >
-          <ImageIcon size={14} />
-          <span>{t("library.changeCover")}</span>
-        </button>
+        {albums.map((album) => {
+          const isMenuOpen = openMenuAlbumId === album.id;
+          return (
+            <div
+              key={album.id}
+              onClick={() => onAlbumClick(album.id)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setContextMenu({
+                  albumId: album.id,
+                  x: e.clientX,
+                  y: e.clientY,
+                });
+              }}
+              className="group flex flex-col space-y-2 cursor-pointer relative"
+            >
+              <div className="relative">
+                <Artwork
+                  path={album.artwork_path}
+                  path1x={album.artwork_path_1x}
+                  path2x={album.artwork_path_2x}
+                  // Album grid tile renders ~150-200 px wide; the 128 px
+                  // 2x thumbnail upscales soft on a HiDPI display. Source
+                  // originals are 600-1500 px square — small enough to
+                  // decode instantly and crisp at any tile size.
+                  size="full"
+                  alt={album.title}
+                  className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
+                  iconSize={44}
+                  rounded="2xl"
+                />
+                <HiResBadge
+                  bitDepth={album.max_bit_depth}
+                  sampleRate={album.max_sample_rate}
+                />
+                <button
+                  type="button"
+                  data-add-to-playlist-trigger
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenMenuAlbumId(isMenuOpen ? null : album.id);
+                  }}
+                  aria-label={t("trackActions.addToPlaylist")}
+                  className={`absolute bottom-2 right-2 p-1.5 rounded-full shadow-sm transition-all ${
+                    isMenuOpen
+                      ? "opacity-100 bg-emerald-500 text-white"
+                      : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
+                  }`}
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+              <div className="px-1">
+                <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+                  {album.title}
+                </div>
+                <div className="text-xs text-zinc-500 truncate">
+                  {album.artist_name ?? unknown}
+                </div>
+                <div className="text-[11px] text-zinc-400 mt-1">
+                  {t("library.albumGrid.trackCount", {
+                    count: album.track_count,
+                  })}
+                  {album.year ? ` · ${album.year}` : ""}
+                </div>
+              </div>
+              {isMenuOpen && (
+                <AddToPlaylistPopover
+                  playlists={playlists}
+                  trackId={album.id}
+                  onPick={(playlistId) => {
+                    onAddToPlaylist(playlistId, album.id);
+                    setOpenMenuAlbumId(null);
+                  }}
+                  onCreate={() => {
+                    setOpenMenuAlbumId(null);
+                    onCreatePlaylist();
+                  }}
+                  t={t}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
-    )}
+      {contextMenu && (
+        <div
+          role="menu"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          className="fixed z-100 min-w-48 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden animate-fade-in py-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              const id = contextMenu.albumId;
+              setContextMenu(null);
+              onChangeCover(id);
+            }}
+            className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
+          >
+            <ImageIcon size={14} />
+            <span>{t("library.changeCover")}</span>
+          </button>
+        </div>
+      )}
     </>
   );
 }
@@ -1395,7 +1443,16 @@ interface ArtistListProps {
   gridRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-function ArtistList({ artists, isLoading, t, playlists, onAddToPlaylist, onCreatePlaylist, onArtistClick, gridRef }: ArtistListProps) {
+function ArtistList({
+  artists,
+  isLoading,
+  t,
+  playlists,
+  onAddToPlaylist,
+  onCreatePlaylist,
+  onArtistClick,
+  gridRef,
+}: ArtistListProps) {
   const [openMenuArtistId, setOpenMenuArtistId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -1479,7 +1536,9 @@ function ArtistList({ artists, isLoading, t, playlists, onAddToPlaylist, onCreat
                 {artist.name}
               </div>
               <div className="text-xs text-zinc-500">
-                {t("library.artistList.trackCount", { count: artist.track_count })}
+                {t("library.artistList.trackCount", {
+                  count: artist.track_count,
+                })}
                 {artist.album_count > 0
                   ? ` · ${t("library.artistList.albumCount", { count: artist.album_count })}`
                   : ""}
@@ -1608,7 +1667,9 @@ function FolderList({
                 {folder.path}
               </div>
               <div className="text-xs text-zinc-500">
-                {t("library.folderList.trackCount", { count: folder.track_count })}
+                {t("library.folderList.trackCount", {
+                  count: folder.track_count,
+                })}
                 {" · "}
                 {t("library.folderList.lastScanned", {
                   date: formatScannedAt(folder.last_scanned_at),
@@ -1640,7 +1701,11 @@ function FolderList({
                     : "opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700"
                 }`}
               >
-                {folder.is_watched === 1 ? <Eye size={16} /> : <EyeOff size={16} />}
+                {folder.is_watched === 1 ? (
+                  <Eye size={16} />
+                ) : (
+                  <EyeOff size={16} />
+                )}
               </button>
             </Tooltip>
             <div className="relative">
