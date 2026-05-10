@@ -169,7 +169,12 @@ struct PlaylistResponse {
     description: Option<String>,
     images: Option<Vec<ImageResponse>>,
     owner: Option<OwnerResponse>,
-    tracks: TracksTotalResponse,
+    // `tracks` should always be present in the `me/playlists` payload,
+    // but Spotify has been known to omit it for orphaned playlists
+    // (3rd-party app removed, broken collaborative entry…). Treat it
+    // as optional + default total = 0 so a single weird row doesn't
+    // sink the whole listing.
+    tracks: Option<TracksTotalResponse>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -390,13 +395,23 @@ pub async fn list_playlists(
     client: &reqwest::Client,
     access_token: &str,
 ) -> AppResult<Vec<SpotifyPlaylistLite>> {
-    let page: Page<PlaylistResponse> = get_json(
+    // Spotify can return `null` entries inside `items` for playlists
+    // that were created by a now-removed 3rd-party app or otherwise
+    // orphaned in the user's library. Wrapping the page items in
+    // Option<…> + flatten() filters those out cleanly instead of
+    // failing the whole decode with "error decoding response body".
+    let page: Page<Option<PlaylistResponse>> = get_json(
         client,
         access_token,
         &format!("{API_BASE}/me/playlists?limit=50"),
     )
     .await?;
-    Ok(page.items.into_iter().map(SpotifyPlaylistLite::from).collect())
+    Ok(page
+        .items
+        .into_iter()
+        .flatten()
+        .map(SpotifyPlaylistLite::from)
+        .collect())
 }
 
 pub async fn playlist_tracks(
@@ -556,7 +571,7 @@ impl From<PlaylistResponse> for SpotifyPlaylistLite {
             description: value.description,
             image_url: best_image(value.images),
             owner_name: value.owner.and_then(|o| o.display_name),
-            track_count: value.tracks.total,
+            track_count: value.tracks.map(|t| t.total).unwrap_or(0),
         }
     }
 }
