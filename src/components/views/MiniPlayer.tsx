@@ -93,6 +93,7 @@ export function MiniPlayer() {
             path={currentTrack.artwork_path}
             path1x={currentTrack.artwork_path_1x}
             path2x={currentTrack.artwork_path_2x}
+            size="full"
             alt={currentTrack.title}
             className="w-full h-full object-cover"
             rounded="md"
