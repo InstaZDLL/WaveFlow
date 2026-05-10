@@ -222,9 +222,11 @@ function EqCurve({ bands, freqs, maxGain, onUpdateBand }: EqCurveProps) {
   // disabling preserveAspectRatio (which is what made the curve look
   // horizontally stretched in v1).
   const VB_W = 700;
-  const VB_H = 300;
+  const VB_H = 320;
   const PAD_TOP = 28;
-  const PAD_BOTTOM = 36;
+  // Bottom padding holds two stacked label rows: the frequency
+  // (always visible) and the live dB readout below it.
+  const PAD_BOTTOM = 56;
   // Left gutter holds the +12dB / -12dB labels; right gutter is just
   // breathing room so the rightmost dot doesn't kiss the SVG edge.
   const PAD_LEFT = 56;
@@ -339,7 +341,7 @@ function EqCurve({ bands, freqs, maxGain, onUpdateBand }: EqCurveProps) {
 
   return (
     <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 p-3">
-      <div className="aspect-7/3 w-full">
+      <div className="w-full" style={{ aspectRatio: `${VB_W} / ${VB_H}` }}>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${VB_W} ${VB_H}`}
@@ -436,7 +438,7 @@ function EqCurve({ bands, freqs, maxGain, onUpdateBand }: EqCurveProps) {
           <text
             key={`f-${i}`}
             x={xFor(i)}
-            y={VB_H - 10}
+            y={VB_H - 30}
             fontSize={14}
             fontWeight={600}
             textAnchor="middle"
@@ -444,6 +446,27 @@ function EqCurve({ bands, freqs, maxGain, onUpdateBand }: EqCurveProps) {
             className="text-zinc-500 dark:text-zinc-400 select-none"
           >
             {formatFreq(f)}
+          </text>
+        ))}
+
+        {/* Live dB readout per band — Logitech-G-style, useful while
+            dragging because the curve alone doesn't tell you exactly
+            where the point sits. */}
+        {bands.map((g, i) => (
+          <text
+            key={`v-${i}`}
+            x={xFor(i)}
+            y={VB_H - 12}
+            fontSize={12}
+            textAnchor="middle"
+            fill="currentColor"
+            className={`select-none tabular-nums ${
+              Math.abs(g) < 0.05
+                ? "text-zinc-400 dark:text-zinc-500"
+                : "text-emerald-600 dark:text-emerald-400 font-semibold"
+            }`}
+          >
+            {formatGain(g)}
           </text>
         ))}
         </svg>
@@ -481,6 +504,14 @@ function ToggleSwitch({
       />
     </button>
   );
+}
+
+/** Format the per-band live readout. Snaps near-zero to "0 dB" so
+ *  the axis row stays readable when the band is centred. */
+function formatGain(db: number): string {
+  if (Math.abs(db) < 0.05) return "0 dB";
+  const sign = db > 0 ? "+" : "";
+  return `${sign}${db.toFixed(1)} dB`;
 }
 
 function formatFreq(hz: number): string {
