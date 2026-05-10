@@ -57,6 +57,14 @@ import {
   type LastfmStatus,
 } from "../../lib/tauri/integration";
 import {
+  getSpotifyClientId,
+  setSpotifyClientId,
+  spotifyGetStatus,
+  spotifyLogin,
+  spotifyLogout,
+  type SpotifyStatus,
+} from "../../lib/tauri/spotify";
+import {
   batchFetchMissingAlbumCovers,
   batchFetchMissingArtistPictures,
 } from "../../lib/tauri/deezer";
@@ -655,6 +663,15 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [lastfmPassword, setLastfmPassword] = useState("");
   const [lastfmLoggingIn, setLastfmLoggingIn] = useState(false);
   const [lastfmLoginError, setLastfmLoginError] = useState<string | null>(null);
+  const [spotifyClientId, setSpotifyClientIdState] = useState("");
+  const [spotifyClientIdVisible, setSpotifyClientIdVisible] = useState(false);
+  const [spotifyStatus, setSpotifyStatus] = useState<SpotifyStatus | null>(
+    null,
+  );
+  const [spotifySaving, setSpotifySaving] = useState(false);
+  const [spotifySaved, setSpotifySaved] = useState(false);
+  const [spotifyLoggingIn, setSpotifyLoggingIn] = useState(false);
+  const [spotifyError, setSpotifyError] = useState<string | null>(null);
 
   // Discord Rich Presence opt-in. Hydrated once at mount, flipped
   // optimistically with rollback on failure.
@@ -795,6 +812,71 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       refreshLastfmStatus();
     } catch (err) {
       console.error("[SettingsView] Last.fm logout failed", err);
+    }
+  };
+
+  useEffect(() => {
+    getSpotifyClientId()
+      .then((v) => {
+        if (v) setSpotifyClientIdState(v);
+      })
+      .catch(() => {});
+    spotifyGetStatus()
+      .then(setSpotifyStatus)
+      .catch((err) =>
+        console.error("[SettingsView] Spotify status failed", err),
+      );
+  }, []);
+
+  const refreshSpotifyStatus = useCallback(() => {
+    spotifyGetStatus()
+      .then(setSpotifyStatus)
+      .catch((err) =>
+        console.error("[SettingsView] Spotify status failed", err),
+      );
+  }, []);
+
+  const handleSaveSpotifyClientId = async () => {
+    if (spotifySaving) return;
+    setSpotifySaving(true);
+    setSpotifySaved(false);
+    setSpotifyError(null);
+    try {
+      await setSpotifyClientId(spotifyClientId);
+      setSpotifySaved(true);
+      window.setTimeout(() => setSpotifySaved(false), 2000);
+      refreshSpotifyStatus();
+    } catch (err) {
+      setSpotifyError(err instanceof Error ? err.message : String(err));
+      console.error("[SettingsView] save Spotify Client ID failed", err);
+    } finally {
+      setSpotifySaving(false);
+    }
+  };
+
+  const handleSpotifyLogin = async () => {
+    if (spotifyLoggingIn || !spotifyClientId.trim()) return;
+    setSpotifyLoggingIn(true);
+    setSpotifyError(null);
+    try {
+      const status = await spotifyLogin();
+      setSpotifyStatus(status);
+    } catch (err) {
+      setSpotifyError(err instanceof Error ? err.message : String(err));
+      console.error("[SettingsView] Spotify login failed", err);
+    } finally {
+      setSpotifyLoggingIn(false);
+    }
+  };
+
+  const handleSpotifyLogout = async () => {
+    setSpotifyError(null);
+    try {
+      await spotifyLogout();
+      refreshSpotifyStatus();
+    } catch (err) {
+      setSpotifyError(err instanceof Error ? err.message : String(err));
+      console.error("[SettingsView] Spotify logout failed", err);
     }
   };
 
@@ -1385,6 +1467,137 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                         )}
                       </div>
                     )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-start space-x-4">
+              <Headphones
+                size={20}
+                className="text-zinc-400 mt-0.5"
+                aria-hidden="true"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.integrations.spotify.title", "Spotify")}
+                </div>
+                <div className="text-xs text-zinc-400 mb-3">
+                  {t(
+                    "settings.integrations.spotify.subtitle",
+                    "Connect Spotify Premium with your own Spotify Developer Client ID.",
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="relative flex-1">
+                    <input
+                      type={spotifyClientIdVisible ? "text" : "password"}
+                      value={spotifyClientId}
+                      onChange={(e) => {
+                        setSpotifyClientIdState(e.target.value);
+                        setSpotifySaved(false);
+                        setSpotifyError(null);
+                      }}
+                      placeholder={t(
+                        "settings.integrations.spotify.clientIdPlaceholder",
+                        "Spotify Client ID",
+                      )}
+                      spellCheck={false}
+                      autoComplete="off"
+                      className="w-full pr-10 pl-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setSpotifyClientIdVisible((v) => !v)}
+                      aria-label={
+                        spotifyClientIdVisible
+                          ? t("settings.integrations.lastfm.hide")
+                          : t("settings.integrations.lastfm.show")
+                      }
+                      className="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                    >
+                      {spotifyClientIdVisible ? (
+                        <EyeOff size={16} />
+                      ) : (
+                        <Eye size={16} />
+                      )}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSaveSpotifyClientId}
+                    disabled={spotifySaving}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${
+                      spotifySaved
+                        ? "bg-emerald-500 text-white"
+                        : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                    }`}
+                  >
+                    {spotifySaved
+                      ? t("settings.integrations.lastfm.saved")
+                      : t("settings.integrations.lastfm.save")}
+                  </button>
+                </div>
+
+                <div className="text-[11px] text-zinc-400 mb-3">
+                  {t(
+                    "settings.integrations.spotify.redirectHint",
+                    "Add this Redirect URI in Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
+                  )}
+                </div>
+
+                {spotifyStatus?.configured && (
+                  <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                    {spotifyStatus.connected ? (
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs">
+                          <span className="text-zinc-500">
+                            {t(
+                              "settings.integrations.spotify.connectedAs",
+                              "Connected as",
+                            )}{" "}
+                          </span>
+                          <span className="font-medium text-emerald-500">
+                            {spotifyStatus.username}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleSpotifyLogout}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+                        >
+                          {t(
+                            "settings.integrations.spotify.disconnect",
+                            "Disconnect",
+                          )}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSpotifyLogin}
+                        disabled={spotifyLoggingIn || !spotifyClientId.trim()}
+                        className="px-4 py-2 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {spotifyLoggingIn
+                          ? t(
+                              "settings.integrations.spotify.connecting",
+                              "Connecting...",
+                            )
+                          : t(
+                              "settings.integrations.spotify.connect",
+                              "Connect Spotify",
+                            )}
+                      </button>
+                    )}
+                  </div>
+                )}
+                {spotifyError && (
+                  <div className="text-xs text-rose-500 mt-2">
+                    {spotifyError}
                   </div>
                 )}
               </div>

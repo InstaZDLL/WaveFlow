@@ -13,6 +13,7 @@ import {
   Plus,
   Upload,
   Sparkles,
+  Headphones,
 } from "lucide-react";
 import type { ViewId, LibraryTab } from "../../types";
 import { NavItem } from "../common/NavItem";
@@ -250,6 +251,12 @@ export function Sidebar({
             label={t("sidebar.nav.home")}
             active={activeView === "home"}
             onClick={() => setActiveView("home")}
+          />
+          <NavItem
+            icon={<Headphones size={18} />}
+            label={t("sidebar.nav.spotify", "Spotify")}
+            active={activeView === "spotify"}
+            onClick={() => setActiveView("spotify")}
           />
         </div>
 

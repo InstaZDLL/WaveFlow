@@ -19,6 +19,7 @@ import { PlayerBar } from "../player/PlayerBar";
 import { HomeView } from "../views/HomeView";
 import { LibraryView } from "../views/LibraryView";
 import { SettingsView } from "../views/SettingsView";
+import { SpotifyView } from "../views/SpotifyView";
 import { AboutView } from "../views/AboutView";
 import { FeedbackView } from "../views/FeedbackView";
 import { StatisticsView } from "../views/StatisticsView";
@@ -189,6 +190,8 @@ export function AppLayout() {
         );
       case "settings":
         return <SettingsView onNavigate={setActiveView} />;
+      case "spotify":
+        return <SpotifyView onNavigate={setActiveView} />;
       case "about":
         return <AboutView onNavigate={setActiveView} />;
       case "feedback":

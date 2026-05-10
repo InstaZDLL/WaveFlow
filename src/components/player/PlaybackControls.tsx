@@ -24,10 +24,12 @@ export function PlaybackControls() {
     next,
     previous,
     currentTrack,
+    activeProvider,
   } = usePlayer();
 
   const isLoading = playbackState === "loading";
   const disableTransport = !currentTrack && playbackState === "idle";
+  const isSpotify = activeProvider === "spotify";
   const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
   const isRepeatActive = repeatMode !== "off";
 
@@ -36,13 +38,14 @@ export function PlaybackControls() {
       <button
         type="button"
         onClick={toggleShuffle}
+        disabled={isSpotify}
         aria-pressed={isShuffled}
         aria-label={
           isShuffled
             ? t("player.controls.shuffleOn")
             : t("player.controls.shuffleOff")
         }
-        className={`transition-colors ${
+        className={`transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
           isShuffled
             ? "text-emerald-500 hover:text-emerald-400"
             : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
@@ -91,6 +94,7 @@ export function PlaybackControls() {
       <button
         type="button"
         onClick={cycleRepeatMode}
+        disabled={isSpotify}
         aria-label={
           repeatMode === "off"
             ? t("player.controls.repeatOff")
@@ -98,7 +102,7 @@ export function PlaybackControls() {
               ? t("player.controls.repeatAll")
               : t("player.controls.repeatOne")
         }
-        className={`transition-colors ${
+        className={`transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
           isRepeatActive
             ? "text-emerald-500 hover:text-emerald-400"
             : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"

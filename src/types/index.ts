@@ -10,6 +10,7 @@ export type ViewId =
   | "statistics"
   | "liked"
   | "recent"
+  | "spotify"
   | "album-detail"
   | "artist-detail";
 

@@ -12,7 +12,9 @@ import {
   type RepeatMode,
 } from "../hooks/usePlayer";
 import { useProfile } from "../hooks/useProfile";
+import { useSpotify } from "../hooks/useSpotify";
 import type { Track } from "../lib/tauri/track";
+import type { SpotifyTrackLite } from "../lib/tauri/spotify";
 import {
   playerCycleRepeat,
   playerGetState,
@@ -71,6 +73,36 @@ function queuePayloadToTrack(payload: QueueTrackPayload): Track {
   };
 }
 
+function spotifyTrackToTrack(track: SpotifyTrackLite): Track {
+  return {
+    id: -1,
+    library_id: 0,
+    title: track.name,
+    album_id: null,
+    album_title: track.album_name,
+    artist_id: null,
+    artist_name: track.artist_name,
+    artist_ids: null,
+    duration_ms: track.duration_ms,
+    track_number: null,
+    disc_number: null,
+    year: null,
+    bitrate: null,
+    sample_rate: null,
+    channels: null,
+    bit_depth: null,
+    codec: "Spotify",
+    musical_key: null,
+    file_path: track.uri,
+    file_size: 0,
+    added_at: 0,
+    artwork_path: track.image_url,
+    artwork_path_1x: null,
+    artwork_path_2x: null,
+    rating: null,
+  };
+}
+
 /**
  * Provides the audio player state + actions to the whole React tree.
  *
@@ -85,6 +117,7 @@ function queuePayloadToTrack(payload: QueueTrackPayload): Track {
  */
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const { activeProfile } = useProfile();
+  const spotify = useSpotify();
 
   // Queue, NowPlaying, and Lyrics share the same right-edge slot (w-80),
   // so we model "which is open" as a single value rather than three
@@ -104,6 +137,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [outputDevices, setOutputDevices] = useState<OutputDevice[]>([]);
 
   // Backend-synced state
+  const [activeProvider, setActiveProvider] = useState<"local" | "spotify">(
+    "local",
+  );
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle");
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [positionMs, setPositionMs] = useState(0);
@@ -122,7 +158,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // progress bar, so the thumb doesn't fight the mouse.
   const isSeekingRef = useRef(false);
 
-  const isPlaying = playbackState === "playing";
+  const effectivePlaybackState =
+    activeProvider === "spotify" ? spotify.playbackState : playbackState;
+  const isPlaying = effectivePlaybackState === "playing";
 
   // --- initial snapshot (re-runs on profile switch) ---
   useEffect(() => {
@@ -184,6 +222,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         );
         unlisten.push(
           await listen<QueueTrackPayload>("player:track-changed", (e) => {
+            setActiveProvider("local");
             // Backend just selected a new track (via play_tracks,
             // next, previous, resume_last, or the analytics task's
             // auto-advance). Reflect it in the PlayerBar
@@ -212,33 +251,52 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // --- Volume debounce ---
-  const setVolume = useCallback((value: number) => {
-    const clamped = Math.max(0, Math.min(100, Math.round(value)));
-    setVolumeState(clamped);
-    if (clamped > 0) previousVolumeRef.current = clamped;
+  const setVolume = useCallback(
+    (value: number) => {
+      const clamped = Math.max(0, Math.min(100, Math.round(value)));
+      setVolumeState(clamped);
+      if (clamped > 0) previousVolumeRef.current = clamped;
 
-    if (volumeDebounceRef.current != null) {
-      window.clearTimeout(volumeDebounceRef.current);
-    }
-    volumeDebounceRef.current = window.setTimeout(() => {
-      playerSetVolume(clamped / 100).catch((err) =>
-        console.error("[PlayerContext] set volume failed", err),
-      );
-      volumeDebounceRef.current = null;
-    }, 60);
-  }, []);
+      if (volumeDebounceRef.current != null) {
+        window.clearTimeout(volumeDebounceRef.current);
+      }
+      volumeDebounceRef.current = window.setTimeout(() => {
+        if (activeProvider === "spotify") {
+          spotify
+            .setVolume(clamped)
+            .catch((err) =>
+              console.error("[PlayerContext] set spotify volume failed", err),
+            );
+        } else {
+          playerSetVolume(clamped / 100).catch((err) =>
+            console.error("[PlayerContext] set volume failed", err),
+          );
+        }
+        volumeDebounceRef.current = null;
+      }, 60);
+    },
+    [activeProvider, spotify],
+  );
 
   const toggleMute = useCallback(() => {
     setVolumeState((current) => {
       const next = current > 0 ? 0 : previousVolumeRef.current || 50;
       if (current > 0) previousVolumeRef.current = current;
       // Mute is immediate — no debounce.
-      playerSetVolume(next / 100).catch((err) =>
-        console.error("[PlayerContext] toggle mute failed", err),
-      );
+      if (activeProvider === "spotify") {
+        spotify
+          .setVolume(next)
+          .catch((err) =>
+            console.error("[PlayerContext] toggle spotify mute failed", err),
+          );
+      } else {
+        playerSetVolume(next / 100).catch((err) =>
+          console.error("[PlayerContext] toggle mute failed", err),
+        );
+      }
       return next;
     });
-  }, []);
+  }, [activeProvider, spotify]);
 
   // --- Tear down pending debounce on unmount ---
   useEffect(() => {
@@ -264,6 +322,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         return;
       }
       const chosen = tracks[startIndex];
+      if (activeProvider === "spotify" && spotify.playbackState === "playing") {
+        await spotify
+          .togglePlayback()
+          .catch((err) =>
+            console.error("[PlayerContext] pause spotify failed", err),
+          );
+      }
+      setActiveProvider("local");
       // Optimistic UI: show the clicked track + duration immediately
       // so the PlayerBar doesn't lag the invoke round-trip.
       setCurrentTrack(chosen);
@@ -283,11 +349,46 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         setPlaybackState("idle");
       }
     },
-    [],
+    [activeProvider, spotify],
+  );
+
+  const playSpotifyTrack = useCallback(
+    async (track: SpotifyTrackLite) => {
+      setActiveProvider("spotify");
+      setCurrentTrack(spotifyTrackToTrack(track));
+      setDurationMs(track.duration_ms);
+      setPositionMs(0);
+      setPlaybackState("loading");
+      try {
+        await spotify.playTrack(track);
+      } catch (err) {
+        console.error("[PlayerContext] play spotify track failed", err);
+        setPlaybackState("idle");
+      }
+    },
+    [spotify],
+  );
+
+  const playSpotifyContext = useCallback(
+    async (contextUri: string) => {
+      setActiveProvider("spotify");
+      setPlaybackState("loading");
+      try {
+        await spotify.playContext(contextUri);
+      } catch (err) {
+        console.error("[PlayerContext] play spotify context failed", err);
+        setPlaybackState("idle");
+      }
+    },
+    [spotify],
   );
 
   const togglePlayback = useCallback(async () => {
     try {
+      if (activeProvider === "spotify") {
+        await spotify.togglePlayback();
+        return;
+      }
       if (playbackState === "playing") {
         await playerPause();
       } else if (playbackState === "paused") {
@@ -302,34 +403,49 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       console.error("[PlayerContext] toggle playback failed", err);
       setPlaybackState("idle");
     }
-  }, [playbackState, currentTrack]);
+  }, [activeProvider, spotify, playbackState, currentTrack]);
 
   const next = useCallback(async () => {
     try {
+      if (activeProvider === "spotify") {
+        await spotify.next();
+        return;
+      }
       await playerNext();
     } catch (err) {
       console.error("[PlayerContext] next failed", err);
     }
-  }, []);
+  }, [activeProvider, spotify]);
 
   const previous = useCallback(async () => {
     try {
+      if (activeProvider === "spotify") {
+        await spotify.previous();
+        return;
+      }
       await playerPrevious();
     } catch (err) {
       console.error("[PlayerContext] previous failed", err);
     }
-  }, []);
+  }, [activeProvider, spotify]);
 
-  const seek = useCallback(async (ms: number) => {
-    // Optimistic: update the UI position immediately; the backend
-    // will also emit player:position after the seek lands.
-    setPositionMs(ms);
-    try {
-      await playerSeek(ms);
-    } catch (err) {
-      console.error("[PlayerContext] seek failed", err);
-    }
-  }, []);
+  const seek = useCallback(
+    async (ms: number) => {
+      // Optimistic: update the UI position immediately; the backend
+      // will also emit player:position after the seek lands.
+      setPositionMs(ms);
+      try {
+        if (activeProvider === "spotify") {
+          await spotify.seek(ms);
+          return;
+        }
+        await playerSeek(ms);
+      } catch (err) {
+        console.error("[PlayerContext] seek failed", err);
+      }
+    },
+    [activeProvider, spotify],
+  );
 
   const setSeeking = useCallback((value: boolean) => {
     isSeekingRef.current = value;
@@ -391,10 +507,30 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // it here is cheap (the backend cache hit short-circuits the network
   // path within ~10 ms when the row is fresh).
   useEffect(() => {
+    if (activeProvider === "spotify") return;
     const artistId = currentTrack?.artist_id;
     if (artistId == null) return;
     enrichArtistDeezer(artistId).catch(() => {});
-  }, [currentTrack?.artist_id]);
+  }, [activeProvider, currentTrack?.artist_id]);
+
+  useEffect(() => {
+    if (activeProvider !== "spotify") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPlaybackState(spotify.playbackState);
+    setPositionMs(spotify.positionMs);
+    setDurationMs(spotify.durationMs);
+    if (spotify.currentTrack) {
+      setCurrentTrack(spotifyTrackToTrack(spotify.currentTrack));
+    }
+    setVolumeState(spotify.volume);
+  }, [
+    activeProvider,
+    spotify.playbackState,
+    spotify.positionMs,
+    spotify.durationMs,
+    spotify.currentTrack,
+    spotify.volume,
+  ]);
 
   // Pre-fetch the device list at mount. Re-runs on profile switch
   // because `current_output_device` is per-profile (the persisted
@@ -419,7 +555,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         toggleDeviceMenu,
         outputDevices,
         refreshOutputDevices,
-        playbackState,
+        activeProvider,
+        playbackState: effectivePlaybackState,
         isPlaying,
         currentTrack,
         positionMs,
@@ -432,6 +569,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         repeatMode,
         cycleRepeatMode,
         playTracks,
+        playSpotifyTrack,
+        playSpotifyContext,
         togglePlayback,
         next,
         previous,
