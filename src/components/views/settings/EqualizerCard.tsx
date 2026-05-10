@@ -216,21 +216,29 @@ interface EqCurveProps {
  * green plateau.
  */
 function EqCurve({ bands, freqs, maxGain, onUpdateBand }: EqCurveProps) {
-  const VB_W = 600;
-  const VB_H = 240;
-  const PAD_TOP = 20;
-  const PAD_BOTTOM = 30;
-  const PAD_X = 30;
-  const usableW = VB_W - PAD_X * 2;
+  // Aspect tuned to match Spotify's plot block (wider than tall, with
+  // dedicated label gutter on the left). The container's `aspect-[7/3]`
+  // CSS keeps the SVG visually identical at any width without
+  // disabling preserveAspectRatio (which is what made the curve look
+  // horizontally stretched in v1).
+  const VB_W = 700;
+  const VB_H = 300;
+  const PAD_TOP = 28;
+  const PAD_BOTTOM = 36;
+  // Left gutter holds the +12dB / -12dB labels; right gutter is just
+  // breathing room so the rightmost dot doesn't kiss the SVG edge.
+  const PAD_LEFT = 56;
+  const PAD_RIGHT = 24;
+  const usableW = VB_W - PAD_LEFT - PAD_RIGHT;
   const usableH = VB_H - PAD_TOP - PAD_BOTTOM;
   const midY = PAD_TOP + usableH / 2;
 
   const svgRef = useRef<SVGSVGElement | null>(null);
   const draggingRef = useRef<number | null>(null);
 
-  // X position for band index — even spacing across the visible width.
+  // X position for band index — even spacing across the plot area.
   const xFor = useCallback(
-    (i: number) => PAD_X + (i / (bands.length - 1)) * usableW,
+    (i: number) => PAD_LEFT + (i / (bands.length - 1)) * usableW,
     [bands.length, usableW],
   );
 
@@ -296,39 +304,64 @@ function EqCurve({ bands, freqs, maxGain, onUpdateBand }: EqCurveProps) {
     [],
   );
 
-  // Polyline points joining all bands.
-  const points = bands
-    .map((g, i) => `${xFor(i)},${yFor(g)}`)
-    .join(" ");
+  // Smooth curve through the bands using a Catmull-Rom spline
+  // converted to cubic Bezier control points. This is what gives
+  // Spotify's EQ its characteristic "bumps between bands" instead of
+  // straight zig-zag segments. Endpoints are duplicated so the spline
+  // doesn't rely on phantom neighbours past the edge.
+  const pts = bands.map((g, i) => ({ x: xFor(i), y: yFor(g) }));
+  const splinePath = (() => {
+    if (pts.length < 2) return "";
+    const get = (i: number) => pts[Math.max(0, Math.min(pts.length - 1, i))];
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = get(i - 1);
+      const p1 = get(i);
+      const p2 = get(i + 1);
+      const p3 = get(i + 2);
+      // Catmull-Rom → Bezier: tension 0.5 (the /6 standard form).
+      const c1x = p1.x + (p2.x - p0.x) / 6;
+      const c1y = p1.y + (p2.y - p0.y) / 6;
+      const c2x = p2.x - (p3.x - p1.x) / 6;
+      const c2y = p2.y - (p3.y - p1.y) / 6;
+      d += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2.x} ${p2.y}`;
+    }
+    return d;
+  })();
 
-  // Filled polygon: same points + closing line down to the mid-axis.
+  // Same path but closed down to the mid-axis to render the filled
+  // polygon. Reusing the spline guarantees stroke + fill follow the
+  // exact same curve.
   const fillPath =
-    `M ${PAD_X},${midY} ` +
-    bands.map((g, i) => `L ${xFor(i)},${yFor(g)}`).join(" ") +
-    ` L ${PAD_X + usableW},${midY} Z`;
+    `M ${pts[0].x} ${midY} L ${pts[0].x} ${pts[0].y}` +
+    splinePath.slice(splinePath.indexOf("C") - 1) +
+    ` L ${pts[pts.length - 1].x} ${midY} Z`;
 
   return (
     <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 p-3">
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${VB_W} ${VB_H}`}
-        className="w-full h-56 touch-none"
-        preserveAspectRatio="none"
-      >
-        {/* dB scale labels */}
+      <div className="aspect-7/3 w-full">
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${VB_W} ${VB_H}`}
+          className="w-full h-full touch-none"
+        >
+        {/* dB scale labels — anchored end so they sit just left of the
+            plot's vertical edge, mirroring Spotify's left gutter. */}
         <text
-          x={4}
-          y={PAD_TOP + 4}
-          fontSize={10}
+          x={PAD_LEFT - 12}
+          y={PAD_TOP + 6}
+          fontSize={13}
+          textAnchor="end"
           fill="currentColor"
           className="text-zinc-400 select-none"
         >
           +{maxGain}dB
         </text>
         <text
-          x={4}
+          x={PAD_LEFT - 12}
           y={PAD_TOP + usableH + 4}
-          fontSize={10}
+          fontSize={13}
+          textAnchor="end"
           fill="currentColor"
           className="text-zinc-400 select-none"
         >
@@ -337,9 +370,9 @@ function EqCurve({ bands, freqs, maxGain, onUpdateBand }: EqCurveProps) {
 
         {/* Mid-axis line */}
         <line
-          x1={PAD_X}
+          x1={PAD_LEFT}
           y1={midY}
-          x2={PAD_X + usableW}
+          x2={PAD_LEFT + usableW}
           y2={midY}
           stroke="currentColor"
           strokeWidth={1}
@@ -363,32 +396,34 @@ function EqCurve({ bands, freqs, maxGain, onUpdateBand }: EqCurveProps) {
         {/* Filled gradient under the curve */}
         <defs>
           <linearGradient id="eqFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgb(16 185 129)" stopOpacity="0.55" />
-            <stop offset="100%" stopColor="rgb(16 185 129)" stopOpacity="0.05" />
+            <stop offset="0%" stopColor="rgb(16 185 129)" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="rgb(16 185 129)" stopOpacity="0.08" />
           </linearGradient>
         </defs>
         <path d={fillPath} fill="url(#eqFill)" />
 
-        {/* Curve polyline */}
-        <polyline
-          points={points}
+        {/* Smooth curve stroke */}
+        <path
+          d={splinePath}
           fill="none"
           stroke="rgb(16 185 129)"
-          strokeWidth={2}
+          strokeWidth={2.5}
           strokeLinejoin="round"
+          strokeLinecap="round"
         />
 
-        {/* Draggable points */}
+        {/* Draggable points — slightly larger than the v1 to match
+            Spotify's tap target size. */}
         {bands.map((g, i) => (
           <circle
             key={`p-${i}`}
             cx={xFor(i)}
             cy={yFor(g)}
-            r={7}
+            r={9}
             fill="white"
             stroke="rgb(16 185 129)"
-            strokeWidth={2}
-            className="cursor-grab active:cursor-grabbing"
+            strokeWidth={2.5}
+            className="cursor-grab active:cursor-grabbing drop-shadow-sm"
             onPointerDown={handlePointerDown(i)}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -401,8 +436,9 @@ function EqCurve({ bands, freqs, maxGain, onUpdateBand }: EqCurveProps) {
           <text
             key={`f-${i}`}
             x={xFor(i)}
-            y={VB_H - 8}
-            fontSize={11}
+            y={VB_H - 10}
+            fontSize={14}
+            fontWeight={600}
             textAnchor="middle"
             fill="currentColor"
             className="text-zinc-500 dark:text-zinc-400 select-none"
@@ -410,7 +446,8 @@ function EqCurve({ bands, freqs, maxGain, onUpdateBand }: EqCurveProps) {
             {formatFreq(f)}
           </text>
         ))}
-      </svg>
+        </svg>
+      </div>
     </div>
   );
 }
