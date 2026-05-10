@@ -34,6 +34,28 @@ The scanner splits `"Artist A, Artist B"` (and `;` / `feat.` / `&` variants) on 
 
 FTS5 contentless index over `title`, `artist`, `album` with prefix matching. Auto-sync triggers (`AFTER INSERT/UPDATE/DELETE` on `track`) keep the index current using the `'delete'` command on the contentless table. Queries are issued from the React top bar with a 150 ms debounce.
 
+## Folder management
+
+[`commands/library.rs`](../../src-tauri/src/commands/library.rs) exposes the watch-folder lifecycle: `add_folder_to_library`, `set_folder_watched` (toggle the in-memory `notify` watcher), and `remove_folder_from_library`. The remove path detaches the watcher, deletes every track that lived under the folder, then drops the `library_folder` row in a single transaction. The schema's `track.folder_id ON DELETE SET NULL` would otherwise leave orphan tracks with `library_id` still set — making the user "remove" a folder while its tracks stayed in the library, which never matches what they expect.
+
+UI: per-folder trash button in the Bibliothèque → Dossiers tab, two-step confirm-on-second-click that auto-clears after 3 s.
+
+## Drag-and-drop import
+
+[`hooks/useDragDropImport.ts`](../../src/hooks/useDragDropImport.ts) wires Tauri 2's window-level `onDragDropEvent` into the existing import flow via a single backend command: [`commands/library.rs::import_paths`](../../src-tauri/src/commands/library.rs). The command accepts a mix of folders and audio files — files contribute their parent directory — dedupes the resolved folder set, then for each one tries an `INSERT OR IGNORE INTO library_folder` (the `(library_id, path)` UNIQUE constraint absorbs duplicates) and runs `scan_folder_inner`. Aggregated `ScanSummary` is returned to the frontend so the user sees one toast with the total counts.
+
+Auto-creates a default library on the very first drop when the profile has none, mirroring the existing pickFolder import path.
+
+UI: emerald drop overlay in [`AppLayout`](../../src/components/layout/AppLayout.tsx) renders a fade-in border + drop hint while the user is dragging, then a spinner while the backend scan runs. `pointer-events: none` on the overlay so the drop still hits Tauri's native handler.
+
+## Duplicate detection
+
+[`commands/duplicates.rs`](../../src-tauri/src/commands/duplicates.rs) groups every available track by `file_hash` (BLAKE3 of the audio bytes, computed at scan time) so byte-identical copies in different folders fall into the same bucket regardless of metadata. Re-encodes of the same source — e.g. CBR vs VBR rips — **won't** match because the bytes differ; that's a fingerprinting problem and out of scope for the MVP.
+
+`find_duplicates` returns one entry per group, ordered by `added_at ASC` so the oldest copy renders first (usually the one to keep). `delete_tracks(track_ids)` cascades through the schema's `ON DELETE` constraints to clean up `track_artist`, `track_genre`, `playlist_track`, `play_event`, etc. — but **the audio files on disk are not touched**: the user removes them via the OS so we don't accidentally wipe a backup.
+
+UI: [`DuplicatesModal`](../../src/components/common/DuplicatesModal.tsx) launched from Settings → Stockage → "Rechercher". Each group exposes a radio selector (defaults to oldest) and the footer's "Supprimer N doublons" wipes every other entry from the database.
+
 ## Cover picker
 
 [`commands/deezer.rs::set_album_artwork_from_deezer`](../../src-tauri/src/commands/deezer.rs) and `set_album_artwork_from_file`. The file picker validates magic bytes (JPEG / PNG / WebP) before accepting upload, and `batch_fetch_missing_album_covers` walks all albums without an `artwork_id`, querying Deezer in parallel with a small concurrency cap.

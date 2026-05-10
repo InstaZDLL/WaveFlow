@@ -98,10 +98,17 @@ PNG sources live in [`assets/discord/png/`](../../assets/discord/png/), generate
 [`lrclib.rs`](../../src-tauri/src/lrclib.rs) — public lookup by `artist_name + track_name + album_name + duration` against [LRCLIB](https://lrclib.net). Three-tier resolution in [`commands/lyrics.rs`](../../src-tauri/src/commands/lyrics.rs), driven on demand by `fetch_lyrics`:
 
 1. **Cache** — `app.lyrics` row keyed by `track.file_hash` (BLAKE3). No TTL, shared across profiles.
-2. **Embedded** — `LYRICS` / `USLT` / `©lyr` tag in the file (lofty), incl. synced `LRC` blocks.
+2. **Embedded** — `LYRICS` / `USLT` / `©lyr` tag in the file (lofty), incl. synced `LRC` blocks. Lookup tries `ItemKey::UnsyncLyrics` first (the only key that maps to ID3v2's `USLT` in lofty 0.24), then `ItemKey::Lyrics` for Vorbis / MP4. For MP3s tagged with Mp3tag / foobar2000 / lame `--tg`, lyrics often live in a TXXX user-defined frame named `LYRICS` or `UNSYNCEDLYRICS` (common on K-Pop / J-Pop rips); these are invisible to the generic `Tag` interface so [`commands/lyrics.rs::read_id3v2_txxx_lyrics`](../../src-tauri/src/commands/lyrics.rs) re-opens the file as `MpegFile`, downcasts to `Id3v2Tag`, and scans the TXXX descriptions explicitly.
 3. **LRCLIB** — synced lyrics first, falls back to plain text. Result cached as a new row.
 
 In addition, `import_lrc_file` lets the user pick a `.lrc` file by hand and overwrite the cached entry — there is no automatic sidecar pickup.
+
+**In-app editor.** `save_lyrics(track_id, { content, format, write_to_file })` upserts the cache row with `source = manual` and, when `write_to_file` is true, also writes the content into the file's `USLT` (ID3v2) / `UNSYNCEDLYRICS` (Vorbis) / `©lyr` (MP4) frame via lofty. Same Windows file-lock dance as the tag editor — pause if the engine has the file open, then re-hash with blake3 and update `track.file_hash` so the cache row stays addressable after the write. Emits a typed `lyrics:updated` event the panel listens to.
+
+UI is [`LyricsEditorModal`](../../src/components/common/LyricsEditorModal.tsx) opened via the pencil button in the lyrics panel header. Two tabs:
+
+- **Texte** — free-form `<textarea>` for unsynced lyrics.
+- **Synchronisé** (Musicolet-style) — each row is a `(timestamp, text)` pair. A "Capturer" button (or **Space** keyboard shortcut) snaps the active row's timestamp to the player's current `positionMs`. Play / Pause / ±2 s controls pilot the existing `PlayerContext` so the user can scrub the file while writing the lines, and the rows are serialised back to LRC via [`serializeLrc`](../../src/lib/tauri/lyrics.ts).
 
 **Cache discipline.** `clear_lyrics` flushes the row keyed by the track's hash so the next fetch re-runs the waterfall. Cached outcomes:
 

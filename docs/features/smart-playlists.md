@@ -95,3 +95,32 @@ The cross-DB lookup in `top_artists_with_bpm` opens a short-lived secondary conn
 ## Manual edits
 
 A user adding or removing a track from a Daily Mix **will lose the change on the next regen**: `upsert_smart_playlist` deletes every `playlist_track` row for the playlist before re-inserting the freshly shuffled set. If durable curation is needed, the right move is to "Save as new playlist", which copies the tracks into a fresh `is_smart = 0` row.
+
+## Custom smart playlists (rule-based)
+
+The user-driven counterpart to Daily Mix lives in [`smart_playlists/custom.rs`](../../src-tauri/src/smart_playlists/custom.rs). The `SmartPlaylistRules` enum gains a `Custom { rules: CustomRules }` variant; `CustomRules` mirrors the search filter shape and stores the editable predicates plus a sort + limit:
+
+| Predicate | Notes |
+|-----------|-------|
+| `title_contains` / `artist_contains` / `album_contains` | Case-insensitive `LIKE '%…%'`. |
+| `genre_ids: Vec<i64>` | OR-combined via `EXISTS … WHERE genre_id IN (?,?,?)`. |
+| `year_min` / `year_max` | Inclusive bounds, `NULL` years filtered out. |
+| `bpm_min` / `bpm_max` | Adds a `LEFT JOIN track_analysis` only when set. |
+| `duration_min_ms` / `duration_max_ms` | Inclusive on `track.duration_ms`. |
+| `formats: Vec<String>` | Lowercased OR-match on `track.codec`. |
+| `hi_res_only` | `sample_rate >= 88200 OR bit_depth >= 24`. |
+| `liked_only` | `EXISTS (SELECT 1 FROM liked_track …)`. |
+| `sort: CustomSort` | One of `added_desc` (default), `added_asc`, `year_desc/asc`, `title_asc`, `artist_asc`, `random`. |
+| `limit` | Soft cap; clamped to 5 000 server-side so a typo doesn't blow up the queue. |
+
+**Materialisation.** `custom::materialize` builds a single `SELECT DISTINCT t.id` with on-demand JOINs (deduped via a `HashSet` so adding the same JOIN twice doesn't explode row counts via the cross product), then rewrites `playlist_track` in a transaction so a partial failure can't leave the playlist half-empty. `playlist.smart_rules` stores the full `Custom { rules }` JSON so a future regen pass can re-evaluate the same rule set without the editor reopening.
+
+**Commands** ([`commands/smart_playlists.rs`](../../src-tauri/src/commands/smart_playlists.rs)):
+
+- `create_custom_smart_playlist(input)` — insert the row + materialise tracks.
+- `update_custom_smart_playlist(playlist_id, input)` — update + re-materialise. Errors out when the target isn't a custom smart playlist (e.g. a Daily Mix slot or a manual playlist) so the editor never overwrites a wrong row.
+- `regenerate_custom_smart_playlist(playlist_id)` — re-runs the stored rules without changing the definition. Useful after a library import so newly added tracks get picked up.
+- `get_custom_smart_playlist_rules(playlist_id)` — rehydrates the editor.
+- `preview_custom_smart_playlist(rules)` — dry-run for the editor's count badge; returns the matched track count + the first 200 ids.
+
+**UI** is [`SmartPlaylistEditorModal`](../../src/components/common/SmartPlaylistEditorModal.tsx) — single-form rule builder with a live preview button — opened from the sparkles icon next to the regular "+" in the playlist sidebar header. Output icon defaults to `sparkles` so smart playlists are visually distinguishable from manual ones in the sidebar.
