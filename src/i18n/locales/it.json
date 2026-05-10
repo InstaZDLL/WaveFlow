@@ -687,6 +687,11 @@
       "manual": "Inserimento manuale"
     }
   },
+  "dragDrop": {
+    "dropHint": "Rilascia per importare",
+    "importing": "Importazione…",
+    "subtitle": "Cartelle o file audio accettati"
+  },
   "abLoop": {
     "setA": "Ripetizione A-B: imposta il punto A alla posizione attuale",
     "setB": "Ripetizione A-B: imposta il punto B (A = {{a}})",

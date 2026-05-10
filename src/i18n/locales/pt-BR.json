@@ -687,6 +687,11 @@
       "manual": "Digitação manual"
     }
   },
+  "dragDrop": {
+    "dropHint": "Soltar para importar",
+    "importing": "Importando…",
+    "subtitle": "Pastas ou arquivos de áudio aceitos"
+  },
   "abLoop": {
     "setA": "Repetição A-B: definir o ponto A na posição atual",
     "setB": "Repetição A-B: definir o ponto B (A = {{a}})",

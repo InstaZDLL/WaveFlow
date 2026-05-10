@@ -687,6 +687,11 @@
       "manual": "Elle giriş"
     }
   },
+  "dragDrop": {
+    "dropHint": "İçe aktarmak için bırak",
+    "importing": "İçe aktarılıyor…",
+    "subtitle": "Klasörler veya ses dosyaları kabul edilir"
+  },
   "abLoop": {
     "setA": "A-B tekrarı: A noktasını mevcut konuma ayarla",
     "setB": "A-B tekrarı: B noktasını ayarla (A = {{a}})",

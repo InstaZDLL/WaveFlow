@@ -687,6 +687,11 @@
       "manual": "Pencatatan manual"
     }
   },
+  "dragDrop": {
+    "dropHint": "Lepas untuk mengimpor",
+    "importing": "Mengimpor…",
+    "subtitle": "Folder atau berkas audio diterima"
+  },
   "abLoop": {
     "setA": "Ulang A-B: atur titik A di posisi saat ini",
     "setB": "Ulang A-B: atur titik B (A = {{a}})",

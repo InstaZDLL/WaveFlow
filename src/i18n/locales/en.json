@@ -687,6 +687,11 @@
       "manual": "Manual entry"
     }
   },
+  "dragDrop": {
+    "dropHint": "Drop to import",
+    "importing": "Importing…",
+    "subtitle": "Folders or audio files accepted"
+  },
   "abLoop": {
     "setA": "A-B repeat: set point A at the current position",
     "setB": "A-B repeat: set point B (A = {{a}})",

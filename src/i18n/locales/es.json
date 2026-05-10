@@ -687,6 +687,11 @@
       "manual": "Introducción manual"
     }
   },
+  "dragDrop": {
+    "dropHint": "Soltar para importar",
+    "importing": "Importando…",
+    "subtitle": "Se aceptan carpetas o archivos de audio"
+  },
   "abLoop": {
     "setA": "Repetición A-B: fijar punto A en la posición actual",
     "setB": "Repetición A-B: fijar punto B (A = {{a}})",

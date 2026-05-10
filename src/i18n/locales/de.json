@@ -687,6 +687,11 @@
       "manual": "Manuelle Eingabe"
     }
   },
+  "dragDrop": {
+    "dropHint": "Loslassen zum Importieren",
+    "importing": "Wird importiert…",
+    "subtitle": "Ordner oder Audiodateien akzeptiert"
+  },
   "abLoop": {
     "setA": "A-B-Wiederholung: Punkt A an aktueller Position setzen",
     "setB": "A-B-Wiederholung: Punkt B setzen (A = {{a}})",

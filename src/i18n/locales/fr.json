@@ -731,6 +731,11 @@
       "random": "Aléatoire"
     }
   },
+  "dragDrop": {
+    "dropHint": "Déposer pour importer",
+    "importing": "Import en cours…",
+    "subtitle": "Dossiers ou fichiers audio acceptés"
+  },
   "abLoop": {
     "setA": "Boucle A-B : définir le point A à la position actuelle",
     "setB": "Boucle A-B : définir le point B (A = {{a}})",

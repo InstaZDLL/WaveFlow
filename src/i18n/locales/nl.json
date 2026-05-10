@@ -687,6 +687,11 @@
       "manual": "Handmatig invoeren"
     }
   },
+  "dragDrop": {
+    "dropHint": "Loslaten om te importeren",
+    "importing": "Bezig met importeren…",
+    "subtitle": "Mappen of audiobestanden geaccepteerd"
+  },
   "abLoop": {
     "setA": "A-B-herhaling: punt A op huidige positie instellen",
     "setB": "A-B-herhaling: punt B instellen (A = {{a}})",

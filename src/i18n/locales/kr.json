@@ -687,6 +687,11 @@
       "manual": "수동 입력"
     }
   },
+  "dragDrop": {
+    "dropHint": "놓아서 가져오기",
+    "importing": "가져오는 중…",
+    "subtitle": "폴더 또는 오디오 파일 허용"
+  },
   "abLoop": {
     "setA": "A-B 반복: 현재 위치에 A 지점 설정",
     "setB": "A-B 반복: B 지점 설정 (A = {{a}})",

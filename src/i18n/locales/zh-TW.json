@@ -687,6 +687,11 @@
       "manual": "手動輸入"
     }
   },
+  "dragDrop": {
+    "dropHint": "放下以匯入",
+    "importing": "正在匯入…",
+    "subtitle": "接受資料夾或音訊檔案"
+  },
   "abLoop": {
     "setA": "A-B 循環：在目前位置設定 A 點",
     "setB": "A-B 循環：設定 B 點 (A = {{a}})",

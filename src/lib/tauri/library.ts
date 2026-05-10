@@ -137,6 +137,27 @@ export function removeFolderFromLibrary(folderId: number): Promise<void> {
 }
 
 /**
+ * Import a list of arbitrary filesystem paths into a library. Used
+ * by the drag-and-drop handler — accepts a mix of folders and audio
+ * files (files contribute their parent directory). Adds each as a
+ * library_folder (skipping duplicates) and triggers a scan, then
+ * returns a single aggregated summary.
+ */
+export function importPaths(
+  libraryId: number,
+  paths: string[],
+): Promise<{
+  scanned: number;
+  added: number;
+  updated: number;
+  skipped: number;
+  errors: number;
+  removed: number;
+}> {
+  return invoke("import_paths", { libraryId, paths });
+}
+
+/**
  * Walk every artwork directory and (re)build the `_1x` / `_2x` JPEG
  * thumbnails for any full-size cover that is missing them. Returns
  * the count of source images successfully processed.

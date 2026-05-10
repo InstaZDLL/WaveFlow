@@ -379,6 +379,116 @@ pub async fn list_library_folders(
     Ok(rows)
 }
 
+/// Import a list of arbitrary filesystem paths into a library.
+/// Used by the drag-and-drop handler — the user can drop a mix of
+/// folders and audio files; we resolve each into a folder path
+/// (file → its parent dir), dedupe, then add each as a
+/// `library_folder` (skipping duplicates via UNIQUE) and scan it.
+///
+/// Aggregates every scan's stats into a single `ScanSummary` so the
+/// UI can show one toast with the total counts.
+#[tauri::command]
+pub async fn import_paths(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    library_id: i64,
+    paths: Vec<String>,
+) -> AppResult<ScanSummary> {
+    if paths.is_empty() {
+        return Ok(ScanSummary::default());
+    }
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+
+    let exists: Option<i64> = sqlx::query_scalar("SELECT id FROM library WHERE id = ?")
+        .bind(library_id)
+        .fetch_optional(&pool)
+        .await?;
+    if exists.is_none() {
+        return Err(AppError::Other(format!(
+            "library {library_id} does not exist in active profile"
+        )));
+    }
+
+    // Resolve each input path into the folder we should add. Files
+    // contribute their parent directory; non-existent paths are
+    // skipped silently (the user may have dropped a stale shortcut).
+    let mut folder_paths: Vec<String> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    for raw in paths {
+        let p = std::path::PathBuf::from(&raw);
+        let folder = match std::fs::metadata(&p) {
+            Ok(m) if m.is_dir() => p,
+            Ok(_) => match p.parent() {
+                Some(parent) => parent.to_path_buf(),
+                None => continue,
+            },
+            Err(err) => {
+                tracing::warn!(path = %raw, %err, "import_paths: stat failed");
+                continue;
+            }
+        };
+        let canonical = folder.to_string_lossy().to_string();
+        if seen.insert(canonical.clone()) {
+            folder_paths.push(canonical);
+        }
+    }
+
+    let mut total = ScanSummary::default();
+    for path in folder_paths {
+        // Add or look up the existing folder row. INSERT OR IGNORE
+        // returns last_insert_rowid = 0 on a duplicate; in that case
+        // we resolve the existing id by (library_id, path).
+        let res = sqlx::query(
+            "INSERT OR IGNORE INTO library_folder
+                 (library_id, path, last_scanned_at, is_watched)
+             VALUES (?, ?, NULL, 0)",
+        )
+        .bind(library_id)
+        .bind(&path)
+        .execute(&pool)
+        .await?;
+        let folder_id = if res.rows_affected() == 0 {
+            sqlx::query_scalar::<_, i64>(
+                "SELECT id FROM library_folder WHERE library_id = ? AND path = ?",
+            )
+            .bind(library_id)
+            .bind(&path)
+            .fetch_one(&pool)
+            .await?
+        } else {
+            res.last_insert_rowid()
+        };
+
+        match crate::commands::scan::scan_folder_inner(&pool, &artwork_dir, folder_id).await {
+            Ok(summary) => {
+                total.scanned += summary.scanned;
+                total.added += summary.added;
+                total.updated += summary.updated;
+                total.skipped += summary.skipped;
+                total.errors += summary.errors;
+                total.removed += summary.removed;
+            }
+            Err(err) => {
+                tracing::warn!(folder_id, path = %path, %err, "import_paths: scan failed");
+                total.errors += 1;
+            }
+        }
+    }
+
+    sqlx::query("UPDATE library SET updated_at = ? WHERE id = ?")
+        .bind(now_millis())
+        .bind(library_id)
+        .execute(&pool)
+        .await?;
+
+    if total.added > 0 {
+        crate::commands::analysis::maybe_auto_analyze(&app);
+    }
+    Ok(total)
+}
+
 /// Remove a folder from a library. Detaches the in-memory watcher,
 /// deletes every track that lives under this folder (so the library
 /// counts and FTS index stay consistent), then drops the folder row

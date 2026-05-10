@@ -687,6 +687,11 @@
       "manual": "手动输入"
     }
   },
+  "dragDrop": {
+    "dropHint": "放下以导入",
+    "importing": "正在导入…",
+    "subtitle": "接受文件夹或音频文件"
+  },
   "abLoop": {
     "setA": "A-B 循环：在当前位置设置 A 点",
     "setB": "A-B 循环：设置 B 点 (A = {{a}})",
