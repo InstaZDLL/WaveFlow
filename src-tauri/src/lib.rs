@@ -378,6 +378,8 @@ pub fn run() {
             commands::player::player_set_gapless,
             commands::player::player_set_visualizer,
             commands::player::player_get_visualizer,
+            commands::player::player_set_smart_crossfade,
+            commands::player::player_get_smart_crossfade,
             commands::player::player_set_replaygain,
             commands::player::player_get_eq,
             commands::player::player_set_eq_enabled,

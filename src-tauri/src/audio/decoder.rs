@@ -495,7 +495,17 @@ fn play_track(
                     next_requested = true;
                 }
 
-                if pending_next.is_some() && remaining <= effective_ms {
+                // Smart crossfade: when the prefetched track is from
+                // the same album as the current one, suppress the
+                // mix and fall through to the gapless EOF swap below.
+                // The hint comes from analytics — set right before
+                // SetNextTrack lands — so we only consult it once
+                // pending_next is populated.
+                let smart_skip = pending_next.is_some()
+                    && shared.smart_crossfade_enabled.load(Ordering::Relaxed)
+                    && shared.pending_next_same_album.load(Ordering::Relaxed);
+
+                if !smart_skip && pending_next.is_some() && remaining <= effective_ms {
                     mix_active = true;
                     mix_frames_written = 0;
                     mix_frames_total = (effective_ms * dst_sample_rate as u64) / 1000;

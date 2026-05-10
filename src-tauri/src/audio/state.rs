@@ -129,6 +129,22 @@ pub struct SharedPlayback {
     /// so the cost of FFT + event encoding is zero. Persisted in
     /// `profile_setting['ui.visualizer']`.
     pub visualizer_enabled: AtomicBool,
+    /// When `true` AND a crossfade window is configured, the decoder
+    /// suppresses the fade between two tracks belonging to the same
+    /// album — concept records / live sets hand off naturally instead
+    /// of getting smeared by an equal-power mix. The same-album
+    /// decision is computed by the analytics worker on every
+    /// PrefetchNext and stashed in `pending_next_same_album` for the
+    /// decoder to consult at mix-decision time. Persisted in
+    /// `profile_setting['audio.smart_crossfade']`, default ON.
+    pub smart_crossfade_enabled: AtomicBool,
+    /// One-shot hint set by the analytics worker right before
+    /// dispatching `SetNextTrack`: `true` when the upcoming track
+    /// shares an album_id with the currently-playing track. Cleared
+    /// implicitly when the next track is consumed (LoadAndPlay /
+    /// pending_next swap) so a stale value can't bleed into the
+    /// transition after.
+    pub pending_next_same_album: AtomicBool,
 }
 
 impl SharedPlayback {
@@ -154,6 +170,8 @@ impl SharedPlayback {
             loop_a_ms: AtomicU64::new(0),
             loop_b_ms: AtomicU64::new(0),
             visualizer_enabled: AtomicBool::new(false),
+            smart_crossfade_enabled: AtomicBool::new(true),
+            pending_next_same_album: AtomicBool::new(false),
         }
     }
 

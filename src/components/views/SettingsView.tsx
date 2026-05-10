@@ -73,6 +73,10 @@ import {
   setVisualizerEnabled,
 } from "../../lib/tauri/visualizer";
 import {
+  getSmartCrossfade,
+  setSmartCrossfade,
+} from "../../lib/tauri/smartCrossfade";
+import {
   dlnaGetConfig,
   dlnaGetStatus,
   dlnaSetConfig,
@@ -921,6 +925,26 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     });
   }, [replayGain]);
 
+  // Smart crossfade — skip the fade between two tracks of the same
+  // album so concept records / live sets hand off naturally. Persisted
+  // backend-side; default ON.
+  const [smartCrossfade, setSmartCrossfadeState] = useState(true);
+
+  useEffect(() => {
+    getSmartCrossfade()
+      .then(setSmartCrossfadeState)
+      .catch((err) => console.error("[SettingsView] get smart crossfade", err));
+  }, []);
+
+  const handleToggleSmartCrossfade = useCallback(() => {
+    const next = !smartCrossfade;
+    setSmartCrossfadeState(next);
+    setSmartCrossfade(next).catch((err) => {
+      console.error("[SettingsView] set smart crossfade failed", err);
+      setSmartCrossfadeState(!next);
+    });
+  }, [smartCrossfade]);
+
   // Spectrum visualizer toggle. Persisted backend-side (per-profile)
   // and pushed live to the decoder thread, so flipping it shows /
   // hides the bars on the next emitted frame.
@@ -1210,6 +1234,30 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 {crossfadeSec} s
               </span>
             </div>
+          </div>
+
+          {/* Smart crossfade — same-album skip */}
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4">
+              <Sparkles
+                size={20}
+                className="text-zinc-400"
+                aria-hidden="true"
+              />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.smartCrossfade.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.smartCrossfade.subtitle")}
+                </div>
+              </div>
+            </div>
+            <ToggleSwitch
+              enabled={smartCrossfade}
+              onToggle={handleToggleSmartCrossfade}
+              label={t("settings.smartCrossfade.title")}
+            />
           </div>
 
           {/* Spectrum visualizer */}

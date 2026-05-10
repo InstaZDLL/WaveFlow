@@ -990,6 +990,10 @@
       "title": "Audio visualizer",
       "subtitle": "Show a real-time spectrum in the immersive view (lightweight FFT on the decoder thread)"
     },
+    "smartCrossfade": {
+      "title": "Smart crossfade",
+      "subtitle": "Automatically skip the fade between two tracks from the same album (great for concept records and live sets)"
+    },
     "gapless": {
       "title": "Gapless playback",
       "subtitle": "Chain consecutive tracks with no micro-silence (great for live and concept albums)"
