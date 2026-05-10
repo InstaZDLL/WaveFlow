@@ -1,4 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Music2,
@@ -42,6 +48,7 @@ import { useLibrary } from "../../hooks/useLibrary";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
+import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useMultiSelect } from "../../hooks/useMultiSelect";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { resolveArtwork } from "../../lib/tauri/artwork";
@@ -201,6 +208,10 @@ export function LibraryView({
   const librariesSignature = libraries
     .map((l) => `${l.id}:${l.updated_at}`)
     .join(",");
+  // Bumped when a tag edit elsewhere fires `track:updated` so the
+  // active tab re-fetches and shows the new metadata.
+  const [editRefetch, setEditRefetch] = useState(0);
+  useTrackUpdated(useCallback(() => setEditRefetch((k) => k + 1), []));
   const clearSelection = selection.clear;
   useEffect(() => {
     clearSelection();
@@ -272,6 +283,7 @@ export function LibraryView({
     albumsSort.sort,
     artistsSort.isLoaded,
     artistsSort.sort,
+    editRefetch,
   ]);
 
   // Load liked track IDs once on mount so the TrackTable can show

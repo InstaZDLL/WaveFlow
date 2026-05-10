@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Play, Shuffle, Clock, Music2, Heart, ImageIcon } from "lucide-react";
 import { Artwork } from "../common/Artwork";
@@ -14,6 +14,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
+import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useMultiSelect } from "../../hooks/useMultiSelect";
 import {
   getAlbumDetail,
@@ -69,6 +70,10 @@ export function AlbumDetailView({
   const [enrichedLabel, setEnrichedLabel] = useState<string | null>(null);
   const [enrichedDate, setEnrichedDate] = useState<string | null>(null);
 
+  // Refetch on tag-edit so the row updates without re-navigation.
+  const [editRefetch, setEditRefetch] = useState(0);
+  useTrackUpdated(useCallback(() => setEditRefetch((k) => k + 1), []));
+
   // Load album detail
   useEffect(() => {
     if (albumId == null) {
@@ -94,7 +99,7 @@ export function AlbumDetailView({
     return () => {
       cancelled = true;
     };
-  }, [albumId, coverReloadKey]);
+  }, [albumId, coverReloadKey, editRefetch]);
 
   // Load liked IDs
   useEffect(() => {

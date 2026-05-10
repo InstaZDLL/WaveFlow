@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Heart, Clock, Play } from "lucide-react";
 import { EmptyState } from "../common/EmptyState";
@@ -9,6 +9,7 @@ import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
+import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import {
   listLikedTracks,
   toggleLikeTrack,
@@ -49,6 +50,11 @@ export function LikedView({
     onNavigateToArtist,
   });
 
+  // Bumped on `track:updated` so a tag edit refreshes the liked
+  // table without the user re-navigating to it.
+  const [editRefetch, setEditRefetch] = useState(0);
+  useTrackUpdated(useCallback(() => setEditRefetch((k) => k + 1), []));
+
   // Reload when the view mounts and when playback ends (a new
   // play_event might bump the sidebar counter — keep in sync).
   useEffect(() => {
@@ -69,7 +75,7 @@ export function LikedView({
     return () => {
       cancelled = true;
     };
-  }, [playbackState]);
+  }, [playbackState, editRefetch]);
 
   const handleUnlike = async (trackId: number) => {
     await toggleLikeTrack(trackId);

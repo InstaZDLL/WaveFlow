@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Play, Shuffle, Music2, Clock, Heart } from "lucide-react";
 import { Artwork } from "../common/Artwork";
@@ -10,6 +10,7 @@ import { Lightbox } from "../common/Lightbox";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
+import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import {
   getArtistDetail,
   enrichArtistDeezer,
@@ -76,6 +77,11 @@ export function ArtistDetailView({
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [similar, setSimilar] = useState<SimilarArtist[]>([]);
 
+  // Bumped on `track:updated` so a tag edit refreshes the visible
+  // artist + track list without re-navigating.
+  const [editRefetch, setEditRefetch] = useState(0);
+  useTrackUpdated(useCallback(() => setEditRefetch((k) => k + 1), []));
+
   // Load artist detail
   useEffect(() => {
     if (artistId == null) {
@@ -135,7 +141,7 @@ export function ArtistDetailView({
     return () => {
       cancelled = true;
     };
-  }, [artistId]);
+  }, [artistId, editRefetch]);
 
   // Load liked IDs
   useEffect(() => {

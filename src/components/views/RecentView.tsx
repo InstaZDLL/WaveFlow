@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Clock } from "lucide-react";
 import { EmptyState } from "../common/EmptyState";
@@ -9,6 +9,7 @@ import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
+import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { listRecentPlays, type RecentPlay } from "../../lib/tauri/browse";
 import {
   formatDuration,
@@ -114,6 +115,11 @@ export function RecentView({
     onNavigateToArtist,
   });
 
+  // Bumped on `track:updated` so a tag edit refreshes the recent
+  // plays list without the user re-navigating to it.
+  const [editRefetch, setEditRefetch] = useState(0);
+  useTrackUpdated(useCallback(() => setEditRefetch((k) => k + 1), []));
+
   // Reload on library change + whenever playback transitions to a
   // new "ended" state (which means a play_event row has just been
   // written by the analytics task).
@@ -140,7 +146,7 @@ export function RecentView({
     // The `playbackState === "ended"` re-fetch captures auto-advance
     // naturally — when a track finishes, play_event is inserted
     // before the next LoadAndPlay fires.
-  }, [playbackState]);
+  }, [playbackState, editRefetch]);
 
   return (
     <div className="space-y-8 animate-fade-in pb-20">

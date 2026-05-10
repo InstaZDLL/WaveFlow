@@ -52,6 +52,7 @@ import { SelectionActionBar } from "../common/SelectionActionBar";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
+import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useMultiSelect } from "../../hooks/useMultiSelect";
 import {
   formatDuration,
@@ -251,6 +252,11 @@ export function PlaylistView({
   const playlistsSignature = playlists
     .map((p) => `${p.id}:${p.updated_at}`)
     .join(",");
+  // Bumped by the `track:updated` listener below — flips the effect
+  // deps so a tag edit triggers a fresh fetch even when neither the
+  // playlist id nor its `updated_at` changed.
+  const [refetchKey, setRefetchKey] = useState(0);
+  useTrackUpdated(useCallback(() => setRefetchKey((k) => k + 1), []));
   useEffect(() => {
     let cancelled = false;
     if (playlistId == null) {
@@ -282,7 +288,7 @@ export function PlaylistView({
     return () => {
       cancelled = true;
     };
-  }, [playlistId, playlistsSignature, getPlaylistTracks]);
+  }, [playlistId, playlistsSignature, getPlaylistTracks, refetchKey]);
 
   // Pre-translated table labels — pulled out before any early return so
   // the hook order stays stable across render branches.
