@@ -307,10 +307,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [minimizeToTray, setMinimizeToTray] = useState(true);
   const [scanOnStart, setScanOnStart] = useState(false);
   const [singleClickPlay, setSingleClickPlay] = useState(false);
-  // Visibility toggle for the sleep-timer icon in the player bar.
-  // Defaults to true so users discover the feature on first run.
-  const [showSleepTimer, setShowSleepTimer] = useState(true);
-  const [showAbLoop, setShowAbLoop] = useState(true);
+  // Visibility toggles for the sleep-timer / A-B loop icons in the
+  // player bar. Both default to off — opt-in features that would
+  // clutter the bar for the typical user.
+  const [showSleepTimer, setShowSleepTimer] = useState(false);
+  const [showAbLoop, setShowAbLoop] = useState(false);
   // Status of the last "Copy logs" click — null when idle, "ok" or
   // "fail" briefly during the toast period before clearing back to null.
   const [copyLogsStatus, setCopyLogsStatus] = useState<"ok" | "fail" | null>(
@@ -328,9 +329,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     getProfileSetting("ui.show_sleep_timer")
       .then((v) => {
         if (cancelled) return;
-        // Missing key is treated as "visible" — same default as the
-        // PlayerBar reader. Avoids hiding a feature on first run
-        // because the row hasn't been written yet.
+        // Missing key → off (matches PlayerBar default).
         if (v != null) setShowSleepTimer(v === "true" || v === "1");
       })
       .catch(() => {});

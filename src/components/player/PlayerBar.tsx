@@ -34,26 +34,27 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
   const sleepTimer = useSleepTimer({ currentVolume: volume, setVolume });
 
-  // Per-profile preference: hide the sleep-timer icon entirely.
-  // Default: visible. SettingsView dispatches a `waveflow:sleep-
-  // timer-visibility` window event after toggling so we re-read
-  // without polling.
-  const [showSleepTimer, setShowSleepTimer] = useState(true);
-  const [showAbLoop, setShowAbLoop] = useState(true);
+  // Per-profile preference: hide the sleep-timer / A-B loop icons.
+  // Default: hidden — both are niche features that mostly clutter
+  // the player bar for typical users; opt-in via Settings.
+  // SettingsView dispatches `waveflow:sleep-timer-visibility` /
+  // `waveflow:ab-loop-visibility` window events after toggling so
+  // we re-read without polling.
+  const [showSleepTimer, setShowSleepTimer] = useState(false);
+  const [showAbLoop, setShowAbLoop] = useState(false);
   useEffect(() => {
     const refreshSleep = () => {
       getProfileSetting("ui.show_sleep_timer")
         .then((v) => {
-          // Missing key → treat as "true" so we never hide a
-          // feature on first run.
-          setShowSleepTimer(v == null ? true : v === "1" || v === "true");
+          // Missing key → treat as "false" (off by default).
+          setShowSleepTimer(v == null ? false : v === "1" || v === "true");
         })
         .catch(() => {});
     };
     const refreshAb = () => {
       getProfileSetting("ui.show_ab_loop")
         .then((v) => {
-          setShowAbLoop(v == null ? true : v === "1" || v === "true");
+          setShowAbLoop(v == null ? false : v === "1" || v === "true");
         })
         .catch(() => {});
     };
