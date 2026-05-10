@@ -82,6 +82,25 @@ function sdkTrackToLite(
   };
 }
 
+// True when this provider runs inside the mini-player webview.
+// The Web Playback SDK can only attach to a single webview (it's a
+// real device on the Spotify network), so the mini reads state from
+// Tauri events emitted by the main window instead and routes
+// playback control through the Spotify Connect Web API.
+const IS_MINI_WINDOW =
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).get("mini") === "1";
+
+const SPOTIFY_STATE_EVENT = "spotify:state";
+
+interface SpotifyStateEvent {
+  current_track: SpotifyTrackLite | null;
+  position_ms: number;
+  duration_ms: number;
+  playback_state: SpotifyPlaybackState;
+  volume: number;
+}
+
 export function SpotifyProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<SpotifyStatus | null>(null);
   const [isSdkReady, setIsSdkReady] = useState(false);
@@ -115,6 +134,9 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isConnected) return;
+    // Mini-player webview never loads the SDK — see IS_MINI_WINDOW
+    // doc above.
+    if (IS_MINI_WINDOW) return;
     if (window.Spotify) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsSdkReady(true);
@@ -175,10 +197,26 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
     player.addListener("player_state_changed", (payload) => {
       const state = payload as SpotifyWebPlaybackState | null;
       if (!state) return;
-      setCurrentTrack(sdkTrackToLite(state.track_window.current_track));
+      const track = sdkTrackToLite(state.track_window.current_track);
+      const playback: SpotifyPlaybackState = state.paused ? "paused" : "playing";
+      setCurrentTrack(track);
       setPositionMs(state.position);
       setDurationMs(state.duration);
-      setPlaybackState(state.paused ? "paused" : "playing");
+      setPlaybackState(playback);
+      // Broadcast to other Tauri windows (mini-player) — the SDK
+      // attaches to a single webview but every WaveFlow window needs
+      // to know what's playing.
+      import("@tauri-apps/api/event")
+        .then(({ emit }) =>
+          emit(SPOTIFY_STATE_EVENT, {
+            current_track: track,
+            position_ms: state.position,
+            duration_ms: state.duration,
+            playback_state: playback,
+            volume,
+          } satisfies SpotifyStateEvent),
+        )
+        .catch(() => {});
     });
 
     playerRef.current = player;
@@ -192,7 +230,33 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
       playerRef.current = null;
       setDeviceId(null);
     };
-  }, [isConnected, isSdkReady]);
+  }, [isConnected, isSdkReady, volume]);
+
+  // Mini-player webview: subscribe to the broadcast emitted by the
+  // main window's SDK callback so the mini stays in sync without
+  // running a second SDK instance.
+  useEffect(() => {
+    if (!IS_MINI_WINDOW) return;
+    let unlisten: (() => void) | null = null;
+    let cancelled = false;
+    (async () => {
+      const { listen } = await import("@tauri-apps/api/event");
+      const off = await listen<SpotifyStateEvent>(SPOTIFY_STATE_EVENT, (e) => {
+        const s = e.payload;
+        setCurrentTrack(s.current_track);
+        setPositionMs(s.position_ms);
+        setDurationMs(s.duration_ms);
+        setPlaybackState(s.playback_state);
+        setVolumeState(s.volume);
+      });
+      if (cancelled) off();
+      else unlisten = off;
+    })();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, []);
 
   useEffect(() => {
     if (positionTimerRef.current != null) {
@@ -285,28 +349,74 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
     [playRequest],
   );
 
+  // Mini-player webview has no SDK player attached, so its controls
+  // route through the Spotify Connect Web API instead. Same for any
+  // window once the SDK fails to attach (e.g. user blocked mixed
+  // content). The connect/play/pause/seek/next/previous endpoints
+  // act on whichever device is currently active on the user's
+  // account, which is the SDK-attached main window.
+  const connectApi = useCallback(
+    async (
+      method: "PUT" | "POST",
+      endpoint: string,
+      body?: Record<string, unknown>,
+    ) => {
+      const headers = await tokenHeaders();
+      const init: RequestInit = { method, headers };
+      if (body) init.body = JSON.stringify(body);
+      const res = await fetch(`https://api.spotify.com/v1/me/player/${endpoint}`, init);
+      if (!res.ok && res.status !== 204) {
+        const text = await res.text();
+        throw new Error(text || `Spotify ${endpoint} failed (${res.status})`);
+      }
+    },
+    [tokenHeaders],
+  );
+
   const togglePlayback = useCallback(async () => {
-    await playerRef.current?.togglePlay();
-  }, []);
+    if (playerRef.current) {
+      await playerRef.current.togglePlay();
+    } else {
+      // No SDK locally — flip via Connect API. The current state
+      // tells us which endpoint to hit.
+      await connectApi("PUT", playbackState === "playing" ? "pause" : "play");
+    }
+  }, [connectApi, playbackState]);
 
   const next = useCallback(async () => {
-    await playerRef.current?.nextTrack();
-  }, []);
+    if (playerRef.current) await playerRef.current.nextTrack();
+    else await connectApi("POST", "next");
+  }, [connectApi]);
 
   const previous = useCallback(async () => {
-    await playerRef.current?.previousTrack();
-  }, []);
+    if (playerRef.current) await playerRef.current.previousTrack();
+    else await connectApi("POST", "previous");
+  }, [connectApi]);
 
-  const seek = useCallback(async (ms: number) => {
-    setPositionMs(ms);
-    await playerRef.current?.seek(ms);
-  }, []);
+  const seek = useCallback(
+    async (ms: number) => {
+      setPositionMs(ms);
+      if (playerRef.current) {
+        await playerRef.current.seek(ms);
+      } else {
+        await connectApi("PUT", `seek?position_ms=${Math.max(0, Math.floor(ms))}`);
+      }
+    },
+    [connectApi],
+  );
 
-  const setVolume = useCallback(async (value: number) => {
-    const clamped = Math.max(0, Math.min(100, Math.round(value)));
-    setVolumeState(clamped);
-    await playerRef.current?.setVolume(clamped / 100);
-  }, []);
+  const setVolume = useCallback(
+    async (value: number) => {
+      const clamped = Math.max(0, Math.min(100, Math.round(value)));
+      setVolumeState(clamped);
+      if (playerRef.current) {
+        await playerRef.current.setVolume(clamped / 100);
+      } else {
+        await connectApi("PUT", `volume?volume_percent=${clamped}`);
+      }
+    },
+    [connectApi],
+  );
 
   const loadPlaylistTracks = useCallback(
     (playlist: SpotifyPlaylistLite) => spotifyGetPlaylistTracks(playlist.id),
