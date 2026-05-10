@@ -663,7 +663,9 @@
   "miniPlayer": {
     "idle": "Tidak ada trek diputar",
     "maximize": "Pulihkan jendela utama",
-    "like": "Suka"
+    "like": "Suka",
+    "pin": "Selalu di atas",
+    "close": "Tutup mini-pemutar"
   },
   "sleepTimer": {
     "title": "Timer tidur",

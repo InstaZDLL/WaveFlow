@@ -663,7 +663,9 @@
   "miniPlayer": {
     "idle": "Sin pista en reproducción",
     "maximize": "Restaurar ventana principal",
-    "like": "Me gusta"
+    "like": "Me gusta",
+    "pin": "Siempre encima",
+    "close": "Cerrar mini-reproductor"
   },
   "sleepTimer": {
     "title": "Temporizador de apagado",

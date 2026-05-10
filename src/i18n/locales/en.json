@@ -663,7 +663,9 @@
   "miniPlayer": {
     "idle": "No track playing",
     "maximize": "Restore main window",
-    "like": "Like"
+    "like": "Like",
+    "pin": "Always on top",
+    "close": "Close mini-player"
   },
   "sleepTimer": {
     "title": "Sleep timer",

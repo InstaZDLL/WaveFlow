@@ -663,7 +663,9 @@
   "miniPlayer": {
     "idle": "Nenhuma faixa em reprodução",
     "maximize": "Restaurar janela principal",
-    "like": "Gosto"
+    "like": "Gosto",
+    "pin": "Sempre no topo",
+    "close": "Fechar mini-leitor"
   },
   "sleepTimer": {
     "title": "Temporizador de suspensão",

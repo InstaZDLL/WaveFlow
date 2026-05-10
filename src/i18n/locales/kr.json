@@ -663,7 +663,9 @@
   "miniPlayer": {
     "idle": "재생 중인 트랙 없음",
     "maximize": "메인 창 복원",
-    "like": "좋아요"
+    "like": "좋아요",
+    "pin": "항상 위",
+    "close": "미니 플레이어 닫기"
   },
   "sleepTimer": {
     "title": "수면 타이머",

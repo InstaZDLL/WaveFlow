@@ -663,7 +663,9 @@
   "miniPlayer": {
     "idle": "Aucun titre en cours",
     "maximize": "Restaurer la fenêtre principale",
-    "like": "J'aime"
+    "like": "J'aime",
+    "pin": "Toujours au-dessus",
+    "close": "Fermer le mini-lecteur"
   },
   "sleepTimer": {
     "title": "Minuteur de sommeil",

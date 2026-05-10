@@ -663,7 +663,9 @@
   "miniPlayer": {
     "idle": "Çalan parça yok",
     "maximize": "Ana pencereyi geri yükle",
-    "like": "Beğen"
+    "like": "Beğen",
+    "pin": "Her zaman üstte",
+    "close": "Mini oynatıcıyı kapat"
   },
   "sleepTimer": {
     "title": "Uyku zamanlayıcısı",

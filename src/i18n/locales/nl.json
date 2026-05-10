@@ -663,7 +663,9 @@
   "miniPlayer": {
     "idle": "Geen nummer afgespeeld",
     "maximize": "Hoofdvenster herstellen",
-    "like": "Vind ik leuk"
+    "like": "Vind ik leuk",
+    "pin": "Altijd op de voorgrond",
+    "close": "Mini-speler sluiten"
   },
   "sleepTimer": {
     "title": "Slaaptimer",

@@ -663,7 +663,9 @@
   "miniPlayer": {
     "idle": "Nenhuma faixa em reprodução",
     "maximize": "Restaurar janela principal",
-    "like": "Curtir"
+    "like": "Curtir",
+    "pin": "Sempre visível",
+    "close": "Fechar mini-player"
   },
   "sleepTimer": {
     "title": "Timer de sono",

@@ -663,7 +663,9 @@
   "miniPlayer": {
     "idle": "Kein Titel wird abgespielt",
     "maximize": "Hauptfenster wiederherstellen",
-    "like": "Gefällt mir"
+    "like": "Gefällt mir",
+    "pin": "Immer im Vordergrund",
+    "close": "Mini-Player schließen"
   },
   "sleepTimer": {
     "title": "Sleep-Timer",

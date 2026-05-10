@@ -24,12 +24,15 @@ export async function openMiniPlayer(): Promise<void> {
     const win = new WebviewWindow(MINI_LABEL, {
       url: "index.html?mini=1",
       title: "WaveFlow",
-      width: 320,
-      height: 460,
-      minWidth: 280,
-      minHeight: 380,
+      width: 280,
+      height: 360,
+      minWidth: 240,
+      minHeight: 320,
       alwaysOnTop: true,
-      decorations: true,
+      // We render our own title bar (pin / drag-dots / close) inside
+      // the webview so the widget stays compact and on-brand.
+      decorations: false,
+      transparent: false,
       resizable: true,
       center: true,
       skipTaskbar: false,

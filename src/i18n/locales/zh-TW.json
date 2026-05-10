@@ -663,7 +663,9 @@
   "miniPlayer": {
     "idle": "沒有播放中的曲目",
     "maximize": "還原主視窗",
-    "like": "喜歡"
+    "like": "喜歡",
+    "pin": "永遠在最前",
+    "close": "關閉迷你播放器"
   },
   "sleepTimer": {
     "title": "睡眠計時器",

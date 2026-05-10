@@ -663,7 +663,9 @@
   "miniPlayer": {
     "idle": "Nessun brano in riproduzione",
     "maximize": "Ripristina finestra principale",
-    "like": "Mi piace"
+    "like": "Mi piace",
+    "pin": "Sempre in primo piano",
+    "close": "Chiudi mini-player"
   },
   "sleepTimer": {
     "title": "Timer di spegnimento",
