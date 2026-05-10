@@ -401,7 +401,7 @@ function CoverWithControls({
       ref={ref}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className="relative aspect-square w-full max-w-55 rounded-xl shadow-2xl overflow-hidden"
+      className="relative aspect-square w-full max-w-64 rounded-xl shadow-2xl overflow-hidden"
     >
       {artworkSlot}
       {/* Dimming layer + control bar fade in on hover. */}
