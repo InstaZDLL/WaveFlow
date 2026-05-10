@@ -684,6 +684,11 @@
       "manual": "Handmatig invoeren"
     }
   },
+  "abLoop": {
+    "setA": "A-B-herhaling: punt A op huidige positie instellen",
+    "setB": "A-B-herhaling: punt B instellen (A = {{a}})",
+    "armed": "A-B-herhaling actief: {{a}} → {{b}} (klik om te wissen)"
+  },
   "lyricsEditor": {
     "title": "Songtekst-editor",
     "tabs": {

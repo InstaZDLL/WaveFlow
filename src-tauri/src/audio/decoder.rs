@@ -154,6 +154,11 @@ fn decoder_loop(
                 source_id,
                 replay_gain_db,
             } => {
+                // A-B loop is a single-track concern — clear it on
+                // every fresh load so the new track doesn't inherit
+                // the previous track's loop endpoints.
+                shared.clear_ab_loop();
+
                 transition_state(&shared, &app, PlayerState::Loading, Some(track_id));
                 // Drain whatever's left of the previous track's
                 // samples from the rtrb ring so the new track doesn't
@@ -432,6 +437,25 @@ fn play_track(
                 let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
                 last_position_emit = Instant::now();
                 continue;
+            }
+        }
+
+        // A-B repeat: when an A-B loop is armed and we've reached B,
+        // seek back to A. Skipped during a crossfade — the loop is a
+        // single-track concern and would fight the cross-track mix.
+        if !mix_active {
+            if let Some((a_ms, b_ms)) = shared.ab_loop_armed() {
+                let pos = shared.current_position_ms();
+                if pos >= b_ms {
+                    stream.seek_ms(a_ms);
+                    reset_clock(shared, a_ms);
+                    stream.resampler.flush();
+                    stream.reset_decoder();
+                    drain_ring_silent(producer, shared);
+                    let _ = app.emit(EVENT_POSITION, PositionPayload { ms: a_ms });
+                    last_position_emit = Instant::now();
+                    continue;
+                }
             }
         }
 

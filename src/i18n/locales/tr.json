@@ -684,6 +684,11 @@
       "manual": "Elle giriş"
     }
   },
+  "abLoop": {
+    "setA": "A-B tekrarı: A noktasını mevcut konuma ayarla",
+    "setB": "A-B tekrarı: B noktasını ayarla (A = {{a}})",
+    "armed": "A-B tekrarı etkin: {{a}} → {{b}} (temizlemek için tıkla)"
+  },
   "lyricsEditor": {
     "title": "Şarkı sözü düzenleyici",
     "tabs": {

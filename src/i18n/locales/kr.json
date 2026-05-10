@@ -684,6 +684,11 @@
       "manual": "수동 입력"
     }
   },
+  "abLoop": {
+    "setA": "A-B 반복: 현재 위치에 A 지점 설정",
+    "setB": "A-B 반복: B 지점 설정 (A = {{a}})",
+    "armed": "A-B 반복 활성: {{a}} → {{b}} (클릭하여 제거)"
+  },
   "lyricsEditor": {
     "title": "가사 편집기",
     "tabs": {

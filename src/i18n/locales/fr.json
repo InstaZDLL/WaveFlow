@@ -684,6 +684,11 @@
       "manual": "Saisie manuelle"
     }
   },
+  "abLoop": {
+    "setA": "Boucle A-B : définir le point A à la position actuelle",
+    "setB": "Boucle A-B : définir le point B (A = {{a}})",
+    "armed": "Boucle A-B active : {{a}} → {{b}} (cliquer pour effacer)"
+  },
   "lyricsEditor": {
     "title": "Éditeur de paroles",
     "tabs": {

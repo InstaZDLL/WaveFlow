@@ -684,6 +684,11 @@
       "manual": "Pencatatan manual"
     }
   },
+  "abLoop": {
+    "setA": "Ulang A-B: atur titik A di posisi saat ini",
+    "setB": "Ulang A-B: atur titik B (A = {{a}})",
+    "armed": "Ulang A-B aktif: {{a}} → {{b}} (klik untuk hapus)"
+  },
   "lyricsEditor": {
     "title": "Editor lirik",
     "tabs": {

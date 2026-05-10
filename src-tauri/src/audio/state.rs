@@ -116,6 +116,13 @@ pub struct SharedPlayback {
     /// and the queue cursor stays put so the user can resume from
     /// the same spot. Auto-clears after consumption (one-shot).
     pub pause_after_current_track: AtomicBool,
+    /// A-B repeat: when both `loop_a_ms` and `loop_b_ms` are non-zero
+    /// AND `loop_b_ms > loop_a_ms`, the decoder seeks back to `A` once
+    /// playback reaches `B`. Both are unsigned ms inside the current
+    /// track; the loop is cleared by the user (or implicitly when the
+    /// track changes — see the LoadAndPlay handler).
+    pub loop_a_ms: AtomicU64,
+    pub loop_b_ms: AtomicU64,
 }
 
 impl SharedPlayback {
@@ -138,7 +145,21 @@ impl SharedPlayback {
             gapless_enabled: AtomicBool::new(true),
             eq: super::eq::EqShared::new(),
             pause_after_current_track: AtomicBool::new(false),
+            loop_a_ms: AtomicU64::new(0),
+            loop_b_ms: AtomicU64::new(0),
         }
+    }
+
+    /// True when an A-B loop is currently armed (A < B and both set).
+    pub fn ab_loop_armed(&self) -> Option<(u64, u64)> {
+        let a = self.loop_a_ms.load(Ordering::Relaxed);
+        let b = self.loop_b_ms.load(Ordering::Relaxed);
+        if b > a && b > 0 { Some((a, b)) } else { None }
+    }
+
+    pub fn clear_ab_loop(&self) {
+        self.loop_a_ms.store(0, Ordering::Relaxed);
+        self.loop_b_ms.store(0, Ordering::Relaxed);
     }
 
     pub fn state(&self) -> PlayerState {

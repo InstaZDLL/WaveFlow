@@ -684,6 +684,11 @@
       "manual": "Manuelle Eingabe"
     }
   },
+  "abLoop": {
+    "setA": "A-B-Wiederholung: Punkt A an aktueller Position setzen",
+    "setB": "A-B-Wiederholung: Punkt B setzen (A = {{a}})",
+    "armed": "A-B-Wiederholung aktiv: {{a}} → {{b}} (klicken zum Löschen)"
+  },
   "lyricsEditor": {
     "title": "Liedtext-Editor",
     "tabs": {

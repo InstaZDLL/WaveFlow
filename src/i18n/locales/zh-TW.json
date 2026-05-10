@@ -684,6 +684,11 @@
       "manual": "手動輸入"
     }
   },
+  "abLoop": {
+    "setA": "A-B 循環：在目前位置設定 A 點",
+    "setB": "A-B 循環：設定 B 點 (A = {{a}})",
+    "armed": "A-B 循環已啟用：{{a}} → {{b}} (點擊清除)"
+  },
   "lyricsEditor": {
     "title": "歌詞編輯器",
     "tabs": {

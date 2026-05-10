@@ -109,6 +109,37 @@ export function playerSetPauseAfterTrack(enabled: boolean): Promise<void> {
   return invoke<void>("player_set_pause_after_track", { enabled });
 }
 
+/** Snapshot of the A-B loop endpoints. `null` = unset. */
+export interface AbLoopSnapshot {
+  a_ms: number | null;
+  b_ms: number | null;
+}
+
+/**
+ * Configure the A-B loop. Pass `null` for either endpoint to leave
+ * that side untouched; pass both as `null` to disarm. The backend
+ * only loops when both are set AND `a_ms < b_ms`.
+ */
+export function playerSetAbLoop(
+  aMs: number | null,
+  bMs: number | null,
+): Promise<AbLoopSnapshot> {
+  return invoke<AbLoopSnapshot>("player_set_ab_loop", {
+    aMs,
+    bMs,
+  });
+}
+
+/** Drop both A-B loop endpoints. */
+export function playerClearAbLoop(): Promise<AbLoopSnapshot> {
+  return invoke<AbLoopSnapshot>("player_clear_ab_loop");
+}
+
+/** Read the current A-B loop. Used to hydrate UI state on mount. */
+export function playerGetAbLoop(): Promise<AbLoopSnapshot> {
+  return invoke<AbLoopSnapshot>("player_get_ab_loop");
+}
+
 /**
  * Replace the queue with `trackIds` and start playing at
  * `startIndex`. The backend validates that `startIndex` is in range.

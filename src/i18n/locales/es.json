@@ -684,6 +684,11 @@
       "manual": "Introducción manual"
     }
   },
+  "abLoop": {
+    "setA": "Repetición A-B: fijar punto A en la posición actual",
+    "setB": "Repetición A-B: fijar punto B (A = {{a}})",
+    "armed": "Repetición A-B activa: {{a}} → {{b}} (clic para borrar)"
+  },
   "lyricsEditor": {
     "title": "Editor de letra",
     "tabs": {

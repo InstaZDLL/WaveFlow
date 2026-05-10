@@ -684,6 +684,16 @@
       "manual": "Manual entry"
     }
   },
+  "abLoop": {
+    "setA": "A-B repeat: set point A at the current position",
+    "setB": "A-B repeat: set point B (A = {{a}})",
+    "armed": "A-B repeat active: {{a}} → {{b}} (click to clear)"
+  },
+  "abLoop": {
+    "setA": "A-B repeat: set point A at the current position",
+    "setB": "A-B repeat: set point B (A = {{a}})",
+    "armed": "A-B repeat active: {{a}} → {{b}} (click to clear)"
+  },
   "lyricsEditor": {
     "title": "Lyrics editor",
     "tabs": {

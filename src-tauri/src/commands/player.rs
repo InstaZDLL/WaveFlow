@@ -649,6 +649,79 @@ pub async fn player_set_pause_after_track(
     Ok(())
 }
 
+/// A-B loop snapshot returned to the frontend so the UI can render the
+/// current loop state on mount (and after a track change clears it).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct AbLoopSnapshot {
+    pub a_ms: Option<u64>,
+    pub b_ms: Option<u64>,
+}
+
+/// Configure the A-B loop. Pass `None` for either endpoint to clear
+/// only that side; passing both as `None` disarms the loop entirely.
+/// The decoder ignores the loop unless `a_ms < b_ms` and both are set,
+/// so a partially-configured loop just sits as a tentative bookmark
+/// until the user sets the second point.
+///
+/// Emits `player:ab-loop` with the new snapshot so every open view
+/// (player bar, fullscreen player, lyrics overlay) can re-render.
+#[tauri::command]
+pub async fn player_set_ab_loop(
+    app: AppHandle,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    a_ms: Option<u64>,
+    b_ms: Option<u64>,
+) -> AppResult<AbLoopSnapshot> {
+    use std::sync::atomic::Ordering;
+    let shared = engine.shared();
+    if let Some(a) = a_ms {
+        shared.loop_a_ms.store(a, Ordering::Release);
+    }
+    if let Some(b) = b_ms {
+        shared.loop_b_ms.store(b, Ordering::Release);
+    }
+    if a_ms.is_none() && b_ms.is_none() {
+        shared.clear_ab_loop();
+    }
+    let snap = current_ab_loop(shared);
+    let _ = app.emit("player:ab-loop", snap.clone());
+    Ok(snap)
+}
+
+/// Drop both A-B loop endpoints. Same effect as calling
+/// `player_set_ab_loop(None, None)` — exposed as a separate command
+/// so the UI's "Clear" button has a self-documenting call site.
+#[tauri::command]
+pub async fn player_clear_ab_loop(
+    app: AppHandle,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+) -> AppResult<AbLoopSnapshot> {
+    engine.shared().clear_ab_loop();
+    let snap = AbLoopSnapshot {
+        a_ms: None,
+        b_ms: None,
+    };
+    let _ = app.emit("player:ab-loop", snap.clone());
+    Ok(snap)
+}
+
+#[tauri::command]
+pub async fn player_get_ab_loop(
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+) -> AppResult<AbLoopSnapshot> {
+    Ok(current_ab_loop(engine.shared()))
+}
+
+fn current_ab_loop(shared: &crate::audio::state::SharedPlayback) -> AbLoopSnapshot {
+    use std::sync::atomic::Ordering;
+    let a = shared.loop_a_ms.load(Ordering::Acquire);
+    let b = shared.loop_b_ms.load(Ordering::Acquire);
+    AbLoopSnapshot {
+        a_ms: if a > 0 { Some(a) } else { None },
+        b_ms: if b > 0 { Some(b) } else { None },
+    }
+}
+
 /// Resume a paused track. No-op if already playing.
 #[tauri::command]
 pub async fn player_resume(engine: tauri::State<'_, Arc<AudioEngine>>) -> AppResult<()> {

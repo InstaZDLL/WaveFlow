@@ -8,6 +8,7 @@ import { ArtistLink } from "../common/ArtistLink";
 import { PlaybackControls } from "./PlaybackControls";
 import { ProgressBar } from "./ProgressBar";
 import { SleepTimerMenu } from "./SleepTimerMenu";
+import { AbLoopButton } from "./AbLoopButton";
 import { VolumeControl } from "./VolumeControl";
 import { AudioQualityFooter } from "./AudioQualityFooter";
 import { toggleLikeTrack, listLikedTrackIds } from "../../lib/tauri/track";
@@ -159,6 +160,9 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
         {/* Right: Extra Controls */}
         <div className="w-1/3 flex items-center justify-end space-x-4">
+          {/* A-B repeat — sits left of the sleep timer. */}
+          <AbLoopButton />
+
           {/* Sleep timer (sits left of Lyrics; user-hideable from
             Settings via `ui.show_sleep_timer`). */}
           {showSleepTimer && (

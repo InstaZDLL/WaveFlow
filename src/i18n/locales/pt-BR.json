@@ -684,6 +684,11 @@
       "manual": "Digitação manual"
     }
   },
+  "abLoop": {
+    "setA": "Repetição A-B: definir o ponto A na posição atual",
+    "setB": "Repetição A-B: definir o ponto B (A = {{a}})",
+    "armed": "Repetição A-B ativa: {{a}} → {{b}} (clique para apagar)"
+  },
   "lyricsEditor": {
     "title": "Editor de letras",
     "tabs": {
