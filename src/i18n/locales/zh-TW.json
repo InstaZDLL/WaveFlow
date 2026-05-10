@@ -674,7 +674,8 @@
       "import": "匯入 .lrc 檔案",
       "refetch": "重新啟動搜尋",
       "clear": "刪除歌詞",
-      "fullscreen": "全螢幕"
+      "fullscreen": "全螢幕",
+      "edit": "編輯歌詞"
     },
     "source": {
       "embedded": "歌詞已嵌入檔案中",
@@ -682,6 +683,24 @@
       "api": "LRCLIB",
       "manual": "手動輸入"
     }
+  },
+  "lyricsEditor": {
+    "title": "歌詞編輯器",
+    "tabs": {
+      "plain": "文字",
+      "synced": "同步"
+    },
+    "plainPlaceholder": "逐行輸入歌詞…",
+    "linePlaceholder": "行文字",
+    "capture": "擷取",
+    "captureHint": "開始播放後按空白鍵（或擷取）將目前行金定到目前時間",
+    "captureNow": "立即擷取",
+    "recapture": "重新金定到目前位置",
+    "seekToLine": "跳到此行",
+    "insertBelow": "在下方插入一行",
+    "removeLine": "刪除行",
+    "lines": "行已金定",
+    "writeToFile": "同時寫入音訊檔案 (USLT/LYRICS)"
   },
   "sort": {
     "title": "標題",

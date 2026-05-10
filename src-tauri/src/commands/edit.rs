@@ -150,7 +150,9 @@ fn write_tags_to_file(
     // Two-step borrow so the borrow checker doesn't see a chained
     // primary_tag_mut() / first_tag_mut() on the same tagged file.
     let tag = if tagged.primary_tag().is_some() {
-        tagged.primary_tag_mut().expect("checked primary_tag is Some")
+        tagged
+            .primary_tag_mut()
+            .expect("checked primary_tag is Some")
     } else {
         tagged
             .first_tag_mut()
@@ -259,12 +261,14 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
             // dedup still keys on a stable artist.
             let aid = match primary_artist_id {
                 Some(_) => primary_artist_id,
-                None => sqlx::query_scalar::<_, Option<i64>>(
-                    "SELECT primary_artist FROM track WHERE id = ?",
-                )
-                .bind(track_id)
-                .fetch_one(&mut *tx)
-                .await?,
+                None => {
+                    sqlx::query_scalar::<_, Option<i64>>(
+                        "SELECT primary_artist FROM track WHERE id = ?",
+                    )
+                    .bind(track_id)
+                    .fetch_one(&mut *tx)
+                    .await?
+                }
             };
             // upsert_album takes a separate pool so we have to
             // commit the artist work first or use the same pool;
@@ -365,13 +369,11 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
             // Commit and reopen for the helper, same trick as for album.
             tx.commit().await?;
             if let Some(gid) = upsert_genre(&pool.clone(), trimmed).await? {
-                sqlx::query(
-                    "INSERT OR IGNORE INTO track_genre (track_id, genre_id) VALUES (?, ?)",
-                )
-                .bind(track_id)
-                .bind(gid)
-                .execute(pool)
-                .await?;
+                sqlx::query("INSERT OR IGNORE INTO track_genre (track_id, genre_id) VALUES (?, ?)")
+                    .bind(track_id)
+                    .bind(gid)
+                    .execute(pool)
+                    .await?;
             }
             return Ok(());
         }
@@ -405,12 +407,11 @@ pub async fn update_track_cover(
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     std::fs::create_dir_all(&artwork_dir)?;
 
-    let row: Option<(String, Option<i64>)> = sqlx::query_as(
-        "SELECT file_path, album_id FROM track WHERE id = ?",
-    )
-    .bind(track_id)
-    .fetch_optional(&pool)
-    .await?;
+    let row: Option<(String, Option<i64>)> =
+        sqlx::query_as("SELECT file_path, album_id FROM track WHERE id = ?")
+            .bind(track_id)
+            .fetch_optional(&pool)
+            .await?;
     let (file_path, album_id) =
         row.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
 
@@ -443,11 +444,7 @@ pub async fn update_track_cover(
         std::fs::write(&out_path, &bytes)
             .map_err(|e| AppError::Other(format!("artwork cache write failed: {e}")))?;
     }
-    crate::thumbnails::spawn_thumbnail_job(
-        out_path.clone(),
-        artwork_dir.clone(),
-        hash.clone(),
-    );
+    crate::thumbnails::spawn_thumbnail_job(out_path.clone(), artwork_dir.clone(), hash.clone());
 
     let artwork_id = upsert_artwork(&pool, &hash, ext, "manual").await?;
     if let Some(aid) = album_id {
@@ -507,10 +504,7 @@ fn write_cover_to_file(
 /// image. Magic-byte first, fall back to the path extension when the
 /// header is unrecognised. Lofty stores WebP under `Unknown` because
 /// the enum doesn't have a first-class variant for it.
-fn sniff_image_mime(
-    bytes: &[u8],
-    path: &str,
-) -> (lofty::picture::MimeType, &'static str) {
+fn sniff_image_mime(bytes: &[u8], path: &str) -> (lofty::picture::MimeType, &'static str) {
     use lofty::picture::MimeType;
     if bytes.len() >= 4 {
         if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) {
@@ -526,10 +520,7 @@ fn sniff_image_mime(
             return (MimeType::Bmp, "bmp");
         }
         if bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP" {
-            return (
-                MimeType::Unknown("image/webp".into()),
-                "webp",
-            );
+            return (MimeType::Unknown("image/webp".into()), "webp");
         }
     }
     let lower = path.to_ascii_lowercase();

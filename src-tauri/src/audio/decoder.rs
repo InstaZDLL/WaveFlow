@@ -706,8 +706,7 @@ fn play_track(
                 // here as a safety net. Falling through to the
                 // natural EOF path lets the analytics worker hit
                 // the `TrackEnded` branch that pauses cleanly.
-                let sleep_armed_eof =
-                    shared.pause_after_current_track.load(Ordering::Relaxed);
+                let sleep_armed_eof = shared.pause_after_current_track.load(Ordering::Relaxed);
                 if pending_next.is_some() && !sleep_armed_eof {
                     let listened = shared.session_listened_ms();
                     let _ = analytics_tx.send(AnalyticsMsg::CrossfadeStarted {

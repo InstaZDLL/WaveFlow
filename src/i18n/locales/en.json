@@ -674,7 +674,8 @@
       "import": "Import an .lrc file",
       "refetch": "Resume the search",
       "clear": "Clear lyrics",
-      "fullscreen": "Fullscreen"
+      "fullscreen": "Fullscreen",
+      "edit": "Edit lyrics"
     },
     "source": {
       "embedded": "Lyrics included in the file",
@@ -682,6 +683,24 @@
       "api": "LRCLIB",
       "manual": "Manual entry"
     }
+  },
+  "lyricsEditor": {
+    "title": "Lyrics editor",
+    "tabs": {
+      "plain": "Plain",
+      "synced": "Synced"
+    },
+    "plainPlaceholder": "Type the lyrics line by line…",
+    "linePlaceholder": "Line text",
+    "capture": "Capture",
+    "captureHint": "Start playback then press Space (or Capture) to anchor the current line to the playhead",
+    "captureNow": "Capture now",
+    "recapture": "Re-anchor to current position",
+    "seekToLine": "Jump to this line",
+    "insertBelow": "Insert a line below",
+    "removeLine": "Remove line",
+    "lines": "lines anchored",
+    "writeToFile": "Also write to the audio file (USLT/LYRICS)"
   },
   "sort": {
     "title": "Title",

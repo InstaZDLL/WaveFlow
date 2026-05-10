@@ -11,16 +11,18 @@
 
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::Utc;
 use lofty::file::{FileType, TaggedFileExt};
 use lofty::probe::Probe;
 use lofty::tag::ItemKey;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 
 use crate::{
+    audio::AudioEngine,
     error::{AppError, AppResult},
     lrclib::LrclibClient,
     state::AppState,
@@ -132,16 +134,13 @@ fn source_to_db(src: &LyricsSource) -> &'static str {
 /// Required because the generic `Tag` interface returned by
 /// `read_from_path` doesn't expose unmapped TXXX frames.
 fn read_id3v2_txxx_lyrics(path: &Path) -> Option<String> {
+    use lofty::config::ParseOptions;
     use lofty::id3::v2::Id3v2Tag;
     use lofty::mpeg::MpegFile;
-    use lofty::config::ParseOptions;
 
     let mut file = std::fs::File::open(path).ok()?;
-    let mpeg = <MpegFile as lofty::file::AudioFile>::read_from(
-        &mut file,
-        ParseOptions::new(),
-    )
-    .ok()?;
+    let mpeg =
+        <MpegFile as lofty::file::AudioFile>::read_from(&mut file, ParseOptions::new()).ok()?;
     let tag: &Id3v2Tag = mpeg.id3v2()?;
 
     const ALIASES: &[&str] = &[
@@ -205,9 +204,7 @@ fn read_embedded_lyrics(path: &Path) -> Option<String> {
                 .map(|s| s.to_string())
         });
 
-    let raw = from_known_key
-        .or(from_id3v2_txxx)
-        .or(from_description)?;
+    let raw = from_known_key.or(from_id3v2_txxx).or(from_description)?;
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         None
@@ -744,6 +741,169 @@ pub fn cancel_lyrics_prefetch() -> bool {
     } else {
         false
     }
+}
+
+// ── User-edited lyrics ──────────────────────────────────────────────
+
+/// Format hint coming from the in-app editor. The frontend always
+/// passes "plain" or "lrc" — the backend re-runs `detect_format` on
+/// the content as a safety net so a mistyped header still ends up in
+/// the right bucket.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LyricsSaveFormat {
+    Plain,
+    Lrc,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SaveLyricsPayload {
+    pub content: String,
+    pub format: LyricsSaveFormat,
+    /// When `true`, also write the lyrics back into the audio file's
+    /// USLT/LYRICS frame. When `false`, only the DB cache is updated
+    /// (fastest, no file lock dance, no rescan churn).
+    #[serde(default)]
+    pub write_to_file: bool,
+}
+
+/// Persist user-edited lyrics for a track. Always upserts the cache
+/// row with `source = manual`; optionally writes the same content into
+/// the audio file's embedded lyrics frame so other players (and a
+/// future re-scan) see the same text. File writes follow the same
+/// pause-if-current pattern as the tag editor on Windows.
+#[tauri::command]
+pub async fn save_lyrics(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    app: AppHandle,
+    track_id: i64,
+    payload: SaveLyricsPayload,
+) -> AppResult<LyricsPayload> {
+    let pool = state.require_profile_pool().await?;
+
+    // Pull file_path + file_hash up front. We need the path even when
+    // write_to_file is false because a file write would otherwise
+    // change the hash, and the cache is keyed on hash — better to
+    // fail fast on a missing track than mid-write.
+    let row: Option<(String, String)> =
+        sqlx::query_as("SELECT file_path, file_hash FROM track WHERE id = ?")
+            .bind(track_id)
+            .fetch_optional(&pool)
+            .await?;
+    let (file_path, mut file_hash) =
+        row.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
+
+    let trimmed = payload
+        .content
+        .trim_end_matches(['\n', '\r', ' '])
+        .to_string();
+    // Re-detect from content so a "plain" payload with [mm:ss] stamps
+    // is correctly stored as lrc, and vice versa. The frontend hint is
+    // the user's intent, but content is the source of truth.
+    let detected = detect_format(&trimmed);
+    let format = match (&payload.format, &detected) {
+        // Trust the user when they picked Plain even if their text
+        // happens to start with [...]; otherwise pick whichever of
+        // Lrc / EnhancedLrc the parser identified.
+        (LyricsSaveFormat::Plain, LyricsFormat::Plain) => LyricsFormat::Plain,
+        (LyricsSaveFormat::Plain, _) => LyricsFormat::Plain,
+        (LyricsSaveFormat::Lrc, _) => detected,
+    };
+
+    if payload.write_to_file {
+        let active = engine
+            .shared()
+            .current_track_id
+            .load(std::sync::atomic::Ordering::Acquire);
+        if active == track_id {
+            let _ = engine.send(crate::audio::AudioCmd::Pause);
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        }
+
+        let path = std::path::PathBuf::from(&file_path);
+        let content_for_write = trimmed.clone();
+        tokio::task::spawn_blocking(move || write_lyrics_to_file(&path, &content_for_write))
+            .await
+            .map_err(|e| AppError::Other(format!("lyrics write panicked: {e}")))?
+            .map_err(|e| AppError::Other(format!("lyrics tag write failed: {e}")))?;
+
+        // The file changed — recompute its blake3 hash so the cache
+        // row stays addressable. We update the track row + the lyrics
+        // row in the same transaction below.
+        let path_for_hash = file_path.clone();
+        let new_hash = tokio::task::spawn_blocking(move || hash_file_blake3(&path_for_hash))
+            .await
+            .map_err(|e| AppError::Other(format!("rehash panicked: {e}")))??;
+
+        let mut tx = pool.begin().await?;
+        sqlx::query("UPDATE track SET file_hash = ? WHERE id = ?")
+            .bind(&new_hash)
+            .bind(track_id)
+            .execute(&mut *tx)
+            .await?;
+        // Drop any cache row keyed on the old hash so we don't end up
+        // with a stale embedded payload pointing at the previous
+        // content.
+        sqlx::query("DELETE FROM app.lyrics WHERE file_hash = ?")
+            .bind(&file_hash)
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+        file_hash = new_hash;
+    }
+
+    let source = LyricsSource::Manual;
+    upsert_lyrics(&pool, &file_hash, &trimmed, &format, &source).await?;
+
+    let _ = app.emit("lyrics:updated", track_id);
+    Ok(LyricsPayload {
+        track_id,
+        content: trimmed,
+        format,
+        source,
+    })
+}
+
+fn hash_file_blake3(path: &str) -> AppResult<String> {
+    let bytes = std::fs::read(path).map_err(|e| AppError::Other(format!("read for hash: {e}")))?;
+    Ok(blake3::hash(&bytes).to_hex().to_string())
+}
+
+/// Write the unsynchronized lyrics back into the audio file. Uses
+/// `ItemKey::UnsyncLyrics` (USLT for ID3v2, UNSYNCEDLYRICS for Vorbis,
+/// `©lyr` for MP4). Empty content removes the frame entirely so the
+/// file doesn't carry a phantom "" lyric tag.
+fn write_lyrics_to_file(
+    path: &Path,
+    content: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    use lofty::file::{AudioFile, TaggedFileExt};
+    use lofty::tag::Tag;
+
+    let mut tagged = lofty::read_from_path(path)?;
+    if tagged.primary_tag().is_none() && tagged.first_tag().is_none() {
+        let preferred = tagged.primary_tag_type();
+        tagged.insert_tag(Tag::new(preferred));
+    }
+    let tag = if tagged.primary_tag().is_some() {
+        tagged.primary_tag_mut().expect("checked")
+    } else {
+        tagged.first_tag_mut().ok_or("no tag")?
+    };
+
+    if content.trim().is_empty() {
+        tag.remove_key(ItemKey::UnsyncLyrics);
+        tag.remove_key(ItemKey::Lyrics);
+    } else {
+        // insert_text overwrites any existing item with the same key.
+        // For ID3v2 this writes a USLT frame; for Vorbis it writes
+        // UNSYNCEDLYRICS; for MP4 it writes ©lyr.
+        tag.insert_text(ItemKey::UnsyncLyrics, content.to_string());
+    }
+
+    tagged.save_to_path(path, lofty::config::WriteOptions::default())?;
+    Ok(())
 }
 
 /// Drop the cached lyrics row so the next fetch re-runs the waterfall.

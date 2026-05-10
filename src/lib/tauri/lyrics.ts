@@ -40,6 +40,59 @@ export function clearLyrics(trackId: number): Promise<void> {
   return invoke<void>("clear_lyrics", { trackId });
 }
 
+export interface SaveLyricsPayload {
+  content: string;
+  format: "plain" | "lrc";
+  /**
+   * When true, the backend also writes the lyrics into the audio
+   * file's USLT/LYRICS/©lyr frame. Disabled writes are cache-only.
+   */
+  write_to_file: boolean;
+}
+
+/**
+ * Persist user-edited lyrics for a track. Always upserts the cache
+ * row (source = manual); when `write_to_file` is true the backend
+ * also writes the embedded tag and re-hashes the file.
+ */
+export function saveLyrics(
+  trackId: number,
+  payload: SaveLyricsPayload,
+): Promise<LyricsPayload> {
+  return invoke<LyricsPayload>("save_lyrics", { trackId, payload });
+}
+
+/**
+ * Format a millisecond timestamp as the LRC `[mm:ss.xx]` tag.
+ * Centisecond precision matches Musicolet / LRCLIB output.
+ */
+export function formatLrcTimestamp(timeMs: number): string {
+  const safe = Math.max(0, Math.floor(timeMs));
+  const minutes = Math.floor(safe / 60_000);
+  const seconds = Math.floor((safe % 60_000) / 1000);
+  const centis = Math.floor((safe % 1000) / 10);
+  const mm = minutes.toString().padStart(2, "0");
+  const ss = seconds.toString().padStart(2, "0");
+  const cc = centis.toString().padStart(2, "0");
+  return `[${mm}:${ss}.${cc}]`;
+}
+
+/**
+ * Serialize an array of `{ timeMs, text }` rows back into LRC text.
+ * Lines without a captured timestamp (timeMs < 0) are emitted with
+ * the placeholder `[--:--.--]` so the user can revisit them.
+ */
+export function serializeLrc(
+  rows: Array<{ timeMs: number; text: string }>,
+): string {
+  return rows
+    .map((row) => {
+      const stamp = row.timeMs < 0 ? "[--:--.--]" : formatLrcTimestamp(row.timeMs);
+      return `${stamp}${row.text}`;
+    })
+    .join("\n");
+}
+
 export interface LyricsPrefetchProgress {
   processed: number;
   total: number;

@@ -674,7 +674,8 @@
       "import": "Importare un file .lrc",
       "refetch": "Riprendere la ricerca",
       "clear": "Cancella il testo",
-      "fullscreen": "Schermo intero"
+      "fullscreen": "Schermo intero",
+      "edit": "Modifica i testi"
     },
     "source": {
       "embedded": "Testi integrati nel file",
@@ -682,6 +683,24 @@
       "api": "LRCLIB",
       "manual": "Inserimento manuale"
     }
+  },
+  "lyricsEditor": {
+    "title": "Editor dei testi",
+    "tabs": {
+      "plain": "Testo",
+      "synced": "Sincronizzato"
+    },
+    "plainPlaceholder": "Digita i testi riga per riga…",
+    "linePlaceholder": "Testo della riga",
+    "capture": "Cattura",
+    "captureHint": "Avvia la riproduzione e premi Spazio (o Cattura) per ancorare la riga corrente al tempo attuale",
+    "captureNow": "Cattura ora",
+    "recapture": "Riancora alla posizione attuale",
+    "seekToLine": "Vai a questa riga",
+    "insertBelow": "Inserisci una riga sotto",
+    "removeLine": "Rimuovi riga",
+    "lines": "righe ancorate",
+    "writeToFile": "Scrivi anche nel file audio (USLT/LYRICS)"
   },
   "sort": {
     "title": "Titolo",

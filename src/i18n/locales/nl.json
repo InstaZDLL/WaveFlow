@@ -674,7 +674,8 @@
       "import": "Een .lrc-bestand importeren",
       "refetch": "Het onderzoek hervatten",
       "clear": "Tekst wissen",
-      "fullscreen": "Volledig scherm"
+      "fullscreen": "Volledig scherm",
+      "edit": "Songtekst bewerken"
     },
     "source": {
       "embedded": "Tekst opgenomen in het bestand",
@@ -682,6 +683,24 @@
       "api": "LRCLIB",
       "manual": "Handmatig invoeren"
     }
+  },
+  "lyricsEditor": {
+    "title": "Songtekst-editor",
+    "tabs": {
+      "plain": "Tekst",
+      "synced": "Gesynchroniseerd"
+    },
+    "plainPlaceholder": "Typ de songtekst regel voor regel…",
+    "linePlaceholder": "Regeltekst",
+    "capture": "Vastleggen",
+    "captureHint": "Start de weergave en druk op de spatiebalk (of Vastleggen) om de huidige regel aan de afspeelkop te koppelen",
+    "captureNow": "Nu vastleggen",
+    "recapture": "Opnieuw koppelen aan huidige positie",
+    "seekToLine": "Spring naar deze regel",
+    "insertBelow": "Regel hieronder invoegen",
+    "removeLine": "Regel verwijderen",
+    "lines": "regels gekoppeld",
+    "writeToFile": "Ook in het audiobestand schrijven (USLT/LYRICS)"
   },
   "sort": {
     "title": "Titel",

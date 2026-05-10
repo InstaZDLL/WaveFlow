@@ -674,7 +674,8 @@
       "import": "Impor berkas .lrc",
       "refetch": "Muat ulang lirik",
       "clear": "Lirik yang jelas",
-      "fullscreen": "Layar penuh"
+      "fullscreen": "Layar penuh",
+      "edit": "Edit lirik"
     },
     "source": {
       "embedded": "Tersemat dalam berkas audio",
@@ -682,6 +683,24 @@
       "api": "LRCLIB",
       "manual": "Pencatatan manual"
     }
+  },
+  "lyricsEditor": {
+    "title": "Editor lirik",
+    "tabs": {
+      "plain": "Teks",
+      "synced": "Tersinkronisasi"
+    },
+    "plainPlaceholder": "Ketik lirik baris demi baris…",
+    "linePlaceholder": "Teks baris",
+    "capture": "Tangkap",
+    "captureHint": "Mulai pemutaran lalu tekan Spasi (atau Tangkap) untuk menambatkan baris saat ini ke posisi saat ini",
+    "captureNow": "Tangkap sekarang",
+    "recapture": "Tambatkan ulang ke posisi saat ini",
+    "seekToLine": "Lompat ke baris ini",
+    "insertBelow": "Sisipkan baris di bawah",
+    "removeLine": "Hapus baris",
+    "lines": "baris ditambatkan",
+    "writeToFile": "Tulis juga ke berkas audio (USLT/LYRICS)"
   },
   "sort": {
     "title": "Judul",

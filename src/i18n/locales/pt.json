@@ -674,7 +674,8 @@
       "import": "Importar um ficheiro .lrc",
       "refetch": "Reiniciar a pesquisa",
       "clear": "Apagar a letra",
-      "fullscreen": "Ecrã inteiro"
+      "fullscreen": "Ecrã inteiro",
+      "edit": "Editar a letra"
     },
     "source": {
       "embedded": "Letra incluída no ficheiro",
@@ -682,6 +683,24 @@
       "api": "LRCLIB",
       "manual": "Introdução manual"
     }
+  },
+  "lyricsEditor": {
+    "title": "Editor de letras",
+    "tabs": {
+      "plain": "Texto",
+      "synced": "Sincronizado"
+    },
+    "plainPlaceholder": "Digita a letra linha a linha…",
+    "linePlaceholder": "Texto da linha",
+    "capture": "Capturar",
+    "captureHint": "Inicia a reprodução e prime Espaço (ou Capturar) para fixar a linha actual ao tempo actual",
+    "captureNow": "Capturar agora",
+    "recapture": "Voltar a fixar na posição actual",
+    "seekToLine": "Ir para esta linha",
+    "insertBelow": "Inserir uma linha abaixo",
+    "removeLine": "Remover linha",
+    "lines": "linhas fixadas",
+    "writeToFile": "Escrever também no ficheiro áudio (USLT/LYRICS)"
   },
   "sort": {
     "title": "Título",

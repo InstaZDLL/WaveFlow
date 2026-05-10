@@ -674,7 +674,8 @@
       "import": "Importer un fichier .lrc",
       "refetch": "Relancer la recherche",
       "clear": "Effacer les paroles",
-      "fullscreen": "Plein écran"
+      "fullscreen": "Plein écran",
+      "edit": "Éditer les paroles"
     },
     "source": {
       "embedded": "Paroles intégrées au fichier",
@@ -682,6 +683,24 @@
       "api": "LRCLIB",
       "manual": "Saisie manuelle"
     }
+  },
+  "lyricsEditor": {
+    "title": "Éditeur de paroles",
+    "tabs": {
+      "plain": "Texte",
+      "synced": "Synchronisé"
+    },
+    "plainPlaceholder": "Saisis les paroles ligne par ligne…",
+    "linePlaceholder": "Texte de la ligne",
+    "capture": "Capturer",
+    "captureHint": "Lance la lecture puis appuie sur Espace (ou Capturer) pour caler la ligne courante au temps actuel",
+    "captureNow": "Capturer maintenant",
+    "recapture": "Recaler sur la position actuelle",
+    "seekToLine": "Aller à ce passage",
+    "insertBelow": "Insérer une ligne après",
+    "removeLine": "Supprimer la ligne",
+    "lines": "lignes calées",
+    "writeToFile": "Écrire aussi dans le fichier audio (USLT/LYRICS)"
   },
   "sort": {
     "title": "Titre",

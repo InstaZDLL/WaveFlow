@@ -674,7 +674,8 @@
       "import": "导入 .lrc 文件",
       "refetch": "重新开始搜索",
       "clear": "删除歌词",
-      "fullscreen": "全屏"
+      "fullscreen": "全屏",
+      "edit": "编辑歌词"
     },
     "source": {
       "embedded": "歌词已嵌入文件中",
@@ -682,6 +683,24 @@
       "api": "LRCLIB",
       "manual": "手动输入"
     }
+  },
+  "lyricsEditor": {
+    "title": "歌词编辑器",
+    "tabs": {
+      "plain": "文本",
+      "synced": "同步"
+    },
+    "plainPlaceholder": "逐行输入歌词…",
+    "linePlaceholder": "行文本",
+    "capture": "捕获",
+    "captureHint": "开始播放后按空格（或捕获）将当前行锚定到当前时间",
+    "captureNow": "立即捕获",
+    "recapture": "重新锚定到当前位置",
+    "seekToLine": "跳转到该行",
+    "insertBelow": "在下方插入一行",
+    "removeLine": "删除行",
+    "lines": "行已锚定",
+    "writeToFile": "同时写入音频文件 (USLT/LYRICS)"
   },
   "sort": {
     "title": "标题",

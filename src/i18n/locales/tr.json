@@ -674,7 +674,8 @@
       "import": ".lrc dosyasını içe aktar",
       "refetch": "Şarkı sözlerini yeniden getir",
       "clear": "Şarkı sözlerini göster",
-      "fullscreen": "Tam ekran"
+      "fullscreen": "Tam ekran",
+      "edit": "Şarkı sözlerini düzenle"
     },
     "source": {
       "embedded": "Ses dosyasına gömülü",
@@ -682,6 +683,24 @@
       "api": "LRCLIB",
       "manual": "Elle giriş"
     }
+  },
+  "lyricsEditor": {
+    "title": "Şarkı sözü düzenleyici",
+    "tabs": {
+      "plain": "Metin",
+      "synced": "Senkronize"
+    },
+    "plainPlaceholder": "Sözleri satır satır yaz…",
+    "linePlaceholder": "Satır metni",
+    "capture": "Yakala",
+    "captureHint": "Oynatmayı başlat ve mevcut satırı geçerli zamana sabitlemek için Boşluk (veya Yakala) tuşuna bas",
+    "captureNow": "Şimdi yakala",
+    "recapture": "Mevcut konuma yeniden sabitle",
+    "seekToLine": "Bu satıra git",
+    "insertBelow": "Aşağıya satır ekle",
+    "removeLine": "Satırı kaldır",
+    "lines": "satır sabitlendi",
+    "writeToFile": "Ses dosyasına da yaz (USLT/LYRICS)"
   },
   "sort": {
     "title": "Başlık",

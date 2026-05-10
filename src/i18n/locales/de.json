@@ -674,7 +674,8 @@
       "import": "Eine .lrc-Datei importieren",
       "refetch": "Suche erneut starten",
       "clear": "Text löschen",
-      "fullscreen": "Vollbild"
+      "fullscreen": "Vollbild",
+      "edit": "Liedtext bearbeiten"
     },
     "source": {
       "embedded": "In die Datei integrierte Liedtexte",
@@ -682,6 +683,24 @@
       "api": "LRCLIB",
       "manual": "Manuelle Eingabe"
     }
+  },
+  "lyricsEditor": {
+    "title": "Liedtext-Editor",
+    "tabs": {
+      "plain": "Text",
+      "synced": "Synchronisiert"
+    },
+    "plainPlaceholder": "Tippe den Liedtext Zeile für Zeile ein…",
+    "linePlaceholder": "Zeilentext",
+    "capture": "Erfassen",
+    "captureHint": "Starte die Wiedergabe und drücke Leertaste (oder Erfassen), um die aktuelle Zeile am Abspielkopf zu verankern",
+    "captureNow": "Jetzt erfassen",
+    "recapture": "Auf aktuelle Position neu verankern",
+    "seekToLine": "Zu dieser Zeile springen",
+    "insertBelow": "Zeile darunter einfügen",
+    "removeLine": "Zeile entfernen",
+    "lines": "Zeilen verankert",
+    "writeToFile": "Auch in die Audiodatei schreiben (USLT/LYRICS)"
   },
   "sort": {
     "title": "Titel",

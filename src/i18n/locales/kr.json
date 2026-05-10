@@ -674,7 +674,8 @@
       "import": ".lrc 파일 가져오기",
       "refetch": "검색 다시 실행",
       "clear": "가사 지우기",
-      "fullscreen": "전체 화면"
+      "fullscreen": "전체 화면",
+      "edit": "가사 편집"
     },
     "source": {
       "embedded": "파일에 가사가 포함되어 있음",
@@ -682,6 +683,24 @@
       "api": "LRCLIB",
       "manual": "수동 입력"
     }
+  },
+  "lyricsEditor": {
+    "title": "가사 편집기",
+    "tabs": {
+      "plain": "텍스트",
+      "synced": "동기화"
+    },
+    "plainPlaceholder": "가사를 한 줄씩 입력하세요…",
+    "linePlaceholder": "줄 텍스트",
+    "capture": "캐프처",
+    "captureHint": "재생을 시작한 후 스페이스(또는 캐프처)를 눌러 현재 줄을 현재 시점에 고정하세요",
+    "captureNow": "지금 캐프처",
+    "recapture": "현재 위치로 다시 고정",
+    "seekToLine": "이 줄로 이동",
+    "insertBelow": "아래에 줄 삽입",
+    "removeLine": "줄 제거",
+    "lines": "줄 고정됨",
+    "writeToFile": "오디오 파일에도 기록 (USLT/LYRICS)"
   },
   "sort": {
     "title": "제목",

@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Music2, Upload, RefreshCcw, Trash2, Maximize2 } from "lucide-react";
+import {
+  X,
+  Music2,
+  Upload,
+  RefreshCcw,
+  Trash2,
+  Maximize2,
+  Pencil,
+} from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { pickFile } from "../../lib/tauri/dialog";
 import {
@@ -13,6 +21,7 @@ import {
   type LyricsPayload,
 } from "../../lib/tauri/lyrics";
 import { FullscreenLyrics } from "../player/FullscreenLyrics";
+import { LyricsEditorModal } from "../common/LyricsEditorModal";
 
 /**
  * Spotify-style right-edge panel showing the currently-playing track's
@@ -34,6 +43,7 @@ export function LyricsPanel() {
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const trackId = currentTrack?.id ?? null;
 
@@ -166,6 +176,16 @@ export function LyricsPanel() {
           <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
+              onClick={() => setIsEditing(true)}
+              aria-label={t("lyrics.actions.edit")}
+              title={t("lyrics.actions.edit")}
+              disabled={currentTrack == null}
+              className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Pencil size={16} />
+            </button>
+            <button
+              type="button"
               onClick={() => setIsFullscreen(true)}
               aria-label={t("lyrics.actions.fullscreen")}
               title={t("lyrics.actions.fullscreen")}
@@ -232,6 +252,16 @@ export function LyricsPanel() {
             </p>
           )}
         </div>
+
+        {/* Editor modal — sibling so it floats above the panel. */}
+        <LyricsEditorModal
+          isOpen={isEditing}
+          onClose={() => setIsEditing(false)}
+          trackId={trackId}
+          trackTitle={currentTrack?.title ?? null}
+          initial={payload}
+          onSaved={(next) => setPayload(next)}
+        />
 
         {/* Fullscreen overlay — rendered as a sibling so it covers
             the whole app, not just the panel. */}

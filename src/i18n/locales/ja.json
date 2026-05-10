@@ -674,7 +674,8 @@
       "import": ".lrcファイルをインポートする",
       "refetch": "検索を再開する",
       "clear": "歌詞を消去する",
-      "fullscreen": "フルスクリーン"
+      "fullscreen": "フルスクリーン",
+      "edit": "歌詞を編集"
     },
     "source": {
       "embedded": "歌詞がファイルに組み込まれている",
@@ -682,6 +683,24 @@
       "api": "LRCLIB",
       "manual": "手動入力"
     }
+  },
+  "lyricsEditor": {
+    "title": "歌詞エディタ",
+    "tabs": {
+      "plain": "テキスト",
+      "synced": "同期"
+    },
+    "plainPlaceholder": "歌詞を一行ずつ入力…",
+    "linePlaceholder": "行のテキスト",
+    "capture": "キャプチャ",
+    "captureHint": "再生を開始してからスペース（またはキャプチャ）を押すと、現在の行が再生位置に固定されます",
+    "captureNow": "今キャプチャ",
+    "recapture": "現在位置に再固定",
+    "seekToLine": "この行へジャンプ",
+    "insertBelow": "下に行を挿入",
+    "removeLine": "行を削除",
+    "lines": "行が固定済み",
+    "writeToFile": "音声ファイルにも書き込む (USLT/LYRICS)"
   },
   "sort": {
     "title": "タイトル",

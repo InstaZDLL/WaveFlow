@@ -555,10 +555,7 @@ pub(crate) fn split_artist_name(raw: &str) -> Vec<String> {
         .collect()
 }
 
-pub(crate) async fn upsert_artist(
-    pool: &SqlitePool,
-    raw_name: &str,
-) -> AppResult<Option<i64>> {
+pub(crate) async fn upsert_artist(pool: &SqlitePool, raw_name: &str) -> AppResult<Option<i64>> {
     let name = raw_name.trim();
     if name.is_empty() {
         return Ok(None);
@@ -630,10 +627,7 @@ pub(crate) async fn upsert_album(
     Ok(Some(result.last_insert_rowid()))
 }
 
-pub(crate) async fn upsert_genre(
-    pool: &SqlitePool,
-    raw_name: &str,
-) -> AppResult<Option<i64>> {
+pub(crate) async fn upsert_genre(pool: &SqlitePool, raw_name: &str) -> AppResult<Option<i64>> {
     let name = raw_name.trim();
     if name.is_empty() {
         return Ok(None);
