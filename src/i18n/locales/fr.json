@@ -449,6 +449,10 @@
       "basedOn": "Basée sur « {{title}} »"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "Rien dans la file Spotify pour le moment.",
+    "readonlyHint": "File en lecture seule — modifie la depuis l'app Spotify."
+  },
   "deviceMenu": {
     "activeLabel": "Sortie active",
     "loading": "Recherche des périphériques…",

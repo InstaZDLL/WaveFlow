@@ -449,6 +449,10 @@
       "basedOn": "Based on “{{title}}”"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "Nothing in the Spotify queue right now.",
+    "readonlyHint": "Read-only queue — manage it from the Spotify app."
+  },
   "deviceMenu": {
     "activeLabel": "Active output",
     "loading": "Searching for devices…",

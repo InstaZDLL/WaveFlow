@@ -449,6 +449,10 @@
       "basedOn": "基于「{{title}}」"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "Spotify 队列暂无内容。",
+    "readonlyHint": "只读队列 — 从 Spotify 应用管理。"
+  },
   "deviceMenu": {
     "activeLabel": "有源输出",
     "loading": "正在搜索设备……",

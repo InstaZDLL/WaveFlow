@@ -438,6 +438,43 @@ pub async fn playlist_tracks(
         .collect())
 }
 
+/// Snapshot of the user's Spotify playback queue. Contains the
+/// currently playing track + the upcoming entries — exactly what
+/// the WaveFlow `QueuePanel` needs when the active provider is
+/// Spotify and the local SQLite queue is empty.
+#[derive(Debug, Clone, Serialize)]
+pub struct SpotifyQueueSnapshot {
+    pub current: Option<SpotifyTrackLite>,
+    pub upcoming: Vec<SpotifyTrackLite>,
+}
+
+#[derive(Debug, Deserialize)]
+struct QueueResponse {
+    currently_playing: Option<TrackResponse>,
+    queue: Vec<TrackResponse>,
+}
+
+/// Fetch the user's playback queue via `GET /me/player/queue`.
+/// Spotify returns `currently_playing` + an array of upcoming tracks
+/// (capped at ~20 items). Requires an active Connect device — when
+/// nothing is playing the response is `{"currently_playing": null,
+/// "queue": []}` which we surface as an empty snapshot.
+pub async fn queue(
+    client: &reqwest::Client,
+    access_token: &str,
+) -> AppResult<SpotifyQueueSnapshot> {
+    let res: QueueResponse =
+        get_json(client, access_token, &format!("{API_BASE}/me/player/queue")).await?;
+    Ok(SpotifyQueueSnapshot {
+        current: res.currently_playing.and_then(SpotifyTrackLite::from_track),
+        upcoming: res
+            .queue
+            .into_iter()
+            .filter_map(SpotifyTrackLite::from_track)
+            .collect(),
+    })
+}
+
 pub async fn search(
     client: &reqwest::Client,
     access_token: &str,

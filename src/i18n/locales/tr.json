@@ -449,6 +449,10 @@
       "basedOn": "“{{title}}” temel alınarak"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "Spotify kuyruğunda şu an hiçbir şey yok.",
+    "readonlyHint": "Salt okunur kuyruk — Spotify uygulamasından yönetin."
+  },
   "deviceMenu": {
     "activeLabel": "Aktif çıkış",
     "loading": "Cihaz aranıyor…",

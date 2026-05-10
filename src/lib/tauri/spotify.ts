@@ -91,6 +91,20 @@ export function spotifyGetPlaylistTracks(
   });
 }
 
+export interface SpotifyQueueSnapshot {
+  current: SpotifyTrackLite | null;
+  upcoming: SpotifyTrackLite[];
+}
+
+/**
+ * Snapshot the user's Spotify playback queue (currently playing +
+ * upcoming, capped at ~20 by the Spotify API). Returns an empty
+ * snapshot when nothing is active on any Connect device.
+ */
+export function spotifyGetQueue(): Promise<SpotifyQueueSnapshot> {
+  return invoke<SpotifyQueueSnapshot>("spotify_get_queue");
+}
+
 export function spotifySearch(query: string): Promise<SpotifySearchResults> {
   return invoke<SpotifySearchResults>("spotify_search", { query });
 }

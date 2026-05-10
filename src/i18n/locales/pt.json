@@ -449,6 +449,10 @@
       "basedOn": "Baseada em «{{title}}»"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "Nada na fila Spotify de momento.",
+    "readonlyHint": "Fila só de leitura — gere-a a partir da app Spotify."
+  },
   "deviceMenu": {
     "activeLabel": "Saída ativa",
     "loading": "À procura de dispositivos…",

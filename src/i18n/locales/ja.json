@@ -449,6 +449,10 @@
       "basedOn": "「{{title}}」を基に"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "Spotifyのキューには現在何もありません。",
+    "readonlyHint": "読み取り専用キュー — Spotifyアプリから管理してください。"
+  },
   "deviceMenu": {
     "activeLabel": "アクティブ出力",
     "loading": "デバイスの検索中…",

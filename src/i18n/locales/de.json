@@ -449,6 +449,10 @@
       "basedOn": "Basierend auf „{{title}}“"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "Nichts in der Spotify-Warteschlange gerade.",
+    "readonlyHint": "Nur-lesen Warteschlange — verwalte sie in der Spotify-App."
+  },
   "deviceMenu": {
     "activeLabel": "Aktiver Ausgang",
     "loading": "Nach Geräten suchen…",

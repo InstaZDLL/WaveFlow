@@ -449,6 +449,10 @@
       "basedOn": "Basata su «{{title}}»"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "Nessun brano nella coda Spotify al momento.",
+    "readonlyHint": "Coda in sola lettura — modificala dall'app Spotify."
+  },
   "deviceMenu": {
     "activeLabel": "Uscita attiva",
     "loading": "Ricerca dei dispositivi…",

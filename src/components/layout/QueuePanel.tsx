@@ -32,6 +32,7 @@ import {
   type PlayerQueueSnapshot,
   type QueueTrackPayload,
 } from "../../lib/tauri/player";
+import { SpotifyQueueView } from "./SpotifyQueueView";
 
 /**
  * Right-hand queue panel. Shows:
@@ -44,7 +45,9 @@ import {
  */
 export function QueuePanel() {
   const { t } = useTranslation();
-  const { isQueueOpen, toggleQueue, playbackState } = usePlayer();
+  const { isQueueOpen, toggleQueue, playbackState, activeProvider } =
+    usePlayer();
+  const isSpotify = activeProvider === "spotify";
   const [snapshot, setSnapshot] = useState<PlayerQueueSnapshot | null>(null);
 
   // Seq counter so overlapping refetches never resolve in the
@@ -184,7 +187,9 @@ export function QueuePanel() {
           </button>
         </div>
 
-        {total === 0 ? (
+        {isSpotify ? (
+          <SpotifyQueueView />
+        ) : total === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center">
             <div className="w-24 h-24 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mb-6 shadow-inner">
               <ListMusic

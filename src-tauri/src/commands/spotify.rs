@@ -123,6 +123,15 @@ pub async fn spotify_get_playlist_tracks(
 }
 
 #[tauri::command]
+pub async fn spotify_get_queue(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<spotify::SpotifyQueueSnapshot> {
+    let token = spotify::access_token(&state).await?;
+    let client = reqwest::Client::new();
+    spotify::queue(&client, &token.access_token).await
+}
+
+#[tauri::command]
 pub async fn spotify_search(
     state: tauri::State<'_, AppState>,
     query: String,

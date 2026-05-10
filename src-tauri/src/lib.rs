@@ -347,6 +347,7 @@ pub fn run() {
             commands::spotify::spotify_get_access_token,
             commands::spotify::spotify_list_playlists,
             commands::spotify::spotify_get_playlist_tracks,
+            commands::spotify::spotify_get_queue,
             commands::spotify::spotify_search,
             commands::spotify::spotify_pause_local,
             commands::lyrics::get_lyrics,

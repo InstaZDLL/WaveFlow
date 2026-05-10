@@ -449,6 +449,10 @@
       "basedOn": "Berdasarkan “{{title}}”"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "Tidak ada di antrean Spotify saat ini.",
+    "readonlyHint": "Antrean baca-saja — kelola dari aplikasi Spotify."
+  },
   "deviceMenu": {
     "activeLabel": "Output aktif",
     "loading": "Mencari perangkat…",

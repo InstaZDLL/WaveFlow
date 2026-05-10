@@ -449,6 +449,10 @@
       "basedOn": "基於「{{title}}」"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "Spotify 佇列目前沒有內容。",
+    "readonlyHint": "唯讀佇列 — 從 Spotify 應用程式管理。"
+  },
   "deviceMenu": {
     "activeLabel": "主動輸出",
     "loading": "正在搜尋裝置……",

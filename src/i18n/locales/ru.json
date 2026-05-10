@@ -449,6 +449,10 @@
       "basedOn": "На основе «{{title}}»"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "В очереди Spotify сейчас ничего нет.",
+    "readonlyHint": "Очередь только для чтения — управляйте из приложения Spotify."
+  },
   "deviceMenu": {
     "activeLabel": "Активный выход",
     "loading": "Поиск устройств…",

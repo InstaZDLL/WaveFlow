@@ -449,6 +449,10 @@
       "basedOn": "Gebaseerd op “{{title}}”"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "Niets in de Spotify-wachtrij op dit moment.",
+    "readonlyHint": "Alleen-lezen wachtrij — beheer die in de Spotify-app."
+  },
   "deviceMenu": {
     "activeLabel": "Actieve uitgang",
     "loading": "Zoeken naar apparaten…",

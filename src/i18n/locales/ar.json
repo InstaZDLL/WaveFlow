@@ -449,6 +449,10 @@
       "basedOn": "بناءً على «{{title}}»"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "لا يوجد شيء في قائمة انتظار Spotify الآن.",
+    "readonlyHint": "قائمة انتظار للقراءة فقط — أدرها من تطبيق Spotify."
+  },
   "deviceMenu": {
     "activeLabel": "مخرج نشط",
     "loading": "البحث عن الأجهزة...",
