@@ -579,7 +579,8 @@
       "discNumber": "디스크 번호",
       "genre": "장르",
       "genrePlaceholder": "팝, 록, 재즈…"
-    }
+    },
+    "changeCover": "커버 변경"
   },
   "selection": {
     "toolbarLabel": "선발 활동",

@@ -579,7 +579,8 @@
       "discNumber": "№ диска",
       "genre": "Жанр",
       "genrePlaceholder": "Поп, Рок, Джаз…"
-    }
+    },
+    "changeCover": "Изменить обложку"
   },
   "selection": {
     "toolbarLabel": "Действия по выбору",

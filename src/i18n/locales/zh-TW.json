@@ -579,7 +579,8 @@
       "discNumber": "碟片號",
       "genre": "類型",
       "genrePlaceholder": "流行、搖滾、爵士…"
-    }
+    },
+    "changeCover": "更換封面"
   },
   "selection": {
     "toolbarLabel": "篩選條件",

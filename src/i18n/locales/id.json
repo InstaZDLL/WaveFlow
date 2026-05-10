@@ -579,7 +579,8 @@
       "discNumber": "No. disk",
       "genre": "Genre",
       "genrePlaceholder": "Pop, Rock, Jazz…"
-    }
+    },
+    "changeCover": "Ubah sampul"
   },
   "selection": {
     "toolbarLabel": "Tindakan seleksi",

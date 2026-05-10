@@ -579,7 +579,8 @@
       "discNumber": "Disk No.",
       "genre": "Tür",
       "genrePlaceholder": "Pop, Rock, Caz…"
-    }
+    },
+    "changeCover": "Kapağı değiştir"
   },
   "selection": {
     "toolbarLabel": "Seçim işlemleri",

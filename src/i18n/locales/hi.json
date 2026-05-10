@@ -579,7 +579,8 @@
       "discNumber": "डिस्क नं.",
       "genre": "शैली",
       "genrePlaceholder": "पॉप, रॉक, जैज़…"
-    }
+    },
+    "changeCover": "कवर बदलें"
   },
   "selection": {
     "toolbarLabel": "चयन गतिविधियाँ",

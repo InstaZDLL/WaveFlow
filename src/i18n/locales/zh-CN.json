@@ -579,7 +579,8 @@
       "discNumber": "碟片号",
       "genre": "流派",
       "genrePlaceholder": "流行、摇滚、爵士…"
-    }
+    },
+    "changeCover": "更换封面"
   },
   "selection": {
     "toolbarLabel": "筛选操作",

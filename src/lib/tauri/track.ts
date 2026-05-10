@@ -69,6 +69,11 @@ export function searchTracks(query: string): Promise<Track[]> {
   return invoke<Track[]>("search_tracks", { query });
 }
 
+/** Fetch a single track by id. Returns null when the row was deleted. */
+export function getTrack(trackId: number): Promise<Track | null> {
+  return invoke<Track | null>("get_track", { trackId });
+}
+
 /**
  * Multi-criteria filters layered on top of the FTS5 search. Every field
  * is optional — `query` itself can be omitted to run a pure-filter
@@ -142,6 +147,19 @@ export function updateTrackTags(
   edit: TrackEdit,
 ): Promise<void> {
   return invoke<void>("update_track_tags", { trackId, edit });
+}
+
+/**
+ * Replace the embedded cover for a track. The image is written into
+ * the audio file's tag AND copied into the per-profile artwork
+ * cache. Cover is per-album in WaveFlow's data model so this also
+ * repaints every sibling track sharing the same album.
+ */
+export function updateTrackCover(
+  trackId: number,
+  imagePath: string,
+): Promise<void> {
+  return invoke<void>("update_track_cover", { trackId, imagePath });
 }
 
 /**

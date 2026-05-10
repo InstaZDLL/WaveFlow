@@ -579,7 +579,8 @@
       "discNumber": "رقم القرص",
       "genre": "النوع",
       "genrePlaceholder": "بوب، روك، جاز…"
-    }
+    },
+    "changeCover": "تغيير الغلاف"
   },
   "selection": {
     "toolbarLabel": "عمليات الاختيار",

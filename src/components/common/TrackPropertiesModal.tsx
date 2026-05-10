@@ -1,15 +1,26 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ExternalLink, Pencil, Save, Sparkles, X } from "lucide-react";
+import {
+  ExternalLink,
+  ImageUp,
+  Pencil,
+  Save,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { Artwork } from "./Artwork";
 import { HiResBadge } from "./HiResBadge";
 import {
   formatDuration,
+  getTrack,
+  updateTrackCover,
   updateTrackTags,
   type Track,
   type TrackEdit,
 } from "../../lib/tauri/track";
+import { pickFile } from "../../lib/tauri/dialog";
+import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import {
   analyzeTrack,
   getTrackAnalysis,
@@ -31,10 +42,33 @@ interface TrackPropertiesModalProps {
  * mounted and just clear the track to dismiss.
  */
 export function TrackPropertiesModal({
-  track,
+  track: trackProp,
   onClose,
 }: TrackPropertiesModalProps) {
   const { t, i18n } = useTranslation();
+  // Local mirror of the prop track so the cover / metadata can refresh
+  // in-place after a save without forcing the parent to refetch and
+  // pass new props down. The parent re-keys this component on
+  // `track.id`, so we just lazy-init from the prop here and let the
+  // `track:updated` listener below refetch when the user saves —
+  // never sync the prop back through a useEffect (would trip the
+  // cascading-render lint AND be redundant given the key strategy).
+  const [track, setTrack] = useState<Track | null>(trackProp);
+  useTrackUpdated(
+    useCallback(
+      async (id: number) => {
+        if (track == null || id !== track.id) return;
+        try {
+          const fresh = await getTrack(id);
+          if (fresh) setTrack(fresh);
+        } catch (err) {
+          console.error("[TrackProperties] get_track failed", err);
+        }
+      },
+      [track],
+    ),
+  );
+
   const [analysis, setAnalysis] = useState<TrackAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
 
@@ -154,6 +188,27 @@ export function TrackPropertiesModal({
     }
   };
 
+  const handlePickCover = async () => {
+    if (!track || saving) return;
+    try {
+      const path = await pickFile(
+        ["jpg", "jpeg", "png", "webp", "bmp", "gif"],
+        t("trackProperties.changeCover"),
+      );
+      if (!path) return;
+      setSaving(true);
+      await updateTrackCover(track.id, path);
+      // The backend's `track:updated` event triggers a refetch in the
+      // surrounding views; the modal itself stays open on the same
+      // row but its `track` prop will get a new `artwork_path` once
+      // the parent passes it back down.
+    } catch (err) {
+      console.error("[TrackProperties] update_track_cover failed", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleShowInExplorer = () => {
     revealItemInDir(track.file_path).catch((err) =>
       console.error("[TrackProperties] revealItemInDir failed", err),
@@ -206,16 +261,30 @@ export function TrackPropertiesModal({
 
         {/* Header — cover + title block */}
         <div className="flex items-start gap-4 p-6 border-b border-zinc-100 dark:border-zinc-800">
-          <Artwork
-            path={track.artwork_path}
-            path1x={track.artwork_path_1x}
-            path2x={track.artwork_path_2x}
-            size="2x"
-            alt={track.album_title ?? track.title}
-            className="w-24 h-24 shrink-0 shadow-sm"
-            iconSize={32}
-            rounded="xl"
-          />
+          <div className="relative shrink-0 group">
+            <Artwork
+              path={track.artwork_path}
+              path1x={track.artwork_path_1x}
+              path2x={track.artwork_path_2x}
+              size="2x"
+              alt={track.album_title ?? track.title}
+              className="w-24 h-24 shadow-sm"
+              iconSize={32}
+              rounded="xl"
+            />
+            {editing && (
+              <button
+                type="button"
+                onClick={handlePickCover}
+                disabled={saving}
+                aria-label={t("trackProperties.changeCover")}
+                title={t("trackProperties.changeCover")}
+                className="absolute inset-0 rounded-xl flex items-center justify-center bg-black/60 text-white opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity disabled:cursor-not-allowed"
+              >
+                <ImageUp size={28} />
+              </button>
+            )}
+          </div>
           <div className="flex-1 min-w-0 pr-10">
             <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
               {t("trackProperties.title")}

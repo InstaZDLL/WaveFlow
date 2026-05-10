@@ -23,7 +23,8 @@ use tauri::{AppHandle, Emitter};
 use crate::{
     audio::AudioEngine,
     commands::scan::{
-        canonical_name, split_artist_name, upsert_album, upsert_artist, upsert_genre,
+        canonical_name, split_artist_name, upsert_album, upsert_artist, upsert_artwork,
+        upsert_genre,
     },
     error::{AppError, AppResult},
     state::AppState,
@@ -381,4 +382,164 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
     // via a code path in this function (it's exported for callers).
     let _ = canonical_name;
     Ok(())
+}
+
+/// Replace the embedded cover for a track. The new image is written
+/// into the audio file's tag (replacing every existing picture so the
+/// thumbnail-thieving "20-cover ID3 spam" tracks get cleaned up too)
+/// AND copied into the per-profile artwork cache, then the track's
+/// album.artwork_id is repointed at the new row. Cover is per-album
+/// in WaveFlow's data model, so editing one track repaints every
+/// sibling on the same album — matching the behaviour every other
+/// music player ships.
+#[tauri::command]
+pub async fn update_track_cover(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    app: AppHandle,
+    track_id: i64,
+    image_path: String,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    std::fs::create_dir_all(&artwork_dir)?;
+
+    let row: Option<(String, Option<i64>)> = sqlx::query_as(
+        "SELECT file_path, album_id FROM track WHERE id = ?",
+    )
+    .bind(track_id)
+    .fetch_optional(&pool)
+    .await?;
+    let (file_path, album_id) =
+        row.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
+
+    let bytes = std::fs::read(&image_path)
+        .map_err(|e| AppError::Other(format!("cover read failed: {e}")))?;
+    if bytes.is_empty() {
+        return Err(AppError::Other("cover file is empty".into()));
+    }
+    let (mime, ext) = sniff_image_mime(&bytes, &image_path);
+
+    // Pause if the engine has the file open — same Windows-rename
+    // dance as the tag-edit path.
+    let active = engine
+        .shared()
+        .current_track_id
+        .load(std::sync::atomic::Ordering::Acquire);
+    if active == track_id {
+        let _ = engine.send(crate::audio::AudioCmd::Pause);
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+
+    write_cover_to_file(std::path::Path::new(&file_path), &bytes, &mime)
+        .map_err(|e| AppError::Other(format!("cover tag write failed: {e}")))?;
+
+    // Hash + persist the bytes in the shared artwork cache. blake3
+    // makes "same image, different file" deduplicate naturally.
+    let hash = blake3::hash(&bytes).to_hex().to_string();
+    let out_path = artwork_dir.join(format!("{hash}.{ext}"));
+    if !out_path.exists() {
+        std::fs::write(&out_path, &bytes)
+            .map_err(|e| AppError::Other(format!("artwork cache write failed: {e}")))?;
+    }
+    crate::thumbnails::spawn_thumbnail_job(
+        out_path.clone(),
+        artwork_dir.clone(),
+        hash.clone(),
+    );
+
+    let artwork_id = upsert_artwork(&pool, &hash, ext, "manual").await?;
+    if let Some(aid) = album_id {
+        sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
+            .bind(artwork_id)
+            .bind(aid)
+            .execute(&pool)
+            .await?;
+    }
+
+    let _ = app.emit("track:updated", track_id);
+    let _ = app.emit("library:rescanned", ());
+    let _ = app.emit("player:queue-changed", ());
+    Ok(())
+}
+
+/// Write `bytes` as the only embedded picture in the audio file at
+/// `path`. Removes every existing picture first so we don't end up
+/// with a chimera tag holding both the new cover AND the previous
+/// one(s).
+fn write_cover_to_file(
+    path: &std::path::Path,
+    bytes: &[u8],
+    mime: &lofty::picture::MimeType,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    use lofty::file::{AudioFile, TaggedFileExt};
+    use lofty::picture::{Picture, PictureType};
+    use lofty::tag::Tag;
+
+    let mut tagged = lofty::read_from_path(path)?;
+    if tagged.primary_tag().is_none() && tagged.first_tag().is_none() {
+        let preferred = tagged.primary_tag_type();
+        tagged.insert_tag(Tag::new(preferred));
+    }
+    let tag = if tagged.primary_tag().is_some() {
+        tagged.primary_tag_mut().expect("checked")
+    } else {
+        tagged.first_tag_mut().ok_or("no tag")?
+    };
+
+    // Drop existing pictures. `remove_picture` takes an index so we
+    // pop from the end backwards to avoid invalidating positions.
+    while !tag.pictures().is_empty() {
+        tag.remove_picture(tag.pictures().len() - 1);
+    }
+    // Lofty 0.24 swapped the constructor for a builder.
+    let picture = Picture::unchecked(bytes.to_vec())
+        .pic_type(PictureType::CoverFront)
+        .mime_type(mime.clone())
+        .build();
+    tag.push_picture(picture);
+    tagged.save_to_path(path, lofty::config::WriteOptions::default())?;
+    Ok(())
+}
+
+/// Pick the MIME type + filename extension for the user-supplied
+/// image. Magic-byte first, fall back to the path extension when the
+/// header is unrecognised. Lofty stores WebP under `Unknown` because
+/// the enum doesn't have a first-class variant for it.
+fn sniff_image_mime(
+    bytes: &[u8],
+    path: &str,
+) -> (lofty::picture::MimeType, &'static str) {
+    use lofty::picture::MimeType;
+    if bytes.len() >= 4 {
+        if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) {
+            return (MimeType::Jpeg, "jpg");
+        }
+        if bytes.starts_with(&[0x89, 0x50, 0x4E, 0x47]) {
+            return (MimeType::Png, "png");
+        }
+        if bytes.starts_with(b"GIF8") {
+            return (MimeType::Gif, "gif");
+        }
+        if bytes.starts_with(&[0x42, 0x4D]) {
+            return (MimeType::Bmp, "bmp");
+        }
+        if bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP" {
+            return (
+                MimeType::Unknown("image/webp".into()),
+                "webp",
+            );
+        }
+    }
+    let lower = path.to_ascii_lowercase();
+    if lower.ends_with(".jpg") || lower.ends_with(".jpeg") {
+        (MimeType::Jpeg, "jpg")
+    } else if lower.ends_with(".png") {
+        (MimeType::Png, "png")
+    } else if lower.ends_with(".webp") {
+        (MimeType::Unknown("image/webp".into()), "webp")
+    } else {
+        (MimeType::Jpeg, "jpg")
+    }
 }

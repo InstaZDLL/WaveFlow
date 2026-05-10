@@ -579,7 +579,8 @@
       "discNumber": "Schijfnr.",
       "genre": "Genre",
       "genrePlaceholder": "Pop, Rock, Jazz…"
-    }
+    },
+    "changeCover": "Hoes wijzigen"
   },
   "selection": {
     "toolbarLabel": "Selectieprocedures",

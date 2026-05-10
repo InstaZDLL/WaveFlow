@@ -514,7 +514,7 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
 /// returned as-is; new rows are inserted with the caller-supplied source
 /// label (`embedded`, `folder`, `deezer`, `user`...) so a future cleanup
 /// job can distinguish scanner-extracted art from remote/manual files.
-async fn upsert_artwork(
+pub(crate) async fn upsert_artwork(
     pool: &SqlitePool,
     hash: &str,
     format: &str,

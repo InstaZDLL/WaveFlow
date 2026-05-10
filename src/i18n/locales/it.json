@@ -579,7 +579,8 @@
       "discNumber": "N. disco",
       "genre": "Genere",
       "genrePlaceholder": "Pop, Rock, Jazz…"
-    }
+    },
+    "changeCover": "Cambia copertina"
   },
   "selection": {
     "toolbarLabel": "Azioni di selezione",

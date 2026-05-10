@@ -579,7 +579,8 @@
       "discNumber": "ディスク番号",
       "genre": "ジャンル",
       "genrePlaceholder": "ポップ、ロック、ジャズ…"
-    }
+    },
+    "changeCover": "カバーを変更"
   },
   "selection": {
     "toolbarLabel": "選考プロセス",
