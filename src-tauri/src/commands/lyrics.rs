@@ -14,7 +14,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use chrono::Utc;
-use lofty::file::TaggedFileExt;
+use lofty::file::{FileType, TaggedFileExt};
+use lofty::probe::Probe;
 use lofty::tag::ItemKey;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
@@ -124,23 +125,89 @@ fn source_to_db(src: &LyricsSource) -> &'static str {
     }
 }
 
-/// Read the embedded lyrics tag (`USLT` for ID3v2, `LYRICS` for Vorbis,
-/// `©lyr` for MP4). Returns `None` if the tag is absent or empty.
+/// Re-open an MP3 as a typed `Id3v2Tag` and pull the lyrics out of any
+/// TXXX user-defined frame whose description matches one of the common
+/// lyric aliases (`LYRICS`, `UNSYNCEDLYRICS`, `LYRICS_UNSYNCED`, ...).
+///
+/// Required because the generic `Tag` interface returned by
+/// `read_from_path` doesn't expose unmapped TXXX frames.
+fn read_id3v2_txxx_lyrics(path: &Path) -> Option<String> {
+    use lofty::id3::v2::Id3v2Tag;
+    use lofty::mpeg::MpegFile;
+    use lofty::config::ParseOptions;
+
+    let mut file = std::fs::File::open(path).ok()?;
+    let mpeg = <MpegFile as lofty::file::AudioFile>::read_from(
+        &mut file,
+        ParseOptions::new(),
+    )
+    .ok()?;
+    let tag: &Id3v2Tag = mpeg.id3v2()?;
+
+    const ALIASES: &[&str] = &[
+        "UNSYNCEDLYRICS",
+        "UNSYNCED LYRICS",
+        "UNSYNCED_LYRICS",
+        "LYRICS_UNSYNCED",
+        "LYRICS",
+    ];
+    for alias in ALIASES {
+        if let Some(s) = tag.get_user_text(alias) {
+            let trimmed = s.trim();
+            if !trimmed.is_empty() {
+                return Some(trimmed.to_string());
+            }
+        }
+    }
+    None
+}
+
+/// Read the embedded lyrics tag. Lookup order:
+///   1. `ItemKey::UnsyncLyrics` — `USLT` (ID3v2), `UNSYNCEDLYRICS`
+///      (Vorbis), `©lyr` (MP4)
+///   2. `ItemKey::Lyrics` — `LYRICS` (Vorbis), `©lyr` (MP4). Not
+///      supported by ID3v2 in lofty.
+///   3. ID3v2 TXXX user-defined frames named `LYRICS` or
+///      `UNSYNCEDLYRICS` (legacy Mp3tag / foobar2000 / lame --tg
+///      output common on K-Pop / J-Pop rips).
+///   4. Generic `Description` field as last resort.
 fn read_embedded_lyrics(path: &Path) -> Option<String> {
-    let tagged = lofty::read_from_path(path).ok()?;
-    let tag = tagged.primary_tag().or_else(|| tagged.first_tag())?;
-    // ItemKey::Lyrics maps to the right key for every supported format.
-    let raw = tag
-        .get_string(ItemKey::Lyrics)
-        .map(|s| s.to_string())
-        .or_else(|| {
-            // Some MP3s store lyrics under a non-standard key — fall
-            // back to the generic `lyrics()` accessor when present.
+    let probe = Probe::open(path).ok()?.guess_file_type().ok()?;
+    let file_type = probe.file_type();
+    let tagged = probe.read().ok()?;
+
+    let from_known_key = tagged
+        .primary_tag()
+        .or_else(|| tagged.first_tag())
+        .and_then(|tag| {
+            tag.get_string(ItemKey::UnsyncLyrics)
+                .or_else(|| tag.get_string(ItemKey::Lyrics))
+                .map(|s| s.to_string())
+        });
+
+    // Generic Tag wraps the underlying Id3v2Tag for MP3s, but the
+    // SplitAndMergeTag conversion drops unknown TXXX frames. Re-read
+    // the file as Id3v2Tag specifically when the standard frames came
+    // up empty so we can scan for `TXXX:LYRICS` / `TXXX:UNSYNCEDLYRICS`.
+    let from_id3v2_txxx = if file_type == Some(FileType::Mpeg) && from_known_key.is_none() {
+        read_id3v2_txxx_lyrics(path)
+    } else {
+        None
+    };
+
+    let from_description = tagged
+        .primary_tag()
+        .or_else(|| tagged.first_tag())
+        .and_then(|tag| {
             #[allow(deprecated)]
             tag.get_string(ItemKey::Description)
                 .filter(|s| s.lines().count() > 3)
                 .map(|s| s.to_string())
-        })?;
+        });
+
+    let raw = from_known_key
+        .or(from_id3v2_txxx)
+        .or(from_description)?;
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         None
