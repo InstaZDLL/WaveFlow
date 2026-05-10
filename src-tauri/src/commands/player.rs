@@ -447,6 +447,20 @@ pub async fn player_get_state(
                     engine.shared().eq.set_all_bands_db(&bands);
                 }
             }
+            // Visualizer toggle. Default OFF — the FFT cost is tiny
+            // but the cpal-side telemetry isn't free, and most users
+            // won't have the panel open.
+            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
+                "SELECT value FROM profile_setting WHERE key = 'ui.visualizer'",
+            )
+            .fetch_optional(&pool)
+            .await
+            {
+                engine
+                    .shared()
+                    .visualizer_enabled
+                    .store(v == "true", std::sync::atomic::Ordering::Release);
+            }
             // Prefer the actively-playing track (non-zero track_id in
             // SharedPlayback), fall back to the persisted resume point
             // at startup when the engine is still Idle.
@@ -864,6 +878,45 @@ pub async fn player_set_mono(
         .await;
     }
     Ok(())
+}
+
+/// Toggle the spectrum visualizer. Flips the atomic the decoder
+/// thread checks before running the FFT, then persists the new
+/// value to `profile_setting['ui.visualizer']` so the choice
+/// survives a restart.
+#[tauri::command]
+pub async fn player_set_visualizer(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    engine
+        .shared()
+        .visualizer_enabled
+        .store(enabled, std::sync::atomic::Ordering::Release);
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('ui.visualizer', ?, 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(if enabled { "true" } else { "false" })
+        .bind(now)
+        .execute(&pool)
+        .await;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn player_get_visualizer(
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+) -> AppResult<bool> {
+    Ok(engine
+        .shared()
+        .visualizer_enabled
+        .load(std::sync::atomic::Ordering::Relaxed))
 }
 
 /// Toggle gapless playback. Pushes the new value live to the audio

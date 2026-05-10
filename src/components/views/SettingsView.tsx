@@ -32,6 +32,7 @@ import {
   WifiOff,
   Download,
   Upload,
+  Activity,
 } from "lucide-react";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
 import type { ViewId } from "../../types";
@@ -67,6 +68,10 @@ import { openLogFolder, readRecentLogs } from "../../lib/tauri/diagnostics";
 import { getOfflineMode, setOfflineMode } from "../../lib/tauri/offline";
 import { exportProfile, importProfile } from "../../lib/tauri/profile_io";
 import { pickFile, pickSaveFile } from "../../lib/tauri/dialog";
+import {
+  getVisualizerEnabled,
+  setVisualizerEnabled,
+} from "../../lib/tauri/visualizer";
 import {
   dlnaGetConfig,
   dlnaGetStatus,
@@ -916,6 +921,26 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     });
   }, [replayGain]);
 
+  // Spectrum visualizer toggle. Persisted backend-side (per-profile)
+  // and pushed live to the decoder thread, so flipping it shows /
+  // hides the bars on the next emitted frame.
+  const [visualizer, setVisualizer] = useState(false);
+
+  useEffect(() => {
+    getVisualizerEnabled()
+      .then(setVisualizer)
+      .catch((err) => console.error("[SettingsView] get visualizer", err));
+  }, []);
+
+  const handleToggleVisualizer = useCallback(() => {
+    const next = !visualizer;
+    setVisualizer(next);
+    setVisualizerEnabled(next).catch((err) => {
+      console.error("[SettingsView] set visualizer failed", err);
+      setVisualizer(!next);
+    });
+  }, [visualizer]);
+
   const handleToggleGapless = useCallback(() => {
     const next = !gapless;
     setGapless(next);
@@ -1185,6 +1210,30 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 {crossfadeSec} s
               </span>
             </div>
+          </div>
+
+          {/* Spectrum visualizer */}
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4">
+              <Activity
+                size={20}
+                className="text-zinc-400"
+                aria-hidden="true"
+              />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.visualizer.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.visualizer.subtitle")}
+                </div>
+              </div>
+            </div>
+            <ToggleSwitch
+              enabled={visualizer}
+              onToggle={handleToggleVisualizer}
+              label={t("settings.visualizer.title")}
+            />
           </div>
 
           {/* Gapless playback */}

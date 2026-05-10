@@ -123,6 +123,12 @@ pub struct SharedPlayback {
     /// track changes — see the LoadAndPlay handler).
     pub loop_a_ms: AtomicU64,
     pub loop_b_ms: AtomicU64,
+    /// When `true`, the decoder thread feeds the post-EQ stream to
+    /// the spectrum analyzer and emits `player:spectrum` frames at
+    /// ~30 Hz. When `false`, the analyzer short-circuits to a no-op
+    /// so the cost of FFT + event encoding is zero. Persisted in
+    /// `profile_setting['ui.visualizer']`.
+    pub visualizer_enabled: AtomicBool,
 }
 
 impl SharedPlayback {
@@ -147,6 +153,7 @@ impl SharedPlayback {
             pause_after_current_track: AtomicBool::new(false),
             loop_a_ms: AtomicU64::new(0),
             loop_b_ms: AtomicU64::new(0),
+            visualizer_enabled: AtomicBool::new(false),
         }
     }
 

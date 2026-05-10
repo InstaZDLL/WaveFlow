@@ -986,6 +986,10 @@
       "copied": "Logs copiés",
       "copyFailed": "Impossible de copier les logs"
     },
+    "visualizer": {
+      "title": "Visualiseur audio",
+      "subtitle": "Affiche un spectre temps réel dans la vue immersive (analyse FFT légère sur le décodeur)"
+    },
     "gapless": {
       "title": "Lecture sans pause",
       "subtitle": "Enchaîne les morceaux suivants sans micro-silence (idéal pour les albums live ou concept)"

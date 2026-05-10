@@ -7,6 +7,7 @@ import { PlaybackControls } from "./PlaybackControls";
 import { ProgressBar } from "./ProgressBar";
 import { VolumeControl } from "./VolumeControl";
 import { usePlayer } from "../../hooks/usePlayer";
+import { SpectrumVisualizer } from "./SpectrumVisualizer";
 
 interface FullscreenNowPlayingProps {
   onClose: () => void;
@@ -151,6 +152,12 @@ export function FullscreenNowPlaying({
             visually balanced instead of stretching edge-to-edge. */}
         <div className="px-8 pb-10 shrink-0">
           <div className="max-w-3xl mx-auto fullscreen-now-playing-controls">
+            {/* Spectrum visualizer sits above the progress bar.
+                Renders an empty canvas + draws nothing when the
+                backend visualizer toggle is off, so it's safe to
+                always mount. `glow` mode = white bars suited to the
+                dim immersive backdrop. */}
+            <SpectrumVisualizer className="w-full h-16 mb-2 opacity-80" glow />
             <ProgressBar />
             <div className="flex items-center justify-between gap-6 mt-2">
               <div className="flex-1 min-w-0" />

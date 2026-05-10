@@ -986,6 +986,10 @@
       "copied": "Copied logs",
       "copyFailed": "Unable to copy logs"
     },
+    "visualizer": {
+      "title": "Audio visualizer",
+      "subtitle": "Show a real-time spectrum in the immersive view (lightweight FFT on the decoder thread)"
+    },
     "gapless": {
       "title": "Gapless playback",
       "subtitle": "Chain consecutive tracks with no micro-silence (great for live and concept albums)"

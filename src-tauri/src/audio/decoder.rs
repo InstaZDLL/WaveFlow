@@ -385,6 +385,11 @@ fn play_track(
     // construct (no heap until the first packet) so creating it per
     // play_track is fine.
     let mut eq_processor = super::eq::EqProcessor::new();
+    // Spectrum analyzer (FFT for the visualizer). Lives across both
+    // the single-stream and crossfade-mix push paths; we feed it the
+    // post-EQ buffer that's about to land in the ring. Cheap when the
+    // visualizer toggle is off — feed() short-circuits on the atomic.
+    let mut spectrum_analyzer = super::spectrum::SpectrumAnalyzer::new();
     let mut last_position_emit = Instant::now();
     // Minimum frames each side should hold before mixing — keeps
     // both buffers topped up so a slow decoder doesn't starve the mix.
@@ -601,6 +606,13 @@ fn play_track(
                     dst_sample_rate as f32,
                     &shared.eq,
                 );
+                spectrum_analyzer.feed(
+                    &mix_scratch,
+                    dst_channels,
+                    dst_sample_rate as f32,
+                    shared,
+                    app,
+                );
                 match push_samples(
                     &mix_scratch,
                     producer,
@@ -768,6 +780,13 @@ fn play_track(
                 dst_channels,
                 dst_sample_rate as f32,
                 &shared.eq,
+            );
+            spectrum_analyzer.feed(
+                &primary_resampled,
+                dst_channels,
+                dst_sample_rate as f32,
+                shared,
+                app,
             );
             match push_samples(
                 &primary_resampled,

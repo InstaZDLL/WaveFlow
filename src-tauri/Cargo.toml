@@ -94,6 +94,11 @@ cpal = "0.17"
 rubato = "2.0"
 rtrb = "0.3"
 crossbeam-channel = "0.5"
+# FFT for the spectrum visualizer. realfft is a thin wrapper over
+# rustfft optimized for real-valued inputs (half the buckets out, half
+# the cost in). Used by the decoder thread to compute log-bands from
+# the post-EQ output, throttled to ~30 Hz.
+realfft = "3"
 
 # HTTP client for Deezer public API metadata enrichment
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
