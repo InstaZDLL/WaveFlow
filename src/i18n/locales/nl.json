@@ -655,7 +655,15 @@
   "playerBar": {
     "lyrics": "Tekst",
     "nowPlaying": "Nu afspelen tonen",
-    "queue": "Wachtrij"
+    "queue": "Wachtrij",
+    "miniPlayer": "Mini-speler (altijd op de voorgrond)",
+    "previous": "Vorig nummer",
+    "next": "Volgend nummer"
+  },
+  "miniPlayer": {
+    "idle": "Geen nummer afgespeeld",
+    "maximize": "Hoofdvenster herstellen",
+    "like": "Vind ik leuk"
   },
   "sleepTimer": {
     "title": "Slaaptimer",

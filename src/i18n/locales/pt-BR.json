@@ -655,7 +655,15 @@
   "playerBar": {
     "lyrics": "Letra",
     "nowPlaying": "Mostrar a reprodução atual",
-    "queue": "Fila"
+    "queue": "Fila",
+    "miniPlayer": "Mini-player (sempre visível)",
+    "previous": "Faixa anterior",
+    "next": "Próxima faixa"
+  },
+  "miniPlayer": {
+    "idle": "Nenhuma faixa em reprodução",
+    "maximize": "Restaurar janela principal",
+    "like": "Curtir"
   },
   "sleepTimer": {
     "title": "Timer de sono",

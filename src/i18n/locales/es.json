@@ -655,7 +655,15 @@
   "playerBar": {
     "lyrics": "Letra",
     "nowPlaying": "Mostrar en reproducción",
-    "queue": "Cola"
+    "queue": "Cola",
+    "miniPlayer": "Mini-reproductor (siempre encima)",
+    "previous": "Pista anterior",
+    "next": "Pista siguiente"
+  },
+  "miniPlayer": {
+    "idle": "Sin pista en reproducción",
+    "maximize": "Restaurar ventana principal",
+    "like": "Me gusta"
   },
   "sleepTimer": {
     "title": "Temporizador de apagado",

@@ -655,7 +655,15 @@
   "playerBar": {
     "lyrics": "Lyrics",
     "nowPlaying": "Show now playing",
-    "queue": "Queue"
+    "queue": "Queue",
+    "miniPlayer": "Mini-player (always on top)",
+    "previous": "Previous track",
+    "next": "Next track"
+  },
+  "miniPlayer": {
+    "idle": "No track playing",
+    "maximize": "Restore main window",
+    "like": "Like"
   },
   "sleepTimer": {
     "title": "Sleep timer",

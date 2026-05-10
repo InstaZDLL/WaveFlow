@@ -655,7 +655,15 @@
   "playerBar": {
     "lyrics": "Paroles",
     "nowPlaying": "Vue en cours de lecture",
-    "queue": "File d'attente"
+    "queue": "File d'attente",
+    "miniPlayer": "Mini-lecteur (toujours au-dessus)",
+    "previous": "Piste précédente",
+    "next": "Piste suivante"
+  },
+  "miniPlayer": {
+    "idle": "Aucun titre en cours",
+    "maximize": "Restaurer la fenêtre principale",
+    "like": "J'aime"
   },
   "sleepTimer": {
     "title": "Minuteur de sommeil",

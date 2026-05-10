@@ -655,7 +655,15 @@
   "playerBar": {
     "lyrics": "Şarkı Sözleri",
     "nowPlaying": "Şimdi çalındığını göster",
-    "queue": "Kuyruk"
+    "queue": "Kuyruk",
+    "miniPlayer": "Mini oynatıcı (her zaman üstte)",
+    "previous": "Önceki parça",
+    "next": "Sonraki parça"
+  },
+  "miniPlayer": {
+    "idle": "Çalan parça yok",
+    "maximize": "Ana pencereyi geri yükle",
+    "like": "Beğen"
   },
   "sleepTimer": {
     "title": "Uyku zamanlayıcısı",

@@ -655,7 +655,15 @@
   "playerBar": {
     "lyrics": "Lirik",
     "nowPlaying": "Tampilkan sekarang bermain",
-    "queue": "Antrean"
+    "queue": "Antrean",
+    "miniPlayer": "Mini-pemutar (selalu di atas)",
+    "previous": "Trek sebelumnya",
+    "next": "Trek berikutnya"
+  },
+  "miniPlayer": {
+    "idle": "Tidak ada trek diputar",
+    "maximize": "Pulihkan jendela utama",
+    "like": "Suka"
   },
   "sleepTimer": {
     "title": "Timer tidur",

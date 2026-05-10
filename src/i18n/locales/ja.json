@@ -655,7 +655,15 @@
   "playerBar": {
     "lyrics": "歌詞",
     "nowPlaying": "再生中を表示",
-    "queue": "待ち行列"
+    "queue": "待ち行列",
+    "miniPlayer": "ミニプレーヤー（常に手前に表示）",
+    "previous": "前のトラック",
+    "next": "次のトラック"
+  },
+  "miniPlayer": {
+    "idle": "再生中のトラックなし",
+    "maximize": "メインウィンドウを復元",
+    "like": "お気に入り"
   },
   "sleepTimer": {
     "title": "スリープタイマー",

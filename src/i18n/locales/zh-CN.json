@@ -655,7 +655,15 @@
   "playerBar": {
     "lyrics": "歌词",
     "nowPlaying": "显示正在播放",
-    "queue": "队列"
+    "queue": "队列",
+    "miniPlayer": "迷你播放器（始终置顶）",
+    "previous": "上一曲",
+    "next": "下一曲"
+  },
+  "miniPlayer": {
+    "idle": "未播放任何曲目",
+    "maximize": "恢复主窗口",
+    "like": "喜欢"
   },
   "sleepTimer": {
     "title": "睡眠定时器",

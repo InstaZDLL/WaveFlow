@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Menu, MonitorSpeaker, Heart, Mic2 } from "lucide-react";
+import { Menu, MonitorSpeaker, Heart, Mic2, PictureInPicture2 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useSleepTimer } from "../../hooks/useSleepTimer";
 import { Artwork } from "../common/Artwork";
@@ -199,6 +199,21 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
             }`}
           >
             <Mic2 size={20} />
+          </button>
+
+          <button
+            onClick={() => {
+              import("../../lib/miniPlayer").then((m) =>
+                m.openMiniPlayer().catch((err) => {
+                  console.error("[PlayerBar] open mini-player failed", err);
+                }),
+              );
+            }}
+            aria-label={t("playerBar.miniPlayer")}
+            title={t("playerBar.miniPlayer")}
+            className="p-2 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
+          >
+            <PictureInPicture2 size={20} />
           </button>
 
           <button

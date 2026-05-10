@@ -655,7 +655,15 @@
   "playerBar": {
     "lyrics": "Letra",
     "nowPlaying": "Mostrar agora a reproduzir",
-    "queue": "Fila"
+    "queue": "Fila",
+    "miniPlayer": "Mini-leitor (sempre no topo)",
+    "previous": "Faixa anterior",
+    "next": "Faixa seguinte"
+  },
+  "miniPlayer": {
+    "idle": "Nenhuma faixa em reprodução",
+    "maximize": "Restaurar janela principal",
+    "like": "Gosto"
   },
   "sleepTimer": {
     "title": "Temporizador de suspensão",

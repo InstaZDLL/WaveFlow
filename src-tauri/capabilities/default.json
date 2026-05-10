@@ -1,10 +1,16 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": ["main"],
+  "description": "Capability for the main and mini-player windows",
+  "windows": ["main", "mini"],
   "permissions": [
     "core:default",
+    "core:window:allow-set-focus",
+    "core:window:allow-set-always-on-top",
+    "core:window:allow-show",
+    "core:window:allow-unminimize",
+    "core:window:allow-close",
+    "core:webview:allow-create-webview-window",
     "opener:default",
     "dialog:default",
     "updater:default"

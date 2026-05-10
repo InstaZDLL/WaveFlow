@@ -655,7 +655,15 @@
   "playerBar": {
     "lyrics": "Text",
     "nowPlaying": "Jetzt abspielen anzeigen",
-    "queue": "Warteschlange"
+    "queue": "Warteschlange",
+    "miniPlayer": "Mini-Player (immer im Vordergrund)",
+    "previous": "Vorheriger Titel",
+    "next": "Nächster Titel"
+  },
+  "miniPlayer": {
+    "idle": "Kein Titel wird abgespielt",
+    "maximize": "Hauptfenster wiederherstellen",
+    "like": "Gefällt mir"
   },
   "sleepTimer": {
     "title": "Sleep-Timer",

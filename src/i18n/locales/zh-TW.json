@@ -655,7 +655,15 @@
   "playerBar": {
     "lyrics": "歌詞",
     "nowPlaying": "顯示正在播放",
-    "queue": "佇列"
+    "queue": "佇列",
+    "miniPlayer": "迷你播放器（永遠在最前）",
+    "previous": "上一首",
+    "next": "下一首"
+  },
+  "miniPlayer": {
+    "idle": "沒有播放中的曲目",
+    "maximize": "還原主視窗",
+    "like": "喜歡"
   },
   "sleepTimer": {
     "title": "睡眠計時器",

@@ -655,7 +655,15 @@
   "playerBar": {
     "lyrics": "Testo",
     "nowPlaying": "Mostra ora in riproduzione",
-    "queue": "Coda"
+    "queue": "Coda",
+    "miniPlayer": "Mini-player (sempre in primo piano)",
+    "previous": "Brano precedente",
+    "next": "Brano successivo"
+  },
+  "miniPlayer": {
+    "idle": "Nessun brano in riproduzione",
+    "maximize": "Ripristina finestra principale",
+    "like": "Mi piace"
   },
   "sleepTimer": {
     "title": "Timer di spegnimento",

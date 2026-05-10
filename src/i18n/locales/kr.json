@@ -655,7 +655,15 @@
   "playerBar": {
     "lyrics": "가사",
     "nowPlaying": "지금 재생 중 표시",
-    "queue": "대기열"
+    "queue": "대기열",
+    "miniPlayer": "미니 플레이어 (항상 위)",
+    "previous": "이전 트랙",
+    "next": "다음 트랙"
+  },
+  "miniPlayer": {
+    "idle": "재생 중인 트랙 없음",
+    "maximize": "메인 창 복원",
+    "like": "좋아요"
   },
   "sleepTimer": {
     "title": "수면 타이머",
