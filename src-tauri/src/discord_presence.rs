@@ -20,7 +20,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crossbeam_channel::{unbounded, Sender};
 use discord_rich_presence::{
-    activity::{Activity, ActivityType, Assets, Timestamps},
+    activity::{Activity, ActivityType, Assets, Button, Timestamps},
     DiscordIpc, DiscordIpcClient,
 };
 
@@ -308,6 +308,11 @@ fn push_activity(client: &mut Option<DiscordIpcClient>, meta: &CachedMetadata, s
             .saturating_sub(meta.started_position_ms as i64 / 1000);
         activity = activity.timestamps(Timestamps::new().start(start_unix).end(end_unix));
     }
+
+    activity = activity.buttons(vec![Button::new(
+        "Voir sur GitHub",
+        "https://github.com/InstaZDLL/WaveFlow",
+    )]);
 
     if let Err(err) = c.set_activity(activity) {
         tracing::warn!(%err, "discord_presence: set_activity failed");

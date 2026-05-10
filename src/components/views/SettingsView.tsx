@@ -73,6 +73,7 @@ import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
 import { invoke } from "@tauri-apps/api/core";
 import { regenerateThumbnails } from "../../lib/tauri/library";
+import { DuplicatesModal } from "../common/DuplicatesModal";
 import { EqualizerCard } from "./settings/EqualizerCard";
 
 interface SettingsViewProps {
@@ -312,6 +313,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // clutter the bar for the typical user.
   const [showSleepTimer, setShowSleepTimer] = useState(false);
   const [showAbLoop, setShowAbLoop] = useState(false);
+  const [isDuplicatesOpen, setIsDuplicatesOpen] = useState(false);
   // Status of the last "Copy logs" click — null when idle, "ok" or
   // "fail" briefly during the toast period before clearing back to null.
   const [copyLogsStatus, setCopyLogsStatus] = useState<"ok" | "fail" | null>(
@@ -1582,6 +1584,32 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             </button>
           </div>
 
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4">
+              <Copy
+                size={20}
+                className="text-zinc-400"
+                aria-hidden="true"
+              />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.duplicates.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.duplicates.subtitle")}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsDuplicatesOpen(true)}
+              className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            >
+              <Copy size={14} aria-hidden="true" />
+              <span>{t("settings.duplicates.action")}</span>
+            </button>
+          </div>
+
           <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
@@ -1982,6 +2010,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           </div>
         </div>
       </section>
+
+      <DuplicatesModal
+        isOpen={isDuplicatesOpen}
+        onClose={() => setIsDuplicatesOpen(false)}
+      />
     </div>
   );
 }

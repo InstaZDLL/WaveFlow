@@ -731,6 +731,18 @@
       "random": "Aléatoire"
     }
   },
+  "duplicates": {
+    "title": "Doublons détectés",
+    "summary": "{{groups}} groupes · {{duplicates}} doublons à supprimer",
+    "scanning": "Recherche en cours…",
+    "empty": "Aucun doublon",
+    "emptyHint": "Ta bibliothèque est propre.",
+    "rescan": "Relancer",
+    "deleteOthers_zero": "Rien à supprimer",
+    "deleteOthers_one": "Supprimer {{count}} doublon",
+    "deleteOthers_other": "Supprimer {{count}} doublons",
+    "keepAria": "Conserver {{title}}"
+  },
   "dragDrop": {
     "dropHint": "Déposer pour importer",
     "importing": "Import en cours…",
@@ -858,6 +870,11 @@
     "showAbLoop": {
       "title": "Afficher la boucle A-B",
       "subtitle": "Affiche le bouton de boucle A-B dans la barre de lecture"
+    },
+    "duplicates": {
+      "title": "Détecter les doublons",
+      "subtitle": "Trouve les fichiers identiques (même blake3) dans ta bibliothèque",
+      "action": "Rechercher"
     },
     "rescan": {
       "title": "Rescanner la bibliothèque",

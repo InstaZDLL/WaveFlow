@@ -687,6 +687,18 @@
       "manual": "수동 입력"
     }
   },
+  "duplicates": {
+    "title": "Duplicates detected",
+    "summary": "{{groups}} groups · {{duplicates}} duplicates to remove",
+    "scanning": "Scanning…",
+    "empty": "No duplicates",
+    "emptyHint": "Your library is clean.",
+    "rescan": "Rescan",
+    "deleteOthers_zero": "Nothing to delete",
+    "deleteOthers_one": "Delete {{count}} duplicate",
+    "deleteOthers_other": "Delete {{count}} duplicates",
+    "keepAria": "Keep {{title}}"
+  },
   "dragDrop": {
     "dropHint": "놓아서 가져오기",
     "importing": "가져오는 중…",
@@ -858,6 +870,11 @@
     "showAbLoop": {
       "title": "A-B 반복 표시",
       "subtitle": "재생 바에 A-B 루프 버튼을 표시합니다"
+    },
+    "duplicates": {
+      "title": "Detect duplicates",
+      "subtitle": "Find byte-identical files (same blake3) in your library",
+      "action": "Search"
     },
     "rescan": {
       "title": "라이브러리 다시 스캔하기",

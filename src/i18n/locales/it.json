@@ -687,6 +687,18 @@
       "manual": "Inserimento manuale"
     }
   },
+  "duplicates": {
+    "title": "Duplicates detected",
+    "summary": "{{groups}} groups · {{duplicates}} duplicates to remove",
+    "scanning": "Scanning…",
+    "empty": "No duplicates",
+    "emptyHint": "Your library is clean.",
+    "rescan": "Rescan",
+    "deleteOthers_zero": "Nothing to delete",
+    "deleteOthers_one": "Delete {{count}} duplicate",
+    "deleteOthers_other": "Delete {{count}} duplicates",
+    "keepAria": "Keep {{title}}"
+  },
   "dragDrop": {
     "dropHint": "Rilascia per importare",
     "importing": "Importazione…",
@@ -858,6 +870,11 @@
     "showAbLoop": {
       "title": "Mostra ripetizione A-B",
       "subtitle": "Mostra il pulsante del loop A-B nella barra di riproduzione"
+    },
+    "duplicates": {
+      "title": "Detect duplicates",
+      "subtitle": "Find byte-identical files (same blake3) in your library",
+      "action": "Search"
     },
     "rescan": {
       "title": "Rieseguire la scansione della libreria",

@@ -64,6 +64,7 @@ Spotify-style card under "Listening to WaveFlow":
 | `large_text` | Album title (rendered inline by Discord as line 3). |
 | `small_image` / `small_text` | `play` + "En lecture" while playing, `pause` + "En pause" while paused. |
 | `timestamps.start` / `.end` | Computed from track duration + current position so Discord renders the `00:42 ─── 04:30` progress bar. **Only set while `Playing`** — leaving them on while paused makes Discord keep ticking the bar from the wall clock, which lies. Re-anchored on every play / seek / pause-resume. |
+| `buttons` | One button — **"Voir sur GitHub"** → `https://github.com/InstaZDLL/WaveFlow`. Clickable by anyone viewing the presence card; lets users discover the project directly from Discord. |
 
 ### Cover URL resolution
 

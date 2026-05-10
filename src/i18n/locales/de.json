@@ -687,6 +687,18 @@
       "manual": "Manuelle Eingabe"
     }
   },
+  "duplicates": {
+    "title": "Duplikate gefunden",
+    "summary": "{{groups}} Gruppen · {{duplicates}} zu entfernen",
+    "scanning": "Suche läuft…",
+    "empty": "Keine Duplikate",
+    "emptyHint": "Deine Bibliothek ist sauber.",
+    "rescan": "Erneut scannen",
+    "deleteOthers_zero": "Nichts zu löschen",
+    "deleteOthers_one": "{{count}} Duplikat löschen",
+    "deleteOthers_other": "{{count}} Duplikate löschen",
+    "keepAria": "{{title}} behalten"
+  },
   "dragDrop": {
     "dropHint": "Loslassen zum Importieren",
     "importing": "Wird importiert…",
@@ -858,6 +870,11 @@
     "showAbLoop": {
       "title": "A-B-Wiederholung anzeigen",
       "subtitle": "Zeigt den A-B-Schleifen-Button in der Wiedergabeleiste an"
+    },
+    "duplicates": {
+      "title": "Duplikate erkennen",
+      "subtitle": "Findet bytegleiche Dateien (gleicher blake3) in deiner Bibliothek",
+      "action": "Suchen"
     },
     "rescan": {
       "title": "Bibliothek erneut scannen",

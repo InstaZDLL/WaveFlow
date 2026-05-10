@@ -9,6 +9,7 @@ pub mod browse;
 pub mod deezer;
 pub mod diagnostics;
 pub mod dlna;
+pub mod duplicates;
 pub mod edit;
 pub mod integration;
 pub mod library;

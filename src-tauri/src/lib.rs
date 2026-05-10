@@ -269,6 +269,8 @@ pub fn run() {
             commands::library::set_folder_watched,
             commands::library::remove_folder_from_library,
             commands::library::import_paths,
+            commands::duplicates::find_duplicates,
+            commands::duplicates::delete_tracks,
             commands::analysis::analyze_track,
             commands::analysis::analyze_library,
             commands::analysis::get_track_analysis,

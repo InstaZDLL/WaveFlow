@@ -687,6 +687,18 @@
       "manual": "Introducción manual"
     }
   },
+  "duplicates": {
+    "title": "Duplicados detectados",
+    "summary": "{{groups}} grupos · {{duplicates}} duplicados por eliminar",
+    "scanning": "Buscando…",
+    "empty": "Sin duplicados",
+    "emptyHint": "Tu biblioteca está limpia.",
+    "rescan": "Reanalizar",
+    "deleteOthers_zero": "Nada que eliminar",
+    "deleteOthers_one": "Eliminar {{count}} duplicado",
+    "deleteOthers_other": "Eliminar {{count}} duplicados",
+    "keepAria": "Conservar {{title}}"
+  },
   "dragDrop": {
     "dropHint": "Soltar para importar",
     "importing": "Importando…",
@@ -858,6 +870,11 @@
     "showAbLoop": {
       "title": "Mostrar repetición A-B",
       "subtitle": "Muestra el botón de bucle A-B en la barra de reproducción"
+    },
+    "duplicates": {
+      "title": "Detectar duplicados",
+      "subtitle": "Encuentra archivos idénticos (mismo blake3) en tu biblioteca",
+      "action": "Buscar"
     },
     "rescan": {
       "title": "Volver a escanear la biblioteca",
