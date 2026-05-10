@@ -222,12 +222,25 @@ export function MiniPlayer() {
         </button>
         <div
           data-tauri-drag-region
+          onMouseDown={(e) => {
+            // Belt-and-suspenders: data-tauri-drag-region only fires
+            // when the EXACT mousedown target carries the attribute,
+            // and pointer-events-none on children isn't enough on
+            // every platform (notably Windows, where it can race
+            // the OS hit-test). Calling startDragging explicitly
+            // makes the gesture deterministic regardless.
+            if (e.button !== 0) return;
+            getCurrentWindow()
+              .startDragging()
+              .catch((err) =>
+                console.error("[MiniPlayer] startDragging failed", err),
+              );
+          }}
           className="flex-1 flex items-center justify-center gap-0.5 text-white/40 cursor-grab active:cursor-grabbing"
         >
           {Array.from({ length: 6 }).map((_, i) => (
             <span
               key={i}
-              data-tauri-drag-region
               className={`pointer-events-none block w-0.5 h-0.5 rounded-full bg-current${i === 3 ? " ml-1" : ""}`}
             />
           ))}
