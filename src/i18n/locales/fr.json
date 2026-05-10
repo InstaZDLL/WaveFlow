@@ -97,6 +97,7 @@
     },
     "playlists": {
       "createPlaylistAria": "Créer une nouvelle playlist",
+      "createSmartAria": "Créer une playlist intelligente",
       "importM3uAria": "Importer une playlist M3U",
       "importDialogTitle": "Importer une playlist M3U",
       "liked": "Titres likés",
@@ -682,6 +683,50 @@
       "lrc_file": "Fichier .lrc importé",
       "api": "LRCLIB",
       "manual": "Saisie manuelle"
+    }
+  },
+  "smartPlaylistEditor": {
+    "createTitle": "Nouvelle playlist intelligente",
+    "editTitle": "Modifier la playlist intelligente",
+    "create": "Créer",
+    "preview": "Aperçu",
+    "previewCount": "{{count}} morceaux correspondent",
+    "nameRequired": "Le nom est obligatoire",
+    "fields": {
+      "name": "Nom",
+      "description": "Description",
+      "title": "Le titre contient",
+      "artist": "L'artiste contient",
+      "album": "L'album contient",
+      "year": "Année",
+      "bpm": "BPM",
+      "durationMin": "Durée en minutes",
+      "hiRes": "Hi-Res uniquement",
+      "liked": "Titres aimés uniquement",
+      "formats": "Formats",
+      "genres": "Genres",
+      "sort": "Trier par",
+      "limit": "Nombre maximum de titres"
+    },
+    "placeholders": {
+      "name": "Mes coups de cœur 2024",
+      "description": "Optionnel",
+      "noLimit": "Sans limite"
+    },
+    "sections": {
+      "match": "Correspondance",
+      "ranges": "Plages",
+      "attributes": "Attributs",
+      "output": "Tri & limite"
+    },
+    "sortOptions": {
+      "addedDesc": "Ajout récent",
+      "addedAsc": "Ajout ancien",
+      "yearDesc": "Année (décroissante)",
+      "yearAsc": "Année (croissante)",
+      "titleAsc": "Titre (A → Z)",
+      "artistAsc": "Artiste (A → Z)",
+      "random": "Aléatoire"
     }
   },
   "abLoop": {

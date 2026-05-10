@@ -10,6 +10,7 @@
 //! the next pass.
 
 pub mod cover;
+pub mod custom;
 pub mod generator;
 
 use serde::{Deserialize, Serialize};
@@ -24,6 +25,10 @@ pub enum SmartPlaylistRules {
     /// so the playlist names ("Daily Mix 1") can be reconstructed without a
     /// separate column.
     DailyMix { slot: u8 },
+    /// User-defined rule set evaluated by [`custom::materialize`]. Stored
+    /// in JSON so the rule editor can round-trip it without a per-field
+    /// SQL column.
+    Custom { rules: custom::CustomRules },
 }
 
 impl SmartPlaylistRules {

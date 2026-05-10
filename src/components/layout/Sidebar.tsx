@@ -12,11 +12,13 @@ import {
   Clock,
   Plus,
   Upload,
+  Sparkles,
 } from "lucide-react";
 import type { ViewId, LibraryTab } from "../../types";
 import { NavItem } from "../common/NavItem";
 import { WaveFlowLogo } from "../common/WaveFlowLogo";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
+import { SmartPlaylistEditorModal } from "../common/SmartPlaylistEditorModal";
 import { useProfile } from "../../hooks/useProfile";
 import { useLibrary } from "../../hooks/useLibrary";
 import { usePlaylist } from "../../hooks/usePlaylist";
@@ -61,6 +63,7 @@ export function Sidebar({
     refresh: refreshPlaylists,
   } = usePlaylist();
   const profileColor = getProfileColor(activeProfile?.color_id);
+  const [isSmartEditorOpen, setIsSmartEditorOpen] = useState(false);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -327,6 +330,15 @@ export function Sidebar({
               </button>
               <button
                 type="button"
+                onClick={() => setIsSmartEditorOpen(true)}
+                aria-label={t("sidebar.playlists.createSmartAria")}
+                title={t("sidebar.playlists.createSmartAria")}
+                className="p-0.5 rounded hover:text-violet-500 transition-colors"
+              >
+                <Sparkles size={14} />
+              </button>
+              <button
+                type="button"
                 onClick={() => setIsCreatePlaylistModalOpen(true)}
                 aria-label={t("sidebar.playlists.createPlaylistAria")}
                 className="p-0.5 rounded hover:text-emerald-500 transition-colors"
@@ -369,6 +381,16 @@ export function Sidebar({
         isOpen={isCreatePlaylistModalOpen}
         onClose={() => setIsCreatePlaylistModalOpen(false)}
         onCreate={handleCreatePlaylistSubmit}
+      />
+
+      <SmartPlaylistEditorModal
+        isOpen={isSmartEditorOpen}
+        onClose={() => setIsSmartEditorOpen(false)}
+        onSaved={(playlistId) => {
+          refreshPlaylists()
+            .then(() => handleSelectPlaylist(playlistId))
+            .catch(() => handleSelectPlaylist(playlistId));
+        }}
       />
     </div>
   );

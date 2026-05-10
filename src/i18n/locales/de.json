@@ -103,7 +103,8 @@
       "recent": "Zuletzt gespielt",
       "emptySubtext_zero": "0 Titel",
       "emptySubtext_one": "{{count}} Titel",
-      "emptySubtext_other": "{{count}} Titel"
+      "emptySubtext_other": "{{count}} Titel",
+      "createSmartAria": "Intelligente Playlist erstellen"
     },
     "myMusic": {
       "title": "Meine Musik",
@@ -688,6 +689,50 @@
     "setA": "A-B-Wiederholung: Punkt A an aktueller Position setzen",
     "setB": "A-B-Wiederholung: Punkt B setzen (A = {{a}})",
     "armed": "A-B-Wiederholung aktiv: {{a}} → {{b}} (klicken zum Löschen)"
+  },
+  "smartPlaylistEditor": {
+    "createTitle": "Neue intelligente Playlist",
+    "editTitle": "Intelligente Playlist bearbeiten",
+    "create": "Erstellen",
+    "preview": "Vorschau",
+    "previewCount": "{{count}} Titel passen",
+    "nameRequired": "Name ist erforderlich",
+    "fields": {
+      "name": "Name",
+      "description": "Beschreibung",
+      "title": "Titel enthält",
+      "artist": "Künstler enthält",
+      "album": "Album enthält",
+      "year": "Jahr",
+      "bpm": "BPM",
+      "durationMin": "Dauer in Minuten",
+      "hiRes": "Nur Hi-Res",
+      "liked": "Nur Favoriten",
+      "formats": "Formate",
+      "genres": "Genres",
+      "sort": "Sortieren nach",
+      "limit": "Max. Titel"
+    },
+    "placeholders": {
+      "name": "Meine Favoriten 2024",
+      "description": "Optional",
+      "noLimit": "Unbegrenzt"
+    },
+    "sections": {
+      "match": "Übereinstimmung",
+      "ranges": "Bereiche",
+      "attributes": "Attribute",
+      "output": "Sortierung & Limit"
+    },
+    "sortOptions": {
+      "addedDesc": "Zuletzt hinzugefügt",
+      "addedAsc": "Zuerst hinzugefügt",
+      "yearDesc": "Jahr (absteigend)",
+      "yearAsc": "Jahr (aufsteigend)",
+      "titleAsc": "Titel (A → Z)",
+      "artistAsc": "Künstler (A → Z)",
+      "random": "Zufällig"
+    }
   },
   "lyricsEditor": {
     "title": "Liedtext-Editor",

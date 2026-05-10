@@ -103,7 +103,8 @@
       "recent": "최근 플레이한 게임",
       "emptySubtext_zero": "0개 트랙",
       "emptySubtext_one": "{{count}} 트랙",
-      "emptySubtext_other": "{{count}} 제목"
+      "emptySubtext_other": "{{count}} 제목",
+      "createSmartAria": "Create a smart playlist"
     },
     "myMusic": {
       "title": "나의 음악",
@@ -688,6 +689,50 @@
     "setA": "A-B 반복: 현재 위치에 A 지점 설정",
     "setB": "A-B 반복: B 지점 설정 (A = {{a}})",
     "armed": "A-B 반복 활성: {{a}} → {{b}} (클릭하여 제거)"
+  },
+  "smartPlaylistEditor": {
+    "createTitle": "New smart playlist",
+    "editTitle": "Edit smart playlist",
+    "create": "Create",
+    "preview": "Preview",
+    "previewCount": "{{count}} tracks match",
+    "nameRequired": "Name is required",
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "title": "Title contains",
+      "artist": "Artist contains",
+      "album": "Album contains",
+      "year": "Year",
+      "bpm": "BPM",
+      "durationMin": "Duration in minutes",
+      "hiRes": "Hi-Res only",
+      "liked": "Liked tracks only",
+      "formats": "Formats",
+      "genres": "Genres",
+      "sort": "Sort by",
+      "limit": "Max tracks"
+    },
+    "placeholders": {
+      "name": "My 2024 favourites",
+      "description": "Optional",
+      "noLimit": "Unlimited"
+    },
+    "sections": {
+      "match": "Match",
+      "ranges": "Ranges",
+      "attributes": "Attributes",
+      "output": "Sort & limit"
+    },
+    "sortOptions": {
+      "addedDesc": "Recently added",
+      "addedAsc": "Oldest added",
+      "yearDesc": "Year (descending)",
+      "yearAsc": "Year (ascending)",
+      "titleAsc": "Title (A → Z)",
+      "artistAsc": "Artist (A → Z)",
+      "random": "Random"
+    }
   },
   "lyricsEditor": {
     "title": "가사 편집기",
