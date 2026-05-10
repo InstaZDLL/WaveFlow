@@ -59,7 +59,7 @@ export function FullscreenNowPlaying({
             path={currentTrack.artwork_path}
             path1x={currentTrack.artwork_path_1x}
             path2x={currentTrack.artwork_path_2x}
-            size="2x"
+            size="full"
             className="w-full h-full scale-125 blur-3xl opacity-60"
             alt=""
             rounded="md"
@@ -92,7 +92,7 @@ export function FullscreenNowPlaying({
               path={currentTrack?.artwork_path ?? null}
               path1x={currentTrack?.artwork_path_1x ?? null}
               path2x={currentTrack?.artwork_path_2x ?? null}
-              size="2x"
+              size="full"
               className="w-full h-full shadow-2xl"
               iconSize={96}
               alt={title}

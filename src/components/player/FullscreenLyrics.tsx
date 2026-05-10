@@ -71,7 +71,7 @@ export function FullscreenLyrics({
             path={track.artwork_path}
             path1x={track.artwork_path_1x}
             path2x={track.artwork_path_2x}
-            size="2x"
+            size="full"
             className="w-full h-full scale-125 blur-3xl opacity-60"
             alt=""
             rounded="md"
