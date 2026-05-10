@@ -425,8 +425,12 @@ pub async fn playlist_tracks(
     // base /tracks endpoint would succeed without the filter. Asking
     // for the full payload is slightly heavier but works on every
     // playlist class the user can actually reach.
+    // `market=from_token` was deprecated by Spotify; passing it now
+    // can trigger 400 / 403 depending on the endpoint. Omitting the
+    // parameter falls back to the account's home market, which is
+    // exactly what we want.
     let url = format!(
-        "{API_BASE}/playlists/{}/tracks?limit=50&market=from_token",
+        "{API_BASE}/playlists/{}/tracks?limit=50",
         url_escape(playlist_id)
     );
     let page: Page<PlaylistTrackItem> = get_json(client, access_token, &url).await?;
