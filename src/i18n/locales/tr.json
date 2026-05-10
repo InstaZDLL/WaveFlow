@@ -848,6 +848,10 @@
       "title": "Uyku zamanlayıcısını göster",
       "subtitle": "Oynatıcı çubuğunda ay simgesini göster"
     },
+    "showAbLoop": {
+      "title": "A-B tekrarını göster",
+      "subtitle": "A-B döngü düğmesini oynatma çubuğunda gösterir"
+    },
     "analyze": {
       "title": "Kütüphaneyi analiz et",
       "subtitle": "Analiz edilmemiş parçalar için BPM, ses seviyesi ve tepe noktasını hesaplayın",

@@ -848,6 +848,10 @@
       "title": "Sleep-Timer anzeigen",
       "subtitle": "Mond-Symbol in der Wiedergabeleiste anzeigen"
     },
+    "showAbLoop": {
+      "title": "A-B-Wiederholung anzeigen",
+      "subtitle": "Zeigt den A-B-Schleifen-Button in der Wiedergabeleiste an"
+    },
     "rescan": {
       "title": "Bibliothek erneut scannen",
       "subtitle": "Alle Ordner erneut durchsuchen und neue Dateien importieren",

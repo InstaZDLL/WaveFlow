@@ -848,6 +848,10 @@
       "title": "Mostrar temporizador de suspensão",
       "subtitle": "Mostra o ícone da lua na barra do leitor"
     },
+    "showAbLoop": {
+      "title": "Mostrar repetição A-B",
+      "subtitle": "Mostra o botão de loop A-B na barra de reprodução"
+    },
     "rescan": {
       "title": "Voltar a digitalizar a biblioteca",
       "subtitle": "Revisar todas as pastas e importar os novos ficheiros",

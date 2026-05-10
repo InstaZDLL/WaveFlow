@@ -848,6 +848,10 @@
       "title": "Mostrar timer de sono",
       "subtitle": "Mostra o ícone da lua na barra de reprodução"
     },
+    "showAbLoop": {
+      "title": "Mostrar repetição A-B",
+      "subtitle": "Mostra o botão de loop A-B na barra de reprodução"
+    },
     "rescan": {
       "title": "Digitalizar novamente a biblioteca",
       "subtitle": "Revisar todas as pastas e importar os novos arquivos",

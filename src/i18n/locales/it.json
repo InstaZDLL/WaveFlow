@@ -848,6 +848,10 @@
       "title": "Mostra timer di spegnimento",
       "subtitle": "Mostra l'icona della luna nella barra di riproduzione"
     },
+    "showAbLoop": {
+      "title": "Mostra ripetizione A-B",
+      "subtitle": "Mostra il pulsante del loop A-B nella barra di riproduzione"
+    },
     "rescan": {
       "title": "Rieseguire la scansione della libreria",
       "subtitle": "Riesaminare tutte le cartelle e importare i nuovi file",

@@ -848,6 +848,10 @@
       "title": "Mostrar temporizador de apagado",
       "subtitle": "Muestra el icono de luna en la barra de reproducción"
     },
+    "showAbLoop": {
+      "title": "Mostrar repetición A-B",
+      "subtitle": "Muestra el botón de bucle A-B en la barra de reproducción"
+    },
     "rescan": {
       "title": "Volver a escanear la biblioteca",
       "subtitle": "Revisar todas las carpetas e importar los archivos nuevos",

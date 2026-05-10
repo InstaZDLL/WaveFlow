@@ -848,6 +848,10 @@
       "title": "Afficher le minuteur de sommeil",
       "subtitle": "Affiche l'icône lune dans la barre de lecture"
     },
+    "showAbLoop": {
+      "title": "Afficher la boucle A-B",
+      "subtitle": "Affiche le bouton de boucle A-B dans la barre de lecture"
+    },
     "rescan": {
       "title": "Rescanner la bibliothèque",
       "subtitle": "Re-parcourir tous les dossiers et importer les nouveaux fichiers",

@@ -848,6 +848,10 @@
       "title": "顯示睡眠計時器",
       "subtitle": "在播放列顯示月亮圖示"
     },
+    "showAbLoop": {
+      "title": "顯示 A-B 循環",
+      "subtitle": "在播放列中顯示 A-B 循環按鈕"
+    },
     "rescan": {
       "title": "重新掃描書庫",
       "subtitle": "重新掃描所有資料夾並匯入新檔案",

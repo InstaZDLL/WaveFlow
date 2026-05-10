@@ -39,8 +39,9 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   // timer-visibility` window event after toggling so we re-read
   // without polling.
   const [showSleepTimer, setShowSleepTimer] = useState(true);
+  const [showAbLoop, setShowAbLoop] = useState(true);
   useEffect(() => {
-    const refresh = () => {
+    const refreshSleep = () => {
       getProfileSetting("ui.show_sleep_timer")
         .then((v) => {
           // Missing key → treat as "true" so we never hide a
@@ -49,10 +50,20 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
         })
         .catch(() => {});
     };
-    refresh();
-    window.addEventListener("waveflow:sleep-timer-visibility", refresh);
+    const refreshAb = () => {
+      getProfileSetting("ui.show_ab_loop")
+        .then((v) => {
+          setShowAbLoop(v == null ? true : v === "1" || v === "true");
+        })
+        .catch(() => {});
+    };
+    refreshSleep();
+    refreshAb();
+    window.addEventListener("waveflow:sleep-timer-visibility", refreshSleep);
+    window.addEventListener("waveflow:ab-loop-visibility", refreshAb);
     return () => {
-      window.removeEventListener("waveflow:sleep-timer-visibility", refresh);
+      window.removeEventListener("waveflow:sleep-timer-visibility", refreshSleep);
+      window.removeEventListener("waveflow:ab-loop-visibility", refreshAb);
     };
   }, []);
 
@@ -161,7 +172,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
         {/* Right: Extra Controls */}
         <div className="w-1/3 flex items-center justify-end space-x-4">
           {/* A-B repeat — sits left of the sleep timer. */}
-          <AbLoopButton />
+          {showAbLoop && <AbLoopButton />}
 
           {/* Sleep timer (sits left of Lyrics; user-hideable from
             Settings via `ui.show_sleep_timer`). */}

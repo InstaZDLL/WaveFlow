@@ -848,6 +848,10 @@
       "title": "Tampilkan timer tidur",
       "subtitle": "Tampilkan ikon bulan di bilah pemutar"
     },
+    "showAbLoop": {
+      "title": "Tampilkan ulang A-B",
+      "subtitle": "Menampilkan tombol loop A-B di bilah pemutar"
+    },
     "analyze": {
       "title": "Menganalisis perpustakaan",
       "subtitle": "Hitung nilai \"BPM\", volume suara, dan puncak untuk lagu-lagu yang belum dianalisis",

@@ -27,6 +27,7 @@ import {
   Mic2,
   Server,
   Moon,
+  Repeat2,
   ChevronsRight,
 } from "lucide-react";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
@@ -309,6 +310,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // Visibility toggle for the sleep-timer icon in the player bar.
   // Defaults to true so users discover the feature on first run.
   const [showSleepTimer, setShowSleepTimer] = useState(true);
+  const [showAbLoop, setShowAbLoop] = useState(true);
   // Status of the last "Copy logs" click — null when idle, "ok" or
   // "fail" briefly during the toast period before clearing back to null.
   const [copyLogsStatus, setCopyLogsStatus] = useState<"ok" | "fail" | null>(
@@ -330,6 +332,12 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         // PlayerBar reader. Avoids hiding a feature on first run
         // because the row hasn't been written yet.
         if (v != null) setShowSleepTimer(v === "true" || v === "1");
+      })
+      .catch(() => {});
+    getProfileSetting("ui.show_ab_loop")
+      .then((v) => {
+        if (cancelled) return;
+        if (v != null) setShowAbLoop(v === "true" || v === "1");
       })
       .catch(() => {});
     return () => {
@@ -365,6 +373,19 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         setShowSleepTimer(!next);
       });
   }, [showSleepTimer]);
+
+  const handleToggleShowAbLoop = useCallback(() => {
+    const next = !showAbLoop;
+    setShowAbLoop(next);
+    setProfileSetting("ui.show_ab_loop", next ? "true" : "false", "bool")
+      .then(() => {
+        window.dispatchEvent(new CustomEvent("waveflow:ab-loop-visibility"));
+      })
+      .catch((err) => {
+        console.error("[Settings] set show_ab_loop failed", err);
+        setShowAbLoop(!next);
+      });
+  }, [showAbLoop]);
 
   const handleCopyLogs = useCallback(async () => {
     try {
@@ -1015,6 +1036,26 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               enabled={showSleepTimer}
               onToggle={handleToggleShowSleepTimer}
               label={t("settings.showSleepTimer.title")}
+            />
+          </div>
+
+          {/* Visibilité du bouton boucle A-B */}
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4">
+              <Repeat2 size={20} className="text-zinc-400" aria-hidden="true" />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.showAbLoop.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.showAbLoop.subtitle")}
+                </div>
+              </div>
+            </div>
+            <ToggleSwitch
+              enabled={showAbLoop}
+              onToggle={handleToggleShowAbLoop}
+              label={t("settings.showAbLoop.title")}
             />
           </div>
         </div>
