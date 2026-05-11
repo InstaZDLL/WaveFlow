@@ -6,6 +6,7 @@
 pub mod analysis;
 pub mod app_info;
 pub mod browse;
+pub mod changelog;
 pub mod deezer;
 pub mod diagnostics;
 pub mod dlna;
@@ -15,8 +16,10 @@ pub mod integration;
 pub mod library;
 pub mod lyrics;
 pub mod maintenance;
+pub mod offline;
 pub mod player;
 pub mod playlist;
+pub mod profile_io;
 pub mod playlist_cover;
 pub mod profile;
 pub mod radio;

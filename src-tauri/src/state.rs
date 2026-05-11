@@ -52,6 +52,24 @@ impl AppState {
 
         let app_db = db::app_db::open(&paths.app_db).await?;
 
+        // Hydrate the global offline-mode flag from app_setting so
+        // any outbound HTTP call honours the persisted preference
+        // before the user opens Settings. The flag is process-wide
+        // (see `crate::offline`) because offline is a network-stack
+        // concern, not per-profile.
+        let offline_initial: Option<String> = sqlx::query_scalar(
+            "SELECT value FROM app_setting WHERE key = 'network.offline_mode'",
+        )
+        .fetch_optional(&app_db)
+        .await
+        .ok()
+        .flatten();
+        crate::offline::set(
+            offline_initial
+                .map(|v| v == "true" || v == "1")
+                .unwrap_or(false),
+        );
+
         let state = Self {
             paths,
             app_db,

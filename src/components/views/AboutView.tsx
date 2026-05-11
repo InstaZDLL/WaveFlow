@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
@@ -7,9 +8,23 @@ import {
   Music,
   Waves,
   Settings2,
+  Sparkles,
+  Wrench,
+  AlertTriangle,
+  GitCommit,
 } from "lucide-react";
 import type { ViewId } from "../../types";
 import { WaveFlowLogo } from "../common/WaveFlowLogo";
+import { getChangelog, type ChangelogEntry } from "../../lib/tauri/changelog";
+import {
+  comboParts,
+  DEFAULT_BINDINGS,
+  loadBindings,
+  SHORTCUT_ACTIONS,
+  SHORTCUTS_CHANGED_EVENT,
+  type ShortcutAction,
+  type ShortcutBindings,
+} from "../../lib/shortcuts";
 
 interface AboutViewProps {
   onNavigate: (view: ViewId) => void;
@@ -35,20 +50,170 @@ function TechItem({
   );
 }
 
-function KeyboardShortcut({ label, keys }: { label: string; keys: string[] }) {
+function ShortcutRow({ label, combo }: { label: string; combo: string }) {
+  const { t } = useTranslation();
+  const parts = comboParts(combo);
   return (
     <div className="px-4 py-3 flex items-center justify-between">
       <span className="text-sm text-zinc-700 dark:text-zinc-300">{label}</span>
-      <div className="flex items-center space-x-1">
-        {keys.map((key, i) => (
-          <span key={i}>
-            {i > 0 && <span className="text-zinc-400 mx-1">/</span>}
-            <kbd className="px-2 py-1 text-xs font-mono rounded border border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
-              {key}
-            </kbd>
-          </span>
+      {parts.length === 0 ? (
+        <span className="text-xs italic text-zinc-400">
+          {t("settings.shortcuts.unbound")}
+        </span>
+      ) : (
+        <div className="flex items-center space-x-1">
+          {parts.map((part, i) => (
+            <span key={i}>
+              {i > 0 && <span className="text-zinc-400 mx-1">+</span>}
+              <kbd className="px-2 py-1 text-xs font-mono rounded border border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                {part}
+              </kbd>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ShortcutsList() {
+  const { t } = useTranslation();
+  const [bindings, setBindings] = useState<ShortcutBindings>(DEFAULT_BINDINGS);
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      loadBindings()
+        .then((b) => {
+          if (!cancelled) setBindings(b);
+        })
+        .catch(() => {});
+    };
+    refresh();
+    window.addEventListener(SHORTCUTS_CHANGED_EVENT, refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(SHORTCUTS_CHANGED_EVENT, refresh);
+    };
+  }, []);
+  return (
+    <div className="space-y-0">
+      {SHORTCUT_ACTIONS.map((action: ShortcutAction) => (
+        <ShortcutRow
+          key={action}
+          label={t(`settings.shortcuts.actions.${action}`)}
+          combo={bindings[action]}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** How many entries to show before "Show more" expands the rest. */
+const CHANGELOG_VISIBLE = 25;
+
+function changelogIcon(kind: string) {
+  if (kind === "feat") return <Sparkles size={14} className="text-emerald-500" />;
+  if (kind === "fix") return <Wrench size={14} className="text-amber-500" />;
+  return <GitCommit size={14} className="text-zinc-400" />;
+}
+
+function ChangelogSection() {
+  const { t, i18n } = useTranslation();
+  const [entries, setEntries] = useState<ChangelogEntry[] | null>(null);
+  const [error, setError] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getChangelog()
+      .then((rows) => {
+        if (cancelled) return;
+        // Hide noise: keep only the user-facing types.
+        const visible = rows.filter((r) =>
+          ["feat", "fix", "perf", "refactor"].includes(r.type),
+        );
+        setEntries(visible);
+      })
+      .catch((err) => {
+        console.error("[About] changelog load failed", err);
+        if (!cancelled) setError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (error) return null;
+  if (entries == null) {
+    return (
+      <p className="text-xs text-zinc-400 px-4">{t("about.changelog.loading")}</p>
+    );
+  }
+  if (entries.length === 0) {
+    return (
+      <p className="text-xs text-zinc-400 px-4">{t("about.changelog.empty")}</p>
+    );
+  }
+
+  const shown = expanded ? entries : entries.slice(0, CHANGELOG_VISIBLE);
+  const dateFormatter = new Intl.DateTimeFormat(i18n.resolvedLanguage ?? i18n.language, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  return (
+    <div className="space-y-1">
+      <ul className="space-y-2">
+        {shown.map((entry) => (
+          <li
+            key={entry.hash}
+            className="flex items-start gap-3 px-4 py-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors"
+          >
+            <span className="mt-1 shrink-0">{changelogIcon(entry.type)}</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-bold uppercase tracking-wide text-zinc-400">
+                  {entry.type}
+                </span>
+                {entry.scope && (
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                    {entry.scope}
+                  </span>
+                )}
+                {entry.breaking && (
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-red-500"
+                    title={t("about.changelog.breaking") ?? "Breaking change"}
+                  >
+                    <AlertTriangle size={10} aria-hidden="true" />
+                    {t("about.changelog.breaking")}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-snug">
+                {entry.subject}
+              </p>
+            </div>
+            <span className="shrink-0 text-[11px] text-zinc-400 font-mono mt-0.5">
+              {dateFormatter.format(new Date(entry.date))}
+            </span>
+          </li>
         ))}
-      </div>
+      </ul>
+      {entries.length > CHANGELOG_VISIBLE && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="w-full text-center text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 py-2"
+        >
+          {expanded
+            ? t("about.changelog.collapse")
+            : t("about.changelog.expand", {
+                count: entries.length - CHANGELOG_VISIBLE,
+              })}
+        </button>
+      )}
     </div>
   );
 }
@@ -169,7 +334,8 @@ export function AboutView({ onNavigate }: AboutViewProps) {
         </div>
       </section>
 
-      {/* Raccourcis clavier */}
+      {/* Raccourcis clavier (dynamiques — reflètent les bindings
+          courants modifiés depuis Paramètres). */}
       <section aria-labelledby="about-shortcuts-heading">
         <h2
           id="about-shortcuts-heading"
@@ -177,25 +343,18 @@ export function AboutView({ onNavigate }: AboutViewProps) {
         >
           {t("about.sections.shortcuts")}
         </h2>
-        <div className="space-y-0">
-          <KeyboardShortcut
-            label={t("about.shortcuts.playPause")}
-            keys={[t("about.shortcuts.keys.space")]}
-          />
-          <KeyboardShortcut
-            label={t("about.shortcuts.previousTrack")}
-            keys={["←"]}
-          />
-          <KeyboardShortcut
-            label={t("about.shortcuts.nextTrack")}
-            keys={["→"]}
-          />
-          <KeyboardShortcut
-            label={t("about.shortcuts.volume")}
-            keys={["↑", "↓"]}
-          />
-          <KeyboardShortcut label={t("about.shortcuts.mute")} keys={["M"]} />
-        </div>
+        <ShortcutsList />
+      </section>
+
+      {/* Changelog généré depuis les commits conventional */}
+      <section aria-labelledby="about-changelog-heading">
+        <h2
+          id="about-changelog-heading"
+          className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
+        >
+          {t("about.sections.changelog")}
+        </h2>
+        <ChangelogSection />
       </section>
 
       {/* Crédits */}

@@ -16,6 +16,10 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+# Build-time changelog generation (build.rs): parses `git log` and
+# emits a JSON array embedded in the binary via include_str!.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 [patch.crates-io]
 # gtk-rs 0.18 is still required by Tauri's Linux GTK3 stack and cannot move to
@@ -91,6 +95,11 @@ cpal = "0.17"
 rubato = "2.0"
 rtrb = "0.3"
 crossbeam-channel = "0.5"
+# FFT for the spectrum visualizer. realfft is a thin wrapper over
+# rustfft optimized for real-valued inputs (half the buckets out, half
+# the cost in). Used by the decoder thread to compute log-bands from
+# the post-EQ output, throttled to ~30 Hz.
+realfft = "3"
 
 # HTTP client for Deezer public API metadata enrichment
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
@@ -159,6 +168,12 @@ socket2 = "0.5"
 if-addrs = "0.13"
 mac_address = "1"
 uuid = { version = "1", features = ["v4", "v5"] }
+
+# Profile export / import: bundle the per-profile `data.db` + the
+# user's manual artwork into a single `.waveflow` (zip) file. We pick
+# zip 4.x for its `deflate` feature with a pure-Rust backend (no
+# native libz dep), keeping the cross-compile story clean.
+zip = { version = "4", default-features = false, features = ["deflate", "time"] }
 
 # Discord Rich Presence — speaks the local Discord client's IPC named
 # pipe (no network). Mirrors the souvlaki integration in

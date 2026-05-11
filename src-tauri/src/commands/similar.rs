@@ -95,7 +95,15 @@ pub async fn get_similar_artists(
     .fetch_optional(&pool)
     .await?;
 
-    let raw: Vec<RawSimilar> = if let Some((payload, expires_at)) = cached {
+    // Offline mode: hand back whatever the cache holds (even if
+    // stale) and never trigger a network refresh. Empty when no
+    // cache row exists yet.
+    let raw: Vec<RawSimilar> = if crate::offline::is_offline() {
+        match cached {
+            Some((payload, _)) => serde_json::from_str(&payload).unwrap_or_default(),
+            None => Vec::new(),
+        }
+    } else if let Some((payload, expires_at)) = cached {
         if expires_at > now {
             serde_json::from_str(&payload).unwrap_or_default()
         } else {

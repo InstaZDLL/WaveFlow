@@ -384,6 +384,7 @@
       "backend": "Backend (Rust)",
       "audio": "Audio",
       "shortcuts": "Raccourcis clavier",
+      "changelog": "Journal des modifications",
       "credits": "Crédits"
     },
     "shortcuts": {
@@ -395,6 +396,13 @@
       "keys": {
         "space": "Espace"
       }
+    },
+    "changelog": {
+      "loading": "Chargement…",
+      "empty": "Aucune entrée disponible",
+      "expand": "Voir {{count}} entrées de plus",
+      "collapse": "Voir moins",
+      "breaking": "Rupture"
     },
     "credits": {
       "text": "Conçu et développé avec passion. Construit avec des technologies open source.",
@@ -662,7 +670,8 @@
     "queue": "File d'attente",
     "miniPlayer": "Mini-lecteur (toujours au-dessus)",
     "previous": "Piste précédente",
-    "next": "Piste suivante"
+    "next": "Piste suivante",
+    "openFullscreen": "Vue immersive"
   },
   "miniPlayer": {
     "idle": "Aucun titre en cours",
@@ -806,7 +815,33 @@
       "playback": "Lecture",
       "integrations": "Intégrations",
       "storage": "Stockage & Données",
+      "shortcuts": "Raccourcis clavier",
       "diagnostics": "Diagnostics"
+    },
+    "shortcuts": {
+      "subtitle": "Cliquez sur un raccourci puis appuyez sur la combinaison souhaitée. Backspace pour effacer, Échap pour annuler.",
+      "captureHint": "Appuyez sur une touche…",
+      "reset": "Tout réinitialiser",
+      "unbind": "Désactiver",
+      "unbound": "Aucun",
+      "actions": {
+        "togglePlayback": "Lecture / Pause",
+        "next": "Morceau suivant",
+        "previous": "Morceau précédent",
+        "volumeUp": "Augmenter le volume",
+        "volumeDown": "Baisser le volume",
+        "toggleMute": "Couper / Rétablir le son",
+        "toggleShuffle": "Lecture aléatoire",
+        "cycleRepeat": "Mode de répétition",
+        "toggleQueue": "Afficher / Masquer la file",
+        "toggleNowPlaying": "Afficher / Masquer la lecture en cours",
+        "toggleLyrics": "Afficher / Masquer les paroles",
+        "toggleLike": "J'aime / Retirer du j'aime"
+      }
+    },
+    "offlineMode": {
+      "title": "Mode hors-ligne",
+      "subtitle": "Coupe Last.fm, Deezer et LRCLIB. Utilise uniquement les données déjà en cache."
     },
     "integrations": {
       "lastfm": {
@@ -914,6 +949,22 @@
       "action": "Récupérer",
       "progress": "{{current}}/{{total}} traités"
     },
+    "profileIo": {
+      "title": "Sauvegarde du profil",
+      "subtitle": "Exporte ou importe un profil entier (playlists, j'aime, statistiques, EQ, raccourcis) sous forme d'un fichier .waveflow.",
+      "export": {
+        "action": "Exporter",
+        "dialogTitle": "Exporter le profil WaveFlow",
+        "done": "Profil exporté avec succès.",
+        "failed": "Échec de l'export. Voir les logs."
+      },
+      "import": {
+        "action": "Importer",
+        "dialogTitle": "Importer un profil WaveFlow",
+        "done": "Profil importé (id {{id}}). Bascule depuis le sélecteur de profil.",
+        "failed": "Échec de l'import. Le fichier est peut-être corrompu ou incompatible."
+      }
+    },
     "dataFolder": {
       "title": "Dossier de données",
       "subtitle": "Ouvrir le dossier contenant la base de données et les covers",
@@ -942,6 +993,14 @@
       "copyLogs": "Copier les logs",
       "copied": "Logs copiés",
       "copyFailed": "Impossible de copier les logs"
+    },
+    "visualizer": {
+      "title": "Visualiseur audio",
+      "subtitle": "Affiche un spectre temps réel dans la vue immersive (analyse FFT légère sur le décodeur)"
+    },
+    "smartCrossfade": {
+      "title": "Fondu intelligent",
+      "subtitle": "Désactive automatiquement le fondu entre deux morceaux d'un même album (idéal pour les albums concept et lives)"
     },
     "gapless": {
       "title": "Lecture sans pause",

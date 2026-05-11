@@ -20,10 +20,13 @@ use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::{
     audio::engine::AudioCmd,
+    audio::AudioEngine,
     commands::player::{emit_queue_changed, emit_track_changed},
     queue::{self, Direction, QueueTrack},
     state::AppState,
 };
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
 /// One-way messages the decoder thread sends on a tokio unbounded
 /// channel. Synchronous `send` is fine because `UnboundedSender::send`
@@ -191,6 +194,44 @@ async fn handle_message(
             if let Some(track) = next {
                 let replay_gain_db =
                     crate::commands::player::fetch_replay_gain_db(&pool, track.id).await;
+
+                // Smart-crossfade hint: pre-compute whether the next
+                // track shares an album with the currently-playing
+                // one and stash the answer on SharedPlayback. The
+                // decoder reads it at mix-decision time to suppress
+                // the fade for same-album hand-offs (concept records
+                // / live sets). Best-effort — any DB hiccup falls
+                // back to "different album" (regular crossfade).
+                let engine = app.state::<Arc<AudioEngine>>();
+                let shared = engine.shared();
+                let current_id = shared.current_track_id.load(Ordering::Acquire);
+                let mut same_album = false;
+                if current_id > 0 {
+                    let current_album: Option<i64> = sqlx::query_scalar(
+                        "SELECT album_id FROM track WHERE id = ?",
+                    )
+                    .bind(current_id)
+                    .fetch_optional(&pool)
+                    .await
+                    .ok()
+                    .flatten();
+                    let next_album: Option<i64> = sqlx::query_scalar(
+                        "SELECT album_id FROM track WHERE id = ?",
+                    )
+                    .bind(track.id)
+                    .fetch_optional(&pool)
+                    .await
+                    .ok()
+                    .flatten();
+                    same_album = matches!(
+                        (current_album, next_album),
+                        (Some(a), Some(b)) if a == b
+                    );
+                }
+                shared
+                    .pending_next_same_album
+                    .store(same_album, Ordering::Release);
+
                 let _ = cmd_tx.send(AudioCmd::SetNextTrack {
                     path: track.as_path(),
                     track_id: track.id,

@@ -76,6 +76,11 @@ pub fn spawn(app: AppHandle) {
 }
 
 async fn run_once(app: &AppHandle) -> Result<(), String> {
+    // Honour the global offline-mode flag — keep the queue intact and
+    // resume on the next tick once the user comes back online.
+    if crate::offline::is_offline() {
+        return Ok(());
+    }
     let state = app.state::<AppState>();
     let creds = read_lastfm_credentials(&state)
         .await

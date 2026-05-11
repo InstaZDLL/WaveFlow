@@ -384,6 +384,7 @@
       "backend": "Backend (Rust)",
       "audio": "Audio",
       "shortcuts": "Keyboard shortcuts",
+      "changelog": "Changelog",
       "credits": "Credits"
     },
     "shortcuts": {
@@ -395,6 +396,13 @@
       "keys": {
         "space": "Space"
       }
+    },
+    "changelog": {
+      "loading": "Loading…",
+      "empty": "No entries available",
+      "expand": "Show {{count}} more entries",
+      "collapse": "Show fewer",
+      "breaking": "Breaking"
     },
     "credits": {
       "text": "Designed and developed with passion. Built using open-source technologies.",
@@ -662,7 +670,8 @@
     "queue": "Queue",
     "miniPlayer": "Mini-player (always on top)",
     "previous": "Previous track",
-    "next": "Next track"
+    "next": "Next track",
+    "openFullscreen": "Immersive view"
   },
   "miniPlayer": {
     "idle": "No track playing",
@@ -806,7 +815,33 @@
       "playback": "Playback",
       "integrations": "Integrations",
       "storage": "Storage & Data",
+      "shortcuts": "Keyboard shortcuts",
       "diagnostics": "Diagnostics"
+    },
+    "shortcuts": {
+      "subtitle": "Click a shortcut then press the key combination you want. Backspace to clear, Escape to cancel.",
+      "captureHint": "Press a key…",
+      "reset": "Reset all",
+      "unbind": "Unbind",
+      "unbound": "None",
+      "actions": {
+        "togglePlayback": "Play / Pause",
+        "next": "Next track",
+        "previous": "Previous track",
+        "volumeUp": "Volume up",
+        "volumeDown": "Volume down",
+        "toggleMute": "Mute / Unmute",
+        "toggleShuffle": "Shuffle",
+        "cycleRepeat": "Cycle repeat mode",
+        "toggleQueue": "Toggle queue panel",
+        "toggleNowPlaying": "Toggle now-playing panel",
+        "toggleLyrics": "Toggle lyrics panel",
+        "toggleLike": "Like / Unlike current track"
+      }
+    },
+    "offlineMode": {
+      "title": "Offline mode",
+      "subtitle": "Disables Last.fm, Deezer and LRCLIB. Uses cached data only."
     },
     "integrations": {
       "lastfm": {
@@ -914,6 +949,22 @@
       "action": "Recover",
       "progress": "{{current}}/{{total}} processed"
     },
+    "profileIo": {
+      "title": "Profile backup",
+      "subtitle": "Export or import a full profile (playlists, likes, stats, EQ, shortcuts) as a single .waveflow file.",
+      "export": {
+        "action": "Export",
+        "dialogTitle": "Export WaveFlow profile",
+        "done": "Profile exported successfully.",
+        "failed": "Export failed. See the logs for details."
+      },
+      "import": {
+        "action": "Import",
+        "dialogTitle": "Import WaveFlow profile",
+        "done": "Profile imported (id {{id}}). Switch to it from the profile selector.",
+        "failed": "Import failed. The file may be corrupt or incompatible."
+      }
+    },
     "dataFolder": {
       "title": "Data file",
       "subtitle": "Open the folder containing the database and the covers",
@@ -942,6 +993,14 @@
       "copyLogs": "Copy logs",
       "copied": "Copied logs",
       "copyFailed": "Unable to copy logs"
+    },
+    "visualizer": {
+      "title": "Audio visualizer",
+      "subtitle": "Show a real-time spectrum in the immersive view (lightweight FFT on the decoder thread)"
+    },
+    "smartCrossfade": {
+      "title": "Smart crossfade",
+      "subtitle": "Automatically skip the fade between two tracks from the same album (great for concept records and live sets)"
     },
     "gapless": {
       "title": "Gapless playback",

@@ -2,6 +2,10 @@
 
 External services WaveFlow talks to. All clients use [`reqwest 0.12`](https://crates.io/crates/reqwest) with `rustls-tls` so there's no system OpenSSL dependency.
 
+## Offline mode
+
+A single global toggle — Settings → Intégrations → "Mode hors-ligne" — short-circuits every outbound call described below. The flag is a `static AtomicBool` in [`offline.rs`](../../src-tauri/src/offline.rs); it is consulted by Deezer enrichment, Last.fm now-playing + the scrobble worker tick, similar-artist lookups, and the LRCLIB lyrics fetch + library prefetch. Each gated path returns an empty payload (or whatever the local cache holds), nothing throws, so the UI keeps rendering with whatever metadata is already on disk. Persisted in `app_setting['network.offline_mode']` because the flag is process-wide — switching profiles must not silently re-enable network calls.
+
 ## Deezer (metadata)
 
 [`deezer.rs`](../../src-tauri/src/deezer.rs) — public Deezer API, no auth. Used for:

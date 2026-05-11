@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Menu, MonitorSpeaker, Heart, Mic2, PictureInPicture2 } from "lucide-react";
+import {
+  Menu,
+  MonitorSpeaker,
+  Heart,
+  Mic2,
+  PictureInPicture2,
+  Maximize2,
+} from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useSleepTimer } from "../../hooks/useSleepTimer";
 import { Artwork } from "../common/Artwork";
@@ -11,6 +18,7 @@ import { SleepTimerMenu } from "./SleepTimerMenu";
 import { AbLoopButton } from "./AbLoopButton";
 import { VolumeControl } from "./VolumeControl";
 import { AudioQualityFooter } from "./AudioQualityFooter";
+import { FullscreenNowPlaying } from "./FullscreenNowPlaying";
 import { toggleLikeTrack, listLikedTrackIds } from "../../lib/tauri/track";
 import { getProfileSetting } from "../../lib/tauri/profile";
 
@@ -123,21 +131,39 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
   const title = currentTrack?.title ?? t("player.noTrack");
 
+  // Apple-Music-style immersive Now Playing overlay. Local UI state —
+  // not in PlayerContext because no other view needs to know about it
+  // (unlike the side panels which other components query).
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
+
   return (
+    <>
     <div className="flex flex-col z-50 border-t bg-[#FAFAFA] border-zinc-200 text-zinc-600 dark:bg-surface-dark-elevated dark:border-zinc-800 dark:text-zinc-300">
       <div className="h-24 px-6 flex items-center justify-between">
         {/* Left: Track Info */}
         <div className="w-1/3 flex items-center space-x-4 min-w-0">
-          <Artwork
-            path={currentTrack?.artwork_path ?? null}
-            path1x={currentTrack?.artwork_path_1x ?? null}
-            path2x={currentTrack?.artwork_path_2x ?? null}
-            size="1x"
-            className="w-14 h-14 shadow-sm border border-zinc-200 dark:border-transparent"
-            iconSize={24}
-            alt={title}
-            rounded="xl"
-          />
+          {/* Click the cover to open the immersive Now Playing
+              overlay (mirrors Apple Music). Disabled when no track is
+              loaded so the user doesn't open an empty card. */}
+          <button
+            type="button"
+            onClick={() => currentTrack && setIsFullscreenOpen(true)}
+            disabled={!currentTrack}
+            aria-label={t("playerBar.openFullscreen")}
+            title={t("playerBar.openFullscreen")}
+            className="shrink-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-default"
+          >
+            <Artwork
+              path={currentTrack?.artwork_path ?? null}
+              path1x={currentTrack?.artwork_path_1x ?? null}
+              path2x={currentTrack?.artwork_path_2x ?? null}
+              size="1x"
+              className="w-14 h-14 shadow-sm border border-zinc-200 dark:border-transparent"
+              iconSize={24}
+              alt={title}
+              rounded="xl"
+            />
+          </button>
           <div className="flex flex-col min-w-0">
             <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
               {title}
@@ -191,6 +217,20 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               onCancel={sleepTimer.cancel}
             />
           )}
+
+          {/* Fullscreen Now Playing trigger — sits next to the
+              lyrics toggle so the two "expand" actions cluster
+              together. Disabled when no track is loaded. */}
+          <button
+            type="button"
+            onClick={() => setIsFullscreenOpen(true)}
+            disabled={!currentTrack}
+            aria-label={t("playerBar.openFullscreen")}
+            title={t("playerBar.openFullscreen")}
+            className="p-2 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Maximize2 size={18} />
+          </button>
 
           {/* Lyrics panel toggle */}
           <button
@@ -260,5 +300,14 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
       </div>
       <AudioQualityFooter track={isSpotify ? null : (currentTrack ?? null)} />
     </div>
+    {isFullscreenOpen && currentTrack && (
+      <FullscreenNowPlaying
+        onClose={() => setIsFullscreenOpen(false)}
+        onNavigateToArtist={onNavigateToArtist}
+        isLiked={isLiked}
+        onToggleLike={handleToggleLike}
+      />
+    )}
+    </>
   );
 }

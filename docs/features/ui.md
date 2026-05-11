@@ -31,6 +31,12 @@ The right panel is **a flex sibling** of the center column, not an overlay — o
 - [`LyricsPanel`](../../src/components/layout/LyricsPanel.tsx) — synced or static lyrics with auto-scroll.
 - [`NowPlayingChevronTab`](../../src/components/layout/NowPlayingChevronTab.tsx) — right-edge floating tab visible only when no panel is open.
 
+## Immersive Now Playing
+
+[`FullscreenNowPlaying`](../../src/components/player/FullscreenNowPlaying.tsx) is an Apple-Music-style overlay (`fixed inset-0 z-100`) that turns the current track into the focal point: huge centred cover, large title + clickable artist + album, the same `PlaybackControls` / `ProgressBar` / `VolumeControl` the bottom bar uses, and a like toggle. Background is a blurred copy of the artwork (with a 55% black wash over it) so the view stays visually anchored to the track without any extra theming work.
+
+Two entry points in the [`PlayerBar`](../../src/components/player/PlayerBar.tsx): clicking the cover in the bottom bar (mirrors Spotify) or the dedicated Maximize2 icon next to the lyrics toggle. Closes on Escape or the X button. State is local to the bar — no `PlayerContext` involvement because nothing else needs to know about the overlay.
+
 ## Mini-player
 
 [`MiniPlayerApp`](../../src/MiniPlayerApp.tsx) + [`MiniPlayer`](../../src/components/views/MiniPlayer.tsx) ship a Spotify-style always-on-top widget. Launched from the picture-in-picture button in the PlayerBar via [`lib/miniPlayer.ts::openMiniPlayer`](../../src/lib/miniPlayer.ts).
@@ -81,6 +87,12 @@ A handful of niche playback features live behind a per-profile visibility toggle
 
 The PlayerBar listens to `waveflow:sleep-timer-visibility` / `waveflow:ab-loop-visibility` window events dispatched by the Settings toggle so the icons appear / disappear without a polling loop.
 
+## Keyboard shortcuts
+
+Action ↔ key bindings live in [`src/lib/shortcuts.ts`](../../src/lib/shortcuts.ts) (12 actions, defaults like `Space` → play/pause, `←`/`→` → previous/next, `M` → mute, `S` → shuffle, `R` → repeat, `L` → toggle lyrics, `Shift+L` → like). [`useGlobalShortcuts`](../../src/hooks/useGlobalShortcuts.ts) is mounted once in [`AppLayout`](../../src/components/layout/AppLayout.tsx) and attaches a single `window.keydown` listener that dispatches against `PlayerContext`. Listener skips when the focus target is `INPUT` / `TEXTAREA` / `contenteditable` so typing in a search box doesn't toggle shuffle.
+
+User overrides are stored per-profile in `profile_setting['ui.shortcuts']` as a JSON object containing only customised actions — defaults stay implicit, so future default tweaks land for any binding the user hasn't touched. Settings → Raccourcis clavier ([`ShortcutsCard`](../../src/components/views/settings/ShortcutsCard.tsx)) captures keys in capture-phase so the rebind UI doesn't fire the global handler. Conflicts auto-resolve by stealing the combo from whoever previously owned it. AboutView reads the same setting and re-renders on the `waveflow:shortcuts-changed` window event.
+
 ## Theming & motion
 
 - **Dark mode** — animated radial transition via the [View Transitions API](https://developer.mozilla.org/en-US/docs/Web/API/View_Transitions_API). Falls back to an instant swap when unsupported.
@@ -108,6 +120,15 @@ Per-profile isolated database (libraries, playlists, settings, play history); sh
 - The `profile` table lives in `app.db` along with `app_setting['app.last_profile_id']`.
 - Boot flow: if no profiles exist, create "Default"; otherwise activate `last_profile_id`, falling back to the most-recently-used profile if it points to a deleted row.
 - Profile switch closes the current per-profile pool and opens the new one — UI reactively re-fetches via every `*Provider` watching `activeProfile.id`.
+
+### Export / import (`.waveflow` archive)
+
+[`commands/profile_io.rs`](../../src-tauri/src/commands/profile_io.rs) packages a profile into a single `.waveflow` (zip) file containing `manifest.json` + `data.db` + the per-profile `artwork/` directory. Settings → Stockage exposes both buttons.
+
+- **Export:** the active-profile path runs `PRAGMA wal_checkpoint(TRUNCATE)` first so the bundled DB captures every committed page (otherwise a busy WAL would leave the archive holding a partial snapshot). The CPU-bound zip work runs on `tokio::task::spawn_blocking`.
+- **Import:** always allocates a fresh profile row — never overwrites — then extracts the archive under `profiles/<new_id>/`. Failures roll the row back so a half-imported profile doesn't survive the error. Once extracted, the new pool is opened once so any pending sqlx migrations replay before the user switches to it.
+- **Out of scope:** the shared `app.db` (Last.fm key, Discord opt-in, `network.offline_mode`) belongs to the install, not the profile. The shared `metadata_artwork/` cache (Deezer pictures, etc.) is re-fetchable so we skip it to keep archives small.
+- **Manifest:** `archive_version` (currently `1`) gates compatibility — a future schema-incompatible bump refuses imports rather than silently corrupting the new profile. `app_version` and the source profile name / id are recorded for diagnostics.
 
 ## Onboarding
 

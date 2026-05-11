@@ -71,15 +71,15 @@ export function FullscreenLyrics({
             path={track.artwork_path}
             path1x={track.artwork_path_1x}
             path2x={track.artwork_path_2x}
-            size="2x"
-            className="w-full h-full scale-125 blur-3xl opacity-60"
+            size="full"
+            className="w-full h-full scale-150 blur-3xl"
             alt=""
             rounded="md"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-950" />
         )}
-        <div className="absolute inset-0 bg-black/60" />
+        <div className="absolute inset-0 bg-black/65" />
       </div>
 
       {/* Foreground */}

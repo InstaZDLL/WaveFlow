@@ -17,6 +17,7 @@ mod logging;
 mod lrclib;
 mod media_controls;
 mod metadata_artwork;
+mod offline;
 mod paths;
 mod queue;
 mod scrobbler;
@@ -250,6 +251,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::app_info::get_app_info,
             commands::app_info::open_data_folder,
+            commands::changelog::get_changelog,
             commands::diagnostics::get_log_dir,
             commands::diagnostics::open_log_folder,
             commands::diagnostics::read_recent_logs,
@@ -260,6 +262,8 @@ pub fn run() {
             commands::profile::deactivate_profile,
             commands::profile::get_profile_setting,
             commands::profile::set_profile_setting,
+            commands::profile_io::export_profile,
+            commands::profile_io::import_profile,
             commands::library::list_libraries,
             commands::library::create_library,
             commands::library::update_library,
@@ -350,6 +354,8 @@ pub fn run() {
             commands::spotify::spotify_get_queue,
             commands::spotify::spotify_search,
             commands::spotify::spotify_pause_local,
+            commands::offline::get_offline_mode,
+            commands::offline::set_offline_mode,
             commands::lyrics::get_lyrics,
             commands::lyrics::fetch_lyrics,
             commands::lyrics::import_lrc_file,
@@ -382,6 +388,10 @@ pub fn run() {
             commands::player::player_set_mono,
             commands::player::player_set_crossfade,
             commands::player::player_set_gapless,
+            commands::player::player_set_visualizer,
+            commands::player::player_get_visualizer,
+            commands::player::player_set_smart_crossfade,
+            commands::player::player_get_smart_crossfade,
             commands::player::player_set_replaygain,
             commands::player::player_get_eq,
             commands::player::player_set_eq_enabled,

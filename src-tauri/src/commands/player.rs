@@ -288,6 +288,11 @@ fn schedule_now_playing(app: &AppHandle, track: &QueueTrack) {
         let Some(artist) = artist.filter(|s| !s.trim().is_empty()) else {
             return;
         };
+        // Honour offline mode — skip the now-playing ping; the
+        // scrobble queue will also be drained later when offline is off.
+        if crate::offline::is_offline() {
+            return;
+        }
 
         let state = app.state::<AppState>();
         let creds = match crate::commands::integration::read_lastfm_credentials(&state).await {
@@ -441,6 +446,33 @@ pub async fn player_get_state(
                 if let Ok(bands) = serde_json::from_str::<Vec<f32>>(&v) {
                     engine.shared().eq.set_all_bands_db(&bands);
                 }
+            }
+            // Smart crossfade default OFF — only flip ON if the user
+            // has explicitly enabled it.
+            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
+                "SELECT value FROM profile_setting WHERE key = 'audio.smart_crossfade'",
+            )
+            .fetch_optional(&pool)
+            .await
+            {
+                engine
+                    .shared()
+                    .smart_crossfade_enabled
+                    .store(v == "true", std::sync::atomic::Ordering::Release);
+            }
+            // Visualizer toggle. Default OFF — the FFT cost is tiny
+            // but the cpal-side telemetry isn't free, and most users
+            // won't have the panel open.
+            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
+                "SELECT value FROM profile_setting WHERE key = 'ui.visualizer'",
+            )
+            .fetch_optional(&pool)
+            .await
+            {
+                engine
+                    .shared()
+                    .visualizer_enabled
+                    .store(v == "true", std::sync::atomic::Ordering::Release);
             }
             // Prefer the actively-playing track (non-zero track_id in
             // SharedPlayback), fall back to the persisted resume point
@@ -859,6 +891,85 @@ pub async fn player_set_mono(
         .await;
     }
     Ok(())
+}
+
+/// Toggle smart crossfade. When ON, same-album transitions skip
+/// the fade and fall through to the gapless hand-off so concept
+/// albums / live records aren't smeared by an equal-power mix.
+/// Default OFF — it's an opinionated behaviour change so users
+/// opt in. Persisted in `profile_setting['audio.smart_crossfade']`.
+#[tauri::command]
+pub async fn player_set_smart_crossfade(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    engine
+        .shared()
+        .smart_crossfade_enabled
+        .store(enabled, std::sync::atomic::Ordering::Release);
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.smart_crossfade', ?, 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(if enabled { "true" } else { "false" })
+        .bind(now)
+        .execute(&pool)
+        .await;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn player_get_smart_crossfade(
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+) -> AppResult<bool> {
+    Ok(engine
+        .shared()
+        .smart_crossfade_enabled
+        .load(std::sync::atomic::Ordering::Relaxed))
+}
+
+/// Toggle the spectrum visualizer. Flips the atomic the decoder
+/// thread checks before running the FFT, then persists the new
+/// value to `profile_setting['ui.visualizer']` so the choice
+/// survives a restart.
+#[tauri::command]
+pub async fn player_set_visualizer(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    engine
+        .shared()
+        .visualizer_enabled
+        .store(enabled, std::sync::atomic::Ordering::Release);
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('ui.visualizer', ?, 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(if enabled { "true" } else { "false" })
+        .bind(now)
+        .execute(&pool)
+        .await;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn player_get_visualizer(
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+) -> AppResult<bool> {
+    Ok(engine
+        .shared()
+        .visualizer_enabled
+        .load(std::sync::atomic::Ordering::Relaxed))
 }
 
 /// Toggle gapless playback. Pushes the new value live to the audio

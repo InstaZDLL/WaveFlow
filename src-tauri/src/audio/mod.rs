@@ -22,6 +22,7 @@ pub mod engine;
 pub mod eq;
 pub mod output;
 pub mod resampler;
+pub mod spectrum;
 pub mod state;
 
 pub use engine::{AudioCmd, AudioEngine};

@@ -33,6 +33,9 @@ pub enum AppError {
     #[error("audio error: {0}")]
     Audio(String),
 
+    #[error("zip error: {0}")]
+    Zip(#[from] zip::result::ZipError),
+
     #[error("{0}")]
     Other(String),
 }
