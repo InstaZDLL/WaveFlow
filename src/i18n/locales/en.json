@@ -366,7 +366,14 @@
     "topAlbums": {
       "title": "Top Albums",
       "empty": "No albums played."
+    },    "heatmap": {
+      "title": "Yearly activity",
+      "empty": "No listening yet over the past 12 months.",
+      "summary": "{{time}} listened over the year — {{plays}} plays",
+      "less": "Less",
+      "more": "More"
     },
+
     "plays_zero": "0 plays",
     "plays_one": "{{count}} listen",
     "plays_other": "{{count}} wiretaps"

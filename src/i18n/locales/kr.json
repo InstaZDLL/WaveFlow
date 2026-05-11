@@ -366,7 +366,14 @@
     "topAlbums": {
       "title": "인기 앨범",
       "empty": "듣고 있는 앨범이 없습니다."
+    },    "heatmap": {
+      "title": "연간 활동",
+      "empty": "지난 12개월 동안 재생 기록이 없습니다.",
+      "summary": "1년 동안 {{time}} 청취 — {{plays}}회 재생",
+      "less": "적음",
+      "more": "많음"
     },
+
     "plays_zero": "0회 재생",
     "plays_one": "{{count}} 들어보세요",
     "plays_other": "{{count}} 도청"

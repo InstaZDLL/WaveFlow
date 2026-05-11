@@ -367,6 +367,13 @@
       "title": "Top albums",
       "empty": "Aucun album écouté."
     },
+    "heatmap": {
+      "title": "Activité de l'année",
+      "empty": "Pas encore d'écoute sur les 12 derniers mois.",
+      "summary": "{{time}} d'écoute sur l'année — {{plays}} écoutes",
+      "less": "Moins",
+      "more": "Plus"
+    },
     "plays_zero": "0 écoute",
     "plays_one": "{{count}} écoute",
     "plays_other": "{{count}} écoutes"

@@ -366,7 +366,14 @@
     "topAlbums": {
       "title": "热门专辑",
       "empty": "尚未收听任何专辑。"
+    },    "heatmap": {
+      "title": "年度活动",
+      "empty": "过去 12 个月暂无收听记录。",
+      "summary": "全年收听 {{time}} — {{plays}} 次播放",
+      "less": "较少",
+      "more": "较多"
     },
+
     "plays_zero": "0 次收听",
     "plays_one": "{{count}} 请听",
     "plays_other": "{{count}} 监听"

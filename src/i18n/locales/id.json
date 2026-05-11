@@ -366,7 +366,14 @@
     "topAlbums": {
       "title": "Album teratas",
       "empty": "Tidak ada album yang diputar."
+    },    "heatmap": {
+      "title": "Aktivitas tahunan",
+      "empty": "Belum ada pemutaran dalam 12 bulan terakhir.",
+      "summary": "{{time}} didengarkan sepanjang tahun — {{plays}} kali diputar",
+      "less": "Lebih sedikit",
+      "more": "Lebih banyak"
     },
+
     "plays_zero": "0 kali diputar",
     "plays_one": "{{count}} main",
     "plays_other": "{{count}} pertunjukan"

@@ -366,7 +366,14 @@
     "topAlbums": {
       "title": "I migliori album",
       "empty": "Nessun album ascoltato."
+    },    "heatmap": {
+      "title": "Attività dell'anno",
+      "empty": "Nessun ascolto negli ultimi 12 mesi.",
+      "summary": "{{time}} ascoltati nell'anno — {{plays}} ascolti",
+      "less": "Meno",
+      "more": "Più"
     },
+
     "plays_zero": "0 ascolti",
     "plays_one": "{{count}} ascolto",
     "plays_other": "{{count}} intercettazioni"

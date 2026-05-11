@@ -366,7 +366,14 @@
     "topAlbums": {
       "title": "Álbumes más vendidos",
       "empty": "No se ha escuchado ningún álbum."
+    },    "heatmap": {
+      "title": "Actividad anual",
+      "empty": "Aún no hay reproducciones en los últimos 12 meses.",
+      "summary": "{{time}} escuchados en el año — {{plays}} reproducciones",
+      "less": "Menos",
+      "more": "Más"
     },
+
     "plays_zero": "0 reproducciones",
     "plays_one": "{{count}} escucha",
     "plays_other": "{{count}} escuchas"

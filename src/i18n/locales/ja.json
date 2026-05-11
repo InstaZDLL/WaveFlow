@@ -366,7 +366,14 @@
     "topAlbums": {
       "title": "人気アルバム",
       "empty": "再生したアルバムはありません。"
+    },    "heatmap": {
+      "title": "年間アクティビティ",
+      "empty": "過去12か月間の再生はまだありません。",
+      "summary": "1年間で{{time}}再生 — {{plays}}回",
+      "less": "少ない",
+      "more": "多い"
     },
+
     "plays_zero": "再生回数 0",
     "plays_one": "{{count}} 聞いて",
     "plays_other": "{{count}} 盗聴"

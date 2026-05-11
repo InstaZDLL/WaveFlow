@@ -29,6 +29,7 @@ import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { RangeSelector } from "./statistics/RangeSelector";
 import { KpiCard } from "./statistics/KpiCard";
 import { BarChart } from "./statistics/BarChart";
+import { Heatmap } from "./statistics/Heatmap";
 import { TopList, TopRow } from "./statistics/TopList";
 import {
   formatCount,
@@ -60,7 +61,26 @@ export function StatisticsView({
   const [topTracks, setTopTracks] = useState<TopTrackRow[]>([]);
   const [topArtists, setTopArtists] = useState<TopArtistRow[]>([]);
   const [topAlbums, setTopAlbums] = useState<TopAlbumRow[]>([]);
+  const [heatmapData, setHeatmapData] = useState<ListeningByDayRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Heatmap always covers the past year regardless of the user's
+  // selected range — that's the whole point of the contributions-style
+  // visual. Fetch once on mount; no need to refetch when `range`
+  // changes.
+  useEffect(() => {
+    let cancelled = false;
+    statsListeningByDay("1y")
+      .then((rows) => {
+        if (!cancelled) setHeatmapData(rows);
+      })
+      .catch((err) => {
+        console.error("[StatisticsView] heatmap load failed", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -187,6 +207,14 @@ export function StatisticsView({
               }
             />
           </div>
+
+          {/* Yearly heatmap (GitHub-contributions style) */}
+          <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-4">
+              {t("statistics.heatmap.title")}
+            </h2>
+            <Heatmap data={heatmapData} />
+          </section>
 
           {/* Activity charts */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

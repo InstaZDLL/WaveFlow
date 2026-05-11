@@ -366,7 +366,14 @@
     "topAlbums": {
       "title": "Top-Alben",
       "empty": "Es wurde kein Album angehört."
+    },    "heatmap": {
+      "title": "Aktivität des Jahres",
+      "empty": "Noch keine Wiedergaben in den letzten 12 Monaten.",
+      "summary": "{{time}} im Jahr gehört — {{plays}} Wiedergaben",
+      "less": "Weniger",
+      "more": "Mehr"
     },
+
     "plays_zero": "0 Aufrufe",
     "plays_one": "{{count}} Zuhören",
     "plays_other": "{{count}} Abhörmaßnahmen"

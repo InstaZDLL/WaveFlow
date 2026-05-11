@@ -59,6 +59,7 @@ Quick playback controls (Play/Pause, Previous, Next, Quitter). Close-to-tray is 
 [`StatisticsView.tsx`](../../src/components/views/StatisticsView.tsx) projects from `play_event`:
 
 - KPIs (total listening time, distinct tracks/artists/albums, completion rate)
+- GitHub-contributions-style yearly heatmap ([`Heatmap.tsx`](../../src/components/views/statistics/Heatmap.tsx)) — 53×7 grid pinned to the past 12 months regardless of the period selector, intensity bucketed in quartiles against the local max so the gradient stays meaningful for both light and heavy listeners. Reuses `stats_listening_by_day` with `range="1y"`; no new backend command.
 - Listening-by-day and listening-by-hour bar charts
 - Top tracks / artists / albums for the selected window (7d / 30d / 90d / 1y / all)
 

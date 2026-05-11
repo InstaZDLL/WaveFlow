@@ -366,7 +366,14 @@
     "topAlbums": {
       "title": "Topalbums",
       "empty": "Er zijn geen albums beluisterd."
+    },    "heatmap": {
+      "title": "Activiteit van het jaar",
+      "empty": "Nog niets beluisterd in de laatste 12 maanden.",
+      "summary": "{{time}} beluisterd over het jaar — {{plays}} keer beluisterd",
+      "less": "Minder",
+      "more": "Meer"
     },
+
     "plays_zero": "0 keer beluisterd",
     "plays_one": "{{count}} luister",
     "plays_other": "{{count}} afluisteren"

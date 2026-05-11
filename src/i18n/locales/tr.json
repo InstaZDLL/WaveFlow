@@ -366,7 +366,14 @@
     "topAlbums": {
       "title": "En çok satan albümler",
       "empty": "Çalınan albüm yok."
+    },    "heatmap": {
+      "title": "Yıllık etkinlik",
+      "empty": "Son 12 ayda henüz dinleme yok.",
+      "summary": "Yıl boyunca {{time}} dinlendi — {{plays}} kez oynandı",
+      "less": "Daha az",
+      "more": "Daha çok"
     },
+
     "plays_zero": "0 kez oynandı",
     "plays_one": "{{count}} oyna",
     "plays_other": "{{count}} oyunlar"
