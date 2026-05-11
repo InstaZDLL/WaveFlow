@@ -124,6 +124,7 @@ struct OwnerResponse {
 
 #[derive(Debug, Deserialize)]
 struct TracksTotalResponse {
+    #[serde(default)]
     total: i64,
 }
 
@@ -603,10 +604,13 @@ async fn parse_spotify_response<T: for<'de> Deserialize<'de>>(
     let friendly = if status == StatusCode::FORBIDDEN {
         format!(
             "Spotify a refusé la requête (403 Forbidden). \
-             Cause probable : depuis novembre 2024, Spotify bloque l'accès \
-             aux playlists éditoriales (Daily Mix, Discover Weekly, playlists \
-             de marque…) et à certains endpoints (Audio Features, recommandations) \
-             pour les apps tierces. Détail Spotify : {message}"
+             Depuis novembre 2024, Spotify bloque pour les apps en mode \
+             Développement : les playlists que tu ne possèdes pas (suivies, \
+             collaboratives, partagées), les playlists éditoriales (Daily Mix, \
+             Discover Weekly), et certains endpoints (Audio Features, \
+             recommandations). Crée ta propre playlist ou demande l'Extended \
+             Quota Mode dans la dashboard Spotify Developer pour contourner. \
+             Détail Spotify : {message}"
         )
     } else {
         format!("Spotify API error {}: {}", status.as_u16(), message)
