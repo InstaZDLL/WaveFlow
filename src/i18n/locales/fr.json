@@ -885,6 +885,10 @@
       "title": "Afficher la boucle A-B",
       "subtitle": "Affiche le bouton de boucle A-B dans la barre de lecture"
     },
+    "showSpotify": {
+      "title": "Afficher l'entrée Spotify",
+      "subtitle": "Affiche le raccourci Spotify dans la barre latérale"
+    },
     "duplicates": {
       "title": "Détecter les doublons",
       "subtitle": "Trouve les fichiers identiques (même blake3) dans ta bibliothèque",
@@ -972,5 +976,14 @@
         "treble_booster": "Boost aigus"
       }
     }
+  },
+  "spotify": {
+    "notConfiguredTitle": "Enregistrer ton app Spotify",
+    "notConfiguredMessage": "Spotify exige que toute app tierce déclare un Client ID gratuit avant la moindre lecture. Crée-le dans le tableau de bord Spotify Developer, puis colle-le dans Paramètres → Intégrations.",
+    "openDashboard": "Ouvrir le tableau de bord Spotify Developer",
+    "openSettings": "Ouvrir les paramètres",
+    "notConnectedTitle": "Spotify n'est pas connecté",
+    "notConnectedMessage": "Ton Client ID est configuré. Connecte ton compte Spotify Premium depuis les Paramètres pour charger tes playlists et lancer la lecture.",
+    "emptyPlaylist": "Aucune piste lisible dans cette playlist (Spotify peut bloquer les fichiers locaux ou les playlists que tu ne possèdes pas)."
   }
 }

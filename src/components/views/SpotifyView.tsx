@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Headphones, Loader2, Play, Search } from "lucide-react";
+import { Headphones, Loader2, Play, Search, ExternalLink } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import type { ViewId } from "../../types";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useSpotify } from "../../hooks/useSpotify";
@@ -113,13 +114,30 @@ export function SpotifyView({ onNavigate }: SpotifyViewProps) {
   if (!spotify.status?.configured) {
     return (
       <EmptySpotifyState
-        title={t("spotify.notConfiguredTitle", "Spotify is not configured")}
+        title={t("spotify.notConfiguredTitle", "Register your Spotify app")}
         message={t(
           "spotify.notConfiguredMessage",
-          "Add your Spotify Client ID in Settings, then connect your Premium account.",
+          "Spotify requires every third-party app to register a free Client ID before any playback. Create one on the Spotify Developer dashboard, then paste it in WaveFlow's Settings -> Integrations.",
         )}
-        action={t("spotify.openSettings", "Open Settings")}
-        onAction={() => onNavigate("settings")}
+        actions={[
+          {
+            label: t(
+              "spotify.openDashboard",
+              "Open Spotify Developer dashboard",
+            ),
+            external: true,
+            onAction: () =>
+              openUrl("https://developer.spotify.com/dashboard").catch(
+                (err) =>
+                  console.error("[SpotifyView] open dashboard failed", err),
+              ),
+            primary: true,
+          },
+          {
+            label: t("spotify.openSettings", "Open Settings"),
+            onAction: () => onNavigate("settings"),
+          },
+        ]}
       />
     );
   }
@@ -130,10 +148,15 @@ export function SpotifyView({ onNavigate }: SpotifyViewProps) {
         title={t("spotify.notConnectedTitle", "Spotify is not connected")}
         message={t(
           "spotify.notConnectedMessage",
-          "Connect Spotify in Settings to load your playlists and play music.",
+          "Your Client ID is set. Sign in to your Spotify Premium account from Settings to load your playlists and play music.",
         )}
-        action={t("spotify.openSettings", "Open Settings")}
-        onAction={() => onNavigate("settings")}
+        actions={[
+          {
+            label: t("spotify.openSettings", "Open Settings"),
+            onAction: () => onNavigate("settings"),
+            primary: true,
+          },
+        ]}
       />
     );
   }
@@ -266,16 +289,25 @@ export function SpotifyView({ onNavigate }: SpotifyViewProps) {
   );
 }
 
+interface EmptyStateAction {
+  label: string;
+  onAction: () => void;
+  /** Visual primacy — emerald background vs neutral border. Defaults
+   *  to false. Use exactly one primary action per state. */
+  primary?: boolean;
+  /** Render the external-link glyph alongside the label. Used for
+   *  actions that open the system browser. */
+  external?: boolean;
+}
+
 function EmptySpotifyState({
   title,
   message,
-  action,
-  onAction,
+  actions,
 }: {
   title: string;
   message: string;
-  action: string;
-  onAction: () => void;
+  actions: EmptyStateAction[];
 }) {
   return (
     <div className="flex h-full items-center justify-center p-8">
@@ -287,13 +319,23 @@ function EmptySpotifyState({
           {title}
         </h1>
         <p className="mb-5 text-sm text-zinc-500">{message}</p>
-        <button
-          type="button"
-          onClick={onAction}
-          className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
-        >
-          {action}
-        </button>
+        <div className="flex flex-col items-center gap-2">
+          {actions.map((action, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={action.onAction}
+              className={
+                action.primary
+                  ? "inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
+                  : "inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+              }
+            >
+              <span>{action.label}</span>
+              {action.external && <ExternalLink size={14} aria-hidden="true" />}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

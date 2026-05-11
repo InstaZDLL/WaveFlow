@@ -321,6 +321,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // clutter the bar for the typical user.
   const [showSleepTimer, setShowSleepTimer] = useState(false);
   const [showAbLoop, setShowAbLoop] = useState(false);
+  // Per-profile toggle for the Spotify sidebar entry. Default ON;
+  // hide it for profiles that never use Spotify.
+  const [showSpotify, setShowSpotify] = useState(true);
   const [isDuplicatesOpen, setIsDuplicatesOpen] = useState(false);
   // Status of the last "Copy logs" click — null when idle, "ok" or
   // "fail" briefly during the toast period before clearing back to null.
@@ -347,6 +350,13 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       .then((v) => {
         if (cancelled) return;
         if (v != null) setShowAbLoop(v === "true" || v === "1");
+      })
+      .catch(() => {});
+    getProfileSetting("ui.show_spotify")
+      .then((v) => {
+        if (cancelled) return;
+        // Missing key → ON (matches Sidebar default).
+        if (v != null) setShowSpotify(v === "true" || v === "1");
       })
       .catch(() => {});
     return () => {
@@ -382,6 +392,21 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         setShowSleepTimer(!next);
       });
   }, [showSleepTimer]);
+
+  const handleToggleShowSpotify = useCallback(() => {
+    const next = !showSpotify;
+    setShowSpotify(next);
+    setProfileSetting("ui.show_spotify", next ? "true" : "false", "bool")
+      .then(() => {
+        window.dispatchEvent(
+          new CustomEvent("waveflow:show-spotify-visibility"),
+        );
+      })
+      .catch((err) => {
+        console.error("[Settings] set show_spotify failed", err);
+        setShowSpotify(!next);
+      });
+  }, [showSpotify]);
 
   const handleToggleShowAbLoop = useCallback(() => {
     const next = !showAbLoop;
@@ -1139,6 +1164,30 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               enabled={showAbLoop}
               onToggle={handleToggleShowAbLoop}
               label={t("settings.showAbLoop.title")}
+            />
+          </div>
+
+          {/* Visibilité de l'entrée Spotify dans la sidebar */}
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4">
+              <Headphones
+                size={20}
+                className="text-zinc-400"
+                aria-hidden="true"
+              />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.showSpotify.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.showSpotify.subtitle")}
+                </div>
+              </div>
+            </div>
+            <ToggleSwitch
+              enabled={showSpotify}
+              onToggle={handleToggleShowSpotify}
+              label={t("settings.showSpotify.title")}
             />
           </div>
         </div>
