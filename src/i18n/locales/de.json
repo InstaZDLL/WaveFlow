@@ -852,6 +852,10 @@
       "title": "Überblendung",
       "subtitle": "Flüssige Übergänge zwischen den Titeln (in Kürze)"
     },
+    "dynamicCrossfade": {
+      "title": "Dynamisches Crossfade",
+      "subtitle": "Passt die Überblendungsdauer an die Tempodifferenz der Titel an (fällt auf festes Crossfade zurück, wenn BPM unbekannt ist)"
+    },
     "normalize": {
       "title": "Lautstärke normalisieren",
       "subtitle": "Die Lautstärke zu lauter Titel reduzieren, um einen einheitlichen Pegel zu erzielen"

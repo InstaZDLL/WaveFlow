@@ -852,6 +852,10 @@
       "title": "交叉溶解",
       "subtitle": "歌曲之间将实现无缝过渡（即将推出）"
     },
+    "dynamicCrossfade": {
+      "title": "动态交叉淡化",
+      "subtitle": "根据曲目间的速度差调整淡化时长（BPM 未知时回退至固定交叉淡化）"
+    },
     "normalize": {
       "title": "标准化音量",
       "subtitle": "将音量过大的片段调低，以保持音量一致"

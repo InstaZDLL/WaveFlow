@@ -33,6 +33,7 @@ import {
   Download,
   Upload,
   Activity,
+  Gauge,
 } from "lucide-react";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
 import type { ViewId } from "../../types";
@@ -83,6 +84,8 @@ import {
 import {
   getSmartCrossfade,
   setSmartCrossfade,
+  getDynamicCrossfade,
+  setDynamicCrossfade,
 } from "../../lib/tauri/smartCrossfade";
 import {
   dlnaGetConfig,
@@ -1052,6 +1055,28 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     });
   }, [smartCrossfade]);
 
+  // Dynamic (tempo-aware) crossfade — scales the upcoming fade by
+  // the BPM gap. Same opt-in pattern; falls back silently to the
+  // static crossfade when either track has no stored BPM.
+  const [dynamicCrossfade, setDynamicCrossfadeState] = useState(false);
+
+  useEffect(() => {
+    getDynamicCrossfade()
+      .then(setDynamicCrossfadeState)
+      .catch((err) =>
+        console.error("[SettingsView] get dynamic crossfade", err),
+      );
+  }, []);
+
+  const handleToggleDynamicCrossfade = useCallback(() => {
+    const next = !dynamicCrossfade;
+    setDynamicCrossfadeState(next);
+    setDynamicCrossfade(next).catch((err) => {
+      console.error("[SettingsView] set dynamic crossfade failed", err);
+      setDynamicCrossfadeState(!next);
+    });
+  }, [dynamicCrossfade]);
+
   // Spectrum visualizer toggle. Persisted backend-side (per-profile)
   // and pushed live to the decoder thread, so flipping it shows /
   // hides the bars on the next emitted frame.
@@ -1388,6 +1413,30 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               enabled={smartCrossfade}
               onToggle={handleToggleSmartCrossfade}
               label={t("settings.smartCrossfade.title")}
+            />
+          </div>
+
+          {/* Dynamic crossfade — tempo-aware fade scaling */}
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4">
+              <Gauge
+                size={20}
+                className="text-zinc-400"
+                aria-hidden="true"
+              />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.dynamicCrossfade.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.dynamicCrossfade.subtitle")}
+                </div>
+              </div>
+            </div>
+            <ToggleSwitch
+              enabled={dynamicCrossfade}
+              onToggle={handleToggleDynamicCrossfade}
+              label={t("settings.dynamicCrossfade.title")}
             />
           </div>
 

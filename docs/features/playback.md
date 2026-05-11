@@ -30,6 +30,16 @@ A separate `SharedPlayback::smart_crossfade_enabled` toggle (default OFF — opt
 - The decoder, at mix-decision time, checks both atomics: if smart crossfade is on AND the prefetched track shares an album, it skips the mix branch and falls through to the existing gapless EOF swap (which already handles a sample-accurate hand-off when `pending_next.is_some()`).
 - The hint is naturally one-shot: each new prefetch overwrites it, and `LoadAndPlay` paths (manual user clicks) don't go through the mix decision at all, so a stale value can't bleed into an unrelated transition.
 
+### Dynamic crossfade (tempo-aware)
+
+A separate `SharedPlayback::dynamic_crossfade_enabled` toggle (default OFF, persisted in `profile_setting['audio.dynamic_crossfade']`) scales each upcoming fade by the BPM gap between the current and next tracks. Same one-shot hint pattern as smart crossfade:
+
+- The analytics `PrefetchNext` handler reads `track_analysis.bpm` for both tracks. If either is missing or zero, no override is written and the decoder falls back to the user's static `crossfade_ms`.
+- When both BPMs are known, the worker scales `crossfade_ms` by a tier factor (≤8 BPM gap → 100%, ≤20 → 75%, ≤40 → 50%, otherwise 30%) with a 1500 ms floor (clamped against the base when the user picked a shorter window). The result lands in `SharedPlayback::pending_next_crossfade_ms` right before `SetNextTrack`.
+- The decoder reads the override as the effective `cf_ms` when non-zero and clears it the instant the mix actually starts so the next prefetch starts from a clean slate. Toggling dynamic OFF also clears any in-flight override so the next transition snaps back to the static window immediately.
+
+Smart and dynamic crossfade compose: the album skip wins (it's a hard "no fade" decision); when the album differs, the dynamic scaling applies.
+
 ReplayGain is applied **per-stream before the mix** so the two tracks can have very different gains without the louder one swamping the fade.
 
 ## Seek

@@ -852,6 +852,10 @@
       "title": "Menyambungkan lagu secara bertahap",
       "subtitle": "Transisi yang mulus antar lagu (segera hadir)"
     },
+    "dynamicCrossfade": {
+      "title": "Crossfade dinamis",
+      "subtitle": "Menyesuaikan durasi fade dengan selisih tempo antar lagu (kembali ke crossfade tetap saat BPM tidak diketahui)"
+    },
     "normalize": {
       "title": "Atur volume",
       "subtitle": "Kurangi volume pada lagu-lagu yang keras agar tingkat kenyamanan mendengarkan tetap konsisten"

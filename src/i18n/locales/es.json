@@ -852,6 +852,10 @@
       "title": "Fundido encadenado",
       "subtitle": "Transición fluida entre las canciones (próximamente)"
     },
+    "dynamicCrossfade": {
+      "title": "Fundido dinámico",
+      "subtitle": "Ajusta la duración del fundido según la diferencia de tempo entre los temas (vuelve al fundido fijo si se desconoce el BPM)"
+    },
     "normalize": {
       "title": "Ajustar el volumen",
       "subtitle": "Reducir el volumen de los fragmentos demasiado altos para conseguir un nivel homogéneo"

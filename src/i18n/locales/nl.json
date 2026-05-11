@@ -852,6 +852,10 @@
       "title": "Overgang",
       "subtitle": "Vloeiende overgangen tussen nummers (binnenkort)"
     },
+    "dynamicCrossfade": {
+      "title": "Dynamische crossfade",
+      "subtitle": "Past de fade-duur aan op het tempoverschil tussen tracks (valt terug op de vaste crossfade als BPM onbekend is)"
+    },
     "normalize": {
       "title": "Het volume op een vast niveau instellen",
       "subtitle": "Het volume van te luide nummers verlagen om een gelijkmatig geluidsniveau te verkrijgen"

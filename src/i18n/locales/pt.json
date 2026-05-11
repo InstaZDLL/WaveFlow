@@ -852,6 +852,10 @@
       "title": "Transição em cadeia",
       "subtitle": "Transição suave entre as faixas (em breve)"
     },
+    "dynamicCrossfade": {
+      "title": "Crossfade dinâmico",
+      "subtitle": "Ajusta a duração da transição ao desnível de tempo entre faixas (volta ao crossfade fixo se o BPM for desconhecido)"
+    },
     "normalize": {
       "title": "Normalizar o volume",
       "subtitle": "Reduzir o volume das faixas demasiado altas para obter um nível uniforme"

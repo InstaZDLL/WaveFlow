@@ -852,6 +852,10 @@
       "title": "交叉淡入淡出",
       "subtitle": "歌曲間的無縫銜接（即將推出）"
     },
+    "dynamicCrossfade": {
+      "title": "動態交叉淡化",
+      "subtitle": "依曲目間的速度差調整淡化時長（BPM 未知時回退至固定交叉淡化）"
+    },
     "normalize": {
       "title": "將音量調整至標準值",
       "subtitle": "將音量過大的片段調低，以保持整體音量一致"

@@ -460,6 +460,18 @@ pub async fn player_get_state(
                     .smart_crossfade_enabled
                     .store(v == "true", std::sync::atomic::Ordering::Release);
             }
+            // Dynamic (tempo-aware) crossfade — same opt-in pattern.
+            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
+                "SELECT value FROM profile_setting WHERE key = 'audio.dynamic_crossfade'",
+            )
+            .fetch_optional(&pool)
+            .await
+            {
+                engine
+                    .shared()
+                    .dynamic_crossfade_enabled
+                    .store(v == "true", std::sync::atomic::Ordering::Release);
+            }
             // Visualizer toggle. Default OFF — the FFT cost is tiny
             // but the cpal-side telemetry isn't free, and most users
             // won't have the panel open.
@@ -930,6 +942,56 @@ pub async fn player_get_smart_crossfade(
     Ok(engine
         .shared()
         .smart_crossfade_enabled
+        .load(std::sync::atomic::Ordering::Relaxed))
+}
+
+/// Toggle dynamic (tempo-aware) crossfade. When ON, the analytics
+/// worker scales each upcoming fade by the BPM gap between the
+/// current and next tracks: similar tempos keep the full window
+/// (clean blend), large gaps shrink it so the rhythms don't clash.
+/// Falls through to the user's static `crossfade_ms` when either
+/// track has no stored BPM. Default OFF — opt-in via Settings.
+/// Persisted in `profile_setting['audio.dynamic_crossfade']`.
+#[tauri::command]
+pub async fn player_set_dynamic_crossfade(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    engine
+        .shared()
+        .dynamic_crossfade_enabled
+        .store(enabled, std::sync::atomic::Ordering::Release);
+    if !enabled {
+        // Drop any in-flight override so the next transition snaps
+        // back to the static crossfade immediately.
+        engine
+            .shared()
+            .pending_next_crossfade_ms
+            .store(0, std::sync::atomic::Ordering::Release);
+    }
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.dynamic_crossfade', ?, 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(if enabled { "true" } else { "false" })
+        .bind(now)
+        .execute(&pool)
+        .await;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn player_get_dynamic_crossfade(
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+) -> AppResult<bool> {
+    Ok(engine
+        .shared()
+        .dynamic_crossfade_enabled
         .load(std::sync::atomic::Ordering::Relaxed))
 }
 

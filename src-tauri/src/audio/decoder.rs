@@ -479,7 +479,17 @@ fn play_track(
         // ("sleep timer EOT still plays the next song").
         let sleep_armed = shared.pause_after_current_track.load(Ordering::Relaxed);
         if !mix_active && !sleep_armed && stream.duration_ms > 0 {
-            let cf_ms = shared.crossfade_ms.load(Ordering::Relaxed) as u64;
+            // Dynamic crossfade override (set by analytics PrefetchNext
+            // when both this and the next track have a known BPM).
+            // Falls back to the static `crossfade_ms` when 0.
+            let override_ms = shared
+                .pending_next_crossfade_ms
+                .load(Ordering::Relaxed) as u64;
+            let cf_ms = if override_ms > 0 {
+                override_ms
+            } else {
+                shared.crossfade_ms.load(Ordering::Relaxed) as u64
+            };
             if cf_ms > 0 {
                 // Effective fade window — never longer than half the
                 // track, so a 30 s clip with crossfade=12 s doesn't
@@ -509,6 +519,11 @@ fn play_track(
                     mix_active = true;
                     mix_frames_written = 0;
                     mix_frames_total = (effective_ms * dst_sample_rate as u64) / 1000;
+                    // One-shot — consume the dynamic override so the
+                    // next prefetch starts from a clean slate.
+                    shared
+                        .pending_next_crossfade_ms
+                        .store(0, Ordering::Release);
                 }
             } else if shared.gapless_enabled.load(Ordering::Relaxed) {
                 // Gapless mode: prefetch the next track ~500 ms before

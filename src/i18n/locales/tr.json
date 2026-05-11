@@ -852,6 +852,10 @@
       "title": "Şarkıları çapraz geçişle birleştir",
       "subtitle": "Parçalar arasında yumuşak geçiş (yakında)"
     },
+    "dynamicCrossfade": {
+      "title": "Dinamik geçiş",
+      "subtitle": "Geçiş süresini parçalar arasındaki tempo farkına göre ayarlar (BPM bilinmiyorsa sabit geçişe geri döner)"
+    },
     "normalize": {
       "title": "Ses seviyesini normalleştir",
       "subtitle": "Ses seviyesi yüksek parçalarda sesi kısarak dinleme ses seviyesini sabit tutun"

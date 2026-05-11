@@ -852,6 +852,10 @@
       "title": "Dissolvenza in sequenza",
       "subtitle": "Transizione fluida tra i brani (presto)"
     },
+    "dynamicCrossfade": {
+      "title": "Dissolvenza dinamica",
+      "subtitle": "Adatta la durata della dissolvenza al divario di tempo tra i brani (torna alla dissolvenza fissa se il BPM è sconosciuto)"
+    },
     "normalize": {
       "title": "Regolare il volume",
       "subtitle": "Ridurre il volume dei brani troppo alti per ottenere un livello uniforme"

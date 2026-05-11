@@ -232,6 +232,68 @@ async fn handle_message(
                     .pending_next_same_album
                     .store(same_album, Ordering::Release);
 
+                // Dynamic crossfade hint: scale the fade by the BPM
+                // gap so similar-tempo transitions get the full window
+                // (clean blend) while large gaps snap quickly (no time
+                // for the rhythms to clash). When BPM is unknown on
+                // either side, we leave the override at 0 so the
+                // decoder falls back to the user-configured static
+                // crossfade. Cleared right before SetNextTrack to
+                // avoid bleeding into a transition where dynamic was
+                // toggled off mid-flight.
+                let mut override_ms: u32 = 0;
+                if shared
+                    .dynamic_crossfade_enabled
+                    .load(Ordering::Relaxed)
+                    && current_id > 0
+                {
+                    let base_ms = shared.crossfade_ms.load(Ordering::Relaxed);
+                    if base_ms > 0 {
+                        let curr_bpm: Option<f64> = sqlx::query_scalar(
+                            "SELECT bpm FROM track_analysis WHERE track_id = ?",
+                        )
+                        .bind(current_id)
+                        .fetch_optional(&pool)
+                        .await
+                        .ok()
+                        .flatten();
+                        let next_bpm: Option<f64> = sqlx::query_scalar(
+                            "SELECT bpm FROM track_analysis WHERE track_id = ?",
+                        )
+                        .bind(track.id)
+                        .fetch_optional(&pool)
+                        .await
+                        .ok()
+                        .flatten();
+                        if let (Some(a), Some(b)) = (curr_bpm, next_bpm) {
+                            if a > 0.0 && b > 0.0 {
+                                let diff = (a - b).abs();
+                                // Tiers chosen by ear — fade length
+                                // scales with how much the rhythms
+                                // would fight during the overlap. The
+                                // 1500 ms floor keeps it musical (not
+                                // a perceived cut) when the user has
+                                // a long base crossfade configured.
+                                let factor = if diff <= 8.0 {
+                                    1.0
+                                } else if diff <= 20.0 {
+                                    0.75
+                                } else if diff <= 40.0 {
+                                    0.5
+                                } else {
+                                    0.3
+                                };
+                                let scaled = (base_ms as f64 * factor).round() as u32;
+                                override_ms =
+                                    scaled.max(1500.min(base_ms));
+                            }
+                        }
+                    }
+                }
+                shared
+                    .pending_next_crossfade_ms
+                    .store(override_ms, Ordering::Release);
+
                 let _ = cmd_tx.send(AudioCmd::SetNextTrack {
                     path: track.as_path(),
                     track_id: track.id,

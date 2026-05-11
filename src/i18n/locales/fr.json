@@ -1009,6 +1009,10 @@
       "title": "Fondu intelligent",
       "subtitle": "Désactive automatiquement le fondu entre deux morceaux d'un même album (idéal pour les albums concept et lives)"
     },
+    "dynamicCrossfade": {
+      "title": "Fondu dynamique",
+      "subtitle": "Adapte automatiquement la durée du fondu selon l'écart de tempo entre les deux morceaux (revient au fondu fixe si le BPM est inconnu)"
+    },
     "gapless": {
       "title": "Lecture sans pause",
       "subtitle": "Enchaîne les morceaux suivants sans micro-silence (idéal pour les albums live ou concept)"

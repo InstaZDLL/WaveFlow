@@ -146,6 +146,20 @@ pub struct SharedPlayback {
     /// pending_next swap) so a stale value can't bleed into the
     /// transition after.
     pub pending_next_same_album: AtomicBool,
+    /// When `true` AND a crossfade window is configured, the analytics
+    /// worker scales the upcoming fade duration by the tempo gap
+    /// between the current and next tracks. Similar BPM → keep the
+    /// full window (mixes blend cleanly); large BPM gap → shrink the
+    /// window so the transition snaps before the rhythms can clash.
+    /// Persisted in `profile_setting['audio.dynamic_crossfade']`,
+    /// default OFF — opt-in like smart crossfade.
+    pub dynamic_crossfade_enabled: AtomicBool,
+    /// One-shot crossfade override in ms, set by the analytics worker
+    /// right before `SetNextTrack` when dynamic crossfade is armed.
+    /// `0` = no override (decoder falls back to `crossfade_ms`).
+    /// Cleared by the decoder the instant the mix actually starts so
+    /// it can't bleed into the transition after.
+    pub pending_next_crossfade_ms: AtomicU32,
 }
 
 impl SharedPlayback {
@@ -173,6 +187,8 @@ impl SharedPlayback {
             visualizer_enabled: AtomicBool::new(false),
             smart_crossfade_enabled: AtomicBool::new(false),
             pending_next_same_album: AtomicBool::new(false),
+            dynamic_crossfade_enabled: AtomicBool::new(false),
+            pending_next_crossfade_ms: AtomicU32::new(0),
         }
     }
 
