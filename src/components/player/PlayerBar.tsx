@@ -247,25 +247,31 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
             <Mic2 size={20} />
           </button>
 
-          {/* Mini-player available in both local and Spotify modes.
-              In Spotify mode, the mini doesn't attach the Web Playback
-              SDK (it can only bind to one webview) — it mirrors the
-              main window's state via the `spotify:state` Tauri event
-              and routes its controls through the Connect API. */}
-          <button
-            onClick={() => {
-              import("../../lib/miniPlayer").then((m) =>
-                m.openMiniPlayer().catch((err) => {
-                  console.error("[PlayerBar] open mini-player failed", err);
-                }),
-              );
-            }}
-            aria-label={t("playerBar.miniPlayer")}
-            title={t("playerBar.miniPlayer")}
-            className="p-2 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
-          >
-            <PictureInPicture2 size={20} />
-          </button>
+          {/* Mini-player hidden in Spotify mode. The Web Playback SDK
+              only binds to a single webview, and the cross-window
+              sync attempts (3eb5000, request-state replay) never made
+              the mini display the right track reliably — it kept
+              rendering local PlayerContext state alongside a
+              partially-synced Spotify snapshot. Disabling the entry
+              point is the simple, honest fix until we ship a proper
+              provider-aware MiniPlayer or Spotify allows two SDK
+              devices on the same account. */}
+          {!isSpotify && (
+            <button
+              onClick={() => {
+                import("../../lib/miniPlayer").then((m) =>
+                  m.openMiniPlayer().catch((err) => {
+                    console.error("[PlayerBar] open mini-player failed", err);
+                  }),
+                );
+              }}
+              aria-label={t("playerBar.miniPlayer")}
+              title={t("playerBar.miniPlayer")}
+              className="p-2 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
+            >
+              <PictureInPicture2 size={20} />
+            </button>
+          )}
 
           <button
             onClick={toggleQueue}
