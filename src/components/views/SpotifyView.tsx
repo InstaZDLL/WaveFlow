@@ -249,7 +249,7 @@ export function SpotifyView({ onNavigate }: SpotifyViewProps) {
               <div className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
                 {t(
                   "spotify.emptyPlaylist",
-                  "No tracks available in this playlist (Spotify may not expose them — local files or unavailable items get filtered out).",
+                  "No tracks available in this playlist (Spotify may not expose them, local files or unavailable items get filtered out).",
                 )}
               </div>
             ) : (
