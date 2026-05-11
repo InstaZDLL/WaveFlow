@@ -323,7 +323,7 @@ export function HistoryView({
             className="py-20"
           />
         ) : (
-          <div className="space-y-6">
+          <div>
             {dayGroups.map((group) => (
               <DayGroup
                 key={group.key}
