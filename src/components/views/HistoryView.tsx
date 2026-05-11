@@ -445,7 +445,11 @@ function DayGroup({
   const { t } = useTranslation();
   return (
     <section>
-      <div className="sticky top-0 z-10 bg-white/85 dark:bg-surface-dark/85 backdrop-blur py-2 mb-2">
+      {/* Opaque background — the section list scrolls under the
+          sticky header, so any transparency makes the row text
+          bleed through. Border-bottom delineates the header from
+          the first row of the day cleanly. */}
+      <div className="sticky top-0 z-20 bg-white dark:bg-surface-dark py-2 mb-2 border-b border-zinc-100 dark:border-zinc-800">
         <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
           {dayLabel(group.ts, locale, t)}
         </h2>
