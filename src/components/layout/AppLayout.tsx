@@ -32,6 +32,7 @@ import { ArtistDetailView } from "../views/ArtistDetailView";
 import { ProfileSelectorModal } from "../common/ProfileSelectorModal";
 import { LastfmReauthBanner } from "../common/LastfmReauthBanner";
 import { UpdateBanner } from "../common/UpdateBanner";
+import { ScanProgressToast } from "../common/ScanProgressToast";
 import { OnboardingModal } from "../common/OnboardingModal";
 import { PageScrollContext } from "../../contexts/PageScrollContext";
 
@@ -349,6 +350,7 @@ export function AppLayout() {
 
       <LastfmReauthBanner onGoToSettings={() => setActiveView("settings")} />
       <UpdateBanner />
+      <ScanProgressToast />
       {showOnboarding && <OnboardingModal onSkip={dismissOnboarding} />}
     </div>
   );

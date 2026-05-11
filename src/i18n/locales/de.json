@@ -1018,4 +1018,11 @@
       }
     }
   }
+,
+  "scanProgress": {
+    "runningTitle": "Bibliothek wird analysiert…",
+    "runningSubtitle": "{{current}} / {{total}} Dateien",
+    "doneTitle": "Analyse abgeschlossen",
+    "doneSubtitle": "{{added}} hinzugefügt · {{updated}} aktualisiert · {{skipped}} übersprungen"
+  }
 }

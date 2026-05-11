@@ -1018,4 +1018,11 @@
       }
     }
   }
+,
+  "scanProgress": {
+    "runningTitle": "Memindai pustaka…",
+    "runningSubtitle": "{{current}} / {{total}} berkas",
+    "doneTitle": "Pemindaian selesai",
+    "doneSubtitle": "{{added}} ditambahkan · {{updated}} diperbarui · {{skipped}} dilewati"
+  }
 }

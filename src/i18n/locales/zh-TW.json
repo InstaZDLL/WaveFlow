@@ -1018,4 +1018,11 @@
       }
     }
   }
+,
+  "scanProgress": {
+    "runningTitle": "正在掃描音樂庫…",
+    "runningSubtitle": "{{current}} / {{total}} 個檔案",
+    "doneTitle": "掃描完成",
+    "doneSubtitle": "已新增 {{added}} · 已更新 {{updated}} · 已略過 {{skipped}}"
+  }
 }

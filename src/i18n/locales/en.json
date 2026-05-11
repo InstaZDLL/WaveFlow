@@ -1090,4 +1090,11 @@
     "notConnectedMessage": "Your Client ID is set. Sign in to your Spotify Premium account from Settings to load your playlists and play music.",
     "emptyPlaylist": "No tracks available in this playlist (Spotify may not expose local files or playlists you don't own)."
   }
+,
+  "scanProgress": {
+    "runningTitle": "Scanning library…",
+    "runningSubtitle": "{{current}} / {{total}} files",
+    "doneTitle": "Scan complete",
+    "doneSubtitle": "{{added}} added · {{updated}} updated · {{skipped}} skipped"
+  }
 }

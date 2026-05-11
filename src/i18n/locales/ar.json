@@ -1018,4 +1018,11 @@
       }
     }
   }
+,
+  "scanProgress": {
+    "runningTitle": "جارٍ تحليل المكتبة…",
+    "runningSubtitle": "{{current}} / {{total}} ملف",
+    "doneTitle": "اكتمل التحليل",
+    "doneSubtitle": "تمت إضافة {{added}} · تحديث {{updated}} · تخطّي {{skipped}}"
+  }
 }

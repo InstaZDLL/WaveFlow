@@ -1018,4 +1018,11 @@
       }
     }
   }
+,
+  "scanProgress": {
+    "runningTitle": "Bibliotheek scannen…",
+    "runningSubtitle": "{{current}} / {{total}} bestanden",
+    "doneTitle": "Scan voltooid",
+    "doneSubtitle": "{{added}} toegevoegd · {{updated}} bijgewerkt · {{skipped}} overgeslagen"
+  }
 }

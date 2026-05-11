@@ -1018,4 +1018,11 @@
       }
     }
   }
+,
+  "scanProgress": {
+    "runningTitle": "ライブラリをスキャン中…",
+    "runningSubtitle": "{{current}} / {{total}} ファイル",
+    "doneTitle": "スキャン完了",
+    "doneSubtitle": "{{added}} 追加 · {{updated}} 更新 · {{skipped}} スキップ"
+  }
 }

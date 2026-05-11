@@ -1018,4 +1018,11 @@
       }
     }
   }
+,
+  "scanProgress": {
+    "runningTitle": "Scansione in corso…",
+    "runningSubtitle": "{{current}} / {{total}} file",
+    "doneTitle": "Scansione completata",
+    "doneSubtitle": "{{added}} aggiunti · {{updated}} aggiornati · {{skipped}} ignorati"
+  }
 }

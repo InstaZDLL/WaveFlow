@@ -1018,4 +1018,11 @@
       }
     }
   }
+,
+  "scanProgress": {
+    "runningTitle": "正在扫描音乐库…",
+    "runningSubtitle": "{{current}} / {{total}} 个文件",
+    "doneTitle": "扫描完成",
+    "doneSubtitle": "已添加 {{added}} · 已更新 {{updated}} · 已跳过 {{skipped}}"
+  }
 }

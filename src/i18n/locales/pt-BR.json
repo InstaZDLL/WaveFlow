@@ -1018,4 +1018,11 @@
       }
     }
   }
+,
+  "scanProgress": {
+    "runningTitle": "Analisando biblioteca…",
+    "runningSubtitle": "{{current}} / {{total}} arquivos",
+    "doneTitle": "Análise concluída",
+    "doneSubtitle": "{{added}} adicionados · {{updated}} atualizados · {{skipped}} ignorados"
+  }
 }

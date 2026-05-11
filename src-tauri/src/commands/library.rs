@@ -264,7 +264,7 @@ pub async fn rescan_library(
     };
 
     for folder_id in folder_ids {
-        match scan_folder_inner(&pool, &artwork_dir, folder_id).await {
+        match scan_folder_inner(&pool, &artwork_dir, folder_id, Some(&app)).await {
             Ok(summary) => {
                 total.folders += 1;
                 let ScanSummary {
@@ -461,7 +461,7 @@ pub async fn import_paths(
             res.last_insert_rowid()
         };
 
-        match crate::commands::scan::scan_folder_inner(&pool, &artwork_dir, folder_id).await {
+        match crate::commands::scan::scan_folder_inner(&pool, &artwork_dir, folder_id, Some(&app)).await {
             Ok(summary) => {
                 total.scanned += summary.scanned;
                 total.added += summary.added;

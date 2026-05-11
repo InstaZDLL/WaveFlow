@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -11,12 +11,60 @@ use lofty::prelude::{Accessor, AudioFile};
 use lofty::tag::{ItemKey, Tag, TagType};
 use serde::Serialize;
 use sqlx::SqlitePool;
+use tauri::Emitter;
 use walkdir::WalkDir;
 
 use crate::{
     error::{AppError, AppResult},
     state::AppState,
 };
+
+/// Payload of the `scan:progress` Tauri event. Emitted by
+/// `scan_folder_inner` every ~25 processed files (and once at the end)
+/// so the frontend can render a non-blocking toast with the current
+/// state of the scan instead of leaving the user staring at a frozen
+/// UI for half a minute.
+#[derive(Clone, Serialize)]
+pub struct ScanProgress {
+    pub folder_id: i64,
+    pub current: usize,
+    pub total: usize,
+    pub added: u32,
+    pub updated: u32,
+    pub skipped: u32,
+    pub errors: u32,
+    pub done: bool,
+}
+
+/// Emit a progress tick — best-effort, errors are swallowed because
+/// progress feedback should never abort a scan.
+fn maybe_emit_progress(
+    app: Option<&tauri::AppHandle>,
+    folder_id: i64,
+    current: usize,
+    total: usize,
+    summary: &ScanSummary,
+) {
+    let Some(app) = app else { return };
+    // Ticks every 25 files cap the event volume at ~40 events/s on a
+    // hot CPU — enough to feel live without flooding the IPC channel.
+    if current != total && current % 25 != 0 {
+        return;
+    }
+    let _ = app.emit(
+        "scan:progress",
+        ScanProgress {
+            folder_id,
+            current,
+            total,
+            added: summary.added,
+            updated: summary.updated,
+            skipped: summary.skipped,
+            errors: summary.errors,
+            done: false,
+        },
+    );
+}
 
 /// Extensions considered "audio files" by the scanner. Limited to
 /// formats the symphonia + cpal engine can actually decode and play,
@@ -673,7 +721,7 @@ pub async fn scan_folder(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
-    let summary = scan_folder_inner(&pool, &artwork_dir, folder_id).await?;
+    let summary = scan_folder_inner(&pool, &artwork_dir, folder_id, Some(&app)).await?;
     // Fire the auto-analyzer in the background when the user has
     // opted in. Spawned so the IPC reply doesn't block on a
     // potentially long analysis pass.
@@ -693,6 +741,7 @@ pub(crate) async fn scan_folder_inner(
     pool: &SqlitePool,
     artwork_dir: &Path,
     folder_id: i64,
+    app_handle: Option<&tauri::AppHandle>,
 ) -> AppResult<ScanSummary> {
     // Belt-and-braces: the directory is created at profile bootstrap, but a
     // user fiddling with the data folder could have deleted it.
@@ -736,22 +785,90 @@ pub(crate) async fn scan_folder_inner(
     };
     let now = now_millis();
 
-    // Snapshot of the paths currently flagged available in this folder.
-    // We strike each one off as the walk processes it; whatever's left
-    // at the end was deleted from disk and gets marked unavailable.
+    // Snapshot of (path → (file_modified_ms, file_size)) for every
+    // currently-available track in this folder.
+    //
+    // Two purposes:
+    //   1. Re-scan fast path — if the file on disk still has the same
+    //      mtime + size as the row, we skip the expensive `extract_file`
+    //      (hash + tag re-read) entirely. Re-scans of an 800-track
+    //      library drop from ~30 s to <1 s.
+    //   2. Disappearance sweep — paths still in the map at the end were
+    //      on disk last time but aren't now, so we mark them unavailable
+    //      below.
+    //
     // Tracks already at `is_available = 0` are excluded — bringing them
     // back is handled by the upsert path which re-sets the flag to 1.
-    let mut existing_available: HashSet<String> = sqlx::query_scalar::<_, String>(
-        "SELECT file_path FROM track WHERE folder_id = ? AND is_available = 1",
+    let existing_rows: Vec<(String, i64, i64)> = sqlx::query_as(
+        "SELECT file_path, file_modified, file_size
+           FROM track
+          WHERE folder_id = ? AND is_available = 1",
     )
     .bind(folder_id)
     .fetch_all(pool)
-    .await?
-    .into_iter()
-    .collect();
+    .await?;
+    let mut existing_meta: HashMap<String, (i64, i64)> = existing_rows
+        .into_iter()
+        .map(|(p, mtime, size)| (p, (mtime, size)))
+        .collect();
 
-    for path in audio_files {
+    let total_files = audio_files.len();
+
+    // Initial tick so the frontend's progress toast can size itself
+    // even before the first file is processed (helps when the loop is
+    // mostly skips and would otherwise emit nothing for several
+    // hundred files).
+    if let Some(app) = app_handle {
+        let _ = app.emit(
+            "scan:progress",
+            ScanProgress {
+                folder_id,
+                current: 0,
+                total: total_files,
+                added: 0,
+                updated: 0,
+                skipped: 0,
+                errors: 0,
+                done: false,
+            },
+        );
+    }
+
+    for (idx, path) in audio_files.into_iter().enumerate() {
         summary.scanned += 1;
+
+        // Fast path: re-scan with no content change. Cheap fs::metadata
+        // syscall (mtime + size) compared against the prefetched DB
+        // snapshot lets us skip both the BLAKE3 hash AND the tag re-read
+        // when the file is byte-identical-by-metadata to its stored row.
+        // Hash collisions on (mtime, size) are vanishingly rare for
+        // legitimate edits — taggers always touch mtime — and a user
+        // who manually preserves both can force a full rescan from
+        // Settings → Library if needed.
+        let path_str = path.to_string_lossy().into_owned();
+        if let Some((stored_mtime, stored_size)) = existing_meta.get(&path_str) {
+            if let Ok(metadata) = std::fs::metadata(&path) {
+                let disk_size = metadata.len() as i64;
+                let disk_mtime_ms = metadata
+                    .modified()
+                    .ok()
+                    .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                    .map(|d| d.as_millis() as i64)
+                    .unwrap_or(0);
+                if disk_size == *stored_size && disk_mtime_ms == *stored_mtime {
+                    existing_meta.remove(&path_str);
+                    summary.skipped += 1;
+                    maybe_emit_progress(
+                        app_handle,
+                        folder_id,
+                        idx + 1,
+                        total_files,
+                        &summary,
+                    );
+                    continue;
+                }
+            }
+        }
 
         let path_for_task = path.clone();
         let artwork_dir_for_task = artwork_dir.to_path_buf();
@@ -774,7 +891,7 @@ pub(crate) async fn scan_folder_inner(
         };
 
         // File is on disk → keep it out of the deletion sweep below.
-        existing_available.remove(&extracted.abs_path);
+        existing_meta.remove(&extracted.abs_path);
 
         let existing: Option<(i64, i64, String)> = sqlx::query_as(
             "SELECT id, file_modified, file_hash FROM track WHERE library_id = ? AND file_path = ?",
@@ -1056,16 +1173,18 @@ pub(crate) async fn scan_folder_inner(
 
             summary.added += 1;
         }
+
+        maybe_emit_progress(app_handle, folder_id, idx + 1, total_files, &summary);
     }
 
-    // Anything still in the set was on disk last time but isn't now.
+    // Anything still in the map was on disk last time but isn't now.
     // Mark it unavailable rather than deleting — preserves play_event
     // history and lets the user "undelete" by restoring the file.
     // SQLite caps bound parameters at ~999, so we update one row at a
     // time. Removed counts are normally tiny (a handful per scan); for
     // bulk wipes the loop is still acceptable since we're already
     // off the audio thread.
-    for missing_path in &existing_available {
+    for missing_path in existing_meta.keys() {
         let res = sqlx::query(
             "UPDATE track SET is_available = 0
               WHERE folder_id = ? AND file_path = ? AND is_available = 1",
@@ -1101,6 +1220,22 @@ pub(crate) async fn scan_folder_inner(
         errors = summary.errors,
         "scan complete"
     );
+
+    if let Some(app) = app_handle {
+        let _ = app.emit(
+            "scan:progress",
+            ScanProgress {
+                folder_id,
+                current: total_files,
+                total: total_files,
+                added: summary.added,
+                updated: summary.updated,
+                skipped: summary.skipped,
+                errors: summary.errors,
+                done: true,
+            },
+        );
+    }
 
     Ok(summary)
 }

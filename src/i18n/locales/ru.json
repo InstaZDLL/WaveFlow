@@ -1018,4 +1018,11 @@
       }
     }
   }
+,
+  "scanProgress": {
+    "runningTitle": "Сканирование библиотеки…",
+    "runningSubtitle": "{{current}} / {{total}} файлов",
+    "doneTitle": "Сканирование завершено",
+    "doneSubtitle": "{{added}} добавлено · {{updated}} обновлено · {{skipped}} пропущено"
+  }
 }

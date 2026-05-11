@@ -1018,4 +1018,11 @@
       }
     }
   }
+,
+  "scanProgress": {
+    "runningTitle": "라이브러리 스캔 중…",
+    "runningSubtitle": "{{current}} / {{total}}개 파일",
+    "doneTitle": "스캔 완료",
+    "doneSubtitle": "{{added}}개 추가 · {{updated}}개 업데이트 · {{skipped}}개 건너뜀"
+  }
 }
