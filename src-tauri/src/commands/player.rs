@@ -447,8 +447,8 @@ pub async fn player_get_state(
                     engine.shared().eq.set_all_bands_db(&bands);
                 }
             }
-            // Smart crossfade default ON — only flip OFF if the user
-            // has explicitly disabled it.
+            // Smart crossfade default OFF — only flip ON if the user
+            // has explicitly enabled it.
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.smart_crossfade'",
             )
@@ -893,11 +893,11 @@ pub async fn player_set_mono(
     Ok(())
 }
 
-/// Toggle smart crossfade. When ON (default), same-album
-/// transitions skip the fade and fall through to the gapless
-/// hand-off so concept albums / live records aren't smeared by
-/// an equal-power mix. Persisted in
-/// `profile_setting['audio.smart_crossfade']`.
+/// Toggle smart crossfade. When ON, same-album transitions skip
+/// the fade and fall through to the gapless hand-off so concept
+/// albums / live records aren't smeared by an equal-power mix.
+/// Default OFF — it's an opinionated behaviour change so users
+/// opt in. Persisted in `profile_setting['audio.smart_crossfade']`.
 #[tauri::command]
 pub async fn player_set_smart_crossfade(
     state: tauri::State<'_, AppState>,

@@ -136,7 +136,8 @@ pub struct SharedPlayback {
     /// decision is computed by the analytics worker on every
     /// PrefetchNext and stashed in `pending_next_same_album` for the
     /// decoder to consult at mix-decision time. Persisted in
-    /// `profile_setting['audio.smart_crossfade']`, default ON.
+    /// `profile_setting['audio.smart_crossfade']`, default OFF —
+    /// it's an opinionated behaviour change so users opt in.
     pub smart_crossfade_enabled: AtomicBool,
     /// One-shot hint set by the analytics worker right before
     /// dispatching `SetNextTrack`: `true` when the upcoming track
@@ -170,7 +171,7 @@ impl SharedPlayback {
             loop_a_ms: AtomicU64::new(0),
             loop_b_ms: AtomicU64::new(0),
             visualizer_enabled: AtomicBool::new(false),
-            smart_crossfade_enabled: AtomicBool::new(true),
+            smart_crossfade_enabled: AtomicBool::new(false),
             pending_next_same_album: AtomicBool::new(false),
         }
     }

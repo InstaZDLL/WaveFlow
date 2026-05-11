@@ -927,8 +927,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
 
   // Smart crossfade — skip the fade between two tracks of the same
   // album so concept records / live sets hand off naturally. Persisted
-  // backend-side; default ON.
-  const [smartCrossfade, setSmartCrossfadeState] = useState(true);
+  // backend-side; default OFF (opinionated behaviour, opt-in).
+  const [smartCrossfade, setSmartCrossfadeState] = useState(false);
 
   useEffect(() => {
     getSmartCrossfade()
