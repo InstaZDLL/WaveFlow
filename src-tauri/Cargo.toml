@@ -45,6 +45,10 @@ serde_urlencoded = "0.7"
 
 # Async runtime
 tokio = { version = "1", features = ["full"] }
+# `futures::stream::StreamExt::buffered` for the scanner's parallel
+# extract_file pipeline (CPU-bound hash + tag read run on the blocking
+# pool, capped at the host's parallelism count).
+futures = { version = "0.3", default-features = false, features = ["std"] }
 
 # Database
 sqlx = { version = "0.8", features = [

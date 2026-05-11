@@ -236,7 +236,7 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
         if let Some(raw) = edit.artist.as_ref() {
             let mut ids: Vec<i64> = Vec::new();
             for name in split_artist_name(raw) {
-                if let Some(id) = upsert_artist(&pool.clone(), &name).await? {
+                if let Some(id) = upsert_artist(&mut *tx, &name).await? {
                     if !ids.contains(&id) {
                         ids.push(id);
                     }
@@ -270,15 +270,10 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
                     .await?
                 }
             };
-            // upsert_album takes a separate pool so we have to
-            // commit the artist work first or use the same pool;
-            // simplest is to release the tx briefly here. The
-            // alternative (passing &mut Transaction through the
-            // helper) means changing scan.rs's helper signature,
-            // which would ripple through every scanner call site.
-            tx.commit().await?;
-            let aid = upsert_album(&pool.clone(), title, aid, edit.year).await?;
-            tx = pool.begin().await?;
+            // upsert_album now takes &mut SqliteConnection, so we
+            // can call it directly inside the open transaction —
+            // no commit/reopen dance needed.
+            let aid = upsert_album(&mut *tx, title, aid, edit.year).await?;
             Some(aid)
         }
     } else {
@@ -366,16 +361,13 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
             .await?;
         let trimmed = g.trim();
         if !trimmed.is_empty() {
-            // Commit and reopen for the helper, same trick as for album.
-            tx.commit().await?;
-            if let Some(gid) = upsert_genre(&pool.clone(), trimmed).await? {
+            if let Some(gid) = upsert_genre(&mut *tx, trimmed).await? {
                 sqlx::query("INSERT OR IGNORE INTO track_genre (track_id, genre_id) VALUES (?, ?)")
                     .bind(track_id)
                     .bind(gid)
-                    .execute(pool)
+                    .execute(&mut *tx)
                     .await?;
             }
-            return Ok(());
         }
     }
 
@@ -446,7 +438,9 @@ pub async fn update_track_cover(
     }
     crate::thumbnails::spawn_thumbnail_job(out_path.clone(), artwork_dir.clone(), hash.clone());
 
-    let artwork_id = upsert_artwork(&pool, &hash, ext, "manual").await?;
+    let mut conn = pool.acquire().await?;
+    let artwork_id = upsert_artwork(&mut conn, &hash, ext, "manual").await?;
+    drop(conn);
     if let Some(aid) = album_id {
         sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
             .bind(artwork_id)

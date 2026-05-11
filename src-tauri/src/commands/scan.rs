@@ -9,6 +9,7 @@ use lofty::file::{FileType, TaggedFileExt};
 use lofty::picture::MimeType;
 use lofty::prelude::{Accessor, AudioFile};
 use lofty::tag::{ItemKey, Tag, TagType};
+use futures::StreamExt;
 use serde::Serialize;
 use sqlx::SqlitePool;
 use tauri::Emitter;
@@ -563,14 +564,14 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
 /// label (`embedded`, `folder`, `deezer`, `user`...) so a future cleanup
 /// job can distinguish scanner-extracted art from remote/manual files.
 pub(crate) async fn upsert_artwork(
-    pool: &SqlitePool,
+    conn: &mut sqlx::SqliteConnection,
     hash: &str,
     format: &str,
     source: &str,
 ) -> AppResult<i64> {
     let existing: Option<i64> = sqlx::query_scalar("SELECT id FROM artwork WHERE hash = ?")
         .bind(hash)
-        .fetch_optional(pool)
+        .fetch_optional(&mut *conn)
         .await?;
     if let Some(id) = existing {
         return Ok(id);
@@ -583,7 +584,7 @@ pub(crate) async fn upsert_artwork(
             .bind(format)
             .bind(source)
             .bind(now)
-            .execute(pool)
+            .execute(&mut *conn)
             .await?;
     Ok(result.last_insert_rowid())
 }
@@ -603,7 +604,10 @@ pub(crate) fn split_artist_name(raw: &str) -> Vec<String> {
         .collect()
 }
 
-pub(crate) async fn upsert_artist(pool: &SqlitePool, raw_name: &str) -> AppResult<Option<i64>> {
+pub(crate) async fn upsert_artist(
+    conn: &mut sqlx::SqliteConnection,
+    raw_name: &str,
+) -> AppResult<Option<i64>> {
     let name = raw_name.trim();
     if name.is_empty() {
         return Ok(None);
@@ -616,7 +620,7 @@ pub(crate) async fn upsert_artist(pool: &SqlitePool, raw_name: &str) -> AppResul
     let existing: Option<i64> =
         sqlx::query_scalar("SELECT id FROM artist WHERE canonical_name = ?")
             .bind(&canon)
-            .fetch_optional(pool)
+            .fetch_optional(&mut *conn)
             .await?;
     if let Some(id) = existing {
         return Ok(Some(id));
@@ -625,13 +629,13 @@ pub(crate) async fn upsert_artist(pool: &SqlitePool, raw_name: &str) -> AppResul
     let result = sqlx::query("INSERT INTO artist (name, canonical_name) VALUES (?, ?)")
         .bind(name)
         .bind(&canon)
-        .execute(pool)
+        .execute(&mut *conn)
         .await?;
     Ok(Some(result.last_insert_rowid()))
 }
 
 pub(crate) async fn upsert_album(
-    pool: &SqlitePool,
+    conn: &mut sqlx::SqliteConnection,
     title: &str,
     artist_id: Option<i64>,
     year: Option<i64>,
@@ -651,12 +655,12 @@ pub(crate) async fn upsert_album(
         sqlx::query_scalar("SELECT id FROM album WHERE canonical_title = ? AND artist_id = ?")
             .bind(&canon)
             .bind(aid)
-            .fetch_optional(pool)
+            .fetch_optional(&mut *conn)
             .await?
     } else {
         sqlx::query_scalar("SELECT id FROM album WHERE canonical_title = ? AND artist_id IS NULL")
             .bind(&canon)
-            .fetch_optional(pool)
+            .fetch_optional(&mut *conn)
             .await?
     };
     if let Some(id) = existing {
@@ -670,12 +674,34 @@ pub(crate) async fn upsert_album(
     .bind(&canon)
     .bind(artist_id)
     .bind(year)
-    .execute(pool)
+    .execute(&mut *conn)
     .await?;
     Ok(Some(result.last_insert_rowid()))
 }
 
-pub(crate) async fn upsert_genre(pool: &SqlitePool, raw_name: &str) -> AppResult<Option<i64>> {
+/// Resolve a raw multi-artist string (e.g. `"A, B; C"`) to a vector of
+/// artist row IDs. The first entry becomes the track's primary artist.
+/// Empty / whitespace-only inputs yield an empty vector.
+pub(crate) async fn upsert_artist_list(
+    conn: &mut sqlx::SqliteConnection,
+    raw: &Option<String>,
+) -> AppResult<Vec<i64>> {
+    let Some(raw) = raw else {
+        return Ok(Vec::new());
+    };
+    let mut ids = Vec::new();
+    for name in split_artist_name(raw) {
+        if let Some(id) = upsert_artist(&mut *conn, &name).await? {
+            ids.push(id);
+        }
+    }
+    Ok(ids)
+}
+
+pub(crate) async fn upsert_genre(
+    conn: &mut sqlx::SqliteConnection,
+    raw_name: &str,
+) -> AppResult<Option<i64>> {
     let name = raw_name.trim();
     if name.is_empty() {
         return Ok(None);
@@ -687,7 +713,7 @@ pub(crate) async fn upsert_genre(pool: &SqlitePool, raw_name: &str) -> AppResult
 
     let existing: Option<i64> = sqlx::query_scalar("SELECT id FROM genre WHERE canonical_name = ?")
         .bind(&canon)
-        .fetch_optional(pool)
+        .fetch_optional(&mut *conn)
         .await?;
     if let Some(id) = existing {
         return Ok(Some(id));
@@ -696,7 +722,7 @@ pub(crate) async fn upsert_genre(pool: &SqlitePool, raw_name: &str) -> AppResult
     let result = sqlx::query("INSERT INTO genre (name, canonical_name) VALUES (?, ?)")
         .bind(name)
         .bind(&canon)
-        .execute(pool)
+        .execute(&mut *conn)
         .await?;
     Ok(Some(result.last_insert_rowid()))
 }
@@ -834,17 +860,13 @@ pub(crate) async fn scan_folder_inner(
         );
     }
 
+    // ─── Phase 1: Serial fast-path classification ─────────────────
+    // Cheap fs::metadata (one syscall per file) lets us short-circuit
+    // re-scans where nothing changed. Files that survive are pushed
+    // to `to_extract` for the parallel extraction phase.
+    let mut to_extract: Vec<PathBuf> = Vec::with_capacity(audio_files.len());
     for (idx, path) in audio_files.into_iter().enumerate() {
         summary.scanned += 1;
-
-        // Fast path: re-scan with no content change. Cheap fs::metadata
-        // syscall (mtime + size) compared against the prefetched DB
-        // snapshot lets us skip both the BLAKE3 hash AND the tag re-read
-        // when the file is byte-identical-by-metadata to its stored row.
-        // Hash collisions on (mtime, size) are vanishingly rare for
-        // legitimate edits — taggers always touch mtime — and a user
-        // who manually preserves both can force a full rescan from
-        // Settings → Library if needed.
         let path_str = path.to_string_lossy().into_owned();
         if let Some((stored_mtime, stored_size)) = existing_meta.get(&path_str) {
             if let Ok(metadata) = std::fs::metadata(&path) {
@@ -869,14 +891,47 @@ pub(crate) async fn scan_folder_inner(
                 }
             }
         }
+        to_extract.push(path);
+    }
 
-        let path_for_task = path.clone();
-        let artwork_dir_for_task = artwork_dir.to_path_buf();
-        let extracted = match tokio::task::spawn_blocking(move || {
-            extract_file(&path_for_task, &artwork_dir_for_task)
+    // ─── Phase 2: Parallel extract + transactional DB writes ──────
+    //
+    // `extract_file` is CPU-bound (BLAKE3 hash + lofty tag read) and
+    // I/O-bound (file open + parent-dir walk for cover sidecar).
+    // Spawn N extractions in flight via `buffered`, where N is the
+    // host's parallelism count — saturates a multi-core CPU on the
+    // hash without overwhelming the kernel I/O scheduler.
+    //
+    // DB writes stay serial (one writer per SQLite WAL is a hard
+    // constraint anyway) but ride inside a transaction that commits
+    // every TX_BATCH rows. With synchronous=NORMAL + WAL, this drops
+    // a 1k-track first scan from ~30 s to a few seconds — fsync per
+    // checkpoint instead of per row.
+    let parallelism = std::thread::available_parallelism()
+        .map(|n| n.get().max(2))
+        .unwrap_or(4);
+    const TX_BATCH: usize = 200;
+
+    let extraction_stream = futures::stream::iter(to_extract.into_iter())
+        .map(|path: PathBuf| {
+            let artwork_dir = artwork_dir.to_path_buf();
+            let p = path.clone();
+            async move {
+                let res =
+                    tokio::task::spawn_blocking(move || extract_file(&p, &artwork_dir)).await;
+                (path, res)
+            }
         })
-        .await
-        {
+        .buffered(parallelism);
+    futures::pin_mut!(extraction_stream);
+
+    let mut tx = pool.begin().await?;
+    let mut tx_count: usize = 0;
+    let mut processed: usize = summary.skipped as usize;
+
+    while let Some((path, result)) = extraction_stream.next().await {
+        processed += 1;
+        let extracted = match result {
             Ok(Ok(e)) => e,
             Ok(Err(err)) => {
                 tracing::warn!(path = %path.display(), error = %err, "extraction failed");
@@ -898,18 +953,16 @@ pub(crate) async fn scan_folder_inner(
         )
         .bind(library_id)
         .bind(&extracted.abs_path)
-        .fetch_optional(pool)
+        .fetch_optional(&mut *tx)
         .await?;
 
         if let Some((existing_track_id, mtime, ref hash)) = existing {
             if mtime == extracted.modified_ms && hash == &extracted.hash {
-                // Track content hasn't changed — normally a full skip, but we
-                // still backfill cover art when the album is missing one.
-                // Scenario: a first scan ran before the scanner extracted
-                // embedded pictures, so all existing albums have
-                // `artwork_id IS NULL`. A re-scan re-extracts the cover
-                // (cheap — the hash-addressed file is idempotent on disk)
-                // and we just need to wire it up in the DB.
+                // Track content hasn't changed — backfill paths only.
+                // See the historical comments at the top of this branch
+                // for context on why these queries still run on a
+                // hash-match (cover backfill, codec/key backfill,
+                // multi-artist normalisation).
                 if let Some(cover) = &extracted.cover_art {
                     let row: Option<(Option<i64>, Option<i64>)> = sqlx::query_as(
                         "SELECT t.album_id, al.artwork_id
@@ -918,24 +971,24 @@ pub(crate) async fn scan_folder_inner(
                           WHERE t.id = ?",
                     )
                     .bind(existing_track_id)
-                    .fetch_optional(pool)
+                    .fetch_optional(&mut *tx)
                     .await?;
                     if let Some((Some(aid), None)) = row {
-                        let artwork_id =
-                            upsert_artwork(pool, &cover.hash, &cover.format, cover.source).await?;
+                        let artwork_id = upsert_artwork(
+                            &mut *tx,
+                            &cover.hash,
+                            &cover.format,
+                            cover.source,
+                        )
+                        .await?;
                         sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
                             .bind(artwork_id)
                             .bind(aid)
-                            .execute(pool)
+                            .execute(&mut *tx)
                             .await?;
                     }
                 }
 
-                // Backfill bit_depth / codec / musical_key for
-                // tracks scanned before those migrations shipped.
-                // COALESCE keeps any existing value, so a column
-                // that's already populated by a more recent scan
-                // isn't overwritten with a stale tag re-read.
                 sqlx::query(
                     "UPDATE track
                         SET bit_depth   = COALESCE(bit_depth, ?),
@@ -947,31 +1000,27 @@ pub(crate) async fn scan_folder_inner(
                 .bind(extracted.codec.as_deref())
                 .bind(extracted.musical_key.as_deref())
                 .bind(existing_track_id)
-                .execute(pool)
+                .execute(&mut *tx)
                 .await?;
 
-                // Reconcile multi-artist splits even when the track content
-                // hasn't changed. An earlier scan may have stored
-                // "Elior, DJ Garlik" as a single artist; re-running the
-                // scanner after we taught it to split should normalize
-                // existing rows without requiring a full DB reset.
                 if let Some(raw) = &extracted.artist {
                     let splits = split_artist_name(raw);
-                    let current_count: i64 =
-                        sqlx::query_scalar("SELECT COUNT(*) FROM track_artist WHERE track_id = ?")
-                            .bind(existing_track_id)
-                            .fetch_one(pool)
-                            .await?;
+                    let current_count: i64 = sqlx::query_scalar(
+                        "SELECT COUNT(*) FROM track_artist WHERE track_id = ?",
+                    )
+                    .bind(existing_track_id)
+                    .fetch_one(&mut *tx)
+                    .await?;
                     if current_count as usize != splits.len() {
                         let mut ids = Vec::new();
                         for name in splits {
-                            if let Some(id) = upsert_artist(pool, &name).await? {
+                            if let Some(id) = upsert_artist(&mut *tx, &name).await? {
                                 ids.push(id);
                             }
                         }
                         sqlx::query("DELETE FROM track_artist WHERE track_id = ?")
                             .bind(existing_track_id)
-                            .execute(pool)
+                            .execute(&mut *tx)
                             .await?;
                         for (position, aid) in ids.iter().enumerate() {
                             sqlx::query(
@@ -981,16 +1030,14 @@ pub(crate) async fn scan_folder_inner(
                             .bind(existing_track_id)
                             .bind(aid)
                             .bind(position as i64)
-                            .execute(pool)
+                            .execute(&mut *tx)
                             .await?;
                         }
                         sqlx::query("UPDATE track SET primary_artist = ? WHERE id = ?")
                             .bind(ids.first().copied())
                             .bind(existing_track_id)
-                            .execute(pool)
+                            .execute(&mut *tx)
                             .await?;
-                        // Also re-link the album to the new primary artist
-                        // so "Ma musique > Albums" stays consistent.
                         if let Some(first_id) = ids.first().copied() {
                             sqlx::query(
                                 "UPDATE album SET artist_id = ?
@@ -1000,122 +1047,135 @@ pub(crate) async fn scan_folder_inner(
                             .bind(first_id)
                             .bind(existing_track_id)
                             .bind(first_id)
-                            .execute(pool)
+                            .execute(&mut *tx)
                             .await?;
                         }
                     }
                 }
 
                 summary.skipped += 1;
-                continue;
-            }
-        }
-
-        // Split multi-artist strings (e.g. "Elior, DJ Garlik") so each
-        // contributor gets its own row in `artist` and its own link in
-        // `track_artist`. The first entry becomes the track's
-        // `primary_artist` (and album's `artist_id`) for backwards-
-        // compatible ordering.
-        let artist_ids: Vec<i64> = match &extracted.artist {
-            Some(a) => {
-                let mut ids = Vec::new();
-                for name in split_artist_name(a) {
-                    if let Some(id) = upsert_artist(pool, &name).await? {
-                        ids.push(id);
-                    }
+                tx_count += 1;
+            } else {
+                // Hash or mtime changed → full re-write of the track row
+                // and its many-to-many links. Falls through to the
+                // shared insert/update path below.
+                let artist_ids = upsert_artist_list(&mut *tx, &extracted.artist).await?;
+                let artist_id = artist_ids.first().copied();
+                let album_id = match &extracted.album {
+                    Some(a) => upsert_album(&mut *tx, a, artist_id, extracted.year).await?,
+                    None => None,
+                };
+                let genre_id = match &extracted.genre {
+                    Some(g) => upsert_genre(&mut *tx, g).await?,
+                    None => None,
+                };
+                if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
+                    let artwork_id = upsert_artwork(
+                        &mut *tx,
+                        &cover.hash,
+                        &cover.format,
+                        cover.source,
+                    )
+                    .await?;
+                    sqlx::query(
+                        "UPDATE album SET artwork_id = ? WHERE id = ? AND artwork_id IS NULL",
+                    )
+                    .bind(artwork_id)
+                    .bind(aid)
+                    .execute(&mut *tx)
+                    .await?;
                 }
-                ids
-            }
-            None => Vec::new(),
-        };
-        let artist_id = artist_ids.first().copied();
-        let album_id = match &extracted.album {
-            Some(a) => upsert_album(pool, a, artist_id, extracted.year).await?,
-            None => None,
-        };
-        let genre_id = match &extracted.genre {
-            Some(g) => upsert_genre(pool, g).await?,
-            None => None,
-        };
 
-        // Link extracted cover art to the album. Only set it once — we don't
-        // want a re-scan to flip the album cover back and forth between
-        // variants embedded in different tracks of the same release.
-        if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
-            let artwork_id = upsert_artwork(pool, &cover.hash, &cover.format, cover.source).await?;
-            sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ? AND artwork_id IS NULL")
+                sqlx::query(
+                    "UPDATE track SET
+                        folder_id = ?,
+                        file_hash = ?, file_size = ?, file_modified = ?,
+                        title = ?, album_id = ?, primary_artist = ?,
+                        track_number = ?, disc_number = ?, year = ?,
+                        duration_ms = ?, bitrate = ?, sample_rate = ?, channels = ?,
+                        bit_depth = ?, codec = ?,
+                        musical_key = ?,
+                        rating = ?,
+                        is_available = 1
+                     WHERE id = ?",
+                )
+                .bind(folder_id)
+                .bind(&extracted.hash)
+                .bind(extracted.size)
+                .bind(extracted.modified_ms)
+                .bind(&extracted.title)
+                .bind(album_id)
+                .bind(artist_id)
+                .bind(extracted.track_number)
+                .bind(extracted.disc_number)
+                .bind(extracted.year)
+                .bind(extracted.duration_ms)
+                .bind(extracted.bitrate)
+                .bind(extracted.sample_rate)
+                .bind(extracted.channels)
+                .bind(extracted.bit_depth)
+                .bind(extracted.codec.as_deref())
+                .bind(extracted.musical_key.as_deref())
+                .bind(extracted.rating.map(|r| r as i64))
+                .bind(existing_track_id)
+                .execute(&mut *tx)
+                .await?;
+
+                sqlx::query("DELETE FROM track_artist WHERE track_id = ?")
+                    .bind(existing_track_id)
+                    .execute(&mut *tx)
+                    .await?;
+                for (position, aid) in artist_ids.iter().enumerate() {
+                    sqlx::query(
+                        "INSERT INTO track_artist (track_id, artist_id, role, position)
+                         VALUES (?, ?, 'main', ?)",
+                    )
+                    .bind(existing_track_id)
+                    .bind(aid)
+                    .bind(position as i64)
+                    .execute(&mut *tx)
+                    .await?;
+                }
+
+                sqlx::query("DELETE FROM track_genre WHERE track_id = ?")
+                    .bind(existing_track_id)
+                    .execute(&mut *tx)
+                    .await?;
+                if let Some(gid) = genre_id {
+                    sqlx::query("INSERT INTO track_genre (track_id, genre_id) VALUES (?, ?)")
+                        .bind(existing_track_id)
+                        .bind(gid)
+                        .execute(&mut *tx)
+                        .await?;
+                }
+
+                summary.updated += 1;
+                tx_count += 1;
+            }
+        } else {
+            // Brand-new track — insert with all related upserts.
+            let artist_ids = upsert_artist_list(&mut *tx, &extracted.artist).await?;
+            let artist_id = artist_ids.first().copied();
+            let album_id = match &extracted.album {
+                Some(a) => upsert_album(&mut *tx, a, artist_id, extracted.year).await?,
+                None => None,
+            };
+            let genre_id = match &extracted.genre {
+                Some(g) => upsert_genre(&mut *tx, g).await?,
+                None => None,
+            };
+            if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
+                let artwork_id =
+                    upsert_artwork(&mut *tx, &cover.hash, &cover.format, cover.source).await?;
+                sqlx::query(
+                    "UPDATE album SET artwork_id = ? WHERE id = ? AND artwork_id IS NULL",
+                )
                 .bind(artwork_id)
                 .bind(aid)
-                .execute(pool)
-                .await?;
-        }
-
-        if let Some((track_id, _, _)) = existing {
-            sqlx::query(
-                "UPDATE track SET
-                    folder_id = ?,
-                    file_hash = ?, file_size = ?, file_modified = ?,
-                    title = ?, album_id = ?, primary_artist = ?,
-                    track_number = ?, disc_number = ?, year = ?,
-                    duration_ms = ?, bitrate = ?, sample_rate = ?, channels = ?,
-                    bit_depth = ?, codec = ?,
-                    musical_key = ?,
-                    rating = ?,
-                    is_available = 1
-                 WHERE id = ?",
-            )
-            .bind(folder_id)
-            .bind(&extracted.hash)
-            .bind(extracted.size)
-            .bind(extracted.modified_ms)
-            .bind(&extracted.title)
-            .bind(album_id)
-            .bind(artist_id)
-            .bind(extracted.track_number)
-            .bind(extracted.disc_number)
-            .bind(extracted.year)
-            .bind(extracted.duration_ms)
-            .bind(extracted.bitrate)
-            .bind(extracted.sample_rate)
-            .bind(extracted.channels)
-            .bind(extracted.bit_depth)
-            .bind(extracted.codec.as_deref())
-            .bind(extracted.musical_key.as_deref())
-            .bind(extracted.rating.map(|r| r as i64))
-            .bind(track_id)
-            .execute(pool)
-            .await?;
-
-            sqlx::query("DELETE FROM track_artist WHERE track_id = ?")
-                .bind(track_id)
-                .execute(pool)
-                .await?;
-            for (position, aid) in artist_ids.iter().enumerate() {
-                sqlx::query(
-                    "INSERT INTO track_artist (track_id, artist_id, role, position)
-                     VALUES (?, ?, 'main', ?)",
-                )
-                .bind(track_id)
-                .bind(aid)
-                .bind(position as i64)
-                .execute(pool)
+                .execute(&mut *tx)
                 .await?;
             }
 
-            sqlx::query("DELETE FROM track_genre WHERE track_id = ?")
-                .bind(track_id)
-                .execute(pool)
-                .await?;
-            if let Some(gid) = genre_id {
-                sqlx::query("INSERT INTO track_genre (track_id, genre_id) VALUES (?, ?)")
-                    .bind(track_id)
-                    .bind(gid)
-                    .execute(pool)
-                    .await?;
-            }
-
-            summary.updated += 1;
-        } else {
             let insert = sqlx::query(
                 "INSERT INTO track (
                     library_id, folder_id, file_path, file_hash, file_size, file_modified,
@@ -1148,7 +1208,7 @@ pub(crate) async fn scan_folder_inner(
             .bind(extracted.musical_key.as_deref())
             .bind(extracted.rating.map(|r| r as i64))
             .bind(now)
-            .execute(pool)
+            .execute(&mut *tx)
             .await?;
             let track_id = insert.last_insert_rowid();
 
@@ -1160,22 +1220,34 @@ pub(crate) async fn scan_folder_inner(
                 .bind(track_id)
                 .bind(aid)
                 .bind(position as i64)
-                .execute(pool)
+                .execute(&mut *tx)
                 .await?;
             }
             if let Some(gid) = genre_id {
                 sqlx::query("INSERT INTO track_genre (track_id, genre_id) VALUES (?, ?)")
                     .bind(track_id)
                     .bind(gid)
-                    .execute(pool)
+                    .execute(&mut *tx)
                     .await?;
             }
 
             summary.added += 1;
+            tx_count += 1;
         }
 
-        maybe_emit_progress(app_handle, folder_id, idx + 1, total_files, &summary);
+        // Periodic commit so the WAL doesn't grow unbounded on big
+        // first scans, AND so a failure mid-scan loses at most
+        // TX_BATCH rows of work instead of the whole import.
+        if tx_count >= TX_BATCH {
+            tx.commit().await?;
+            tx = pool.begin().await?;
+            tx_count = 0;
+        }
+
+        maybe_emit_progress(app_handle, folder_id, processed, total_files, &summary);
     }
+
+    tx.commit().await?;
 
     // Anything still in the map was on disk last time but isn't now.
     // Mark it unavailable rather than deleting — preserves play_event
