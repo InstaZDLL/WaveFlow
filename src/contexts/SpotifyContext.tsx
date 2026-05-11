@@ -92,6 +92,9 @@ const IS_MINI_WINDOW =
   new URLSearchParams(window.location.search).get("mini") === "1";
 
 const SPOTIFY_STATE_EVENT = "spotify:state";
+/// Mini → main: "I just opened, please rebroadcast your current
+/// state so I'm not blank until the next track-changed callback."
+const SPOTIFY_REQUEST_STATE_EVENT = "spotify:request-state";
 
 interface SpotifyStateEvent {
   current_track: SpotifyTrackLite | null;
@@ -117,6 +120,10 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
   const playerRef = useRef<SpotifySdkPlayer | null>(null);
   const positionTimerRef = useRef<number | null>(null);
   const initialVolumeRef = useRef(volume);
+  // Latest broadcast snapshot kept in a ref so the request-state
+  // handler can replay it without going through React state (avoids
+  // a render-cycle delay between request and reply).
+  const lastBroadcastRef = useRef<SpotifyStateEvent | null>(null);
 
   const isConnected = !!status?.connected;
 
@@ -206,16 +213,16 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
       // Broadcast to other Tauri windows (mini-player) — the SDK
       // attaches to a single webview but every WaveFlow window needs
       // to know what's playing.
+      const snapshot: SpotifyStateEvent = {
+        current_track: track,
+        position_ms: state.position,
+        duration_ms: state.duration,
+        playback_state: playback,
+        volume,
+      };
+      lastBroadcastRef.current = snapshot;
       import("@tauri-apps/api/event")
-        .then(({ emit }) =>
-          emit(SPOTIFY_STATE_EVENT, {
-            current_track: track,
-            position_ms: state.position,
-            duration_ms: state.duration,
-            playback_state: playback,
-            volume,
-          } satisfies SpotifyStateEvent),
-        )
+        .then(({ emit }) => emit(SPOTIFY_STATE_EVENT, snapshot))
         .catch(() => {});
     });
 
@@ -240,7 +247,7 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
     let unlisten: (() => void) | null = null;
     let cancelled = false;
     (async () => {
-      const { listen } = await import("@tauri-apps/api/event");
+      const { listen, emit } = await import("@tauri-apps/api/event");
       const off = await listen<SpotifyStateEvent>(SPOTIFY_STATE_EVENT, (e) => {
         const s = e.payload;
         setCurrentTrack(s.current_track);
@@ -248,6 +255,40 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
         setDurationMs(s.duration_ms);
         setPlaybackState(s.playback_state);
         setVolumeState(s.volume);
+      });
+      if (cancelled) {
+        off();
+      } else {
+        unlisten = off;
+        // Ask the main window to replay its last broadcast — without
+        // this, the mini stays blank until the next player_state_changed
+        // callback fires (which only happens on play/pause/seek/track
+        // change). 250 ms is a generous slack for the listener on the
+        // main side to be wired up before we fire the request.
+        setTimeout(() => {
+          emit(SPOTIFY_REQUEST_STATE_EVENT, {}).catch(() => {});
+        }, 250);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, []);
+
+  // Main window: respond to the mini's request-state pings by
+  // rebroadcasting our last known snapshot (when we have one).
+  useEffect(() => {
+    if (IS_MINI_WINDOW) return;
+    let unlisten: (() => void) | null = null;
+    let cancelled = false;
+    (async () => {
+      const { listen, emit } = await import("@tauri-apps/api/event");
+      const off = await listen(SPOTIFY_REQUEST_STATE_EVENT, () => {
+        const snapshot = lastBroadcastRef.current;
+        if (snapshot) {
+          emit(SPOTIFY_STATE_EVENT, snapshot).catch(() => {});
+        }
       });
       if (cancelled) off();
       else unlisten = off;

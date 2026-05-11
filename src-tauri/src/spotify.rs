@@ -147,12 +147,19 @@ struct AlbumResponse {
 
 #[derive(Debug, Deserialize)]
 struct TrackResponse {
+    #[serde(default)]
     id: Option<String>,
+    #[serde(default)]
     name: String,
+    #[serde(default)]
     uri: String,
+    #[serde(default)]
     duration_ms: i64,
+    #[serde(default)]
     explicit: bool,
+    #[serde(default)]
     artists: Vec<NamedResponse>,
+    #[serde(default)]
     album: Option<AlbumResponse>,
 }
 
@@ -185,6 +192,17 @@ struct Page<T> {
 #[derive(Debug, Deserialize)]
 struct PlaylistTrackItem {
     track: Option<TrackResponse>,
+}
+
+/// Lenient page wrapper: items deserialise as raw JSON values so a
+/// single weird entry (podcast episode, local file, deleted track…)
+/// doesn't tank the whole page. Each item is then re-parsed
+/// individually with errors logged + swallowed.
+#[derive(Debug, Deserialize)]
+struct LenientPage {
+    items: Vec<serde_json::Value>,
+    #[serde(default)]
+    next: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -429,17 +447,51 @@ pub async fn playlist_tracks(
     // can trigger 400 / 403 depending on the endpoint. Omitting the
     // parameter falls back to the account's home market, which is
     // exactly what we want.
-    let url = format!(
-        "{API_BASE}/playlists/{}/tracks?limit=50",
+    let mut url = format!(
+        "{API_BASE}/playlists/{}/tracks?limit=100",
         url_escape(playlist_id)
     );
-    let page: Page<PlaylistTrackItem> = get_json(client, access_token, &url).await?;
-    Ok(page
-        .items
-        .into_iter()
-        .filter_map(|i| i.track)
-        .filter_map(SpotifyTrackLite::from_track)
-        .collect())
+    let mut out: Vec<SpotifyTrackLite> = Vec::new();
+    // Hard cap so a pathological playlist (or a Spotify pagination
+    // bug) can't loop forever. 5 000 is well past the largest
+    // realistic user playlist.
+    const MAX_PAGES: usize = 50;
+    let mut pages = 0usize;
+    loop {
+        // Per-item lenient parse — we still want the playlist to
+        // surface even when one entry is a podcast episode, a
+        // deleted track, or a local file with a degenerate shape.
+        let page: LenientPage = get_json(client, access_token, &url).await?;
+        let item_count = page.items.len();
+        let mut decoded = 0usize;
+        for raw in page.items {
+            match serde_json::from_value::<PlaylistTrackItem>(raw.clone()) {
+                Ok(item) => {
+                    if let Some(track) = item.track.and_then(SpotifyTrackLite::from_track) {
+                        out.push(track);
+                        decoded += 1;
+                    }
+                }
+                Err(err) => {
+                    tracing::warn!(?err, "spotify: skipped malformed playlist item");
+                }
+            }
+        }
+        tracing::debug!(
+            playlist_id,
+            page = pages,
+            received = item_count,
+            kept = decoded,
+            running_total = out.len(),
+            "spotify playlist_tracks page"
+        );
+        pages += 1;
+        match page.next {
+            Some(next_url) if pages < MAX_PAGES => url = next_url,
+            _ => break,
+        }
+    }
+    Ok(out)
 }
 
 /// Snapshot of the user's Spotify playback queue. Contains the

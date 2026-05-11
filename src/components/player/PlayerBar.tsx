@@ -207,26 +207,25 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
             <Mic2 size={20} />
           </button>
 
-          {/* Mini-player disabled in Spotify mode — the Web Playback
-              SDK only attaches to one webview, so the mini stays
-              visually stale and its controls misroute. To revisit
-              once cross-window state sync is solid. */}
-          {!isSpotify && (
-            <button
-              onClick={() => {
-                import("../../lib/miniPlayer").then((m) =>
-                  m.openMiniPlayer().catch((err) => {
-                    console.error("[PlayerBar] open mini-player failed", err);
-                  }),
-                );
-              }}
-              aria-label={t("playerBar.miniPlayer")}
-              title={t("playerBar.miniPlayer")}
-              className="p-2 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
-            >
-              <PictureInPicture2 size={20} />
-            </button>
-          )}
+          {/* Mini-player available in both local and Spotify modes.
+              In Spotify mode, the mini doesn't attach the Web Playback
+              SDK (it can only bind to one webview) — it mirrors the
+              main window's state via the `spotify:state` Tauri event
+              and routes its controls through the Connect API. */}
+          <button
+            onClick={() => {
+              import("../../lib/miniPlayer").then((m) =>
+                m.openMiniPlayer().catch((err) => {
+                  console.error("[PlayerBar] open mini-player failed", err);
+                }),
+              );
+            }}
+            aria-label={t("playerBar.miniPlayer")}
+            title={t("playerBar.miniPlayer")}
+            className="p-2 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
+          >
+            <PictureInPicture2 size={20} />
+          </button>
 
           <button
             onClick={toggleQueue}
