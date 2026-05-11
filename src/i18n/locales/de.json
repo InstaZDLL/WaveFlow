@@ -818,7 +818,12 @@
     "insertBelow": "Zeile darunter einfügen",
     "removeLine": "Zeile entfernen",
     "lines": "Zeilen verankert",
-    "writeToFile": "Auch in die Audiodatei schreiben (USLT/LYRICS)"
+    "writeToFile": "Auch in die Audiodatei schreiben (USLT/LYRICS)",
+    "offset": {
+      "label": "Globaler Versatz",
+      "help": "Verschiebt jede erfasste Zeile um denselben Wert — hilfreich, um importierte LRC-Dateien zu korrigieren, die gleichmäßig zu früh oder zu spät sind",
+      "reset": "Versatz zurücksetzen"
+    }
   },
   "sort": {
     "title": "Titel",

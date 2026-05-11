@@ -818,7 +818,12 @@
     "insertBelow": "在下方插入一行",
     "removeLine": "删除行",
     "lines": "行已锚定",
-    "writeToFile": "同时写入音频文件 (USLT/LYRICS)"
+    "writeToFile": "同时写入音频文件 (USLT/LYRICS)",
+    "offset": {
+      "label": "整体偏移",
+      "help": "将所有已捕获行整体偏移相同的时长——适用于导入的 LRC 文件整体提前或滞后的情况",
+      "reset": "重置偏移"
+    }
   },
   "sort": {
     "title": "标题",

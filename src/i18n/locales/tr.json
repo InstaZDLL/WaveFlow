@@ -818,7 +818,12 @@
     "insertBelow": "Aşağıya satır ekle",
     "removeLine": "Satırı kaldır",
     "lines": "satır sabitlendi",
-    "writeToFile": "Ses dosyasına da yaz (USLT/LYRICS)"
+    "writeToFile": "Ses dosyasına da yaz (USLT/LYRICS)",
+    "offset": {
+      "label": "Genel kaydırma",
+      "help": "Tüm yakalanan satırları aynı değer kadar kaydırır — yeknesak biçimde erken veya geç olan içe aktarılmış LRC dosyalarını düzeltmek için kullanışlıdır",
+      "reset": "Kaydırmayı sıfırla"
+    }
   },
   "sort": {
     "title": "Başlık",

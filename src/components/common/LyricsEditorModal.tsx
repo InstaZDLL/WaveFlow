@@ -17,6 +17,8 @@ import {
   Plus,
   Loader2,
   Save,
+  Minus,
+  RotateCcw,
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import {
@@ -72,6 +74,11 @@ export function LyricsEditorModal({
   const [writeToFile, setWriteToFile] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Global timestamp shift applied to every captured row at save
+  // time. Stays "preview" until Save (we don't mutate `syncedRows`
+  // on every drag) so the user can dial it in without losing the
+  // original capture if they reset.
+  const [globalOffsetMs, setGlobalOffsetMs] = useState(0);
 
   const nextIdRef = useRef(1);
   const newRow = (timeMs: number, text: string): SyncedRow => ({
@@ -86,6 +93,7 @@ export function LyricsEditorModal({
     /* eslint-disable react-hooks/set-state-in-effect */
     setError(null);
     setActiveRow(0);
+    setGlobalOffsetMs(0);
     nextIdRef.current = 1;
 
     if (initial == null) {
@@ -180,7 +188,11 @@ export function LyricsEditorModal({
     });
   };
   const seekToRow = (row: SyncedRow) => {
-    if (row.timeMs >= 0) seek(row.timeMs).catch(() => {});
+    if (row.timeMs >= 0) {
+      // Honour the in-flight global offset so seeking a previewed
+      // timestamp lands on the position the user can actually hear.
+      seek(Math.max(0, row.timeMs + globalOffsetMs)).catch(() => {});
+    }
   };
   const recapture = (id: number) => {
     setSyncedRows((rows) =>
@@ -201,6 +213,15 @@ export function LyricsEditorModal({
         ? serializeLrc(
             syncedRows
               .filter((r) => r.text.trim().length > 0 || r.timeMs >= 0)
+              // Bake the previewed global offset into every captured
+              // timestamp on save. Negative results are clamped to 0
+              // so a user who shifts past the start of the track
+              // doesn't end up with invalid LRC entries.
+              .map((r) =>
+                r.timeMs >= 0
+                  ? { ...r, timeMs: Math.max(0, r.timeMs + globalOffsetMs) }
+                  : r,
+              )
               .sort((a, b) => {
                 if (a.timeMs < 0 && b.timeMs < 0) return 0;
                 if (a.timeMs < 0) return 1;
@@ -232,6 +253,25 @@ export function LyricsEditorModal({
     () => syncedRows.filter((r) => r.timeMs >= 0).length,
     [syncedRows],
   );
+
+  // Index of the row whose effective timestamp (raw + global offset)
+  // is the largest one ≤ current playback position. Drives a subtle
+  // "now playing" dot so the user can see whether their offset is
+  // dialled in correctly while music plays.
+  const playingRowIdx = useMemo(() => {
+    let best = -1;
+    let bestTs = -1;
+    for (let i = 0; i < syncedRows.length; i += 1) {
+      const ts = syncedRows[i].timeMs;
+      if (ts < 0) continue;
+      const effective = ts + globalOffsetMs;
+      if (effective <= positionMs && effective > bestTs) {
+        best = i;
+        bestTs = effective;
+      }
+    }
+    return best;
+  }, [syncedRows, globalOffsetMs, positionMs]);
 
   if (!isOpen) return null;
 
@@ -293,6 +333,8 @@ export function LyricsEditorModal({
             <SyncedEditor
               rows={syncedRows}
               activeRow={activeRow}
+              playingRow={playingRowIdx}
+              offsetMs={globalOffsetMs}
               onActivate={setActiveRow}
               onUpdateText={updateRowText}
               onRemove={removeRow}
@@ -349,6 +391,70 @@ export function LyricsEditorModal({
               {t("lyricsEditor.captureHint")} · {captured}/{syncedRows.length}{" "}
               {t("lyricsEditor.lines")}
             </p>
+
+            {/* Global timestamp shift — applied to every captured row
+                at save time. Useful when imported LRC files are
+                consistently early/late, or when the user's reaction
+                latency drifted every capture by the same amount. */}
+            <div className="mt-3 flex items-center gap-2">
+              <span
+                className="text-xs font-medium text-zinc-600 dark:text-zinc-300 shrink-0"
+                title={t("lyricsEditor.offset.help")}
+              >
+                {t("lyricsEditor.offset.label")}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setGlobalOffsetMs((v) => Math.max(-5000, v - 100))
+                }
+                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+                title="-100 ms"
+              >
+                <Minus size={12} />
+              </button>
+              <input
+                type="range"
+                min={-5000}
+                max={5000}
+                step={50}
+                value={globalOffsetMs}
+                onChange={(e) =>
+                  setGlobalOffsetMs(Number(e.currentTarget.value))
+                }
+                aria-label={t("lyricsEditor.offset.label")}
+                className="flex-1 accent-pink-500"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  setGlobalOffsetMs((v) => Math.min(5000, v + 100))
+                }
+                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+                title="+100 ms"
+              >
+                <Plus size={12} />
+              </button>
+              <span
+                className={`font-mono text-xs w-16 text-right ${
+                  globalOffsetMs === 0
+                    ? "text-zinc-400 dark:text-zinc-500"
+                    : "text-pink-500"
+                }`}
+              >
+                {globalOffsetMs > 0 ? "+" : ""}
+                {(globalOffsetMs / 1000).toFixed(2)} s
+              </span>
+              <button
+                type="button"
+                onClick={() => setGlobalOffsetMs(0)}
+                disabled={globalOffsetMs === 0}
+                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                title={t("lyricsEditor.offset.reset")}
+              >
+                <RotateCcw size={12} />
+              </button>
+            </div>
           </div>
         )}
 
@@ -423,6 +529,11 @@ function TabButton({
 interface SyncedEditorProps {
   rows: SyncedRow[];
   activeRow: number;
+  /** Index of the row currently sounding at playback position
+   * (after the global offset preview). -1 = none. */
+  playingRow: number;
+  /** Global timestamp shift previewed in the timestamp buttons. */
+  offsetMs: number;
   onActivate: (idx: number) => void;
   onUpdateText: (id: number, text: string) => void;
   onRemove: (id: number) => void;
@@ -434,6 +545,8 @@ interface SyncedEditorProps {
 function SyncedEditor({
   rows,
   activeRow,
+  playingRow,
+  offsetMs,
   onActivate,
   onUpdateText,
   onRemove,
@@ -446,17 +559,28 @@ function SyncedEditor({
     <ul className="space-y-1.5">
       {rows.map((row, idx) => {
         const isActive = idx === activeRow;
+        const isPlaying = idx === playingRow;
         const captured = row.timeMs >= 0;
+        const shifted = captured && offsetMs !== 0;
+        const previewMs = captured ? Math.max(0, row.timeMs + offsetMs) : -1;
         return (
           <li
             key={row.id}
             className={`flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors ${
               isActive
                 ? "bg-pink-50 dark:bg-pink-950/30 ring-1 ring-pink-200 dark:ring-pink-900"
-                : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                : isPlaying
+                  ? "bg-emerald-50/60 dark:bg-emerald-950/20"
+                  : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
             }`}
             onFocus={() => onActivate(idx)}
           >
+            <span
+              aria-hidden
+              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                isPlaying ? "bg-emerald-500 animate-pulse" : "bg-transparent"
+              }`}
+            />
             <button
               type="button"
               onClick={() => (captured ? onSeekTo(row) : onRecapture(row.id))}
@@ -467,11 +591,13 @@ function SyncedEditor({
               }
               className={`shrink-0 font-mono text-xs px-2 py-1 rounded w-20 text-center transition-colors ${
                 captured
-                  ? "bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+                  ? shifted
+                    ? "bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-900/60 italic"
+                    : "bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600"
                   : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 hover:text-pink-500"
               }`}
             >
-              {captured ? formatLrcTimestamp(row.timeMs) : "--:--.--"}
+              {captured ? formatLrcTimestamp(previewMs) : "--:--.--"}
             </button>
             <input
               type="text"

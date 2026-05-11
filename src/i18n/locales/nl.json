@@ -818,7 +818,12 @@
     "insertBelow": "Regel hieronder invoegen",
     "removeLine": "Regel verwijderen",
     "lines": "regels gekoppeld",
-    "writeToFile": "Ook in het audiobestand schrijven (USLT/LYRICS)"
+    "writeToFile": "Ook in het audiobestand schrijven (USLT/LYRICS)",
+    "offset": {
+      "label": "Globale verschuiving",
+      "help": "Verschuift elke vastgelegde regel met dezelfde delta — handig om geïmporteerde LRC-bestanden te corrigeren die gelijkmatig te vroeg of te laat zijn",
+      "reset": "Verschuiving resetten"
+    }
   },
   "sort": {
     "title": "Titel",

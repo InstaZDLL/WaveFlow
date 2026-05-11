@@ -818,7 +818,12 @@
     "insertBelow": "Inserir uma linha abaixo",
     "removeLine": "Remover linha",
     "lines": "linhas fixadas",
-    "writeToFile": "Escrever também no ficheiro áudio (USLT/LYRICS)"
+    "writeToFile": "Escrever também no ficheiro áudio (USLT/LYRICS)",
+    "offset": {
+      "label": "Desfasamento global",
+      "help": "Desloca todas as linhas capturadas pelo mesmo delta — útil para corrigir ficheiros LRC importados uniformemente adiantados ou atrasados",
+      "reset": "Repor desfasamento"
+    }
   },
   "sort": {
     "title": "Título",

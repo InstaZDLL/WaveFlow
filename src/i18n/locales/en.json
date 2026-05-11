@@ -827,7 +827,12 @@
     "insertBelow": "Insert a line below",
     "removeLine": "Remove line",
     "lines": "lines anchored",
-    "writeToFile": "Also write to the audio file (USLT/LYRICS)"
+    "writeToFile": "Also write to the audio file (USLT/LYRICS)",
+    "offset": {
+      "label": "Global shift",
+      "help": "Shifts every captured line by the same delta — useful for fixing imported LRC files that are uniformly early or late",
+      "reset": "Reset shift"
+    }
   },
   "sort": {
     "title": "Title",

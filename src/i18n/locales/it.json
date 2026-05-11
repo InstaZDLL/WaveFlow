@@ -818,7 +818,12 @@
     "insertBelow": "Inserisci una riga sotto",
     "removeLine": "Rimuovi riga",
     "lines": "righe ancorate",
-    "writeToFile": "Scrivi anche nel file audio (USLT/LYRICS)"
+    "writeToFile": "Scrivi anche nel file audio (USLT/LYRICS)",
+    "offset": {
+      "label": "Spostamento globale",
+      "help": "Sposta tutte le righe catturate dello stesso delta — utile per correggere file LRC importati uniformemente in anticipo o in ritardo",
+      "reset": "Ripristina spostamento"
+    }
   },
   "sort": {
     "title": "Titolo",

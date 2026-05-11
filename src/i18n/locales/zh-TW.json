@@ -818,7 +818,12 @@
     "insertBelow": "在下方插入一行",
     "removeLine": "刪除行",
     "lines": "行已金定",
-    "writeToFile": "同時寫入音訊檔案 (USLT/LYRICS)"
+    "writeToFile": "同時寫入音訊檔案 (USLT/LYRICS)",
+    "offset": {
+      "label": "整體偏移",
+      "help": "將所有已擷取行整體偏移相同的時長——適用於匯入的 LRC 檔案整體提前或落後的情況",
+      "reset": "重設偏移"
+    }
   },
   "sort": {
     "title": "標題",

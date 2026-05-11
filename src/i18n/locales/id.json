@@ -818,7 +818,12 @@
     "insertBelow": "Sisipkan baris di bawah",
     "removeLine": "Hapus baris",
     "lines": "baris ditambatkan",
-    "writeToFile": "Tulis juga ke berkas audio (USLT/LYRICS)"
+    "writeToFile": "Tulis juga ke berkas audio (USLT/LYRICS)",
+    "offset": {
+      "label": "Pergeseran global",
+      "help": "Menggeser setiap baris yang ditangkap dengan delta yang sama — berguna untuk memperbaiki berkas LRC impor yang seragam terlalu cepat atau lambat",
+      "reset": "Setel ulang pergeseran"
+    }
   },
   "sort": {
     "title": "Judul",

@@ -818,7 +818,12 @@
     "insertBelow": "下に行を挿入",
     "removeLine": "行を削除",
     "lines": "行が固定済み",
-    "writeToFile": "音声ファイルにも書き込む (USLT/LYRICS)"
+    "writeToFile": "音声ファイルにも書き込む (USLT/LYRICS)",
+    "offset": {
+      "label": "全体オフセット",
+      "help": "キャプチャ済みのすべての行を同じ量だけずらします — インポートしたLRCファイルが一律に早かったり遅かったりする場合の補正に便利です",
+      "reset": "オフセットをリセット"
+    }
   },
   "sort": {
     "title": "タイトル",
