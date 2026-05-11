@@ -446,16 +446,17 @@ function DayGroup({
   return (
     <section>
       {/* Opaque background — the section list scrolls under the
-          sticky header, so any transparency makes the row text
-          bleed through. Border-bottom delineates the header from
-          the first row of the day cleanly. */}
-      <div className="sticky top-0 z-20 bg-white dark:bg-surface-dark py-2 border-b border-zinc-100 dark:border-zinc-800">
-        <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
+          sticky header, so any transparency would let row text
+          bleed through. Inline title + count keep the header to a
+          single line so it doesn't push the first row down with
+          two-line padding. */}
+      <div className="sticky top-0 z-20 bg-white dark:bg-surface-dark px-3 py-1.5 border-b border-zinc-100 dark:border-zinc-800 flex items-baseline gap-3">
+        <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 capitalize">
           {dayLabel(group.ts, locale, t)}
         </h2>
-        <div className="text-[11px] text-zinc-400">
+        <span className="text-[11px] text-zinc-400">
           {t("history.plays", { count: group.rows.length })}
-        </div>
+        </span>
       </div>
       <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
         {group.rows.map((row) => {
