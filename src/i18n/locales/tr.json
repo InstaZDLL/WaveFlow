@@ -180,6 +180,34 @@
       "recent": "Son oynananlar",
       "playlists": "Çalma listeleri"
     },
+    "moodRadio": {
+      "title": "Ruh hali radyosu",
+      "subtitle": "Tempo ve enerjiye göre süzülür",
+      "trackCount_one": "{{count}} parça",
+      "trackCount_other": "{{count}} parça",
+      "empty": "Yeterli analiz edilmiş parça yok",
+      "loading": "Başlatılıyor…",
+      "focus": {
+        "title": "Odak",
+        "subtitle": "Derin iş için sakin tempolar"
+      },
+      "chill": {
+        "title": "Sakin",
+        "subtitle": "Rahatlamak için yumuşak ortamlar"
+      },
+      "workout": {
+        "title": "Antrenman",
+        "subtitle": "Hareket için istikrarlı tempo"
+      },
+      "party": {
+        "title": "Parti",
+        "subtitle": "Danslı tempo, yüksek enerji"
+      },
+      "sleep": {
+        "title": "Uyku",
+        "subtitle": "Uykuya dalmak için çok yavaş ve sessiz"
+      }
+    },
     "recentlyPlayed": {
       "title": "Son oynananlar",
       "emptyTitle": "Henüz hiçbir parça çalınmadı",

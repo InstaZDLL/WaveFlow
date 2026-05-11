@@ -331,6 +331,8 @@ pub fn run() {
             commands::deezer::batch_fetch_missing_artist_pictures,
             commands::similar::get_similar_artists,
             commands::radio::start_radio,
+            commands::mood_radio::start_mood_radio,
+            commands::mood_radio::mood_radio_counts,
             commands::dlna::dlna_get_config,
             commands::dlna::dlna_set_config,
             commands::dlna::dlna_get_status,

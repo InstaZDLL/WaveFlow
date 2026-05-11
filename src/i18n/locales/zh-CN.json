@@ -180,6 +180,34 @@
       "recent": "最近游玩过的",
       "playlists": "播放列表"
     },
+    "moodRadio": {
+      "title": "心情电台",
+      "subtitle": "按节奏与能量筛选",
+      "trackCount_one": "{{count}} 首",
+      "trackCount_other": "{{count}} 首",
+      "empty": "已分析曲目不足",
+      "loading": "启动中…",
+      "focus": {
+        "title": "专注",
+        "subtitle": "适合深度工作的平稳节奏"
+      },
+      "chill": {
+        "title": "放松",
+        "subtitle": "舒缓氛围适合放松"
+      },
+      "workout": {
+        "title": "健身",
+        "subtitle": "保持运动的稳定节奏"
+      },
+      "party": {
+        "title": "派对",
+        "subtitle": "适合舞动的节奏与高能量"
+      },
+      "sleep": {
+        "title": "睡眠",
+        "subtitle": "极慢极轻便于入睡"
+      }
+    },
     "recentlyPlayed": {
       "title": "最近播放的",
       "emptyTitle": "尚未收听任何歌曲",

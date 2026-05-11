@@ -31,6 +31,7 @@ import {
   type RecentPlay,
 } from "../../lib/tauri/browse";
 import type { Track } from "../../lib/tauri/track";
+import { MoodRadioGrid } from "./home/MoodRadioGrid";
 
 interface HomeViewProps {
   onNavigate: (view: ViewId) => void;
@@ -312,6 +313,11 @@ export function HomeView({
           label={t("home.stats.playlists")}
         />
       </div>
+
+      {/* Mood radios — BPM/loudness-filtered queues. Hidden entirely
+          when the library has zero analysed tracks (component decides
+          internally so HomeView stays declarative). */}
+      <MoodRadioGrid />
 
       {/* Daily Mix — generated from listening history. Hidden when the
           user has too few play_events for a meaningful split (the

@@ -180,6 +180,34 @@
       "recent": "最近プレイしたゲーム",
       "playlists": "プレイリスト"
     },
+    "moodRadio": {
+      "title": "気分ラジオ",
+      "subtitle": "テンポとエネルギーで絞り込み",
+      "trackCount_one": "{{count}}曲",
+      "trackCount_other": "{{count}}曲",
+      "empty": "解析済み楽曲が不足しています",
+      "loading": "開始中…",
+      "focus": {
+        "title": "集中",
+        "subtitle": "落ち着いたテンポで深く集中"
+      },
+      "chill": {
+        "title": "チル",
+        "subtitle": "リラックス向けの穏やかなムード"
+      },
+      "workout": {
+        "title": "ワークアウト",
+        "subtitle": "動き続けるための一定のテンポ"
+      },
+      "party": {
+        "title": "パーティー",
+        "subtitle": "踊れるテンポ、高エネルギー"
+      },
+      "sleep": {
+        "title": "スリープ",
+        "subtitle": "入眠用のとてもゆっくりで静かな曲"
+      }
+    },
     "recentlyPlayed": {
       "title": "最近プレイしたゲーム",
       "emptyTitle": "再生した曲はありません",

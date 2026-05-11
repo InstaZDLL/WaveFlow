@@ -180,6 +180,34 @@
       "recent": "Onlangs gespeeld",
       "playlists": "Afspeellijsten"
     },
+    "moodRadio": {
+      "title": "Stemming-radio",
+      "subtitle": "Gefilterd op tempo en energie",
+      "trackCount_one": "{{count}} nummer",
+      "trackCount_other": "{{count}} nummers",
+      "empty": "Niet genoeg geanalyseerde nummers",
+      "loading": "Starten…",
+      "focus": {
+        "title": "Focus",
+        "subtitle": "Rustige tempo's voor diep werk"
+      },
+      "chill": {
+        "title": "Chill",
+        "subtitle": "Rustige sferen om te ontspannen"
+      },
+      "workout": {
+        "title": "Workout",
+        "subtitle": "Stevig tempo om in beweging te blijven"
+      },
+      "party": {
+        "title": "Feest",
+        "subtitle": "Dansbare tempo's, hoge energie"
+      },
+      "sleep": {
+        "title": "Slaap",
+        "subtitle": "Heel langzaam en zacht om in slaap te vallen"
+      }
+    },
     "recentlyPlayed": {
       "title": "Onlangs gespeeld",
       "emptyTitle": "Er zijn geen nummers beluisterd",

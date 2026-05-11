@@ -180,6 +180,34 @@
       "recent": "Baru-baru ini dimainkan",
       "playlists": "Daftar Putar"
     },
+    "moodRadio": {
+      "title": "Radio suasana",
+      "subtitle": "Difilter berdasarkan tempo dan energi",
+      "trackCount_one": "{{count}} lagu",
+      "trackCount_other": "{{count}} lagu",
+      "empty": "Tidak cukup lagu yang dianalisis",
+      "loading": "Memulai…",
+      "focus": {
+        "title": "Fokus",
+        "subtitle": "Tempo tenang untuk bekerja serius"
+      },
+      "chill": {
+        "title": "Santai",
+        "subtitle": "Suasana lembut untuk relaksasi"
+      },
+      "workout": {
+        "title": "Olahraga",
+        "subtitle": "Tempo konsisten untuk bergerak"
+      },
+      "party": {
+        "title": "Pesta",
+        "subtitle": "Tempo asyik, energi tinggi"
+      },
+      "sleep": {
+        "title": "Tidur",
+        "subtitle": "Sangat lambat dan tenang untuk tidur"
+      }
+    },
     "recentlyPlayed": {
       "title": "Baru-baru ini dimainkan",
       "emptyTitle": "Belum ada lagu yang diputar",

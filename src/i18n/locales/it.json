@@ -180,6 +180,34 @@
       "recent": "Giocati di recente",
       "playlists": "Playlist"
     },
+    "moodRadio": {
+      "title": "Radio per umore",
+      "subtitle": "Filtrata per tempo ed energia",
+      "trackCount_one": "{{count}} brano",
+      "trackCount_other": "{{count}} brani",
+      "empty": "Brani analizzati insufficienti",
+      "loading": "Avvio…",
+      "focus": {
+        "title": "Concentrazione",
+        "subtitle": "Tempi calmi per lavorare meglio"
+      },
+      "chill": {
+        "title": "Relax",
+        "subtitle": "Atmosfere morbide per rilassarsi"
+      },
+      "workout": {
+        "title": "Allenamento",
+        "subtitle": "Ritmo costante per muoverti"
+      },
+      "party": {
+        "title": "Festa",
+        "subtitle": "Tempo ballabile, energia alta"
+      },
+      "sleep": {
+        "title": "Sonno",
+        "subtitle": "Lento e discreto per addormentarsi"
+      }
+    },
     "recentlyPlayed": {
       "title": "Giocati di recente",
       "emptyTitle": "Nessun brano ascoltato",

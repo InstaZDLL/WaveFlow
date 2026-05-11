@@ -180,6 +180,34 @@
       "recent": "Kürzlich gespielt",
       "playlists": "Playlists"
     },
+    "moodRadio": {
+      "title": "Stimmungs-Radio",
+      "subtitle": "Nach Tempo und Energie gefiltert",
+      "trackCount_one": "{{count}} Titel",
+      "trackCount_other": "{{count}} Titel",
+      "empty": "Nicht genug analysierte Titel",
+      "loading": "Starte…",
+      "focus": {
+        "title": "Fokus",
+        "subtitle": "Ruhige Tempos für konzentriertes Arbeiten"
+      },
+      "chill": {
+        "title": "Chill",
+        "subtitle": "Entspannte Klänge zum Runterkommen"
+      },
+      "workout": {
+        "title": "Workout",
+        "subtitle": "Stetiges Tempo zum Trainieren"
+      },
+      "party": {
+        "title": "Party",
+        "subtitle": "Tanzbare Tempos, hohe Energie"
+      },
+      "sleep": {
+        "title": "Schlafen",
+        "subtitle": "Sehr langsam und leise zum Einschlafen"
+      }
+    },
     "recentlyPlayed": {
       "title": "Zuletzt gespielt",
       "emptyTitle": "Kein Titel angehört",

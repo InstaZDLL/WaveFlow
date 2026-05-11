@@ -22,6 +22,7 @@ pub mod playlist;
 pub mod profile_io;
 pub mod playlist_cover;
 pub mod profile;
+pub mod mood_radio;
 pub mod radio;
 pub mod scan;
 pub mod similar;

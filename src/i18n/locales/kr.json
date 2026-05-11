@@ -180,6 +180,34 @@
       "recent": "최근 플레이한 게임",
       "playlists": "재생 목록"
     },
+    "moodRadio": {
+      "title": "분위기 라디오",
+      "subtitle": "템포와 에너지로 필터링",
+      "trackCount_one": "{{count}}곡",
+      "trackCount_other": "{{count}}곡",
+      "empty": "분석된 트랙이 부족합니다",
+      "loading": "시작 중…",
+      "focus": {
+        "title": "집중",
+        "subtitle": "깊은 작업을 위한 차분한 템포"
+      },
+      "chill": {
+        "title": "칠",
+        "subtitle": "긴장을 풀기 위한 편안한 분위기"
+      },
+      "workout": {
+        "title": "운동",
+        "subtitle": "꾸준히 움직이게 하는 일정한 템포"
+      },
+      "party": {
+        "title": "파티",
+        "subtitle": "춤추기 좋은 템포, 높은 에너지"
+      },
+      "sleep": {
+        "title": "수면",
+        "subtitle": "잠들기 위한 매우 느리고 조용한 곡"
+      }
+    },
     "recentlyPlayed": {
       "title": "최근 플레이한 게임",
       "emptyTitle": "듣지 않은 곡이 없습니다",
