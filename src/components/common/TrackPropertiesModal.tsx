@@ -21,6 +21,7 @@ import {
 } from "../../lib/tauri/track";
 import { pickFile } from "../../lib/tauri/dialog";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
+import { useModalA11y } from "../../hooks/useModalA11y";
 import {
   analyzeTrack,
   getTrackAnalysis,
@@ -54,6 +55,10 @@ export function TrackPropertiesModal({
   // never sync the prop back through a useEffect (would trip the
   // cascading-render lint AND be redundant given the key strategy).
   const [track, setTrack] = useState<Track | null>(trackProp);
+  // Modal a11y — Escape to close + focus trap. `track != null` doubles
+  // as the open state since the modal returns `null` when there's no
+  // track (see early-return at the bottom of the function).
+  const dialogRef = useModalA11y<HTMLDivElement>(track != null, onClose);
   useTrackUpdated(
     useCallback(
       async (id: number) => {
@@ -247,6 +252,10 @@ export function TrackPropertiesModal({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("trackProperties.title")}
         className="relative w-full max-w-2xl rounded-3xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated animate-fade-in max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >

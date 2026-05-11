@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageIcon, FolderOpen, Search, Loader2 } from "lucide-react";
+import { useModalA11y } from "../../hooks/useModalA11y";
 import {
   searchAlbumsDeezer,
   setAlbumArtworkFromDeezer,
@@ -34,6 +35,7 @@ export function CoverPickerModal({
   const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<number | null>(null);
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
   useEffect(() => {
     if (!isOpen) {
@@ -44,15 +46,6 @@ export function CoverPickerModal({
       setTab("deezer");
     }
   }, [isOpen, initialQuery]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [isOpen, onClose]);
 
   useEffect(() => {
     if (!isOpen || tab !== "deezer") return;
@@ -128,10 +121,17 @@ export function CoverPickerModal({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cover-picker-title"
         className="relative w-full max-w-2xl rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated animate-fade-in max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">
+        <h2
+          id="cover-picker-title"
+          className="text-lg font-bold text-zinc-900 dark:text-white mb-4"
+        >
           {t("library.changeCover")}
         </h2>
 

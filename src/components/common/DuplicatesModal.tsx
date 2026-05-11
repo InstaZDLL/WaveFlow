@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Loader2, Trash2, Copy } from "lucide-react";
+import { useModalA11y } from "../../hooks/useModalA11y";
 import {
   deleteTracks,
   findDuplicates,
@@ -31,6 +32,7 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
   // Per-group "keep" selection — the track id to preserve. Defaults
   // to the first (oldest) track, which the backend orders by
   // added_at ASC.
@@ -101,6 +103,10 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="duplicates-modal-title"
         className="relative bg-white dark:bg-surface-dark-elevated text-zinc-900 dark:text-zinc-100 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
@@ -109,7 +115,10 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
           <div className="flex items-center gap-2 min-w-0">
             <Copy size={18} className="text-amber-500" />
             <div>
-              <h2 className="text-lg font-semibold">
+              <h2
+                id="duplicates-modal-title"
+                className="text-lg font-semibold"
+              >
                 {t("duplicates.title")}
               </h2>
               {!isScanning && (

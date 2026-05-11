@@ -697,7 +697,8 @@
     "queue": "Fila",
     "miniPlayer": "Mini-leitor (sempre no topo)",
     "previous": "Faixa anterior",
-    "next": "Faixa seguinte"
+    "next": "Faixa seguinte",
+    "devices": "Dispositivos de saída"
   },
   "miniPlayer": {
     "idle": "Nenhuma faixa em reprodução",

@@ -3,9 +3,11 @@ import {
   useEffect,
   useRef,
   useState,
+  type KeyboardEvent,
   type PointerEvent,
 } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { useTranslation } from "react-i18next";
 import { usePlayer } from "../../hooks/usePlayer";
 import { formatDuration } from "../../lib/tauri/track";
 import { playerGetAbLoop, type AbLoopSnapshot } from "../../lib/tauri/player";
@@ -17,6 +19,7 @@ import { playerGetAbLoop, type AbLoopSnapshot } from "../../lib/tauri/player";
  * commit the target to the backend.
  */
 export function ProgressBar() {
+  const { t } = useTranslation();
   const {
     positionMs,
     durationMs,
@@ -103,6 +106,46 @@ export function ProgressBar() {
     [dragMs, seek, setSeeking],
   );
 
+  // Keyboard support for the slider role: arrows nudge by 5 s, Page
+  // Up/Down by 30 s, Home/End jump to start/end. Mirrors the browser-
+  // standard behaviour of <input type="range"> so screen reader users
+  // get the same control as pointer users.
+  const STEP_MS = 5_000;
+  const PAGE_MS = 30_000;
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      if (!hasTrack) return;
+      let next: number;
+      switch (e.key) {
+        case "ArrowLeft":
+        case "ArrowDown":
+          next = Math.max(0, positionMs - STEP_MS);
+          break;
+        case "ArrowRight":
+        case "ArrowUp":
+          next = Math.min(durationMs, positionMs + STEP_MS);
+          break;
+        case "PageDown":
+          next = Math.max(0, positionMs - PAGE_MS);
+          break;
+        case "PageUp":
+          next = Math.min(durationMs, positionMs + PAGE_MS);
+          break;
+        case "Home":
+          next = 0;
+          break;
+        case "End":
+          next = durationMs;
+          break;
+        default:
+          return;
+      }
+      e.preventDefault();
+      seek(next);
+    },
+    [hasTrack, positionMs, durationMs, seek],
+  );
+
   return (
     <div className="w-full flex items-center space-x-3 text-xs text-zinc-400">
       <span className="tabular-nums w-10 text-right">
@@ -114,6 +157,15 @@ export function ProgressBar() {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        onKeyDown={handleKeyDown}
+        role="slider"
+        tabIndex={hasTrack ? 0 : -1}
+        aria-label={t("player.seek", "Position")}
+        aria-valuemin={0}
+        aria-valuemax={hasTrack ? durationMs : 0}
+        aria-valuenow={hasTrack ? clampedDisplay : 0}
+        aria-valuetext={`${formatDuration(clampedDisplay)} / ${formatDuration(durationMs)}`}
+        aria-disabled={!hasTrack}
         className={`flex-1 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700 relative ${
           hasTrack ? "cursor-pointer" : "cursor-default"
         } group`}

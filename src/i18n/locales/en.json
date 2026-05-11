@@ -706,7 +706,8 @@
     "miniPlayer": "Mini-player (always on top)",
     "previous": "Previous track",
     "next": "Next track",
-    "openFullscreen": "Immersive view"
+    "openFullscreen": "Immersive view",
+    "devices": "Output devices"
   },
   "miniPlayer": {
     "idle": "No track playing",

@@ -697,7 +697,8 @@
     "queue": "Kuyruk",
     "miniPlayer": "Mini oynatıcı (her zaman üstte)",
     "previous": "Önceki parça",
-    "next": "Sonraki parça"
+    "next": "Sonraki parça",
+    "devices": "Çıkış aygıtları"
   },
   "miniPlayer": {
     "idle": "Çalan parça yok",

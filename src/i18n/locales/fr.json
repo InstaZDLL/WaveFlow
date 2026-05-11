@@ -706,7 +706,8 @@
     "miniPlayer": "Mini-lecteur (toujours au-dessus)",
     "previous": "Piste précédente",
     "next": "Piste suivante",
-    "openFullscreen": "Vue immersive"
+    "openFullscreen": "Vue immersive",
+    "devices": "Périphériques de sortie"
   },
   "miniPlayer": {
     "idle": "Aucun titre en cours",

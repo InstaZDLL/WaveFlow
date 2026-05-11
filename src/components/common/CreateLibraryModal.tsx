@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Library, Plus, Check } from "lucide-react";
+import { useModalA11y } from "../../hooks/useModalA11y";
 
 type ModalMode = "create" | "edit";
 
@@ -48,15 +49,8 @@ export function CreateLibraryModal({
     }
   }, [isOpen, initialName, initialDescription]);
 
-  // Close on Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [isOpen, onClose]);
+  // Modal a11y: Escape close, focus trap, focus restore on close.
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -86,10 +80,17 @@ export function CreateLibraryModal({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="library-modal-title"
         className="relative w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">
+        <h2
+          id="library-modal-title"
+          className="text-lg font-bold text-zinc-900 dark:text-white mb-4"
+        >
           {t(titleKey)}
         </h2>
 

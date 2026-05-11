@@ -697,7 +697,8 @@
     "queue": "Coda",
     "miniPlayer": "Mini-player (sempre in primo piano)",
     "previous": "Brano precedente",
-    "next": "Brano successivo"
+    "next": "Brano successivo",
+    "devices": "Dispositivi di uscita"
   },
   "miniPlayer": {
     "idle": "Nessun brano in riproduzione",

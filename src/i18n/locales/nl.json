@@ -697,7 +697,8 @@
     "queue": "Wachtrij",
     "miniPlayer": "Mini-speler (altijd op de voorgrond)",
     "previous": "Vorig nummer",
-    "next": "Volgend nummer"
+    "next": "Volgend nummer",
+    "devices": "Uitvoerapparaten"
   },
   "miniPlayer": {
     "idle": "Geen nummer afgespeeld",

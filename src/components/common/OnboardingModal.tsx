@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FolderPlus, Loader2, CheckCircle2, Music, X } from "lucide-react";
+import { useModalA11y } from "../../hooks/useModalA11y";
 import { useLibrary } from "../../hooks/useLibrary";
 import { pickFolder } from "../../lib/tauri/dialog";
 import type { ScanSummary } from "../../lib/tauri/library";
@@ -28,6 +29,10 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
   const { t } = useTranslation();
   const { libraries, createLibrary, importFolder } = useLibrary();
   const [step, setStep] = useState<Step>({ kind: "welcome" });
+  // Onboarding can only be skipped from the welcome step (parent
+  // hides the close button on later steps), so the dialog is "open"
+  // for its lifetime — pass `true` and route Escape to onSkip.
+  const dialogRef = useModalA11y<HTMLDivElement>(true, onSkip);
 
   const handlePickFolder = async () => {
     let path: string | null;
@@ -70,7 +75,13 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
 
   return (
     <div className="fixed inset-0 z-100 bg-black/80 flex items-center justify-center animate-fade-in p-4">
-      <div className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl border border-zinc-200 dark:border-zinc-800 p-8">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("onboarding.welcome.title")}
+        className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl border border-zinc-200 dark:border-zinc-800 p-8"
+      >
         {step.kind === "welcome" && (
           <button
             type="button"

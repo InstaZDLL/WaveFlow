@@ -18,6 +18,7 @@ import {
 import { pickFile } from "../../lib/tauri/dialog";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
+import { useModalA11y } from "../../hooks/useModalA11y";
 
 interface CreatePlaylistModalProps {
   isOpen: boolean;
@@ -86,15 +87,9 @@ export function CreatePlaylistModal({
     }
   }, [isOpen, existing]);
 
-  // Escape handler
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [isOpen, onClose]);
+  // Modal a11y: Escape close, focus trap, focus restore on close.
+  // Replaces the previous bespoke Escape listener.
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
   // Click-outside for the cover "..." menu. Listening on `mousedown` so
   // the menu closes before the click on the trigger button can re-toggle
@@ -174,10 +169,17 @@ export function CreatePlaylistModal({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="playlist-modal-title"
         className="relative w-full max-w-xl rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated animate-fade-in max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">
+        <h2
+          id="playlist-modal-title"
+          className="text-lg font-bold text-zinc-900 dark:text-white mb-4"
+        >
           {isEdit ? t("playlistModal.editTitle") : t("playlistModal.title")}
         </h2>
 

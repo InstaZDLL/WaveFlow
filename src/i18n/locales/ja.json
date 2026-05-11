@@ -697,7 +697,8 @@
     "queue": "待ち行列",
     "miniPlayer": "ミニプレーヤー（常に手前に表示）",
     "previous": "前のトラック",
-    "next": "次のトラック"
+    "next": "次のトラック",
+    "devices": "出力デバイス"
   },
   "miniPlayer": {
     "idle": "再生中のトラックなし",

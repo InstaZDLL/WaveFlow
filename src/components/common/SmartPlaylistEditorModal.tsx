@@ -9,6 +9,7 @@ import {
   type CustomSort,
 } from "../../lib/tauri/smart_playlists";
 import { listGenres, type GenreRow } from "../../lib/tauri/browse";
+import { useModalA11y } from "../../hooks/useModalA11y";
 
 interface SmartPlaylistEditorModalProps {
   isOpen: boolean;
@@ -57,6 +58,7 @@ export function SmartPlaylistEditorModal({
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
   // ── Hydrate on open ─────────────────────────────────────────────
   useEffect(() => {
@@ -148,6 +150,10 @@ export function SmartPlaylistEditorModal({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="smart-playlist-editor-title"
         className="relative bg-white dark:bg-surface-dark-elevated text-zinc-900 dark:text-zinc-100 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
@@ -155,7 +161,10 @@ export function SmartPlaylistEditorModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-2">
             <Sparkles size={18} className="text-violet-500" />
-            <h2 className="text-lg font-semibold">
+            <h2
+              id="smart-playlist-editor-title"
+              className="text-lg font-semibold"
+            >
               {existing
                 ? t("smartPlaylistEditor.editTitle")
                 : t("smartPlaylistEditor.createTitle")}

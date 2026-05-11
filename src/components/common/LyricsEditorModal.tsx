@@ -21,6 +21,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useModalA11y } from "../../hooks/useModalA11y";
 import {
   formatLrcTimestamp,
   parseLrc,
@@ -66,6 +67,7 @@ export function LyricsEditorModal({
 }: LyricsEditorModalProps) {
   const { t } = useTranslation();
   const { isPlaying, togglePlayback, seek, positionMs } = usePlayer();
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
   const [mode, setMode] = useState<Mode>("plain");
   const [plainText, setPlainText] = useState("");
@@ -281,13 +283,20 @@ export function LyricsEditorModal({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="lyrics-editor-title"
         className="relative bg-white dark:bg-surface-dark-elevated text-zinc-900 dark:text-zinc-100 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
           <div className="min-w-0">
-            <h2 className="text-lg font-semibold truncate">
+            <h2
+              id="lyrics-editor-title"
+              className="text-lg font-semibold truncate"
+            >
               {t("lyricsEditor.title")}
             </h2>
             {trackTitle && (

@@ -1,6 +1,6 @@
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Heart } from "lucide-react";
+import { useModalA11y } from "../../hooks/useModalA11y";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { PlaybackControls } from "./PlaybackControls";
@@ -35,22 +35,21 @@ export function FullscreenNowPlaying({
 }: FullscreenNowPlayingProps) {
   const { t } = useTranslation();
   const { currentTrack } = usePlayer();
-
-  // Escape to close. Only mounted while the overlay is open so we
-  // don't race the global keyboard-shortcut handler.
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+  // Escape close + focus trap. The overlay is only mounted while
+  // open, so passing `true` is correct — no isOpen prop needed.
+  const dialogRef = useModalA11y<HTMLDivElement>(true, onClose);
 
   const title = currentTrack?.title ?? t("player.noTrack");
   const album = currentTrack?.album_title;
 
   return (
-    <div className="fixed inset-0 z-100 animate-fade-in">
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("playerBar.openFullscreen")}
+      className="fixed inset-0 z-100 animate-fade-in"
+    >
       {/* Blurred artwork background — falls back to a flat dark
           gradient when the track has no cover. Same recipe as the
           fullscreen lyrics overlay so they feel like siblings. */}

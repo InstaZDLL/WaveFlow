@@ -290,6 +290,9 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
             <div className="relative">
               <button
                 onClick={toggleDeviceMenu}
+                aria-label={t("playerBar.devices")}
+                title={t("playerBar.devices")}
+                aria-expanded={isDeviceMenuOpen}
                 className={`p-2 rounded-lg transition-colors border ${
                   isDeviceMenuOpen
                     ? "border-emerald-500 text-emerald-500 bg-emerald-500/10"

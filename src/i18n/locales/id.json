@@ -697,7 +697,8 @@
     "queue": "Antrean",
     "miniPlayer": "Mini-pemutar (selalu di atas)",
     "previous": "Trek sebelumnya",
-    "next": "Trek berikutnya"
+    "next": "Trek berikutnya",
+    "devices": "Perangkat keluaran"
   },
   "miniPlayer": {
     "idle": "Tidak ada trek diputar",

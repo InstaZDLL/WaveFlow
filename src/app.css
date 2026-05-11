@@ -127,3 +127,17 @@
 ::view-transition-new(root) {
   z-index: 2;
 }
+
+/* Global focus-visible fallback for keyboard users.
+ *
+ * Many components rely on Tailwind's `focus-visible:ring-*` per-button,
+ * but plenty of icon buttons forgot it. `:where()` keeps specificity at
+ * zero so any inline `focus-visible:ring-*` (or `focus:outline-none`)
+ * still wins — this is a baseline, not an override. The colour matches
+ * the app's emerald accent so the indicator harmonises with the rest
+ * of the focus / hover states. */
+:where(button, a, [role="button"], [role="link"], [role="menuitem"], [role="tab"], [role="option"], [tabindex]):focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+  border-radius: 4px;
+}

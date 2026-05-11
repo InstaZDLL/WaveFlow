@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Plus, ArrowLeft, Check } from "lucide-react";
+import { useModalA11y } from "../../hooks/useModalA11y";
 import { useProfile } from "../../hooks/useProfile";
 import type { Profile } from "../../lib/tauri/profile";
 import {
@@ -45,20 +46,18 @@ export function ProfileSelectorModal({
     }
   }, [isOpen]);
 
-  // Escape handling: if we're on "create", step back to "select" first
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      if (view === "create") {
-        setView("select");
-      } else {
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [isOpen, onClose, view]);
+  // Escape handling: if we're on "create", step back to "select"
+  // first instead of dismissing the whole modal — the user might
+  // just want to abort the new-profile form, not lose their place.
+  // useModalA11y dispatches Escape through this callback.
+  const handleEscape = useCallback(() => {
+    if (view === "create") {
+      setView("select");
+    } else {
+      onClose();
+    }
+  }, [view, onClose]);
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, handleEscape);
 
   if (!isOpen) return null;
 
@@ -101,6 +100,10 @@ export function ProfileSelectorModal({
 
   return (
     <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("profiles.select.title")}
       className="fixed inset-0 z-100 bg-black/80 flex items-center justify-center animate-fade-in p-4"
       onClick={onClose}
     >

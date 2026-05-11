@@ -1,5 +1,5 @@
-import { useEffect } from "react";
 import { X } from "lucide-react";
+import { useModalA11y } from "../../hooks/useModalA11y";
 
 interface Props {
   src: string | null;
@@ -9,19 +9,13 @@ interface Props {
 }
 
 export function Lightbox({ src, alt, isOpen, onClose }: Props) {
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [isOpen, onClose]);
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
   if (!isOpen || !src) return null;
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 bg-black/90 z-100 flex items-center justify-center animate-fade-in"
       onClick={onClose}
       role="dialog"

@@ -697,7 +697,8 @@
     "queue": "대기열",
     "miniPlayer": "미니 플레이어 (항상 위)",
     "previous": "이전 트랙",
-    "next": "다음 트랙"
+    "next": "다음 트랙",
+    "devices": "출력 장치"
   },
   "miniPlayer": {
     "idle": "재생 중인 트랙 없음",

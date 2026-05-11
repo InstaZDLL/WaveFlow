@@ -697,7 +697,8 @@
     "queue": "Warteschlange",
     "miniPlayer": "Mini-Player (immer im Vordergrund)",
     "previous": "Vorheriger Titel",
-    "next": "Nächster Titel"
+    "next": "Nächster Titel",
+    "devices": "Ausgabegeräte"
   },
   "miniPlayer": {
     "idle": "Kein Titel wird abgespielt",

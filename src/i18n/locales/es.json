@@ -697,7 +697,8 @@
     "queue": "Cola",
     "miniPlayer": "Mini-reproductor (siempre encima)",
     "previous": "Pista anterior",
-    "next": "Pista siguiente"
+    "next": "Pista siguiente",
+    "devices": "Dispositivos de salida"
   },
   "miniPlayer": {
     "idle": "Sin pista en reproducción",
