@@ -108,6 +108,52 @@ export function listRecentPlays(
   return invoke<RecentPlay[]>("list_recent_plays", { libraryId, limit });
 }
 
+/** Row shape returned by `list_play_history` — one entry per
+ *  play_event (no per-track dedup). */
+export interface PlayHistoryRow {
+  event_id: number;
+  played_at: number;
+  listened_ms: number;
+  completed: boolean;
+  track_id: number;
+  title: string;
+  artist_id: number | null;
+  artist_name: string | null;
+  artist_ids: string | null;
+  album_id: number | null;
+  album_title: string | null;
+  duration_ms: number;
+  artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
+  file_path: string;
+}
+
+/** One bucket per (year, month) for the history scrubber. */
+export interface PlayHistoryMonth {
+  year: number;
+  month: number;
+  /** Unix epoch ms at the first instant of this month (UTC). */
+  start_ms: number;
+  plays: number;
+}
+
+export function listPlayHistory(args: {
+  beforeMs?: number | null;
+  afterMs?: number | null;
+  limit: number;
+}): Promise<PlayHistoryRow[]> {
+  return invoke<PlayHistoryRow[]>("list_play_history", {
+    beforeMs: args.beforeMs ?? null,
+    afterMs: args.afterMs ?? null,
+    limit: args.limit,
+  });
+}
+
+export function playHistoryMonths(): Promise<PlayHistoryMonth[]> {
+  return invoke<PlayHistoryMonth[]>("play_history_months");
+}
+
 /** Profile-wide counters for the sidebar. */
 export interface ProfileStats {
   liked_count: number;

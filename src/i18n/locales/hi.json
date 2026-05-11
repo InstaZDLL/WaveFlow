@@ -344,6 +344,28 @@
     "unlike": "अनफ़ॉलो",
     "like": "पसंदीदा में जोड़ें"
   },
+  "history": {
+    "badge": "इतिहास",
+    "title": "सुनने का इतिहास",
+    "today": "आज",
+    "yesterday": "कल",
+    "timeline": "टाइमलाइन",
+    "loadingMore": "लोड हो रहा है…",
+    "endReached": "इतिहास की शुरुआत",
+    "emptyTitle": "अभी तक कोई प्ले नहीं",
+    "emptyDescription": "एक ट्रैक चलाएँ — गिनती में आते ही यहाँ दिखेगा।",
+    "shownCount_one": "{{count}} प्ले दिखाया गया",
+    "shownCount_other": "{{count}} प्ले दिखाए गए",
+    "plays_one": "{{count}} प्ले",
+    "plays_other": "{{count}} प्ले",
+    "range": {
+      "all": "सब",
+      "7d": "7 दिन",
+      "30d": "30 दिन",
+      "90d": "90 दिन",
+      "1y": "1 वर्ष"
+    }
+  },
   "recent": {
     "badge": "इतिहास",
     "title": "हाल ही में खेला गया",

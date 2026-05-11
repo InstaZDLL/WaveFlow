@@ -344,6 +344,28 @@
     "unlike": "Unfollow",
     "like": "Add to Favorites"
   },
+  "history": {
+    "badge": "History",
+    "title": "Listening history",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "timeline": "Timeline",
+    "loadingMore": "Loading…",
+    "endReached": "Beginning of history",
+    "emptyTitle": "No plays yet",
+    "emptyDescription": "Play a track — it'll show up here as soon as it counts.",
+    "shownCount_one": "{{count}} play shown",
+    "shownCount_other": "{{count}} plays shown",
+    "plays_one": "{{count}} play",
+    "plays_other": "{{count}} plays",
+    "range": {
+      "all": "All time",
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days",
+      "1y": "1 year"
+    }
+  },
   "recent": {
     "badge": "History",
     "title": "Recently played",

@@ -319,6 +319,8 @@ pub fn run() {
             commands::browse::list_genres,
             commands::browse::list_folders,
             commands::browse::list_recent_plays,
+            commands::browse::list_play_history,
+            commands::browse::play_history_months,
             commands::browse::get_profile_stats,
             commands::browse::get_album_detail,
             commands::browse::get_artist_detail,

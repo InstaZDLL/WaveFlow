@@ -344,6 +344,28 @@
     "unlike": "Beğenilenler listesinden çıkar",
     "like": "Beğenilenlere ekle"
   },
+  "history": {
+    "badge": "Geçmiş",
+    "title": "Dinleme geçmişi",
+    "today": "Bugün",
+    "yesterday": "Dün",
+    "timeline": "Zaman çizelgesi",
+    "loadingMore": "Yükleniyor…",
+    "endReached": "Geçmişin başı",
+    "emptyTitle": "Henüz dinleme yok",
+    "emptyDescription": "Bir parça çal — sayıldığı anda burada görünecek.",
+    "shownCount_one": "{{count}} dinleme gösteriliyor",
+    "shownCount_other": "{{count}} dinleme gösteriliyor",
+    "plays_one": "{{count}} kez oynandı",
+    "plays_other": "{{count}} kez oynandı",
+    "range": {
+      "all": "Tümü",
+      "7d": "7 gün",
+      "30d": "30 gün",
+      "90d": "90 gün",
+      "1y": "1 yıl"
+    }
+  },
   "recent": {
     "badge": "Tarihçe",
     "title": "Son oynananlar",

@@ -344,6 +344,28 @@
     "unlike": "Retirer des likés",
     "like": "Ajouter aux likés"
   },
+  "history": {
+    "badge": "Historique",
+    "title": "Historique d'écoute",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "timeline": "Chronologie",
+    "loadingMore": "Chargement…",
+    "endReached": "Début de l'historique",
+    "emptyTitle": "Aucune écoute pour le moment",
+    "emptyDescription": "Lance un titre — il apparaîtra ici dès qu'il sera comptabilisé.",
+    "shownCount_one": "{{count}} écoute affichée",
+    "shownCount_other": "{{count}} écoutes affichées",
+    "plays_one": "{{count}} écoute",
+    "plays_other": "{{count}} écoutes",
+    "range": {
+      "all": "Tout",
+      "7d": "7 jours",
+      "30d": "30 jours",
+      "90d": "90 jours",
+      "1y": "1 an"
+    }
+  },
   "recent": {
     "badge": "Historique",
     "title": "Récemment joués",

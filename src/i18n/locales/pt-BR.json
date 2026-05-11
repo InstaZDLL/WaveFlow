@@ -344,6 +344,28 @@
     "unlike": "Retirar curtidas",
     "like": "Adicionar aos favoritos"
   },
+  "history": {
+    "badge": "Histórico",
+    "title": "Histórico de reprodução",
+    "today": "Hoje",
+    "yesterday": "Ontem",
+    "timeline": "Linha do tempo",
+    "loadingMore": "Carregando…",
+    "endReached": "Início do histórico",
+    "emptyTitle": "Sem reproduções",
+    "emptyDescription": "Reproduza uma faixa — aparecerá aqui assim que contar.",
+    "shownCount_one": "{{count}} reprodução exibida",
+    "shownCount_other": "{{count}} reproduções exibidas",
+    "plays_one": "{{count}} reprodução",
+    "plays_other": "{{count}} reproduções",
+    "range": {
+      "all": "Tudo",
+      "7d": "7 dias",
+      "30d": "30 dias",
+      "90d": "90 dias",
+      "1y": "1 ano"
+    }
+  },
   "recent": {
     "badge": "Histórico",
     "title": "Jogados recentemente",

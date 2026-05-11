@@ -344,6 +344,28 @@
     "unlike": "取消按讚",
     "like": "加入「喜歡」清單"
   },
+  "history": {
+    "badge": "歷史",
+    "title": "收聽歷史",
+    "today": "今天",
+    "yesterday": "昨天",
+    "timeline": "時間線",
+    "loadingMore": "載入中…",
+    "endReached": "歷史的開始",
+    "emptyTitle": "暫無收聽紀錄",
+    "emptyDescription": "播放一首曲目 — 計入後將立即出現在此。",
+    "shownCount_one": "顯示 {{count}} 次收聽",
+    "shownCount_other": "顯示 {{count}} 次收聽",
+    "plays_one": "{{count}} 次收聽",
+    "plays_other": "{{count}} 次收聽",
+    "range": {
+      "all": "全部",
+      "7d": "7 天",
+      "30d": "30 天",
+      "90d": "90 天",
+      "1y": "1 年"
+    }
+  },
   "recent": {
     "badge": "沿革",
     "title": "最近播放的",

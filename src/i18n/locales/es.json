@@ -344,6 +344,28 @@
     "unlike": "Retirar los «Me gusta»",
     "like": "Añadir a los favoritos"
   },
+  "history": {
+    "badge": "Historial",
+    "title": "Historial de escucha",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "timeline": "Cronología",
+    "loadingMore": "Cargando…",
+    "endReached": "Inicio del historial",
+    "emptyTitle": "Aún sin reproducciones",
+    "emptyDescription": "Reproduce una canción y aparecerá aquí en cuanto cuente.",
+    "shownCount_one": "{{count}} reproducción mostrada",
+    "shownCount_other": "{{count}} reproducciones mostradas",
+    "plays_one": "{{count}} reproducción",
+    "plays_other": "{{count}} reproducciones",
+    "range": {
+      "all": "Todo",
+      "7d": "7 días",
+      "30d": "30 días",
+      "90d": "90 días",
+      "1y": "1 año"
+    }
+  },
   "recent": {
     "badge": "Historia",
     "title": "Jugados recientemente",

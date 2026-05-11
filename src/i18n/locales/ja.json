@@ -344,6 +344,28 @@
     "unlike": "「いいね」を解除する",
     "like": "「いいね」に追加"
   },
+  "history": {
+    "badge": "履歴",
+    "title": "再生履歴",
+    "today": "今日",
+    "yesterday": "昨日",
+    "timeline": "タイムライン",
+    "loadingMore": "読み込み中…",
+    "endReached": "履歴の先頭",
+    "emptyTitle": "まだ再生がありません",
+    "emptyDescription": "曲を再生してみてください — カウントされるとすぐに表示されます。",
+    "shownCount_one": "{{count}}件の再生を表示",
+    "shownCount_other": "{{count}}件の再生を表示",
+    "plays_one": "再生 {{count}}回",
+    "plays_other": "再生 {{count}}回",
+    "range": {
+      "all": "すべて",
+      "7d": "7日",
+      "30d": "30日",
+      "90d": "90日",
+      "1y": "1年"
+    }
+  },
   "recent": {
     "badge": "沿革",
     "title": "最近プレイしたゲーム",

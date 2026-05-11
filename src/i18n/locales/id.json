@@ -344,6 +344,28 @@
     "unlike": "Hapus dari daftar yang disukai",
     "like": "Tambahkan ke daftar favorit"
   },
+  "history": {
+    "badge": "Riwayat",
+    "title": "Riwayat dengar",
+    "today": "Hari ini",
+    "yesterday": "Kemarin",
+    "timeline": "Linimasa",
+    "loadingMore": "Memuat…",
+    "endReached": "Awal riwayat",
+    "emptyTitle": "Belum ada pemutaran",
+    "emptyDescription": "Mainkan sebuah lagu — akan muncul di sini setelah dihitung.",
+    "shownCount_one": "{{count}} pemutaran ditampilkan",
+    "shownCount_other": "{{count}} pemutaran ditampilkan",
+    "plays_one": "{{count}} kali diputar",
+    "plays_other": "{{count}} kali diputar",
+    "range": {
+      "all": "Semua",
+      "7d": "7 hari",
+      "30d": "30 hari",
+      "90d": "90 hari",
+      "1y": "1 tahun"
+    }
+  },
   "recent": {
     "badge": "Sejarah",
     "title": "Baru-baru ini dimainkan",

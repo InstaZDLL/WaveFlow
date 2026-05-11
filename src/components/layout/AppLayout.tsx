@@ -25,7 +25,7 @@ import { AboutView } from "../views/AboutView";
 import { FeedbackView } from "../views/FeedbackView";
 import { StatisticsView } from "../views/StatisticsView";
 import { LikedView } from "../views/LikedView";
-import { RecentView } from "../views/RecentView";
+import { HistoryView } from "../views/HistoryView";
 import { PlaylistView } from "../views/PlaylistView";
 import { AlbumDetailView } from "../views/AlbumDetailView";
 import { ArtistDetailView } from "../views/ArtistDetailView";
@@ -219,7 +219,7 @@ export function AppLayout() {
         );
       case "recent":
         return (
-          <RecentView
+          <HistoryView
             onNavigateToAlbum={navigateToAlbum}
             onNavigateToArtist={navigateToArtist}
           />

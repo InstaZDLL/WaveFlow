@@ -344,6 +344,28 @@
     "unlike": "Rimuovere i \"Mi piace\"",
     "like": "Aggiungi ai preferiti"
   },
+  "history": {
+    "badge": "Cronologia",
+    "title": "Cronologia di ascolto",
+    "today": "Oggi",
+    "yesterday": "Ieri",
+    "timeline": "Cronologia",
+    "loadingMore": "Caricamento…",
+    "endReached": "Inizio della cronologia",
+    "emptyTitle": "Nessun ascolto",
+    "emptyDescription": "Riproduci un brano — apparirà qui appena viene conteggiato.",
+    "shownCount_one": "{{count}} ascolto mostrato",
+    "shownCount_other": "{{count}} ascolti mostrati",
+    "plays_one": "{{count}} ascolto",
+    "plays_other": "{{count}} ascolti",
+    "range": {
+      "all": "Tutto",
+      "7d": "7 giorni",
+      "30d": "30 giorni",
+      "90d": "90 giorni",
+      "1y": "1 anno"
+    }
+  },
   "recent": {
     "badge": "Cronologia",
     "title": "Giocati di recente",

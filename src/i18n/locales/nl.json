@@ -344,6 +344,28 @@
     "unlike": "Likes verwijderen",
     "like": "Toevoegen aan favorieten"
   },
+  "history": {
+    "badge": "Geschiedenis",
+    "title": "Luistergeschiedenis",
+    "today": "Vandaag",
+    "yesterday": "Gisteren",
+    "timeline": "Tijdlijn",
+    "loadingMore": "Laden…",
+    "endReached": "Begin van de geschiedenis",
+    "emptyTitle": "Nog geen weergaven",
+    "emptyDescription": "Speel een nummer af — het verschijnt hier zodra het meetelt.",
+    "shownCount_one": "{{count}} weergave getoond",
+    "shownCount_other": "{{count}} weergaven getoond",
+    "plays_one": "{{count}} keer beluisterd",
+    "plays_other": "{{count}} keer beluisterd",
+    "range": {
+      "all": "Alles",
+      "7d": "7 dagen",
+      "30d": "30 dagen",
+      "90d": "90 dagen",
+      "1y": "1 jaar"
+    }
+  },
   "recent": {
     "badge": "Geschiedenis",
     "title": "Onlangs gespeeld",

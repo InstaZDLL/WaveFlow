@@ -344,6 +344,28 @@
     "unlike": "‘좋아요’ 취소하기",
     "like": "‘좋아요’에 추가하기"
   },
+  "history": {
+    "badge": "기록",
+    "title": "재생 기록",
+    "today": "오늘",
+    "yesterday": "어제",
+    "timeline": "타임라인",
+    "loadingMore": "불러오는 중…",
+    "endReached": "기록의 시작",
+    "emptyTitle": "재생 기록이 없습니다",
+    "emptyDescription": "트랙을 재생하면 집계되는 즉시 여기에 표시됩니다.",
+    "shownCount_one": "{{count}}회 재생 표시 중",
+    "shownCount_other": "{{count}}회 재생 표시 중",
+    "plays_one": "{{count}}회 재생",
+    "plays_other": "{{count}}회 재생",
+    "range": {
+      "all": "전체",
+      "7d": "7일",
+      "30d": "30일",
+      "90d": "90일",
+      "1y": "1년"
+    }
+  },
   "recent": {
     "badge": "연혁",
     "title": "최근 플레이한 게임",

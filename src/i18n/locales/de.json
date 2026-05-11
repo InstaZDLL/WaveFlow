@@ -344,6 +344,28 @@
     "unlike": "Likes entfernen",
     "like": "Zu den Favoriten hinzufügen"
   },
+  "history": {
+    "badge": "Verlauf",
+    "title": "Wiedergabeverlauf",
+    "today": "Heute",
+    "yesterday": "Gestern",
+    "timeline": "Zeitleiste",
+    "loadingMore": "Wird geladen…",
+    "endReached": "Anfang des Verlaufs",
+    "emptyTitle": "Noch keine Wiedergaben",
+    "emptyDescription": "Starte einen Titel — er erscheint hier, sobald er zählt.",
+    "shownCount_one": "{{count}} Wiedergabe angezeigt",
+    "shownCount_other": "{{count}} Wiedergaben angezeigt",
+    "plays_one": "{{count}} Wiedergabe",
+    "plays_other": "{{count}} Wiedergaben",
+    "range": {
+      "all": "Alles",
+      "7d": "7 Tage",
+      "30d": "30 Tage",
+      "90d": "90 Tage",
+      "1y": "1 Jahr"
+    }
+  },
   "recent": {
     "badge": "Geschichte",
     "title": "Zuletzt gespielt",
