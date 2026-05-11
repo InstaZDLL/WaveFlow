@@ -449,7 +449,7 @@ function DayGroup({
           sticky header, so any transparency makes the row text
           bleed through. Border-bottom delineates the header from
           the first row of the day cleanly. */}
-      <div className="sticky top-0 z-20 bg-white dark:bg-surface-dark py-2 mb-2 border-b border-zinc-100 dark:border-zinc-800">
+      <div className="sticky top-0 z-20 bg-white dark:bg-surface-dark py-2 border-b border-zinc-100 dark:border-zinc-800">
         <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
           {dayLabel(group.ts, locale, t)}
         </h2>
