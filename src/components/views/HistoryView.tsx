@@ -445,12 +445,12 @@ function DayGroup({
   const { t } = useTranslation();
   return (
     <section>
-      {/* Opaque background — the section list scrolls under the
-          sticky header, so any transparency would let row text
-          bleed through. Inline title + count keep the header to a
-          single line so it doesn't push the first row down with
-          two-line padding. */}
-      <div className="sticky top-0 z-20 bg-white dark:bg-surface-dark px-3 py-1.5 border-b border-zinc-100 dark:border-zinc-800 flex items-baseline gap-3">
+      {/* Opaque background covers any row scrolling under the
+          sticky header. `-top-px` and the matching `-mt-px` align
+          the header's bottom border with the next row so there's
+          no perceived gap; the header itself stays tight (py-1)
+          against the previous row above it. */}
+      <div className="sticky -top-px z-20 bg-white dark:bg-surface-dark px-3 py-1 border-b border-zinc-100 dark:border-zinc-800 flex items-baseline gap-3">
         <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 capitalize">
           {dayLabel(group.ts, locale, t)}
         </h2>
