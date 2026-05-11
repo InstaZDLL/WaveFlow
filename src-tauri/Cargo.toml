@@ -41,6 +41,7 @@ tauri-plugin-updater = "2"
 tauri-plugin-single-instance = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+serde_urlencoded = "0.7"
 
 # Async runtime
 tokio = { version = "1", features = ["full"] }
@@ -122,6 +123,8 @@ anyhow = "1"
 # track.updateNowPlaying) need an md5 of the param block + secret.
 md-5 = "0.11"
 hex = "0.4"
+base64 = "0.22"
+sha2 = "0.10"
 
 # OS-level media controls: SMTC on Windows, MPRIS on Linux,
 # MediaRemoteCommandCenter on macOS. Souvlaki abstracts the three

@@ -13,6 +13,7 @@ import {
   Plus,
   Upload,
   Sparkles,
+  Headphones,
 } from "lucide-react";
 import type { ViewId, LibraryTab } from "../../types";
 import { NavItem } from "../common/NavItem";
@@ -26,6 +27,7 @@ import { getProfileColor, profileInitial } from "../../lib/profileColors";
 import { pickFile, pickFolder } from "../../lib/tauri/dialog";
 import { importPlaylistM3u } from "../../lib/tauri/playlist";
 import { getProfileStats, type ProfileStats } from "../../lib/tauri/browse";
+import { getProfileSetting } from "../../lib/tauri/profile";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
@@ -71,6 +73,25 @@ export function Sidebar({
     liked_count: 0,
     recent_plays_count: 0,
   });
+  // Per-profile toggle: hide the Spotify entry from the sidebar so
+  // users who don't care about Spotify integration don't see it
+  // every time. Default ON. Persisted in `ui.show_spotify`.
+  const [showSpotify, setShowSpotify] = useState(true);
+  useEffect(() => {
+    const refresh = () => {
+      getProfileSetting("ui.show_spotify")
+        .then((v) => {
+          // Missing key → default ON.
+          setShowSpotify(v == null ? true : v === "1" || v === "true");
+        })
+        .catch(() => {});
+    };
+    refresh();
+    window.addEventListener("waveflow:show-spotify-visibility", refresh);
+    return () => {
+      window.removeEventListener("waveflow:show-spotify-visibility", refresh);
+    };
+  }, []);
 
   // Seq-guarded stats fetch
   const statsSeqRef = useRef(0);
@@ -251,6 +272,14 @@ export function Sidebar({
             active={activeView === "home"}
             onClick={() => setActiveView("home")}
           />
+          {showSpotify && (
+            <NavItem
+              icon={<Headphones size={18} />}
+              label={t("sidebar.nav.spotify", "Spotify")}
+              active={activeView === "spotify"}
+              onClick={() => setActiveView("spotify")}
+            />
+          )}
         </div>
 
         {/* ─── MA MUSIQUE ─── */}

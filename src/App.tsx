@@ -3,6 +3,7 @@ import { PlayerProvider } from "./contexts/PlayerContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
 import { LibraryProvider } from "./contexts/LibraryContext";
 import { PlaylistProvider } from "./contexts/PlaylistContext";
+import { SpotifyProvider } from "./contexts/SpotifyContext";
 import { AppLayout } from "./components/layout/AppLayout";
 
 export default function App() {
@@ -11,9 +12,11 @@ export default function App() {
       <ProfileProvider>
         <LibraryProvider>
           <PlaylistProvider>
-            <PlayerProvider>
-              <AppLayout />
-            </PlayerProvider>
+            <SpotifyProvider>
+              <PlayerProvider>
+                <AppLayout />
+              </PlayerProvider>
+            </SpotifyProvider>
           </PlaylistProvider>
         </LibraryProvider>
       </ProfileProvider>

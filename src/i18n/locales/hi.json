@@ -449,6 +449,10 @@
       "basedOn": "“{{title}}” पर आधारित"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "अभी Spotify कतार में कुछ नहीं।",
+    "readonlyHint": "केवल-पढ़ने योग्य कतार — Spotify ऐप से प्रबंधित करें।"
+  },
   "deviceMenu": {
     "activeLabel": "सक्रिय आउटपुट",
     "loading": "डिवाइस खोज रहे हैं…",

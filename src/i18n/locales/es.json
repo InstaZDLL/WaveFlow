@@ -449,6 +449,10 @@
       "basedOn": "Basada en «{{title}}»"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "No hay nada en la cola de Spotify por ahora.",
+    "readonlyHint": "Cola de solo lectura — modifícala desde la app de Spotify."
+  },
   "deviceMenu": {
     "activeLabel": "Salida activa",
     "loading": "Buscando dispositivos…",

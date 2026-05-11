@@ -38,6 +38,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
     currentTrack,
     volume,
     setVolume,
+    activeProvider,
   } = usePlayer();
 
   const sleepTimer = useSleepTimer({ currentVolume: volume, setVolume });
@@ -71,7 +72,10 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
     window.addEventListener("waveflow:sleep-timer-visibility", refreshSleep);
     window.addEventListener("waveflow:ab-loop-visibility", refreshAb);
     return () => {
-      window.removeEventListener("waveflow:sleep-timer-visibility", refreshSleep);
+      window.removeEventListener(
+        "waveflow:sleep-timer-visibility",
+        refreshSleep,
+      );
       window.removeEventListener("waveflow:ab-loop-visibility", refreshAb);
     };
   }, []);
@@ -110,7 +114,9 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
       .catch(() => {});
   }, [currentTrack?.id]);
 
-  const isLiked = currentTrack != null && likedIds.has(currentTrack.id);
+  const isSpotify = activeProvider === "spotify";
+  const isLiked =
+    currentTrack != null && !isSpotify && likedIds.has(currentTrack.id);
 
   const handleToggleLike = async () => {
     if (!currentTrack) return;
@@ -174,7 +180,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               )}
             </span>
           </div>
-          {currentTrack && (
+          {currentTrack && !isSpotify && (
             <button
               type="button"
               onClick={handleToggleLike}
@@ -241,6 +247,11 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
             <Mic2 size={20} />
           </button>
 
+          {/* Mini-player available in both local and Spotify modes.
+              In Spotify mode, the mini doesn't attach the Web Playback
+              SDK (it can only bind to one webview) — it mirrors the
+              main window's state via the `spotify:state` Tauri event
+              and routes its controls through the Connect API. */}
           <button
             onClick={() => {
               import("../../lib/miniPlayer").then((m) =>
@@ -269,23 +280,25 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
             <Menu size={20} />
           </button>
 
-          <div className="relative">
-            <button
-              onClick={toggleDeviceMenu}
-              className={`p-2 rounded-lg transition-colors border ${
-                isDeviceMenuOpen
-                  ? "border-emerald-500 text-emerald-500 bg-emerald-500/10"
-                  : "border-transparent text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              }`}
-            >
-              <MonitorSpeaker size={20} />
-            </button>
-          </div>
+          {!isSpotify && (
+            <div className="relative">
+              <button
+                onClick={toggleDeviceMenu}
+                className={`p-2 rounded-lg transition-colors border ${
+                  isDeviceMenuOpen
+                    ? "border-emerald-500 text-emerald-500 bg-emerald-500/10"
+                    : "border-transparent text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                }`}
+              >
+                <MonitorSpeaker size={20} />
+              </button>
+            </div>
+          )}
 
           <VolumeControl />
         </div>
       </div>
-      <AudioQualityFooter track={currentTrack ?? null} />
+      <AudioQualityFooter track={isSpotify ? null : (currentTrack ?? null)} />
     </div>
     {isFullscreenOpen && currentTrack && (
       <FullscreenNowPlaying

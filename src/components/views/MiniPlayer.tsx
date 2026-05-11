@@ -58,7 +58,9 @@ export function MiniPlayer() {
     toggleShuffle,
     seek,
     setSeeking,
+    activeProvider,
   } = usePlayer();
+  const isSpotify = activeProvider === "spotify";
 
   // ── Like-state mirror (own webview = own React state) ───────────
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
@@ -316,22 +318,27 @@ export function MiniPlayer() {
           >
             {currentTrack?.artist_name ?? "—"}
           </div>
-          <button
-            type="button"
-            onClick={handleLike}
-            disabled={!currentTrack}
-            aria-label={t("miniPlayer.like")}
-            className="p-0.5 disabled:opacity-30 shrink-0"
-          >
-            <Heart
-              size={14}
-              className={
-                isLiked
-                  ? "fill-emerald-400 text-emerald-400"
-                  : "text-white/60 hover:text-white"
-              }
-            />
-          </button>
+          {/* Like button is local-library only — Spotify tracks
+              don't live in the WaveFlow DB so toggleLikeTrack would
+              fail silently on a missing row. */}
+          {!isSpotify && (
+            <button
+              type="button"
+              onClick={handleLike}
+              disabled={!currentTrack}
+              aria-label={t("miniPlayer.like")}
+              className="p-0.5 disabled:opacity-30 shrink-0"
+            >
+              <Heart
+                size={14}
+                className={
+                  isLiked
+                    ? "fill-emerald-400 text-emerald-400"
+                    : "text-white/60 hover:text-white"
+                }
+              />
+            </button>
+          )}
         </div>
       </div>
 

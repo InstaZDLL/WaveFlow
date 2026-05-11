@@ -449,6 +449,10 @@
       "basedOn": "“{{title}}” 기반"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "지금 Spotify 대기열에 아무것도 없습니다.",
+    "readonlyHint": "읽기 전용 대기열 — Spotify 앱에서 관리하세요."
+  },
   "deviceMenu": {
     "activeLabel": "출력 활성화",
     "loading": "장치 검색 중…",

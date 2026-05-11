@@ -22,6 +22,7 @@ mod paths;
 mod queue;
 mod scrobbler;
 mod smart_playlists;
+mod spotify;
 mod state;
 mod thumbnails;
 mod watcher;
@@ -342,6 +343,17 @@ pub fn run() {
             commands::integration::lastfm_logout,
             commands::integration::get_discord_rpc_enabled,
             commands::integration::set_discord_rpc_enabled,
+            commands::spotify::get_spotify_client_id,
+            commands::spotify::set_spotify_client_id,
+            commands::spotify::spotify_get_status,
+            commands::spotify::spotify_login,
+            commands::spotify::spotify_logout,
+            commands::spotify::spotify_get_access_token,
+            commands::spotify::spotify_list_playlists,
+            commands::spotify::spotify_get_playlist_tracks,
+            commands::spotify::spotify_get_queue,
+            commands::spotify::spotify_search,
+            commands::spotify::spotify_pause_local,
             commands::offline::get_offline_mode,
             commands::offline::set_offline_mode,
             commands::lyrics::get_lyrics,

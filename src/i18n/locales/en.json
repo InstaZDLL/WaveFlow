@@ -457,6 +457,10 @@
       "basedOn": "Based on “{{title}}”"
     }
   },
+  "spotifyQueue": {
+    "emptyHint": "Nothing in the Spotify queue right now.",
+    "readonlyHint": "Read-only queue — manage it from the Spotify app."
+  },
   "deviceMenu": {
     "activeLabel": "Active output",
     "loading": "Searching for devices…",
@@ -916,6 +920,10 @@
       "title": "Show A-B repeat",
       "subtitle": "Show the A-B loop button in the player bar"
     },
+    "showSpotify": {
+      "title": "Show Spotify entry",
+      "subtitle": "Show the Spotify shortcut in the sidebar"
+    },
     "duplicates": {
       "title": "Detect duplicates",
       "subtitle": "Find byte-identical files (same blake3) in your library",
@@ -1027,5 +1035,14 @@
         "treble_booster": "Treble booster"
       }
     }
+  },
+  "spotify": {
+    "notConfiguredTitle": "Register your Spotify app",
+    "notConfiguredMessage": "Spotify requires every third-party app to register a free Client ID before any playback. Create one on the Spotify Developer dashboard, then paste it in WaveFlow's Settings → Integrations.",
+    "openDashboard": "Open Spotify Developer dashboard",
+    "openSettings": "Open Settings",
+    "notConnectedTitle": "Spotify is not connected",
+    "notConnectedMessage": "Your Client ID is set. Sign in to your Spotify Premium account from Settings to load your playlists and play music.",
+    "emptyPlaylist": "No tracks available in this playlist (Spotify may not expose local files or playlists you don't own)."
   }
 }
