@@ -416,14 +416,14 @@
     "topAlbums": {
       "title": "인기 앨범",
       "empty": "듣고 있는 앨범이 없습니다."
-    },    "heatmap": {
+    },
+    "heatmap": {
       "title": "연간 활동",
       "empty": "지난 12개월 동안 재생 기록이 없습니다.",
       "summary": "1년 동안 {{time}} 청취 — {{plays}}회 재생",
       "less": "적음",
       "more": "많음"
     },
-
     "plays_zero": "0회 재생",
     "plays_one": "{{count}} 들어보세요",
     "plays_other": "{{count}} 도청"
@@ -487,6 +487,13 @@
       "label": "분량",
       "mute": "소리 끄기",
       "unmute": "소리 켜기"
+    },
+    "speed": {
+      "label": "재생 속도 ({{value}})",
+      "title": "재생 속도",
+      "slider": "속도 슬라이더",
+      "custom": "사용자 정의 속도",
+      "pitchHint": "피치가 속도를 따라갑니다 (타임 스트레칭 없음)."
     }
   },
   "queue": {
@@ -720,7 +727,8 @@
     "miniPlayer": "미니 플레이어 (항상 위)",
     "previous": "이전 트랙",
     "next": "다음 트랙",
-    "devices": "출력 장치"
+    "devices": "출력 장치",
+    "moreActions": "추가 작업"
   },
   "miniPlayer": {
     "idle": "재생 중인 트랙 없음",
@@ -1039,8 +1047,7 @@
         "treble_booster": "고음 부스터"
       }
     }
-  }
-,
+  },
   "scanProgress": {
     "runningTitle": "라이브러리 스캔 중…",
     "runningSubtitle": "{{current}} / {{total}}개 파일",

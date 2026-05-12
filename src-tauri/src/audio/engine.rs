@@ -56,6 +56,10 @@ pub enum AudioCmd {
     /// Toggle gapless playback (sample-accurate hand-off between
     /// consecutive queued tracks when no crossfade is configured).
     SetGapless(bool),
+    /// Update the playback speed multiplier. Pushed live so the
+    /// decoder rebuilds the active stream's resampler against the
+    /// new effective source rate (`actual_rate * speed`).
+    SetSpeed(f32),
     /// Hand the decoder thread the next track to prefetch for
     /// crossfade. Sent by the analytics task in response to a
     /// `PrefetchNext` request from the decoder.
@@ -100,6 +104,7 @@ impl std::fmt::Debug for AudioCmd {
             AudioCmd::SetCrossfade(v) => write!(f, "SetCrossfade({v})"),
             AudioCmd::SetReplayGain(v) => write!(f, "SetReplayGain({v})"),
             AudioCmd::SetGapless(v) => write!(f, "SetGapless({v})"),
+            AudioCmd::SetSpeed(v) => write!(f, "SetSpeed({v})"),
             AudioCmd::SetNextTrack { track_id, .. } => {
                 write!(f, "SetNextTrack {{ track_id: {track_id} }}")
             }

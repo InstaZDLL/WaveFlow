@@ -495,6 +495,13 @@
       "label": "Volume",
       "mute": "Couper le son",
       "unmute": "Activer le son"
+    },
+    "speed": {
+      "label": "Vitesse de lecture ({{value}})",
+      "title": "Vitesse de lecture",
+      "slider": "Curseur de vitesse",
+      "custom": "Vitesse personnalisée",
+      "pitchHint": "Le ton suit la vitesse (pas de désynchronisation tonale)."
     }
   },
   "queue": {
@@ -729,7 +736,8 @@
     "previous": "Piste précédente",
     "next": "Piste suivante",
     "openFullscreen": "Vue immersive",
-    "devices": "Périphériques de sortie"
+    "devices": "Périphériques de sortie",
+    "moreActions": "Plus d'actions"
   },
   "miniPlayer": {
     "idle": "Aucun titre en cours",

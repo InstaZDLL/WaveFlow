@@ -43,6 +43,11 @@ interface PlayerContextValue {
   setVolume: (value: number) => void;
   toggleMute: () => void;
 
+  // Playback speed multiplier, clamped to [0.5, 2.0]. Pitch follows
+  // speed (no time-stretching). Persisted per-profile.
+  playbackSpeed: number;
+  setPlaybackSpeed: (value: number) => void;
+
   // Shuffle / repeat are backend-synced via player_toggle_shuffle /
   // player_cycle_repeat. The UI flips optimistically and rolls back
   // on backend error.

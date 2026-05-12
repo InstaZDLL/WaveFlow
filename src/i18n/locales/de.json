@@ -416,14 +416,14 @@
     "topAlbums": {
       "title": "Top-Alben",
       "empty": "Es wurde kein Album angehört."
-    },    "heatmap": {
+    },
+    "heatmap": {
       "title": "Aktivität des Jahres",
       "empty": "Noch keine Wiedergaben in den letzten 12 Monaten.",
       "summary": "{{time}} im Jahr gehört — {{plays}} Wiedergaben",
       "less": "Weniger",
       "more": "Mehr"
     },
-
     "plays_zero": "0 Aufrufe",
     "plays_one": "{{count}} Zuhören",
     "plays_other": "{{count}} Abhörmaßnahmen"
@@ -487,6 +487,13 @@
       "label": "Umfang",
       "mute": "Ton ausschalten",
       "unmute": "Ton einschalten"
+    },
+    "speed": {
+      "label": "Wiedergabegeschwindigkeit ({{value}})",
+      "title": "Wiedergabegeschwindigkeit",
+      "slider": "Geschwindigkeitsregler",
+      "custom": "Benutzerdefinierte Geschwindigkeit",
+      "pitchHint": "Tonhöhe folgt der Geschwindigkeit (kein Time-Stretching)."
     }
   },
   "queue": {
@@ -720,7 +727,8 @@
     "miniPlayer": "Mini-Player (immer im Vordergrund)",
     "previous": "Vorheriger Titel",
     "next": "Nächster Titel",
-    "devices": "Ausgabegeräte"
+    "devices": "Ausgabegeräte",
+    "moreActions": "Weitere Aktionen"
   },
   "miniPlayer": {
     "idle": "Kein Titel wird abgespielt",
@@ -1039,8 +1047,7 @@
         "treble_booster": "Höhen-Verstärkung"
       }
     }
-  }
-,
+  },
   "scanProgress": {
     "runningTitle": "Bibliothek wird analysiert…",
     "runningSubtitle": "{{current}} / {{total}} Dateien",

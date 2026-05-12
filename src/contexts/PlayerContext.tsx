@@ -17,6 +17,7 @@ import type { Track } from "../lib/tauri/track";
 import type { SpotifyTrackLite } from "../lib/tauri/spotify";
 import {
   playerCycleRepeat,
+  playerGetSpeed,
   playerGetState,
   playerListOutputDevices,
   playerNext,
@@ -26,6 +27,7 @@ import {
   playerResume,
   playerResumeLast,
   playerSeek,
+  playerSetSpeed,
   playerSetVolume,
   playerToggleShuffle,
   type OutputDevice,
@@ -154,6 +156,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [isShuffled, setIsShuffled] = useState(false);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
 
+  // Playback speed (0.5×–2×). Pushed to backend immediately — no
+  // debounce because the user picks discrete values from a menu and
+  // each rebuild costs ~one rubato chunk of audio (negligible).
+  const [playbackSpeed, setPlaybackSpeedState] = useState(1.0);
+
   // Suppress incoming position events while the user drags the
   // progress bar, so the thumb doesn't fight the mouse.
   const isSeekingRef = useRef(false);
@@ -187,6 +194,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         if (snap.current_track) {
           setCurrentTrack(queuePayloadToTrack(snap.current_track));
           setDurationMs(snap.current_track.duration_ms);
+        }
+        // Hydrate playback speed in parallel — separate command
+        // because it's not part of the main snapshot (the field
+        // would force the audio settings cards to know about it
+        // too, and they don't).
+        try {
+          const speed = await playerGetSpeed();
+          if (!cancelled) setPlaybackSpeedState(speed);
+        } catch (err) {
+          console.error("[PlayerContext] hydrate playback speed failed", err);
         }
       } catch (err) {
         console.error("[PlayerContext] initial snapshot failed", err);
@@ -277,6 +294,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     },
     [activeProvider, spotify],
   );
+
+  const setPlaybackSpeed = useCallback((value: number) => {
+    const clamped = Math.max(0.5, Math.min(2.0, value));
+    setPlaybackSpeedState(clamped);
+    playerSetSpeed(clamped).catch((err) =>
+      console.error("[PlayerContext] set speed failed", err),
+    );
+  }, []);
 
   const toggleMute = useCallback(() => {
     setVolumeState((current) => {
@@ -564,6 +589,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         volume,
         setVolume,
         toggleMute,
+        playbackSpeed,
+        setPlaybackSpeed,
         isShuffled,
         toggleShuffle,
         repeatMode,

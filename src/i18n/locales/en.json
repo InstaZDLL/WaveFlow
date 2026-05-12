@@ -416,14 +416,14 @@
     "topAlbums": {
       "title": "Top Albums",
       "empty": "No albums played."
-    },    "heatmap": {
+    },
+    "heatmap": {
       "title": "Yearly activity",
       "empty": "No listening yet over the past 12 months.",
       "summary": "{{time}} listened over the year — {{plays}} plays",
       "less": "Less",
       "more": "More"
     },
-
     "plays_zero": "0 plays",
     "plays_one": "{{count}} listen",
     "plays_other": "{{count}} wiretaps"
@@ -495,6 +495,13 @@
       "label": "Volume",
       "mute": "Mute",
       "unmute": "Turn on the sound"
+    },
+    "speed": {
+      "label": "Playback speed ({{value}})",
+      "title": "Playback speed",
+      "slider": "Speed slider",
+      "custom": "Custom speed",
+      "pitchHint": "Pitch tracks speed (no time-stretching)."
     }
   },
   "queue": {
@@ -729,7 +736,8 @@
     "previous": "Previous track",
     "next": "Next track",
     "openFullscreen": "Immersive view",
-    "devices": "Output devices"
+    "devices": "Output devices",
+    "moreActions": "More actions"
   },
   "miniPlayer": {
     "idle": "No track playing",
@@ -1111,8 +1119,7 @@
     "notConnectedTitle": "Spotify is not connected",
     "notConnectedMessage": "Your Client ID is set. Sign in to your Spotify Premium account from Settings to load your playlists and play music.",
     "emptyPlaylist": "No tracks available in this playlist (Spotify may not expose local files or playlists you don't own)."
-  }
-,
+  },
   "scanProgress": {
     "runningTitle": "Scanning library…",
     "runningSubtitle": "{{current}} / {{total}} files",

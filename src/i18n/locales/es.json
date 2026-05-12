@@ -416,14 +416,14 @@
     "topAlbums": {
       "title": "Álbumes más vendidos",
       "empty": "No se ha escuchado ningún álbum."
-    },    "heatmap": {
+    },
+    "heatmap": {
       "title": "Actividad anual",
       "empty": "Aún no hay reproducciones en los últimos 12 meses.",
       "summary": "{{time}} escuchados en el año — {{plays}} reproducciones",
       "less": "Menos",
       "more": "Más"
     },
-
     "plays_zero": "0 reproducciones",
     "plays_one": "{{count}} escucha",
     "plays_other": "{{count}} escuchas"
@@ -487,6 +487,13 @@
       "label": "Volumen",
       "mute": "Silenciar el sonido",
       "unmute": "Activar el sonido"
+    },
+    "speed": {
+      "label": "Velocidad de reproducción ({{value}})",
+      "title": "Velocidad de reproducción",
+      "slider": "Control de velocidad",
+      "custom": "Velocidad personalizada",
+      "pitchHint": "El tono sigue la velocidad (sin time-stretching)."
     }
   },
   "queue": {
@@ -720,7 +727,8 @@
     "miniPlayer": "Mini-reproductor (siempre encima)",
     "previous": "Pista anterior",
     "next": "Pista siguiente",
-    "devices": "Dispositivos de salida"
+    "devices": "Dispositivos de salida",
+    "moreActions": "Más acciones"
   },
   "miniPlayer": {
     "idle": "Sin pista en reproducción",
@@ -1039,8 +1047,7 @@
         "treble_booster": "Refuerzo de agudos"
       }
     }
-  }
-,
+  },
   "scanProgress": {
     "runningTitle": "Analizando biblioteca…",
     "runningSubtitle": "{{current}} / {{total}} archivos",

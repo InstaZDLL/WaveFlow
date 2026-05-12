@@ -416,14 +416,14 @@
     "topAlbums": {
       "title": "熱門專輯",
       "empty": "尚未聆聽任何專輯。"
-    },    "heatmap": {
+    },
+    "heatmap": {
       "title": "年度活動",
       "empty": "過去 12 個月尚無收聽紀錄。",
       "summary": "全年收聽 {{time}} — {{plays}} 次播放",
       "less": "較少",
       "more": "較多"
     },
-
     "plays_zero": "0 次收聽",
     "plays_one": "{{count}} 請聽",
     "plays_other": "{{count}} 監聽"
@@ -487,6 +487,13 @@
       "label": "卷",
       "mute": "靜音",
       "unmute": "開啟聲音"
+    },
+    "speed": {
+      "label": "播放速度 ({{value}})",
+      "title": "播放速度",
+      "slider": "速度滑桿",
+      "custom": "自訂速度",
+      "pitchHint": "音高隨速度變化(無時間拉伸)。"
     }
   },
   "queue": {
@@ -720,7 +727,8 @@
     "miniPlayer": "迷你播放器（永遠在最前）",
     "previous": "上一首",
     "next": "下一首",
-    "devices": "輸出裝置"
+    "devices": "輸出裝置",
+    "moreActions": "更多動作"
   },
   "miniPlayer": {
     "idle": "沒有播放中的曲目",
@@ -1039,8 +1047,7 @@
         "treble_booster": "高音增強"
       }
     }
-  }
-,
+  },
   "scanProgress": {
     "runningTitle": "正在掃描音樂庫…",
     "runningSubtitle": "{{current}} / {{total}} 個檔案",

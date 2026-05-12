@@ -416,14 +416,14 @@
     "topAlbums": {
       "title": "热门专辑",
       "empty": "尚未收听任何专辑。"
-    },    "heatmap": {
+    },
+    "heatmap": {
       "title": "年度活动",
       "empty": "过去 12 个月暂无收听记录。",
       "summary": "全年收听 {{time}} — {{plays}} 次播放",
       "less": "较少",
       "more": "较多"
     },
-
     "plays_zero": "0 次收听",
     "plays_one": "{{count}} 请听",
     "plays_other": "{{count}} 监听"
@@ -487,6 +487,13 @@
       "label": "卷",
       "mute": "关闭声音",
       "unmute": "打开声音"
+    },
+    "speed": {
+      "label": "播放速度 ({{value}})",
+      "title": "播放速度",
+      "slider": "速度滑块",
+      "custom": "自定义速度",
+      "pitchHint": "音高随速度变化(无时间拉伸)。"
     }
   },
   "queue": {
@@ -720,7 +727,8 @@
     "miniPlayer": "迷你播放器（始终置顶）",
     "previous": "上一曲",
     "next": "下一曲",
-    "devices": "输出设备"
+    "devices": "输出设备",
+    "moreActions": "更多操作"
   },
   "miniPlayer": {
     "idle": "未播放任何曲目",
@@ -1039,8 +1047,7 @@
         "treble_booster": "高音增强"
       }
     }
-  }
-,
+  },
   "scanProgress": {
     "runningTitle": "正在扫描音乐库…",
     "runningSubtitle": "{{current}} / {{total}} 个文件",

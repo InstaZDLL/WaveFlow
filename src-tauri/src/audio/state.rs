@@ -160,6 +160,18 @@ pub struct SharedPlayback {
     /// Cleared by the decoder the instant the mix actually starts so
     /// it can't bleed into the transition after.
     pub pending_next_crossfade_ms: AtomicU32,
+    /// Playback speed multiplier, stored as `f32` bits. `1.0` is
+    /// normal; `<1.0` is slower / lower-pitched, `>1.0` is faster /
+    /// higher-pitched. The decoder achieves this by feeding rubato a
+    /// fake source rate of `actual_rate * speed`, so 1 source sample
+    /// of audio produces fewer output samples at the device rate.
+    /// Clamped to `[0.5, 2.0]` on every write. Pitch is NOT
+    /// preserved — proper time-stretching would need a phase vocoder.
+    pub playback_speed_bits: AtomicU32,
+    /// Set by `player_set_speed` to tell the decoder thread to rebuild
+    /// every stream's resampler at the new speed on the next decode
+    /// cycle. Cleared by the decoder once consumed.
+    pub speed_dirty: AtomicBool,
 }
 
 impl SharedPlayback {
@@ -189,7 +201,36 @@ impl SharedPlayback {
             pending_next_same_album: AtomicBool::new(false),
             dynamic_crossfade_enabled: AtomicBool::new(false),
             pending_next_crossfade_ms: AtomicU32::new(0),
+            playback_speed_bits: AtomicU32::new(1.0_f32.to_bits()),
+            speed_dirty: AtomicBool::new(false),
         }
+    }
+
+    /// Current playback speed multiplier, clamped to `[0.5, 2.0]`.
+    pub fn playback_speed(&self) -> f32 {
+        f32::from_bits(self.playback_speed_bits.load(Ordering::Relaxed))
+    }
+
+    /// Write a new playback speed and flag the decoder to rebuild its
+    /// resampler on the next decode cycle. Values outside `[0.5, 2.0]`
+    /// are clamped to the supported range — out-of-range speeds make
+    /// rubato unstable and aren't useful for music playback.
+    ///
+    /// Snapshots the current track position **at the old speed** and
+    /// rebases `samples_played` / `base_offset_ms` against it before
+    /// flipping the speed atomic. Without this, the next read of
+    /// `current_position_ms` would re-scale the existing
+    /// `samples_played` counter by the new speed and the progress bar
+    /// would jump backwards (slowing down) or forwards (speeding up).
+    pub fn set_playback_speed(&self, speed: f32) {
+        let clamped = speed.clamp(0.5, 2.0);
+        let pos = self.current_position_ms();
+        self.samples_played.store(0, Ordering::Relaxed);
+        self.base_offset_ms.store(pos, Ordering::Release);
+        self.seek_generation.fetch_add(1, Ordering::Release);
+        self.playback_speed_bits
+            .store(clamped.to_bits(), Ordering::Release);
+        self.speed_dirty.store(true, Ordering::Release);
     }
 
     /// True when an A-B loop is currently armed (A < B and both set).
@@ -226,12 +267,20 @@ impl SharedPlayback {
     /// on load / seek. Use this to drive the progress bar and seek
     /// display — the user wants to know "where am I in the song",
     /// not "how long has this session been running".
+    ///
+    /// At non-1× playback speeds, the decoder feeds rubato a fake
+    /// source rate of `actual_rate * speed` so each cpal output sample
+    /// represents `speed` source samples of audio. We scale the
+    /// callback-derived delta by `speed` so the progress bar advances
+    /// in track-time, not wall-clock-time.
     pub fn current_position_ms(&self) -> u64 {
         let sr = self.sample_rate.load(Ordering::Relaxed).max(1) as u64;
         let ch = self.channels.load(Ordering::Relaxed).max(1) as u64;
         let played = self.samples_played.load(Ordering::Relaxed);
-        let delta_ms = (played * 1000) / (sr * ch);
-        self.base_offset_ms.load(Ordering::Relaxed) + delta_ms
+        let wall_delta_ms = (played * 1000) / (sr * ch);
+        let speed = self.playback_speed();
+        let track_delta_ms = (wall_delta_ms as f32 * speed) as u64;
+        self.base_offset_ms.load(Ordering::Relaxed) + track_delta_ms
     }
 
     /// Number of ms actually heard **in the current session** — i.e.
@@ -241,11 +290,18 @@ impl SharedPlayback {
     /// so that resuming a track at 2:30 and listening for 3 s counts
     /// as a 3 s listen (not a 2:33 listen), which matters for the
     /// "Recently played" 15 s credit threshold.
+    ///
+    /// Scaled by playback speed for the same reason as
+    /// [`Self::current_position_ms`] — at 2× speed a 30 s listen
+    /// covers 60 s of track, and the credit threshold should fire
+    /// based on track-time covered.
     pub fn session_listened_ms(&self) -> u64 {
         let sr = self.sample_rate.load(Ordering::Relaxed).max(1) as u64;
         let ch = self.channels.load(Ordering::Relaxed).max(1) as u64;
         let played = self.samples_played.load(Ordering::Relaxed);
-        (played * 1000) / (sr * ch)
+        let wall_ms = (played * 1000) / (sr * ch);
+        let speed = self.playback_speed();
+        (wall_ms as f32 * speed) as u64
     }
 }
 
@@ -310,5 +366,53 @@ mod tests {
         assert_eq!(s.volume(), 0.0);
         s.set_volume(0.5);
         assert_eq!(s.volume(), 0.5);
+    }
+
+    #[test]
+    fn playback_speed_clamps_to_supported_range() {
+        let s = SharedPlayback::new();
+        s.set_playback_speed(5.0);
+        assert_eq!(s.playback_speed(), 2.0);
+        s.set_playback_speed(0.1);
+        assert_eq!(s.playback_speed(), 0.5);
+        s.set_playback_speed(1.5);
+        assert!((s.playback_speed() - 1.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn position_scales_with_playback_speed() {
+        // At 2× speed, the cpal callback emits half as many output
+        // samples per second of track audio — so 22_050 stereo frames
+        // pushed into the ring (= 0.5 s wall-clock at 44.1 kHz)
+        // correspond to 1.0 s of track position.
+        //
+        // Speed must be set BEFORE the simulated samples_played
+        // counter is advanced. `set_playback_speed` snapshots the
+        // pre-change position and rebases samples_played to keep
+        // position continuous; setting speed last would zero out the
+        // counter we just primed.
+        let s = SharedPlayback::new();
+        s.sample_rate.store(44_100, Ordering::Relaxed);
+        s.channels.store(2, Ordering::Relaxed);
+        s.set_playback_speed(2.0);
+        s.samples_played.store(22_050 * 2, Ordering::Relaxed);
+        assert_eq!(s.current_position_ms(), 1_000);
+        assert_eq!(s.session_listened_ms(), 1_000);
+    }
+
+    #[test]
+    fn speed_change_preserves_position_continuity() {
+        // 1 s of audio at 1.0× speed (44_100 stereo frames played),
+        // then the user flips to 2.0×. Position must NOT jump: we
+        // were at 1000 ms before, we should still read 1000 ms
+        // immediately after — the rebase resets samples_played and
+        // moves the elapsed time into base_offset_ms.
+        let s = SharedPlayback::new();
+        s.sample_rate.store(44_100, Ordering::Relaxed);
+        s.channels.store(2, Ordering::Relaxed);
+        s.samples_played.store(44_100 * 2, Ordering::Relaxed);
+        assert_eq!(s.current_position_ms(), 1_000);
+        s.set_playback_speed(2.0);
+        assert_eq!(s.current_position_ms(), 1_000);
     }
 }

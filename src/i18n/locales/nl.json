@@ -416,14 +416,14 @@
     "topAlbums": {
       "title": "Topalbums",
       "empty": "Er zijn geen albums beluisterd."
-    },    "heatmap": {
+    },
+    "heatmap": {
       "title": "Activiteit van het jaar",
       "empty": "Nog niets beluisterd in de laatste 12 maanden.",
       "summary": "{{time}} beluisterd over het jaar — {{plays}} keer beluisterd",
       "less": "Minder",
       "more": "Meer"
     },
-
     "plays_zero": "0 keer beluisterd",
     "plays_one": "{{count}} luister",
     "plays_other": "{{count}} afluisteren"
@@ -487,6 +487,13 @@
       "label": "Volume",
       "mute": "Het geluid dempen",
       "unmute": "Geluid inschakelen"
+    },
+    "speed": {
+      "label": "Afspeelsnelheid ({{value}})",
+      "title": "Afspeelsnelheid",
+      "slider": "Snelheidsschuif",
+      "custom": "Aangepaste snelheid",
+      "pitchHint": "Toonhoogte volgt snelheid (geen time-stretching)."
     }
   },
   "queue": {
@@ -720,7 +727,8 @@
     "miniPlayer": "Mini-speler (altijd op de voorgrond)",
     "previous": "Vorig nummer",
     "next": "Volgend nummer",
-    "devices": "Uitvoerapparaten"
+    "devices": "Uitvoerapparaten",
+    "moreActions": "Meer acties"
   },
   "miniPlayer": {
     "idle": "Geen nummer afgespeeld",
@@ -1039,8 +1047,7 @@
         "treble_booster": "Treble booster"
       }
     }
-  }
-,
+  },
   "scanProgress": {
     "runningTitle": "Bibliotheek scannen…",
     "runningSubtitle": "{{current}} / {{total}} bestanden",

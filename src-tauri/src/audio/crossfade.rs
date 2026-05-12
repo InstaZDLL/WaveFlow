@@ -64,6 +64,17 @@ pub struct ActiveStream {
     /// per-stream so the crossfade dual-decoder mix gives each track
     /// its own gain before they are summed.
     pub replay_gain_linear: f32,
+    /// True source sample rate of the underlying audio (44100, 48000,
+    /// 96000, …). Captured the first time `decode_next` builds the
+    /// resampler and held so `rebuild_resampler` can recompute the
+    /// effective input rate (`src * speed`) when the user changes
+    /// playback speed mid-track. `0` before the first packet is
+    /// decoded.
+    pub src_sample_rate: u32,
+    /// Active playback speed used the last time the resampler was
+    /// built. Mirrored here so the decoder loop can skip rebuilds
+    /// when nothing changed.
+    pub playback_speed: f32,
 }
 
 /// How many DSD bytes to pull from disk per `decode_next` cycle.
@@ -147,6 +158,8 @@ impl ActiveStream {
             source_type,
             source_id,
             replay_gain_linear: replay_gain_db_to_linear(replay_gain_db),
+            src_sample_rate: 0,
+            playback_speed: 1.0,
         })
     }
 
@@ -196,7 +209,36 @@ impl ActiveStream {
             source_type,
             source_id,
             replay_gain_linear: replay_gain_db_to_linear(replay_gain_db),
+            src_sample_rate: 0,
+            playback_speed: 1.0,
         })
+    }
+
+    /// Rebuild the resampler so its effective input rate is
+    /// `src_sample_rate * speed`. Called by the decoder loop when the
+    /// user changes playback speed mid-track. No-op when called before
+    /// the first packet has been decoded (i.e. `src_sample_rate == 0`)
+    /// — the lazy init path inside `decode_next` will pick up the
+    /// active speed via `self.playback_speed`.
+    ///
+    /// Returns the new effective source rate so the caller can log
+    /// the actual rubato configuration. The old resampler's pending
+    /// queue is discarded; that costs at most one rubato chunk
+    /// (~21 ms at 48 kHz) of audio, well below perceptible.
+    pub fn rebuild_resampler(
+        &mut self,
+        speed: f32,
+        dst_sample_rate: u32,
+        dst_channels: usize,
+    ) -> Result<u32, String> {
+        self.playback_speed = speed;
+        if self.src_sample_rate == 0 {
+            return Ok(0);
+        }
+        let effective = ((self.src_sample_rate as f32) * speed).max(1.0) as u32;
+        self.resampler = Resampler::new(effective, dst_sample_rate, dst_channels)
+            .map_err(|e| format!("resampler rebuild ({effective}→{dst_sample_rate}): {e}"))?;
+        Ok(effective)
     }
 
     /// Symphonia track id for the active backend, if any. DSD has no
@@ -345,8 +387,10 @@ impl ActiveStream {
                     let capacity = decoded.capacity() as u64;
                     *sample_buf = Some(SampleBuffer::<f32>::new(capacity, spec));
                     self.src_channels = spec.channels.count();
-                    let src_sample_rate = spec.rate;
-                    self.resampler = Resampler::new(src_sample_rate, dst_sample_rate, dst_channels)
+                    self.src_sample_rate = spec.rate;
+                    let effective_rate =
+                        ((spec.rate as f32) * self.playback_speed).max(1.0) as u32;
+                    self.resampler = Resampler::new(effective_rate, dst_sample_rate, dst_channels)
                         .map_err(|e| format!("resampler init: {e}"))?;
                 }
                 let sb = sample_buf.as_mut().unwrap();
@@ -447,11 +491,22 @@ impl ActiveStream {
                 // Lazily built on first decode now that we know the
                 // actual source rate.
                 if matches!(self.resampler, Resampler::Passthrough)
-                    && converter.output_rate_hz != dst_sample_rate
+                    && (converter.output_rate_hz != dst_sample_rate
+                        || (self.playback_speed - 1.0).abs() > f32::EPSILON)
                 {
+                    self.src_sample_rate = converter.output_rate_hz;
+                    let effective_rate = ((converter.output_rate_hz as f32)
+                        * self.playback_speed)
+                        .max(1.0) as u32;
                     self.resampler =
-                        Resampler::new(converter.output_rate_hz, dst_sample_rate, dst_channels)
+                        Resampler::new(effective_rate, dst_sample_rate, dst_channels)
                             .map_err(|e| format!("dsd resampler init: {e}"))?;
+                } else if self.src_sample_rate == 0 {
+                    // Mark that we've seen the true source rate even
+                    // when speed is 1.0 and rates match (passthrough),
+                    // so a later rebuild_resampler call knows what to
+                    // multiply by.
+                    self.src_sample_rate = converter.output_rate_hz;
                 }
 
                 self.resampler

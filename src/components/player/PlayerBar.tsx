@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Menu,
-  MonitorSpeaker,
-  Heart,
-  Mic2,
-  PictureInPicture2,
-  Maximize2,
-} from "lucide-react";
+import { Menu, MonitorSpeaker, Heart, Mic2 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useSleepTimer } from "../../hooks/useSleepTimer";
 import { Artwork } from "../common/Artwork";
@@ -17,6 +10,8 @@ import { ProgressBar } from "./ProgressBar";
 import { SleepTimerMenu } from "./SleepTimerMenu";
 import { AbLoopButton } from "./AbLoopButton";
 import { VolumeControl } from "./VolumeControl";
+import { SpeedControl } from "./SpeedControl";
+import { MoreActionsMenu } from "./MoreActionsMenu";
 import { AudioQualityFooter } from "./AudioQualityFooter";
 import { FullscreenNowPlaying } from "./FullscreenNowPlaying";
 import { toggleLikeTrack, listLikedTrackIds } from "../../lib/tauri/track";
@@ -203,7 +198,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
         </div>
 
         {/* Right: Extra Controls */}
-        <div className="w-1/3 flex items-center justify-end space-x-4">
+        <div className="w-1/3 flex items-center justify-end space-x-3">
           {/* A-B repeat — sits left of the sleep timer. */}
           {showAbLoop && <AbLoopButton />}
 
@@ -217,20 +212,6 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               onCancel={sleepTimer.cancel}
             />
           )}
-
-          {/* Fullscreen Now Playing trigger — sits next to the
-              lyrics toggle so the two "expand" actions cluster
-              together. Disabled when no track is loaded. */}
-          <button
-            type="button"
-            onClick={() => setIsFullscreenOpen(true)}
-            disabled={!currentTrack}
-            aria-label={t("playerBar.openFullscreen")}
-            title={t("playerBar.openFullscreen")}
-            className="p-2 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Maximize2 size={18} />
-          </button>
 
           {/* Lyrics panel toggle */}
           <button
@@ -246,32 +227,6 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
           >
             <Mic2 size={20} />
           </button>
-
-          {/* Mini-player hidden in Spotify mode. The Web Playback SDK
-              only binds to a single webview, and the cross-window
-              sync attempts (3eb5000, request-state replay) never made
-              the mini display the right track reliably — it kept
-              rendering local PlayerContext state alongside a
-              partially-synced Spotify snapshot. Disabling the entry
-              point is the simple, honest fix until we ship a proper
-              provider-aware MiniPlayer or Spotify allows two SDK
-              devices on the same account. */}
-          {!isSpotify && (
-            <button
-              onClick={() => {
-                import("../../lib/miniPlayer").then((m) =>
-                  m.openMiniPlayer().catch((err) => {
-                    console.error("[PlayerBar] open mini-player failed", err);
-                  }),
-                );
-              }}
-              aria-label={t("playerBar.miniPlayer")}
-              title={t("playerBar.miniPlayer")}
-              className="p-2 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
-            >
-              <PictureInPicture2 size={20} />
-            </button>
-          )}
 
           <button
             onClick={toggleQueue}
@@ -303,6 +258,28 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               </button>
             </div>
           )}
+
+          {/* Overflow menu — absorbs Fullscreen + Mini-player so the
+              bar stops growing every time we ship a feature. Lyrics /
+              Queue / Device stay first-class because they're the
+              most-used. The Spotify mode hides Mini-player inside
+              the menu via the `miniPlayerAvailable` prop. */}
+          <MoreActionsMenu
+            miniPlayerAvailable={!isSpotify}
+            onOpenFullscreen={() => setIsFullscreenOpen(true)}
+            onOpenMiniPlayer={() => {
+              import("../../lib/miniPlayer").then((m) =>
+                m.openMiniPlayer().catch((err) => {
+                  console.error("[PlayerBar] open mini-player failed", err);
+                }),
+              );
+            }}
+          />
+
+          {/* Compact speed pill — sits just before volume so the two
+              "playback shape" controls cluster together. Hidden in
+              Spotify mode (Web Playback SDK has no speed control). */}
+          {!isSpotify && <SpeedControl />}
 
           <VolumeControl />
         </div>

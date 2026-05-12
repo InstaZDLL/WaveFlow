@@ -258,6 +258,20 @@ export function playerSetGapless(enabled: boolean): Promise<void> {
   return invoke<void>("player_set_gapless", { enabled });
 }
 
+/**
+ * Update playback speed. Clamped to `[0.5, 2.0]` on the engine side;
+ * out-of-range values are saturated. Pitch is NOT preserved — 1.5×
+ * lifts the pitch by ~7 semitones (resampler-shift, same as VLC's
+ * default playback rate).
+ */
+export function playerSetSpeed(value: number): Promise<void> {
+  return invoke<void>("player_set_speed", { value });
+}
+
+export function playerGetSpeed(): Promise<number> {
+  return invoke<number>("player_get_speed");
+}
+
 // ── Output device picker ───────────────────────────────────────────
 
 /**

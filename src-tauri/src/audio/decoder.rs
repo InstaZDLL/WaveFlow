@@ -347,6 +347,12 @@ fn play_track(
         initial_source_id,
         initial_replay_gain_db,
     )?;
+    // Inherit the active playback speed so the lazy resampler init
+    // inside decode_next builds against the correct effective input
+    // rate from the very first packet. Without this, a track that
+    // starts while speed != 1.0 would briefly resample at 1.0× and
+    // then trigger a rebuild on the next speed_dirty cycle.
+    stream.playback_speed = shared.playback_speed();
     if initial_start_ms > 0 {
         stream.seek_ms(initial_start_ms);
     }
@@ -443,6 +449,27 @@ fn play_track(
                 last_position_emit = Instant::now();
                 continue;
             }
+        }
+
+        // Speed change pending? Rebuild every active stream's
+        // resampler at the new effective input rate, drain the ring
+        // so we don't bleed old-speed audio for a second, and flush
+        // local already-resampled buffers. `set_playback_speed`
+        // already rebased the position counters so the progress bar
+        // stays continuous; this branch only handles the DSP side.
+        if shared.speed_dirty.swap(false, Ordering::AcqRel) {
+            let speed = shared.playback_speed();
+            if let Err(err) = stream.rebuild_resampler(speed, dst_sample_rate, dst_channels) {
+                tracing::warn!(?err, "resampler rebuild on speed change failed");
+            }
+            if let Some(next) = pending_next.as_mut() {
+                if let Err(err) = next.rebuild_resampler(speed, dst_sample_rate, dst_channels) {
+                    tracing::warn!(?err, "secondary resampler rebuild on speed change failed");
+                }
+            }
+            primary_resampled.clear();
+            secondary_resampled.clear();
+            drain_ring_silent(producer, shared);
         }
 
         // A-B repeat: when an A-B loop is armed and we've reached B,
@@ -990,12 +1017,14 @@ fn drain_commands(
                     source_type,
                     source_id,
                     replay_gain_db,
+                    shared.playback_speed(),
                 );
             }
             Ok(AudioCmd::SetReplayGain(on)) => {
                 shared.replaygain_enabled.store(on, Ordering::Release)
             }
             Ok(AudioCmd::SetGapless(on)) => shared.gapless_enabled.store(on, Ordering::Release),
+            Ok(AudioCmd::SetSpeed(v)) => shared.set_playback_speed(v),
             Ok(AudioCmd::Pause) => {
                 transition_state(shared, app, PlayerState::Paused, Some(track_id));
                 shared.paused_output.store(true, Ordering::Release);
@@ -1038,6 +1067,7 @@ fn drain_commands(
                             source_type,
                             source_id,
                             replay_gain_db,
+                            shared.playback_speed(),
                         ),
                         Ok(AudioCmd::SetReplayGain(on)) => {
                             shared.replaygain_enabled.store(on, Ordering::Release)
@@ -1045,6 +1075,7 @@ fn drain_commands(
                         Ok(AudioCmd::SetGapless(on)) => {
                             shared.gapless_enabled.store(on, Ordering::Release)
                         }
+                        Ok(AudioCmd::SetSpeed(v)) => shared.set_playback_speed(v),
                         Ok(cmd @ AudioCmd::LoadAndPlay { .. }) => {
                             shared.paused_output.store(false, Ordering::Release);
                             *pending_cmd = Some(cmd);
@@ -1103,6 +1134,7 @@ fn store_next(
     source_type: String,
     source_id: Option<i64>,
     replay_gain_db: Option<f64>,
+    speed: f32,
 ) {
     match ActiveStream::open(
         &path,
@@ -1112,7 +1144,12 @@ fn store_next(
         source_id,
         replay_gain_db,
     ) {
-        Ok(s) => {
+        Ok(mut s) => {
+            // Prefetched stream needs the active speed too so its
+            // first packet decode builds the resampler at the right
+            // effective rate (avoids a rebuild + tiny gap when the
+            // crossfade mix starts).
+            s.playback_speed = speed;
             *pending_next = Some(s);
         }
         Err(err) => {

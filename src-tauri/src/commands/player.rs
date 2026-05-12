@@ -428,6 +428,33 @@ pub async fn player_get_state(
                     .gapless_enabled
                     .store(v == "true", std::sync::atomic::Ordering::Release);
             }
+            // Playback speed defaults to 1.0; only override when a
+            // valid float row is persisted. Out-of-range values are
+            // re-clamped on the way in so a hand-edited DB can't
+            // resurrect the rubato instability range.
+            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
+                "SELECT value FROM profile_setting WHERE key = 'audio.playback_speed'",
+            )
+            .fetch_optional(&pool)
+            .await
+            {
+                if let Ok(speed) = v.parse::<f32>() {
+                    // Use the raw atomic stores here instead of
+                    // `set_playback_speed` — the latter would also
+                    // rebase `samples_played` / `base_offset_ms`
+                    // against a position we haven't loaded yet,
+                    // moving the resume point off the persisted
+                    // value. `speed_dirty` stays false because no
+                    // stream is decoding yet; the first track's
+                    // lazy resampler init picks up the speed via
+                    // `stream.playback_speed = shared.playback_speed()`.
+                    let clamped = speed.clamp(0.5, 2.0);
+                    engine
+                        .shared()
+                        .playback_speed_bits
+                        .store(clamped.to_bits(), std::sync::atomic::Ordering::Release);
+                }
+            }
             // Equalizer settings.
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.eq_enabled'",
@@ -1032,6 +1059,45 @@ pub async fn player_get_visualizer(
         .shared()
         .visualizer_enabled
         .load(std::sync::atomic::Ordering::Relaxed))
+}
+
+/// Update the playback speed multiplier. Pushes the new value live
+/// to the audio engine so the active stream's resampler is rebuilt
+/// against the new effective input rate, then persists to
+/// `profile_setting['audio.playback_speed']`. Clamped to `[0.5, 2.0]`
+/// on the engine side — values outside that range are saturated, not
+/// rejected.
+///
+/// Pitch is NOT preserved (1.5× → ~ +7 semitones). Proper pitch-locked
+/// time-stretching would need a phase vocoder; this is intentionally
+/// the simple resampler-shift approach used by VLC's default playback
+/// rate, since it costs ~zero CPU and works on every codec.
+#[tauri::command]
+pub async fn player_set_speed(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    value: f32,
+) -> AppResult<()> {
+    engine.send(AudioCmd::SetSpeed(value))?;
+    if let Ok(pool) = state.require_profile_pool().await {
+        let clamped = value.clamp(0.5, 2.0);
+        let now = chrono::Utc::now().timestamp_millis();
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.playback_speed', ?, 'float', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(clamped.to_string())
+        .bind(now)
+        .execute(&pool)
+        .await;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn player_get_speed(engine: tauri::State<'_, Arc<AudioEngine>>) -> AppResult<f32> {
+    Ok(engine.shared().playback_speed())
 }
 
 /// Toggle gapless playback. Pushes the new value live to the audio
