@@ -67,7 +67,11 @@ export function SelectionActionBar({
     return () => document.removeEventListener("mousedown", handleMouseDown);
   }, [isAddOpen]);
 
-  if (count === 0) return null;
+  // Only show the toolbar once the user has explicitly selected
+  // *multiple* tracks. A single-track click is ambiguous (often the
+  // user is just trying to play it) — showing the bar then feels like
+  // an intrusive popup.
+  if (count < 2) return null;
 
   const handlePlay = () => {
     playerPlayTracks("manual", null, trackIds, 0).catch((err) =>
@@ -120,7 +124,7 @@ export function SelectionActionBar({
     <div
       role="toolbar"
       aria-label={t("selection.toolbarLabel")}
-      className="fixed bottom-28 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full border border-zinc-200 bg-white/95 backdrop-blur px-3 py-2 shadow-2xl dark:border-zinc-700 dark:bg-zinc-900/95"
+      className="fixed bottom-36 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full border border-zinc-200 bg-white/95 backdrop-blur px-3 py-2 shadow-2xl dark:border-zinc-700 dark:bg-zinc-900/95"
     >
       <span className="px-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200 tabular-nums">
         {t("selection.count", { count })}
