@@ -1074,6 +1074,11 @@
       "title": "Lamar di ReplayGain",
       "subtitle": "Gunakan nilai gain yang dianalisis dari setiap trek untuk menyeimbangkan volume yang dirasakan"
     },
+    "exclusive": {
+      "title": "Mode Eksklusif WASAPI (Windows)",
+      "subtitle": "Bit-perfect: melewati mixer Windows untuk output bebas interferensi. Beralih ke mode berbagi jika perangkat menolak akses eksklusif.",
+      "fallback": "Perangkat tidak menerima mode eksklusif. Beralih ke mode berbagi."
+    },
     "mono": {
       "title": "Audio mono",
       "subtitle": "Gabungkan saluran kiri dan kanan menjadi satu sinyal"

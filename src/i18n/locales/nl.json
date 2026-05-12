@@ -1074,6 +1074,11 @@
       "title": "Solliciteren ReplayGain",
       "subtitle": "Gebruik de geanalyseerde versterking van elk nummer om het waargenomen volume in balans te brengen"
     },
+    "exclusive": {
+      "title": "WASAPI Exclusive-modus (Windows)",
+      "subtitle": "Bit-perfect: omzeilt de Windows-mixer voor interferentievrije uitvoer. Valt terug op gedeelde modus als het apparaat exclusieve toegang weigert.",
+      "fallback": "Het apparaat accepteert geen exclusieve modus. Terug naar gedeelde modus."
+    },
     "mono": {
       "title": "Mono-geluid",
       "subtitle": "Voeg het linker- en rechterkanaal samen tot één signaal"

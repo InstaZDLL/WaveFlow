@@ -102,6 +102,7 @@ import { regenerateThumbnails } from "../../lib/tauri/library";
 import { DuplicatesModal } from "../common/DuplicatesModal";
 import { BackupCard } from "./settings/BackupCard";
 import { EqualizerCard } from "./settings/EqualizerCard";
+import { ExclusiveModeCard } from "./settings/ExclusiveModeCard";
 import { ShortcutsCard } from "./settings/ShortcutsCard";
 
 interface SettingsViewProps {
@@ -1526,6 +1527,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           <div className="px-4">
             <EqualizerCard />
           </div>
+
+          {/* WASAPI Exclusive Mode — Windows-only, the card hides
+              itself on other platforms via UA sniff. */}
+          <ExclusiveModeCard />
 
           {/* Audio mono */}
           <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">

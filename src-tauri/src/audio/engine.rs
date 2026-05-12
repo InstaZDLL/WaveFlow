@@ -18,7 +18,7 @@ use crate::error::{AppError, AppResult};
 
 use super::analytics::{analytics_task, AnalyticsMsg};
 use super::decoder::spawn_decoder_thread;
-use super::output::{spawn_output_thread, OutputHandle};
+use super::output::{spawn_output_with_mode, OutputHandle};
 use super::state::SharedPlayback;
 
 /// Commands accepted by the decoder thread.
@@ -131,6 +131,11 @@ pub struct AudioEngine {
     /// `set_output_device` without plumbing the handle through every
     /// Tauri command call site.
     app: AppHandle,
+    /// Windows-only opt-in: WASAPI Exclusive Mode preference. Read
+    /// at boot from `profile_setting['audio.wasapi_exclusive']`,
+    /// flipped by `set_wasapi_exclusive`. Used by `set_output_device`
+    /// to preserve the mode across hot-swaps.
+    wasapi_exclusive: std::sync::atomic::AtomicBool,
 }
 
 impl AudioEngine {
@@ -143,13 +148,22 @@ impl AudioEngine {
     /// (`player:state`, `player:position`, `player:track-ended`,
     /// `player:error`) without routing through tokio.
     pub fn new(app: AppHandle) -> Arc<Self> {
-        Self::new_with_device(app, None)
+        Self::new_with_device(app, None, false)
     }
 
     /// Like [`Self::new`] but opens a specific output device. Used at
     /// startup once the persisted `audio.output_device` profile setting
     /// is known. `None` means "use the OS default".
-    pub fn new_with_device(app: AppHandle, device_name: Option<String>) -> Arc<Self> {
+    ///
+    /// `wasapi_exclusive` is the persisted opt-in for Windows
+    /// Exclusive Mode (silently no-op on Linux/macOS). On a failing
+    /// init the engine falls back to cpal shared mode automatically;
+    /// see [`spawn_output_with_mode`] for the contract.
+    pub fn new_with_device(
+        app: AppHandle,
+        device_name: Option<String>,
+        wasapi_exclusive: bool,
+    ) -> Arc<Self> {
         let (cmd_tx, cmd_rx) = unbounded::<AudioCmd>();
         let shared = Arc::new(SharedPlayback::new());
 
@@ -158,8 +172,12 @@ impl AudioEngine {
         // rows and self-send the next `LoadAndPlay`.
         let (analytics_tx, analytics_rx) = unbounded_channel::<AnalyticsMsg>();
 
-        let (output, decoder) = match spawn_output_thread(shared.clone(), app.clone(), device_name)
-        {
+        let (output, decoder) = match spawn_output_with_mode(
+            shared.clone(),
+            app.clone(),
+            device_name,
+            wasapi_exclusive,
+        ) {
             Ok((producer, handle)) => {
                 // `spawn_output_thread` returns only after the cpal
                 // stream has opened, so `shared.sample_rate` /
@@ -195,6 +213,7 @@ impl AudioEngine {
             output: Mutex::new(output),
             decoder: Mutex::new(decoder),
             app,
+            wasapi_exclusive: std::sync::atomic::AtomicBool::new(wasapi_exclusive),
         })
     }
 
@@ -277,8 +296,13 @@ impl AudioEngine {
         // dmix all support multiple concurrent streams, and the two
         // streams target different devices anyway. If this fails we
         // return immediately without disturbing the working stream.
-        let (producer, handle) =
-            spawn_output_thread(self.shared.clone(), self.app.clone(), device_name)?;
+        let (producer, handle) = spawn_output_with_mode(
+            self.shared.clone(),
+            self.app.clone(),
+            device_name,
+            self.wasapi_exclusive
+                .load(std::sync::atomic::Ordering::Relaxed),
+        )?;
 
         // Step 3 — interrupt any current playback. The decoder will
         // walk back out of `play_track` and start polling for fresh
@@ -356,5 +380,102 @@ impl AudioEngine {
         }
 
         Ok(())
+    }
+
+    /// Flip the WASAPI Exclusive Mode preference and re-open the
+    /// output stream using the new mode. No-ops on non-Windows.
+    /// Re-uses the active device name so the user keeps their pick.
+    pub fn set_wasapi_exclusive(&self, enabled: bool) -> AppResult<()> {
+        let previous = self
+            .wasapi_exclusive
+            .swap(enabled, std::sync::atomic::Ordering::Relaxed);
+        if previous == enabled {
+            return Ok(());
+        }
+        // Reuse `set_output_device` with the active device name — the
+        // current/requested equality check inside it would short-circuit
+        // a same-device call, so go straight to the rebuild path by
+        // temporarily yielding `None` would change the device picker
+        // semantics. Instead, the engine's existing teardown path is
+        // what we need: snapshot the device, drop the handle, rebuild.
+        let active = self.current_output_device();
+        // `set_output_device` early-exits when current == requested.
+        // Bypass that by toggling to `None` then back if needed —
+        // simpler: drop the handle and rebuild via the helper.
+        let mut guard = self
+            .output
+            .lock()
+            .map_err(|_| AppError::Audio("output mutex poisoned".into()))?;
+        let was_playing = matches!(
+            self.shared.state(),
+            super::state::PlayerState::Playing | super::state::PlayerState::Paused
+        );
+        let track_id = self
+            .shared
+            .current_track_id
+            .load(std::sync::atomic::Ordering::Acquire);
+        let position_ms = self.shared.current_position_ms();
+
+        let (producer, handle) =
+            spawn_output_with_mode(self.shared.clone(), self.app.clone(), active, enabled)?;
+
+        if was_playing {
+            self.cmd_tx
+                .send(AudioCmd::Stop)
+                .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
+        }
+        if let Some(old) = guard.take() {
+            old.stop();
+        }
+        self.cmd_tx
+            .send(AudioCmd::SwapProducer(producer))
+            .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
+        *guard = Some(handle);
+
+        if was_playing && track_id > 0 {
+            let app = self.app.clone();
+            let cmd_tx = self.cmd_tx.clone();
+            // Resolve track metadata async — same pattern as
+            // `set_output_device`. Off the synchronous path so a slow
+            // DB doesn't block the setting toggle.
+            tauri::async_runtime::spawn(async move {
+                use tauri::Manager as _;
+                let state = app.state::<crate::state::AppState>();
+                let pool = match state.require_profile_pool().await {
+                    Ok(p) => p,
+                    Err(_) => return,
+                };
+                let row: Option<(String, i64)> =
+                    sqlx::query_as("SELECT file_path, duration_ms FROM track WHERE id = ?")
+                        .bind(track_id)
+                        .fetch_optional(&pool)
+                        .await
+                        .ok()
+                        .flatten();
+                let Some((file_path, duration_ms)) = row else {
+                    return;
+                };
+                let replay_gain_db =
+                    crate::commands::player::fetch_replay_gain_db(&pool, track_id).await;
+                let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
+                    path: std::path::PathBuf::from(file_path),
+                    start_ms: position_ms,
+                    track_id,
+                    duration_ms: duration_ms.max(0) as u64,
+                    source_type: "manual".into(),
+                    source_id: None,
+                    replay_gain_db,
+                });
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Current Windows Exclusive Mode preference. Always `false` on
+    /// non-Windows.
+    pub fn wasapi_exclusive(&self) -> bool {
+        self.wasapi_exclusive
+            .load(std::sync::atomic::Ordering::Relaxed)
     }
 }

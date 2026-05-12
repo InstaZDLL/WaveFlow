@@ -1409,6 +1409,56 @@ pub async fn player_set_output_device(
     Ok(())
 }
 
+/// Toggle WASAPI Exclusive Mode (Windows-only audiophile path).
+///
+/// Re-opens the active output stream in exclusive event-driven mode
+/// at the device's mix-format sample rate. Bypasses the Windows audio
+/// engine so no other app can mix in / DSP / resample our audio.
+/// Falls back silently to cpal shared mode if init fails (device
+/// busy, unsupported format, no exclusive support on the driver) —
+/// see `audio/wasapi_exclusive.rs` for the contract.
+///
+/// No-op on Linux / macOS; the persisted setting is still written so
+/// the value follows the user across platforms.
+///
+/// Persisted in `profile_setting['audio.wasapi_exclusive']`.
+#[tauri::command]
+pub async fn player_set_wasapi_exclusive(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    enabled: bool,
+) -> AppResult<()> {
+    let engine_clone: Arc<AudioEngine> = engine.inner().clone();
+    // Same rationale as `player_set_output_device`: opening / tearing
+    // down a WASAPI stream blocks for a few hundred ms.
+    tokio::task::spawn_blocking(move || engine_clone.set_wasapi_exclusive(enabled))
+        .await
+        .map_err(|e| AppError::Audio(format!("set wasapi exclusive task: {e}")))??;
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        let stored = if enabled { "1" } else { "0" };
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.wasapi_exclusive', ?, 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(stored)
+        .bind(now)
+        .execute(&pool)
+        .await;
+    }
+    Ok(())
+}
+
+/// Read the current WASAPI Exclusive Mode state from the audio engine.
+/// Always `false` on Linux / macOS. Used by the Settings card to
+/// reflect whether the engine actually engaged exclusive mode (the
+/// init could have silently fallen back to shared).
+#[tauri::command]
+pub fn player_get_wasapi_exclusive(engine: tauri::State<'_, Arc<AudioEngine>>) -> bool {
+    engine.inner().wasapi_exclusive()
+}
+
 /// Replace the queue with the given track list and start playing at
 /// `start_index`. `source_type` must match one of the enum values on
 /// `queue_item.source_type` ('album'|'playlist'|'artist'|'library'|

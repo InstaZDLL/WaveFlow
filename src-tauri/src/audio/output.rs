@@ -223,6 +223,45 @@ fn silence_alsa_stderr<R, F: FnOnce() -> R>(f: F) -> R {
 /// headroom while keeping latency low.
 pub const RING_CAPACITY: usize = 96_000;
 
+/// Pick the right output backend based on the runtime preference.
+/// On Windows + `exclusive=true`, tries the WASAPI Exclusive backend
+/// first and falls back to cpal shared if init fails (device busy, no
+/// exclusive format support, COM apartment conflict, …). On other
+/// platforms or with `exclusive=false`, always uses cpal.
+///
+/// The fallback is silent at the caller level — the warning is logged
+/// so the user can see in `waveflow.log` why exclusive didn't engage.
+pub fn spawn_output_with_mode(
+    shared: Arc<SharedPlayback>,
+    app: AppHandle,
+    device_name: Option<String>,
+    exclusive: bool,
+) -> AppResult<(Producer<f32>, OutputHandle)> {
+    #[cfg(target_os = "windows")]
+    if exclusive {
+        match super::wasapi_exclusive::spawn_exclusive_output_thread(
+            shared.clone(),
+            app.clone(),
+            device_name.clone(),
+        ) {
+            Ok(pair) => {
+                tracing::info!("audio output: WASAPI Exclusive Mode engaged");
+                return Ok(pair);
+            }
+            Err(err) => {
+                tracing::warn!(
+                    %err,
+                    "WASAPI Exclusive init failed, falling back to shared mode"
+                );
+            }
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    let _ = exclusive; // unused on non-Windows targets
+
+    spawn_output_thread(shared, app, device_name)
+}
+
 /// Handle retained by the engine so it can tear the output thread down
 /// cleanly on shutdown or device switch. Separate from the decoder-side
 /// `Producer` which is handed off independently — see the tuple returned

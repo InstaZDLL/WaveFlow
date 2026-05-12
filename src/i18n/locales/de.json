@@ -1074,6 +1074,11 @@
       "title": "ReplayGain anwenden",
       "subtitle": "Verwende die analysierte Verstärkung jedes Titels, um die wahrgenommene Lautstärke auszugleichen"
     },
+    "exclusive": {
+      "title": "WASAPI Exclusive-Modus (Windows)",
+      "subtitle": "Bit-perfekt: umgeht den Windows-Mixer für eine interferenzfreie Ausgabe. Fällt auf Shared-Modus zurück, wenn das Gerät den Exklusivzugriff verweigert.",
+      "fallback": "Das Gerät akzeptiert keinen Exclusive-Modus. Wechsel zu Shared-Modus."
+    },
     "mono": {
       "title": "Mono-Ton",
       "subtitle": "Mischt den linken und den rechten Kanal zu einem einzigen Signal"
