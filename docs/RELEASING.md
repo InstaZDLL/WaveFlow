@@ -77,6 +77,7 @@ Actions):
 | `SIGNTOOL_PFX_BASE64`                | `base64 -w0 < cert.pfx` for Windows Authenticode                                                                                     |
 | `SIGNTOOL_PFX_PASSWORD`              | PFX export passphrase                                                                                                                |
 | `AUR_SSH_PRIVATE_KEY`                | private half of the SSH key registered on the maintainer's AUR account, used by `.github/workflows/aur.yml` to push PKGBUILD updates |
+| `WINGET_PAT`                         | GitHub Personal Access Token (classic, `public_repo` scope) the `.github/workflows/winget.yml` action uses to fork microsoft/winget-pkgs and open the PR with the new manifest |
 
 The AUR package itself (`waveflow-bin`) needs a one-off manual setup
 on the maintainer's box — see [`packaging/aur/README.md`](../packaging/aur/README.md).

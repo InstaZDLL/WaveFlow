@@ -34,6 +34,7 @@ Pre-built bundles for every tagged release are on the [GitHub Releases page](htt
 
 ### Windows
 
+- **One-liner via [winget](https://github.com/microsoft/winget-cli)** — `winget install InstaZDLL.WaveFlow`. Auto-tracks updates with `winget upgrade`.
 - `WaveFlow_<ver>_windows-x86_64-setup.exe` — NSIS installer, **per-user** install under `%LOCALAPPDATA%`, doesn't need admin. This is what the in-app updater patches.
 - `WaveFlow_<ver>_windows-x86_64.msi` — MSI installer, **system-wide** install under `Program Files`, suitable for IT deployment via GPO/SCCM. Requires admin.
 

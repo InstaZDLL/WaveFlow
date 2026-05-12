@@ -1,0 +1,69 @@
+name: Winget
+
+# Runs after the Release workflow has published artefacts to GitHub.
+# Fetches the freshly-uploaded NSIS + MSI installers, regenerates a
+# winget manifest from the existing template under packaging/winget/,
+# and opens a PR against microsoft/winget-pkgs via wingetcreate.
+#
+# Required repository secret:
+#   WINGET_PAT — Personal Access Token with `public_repo` scope. It
+#                authorises wingetcreate to fork microsoft/winget-pkgs
+#                under the maintainer's account and push the new
+#                manifest branch.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag to publish, e.g. v1.0.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: winget-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Resolve tag and version
+        shell: bash
+        env:
+          MANUAL_TAG: ${{ github.event.inputs.tag_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          TAG="${MANUAL_TAG:-$RELEASE_TAG}"
+          if [ -z "$TAG" ]; then
+            echo "::error::No tag resolved (event=${GITHUB_EVENT_NAME:-?})"
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          echo "TAG_NAME=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Submit to winget-pkgs
+        # vedantmgoyal9/winget-releaser wraps wingetcreate:
+        #   1. downloads installers from the release matching the
+        #      `installers-regex` filter,
+        #   2. computes SHA-256, fills the manifest,
+        #      validates via `winget validate`,
+        #   3. forks microsoft/winget-pkgs under the token's account,
+        #   4. opens a PR with the new version directory.
+        # On Microsoft's side a Service-and-Reliability bot then
+        # auto-reviews and (when clean) merges within minutes to a
+        # day or two.
+        uses: vedantmgoyal9/winget-releaser@a1c64eb27c1a2eb44dca90a08a87055d62c69d3b # v2
+        with:
+          identifier: InstaZDLL.WaveFlow
+          version: ${{ env.VERSION }}
+          installers-regex: '^WaveFlow_.*_windows-x86_64(-setup\.exe|\.msi)$'
+          release-tag: ${{ env.TAG_NAME }}
+          token: ${{ secrets.WINGET_PAT }}
+          fork-user: InstaZDLL
