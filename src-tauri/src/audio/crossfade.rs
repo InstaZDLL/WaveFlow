@@ -321,11 +321,10 @@ impl ActiveStream {
                     Some(block_size) => (block_size as u64) * (layout.channels.count() as u64),
                     None => layout.channels.count() as u64,
                 };
-                let aligned = if stride > 0 {
-                    (target / stride) * stride
-                } else {
-                    target
-                };
+                let aligned = target
+                    .checked_div(stride)
+                    .map(|q| q * stride)
+                    .unwrap_or(target);
                 let aligned = aligned.min(layout.data_len_bytes);
                 let absolute = layout.data_offset + aligned;
                 if let Err(err) = file.seek(SeekFrom::Start(absolute)) {
@@ -435,11 +434,10 @@ impl ActiveStream {
                 };
                 let remaining = layout.data_len_bytes - *bytes_read;
                 let raw_want = remaining.min(DSD_READ_CHUNK as u64);
-                let aligned = if stride > 0 {
-                    (raw_want / stride) * stride
-                } else {
-                    raw_want
-                };
+                let aligned = raw_want
+                    .checked_div(stride)
+                    .map(|q| q * stride)
+                    .unwrap_or(raw_want);
                 // If the leftover at EOF is smaller than one stride,
                 // we'd never make progress. In that case treat the
                 // residual as EOF — losing < stride / bytes-per-ms

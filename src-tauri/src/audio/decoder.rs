@@ -318,6 +318,12 @@ pub struct FinishedTrack {
 /// stream.
 ///
 /// Returns `(PlaybackEnd, listened_ms_of_final_track, FinishedTrack)`.
+///
+/// Yes, this takes a lot of parameters — but each one is load-bearing
+/// (initial track context + the I/O + sync handles the decoder loop
+/// needs) and folding them into a struct just to satisfy a lint would
+/// obscure the call site without changing what the function does.
+#[allow(clippy::too_many_arguments)]
 fn play_track(
     initial_path: &Path,
     initial_start_ms: u64,
@@ -1251,8 +1257,7 @@ pub(super) fn convert_channels(
     match (src_chans, dst_chans) {
         (1, 2) => {
             out.reserve(frames * 2);
-            for f in 0..frames {
-                let s = input[f];
+            for &s in input.iter().take(frames) {
                 out.push(s);
                 out.push(s);
             }

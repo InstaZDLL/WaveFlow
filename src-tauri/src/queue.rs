@@ -100,26 +100,6 @@ impl RepeatMode {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn repeat_mode_round_trips_through_string() {
-        for mode in [RepeatMode::Off, RepeatMode::All, RepeatMode::One] {
-            assert_eq!(RepeatMode::from_str(mode.as_str()), mode);
-        }
-    }
-
-    #[test]
-    fn repeat_mode_unknown_string_falls_back_to_off() {
-        // The DB stores user-facing strings; an old / corrupted value
-        // must not panic. "Off" is the conservative default.
-        assert_eq!(RepeatMode::from_str("garbage"), RepeatMode::Off);
-        assert_eq!(RepeatMode::from_str(""), RepeatMode::Off);
-    }
-}
-
 // ---------------------------------------------------------------------
 // Helpers: typed wrappers around profile_setting string values
 // ---------------------------------------------------------------------
@@ -309,21 +289,20 @@ pub async fn append(
     let max_pos: Option<i64> = sqlx::query_scalar("SELECT MAX(position) FROM queue_item")
         .fetch_one(&mut *tx)
         .await?;
-    let mut next = max_pos.map(|p| p + 1).unwrap_or(0);
+    let start = max_pos.map(|p| p + 1).unwrap_or(0);
     let now = Utc::now().timestamp_millis();
-    for id in track_ids {
+    for (offset, id) in track_ids.iter().enumerate() {
         sqlx::query(
             "INSERT INTO queue_item (track_id, position, source_type, source_id, added_at)
              VALUES (?, ?, ?, ?, ?)",
         )
         .bind(id)
-        .bind(next)
+        .bind(start + offset as i64)
         .bind(source_type)
         .bind(source_id)
         .bind(now)
         .execute(&mut *tx)
         .await?;
-        next += 1;
     }
     // Order changed → shuffle snapshot is no longer reusable.
     sqlx::query("DELETE FROM profile_setting WHERE key = 'queue.preshuffle'")
@@ -902,4 +881,24 @@ fn fisher_yates<T>(slice: &mut [T]) {
 #[allow(dead_code)]
 fn _type_check() -> Option<PlayerStateSnapshot> {
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn repeat_mode_round_trips_through_string() {
+        for mode in [RepeatMode::Off, RepeatMode::All, RepeatMode::One] {
+            assert_eq!(RepeatMode::from_str(mode.as_str()), mode);
+        }
+    }
+
+    #[test]
+    fn repeat_mode_unknown_string_falls_back_to_off() {
+        // The DB stores user-facing strings; an old / corrupted value
+        // must not panic. "Off" is the conservative default.
+        assert_eq!(RepeatMode::from_str("garbage"), RepeatMode::Off);
+        assert_eq!(RepeatMode::from_str(""), RepeatMode::Off);
+    }
 }

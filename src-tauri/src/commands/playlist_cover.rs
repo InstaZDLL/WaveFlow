@@ -100,7 +100,10 @@ pub async fn set_playlist_cover_from_file(
         blake3::hash(&bytes).to_hex()
     ));
     std::fs::write(&tmp, &bytes).map_err(|e| AppError::Other(format!("temp write: {e}")))?;
-    let result = cover::build_composite_cover(&[tmp.clone()], &state.paths.metadata_artwork_dir);
+    let result = cover::build_composite_cover(
+        std::slice::from_ref(&tmp),
+        &state.paths.metadata_artwork_dir,
+    );
     let _ = std::fs::remove_file(&tmp);
     let hash = result?;
 

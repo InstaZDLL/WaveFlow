@@ -334,10 +334,7 @@ pub async fn read_enabled(app_db: &sqlx::SqlitePool) -> bool {
             .await
             .ok()
             .flatten();
-    match raw.as_deref() {
-        Some("false") => false,
-        _ => true,
-    }
+    !matches!(raw.as_deref(), Some("false"))
 }
 
 /// Best-effort lookup of a public Deezer cover URL for the given

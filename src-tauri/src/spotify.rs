@@ -373,6 +373,7 @@ pub async fn access_token(state: &AppState) -> AppResult<SpotifyAccessToken> {
         .await?
         .ok_or_else(|| AppError::Other("Spotify Client ID is not configured".into()))?;
     let pool = state.require_profile_pool().await?;
+    #[allow(clippy::type_complexity)]
     let row: Option<(Vec<u8>, Option<Vec<u8>>, Option<i64>, Option<String>)> = sqlx::query_as(
         "SELECT token_encrypted, refresh_token_encrypted, expires_at, username
            FROM auth_credential

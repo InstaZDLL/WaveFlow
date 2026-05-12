@@ -293,6 +293,7 @@ pub async fn enrich_artist_deezer(
     // 2. Cache hit? (includes bio fields populated by Last.fm in a
     //    previous enrichment pass)
     if let Some(did) = existing_deezer_id {
+        #[allow(clippy::type_complexity)]
         let cached: Option<(
             Option<String>,
             Option<String>,

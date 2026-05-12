@@ -209,6 +209,9 @@ impl DsdToPcm {
         let stride = block_size * self.channels;
         let mut staged: Vec<Vec<f32>> = vec![Vec::new(); self.channels];
         for chunk in input.chunks(stride) {
+            // `ch` indexes both `chunk` (with stride) AND `staged`, so
+            // the explicit range loop is the clearest form here.
+            #[allow(clippy::needless_range_loop)]
             for ch in 0..self.channels {
                 let start = ch * block_size;
                 if start >= chunk.len() {
@@ -245,6 +248,9 @@ fn interleave_into(staged: &[Vec<f32>], channels: usize, out: &mut Vec<f32>) {
     }
     let frames = staged.iter().map(Vec::len).min().unwrap_or(0);
     out.reserve(frames * channels);
+    // Both indices are used for cross-buffer reads, so the range
+    // loops are clearer than nested enumerate / zip.
+    #[allow(clippy::needless_range_loop)]
     for f in 0..frames {
         for ch in 0..channels {
             out.push(staged[ch][f]);
@@ -261,7 +267,7 @@ fn interleave_into(staged: &[Vec<f32>], channels: usize, out: &mut Vec<f32>) {
 fn build_blackman_harris_lowpass(taps: usize, cutoff: f32) -> Vec<f32> {
     let m = (taps - 1) as f32;
     let mut coeffs = vec![0.0f32; taps];
-    for n in 0..taps {
+    for (n, coeff) in coeffs.iter_mut().enumerate() {
         let nf = n as f32;
         // Sinc (centred on the middle tap)
         let x = nf - m / 2.0;
@@ -273,7 +279,7 @@ fn build_blackman_harris_lowpass(taps: usize, cutoff: f32) -> Vec<f32> {
         // Blackman-Harris window
         let w = 0.35875 - 0.48829 * (2.0 * PI * nf / m).cos() + 0.14128 * (4.0 * PI * nf / m).cos()
             - 0.01168 * (6.0 * PI * nf / m).cos();
-        coeffs[n] = sinc * w;
+        *coeff = sinc * w;
     }
     let dc_gain: f32 = coeffs.iter().sum();
     if dc_gain.abs() > 1e-9 {

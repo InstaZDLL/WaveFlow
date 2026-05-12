@@ -347,7 +347,7 @@ async fn prune_old_backups(
                 .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
             entries.push((path, mtime));
         }
-        entries.sort_by(|a, b| b.1.cmp(&a.1)); // newest first
+        entries.sort_by_key(|e| std::cmp::Reverse(e.1)); // newest first
         let mut removed = 0;
         for (path, _) in entries.into_iter().skip(keep) {
             if std::fs::remove_file(&path).is_ok() {

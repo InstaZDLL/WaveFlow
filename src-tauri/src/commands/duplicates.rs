@@ -45,6 +45,7 @@ pub async fn find_duplicates(state: tauri::State<'_, AppState>) -> AppResult<Vec
 
     // Pull every duplicated row in one round-trip — joining on the
     // hash subquery is cheaper than running N+1 queries.
+    #[allow(clippy::type_complexity)]
     let rows: Vec<(
         String,
         i64,

@@ -97,9 +97,9 @@ pub struct ScanSummary {
     pub removed: u32,
 }
 
-/// Normalize a title/name for dedup purposes: lowercase + strip punctuation
-/// + collapse whitespace. Good enough to match "The Beatles" / "THE  BEATLES"
-/// / "the beatles!" onto a single canonical key without pulling in a proper
+/// Normalize a title/name for dedup purposes: lowercase, strip punctuation
+/// and collapse whitespace. Good enough to match "The Beatles" / "THE  BEATLES"
+/// or "the beatles!" onto a single canonical key without pulling in a proper
 /// Unicode normalization library.
 pub(crate) fn canonical_name(s: &str) -> String {
     s.trim()

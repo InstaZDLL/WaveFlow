@@ -7,8 +7,9 @@
 
 # ── Rust version hint ─────────────────────────────────────────────────────────
 # Prevents Clippy from suggesting APIs not available before this version.
-# Tauri 2 + sqlx 0.8 require ≥ 1.75; 1.77 gives us the C-string literal.
-msrv = "1.77.2"
+# Tauri 2 + sqlx 0.8 require ≥ 1.75; bumped to 1.80 for `std::sync::LazyLock`
+# (used by the Last.fm HTML-stripper static regexes in `src/lastfm.rs`).
+msrv = "1.80"
 
 # ── Complexity thresholds ─────────────────────────────────────────────────────
 # Tauri command handlers often receive many parameters (pool, state, options…).

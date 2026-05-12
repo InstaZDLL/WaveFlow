@@ -590,6 +590,28 @@ async fn delete_existing_slot(pool: &SqlitePool, slot: u8) -> AppResult<()> {
     Ok(())
 }
 
+/// In-place Fisher–Yates with a seeded xorshift RNG. Mirrors the helper in
+/// [`crate::queue`] (we deliberately avoid pulling in a heavier RNG crate
+/// for shuffling — these aren't security-critical operations) but takes a
+/// caller-supplied seed so the order is reproducible across regens.
+fn shuffle_with_seed<T>(slice: &mut [T], seed: u64) {
+    // xorshift requires a nonzero seed; fall back to a magic constant so a
+    // zero coming in from the caller doesn't produce a degenerate "no
+    // shuffle" output.
+    let mut state: u64 = if seed == 0 {
+        0x9E37_79B9_7F4A_7C15
+    } else {
+        seed
+    };
+    for i in (1..slice.len()).rev() {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        let j = (state % (i as u64 + 1)) as usize;
+        slice.swap(i, j);
+    }
+}
+
 /// Round-trip the rules JSON shape so a bad serializer change is caught at
 /// compile/test time rather than at runtime when the regenerator can't find
 /// its own previously-written rows.
@@ -621,27 +643,5 @@ mod tests {
                 matches.len()
             );
         }
-    }
-}
-
-/// In-place Fisher–Yates with a seeded xorshift RNG. Mirrors the helper in
-/// [`crate::queue`] (we deliberately avoid pulling in a heavier RNG crate
-/// for shuffling — these aren't security-critical operations) but takes a
-/// caller-supplied seed so the order is reproducible across regens.
-fn shuffle_with_seed<T>(slice: &mut [T], seed: u64) {
-    // xorshift requires a nonzero seed; fall back to a magic constant so a
-    // zero coming in from the caller doesn't produce a degenerate "no
-    // shuffle" output.
-    let mut state: u64 = if seed == 0 {
-        0x9E37_79B9_7F4A_7C15
-    } else {
-        seed
-    };
-    for i in (1..slice.len()).rev() {
-        state ^= state << 13;
-        state ^= state >> 7;
-        state ^= state << 17;
-        let j = (state % (i as u64 + 1)) as usize;
-        slice.swap(i, j);
     }
 }

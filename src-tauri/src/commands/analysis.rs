@@ -69,6 +69,8 @@ pub async fn get_track_analysis(
     track_id: i64,
 ) -> AppResult<Option<TrackAnalysisRow>> {
     let pool = state.require_profile_pool().await?;
+    // sqlx row tuple — kept anonymous because it's only used here.
+    #[allow(clippy::type_complexity)]
     let row: Option<(
         i64,
         Option<f64>,

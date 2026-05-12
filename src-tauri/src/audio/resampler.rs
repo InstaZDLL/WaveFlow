@@ -29,6 +29,12 @@ const CHUNK_SIZE: usize = 1024;
 /// a baseline.
 const SUB_CHUNKS: usize = 2;
 
+// `Fft` carries multi-hundred-byte scratch buffers + the rubato
+// state, dwarfing `Passthrough`. Boxing would add an indirection on
+// every audio packet in the hot path, and the enum is only stored
+// once per stream (the primary + the prefetched secondary during
+// crossfade), so the size disparity is fine.
+#[allow(clippy::large_enum_variant)]
 pub enum Resampler {
     Passthrough,
     Fft {

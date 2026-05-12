@@ -171,6 +171,7 @@ struct PendingScrobble {
 /// second query per item to assemble the API payload.
 async fn fetch_due(pool: &SqlitePool) -> Result<Vec<PendingScrobble>, sqlx::Error> {
     let now = chrono::Utc::now().timestamp_millis();
+    #[allow(clippy::type_complexity)]
     let rows: Vec<(
         i64,
         i64,
@@ -313,8 +314,8 @@ pub fn is_eligible(duration_ms: i64, listened_ms: i64) -> bool {
 }
 
 /// Dropped session recovery: wipe the per-profile credential row
-/// + the queued scrobbles (every one of them would re-trigger the
-/// same code 9), then emit a Tauri event so the UI can prompt the
+/// alongside the queued scrobbles (every one of them would re-trigger
+/// the same code 9), then emit a Tauri event so the UI can prompt the
 /// user to sign in again.
 ///
 /// Public so `track.updateNowPlaying` can reuse it — the now-playing

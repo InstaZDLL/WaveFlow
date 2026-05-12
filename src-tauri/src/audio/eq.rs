@@ -216,8 +216,8 @@ impl EqProcessor {
                 let i = f * channels + ch;
                 let mut x = buf[i];
                 let chan_state = &mut self.states[ch];
-                for b in 0..BAND_COUNT {
-                    x = chan_state[b].process(x, &self.coeffs[b]);
+                for (b, biquad) in chan_state.iter_mut().enumerate().take(BAND_COUNT) {
+                    x = biquad.process(x, &self.coeffs[b]);
                 }
                 buf[i] = x;
             }

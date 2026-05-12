@@ -229,7 +229,7 @@ fn compute_bands(spectrum: &[Complex<f32>], sample_rate: f32, bands: &mut [f32])
     let log_max = MAX_HZ.ln();
     let band_count = bands.len();
 
-    for b in 0..band_count {
+    for (b, band) in bands.iter_mut().enumerate().take(band_count) {
         let lo_hz = (log_min + (log_max - log_min) * b as f32 / band_count as f32).exp();
         let hi_hz = (log_min + (log_max - log_min) * (b + 1) as f32 / band_count as f32).exp();
         let lo_bin = (lo_hz / bin_hz).floor() as usize;
@@ -240,8 +240,8 @@ fn compute_bands(spectrum: &[Complex<f32>], sample_rate: f32, bands: &mut [f32])
         // visualizer feel alive. A single strong bin should still
         // drive its band bar to full height.
         let mut peak_sq = 0.0f32;
-        for bin in lo_bin..hi_bin.min(bin_count) {
-            let m = spectrum[bin].norm_sqr();
+        for bin_val in spectrum.iter().take(hi_bin.min(bin_count)).skip(lo_bin) {
+            let m = bin_val.norm_sqr();
             if m > peak_sq {
                 peak_sq = m;
             }
@@ -251,7 +251,7 @@ fn compute_bands(spectrum: &[Complex<f32>], sample_rate: f32, bands: &mut [f32])
         let cut = (normalised - FLOOR).max(0.0) / (1.0 - FLOOR);
         // Perceptual curve — sqrt expands the low end where the
         // human ear is most sensitive to loudness changes.
-        bands[b] = cut.sqrt();
+        *band = cut.sqrt();
     }
 }
 
