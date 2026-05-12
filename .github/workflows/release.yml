@@ -271,15 +271,30 @@ jobs:
           renamed = f"WaveFlow_{version}_linux-x86_64.AppImage"
           shutil.copy2(appimage, dist_release / renamed)
 
-          updater_payload = appimage_dir / f"{appimage.name}.tar.gz"
-          updater_sig = appimage_dir / f"{appimage.name}.tar.gz.sig"
-          if not updater_payload.exists() or not updater_sig.exists():
-              print("::error::Missing updater payload/signature next to AppImage", file=sys.stderr)
+          # Tauri 2 signs the AppImage directly — no .tar.gz wrapper.
+          # The AppImage *is* the updater payload; the .sig sits next
+          # to it. (Older Tauri 1.x produced an extra .AppImage.tar.gz;
+          # we keep a fallback for forward-compat if Tauri ever brings
+          # it back.)
+          updater_sig = appimage_dir / f"{appimage.name}.sig"
+          legacy_payload = appimage_dir / f"{appimage.name}.tar.gz"
+          legacy_sig = appimage_dir / f"{appimage.name}.tar.gz.sig"
+
+          if updater_sig.exists():
+              sig_renamed = f"{renamed}.sig"
+              shutil.copy2(updater_sig, dist_release / sig_renamed)
+              payload_filename = renamed  # the AppImage itself
+              sig_path_for_manifest = updater_sig
+          elif legacy_payload.exists() and legacy_sig.exists():
+              payload_renamed = f"{renamed}.tar.gz"
+              sig_renamed = f"{renamed}.tar.gz.sig"
+              shutil.copy2(legacy_payload, dist_release / payload_renamed)
+              shutil.copy2(legacy_sig, dist_release / sig_renamed)
+              payload_filename = payload_renamed
+              sig_path_for_manifest = legacy_sig
+          else:
+              print("::error::Missing AppImage updater signature (looked for .AppImage.sig and .AppImage.tar.gz.sig)", file=sys.stderr)
               sys.exit(1)
-          payload_renamed = f"{renamed}.tar.gz"
-          sig_renamed = f"{renamed}.tar.gz.sig"
-          shutil.copy2(updater_payload, dist_release / payload_renamed)
-          shutil.copy2(updater_sig, dist_release / sig_renamed)
 
           for folder, pattern, suffix in [
               ("deb", "*.deb", "deb"),
@@ -293,8 +308,8 @@ jobs:
               dest = dist_release / f"WaveFlow_{version}_linux-x86_64.{suffix}"
               shutil.copy2(matches[0], dest)
 
-          signature = updater_sig.read_text(encoding="utf-8").strip()
-          download_url = f"https://github.com/{repo}/releases/download/{tag_name}/{payload_renamed}"
+          signature = sig_path_for_manifest.read_text(encoding="utf-8").strip()
+          download_url = f"https://github.com/{repo}/releases/download/{tag_name}/{payload_filename}"
           manifest = {
               "version": version,
               "notes": "",
@@ -314,7 +329,7 @@ jobs:
               "appimage": renamed,
               "deb": f"WaveFlow_{version}_linux-x86_64.deb",
               "rpm": f"WaveFlow_{version}_linux-x86_64.rpm",
-              "updater_payload": payload_renamed,
+              "updater_payload": payload_filename,
               "updater_sig": sig_renamed,
           }, indent=2))
           PY
