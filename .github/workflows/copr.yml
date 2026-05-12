@@ -62,9 +62,14 @@ jobs:
         run: dnf install -y --setopt=install_weak_deps=False rpm-build rpmdevtools copr-cli git
 
       - name: Checkout
+        # Intentionally checks out the default branch (main), not the
+        # tag. The spec file we need is independent of the source
+        # tree at the tag — Source0 already encodes %{version}, so
+        # the latest main copy of waveflow.spec works for any past
+        # or future release tag. (Checking out the tag would break
+        # when the spec was added in a commit posterior to the tag,
+        # e.g. v1.0.0 was tagged before packaging/copr/ existed.)
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          ref: ${{ env.TAG_NAME }}
 
       - name: Bump spec version (in-place, not committed back)
         run: |
