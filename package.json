@@ -36,8 +36,8 @@
     "tailwindcss": "^4.3.0"
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.0.0",
-    "@commitlint/config-conventional": "^21.0.0",
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
     "@eslint/js": "^10.0.1",
     "@tauri-apps/cli": "^2.11.1",
     "@types/react": "^19.2.14",
