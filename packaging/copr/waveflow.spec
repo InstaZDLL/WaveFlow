@@ -1,6 +1,11 @@
-%global appname      WaveFlow
 %global upstream_url https://github.com/InstaZDLL/WaveFlow
 %global asset_url    %{upstream_url}/releases/download/v%{version}/WaveFlow_%{version}_linux-x86_64.rpm
+
+# The upstream Tauri binary is already stripped, so there is no
+# debug info for Fedora's automatic `find-debuginfo` step to extract.
+# Disable the debug subpackage so rpmbuild doesn't try (and emit a
+# bunch of warnings) — it has nothing to operate on.
+%global debug_package %{nil}
 
 Name:           waveflow
 Version:        1.0.0
@@ -52,9 +57,12 @@ cd %{buildroot}
 rpm2cpio %{SOURCE0} | cpio -idmv
 
 %files
-%{_bindir}/%{appname}
-%{_datadir}/applications/%{appname}.desktop
-%{_datadir}/icons/hicolor/*/apps/%{appname}.png
+# Tauri-bundler emits a mixed-case layout: the binary and icon
+# basenames are lowercase, but the .desktop file keeps the
+# upstream productName casing.
+%{_bindir}/waveflow
+%{_datadir}/applications/WaveFlow.desktop
+%{_datadir}/icons/hicolor/*/apps/waveflow.png
 
 %changelog
 * Wed May 13 2026 InstaZDLL <github.105mh@8shield.net> - 1.0.0-1
