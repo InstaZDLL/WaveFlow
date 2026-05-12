@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Tag to publish to AUR, e.g. v0.1.0'
+        description: "Tag to publish to AUR, e.g. v0.1.0"
         required: true
         type: string
 
@@ -72,7 +72,7 @@ jobs:
           commit_username: ${{ github.actor }}
           commit_email: ${{ github.actor }}@users.noreply.github.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: 'Update to ${{ env.VERSION }}'
+          commit_message: "Update to ${{ env.VERSION }}"
           ssh_keyscan_types: rsa,ecdsa,ed25519
           updpkgsums: true
           test: true

@@ -57,13 +57,12 @@ impl AppState {
         // before the user opens Settings. The flag is process-wide
         // (see `crate::offline`) because offline is a network-stack
         // concern, not per-profile.
-        let offline_initial: Option<String> = sqlx::query_scalar(
-            "SELECT value FROM app_setting WHERE key = 'network.offline_mode'",
-        )
-        .fetch_optional(&app_db)
-        .await
-        .ok()
-        .flatten();
+        let offline_initial: Option<String> =
+            sqlx::query_scalar("SELECT value FROM app_setting WHERE key = 'network.offline_mode'")
+                .fetch_optional(&app_db)
+                .await
+                .ok()
+                .flatten();
         crate::offline::set(
             offline_initial
                 .map(|v| v == "true" || v == "1")

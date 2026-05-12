@@ -76,9 +76,9 @@ export function StatisticsView({
     if (exporting) return;
     setExporting(true);
     try {
-      const defaultName = `waveflow-stats-${range}-${
-        new Date().toISOString().slice(0, 10)
-      }.json`;
+      const defaultName = `waveflow-stats-${range}-${new Date()
+        .toISOString()
+        .slice(0, 10)}.json`;
       const target = await pickSaveFile(
         defaultName,
         ["json"],

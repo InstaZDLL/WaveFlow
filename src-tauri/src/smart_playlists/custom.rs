@@ -77,27 +77,51 @@ impl Default for RuleNode {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Predicate {
-    TitleContains { value: String },
-    ArtistContains { value: String },
-    AlbumContains { value: String },
+    TitleContains {
+        value: String,
+    },
+    ArtistContains {
+        value: String,
+    },
+    AlbumContains {
+        value: String,
+    },
     /// Single genre. Multi-genre selection is expressed via `Any` of
     /// these so the tree shape is consistent across all multi-value
     /// editors.
-    GenreIs { value: i64 },
-    YearMin { value: i64 },
-    YearMax { value: i64 },
-    BpmMin { value: f64 },
-    BpmMax { value: f64 },
-    DurationMinMs { value: i64 },
-    DurationMaxMs { value: i64 },
+    GenreIs {
+        value: i64,
+    },
+    YearMin {
+        value: i64,
+    },
+    YearMax {
+        value: i64,
+    },
+    BpmMin {
+        value: f64,
+    },
+    BpmMax {
+        value: f64,
+    },
+    DurationMinMs {
+        value: i64,
+    },
+    DurationMaxMs {
+        value: i64,
+    },
     /// Single file extension (lowercase, no dot). Multi-format
     /// selection uses `Any` of these.
-    Format { value: String },
+    Format {
+        value: String,
+    },
     /// Hi-Res = sample rate ≥ 88.2 kHz OR bit depth ≥ 24.
     HiRes,
     Liked,
     /// Minimum POPM rating (0-255). Editor stores `Math.round(stars / 5 * 255)`.
-    RatingMin { value: i64 },
+    RatingMin {
+        value: i64,
+    },
 }
 
 // =============================================================================
@@ -108,7 +132,9 @@ pub enum Predicate {
 /// because dynamic ORDER BY through binds isn't allowed in SQLite.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum CustomSort {
+    #[default]
     AddedDesc,
     AddedAsc,
     YearDesc,
@@ -118,12 +144,6 @@ pub enum CustomSort {
     Random,
 }
 
-impl Default for CustomSort {
-    fn default() -> Self {
-        CustomSort::AddedDesc
-    }
-}
-
 fn order_by_sql(sort: &CustomSort) -> &'static str {
     match sort {
         CustomSort::AddedDesc => "t.added_at DESC",
@@ -131,9 +151,10 @@ fn order_by_sql(sort: &CustomSort) -> &'static str {
         CustomSort::YearDesc => "COALESCE(t.year, 0) DESC, t.title ASC",
         CustomSort::YearAsc => "COALESCE(t.year, 9999) ASC, t.title ASC",
         CustomSort::TitleAsc => "t.title ASC",
-        CustomSort::ArtistAsc =>
+        CustomSort::ArtistAsc => {
             "COALESCE((SELECT name FROM artist WHERE id = t.primary_artist), '') ASC, \
-             t.title ASC",
+             t.title ASC"
+        }
         CustomSort::Random => "RANDOM()",
     }
 }
@@ -216,14 +237,35 @@ fn migrate_legacy(raw: &RawCustomRules) -> RuleNode {
     let mut children: Vec<RuleNode> = Vec::new();
     let leaf = |p: Predicate| RuleNode::Leaf { predicate: p };
 
-    if let Some(v) = raw.title_contains.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-        children.push(leaf(Predicate::TitleContains { value: v.to_string() }));
+    if let Some(v) = raw
+        .title_contains
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
+        children.push(leaf(Predicate::TitleContains {
+            value: v.to_string(),
+        }));
     }
-    if let Some(v) = raw.artist_contains.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-        children.push(leaf(Predicate::ArtistContains { value: v.to_string() }));
+    if let Some(v) = raw
+        .artist_contains
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
+        children.push(leaf(Predicate::ArtistContains {
+            value: v.to_string(),
+        }));
     }
-    if let Some(v) = raw.album_contains.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-        children.push(leaf(Predicate::AlbumContains { value: v.to_string() }));
+    if let Some(v) = raw
+        .album_contains
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
+        children.push(leaf(Predicate::AlbumContains {
+            value: v.to_string(),
+        }));
     }
     if let Some(ids) = raw.genre_ids.as_ref().filter(|v| !v.is_empty()) {
         let any_children: Vec<RuleNode> = ids
@@ -299,20 +341,14 @@ fn build_node_sql(node: &RuleNode, binds: &mut Vec<BindValue>) -> String {
             if children.is_empty() {
                 return "1=1".to_string();
             }
-            let parts: Vec<String> = children
-                .iter()
-                .map(|c| build_node_sql(c, binds))
-                .collect();
+            let parts: Vec<String> = children.iter().map(|c| build_node_sql(c, binds)).collect();
             format!("({})", parts.join(" AND "))
         }
         RuleNode::Any { children } => {
             if children.is_empty() {
                 return "0=1".to_string();
             }
-            let parts: Vec<String> = children
-                .iter()
-                .map(|c| build_node_sql(c, binds))
-                .collect();
+            let parts: Vec<String> = children.iter().map(|c| build_node_sql(c, binds)).collect();
             format!("({})", parts.join(" OR "))
         }
         RuleNode::Not { child } => {
@@ -442,12 +478,12 @@ pub async fn run_query(pool: &SqlitePool, rules: &CustomRules) -> AppResult<Vec<
     let mut binds = Vec::<BindValue>::new();
     let tree_where = build_node_sql(&rules.tree, &mut binds);
 
-    let mut sql = String::from(
-        "SELECT t.id FROM track t WHERE t.is_available = 1 AND ",
-    );
+    let mut sql = String::from("SELECT t.id FROM track t WHERE t.is_available = 1 AND ");
     sql.push_str(&tree_where);
     sql.push_str(" ORDER BY ");
-    sql.push_str(order_by_sql(rules.sort.as_ref().unwrap_or(&CustomSort::AddedDesc)));
+    sql.push_str(order_by_sql(
+        rules.sort.as_ref().unwrap_or(&CustomSort::AddedDesc),
+    ));
 
     let limit = rules.limit.unwrap_or(HARD_LIMIT).clamp(1, HARD_LIMIT);
     sql.push_str(" LIMIT ?");
@@ -556,14 +592,10 @@ mod tests {
                 RuleNode::Any {
                     children: vec![
                         RuleNode::Leaf {
-                            predicate: Predicate::ArtistContains {
-                                value: "X".into(),
-                            },
+                            predicate: Predicate::ArtistContains { value: "X".into() },
                         },
                         RuleNode::Leaf {
-                            predicate: Predicate::ArtistContains {
-                                value: "Y".into(),
-                            },
+                            predicate: Predicate::ArtistContains { value: "Y".into() },
                         },
                     ],
                 },

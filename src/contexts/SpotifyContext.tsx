@@ -205,7 +205,9 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
       const state = payload as SpotifyWebPlaybackState | null;
       if (!state) return;
       const track = sdkTrackToLite(state.track_window.current_track);
-      const playback: SpotifyPlaybackState = state.paused ? "paused" : "playing";
+      const playback: SpotifyPlaybackState = state.paused
+        ? "paused"
+        : "playing";
       setCurrentTrack(track);
       setPositionMs(state.position);
       setDurationMs(state.duration);
@@ -405,7 +407,10 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
       const headers = await tokenHeaders();
       const init: RequestInit = { method, headers };
       if (body) init.body = JSON.stringify(body);
-      const res = await fetch(`https://api.spotify.com/v1/me/player/${endpoint}`, init);
+      const res = await fetch(
+        `https://api.spotify.com/v1/me/player/${endpoint}`,
+        init,
+      );
       if (!res.ok && res.status !== 204) {
         const text = await res.text();
         throw new Error(text || `Spotify ${endpoint} failed (${res.status})`);
@@ -440,7 +445,10 @@ export function SpotifyProvider({ children }: { children: ReactNode }) {
       if (playerRef.current) {
         await playerRef.current.seek(ms);
       } else {
-        await connectApi("PUT", `seek?position_ms=${Math.max(0, Math.floor(ms))}`);
+        await connectApi(
+          "PUT",
+          `seek?position_ms=${Math.max(0, Math.floor(ms))}`,
+        );
       }
     },
     [connectApi],

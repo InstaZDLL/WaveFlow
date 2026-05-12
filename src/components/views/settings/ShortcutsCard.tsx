@@ -104,7 +104,10 @@ export function ShortcutsCard() {
           const combo = bindings[action];
           const isCapturing = capturingAction === action;
           return (
-            <li key={action} className="py-2.5 flex items-center justify-between gap-3">
+            <li
+              key={action}
+              className="py-2.5 flex items-center justify-between gap-3"
+            >
               <span className="text-sm text-zinc-700 dark:text-zinc-300">
                 {t(`settings.shortcuts.actions.${action}`)}
               </span>

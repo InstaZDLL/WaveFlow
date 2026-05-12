@@ -59,7 +59,9 @@ export function SpeedControl() {
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
-        aria-label={t("player.speed.label", { value: formatSpeed(playbackSpeed) })}
+        aria-label={t("player.speed.label", {
+          value: formatSpeed(playbackSpeed),
+        })}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         title={t("player.speed.title")}

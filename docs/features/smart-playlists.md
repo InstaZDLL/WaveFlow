@@ -6,10 +6,10 @@ Auto-generated playlists materialised from the user's listening history. Today: 
 
 Smart playlists share the regular `playlist` table with user playlists. Three columns matter:
 
-| Column | Role |
-|--------|------|
-| `is_smart` (`INTEGER`, default `0`) | Filter flag for the UI. |
-| `smart_rules` (`TEXT`) | JSON payload — `SmartPlaylistRules` enum. The regenerator looks up an existing slot via `LIKE '%"slot":N%'` so an upsert rewrites the same row instead of stacking duplicates. |
+| Column                                                                                                                                  | Role                                                                                                                                                                              |
+| --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `is_smart` (`INTEGER`, default `0`)                                                                                                     | Filter flag for the UI.                                                                                                                                                           |
+| `smart_rules` (`TEXT`)                                                                                                                  | JSON payload — `SmartPlaylistRules` enum. The regenerator looks up an existing slot via `LIKE '%"slot":N%'` so an upsert rewrites the same row instead of stacking duplicates.    |
 | `cover_hash` (`TEXT`, added in [migration `20260509000000`](../../src-tauri/migrations/profile/20260509000000_playlist_cover_hash.sql)) | Blake3 hash of the composite cover, looked up in the shared `<root>/metadata_artwork/<hash>.jpg` cache. `NULL` → frontend falls back to the `icon_id` + `color_id` gradient tile. |
 
 The Tauri layer additionally returns a derived `cover_path: Option<String>` resolved by [`metadata_artwork::existing_path`](../../src-tauri/src/metadata_artwork.rs) so a stale `cover_hash` (cache wiped, file gone) doesn't render a broken image.
@@ -42,11 +42,11 @@ Lookback is **90 days** so a one-off binge doesn't dominate forever. Below `MIN_
 
 Each artist is routed to **one** bucket based on the average BPM of their tracks:
 
-| Slot | Label | BPM range | Description |
-|------|-------|-----------|-------------|
-| 1 | Daily Mix 1 (Calm) | `< 95` | Lower-tempo / ambient |
-| 2 | Daily Mix 2 (Groove) | `[95, 130)` | Mid-tempo, where most pop / rock / hip-hop sits |
-| 3 | Daily Mix 3 (Energy) | `≥ 130` | High-energy, dance, drum & bass |
+| Slot | Label                | BPM range   | Description                                     |
+| ---- | -------------------- | ----------- | ----------------------------------------------- |
+| 1    | Daily Mix 1 (Calm)   | `< 95`      | Lower-tempo / ambient                           |
+| 2    | Daily Mix 2 (Groove) | `[95, 130)` | Mid-tempo, where most pop / rock / hip-hop sits |
+| 3    | Daily Mix 3 (Energy) | `≥ 130`     | High-energy, dance, drum & bass                 |
 
 Artists with **no** analysed BPM fall back to slot 2. Same for ties — a missing analysis doesn't black-hole an artist.
 
@@ -113,17 +113,17 @@ enum RuleNode {
 
 JSON shape uses an internal `type` tag (`{"type":"all","children":[…]}`). The `Predicate` enum carries the leaf's `kind` + `value`:
 
-| Predicate kind | Notes |
-|-----------|-------|
-| `title_contains` / `artist_contains` / `album_contains` | Case-insensitive `LIKE '%…%'`. |
-| `genre_is` | Single genre ID — multi-genre OR is expressed as `Any` of these. |
-| `year_min` / `year_max` | Inclusive bounds, `NULL` years filtered out. |
-| `bpm_min` / `bpm_max` | Reads `track_analysis.bpm`. |
-| `duration_min_ms` / `duration_max_ms` | Inclusive on `track.duration_ms`. |
-| `format` | Single file extension — multi-format OR is expressed as `Any` of these. |
-| `hi_res` (unit) | `sample_rate >= 88200 OR bit_depth >= 24`. |
-| `liked` (unit) | `EXISTS (SELECT 1 FROM liked_track …)`. |
-| `rating_min` | POPM 0-255 threshold. Editor's star picker writes `Math.round(stars / 5 * 255)`. |
+| Predicate kind                                          | Notes                                                                            |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `title_contains` / `artist_contains` / `album_contains` | Case-insensitive `LIKE '%…%'`.                                                   |
+| `genre_is`                                              | Single genre ID — multi-genre OR is expressed as `Any` of these.                 |
+| `year_min` / `year_max`                                 | Inclusive bounds, `NULL` years filtered out.                                     |
+| `bpm_min` / `bpm_max`                                   | Reads `track_analysis.bpm`.                                                      |
+| `duration_min_ms` / `duration_max_ms`                   | Inclusive on `track.duration_ms`.                                                |
+| `format`                                                | Single file extension — multi-format OR is expressed as `Any` of these.          |
+| `hi_res` (unit)                                         | `sample_rate >= 88200 OR bit_depth >= 24`.                                       |
+| `liked` (unit)                                          | `EXISTS (SELECT 1 FROM liked_track …)`.                                          |
+| `rating_min`                                            | POPM 0-255 threshold. Editor's star picker writes `Math.round(stars / 5 * 255)`. |
 
 ### SQL builder
 

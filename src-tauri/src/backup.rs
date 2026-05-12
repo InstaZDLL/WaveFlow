@@ -95,9 +95,7 @@ fn default_backup_folder(handle: &AppHandle) -> PathBuf {
 /// Read the persisted config from `app_setting`. Missing rows fall back
 /// to defaults so the first read after a fresh install doesn't error.
 pub async fn read_config(state: &AppState, handle: &AppHandle) -> AppResult<BackupConfig> {
-    let default_folder = default_backup_folder(handle)
-        .to_string_lossy()
-        .to_string();
+    let default_folder = default_backup_folder(handle).to_string_lossy().to_string();
 
     let mut enabled = false;
     let mut interval_days = DEFAULT_INTERVAL_DAYS;
@@ -115,9 +113,7 @@ pub async fn read_config(state: &AppState, handle: &AppHandle) -> AppResult<Back
     for (k, v) in rows {
         match k.as_str() {
             "backup.enabled" => enabled = v == "true" || v == "1",
-            "backup.interval_days" => {
-                interval_days = v.parse().unwrap_or(DEFAULT_INTERVAL_DAYS)
-            }
+            "backup.interval_days" => interval_days = v.parse().unwrap_or(DEFAULT_INTERVAL_DAYS),
             "backup.folder" => folder = v,
             "backup.retention" => retention = v.parse().unwrap_or(DEFAULT_RETENTION),
             "backup.last_run_at" => last_run_at = v.parse().unwrap_or(0),
@@ -152,7 +148,11 @@ pub async fn write_config(
 
     let mut tx = state.app_db.begin().await?;
     for (key, value, kind) in [
-        ("backup.enabled", if enabled { "true" } else { "false" }.to_string(), "bool"),
+        (
+            "backup.enabled",
+            if enabled { "true" } else { "false" }.to_string(),
+            "bool",
+        ),
         ("backup.interval_days", interval.to_string(), "int"),
         ("backup.folder", folder, "string"),
         ("backup.retention", retention.to_string(), "int"),
@@ -253,10 +253,9 @@ pub async fn run_one_backup(
         }
     }
 
-    let profiles: Vec<(i64, String)> =
-        sqlx::query_as("SELECT id, name FROM profile ORDER BY id")
-            .fetch_all(&state.app_db)
-            .await?;
+    let profiles: Vec<(i64, String)> = sqlx::query_as("SELECT id, name FROM profile ORDER BY id")
+        .fetch_all(&state.app_db)
+        .await?;
 
     let ts = Utc::now().format("%Y-%m-%dT%H-%M-%S").to_string();
     let app_version = env!("CARGO_PKG_VERSION").to_string();
@@ -280,7 +279,13 @@ pub async fn run_one_backup(
         let target_owned = target.clone();
 
         let result = tokio::task::spawn_blocking(move || -> AppResult<()> {
-            write_archive(&target_owned, &profile_dir, &db_path, &artwork_dir, &manifest)
+            write_archive(
+                &target_owned,
+                &profile_dir,
+                &db_path,
+                &artwork_dir,
+                &manifest,
+            )
         })
         .await
         .map_err(|e| AppError::Other(format!("backup task join: {e}")))?;
@@ -298,9 +303,7 @@ pub async fn run_one_backup(
         // Prune old archives for this profile. List `<safe>-*.waveflow`
         // in the folder, sort by mtime descending, keep the first
         // `retention` entries.
-        if let Err(err) =
-            prune_old_backups(&folder, &safe, config.retention as usize).await
-        {
+        if let Err(err) = prune_old_backups(&folder, &safe, config.retention as usize).await {
             tracing::warn!(?err, "auto backup retention sweep failed");
         }
     }
@@ -309,7 +312,11 @@ pub async fn run_one_backup(
     Ok(created)
 }
 
-async fn prune_old_backups(folder: &std::path::Path, name_prefix: &str, keep: usize) -> AppResult<()> {
+async fn prune_old_backups(
+    folder: &std::path::Path,
+    name_prefix: &str,
+    keep: usize,
+) -> AppResult<()> {
     let prefix = format!("{name_prefix}-");
     let folder = folder.to_path_buf();
     let prefix_owned = prefix.clone();

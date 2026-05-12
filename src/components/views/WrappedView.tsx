@@ -65,9 +65,9 @@ export function WrappedView({
   const [slideIdx, setSlideIdx] = useState(0);
   const [paused, setPaused] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [sharing, setSharing] = useState<"idle" | "saving" | "copying" | "done">(
-    "idle",
-  );
+  const [sharing, setSharing] = useState<
+    "idle" | "saving" | "copying" | "done"
+  >("idle");
 
   // ---- Year resolution + payload fetch ----
   useEffect(() => {
@@ -179,8 +179,7 @@ export function WrappedView({
   }, [onNavigate, slides.length]);
 
   const goPrev = () => setSlideIdx((i) => (i > 0 ? i - 1 : 0));
-  const goNext = () =>
-    setSlideIdx((i) => (i + 1 < slides.length ? i + 1 : i));
+  const goNext = () => setSlideIdx((i) => (i + 1 < slides.length ? i + 1 : i));
 
   // Share handlers — build the PNG once and dispatch by target.
   // Reasons each path lives here and not in a hook:
@@ -467,7 +466,6 @@ function SlideRenderer({
     case "intro":
       return (
         <Slide>
-
           <div className="text-center wrapped-fade-up">
             <Sparkles className="mx-auto mb-6" size={48} />
             <div className="uppercase tracking-[0.4em] text-xs text-white/60 mb-3">
@@ -476,7 +474,9 @@ function SlideRenderer({
             <h1 className="text-7xl font-extrabold leading-none mb-4">
               {payload.year}
             </h1>
-            <p className="text-xl text-white/70">{t("wrapped.intro.subtitle")}</p>
+            <p className="text-xl text-white/70">
+              {t("wrapped.intro.subtitle")}
+            </p>
           </div>
         </Slide>
       );
@@ -485,7 +485,6 @@ function SlideRenderer({
       const minutes = Math.round(payload.total_listened_ms / 60000);
       return (
         <Slide>
-
           <div className="text-center wrapped-fade-up">
             <div className="uppercase tracking-[0.4em] text-xs text-white/60 mb-3">
               {t("wrapped.minutes.eyebrow")}
@@ -518,7 +517,6 @@ function SlideRenderer({
     case "topTracks":
       return (
         <Slide>
-
           <div className="wrapped-fade-up">
             <div className="uppercase tracking-[0.4em] text-xs text-white/60 mb-6 text-center">
               {t("wrapped.topTracks.title")}
@@ -566,7 +564,6 @@ function SlideRenderer({
     case "topArtists":
       return (
         <Slide>
-
           <div className="wrapped-fade-up">
             <div className="uppercase tracking-[0.4em] text-xs text-white/60 mb-6 text-center">
               {t("wrapped.topArtists.title")}
@@ -612,7 +609,6 @@ function SlideRenderer({
     case "topAlbums":
       return (
         <Slide>
-
           <div className="wrapped-fade-up">
             <div className="uppercase tracking-[0.4em] text-xs text-white/60 mb-6 text-center">
               {t("wrapped.topAlbums.title")}
@@ -657,7 +653,6 @@ function SlideRenderer({
       const formatted = formatDayLong(day.day, i18n.language);
       return (
         <Slide>
-
           <div className="text-center wrapped-fade-up">
             <div className="uppercase tracking-[0.4em] text-xs text-white/60 mb-3">
               {t("wrapped.activeDay.eyebrow")}
@@ -679,7 +674,6 @@ function SlideRenderer({
       const energy = payload.mood.energy ?? "warm";
       return (
         <Slide>
-
           <div className="text-center wrapped-fade-up">
             <div className="uppercase tracking-[0.4em] text-xs text-white/60 mb-3">
               {t("wrapped.mood.eyebrow")}
@@ -711,7 +705,6 @@ function SlideRenderer({
       const peakHour = payload.by_hour.indexOf(Math.max(...payload.by_hour));
       return (
         <Slide>
-
           <div className="text-center wrapped-fade-up">
             <div className="uppercase tracking-[0.4em] text-xs text-white/60 mb-3">
               {t("wrapped.clock.eyebrow")}
@@ -745,7 +738,6 @@ function SlideRenderer({
       const s = payload.streak!;
       return (
         <Slide>
-
           <div className="text-center wrapped-fade-up">
             <div className="uppercase tracking-[0.4em] text-xs text-white/60 mb-3">
               {t("wrapped.streak.eyebrow")}
@@ -772,7 +764,6 @@ function SlideRenderer({
       const date = new Date(f.played_at);
       return (
         <Slide>
-
           <div className="text-center wrapped-fade-up">
             <div className="uppercase tracking-[0.4em] text-xs text-white/60 mb-3">
               {t("wrapped.firstListen.eyebrow")}
@@ -800,7 +791,6 @@ function SlideRenderer({
       const monthLabels = monthsShort(i18n.language);
       return (
         <Slide>
-
           <div className="wrapped-fade-up">
             <div className="uppercase tracking-[0.4em] text-xs text-white/60 mb-6 text-center">
               {t("wrapped.months.title")}
@@ -831,7 +821,6 @@ function SlideRenderer({
     case "outro":
       return (
         <Slide>
-
           <div className="text-center wrapped-fade-up">
             <Sparkles className="mx-auto mb-6" size={48} />
             <h2 className="text-4xl font-extrabold mb-3">
@@ -949,9 +938,7 @@ function accentForSlide(year: number, slide: SlideId | undefined): Accent {
     ((year % ACCENT_PALETTES.length) + ACCENT_PALETTES.length) %
     ACCENT_PALETTES.length;
   const slideOffset = slide ? Math.max(0, SLIDE_ORDER.indexOf(slide)) : 0;
-  return ACCENT_PALETTES[
-    (yearOffset + slideOffset) % ACCENT_PALETTES.length
-  ];
+  return ACCENT_PALETTES[(yearOffset + slideOffset) % ACCENT_PALETTES.length];
 }
 
 function formatDayLong(day: string, locale: string): string {

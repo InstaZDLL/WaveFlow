@@ -32,10 +32,10 @@ Unmatched entries are surfaced (capped at 20 to keep the toast readable) so the 
 
 User playlists support custom covers, managed alongside the existing `cover_hash` column added for smart playlists. Two modes, one column flag:
 
-| `cover_is_auto` | Behaviour |
-|-----------------|-----------|
-| `1` (default) | Auto-cover. After **every** mutation (`add_track`, `add_tracks`, `remove_track`, `reorder_track`, `add_source`, `import_m3u`), the backend re-runs the compositor on the first 4 album artworks (Spotify-style 2×2 grid). |
-| `0` | Manual upload. Mutations leave the cover untouched. |
+| `cover_is_auto` | Behaviour                                                                                                                                                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `1` (default)   | Auto-cover. After **every** mutation (`add_track`, `add_tracks`, `remove_track`, `reorder_track`, `add_source`, `import_m3u`), the backend re-runs the compositor on the first 4 album artworks (Spotify-style 2×2 grid). |
+| `0`             | Manual upload. Mutations leave the cover untouched.                                                                                                                                                                       |
 
 [`commands/playlist_cover.rs`](../../src-tauri/src/commands/playlist_cover.rs) exposes three Tauri commands:
 

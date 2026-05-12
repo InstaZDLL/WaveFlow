@@ -26,10 +26,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { Artwork } from "../common/Artwork";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import { dominantColor, darken, rgb } from "../../lib/dominantColor";
-import {
-  listLikedTrackIds,
-  toggleLikeTrack,
-} from "../../lib/tauri/track";
+import { listLikedTrackIds, toggleLikeTrack } from "../../lib/tauri/track";
 import { formatDuration } from "../../lib/tauri/track";
 
 /**
@@ -172,7 +169,10 @@ export function MiniPlayer() {
       const el = trackRef.current;
       if (!el || durationMs <= 0) return 0;
       const rect = el.getBoundingClientRect();
-      const ratio = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+      const ratio = Math.min(
+        Math.max((clientX - rect.left) / rect.width, 0),
+        1,
+      );
       return Math.round(ratio * durationMs);
     },
     [durationMs],
@@ -448,7 +448,11 @@ function CoverWithControls({
             label="repeat"
             active={repeatMode !== "off"}
           >
-            {repeatMode === "one" ? <Repeat1 size={14} /> : <Repeat size={14} />}
+            {repeatMode === "one" ? (
+              <Repeat1 size={14} />
+            ) : (
+              <Repeat size={14} />
+            )}
           </IconButton>
         </div>
       </div>

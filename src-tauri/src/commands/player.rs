@@ -1052,9 +1052,7 @@ pub async fn player_set_visualizer(
 }
 
 #[tauri::command]
-pub async fn player_get_visualizer(
-    engine: tauri::State<'_, Arc<AudioEngine>>,
-) -> AppResult<bool> {
+pub async fn player_get_visualizer(engine: tauri::State<'_, Arc<AudioEngine>>) -> AppResult<bool> {
     Ok(engine
         .shared()
         .visualizer_enabled

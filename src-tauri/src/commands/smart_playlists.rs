@@ -57,8 +57,10 @@ pub async fn create_custom_smart_playlist(
     let now = chrono::Utc::now().timestamp_millis();
     let color_id = input.color_id.unwrap_or_else(|| "violet".to_string());
     let icon_id = input.icon_id.unwrap_or_else(|| "sparkles".to_string());
-    let rules_json =
-        SmartPlaylistRules::Custom { rules: input.rules.clone() }.to_json();
+    let rules_json = SmartPlaylistRules::Custom {
+        rules: input.rules.clone(),
+    }
+    .to_json();
 
     let insert = sqlx::query(
         "INSERT INTO playlist
@@ -103,12 +105,10 @@ pub async fn update_custom_smart_playlist(
             .bind(playlist_id)
             .fetch_optional(&pool)
             .await?;
-    let (is_smart, existing_rules) = row
-        .ok_or_else(|| AppError::Other(format!("playlist {playlist_id} not found")))?;
+    let (is_smart, existing_rules) =
+        row.ok_or_else(|| AppError::Other(format!("playlist {playlist_id} not found")))?;
     if is_smart != 1 {
-        return Err(AppError::Other(
-            "playlist is not a smart playlist".into(),
-        ));
+        return Err(AppError::Other("playlist is not a smart playlist".into()));
     }
     if !is_custom_payload(existing_rules.as_deref()) {
         return Err(AppError::Other(
@@ -117,8 +117,10 @@ pub async fn update_custom_smart_playlist(
     }
 
     let now = chrono::Utc::now().timestamp_millis();
-    let rules_json =
-        SmartPlaylistRules::Custom { rules: input.rules.clone() }.to_json();
+    let rules_json = SmartPlaylistRules::Custom {
+        rules: input.rules.clone(),
+    }
+    .to_json();
     let name = input.name.trim().to_string();
     if name.is_empty() {
         return Err(AppError::Other("playlist name cannot be empty".into()));

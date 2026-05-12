@@ -388,8 +388,7 @@ impl ActiveStream {
                     *sample_buf = Some(SampleBuffer::<f32>::new(capacity, spec));
                     self.src_channels = spec.channels.count();
                     self.src_sample_rate = spec.rate;
-                    let effective_rate =
-                        ((spec.rate as f32) * self.playback_speed).max(1.0) as u32;
+                    let effective_rate = ((spec.rate as f32) * self.playback_speed).max(1.0) as u32;
                     self.resampler = Resampler::new(effective_rate, dst_sample_rate, dst_channels)
                         .map_err(|e| format!("resampler init: {e}"))?;
                 }
@@ -495,12 +494,10 @@ impl ActiveStream {
                         || (self.playback_speed - 1.0).abs() > f32::EPSILON)
                 {
                     self.src_sample_rate = converter.output_rate_hz;
-                    let effective_rate = ((converter.output_rate_hz as f32)
-                        * self.playback_speed)
-                        .max(1.0) as u32;
-                    self.resampler =
-                        Resampler::new(effective_rate, dst_sample_rate, dst_channels)
-                            .map_err(|e| format!("dsd resampler init: {e}"))?;
+                    let effective_rate =
+                        ((converter.output_rate_hz as f32) * self.playback_speed).max(1.0) as u32;
+                    self.resampler = Resampler::new(effective_rate, dst_sample_rate, dst_channels)
+                        .map_err(|e| format!("dsd resampler init: {e}"))?;
                 } else if self.src_sample_rate == 0 {
                     // Mark that we've seen the true source rate even
                     // when speed is 1.0 and rates match (passthrough),

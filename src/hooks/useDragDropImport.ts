@@ -24,8 +24,13 @@ export function useDragDropImport(): {
   isImporting: boolean;
   lastError: string | null;
 } {
-  const { libraries, selectedLibraryId, selectLibrary, createLibrary, refresh } =
-    useLibrary();
+  const {
+    libraries,
+    selectedLibraryId,
+    selectLibrary,
+    createLibrary,
+    refresh,
+  } = useLibrary();
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);

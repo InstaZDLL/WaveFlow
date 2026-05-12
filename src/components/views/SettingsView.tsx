@@ -744,21 +744,18 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // Profile export / import — both are async operations that show a
   // transient status string under the row so the user gets feedback
   // without a modal.
-  const [profileIoBusy, setProfileIoBusy] = useState<"export" | "import" | null>(
-    null,
-  );
+  const [profileIoBusy, setProfileIoBusy] = useState<
+    "export" | "import" | null
+  >(null);
   const [profileIoStatus, setProfileIoStatus] = useState<{
     kind: "ok" | "fail";
     message: string;
   } | null>(null);
 
-  const flashStatus = useCallback(
-    (kind: "ok" | "fail", message: string) => {
-      setProfileIoStatus({ kind, message });
-      window.setTimeout(() => setProfileIoStatus(null), 4000);
-    },
-    [],
-  );
+  const flashStatus = useCallback((kind: "ok" | "fail", message: string) => {
+    setProfileIoStatus({ kind, message });
+    window.setTimeout(() => setProfileIoStatus(null), 4000);
+  }, []);
 
   const handleExportProfile = useCallback(async () => {
     if (profileIoBusy) return;
@@ -1420,11 +1417,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           {/* Dynamic crossfade — tempo-aware fade scaling */}
           <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
             <div className="flex items-center space-x-4">
-              <Gauge
-                size={20}
-                className="text-zinc-400"
-                aria-hidden="true"
-              />
+              <Gauge size={20} className="text-zinc-400" aria-hidden="true" />
               <div>
                 <div className="text-sm font-medium text-zinc-900 dark:text-white">
                   {t("settings.dynamicCrossfade.title")}
@@ -1574,11 +1567,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               de toutes les intégrations en dessous. */}
           <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
             <div className="flex items-center space-x-4">
-              <WifiOff
-                size={20}
-                className="text-zinc-400"
-                aria-hidden="true"
-              />
+              <WifiOff size={20} className="text-zinc-400" aria-hidden="true" />
               <div>
                 <div className="text-sm font-medium text-zinc-900 dark:text-white">
                   {t("settings.offlineMode.title")}
@@ -2107,11 +2096,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
 
           <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
             <div className="flex items-center space-x-4">
-              <Copy
-                size={20}
-                className="text-zinc-400"
-                aria-hidden="true"
-              />
+              <Copy size={20} className="text-zinc-400" aria-hidden="true" />
               <div>
                 <div className="text-sm font-medium text-zinc-900 dark:text-white">
                   {t("settings.duplicates.title")}
@@ -2451,7 +2436,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                   <Download
                     size={14}
                     aria-hidden="true"
-                    className={profileIoBusy === "export" ? "animate-pulse" : ""}
+                    className={
+                      profileIoBusy === "export" ? "animate-pulse" : ""
+                    }
                   />
                   <span>{t("settings.profileIo.export.action")}</span>
                 </button>
@@ -2464,7 +2451,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                   <Upload
                     size={14}
                     aria-hidden="true"
-                    className={profileIoBusy === "import" ? "animate-pulse" : ""}
+                    className={
+                      profileIoBusy === "import" ? "animate-pulse" : ""
+                    }
                   />
                   <span>{t("settings.profileIo.import.action")}</span>
                 </button>

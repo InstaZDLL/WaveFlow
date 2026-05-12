@@ -65,4 +65,3 @@ export function availableWrappedYears(): Promise<number[]> {
 export function wrappedCurrentYear(): Promise<number> {
   return invoke<number>("wrapped_current_year");
 }
-

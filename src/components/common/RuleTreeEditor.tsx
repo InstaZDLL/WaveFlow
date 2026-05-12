@@ -27,7 +27,11 @@ interface RuleTreeEditorProps {
   genres: GenreRow[];
 }
 
-export function RuleTreeEditor({ root, onChange, genres }: RuleTreeEditorProps) {
+export function RuleTreeEditor({
+  root,
+  onChange,
+  genres,
+}: RuleTreeEditorProps) {
   return (
     <NodeView
       node={root}
@@ -149,7 +153,9 @@ function GroupView({
           }`}
           title={t("smartPlaylistEditor.tree.toggleOpHint")}
         >
-          {isAnd ? t("smartPlaylistEditor.tree.and") : t("smartPlaylistEditor.tree.or")}
+          {isAnd
+            ? t("smartPlaylistEditor.tree.and")
+            : t("smartPlaylistEditor.tree.or")}
         </button>
         <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {node.children.length === 0
@@ -238,7 +244,7 @@ function NotView({
   onDelete,
   depth,
   genres,
-}: NodeViewProps & { node: Extract<RuleNode, { type: "not" } > }) {
+}: NodeViewProps & { node: Extract<RuleNode, { type: "not" }> }) {
   const { t } = useTranslation();
   return (
     <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-3 space-y-2">
@@ -300,7 +306,16 @@ const PREDICATE_OPTIONS: PredicateOption[] = [
   { kind: "rating_min", key: "ratingMin" },
 ];
 
-const FORMAT_OPTIONS = ["flac", "mp3", "aac", "ogg", "opus", "wav", "dsf", "dff"];
+const FORMAT_OPTIONS = [
+  "flac",
+  "mp3",
+  "aac",
+  "ogg",
+  "opus",
+  "wav",
+  "dsf",
+  "dff",
+];
 
 function defaultPredicateFor(kind: PredicateKind): Predicate {
   switch (kind) {
@@ -337,7 +352,7 @@ function LeafView({
   onChange,
   onDelete,
   genres,
-}: NodeViewProps & { node: Extract<RuleNode, { type: "leaf" } > }) {
+}: NodeViewProps & { node: Extract<RuleNode, { type: "leaf" }> }) {
   const { t } = useTranslation();
   const pred = node.predicate;
 
@@ -478,10 +493,7 @@ function PredicateValue({
       // Convert 0-255 POPM to 1-5 stars (rounded).
       return (
         <StarPicker
-          stars={Math.max(
-            1,
-            Math.round((predicate.value / 255) * 5),
-          )}
+          stars={Math.max(1, Math.round((predicate.value / 255) * 5))}
           onChange={(s) =>
             onChange({ ...predicate, value: Math.round((s / 5) * 255) })
           }

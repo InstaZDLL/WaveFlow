@@ -114,10 +114,9 @@ export function updateCustomSmartPlaylist(
 export function regenerateCustomSmartPlaylist(
   playlistId: number,
 ): Promise<CustomSmartPlaylistOutput> {
-  return invoke<CustomSmartPlaylistOutput>(
-    "regenerate_custom_smart_playlist",
-    { playlistId },
-  );
+  return invoke<CustomSmartPlaylistOutput>("regenerate_custom_smart_playlist", {
+    playlistId,
+  });
 }
 
 export function getCustomSmartPlaylistRules(

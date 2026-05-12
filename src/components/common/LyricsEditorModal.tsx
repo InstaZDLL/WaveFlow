@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   X,
@@ -106,8 +100,7 @@ export function LyricsEditorModal({
     }
 
     const trimmed = initial.content.trim();
-    const isLrc =
-      initial.format === "lrc" || initial.format === "enhanced_lrc";
+    const isLrc = initial.format === "lrc" || initial.format === "enhanced_lrc";
 
     setPlainText(trimmed);
     if (isLrc) {

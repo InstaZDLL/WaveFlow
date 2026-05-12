@@ -203,7 +203,10 @@ export function BackupCard({ language }: BackupCardProps) {
                 className="shrink-0 text-zinc-400"
                 aria-hidden="true"
               />
-              <span className="font-mono text-xs truncate" title={effectiveFolder}>
+              <span
+                className="font-mono text-xs truncate"
+                title={effectiveFolder}
+              >
                 {effectiveFolder}
               </span>
             </div>

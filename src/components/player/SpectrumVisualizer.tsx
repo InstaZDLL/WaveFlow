@@ -88,10 +88,7 @@ export function SpectrumVisualizer({
     const tick = () => {
       const target = targetRef.current;
       if (target && target.length > 0) {
-        if (
-          !drawnRef.current ||
-          drawnRef.current.length !== target.length
-        ) {
+        if (!drawnRef.current || drawnRef.current.length !== target.length) {
           drawnRef.current = new Array(target.length).fill(0);
         }
         const drawn = drawnRef.current;
@@ -99,7 +96,10 @@ export function SpectrumVisualizer({
         // decay down slowly (so bars don't look glitchy).
         for (let i = 0; i < drawn.length; i++) {
           const t = target[i] ?? 0;
-          drawn[i] = drawn[i] < t ? drawn[i] + (t - drawn[i]) * 0.55 : drawn[i] + (t - drawn[i]) * 0.18;
+          drawn[i] =
+            drawn[i] < t
+              ? drawn[i] + (t - drawn[i]) * 0.55
+              : drawn[i] + (t - drawn[i]) * 0.18;
         }
       } else if (drawnRef.current) {
         // No incoming bands → fade to zero so the bars don't freeze

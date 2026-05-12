@@ -295,8 +295,9 @@ pub async fn get_wrapped(
     };
 
     // ---- First listen of the year ----
-    let first_listen: Option<FirstListen> = sqlx::query_as::<_, (i64, String, Option<String>, i64)>(
-        r#"
+    let first_listen: Option<FirstListen> =
+        sqlx::query_as::<_, (i64, String, Option<String>, i64)>(
+            r#"
         SELECT pe.track_id,
                t.title,
                (SELECT GROUP_CONCAT(name, ', ') FROM (
@@ -312,17 +313,17 @@ pub async fn get_wrapped(
          ORDER BY pe.played_at ASC
          LIMIT 1
         "#,
-    )
-    .bind(since)
-    .bind(until)
-    .fetch_optional(&pool)
-    .await?
-    .map(|(track_id, title, artist_name, played_at)| FirstListen {
-        track_id,
-        title,
-        artist_name,
-        played_at,
-    });
+        )
+        .bind(since)
+        .bind(until)
+        .fetch_optional(&pool)
+        .await?
+        .map(|(track_id, title, artist_name, played_at)| FirstListen {
+            track_id,
+            title,
+            artist_name,
+            played_at,
+        });
 
     // ---- Longest consecutive-day listening streak ----
     //

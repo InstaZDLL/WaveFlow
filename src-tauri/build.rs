@@ -20,9 +20,7 @@ fn main() {
 /// repository, an empty JSON array is written and the About view shows
 /// nothing under "Changelog".
 fn generate_changelog() {
-    let out_dir: PathBuf = env::var_os("OUT_DIR")
-        .expect("OUT_DIR not set")
-        .into();
+    let out_dir: PathBuf = env::var_os("OUT_DIR").expect("OUT_DIR not set").into();
     let dest = out_dir.join("changelog.json");
 
     // Re-run when HEAD moves (new commit, branch switch). We don't
@@ -34,7 +32,10 @@ fn generate_changelog() {
     let entries = read_git_log().unwrap_or_default();
     let json = serde_json::to_string(&entries).unwrap_or_else(|_| "[]".into());
     if let Err(err) = fs::write(&dest, json) {
-        println!("cargo:warning=changelog: failed to write {}: {err}", dest.display());
+        println!(
+            "cargo:warning=changelog: failed to write {}: {err}",
+            dest.display()
+        );
         let _ = fs::write(&dest, "[]");
     }
 }

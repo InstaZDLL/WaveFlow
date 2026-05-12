@@ -62,7 +62,11 @@ export async function renderWrappedCard(
     "600 32px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
   ctx.textAlign = "left";
   ctx.fillText(opts.labels.wrapped.toUpperCase(), 80, 130);
-  drawSparkle(ctx, 80 + measureWidth(ctx, opts.labels.wrapped.toUpperCase()) + 32, 110);
+  drawSparkle(
+    ctx,
+    80 + measureWidth(ctx, opts.labels.wrapped.toUpperCase()) + 32,
+    110,
+  );
 
   // Year — the marquee element. Drawn massive and bold so the card
   // reads from a thumbnail.
@@ -139,11 +143,7 @@ export async function renderWrappedCard(
       ctx.fillStyle = "#fff";
       ctx.font =
         "600 32px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-      ctx.fillText(
-        truncate(ctx, tr.title, W - 160 - 280 - 40),
-        270,
-        rowY + 40,
-      );
+      ctx.fillText(truncate(ctx, tr.title, W - 160 - 280 - 40), 270, rowY + 40);
       ctx.fillStyle = "rgba(255,255,255,0.6)";
       ctx.font =
         "400 24px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
@@ -192,11 +192,7 @@ export async function renderWrappedCard(
       `${payload.streak.days}`,
       "800 64px ui-sans-serif",
     );
-    ctx.fillText(
-      opts.labels.daysInARow,
-      streakX + 40 + dW + 20,
-      stripY + 130,
-    );
+    ctx.fillText(opts.labels.daysInARow, streakX + 40 + dW + 20, stripY + 130);
   }
 
   // ----- Footer / branding -------------------------------------------
@@ -241,14 +237,28 @@ function drawGradientBackdrop(
   ctx.fillRect(0, 0, W, H);
 
   // First radial glow — top-left bias matches the overlay.
-  const r1 = ctx.createRadialGradient(W * 0.3, H * 0.2, 0, W * 0.3, H * 0.2, W * 0.7);
+  const r1 = ctx.createRadialGradient(
+    W * 0.3,
+    H * 0.2,
+    0,
+    W * 0.3,
+    H * 0.2,
+    W * 0.7,
+  );
   r1.addColorStop(0, accent.glow);
   r1.addColorStop(0.6, "rgba(0,0,0,0)");
   ctx.fillStyle = r1;
   ctx.fillRect(0, 0, W, H);
 
   // Second radial glow — bottom-right.
-  const r2 = ctx.createRadialGradient(W * 0.8, H * 0.7, 0, W * 0.8, H * 0.7, W * 0.7);
+  const r2 = ctx.createRadialGradient(
+    W * 0.8,
+    H * 0.7,
+    0,
+    W * 0.8,
+    H * 0.7,
+    W * 0.7,
+  );
   r2.addColorStop(0, accent.glow2);
   r2.addColorStop(0.6, "rgba(0,0,0,0)");
   ctx.fillStyle = r2;
@@ -369,11 +379,7 @@ function measureWidth(
   return ctx.measureText(text).width;
 }
 
-function drawSparkle(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-) {
+function drawSparkle(ctx: CanvasRenderingContext2D, x: number, y: number) {
   // A small 4-point star to echo the Lucide Sparkles icon used in the
   // overlay's intro slide. Drawn as a path so it scales cleanly.
   ctx.save();

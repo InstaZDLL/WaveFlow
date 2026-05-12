@@ -92,13 +92,13 @@ function getFocusable(root: HTMLElement): HTMLElement[] {
     "textarea:not([disabled])",
     "[tabindex]:not([tabindex='-1'])",
   ].join(",");
-  const nodes = Array.from(
-    root.querySelectorAll<HTMLElement>(SELECTOR),
-  ).filter((el) => {
-    if (el.hasAttribute("aria-hidden")) return false;
-    // `offsetParent` is null for `display: none` ancestors. Cheaper
-    // than `getComputedStyle` in a tab-trap loop.
-    return el.offsetParent !== null || el === document.activeElement;
-  });
+  const nodes = Array.from(root.querySelectorAll<HTMLElement>(SELECTOR)).filter(
+    (el) => {
+      if (el.hasAttribute("aria-hidden")) return false;
+      // `offsetParent` is null for `display: none` ancestors. Cheaper
+      // than `getComputedStyle` in a tab-trap loop.
+      return el.offsetParent !== null || el === document.activeElement;
+    },
+  );
   return nodes;
 }

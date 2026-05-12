@@ -87,7 +87,8 @@ export function serializeLrc(
 ): string {
   return rows
     .map((row) => {
-      const stamp = row.timeMs < 0 ? "[--:--.--]" : formatLrcTimestamp(row.timeMs);
+      const stamp =
+        row.timeMs < 0 ? "[--:--.--]" : formatLrcTimestamp(row.timeMs);
       return `${stamp}${row.text}`;
     })
     .join("\n");

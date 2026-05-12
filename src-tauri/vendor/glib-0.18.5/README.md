@@ -1,8 +1,8 @@
 # Rust GLib and GObject bindings
 
-__Rust__ bindings and wrappers for [GLib](https://docs.gtk.org/glib/), part of [gtk-rs-core](https://github.com/gtk-rs/gtk-rs-core).
+**Rust** bindings and wrappers for [GLib](https://docs.gtk.org/glib/), part of [gtk-rs-core](https://github.com/gtk-rs/gtk-rs-core).
 
-GLib __2.56__ is the lowest supported version for the underlying library.
+GLib **2.56** is the lowest supported version for the underlying library.
 
 This library contains bindings to GLib and GObject types and APIs as well as
 common building blocks used in both handmade and machine generated
@@ -70,10 +70,10 @@ wrappers) and their FFI counterparts.
 
 ## Documentation
 
- * [Rust API - Stable](https://gtk-rs.org/gtk-rs-core/stable/latest/docs/glib/)
- * [Rust API - Development](https://gtk-rs.org/gtk-rs-core/git/docs/glib)
- * [C API](https://docs.gtk.org/glib/)
- * [GTK Installation instructions](https://www.gtk.org/docs/installations/)
+- [Rust API - Stable](https://gtk-rs.org/gtk-rs-core/stable/latest/docs/glib/)
+- [Rust API - Development](https://gtk-rs.org/gtk-rs-core/git/docs/glib)
+- [C API](https://docs.gtk.org/glib/)
+- [GTK Installation instructions](https://www.gtk.org/docs/installations/)
 
 ## Using
 
@@ -98,4 +98,4 @@ glib = { git = "https://github.com/gtk-rs/gtk-rs-core.git", package = "glib" }
 
 ## License
 
-__glib__ is available under the MIT License, please refer to it.
+**glib** is available under the MIT License, please refer to it.

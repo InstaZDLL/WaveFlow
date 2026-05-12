@@ -75,12 +75,11 @@ pub async fn export_profile(
 
     // Look up the source profile name for the manifest. Fail loudly if
     // the row is gone — caller passed a stale id.
-    let profile_name: String =
-        sqlx::query_scalar("SELECT name FROM profile WHERE id = ?")
-            .bind(profile_id)
-            .fetch_optional(&state.app_db)
-            .await?
-            .ok_or(AppError::ProfileNotFound(profile_id))?;
+    let profile_name: String = sqlx::query_scalar("SELECT name FROM profile WHERE id = ?")
+        .bind(profile_id)
+        .fetch_optional(&state.app_db)
+        .await?
+        .ok_or(AppError::ProfileNotFound(profile_id))?;
 
     // If we're exporting the currently active profile, make sure any
     // pending WAL pages are folded back into the main file before we
@@ -217,8 +216,8 @@ pub async fn import_profile(
     //    (the source might be older than the local schema) replay
     //    immediately. This matches the create_profile flow and gives
     //    the user a usable profile by the time the call returns.
-    let pool = db::profile_db::open(&state.paths.profile_db(new_profile_id), &state.paths.app_db)
-        .await?;
+    let pool =
+        db::profile_db::open(&state.paths.profile_db(new_profile_id), &state.paths.app_db).await?;
     pool.close().await;
 
     Ok(new_profile_id)
@@ -289,8 +288,8 @@ fn read_manifest(source: &Path) -> AppResult<ArchiveManifest> {
         .map_err(|e| AppError::Other(format!("missing manifest.json: {e}")))?;
     let mut buf = String::new();
     manifest_file.read_to_string(&mut buf)?;
-    let manifest: ArchiveManifest = serde_json::from_str(&buf)
-        .map_err(|e| AppError::Other(format!("decode manifest: {e}")))?;
+    let manifest: ArchiveManifest =
+        serde_json::from_str(&buf).map_err(|e| AppError::Other(format!("decode manifest: {e}")))?;
     Ok(manifest)
 }
 
@@ -316,7 +315,7 @@ fn extract_archive(
         let Some(rel) = entry.enclosed_name() else {
             continue;
         };
-        let rel: PathBuf = rel.into();
+        let rel: PathBuf = rel;
         let name = rel.to_string_lossy();
 
         if name == MANIFEST_FILENAME {

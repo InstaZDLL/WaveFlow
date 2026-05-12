@@ -40,9 +40,7 @@ pub struct DuplicateGroup {
 /// by `added_at` ASC so the oldest copy renders first — usually the
 /// one the user wants to keep.
 #[tauri::command]
-pub async fn find_duplicates(
-    state: tauri::State<'_, AppState>,
-) -> AppResult<Vec<DuplicateGroup>> {
+pub async fn find_duplicates(state: tauri::State<'_, AppState>) -> AppResult<Vec<DuplicateGroup>> {
     let pool = state.require_profile_pool().await?;
 
     // Pull every duplicated row in one round-trip — joining on the

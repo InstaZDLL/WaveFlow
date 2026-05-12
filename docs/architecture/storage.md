@@ -43,9 +43,9 @@ Migrations: [`src-tauri/migrations/profile/`](../../src-tauri/migrations/profile
 
 Two flavours, two stores:
 
-| Store | Scope | Used for |
-|-------|-------|----------|
-| `app_setting` (`app.db`) | App-wide | API keys, session keys, theme, last-active-profile |
+| Store                             | Scope       | Used for                                                                                           |
+| --------------------------------- | ----------- | -------------------------------------------------------------------------------------------------- |
+| `app_setting` (`app.db`)          | App-wide    | API keys, session keys, theme, last-active-profile                                                 |
 | `profile_setting` (per `data.db`) | Per-profile | Output device, crossfade, normalize / mono / replaygain toggles, onboarding dismissal, sort memory |
 
 Both follow the same `INSERT … ON CONFLICT DO UPDATE` typed-value pattern (`value_text` / `value_int` / `value_real` / `value_bool` columns + a `kind` discriminator).

@@ -22,7 +22,10 @@ for (const name of assets) {
   const src = join(srcDir, `${name}.svg`);
   const out = join(outDir, `${name}.png`);
   await sharp(src, { density: 384 })
-    .resize(1024, 1024, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .resize(1024, 1024, {
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
     .png({ compressionLevel: 9 })
     .toFile(out);
   console.log(`wrote ${out}`);

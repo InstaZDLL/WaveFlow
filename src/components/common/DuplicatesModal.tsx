@@ -115,10 +115,7 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
           <div className="flex items-center gap-2 min-w-0">
             <Copy size={18} className="text-amber-500" />
             <div>
-              <h2
-                id="duplicates-modal-title"
-                className="text-lg font-semibold"
-              >
+              <h2 id="duplicates-modal-title" className="text-lg font-semibold">
                 {t("duplicates.title")}
               </h2>
               {!isScanning && (
@@ -182,9 +179,8 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
                           name={`keep-${g.file_hash}`}
                           checked={isKept}
                           onChange={() => {
-                            setKeepIds(
-                              (prev) =>
-                                new Map(prev).set(g.file_hash, track.id),
+                            setKeepIds((prev) =>
+                              new Map(prev).set(g.file_hash, track.id),
                             );
                           }}
                           className="mt-1 accent-emerald-500"
@@ -209,7 +205,9 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
                             <span>{formatDuration(track.duration_ms)}</span>
                             <span>{formatBytes(track.file_size)}</span>
                             {track.bitrate && (
-                              <span>{Math.round(track.bitrate / 1000)} kbps</span>
+                              <span>
+                                {Math.round(track.bitrate / 1000)} kbps
+                              </span>
                             )}
                           </div>
                         </div>

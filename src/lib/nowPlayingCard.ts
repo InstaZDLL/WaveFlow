@@ -91,11 +91,7 @@ export async function renderNowPlayingCard(
   ctx.font =
     "600 28px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(
-    opts.labels.nowPlaying.toUpperCase(),
-    SIZE / 2,
-    80,
-  );
+  ctx.fillText(opts.labels.nowPlaying.toUpperCase(), SIZE / 2, 80);
 
   // ----- Cover (centerpiece) ------------------------------------------
   const coverSize = 580;
@@ -106,7 +102,15 @@ export async function renderNowPlayingCard(
   ctx.shadowColor = "rgba(0,0,0,0.5)";
   ctx.shadowBlur = 40;
   ctx.shadowOffsetY = 12;
-  drawCard(ctx, coverX, coverY, coverSize, coverSize, 32, "rgba(255,255,255,0.05)");
+  drawCard(
+    ctx,
+    coverX,
+    coverY,
+    coverSize,
+    coverSize,
+    32,
+    "rgba(255,255,255,0.05)",
+  );
   ctx.restore();
 
   if (coverImg) {

@@ -1146,14 +1146,8 @@ pub async fn play_history_months(
         // the first-of-month epoch ms in local time so the frontend
         // doesn't have to redo the timezone arithmetic.
         let mut parts = r.bucket.splitn(2, '-');
-        let year: i32 = parts
-            .next()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(1970);
-        let month: u32 = parts
-            .next()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(1);
+        let year: i32 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(1970);
+        let month: u32 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(1);
         let start_ms = chrono::NaiveDate::from_ymd_opt(year, month, 1)
             .and_then(|d| d.and_hms_opt(0, 0, 0))
             .map(|dt| dt.and_utc().timestamp_millis())

@@ -16,7 +16,7 @@ A single global toggle — Settings → Intégrations → "Mode hors-ligne" — 
 
 Results are cached in the `deezer_artist` / `deezer_album` tables of the **shared** `app.db` (one cache across every profile) with a 30-day `expires_at` TTL. Cache-first: zero network round-trips when the row is fresh. Failures are non-fatal — the UI degrades to local-only artwork and an empty enrichment payload.
 
-**Auto-enrichment on play.** [`PlayerProvider`](../../src/contexts/PlayerContext.tsx) fires `enrich_artist_deezer(currentTrack.artist_id)` (fire-and-forget) on every track-change. Cache hits are ~10 ms so the duplicate call done by `NowPlayingPanel` when it renders is harmless; the point is to populate the cache for views the user *isn't* looking at right now (e.g. the artist grid in `LibraryView`) so a tile gets its picture as soon as the user plays one of that artist's tracks, regardless of whether the Now Playing panel is open.
+**Auto-enrichment on play.** [`PlayerProvider`](../../src/contexts/PlayerContext.tsx) fires `enrich_artist_deezer(currentTrack.artist_id)` (fire-and-forget) on every track-change. Cache hits are ~10 ms so the duplicate call done by `NowPlayingPanel` when it renders is harmless; the point is to populate the cache for views the user _isn't_ looking at right now (e.g. the artist grid in `LibraryView`) so a tile gets its picture as soon as the user plays one of that artist's tracks, regardless of whether the Now Playing panel is open.
 
 **Batch fill-in.** `batch_fetch_missing_artist_pictures` walks every artist with no cached row (or an expired one), runs the standard enrichment per artist, and emits `artist-fetch-progress` so a Settings progress bar can drive the UI. Throttled at 200 ms (~5 req/s) to stay well below Deezer's anonymous rate limit. Same idempotent semantics as `batch_fetch_missing_album_covers`: re-running just resumes on whatever's still missing.
 
@@ -58,17 +58,17 @@ Results are cached in `app.lastfm_similar` (30-day TTL, keyed by the source arti
 
 Spotify-style card under "Listening to WaveFlow":
 
-| Discord field | Source |
-| --- | --- |
-| `name` | Hard-coded `"WaveFlow"` (required by Discord — without it the IPC accepts the payload silently and nothing renders). |
-| `activity_type` | `Listening` (= 2) so the header reads "Listening to WaveFlow" instead of "Playing WaveFlow". |
-| `details` (line 1) | Track title. |
-| `state` (line 2) | Artist (album-only fallback when the artist tag is missing — Discord requires `state` ≥ 2 chars). |
-| `large_image` | Deezer cover URL when available, otherwise the `waveflow_logo` asset key. |
-| `large_text` | Album title (rendered inline by Discord as line 3). |
-| `small_image` / `small_text` | `play` + "En lecture" while playing, `pause` + "En pause" while paused. |
-| `timestamps.start` / `.end` | Computed from track duration + current position so Discord renders the `00:42 ─── 04:30` progress bar. **Only set while `Playing`** — leaving them on while paused makes Discord keep ticking the bar from the wall clock, which lies. Re-anchored on every play / seek / pause-resume. |
-| `buttons` | One button — **"Voir sur GitHub"** → `https://github.com/InstaZDLL/WaveFlow`. Clickable by anyone viewing the presence card; lets users discover the project directly from Discord. |
+| Discord field                | Source                                                                                                                                                                                                                                                                                  |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                       | Hard-coded `"WaveFlow"` (required by Discord — without it the IPC accepts the payload silently and nothing renders).                                                                                                                                                                    |
+| `activity_type`              | `Listening` (= 2) so the header reads "Listening to WaveFlow" instead of "Playing WaveFlow".                                                                                                                                                                                            |
+| `details` (line 1)           | Track title.                                                                                                                                                                                                                                                                            |
+| `state` (line 2)             | Artist (album-only fallback when the artist tag is missing — Discord requires `state` ≥ 2 chars).                                                                                                                                                                                       |
+| `large_image`                | Deezer cover URL when available, otherwise the `waveflow_logo` asset key.                                                                                                                                                                                                               |
+| `large_text`                 | Album title (rendered inline by Discord as line 3).                                                                                                                                                                                                                                     |
+| `small_image` / `small_text` | `play` + "En lecture" while playing, `pause` + "En pause" while paused.                                                                                                                                                                                                                 |
+| `timestamps.start` / `.end`  | Computed from track duration + current position so Discord renders the `00:42 ─── 04:30` progress bar. **Only set while `Playing`** — leaving them on while paused makes Discord keep ticking the bar from the wall clock, which lies. Re-anchored on every play / seek / pause-resume. |
+| `buttons`                    | One button — **"Voir sur GitHub"** → `https://github.com/InstaZDLL/WaveFlow`. Clickable by anyone viewing the presence card; lets users discover the project directly from Discord.                                                                                                     |
 
 ### Cover URL resolution
 

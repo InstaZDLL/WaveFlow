@@ -63,9 +63,10 @@ export function AbLoopButton() {
         // Capturing B: ensure it's strictly greater than A; if not,
         // swap so the user gets a usable loop instead of a no-op.
         const a = snap.a_ms ?? 0;
-        const next = ms > a
-          ? await playerSetAbLoop(null, ms)
-          : await playerSetAbLoop(ms, a);
+        const next =
+          ms > a
+            ? await playerSetAbLoop(null, ms)
+            : await playerSetAbLoop(ms, a);
         setSnap(next);
       }
     } catch (err) {

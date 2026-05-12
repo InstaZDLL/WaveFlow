@@ -64,9 +64,9 @@ export function useGlobalShortcuts() {
       const combo = comboFromEvent(event);
       if (!combo) return;
 
-      const action = (Object.keys(bindingsRef.current) as ShortcutAction[]).find(
-        (a) => bindingsRef.current[a] === combo,
-      );
+      const action = (
+        Object.keys(bindingsRef.current) as ShortcutAction[]
+      ).find((a) => bindingsRef.current[a] === combo);
       if (!action) return;
 
       event.preventDefault();

@@ -207,22 +207,20 @@ async fn handle_message(
                 let current_id = shared.current_track_id.load(Ordering::Acquire);
                 let mut same_album = false;
                 if current_id > 0 {
-                    let current_album: Option<i64> = sqlx::query_scalar(
-                        "SELECT album_id FROM track WHERE id = ?",
-                    )
-                    .bind(current_id)
-                    .fetch_optional(&pool)
-                    .await
-                    .ok()
-                    .flatten();
-                    let next_album: Option<i64> = sqlx::query_scalar(
-                        "SELECT album_id FROM track WHERE id = ?",
-                    )
-                    .bind(track.id)
-                    .fetch_optional(&pool)
-                    .await
-                    .ok()
-                    .flatten();
+                    let current_album: Option<i64> =
+                        sqlx::query_scalar("SELECT album_id FROM track WHERE id = ?")
+                            .bind(current_id)
+                            .fetch_optional(&pool)
+                            .await
+                            .ok()
+                            .flatten();
+                    let next_album: Option<i64> =
+                        sqlx::query_scalar("SELECT album_id FROM track WHERE id = ?")
+                            .bind(track.id)
+                            .fetch_optional(&pool)
+                            .await
+                            .ok()
+                            .flatten();
                     same_album = matches!(
                         (current_album, next_album),
                         (Some(a), Some(b)) if a == b
@@ -242,29 +240,23 @@ async fn handle_message(
                 // avoid bleeding into a transition where dynamic was
                 // toggled off mid-flight.
                 let mut override_ms: u32 = 0;
-                if shared
-                    .dynamic_crossfade_enabled
-                    .load(Ordering::Relaxed)
-                    && current_id > 0
-                {
+                if shared.dynamic_crossfade_enabled.load(Ordering::Relaxed) && current_id > 0 {
                     let base_ms = shared.crossfade_ms.load(Ordering::Relaxed);
                     if base_ms > 0 {
-                        let curr_bpm: Option<f64> = sqlx::query_scalar(
-                            "SELECT bpm FROM track_analysis WHERE track_id = ?",
-                        )
-                        .bind(current_id)
-                        .fetch_optional(&pool)
-                        .await
-                        .ok()
-                        .flatten();
-                        let next_bpm: Option<f64> = sqlx::query_scalar(
-                            "SELECT bpm FROM track_analysis WHERE track_id = ?",
-                        )
-                        .bind(track.id)
-                        .fetch_optional(&pool)
-                        .await
-                        .ok()
-                        .flatten();
+                        let curr_bpm: Option<f64> =
+                            sqlx::query_scalar("SELECT bpm FROM track_analysis WHERE track_id = ?")
+                                .bind(current_id)
+                                .fetch_optional(&pool)
+                                .await
+                                .ok()
+                                .flatten();
+                        let next_bpm: Option<f64> =
+                            sqlx::query_scalar("SELECT bpm FROM track_analysis WHERE track_id = ?")
+                                .bind(track.id)
+                                .fetch_optional(&pool)
+                                .await
+                                .ok()
+                                .flatten();
                         if let (Some(a), Some(b)) = (curr_bpm, next_bpm) {
                             if a > 0.0 && b > 0.0 {
                                 let diff = (a - b).abs();
@@ -284,8 +276,7 @@ async fn handle_message(
                                     0.3
                                 };
                                 let scaled = (base_ms as f64 * factor).round() as u32;
-                                override_ms =
-                                    scaled.max(1500.min(base_ms));
+                                override_ms = scaled.max(1500.min(base_ms));
                             }
                         }
                     }

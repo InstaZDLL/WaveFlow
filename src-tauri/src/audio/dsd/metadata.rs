@@ -93,16 +93,15 @@ pub fn read_dff_metadata(file: &mut File) -> std::io::Result<DsdMetadata> {
                 let blob = parse_id3v2_blob(file);
                 meta.merge(blob);
             }
-            b"COMT" => {
+            b"COMT"
                 // COMT carries an array of comments; we lift the
                 // first non-empty one as a fallback title when DIIN
                 // didn't supply one.
-                if meta.title.is_none() {
+                if meta.title.is_none() => {
                     if let Some(comment) = read_first_comt_text(file, chunk_size) {
                         meta.title = Some(comment);
                     }
                 }
-            }
             _ => {}
         }
         let next = chunk_start + chunk_size;

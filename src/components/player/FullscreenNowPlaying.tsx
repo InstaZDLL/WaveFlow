@@ -1,14 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  X,
-  Heart,
-  Share2,
-  Download,
-  Copy,
-  Loader2,
-  Check,
-} from "lucide-react";
+import { X, Heart, Share2, Download, Copy, Loader2, Check } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
@@ -56,9 +48,9 @@ export function FullscreenNowPlaying({
 
   // Share menu state — open/close is purely UI, no other view needs it.
   const [shareOpen, setShareOpen] = useState(false);
-  const [sharing, setSharing] = useState<"idle" | "saving" | "copying" | "done">(
-    "idle",
-  );
+  const [sharing, setSharing] = useState<
+    "idle" | "saving" | "copying" | "done"
+  >("idle");
 
   // Sanitise the track title for use as a default filename — the
   // native save dialog will reject reserved characters on Windows
@@ -242,7 +234,6 @@ export function FullscreenNowPlaying({
               )}
             </div>
           </div>
-
         </div>
 
         {/* Bottom transport — progress on top, controls below.
@@ -266,16 +257,17 @@ export function FullscreenNowPlaying({
                   <button
                     type="button"
                     onClick={onToggleLike}
-                    aria-label={
-                      isLiked ? t("liked.unlike") : t("liked.like")
-                    }
+                    aria-label={isLiked ? t("liked.unlike") : t("liked.like")}
                     className={`p-2 rounded-full transition-colors ${
                       isLiked
                         ? "text-pink-400 hover:text-pink-300"
                         : "text-white/60 hover:text-pink-400"
                     }`}
                   >
-                    <Heart size={20} className={isLiked ? "fill-current" : ""} />
+                    <Heart
+                      size={20}
+                      className={isLiked ? "fill-current" : ""}
+                    />
                   </button>
                 )}
               </div>
@@ -290,4 +282,3 @@ export function FullscreenNowPlaying({
     </div>
   );
 }
-

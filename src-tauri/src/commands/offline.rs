@@ -21,10 +21,7 @@ pub async fn get_offline_mode() -> AppResult<bool> {
 }
 
 #[tauri::command]
-pub async fn set_offline_mode(
-    state: tauri::State<'_, AppState>,
-    enabled: bool,
-) -> AppResult<()> {
+pub async fn set_offline_mode(state: tauri::State<'_, AppState>, enabled: bool) -> AppResult<()> {
     crate::offline::set(enabled);
     sqlx::query(
         "INSERT INTO app_setting (key, value, value_type, updated_at)

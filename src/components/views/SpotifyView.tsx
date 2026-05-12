@@ -127,9 +127,8 @@ export function SpotifyView({ onNavigate }: SpotifyViewProps) {
             ),
             external: true,
             onAction: () =>
-              openUrl("https://developer.spotify.com/dashboard").catch(
-                (err) =>
-                  console.error("[SpotifyView] open dashboard failed", err),
+              openUrl("https://developer.spotify.com/dashboard").catch((err) =>
+                console.error("[SpotifyView] open dashboard failed", err),
               ),
             primary: true,
           },

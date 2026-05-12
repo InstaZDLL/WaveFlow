@@ -1287,8 +1287,7 @@
     "notConnectedTitle": "Spotify n'est pas connecté",
     "notConnectedMessage": "Ton Client ID est configuré. Connecte ton compte Spotify Premium depuis les Paramètres pour charger tes playlists et lancer la lecture.",
     "emptyPlaylist": "Aucune piste lisible dans cette playlist (Spotify peut bloquer les fichiers locaux ou les playlists que tu ne possèdes pas)."
-  }
-,
+  },
   "scanProgress": {
     "runningTitle": "Analyse en cours…",
     "runningSubtitle": "{{current}} / {{total}} fichiers",

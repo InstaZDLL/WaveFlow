@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Clock } from "lucide-react";
 import { EmptyState } from "../common/EmptyState";
@@ -405,7 +399,11 @@ export function HistoryView({
   );
 }
 
-function dayLabel(ts: number, locale: string, t: ReturnType<typeof useTranslation>["t"]): string {
+function dayLabel(
+  ts: number,
+  locale: string,
+  t: ReturnType<typeof useTranslation>["t"],
+): string {
   const today = startOfDay(Date.now());
   const dayStart = startOfDay(ts);
   if (dayStart === today) return t("history.today");

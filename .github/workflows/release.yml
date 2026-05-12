@@ -15,11 +15,11 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Existing tag to (re)build, e.g. v0.1.0'
+        description: "Existing tag to (re)build, e.g. v0.1.0"
         required: true
         type: string
 
@@ -48,11 +48,11 @@ jobs:
           - os: ubuntu-latest
             platform: linux
             tauri_bundles: appimage,deb,rpm
-            tauri_target: ''
+            tauri_target: ""
           - os: windows-latest
             platform: windows
             tauri_bundles: nsis,msi
-            tauri_target: ''
+            tauri_target: ""
           - os: macos-latest
             platform: macos
             tauri_bundles: app,dmg

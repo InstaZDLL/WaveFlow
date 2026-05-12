@@ -237,7 +237,11 @@ impl SharedPlayback {
     pub fn ab_loop_armed(&self) -> Option<(u64, u64)> {
         let a = self.loop_a_ms.load(Ordering::Relaxed);
         let b = self.loop_b_ms.load(Ordering::Relaxed);
-        if b > a && b > 0 { Some((a, b)) } else { None }
+        if b > a && b > 0 {
+            Some((a, b))
+        } else {
+            None
+        }
     }
 
     pub fn clear_ab_loop(&self) {

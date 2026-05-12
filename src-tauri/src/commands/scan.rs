@@ -5,11 +5,11 @@ use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
 use chrono::Utc;
+use futures::StreamExt;
 use lofty::file::{FileType, TaggedFileExt};
 use lofty::picture::MimeType;
 use lofty::prelude::{Accessor, AudioFile};
 use lofty::tag::{ItemKey, Tag, TagType};
-use futures::StreamExt;
 use serde::Serialize;
 use sqlx::SqlitePool;
 use tauri::Emitter;
@@ -880,13 +880,7 @@ pub(crate) async fn scan_folder_inner(
                 if disk_size == *stored_size && disk_mtime_ms == *stored_mtime {
                     existing_meta.remove(&path_str);
                     summary.skipped += 1;
-                    maybe_emit_progress(
-                        app_handle,
-                        folder_id,
-                        idx + 1,
-                        total_files,
-                        &summary,
-                    );
+                    maybe_emit_progress(app_handle, folder_id, idx + 1, total_files, &summary);
                     continue;
                 }
             }
@@ -912,13 +906,12 @@ pub(crate) async fn scan_folder_inner(
         .unwrap_or(4);
     const TX_BATCH: usize = 200;
 
-    let extraction_stream = futures::stream::iter(to_extract.into_iter())
+    let extraction_stream = futures::stream::iter(to_extract)
         .map(|path: PathBuf| {
             let artwork_dir = artwork_dir.to_path_buf();
             let p = path.clone();
             async move {
-                let res =
-                    tokio::task::spawn_blocking(move || extract_file(&p, &artwork_dir)).await;
+                let res = tokio::task::spawn_blocking(move || extract_file(&p, &artwork_dir)).await;
                 (path, res)
             }
         })
@@ -974,13 +967,9 @@ pub(crate) async fn scan_folder_inner(
                     .fetch_optional(&mut *tx)
                     .await?;
                     if let Some((Some(aid), None)) = row {
-                        let artwork_id = upsert_artwork(
-                            &mut *tx,
-                            &cover.hash,
-                            &cover.format,
-                            cover.source,
-                        )
-                        .await?;
+                        let artwork_id =
+                            upsert_artwork(&mut tx, &cover.hash, &cover.format, cover.source)
+                                .await?;
                         sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
                             .bind(artwork_id)
                             .bind(aid)
@@ -1005,16 +994,15 @@ pub(crate) async fn scan_folder_inner(
 
                 if let Some(raw) = &extracted.artist {
                     let splits = split_artist_name(raw);
-                    let current_count: i64 = sqlx::query_scalar(
-                        "SELECT COUNT(*) FROM track_artist WHERE track_id = ?",
-                    )
-                    .bind(existing_track_id)
-                    .fetch_one(&mut *tx)
-                    .await?;
+                    let current_count: i64 =
+                        sqlx::query_scalar("SELECT COUNT(*) FROM track_artist WHERE track_id = ?")
+                            .bind(existing_track_id)
+                            .fetch_one(&mut *tx)
+                            .await?;
                     if current_count as usize != splits.len() {
                         let mut ids = Vec::new();
                         for name in splits {
-                            if let Some(id) = upsert_artist(&mut *tx, &name).await? {
+                            if let Some(id) = upsert_artist(&mut tx, &name).await? {
                                 ids.push(id);
                             }
                         }
@@ -1059,24 +1047,19 @@ pub(crate) async fn scan_folder_inner(
                 // Hash or mtime changed → full re-write of the track row
                 // and its many-to-many links. Falls through to the
                 // shared insert/update path below.
-                let artist_ids = upsert_artist_list(&mut *tx, &extracted.artist).await?;
+                let artist_ids = upsert_artist_list(&mut tx, &extracted.artist).await?;
                 let artist_id = artist_ids.first().copied();
                 let album_id = match &extracted.album {
-                    Some(a) => upsert_album(&mut *tx, a, artist_id, extracted.year).await?,
+                    Some(a) => upsert_album(&mut tx, a, artist_id, extracted.year).await?,
                     None => None,
                 };
                 let genre_id = match &extracted.genre {
-                    Some(g) => upsert_genre(&mut *tx, g).await?,
+                    Some(g) => upsert_genre(&mut tx, g).await?,
                     None => None,
                 };
                 if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
-                    let artwork_id = upsert_artwork(
-                        &mut *tx,
-                        &cover.hash,
-                        &cover.format,
-                        cover.source,
-                    )
-                    .await?;
+                    let artwork_id =
+                        upsert_artwork(&mut tx, &cover.hash, &cover.format, cover.source).await?;
                     sqlx::query(
                         "UPDATE album SET artwork_id = ? WHERE id = ? AND artwork_id IS NULL",
                     )
@@ -1154,26 +1137,24 @@ pub(crate) async fn scan_folder_inner(
             }
         } else {
             // Brand-new track — insert with all related upserts.
-            let artist_ids = upsert_artist_list(&mut *tx, &extracted.artist).await?;
+            let artist_ids = upsert_artist_list(&mut tx, &extracted.artist).await?;
             let artist_id = artist_ids.first().copied();
             let album_id = match &extracted.album {
-                Some(a) => upsert_album(&mut *tx, a, artist_id, extracted.year).await?,
+                Some(a) => upsert_album(&mut tx, a, artist_id, extracted.year).await?,
                 None => None,
             };
             let genre_id = match &extracted.genre {
-                Some(g) => upsert_genre(&mut *tx, g).await?,
+                Some(g) => upsert_genre(&mut tx, g).await?,
                 None => None,
             };
             if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
                 let artwork_id =
-                    upsert_artwork(&mut *tx, &cover.hash, &cover.format, cover.source).await?;
-                sqlx::query(
-                    "UPDATE album SET artwork_id = ? WHERE id = ? AND artwork_id IS NULL",
-                )
-                .bind(artwork_id)
-                .bind(aid)
-                .execute(&mut *tx)
-                .await?;
+                    upsert_artwork(&mut tx, &cover.hash, &cover.format, cover.source).await?;
+                sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ? AND artwork_id IS NULL")
+                    .bind(artwork_id)
+                    .bind(aid)
+                    .execute(&mut *tx)
+                    .await?;
             }
 
             let insert = sqlx::query(

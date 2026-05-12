@@ -715,11 +715,10 @@ pub async fn set_track_rating(
     let pool = state.require_profile_pool().await?;
 
     // 1. Resolve the file path so we can write the POPM frame back.
-    let file_path: Option<String> =
-        sqlx::query_scalar("SELECT file_path FROM track WHERE id = ?")
-            .bind(track_id)
-            .fetch_optional(&pool)
-            .await?;
+    let file_path: Option<String> = sqlx::query_scalar("SELECT file_path FROM track WHERE id = ?")
+        .bind(track_id)
+        .fetch_optional(&pool)
+        .await?;
 
     // 2. Pause playback if the engine has this track open — required on
     //    Windows so lofty's atomic rename can take an exclusive handle.

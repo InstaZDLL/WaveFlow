@@ -104,11 +104,11 @@ Track tables themselves are **borderless** — no `rounded-2xl border bg-white` 
 
 Right side of [`PlayerBar`](../../src/components/player/PlayerBar.tsx) is the highest-pressure real estate in the UI — every new feature wants an icon there. To keep the bar from running out of width on narrow windows, controls cluster by frequency:
 
-| Tier | Controls | Where |
-|------|----------|-------|
-| **Primary** | Lyrics, Queue, Device picker, Speed pill, Volume | Always visible |
-| **Overflow** | Fullscreen, Mini-player | [`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx) — "⋯" popover |
-| **Opt-in** | A-B loop, Sleep timer | Visibility-toggle pattern (see below) |
+| Tier         | Controls                                         | Where                                                                              |
+| ------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| **Primary**  | Lyrics, Queue, Device picker, Speed pill, Volume | Always visible                                                                     |
+| **Overflow** | Fullscreen, Mini-player                          | [`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx) — "⋯" popover |
+| **Opt-in**   | A-B loop, Sleep timer                            | Visibility-toggle pattern (see below)                                              |
 
 When adding a new player-bar action: default it into the overflow menu first — promote to primary only when usage data or user feedback warrants it.
 
@@ -119,7 +119,7 @@ The **Speed pill** ([`SpeedControl`](../../src/components/player/SpeedControl.ts
 A handful of niche playback features live behind a per-profile visibility toggle so the player bar stays uncluttered for typical users. Both default to **off** and opt in from Settings → Lecture:
 
 | Setting key           | Button                       | Default |
-|-----------------------|------------------------------|---------|
+| --------------------- | ---------------------------- | ------- |
 | `ui.show_sleep_timer` | Moon icon (sleep timer menu) | off     |
 | `ui.show_ab_loop`     | Repeat icon (A-B loop)       | off     |
 

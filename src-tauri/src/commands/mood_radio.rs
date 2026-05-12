@@ -150,8 +150,7 @@ pub async fn start_mood_radio(
     }
 
     // Per-artist cap so a single heavy contributor doesn't dominate.
-    let mut per_artist: std::collections::HashMap<i64, usize> =
-        std::collections::HashMap::new();
+    let mut per_artist: std::collections::HashMap<i64, usize> = std::collections::HashMap::new();
     let mut out: Vec<i64> = Vec::with_capacity(TARGET_LEN);
     for c in rows {
         if out.len() >= TARGET_LEN {
@@ -183,9 +182,7 @@ struct TrackCandidate {
 /// for libraries where BPM analysis hasn't been run yet, or where the
 /// user has no slow tracks at all).
 #[tauri::command]
-pub async fn mood_radio_counts(
-    state: tauri::State<'_, AppState>,
-) -> AppResult<MoodCounts> {
+pub async fn mood_radio_counts(state: tauri::State<'_, AppState>) -> AppResult<MoodCounts> {
     let pool = state.require_profile_pool().await?;
     Ok(MoodCounts {
         focus: count_for_mood(&pool, &Mood::Focus.filter()).await?,

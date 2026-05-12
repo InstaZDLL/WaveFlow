@@ -509,9 +509,7 @@ fn play_track(
             // Dynamic crossfade override (set by analytics PrefetchNext
             // when both this and the next track have a known BPM).
             // Falls back to the static `crossfade_ms` when 0.
-            let override_ms = shared
-                .pending_next_crossfade_ms
-                .load(Ordering::Relaxed) as u64;
+            let override_ms = shared.pending_next_crossfade_ms.load(Ordering::Relaxed) as u64;
             let cf_ms = if override_ms > 0 {
                 override_ms
             } else {
@@ -548,9 +546,7 @@ fn play_track(
                     mix_frames_total = (effective_ms * dst_sample_rate as u64) / 1000;
                     // One-shot — consume the dynamic override so the
                     // next prefetch starts from a clean slate.
-                    shared
-                        .pending_next_crossfade_ms
-                        .store(0, Ordering::Release);
+                    shared.pending_next_crossfade_ms.store(0, Ordering::Release);
                 }
             } else if shared.gapless_enabled.load(Ordering::Relaxed) {
                 // Gapless mode: prefetch the next track ~500 ms before

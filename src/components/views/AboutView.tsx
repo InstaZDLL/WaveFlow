@@ -112,7 +112,8 @@ function ShortcutsList() {
 const CHANGELOG_VISIBLE = 25;
 
 function changelogIcon(kind: string) {
-  if (kind === "feat") return <Sparkles size={14} className="text-emerald-500" />;
+  if (kind === "feat")
+    return <Sparkles size={14} className="text-emerald-500" />;
   if (kind === "fix") return <Wrench size={14} className="text-amber-500" />;
   return <GitCommit size={14} className="text-zinc-400" />;
 }
@@ -146,7 +147,9 @@ function ChangelogSection() {
   if (error) return null;
   if (entries == null) {
     return (
-      <p className="text-xs text-zinc-400 px-4">{t("about.changelog.loading")}</p>
+      <p className="text-xs text-zinc-400 px-4">
+        {t("about.changelog.loading")}
+      </p>
     );
   }
   if (entries.length === 0) {
@@ -156,11 +159,14 @@ function ChangelogSection() {
   }
 
   const shown = expanded ? entries : entries.slice(0, CHANGELOG_VISIBLE);
-  const dateFormatter = new Intl.DateTimeFormat(i18n.resolvedLanguage ?? i18n.language, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  const dateFormatter = new Intl.DateTimeFormat(
+    i18n.resolvedLanguage ?? i18n.language,
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    },
+  );
 
   return (
     <div className="space-y-1">

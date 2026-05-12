@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ExternalLink,
-  ImageUp,
-  Pencil,
-  Save,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { ExternalLink, ImageUp, Pencil, Save, Sparkles, X } from "lucide-react";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { Artwork } from "./Artwork";
 import { HiResBadge } from "./HiResBadge";
@@ -162,8 +155,7 @@ export function TrackPropertiesModal({
         year: track.year != null ? String(track.year) : "",
         track_number:
           track.track_number != null ? String(track.track_number) : "",
-        disc_number:
-          track.disc_number != null ? String(track.disc_number) : "",
+        disc_number: track.disc_number != null ? String(track.disc_number) : "",
         // Genre isn't on the Track row yet — the editor lets the user
         // enter / overwrite one and the backend syncs track_genre
         // accordingly. Future iteration: surface the existing genres.
@@ -396,18 +388,14 @@ export function TrackPropertiesModal({
                   label={t("trackProperties.fields.trackNumber")}
                   type="number"
                   value={form.track_number}
-                  onChange={(v) =>
-                    setForm((p) => ({ ...p, track_number: v }))
-                  }
+                  onChange={(v) => setForm((p) => ({ ...p, track_number: v }))}
                   placeholder="1"
                 />
                 <EditRow
                   label={t("trackProperties.fields.discNumber")}
                   type="number"
                   value={form.disc_number}
-                  onChange={(v) =>
-                    setForm((p) => ({ ...p, disc_number: v }))
-                  }
+                  onChange={(v) => setForm((p) => ({ ...p, disc_number: v }))}
                   placeholder="1"
                 />
                 <EditRow

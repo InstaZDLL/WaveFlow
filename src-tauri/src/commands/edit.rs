@@ -236,7 +236,7 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
         if let Some(raw) = edit.artist.as_ref() {
             let mut ids: Vec<i64> = Vec::new();
             for name in split_artist_name(raw) {
-                if let Some(id) = upsert_artist(&mut *tx, &name).await? {
+                if let Some(id) = upsert_artist(&mut tx, &name).await? {
                     if !ids.contains(&id) {
                         ids.push(id);
                     }
@@ -273,7 +273,7 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
             // upsert_album now takes &mut SqliteConnection, so we
             // can call it directly inside the open transaction —
             // no commit/reopen dance needed.
-            let aid = upsert_album(&mut *tx, title, aid, edit.year).await?;
+            let aid = upsert_album(&mut tx, title, aid, edit.year).await?;
             Some(aid)
         }
     } else {
@@ -361,7 +361,7 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
             .await?;
         let trimmed = g.trim();
         if !trimmed.is_empty() {
-            if let Some(gid) = upsert_genre(&mut *tx, trimmed).await? {
+            if let Some(gid) = upsert_genre(&mut tx, trimmed).await? {
                 sqlx::query("INSERT OR IGNORE INTO track_genre (track_id, genre_id) VALUES (?, ?)")
                     .bind(track_id)
                     .bind(gid)

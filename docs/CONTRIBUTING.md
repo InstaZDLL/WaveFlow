@@ -10,11 +10,11 @@ WaveFlow is a Tauri 2 desktop app with a React/Vite frontend and a Rust backend.
 
 ### Requirements
 
-| Requirement | Notes |
-| --- | --- |
-| Bun | Package manager and frontend scripts |
-| Rust stable | `rustc` + `cargo`, through rustup |
-| Tauri system dependencies | Required to build the desktop app |
+| Requirement               | Notes                                |
+| ------------------------- | ------------------------------------ |
+| Bun                       | Package manager and frontend scripts |
+| Rust stable               | `rustc` + `cargo`, through rustup    |
+| Tauri system dependencies | Required to build the desktop app    |
 
 On Linux, also install the native dependencies used by Tauri, WebKitGTK, and
 audio:
@@ -50,27 +50,27 @@ The first Rust build can take several minutes.
 
 ## Useful Commands
 
-| Command | Effect |
-| --- | --- |
-| `bun run dev` | Starts Vite without the Tauri shell |
-| `bun run tauri dev` | Starts the desktop app in development mode |
-| `bun run lint` | Checks TypeScript/React code with ESLint |
-| `bun run typecheck` | Runs `tsc --noEmit` |
-| `bun run build` | Compiles TypeScript and creates the Vite build |
-| `bun run format` | Formats the repository with Prettier |
-| `cargo check --manifest-path src-tauri/Cargo.toml --all-targets` | Checks Rust code |
-| `cargo test --manifest-path src-tauri/Cargo.toml` | Runs Rust tests |
+| Command                                                          | Effect                                         |
+| ---------------------------------------------------------------- | ---------------------------------------------- |
+| `bun run dev`                                                    | Starts Vite without the Tauri shell            |
+| `bun run tauri dev`                                              | Starts the desktop app in development mode     |
+| `bun run lint`                                                   | Checks TypeScript/React code with ESLint       |
+| `bun run typecheck`                                              | Runs `tsc --noEmit`                            |
+| `bun run build`                                                  | Compiles TypeScript and creates the Vite build |
+| `bun run format`                                                 | Formats the repository with Prettier           |
+| `cargo check --manifest-path src-tauri/Cargo.toml --all-targets` | Checks Rust code                               |
+| `cargo test --manifest-path src-tauri/Cargo.toml`                | Runs Rust tests                                |
 
 ## Project Structure
 
-| Path | Role |
-| --- | --- |
-| `src/` | React frontend, components, hooks, Tauri wrappers |
-| `src/i18n/locales/` | App translation JSON files |
-| `src-tauri/src/` | Rust backend, Tauri commands, audio, scanning, integrations |
-| `src-tauri/migrations/` | Global and per-profile SQLite migrations |
-| `docs/` | Project documentation |
-| `dist/`, `node_modules/`, `src-tauri/target/` | Generated outputs that should not be edited |
+| Path                                          | Role                                                        |
+| --------------------------------------------- | ----------------------------------------------------------- |
+| `src/`                                        | React frontend, components, hooks, Tauri wrappers           |
+| `src/i18n/locales/`                           | App translation JSON files                                  |
+| `src-tauri/src/`                              | Rust backend, Tauri commands, audio, scanning, integrations |
+| `src-tauri/migrations/`                       | Global and per-profile SQLite migrations                    |
+| `docs/`                                       | Project documentation                                       |
+| `dist/`, `node_modules/`, `src-tauri/target/` | Generated outputs that should not be edited                 |
 
 ## Repository Rules
 
@@ -177,15 +177,15 @@ type(scope): short summary
 
 Common types:
 
-| Type | When to use it |
-| --- | --- |
-| `feat` | User-facing feature |
-| `fix` | Bug fix |
-| `perf` | Performance improvement |
+| Type       | When to use it                           |
+| ---------- | ---------------------------------------- |
+| `feat`     | User-facing feature                      |
+| `fix`      | Bug fix                                  |
+| `perf`     | Performance improvement                  |
 | `refactor` | Internal change without behavior changes |
-| `docs` | Documentation |
-| `chore` | Tooling, dependencies, maintenance |
-| `test` | Test additions or changes |
+| `docs`     | Documentation                            |
+| `chore`    | Tooling, dependencies, maintenance       |
+| `test`     | Test additions or changes                |
 
 Examples:
 

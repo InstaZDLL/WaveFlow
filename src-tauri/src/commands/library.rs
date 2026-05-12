@@ -461,7 +461,9 @@ pub async fn import_paths(
             res.last_insert_rowid()
         };
 
-        match crate::commands::scan::scan_folder_inner(&pool, &artwork_dir, folder_id, Some(&app)).await {
+        match crate::commands::scan::scan_folder_inner(&pool, &artwork_dir, folder_id, Some(&app))
+            .await
+        {
             Ok(summary) => {
                 total.scanned += summary.scanned;
                 total.added += summary.added;

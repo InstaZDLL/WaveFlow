@@ -25,11 +25,11 @@ AppState.dlna ─► Cmd channel ─► dlna-worker
 
 Persisted in the global `app_setting` table because the server is process-wide, not per-profile. Switching profiles re-binds the same listener to whatever the new profile points at.
 
-| Key | Default | Note |
-|---|---|---|
-| `dlna.enabled` | `0` | Opt-in. Auto-started at boot when set. |
-| `dlna.server_name` | `WaveFlow` | Friendly name shown in controllers. |
-| `dlna.port` | `0` | `0` lets the OS pick a free port; the SSDP `LOCATION` carries the actual port. Pin a value if your firewall is configured for it. |
+| Key                | Default    | Note                                                                                                                              |
+| ------------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `dlna.enabled`     | `0`        | Opt-in. Auto-started at boot when set.                                                                                            |
+| `dlna.server_name` | `WaveFlow` | Friendly name shown in controllers.                                                                                               |
+| `dlna.port`        | `0`        | `0` lets the OS pick a free port; the SSDP `LOCATION` carries the actual port. Pin a value if your firewall is configured for it. |
 
 ## Object hierarchy (ContentDirectory)
 

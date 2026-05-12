@@ -43,7 +43,10 @@ export async function openMiniPlayer(): Promise<void> {
         y = Math.max(0, Math.round(logicalH - HEIGHT - EDGE_MARGIN));
       }
     } catch (err) {
-      console.warn("[miniPlayer] monitor query failed, falling back to centered", err);
+      console.warn(
+        "[miniPlayer] monitor query failed, falling back to centered",
+        err,
+      );
     }
 
     const win = new WebviewWindow(MINI_LABEL, {

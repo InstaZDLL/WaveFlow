@@ -223,7 +223,11 @@ pub fn pkce_challenge(verifier: &str) -> String {
 }
 
 pub fn random_token() -> String {
-    format!("{}{}", uuid::Uuid::new_v4().simple(), uuid::Uuid::new_v4().simple())
+    format!(
+        "{}{}",
+        uuid::Uuid::new_v4().simple(),
+        uuid::Uuid::new_v4().simple()
+    )
 }
 
 pub async fn read_client_id(state: &AppState) -> AppResult<Option<String>> {
@@ -329,7 +333,9 @@ pub async fn store_tokens(
     refresh_override: Option<String>,
 ) -> AppResult<()> {
     if !tokens.token_type.eq_ignore_ascii_case("bearer") {
-        return Err(AppError::Other("Spotify returned a non-bearer token".into()));
+        return Err(AppError::Other(
+            "Spotify returned a non-bearer token".into(),
+        ));
     }
     let pool = state.require_profile_pool().await?;
     let now = now_ms();
@@ -405,7 +411,10 @@ pub async fn access_token(state: &AppState) -> AppResult<SpotifyAccessToken> {
     })
 }
 
-pub async fn me(client: &reqwest::Client, access_token: &str) -> AppResult<(String, Option<String>)> {
+pub async fn me(
+    client: &reqwest::Client,
+    access_token: &str,
+) -> AppResult<(String, Option<String>)> {
     let me: MeResponse = get_json(client, access_token, &format!("{API_BASE}/me")).await?;
     Ok((me.display_name.unwrap_or(me.id), me.product))
 }

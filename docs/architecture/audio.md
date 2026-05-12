@@ -13,26 +13,26 @@
 
 ## Threads
 
-| Thread | Owner | Responsibilities |
-|--------|-------|-----------------|
-| **Tokio runtime** | Tauri | Command dispatch. `player_*` commands send `AudioCmd` enum variants over a `crossbeam::Sender` to the decoder. |
-| **`waveflow-audio-decoder`** | `audio::decoder::spawn_decoder_thread` | Owns the `rtrb::Producer<f32>` and the active `ActiveStream` (symphonia + rubato). Polls commands between packets so pause / stop / seek feel responsive. |
-| **`waveflow-audio-output`** | `audio::output::spawn_output_thread` | Owns the `cpal::Stream` (which is `!Send` on Windows because WASAPI / COM handles can't cross threads). Parks on a shutdown channel for the engine's lifetime. |
-| **cpal callback** | cpal-managed (WASAPI / ALSA / CoreAudio worker) | Pops samples from `rtrb::Consumer`, applies volume / normalization / mono downmix, writes to the device buffer. |
+| Thread                       | Owner                                           | Responsibilities                                                                                                                                               |
+| ---------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tokio runtime**            | Tauri                                           | Command dispatch. `player_*` commands send `AudioCmd` enum variants over a `crossbeam::Sender` to the decoder.                                                 |
+| **`waveflow-audio-decoder`** | `audio::decoder::spawn_decoder_thread`          | Owns the `rtrb::Producer<f32>` and the active `ActiveStream` (symphonia + rubato). Polls commands between packets so pause / stop / seek feel responsive.      |
+| **`waveflow-audio-output`**  | `audio::output::spawn_output_thread`            | Owns the `cpal::Stream` (which is `!Send` on Windows because WASAPI / COM handles can't cross threads). Parks on a shutdown channel for the engine's lifetime. |
+| **cpal callback**            | cpal-managed (WASAPI / ALSA / CoreAudio worker) | Pops samples from `rtrb::Consumer`, applies volume / normalization / mono downmix, writes to the device buffer.                                                |
 
 ## Shared state
 
 [`SharedPlayback`](../../src-tauri/src/audio/state.rs) — an `Arc<...>` of atomics plus the rtrb consumer half. Read on the hot path; mutated by the decoder and the command layer. No locks anywhere in the pipeline.
 
-| Atomic | Owner writes | Hot-path reads |
-|--------|--------------|----------------|
-| `samples_played` | cpal callback | UI for position display |
-| `base_offset_ms` | decoder (on seek / new track / speed change) | UI |
-| `volume`, `normalize_enabled`, `mono_enabled` | command layer | cpal callback |
-| `paused_output`, `drain_silent` | command layer / decoder | cpal callback |
-| `crossfade_ms`, `replaygain_enabled` | command layer | decoder |
-| `playback_speed_bits`, `speed_dirty` | command layer / decoder | decoder + UI position math |
-| `current_track_id`, `seek_generation` | decoder | UI |
+| Atomic                                        | Owner writes                                 | Hot-path reads             |
+| --------------------------------------------- | -------------------------------------------- | -------------------------- |
+| `samples_played`                              | cpal callback                                | UI for position display    |
+| `base_offset_ms`                              | decoder (on seek / new track / speed change) | UI                         |
+| `volume`, `normalize_enabled`, `mono_enabled` | command layer                                | cpal callback              |
+| `paused_output`, `drain_silent`               | command layer / decoder                      | cpal callback              |
+| `crossfade_ms`, `replaygain_enabled`          | command layer                                | decoder                    |
+| `playback_speed_bits`, `speed_dirty`          | command layer / decoder                      | decoder + UI position math |
+| `current_track_id`, `seek_generation`         | decoder                                      | UI                         |
 
 `playback_speed_bits` is read on every position computation (UI 4 Hz + analytics) — see [`current_position_ms`](../../src-tauri/src/audio/state.rs) and [playback / Playback speed](../features/playback.md#playback-speed-05--2). `speed_dirty` is a one-shot flag the decoder consumes once per `'pkt` loop iteration to trigger a resampler rebuild.
 
@@ -44,10 +44,10 @@
 
 Two reasons to suppress audio output without tearing the stream down:
 
-| Flag | Behaviour | Use |
-|------|-----------|-----|
-| `paused_output` | callback writes silence, **doesn't pop** the ring | Pause — resume picks back up exactly where we stopped. |
-| `drain_silent` | callback **bulk-pops** the entire ring AND writes silence | Track switch / seek — flushes the tail of the previous position so it never reaches the device. |
+| Flag            | Behaviour                                                 | Use                                                                                             |
+| --------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `paused_output` | callback writes silence, **doesn't pop** the ring         | Pause — resume picks back up exactly where we stopped.                                          |
+| `drain_silent`  | callback **bulk-pops** the entire ring AND writes silence | Track switch / seek — flushes the tail of the previous position so it never reaches the device. |
 
 The bulk-pop in `drain_silent` (vs the previous one-pop-per-output-slot) is what makes seeks feel instant on multi-channel output devices.
 

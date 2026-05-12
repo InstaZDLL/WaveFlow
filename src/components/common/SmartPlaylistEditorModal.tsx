@@ -89,7 +89,9 @@ export function SmartPlaylistEditorModal({
       setLimit(null);
     }
     /* eslint-enable react-hooks/set-state-in-effect */
-    listGenres(null).then(setGenres).catch(() => {});
+    listGenres(null)
+      .then(setGenres)
+      .catch(() => {});
   }, [isOpen, existing]);
 
   if (!isOpen) return null;
