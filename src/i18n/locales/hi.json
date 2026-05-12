@@ -940,6 +940,43 @@
       "titleAsc": "Title (A → Z)",
       "artistAsc": "Artist (A → Z)",
       "random": "Random"
+    },
+    "tree": {
+      "sectionTitle": "नियम",
+      "sectionHint": "AND / OR / NOT के साथ शर्तें मिलाएँ। समूह ऑपरेटर बदलने के लिए AND या OR पर क्लिक करें।",
+      "and": "AND",
+      "or": "OR",
+      "not": "NOT",
+      "toggleOpHint": "AND ↔ OR",
+      "matchAllEmpty": "(पूरी लाइब्रेरी)",
+      "matchNoneEmpty": "(कोई ट्रैक नहीं)",
+      "childCount_zero": "खाली",
+      "childCount_one": "{{count}} शर्त",
+      "childCount_other": "{{count}} शर्तें",
+      "notHint": "बच्चे से मेल खाने वाली हर चीज़ को बाहर करता है",
+      "deleteNode": "हटाएँ",
+      "addCondition": "शर्त",
+      "addGroupAnd": "AND समूह",
+      "addGroupOr": "OR समूह",
+      "addNot": "NOT",
+      "contains": "शामिल है…",
+      "pickGenre": "शैली चुनें…"
+    },
+    "predicates": {
+      "titleContains": "शीर्षक शामिल",
+      "artistContains": "कलाकार शामिल",
+      "albumContains": "एल्बम शामिल",
+      "genreIs": "शैली =",
+      "yearMin": "वर्ष ≥",
+      "yearMax": "वर्ष ≤",
+      "bpmMin": "BPM ≥",
+      "bpmMax": "BPM ≤",
+      "durationMinMs": "अवधि (ms) ≥",
+      "durationMaxMs": "अवधि (ms) ≤",
+      "format": "प्रारूप =",
+      "hiRes": "Hi-Res",
+      "liked": "पसंद",
+      "ratingMin": "रेटिंग ≥"
     }
   },
   "lyricsEditor": {

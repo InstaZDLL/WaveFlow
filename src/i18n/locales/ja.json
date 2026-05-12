@@ -940,6 +940,43 @@
       "titleAsc": "Title (A → Z)",
       "artistAsc": "Artist (A → Z)",
       "random": "Random"
+    },
+    "tree": {
+      "sectionTitle": "ルール",
+      "sectionHint": "AND / OR / NOT で条件を組み合わせます。AND または OR をクリックしてグループの演算子を切り替えます。",
+      "and": "AND",
+      "or": "OR",
+      "not": "NOT",
+      "toggleOpHint": "AND ↔ OR",
+      "matchAllEmpty": "(ライブラリ全体)",
+      "matchNoneEmpty": "(該当なし)",
+      "childCount_zero": "空",
+      "childCount_one": "{{count}}件の条件",
+      "childCount_other": "{{count}}件の条件",
+      "notHint": "子に一致するものを除外します",
+      "deleteNode": "削除",
+      "addCondition": "条件",
+      "addGroupAnd": "ANDグループ",
+      "addGroupOr": "ORグループ",
+      "addNot": "NOT",
+      "contains": "含む…",
+      "pickGenre": "ジャンルを選択…"
+    },
+    "predicates": {
+      "titleContains": "タイトルに含む",
+      "artistContains": "アーティストに含む",
+      "albumContains": "アルバムに含む",
+      "genreIs": "ジャンル =",
+      "yearMin": "年 ≥",
+      "yearMax": "年 ≤",
+      "bpmMin": "BPM ≥",
+      "bpmMax": "BPM ≤",
+      "durationMinMs": "再生時間 (ms) ≥",
+      "durationMaxMs": "再生時間 (ms) ≤",
+      "format": "フォーマット =",
+      "hiRes": "Hi-Res",
+      "liked": "お気に入り",
+      "ratingMin": "評価 ≥"
     }
   },
   "lyricsEditor": {

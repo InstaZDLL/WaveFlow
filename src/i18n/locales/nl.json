@@ -940,6 +940,43 @@
       "titleAsc": "Title (A → Z)",
       "artistAsc": "Artist (A → Z)",
       "random": "Random"
+    },
+    "tree": {
+      "sectionTitle": "Regels",
+      "sectionHint": "Combineer voorwaarden met EN / OF / NIET. Klik op EN of OF om de groepsoperator om te wisselen.",
+      "and": "EN",
+      "or": "OF",
+      "not": "NIET",
+      "toggleOpHint": "EN ↔ OF",
+      "matchAllEmpty": "(hele bibliotheek)",
+      "matchNoneEmpty": "(geen nummers)",
+      "childCount_zero": "leeg",
+      "childCount_one": "{{count}} voorwaarde",
+      "childCount_other": "{{count}} voorwaarden",
+      "notHint": "Sluit alles uit wat het kind matcht",
+      "deleteNode": "Verwijderen",
+      "addCondition": "Voorwaarde",
+      "addGroupAnd": "EN-groep",
+      "addGroupOr": "OF-groep",
+      "addNot": "NIET",
+      "contains": "Bevat…",
+      "pickGenre": "Kies een genre…"
+    },
+    "predicates": {
+      "titleContains": "Titel bevat",
+      "artistContains": "Artiest bevat",
+      "albumContains": "Album bevat",
+      "genreIs": "Genre =",
+      "yearMin": "Jaar ≥",
+      "yearMax": "Jaar ≤",
+      "bpmMin": "BPM ≥",
+      "bpmMax": "BPM ≤",
+      "durationMinMs": "Duur (ms) ≥",
+      "durationMaxMs": "Duur (ms) ≤",
+      "format": "Formaat =",
+      "hiRes": "Hi-Res",
+      "liked": "Geliked",
+      "ratingMin": "Beoordeling ≥"
     }
   },
   "lyricsEditor": {

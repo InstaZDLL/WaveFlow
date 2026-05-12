@@ -940,6 +940,43 @@
       "titleAsc": "Title (A → Z)",
       "artistAsc": "Artist (A → Z)",
       "random": "Random"
+    },
+    "tree": {
+      "sectionTitle": "Правила",
+      "sectionHint": "Комбинируйте условия с И / ИЛИ / НЕ. Нажмите на И или ИЛИ, чтобы переключить оператор группы.",
+      "and": "И",
+      "or": "ИЛИ",
+      "not": "НЕ",
+      "toggleOpHint": "И ↔ ИЛИ",
+      "matchAllEmpty": "(вся библиотека)",
+      "matchNoneEmpty": "(нет треков)",
+      "childCount_zero": "пусто",
+      "childCount_one": "{{count}} условие",
+      "childCount_other": "{{count}} условий",
+      "notHint": "Исключает всё, что соответствует потомку",
+      "deleteNode": "Удалить",
+      "addCondition": "Условие",
+      "addGroupAnd": "Группа И",
+      "addGroupOr": "Группа ИЛИ",
+      "addNot": "НЕ",
+      "contains": "Содержит…",
+      "pickGenre": "Выберите жанр…"
+    },
+    "predicates": {
+      "titleContains": "Название содержит",
+      "artistContains": "Исполнитель содержит",
+      "albumContains": "Альбом содержит",
+      "genreIs": "Жанр =",
+      "yearMin": "Год ≥",
+      "yearMax": "Год ≤",
+      "bpmMin": "BPM ≥",
+      "bpmMax": "BPM ≤",
+      "durationMinMs": "Длительность (мс) ≥",
+      "durationMaxMs": "Длительность (мс) ≤",
+      "format": "Формат =",
+      "hiRes": "Hi-Res",
+      "liked": "Понравилось",
+      "ratingMin": "Оценка ≥"
     }
   },
   "lyricsEditor": {

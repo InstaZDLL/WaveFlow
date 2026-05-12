@@ -940,6 +940,43 @@
       "titleAsc": "Title (A → Z)",
       "artistAsc": "Artist (A → Z)",
       "random": "Random"
+    },
+    "tree": {
+      "sectionTitle": "Aturan",
+      "sectionHint": "Gabungkan kondisi dengan DAN / ATAU / BUKAN. Klik DAN atau ATAU untuk mengubah operator grup.",
+      "and": "DAN",
+      "or": "ATAU",
+      "not": "BUKAN",
+      "toggleOpHint": "DAN ↔ ATAU",
+      "matchAllEmpty": "(seluruh pustaka)",
+      "matchNoneEmpty": "(tidak ada lagu)",
+      "childCount_zero": "kosong",
+      "childCount_one": "{{count}} kondisi",
+      "childCount_other": "{{count}} kondisi",
+      "notHint": "Mengecualikan apa pun yang cocok dengan anak",
+      "deleteNode": "Hapus",
+      "addCondition": "Kondisi",
+      "addGroupAnd": "Grup DAN",
+      "addGroupOr": "Grup ATAU",
+      "addNot": "BUKAN",
+      "contains": "Berisi…",
+      "pickGenre": "Pilih genre…"
+    },
+    "predicates": {
+      "titleContains": "Judul berisi",
+      "artistContains": "Artis berisi",
+      "albumContains": "Album berisi",
+      "genreIs": "Genre =",
+      "yearMin": "Tahun ≥",
+      "yearMax": "Tahun ≤",
+      "bpmMin": "BPM ≥",
+      "bpmMax": "BPM ≤",
+      "durationMinMs": "Durasi (ms) ≥",
+      "durationMaxMs": "Durasi (ms) ≤",
+      "format": "Format =",
+      "hiRes": "Hi-Res",
+      "liked": "Disukai",
+      "ratingMin": "Peringkat ≥"
     }
   },
   "lyricsEditor": {

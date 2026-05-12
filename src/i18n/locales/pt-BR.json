@@ -940,6 +940,43 @@
       "titleAsc": "Title (A → Z)",
       "artistAsc": "Artist (A → Z)",
       "random": "Random"
+    },
+    "tree": {
+      "sectionTitle": "Regras",
+      "sectionHint": "Combine condições com E / OU / NÃO. Clique em E ou OU para alternar o operador do grupo.",
+      "and": "E",
+      "or": "OU",
+      "not": "NÃO",
+      "toggleOpHint": "E ↔ OU",
+      "matchAllEmpty": "(toda a biblioteca)",
+      "matchNoneEmpty": "(nenhuma faixa)",
+      "childCount_zero": "vazio",
+      "childCount_one": "{{count}} condição",
+      "childCount_other": "{{count}} condições",
+      "notHint": "Exclui tudo que corresponde ao filho",
+      "deleteNode": "Excluir",
+      "addCondition": "Condição",
+      "addGroupAnd": "Grupo E",
+      "addGroupOr": "Grupo OU",
+      "addNot": "NÃO",
+      "contains": "Contém…",
+      "pickGenre": "Escolher um gênero…"
+    },
+    "predicates": {
+      "titleContains": "Título contém",
+      "artistContains": "Artista contém",
+      "albumContains": "Álbum contém",
+      "genreIs": "Gênero =",
+      "yearMin": "Ano ≥",
+      "yearMax": "Ano ≤",
+      "bpmMin": "BPM ≥",
+      "bpmMax": "BPM ≤",
+      "durationMinMs": "Duração (ms) ≥",
+      "durationMaxMs": "Duração (ms) ≤",
+      "format": "Formato =",
+      "hiRes": "Hi-Res",
+      "liked": "Curtido",
+      "ratingMin": "Avaliação ≥"
     }
   },
   "lyricsEditor": {

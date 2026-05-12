@@ -927,6 +927,43 @@
       "titleAsc": "Titre (A → Z)",
       "artistAsc": "Artiste (A → Z)",
       "random": "Aléatoire"
+    },
+    "tree": {
+      "sectionTitle": "Règles",
+      "sectionHint": "Combine des conditions avec ET / OU / NON. Cliquer sur ET ou OU pour basculer l'opérateur du groupe.",
+      "and": "ET",
+      "or": "OU",
+      "not": "NON",
+      "toggleOpHint": "Basculer ET ↔ OU",
+      "matchAllEmpty": "(toute la bibliothèque)",
+      "matchNoneEmpty": "(aucun morceau)",
+      "childCount_zero": "vide",
+      "childCount_one": "{{count}} condition",
+      "childCount_other": "{{count}} conditions",
+      "notHint": "Exclut tout ce qui matche l'enfant",
+      "deleteNode": "Supprimer",
+      "addCondition": "Condition",
+      "addGroupAnd": "Groupe ET",
+      "addGroupOr": "Groupe OU",
+      "addNot": "NON",
+      "contains": "Contient…",
+      "pickGenre": "Choisir un genre…"
+    },
+    "predicates": {
+      "titleContains": "Titre contient",
+      "artistContains": "Artiste contient",
+      "albumContains": "Album contient",
+      "genreIs": "Genre =",
+      "yearMin": "Année ≥",
+      "yearMax": "Année ≤",
+      "bpmMin": "BPM ≥",
+      "bpmMax": "BPM ≤",
+      "durationMinMs": "Durée (ms) ≥",
+      "durationMaxMs": "Durée (ms) ≤",
+      "format": "Format =",
+      "hiRes": "Hi-Res",
+      "liked": "Aimé",
+      "ratingMin": "Note ≥"
     }
   },
   "duplicates": {

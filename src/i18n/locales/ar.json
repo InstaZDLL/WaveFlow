@@ -940,6 +940,43 @@
       "titleAsc": "Title (A → Z)",
       "artistAsc": "Artist (A → Z)",
       "random": "Random"
+    },
+    "tree": {
+      "sectionTitle": "القواعد",
+      "sectionHint": "ادمج الشروط باستخدام و / أو / ليس. انقر على و أو أو لتبديل عامل المجموعة.",
+      "and": "و",
+      "or": "أو",
+      "not": "ليس",
+      "toggleOpHint": "و ↔ أو",
+      "matchAllEmpty": "(المكتبة بأكملها)",
+      "matchNoneEmpty": "(لا توجد مقاطع)",
+      "childCount_zero": "فارغ",
+      "childCount_one": "{{count}} شرط",
+      "childCount_other": "{{count}} شرط",
+      "notHint": "يستثني كل ما يطابق الفرع",
+      "deleteNode": "حذف",
+      "addCondition": "شرط",
+      "addGroupAnd": "مجموعة و",
+      "addGroupOr": "مجموعة أو",
+      "addNot": "ليس",
+      "contains": "يحتوي…",
+      "pickGenre": "اختر نوعًا…"
+    },
+    "predicates": {
+      "titleContains": "العنوان يحتوي",
+      "artistContains": "الفنان يحتوي",
+      "albumContains": "الألبوم يحتوي",
+      "genreIs": "النوع =",
+      "yearMin": "السنة ≥",
+      "yearMax": "السنة ≤",
+      "bpmMin": "BPM ≥",
+      "bpmMax": "BPM ≤",
+      "durationMinMs": "المدة (مللي ثانية) ≥",
+      "durationMaxMs": "المدة (مللي ثانية) ≤",
+      "format": "التنسيق =",
+      "hiRes": "Hi-Res",
+      "liked": "مُعجَب",
+      "ratingMin": "التقييم ≥"
     }
   },
   "lyricsEditor": {

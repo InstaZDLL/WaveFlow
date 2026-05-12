@@ -940,6 +940,43 @@
       "titleAsc": "Title (A → Z)",
       "artistAsc": "Artist (A → Z)",
       "random": "Random"
+    },
+    "tree": {
+      "sectionTitle": "規則",
+      "sectionHint": "以 且 / 或 / 非 組合條件。點按 且 或 或 來切換群組的運算子。",
+      "and": "且",
+      "or": "或",
+      "not": "非",
+      "toggleOpHint": "且 ↔ 或",
+      "matchAllEmpty": "(整個曲庫)",
+      "matchNoneEmpty": "(無曲目)",
+      "childCount_zero": "空",
+      "childCount_one": "{{count}} 個條件",
+      "childCount_other": "{{count}} 個條件",
+      "notHint": "排除與子節點相符的所有項目",
+      "deleteNode": "刪除",
+      "addCondition": "條件",
+      "addGroupAnd": "且 群組",
+      "addGroupOr": "或 群組",
+      "addNot": "非",
+      "contains": "包含…",
+      "pickGenre": "選擇風格…"
+    },
+    "predicates": {
+      "titleContains": "標題包含",
+      "artistContains": "藝人包含",
+      "albumContains": "專輯包含",
+      "genreIs": "風格 =",
+      "yearMin": "年份 ≥",
+      "yearMax": "年份 ≤",
+      "bpmMin": "BPM ≥",
+      "bpmMax": "BPM ≤",
+      "durationMinMs": "時長 (毫秒) ≥",
+      "durationMaxMs": "時長 (毫秒) ≤",
+      "format": "格式 =",
+      "hiRes": "Hi-Res",
+      "liked": "已喜歡",
+      "ratingMin": "評分 ≥"
     }
   },
   "lyricsEditor": {

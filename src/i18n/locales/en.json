@@ -949,6 +949,43 @@
       "titleAsc": "Title (A → Z)",
       "artistAsc": "Artist (A → Z)",
       "random": "Random"
+    },
+    "tree": {
+      "sectionTitle": "Rules",
+      "sectionHint": "Combine conditions with AND / OR / NOT. Click AND or OR to flip the group operator.",
+      "and": "AND",
+      "or": "OR",
+      "not": "NOT",
+      "toggleOpHint": "Toggle AND ↔ OR",
+      "matchAllEmpty": "(entire library)",
+      "matchNoneEmpty": "(no tracks)",
+      "childCount_zero": "empty",
+      "childCount_one": "{{count}} condition",
+      "childCount_other": "{{count}} conditions",
+      "notHint": "Excludes anything matching the child",
+      "deleteNode": "Delete",
+      "addCondition": "Condition",
+      "addGroupAnd": "AND group",
+      "addGroupOr": "OR group",
+      "addNot": "NOT",
+      "contains": "Contains…",
+      "pickGenre": "Pick a genre…"
+    },
+    "predicates": {
+      "titleContains": "Title contains",
+      "artistContains": "Artist contains",
+      "albumContains": "Album contains",
+      "genreIs": "Genre =",
+      "yearMin": "Year ≥",
+      "yearMax": "Year ≤",
+      "bpmMin": "BPM ≥",
+      "bpmMax": "BPM ≤",
+      "durationMinMs": "Duration (ms) ≥",
+      "durationMaxMs": "Duration (ms) ≤",
+      "format": "Format =",
+      "hiRes": "Hi-Res",
+      "liked": "Liked",
+      "ratingMin": "Rating ≥"
     }
   },
   "lyricsEditor": {

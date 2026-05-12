@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Sparkles, Loader2, Eye, Star } from "lucide-react";
+import { X, Sparkles, Loader2, Eye } from "lucide-react";
 import {
   createCustomSmartPlaylist,
   previewCustomSmartPlaylist,
   updateCustomSmartPlaylist,
+  emptyTree,
   type CustomRules,
   type CustomSort,
+  type RuleNode,
 } from "../../lib/tauri/smart_playlists";
 import { listGenres, type GenreRow } from "../../lib/tauri/browse";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import { RuleTreeEditor } from "./RuleTreeEditor";
 
 interface SmartPlaylistEditorModalProps {
   isOpen: boolean;
@@ -35,13 +38,15 @@ const SORT_OPTIONS: { value: CustomSort; key: string }[] = [
   { value: "random", key: "random" },
 ];
 
-const FORMAT_OPTIONS = ["FLAC", "MP3", "AAC", "OGG", "OPUS", "WAV", "DSF", "DFF"];
-
 /**
- * Rule-driven smart playlist editor. Mirrors the search filter shape
- * but persists as a `playlist.smart_rules` JSON blob. Live preview
- * shows how many tracks the current rule set matches without
- * persisting anything.
+ * Smart playlist editor with a recursive boolean rule tree
+ * (AND / OR / NOT / leaf predicates). Live preview shows how many
+ * tracks the current tree matches without persisting anything.
+ *
+ * The existing-rule path auto-migrates the v1 flat shape on read
+ * (backend deserializer handles that), so opening an old playlist
+ * shows its predicates as a flat `All` of leaves — the user can then
+ * re-organise into nested groups.
  */
 export function SmartPlaylistEditorModal({
   isOpen,
@@ -52,7 +57,9 @@ export function SmartPlaylistEditorModal({
   const { t } = useTranslation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [rules, setRules] = useState<CustomRules>({});
+  const [tree, setTree] = useState<RuleNode>(emptyTree());
+  const [sort, setSort] = useState<CustomSort>("added_desc");
+  const [limit, setLimit] = useState<number | null>(null);
   const [genres, setGenres] = useState<GenreRow[]>([]);
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
@@ -69,11 +76,17 @@ export function SmartPlaylistEditorModal({
     if (existing) {
       setName(existing.name);
       setDescription(existing.description ?? "");
-      setRules(existing.rules);
+      // The backend's deserializer migrates v1 → v2 transparently, so
+      // `existing.rules.tree` is always present here.
+      setTree(existing.rules.tree ?? emptyTree());
+      setSort(existing.rules.sort ?? "added_desc");
+      setLimit(existing.rules.limit ?? null);
     } else {
       setName("");
       setDescription("");
-      setRules({ sort: "added_desc" });
+      setTree(emptyTree());
+      setSort("added_desc");
+      setLimit(null);
     }
     /* eslint-enable react-hooks/set-state-in-effect */
     listGenres(null).then(setGenres).catch(() => {});
@@ -81,33 +94,13 @@ export function SmartPlaylistEditorModal({
 
   if (!isOpen) return null;
 
-  const updateRule = <K extends keyof CustomRules>(
-    key: K,
-    value: CustomRules[K] | null,
-  ) => {
-    setRules((prev) => ({ ...prev, [key]: value }));
-    setPreviewCount(null);
-  };
-
-  const toggleGenre = (id: number) => {
-    const current = new Set(rules.genre_ids ?? []);
-    if (current.has(id)) current.delete(id);
-    else current.add(id);
-    updateRule("genre_ids", current.size ? Array.from(current) : null);
-  };
-
-  const toggleFormat = (fmt: string) => {
-    const current = new Set(rules.formats ?? []);
-    if (current.has(fmt)) current.delete(fmt);
-    else current.add(fmt);
-    updateRule("formats", current.size ? Array.from(current) : null);
-  };
+  const currentRules = (): CustomRules => ({ tree, sort, limit });
 
   const handlePreview = async () => {
     setIsPreviewing(true);
     setError(null);
     try {
-      const result = await previewCustomSmartPlaylist(rules);
+      const result = await previewCustomSmartPlaylist(currentRules());
       setPreviewCount(result.total);
     } catch (err) {
       console.error("[SmartPlaylistEditor] preview failed", err);
@@ -129,7 +122,7 @@ export function SmartPlaylistEditorModal({
         name: name.trim(),
         description: description.trim() || null,
         icon_id: "sparkles" as const,
-        rules,
+        rules: currentRules(),
       };
       const result = existing
         ? await updateCustomSmartPlaylist(existing.id, input)
@@ -154,7 +147,7 @@ export function SmartPlaylistEditorModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="smart-playlist-editor-title"
-        className="relative bg-white dark:bg-surface-dark-elevated text-zinc-900 dark:text-zinc-100 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in"
+        className="relative bg-white dark:bg-surface-dark-elevated text-zinc-900 dark:text-zinc-100 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -205,152 +198,30 @@ export function SmartPlaylistEditorModal({
             </Field>
           </div>
 
-          {/* Text filters */}
-          <Section title={t("smartPlaylistEditor.sections.match")}>
-            <Field label={t("smartPlaylistEditor.fields.title")}>
-              <input
-                type="text"
-                value={rules.title_contains ?? ""}
-                onChange={(e) =>
-                  updateRule("title_contains", e.target.value || null)
-                }
-                className={inputClass}
-              />
-            </Field>
-            <Field label={t("smartPlaylistEditor.fields.artist")}>
-              <input
-                type="text"
-                value={rules.artist_contains ?? ""}
-                onChange={(e) =>
-                  updateRule("artist_contains", e.target.value || null)
-                }
-                className={inputClass}
-              />
-            </Field>
-            <Field label={t("smartPlaylistEditor.fields.album")}>
-              <input
-                type="text"
-                value={rules.album_contains ?? ""}
-                onChange={(e) =>
-                  updateRule("album_contains", e.target.value || null)
-                }
-                className={inputClass}
-              />
-            </Field>
-          </Section>
-
-          {/* Numeric ranges */}
-          <Section title={t("smartPlaylistEditor.sections.ranges")}>
-            <NumericRange
-              label={t("smartPlaylistEditor.fields.year")}
-              min={rules.year_min ?? null}
-              max={rules.year_max ?? null}
-              onMinChange={(v) => updateRule("year_min", v)}
-              onMaxChange={(v) => updateRule("year_max", v)}
-              step={1}
+          {/* Rule tree */}
+          <Section
+            title={t("smartPlaylistEditor.tree.sectionTitle")}
+            hint={t("smartPlaylistEditor.tree.sectionHint")}
+          >
+            <RuleTreeEditor
+              root={tree}
+              onChange={(next) => {
+                setTree(next);
+                setPreviewCount(null);
+              }}
+              genres={genres}
             />
-            <NumericRange
-              label={t("smartPlaylistEditor.fields.bpm")}
-              min={rules.bpm_min ?? null}
-              max={rules.bpm_max ?? null}
-              onMinChange={(v) => updateRule("bpm_min", v)}
-              onMaxChange={(v) => updateRule("bpm_max", v)}
-              step={1}
-              isFloat
-            />
-            <NumericRange
-              label={t("smartPlaylistEditor.fields.durationMin")}
-              min={msToMin(rules.duration_min_ms)}
-              max={msToMin(rules.duration_max_ms)}
-              onMinChange={(v) =>
-                updateRule("duration_min_ms", v == null ? null : v * 60_000)
-              }
-              onMaxChange={(v) =>
-                updateRule("duration_max_ms", v == null ? null : v * 60_000)
-              }
-              step={1}
-            />
-          </Section>
-
-          {/* Toggles + multi-select */}
-          <Section title={t("smartPlaylistEditor.sections.attributes")}>
-            <div className="flex flex-wrap gap-3">
-              <Toggle
-                checked={rules.hi_res_only === true}
-                onChange={(v) => updateRule("hi_res_only", v ? true : null)}
-                label={t("smartPlaylistEditor.fields.hiRes")}
-              />
-              <Toggle
-                checked={rules.liked_only === true}
-                onChange={(v) => updateRule("liked_only", v ? true : null)}
-                label={t("smartPlaylistEditor.fields.liked")}
-              />
-            </div>
-            <Field label={t("smartPlaylistEditor.fields.minRating")}>
-              <RatingPicker
-                value={popmToStars(rules.rating_min ?? null)}
-                onChange={(stars) =>
-                  updateRule(
-                    "rating_min",
-                    stars === 0 ? null : Math.round((stars / 5) * 255),
-                  )
-                }
-              />
-            </Field>
-            <Field label={t("smartPlaylistEditor.fields.formats")}>
-              <div className="flex flex-wrap gap-2">
-                {FORMAT_OPTIONS.map((fmt) => {
-                  const active = (rules.formats ?? []).includes(fmt);
-                  return (
-                    <button
-                      type="button"
-                      key={fmt}
-                      onClick={() => toggleFormat(fmt)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                        active
-                          ? "bg-violet-500 text-white"
-                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                      }`}
-                    >
-                      {fmt}
-                    </button>
-                  );
-                })}
-              </div>
-            </Field>
-            {genres.length > 0 && (
-              <Field label={t("smartPlaylistEditor.fields.genres")}>
-                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                  {genres.map((g) => {
-                    const active = (rules.genre_ids ?? []).includes(g.id);
-                    return (
-                      <button
-                        type="button"
-                        key={g.id}
-                        onClick={() => toggleGenre(g.id)}
-                        className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
-                          active
-                            ? "bg-violet-500 text-white"
-                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                        }`}
-                      >
-                        {g.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </Field>
-            )}
           </Section>
 
           {/* Sort + limit */}
           <Section title={t("smartPlaylistEditor.sections.output")}>
             <Field label={t("smartPlaylistEditor.fields.sort")}>
               <select
-                value={rules.sort ?? "added_desc"}
-                onChange={(e) =>
-                  updateRule("sort", e.target.value as CustomSort)
-                }
+                value={sort}
+                onChange={(e) => {
+                  setSort(e.target.value as CustomSort);
+                  setPreviewCount(null);
+                }}
                 className={inputClass}
               >
                 {SORT_OPTIONS.map((s) => (
@@ -365,13 +236,11 @@ export function SmartPlaylistEditorModal({
                 type="number"
                 min={1}
                 max={5000}
-                value={rules.limit ?? ""}
-                onChange={(e) =>
-                  updateRule(
-                    "limit",
-                    e.target.value ? Number(e.target.value) : null,
-                  )
-                }
+                value={limit ?? ""}
+                onChange={(e) => {
+                  setLimit(e.target.value ? Number(e.target.value) : null);
+                  setPreviewCount(null);
+                }}
                 placeholder={t("smartPlaylistEditor.placeholders.noLimit")}
                 className={inputClass}
               />
@@ -447,145 +316,26 @@ function Field({
 
 function Section({
   title,
+  hint,
   children,
 }: {
   title: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-800 pb-2">
-        {title}
-      </h3>
-      {children}
-    </div>
-  );
-}
-
-function Toggle({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label: string;
-}) {
-  return (
-    <label className="flex items-center gap-2 text-sm cursor-pointer select-none px-3 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="rounded"
-      />
-      {label}
-    </label>
-  );
-}
-
-function NumericRange({
-  label,
-  min,
-  max,
-  onMinChange,
-  onMaxChange,
-  step,
-  isFloat,
-}: {
-  label: string;
-  min: number | null;
-  max: number | null;
-  onMinChange: (v: number | null) => void;
-  onMaxChange: (v: number | null) => void;
-  step: number;
-  isFloat?: boolean;
-}) {
-  const parse = (raw: string): number | null => {
-    if (!raw) return null;
-    const n = isFloat ? Number(raw) : parseInt(raw, 10);
-    return Number.isFinite(n) ? n : null;
-  };
-  return (
-    <Field label={label}>
-      <div className="flex items-center gap-2">
-        <input
-          type="number"
-          step={step}
-          value={min ?? ""}
-          onChange={(e) => onMinChange(parse(e.target.value))}
-          placeholder="min"
-          className={inputClass}
-        />
-        <span className="text-zinc-400">→</span>
-        <input
-          type="number"
-          step={step}
-          value={max ?? ""}
-          onChange={(e) => onMaxChange(parse(e.target.value))}
-          placeholder="max"
-          className={inputClass}
-        />
+      <div className="border-b border-zinc-200 dark:border-zinc-800 pb-2">
+        <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          {title}
+        </h3>
+        {hint && (
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+            {hint}
+          </p>
+        )}
       </div>
-    </Field>
-  );
-}
-
-function msToMin(ms: number | null | undefined): number | null {
-  if (ms == null) return null;
-  return Math.round(ms / 60_000);
-}
-
-/** Round a POPM 0-255 to a 0-5 integer star count for the editor's
- *  star picker. Half-stars aren't surfaced here on purpose — the
- *  rule "≥ 3.5 stars" is too granular for a coarse library filter. */
-function popmToStars(popm: number | null): number {
-  if (popm == null || popm <= 0) return 0;
-  return Math.min(5, Math.max(1, Math.round((popm / 255) * 5)));
-}
-
-function RatingPicker({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (stars: number) => void;
-}) {
-  return (
-    <div className="flex items-center gap-1">
-      {[1, 2, 3, 4, 5].map((stars) => {
-        const active = stars <= value;
-        return (
-          <button
-            key={stars}
-            type="button"
-            onClick={() => onChange(stars === value ? 0 : stars)}
-            aria-pressed={active}
-            aria-label={`${stars}`}
-            className={`p-1.5 rounded-md transition-colors ${
-              active ? "" : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
-            }`}
-          >
-            <Star
-              size={16}
-              className={
-                active
-                  ? "fill-yellow-400 text-yellow-400"
-                  : "text-zinc-300 dark:text-zinc-600"
-              }
-            />
-          </button>
-        );
-      })}
-      {value > 0 && (
-        <button
-          type="button"
-          onClick={() => onChange(0)}
-          className="ml-2 text-[11px] text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
-        >
-          ×
-        </button>
-      )}
+      {children}
     </div>
   );
 }

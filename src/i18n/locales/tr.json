@@ -940,6 +940,43 @@
       "titleAsc": "Title (A → Z)",
       "artistAsc": "Artist (A → Z)",
       "random": "Random"
+    },
+    "tree": {
+      "sectionTitle": "Kurallar",
+      "sectionHint": "Koşulları VE / VEYA / DEĞİL ile birleştir. Grup operatörünü değiştirmek için VE veya VEYA'ya tıkla.",
+      "and": "VE",
+      "or": "VEYA",
+      "not": "DEĞİL",
+      "toggleOpHint": "VE ↔ VEYA",
+      "matchAllEmpty": "(tüm kütüphane)",
+      "matchNoneEmpty": "(parça yok)",
+      "childCount_zero": "boş",
+      "childCount_one": "{{count}} koşul",
+      "childCount_other": "{{count}} koşul",
+      "notHint": "Çocuğa uyan her şeyi hariç tutar",
+      "deleteNode": "Sil",
+      "addCondition": "Koşul",
+      "addGroupAnd": "VE grubu",
+      "addGroupOr": "VEYA grubu",
+      "addNot": "DEĞİL",
+      "contains": "İçeriyor…",
+      "pickGenre": "Tür seç…"
+    },
+    "predicates": {
+      "titleContains": "Başlık içerir",
+      "artistContains": "Sanatçı içerir",
+      "albumContains": "Albüm içerir",
+      "genreIs": "Tür =",
+      "yearMin": "Yıl ≥",
+      "yearMax": "Yıl ≤",
+      "bpmMin": "BPM ≥",
+      "bpmMax": "BPM ≤",
+      "durationMinMs": "Süre (ms) ≥",
+      "durationMaxMs": "Süre (ms) ≤",
+      "format": "Format =",
+      "hiRes": "Hi-Res",
+      "liked": "Beğenilen",
+      "ratingMin": "Puan ≥"
     }
   },
   "lyricsEditor": {

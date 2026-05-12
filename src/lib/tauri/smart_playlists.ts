@@ -26,25 +26,53 @@ export type CustomSort =
   | "artist_asc"
   | "random";
 
-/** Editable rule set. Every field optional — empty rules match all tracks. */
+/**
+ * One leaf in the rule tree. `hi_res` and `liked` are unit predicates
+ * (no `value` field). `rating_min` carries a POPM byte (0-255); the
+ * editor maps stars via `Math.round(stars / 5 * 255)`.
+ */
+export type Predicate =
+  | { kind: "title_contains"; value: string }
+  | { kind: "artist_contains"; value: string }
+  | { kind: "album_contains"; value: string }
+  | { kind: "genre_is"; value: number }
+  | { kind: "year_min"; value: number }
+  | { kind: "year_max"; value: number }
+  | { kind: "bpm_min"; value: number }
+  | { kind: "bpm_max"; value: number }
+  | { kind: "duration_min_ms"; value: number }
+  | { kind: "duration_max_ms"; value: number }
+  | { kind: "format"; value: string }
+  | { kind: "hi_res" }
+  | { kind: "liked" }
+  | { kind: "rating_min"; value: number };
+
+export type PredicateKind = Predicate["kind"];
+
+/**
+ * Recursive rule tree. Group ops (`all`/`any`) hold children; `not`
+ * wraps a single child; `leaf` carries one predicate. An empty `all`
+ * matches every available track and is the canonical "blank" root.
+ */
+export type RuleNode =
+  | { type: "all"; children: RuleNode[] }
+  | { type: "any"; children: RuleNode[] }
+  | { type: "not"; child: RuleNode }
+  | { type: "leaf"; predicate: Predicate };
+
+/** Editable rule set. */
 export interface CustomRules {
-  title_contains?: string | null;
-  artist_contains?: string | null;
-  album_contains?: string | null;
-  genre_ids?: number[] | null;
-  year_min?: number | null;
-  year_max?: number | null;
-  bpm_min?: number | null;
-  bpm_max?: number | null;
-  duration_min_ms?: number | null;
-  duration_max_ms?: number | null;
-  formats?: string[] | null;
-  hi_res_only?: boolean | null;
-  liked_only?: boolean | null;
-  /** Minimum POPM rating 0-255. Map from 1-5 stars via `Math.round(stars / 5 * 255)`. */
-  rating_min?: number | null;
+  tree: RuleNode;
   sort?: CustomSort | null;
   limit?: number | null;
+}
+
+export function emptyTree(): RuleNode {
+  return { type: "all", children: [] };
+}
+
+export function emptyRules(): CustomRules {
+  return { tree: emptyTree(), sort: null, limit: null };
 }
 
 export interface CustomSmartPlaylistInput {

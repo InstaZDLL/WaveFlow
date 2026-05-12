@@ -940,6 +940,43 @@
       "titleAsc": "Title (A → Z)",
       "artistAsc": "Artist (A → Z)",
       "random": "Random"
+    },
+    "tree": {
+      "sectionTitle": "규칙",
+      "sectionHint": "AND / OR / NOT 으로 조건을 결합합니다. AND 또는 OR 를 클릭해 그룹 연산자를 전환합니다.",
+      "and": "AND",
+      "or": "OR",
+      "not": "NOT",
+      "toggleOpHint": "AND ↔ OR",
+      "matchAllEmpty": "(전체 라이브러리)",
+      "matchNoneEmpty": "(없음)",
+      "childCount_zero": "비어 있음",
+      "childCount_one": "{{count}}개의 조건",
+      "childCount_other": "{{count}}개의 조건",
+      "notHint": "자식과 일치하는 모든 항목을 제외",
+      "deleteNode": "삭제",
+      "addCondition": "조건",
+      "addGroupAnd": "AND 그룹",
+      "addGroupOr": "OR 그룹",
+      "addNot": "NOT",
+      "contains": "포함…",
+      "pickGenre": "장르 선택…"
+    },
+    "predicates": {
+      "titleContains": "제목 포함",
+      "artistContains": "아티스트 포함",
+      "albumContains": "앨범 포함",
+      "genreIs": "장르 =",
+      "yearMin": "연도 ≥",
+      "yearMax": "연도 ≤",
+      "bpmMin": "BPM ≥",
+      "bpmMax": "BPM ≤",
+      "durationMinMs": "재생 시간 (ms) ≥",
+      "durationMaxMs": "재생 시간 (ms) ≤",
+      "format": "포맷 =",
+      "hiRes": "Hi-Res",
+      "liked": "좋아요",
+      "ratingMin": "평점 ≥"
     }
   },
   "lyricsEditor": {

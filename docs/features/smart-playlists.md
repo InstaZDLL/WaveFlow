@@ -96,27 +96,48 @@ The cross-DB lookup in `top_artists_with_bpm` opens a short-lived secondary conn
 
 A user adding or removing a track from a Daily Mix **will lose the change on the next regen**: `upsert_smart_playlist` deletes every `playlist_track` row for the playlist before re-inserting the freshly shuffled set. If durable curation is needed, the right move is to "Save as new playlist", which copies the tracks into a fresh `is_smart = 0` row.
 
-## Custom smart playlists (rule-based)
+## Custom smart playlists (recursive boolean rule tree)
 
-The user-driven counterpart to Daily Mix lives in [`smart_playlists/custom.rs`](../../src-tauri/src/smart_playlists/custom.rs). The `SmartPlaylistRules` enum gains a `Custom { rules: CustomRules }` variant; `CustomRules` mirrors the search filter shape and stores the editable predicates plus a sort + limit:
+The user-driven counterpart to Daily Mix lives in [`smart_playlists/custom.rs`](../../src-tauri/src/smart_playlists/custom.rs). `CustomRules` now wraps a **`RuleNode` tree** (`All` / `Any` / `Not` / `Leaf`) plus a sort + limit, so the editor can express arbitrary boolean expressions like `(artist contains "Daft Punk" OR artist contains "Justice") AND year ≥ 2000 AND NOT liked`. Predicates (leaves) carry the actual comparison; group nodes nest other nodes; `Not` wraps a single child.
 
-| Predicate | Notes |
+### Tree shape
+
+```rust
+enum RuleNode {
+    All { children: Vec<RuleNode> },  // AND
+    Any { children: Vec<RuleNode> },  // OR
+    Not { child: Box<RuleNode> },
+    Leaf { predicate: Predicate },
+}
+```
+
+JSON shape uses an internal `type` tag (`{"type":"all","children":[…]}`). The `Predicate` enum carries the leaf's `kind` + `value`:
+
+| Predicate kind | Notes |
 |-----------|-------|
 | `title_contains` / `artist_contains` / `album_contains` | Case-insensitive `LIKE '%…%'`. |
-| `genre_ids: Vec<i64>` | OR-combined via `EXISTS … WHERE genre_id IN (?,?,?)`. |
+| `genre_is` | Single genre ID — multi-genre OR is expressed as `Any` of these. |
 | `year_min` / `year_max` | Inclusive bounds, `NULL` years filtered out. |
-| `bpm_min` / `bpm_max` | Adds a `LEFT JOIN track_analysis` only when set. |
+| `bpm_min` / `bpm_max` | Reads `track_analysis.bpm`. |
 | `duration_min_ms` / `duration_max_ms` | Inclusive on `track.duration_ms`. |
-| `formats: Vec<String>` | Lowercased OR-match on `track.codec`. |
-| `hi_res_only` | `sample_rate >= 88200 OR bit_depth >= 24`. |
-| `liked_only` | `EXISTS (SELECT 1 FROM liked_track …)`. |
-| `rating_min` | POPM 0-255 threshold (`t.rating >= ?`). The editor's star picker writes `Math.round(stars / 5 * 255)`, so "3★ or more" = 153; tracks with no rating are excluded. |
-| `sort: CustomSort` | One of `added_desc` (default), `added_asc`, `year_desc/asc`, `title_asc`, `artist_asc`, `random`. |
-| `limit` | Soft cap; clamped to 5 000 server-side so a typo doesn't blow up the queue. |
+| `format` | Single file extension — multi-format OR is expressed as `Any` of these. |
+| `hi_res` (unit) | `sample_rate >= 88200 OR bit_depth >= 24`. |
+| `liked` (unit) | `EXISTS (SELECT 1 FROM liked_track …)`. |
+| `rating_min` | POPM 0-255 threshold. Editor's star picker writes `Math.round(stars / 5 * 255)`. |
 
-**Materialisation.** `custom::materialize` builds a single `SELECT DISTINCT t.id` with on-demand JOINs (deduped via a `HashSet` so adding the same JOIN twice doesn't explode row counts via the cross product), then rewrites `playlist_track` in a transaction so a partial failure can't leave the playlist half-empty. `playlist.smart_rules` stores the full `Custom { rules }` JSON so a future regen pass can re-evaluate the same rule set without the editor reopening.
+### SQL builder
 
-**Commands** ([`commands/smart_playlists.rs`](../../src-tauri/src/commands/smart_playlists.rs)):
+`build_node_sql` walks the tree recursively, emitting a single `WHERE` clause. Every join-needing predicate (`artist_contains`, `album_contains`, `genre_is`, `bpm_*`, `liked`) goes through an **`EXISTS` subquery** instead of a top-level JOIN — that way the tree can nest arbitrarily without DISTINCT, no Cartesian explosion regardless of how many leaves touch `track_artist` or `track_genre`. Empty `All` → `"1=1"`, empty `Any` → `"0=1"`; the editor relies on these for the "blank slate" + degenerate edge cases.
+
+`custom::materialize` rewrites `playlist_track` in a transaction so a partial failure can't leave the playlist half-empty. `playlist.smart_rules` stores the full `Custom { rules }` JSON so a future regen pass can re-evaluate the same rule set without the editor reopening.
+
+### v1 → v2 auto-migration
+
+Pre-tree user data lives in flat predicates (`title_contains: "foo", year_min: 2020, genre_ids: [1,2,3], …`). A custom `Deserialize` impl detects the legacy shape (missing `tree` field) and folds it into an `All` root with each multi-value selector wrapped in `Any`. The migration is read-only — old JSON in `playlist.smart_rules` stays untouched until the next save — so a downgrade is safe.
+
+### Commands
+
+[`commands/smart_playlists.rs`](../../src-tauri/src/commands/smart_playlists.rs):
 
 - `create_custom_smart_playlist(input)` — insert the row + materialise tracks.
 - `update_custom_smart_playlist(playlist_id, input)` — update + re-materialise. Errors out when the target isn't a custom smart playlist (e.g. a Daily Mix slot or a manual playlist) so the editor never overwrites a wrong row.
@@ -124,4 +145,6 @@ The user-driven counterpart to Daily Mix lives in [`smart_playlists/custom.rs`](
 - `get_custom_smart_playlist_rules(playlist_id)` — rehydrates the editor.
 - `preview_custom_smart_playlist(rules)` — dry-run for the editor's count badge; returns the matched track count + the first 200 ids.
 
-**UI** is [`SmartPlaylistEditorModal`](../../src/components/common/SmartPlaylistEditorModal.tsx) — single-form rule builder with a live preview button — opened from the sparkles icon next to the regular "+" in the playlist sidebar header. Output icon defaults to `sparkles` so smart playlists are visually distinguishable from manual ones in the sidebar.
+### UI
+
+[`RuleTreeEditor`](../../src/components/common/RuleTreeEditor.tsx) is a recursive React component that mirrors the data shape: each level renders the right widget for `node.type` and threads an `onChange(next)` callback up to the parent. No path arithmetic — every level only knows about its direct children. Group cards (AND = emerald, OR = violet, NOT = red) tint-code their operator; clicking the operator badge toggles AND ↔ OR in place. The "+ Condition / + Group / + NOT" footer adds children below the current group. Wired into [`SmartPlaylistEditorModal`](../../src/components/common/SmartPlaylistEditorModal.tsx) with sort + limit kept at the bottom and a live preview button at the footer.

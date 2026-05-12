@@ -940,6 +940,43 @@
       "titleAsc": "Title (A → Z)",
       "artistAsc": "Artist (A → Z)",
       "random": "Random"
+    },
+    "tree": {
+      "sectionTitle": "规则",
+      "sectionHint": "用 与 / 或 / 非 组合条件。点击 与 或 或 切换分组的操作符。",
+      "and": "与",
+      "or": "或",
+      "not": "非",
+      "toggleOpHint": "与 ↔ 或",
+      "matchAllEmpty": "(全部曲库)",
+      "matchNoneEmpty": "(无曲目)",
+      "childCount_zero": "空",
+      "childCount_one": "{{count}} 个条件",
+      "childCount_other": "{{count}} 个条件",
+      "notHint": "排除与子节点匹配的所有内容",
+      "deleteNode": "删除",
+      "addCondition": "条件",
+      "addGroupAnd": "与 分组",
+      "addGroupOr": "或 分组",
+      "addNot": "非",
+      "contains": "包含…",
+      "pickGenre": "选择风格…"
+    },
+    "predicates": {
+      "titleContains": "标题包含",
+      "artistContains": "艺人包含",
+      "albumContains": "专辑包含",
+      "genreIs": "风格 =",
+      "yearMin": "年份 ≥",
+      "yearMax": "年份 ≤",
+      "bpmMin": "BPM ≥",
+      "bpmMax": "BPM ≤",
+      "durationMinMs": "时长 (毫秒) ≥",
+      "durationMaxMs": "时长 (毫秒) ≤",
+      "format": "格式 =",
+      "hiRes": "Hi-Res",
+      "liked": "已喜欢",
+      "ratingMin": "评分 ≥"
     }
   },
   "lyricsEditor": {
