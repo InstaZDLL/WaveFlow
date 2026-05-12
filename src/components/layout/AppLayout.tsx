@@ -1,4 +1,11 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import {
+  lazy,
+  Suspense,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import type { ViewId, LibraryTab } from "../../types";
 import { useTheme } from "../../hooks/useTheme";
 import { useLibrary } from "../../hooks/useLibrary";
@@ -17,25 +24,76 @@ import { LyricsPanel } from "./LyricsPanel";
 import { NowPlayingChevronTab } from "./NowPlayingChevronTab";
 import { DeviceMenu } from "./DeviceMenu";
 import { PlayerBar } from "../player/PlayerBar";
-import { HomeView } from "../views/HomeView";
-import { LibraryView } from "../views/LibraryView";
-import { SettingsView } from "../views/SettingsView";
-import { SpotifyView } from "../views/SpotifyView";
-import { AboutView } from "../views/AboutView";
-import { FeedbackView } from "../views/FeedbackView";
-import { StatisticsView } from "../views/StatisticsView";
-import { WrappedView } from "../views/WrappedView";
-import { LikedView } from "../views/LikedView";
-import { HistoryView } from "../views/HistoryView";
-import { PlaylistView } from "../views/PlaylistView";
-import { AlbumDetailView } from "../views/AlbumDetailView";
-import { ArtistDetailView } from "../views/ArtistDetailView";
 import { ProfileSelectorModal } from "../common/ProfileSelectorModal";
 import { LastfmReauthBanner } from "../common/LastfmReauthBanner";
 import { UpdateBanner } from "../common/UpdateBanner";
 import { ScanProgressToast } from "../common/ScanProgressToast";
 import { OnboardingModal } from "../common/OnboardingModal";
 import { PageScrollContext } from "../../contexts/PageScrollContext";
+
+const HomeView = lazy(() =>
+  import("../views/HomeView").then((module) => ({ default: module.HomeView })),
+);
+const LibraryView = lazy(() =>
+  import("../views/LibraryView").then((module) => ({
+    default: module.LibraryView,
+  })),
+);
+const SettingsView = lazy(() =>
+  import("../views/SettingsView").then((module) => ({
+    default: module.SettingsView,
+  })),
+);
+const SpotifyView = lazy(() =>
+  import("../views/SpotifyView").then((module) => ({
+    default: module.SpotifyView,
+  })),
+);
+const AboutView = lazy(() =>
+  import("../views/AboutView").then((module) => ({
+    default: module.AboutView,
+  })),
+);
+const FeedbackView = lazy(() =>
+  import("../views/FeedbackView").then((module) => ({
+    default: module.FeedbackView,
+  })),
+);
+const StatisticsView = lazy(() =>
+  import("../views/StatisticsView").then((module) => ({
+    default: module.StatisticsView,
+  })),
+);
+const WrappedView = lazy(() =>
+  import("../views/WrappedView").then((module) => ({
+    default: module.WrappedView,
+  })),
+);
+const LikedView = lazy(() =>
+  import("../views/LikedView").then((module) => ({
+    default: module.LikedView,
+  })),
+);
+const HistoryView = lazy(() =>
+  import("../views/HistoryView").then((module) => ({
+    default: module.HistoryView,
+  })),
+);
+const PlaylistView = lazy(() =>
+  import("../views/PlaylistView").then((module) => ({
+    default: module.PlaylistView,
+  })),
+);
+const AlbumDetailView = lazy(() =>
+  import("../views/AlbumDetailView").then((module) => ({
+    default: module.AlbumDetailView,
+  })),
+);
+const ArtistDetailView = lazy(() =>
+  import("../views/ArtistDetailView").then((module) => ({
+    default: module.ArtistDetailView,
+  })),
+);
 
 export function AppLayout() {
   const { t } = useTranslation();
@@ -338,7 +396,15 @@ export function AppLayout() {
               className="flex-1 overflow-y-auto p-8 relative"
             >
               <PageScrollContext.Provider value={pageScrollRef}>
-                {renderView()}
+                <Suspense
+                  fallback={
+                    <div className="flex min-h-64 items-center justify-center text-zinc-500 dark:text-zinc-400">
+                      <Loader2 size={22} className="animate-spin" />
+                    </div>
+                  }
+                >
+                  {renderView()}
+                </Suspense>
               </PageScrollContext.Provider>
             </div>
 

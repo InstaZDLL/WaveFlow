@@ -1,24 +1,13 @@
 import i18n from "i18next";
+import type {
+  BackendModule,
+  InitOptions,
+  ReadCallback,
+  ResourceLanguage,
+  Services,
+} from "i18next";
 import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
-
-import fr from "./locales/fr.json";
-import en from "./locales/en.json";
-import es from "./locales/es.json";
-import de from "./locales/de.json";
-import it from "./locales/it.json";
-import zhTW from "./locales/zh-TW.json";
-import zhCN from "./locales/zh-CN.json";
-import pt from "./locales/pt.json";
-import ptBR from "./locales/pt-BR.json";
-import ja from "./locales/ja.json";
-import kr from "./locales/kr.json";
-import nl from "./locales/nl.json";
-import ar from "./locales/ar.json";
-import hi from "./locales/hi.json";
-import ru from "./locales/ru.json";
-import id from "./locales/id.json";
-import tr from "./locales/tr.json";
 
 export interface SupportedLanguage {
   code: string;
@@ -57,6 +46,29 @@ export const SUPPORTED_LANGUAGES: readonly SupportedLanguage[] = [
 
 const LOCAL_STORAGE_KEY = "waveflow-language";
 const SUPPORTED_LANGUAGE_CODES = SUPPORTED_LANGUAGES.map((lang) => lang.code);
+const localeLoaders: Record<
+  string,
+  () => Promise<{ default: ResourceLanguage }>
+> = {
+  fr: () => import("./locales/fr.json"),
+  en: () => import("./locales/en.json"),
+  es: () => import("./locales/es.json"),
+  de: () => import("./locales/de.json"),
+  it: () => import("./locales/it.json"),
+  "zh-TW": () => import("./locales/zh-TW.json"),
+  "zh-CN": () => import("./locales/zh-CN.json"),
+  pt: () => import("./locales/pt.json"),
+  "pt-BR": () => import("./locales/pt-BR.json"),
+  ja: () => import("./locales/ja.json"),
+  ko: () => import("./locales/kr.json"),
+  kr: () => import("./locales/kr.json"),
+  nl: () => import("./locales/nl.json"),
+  ar: () => import("./locales/ar.json"),
+  hi: () => import("./locales/hi.json"),
+  ru: () => import("./locales/ru.json"),
+  id: () => import("./locales/id.json"),
+  tr: () => import("./locales/tr.json"),
+};
 // Map common BCP-47 regional variants we don't ship explicit resources
 // for back to one of our supported codes. The browser language detector
 // runs detected codes through `normalizeSupportedLanguageCode`, so an
@@ -127,30 +139,31 @@ function applyDocumentLanguage(code: string | undefined) {
   document.documentElement.dir = i18n.dir(normalizedCode);
 }
 
-void i18n
+const dynamicLocaleBackend: BackendModule = {
+  type: "backend",
+  init(
+    _services: Services,
+    _backendOptions: object,
+    _i18nextOptions: InitOptions,
+  ) {},
+  read(language: string, _namespace: string, callback: ReadCallback) {
+    const code = normalizeSupportedLanguageCode(language);
+    const loadLocale = localeLoaders[code] ?? localeLoaders.en;
+
+    loadLocale()
+      .then((module) => callback(null, module.default))
+      .catch((err: unknown) => {
+        console.error(`[i18n] failed to load locale "${code}"`, err);
+        callback(err instanceof Error ? err : String(err), null);
+      });
+  },
+};
+
+export const i18nReady = i18n
+  .use(dynamicLocaleBackend)
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: {
-      fr: { translation: fr },
-      en: { translation: en },
-      es: { translation: es },
-      de: { translation: de },
-      it: { translation: it },
-      "zh-TW": { translation: zhTW },
-      "zh-CN": { translation: zhCN },
-      pt: { translation: pt },
-      "pt-BR": { translation: ptBR },
-      ja: { translation: ja },
-      ko: { translation: kr },
-      kr: { translation: kr },
-      nl: { translation: nl },
-      ar: { translation: ar },
-      hi: { translation: hi },
-      ru: { translation: ru },
-      id: { translation: id },
-      tr: { translation: tr },
-    },
     // English as fallback — universal enough that a user whose locale
     // we don't ship can still find their way around. (French is the
     // source language but is much narrower than English in practice.)
@@ -163,6 +176,9 @@ void i18n
     // pre-normalised via `convertDetectedLanguage` instead.
     interpolation: {
       escapeValue: false,
+    },
+    react: {
+      useSuspense: false,
     },
     detection: {
       order: ["localStorage", "navigator"],
