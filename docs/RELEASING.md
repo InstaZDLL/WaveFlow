@@ -81,15 +81,39 @@ Actions):
 The AUR package itself (`waveflow-bin`) needs a one-off manual setup
 on the maintainer's box — see [`packaging/aur/README.md`](../packaging/aur/README.md).
 
+The maintainer keeps local copies of all four key/cert files under
+`secrets/` (gitignored — see [`.gitignore`](../.gitignore)) so they
+can be re-uploaded when rotating. Push them to GitHub Actions secrets
+with the `gh` CLI:
+
+```powershell
+# Linux/macOS shell users: drop the "Get-Content -Raw" wrapper and pipe
+#                           the file directly to gh secret set.
+Get-Content -Raw secrets/aur | gh secret set AUR_SSH_PRIVATE_KEY
+Get-Content -Raw secrets/waveflow.key | gh secret set TAURI_SIGNING_PRIVATE_KEY
+[Convert]::ToBase64String([IO.File]::ReadAllBytes((Resolve-Path secrets/cert.pfx))) | gh secret set SIGNTOOL_PFX_BASE64
+gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --body "<passphrase>"
+gh secret set SIGNTOOL_PFX_PASSWORD            --body "<passphrase>"
+```
+
 ### 1. Bump the version
 
-Edit `src-tauri/tauri.conf.json` → `version` and `package.json` →
-`version` (keep them in sync). Use semver. Commit and tag:
+Three manifests carry the version string and must stay in sync — use
+semver:
+
+- [`package.json`](../package.json) → `"version"`
+- [`src-tauri/tauri.conf.json`](../src-tauri/tauri.conf.json) → `"version"`
+- [`src-tauri/Cargo.toml`](../src-tauri/Cargo.toml) → `version` (under
+  `[package]`)
+
+Then run `cargo check --manifest-path src-tauri/Cargo.toml` to refresh
+`src-tauri/Cargo.lock` (the `waveflow` entry's version follows
+`Cargo.toml`). Commit all four files together and tag:
 
 ```sh
-git commit -am "chore: release v0.2.0"
-git tag v0.2.0
-git push origin main v0.2.0
+git commit -am "chore(release): bump version to 1.0.0"
+git tag v1.0.0
+git push origin main v1.0.0
 ```
 
 ### 2. Watch the workflow

@@ -1,0 +1,92 @@
+name: Bug report
+description: Something works incorrectly in WaveFlow — crash, wrong behaviour, missing data.
+title: "bug: <one-line summary>"
+labels: ["type:bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please fill in as much as you can — repro steps and the exact app version make the difference between "fixed in a day" and "lingers for months".
+
+        Security issues: please **do not** open a public issue. See [`.github/SECURITY.md`](https://github.com/InstaZDLL/WaveFlow/blob/main/.github/SECURITY.md) for the disclosure channel.
+
+  - type: input
+    id: version
+    attributes:
+      label: WaveFlow version
+      description: From the title bar, Help → About, or `WaveFlow.exe --version`.
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows 10
+        - Windows 11
+        - macOS (Intel)
+        - macOS (Apple Silicon)
+        - Linux (Ubuntu/Debian-based — .deb)
+        - Linux (Fedora/RHEL-based — .rpm)
+        - Linux (Arch / AUR — waveflow-bin)
+        - Linux (AppImage on other distro)
+        - Other (specify in the repro section)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-source
+    attributes:
+      label: How did you install WaveFlow?
+      options:
+        - GitHub Releases (.deb)
+        - GitHub Releases (.rpm)
+        - GitHub Releases (.AppImage)
+        - GitHub Releases (NSIS .exe)
+        - GitHub Releases (.msi)
+        - GitHub Releases (.dmg)
+        - AUR (waveflow-bin)
+        - Built from source (`bun run tauri build`)
+        - Built from source (`bun run tauri dev`)
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug — what you expected vs what actually happened.
+      placeholder: |
+        Expected: clicking "Play" on a track starts playback.
+        Actual: nothing happens, no error in the UI.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps a stranger could follow on a fresh install.
+      placeholder: |
+        1. Open WaveFlow with a library containing FLAC files.
+        2. Navigate to Bibliothèque → Pistes.
+        3. Double-click any FLAC track.
+        4. Observe nothing happens.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / errors
+      description: |
+        From Settings → Diagnostics → "Open logs folder" (or the platform's log path). Paste the most recent app session — focus on lines near the bug, no need to paste megabytes.
+      render: shell
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots (drag-and-drop here), audio file characteristics (codec, sample rate, length), library size, multi-monitor / HiDPI, etc.

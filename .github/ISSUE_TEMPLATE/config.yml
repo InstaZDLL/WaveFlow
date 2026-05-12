@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security disclosure
+    url: https://github.com/InstaZDLL/WaveFlow/blob/main/.github/SECURITY.md
+    about: Report a vulnerability privately — please do not open a public issue.
+  - name: Discussions
+    url: https://github.com/InstaZDLL/WaveFlow/discussions
+    about: Open-ended questions, design debates, "is this a bug or by design?"
