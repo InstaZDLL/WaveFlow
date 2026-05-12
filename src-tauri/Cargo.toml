@@ -128,7 +128,7 @@ anyhow = "1"
 md-5 = "0.11"
 hex = "0.4"
 base64 = "0.22"
-sha2 = "0.10"
+sha2 = "0.11"
 
 # OS-level media controls: SMTC on Windows, MPRIS on Linux,
 # MediaRemoteCommandCenter on macOS. Souvlaki abstracts the three
