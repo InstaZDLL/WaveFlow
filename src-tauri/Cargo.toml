@@ -168,7 +168,7 @@ tower-http = { version = "0.6", features = ["fs"] }
 # without buffering the whole window in memory.
 tokio-util = { version = "0.7", features = ["io"] }
 quick-xml = { version = "0.36", features = ["serialize"] }
-socket2 = "0.5"
+socket2 = "0.6"
 if-addrs = "0.13"
 mac_address = "1"
 uuid = { version = "1", features = ["v4", "v5"] }
