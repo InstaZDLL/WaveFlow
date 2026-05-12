@@ -443,12 +443,12 @@ function DayGroup({
   const { t } = useTranslation();
   return (
     <section>
-      {/* Opaque background covers any row scrolling under the
-          sticky header. `-top-px` and the matching `-mt-px` align
-          the header's bottom border with the next row so there's
-          no perceived gap; the header itself stays tight (py-1)
-          against the previous row above it. */}
-      <div className="sticky -top-px z-20 bg-white dark:bg-surface-dark px-3 py-1 border-b border-zinc-100 dark:border-zinc-800 flex items-baseline gap-3">
+      {/* Pin to the OUTER top of the scroll container (AppLayout's
+          page-scroller has `p-8` = 32 px padding-top), so the header
+          docks just under the TopBar with no gap above it. Without
+          the negative top, sticky pins at the padding-inner edge and
+          previous-day rows can scroll through the 32 px band above. */}
+      <div className="sticky -top-8 z-20 bg-white dark:bg-surface-dark px-3 py-1 border-b border-zinc-100 dark:border-zinc-800 flex items-baseline gap-3">
         <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 capitalize">
           {dayLabel(group.ts, locale, t)}
         </h2>
