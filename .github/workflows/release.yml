@@ -601,3 +601,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: gh release upload "$TAG_NAME" dist-release/latest.json --clobber
+
+      - name: Trigger AUR publish
+        # GitHub blocks downstream workflow events (release.published)
+        # when the release was created by GITHUB_TOKEN, to avoid
+        # infinite-loop scenarios. Dispatch aur.yml explicitly so the
+        # PKGBUILD bump happens automatically after every tagged
+        # release instead of needing a manual `gh workflow run`.
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run aur.yml -f tag_name="$TAG_NAME"
