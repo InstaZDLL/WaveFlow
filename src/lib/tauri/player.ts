@@ -301,3 +301,23 @@ export function playerListOutputDevices(): Promise<OutputDevice[]> {
 export function playerSetOutputDevice(deviceId: string | null): Promise<void> {
   return invoke<void>("player_set_output_device", { deviceId });
 }
+
+/**
+ * Toggle WASAPI Exclusive Mode (Windows only). The backend persists
+ * the value across platforms but only re-opens the output stream on
+ * Windows. Falls back to cpal shared if exclusive init fails (device
+ * busy, no exclusive format support).
+ */
+export function playerSetWasapiExclusive(enabled: boolean): Promise<void> {
+  return invoke<void>("player_set_wasapi_exclusive", { enabled });
+}
+
+/**
+ * Read whether WASAPI Exclusive Mode is currently engaged. Always
+ * `false` on Linux / macOS. Useful for the Settings card to show
+ * what's actually active (a failed exclusive init silently falls
+ * back to shared, so the toggle could be on but the mode off).
+ */
+export function playerGetWasapiExclusive(): Promise<boolean> {
+  return invoke<boolean>("player_get_wasapi_exclusive");
+}

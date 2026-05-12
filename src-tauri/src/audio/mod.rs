@@ -24,6 +24,8 @@ pub mod output;
 pub mod resampler;
 pub mod spectrum;
 pub mod state;
+#[cfg(target_os = "windows")]
+pub mod wasapi_exclusive;
 
 pub use engine::{AudioCmd, AudioEngine};
 pub use output::list_output_devices;

@@ -200,3 +200,21 @@ tempfile = "3"
 [target.'cfg(target_os = "linux")'.dependencies]
 alsa = "0.10"
 libc = "0.2"
+
+# Windows-only: opt-in bit-perfect playback via WASAPI Exclusive Mode.
+# `wasapi` is a thin safe wrapper over the Win32 audio COM API — it
+# pulls a slice of `windows-rs` features (Win32_Media_Audio,
+# Win32_System_Com, Win32_System_Threading, etc.) but **not** the full
+# Windows crate. Adds ~5-10 MB to the NSIS / MSI Windows binary; the
+# Linux + macOS bundles are untouched (the dep is target-gated).
+#
+# `windows` is included explicitly so we can call `CoInitializeEx` /
+# event-handle APIs from the exclusive-mode output thread without
+# going through `wasapi`'s less ergonomic wrappers.
+[target.'cfg(target_os = "windows")'.dependencies]
+wasapi = "0.17"
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_System_Com",
+    "Win32_System_Threading",
+] }

@@ -1074,6 +1074,11 @@
       "title": "ReplayGain'i yükle",
       "subtitle": "Algılanan ses seviyesini dengelemek için her parçanın analiz edilmiş kazanç değerini kullanın"
     },
+    "exclusive": {
+      "title": "WASAPI Özel Mod (Windows)",
+      "subtitle": "Bit-perfect: Windows karıştırıcısını atlayarak girişimsiz çıkış sağlar. Cihaz özel erişimi reddederse paylaşılan moda geri döner.",
+      "fallback": "Cihaz özel modu kabul etmiyor. Paylaşılan moda geri dönülüyor."
+    },
     "mono": {
       "title": "Tek kanallı ses",
       "subtitle": "Sol ve sağ kanalları tek bir sinyalde birleştir"

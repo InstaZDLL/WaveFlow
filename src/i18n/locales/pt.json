@@ -1074,6 +1074,11 @@
       "title": "Aplicar ReplayGain",
       "subtitle": "Utilize o ganho analisado de cada faixa para equilibrar o volume percebido"
     },
+    "exclusive": {
+      "title": "Modo exclusivo WASAPI (Windows)",
+      "subtitle": "Bit-perfect: ignora o mixer do Windows para uma saída sem interferências. Volta ao modo partilhado se o dispositivo recusar a exclusividade.",
+      "fallback": "O dispositivo não aceita o modo exclusivo. A voltar ao modo partilhado."
+    },
     "mono": {
       "title": "Áudio mono",
       "subtitle": "Mistura os canais esquerdo e direito num único sinal"

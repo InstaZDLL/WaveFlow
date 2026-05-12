@@ -1074,6 +1074,11 @@
       "title": "申請 ReplayGain",
       "subtitle": "使用每首曲目的分析增益值來平衡聽覺音量"
     },
+    "exclusive": {
+      "title": "WASAPI 獨佔模式(Windows)",
+      "subtitle": "位元完美:繞過 Windows 混音器以提供無干擾輸出。如果裝置拒絕獨佔存取,則退回共享模式。",
+      "fallback": "裝置不接受獨佔模式,正在退回共享模式。"
+    },
     "mono": {
       "title": "單聲道音訊",
       "subtitle": "將左右聲道混合成單一訊號"

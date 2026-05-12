@@ -109,20 +109,36 @@ pub fn run() {
             // last picked instead of the OS default. Empty string in
             // the row means "follow the OS default" — see
             // `player_set_output_device`.
-            let persisted_device = tauri::async_runtime::block_on(async {
-                let state = app.state::<AppState>();
-                let pool = state.require_profile_pool().await.ok()?;
-                let raw: Option<String> = sqlx::query_scalar(
-                    "SELECT value FROM profile_setting WHERE key = 'audio.output_device'",
-                )
-                .fetch_optional(&pool)
-                .await
-                .ok()
-                .flatten();
-                raw.filter(|s| !s.is_empty())
-            });
-            let engine: Arc<AudioEngine> =
-                AudioEngine::new_with_device(engine_handle, persisted_device);
+            let (persisted_device, persisted_wasapi_exclusive) =
+                tauri::async_runtime::block_on(async {
+                    let state = app.state::<AppState>();
+                    let Ok(pool) = state.require_profile_pool().await else {
+                        return (None, false);
+                    };
+                    let device: Option<String> = sqlx::query_scalar(
+                        "SELECT value FROM profile_setting WHERE key = 'audio.output_device'",
+                    )
+                    .fetch_optional(&pool)
+                    .await
+                    .ok()
+                    .flatten()
+                    .filter(|s: &String| !s.is_empty());
+                    let exclusive: bool = sqlx::query_scalar::<_, String>(
+                        "SELECT value FROM profile_setting WHERE key = 'audio.wasapi_exclusive'",
+                    )
+                    .fetch_optional(&pool)
+                    .await
+                    .ok()
+                    .flatten()
+                    .map(|s| s == "1" || s == "true")
+                    .unwrap_or(false);
+                    (device, exclusive)
+                });
+            let engine: Arc<AudioEngine> = AudioEngine::new_with_device(
+                engine_handle,
+                persisted_device,
+                persisted_wasapi_exclusive,
+            );
             app.manage(engine);
 
             // Filesystem watcher manager. Holds one notify watcher per
@@ -416,6 +432,8 @@ pub fn run() {
             commands::player::player_get_audio_settings,
             commands::player::player_list_output_devices,
             commands::player::player_set_output_device,
+            commands::player::player_set_wasapi_exclusive,
+            commands::player::player_get_wasapi_exclusive,
             commands::stats::stats_overview,
             commands::stats::stats_top_tracks,
             commands::stats::stats_top_artists,
