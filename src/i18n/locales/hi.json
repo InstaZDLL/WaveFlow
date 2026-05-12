@@ -216,6 +216,12 @@
     "recentlyAdded": {
       "title": "हाल ही में जोड़े गए"
     },
+    "wrapped": {
+      "eyebrow": "WaveFlow Wrapped",
+      "title": "आपका {{year}} रीकैप",
+      "subtitle": "आपके कलाकार, आपके मिनट, आपका साल — कुछ स्लाइड्स में।",
+      "cta": "खोलें"
+    },
     "seeAll": "सभी देखें"
   },
   "library": {
@@ -431,6 +437,86 @@
       "label": "आँकड़े निर्यात करें",
       "action": "निर्यात",
       "dialogTitle": "आँकड़ों को JSON में निर्यात करें"
+    }
+  },
+  "wrapped": {
+    "loading": "आपका साल तैयार किया जा रहा है…",
+    "errorTitle": "Wrapped लोड नहीं हो सका",
+    "close": "बंद करें",
+    "pause": "रोकें",
+    "resume": "जारी रखें",
+    "prev": "पिछली स्लाइड",
+    "next": "अगली स्लाइड",
+    "yearPicker": "साल चुनें",
+    "backToHome": "होम पर वापस जाएँ",
+    "playsShort_zero": "0 बार बजाया गया",
+    "playsShort_one": "{{count}} बार बजाया गया",
+    "playsShort_other": "{{count}} बार बजाया गया",
+    "empty": {
+      "title": "अभी कोई इतिहास नहीं",
+      "subtitle": "कुछ ट्रैक चलाएँ और बाद में आएँ — Wrapped आपके सुनने के साथ बनता है।"
+    },
+    "intro": {
+      "eyebrow": "WaveFlow Wrapped",
+      "subtitle": "संगीत में आपका साल।"
+    },
+    "minutes": {
+      "eyebrow": "आपने सुना",
+      "subtitle_zero": "0 मिनट संगीत",
+      "subtitle_one": "{{count}} मिनट संगीत",
+      "subtitle_other": "{{count}} मिनट संगीत"
+    },
+    "stats": {
+      "plays": "प्ले",
+      "tracks": "ट्रैक",
+      "artists": "कलाकार"
+    },
+    "topTracks": {
+      "title": "आपके पसंदीदा ट्रैक"
+    },
+    "topArtists": {
+      "title": "आपके पसंदीदा कलाकार"
+    },
+    "topAlbums": {
+      "title": "आपके पसंदीदा एल्बम"
+    },
+    "activeDay": {
+      "eyebrow": "आपका सबसे बड़ा दिन",
+      "subtitle": "{{duration}} सुना, {{count}} ट्रैक"
+    },
+    "mood": {
+      "eyebrow": "आपका औसत BPM",
+      "subtitle": "साल भर साथ रहा वो ताल",
+      "loudness": "औसत लाउडनेस: {{lufs}} LUFS",
+      "energy": {
+        "chill": "शांत",
+        "warm": "गर्म",
+        "groove": "ग्रूव",
+        "energetic": "ऊर्जावान",
+        "fire": "आग"
+      }
+    },
+    "clock": {
+      "eyebrow": "आपका सुनने का समय",
+      "subtitle": "दिन का शिखर"
+    },
+    "streak": {
+      "eyebrow": "आपकी सबसे लंबी लय",
+      "daysLabel_zero": "0 दिन लगातार",
+      "daysLabel_one": "{{count}} दिन लगातार",
+      "daysLabel_other": "{{count}} दिन लगातार",
+      "range": "{{start}} से {{end}} तक"
+    },
+    "firstListen": {
+      "eyebrow": "आपका साल शुरू हुआ इससे"
+    },
+    "months": {
+      "title": "महीना दर महीना"
+    },
+    "outro": {
+      "title": "WaveFlow के साथ सुनने के लिए धन्यवाद",
+      "subtitle": "खोजना जारी रखें — Wrapped रीयल-टाइम में अपडेट होता है।",
+      "cta": "होम पर वापस जाएँ"
     }
   },
   "about": {

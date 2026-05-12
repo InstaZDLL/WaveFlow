@@ -24,6 +24,7 @@ import { SpotifyView } from "../views/SpotifyView";
 import { AboutView } from "../views/AboutView";
 import { FeedbackView } from "../views/FeedbackView";
 import { StatisticsView } from "../views/StatisticsView";
+import { WrappedView } from "../views/WrappedView";
 import { LikedView } from "../views/LikedView";
 import { HistoryView } from "../views/HistoryView";
 import { PlaylistView } from "../views/PlaylistView";
@@ -55,6 +56,11 @@ export function AppLayout() {
   const [activePlaylistId, setActivePlaylistId] = useState<number | null>(null);
   const [activeAlbumId, setActiveAlbumId] = useState<number | null>(null);
   const [activeArtistId, setActiveArtistId] = useState<number | null>(null);
+  // Year requested when navigating into the Wrapped overlay. `null`
+  // tells WrappedView to pick the most recent year with plays.
+  const [activeWrappedYear, setActiveWrappedYear] = useState<number | null>(
+    null,
+  );
 
   // First-run onboarding: prompt the user to point WaveFlow at a
   // music folder when no library has been populated yet.
@@ -174,6 +180,14 @@ export function AppLayout() {
     [setActiveView],
   );
 
+  const navigateToWrapped = useCallback(
+    (year: number | null) => {
+      setActiveWrappedYear(year);
+      setActiveView("wrapped");
+    },
+    [setActiveView],
+  );
+
   function renderView() {
     switch (activeView) {
       case "home":
@@ -183,6 +197,16 @@ export function AppLayout() {
             onNavigateToAlbum={navigateToAlbum}
             onNavigateToArtist={navigateToArtist}
             onNavigateToPlaylist={navigateToPlaylist}
+            onNavigateToWrapped={navigateToWrapped}
+          />
+        );
+      case "wrapped":
+        return (
+          <WrappedView
+            onNavigate={setActiveView}
+            initialYear={activeWrappedYear}
+            onNavigateToAlbum={navigateToAlbum}
+            onNavigateToArtist={navigateToArtist}
           />
         );
       case "library":

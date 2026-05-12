@@ -216,6 +216,12 @@
     "recentlyAdded": {
       "title": "최근 추가됨"
     },
+    "wrapped": {
+      "eyebrow": "WaveFlow Wrapped",
+      "title": "{{year}}년 결산",
+      "subtitle": "당신의 아티스트, 분, 1년을 몇 장의 슬라이드로.",
+      "cta": "열기"
+    },
     "seeAll": "모두 보기"
   },
   "library": {
@@ -431,6 +437,86 @@
       "label": "통계 내보내기",
       "action": "내보내기",
       "dialogTitle": "통계를 JSON으로 내보내기"
+    }
+  },
+  "wrapped": {
+    "loading": "당신의 한 해를 준비 중…",
+    "errorTitle": "Wrapped을 불러올 수 없습니다",
+    "close": "닫기",
+    "pause": "일시정지",
+    "resume": "재개",
+    "prev": "이전 슬라이드",
+    "next": "다음 슬라이드",
+    "yearPicker": "연도 선택",
+    "backToHome": "홈으로 돌아가기",
+    "playsShort_zero": "0회 재생",
+    "playsShort_one": "{{count}}회 재생",
+    "playsShort_other": "{{count}}회 재생",
+    "empty": {
+      "title": "아직 기록이 없습니다",
+      "subtitle": "몇 곡을 들어보고 나중에 돌아오세요 — Wrapped는 들을수록 채워집니다."
+    },
+    "intro": {
+      "eyebrow": "WaveFlow Wrapped",
+      "subtitle": "음악으로 보는 한 해."
+    },
+    "minutes": {
+      "eyebrow": "당신이 들은 시간",
+      "subtitle_zero": "0분의 음악",
+      "subtitle_one": "{{count}}분의 음악",
+      "subtitle_other": "{{count}}분의 음악"
+    },
+    "stats": {
+      "plays": "재생",
+      "tracks": "곡",
+      "artists": "아티스트"
+    },
+    "topTracks": {
+      "title": "가장 좋아하는 곡"
+    },
+    "topArtists": {
+      "title": "가장 좋아하는 아티스트"
+    },
+    "topAlbums": {
+      "title": "가장 좋아하는 앨범"
+    },
+    "activeDay": {
+      "eyebrow": "최고의 하루",
+      "subtitle": "{{duration}} 청취, {{count}}곡"
+    },
+    "mood": {
+      "eyebrow": "평균 BPM",
+      "subtitle": "당신의 한 해를 함께한 리듬",
+      "loudness": "평균 라우드니스: {{lufs}} LUFS",
+      "energy": {
+        "chill": "칠",
+        "warm": "웜",
+        "groove": "그루브",
+        "energetic": "에너제틱",
+        "fire": "파이어"
+      }
+    },
+    "clock": {
+      "eyebrow": "청취 시간",
+      "subtitle": "하루의 절정"
+    },
+    "streak": {
+      "eyebrow": "최장 연속 기록",
+      "daysLabel_zero": "0일 연속",
+      "daysLabel_one": "{{count}}일 연속",
+      "daysLabel_other": "{{count}}일 연속",
+      "range": "{{start}} ~ {{end}}"
+    },
+    "firstListen": {
+      "eyebrow": "한 해의 첫 곡"
+    },
+    "months": {
+      "title": "월별"
+    },
+    "outro": {
+      "title": "WaveFlow과 함께해 주셔서 감사합니다",
+      "subtitle": "계속 탐험하세요 — Wrapped는 실시간으로 업데이트됩니다.",
+      "cta": "홈으로 돌아가기"
     }
   },
   "about": {

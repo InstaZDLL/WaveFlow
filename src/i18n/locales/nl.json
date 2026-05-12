@@ -216,6 +216,12 @@
     "recentlyAdded": {
       "title": "Onlangs toegevoegd"
     },
+    "wrapped": {
+      "eyebrow": "WaveFlow Wrapped",
+      "title": "Jouw {{year}} samenvatting",
+      "subtitle": "Jouw artiesten, jouw minuten, jouw jaar — in een paar slides.",
+      "cta": "Openen"
+    },
     "seeAll": "Alles tonen"
   },
   "library": {
@@ -431,6 +437,86 @@
       "label": "Statistieken exporteren",
       "action": "Exporteren",
       "dialogTitle": "Statistieken exporteren als JSON"
+    }
+  },
+  "wrapped": {
+    "loading": "Je jaar wordt samengesteld…",
+    "errorTitle": "Wrapped kon niet worden geladen",
+    "close": "Sluiten",
+    "pause": "Pauze",
+    "resume": "Hervatten",
+    "prev": "Vorige slide",
+    "next": "Volgende slide",
+    "yearPicker": "Kies een jaar",
+    "backToHome": "Terug naar Home",
+    "playsShort_zero": "0 keer afgespeeld",
+    "playsShort_one": "{{count}} keer afgespeeld",
+    "playsShort_other": "{{count}} keer afgespeeld",
+    "empty": {
+      "title": "Nog geen geschiedenis",
+      "subtitle": "Luister naar wat nummers en kom later terug — je Wrapped bouwt zich op terwijl je luistert."
+    },
+    "intro": {
+      "eyebrow": "WaveFlow Wrapped",
+      "subtitle": "Jouw jaar in muziek."
+    },
+    "minutes": {
+      "eyebrow": "Je luisterde naar",
+      "subtitle_zero": "0 minuten muziek",
+      "subtitle_one": "{{count}} minuut muziek",
+      "subtitle_other": "{{count}} minuten muziek"
+    },
+    "stats": {
+      "plays": "Keer afgespeeld",
+      "tracks": "Nummers",
+      "artists": "Artiesten"
+    },
+    "topTracks": {
+      "title": "Jouw favoriete nummers"
+    },
+    "topArtists": {
+      "title": "Jouw favoriete artiesten"
+    },
+    "topAlbums": {
+      "title": "Jouw favoriete albums"
+    },
+    "activeDay": {
+      "eyebrow": "Jouw recorddag",
+      "subtitle": "{{duration}} geluisterd, {{count}} nummers"
+    },
+    "mood": {
+      "eyebrow": "Jouw gemiddelde tempo",
+      "subtitle": "Het ritme dat je jaar bepaalde",
+      "loudness": "Gemiddelde luidheid: {{lufs}} LUFS",
+      "energy": {
+        "chill": "Chill",
+        "warm": "Warm",
+        "groove": "Groove",
+        "energetic": "Energiek",
+        "fire": "Vuur"
+      }
+    },
+    "clock": {
+      "eyebrow": "Jouw luisteruur",
+      "subtitle": "De piek van je dag"
+    },
+    "streak": {
+      "eyebrow": "Je langste reeks",
+      "daysLabel_zero": "0 dagen op rij",
+      "daysLabel_one": "{{count}} dag op rij",
+      "daysLabel_other": "{{count}} dagen op rij",
+      "range": "Van {{start}} tot {{end}}"
+    },
+    "firstListen": {
+      "eyebrow": "Je jaar begon met"
+    },
+    "months": {
+      "title": "Maand per maand"
+    },
+    "outro": {
+      "title": "Bedankt dat je naar WaveFlow luistert",
+      "subtitle": "Blijf ontdekken — je Wrapped wordt in real time bijgewerkt.",
+      "cta": "Terug naar Home"
     }
   },
   "about": {

@@ -216,6 +216,12 @@
     "recentlyAdded": {
       "title": "Baru ditambahkan"
     },
+    "wrapped": {
+      "eyebrow": "WaveFlow Wrapped",
+      "title": "Ringkasan {{year}} kamu",
+      "subtitle": "Artis, menit, dan tahunmu — diceritakan dalam beberapa slide.",
+      "cta": "Buka"
+    },
     "seeAll": "Lihat semua"
   },
   "library": {
@@ -431,6 +437,86 @@
       "label": "Ekspor statistik",
       "action": "Ekspor",
       "dialogTitle": "Ekspor statistik sebagai JSON"
+    }
+  },
+  "wrapped": {
+    "loading": "Menyiapkan tahunmu…",
+    "errorTitle": "Tidak bisa memuat Wrapped",
+    "close": "Tutup",
+    "pause": "Jeda",
+    "resume": "Lanjutkan",
+    "prev": "Slide sebelumnya",
+    "next": "Slide berikutnya",
+    "yearPicker": "Pilih tahun",
+    "backToHome": "Kembali ke Beranda",
+    "playsShort_zero": "0 pemutaran",
+    "playsShort_one": "{{count}} pemutaran",
+    "playsShort_other": "{{count}} pemutaran",
+    "empty": {
+      "title": "Belum ada riwayat",
+      "subtitle": "Putar beberapa lagu dan kembali nanti — Wrapped-mu terbentuk seiring kamu mendengarkan."
+    },
+    "intro": {
+      "eyebrow": "WaveFlow Wrapped",
+      "subtitle": "Tahunmu dalam musik."
+    },
+    "minutes": {
+      "eyebrow": "Kamu mendengarkan",
+      "subtitle_zero": "0 menit musik",
+      "subtitle_one": "{{count}} menit musik",
+      "subtitle_other": "{{count}} menit musik"
+    },
+    "stats": {
+      "plays": "Pemutaran",
+      "tracks": "Lagu",
+      "artists": "Artis"
+    },
+    "topTracks": {
+      "title": "Lagu favoritmu"
+    },
+    "topArtists": {
+      "title": "Artis favoritmu"
+    },
+    "topAlbums": {
+      "title": "Album favoritmu"
+    },
+    "activeDay": {
+      "eyebrow": "Hari puncakmu",
+      "subtitle": "{{duration}} mendengarkan, {{count}} lagu"
+    },
+    "mood": {
+      "eyebrow": "BPM rata-ratamu",
+      "subtitle": "Irama yang menemani tahunmu",
+      "loudness": "Loudness rata-rata: {{lufs}} LUFS",
+      "energy": {
+        "chill": "Chill",
+        "warm": "Hangat",
+        "groove": "Groove",
+        "energetic": "Energik",
+        "fire": "Api"
+      }
+    },
+    "clock": {
+      "eyebrow": "Jam dengarmu",
+      "subtitle": "Puncak harimu"
+    },
+    "streak": {
+      "eyebrow": "Rentetan terpanjangmu",
+      "daysLabel_zero": "0 hari berturut-turut",
+      "daysLabel_one": "{{count}} hari berturut-turut",
+      "daysLabel_other": "{{count}} hari berturut-turut",
+      "range": "Dari {{start}} hingga {{end}}"
+    },
+    "firstListen": {
+      "eyebrow": "Tahunmu dimulai dengan"
+    },
+    "months": {
+      "title": "Bulan demi bulan"
+    },
+    "outro": {
+      "title": "Terima kasih telah mendengarkan dengan WaveFlow",
+      "subtitle": "Terus eksplorasi — Wrapped diperbarui real-time.",
+      "cta": "Kembali ke Beranda"
     }
   },
   "about": {

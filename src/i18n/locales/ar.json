@@ -216,6 +216,12 @@
     "recentlyAdded": {
       "title": "أُضيف حديثاً"
     },
+    "wrapped": {
+      "eyebrow": "WaveFlow Wrapped",
+      "title": "ملخّصك لعام {{year}}",
+      "subtitle": "فنانوك، دقائقك، عامك — في بضع شرائح.",
+      "cta": "افتح"
+    },
     "seeAll": "عرض الكل"
   },
   "library": {
@@ -431,6 +437,86 @@
       "label": "تصدير الإحصائيات",
       "action": "تصدير",
       "dialogTitle": "تصدير الإحصائيات كملف JSON"
+    }
+  },
+  "wrapped": {
+    "loading": "نُحضّر عامك…",
+    "errorTitle": "تعذّر تحميل Wrapped",
+    "close": "إغلاق",
+    "pause": "إيقاف مؤقت",
+    "resume": "متابعة",
+    "prev": "الشريحة السابقة",
+    "next": "الشريحة التالية",
+    "yearPicker": "اختر سنة",
+    "backToHome": "العودة إلى الرئيسية",
+    "playsShort_zero": "0 تشغيل",
+    "playsShort_one": "{{count}} تشغيل",
+    "playsShort_other": "{{count}} تشغيل",
+    "empty": {
+      "title": "لا يوجد سجل بعد",
+      "subtitle": "شغّل بعض المقاطع وعد لاحقاً — يتشكّل Wrapped مع استماعك."
+    },
+    "intro": {
+      "eyebrow": "WaveFlow Wrapped",
+      "subtitle": "عامك في الموسيقى."
+    },
+    "minutes": {
+      "eyebrow": "استمعت إلى",
+      "subtitle_zero": "0 دقيقة موسيقى",
+      "subtitle_one": "{{count}} دقيقة موسيقى",
+      "subtitle_other": "{{count}} دقيقة موسيقى"
+    },
+    "stats": {
+      "plays": "تشغيلات",
+      "tracks": "مقاطع",
+      "artists": "فنانون"
+    },
+    "topTracks": {
+      "title": "مقاطعك المفضلة"
+    },
+    "topArtists": {
+      "title": "فنانوك المفضلون"
+    },
+    "topAlbums": {
+      "title": "ألبوماتك المفضلة"
+    },
+    "activeDay": {
+      "eyebrow": "يومك القياسي",
+      "subtitle": "{{duration}} من الاستماع، {{count}} مقاطع"
+    },
+    "mood": {
+      "eyebrow": "إيقاعك المتوسط",
+      "subtitle": "الإيقاع الذي رافق عامك",
+      "loudness": "متوسط الصوت: {{lufs}} LUFS",
+      "energy": {
+        "chill": "هادئ",
+        "warm": "دافئ",
+        "groove": "إيقاعي",
+        "energetic": "نشيط",
+        "fire": "نار"
+      }
+    },
+    "clock": {
+      "eyebrow": "ساعة استماعك",
+      "subtitle": "ذروة يومك"
+    },
+    "streak": {
+      "eyebrow": "أطول سلسلة",
+      "daysLabel_zero": "0 يوم متتالي",
+      "daysLabel_one": "{{count}} يوم متتالي",
+      "daysLabel_other": "{{count}} يوم متتالي",
+      "range": "من {{start}} إلى {{end}}"
+    },
+    "firstListen": {
+      "eyebrow": "بدأ عامك مع"
+    },
+    "months": {
+      "title": "شهراً بشهر"
+    },
+    "outro": {
+      "title": "شكراً لاستماعك مع WaveFlow",
+      "subtitle": "تابع الاستكشاف — يُحدَّث Wrapped في الوقت الحقيقي.",
+      "cta": "العودة إلى الرئيسية"
     }
   },
   "about": {

@@ -216,6 +216,12 @@
     "recentlyAdded": {
       "title": "Yakın zamanda eklenenler"
     },
+    "wrapped": {
+      "eyebrow": "WaveFlow Wrapped",
+      "title": "{{year}} özetin",
+      "subtitle": "Sanatçıların, dakikaların, yılın — birkaç slaytta.",
+      "cta": "Aç"
+    },
     "seeAll": "Tümünü gör"
   },
   "library": {
@@ -431,6 +437,86 @@
       "label": "İstatistikleri dışa aktar",
       "action": "Dışa aktar",
       "dialogTitle": "İstatistikleri JSON olarak dışa aktar"
+    }
+  },
+  "wrapped": {
+    "loading": "Yılın hazırlanıyor…",
+    "errorTitle": "Wrapped yüklenemedi",
+    "close": "Kapat",
+    "pause": "Duraklat",
+    "resume": "Devam et",
+    "prev": "Önceki slayt",
+    "next": "Sonraki slayt",
+    "yearPicker": "Bir yıl seç",
+    "backToHome": "Ana sayfaya dön",
+    "playsShort_zero": "0 dinleme",
+    "playsShort_one": "{{count}} dinleme",
+    "playsShort_other": "{{count}} dinleme",
+    "empty": {
+      "title": "Henüz geçmiş yok",
+      "subtitle": "Birkaç parça dinle ve sonra geri gel — Wrapped sen dinledikçe şekilleniyor."
+    },
+    "intro": {
+      "eyebrow": "WaveFlow Wrapped",
+      "subtitle": "Müzikle dolu yılın."
+    },
+    "minutes": {
+      "eyebrow": "Şu kadar dinledin",
+      "subtitle_zero": "0 dakika müzik",
+      "subtitle_one": "{{count}} dakika müzik",
+      "subtitle_other": "{{count}} dakika müzik"
+    },
+    "stats": {
+      "plays": "Dinleme",
+      "tracks": "Parça",
+      "artists": "Sanatçı"
+    },
+    "topTracks": {
+      "title": "En sevdiğin parçalar"
+    },
+    "topArtists": {
+      "title": "En sevdiğin sanatçılar"
+    },
+    "topAlbums": {
+      "title": "En sevdiğin albümler"
+    },
+    "activeDay": {
+      "eyebrow": "Rekor günün",
+      "subtitle": "{{duration}} dinleme, {{count}} parça"
+    },
+    "mood": {
+      "eyebrow": "Ortalama temponun",
+      "subtitle": "Yılına eşlik eden ritim",
+      "loudness": "Ortalama loudness: {{lufs}} LUFS",
+      "energy": {
+        "chill": "Chill",
+        "warm": "Sıcak",
+        "groove": "Groove",
+        "energetic": "Enerjik",
+        "fire": "Ateş"
+      }
+    },
+    "clock": {
+      "eyebrow": "Dinleme saatin",
+      "subtitle": "Gününün zirvesi"
+    },
+    "streak": {
+      "eyebrow": "En uzun serin",
+      "daysLabel_zero": "0 gün üst üste",
+      "daysLabel_one": "{{count}} gün üst üste",
+      "daysLabel_other": "{{count}} gün üst üste",
+      "range": "{{start}} - {{end}}"
+    },
+    "firstListen": {
+      "eyebrow": "Yılın şununla başladı"
+    },
+    "months": {
+      "title": "Ay ay"
+    },
+    "outro": {
+      "title": "WaveFlow ile dinlediğin için teşekkürler",
+      "subtitle": "Keşfetmeye devam et — Wrapped gerçek zamanlı güncellenir.",
+      "cta": "Ana sayfaya dön"
     }
   },
   "about": {

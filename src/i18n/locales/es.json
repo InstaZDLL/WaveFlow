@@ -216,6 +216,12 @@
     "recentlyAdded": {
       "title": "Añadidos recientemente"
     },
+    "wrapped": {
+      "eyebrow": "WaveFlow Wrapped",
+      "title": "Tu resumen {{year}}",
+      "subtitle": "Tus artistas, tus minutos, tu año — contado en unas diapositivas.",
+      "cta": "Abrir"
+    },
     "seeAll": "Ver todo"
   },
   "library": {
@@ -431,6 +437,86 @@
       "label": "Exportar estadísticas",
       "action": "Exportar",
       "dialogTitle": "Exportar estadísticas como JSON"
+    }
+  },
+  "wrapped": {
+    "loading": "Preparando tu año…",
+    "errorTitle": "No se pudo cargar tu Wrapped",
+    "close": "Cerrar",
+    "pause": "Pausa",
+    "resume": "Reanudar",
+    "prev": "Diapositiva anterior",
+    "next": "Diapositiva siguiente",
+    "yearPicker": "Elegir un año",
+    "backToHome": "Volver al inicio",
+    "playsShort_zero": "0 reproducciones",
+    "playsShort_one": "{{count}} reproducción",
+    "playsShort_other": "{{count}} reproducciones",
+    "empty": {
+      "title": "Aún no hay historial",
+      "subtitle": "Reproduce algunos temas y vuelve más tarde — tu Wrapped se construye mientras escuchas."
+    },
+    "intro": {
+      "eyebrow": "WaveFlow Wrapped",
+      "subtitle": "Tu año en música."
+    },
+    "minutes": {
+      "eyebrow": "Has escuchado",
+      "subtitle_zero": "0 minutos de música",
+      "subtitle_one": "{{count}} minuto de música",
+      "subtitle_other": "{{count}} minutos de música"
+    },
+    "stats": {
+      "plays": "Reproducciones",
+      "tracks": "Pistas",
+      "artists": "Artistas"
+    },
+    "topTracks": {
+      "title": "Tus temas favoritos"
+    },
+    "topArtists": {
+      "title": "Tus artistas favoritos"
+    },
+    "topAlbums": {
+      "title": "Tus álbumes favoritos"
+    },
+    "activeDay": {
+      "eyebrow": "Tu día récord",
+      "subtitle": "{{duration}} de escucha, {{count}} pistas"
+    },
+    "mood": {
+      "eyebrow": "Tu tempo medio",
+      "subtitle": "El ritmo que marcó tu año",
+      "loudness": "Loudness medio: {{lufs}} LUFS",
+      "energy": {
+        "chill": "Chill",
+        "warm": "Cálido",
+        "groove": "Groove",
+        "energetic": "Enérgico",
+        "fire": "Fuego"
+      }
+    },
+    "clock": {
+      "eyebrow": "Tu hora de escucha",
+      "subtitle": "El pico de tu día"
+    },
+    "streak": {
+      "eyebrow": "Tu racha más larga",
+      "daysLabel_zero": "0 días seguidos",
+      "daysLabel_one": "{{count}} día seguido",
+      "daysLabel_other": "{{count}} días seguidos",
+      "range": "Del {{start}} al {{end}}"
+    },
+    "firstListen": {
+      "eyebrow": "Tu año empezó con"
+    },
+    "months": {
+      "title": "Mes a mes"
+    },
+    "outro": {
+      "title": "Gracias por escuchar con WaveFlow",
+      "subtitle": "Sigue explorando — tu Wrapped se actualiza en tiempo real.",
+      "cta": "Volver al inicio"
     }
   },
   "about": {

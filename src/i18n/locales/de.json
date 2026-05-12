@@ -216,6 +216,12 @@
     "recentlyAdded": {
       "title": "Kürzlich hinzugefügt"
     },
+    "wrapped": {
+      "eyebrow": "WaveFlow Wrapped",
+      "title": "Dein Rückblick {{year}}",
+      "subtitle": "Deine Künstler, deine Minuten, dein Jahr — in wenigen Slides.",
+      "cta": "Öffnen"
+    },
     "seeAll": "Alle anzeigen"
   },
   "library": {
@@ -431,6 +437,86 @@
       "label": "Statistiken exportieren",
       "action": "Exportieren",
       "dialogTitle": "Statistiken als JSON exportieren"
+    }
+  },
+  "wrapped": {
+    "loading": "Dein Jahr wird zusammengestellt…",
+    "errorTitle": "Wrapped konnte nicht geladen werden",
+    "close": "Schließen",
+    "pause": "Pause",
+    "resume": "Fortsetzen",
+    "prev": "Vorherige Folie",
+    "next": "Nächste Folie",
+    "yearPicker": "Jahr wählen",
+    "backToHome": "Zurück zum Start",
+    "playsShort_zero": "0 Wiedergaben",
+    "playsShort_one": "{{count}} Wiedergabe",
+    "playsShort_other": "{{count}} Wiedergaben",
+    "empty": {
+      "title": "Noch kein Verlauf",
+      "subtitle": "Hör ein paar Titel und komm später wieder — dein Wrapped baut sich beim Hören auf."
+    },
+    "intro": {
+      "eyebrow": "WaveFlow Wrapped",
+      "subtitle": "Dein Jahr in Musik."
+    },
+    "minutes": {
+      "eyebrow": "Du hast gehört",
+      "subtitle_zero": "0 Minuten Musik",
+      "subtitle_one": "{{count}} Minute Musik",
+      "subtitle_other": "{{count}} Minuten Musik"
+    },
+    "stats": {
+      "plays": "Wiedergaben",
+      "tracks": "Titel",
+      "artists": "Künstler"
+    },
+    "topTracks": {
+      "title": "Deine Lieblingstitel"
+    },
+    "topArtists": {
+      "title": "Deine Lieblingskünstler"
+    },
+    "topAlbums": {
+      "title": "Deine Lieblingsalben"
+    },
+    "activeDay": {
+      "eyebrow": "Dein Spitzentag",
+      "subtitle": "{{duration}} gehört, {{count}} Titel"
+    },
+    "mood": {
+      "eyebrow": "Dein Durchschnittstempo",
+      "subtitle": "Der Rhythmus deines Jahres",
+      "loudness": "Durchschnittliche Lautheit: {{lufs}} LUFS",
+      "energy": {
+        "chill": "Chill",
+        "warm": "Warm",
+        "groove": "Groove",
+        "energetic": "Energisch",
+        "fire": "Feuer"
+      }
+    },
+    "clock": {
+      "eyebrow": "Deine Hörstunde",
+      "subtitle": "Der Höhepunkt deines Tages"
+    },
+    "streak": {
+      "eyebrow": "Deine längste Serie",
+      "daysLabel_zero": "0 Tage am Stück",
+      "daysLabel_one": "{{count}} Tag am Stück",
+      "daysLabel_other": "{{count}} Tage am Stück",
+      "range": "Vom {{start}} bis {{end}}"
+    },
+    "firstListen": {
+      "eyebrow": "Dein Jahr begann mit"
+    },
+    "months": {
+      "title": "Monat für Monat"
+    },
+    "outro": {
+      "title": "Danke, dass du mit WaveFlow hörst",
+      "subtitle": "Entdecke weiter — dein Wrapped aktualisiert sich in Echtzeit.",
+      "cta": "Zurück zum Start"
     }
   },
   "about": {

@@ -216,6 +216,12 @@
     "recentlyAdded": {
       "title": "最近添加"
     },
+    "wrapped": {
+      "eyebrow": "WaveFlow Wrapped",
+      "title": "你的 {{year}} 年度回顾",
+      "subtitle": "你的艺人、分钟数、一整年 — 通过几张幻灯片讲述。",
+      "cta": "打开"
+    },
     "seeAll": "查看全部"
   },
   "library": {
@@ -431,6 +437,86 @@
       "label": "导出统计",
       "action": "导出",
       "dialogTitle": "将统计导出为 JSON"
+    }
+  },
+  "wrapped": {
+    "loading": "正在准备你的一年…",
+    "errorTitle": "无法加载 Wrapped",
+    "close": "关闭",
+    "pause": "暂停",
+    "resume": "继续",
+    "prev": "上一张",
+    "next": "下一张",
+    "yearPicker": "选择年份",
+    "backToHome": "返回首页",
+    "playsShort_zero": "0 次播放",
+    "playsShort_one": "{{count}} 次播放",
+    "playsShort_other": "{{count}} 次播放",
+    "empty": {
+      "title": "暂无收听记录",
+      "subtitle": "播放几首歌曲后再回来 — 你的 Wrapped 会随收听构建。"
+    },
+    "intro": {
+      "eyebrow": "WaveFlow Wrapped",
+      "subtitle": "你的音乐之年。"
+    },
+    "minutes": {
+      "eyebrow": "你收听了",
+      "subtitle_zero": "0 分钟音乐",
+      "subtitle_one": "{{count}} 分钟音乐",
+      "subtitle_other": "{{count}} 分钟音乐"
+    },
+    "stats": {
+      "plays": "播放次数",
+      "tracks": "曲目",
+      "artists": "艺人"
+    },
+    "topTracks": {
+      "title": "你最爱的曲目"
+    },
+    "topArtists": {
+      "title": "你最爱的艺人"
+    },
+    "topAlbums": {
+      "title": "你最爱的专辑"
+    },
+    "activeDay": {
+      "eyebrow": "你的高峰日",
+      "subtitle": "{{duration}} 的收听,{{count}} 首曲目"
+    },
+    "mood": {
+      "eyebrow": "你的平均 BPM",
+      "subtitle": "陪伴你一年的节奏",
+      "loudness": "平均响度:{{lufs}} LUFS",
+      "energy": {
+        "chill": "舒缓",
+        "warm": "温暖",
+        "groove": "律动",
+        "energetic": "活力",
+        "fire": "火热"
+      }
+    },
+    "clock": {
+      "eyebrow": "你的收听时段",
+      "subtitle": "一天中的高峰"
+    },
+    "streak": {
+      "eyebrow": "最长连续记录",
+      "daysLabel_zero": "0 天连续",
+      "daysLabel_one": "{{count}} 天连续",
+      "daysLabel_other": "{{count}} 天连续",
+      "range": "{{start}} 至 {{end}}"
+    },
+    "firstListen": {
+      "eyebrow": "你的一年从这首歌开始"
+    },
+    "months": {
+      "title": "逐月回顾"
+    },
+    "outro": {
+      "title": "感谢与 WaveFlow 一起聆听",
+      "subtitle": "继续探索 — Wrapped 会实时更新。",
+      "cta": "返回首页"
     }
   },
   "about": {

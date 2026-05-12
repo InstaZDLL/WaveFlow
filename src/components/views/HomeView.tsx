@@ -22,6 +22,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { pickFolder } from "../../lib/tauri/dialog";
 import { regenerateDailyMixes } from "../../lib/tauri/smart_playlists";
+import { availableWrappedYears } from "../../lib/tauri/wrapped";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import {
   getProfileStats,
@@ -38,6 +39,7 @@ interface HomeViewProps {
   onNavigateToAlbum: (albumId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
   onNavigateToPlaylist: (playlistId: number) => void;
+  onNavigateToWrapped: (year: number | null) => void;
 }
 
 const RECENT_LIMIT = 12;
@@ -99,6 +101,7 @@ export function HomeView({
   onNavigateToAlbum,
   onNavigateToArtist,
   onNavigateToPlaylist,
+  onNavigateToWrapped,
 }: HomeViewProps) {
   const { t } = useTranslation();
   const { activeProfile } = useProfile();
@@ -144,6 +147,7 @@ export function HomeView({
   const [recentPlays, setRecentPlays] = useState<RecentPlay[]>([]);
   const [recentAlbums, setRecentAlbums] = useState<AlbumRow[]>([]);
   const [isImporting, setIsImporting] = useState(false);
+  const [wrappedYears, setWrappedYears] = useState<number[]>([]);
 
   const greetingName = activeProfile?.name ?? "";
   const totalTracks = useMemo(
@@ -151,6 +155,21 @@ export function HomeView({
     [libraries],
   );
   const hasLibrary = libraries.length > 0;
+
+  // Wrapped years — refresh whenever the profile changes; the list is
+  // cheap (one DISTINCT over play_event) so we don't bother caching
+  // across the session.
+  useEffect(() => {
+    let cancelled = false;
+    availableWrappedYears()
+      .then((years) => {
+        if (!cancelled) setWrappedYears(years);
+      })
+      .catch((err) => console.error("[HomeView] wrapped years failed", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProfile?.id, playbackState]);
 
   // Profile-wide counters refresh on profile change AND on every track-end
   // so the "Joués récemment" card reflects the freshly-inserted play_event.
@@ -313,6 +332,49 @@ export function HomeView({
           label={t("home.stats.playlists")}
         />
       </div>
+
+      {/* Wrapped year-in-review banner — only renders when the
+          profile has at least one play_event year. Tapping opens the
+          immersive overlay defaulted to the most recent year. */}
+      {wrappedYears.length > 0 && (
+        <button
+          type="button"
+          onClick={() => onNavigateToWrapped(wrappedYears[0])}
+          className="relative overflow-hidden w-full text-left rounded-3xl p-8 group transition-transform hover:scale-[1.01]"
+          style={{
+            background:
+              "linear-gradient(135deg,#1d0e3a 0%,#3a1052 50%,#7c2d12 100%)",
+          }}
+        >
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-24 -right-16 w-80 h-80 rounded-full bg-fuchsia-400/30 blur-3xl"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-32 -left-16 w-96 h-96 rounded-full bg-orange-400/25 blur-3xl"
+          />
+          <div className="relative flex items-center gap-6 text-white">
+            <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
+              <Sparkles size={32} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="uppercase tracking-[0.4em] text-xs text-white/70 mb-1">
+                {t("home.wrapped.eyebrow")}
+              </div>
+              <div className="text-3xl font-extrabold leading-tight">
+                {t("home.wrapped.title", { year: wrappedYears[0] })}
+              </div>
+              <div className="text-sm text-white/70 mt-1">
+                {t("home.wrapped.subtitle")}
+              </div>
+            </div>
+            <div className="hidden md:inline-block px-4 py-2 rounded-full bg-white text-zinc-900 font-semibold text-sm group-hover:scale-105 transition-transform">
+              {t("home.wrapped.cta")}
+            </div>
+          </div>
+        </button>
+      )}
 
       {/* Mood radios — BPM/loudness-filtered queues. Hidden entirely
           when the library has zero analysed tracks (component decides

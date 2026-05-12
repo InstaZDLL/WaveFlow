@@ -64,6 +64,20 @@ Quick playback controls (Play/Pause, Previous, Next, Quitter). Close-to-tray is 
 - Top tracks / artists / albums for the selected window (7d / 30d / 90d / 1y / all)
 - **JSON export** — `export_stats_json(range, target_path)` ([`commands/stats.rs`](../../src-tauri/src/commands/stats.rs)) bundles the active range's overview + top 100 tracks/artists/albums + listening-by-day + listening-by-hour into a versioned (`schema_version: 1`) pretty-printed JSON file. The Rust side writes the file directly via `spawn_blocking` so we don't depend on `tauri-plugin-fs` just to round-trip a string. Frontend trigger is the Download button next to the range selector in the header.
 
+## WaveFlow Wrapped
+
+[`WrappedView.tsx`](../../src/components/views/WrappedView.tsx) is a year-in-review experience modelled on Spotify Wrapped, built **entirely from local `play_event` rows** — no network call, no external service. Three backend commands in [`commands/wrapped.rs`](../../src-tauri/src/commands/wrapped.rs):
+
+- `available_wrapped_years()` — distinct years that have at least one play event, sorted descending. Used to gate the HomeView banner and populate the in-overlay year picker.
+- `get_wrapped(year)` — bundles every aggregate into a single payload: overview (plays / minutes / unique tracks / artists / albums), top 10 tracks + artists + top 5 albums (reusing the row shapes from `commands/stats.rs` so the artwork resolver works unchanged), per-month + per-hour histograms, most active day, mood profile, first listen of the year, and longest consecutive-day listening streak.
+- `wrapped_current_year()` — server-side `Local::now().year()` so the frontend doesn't depend on the JS `Date` for the fallback default.
+
+Year bounds are computed in **local time** (Jan 1 00:00 → Dec 31 23:59:59, exclusive upper) so a play at 23:59 on Dec 31 lands in the right year regardless of UTC offset. The mood profile uses listening-weighted averages (weight = `listened_ms`) so a 4 min play of a fast track counts ~16× a 15 s skip of a slow one — otherwise a hate-skip collection would skew the BPM mean. The energy label is derived from BPM buckets server-side (`< 80 → chill`, `< 110 → warm`, `< 135 → groove`, `< 160 → energetic`, else `fire`) but is localised on the frontend via a fixed dictionary so we never ship copy from Rust.
+
+The streak walks the distinct-day list once and tracks the longest run of dates that increment by exactly one day. Bounded at 366 rows per year — no fancy gaps-and-islands SQL needed.
+
+Frontend overlay (`fixed inset-0 z-100`, same pattern as `FullscreenNowPlaying`) ships 10–12 auto-advancing slides at ~6.5 s each. Slides without data are filtered out before the rotation starts — no analysed tracks → no mood slide; no streak ≥ 2 days → no streak slide — so a brand-new profile with three plays still gets a coherent (if short) experience. Top-of-screen progress segments + space-to-pause + arrow-key navigation match Instagram / Snapchat story conventions. The HomeView entry point is a gradient banner above the Mood Radio grid, hidden entirely when `available_wrapped_years` returns an empty list.
+
 ## Width & containers
 
 Music browsing views (Home, Library, Playlist, Album, Artist, Liked, Recent, Statistics) render **full width** inside the center column — no `max-w-*` cap. The `p-8` gutter on the page scroller ([`AppLayout.tsx`](../../src/components/layout/AppLayout.tsx)) is the only horizontal breathing room. On a 2.5K display the table area gains ~800 px over the previous `max-w-6xl mx-auto` constraint.

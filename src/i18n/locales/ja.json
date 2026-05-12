@@ -216,6 +216,12 @@
     "recentlyAdded": {
       "title": "最近追加された曲"
     },
+    "wrapped": {
+      "eyebrow": "WaveFlow Wrapped",
+      "title": "{{year}}年のあなた",
+      "subtitle": "あなたのアーティスト、分数、1年を数枚のスライドで。",
+      "cta": "開く"
+    },
     "seeAll": "すべて表示"
   },
   "library": {
@@ -431,6 +437,86 @@
       "label": "統計をエクスポート",
       "action": "エクスポート",
       "dialogTitle": "統計をJSONでエクスポート"
+    }
+  },
+  "wrapped": {
+    "loading": "あなたの1年を準備中…",
+    "errorTitle": "Wrappedを読み込めませんでした",
+    "close": "閉じる",
+    "pause": "一時停止",
+    "resume": "再開",
+    "prev": "前のスライド",
+    "next": "次のスライド",
+    "yearPicker": "年を選択",
+    "backToHome": "ホームへ戻る",
+    "playsShort_zero": "0回再生",
+    "playsShort_one": "{{count}}回再生",
+    "playsShort_other": "{{count}}回再生",
+    "empty": {
+      "title": "まだ履歴がありません",
+      "subtitle": "曲を再生してから戻ってきてください — Wrappedは聴くたびに作られます。"
+    },
+    "intro": {
+      "eyebrow": "WaveFlow Wrapped",
+      "subtitle": "音楽で振り返る1年。"
+    },
+    "minutes": {
+      "eyebrow": "あなたが聴いた時間",
+      "subtitle_zero": "0分の音楽",
+      "subtitle_one": "{{count}}分の音楽",
+      "subtitle_other": "{{count}}分の音楽"
+    },
+    "stats": {
+      "plays": "再生",
+      "tracks": "曲",
+      "artists": "アーティスト"
+    },
+    "topTracks": {
+      "title": "あなたのお気に入りの曲"
+    },
+    "topArtists": {
+      "title": "あなたのお気に入りのアーティスト"
+    },
+    "topAlbums": {
+      "title": "あなたのお気に入りのアルバム"
+    },
+    "activeDay": {
+      "eyebrow": "最も聴いた日",
+      "subtitle": "{{duration}}聴いた、{{count}}曲"
+    },
+    "mood": {
+      "eyebrow": "平均BPM",
+      "subtitle": "あなたの1年を彩ったリズム",
+      "loudness": "平均ラウドネス: {{lufs}} LUFS",
+      "energy": {
+        "chill": "チル",
+        "warm": "ウォーム",
+        "groove": "グルーヴ",
+        "energetic": "エネルギッシュ",
+        "fire": "ファイア"
+      }
+    },
+    "clock": {
+      "eyebrow": "リスニング時間帯",
+      "subtitle": "1日のピーク"
+    },
+    "streak": {
+      "eyebrow": "最長連続日数",
+      "daysLabel_zero": "0日連続",
+      "daysLabel_one": "{{count}}日連続",
+      "daysLabel_other": "{{count}}日連続",
+      "range": "{{start}}〜{{end}}"
+    },
+    "firstListen": {
+      "eyebrow": "1年の最初の曲"
+    },
+    "months": {
+      "title": "月別"
+    },
+    "outro": {
+      "title": "WaveFlowで聴いてくれてありがとう",
+      "subtitle": "探求を続けてください — Wrappedはリアルタイムで更新されます。",
+      "cta": "ホームへ戻る"
     }
   },
   "about": {

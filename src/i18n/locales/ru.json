@@ -216,6 +216,12 @@
     "recentlyAdded": {
       "title": "Недавно добавленные"
     },
+    "wrapped": {
+      "eyebrow": "WaveFlow Wrapped",
+      "title": "Ваш итог {{year}}",
+      "subtitle": "Ваши исполнители, ваши минуты, ваш год — в нескольких слайдах.",
+      "cta": "Открыть"
+    },
     "seeAll": "Показать всё"
   },
   "library": {
@@ -431,6 +437,86 @@
       "label": "Экспортировать статистику",
       "action": "Экспорт",
       "dialogTitle": "Экспортировать статистику в JSON"
+    }
+  },
+  "wrapped": {
+    "loading": "Готовим ваш год…",
+    "errorTitle": "Не удалось загрузить Wrapped",
+    "close": "Закрыть",
+    "pause": "Пауза",
+    "resume": "Продолжить",
+    "prev": "Предыдущий слайд",
+    "next": "Следующий слайд",
+    "yearPicker": "Выбрать год",
+    "backToHome": "На главную",
+    "playsShort_zero": "0 прослушиваний",
+    "playsShort_one": "{{count}} прослушивание",
+    "playsShort_other": "{{count}} прослушиваний",
+    "empty": {
+      "title": "Пока нет истории",
+      "subtitle": "Послушайте несколько треков и возвращайтесь — Wrapped собирается по мере прослушивания."
+    },
+    "intro": {
+      "eyebrow": "WaveFlow Wrapped",
+      "subtitle": "Ваш год в музыке."
+    },
+    "minutes": {
+      "eyebrow": "Вы слушали",
+      "subtitle_zero": "0 минут музыки",
+      "subtitle_one": "{{count}} минуту музыки",
+      "subtitle_other": "{{count}} минут музыки"
+    },
+    "stats": {
+      "plays": "Прослушиваний",
+      "tracks": "Треков",
+      "artists": "Исполнителей"
+    },
+    "topTracks": {
+      "title": "Ваши любимые треки"
+    },
+    "topArtists": {
+      "title": "Ваши любимые исполнители"
+    },
+    "topAlbums": {
+      "title": "Ваши любимые альбомы"
+    },
+    "activeDay": {
+      "eyebrow": "Ваш рекордный день",
+      "subtitle": "{{duration}} прослушивания, {{count}} треков"
+    },
+    "mood": {
+      "eyebrow": "Ваш средний темп",
+      "subtitle": "Ритм вашего года",
+      "loudness": "Средняя громкость: {{lufs}} LUFS",
+      "energy": {
+        "chill": "Чилл",
+        "warm": "Тёплый",
+        "groove": "Грув",
+        "energetic": "Энергично",
+        "fire": "Огонь"
+      }
+    },
+    "clock": {
+      "eyebrow": "Ваш час прослушивания",
+      "subtitle": "Пик вашего дня"
+    },
+    "streak": {
+      "eyebrow": "Ваша самая длинная серия",
+      "daysLabel_zero": "0 дней подряд",
+      "daysLabel_one": "{{count}} день подряд",
+      "daysLabel_other": "{{count}} дней подряд",
+      "range": "С {{start}} по {{end}}"
+    },
+    "firstListen": {
+      "eyebrow": "Ваш год начался с"
+    },
+    "months": {
+      "title": "Месяц за месяцем"
+    },
+    "outro": {
+      "title": "Спасибо, что слушаете в WaveFlow",
+      "subtitle": "Продолжайте открывать — Wrapped обновляется в реальном времени.",
+      "cta": "На главную"
     }
   },
   "about": {

@@ -26,6 +26,61 @@
   animation: breathing 4.5s ease-in-out infinite;
 }
 
+/* WaveFlow Wrapped — story-style slide animations. The segment fill
+   width drives the per-slide progress indicator at the top of the
+   overlay; duration is overridden inline so the bar matches whatever
+   SLIDE_MS the React component picks. */
+.wrapped-segment {
+  animation-name: wrappedSegmentFill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+  width: 0%;
+}
+
+@keyframes wrappedSegmentFill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.wrapped-fade-up {
+  animation: wrappedFadeUp 0.5s ease-out;
+}
+
+.wrapped-fade-in {
+  animation: wrappedFadeIn 0.6s ease-out;
+}
+
+@keyframes wrappedFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes wrappedFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wrapped-fade-up,
+  .wrapped-fade-in {
+    animation: none;
+  }
+}
+
 @keyframes breathing {
   0%,
   100% {

@@ -427,6 +427,9 @@ pub fn run() {
             commands::backup::set_backup_config,
             commands::backup::run_backup_now,
             commands::stats::export_stats_json,
+            commands::wrapped::get_wrapped,
+            commands::wrapped::available_wrapped_years,
+            commands::wrapped::wrapped_current_year,
         ])
         .on_window_event(|window, event| match event {
             // Close-to-tray: when the user clicks the window's "X" we

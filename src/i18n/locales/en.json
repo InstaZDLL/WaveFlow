@@ -216,6 +216,12 @@
     "recentlyAdded": {
       "title": "Recently added"
     },
+    "wrapped": {
+      "eyebrow": "WaveFlow Wrapped",
+      "title": "Your {{year}} recap",
+      "subtitle": "Your artists, your minutes, your year — told in a few slides.",
+      "cta": "Open"
+    },
     "seeAll": "See all"
   },
   "library": {
@@ -431,6 +437,86 @@
       "label": "Export statistics",
       "action": "Export",
       "dialogTitle": "Export statistics as JSON"
+    }
+  },
+  "wrapped": {
+    "loading": "Building your year…",
+    "errorTitle": "Couldn't load your Wrapped",
+    "close": "Close",
+    "pause": "Pause",
+    "resume": "Resume",
+    "prev": "Previous slide",
+    "next": "Next slide",
+    "yearPicker": "Pick a year",
+    "backToHome": "Back to Home",
+    "playsShort_zero": "0 plays",
+    "playsShort_one": "{{count}} play",
+    "playsShort_other": "{{count}} plays",
+    "empty": {
+      "title": "No listening history yet",
+      "subtitle": "Play some tracks and come back later — your Wrapped builds itself as you listen."
+    },
+    "intro": {
+      "eyebrow": "WaveFlow Wrapped",
+      "subtitle": "Your year in music."
+    },
+    "minutes": {
+      "eyebrow": "You listened to",
+      "subtitle_zero": "0 minutes of music",
+      "subtitle_one": "{{count}} minute of music",
+      "subtitle_other": "{{count}} minutes of music"
+    },
+    "stats": {
+      "plays": "Plays",
+      "tracks": "Tracks",
+      "artists": "Artists"
+    },
+    "topTracks": {
+      "title": "Your top tracks"
+    },
+    "topArtists": {
+      "title": "Your top artists"
+    },
+    "topAlbums": {
+      "title": "Your top albums"
+    },
+    "activeDay": {
+      "eyebrow": "Your peak day",
+      "subtitle": "{{duration}} of listening, {{count}} tracks"
+    },
+    "mood": {
+      "eyebrow": "Your average tempo",
+      "subtitle": "The rhythm that drove your year",
+      "loudness": "Average loudness: {{lufs}} LUFS",
+      "energy": {
+        "chill": "Chill",
+        "warm": "Warm",
+        "groove": "Groove",
+        "energetic": "Energetic",
+        "fire": "Fire"
+      }
+    },
+    "clock": {
+      "eyebrow": "Your listening hour",
+      "subtitle": "The peak of your day"
+    },
+    "streak": {
+      "eyebrow": "Your longest streak",
+      "daysLabel_zero": "0 days in a row",
+      "daysLabel_one": "{{count}} day in a row",
+      "daysLabel_other": "{{count}} days in a row",
+      "range": "From {{start}} to {{end}}"
+    },
+    "firstListen": {
+      "eyebrow": "Your year started with"
+    },
+    "months": {
+      "title": "Month by month"
+    },
+    "outro": {
+      "title": "Thanks for listening with WaveFlow",
+      "subtitle": "Keep exploring — your Wrapped updates in real time.",
+      "cta": "Back to Home"
     }
   },
   "about": {
