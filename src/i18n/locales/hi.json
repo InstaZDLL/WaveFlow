@@ -426,7 +426,12 @@
     },
     "plays_zero": "0 प्ले",
     "plays_one": "{{count}} सुनो",
-    "plays_other": "{{count}} वायरटैप्स"
+    "plays_other": "{{count}} वायरटैप्स",
+    "export": {
+      "label": "आँकड़े निर्यात करें",
+      "action": "निर्यात",
+      "dialogTitle": "आँकड़ों को JSON में निर्यात करें"
+    }
   },
   "about": {
     "title": "के बारे में",
@@ -1048,6 +1053,28 @@
         "small_speakers": "छोटे स्पीकर",
         "spoken_word": "बोले गए शब्द",
         "treble_booster": "ट्रेबल बूस्टर"
+      }
+    },
+    "backup": {
+      "title": "स्वचालित बैकअप",
+      "subtitle": "चुने गए फ़ोल्डर में हर प्रोफ़ाइल का .waveflow आर्काइव समय-समय पर बनाता है।",
+      "intervalLabel": "आवृत्ति",
+      "intervalDays_one": "प्रतिदिन",
+      "intervalDays_other": "हर {{count}} दिन",
+      "retentionLabel": "रखे गए आर्काइव",
+      "retentionKeep_one": "प्रति प्रोफ़ाइल {{count}} आर्काइव",
+      "retentionKeep_other": "प्रति प्रोफ़ाइल {{count}} आर्काइव",
+      "changeFolder": "फ़ोल्डर बदलें",
+      "pickFolderTitle": "बैकअप फ़ोल्डर चुनें",
+      "lastRun": "अंतिम बैकअप: {{when}}",
+      "neverRun": "कभी नहीं",
+      "runNow": "अभी बैकअप लें",
+      "runOk_one": "{{count}} आर्काइव लिखा गया।",
+      "runOk_other": "{{count}} आर्काइव लिखे गए।",
+      "errors": {
+        "loadFailed": "बैकअप कॉन्फ़िगरेशन लोड नहीं हो सका।",
+        "saveFailed": "सहेजने में विफल। फिर से कोशिश करें।",
+        "runFailed": "बैकअप विफल। लॉग देखें।"
       }
     }
   },

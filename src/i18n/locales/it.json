@@ -426,7 +426,12 @@
     },
     "plays_zero": "0 ascolti",
     "plays_one": "{{count}} ascolto",
-    "plays_other": "{{count}} intercettazioni"
+    "plays_other": "{{count}} intercettazioni",
+    "export": {
+      "label": "Esporta statistiche",
+      "action": "Esporta",
+      "dialogTitle": "Esporta statistiche in JSON"
+    }
   },
   "about": {
     "title": "Informazioni",
@@ -1048,6 +1053,28 @@
         "small_speakers": "Casse piccole",
         "spoken_word": "Parlato",
         "treble_booster": "Boost acuti"
+      }
+    },
+    "backup": {
+      "title": "Backup automatico",
+      "subtitle": "Crea periodicamente un archivio .waveflow di ogni profilo nella cartella scelta.",
+      "intervalLabel": "Frequenza",
+      "intervalDays_one": "Ogni giorno",
+      "intervalDays_other": "Ogni {{count}} giorni",
+      "retentionLabel": "Archivi conservati",
+      "retentionKeep_one": "{{count}} archivio per profilo",
+      "retentionKeep_other": "{{count}} archivi per profilo",
+      "changeFolder": "Cambia cartella",
+      "pickFolderTitle": "Scegli la cartella di backup",
+      "lastRun": "Ultimo backup: {{when}}",
+      "neverRun": "mai",
+      "runNow": "Esegui backup ora",
+      "runOk_one": "{{count}} archivio scritto.",
+      "runOk_other": "{{count}} archivi scritti.",
+      "errors": {
+        "loadFailed": "Impossibile leggere la configurazione di backup.",
+        "saveFailed": "Salvataggio non riuscito. Riprova.",
+        "runFailed": "Backup non riuscito. Controlla i log."
       }
     }
   },

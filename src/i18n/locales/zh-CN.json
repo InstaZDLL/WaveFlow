@@ -426,7 +426,12 @@
     },
     "plays_zero": "0 次收听",
     "plays_one": "{{count}} 请听",
-    "plays_other": "{{count}} 监听"
+    "plays_other": "{{count}} 监听",
+    "export": {
+      "label": "导出统计",
+      "action": "导出",
+      "dialogTitle": "将统计导出为 JSON"
+    }
   },
   "about": {
     "title": "关于",
@@ -1048,6 +1053,28 @@
         "small_speakers": "小型扬声器",
         "spoken_word": "语音",
         "treble_booster": "高音增强"
+      }
+    },
+    "backup": {
+      "title": "自动备份",
+      "subtitle": "定期在所选文件夹中创建每个配置文件的 .waveflow 存档。",
+      "intervalLabel": "频率",
+      "intervalDays_one": "每天",
+      "intervalDays_other": "每 {{count}} 天",
+      "retentionLabel": "保留存档",
+      "retentionKeep_one": "每个配置文件 {{count}} 个",
+      "retentionKeep_other": "每个配置文件 {{count}} 个",
+      "changeFolder": "更改文件夹",
+      "pickFolderTitle": "选择备份文件夹",
+      "lastRun": "上次备份:{{when}}",
+      "neverRun": "从未",
+      "runNow": "立即备份",
+      "runOk_one": "已写入 {{count}} 个存档。",
+      "runOk_other": "已写入 {{count}} 个存档。",
+      "errors": {
+        "loadFailed": "无法加载备份配置。",
+        "saveFailed": "保存失败。请重试。",
+        "runFailed": "备份失败。请查看日志。"
       }
     }
   },

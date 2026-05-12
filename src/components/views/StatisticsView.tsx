@@ -5,6 +5,7 @@ import {
   BarChart2,
   Clock,
   Disc3,
+  Download,
   Music2,
   PlayCircle,
 } from "lucide-react";
@@ -12,6 +13,7 @@ import type { ViewId } from "../../types";
 import { Artwork } from "../common/Artwork";
 import { EmptyState } from "../common/EmptyState";
 import {
+  exportStatsJson,
   statsListeningByDay,
   statsListeningByHour,
   statsOverview,
@@ -25,6 +27,7 @@ import {
   type TopArtistRow,
   type TopTrackRow,
 } from "../../lib/tauri/stats";
+import { pickSaveFile } from "../../lib/tauri/dialog";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { RangeSelector } from "./statistics/RangeSelector";
 import { KpiCard } from "./statistics/KpiCard";
@@ -63,6 +66,32 @@ export function StatisticsView({
   const [topAlbums, setTopAlbums] = useState<TopAlbumRow[]>([]);
   const [heatmapData, setHeatmapData] = useState<ListeningByDayRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+
+  // Export the on-screen stats (top 100 each, listening by day/hour,
+  // overview) as a pretty-printed JSON file. The backend already
+  // matches the on-screen shapes byte-for-byte, so no transformation
+  // is needed here — just save the string verbatim.
+  const handleExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const defaultName = `waveflow-stats-${range}-${
+        new Date().toISOString().slice(0, 10)
+      }.json`;
+      const target = await pickSaveFile(
+        defaultName,
+        ["json"],
+        t("statistics.export.dialogTitle"),
+      );
+      if (!target) return;
+      await exportStatsJson(range, target);
+    } catch (err) {
+      console.error("[StatisticsView] export_stats_json failed", err);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Heatmap always covers the past year regardless of the user's
   // selected range — that's the whole point of the contributions-style
@@ -161,7 +190,20 @@ export function StatisticsView({
             <div className="w-8 h-1 bg-emerald-500 rounded-full mt-1" />
           </div>
         </div>
-        <RangeSelector value={range} onChange={setRange} />
+        <div className="flex items-center gap-2">
+          <RangeSelector value={range} onChange={setRange} />
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={exporting || isEmpty}
+            aria-label={t("statistics.export.label")}
+            title={t("statistics.export.label")}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download size={14} className={exporting ? "animate-pulse" : ""} />
+            <span>{t("statistics.export.action")}</span>
+          </button>
+        </div>
       </div>
 
       {isEmpty ? (

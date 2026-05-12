@@ -426,7 +426,12 @@
     },
     "plays_zero": "0 reproduções",
     "plays_one": "{{count}} escuta",
-    "plays_other": "{{count}} escutas"
+    "plays_other": "{{count}} escutas",
+    "export": {
+      "label": "Exportar estatísticas",
+      "action": "Exportar",
+      "dialogTitle": "Exportar estatísticas em JSON"
+    }
   },
   "about": {
     "title": "Sobre",
@@ -1048,6 +1053,28 @@
         "small_speakers": "Caixas pequenas",
         "spoken_word": "Voz falada",
         "treble_booster": "Reforço de agudos"
+      }
+    },
+    "backup": {
+      "title": "Backup automático",
+      "subtitle": "Cria periodicamente um arquivo .waveflow de cada perfil na pasta escolhida.",
+      "intervalLabel": "Frequência",
+      "intervalDays_one": "Todo dia",
+      "intervalDays_other": "A cada {{count}} dias",
+      "retentionLabel": "Backups mantidos",
+      "retentionKeep_one": "{{count}} arquivo por perfil",
+      "retentionKeep_other": "{{count}} arquivos por perfil",
+      "changeFolder": "Alterar pasta",
+      "pickFolderTitle": "Escolher pasta do backup",
+      "lastRun": "Último backup: {{when}}",
+      "neverRun": "nunca",
+      "runNow": "Fazer backup agora",
+      "runOk_one": "{{count}} arquivo gravado.",
+      "runOk_other": "{{count}} arquivos gravados.",
+      "errors": {
+        "loadFailed": "Não foi possível carregar a configuração.",
+        "saveFailed": "Falha ao salvar. Tente novamente.",
+        "runFailed": "Falha no backup. Consulte os logs."
       }
     }
   },

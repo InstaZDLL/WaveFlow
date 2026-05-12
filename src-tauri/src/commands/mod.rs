@@ -5,6 +5,7 @@
 
 pub mod analysis;
 pub mod app_info;
+pub mod backup;
 pub mod browse;
 pub mod changelog;
 pub mod deezer;

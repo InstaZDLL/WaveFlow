@@ -426,7 +426,12 @@
     },
     "plays_zero": "0 kali diputar",
     "plays_one": "{{count}} main",
-    "plays_other": "{{count}} pertunjukan"
+    "plays_other": "{{count}} pertunjukan",
+    "export": {
+      "label": "Ekspor statistik",
+      "action": "Ekspor",
+      "dialogTitle": "Ekspor statistik sebagai JSON"
+    }
   },
   "about": {
     "title": "Tentang",
@@ -1048,6 +1053,28 @@
         "small_speakers": "Speaker kecil",
         "spoken_word": "Vokal bicara",
         "treble_booster": "Penguat treble"
+      }
+    },
+    "backup": {
+      "title": "Cadangan otomatis",
+      "subtitle": "Membuat arsip .waveflow setiap profil secara berkala ke folder pilihan.",
+      "intervalLabel": "Frekuensi",
+      "intervalDays_one": "Setiap hari",
+      "intervalDays_other": "Setiap {{count}} hari",
+      "retentionLabel": "Arsip disimpan",
+      "retentionKeep_one": "{{count}} arsip per profil",
+      "retentionKeep_other": "{{count}} arsip per profil",
+      "changeFolder": "Ubah folder",
+      "pickFolderTitle": "Pilih folder cadangan",
+      "lastRun": "Cadangan terakhir: {{when}}",
+      "neverRun": "tidak pernah",
+      "runNow": "Cadangkan sekarang",
+      "runOk_one": "{{count}} arsip ditulis.",
+      "runOk_other": "{{count}} arsip ditulis.",
+      "errors": {
+        "loadFailed": "Tidak dapat memuat konfigurasi cadangan.",
+        "saveFailed": "Gagal menyimpan. Coba lagi.",
+        "runFailed": "Cadangan gagal. Periksa log."
       }
     }
   },

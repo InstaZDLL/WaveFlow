@@ -426,7 +426,12 @@
     },
     "plays_zero": "0 Aufrufe",
     "plays_one": "{{count}} Zuhören",
-    "plays_other": "{{count}} Abhörmaßnahmen"
+    "plays_other": "{{count}} Abhörmaßnahmen",
+    "export": {
+      "label": "Statistiken exportieren",
+      "action": "Exportieren",
+      "dialogTitle": "Statistiken als JSON exportieren"
+    }
   },
   "about": {
     "title": "Über",
@@ -1048,6 +1053,28 @@
         "small_speakers": "Kleine Lautsprecher",
         "spoken_word": "Sprache",
         "treble_booster": "Höhen-Verstärkung"
+      }
+    },
+    "backup": {
+      "title": "Automatisches Backup",
+      "subtitle": "Erstellt regelmäßig ein .waveflow-Archiv jedes Profils im gewählten Ordner.",
+      "intervalLabel": "Häufigkeit",
+      "intervalDays_one": "Täglich",
+      "intervalDays_other": "Alle {{count}} Tage",
+      "retentionLabel": "Aufbewahrte Archive",
+      "retentionKeep_one": "{{count}} Archiv pro Profil",
+      "retentionKeep_other": "{{count}} Archive pro Profil",
+      "changeFolder": "Ordner ändern",
+      "pickFolderTitle": "Backup-Ordner wählen",
+      "lastRun": "Letztes Backup: {{when}}",
+      "neverRun": "nie",
+      "runNow": "Jetzt sichern",
+      "runOk_one": "{{count}} Archiv geschrieben.",
+      "runOk_other": "{{count}} Archive geschrieben.",
+      "errors": {
+        "loadFailed": "Backup-Konfiguration konnte nicht geladen werden.",
+        "saveFailed": "Speichern fehlgeschlagen. Erneut versuchen.",
+        "runFailed": "Backup fehlgeschlagen. Logs prüfen."
       }
     }
   },

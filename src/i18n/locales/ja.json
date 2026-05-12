@@ -426,7 +426,12 @@
     },
     "plays_zero": "再生回数 0",
     "plays_one": "{{count}} 聞いて",
-    "plays_other": "{{count}} 盗聴"
+    "plays_other": "{{count}} 盗聴",
+    "export": {
+      "label": "統計をエクスポート",
+      "action": "エクスポート",
+      "dialogTitle": "統計をJSONでエクスポート"
+    }
   },
   "about": {
     "title": "について",
@@ -1048,6 +1053,28 @@
         "small_speakers": "小型スピーカー",
         "spoken_word": "スポークン",
         "treble_booster": "高音ブースト"
+      }
+    },
+    "backup": {
+      "title": "自動バックアップ",
+      "subtitle": "選択したフォルダに各プロファイルの.waveflowアーカイブを定期的に作成します。",
+      "intervalLabel": "頻度",
+      "intervalDays_one": "毎日",
+      "intervalDays_other": "{{count}}日ごと",
+      "retentionLabel": "保持するアーカイブ",
+      "retentionKeep_one": "プロファイルあたり{{count}}件",
+      "retentionKeep_other": "プロファイルあたり{{count}}件",
+      "changeFolder": "フォルダを変更",
+      "pickFolderTitle": "バックアップフォルダを選択",
+      "lastRun": "最終バックアップ:{{when}}",
+      "neverRun": "なし",
+      "runNow": "今すぐバックアップ",
+      "runOk_one": "{{count}}件のアーカイブを保存しました。",
+      "runOk_other": "{{count}}件のアーカイブを保存しました。",
+      "errors": {
+        "loadFailed": "バックアップ設定を読み込めませんでした。",
+        "saveFailed": "保存に失敗しました。もう一度お試しください。",
+        "runFailed": "バックアップに失敗しました。ログを確認してください。"
       }
     }
   },

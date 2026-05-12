@@ -426,7 +426,12 @@
     },
     "plays_zero": "0 reproduções",
     "plays_one": "{{count}} escuta",
-    "plays_other": "{{count}} escutas"
+    "plays_other": "{{count}} escutas",
+    "export": {
+      "label": "Exportar estatísticas",
+      "action": "Exportar",
+      "dialogTitle": "Exportar estatísticas em JSON"
+    }
   },
   "about": {
     "title": "Sobre",
@@ -1048,6 +1053,28 @@
         "small_speakers": "Colunas pequenas",
         "spoken_word": "Voz falada",
         "treble_booster": "Reforço de agudos"
+      }
+    },
+    "backup": {
+      "title": "Cópia de segurança automática",
+      "subtitle": "Cria periodicamente um arquivo .waveflow de cada perfil na pasta escolhida.",
+      "intervalLabel": "Frequência",
+      "intervalDays_one": "Todos os dias",
+      "intervalDays_other": "A cada {{count}} dias",
+      "retentionLabel": "Cópias mantidas",
+      "retentionKeep_one": "{{count}} arquivo por perfil",
+      "retentionKeep_other": "{{count}} arquivos por perfil",
+      "changeFolder": "Alterar pasta",
+      "pickFolderTitle": "Escolher a pasta de cópias",
+      "lastRun": "Última cópia: {{when}}",
+      "neverRun": "nunca",
+      "runNow": "Fazer cópia agora",
+      "runOk_one": "{{count}} arquivo escrito.",
+      "runOk_other": "{{count}} arquivos escritos.",
+      "errors": {
+        "loadFailed": "Não foi possível ler a configuração de cópias.",
+        "saveFailed": "Falha ao guardar. Tenta de novo.",
+        "runFailed": "Falha na cópia. Consulta os registos."
       }
     }
   },

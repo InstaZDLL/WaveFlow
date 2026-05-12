@@ -6,6 +6,7 @@
 
 mod analysis;
 mod audio;
+mod backup;
 mod commands;
 mod db;
 mod deezer;
@@ -169,6 +170,13 @@ pub fn run() {
             // profile switches because it always reads the active
             // profile's pool fresh per tick.
             scrobbler::spawn(app.handle().clone());
+
+            // Auto-backup loop. Idle while `backup.enabled` is off
+            // (parks on a Notify channel), wakes immediately when the
+            // user toggles via Settings. See [`backup`] module docs.
+            let backup_handle = backup::BackupHandle::new();
+            app.manage(backup_handle.clone());
+            backup::spawn_backup_loop(app.handle().clone(), backup_handle);
 
             // DLNA / UPnP MediaServer auto-start. Reads the persisted
             // `dlna.enabled` flag at boot and forwards the config to
@@ -415,6 +423,10 @@ pub fn run() {
             commands::stats::stats_listening_by_day,
             commands::stats::stats_listening_by_hour,
             commands::maintenance::regenerate_thumbnails,
+            commands::backup::get_backup_config,
+            commands::backup::set_backup_config,
+            commands::backup::run_backup_now,
+            commands::stats::export_stats_json,
         ])
         .on_window_event(|window, event| match event {
             // Close-to-tray: when the user clicks the window's "X" we

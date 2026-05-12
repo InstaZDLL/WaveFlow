@@ -426,7 +426,12 @@
     },
     "plays_zero": "0 kez oynandı",
     "plays_one": "{{count}} oyna",
-    "plays_other": "{{count}} oyunlar"
+    "plays_other": "{{count}} oyunlar",
+    "export": {
+      "label": "İstatistikleri dışa aktar",
+      "action": "Dışa aktar",
+      "dialogTitle": "İstatistikleri JSON olarak dışa aktar"
+    }
   },
   "about": {
     "title": "Hakkında",
@@ -1048,6 +1053,28 @@
         "small_speakers": "Küçük hoparlörler",
         "spoken_word": "Konuşma",
         "treble_booster": "Tiz yükseltici"
+      }
+    },
+    "backup": {
+      "title": "Otomatik yedekleme",
+      "subtitle": "Seçilen klasörde her profilin bir .waveflow arşivini düzenli olarak oluşturur.",
+      "intervalLabel": "Sıklık",
+      "intervalDays_one": "Her gün",
+      "intervalDays_other": "{{count}} günde bir",
+      "retentionLabel": "Tutulan arşivler",
+      "retentionKeep_one": "Profil başına {{count}} arşiv",
+      "retentionKeep_other": "Profil başına {{count}} arşiv",
+      "changeFolder": "Klasörü değiştir",
+      "pickFolderTitle": "Yedekleme klasörünü seç",
+      "lastRun": "Son yedekleme: {{when}}",
+      "neverRun": "hiç",
+      "runNow": "Şimdi yedekle",
+      "runOk_one": "{{count}} arşiv yazıldı.",
+      "runOk_other": "{{count}} arşiv yazıldı.",
+      "errors": {
+        "loadFailed": "Yedekleme yapılandırması okunamadı.",
+        "saveFailed": "Kaydedilemedi. Tekrar deneyin.",
+        "runFailed": "Yedekleme başarısız. Logları kontrol edin."
       }
     }
   },

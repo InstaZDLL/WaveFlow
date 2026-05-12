@@ -62,7 +62,7 @@ Once installed (any of the above), the in-app updater fetches future versions au
 | **Playlists**       | Drag-and-drop reorder (virtualised), bulk add from any source, M3U import / export with basename-fallback matching, likes, recently-played                                                                            | [docs](docs/features/playlists.md)       |
 | **Smart playlists** | Auto-generated **Daily Mix** family bucketed by tempo, with composite artist-photo covers rendered from your Deezer cache                                                                                             | [docs](docs/features/smart-playlists.md) |
 | **Integrations**    | Deezer (artwork + labels), Last.fm (bios + scrobbling with retry queue), LRCLIB (synchronised lyrics), Discord Rich Presence ("Listening to WaveFlow" with cover + progress bar) — all cached locally for offline use | [docs](docs/features/integrations.md)    |
-| **UI & UX**         | Spotify-style 3-panel layout, system tray, statistics dashboard, virtual scroll for 6000+ tracks, dark mode (View Transitions API), 17 locales (RTL-aware), per-profile isolated DB, signed auto-updater              | [docs](docs/features/ui.md)              |
+| **UI & UX**         | Spotify-style 3-panel layout, system tray, statistics dashboard with JSON export, virtual scroll for 6000+ tracks, dark mode (View Transitions API), 17 locales (RTL-aware), per-profile isolated DB with scheduled auto-backup, signed auto-updater | [docs](docs/features/ui.md)              |
 
 ## Tech Stack
 

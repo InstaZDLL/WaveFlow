@@ -91,3 +91,16 @@ export function statsListeningByDay(
 export function statsListeningByHour(range: StatsRange): Promise<number[]> {
   return invoke<number[]>("stats_listening_by_hour", { range });
 }
+
+/**
+ * Bundle every stats aggregate for `range` into one JSON file at
+ * `targetPath`. Includes overview + top 100 tracks / artists / albums,
+ * listening-by-day, and listening-by-hour. Schema is versioned in
+ * the payload (`schema_version`).
+ */
+export function exportStatsJson(
+  range: StatsRange,
+  targetPath: string,
+): Promise<void> {
+  return invoke<void>("export_stats_json", { range, targetPath });
+}

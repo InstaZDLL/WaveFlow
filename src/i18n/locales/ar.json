@@ -426,7 +426,12 @@
     },
     "plays_zero": "0 استماع",
     "plays_one": "{{count}} استمع",
-    "plays_other": "{{count}} التنصت"
+    "plays_other": "{{count}} التنصت",
+    "export": {
+      "label": "تصدير الإحصائيات",
+      "action": "تصدير",
+      "dialogTitle": "تصدير الإحصائيات كملف JSON"
+    }
   },
   "about": {
     "title": "نبذة",
@@ -1048,6 +1053,28 @@
         "small_speakers": "مكبرات صغيرة",
         "spoken_word": "كلام",
         "treble_booster": "تعزيز الحدة"
+      }
+    },
+    "backup": {
+      "title": "نسخ احتياطي تلقائي",
+      "subtitle": "ينشئ بشكل دوري أرشيف .waveflow لكل ملف تعريف في المجلد المختار.",
+      "intervalLabel": "التكرار",
+      "intervalDays_one": "كل يوم",
+      "intervalDays_other": "كل {{count}} أيام",
+      "retentionLabel": "الأرشيفات المحفوظة",
+      "retentionKeep_one": "أرشيف واحد لكل ملف",
+      "retentionKeep_other": "{{count}} أرشيفات لكل ملف",
+      "changeFolder": "تغيير المجلد",
+      "pickFolderTitle": "اختر مجلد النسخ الاحتياطي",
+      "lastRun": "آخر نسخة: {{when}}",
+      "neverRun": "أبدًا",
+      "runNow": "نسخ الآن",
+      "runOk_one": "تمت كتابة أرشيف واحد.",
+      "runOk_other": "تمت كتابة {{count}} أرشيفات.",
+      "errors": {
+        "loadFailed": "تعذّر تحميل إعدادات النسخ الاحتياطي.",
+        "saveFailed": "فشل الحفظ. حاول مجددًا.",
+        "runFailed": "فشل النسخ الاحتياطي. راجع السجلات."
       }
     }
   },

@@ -426,7 +426,12 @@
     },
     "plays_zero": "0회 재생",
     "plays_one": "{{count}} 들어보세요",
-    "plays_other": "{{count}} 도청"
+    "plays_other": "{{count}} 도청",
+    "export": {
+      "label": "통계 내보내기",
+      "action": "내보내기",
+      "dialogTitle": "통계를 JSON으로 내보내기"
+    }
   },
   "about": {
     "title": "소개",
@@ -1048,6 +1053,28 @@
         "small_speakers": "소형 스피커",
         "spoken_word": "음성",
         "treble_booster": "고음 부스터"
+      }
+    },
+    "backup": {
+      "title": "자동 백업",
+      "subtitle": "선택한 폴더에 각 프로필의 .waveflow 아카이브를 주기적으로 생성합니다.",
+      "intervalLabel": "주기",
+      "intervalDays_one": "매일",
+      "intervalDays_other": "{{count}}일마다",
+      "retentionLabel": "보관할 아카이브",
+      "retentionKeep_one": "프로필당 {{count}}개",
+      "retentionKeep_other": "프로필당 {{count}}개",
+      "changeFolder": "폴더 변경",
+      "pickFolderTitle": "백업 폴더 선택",
+      "lastRun": "마지막 백업: {{when}}",
+      "neverRun": "없음",
+      "runNow": "지금 백업",
+      "runOk_one": "{{count}}개 아카이브가 저장되었습니다.",
+      "runOk_other": "{{count}}개 아카이브가 저장되었습니다.",
+      "errors": {
+        "loadFailed": "백업 설정을 불러올 수 없습니다.",
+        "saveFailed": "저장에 실패했습니다. 다시 시도하세요.",
+        "runFailed": "백업에 실패했습니다. 로그를 확인하세요."
       }
     }
   },

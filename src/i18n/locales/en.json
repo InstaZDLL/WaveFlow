@@ -426,7 +426,12 @@
     },
     "plays_zero": "0 plays",
     "plays_one": "{{count}} listen",
-    "plays_other": "{{count}} wiretaps"
+    "plays_other": "{{count}} wiretaps",
+    "export": {
+      "label": "Export statistics",
+      "action": "Export",
+      "dialogTitle": "Export statistics as JSON"
+    }
   },
   "about": {
     "title": "About",
@@ -1111,6 +1116,28 @@
         "small_speakers": "Small speakers",
         "spoken_word": "Spoken word",
         "treble_booster": "Treble booster"
+      }
+    },
+    "backup": {
+      "title": "Automatic backup",
+      "subtitle": "Periodically creates a .waveflow archive of every profile in the chosen folder.",
+      "intervalLabel": "Frequency",
+      "intervalDays_one": "Every day",
+      "intervalDays_other": "Every {{count}} days",
+      "retentionLabel": "Archives kept",
+      "retentionKeep_one": "{{count}} archive per profile",
+      "retentionKeep_other": "{{count}} archives per profile",
+      "changeFolder": "Change folder",
+      "pickFolderTitle": "Pick the backup folder",
+      "lastRun": "Last backup: {{when}}",
+      "neverRun": "never",
+      "runNow": "Back up now",
+      "runOk_one": "{{count}} archive written.",
+      "runOk_other": "{{count}} archives written.",
+      "errors": {
+        "loadFailed": "Could not load the backup configuration.",
+        "saveFailed": "Failed to save. Try again.",
+        "runFailed": "Backup failed. Check the logs."
       }
     }
   },

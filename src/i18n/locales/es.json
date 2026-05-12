@@ -426,7 +426,12 @@
     },
     "plays_zero": "0 reproducciones",
     "plays_one": "{{count}} escucha",
-    "plays_other": "{{count}} escuchas"
+    "plays_other": "{{count}} escuchas",
+    "export": {
+      "label": "Exportar estadísticas",
+      "action": "Exportar",
+      "dialogTitle": "Exportar estadísticas como JSON"
+    }
   },
   "about": {
     "title": "Acerca de",
@@ -1048,6 +1053,28 @@
         "small_speakers": "Altavoces pequeños",
         "spoken_word": "Voz hablada",
         "treble_booster": "Refuerzo de agudos"
+      }
+    },
+    "backup": {
+      "title": "Copia de seguridad automática",
+      "subtitle": "Crea periódicamente un archivo .waveflow de cada perfil en la carpeta elegida.",
+      "intervalLabel": "Frecuencia",
+      "intervalDays_one": "Cada día",
+      "intervalDays_other": "Cada {{count}} días",
+      "retentionLabel": "Archivos conservados",
+      "retentionKeep_one": "{{count}} archivo por perfil",
+      "retentionKeep_other": "{{count}} archivos por perfil",
+      "changeFolder": "Cambiar carpeta",
+      "pickFolderTitle": "Elige la carpeta de copias",
+      "lastRun": "Última copia: {{when}}",
+      "neverRun": "nunca",
+      "runNow": "Hacer copia ahora",
+      "runOk_one": "{{count}} archivo escrito.",
+      "runOk_other": "{{count}} archivos escritos.",
+      "errors": {
+        "loadFailed": "No se pudo cargar la configuración de copias.",
+        "saveFailed": "Error al guardar. Vuelve a intentarlo.",
+        "runFailed": "Falló la copia. Consulta los registros."
       }
     }
   },

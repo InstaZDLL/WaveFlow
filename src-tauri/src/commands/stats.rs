@@ -443,3 +443,89 @@ pub async fn stats_listening_by_hour(
     }
     Ok(buckets)
 }
+
+/// Bundle every stats aggregate for `range` into a single JSON string
+/// so the user can save their listening history outside the app
+/// (spreadsheets, scripts, archival). The frontend handles the actual
+/// file-write via tauri-plugin-fs; the command only produces the blob.
+///
+/// Shape:
+///
+/// ```json
+/// {
+///   "schema_version": 1,
+///   "exported_at": "...",   // RFC3339
+///   "range": "30d",
+///   "overview": { ... },
+///   "top_tracks":  [ ... ],   // up to 100
+///   "top_artists": [ ... ],
+///   "top_albums":  [ ... ],
+///   "listening_by_day":  [ ... ],
+///   "listening_by_hour": [ ... ]  // 24 buckets
+/// }
+/// ```
+///
+/// `schema_version` bumps if we rename a field or reshape an object
+/// so external tooling can refuse incompatible files.
+///
+/// Writes the JSON directly to `target_path` because shipping a
+/// multi-MB blob through the IPC boundary just to hand it back to
+/// disk is wasteful — and we don't depend on `tauri-plugin-fs` for
+/// file writes anywhere else.
+#[tauri::command]
+pub async fn export_stats_json(
+    state: tauri::State<'_, AppState>,
+    range: String,
+    target_path: String,
+) -> AppResult<()> {
+    // Delegate to the existing per-stat Tauri commands so the export
+    // is guaranteed to match what the frontend sees on screen. Each
+    // call reaches the same pool / paths via its own
+    // `state.require_profile_pool` — no shared state to thread by
+    // hand. Limit `100` matches the upper bound of the on-screen
+    // selectors so the export is "what you saw plus a bit more".
+    let overview = stats_overview(state.clone(), range.clone()).await?;
+    let top_tracks = stats_top_tracks(state.clone(), range.clone(), 100).await?;
+    let top_artists = stats_top_artists(state.clone(), range.clone(), 100).await?;
+    let top_albums = stats_top_albums(state.clone(), range.clone(), 100).await?;
+    let listening_by_day = stats_listening_by_day(state.clone(), range.clone()).await?;
+    let listening_by_hour = stats_listening_by_hour(state.clone(), range.clone()).await?;
+
+    #[derive(Serialize)]
+    struct Bundle<'a> {
+        schema_version: u32,
+        exported_at: String,
+        range: &'a str,
+        overview: &'a StatsOverview,
+        top_tracks: &'a [TopTrackRow],
+        top_artists: &'a [TopArtistRow],
+        top_albums: &'a [TopAlbumRow],
+        listening_by_day: &'a [ListeningByDayRow],
+        listening_by_hour: &'a [i64],
+    }
+
+    let bundle = Bundle {
+        schema_version: 1,
+        exported_at: chrono::Utc::now().to_rfc3339(),
+        range: &range,
+        overview: &overview,
+        top_tracks: &top_tracks,
+        top_artists: &top_artists,
+        top_albums: &top_albums,
+        listening_by_day: &listening_by_day,
+        listening_by_hour: &listening_by_hour,
+    };
+
+    let json = serde_json::to_string_pretty(&bundle)
+        .map_err(|e| crate::error::AppError::Other(format!("stats serialize: {e}")))?;
+
+    // Write via `spawn_blocking` so the tokio runtime isn't held
+    // hostage on a slow disk. The payload is tiny relative to a
+    // profile export so we don't bother streaming.
+    let target = std::path::PathBuf::from(target_path);
+    tokio::task::spawn_blocking(move || std::fs::write(&target, json))
+        .await
+        .map_err(|e| crate::error::AppError::Other(format!("stats write task: {e}")))?
+        .map_err(|e| crate::error::AppError::Other(format!("stats file write: {e}")))?;
+    Ok(())
+}

@@ -426,7 +426,12 @@
     },
     "plays_zero": "0 keer beluisterd",
     "plays_one": "{{count}} luister",
-    "plays_other": "{{count}} afluisteren"
+    "plays_other": "{{count}} afluisteren",
+    "export": {
+      "label": "Statistieken exporteren",
+      "action": "Exporteren",
+      "dialogTitle": "Statistieken exporteren als JSON"
+    }
   },
   "about": {
     "title": "Over",
@@ -1048,6 +1053,28 @@
         "small_speakers": "Kleine speakers",
         "spoken_word": "Gesproken woord",
         "treble_booster": "Treble booster"
+      }
+    },
+    "backup": {
+      "title": "Automatische back-up",
+      "subtitle": "Maakt periodiek een .waveflow-archief van elk profiel in de gekozen map.",
+      "intervalLabel": "Frequentie",
+      "intervalDays_one": "Dagelijks",
+      "intervalDays_other": "Elke {{count}} dagen",
+      "retentionLabel": "Bewaarde archieven",
+      "retentionKeep_one": "{{count}} archief per profiel",
+      "retentionKeep_other": "{{count}} archieven per profiel",
+      "changeFolder": "Map wijzigen",
+      "pickFolderTitle": "Kies de back-upmap",
+      "lastRun": "Laatste back-up: {{when}}",
+      "neverRun": "nooit",
+      "runNow": "Nu back-uppen",
+      "runOk_one": "{{count}} archief geschreven.",
+      "runOk_other": "{{count}} archieven geschreven.",
+      "errors": {
+        "loadFailed": "Kon back-upconfiguratie niet laden.",
+        "saveFailed": "Opslaan mislukt. Probeer opnieuw.",
+        "runFailed": "Back-up mislukt. Controleer de logs."
       }
     }
   },

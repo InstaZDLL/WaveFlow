@@ -62,6 +62,7 @@ Quick playback controls (Play/Pause, Previous, Next, Quitter). Close-to-tray is 
 - GitHub-contributions-style yearly heatmap ([`Heatmap.tsx`](../../src/components/views/statistics/Heatmap.tsx)) — 53×7 grid pinned to the past 12 months regardless of the period selector, intensity bucketed in quartiles against the local max so the gradient stays meaningful for both light and heavy listeners. Reuses `stats_listening_by_day` with `range="1y"`; no new backend command.
 - Listening-by-day and listening-by-hour bar charts
 - Top tracks / artists / albums for the selected window (7d / 30d / 90d / 1y / all)
+- **JSON export** — `export_stats_json(range, target_path)` ([`commands/stats.rs`](../../src-tauri/src/commands/stats.rs)) bundles the active range's overview + top 100 tracks/artists/albums + listening-by-day + listening-by-hour into a versioned (`schema_version: 1`) pretty-printed JSON file. The Rust side writes the file directly via `spawn_blocking` so we don't depend on `tauri-plugin-fs` just to round-trip a string. Frontend trigger is the Download button next to the range selector in the header.
 
 ## Width & containers
 
@@ -144,6 +145,16 @@ Per-profile isolated database (libraries, playlists, settings, play history); sh
 - **Import:** always allocates a fresh profile row — never overwrites — then extracts the archive under `profiles/<new_id>/`. Failures roll the row back so a half-imported profile doesn't survive the error. Once extracted, the new pool is opened once so any pending sqlx migrations replay before the user switches to it.
 - **Out of scope:** the shared `app.db` (Last.fm key, Discord opt-in, `network.offline_mode`) belongs to the install, not the profile. The shared `metadata_artwork/` cache (Deezer pictures, etc.) is re-fetchable so we skip it to keep archives small.
 - **Manifest:** `archive_version` (currently `1`) gates compatibility — a future schema-incompatible bump refuses imports rather than silently corrupting the new profile. `app_version` and the source profile name / id are recorded for diagnostics.
+
+### Auto-backup
+
+Opt-in scheduled mirror of the manual export so the user's playlists / likes / ratings / history survive a SQLite corruption or disk failure. Implementation in [`backup.rs`](../../src-tauri/src/backup.rs):
+
+- **Config** lives in `app_setting` (install-wide, not per-profile): `backup.enabled` (bool, default OFF), `backup.interval_days` (1-90, default 7), `backup.folder` (string; empty = default `<app_data>/waveflow/backups/`), `backup.retention` (1-50, default 5 — per profile), `backup.last_run_at` (epoch ms).
+- **Loop** is a single tokio task started once at boot ([`spawn_backup_loop`](../../src-tauri/src/backup.rs)). When disabled, parks on a `tokio::sync::Notify` (zero cost) until the user toggles. When enabled, computes the next deadline as `last_run_at + interval_days * 86_400_000` and uses `tokio::select!` between a sleep and the same `Notify` so config changes wake it without waiting for the old sleep to expire.
+- **Pass** ([`run_one_backup`](../../src-tauri/src/backup.rs)) iterates every row in `profile`, calls the shared [`profile_io::write_archive`](../../src-tauri/src/commands/profile_io.rs) (pub-crate-ified from the manual-export path so the two stay bit-compatible), and applies retention per profile (`<sanitized-name>-*.waveflow` sorted by mtime, oldest beyond `retention` deleted). The active profile gets a `PRAGMA wal_checkpoint(TRUNCATE)` first; inactive profiles are already cold on disk (the pool ran a checkpoint at switch / shutdown).
+- **Failure isolation:** per-profile errors are logged but don't abort the pass — one corrupt profile shouldn't block backups of the healthy ones.
+- **Commands** in [`commands/backup.rs`](../../src-tauri/src/commands/backup.rs): `get_backup_config`, `set_backup_config` (also signals the loop), `run_backup_now`. UI is [`BackupCard`](../../src/components/views/settings/BackupCard.tsx) in Settings → Stockage right after the manual export/import.
 
 ## Onboarding
 

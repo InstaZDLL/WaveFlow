@@ -41,22 +41,22 @@ use crate::{
 /// an incompatible way (renamed manifest fields, removed `artwork/`
 /// dir, etc.). Schema-level differences inside `data.db` are caught
 /// by sqlx migration replay at first switch — see `import_profile`.
-const ARCHIVE_VERSION: u32 = 1;
+pub(crate) const ARCHIVE_VERSION: u32 = 1;
 
 const MANIFEST_FILENAME: &str = "manifest.json";
 
 #[derive(Debug, Serialize, Deserialize)]
-struct ArchiveManifest {
-    archive_version: u32,
+pub(crate) struct ArchiveManifest {
+    pub archive_version: u32,
     /// `CARGO_PKG_VERSION` of the WaveFlow build that produced the
     /// archive. Surfaced for diagnostics; not used for compatibility
     /// gating (versions diverge faster than the archive shape).
-    app_version: String,
-    profile_name: String,
+    pub app_version: String,
+    pub profile_name: String,
     /// Source profile id at export time. Purely informational — the
     /// new profile gets a fresh id at import.
-    source_profile_id: i64,
-    exported_at: String,
+    pub source_profile_id: i64,
+    pub exported_at: String,
 }
 
 /// Export the active profile (or `profile_id` if provided) into a
@@ -226,7 +226,7 @@ pub async fn import_profile(
 
 // ── zip plumbing ────────────────────────────────────────────────────
 
-fn write_archive(
+pub(crate) fn write_archive(
     target: &Path,
     profile_dir: &Path,
     db_path: &Path,
@@ -355,7 +355,7 @@ fn extract_archive(
 /// page. `TRUNCATE` resets the WAL file to zero length on success,
 /// which also keeps `.waveflow` archives from carrying a stale
 /// sidecar's worth of bytes.
-async fn checkpoint_wal(pool: &SqlitePool) -> AppResult<()> {
+pub(crate) async fn checkpoint_wal(pool: &SqlitePool) -> AppResult<()> {
     sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
         .execute(pool)
         .await?;

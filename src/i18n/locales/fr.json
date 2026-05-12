@@ -387,6 +387,11 @@
       "1y": "1 an",
       "all": "Tout"
     },
+    "export": {
+      "label": "Exporter les statistiques",
+      "action": "Exporter",
+      "dialogTitle": "Exporter les statistiques en JSON"
+    },
     "kpi": {
       "totalPlays": "Écoutes",
       "totalTime": "Temps d'écoute",
@@ -1037,6 +1042,28 @@
         "dialogTitle": "Importer un profil WaveFlow",
         "done": "Profil importé (id {{id}}). Bascule depuis le sélecteur de profil.",
         "failed": "Échec de l'import. Le fichier est peut-être corrompu ou incompatible."
+      }
+    },
+    "backup": {
+      "title": "Sauvegarde automatique",
+      "subtitle": "Crée régulièrement une archive .waveflow de chaque profil dans le dossier choisi.",
+      "intervalLabel": "Fréquence",
+      "intervalDays_one": "Tous les jours",
+      "intervalDays_other": "Tous les {{count}} jours",
+      "retentionLabel": "Archives conservées",
+      "retentionKeep_one": "{{count}} archive par profil",
+      "retentionKeep_other": "{{count}} archives par profil",
+      "changeFolder": "Changer de dossier",
+      "pickFolderTitle": "Choisir le dossier de sauvegarde",
+      "lastRun": "Dernière sauvegarde : {{when}}",
+      "neverRun": "jamais",
+      "runNow": "Sauvegarder maintenant",
+      "runOk_one": "{{count}} archive écrite.",
+      "runOk_other": "{{count}} archives écrites.",
+      "errors": {
+        "loadFailed": "Impossible de lire la configuration de sauvegarde.",
+        "saveFailed": "Échec de l'enregistrement. Réessaie.",
+        "runFailed": "Échec de la sauvegarde. Voir les logs."
       }
     },
     "dataFolder": {

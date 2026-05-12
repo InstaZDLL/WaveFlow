@@ -426,7 +426,12 @@
     },
     "plays_zero": "0 просмотров",
     "plays_one": "{{count}} играть",
-    "plays_other": "{{count}} спектакли"
+    "plays_other": "{{count}} спектакли",
+    "export": {
+      "label": "Экспортировать статистику",
+      "action": "Экспорт",
+      "dialogTitle": "Экспортировать статистику в JSON"
+    }
   },
   "about": {
     "title": "О нас",
@@ -1048,6 +1053,28 @@
         "small_speakers": "Маленькие колонки",
         "spoken_word": "Речь",
         "treble_booster": "Усиление высоких"
+      }
+    },
+    "backup": {
+      "title": "Автоматическое резервное копирование",
+      "subtitle": "Регулярно создаёт архив .waveflow каждого профиля в выбранной папке.",
+      "intervalLabel": "Частота",
+      "intervalDays_one": "Каждый день",
+      "intervalDays_other": "Каждые {{count}} дн.",
+      "retentionLabel": "Хранить архивов",
+      "retentionKeep_one": "{{count}} архив на профиль",
+      "retentionKeep_other": "{{count}} архивов на профиль",
+      "changeFolder": "Сменить папку",
+      "pickFolderTitle": "Выберите папку для резервных копий",
+      "lastRun": "Последняя копия: {{when}}",
+      "neverRun": "никогда",
+      "runNow": "Сделать копию сейчас",
+      "runOk_one": "{{count}} архив записан.",
+      "runOk_other": "Записано архивов: {{count}}.",
+      "errors": {
+        "loadFailed": "Не удалось прочитать конфигурацию.",
+        "saveFailed": "Не удалось сохранить. Повторите.",
+        "runFailed": "Резервная копия не создана. См. логи."
       }
     }
   },
