@@ -189,14 +189,7 @@ fn open_exclusive_session(
     // 32-bit float stereo (downmix happens upstream in the decoder
     // when the source is multichannel). Float is the most widely
     // supported exclusive-mode format on consumer DACs.
-    let desired = WaveFormat::new(
-        32,
-        32,
-        &SampleType::Float,
-        sample_rate,
-        channels,
-        None,
-    );
+    let desired = WaveFormat::new(32, 32, &SampleType::Float, sample_rate, channels, None);
 
     // 4. Check the format is supported in exclusive mode. The wasapi
     //    crate returns `Ok(None)` here on success — Err on rejection.
@@ -215,9 +208,7 @@ fn open_exclusive_session(
         .get_device_period()
         .map_err(|e| AppError::Audio(format!("get_device_period: {e:?}")))?;
     let period_hns = min_period.max(default_period);
-    let mode = StreamMode::EventsExclusive {
-        period_hns,
-    };
+    let mode = StreamMode::EventsExclusive { period_hns };
 
     // 6. Initialize. `AUDCLNT_E_DEVICE_IN_USE` here means another
     //    application already owns the device exclusively — we surface
@@ -424,8 +415,8 @@ fn run_event_loop(
     // for the device. Errors are non-fatal — we're tearing down anyway.
     let _ = client.stop_stream();
     let _ = event; // released with the function frame
-    // Wait briefly so a slow `stop_stream` settles before COM
-    // uninit; not strictly required, but tidier under tracing.
+                   // Wait briefly so a slow `stop_stream` settles before COM
+                   // uninit; not strictly required, but tidier under tracing.
     std::thread::sleep(Duration::from_millis(5));
     wasapi::deinitialize();
 }

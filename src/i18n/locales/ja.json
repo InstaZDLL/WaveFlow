@@ -710,7 +710,8 @@
     "rating": "評価",
     "ratingNone": "評価なし",
     "batchEdit": "{{count}}曲のタグを編集…"
-  },  "batchTagEdit": {
+  },
+  "batchTagEdit": {
     "title": "タグの一括編集",
     "subtitle": "{{count}}曲を選択中",
     "help": "選択全体に適用するフィールドにチェックを入れてください。チェックなしのフィールドは曲ごとに維持されます。",

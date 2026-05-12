@@ -710,7 +710,8 @@
     "rating": "Puan",
     "ratingNone": "Puan yok",
     "batchEdit": "{{count}} parça için etiketleri düzenle…"
-  },  "batchTagEdit": {
+  },
+  "batchTagEdit": {
     "title": "Toplu etiket düzenleme",
     "subtitle": "{{count}} parça seçildi",
     "help": "Tüm seçime uygulanacak alanları işaretle. İşaretsiz alanlar parça başına olduğu gibi kalır.",

@@ -710,7 +710,8 @@
     "rating": "Peringkat",
     "ratingNone": "Tanpa peringkat",
     "batchEdit": "Edit tag untuk {{count}} lagu…"
-  },  "batchTagEdit": {
+  },
+  "batchTagEdit": {
     "title": "Edit tag massal",
     "subtitle": "{{count}} lagu dipilih",
     "help": "Centang kolom yang ingin diterapkan ke seluruh pilihan. Kolom yang tidak dicentang tetap per-lagu.",

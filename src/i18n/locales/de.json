@@ -710,7 +710,8 @@
     "rating": "Bewertung",
     "ratingNone": "Keine Bewertung",
     "batchEdit": "Tags für {{count}} Titel bearbeiten…"
-  },  "batchTagEdit": {
+  },
+  "batchTagEdit": {
     "title": "Tags im Stapel bearbeiten",
     "subtitle": "{{count}} Titel ausgewählt",
     "help": "Aktiviere die Felder, die auf alle Titel angewendet werden sollen. Nicht aktivierte Felder bleiben pro Titel unverändert.",

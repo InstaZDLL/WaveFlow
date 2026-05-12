@@ -190,10 +190,7 @@ export function useTrackContextMenu({
           track={propertiesTrack}
           onClose={closeProperties}
         />
-        <BatchTagEditModal
-          trackIds={batchEditIds}
-          onClose={closeBatchEdit}
-        />
+        <BatchTagEditModal trackIds={batchEditIds} onClose={closeBatchEdit} />
       </>
     );
   }, [

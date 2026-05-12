@@ -710,7 +710,8 @@
     "rating": "Valutazione",
     "ratingNone": "Nessuna valutazione",
     "batchEdit": "Modifica tag per {{count}} brani…"
-  },  "batchTagEdit": {
+  },
+  "batchTagEdit": {
     "title": "Modifica tag in blocco",
     "subtitle": "{{count}} brani selezionati",
     "help": "Seleziona i campi da applicare a tutta la selezione. I campi non selezionati restano invariati per brano.",

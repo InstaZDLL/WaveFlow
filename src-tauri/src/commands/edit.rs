@@ -176,9 +176,7 @@ pub async fn update_tracks_batch(
         .fetch_optional(&pool)
         .await?;
         let Some(row) = row else {
-            summary
-                .errors
-                .push((*track_id, "track not found".into()));
+            summary.errors.push((*track_id, "track not found".into()));
             continue;
         };
         let path = std::path::PathBuf::from(&row.file_path);

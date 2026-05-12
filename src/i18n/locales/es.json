@@ -710,7 +710,8 @@
     "rating": "Valoración",
     "ratingNone": "Sin valoración",
     "batchEdit": "Editar etiquetas de {{count}} canciones…"
-  },  "batchTagEdit": {
+  },
+  "batchTagEdit": {
     "title": "Editar etiquetas en lote",
     "subtitle": "{{count}} canciones seleccionadas",
     "help": "Marca los campos que quieres propagar a toda la selección. Los campos sin marcar se mantienen por canción.",

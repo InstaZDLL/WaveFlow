@@ -710,7 +710,8 @@
     "rating": "評分",
     "ratingNone": "無評分",
     "batchEdit": "編輯 {{count}} 首曲目的標籤…"
-  },  "batchTagEdit": {
+  },
+  "batchTagEdit": {
     "title": "批次編輯標籤",
     "subtitle": "已選 {{count}} 首",
     "help": "勾選要套用到整個選取的欄位。未勾選的欄位保持每首曲目原值。",

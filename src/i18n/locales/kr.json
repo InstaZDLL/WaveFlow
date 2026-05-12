@@ -710,7 +710,8 @@
     "rating": "평점",
     "ratingNone": "평점 없음",
     "batchEdit": "{{count}}곡의 태그 편집…"
-  },  "batchTagEdit": {
+  },
+  "batchTagEdit": {
     "title": "태그 일괄 편집",
     "subtitle": "{{count}}곡 선택됨",
     "help": "선택 전체에 적용할 필드를 체크하세요. 체크하지 않은 필드는 곡별로 유지됩니다.",

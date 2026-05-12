@@ -710,7 +710,8 @@
     "rating": "Beoordeling",
     "ratingNone": "Geen beoordeling",
     "batchEdit": "Tags voor {{count}} nummers bewerken…"
-  },  "batchTagEdit": {
+  },
+  "batchTagEdit": {
     "title": "Tags in batch bewerken",
     "subtitle": "{{count}} nummers geselecteerd",
     "help": "Vink de velden aan die op de hele selectie moeten worden toegepast. Niet aangevinkte velden blijven per nummer onveranderd.",

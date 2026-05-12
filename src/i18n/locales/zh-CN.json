@@ -710,7 +710,8 @@
     "rating": "评分",
     "ratingNone": "无评分",
     "batchEdit": "编辑 {{count}} 首曲目的标签…"
-  },  "batchTagEdit": {
+  },
+  "batchTagEdit": {
     "title": "批量编辑标签",
     "subtitle": "已选择 {{count}} 首",
     "help": "勾选要应用到整个选择的字段。未勾选的字段保持每首曲目原值。",

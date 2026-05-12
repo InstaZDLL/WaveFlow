@@ -718,7 +718,8 @@
     "rating": "Note",
     "ratingNone": "Aucune note",
     "batchEdit": "Modifier les tags de {{count}} morceaux…"
-  },  "batchTagEdit": {
+  },
+  "batchTagEdit": {
     "title": "Modifier les tags en lot",
     "subtitle": "{{count}} morceaux sélectionnés",
     "help": "Coche les champs à appliquer à toute la sélection. Les champs non cochés restent intacts par morceau.",

@@ -718,7 +718,8 @@
     "rating": "Rating",
     "ratingNone": "No rating",
     "batchEdit": "Edit tags for {{count}} tracks…"
-  },  "batchTagEdit": {
+  },
+  "batchTagEdit": {
     "title": "Batch edit tags",
     "subtitle": "{{count}} tracks selected",
     "help": "Tick the fields you want propagated to every track. Unticked fields stay per-track untouched.",
