@@ -505,7 +505,15 @@
       "daysLabel_zero": "0 hari berturut-turut",
       "daysLabel_one": "{{count}} hari berturut-turut",
       "daysLabel_other": "{{count}} hari berturut-turut",
-      "range": "Dari {{start}} hingga {{end}}"
+      "range": "Dari {{start}} hingga {{end}}",
+      "daysShort": "hari berturut-turut"
+    },
+    "share": {
+      "open": "Bagikan",
+      "save": "Simpan sebagai PNG",
+      "copy": "Salin gambar",
+      "brand": "WaveFlow Wrapped",
+      "poweredBy": "Lokal · Privat"
     },
     "firstListen": {
       "eyebrow": "Tahunmu dimulai dengan"

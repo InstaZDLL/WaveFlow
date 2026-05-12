@@ -505,7 +505,15 @@
       "daysLabel_zero": "0 jour d'affilée",
       "daysLabel_one": "{{count}} jour d'affilée",
       "daysLabel_other": "{{count}} jours d'affilée",
+      "daysShort": "jours d'affilée",
       "range": "Du {{start}} au {{end}}"
+    },
+    "share": {
+      "open": "Partager",
+      "save": "Enregistrer en PNG",
+      "copy": "Copier l'image",
+      "brand": "WaveFlow Wrapped",
+      "poweredBy": "Local · Privé"
     },
     "firstListen": {
       "eyebrow": "Votre année a commencé par"

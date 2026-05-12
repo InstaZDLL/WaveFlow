@@ -505,7 +505,15 @@
       "daysLabel_zero": "0 Tage am Stück",
       "daysLabel_one": "{{count}} Tag am Stück",
       "daysLabel_other": "{{count}} Tage am Stück",
-      "range": "Vom {{start}} bis {{end}}"
+      "range": "Vom {{start}} bis {{end}}",
+      "daysShort": "Tage am Stück"
+    },
+    "share": {
+      "open": "Teilen",
+      "save": "Als PNG speichern",
+      "copy": "Bild kopieren",
+      "brand": "WaveFlow Wrapped",
+      "poweredBy": "Lokal · Privat"
     },
     "firstListen": {
       "eyebrow": "Dein Jahr begann mit"

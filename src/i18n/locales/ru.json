@@ -505,7 +505,15 @@
       "daysLabel_zero": "0 дней подряд",
       "daysLabel_one": "{{count}} день подряд",
       "daysLabel_other": "{{count}} дней подряд",
-      "range": "С {{start}} по {{end}}"
+      "range": "С {{start}} по {{end}}",
+      "daysShort": "дней подряд"
+    },
+    "share": {
+      "open": "Поделиться",
+      "save": "Сохранить как PNG",
+      "copy": "Копировать изображение",
+      "brand": "WaveFlow Wrapped",
+      "poweredBy": "Локально · Приватно"
     },
     "firstListen": {
       "eyebrow": "Ваш год начался с"

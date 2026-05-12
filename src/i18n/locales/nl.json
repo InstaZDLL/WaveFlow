@@ -505,7 +505,15 @@
       "daysLabel_zero": "0 dagen op rij",
       "daysLabel_one": "{{count}} dag op rij",
       "daysLabel_other": "{{count}} dagen op rij",
-      "range": "Van {{start}} tot {{end}}"
+      "range": "Van {{start}} tot {{end}}",
+      "daysShort": "dagen op rij"
+    },
+    "share": {
+      "open": "Delen",
+      "save": "Opslaan als PNG",
+      "copy": "Afbeelding kopiëren",
+      "brand": "WaveFlow Wrapped",
+      "poweredBy": "Lokaal · Privé"
     },
     "firstListen": {
       "eyebrow": "Je jaar begon met"

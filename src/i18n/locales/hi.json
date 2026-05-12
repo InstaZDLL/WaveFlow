@@ -505,7 +505,15 @@
       "daysLabel_zero": "0 दिन लगातार",
       "daysLabel_one": "{{count}} दिन लगातार",
       "daysLabel_other": "{{count}} दिन लगातार",
-      "range": "{{start}} से {{end}} तक"
+      "range": "{{start}} से {{end}} तक",
+      "daysShort": "दिन लगातार"
+    },
+    "share": {
+      "open": "साझा करें",
+      "save": "PNG में सहेजें",
+      "copy": "छवि कॉपी करें",
+      "brand": "WaveFlow Wrapped",
+      "poweredBy": "स्थानीय · निजी"
     },
     "firstListen": {
       "eyebrow": "आपका साल शुरू हुआ इससे"

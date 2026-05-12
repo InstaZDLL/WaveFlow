@@ -505,7 +505,15 @@
       "daysLabel_zero": "0 días seguidos",
       "daysLabel_one": "{{count}} día seguido",
       "daysLabel_other": "{{count}} días seguidos",
-      "range": "Del {{start}} al {{end}}"
+      "range": "Del {{start}} al {{end}}",
+      "daysShort": "días seguidos"
+    },
+    "share": {
+      "open": "Compartir",
+      "save": "Guardar como PNG",
+      "copy": "Copiar imagen",
+      "brand": "WaveFlow Wrapped",
+      "poweredBy": "Local · Privado"
     },
     "firstListen": {
       "eyebrow": "Tu año empezó con"

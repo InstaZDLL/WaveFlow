@@ -8,16 +8,23 @@ import {
   Pause,
   Play,
   Loader2,
+  Share2,
+  Download,
+  Copy,
+  Check,
 } from "lucide-react";
 import {
   getWrapped,
   availableWrappedYears,
   wrappedCurrentYear,
+  saveWrappedImage,
   type WrappedPayload,
 } from "../../lib/tauri/wrapped";
 import type { ViewId } from "../../types";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { formatDuration } from "../../lib/tauri/track";
+import { pickSaveFile } from "../../lib/tauri/dialog";
+import { renderWrappedCard } from "../../lib/wrappedCard";
 
 interface WrappedViewProps {
   onNavigate: (view: ViewId) => void;
@@ -48,7 +55,7 @@ export function WrappedView({
   onNavigateToAlbum,
   onNavigateToArtist,
 }: WrappedViewProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [year, setYear] = useState<number | null>(initialYear);
   const [availableYears, setAvailableYears] = useState<number[]>([]);
@@ -57,6 +64,10 @@ export function WrappedView({
   const [error, setError] = useState<string | null>(null);
   const [slideIdx, setSlideIdx] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [sharing, setSharing] = useState<"idle" | "saving" | "copying" | "done">(
+    "idle",
+  );
 
   // ---- Year resolution + payload fetch ----
   useEffect(() => {
@@ -171,6 +182,80 @@ export function WrappedView({
   const goNext = () =>
     setSlideIdx((i) => (i + 1 < slides.length ? i + 1 : i));
 
+  // Share handlers — build the PNG once and dispatch by target.
+  // Reasons each path lives here and not in a hook:
+  //   - they depend on `payload` + i18n labels + the year accent, which
+  //     all already live in this component's scope;
+  //   - the "sharing" state is purely UI-local — no other view needs to
+  //     observe whether the user just exported their card.
+  const shareLabels = useMemo(
+    () => ({
+      wrapped: t("wrapped.share.brand"),
+      yourYear: t("wrapped.intro.subtitle"),
+      minutes: t("wrapped.minutes.eyebrow"),
+      plays: t("wrapped.stats.plays"),
+      artists: t("wrapped.stats.artists"),
+      topTracks: t("wrapped.topTracks.title"),
+      topArtists: t("wrapped.topArtists.title"),
+      mood: t("wrapped.mood.eyebrow"),
+      streak: t("wrapped.streak.eyebrow"),
+      daysInARow: t("wrapped.streak.daysShort"),
+      poweredBy: t("wrapped.share.poweredBy"),
+    }),
+    [t],
+  );
+
+  const buildCard = async (): Promise<Blob> => {
+    if (!payload) throw new Error("payload missing");
+    const accentNow = accentForSlide(payload.year, "intro");
+    return renderWrappedCard(payload, accentNow, {
+      labels: shareLabels,
+      locale: i18n.language,
+    });
+  };
+
+  const handleSaveImage = async () => {
+    if (!payload) return;
+    try {
+      setSharing("saving");
+      const defaultName = `WaveFlow-Wrapped-${payload.year}.png`;
+      const target = await pickSaveFile(defaultName, ["png"]);
+      if (!target) {
+        setSharing("idle");
+        return;
+      }
+      const blob = await buildCard();
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      await saveWrappedImage(bytes, target);
+      setSharing("done");
+      window.setTimeout(() => setSharing("idle"), 2000);
+    } catch (err) {
+      console.error("[WrappedView] save image failed", err);
+      setSharing("idle");
+    }
+  };
+
+  const handleCopyImage = async () => {
+    if (!payload) return;
+    try {
+      setSharing("copying");
+      const blob = await buildCard();
+      // ClipboardItem is supported in Chromium-based WebView; Tauri 2
+      // ships Edge WebView on Windows + WebKitGTK on Linux + WKWebView
+      // on macOS — Linux's WebKitGTK is the only one that historically
+      // refused image/png writes, so we surface the error rather than
+      // silently no-op.
+      await navigator.clipboard.write([
+        new ClipboardItem({ "image/png": blob }),
+      ]);
+      setSharing("done");
+      window.setTimeout(() => setSharing("idle"), 2000);
+    } catch (err) {
+      console.error("[WrappedView] copy image failed", err);
+      setSharing("idle");
+    }
+  };
+
   // Empty profile state — no plays this year. Pre-empts the loader
   // when years[] came back empty so we don't flash a spinner forever.
   if (!loading && payload && payload.total_plays === 0) {
@@ -247,6 +332,48 @@ export function WrappedView({
               </option>
             ))}
           </select>
+        )}
+        {payload && (
+          <div className="relative">
+            <button
+              onClick={() => setShareOpen((s) => !s)}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-50"
+              disabled={sharing === "saving" || sharing === "copying"}
+              aria-label={t("wrapped.share.open")}
+            >
+              {sharing === "saving" || sharing === "copying" ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : sharing === "done" ? (
+                <Check size={16} />
+              ) : (
+                <Share2 size={16} />
+              )}
+            </button>
+            {shareOpen && (
+              <div className="absolute right-0 top-full mt-2 min-w-56 rounded-2xl bg-zinc-900/95 backdrop-blur-md border border-white/10 shadow-2xl overflow-hidden">
+                <button
+                  onClick={async () => {
+                    setShareOpen(false);
+                    await handleSaveImage();
+                  }}
+                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition-colors text-sm"
+                >
+                  <Download size={16} className="opacity-70" />
+                  {t("wrapped.share.save")}
+                </button>
+                <button
+                  onClick={async () => {
+                    setShareOpen(false);
+                    await handleCopyImage();
+                  }}
+                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/10 transition-colors text-sm border-t border-white/5"
+                >
+                  <Copy size={16} className="opacity-70" />
+                  {t("wrapped.share.copy")}
+                </button>
+              </div>
+            )}
+          </div>
         )}
         <button
           onClick={() => onNavigate("home")}

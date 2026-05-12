@@ -505,7 +505,15 @@
       "daysLabel_zero": "0 天连续",
       "daysLabel_one": "{{count}} 天连续",
       "daysLabel_other": "{{count}} 天连续",
-      "range": "{{start}} 至 {{end}}"
+      "range": "{{start}} 至 {{end}}",
+      "daysShort": "天连续"
+    },
+    "share": {
+      "open": "分享",
+      "save": "保存为 PNG",
+      "copy": "复制图片",
+      "brand": "WaveFlow Wrapped",
+      "poweredBy": "本地 · 私密"
     },
     "firstListen": {
       "eyebrow": "你的一年从这首歌开始"

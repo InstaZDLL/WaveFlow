@@ -505,7 +505,15 @@
       "daysLabel_zero": "0日連続",
       "daysLabel_one": "{{count}}日連続",
       "daysLabel_other": "{{count}}日連続",
-      "range": "{{start}}〜{{end}}"
+      "range": "{{start}}〜{{end}}",
+      "daysShort": "日連続"
+    },
+    "share": {
+      "open": "共有",
+      "save": "PNGとして保存",
+      "copy": "画像をコピー",
+      "brand": "WaveFlow Wrapped",
+      "poweredBy": "ローカル · プライベート"
     },
     "firstListen": {
       "eyebrow": "1年の最初の曲"

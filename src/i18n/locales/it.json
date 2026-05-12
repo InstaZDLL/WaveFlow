@@ -505,7 +505,15 @@
       "daysLabel_zero": "0 giorni di fila",
       "daysLabel_one": "{{count}} giorno di fila",
       "daysLabel_other": "{{count}} giorni di fila",
-      "range": "Dal {{start}} al {{end}}"
+      "range": "Dal {{start}} al {{end}}",
+      "daysShort": "giorni di fila"
+    },
+    "share": {
+      "open": "Condividi",
+      "save": "Salva come PNG",
+      "copy": "Copia immagine",
+      "brand": "WaveFlow Wrapped",
+      "poweredBy": "Locale · Privato"
     },
     "firstListen": {
       "eyebrow": "Il tuo anno è iniziato con"

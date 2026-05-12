@@ -505,7 +505,15 @@
       "daysLabel_zero": "0 days in a row",
       "daysLabel_one": "{{count}} day in a row",
       "daysLabel_other": "{{count}} days in a row",
-      "range": "From {{start}} to {{end}}"
+      "range": "From {{start}} to {{end}}",
+      "daysShort": "days in a row"
+    },
+    "share": {
+      "open": "Share",
+      "save": "Save as PNG",
+      "copy": "Copy image",
+      "brand": "WaveFlow Wrapped",
+      "poweredBy": "Local · Private"
     },
     "firstListen": {
       "eyebrow": "Your year started with"

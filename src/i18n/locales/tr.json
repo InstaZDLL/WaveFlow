@@ -505,7 +505,15 @@
       "daysLabel_zero": "0 gün üst üste",
       "daysLabel_one": "{{count}} gün üst üste",
       "daysLabel_other": "{{count}} gün üst üste",
-      "range": "{{start}} - {{end}}"
+      "range": "{{start}} - {{end}}",
+      "daysShort": "gün üst üste"
+    },
+    "share": {
+      "open": "Paylaş",
+      "save": "PNG olarak kaydet",
+      "copy": "Görseli kopyala",
+      "brand": "WaveFlow Wrapped",
+      "poweredBy": "Yerel · Özel"
     },
     "firstListen": {
       "eyebrow": "Yılın şununla başladı"

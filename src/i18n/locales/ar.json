@@ -505,7 +505,15 @@
       "daysLabel_zero": "0 يوم متتالي",
       "daysLabel_one": "{{count}} يوم متتالي",
       "daysLabel_other": "{{count}} يوم متتالي",
-      "range": "من {{start}} إلى {{end}}"
+      "range": "من {{start}} إلى {{end}}",
+      "daysShort": "يوم متتالي"
+    },
+    "share": {
+      "open": "مشاركة",
+      "save": "حفظ كـ PNG",
+      "copy": "نسخ الصورة",
+      "brand": "WaveFlow Wrapped",
+      "poweredBy": "محلي · خاص"
     },
     "firstListen": {
       "eyebrow": "بدأ عامك مع"
