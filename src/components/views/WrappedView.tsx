@@ -17,13 +17,13 @@ import {
   getWrapped,
   availableWrappedYears,
   wrappedCurrentYear,
-  saveWrappedImage,
   type WrappedPayload,
 } from "../../lib/tauri/wrapped";
 import type { ViewId } from "../../types";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { formatDuration } from "../../lib/tauri/track";
 import { pickSaveFile } from "../../lib/tauri/dialog";
+import { saveShareImage } from "../../lib/tauri/share";
 import { renderWrappedCard } from "../../lib/wrappedCard";
 
 interface WrappedViewProps {
@@ -226,7 +226,7 @@ export function WrappedView({
       }
       const blob = await buildCard();
       const bytes = new Uint8Array(await blob.arrayBuffer());
-      await saveWrappedImage(bytes, target);
+      await saveShareImage(bytes, target);
       setSharing("done");
       window.setTimeout(() => setSharing("idle"), 2000);
     } catch (err) {

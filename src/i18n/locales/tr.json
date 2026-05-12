@@ -819,7 +819,14 @@
       "title": "Şarkı Sözleri",
       "comingSoon": "Yakında"
     },
-    "startRadio": "Radyoyu başlat"
+    "startRadio": "Radyoyu başlat",
+    "share": {
+      "open": "Paylaş",
+      "save": "PNG olarak kaydet",
+      "copy": "Görseli kopyala",
+      "eyebrow": "Şimdi çalıyor",
+      "on": "uygulamasında"
+    }
   },
   "playerBar": {
     "lyrics": "Şarkı Sözleri",

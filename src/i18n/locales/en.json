@@ -827,7 +827,14 @@
       "title": "Lyrics",
       "comingSoon": "Coming soon"
     },
-    "startRadio": "Start radio"
+    "startRadio": "Start radio",
+    "share": {
+      "open": "Share",
+      "save": "Save as PNG",
+      "copy": "Copy image",
+      "eyebrow": "Now playing",
+      "on": "on"
+    }
   },
   "playerBar": {
     "lyrics": "Lyrics",

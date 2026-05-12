@@ -646,22 +646,6 @@ pub fn wrapped_current_year() -> i32 {
     Local::now().year()
 }
 
-/// Persist a Wrapped share image (rendered on the frontend Canvas as a
-/// PNG) at the user-picked path. We accept raw bytes rather than a
-/// data-URL because IPC strings are UTF-16 in WebView2 and a 1080×1920
-/// PNG is heavy enough that the base64 detour roughly doubles the
-/// memory pressure. Writing happens on `spawn_blocking` so the tokio
-/// runtime stays responsive on slow disks (USB drives, network shares).
-#[tauri::command]
-pub async fn save_wrapped_image(bytes: Vec<u8>, target_path: String) -> AppResult<()> {
-    let target = std::path::PathBuf::from(target_path);
-    tokio::task::spawn_blocking(move || std::fs::write(&target, bytes))
-        .await
-        .map_err(|e| crate::error::AppError::Other(format!("wrapped image task: {e}")))?
-        .map_err(|e| crate::error::AppError::Other(format!("wrapped image write: {e}")))?;
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

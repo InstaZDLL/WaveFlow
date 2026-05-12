@@ -827,7 +827,14 @@
       "title": "Paroles",
       "comingSoon": "Bientôt disponible"
     },
-    "startRadio": "Démarrer la radio"
+    "startRadio": "Démarrer la radio",
+    "share": {
+      "open": "Partager",
+      "save": "Enregistrer en PNG",
+      "copy": "Copier l'image",
+      "eyebrow": "En cours d'écoute",
+      "on": "sur"
+    }
   },
   "playerBar": {
     "lyrics": "Paroles",

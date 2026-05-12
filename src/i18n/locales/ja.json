@@ -819,7 +819,14 @@
       "title": "歌詞",
       "comingSoon": "近日公開"
     },
-    "startRadio": "ラジオを開始"
+    "startRadio": "ラジオを開始",
+    "share": {
+      "open": "共有",
+      "save": "PNGとして保存",
+      "copy": "画像をコピー",
+      "eyebrow": "再生中",
+      "on": "で"
+    }
   },
   "playerBar": {
     "lyrics": "歌詞",

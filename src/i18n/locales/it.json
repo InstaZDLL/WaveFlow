@@ -819,7 +819,14 @@
       "title": "Testo",
       "comingSoon": "Prossimamente disponibile"
     },
-    "startRadio": "Avvia radio"
+    "startRadio": "Avvia radio",
+    "share": {
+      "open": "Condividi",
+      "save": "Salva come PNG",
+      "copy": "Copia immagine",
+      "eyebrow": "In riproduzione",
+      "on": "su"
+    }
   },
   "playerBar": {
     "lyrics": "Testo",

@@ -819,7 +819,14 @@
       "title": "歌词",
       "comingSoon": "即将推出"
     },
-    "startRadio": "开始电台"
+    "startRadio": "开始电台",
+    "share": {
+      "open": "分享",
+      "save": "保存为 PNG",
+      "copy": "复制图片",
+      "eyebrow": "正在播放",
+      "on": "·"
+    }
   },
   "playerBar": {
     "lyrics": "歌词",

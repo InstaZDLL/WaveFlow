@@ -430,7 +430,7 @@ pub fn run() {
             commands::wrapped::get_wrapped,
             commands::wrapped::available_wrapped_years,
             commands::wrapped::wrapped_current_year,
-            commands::wrapped::save_wrapped_image,
+            commands::share::save_share_image,
         ])
         .on_window_event(|window, event| match event {
             // Close-to-tray: when the user clicks the window's "X" we

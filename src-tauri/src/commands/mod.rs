@@ -26,6 +26,7 @@ pub mod profile;
 pub mod mood_radio;
 pub mod radio;
 pub mod scan;
+pub mod share;
 pub mod similar;
 pub mod smart_playlists;
 pub mod spotify;

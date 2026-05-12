@@ -819,7 +819,14 @@
       "title": "가사",
       "comingSoon": "곧 출시됩니다"
     },
-    "startRadio": "라디오 시작"
+    "startRadio": "라디오 시작",
+    "share": {
+      "open": "공유",
+      "save": "PNG로 저장",
+      "copy": "이미지 복사",
+      "eyebrow": "지금 재생 중",
+      "on": "에서"
+    }
   },
   "playerBar": {
     "lyrics": "가사",

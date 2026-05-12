@@ -819,7 +819,14 @@
       "title": "كلمات الأغنية",
       "comingSoon": "قريبًا"
     },
-    "startRadio": "تشغيل الراديو"
+    "startRadio": "تشغيل الراديو",
+    "share": {
+      "open": "مشاركة",
+      "save": "حفظ كـ PNG",
+      "copy": "نسخ الصورة",
+      "eyebrow": "قيد التشغيل",
+      "on": "على"
+    }
   },
   "playerBar": {
     "lyrics": "كلمات الأغنية",

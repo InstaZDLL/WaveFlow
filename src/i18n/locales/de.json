@@ -819,7 +819,14 @@
       "title": "Text",
       "comingSoon": "In Kürze erhältlich"
     },
-    "startRadio": "Radio starten"
+    "startRadio": "Radio starten",
+    "share": {
+      "open": "Teilen",
+      "save": "Als PNG speichern",
+      "copy": "Bild kopieren",
+      "eyebrow": "Wird abgespielt",
+      "on": "auf"
+    }
   },
   "playerBar": {
     "lyrics": "Text",

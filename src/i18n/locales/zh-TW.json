@@ -819,7 +819,14 @@
       "title": "歌詞",
       "comingSoon": "即將推出"
     },
-    "startRadio": "開始電台"
+    "startRadio": "開始電台",
+    "share": {
+      "open": "分享",
+      "save": "儲存為 PNG",
+      "copy": "複製圖片",
+      "eyebrow": "正在播放",
+      "on": "·"
+    }
   },
   "playerBar": {
     "lyrics": "歌詞",

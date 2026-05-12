@@ -819,7 +819,14 @@
       "title": "Tekst",
       "comingSoon": "Binnenkort beschikbaar"
     },
-    "startRadio": "Start radio"
+    "startRadio": "Start radio",
+    "share": {
+      "open": "Delen",
+      "save": "Opslaan als PNG",
+      "copy": "Afbeelding kopiëren",
+      "eyebrow": "Wordt afgespeeld",
+      "on": "op"
+    }
   },
   "playerBar": {
     "lyrics": "Tekst",

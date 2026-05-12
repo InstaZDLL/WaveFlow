@@ -819,7 +819,14 @@
       "title": "Lirik",
       "comingSoon": "Segera hadir"
     },
-    "startRadio": "Mulai radio"
+    "startRadio": "Mulai radio",
+    "share": {
+      "open": "Bagikan",
+      "save": "Simpan sebagai PNG",
+      "copy": "Salin gambar",
+      "eyebrow": "Sedang diputar",
+      "on": "di"
+    }
   },
   "playerBar": {
     "lyrics": "Lirik",
