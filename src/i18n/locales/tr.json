@@ -708,8 +708,31 @@
     "properties": "Özellikler",
     "startRadio": "Radyoyu başlat",
     "rating": "Puan",
-    "ratingNone": "Puan yok"
+    "ratingNone": "Puan yok",
+    "batchEdit": "{{count}} parça için etiketleri düzenle…"
+  },  "batchTagEdit": {
+    "title": "Toplu etiket düzenleme",
+    "subtitle": "{{count}} parça seçildi",
+    "help": "Tüm seçime uygulanacak alanları işaretle. İşaretsiz alanlar parça başına olduğu gibi kalır.",
+    "submit": "Uygula ({{count}} alan)",
+    "fields": {
+      "artist": "Sanatçı",
+      "album": "Albüm",
+      "year": "Yıl",
+      "genre": "Tür"
+    },
+    "placeholders": {
+      "artist": "örn. Daft Punk, Justice",
+      "album": "Albüm adı",
+      "year": "örn. 2026",
+      "genre": "örn. Electronic"
+    },
+    "result": {
+      "updated": "{{count}} parça güncellendi",
+      "failed": "{{count}} hata:"
+    }
   },
+
   "trackProperties": {
     "title": "Parça özellikleri",
     "sections": {

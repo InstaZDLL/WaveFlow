@@ -6,6 +6,7 @@ import {
   Info,
   ListEnd,
   ListPlus,
+  Pencil,
   Plus,
   Radio,
   Star,
@@ -50,6 +51,12 @@ export interface TrackContextMenuProps {
   onNavigateToAlbum?: (albumId: number) => void;
   onNavigateToArtist?: (artistId: number) => void;
   onShowProperties: (track: Track) => void;
+  /** When set AND the right-clicked track is part of the selection AND
+   * the selection has 2+ tracks, the menu adds an "Edit tags for N
+   * tracks…" item that opens the batch tag editor with all selected
+   * track IDs. Hidden otherwise (single-track flow uses Properties). */
+  batchEditIds?: number[];
+  onShowBatchEdit?: (trackIds: number[]) => void;
 }
 
 interface ArtistEntry {
@@ -82,6 +89,8 @@ export function TrackContextMenu({
   onNavigateToAlbum,
   onNavigateToArtist,
   onShowProperties,
+  batchEditIds,
+  onShowBatchEdit,
 }: TrackContextMenuProps) {
   const { t } = useTranslation();
   const artists = parseArtistList(track.artist_ids, track.artist_name);
@@ -300,6 +309,16 @@ export function TrackContextMenu({
         label={t("trackActions.properties")}
         onSelect={closeAfter(() => onShowProperties(track))}
       />
+      {batchEditIds &&
+        batchEditIds.length >= 2 &&
+        batchEditIds.includes(track.id) &&
+        onShowBatchEdit && (
+          <ContextMenuItem
+            icon={<Pencil size={14} />}
+            label={t("trackActions.batchEdit", { count: batchEditIds.length })}
+            onSelect={closeAfter(() => onShowBatchEdit(batchEditIds))}
+          />
+        )}
     </ContextMenu>
   );
 }

@@ -708,8 +708,31 @@
     "properties": "特長",
     "startRadio": "ラジオを開始",
     "rating": "評価",
-    "ratingNone": "評価なし"
+    "ratingNone": "評価なし",
+    "batchEdit": "{{count}}曲のタグを編集…"
+  },  "batchTagEdit": {
+    "title": "タグの一括編集",
+    "subtitle": "{{count}}曲を選択中",
+    "help": "選択全体に適用するフィールドにチェックを入れてください。チェックなしのフィールドは曲ごとに維持されます。",
+    "submit": "適用 ({{count}}項目)",
+    "fields": {
+      "artist": "アーティスト",
+      "album": "アルバム",
+      "year": "年",
+      "genre": "ジャンル"
+    },
+    "placeholders": {
+      "artist": "例: Daft Punk, Justice",
+      "album": "アルバム名",
+      "year": "例: 2026",
+      "genre": "例: Electronic"
+    },
+    "result": {
+      "updated": "{{count}}曲を更新しました",
+      "failed": "失敗: {{count}}件"
+    }
   },
+
   "trackProperties": {
     "title": "トラックのプロパティ",
     "sections": {

@@ -708,8 +708,31 @@
     "properties": "특성",
     "startRadio": "라디오 시작",
     "rating": "평점",
-    "ratingNone": "평점 없음"
+    "ratingNone": "평점 없음",
+    "batchEdit": "{{count}}곡의 태그 편집…"
+  },  "batchTagEdit": {
+    "title": "태그 일괄 편집",
+    "subtitle": "{{count}}곡 선택됨",
+    "help": "선택 전체에 적용할 필드를 체크하세요. 체크하지 않은 필드는 곡별로 유지됩니다.",
+    "submit": "적용 ({{count}}개 필드)",
+    "fields": {
+      "artist": "아티스트",
+      "album": "앨범",
+      "year": "연도",
+      "genre": "장르"
+    },
+    "placeholders": {
+      "artist": "예: Daft Punk, Justice",
+      "album": "앨범 이름",
+      "year": "예: 2026",
+      "genre": "예: Electronic"
+    },
+    "result": {
+      "updated": "{{count}}곡 업데이트됨",
+      "failed": "실패 {{count}}건:"
+    }
   },
+
   "trackProperties": {
     "title": "트랙 속성",
     "sections": {

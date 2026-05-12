@@ -708,8 +708,31 @@
     "properties": "特性",
     "startRadio": "開始電台",
     "rating": "評分",
-    "ratingNone": "無評分"
+    "ratingNone": "無評分",
+    "batchEdit": "編輯 {{count}} 首曲目的標籤…"
+  },  "batchTagEdit": {
+    "title": "批次編輯標籤",
+    "subtitle": "已選 {{count}} 首",
+    "help": "勾選要套用到整個選取的欄位。未勾選的欄位保持每首曲目原值。",
+    "submit": "套用（{{count}} 個欄位）",
+    "fields": {
+      "artist": "藝人",
+      "album": "專輯",
+      "year": "年份",
+      "genre": "曲風"
+    },
+    "placeholders": {
+      "artist": "如 Daft Punk, Justice",
+      "album": "專輯名稱",
+      "year": "如 2026",
+      "genre": "如 Electronic"
+    },
+    "result": {
+      "updated": "已更新 {{count}} 首",
+      "failed": "{{count}} 個失敗："
+    }
   },
+
   "trackProperties": {
     "title": "曲目屬性",
     "sections": {

@@ -708,8 +708,31 @@
     "properties": "गुणधर्म",
     "startRadio": "रेडियो शुरू करें",
     "rating": "रेटिंग",
-    "ratingNone": "कोई रेटिंग नहीं"
+    "ratingNone": "कोई रेटिंग नहीं",
+    "batchEdit": "{{count}} ट्रैक के टैग संपादित करें…"
+  },  "batchTagEdit": {
+    "title": "एकसाथ टैग संपादन",
+    "subtitle": "{{count}} ट्रैक चयनित",
+    "help": "वे फ़ील्ड चुनें जिन्हें पूरे चयन पर लागू करना है। बिना चयन वाले फ़ील्ड प्रति-ट्रैक अछूते रहते हैं।",
+    "submit": "लागू करें ({{count}} फ़ील्ड)",
+    "fields": {
+      "artist": "कलाकार",
+      "album": "एल्बम",
+      "year": "वर्ष",
+      "genre": "विधा"
+    },
+    "placeholders": {
+      "artist": "जैसे Daft Punk, Justice",
+      "album": "एल्बम का नाम",
+      "year": "जैसे 2026",
+      "genre": "जैसे Electronic"
+    },
+    "result": {
+      "updated": "{{count}} ट्रैक अपडेट हुए",
+      "failed": "{{count}} विफलताएँ:"
+    }
   },
+
   "trackProperties": {
     "title": "ट्रैक गुण",
     "sections": {

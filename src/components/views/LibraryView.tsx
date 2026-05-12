@@ -206,6 +206,7 @@ export function LibraryView({
     onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
     onNavigateToAlbum,
     onNavigateToArtist,
+    selectedTrackIds: [...selection.selectedIds],
   });
 
   // Re-fetch when any library's updated_at changes (e.g. after a scan).

@@ -708,8 +708,31 @@
     "properties": "Eigenschaften",
     "startRadio": "Radio starten",
     "rating": "Bewertung",
-    "ratingNone": "Keine Bewertung"
+    "ratingNone": "Keine Bewertung",
+    "batchEdit": "Tags für {{count}} Titel bearbeiten…"
+  },  "batchTagEdit": {
+    "title": "Tags im Stapel bearbeiten",
+    "subtitle": "{{count}} Titel ausgewählt",
+    "help": "Aktiviere die Felder, die auf alle Titel angewendet werden sollen. Nicht aktivierte Felder bleiben pro Titel unverändert.",
+    "submit": "Anwenden ({{count}} Feld(er))",
+    "fields": {
+      "artist": "Künstler",
+      "album": "Album",
+      "year": "Jahr",
+      "genre": "Genre"
+    },
+    "placeholders": {
+      "artist": "z. B. Daft Punk, Justice",
+      "album": "Albumname",
+      "year": "z. B. 2026",
+      "genre": "z. B. Electronic"
+    },
+    "result": {
+      "updated": "{{count}} Titel aktualisiert",
+      "failed": "{{count}} Fehler:"
+    }
   },
+
   "trackProperties": {
     "title": "Titel-Eigenschaften",
     "sections": {

@@ -64,6 +64,7 @@ export function AlbumDetailView({
     onCreatePlaylist: () => setIsCreatePlaylistModalOpen(true),
     // No `onNavigateToAlbum` — we're already on the album page.
     onNavigateToArtist,
+    selectedTrackIds: [...selection.selectedIds],
   });
 
   // Deezer enrichment overlay

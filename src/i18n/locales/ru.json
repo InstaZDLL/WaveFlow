@@ -708,8 +708,31 @@
     "properties": "Свойства",
     "startRadio": "Включить радио",
     "rating": "Оценка",
-    "ratingNone": "Без оценки"
+    "ratingNone": "Без оценки",
+    "batchEdit": "Изменить теги для {{count}} треков…"
+  },  "batchTagEdit": {
+    "title": "Массовое редактирование тегов",
+    "subtitle": "Выбрано треков: {{count}}",
+    "help": "Отметьте поля для применения ко всей выборке. Не отмеченные поля остаются индивидуальными для каждого трека.",
+    "submit": "Применить ({{count}} поля)",
+    "fields": {
+      "artist": "Исполнитель",
+      "album": "Альбом",
+      "year": "Год",
+      "genre": "Жанр"
+    },
+    "placeholders": {
+      "artist": "напр. Daft Punk, Justice",
+      "album": "Название альбома",
+      "year": "напр. 2026",
+      "genre": "напр. Electronic"
+    },
+    "result": {
+      "updated": "Обновлено треков: {{count}}",
+      "failed": "Ошибок: {{count}}"
+    }
   },
+
   "trackProperties": {
     "title": "Свойства трека",
     "sections": {

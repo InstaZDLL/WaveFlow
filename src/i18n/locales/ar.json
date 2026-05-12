@@ -708,8 +708,31 @@
     "properties": "الخصائص",
     "startRadio": "تشغيل الراديو",
     "rating": "التقييم",
-    "ratingNone": "بدون تقييم"
+    "ratingNone": "بدون تقييم",
+    "batchEdit": "تعديل علامات {{count}} مقطوعات…"
+  },  "batchTagEdit": {
+    "title": "تحرير العلامات بشكل جماعي",
+    "subtitle": "{{count}} مقطوعات محددة",
+    "help": "حدّد الحقول التي تريد تطبيقها على كل التحديد. الحقول غير المحددة تبقى كما هي لكل مقطوعة.",
+    "submit": "تطبيق ({{count}} حقل)",
+    "fields": {
+      "artist": "الفنان",
+      "album": "الألبوم",
+      "year": "السنة",
+      "genre": "النوع"
+    },
+    "placeholders": {
+      "artist": "مثال: Daft Punk, Justice",
+      "album": "اسم الألبوم",
+      "year": "مثال: 2026",
+      "genre": "مثال: Electronic"
+    },
+    "result": {
+      "updated": "تم تحديث {{count}} مقطوعة",
+      "failed": "{{count}} إخفاق:"
+    }
   },
+
   "trackProperties": {
     "title": "خصائص المسار",
     "sections": {

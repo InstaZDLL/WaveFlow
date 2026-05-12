@@ -149,6 +149,25 @@ export function updateTrackTags(
   return invoke<void>("update_track_tags", { trackId, edit });
 }
 
+/** Summary returned by `updateTracksBatch`. */
+export interface BatchUpdateSummary {
+  updated: number;
+  /** `[trackId, reason]` for each track that couldn't be updated. */
+  errors: [number, string][];
+}
+
+/**
+ * Apply the same `TrackEdit` to every track in `trackIds`. Per-track
+ * failures don't abort the batch — they land in `errors`. Useful for
+ * bulk-renaming an album / setting genre on a selection / etc.
+ */
+export function updateTracksBatch(
+  trackIds: number[],
+  edit: TrackEdit,
+): Promise<BatchUpdateSummary> {
+  return invoke<BatchUpdateSummary>("update_tracks_batch", { trackIds, edit });
+}
+
 /**
  * Replace the embedded cover for a track. The image is written into
  * the audio file's tag AND copied into the per-profile artwork

@@ -708,8 +708,31 @@
     "properties": "属性",
     "startRadio": "开始电台",
     "rating": "评分",
-    "ratingNone": "无评分"
+    "ratingNone": "无评分",
+    "batchEdit": "编辑 {{count}} 首曲目的标签…"
+  },  "batchTagEdit": {
+    "title": "批量编辑标签",
+    "subtitle": "已选择 {{count}} 首",
+    "help": "勾选要应用到整个选择的字段。未勾选的字段保持每首曲目原值。",
+    "submit": "应用（{{count}} 个字段）",
+    "fields": {
+      "artist": "艺术家",
+      "album": "专辑",
+      "year": "年份",
+      "genre": "流派"
+    },
+    "placeholders": {
+      "artist": "如 Daft Punk, Justice",
+      "album": "专辑名称",
+      "year": "如 2026",
+      "genre": "如 Electronic"
+    },
+    "result": {
+      "updated": "已更新 {{count}} 首",
+      "failed": "{{count}} 个失败："
+    }
   },
+
   "trackProperties": {
     "title": "曲目属性",
     "sections": {

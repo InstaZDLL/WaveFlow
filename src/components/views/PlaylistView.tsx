@@ -242,6 +242,7 @@ export function PlaylistView({
     onNavigateToArtist,
     currentPlaylistId: playlistId,
     onRemoveFromPlaylist: handleRemoveFromPlaylist,
+    selectedTrackIds: [...selection.selectedIds],
   });
   const onContextMenuRow = trackContextMenu.open;
 

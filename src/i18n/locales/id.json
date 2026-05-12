@@ -708,8 +708,31 @@
     "properties": "Properti",
     "startRadio": "Mulai radio",
     "rating": "Peringkat",
-    "ratingNone": "Tanpa peringkat"
+    "ratingNone": "Tanpa peringkat",
+    "batchEdit": "Edit tag untuk {{count}} lagu…"
+  },  "batchTagEdit": {
+    "title": "Edit tag massal",
+    "subtitle": "{{count}} lagu dipilih",
+    "help": "Centang kolom yang ingin diterapkan ke seluruh pilihan. Kolom yang tidak dicentang tetap per-lagu.",
+    "submit": "Terapkan ({{count}} kolom)",
+    "fields": {
+      "artist": "Artis",
+      "album": "Album",
+      "year": "Tahun",
+      "genre": "Genre"
+    },
+    "placeholders": {
+      "artist": "mis. Daft Punk, Justice",
+      "album": "Nama album",
+      "year": "mis. 2026",
+      "genre": "mis. Electronic"
+    },
+    "result": {
+      "updated": "{{count}} lagu diperbarui",
+      "failed": "{{count}} kegagalan:"
+    }
   },
+
   "trackProperties": {
     "title": "Properti trek",
     "sections": {

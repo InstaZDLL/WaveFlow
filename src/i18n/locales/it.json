@@ -708,8 +708,31 @@
     "properties": "Caratteristiche",
     "startRadio": "Avvia radio",
     "rating": "Valutazione",
-    "ratingNone": "Nessuna valutazione"
+    "ratingNone": "Nessuna valutazione",
+    "batchEdit": "Modifica tag per {{count}} brani…"
+  },  "batchTagEdit": {
+    "title": "Modifica tag in blocco",
+    "subtitle": "{{count}} brani selezionati",
+    "help": "Seleziona i campi da applicare a tutta la selezione. I campi non selezionati restano invariati per brano.",
+    "submit": "Applica ({{count}} campo/i)",
+    "fields": {
+      "artist": "Artista",
+      "album": "Album",
+      "year": "Anno",
+      "genre": "Genere"
+    },
+    "placeholders": {
+      "artist": "es. Daft Punk, Justice",
+      "album": "Nome dell'album",
+      "year": "es. 2026",
+      "genre": "es. Electronic"
+    },
+    "result": {
+      "updated": "{{count}} brano/i aggiornati",
+      "failed": "{{count}} errore/i:"
+    }
   },
+
   "trackProperties": {
     "title": "Proprietà del brano",
     "sections": {

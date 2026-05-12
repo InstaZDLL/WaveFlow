@@ -716,8 +716,31 @@
     "properties": "Properties",
     "startRadio": "Start radio",
     "rating": "Rating",
-    "ratingNone": "No rating"
+    "ratingNone": "No rating",
+    "batchEdit": "Edit tags for {{count}} tracks…"
+  },  "batchTagEdit": {
+    "title": "Batch edit tags",
+    "subtitle": "{{count}} tracks selected",
+    "help": "Tick the fields you want propagated to every track. Unticked fields stay per-track untouched.",
+    "submit": "Apply ({{count}} field(s))",
+    "fields": {
+      "artist": "Artist",
+      "album": "Album",
+      "year": "Year",
+      "genre": "Genre"
+    },
+    "placeholders": {
+      "artist": "e.g. Daft Punk, Justice",
+      "album": "Album name",
+      "year": "e.g. 2026",
+      "genre": "e.g. Electronic"
+    },
+    "result": {
+      "updated": "{{count}} track(s) updated",
+      "failed": "{{count}} failure(s):"
+    }
   },
+
   "trackProperties": {
     "title": "Track properties",
     "sections": {

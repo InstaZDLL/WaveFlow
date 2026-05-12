@@ -708,8 +708,31 @@
     "properties": "Características",
     "startRadio": "Iniciar rádio",
     "rating": "Classificação",
-    "ratingNone": "Sem classificação"
+    "ratingNone": "Sem classificação",
+    "batchEdit": "Editar tags de {{count}} faixas…"
+  },  "batchTagEdit": {
+    "title": "Editar etiquetas em lote",
+    "subtitle": "{{count}} faixas selecionadas",
+    "help": "Marca os campos a propagar a toda a seleção. Campos não marcados ficam intactos por faixa.",
+    "submit": "Aplicar ({{count}} campo(s))",
+    "fields": {
+      "artist": "Artista",
+      "album": "Álbum",
+      "year": "Ano",
+      "genre": "Género"
+    },
+    "placeholders": {
+      "artist": "ex. Daft Punk, Justice",
+      "album": "Nome do álbum",
+      "year": "ex. 2026",
+      "genre": "ex. Electronic"
+    },
+    "result": {
+      "updated": "{{count}} faixa(s) atualizada(s)",
+      "failed": "{{count}} falha(s):"
+    }
   },
+
   "trackProperties": {
     "title": "Propriedades da faixa",
     "sections": {

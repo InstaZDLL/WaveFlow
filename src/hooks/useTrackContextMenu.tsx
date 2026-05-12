@@ -8,6 +8,7 @@ import {
   type TrackContextMenuProps,
 } from "../components/common/TrackContextMenu";
 import { TrackPropertiesModal } from "../components/common/TrackPropertiesModal";
+import { BatchTagEditModal } from "../components/common/BatchTagEditModal";
 import type { Track } from "../lib/tauri/track";
 import { setTrackRating, toggleLikeTrack } from "../lib/tauri/track";
 import {
@@ -33,6 +34,11 @@ interface UseTrackContextMenuArgs {
   /** When set, the menu shows "Remove from this playlist" pointing at it. */
   currentPlaylistId?: number | null;
   onRemoveFromPlaylist?: (playlistId: number, trackId: number) => void;
+  /** Set of currently-selected track IDs (multi-select). When the
+   * right-clicked track is part of this set AND it has 2+ entries,
+   * a "Edit tags for N tracks…" item appears that opens the batch
+   * editor. Omit on views without multi-select. */
+  selectedTrackIds?: number[];
 }
 
 /**
@@ -53,6 +59,7 @@ export function useTrackContextMenu({
   onNavigateToArtist,
   currentPlaylistId,
   onRemoveFromPlaylist,
+  selectedTrackIds,
 }: UseTrackContextMenuArgs) {
   const { playlists, addTracksToPlaylist } = usePlaylist();
   const [state, setState] = useState<{
@@ -64,6 +71,10 @@ export function useTrackContextMenu({
   // state means closing the menu doesn't immediately dismiss the
   // dialog the user just opened.
   const [propertiesTrack, setPropertiesTrack] = useState<Track | null>(null);
+  // IDs currently shown in the batch tag editor — `null` means the
+  // modal is closed. Independent of the context-menu state so closing
+  // the menu doesn't dismiss a modal the user just opened.
+  const [batchEditIds, setBatchEditIds] = useState<number[] | null>(null);
 
   const open = useCallback((event: ReactMouseEvent, track: Track) => {
     event.preventDefault();
@@ -142,6 +153,12 @@ export function useTrackContextMenu({
 
   const closeProperties = useCallback(() => setPropertiesTrack(null), []);
 
+  const handleShowBatchEdit = useCallback((ids: number[]) => {
+    setBatchEditIds(ids);
+  }, []);
+
+  const closeBatchEdit = useCallback(() => setBatchEditIds(null), []);
+
   const render = useCallback(() => {
     return (
       <>
@@ -164,12 +181,18 @@ export function useTrackContextMenu({
             onNavigateToAlbum={onNavigateToAlbum}
             onNavigateToArtist={onNavigateToArtist}
             onShowProperties={handleShowProperties}
+            batchEditIds={selectedTrackIds}
+            onShowBatchEdit={handleShowBatchEdit}
           />
         )}
         <TrackPropertiesModal
           key={propertiesTrack?.id ?? "none"}
           track={propertiesTrack}
           onClose={closeProperties}
+        />
+        <BatchTagEditModal
+          trackIds={batchEditIds}
+          onClose={closeBatchEdit}
         />
       </>
     );
@@ -192,6 +215,10 @@ export function useTrackContextMenu({
     handleShowProperties,
     propertiesTrack,
     closeProperties,
+    selectedTrackIds,
+    handleShowBatchEdit,
+    batchEditIds,
+    closeBatchEdit,
   ]);
 
   return { open, close, render };

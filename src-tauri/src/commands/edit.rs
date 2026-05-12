@@ -115,6 +115,101 @@ pub async fn update_track_tags(
     Ok(())
 }
 
+/// Per-track result of a batch update. Surfaced to the frontend so it
+/// can render "N updated, M failed (Track X: <reason>)" instead of
+/// silently swallowing partial failures.
+#[derive(Debug, serde::Serialize)]
+pub struct BatchUpdateSummary {
+    pub updated: u32,
+    /// `(track_id, error_message)` for each failure. Kept short — the
+    /// frontend shows them inline so we don't want stack traces.
+    pub errors: Vec<(i64, String)>,
+}
+
+/// Apply the same `TrackEdit` to every track in `track_ids`. Used by
+/// the batch tag editor when the user multi-selects rows and edits
+/// shared fields (artist, album, year, genre…).
+///
+/// Each track is processed independently: a file-write error on one
+/// track logs an entry in `errors` and the loop continues. This is the
+/// opposite of `update_track_tags` which aborts on the first failure —
+/// for batch UX, the user explicitly opted into a multi-track save
+/// and a single corrupt header shouldn't block the others.
+///
+/// Caller-supplied `edit`: every field is optional. `None` means
+/// "leave this field untouched on every track" — the batch UI uses
+/// per-field toggles to materialise which fields the user actually
+/// wants to propagate. Title / track_number / disc_number are
+/// rejected at the frontend level (they're per-track unique), but the
+/// backend still accepts them — useful for future scripted batch ops.
+#[tauri::command]
+pub async fn update_tracks_batch(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    app: AppHandle,
+    track_ids: Vec<i64>,
+    edit: TrackEdit,
+) -> AppResult<BatchUpdateSummary> {
+    let pool = state.require_profile_pool().await?;
+    let mut summary = BatchUpdateSummary {
+        updated: 0,
+        errors: Vec::new(),
+    };
+
+    // Pause once up front if the currently-playing track is in the
+    // batch. Saves the per-track sleep + re-pause cycle when the user
+    // batch-edits a queue that's playing in the background.
+    let active = engine
+        .shared()
+        .current_track_id
+        .load(std::sync::atomic::Ordering::Acquire);
+    if active > 0 && track_ids.contains(&active) {
+        let _ = engine.send(crate::audio::AudioCmd::Pause);
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+
+    for track_id in &track_ids {
+        let row: Option<TrackRow> = sqlx::query_as::<_, TrackRow>(
+            "SELECT id, file_path, primary_artist, album_id FROM track WHERE id = ?",
+        )
+        .bind(track_id)
+        .fetch_optional(&pool)
+        .await?;
+        let Some(row) = row else {
+            summary
+                .errors
+                .push((*track_id, "track not found".into()));
+            continue;
+        };
+        let path = std::path::PathBuf::from(&row.file_path);
+
+        if let Err(err) = write_tags_to_file(&path, &edit) {
+            summary
+                .errors
+                .push((*track_id, format!("tag write failed: {err}")));
+            continue;
+        }
+
+        if let Err(err) = sync_db(&pool, *track_id, &edit).await {
+            summary
+                .errors
+                .push((*track_id, format!("db sync failed: {err}")));
+            continue;
+        }
+
+        summary.updated += 1;
+        let _ = app.emit("track:updated", *track_id);
+    }
+
+    // Single library + queue refresh at the end — every consumer view
+    // already coalesces these so emitting one bulk signal beats one
+    // per track on a 50-row batch.
+    let _ = app.emit("library:rescanned", ());
+    let _ = app.emit("player:queue-changed", ());
+
+    Ok(summary)
+}
+
 #[derive(sqlx::FromRow)]
 struct TrackRow {
     #[allow(dead_code)]

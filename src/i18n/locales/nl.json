@@ -708,8 +708,31 @@
     "properties": "Eigenschappen",
     "startRadio": "Start radio",
     "rating": "Beoordeling",
-    "ratingNone": "Geen beoordeling"
+    "ratingNone": "Geen beoordeling",
+    "batchEdit": "Tags voor {{count}} nummers bewerken…"
+  },  "batchTagEdit": {
+    "title": "Tags in batch bewerken",
+    "subtitle": "{{count}} nummers geselecteerd",
+    "help": "Vink de velden aan die op de hele selectie moeten worden toegepast. Niet aangevinkte velden blijven per nummer onveranderd.",
+    "submit": "Toepassen ({{count}} veld(en))",
+    "fields": {
+      "artist": "Artiest",
+      "album": "Album",
+      "year": "Jaar",
+      "genre": "Genre"
+    },
+    "placeholders": {
+      "artist": "bijv. Daft Punk, Justice",
+      "album": "Albumnaam",
+      "year": "bijv. 2026",
+      "genre": "bijv. Electronic"
+    },
+    "result": {
+      "updated": "{{count}} nummer(s) bijgewerkt",
+      "failed": "{{count}} fout(en):"
+    }
   },
+
   "trackProperties": {
     "title": "Eigenschappen van een track",
     "sections": {
