@@ -1,9 +1,12 @@
 [package]
 name = "waveflow"
-version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+version = "1.0.0"
+description = "Local music player for desktop — Spotify-inspired UI, real-time audio engine, your files stay on your machine."
+authors = ["InstaZDLL <github.105mh@8shield.net>"]
 edition = "2021"
+license = "GPL-3.0-only"
+repository = "https://github.com/InstaZDLL/WaveFlow"
+homepage = "https://waveflow.app"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

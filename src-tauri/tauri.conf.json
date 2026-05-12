@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "WaveFlow",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "identifier": "app.waveflow",
   "build": {
     "beforeDevCommand": "bun run dev",
@@ -37,6 +37,13 @@
     "active": true,
     "targets": "all",
     "createUpdaterArtifacts": true,
+    "publisher": "InstaZDLL",
+    "copyright": "Copyright © 2026 InstaZDLL. Licensed under GPL-3.0-only.",
+    "category": "Music",
+    "shortDescription": "Local-first music player with a Spotify-inspired UI.",
+    "longDescription": "WaveFlow is a local music player desktop app built with Tauri 2 and React 19. It scans your local audio folders, organizes tracks by album/artist/genre, and plays them with a real-time audio engine — no streaming, no cloud, your music stays on your machine.",
+    "homepage": "https://waveflow.app",
+    "licenseFile": "../LICENSE",
     "icon": [
       "icons/32x32.png",
       "icons/64x64.png",
