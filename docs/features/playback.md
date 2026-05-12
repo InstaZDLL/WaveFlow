@@ -68,6 +68,35 @@ Initialised after the main window exists (needs an HWND on Windows). State trans
 
 The same `transition_state()` hook also feeds [`discord_presence.rs`](../../src-tauri/src/discord_presence.rs) so the user's Discord profile mirrors the playing/paused state. Documented separately under [Integrations → Discord Rich Presence](integrations.md#discord-rich-presence).
 
+## Playback speed (0.5× – 2×)
+
+Resampler-shift approach — same trick VLC uses for its default playback rate, costs ~zero CPU and works uniformly across every codec (symphonia + DSD). **Pitch is NOT preserved**: 1.5× speed lifts the pitch by ~7 semitones. Proper pitch-locked time-stretching needs a phase vocoder; this is out of scope for the MVP.
+
+### Mechanism
+
+The decoder feeds [`rubato`](https://crates.io/crates/rubato) a fake source rate of `actual_rate × speed`. Each cpal output sample then represents `speed` source samples of audio, so the device clock plays the track faster (speed > 1) or slower (speed < 1) without changing the device's real sample rate. Concretely:
+
+- `SharedPlayback::playback_speed_bits` (`AtomicU32` holding `f32::to_bits`, clamped to `[0.5, 2.0]`).
+- `SharedPlayback::speed_dirty` — flipped by `set_playback_speed`; the decoder polls it once per `'pkt` loop iteration and rebuilds every active stream's resampler (primary + crossfade prefetched secondary). Rebuild cost is a single `Resampler::new` call; rubato's `Fft<f32>` is fixed-rate and can't be reconfigured in place.
+- Local already-resampled buffers (`primary_resampled`, `secondary_resampled`) are cleared on rebuild so old-speed samples don't get pushed alongside new-speed ones, and `drain_silent` flushes the rtrb ring so the audible transition is < 20 ms.
+- `ActiveStream` caches its true `src_sample_rate` the first time `decode_next` builds a resampler so subsequent rebuilds (mid-track speed change) know what to multiply by. New tracks (`LoadAndPlay`, `SetNextTrack`) inherit the active speed before their first decode, so the lazy resampler init picks the right effective rate from packet #1.
+
+### Position continuity
+
+`set_playback_speed` snapshots the current position **at the old speed**, rebases `samples_played` to 0 and stores the snapshot in `base_offset_ms` before flipping the speed atomic. Without this, the next call to `current_position_ms()` would re-scale the existing samples_played counter by the new factor — the progress bar would jump backwards (slowing down) or forwards (speeding up) at the exact moment the user changed speed. Tested in [`audio/state.rs::speed_change_preserves_position_continuity`](../../src-tauri/src/audio/state.rs).
+
+### Analytics accounting
+
+Both `current_position_ms()` and `session_listened_ms()` multiply the wall-clock delta by the active speed, so analytics credit and the 15 s "Recently played" threshold fire on **track-time covered**, not wall-clock listened. Listening to a 6 min track at 2× for 3 min wall-clock counts as 6 min of that track for the heatmap / Top Tracks aggregates.
+
+### Persistence & commands
+
+`profile_setting['audio.playback_speed']` (float). Restored at boot in `player_get_state` via a raw atomic write — NOT through `set_playback_speed`, because the rebase would otherwise move the persisted resume point off the persisted value. Tauri surface: `player_set_speed(value)` + `player_get_speed`. Frontend hydrates via `playerGetSpeed` on mount.
+
+### UI
+
+[`SpeedControl`](../../src/components/player/SpeedControl.tsx) is a compact text pill (`1.0×` / `1.25×`) next to the volume slider — same footprint as the volume's percentage label. Click opens a popover with a range slider (step 0.05) and five preset buttons (0.75 / 1 / 1.25 / 1.5 / 2). Emerald accent when speed ≠ 1×. Hidden in Spotify mode (the Web Playback SDK has no speed control). No new icon — the text is the affordance.
+
 ## A-B repeat
 
 Musicolet-style intra-track loop. Two `AtomicU64` endpoints on `SharedPlayback` (`loop_a_ms`, `loop_b_ms`) — when both are set and `b > a`, the decoder loop in [`audio/decoder.rs::play_track`](../../src-tauri/src/audio/decoder.rs) checks the playhead once per packet and seeks back to A whenever it crosses B. Skipped during a crossfade because the loop is a single-track concern (looping mid-fade would fight the cross-track mix). Auto-cleared on every `LoadAndPlay` so the new track doesn't inherit stale endpoints from the previous one.

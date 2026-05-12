@@ -27,11 +27,14 @@
 | Atomic | Owner writes | Hot-path reads |
 |--------|--------------|----------------|
 | `samples_played` | cpal callback | UI for position display |
-| `base_offset_ms` | decoder (on seek / new track) | UI |
+| `base_offset_ms` | decoder (on seek / new track / speed change) | UI |
 | `volume`, `normalize_enabled`, `mono_enabled` | command layer | cpal callback |
 | `paused_output`, `drain_silent` | command layer / decoder | cpal callback |
 | `crossfade_ms`, `replaygain_enabled` | command layer | decoder |
+| `playback_speed_bits`, `speed_dirty` | command layer / decoder | decoder + UI position math |
 | `current_track_id`, `seek_generation` | decoder | UI |
+
+`playback_speed_bits` is read on every position computation (UI 4 Hz + analytics) — see [`current_position_ms`](../../src-tauri/src/audio/state.rs) and [playback / Playback speed](../features/playback.md#playback-speed-05--2). `speed_dirty` is a one-shot flag the decoder consumes once per `'pkt` loop iteration to trigger a resampler rebuild.
 
 ## Ring buffer sizing
 
