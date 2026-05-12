@@ -31,6 +31,11 @@ Pre-built bundles for every tagged release are on the [GitHub Releases page](htt
 - `WaveFlow_<ver>_linux-x86_64.rpm` — Fedora / RHEL / openSUSE / Rocky / Alma. Native install via `dnf`/`rpm`.
 - `WaveFlow_<ver>_linux-x86_64.AppImage` — Anything else (Calculate Linux, Oracle Linux, NixOS, …). `chmod +x` then run; no install required.
 - **Arch / Manjaro / EndeavourOS** — install `waveflow-bin` from the AUR: `yay -S waveflow-bin` (or `paru`, etc.). Tracks the `.deb` artefact above.
+- **Fedora / RHEL / Rocky / Alma / CentOS Stream** — enable the COPR repo once, then install via `dnf`:
+  ```bash
+  sudo dnf copr enable instazdll/waveflow
+  sudo dnf install waveflow
+  ```
 
 ### Windows
 

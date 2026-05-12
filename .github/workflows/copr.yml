@@ -1,0 +1,107 @@
+name: COPR
+
+# Runs after the Release workflow has published artefacts to GitHub.
+# Bumps packaging/copr/waveflow.spec to the new version in-place
+# (the committed spec stays at the last released version), builds an
+# SRPM, and submits it to Fedora's COPR build system. COPR mocks it
+# against every chroot configured in the InstaZDLL/waveflow project
+# (Fedora 39+, EPEL 9, etc.) and serves the resulting RPMs through
+# https://copr.fedorainfracloud.org/coprs/InstaZDLL/waveflow/.
+#
+# Required repository secrets:
+#   COPR_LOGIN  — `login` field from ~/.config/copr (per-user, expires)
+#   COPR_TOKEN  — `token` field from ~/.config/copr
+# Both come from https://copr.fedorainfracloud.org/api/ once the
+# COPR project exists.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag to publish, e.g. v1.0.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: copr-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      # Fedora image carries rpmbuild + dnf out of the box, which keeps
+      # the SRPM build step short. ubuntu-latest would need a few
+      # apt-get installs first; using a Fedora container is simpler.
+      # Pinned to the current stable Fedora — bump in lockstep with the
+      # COPR chroot list as new Fedora releases ship.
+      image: fedora:44
+    steps:
+      - name: Resolve tag and version
+        shell: bash
+        env:
+          MANUAL_TAG: ${{ github.event.inputs.tag_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          TAG="${MANUAL_TAG:-$RELEASE_TAG}"
+          if [ -z "$TAG" ]; then
+            echo "::error::No tag resolved (event=${GITHUB_EVENT_NAME:-?})"
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          echo "TAG_NAME=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Install build deps
+        run: dnf install -y --setopt=install_weak_deps=False rpm-build rpmdevtools copr-cli git
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ env.TAG_NAME }}
+
+      - name: Bump spec version (in-place, not committed back)
+        run: |
+          sed -i "s/^Version:.*/Version:        ${VERSION}/" packaging/copr/waveflow.spec
+          head -10 packaging/copr/waveflow.spec
+
+      - name: Build SRPM
+        run: |
+          rpmdev-setuptree
+          cp packaging/copr/waveflow.spec ~/rpmbuild/SPECS/
+          # spectool downloads Source0 — points at the freshly-released
+          # GitHub asset, so the SRPM carries the right binary blob.
+          spectool -gR ~/rpmbuild/SPECS/waveflow.spec
+          rpmbuild -bs ~/rpmbuild/SPECS/waveflow.spec
+          ls ~/rpmbuild/SRPMS/
+
+      - name: Configure copr-cli auth
+        env:
+          COPR_LOGIN: ${{ secrets.COPR_LOGIN }}
+          COPR_TOKEN: ${{ secrets.COPR_TOKEN }}
+        run: |
+          if [ -z "$COPR_LOGIN" ] || [ -z "$COPR_TOKEN" ]; then
+            echo "::error::COPR_LOGIN / COPR_TOKEN secrets are not set"
+            exit 1
+          fi
+          mkdir -p ~/.config
+          cat > ~/.config/copr <<EOF
+          [copr-cli]
+          username = InstaZDLL
+          login = $COPR_LOGIN
+          token = $COPR_TOKEN
+          copr_url = https://copr.fedorainfracloud.org
+          EOF
+          chmod 600 ~/.config/copr
+
+      - name: Submit to COPR
+        run: |
+          SRPM=$(ls ~/rpmbuild/SRPMS/*.src.rpm | head -1)
+          echo "Submitting $SRPM to InstaZDLL/waveflow"
+          copr-cli build InstaZDLL/waveflow "$SRPM"

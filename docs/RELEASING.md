@@ -78,6 +78,8 @@ Actions):
 | `SIGNTOOL_PFX_PASSWORD`              | PFX export passphrase                                                                                                                |
 | `AUR_SSH_PRIVATE_KEY`                | private half of the SSH key registered on the maintainer's AUR account, used by `.github/workflows/aur.yml` to push PKGBUILD updates |
 | `WINGET_PAT`                         | GitHub Personal Access Token (classic, `public_repo` scope) the `.github/workflows/winget.yml` action uses to fork microsoft/winget-pkgs and open the PR with the new manifest |
+| `COPR_LOGIN`                         | `login` field from <https://copr.fedorainfracloud.org/api/> — `.github/workflows/copr.yml` uses it to authenticate to Fedora COPR via `copr-cli` |
+| `COPR_TOKEN`                         | `token` field from the same COPR API page (paired with `COPR_LOGIN`). Token lifetime is 6 months — rotate when builds start returning `401 Unauthorized` |
 
 The AUR package itself (`waveflow-bin`) needs a one-off manual setup
 on the maintainer's box — see [`packaging/aur/README.md`](../packaging/aur/README.md).
