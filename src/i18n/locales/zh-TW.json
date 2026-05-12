@@ -607,7 +607,9 @@
     "showInExplorer": "在檔案總管中顯示",
     "copyPath": "複製檔案路徑",
     "properties": "特性",
-    "startRadio": "開始電台"
+    "startRadio": "開始電台",
+    "rating": "評分",
+    "ratingNone": "無評分"
   },
   "trackProperties": {
     "title": "曲目屬性",
@@ -810,7 +812,8 @@
       "formats": "Formats",
       "genres": "Genres",
       "sort": "Sort by",
-      "limit": "Max tracks"
+      "limit": "Max tracks",
+      "minRating": "最低評分"
     },
     "placeholders": {
       "name": "My 2024 favourites",

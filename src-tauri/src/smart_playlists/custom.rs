@@ -91,6 +91,12 @@ pub struct CustomRules {
     pub hi_res_only: Option<bool>,
     #[serde(default)]
     pub liked_only: Option<bool>,
+    /// Minimum POPM rating (0-255) the track must carry. Maps from the
+    /// editor's 1-5 star picker via `stars * 255 / 5` so a "3 stars
+    /// or more" filter matches everything POPM ≥ 153. `None` = no
+    /// rating filter (default).
+    #[serde(default)]
+    pub rating_min: Option<i64>,
     /// Sort applied before truncation. `None` defaults to AddedDesc.
     #[serde(default)]
     pub sort: Option<CustomSort>,
@@ -236,6 +242,10 @@ pub async fn run_query(pool: &SqlitePool, rules: &CustomRules) -> AppResult<Vec<
         where_clauses.push(
             "EXISTS (SELECT 1 FROM liked_track lt WHERE lt.track_id = t.id)".to_string(),
         );
+    }
+    if let Some(rating) = rules.rating_min.filter(|r| *r > 0) {
+        where_clauses.push("t.rating IS NOT NULL AND t.rating >= ?".to_string());
+        binds.push(BindValue::Int(rating.clamp(1, 255)));
     }
 
     // Splice JOINs in (deduped — adding the same JOIN twice would

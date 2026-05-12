@@ -607,7 +607,9 @@
     "showInExplorer": "عرض في المستكشف",
     "copyPath": "نسخ مسار الملف",
     "properties": "الخصائص",
-    "startRadio": "تشغيل الراديو"
+    "startRadio": "تشغيل الراديو",
+    "rating": "التقييم",
+    "ratingNone": "بدون تقييم"
   },
   "trackProperties": {
     "title": "خصائص المسار",
@@ -810,7 +812,8 @@
       "formats": "Formats",
       "genres": "Genres",
       "sort": "Sort by",
-      "limit": "Max tracks"
+      "limit": "Max tracks",
+      "minRating": "الحد الأدنى للتقييم"
     },
     "placeholders": {
       "name": "My 2024 favourites",

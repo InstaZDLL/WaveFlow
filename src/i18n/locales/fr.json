@@ -615,7 +615,9 @@
     "showInExplorer": "Afficher dans l'explorateur",
     "copyPath": "Copier le chemin du fichier",
     "properties": "Propriétés",
-    "startRadio": "Démarrer la radio"
+    "startRadio": "Démarrer la radio",
+    "rating": "Note",
+    "ratingNone": "Aucune note"
   },
   "trackProperties": {
     "title": "Propriétés du titre",
@@ -794,6 +796,7 @@
       "durationMin": "Durée en minutes",
       "hiRes": "Hi-Res uniquement",
       "liked": "Titres aimés uniquement",
+      "minRating": "Note minimum",
       "formats": "Formats",
       "genres": "Genres",
       "sort": "Trier par",

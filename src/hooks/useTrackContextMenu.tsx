@@ -9,7 +9,7 @@ import {
 } from "../components/common/TrackContextMenu";
 import { TrackPropertiesModal } from "../components/common/TrackPropertiesModal";
 import type { Track } from "../lib/tauri/track";
-import { toggleLikeTrack } from "../lib/tauri/track";
+import { setTrackRating, toggleLikeTrack } from "../lib/tauri/track";
 import {
   playerAddToQueue,
   playerPlayNext,
@@ -122,6 +122,20 @@ export function useTrackContextMenu({
     [onLikedChanged],
   );
 
+  const handleSetRating = useCallback(
+    async (trackId: number, popm: number | null) => {
+      try {
+        await setTrackRating(trackId, popm);
+        // Backend emits `track:updated` — views listening via
+        // useTrackUpdated refetch on their own. No local state to
+        // touch here.
+      } catch (err) {
+        console.error("[trackContextMenu] set rating failed", err);
+      }
+    },
+    [],
+  );
+
   const handleShowProperties = useCallback((track: Track) => {
     setPropertiesTrack(track);
   }, []);
@@ -145,6 +159,7 @@ export function useTrackContextMenu({
             onAddToPlaylist={handleAddToPlaylist}
             onCreatePlaylist={onCreatePlaylist}
             onToggleLike={handleToggleLike}
+            onSetRating={handleSetRating}
             onRemoveFromPlaylist={onRemoveFromPlaylist}
             onNavigateToAlbum={onNavigateToAlbum}
             onNavigateToArtist={onNavigateToArtist}
@@ -170,6 +185,7 @@ export function useTrackContextMenu({
     handleAddToPlaylist,
     onCreatePlaylist,
     handleToggleLike,
+    handleSetRating,
     onRemoveFromPlaylist,
     onNavigateToAlbum,
     onNavigateToArtist,

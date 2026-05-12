@@ -607,7 +607,9 @@
     "showInExplorer": "Weergeven in de verkenner",
     "copyPath": "Kopieer het pad naar het bestand",
     "properties": "Eigenschappen",
-    "startRadio": "Start radio"
+    "startRadio": "Start radio",
+    "rating": "Beoordeling",
+    "ratingNone": "Geen beoordeling"
   },
   "trackProperties": {
     "title": "Eigenschappen van een track",
@@ -810,7 +812,8 @@
       "formats": "Formats",
       "genres": "Genres",
       "sort": "Sort by",
-      "limit": "Max tracks"
+      "limit": "Max tracks",
+      "minRating": "Minimumbeoordeling"
     },
     "placeholders": {
       "name": "My 2024 favourites",

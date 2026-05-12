@@ -688,20 +688,127 @@ pub async fn search_tracks_advanced(
 }
 
 /// Set or clear a track's rating. The value is the raw POPM byte (0-255);
-/// passing `None` clears the rating. Currently only writes to the database
-/// — write-back into the file's tags is deferred to a later iteration.
+/// passing `None` clears the rating.
+///
+/// Writes the rating to:
+/// 1. the audio file's tag (POPM frame for ID3v2 — MP3/WAV/AAC/AIFF —
+///    or `RATING=0-100` text for Vorbis / MP4 / APE), so the rating
+///    survives a re-scan or import on another machine, and
+/// 2. the per-profile `track.rating` column, so the UI updates without
+///    waiting for a folder scan.
+///
+/// File write is best-effort: containers lofty can't open (DSD, exotic
+/// formats) keep the DB-only rating. The pause-if-playing handshake
+/// mirrors [`crate::commands::edit::update_track_tags`] so a Windows
+/// rename doesn't fight the audio engine's open handle. Emits
+/// `track:updated` so every open view refreshes without polling.
 #[tauri::command]
 pub async fn set_track_rating(
     state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, std::sync::Arc<crate::audio::AudioEngine>>,
+    app: tauri::AppHandle,
     track_id: i64,
     rating: Option<u8>,
 ) -> AppResult<()> {
+    use tauri::Emitter;
+
     let pool = state.require_profile_pool().await?;
+
+    // 1. Resolve the file path so we can write the POPM frame back.
+    let file_path: Option<String> =
+        sqlx::query_scalar("SELECT file_path FROM track WHERE id = ?")
+            .bind(track_id)
+            .fetch_optional(&pool)
+            .await?;
+
+    // 2. Pause playback if the engine has this track open — required on
+    //    Windows so lofty's atomic rename can take an exclusive handle.
+    if let Some(ref path_str) = file_path {
+        let active = engine
+            .shared()
+            .current_track_id
+            .load(std::sync::atomic::Ordering::Acquire);
+        if active == track_id {
+            let _ = engine.send(crate::audio::AudioCmd::Pause);
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        }
+        // 3. Write the tag. Failures are logged + non-fatal: DSD files
+        //    have no writable rating frame, and we don't want a popup
+        //    every time a user rates a DSF.
+        let path = std::path::PathBuf::from(path_str);
+        if let Err(err) = write_rating_to_file(&path, rating) {
+            tracing::warn!(track_id, ?err, "rating tag write failed — DB-only");
+        }
+    }
+
+    // 4. DB update (always — even when the file write fell through).
     sqlx::query("UPDATE track SET rating = ? WHERE id = ?")
         .bind(rating.map(|r| r as i64))
         .bind(track_id)
         .execute(&pool)
         .await?;
+
+    let _ = app.emit("track:updated", track_id);
+    Ok(())
+}
+
+/// Write the rating into the file's primary tag. For ID3v2 (MP3, WAV,
+/// AAC, AIFF) the raw POPM frame body is built directly because lofty
+/// 0.24's generic `Tag` interface stores POPM as `ItemValue::Binary`
+/// without round-tripping the typed `PopularimeterFrame`. For every
+/// other container (Vorbis / MP4 / APE / WavPack) the rating is stored
+/// as plain text `RATING=0-100` under [`ItemKey::Popularimeter`], which
+/// is the same key the scanner reads back via `get_string`.
+///
+/// `rating = None` removes any existing POPM/Rating tag.
+fn write_rating_to_file(
+    path: &std::path::Path,
+    rating: Option<u8>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    use lofty::file::{AudioFile, TaggedFileExt};
+    use lofty::tag::{ItemKey, ItemValue, Tag, TagItem, TagType};
+
+    let mut tagged = lofty::read_from_path(path)?;
+    if tagged.primary_tag().is_none() && tagged.first_tag().is_none() {
+        let preferred = tagged.primary_tag_type();
+        tagged.insert_tag(Tag::new(preferred));
+    }
+    let tag = if tagged.primary_tag().is_some() {
+        tagged.primary_tag_mut().expect("checked primary_tag")
+    } else {
+        tagged.first_tag_mut().ok_or("no tag after insert")?
+    };
+
+    // Always start from a clean slate so a previously-written rating
+    // (possibly with a different email) doesn't shadow the new one.
+    tag.remove_key(ItemKey::Popularimeter);
+
+    if let Some(r) = rating {
+        match tag.tag_type() {
+            TagType::Id3v2 => {
+                // POPM body: <email>\0<rating:u8><counter:u32-be>.
+                // Empty email is allowed by the ID3v2 spec and means
+                // "anonymous user" — readers (foobar2000, Mp3tag,
+                // MusicBee) accept it. Counter = 0; we don't track it.
+                let bytes: Vec<u8> = std::iter::once(0u8)
+                    .chain(std::iter::once(r))
+                    .chain([0u8; 4])
+                    .collect();
+                tag.insert(TagItem::new(
+                    ItemKey::Popularimeter,
+                    ItemValue::Binary(bytes),
+                ));
+            }
+            _ => {
+                // Vorbis / MP4 / APE / WavPack: text rating on the
+                // 0-100 scale, same shape the scanner reads.
+                let as_100 = ((r as u16) * 100 / 255) as u8;
+                tag.insert_text(ItemKey::Popularimeter, as_100.to_string());
+            }
+        }
+    }
+
+    tagged.save_to_path(path, lofty::config::WriteOptions::default())?;
     Ok(())
 }
 

@@ -607,7 +607,9 @@
     "showInExplorer": "Dosya Gezgini'nde göster",
     "copyPath": "Dosya yolunu kopyala",
     "properties": "Özellikler",
-    "startRadio": "Radyoyu başlat"
+    "startRadio": "Radyoyu başlat",
+    "rating": "Puan",
+    "ratingNone": "Puan yok"
   },
   "trackProperties": {
     "title": "Parça özellikleri",
@@ -810,7 +812,8 @@
       "formats": "Formats",
       "genres": "Genres",
       "sort": "Sort by",
-      "limit": "Max tracks"
+      "limit": "Max tracks",
+      "minRating": "Minimum puan"
     },
     "placeholders": {
       "name": "My 2024 favourites",

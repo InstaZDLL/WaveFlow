@@ -607,7 +607,9 @@
     "showInExplorer": "エクスプローラーに表示",
     "copyPath": "ファイルのパスをコピーする",
     "properties": "特長",
-    "startRadio": "ラジオを開始"
+    "startRadio": "ラジオを開始",
+    "rating": "評価",
+    "ratingNone": "評価なし"
   },
   "trackProperties": {
     "title": "トラックのプロパティ",
@@ -810,7 +812,8 @@
       "formats": "Formats",
       "genres": "Genres",
       "sort": "Sort by",
-      "limit": "Max tracks"
+      "limit": "Max tracks",
+      "minRating": "最低評価"
     },
     "placeholders": {
       "name": "My 2024 favourites",

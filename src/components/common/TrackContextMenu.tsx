@@ -8,6 +8,7 @@ import {
   ListPlus,
   Plus,
   Radio,
+  Star,
   Trash2,
   User,
 } from "lucide-react";
@@ -39,6 +40,12 @@ export interface TrackContextMenuProps {
   onAddToPlaylist: (playlistId: number, trackId: number) => void;
   onCreatePlaylist: () => void;
   onToggleLike: (trackId: number) => void;
+  /** Set a 0-5 star rating, or `null` to clear. Wired through to
+   *  the `set_track_rating` backend command (which writes POPM into
+   *  the file's tag and the DB). When omitted, the rating submenu
+   *  is hidden — used by views that don't have a sensible refresh
+   *  path for the local list. */
+  onSetRating?: (trackId: number, popm: number | null) => void;
   onRemoveFromPlaylist?: (playlistId: number, trackId: number) => void;
   onNavigateToAlbum?: (albumId: number) => void;
   onNavigateToArtist?: (artistId: number) => void;
@@ -70,6 +77,7 @@ export function TrackContextMenu({
   onAddToPlaylist,
   onCreatePlaylist,
   onToggleLike,
+  onSetRating,
   onRemoveFromPlaylist,
   onNavigateToAlbum,
   onNavigateToArtist,
@@ -77,6 +85,12 @@ export function TrackContextMenu({
 }: TrackContextMenuProps) {
   const { t } = useTranslation();
   const artists = parseArtistList(track.artist_ids, track.artist_name);
+  // Round POPM 0-255 to the nearest integer star (0-5) for the
+  // current-rating chip on the submenu trigger. Sub-star precision
+  // (half stars) is supported via the modal's slider — the context
+  // menu keeps to integer stars to stay tight.
+  const currentStars =
+    track.rating != null ? Math.round((track.rating / 255) * 5) : 0;
 
   const closeAfter = (fn: () => void) => () => {
     fn();
@@ -161,6 +175,68 @@ export function TrackContextMenu({
         label={isLiked ? t("trackActions.unlike") : t("trackActions.like")}
         onSelect={closeAfter(() => onToggleLike(track.id))}
       />
+
+      {onSetRating != null && (
+        <ContextMenuSub
+          icon={
+            <Star
+              size={14}
+              className={
+                currentStars > 0 ? "fill-yellow-400 text-yellow-400" : ""
+              }
+            />
+          }
+          label={
+            currentStars > 0
+              ? `${t("trackActions.rating")} (${"★".repeat(currentStars)})`
+              : t("trackActions.rating")
+          }
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={closeAfter(() => onSetRating(track.id, null))}
+            className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+              currentStars === 0
+                ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100"
+                : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            }`}
+          >
+            {t("trackActions.ratingNone")}
+          </button>
+          {[1, 2, 3, 4, 5].map((stars) => {
+            const popm = Math.round((stars / 5) * 255);
+            const active = currentStars === stars;
+            return (
+              <button
+                key={stars}
+                type="button"
+                role="menuitem"
+                onClick={closeAfter(() => onSetRating(track.id, popm))}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                  active
+                    ? "bg-zinc-100 dark:bg-zinc-800"
+                    : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                }`}
+              >
+                <span className="inline-flex">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      size={12}
+                      className={
+                        i < stars
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "text-zinc-300 dark:text-zinc-600"
+                      }
+                    />
+                  ))}
+                </span>
+              </button>
+            );
+          })}
+        </ContextMenuSub>
+      )}
 
       {currentPlaylistId != null && onRemoveFromPlaylist != null && (
         <ContextMenuItem

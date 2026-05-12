@@ -607,7 +607,9 @@
     "showInExplorer": "Visualizza in Esplora file",
     "copyPath": "Copia il percorso del file",
     "properties": "Caratteristiche",
-    "startRadio": "Avvia radio"
+    "startRadio": "Avvia radio",
+    "rating": "Valutazione",
+    "ratingNone": "Nessuna valutazione"
   },
   "trackProperties": {
     "title": "Proprietà del brano",
@@ -810,7 +812,8 @@
       "formats": "Formats",
       "genres": "Genres",
       "sort": "Sort by",
-      "limit": "Max tracks"
+      "limit": "Max tracks",
+      "minRating": "Valutazione minima"
     },
     "placeholders": {
       "name": "My 2024 favourites",

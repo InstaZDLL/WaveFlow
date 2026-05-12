@@ -41,6 +41,8 @@ export interface CustomRules {
   formats?: string[] | null;
   hi_res_only?: boolean | null;
   liked_only?: boolean | null;
+  /** Minimum POPM rating 0-255. Map from 1-5 stars via `Math.round(stars / 5 * 255)`. */
+  rating_min?: number | null;
   sort?: CustomSort | null;
   limit?: number | null;
 }

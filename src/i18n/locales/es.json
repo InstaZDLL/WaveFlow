@@ -607,7 +607,9 @@
     "showInExplorer": "Mostrar en el explorador",
     "copyPath": "Copiar la ruta del archivo",
     "properties": "Propiedades",
-    "startRadio": "Iniciar la radio"
+    "startRadio": "Iniciar la radio",
+    "rating": "Valoración",
+    "ratingNone": "Sin valoración"
   },
   "trackProperties": {
     "title": "Propiedades de la pista",
@@ -810,7 +812,8 @@
       "formats": "Formatos",
       "genres": "Géneros",
       "sort": "Ordenar por",
-      "limit": "Máx. pistas"
+      "limit": "Máx. pistas",
+      "minRating": "Valoración mínima"
     },
     "placeholders": {
       "name": "Mis favoritas 2024",

@@ -14,11 +14,13 @@ import { HiResBadge } from "./HiResBadge";
 import {
   formatDuration,
   getTrack,
+  setTrackRating,
   updateTrackCover,
   updateTrackTags,
   type Track,
   type TrackEdit,
 } from "../../lib/tauri/track";
+import { StarRating } from "./StarRating";
 import { pickFile } from "../../lib/tauri/dialog";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useModalA11y } from "../../hooks/useModalA11y";
@@ -76,6 +78,30 @@ export function TrackPropertiesModal({
 
   const [analysis, setAnalysis] = useState<TrackAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+
+  // Optimistic rating override — clicking a star paints the new value
+  // immediately and rolls back if the backend rejects the write. Kept
+  // separate from `track.rating` so the rollback can fall back to the
+  // server-truth without an extra fetch.
+  const [ratingOverride, setRatingOverride] = useState<number | null | "none">(
+    "none",
+  );
+  const handleSetRating = useCallback(
+    async (next: number | null) => {
+      if (!track) return;
+      setRatingOverride(next);
+      try {
+        await setTrackRating(track.id, next);
+        // Server emits `track:updated` → useTrackUpdated refetches →
+        // track.rating reflects the new value → drop the override.
+        setRatingOverride("none");
+      } catch (err) {
+        console.error("[TrackProperties] set_track_rating failed", err);
+        setRatingOverride("none");
+      }
+    },
+    [track],
+  );
 
   // Edit mode state. The form is keyed on the parent-supplied
   // `track`, so opening the modal on a fresh track resets every
@@ -409,6 +435,20 @@ export function TrackPropertiesModal({
                 <Row
                   label={t("trackProperties.duration")}
                   value={formatDuration(track.duration_ms)}
+                />
+                <Row
+                  label={t("library.rating")}
+                  value={
+                    <StarRating
+                      value={
+                        ratingOverride === "none"
+                          ? track.rating
+                          : ratingOverride
+                      }
+                      onChange={handleSetRating}
+                      size="md"
+                    />
+                  }
                 />
               </>
             )}

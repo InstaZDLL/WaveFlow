@@ -607,7 +607,9 @@
     "showInExplorer": "Tampilkan di Penjelajah File",
     "copyPath": "Salin jalur file",
     "properties": "Properti",
-    "startRadio": "Mulai radio"
+    "startRadio": "Mulai radio",
+    "rating": "Peringkat",
+    "ratingNone": "Tanpa peringkat"
   },
   "trackProperties": {
     "title": "Properti trek",
@@ -810,7 +812,8 @@
       "formats": "Formats",
       "genres": "Genres",
       "sort": "Sort by",
-      "limit": "Max tracks"
+      "limit": "Max tracks",
+      "minRating": "Peringkat minimum"
     },
     "placeholders": {
       "name": "My 2024 favourites",

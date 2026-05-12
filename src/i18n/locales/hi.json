@@ -607,7 +607,9 @@
     "showInExplorer": "फ़ाइल एक्सप्लोरर में देखें",
     "copyPath": "फ़ाइल पथ की प्रतिलिपि बनाएँ",
     "properties": "गुणधर्म",
-    "startRadio": "रेडियो शुरू करें"
+    "startRadio": "रेडियो शुरू करें",
+    "rating": "रेटिंग",
+    "ratingNone": "कोई रेटिंग नहीं"
   },
   "trackProperties": {
     "title": "ट्रैक गुण",
@@ -810,7 +812,8 @@
       "formats": "Formats",
       "genres": "Genres",
       "sort": "Sort by",
-      "limit": "Max tracks"
+      "limit": "Max tracks",
+      "minRating": "न्यूनतम रेटिंग"
     },
     "placeholders": {
       "name": "My 2024 favourites",

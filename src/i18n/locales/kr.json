@@ -607,7 +607,9 @@
     "showInExplorer": "탐색기에서 보기",
     "copyPath": "파일 경로 복사",
     "properties": "특성",
-    "startRadio": "라디오 시작"
+    "startRadio": "라디오 시작",
+    "rating": "평점",
+    "ratingNone": "평점 없음"
   },
   "trackProperties": {
     "title": "트랙 속성",
@@ -810,7 +812,8 @@
       "formats": "Formats",
       "genres": "Genres",
       "sort": "Sort by",
-      "limit": "Max tracks"
+      "limit": "Max tracks",
+      "minRating": "최소 평점"
     },
     "placeholders": {
       "name": "My 2024 favourites",

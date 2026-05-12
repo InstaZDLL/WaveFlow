@@ -607,7 +607,9 @@
     "showInExplorer": "Im Explorer anzeigen",
     "copyPath": "Dateipfad kopieren",
     "properties": "Eigenschaften",
-    "startRadio": "Radio starten"
+    "startRadio": "Radio starten",
+    "rating": "Bewertung",
+    "ratingNone": "Keine Bewertung"
   },
   "trackProperties": {
     "title": "Titel-Eigenschaften",
@@ -810,7 +812,8 @@
       "formats": "Formate",
       "genres": "Genres",
       "sort": "Sortieren nach",
-      "limit": "Max. Titel"
+      "limit": "Max. Titel",
+      "minRating": "Mindestbewertung"
     },
     "placeholders": {
       "name": "Meine Favoriten 2024",

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Sparkles, Loader2, Eye } from "lucide-react";
+import { X, Sparkles, Loader2, Eye, Star } from "lucide-react";
 import {
   createCustomSmartPlaylist,
   previewCustomSmartPlaylist,
@@ -286,6 +286,17 @@ export function SmartPlaylistEditorModal({
                 label={t("smartPlaylistEditor.fields.liked")}
               />
             </div>
+            <Field label={t("smartPlaylistEditor.fields.minRating")}>
+              <RatingPicker
+                value={popmToStars(rules.rating_min ?? null)}
+                onChange={(stars) =>
+                  updateRule(
+                    "rating_min",
+                    stars === 0 ? null : Math.round((stars / 5) * 255),
+                  )
+                }
+              />
+            </Field>
             <Field label={t("smartPlaylistEditor.fields.formats")}>
               <div className="flex flex-wrap gap-2">
                 {FORMAT_OPTIONS.map((fmt) => {
@@ -523,4 +534,58 @@ function NumericRange({
 function msToMin(ms: number | null | undefined): number | null {
   if (ms == null) return null;
   return Math.round(ms / 60_000);
+}
+
+/** Round a POPM 0-255 to a 0-5 integer star count for the editor's
+ *  star picker. Half-stars aren't surfaced here on purpose — the
+ *  rule "≥ 3.5 stars" is too granular for a coarse library filter. */
+function popmToStars(popm: number | null): number {
+  if (popm == null || popm <= 0) return 0;
+  return Math.min(5, Math.max(1, Math.round((popm / 255) * 5)));
+}
+
+function RatingPicker({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (stars: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((stars) => {
+        const active = stars <= value;
+        return (
+          <button
+            key={stars}
+            type="button"
+            onClick={() => onChange(stars === value ? 0 : stars)}
+            aria-pressed={active}
+            aria-label={`${stars}`}
+            className={`p-1.5 rounded-md transition-colors ${
+              active ? "" : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            }`}
+          >
+            <Star
+              size={16}
+              className={
+                active
+                  ? "fill-yellow-400 text-yellow-400"
+                  : "text-zinc-300 dark:text-zinc-600"
+              }
+            />
+          </button>
+        );
+      })}
+      {value > 0 && (
+        <button
+          type="button"
+          onClick={() => onChange(0)}
+          className="ml-2 text-[11px] text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+        >
+          ×
+        </button>
+      )}
+    </div>
+  );
 }

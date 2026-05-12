@@ -615,7 +615,9 @@
     "showInExplorer": "View in Explorer",
     "copyPath": "Copy the file path",
     "properties": "Properties",
-    "startRadio": "Start radio"
+    "startRadio": "Start radio",
+    "rating": "Rating",
+    "ratingNone": "No rating"
   },
   "trackProperties": {
     "title": "Track properties",
@@ -819,7 +821,8 @@
       "formats": "Formats",
       "genres": "Genres",
       "sort": "Sort by",
-      "limit": "Max tracks"
+      "limit": "Max tracks",
+      "minRating": "Minimum rating"
     },
     "placeholders": {
       "name": "My 2024 favourites",

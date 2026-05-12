@@ -110,6 +110,7 @@ The user-driven counterpart to Daily Mix lives in [`smart_playlists/custom.rs`](
 | `formats: Vec<String>` | Lowercased OR-match on `track.codec`. |
 | `hi_res_only` | `sample_rate >= 88200 OR bit_depth >= 24`. |
 | `liked_only` | `EXISTS (SELECT 1 FROM liked_track …)`. |
+| `rating_min` | POPM 0-255 threshold (`t.rating >= ?`). The editor's star picker writes `Math.round(stars / 5 * 255)`, so "3★ or more" = 153; tracks with no rating are excluded. |
 | `sort: CustomSort` | One of `added_desc` (default), `added_asc`, `year_desc/asc`, `title_asc`, `artist_asc`, `random`. |
 | `limit` | Soft cap; clamped to 5 000 server-side so a typo doesn't blow up the queue. |
 

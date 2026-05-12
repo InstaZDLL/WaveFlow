@@ -607,7 +607,9 @@
     "showInExplorer": "Показать в проводнике",
     "copyPath": "Скопировать путь к файлу",
     "properties": "Свойства",
-    "startRadio": "Включить радио"
+    "startRadio": "Включить радио",
+    "rating": "Оценка",
+    "ratingNone": "Без оценки"
   },
   "trackProperties": {
     "title": "Свойства трека",
@@ -810,7 +812,8 @@
       "formats": "Formats",
       "genres": "Genres",
       "sort": "Sort by",
-      "limit": "Max tracks"
+      "limit": "Max tracks",
+      "minRating": "Минимальная оценка"
     },
     "placeholders": {
       "name": "My 2024 favourites",

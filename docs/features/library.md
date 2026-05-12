@@ -27,7 +27,7 @@ The scanner splits `"Artist A, Artist B"` (and `;` / `feat.` / `&` variants) on 
 - **A-Z navigator** — letter rail on the artists tab, NFD-normalised so accents (É → E, Ñ → N) bucket correctly.
 - **Multi-select** — ctrl/shift across rows with a floating action bar (Play / Add to queue / Add to playlist / Remove) anchored to the bottom of the viewport.
 - **Track Properties dialog** — foobar2000-style modal with the full tag set, audio specs, analysis results, file path and a Show in Explorer button.
-- **POPM ratings** — 5-star with half-steps, read from tags at scan time and editable inline.
+- **POPM ratings** — 5-star with half-steps, round-tripped to the file's tag. Edit surfaces: inline `StarRating` in the library track list, integer-star submenu in the right-click `TrackContextMenu` (any view), full half-star widget in the `TrackPropertiesModal`. The backend command `set_track_rating` writes the POPM frame back to the file (binary `<email>\0<rating><counter>` for ID3v2, text `RATING=0-100` for Vorbis / MP4 / APE), updates `track.rating` in the DB, then emits `track:updated` so every open view re-fetches without polling. Containers lofty can't open (DSD) keep a DB-only rating; the next folder scan still preserves it because the fast-path skip on `(mtime, size)` never re-extracts unchanged files. Smart playlists expose this as the `rating_min` rule — see [smart-playlists.md](smart-playlists.md#custom-smart-playlists-rule-based).
 - **Lightbox** — double-click any cover or artist photo to view full-size with keyboard navigation.
 
 ## Search
