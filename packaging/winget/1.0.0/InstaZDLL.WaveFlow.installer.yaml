@@ -8,7 +8,6 @@ InstallModes:
   - silentWithProgress
   - interactive
 UpgradeBehavior: install
-ReleaseNotesUrl: https://github.com/InstaZDLL/WaveFlow/releases/tag/v1.0.0
 Installers:
   - Architecture: x64
     InstallerType: nullsoft
