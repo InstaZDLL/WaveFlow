@@ -56,3 +56,7 @@ coverage
 .mcp.json
 skills-lock.json
 .codex
+
+# Local copies of release secrets (AUR SSH key, Tauri minisign key,
+# Authenticode PFX). These feed the GitHub Actions secrets — never commit.
+secrets/
