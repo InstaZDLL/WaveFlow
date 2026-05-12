@@ -1,7 +1,7 @@
 # COPR distribution
 
 WaveFlow is published to [Fedora COPR](https://copr.fedorainfracloud.org/)
-as **`InstaZDLL/waveflow`** so Fedora / RHEL / CentOS Stream / Rocky /
+as **`instazdll/waveflow`** so Fedora / RHEL / CentOS Stream / Rocky /
 Alma users can install / upgrade through their native `dnf`:
 
 ```bash
@@ -28,7 +28,7 @@ which:
 3. runs `spectool -gR` to download the freshly-released
    `WaveFlow_<v>_linux-x86_64.rpm` into the SRPM,
 4. wraps it as a source RPM with `rpmbuild -bs`,
-5. uploads the SRPM to COPR via `copr-cli build InstaZDLL/waveflow ...`.
+5. uploads the SRPM to COPR via `copr-cli build instazdll/waveflow ...`.
 
 COPR mocks the SRPM in every chroot configured on the project (Fedora
 39+, EPEL 9, etc.) and serves the resulting binary RPM under
@@ -104,7 +104,7 @@ Free, no Fedora install needed: <https://accounts.fedoraproject.org/>.
 # generates from the secrets:
 gh release download v1.0.0 -p "WaveFlow_*linux-x86_64.rpm" -D /tmp
 fedpkg --release f44 srpm packaging/copr/waveflow.spec
-copr-cli build InstaZDLL/waveflow /tmp/waveflow-1.0.0-1*.src.rpm
+copr-cli build instazdll/waveflow /tmp/waveflow-1.0.0-1*.src.rpm
 ```
 
 After the first manual build, every subsequent release will go

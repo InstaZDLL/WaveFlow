@@ -4,9 +4,9 @@ name: COPR
 # Bumps packaging/copr/waveflow.spec to the new version in-place
 # (the committed spec stays at the last released version), builds an
 # SRPM, and submits it to Fedora's COPR build system. COPR mocks it
-# against every chroot configured in the InstaZDLL/waveflow project
+# against every chroot configured in the instazdll/waveflow project
 # (Fedora 39+, EPEL 9, etc.) and serves the resulting RPMs through
-# https://copr.fedorainfracloud.org/coprs/InstaZDLL/waveflow/.
+# https://copr.fedorainfracloud.org/coprs/instazdll/waveflow/.
 #
 # Required repository secrets:
 #   COPR_LOGIN  — `login` field from ~/.config/copr (per-user, expires)
@@ -98,7 +98,7 @@ jobs:
           mkdir -p ~/.config
           cat > ~/.config/copr <<EOF
           [copr-cli]
-          username = InstaZDLL
+          username = instazdll
           login = $COPR_LOGIN
           token = $COPR_TOKEN
           copr_url = https://copr.fedorainfracloud.org
@@ -108,5 +108,5 @@ jobs:
       - name: Submit to COPR
         run: |
           SRPM=$(ls ~/rpmbuild/SRPMS/*.src.rpm | head -1)
-          echo "Submitting $SRPM to InstaZDLL/waveflow"
-          copr-cli build InstaZDLL/waveflow "$SRPM"
+          echo "Submitting $SRPM to instazdll/waveflow"
+          copr-cli build instazdll/waveflow "$SRPM"
