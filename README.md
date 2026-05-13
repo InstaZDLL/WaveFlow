@@ -10,6 +10,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.0.0-emerald?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/github/downloads/InstaZDLL/WaveFlow/total?style=flat-square&color=emerald&label=downloads" alt="Downloads" />
   <img src="https://img.shields.io/badge/tauri-2.11-blue?style=flat-square&logo=tauri" alt="Tauri 2" />
   <img src="https://img.shields.io/badge/react-19-61dafb?style=flat-square&logo=react" alt="React 19" />
   <img src="https://img.shields.io/badge/rust-stable-orange?style=flat-square&logo=rust" alt="Rust" />
