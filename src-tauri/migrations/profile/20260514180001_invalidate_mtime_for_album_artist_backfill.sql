@@ -1,0 +1,21 @@
+-- =============================================================================
+-- Force one-time tag re-extraction so the album_artist + is_compilation
+-- backfill from 20260514180000_album_artist.sql actually reaches the rows.
+-- =============================================================================
+--
+-- The scanner's fast path compares `(file_modified, file_size)` of each file
+-- on disk against the stored values; matching pairs skip `extract_file`
+-- entirely. After the schema bump alone, a user clicking "Rescan" sees
+-- "21 skipped, 0 updated" — file mtimes haven't changed, so the new Album
+-- Artist tag never gets read.
+--
+-- Zeroing every `file_modified` invalidates the fast-path check exactly once.
+-- The next rescan walks every file through lofty, fills `album.album_artist`
+-- and `album.is_compilation` from the source tags, and writes back the real
+-- mtime in the upsert path. Subsequent rescans return to the fast-path
+-- skip-rate they had before.
+--
+-- One-time cost: a full re-extraction on first rescan after upgrade
+-- (~5-10 s per 1000 tracks on an SSD). The user only feels this once.
+
+UPDATE track SET file_modified = 0;
