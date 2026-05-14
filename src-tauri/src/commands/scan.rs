@@ -143,6 +143,17 @@ struct ExtractedFile {
     title: String,
     artist: Option<String>,
     album: Option<String>,
+    /// Raw Album Artist text from the source tag (`TPE2` / `aART` /
+    /// `ALBUMARTIST` / `Album Artist`). Used as the album-grouping
+    /// authority — when present, two tracks share an album even if
+    /// their per-track Artist tags differ (featurings, lead-vocal
+    /// rotations on K-pop EPs, etc.).
+    album_artist: Option<String>,
+    /// `TCMP` (ID3v2) / `cpil` (MP4) / `COMPILATION` (Vorbis / APE)
+    /// flag. When `true` the scanner uses a synthetic "Various
+    /// Artists" album artist so a true compilation merges its tracks
+    /// under a single album row even when no Album Artist tag exists.
+    is_compilation: bool,
     genre: Option<String>,
     year: Option<i64>,
     track_number: Option<i64>,
@@ -435,6 +446,13 @@ fn extract_dsd_file(
         title,
         artist: meta.artist,
         album: meta.album,
+        // The DSF ID3v2 blob / DFF DIIN chunks could carry these but
+        // our reader doesn't surface them today; the album grouping
+        // falls back to the per-track Artist exactly like before for
+        // DSD files. Tagging DSD rips is niche enough that this is
+        // OK as a v1 limitation.
+        album_artist: None,
+        is_compilation: false,
         genre: meta.genre,
         year: meta.year,
         track_number: meta.track_number,
@@ -497,6 +515,8 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
         title,
         artist,
         album,
+        album_artist,
+        is_compilation,
         genre,
         year,
         track_number,
@@ -509,6 +529,8 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
             tag.title().map(|s| s.into_owned()),
             tag.artist().map(|s| s.into_owned()),
             tag.album().map(|s| s.into_owned()),
+            extract_album_artist(tag),
+            extract_compilation_flag(tag),
             tag.genre().map(|s| s.into_owned()),
             tag.date().map(|d| d.year as i64),
             tag.track().map(|n| n as i64),
@@ -517,7 +539,9 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
             extract_rating(tag),
             extract_musical_key(tag),
         ),
-        None => (None, None, None, None, None, None, None, None, None, None),
+        None => (
+            None, None, None, None, false, None, None, None, None, None, None, None,
+        ),
     };
 
     // Folder cover fallback: scan the track's parent directory for a
@@ -543,6 +567,8 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
         title,
         artist,
         album,
+        album_artist,
+        is_compilation,
         genre,
         year,
         track_number,
@@ -557,6 +583,36 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
         cover_art,
         rating,
     })
+}
+
+/// Pull the Album Artist tag and trim it. Lofty's `ItemKey::AlbumArtist`
+/// already abstracts the per-container mapping (`TPE2` / `aART` /
+/// `ALBUMARTIST` / `Album Artist`). Empty / whitespace-only strings are
+/// treated as missing so the grouping code falls back to the per-track
+/// Artist exactly like before.
+fn extract_album_artist(tag: &lofty::tag::Tag) -> Option<String> {
+    let raw = tag.get_string(ItemKey::AlbumArtist)?;
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+/// Read the compilation flag (`TCMP` / `cpil` / `COMPILATION` / `Compilation`).
+/// Lofty stores the value as a stringified `0` / `1` regardless of the
+/// underlying container; anything that parses to a non-zero integer or the
+/// literal `true` is treated as "this is a compilation".
+fn extract_compilation_flag(tag: &lofty::tag::Tag) -> bool {
+    let Some(raw) = tag.get_string(ItemKey::FlagCompilation) else {
+        return false;
+    };
+    let trimmed = raw.trim();
+    if trimmed.eq_ignore_ascii_case("true") {
+        return true;
+    }
+    matches!(trimmed.parse::<i64>(), Ok(n) if n != 0)
 }
 
 /// Upsert an artwork row keyed on its content hash. Existing rows are
@@ -634,10 +690,50 @@ pub(crate) async fn upsert_artist(
     Ok(Some(result.last_insert_rowid()))
 }
 
+/// Sentinel album-artist row used when an album is tagged as a
+/// compilation but has no explicit Album Artist. Resolved to a real
+/// `artist` row on first encounter via [`upsert_artist`], then reused.
+const VARIOUS_ARTISTS_LABEL: &str = "Various Artists";
+
+/// Resolve the album-artist text to an `artist` row id, applying the
+/// scanner's grouping policy:
+///
+/// 1. Explicit Album Artist tag → upsert that name verbatim.
+/// 2. No tag but `is_compilation == true` → upsert the
+///    `"Various Artists"` sentinel so a TCMP-flagged record stays
+///    glued together regardless of per-track Artist diversity.
+/// 3. No tag and not a compilation → fall back to the first artist of
+///    the track (`track_primary_artist_id`), preserving the v1.0
+///    behaviour for files the user hasn't re-tagged yet.
+///
+/// Returns the chosen `artist.id` plus the display text we want to
+/// persist on `album.album_artist` (preserves the source casing).
+async fn resolve_album_artist(
+    conn: &mut sqlx::SqliteConnection,
+    album_artist: Option<&str>,
+    is_compilation: bool,
+    track_primary_artist_id: Option<i64>,
+) -> AppResult<(Option<i64>, Option<String>)> {
+    if let Some(name) = album_artist {
+        let name = name.trim();
+        if !name.is_empty() {
+            let id = upsert_artist(conn, name).await?;
+            return Ok((id, Some(name.to_string())));
+        }
+    }
+    if is_compilation {
+        let id = upsert_artist(conn, VARIOUS_ARTISTS_LABEL).await?;
+        return Ok((id, Some(VARIOUS_ARTISTS_LABEL.to_string())));
+    }
+    Ok((track_primary_artist_id, None))
+}
+
 pub(crate) async fn upsert_album(
     conn: &mut sqlx::SqliteConnection,
     title: &str,
-    artist_id: Option<i64>,
+    album_artist_text: Option<&str>,
+    is_compilation: bool,
+    track_primary_artist_id: Option<i64>,
     year: Option<i64>,
 ) -> AppResult<Option<i64>> {
     let title = title.trim();
@@ -648,6 +744,14 @@ pub(crate) async fn upsert_album(
     if canon.is_empty() {
         return Ok(None);
     }
+
+    let (artist_id, album_artist_display) = resolve_album_artist(
+        conn,
+        album_artist_text,
+        is_compilation,
+        track_primary_artist_id,
+    )
+    .await?;
 
     // The `UNIQUE (canonical_title, artist_id)` constraint treats NULL as
     // distinct in SQLite, so we dedup manually for the NULL-artist case.
@@ -664,16 +768,36 @@ pub(crate) async fn upsert_album(
             .await?
     };
     if let Some(id) = existing {
+        // Backfill album_artist / is_compilation on the existing row
+        // when the new scan brings information the previous one didn't
+        // have. The COALESCE / OR keeps the values "sticky" — once a
+        // file in the album set declares an album artist or
+        // compilation, the record keeps it even if subsequent files
+        // omit the tags.
+        sqlx::query(
+            "UPDATE album
+                SET album_artist   = COALESCE(album_artist, ?),
+                    is_compilation = CASE WHEN ? = 1 OR is_compilation = 1 THEN 1 ELSE 0 END
+              WHERE id = ?",
+        )
+        .bind(album_artist_display.as_deref())
+        .bind(if is_compilation { 1_i64 } else { 0_i64 })
+        .bind(id)
+        .execute(&mut *conn)
+        .await?;
         return Ok(Some(id));
     }
 
     let result = sqlx::query(
-        "INSERT INTO album (title, canonical_title, artist_id, year) VALUES (?, ?, ?, ?)",
+        "INSERT INTO album (title, canonical_title, artist_id, year, album_artist, is_compilation)
+         VALUES (?, ?, ?, ?, ?, ?)",
     )
     .bind(title)
     .bind(&canon)
     .bind(artist_id)
     .bind(year)
+    .bind(album_artist_display.as_deref())
+    .bind(if is_compilation { 1_i64 } else { 0_i64 })
     .execute(&mut *conn)
     .await?;
     Ok(Some(result.last_insert_rowid()))
@@ -1050,7 +1174,17 @@ pub(crate) async fn scan_folder_inner(
                 let artist_ids = upsert_artist_list(&mut tx, &extracted.artist).await?;
                 let artist_id = artist_ids.first().copied();
                 let album_id = match &extracted.album {
-                    Some(a) => upsert_album(&mut tx, a, artist_id, extracted.year).await?,
+                    Some(a) => {
+                        upsert_album(
+                            &mut tx,
+                            a,
+                            extracted.album_artist.as_deref(),
+                            extracted.is_compilation,
+                            artist_id,
+                            extracted.year,
+                        )
+                        .await?
+                    }
                     None => None,
                 };
                 let genre_id = match &extracted.genre {
@@ -1140,7 +1274,17 @@ pub(crate) async fn scan_folder_inner(
             let artist_ids = upsert_artist_list(&mut tx, &extracted.artist).await?;
             let artist_id = artist_ids.first().copied();
             let album_id = match &extracted.album {
-                Some(a) => upsert_album(&mut tx, a, artist_id, extracted.year).await?,
+                Some(a) => {
+                    upsert_album(
+                        &mut tx,
+                        a,
+                        extracted.album_artist.as_deref(),
+                        extracted.is_compilation,
+                        artist_id,
+                        extracted.year,
+                    )
+                    .await?
+                }
                 None => None,
             };
             let genre_id = match &extracted.genre {

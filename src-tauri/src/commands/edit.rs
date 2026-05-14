@@ -363,10 +363,38 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
                     .await?
                 }
             };
+            // Preserve the existing album's album_artist + compilation
+            // flag when the user renames an album without re-tagging
+            // the source file. Without this, a rename routed through
+            // upsert_album would fall back to the track's primary
+            // artist for grouping, re-introducing the v1.0 split-on-
+            // featuring bug for the renamed row.
+            let (carried_album_artist, carried_is_compilation) = sqlx::query_as::<_, (
+                Option<String>,
+                i64,
+            )>(
+                "SELECT al.album_artist, al.is_compilation
+                   FROM track t
+                   LEFT JOIN album al ON al.id = t.album_id
+                  WHERE t.id = ?",
+            )
+            .bind(track_id)
+            .fetch_optional(&mut *tx)
+            .await?
+            .map(|(aa, cmp)| (aa, cmp == 1))
+            .unwrap_or((None, false));
             // upsert_album now takes &mut SqliteConnection, so we
             // can call it directly inside the open transaction —
             // no commit/reopen dance needed.
-            let aid = upsert_album(&mut tx, title, aid, edit.year).await?;
+            let aid = upsert_album(
+                &mut tx,
+                title,
+                carried_album_artist.as_deref(),
+                carried_is_compilation,
+                aid,
+                edit.year,
+            )
+            .await?;
             Some(aid)
         }
     } else {

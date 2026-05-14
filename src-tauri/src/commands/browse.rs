@@ -247,7 +247,7 @@ pub async fn list_albums(
         r#"
         SELECT al.id,
                al.title,
-               ar.name AS artist_name,
+               COALESCE(ar.name, al.album_artist) AS artist_name,
                al.year,
                COUNT(t.id)                     AS track_count,
                COALESCE(SUM(t.duration_ms), 0) AS total_duration_ms,
@@ -618,7 +618,8 @@ pub async fn get_album_detail(
 
     let header = sqlx::query_as::<_, AlbumDetailRaw>(
         r#"
-        SELECT al.id, al.title, al.artist_id, ar.name AS artist_name,
+        SELECT al.id, al.title, al.artist_id,
+               COALESCE(ar.name, al.album_artist) AS artist_name,
                al.year, al.release_date,
                aw.hash AS artwork_hash, aw.format AS artwork_format,
                da.label
