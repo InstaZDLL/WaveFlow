@@ -769,22 +769,26 @@ pub(crate) async fn upsert_album(
     };
     if let Some(id) = existing {
         // Backfill album_artist / is_compilation on the existing row
-        // when the new scan brings information the previous one didn't
-        // have. The COALESCE / OR keeps the values "sticky" — once a
-        // file in the album set declares an album artist or
-        // compilation, the record keeps it even if subsequent files
-        // omit the tags.
-        sqlx::query(
-            "UPDATE album
-                SET album_artist   = COALESCE(album_artist, ?),
-                    is_compilation = CASE WHEN ? = 1 OR is_compilation = 1 THEN 1 ELSE 0 END
-              WHERE id = ?",
-        )
-        .bind(album_artist_display.as_deref())
-        .bind(if is_compilation { 1_i64 } else { 0_i64 })
-        .bind(id)
-        .execute(&mut *conn)
-        .await?;
+        // ONLY when this scan brings new information. Re-scans of files
+        // without an Album Artist tag and without the compilation flag
+        // skip the UPDATE entirely — preserves the v1.0 perf profile
+        // for libraries the user hasn't re-tagged. The COALESCE / OR
+        // keeps the values "sticky": once a track declares an album
+        // artist or compilation, the row keeps it even if siblings
+        // drop the tags.
+        if album_artist_display.is_some() || is_compilation {
+            sqlx::query(
+                "UPDATE album
+                    SET album_artist   = COALESCE(album_artist, ?),
+                        is_compilation = CASE WHEN ? = 1 OR is_compilation = 1 THEN 1 ELSE 0 END
+                  WHERE id = ?",
+            )
+            .bind(album_artist_display.as_deref())
+            .bind(if is_compilation { 1_i64 } else { 0_i64 })
+            .bind(id)
+            .execute(&mut *conn)
+            .await?;
+        }
         return Ok(Some(id));
     }
 
