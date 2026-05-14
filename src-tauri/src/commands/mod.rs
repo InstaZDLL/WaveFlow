@@ -22,6 +22,7 @@ pub mod offline;
 pub mod player;
 pub mod playlist;
 pub mod playlist_cover;
+pub mod preferences;
 pub mod profile;
 pub mod profile_io;
 pub mod radio;

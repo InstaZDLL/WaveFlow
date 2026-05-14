@@ -73,6 +73,16 @@ pub fn run() {
                 let _ = window.set_focus();
             }
         }))
+        // Autostart wiring. Pass `--minimized` so the OS-launched
+        // instance shows up in the tray without grabbing focus — the
+        // user expressed intent to "start with the system", not "open
+        // a window every boot". The frontend reads `?autostart=1` from
+        // `argv` if it ever wants to surface a "launched on boot"
+        // banner; not used today.
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec!["--minimized"]),
+        ))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init());
 
@@ -95,6 +105,16 @@ pub fn run() {
             // command can be dispatched, so blocking here is acceptable.
             let state =
                 tauri::async_runtime::block_on(async move { AppState::init(&init_handle).await })?;
+
+            // Hydrate the close-to-tray flag once at boot. The atomic
+            // is the source of truth for `WindowEvent::CloseRequested`
+            // so it has to be in place before the first user input.
+            let minimize_to_tray = tauri::async_runtime::block_on(
+                commands::preferences::load_minimize_to_tray(&state.app_db),
+            );
+            app.manage(commands::preferences::PreferencesState::new(
+                minimize_to_tray,
+            ));
 
             app.manage(state);
 
@@ -158,6 +178,60 @@ pub fn run() {
                 }
             });
             app.manage(watcher);
+
+            // Scan-on-start. Honours `profile_setting['library.scan_on_start']`
+            // (default OFF — opt in so power users with terabyte libraries
+            // don't pay the I/O at every launch). The rescan walks every
+            // `library_folder` row of the active profile and runs the
+            // same `scan_folder_inner` path the manual "Rescan" button
+            // uses, so the `scan:progress` toast surfaces automatically.
+            // Fire-and-forget — failures log but never block startup.
+            let scan_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let state = scan_handle.state::<AppState>();
+                let Ok(pool) = state.require_profile_pool().await else {
+                    return;
+                };
+                let enabled: bool = sqlx::query_scalar::<_, String>(
+                    "SELECT value FROM profile_setting WHERE key = 'library.scan_on_start'",
+                )
+                .fetch_optional(&pool)
+                .await
+                .ok()
+                .flatten()
+                .map(|v| v == "true" || v == "1")
+                .unwrap_or(false);
+                if !enabled {
+                    return;
+                }
+                let Ok(profile_id) = state.require_profile_id().await else {
+                    return;
+                };
+                let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+                let folder_ids: Vec<i64> =
+                    match sqlx::query_scalar("SELECT id FROM library_folder ORDER BY id")
+                        .fetch_all(&pool)
+                        .await
+                    {
+                        Ok(rows) => rows,
+                        Err(err) => {
+                            tracing::warn!(%err, "scan-on-start: list folders failed");
+                            return;
+                        }
+                    };
+                for folder_id in folder_ids {
+                    if let Err(err) = commands::scan::scan_folder_inner(
+                        &pool,
+                        &artwork_dir,
+                        folder_id,
+                        Some(&scan_handle),
+                    )
+                    .await
+                    {
+                        tracing::warn!(folder_id, %err, "scan-on-start: folder scan failed");
+                    }
+                }
+            });
 
             // OS media controls (SMTC / MPRIS / MediaRemote) via
             // souvlaki. Needs the main window to exist for HWND on
@@ -385,6 +459,10 @@ pub fn run() {
             commands::spotify::spotify_pause_local,
             commands::offline::get_offline_mode,
             commands::offline::set_offline_mode,
+            commands::preferences::get_minimize_to_tray,
+            commands::preferences::set_minimize_to_tray,
+            commands::preferences::get_auto_start,
+            commands::preferences::set_auto_start,
             commands::lyrics::get_lyrics,
             commands::lyrics::fetch_lyrics,
             commands::lyrics::import_lrc_file,
@@ -461,9 +539,30 @@ pub fn run() {
             WindowEvent::CloseRequested { api, .. } => {
                 let app = window.app_handle();
                 let quitting = app.state::<QuitGate>().0.load(Ordering::Acquire);
-                if !quitting {
+                if quitting {
+                    return;
+                }
+                // The mini-player window is its own dispensable surface
+                // — closing it should just close it, never tear down
+                // the whole app. Only the main window participates in
+                // the close-to-tray decision.
+                if window.label() != "main" {
+                    return;
+                }
+                let minimize_to_tray = app
+                    .state::<commands::preferences::PreferencesState>()
+                    .minimize_to_tray
+                    .load(Ordering::Acquire);
+                if minimize_to_tray {
                     api.prevent_close();
                     let _ = window.hide();
+                } else {
+                    // Arm the quit gate so the impending Destroyed
+                    // event runs the normal shutdown path (persist
+                    // resume point, shut the audio engine down) and
+                    // doesn't bounce back into close-to-tray on any
+                    // subsequent CloseRequested fired during teardown.
+                    app.state::<QuitGate>().0.store(true, Ordering::Release);
                 }
             }
             // Real shutdown path: fired only after the QuitGate has

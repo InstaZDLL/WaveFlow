@@ -42,6 +42,13 @@ tauri-plugin-updater = "2"
 # first, which surfaces and focuses its main window. Prevents two audio
 # engines fighting over the same SQLite file and cpal device.
 tauri-plugin-single-instance = "2"
+# Cross-platform autostart wiring. Backed by:
+#  - Windows: HKCU\Software\Microsoft\Windows\CurrentVersion\Run
+#  - macOS:   LaunchAgent plist under ~/Library/LaunchAgents
+#  - Linux:   ~/.config/autostart/<bin>.desktop (XDG spec)
+# Persisted state lives entirely in the OS so the toggle survives an
+# uninstall/reinstall the same way Spotify's "Open on startup" does.
+tauri-plugin-autostart = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_urlencoded = "0.7"

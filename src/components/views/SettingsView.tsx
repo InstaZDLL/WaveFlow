@@ -99,6 +99,12 @@ import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
 import { invoke } from "@tauri-apps/api/core";
 import { regenerateThumbnails } from "../../lib/tauri/library";
+import {
+  getAutoStart,
+  getMinimizeToTray,
+  setAutoStart as persistAutoStart,
+  setMinimizeToTray as persistMinimizeToTray,
+} from "../../lib/tauri/preferences";
 import { DuplicatesModal } from "../common/DuplicatesModal";
 import { BackupCard } from "./settings/BackupCard";
 import { EqualizerCard } from "./settings/EqualizerCard";
@@ -354,6 +360,24 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
 
   useEffect(() => {
     let cancelled = false;
+    getMinimizeToTray()
+      .then((v) => {
+        if (cancelled) return;
+        setMinimizeToTray(v);
+      })
+      .catch((err) => console.error("[Settings] load minimize_to_tray", err));
+    getAutoStart()
+      .then((v) => {
+        if (cancelled) return;
+        setAutoStart(v);
+      })
+      .catch((err) => console.error("[Settings] load auto_start", err));
+    getProfileSetting("library.scan_on_start")
+      .then((v) => {
+        if (cancelled) return;
+        if (v != null) setScanOnStart(v === "true" || v === "1");
+      })
+      .catch(() => {});
     getProfileSetting("ui.single_click_play")
       .then((v) => {
         if (cancelled) return;
@@ -441,6 +465,37 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         setShowAbLoop(!next);
       });
   }, [showAbLoop]);
+
+  const handleToggleAutoStart = useCallback(() => {
+    const next = !autoStart;
+    setAutoStart(next);
+    persistAutoStart(next).catch((err) => {
+      console.error("[Settings] set auto_start failed", err);
+      setAutoStart(!next);
+    });
+  }, [autoStart]);
+
+  const handleToggleMinimizeToTray = useCallback(() => {
+    const next = !minimizeToTray;
+    setMinimizeToTray(next);
+    persistMinimizeToTray(next).catch((err) => {
+      console.error("[Settings] set minimize_to_tray failed", err);
+      setMinimizeToTray(!next);
+    });
+  }, [minimizeToTray]);
+
+  const handleToggleScanOnStart = useCallback(() => {
+    const next = !scanOnStart;
+    setScanOnStart(next);
+    setProfileSetting(
+      "library.scan_on_start",
+      next ? "true" : "false",
+      "bool",
+    ).catch((err) => {
+      console.error("[Settings] set scan_on_start failed", err);
+      setScanOnStart(!next);
+    });
+  }, [scanOnStart]);
 
   const handleCopyLogs = useCallback(async () => {
     try {
@@ -1209,7 +1264,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             </div>
             <ToggleSwitch
               enabled={autoStart}
-              onToggle={() => setAutoStart(!autoStart)}
+              onToggle={handleToggleAutoStart}
               label={t("settings.autoStart.title")}
             />
           </div>
@@ -1233,7 +1288,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             </div>
             <ToggleSwitch
               enabled={minimizeToTray}
-              onToggle={() => setMinimizeToTray(!minimizeToTray)}
+              onToggle={handleToggleMinimizeToTray}
               label={t("settings.minimizeToTray.title")}
             />
           </div>
@@ -1257,7 +1312,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             </div>
             <ToggleSwitch
               enabled={scanOnStart}
-              onToggle={() => setScanOnStart(!scanOnStart)}
+              onToggle={handleToggleScanOnStart}
               label={t("settings.scanOnStart.title")}
             />
           </div>
