@@ -213,10 +213,10 @@ async fn top_track_artwork_paths(
         hash: String,
         format: String,
     }
-    // Pull more than `take` so we can keep walking past tracks whose
-    // artwork file vanished from disk (cache wipe, manual delete) without
-    // a second round-trip.
-    let limit = (take * 4) as i64;
+    // No LIMIT — we may need to walk the whole playlist when the first
+    // N tracks share a cover or have a missing artwork file. Playlists
+    // are bounded by user patience (rarely > a few thousand entries),
+    // so the round-trip stays cheap.
     let rows: Vec<Row> = sqlx::query_as(
         r#"
         SELECT aw.hash   AS hash,
@@ -229,20 +229,28 @@ async fn top_track_artwork_paths(
            AND t.is_available = 1
            AND aw.hash IS NOT NULL
          ORDER BY pt.position ASC
-         LIMIT ?
         "#,
     )
     .bind(playlist_id)
-    .bind(limit)
     .fetch_all(pool)
     .await
     .unwrap_or_default();
 
+    // Dedupe by artwork hash so a playlist whose first 4 tracks share a
+    // cover collapses to a single full-canvas image instead of a 2×2
+    // grid of identical thumbnails — matches Spotify's behaviour on
+    // mono-album playlists. Two/three unique covers still pick the
+    // strip layout the compositor already exposes.
     let artwork_dir = paths.profile_artwork_dir(profile_id);
     let mut out = Vec::with_capacity(take);
+    let mut seen: std::collections::HashSet<String> =
+        std::collections::HashSet::with_capacity(take);
     for row in rows {
         if out.len() >= take {
             break;
+        }
+        if !seen.insert(row.hash.clone()) {
+            continue;
         }
         let p = artwork_dir.join(format!("{}.{}", row.hash, row.format));
         if p.exists() {
