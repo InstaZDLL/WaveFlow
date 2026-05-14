@@ -22,6 +22,16 @@ export function useSortMemory(
 
   useEffect(() => {
     let cancelled = false;
+    // Reset to defaults before the new fetch so a key change (e.g.
+    // navigating between playlists with per-playlist sort memory)
+    // doesn't render the previous context's value for the duration of
+    // the IPC round-trip. Library tabs use static keys and pay this
+    // cost only once at mount, so the reset is effectively a no-op
+    // there. The lint disables flag intentional cross-render reset —
+    // the standard "reset state when a prop changes" pattern.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSortState(defaults);
+    setIsLoaded(false);
     (async () => {
       try {
         const raw = await getProfileSetting(fullKey);
@@ -49,6 +59,10 @@ export function useSortMemory(
     return () => {
       cancelled = true;
     };
+    // `defaults` is a fresh object literal each render so adding it
+    // to the dep array would loop — fullKey is the only signal we
+    // actually react to.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fullKey]);
 
   const setSort = (s: SortState) => {

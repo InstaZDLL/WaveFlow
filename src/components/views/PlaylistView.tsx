@@ -19,6 +19,8 @@ import {
   Heart,
   GripVertical,
   Download,
+  ArrowUpDown,
+  Check,
 } from "lucide-react";
 import {
   DndContext,
@@ -70,6 +72,35 @@ import { pickSaveFile } from "../../lib/tauri/dialog";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
+import { useSortMemory } from "../../hooks/useSortMemory";
+
+/**
+ * Sort modes for the playlist track list. "custom" preserves the
+ * user-curated drag-and-drop order stored as `playlist_track.position` —
+ * any other mode is a display-only client-side sort that doesn't touch
+ * the DB. Switching back to "custom" restores the persisted order
+ * verbatim, Spotify-style.
+ */
+type PlaylistSortMode =
+  | "custom"
+  | "title"
+  | "artist"
+  | "album"
+  | "added_at"
+  | "duration_ms";
+
+const PLAYLIST_SORT_MODES: ReadonlyArray<PlaylistSortMode> = [
+  "custom",
+  "title",
+  "artist",
+  "album",
+  "added_at",
+  "duration_ms",
+];
+
+function isPlaylistSortMode(value: string): value is PlaylistSortMode {
+  return (PLAYLIST_SORT_MODES as readonly string[]).includes(value);
+}
 
 interface PlaylistViewProps {
   playlistId: number | null;
@@ -101,6 +132,25 @@ export function PlaylistView({
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  // Per-playlist sort mode, persisted in `profile_setting['sort.playlist:<id>']`
+  // via `useSortMemory`. The hook keeps a `direction` field for API
+  // symmetry with the library view, but the playlist UI only exposes
+  // the orderBy axis — direction is implied by the mode (title/artist/
+  // album = asc, added_at/duration_ms = desc, custom = stored order).
+  const sortContextKey = playlistId != null ? `playlist:${playlistId}` : "playlist:none";
+  const playlistSort = useSortMemory(sortContextKey, {
+    orderBy: "custom",
+    direction: "asc",
+  });
+  const sortMode: PlaylistSortMode = isPlaylistSortMode(playlistSort.sort.orderBy)
+    ? playlistSort.sort.orderBy
+    : "custom";
+  const setSortMode = useCallback(
+    (mode: PlaylistSortMode) => {
+      playlistSort.setSort({ orderBy: mode, direction: "asc" });
+    },
+    [playlistSort],
+  );
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
@@ -115,6 +165,47 @@ export function PlaylistView({
   useEffect(() => {
     tracksRef.current = tracks;
   }, [tracks]);
+
+  // Client-side sort. "custom" preserves the stored order verbatim;
+  // every other mode is a stable JS sort by the relevant field. The
+  // comparator picks an axis-appropriate direction (alphabetical for
+  // title/artist/album, most-recent-first for added_at, longest-first
+  // for duration) so the dropdown stays single-axis — the screen we
+  // mirror (Spotify) doesn't expose a direction toggle either.
+  const displayTracks = useMemo<Track[]>(() => {
+    if (sortMode === "custom") return tracks;
+    const collator = new Intl.Collator(undefined, {
+      numeric: true,
+      sensitivity: "base",
+    });
+    const sorted = [...tracks];
+    switch (sortMode) {
+      case "title":
+        sorted.sort((a, b) => collator.compare(a.title, b.title));
+        break;
+      case "artist":
+        sorted.sort((a, b) =>
+          collator.compare(a.artist_name ?? "", b.artist_name ?? ""),
+        );
+        break;
+      case "album":
+        sorted.sort((a, b) =>
+          collator.compare(a.album_title ?? "", b.album_title ?? ""),
+        );
+        break;
+      case "added_at":
+        sorted.sort((a, b) => (b.added_at ?? 0) - (a.added_at ?? 0));
+        break;
+      case "duration_ms":
+        sorted.sort((a, b) => (b.duration_ms ?? 0) - (a.duration_ms ?? 0));
+        break;
+    }
+    return sorted;
+  }, [tracks, sortMode]);
+  const displayTracksRef = useRef<Track[]>(displayTracks);
+  useEffect(() => {
+    displayTracksRef.current = displayTracks;
+  }, [displayTracks]);
 
   useEffect(() => {
     return () => {
@@ -139,7 +230,10 @@ export function PlaylistView({
 
   const handleRowSelect = useCallback(
     (track: Track, e: React.MouseEvent) => {
-      const items = tracksRef.current;
+      // Range selection follows what the user sees on screen — sorting
+      // doesn't change which rows belong to the visual range between
+      // anchor and target, so the displayed array is the right input.
+      const items = displayTracksRef.current;
       if (e.shiftKey) {
         selection.selectRange(track.id, items);
       } else if (e.ctrlKey || e.metaKey) {
@@ -211,7 +305,10 @@ export function PlaylistView({
   const handlePlayTrackByIndex = useCallback(
     (index: number) => {
       if (playlistId == null) return;
-      const current = tracksRef.current;
+      // Play in the order the user is seeing — not the stored order —
+      // so a sort-by-Title view enqueues the alphabetical sequence and
+      // "next" stays sensible.
+      const current = displayTracksRef.current;
       if (index < 0 || index >= current.length) return;
       void playTracks(current, index, { type: "playlist", id: playlistId });
     },
@@ -335,13 +432,13 @@ export function PlaylistView({
   const totalDurationMs = playlist?.total_duration_ms ?? 0;
 
   const handlePlayAll = async () => {
-    if (tracks.length === 0) return;
-    await playTracks(tracks, 0, { type: "playlist", id: playlistId });
+    if (displayTracks.length === 0) return;
+    await playTracks(displayTracks, 0, { type: "playlist", id: playlistId });
   };
 
   const handleShufflePlay = async () => {
-    if (tracks.length === 0) return;
-    await playTracks(tracks, 0, { type: "playlist", id: playlistId });
+    if (displayTracks.length === 0) return;
+    await playTracks(displayTracks, 0, { type: "playlist", id: playlistId });
     // Toggle shuffle on if it isn't already; the backend handles the
     // case where it's already shuffled gracefully.
     await toggleShuffle();
@@ -548,10 +645,21 @@ export function PlaylistView({
         );
       })()}
 
+      {/* Sort selector. The dropdown is omitted on empty playlists to
+          keep the empty-state visually clean. Only mounted once the
+          per-playlist sort memory has finished hydrating so the active
+          option doesn't flash from "Custom" to the persisted value on
+          first paint. */}
+      {tracks.length > 0 && playlistSort.isLoaded && (
+        <div className="flex items-center justify-end -mt-4">
+          <PlaylistSortMenu current={sortMode} onChange={setSortMode} t={t} />
+        </div>
+      )}
+
       {/* Tracks list */}
       {tracks.length > 0 ? (
         <PlaylistTrackTable
-          tracks={tracks}
+          tracks={displayTracks}
           isLoading={isLoading}
           currentTrackId={currentTrack?.id ?? null}
           isPlaying={isPlaying}
@@ -567,6 +675,7 @@ export function PlaylistView({
           onReorder={handleReorder}
           isSelected={selection.isSelected}
           onRowSelect={handleRowSelect}
+          dragEnabled={sortMode === "custom"}
         />
       ) : (
         <EmptyState
@@ -654,6 +763,13 @@ interface PlaylistTrackTableProps {
   onReorder: (fromIndex: number, toIndex: number) => void;
   isSelected: (id: number) => boolean;
   onRowSelect: (track: Track, e: React.MouseEvent) => void;
+  /**
+   * When `false` the rows render without grip handles and `onReorder`
+   * is never invoked — the playlist is in a non-custom sort mode and
+   * drag-to-reorder would mutate the stored order in ways the user
+   * isn't asking for.
+   */
+  dragEnabled: boolean;
 }
 
 const PLAYLIST_ROW_HEIGHT = 56;
@@ -675,6 +791,7 @@ function PlaylistTrackTable({
   onReorder,
   isSelected,
   onRowSelect,
+  dragEnabled,
 }: PlaylistTrackTableProps) {
   "use no memo";
   const gridCols = "grid-cols-[1.5rem_3rem_2.75rem_1fr_1fr_1fr_5rem_2rem]";
@@ -812,6 +929,7 @@ function PlaylistTrackTable({
                   onToggleLike={onToggleLike}
                   onNavigateToArtist={onNavigateToArtist}
                   onRowSelect={onRowSelect}
+                  dragEnabled={dragEnabled}
                 />
               );
             })}
@@ -887,6 +1005,11 @@ interface SortablePlaylistRowProps {
   onToggleLike: (trackId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
   onRowSelect: (track: Track, e: React.MouseEvent) => void;
+  /** Hide the grip handle when the playlist is in a non-custom sort
+   *  mode. dnd-kit's listeners are also detached so a desperate
+   *  click-drag on the row body can't trigger a backend reorder.
+   */
+  dragEnabled: boolean;
 }
 
 const SortablePlaylistRow = memo(function SortablePlaylistRow({
@@ -907,6 +1030,7 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
   onToggleLike,
   onNavigateToArtist,
   onRowSelect,
+  dragEnabled,
 }: SortablePlaylistRowProps) {
   // Disable dnd-kit's per-item layout animations: they trigger CSS
   // transitions on every neighbour the drag crosses, which is what
@@ -917,6 +1041,7 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
     useSortable({
       id: String(track.id),
       animateLayoutChanges: () => false,
+      disabled: !dragEnabled,
     });
   // Place the row's slot via CSS `top` (not via a translateY
   // transform): dnd-kit anchors the drag overlay and resolves drop
@@ -957,17 +1082,24 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
             : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
       }`}
     >
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        aria-label="Drag to reorder"
-        className="shrink-0 p-1 -ml-1 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={(e) => e.stopPropagation()}
-        onDoubleClick={(e) => e.stopPropagation()}
-      >
-        <GripVertical size={14} />
-      </button>
+      {dragEnabled ? (
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label="Drag to reorder"
+          className="shrink-0 p-1 -ml-1 text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical size={14} />
+        </button>
+      ) : (
+        // Empty slot so the row grid columns don't reshuffle when the
+        // sort mode flips. Keeps the title / artist / album lined up
+        // with the column header.
+        <span aria-hidden="true" />
+      )}
       <span
         className={`text-right text-sm tabular-nums flex items-center justify-end ${
           isCurrent ? "text-emerald-500 font-semibold" : "text-zinc-400"
@@ -1030,3 +1162,106 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
     </div>
   );
 });
+
+// =============================================================================
+// Playlist sort menu (Spotify-style: list of modes + check, no direction)
+// =============================================================================
+
+interface PlaylistSortMenuProps {
+  current: PlaylistSortMode;
+  onChange: (next: PlaylistSortMode) => void;
+  // i18next's `t` is heavily overloaded — accept it whole rather than
+  // re-declaring a subset that the type checker would reject.
+  t: ReturnType<typeof useTranslation>["t"];
+}
+
+function PlaylistSortMenu({ current, onChange, t }: PlaylistSortMenuProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [isOpen]);
+
+  // i18n labels with inline fallbacks so the menu works in every locale
+  // without forcing a 17-file translation pass for keys most users
+  // never see. The fallback strings stay in English so the option set
+  // is at least intelligible if a translation drops a key.
+  const labels: Record<PlaylistSortMode, string> = {
+    custom: t("sort.customOrder", "Custom order"),
+    title: t("sort.title"),
+    artist: t("sort.artist"),
+    album: t("sort.album"),
+    added_at: t("sort.recentlyAdded", "Recently added"),
+    duration_ms: t("sort.duration"),
+  };
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen((p) => !p)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className="flex items-center space-x-2 px-3 py-1.5 rounded-lg border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+      >
+        <ArrowUpDown size={14} />
+        <span>{labels[current]}</span>
+      </button>
+      {isOpen && (
+        <ul
+          role="listbox"
+          className="absolute top-full right-0 mt-2 min-w-56 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated overflow-hidden z-50 animate-fade-in py-1"
+        >
+          <li
+            className="px-4 pt-1 pb-2 text-[10px] font-bold tracking-widest text-zinc-400 uppercase"
+            aria-hidden="true"
+          >
+            {t("sort.menuTitle", "Sort by")}
+          </li>
+          {PLAYLIST_SORT_MODES.map((mode) => {
+            const isSelected = mode === current;
+            return (
+              <li key={mode} role="presentation">
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={() => {
+                    onChange(mode);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-4 py-2 text-sm text-left transition-colors ${
+                    isSelected
+                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
+                      : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30"
+                  }`}
+                >
+                  <span>{labels[mode]}</span>
+                  {isSelected && <Check size={14} />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
