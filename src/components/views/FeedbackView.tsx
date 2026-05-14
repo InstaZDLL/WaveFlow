@@ -1,6 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, MessageSquare, Mail, ArrowRight } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import type { ViewId } from "../../types";
+
+const FEEDBACK_EMAIL = "contact@waveflow.app";
 
 interface FeedbackViewProps {
   onNavigate: (view: ViewId) => void;
@@ -61,6 +64,11 @@ export function FeedbackView({ onNavigate }: FeedbackViewProps) {
         <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800/50 overflow-hidden">
           <button
             type="button"
+            onClick={() =>
+              openUrl(`mailto:${FEEDBACK_EMAIL}`).catch((err) =>
+                console.error("[FeedbackView] open mailto failed", err),
+              )
+            }
             className="w-full flex items-center justify-between p-5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
           >
             <div className="flex items-center space-x-4">
@@ -69,7 +77,7 @@ export function FeedbackView({ onNavigate }: FeedbackViewProps) {
               </div>
               <div className="text-left">
                 <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                  contact@waveflow.dev
+                  {FEEDBACK_EMAIL}
                 </div>
                 <div className="text-xs text-zinc-400">
                   {t("feedback.contact.subtitle")}
