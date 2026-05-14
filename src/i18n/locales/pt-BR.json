@@ -53,9 +53,6 @@
     }
   },
   "sidebar": {
-    "brand": {
-      "beta": "Beta"
-    },
     "nav": {
       "home": "Página inicial"
     },
@@ -733,7 +730,6 @@
       "failed": "{{count}} falha(s):"
     }
   },
-
   "trackProperties": {
     "title": "Propriedades da faixa",
     "sections": {

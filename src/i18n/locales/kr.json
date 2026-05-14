@@ -53,9 +53,6 @@
     }
   },
   "sidebar": {
-    "brand": {
-      "beta": "베타"
-    },
     "nav": {
       "home": "홈"
     },
@@ -733,7 +730,6 @@
       "failed": "실패 {{count}}건:"
     }
   },
-
   "trackProperties": {
     "title": "트랙 속성",
     "sections": {

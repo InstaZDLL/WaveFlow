@@ -53,9 +53,6 @@
     }
   },
   "sidebar": {
-    "brand": {
-      "beta": "Beta"
-    },
     "nav": {
       "home": "Beranda"
     },
@@ -733,7 +730,6 @@
       "failed": "{{count}} kegagalan:"
     }
   },
-
   "trackProperties": {
     "title": "Properti trek",
     "sections": {

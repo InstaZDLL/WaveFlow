@@ -53,9 +53,6 @@
     }
   },
   "sidebar": {
-    "brand": {
-      "beta": "Beta"
-    },
     "nav": {
       "home": "Home"
     },
@@ -733,7 +730,6 @@
       "failed": "{{count}} fout(en):"
     }
   },
-
   "trackProperties": {
     "title": "Eigenschappen van een track",
     "sections": {

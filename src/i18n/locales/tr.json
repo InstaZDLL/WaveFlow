@@ -53,9 +53,6 @@
     }
   },
   "sidebar": {
-    "brand": {
-      "beta": "Beta"
-    },
     "nav": {
       "home": "Ana Sayfa"
     },
@@ -733,7 +730,6 @@
       "failed": "{{count}} hata:"
     }
   },
-
   "trackProperties": {
     "title": "Parça özellikleri",
     "sections": {

@@ -241,9 +241,6 @@ export function Sidebar({
         <div className="flex items-center space-x-2 font-bold text-xl mb-6">
           <WaveFlowLogo className="w-7 h-7" />
           <span className="text-zinc-800 dark:text-white">WaveFlow</span>
-          <span className="bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider">
-            {t("sidebar.brand.beta")}
-          </span>
         </div>
 
         <button className="w-full flex items-center justify-between p-2 rounded-xl border transition-colors border-zinc-200 bg-zinc-50 hover:bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/50 dark:hover:bg-zinc-800 dark:text-zinc-200">

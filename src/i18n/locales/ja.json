@@ -53,9 +53,6 @@
     }
   },
   "sidebar": {
-    "brand": {
-      "beta": "ベータ"
-    },
     "nav": {
       "home": "ホーム"
     },
@@ -733,7 +730,6 @@
       "failed": "失敗: {{count}}件"
     }
   },
-
   "trackProperties": {
     "title": "トラックのプロパティ",
     "sections": {

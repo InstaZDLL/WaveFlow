@@ -53,9 +53,6 @@
     }
   },
   "sidebar": {
-    "brand": {
-      "beta": "Бета-версия"
-    },
     "nav": {
       "home": "Главная"
     },
@@ -733,7 +730,6 @@
       "failed": "Ошибок: {{count}}"
     }
   },
-
   "trackProperties": {
     "title": "Свойства трека",
     "sections": {

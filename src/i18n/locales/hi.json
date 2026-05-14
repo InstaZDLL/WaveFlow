@@ -53,9 +53,6 @@
     }
   },
   "sidebar": {
-    "brand": {
-      "beta": "बीटा"
-    },
     "nav": {
       "home": "होम"
     },
@@ -733,7 +730,6 @@
       "failed": "{{count}} विफलताएँ:"
     }
   },
-
   "trackProperties": {
     "title": "ट्रैक गुण",
     "sections": {

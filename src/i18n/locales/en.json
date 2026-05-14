@@ -53,9 +53,6 @@
     }
   },
   "sidebar": {
-    "brand": {
-      "beta": "Beta"
-    },
     "nav": {
       "home": "Home"
     },
@@ -741,7 +738,6 @@
       "failed": "{{count}} failure(s):"
     }
   },
-
   "trackProperties": {
     "title": "Track properties",
     "sections": {

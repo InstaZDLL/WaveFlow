@@ -53,9 +53,6 @@
     }
   },
   "sidebar": {
-    "brand": {
-      "beta": "Beta"
-    },
     "nav": {
       "home": "首頁"
     },
@@ -733,7 +730,6 @@
       "failed": "{{count}} 個失敗："
     }
   },
-
   "trackProperties": {
     "title": "曲目屬性",
     "sections": {
