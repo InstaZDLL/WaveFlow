@@ -690,10 +690,257 @@ pub(crate) async fn upsert_artist(
     Ok(Some(result.last_insert_rowid()))
 }
 
+/// Post-scan pass that promotes "tagless" same-title album rows into a
+/// single Various-Artists compilation. Catches the common case where a
+/// lofi / mood / cover-pack compilation (Soothing Breeze, Coffee Shop,
+/// etc.) ships without `aART` and without `TCMP` so each track lands
+/// in its own primary-artist-keyed album row.
+///
+/// Heuristic — conservative to avoid false positives on legit cases
+/// like "two different artists who self-titled":
+///   - same `canonical_title`
+///   - every row has `album_artist IS NULL AND is_compilation = 0`
+///     (the tag-driven path is the source of truth — never override)
+///   - at least 3 distinct `artist_id`s (so a featuring on one track
+///     of a normal album doesn't get promoted to a fake compilation)
+///
+/// On match: pick the lowest-id row as survivor, set
+/// `(artist_id = VariousArtists, album_artist = "Various Artists",
+/// is_compilation = 1)`, reparent every track of the sibling rows
+/// onto the survivor, and delete the siblings. Their artwork rows
+/// stay around (other albums may share them via hash dedup).
+async fn merge_implicit_compilations(pool: &SqlitePool) -> AppResult<()> {
+    let groups: Vec<(String,)> = sqlx::query_as(
+        r#"
+        SELECT canonical_title
+          FROM album
+         WHERE album_artist IS NULL
+           AND is_compilation = 0
+           AND artist_id IS NOT NULL
+         GROUP BY canonical_title
+        HAVING COUNT(DISTINCT artist_id) >= 3
+        "#,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    if groups.is_empty() {
+        return Ok(());
+    }
+
+    let mut tx = pool.begin().await?;
+    let va_id = upsert_artist(&mut tx, VARIOUS_ARTISTS_LABEL).await?;
+    let Some(va_id) = va_id else {
+        // upsert_artist returned None — name canonicalised to empty,
+        // shouldn't happen with "Various Artists" but guard defensively.
+        tx.rollback().await?;
+        return Ok(());
+    };
+
+    for (canonical_title,) in groups {
+        let album_ids: Vec<i64> = sqlx::query_scalar(
+            "SELECT id FROM album
+              WHERE canonical_title = ?
+                AND album_artist IS NULL
+                AND is_compilation = 0
+              ORDER BY id ASC",
+        )
+        .bind(&canonical_title)
+        .fetch_all(&mut *tx)
+        .await?;
+
+        let Some((&survivor, siblings)) = album_ids.split_first() else {
+            continue;
+        };
+        if siblings.is_empty() {
+            continue;
+        }
+
+        sqlx::query(
+            "UPDATE album
+                SET artist_id    = ?,
+                    album_artist = ?,
+                    is_compilation = 1
+              WHERE id = ?",
+        )
+        .bind(va_id)
+        .bind(VARIOUS_ARTISTS_LABEL)
+        .bind(survivor)
+        .execute(&mut *tx)
+        .await?;
+
+        for sid in siblings {
+            sqlx::query("UPDATE track SET album_id = ? WHERE album_id = ?")
+                .bind(survivor)
+                .bind(sid)
+                .execute(&mut *tx)
+                .await?;
+            sqlx::query("DELETE FROM album WHERE id = ?")
+                .bind(sid)
+                .execute(&mut *tx)
+                .await?;
+        }
+
+        tracing::info!(
+            canonical_title = %canonical_title,
+            survivor,
+            merged = siblings.len(),
+            "auto-merged implicit compilation"
+        );
+    }
+
+    tx.commit().await?;
+    Ok(())
+}
+
 /// Sentinel album-artist row used when an album is tagged as a
 /// compilation but has no explicit Album Artist. Resolved to a real
 /// `artist` row on first encounter via [`upsert_artist`], then reused.
 const VARIOUS_ARTISTS_LABEL: &str = "Various Artists";
+
+/// Post-scan pass: merge album rows that look like a Various-Artists
+/// compilation but lacked the source-file tags (no `aART` / `TPE2` /
+/// `ALBUMARTIST`, no `TCMP` / `cpil` / `COMPILATION`). The scanner's
+/// per-track grouping falls back to `primary_artist` in that case,
+/// which splits the record into one album row per lead performer.
+///
+/// Heuristic: within the scope of the current scan folder, find
+/// canonical titles that exist as ≥ 2 album rows with NULL
+/// `album_artist`, then verify every backing track sits in the **same
+/// parent directory**. That last check is what protects legitimately-
+/// different albums sharing a title (e.g. two "Greatest Hits" by
+/// different artists) — they almost always live in distinct folders.
+///
+/// When the heuristic matches, the lowest album-row id is promoted to
+/// the canonical compilation row (`artist_id` → "Various Artists",
+/// `album_artist` text set, `is_compilation = 1`), every track of the
+/// orphan rows is re-pointed at it, and the orphan rows are deleted so
+/// `list_albums` stops surfacing the duplicates.
+async fn auto_detect_compilations(
+    pool: &SqlitePool,
+    folder_id: i64,
+) -> AppResult<u32> {
+    // Step 1 — list every canonical_title that has multiple album rows
+    // in this scan folder, none of which carry an Album Artist tag.
+    let candidates: Vec<String> = sqlx::query_scalar(
+        r#"
+        SELECT al.canonical_title
+          FROM album al
+          JOIN track t ON t.album_id = al.id
+         WHERE al.album_artist IS NULL
+           AND al.is_compilation = 0
+           AND t.folder_id = ?
+           AND t.is_available = 1
+         GROUP BY al.canonical_title
+        HAVING COUNT(DISTINCT al.id) > 1
+        "#,
+    )
+    .bind(folder_id)
+    .fetch_all(pool)
+    .await?;
+
+    if candidates.is_empty() {
+        return Ok(0);
+    }
+
+    let mut tx = pool.begin().await?;
+    let mut merged_count: u32 = 0;
+
+    for canonical in candidates {
+        // Step 2 — pull every (album_id, file_path) pair for the
+        // fragmented rows so we can both extract album ids and verify
+        // the same-parent-directory heuristic from the same query.
+        let rows: Vec<(i64, String)> = sqlx::query_as(
+            r#"
+            SELECT al.id, t.file_path
+              FROM album al
+              JOIN track t ON t.album_id = al.id
+             WHERE al.canonical_title = ?
+               AND al.album_artist IS NULL
+               AND al.is_compilation = 0
+               AND t.is_available = 1
+            "#,
+        )
+        .bind(&canonical)
+        .fetch_all(&mut *tx)
+        .await?;
+
+        if rows.is_empty() {
+            continue;
+        }
+
+        // Step 3 — heuristic guard: every track must share the same
+        // parent directory. A HashSet of distinct parents kept at size 1
+        // is the cheapest way to express the predicate.
+        let parent_dirs: std::collections::HashSet<String> = rows
+            .iter()
+            .filter_map(|(_, path)| {
+                std::path::Path::new(path)
+                    .parent()
+                    .and_then(|p| p.to_str())
+                    .map(|s| s.to_string())
+            })
+            .collect();
+        if parent_dirs.len() != 1 {
+            continue;
+        }
+
+        // Step 4 — collect distinct album ids; the lowest survives.
+        let album_ids: std::collections::BTreeSet<i64> =
+            rows.iter().map(|(id, _)| *id).collect();
+        if album_ids.len() < 2 {
+            continue;
+        }
+        let mut iter = album_ids.iter();
+        let keep = *iter.next().expect("album_ids non-empty");
+        let orphans: Vec<i64> = iter.copied().collect();
+
+        // Step 5 — resolve / create the "Various Artists" artist row
+        // once per scan (upsert is idempotent — subsequent merges in
+        // the same loop reuse the same id).
+        let va_id = upsert_artist(&mut tx, VARIOUS_ARTISTS_LABEL).await?;
+
+        // Step 6 — re-point tracks of orphan rows.
+        for orphan_id in &orphans {
+            sqlx::query("UPDATE track SET album_id = ? WHERE album_id = ?")
+                .bind(keep)
+                .bind(orphan_id)
+                .execute(&mut *tx)
+                .await?;
+        }
+
+        // Step 7 — promote the kept row to the compilation identity.
+        sqlx::query(
+            "UPDATE album
+                SET artist_id = ?, album_artist = ?, is_compilation = 1
+              WHERE id = ?",
+        )
+        .bind(va_id)
+        .bind(VARIOUS_ARTISTS_LABEL)
+        .bind(keep)
+        .execute(&mut *tx)
+        .await?;
+
+        // Step 8 — drop the now-empty orphan rows.
+        for orphan_id in &orphans {
+            sqlx::query("DELETE FROM album WHERE id = ?")
+                .bind(orphan_id)
+                .execute(&mut *tx)
+                .await?;
+        }
+
+        merged_count += 1;
+        tracing::info!(
+            canonical_title = %canonical,
+            kept = keep,
+            merged_variants = orphans.len() + 1,
+            "compilation auto-detected"
+        );
+    }
+
+    tx.commit().await?;
+    Ok(merged_count)
+}
 
 /// Resolve the album-artist text to an `artist` row id, applying the
 /// scanner's grouping policy:
@@ -755,7 +1002,7 @@ pub(crate) async fn upsert_album(
 
     // The `UNIQUE (canonical_title, artist_id)` constraint treats NULL as
     // distinct in SQLite, so we dedup manually for the NULL-artist case.
-    let existing: Option<i64> = if let Some(aid) = artist_id {
+    let mut existing: Option<i64> = if let Some(aid) = artist_id {
         sqlx::query_scalar("SELECT id FROM album WHERE canonical_title = ? AND artist_id = ?")
             .bind(&canon)
             .bind(aid)
@@ -767,6 +1014,25 @@ pub(crate) async fn upsert_album(
             .fetch_optional(&mut *conn)
             .await?
     };
+
+    // Re-use an existing compilation row for this title even when the
+    // incoming track has no Album Artist tag — without this, every
+    // rescan of a previously auto-merged compilation would re-fragment
+    // (the artist-specific SELECT above misses because the merged row
+    // has artist_id = "Various Artists"). Only applies when the
+    // incoming track has no explicit album_artist tag and isn't itself
+    // flagged as compilation; otherwise the explicit fields take
+    // precedence and the regular upsert path runs.
+    if existing.is_none() && album_artist_text.is_none() && !is_compilation {
+        existing = sqlx::query_scalar(
+            "SELECT id FROM album
+              WHERE canonical_title = ? AND is_compilation = 1
+              LIMIT 1",
+        )
+        .bind(&canon)
+        .fetch_optional(&mut *conn)
+        .await?;
+    }
     if let Some(id) = existing {
         // Backfill album_artist / is_compilation on the existing row
         // ONLY when this scan brings new information. Re-scans of files
@@ -1378,6 +1644,21 @@ pub(crate) async fn scan_folder_inner(
 
     tx.commit().await?;
 
+    // Auto-detect Various-Artists compilations after every scan. Catches
+    // the common case of a Spotify / SoundCloud rip where the source
+    // files have neither an Album Artist tag nor the compilation flag —
+    // the scanner's per-track fallback splits such records into one
+    // album row per featured artist. The pass below scans for
+    // canonical_titles that exist as multiple album rows (in this scan
+    // folder) without an album_artist set, verifies the underlying
+    // tracks share a common parent directory, and merges them under a
+    // synthetic "Various Artists" row + `is_compilation = 1`. Non-fatal:
+    // logs and continues on error so a bad heuristic case can't abort
+    // an otherwise-successful scan.
+    if let Err(err) = auto_detect_compilations(pool, folder_id).await {
+        tracing::warn!(folder_id, ?err, "compilation auto-detect failed (non-fatal)");
+    }
+
     // Anything still in the map was on disk last time but isn't now.
     // Mark it unavailable rather than deleting — preserves play_event
     // history and lets the user "undelete" by restoring the file.
@@ -1409,6 +1690,15 @@ pub(crate) async fn scan_folder_inner(
         .bind(library_id)
         .execute(pool)
         .await?;
+
+    // Auto-detect compilations among the tagless rows. Catches the case
+    // where a Various-Artists record has neither aART nor TCMP set on
+    // its source files (Soothing-Breeze-style lofi compilations,
+    // SoundCloud DL packs, …) — the scanner would otherwise leave 21
+    // single-track album rows fragmented by primary_artist.
+    if let Err(err) = merge_implicit_compilations(pool).await {
+        tracing::warn!(?err, "merge_implicit_compilations failed (non-fatal)");
+    }
 
     tracing::info!(
         folder_id,
