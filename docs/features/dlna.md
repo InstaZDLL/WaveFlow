@@ -2,7 +2,7 @@
 
 WaveFlow exposes the active profile's library on the LAN as a `urn:schemas-upnp-org:device:MediaServer:1`. DLNA-compatible receivers (Yamaha MusicCast, Sonos S2, Kodi, BubbleUPnP, VLC, …) discover and stream the collection without any per-receiver pairing.
 
-The integration ships disabled by default — enable it from **Paramètres → Intégrations → Serveur DLNA / UPnP**.
+The integration ships disabled by default — enable it from **Settings → Integrations → DLNA / UPnP Server**.
 
 ## Architecture
 

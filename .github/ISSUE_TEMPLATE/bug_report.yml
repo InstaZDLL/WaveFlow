@@ -71,7 +71,7 @@ body:
       description: Numbered steps a stranger could follow on a fresh install.
       placeholder: |
         1. Open WaveFlow with a library containing FLAC files.
-        2. Navigate to Bibliothèque → Pistes.
+        2. Navigate to Library → Songs.
         3. Double-click any FLAC track.
         4. Observe nothing happens.
     validations:

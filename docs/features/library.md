@@ -38,7 +38,7 @@ FTS5 contentless index over `title`, `artist`, `album` with prefix matching. Aut
 
 [`commands/library.rs`](../../src-tauri/src/commands/library.rs) exposes the watch-folder lifecycle: `add_folder_to_library`, `set_folder_watched` (toggle the in-memory `notify` watcher), and `remove_folder_from_library`. The remove path detaches the watcher, deletes every track that lived under the folder, then drops the `library_folder` row in a single transaction. The schema's `track.folder_id ON DELETE SET NULL` would otherwise leave orphan tracks with `library_id` still set — making the user "remove" a folder while its tracks stayed in the library, which never matches what they expect.
 
-UI: per-folder trash button in the Bibliothèque → Dossiers tab, two-step confirm-on-second-click that auto-clears after 3 s.
+UI: per-folder trash button in the Library → Folders tab, two-step confirm-on-second-click that auto-clears after 3 s.
 
 ## Drag-and-drop import
 
