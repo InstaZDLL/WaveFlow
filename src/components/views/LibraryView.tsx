@@ -33,6 +33,7 @@ import { Tab } from "../common/Tab";
 import { EmptyState } from "../common/EmptyState";
 import { UploadIcon } from "../common/Icons";
 import { Artwork } from "../common/Artwork";
+import { AlbumLink } from "../common/AlbumLink";
 import { ArtistLink } from "../common/ArtistLink";
 import { HiResBadge } from "../common/HiResBadge";
 import { PlayingIndicator } from "../common/PlayingIndicator";
@@ -527,6 +528,7 @@ export function LibraryView({
                   }
                 }}
                 onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+                onNavigateToAlbum={onNavigateToAlbum}
                 onNavigateToArtist={onNavigateToArtist}
                 onContextMenuRow={trackContextMenu.open}
                 isSelected={selection.isSelected}
@@ -915,6 +917,7 @@ interface TrackTableProps {
   playlists: Playlist[];
   onAddToPlaylist: (playlistId: number, trackId: number) => void;
   onCreatePlaylist: () => void;
+  onNavigateToAlbum: (albumId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
   onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
   isSelected: (id: number) => boolean;
@@ -934,6 +937,7 @@ function TrackTable({
   playlists,
   onAddToPlaylist,
   onCreatePlaylist,
+  onNavigateToAlbum,
   onNavigateToArtist,
   onContextMenuRow,
   isSelected,
@@ -1101,9 +1105,13 @@ function TrackTable({
                 fallback={unknown}
                 className="text-sm text-zinc-500 truncate"
               />
-              <span className="text-sm text-zinc-500 truncate">
-                {track.album_title ?? unknown}
-              </span>
+              <AlbumLink
+                title={track.album_title}
+                albumId={track.album_id}
+                onNavigate={onNavigateToAlbum}
+                fallback={unknown}
+                className="text-sm text-zinc-500 truncate"
+              />
               <div
                 className="flex items-center"
                 onDoubleClick={(e) => e.stopPropagation()}

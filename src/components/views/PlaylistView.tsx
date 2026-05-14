@@ -44,6 +44,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { usePageScroll } from "../../hooks/usePageScroll";
 import { Artwork } from "../common/Artwork";
+import { AlbumLink } from "../common/AlbumLink";
 import { ArtistLink } from "../common/ArtistLink";
 import { Tooltip } from "../common/Tooltip";
 import { EmptyState } from "../common/EmptyState";
@@ -666,6 +667,7 @@ export function PlaylistView({
           onPlayTrack={handlePlayTrackByIndex}
           likedIds={likedIds}
           onToggleLike={handleToggleLike}
+          onNavigateToAlbum={onNavigateToAlbum}
           onNavigateToArtist={onNavigateToArtist}
           unknownLabel={unknownLabel}
           headerLabels={headerLabels}
@@ -748,6 +750,7 @@ interface PlaylistTrackTableProps {
   onPlayTrack: (index: number) => void;
   likedIds: Set<number>;
   onToggleLike: (trackId: number) => void;
+  onNavigateToAlbum: (albumId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
   unknownLabel: string;
   headerLabels: {
@@ -782,6 +785,7 @@ function PlaylistTrackTable({
   onPlayTrack,
   likedIds,
   onToggleLike,
+  onNavigateToAlbum,
   onNavigateToArtist,
   unknownLabel,
   headerLabels,
@@ -927,6 +931,7 @@ function PlaylistTrackTable({
                   onPlayTrack={onPlayTrack}
                   onContextMenuRow={onContextMenuRow}
                   onToggleLike={onToggleLike}
+                  onNavigateToAlbum={onNavigateToAlbum}
                   onNavigateToArtist={onNavigateToArtist}
                   onRowSelect={onRowSelect}
                   dragEnabled={dragEnabled}
@@ -1003,6 +1008,7 @@ interface SortablePlaylistRowProps {
   onPlayTrack: (index: number) => void;
   onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
   onToggleLike: (trackId: number) => void;
+  onNavigateToAlbum: (albumId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
   onRowSelect: (track: Track, e: React.MouseEvent) => void;
   /** Hide the grip handle when the playlist is in a non-custom sort
@@ -1028,6 +1034,7 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
   onPlayTrack,
   onContextMenuRow,
   onToggleLike,
+  onNavigateToAlbum,
   onNavigateToArtist,
   onRowSelect,
   dragEnabled,
@@ -1136,9 +1143,13 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
         fallback={unknownLabel}
         className="text-sm text-zinc-500 truncate"
       />
-      <span className="text-sm text-zinc-500 truncate">
-        {track.album_title ?? unknownLabel}
-      </span>
+      <AlbumLink
+        title={track.album_title}
+        albumId={track.album_id}
+        onNavigate={onNavigateToAlbum}
+        fallback={unknownLabel}
+        className="text-sm text-zinc-500 truncate"
+      />
       <span className="text-sm tabular-nums text-zinc-400 text-right">
         {formatDuration(track.duration_ms)}
       </span>
