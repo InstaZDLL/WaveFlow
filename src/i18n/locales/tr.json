@@ -907,6 +907,15 @@
       "lrc_file": "İçe aktarılan .lrc dosyası",
       "api": "LRCLIB",
       "manual": "Elle giriş"
+    },
+    "format": {
+      "lrc": "Senkronize",
+      "enhanced_lrc": "Sözcük sözcük senkronize",
+      "ttml": "TTML sözcük sözcük",
+      "plain": "Senkronsuz"
+    },
+    "toast": {
+      "tagWriteSkipped": "TTML yalnızca önbellekte tutuldu (ses etiketine yazılmadı)"
     }
   },
   "duplicates": {
@@ -1034,7 +1043,14 @@
       "label": "Genel kaydırma",
       "help": "Tüm yakalanan satırları aynı değer kadar kaydırır — yeknesak biçimde erken veya geç olan içe aktarılmış LRC dosyalarını düzeltmek için kullanışlıdır",
       "reset": "Kaydırmayı sıfırla"
-    }
+    },
+    "granularity": {
+      "label": "Ayrıntı düzeyi:",
+      "line": "Satır satır",
+      "word": "Sözcük sözcük"
+    },
+    "captureHintWord": "Boşluk = sonraki sözcük · Enter = sonraki satır · Geri = son sözcüğü geri al",
+    "notCaptured": "Yakalanmadı"
   },
   "sort": {
     "title": "Başlık",

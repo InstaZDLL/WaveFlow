@@ -907,6 +907,15 @@
       "lrc_file": "Geïmporteerd .lrc-bestand",
       "api": "LRCLIB",
       "manual": "Handmatig invoeren"
+    },
+    "format": {
+      "lrc": "Gesynchroniseerd",
+      "enhanced_lrc": "Woord-voor-woord gesynchroniseerd",
+      "ttml": "TTML woord-voor-woord",
+      "plain": "Niet gesynchroniseerd"
+    },
+    "toast": {
+      "tagWriteSkipped": "TTML alleen in cache bewaard (niet geschreven naar audiotag)"
     }
   },
   "duplicates": {
@@ -1034,7 +1043,14 @@
       "label": "Globale verschuiving",
       "help": "Verschuift elke vastgelegde regel met dezelfde delta — handig om geïmporteerde LRC-bestanden te corrigeren die gelijkmatig te vroeg of te laat zijn",
       "reset": "Verschuiving resetten"
-    }
+    },
+    "granularity": {
+      "label": "Granulariteit:",
+      "line": "Regel per regel",
+      "word": "Woord per woord"
+    },
+    "captureHintWord": "Spatie = volgend woord · Enter = volgende regel · Backspace = laatste woord ongedaan maken",
+    "notCaptured": "Niet vastgelegd"
   },
   "sort": {
     "title": "Titel",

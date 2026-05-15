@@ -907,6 +907,15 @@
       "lrc_file": "Berkas .lrc yang diimpor",
       "api": "LRCLIB",
       "manual": "Pencatatan manual"
+    },
+    "format": {
+      "lrc": "Tersinkronisasi",
+      "enhanced_lrc": "Tersinkronisasi kata per kata",
+      "ttml": "TTML kata per kata",
+      "plain": "Tidak tersinkronisasi"
+    },
+    "toast": {
+      "tagWriteSkipped": "TTML disimpan hanya di cache (tidak ditulis ke tag audio)"
     }
   },
   "duplicates": {
@@ -1034,7 +1043,14 @@
       "label": "Pergeseran global",
       "help": "Menggeser setiap baris yang ditangkap dengan delta yang sama — berguna untuk memperbaiki berkas LRC impor yang seragam terlalu cepat atau lambat",
       "reset": "Setel ulang pergeseran"
-    }
+    },
+    "granularity": {
+      "label": "Granularitas:",
+      "line": "Baris per baris",
+      "word": "Kata per kata"
+    },
+    "captureHintWord": "Spasi = kata berikutnya · Enter = baris berikutnya · Backspace = batalkan kata terakhir",
+    "notCaptured": "Belum ditangkap"
   },
   "sort": {
     "title": "Judul",

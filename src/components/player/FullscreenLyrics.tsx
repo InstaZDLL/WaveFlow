@@ -1,20 +1,26 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Music2 } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import type { Track } from "../../lib/tauri/track";
-import type { LrcLine, LyricsPayload } from "../../lib/tauri/lyrics";
+import {
+  findActiveWordIndex,
+  type LyricsLine,
+  type LyricsPayload,
+} from "../../lib/tauri/lyrics";
+import { usePlayer } from "../../hooks/usePlayer";
+import { useModalA11y } from "../../hooks/useModalA11y";
 
 interface FullscreenLyricsProps {
   track: Track;
   payload: LyricsPayload | null;
-  lrcLines: LrcLine[];
+  lrcLines: LyricsLine[];
   isSynced: boolean;
   activeIndex: number;
   isFetching: boolean;
   error: string | null;
   onClose: () => void;
-  onSeek: (line: LrcLine) => void;
+  onSeek: (line: LyricsLine) => void;
 }
 
 /**
@@ -39,17 +45,22 @@ export function FullscreenLyrics({
   onSeek,
 }: FullscreenLyricsProps) {
   const { t } = useTranslation();
+  const { positionMs } = usePlayer();
   const lineRefs = useRef<Array<HTMLLIElement | null>>([]);
+  // The overlay is mounted only when the side panel toggles it on, so
+  // the hook is always opened against `true` while alive — passing
+  // `true` here keeps the focus trap, Escape-close, and focus
+  // restoration consistent with the rest of the modal stack.
+  const dialogRef = useModalA11y<HTMLDivElement>(true, onClose);
 
-  // Escape to close. Mounted only while open so we don't intercept
-  // the key when the overlay isn't visible.
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+  // Active word index inside the current line — drives the per-word
+  // karaoke highlight. Recomputed on every position tick but only when
+  // the current line actually carries word stamps.
+  const activeLine = activeIndex >= 0 ? lrcLines[activeIndex] : undefined;
+  const activeWordIndex = useMemo(() => {
+    if (!activeLine?.words || activeLine.words.length === 0) return -1;
+    return findActiveWordIndex(activeLine.words, positionMs);
+  }, [activeLine, positionMs]);
 
   // Keep the active line vertically centered. Independent ref array
   // from the side panel so both views can scroll in parallel.
@@ -62,7 +73,13 @@ export function FullscreenLyrics({
   }, [activeIndex, isSynced]);
 
   return (
-    <div className="fixed inset-0 z-[100] animate-fade-in">
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="fullscreen-lyrics-title"
+      className="fixed inset-0 z-[100] animate-fade-in"
+    >
       {/* Blurred artwork background — falls back to a flat dark
           gradient when the track has no cover. */}
       <div className="absolute inset-0 overflow-hidden">
@@ -98,7 +115,10 @@ export function FullscreenLyrics({
               rounded="lg"
             />
             <div className="min-w-0">
-              <div className="text-xs uppercase tracking-widest text-white/60 mb-1">
+              <div
+                id="fullscreen-lyrics-title"
+                className="text-xs uppercase tracking-widest text-white/60 mb-1"
+              >
                 {t("lyrics.title")}
               </div>
               <div className="text-lg font-bold truncate">{track.title}</div>
@@ -140,6 +160,7 @@ export function FullscreenLyrics({
                   const opacity = isActive
                     ? 1
                     : Math.max(0.18, 0.7 - distance * 0.08);
+                  const hasWords = isActive && (line.words?.length ?? 0) > 0;
                   return (
                     <li
                       key={`${line.timeMs}-${index}`}
@@ -156,7 +177,42 @@ export function FullscreenLyrics({
                             : "text-white/70 hover:text-white"
                       }`}
                     >
-                      {line.text || " "}
+                      {hasWords ? (
+                        <span>
+                          {line.words!.map((word, wi) => {
+                            const wState =
+                              wi === activeWordIndex
+                                ? "active"
+                                : wi < activeWordIndex
+                                  ? "past"
+                                  : "future";
+                            return (
+                              <span
+                                key={wi}
+                                style={{
+                                  opacity:
+                                    wState === "active"
+                                      ? 1
+                                      : wState === "past"
+                                        ? 0.8
+                                        : 0.45,
+                                  transform:
+                                    wState === "active"
+                                      ? "scale(1.04)"
+                                      : "scale(1)",
+                                  display: "inline-block",
+                                  transition:
+                                    "opacity 150ms ease, transform 150ms ease",
+                                }}
+                              >
+                                {word.text}
+                              </span>
+                            );
+                          })}
+                        </span>
+                      ) : (
+                        line.text || " "
+                      )}
                     </li>
                   );
                 })}

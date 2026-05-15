@@ -907,6 +907,15 @@
       "lrc_file": ".lrc 파일 가져오기",
       "api": "LRCLIB",
       "manual": "수동 입력"
+    },
+    "format": {
+      "lrc": "동기화됨",
+      "enhanced_lrc": "단어별 동기화",
+      "ttml": "TTML 단어별",
+      "plain": "동기화 안 됨"
+    },
+    "toast": {
+      "tagWriteSkipped": "TTML은 캐시에만 저장되었습니다(오디오 태그에는 기록되지 않음)"
     }
   },
   "duplicates": {
@@ -1034,7 +1043,14 @@
       "label": "전체 오프셋",
       "help": "캡처된 모든 줄을 같은 양만큼 이동합니다 — 일정하게 빠르거나 느린 가져온 LRC 파일을 보정할 때 유용합니다",
       "reset": "오프셋 초기화"
-    }
+    },
+    "granularity": {
+      "label": "세분화 단위:",
+      "line": "한 줄씩",
+      "word": "한 단어씩"
+    },
+    "captureHintWord": "스페이스 = 다음 단어 · Enter = 다음 줄 · Backspace = 마지막 단어 취소",
+    "notCaptured": "캡처되지 않음"
   },
   "sort": {
     "title": "제목",

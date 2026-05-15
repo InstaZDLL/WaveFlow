@@ -126,3 +126,32 @@ UI is [`LyricsEditorModal`](../../src/components/common/LyricsEditorModal.tsx) o
 **Library-wide prefetch.** `prefetch_library_lyrics` walks every available track without a cached row (deduped by `file_hash`), runs the embedded → LRCLIB chain, and persists each hit. Network calls are throttled at 500 ms (~2 req/s) to be a polite guest; embedded hits skip the throttle. Progress streams over `lyrics:prefetch-progress`. A single global run is enforced via an `AtomicBool`; `cancel_lyrics_prefetch` flips a second `AtomicBool` the worker checks per iteration. Resumable — a partial cancel just leaves uncached rows for the next run.
 
 The lyrics panel renders synced lines with auto-scroll and a 200 ms transition; un-synced lyrics fall back to a static block.
+
+### Word-level lyrics (Enhanced LRC + TTML)
+
+WaveFlow recognises two word-timed formats in addition to plain LRC:
+
+- **Enhanced LRC** — `[mm:ss.xx]La <mm:ss.xx>nuit <mm:ss.xx>tombe`. Plain-text extension of the LRC ecosystem; round-trips cleanly through `USLT` so other players see it as regular synced LRC if they don't parse the inline word stamps.
+- **TTML** (Apple Music) — XML envelope with `<p begin="…" end="…"><span begin="…" end="…">word</span></p>`. Imported from `.ttml` / `.xml` files exported by tools like LyricsX. Char-level spans nested inside word spans are folded into their parent — v1 ships with word-level animation only.
+
+**Detection** — [`commands/lyrics.rs::detect_format`](../../src-tauri/src/commands/lyrics.rs) sniffs the cached content. TTML matches first on `<?xml`, `<tt`, or the `http://www.w3.org/ns/ttml` namespace. Enhanced LRC requires both a `[mm:ss…]` line stamp and at least one `<mm:ss…>` word stamp inside the line body; falling back to plain LRC otherwise. The same heuristic runs on the editor's save path so user-typed content gets re-classified if they switch between modes.
+
+**Storage** — `app.lyrics.format` accepts the new `'ttml'` value via [migration 20260516120000_lyrics_ttml_format.sql](../../src-tauri/migrations/app/20260516120000_lyrics_ttml_format.sql) (CHECK rebuild — SQLite has no ALTER CONSTRAINT). The `content` column stays raw text — there's no separate `words` column; parsing is done at render time on the frontend. This keeps the cache byte-for-byte identical to what would be written into the tag and avoids a hot migration over user data.
+
+**Parsing** — `src/lib/tauri/lyrics.ts` exposes `parseLrc`, `parseEnhancedLrc`, `parseTtml`, and a unifying `parseLyrics(content, format)` dispatcher. All three return the same `LyricsLine` shape (`timeMs`, `endMs`, `text`, optional `words[]`). The TTML parser uses the webview's built-in `DOMParser` — no XML dependency. `findActiveWordIndex` mirrors `findActiveLineIndex` (linear scan from hint, O(1) amortised).
+
+**Rendering** — [`LyricsPanel`](../../src/components/layout/LyricsPanel.tsx) and [`FullscreenLyrics`](../../src/components/player/FullscreenLyrics.tsx) share the same active-word animation: 150 ms transitions on color / opacity / transform, `scale(1.04)` on the active word, and a 0.45 → 0.8 → 1 opacity ramp for future / past / active words. The panel adds an accent-color tint that the fullscreen view leaves out (the white-on-dark contrast is enough there). Lines without `words` keep the existing line-level highlight.
+
+**Editor — word mode.** [`LyricsEditorModal`](../../src/components/common/LyricsEditorModal.tsx) adds a granularity toggle inside the synchronized tab. In word mode:
+
+- **Space** — stamps the next un-captured word in the active line. First press also stamps the line's own `timeMs` if it's not yet captured.
+- **Enter** — advances to the next line (appending a fresh empty one at the end, like line mode).
+- **Backspace** — undoes the last word capture on the active line.
+
+The row UI shows each word as a chip — pink for captured, green-ringed for the next word to capture, grey for future words. Editing a line's text invalidates its word tokenisation, so the user has to re-capture cleanly. The save path serialises back to Enhanced LRC via `serializeEnhancedLrc` regardless of the originally-imported format (TTML round-trip isn't part of v1).
+
+**TTML → USLT.** The audio file's `USLT` frame is plain-text by spec, so writing TTML into it would corrupt other players. `write_lyrics_to_file` therefore:
+
+- Plain / LRC / Enhanced LRC → `ItemKey::UnsyncLyrics` (USLT for ID3v2, UNSYNCEDLYRICS for Vorbis, `©lyr` for MP4) — unchanged.
+- TTML on Vorbis / MP4 / FLAC → `ItemKey::Lyrics` (the XML-friendly key).
+- TTML on MP3 — **skipped**. lofty has no clean ID3v2 mapping for arbitrary XML lyrics, so the file is left untouched, the DB cache still gets the TTML content, and `save_lyrics` returns `tag_write_skipped: true`. The editor surfaces this as a `lyrics.toast.tagWriteSkipped` warning so the user knows the file itself wasn't touched.

@@ -916,6 +916,15 @@
       "lrc_file": "Imported .lrc file",
       "api": "LRCLIB",
       "manual": "Manual entry"
+    },
+    "format": {
+      "lrc": "Synchronized",
+      "enhanced_lrc": "Word-by-word synchronized",
+      "ttml": "TTML word-by-word",
+      "plain": "Unsynchronized"
+    },
+    "toast": {
+      "tagWriteSkipped": "TTML kept in cache only (not written to the audio tag)"
     }
   },
   "duplicates": {
@@ -1043,7 +1052,14 @@
       "label": "Global shift",
       "help": "Shifts every captured line by the same delta — useful for fixing imported LRC files that are uniformly early or late",
       "reset": "Reset shift"
-    }
+    },
+    "granularity": {
+      "label": "Granularity:",
+      "line": "Line by line",
+      "word": "Word by word"
+    },
+    "captureHintWord": "Space = next word · Enter = next line · Backspace = undo last word",
+    "notCaptured": "Not captured"
   },
   "sort": {
     "title": "Title",

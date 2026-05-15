@@ -47,14 +47,15 @@ fn now_ms() -> i64 {
 /// Format flags returned to the frontend.
 ///
 /// `Plain` = unsynced text. `Lrc` = `[mm:ss.xx]`-prefixed lines.
-/// `EnhancedLrc` is the per-word timed variant; we accept it from
-/// imports but don't currently produce it.
-#[derive(Debug, Clone, Serialize)]
+/// `EnhancedLrc` is the per-word timed variant (`[00:01.00]Hello <00:01.50>world`).
+/// `Ttml` is Apple-Music-style XML with `<span begin="…" end="…">` word timing.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LyricsFormat {
     Plain,
     Lrc,
     EnhancedLrc,
+    Ttml,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -72,12 +73,21 @@ pub struct LyricsPayload {
     pub content: String,
     pub format: LyricsFormat,
     pub source: LyricsSource,
+    /// Set by `save_lyrics` when `write_to_file` was requested but the
+    /// audio file's tag system can't carry the chosen format (e.g.
+    /// TTML in an MP3's ID3v2 where lofty has no mapping for the
+    /// XML-friendly `ItemKey::Lyrics`). DB cache is still updated; the
+    /// UI surfaces a toast so the user knows the file itself wasn't
+    /// touched. Absent on every other return path.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tag_write_skipped: Option<bool>,
 }
 
 fn parse_format(s: &str) -> LyricsFormat {
     match s {
         "lrc" => LyricsFormat::Lrc,
         "enhanced_lrc" => LyricsFormat::EnhancedLrc,
+        "ttml" => LyricsFormat::Ttml,
         _ => LyricsFormat::Plain,
     }
 }
@@ -91,23 +101,113 @@ fn parse_source(s: &str) -> LyricsSource {
     }
 }
 
-/// Heuristic: any line starting with `[mm:ss` (zero-padded or not) is
-/// treated as LRC. We don't try to detect enhanced LRC from text — if
-/// you imported `.lrc` from a "enhanced" source, pass the format
-/// explicitly via [`import_lrc_file`].
+/// Heuristic format sniffer.
+///
+/// Order matters: TTML (XML envelope) is checked first because its
+/// `<p begin="...">` could otherwise look like nothing else, then
+/// Enhanced LRC (LRC with inline `<mm:ss.xx>` word stamps), then
+/// plain LRC, then unsynced text.
 fn detect_format(content: &str) -> LyricsFormat {
-    let has_timestamp = content.lines().take(20).any(|line| {
-        let line = line.trim_start();
-        line.starts_with('[')
+    let head = content.trim_start();
+
+    // TTML: XML declaration, root `<tt`, or the TTML namespace anywhere
+    // in the first ~512 bytes. Apple Music's exported lyrics start with
+    // `<?xml version="1.0"...`, LyricsX-style exports start with `<tt`.
+    let head_lower_prefix: String = head
+        .chars()
+        .take(512)
+        .collect::<String>()
+        .to_ascii_lowercase();
+    if head_lower_prefix.starts_with("<?xml")
+        || head_lower_prefix.starts_with("<tt ")
+        || head_lower_prefix.starts_with("<tt>")
+        || head_lower_prefix.contains("xmlns=\"http://www.w3.org/ns/ttml\"")
+        || head_lower_prefix.contains("<timedtext")
+    {
+        return LyricsFormat::Ttml;
+    }
+
+    // Scan up to 40 lines (first lines may be `[ar:Artist]` / `[ti:…]`
+    // LRC headers before the synced body starts).
+    let mut has_line_stamp = false;
+    let mut has_word_stamp = false;
+    for raw in content.lines().take(40) {
+        let line = raw.trim_start();
+        // Line stamp: `[mm:ss` with both digits present.
+        if line.starts_with('[')
             && line.len() >= 7
             && line[1..].chars().take(2).all(|c| c.is_ascii_digit())
             && line.as_bytes().get(3) == Some(&b':')
-    });
-    if has_timestamp {
+        {
+            has_line_stamp = true;
+            // Inline word stamp: `<mm:ss(.xx)?>` somewhere after the
+            // first `]`. We scan the byte string directly to keep this
+            // cheap for large libraries.
+            if let Some(close) = line.find(']') {
+                let body = &line[close + 1..];
+                if word_stamp_present(body) {
+                    has_word_stamp = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if has_word_stamp {
+        LyricsFormat::EnhancedLrc
+    } else if has_line_stamp {
         LyricsFormat::Lrc
     } else {
         LyricsFormat::Plain
     }
+}
+
+/// Return true if `s` contains at least one `<\d+:\d+(\.\d+)?>` token —
+/// the Enhanced LRC word-stamp shape. Hand-rolled (no regex dep) to
+/// keep `detect_format` allocation-free on the hot prefetch path.
+fn word_stamp_present(s: &str) -> bool {
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'<' {
+            let mut j = i + 1;
+            // Need at least one digit, then ':', then one digit, then '>'.
+            let digits1 = scan_digits(bytes, j);
+            if digits1 > 0 {
+                j += digits1;
+                if bytes.get(j) == Some(&b':') {
+                    j += 1;
+                    let digits2 = scan_digits(bytes, j);
+                    if digits2 > 0 {
+                        j += digits2;
+                        // Optional fractional `.xx` or `:xx`.
+                        if matches!(bytes.get(j), Some(b'.') | Some(b':')) {
+                            j += 1;
+                            let frac = scan_digits(bytes, j);
+                            j += frac;
+                        }
+                        if bytes.get(j) == Some(&b'>') {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        i += 1;
+    }
+    false
+}
+
+fn scan_digits(bytes: &[u8], start: usize) -> usize {
+    let mut n = 0;
+    while let Some(&b) = bytes.get(start + n) {
+        if b.is_ascii_digit() {
+            n += 1;
+        } else {
+            break;
+        }
+    }
+    n
 }
 
 fn format_to_db(fmt: &LyricsFormat) -> &'static str {
@@ -115,6 +215,7 @@ fn format_to_db(fmt: &LyricsFormat) -> &'static str {
         LyricsFormat::Plain => "plain",
         LyricsFormat::Lrc => "lrc",
         LyricsFormat::EnhancedLrc => "enhanced_lrc",
+        LyricsFormat::Ttml => "ttml",
     }
 }
 
@@ -259,6 +360,7 @@ async fn read_cached(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option
         content,
         format: parse_format(&fmt),
         source: parse_source(&src),
+        tag_write_skipped: None,
     }))
 }
 
@@ -349,6 +451,7 @@ pub async fn fetch_lyrics(
             content,
             format,
             source,
+            tag_write_skipped: None,
         }));
     }
 
@@ -394,6 +497,7 @@ pub async fn fetch_lyrics(
                 content: empty,
                 format: LyricsFormat::Plain,
                 source: LyricsSource::Api,
+                tag_write_skipped: None,
             }));
         }
         Err(err) => {
@@ -423,6 +527,7 @@ pub async fn fetch_lyrics(
             content: empty,
             format: LyricsFormat::Plain,
             source: LyricsSource::Api,
+            tag_write_skipped: None,
         }));
     }
 
@@ -448,6 +553,7 @@ pub async fn fetch_lyrics(
                 content: empty,
                 format: LyricsFormat::Plain,
                 source: LyricsSource::Api,
+                tag_write_skipped: None,
             }));
         }
     };
@@ -459,6 +565,7 @@ pub async fn fetch_lyrics(
         content,
         format,
         source,
+        tag_write_skipped: None,
     }))
 }
 
@@ -495,6 +602,7 @@ pub async fn import_lrc_file(
         content: trimmed.to_string(),
         format,
         source,
+        tag_write_skipped: None,
     })
 }
 
@@ -752,15 +860,17 @@ pub fn cancel_lyrics_prefetch() -> bool {
 
 // ── User-edited lyrics ──────────────────────────────────────────────
 
-/// Format hint coming from the in-app editor. The frontend always
-/// passes "plain" or "lrc" — the backend re-runs `detect_format` on
-/// the content as a safety net so a mistyped header still ends up in
-/// the right bucket.
+/// Format hint coming from the in-app editor. The frontend can pass
+/// "plain", "lrc", "enhanced_lrc" or "ttml" — the backend re-runs
+/// `detect_format` on the content as a safety net so a mistyped header
+/// still ends up in the right bucket.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LyricsSaveFormat {
     Plain,
     Lrc,
+    EnhancedLrc,
+    Ttml,
 }
 
 #[derive(Debug, Deserialize)]
@@ -807,17 +917,20 @@ pub async fn save_lyrics(
         .to_string();
     // Re-detect from content so a "plain" payload with [mm:ss] stamps
     // is correctly stored as lrc, and vice versa. The frontend hint is
-    // the user's intent, but content is the source of truth.
+    // the user's intent, but content is the source of truth — except
+    // when the user explicitly picked Plain (we never auto-promote to
+    // a synced format) or Ttml (which the detector also catches but we
+    // honour the explicit choice).
     let detected = detect_format(&trimmed);
-    let format = match (&payload.format, &detected) {
-        // Trust the user when they picked Plain even if their text
-        // happens to start with [...]; otherwise pick whichever of
-        // Lrc / EnhancedLrc the parser identified.
-        (LyricsSaveFormat::Plain, LyricsFormat::Plain) => LyricsFormat::Plain,
-        (LyricsSaveFormat::Plain, _) => LyricsFormat::Plain,
-        (LyricsSaveFormat::Lrc, _) => detected,
+    let format = match &payload.format {
+        LyricsSaveFormat::Plain => LyricsFormat::Plain,
+        LyricsSaveFormat::Ttml => LyricsFormat::Ttml,
+        // For Lrc / EnhancedLrc the detector picks between Lrc,
+        // EnhancedLrc and Plain (if the user cleared every stamp).
+        LyricsSaveFormat::Lrc | LyricsSaveFormat::EnhancedLrc => detected,
     };
 
+    let mut tag_write_skipped = false;
     if payload.write_to_file {
         let active = engine
             .shared()
@@ -830,34 +943,41 @@ pub async fn save_lyrics(
 
         let path = std::path::PathBuf::from(&file_path);
         let content_for_write = trimmed.clone();
-        tokio::task::spawn_blocking(move || write_lyrics_to_file(&path, &content_for_write))
-            .await
-            .map_err(|e| AppError::Other(format!("lyrics write panicked: {e}")))?
-            .map_err(|e| AppError::Other(format!("lyrics tag write failed: {e}")))?;
+        let format_for_write = format.clone();
+        let written = tokio::task::spawn_blocking(move || {
+            write_lyrics_to_file(&path, &content_for_write, &format_for_write)
+        })
+        .await
+        .map_err(|e| AppError::Other(format!("lyrics write panicked: {e}")))?
+        .map_err(|e| AppError::Other(format!("lyrics tag write failed: {e}")))?;
 
-        // The file changed — recompute its blake3 hash so the cache
-        // row stays addressable. We update the track row + the lyrics
-        // row in the same transaction below.
-        let path_for_hash = file_path.clone();
-        let new_hash = tokio::task::spawn_blocking(move || hash_file_blake3(&path_for_hash))
-            .await
-            .map_err(|e| AppError::Other(format!("rehash panicked: {e}")))??;
+        if written {
+            // The file changed — recompute its blake3 hash so the cache
+            // row stays addressable. We update the track row + the
+            // lyrics row in the same transaction below.
+            let path_for_hash = file_path.clone();
+            let new_hash = tokio::task::spawn_blocking(move || hash_file_blake3(&path_for_hash))
+                .await
+                .map_err(|e| AppError::Other(format!("rehash panicked: {e}")))??;
 
-        let mut tx = pool.begin().await?;
-        sqlx::query("UPDATE track SET file_hash = ? WHERE id = ?")
-            .bind(&new_hash)
-            .bind(track_id)
-            .execute(&mut *tx)
-            .await?;
-        // Drop any cache row keyed on the old hash so we don't end up
-        // with a stale embedded payload pointing at the previous
-        // content.
-        sqlx::query("DELETE FROM app.lyrics WHERE file_hash = ?")
-            .bind(&file_hash)
-            .execute(&mut *tx)
-            .await?;
-        tx.commit().await?;
-        file_hash = new_hash;
+            let mut tx = pool.begin().await?;
+            sqlx::query("UPDATE track SET file_hash = ? WHERE id = ?")
+                .bind(&new_hash)
+                .bind(track_id)
+                .execute(&mut *tx)
+                .await?;
+            // Drop any cache row keyed on the old hash so we don't end
+            // up with a stale embedded payload pointing at the previous
+            // content.
+            sqlx::query("DELETE FROM app.lyrics WHERE file_hash = ?")
+                .bind(&file_hash)
+                .execute(&mut *tx)
+                .await?;
+            tx.commit().await?;
+            file_hash = new_hash;
+        } else {
+            tag_write_skipped = true;
+        }
     }
 
     let source = LyricsSource::Manual;
@@ -869,6 +989,7 @@ pub async fn save_lyrics(
         content: trimmed,
         format,
         source,
+        tag_write_skipped: if tag_write_skipped { Some(true) } else { None },
     })
 }
 
@@ -877,18 +998,36 @@ fn hash_file_blake3(path: &str) -> AppResult<String> {
     Ok(blake3::hash(&bytes).to_hex().to_string())
 }
 
-/// Write the unsynchronized lyrics back into the audio file. Uses
-/// `ItemKey::UnsyncLyrics` (USLT for ID3v2, UNSYNCEDLYRICS for Vorbis,
-/// `©lyr` for MP4). Empty content removes the frame entirely so the
-/// file doesn't carry a phantom "" lyric tag.
+/// Write the lyrics back into the audio file's tag.
+///
+/// - Plain / LRC / Enhanced LRC → `ItemKey::UnsyncLyrics` (USLT for
+///   ID3v2, UNSYNCEDLYRICS for Vorbis, `©lyr` for MP4). All three are
+///   plain ASCII-safe text formats.
+/// - TTML → `ItemKey::Lyrics` for tag systems that accept arbitrary
+///   strings (Vorbis comments, MP4 `©lyr`). ID3v2 has no clean mapping
+///   for XML lyrics in lofty, so for MP3 we skip the file write and
+///   return `Ok(false)` — the DB cache still gets updated and the UI
+///   surfaces a toast so the user knows their TTML stays in-app only.
+///
+/// Returns `Ok(true)` when the tag was rewritten on disk, `Ok(false)`
+/// when the write was intentionally skipped (TTML on a format that
+/// can't carry it).
 fn write_lyrics_to_file(
     path: &Path,
     content: &str,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use lofty::file::{AudioFile, TaggedFileExt};
+    format: &LyricsFormat,
+) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    use lofty::file::{AudioFile, FileType, TaggedFileExt};
     use lofty::tag::Tag;
 
     let mut tagged = lofty::read_from_path(path)?;
+    let file_type = tagged.file_type();
+
+    // Bail before touching tags when TTML hits an ID3v2-only container.
+    if matches!(format, LyricsFormat::Ttml) && file_type == FileType::Mpeg {
+        return Ok(false);
+    }
+
     if tagged.primary_tag().is_none() && tagged.first_tag().is_none() {
         let preferred = tagged.primary_tag_type();
         tagged.insert_tag(Tag::new(preferred));
@@ -899,18 +1038,28 @@ fn write_lyrics_to_file(
         tagged.first_tag_mut().ok_or("no tag")?
     };
 
-    if content.trim().is_empty() {
-        tag.remove_key(ItemKey::UnsyncLyrics);
-        tag.remove_key(ItemKey::Lyrics);
-    } else {
-        // insert_text overwrites any existing item with the same key.
-        // For ID3v2 this writes a USLT frame; for Vorbis it writes
-        // UNSYNCEDLYRICS; for MP4 it writes ©lyr.
-        tag.insert_text(ItemKey::UnsyncLyrics, content.to_string());
+    // Always purge both keys before writing so that switching format
+    // (e.g. plain LRC → TTML) doesn't leave a stale entry under the
+    // other key. `read_embedded_lyrics` checks UnsyncLyrics first and
+    // Lyrics second — without this clear the old content would shadow
+    // the new format on the next fetch.
+    tag.remove_key(ItemKey::UnsyncLyrics);
+    tag.remove_key(ItemKey::Lyrics);
+
+    if !content.trim().is_empty() {
+        // TTML on a container that supports `ItemKey::Lyrics` (Vorbis /
+        // MP4 / FLAC). Other formats stay in USLT, which is what every
+        // other player expects.
+        let key = if matches!(format, LyricsFormat::Ttml) {
+            ItemKey::Lyrics
+        } else {
+            ItemKey::UnsyncLyrics
+        };
+        tag.insert_text(key, content.to_string());
     }
 
     tagged.save_to_path(path, lofty::config::WriteOptions::default())?;
-    Ok(())
+    Ok(true)
 }
 
 /// Drop the cached lyrics row so the next fetch re-runs the waterfall.
@@ -925,4 +1074,73 @@ pub async fn clear_lyrics(state: tauri::State<'_, AppState>, track_id: i64) -> A
     .execute(&pool)
     .await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detect_format_plain() {
+        let sample = "This is just\nsome text without any timestamps.";
+        assert_eq!(detect_format(sample), LyricsFormat::Plain);
+    }
+
+    #[test]
+    fn detect_format_lrc() {
+        let sample = "[ar:Some Artist]\n[ti:Some Title]\n[00:01.00]First line\n[00:05.50]Second line";
+        assert_eq!(detect_format(sample), LyricsFormat::Lrc);
+    }
+
+    #[test]
+    fn detect_format_enhanced_lrc() {
+        let sample =
+            "[00:01.00]<00:01.00>Hello <00:01.50>world\n[00:03.00]<00:03.00>Another <00:03.40>line";
+        assert_eq!(detect_format(sample), LyricsFormat::EnhancedLrc);
+    }
+
+    #[test]
+    fn detect_format_enhanced_lrc_no_colon_frac() {
+        let sample = "[00:01.00]<00:01>plain stamps still count";
+        assert_eq!(detect_format(sample), LyricsFormat::EnhancedLrc);
+    }
+
+    #[test]
+    fn detect_format_ttml_xml_decl() {
+        let sample = r#"<?xml version="1.0" encoding="UTF-8"?>
+<tt xmlns="http://www.w3.org/ns/ttml">
+  <body>
+    <div>
+      <p begin="00:00:01.000" end="00:00:03.000">
+        <span begin="00:00:01.000" end="00:00:01.500">Hello</span>
+        <span begin="00:00:01.500" end="00:00:03.000">world</span>
+      </p>
+    </div>
+  </body>
+</tt>"#;
+        assert_eq!(detect_format(sample), LyricsFormat::Ttml);
+    }
+
+    #[test]
+    fn detect_format_ttml_no_decl() {
+        let sample = r#"<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="0s">x</p></div></body></tt>"#;
+        assert_eq!(detect_format(sample), LyricsFormat::Ttml);
+    }
+
+    #[test]
+    fn detect_format_brackets_but_no_timestamp_stays_plain() {
+        // A line starting with `[foo]` (LRC metadata header) without
+        // any actual time-stamped line should NOT be classified as
+        // synchronized.
+        let sample = "[ar:Artist]\n[ti:Title]\nVerse without timestamps.";
+        assert_eq!(detect_format(sample), LyricsFormat::Plain);
+    }
+
+    #[test]
+    fn word_stamp_present_basic() {
+        assert!(word_stamp_present("<00:01.50>word"));
+        assert!(word_stamp_present("plain<5:00>more"));
+        assert!(!word_stamp_present("nothing here"));
+        assert!(!word_stamp_present("<not:a:stamp>"));
+    }
 }

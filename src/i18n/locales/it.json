@@ -907,6 +907,15 @@
       "lrc_file": "File .lrc importato",
       "api": "LRCLIB",
       "manual": "Inserimento manuale"
+    },
+    "format": {
+      "lrc": "Sincronizzato",
+      "enhanced_lrc": "Sincronizzato parola per parola",
+      "ttml": "TTML parola per parola",
+      "plain": "Non sincronizzato"
+    },
+    "toast": {
+      "tagWriteSkipped": "TTML mantenuto solo in cache (non scritto nel tag audio)"
     }
   },
   "duplicates": {
@@ -1034,7 +1043,14 @@
       "label": "Spostamento globale",
       "help": "Sposta tutte le righe catturate dello stesso delta — utile per correggere file LRC importati uniformemente in anticipo o in ritardo",
       "reset": "Ripristina spostamento"
-    }
+    },
+    "granularity": {
+      "label": "Granularità:",
+      "line": "Riga per riga",
+      "word": "Parola per parola"
+    },
+    "captureHintWord": "Spazio = parola successiva · Invio = riga successiva · Backspace = annulla ultima parola",
+    "notCaptured": "Non catturato"
   },
   "sort": {
     "title": "Titolo",

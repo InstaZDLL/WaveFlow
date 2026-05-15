@@ -907,6 +907,15 @@
       "lrc_file": "Importierte .lrc-Datei",
       "api": "LRCLIB",
       "manual": "Manuelle Eingabe"
+    },
+    "format": {
+      "lrc": "Synchronisiert",
+      "enhanced_lrc": "Wort-für-Wort synchronisiert",
+      "ttml": "TTML Wort-für-Wort",
+      "plain": "Unsynchronisiert"
+    },
+    "toast": {
+      "tagWriteSkipped": "TTML nur im Cache gespeichert (nicht in das Audio-Tag geschrieben)"
     }
   },
   "duplicates": {
@@ -1034,7 +1043,14 @@
       "label": "Globaler Versatz",
       "help": "Verschiebt jede erfasste Zeile um denselben Wert — hilfreich, um importierte LRC-Dateien zu korrigieren, die gleichmäßig zu früh oder zu spät sind",
       "reset": "Versatz zurücksetzen"
-    }
+    },
+    "granularity": {
+      "label": "Granularität:",
+      "line": "Zeile für Zeile",
+      "word": "Wort für Wort"
+    },
+    "captureHintWord": "Leertaste = nächstes Wort · Eingabe = nächste Zeile · Rücktaste = letztes Wort rückgängig",
+    "notCaptured": "Nicht erfasst"
   },
   "sort": {
     "title": "Titel",
