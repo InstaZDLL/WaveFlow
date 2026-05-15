@@ -25,7 +25,17 @@ jobs:
     # release-please branches follow the pattern release-please--branches--main
     # for monorepo-flavoured configs, or release-please--<component>--<version>
     # for component releases. The "startsWith" check matches every variant.
-    if: startsWith(github.head_ref, 'release-please--')
+    #
+    # We additionally gate on the PR author being github-actions[bot] (the
+    # account release-please-action runs under). Without this, any user with
+    # write access could open a PR from a branch named release-please--* with
+    # a malicious build.rs — `cargo check` below would execute it under the
+    # `contents: write` token. Pairing the branch-name match with an author
+    # match closes that hole: forks never get write tokens on pull_request,
+    # and the bot is the only account that legitimately opens such PRs.
+    if: >-
+      startsWith(github.head_ref, 'release-please--') &&
+      github.event.pull_request.user.login == 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR branch
