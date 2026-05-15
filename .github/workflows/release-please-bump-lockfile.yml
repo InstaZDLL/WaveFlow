@@ -13,9 +13,9 @@ name: Bump Cargo.lock on release-please PR
 # Cargo.toml bumps (i.e. nothing changed in src-tauri) are no-ops.
 
 "on":
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened]
+  workflow_run:
+    workflows: ["Release Please"]
+    types: [completed]
 
 permissions:
   contents: write
@@ -34,8 +34,8 @@ jobs:
     # match closes that hole: forks never get write tokens on pull_request,
     # and the bot is the only account that legitimately opens such PRs.
     if: >-
-      startsWith(github.head_ref, 'release-please--') &&
-      github.event.pull_request.user.login == 'github-actions[bot]'
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR branch
