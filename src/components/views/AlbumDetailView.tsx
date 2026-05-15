@@ -39,7 +39,8 @@ export function AlbumDetailView({
   onNavigateToArtist,
 }: AlbumDetailViewProps) {
   const { t } = useTranslation();
-  const { playTracks, currentTrack, toggleShuffle, isPlaying } = usePlayer();
+  const { playTracks, currentTrack, toggleShuffle, isShuffled, isPlaying } =
+    usePlayer();
   const { createPlaylist } = usePlaylist();
 
   const [album, setAlbum] = useState<AlbumDetail | null>(null);
@@ -191,7 +192,9 @@ export function AlbumDetailView({
   const handleShufflePlay = async () => {
     if (playableTracks.length === 0) return;
     await playTracks(playableTracks, 0, { type: "library", id: null });
-    await toggleShuffle();
+    // Gate the toggle so we never *disable* shuffle when the user
+    // explicitly clicks the Shuffle button.
+    if (!isShuffled) await toggleShuffle();
   };
 
   const label = enrichedLabel ?? album.label;

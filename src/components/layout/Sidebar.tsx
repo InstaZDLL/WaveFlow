@@ -39,7 +39,7 @@ interface SidebarProps {
   libraryTab: LibraryTab;
   setLibraryTab: (tab: LibraryTab) => void;
   activePlaylistId: number | null;
-  setActivePlaylistId: (id: number | null) => void;
+  navigateToPlaylist: (id: number) => void;
 }
 
 export function Sidebar({
@@ -48,7 +48,7 @@ export function Sidebar({
   libraryTab,
   setLibraryTab,
   activePlaylistId,
-  setActivePlaylistId,
+  navigateToPlaylist,
 }: SidebarProps) {
   const { t } = useTranslation();
   const { activeProfile } = useProfile();
@@ -162,16 +162,14 @@ export function Sidebar({
         color_id: data.colorId,
         icon_id: data.iconId,
       });
-      setActivePlaylistId(created.id);
-      setActiveView("playlist");
+      navigateToPlaylist(created.id);
     } catch (err) {
       console.error("[Sidebar] failed to create playlist", err);
     }
   };
 
   const handleSelectPlaylist = (playlistId: number) => {
-    setActivePlaylistId(playlistId);
-    setActiveView("playlist");
+    navigateToPlaylist(playlistId);
   };
 
   const handleImportM3u = useCallback(async () => {
@@ -183,8 +181,7 @@ export function Sidebar({
     try {
       const result = await importPlaylistM3u(path);
       await refreshPlaylists();
-      setActivePlaylistId(result.playlist_id);
-      setActiveView("playlist");
+      navigateToPlaylist(result.playlist_id);
       if (result.missing > 0) {
         console.warn(
           `[Sidebar] m3u import: ${result.missing} entries not found in library`,
@@ -194,7 +191,7 @@ export function Sidebar({
     } catch (err) {
       console.error("[Sidebar] import m3u failed", err);
     }
-  }, [t, refreshPlaylists, setActivePlaylistId, setActiveView]);
+  }, [t, refreshPlaylists, navigateToPlaylist]);
 
   const isPlaylistRowActive = (id: number) =>
     activeView === "playlist" && activePlaylistId === id;
