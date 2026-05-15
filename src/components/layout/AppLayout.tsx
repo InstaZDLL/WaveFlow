@@ -135,10 +135,18 @@ export function AppLayout() {
   // user visited — not whatever target was set most recently. Without
   // this, navigating album A → home → album B → back → back lands on
   // "album-detail" with activeAlbumId still pointing at B.
-  const [viewHistory, setViewHistory] = useState<HistoryEntry[]>([
-    { id: "home" },
-  ]);
-  const [historyIndex, setHistoryIndex] = useState(0);
+  //
+  // History + index live in a single state object so push/replace can
+  // update both atomically inside one functional setter. Splitting them
+  // would let rapid back-to-back navigations queue setters that all read
+  // the same stale index, losing entries and leaving `index` past
+  // `history.length - 1`.
+  const [navState, setNavState] = useState<{
+    history: HistoryEntry[];
+    index: number;
+  }>({ history: [{ id: "home" }], index: 0 });
+  const viewHistory = navState.history;
+  const historyIndex = navState.index;
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [libraryTab, setLibraryTab] = useState<LibraryTab>("morceaux");
 
@@ -232,27 +240,23 @@ export function AppLayout() {
   const activeWrappedYear =
     currentEntry.id === "wrapped" ? (currentEntry.year ?? null) : null;
 
-  const pushEntry = useCallback(
-    (entry: HistoryEntry) => {
-      setViewHistory((prev) => [...prev.slice(0, historyIndex + 1), entry]);
-      setHistoryIndex((prev) => prev + 1);
-    },
-    [historyIndex],
-  );
+  const pushEntry = useCallback((entry: HistoryEntry) => {
+    setNavState(({ history, index }) => ({
+      history: [...history.slice(0, index + 1), entry],
+      index: index + 1,
+    }));
+  }, []);
 
   // Replace the current entry in place (no index bump). Used when the
   // current target no longer exists — e.g. a playlist that was just
   // deleted — so Back doesn't return to a ghost page.
-  const replaceEntry = useCallback(
-    (entry: HistoryEntry) => {
-      setViewHistory((prev) => {
-        const next = [...prev];
-        next[historyIndex] = entry;
-        return next;
-      });
-    },
-    [historyIndex],
-  );
+  const replaceEntry = useCallback((entry: HistoryEntry) => {
+    setNavState(({ history, index }) => {
+      const next = [...history];
+      next[index] = entry;
+      return { history: next, index };
+    });
+  }, []);
 
   // Wrapper used by views that only need a plain id (Home, Settings, …).
   // The cast is safe because every `ViewId` matches a HistoryEntry whose
@@ -268,12 +272,18 @@ export function AppLayout() {
   const canGoForward = historyIndex < viewHistory.length - 1;
 
   const goBack = useCallback(() => {
-    if (canGoBack) setHistoryIndex((i) => i - 1);
-  }, [canGoBack]);
+    setNavState(({ history, index }) =>
+      index > 0 ? { history, index: index - 1 } : { history, index },
+    );
+  }, []);
 
   const goForward = useCallback(() => {
-    if (canGoForward) setHistoryIndex((i) => i + 1);
-  }, [canGoForward]);
+    setNavState(({ history, index }) =>
+      index < history.length - 1
+        ? { history, index: index + 1 }
+        : { history, index },
+    );
+  }, []);
 
   const navigateToAlbum = useCallback(
     (albumId: number) => {
