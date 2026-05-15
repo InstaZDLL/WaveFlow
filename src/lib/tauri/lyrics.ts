@@ -269,12 +269,15 @@ export function parseEnhancedLrc(content: string): LyricsLine[] {
 
     // Any text before the first inline word stamp is sung at the
     // line's own timestamp — common when a tool emits
-    // `[mm:ss]First <mm:ss>second`. Treat it as a virtual leading word
-    // so we don't lose the text on import.
+    // `[mm:ss]First <mm:ss>second`. Treat it as a virtual leading
+    // word; its timeMs is rewritten per-duplicate-line in the loop
+    // below so that `[00:01][00:30]Hello <00:31>world` doesn't make
+    // every clone inherit the same first-word time.
     const prefix = body.slice(0, wordStamps[0].at);
-    if (prefix.length > 0 && prefix.trim().length > 0) {
+    const hasPrefix = prefix.length > 0 && prefix.trim().length > 0;
+    if (hasPrefix) {
       built.push({
-        timeMs: lineStamps[0],
+        timeMs: -1, // placeholder, set per-line below
         endMs: wordStamps[0].timeMs,
         text: prefix,
       });
@@ -296,17 +299,16 @@ export function parseEnhancedLrc(content: string): LyricsLine[] {
     const words = built.filter((w) => w.text.length > 0 || w.timeMs >= 0);
     const text = words.map((w) => w.text).join("").trim();
 
-    // Deep-clone the words array per line entry. When a line carries
-    // multiple line stamps (`[00:01][00:30]<00:01>Hi`), each entry
-    // must own its words so `fillEndTimestamps` can mutate them
-    // independently without bleeding `endMs` across stamps.
+    // Deep-clone the words array per line entry so `fillEndTimestamps`
+    // can mutate each independently. For prefix-bearing lines, the
+    // virtual first word inherits the current line stamp instead of a
+    // shared placeholder.
     for (const timeMs of lineStamps) {
-      lines.push({
-        timeMs,
-        endMs: -1,
-        text,
-        words: words.map((w) => ({ ...w })),
-      });
+      const clonedWords = words.map((w, idx) => ({
+        ...w,
+        timeMs: hasPrefix && idx === 0 ? timeMs : w.timeMs,
+      }));
+      lines.push({ timeMs, endMs: -1, text, words: clonedWords });
     }
   }
   lines.sort((a, b) => a.timeMs - b.timeMs);
