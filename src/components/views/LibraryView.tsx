@@ -88,6 +88,7 @@ interface LibraryViewProps {
   setActiveTab: (tab: LibraryTab) => void;
   onNavigateToAlbum: (albumId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
+  onNavigateToGenre: (genreId: number) => void;
 }
 
 type Translator = (key: string, options?: Record<string, unknown>) => string;
@@ -121,6 +122,7 @@ export function LibraryView({
   setActiveTab,
   onNavigateToAlbum,
   onNavigateToArtist,
+  onNavigateToGenre,
 }: LibraryViewProps) {
   const { t } = useTranslation();
   const {
@@ -635,7 +637,12 @@ export function LibraryView({
             </>
           )}
           {activeTab === "genres" && (
-            <GenreList genres={genres} isLoading={isLoading} t={t} />
+            <GenreList
+              genres={genres}
+              isLoading={isLoading}
+              t={t}
+              onSelect={onNavigateToGenre}
+            />
           )}
           {activeTab === "dossiers" && (
             <FolderList
@@ -1604,9 +1611,10 @@ interface GenreListProps {
   genres: GenreRow[];
   isLoading: boolean;
   t: Translator;
+  onSelect: (genreId: number) => void;
 }
 
-function GenreList({ genres, isLoading, t }: GenreListProps) {
+function GenreList({ genres, isLoading, t, onSelect }: GenreListProps) {
   return (
     <div
       className={`grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 ${
@@ -1614,9 +1622,11 @@ function GenreList({ genres, isLoading, t }: GenreListProps) {
       }`}
     >
       {genres.map((genre) => (
-        <div
+        <button
+          type="button"
           key={genre.id}
-          className="flex items-center space-x-3 p-4 rounded-2xl border border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-800/40 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer"
+          onClick={() => onSelect(genre.id)}
+          className="flex items-center space-x-3 p-4 rounded-2xl border border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-800/40 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
         >
           <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400 flex items-center justify-center shrink-0">
             <Tags size={22} />
@@ -1629,7 +1639,7 @@ function GenreList({ genres, isLoading, t }: GenreListProps) {
               {t("library.genreList.trackCount", { count: genre.track_count })}
             </div>
           </div>
-        </div>
+        </button>
       ))}
     </div>
   );

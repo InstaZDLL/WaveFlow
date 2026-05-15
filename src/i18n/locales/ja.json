@@ -826,6 +826,18 @@
       "notInLibrary": "ライブラリにない"
     }
   },
+  "genreDetail": {
+    "badge": "ジャンル",
+    "playAll": "すべて再生",
+    "shuffle": "シャッフル",
+    "trackCount_zero": "0 曲",
+    "trackCount_one": "{{count}} 曲",
+    "trackCount_other": "{{count}} 曲",
+    "emptyTitle": "ジャンルが見つかりません",
+    "emptyDescription": "このジャンルはアクティブなプロファイルに存在しません。",
+    "emptyTracksTitle": "曲がありません",
+    "emptyTracksDescription": "このジャンルには利用可能な曲がありません。"
+  },
   "nowPlaying": {
     "title": "再生中",
     "empty": "再生中のトラックはありません",

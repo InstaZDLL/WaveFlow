@@ -826,6 +826,18 @@
       "notInLibrary": "Non nella tua libreria"
     }
   },
+  "genreDetail": {
+    "badge": "Genere",
+    "playAll": "Riproduci tutto",
+    "shuffle": "Riproduzione casuale",
+    "trackCount_zero": "0 brani",
+    "trackCount_one": "{{count}} brano",
+    "trackCount_other": "{{count}} brani",
+    "emptyTitle": "Genere non trovato",
+    "emptyDescription": "Questo genere non esiste più nel profilo attivo.",
+    "emptyTracksTitle": "Nessun brano",
+    "emptyTracksDescription": "Questo genere non contiene brani disponibili."
+  },
   "nowPlaying": {
     "title": "Ora in riproduzione",
     "empty": "Nessun brano in riproduzione",

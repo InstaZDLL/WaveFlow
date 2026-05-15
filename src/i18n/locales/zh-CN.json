@@ -826,6 +826,18 @@
       "notInLibrary": "不在你的曲库中"
     }
   },
+  "genreDetail": {
+    "badge": "流派",
+    "playAll": "播放全部",
+    "shuffle": "随机播放",
+    "trackCount_zero": "0 首",
+    "trackCount_one": "{{count}} 首",
+    "trackCount_other": "{{count}} 首",
+    "emptyTitle": "未找到流派",
+    "emptyDescription": "此流派在当前配置文件中已不存在。",
+    "emptyTracksTitle": "无曲目",
+    "emptyTracksDescription": "此流派没有可用曲目。"
+  },
   "nowPlaying": {
     "title": "正在播放",
     "empty": "没有正在播放的曲目",

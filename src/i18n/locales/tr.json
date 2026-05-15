@@ -826,6 +826,18 @@
       "notInLibrary": "Kütüphanenizde değil"
     }
   },
+  "genreDetail": {
+    "badge": "Tür",
+    "playAll": "Tümünü çal",
+    "shuffle": "Karıştır",
+    "trackCount_zero": "0 parça",
+    "trackCount_one": "{{count}} parça",
+    "trackCount_other": "{{count}} parça",
+    "emptyTitle": "Tür bulunamadı",
+    "emptyDescription": "Bu tür artık aktif profilde mevcut değil.",
+    "emptyTracksTitle": "Parça yok",
+    "emptyTracksDescription": "Bu tür kullanılabilir parça içermiyor."
+  },
   "nowPlaying": {
     "title": "Şimdi çalıyor",
     "empty": "Çalınan parça yok",

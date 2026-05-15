@@ -77,6 +77,20 @@ export function getArtistDetail(artistId: number): Promise<ArtistDetail> {
   return invoke<ArtistDetail>("get_artist_detail", { artistId });
 }
 
+// ── Genre detail ────────────────────────────────────────────────────
+
+export interface GenreDetail {
+  id: number;
+  name: string;
+  track_count: number;
+  total_duration_ms: number;
+  tracks: Track[];
+}
+
+export function getGenreDetail(genreId: number): Promise<GenreDetail> {
+  return invoke<GenreDetail>("get_genre_detail", { genreId });
+}
+
 // ── Deezer enrichment ───────────────────────────────────────────────
 
 export interface DeezerAlbumEnrichment {

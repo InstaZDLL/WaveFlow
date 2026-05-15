@@ -826,6 +826,18 @@
       "notInLibrary": "Tidak di pustaka Anda"
     }
   },
+  "genreDetail": {
+    "badge": "Genre",
+    "playAll": "Putar semua",
+    "shuffle": "Acak",
+    "trackCount_zero": "0 lagu",
+    "trackCount_one": "{{count}} lagu",
+    "trackCount_other": "{{count}} lagu",
+    "emptyTitle": "Genre tidak ditemukan",
+    "emptyDescription": "Genre ini tidak ada lagi di profil aktif.",
+    "emptyTracksTitle": "Tidak ada lagu",
+    "emptyTracksDescription": "Genre ini tidak memiliki lagu yang tersedia."
+  },
   "nowPlaying": {
     "title": "Sekarang diputar",
     "empty": "Tidak ada trek yang sedang diputar",

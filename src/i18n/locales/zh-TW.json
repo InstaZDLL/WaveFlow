@@ -826,6 +826,18 @@
       "notInLibrary": "不在你的曲庫中"
     }
   },
+  "genreDetail": {
+    "badge": "曲風",
+    "playAll": "播放全部",
+    "shuffle": "隨機播放",
+    "trackCount_zero": "0 首",
+    "trackCount_one": "{{count}} 首",
+    "trackCount_other": "{{count}} 首",
+    "emptyTitle": "找不到曲風",
+    "emptyDescription": "此曲風在目前的設定檔中已不存在。",
+    "emptyTracksTitle": "無曲目",
+    "emptyTracksDescription": "此曲風沒有可用的曲目。"
+  },
   "nowPlaying": {
     "title": "現在播放",
     "empty": "目前沒有正在播放的曲目",

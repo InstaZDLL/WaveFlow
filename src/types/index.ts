@@ -13,7 +13,8 @@ export type ViewId =
   | "spotify"
   | "wrapped"
   | "album-detail"
-  | "artist-detail";
+  | "artist-detail"
+  | "genre-detail";
 
 export type LibraryTab =
   | "morceaux"

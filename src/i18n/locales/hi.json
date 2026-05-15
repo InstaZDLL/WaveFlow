@@ -826,6 +826,18 @@
       "notInLibrary": "आपकी लाइब्रेरी में नहीं"
     }
   },
+  "genreDetail": {
+    "badge": "शैली",
+    "playAll": "सभी चलाएँ",
+    "shuffle": "शफल",
+    "trackCount_zero": "0 ट्रैक",
+    "trackCount_one": "{{count}} ट्रैक",
+    "trackCount_other": "{{count}} ट्रैक",
+    "emptyTitle": "शैली नहीं मिली",
+    "emptyDescription": "यह शैली सक्रिय प्रोफ़ाइल में अब मौजूद नहीं है।",
+    "emptyTracksTitle": "कोई ट्रैक नहीं",
+    "emptyTracksDescription": "इस शैली में कोई उपलब्ध ट्रैक नहीं है।"
+  },
   "nowPlaying": {
     "title": "अब चल रहा है",
     "empty": "कोई ट्रैक नहीं चल रहा है",

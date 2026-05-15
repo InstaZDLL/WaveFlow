@@ -834,6 +834,18 @@
       "notInLibrary": "Pas dans votre bibliothèque"
     }
   },
+  "genreDetail": {
+    "badge": "Genre",
+    "playAll": "Tout lire",
+    "shuffle": "Lecture aléatoire",
+    "trackCount_zero": "0 titre",
+    "trackCount_one": "{{count}} titre",
+    "trackCount_other": "{{count}} titres",
+    "emptyTitle": "Genre introuvable",
+    "emptyDescription": "Ce genre n'existe plus dans le profil actif.",
+    "emptyTracksTitle": "Aucun morceau",
+    "emptyTracksDescription": "Ce genre ne contient aucun morceau disponible."
+  },
   "nowPlaying": {
     "title": "En cours de lecture",
     "empty": "Aucun titre en cours",

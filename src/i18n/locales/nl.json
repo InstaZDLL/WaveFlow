@@ -826,6 +826,18 @@
       "notInLibrary": "Niet in je bibliotheek"
     }
   },
+  "genreDetail": {
+    "badge": "Genre",
+    "playAll": "Alles afspelen",
+    "shuffle": "Willekeurig afspelen",
+    "trackCount_zero": "0 nummers",
+    "trackCount_one": "{{count}} nummer",
+    "trackCount_other": "{{count}} nummers",
+    "emptyTitle": "Genre niet gevonden",
+    "emptyDescription": "Dit genre bestaat niet meer in het actieve profiel.",
+    "emptyTracksTitle": "Geen nummers",
+    "emptyTracksDescription": "Dit genre bevat geen beschikbare nummers."
+  },
   "nowPlaying": {
     "title": "Nu afspelen",
     "empty": "Er wordt geen nummer afgespeeld",
