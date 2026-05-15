@@ -1036,7 +1036,8 @@
     "albumsCount": "एल्बमों की संख्या",
     "tracksCount": "ट्रैकों की संख्या",
     "ascending": "क्रोइसाँ",
-    "descending": "उतरता हुआ"
+    "descending": "उतरता हुआ",
+    "filename": "फ़ाइल का नाम"
   },
   "settings": {
     "title": "सेटिंग्स",

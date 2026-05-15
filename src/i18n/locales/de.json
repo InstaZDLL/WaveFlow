@@ -1036,7 +1036,8 @@
     "albumsCount": "Anzahl der Alben",
     "tracksCount": "Anzahl der Titel",
     "ascending": "Croissant",
-    "descending": "Absteigend"
+    "descending": "Absteigend",
+    "filename": "Dateiname"
   },
   "settings": {
     "title": "Einstellungen",

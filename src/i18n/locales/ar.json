@@ -1036,7 +1036,8 @@
     "albumsCount": "عدد الألبومات",
     "tracksCount": "عدد الأغاني",
     "ascending": "كروسان",
-    "descending": "تنازلي"
+    "descending": "تنازلي",
+    "filename": "اسم الملف"
   },
   "settings": {
     "title": "الإعدادات",

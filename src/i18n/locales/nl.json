@@ -1036,7 +1036,8 @@
     "albumsCount": "Aantal albums",
     "tracksCount": "Aantal nummers",
     "ascending": "Croissant",
-    "descending": "Afnemend"
+    "descending": "Afnemend",
+    "filename": "Bestandsnaam"
   },
   "settings": {
     "title": "Instellingen",

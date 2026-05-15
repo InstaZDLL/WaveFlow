@@ -1036,7 +1036,8 @@
     "albumsCount": "Numero di album",
     "tracksCount": "Numero di brani",
     "ascending": "Croissant",
-    "descending": "Decrescente"
+    "descending": "Decrescente",
+    "filename": "Nome file"
   },
   "settings": {
     "title": "Impostazioni",

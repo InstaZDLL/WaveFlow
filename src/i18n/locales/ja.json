@@ -1036,7 +1036,8 @@
     "albumsCount": "アルバム数",
     "tracksCount": "曲数",
     "ascending": "クロワッサン",
-    "descending": "降順"
+    "descending": "降順",
+    "filename": "ファイル名"
   },
   "settings": {
     "title": "設定",

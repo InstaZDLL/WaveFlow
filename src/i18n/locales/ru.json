@@ -1036,7 +1036,8 @@
     "albumsCount": "Альбомы",
     "tracksCount": "Треки",
     "ascending": "По возрастанию",
-    "descending": "По убыванию"
+    "descending": "По убыванию",
+    "filename": "Имя файла"
   },
   "settings": {
     "title": "Настройки",

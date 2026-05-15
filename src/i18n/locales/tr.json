@@ -1036,7 +1036,8 @@
     "albumsCount": "Albümler",
     "tracksCount": "Parçalar",
     "ascending": "Artan",
-    "descending": "Azalan"
+    "descending": "Azalan",
+    "filename": "Dosya adı"
   },
   "settings": {
     "title": "Ayarlar",

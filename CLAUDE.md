@@ -97,7 +97,7 @@ Player bar Spotify-style right cluster (Mini-player + Fullscreen primary, Speed/
 
 ### Playlists ([`docs/features/playlists.md`](docs/features/playlists.md), [`docs/features/smart-playlists.md`](docs/features/smart-playlists.md))
 
-Playlist sort dropdown (custom / title / artist / album / recently added / duration — non-custom modes are display-only via `Intl.Collator`, never touch `playlist_track.position`) · auto-cover (Spotify-style 2×2 grid composite from first 4 tracks; manual upload flips `cover_is_auto=0`) · smart playlists (Daily Mix family + recursive boolean rule tree via `CustomRules`, v1 flat → v2 tree auto-migration) · M3U import/export.
+Playlist sort dropdown (custom / title / artist / album / recently added / duration / filename — non-custom modes are display-only via `Intl.Collator`, never touch `playlist_track.position`; filename sorts on the cross-platform basename of `track.file_path`) · auto-cover (Spotify-style 2×2 grid composite from first 4 tracks; manual upload flips `cover_is_auto=0`) · smart playlists (Daily Mix family + recursive boolean rule tree via `CustomRules`, v1 flat → v2 tree auto-migration) · M3U import/export.
 
 ### Integrations ([`docs/features/integrations.md`](docs/features/integrations.md))
 

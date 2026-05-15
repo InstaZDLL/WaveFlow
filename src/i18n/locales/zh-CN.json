@@ -1036,7 +1036,8 @@
     "albumsCount": "专辑数量",
     "tracksCount": "曲目数",
     "ascending": "牛角包",
-    "descending": "降序"
+    "descending": "降序",
+    "filename": "文件名"
   },
   "settings": {
     "title": "设置",
