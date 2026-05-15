@@ -6,56 +6,90 @@ name: Bump Cargo.lock on release-please PR
 # Cargo.toml + the dep graph and can't be patched by JSONPath /
 # regex tooling.
 #
-# This companion workflow listens to the release-please PR being
-# opened / synchronized, runs `cargo check` to refresh Cargo.lock
-# in lockstep with the new Cargo.toml version, and amends the
-# Cargo.lock change back into the PR branch. Releases without
-# Cargo.toml bumps (i.e. nothing changed in src-tauri) are no-ops.
+# This companion workflow fires after the "Release Please" workflow
+# completes. That workflow is triggered by pushes to main, so
+# github.event.workflow_run.event is always 'push'. A dedicated
+# find-pr step then queries the GitHub API for an open PR authored
+# by github-actions[bot] whose head branch starts with
+# 'release-please--'. Only when such a PR is found do we check it
+# out, run `cargo check` to refresh Cargo.lock, and push the
+# updated lock file back to that branch.
+#
+# The branch-name + author-match together close the
+# privilege-escalation window: only the release-please bot opens
+# PRs that satisfy both predicates simultaneously, so a
+# `contents: write` cargo check cannot be triggered by arbitrary
+# commits landed on main.
 
 "on":
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened]
+  workflow_run:
+    workflows: ["Release Please"]
+    types: [completed]
 
 permissions:
   contents: write
+  pull-requests: read
 
 jobs:
   bump:
-    # release-please branches follow the pattern release-please--branches--main
-    # for monorepo-flavoured configs, or release-please--<component>--<version>
-    # for component releases. The "startsWith" check matches every variant.
-    #
-    # We additionally gate on the PR author being github-actions[bot] (the
-    # account release-please-action runs under). Without this, any user with
-    # write access could open a PR from a branch named release-please--* with
-    # a malicious build.rs — `cargo check` below would execute it under the
-    # `contents: write` token. Pairing the branch-name match with an author
-    # match closes that hole: forks never get write tokens on pull_request,
-    # and the bot is the only account that legitimately opens such PRs.
+    # The "Release Please" workflow runs on push to main (not pull_request),
+    # so github.event.workflow_run.event is 'push'. We only continue when
+    # the upstream run succeeded; the find-pr step below then validates the
+    # strict branch-name + bot-author requirements before any checkout.
     if: >-
-      startsWith(github.head_ref, 'release-please--') &&
-      github.event.pull_request.user.login == 'github-actions[bot]'
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.name == 'Release Please'
     runs-on: ubuntu-latest
     steps:
+      - name: Find release-please PR branch
+        id: find-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Enumerate open PRs authored by github-actions[bot] whose head
+          # branch matches the release-please naming convention.  The
+          # branch-name + author-match pairing closes the
+          # privilege-escalation window: only the bot can satisfy both
+          # predicates simultaneously, so a malicious build.rs in an
+          # attacker-controlled branch can never reach `cargo check`.
+          branch=$(gh pr list \
+            --repo "${{ github.repository }}" \
+            --state open \
+            --author "github-actions[bot]" \
+            --limit 1 \
+            --json headRefName \
+            --jq '[.[] | select(.headRefName | startswith("release-please--"))] | first | .headRefName // empty')
+          if [ -z "$branch" ]; then
+            echo "No open release-please PR found — nothing to do."
+            echo "branch=" >> "$GITHUB_OUTPUT"
+          else
+            echo "Found release-please PR branch: $branch"
+            echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout PR branch
+        if: steps.find-pr.outputs.branch != ''
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ steps.find-pr.outputs.branch }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Rust toolchain
+        if: steps.find-pr.outputs.branch != ''
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # stable
         with:
           toolchain: stable
 
       - name: Cache Cargo build
+        if: steps.find-pr.outputs.branch != ''
         uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
         with:
           workspaces: src-tauri -> target
           key: release-please-lockfile
 
       - name: Install Linux system deps (for cargo check)
+        if: steps.find-pr.outputs.branch != ''
         # cargo check on src-tauri still needs the webkit / soup
         # headers to resolve the dep graph even though we're not
         # actually building anything.
@@ -70,9 +104,11 @@ jobs:
             pkg-config
 
       - name: Refresh Cargo.lock against bumped Cargo.toml
+        if: steps.find-pr.outputs.branch != ''
         run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
 
       - name: Commit + push Cargo.lock to release-please PR branch
+        if: steps.find-pr.outputs.branch != ''
         run: |
           if git diff --quiet src-tauri/Cargo.lock; then
             echo "Cargo.lock already in sync with Cargo.toml — nothing to commit."
@@ -82,4 +118,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src-tauri/Cargo.lock
           git commit -m "chore: bump Cargo.lock"
-          git push origin "HEAD:${{ github.head_ref }}"
+          git push origin "HEAD:${{ steps.find-pr.outputs.branch }}"
