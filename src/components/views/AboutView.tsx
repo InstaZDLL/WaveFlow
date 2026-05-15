@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getVersion } from "@tauri-apps/api/app";
 import {
   ArrowLeft,
   ExternalLink,
@@ -226,6 +227,14 @@ function ChangelogSection() {
 
 export function AboutView({ onNavigate }: AboutViewProps) {
   const { t } = useTranslation();
+  // Read the version from Tauri at runtime so the bundled tauri.conf.json
+  // stays the source of truth — no more cross-file drift after a bump.
+  const [version, setVersion] = useState<string>("");
+  useEffect(() => {
+    getVersion()
+      .then(setVersion)
+      .catch((err) => console.error("[AboutView] getVersion failed", err));
+  }, []);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-20">
@@ -250,7 +259,7 @@ export function AboutView({ onNavigate }: AboutViewProps) {
       {/* Hero Card */}
       <div className="relative overflow-hidden rounded-3xl p-10 bg-linear-to-br from-zinc-900 to-zinc-800 text-white">
         <div className="absolute top-0 right-0 text-[120px] font-black text-white/5 leading-none pr-8 pt-4 select-none">
-          0.1.0
+          {version}
         </div>
         <div className="relative z-10">
           <div className="flex items-center space-x-2 mb-2">
@@ -262,7 +271,7 @@ export function AboutView({ onNavigate }: AboutViewProps) {
           <p className="text-zinc-400 mb-4">{t("about.hero.subtitle")}</p>
           <div className="flex items-center space-x-3 mb-4">
             <span className="bg-emerald-500 text-white text-xs px-2.5 py-1 rounded-full font-semibold">
-              v0.1.0
+              v{version}
             </span>
             <span className="text-zinc-500 text-sm">2026</span>
             <span className="text-zinc-600">·</span>
