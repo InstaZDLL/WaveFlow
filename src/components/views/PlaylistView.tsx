@@ -1247,7 +1247,7 @@ function PlaylistSortMenu({ current, onChange, t }: PlaylistSortMenuProps) {
     album: t("sort.album"),
     added_at: t("sort.recentlyAdded", "Recently added"),
     duration_ms: t("sort.duration"),
-    filename: t("sort.filename", "Filename"),
+    filename: t("sort.filename"),
   };
 
   return (
