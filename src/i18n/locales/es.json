@@ -856,7 +856,8 @@
     "previous": "Pista anterior",
     "next": "Pista siguiente",
     "devices": "Dispositivos de salida",
-    "moreActions": "Más acciones"
+    "moreActions": "Más acciones",
+    "abLoop": "Bucle A-B"
   },
   "miniPlayer": {
     "idle": "Sin pista en reproducción",
@@ -1124,12 +1125,12 @@
       "subtitle": "Haz clic en una pista para iniciar la reproducción (o haz doble clic)."
     },
     "showSleepTimer": {
-      "title": "Mostrar temporizador de apagado",
-      "subtitle": "Muestra el icono de luna en la barra de reproducción"
+      "title": "Anclar el temporizador en la barra",
+      "subtitle": "Desactivado, el temporizador sigue disponible desde el menú « … »"
     },
     "showAbLoop": {
-      "title": "Mostrar repetición A-B",
-      "subtitle": "Muestra el botón de bucle A-B en la barra de reproducción"
+      "title": "Anclar el bucle A-B en la barra",
+      "subtitle": "Desactivado, el bucle A-B sigue disponible desde el menú « … »"
     },
     "duplicates": {
       "title": "Detectar duplicados",

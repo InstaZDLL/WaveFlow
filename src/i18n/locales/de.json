@@ -856,7 +856,8 @@
     "previous": "Vorheriger Titel",
     "next": "Nächster Titel",
     "devices": "Ausgabegeräte",
-    "moreActions": "Weitere Aktionen"
+    "moreActions": "Weitere Aktionen",
+    "abLoop": "A-B-Schleife"
   },
   "miniPlayer": {
     "idle": "Kein Titel wird abgespielt",
@@ -1124,12 +1125,12 @@
       "subtitle": "Klicken Sie auf einen Titel, um die Wiedergabe zu starten (oder doppelklicken Sie darauf)."
     },
     "showSleepTimer": {
-      "title": "Sleep-Timer anzeigen",
-      "subtitle": "Mond-Symbol in der Wiedergabeleiste anzeigen"
+      "title": "Sleep-Timer in der Leiste anheften",
+      "subtitle": "Wenn aus, bleibt der Timer über das Menü „…\" erreichbar"
     },
     "showAbLoop": {
-      "title": "A-B-Wiederholung anzeigen",
-      "subtitle": "Zeigt den A-B-Schleifen-Button in der Wiedergabeleiste an"
+      "title": "A-B-Schleife in der Leiste anheften",
+      "subtitle": "Wenn aus, bleibt die A-B-Schleife über das Menü „…\" erreichbar"
     },
     "duplicates": {
       "title": "Duplikate erkennen",

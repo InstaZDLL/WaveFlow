@@ -104,26 +104,26 @@ Track tables themselves are **borderless** — no `rounded-2xl border bg-white` 
 
 Right side of [`PlayerBar`](../../src/components/player/PlayerBar.tsx) is the highest-pressure real estate in the UI — every new feature wants an icon there. To keep the bar from running out of width on narrow windows, controls cluster by frequency:
 
-| Tier         | Controls                                         | Where                                                                              |
-| ------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| **Primary**  | Lyrics, Queue, Device picker, Speed pill, Volume | Always visible                                                                     |
-| **Overflow** | Fullscreen, Mini-player                          | [`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx) — "⋯" popover |
-| **Opt-in**   | A-B loop, Sleep timer                            | Visibility-toggle pattern (see below)                                              |
+| Tier         | Controls                                                  | Where                                                                              |
+| ------------ | --------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Primary**  | Lyrics, Queue, Device picker, Speed pill, Volume          | Always visible                                                                     |
+| **Overflow** | Fullscreen, Mini-player, A-B loop, Sleep timer (panel)    | [`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx) — "⋯" popover |
+| **Pinnable** | A-B loop, Sleep timer (promote to primary)                | Toggle in Settings → Lecture (see below)                                           |
 
-When adding a new player-bar action: default it into the overflow menu first — promote to primary only when usage data or user feedback warrants it.
+When adding a new player-bar action: default it into the overflow menu first — promote to primary only when usage data or user feedback warrants it. If both placements make sense, expose a pin toggle.
 
 The **Speed pill** ([`SpeedControl`](../../src/components/player/SpeedControl.tsx)) is intentionally text-only (`1.0×` / `1.25×`) instead of an icon — it doubles as the live value display, so the user sees the current speed without opening the popover. Same footprint as the volume's `80%` label. See [playback / Playback speed](playback.md#playback-speed-05--2) for the backend side.
 
-### Visibility toggles
+### Pin toggles
 
-A handful of niche playback features live behind a per-profile visibility toggle so the player bar stays uncluttered for typical users. Both default to **off** and opt in from Settings → Lecture:
+A-B loop and Sleep timer are **always available** — they live in the "⋯" overflow menu by default. The pin toggles let frequent users promote them to a primary slot on the bar so they're one click away. Both default to **off**:
 
-| Setting key           | Button                       | Default |
-| --------------------- | ---------------------------- | ------- |
-| `ui.show_sleep_timer` | Moon icon (sleep timer menu) | off     |
-| `ui.show_ab_loop`     | Repeat icon (A-B loop)       | off     |
+| Setting key           | Pinned button rendered in primary slot | Default |
+| --------------------- | -------------------------------------- | ------- |
+| `ui.show_sleep_timer` | Moon icon (sleep timer menu)           | off     |
+| `ui.show_ab_loop`     | Repeat icon (A-B loop)                 | off     |
 
-The PlayerBar listens to `waveflow:sleep-timer-visibility` / `waveflow:ab-loop-visibility` window events dispatched by the Settings toggle so the icons appear / disappear without a polling loop.
+When a pin is OFF, the entry stays in the overflow menu and the sleep-timer countdown badge surfaces on the "⋯" trigger itself so the user keeps live feedback while the timer is armed. The PlayerBar listens to `waveflow:sleep-timer-visibility` / `waveflow:ab-loop-visibility` window events dispatched by the Settings toggle so the layout re-renders without a polling loop.
 
 ## Keyboard shortcuts
 

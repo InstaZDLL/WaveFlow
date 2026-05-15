@@ -856,7 +856,8 @@
     "previous": "上一曲",
     "next": "下一曲",
     "devices": "输出设备",
-    "moreActions": "更多操作"
+    "moreActions": "更多操作",
+    "abLoop": "A-B 循环"
   },
   "miniPlayer": {
     "idle": "未播放任何曲目",
@@ -1124,12 +1125,12 @@
       "subtitle": "点击一首曲目开始播放（否则请双击）"
     },
     "showSleepTimer": {
-      "title": "显示睡眠定时器",
-      "subtitle": "在播放栏显示月亮图标"
+      "title": "将睡眠定时器固定到播放栏",
+      "subtitle": "关闭后仍可从「…」菜单访问定时器"
     },
     "showAbLoop": {
-      "title": "显示 A-B 循环",
-      "subtitle": "在播放栏中显示 A-B 循环按钮"
+      "title": "将 A-B 循环固定到播放栏",
+      "subtitle": "关闭后仍可从「…」菜单访问 A-B 循环"
     },
     "duplicates": {
       "title": "Detect duplicates",

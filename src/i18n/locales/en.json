@@ -865,7 +865,8 @@
     "next": "Next track",
     "openFullscreen": "Immersive view",
     "devices": "Output devices",
-    "moreActions": "More actions"
+    "moreActions": "More actions",
+    "abLoop": "A-B Loop"
   },
   "miniPlayer": {
     "idle": "No track playing",
@@ -1158,12 +1159,12 @@
       "subtitle": "Click a track to start playback (otherwise double-click)"
     },
     "showSleepTimer": {
-      "title": "Show sleep timer",
-      "subtitle": "Show the moon icon in the player bar"
+      "title": "Pin sleep timer in the bar",
+      "subtitle": "When off, the timer stays available from the « … » menu"
     },
     "showAbLoop": {
-      "title": "Show A-B repeat",
-      "subtitle": "Show the A-B loop button in the player bar"
+      "title": "Pin A-B loop in the bar",
+      "subtitle": "When off, A-B loop stays available from the « … » menu"
     },
     "showSpotify": {
       "title": "Show Spotify entry",

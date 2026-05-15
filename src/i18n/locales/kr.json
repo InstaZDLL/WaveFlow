@@ -856,7 +856,8 @@
     "previous": "이전 트랙",
     "next": "다음 트랙",
     "devices": "출력 장치",
-    "moreActions": "추가 작업"
+    "moreActions": "추가 작업",
+    "abLoop": "A-B 루프"
   },
   "miniPlayer": {
     "idle": "재생 중인 트랙 없음",
@@ -1124,12 +1125,12 @@
       "subtitle": "트랙을 클릭하여 재생을 시작합니다(또는 더블 클릭)."
     },
     "showSleepTimer": {
-      "title": "수면 타이머 표시",
-      "subtitle": "플레이어 바에 달 아이콘 표시"
+      "title": "수면 타이머를 바에 고정",
+      "subtitle": "꺼져 있어도 타이머는 「…」 메뉴에서 사용할 수 있습니다"
     },
     "showAbLoop": {
-      "title": "A-B 반복 표시",
-      "subtitle": "재생 바에 A-B 루프 버튼을 표시합니다"
+      "title": "A-B 루프를 바에 고정",
+      "subtitle": "꺼져 있어도 A-B 루프는 「…」 메뉴에서 사용할 수 있습니다"
     },
     "duplicates": {
       "title": "Detect duplicates",

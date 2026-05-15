@@ -865,7 +865,8 @@
     "next": "Piste suivante",
     "openFullscreen": "Vue immersive",
     "devices": "Périphériques de sortie",
-    "moreActions": "Plus d'actions"
+    "moreActions": "Plus d'actions",
+    "abLoop": "Boucle A-B"
   },
   "miniPlayer": {
     "idle": "Aucun titre en cours",
@@ -1158,12 +1159,12 @@
       "subtitle": "Un clic sur une piste lance la lecture (sinon double-clic)"
     },
     "showSleepTimer": {
-      "title": "Afficher le minuteur de sommeil",
-      "subtitle": "Affiche l'icône lune dans la barre de lecture"
+      "title": "Épingler le minuteur dans la barre",
+      "subtitle": "Désactivé, le minuteur reste accessible depuis le menu « … »"
     },
     "showAbLoop": {
-      "title": "Afficher la boucle A-B",
-      "subtitle": "Affiche le bouton de boucle A-B dans la barre de lecture"
+      "title": "Épingler la boucle A-B dans la barre",
+      "subtitle": "Désactivé, la boucle A-B reste accessible depuis le menu « … »"
     },
     "showSpotify": {
       "title": "Afficher l'entrée Spotify",

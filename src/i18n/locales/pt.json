@@ -856,7 +856,8 @@
     "previous": "Faixa anterior",
     "next": "Faixa seguinte",
     "devices": "Dispositivos de saída",
-    "moreActions": "Mais ações"
+    "moreActions": "Mais ações",
+    "abLoop": "Ciclo A-B"
   },
   "miniPlayer": {
     "idle": "Nenhuma faixa em reprodução",
@@ -1124,12 +1125,12 @@
       "subtitle": "Clique numa faixa para iniciar a reprodução (ou clique duas vezes)"
     },
     "showSleepTimer": {
-      "title": "Mostrar temporizador de suspensão",
-      "subtitle": "Mostra o ícone da lua na barra do leitor"
+      "title": "Fixar o temporizador na barra",
+      "subtitle": "Desativado, o temporizador continua disponível no menu « … »"
     },
     "showAbLoop": {
-      "title": "Mostrar repetição A-B",
-      "subtitle": "Mostra o botão de loop A-B na barra de reprodução"
+      "title": "Fixar o ciclo A-B na barra",
+      "subtitle": "Desativado, o ciclo A-B continua disponível no menu « … »"
     },
     "duplicates": {
       "title": "Detect duplicates",
