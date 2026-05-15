@@ -315,11 +315,16 @@ export function LyricsPanel() {
         {/* Footer actions */}
         {currentTrack != null && (
           <div className="flex items-center justify-between p-4 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
-            <span className="truncate flex items-center gap-2">
-              {payload ? sourceLabel(payload.source, t) : ""}
+            <span className="flex items-center gap-2 min-w-0">
+              <span className="truncate">
+                {payload ? sourceLabel(payload.source, t) : ""}
+              </span>
               {payload && (payload.format === "enhanced_lrc" || payload.format === "ttml") && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-pink-100 dark:bg-pink-950/40 text-pink-600 dark:text-pink-300">
-                  {t(`lyrics.format.${payload.format}`)}
+                <span
+                  className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-pink-100 dark:bg-pink-950/40 text-pink-600 dark:text-pink-300"
+                  title={t(`lyrics.format.${payload.format}`)}
+                >
+                  {payload.format === "ttml" ? "TTML" : "WORD"}
                 </span>
               )}
             </span>
