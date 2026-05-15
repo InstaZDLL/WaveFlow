@@ -6777,7 +6777,7 @@ dependencies = [
 
 [[package]]
 name = "waveflow"
-version = "1.0.1"
+version = "1.0.0"
 dependencies = [
  "alsa",
  "anyhow",
