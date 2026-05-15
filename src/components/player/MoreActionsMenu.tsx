@@ -3,9 +3,13 @@ import { useTranslation } from "react-i18next";
 import { MoreHorizontal, Moon, X } from "lucide-react";
 
 import type { SleepTimerStatus } from "../../hooks/useSleepTimer";
+import { usePlayer } from "../../hooks/usePlayer";
 import { AbLoopButton } from "./AbLoopButton";
 
 const SLEEP_PRESETS_MIN = [5, 15, 30, 45, 60, 90];
+const SPEED_PRESETS = [0.75, 1.0, 1.25, 1.5, 2.0];
+const SPEED_MIN = 0.5;
+const SPEED_MAX = 2.0;
 
 interface MoreActionsMenuProps {
   /** When `true`, A-B loop is pinned as a primary button in the bar
@@ -14,6 +18,9 @@ interface MoreActionsMenuProps {
   /** When `true`, sleep timer is pinned as a primary button in the
    *  bar and the overflow menu doesn't duplicate it. */
   pinSleepTimer: boolean;
+  /** When `true`, render the playback-speed section inside the menu.
+   *  Hidden in Spotify mode (Web Playback SDK has no speed control). */
+  showSpeed: boolean;
   sleepTimer: {
     status: SleepTimerStatus;
     onSetDuration: (minutes: number) => void;
@@ -24,17 +31,20 @@ interface MoreActionsMenuProps {
 
 /**
  * Overflow popover for the player bar's secondary actions. Hosts
- * Sleep timer (inline panel) and A-B loop unless the user has pinned
- * them to the bar via Settings. The caller is expected to skip
- * rendering this component entirely when both features are pinned —
- * otherwise we'd render an empty "⋯" trigger.
+ * Sleep timer, A-B loop and playback speed. Sleep timer / A-B loop
+ * can be pinned to the bar via Settings; speed has no pin (used too
+ * rarely to deserve a permanent slot). The caller is expected to
+ * skip rendering this component entirely when nothing would go
+ * inside (both pinned + Spotify mode hides speed too).
  */
 export function MoreActionsMenu({
   pinAbLoop,
   pinSleepTimer,
+  showSpeed,
   sleepTimer,
 }: MoreActionsMenuProps) {
   const { t } = useTranslation();
+  const { playbackSpeed, setPlaybackSpeed } = usePlayer();
   const [isOpen, setIsOpen] = useState(false);
   const [customMinutes, setCustomMinutes] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -71,6 +81,18 @@ export function MoreActionsMenu({
         ? t("sleepTimer.endOfTrackBadge")
         : null;
 
+  // Trigger badge priority: sleep-timer countdown > non-default speed.
+  // Both are mutually exclusive in the same corner so the user always
+  // sees the most time-sensitive signal first.
+  const isOffSpeed = Math.abs(playbackSpeed - 1.0) > 0.001;
+  const speedBadge =
+    showSpeed && isOffSpeed ? formatSpeed(playbackSpeed) : null;
+  const triggerBadge = sleepBadge && showSleepInMenu ? sleepBadge : speedBadge;
+  const triggerBadgeTone =
+    sleepBadge && showSleepInMenu
+      ? "bg-emerald-500 text-white"
+      : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40";
+
   const handleCustomSleep = (event: React.FormEvent) => {
     event.preventDefault();
     const minutes = parseInt(customMinutes, 10);
@@ -93,15 +115,17 @@ export function MoreActionsMenu({
         className={`relative p-2 rounded-lg transition-colors ${
           isOpen
             ? "text-emerald-500"
-            : sleepArmed && showSleepInMenu
+            : (sleepArmed && showSleepInMenu) || isOffSpeed
               ? "text-emerald-500 hover:text-emerald-400"
               : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
         }`}
       >
         <MoreHorizontal size={20} />
-        {sleepBadge && showSleepInMenu && (
-          <span className="absolute -top-1 -right-1 px-1 min-w-[18px] h-[16px] flex items-center justify-center rounded-full bg-emerald-500 text-white text-[9px] font-bold leading-none">
-            {sleepBadge}
+        {triggerBadge && (
+          <span
+            className={`absolute -top-1 -right-1 px-1 min-w-[18px] h-[16px] flex items-center justify-center rounded-full text-[9px] font-bold leading-none ${triggerBadgeTone}`}
+          >
+            {triggerBadge}
           </span>
         )}
       </button>
@@ -112,6 +136,54 @@ export function MoreActionsMenu({
           aria-label={t("playerBar.moreActions")}
           className="absolute bottom-full right-0 mb-3 w-72 p-1 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl z-50"
         >
+          {showSpeed && (
+            <div className="px-3 py-2 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-bold uppercase tracking-widest text-zinc-400">
+                  {t("player.speed.title")}
+                </div>
+                <span className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                  {formatSpeed(playbackSpeed)}
+                </span>
+              </div>
+
+              <input
+                type="range"
+                min={SPEED_MIN}
+                max={SPEED_MAX}
+                step={0.05}
+                value={playbackSpeed}
+                onChange={(e) => setPlaybackSpeed(parseFloat(e.target.value))}
+                aria-label={t("player.speed.slider")}
+                className="w-full accent-emerald-500"
+              />
+
+              <div className="grid grid-cols-5 gap-1">
+                {SPEED_PRESETS.map((preset) => {
+                  const active = Math.abs(playbackSpeed - preset) < 0.001;
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setPlaybackSpeed(preset)}
+                      className={`py-1 text-[11px] font-semibold tabular-nums rounded-md transition-colors ${
+                        active
+                          ? "bg-emerald-500 text-white"
+                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                      }`}
+                    >
+                      {formatSpeed(preset)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {showSpeed && (showAbInMenu || showSleepInMenu) && (
+            <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
+          )}
+
           {showAbInMenu && (
             <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
               <span className="text-sm text-zinc-700 dark:text-zinc-200">
@@ -211,4 +283,9 @@ function formatRemaining(ms: number): string {
     return `${m}m`;
   }
   return `${totalSec}s`;
+}
+
+function formatSpeed(value: number): string {
+  const trimmed = Number.isInteger(value) ? value.toFixed(0) : value.toFixed(2);
+  return `${trimmed.replace(/(\.\d)0$/, "$1")}×`;
 }

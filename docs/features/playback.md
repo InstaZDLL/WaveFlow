@@ -95,7 +95,7 @@ Both `current_position_ms()` and `session_listened_ms()` multiply the wall-clock
 
 ### UI
 
-[`SpeedControl`](../../src/components/player/SpeedControl.tsx) is a compact text pill (`1.0×` / `1.25×`) next to the volume slider — same footprint as the volume's percentage label. Click opens a popover with a range slider (step 0.05) and five preset buttons (0.75 / 1 / 1.25 / 1.5 / 2). Emerald accent when speed ≠ 1×. Hidden in Spotify mode (the Web Playback SDK has no speed control). No new icon — the text is the affordance.
+Speed lives inside the player-bar overflow ("⋯") menu — range slider (step 0.05) + five preset buttons (0.75 / 1 / 1.25 / 1.5 / 2) — rather than a dedicated pill, since most users never touch it. When speed ≠ 1×, the "⋯" trigger surfaces a compact `1.25×` badge in emerald so the user keeps a live indicator without opening the menu. Hidden entirely in Spotify mode (the Web Playback SDK has no speed control).
 
 ## A-B repeat
 

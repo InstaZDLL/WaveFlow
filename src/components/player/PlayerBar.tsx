@@ -17,7 +17,6 @@ import { ProgressBar } from "./ProgressBar";
 import { SleepTimerMenu } from "./SleepTimerMenu";
 import { AbLoopButton } from "./AbLoopButton";
 import { VolumeControl } from "./VolumeControl";
-import { SpeedControl } from "./SpeedControl";
 import { MoreActionsMenu } from "./MoreActionsMenu";
 import { AudioQualityFooter } from "./AudioQualityFooter";
 import { FullscreenNowPlaying } from "./FullscreenNowPlaying";
@@ -269,13 +268,14 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               </div>
             )}
 
-            {/* Overflow menu — hosts Sleep timer / A-B loop when they
-              aren't pinned. Hidden entirely when both are pinned so we
-              don't render an empty "⋯" trigger. */}
-            {(!pinSleepTimer || !pinAbLoop) && (
+            {/* Overflow menu — hosts playback speed, Sleep timer and
+              A-B loop. Hidden when nothing would go inside (Spotify
+              mode + both features pinned to the bar). */}
+            {(!isSpotify || !pinSleepTimer || !pinAbLoop) && (
               <MoreActionsMenu
                 pinAbLoop={pinAbLoop}
                 pinSleepTimer={pinSleepTimer}
+                showSpeed={!isSpotify}
                 sleepTimer={{
                   status: sleepTimer.status,
                   onSetDuration: sleepTimer.setDurationMinutes,
@@ -284,11 +284,6 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                 }}
               />
             )}
-
-            {/* Compact speed pill — sits just before volume so the two
-              "playback shape" controls cluster together. Hidden in
-              Spotify mode (Web Playback SDK has no speed control). */}
-            {!isSpotify && <SpeedControl />}
 
             <VolumeControl />
 

@@ -106,13 +106,13 @@ Right side of [`PlayerBar`](../../src/components/player/PlayerBar.tsx) is the hi
 
 | Tier         | Controls                                                                               | Where                                                                                                                                         |
 | ------------ | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Primary**  | Lyrics, Queue, Device picker, "⋯", Speed pill, Volume, **Mini-player**, **Fullscreen** | Always visible. Spotify-style right cluster (mini-player + fullscreen) sits after volume                                                      |
-| **Overflow** | A-B loop, Sleep timer (panel)                                                          | [`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx) — "⋯" popover; the trigger itself is hidden when both entries are pinned |
+| **Primary**  | Lyrics, Queue, Device picker, "⋯", Volume, **Mini-player**, **Fullscreen**             | Always visible. Spotify-style right cluster (mini-player + fullscreen) sits after volume                                                      |
+| **Overflow** | Playback speed (slider + presets), A-B loop, Sleep timer (panel)                       | [`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx) — "⋯" popover; the trigger itself is hidden when nothing inside is left  |
 | **Pinnable** | A-B loop, Sleep timer (promote to primary)                                             | Toggle in Settings → Lecture (see below)                                                                                                      |
 
 When adding a new player-bar action: default it into the overflow menu first — promote to primary only when usage data or user feedback warrants it. If both placements make sense, expose a pin toggle. The "⋯" trigger auto-hides when its menu would be empty.
 
-The **Speed pill** ([`SpeedControl`](../../src/components/player/SpeedControl.tsx)) is intentionally text-only (`1.0×` / `1.25×`) instead of an icon — it doubles as the live value display, so the user sees the current speed without opening the popover. Same footprint as the volume's `80%` label. See [playback / Playback speed](playback.md#playback-speed-05--2) for the backend side.
+**Playback speed** lives inside [`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx) (range slider + five presets) rather than a dedicated bar button — it's used too rarely to deserve a permanent slot. When speed ≠ 1×, the "⋯" trigger surfaces a compact `1.25×` badge in emerald (same corner as the sleep-timer countdown — the countdown wins when both are active). See [playback / Playback speed](playback.md#playback-speed-05--2) for the backend side.
 
 ### Pin toggles
 
