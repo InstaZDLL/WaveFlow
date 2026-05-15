@@ -104,13 +104,13 @@ Track tables themselves are **borderless** — no `rounded-2xl border bg-white` 
 
 Right side of [`PlayerBar`](../../src/components/player/PlayerBar.tsx) is the highest-pressure real estate in the UI — every new feature wants an icon there. To keep the bar from running out of width on narrow windows, controls cluster by frequency:
 
-| Tier         | Controls                                                  | Where                                                                              |
-| ------------ | --------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| **Primary**  | Lyrics, Queue, Device picker, Speed pill, Volume          | Always visible                                                                     |
-| **Overflow** | Fullscreen, Mini-player, A-B loop, Sleep timer (panel)    | [`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx) — "⋯" popover |
-| **Pinnable** | A-B loop, Sleep timer (promote to primary)                | Toggle in Settings → Lecture (see below)                                           |
+| Tier         | Controls                                                                               | Where                                                                                                                                         |
+| ------------ | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Primary**  | Lyrics, Queue, Device picker, "⋯", Speed pill, Volume, **Mini-player**, **Fullscreen** | Always visible. Spotify-style right cluster (mini-player + fullscreen) sits after volume                                                      |
+| **Overflow** | A-B loop, Sleep timer (panel)                                                          | [`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx) — "⋯" popover; the trigger itself is hidden when both entries are pinned |
+| **Pinnable** | A-B loop, Sleep timer (promote to primary)                                             | Toggle in Settings → Lecture (see below)                                                                                                      |
 
-When adding a new player-bar action: default it into the overflow menu first — promote to primary only when usage data or user feedback warrants it. If both placements make sense, expose a pin toggle.
+When adding a new player-bar action: default it into the overflow menu first — promote to primary only when usage data or user feedback warrants it. If both placements make sense, expose a pin toggle. The "⋯" trigger auto-hides when its menu would be empty.
 
 The **Speed pill** ([`SpeedControl`](../../src/components/player/SpeedControl.tsx)) is intentionally text-only (`1.0×` / `1.25×`) instead of an icon — it doubles as the live value display, so the user sees the current speed without opening the popover. Same footprint as the volume's `80%` label. See [playback / Playback speed](playback.md#playback-speed-05--2) for the backend side.
 

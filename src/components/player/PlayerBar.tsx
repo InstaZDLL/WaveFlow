@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Menu, MonitorSpeaker, Heart, Mic2 } from "lucide-react";
+import {
+  Menu,
+  MonitorSpeaker,
+  Heart,
+  Mic2,
+  Maximize2,
+  PictureInPicture2,
+} from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useSleepTimer } from "../../hooks/useSleepTimer";
 import { Artwork } from "../common/Artwork";
@@ -262,30 +269,21 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               </div>
             )}
 
-            {/* Overflow menu — absorbs Fullscreen + Mini-player so the
-              bar stops growing every time we ship a feature. Lyrics /
-              Queue / Device stay first-class because they're the
-              most-used. The Spotify mode hides Mini-player inside
-              the menu via the `miniPlayerAvailable` prop. */}
-            <MoreActionsMenu
-              miniPlayerAvailable={!isSpotify}
-              pinAbLoop={pinAbLoop}
-              pinSleepTimer={pinSleepTimer}
-              sleepTimer={{
-                status: sleepTimer.status,
-                onSetDuration: sleepTimer.setDurationMinutes,
-                onSetEndOfTrack: sleepTimer.setEndOfTrack,
-                onCancel: sleepTimer.cancel,
-              }}
-              onOpenFullscreen={() => setIsFullscreenOpen(true)}
-              onOpenMiniPlayer={() => {
-                import("../../lib/miniPlayer").then((m) =>
-                  m.openMiniPlayer().catch((err) => {
-                    console.error("[PlayerBar] open mini-player failed", err);
-                  }),
-                );
-              }}
-            />
+            {/* Overflow menu — hosts Sleep timer / A-B loop when they
+              aren't pinned. Hidden entirely when both are pinned so we
+              don't render an empty "⋯" trigger. */}
+            {(!pinSleepTimer || !pinAbLoop) && (
+              <MoreActionsMenu
+                pinAbLoop={pinAbLoop}
+                pinSleepTimer={pinSleepTimer}
+                sleepTimer={{
+                  status: sleepTimer.status,
+                  onSetDuration: sleepTimer.setDurationMinutes,
+                  onSetEndOfTrack: sleepTimer.setEndOfTrack,
+                  onCancel: sleepTimer.cancel,
+                }}
+              />
+            )}
 
             {/* Compact speed pill — sits just before volume so the two
               "playback shape" controls cluster together. Hidden in
@@ -293,6 +291,39 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
             {!isSpotify && <SpeedControl />}
 
             <VolumeControl />
+
+            {/* Spotify-style right cluster: mini-player + fullscreen as
+              primary icon buttons after volume. Mini-player is hidden
+              in Spotify mode (Web Playback SDK can't drive a second
+              webview). */}
+            {!isSpotify && (
+              <button
+                type="button"
+                onClick={() => {
+                  import("../../lib/miniPlayer").then((m) =>
+                    m.openMiniPlayer().catch((err) => {
+                      console.error("[PlayerBar] open mini-player failed", err);
+                    }),
+                  );
+                }}
+                aria-label={t("playerBar.miniPlayer")}
+                title={t("playerBar.miniPlayer")}
+                className="p-2 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
+              >
+                <PictureInPicture2 size={20} />
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => currentTrack && setIsFullscreenOpen(true)}
+              disabled={!currentTrack}
+              aria-label={t("playerBar.openFullscreen")}
+              title={t("playerBar.openFullscreen")}
+              className="p-2 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Maximize2 size={20} />
+            </button>
           </div>
         </div>
         <AudioQualityFooter track={isSpotify ? null : (currentTrack ?? null)} />
