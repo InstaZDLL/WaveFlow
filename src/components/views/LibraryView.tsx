@@ -1351,7 +1351,7 @@ function AlbumGrid({
   return (
     <>
       <div
-        className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5 ${
+        className={`grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5 ${
           isLoading ? "opacity-50" : ""
         }`}
       >
@@ -1511,7 +1511,7 @@ function ArtistList({
   return (
     <div
       ref={gridRef}
-      className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5 ${
+      className={`grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5 ${
         isLoading ? "opacity-50" : ""
       }`}
     >
@@ -1609,7 +1609,7 @@ interface GenreListProps {
 function GenreList({ genres, isLoading, t }: GenreListProps) {
   return (
     <div
-      className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 ${
+      className={`grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4 ${
         isLoading ? "opacity-50" : ""
       }`}
     >
