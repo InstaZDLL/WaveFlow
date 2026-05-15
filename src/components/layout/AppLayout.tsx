@@ -100,6 +100,27 @@ const GenreDetailView = lazy(() =>
   })),
 );
 
+// Each entry in the navigation history pairs a view id with its payload
+// (when relevant) so back/forward can restore the exact target the user
+// visited. Payload fields are optional so callers without a target (e.g.
+// the initial "home" entry, or navigating to "wrapped" without a year)
+// stay valid.
+type HistoryEntry =
+  | { id: "home" }
+  | { id: "library" }
+  | { id: "settings" }
+  | { id: "spotify" }
+  | { id: "about" }
+  | { id: "feedback" }
+  | { id: "statistics" }
+  | { id: "liked" }
+  | { id: "recent" }
+  | { id: "wrapped"; year?: number | null }
+  | { id: "playlist"; playlistId?: number | null }
+  | { id: "album-detail"; albumId?: number | null }
+  | { id: "artist-detail"; artistId?: number | null }
+  | { id: "genre-detail"; genreId?: number | null };
+
 export function AppLayout() {
   const { t } = useTranslation();
   const { isDark } = useTheme();
@@ -109,22 +130,25 @@ export function AppLayout() {
   // listener and re-reads bindings whenever Settings emits the
   // shortcuts-changed event.
   useGlobalShortcuts();
-  const [viewHistory, setViewHistory] = useState<ViewId[]>(["home"]);
-  const [historyIndex, setHistoryIndex] = useState(0);
+  // History entries carry their payload (album/artist/genre/playlist id,
+  // wrapped year) directly so back/forward restore the exact target the
+  // user visited — not whatever target was set most recently. Without
+  // this, navigating album A → home → album B → back → back lands on
+  // "album-detail" with activeAlbumId still pointing at B.
+  //
+  // History + index live in a single state object so push/replace can
+  // update both atomically inside one functional setter. Splitting them
+  // would let rapid back-to-back navigations queue setters that all read
+  // the same stale index, losing entries and leaving `index` past
+  // `history.length - 1`.
+  const [navState, setNavState] = useState<{
+    history: HistoryEntry[];
+    index: number;
+  }>({ history: [{ id: "home" }], index: 0 });
+  const viewHistory = navState.history;
+  const historyIndex = navState.index;
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [libraryTab, setLibraryTab] = useState<LibraryTab>("morceaux");
-  // Currently focused playlist for the "playlist" view. The view itself
-  // re-fetches when this id changes; the sidebar uses it to highlight
-  // the active row.
-  const [activePlaylistId, setActivePlaylistId] = useState<number | null>(null);
-  const [activeAlbumId, setActiveAlbumId] = useState<number | null>(null);
-  const [activeArtistId, setActiveArtistId] = useState<number | null>(null);
-  const [activeGenreId, setActiveGenreId] = useState<number | null>(null);
-  // Year requested when navigating into the Wrapped overlay. `null`
-  // tells WrappedView to pick the most recent year with plays.
-  const [activeWrappedYear, setActiveWrappedYear] = useState<number | null>(
-    null,
-  );
 
   // First-run onboarding: prompt the user to point WaveFlow at a
   // music folder when no library has been populated yet.
@@ -199,65 +223,101 @@ export function AppLayout() {
     );
   }, []);
 
-  const activeView = viewHistory[historyIndex];
+  const currentEntry = viewHistory[historyIndex];
+  const activeView: ViewId = currentEntry.id;
+  // Derived from the current history entry so back/forward restore the
+  // correct payload. `null` for views without a payload.
+  const activeAlbumId =
+    currentEntry.id === "album-detail" ? (currentEntry.albumId ?? null) : null;
+  const activeArtistId =
+    currentEntry.id === "artist-detail"
+      ? (currentEntry.artistId ?? null)
+      : null;
+  const activeGenreId =
+    currentEntry.id === "genre-detail" ? (currentEntry.genreId ?? null) : null;
+  const activePlaylistId =
+    currentEntry.id === "playlist" ? (currentEntry.playlistId ?? null) : null;
+  const activeWrappedYear =
+    currentEntry.id === "wrapped" ? (currentEntry.year ?? null) : null;
 
+  const pushEntry = useCallback((entry: HistoryEntry) => {
+    setNavState(({ history, index }) => ({
+      history: [...history.slice(0, index + 1), entry],
+      index: index + 1,
+    }));
+  }, []);
+
+  // Replace the current entry in place (no index bump). Used when the
+  // current target no longer exists — e.g. a playlist that was just
+  // deleted — so Back doesn't return to a ghost page.
+  const replaceEntry = useCallback((entry: HistoryEntry) => {
+    setNavState(({ history, index }) => {
+      const next = [...history];
+      next[index] = entry;
+      return { history: next, index };
+    });
+  }, []);
+
+  // Wrapper used by views that only need a plain id (Home, Settings, …).
+  // The cast is safe because every `ViewId` matches a HistoryEntry whose
+  // payload fields are optional.
   const setActiveView = useCallback(
     (view: ViewId) => {
-      setViewHistory((prev) => [...prev.slice(0, historyIndex + 1), view]);
-      setHistoryIndex((prev) => prev + 1);
+      pushEntry({ id: view } as HistoryEntry);
     },
-    [historyIndex],
+    [pushEntry],
   );
 
   const canGoBack = historyIndex > 0;
   const canGoForward = historyIndex < viewHistory.length - 1;
 
   const goBack = useCallback(() => {
-    if (canGoBack) setHistoryIndex((i) => i - 1);
-  }, [canGoBack]);
+    setNavState(({ history, index }) =>
+      index > 0 ? { history, index: index - 1 } : { history, index },
+    );
+  }, []);
 
   const goForward = useCallback(() => {
-    if (canGoForward) setHistoryIndex((i) => i + 1);
-  }, [canGoForward]);
+    setNavState(({ history, index }) =>
+      index < history.length - 1
+        ? { history, index: index + 1 }
+        : { history, index },
+    );
+  }, []);
 
   const navigateToAlbum = useCallback(
     (albumId: number) => {
-      setActiveAlbumId(albumId);
-      setActiveView("album-detail");
+      pushEntry({ id: "album-detail", albumId });
     },
-    [setActiveView],
+    [pushEntry],
   );
 
   const navigateToArtist = useCallback(
     (artistId: number) => {
-      setActiveArtistId(artistId);
-      setActiveView("artist-detail");
+      pushEntry({ id: "artist-detail", artistId });
     },
-    [setActiveView],
+    [pushEntry],
   );
 
   const navigateToGenre = useCallback(
     (genreId: number) => {
-      setActiveGenreId(genreId);
-      setActiveView("genre-detail");
+      pushEntry({ id: "genre-detail", genreId });
     },
-    [setActiveView],
+    [pushEntry],
   );
 
   const navigateToPlaylist = useCallback(
     (playlistId: number) => {
-      setActivePlaylistId(playlistId);
-      setActiveView("playlist");
+      pushEntry({ id: "playlist", playlistId });
     },
-    [setActiveView],
+    [pushEntry],
   );
 
   const navigateToWrapped = useCallback(
     (year: number | null) => {
-      setActiveWrappedYear(year);
-      setActiveView("wrapped");
+      pushEntry({ id: "wrapped", year });
     },
-    [setActiveView],
+    [pushEntry],
   );
 
   function renderView() {
@@ -325,10 +385,7 @@ export function AppLayout() {
         return (
           <PlaylistView
             playlistId={activePlaylistId}
-            onAfterDelete={() => {
-              setActivePlaylistId(null);
-              setActiveView("home");
-            }}
+            onAfterDelete={() => replaceEntry({ id: "home" })}
             onNavigateToAlbum={navigateToAlbum}
             onNavigateToArtist={navigateToArtist}
           />
@@ -396,7 +453,7 @@ export function AppLayout() {
             libraryTab={libraryTab}
             setLibraryTab={setLibraryTab}
             activePlaylistId={activePlaylistId}
-            setActivePlaylistId={setActivePlaylistId}
+            navigateToPlaylist={navigateToPlaylist}
           />
 
           {/* Center Content. `min-w-0` is required so a long playlist
