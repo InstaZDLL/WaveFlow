@@ -413,12 +413,19 @@ export function LyricsEditorModal({
         content = plainText.trim();
         saveFormat = "plain";
       } else if (isWordMode) {
-        // Serialize each row's words into a single Enhanced LRC line.
-        // Rows with no captured stamps are dropped, matching the
-        // behaviour of line mode.
+        // Keep every row the user typed text into, even if they
+        // haven't captured a stamp yet — line mode does the same,
+        // so saving in word mode shouldn't silently delete unstamped
+        // text. `serializeEnhancedLrc` emits `[--:--.--]` for rows
+        // with `timeMs < 0` and folds uncaptured words into the
+        // previous segment (no phantom `<00:00.00>` stamp), so half-
+        // finished work round-trips cleanly through save → reload.
         const rowsForSave: LyricsLine[] = syncedRows
           .filter(
-            (r) => r.timeMs >= 0 || (r.words?.some((w) => w.timeMs >= 0) ?? false),
+            (r) =>
+              r.text.trim().length > 0 ||
+              r.timeMs >= 0 ||
+              (r.words?.some((w) => w.timeMs >= 0) ?? false),
           )
           .map((r) => ({
             timeMs: shift(r.timeMs),
@@ -430,7 +437,15 @@ export function LyricsEditorModal({
               text: w.text,
             })),
           }))
-          .sort((a, b) => a.timeMs - b.timeMs);
+          // Untimed rows (timeMs < 0) sort to the end so the synced
+          // body stays monotonically ordered; the user can resume
+          // capturing them on the next edit.
+          .sort((a, b) => {
+            if (a.timeMs < 0 && b.timeMs < 0) return 0;
+            if (a.timeMs < 0) return 1;
+            if (b.timeMs < 0) return -1;
+            return a.timeMs - b.timeMs;
+          });
         content = serializeEnhancedLrc(rowsForSave);
         saveFormat = "enhanced_lrc";
       } else {
