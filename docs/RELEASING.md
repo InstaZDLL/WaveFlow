@@ -99,25 +99,37 @@ gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --body "<passphrase>"
 gh secret set SIGNTOOL_PFX_PASSWORD            --body "<passphrase>"
 ```
 
-### 1. Bump the version
+### 1. Cut the release via release-please
 
-Three manifests carry the version string and must stay in sync — use
-semver:
+You do **not** hand-bump versions anymore. Every push to `main`
+runs [`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml),
+which:
 
-- [`package.json`](../package.json) → `"version"`
-- [`src-tauri/tauri.conf.json`](../src-tauri/tauri.conf.json) → `"version"`
-- [`src-tauri/Cargo.toml`](../src-tauri/Cargo.toml) → `version` (under
-  `[package]`)
+1. Parses the Conventional Commits since the last tag.
+2. Computes the next semver (`feat:` → minor, `fix:` → patch,
+   `feat!:` / `BREAKING CHANGE:` → major, no relevant commits → no PR).
+3. Opens or refreshes a **chore(main): release X.Y.Z** PR that
+   bumps every version manifest in lockstep:
+   - [`package.json`](../package.json) (canonical, owned by release-please)
+   - [`src-tauri/tauri.conf.json`](../src-tauri/tauri.conf.json) (`$.version`)
+   - [`src-tauri/Cargo.toml`](../src-tauri/Cargo.toml) (`$.package.version`)
+   - [`README.md`](../README.md) version badge (`x-release-please-version` annotation)
+   - [`CHANGELOG.md`](../CHANGELOG.md) (auto-generated entry)
+4. A second workflow
+   ([`release-please-bump-lockfile.yml`](../.github/workflows/release-please-bump-lockfile.yml))
+   runs `cargo check` on the PR branch and amends `src-tauri/Cargo.lock`
+   so it stays consistent with the bumped `Cargo.toml`.
 
-Then run `cargo check --manifest-path src-tauri/Cargo.toml` to refresh
-`src-tauri/Cargo.lock` (the `waveflow` entry's version follows
-`Cargo.toml`). Commit all four files together and tag:
+To ship, **review and merge the release PR** (squash or merge,
+release-please tolerates both). The merge causes release-please to:
 
-```sh
-git commit -am "chore(release): bump version to 1.0.0"
-git tag v1.0.0
-git push origin main v1.0.0
-```
+- create the `vX.Y.Z` tag on `main`,
+- create the matching GitHub Release with the auto-generated notes,
+- update [`.release-please-manifest.json`](../.release-please-manifest.json)
+  to record the new version.
+
+The new tag triggers [`release.yml`](../.github/workflows/release.yml)
+exactly as before — no change needed downstream.
 
 ### 2. Watch the workflow
 
