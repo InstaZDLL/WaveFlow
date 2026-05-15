@@ -105,10 +105,18 @@ jobs:
         with:
           workspaces: src-tauri
 
+      # Pre-fetch the full dep graph so CodeQL's internal `cargo metadata`
+      # invocations resolve every transitive crate without hitting the
+      # registry mid-extraction. The Rust extractor is preview-only and
+      # rejects build-mode=manual, so this is the main lever we have to
+      # push call-target resolution above the 50 % threshold.
+      - name: cargo fetch
+        run: cargo fetch --manifest-path src-tauri/Cargo.toml --locked
+
       - uses: github/codeql-action/init@v4
         with:
           languages: rust
-          build-mode: manual
+          build-mode: none
           queries: security-extended
           config: |
             paths-ignore:
@@ -118,9 +126,6 @@ jobs:
               # unsafe blocks raise large amounts of false positives.
               - 'src-tauri/vendor/**'
               - 'src-tauri/target/**'
-
-      - name: Build (for CodeQL extraction)
-        run: cargo build --manifest-path src-tauri/Cargo.toml --all-targets --locked
 
       - uses: github/codeql-action/analyze@v4
         with:
