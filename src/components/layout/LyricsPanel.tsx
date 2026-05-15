@@ -265,7 +265,7 @@ export function LyricsPanel() {
                             }
                             style={{
                               transition:
-                                "color 120ms ease, opacity 120ms ease",
+                                "color 150ms ease, opacity 150ms ease",
                             }}
                           >
                             {word.text}

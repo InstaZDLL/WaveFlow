@@ -140,9 +140,9 @@ WaveFlow recognises two word-timed formats in addition to plain LRC:
 
 **Parsing** — `src/lib/tauri/lyrics.ts` exposes `parseLrc`, `parseEnhancedLrc`, `parseTtml`, and a unifying `parseLyrics(content, format)` dispatcher. All three return the same `LyricsLine` shape (`timeMs`, `endMs`, `text`, optional `words[]`). The TTML parser uses the webview's built-in `DOMParser` — no XML dependency. `findActiveWordIndex` mirrors `findActiveLineIndex` (linear scan from hint, O(1) amortised).
 
-**Rendering** — [`LyricsPanel`](../../src/components/layout/LyricsPanel.tsx) highlights the active word in the accent colour with a 120 ms opacity transition; the fullscreen karaoke view (`FullscreenLyrics`) adds a `scale(1.04)` on the active word and a 0.45 → 0.8 → 1 opacity ramp for future / past / active words. Lines without `words` keep the existing line-level highlight.
+**Rendering** — [`LyricsPanel`](../../src/components/layout/LyricsPanel.tsx) highlights the active word in the accent colour with a 150 ms opacity / color transition; the fullscreen karaoke view (`FullscreenLyrics`) uses the same 150 ms duration and adds a `scale(1.04)` on the active word plus a 0.45 → 0.8 → 1 opacity ramp for future / past / active words. Lines without `words` keep the existing line-level highlight.
 
-**Editor — word mode.** [`LyricsEditorModal`](../../src/components/common/LyricsEditorModal.tsx) adds a granularity toggle inside the synchronised tab. In word mode:
+**Editor — word mode.** [`LyricsEditorModal`](../../src/components/common/LyricsEditorModal.tsx) adds a granularity toggle inside the synchronized tab. In word mode:
 
 - **Space** — stamps the next un-captured word in the active line. First press also stamps the line's own `timeMs` if it's not yet captured.
 - **Enter** — advances to the next line (appending a fresh empty one at the end, like line mode).

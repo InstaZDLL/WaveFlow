@@ -1038,10 +1038,15 @@ fn write_lyrics_to_file(
         tagged.first_tag_mut().ok_or("no tag")?
     };
 
-    if content.trim().is_empty() {
-        tag.remove_key(ItemKey::UnsyncLyrics);
-        tag.remove_key(ItemKey::Lyrics);
-    } else {
+    // Always purge both keys before writing so that switching format
+    // (e.g. plain LRC → TTML) doesn't leave a stale entry under the
+    // other key. `read_embedded_lyrics` checks UnsyncLyrics first and
+    // Lyrics second — without this clear the old content would shadow
+    // the new format on the next fetch.
+    tag.remove_key(ItemKey::UnsyncLyrics);
+    tag.remove_key(ItemKey::Lyrics);
+
+    if !content.trim().is_empty() {
         // TTML on a container that supports `ItemKey::Lyrics` (Vorbis /
         // MP4 / FLAC). Other formats stay in USLT, which is what every
         // other player expects.
@@ -1050,7 +1055,6 @@ fn write_lyrics_to_file(
         } else {
             ItemKey::UnsyncLyrics
         };
-        // insert_text overwrites any existing item with the same key.
         tag.insert_text(key, content.to_string());
     }
 

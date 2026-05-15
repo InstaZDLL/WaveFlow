@@ -9,6 +9,7 @@ import {
   type LyricsPayload,
 } from "../../lib/tauri/lyrics";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useModalA11y } from "../../hooks/useModalA11y";
 
 interface FullscreenLyricsProps {
   track: Track;
@@ -46,6 +47,11 @@ export function FullscreenLyrics({
   const { t } = useTranslation();
   const { positionMs } = usePlayer();
   const lineRefs = useRef<Array<HTMLLIElement | null>>([]);
+  // The overlay is mounted only when the side panel toggles it on, so
+  // the hook is always opened against `true` while alive — passing
+  // `true` here keeps the focus trap, Escape-close, and focus
+  // restoration consistent with the rest of the modal stack.
+  const dialogRef = useModalA11y<HTMLDivElement>(true, onClose);
 
   // Active word index inside the current line — drives the per-word
   // karaoke highlight. Recomputed on every position tick but only when
@@ -55,16 +61,6 @@ export function FullscreenLyrics({
     if (!activeLine?.words || activeLine.words.length === 0) return -1;
     return findActiveWordIndex(activeLine.words, positionMs);
   }, [activeLine, positionMs]);
-
-  // Escape to close. Mounted only while open so we don't intercept
-  // the key when the overlay isn't visible.
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose]);
 
   // Keep the active line vertically centered. Independent ref array
   // from the side panel so both views can scroll in parallel.
@@ -77,7 +73,13 @@ export function FullscreenLyrics({
   }, [activeIndex, isSynced]);
 
   return (
-    <div className="fixed inset-0 z-[100] animate-fade-in">
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="fullscreen-lyrics-title"
+      className="fixed inset-0 z-[100] animate-fade-in"
+    >
       {/* Blurred artwork background — falls back to a flat dark
           gradient when the track has no cover. */}
       <div className="absolute inset-0 overflow-hidden">
@@ -113,7 +115,10 @@ export function FullscreenLyrics({
               rounded="lg"
             />
             <div className="min-w-0">
-              <div className="text-xs uppercase tracking-widest text-white/60 mb-1">
+              <div
+                id="fullscreen-lyrics-title"
+                className="text-xs uppercase tracking-widest text-white/60 mb-1"
+              >
                 {t("lyrics.title")}
               </div>
               <div className="text-lg font-bold truncate">{track.title}</div>

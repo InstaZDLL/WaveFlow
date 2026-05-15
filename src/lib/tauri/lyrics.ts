@@ -265,28 +265,48 @@ export function parseEnhancedLrc(content: string): LyricsLine[] {
     // Slice the body between consecutive word stamps to recover the
     // word text. The slice from `wordStamps[i]` end to the next stamp
     // start is the displayed word.
-    const segments: string[] = [];
-    for (let i = 0; i < wordStamps.length; i += 1) {
-      const start = wordStamps[i].at + matchedStampLength(body, wordStamps[i].at);
-      const end = i + 1 < wordStamps.length ? wordStamps[i + 1].at : body.length;
-      segments.push(body.slice(start, end));
+    const built: LyricsWord[] = [];
+
+    // Any text before the first inline word stamp is sung at the
+    // line's own timestamp — common when a tool emits
+    // `[mm:ss]First <mm:ss>second`. Treat it as a virtual leading word
+    // so we don't lose the text on import.
+    const prefix = body.slice(0, wordStamps[0].at);
+    if (prefix.length > 0 && prefix.trim().length > 0) {
+      built.push({
+        timeMs: lineStamps[0],
+        endMs: wordStamps[0].timeMs,
+        text: prefix,
+      });
     }
 
-    // Build words[], normalising whitespace inside each segment but
-    // preserving the trailing space so neighbouring words don't fuse
-    // when concatenated. Empty trailing segments are dropped.
-    const words: LyricsWord[] = wordStamps
-      .map((stamp, i) => ({
-        timeMs: stamp.timeMs,
-        endMs:
-          i + 1 < wordStamps.length ? wordStamps[i + 1].timeMs : -1,
-        text: segments[i],
-      }))
-      .filter((w) => w.text.length > 0 || w.timeMs > 0);
+    for (let i = 0; i < wordStamps.length; i += 1) {
+      const start =
+        wordStamps[i].at + matchedStampLength(body, wordStamps[i].at);
+      const end = i + 1 < wordStamps.length ? wordStamps[i + 1].at : body.length;
+      built.push({
+        timeMs: wordStamps[i].timeMs,
+        endMs: i + 1 < wordStamps.length ? wordStamps[i + 1].timeMs : -1,
+        text: body.slice(start, end),
+      });
+    }
 
+    // Drop trailing empty segments without timing (artefact of a
+    // trailing space after the last stamp).
+    const words = built.filter((w) => w.text.length > 0 || w.timeMs >= 0);
     const text = words.map((w) => w.text).join("").trim();
+
+    // Deep-clone the words array per line entry. When a line carries
+    // multiple line stamps (`[00:01][00:30]<00:01>Hi`), each entry
+    // must own its words so `fillEndTimestamps` can mutate them
+    // independently without bleeding `endMs` across stamps.
     for (const timeMs of lineStamps) {
-      lines.push({ timeMs, endMs: -1, text, words });
+      lines.push({
+        timeMs,
+        endMs: -1,
+        text,
+        words: words.map((w) => ({ ...w })),
+      });
     }
   }
   lines.sort((a, b) => a.timeMs - b.timeMs);
@@ -477,20 +497,37 @@ export function parseLyrics(
  * Lines without `words` fall back to a plain `[mm:ss.xx]` entry.
  * Used by the editor when the user saves a word-timed track — TTML
  * round-trip isn't part of v1, so we always export to Enhanced LRC.
+ *
+ * Words with `timeMs < 0` (not yet captured) are emitted **without**
+ * an inline stamp — their text is folded into the previous word so a
+ * half-finished line doesn't ship phantom `<00:00.00>word` stamps
+ * that would mis-sync on the next load. The user can re-open the
+ * editor and finish stamping later.
  */
 export function serializeEnhancedLrc(lines: LyricsLine[]): string {
   return lines
     .map((line) => {
-      const stamp = line.timeMs < 0 ? "[--:--.--]" : formatLrcTimestamp(line.timeMs);
+      const stamp =
+        line.timeMs < 0 ? "[--:--.--]" : formatLrcTimestamp(line.timeMs);
       if (!line.words || line.words.length === 0) {
         return `${stamp}${line.text}`;
       }
-      const wordPart = line.words
-        .map(
-          (w) => `${formatTimestamp(Math.max(0, w.timeMs), "<", ">")}${w.text}`,
-        )
-        .join("");
-      return `${stamp}${wordPart}`;
+      const parts: string[] = [];
+      for (const w of line.words) {
+        if (w.timeMs >= 0) {
+          parts.push(`${formatTimestamp(w.timeMs, "<", ">")}${w.text}`);
+        } else {
+          // Uncaptured — append the text to the previous segment so
+          // it survives the round-trip without acquiring a fake
+          // zero-second stamp.
+          if (parts.length > 0) {
+            parts[parts.length - 1] += w.text;
+          } else {
+            parts.push(w.text);
+          }
+        }
+      }
+      return `${stamp}${parts.join("")}`;
     })
     .join("\n");
 }
