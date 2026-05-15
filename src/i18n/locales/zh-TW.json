@@ -907,6 +907,15 @@
       "lrc_file": "已匯入的 .lrc 檔案",
       "api": "LRCLIB",
       "manual": "手動輸入"
+    },
+    "format": {
+      "lrc": "已同步",
+      "enhanced_lrc": "逐字同步",
+      "ttml": "TTML 逐字",
+      "plain": "未同步"
+    },
+    "toast": {
+      "tagWriteSkipped": "TTML 僅保留在快取中（未寫入音訊標籤）"
     }
   },
   "duplicates": {
@@ -1034,7 +1043,14 @@
       "label": "整體偏移",
       "help": "將所有已擷取行整體偏移相同的時長——適用於匯入的 LRC 檔案整體提前或落後的情況",
       "reset": "重設偏移"
-    }
+    },
+    "granularity": {
+      "label": "粒度：",
+      "line": "逐行",
+      "word": "逐字"
+    },
+    "captureHintWord": "空格鍵 = 下一個字 · Enter = 下一行 · Backspace = 取消最後一個字",
+    "notCaptured": "未擷取"
   },
   "sort": {
     "title": "標題",

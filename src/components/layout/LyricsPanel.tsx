@@ -15,9 +15,10 @@ import {
   clearLyrics,
   fetchLyrics,
   findActiveLineIndex,
+  findActiveWordIndex,
   importLrcFile,
-  parseLrc,
-  type LrcLine,
+  parseLyrics,
+  type LyricsLine,
   type LyricsPayload,
 } from "../../lib/tauri/lyrics";
 import { FullscreenLyrics } from "../player/FullscreenLyrics";
@@ -76,13 +77,10 @@ export function LyricsPanel() {
     };
   }, [trackId]);
 
-  // ── Parse LRC once per content change ───────────────────────────
-  const lrcLines = useMemo<LrcLine[]>(() => {
+  // ── Parse lyrics once per content change ─────────────────────────
+  const lrcLines = useMemo<LyricsLine[]>(() => {
     if (!payload) return [];
-    if (payload.format !== "lrc" && payload.format !== "enhanced_lrc") {
-      return [];
-    }
-    return parseLrc(payload.content);
+    return parseLyrics(payload.content, payload.format);
   }, [payload]);
 
   const isSynced = lrcLines.length > 0;
@@ -113,11 +111,22 @@ export function LyricsPanel() {
     }
   }, [activeIndex, isLyricsOpen, isSynced]);
 
+  // Active word inside the active line — only computed when the line
+  // carries `words[]` so plain LRC stays cheap.
+  const activeLine = activeIndex >= 0 ? lrcLines[activeIndex] : undefined;
+  const activeWordIndex = useMemo(() => {
+    if (!activeLine?.words || activeLine.words.length === 0) return -1;
+    return findActiveWordIndex(activeLine.words, positionMs);
+  }, [activeLine, positionMs]);
+
   // ── Actions ─────────────────────────────────────────────────────
   const handleImport = async () => {
     if (trackId == null) return;
     try {
-      const path = await pickFile(["lrc", "txt"], t("lyrics.importTitle"));
+      const path = await pickFile(
+        ["lrc", "elrc", "ttml", "xml", "txt"],
+        t("lyrics.importTitle"),
+      );
       if (!path) return;
       const next = await importLrcFile(trackId, path);
       setPayload(next);
@@ -153,7 +162,7 @@ export function LyricsPanel() {
     }
   };
 
-  const handleSeekToLine = (line: LrcLine) => {
+  const handleSeekToLine = (line: LyricsLine) => {
     seek(line.timeMs).catch(() => {});
   };
 
@@ -226,6 +235,7 @@ export function LyricsPanel() {
               {lrcLines.map((line, index) => {
                 const isActive = index === activeIndex;
                 const isPast = index < activeIndex;
+                const hasWords = isActive && (line.words?.length ?? 0) > 0;
                 return (
                   <li
                     key={`${line.timeMs}-${index}`}
@@ -241,7 +251,30 @@ export function LyricsPanel() {
                           : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
                     }`}
                   >
-                    {line.text || " "}
+                    {hasWords ? (
+                      <span>
+                        {line.words!.map((word, wi) => (
+                          <span
+                            key={wi}
+                            className={
+                              wi === activeWordIndex
+                                ? "text-pink-500 dark:text-pink-400"
+                                : wi < activeWordIndex
+                                  ? ""
+                                  : "opacity-60"
+                            }
+                            style={{
+                              transition:
+                                "color 120ms ease, opacity 120ms ease",
+                            }}
+                          >
+                            {word.text}
+                          </span>
+                        ))}
+                      </span>
+                    ) : (
+                      line.text || " "
+                    )}
                   </li>
                 );
               })}
@@ -282,8 +315,13 @@ export function LyricsPanel() {
         {/* Footer actions */}
         {currentTrack != null && (
           <div className="flex items-center justify-between p-4 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
-            <span className="truncate">
+            <span className="truncate flex items-center gap-2">
               {payload ? sourceLabel(payload.source, t) : ""}
+              {payload && (payload.format === "enhanced_lrc" || payload.format === "ttml") && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-pink-100 dark:bg-pink-950/40 text-pink-600 dark:text-pink-300">
+                  {t(`lyrics.format.${payload.format}`)}
+                </span>
+              )}
             </span>
             <div className="flex items-center space-x-1 shrink-0">
               <button

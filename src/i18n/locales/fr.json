@@ -916,6 +916,15 @@
       "lrc_file": "Fichier .lrc importé",
       "api": "LRCLIB",
       "manual": "Saisie manuelle"
+    },
+    "format": {
+      "lrc": "Synchronisé",
+      "enhanced_lrc": "Synchronisé mot-à-mot",
+      "ttml": "TTML mot-à-mot",
+      "plain": "Non synchronisé"
+    },
+    "toast": {
+      "tagWriteSkipped": "TTML conservé en base (non écrit dans le tag audio)"
     }
   },
   "smartPlaylistEditor": {
@@ -1043,7 +1052,14 @@
       "label": "Décalage global",
       "help": "Décale toutes les lignes calées du même delta — utile pour corriger un fichier LRC importé qui est uniformément en avance ou en retard",
       "reset": "Réinitialiser le décalage"
-    }
+    },
+    "granularity": {
+      "label": "Granularité :",
+      "line": "Ligne par ligne",
+      "word": "Mot par mot"
+    },
+    "captureHintWord": "Espace = mot suivant · Entrée = ligne suivante · Retour arrière = annuler le dernier mot",
+    "notCaptured": "Non calé"
   },
   "sort": {
     "title": "Titre",

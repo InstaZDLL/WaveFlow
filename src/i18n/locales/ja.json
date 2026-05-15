@@ -907,6 +907,15 @@
       "lrc_file": "インポートされた.lrcファイル",
       "api": "LRCLIB",
       "manual": "手動入力"
+    },
+    "format": {
+      "lrc": "同期済み",
+      "enhanced_lrc": "単語単位で同期",
+      "ttml": "TTML 単語単位",
+      "plain": "非同期"
+    },
+    "toast": {
+      "tagWriteSkipped": "TTML はキャッシュにのみ保存されました（音声タグには書き込まれていません）"
     }
   },
   "duplicates": {
@@ -1034,7 +1043,14 @@
       "label": "全体オフセット",
       "help": "キャプチャ済みのすべての行を同じ量だけずらします — インポートしたLRCファイルが一律に早かったり遅かったりする場合の補正に便利です",
       "reset": "オフセットをリセット"
-    }
+    },
+    "granularity": {
+      "label": "粒度：",
+      "line": "1 行ずつ",
+      "word": "1 単語ずつ"
+    },
+    "captureHintWord": "スペース = 次の単語 · Enter = 次の行 · Backspace = 最後の単語を取り消す",
+    "notCaptured": "未キャプチャ"
   },
   "sort": {
     "title": "タイトル",

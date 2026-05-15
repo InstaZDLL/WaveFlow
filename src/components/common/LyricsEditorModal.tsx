@@ -19,8 +19,11 @@ import { useModalA11y } from "../../hooks/useModalA11y";
 import {
   formatLrcTimestamp,
   parseLrc,
+  parseLyrics,
   saveLyrics,
+  serializeEnhancedLrc,
   serializeLrc,
+  type LyricsLine,
   type LyricsPayload,
 } from "../../lib/tauri/lyrics";
 
@@ -36,6 +39,15 @@ interface LyricsEditorModalProps {
 }
 
 type Mode = "plain" | "synced";
+/** Capture granularity inside the synced tab. */
+type Granularity = "line" | "word";
+
+interface SyncedWord {
+  /** -1 when not yet captured. */
+  timeMs: number;
+  /** Word text, kept verbatim including any trailing spaces. */
+  text: string;
+}
 
 interface SyncedRow {
   /** Stable id so React keys survive reorders. */
@@ -43,6 +55,13 @@ interface SyncedRow {
   /** -1 when not yet captured. */
   timeMs: number;
   text: string;
+  /**
+   * Populated in word-mode once the user starts capturing per-word
+   * stamps for the row. Absent in line-mode and for plain rows.
+   */
+  words?: SyncedWord[];
+  /** Cursor inside `words` — index of the next word to capture. */
+  wordCursor?: number;
 }
 
 /**
@@ -64,12 +83,16 @@ export function LyricsEditorModal({
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
   const [mode, setMode] = useState<Mode>("plain");
+  const [granularity, setGranularity] = useState<Granularity>("line");
   const [plainText, setPlainText] = useState("");
   const [syncedRows, setSyncedRows] = useState<SyncedRow[]>([]);
   const [activeRow, setActiveRow] = useState(0);
   const [writeToFile, setWriteToFile] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Surfaced after save when the backend kept the lyrics in-DB but
+   *  couldn't write them to the audio file's tag (e.g. TTML on MP3). */
+  const [warning, setWarning] = useState<string | null>(null);
   // Global timestamp shift applied to every captured row at save
   // time. Stays "preview" until Save (we don't mutate `syncedRows`
   // on every drag) so the user can dial it in without losing the
@@ -77,39 +100,86 @@ export function LyricsEditorModal({
   const [globalOffsetMs, setGlobalOffsetMs] = useState(0);
 
   const nextIdRef = useRef(1);
-  const newRow = (timeMs: number, text: string): SyncedRow => ({
+  const newRow = (
+    timeMs: number,
+    text: string,
+    words?: SyncedWord[],
+  ): SyncedRow => ({
     id: nextIdRef.current++,
     timeMs,
     text,
+    words,
+    wordCursor: words ? 0 : undefined,
   });
+
+  /** Split a line into tokens that preserve trailing spaces, so the
+   *  reassembled text still reads naturally. Empty tokens are dropped. */
+  const tokenize = (text: string): SyncedWord[] => {
+    if (!text.trim()) return [];
+    const re = /\S+\s*/g;
+    const out: SyncedWord[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      out.push({ timeMs: -1, text: m[0] });
+    }
+    return out;
+  };
 
   // ── Hydrate from initial payload ─────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
     /* eslint-disable react-hooks/set-state-in-effect */
     setError(null);
+    setWarning(null);
     setActiveRow(0);
     setGlobalOffsetMs(0);
     nextIdRef.current = 1;
 
     if (initial == null) {
       setMode("plain");
+      setGranularity("line");
       setPlainText("");
       setSyncedRows([newRow(-1, "")]);
       return;
     }
 
     const trimmed = initial.content.trim();
-    const isLrc = initial.format === "lrc" || initial.format === "enhanced_lrc";
+    const isSynced =
+      initial.format === "lrc" ||
+      initial.format === "enhanced_lrc" ||
+      initial.format === "ttml";
+    const hasWordTiming =
+      initial.format === "enhanced_lrc" || initial.format === "ttml";
 
     setPlainText(trimmed);
-    if (isLrc) {
-      const parsed = parseLrc(trimmed);
+    if (isSynced) {
+      let parsed: LyricsLine[];
+      if (hasWordTiming) {
+        parsed = parseLyrics(trimmed, initial.format);
+      } else {
+        parsed = parseLrc(trimmed);
+      }
       const rows = parsed.length
-        ? parsed.map((line) => newRow(line.timeMs, line.text))
+        ? parsed.map((line) => {
+            const words = line.words?.map((w) => ({
+              timeMs: w.timeMs,
+              text: w.text,
+            }));
+            const cursor = words
+              ? Math.min(words.length, words.findIndex((w) => w.timeMs < 0))
+              : undefined;
+            return {
+              id: nextIdRef.current++,
+              timeMs: line.timeMs,
+              text: line.text,
+              words,
+              wordCursor: cursor != null && cursor < 0 ? words!.length : cursor,
+            } satisfies SyncedRow;
+          })
         : [newRow(-1, "")];
       setSyncedRows(rows);
       setMode("synced");
+      setGranularity(hasWordTiming ? "word" : "line");
     } else {
       // Pre-fill the synced tab with a row per non-empty line so the
       // user can capture timestamps without retyping.
@@ -118,6 +188,7 @@ export function LyricsEditorModal({
         : [newRow(-1, "")];
       setSyncedRows(lines);
       setMode("plain");
+      setGranularity("line");
     }
     /* eslint-enable react-hooks/set-state-in-effect */
     // We intentionally only rehydrate when the modal opens for a track,
@@ -125,15 +196,15 @@ export function LyricsEditorModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, trackId]);
 
-  // ── Capture handler shared between button + Space shortcut ───────
-  const captureCurrent = useCallback(() => {
+  // ── Capture handlers ─────────────────────────────────────────────
+  // Line mode: stamp the active row, append a fresh row if needed,
+  // advance the cursor.
+  const captureLine = useCallback(() => {
     setSyncedRows((rows) => {
       if (rows.length === 0) return rows;
       const idx = Math.min(activeRow, rows.length - 1);
       const next = rows.slice();
       next[idx] = { ...next[idx], timeMs: Math.max(0, positionMs) };
-      // If there's no row after this one, append a fresh blank so the
-      // user can keep typing the next line.
       if (idx === next.length - 1) {
         next.push(newRow(-1, ""));
       }
@@ -142,19 +213,133 @@ export function LyricsEditorModal({
     setActiveRow((i) => i + 1);
   }, [activeRow, positionMs]);
 
-  // ── Space-to-capture in synced mode (avoid hijacking inputs) ─────
+  // Word mode: stamp the next word in the active row. If the row has
+  // no `words` yet, tokenize its text first. Once every word is
+  // stamped, the next press advances to the next line (and stamps the
+  // line's own timeMs if it's still -1, like line mode).
+  const captureWord = useCallback(() => {
+    setSyncedRows((rows) => {
+      if (rows.length === 0) return rows;
+      const idx = Math.min(activeRow, rows.length - 1);
+      const next = rows.slice();
+      const row = { ...next[idx] };
+
+      // Seed words from row.text on first capture.
+      let words = row.words ? row.words.slice() : tokenize(row.text);
+      if (words.length === 0) {
+        // Empty line — degrade to line capture so we don't get stuck.
+        row.timeMs = Math.max(0, positionMs);
+        next[idx] = row;
+        return next;
+      }
+
+      const cursor = row.wordCursor ?? 0;
+      if (cursor >= words.length) {
+        // Out of words on this row — let the caller advance lines.
+        return rows;
+      }
+      // Stamp the line's timeMs on the very first word capture if the
+      // line itself isn't stamped yet.
+      if (row.timeMs < 0 && cursor === 0) {
+        row.timeMs = Math.max(0, positionMs);
+      }
+      words = words.slice();
+      words[cursor] = { ...words[cursor], timeMs: Math.max(0, positionMs) };
+      row.words = words;
+      row.wordCursor = cursor + 1;
+      next[idx] = row;
+      return next;
+    });
+  }, [activeRow, positionMs]);
+
+  // Advance to the next line in word mode (Enter shortcut). Appends a
+  // fresh empty row if we're at the end, mirroring line mode's UX.
+  const advanceLine = useCallback(() => {
+    setSyncedRows((rows) => {
+      if (rows.length === 0) return rows;
+      const idx = Math.min(activeRow, rows.length - 1);
+      if (idx === rows.length - 1) {
+        return [...rows, newRow(-1, "")];
+      }
+      return rows;
+    });
+    setActiveRow((i) => i + 1);
+  }, [activeRow]);
+
+  // Undo the last word capture on the active row (Backspace in word
+  // mode). If no words are stamped yet, clears the line's own timeMs.
+  const undoLastWord = useCallback(() => {
+    setSyncedRows((rows) => {
+      if (rows.length === 0) return rows;
+      const idx = Math.min(activeRow, rows.length - 1);
+      const row = { ...rows[idx] };
+      if (!row.words || row.words.length === 0) {
+        if (row.timeMs >= 0) {
+          row.timeMs = -1;
+          const next = rows.slice();
+          next[idx] = row;
+          return next;
+        }
+        return rows;
+      }
+      const cursor = Math.max(0, (row.wordCursor ?? 0) - 1);
+      const words = row.words.slice();
+      if (words[cursor]) {
+        words[cursor] = { ...words[cursor], timeMs: -1 };
+      }
+      row.words = words;
+      row.wordCursor = cursor;
+      // If we backed all the way out, clear the line stamp too.
+      if (cursor === 0 && words.every((w) => w.timeMs < 0)) {
+        row.timeMs = -1;
+      }
+      const next = rows.slice();
+      next[idx] = row;
+      return next;
+    });
+  }, [activeRow]);
+
+  // Single entry point used by the capture button + Space shortcut.
+  const captureCurrent = useCallback(() => {
+    if (granularity === "word") {
+      captureWord();
+    } else {
+      captureLine();
+    }
+  }, [granularity, captureWord, captureLine]);
+
+  // ── Keyboard shortcuts in synced mode (avoid hijacking inputs) ───
   useEffect(() => {
     if (!isOpen || mode !== "synced") return;
     const handler = (e: KeyboardEvent) => {
-      if (e.code !== "Space") return;
       const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
-      if (tag === "input" || tag === "textarea") return;
-      e.preventDefault();
-      captureCurrent();
+      const isInput = tag === "input" || tag === "textarea";
+      if (e.code === "Space" && !isInput) {
+        e.preventDefault();
+        captureCurrent();
+        return;
+      }
+      if (
+        granularity === "word" &&
+        !isInput &&
+        (e.code === "Enter" || e.code === "NumpadEnter")
+      ) {
+        e.preventDefault();
+        advanceLine();
+        return;
+      }
+      if (
+        granularity === "word" &&
+        !isInput &&
+        (e.code === "Backspace" || e.code === "Delete")
+      ) {
+        e.preventDefault();
+        undoLastWord();
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [isOpen, mode, captureCurrent]);
+  }, [isOpen, mode, granularity, captureCurrent, advanceLine, undoLastWord]);
 
   // ── Player nudges (compose a ±2 s seek with current position) ────
   const nudge = (deltaMs: number) => {
@@ -164,7 +349,16 @@ export function LyricsEditorModal({
   // ── Row-level helpers ────────────────────────────────────────────
   const updateRowText = (id: number, text: string) => {
     setSyncedRows((rows) =>
-      rows.map((r) => (r.id === id ? { ...r, text } : r)),
+      rows.map((r) => {
+        if (r.id !== id) return r;
+        // In word mode editing the text invalidates the captured word
+        // stamps (tokenization changes). Drop them so the user can
+        // re-capture cleanly — keep the line-level timeMs.
+        if (r.words) {
+          return { ...r, text, words: undefined, wordCursor: undefined };
+        }
+        return { ...r, text };
+      }),
     );
   };
   const removeRow = (id: number) => {
@@ -204,37 +398,71 @@ export function LyricsEditorModal({
     setError(null);
     try {
       const isSyncedMode = mode === "synced";
-      const content = isSyncedMode
-        ? serializeLrc(
-            syncedRows
-              .filter((r) => r.text.trim().length > 0 || r.timeMs >= 0)
-              // Bake the previewed global offset into every captured
-              // timestamp on save. Negative results are clamped to 0
-              // so a user who shifts past the start of the track
-              // doesn't end up with invalid LRC entries.
-              .map((r) =>
-                r.timeMs >= 0
-                  ? { ...r, timeMs: Math.max(0, r.timeMs + globalOffsetMs) }
-                  : r,
-              )
-              .sort((a, b) => {
-                if (a.timeMs < 0 && b.timeMs < 0) return 0;
-                if (a.timeMs < 0) return 1;
-                if (b.timeMs < 0) return -1;
-                return a.timeMs - b.timeMs;
-              }),
+      const isWordMode = isSyncedMode && granularity === "word";
+
+      // Bake the previewed global offset into every captured stamp on
+      // save (both line- and word-level). Negative results are clamped
+      // to 0 so a user shifting past the start of the track doesn't
+      // emit invalid stamps.
+      const shift = (ts: number): number =>
+        ts < 0 ? -1 : Math.max(0, ts + globalOffsetMs);
+
+      let content: string;
+      let saveFormat: "plain" | "lrc" | "enhanced_lrc";
+      if (!isSyncedMode) {
+        content = plainText.trim();
+        saveFormat = "plain";
+      } else if (isWordMode) {
+        // Serialize each row's words into a single Enhanced LRC line.
+        // Rows with no captured stamps are dropped, matching the
+        // behaviour of line mode.
+        const rowsForSave: LyricsLine[] = syncedRows
+          .filter(
+            (r) => r.timeMs >= 0 || (r.words?.some((w) => w.timeMs >= 0) ?? false),
           )
-        : plainText.trim();
+          .map((r) => ({
+            timeMs: shift(r.timeMs),
+            endMs: -1,
+            text: r.text,
+            words: r.words?.map((w) => ({
+              timeMs: shift(w.timeMs),
+              endMs: -1,
+              text: w.text,
+            })),
+          }))
+          .sort((a, b) => a.timeMs - b.timeMs);
+        content = serializeEnhancedLrc(rowsForSave);
+        saveFormat = "enhanced_lrc";
+      } else {
+        content = serializeLrc(
+          syncedRows
+            .filter((r) => r.text.trim().length > 0 || r.timeMs >= 0)
+            .map((r) => (r.timeMs >= 0 ? { ...r, timeMs: shift(r.timeMs) } : r))
+            .sort((a, b) => {
+              if (a.timeMs < 0 && b.timeMs < 0) return 0;
+              if (a.timeMs < 0) return 1;
+              if (b.timeMs < 0) return -1;
+              return a.timeMs - b.timeMs;
+            }),
+        );
+        saveFormat = "lrc";
+      }
 
       // The backend pauses playback if we're editing the currently
       // playing file, so the flag is passed through as-is.
       const next = await saveLyrics(trackId, {
         content,
-        format: isSyncedMode ? "lrc" : "plain",
+        format: saveFormat,
         write_to_file: writeToFile,
       });
       onSaved(next);
-      onClose();
+      if (next.tag_write_skipped) {
+        // Keep the modal open with a warning so the user knows the
+        // file itself wasn't touched — DB cache still updated.
+        setWarning(t("lyrics.toast.tagWriteSkipped"));
+      } else {
+        onClose();
+      }
     } catch (err) {
       console.error("[LyricsEditor] save failed", err);
       setError(String(err));
@@ -332,18 +560,51 @@ export function LyricsEditorModal({
               className="w-full h-[50vh] resize-none rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 p-4 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-pink-500"
             />
           ) : (
-            <SyncedEditor
-              rows={syncedRows}
-              activeRow={activeRow}
-              playingRow={playingRowIdx}
-              offsetMs={globalOffsetMs}
-              onActivate={setActiveRow}
-              onUpdateText={updateRowText}
-              onRemove={removeRow}
-              onInsertBelow={insertRowBelow}
-              onSeekTo={seekToRow}
-              onRecapture={recapture}
-            />
+            <>
+              {/* Granularity toggle. Sits above the row list so users
+                  can flip between line + word capture without losing
+                  what they've already stamped. */}
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 mr-1">
+                  {t("lyricsEditor.granularity.label")}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setGranularity("line")}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    granularity === "line"
+                      ? "bg-pink-500 text-white"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  }`}
+                >
+                  {t("lyricsEditor.granularity.line")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGranularity("word")}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    granularity === "word"
+                      ? "bg-pink-500 text-white"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  }`}
+                >
+                  {t("lyricsEditor.granularity.word")}
+                </button>
+              </div>
+              <SyncedEditor
+                rows={syncedRows}
+                activeRow={activeRow}
+                playingRow={playingRowIdx}
+                offsetMs={globalOffsetMs}
+                granularity={granularity}
+                onActivate={setActiveRow}
+                onUpdateText={updateRowText}
+                onRemove={removeRow}
+                onInsertBelow={insertRowBelow}
+                onSeekTo={seekToRow}
+                onRecapture={recapture}
+              />
+            </>
           )}
         </div>
 
@@ -390,7 +651,10 @@ export function LyricsEditorModal({
               </button>
             </div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-              {t("lyricsEditor.captureHint")} · {captured}/{syncedRows.length}{" "}
+              {granularity === "word"
+                ? t("lyricsEditor.captureHintWord")
+                : t("lyricsEditor.captureHint")}
+              {" "}· {captured}/{syncedRows.length}{" "}
               {t("lyricsEditor.lines")}
             </p>
 
@@ -472,6 +736,11 @@ export function LyricsEditorModal({
             {t("lyricsEditor.writeToFile")}
           </label>
           <div className="flex items-center gap-2">
+            {warning && (
+              <span className="text-xs text-amber-600 dark:text-amber-400 truncate max-w-xs">
+                {warning}
+              </span>
+            )}
             {error && (
               <span className="text-xs text-red-500 truncate max-w-xs">
                 {error}
@@ -536,6 +805,8 @@ interface SyncedEditorProps {
   playingRow: number;
   /** Global timestamp shift previewed in the timestamp buttons. */
   offsetMs: number;
+  /** Capture granularity — drives the per-word chip row. */
+  granularity: Granularity;
   onActivate: (idx: number) => void;
   onUpdateText: (id: number, text: string) => void;
   onRemove: (id: number) => void;
@@ -549,6 +820,7 @@ function SyncedEditor({
   activeRow,
   playingRow,
   offsetMs,
+  granularity,
   onActivate,
   onUpdateText,
   onRemove,
@@ -565,10 +837,12 @@ function SyncedEditor({
         const captured = row.timeMs >= 0;
         const shifted = captured && offsetMs !== 0;
         const previewMs = captured ? Math.max(0, row.timeMs + offsetMs) : -1;
+        const showWordChips =
+          granularity === "word" && isActive && (row.words?.length ?? 0) > 0;
         return (
           <li
             key={row.id}
-            className={`flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors ${
+            className={`flex flex-col gap-1 px-2 py-1.5 rounded-lg transition-colors ${
               isActive
                 ? "bg-pink-50 dark:bg-pink-950/30 ring-1 ring-pink-200 dark:ring-pink-900"
                 : isPlaying
@@ -577,6 +851,7 @@ function SyncedEditor({
             }`}
             onFocus={() => onActivate(idx)}
           >
+          <div className="flex items-center gap-2">
             <span
               aria-hidden
               className={`w-1.5 h-1.5 rounded-full shrink-0 ${
@@ -641,6 +916,35 @@ function SyncedEditor({
             >
               <Trash2 size={12} />
             </button>
+          </div>
+            {showWordChips && (
+              <div className="flex flex-wrap items-center gap-1 pl-22 pr-2 pb-1">
+                {row.words!.map((w, wi) => {
+                  const wCursor = row.wordCursor ?? 0;
+                  const wCaptured = w.timeMs >= 0;
+                  const isNext = wi === wCursor;
+                  return (
+                    <span
+                      key={wi}
+                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-mono transition-colors ${
+                        wCaptured
+                          ? "bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-200"
+                          : isNext
+                            ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-200 ring-1 ring-emerald-400"
+                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
+                      }`}
+                      title={
+                        wCaptured
+                          ? formatLrcTimestamp(Math.max(0, w.timeMs + offsetMs))
+                          : t("lyricsEditor.notCaptured")
+                      }
+                    >
+                      <span>{w.text.trim() || "·"}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </li>
         );
       })}

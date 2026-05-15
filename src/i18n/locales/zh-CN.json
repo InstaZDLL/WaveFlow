@@ -907,6 +907,15 @@
       "lrc_file": "已导入的 .lrc 文件",
       "api": "LRCLIB",
       "manual": "手动输入"
+    },
+    "format": {
+      "lrc": "已同步",
+      "enhanced_lrc": "逐词同步",
+      "ttml": "TTML 逐词",
+      "plain": "未同步"
+    },
+    "toast": {
+      "tagWriteSkipped": "TTML 仅保留在缓存中（未写入音频标签）"
     }
   },
   "duplicates": {
@@ -1034,7 +1043,14 @@
       "label": "整体偏移",
       "help": "将所有已捕获行整体偏移相同的时长——适用于导入的 LRC 文件整体提前或滞后的情况",
       "reset": "重置偏移"
-    }
+    },
+    "granularity": {
+      "label": "粒度：",
+      "line": "逐行",
+      "word": "逐词"
+    },
+    "captureHintWord": "空格 = 下一个词 · 回车 = 下一行 · Backspace = 撤销最后一个词",
+    "notCaptured": "未捕获"
   },
   "sort": {
     "title": "标题",

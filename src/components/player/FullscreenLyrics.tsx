@@ -1,20 +1,25 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Music2 } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import type { Track } from "../../lib/tauri/track";
-import type { LrcLine, LyricsPayload } from "../../lib/tauri/lyrics";
+import {
+  findActiveWordIndex,
+  type LyricsLine,
+  type LyricsPayload,
+} from "../../lib/tauri/lyrics";
+import { usePlayer } from "../../hooks/usePlayer";
 
 interface FullscreenLyricsProps {
   track: Track;
   payload: LyricsPayload | null;
-  lrcLines: LrcLine[];
+  lrcLines: LyricsLine[];
   isSynced: boolean;
   activeIndex: number;
   isFetching: boolean;
   error: string | null;
   onClose: () => void;
-  onSeek: (line: LrcLine) => void;
+  onSeek: (line: LyricsLine) => void;
 }
 
 /**
@@ -39,7 +44,17 @@ export function FullscreenLyrics({
   onSeek,
 }: FullscreenLyricsProps) {
   const { t } = useTranslation();
+  const { positionMs } = usePlayer();
   const lineRefs = useRef<Array<HTMLLIElement | null>>([]);
+
+  // Active word index inside the current line — drives the per-word
+  // karaoke highlight. Recomputed on every position tick but only when
+  // the current line actually carries word stamps.
+  const activeLine = activeIndex >= 0 ? lrcLines[activeIndex] : undefined;
+  const activeWordIndex = useMemo(() => {
+    if (!activeLine?.words || activeLine.words.length === 0) return -1;
+    return findActiveWordIndex(activeLine.words, positionMs);
+  }, [activeLine, positionMs]);
 
   // Escape to close. Mounted only while open so we don't intercept
   // the key when the overlay isn't visible.
@@ -140,6 +155,7 @@ export function FullscreenLyrics({
                   const opacity = isActive
                     ? 1
                     : Math.max(0.18, 0.7 - distance * 0.08);
+                  const hasWords = isActive && (line.words?.length ?? 0) > 0;
                   return (
                     <li
                       key={`${line.timeMs}-${index}`}
@@ -156,7 +172,42 @@ export function FullscreenLyrics({
                             : "text-white/70 hover:text-white"
                       }`}
                     >
-                      {line.text || " "}
+                      {hasWords ? (
+                        <span>
+                          {line.words!.map((word, wi) => {
+                            const wState =
+                              wi === activeWordIndex
+                                ? "active"
+                                : wi < activeWordIndex
+                                  ? "past"
+                                  : "future";
+                            return (
+                              <span
+                                key={wi}
+                                style={{
+                                  opacity:
+                                    wState === "active"
+                                      ? 1
+                                      : wState === "past"
+                                        ? 0.8
+                                        : 0.45,
+                                  transform:
+                                    wState === "active"
+                                      ? "scale(1.04)"
+                                      : "scale(1)",
+                                  display: "inline-block",
+                                  transition:
+                                    "opacity 150ms ease, transform 150ms ease",
+                                }}
+                              >
+                                {word.text}
+                              </span>
+                            );
+                          })}
+                        </span>
+                      ) : (
+                        line.text || " "
+                      )}
                     </li>
                   );
                 })}
