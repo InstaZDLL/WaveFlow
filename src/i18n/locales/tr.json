@@ -856,7 +856,8 @@
     "previous": "Önceki parça",
     "next": "Sonraki parça",
     "devices": "Çıkış aygıtları",
-    "moreActions": "Daha fazla işlem"
+    "moreActions": "Daha fazla işlem",
+    "abLoop": "A-B Döngüsü"
   },
   "miniPlayer": {
     "idle": "Çalan parça yok",
@@ -872,6 +873,7 @@
     "cancel": "İptal",
     "start": "Tamam",
     "customPlaceholder": "Dak.",
+    "customAriaLabel": "Dakika cinsinden özel süre",
     "minutes_one": "{{count}} dk",
     "minutes_other": "{{count}} dk"
   },
@@ -1124,12 +1126,12 @@
       "subtitle": "Çalmayı başlatmak için bir parçaya tıklayın (aksi takdirde çift tıklayın)"
     },
     "showSleepTimer": {
-      "title": "Uyku zamanlayıcısını göster",
-      "subtitle": "Oynatıcı çubuğunda ay simgesini göster"
+      "title": "Uyku zamanlayıcısını çubuğa sabitle",
+      "subtitle": "Kapalıyken zamanlayıcıya \"…\" menüsünden erişilebilir"
     },
     "showAbLoop": {
-      "title": "A-B tekrarını göster",
-      "subtitle": "A-B döngü düğmesini oynatma çubuğunda gösterir"
+      "title": "A-B döngüsünü çubuğa sabitle",
+      "subtitle": "Kapalıyken A-B döngüsüne \"…\" menüsünden erişilebilir"
     },
     "analyze": {
       "title": "Kütüphaneyi analiz et",

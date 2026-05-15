@@ -856,7 +856,8 @@
     "previous": "Faixa anterior",
     "next": "Próxima faixa",
     "devices": "Dispositivos de saída",
-    "moreActions": "Mais ações"
+    "moreActions": "Mais ações",
+    "abLoop": "Loop A-B"
   },
   "miniPlayer": {
     "idle": "Nenhuma faixa em reprodução",
@@ -872,6 +873,7 @@
     "cancel": "Cancelar",
     "start": "OK",
     "customPlaceholder": "Min.",
+    "customAriaLabel": "Duração personalizada em minutos",
     "minutes_one": "{{count}} min",
     "minutes_other": "{{count}} min"
   },
@@ -1124,12 +1126,12 @@
       "subtitle": "Clique em uma faixa para iniciar a reprodução (ou clique duas vezes)"
     },
     "showSleepTimer": {
-      "title": "Mostrar timer de sono",
-      "subtitle": "Mostra o ícone da lua na barra de reprodução"
+      "title": "Fixar o timer na barra",
+      "subtitle": "Desativado, o timer continua disponível no menu « … »"
     },
     "showAbLoop": {
-      "title": "Mostrar repetição A-B",
-      "subtitle": "Mostra o botão de loop A-B na barra de reprodução"
+      "title": "Fixar o loop A-B na barra",
+      "subtitle": "Desativado, o loop A-B continua disponível no menu « … »"
     },
     "duplicates": {
       "title": "Detect duplicates",

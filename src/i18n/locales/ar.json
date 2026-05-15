@@ -856,7 +856,8 @@
     "previous": "المقطع السابق",
     "next": "المقطع التالي",
     "devices": "أجهزة الإخراج",
-    "moreActions": "إجراءات إضافية"
+    "moreActions": "إجراءات إضافية",
+    "abLoop": "حلقة A-B"
   },
   "miniPlayer": {
     "idle": "لا يوجد مقطع قيد التشغيل",
@@ -872,6 +873,7 @@
     "cancel": "إلغاء",
     "start": "موافق",
     "customPlaceholder": "دقيقة",
+    "customAriaLabel": "مدة مخصصة بالدقائق",
     "minutes_one": "{{count}} دقيقة",
     "minutes_other": "{{count}} دقيقة"
   },
@@ -1124,12 +1126,12 @@
       "subtitle": "انقر على مقطع لبدء التشغيل (أو انقر نقرًا مزدوجًا)"
     },
     "showSleepTimer": {
-      "title": "إظهار مؤقت السكون",
-      "subtitle": "إظهار أيقونة القمر في شريط المشغل"
+      "title": "تثبيت مؤقت السكون في الشريط",
+      "subtitle": "عند إيقافه، يظل المؤقت متاحاً من قائمة « … »"
     },
     "showAbLoop": {
-      "title": "إظهار تكرار A-B",
-      "subtitle": "يعرض زر حلقة A-B في شريط التشغيل"
+      "title": "تثبيت حلقة A-B في الشريط",
+      "subtitle": "عند إيقافها، تظل حلقة A-B متاحة من قائمة « … »"
     },
     "duplicates": {
       "title": "Detect duplicates",

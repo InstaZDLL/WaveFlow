@@ -856,7 +856,8 @@
     "previous": "Trek sebelumnya",
     "next": "Trek berikutnya",
     "devices": "Perangkat keluaran",
-    "moreActions": "Tindakan lainnya"
+    "moreActions": "Tindakan lainnya",
+    "abLoop": "Loop A-B"
   },
   "miniPlayer": {
     "idle": "Tidak ada trek diputar",
@@ -872,6 +873,7 @@
     "cancel": "Batal",
     "start": "OK",
     "customPlaceholder": "Mnt",
+    "customAriaLabel": "Durasi khusus dalam menit",
     "minutes_one": "{{count}} mnt",
     "minutes_other": "{{count}} mnt"
   },
@@ -1124,12 +1126,12 @@
       "subtitle": "Klik sebuah trek untuk memulai pemutaran (atau klik dua kali)"
     },
     "showSleepTimer": {
-      "title": "Tampilkan timer tidur",
-      "subtitle": "Tampilkan ikon bulan di bilah pemutar"
+      "title": "Sematkan timer tidur di bilah",
+      "subtitle": "Saat nonaktif, timer tetap tersedia dari menu « … »"
     },
     "showAbLoop": {
-      "title": "Tampilkan ulang A-B",
-      "subtitle": "Menampilkan tombol loop A-B di bilah pemutar"
+      "title": "Sematkan loop A-B di bilah",
+      "subtitle": "Saat nonaktif, loop A-B tetap tersedia dari menu « … »"
     },
     "analyze": {
       "title": "Menganalisis perpustakaan",

@@ -856,7 +856,8 @@
     "previous": "Vorig nummer",
     "next": "Volgend nummer",
     "devices": "Uitvoerapparaten",
-    "moreActions": "Meer acties"
+    "moreActions": "Meer acties",
+    "abLoop": "A-B-lus"
   },
   "miniPlayer": {
     "idle": "Geen nummer afgespeeld",
@@ -872,6 +873,7 @@
     "cancel": "Annuleren",
     "start": "OK",
     "customPlaceholder": "Min.",
+    "customAriaLabel": "Aangepaste duur in minuten",
     "minutes_one": "{{count}} min",
     "minutes_other": "{{count}} min"
   },
@@ -1124,12 +1126,12 @@
       "subtitle": "Klik op een track om het afspelen te starten (anders dubbelklikken)"
     },
     "showSleepTimer": {
-      "title": "Slaaptimer weergeven",
-      "subtitle": "Toon het maan-icoon in de afspeelbalk"
+      "title": "Slaaptimer aan de balk vastmaken",
+      "subtitle": "Uitgeschakeld blijft de timer beschikbaar via het menu „…“"
     },
     "showAbLoop": {
-      "title": "Toon A-B-herhaling",
-      "subtitle": "Toont de A-B-loopknop in de afspeelbalk"
+      "title": "A-B-lus aan de balk vastmaken",
+      "subtitle": "Uitgeschakeld blijft de A-B-lus beschikbaar via het menu „…“"
     },
     "duplicates": {
       "title": "Detect duplicates",

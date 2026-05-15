@@ -856,7 +856,8 @@
     "previous": "Brano precedente",
     "next": "Brano successivo",
     "devices": "Dispositivi di uscita",
-    "moreActions": "Altre azioni"
+    "moreActions": "Altre azioni",
+    "abLoop": "Loop A-B"
   },
   "miniPlayer": {
     "idle": "Nessun brano in riproduzione",
@@ -872,6 +873,7 @@
     "cancel": "Annulla",
     "start": "OK",
     "customPlaceholder": "Min.",
+    "customAriaLabel": "Durata personalizzata in minuti",
     "minutes_one": "{{count}} min",
     "minutes_other": "{{count}} min"
   },
@@ -1124,12 +1126,12 @@
       "subtitle": "Fai clic su un brano per avviare la riproduzione (oppure fai doppio clic)"
     },
     "showSleepTimer": {
-      "title": "Mostra timer di spegnimento",
-      "subtitle": "Mostra l'icona della luna nella barra di riproduzione"
+      "title": "Fissa il timer nella barra",
+      "subtitle": "Disattivato, il timer resta accessibile dal menu « … »"
     },
     "showAbLoop": {
-      "title": "Mostra ripetizione A-B",
-      "subtitle": "Mostra il pulsante del loop A-B nella barra di riproduzione"
+      "title": "Fissa il loop A-B nella barra",
+      "subtitle": "Disattivato, il loop A-B resta accessibile dal menu « … »"
     },
     "duplicates": {
       "title": "Detect duplicates",

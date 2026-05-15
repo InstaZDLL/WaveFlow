@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Menu, MonitorSpeaker, Heart, Mic2 } from "lucide-react";
+import {
+  Menu,
+  MonitorSpeaker,
+  Heart,
+  Mic2,
+  Maximize2,
+  PictureInPicture2,
+} from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useSleepTimer } from "../../hooks/useSleepTimer";
 import { Artwork } from "../common/Artwork";
@@ -10,7 +17,6 @@ import { ProgressBar } from "./ProgressBar";
 import { SleepTimerMenu } from "./SleepTimerMenu";
 import { AbLoopButton } from "./AbLoopButton";
 import { VolumeControl } from "./VolumeControl";
-import { SpeedControl } from "./SpeedControl";
 import { MoreActionsMenu } from "./MoreActionsMenu";
 import { AudioQualityFooter } from "./AudioQualityFooter";
 import { FullscreenNowPlaying } from "./FullscreenNowPlaying";
@@ -38,27 +44,28 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
   const sleepTimer = useSleepTimer({ currentVolume: volume, setVolume });
 
-  // Per-profile preference: hide the sleep-timer / A-B loop icons.
-  // Default: hidden — both are niche features that mostly clutter
-  // the player bar for typical users; opt-in via Settings.
+  // Per-profile preference: pin sleep-timer / A-B loop as primary
+  // buttons in the bar. Default: OFF — both features live in the
+  // overflow ("...") menu by default so the bar stays calm, and
+  // users opt in to surface them when they use them often.
   // SettingsView dispatches `waveflow:sleep-timer-visibility` /
   // `waveflow:ab-loop-visibility` window events after toggling so
   // we re-read without polling.
-  const [showSleepTimer, setShowSleepTimer] = useState(false);
-  const [showAbLoop, setShowAbLoop] = useState(false);
+  const [pinSleepTimer, setPinSleepTimer] = useState(false);
+  const [pinAbLoop, setPinAbLoop] = useState(false);
   useEffect(() => {
     const refreshSleep = () => {
       getProfileSetting("ui.show_sleep_timer")
         .then((v) => {
-          // Missing key → treat as "false" (off by default).
-          setShowSleepTimer(v == null ? false : v === "1" || v === "true");
+          // Missing key → treat as "false" (in overflow menu by default).
+          setPinSleepTimer(v == null ? false : v === "1" || v === "true");
         })
         .catch(() => {});
     };
     const refreshAb = () => {
       getProfileSetting("ui.show_ab_loop")
         .then((v) => {
-          setShowAbLoop(v == null ? false : v === "1" || v === "true");
+          setPinAbLoop(v == null ? false : v === "1" || v === "true");
         })
         .catch(() => {});
     };
@@ -199,12 +206,14 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
           {/* Right: Extra Controls */}
           <div className="w-1/3 flex items-center justify-end space-x-3">
-            {/* A-B repeat — sits left of the sleep timer. */}
-            {showAbLoop && <AbLoopButton />}
+            {/* A-B repeat (primary slot — opt-in pin via Settings).
+              When unpinned, the entry lives in the "..." menu so the
+              bar stays calm by default. */}
+            {pinAbLoop && <AbLoopButton />}
 
-            {/* Sleep timer (sits left of Lyrics; user-hideable from
-            Settings via `ui.show_sleep_timer`). */}
-            {showSleepTimer && (
+            {/* Sleep timer (primary slot — opt-in pin via Settings).
+              Same overflow-by-default rule as A-B loop. */}
+            {pinSleepTimer && (
               <SleepTimerMenu
                 status={sleepTimer.status}
                 onSetDuration={sleepTimer.setDurationMinutes}
@@ -259,29 +268,57 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               </div>
             )}
 
-            {/* Overflow menu — absorbs Fullscreen + Mini-player so the
-              bar stops growing every time we ship a feature. Lyrics /
-              Queue / Device stay first-class because they're the
-              most-used. The Spotify mode hides Mini-player inside
-              the menu via the `miniPlayerAvailable` prop. */}
-            <MoreActionsMenu
-              miniPlayerAvailable={!isSpotify}
-              onOpenFullscreen={() => setIsFullscreenOpen(true)}
-              onOpenMiniPlayer={() => {
-                import("../../lib/miniPlayer").then((m) =>
-                  m.openMiniPlayer().catch((err) => {
-                    console.error("[PlayerBar] open mini-player failed", err);
-                  }),
-                );
-              }}
-            />
-
-            {/* Compact speed pill — sits just before volume so the two
-              "playback shape" controls cluster together. Hidden in
-              Spotify mode (Web Playback SDK has no speed control). */}
-            {!isSpotify && <SpeedControl />}
+            {/* Overflow menu — hosts playback speed, Sleep timer and
+              A-B loop. Hidden when nothing would go inside (Spotify
+              mode + both features pinned to the bar). */}
+            {(!isSpotify || !pinSleepTimer || !pinAbLoop) && (
+              <MoreActionsMenu
+                pinAbLoop={pinAbLoop}
+                pinSleepTimer={pinSleepTimer}
+                showSpeed={!isSpotify}
+                sleepTimer={{
+                  status: sleepTimer.status,
+                  onSetDuration: sleepTimer.setDurationMinutes,
+                  onSetEndOfTrack: sleepTimer.setEndOfTrack,
+                  onCancel: sleepTimer.cancel,
+                }}
+              />
+            )}
 
             <VolumeControl />
+
+            {/* Spotify-style right cluster: mini-player + fullscreen as
+              primary icon buttons after volume. Mini-player is hidden
+              in Spotify mode (Web Playback SDK can't drive a second
+              webview). */}
+            {!isSpotify && (
+              <button
+                type="button"
+                onClick={() => {
+                  import("../../lib/miniPlayer").then((m) =>
+                    m.openMiniPlayer().catch((err) => {
+                      console.error("[PlayerBar] open mini-player failed", err);
+                    }),
+                  );
+                }}
+                aria-label={t("playerBar.miniPlayer")}
+                title={t("playerBar.miniPlayer")}
+                className="p-2 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
+              >
+                <PictureInPicture2 size={20} />
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => currentTrack && setIsFullscreenOpen(true)}
+              disabled={!currentTrack}
+              aria-label={t("playerBar.openFullscreen")}
+              title={t("playerBar.openFullscreen")}
+              className="p-2 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Maximize2 size={20} />
+            </button>
           </div>
         </div>
         <AudioQualityFooter track={isSpotify ? null : (currentTrack ?? null)} />

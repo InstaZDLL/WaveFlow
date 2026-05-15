@@ -95,7 +95,7 @@ Both `current_position_ms()` and `session_listened_ms()` multiply the wall-clock
 
 ### UI
 
-[`SpeedControl`](../../src/components/player/SpeedControl.tsx) is a compact text pill (`1.0×` / `1.25×`) next to the volume slider — same footprint as the volume's percentage label. Click opens a popover with a range slider (step 0.05) and five preset buttons (0.75 / 1 / 1.25 / 1.5 / 2). Emerald accent when speed ≠ 1×. Hidden in Spotify mode (the Web Playback SDK has no speed control). No new icon — the text is the affordance.
+Speed lives inside the player-bar overflow ("⋯") menu — range slider (step 0.05) + five preset buttons (0.75 / 1 / 1.25 / 1.5 / 2) — rather than a dedicated pill, since most users never touch it. When speed ≠ 1×, the "⋯" trigger surfaces a compact `1.25×` badge in emerald so the user keeps a live indicator without opening the menu. Hidden entirely in Spotify mode (the Web Playback SDK has no speed control).
 
 ## A-B repeat
 
@@ -103,7 +103,7 @@ Musicolet-style intra-track loop. Two `AtomicU64` endpoints on `SharedPlayback` 
 
 Three commands cover the lifecycle: `player_set_ab_loop` (set one or both endpoints), `player_clear_ab_loop`, `player_get_ab_loop`. Each one emits `player:ab-loop` so the UI button + ProgressBar markers stay in sync across views without polling.
 
-UI is a tri-state click cycle in [`AbLoopButton`](../../src/components/player/AbLoopButton.tsx) — idle → A captured (amber) → A+B armed (emerald) → clear — with an "A" / "AB" badge over the icon. The PlayerBar's [`ProgressBar`](../../src/components/player/ProgressBar.tsx) renders the endpoints as coloured pin markers (amber A, rose B) with a tinted region between them so the loop is legible at a glance. Hidden by default — enable from Settings → Lecture → "Afficher la boucle A-B" (`profile_setting['ui.show_ab_loop']`).
+UI is a tri-state click cycle in [`AbLoopButton`](../../src/components/player/AbLoopButton.tsx) — idle → A captured (amber) → A+B armed (emerald) → clear — with an "A" / "AB" badge over the icon. The PlayerBar's [`ProgressBar`](../../src/components/player/ProgressBar.tsx) renders the endpoints as coloured pin markers (amber A, rose B) with a tinted region between them so the loop is legible at a glance. By default the button lives in the player-bar overflow ("⋯") menu wrapped as a labelled row; pinning it to a primary slot is a one-click toggle in Settings → Lecture (`profile_setting['ui.show_ab_loop']`).
 
 ## Queue
 

@@ -856,7 +856,8 @@
     "previous": "पिछला ट्रैक",
     "next": "अगला ट्रैक",
     "devices": "आउटपुट डिवाइस",
-    "moreActions": "अधिक क्रियाएँ"
+    "moreActions": "अधिक क्रियाएँ",
+    "abLoop": "A-B लूप"
   },
   "miniPlayer": {
     "idle": "कोई ट्रैक नहीं चल रहा",
@@ -872,6 +873,7 @@
     "cancel": "रद्द करें",
     "start": "ठीक",
     "customPlaceholder": "मिनट",
+    "customAriaLabel": "मिनट में कस्टम अवधि",
     "minutes_one": "{{count}} मिनट",
     "minutes_other": "{{count}} मिनट"
   },
@@ -1124,12 +1126,12 @@
       "subtitle": "प्लेबैक शुरू करने के लिए किसी ट्रैक पर क्लिक करें (अन्यथा डबल-क्लिक करें)"
     },
     "showSleepTimer": {
-      "title": "स्लीप टाइमर दिखाएँ",
-      "subtitle": "प्लेयर बार में चाँद का चिह्न दिखाएँ"
+      "title": "स्लीप टाइमर को बार में पिन करें",
+      "subtitle": "बंद होने पर भी टाइमर « … » मेनू से उपलब्ध रहता है"
     },
     "showAbLoop": {
-      "title": "A-B रिपीट दिखाएं",
-      "subtitle": "प्लेयर बार में A-B लूप बटन दिखाता है"
+      "title": "A-B लूप को बार में पिन करें",
+      "subtitle": "बंद होने पर भी A-B लूप « … » मेनू से उपलब्ध रहता है"
     },
     "duplicates": {
       "title": "Detect duplicates",
