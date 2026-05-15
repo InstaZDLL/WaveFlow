@@ -826,6 +826,18 @@
       "notInLibrary": "라이브러리에 없음"
     }
   },
+  "genreDetail": {
+    "badge": "장르",
+    "playAll": "모두 재생",
+    "shuffle": "셔플",
+    "trackCount_zero": "0곡",
+    "trackCount_one": "{{count}}곡",
+    "trackCount_other": "{{count}}곡",
+    "emptyTitle": "장르를 찾을 수 없음",
+    "emptyDescription": "이 장르는 활성 프로필에 더 이상 존재하지 않습니다.",
+    "emptyTracksTitle": "곡 없음",
+    "emptyTracksDescription": "이 장르에는 사용 가능한 곡이 없습니다."
+  },
   "nowPlaying": {
     "title": "지금 재생 중",
     "empty": "재생 중인 트랙 없음",

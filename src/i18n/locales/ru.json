@@ -826,6 +826,18 @@
       "notInLibrary": "Нет в вашей библиотеке"
     }
   },
+  "genreDetail": {
+    "badge": "Жанр",
+    "playAll": "Воспроизвести всё",
+    "shuffle": "Перемешать",
+    "trackCount_zero": "0 треков",
+    "trackCount_one": "{{count}} трек",
+    "trackCount_other": "{{count}} треков",
+    "emptyTitle": "Жанр не найден",
+    "emptyDescription": "Этот жанр больше не существует в активном профиле.",
+    "emptyTracksTitle": "Нет треков",
+    "emptyTracksDescription": "В этом жанре нет доступных треков."
+  },
   "nowPlaying": {
     "title": "Сейчас играет",
     "empty": "Трек не воспроизводится",

@@ -826,6 +826,18 @@
       "notInLibrary": "Fora da sua biblioteca"
     }
   },
+  "genreDetail": {
+    "badge": "Género",
+    "playAll": "Reproduzir tudo",
+    "shuffle": "Aleatório",
+    "trackCount_zero": "0 faixas",
+    "trackCount_one": "{{count}} faixa",
+    "trackCount_other": "{{count}} faixas",
+    "emptyTitle": "Género não encontrado",
+    "emptyDescription": "Este género já não existe no perfil ativo.",
+    "emptyTracksTitle": "Sem faixas",
+    "emptyTracksDescription": "Este género não contém faixas disponíveis."
+  },
   "nowPlaying": {
     "title": "Agora a reproduzir",
     "empty": "Nenhuma faixa a ser reproduzida",

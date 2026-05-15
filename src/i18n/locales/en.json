@@ -834,6 +834,18 @@
       "notInLibrary": "Not in your library"
     }
   },
+  "genreDetail": {
+    "badge": "Genre",
+    "playAll": "Play all",
+    "shuffle": "Shuffle",
+    "trackCount_zero": "0 tracks",
+    "trackCount_one": "{{count}} track",
+    "trackCount_other": "{{count}} tracks",
+    "emptyTitle": "Genre not found",
+    "emptyDescription": "This genre no longer exists in the active profile.",
+    "emptyTracksTitle": "No tracks",
+    "emptyTracksDescription": "This genre contains no available tracks."
+  },
   "nowPlaying": {
     "title": "Now playing",
     "empty": "No track playing",

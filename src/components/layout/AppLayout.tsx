@@ -94,6 +94,11 @@ const ArtistDetailView = lazy(() =>
     default: module.ArtistDetailView,
   })),
 );
+const GenreDetailView = lazy(() =>
+  import("../views/GenreDetailView").then((module) => ({
+    default: module.GenreDetailView,
+  })),
+);
 
 export function AppLayout() {
   const { t } = useTranslation();
@@ -114,6 +119,7 @@ export function AppLayout() {
   const [activePlaylistId, setActivePlaylistId] = useState<number | null>(null);
   const [activeAlbumId, setActiveAlbumId] = useState<number | null>(null);
   const [activeArtistId, setActiveArtistId] = useState<number | null>(null);
+  const [activeGenreId, setActiveGenreId] = useState<number | null>(null);
   // Year requested when navigating into the Wrapped overlay. `null`
   // tells WrappedView to pick the most recent year with plays.
   const [activeWrappedYear, setActiveWrappedYear] = useState<number | null>(
@@ -230,6 +236,14 @@ export function AppLayout() {
     [setActiveView],
   );
 
+  const navigateToGenre = useCallback(
+    (genreId: number) => {
+      setActiveGenreId(genreId);
+      setActiveView("genre-detail");
+    },
+    [setActiveView],
+  );
+
   const navigateToPlaylist = useCallback(
     (playlistId: number) => {
       setActivePlaylistId(playlistId);
@@ -274,6 +288,7 @@ export function AppLayout() {
             setActiveTab={setLibraryTab}
             onNavigateToAlbum={navigateToAlbum}
             onNavigateToArtist={navigateToArtist}
+            onNavigateToGenre={navigateToGenre}
           />
         );
       case "settings":
@@ -329,6 +344,14 @@ export function AppLayout() {
         return (
           <ArtistDetailView
             artistId={activeArtistId}
+            onNavigateToAlbum={navigateToAlbum}
+            onNavigateToArtist={navigateToArtist}
+          />
+        );
+      case "genre-detail":
+        return (
+          <GenreDetailView
+            genreId={activeGenreId}
             onNavigateToAlbum={navigateToAlbum}
             onNavigateToArtist={navigateToArtist}
           />

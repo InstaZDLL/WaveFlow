@@ -23,7 +23,7 @@ The scanner splits `"Artist A, Artist B"` (and `;` / `feat.` / `&` variants) on 
 
 ## Browsing
 
-- **Library tabs** — Morceaux, Albums, Artistes, Genres, Dossiers; each tab keeps its own scroll position and sort memory (per profile).
+- **Library tabs** — Morceaux, Albums, Artistes, Genres, Dossiers; each tab keeps its own scroll position and sort memory (per profile). Clicking a genre tile opens a Spotify-style genre detail page (`get_genre_detail` in [`browse.rs`](../../src-tauri/src/commands/browse.rs)) with every track tagged with that genre, sorted Artist → Album → Disc → Track.
 - **A-Z navigator** — letter rail on the artists tab, NFD-normalised so accents (É → E, Ñ → N) bucket correctly.
 - **Multi-select** — ctrl/shift across rows with a floating action bar (Play / Add to queue / Add to playlist / Remove) anchored to the bottom of the viewport.
 - **Track Properties dialog** — foobar2000-style modal with the full tag set, audio specs, analysis results, file path and a Show in Explorer button.

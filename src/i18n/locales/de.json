@@ -826,6 +826,18 @@
       "notInLibrary": "Nicht in deiner Bibliothek"
     }
   },
+  "genreDetail": {
+    "badge": "Genre",
+    "playAll": "Alle abspielen",
+    "shuffle": "Zufallswiedergabe",
+    "trackCount_zero": "0 Titel",
+    "trackCount_one": "{{count}} Titel",
+    "trackCount_other": "{{count}} Titel",
+    "emptyTitle": "Genre nicht gefunden",
+    "emptyDescription": "Dieses Genre existiert im aktiven Profil nicht mehr.",
+    "emptyTracksTitle": "Keine Titel",
+    "emptyTracksDescription": "Dieses Genre enthält keine verfügbaren Titel."
+  },
   "nowPlaying": {
     "title": "Jetzt spielen",
     "empty": "Es wird kein Titel abgespielt",

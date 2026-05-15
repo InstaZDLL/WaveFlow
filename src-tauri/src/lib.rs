@@ -423,6 +423,7 @@ pub fn run() {
             commands::browse::get_profile_stats,
             commands::browse::get_album_detail,
             commands::browse::get_artist_detail,
+            commands::browse::get_genre_detail,
             commands::deezer::enrich_album_deezer,
             commands::deezer::enrich_artist_deezer,
             commands::deezer::search_albums_deezer,

@@ -956,6 +956,169 @@ pub async fn get_artist_detail(
     })
 }
 
+// ── Genre detail ────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize)]
+pub struct GenreDetail {
+    pub id: i64,
+    pub name: String,
+    pub track_count: i64,
+    pub total_duration_ms: i64,
+    pub tracks: Vec<crate::commands::track::Track>,
+}
+
+#[derive(FromRow)]
+struct GenreHeaderRaw {
+    id: i64,
+    name: String,
+}
+
+#[derive(FromRow)]
+struct GenreTrackRaw {
+    id: i64,
+    library_id: i64,
+    title: String,
+    album_id: Option<i64>,
+    album_title: Option<String>,
+    artist_id: Option<i64>,
+    artist_name: Option<String>,
+    artist_ids: Option<String>,
+    duration_ms: i64,
+    track_number: Option<i64>,
+    disc_number: Option<i64>,
+    year: Option<i64>,
+    bitrate: Option<i64>,
+    sample_rate: Option<i64>,
+    channels: Option<i64>,
+    bit_depth: Option<i64>,
+    codec: Option<String>,
+    musical_key: Option<String>,
+    file_path: String,
+    file_size: i64,
+    added_at: i64,
+    artwork_hash: Option<String>,
+    artwork_format: Option<String>,
+    rating: Option<i64>,
+}
+
+/// Return full genre detail: header (name, totals) and every track tagged
+/// with this genre across the active profile, ordered by artist → album →
+/// disc → track number to match `list_tracks`'s default layout.
+#[tauri::command]
+pub async fn get_genre_detail(
+    state: tauri::State<'_, AppState>,
+    genre_id: i64,
+) -> AppResult<GenreDetail> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+
+    let header = sqlx::query_as::<_, GenreHeaderRaw>(
+        r#"SELECT id, name FROM genre WHERE id = ?"#,
+    )
+    .bind(genre_id)
+    .fetch_optional(&pool)
+    .await?
+    .ok_or_else(|| crate::error::AppError::Other("genre not found".into()))?;
+
+    let rows = sqlx::query_as::<_, GenreTrackRaw>(
+        r#"
+        SELECT t.id, t.library_id, t.title,
+               t.album_id,
+               al.title AS album_title,
+               t.primary_artist AS artist_id,
+               (SELECT GROUP_CONCAT(name, ', ') FROM (
+                  SELECT ar2.name FROM track_artist ta2
+                  JOIN artist ar2 ON ar2.id = ta2.artist_id
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_name,
+               (SELECT GROUP_CONCAT(id, ',') FROM (
+                  SELECT ta2.artist_id AS id FROM track_artist ta2
+                  WHERE ta2.track_id = t.id
+                  ORDER BY ta2.position
+               )) AS artist_ids,
+               t.duration_ms, t.track_number, t.disc_number, t.year,
+               t.bitrate, t.sample_rate, t.channels,
+               t.bit_depth, t.codec, t.musical_key,
+               t.file_path, t.file_size, t.added_at,
+               aw.hash   AS artwork_hash,
+               aw.format AS artwork_format,
+               t.rating  AS rating
+          FROM track t
+          JOIN track_genre tg ON tg.track_id = t.id
+          LEFT JOIN album   al ON al.id = t.album_id
+          LEFT JOIN artist  ar ON ar.id = t.primary_artist
+          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+         WHERE tg.genre_id = ? AND t.is_available = 1
+         ORDER BY ar.canonical_name COLLATE NOCASE,
+                  al.canonical_title COLLATE NOCASE,
+                  t.disc_number,
+                  t.track_number,
+                  t.title COLLATE NOCASE
+        "#,
+    )
+    .bind(genre_id)
+    .fetch_all(&pool)
+    .await?;
+
+    let tracks: Vec<crate::commands::track::Track> = rows
+        .into_iter()
+        .map(|row| {
+            let (artwork_path, artwork_path_1x, artwork_path_2x) =
+                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
+                    (Some(hash), Some(format)) => {
+                        let full = artwork_dir
+                            .join(format!("{}.{}", hash, format))
+                            .to_string_lossy()
+                            .to_string();
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        (Some(full), p1, p2)
+                    }
+                    _ => (None, None, None),
+                };
+            crate::commands::track::Track {
+                id: row.id,
+                library_id: row.library_id,
+                title: row.title,
+                album_id: row.album_id,
+                album_title: row.album_title,
+                artist_id: row.artist_id,
+                artist_name: row.artist_name,
+                artist_ids: row.artist_ids,
+                duration_ms: row.duration_ms,
+                track_number: row.track_number,
+                disc_number: row.disc_number,
+                year: row.year,
+                bitrate: row.bitrate,
+                sample_rate: row.sample_rate,
+                channels: row.channels,
+                bit_depth: row.bit_depth,
+                codec: row.codec,
+                musical_key: row.musical_key,
+                file_path: row.file_path,
+                file_size: row.file_size,
+                added_at: row.added_at,
+                artwork_path,
+                artwork_path_1x,
+                artwork_path_2x,
+                rating: row.rating,
+            }
+        })
+        .collect();
+
+    let track_count = tracks.len() as i64;
+    let total_duration_ms = tracks.iter().map(|t| t.duration_ms).sum();
+
+    Ok(GenreDetail {
+        id: header.id,
+        name: header.name,
+        track_count,
+        total_duration_ms,
+        tracks,
+    })
+}
+
 // ─── Play history (Last.fm-style chronological scrubber) ─────────
 //
 // Distinct from `list_recent_plays`, which deduplicates per track.

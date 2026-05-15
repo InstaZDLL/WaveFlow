@@ -826,6 +826,18 @@
       "notInLibrary": "ليس في مكتبتك"
     }
   },
+  "genreDetail": {
+    "badge": "النوع",
+    "playAll": "تشغيل الكل",
+    "shuffle": "تشغيل عشوائي",
+    "trackCount_zero": "0 مقطع",
+    "trackCount_one": "{{count}} مقطع",
+    "trackCount_other": "{{count}} مقاطع",
+    "emptyTitle": "النوع غير موجود",
+    "emptyDescription": "هذا النوع لم يعد موجوداً في الملف الشخصي النشط.",
+    "emptyTracksTitle": "لا توجد مقاطع",
+    "emptyTracksDescription": "هذا النوع لا يحتوي على أي مقاطع متاحة."
+  },
   "nowPlaying": {
     "title": "التشغيل الآن",
     "empty": "لا توجد مقطوعة قيد التشغيل",
