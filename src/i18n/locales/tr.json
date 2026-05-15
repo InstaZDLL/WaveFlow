@@ -873,6 +873,7 @@
     "cancel": "İptal",
     "start": "Tamam",
     "customPlaceholder": "Dak.",
+    "customAriaLabel": "Dakika cinsinden özel süre",
     "minutes_one": "{{count}} dk",
     "minutes_other": "{{count}} dk"
   },
@@ -1126,11 +1127,11 @@
     },
     "showSleepTimer": {
       "title": "Uyku zamanlayıcısını çubuğa sabitle",
-      "subtitle": "Kapalıyken zamanlayıcıya „…\" menüsünden erişilebilir"
+      "subtitle": "Kapalıyken zamanlayıcıya \"…\" menüsünden erişilebilir"
     },
     "showAbLoop": {
       "title": "A-B döngüsünü çubuğa sabitle",
-      "subtitle": "Kapalıyken A-B döngüsüne „…\" menüsünden erişilebilir"
+      "subtitle": "Kapalıyken A-B döngüsüne \"…\" menüsünden erişilebilir"
     },
     "analyze": {
       "title": "Kütüphaneyi analiz et",

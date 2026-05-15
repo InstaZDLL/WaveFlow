@@ -83,10 +83,12 @@ export function MoreActionsMenu({
 
   // Trigger badge priority: sleep-timer countdown > non-default speed.
   // Both are mutually exclusive in the same corner so the user always
-  // sees the most time-sensitive signal first.
-  const isOffSpeed = Math.abs(playbackSpeed - 1.0) > 0.001;
-  const speedBadge =
-    showSpeed && isOffSpeed ? formatSpeed(playbackSpeed) : null;
+  // sees the most time-sensitive signal first. `isOffSpeed` is gated
+  // on `showSpeed` because the speed UI is hidden in Spotify mode —
+  // tinting the trigger green for a value the user can't even see
+  // from this menu would be misleading.
+  const isOffSpeed = showSpeed && Math.abs(playbackSpeed - 1.0) > 0.001;
+  const speedBadge = isOffSpeed ? formatSpeed(playbackSpeed) : null;
   const triggerBadge = sleepBadge && showSleepInMenu ? sleepBadge : speedBadge;
   const triggerBadgeTone =
     sleepBadge && showSleepInMenu
@@ -109,7 +111,7 @@ export function MoreActionsMenu({
         type="button"
         onClick={() => setIsOpen((open) => !open)}
         aria-label={t("playerBar.moreActions")}
-        aria-haspopup="menu"
+        aria-haspopup="dialog"
         aria-expanded={isOpen}
         title={t("playerBar.moreActions")}
         className={`relative p-2 rounded-lg transition-colors ${
@@ -132,7 +134,7 @@ export function MoreActionsMenu({
 
       {isOpen && (
         <div
-          role="menu"
+          role="dialog"
           aria-label={t("playerBar.moreActions")}
           className="absolute bottom-full right-0 mb-3 w-72 p-1 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl z-50"
         >
@@ -254,6 +256,7 @@ export function MoreActionsMenu({
                   value={customMinutes}
                   onChange={(e) => setCustomMinutes(e.target.value)}
                   placeholder={t("sleepTimer.customPlaceholder")}
+                  aria-label={t("sleepTimer.customAriaLabel")}
                   className="flex-1 px-2 py-1.5 rounded-lg text-xs bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
                 />
                 <button
@@ -273,13 +276,16 @@ export function MoreActionsMenu({
 }
 
 function formatRemaining(ms: number): string {
+  // totalSec uses ceil so the final second of countdown still reads
+  // "1s" rather than "0s". h/m branches use floor so "1h 1m" shows
+  // as "1h" instead of misleadingly rounding up to "2h".
   const totalSec = Math.max(0, Math.ceil(ms / 1000));
   if (totalSec >= 3600) {
-    const h = Math.ceil(totalSec / 3600);
+    const h = Math.floor(totalSec / 3600);
     return `${h}h`;
   }
   if (totalSec >= 60) {
-    const m = Math.ceil(totalSec / 60);
+    const m = Math.floor(totalSec / 60);
     return `${m}m`;
   }
   return `${totalSec}s`;

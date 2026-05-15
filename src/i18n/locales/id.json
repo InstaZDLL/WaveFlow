@@ -873,6 +873,7 @@
     "cancel": "Batal",
     "start": "OK",
     "customPlaceholder": "Mnt",
+    "customAriaLabel": "Durasi khusus dalam menit",
     "minutes_one": "{{count}} mnt",
     "minutes_other": "{{count}} mnt"
   },

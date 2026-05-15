@@ -873,6 +873,7 @@
     "cancel": "Abbrechen",
     "start": "OK",
     "customPlaceholder": "Min.",
+    "customAriaLabel": "Benutzerdefinierte Dauer in Minuten",
     "minutes_one": "{{count}} Min.",
     "minutes_other": "{{count}} Min."
   },
@@ -1126,11 +1127,11 @@
     },
     "showSleepTimer": {
       "title": "Sleep-Timer in der Leiste anheften",
-      "subtitle": "Wenn aus, bleibt der Timer über das Menü „…\" erreichbar"
+      "subtitle": "Wenn aus, bleibt der Timer über das Menü „…“ erreichbar"
     },
     "showAbLoop": {
       "title": "A-B-Schleife in der Leiste anheften",
-      "subtitle": "Wenn aus, bleibt die A-B-Schleife über das Menü „…\" erreichbar"
+      "subtitle": "Wenn aus, bleibt die A-B-Schleife über das Menü „…“ erreichbar"
     },
     "duplicates": {
       "title": "Duplikate erkennen",

@@ -873,6 +873,7 @@
     "cancel": "取消",
     "start": "確定",
     "customPlaceholder": "分鐘",
+    "customAriaLabel": "自訂時長（分鐘）",
     "minutes_one": "{{count}} 分鐘",
     "minutes_other": "{{count}} 分鐘"
   },

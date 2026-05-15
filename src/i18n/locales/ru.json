@@ -873,6 +873,7 @@
     "cancel": "Отмена",
     "start": "OK",
     "customPlaceholder": "Мин.",
+    "customAriaLabel": "Произвольная длительность в минутах",
     "minutes_one": "{{count}} мин",
     "minutes_other": "{{count}} мин"
   },

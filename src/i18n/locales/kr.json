@@ -873,6 +873,7 @@
     "cancel": "취소",
     "start": "확인",
     "customPlaceholder": "분",
+    "customAriaLabel": "사용자 지정 시간 (분)",
     "minutes_one": "{{count}}분",
     "minutes_other": "{{count}}분"
   },

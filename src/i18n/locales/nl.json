@@ -873,6 +873,7 @@
     "cancel": "Annuleren",
     "start": "OK",
     "customPlaceholder": "Min.",
+    "customAriaLabel": "Aangepaste duur in minuten",
     "minutes_one": "{{count}} min",
     "minutes_other": "{{count}} min"
   },
@@ -1126,11 +1127,11 @@
     },
     "showSleepTimer": {
       "title": "Slaaptimer aan de balk vastmaken",
-      "subtitle": "Uitgeschakeld blijft de timer beschikbaar via het menu „…\""
+      "subtitle": "Uitgeschakeld blijft de timer beschikbaar via het menu „…“"
     },
     "showAbLoop": {
       "title": "A-B-lus aan de balk vastmaken",
-      "subtitle": "Uitgeschakeld blijft de A-B-lus beschikbaar via het menu „…\""
+      "subtitle": "Uitgeschakeld blijft de A-B-lus beschikbaar via het menu „…“"
     },
     "duplicates": {
       "title": "Detect duplicates",

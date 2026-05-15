@@ -873,6 +873,7 @@
     "cancel": "रद्द करें",
     "start": "ठीक",
     "customPlaceholder": "मिनट",
+    "customAriaLabel": "मिनट में कस्टम अवधि",
     "minutes_one": "{{count}} मिनट",
     "minutes_other": "{{count}} मिनट"
   },

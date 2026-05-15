@@ -882,6 +882,7 @@
     "cancel": "Annuler",
     "start": "OK",
     "customPlaceholder": "Min.",
+    "customAriaLabel": "Durée personnalisée en minutes",
     "minutes_one": "{{count}} min",
     "minutes_other": "{{count}} min"
   },

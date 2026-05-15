@@ -873,6 +873,7 @@
     "cancel": "إلغاء",
     "start": "موافق",
     "customPlaceholder": "دقيقة",
+    "customAriaLabel": "مدة مخصصة بالدقائق",
     "minutes_one": "{{count}} دقيقة",
     "minutes_other": "{{count}} دقيقة"
   },
