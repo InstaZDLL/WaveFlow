@@ -1036,7 +1036,8 @@
     "albumsCount": "專輯數量",
     "tracksCount": "曲目數",
     "ascending": "可頌",
-    "descending": "遞減"
+    "descending": "遞減",
+    "filename": "檔案名稱"
   },
   "settings": {
     "title": "設定",

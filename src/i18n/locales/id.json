@@ -1036,7 +1036,8 @@
     "albumsCount": "Album",
     "tracksCount": "Lagu",
     "ascending": "Naik",
-    "descending": "Menurun"
+    "descending": "Menurun",
+    "filename": "Nama berkas"
   },
   "settings": {
     "title": "Pengaturan",

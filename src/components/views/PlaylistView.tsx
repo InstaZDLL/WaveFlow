@@ -88,7 +88,8 @@ type PlaylistSortMode =
   | "artist"
   | "album"
   | "added_at"
-  | "duration_ms";
+  | "duration_ms"
+  | "filename";
 
 const PLAYLIST_SORT_MODES: ReadonlyArray<PlaylistSortMode> = [
   "custom",
@@ -97,7 +98,18 @@ const PLAYLIST_SORT_MODES: ReadonlyArray<PlaylistSortMode> = [
   "album",
   "added_at",
   "duration_ms",
+  "filename",
 ];
+
+/** Cross-platform basename — handles both Windows (`\`) and POSIX
+ *  (`/`) separators since profiles can ship libraries scanned on
+ *  either OS, and an imported `.waveflow` archive may cross
+ *  platforms. */
+function basename(path: string): string {
+  const slash = path.lastIndexOf("/");
+  const back = path.lastIndexOf("\\");
+  return path.slice(Math.max(slash, back) + 1);
+}
 
 function isPlaylistSortMode(value: string): value is PlaylistSortMode {
   return (PLAYLIST_SORT_MODES as readonly string[]).includes(value);
@@ -202,6 +214,16 @@ export function PlaylistView({
         break;
       case "duration_ms":
         sorted.sort((a, b) => (b.duration_ms ?? 0) - (a.duration_ms ?? 0));
+        break;
+      case "filename":
+        // Numeric collator gives a natural order on "1 …", "2 …",
+        // "10 …" filenames — the most common manual-numbering scheme
+        // (matches Explorer / Finder behaviour). Sorted on the basename
+        // only so users grouping by parent folder still see filename
+        // order, not full-path lexicographic order.
+        sorted.sort((a, b) =>
+          collator.compare(basename(a.file_path), basename(b.file_path)),
+        );
         break;
     }
     return sorted;
@@ -1225,6 +1247,7 @@ function PlaylistSortMenu({ current, onChange, t }: PlaylistSortMenuProps) {
     album: t("sort.album"),
     added_at: t("sort.recentlyAdded", "Recently added"),
     duration_ms: t("sort.duration"),
+    filename: t("sort.filename", "Filename"),
   };
 
   return (
