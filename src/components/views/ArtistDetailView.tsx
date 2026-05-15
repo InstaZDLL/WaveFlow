@@ -339,7 +339,7 @@ export function ArtistDetailView({
           <h2 className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-1">
             {t("artistDetail.similar.title")}
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
             {similar.map((s) => {
               const inLibrary = s.library_artist_id != null;
               const imgSrc = resolveRemoteImage(s.picture_path, s.picture_url);
@@ -399,7 +399,7 @@ export function ArtistDetailView({
           <h2 className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-1">
             {t("artistDetail.discography")}
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5">
             {artist.albums.map((album) => (
               <button
                 key={album.id}

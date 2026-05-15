@@ -516,7 +516,7 @@ export function HomeView({
             </EmptyState>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
             {recentPlays.map((play, idx) => {
               const isCurrent = play.track_id === currentTrack?.id;
               return (
@@ -583,7 +583,7 @@ export function HomeView({
               {t("home.seeAll")}
             </button>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
             {recentAlbums.map((album) => (
               <button
                 key={album.id}
