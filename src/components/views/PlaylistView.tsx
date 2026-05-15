@@ -138,12 +138,15 @@ export function PlaylistView({
   // symmetry with the library view, but the playlist UI only exposes
   // the orderBy axis — direction is implied by the mode (title/artist/
   // album = asc, added_at/duration_ms = desc, custom = stored order).
-  const sortContextKey = playlistId != null ? `playlist:${playlistId}` : "playlist:none";
+  const sortContextKey =
+    playlistId != null ? `playlist:${playlistId}` : "playlist:none";
   const playlistSort = useSortMemory(sortContextKey, {
     orderBy: "custom",
     direction: "asc",
   });
-  const sortMode: PlaylistSortMode = isPlaylistSortMode(playlistSort.sort.orderBy)
+  const sortMode: PlaylistSortMode = isPlaylistSortMode(
+    playlistSort.sort.orderBy,
+  )
     ? playlistSort.sort.orderBy
     : "custom";
   const setSortMode = useCallback(

@@ -369,20 +369,18 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
             // upsert_album would fall back to the track's primary
             // artist for grouping, re-introducing the v1.0 split-on-
             // featuring bug for the renamed row.
-            let (carried_album_artist, carried_is_compilation) = sqlx::query_as::<_, (
-                Option<String>,
-                i64,
-            )>(
-                "SELECT al.album_artist, al.is_compilation
+            let (carried_album_artist, carried_is_compilation) =
+                sqlx::query_as::<_, (Option<String>, i64)>(
+                    "SELECT al.album_artist, al.is_compilation
                    FROM track t
                    LEFT JOIN album al ON al.id = t.album_id
                   WHERE t.id = ?",
-            )
-            .bind(track_id)
-            .fetch_optional(&mut *tx)
-            .await?
-            .map(|(aa, cmp)| (aa, cmp == 1))
-            .unwrap_or((None, false));
+                )
+                .bind(track_id)
+                .fetch_optional(&mut *tx)
+                .await?
+                .map(|(aa, cmp)| (aa, cmp == 1))
+                .unwrap_or((None, false));
             // upsert_album now takes &mut SqliteConnection, so we
             // can call it directly inside the open transaction —
             // no commit/reopen dance needed.

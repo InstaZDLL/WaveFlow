@@ -21,18 +21,21 @@ Thanks for the PR! A few quick reminders so review goes fast:
 -->
 
 ## Summary
+
 <!-- 1-3 bullets describing what changes and why. Focus on the why. -->
 
 -
 -
 
 ## How I tested
+
 <!-- Concrete steps a reviewer could repeat. Skip "it builds" — that's CI's job. -->
 
 -
 -
 
 ## Screenshots / clips
+
 <!-- For UI changes. Drag-and-drop directly into the PR description on the web UI. -->
 
 ## Checklist
@@ -45,6 +48,7 @@ Thanks for the PR! A few quick reminders so review goes fast:
 - [ ] Breaking change? Called out in the summary above
 
 ## Linked issues
+
 <!-- Use "Closes #123" / "Refs #456" so GitHub auto-closes on merge. -->
 
 Closes #
