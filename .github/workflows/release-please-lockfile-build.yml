@@ -81,12 +81,23 @@ jobs:
         # branch name, and head SHA so the privileged workflow can
         # (a) validate the PR is still the legitimate release-please
         # PR and (b) detect head-moved races before pushing.
+        #
+        # Values are piped through `env:` rather than interpolated
+        # straight into the shell — `head.ref` is attacker-controlled
+        # (any maintainer can push a branch named e.g. `$(rm -rf /)`)
+        # and `${{ … }}` substitution before the shell sees the line
+        # would let that string execute as code. The `env:` form makes
+        # them ordinary shell variables that the runner quotes safely.
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           mkdir -p artifact
           cp src-tauri/Cargo.lock artifact/Cargo.lock
-          echo "${{ github.event.pull_request.number }}" > artifact/pr_number
-          echo "${{ github.event.pull_request.head.ref }}" > artifact/pr_branch
-          echo "${{ github.event.pull_request.head.sha }}" > artifact/pr_head_sha
+          printf '%s' "$PR_NUMBER" > artifact/pr_number
+          printf '%s' "$PR_BRANCH" > artifact/pr_branch
+          printf '%s' "$PR_HEAD_SHA" > artifact/pr_head_sha
 
       - name: Upload artifact for privileged push workflow
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
