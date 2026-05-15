@@ -73,10 +73,13 @@ export function saveLyrics(
 }
 
 /**
- * Format a millisecond timestamp as the LRC `[mm:ss.xx]` tag.
- * Centisecond precision matches Musicolet / LRCLIB output.
+ * Format a millisecond timestamp as `<open>mm:ss.xx<close>`.
+ * Centisecond precision matches Musicolet / LRCLIB output. Used with
+ * `[` / `]` for LRC line stamps and `<` / `>` for Enhanced LRC inline
+ * word stamps — picking the delimiters up-front avoids string-replace
+ * round-trips on a known-good output.
  */
-export function formatLrcTimestamp(timeMs: number): string {
+function formatTimestamp(timeMs: number, open: string, close: string): string {
   const safe = Math.max(0, Math.floor(timeMs));
   const minutes = Math.floor(safe / 60_000);
   const seconds = Math.floor((safe % 60_000) / 1000);
@@ -84,7 +87,15 @@ export function formatLrcTimestamp(timeMs: number): string {
   const mm = minutes.toString().padStart(2, "0");
   const ss = seconds.toString().padStart(2, "0");
   const cc = centis.toString().padStart(2, "0");
-  return `[${mm}:${ss}.${cc}]`;
+  return `${open}${mm}:${ss}.${cc}${close}`;
+}
+
+/**
+ * Format a millisecond timestamp as the LRC `[mm:ss.xx]` tag.
+ * Centisecond precision matches Musicolet / LRCLIB output.
+ */
+export function formatLrcTimestamp(timeMs: number): string {
+  return formatTimestamp(timeMs, "[", "]");
 }
 
 /**
@@ -476,8 +487,7 @@ export function serializeEnhancedLrc(lines: LyricsLine[]): string {
       }
       const wordPart = line.words
         .map(
-          (w) =>
-            `${formatLrcTimestamp(Math.max(0, w.timeMs)).replace("[", "<").replace("]", ">")}${w.text}`,
+          (w) => `${formatTimestamp(Math.max(0, w.timeMs), "<", ">")}${w.text}`,
         )
         .join("");
       return `${stamp}${wordPart}`;
