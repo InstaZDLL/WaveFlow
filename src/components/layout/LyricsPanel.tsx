@@ -264,8 +264,13 @@ export function LyricsPanel() {
                                   : "opacity-60"
                             }
                             style={{
+                              display: "inline-block",
+                              transform:
+                                wi === activeWordIndex
+                                  ? "scale(1.04)"
+                                  : "scale(1)",
                               transition:
-                                "color 150ms ease, opacity 150ms ease",
+                                "color 150ms ease, opacity 150ms ease, transform 150ms ease",
                             }}
                           >
                             {word.text}
