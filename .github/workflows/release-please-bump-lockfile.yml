@@ -34,7 +34,6 @@ jobs:
     # match closes that hole: forks never get write tokens on pull_request,
     # and the bot is the only account that legitimately opens such PRs.
     if: >-
-      github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
