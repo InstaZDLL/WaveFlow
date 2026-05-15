@@ -240,6 +240,20 @@ export function AppLayout() {
     [historyIndex],
   );
 
+  // Replace the current entry in place (no index bump). Used when the
+  // current target no longer exists — e.g. a playlist that was just
+  // deleted — so Back doesn't return to a ghost page.
+  const replaceEntry = useCallback(
+    (entry: HistoryEntry) => {
+      setViewHistory((prev) => {
+        const next = [...prev];
+        next[historyIndex] = entry;
+        return next;
+      });
+    },
+    [historyIndex],
+  );
+
   // Wrapper used by views that only need a plain id (Home, Settings, …).
   // The cast is safe because every `ViewId` matches a HistoryEntry whose
   // payload fields are optional.
@@ -361,7 +375,7 @@ export function AppLayout() {
         return (
           <PlaylistView
             playlistId={activePlaylistId}
-            onAfterDelete={() => setActiveView("home")}
+            onAfterDelete={() => replaceEntry({ id: "home" })}
             onNavigateToAlbum={navigateToAlbum}
             onNavigateToArtist={navigateToArtist}
           />
