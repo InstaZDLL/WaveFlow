@@ -8,7 +8,7 @@ The integration ships disabled by default — enable it from **Settings → Inte
 
 A single dedicated worker thread (`dlna-worker`) owns a tokio runtime and the running tasks. Same pattern as [`media_controls`](../../src-tauri/src/media_controls.rs) and [`discord_presence`](../../src-tauri/src/discord_presence.rs): a sync `DlnaServer` handle on `AppState` ferries `Cmd::{Start, Stop, Status}` over a crossbeam channel so the rest of the app keeps a sync API.
 
-```
+```bash
 AppState.dlna ─► Cmd channel ─► dlna-worker
                                  ├─► axum HTTP server (port N)
                                  │     /description.xml
@@ -35,7 +35,7 @@ Persisted in the global `app_setting` table because the server is process-wide, 
 
 Object IDs are **string prefixes**, routed by [`cds.rs`](../../src-tauri/src/dlna/cds.rs):
 
-```
+```bash
 0                    Root container
 ├─ 0/artists         All artists (paginated)
 │  └─ 0/artists/<id> Albums for that artist (containers)

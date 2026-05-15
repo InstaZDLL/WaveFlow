@@ -6,7 +6,7 @@ The UI is React 19 + Tailwind CSS 4. The provider tree is mounted in [`App.tsx`]
 
 Three-column flex row:
 
-```
+```bash
 ┌──────────┬──────────────────────────────┬──────────┐
 │ Sidebar  │ Center column                │ Right    │
 │          │  ┌────────────────────────┐  │ panel    │

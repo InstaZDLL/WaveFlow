@@ -70,7 +70,7 @@ Why the label isn't rasterised in Rust: avoids a font dep (`ab_glyph` / `fontdue
 
 ## Regen flow
 
-```
+```bash
 User clicks "Régénérer" on HomeView
   → invoke('regenerate_daily_mixes')
     → smart_playlists::generator::regenerate_daily_mixes(pool, paths)

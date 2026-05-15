@@ -2,7 +2,7 @@
 
 ## On-disk layout
 
-```
+```bash
 <app_data_dir>/waveflow/
 ├── app.db                       (global registry + app settings)
 ├── avatars/                     (shared profile avatars, blake3-hash-addressed)

@@ -2,7 +2,7 @@
 
 3-thread lock-free pipeline. The contract is "the cpal callback never blocks, allocates or logs"; everything else flows from that.
 
-```
+```bash
 ┌─ Tauri commands (tokio)        ┌─ Decoder thread (std)               ┌─ cpal callback (real-time)
 │  player_play, pause, seek      │  symphonia FormatReader +           │  pop f32 from SPSC ring
 │  → crossbeam::Sender ─────────►│  Decoder + rubato Resampler         │  × volume × normalization
