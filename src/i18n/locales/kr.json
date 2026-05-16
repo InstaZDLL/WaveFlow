@@ -848,7 +848,8 @@
   "artistImagePicker": {
     "title": "아티스트 이미지 변경",
     "editAria": "아티스트 사진 변경",
-    "removeAction": "이미지 제거"
+    "removeAction": "이미지 제거",
+    "fansCount_other": "{{display}} 팬"
   },
   "genreDetail": {
     "badge": "장르",

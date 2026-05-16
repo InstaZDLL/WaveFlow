@@ -848,7 +848,8 @@
   "artistImagePicker": {
     "title": "更改艺人图片",
     "editAria": "更改艺人照片",
-    "removeAction": "移除图片"
+    "removeAction": "移除图片",
+    "fansCount_other": "{{display}} 粉丝"
   },
   "genreDetail": {
     "badge": "流派",

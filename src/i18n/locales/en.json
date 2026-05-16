@@ -856,7 +856,9 @@
   "artistImagePicker": {
     "title": "Change artist image",
     "editAria": "Change artist photo",
-    "removeAction": "Remove image"
+    "removeAction": "Remove image",
+    "fansCount_one": "{{display}} fan",
+    "fansCount_other": "{{display}} fans"
   },
   "genreDetail": {
     "badge": "Genre",

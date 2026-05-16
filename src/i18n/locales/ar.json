@@ -848,7 +848,13 @@
   "artistImagePicker": {
     "title": "تغيير صورة الفنان",
     "editAria": "تغيير صورة الفنان",
-    "removeAction": "إزالة الصورة"
+    "removeAction": "إزالة الصورة",
+    "fansCount_zero": "لا معجبون",
+    "fansCount_one": "معجب واحد",
+    "fansCount_two": "معجبان",
+    "fansCount_few": "{{display}} معجبين",
+    "fansCount_many": "{{display}} معجبًا",
+    "fansCount_other": "{{display}} معجب"
   },
   "genreDetail": {
     "badge": "النوع",

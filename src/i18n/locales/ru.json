@@ -848,7 +848,11 @@
   "artistImagePicker": {
     "title": "Изменить изображение исполнителя",
     "editAria": "Изменить фото исполнителя",
-    "removeAction": "Удалить изображение"
+    "removeAction": "Удалить изображение",
+    "fansCount_one": "{{display}} поклонник",
+    "fansCount_few": "{{display}} поклонника",
+    "fansCount_many": "{{display}} поклонников",
+    "fansCount_other": "{{display}} поклонников"
   },
   "genreDetail": {
     "badge": "Жанр",

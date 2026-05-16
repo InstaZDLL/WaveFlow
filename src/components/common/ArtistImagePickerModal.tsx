@@ -70,14 +70,22 @@ export function ArtistImagePickerModal({
   }, [isOpen, artistName]);
 
   useEffect(() => {
-    if (!isOpen || tab !== "deezer") return;
+    if (!isOpen || tab !== "deezer") {
+      // Abandoning the search — bump the request id so any in-flight
+      // Deezer call's `.then()` is treated as stale and skipped.
+      requestIdRef.current++;
+      return;
+    }
     if (debounceRef.current != null) {
       window.clearTimeout(debounceRef.current);
     }
     const trimmed = query.trim();
     if (trimmed.length < 2) {
+      requestIdRef.current++;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([]);
+      setIsSearching(false);
+      setError(null);
       return;
     }
     debounceRef.current = window.setTimeout(() => {
@@ -268,12 +276,15 @@ export function ArtistImagePickerModal({
                       </div>
                       {hit.nb_fan != null && (
                         <div className="text-xs text-zinc-500">
-                          {hit.nb_fan >= 1_000_000
-                            ? `${(hit.nb_fan / 1_000_000).toFixed(1)}M`
-                            : hit.nb_fan >= 1_000
-                              ? `${(hit.nb_fan / 1_000).toFixed(0)}K`
-                              : hit.nb_fan}{" "}
-                          fans
+                          {t("artistImagePicker.fansCount", {
+                            count: hit.nb_fan,
+                            display:
+                              hit.nb_fan >= 1_000_000
+                                ? `${(hit.nb_fan / 1_000_000).toFixed(1)}M`
+                                : hit.nb_fan >= 1_000
+                                  ? `${(hit.nb_fan / 1_000).toFixed(0)}K`
+                                  : String(hit.nb_fan),
+                          })}
                         </div>
                       )}
                     </button>

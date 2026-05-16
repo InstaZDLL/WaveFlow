@@ -848,7 +848,8 @@
   "artistImagePicker": {
     "title": "アーティスト画像を変更",
     "editAria": "アーティスト写真を変更",
-    "removeAction": "画像を削除"
+    "removeAction": "画像を削除",
+    "fansCount_other": "{{display}} 人のファン"
   },
   "genreDetail": {
     "badge": "ジャンル",

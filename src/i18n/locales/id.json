@@ -848,7 +848,8 @@
   "artistImagePicker": {
     "title": "Ubah gambar artis",
     "editAria": "Ubah foto artis",
-    "removeAction": "Hapus gambar"
+    "removeAction": "Hapus gambar",
+    "fansCount_other": "{{display}} penggemar"
   },
   "genreDetail": {
     "badge": "Genre",

@@ -848,7 +848,9 @@
   "artistImagePicker": {
     "title": "कलाकार की छवि बदलें",
     "editAria": "कलाकार की तस्वीर बदलें",
-    "removeAction": "छवि हटाएँ"
+    "removeAction": "छवि हटाएँ",
+    "fansCount_one": "{{display}} प्रशंसक",
+    "fansCount_other": "{{display}} प्रशंसक"
   },
   "genreDetail": {
     "badge": "शैली",

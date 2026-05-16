@@ -364,6 +364,7 @@ const ARTIST_IMAGE_STEMS: &[&str] = &["artist", "performer", "band"];
 ///   1. `<root>/<artist>/<album>/track.flac` → 2 levels up (`<artist>/`).
 ///   2. `<root>/<album>/track.flac`         → 1 level up (`<album>/`),
 ///      and even the album folder itself can hold an `<artist>.jpg`.
+///
 /// 3 covers the occasional `<root>/<artist>/<album>/CD1/track.flac` rip.
 const ARTIST_IMAGE_MAX_DEPTH: usize = 3;
 
@@ -1832,7 +1833,16 @@ pub async fn rescan_local_artist_images(
         linked: 0,
     };
 
+    // Batch writes through a single transaction (committed every
+    // TX_BATCH writes) so SQLite WAL fsyncs once per batch instead of
+    // once per artist — same pattern as scan_folder_inner.
+    const TX_BATCH: usize = 200;
+    let mut tx = pool.begin().await?;
+    let mut tx_count: usize = 0;
+
     for (artist_id, _name, canon) in rows {
+        // Track lookup is a read — run it on the pool so it doesn't
+        // serialise behind the open write transaction.
         let tracks: Vec<(String,)> = sqlx::query_as(
             "SELECT t.file_path FROM track t
                JOIN track_artist ta ON ta.track_id = t.id
@@ -1846,16 +1856,23 @@ pub async fn rescan_local_artist_images(
         let mut linked = false;
         for (path,) in tracks {
             if let Some(cover) = extract_artist_image(Path::new(&path), &canon, &artwork_dir) {
-                let mut conn = pool.acquire().await?;
-                link_local_artist_image(&mut conn, artist_id, &cover).await?;
+                link_local_artist_image(&mut tx, artist_id, &cover).await?;
                 linked = true;
                 break;
             }
         }
         if linked {
             summary.linked += 1;
+            tx_count += 1;
+            if tx_count >= TX_BATCH {
+                tx.commit().await?;
+                tx = pool.begin().await?;
+                tx_count = 0;
+            }
         }
     }
+
+    tx.commit().await?;
 
     tracing::info!(
         considered = summary.considered,

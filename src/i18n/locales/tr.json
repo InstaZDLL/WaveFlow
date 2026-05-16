@@ -848,7 +848,8 @@
   "artistImagePicker": {
     "title": "Sanatçı görselini değiştir",
     "editAria": "Sanatçı fotoğrafını değiştir",
-    "removeAction": "Görseli kaldır"
+    "removeAction": "Görseli kaldır",
+    "fansCount_other": "{{display}} hayran"
   },
   "genreDetail": {
     "badge": "Tür",
