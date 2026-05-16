@@ -1321,6 +1321,7 @@
     "devicePending": "Spotify-Wiedergabe wird vorbereitet…",
     "searchPlaceholder": "Spotify durchsuchen",
     "tracks": "Titel",
-    "playlists": "Playlists"
+    "playlists": "Playlists",
+    "emptyPlaylist": "Keine abspielbaren Titel in dieser Playlist (Spotify blendet lokale Dateien oder Playlists, die dir nicht gehören, möglicherweise aus)."
   }
 }

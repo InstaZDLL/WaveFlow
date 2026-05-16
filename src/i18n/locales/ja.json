@@ -1321,6 +1321,7 @@
     "devicePending": "Spotify の再生を準備中…",
     "searchPlaceholder": "Spotify を検索",
     "tracks": "曲",
-    "playlists": "プレイリスト"
+    "playlists": "プレイリスト",
+    "emptyPlaylist": "このプレイリストには再生可能な曲がありません(Spotify はローカルファイルや所有していないプレイリストを公開しないことがあります)。"
   }
 }

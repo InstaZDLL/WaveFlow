@@ -1321,6 +1321,7 @@
     "devicePending": "Подготовка воспроизведения Spotify…",
     "searchPlaceholder": "Искать в Spotify",
     "tracks": "Треки",
-    "playlists": "Плейлисты"
+    "playlists": "Плейлисты",
+    "emptyPlaylist": "В этом плейлисте нет доступных треков (Spotify может не отдавать локальные файлы или чужие плейлисты)."
   }
 }

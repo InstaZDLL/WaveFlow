@@ -1321,6 +1321,7 @@
     "devicePending": "Spotify 재생 준비 중…",
     "searchPlaceholder": "Spotify 검색",
     "tracks": "트랙",
-    "playlists": "플레이리스트"
+    "playlists": "플레이리스트",
+    "emptyPlaylist": "이 플레이리스트에서 재생할 수 있는 트랙이 없습니다 (Spotify가 로컬 파일이나 본인 소유가 아닌 플레이리스트를 노출하지 않을 수 있습니다)."
   }
 }

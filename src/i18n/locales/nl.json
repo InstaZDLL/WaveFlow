@@ -1321,6 +1321,7 @@
     "devicePending": "Spotify-weergave voorbereiden…",
     "searchPlaceholder": "Spotify doorzoeken",
     "tracks": "Nummers",
-    "playlists": "Afspeellijsten"
+    "playlists": "Afspeellijsten",
+    "emptyPlaylist": "Geen beschikbare nummers in deze afspeellijst (Spotify toont lokale bestanden of afspeellijsten die je niet bezit mogelijk niet)."
   }
 }

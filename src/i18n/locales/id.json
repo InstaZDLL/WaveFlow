@@ -1321,6 +1321,7 @@
     "devicePending": "Menyiapkan pemutaran Spotify…",
     "searchPlaceholder": "Cari di Spotify",
     "tracks": "Lagu",
-    "playlists": "Playlist"
+    "playlists": "Playlist",
+    "emptyPlaylist": "Tidak ada lagu yang tersedia di playlist ini (Spotify mungkin tidak menampilkan file lokal atau playlist yang bukan milikmu)."
   }
 }

@@ -1321,6 +1321,7 @@
     "devicePending": "Preparazione della riproduzione Spotify…",
     "searchPlaceholder": "Cerca su Spotify",
     "tracks": "Brani",
-    "playlists": "Playlist"
+    "playlists": "Playlist",
+    "emptyPlaylist": "Nessuna traccia disponibile in questa playlist (Spotify potrebbe non esporre i file locali o le playlist che non possiedi)."
   }
 }

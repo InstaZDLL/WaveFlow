@@ -1321,6 +1321,7 @@
     "devicePending": "正在准备 Spotify 播放…",
     "searchPlaceholder": "搜索 Spotify",
     "tracks": "曲目",
-    "playlists": "播放列表"
+    "playlists": "播放列表",
+    "emptyPlaylist": "此播放列表中没有可用的曲目(Spotify 可能不会公开本地文件或非你拥有的播放列表)。"
   }
 }

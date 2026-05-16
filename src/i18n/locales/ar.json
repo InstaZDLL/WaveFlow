@@ -1321,6 +1321,7 @@
     "devicePending": "جارٍ تحضير تشغيل Spotify…",
     "searchPlaceholder": "البحث في Spotify",
     "tracks": "المقطوعات",
-    "playlists": "قوائم التشغيل"
+    "playlists": "قوائم التشغيل",
+    "emptyPlaylist": "لا توجد مقطوعات متاحة في قائمة التشغيل هذه (قد لا يعرض Spotify الملفات المحلية أو قوائم التشغيل التي لا تملكها)."
   }
 }

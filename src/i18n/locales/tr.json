@@ -1321,6 +1321,7 @@
     "devicePending": "Spotify çalma hazırlanıyor…",
     "searchPlaceholder": "Spotify'da ara",
     "tracks": "Parçalar",
-    "playlists": "Çalma listeleri"
+    "playlists": "Çalma listeleri",
+    "emptyPlaylist": "Bu çalma listesinde kullanılabilir parça yok (Spotify yerel dosyaları veya sahibi olmadığın listeleri göstermeyebilir)."
   }
 }

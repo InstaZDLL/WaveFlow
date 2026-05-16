@@ -1321,6 +1321,7 @@
     "devicePending": "Preparando la reproducción de Spotify…",
     "searchPlaceholder": "Buscar en Spotify",
     "tracks": "Canciones",
-    "playlists": "Listas"
+    "playlists": "Listas",
+    "emptyPlaylist": "No hay pistas disponibles en esta lista (Spotify puede no exponer los archivos locales o las playlists que no son tuyas)."
   }
 }

@@ -1321,6 +1321,7 @@
     "devicePending": "Spotify प्लेबैक तैयार हो रहा है…",
     "searchPlaceholder": "Spotify में खोजें",
     "tracks": "ट्रैक",
-    "playlists": "प्लेलिस्ट"
+    "playlists": "प्लेलिस्ट",
+    "emptyPlaylist": "इस प्लेलिस्ट में कोई ट्रैक उपलब्ध नहीं है (Spotify स्थानीय फ़ाइलें या आपकी न होने वाली प्लेलिस्ट दिखाने से रोक सकता है)।"
   }
 }
