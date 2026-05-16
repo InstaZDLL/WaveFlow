@@ -324,14 +324,16 @@ export function LyricsPanel() {
               <span className="truncate">
                 {payload ? sourceLabel(payload.source, t) : ""}
               </span>
-              {payload && (payload.format === "enhanced_lrc" || payload.format === "ttml") && (
-                <span
-                  className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-pink-100 dark:bg-pink-950/40 text-pink-600 dark:text-pink-300"
-                  title={t(`lyrics.format.${payload.format}`)}
-                >
-                  {payload.format === "ttml" ? "TTML" : "WORD"}
-                </span>
-              )}
+              {payload &&
+                (payload.format === "enhanced_lrc" ||
+                  payload.format === "ttml") && (
+                  <span
+                    className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-pink-100 dark:bg-pink-950/40 text-pink-600 dark:text-pink-300"
+                    title={t(`lyrics.format.${payload.format}`)}
+                  >
+                    {payload.format === "ttml" ? "TTML" : "WORD"}
+                  </span>
+                )}
             </span>
             <div className="flex items-center space-x-1 shrink-0">
               <button

@@ -286,7 +286,8 @@ export function parseEnhancedLrc(content: string): LyricsLine[] {
     for (let i = 0; i < wordStamps.length; i += 1) {
       const start =
         wordStamps[i].at + matchedStampLength(body, wordStamps[i].at);
-      const end = i + 1 < wordStamps.length ? wordStamps[i + 1].at : body.length;
+      const end =
+        i + 1 < wordStamps.length ? wordStamps[i + 1].at : body.length;
       built.push({
         timeMs: wordStamps[i].timeMs,
         endMs: i + 1 < wordStamps.length ? wordStamps[i + 1].timeMs : -1,
@@ -297,7 +298,10 @@ export function parseEnhancedLrc(content: string): LyricsLine[] {
     // Drop trailing empty segments without timing (artefact of a
     // trailing space after the last stamp).
     const words = built.filter((w) => w.text.length > 0 || w.timeMs >= 0);
-    const text = words.map((w) => w.text).join("").trim();
+    const text = words
+      .map((w) => w.text)
+      .join("")
+      .trim();
 
     // Deep-clone the words array per line entry so `fillEndTimestamps`
     // can mutate each independently. For prefix-bearing lines, the
@@ -374,7 +378,10 @@ export function parseTtml(content: string): LyricsLine[] {
         });
       }
       if (words.length === 0) words = undefined;
-      text = (words ?? []).map((w) => w.text).join("").trim();
+      text = (words ?? [])
+        .map((w) => w.text)
+        .join("")
+        .trim();
     } else {
       text = (p.textContent ?? "").replace(/\s+/g, " ").trim();
     }
@@ -431,11 +438,7 @@ function parseTtmlTime(value: string | null): number {
       const h = Number(hh);
       const m = Number(mm);
       const sec = Number(ss);
-      if (
-        Number.isFinite(h) &&
-        Number.isFinite(m) &&
-        Number.isFinite(sec)
-      ) {
+      if (Number.isFinite(h) && Number.isFinite(m) && Number.isFinite(sec)) {
         return Math.round(h * 3_600_000 + m * 60_000 + sec * 1000);
       }
       return -1;

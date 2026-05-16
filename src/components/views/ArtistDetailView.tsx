@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Play,
-  Shuffle,
-  Music2,
-  Clock,
-  Heart,
-  Pencil,
-} from "lucide-react";
+import { Play, Shuffle, Music2, Clock, Heart, Pencil } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";

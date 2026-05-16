@@ -166,7 +166,10 @@ export function LyricsEditorModal({
               text: w.text,
             }));
             const cursor = words
-              ? Math.min(words.length, words.findIndex((w) => w.timeMs < 0))
+              ? Math.min(
+                  words.length,
+                  words.findIndex((w) => w.timeMs < 0),
+                )
               : undefined;
             return {
               id: nextIdRef.current++,
@@ -668,9 +671,8 @@ export function LyricsEditorModal({
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
               {granularity === "word"
                 ? t("lyricsEditor.captureHintWord")
-                : t("lyricsEditor.captureHint")}
-              {" "}· {captured}/{syncedRows.length}{" "}
-              {t("lyricsEditor.lines")}
+                : t("lyricsEditor.captureHint")}{" "}
+              · {captured}/{syncedRows.length} {t("lyricsEditor.lines")}
             </p>
 
             {/* Global timestamp shift — applied to every captured row
@@ -866,72 +868,72 @@ function SyncedEditor({
             }`}
             onFocus={() => onActivate(idx)}
           >
-          <div className="flex items-center gap-2">
-            <span
-              aria-hidden
-              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                isPlaying ? "bg-emerald-500 animate-pulse" : "bg-transparent"
-              }`}
-            />
-            <button
-              type="button"
-              onClick={() => (captured ? onSeekTo(row) : onRecapture(row.id))}
-              title={
-                captured
-                  ? t("lyricsEditor.seekToLine")
-                  : t("lyricsEditor.captureNow")
-              }
-              className={`shrink-0 font-mono text-xs px-2 py-1 rounded w-20 text-center transition-colors ${
-                captured
-                  ? shifted
-                    ? "bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-900/60 italic"
-                    : "bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600"
-                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 hover:text-pink-500"
-              }`}
-            >
-              {captured ? formatLrcTimestamp(previewMs) : "--:--.--"}
-            </button>
-            <input
-              type="text"
-              value={row.text}
-              onChange={(e) => onUpdateText(row.id, e.target.value)}
-              onFocus={() => onActivate(idx)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  onInsertBelow(row.id);
-                  // Defer so the new row exists before we activate it.
-                  setTimeout(() => onActivate(idx + 1), 0);
+            <div className="flex items-center gap-2">
+              <span
+                aria-hidden
+                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                  isPlaying ? "bg-emerald-500 animate-pulse" : "bg-transparent"
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => (captured ? onSeekTo(row) : onRecapture(row.id))}
+                title={
+                  captured
+                    ? t("lyricsEditor.seekToLine")
+                    : t("lyricsEditor.captureNow")
                 }
-              }}
-              placeholder={t("lyricsEditor.linePlaceholder")}
-              className="flex-1 bg-transparent text-sm focus:outline-none px-2 py-1"
-            />
-            <button
-              type="button"
-              onClick={() => onRecapture(row.id)}
-              title={t("lyricsEditor.recapture")}
-              className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400 hover:text-pink-500 transition-colors"
-            >
-              <Crosshair size={12} />
-            </button>
-            <button
-              type="button"
-              onClick={() => onInsertBelow(row.id)}
-              title={t("lyricsEditor.insertBelow")}
-              className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
-            >
-              <Plus size={12} />
-            </button>
-            <button
-              type="button"
-              onClick={() => onRemove(row.id)}
-              title={t("lyricsEditor.removeLine")}
-              className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400 hover:text-red-500 transition-colors"
-            >
-              <Trash2 size={12} />
-            </button>
-          </div>
+                className={`shrink-0 font-mono text-xs px-2 py-1 rounded w-20 text-center transition-colors ${
+                  captured
+                    ? shifted
+                      ? "bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-300 hover:bg-pink-200 dark:hover:bg-pink-900/60 italic"
+                      : "bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 hover:text-pink-500"
+                }`}
+              >
+                {captured ? formatLrcTimestamp(previewMs) : "--:--.--"}
+              </button>
+              <input
+                type="text"
+                value={row.text}
+                onChange={(e) => onUpdateText(row.id, e.target.value)}
+                onFocus={() => onActivate(idx)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    onInsertBelow(row.id);
+                    // Defer so the new row exists before we activate it.
+                    setTimeout(() => onActivate(idx + 1), 0);
+                  }
+                }}
+                placeholder={t("lyricsEditor.linePlaceholder")}
+                className="flex-1 bg-transparent text-sm focus:outline-none px-2 py-1"
+              />
+              <button
+                type="button"
+                onClick={() => onRecapture(row.id)}
+                title={t("lyricsEditor.recapture")}
+                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400 hover:text-pink-500 transition-colors"
+              >
+                <Crosshair size={12} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onInsertBelow(row.id)}
+                title={t("lyricsEditor.insertBelow")}
+                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+              >
+                <Plus size={12} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onRemove(row.id)}
+                title={t("lyricsEditor.removeLine")}
+                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400 hover:text-red-500 transition-colors"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
             {showWordChips && (
               <div className="flex flex-wrap items-center gap-1 pl-22 pr-2 pb-1">
                 {row.words!.map((w, wi) => {
