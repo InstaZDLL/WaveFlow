@@ -54,7 +54,8 @@
   },
   "sidebar": {
     "nav": {
-      "home": "الصفحة الرئيسية"
+      "home": "الصفحة الرئيسية",
+      "spotify": "Spotify"
     },
     "sections": {
       "open": "فتح",
@@ -600,7 +601,8 @@
       "slider": "شريط تمرير السرعة",
       "custom": "سرعة مخصصة",
       "pitchHint": "تتبع طبقة الصوت السرعة (بدون تمديد زمني)."
-    }
+    },
+    "seek": "الموضع"
   },
   "queue": {
     "title": "قائمة انتظار التشغيل",
@@ -674,7 +676,13 @@
     "iconLabel": "أيقونة",
     "iconAria": "أيقونة {{icon}}",
     "submit": "إنشاء",
-    "editSubmit": "حفظ"
+    "editSubmit": "حفظ",
+    "coverChoose": "اختر صورة",
+    "coverMenu": "خيارات الغلاف",
+    "coverChange": "تغيير الصورة",
+    "coverRemove": "إزالة الصورة",
+    "coverAutoHint": "غلاف تلقائي — يُحدَّث مع المحتوى",
+    "coverManualHint": "صورة مخصّصة"
   },
   "playlistView": {
     "badge": "قائمة التشغيل",
@@ -697,7 +705,8 @@
     "noneTitle": "لم يتم تحديد أي قائمة تشغيل",
     "noneDescription": "اختر قائمة تشغيل من الشريط الجانبي لعرضها هنا.",
     "notFoundTitle": "لا يمكن العثور على قائمة التشغيل",
-    "notFoundDescription": "هذه القائمة الموسيقية لم تعد موجودة في الملف الشخصي النشط."
+    "notFoundDescription": "هذه القائمة الموسيقية لم تعد موجودة في الملف الشخصي النشط.",
+    "smartLabel": "Daily Mix"
   },
   "trackActions": {
     "addToPlaylist": "إضافة إلى قائمة التشغيل",
@@ -1117,6 +1126,16 @@
         "statusRunning": "يعمل",
         "statusStopped": "متوقف",
         "copyUrl": "نسخ الرابط"
+      },
+      "spotify": {
+        "title": "Spotify",
+        "subtitle": "اربط Spotify Premium باستخدام Client ID الخاص بك من Spotify Developer.",
+        "clientIdPlaceholder": "Spotify Client ID",
+        "redirectHint": "أضف Redirect URI هذا في Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
+        "connectedAs": "متصل باسم",
+        "disconnect": "قطع الاتصال",
+        "connecting": "جارٍ الاتصال…",
+        "connect": "الاتصال بـ Spotify"
       }
     },
     "crossfade": {
@@ -1296,5 +1315,12 @@
       "show": "فتح WaveFlow",
       "quit": "خروج"
     }
+  },
+  "spotify": {
+    "deviceReady": "جهاز Spotify الخاص بـ WaveFlow جاهز",
+    "devicePending": "جارٍ تحضير تشغيل Spotify…",
+    "searchPlaceholder": "البحث في Spotify",
+    "tracks": "المقطوعات",
+    "playlists": "قوائم التشغيل"
   }
 }

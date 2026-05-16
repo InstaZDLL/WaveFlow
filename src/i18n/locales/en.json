@@ -54,7 +54,8 @@
   },
   "sidebar": {
     "nav": {
-      "home": "Home"
+      "home": "Home",
+      "spotify": "Spotify"
     },
     "sections": {
       "open": "Open",
@@ -608,7 +609,8 @@
       "slider": "Speed slider",
       "custom": "Custom speed",
       "pitchHint": "Pitch tracks speed (no time-stretching)."
-    }
+    },
+    "seek": "Seek"
   },
   "queue": {
     "title": "Play queue",
@@ -682,7 +684,13 @@
     "iconLabel": "Icon",
     "iconAria": "{{icon}} icon",
     "submit": "Create",
-    "editSubmit": "Save"
+    "editSubmit": "Save",
+    "coverChoose": "Choose photo",
+    "coverMenu": "Cover options",
+    "coverChange": "Change photo",
+    "coverRemove": "Remove photo",
+    "coverAutoHint": "Auto cover — updates with the contents",
+    "coverManualHint": "Custom image"
   },
   "playlistView": {
     "badge": "Playlist",
@@ -705,7 +713,8 @@
     "noneTitle": "No playlist selected",
     "noneDescription": "Select a playlist from the sidebar to view it here.",
     "notFoundTitle": "Playlist not found",
-    "notFoundDescription": "This playlist no longer exists in the active profile."
+    "notFoundDescription": "This playlist no longer exists in the active profile.",
+    "smartLabel": "Daily Mix"
   },
   "trackActions": {
     "addToPlaylist": "Add to a playlist",
@@ -1155,6 +1164,16 @@
         "statusRunning": "Running",
         "statusStopped": "Stopped",
         "copyUrl": "Copy URL"
+      },
+      "spotify": {
+        "title": "Spotify",
+        "subtitle": "Connect Spotify Premium with your own Spotify Developer Client ID.",
+        "clientIdPlaceholder": "Spotify Client ID",
+        "redirectHint": "Add this Redirect URI in Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
+        "connectedAs": "Connected as",
+        "disconnect": "Disconnect",
+        "connecting": "Connecting…",
+        "connect": "Connect Spotify"
       }
     },
     "crossfade": {
@@ -1355,7 +1374,12 @@
     "openSettings": "Open Settings",
     "notConnectedTitle": "Spotify is not connected",
     "notConnectedMessage": "Your Client ID is set. Sign in to your Spotify Premium account from Settings to load your playlists and play music.",
-    "emptyPlaylist": "No tracks available in this playlist (Spotify may not expose local files or playlists you don't own)."
+    "emptyPlaylist": "No tracks available in this playlist (Spotify may not expose local files or playlists you don't own).",
+    "deviceReady": "WaveFlow Spotify device ready",
+    "devicePending": "Preparing Spotify playback…",
+    "searchPlaceholder": "Search Spotify",
+    "tracks": "Tracks",
+    "playlists": "Playlists"
   },
   "scanProgress": {
     "runningTitle": "Scanning library…",

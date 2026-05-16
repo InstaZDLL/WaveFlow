@@ -54,7 +54,8 @@
   },
   "sidebar": {
     "nav": {
-      "home": "ホーム"
+      "home": "ホーム",
+      "spotify": "Spotify"
     },
     "sections": {
       "open": "開く",
@@ -600,7 +601,8 @@
       "slider": "速度スライダー",
       "custom": "カスタム速度",
       "pitchHint": "ピッチは速度に追従します(タイムストレッチなし)。"
-    }
+    },
+    "seek": "再生位置"
   },
   "queue": {
     "title": "再生キュー",
@@ -674,7 +676,13 @@
     "iconLabel": "アイコン",
     "iconAria": "{{icon}}のアイコン",
     "submit": "作成",
-    "editSubmit": "保存"
+    "editSubmit": "保存",
+    "coverChoose": "写真を選ぶ",
+    "coverMenu": "カバーのオプション",
+    "coverChange": "写真を変更",
+    "coverRemove": "写真を削除",
+    "coverAutoHint": "自動カバー — 内容に合わせて更新されます",
+    "coverManualHint": "カスタム画像"
   },
   "playlistView": {
     "badge": "プレイリスト",
@@ -697,7 +705,8 @@
     "noneTitle": "選択されているプレイリストはありません",
     "noneDescription": "サイドバーからプレイリストを選んで、ここに表示させてください。",
     "notFoundTitle": "プレイリストが見つかりません",
-    "notFoundDescription": "このプレイリストは、現在のプロフィールには存在しません。"
+    "notFoundDescription": "このプレイリストは、現在のプロフィールには存在しません。",
+    "smartLabel": "Daily Mix"
   },
   "trackActions": {
     "addToPlaylist": "プレイリストに追加",
@@ -1117,6 +1126,16 @@
         "statusRunning": "稼働中",
         "statusStopped": "停止中",
         "copyUrl": "URL をコピー"
+      },
+      "spotify": {
+        "title": "Spotify",
+        "subtitle": "自分の Spotify Developer Client ID で Spotify Premium に接続します。",
+        "clientIdPlaceholder": "Spotify Client ID",
+        "redirectHint": "この Redirect URI を Spotify Developer Dashboard に追加してください: http://127.0.0.1:49387/spotify/callback",
+        "connectedAs": "接続中:",
+        "disconnect": "切断",
+        "connecting": "接続中…",
+        "connect": "Spotify に接続"
       }
     },
     "crossfade": {
@@ -1296,5 +1315,12 @@
       "show": "WaveFlow を開く",
       "quit": "終了"
     }
+  },
+  "spotify": {
+    "deviceReady": "WaveFlow の Spotify デバイスが利用可能です",
+    "devicePending": "Spotify の再生を準備中…",
+    "searchPlaceholder": "Spotify を検索",
+    "tracks": "曲",
+    "playlists": "プレイリスト"
   }
 }

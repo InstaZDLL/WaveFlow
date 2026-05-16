@@ -54,7 +54,8 @@
   },
   "sidebar": {
     "nav": {
-      "home": "Home"
+      "home": "Home",
+      "spotify": "Spotify"
     },
     "sections": {
       "open": "Openen",
@@ -600,7 +601,8 @@
       "slider": "Snelheidsschuif",
       "custom": "Aangepaste snelheid",
       "pitchHint": "Toonhoogte volgt snelheid (geen time-stretching)."
-    }
+    },
+    "seek": "Positie"
   },
   "queue": {
     "title": "Wachtrij afspelen",
@@ -674,7 +676,13 @@
     "iconLabel": "Pictogram",
     "iconAria": "Pictogram '{{icon}}'",
     "submit": "Aanmaken",
-    "editSubmit": "Opslaan"
+    "editSubmit": "Opslaan",
+    "coverChoose": "Foto kiezen",
+    "coverMenu": "Hoesopties",
+    "coverChange": "Foto wijzigen",
+    "coverRemove": "Foto verwijderen",
+    "coverAutoHint": "Automatische hoes — past zich aan de inhoud aan",
+    "coverManualHint": "Aangepaste afbeelding"
   },
   "playlistView": {
     "badge": "Afspeellijst",
@@ -697,7 +705,8 @@
     "noneTitle": "Er is geen afspeellijst geselecteerd",
     "noneDescription": "Kies een afspeellijst in de zijbalk om deze hier te bekijken.",
     "notFoundTitle": "Afspeellijst niet gevonden",
-    "notFoundDescription": "Deze afspeellijst is niet meer aanwezig in het actieve profiel."
+    "notFoundDescription": "Deze afspeellijst is niet meer aanwezig in het actieve profiel.",
+    "smartLabel": "Daily Mix"
   },
   "trackActions": {
     "addToPlaylist": "Aan een afspeellijst toevoegen",
@@ -1117,6 +1126,16 @@
         "statusRunning": "Actief",
         "statusStopped": "Gestopt",
         "copyUrl": "URL kopiëren"
+      },
+      "spotify": {
+        "title": "Spotify",
+        "subtitle": "Verbind Spotify Premium met je eigen Spotify Developer Client ID.",
+        "clientIdPlaceholder": "Spotify Client ID",
+        "redirectHint": "Voeg deze Redirect URI toe in Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
+        "connectedAs": "Verbonden als",
+        "disconnect": "Verbinding verbreken",
+        "connecting": "Verbinden…",
+        "connect": "Spotify verbinden"
       }
     },
     "crossfade": {
@@ -1296,5 +1315,12 @@
       "show": "WaveFlow openen",
       "quit": "Afsluiten"
     }
+  },
+  "spotify": {
+    "deviceReady": "WaveFlow Spotify-apparaat klaar",
+    "devicePending": "Spotify-weergave voorbereiden…",
+    "searchPlaceholder": "Spotify doorzoeken",
+    "tracks": "Nummers",
+    "playlists": "Afspeellijsten"
   }
 }

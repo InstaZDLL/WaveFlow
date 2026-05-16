@@ -54,7 +54,8 @@
   },
   "sidebar": {
     "nav": {
-      "home": "होम"
+      "home": "होम",
+      "spotify": "Spotify"
     },
     "sections": {
       "open": "खोलें",
@@ -600,7 +601,8 @@
       "slider": "गति स्लाइडर",
       "custom": "कस्टम गति",
       "pitchHint": "पिच गति का अनुसरण करती है (कोई टाइम-स्ट्रेचिंग नहीं)।"
-    }
+    },
+    "seek": "स्थिति"
   },
   "queue": {
     "title": "प्ले क्यू",
@@ -674,7 +676,13 @@
     "iconLabel": "चिह्न",
     "iconAria": "{{icon}} आइकन",
     "submit": "बनाएँ",
-    "editSubmit": "बचाएँ"
+    "editSubmit": "बचाएँ",
+    "coverChoose": "फ़ोटो चुनें",
+    "coverMenu": "कवर विकल्प",
+    "coverChange": "फ़ोटो बदलें",
+    "coverRemove": "फ़ोटो हटाएँ",
+    "coverAutoHint": "स्वतः कवर — सामग्री के साथ अपडेट होता है",
+    "coverManualHint": "कस्टम छवि"
   },
   "playlistView": {
     "badge": "प्लेलिस्ट",
@@ -697,7 +705,8 @@
     "noneTitle": "कोई प्लेलिस्ट चयनित नहीं है",
     "noneDescription": "इसे यहाँ देखने के लिए साइडबार से एक प्लेलिस्ट चुनें।",
     "notFoundTitle": "प्लेलिस्ट नहीं मिली",
-    "notFoundDescription": "यह प्लेलिस्ट अब सक्रिय प्रोफ़ाइल में मौजूद नहीं है।"
+    "notFoundDescription": "यह प्लेलिस्ट अब सक्रिय प्रोफ़ाइल में मौजूद नहीं है।",
+    "smartLabel": "Daily Mix"
   },
   "trackActions": {
     "addToPlaylist": "प्लेलिस्ट में जोड़ें",
@@ -1117,6 +1126,16 @@
         "statusRunning": "चल रहा है",
         "statusStopped": "रुका हुआ",
         "copyUrl": "URL कॉपी करें"
+      },
+      "spotify": {
+        "title": "Spotify",
+        "subtitle": "अपने Spotify Developer Client ID से Spotify Premium कनेक्ट करें।",
+        "clientIdPlaceholder": "Spotify Client ID",
+        "redirectHint": "Spotify Developer Dashboard में यह Redirect URI जोड़ें: http://127.0.0.1:49387/spotify/callback",
+        "connectedAs": "इस रूप में कनेक्ट",
+        "disconnect": "डिस्कनेक्ट",
+        "connecting": "कनेक्ट हो रहा है…",
+        "connect": "Spotify कनेक्ट करें"
       }
     },
     "crossfade": {
@@ -1296,5 +1315,12 @@
       "show": "WaveFlow खोलें",
       "quit": "बंद करें"
     }
+  },
+  "spotify": {
+    "deviceReady": "WaveFlow Spotify डिवाइस तैयार",
+    "devicePending": "Spotify प्लेबैक तैयार हो रहा है…",
+    "searchPlaceholder": "Spotify में खोजें",
+    "tracks": "ट्रैक",
+    "playlists": "प्लेलिस्ट"
   }
 }

@@ -54,7 +54,8 @@
   },
   "sidebar": {
     "nav": {
-      "home": "Beranda"
+      "home": "Beranda",
+      "spotify": "Spotify"
     },
     "sections": {
       "open": "Buka",
@@ -600,7 +601,8 @@
       "slider": "Penggeser kecepatan",
       "custom": "Kecepatan kustom",
       "pitchHint": "Nada mengikuti kecepatan (tanpa time-stretching)."
-    }
+    },
+    "seek": "Posisi"
   },
   "queue": {
     "title": "Antrian putar",
@@ -674,7 +676,13 @@
     "iconLabel": "Ikon",
     "iconAria": "{{icon}} ikon",
     "submit": "Buat",
-    "editSubmit": "Simpan"
+    "editSubmit": "Simpan",
+    "coverChoose": "Pilih foto",
+    "coverMenu": "Opsi sampul",
+    "coverChange": "Ganti foto",
+    "coverRemove": "Hapus foto",
+    "coverAutoHint": "Sampul otomatis — diperbarui mengikuti isi",
+    "coverManualHint": "Gambar khusus"
   },
   "playlistView": {
     "badge": "Daftar Putar",
@@ -697,7 +705,8 @@
     "noneTitle": "Belum ada daftar putar yang dipilih",
     "noneDescription": "Pilih daftar putar dari bilah samping untuk melihatnya di sini.",
     "notFoundTitle": "Daftar putar tidak ditemukan",
-    "notFoundDescription": "Daftar putar ini tidak lagi tersedia di profil aktif."
+    "notFoundDescription": "Daftar putar ini tidak lagi tersedia di profil aktif.",
+    "smartLabel": "Daily Mix"
   },
   "trackActions": {
     "addToPlaylist": "Tambahkan ke daftar putar",
@@ -1117,6 +1126,16 @@
         "statusRunning": "Aktif",
         "statusStopped": "Dihentikan",
         "copyUrl": "Salin URL"
+      },
+      "spotify": {
+        "title": "Spotify",
+        "subtitle": "Hubungkan Spotify Premium dengan Spotify Developer Client ID milikmu.",
+        "clientIdPlaceholder": "Spotify Client ID",
+        "redirectHint": "Tambahkan Redirect URI ini di Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
+        "connectedAs": "Terhubung sebagai",
+        "disconnect": "Putuskan",
+        "connecting": "Menghubungkan…",
+        "connect": "Hubungkan Spotify"
       }
     },
     "crossfade": {
@@ -1296,5 +1315,12 @@
       "show": "Buka WaveFlow",
       "quit": "Keluar"
     }
+  },
+  "spotify": {
+    "deviceReady": "Perangkat Spotify WaveFlow siap",
+    "devicePending": "Menyiapkan pemutaran Spotify…",
+    "searchPlaceholder": "Cari di Spotify",
+    "tracks": "Lagu",
+    "playlists": "Playlist"
   }
 }

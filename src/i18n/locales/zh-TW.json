@@ -54,7 +54,8 @@
   },
   "sidebar": {
     "nav": {
-      "home": "首頁"
+      "home": "首頁",
+      "spotify": "Spotify"
     },
     "sections": {
       "open": "開啟",
@@ -600,7 +601,8 @@
       "slider": "速度滑桿",
       "custom": "自訂速度",
       "pitchHint": "音高隨速度變化(無時間拉伸)。"
-    }
+    },
+    "seek": "播放位置"
   },
   "queue": {
     "title": "播放佇列",
@@ -674,7 +676,13 @@
     "iconLabel": "圖示",
     "iconAria": "{{icon}} 圖示",
     "submit": "建立",
-    "editSubmit": "儲存"
+    "editSubmit": "儲存",
+    "coverChoose": "選擇照片",
+    "coverMenu": "封面選項",
+    "coverChange": "更換照片",
+    "coverRemove": "移除照片",
+    "coverAutoHint": "自動封面 — 隨內容自動更新",
+    "coverManualHint": "自訂圖片"
   },
   "playlistView": {
     "badge": "播放清單",
@@ -697,7 +705,8 @@
     "noneTitle": "尚未選取任何播放清單",
     "noneDescription": "請在側邊欄中選擇一個播放清單，即可在此處查看。",
     "notFoundTitle": "找不到播放清單",
-    "notFoundDescription": "此播放清單在該活躍帳戶中已不存在。"
+    "notFoundDescription": "此播放清單在該活躍帳戶中已不存在。",
+    "smartLabel": "Daily Mix"
   },
   "trackActions": {
     "addToPlaylist": "加入播放清單",
@@ -1117,6 +1126,16 @@
         "statusRunning": "執行中",
         "statusStopped": "已停止",
         "copyUrl": "複製 URL"
+      },
+      "spotify": {
+        "title": "Spotify",
+        "subtitle": "使用你自己的 Spotify Developer Client ID 連接 Spotify Premium。",
+        "clientIdPlaceholder": "Spotify Client ID",
+        "redirectHint": "在 Spotify Developer Dashboard 中加入此 Redirect URI:http://127.0.0.1:49387/spotify/callback",
+        "connectedAs": "已連接為",
+        "disconnect": "中斷連線",
+        "connecting": "正在連接…",
+        "connect": "連接 Spotify"
       }
     },
     "crossfade": {
@@ -1296,5 +1315,12 @@
       "show": "開啟 WaveFlow",
       "quit": "結束"
     }
+  },
+  "spotify": {
+    "deviceReady": "WaveFlow Spotify 裝置已就緒",
+    "devicePending": "正在準備 Spotify 播放…",
+    "searchPlaceholder": "搜尋 Spotify",
+    "tracks": "曲目",
+    "playlists": "播放清單"
   }
 }

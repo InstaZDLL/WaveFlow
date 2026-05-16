@@ -54,7 +54,8 @@
   },
   "sidebar": {
     "nav": {
-      "home": "Ana Sayfa"
+      "home": "Ana Sayfa",
+      "spotify": "Spotify"
     },
     "sections": {
       "open": "Aç",
@@ -600,7 +601,8 @@
       "slider": "Hız kaydırıcısı",
       "custom": "Özel hız",
       "pitchHint": "Perde hızla birlikte değişir (time-stretching yok)."
-    }
+    },
+    "seek": "İlerleme"
   },
   "queue": {
     "title": "Oynatma kuyruğu",
@@ -674,7 +676,13 @@
     "iconLabel": "Simge",
     "iconAria": "{{icon}} simge",
     "submit": "Oluştur",
-    "editSubmit": "Kaydet"
+    "editSubmit": "Kaydet",
+    "coverChoose": "Fotoğraf seç",
+    "coverMenu": "Kapak seçenekleri",
+    "coverChange": "Fotoğrafı değiştir",
+    "coverRemove": "Fotoğrafı kaldır",
+    "coverAutoHint": "Otomatik kapak — içerikle birlikte güncellenir",
+    "coverManualHint": "Özel görsel"
   },
   "playlistView": {
     "badge": "Çalma listesi",
@@ -697,7 +705,8 @@
     "noneTitle": "Hiçbir çalma listesi seçilmedi",
     "noneDescription": "Yan çubuktan bir çalma listesi seçin ve burada görüntüleyin.",
     "notFoundTitle": "Çalma listesi bulunamadı",
-    "notFoundDescription": "Bu çalma listesi artık aktif profilde mevcut değil."
+    "notFoundDescription": "Bu çalma listesi artık aktif profilde mevcut değil.",
+    "smartLabel": "Daily Mix"
   },
   "trackActions": {
     "addToPlaylist": "Çalma listesine ekle",
@@ -1117,6 +1126,16 @@
         "statusRunning": "Çalışıyor",
         "statusStopped": "Durduruldu",
         "copyUrl": "URL kopyala"
+      },
+      "spotify": {
+        "title": "Spotify",
+        "subtitle": "Spotify Premium'u kendi Spotify Developer Client ID'nle bağla.",
+        "clientIdPlaceholder": "Spotify Client ID",
+        "redirectHint": "Bu Redirect URI'yi Spotify Developer Dashboard'a ekle: http://127.0.0.1:49387/spotify/callback",
+        "connectedAs": "Bağlı kullanıcı:",
+        "disconnect": "Bağlantıyı kes",
+        "connecting": "Bağlanıyor…",
+        "connect": "Spotify'a bağlan"
       }
     },
     "crossfade": {
@@ -1296,5 +1315,12 @@
       "show": "WaveFlow'u aç",
       "quit": "Çık"
     }
+  },
+  "spotify": {
+    "deviceReady": "WaveFlow Spotify cihazı hazır",
+    "devicePending": "Spotify çalma hazırlanıyor…",
+    "searchPlaceholder": "Spotify'da ara",
+    "tracks": "Parçalar",
+    "playlists": "Çalma listeleri"
   }
 }

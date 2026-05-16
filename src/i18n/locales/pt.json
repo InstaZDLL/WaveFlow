@@ -54,7 +54,8 @@
   },
   "sidebar": {
     "nav": {
-      "home": "Página inicial"
+      "home": "Página inicial",
+      "spotify": "Spotify"
     },
     "sections": {
       "open": "Abrir",
@@ -600,7 +601,8 @@
       "slider": "Cursor de velocidade",
       "custom": "Velocidade personalizada",
       "pitchHint": "O tom acompanha a velocidade (sem time-stretching)."
-    }
+    },
+    "seek": "Posição"
   },
   "queue": {
     "title": "Fila de reprodução",
@@ -674,7 +676,13 @@
     "iconLabel": "Ícone",
     "iconAria": "Ícone {{icon}}",
     "submit": "Criar",
-    "editSubmit": "Guardar"
+    "editSubmit": "Guardar",
+    "coverChoose": "Escolher foto",
+    "coverMenu": "Opções de capa",
+    "coverChange": "Mudar foto",
+    "coverRemove": "Remover foto",
+    "coverAutoHint": "Capa automática — atualiza com o conteúdo",
+    "coverManualHint": "Imagem personalizada"
   },
   "playlistView": {
     "badge": "Lista de reprodução",
@@ -697,7 +705,8 @@
     "noneTitle": "Nenhuma lista de reprodução selecionada",
     "noneDescription": "Escolhe uma lista de reprodução na barra lateral para a veres aqui.",
     "notFoundTitle": "Lista de reprodução não encontrada",
-    "notFoundDescription": "Esta lista de reprodução já não existe no perfil ativo."
+    "notFoundDescription": "Esta lista de reprodução já não existe no perfil ativo.",
+    "smartLabel": "Daily Mix"
   },
   "trackActions": {
     "addToPlaylist": "Adicionar a uma lista de reprodução",
@@ -1117,6 +1126,16 @@
         "statusRunning": "Ativo",
         "statusStopped": "Parado",
         "copyUrl": "Copiar URL"
+      },
+      "spotify": {
+        "title": "Spotify",
+        "subtitle": "Liga o Spotify Premium com o teu próprio Client ID do Spotify Developer.",
+        "clientIdPlaceholder": "Spotify Client ID",
+        "redirectHint": "Adiciona este Redirect URI no Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
+        "connectedAs": "Ligado como",
+        "disconnect": "Desligar",
+        "connecting": "A ligar…",
+        "connect": "Ligar Spotify"
       }
     },
     "crossfade": {
@@ -1296,5 +1315,12 @@
       "show": "Abrir WaveFlow",
       "quit": "Sair"
     }
+  },
+  "spotify": {
+    "deviceReady": "Dispositivo Spotify WaveFlow pronto",
+    "devicePending": "A preparar a reprodução do Spotify…",
+    "searchPlaceholder": "Pesquisar no Spotify",
+    "tracks": "Faixas",
+    "playlists": "Playlists"
   }
 }
