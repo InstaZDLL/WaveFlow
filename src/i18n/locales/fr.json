@@ -1254,6 +1254,12 @@
       "action": "Récupérer",
       "progress": "{{current}}/{{total}} traités"
     },
+    "localArtistImages": {
+      "title": "Images artistes locales",
+      "subtitle": "Recherche un fichier artist.jpg (ou <nom>.jpg) à côté de la musique et l'utilise comme photo d'artiste.",
+      "action": "Scanner",
+      "done": "{{linked}} sur {{considered}} artistes liés à une image locale"
+    },
     "profileIo": {
       "title": "Sauvegarde du profil",
       "subtitle": "Exporte ou importe un profil entier (playlists, j'aime, statistiques, EQ, raccourcis) sous forme d'un fichier .waveflow.",

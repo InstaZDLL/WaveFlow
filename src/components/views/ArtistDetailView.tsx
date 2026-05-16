@@ -106,13 +106,13 @@ export function ArtistDetailView({
         ]);
         if (cancelled) return;
         setArtist(detail);
-        // Seed Deezer cache from the detail response so images render
-        // instantly on re-visits (not just after enrichment resolves).
+        // Local sidecar `artist.jpg` always wins over the Deezer cache —
+        // keeps the offline-first promise from issue #31.
         const seeded = resolveArtwork(
           {
-            full: detail.picture_path,
-            x1: detail.picture_path_1x,
-            x2: detail.picture_path_2x,
+            full: detail.artwork_path ?? detail.picture_path,
+            x1: detail.artwork_path_1x ?? detail.picture_path_1x,
+            x2: detail.artwork_path_2x ?? detail.picture_path_2x,
             remoteUrl: detail.picture_url,
           },
           "full",
@@ -170,9 +170,12 @@ export function ArtistDetailView({
     };
   }, [artistId]);
 
-  // Deezer enrichment
+  // Deezer enrichment. Gated on `artist` being loaded so the
+  // "local-wins-over-Deezer" guard below can read `artwork_path` from a
+  // fresh detail instead of a stale closure value.
+  const hasLocalArtistImage = !!artist?.artwork_path;
   useEffect(() => {
-    if (artistId == null) return;
+    if (artistId == null || artist == null) return;
     let cancelled = false;
     enrichArtistDeezer(artistId)
       .then((e) => {
@@ -186,7 +189,7 @@ export function ArtistDetailView({
           },
           "full",
         );
-        if (resolved) setPictureSrc(resolved);
+        if (resolved && !hasLocalArtistImage) setPictureSrc(resolved);
         if (e.fans_count != null) setFansCount(e.fans_count);
         if (e.bio_short) setBioShort(e.bio_short);
         if (e.bio_full) setBioFull(e.bio_full);
@@ -195,7 +198,7 @@ export function ArtistDetailView({
     return () => {
       cancelled = true;
     };
-  }, [artistId]);
+  }, [artistId, hasLocalArtistImage, artist]);
 
   const handleToggleLike = async (trackId: number) => {
     const nowLiked = await toggleLikeTrack(trackId);

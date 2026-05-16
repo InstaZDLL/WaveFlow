@@ -424,6 +424,7 @@ pub fn run() {
             commands::smart_playlists::get_custom_smart_playlist_rules,
             commands::smart_playlists::preview_custom_smart_playlist,
             commands::scan::scan_folder,
+            commands::scan::rescan_local_artist_images,
             commands::track::list_tracks,
             commands::track::get_track,
             commands::track::search_tracks,

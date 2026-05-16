@@ -1216,6 +1216,12 @@
       "action": "Recuperar",
       "progress": "{{current}}/{{total}} processados"
     },
+    "localArtistImages": {
+      "title": "Imagens locais de artistas",
+      "subtitle": "Procura um ficheiro artist.jpg (ou <nome>.jpg) junto à música e usa-o como foto do artista.",
+      "action": "Procurar",
+      "done": "{{linked}} de {{considered}} artistas associados a uma imagem local"
+    },
     "dataFolder": {
       "title": "Pasta de dados",
       "subtitle": "Abrir a pasta que contém a base de dados e as capas",

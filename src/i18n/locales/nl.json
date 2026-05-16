@@ -1216,6 +1216,12 @@
       "action": "Terugwinnen",
       "progress": "{{current}}/{{total}} verwerkt"
     },
+    "localArtistImages": {
+      "title": "Lokale artiestafbeeldingen",
+      "subtitle": "Zoekt naar een artist.jpg (of <naam>.jpg) naast de muziek en gebruikt die als artiestfoto.",
+      "action": "Scannen",
+      "done": "{{linked}} van {{considered}} artiesten gekoppeld aan een lokale afbeelding"
+    },
     "dataFolder": {
       "title": "Gegevensbestand",
       "subtitle": "Open de map met de database en de omslagen",

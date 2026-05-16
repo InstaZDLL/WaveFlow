@@ -1216,6 +1216,12 @@
       "action": "استرداد",
       "progress": "تم معالجة {{current}}/{{total}}"
     },
+    "localArtistImages": {
+      "title": "صور الفنانين المحلية",
+      "subtitle": "يبحث عن ملف artist.jpg (أو <name>.jpg) بجانب الموسيقى ويستخدمه كصورة للفنان.",
+      "action": "فحص",
+      "done": "تم ربط {{linked}} من أصل {{considered}} فنانًا بصورة محلية"
+    },
     "dataFolder": {
       "title": "ملف البيانات",
       "subtitle": "افتح المجلد الذي يحتوي على قاعدة البيانات والأغلفة",

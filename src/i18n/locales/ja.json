@@ -1216,6 +1216,12 @@
       "action": "復元する",
       "progress": "{{current}}/{{total}} 処理済み"
     },
+    "localArtistImages": {
+      "title": "ローカルアーティスト画像",
+      "subtitle": "音楽ファイルの隣にある artist.jpg（または <名前>.jpg）を探し、アーティスト写真として利用します。",
+      "action": "スキャン",
+      "done": "{{considered}} 人中 {{linked}} 人のアーティストにローカル画像をリンクしました"
+    },
     "dataFolder": {
       "title": "データファイル",
       "subtitle": "データベースとカバー画像が入っているフォルダを開く",

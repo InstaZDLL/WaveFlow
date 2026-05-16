@@ -1216,6 +1216,12 @@
       "action": "Getir",
       "progress": "{{current}}/{{total}} işlendi"
     },
+    "localArtistImages": {
+      "title": "Yerel sanatçı görselleri",
+      "subtitle": "Müziğin yanındaki artist.jpg (veya <ad>.jpg) dosyasını bulup sanatçı fotoğrafı olarak kullanır.",
+      "action": "Tara",
+      "done": "{{considered}} sanatçıdan {{linked}} tanesi yerel görsele bağlandı"
+    },
     "dataFolder": {
       "title": "Veri klasörü",
       "subtitle": "Veritabanını ve kapak resmini içeren klasörü açın",

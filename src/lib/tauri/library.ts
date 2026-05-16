@@ -96,6 +96,25 @@ export function scanFolder(folderId: number): Promise<ScanSummary> {
   return invoke<ScanSummary>("scan_folder", { folderId });
 }
 
+/** Outcome of {@link rescanLocalArtistImages}. */
+export interface ArtistImageScanSummary {
+  /** Artists whose `artwork_id` was NULL when the rescan started. */
+  considered: number;
+  /** Artists that now have a sidecar image linked. */
+  linked: number;
+}
+
+/**
+ * Walk every artist row that still has no local artwork and try to
+ * resolve a sidecar `artist.jpg` (or `<artist_name>.jpg`) from any
+ * folder along their tracks' paths. Lets libraries scanned before the
+ * local-artist-image feature shipped pick up the sidecars without
+ * re-importing every folder.
+ */
+export function rescanLocalArtistImages(): Promise<ArtistImageScanSummary> {
+  return invoke<ArtistImageScanSummary>("rescan_local_artist_images");
+}
+
 /**
  * Per-library folder row used by the folder management UI: just the
  * raw `library_folder` columns the user can see and act on (path,

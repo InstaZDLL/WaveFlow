@@ -59,3 +59,25 @@ UI: [`DuplicatesModal`](../../src/components/common/DuplicatesModal.tsx) launche
 ## Cover picker
 
 [`commands/deezer.rs::set_album_artwork_from_deezer`](../../src-tauri/src/commands/deezer.rs) and `set_album_artwork_from_file`. The file picker validates magic bytes (JPEG / PNG / WebP) before accepting upload, and `batch_fetch_missing_album_covers` walks all albums without an `artwork_id`, querying Deezer in parallel with a small concurrency cap.
+
+## Local artist images
+
+Scanner sidecar lookup, mirror of the folder-cover fallback but resolved against the track's ancestors instead of the immediate parent.
+
+[`commands/scan.rs::extract_artist_image`](../../src-tauri/src/commands/scan.rs) walks up to **3 parent directories** from each track and accepts the first match where either:
+
+- the filename stem is one of `ARTIST_IMAGE_STEMS = ["artist", "performer", "band"]`, **or**
+- the stem's `canonical_name(...)` equals the artist's canonical name (covers `Daft Punk.jpg` at the root of a `Daft Punk/` folder).
+
+Both common layouts from issue #31 work out of the box:
+
+- `Music/<Artist>/<Album>/track.flac` → matches `artist.jpg` two levels up.
+- `Music/<Album>/track.flac` → matches `<Artist>.jpg` sitting beside the album folder (strict name-match so an unrelated `cover.jpg` is never mistaken for an artist photo).
+
+Hash-addressed via BLAKE3 into the shared `artwork/<hash>.{jpg,png,webp,…}` cache and linked through the existing `artist.artwork_id → artwork` foreign key (no schema change). The `UPDATE … WHERE artwork_id IS NULL` guard means scanner runs never overwrite a manually uploaded image or a previously cached Deezer picture.
+
+Resolution priority in [`commands/browse.rs::get_artist_detail`](../../src-tauri/src/commands/browse.rs) is now: **local sidecar → Deezer cache → live Deezer fetch** (last skipped when offline). [`ArtistDetailView`](../../src/components/views/ArtistDetailView.tsx) prefers `artwork_path` over `picture_path` and refuses to clobber a local image with a late-arriving Deezer response.
+
+The `"Various Artists"` sentinel is explicitly excluded so a compilation folder never inherits a stray album cover as an artist photo.
+
+For libraries scanned before the feature shipped, [`commands/scan.rs::rescan_local_artist_images`](../../src-tauri/src/commands/scan.rs) (exposed as **Settings → Library → Local artist images**) walks every `artist WHERE artwork_id IS NULL`, picks a representative track per artist, and runs `extract_artist_image` against it — cheap to re-run because already-linked rows are filtered at the SQL level.

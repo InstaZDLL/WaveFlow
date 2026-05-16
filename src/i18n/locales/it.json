@@ -1216,6 +1216,12 @@
       "action": "Recuperare",
       "progress": "{{current}}/{{total}} elaborati"
     },
+    "localArtistImages": {
+      "title": "Immagini artisti locali",
+      "subtitle": "Cerca un file artist.jpg (o <nome>.jpg) accanto alla musica e lo usa come foto dell'artista.",
+      "action": "Scansiona",
+      "done": "{{linked}} su {{considered}} artisti collegati a un'immagine locale"
+    },
     "dataFolder": {
       "title": "Fascicolo dei dati",
       "subtitle": "Aprire la cartella contenente il database e le copertine",

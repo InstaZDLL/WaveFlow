@@ -89,7 +89,7 @@ A-B repeat · crossfade (static / smart-album-aware / dynamic-tempo-aware) · ga
 
 ### Library ([`docs/features/library.md`](docs/features/library.md))
 
-Scanner with parallel BLAKE3 extraction + transactional commit + fs-watcher silent rescan + `scan:progress` toast · folder-cover fallback (cover/folder/front/albumart…) · advanced search (FTS5 + structured filters: genre, year, BPM, duration, format, Hi-Res, liked) · tag editor round-trips through lofty + DB · track ratings (POPM round-trip, half-step UI) · duplicate detection (BLAKE3 grouping) · folder removal + drag-and-drop import · listening history (`HistoryView` with month scrubber) · album grouping with sticky compilation flag (see cross-cutting rules above).
+Scanner with parallel BLAKE3 extraction + transactional commit + fs-watcher silent rescan + `scan:progress` toast · folder-cover fallback (cover/folder/front/albumart…) · local artist images (`artist.jpg` or `<artist_name>.jpg` resolved up to 3 parent dirs, prioritised over Deezer; `rescan_local_artist_images` backfills existing libraries) · advanced search (FTS5 + structured filters: genre, year, BPM, duration, format, Hi-Res, liked) · tag editor round-trips through lofty + DB · track ratings (POPM round-trip, half-step UI) · duplicate detection (BLAKE3 grouping) · folder removal + drag-and-drop import · listening history (`HistoryView` with month scrubber) · album grouping with sticky compilation flag (see cross-cutting rules above).
 
 ### UI ([`docs/features/ui.md`](docs/features/ui.md))
 

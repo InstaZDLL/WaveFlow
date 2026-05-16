@@ -1216,6 +1216,12 @@
       "action": "Ambil",
       "progress": "{{current}}/{{total}} diproses"
     },
+    "localArtistImages": {
+      "title": "Gambar artis lokal",
+      "subtitle": "Mencari berkas artist.jpg (atau <nama>.jpg) di sebelah musik dan menggunakannya sebagai foto artis.",
+      "action": "Pindai",
+      "done": "{{linked}} dari {{considered}} artis terhubung ke gambar lokal"
+    },
     "dataFolder": {
       "title": "Folder data",
       "subtitle": "Buka folder yang berisi basis data dan gambar sampul",

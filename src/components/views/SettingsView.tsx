@@ -98,7 +98,10 @@ import { listen } from "@tauri-apps/api/event";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
 import { invoke } from "@tauri-apps/api/core";
-import { regenerateThumbnails } from "../../lib/tauri/library";
+import {
+  regenerateThumbnails,
+  rescanLocalArtistImages,
+} from "../../lib/tauri/library";
 import {
   getAutoStart,
   getMinimizeToTray,
@@ -646,6 +649,33 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       if (unlisten) unlisten();
     };
   }, []);
+
+  // Rescan local sidecar `artist.jpg` files (see scan.rs::extract_artist_image).
+  const [isRescanningLocalArtists, setIsRescanningLocalArtists] =
+    useState(false);
+  const [localArtistRescanStatus, setLocalArtistRescanStatus] = useState<
+    string | null
+  >(null);
+
+  const handleRescanLocalArtistImages = useCallback(async () => {
+    if (isRescanningLocalArtists) return;
+    setIsRescanningLocalArtists(true);
+    setLocalArtistRescanStatus(null);
+    try {
+      const summary = await rescanLocalArtistImages();
+      setLocalArtistRescanStatus(
+        t("settings.localArtistImages.done", {
+          linked: summary.linked,
+          considered: summary.considered,
+        }),
+      );
+    } catch (err) {
+      console.error("[SettingsView] rescan local artist images failed", err);
+    } finally {
+      setIsRescanningLocalArtists(false);
+      window.setTimeout(() => setLocalArtistRescanStatus(null), 5000);
+    }
+  }, [isRescanningLocalArtists, t]);
 
   const handleFetchMissingArtistPictures = async () => {
     if (isFetchingArtists) return;
@@ -2261,6 +2291,38 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4 flex-1 min-w-0">
+              <ImageIcon
+                size={20}
+                className="text-zinc-400 shrink-0"
+                aria-hidden="true"
+              />
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.localArtistImages.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {localArtistRescanStatus ??
+                    t("settings.localArtistImages.subtitle")}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleRescanLocalArtistImages}
+              disabled={isRescanningLocalArtists}
+              className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ImageIcon
+                size={14}
+                aria-hidden="true"
+                className={isRescanningLocalArtists ? "animate-pulse" : ""}
+              />
+              <span>{t("settings.localArtistImages.action")}</span>
+            </button>
           </div>
 
           <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">

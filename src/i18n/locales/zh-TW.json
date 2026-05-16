@@ -1216,6 +1216,12 @@
       "action": "恢復",
       "progress": "已處理 {{current}}/{{total}}"
     },
+    "localArtistImages": {
+      "title": "本地藝人圖片",
+      "subtitle": "在音樂旁尋找 artist.jpg(或 <名稱>.jpg)檔案,並將其用作藝人照片。",
+      "action": "掃描",
+      "done": "已為 {{considered}} 位藝人中的 {{linked}} 位連結本地圖片"
+    },
     "dataFolder": {
       "title": "資料檔案",
       "subtitle": "開啟包含資料庫和封面圖檔的資料夾",
