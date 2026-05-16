@@ -50,6 +50,12 @@ Two entry points in the [`PlayerBar`](../../src/components/player/PlayerBar.tsx)
 - **Interactive seek bar** — slim white bar at the bottom, click/drag to scrub. Same `pointer capture` + local `dragMs` pattern as the main `ProgressBar`. Thumb + timestamps fade in on hover so the idle widget stays minimal.
 - **Capabilities** — the mini-player's window label is added to [`capabilities/default.json`](../../src-tauri/capabilities/default.json) so it inherits every command the main window has access to (no duplicated capability file, no per-window permission pruning).
 
+## Splash screen
+
+To hide the cold-start delay (Windows SmartScreen / Defender scanning every freshly-extracted DLL on the very first launch after install, plus the `setup()` chain in [`lib.rs`](../../src-tauri/src/lib.rs) — opening `app.db` + running migrations, creating the default profile, cold-initialising cpal/WASAPI), the main window is created with `"visible": false` and a small secondary window (`label: "splashscreen"`, 360×240, transparent, decorations off, always-on-top, off the taskbar) shows a WaveFlow logo + indeterminate progress bar while the backend boots and the React bundle parses.
+
+The static HTML lives in [`public/splash.html`](../../public/splash.html) (no JS, inline SVG logo, single CSS animation) so it paints the instant the WebView2 process spawns. [`main.tsx`](../../src/main.tsx) runs the takeover after the first React frame: show the main window first, then close the splash so the desktop is never visible between the two. The mini-player webview branches out via `?mini=1` and skips the dance.
+
 ## System tray
 
 Quick playback controls (Play/Pause, Previous, Next, Quitter). Close-to-tray is the default close behaviour — the `WindowEvent::CloseRequested` handler hides the window unless the tray "Quitter" item armed `QuitGate`. Tray ID is `waveflow`.
