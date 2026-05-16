@@ -54,7 +54,8 @@
   },
   "sidebar": {
     "nav": {
-      "home": "Startseite"
+      "home": "Startseite",
+      "spotify": "Spotify"
     },
     "sections": {
       "open": "Öffnen",
@@ -212,6 +213,16 @@
     },
     "recentlyAdded": {
       "title": "Kürzlich hinzugefügt"
+    },
+    "dailyMix": {
+      "title": "Für dich",
+      "regenerate": "Neu generieren",
+      "regenerating": "Wird generiert…",
+      "emptyTitle": "Noch kein Daily Mix",
+      "emptyDescription": "Höre ein paar Titel und klicke dann auf Neu generieren, um deine persönlichen Mixe zu erstellen.",
+      "label": "Daily Mix",
+      "trackCount_one": "{{count}} Titel",
+      "trackCount_other": "{{count}} Titel"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
@@ -590,7 +601,8 @@
       "slider": "Geschwindigkeitsregler",
       "custom": "Benutzerdefinierte Geschwindigkeit",
       "pitchHint": "Tonhöhe folgt der Geschwindigkeit (kein Time-Stretching)."
-    }
+    },
+    "seek": "Position"
   },
   "queue": {
     "title": "Warteschlange abspielen",
@@ -664,7 +676,13 @@
     "iconLabel": "Symbol",
     "iconAria": "{{icon}}-Symbol",
     "submit": "Erstellen",
-    "editSubmit": "Speichern"
+    "editSubmit": "Speichern",
+    "coverChoose": "Foto wählen",
+    "coverMenu": "Cover-Optionen",
+    "coverChange": "Foto ändern",
+    "coverRemove": "Foto entfernen",
+    "coverAutoHint": "Automatisches Cover — passt sich dem Inhalt an",
+    "coverManualHint": "Eigenes Bild"
   },
   "playlistView": {
     "badge": "Playlist",
@@ -687,7 +705,8 @@
     "noneTitle": "Es wurde keine Wiedergabeliste ausgewählt",
     "noneDescription": "Wähle eine Wiedergabeliste in der Seitenleiste aus, um sie hier anzuzeigen.",
     "notFoundTitle": "Playlist nicht gefunden",
-    "notFoundDescription": "Diese Wiedergabeliste ist im aktiven Profil nicht mehr vorhanden."
+    "notFoundDescription": "Diese Wiedergabeliste ist im aktiven Profil nicht mehr vorhanden.",
+    "smartLabel": "Daily Mix"
   },
   "trackActions": {
     "addToPlaylist": "Zur Wiedergabeliste hinzufügen",
@@ -1107,6 +1126,16 @@
         "statusRunning": "Aktiv",
         "statusStopped": "Gestoppt",
         "copyUrl": "URL kopieren"
+      },
+      "spotify": {
+        "title": "Spotify",
+        "subtitle": "Verbinde Spotify Premium mit deiner eigenen Spotify Developer Client-ID.",
+        "clientIdPlaceholder": "Spotify Client ID",
+        "redirectHint": "Füge diese Redirect URI im Spotify Developer Dashboard hinzu: http://127.0.0.1:49387/spotify/callback",
+        "connectedAs": "Verbunden als",
+        "disconnect": "Trennen",
+        "connecting": "Verbindung wird hergestellt…",
+        "connect": "Spotify verbinden"
       }
     },
     "crossfade": {
@@ -1277,5 +1306,22 @@
     "runningSubtitle": "{{current}} / {{total}} Dateien",
     "doneTitle": "Analyse abgeschlossen",
     "doneSubtitle": "{{added}} hinzugefügt · {{updated}} aktualisiert · {{skipped}} übersprungen"
+  },
+  "system": {
+    "tray": {
+      "playPause": "Wiedergabe / Pause",
+      "previous": "Zurück",
+      "next": "Weiter",
+      "show": "WaveFlow öffnen",
+      "quit": "Beenden"
+    }
+  },
+  "spotify": {
+    "deviceReady": "WaveFlow Spotify-Gerät bereit",
+    "devicePending": "Spotify-Wiedergabe wird vorbereitet…",
+    "searchPlaceholder": "Spotify durchsuchen",
+    "tracks": "Titel",
+    "playlists": "Playlists",
+    "emptyPlaylist": "Keine abspielbaren Titel in dieser Playlist (Spotify blendet lokale Dateien oder Playlists, die dir nicht gehören, möglicherweise aus)."
   }
 }

@@ -54,7 +54,8 @@
   },
   "sidebar": {
     "nav": {
-      "home": "Главная"
+      "home": "Главная",
+      "spotify": "Spotify"
     },
     "sections": {
       "open": "Открыть",
@@ -212,6 +213,16 @@
     },
     "recentlyAdded": {
       "title": "Недавно добавленные"
+    },
+    "dailyMix": {
+      "title": "Для тебя",
+      "regenerate": "Обновить",
+      "regenerating": "Создание…",
+      "emptyTitle": "Daily Mix ещё нет",
+      "emptyDescription": "Послушай несколько треков и нажми Обновить, чтобы создать свои персональные миксы.",
+      "label": "Daily Mix",
+      "trackCount_one": "{{count}} трек",
+      "trackCount_other": "{{count}} треков"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
@@ -590,7 +601,8 @@
       "slider": "Ползунок скорости",
       "custom": "Своя скорость",
       "pitchHint": "Высота тона следует за скоростью (без time-stretching)."
-    }
+    },
+    "seek": "Перемотка"
   },
   "queue": {
     "title": "Очередь воспроизведения",
@@ -664,7 +676,13 @@
     "iconLabel": "Значок",
     "iconAria": "{{icon}} значок",
     "submit": "Создать",
-    "editSubmit": "Сохранить"
+    "editSubmit": "Сохранить",
+    "coverChoose": "Выбрать фото",
+    "coverMenu": "Параметры обложки",
+    "coverChange": "Изменить фото",
+    "coverRemove": "Удалить фото",
+    "coverAutoHint": "Авто-обложка — обновляется вместе с содержимым",
+    "coverManualHint": "Своё изображение"
   },
   "playlistView": {
     "badge": "Плейлист",
@@ -687,7 +705,8 @@
     "noneTitle": "Плейлист не выбран",
     "noneDescription": "Выберите плейлист в боковой панели, чтобы просмотреть его здесь.",
     "notFoundTitle": "Плейлист не найден",
-    "notFoundDescription": "Этот плейлист больше не существует в активном профиле."
+    "notFoundDescription": "Этот плейлист больше не существует в активном профиле.",
+    "smartLabel": "Daily Mix"
   },
   "trackActions": {
     "addToPlaylist": "Добавить в плейлист",
@@ -1107,6 +1126,16 @@
         "statusRunning": "Активен",
         "statusStopped": "Остановлен",
         "copyUrl": "Скопировать URL"
+      },
+      "spotify": {
+        "title": "Spotify",
+        "subtitle": "Подключи Spotify Premium со своим Spotify Developer Client ID.",
+        "clientIdPlaceholder": "Spotify Client ID",
+        "redirectHint": "Добавь этот Redirect URI в Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
+        "connectedAs": "Подключено как",
+        "disconnect": "Отключить",
+        "connecting": "Подключение…",
+        "connect": "Подключить Spotify"
       }
     },
     "crossfade": {
@@ -1277,5 +1306,22 @@
     "runningSubtitle": "{{current}} / {{total}} файлов",
     "doneTitle": "Сканирование завершено",
     "doneSubtitle": "{{added}} добавлено · {{updated}} обновлено · {{skipped}} пропущено"
+  },
+  "system": {
+    "tray": {
+      "playPause": "Воспроизвести / Пауза",
+      "previous": "Назад",
+      "next": "Далее",
+      "show": "Открыть WaveFlow",
+      "quit": "Выйти"
+    }
+  },
+  "spotify": {
+    "deviceReady": "Устройство Spotify WaveFlow готово",
+    "devicePending": "Подготовка воспроизведения Spotify…",
+    "searchPlaceholder": "Искать в Spotify",
+    "tracks": "Треки",
+    "playlists": "Плейлисты",
+    "emptyPlaylist": "В этом плейлисте нет доступных треков (Spotify может не отдавать локальные файлы или чужие плейлисты)."
   }
 }

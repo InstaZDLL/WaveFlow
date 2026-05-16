@@ -54,7 +54,8 @@
   },
   "sidebar": {
     "nav": {
-      "home": "홈"
+      "home": "홈",
+      "spotify": "Spotify"
     },
     "sections": {
       "open": "열기",
@@ -212,6 +213,16 @@
     },
     "recentlyAdded": {
       "title": "최근 추가됨"
+    },
+    "dailyMix": {
+      "title": "당신을 위한 추천",
+      "regenerate": "다시 생성",
+      "regenerating": "생성 중…",
+      "emptyTitle": "아직 Daily Mix가 없습니다",
+      "emptyDescription": "몇 곡을 재생한 뒤 다시 생성을 눌러 개인 맞춤 믹스를 만들어 보세요.",
+      "label": "Daily Mix",
+      "trackCount_one": "{{count}} 곡",
+      "trackCount_other": "{{count}} 곡"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
@@ -590,7 +601,8 @@
       "slider": "속도 슬라이더",
       "custom": "사용자 정의 속도",
       "pitchHint": "피치가 속도를 따라갑니다 (타임 스트레칭 없음)."
-    }
+    },
+    "seek": "재생 위치"
   },
   "queue": {
     "title": "재생 대기열",
@@ -664,7 +676,13 @@
     "iconLabel": "아이콘",
     "iconAria": "{{icon}} 아이콘",
     "submit": "만들기",
-    "editSubmit": "저장"
+    "editSubmit": "저장",
+    "coverChoose": "사진 선택",
+    "coverMenu": "커버 옵션",
+    "coverChange": "사진 변경",
+    "coverRemove": "사진 제거",
+    "coverAutoHint": "자동 커버 — 콘텐츠에 맞게 업데이트됩니다",
+    "coverManualHint": "사용자 지정 이미지"
   },
   "playlistView": {
     "badge": "재생 목록",
@@ -687,7 +705,8 @@
     "noneTitle": "선택된 재생 목록이 없습니다",
     "noneDescription": "사이드바에서 재생 목록을 선택하면 여기에 표시됩니다.",
     "notFoundTitle": "재생 목록을 찾을 수 없습니다",
-    "notFoundDescription": "이 재생 목록은 현재 프로필에서 더 이상 존재하지 않습니다."
+    "notFoundDescription": "이 재생 목록은 현재 프로필에서 더 이상 존재하지 않습니다.",
+    "smartLabel": "Daily Mix"
   },
   "trackActions": {
     "addToPlaylist": "재생 목록에 추가",
@@ -1107,6 +1126,16 @@
         "statusRunning": "실행 중",
         "statusStopped": "중지됨",
         "copyUrl": "URL 복사"
+      },
+      "spotify": {
+        "title": "Spotify",
+        "subtitle": "자신의 Spotify Developer Client ID로 Spotify Premium에 연결하세요.",
+        "clientIdPlaceholder": "Spotify Client ID",
+        "redirectHint": "이 Redirect URI를 Spotify Developer Dashboard에 추가하세요: http://127.0.0.1:49387/spotify/callback",
+        "connectedAs": "연결됨:",
+        "disconnect": "연결 해제",
+        "connecting": "연결 중…",
+        "connect": "Spotify 연결"
       }
     },
     "crossfade": {
@@ -1277,5 +1306,22 @@
     "runningSubtitle": "{{current}} / {{total}}개 파일",
     "doneTitle": "스캔 완료",
     "doneSubtitle": "{{added}}개 추가 · {{updated}}개 업데이트 · {{skipped}}개 건너뜀"
+  },
+  "system": {
+    "tray": {
+      "playPause": "재생 / 일시정지",
+      "previous": "이전",
+      "next": "다음",
+      "show": "WaveFlow 열기",
+      "quit": "종료"
+    }
+  },
+  "spotify": {
+    "deviceReady": "WaveFlow Spotify 기기 준비 완료",
+    "devicePending": "Spotify 재생 준비 중…",
+    "searchPlaceholder": "Spotify 검색",
+    "tracks": "트랙",
+    "playlists": "플레이리스트",
+    "emptyPlaylist": "이 플레이리스트에서 재생할 수 있는 트랙이 없습니다 (Spotify가 로컬 파일이나 본인 소유가 아닌 플레이리스트를 노출하지 않을 수 있습니다)."
   }
 }

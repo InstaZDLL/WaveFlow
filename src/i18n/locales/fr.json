@@ -54,7 +54,8 @@
   },
   "sidebar": {
     "nav": {
-      "home": "Accueil"
+      "home": "Accueil",
+      "spotify": "Spotify"
     },
     "sections": {
       "open": "Ouvrir",
@@ -212,6 +213,16 @@
     },
     "recentlyAdded": {
       "title": "Récemment ajoutés"
+    },
+    "dailyMix": {
+      "title": "Pour vous",
+      "regenerate": "Régénérer",
+      "regenerating": "Génération…",
+      "emptyTitle": "Pas encore de Daily Mix",
+      "emptyDescription": "Écoute quelques morceaux puis clique sur Régénérer pour créer tes mixes personnalisés.",
+      "label": "Daily Mix",
+      "trackCount_one": "{{count}} morceau",
+      "trackCount_other": "{{count}} morceaux"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
@@ -598,7 +609,8 @@
       "slider": "Curseur de vitesse",
       "custom": "Vitesse personnalisée",
       "pitchHint": "Le ton suit la vitesse (pas de désynchronisation tonale)."
-    }
+    },
+    "seek": "Position"
   },
   "queue": {
     "title": "File de lecture",
@@ -672,7 +684,13 @@
     "iconLabel": "Icône",
     "iconAria": "Icône {{icon}}",
     "submit": "Créer",
-    "editSubmit": "Enregistrer"
+    "editSubmit": "Enregistrer",
+    "coverChoose": "Choisir une photo",
+    "coverMenu": "Options de pochette",
+    "coverChange": "Changer la photo",
+    "coverRemove": "Retirer la photo",
+    "coverAutoHint": "Cover automatique — se met à jour avec le contenu",
+    "coverManualHint": "Image personnalisée"
   },
   "playlistView": {
     "badge": "Playlist",
@@ -695,7 +713,8 @@
     "noneTitle": "Aucune playlist sélectionnée",
     "noneDescription": "Choisis une playlist dans la barre latérale pour la voir ici.",
     "notFoundTitle": "Playlist introuvable",
-    "notFoundDescription": "Cette playlist n'existe plus dans le profil actif."
+    "notFoundDescription": "Cette playlist n'existe plus dans le profil actif.",
+    "smartLabel": "Daily Mix"
   },
   "trackActions": {
     "addToPlaylist": "Ajouter à une playlist",
@@ -1145,6 +1164,16 @@
         "statusRunning": "Actif",
         "statusStopped": "Arrêté",
         "copyUrl": "Copier l'URL"
+      },
+      "spotify": {
+        "title": "Spotify",
+        "subtitle": "Connecte Spotify Premium avec ton propre Client ID Spotify Developer.",
+        "clientIdPlaceholder": "Spotify Client ID",
+        "redirectHint": "Ajoute cette Redirect URI dans le Spotify Developer Dashboard : http://127.0.0.1:49387/spotify/callback",
+        "connectedAs": "Connecté en tant que",
+        "disconnect": "Déconnecter",
+        "connecting": "Connexion…",
+        "connect": "Connecter Spotify"
       }
     },
     "crossfade": {
@@ -1345,12 +1374,26 @@
     "openSettings": "Ouvrir les paramètres",
     "notConnectedTitle": "Spotify n'est pas connecté",
     "notConnectedMessage": "Ton Client ID est configuré. Connecte ton compte Spotify Premium depuis les Paramètres pour charger tes playlists et lancer la lecture.",
-    "emptyPlaylist": "Aucune piste lisible dans cette playlist (Spotify peut bloquer les fichiers locaux ou les playlists que tu ne possèdes pas)."
+    "emptyPlaylist": "Aucune piste lisible dans cette playlist (Spotify peut bloquer les fichiers locaux ou les playlists que tu ne possèdes pas).",
+    "deviceReady": "Appareil Spotify WaveFlow prêt",
+    "devicePending": "Préparation de la lecture Spotify…",
+    "searchPlaceholder": "Rechercher sur Spotify",
+    "tracks": "Morceaux",
+    "playlists": "Playlists"
   },
   "scanProgress": {
     "runningTitle": "Analyse en cours…",
     "runningSubtitle": "{{current}} / {{total}} fichiers",
     "doneTitle": "Analyse terminée",
     "doneSubtitle": "{{added}} ajoutés · {{updated}} mis à jour · {{skipped}} ignorés"
+  },
+  "system": {
+    "tray": {
+      "playPause": "Lecture / Pause",
+      "previous": "Précédent",
+      "next": "Suivant",
+      "show": "Ouvrir WaveFlow",
+      "quit": "Quitter"
+    }
   }
 }

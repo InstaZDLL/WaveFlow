@@ -42,7 +42,7 @@ use queue::Direction;
 use state::AppState;
 use watcher::WatcherManager;
 
-/// Set to `true` by the tray "Quitter" menu before calling `app.exit()`.
+/// Set to `true` by the tray "Quit" menu before calling `app.exit()`.
 /// `WindowEvent::CloseRequested` checks the flag: if armed, the close
 /// proceeds to actual shutdown; otherwise the close is intercepted and
 /// the window is hidden instead (close-to-tray default).
@@ -295,24 +295,46 @@ pub fn run() {
 
             // System tray (status icon).
             //
-            // Menu: Lecture/Pause, Précédent, Suivant, Ouvrir WaveFlow,
-            // Quitter. Left-click on the icon mirrors "Ouvrir WaveFlow"
-            // for the common case where the window was hidden via the
+            // Labels are seeded in English because Rust runs before the
+            // frontend has had a chance to load i18next; the React layer
+            // pushes a localised set via `set_tray_labels` once
+            // `i18nReady` resolves, and again on every `languageChanged`
+            // event. The `MenuItem` handles are stashed in
+            // `TrayMenuItems` so retitling doesn't rebuild the menu.
+            // Left-click on the icon mirrors "Open WaveFlow" for the
+            // common case where the window was hidden via the
             // close-to-tray path. Tooltip is updated to "Title — Artist"
             // by `commands::player::emit_track_changed` whenever a new
             // track starts.
+            let play_pause_item =
+                MenuItem::with_id(app, "play_pause", "Play / Pause", true, None::<&str>)?;
+            let previous_item =
+                MenuItem::with_id(app, "previous", "Previous", true, None::<&str>)?;
+            let next_item = MenuItem::with_id(app, "next", "Next", true, None::<&str>)?;
+            let show_item =
+                MenuItem::with_id(app, "show", "Open WaveFlow", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+
             let menu = Menu::with_items(
                 app,
                 &[
-                    &MenuItem::with_id(app, "play_pause", "Lecture / Pause", true, None::<&str>)?,
-                    &MenuItem::with_id(app, "previous", "Précédent", true, None::<&str>)?,
-                    &MenuItem::with_id(app, "next", "Suivant", true, None::<&str>)?,
+                    &play_pause_item,
+                    &previous_item,
+                    &next_item,
                     &PredefinedMenuItem::separator(app)?,
-                    &MenuItem::with_id(app, "show", "Ouvrir WaveFlow", true, None::<&str>)?,
+                    &show_item,
                     &PredefinedMenuItem::separator(app)?,
-                    &MenuItem::with_id(app, "quit", "Quitter", true, None::<&str>)?,
+                    &quit_item,
                 ],
             )?;
+
+            app.manage(commands::tray::TrayMenuItems {
+                play_pause: play_pause_item,
+                previous: previous_item,
+                next: next_item,
+                show: show_item,
+                quit: quit_item,
+            });
 
             let icon = app
                 .default_window_icon()
@@ -464,6 +486,7 @@ pub fn run() {
             commands::preferences::set_minimize_to_tray,
             commands::preferences::get_auto_start,
             commands::preferences::set_auto_start,
+            commands::tray::set_tray_labels,
             commands::lyrics::get_lyrics,
             commands::lyrics::fetch_lyrics,
             commands::lyrics::import_lrc_file,
