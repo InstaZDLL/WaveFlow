@@ -213,6 +213,16 @@
     "recentlyAdded": {
       "title": "Недавно добавленные"
     },
+    "dailyMix": {
+      "title": "Для тебя",
+      "regenerate": "Обновить",
+      "regenerating": "Создание…",
+      "emptyTitle": "Daily Mix ещё нет",
+      "emptyDescription": "Послушай несколько треков и нажми Обновить, чтобы создать свои персональные миксы.",
+      "label": "Daily Mix",
+      "trackCount_one": "{{count}} трек",
+      "trackCount_other": "{{count}} треков"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Ваш итог {{year}}",
@@ -1277,5 +1287,14 @@
     "runningSubtitle": "{{current}} / {{total}} файлов",
     "doneTitle": "Сканирование завершено",
     "doneSubtitle": "{{added}} добавлено · {{updated}} обновлено · {{skipped}} пропущено"
+  },
+  "system": {
+    "tray": {
+      "playPause": "Воспроизвести / Пауза",
+      "previous": "Назад",
+      "next": "Далее",
+      "show": "Открыть WaveFlow",
+      "quit": "Выйти"
+    }
   }
 }

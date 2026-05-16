@@ -213,6 +213,16 @@
     "recentlyAdded": {
       "title": "最近新增"
     },
+    "dailyMix": {
+      "title": "為你推薦",
+      "regenerate": "重新產生",
+      "regenerating": "產生中…",
+      "emptyTitle": "還沒有 Daily Mix",
+      "emptyDescription": "先聽幾首歌,然後點擊重新產生來建立你的個人化合輯。",
+      "label": "Daily Mix",
+      "trackCount_one": "{{count}} 首",
+      "trackCount_other": "{{count}} 首"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "你的 {{year}} 年度回顧",
@@ -1277,5 +1287,14 @@
     "runningSubtitle": "{{current}} / {{total}} 個檔案",
     "doneTitle": "掃描完成",
     "doneSubtitle": "已新增 {{added}} · 已更新 {{updated}} · 已略過 {{skipped}}"
+  },
+  "system": {
+    "tray": {
+      "playPause": "播放 / 暫停",
+      "previous": "上一首",
+      "next": "下一首",
+      "show": "開啟 WaveFlow",
+      "quit": "結束"
+    }
   }
 }

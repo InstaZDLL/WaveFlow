@@ -213,6 +213,16 @@
     "recentlyAdded": {
       "title": "हाल ही में जोड़े गए"
     },
+    "dailyMix": {
+      "title": "आपके लिए",
+      "regenerate": "फिर बनाएँ",
+      "regenerating": "बनाया जा रहा है…",
+      "emptyTitle": "अभी कोई Daily Mix नहीं",
+      "emptyDescription": "कुछ ट्रैक सुनें फिर अपने व्यक्तिगत मिक्स बनाने के लिए फिर बनाएँ पर क्लिक करें।",
+      "label": "Daily Mix",
+      "trackCount_one": "{{count}} ट्रैक",
+      "trackCount_other": "{{count}} ट्रैक"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "आपका {{year}} रीकैप",
@@ -1277,5 +1287,14 @@
     "runningSubtitle": "{{current}} / {{total}} फ़ाइलें",
     "doneTitle": "स्कैन पूर्ण",
     "doneSubtitle": "{{added}} जोड़े · {{updated}} अपडेट · {{skipped}} छोड़े"
+  },
+  "system": {
+    "tray": {
+      "playPause": "चलाएँ / रोकें",
+      "previous": "पिछला",
+      "next": "अगला",
+      "show": "WaveFlow खोलें",
+      "quit": "बंद करें"
+    }
   }
 }

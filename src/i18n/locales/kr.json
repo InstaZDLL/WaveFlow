@@ -213,6 +213,16 @@
     "recentlyAdded": {
       "title": "최근 추가됨"
     },
+    "dailyMix": {
+      "title": "당신을 위한 추천",
+      "regenerate": "다시 생성",
+      "regenerating": "생성 중…",
+      "emptyTitle": "아직 Daily Mix가 없습니다",
+      "emptyDescription": "몇 곡을 재생한 뒤 다시 생성을 눌러 개인 맞춤 믹스를 만들어 보세요.",
+      "label": "Daily Mix",
+      "trackCount_one": "{{count}} 곡",
+      "trackCount_other": "{{count}} 곡"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "{{year}}년 결산",
@@ -1277,5 +1287,14 @@
     "runningSubtitle": "{{current}} / {{total}}개 파일",
     "doneTitle": "스캔 완료",
     "doneSubtitle": "{{added}}개 추가 · {{updated}}개 업데이트 · {{skipped}}개 건너뜀"
+  },
+  "system": {
+    "tray": {
+      "playPause": "재생 / 일시정지",
+      "previous": "이전",
+      "next": "다음",
+      "show": "WaveFlow 열기",
+      "quit": "종료"
+    }
   }
 }

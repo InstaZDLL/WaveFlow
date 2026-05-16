@@ -1,4 +1,5 @@
 import i18n from "i18next";
+import { setTrayLabels } from "../lib/tauri/tray";
 import type {
   BackendModule,
   InitOptions,
@@ -139,6 +140,23 @@ function applyDocumentLanguage(code: string | undefined) {
   document.documentElement.dir = i18n.dir(normalizedCode);
 }
 
+// Push the localised tray menu labels to the Rust backend. The tray
+// is built at startup with English seed strings (frontend hasn't had
+// time to load i18next yet); this re-titles each item once the user
+// language is known and on every subsequent `languageChanged`.
+function pushTrayLabels() {
+  setTrayLabels({
+    playPause: i18n.t("system.tray.playPause"),
+    previous: i18n.t("system.tray.previous"),
+    next: i18n.t("system.tray.next"),
+    show: i18n.t("system.tray.show"),
+    quit: i18n.t("system.tray.quit"),
+  }).catch(() => {
+    // Tauri command unavailable (e.g. running outside the desktop
+    // shell during a Vite-only dev session) — drop silently.
+  });
+}
+
 const dynamicLocaleBackend: BackendModule = {
   type: "backend",
   init(
@@ -189,8 +207,12 @@ export const i18nReady = i18n
   })
   .then(() => {
     applyDocumentLanguage(i18n.resolvedLanguage ?? i18n.language);
+    pushTrayLabels();
   });
 
-i18n.on("languageChanged", applyDocumentLanguage);
+i18n.on("languageChanged", (code) => {
+  applyDocumentLanguage(code);
+  pushTrayLabels();
+});
 
 export default i18n;

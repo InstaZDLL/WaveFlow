@@ -213,6 +213,16 @@
     "recentlyAdded": {
       "title": "Baru ditambahkan"
     },
+    "dailyMix": {
+      "title": "Untuk kamu",
+      "regenerate": "Buat ulang",
+      "regenerating": "Membuat…",
+      "emptyTitle": "Belum ada Daily Mix",
+      "emptyDescription": "Dengarkan beberapa lagu lalu klik Buat ulang untuk membuat mix personal kamu.",
+      "label": "Daily Mix",
+      "trackCount_one": "{{count}} lagu",
+      "trackCount_other": "{{count}} lagu"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Ringkasan {{year}} kamu",
@@ -1277,5 +1287,14 @@
     "runningSubtitle": "{{current}} / {{total}} berkas",
     "doneTitle": "Pemindaian selesai",
     "doneSubtitle": "{{added}} ditambahkan · {{updated}} diperbarui · {{skipped}} dilewati"
+  },
+  "system": {
+    "tray": {
+      "playPause": "Putar / Jeda",
+      "previous": "Sebelumnya",
+      "next": "Berikutnya",
+      "show": "Buka WaveFlow",
+      "quit": "Keluar"
+    }
   }
 }

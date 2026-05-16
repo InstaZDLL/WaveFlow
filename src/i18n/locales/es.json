@@ -213,6 +213,16 @@
     "recentlyAdded": {
       "title": "Añadidos recientemente"
     },
+    "dailyMix": {
+      "title": "Para ti",
+      "regenerate": "Regenerar",
+      "regenerating": "Generando…",
+      "emptyTitle": "Aún no hay Daily Mix",
+      "emptyDescription": "Escucha algunas canciones y luego pulsa Regenerar para crear tus mixes personalizados.",
+      "label": "Daily Mix",
+      "trackCount_one": "{{count}} pista",
+      "trackCount_other": "{{count}} pistas"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Tu resumen {{year}}",
@@ -1277,5 +1287,14 @@
     "runningSubtitle": "{{current}} / {{total}} archivos",
     "doneTitle": "Análisis completado",
     "doneSubtitle": "{{added}} añadidos · {{updated}} actualizados · {{skipped}} omitidos"
+  },
+  "system": {
+    "tray": {
+      "playPause": "Reproducir / Pausa",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "show": "Abrir WaveFlow",
+      "quit": "Salir"
+    }
   }
 }

@@ -213,6 +213,16 @@
     "recentlyAdded": {
       "title": "Yakın zamanda eklenenler"
     },
+    "dailyMix": {
+      "title": "Senin için",
+      "regenerate": "Yeniden oluştur",
+      "regenerating": "Oluşturuluyor…",
+      "emptyTitle": "Henüz Daily Mix yok",
+      "emptyDescription": "Birkaç parça dinle, sonra kişisel mikslerini oluşturmak için Yeniden oluştur'a tıkla.",
+      "label": "Daily Mix",
+      "trackCount_one": "{{count}} parça",
+      "trackCount_other": "{{count}} parça"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "{{year}} özetin",
@@ -1277,5 +1287,14 @@
     "runningSubtitle": "{{current}} / {{total}} dosya",
     "doneTitle": "Tarama tamamlandı",
     "doneSubtitle": "{{added}} eklendi · {{updated}} güncellendi · {{skipped}} atlandı"
+  },
+  "system": {
+    "tray": {
+      "playPause": "Oynat / Duraklat",
+      "previous": "Önceki",
+      "next": "Sonraki",
+      "show": "WaveFlow'u aç",
+      "quit": "Çık"
+    }
   }
 }

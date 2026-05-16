@@ -213,6 +213,16 @@
     "recentlyAdded": {
       "title": "Onlangs toegevoegd"
     },
+    "dailyMix": {
+      "title": "Voor jou",
+      "regenerate": "Opnieuw genereren",
+      "regenerating": "Genereren…",
+      "emptyTitle": "Nog geen Daily Mix",
+      "emptyDescription": "Luister naar een paar nummers en klik dan op Opnieuw genereren om je gepersonaliseerde mixen te maken.",
+      "label": "Daily Mix",
+      "trackCount_one": "{{count}} nummer",
+      "trackCount_other": "{{count}} nummers"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Jouw {{year}} samenvatting",
@@ -1277,5 +1287,14 @@
     "runningSubtitle": "{{current}} / {{total}} bestanden",
     "doneTitle": "Scan voltooid",
     "doneSubtitle": "{{added}} toegevoegd · {{updated}} bijgewerkt · {{skipped}} overgeslagen"
+  },
+  "system": {
+    "tray": {
+      "playPause": "Afspelen / Pauze",
+      "previous": "Vorige",
+      "next": "Volgende",
+      "show": "WaveFlow openen",
+      "quit": "Afsluiten"
+    }
   }
 }

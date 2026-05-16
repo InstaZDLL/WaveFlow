@@ -213,6 +213,16 @@
     "recentlyAdded": {
       "title": "最近追加された曲"
     },
+    "dailyMix": {
+      "title": "あなたへのおすすめ",
+      "regenerate": "再生成",
+      "regenerating": "生成中…",
+      "emptyTitle": "Daily Mix はまだありません",
+      "emptyDescription": "数曲再生してから「再生成」を押すと、あなた専用のミックスが作成されます。",
+      "label": "Daily Mix",
+      "trackCount_one": "{{count}} 曲",
+      "trackCount_other": "{{count}} 曲"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "{{year}}年のあなた",
@@ -1277,5 +1287,14 @@
     "runningSubtitle": "{{current}} / {{total}} ファイル",
     "doneTitle": "スキャン完了",
     "doneSubtitle": "{{added}} 追加 · {{updated}} 更新 · {{skipped}} スキップ"
+  },
+  "system": {
+    "tray": {
+      "playPause": "再生 / 一時停止",
+      "previous": "前へ",
+      "next": "次へ",
+      "show": "WaveFlow を開く",
+      "quit": "終了"
+    }
   }
 }

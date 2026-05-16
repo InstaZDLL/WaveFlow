@@ -213,6 +213,16 @@
     "recentlyAdded": {
       "title": "أُضيف حديثاً"
     },
+    "dailyMix": {
+      "title": "من أجلك",
+      "regenerate": "إعادة التوليد",
+      "regenerating": "جارٍ التوليد…",
+      "emptyTitle": "لا يوجد Daily Mix بعد",
+      "emptyDescription": "استمع إلى بعض المقطوعات ثم اضغط على إعادة التوليد لإنشاء مزيجك الخاص.",
+      "label": "Daily Mix",
+      "trackCount_one": "{{count}} مقطوعة",
+      "trackCount_other": "{{count}} مقطوعة"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "ملخّصك لعام {{year}}",
@@ -1277,5 +1287,14 @@
     "runningSubtitle": "{{current}} / {{total}} ملف",
     "doneTitle": "اكتمل التحليل",
     "doneSubtitle": "تمت إضافة {{added}} · تحديث {{updated}} · تخطّي {{skipped}}"
+  },
+  "system": {
+    "tray": {
+      "playPause": "تشغيل / إيقاف مؤقت",
+      "previous": "السابق",
+      "next": "التالي",
+      "show": "فتح WaveFlow",
+      "quit": "خروج"
+    }
   }
 }
