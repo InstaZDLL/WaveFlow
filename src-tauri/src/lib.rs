@@ -308,11 +308,9 @@ pub fn run() {
             // track starts.
             let play_pause_item =
                 MenuItem::with_id(app, "play_pause", "Play / Pause", true, None::<&str>)?;
-            let previous_item =
-                MenuItem::with_id(app, "previous", "Previous", true, None::<&str>)?;
+            let previous_item = MenuItem::with_id(app, "previous", "Previous", true, None::<&str>)?;
             let next_item = MenuItem::with_id(app, "next", "Next", true, None::<&str>)?;
-            let show_item =
-                MenuItem::with_id(app, "show", "Open WaveFlow", true, None::<&str>)?;
+            let show_item = MenuItem::with_id(app, "show", "Open WaveFlow", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
 
             let menu = Menu::with_items(

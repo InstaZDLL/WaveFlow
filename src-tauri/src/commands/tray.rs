@@ -31,10 +31,7 @@ pub struct TrayLabels {
 }
 
 #[tauri::command]
-pub fn set_tray_labels<R: Runtime>(
-    app: AppHandle<R>,
-    labels: TrayLabels,
-) -> Result<(), String> {
+pub fn set_tray_labels<R: Runtime>(app: AppHandle<R>, labels: TrayLabels) -> Result<(), String> {
     let Some(items) = app.try_state::<TrayMenuItems<R>>() else {
         return Ok(());
     };

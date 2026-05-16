@@ -1088,7 +1088,8 @@ mod tests {
 
     #[test]
     fn detect_format_lrc() {
-        let sample = "[ar:Some Artist]\n[ti:Some Title]\n[00:01.00]First line\n[00:05.50]Second line";
+        let sample =
+            "[ar:Some Artist]\n[ti:Some Title]\n[00:01.00]First line\n[00:05.50]Second line";
         assert_eq!(detect_format(sample), LyricsFormat::Lrc);
     }
 

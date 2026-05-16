@@ -216,9 +216,7 @@ pub async fn import_profile(
     //    this step sqlx refuses the import with
     //    "migration X was previously applied but has been modified".
     //    See `.gitattributes` for the forward fix.
-    if let Err(err) =
-        normalise_migration_checksums(&state.paths.profile_db(new_profile_id)).await
-    {
+    if let Err(err) = normalise_migration_checksums(&state.paths.profile_db(new_profile_id)).await {
         cleanup_partial_profile(&state, new_profile_id).await;
         return Err(err);
     }
@@ -227,18 +225,16 @@ pub async fn import_profile(
     //    (the source might be older than the local schema) replay
     //    immediately. This matches the create_profile flow and gives
     //    the user a usable profile by the time the call returns.
-    let pool = match db::profile_db::open(
-        &state.paths.profile_db(new_profile_id),
-        &state.paths.app_db,
-    )
-    .await
-    {
-        Ok(pool) => pool,
-        Err(err) => {
-            cleanup_partial_profile(&state, new_profile_id).await;
-            return Err(err);
-        }
-    };
+    let pool =
+        match db::profile_db::open(&state.paths.profile_db(new_profile_id), &state.paths.app_db)
+            .await
+        {
+            Ok(pool) => pool,
+            Err(err) => {
+                cleanup_partial_profile(&state, new_profile_id).await;
+                return Err(err);
+            }
+        };
     pool.close().await;
 
     Ok(new_profile_id)

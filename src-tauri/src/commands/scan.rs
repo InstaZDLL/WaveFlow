@@ -1093,12 +1093,11 @@ pub(crate) async fn maybe_link_artist_images(
         }
         // Cheap pre-check so we don't walk the FS when the artist already
         // has artwork (Deezer fetch, manual upload, or earlier scan).
-        let has_artwork: Option<i64> = sqlx::query_scalar(
-            "SELECT 1 FROM artist WHERE id = ? AND artwork_id IS NOT NULL",
-        )
-        .bind(id)
-        .fetch_optional(&mut *conn)
-        .await?;
+        let has_artwork: Option<i64> =
+            sqlx::query_scalar("SELECT 1 FROM artist WHERE id = ? AND artwork_id IS NOT NULL")
+                .bind(id)
+                .fetch_optional(&mut *conn)
+                .await?;
         if has_artwork.is_some() {
             continue;
         }
