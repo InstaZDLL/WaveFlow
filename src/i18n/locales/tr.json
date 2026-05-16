@@ -845,6 +845,11 @@
       "notInLibrary": "Kütüphanenizde değil"
     }
   },
+  "artistImagePicker": {
+    "title": "Sanatçı görselini değiştir",
+    "editAria": "Sanatçı fotoğrafını değiştir",
+    "removeAction": "Görseli kaldır"
+  },
   "genreDetail": {
     "badge": "Tür",
     "playAll": "Tümünü çal",

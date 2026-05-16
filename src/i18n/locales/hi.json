@@ -845,6 +845,11 @@
       "notInLibrary": "आपकी लाइब्रेरी में नहीं"
     }
   },
+  "artistImagePicker": {
+    "title": "कलाकार की छवि बदलें",
+    "editAria": "कलाकार की तस्वीर बदलें",
+    "removeAction": "छवि हटाएँ"
+  },
   "genreDetail": {
     "badge": "शैली",
     "playAll": "सभी चलाएँ",

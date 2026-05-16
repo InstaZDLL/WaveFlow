@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Play, Shuffle, Music2, Clock, Heart } from "lucide-react";
+import {
+  Play,
+  Shuffle,
+  Music2,
+  Clock,
+  Heart,
+  Pencil,
+} from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
+import { ArtistImagePickerModal } from "../common/ArtistImagePickerModal";
 import { HiResBadge } from "../common/HiResBadge";
 import { PlayingIndicator } from "../common/PlayingIndicator";
 import { Lightbox } from "../common/Lightbox";
@@ -51,6 +59,7 @@ export function ArtistDetailView({
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
+  const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
 
   const trackContextMenu = useTrackContextMenu({
     likedIds,
@@ -249,21 +258,32 @@ export function ArtistDetailView({
     <div className="space-y-8 animate-fade-in pb-20">
       {/* Header */}
       <div className="flex items-center space-x-8">
-        {/* Artist photo */}
-        {pictureSrc ? (
-          <img
-            src={pictureSrc}
-            alt={artist.name}
-            onDoubleClick={() => setIsLightboxOpen(true)}
-            className="w-48 h-48 rounded-full object-cover shadow-lg shrink-0 cursor-zoom-in"
-          />
-        ) : (
-          <div className="w-48 h-48 rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center shadow-lg shrink-0">
-            <span className="text-7xl font-bold text-violet-500/70 dark:text-violet-400/60">
-              {artist.name.trim().charAt(0).toUpperCase() || "?"}
-            </span>
-          </div>
-        )}
+        {/* Artist photo + edit overlay (visible on hover/focus) */}
+        <div className="relative shrink-0 group">
+          {pictureSrc ? (
+            <img
+              src={pictureSrc}
+              alt={artist.name}
+              onDoubleClick={() => setIsLightboxOpen(true)}
+              className="w-48 h-48 rounded-full object-cover shadow-lg cursor-zoom-in"
+            />
+          ) : (
+            <div className="w-48 h-48 rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center shadow-lg">
+              <span className="text-7xl font-bold text-violet-500/70 dark:text-violet-400/60">
+                {artist.name.trim().charAt(0).toUpperCase() || "?"}
+              </span>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsImagePickerOpen(true)}
+            aria-label={t("artistImagePicker.editAria")}
+            title={t("artistImagePicker.title")}
+            className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/50 focus-visible:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+          >
+            <Pencil size={28} className="text-white drop-shadow-md" />
+          </button>
+        </div>
 
         <div className="flex-1 min-w-0 pt-2">
           <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
@@ -489,6 +509,15 @@ export function ArtistDetailView({
         alt={artist.name}
         isOpen={isLightboxOpen}
         onClose={() => setIsLightboxOpen(false)}
+      />
+
+      <ArtistImagePickerModal
+        artistId={artist.id}
+        artistName={artist.name}
+        hasArtwork={!!artist.artwork_path}
+        isOpen={isImagePickerOpen}
+        onClose={() => setIsImagePickerOpen(false)}
+        onSuccess={() => setEditRefetch((k) => k + 1)}
       />
     </div>
   );

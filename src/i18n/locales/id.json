@@ -845,6 +845,11 @@
       "notInLibrary": "Tidak di pustaka Anda"
     }
   },
+  "artistImagePicker": {
+    "title": "Ubah gambar artis",
+    "editAria": "Ubah foto artis",
+    "removeAction": "Hapus gambar"
+  },
   "genreDetail": {
     "badge": "Genre",
     "playAll": "Putar semua",

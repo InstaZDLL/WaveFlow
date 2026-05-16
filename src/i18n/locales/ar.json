@@ -845,6 +845,11 @@
       "notInLibrary": "ليس في مكتبتك"
     }
   },
+  "artistImagePicker": {
+    "title": "تغيير صورة الفنان",
+    "editAria": "تغيير صورة الفنان",
+    "removeAction": "إزالة الصورة"
+  },
   "genreDetail": {
     "badge": "النوع",
     "playAll": "تشغيل الكل",

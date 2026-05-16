@@ -845,6 +845,11 @@
       "notInLibrary": "不在你的曲庫中"
     }
   },
+  "artistImagePicker": {
+    "title": "更改藝人圖片",
+    "editAria": "更改藝人照片",
+    "removeAction": "移除圖片"
+  },
   "genreDetail": {
     "badge": "曲風",
     "playAll": "播放全部",

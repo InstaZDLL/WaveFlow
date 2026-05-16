@@ -845,6 +845,11 @@
       "notInLibrary": "Fuera de tu biblioteca"
     }
   },
+  "artistImagePicker": {
+    "title": "Cambiar imagen del artista",
+    "editAria": "Cambiar la foto del artista",
+    "removeAction": "Eliminar imagen"
+  },
   "genreDetail": {
     "badge": "Género",
     "playAll": "Reproducir todo",

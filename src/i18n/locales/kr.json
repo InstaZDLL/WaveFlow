@@ -845,6 +845,11 @@
       "notInLibrary": "라이브러리에 없음"
     }
   },
+  "artistImagePicker": {
+    "title": "아티스트 이미지 변경",
+    "editAria": "아티스트 사진 변경",
+    "removeAction": "이미지 제거"
+  },
   "genreDetail": {
     "badge": "장르",
     "playAll": "모두 재생",

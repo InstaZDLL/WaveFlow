@@ -853,6 +853,11 @@
       "notInLibrary": "Not in your library"
     }
   },
+  "artistImagePicker": {
+    "title": "Change artist image",
+    "editAria": "Change artist photo",
+    "removeAction": "Remove image"
+  },
   "genreDetail": {
     "badge": "Genre",
     "playAll": "Play all",

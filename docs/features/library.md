@@ -81,3 +81,13 @@ Resolution priority in [`commands/browse.rs::get_artist_detail`](../../src-tauri
 The `"Various Artists"` sentinel is explicitly excluded so a compilation folder never inherits a stray album cover as an artist photo.
 
 For libraries scanned before the feature shipped, [`commands/scan.rs::rescan_local_artist_images`](../../src-tauri/src/commands/scan.rs) (exposed as **Settings → Library → Local artist images**) walks every `artist WHERE artwork_id IS NULL`, picks a representative track per artist, and runs `extract_artist_image` against it — cheap to re-run because already-linked rows are filtered at the SQL level.
+
+### Manual override
+
+The pencil overlay on the artist photo in [`ArtistDetailView`](../../src/components/views/ArtistDetailView.tsx) opens [`ArtistImagePickerModal`](../../src/components/common/ArtistImagePickerModal.tsx), which exposes three actions backed by [`commands/deezer.rs`](../../src-tauri/src/commands/deezer.rs):
+
+- **Search Deezer** → `search_artists_deezer` + `set_artist_artwork_from_deezer` (downloads the chosen picture into the profile artwork cache, marks source `"deezer"`).
+- **Pick a local file** → `set_artist_artwork_from_file` (same magic-byte validation as the album cover picker: jpg / png / webp).
+- **Remove image** → `clear_artist_artwork` sets `artist.artwork_id = NULL` so the next render falls back through the resolution chain (Deezer cache → live fetch).
+
+Both `set_artist_artwork_from_*` overwrite `artwork_id` unconditionally — an explicit user pick beats any automatic resolution.

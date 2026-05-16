@@ -845,6 +845,11 @@
       "notInLibrary": "ライブラリにない"
     }
   },
+  "artistImagePicker": {
+    "title": "アーティスト画像を変更",
+    "editAria": "アーティスト写真を変更",
+    "removeAction": "画像を削除"
+  },
   "genreDetail": {
     "badge": "ジャンル",
     "playAll": "すべて再生",

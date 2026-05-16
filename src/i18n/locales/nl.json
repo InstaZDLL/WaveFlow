@@ -845,6 +845,11 @@
       "notInLibrary": "Niet in je bibliotheek"
     }
   },
+  "artistImagePicker": {
+    "title": "Artiestafbeelding wijzigen",
+    "editAria": "Artiestfoto wijzigen",
+    "removeAction": "Afbeelding verwijderen"
+  },
   "genreDetail": {
     "badge": "Genre",
     "playAll": "Alles afspelen",

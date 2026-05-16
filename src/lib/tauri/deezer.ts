@@ -35,3 +35,37 @@ export function batchFetchMissingAlbumCovers(): Promise<number> {
 export function batchFetchMissingArtistPictures(): Promise<number> {
   return invoke<number>("batch_fetch_missing_artist_pictures");
 }
+
+export interface DeezerArtistLite {
+  deezer_id: number;
+  name: string;
+  picture_url: string | null;
+  nb_fan: number | null;
+}
+
+export function searchArtistsDeezer(
+  query: string,
+): Promise<DeezerArtistLite[]> {
+  return invoke<DeezerArtistLite[]>("search_artists_deezer", { query });
+}
+
+export function setArtistArtworkFromDeezer(
+  artistId: number,
+  deezerArtistId: number,
+): Promise<void> {
+  return invoke<void>("set_artist_artwork_from_deezer", {
+    artistId,
+    deezerArtistId,
+  });
+}
+
+export function setArtistArtworkFromFile(
+  artistId: number,
+  filePath: string,
+): Promise<void> {
+  return invoke<void>("set_artist_artwork_from_file", { artistId, filePath });
+}
+
+export function clearArtistArtwork(artistId: number): Promise<void> {
+  return invoke<void>("clear_artist_artwork", { artistId });
+}
