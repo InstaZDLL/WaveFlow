@@ -25,7 +25,8 @@ use std::path::{Path, PathBuf};
 
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+use sqlx::sqlite::SqliteConnectOptions;
+use sqlx::{ConnectOptions, Connection, SqlitePool};
 use walkdir::WalkDir;
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipArchive, ZipWriter};
@@ -212,7 +213,19 @@ pub async fn import_profile(
         return Err(err);
     }
 
-    // 4. Open + close the imported pool once so any pending migrations
+    // 4. Normalise the bundled `_sqlx_migrations.checksum` column against
+    //    the local migration files before running the migrator. Archives
+    //    produced by a build whose migration files happened to be
+    //    checked out with CRLF endings (Git `core.autocrlf=true` on
+    //    Windows + no `.gitattributes` lock) store SHA-384 hashes
+    //    computed on different bytes than the current LF-normalised
+    //    sources, even though the SQL is semantically identical. Without
+    //    this step sqlx refuses the import with
+    //    "migration X was previously applied but has been modified".
+    //    See `.gitattributes` for the forward fix.
+    normalise_migration_checksums(&state.paths.profile_db(new_profile_id)).await?;
+
+    // 5. Open + close the imported pool once so any pending migrations
     //    (the source might be older than the local schema) replay
     //    immediately. This matches the create_profile flow and gives
     //    the user a usable profile by the time the call returns.
@@ -349,6 +362,72 @@ fn extract_archive(
 }
 
 // ── helpers ────────────────────────────────────────────────────────
+
+/// Rewrite `_sqlx_migrations.checksum` for every previously-applied
+/// migration so it matches the SHA-384 of the *local* migration file
+/// bundled into the running binary. Called on a freshly extracted
+/// `data.db` before the sqlx migrator runs.
+///
+/// Two failure modes the caller surfaces verbatim:
+///   - Local migrator missing a version present in the archive
+///     → the archive is from a *newer* build than the one importing it,
+///     and we genuinely can't roll the schema forward.
+///   - Anything else → propagated as a generic `Other` error.
+///
+/// Same-version + same-content but different-checksum is treated as
+/// benign byte-level drift (line endings, BOM) and silently fixed: the
+/// "migrations are immutable once merged" rule means a version that
+/// exists in both sides represents the same DDL by construction.
+async fn normalise_migration_checksums(db_path: &Path) -> AppResult<()> {
+    let migrator = sqlx::migrate!("./migrations/profile");
+
+    let opts = SqliteConnectOptions::new()
+        .filename(db_path)
+        .create_if_missing(false)
+        // Skip the noisy "executing statement" log line on every checksum
+        // UPDATE — these are pure plumbing rewrites, not user-visible
+        // DB activity.
+        .disable_statement_logging();
+    let mut conn = opts.connect().await?;
+
+    // The archive may predate the introduction of `_sqlx_migrations`
+    // (very unlikely, but we don't want to crash on the bootstrap case).
+    let table_exists: Option<String> = sqlx::query_scalar(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='_sqlx_migrations'",
+    )
+    .fetch_optional(&mut conn)
+    .await?;
+    if table_exists.is_none() {
+        conn.close().await?;
+        return Ok(());
+    }
+
+    let stored: Vec<(i64, Vec<u8>)> =
+        sqlx::query_as("SELECT version, checksum FROM _sqlx_migrations")
+            .fetch_all(&mut conn)
+            .await?;
+
+    for (version, stored_checksum) in stored {
+        let local = migrator.iter().find(|m| m.version == version);
+        let Some(local) = local else {
+            return Err(AppError::Other(format!(
+                "archive contains migration {version} not present in this build — \
+                 export was produced by a newer WaveFlow version"
+            )));
+        };
+        if local.checksum.as_ref() == stored_checksum.as_slice() {
+            continue;
+        }
+        sqlx::query("UPDATE _sqlx_migrations SET checksum = ? WHERE version = ?")
+            .bind(local.checksum.as_ref())
+            .bind(version)
+            .execute(&mut conn)
+            .await?;
+    }
+
+    conn.close().await?;
+    Ok(())
+}
 
 /// Force a full WAL checkpoint so the archive captures every committed
 /// page. `TRUNCATE` resets the WAL file to zero length on success,
