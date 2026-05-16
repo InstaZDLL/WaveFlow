@@ -53,6 +53,10 @@ export function ArtistImagePickerModal({
   const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<number | null>(null);
+  // Monotonic counter so a slow earlier response can't overwrite the
+  // results of a newer query — the user typing fast was producing
+  // visible "old results flicker" when the network was slow.
+  const requestIdRef = useRef(0);
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
   useEffect(() => {
@@ -77,15 +81,23 @@ export function ArtistImagePickerModal({
       return;
     }
     debounceRef.current = window.setTimeout(() => {
+      const requestId = ++requestIdRef.current;
       setIsSearching(true);
       setError(null);
       searchArtistsDeezer(trimmed)
-        .then((res) => setResults(res))
+        .then((res) => {
+          if (requestId !== requestIdRef.current) return;
+          setResults(res);
+        })
         .catch((err) => {
+          if (requestId !== requestIdRef.current) return;
           console.error("[ArtistImagePickerModal] search failed", err);
           setError(String(err));
         })
-        .finally(() => setIsSearching(false));
+        .finally(() => {
+          if (requestId !== requestIdRef.current) return;
+          setIsSearching(false);
+        });
     }, 300);
     return () => {
       if (debounceRef.current != null) {

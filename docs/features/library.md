@@ -80,7 +80,7 @@ Resolution priority in [`commands/browse.rs::get_artist_detail`](../../src-tauri
 
 The `"Various Artists"` sentinel is explicitly excluded so a compilation folder never inherits a stray album cover as an artist photo.
 
-For libraries scanned before the feature shipped, [`commands/scan.rs::rescan_local_artist_images`](../../src-tauri/src/commands/scan.rs) (exposed as **Settings → Library → Local artist images**) walks every `artist WHERE artwork_id IS NULL`, picks a representative track per artist, and runs `extract_artist_image` against it — cheap to re-run because already-linked rows are filtered at the SQL level.
+For libraries scanned before the feature shipped, [`commands/scan.rs::rescan_local_artist_images`](../../src-tauri/src/commands/scan.rs) (exposed as **Settings → Library → Local artist images**) walks every `artist WHERE artwork_id IS NULL` and probes up to 16 tracks per artist with `extract_artist_image`, stopping at the first hit. Already-linked rows are filtered out at the SQL level, so the rescan is cheap to re-run.
 
 ### Manual override
 

@@ -647,11 +647,14 @@ pub async fn set_artist_artwork_from_deezer(
     crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
 
     let artwork_id = upsert_artwork_row(&pool, &hash, format, "deezer").await?;
-    sqlx::query("UPDATE artist SET artwork_id = ? WHERE id = ?")
+    let res = sqlx::query("UPDATE artist SET artwork_id = ? WHERE id = ?")
         .bind(artwork_id)
         .bind(artist_id)
         .execute(&pool)
         .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::Other(format!("artist {artist_id} not found")));
+    }
 
     Ok(())
 }
@@ -682,11 +685,14 @@ pub async fn set_artist_artwork_from_file(
     crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
 
     let artwork_id = upsert_artwork_row(&pool, &hash, format, "manual").await?;
-    sqlx::query("UPDATE artist SET artwork_id = ? WHERE id = ?")
+    let res = sqlx::query("UPDATE artist SET artwork_id = ? WHERE id = ?")
         .bind(artwork_id)
         .bind(artist_id)
         .execute(&pool)
         .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::Other(format!("artist {artist_id} not found")));
+    }
 
     Ok(())
 }
@@ -700,10 +706,13 @@ pub async fn clear_artist_artwork(
     artist_id: i64,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
-    sqlx::query("UPDATE artist SET artwork_id = NULL WHERE id = ?")
+    let res = sqlx::query("UPDATE artist SET artwork_id = NULL WHERE id = ?")
         .bind(artist_id)
         .execute(&pool)
         .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::Other(format!("artist {artist_id} not found")));
+    }
     Ok(())
 }
 
@@ -858,6 +867,12 @@ fn detect_image_format(bytes: &[u8]) -> Option<&'static str> {
     None
 }
 
+/// Hard cap on a single image download. Deezer's `picture_xl` /
+/// `cover_xl` payloads top out around 200 KB; 10 MiB is generous
+/// headroom while still guarding against a hostile (or compromised)
+/// remote that streams unbounded data into our process memory.
+const MAX_IMAGE_BYTES: usize = 10 * 1024 * 1024;
+
 async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
     let client = reqwest::Client::builder()
         .user_agent("WaveFlow/0.1")
@@ -865,7 +880,7 @@ async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
         .build()
         .map_err(|err| AppError::Other(format!("http client build failed: {err}")))?;
 
-    let resp = client
+    let mut resp = client
         .get(url)
         .send()
         .await
@@ -876,9 +891,35 @@ async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
             resp.status()
         )));
     }
-    let bytes = resp
-        .bytes()
+
+    // Early-reject when the server is honest about its size — saves us
+    // pulling a single chunk we'd throw away anyway.
+    if let Some(len) = resp.content_length() {
+        if len as usize > MAX_IMAGE_BYTES {
+            return Err(AppError::Other(format!(
+                "image too large ({} bytes, max {})",
+                len, MAX_IMAGE_BYTES,
+            )));
+        }
+    }
+
+    // Pull chunk-by-chunk via `Response::chunk()` (built-in, no need
+    // for the `stream` feature on reqwest) so a server lying about
+    // Content-Length — or chunked transfer with no length at all —
+    // still can't OOM us.
+    let mut bytes = Vec::with_capacity(64 * 1024);
+    while let Some(chunk) = resp
+        .chunk()
         .await
-        .map_err(|err| AppError::Other(format!("read failed: {err}")))?;
-    Ok(bytes.to_vec())
+        .map_err(|err| AppError::Other(format!("read failed: {err}")))?
+    {
+        if bytes.len() + chunk.len() > MAX_IMAGE_BYTES {
+            return Err(AppError::Other(format!(
+                "image exceeds max size ({} bytes)",
+                MAX_IMAGE_BYTES,
+            )));
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok(bytes)
 }

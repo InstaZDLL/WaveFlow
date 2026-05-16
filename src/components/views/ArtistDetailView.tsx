@@ -274,15 +274,20 @@ export function ArtistDetailView({
               </span>
             </div>
           )}
-          <button
-            type="button"
-            onClick={() => setIsImagePickerOpen(true)}
-            aria-label={t("artistImagePicker.editAria")}
-            title={t("artistImagePicker.title")}
-            className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/50 focus-visible:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-          >
-            <Pencil size={28} className="text-white drop-shadow-md" />
-          </button>
+          {/* The wrapper is pointer-events-none so the underlying <img>
+              keeps receiving onDoubleClick (lightbox); the inner button
+              re-enables pointer events for the small pencil hit area. */}
+          <div className="absolute right-2 bottom-2 pointer-events-none">
+            <button
+              type="button"
+              onClick={() => setIsImagePickerOpen(true)}
+              aria-label={t("artistImagePicker.editAria")}
+              title={t("artistImagePicker.title")}
+              className="pointer-events-auto w-10 h-10 rounded-full bg-zinc-900/80 hover:bg-zinc-900 text-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-opacity"
+            >
+              <Pencil size={16} />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 min-w-0 pt-2">

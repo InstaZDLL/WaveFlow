@@ -1428,26 +1428,6 @@ pub(crate) async fn scan_folder_inner(
                             .bind(existing_track_id)
                             .fetch_one(&mut *tx)
                             .await?;
-                    // Backfill local artist images even on the fast path —
-                    // libraries scanned before this feature shipped would
-                    // otherwise stay stuck on Deezer-only artwork until the
-                    // user manually re-imported the folder.
-                    let track_path = Path::new(&extracted.abs_path);
-                    let current_ids: Vec<i64> = sqlx::query_scalar(
-                        "SELECT artist_id FROM track_artist
-                          WHERE track_id = ? ORDER BY position",
-                    )
-                    .bind(existing_track_id)
-                    .fetch_all(&mut *tx)
-                    .await?;
-                    maybe_link_artist_images(
-                        &mut tx,
-                        Some(raw),
-                        &current_ids,
-                        track_path,
-                        artwork_dir,
-                    )
-                    .await?;
                     if current_count as usize != splits.len() {
                         let mut ids = Vec::new();
                         for name in splits {
@@ -1488,6 +1468,28 @@ pub(crate) async fn scan_folder_inner(
                             .await?;
                         }
                     }
+                    // Backfill local artist images AFTER the optional
+                    // track_artist rebuild — otherwise newly created
+                    // artist IDs (when current_count != splits.len())
+                    // would be skipped on first encounter. Cheap because
+                    // already-linked artists are filtered by the
+                    // `IS NOT NULL` pre-check inside the helper.
+                    let track_path = Path::new(&extracted.abs_path);
+                    let current_ids: Vec<i64> = sqlx::query_scalar(
+                        "SELECT artist_id FROM track_artist
+                          WHERE track_id = ? ORDER BY position",
+                    )
+                    .bind(existing_track_id)
+                    .fetch_all(&mut *tx)
+                    .await?;
+                    maybe_link_artist_images(
+                        &mut tx,
+                        Some(raw),
+                        &current_ids,
+                        track_path,
+                        artwork_dir,
+                    )
+                    .await?;
                 }
 
                 summary.skipped += 1;
