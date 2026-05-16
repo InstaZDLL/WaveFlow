@@ -202,14 +202,7 @@ pub async fn import_profile(
     .map_err(|e| AppError::Other(format!("import extract join: {e}")))?;
 
     if let Err(err) = extract_result {
-        // Best-effort cleanup. If either of these fails, we log and
-        // surface the original error; the user can re-try from a
-        // clean state by deleting the partial directory manually.
-        let _ = std::fs::remove_dir_all(state.paths.profile_dir(new_profile_id));
-        let _ = sqlx::query("DELETE FROM profile WHERE id = ?")
-            .bind(new_profile_id)
-            .execute(&state.app_db)
-            .await;
+        cleanup_partial_profile(&state, new_profile_id).await;
         return Err(err);
     }
 
@@ -223,17 +216,46 @@ pub async fn import_profile(
     //    this step sqlx refuses the import with
     //    "migration X was previously applied but has been modified".
     //    See `.gitattributes` for the forward fix.
-    normalise_migration_checksums(&state.paths.profile_db(new_profile_id)).await?;
+    if let Err(err) =
+        normalise_migration_checksums(&state.paths.profile_db(new_profile_id)).await
+    {
+        cleanup_partial_profile(&state, new_profile_id).await;
+        return Err(err);
+    }
 
     // 5. Open + close the imported pool once so any pending migrations
     //    (the source might be older than the local schema) replay
     //    immediately. This matches the create_profile flow and gives
     //    the user a usable profile by the time the call returns.
-    let pool =
-        db::profile_db::open(&state.paths.profile_db(new_profile_id), &state.paths.app_db).await?;
+    let pool = match db::profile_db::open(
+        &state.paths.profile_db(new_profile_id),
+        &state.paths.app_db,
+    )
+    .await
+    {
+        Ok(pool) => pool,
+        Err(err) => {
+            cleanup_partial_profile(&state, new_profile_id).await;
+            return Err(err);
+        }
+    };
     pool.close().await;
 
     Ok(new_profile_id)
+}
+
+/// Roll back a half-imported profile: remove the on-disk directory and
+/// the `profile` row. Best-effort — failures are swallowed so the caller
+/// can surface the *original* import error rather than a cleanup error
+/// masking it. User can wipe `<app_data>/profiles/<id>/` by hand if the
+/// fs delete failed (rare; usually a held file handle from a panicked
+/// pool).
+async fn cleanup_partial_profile(state: &AppState, profile_id: i64) {
+    let _ = std::fs::remove_dir_all(state.paths.profile_dir(profile_id));
+    let _ = sqlx::query("DELETE FROM profile WHERE id = ?")
+        .bind(profile_id)
+        .execute(&state.app_db)
+        .await;
 }
 
 // ── zip plumbing ────────────────────────────────────────────────────
