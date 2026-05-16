@@ -353,6 +353,144 @@ fn extract_folder_cover(track_path: &Path, artwork_dir: &Path) -> Option<Extract
     })
 }
 
+/// Stems recognised as a sidecar artist photo at any ancestor level of a
+/// track. Matched verbatim (lowercased); a stem-aware match against the
+/// artist's canonical name handles the `<artist>.jpg` convention.
+const ARTIST_IMAGE_STEMS: &[&str] = &["artist", "performer", "band"];
+
+/// Maximum number of parent directories walked upward from the track to
+/// find an artist photo. Covers the two common layouts called out in
+/// issue #31:
+///   1. `<root>/<artist>/<album>/track.flac` → 2 levels up (`<artist>/`).
+///   2. `<root>/<album>/track.flac`         → 1 level up (`<album>/`),
+///      and even the album folder itself can hold an `<artist>.jpg`.
+///
+/// 3 covers the occasional `<root>/<artist>/<album>/CD1/track.flac` rip.
+const ARTIST_IMAGE_MAX_DEPTH: usize = 3;
+
+/// Look for a sidecar artist image next to the track. Walks up to
+/// `ARTIST_IMAGE_MAX_DEPTH` parent directories from `track_path` and
+/// accepts the first match where either:
+///   - the file stem is in [`ARTIST_IMAGE_STEMS`] (`artist.jpg`,
+///     `performer.png`, …), or
+///   - the file stem's canonical form equals `artist_canonical` (covers
+///     `Daft Punk.jpg` sitting at the root of a `Daft Punk/` folder).
+///
+/// Hash-addressed write into `artwork_dir` like every other cover so a
+/// later GC can dedup across artists and albums.
+fn extract_artist_image(
+    track_path: &Path,
+    artist_canonical: &str,
+    artwork_dir: &Path,
+) -> Option<ExtractedCover> {
+    if artist_canonical.is_empty() {
+        return None;
+    }
+
+    let mut current = track_path.parent();
+    for _ in 0..ARTIST_IMAGE_MAX_DEPTH {
+        let Some(dir) = current else { break };
+        if let Some(found) = find_artist_image_in_dir(dir, artist_canonical) {
+            return write_artist_image(&found, artwork_dir);
+        }
+        current = dir.parent();
+    }
+    None
+}
+
+fn find_artist_image_in_dir(dir: &Path, artist_canonical: &str) -> Option<PathBuf> {
+    let entries = fs::read_dir(dir).ok()?;
+    let mut named_match: Option<PathBuf> = None;
+    let mut stem_match: Option<(usize, PathBuf)> = None;
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let stem = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .map(|s| s.to_lowercase());
+        let ext = path
+            .extension()
+            .and_then(|s| s.to_str())
+            .map(|s| s.to_lowercase());
+        let (Some(stem), Some(ext)) = (stem, ext) else {
+            continue;
+        };
+        if !FOLDER_COVER_EXTENSIONS.contains(&ext.as_str()) {
+            continue;
+        }
+        if canonical_name(&stem) == artist_canonical {
+            named_match.get_or_insert(path);
+            continue;
+        }
+        if let Some(rank) = ARTIST_IMAGE_STEMS.iter().position(|s| *s == stem) {
+            match &stem_match {
+                Some((current_rank, _)) if *current_rank <= rank => {}
+                _ => stem_match = Some((rank, path)),
+            }
+        }
+    }
+
+    named_match.or(stem_match.map(|(_, p)| p))
+}
+
+fn write_artist_image(picked: &Path, artwork_dir: &Path) -> Option<ExtractedCover> {
+    let bytes = fs::read(picked).ok()?;
+    if bytes.is_empty() {
+        return None;
+    }
+    let hash = blake3::hash(&bytes).to_hex().to_string();
+    let format = picked
+        .extension()
+        .and_then(|s| s.to_str())
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "jpg".to_string());
+    let format = if format == "jpeg" {
+        "jpg".to_string()
+    } else {
+        format
+    };
+
+    let out_path = artwork_dir.join(format!("{}.{}", &hash, &format));
+    if !out_path.exists() {
+        if let Err(err) = fs::write(&out_path, &bytes) {
+            tracing::warn!(
+                path = %out_path.display(),
+                error = %err,
+                "failed to write artist image",
+            );
+            return None;
+        }
+    }
+    crate::thumbnails::spawn_thumbnail_job(out_path, artwork_dir.to_path_buf(), hash.clone());
+    Some(ExtractedCover {
+        hash,
+        format,
+        source: "folder",
+    })
+}
+
+/// Best-effort: link a freshly resolved local artist image to its `artist`
+/// row when the row has no artwork yet. Idempotent — re-running with a
+/// already-linked artist is a no-op (the `IS NULL` guard prevents
+/// overwriting a manually uploaded picture).
+async fn link_local_artist_image(
+    conn: &mut sqlx::SqliteConnection,
+    artist_id: i64,
+    cover: &ExtractedCover,
+) -> AppResult<()> {
+    let artwork_id = upsert_artwork(conn, &cover.hash, &cover.format, cover.source).await?;
+    sqlx::query("UPDATE artist SET artwork_id = ? WHERE id = ? AND artwork_id IS NULL")
+        .bind(artwork_id)
+        .bind(artist_id)
+        .execute(&mut *conn)
+        .await?;
+    Ok(())
+}
+
 /// Extract a 0-255 rating from a tag. POPM frames (ID3v2) are stored by
 /// lofty as raw `ItemValue::Binary` under `ItemKey::Popularimeter`: the
 /// frame body is `<email>\0<rating:u8><counter:u32+>`, so the rating is
@@ -929,6 +1067,47 @@ pub(crate) async fn upsert_album(
     Ok(Some(result.last_insert_rowid()))
 }
 
+/// Walk every artist name parsed from `raw`, pair it with its `artist.id`
+/// from `artist_ids` (positionally aligned), and try to resolve a sidecar
+/// artist image from `track_path`. Idempotent — artists that already have
+/// an `artwork_id` are skipped by [`link_local_artist_image`].
+///
+/// Skips the "Various Artists" sentinel: a compilation folder never holds
+/// a meaningful artist photo and we'd just pin a random album cover to it.
+pub(crate) async fn maybe_link_artist_images(
+    conn: &mut sqlx::SqliteConnection,
+    artist_raw: Option<&str>,
+    artist_ids: &[i64],
+    track_path: &Path,
+    artwork_dir: &Path,
+) -> AppResult<()> {
+    let Some(raw) = artist_raw else {
+        return Ok(());
+    };
+    let names = split_artist_name(raw);
+    let va_canon = canonical_name(VARIOUS_ARTISTS_LABEL);
+    for (name, id) in names.iter().zip(artist_ids.iter()) {
+        let canon = canonical_name(name);
+        if canon.is_empty() || canon == va_canon {
+            continue;
+        }
+        // Cheap pre-check so we don't walk the FS when the artist already
+        // has artwork (Deezer fetch, manual upload, or earlier scan).
+        let has_artwork: Option<i64> =
+            sqlx::query_scalar("SELECT 1 FROM artist WHERE id = ? AND artwork_id IS NOT NULL")
+                .bind(id)
+                .fetch_optional(&mut *conn)
+                .await?;
+        if has_artwork.is_some() {
+            continue;
+        }
+        if let Some(cover) = extract_artist_image(track_path, &canon, artwork_dir) {
+            link_local_artist_image(&mut *conn, *id, &cover).await?;
+        }
+    }
+    Ok(())
+}
+
 /// Resolve a raw multi-artist string (e.g. `"A, B; C"`) to a vector of
 /// artist row IDs. The first entry becomes the track's primary artist.
 /// Empty / whitespace-only inputs yield an empty vector.
@@ -1289,6 +1468,28 @@ pub(crate) async fn scan_folder_inner(
                             .await?;
                         }
                     }
+                    // Backfill local artist images AFTER the optional
+                    // track_artist rebuild — otherwise newly created
+                    // artist IDs (when current_count != splits.len())
+                    // would be skipped on first encounter. Cheap because
+                    // already-linked artists are filtered by the
+                    // `IS NOT NULL` pre-check inside the helper.
+                    let track_path = Path::new(&extracted.abs_path);
+                    let current_ids: Vec<i64> = sqlx::query_scalar(
+                        "SELECT artist_id FROM track_artist
+                          WHERE track_id = ? ORDER BY position",
+                    )
+                    .bind(existing_track_id)
+                    .fetch_all(&mut *tx)
+                    .await?;
+                    maybe_link_artist_images(
+                        &mut tx,
+                        Some(raw),
+                        &current_ids,
+                        track_path,
+                        artwork_dir,
+                    )
+                    .await?;
                 }
 
                 summary.skipped += 1;
@@ -1328,6 +1529,15 @@ pub(crate) async fn scan_folder_inner(
                     .execute(&mut *tx)
                     .await?;
                 }
+
+                maybe_link_artist_images(
+                    &mut tx,
+                    extracted.artist.as_deref(),
+                    &artist_ids,
+                    Path::new(&extracted.abs_path),
+                    artwork_dir,
+                )
+                .await?;
 
                 sqlx::query(
                     "UPDATE track SET
@@ -1426,6 +1636,15 @@ pub(crate) async fn scan_folder_inner(
                     .execute(&mut *tx)
                     .await?;
             }
+
+            maybe_link_artist_images(
+                &mut tx,
+                extracted.artist.as_deref(),
+                &artist_ids,
+                Path::new(&extracted.abs_path),
+                artwork_dir,
+            )
+            .await?;
 
             let insert = sqlx::query(
                 "INSERT INTO track (
@@ -1572,6 +1791,96 @@ pub(crate) async fn scan_folder_inner(
     Ok(summary)
 }
 
+/// Summary returned by [`rescan_local_artist_images`].
+#[derive(Default, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtistImageScanSummary {
+    /// Number of artists checked (those without an existing `artwork_id`).
+    pub considered: i64,
+    /// Number of artists that now have a local sidecar image linked.
+    pub linked: i64,
+}
+
+/// Walk every `artist` row that has no `artwork_id` and try to resolve a
+/// sidecar image from any of their tracks' folders. Cheap on re-runs
+/// because already-linked rows are excluded by the SQL filter and we
+/// stop at the first track that yields a match.
+///
+/// Lets users who scanned their library before this feature shipped pick
+/// up `artist.jpg` files without re-importing every folder.
+#[tauri::command]
+pub async fn rescan_local_artist_images(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<ArtistImageScanSummary> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    std::fs::create_dir_all(&artwork_dir)?;
+
+    let va_canon = canonical_name(VARIOUS_ARTISTS_LABEL);
+    let rows: Vec<(i64, String, String)> = sqlx::query_as(
+        "SELECT id, name, canonical_name FROM artist
+          WHERE artwork_id IS NULL
+            AND canonical_name != ?",
+    )
+    .bind(&va_canon)
+    .fetch_all(&pool)
+    .await?;
+
+    let mut summary = ArtistImageScanSummary {
+        considered: rows.len() as i64,
+        linked: 0,
+    };
+
+    // Batch writes through a single transaction (committed every
+    // TX_BATCH writes) so SQLite WAL fsyncs once per batch instead of
+    // once per artist — same pattern as scan_folder_inner.
+    const TX_BATCH: usize = 200;
+    let mut tx = pool.begin().await?;
+    let mut tx_count: usize = 0;
+
+    for (artist_id, _name, canon) in rows {
+        // Track lookup is a read — run it on the pool so it doesn't
+        // serialise behind the open write transaction.
+        let tracks: Vec<(String,)> = sqlx::query_as(
+            "SELECT t.file_path FROM track t
+               JOIN track_artist ta ON ta.track_id = t.id
+              WHERE ta.artist_id = ? AND t.is_available = 1
+              LIMIT 16",
+        )
+        .bind(artist_id)
+        .fetch_all(&pool)
+        .await?;
+
+        let mut linked = false;
+        for (path,) in tracks {
+            if let Some(cover) = extract_artist_image(Path::new(&path), &canon, &artwork_dir) {
+                link_local_artist_image(&mut tx, artist_id, &cover).await?;
+                linked = true;
+                break;
+            }
+        }
+        if linked {
+            summary.linked += 1;
+            tx_count += 1;
+            if tx_count >= TX_BATCH {
+                tx.commit().await?;
+                tx = pool.begin().await?;
+                tx_count = 0;
+            }
+        }
+    }
+
+    tx.commit().await?;
+
+    tracing::info!(
+        considered = summary.considered,
+        linked = summary.linked,
+        "rescan_local_artist_images complete",
+    );
+    Ok(summary)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1643,6 +1952,78 @@ mod tests {
         write_bytes(&track, b"x");
 
         assert!(extract_folder_cover(&track, &artwork_dir).is_none());
+    }
+
+    #[test]
+    fn artist_image_finds_stem_in_parent_folder() {
+        // Layout: <root>/<Artist>/<Album>/<track>
+        let dir = tempfile::tempdir().unwrap();
+        let artwork_dir = dir.path().join("artwork");
+        fs::create_dir_all(&artwork_dir).unwrap();
+        let artist_dir = dir.path().join("Daft Punk");
+        let album_dir = artist_dir.join("Discovery");
+        fs::create_dir_all(&album_dir).unwrap();
+
+        write_bytes(&artist_dir.join("artist.jpg"), TINY_JPEG);
+        let track = album_dir.join("01.flac");
+        write_bytes(&track, b"x");
+
+        let cover = extract_artist_image(&track, &canonical_name("Daft Punk"), &artwork_dir)
+            .expect("artist image found two levels up");
+        assert_eq!(cover.source, "folder");
+        assert_eq!(cover.format, "jpg");
+    }
+
+    #[test]
+    fn artist_image_matches_canonical_name_stem() {
+        // Layout: <root>/<Album>/<track> with `<Artist>.jpg` beside the album.
+        let dir = tempfile::tempdir().unwrap();
+        let artwork_dir = dir.path().join("artwork");
+        fs::create_dir_all(&artwork_dir).unwrap();
+        let album_dir = dir.path().join("Discovery");
+        fs::create_dir_all(&album_dir).unwrap();
+
+        write_bytes(&album_dir.join("Daft Punk.png"), TINY_JPEG);
+        let track = album_dir.join("01.flac");
+        write_bytes(&track, b"x");
+
+        let cover = extract_artist_image(&track, &canonical_name("daft punk"), &artwork_dir)
+            .expect("canonical-name stem match");
+        assert_eq!(cover.format, "png");
+    }
+
+    #[test]
+    fn artist_image_ignores_unrelated_named_image() {
+        let dir = tempfile::tempdir().unwrap();
+        let artwork_dir = dir.path().join("artwork");
+        fs::create_dir_all(&artwork_dir).unwrap();
+        let album_dir = dir.path().join("Discovery");
+        fs::create_dir_all(&album_dir).unwrap();
+
+        // `cover.jpg` is an album cover, not an artist photo.
+        write_bytes(&album_dir.join("cover.jpg"), TINY_JPEG);
+        let track = album_dir.join("01.flac");
+        write_bytes(&track, b"x");
+
+        assert!(
+            extract_artist_image(&track, &canonical_name("Daft Punk"), &artwork_dir).is_none(),
+            "should not pick up album cover as artist image",
+        );
+    }
+
+    #[test]
+    fn artist_image_returns_none_for_empty_canonical() {
+        let dir = tempfile::tempdir().unwrap();
+        let artwork_dir = dir.path().join("artwork");
+        fs::create_dir_all(&artwork_dir).unwrap();
+        let folder = dir.path().join("album");
+        fs::create_dir_all(&folder).unwrap();
+        write_bytes(&folder.join("artist.jpg"), TINY_JPEG);
+        let track = folder.join("01.flac");
+        write_bytes(&track, b"x");
+
+        // Empty canonical → defensive bail-out so we don't match every dir.
+        assert!(extract_artist_image(&track, "", &artwork_dir).is_none());
     }
 
     #[test]

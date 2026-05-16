@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Play, Shuffle, Music2, Clock, Heart } from "lucide-react";
+import { Play, Shuffle, Music2, Clock, Heart, Pencil } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
+import { ArtistImagePickerModal } from "../common/ArtistImagePickerModal";
 import { HiResBadge } from "../common/HiResBadge";
 import { PlayingIndicator } from "../common/PlayingIndicator";
 import { Lightbox } from "../common/Lightbox";
@@ -51,6 +52,7 @@ export function ArtistDetailView({
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
+  const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
 
   const trackContextMenu = useTrackContextMenu({
     likedIds,
@@ -106,13 +108,13 @@ export function ArtistDetailView({
         ]);
         if (cancelled) return;
         setArtist(detail);
-        // Seed Deezer cache from the detail response so images render
-        // instantly on re-visits (not just after enrichment resolves).
+        // Local sidecar `artist.jpg` always wins over the Deezer cache —
+        // keeps the offline-first promise from issue #31.
         const seeded = resolveArtwork(
           {
-            full: detail.picture_path,
-            x1: detail.picture_path_1x,
-            x2: detail.picture_path_2x,
+            full: detail.artwork_path ?? detail.picture_path,
+            x1: detail.artwork_path_1x ?? detail.picture_path_1x,
+            x2: detail.artwork_path_2x ?? detail.picture_path_2x,
             remoteUrl: detail.picture_url,
           },
           "full",
@@ -170,9 +172,12 @@ export function ArtistDetailView({
     };
   }, [artistId]);
 
-  // Deezer enrichment
+  // Deezer enrichment. Gated on `artist` being loaded so the
+  // "local-wins-over-Deezer" guard below can read `artwork_path` from a
+  // fresh detail instead of a stale closure value.
+  const hasLocalArtistImage = !!artist?.artwork_path;
   useEffect(() => {
-    if (artistId == null) return;
+    if (artistId == null || artist == null) return;
     let cancelled = false;
     enrichArtistDeezer(artistId)
       .then((e) => {
@@ -186,7 +191,7 @@ export function ArtistDetailView({
           },
           "full",
         );
-        if (resolved) setPictureSrc(resolved);
+        if (resolved && !hasLocalArtistImage) setPictureSrc(resolved);
         if (e.fans_count != null) setFansCount(e.fans_count);
         if (e.bio_short) setBioShort(e.bio_short);
         if (e.bio_full) setBioFull(e.bio_full);
@@ -195,7 +200,7 @@ export function ArtistDetailView({
     return () => {
       cancelled = true;
     };
-  }, [artistId]);
+  }, [artistId, hasLocalArtistImage, artist]);
 
   const handleToggleLike = async (trackId: number) => {
     const nowLiked = await toggleLikeTrack(trackId);
@@ -246,21 +251,37 @@ export function ArtistDetailView({
     <div className="space-y-8 animate-fade-in pb-20">
       {/* Header */}
       <div className="flex items-center space-x-8">
-        {/* Artist photo */}
-        {pictureSrc ? (
-          <img
-            src={pictureSrc}
-            alt={artist.name}
-            onDoubleClick={() => setIsLightboxOpen(true)}
-            className="w-48 h-48 rounded-full object-cover shadow-lg shrink-0 cursor-zoom-in"
-          />
-        ) : (
-          <div className="w-48 h-48 rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center shadow-lg shrink-0">
-            <span className="text-7xl font-bold text-violet-500/70 dark:text-violet-400/60">
-              {artist.name.trim().charAt(0).toUpperCase() || "?"}
-            </span>
+        {/* Artist photo + edit overlay (visible on hover/focus) */}
+        <div className="relative shrink-0 group">
+          {pictureSrc ? (
+            <img
+              src={pictureSrc}
+              alt={artist.name}
+              onDoubleClick={() => setIsLightboxOpen(true)}
+              className="w-48 h-48 rounded-full object-cover shadow-lg cursor-zoom-in"
+            />
+          ) : (
+            <div className="w-48 h-48 rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center shadow-lg">
+              <span className="text-7xl font-bold text-violet-500/70 dark:text-violet-400/60">
+                {artist.name.trim().charAt(0).toUpperCase() || "?"}
+              </span>
+            </div>
+          )}
+          {/* The wrapper is pointer-events-none so the underlying <img>
+              keeps receiving onDoubleClick (lightbox); the inner button
+              re-enables pointer events for the small pencil hit area. */}
+          <div className="absolute right-2 bottom-2 pointer-events-none">
+            <button
+              type="button"
+              onClick={() => setIsImagePickerOpen(true)}
+              aria-label={t("artistImagePicker.editAria")}
+              title={t("artistImagePicker.title")}
+              className="pointer-events-auto w-10 h-10 rounded-full bg-zinc-900/80 hover:bg-zinc-900 text-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-opacity"
+            >
+              <Pencil size={16} />
+            </button>
           </div>
-        )}
+        </div>
 
         <div className="flex-1 min-w-0 pt-2">
           <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
@@ -486,6 +507,15 @@ export function ArtistDetailView({
         alt={artist.name}
         isOpen={isLightboxOpen}
         onClose={() => setIsLightboxOpen(false)}
+      />
+
+      <ArtistImagePickerModal
+        artistId={artist.id}
+        artistName={artist.name}
+        hasArtwork={!!artist.artwork_path}
+        isOpen={isImagePickerOpen}
+        onClose={() => setIsImagePickerOpen(false)}
+        onSuccess={() => setEditRefetch((k) => k + 1)}
       />
     </div>
   );

@@ -853,6 +853,13 @@
       "notInLibrary": "Not in your library"
     }
   },
+  "artistImagePicker": {
+    "title": "Change artist image",
+    "editAria": "Change artist photo",
+    "removeAction": "Remove image",
+    "fansCount_one": "{{display}} fan",
+    "fansCount_other": "{{display}} fans"
+  },
   "genreDetail": {
     "badge": "Genre",
     "playAll": "Play all",
@@ -1253,6 +1260,12 @@
       "subtitle": "Download the album covers from Deezer",
       "action": "Recover",
       "progress": "{{current}}/{{total}} processed"
+    },
+    "localArtistImages": {
+      "title": "Local artist images",
+      "subtitle": "Look for an artist.jpg (or <name>.jpg) next to your music and use it as the artist photo.",
+      "action": "Scan",
+      "done": "{{linked}} of {{considered}} artists linked to a local image"
     },
     "profileIo": {
       "title": "Profile backup",

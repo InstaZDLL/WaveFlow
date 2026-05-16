@@ -845,6 +845,15 @@
       "notInLibrary": "Нет в вашей библиотеке"
     }
   },
+  "artistImagePicker": {
+    "title": "Изменить изображение исполнителя",
+    "editAria": "Изменить фото исполнителя",
+    "removeAction": "Удалить изображение",
+    "fansCount_one": "{{display}} поклонник",
+    "fansCount_few": "{{display}} поклонника",
+    "fansCount_many": "{{display}} поклонников",
+    "fansCount_other": "{{display}} поклонников"
+  },
   "genreDetail": {
     "badge": "Жанр",
     "playAll": "Воспроизвести всё",
@@ -1215,6 +1224,12 @@
       "subtitle": "Скачать обложки альбомов с сайта Deezer",
       "action": "Загрузить",
       "progress": "{{current}}/{{total}} обработано"
+    },
+    "localArtistImages": {
+      "title": "Локальные изображения исполнителей",
+      "subtitle": "Ищет файл artist.jpg (или <имя>.jpg) рядом с музыкой и использует его как фото исполнителя.",
+      "action": "Сканировать",
+      "done": "Связано {{linked}} из {{considered}} исполнителей с локальным изображением"
     },
     "dataFolder": {
       "title": "Папка «Данные»",

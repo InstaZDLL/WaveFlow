@@ -845,6 +845,17 @@
       "notInLibrary": "ليس في مكتبتك"
     }
   },
+  "artistImagePicker": {
+    "title": "تغيير صورة الفنان",
+    "editAria": "تغيير صورة الفنان",
+    "removeAction": "إزالة الصورة",
+    "fansCount_zero": "لا معجبون",
+    "fansCount_one": "معجب واحد",
+    "fansCount_two": "معجبان",
+    "fansCount_few": "{{display}} معجبين",
+    "fansCount_many": "{{display}} معجبًا",
+    "fansCount_other": "{{display}} معجب"
+  },
   "genreDetail": {
     "badge": "النوع",
     "playAll": "تشغيل الكل",
@@ -1215,6 +1226,12 @@
       "subtitle": "تنزيل أغلفة ألبومات الفنانين من موقع Deezer",
       "action": "استرداد",
       "progress": "تم معالجة {{current}}/{{total}}"
+    },
+    "localArtistImages": {
+      "title": "صور الفنانين المحلية",
+      "subtitle": "يبحث عن ملف artist.jpg (أو <name>.jpg) بجانب الموسيقى ويستخدمه كصورة للفنان.",
+      "action": "فحص",
+      "done": "تم ربط {{linked}} من أصل {{considered}} فنانًا بصورة محلية"
     },
     "dataFolder": {
       "title": "ملف البيانات",

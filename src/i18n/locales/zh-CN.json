@@ -845,6 +845,12 @@
       "notInLibrary": "不在你的曲库中"
     }
   },
+  "artistImagePicker": {
+    "title": "更改艺人图片",
+    "editAria": "更改艺人照片",
+    "removeAction": "移除图片",
+    "fansCount_other": "{{display}} 粉丝"
+  },
   "genreDetail": {
     "badge": "流派",
     "playAll": "播放全部",
@@ -1215,6 +1221,12 @@
       "subtitle": "从 Deezer 下载艺人专辑封面",
       "action": "恢复",
       "progress": "已处理 {{current}}/{{total}}"
+    },
+    "localArtistImages": {
+      "title": "本地艺人图片",
+      "subtitle": "在音乐旁查找 artist.jpg(或 <名称>.jpg)文件,并将其用作艺人头像。",
+      "action": "扫描",
+      "done": "已为 {{considered}} 位艺人中的 {{linked}} 位关联本地图片"
     },
     "dataFolder": {
       "title": "数据文件",

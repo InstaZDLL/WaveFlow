@@ -845,6 +845,13 @@
       "notInLibrary": "Non nella tua libreria"
     }
   },
+  "artistImagePicker": {
+    "title": "Cambia immagine dell'artista",
+    "editAria": "Cambia la foto dell'artista",
+    "removeAction": "Rimuovi immagine",
+    "fansCount_one": "{{display}} fan",
+    "fansCount_other": "{{display}} fan"
+  },
   "genreDetail": {
     "badge": "Genere",
     "playAll": "Riproduci tutto",
@@ -1215,6 +1222,12 @@
       "subtitle": "Scaricare le copertine degli artisti da Deezer",
       "action": "Recuperare",
       "progress": "{{current}}/{{total}} elaborati"
+    },
+    "localArtistImages": {
+      "title": "Immagini artisti locali",
+      "subtitle": "Cerca un file artist.jpg (o <nome>.jpg) accanto alla musica e lo usa come foto dell'artista.",
+      "action": "Scansiona",
+      "done": "{{linked}} su {{considered}} artisti collegati a un'immagine locale"
     },
     "dataFolder": {
       "title": "Fascicolo dei dati",

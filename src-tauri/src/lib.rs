@@ -308,11 +308,9 @@ pub fn run() {
             // track starts.
             let play_pause_item =
                 MenuItem::with_id(app, "play_pause", "Play / Pause", true, None::<&str>)?;
-            let previous_item =
-                MenuItem::with_id(app, "previous", "Previous", true, None::<&str>)?;
+            let previous_item = MenuItem::with_id(app, "previous", "Previous", true, None::<&str>)?;
             let next_item = MenuItem::with_id(app, "next", "Next", true, None::<&str>)?;
-            let show_item =
-                MenuItem::with_id(app, "show", "Open WaveFlow", true, None::<&str>)?;
+            let show_item = MenuItem::with_id(app, "show", "Open WaveFlow", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
 
             let menu = Menu::with_items(
@@ -424,6 +422,11 @@ pub fn run() {
             commands::smart_playlists::get_custom_smart_playlist_rules,
             commands::smart_playlists::preview_custom_smart_playlist,
             commands::scan::scan_folder,
+            commands::scan::rescan_local_artist_images,
+            commands::deezer::search_artists_deezer,
+            commands::deezer::set_artist_artwork_from_deezer,
+            commands::deezer::set_artist_artwork_from_file,
+            commands::deezer::clear_artist_artwork,
             commands::track::list_tracks,
             commands::track::get_track,
             commands::track::search_tracks,

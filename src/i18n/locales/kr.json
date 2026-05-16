@@ -845,6 +845,12 @@
       "notInLibrary": "라이브러리에 없음"
     }
   },
+  "artistImagePicker": {
+    "title": "아티스트 이미지 변경",
+    "editAria": "아티스트 사진 변경",
+    "removeAction": "이미지 제거",
+    "fansCount_other": "{{display}} 팬"
+  },
   "genreDetail": {
     "badge": "장르",
     "playAll": "모두 재생",
@@ -1215,6 +1221,12 @@
       "subtitle": "Deezer에서 아티스트 앨범 커버 다운로드하기",
       "action": "복구",
       "progress": "{{current}}/{{total}} 처리됨"
+    },
+    "localArtistImages": {
+      "title": "로컬 아티스트 이미지",
+      "subtitle": "음악 옆에 있는 artist.jpg (또는 <이름>.jpg) 파일을 찾아 아티스트 사진으로 사용합니다.",
+      "action": "스캔",
+      "done": "{{considered}}명 중 {{linked}}명의 아티스트에 로컬 이미지를 연결했습니다"
     },
     "dataFolder": {
       "title": "데이터 세트",

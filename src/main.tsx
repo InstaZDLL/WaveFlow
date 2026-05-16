@@ -1,6 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { getCurrentWindow, Window as TauriWindow } from "@tauri-apps/api/window";
+import {
+  getCurrentWindow,
+  Window as TauriWindow,
+} from "@tauri-apps/api/window";
 import App from "./App";
 import { MiniPlayerApp } from "./MiniPlayerApp";
 import "./app.css";

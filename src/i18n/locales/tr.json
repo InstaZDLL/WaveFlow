@@ -845,6 +845,12 @@
       "notInLibrary": "Kütüphanenizde değil"
     }
   },
+  "artistImagePicker": {
+    "title": "Sanatçı görselini değiştir",
+    "editAria": "Sanatçı fotoğrafını değiştir",
+    "removeAction": "Görseli kaldır",
+    "fansCount_other": "{{display}} hayran"
+  },
   "genreDetail": {
     "badge": "Tür",
     "playAll": "Tümünü çal",
@@ -1215,6 +1221,12 @@
       "subtitle": "Deezer sitesinden sanatçı albümlerini indirin",
       "action": "Getir",
       "progress": "{{current}}/{{total}} işlendi"
+    },
+    "localArtistImages": {
+      "title": "Yerel sanatçı görselleri",
+      "subtitle": "Müziğin yanındaki artist.jpg (veya <ad>.jpg) dosyasını bulup sanatçı fotoğrafı olarak kullanır.",
+      "action": "Tara",
+      "done": "{{considered}} sanatçıdan {{linked}} tanesi yerel görsele bağlandı"
     },
     "dataFolder": {
       "title": "Veri klasörü",

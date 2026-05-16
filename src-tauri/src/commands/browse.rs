@@ -1013,13 +1013,11 @@ pub async fn get_genre_detail(
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
-    let header = sqlx::query_as::<_, GenreHeaderRaw>(
-        r#"SELECT id, name FROM genre WHERE id = ?"#,
-    )
-    .bind(genre_id)
-    .fetch_optional(&pool)
-    .await?
-    .ok_or_else(|| crate::error::AppError::Other("genre not found".into()))?;
+    let header = sqlx::query_as::<_, GenreHeaderRaw>(r#"SELECT id, name FROM genre WHERE id = ?"#)
+        .bind(genre_id)
+        .fetch_optional(&pool)
+        .await?
+        .ok_or_else(|| crate::error::AppError::Other("genre not found".into()))?;
 
     let rows = sqlx::query_as::<_, GenreTrackRaw>(
         r#"

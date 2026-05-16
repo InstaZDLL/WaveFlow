@@ -845,6 +845,12 @@
       "notInLibrary": "Tidak di pustaka Anda"
     }
   },
+  "artistImagePicker": {
+    "title": "Ubah gambar artis",
+    "editAria": "Ubah foto artis",
+    "removeAction": "Hapus gambar",
+    "fansCount_other": "{{display}} penggemar"
+  },
   "genreDetail": {
     "badge": "Genre",
     "playAll": "Putar semua",
@@ -1215,6 +1221,12 @@
       "subtitle": "Unduh sampul album artis dari Deezer",
       "action": "Ambil",
       "progress": "{{current}}/{{total}} diproses"
+    },
+    "localArtistImages": {
+      "title": "Gambar artis lokal",
+      "subtitle": "Mencari berkas artist.jpg (atau <nama>.jpg) di sebelah musik dan menggunakannya sebagai foto artis.",
+      "action": "Pindai",
+      "done": "{{linked}} dari {{considered}} artis terhubung ke gambar lokal"
     },
     "dataFolder": {
       "title": "Folder data",

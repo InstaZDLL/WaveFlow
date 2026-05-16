@@ -853,6 +853,13 @@
       "notInLibrary": "Pas dans votre bibliothèque"
     }
   },
+  "artistImagePicker": {
+    "title": "Modifier l'image de l'artiste",
+    "editAria": "Modifier la photo de l'artiste",
+    "removeAction": "Supprimer l'image",
+    "fansCount_one": "{{display}} fan",
+    "fansCount_other": "{{display}} fans"
+  },
   "genreDetail": {
     "badge": "Genre",
     "playAll": "Tout lire",
@@ -1253,6 +1260,12 @@
       "subtitle": "Récupérer les pochettes artistes depuis Deezer",
       "action": "Récupérer",
       "progress": "{{current}}/{{total}} traités"
+    },
+    "localArtistImages": {
+      "title": "Images artistes locales",
+      "subtitle": "Recherche un fichier artist.jpg (ou <nom>.jpg) à côté de la musique et l'utilise comme photo d'artiste.",
+      "action": "Scanner",
+      "done": "{{linked}} sur {{considered}} artistes liés à une image locale"
     },
     "profileIo": {
       "title": "Sauvegarde du profil",

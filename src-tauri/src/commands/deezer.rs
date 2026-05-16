@@ -571,6 +571,151 @@ pub async fn set_album_artwork_from_file(
     Ok(())
 }
 
+// ── Artist image management ─────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DeezerArtistLite {
+    pub deezer_id: i64,
+    pub name: String,
+    pub picture_url: Option<String>,
+    pub nb_fan: Option<i64>,
+}
+
+/// Search Deezer artists for the artist-image picker. Capped to 20 hits
+/// to keep the UI grid readable.
+#[tauri::command]
+pub async fn search_artists_deezer(query: String) -> AppResult<Vec<DeezerArtistLite>> {
+    if crate::offline::is_offline() {
+        return Ok(Vec::new());
+    }
+    let client = DeezerClient::new();
+    let hits = client
+        .search_artist(&query)
+        .await
+        .map_err(|err| AppError::Other(format!("deezer artist search failed: {err}")))?;
+
+    Ok(hits
+        .into_iter()
+        .take(20)
+        .map(|h| DeezerArtistLite {
+            deezer_id: h.id,
+            name: h.name,
+            picture_url: h.picture_xl.or(h.picture_big).or(h.picture_medium),
+            nb_fan: h.nb_fan,
+        })
+        .collect())
+}
+
+/// Link a specific Deezer artist photo (by Deezer ID) to a local
+/// `artist` row. Downloads the picture into the profile artwork cache
+/// and overwrites `artist.artwork_id` unconditionally — explicit user
+/// pick, so we override any existing image (local sidecar, prior fetch).
+#[tauri::command]
+pub async fn set_artist_artwork_from_deezer(
+    state: tauri::State<'_, AppState>,
+    artist_id: i64,
+    deezer_artist_id: i64,
+) -> AppResult<()> {
+    if crate::offline::is_offline() {
+        return Err(AppError::Other("offline mode is enabled".into()));
+    }
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let profile_artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    std::fs::create_dir_all(&profile_artwork_dir)?;
+
+    let client = DeezerClient::new();
+    let hit = client
+        .get_artist(deezer_artist_id)
+        .await
+        .map_err(|err| AppError::Other(format!("deezer get_artist failed: {err}")))?;
+
+    let picture_url = hit
+        .picture_xl
+        .clone()
+        .or_else(|| hit.picture_big.clone())
+        .or_else(|| hit.picture_medium.clone())
+        .ok_or_else(|| AppError::Other("deezer artist has no picture".into()))?;
+
+    let bytes = download_image_bytes(&picture_url).await?;
+    let hash = blake3::hash(&bytes).to_hex().to_string();
+    let format = "jpg";
+    let target = profile_artwork_dir.join(format!("{hash}.{format}"));
+    if !target.exists() {
+        std::fs::write(&target, &bytes)?;
+    }
+    crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
+
+    let artwork_id = upsert_artwork_row(&pool, &hash, format, "deezer").await?;
+    let res = sqlx::query("UPDATE artist SET artwork_id = ? WHERE id = ?")
+        .bind(artwork_id)
+        .bind(artist_id)
+        .execute(&pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::Other(format!("artist {artist_id} not found")));
+    }
+
+    Ok(())
+}
+
+/// Manually upload an image file as the artist photo. Same magic-byte
+/// validation as `set_album_artwork_from_file` (jpg / png / webp).
+#[tauri::command]
+pub async fn set_artist_artwork_from_file(
+    state: tauri::State<'_, AppState>,
+    artist_id: i64,
+    file_path: String,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let profile_artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    std::fs::create_dir_all(&profile_artwork_dir)?;
+
+    let bytes = std::fs::read(&file_path)?;
+    let format = detect_image_format(&bytes).ok_or_else(|| {
+        AppError::Other("unsupported image format (expected jpg/png/webp)".into())
+    })?;
+
+    let hash = blake3::hash(&bytes).to_hex().to_string();
+    let target = profile_artwork_dir.join(format!("{hash}.{format}"));
+    if !target.exists() {
+        std::fs::write(&target, &bytes)?;
+    }
+    crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
+
+    let artwork_id = upsert_artwork_row(&pool, &hash, format, "manual").await?;
+    let res = sqlx::query("UPDATE artist SET artwork_id = ? WHERE id = ?")
+        .bind(artwork_id)
+        .bind(artist_id)
+        .execute(&pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::Other(format!("artist {artist_id} not found")));
+    }
+
+    Ok(())
+}
+
+/// Detach the current artist image so the resolution chain falls back
+/// to the Deezer cache / live fetch. The orphaned `artwork` row (if no
+/// longer referenced) is left in place — a future GC pass can sweep it.
+#[tauri::command]
+pub async fn clear_artist_artwork(
+    state: tauri::State<'_, AppState>,
+    artist_id: i64,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    let res = sqlx::query("UPDATE artist SET artwork_id = NULL WHERE id = ?")
+        .bind(artist_id)
+        .execute(&pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::Other(format!("artist {artist_id} not found")));
+    }
+    Ok(())
+}
+
 /// Walk every artist that doesn't have a fresh `metadata_artist`
 /// cache row and run the standard Deezer + Last.fm enrichment on each.
 /// Throttles ~5 req/s so the public Deezer API stays happy. Emits
@@ -722,6 +867,12 @@ fn detect_image_format(bytes: &[u8]) -> Option<&'static str> {
     None
 }
 
+/// Hard cap on a single image download. Deezer's `picture_xl` /
+/// `cover_xl` payloads top out around 200 KB; 10 MiB is generous
+/// headroom while still guarding against a hostile (or compromised)
+/// remote that streams unbounded data into our process memory.
+const MAX_IMAGE_BYTES: usize = 10 * 1024 * 1024;
+
 async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
     let client = reqwest::Client::builder()
         .user_agent("WaveFlow/0.1")
@@ -729,7 +880,7 @@ async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
         .build()
         .map_err(|err| AppError::Other(format!("http client build failed: {err}")))?;
 
-    let resp = client
+    let mut resp = client
         .get(url)
         .send()
         .await
@@ -740,9 +891,35 @@ async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
             resp.status()
         )));
     }
-    let bytes = resp
-        .bytes()
+
+    // Early-reject when the server is honest about its size — saves us
+    // pulling a single chunk we'd throw away anyway.
+    if let Some(len) = resp.content_length() {
+        if len as usize > MAX_IMAGE_BYTES {
+            return Err(AppError::Other(format!(
+                "image too large ({} bytes, max {})",
+                len, MAX_IMAGE_BYTES,
+            )));
+        }
+    }
+
+    // Pull chunk-by-chunk via `Response::chunk()` (built-in, no need
+    // for the `stream` feature on reqwest) so a server lying about
+    // Content-Length — or chunked transfer with no length at all —
+    // still can't OOM us.
+    let mut bytes = Vec::with_capacity(64 * 1024);
+    while let Some(chunk) = resp
+        .chunk()
         .await
-        .map_err(|err| AppError::Other(format!("read failed: {err}")))?;
-    Ok(bytes.to_vec())
+        .map_err(|err| AppError::Other(format!("read failed: {err}")))?
+    {
+        if bytes.len() + chunk.len() > MAX_IMAGE_BYTES {
+            return Err(AppError::Other(format!(
+                "image exceeds max size ({} bytes)",
+                MAX_IMAGE_BYTES,
+            )));
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok(bytes)
 }
