@@ -1,0 +1,113 @@
+name: APT (Buildkite Packages)
+
+# Runs after the Release workflow has published artefacts to GitHub.
+# Downloads the freshly-uploaded `.deb` from the release and uploads it
+# to the Buildkite Packages registry `instazdll/waveflow`, which serves
+# the apt repo that Debian/Ubuntu users add via:
+#
+#   curl -fsSL https://packages.buildkite.com/instazdll/waveflow/gpgkey \
+#     | sudo gpg --dearmor -o /etc/apt/keyrings/waveflow.gpg
+#   echo "deb [signed-by=/etc/apt/keyrings/waveflow.gpg] \
+#     https://packages.buildkite.com/instazdll/waveflow/any/ any main" \
+#     | sudo tee /etc/apt/sources.list.d/waveflow.list
+#   sudo apt update && sudo apt install waveflow
+#
+# Required repository secret:
+#   BUILDKITE_PACKAGES_TOKEN — API access token (scopes: read_packages,
+#                              write_packages) for the InstaZDLL org,
+#                              created at buildkite.com/user/api-access-tokens.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag to publish, e.g. v1.1.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  # Group on the resolved tag so two manual dispatches for different
+  # tags can run in parallel — `github.ref` would collapse them all
+  # under `refs/heads/main` when triggered via `workflow_dispatch`.
+  group: apt-${{ github.event.inputs.tag_name || github.event.release.tag_name }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY_URL: https://api.buildkite.com/v2/packages/organizations/instazdll/registries/waveflow/packages
+  # The Linux job in release.yml emits the .deb under this naming
+  # pattern (matches what Tauri's bundler produces): exactly one file
+  # per release, so a glob is safe.
+  DEB_PATTERN: "WaveFlow_*_linux-x86_64.deb"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Resolve tag
+        shell: bash
+        env:
+          MANUAL_TAG: ${{ github.event.inputs.tag_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          TAG="${MANUAL_TAG:-$RELEASE_TAG}"
+          if [ -z "$TAG" ]; then
+            echo "::error::No tag resolved (event=${GITHUB_EVENT_NAME:-?})"
+            exit 1
+          fi
+          echo "TAG_NAME=$TAG" >> "$GITHUB_ENV"
+          echo "Publishing $TAG to Buildkite Packages"
+
+      - name: Download .deb from GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mkdir -p dist
+          # `gh release download` writes the asset(s) to the current
+          # working dir; --pattern restricts to the .deb only so we
+          # don't also pull MSIs / DMGs / AppImages we don't need.
+          gh release download "$TAG_NAME" \
+            --pattern "$DEB_PATTERN" \
+            --dir dist
+          ls -lh dist
+          # Sanity: exactly one .deb expected.
+          count=$(find dist -name "*.deb" | wc -l)
+          if [ "$count" -ne 1 ]; then
+            echo "::error::Expected 1 .deb in release $TAG_NAME, found $count"
+            exit 1
+          fi
+
+      - name: Upload to Buildkite Packages
+        shell: bash
+        env:
+          TOKEN: ${{ secrets.BUILDKITE_PACKAGES_TOKEN }}
+        run: |
+          DEB=$(find dist -name "*.deb" | head -1)
+          echo "Uploading $DEB to $REGISTRY_URL"
+          # We capture the HTTP code and validate it manually (rather
+          # than using curl's `-f`) so the response body is still read
+          # on error — surfacing Buildkite's diagnostic JSON in the
+          # workflow log. `-sS` keeps output minimal but surfaces
+          # transport-level errors.
+          http_code=$(curl -sS -w "%{http_code}" -o response.json \
+            -X POST "$REGISTRY_URL" \
+            -H "Authorization: Bearer $TOKEN" \
+            -F "file=@$DEB")
+          echo "HTTP $http_code"
+          cat response.json || true
+          echo
+          # Accept 2xx (201 Created for new, 200 OK for replace). Anything
+          # else is a failure — most commonly 401 (bad token) or 409
+          # (package version already exists, which means release.yml ran
+          # twice on the same tag and the second run should bail).
+          case "$http_code" in
+            2*) echo "Upload OK" ;;
+            *)  echo "::error::Upload failed (HTTP $http_code)"; exit 1 ;;
+          esac

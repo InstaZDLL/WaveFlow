@@ -606,14 +606,15 @@ jobs:
         # GitHub silently drops release.published events when the
         # release was created by GITHUB_TOKEN (anti-loop safeguard),
         # so the workflows that need to react to a new release have
-        # to be dispatched explicitly. AUR, Winget and COPR each
-        # repackage the freshly-published artefacts onto their own
-        # channel.
+        # to be dispatched explicitly. AUR, Winget, COPR and the
+        # Buildkite Packages apt registry each repackage the freshly-
+        # published artefacts onto their own channel.
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh workflow run aur.yml    -f tag_name="$TAG_NAME"
-          gh workflow run winget.yml -f tag_name="$TAG_NAME"
-          gh workflow run copr.yml   -f tag_name="$TAG_NAME"
+          gh workflow run aur.yml         -f tag_name="$TAG_NAME"
+          gh workflow run winget.yml      -f tag_name="$TAG_NAME"
+          gh workflow run copr.yml        -f tag_name="$TAG_NAME"
+          gh workflow run apt-publish.yml -f tag_name="$TAG_NAME"
