@@ -8,7 +8,7 @@ name: APT (Buildkite Packages)
 #   curl -fsSL https://packages.buildkite.com/instazdll/waveflow/gpgkey \
 #     | sudo gpg --dearmor -o /etc/apt/keyrings/waveflow.gpg
 #   echo "deb [signed-by=/etc/apt/keyrings/waveflow.gpg] \
-#     https://packages.buildkite.com/instazdll/waveflow/debian any-version main" \
+#     https://packages.buildkite.com/instazdll/waveflow/any/ any main" \
 #     | sudo tee /etc/apt/sources.list.d/waveflow.list
 #   sudo apt update && sudo apt install waveflow
 #
@@ -31,7 +31,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: apt-${{ github.ref }}
+  # Group on the resolved tag so two manual dispatches for different
+  # tags can run in parallel — `github.ref` would collapse them all
+  # under `refs/heads/main` when triggered via `workflow_dispatch`.
+  group: apt-${{ github.event.inputs.tag_name || github.event.release.tag_name }}
   cancel-in-progress: false
 
 env:
@@ -88,10 +91,11 @@ jobs:
         run: |
           DEB=$(find dist -name "*.deb" | head -1)
           echo "Uploading $DEB to $REGISTRY_URL"
-          # `-f` makes curl fail-on-HTTP-error so the workflow turns red
-          # when the upload is rejected (token expired, duplicate, etc.)
-          # instead of silently succeeding. `-sS` keeps output minimal
-          # but still surfaces errors.
+          # We capture the HTTP code and validate it manually (rather
+          # than using curl's `-f`) so the response body is still read
+          # on error — surfacing Buildkite's diagnostic JSON in the
+          # workflow log. `-sS` keeps output minimal but surfaces
+          # transport-level errors.
           http_code=$(curl -sS -w "%{http_code}" -o response.json \
             -X POST "$REGISTRY_URL" \
             -H "Authorization: Bearer $TOKEN" \
