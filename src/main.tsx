@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { emit } from "@tauri-apps/api/event";
 import App from "./App";
@@ -23,21 +23,22 @@ const isMini = new URLSearchParams(window.location.search).get("mini") === "1";
 // rAF-driven `window.show()` could fire before React had committed
 // anything, leaving the user staring at an empty splash forever.
 //
-// The mini-player is opened with visible: true so it's already on
-// screen by the time React mounts — skip the signal there.
-function signalReady() {
-  if (isMini) return;
-  // Two rAFs to let React commit + the compositor paint at least one
-  // useful frame before we reveal the main window. The backend has a
-  // 15 s safety-net timer so even if this never fires (e.g. a frontend
-  // crash before render) the user is not stuck on the splash.
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      void emit("app://ready").catch((err) => {
-        console.error("[main] emit(app://ready) failed", err);
-      });
+// We emit from a useEffect at the React root rather than from a 2-rAF
+// dance because WebKitGTK 2.52 suspends `requestAnimationFrame`
+// callbacks while a window is hidden — `visible: false` means rAF
+// never fires until the backend reveals the window, deadlocking the
+// handoff until the 15 s safety-net timer trips. useEffect runs after
+// the first React commit, which is the actual guarantee we care about
+// (DOM is populated before reveal); the compositor will paint the
+// first frame as part of the reveal itself, so we don't need to
+// observe a paint to avoid a flash.
+function ReadySignal({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    void emit("app://ready").catch((err) => {
+      console.error("[main] emit(app://ready) failed", err);
     });
-  });
+  }, []);
+  return <>{children}</>;
 }
 
 i18nReady
@@ -45,10 +46,18 @@ i18nReady
     console.error("[i18n] initialization failed", err);
   })
   .finally(() => {
-    ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+    const root = ReactDOM.createRoot(
+      document.getElementById("root") as HTMLElement,
+    );
+    root.render(
       <React.StrictMode>
-        {isMini ? <MiniPlayerApp /> : <App />}
+        {isMini ? (
+          <MiniPlayerApp />
+        ) : (
+          <ReadySignal>
+            <App />
+          </ReadySignal>
+        )}
       </React.StrictMode>,
     );
-    signalReady();
   });
