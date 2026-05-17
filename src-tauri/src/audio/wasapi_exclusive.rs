@@ -90,6 +90,7 @@ pub fn spawn_exclusive_output_thread(
                 shutdown_tx,
                 join,
                 device_name,
+                wasapi_exclusive: true,
             },
         )),
         Ok(Err(err)) => {

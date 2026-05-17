@@ -596,7 +596,14 @@ pub fn run() {
             // been armed, so we can safely persist the resume point and
             // shut the audio engine down.
             WindowEvent::Destroyed => {
+                if window.label() != "main" {
+                    return;
+                }
                 let app = window.app_handle().clone();
+                let quitting = app.state::<QuitGate>().0.load(Ordering::Acquire);
+                if !quitting {
+                    return;
+                }
                 let _ = tauri::async_runtime::block_on(async move {
                     let state = app.state::<AppState>();
                     let engine = app.state::<Arc<AudioEngine>>();

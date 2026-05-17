@@ -273,6 +273,10 @@ pub struct OutputHandle {
     /// `None` means the OS default device. Saved so a hot-swap can
     /// no-op when the user picks the same device again.
     pub device_name: Option<String>,
+    /// Whether this handle is really using WASAPI Exclusive Mode.
+    /// The user preference can request exclusive mode, but startup may
+    /// fall back to cpal shared mode when the device rejects it.
+    pub wasapi_exclusive: bool,
 }
 
 impl OutputHandle {
@@ -333,6 +337,7 @@ pub fn spawn_output_thread(
                 shutdown_tx,
                 join,
                 device_name,
+                wasapi_exclusive: false,
             },
         )),
         Ok(Err(err)) => {
