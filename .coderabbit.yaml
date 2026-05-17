@@ -1,0 +1,91 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: fr-FR
+tone_instructions: >-
+  Sois direct et concis. Priorise les bugs réels, les régressions
+  utilisateur, les problèmes de sécurité, les erreurs de logique et les
+  oublis de tests/validation. Évite les remarques purement cosmétiques.
+early_access: true
+
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  high_level_summary: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+    ignore_title_keywords:
+      - "chore: bump"
+      - "chore(main): release"
+      - "release-please"
+      - "dependabot"
+      - "[bot]"
+  path_filters:
+    - "!**/dist/**"
+    - "!**/node_modules/**"
+    - "!**/target/**"
+    - "!**/vendor/**"
+    - "!secrets/**"
+    - "!bun.lock"
+    - "!src-tauri/Cargo.lock"
+    - "!*.lock"
+  path_instructions:
+    - path: "src/**"
+      instructions: >-
+        Frontend React 19 + Vite + Tailwind CSS 4 pour une app Tauri 2.
+        Vérifie les erreurs de state/effects, les handlers qui lancent des
+        commandes Tauri, les problèmes d'accessibilité visibles, et les
+        régressions de navigation/player. Évite les suggestions de style si
+        Prettier/ESLint les couvrent déjà.
+    - path: "src/lib/tauri/**"
+      instructions: >-
+        Wrappers TypeScript autour des commandes Tauri. Vérifie que les noms
+        d'arguments correspondent exactement aux commandes Rust, que les types
+        frontend/backend restent alignés, et que les erreurs importantes ne
+        sont pas masquées.
+    - path: "src-tauri/src/audio/**"
+      instructions: >-
+        Moteur audio temps réel. Dans les callbacks audio, signale toute
+        allocation, lock, I/O, log ou opération bloquante. Vérifie aussi les
+        channels/rates, la gestion des threads, des atomics, des buffers SPSC,
+        et les cas de fallback de périphérique audio.
+    - path: "src-tauri/src/commands/**"
+      instructions: >-
+        Commandes Tauri exposées au frontend. Vérifie les contrôles de profil
+        actif, les accès SQLx, les erreurs retournées à l'UI, les chemins
+        fichiers, et les changements qui peuvent bloquer le runtime async.
+    - path: "src-tauri/migrations/**"
+      instructions: >-
+        Migrations SQLite app/profile. Les migrations existantes ne doivent
+        pas être modifiées après release; demander une nouvelle migration
+        timestampée si le schéma change. Vérifie la compatibilité avec les
+        profils existants.
+    - path: "src/i18n/locales/**"
+      instructions: >-
+        Fichiers de traduction. Vérifie surtout les clés manquantes, les clés
+        divergentes entre locales, et les placeholders i18next incohérents.
+    - path: ".github/workflows/**"
+      instructions: >-
+        Workflows GitHub Actions de release, packaging et sécurité. Vérifie
+        les risques d'injection via branches/PR non fiables, la portée des
+        secrets, les permissions minimales, et les changements qui pourraient
+        publier des artefacts incorrects.
+    - path: "packaging/**"
+      instructions: >-
+        Packaging Linux/Windows. Vérifie les chemins installés, dépendances
+        système, metadata de distribution, permissions, et cohérence avec les
+        artefacts de release.
+
+  tools:
+    eslint:
+      enabled: true
+    biome:
+      enabled: false
+    semgrep:
+      enabled: false
+    opengrep:
+      enabled: true
+
+chat:
+  auto_reply: true
