@@ -39,6 +39,15 @@ Pre-built bundles for every tagged release are on the [GitHub Releases page](htt
   sudo dnf copr enable instazdll/waveflow
   sudo dnf install waveflow
   ```
+- **Debian / Ubuntu / Mint / Pop!\_OS** — add the apt repo once, then install via `apt`:
+  ```bash
+  sudo install -d -m 0755 /etc/apt/keyrings
+  curl -fsSL https://packages.buildkite.com/instazdll/waveflow/gpgkey \
+    | sudo gpg --dearmor -o /etc/apt/keyrings/waveflow.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/waveflow.gpg] https://packages.buildkite.com/instazdll/waveflow/debian any-version main" \
+    | sudo tee /etc/apt/sources.list.d/waveflow.list
+  sudo apt update && sudo apt install waveflow
+  ```
 
 Standalone bundles (for everything else, or if you'd rather skip a repo):
 
