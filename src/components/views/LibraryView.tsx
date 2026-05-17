@@ -144,6 +144,15 @@ export function LibraryView({
   const [isRescanning, setIsRescanning] = useState(false);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
+  // When the create-playlist modal is opened from a popover's "+ New
+  // playlist" entry, remember which source triggered it so we can add
+  // its tracks to the freshly created playlist in one step instead of
+  // forcing the user to reopen the popover.
+  const [pendingSourceForCreate, setPendingSourceForCreate] = useState<
+    | { kind: "tracks"; ids: number[] }
+    | { kind: "folder" | "album" | "artist"; id: number }
+    | null
+  >(null);
   const [coverPickerAlbumId, setCoverPickerAlbumId] = useState<number | null>(
     null,
   );
@@ -529,7 +538,10 @@ export function LibraryView({
                     console.error("[LibraryView] add to playlist failed", err);
                   }
                 }}
-                onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+                onCreatePlaylist={(trackId) => {
+                  setPendingSourceForCreate({ kind: "tracks", ids: [trackId] });
+                  setIsCreatePlaylistModalOpen(true);
+                }}
                 onNavigateToAlbum={onNavigateToAlbum}
                 onNavigateToArtist={onNavigateToArtist}
                 onContextMenuRow={trackContextMenu.open}
@@ -585,7 +597,10 @@ export function LibraryView({
                 onAddToPlaylist={(playlistId, albumId) =>
                   addSourceToPlaylist(playlistId, "album", albumId)
                 }
-                onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+                onCreatePlaylist={(albumId) => {
+                  setPendingSourceForCreate({ kind: "album", id: albumId });
+                  setIsCreatePlaylistModalOpen(true);
+                }}
                 onAlbumClick={onNavigateToAlbum}
                 onChangeCover={(albumId) => setCoverPickerAlbumId(albumId)}
               />
@@ -610,7 +625,10 @@ export function LibraryView({
                   onAddToPlaylist={(playlistId, artistId) =>
                     addSourceToPlaylist(playlistId, "artist", artistId)
                   }
-                  onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+                  onCreatePlaylist={(artistId) => {
+                    setPendingSourceForCreate({ kind: "artist", id: artistId });
+                    setIsCreatePlaylistModalOpen(true);
+                  }}
                   onArtistClick={onNavigateToArtist}
                   gridRef={artistGridRef}
                 />
@@ -653,7 +671,10 @@ export function LibraryView({
               onAddToPlaylist={(playlistId, folderId) =>
                 addSourceToPlaylist(playlistId, "folder", folderId)
               }
-              onCreatePlaylist={() => setIsCreatePlaylistModalOpen(true)}
+              onCreatePlaylist={(folderId) => {
+                setPendingSourceForCreate({ kind: "folder", id: folderId });
+                setIsCreatePlaylistModalOpen(true);
+              }}
               onRemove={(folderId) => {
                 // Optimistic removal — the backend cascade-deletes
                 // tracks too, so the LibraryContext will refresh on
@@ -717,17 +738,30 @@ export function LibraryView({
 
       <CreatePlaylistModal
         isOpen={isCreatePlaylistModalOpen}
-        onClose={() => setIsCreatePlaylistModalOpen(false)}
+        onClose={() => {
+          setIsCreatePlaylistModalOpen(false);
+          setPendingSourceForCreate(null);
+        }}
         onCreate={async (data) => {
           try {
-            await createPlaylist({
+            const created = await createPlaylist({
               name: data.name,
               description: data.description || null,
               color_id: data.colorId,
               icon_id: data.iconId,
             });
+            const pending = pendingSourceForCreate;
+            if (pending && created?.id != null) {
+              if (pending.kind === "tracks") {
+                await addTracksToPlaylist(created.id, pending.ids);
+              } else {
+                await addSourceToPlaylist(created.id, pending.kind, pending.id);
+              }
+            }
           } catch (err) {
             console.error("[LibraryView] create playlist failed", err);
+          } finally {
+            setPendingSourceForCreate(null);
           }
         }}
       />
@@ -923,7 +957,7 @@ interface TrackTableProps {
   onToggleLike: (trackId: number) => void;
   playlists: Playlist[];
   onAddToPlaylist: (playlistId: number, trackId: number) => void;
-  onCreatePlaylist: () => void;
+  onCreatePlaylist: (trackId: number) => void;
   onNavigateToAlbum: (albumId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
   onContextMenuRow: (event: React.MouseEvent, track: Track) => void;
@@ -1201,7 +1235,7 @@ function TrackTable({
                     }}
                     onCreate={() => {
                       setOpenMenuTrackId(null);
-                      onCreatePlaylist();
+                      onCreatePlaylist(track.id);
                     }}
                     t={t}
                   />
@@ -1297,7 +1331,7 @@ interface AlbumGridProps {
   t: Translator;
   playlists: Playlist[];
   onAddToPlaylist: (playlistId: number, albumId: number) => void;
-  onCreatePlaylist: () => void;
+  onCreatePlaylist: (albumId: number) => void;
   onAlbumClick: (albumId: number) => void;
   onChangeCover: (albumId: number) => void;
 }
@@ -1438,7 +1472,7 @@ function AlbumGrid({
                   }}
                   onCreate={() => {
                     setOpenMenuAlbumId(null);
-                    onCreatePlaylist();
+                    onCreatePlaylist(album.id);
                   }}
                   t={t}
                 />
@@ -1479,7 +1513,7 @@ interface ArtistListProps {
   t: Translator;
   playlists: Playlist[];
   onAddToPlaylist: (playlistId: number, artistId: number) => void;
-  onCreatePlaylist: () => void;
+  onCreatePlaylist: (artistId: number) => void;
   onArtistClick: (artistId: number) => void;
   gridRef?: React.RefObject<HTMLDivElement | null>;
 }
@@ -1595,7 +1629,7 @@ function ArtistList({
                 }}
                 onCreate={() => {
                   setOpenMenuArtistId(null);
-                  onCreatePlaylist();
+                  onCreatePlaylist(artist.id);
                 }}
                 t={t}
               />
@@ -1651,7 +1685,7 @@ interface FolderListProps {
   t: Translator;
   playlists: Playlist[];
   onAddToPlaylist: (playlistId: number, folderId: number) => void;
-  onCreatePlaylist: () => void;
+  onCreatePlaylist: (folderId: number) => void;
   onToggleWatched: (folderId: number, enable: boolean) => void;
   onRemove: (folderId: number) => void;
 }
@@ -1822,7 +1856,7 @@ function FolderList({
                   }}
                   onCreate={() => {
                     setOpenMenuFolderId(null);
-                    onCreatePlaylist();
+                    onCreatePlaylist(folder.id);
                   }}
                   t={t}
                 />
