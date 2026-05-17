@@ -257,10 +257,10 @@ fn decoder_loop(
                     replay_gain_db,
                     producer,
                     &shared,
-                    &cmd_rx,
+                    cmd_rx,
                     &app,
                     &mut pending_cmd,
-                    &analytics_tx,
+                    analytics_tx,
                 );
                 match outcome {
                     Ok((PlaybackEnd::Natural, listened_ms, finished)) => {
