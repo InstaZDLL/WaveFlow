@@ -136,6 +136,10 @@ pub struct AudioEngine {
     /// flipped by `set_wasapi_exclusive`. Used by `set_output_device`
     /// to preserve the mode across hot-swaps.
     wasapi_exclusive: std::sync::atomic::AtomicBool,
+    /// Whether the current output stream is actually running in
+    /// WASAPI Exclusive Mode. This can differ from the preference
+    /// when init falls back to cpal shared mode.
+    wasapi_exclusive_active: std::sync::atomic::AtomicBool,
 }
 
 impl AudioEngine {
@@ -172,13 +176,14 @@ impl AudioEngine {
         // rows and self-send the next `LoadAndPlay`.
         let (analytics_tx, analytics_rx) = unbounded_channel::<AnalyticsMsg>();
 
-        let (output, decoder) = match spawn_output_with_mode(
+        let (output, decoder, wasapi_exclusive_active) = match spawn_output_with_mode(
             shared.clone(),
             app.clone(),
             device_name,
             wasapi_exclusive,
         ) {
             Ok((producer, handle)) => {
+                let active = handle.wasapi_exclusive;
                 // `spawn_output_thread` returns only after the cpal
                 // stream has opened, so `shared.sample_rate` /
                 // `shared.channels` are already populated by the time
@@ -190,17 +195,17 @@ impl AudioEngine {
                     app.clone(),
                     analytics_tx,
                 ) {
-                    Ok(join) => (Some(handle), Some(join)),
+                    Ok(join) => (Some(handle), Some(join), active),
                     Err(err) => {
                         tracing::error!(?err, "failed to spawn decoder thread");
                         handle.stop();
-                        (None, None)
+                        (None, None, false)
                     }
                 }
             }
             Err(err) => {
                 tracing::warn!(?err, "failed to open audio output at startup");
-                (None, None)
+                (None, None, false)
             }
         };
 
@@ -214,6 +219,7 @@ impl AudioEngine {
             decoder: Mutex::new(decoder),
             app,
             wasapi_exclusive: std::sync::atomic::AtomicBool::new(wasapi_exclusive),
+            wasapi_exclusive_active: std::sync::atomic::AtomicBool::new(wasapi_exclusive_active),
         })
     }
 
@@ -338,6 +344,10 @@ impl AudioEngine {
         }
 
         *guard = Some(handle);
+        self.wasapi_exclusive_active.store(
+            guard.as_ref().map(|h| h.wasapi_exclusive).unwrap_or(false),
+            std::sync::atomic::Ordering::Release,
+        );
 
         // Step 6 — resume the previous track if we were playing one.
         if was_playing && track_id > 0 {
@@ -418,6 +428,7 @@ impl AudioEngine {
 
         let (producer, handle) =
             spawn_output_with_mode(self.shared.clone(), self.app.clone(), active, enabled)?;
+        let active_mode = handle.wasapi_exclusive;
 
         if was_playing {
             self.cmd_tx
@@ -431,6 +442,8 @@ impl AudioEngine {
             .send(AudioCmd::SwapProducer(producer))
             .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
         *guard = Some(handle);
+        self.wasapi_exclusive_active
+            .store(active_mode, std::sync::atomic::Ordering::Release);
 
         if was_playing && track_id > 0 {
             let app = self.app.clone();
@@ -472,10 +485,11 @@ impl AudioEngine {
         Ok(())
     }
 
-    /// Current Windows Exclusive Mode preference. Always `false` on
-    /// non-Windows.
+    /// Whether the current output stream is actually running in
+    /// WASAPI Exclusive Mode. Always `false` on Linux / macOS and
+    /// also `false` after a Windows fallback to cpal shared mode.
     pub fn wasapi_exclusive(&self) -> bool {
-        self.wasapi_exclusive
-            .load(std::sync::atomic::Ordering::Relaxed)
+        self.wasapi_exclusive_active
+            .load(std::sync::atomic::Ordering::Acquire)
     }
 }

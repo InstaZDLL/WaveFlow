@@ -9,6 +9,7 @@
 //! Commands are polled between packets via `cmd_rx.try_recv()` so
 //! pause / stop / seek feel responsive even during long tracks.
 
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -117,17 +118,70 @@ pub fn spawn_decoder_thread(
             // `AudioCmd::SwapProducer` when the engine rebuilds the
             // cpal output thread on a different device.
             let mut producer = producer;
-            decoder_loop(cmd_rx, &mut producer, shared, app, analytics_tx);
+            let mut panic_count = 0u32;
+            const MAX_DECODER_PANICS: u32 = 3;
+            loop {
+                let result = catch_unwind(AssertUnwindSafe(|| {
+                    decoder_loop(
+                        &cmd_rx,
+                        &mut producer,
+                        shared.clone(),
+                        app.clone(),
+                        &analytics_tx,
+                    );
+                }));
+                match result {
+                    Ok(()) => break,
+                    Err(payload) => {
+                        panic_count += 1;
+                        let message = panic_payload_message(payload.as_ref());
+                        tracing::error!(%message, panic_count, "audio decoder thread panicked");
+                        let _ = app.emit(
+                            EVENT_ERROR,
+                            ErrorPayload {
+                                message: format!("audio decoder crashed: {message}"),
+                            },
+                        );
+                        transition_state(&shared, &app, PlayerState::Idle, None);
+                        if panic_count >= MAX_DECODER_PANICS {
+                            tracing::error!(
+                                panic_count,
+                                "audio decoder thread panicked repeatedly, stopping recovery"
+                            );
+                            let _ = app.emit(
+                                EVENT_ERROR,
+                                ErrorPayload {
+                                    message: "audio decoder stopped after repeated crashes"
+                                        .to_string(),
+                                },
+                            );
+                            break;
+                        }
+                        let backoff_ms = 100_u64 * (1_u64 << (panic_count - 1));
+                        std::thread::sleep(Duration::from_millis(backoff_ms));
+                    }
+                }
+            }
         })
+}
+
+fn panic_payload_message(payload: &(dyn std::any::Any + Send)) -> String {
+    if let Some(message) = payload.downcast_ref::<&str>() {
+        return (*message).to_string();
+    }
+    if let Some(message) = payload.downcast_ref::<String>() {
+        return message.clone();
+    }
+    "unknown panic payload".to_string()
 }
 
 /// Top-level decoder thread loop. Never returns except on `Shutdown`.
 fn decoder_loop(
-    cmd_rx: Receiver<AudioCmd>,
+    cmd_rx: &Receiver<AudioCmd>,
     producer: &mut Producer<f32>,
     shared: Arc<SharedPlayback>,
     app: AppHandle,
-    analytics_tx: UnboundedSender<AnalyticsMsg>,
+    analytics_tx: &UnboundedSender<AnalyticsMsg>,
 ) {
     // When `play_track` returns due to a mid-decode LoadAndPlay, the
     // stashed command lands here so we process it before blocking on
