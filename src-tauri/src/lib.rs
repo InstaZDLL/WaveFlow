@@ -30,11 +30,12 @@ mod watcher;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Manager, WindowEvent,
+    AppHandle, Listener, Manager, WindowEvent,
 };
 
 use audio::{AudioCmd, AudioEngine};
@@ -364,6 +365,43 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            // Splash → main handoff.
+            //
+            // The frontend emits `app://ready` once the React root has
+            // committed its first useful paint (see src/main.tsx). When
+            // we get that event we close the splash and reveal the
+            // main window from native code — more reliable than the
+            // previous IPC dance, which on Linux WebKitGTK 2.52 raced
+            // against the heavy first-launch init (migrations + DB
+            // pool + library scan) and left the splash hanging
+            // forever (issue #42).
+            //
+            // A 15 s safety-net timer force-reveals the main window if
+            // `app://ready` never fires — guards against a frontend
+            // crash leaving the user stuck on an eternal splash.
+            let handoff_done = Arc::new(AtomicBool::new(false));
+            let handoff_handle = app.handle().clone();
+            let handoff_done_for_event = handoff_done.clone();
+            app.listen("app://ready", move |_event| {
+                if handoff_done_for_event.swap(true, Ordering::SeqCst) {
+                    return;
+                }
+                reveal_main_close_splash(&handoff_handle);
+            });
+
+            let fallback_handle = app.handle().clone();
+            let fallback_done = handoff_done.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(Duration::from_secs(15)).await;
+                if fallback_done.swap(true, Ordering::SeqCst) {
+                    return;
+                }
+                tracing::warn!(
+                    "splash handoff fallback: `app://ready` never fired after 15s, force-revealing main window"
+                );
+                reveal_main_close_splash(&fallback_handle);
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -644,6 +682,30 @@ fn show_main_window(app: &AppHandle) {
         let _ = window.show();
         let _ = window.unminimize();
         let _ = window.set_focus();
+    }
+}
+
+/// Reveal the main window and close the splash, in that order.
+///
+/// Same ordering rule as the old frontend version: show main first,
+/// then close splash, so there is never a moment where the desktop is
+/// visible between the two on a multi-monitor / compositing setup.
+/// Both calls are best-effort — failures are logged but don't propagate
+/// because there is nothing useful the caller can do about them at this
+/// point (the app is already running, just visually rough).
+fn reveal_main_close_splash(app: &AppHandle) {
+    if let Some(main) = app.get_webview_window("main") {
+        if let Err(err) = main.show() {
+            tracing::warn!(?err, "splash handoff: main.show failed");
+        }
+        let _ = main.set_focus();
+    } else {
+        tracing::warn!("splash handoff: main window missing at reveal time");
+    }
+    if let Some(splash) = app.get_webview_window("splashscreen") {
+        if let Err(err) = splash.close() {
+            tracing::warn!(?err, "splash handoff: splash.close failed");
+        }
     }
 }
 

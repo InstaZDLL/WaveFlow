@@ -1,9 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import {
-  getCurrentWindow,
-  Window as TauriWindow,
-} from "@tauri-apps/api/window";
+import { emit } from "@tauri-apps/api/event";
 import App from "./App";
 import { MiniPlayerApp } from "./MiniPlayerApp";
 import "./app.css";
@@ -14,35 +11,31 @@ import { i18nReady } from "./i18n";
 // a stripped-down provider tree (no LibraryContext / sidebar / etc).
 const isMini = new URLSearchParams(window.location.search).get("mini") === "1";
 
-// The main window is created with `visible: false` in tauri.conf.json so
-// the user never sees a white WebView while Rust setup + React mount run.
-// A `splashscreen` window is created in its place (small, transparent,
-// always-on-top) to give visual feedback during the cold-start delay
-// — especially on the very first launch after install, when Windows
-// SmartScreen / Defender scans every freshly-extracted DLL.
+// The main window is created with `visible: false` in tauri.conf.json
+// so the user never sees a white WebView while Rust setup + React mount
+// run. A `splashscreen` window is shown in its place. The backend
+// listens for `app://ready` and atomically reveals the main window +
+// closes the splash from native code (see `reveal_main_close_splash`
+// in src-tauri/src/lib.rs).
 //
-// We reveal the main window after the first frame is painted, then
-// close the splash. Order matters: show main BEFORE closing splash so
-// there's never a moment where the desktop is visible between the two.
-// The mini-player is its own window opened explicitly with visible:
-// true, so skip the dance there.
-function revealMainWindow() {
+// Doing the handoff in native code rather than IPC avoids the race
+// that bit issue #42 on Linux WebKitGTK 2.52: the previous frontend
+// rAF-driven `window.show()` could fire before React had committed
+// anything, leaving the user staring at an empty splash forever.
+//
+// The mini-player is opened with visible: true so it's already on
+// screen by the time React mounts — skip the signal there.
+function signalReady() {
   if (isMini) return;
+  // Two rAFs to let React commit + the compositor paint at least one
+  // useful frame before we reveal the main window. The backend has a
+  // 15 s safety-net timer so even if this never fires (e.g. a frontend
+  // crash before render) the user is not stuck on the splash.
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      void (async () => {
-        try {
-          await getCurrentWindow().show();
-        } catch (err) {
-          console.error("[main] window.show failed", err);
-        }
-        try {
-          const splash = await TauriWindow.getByLabel("splashscreen");
-          if (splash) await splash.close();
-        } catch (err) {
-          console.error("[main] splash close failed", err);
-        }
-      })();
+      void emit("app://ready").catch((err) => {
+        console.error("[main] emit(app://ready) failed", err);
+      });
     });
   });
 }
@@ -57,5 +50,5 @@ i18nReady
         {isMini ? <MiniPlayerApp /> : <App />}
       </React.StrictMode>,
     );
-    revealMainWindow();
+    signalReady();
   });
