@@ -386,7 +386,14 @@ pub fn run() {
                 if handoff_done_for_event.swap(true, Ordering::SeqCst) {
                     return;
                 }
-                reveal_main_close_splash(&handoff_handle);
+                // Reset the flag if the reveal fails so the fallback
+                // timer (or a subsequent `app://ready` re-emission) can
+                // retry — otherwise a transient main.show() / splash.close()
+                // failure would leave the user stuck on an eternal splash
+                // with no recovery path.
+                if !reveal_main_close_splash(&handoff_handle) {
+                    handoff_done_for_event.store(false, Ordering::SeqCst);
+                }
             });
 
             let fallback_handle = app.handle().clone();
@@ -399,7 +406,9 @@ pub fn run() {
                 tracing::warn!(
                     "splash handoff fallback: `app://ready` never fired after 15s, force-revealing main window"
                 );
-                reveal_main_close_splash(&fallback_handle);
+                if !reveal_main_close_splash(&fallback_handle) {
+                    fallback_done.store(false, Ordering::SeqCst);
+                }
             });
 
             Ok(())
@@ -690,23 +699,32 @@ fn show_main_window(app: &AppHandle) {
 /// Same ordering rule as the old frontend version: show main first,
 /// then close splash, so there is never a moment where the desktop is
 /// visible between the two on a multi-monitor / compositing setup.
-/// Both calls are best-effort — failures are logged but don't propagate
-/// because there is nothing useful the caller can do about them at this
-/// point (the app is already running, just visually rough).
-fn reveal_main_close_splash(app: &AppHandle) {
+///
+/// Returns `true` only when *both* operations succeed (main shown +
+/// splash closed, or splash already absent). On any failure, returns
+/// `false` so the caller can clear its "done" flag and let the other
+/// path (event listener or fallback timer) retry — without this,
+/// a transient failure would leave the user stuck on an eternal
+/// splash.
+fn reveal_main_close_splash(app: &AppHandle) -> bool {
+    let mut ok = true;
     if let Some(main) = app.get_webview_window("main") {
         if let Err(err) = main.show() {
             tracing::warn!(?err, "splash handoff: main.show failed");
+            ok = false;
         }
         let _ = main.set_focus();
     } else {
         tracing::warn!("splash handoff: main window missing at reveal time");
+        ok = false;
     }
     if let Some(splash) = app.get_webview_window("splashscreen") {
         if let Err(err) = splash.close() {
             tracing::warn!(?err, "splash handoff: splash.close failed");
+            ok = false;
         }
     }
+    ok
 }
 
 /// Toggle Pause / Resume from the tray. Looks at the engine's current
