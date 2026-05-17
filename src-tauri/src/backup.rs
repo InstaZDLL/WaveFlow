@@ -306,6 +306,7 @@ pub async fn run_one_backup(
         };
         let target_owned = target.clone();
 
+        let attempted_with_cache = bundle_metadata_artwork;
         let result = tokio::task::spawn_blocking(move || -> AppResult<()> {
             write_archive(
                 &target_owned,
@@ -319,13 +320,17 @@ pub async fn run_one_backup(
         .await
         .map_err(|e| AppError::Other(format!("backup task join: {e}")))?;
 
-        // Only the first archive carries the shared cache.
-        bundle_metadata_artwork = false;
-
         match result {
             Ok(()) => {
                 tracing::info!(profile_id, target = %target.display(), "auto backup ok");
                 created.push(target.to_string_lossy().to_string());
+                // Clear the flag only after a successful write that
+                // actually carried the cache — otherwise a failure on
+                // the first profile would silently strip the cache from
+                // every subsequent archive in the same pass.
+                if attempted_with_cache {
+                    bundle_metadata_artwork = false;
+                }
             }
             Err(err) => {
                 tracing::warn!(profile_id, ?err, "auto backup failed");
