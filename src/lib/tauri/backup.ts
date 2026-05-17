@@ -6,6 +6,8 @@ export interface BackupConfig {
   interval_days: number;
   folder: string;
   retention: number;
+  /** Bundle the shared Deezer artwork cache into each archive. */
+  include_metadata_artwork: boolean;
   /** Epoch ms of the last successful run; `0` if never. */
   last_run_at: number;
   /** Server-resolved default folder to suggest in the picker. */
@@ -21,6 +23,7 @@ export function setBackupConfig(input: {
   interval_days: number;
   folder: string;
   retention: number;
+  include_metadata_artwork: boolean;
 }): Promise<void> {
   return invoke<void>("set_backup_config", { input });
 }

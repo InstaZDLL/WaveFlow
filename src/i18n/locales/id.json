@@ -1301,6 +1301,8 @@
       "retentionLabel": "Arsip disimpan",
       "retentionKeep_one": "{{count}} arsip per profil",
       "retentionKeep_other": "{{count}} arsip per profil",
+      "includeMetadataArtworkLabel": "Sertakan cache gambar Deezer",
+      "includeMetadataArtworkHint": "Cadangan lebih besar, pemulihan sepenuhnya luring. Hapus centang untuk arsip ringan (cache akan diambil ulang sesuai permintaan).",
       "changeFolder": "Ubah folder",
       "pickFolderTitle": "Pilih folder cadangan",
       "lastRun": "Cadangan terakhir: {{when}}",

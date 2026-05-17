@@ -11,11 +11,12 @@
 //!
 //! | Key                       | Type   | Default                                  |
 //! |---------------------------|--------|------------------------------------------|
-//! | `backup.enabled`          | bool   | `false`                                  |
-//! | `backup.interval_days`    | int    | `7`                                      |
-//! | `backup.folder`           | string | `<documents>/WaveFlow Backups` if empty  |
-//! | `backup.retention`        | int    | `5` (per-profile; oldest pruned)         |
-//! | `backup.last_run_at`      | int ms | `0`                                      |
+//! | `backup.enabled`                  | bool   | `false`                                  |
+//! | `backup.interval_days`            | int    | `7`                                      |
+//! | `backup.folder`                   | string | `<documents>/WaveFlow Backups` if empty  |
+//! | `backup.retention`                | int    | `5` (per-profile; oldest pruned)         |
+//! | `backup.include_metadata_artwork` | bool   | `true`                                   |
+//! | `backup.last_run_at`              | int ms | `0`                                      |
 //!
 //! Wake-up model: the task loops on `tokio::select!` between a deadline
 //! computed from `last_run_at + interval` and a `Notify` woken by
@@ -62,6 +63,11 @@ pub struct BackupConfig {
     pub interval_days: i64,
     pub folder: String,
     pub retention: i64,
+    /// Bundle the shared Deezer cover/artist-picture cache into each
+    /// archive. Default `true` so a restore-on-another-machine works
+    /// fully offline; users with large libraries can disable to keep
+    /// archives lean (cache is rebuilt on demand).
+    pub include_metadata_artwork: bool,
     /// Epoch ms of the last successful run; `0` if never. Frontend
     /// formats with `Date(last_run_at)` so the user can verify the
     /// task actually fired.
@@ -101,12 +107,14 @@ pub async fn read_config(state: &AppState, handle: &AppHandle) -> AppResult<Back
     let mut interval_days = DEFAULT_INTERVAL_DAYS;
     let mut folder = String::new();
     let mut retention = DEFAULT_RETENTION;
+    let mut include_metadata_artwork = true;
     let mut last_run_at: i64 = 0;
 
     let rows: Vec<(String, String)> = sqlx::query_as(
         "SELECT key, value FROM app_setting WHERE key IN
             ('backup.enabled', 'backup.interval_days', 'backup.folder',
-             'backup.retention', 'backup.last_run_at')",
+             'backup.retention', 'backup.include_metadata_artwork',
+             'backup.last_run_at')",
     )
     .fetch_all(&state.app_db)
     .await?;
@@ -116,6 +124,7 @@ pub async fn read_config(state: &AppState, handle: &AppHandle) -> AppResult<Back
             "backup.interval_days" => interval_days = v.parse().unwrap_or(DEFAULT_INTERVAL_DAYS),
             "backup.folder" => folder = v,
             "backup.retention" => retention = v.parse().unwrap_or(DEFAULT_RETENTION),
+            "backup.include_metadata_artwork" => include_metadata_artwork = v == "true" || v == "1",
             "backup.last_run_at" => last_run_at = v.parse().unwrap_or(0),
             _ => {}
         }
@@ -126,6 +135,7 @@ pub async fn read_config(state: &AppState, handle: &AppHandle) -> AppResult<Back
         interval_days: interval_days.clamp(MIN_INTERVAL_DAYS, MAX_INTERVAL_DAYS),
         folder,
         retention: retention.clamp(MIN_RETENTION, MAX_RETENTION),
+        include_metadata_artwork,
         last_run_at,
         default_folder,
     })
@@ -141,6 +151,7 @@ pub async fn write_config(
     interval_days: i64,
     folder: String,
     retention: i64,
+    include_metadata_artwork: bool,
 ) -> AppResult<()> {
     let interval = interval_days.clamp(MIN_INTERVAL_DAYS, MAX_INTERVAL_DAYS);
     let retention = retention.clamp(MIN_RETENTION, MAX_RETENTION);
@@ -156,6 +167,11 @@ pub async fn write_config(
         ("backup.interval_days", interval.to_string(), "int"),
         ("backup.folder", folder, "string"),
         ("backup.retention", retention.to_string(), "int"),
+        (
+            "backup.include_metadata_artwork",
+            if include_metadata_artwork { "true" } else { "false" }.to_string(),
+            "bool",
+        ),
     ] {
         sqlx::query(
             "INSERT INTO app_setting (key, value, value_type, updated_at)
@@ -261,6 +277,13 @@ pub async fn run_one_backup(
     let app_version = env!("CARGO_PKG_VERSION").to_string();
     let mut created = Vec::with_capacity(profiles.len());
 
+    // The metadata_artwork cache is shared across all profiles, so we
+    // bundle it once — in the first archive of the pass. The others stay
+    // lean. On restore the user only needs to import any one of them to
+    // refill the shared cache; the rest restore their per-profile data
+    // as usual.
+    let mut bundle_metadata_artwork = config.include_metadata_artwork;
+
     for (profile_id, profile_name) in profiles {
         let safe = sanitize_for_filename(&profile_name);
         let target = folder.join(format!("{safe}-{ts}.waveflow"));
@@ -276,6 +299,11 @@ pub async fn run_one_backup(
         let profile_dir = state.paths.profile_dir(profile_id);
         let db_path = state.paths.profile_db(profile_id);
         let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+        let metadata_artwork_dir = if bundle_metadata_artwork {
+            Some(state.paths.metadata_artwork_dir.clone())
+        } else {
+            None
+        };
         let target_owned = target.clone();
 
         let result = tokio::task::spawn_blocking(move || -> AppResult<()> {
@@ -284,11 +312,15 @@ pub async fn run_one_backup(
                 &profile_dir,
                 &db_path,
                 &artwork_dir,
+                metadata_artwork_dir.as_deref(),
                 &manifest,
             )
         })
         .await
         .map_err(|e| AppError::Other(format!("backup task join: {e}")))?;
+
+        // Only the first archive carries the shared cache.
+        bundle_metadata_artwork = false;
 
         match result {
             Ok(()) => {

@@ -1302,6 +1302,8 @@
       "retentionLabel": "Archivos conservados",
       "retentionKeep_one": "{{count}} archivo por perfil",
       "retentionKeep_other": "{{count}} archivos por perfil",
+      "includeMetadataArtworkLabel": "Incluir caché de imágenes Deezer",
+      "includeMetadataArtworkHint": "Copia de seguridad más grande, restauración totalmente sin conexión. Desactivar para archivos ligeros (el caché se volverá a descargar a petición).",
       "changeFolder": "Cambiar carpeta",
       "pickFolderTitle": "Elige la carpeta de copias",
       "lastRun": "Última copia: {{when}}",

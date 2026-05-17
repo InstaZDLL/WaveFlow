@@ -66,6 +66,7 @@ export function BackupCard({ language }: BackupCardProps) {
         interval_days: next.interval_days,
         folder: next.folder,
         retention: next.retention,
+        include_metadata_artwork: next.include_metadata_artwork,
       });
       setStatus(null);
     } catch (err) {
@@ -193,6 +194,31 @@ export function BackupCard({ language }: BackupCardProps) {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Include shared Deezer artwork cache */}
+          <div className="flex items-start justify-between gap-4">
+            <label
+              htmlFor="backup-include-meta"
+              className="text-sm text-zinc-600 dark:text-zinc-300 cursor-pointer select-none flex-1"
+            >
+              <span className="block">
+                {t("settings.backup.includeMetadataArtworkLabel")}
+              </span>
+              <span className="block text-xs text-zinc-400 mt-0.5">
+                {t("settings.backup.includeMetadataArtworkHint")}
+              </span>
+            </label>
+            <input
+              id="backup-include-meta"
+              type="checkbox"
+              checked={config.include_metadata_artwork}
+              onChange={(e) =>
+                persist({ include_metadata_artwork: e.target.checked })
+              }
+              disabled={saving}
+              className="mt-1 h-4 w-4 accent-emerald-500 cursor-pointer disabled:opacity-50"
+            />
           </div>
 
           {/* Folder + actions */}

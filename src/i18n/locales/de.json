@@ -1302,6 +1302,8 @@
       "retentionLabel": "Aufbewahrte Archive",
       "retentionKeep_one": "{{count}} Archiv pro Profil",
       "retentionKeep_other": "{{count}} Archive pro Profil",
+      "includeMetadataArtworkLabel": "Deezer-Bildcache einbeziehen",
+      "includeMetadataArtworkHint": "Größere Sicherung, vollständig offline wiederherstellbar. Deaktivieren für schlanke Archive (Cache wird bei Bedarf neu geladen).",
       "changeFolder": "Ordner ändern",
       "pickFolderTitle": "Backup-Ordner wählen",
       "lastRun": "Letztes Backup: {{when}}",

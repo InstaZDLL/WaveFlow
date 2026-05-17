@@ -1306,6 +1306,8 @@
       "retentionLabel": "الأرشيفات المحفوظة",
       "retentionKeep_one": "أرشيف واحد لكل ملف",
       "retentionKeep_other": "{{count}} أرشيفات لكل ملف",
+      "includeMetadataArtworkLabel": "تضمين ذاكرة التخزين المؤقت لصور Deezer",
+      "includeMetadataArtworkHint": "نسخة احتياطية أكبر، استعادة دون اتصال بالكامل. ألغِ التحديد للحصول على أرشيفات خفيفة (سيتم إعادة جلب ذاكرة التخزين المؤقت عند الطلب).",
       "changeFolder": "تغيير المجلد",
       "pickFolderTitle": "اختر مجلد النسخ الاحتياطي",
       "lastRun": "آخر نسخة: {{when}}",

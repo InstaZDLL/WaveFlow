@@ -1302,6 +1302,8 @@
       "retentionLabel": "Archivi conservati",
       "retentionKeep_one": "{{count}} archivio per profilo",
       "retentionKeep_other": "{{count}} archivi per profilo",
+      "includeMetadataArtworkLabel": "Includi cache immagini Deezer",
+      "includeMetadataArtworkHint": "Backup più grande, ripristino completamente offline. Deseleziona per archivi leggeri (la cache verrà riscaricata su richiesta).",
       "changeFolder": "Cambia cartella",
       "pickFolderTitle": "Scegli la cartella di backup",
       "lastRun": "Ultimo backup: {{when}}",

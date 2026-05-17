@@ -1301,6 +1301,8 @@
       "retentionLabel": "保留存档",
       "retentionKeep_one": "每个配置文件 {{count}} 个",
       "retentionKeep_other": "每个配置文件 {{count}} 个",
+      "includeMetadataArtworkLabel": "包含 Deezer 封面缓存",
+      "includeMetadataArtworkHint": "备份更大，可完全离线还原。取消勾选可获得精简归档（缓存将按需重新下载）。",
       "changeFolder": "更改文件夹",
       "pickFolderTitle": "选择备份文件夹",
       "lastRun": "上次备份:{{when}}",

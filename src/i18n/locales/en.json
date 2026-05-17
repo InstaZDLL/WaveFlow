@@ -1368,6 +1368,8 @@
       "retentionLabel": "Archives kept",
       "retentionKeep_one": "{{count}} archive per profile",
       "retentionKeep_other": "{{count}} archives per profile",
+      "includeMetadataArtworkLabel": "Include Deezer artwork cache",
+      "includeMetadataArtworkHint": "Larger backup, fully offline restore. Uncheck for lean archives (cache will be re-fetched on demand).",
       "changeFolder": "Change folder",
       "pickFolderTitle": "Pick the backup folder",
       "lastRun": "Last backup: {{when}}",

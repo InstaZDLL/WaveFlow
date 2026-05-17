@@ -1301,6 +1301,8 @@
       "retentionLabel": "Tutulan arşivler",
       "retentionKeep_one": "Profil başına {{count}} arşiv",
       "retentionKeep_other": "Profil başına {{count}} arşiv",
+      "includeMetadataArtworkLabel": "Deezer kapak önbelleğini dahil et",
+      "includeMetadataArtworkHint": "Daha büyük yedek, tamamen çevrimdışı geri yükleme. Hafif arşivler için işareti kaldırın (önbellek istendiğinde yeniden indirilir).",
       "changeFolder": "Klasörü değiştir",
       "pickFolderTitle": "Yedekleme klasörünü seç",
       "lastRun": "Son yedekleme: {{when}}",
