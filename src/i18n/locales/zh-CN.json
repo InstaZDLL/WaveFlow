@@ -300,6 +300,8 @@
     "fetchMissingCovers": "找回所有缺失的封套",
     "noCover": "无封套",
     "fetchingCovers": "领取封套……（{{current}} / {{total}}）",
+    "fetchCoversResult": "已获取 {{count}} 张封套",
+    "fetchCoversFailed": "封套获取失败",
     "table": {
       "number": "#",
       "title": "标题",

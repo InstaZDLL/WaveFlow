@@ -795,6 +795,17 @@ pub async fn batch_fetch_missing_album_covers(
             .await?;
 
     let total = rows.len();
+    // Emit an initial frame so the UI can show the total — and explicitly
+    // surface the "nothing to do" case (total == 0) which otherwise looks
+    // like the button does nothing.
+    let _ = app.emit(
+        "cover-fetch-progress",
+        serde_json::json!({
+            "current": 0,
+            "total": total,
+            "album_title": "",
+        }),
+    );
     let mut success: u32 = 0;
     for (i, (album_id, title)) in rows.into_iter().enumerate() {
         let _ = app.emit(

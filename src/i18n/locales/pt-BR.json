@@ -300,6 +300,8 @@
     "fetchMissingCovers": "Recuperar todas as capas que faltam",
     "noCover": "Sem capa",
     "fetchingCovers": "Recuperação das capas... ({{current}} / {{total}})",
+    "fetchCoversResult": "{{count}} capas obtidas",
+    "fetchCoversFailed": "Falha ao obter capas",
     "table": {
       "number": "#",
       "title": "Título",

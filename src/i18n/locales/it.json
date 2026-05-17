@@ -300,6 +300,8 @@
     "fetchMissingCovers": "Recuperare tutte le copertine mancanti",
     "noCover": "Senza custodia",
     "fetchingCovers": "Recupero delle buste... ({{current}} / {{total}})",
+    "fetchCoversResult": "{{count}} copertine recuperate",
+    "fetchCoversFailed": "Recupero copertine non riuscito",
     "table": {
       "number": "#",
       "title": "Titolo",

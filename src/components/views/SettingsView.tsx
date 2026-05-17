@@ -585,6 +585,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     total: number;
     albumTitle: string;
   } | null>(null);
+  const [coverResultMsg, setCoverResultMsg] = useState<string | null>(null);
 
   useEffect(() => {
     let unlisten: (() => void) | null = null;
@@ -611,13 +612,21 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     if (isFetchingCovers) return;
     setIsFetchingCovers(true);
     setCoverProgress(null);
+    setCoverResultMsg(null);
     try {
-      await batchFetchMissingAlbumCovers();
+      const fetched = await batchFetchMissingAlbumCovers();
+      setCoverResultMsg(
+        t("library.fetchCoversResult", { count: fetched }),
+      );
     } catch (err) {
       console.error("[SettingsView] fetch missing covers failed", err);
+      setCoverResultMsg(t("library.fetchCoversFailed"));
     } finally {
       setIsFetchingCovers(false);
-      window.setTimeout(() => setCoverProgress(null), 3000);
+      window.setTimeout(() => {
+        setCoverProgress(null);
+        setCoverResultMsg(null);
+      }, 4000);
     }
   };
 
@@ -2398,6 +2407,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                     {coverProgress.albumTitle
                       ? ` — ${coverProgress.albumTitle}`
                       : ""}
+                  </div>
+                ) : coverResultMsg ? (
+                  <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
+                    {coverResultMsg}
                   </div>
                 ) : (
                   <div className="text-xs text-zinc-400">

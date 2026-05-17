@@ -300,6 +300,8 @@
     "fetchMissingCovers": "Recuperar todas las fundas que faltan",
     "noCover": "Sin funda",
     "fetchingCovers": "Recuperación de las fundas... ({{current}} / {{total}})",
+    "fetchCoversResult": "{{count}} portadas recuperadas",
+    "fetchCoversFailed": "Error al recuperar las portadas",
     "table": {
       "number": "#",
       "title": "Título",

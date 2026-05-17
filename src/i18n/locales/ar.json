@@ -300,6 +300,8 @@
     "fetchMissingCovers": "استرداد جميع الأغلفة المفقودة",
     "noCover": "بدون غلاف",
     "fetchingCovers": "الحصول على الأغلفة... ({{current}} / {{total}})",
+    "fetchCoversResult": "تم استرداد {{count}} غلاف",
+    "fetchCoversFailed": "فشل استرداد الأغلفة",
     "table": {
       "number": "#",
       "title": "العنوان",

@@ -300,6 +300,8 @@
     "fetchMissingCovers": "不足しているすべてのケースを回収する",
     "noCover": "ケースなし",
     "fetchingCovers": "ジャケットの回収……（{{current}} / {{total}}）",
+    "fetchCoversResult": "{{count}} 件のカバーを取得しました",
+    "fetchCoversFailed": "カバーの取得に失敗しました",
     "table": {
       "number": "#",
       "title": "タイトル",

@@ -300,6 +300,8 @@
     "fetchMissingCovers": "सभी गुमशुदा स्लीव्स पुनः प्राप्त करें",
     "noCover": "बिना आस्तीन के",
     "fetchingCovers": "लिफ़ाफ़े इकट्ठा करना... ({{current}} / {{total}})",
+    "fetchCoversResult": "{{count}} स्लीव्स प्राप्त की गईं",
+    "fetchCoversFailed": "स्लीव्स प्राप्त करने में विफल",
     "table": {
       "number": "#",
       "title": "शीर्षक",

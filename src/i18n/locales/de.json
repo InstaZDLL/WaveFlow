@@ -300,6 +300,8 @@
     "fetchMissingCovers": "Alle fehlenden Hüllen abrufen",
     "noCover": "Ohne Hülle",
     "fetchingCovers": "Abholung der Hüllen... ({{current}} / {{total}})",
+    "fetchCoversResult": "{{count}} Cover abgerufen",
+    "fetchCoversFailed": "Cover-Abruf fehlgeschlagen",
     "table": {
       "number": "#",
       "title": "Titel",

@@ -300,6 +300,8 @@
     "fetchMissingCovers": "Ambil semua sampul yang belum ada",
     "noCover": "Tanpa sampul",
     "fetchingCovers": "Muat sampul... ({{current}} / {{total}})",
+    "fetchCoversResult": "{{count}} sampul diambil",
+    "fetchCoversFailed": "Gagal mengambil sampul",
     "table": {
       "number": "#",
       "title": "Judul",

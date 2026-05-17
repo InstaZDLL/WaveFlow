@@ -300,6 +300,8 @@
     "fetchMissingCovers": "Eksik olan tüm kapakları getir",
     "noCover": "Giriş ücreti yok",
     "fetchingCovers": "Kapaklar yükleniyor... ({{current}} / {{total}})",
+    "fetchCoversResult": "{{count}} kapak getirildi",
+    "fetchCoversFailed": "Kapaklar getirilemedi",
     "table": {
       "number": "#",
       "title": "Başlık",

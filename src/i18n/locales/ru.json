@@ -300,6 +300,8 @@
     "fetchMissingCovers": "Загрузить все отсутствующие обложки",
     "noCover": "Без обложки",
     "fetchingCovers": "Загрузка обложек... ({{current}} / {{total}})",
+    "fetchCoversResult": "Загружено обложек: {{count}}",
+    "fetchCoversFailed": "Не удалось загрузить обложки",
     "table": {
       "number": "#",
       "title": "Название",

@@ -300,6 +300,8 @@
     "fetchMissingCovers": "Retrieve all missing sleeves",
     "noCover": "Without a sleeve",
     "fetchingCovers": "Download the covers... ({{current}} / {{total}})",
+    "fetchCoversResult": "{{count}} sleeves retrieved",
+    "fetchCoversFailed": "Failed to retrieve sleeves",
     "table": {
       "number": "#",
       "title": "Title",

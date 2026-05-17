@@ -300,6 +300,8 @@
     "fetchMissingCovers": "Alle ontbrekende hoesjes ophalen",
     "noCover": "Zonder hoesje",
     "fetchingCovers": "De hoesjes ophalen... ({{current}} / {{total}})",
+    "fetchCoversResult": "{{count}} hoesjes opgehaald",
+    "fetchCoversFailed": "Hoesjes ophalen mislukt",
     "table": {
       "number": "#",
       "title": "Titel",
