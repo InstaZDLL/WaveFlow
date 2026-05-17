@@ -12,6 +12,13 @@ name: Test AppImage build
 on:
   workflow_dispatch:
 
+# Least-privilege default: the workflow only checks out the repo and
+# uploads an artifact (the artifact API doesn't require additional
+# GITHUB_TOKEN scopes). Keeps the token read-only even if the
+# repo/org default is read-write.
+permissions:
+  contents: read
+
 jobs:
   appimage:
     name: Build AppImage (ubuntu-latest)
@@ -79,12 +86,13 @@ jobs:
           rustc --version
 
       - name: Build AppImage
-        # Skip the updater (no signing secrets here) and only bundle
-        # the AppImage to keep the test build fast.
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ""
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
-        run: bun run tauri build --bundles appimage
+        # Override `bundle.createUpdaterArtifacts` to skip the post-bundle
+        # updater signing step. The test workflow doesn't have access to
+        # the TAURI_SIGNING_* secrets, and the signed payload is not
+        # needed for local AppImage validation — without this override
+        # the build fails after producing the AppImage, so the upload
+        # step never runs.
+        run: bun run tauri build --bundles appimage -c '{"bundle":{"createUpdaterArtifacts":false}}'
 
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
