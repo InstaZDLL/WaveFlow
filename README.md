@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.0?style=flat-square&color=emerald" alt="Version" /> <!-- x-release-please-version -->
+  <img src="https://img.shields.io/static/v1?label=version&message=1.1.0&color=emerald&style=flat-square" alt="Version" /> <!-- x-release-please-version -->
   <img src="https://img.shields.io/github/downloads/InstaZDLL/WaveFlow/total?style=flat-square&color=emerald&label=downloads" alt="Downloads" />
   <img src="https://img.shields.io/badge/tauri-2.11-blue?style=flat-square&logo=tauri" alt="Tauri 2" />
   <img src="https://img.shields.io/badge/react-19-61dafb?style=flat-square&logo=react" alt="React 19" />
