@@ -1301,6 +1301,8 @@
       "retentionLabel": "保留封存",
       "retentionKeep_one": "每個設定檔 {{count}} 個",
       "retentionKeep_other": "每個設定檔 {{count}} 個",
+      "includeMetadataArtworkLabel": "包含 Deezer 封面快取",
+      "includeMetadataArtworkHint": "備份較大，可完全離線還原。取消勾選可獲得精簡封存檔（快取將依需求重新下載）。",
       "changeFolder": "變更資料夾",
       "pickFolderTitle": "選擇備份資料夾",
       "lastRun": "上次備份:{{when}}",

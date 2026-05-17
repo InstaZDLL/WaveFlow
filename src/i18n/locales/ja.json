@@ -1301,6 +1301,8 @@
       "retentionLabel": "保持するアーカイブ",
       "retentionKeep_one": "プロファイルあたり{{count}}件",
       "retentionKeep_other": "プロファイルあたり{{count}}件",
+      "includeMetadataArtworkLabel": "Deezer 画像キャッシュを含める",
+      "includeMetadataArtworkHint": "バックアップは大きくなりますが、完全オフラインで復元できます。チェックを外すと軽量なアーカイブになります（必要に応じてキャッシュを再取得）。",
       "changeFolder": "フォルダを変更",
       "pickFolderTitle": "バックアップフォルダを選択",
       "lastRun": "最終バックアップ:{{when}}",

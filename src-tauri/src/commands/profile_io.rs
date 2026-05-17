@@ -10,12 +10,17 @@
 //!   - `data.db` — the per-profile SQLite database (playlists, liked,
 //!     stats, EQ, sleep-timer / A-B visibility, shortcut overrides…).
 //!   - `artwork/**` — manual covers the user uploaded.
+//!   - `metadata_artwork/**` — *optional*, gated by the
+//!     `backup.include_metadata_artwork` app setting (default ON). This
+//!     is the shared Deezer cover/artist-picture cache; bundling it
+//!     means a restore on an offline machine still shows the artwork
+//!     immediately. Users who want lean archives can disable the toggle
+//!     in Settings → Sauvegardes and re-fetch on demand via "Récupérer
+//!     toutes les pochettes manquantes".
 //!
 //! What we deliberately **don't** bundle:
 //!   - The shared `app.db` (Last.fm key, Discord opt-in, app-wide
 //!     settings) — those belong to the install, not the profile.
-//!   - The shared `metadata_artwork/` cache (Deezer pictures, etc.) —
-//!     re-fetchable from the network on first play.
 //!   - WAL / SHM sidecars — we run a `WAL_CHECKPOINT(TRUNCATE)` before
 //!     copying so the bundled `data.db` is self-contained.
 
@@ -98,6 +103,11 @@ pub async fn export_profile(
     let profile_dir = state.paths.profile_dir(profile_id);
     let db_path = state.paths.profile_db(profile_id);
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    let metadata_artwork_dir = if read_include_metadata_artwork(&state.app_db).await? {
+        Some(state.paths.metadata_artwork_dir.clone())
+    } else {
+        None
+    };
 
     let manifest = ArchiveManifest {
         archive_version: ARCHIVE_VERSION,
@@ -117,6 +127,7 @@ pub async fn export_profile(
             &profile_dir,
             &db_path,
             &artwork_dir,
+            metadata_artwork_dir.as_deref(),
             &manifest,
         )
     })
@@ -124,6 +135,22 @@ pub async fn export_profile(
     .map_err(|e| AppError::Other(format!("export task join: {e}")))??;
 
     Ok(())
+}
+
+/// Read the `backup.include_metadata_artwork` app setting. Defaults to
+/// `true` so a fresh install + first manual export produces a complete
+/// archive without the user having to opt in.
+pub(crate) async fn read_include_metadata_artwork(
+    app_db: &SqlitePool,
+) -> AppResult<bool> {
+    let row: Option<String> = sqlx::query_scalar(
+        "SELECT value FROM app_setting WHERE key = 'backup.include_metadata_artwork'",
+    )
+    .fetch_optional(app_db)
+    .await?;
+    Ok(row
+        .map(|v| v == "true" || v == "1")
+        .unwrap_or(true))
 }
 
 /// Import a `.waveflow` archive as a brand-new profile. The new
@@ -186,6 +213,7 @@ pub async fn import_profile(
     let new_profile_dir = state.paths.profile_dir(new_profile_id);
     let new_db_path = state.paths.profile_db(new_profile_id);
     let new_artwork_dir = state.paths.profile_artwork_dir(new_profile_id);
+    let metadata_artwork_dir = state.paths.metadata_artwork_dir.clone();
 
     // 3. Extract — also blocking. On any failure, roll the profile row
     //    back so the user doesn't end up with a stub profile that
@@ -196,6 +224,7 @@ pub async fn import_profile(
             &new_profile_dir,
             &new_db_path,
             &new_artwork_dir,
+            &metadata_artwork_dir,
         )
     })
     .await
@@ -256,11 +285,16 @@ async fn cleanup_partial_profile(state: &AppState, profile_id: i64) {
 
 // ── zip plumbing ────────────────────────────────────────────────────
 
+// `metadata_artwork_dir`: when `Some`, the shared Deezer artwork cache
+// is bundled under `metadata_artwork/**` so a restore on another machine
+// doesn't have to re-fetch every cover. When `None`, the archive stays
+// lean and the cache will be rebuilt lazily after restore.
 pub(crate) fn write_archive(
     target: &Path,
     profile_dir: &Path,
     db_path: &Path,
     artwork_dir: &Path,
+    metadata_artwork_dir: Option<&Path>,
     manifest: &ArchiveManifest,
 ) -> AppResult<()> {
     if let Some(parent) = target.parent() {
@@ -306,6 +340,27 @@ pub(crate) fn write_archive(
         }
     }
 
+    // 4. metadata_artwork/** — shared Deezer cache, opt-out. Files are
+    //    already JPEG/PNG/WebP so deflate barely helps, but we keep the
+    //    same compression setting for archive uniformity.
+    if let Some(meta_dir) = metadata_artwork_dir {
+        if meta_dir.exists() {
+            for entry in WalkDir::new(meta_dir).into_iter().flatten() {
+                let entry_path = entry.path();
+                if !entry_path.is_file() {
+                    continue;
+                }
+                let rel = entry_path
+                    .strip_prefix(meta_dir)
+                    .map_err(|e| AppError::Other(format!("metadata_artwork rel: {e}")))?;
+                let zip_name = format!("metadata_artwork/{}", rel.to_string_lossy().replace('\\', "/"));
+                zip.start_file(&zip_name, opts)?;
+                let mut src = File::open(entry_path)?;
+                std::io::copy(&mut src, &mut zip)?;
+            }
+        }
+    }
+
     zip.finish()?;
     Ok(())
 }
@@ -324,11 +379,16 @@ fn read_manifest(source: &Path) -> AppResult<ArchiveManifest> {
     Ok(manifest)
 }
 
+// `metadata_artwork_dir`: destination for `metadata_artwork/**` entries
+// — the shared cache directory, NOT the per-profile one. Existing files
+// in the cache are preserved (overwritten only if the archive carries
+// them).
 fn extract_archive(
     source: &Path,
     profile_dir: &Path,
     db_path: &Path,
     artwork_dir: &Path,
+    metadata_artwork_dir: &Path,
 ) -> AppResult<()> {
     let file = File::open(source)?;
     let mut archive =
@@ -365,6 +425,18 @@ fn extract_archive(
                 .strip_prefix("artwork")
                 .map_err(|e| AppError::Other(format!("artwork strip: {e}")))?;
             let dest = artwork_dir.join(rel_in_artwork);
+            if let Some(parent) = dest.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            let mut out = File::create(&dest)?;
+            std::io::copy(&mut entry, &mut out)?;
+            continue;
+        }
+        if name.starts_with("metadata_artwork/") || name.starts_with("metadata_artwork\\") {
+            let rel_in_meta = rel
+                .strip_prefix("metadata_artwork")
+                .map_err(|e| AppError::Other(format!("metadata_artwork strip: {e}")))?;
+            let dest = metadata_artwork_dir.join(rel_in_meta);
             if let Some(parent) = dest.parent() {
                 std::fs::create_dir_all(parent)?;
             }

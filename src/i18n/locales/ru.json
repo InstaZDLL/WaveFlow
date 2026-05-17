@@ -1304,6 +1304,8 @@
       "retentionLabel": "Хранить архивов",
       "retentionKeep_one": "{{count}} архив на профиль",
       "retentionKeep_other": "{{count}} архивов на профиль",
+      "includeMetadataArtworkLabel": "Включить кеш изображений Deezer",
+      "includeMetadataArtworkHint": "Большая резервная копия, полностью офлайн-восстановление. Снимите флажок для лёгких архивов (кеш будет загружен заново по требованию).",
       "changeFolder": "Сменить папку",
       "pickFolderTitle": "Выберите папку для резервных копий",
       "lastRun": "Последняя копия: {{when}}",

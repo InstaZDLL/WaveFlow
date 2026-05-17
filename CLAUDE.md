@@ -105,7 +105,7 @@ Deezer enrichment (pictures, covers, fans — cached 30 days in `deezer_artist` 
 
 ### Preferences & maintenance
 
-Autostart + close-to-tray + scan-on-start ([`commands/preferences.rs`](src-tauri/src/commands/preferences.rs)) · profile export/import (`.waveflow` zip via `commands/profile_io.rs` — bundles `data.db` + `artwork/` + manifest, runs `PRAGMA wal_checkpoint(TRUNCATE)` on the active profile first) · auto-backup ([`backup.rs`](src-tauri/src/backup.rs) tokio task that shares `profile_io::write_archive` with manual export) · stats JSON export · embedded changelog (parsed from `git log` at compile time in `build.rs`).
+Autostart + close-to-tray + scan-on-start ([`commands/preferences.rs`](src-tauri/src/commands/preferences.rs)) · profile export/import (`.waveflow` zip via `commands/profile_io.rs` — bundles `data.db` + `artwork/` + manifest, plus the shared `metadata_artwork/**` Deezer cache when `app_setting['backup.include_metadata_artwork']` is on (default), runs `PRAGMA wal_checkpoint(TRUNCATE)` on the active profile first) · auto-backup ([`backup.rs`](src-tauri/src/backup.rs) tokio task that shares `profile_io::write_archive` with manual export; the shared cache is bundled only into the first archive of each pass to avoid N× duplication across profiles) · stats JSON export · embedded changelog (parsed from `git log` at compile time in `build.rs`).
 
 ## Conventions
 

@@ -1294,6 +1294,8 @@
       "retentionLabel": "Archives conservées",
       "retentionKeep_one": "{{count}} archive par profil",
       "retentionKeep_other": "{{count}} archives par profil",
+      "includeMetadataArtworkLabel": "Inclure le cache d'images Deezer",
+      "includeMetadataArtworkHint": "Sauvegarde plus volumineuse, restauration entièrement hors-ligne. Décochez pour des archives légères (le cache sera retéléchargé à la demande).",
       "changeFolder": "Changer de dossier",
       "pickFolderTitle": "Choisir le dossier de sauvegarde",
       "lastRun": "Dernière sauvegarde : {{when}}",

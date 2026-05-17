@@ -22,6 +22,7 @@ pub struct BackupConfigInput {
     pub interval_days: i64,
     pub folder: String,
     pub retention: i64,
+    pub include_metadata_artwork: bool,
 }
 
 #[tauri::command]
@@ -37,6 +38,7 @@ pub async fn set_backup_config(
         input.interval_days,
         input.folder,
         input.retention,
+        input.include_metadata_artwork,
     )
     .await
 }

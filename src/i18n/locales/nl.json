@@ -1302,6 +1302,8 @@
       "retentionLabel": "Bewaarde archieven",
       "retentionKeep_one": "{{count}} archief per profiel",
       "retentionKeep_other": "{{count}} archieven per profiel",
+      "includeMetadataArtworkLabel": "Deezer-afbeeldingscache opnemen",
+      "includeMetadataArtworkHint": "Grotere back-up, volledig offline herstel. Vink uit voor compacte archieven (cache wordt op aanvraag opnieuw opgehaald).",
       "changeFolder": "Map wijzigen",
       "pickFolderTitle": "Kies de back-upmap",
       "lastRun": "Laatste back-up: {{when}}",

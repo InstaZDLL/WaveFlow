@@ -1301,6 +1301,8 @@
       "retentionLabel": "보관할 아카이브",
       "retentionKeep_one": "프로필당 {{count}}개",
       "retentionKeep_other": "프로필당 {{count}}개",
+      "includeMetadataArtworkLabel": "Deezer 이미지 캐시 포함",
+      "includeMetadataArtworkHint": "백업이 커지지만 완전 오프라인으로 복원할 수 있습니다. 가벼운 아카이브를 원하면 체크 해제하세요(필요 시 캐시가 다시 다운로드됩니다).",
       "changeFolder": "폴더 변경",
       "pickFolderTitle": "백업 폴더 선택",
       "lastRun": "마지막 백업: {{when}}",

@@ -1302,6 +1302,8 @@
       "retentionLabel": "रखे गए आर्काइव",
       "retentionKeep_one": "प्रति प्रोफ़ाइल {{count}} आर्काइव",
       "retentionKeep_other": "प्रति प्रोफ़ाइल {{count}} आर्काइव",
+      "includeMetadataArtworkLabel": "Deezer छवि कैश शामिल करें",
+      "includeMetadataArtworkHint": "बड़ा बैकअप, पूर्णतः ऑफ़लाइन पुनर्स्थापना। हल्के संग्रह के लिए अनचेक करें (कैश माँग पर पुनः डाउनलोड हो जाएगा)।",
       "changeFolder": "फ़ोल्डर बदलें",
       "pickFolderTitle": "बैकअप फ़ोल्डर चुनें",
       "lastRun": "अंतिम बैकअप: {{when}}",
