@@ -520,12 +520,19 @@ export function HomeView({
             {recentPlays.map((play, idx) => {
               const isCurrent = play.track_id === currentTrack?.id;
               return (
-                <button
+                <div
                   key={`${play.track_id}-${play.played_at}`}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onDoubleClick={() => handlePlayRecent(idx)}
                   onClick={() => handlePlayRecent(idx)}
-                  className="group flex flex-col items-stretch text-left rounded-2xl p-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handlePlayRecent(idx);
+                    }
+                  }}
+                  className="group flex flex-col items-stretch text-left rounded-2xl p-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
                 >
                   <Artwork
                     path={play.artwork_path}
@@ -561,7 +568,7 @@ export function HomeView({
                       className="text-xs text-zinc-500 truncate block"
                     />
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
