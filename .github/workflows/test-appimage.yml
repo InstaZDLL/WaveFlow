@@ -12,6 +12,13 @@ name: Test AppImage build
 on:
   workflow_dispatch:
 
+# Least-privilege default: the workflow only checks out the repo and
+# uploads an artifact (the artifact API doesn't require additional
+# GITHUB_TOKEN scopes). Keeps the token read-only even if the
+# repo/org default is read-write.
+permissions:
+  contents: read
+
 jobs:
   appimage:
     name: Build AppImage (ubuntu-latest)
