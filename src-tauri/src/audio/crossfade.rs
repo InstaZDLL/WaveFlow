@@ -10,13 +10,12 @@ use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
-use symphonia::core::audio::SampleBuffer;
-use symphonia::core::codecs::{Decoder, DecoderOptions, CODEC_TYPE_NULL};
+use symphonia::core::codecs::audio::{AudioDecoder, AudioDecoderOptions};
 use symphonia::core::errors::Error as SymphoniaError;
-use symphonia::core::formats::{FormatOptions, FormatReader, SeekMode, SeekTo};
+use symphonia::core::formats::probe::Hint;
+use symphonia::core::formats::{FormatOptions, FormatReader, SeekMode, SeekTo, TrackType};
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
-use symphonia::core::probe::Hint;
 use symphonia::core::units::Time;
 
 use super::dsd::parser::{parse_dff, parse_dsf, DsdLayout};
@@ -25,13 +24,20 @@ use super::resampler::Resampler;
 
 /// Per-stream decoder backend. Symphonia handles the FLAC / MP3 /
 /// AAC / WAV / OGG / ALAC family; DSD is a native pipeline because
-/// symphonia 0.5 doesn't decode it.
+/// symphonia doesn't decode it.
 pub enum StreamBackend {
     Symphonia {
         format: Box<dyn FormatReader>,
-        decoder: Box<dyn Decoder>,
-        sample_buf: Option<SampleBuffer<f32>>,
+        decoder: Box<dyn AudioDecoder>,
+        /// Reusable interleaved f32 destination for
+        /// `GenericAudioBufferRef::copy_to_vec_interleaved`. Replaces the
+        /// old `SampleBuffer<f32>` field — symphonia 0.6 removed
+        /// `SampleBuffer`; the equivalent is now a plain Vec<f32> that
+        /// the decoded buffer fills via the conversion helpers on the
+        /// `Audio` trait.
+        decoded_interleaved: Vec<f32>,
         symphonia_track_id: u32,
+        spec_captured: bool,
     },
     Dsd {
         file: File,
@@ -100,7 +106,7 @@ impl ActiveStream {
             .and_then(|s| s.to_str())
             .map(|s| s.to_ascii_lowercase());
 
-        // DSD has its own pipeline — symphonia 0.5 doesn't decode it.
+        // DSD has its own pipeline — symphonia doesn't decode it.
         // Branch up-front so we never hand a DSF / DFF file to the
         // probe (which would fail with a confusing "unknown format"
         // even though the file is valid).
@@ -122,32 +128,34 @@ impl ActiveStream {
         if let Some(ext) = ext.as_deref() {
             hint.with_extension(ext);
         }
-        let probed = symphonia::default::get_probe()
-            .format(
+        let format = symphonia::default::get_probe()
+            .probe(
                 &hint,
                 mss,
-                &FormatOptions::default(),
-                &MetadataOptions::default(),
+                FormatOptions::default(),
+                MetadataOptions::default(),
             )
             .map_err(|e| format!("probe: {e}"))?;
-        let format = probed.format;
         let track_symphonia = format
-            .tracks()
-            .iter()
-            .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
+            .default_track(TrackType::Audio)
             .ok_or_else(|| "no decodable track".to_string())?;
         let symphonia_track_id = track_symphonia.id;
-        let codec_params = track_symphonia.codec_params.clone();
+        let audio_params = track_symphonia
+            .codec_params
+            .as_ref()
+            .and_then(|p| p.audio())
+            .ok_or_else(|| "track has no audio codec params".to_string())?;
         let decoder = symphonia::default::get_codecs()
-            .make(&codec_params, &DecoderOptions::default())
+            .make_audio_decoder(audio_params, &AudioDecoderOptions::default())
             .map_err(|e| format!("codec init: {e}"))?;
 
         Ok(Self {
             backend: StreamBackend::Symphonia {
                 format,
                 decoder,
-                sample_buf: None,
+                decoded_interleaved: Vec::new(),
                 symphonia_track_id,
+                spec_captured: false,
             },
             // Real resampler is built after the first packet (we need
             // the actual source rate, which AAC/M4A only reveals then).
@@ -287,7 +295,14 @@ impl ActiveStream {
                 symphonia_track_id,
                 ..
             } => {
-                let time = Time::from(std::time::Duration::from_millis(ms));
+                // Symphonia 0.6 dropped `Time::from(Duration)` /
+                // `Time::new(secs, frac)`; the closest replacement is
+                // `Time::try_from_secs_f64`, which constructs a
+                // (seconds, nanoseconds) pair from a fractional-seconds
+                // f64. A negative/non-finite ms is impossible here (u64
+                // input), so the option is always `Some`; we fall back
+                // to t=0 just to keep the call infallible.
+                let time = Time::try_from_secs_f64(ms as f64 / 1000.0).unwrap_or_default();
                 if let Err(err) = format.seek(
                     SeekMode::Accurate,
                     SeekTo::Time {
@@ -357,20 +372,17 @@ impl ActiveStream {
             StreamBackend::Symphonia {
                 format,
                 decoder,
-                sample_buf,
+                decoded_interleaved,
                 symphonia_track_id,
+                spec_captured,
             } => loop {
                 let packet = match format.next_packet() {
-                    Ok(p) => p,
-                    Err(SymphoniaError::IoError(e))
-                        if e.kind() == std::io::ErrorKind::UnexpectedEof =>
-                    {
-                        return Ok(true);
-                    }
+                    Ok(Some(p)) => p,
+                    Ok(None) => return Ok(true),
                     Err(SymphoniaError::ResetRequired) => return Ok(true),
                     Err(e) => return Err(format!("next_packet: {e}")),
                 };
-                if packet.track_id() != *symphonia_track_id {
+                if packet.track_id != *symphonia_track_id {
                     continue;
                 }
                 let decoded = match decoder.decode(&packet) {
@@ -381,21 +393,20 @@ impl ActiveStream {
                     }
                     Err(e) => return Err(format!("decode fatal: {e}")),
                 };
-                if sample_buf.is_none() {
-                    let spec = *decoded.spec();
-                    let capacity = decoded.capacity() as u64;
-                    *sample_buf = Some(SampleBuffer::<f32>::new(capacity, spec));
-                    self.src_channels = spec.channels.count();
-                    self.src_sample_rate = spec.rate;
-                    let effective_rate = ((spec.rate as f32) * self.playback_speed).max(1.0) as u32;
+                if !*spec_captured {
+                    let spec = decoded.spec();
+                    self.src_channels = spec.channels().count();
+                    self.src_sample_rate = spec.rate();
+                    let effective_rate =
+                        ((spec.rate() as f32) * self.playback_speed).max(1.0) as u32;
                     self.resampler = Resampler::new(effective_rate, dst_sample_rate, dst_channels)
                         .map_err(|e| format!("resampler init: {e}"))?;
+                    *spec_captured = true;
                 }
-                let sb = sample_buf.as_mut().unwrap();
-                sb.copy_interleaved_ref(decoded);
+                decoded.copy_to_vec_interleaved(decoded_interleaved);
                 interleaved_scratch.clear();
                 super::decoder::convert_channels(
-                    sb.samples(),
+                    decoded_interleaved,
                     self.src_channels,
                     dst_channels,
                     interleaved_scratch,

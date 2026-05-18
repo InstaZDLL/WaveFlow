@@ -1,6 +1,6 @@
 //! Direct Stream Digital (DSD) support.
 //!
-//! Symphonia 0.5 doesn't decode DSD natively (1-bit @ 2.8 / 5.6 / 11.2
+//! Symphonia doesn't decode DSD natively (1-bit @ 2.8 / 5.6 / 11.2
 //! / 22.5 MHz), so this module owns the whole pipeline:
 //!
 //!   - [`parser`] reads the two on-disk container formats: **DSF**

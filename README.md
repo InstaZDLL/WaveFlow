@@ -97,7 +97,7 @@ Once installed (any of the above), the in-app updater fetches future versions au
 | **Discord Rich Presence** | discord-rich-presence 1.1 (local IPC named pipe, no auth)                                                                          |
 | **Frontend**              | React 19, TypeScript, Vite 8, Tailwind CSS 4, Lucide icons, `@dnd-kit` (drag-and-drop), `@tanstack/react-virtual` (virtualization) |
 | **Backend**               | Rust, SQLite (sqlx), FTS5 contentless full-text search                                                                             |
-| **Audio**                 | symphonia 0.5 (decode), cpal 0.17 (output), rubato 2.0 (resample), rtrb 0.3 (SPSC ring)                                            |
+| **Audio**                 | symphonia 0.6 (decode), cpal 0.17 (output), rubato 2.0 (resample), rtrb 0.3 (SPSC ring)                                            |
 | **Metadata extraction**   | lofty 0.24 (tags, embedded art, POPM, INITIALKEY)                                                                                  |
 | **Imaging**               | image 0.25 + fast_image_resize 6 (SIMD thumbnails)                                                                                 |
 | **Filesystem watcher**    | notify 8 (debounced rescans of watched folders)                                                                                    |

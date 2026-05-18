@@ -94,7 +94,7 @@ blake3 = "1"
 # Audio playback: symphonia decodes, cpal outputs, rubato resamples,
 # rtrb is the SPSC ring between decoder thread and audio callback,
 # crossbeam-channel carries AudioCmd from tokio commands to the decoder.
-symphonia = { version = "0.5", default-features = false, features = [
+symphonia = { version = "0.6", default-features = false, features = [
     "mp3",
     "flac",
     "wav",
@@ -104,6 +104,10 @@ symphonia = { version = "0.5", default-features = false, features = [
     "alac",
     "isomp4",
     "pcm",
+    # Symphonia 0.6 split metadata behind feature flags; `all-meta` keeps
+    # ID3/APE/Vorbis tag detection during probe scoring (the scanner uses
+    # lofty for the actual tag read, so this is purely for probe accuracy).
+    "all-meta",
 ] }
 cpal = "0.17"
 rubato = "2.0"

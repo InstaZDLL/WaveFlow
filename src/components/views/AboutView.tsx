@@ -312,7 +312,7 @@ export function AboutView({ onNavigate }: AboutViewProps) {
         </h2>
         <div className="grid grid-cols-2 gap-x-8">
           <TechItem name="React" version="19.x" />
-          <TechItem name="Vite" version="6.x" />
+          <TechItem name="Vite" version="8.x" />
           <TechItem name="TypeScript" version="5.x" />
           <TechItem name="Tailwind CSS" version="4.x" />
         </div>
@@ -343,7 +343,7 @@ export function AboutView({ onNavigate }: AboutViewProps) {
           {t("about.sections.audio")}
         </h2>
         <div className="grid grid-cols-2 gap-x-8">
-          <TechItem icon={<Music size={16} />} name="Symphonia" version="0.5" />
+          <TechItem icon={<Music size={16} />} name="Symphonia" version="0.6" />
           <TechItem icon={<Settings2 size={16} />} name="CPAL" version="0.17" />
           <TechItem icon={<Waves size={16} />} name="Rubato" version="1.0" />
         </div>
