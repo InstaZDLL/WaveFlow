@@ -3,6 +3,15 @@ contact_links:
   - name: Security disclosure
     url: https://github.com/InstaZDLL/WaveFlow/blob/main/.github/SECURITY.md
     about: Report a vulnerability privately — please do not open a public issue.
-  - name: Discussions
+  - name: Question or setup help
+    url: https://github.com/InstaZDLL/WaveFlow/discussions/categories/q-a
+    about: "Ask the community in Q&A — 'how do I…', 'is this a bug or by design?'"
+  - name: Feature idea or UX proposal
+    url: https://github.com/InstaZDLL/WaveFlow/discussions/categories/ideas
+    about: Discuss the idea first; concrete feature requests can graduate to an issue afterward.
+  - name: Show and tell
+    url: https://github.com/InstaZDLL/WaveFlow/discussions/categories/show-and-tell
+    about: Share screenshots, your setup, or a playlist you built with WaveFlow.
+  - name: General chat
     url: https://github.com/InstaZDLL/WaveFlow/discussions
-    about: Open-ended questions, design debates, "is this a bug or by design?"
+    about: Anything else — announcements, polls, off-topic.
