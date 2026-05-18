@@ -1239,6 +1239,9 @@
     "lyricsPrefetch": {
       "title": "歌詞を事前取得",
       "subtitle": "オフライン利用のためライブラリ全体の歌詞をダウンロードします",
+      "result": "{{hits}} 件同期、{{misses}} 件見つからず、{{failed}} 件失敗",
+      "offline": "オフラインモードが有効です",
+      "failed": "プリフェッチに失敗しました",
       "action": "事前取得",
       "progress": "{{current}}/{{total}} 処理済み · {{hits}} 件取得"
     },

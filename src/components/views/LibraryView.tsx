@@ -31,7 +31,6 @@ import { useTranslation } from "react-i18next";
 import type { LibraryTab } from "../../types";
 import { Tab } from "../common/Tab";
 import { EmptyState } from "../common/EmptyState";
-import { UploadIcon } from "../common/Icons";
 import { Artwork } from "../common/Artwork";
 import { AlbumLink } from "../common/AlbumLink";
 import { ArtistLink } from "../common/ArtistLink";
@@ -717,15 +716,11 @@ export function LibraryView({
           className="py-20"
         >
           <div className="mt-8 flex items-center flex-wrap justify-center gap-4">
-            <button className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm">
-              <UploadIcon size={18} />
-              <span>{t("library.actions.importFiles")}</span>
-            </button>
             <button
               type="button"
               onClick={handleImport}
               disabled={isImporting}
-              className="px-6 py-3 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-300 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Folder size={18} />
               <span>{t("library.actions.importFolder")}</span>

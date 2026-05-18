@@ -1240,6 +1240,9 @@
     "lyricsPrefetch": {
       "title": "Songteksten vooraf ophalen",
       "subtitle": "Songteksten van de hele bibliotheek downloaden voor offline gebruik",
+      "result": "{{hits}} gesynchroniseerd, {{misses}} niet gevonden, {{failed}} mislukt",
+      "offline": "Offlinemodus is ingeschakeld",
+      "failed": "Vooraf laden mislukt",
       "action": "Vooraf ophalen",
       "progress": "{{current}}/{{total}} verwerkt · {{hits}} gevonden"
     },

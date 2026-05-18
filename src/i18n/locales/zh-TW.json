@@ -1239,6 +1239,9 @@
     "lyricsPrefetch": {
       "title": "預先擷取歌詞",
       "subtitle": "為整個曲庫下載歌詞以供離線使用",
+      "result": "已同步 {{hits}}，找不到 {{misses}}，失敗 {{failed}}",
+      "offline": "已啟用離線模式",
+      "failed": "預先載入失敗",
       "action": "預先擷取",
       "progress": "已處理 {{current}}/{{total}} · 找到 {{hits}}"
     },

@@ -1318,6 +1318,9 @@
     "lyricsPrefetch": {
       "title": "Préchargement des paroles",
       "subtitle": "Télécharger les paroles de toute la bibliothèque pour usage hors-ligne",
+      "result": "{{hits}} synchronisées, {{misses}} introuvables, {{failed}} échecs",
+      "offline": "Mode hors-ligne activé",
+      "failed": "Échec du préchargement",
       "action": "Précharger",
       "progress": "{{current}}/{{total}} traités · {{hits}} trouvés"
     },

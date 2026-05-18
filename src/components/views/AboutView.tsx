@@ -313,7 +313,7 @@ export function AboutView({ onNavigate }: AboutViewProps) {
         <div className="grid grid-cols-2 gap-x-8">
           <TechItem name="React" version="19.x" />
           <TechItem name="Vite" version="8.x" />
-          <TechItem name="TypeScript" version="5.x" />
+          <TechItem name="TypeScript" version="6.x" />
           <TechItem name="Tailwind CSS" version="4.x" />
         </div>
       </section>
