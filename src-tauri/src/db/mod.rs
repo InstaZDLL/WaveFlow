@@ -6,4 +6,5 @@
 //! * [`profile_db`] — per-profile library, playlists, history, analytics.
 
 pub mod app_db;
+pub mod migration_heal;
 pub mod profile_db;

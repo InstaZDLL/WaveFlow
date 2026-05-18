@@ -21,13 +21,12 @@
 use std::fs::File;
 use std::path::Path;
 
-use symphonia::core::audio::SampleBuffer;
-use symphonia::core::codecs::{DecoderOptions, CODEC_TYPE_NULL};
+use symphonia::core::codecs::audio::AudioDecoderOptions;
 use symphonia::core::errors::Error as SymphoniaError;
-use symphonia::core::formats::FormatOptions;
+use symphonia::core::formats::probe::Hint;
+use symphonia::core::formats::{FormatOptions, TrackType};
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
-use symphonia::core::probe::Hint;
 
 const REPLAY_GAIN_TARGET_DB: f64 = -18.0;
 /// Energy-envelope hop in samples at the analysis sample rate.
@@ -67,28 +66,30 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
         hint.with_extension(ext);
     }
 
-    let probed = symphonia::default::get_probe()
-        .format(
+    let mut format = symphonia::default::get_probe()
+        .probe(
             &hint,
             mss,
-            &FormatOptions::default(),
-            &MetadataOptions::default(),
+            FormatOptions::default(),
+            MetadataOptions::default(),
         )
         .map_err(|e| format!("probe: {e}"))?;
 
-    let mut format = probed.format;
     let track = format
-        .tracks()
-        .iter()
-        .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
+        .default_track(TrackType::Audio)
         .ok_or_else(|| "no decodable track".to_string())?;
     let track_id = track.id;
-    let codec_params = track.codec_params.clone();
+    let audio_params = track
+        .codec_params
+        .as_ref()
+        .and_then(|p| p.audio())
+        .ok_or_else(|| "track has no audio codec params".to_string())?;
     let mut decoder = symphonia::default::get_codecs()
-        .make(&codec_params, &DecoderOptions::default())
+        .make_audio_decoder(audio_params, &AudioDecoderOptions::default())
         .map_err(|e| format!("codec init: {e}"))?;
 
-    let mut sample_buf: Option<SampleBuffer<f32>> = None;
+    let mut interleaved: Vec<f32> = Vec::new();
+    let mut spec_captured = false;
     let mut src_channels: usize = 0;
     let mut src_rate: u32 = 0;
 
@@ -112,14 +113,12 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
 
     loop {
         let packet = match format.next_packet() {
-            Ok(p) => p,
-            Err(SymphoniaError::IoError(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
-                break;
-            }
+            Ok(Some(p)) => p,
+            Ok(None) => break,
             Err(SymphoniaError::ResetRequired) => break,
             Err(e) => return Err(format!("next_packet: {e}")),
         };
-        if packet.track_id() != track_id {
+        if packet.track_id != track_id {
             continue;
         }
 
@@ -132,20 +131,18 @@ pub fn analyze_file(path: &Path) -> Result<AnalysisResult, String> {
             Err(e) => return Err(format!("decode: {e}")),
         };
 
-        if sample_buf.is_none() {
-            let spec = *decoded.spec();
-            let capacity = decoded.capacity() as u64;
-            sample_buf = Some(SampleBuffer::<f32>::new(capacity, spec));
-            src_channels = spec.channels.count().max(1);
-            src_rate = spec.rate.max(1);
+        if !spec_captured {
+            let spec = decoded.spec();
+            src_channels = spec.channels().count().max(1);
+            src_rate = spec.rate().max(1);
+            spec_captured = true;
             // Pre-decimate to ~11 kHz mono envelope for BPM. Feeding
             // the autocorrelation a 44.1 kHz envelope would balloon
             // memory and add no useful resolution.
             decimate_stride = (src_rate / BPM_TARGET_RATE_HZ).max(1) as usize;
         }
-        let sb = sample_buf.as_mut().unwrap();
-        sb.copy_interleaved_ref(decoded);
-        let samples = sb.samples();
+        decoded.copy_to_vec_interleaved(&mut interleaved);
+        let samples = &interleaved[..];
 
         // Walk frames: average channels, accumulate loudness + peak,
         // feed every Nth mono sum to the envelope.
