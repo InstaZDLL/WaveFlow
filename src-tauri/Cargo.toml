@@ -226,7 +226,7 @@ libc = "0.2"
 # event-handle APIs from the exclusive-mode output thread without
 # going through `wasapi`'s less ergonomic wrappers.
 [target.'cfg(target_os = "windows")'.dependencies]
-wasapi = "0.17"
+wasapi = "0.23"
 windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_System_Com",
