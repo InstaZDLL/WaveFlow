@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -233,50 +234,124 @@ export function LibraryView({
     clearSelection();
   }, [activeTab, clearSelection]);
 
+  // Per-tab cache key — bumped whenever the active library set, sort,
+  // filter or last edit invalidates a tab's previously fetched data.
+  // We compare against the foreground loader's snapshot to decide if
+  // a tab still needs a refresh OR if its persisted state array is
+  // already up to date (in which case switching to it is instant).
+  const tabCacheKeys: Record<LibraryTab, string> = useMemo(
+    () => ({
+      morceaux: `${librariesSignature}|${tracksSort.sort.orderBy}:${tracksSort.sort.direction}|${editRefetch}`,
+      albums: `${librariesSignature}|${albumsSort.sort.orderBy}:${albumsSort.sort.direction}|${albumsNoCoverFilter}|${coverReloadKey}|${editRefetch}`,
+      artistes: `${librariesSignature}|${artistsSort.sort.orderBy}:${artistsSort.sort.direction}|${editRefetch}`,
+      genres: `${librariesSignature}|${editRefetch}`,
+      dossiers: `${librariesSignature}|${editRefetch}`,
+    }),
+    [
+      librariesSignature,
+      tracksSort.sort.orderBy,
+      tracksSort.sort.direction,
+      albumsSort.sort.orderBy,
+      albumsSort.sort.direction,
+      albumsNoCoverFilter,
+      coverReloadKey,
+      artistsSort.sort.orderBy,
+      artistsSort.sort.direction,
+      editRefetch,
+    ],
+  );
+
+  // Tracks which key was fetched into each tab's state array, so the
+  // foreground loader and the background prefetcher both know when a
+  // tab is up to date. A ref (not state) so updating it doesn't
+  // re-trigger effects.
+  const loadedKeysRef = useRef<Record<LibraryTab, string | null>>({
+    morceaux: null,
+    albums: null,
+    artistes: null,
+    genres: null,
+    dossiers: null,
+  });
+
+  // Per-tab fetcher — returns the populated list, doesn't touch state
+  // itself so both the foreground and background paths can share it.
+  const fetchTab = useCallback(
+    async (tab: LibraryTab) => {
+      switch (tab) {
+        case "morceaux":
+          return await listTracks(null, tracksSort.sort);
+        case "albums":
+          return await listAlbums(null, {
+            filterNoCover: albumsNoCoverFilter,
+            orderBy: albumsSort.sort.orderBy,
+            direction: albumsSort.sort.direction,
+          });
+        case "artistes":
+          return await listArtists(null, artistsSort.sort);
+        case "genres":
+          return await listGenres(null);
+        case "dossiers":
+          return await listFolders(null);
+      }
+    },
+    [
+      tracksSort.sort,
+      albumsSort.sort,
+      artistsSort.sort,
+      albumsNoCoverFilter,
+    ],
+  );
+
+  // Assign a fetched payload to the correct state setter. Centralised
+  // so neither the foreground nor the background path has to repeat
+  // the switch.
+  const applyTab = useCallback(
+    (tab: LibraryTab, payload: unknown) => {
+      switch (tab) {
+        case "morceaux":
+          setTracks(payload as Track[]);
+          break;
+        case "albums":
+          setAlbums(payload as AlbumRow[]);
+          break;
+        case "artistes":
+          setArtists(payload as ArtistRow[]);
+          break;
+        case "genres":
+          setGenres(payload as GenreRow[]);
+          break;
+        case "dossiers":
+          setFolders(payload as FolderRow[]);
+          break;
+      }
+    },
+    [],
+  );
+
+  // Foreground loader: fetches the active tab when its cache key
+  // changes. Only flips `isLoading` for the active tab so the user
+  // sees a spinner only on the surface they're looking at.
   useEffect(() => {
-    // Hold off the first fetch until the relevant sort memory has
-    // resolved — otherwise we'd query the default ordering and then
-    // re-query the persisted one a tick later.
     if (activeTab === "morceaux" && !tracksSort.isLoaded) return;
     if (activeTab === "albums" && !albumsSort.isLoaded) return;
     if (activeTab === "artistes" && !artistsSort.isLoaded) return;
+
+    const desiredKey = tabCacheKeys[activeTab];
+    if (loadedKeysRef.current[activeTab] === desiredKey) {
+      // Already up to date from a previous foreground load OR a
+      // background prefetch — nothing to do, the user sees instant
+      // content.
+      return;
+    }
 
     let cancelled = false;
     (async () => {
       setIsLoading(true);
       try {
-        // Pass null → aggregate across ALL libraries ("Ma musique" mode).
-        switch (activeTab) {
-          case "morceaux": {
-            const list = await listTracks(null, tracksSort.sort);
-            if (!cancelled) setTracks(list);
-            break;
-          }
-          case "albums": {
-            const list = await listAlbums(null, {
-              filterNoCover: albumsNoCoverFilter,
-              orderBy: albumsSort.sort.orderBy,
-              direction: albumsSort.sort.direction,
-            });
-            if (!cancelled) setAlbums(list);
-            break;
-          }
-          case "artistes": {
-            const list = await listArtists(null, artistsSort.sort);
-            if (!cancelled) setArtists(list);
-            break;
-          }
-          case "genres": {
-            const list = await listGenres(null);
-            if (!cancelled) setGenres(list);
-            break;
-          }
-          case "dossiers": {
-            const list = await listFolders(null);
-            if (!cancelled) setFolders(list);
-            break;
-          }
-        }
+        const payload = await fetchTab(activeTab);
+        if (cancelled) return;
+        applyTab(activeTab, payload);
+        loadedKeysRef.current[activeTab] = desiredKey;
       } catch (err) {
         if (!cancelled) {
           console.error("[LibraryView] failed to load tab data", err);
@@ -290,16 +365,65 @@ export function LibraryView({
     };
   }, [
     activeTab,
-    librariesSignature,
-    albumsNoCoverFilter,
-    coverReloadKey,
+    tabCacheKeys,
+    fetchTab,
+    applyTab,
     tracksSort.isLoaded,
-    tracksSort.sort,
     albumsSort.isLoaded,
-    albumsSort.sort,
     artistsSort.isLoaded,
-    artistsSort.sort,
-    editRefetch,
+  ]);
+
+  // Background prefetch: ~200 ms after the active tab settles, warm
+  // every other tab whose cache is stale so the first user-driven
+  // switch feels instant. Best-effort — failures fall back to the
+  // foreground loader on click. Runs serially (not parallel) so a
+  // large `list_tracks` query doesn't fight the active tab's SQLite
+  // pool for connection time.
+  useEffect(() => {
+    if (isLoading) return;
+    if (!tracksSort.isLoaded || !albumsSort.isLoaded || !artistsSort.isLoaded) {
+      return;
+    }
+
+    const others: LibraryTab[] = (
+      ["morceaux", "albums", "artistes", "genres", "dossiers"] as LibraryTab[]
+    ).filter(
+      (tab) =>
+        tab !== activeTab && loadedKeysRef.current[tab] !== tabCacheKeys[tab],
+    );
+    if (others.length === 0) return;
+
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      for (const tab of others) {
+        if (cancelled) return;
+        const desired = tabCacheKeys[tab];
+        if (loadedKeysRef.current[tab] === desired) continue;
+        try {
+          const payload = await fetchTab(tab);
+          if (cancelled) return;
+          applyTab(tab, payload);
+          loadedKeysRef.current[tab] = desired;
+        } catch {
+          // Swallow — foreground loader will retry when user clicks
+          // the tab.
+        }
+      }
+    }, 200);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    isLoading,
+    activeTab,
+    tabCacheKeys,
+    fetchTab,
+    applyTab,
+    tracksSort.isLoaded,
+    albumsSort.isLoaded,
+    artistsSort.isLoaded,
   ]);
 
   // Load liked track IDs once on mount so the TrackTable can show
