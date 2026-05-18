@@ -257,27 +257,35 @@ export function Sidebar({
         </button>
       </div>
 
-      <div className="flex-1 flex flex-col p-4 space-y-4 overflow-hidden">
-        {/* Navigation */}
-        <div className="space-y-1 shrink-0">
+      {/* Top navigation stays pinned: Home + Spotify shortcut are
+          one-click destinations the user wants at hand regardless of
+          how deep into the playlist list they've scrolled. */}
+      <div className="px-4 pt-4 pb-2 space-y-1 shrink-0">
+        <NavItem
+          icon={<Home size={18} />}
+          label={t("sidebar.nav.home")}
+          active={activeView === "home"}
+          onClick={() => setActiveView("home")}
+        />
+        {showSpotify && (
           <NavItem
-            icon={<Home size={18} />}
-            label={t("sidebar.nav.home")}
-            active={activeView === "home"}
-            onClick={() => setActiveView("home")}
+            icon={<Headphones size={18} />}
+            label={t("sidebar.nav.spotify", "Spotify")}
+            active={activeView === "spotify"}
+            onClick={() => setActiveView("spotify")}
           />
-          {showSpotify && (
-            <NavItem
-              icon={<Headphones size={18} />}
-              label={t("sidebar.nav.spotify", "Spotify")}
-              active={activeView === "spotify"}
-              onClick={() => setActiveView("spotify")}
-            />
-          )}
-        </div>
+        )}
+      </div>
 
+      {/* Single scroll surface for everything below the pinned nav so
+          Ma musique and Playlists share the leftover vertical space
+          instead of fighting over it. Reported in #54: at 1080p with
+          Spotify enabled the playlist section collapsed to ~0 px
+          because `shrink-0` on Ma musique pinned its full 5-row
+          height. */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pb-4 space-y-4 scrollbar-hide">
         {/* ─── MA MUSIQUE ─── */}
-        <div className="space-y-1 shrink-0">
+        <div className="space-y-1">
           <div className="flex items-center justify-between text-[10px] font-bold tracking-widest text-zinc-400 mb-1 px-2 uppercase">
             <span>{t("sidebar.myMusic.title")}</span>
             <button
@@ -338,8 +346,8 @@ export function Sidebar({
         </div>
 
         {/* ─── PLAYLISTS ─── */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex items-center justify-between text-[10px] font-bold tracking-widest text-zinc-400 mb-1 px-2 uppercase shrink-0">
+        <div>
+          <div className="flex items-center justify-between text-[10px] font-bold tracking-widest text-zinc-400 mb-1 px-2 uppercase">
             <span>{t("sidebar.playlistSection.title")}</span>
             <div className="flex items-center gap-1">
               <button
@@ -371,7 +379,7 @@ export function Sidebar({
             </div>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-1 scrollbar-hide pr-1">
+          <div className="space-y-1">
             {/* Pinned: Liked + Recent */}
             {pinnedRows.map((row) => (
               <SidebarRow
