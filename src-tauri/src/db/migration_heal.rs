@@ -141,7 +141,13 @@ fn normalize_to_lf(input: &[u8]) -> Vec<u8> {
 /// pre-existing CR) alone. Inverse partner of [`normalize_to_lf`] for
 /// the second hash we compare against.
 fn lf_to_crlf(lf: &[u8]) -> Vec<u8> {
-    let mut out = Vec::with_capacity(lf.len() + lf.len() / 32);
+    // Pre-count newlines so the destination Vec lands at exact capacity.
+    // Typical SQL is 5–10 % `\n`; the previous +1/32 margin tripped
+    // reallocations on every realistic migration, while a blanket ×2
+    // would waste roughly half the allocation. A linear pre-pass over
+    // a few KB of bytes is free.
+    let lf_count = lf.iter().filter(|&&b| b == b'\n').count();
+    let mut out = Vec::with_capacity(lf.len() + lf_count);
     for &b in lf {
         if b == b'\n' {
             out.push(b'\r');
