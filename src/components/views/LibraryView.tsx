@@ -53,6 +53,7 @@ import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useMultiSelect } from "../../hooks/useMultiSelect";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { resolveArtwork } from "../../lib/tauri/artwork";
+import { FadeInImage } from "../common/FadeInImage";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import type { Playlist } from "../../lib/tauri/playlist";
 import { pickFolder } from "../../lib/tauri/dialog";
@@ -203,7 +204,10 @@ export function LibraryView({
   }, []);
 
   // Scroll target for the AlphabetIndex (artists tab uses it).
-  const artistGridRef = useRef<HTMLDivElement>(null);
+  // Callback ref populated by the virtualized ArtistList so the
+  // alphabet jump index can scroll a specific artist into view without
+  // relying on a `querySelector` that can't reach off-screen rows.
+  const artistScrollToIndexRef = useRef<((idx: number) => void) | null>(null);
 
   const trackContextMenu = useTrackContextMenu({
     likedIds,
@@ -629,23 +633,13 @@ export function LibraryView({
                     setIsCreatePlaylistModalOpen(true);
                   }}
                   onArtistClick={onNavigateToArtist}
-                  gridRef={artistGridRef}
+                  scrollToIndexRef={artistScrollToIndexRef}
                 />
                 {artistsSort.sort.orderBy === "name" && artists.length > 0 && (
                   <AlphabetIndex
                     items={artists}
                     onLetterClick={(idx) => {
-                      const grid = artistGridRef.current;
-                      if (!grid) return;
-                      const target = grid.querySelector<HTMLElement>(
-                        `[data-artist-index="${idx}"]`,
-                      );
-                      if (target) {
-                        target.scrollIntoView({
-                          behavior: "smooth",
-                          block: "start",
-                        });
-                      }
+                      artistScrollToIndexRef.current?.(idx);
                     }}
                     className="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 z-30 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm rounded-full py-2 px-1.5 shadow-sm"
                   />
@@ -1341,6 +1335,7 @@ function AlbumGrid({
   onAlbumClick,
   onChangeCover,
 }: AlbumGridProps) {
+  "use no memo";
   const unknown = t("library.table.unknown");
   const [openMenuAlbumId, setOpenMenuAlbumId] = useState<number | null>(null);
   const [contextMenu, setContextMenu] = useState<{
@@ -1348,6 +1343,68 @@ function AlbumGrid({
     x: number;
     y: number;
   } | null>(null);
+
+  // Virtual-grid plumbing — without this a 800-album library mounts 800
+  // <Artwork> components on every tab switch, blowing the main thread
+  // for ~1 s before the first paint.
+  const pageScrollRef = usePageScroll();
+  const parentRef = useRef<HTMLDivElement>(null);
+  const [colCount, setColCount] = useState(1);
+  const [tileWidth, setTileWidth] = useState(180);
+  const [scrollMargin, setScrollMargin] = useState(0);
+
+  // Match the original Tailwind grid: `auto-fill,minmax(180px,1fr)` + gap-5.
+  const MIN_TILE = 180;
+  const GAP = 20;
+  // Tile = aspect-square cover (width = column width) + ~70 px of text
+  // beneath it (title + artist + meta + the space-y-2 separator).
+  const tileHeight = tileWidth + 70;
+
+  useLayoutEffect(() => {
+    const el = parentRef.current;
+    if (!el) return;
+    const recompute = () => {
+      const width = el.getBoundingClientRect().width;
+      if (width === 0) return;
+      const n = Math.max(1, Math.floor((width + GAP) / (MIN_TILE + GAP)));
+      const actual = (width - (n - 1) * GAP) / n;
+      setColCount(n);
+      setTileWidth(actual);
+    };
+    recompute();
+    const ro = new ResizeObserver(recompute);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Mirror TrackTable's scrollMargin trick so the virtual row offsets
+  // line up with the actual position of this grid inside the page
+  // scroller.
+  useLayoutEffect(() => {
+    const parent = parentRef.current;
+    const scroller = pageScrollRef?.current;
+    if (!parent || !scroller) return;
+    const recompute = () => {
+      const pr = parent.getBoundingClientRect();
+      const sr = scroller.getBoundingClientRect();
+      setScrollMargin(pr.top - sr.top + scroller.scrollTop);
+    };
+    recompute();
+    const ro = new ResizeObserver(recompute);
+    ro.observe(parent);
+    ro.observe(scroller);
+    return () => ro.disconnect();
+  }, [pageScrollRef, albums.length]);
+
+  const rowCount = Math.ceil(albums.length / colCount);
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const virtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => pageScrollRef?.current ?? null,
+    estimateSize: () => tileHeight + GAP,
+    overscan: 2,
+    scrollMargin,
+  });
 
   useEffect(() => {
     if (contextMenu == null) return;
@@ -1384,94 +1441,120 @@ function AlbumGrid({
     };
   }, [openMenuAlbumId]);
 
+  const renderAlbumCard = (album: AlbumRow) => {
+    const isMenuOpen = openMenuAlbumId === album.id;
+    return (
+      <div
+        key={album.id}
+        onClick={() => onAlbumClick(album.id)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setContextMenu({
+            albumId: album.id,
+            x: e.clientX,
+            y: e.clientY,
+          });
+        }}
+        className="group flex flex-col space-y-2 cursor-pointer relative"
+      >
+        <div className="relative">
+          <Artwork
+            path={album.artwork_path}
+            path1x={album.artwork_path_1x}
+            path2x={album.artwork_path_2x}
+            // Album grid tile renders ~150-200 px wide; the 128 px
+            // 2x thumbnail upscales soft on a HiDPI display. Source
+            // originals are 600-1500 px square — small enough to
+            // decode instantly and crisp at any tile size.
+            size="full"
+            alt={album.title}
+            className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
+            iconSize={44}
+            rounded="2xl"
+          />
+          <HiResBadge
+            bitDepth={album.max_bit_depth}
+            sampleRate={album.max_sample_rate}
+          />
+          <button
+            type="button"
+            data-add-to-playlist-trigger
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenMenuAlbumId(isMenuOpen ? null : album.id);
+            }}
+            aria-label={t("trackActions.addToPlaylist")}
+            className={`absolute bottom-2 right-2 p-1.5 rounded-full shadow-sm transition-all ${
+              isMenuOpen
+                ? "opacity-100 bg-emerald-500 text-white"
+                : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
+            }`}
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+        <div className="px-1">
+          <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+            {album.title}
+          </div>
+          <div className="text-xs text-zinc-500 truncate">
+            {album.artist_name ?? unknown}
+          </div>
+          <div className="text-[11px] text-zinc-400 mt-1">
+            {t("library.albumGrid.trackCount", {
+              count: album.track_count,
+            })}
+            {album.year ? ` · ${album.year}` : ""}
+          </div>
+        </div>
+        {isMenuOpen && (
+          <AddToPlaylistPopover
+            playlists={playlists}
+            trackId={album.id}
+            onPick={(playlistId) => {
+              onAddToPlaylist(playlistId, album.id);
+              setOpenMenuAlbumId(null);
+            }}
+            onCreate={() => {
+              setOpenMenuAlbumId(null);
+              onCreatePlaylist(album.id);
+            }}
+            t={t}
+          />
+        )}
+      </div>
+    );
+  };
+
   return (
     <>
       <div
-        className={`grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5 ${
-          isLoading ? "opacity-50" : ""
-        }`}
+        ref={parentRef}
+        className={isLoading ? "opacity-50" : ""}
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          position: "relative",
+        }}
       >
-        {albums.map((album) => {
-          const isMenuOpen = openMenuAlbumId === album.id;
+        {virtualizer.getVirtualItems().map((row) => {
+          const startIdx = row.index * colCount;
+          const rowItems = albums.slice(startIdx, startIdx + colCount);
           return (
             <div
-              key={album.id}
-              onClick={() => onAlbumClick(album.id)}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                setContextMenu({
-                  albumId: album.id,
-                  x: e.clientX,
-                  y: e.clientY,
-                });
+              key={row.key}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${row.start - scrollMargin}px)`,
+                display: "grid",
+                gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))`,
+                gap: `${GAP}px`,
+                paddingBottom: `${GAP}px`,
               }}
-              className="group flex flex-col space-y-2 cursor-pointer relative"
             >
-              <div className="relative">
-                <Artwork
-                  path={album.artwork_path}
-                  path1x={album.artwork_path_1x}
-                  path2x={album.artwork_path_2x}
-                  // Album grid tile renders ~150-200 px wide; the 128 px
-                  // 2x thumbnail upscales soft on a HiDPI display. Source
-                  // originals are 600-1500 px square — small enough to
-                  // decode instantly and crisp at any tile size.
-                  size="full"
-                  alt={album.title}
-                  className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
-                  iconSize={44}
-                  rounded="2xl"
-                />
-                <HiResBadge
-                  bitDepth={album.max_bit_depth}
-                  sampleRate={album.max_sample_rate}
-                />
-                <button
-                  type="button"
-                  data-add-to-playlist-trigger
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOpenMenuAlbumId(isMenuOpen ? null : album.id);
-                  }}
-                  aria-label={t("trackActions.addToPlaylist")}
-                  className={`absolute bottom-2 right-2 p-1.5 rounded-full shadow-sm transition-all ${
-                    isMenuOpen
-                      ? "opacity-100 bg-emerald-500 text-white"
-                      : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
-                  }`}
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
-              <div className="px-1">
-                <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
-                  {album.title}
-                </div>
-                <div className="text-xs text-zinc-500 truncate">
-                  {album.artist_name ?? unknown}
-                </div>
-                <div className="text-[11px] text-zinc-400 mt-1">
-                  {t("library.albumGrid.trackCount", {
-                    count: album.track_count,
-                  })}
-                  {album.year ? ` · ${album.year}` : ""}
-                </div>
-              </div>
-              {isMenuOpen && (
-                <AddToPlaylistPopover
-                  playlists={playlists}
-                  trackId={album.id}
-                  onPick={(playlistId) => {
-                    onAddToPlaylist(playlistId, album.id);
-                    setOpenMenuAlbumId(null);
-                  }}
-                  onCreate={() => {
-                    setOpenMenuAlbumId(null);
-                    onCreatePlaylist(album.id);
-                  }}
-                  t={t}
-                />
-              )}
+              {rowItems.map((album) => renderAlbumCard(album))}
             </div>
           );
         })}
@@ -1510,7 +1593,13 @@ interface ArtistListProps {
   onAddToPlaylist: (playlistId: number, artistId: number) => void;
   onCreatePlaylist: (artistId: number) => void;
   onArtistClick: (artistId: number) => void;
-  gridRef?: React.RefObject<HTMLDivElement | null>;
+  /**
+   * Mutable ref the grid populates with a `(idx) => void` callback that
+   * scrolls a specific artist into view. Used by the alphabet jump
+   * index — `scrollIntoView` on the DOM no longer works because
+   * off-screen rows aren't rendered.
+   */
+  scrollToIndexRef?: React.MutableRefObject<((idx: number) => void) | null>;
 }
 
 function ArtistList({
@@ -1521,9 +1610,82 @@ function ArtistList({
   onAddToPlaylist,
   onCreatePlaylist,
   onArtistClick,
-  gridRef,
+  scrollToIndexRef,
 }: ArtistListProps) {
+  "use no memo";
   const [openMenuArtistId, setOpenMenuArtistId] = useState<number | null>(null);
+
+  // Virtual-grid plumbing — see AlbumGrid for the rationale; same math
+  // applies to the artist tiles (same `minmax(180px,1fr)` + gap-5).
+  const pageScrollRef = usePageScroll();
+  const parentRef = useRef<HTMLDivElement>(null);
+  const [colCount, setColCount] = useState(1);
+  const [tileWidth, setTileWidth] = useState(180);
+  const [scrollMargin, setScrollMargin] = useState(0);
+
+  const MIN_TILE = 180;
+  const GAP = 20;
+  // Round avatar (width = column width) + space-y-3 (12 px) + 2 lines
+  // of text underneath (~40 px) → ~ width + 52.
+  const tileHeight = tileWidth + 52;
+
+  useLayoutEffect(() => {
+    const el = parentRef.current;
+    if (!el) return;
+    const recompute = () => {
+      const width = el.getBoundingClientRect().width;
+      if (width === 0) return;
+      const n = Math.max(1, Math.floor((width + GAP) / (MIN_TILE + GAP)));
+      const actual = (width - (n - 1) * GAP) / n;
+      setColCount(n);
+      setTileWidth(actual);
+    };
+    recompute();
+    const ro = new ResizeObserver(recompute);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useLayoutEffect(() => {
+    const parent = parentRef.current;
+    const scroller = pageScrollRef?.current;
+    if (!parent || !scroller) return;
+    const recompute = () => {
+      const pr = parent.getBoundingClientRect();
+      const sr = scroller.getBoundingClientRect();
+      setScrollMargin(pr.top - sr.top + scroller.scrollTop);
+    };
+    recompute();
+    const ro = new ResizeObserver(recompute);
+    ro.observe(parent);
+    ro.observe(scroller);
+    return () => ro.disconnect();
+  }, [pageScrollRef, artists.length]);
+
+  const rowCount = Math.ceil(artists.length / colCount);
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const virtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => pageScrollRef?.current ?? null,
+    estimateSize: () => tileHeight + GAP,
+    overscan: 2,
+    scrollMargin,
+  });
+
+  // Expose a scroll-to-artist-index method for the AlphabetIndex (the
+  // off-screen rows aren't in the DOM anymore, so the previous
+  // `querySelector + scrollIntoView` path can't see them).
+  useEffect(() => {
+    if (!scrollToIndexRef) return;
+    scrollToIndexRef.current = (idx) => {
+      virtualizer.scrollToIndex(Math.floor(idx / Math.max(colCount, 1)), {
+        align: "start",
+      });
+    };
+    return () => {
+      scrollToIndexRef.current = null;
+    };
+  }, [scrollToIndexRef, virtualizer, colCount]);
 
   useEffect(() => {
     if (openMenuArtistId == null) return;
@@ -1544,95 +1706,125 @@ function ArtistList({
     };
   }, [openMenuArtistId]);
 
+  const renderArtistTile = (artist: ArtistRow, idx: number) => {
+    const isMenuOpen = openMenuArtistId === artist.id;
+    // Use the full-resolution source so HiDPI screens render the
+    // avatar crisp at any column width — same trade-off documented on
+    // `AlbumGrid`'s Artwork usage. The 128 px 2x thumbnail upscaled
+    // soft on the 180–220 px artist tiles users actually see.
+    const artistPictureSrc = resolveArtwork(
+      {
+        full: artist.artwork_path ?? artist.picture_path,
+        x1: artist.artwork_path_1x ?? artist.picture_path_1x,
+        x2: artist.artwork_path_2x ?? artist.picture_path_2x,
+        remoteUrl: artist.picture_url,
+      },
+      "full",
+    );
+    return (
+      <div
+        key={artist.id}
+        data-artist-index={idx}
+        onClick={() => onArtistClick(artist.id)}
+        className="group flex flex-col items-center space-y-3 cursor-pointer relative"
+      >
+        <div className="relative w-full">
+          {artistPictureSrc ? (
+            <FadeInImage
+              src={artistPictureSrc}
+              alt={artist.name}
+              wrapperClassName="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 shadow-sm group-hover:shadow-md transition-shadow"
+              placeholder={
+                <span className="text-5xl font-bold text-violet-500/70 dark:text-violet-400/60">
+                  {artist.name.trim().charAt(0).toUpperCase() || "?"}
+                </span>
+              }
+            />
+          ) : (
+            <div className="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center overflow-hidden shadow-sm group-hover:shadow-md transition-shadow">
+              <span className="text-5xl font-bold text-violet-500/70 dark:text-violet-400/60">
+                {artist.name.trim().charAt(0).toUpperCase() || "?"}
+              </span>
+            </div>
+          )}
+          <button
+            type="button"
+            data-add-to-playlist-trigger
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenMenuArtistId(isMenuOpen ? null : artist.id);
+            }}
+            aria-label={t("trackActions.addToPlaylist")}
+            className={`absolute bottom-1 right-1 p-1.5 rounded-full shadow-sm transition-all ${
+              isMenuOpen
+                ? "opacity-100 bg-emerald-500 text-white"
+                : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
+            }`}
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+        <div className="text-center px-1 w-full">
+          <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+            {artist.name}
+          </div>
+          <div className="text-xs text-zinc-500">
+            {t("library.artistList.trackCount", {
+              count: artist.track_count,
+            })}
+            {artist.album_count > 0
+              ? ` · ${t("library.artistList.albumCount", { count: artist.album_count })}`
+              : ""}
+          </div>
+        </div>
+        {isMenuOpen && (
+          <AddToPlaylistPopover
+            playlists={playlists}
+            trackId={artist.id}
+            onPick={(playlistId) => {
+              onAddToPlaylist(playlistId, artist.id);
+              setOpenMenuArtistId(null);
+            }}
+            onCreate={() => {
+              setOpenMenuArtistId(null);
+              onCreatePlaylist(artist.id);
+            }}
+            t={t}
+          />
+        )}
+      </div>
+    );
+  };
+
   return (
     <div
-      ref={gridRef}
-      className={`grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5 ${
-        isLoading ? "opacity-50" : ""
-      }`}
+      ref={parentRef}
+      className={isLoading ? "opacity-50" : ""}
+      style={{
+        height: `${virtualizer.getTotalSize()}px`,
+        position: "relative",
+      }}
     >
-      {artists.map((artist, idx) => {
-        const isMenuOpen = openMenuArtistId === artist.id;
-        // Local artwork wins over the Deezer cache so the user's own
-        // sidecar JPEGs surface here exactly like they do on the
-        // per-artist page (`ArtistDetailView`). When no local image
-        // exists we fall back to the Deezer picture, then to the
-        // remote URL — same precedence as the detail view.
-        const artistPictureSrc = resolveArtwork(
-          {
-            full: artist.artwork_path ?? artist.picture_path,
-            x1: artist.artwork_path_1x ?? artist.picture_path_1x,
-            x2: artist.artwork_path_2x ?? artist.picture_path_2x,
-            remoteUrl: artist.picture_url,
-          },
-          "2x",
-        );
+      {virtualizer.getVirtualItems().map((row) => {
+        const startIdx = row.index * colCount;
+        const rowItems = artists.slice(startIdx, startIdx + colCount);
         return (
           <div
-            key={artist.id}
-            data-artist-index={idx}
-            onClick={() => onArtistClick(artist.id)}
-            className="group flex flex-col items-center space-y-3 cursor-pointer relative"
+            key={row.key}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              transform: `translateY(${row.start - scrollMargin}px)`,
+              display: "grid",
+              gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))`,
+              gap: `${GAP}px`,
+              paddingBottom: `${GAP}px`,
+            }}
           >
-            <div className="relative w-full">
-              {artistPictureSrc ? (
-                <img
-                  src={artistPictureSrc}
-                  alt={artist.name}
-                  loading="lazy"
-                  className="w-full aspect-square rounded-full object-cover shadow-sm group-hover:shadow-md transition-shadow"
-                />
-              ) : (
-                <div className="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center overflow-hidden shadow-sm group-hover:shadow-md transition-shadow">
-                  <span className="text-5xl font-bold text-violet-500/70 dark:text-violet-400/60">
-                    {artist.name.trim().charAt(0).toUpperCase() || "?"}
-                  </span>
-                </div>
-              )}
-              <button
-                type="button"
-                data-add-to-playlist-trigger
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOpenMenuArtistId(isMenuOpen ? null : artist.id);
-                }}
-                aria-label={t("trackActions.addToPlaylist")}
-                className={`absolute bottom-1 right-1 p-1.5 rounded-full shadow-sm transition-all ${
-                  isMenuOpen
-                    ? "opacity-100 bg-emerald-500 text-white"
-                    : "opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-zinc-800/90 text-zinc-600 dark:text-zinc-300 hover:bg-emerald-500 hover:text-white"
-                }`}
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-            <div className="text-center px-1 w-full">
-              <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
-                {artist.name}
-              </div>
-              <div className="text-xs text-zinc-500">
-                {t("library.artistList.trackCount", {
-                  count: artist.track_count,
-                })}
-                {artist.album_count > 0
-                  ? ` · ${t("library.artistList.albumCount", { count: artist.album_count })}`
-                  : ""}
-              </div>
-            </div>
-            {isMenuOpen && (
-              <AddToPlaylistPopover
-                playlists={playlists}
-                trackId={artist.id}
-                onPick={(playlistId) => {
-                  onAddToPlaylist(playlistId, artist.id);
-                  setOpenMenuArtistId(null);
-                }}
-                onCreate={() => {
-                  setOpenMenuArtistId(null);
-                  onCreatePlaylist(artist.id);
-                }}
-                t={t}
-              />
+            {rowItems.map((artist, i) =>
+              renderArtistTile(artist, startIdx + i),
             )}
           </div>
         );
