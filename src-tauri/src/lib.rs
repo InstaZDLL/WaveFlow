@@ -399,16 +399,32 @@ pub fn run() {
             let fallback_handle = app.handle().clone();
             let fallback_done = handoff_done.clone();
             tauri::async_runtime::spawn(async move {
+                // First attempt after 15 s; subsequent retries every
+                // 250 ms up to 10 total attempts. Bounded so a
+                // permanently missing main window doesn't spin forever
+                // (the warn! log surfaces it instead). The retry exists
+                // because `ReadySignal` only emits `app://ready` once
+                // at mount — if we lost the race with that single
+                // event AND the first reveal failed, without a retry
+                // the user would be stuck on the splash.
                 tokio::time::sleep(Duration::from_secs(15)).await;
-                if fallback_done.swap(true, Ordering::SeqCst) {
-                    return;
-                }
-                tracing::warn!(
-                    "splash handoff fallback: `app://ready` never fired after 15s, force-revealing main window"
-                );
-                if !reveal_main_close_splash(&fallback_handle) {
+                for attempt in 0..10 {
+                    if fallback_done.swap(true, Ordering::SeqCst) {
+                        return;
+                    }
+                    tracing::warn!(
+                        attempt,
+                        "splash handoff fallback: `app://ready` never fired in time, force-revealing main window"
+                    );
+                    if reveal_main_close_splash(&fallback_handle) {
+                        return;
+                    }
                     fallback_done.store(false, Ordering::SeqCst);
+                    tokio::time::sleep(Duration::from_millis(250)).await;
                 }
+                tracing::error!(
+                    "splash handoff fallback: exhausted 10 reveal attempts, user is likely stuck on splash"
+                );
             });
 
             Ok(())
@@ -707,24 +723,26 @@ fn show_main_window(app: &AppHandle) {
 /// a transient failure would leave the user stuck on an eternal
 /// splash.
 fn reveal_main_close_splash(app: &AppHandle) -> bool {
-    let mut ok = true;
-    if let Some(main) = app.get_webview_window("main") {
-        if let Err(err) = main.show() {
-            tracing::warn!(?err, "splash handoff: main.show failed");
-            ok = false;
-        }
-        let _ = main.set_focus();
-    } else {
+    // Bail out *before* touching the splash if the main window isn't
+    // available or refuses to show — otherwise we'd close the only
+    // visible window the user has and leave them staring at the
+    // desktop with no way back into the app until they re-launch.
+    let Some(main) = app.get_webview_window("main") else {
         tracing::warn!("splash handoff: main window missing at reveal time");
-        ok = false;
+        return false;
+    };
+    if let Err(err) = main.show() {
+        tracing::warn!(?err, "splash handoff: main.show failed");
+        return false;
     }
+    let _ = main.set_focus();
     if let Some(splash) = app.get_webview_window("splashscreen") {
         if let Err(err) = splash.close() {
             tracing::warn!(?err, "splash handoff: splash.close failed");
-            ok = false;
+            return false;
         }
     }
-    ok
+    true
 }
 
 /// Toggle Pause / Resume from the tray. Looks at the engine's current
