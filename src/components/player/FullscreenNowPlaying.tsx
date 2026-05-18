@@ -197,9 +197,16 @@ export function FullscreenNowPlaying({
           </button>
         </div>
 
-        {/* Cover hero */}
+        {/* Cover hero. The cover is sized so the full layout (top
+            bar + cover + metadata + visualizer + transport) fits a
+            1080p viewport at 125 % DPI without overflow. Previous cap
+            of `min(60vh, 32rem)` produced a 512 px square that pushed
+            the visualizer into the metadata on smaller screens
+            (reported in #54). 45 vh / 26 rem keeps the hero
+            visually dominant while leaving ~200 px for the controls
+            stack underneath. */}
         <div className="flex-1 flex flex-col items-center justify-center px-8 min-h-0">
-          <div className="w-full max-w-[min(60vh,32rem)] aspect-square mb-8">
+          <div className="w-full max-w-[min(45vh,26rem)] aspect-square mb-6">
             <Artwork
               path={currentTrack?.artwork_path ?? null}
               path1x={currentTrack?.artwork_path_1x ?? null}
