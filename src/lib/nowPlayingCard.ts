@@ -39,10 +39,21 @@ export async function renderNowPlayingCard(
   canvas.height = SIZE;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas 2D context unavailable");
+  // Smoother image scaling for the inevitable cover upscale below.
+  // Browsers default to "low" which produces visibly soft cover art on
+  // a 1080×1080 card.
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
 
   // ----- Load cover (if any) ------------------------------------------
+  // Prefer the full-resolution artwork over the thumbnails — `_2x` is
+  // 128×128 and `_1x` is 64×64 (see src-tauri/src/thumbnails.rs), both
+  // far too small for the 580 px cover slot and 1320 px blurred
+  // backdrop on this 1080² card. The original `artwork_path` is the
+  // image the scanner extracted from the audio file (typically
+  // 500–1500 px square), which gives a crisp share card.
   const coverSrc = resolveRemoteImage(
-    track.artwork_path_2x ?? track.artwork_path,
+    track.artwork_path ?? track.artwork_path_2x ?? track.artwork_path_1x,
     null,
   );
   let coverImg: HTMLImageElement | null = null;
@@ -67,15 +78,22 @@ export async function renderNowPlayingCard(
 
   // ----- Backdrop ------------------------------------------------------
   if (coverImg) {
-    // Draw the cover full-bleed, then blur via composite layers (the
-    // 2D context's filter API isn't reliable in WebKit/Edge — we fake
-    // it by drawing the cover scaled up and overlaying a heavy dark
-    // wash).
-    ctx.drawImage(coverImg, -120, -120, SIZE + 240, SIZE + 240);
-    // Heavy dark overlay so the foreground text + cover stay readable.
+    // Real CSS-style blur via the 2D context filter. Both
+    // Chromium-WebView2 (Windows) and WebKitGTK 2.40+ (Linux) support
+    // it; macOS WebKit has supported it for years. Falls back to a no-
+    // op string on the off chance an old engine doesn't recognise it,
+    // which gives a slightly less blurry but still readable backdrop.
+    ctx.save();
+    ctx.filter = "blur(60px) brightness(0.6)";
+    // Draw a bit past the edges so the blur's transparent halo doesn't
+    // bleed into the canvas border.
+    ctx.drawImage(coverImg, -80, -80, SIZE + 160, SIZE + 160);
+    ctx.restore();
+    // Tinted gradient overlay so the foreground text + cover stay
+    // readable on bright artwork.
     const wash = ctx.createLinearGradient(0, 0, 0, SIZE);
-    wash.addColorStop(0, `rgba(0,0,0,0.55)`);
-    wash.addColorStop(1, `rgba(${darken(accent, 0.4)},0.85)`);
+    wash.addColorStop(0, `rgba(0,0,0,0.45)`);
+    wash.addColorStop(1, `rgba(${darken(accent, 0.4)},0.75)`);
     ctx.fillStyle = wash;
     ctx.fillRect(0, 0, SIZE, SIZE);
   } else {
