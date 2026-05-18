@@ -1240,6 +1240,9 @@
     "lyricsPrefetch": {
       "title": "Precargar letras",
       "subtitle": "Descargar las letras de toda la biblioteca para uso sin conexión",
+      "result": "{{hits}} sincronizadas, {{misses}} no encontradas, {{failed}} fallidas",
+      "offline": "Modo sin conexión activado",
+      "failed": "Error al precargar",
       "action": "Precargar",
       "progress": "{{current}}/{{total}} procesadas · {{hits}} encontradas"
     },

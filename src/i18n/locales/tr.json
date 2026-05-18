@@ -1239,6 +1239,9 @@
     "lyricsPrefetch": {
       "title": "Şarkı sözlerini önceden yükle",
       "subtitle": "Çevrimdışı kullanım için tüm kütüphanenin şarkı sözlerini indir",
+      "result": "{{hits}} eşitlendi, {{misses}} bulunamadı, {{failed}} başarısız",
+      "offline": "Çevrimdışı modu etkin",
+      "failed": "Önbelleğe alma başarısız",
       "action": "Önceden yükle",
       "progress": "{{current}}/{{total}} işlendi · {{hits}} bulundu"
     },

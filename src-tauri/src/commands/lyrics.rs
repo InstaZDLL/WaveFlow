@@ -696,6 +696,21 @@ async fn run_prefetch(
     let mut misses = 0u32;
     let mut failed = 0u32;
 
+    // Emit an initial frame so the UI can show the total — and explicitly
+    // surface the "nothing to do" case (total == 0) which otherwise looks
+    // like the button does nothing.
+    let _ = app.emit(
+        "lyrics:prefetch-progress",
+        LyricsPrefetchProgress {
+            processed: 0,
+            total,
+            hits: 0,
+            misses: 0,
+            failed: 0,
+            current_title: None,
+        },
+    );
+
     let client = LrclibClient::new();
     let mut cancelled = false;
 

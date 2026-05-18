@@ -1239,6 +1239,9 @@
     "lyricsPrefetch": {
       "title": "Pramuat lirik",
       "subtitle": "Unduh lirik untuk seluruh pustaka untuk penggunaan offline",
+      "result": "{{hits}} disinkronkan, {{misses}} tidak ditemukan, {{failed}} gagal",
+      "offline": "Mode luring diaktifkan",
+      "failed": "Pra-pemuatan gagal",
       "action": "Pramuat",
       "progress": "{{current}}/{{total}} diproses · {{hits}} ditemukan"
     },

@@ -1240,6 +1240,9 @@
     "lyricsPrefetch": {
       "title": "Pré-carregar letras",
       "subtitle": "Baixar as letras de toda a biblioteca para uso offline",
+      "result": "{{hits}} sincronizadas, {{misses}} não encontradas, {{failed}} falharam",
+      "offline": "Modo offline ativado",
+      "failed": "Pré-carregamento falhou",
       "action": "Pré-carregar",
       "progress": "{{current}}/{{total}} processadas · {{hits}} encontradas"
     },

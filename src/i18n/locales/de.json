@@ -1240,6 +1240,9 @@
     "lyricsPrefetch": {
       "title": "Songtexte vorab laden",
       "subtitle": "Songtexte der gesamten Bibliothek für Offline-Nutzung herunterladen",
+      "result": "{{hits}} synchronisiert, {{misses}} nicht gefunden, {{failed}} fehlgeschlagen",
+      "offline": "Offlinemodus aktiviert",
+      "failed": "Vorabladen fehlgeschlagen",
       "action": "Vorab laden",
       "progress": "{{current}}/{{total}} verarbeitet · {{hits}} gefunden"
     },

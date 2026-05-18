@@ -1240,6 +1240,9 @@
     "lyricsPrefetch": {
       "title": "Precarica i testi",
       "subtitle": "Scarica i testi dell’intera libreria per l’uso offline",
+      "result": "{{hits}} sincronizzati, {{misses}} non trovati, {{failed}} falliti",
+      "offline": "Modalità offline attiva",
+      "failed": "Precaricamento non riuscito",
       "action": "Precarica",
       "progress": "{{current}}/{{total}} elaborati · {{hits}} trovati"
     },

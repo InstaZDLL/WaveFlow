@@ -708,6 +708,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     failed: number;
     currentTitle: string | null;
   } | null>(null);
+  const [lyricsResultMsg, setLyricsResultMsg] = useState<string | null>(null);
 
   useEffect(() => {
     let unlisten: (() => void) | null = null;
@@ -741,14 +742,33 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     if (isPrefetchingLyrics) return;
     setIsPrefetchingLyrics(true);
     setLyricsPrefetchProgress(null);
+    setLyricsResultMsg(null);
     try {
       const { prefetchLibraryLyrics } = await import("../../lib/tauri/lyrics");
-      await prefetchLibraryLyrics();
+      const summary = await prefetchLibraryLyrics();
+      setLyricsResultMsg(
+        t("settings.lyricsPrefetch.result", {
+          hits: summary.hits,
+          misses: summary.misses,
+          failed: summary.failed,
+        }),
+      );
     } catch (err) {
       console.error("[SettingsView] prefetch lyrics failed", err);
+      // Distinguish offline mode (the user can act on it) from a real
+      // failure so the message is not just a generic "something broke".
+      const msg = String(err);
+      setLyricsResultMsg(
+        msg.includes("offline")
+          ? t("settings.lyricsPrefetch.offline")
+          : t("settings.lyricsPrefetch.failed"),
+      );
     } finally {
       setIsPrefetchingLyrics(false);
-      window.setTimeout(() => setLyricsPrefetchProgress(null), 3000);
+      window.setTimeout(() => {
+        setLyricsPrefetchProgress(null);
+        setLyricsResultMsg(null);
+      }, 5000);
     }
   };
 
@@ -2463,6 +2483,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                     {lyricsPrefetchProgress.currentTitle
                       ? ` — ${lyricsPrefetchProgress.currentTitle}`
                       : ""}
+                  </div>
+                ) : lyricsResultMsg ? (
+                  <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
+                    {lyricsResultMsg}
                   </div>
                 ) : (
                   <div className="text-xs text-zinc-400">
