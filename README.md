@@ -139,6 +139,16 @@ Per-feature deep dives, architecture and storage layout live under [`docs/`](doc
 - **Architecture** — [audio engine](docs/architecture/audio.md) · [database & paths](docs/architecture/storage.md)
 - **Contributing** — [CONTRIBUTING.md](CONTRIBUTING.md) · [RELEASING.md](RELEASING.md)
 
+## Community
+
+- :bug: **Bug?** → [Bug report](https://github.com/InstaZDLL/WaveFlow/issues/new?template=bug_report.yml)
+- :sparkles: **Feature idea?** → [Discussions › Ideas](https://github.com/InstaZDLL/WaveFlow/discussions/categories/ideas) (chat first, graduate to a [feature request issue](https://github.com/InstaZDLL/WaveFlow/issues/new?template=feature_request.yml) once shape is clear)
+- :pray: **Setup help / how-to?** → [Discussions › Q&A](https://github.com/InstaZDLL/WaveFlow/discussions/categories/q-a)
+- :raised_hands: **Show off your setup or playlist?** → [Discussions › Show and tell](https://github.com/InstaZDLL/WaveFlow/discussions/categories/show-and-tell)
+- :lock: **Security?** → [Private disclosure](.github/SECURITY.md) — never post vulnerabilities publicly.
+
+English and French both welcome.
+
 ## License
 
 ```
