@@ -22,6 +22,12 @@ export function VolumeControl() {
   };
 
   const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    // Stop the browser from interpreting the gesture as a text /
+    // image drag — when that happens the pointer-event stream gets
+    // hijacked, the cursor flips to "no-drop", and the slider stops
+    // tracking the mouse. `preventDefault` on pointerdown reliably
+    // suppresses that fallback path inside Tauri's WebView.
+    e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     updateFromClientX(e.clientX);
   };
@@ -29,6 +35,12 @@ export function VolumeControl() {
   const handlePointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
     updateFromClientX(e.clientX);
+  };
+
+  const handlePointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
   };
 
   const handleKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -79,8 +91,11 @@ export function VolumeControl() {
           aria-valuenow={volume}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onDragStart={(e) => e.preventDefault()}
           onKeyDown={handleKeyDown}
-          className="flex-1 flex items-center h-6 cursor-pointer touch-none group focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full"
+          className="flex-1 flex items-center h-6 cursor-pointer touch-none select-none group focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full"
         >
           <div className="relative w-full h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700">
             <div
