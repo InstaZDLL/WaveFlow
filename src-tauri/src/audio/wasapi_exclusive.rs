@@ -38,8 +38,8 @@ use crossbeam_channel::{bounded, Receiver, Sender};
 use rtrb::{Consumer, Producer, RingBuffer};
 use tauri::AppHandle;
 use wasapi::{
-    get_default_device, AudioClient, AudioRenderClient, Device, DeviceCollection, Direction,
-    Handle, SampleType, ShareMode, StreamMode, WaveFormat,
+    AudioClient, AudioRenderClient, Device, DeviceEnumerator, Direction, Handle, SampleType,
+    ShareMode, StreamMode, WaveFormat,
 };
 
 use super::output::{OutputHandle, RING_CAPACITY};
@@ -260,11 +260,17 @@ fn open_exclusive_session(
 }
 
 fn pick_device(device_name: &Option<String>) -> AppResult<Device> {
+    // wasapi 0.23 removed the free `get_default_device` / `DeviceCollection`
+    // entry points; everything now goes through a `DeviceEnumerator`
+    // (which owns the underlying `IMMDeviceEnumerator` COM pointer).
+    let enumerator = DeviceEnumerator::new()
+        .map_err(|e| AppError::Audio(format!("DeviceEnumerator::new: {e:?}")))?;
     if let Some(name) = device_name.as_deref().filter(|n| !n.is_empty()) {
-        // Iterate the render collection until we find a friendlyname
-        // match. The Linux ALSA story has the same pattern — name
-        // strings are how we pin a specific endpoint across reboots.
-        let coll = DeviceCollection::new(&Direction::Render)
+        // Friendly-name lookup lives on the collection, not the
+        // enumerator (the enumerator's `get_device` wants an opaque
+        // device-id, not the human-readable name we persist).
+        let coll = enumerator
+            .get_device_collection(&Direction::Render)
             .map_err(|e| AppError::Audio(format!("enumerate render devices: {e:?}")))?;
         if let Ok(dev) = coll.get_device_with_name(name) {
             return Ok(dev);
@@ -274,7 +280,8 @@ fn pick_device(device_name: &Option<String>) -> AppResult<Device> {
             "wasapi exclusive: requested device not found, falling back to default"
         );
     }
-    get_default_device(&Direction::Render)
+    enumerator
+        .get_default_device(&Direction::Render)
         .map_err(|e| AppError::Audio(format!("default render device: {e:?}")))
 }
 
