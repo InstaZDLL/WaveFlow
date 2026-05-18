@@ -52,12 +52,20 @@ pub struct ArtistRow {
     pub name: String,
     pub track_count: i64,
     pub album_count: i64,
+    /// Absolute filesystem path to a locally-extracted artist image
+    /// (sidecar `artist.jpg` or `<name>.jpg` discovered next to the
+    /// tracks during scan). Mirrors `ArtistDetail.artwork_path`.
+    /// `None` when no local image was found.
+    pub artwork_path: Option<String>,
+    pub artwork_path_1x: Option<String>,
+    pub artwork_path_2x: Option<String>,
     /// Deezer CDN URL from the `metadata_artist` cache, if the artist
     /// has been enriched at least once. Kept as a fallback — the UI
-    /// should prefer `picture_path` when present.
+    /// should prefer `artwork_path`, then `picture_path`, then this
+    /// remote URL last.
     pub picture_url: Option<String>,
-    /// Absolute filesystem path to the locally-cached picture, when
-    /// the metadata cache holds a hash and the file still exists.
+    /// Absolute filesystem path to the locally-cached Deezer picture,
+    /// when the metadata cache holds a hash and the file still exists.
     pub picture_path: Option<String>,
     pub picture_path_1x: Option<String>,
     pub picture_path_2x: Option<String>,
@@ -69,6 +77,8 @@ struct ArtistRowRaw {
     name: String,
     track_count: i64,
     album_count: i64,
+    artwork_hash: Option<String>,
+    artwork_format: Option<String>,
     picture_url: Option<String>,
     picture_hash: Option<String>,
 }
@@ -327,11 +337,14 @@ pub async fn list_artists(
                ar.name,
                COUNT(DISTINCT t.id)       AS track_count,
                COUNT(DISTINCT t.album_id) AS album_count,
+               aw.hash                    AS artwork_hash,
+               aw.format                  AS artwork_format,
                da.picture_url             AS picture_url,
                da.picture_hash            AS picture_hash
           FROM artist ar
           JOIN track_artist ta ON ta.artist_id = ar.id
           JOIN track t ON t.id = ta.track_id
+          LEFT JOIN artwork aw ON aw.id = ar.artwork_id
           LEFT JOIN app.metadata_artist da ON da.deezer_id = ar.deezer_id
          WHERE (? IS NULL OR t.library_id = ?) AND t.is_available = 1
          GROUP BY ar.id
@@ -345,10 +358,24 @@ pub async fn list_artists(
         .fetch_all(&pool)
         .await?;
 
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let metadata_dir = &state.paths.metadata_artwork_dir;
     let rows = raw
         .into_iter()
         .map(|r| {
+            let (artwork_path, artwork_path_1x, artwork_path_2x) =
+                match (r.artwork_hash.as_deref(), r.artwork_format.as_deref()) {
+                    (Some(hash), Some(fmt)) => {
+                        let full = artwork_dir
+                            .join(format!("{hash}.{fmt}"))
+                            .to_string_lossy()
+                            .to_string();
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        (Some(full), p1, p2)
+                    }
+                    _ => (None, None, None),
+                };
             let (picture_path_1x, picture_path_2x) = match r.picture_hash.as_deref() {
                 Some(h) => crate::thumbnails::thumbnail_paths_for(metadata_dir, h),
                 None => (None, None),
@@ -358,6 +385,9 @@ pub async fn list_artists(
                 name: r.name,
                 track_count: r.track_count,
                 album_count: r.album_count,
+                artwork_path,
+                artwork_path_1x,
+                artwork_path_2x,
                 picture_path: r
                     .picture_hash
                     .as_deref()

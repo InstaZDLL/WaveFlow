@@ -25,9 +25,15 @@ export interface ArtistRow {
   name: string;
   track_count: number;
   album_count: number;
+  /** Absolute filesystem path to a locally-extracted artist image
+   *  (sidecar `artist.jpg` / `<name>.jpg` next to the tracks). Prefer
+   *  this over `picture_path` / `picture_url` when present. */
+  artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
   /** Deezer CDN URL, populated after the artist has been enriched at least once. */
   picture_url: string | null;
-  /** Absolute filesystem path to the locally-cached picture, when available. */
+  /** Absolute filesystem path to the locally-cached Deezer picture, when available. */
   picture_path: string | null;
   picture_path_1x: string | null;
   picture_path_2x: string | null;
