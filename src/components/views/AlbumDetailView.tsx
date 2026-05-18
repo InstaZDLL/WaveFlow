@@ -207,9 +207,12 @@ export function AlbumDetailView({
   const isMultiDisc = discNumbers.length > 1;
 
   return (
-    <div className="space-y-8 animate-fade-in pb-20">
-      {/* Header */}
-      <div className="flex items-start space-x-8">
+    <div className="space-y-6 animate-fade-in pb-12">
+      {/* Header. Sized for 1080p / 125 % DPI: cover at 11rem (176 px)
+          keeps the album visually anchored without dominating the
+          viewport, title wraps to a second line instead of truncating
+          when the side lyrics panel is open. */}
+      <div className="flex items-start space-x-6">
         <div
           onDoubleClick={() => {
             if (album.artwork_path) setIsLightboxOpen(true);
@@ -221,18 +224,18 @@ export function AlbumDetailView({
             path1x={album.artwork_path_1x}
             path2x={album.artwork_path_2x}
             size="full"
-            className="w-48 h-48 shadow-lg"
+            className="w-44 h-44 shadow-lg"
             iconSize={64}
             alt={album.title}
             rounded="2xl"
           />
         </div>
 
-        <div className="flex-1 min-w-0 pt-2">
+        <div className="flex-1 min-w-0 pt-1">
           <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
             {t("albumDetail.badge")}
           </div>
-          <h1 className="text-4xl font-bold mb-2 text-zinc-900 dark:text-white truncate">
+          <h1 className="text-3xl md:text-4xl font-bold mb-1 text-zinc-900 dark:text-white line-clamp-2">
             {album.title}
           </h1>
 
@@ -243,14 +246,14 @@ export function AlbumDetailView({
               onClick={() =>
                 album.artist_id != null && onNavigateToArtist(album.artist_id)
               }
-              className="text-lg font-medium text-emerald-600 dark:text-emerald-400 hover:underline mb-3"
+              className="text-lg font-medium text-emerald-600 dark:text-emerald-400 hover:underline mb-2"
             >
               {album.artist_name}
             </button>
           )}
 
           {/* Meta */}
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500 mb-4">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500 mb-3">
             {album.year && <span>{album.year}</span>}
             {album.year && label && <span>·</span>}
             {label && <span>{label}</span>}
@@ -264,7 +267,7 @@ export function AlbumDetailView({
 
           {/* Genres */}
           {album.genres.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="flex flex-wrap gap-2 mb-3">
               {album.genres.map((genre) => (
                 <span
                   key={genre}
@@ -284,12 +287,12 @@ export function AlbumDetailView({
           )}
 
           {/* Actions */}
-          <div className="flex items-center space-x-3 mt-4">
+          <div className="flex flex-wrap items-center gap-2 mt-3">
             <button
               type="button"
               onClick={handlePlayAll}
               disabled={album.tracks.length === 0}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50"
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50"
             >
               <Play size={16} className="fill-current" />
               <span>{t("albumDetail.playAll")}</span>
@@ -298,7 +301,7 @@ export function AlbumDetailView({
               type="button"
               onClick={handleShufflePlay}
               disabled={album.tracks.length === 0}
-              className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50"
+              className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm disabled:opacity-50"
             >
               <Shuffle size={16} />
               <span>{t("albumDetail.shuffle")}</span>
@@ -306,7 +309,7 @@ export function AlbumDetailView({
             <button
               type="button"
               onClick={() => setIsCoverPickerOpen(true)}
-              className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm"
+              className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm"
             >
               <ImageIcon size={16} />
               <span>{t("library.changeCover")}</span>

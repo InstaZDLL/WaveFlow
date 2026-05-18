@@ -255,7 +255,7 @@ export function TopBar({
   };
 
   return (
-    <div className="h-20 flex items-center justify-between px-8 z-10 sticky top-0 bg-zinc-50/80 backdrop-blur-md dark:bg-zinc-900/80">
+    <div className="h-16 flex items-center justify-between px-6 z-10 sticky top-0 bg-zinc-50/80 backdrop-blur-md dark:bg-zinc-900/80">
       {/* Navigation Arrows */}
       <div className="flex space-x-2">
         <button

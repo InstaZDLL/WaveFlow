@@ -387,15 +387,15 @@ export function LibraryView({
     (activeTab === "dossiers" && folders.length > 0);
 
   return (
-    <div className="space-y-8 animate-fade-in pb-20">
+    <div className="space-y-6 animate-fade-in pb-12">
       {/* Header */}
       <div className="flex items-start justify-between">
-        <div className="flex items-center space-x-6">
-          <div className="w-24 h-24 rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 flex items-center justify-center shadow-sm">
-            <Music2 size={48} />
+        <div className="flex items-center space-x-5">
+          <div className="w-20 h-20 rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 flex items-center justify-center shadow-sm">
+            <Music2 size={40} />
           </div>
           <div>
-            <h1 className="text-4xl font-bold mb-2 text-zinc-900 dark:text-white">
+            <h1 className="text-3xl md:text-4xl font-bold mb-1 text-zinc-900 dark:text-white">
               {t("sidebar.myMusic.title")}
             </h1>
             <div className="flex items-center text-sm text-zinc-500 space-x-2">
@@ -410,7 +410,7 @@ export function LibraryView({
             type="button"
             onClick={handleImport}
             disabled={isImporting}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm shadow-emerald-500/30 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm shadow-emerald-500/30 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Folder size={16} />
             <span>{t("library.header.addFolder")}</span>
