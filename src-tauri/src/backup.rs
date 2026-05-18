@@ -169,7 +169,12 @@ pub async fn write_config(
         ("backup.retention", retention.to_string(), "int"),
         (
             "backup.include_metadata_artwork",
-            if include_metadata_artwork { "true" } else { "false" }.to_string(),
+            if include_metadata_artwork {
+                "true"
+            } else {
+                "false"
+            }
+            .to_string(),
             "bool",
         ),
     ] {

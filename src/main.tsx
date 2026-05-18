@@ -1,11 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import {
-  getCurrentWindow,
-  Window as TauriWindow,
-} from "@tauri-apps/api/window";
 import App from "./App";
 import { MiniPlayerApp } from "./MiniPlayerApp";
+import { ReadySignal } from "./components/common/ReadySignal";
 import "./app.css";
 import { i18nReady } from "./i18n";
 
@@ -14,48 +11,31 @@ import { i18nReady } from "./i18n";
 // a stripped-down provider tree (no LibraryContext / sidebar / etc).
 const isMini = new URLSearchParams(window.location.search).get("mini") === "1";
 
-// The main window is created with `visible: false` in tauri.conf.json so
-// the user never sees a white WebView while Rust setup + React mount run.
-// A `splashscreen` window is created in its place (small, transparent,
-// always-on-top) to give visual feedback during the cold-start delay
-// — especially on the very first launch after install, when Windows
-// SmartScreen / Defender scans every freshly-extracted DLL.
-//
-// We reveal the main window after the first frame is painted, then
-// close the splash. Order matters: show main BEFORE closing splash so
-// there's never a moment where the desktop is visible between the two.
-// The mini-player is its own window opened explicitly with visible:
-// true, so skip the dance there.
-function revealMainWindow() {
-  if (isMini) return;
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      void (async () => {
-        try {
-          await getCurrentWindow().show();
-        } catch (err) {
-          console.error("[main] window.show failed", err);
-        }
-        try {
-          const splash = await TauriWindow.getByLabel("splashscreen");
-          if (splash) await splash.close();
-        } catch (err) {
-          console.error("[main] splash close failed", err);
-        }
-      })();
-    });
-  });
-}
+// The main window is created with `visible: false` in tauri.conf.json
+// so the user never sees a white WebView while Rust setup + React mount
+// run. A `splashscreen` window is shown in its place. The backend
+// listens for `app://ready` and atomically reveals the main window +
+// closes the splash from native code (see `reveal_main_close_splash`
+// in src-tauri/src/lib.rs). The actual event emission lives in
+// `ReadySignal` so this entry-point file can stay HMR-friendly.
 
 i18nReady
   .catch((err) => {
     console.error("[i18n] initialization failed", err);
   })
   .finally(() => {
-    ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+    const root = ReactDOM.createRoot(
+      document.getElementById("root") as HTMLElement,
+    );
+    root.render(
       <React.StrictMode>
-        {isMini ? <MiniPlayerApp /> : <App />}
+        {isMini ? (
+          <MiniPlayerApp />
+        ) : (
+          <ReadySignal>
+            <App />
+          </ReadySignal>
+        )}
       </React.StrictMode>,
     );
-    revealMainWindow();
   });

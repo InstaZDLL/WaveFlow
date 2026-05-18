@@ -80,7 +80,7 @@ Actions):
 | `WINGET_PAT`                         | GitHub Personal Access Token (classic, `public_repo` scope) the `.github/workflows/winget.yml` action uses to fork microsoft/winget-pkgs and open the PR with the new manifest |
 | `COPR_LOGIN`                         | `login` field from <https://copr.fedorainfracloud.org/api/> — `.github/workflows/copr.yml` uses it to authenticate to Fedora COPR via `copr-cli`                               |
 | `COPR_TOKEN`                         | `token` field from the same COPR API page (paired with `COPR_LOGIN`). Token lifetime is 6 months — rotate when builds start returning `401 Unauthorized`                       |
-| `BUILDKITE_PACKAGES_TOKEN`             | Buildkite API token (`read_packages` + `write_packages`) for `.github/workflows/apt-publish.yml` to push the `.deb` to the `instazdll/waveflow` registry                     |
+| `BUILDKITE_PACKAGES_TOKEN`           | Buildkite API token (`read_packages` + `write_packages`) for `.github/workflows/apt-publish.yml` to push the `.deb` to the `instazdll/waveflow` registry                       |
 
 The AUR package itself (`waveflow-bin`) needs a one-off manual setup
 on the maintainer's box — see [`packaging/aur/README.md`](../packaging/aur/README.md).
