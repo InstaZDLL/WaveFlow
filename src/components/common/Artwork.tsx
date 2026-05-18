@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Disc } from "lucide-react";
 import { resolveArtwork, type ArtworkSize } from "../../lib/tauri/artwork";
+import { FadeInImage } from "./FadeInImage";
 
 interface ArtworkProps {
   /**
@@ -36,7 +37,9 @@ interface ArtworkProps {
 /**
  * Render a hash-addressed cover image served via Tauri's `asset://`
  * protocol, picking the closest pre-resized variant for the requested
- * display `size`.
+ * display `size`. The image fades in over a gradient placeholder via
+ * [`FadeInImage`] so a tab full of fresh thumbnails never flashes
+ * through grey skeleton squares.
  */
 export function Artwork({
   path,
@@ -68,31 +71,36 @@ export function Artwork({
     xl: "rounded-xl",
     "2xl": "rounded-2xl",
   }[rounded];
+  // Gradient + border combo reused as the placeholder background, both
+  // when no image is available and behind the fading <img>.
+  const placeholderBg =
+    "bg-linear-to-br from-emerald-100 to-emerald-200 dark:from-emerald-900/40 dark:to-emerald-800/30 border border-emerald-200/60 dark:border-emerald-800/40";
+  const discIcon = (
+    <Disc
+      size={iconSize}
+      className="text-emerald-500/70 dark:text-emerald-400/60"
+    />
+  );
 
   if (!src) {
     return (
       <div
-        className={`${className} ${radiusClass} bg-linear-to-br from-emerald-100 to-emerald-200 dark:from-emerald-900/40 dark:to-emerald-800/30 border border-emerald-200/60 dark:border-emerald-800/40 flex items-center justify-center overflow-hidden shrink-0`}
+        className={`${className} ${radiusClass} ${placeholderBg} flex items-center justify-center overflow-hidden shrink-0`}
         aria-hidden={alt ? undefined : true}
         aria-label={alt}
         role={alt ? "img" : undefined}
       >
-        <Disc
-          size={iconSize}
-          className="text-emerald-500/70 dark:text-emerald-400/60"
-        />
+        {discIcon}
       </div>
     );
   }
 
   return (
-    <img
+    <FadeInImage
       src={src}
       alt={alt ?? ""}
-      loading="lazy"
-      decoding="async"
-      draggable={false}
-      className={`${className} ${radiusClass} object-cover shrink-0 bg-zinc-100 dark:bg-zinc-800`}
+      wrapperClassName={`${className} ${radiusClass} ${placeholderBg} shrink-0`}
+      placeholder={discIcon}
     />
   );
 }

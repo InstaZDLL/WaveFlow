@@ -53,6 +53,7 @@ import { useTrackUpdated } from "../../hooks/useTrackUpdated";
 import { useMultiSelect } from "../../hooks/useMultiSelect";
 import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { resolveArtwork } from "../../lib/tauri/artwork";
+import { FadeInImage } from "../common/FadeInImage";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import type { Playlist } from "../../lib/tauri/playlist";
 import { pickFolder } from "../../lib/tauri/dialog";
@@ -1576,11 +1577,15 @@ function ArtistList({
           >
             <div className="relative w-full">
               {artistPictureSrc ? (
-                <img
+                <FadeInImage
                   src={artistPictureSrc}
                   alt={artist.name}
-                  loading="lazy"
-                  className="w-full aspect-square rounded-full object-cover shadow-sm group-hover:shadow-md transition-shadow"
+                  wrapperClassName="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 shadow-sm group-hover:shadow-md transition-shadow"
+                  placeholder={
+                    <span className="text-5xl font-bold text-violet-500/70 dark:text-violet-400/60">
+                      {artist.name.trim().charAt(0).toUpperCase() || "?"}
+                    </span>
+                  }
                 />
               ) : (
                 <div className="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center overflow-hidden shadow-sm group-hover:shadow-md transition-shadow">
