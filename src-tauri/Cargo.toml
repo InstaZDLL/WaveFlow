@@ -94,7 +94,7 @@ blake3 = "1"
 # Audio playback: symphonia decodes, cpal outputs, rubato resamples,
 # rtrb is the SPSC ring between decoder thread and audio callback,
 # crossbeam-channel carries AudioCmd from tokio commands to the decoder.
-symphonia = { version = "0.5", default-features = false, features = [
+symphonia = { version = "0.6", default-features = false, features = [
     "mp3",
     "flac",
     "wav",
