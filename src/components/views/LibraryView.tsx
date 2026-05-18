@@ -1708,6 +1708,10 @@ function ArtistList({
 
   const renderArtistTile = (artist: ArtistRow, idx: number) => {
     const isMenuOpen = openMenuArtistId === artist.id;
+    // Use the full-resolution source so HiDPI screens render the
+    // avatar crisp at any column width — same trade-off documented on
+    // `AlbumGrid`'s Artwork usage. The 128 px 2x thumbnail upscaled
+    // soft on the 180–220 px artist tiles users actually see.
     const artistPictureSrc = resolveArtwork(
       {
         full: artist.artwork_path ?? artist.picture_path,
@@ -1715,7 +1719,7 @@ function ArtistList({
         x2: artist.artwork_path_2x ?? artist.picture_path_2x,
         remoteUrl: artist.picture_url,
       },
-      "2x",
+      "full",
     );
     return (
       <div
