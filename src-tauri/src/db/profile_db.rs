@@ -54,7 +54,12 @@ pub async fn open(path: &Path, app_db_path: &Path) -> AppResult<SqlitePool> {
         .connect_with(opts)
         .await?;
 
-    sqlx::migrate!("./migrations/profile").run(&pool).await?;
+    // Same self-healing dance as `app_db::open` — line-ending drift
+    // in the working tree gets reconciled before sqlx's strict
+    // checksum check fires. Details in [`crate::db::migration_heal`].
+    let migrator = sqlx::migrate!("./migrations/profile");
+    super::migration_heal::heal_line_ending_drift(&pool, &migrator).await?;
+    migrator.run(&pool).await?;
 
     Ok(pool)
 }
