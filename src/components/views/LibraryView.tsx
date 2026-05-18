@@ -920,13 +920,13 @@ function SortDropdown({ options, current, onChange, t }: SortDropdownProps) {
             >
               <span>
                 {current.direction === "asc"
-                  ? t("sort.descending")
-                  : t("sort.ascending")}
+                  ? t("sort.ascending")
+                  : t("sort.descending")}
               </span>
               {current.direction === "asc" ? (
-                <ArrowDown size={14} />
-              ) : (
                 <ArrowUp size={14} />
+              ) : (
+                <ArrowDown size={14} />
               )}
             </button>
           </li>
