@@ -34,63 +34,66 @@ const writeStoredTheme = (isDark: boolean) => {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isDark, setIsDark] = useState<boolean>(readStoredTheme);
 
-  const toggleTheme = useCallback((event?: ReactMouseEvent) => {
-    let nextValue = false;
-    const flipTheme = () =>
-      setIsDark((prev) => {
-        nextValue = !prev;
-        return nextValue;
-      });
-
-    // Persist BEFORE triggering any animation. Some Linux WebKitGTK builds
-    // crash the webview during startViewTransition on certain GPU/Wayland
-    // stacks (issue #34) — writing first guarantees the next launch picks
-    // up the new theme even if this transition kills the process.
-    const persistNext = (value: boolean) => writeStoredTheme(value);
-
-    // Fallback: no View Transitions API support → instant swap
-    if (typeof document === "undefined" || !document.startViewTransition) {
-      flipTheme();
-      persistNext(nextValue);
-      return;
-    }
-
-    // Compute & persist the future value before the animation starts so the
-    // write lands even if the compositor crashes mid-transition.
-    persistNext(!isDark);
-
-    const transition = document.startViewTransition(flipTheme);
-
-    // Radial reveal from the click point
-    if (event) {
-      const x = event.clientX;
-      const y = event.clientY;
-      const endRadius = Math.hypot(
-        Math.max(x, window.innerWidth - x),
-        Math.max(y, window.innerHeight - y),
-      );
-
-      transition.ready
-        .then(() => {
-          document.documentElement.animate(
-            {
-              clipPath: [
-                `circle(0px at ${x}px ${y}px)`,
-                `circle(${endRadius}px at ${x}px ${y}px)`,
-              ],
-            },
-            {
-              duration: 600,
-              easing: "ease-in-out",
-              pseudoElement: "::view-transition-new(root)",
-            },
-          );
-        })
-        .catch(() => {
-          // Animation failed — the theme has still toggled via flipTheme()
+  const toggleTheme = useCallback(
+    (event?: ReactMouseEvent) => {
+      let nextValue = false;
+      const flipTheme = () =>
+        setIsDark((prev) => {
+          nextValue = !prev;
+          return nextValue;
         });
-    }
-  }, [isDark]);
+
+      // Persist BEFORE triggering any animation. Some Linux WebKitGTK builds
+      // crash the webview during startViewTransition on certain GPU/Wayland
+      // stacks (issue #34) — writing first guarantees the next launch picks
+      // up the new theme even if this transition kills the process.
+      const persistNext = (value: boolean) => writeStoredTheme(value);
+
+      // Fallback: no View Transitions API support → instant swap
+      if (typeof document === "undefined" || !document.startViewTransition) {
+        flipTheme();
+        persistNext(nextValue);
+        return;
+      }
+
+      // Compute & persist the future value before the animation starts so the
+      // write lands even if the compositor crashes mid-transition.
+      persistNext(!isDark);
+
+      const transition = document.startViewTransition(flipTheme);
+
+      // Radial reveal from the click point
+      if (event) {
+        const x = event.clientX;
+        const y = event.clientY;
+        const endRadius = Math.hypot(
+          Math.max(x, window.innerWidth - x),
+          Math.max(y, window.innerHeight - y),
+        );
+
+        transition.ready
+          .then(() => {
+            document.documentElement.animate(
+              {
+                clipPath: [
+                  `circle(0px at ${x}px ${y}px)`,
+                  `circle(${endRadius}px at ${x}px ${y}px)`,
+                ],
+              },
+              {
+                duration: 600,
+                easing: "ease-in-out",
+                pseudoElement: "::view-transition-new(root)",
+              },
+            );
+          })
+          .catch(() => {
+            // Animation failed — the theme has still toggled via flipTheme()
+          });
+      }
+    },
+    [isDark],
+  );
 
   return (
     <ThemeContext.Provider value={{ isDark, toggleTheme }}>

@@ -5,7 +5,6 @@ tone_instructions: >-
   utilisateur, les problèmes de sécurité, les erreurs de logique et les
   oublis de tests/validation. Évite les remarques purement cosmétiques.
 early_access: true
-
 reviews:
   profile: assertive
   request_changes_workflow: true

@@ -140,17 +140,13 @@ pub async fn export_profile(
 /// Read the `backup.include_metadata_artwork` app setting. Defaults to
 /// `true` so a fresh install + first manual export produces a complete
 /// archive without the user having to opt in.
-pub(crate) async fn read_include_metadata_artwork(
-    app_db: &SqlitePool,
-) -> AppResult<bool> {
+pub(crate) async fn read_include_metadata_artwork(app_db: &SqlitePool) -> AppResult<bool> {
     let row: Option<String> = sqlx::query_scalar(
         "SELECT value FROM app_setting WHERE key = 'backup.include_metadata_artwork'",
     )
     .fetch_optional(app_db)
     .await?;
-    Ok(row
-        .map(|v| v == "true" || v == "1")
-        .unwrap_or(true))
+    Ok(row.map(|v| v == "true" || v == "1").unwrap_or(true))
 }
 
 /// Import a `.waveflow` archive as a brand-new profile. The new
@@ -353,7 +349,10 @@ pub(crate) fn write_archive(
                 let rel = entry_path
                     .strip_prefix(meta_dir)
                     .map_err(|e| AppError::Other(format!("metadata_artwork rel: {e}")))?;
-                let zip_name = format!("metadata_artwork/{}", rel.to_string_lossy().replace('\\', "/"));
+                let zip_name = format!(
+                    "metadata_artwork/{}",
+                    rel.to_string_lossy().replace('\\', "/")
+                );
                 zip.start_file(&zip_name, opts)?;
                 let mut src = File::open(entry_path)?;
                 std::io::copy(&mut src, &mut zip)?;

@@ -615,9 +615,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     setCoverResultMsg(null);
     try {
       const fetched = await batchFetchMissingAlbumCovers();
-      setCoverResultMsg(
-        t("library.fetchCoversResult", { count: fetched }),
-      );
+      setCoverResultMsg(t("library.fetchCoversResult", { count: fetched }));
     } catch (err) {
       console.error("[SettingsView] fetch missing covers failed", err);
       setCoverResultMsg(t("library.fetchCoversFailed"));
