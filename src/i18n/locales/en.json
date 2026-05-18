@@ -1095,7 +1095,7 @@
     "album": "Album",
     "duration": "Duration",
     "year": "Year",
-    "addedAt": "Added on",
+    "addedAt": "Recently added",
     "rating": "Note",
     "customOrder": "Custom order",
     "recentlyAdded": "Recently added",
@@ -1103,7 +1103,7 @@
     "name": "Last Name",
     "albumsCount": "Number of albums",
     "tracksCount": "Number of tracks",
-    "ascending": "Croissant",
+    "ascending": "Ascending",
     "descending": "Descending",
     "filename": "Filename"
   },
