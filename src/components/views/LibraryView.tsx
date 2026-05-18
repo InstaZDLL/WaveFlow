@@ -1553,11 +1553,16 @@ function ArtistList({
     >
       {artists.map((artist, idx) => {
         const isMenuOpen = openMenuArtistId === artist.id;
+        // Local artwork wins over the Deezer cache so the user's own
+        // sidecar JPEGs surface here exactly like they do on the
+        // per-artist page (`ArtistDetailView`). When no local image
+        // exists we fall back to the Deezer picture, then to the
+        // remote URL — same precedence as the detail view.
         const artistPictureSrc = resolveArtwork(
           {
-            full: artist.picture_path,
-            x1: artist.picture_path_1x,
-            x2: artist.picture_path_2x,
+            full: artist.artwork_path ?? artist.picture_path,
+            x1: artist.artwork_path_1x ?? artist.picture_path_1x,
+            x2: artist.artwork_path_2x ?? artist.picture_path_2x,
             remoteUrl: artist.picture_url,
           },
           "2x",
