@@ -583,7 +583,6 @@ function ArtistTrackTable({
             // activation still works via tabIndex + onKeyDown.
             <li
               key={`${track.id}-${index}`}
-              // eslint-disable-next-line
               tabIndex={0}
               onDoubleClick={() => onPlayTrack(index)}
               onKeyDown={(e) => {

@@ -1103,7 +1103,6 @@ function TrackTable({
             // Keyboard activation still works via tabIndex + onKeyDown.
             <div
               key={track.id}
-              // eslint-disable-next-line
               tabIndex={0}
               onClick={(e) => onRowSelect(track, e)}
               onDoubleClick={() => onPlayTrack(index)}

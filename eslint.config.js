@@ -19,17 +19,6 @@ export default tseslint.config(
       "**/.commitlintrc.cjs",
     ],
   },
-  {
-    // A few `// eslint-disable-next-line` directives in `src/components/`
-    // target jsx-a11y rules that Codacy runs server-side but that we
-    // don't load in this local config (no `eslint-plugin-jsx-a11y`
-    // dependency). Without this opt-out, eslint v9 flags them as
-    // "Unused eslint-disable directive" locally even though they're
-    // load-bearing for the Codacy run.
-    linterOptions: {
-      reportUnusedDisableDirectives: "off",
-    },
-  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

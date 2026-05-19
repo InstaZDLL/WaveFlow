@@ -471,7 +471,6 @@ function AlbumTrackTable({
       // works via tabIndex + onKeyDown.
       <li
         key={`${track.id}-${globalIndex}`}
-        // eslint-disable-next-line
         tabIndex={0}
         onClick={(e) => onRowSelect(playableTracks[globalIndex], e)}
         onDoubleClick={() => onPlayTrack(globalIndex)}

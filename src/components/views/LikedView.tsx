@@ -153,7 +153,6 @@ export function LikedView({
                 // activation still works via tabIndex + onKeyDown.
                 <li
                   key={track.id}
-                  // eslint-disable-next-line
                   tabIndex={0}
                   onDoubleClick={() =>
                     playTracks(tracks, index, { type: "liked", id: null })

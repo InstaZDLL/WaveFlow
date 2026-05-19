@@ -530,7 +530,6 @@ const SortableQueueRow = memo(function SortableQueueRow({
           tabIndex + role + onKeyDown wiring. */}
       <div
         onDoubleClick={() => onJump(absoluteIndex)}
-        // eslint-disable-next-line
         tabIndex={0}
         role="button"
         onKeyDown={(e) => {

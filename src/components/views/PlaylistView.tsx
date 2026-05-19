@@ -1107,7 +1107,6 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
     <div
       ref={setNodeRef}
       style={style}
-      // eslint-disable-next-line
       tabIndex={0}
       onClick={(e) => onRowSelect(track, e)}
       onDoubleClick={() => onPlayTrack(index)}
