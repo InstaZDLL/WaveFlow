@@ -20,6 +20,8 @@
 
 ---
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/bea9b304a9164a969762d2640788ec04)](https://app.codacy.com/gh/InstaZDLL/WaveFlow?utm_source=github.com&utm_medium=referral&utm_content=InstaZDLL/WaveFlow&utm_campaign=Badge_Grade)
+
 WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI. It scans your local audio folders, organizes tracks by album/artist/genre, and plays them with a real-time audio engine — no streaming, no cloud, your music stays on your machine.
 
 ## Download
