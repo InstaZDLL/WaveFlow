@@ -140,7 +140,7 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
           <div className="p-6 space-y-6">
             {/* Large artwork */}
             <div
-              onDoubleClick={() => {
+              onClick={() => {
                 if (currentTrack.artwork_path) setIsLightboxOpen(true);
               }}
               className={
