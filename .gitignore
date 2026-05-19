@@ -60,3 +60,7 @@ skills-lock.json
 # Local copies of release secrets (AUR SSH key, Tauri minisign key,
 # Authenticode PFX). These feed the GitHub Actions secrets — never commit.
 secrets/
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
