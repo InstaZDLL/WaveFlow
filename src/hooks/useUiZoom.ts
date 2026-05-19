@@ -58,7 +58,15 @@ export function useUiZoom() {
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<number>).detail;
-      if (typeof detail === "number") {
+      // Defensive bounds check: the event is public on `window`, so
+      // any code in the page could dispatch a `detail: 999` that
+      // would otherwise propagate into state and the WebView.
+      if (
+        typeof detail === "number" &&
+        Number.isFinite(detail) &&
+        detail >= UI_ZOOM_MIN &&
+        detail <= UI_ZOOM_MAX
+      ) {
         zoomRef.current = detail;
         setZoomState(detail);
       }
@@ -93,7 +101,10 @@ export function useUiZoom() {
       } else if (e.key === "-" || e.key === "_") {
         next = clamp(current - UI_ZOOM_STEP);
       } else if (e.key === "0") {
-        next = 1;
+        // Defensive: 1.0 is always inside [MIN, MAX] today, but
+        // routing through `clamp` keeps the three branches uniform
+        // and survives any future widening of the constants.
+        next = clamp(1);
       }
       if (next == null || next === current) return;
       e.preventDefault();

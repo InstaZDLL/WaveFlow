@@ -432,11 +432,19 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // Keep the slider in sync when the user nudges zoom from the
   // keyboard shortcuts (`Ctrl+=` / `Ctrl+-` / `Ctrl+0`) — those land
   // in `useUiZoom` which broadcasts the new level via the window
-  // event.
+  // event. Same defensive bounds check as the hook: the event is
+  // public on `window` so we don't trust arbitrary numbers.
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<number>).detail;
-      if (typeof detail === "number") setUiZoom(detail);
+      if (
+        typeof detail === "number" &&
+        Number.isFinite(detail) &&
+        detail >= UI_ZOOM_MIN &&
+        detail <= UI_ZOOM_MAX
+      ) {
+        setUiZoom(detail);
+      }
     };
     window.addEventListener(UI_ZOOM_CHANGED_EVENT, handler);
     return () => window.removeEventListener(UI_ZOOM_CHANGED_EVENT, handler);

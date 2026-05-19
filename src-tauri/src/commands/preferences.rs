@@ -157,9 +157,14 @@ pub async fn set_ui_zoom(state: tauri::State<'_, AppState>, zoom: f64) -> AppRes
     } else {
         1.0
     };
+    // `app_setting.value_type` CHECK constraint only accepts
+    // `'string' | 'int' | 'bool' | 'json'` (initial migration). We
+    // serialize the zoom as a stringified float anyway, so
+    // `'string'` is the honest tag — adding `'real'` would require
+    // a migration that none of the persisted keys actually need.
     sqlx::query(
         "INSERT INTO app_setting (key, value, value_type, updated_at)
-         VALUES (?, ?, 'real', ?)
+         VALUES (?, ?, 'string', ?)
          ON CONFLICT(key) DO UPDATE
             SET value = excluded.value, updated_at = excluded.updated_at",
     )
