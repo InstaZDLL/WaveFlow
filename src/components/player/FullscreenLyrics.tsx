@@ -167,9 +167,17 @@ export function FullscreenLyrics({
                       ref={(el) => {
                         lineRefs.current[index] = el;
                       }}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => onSeek(line)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onSeek(line);
+                        }
+                      }}
                       style={{ opacity }}
-                      className={`text-3xl md:text-4xl font-bold leading-snug cursor-pointer transition-all select-none ${
+                      className={`text-3xl md:text-4xl font-bold leading-snug cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded ${
                         isActive
                           ? "text-white scale-[1.04]"
                           : isPast

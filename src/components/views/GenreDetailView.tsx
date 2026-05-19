@@ -278,9 +278,16 @@ function GenreTrackTable({
           return (
             <li
               key={`${track.id}-${index}`}
+              tabIndex={0}
               onDoubleClick={() => onPlayTrack(index)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onPlayTrack(index);
+                }
+              }}
               onContextMenu={(e) => onContextMenuRow(e, track)}
-              className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer ${
+              className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
                 isCurrent
                   ? "bg-emerald-50 dark:bg-emerald-900/20"
                   : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"

@@ -260,8 +260,22 @@ function QueueRow({
   return (
     <div
       onDoubleClick={onDoubleClick}
+      tabIndex={onDoubleClick ? 0 : undefined}
+      role={onDoubleClick ? "button" : undefined}
+      onKeyDown={
+        onDoubleClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onDoubleClick();
+              }
+            }
+          : undefined
+      }
       className={`flex items-center space-x-3 p-2 rounded-lg transition-colors select-none ${
-        onDoubleClick ? "cursor-pointer" : ""
+        onDoubleClick
+          ? "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          : ""
       } ${
         isCurrent
           ? "bg-emerald-50 dark:bg-emerald-900/20"
@@ -530,7 +544,15 @@ const SortableQueueRow = memo(function SortableQueueRow({
     <div ref={setNodeRef} style={style}>
       <div
         onDoubleClick={() => onJump(absoluteIndex)}
-        className="group flex items-center space-x-2 p-2 rounded-lg transition-colors select-none cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
+        tabIndex={0}
+        role="button"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onJump(absoluteIndex);
+          }
+        }}
+        className="group flex items-center space-x-2 p-2 rounded-lg transition-colors select-none cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
       >
         <button
           type="button"

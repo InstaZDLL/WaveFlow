@@ -254,12 +254,19 @@ export function ArtistDetailView({
         {/* Artist photo + edit overlay (visible on hover/focus) */}
         <div className="relative shrink-0 group">
           {pictureSrc ? (
-            <img
-              src={pictureSrc}
-              alt={artist.name}
+            /* Keyboard-accessible lightbox trigger; omitted when no artist photo */
+            <button
+              type="button"
               onClick={() => setIsLightboxOpen(true)}
-              className="w-48 h-48 rounded-full object-cover shadow-lg cursor-zoom-in"
-            />
+              aria-label={t("common.viewArtwork")}
+              className="cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full"
+            >
+              <img
+                src={pictureSrc}
+                alt={artist.name}
+                className="w-48 h-48 rounded-full object-cover shadow-lg"
+              />
+            </button>
           ) : (
             <div className="w-48 h-48 rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 flex items-center justify-center shadow-lg">
               <span className="text-7xl font-bold text-violet-500/70 dark:text-violet-400/60">
@@ -267,9 +274,9 @@ export function ArtistDetailView({
               </span>
             </div>
           )}
-          {/* The wrapper is pointer-events-none so the underlying <img>
-              keeps receiving onClick (lightbox); the inner button
-              re-enables pointer events for the small pencil hit area. */}
+          {/* The wrapper is pointer-events-none so the lightbox button
+              keeps receiving clicks everywhere; the inner pencil button
+              re-enables pointer events for its small hit area. */}
           <div className="absolute right-2 bottom-2 pointer-events-none">
             <button
               type="button"
@@ -573,9 +580,16 @@ function ArtistTrackTable({
           return (
             <li
               key={`${track.id}-${index}`}
+              tabIndex={0}
               onDoubleClick={() => onPlayTrack(index)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onPlayTrack(index);
+                }
+              }}
               onContextMenu={(e) => onContextMenuRow(e, track)}
-              className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer ${
+              className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
                 isCurrent
                   ? "bg-emerald-50 dark:bg-emerald-900/20"
                   : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"

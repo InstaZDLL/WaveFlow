@@ -138,15 +138,26 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
 
         {currentTrack ? (
           <div className="p-6 space-y-6">
-            {/* Large artwork */}
-            <div
-              onClick={() => {
-                if (currentTrack.artwork_path) setIsLightboxOpen(true);
-              }}
-              className={
-                currentTrack.artwork_path ? "cursor-zoom-in" : undefined
-              }
-            >
+            {/* Large artwork — keyboard-accessible lightbox trigger */}
+            {currentTrack.artwork_path ? (
+              <button
+                type="button"
+                onClick={() => setIsLightboxOpen(true)}
+                aria-label={t("common.viewArtwork")}
+                className="cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-2xl block w-full"
+              >
+                <Artwork
+                  path={currentTrack.artwork_path}
+                  path1x={currentTrack.artwork_path_1x}
+                  path2x={currentTrack.artwork_path_2x}
+                  size="full"
+                  alt={currentTrack.album_title ?? currentTrack.title}
+                  className="w-full aspect-square shadow-lg"
+                  iconSize={80}
+                  rounded="2xl"
+                />
+              </button>
+            ) : (
               <Artwork
                 path={currentTrack.artwork_path}
                 path1x={currentTrack.artwork_path_1x}
@@ -157,7 +168,7 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
                 iconSize={80}
                 rounded="2xl"
               />
-            </div>
+            )}
 
             {/* Track info */}
             <div className="space-y-1">

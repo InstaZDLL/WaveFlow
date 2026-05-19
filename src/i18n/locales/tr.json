@@ -6,7 +6,8 @@
     "close": "Kapat",
     "confirm": "Onayla",
     "open": "Aç",
-    "optional": "(isteğe bağlı)"
+    "optional": "(isteğe bağlı)",
+    "viewArtwork": "Kapak görselini görüntüle"
   },
   "lastfmReauth": {
     "title": "Last.fm'in oturumu sona erdi",

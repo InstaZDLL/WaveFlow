@@ -242,8 +242,16 @@ export function LyricsPanel() {
                     ref={(el) => {
                       lineRefs.current[index] = el;
                     }}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => handleSeekToLine(line)}
-                    className={`text-base leading-relaxed cursor-pointer transition-all select-none ${
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleSeekToLine(line);
+                      }
+                    }}
+                    className={`text-base leading-relaxed cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded ${
                       isActive
                         ? "text-zinc-900 dark:text-white font-semibold scale-[1.02]"
                         : isPast

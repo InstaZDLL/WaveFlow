@@ -6,7 +6,8 @@
     "close": "बंद करें",
     "confirm": "पुष्टि करें",
     "open": "खोलें",
-    "optional": "(वैकल्पिक)"
+    "optional": "(वैकल्पिक)",
+    "viewArtwork": "आर्टवर्क देखें"
   },
   "lastfmReauth": {
     "title": "Last.fm का सत्र समाप्त हो गया है",

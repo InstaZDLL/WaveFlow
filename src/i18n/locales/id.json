@@ -6,7 +6,8 @@
     "close": "Tutup",
     "confirm": "Konfirmasi",
     "open": "Buka",
-    "optional": "(opsional)"
+    "optional": "(opsional)",
+    "viewArtwork": "Lihat sampul"
   },
   "lastfmReauth": {
     "title": "Sesi Last.fm telah kedaluwarsa",

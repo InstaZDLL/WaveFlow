@@ -6,7 +6,8 @@
     "close": "إغلاق",
     "confirm": "تأكيد",
     "open": "فتح",
-    "optional": "(اختياري)"
+    "optional": "(اختياري)",
+    "viewArtwork": "عرض الغلاف"
   },
   "lastfmReauth": {
     "title": "انتهت صلاحية جلسة Last.fm",

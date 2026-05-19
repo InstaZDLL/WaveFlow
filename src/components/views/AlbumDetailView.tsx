@@ -213,23 +213,37 @@ export function AlbumDetailView({
           viewport, title wraps to a second line instead of truncating
           when the side lyrics panel is open. */}
       <div className="flex items-start space-x-6">
-        <div
-          onClick={() => {
-            if (album.artwork_path) setIsLightboxOpen(true);
-          }}
-          className={album.artwork_path ? "cursor-zoom-in" : undefined}
-        >
+        {/* Album artwork — keyboard-accessible lightbox trigger; omitted when no artwork */}
+        {album.artwork_path ? (
+          <button
+            type="button"
+            onClick={() => setIsLightboxOpen(true)}
+            aria-label={t("common.viewArtwork")}
+            className="cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-2xl shrink-0"
+          >
+            <Artwork
+              path={album.artwork_path}
+              path1x={album.artwork_path_1x}
+              path2x={album.artwork_path_2x}
+              size="full"
+              className="w-44 h-44 shadow-lg"
+              iconSize={64}
+              alt={album.title}
+              rounded="2xl"
+            />
+          </button>
+        ) : (
           <Artwork
             path={album.artwork_path}
             path1x={album.artwork_path_1x}
             path2x={album.artwork_path_2x}
             size="full"
-            className="w-44 h-44 shadow-lg"
+            className="w-44 h-44 shadow-lg shrink-0"
             iconSize={64}
             alt={album.title}
             rounded="2xl"
           />
-        </div>
+        )}
 
         <div className="flex-1 min-w-0 pt-1">
           <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-1">
@@ -454,10 +468,17 @@ function AlbumTrackTable({
     return (
       <li
         key={`${track.id}-${globalIndex}`}
+        tabIndex={0}
         onClick={(e) => onRowSelect(playableTracks[globalIndex], e)}
         onDoubleClick={() => onPlayTrack(globalIndex)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onPlayTrack(globalIndex);
+          }
+        }}
         onContextMenu={(e) => onContextMenuRow(e, playableTracks[globalIndex])}
-        className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer ${
+        className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
           isRowSelected
             ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
             : isCurrent
