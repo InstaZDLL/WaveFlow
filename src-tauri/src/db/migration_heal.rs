@@ -52,10 +52,7 @@ use crate::error::AppResult;
 /// nothing needed fixing). Always safe to call before
 /// [`Migrator::run`] — it short-circuits when `_sqlx_migrations`
 /// doesn't exist yet.
-pub async fn heal_line_ending_drift(
-    pool: &SqlitePool,
-    migrator: &Migrator,
-) -> AppResult<usize> {
+pub async fn heal_line_ending_drift(pool: &SqlitePool, migrator: &Migrator) -> AppResult<usize> {
     // Fresh database: `_sqlx_migrations` is created by `Migrator::run`
     // itself, so on first boot there's nothing to reconcile.
     let table_present: Option<i64> = sqlx::query_scalar(
@@ -114,7 +111,10 @@ pub async fn heal_line_ending_drift(
     }
 
     if healed > 0 {
-        tracing::info!(healed, "reconciled migration checksums after line-ending drift");
+        tracing::info!(
+            healed,
+            "reconciled migration checksums after line-ending drift"
+        );
     }
     Ok(healed)
 }

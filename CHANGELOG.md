@@ -2,20 +2,19 @@
 
 ## [1.1.1](https://github.com/InstaZDLL/WaveFlow/compare/v1.1.0...v1.1.1) (2026-05-18)
 
-
 ### Bug Fixes
 
-* **ci:** grant actions:write to fan-out step in release.yml ([2cf4b8d](https://github.com/InstaZDLL/WaveFlow/commit/2cf4b8d9282887502d52a918dea644aae0c6f2cc))
-* **ci:** update winget-releaser pinned SHA (v2 head moved) ([25a969e](https://github.com/InstaZDLL/WaveFlow/commit/25a969e270f332daff82a0172dc7121980e66e7f))
-* **readme:** restore emerald color on version badge ([211d12e](https://github.com/InstaZDLL/WaveFlow/commit/211d12e6372949a39dfc04abc54f5f4a5822a552))
-* **readme:** switch version badge to shields.io static/v1 endpoint ([c020e4a](https://github.com/InstaZDLL/WaveFlow/commit/c020e4ac6246087a3064b3636458d33a8f1bd49b))
-* **share:** use full-res artwork + real blur on Now Playing card ([f6d439d](https://github.com/InstaZDLL/WaveFlow/commit/f6d439df3752770e98728d788eedc579dd87fcce))
-* **splash:** allow retry when reveal_main_close_splash fails ([446a153](https://github.com/InstaZDLL/WaveFlow/commit/446a153d9dbca7f602ecbbfcf3f3563317bb22f4))
-* **splash:** emit app://ready from useEffect instead of rAF ([e7da1c4](https://github.com/InstaZDLL/WaveFlow/commit/e7da1c41d81d89b66b41484588b9553bd55dbbc7))
-* **splash:** move handoff to backend `app://ready` listener (closes [#42](https://github.com/InstaZDLL/WaveFlow/issues/42)) ([0e5618a](https://github.com/InstaZDLL/WaveFlow/commit/0e5618aa1b1d6eb92a11c67abb853532c7220c11))
-* **splash:** move handoff to backend app://ready listener (closes [#42](https://github.com/InstaZDLL/WaveFlow/issues/42)) ([#43](https://github.com/InstaZDLL/WaveFlow/issues/43)) ([1c43fb9](https://github.com/InstaZDLL/WaveFlow/commit/1c43fb93e4451c474c8f61d90cd46ac1d0a68e27))
-* **splash:** retry fallback in a loop + don't close splash on main reveal failure ([6c1f7ac](https://github.com/InstaZDLL/WaveFlow/commit/6c1f7accd851e121a26334e8bd47b695d191873b))
-* **splash:** set native window backgroundColor to avoid white flash on windows ([8f29b4f](https://github.com/InstaZDLL/WaveFlow/commit/8f29b4f07cea1a3055e32443f6d92ab7e0b1ec17))
+- **ci:** grant actions:write to fan-out step in release.yml ([2cf4b8d](https://github.com/InstaZDLL/WaveFlow/commit/2cf4b8d9282887502d52a918dea644aae0c6f2cc))
+- **ci:** update winget-releaser pinned SHA (v2 head moved) ([25a969e](https://github.com/InstaZDLL/WaveFlow/commit/25a969e270f332daff82a0172dc7121980e66e7f))
+- **readme:** restore emerald color on version badge ([211d12e](https://github.com/InstaZDLL/WaveFlow/commit/211d12e6372949a39dfc04abc54f5f4a5822a552))
+- **readme:** switch version badge to shields.io static/v1 endpoint ([c020e4a](https://github.com/InstaZDLL/WaveFlow/commit/c020e4ac6246087a3064b3636458d33a8f1bd49b))
+- **share:** use full-res artwork + real blur on Now Playing card ([f6d439d](https://github.com/InstaZDLL/WaveFlow/commit/f6d439df3752770e98728d788eedc579dd87fcce))
+- **splash:** allow retry when reveal_main_close_splash fails ([446a153](https://github.com/InstaZDLL/WaveFlow/commit/446a153d9dbca7f602ecbbfcf3f3563317bb22f4))
+- **splash:** emit app://ready from useEffect instead of rAF ([e7da1c4](https://github.com/InstaZDLL/WaveFlow/commit/e7da1c41d81d89b66b41484588b9553bd55dbbc7))
+- **splash:** move handoff to backend `app://ready` listener (closes [#42](https://github.com/InstaZDLL/WaveFlow/issues/42)) ([0e5618a](https://github.com/InstaZDLL/WaveFlow/commit/0e5618aa1b1d6eb92a11c67abb853532c7220c11))
+- **splash:** move handoff to backend app://ready listener (closes [#42](https://github.com/InstaZDLL/WaveFlow/issues/42)) ([#43](https://github.com/InstaZDLL/WaveFlow/issues/43)) ([1c43fb9](https://github.com/InstaZDLL/WaveFlow/commit/1c43fb93e4451c474c8f61d90cd46ac1d0a68e27))
+- **splash:** retry fallback in a loop + don't close splash on main reveal failure ([6c1f7ac](https://github.com/InstaZDLL/WaveFlow/commit/6c1f7accd851e121a26334e8bd47b695d191873b))
+- **splash:** set native window backgroundColor to avoid white flash on windows ([8f29b4f](https://github.com/InstaZDLL/WaveFlow/commit/8f29b4f07cea1a3055e32443f6d92ab7e0b1ec17))
 
 ## [1.1.0](https://github.com/InstaZDLL/WaveFlow/compare/v1.0.0...v1.1.0) (2026-05-17)
 

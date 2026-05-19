@@ -136,11 +136,10 @@ const UI_ZOOM_MAX: f64 = 2.0;
 
 #[tauri::command]
 pub async fn get_ui_zoom(state: tauri::State<'_, AppState>) -> AppResult<f64> {
-    let raw: Option<String> =
-        sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
-            .bind(KEY_UI_ZOOM)
-            .fetch_optional(&state.app_db)
-            .await?;
+    let raw: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(KEY_UI_ZOOM)
+        .fetch_optional(&state.app_db)
+        .await?;
     let zoom = raw
         .as_deref()
         .and_then(|s| s.parse::<f64>().ok())
