@@ -11,7 +11,6 @@
 <p align="center">
   <img src="https://img.shields.io/static/v1?label=version&message=1.1.1&color=emerald&style=flat-square" alt="Version" /> <!-- x-release-please-version -->
   <img src="https://img.shields.io/github/downloads/InstaZDLL/WaveFlow/total?style=flat-square&color=emerald&label=downloads" alt="Downloads" />
-  <a href="https://app.codacy.com/gh/InstaZDLL/WaveFlow/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade"><img src="https://img.shields.io/codacy/grade/9fa7a6e5ac5c482b970444a4d95ec64b?style=flat-square&logo=codacy&label=code%20quality" alt="Code quality" /></a>
   <img src="https://img.shields.io/badge/tauri-2.11-blue?style=flat-square&logo=tauri" alt="Tauri 2" />
   <img src="https://img.shields.io/badge/react-19-61dafb?style=flat-square&logo=react" alt="React 19" />
   <img src="https://img.shields.io/badge/rust-stable-orange?style=flat-square&logo=rust" alt="Rust" />
@@ -22,6 +21,8 @@
 ---
 
 WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI. It scans your local audio folders, organizes tracks by album/artist/genre, and plays them with a real-time audio engine — no streaming, no cloud, your music stays on your machine.
+
+<a href="https://app.codacy.com/gh/InstaZDLL/WaveFlow/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade"><img src="https://img.shields.io/codacy/grade/9fa7a6e5ac5c482b970444a4d95ec64b?style=flat-square&logo=codacy&label=code%20quality" alt="Code quality" /></a>
 
 ## Download
 
