@@ -257,7 +257,7 @@ export function ArtistDetailView({
             <img
               src={pictureSrc}
               alt={artist.name}
-              onDoubleClick={() => setIsLightboxOpen(true)}
+              onClick={() => setIsLightboxOpen(true)}
               className="w-48 h-48 rounded-full object-cover shadow-lg cursor-zoom-in"
             />
           ) : (
@@ -268,7 +268,7 @@ export function ArtistDetailView({
             </div>
           )}
           {/* The wrapper is pointer-events-none so the underlying <img>
-              keeps receiving onDoubleClick (lightbox); the inner button
+              keeps receiving onClick (lightbox); the inner button
               re-enables pointer events for the small pencil hit area. */}
           <div className="absolute right-2 bottom-2 pointer-events-none">
             <button

@@ -214,7 +214,7 @@ export function AlbumDetailView({
           when the side lyrics panel is open. */}
       <div className="flex items-start space-x-6">
         <div
-          onDoubleClick={() => {
+          onClick={() => {
             if (album.artwork_path) setIsLightboxOpen(true);
           }}
           className={album.artwork_path ? "cursor-zoom-in" : undefined}
