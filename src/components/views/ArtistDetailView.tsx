@@ -578,8 +578,12 @@ function ArtistTrackTable({
         {tracks.map((track, index) => {
           const isCurrent = track.id === currentTrackId;
           return (
+            // Row can't be a <button> because it contains action
+            // buttons; nested buttons are invalid HTML. Keyboard
+            // activation still works via tabIndex + onKeyDown.
             <li
               key={`${track.id}-${index}`}
+              // eslint-disable-next-line
               tabIndex={0}
               onDoubleClick={() => onPlayTrack(index)}
               onKeyDown={(e) => {

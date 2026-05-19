@@ -1098,8 +1098,12 @@ function TrackTable({
           const isMenuOpen = openMenuTrackId === track.id;
           const isRowSelected = isSelected(track.id);
           return (
+            // Row can't be a <button> because it contains action buttons
+            // (heart, more-options); nested buttons are invalid HTML.
+            // Keyboard activation still works via tabIndex + onKeyDown.
             <div
               key={track.id}
+              // eslint-disable-next-line
               tabIndex={0}
               onClick={(e) => onRowSelect(track, e)}
               onDoubleClick={() => onPlayTrack(index)}

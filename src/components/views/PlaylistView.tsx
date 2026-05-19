@@ -1100,9 +1100,14 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
     opacity: isDragging ? 0 : 1,
   };
   return (
+    // Row can't be a <button> because it contains action buttons
+    // (heart, more-options) and a drag handle; nested buttons are
+    // invalid HTML. Keyboard activation still works via tabIndex +
+    // onKeyDown.
     <div
       ref={setNodeRef}
       style={style}
+      // eslint-disable-next-line
       tabIndex={0}
       onClick={(e) => onRowSelect(track, e)}
       onDoubleClick={() => onPlayTrack(index)}

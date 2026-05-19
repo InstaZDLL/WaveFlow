@@ -167,60 +167,56 @@ export function FullscreenLyrics({
                       ref={(el) => {
                         lineRefs.current[index] = el;
                       }}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => onSeek(line)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          onSeek(line);
-                        }
-                      }}
                       style={{ opacity }}
-                      className={`text-3xl md:text-4xl font-bold leading-snug cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded ${
-                        isActive
-                          ? "text-white scale-[1.04]"
-                          : isPast
-                            ? "text-white/40"
-                            : "text-white/70 hover:text-white"
-                      }`}
                     >
-                      {hasWords ? (
-                        <span>
-                          {line.words!.map((word, wi) => {
-                            const wState =
-                              wi === activeWordIndex
-                                ? "active"
-                                : wi < activeWordIndex
-                                  ? "past"
-                                  : "future";
-                            return (
-                              <span
-                                key={wi}
-                                style={{
-                                  opacity:
-                                    wState === "active"
-                                      ? 1
-                                      : wState === "past"
-                                        ? 0.8
-                                        : 0.45,
-                                  transform:
-                                    wState === "active"
-                                      ? "scale(1.04)"
-                                      : "scale(1)",
-                                  display: "inline-block",
-                                  transition:
-                                    "opacity 150ms ease, transform 150ms ease",
-                                }}
-                              >
-                                {word.text}
-                              </span>
-                            );
-                          })}
-                        </span>
-                      ) : (
-                        line.text || " "
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => onSeek(line)}
+                        className={`block w-full text-left text-3xl md:text-4xl font-bold leading-snug cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded ${
+                          isActive
+                            ? "text-white scale-[1.04]"
+                            : isPast
+                              ? "text-white/40"
+                              : "text-white/70 hover:text-white"
+                        }`}
+                      >
+                        {hasWords ? (
+                          <span>
+                            {line.words!.map((word, wi) => {
+                              const wState =
+                                wi === activeWordIndex
+                                  ? "active"
+                                  : wi < activeWordIndex
+                                    ? "past"
+                                    : "future";
+                              return (
+                                <span
+                                  key={wi}
+                                  style={{
+                                    opacity:
+                                      wState === "active"
+                                        ? 1
+                                        : wState === "past"
+                                          ? 0.8
+                                          : 0.45,
+                                    transform:
+                                      wState === "active"
+                                        ? "scale(1.04)"
+                                        : "scale(1)",
+                                    display: "inline-block",
+                                    transition:
+                                      "opacity 150ms ease, transform 150ms ease",
+                                  }}
+                                >
+                                  {word.text}
+                                </span>
+                              );
+                            })}
+                          </span>
+                        ) : (
+                          line.text || " "
+                        )}
+                      </button>
                     </li>
                   );
                 })}

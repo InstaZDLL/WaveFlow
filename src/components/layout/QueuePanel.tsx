@@ -251,32 +251,13 @@ export function QueuePanel() {
 function QueueRow({
   item,
   isCurrent = false,
-  onDoubleClick,
 }: {
   item: QueueTrackPayload;
   isCurrent?: boolean;
-  onDoubleClick?: () => void;
 }) {
   return (
     <div
-      onDoubleClick={onDoubleClick}
-      tabIndex={onDoubleClick ? 0 : undefined}
-      role={onDoubleClick ? "button" : undefined}
-      onKeyDown={
-        onDoubleClick
-          ? (e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onDoubleClick();
-              }
-            }
-          : undefined
-      }
       className={`flex items-center space-x-3 p-2 rounded-lg transition-colors select-none ${
-        onDoubleClick
-          ? "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-          : ""
-      } ${
         isCurrent
           ? "bg-emerald-50 dark:bg-emerald-900/20"
           : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
@@ -542,8 +523,14 @@ const SortableQueueRow = memo(function SortableQueueRow({
   };
   return (
     <div ref={setNodeRef} style={style}>
+      {/* Row can't be a <button> because it contains the drag-handle
+          button below — nested buttons are invalid HTML. Keep the
+          interactive `<div>` and disable the jsx-a11y rule for this
+          specific compound; keyboard activation still works via the
+          tabIndex + role + onKeyDown wiring. */}
       <div
         onDoubleClick={() => onJump(absoluteIndex)}
+        // eslint-disable-next-line
         tabIndex={0}
         role="button"
         onKeyDown={(e) => {

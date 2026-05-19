@@ -466,8 +466,12 @@ function AlbumTrackTable({
     const isCurrent = track.id === currentTrackId;
     const isRowSelected = isSelected(track.id);
     return (
+      // Row can't be a <button> because it contains action buttons;
+      // nested buttons are invalid HTML. Keyboard activation still
+      // works via tabIndex + onKeyDown.
       <li
         key={`${track.id}-${globalIndex}`}
+        // eslint-disable-next-line
         tabIndex={0}
         onClick={(e) => onRowSelect(playableTracks[globalIndex], e)}
         onDoubleClick={() => onPlayTrack(globalIndex)}

@@ -148,8 +148,12 @@ export function LikedView({
             {tracks.map((track, index) => {
               const isCurrent = track.id === currentTrack?.id;
               return (
+                // Row can't be a <button> because it contains action
+                // buttons; nested buttons are invalid HTML. Keyboard
+                // activation still works via tabIndex + onKeyDown.
                 <li
                   key={track.id}
+                  // eslint-disable-next-line
                   tabIndex={0}
                   onDoubleClick={() =>
                     playTracks(tracks, index, { type: "liked", id: null })
