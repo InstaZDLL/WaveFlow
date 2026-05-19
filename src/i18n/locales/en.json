@@ -1385,6 +1385,13 @@
         "saveFailed": "Failed to save. Try again.",
         "runFailed": "Backup failed. Check the logs."
       }
+    },
+    "uiZoom": {
+      "title": "UI zoom",
+      "subtitle": "Scale the whole interface (Ctrl+= / Ctrl+- / Ctrl+0 also work)",
+      "decreaseAria": "Zoom out",
+      "increaseAria": "Zoom in",
+      "resetAria": "Reset zoom to 100 %"
     }
   },
   "spotify": {

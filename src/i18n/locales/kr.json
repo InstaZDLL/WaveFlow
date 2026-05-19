@@ -1318,6 +1318,13 @@
         "saveFailed": "저장에 실패했습니다. 다시 시도하세요.",
         "runFailed": "백업에 실패했습니다. 로그를 확인하세요."
       }
+    },
+    "uiZoom": {
+      "title": "UI 줄",
+      "subtitle": "전체 인터페이스 스케일링 (Ctrl+= / Ctrl+- / Ctrl+0 동작)",
+      "decreaseAria": "축소",
+      "increaseAria": "확대",
+      "resetAria": "줄을 100 %로 재설정"
     }
   },
   "scanProgress": {

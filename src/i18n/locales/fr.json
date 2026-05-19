@@ -1385,6 +1385,13 @@
         "spoken_word": "Voix parlée",
         "treble_booster": "Boost aigus"
       }
+    },
+    "uiZoom": {
+      "title": "Zoom de l’interface",
+      "subtitle": "Mettre l’app à l’échelle (Ctrl+= / Ctrl+- / Ctrl+0 fonctionnent aussi)",
+      "decreaseAria": "Dézoomer l’interface",
+      "increaseAria": "Zoomer l’interface",
+      "resetAria": "Réinitialiser le zoom à 100 %"
     }
   },
   "spotify": {

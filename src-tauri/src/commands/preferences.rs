@@ -113,3 +113,60 @@ pub async fn set_auto_start(app: tauri::AppHandle, enabled: bool) -> AppResult<(
     result.map_err(|err| crate::error::AppError::Other(format!("autostart: {err}")))?;
     Ok(())
 }
+
+/// UI zoom level (1.0 = 100 %). Stored in `app_setting` because it's a
+/// machine-level preference: a 4K user and a 1080p user on the same
+/// box would never share a comfortable zoom, but switching profiles
+/// on the same screen shouldn't reset the choice.
+///
+/// The frontend reads this on boot via `getUiZoom`, applies it through
+/// `getCurrentWebviewWindow().setZoom(level)`, and rewrites the row
+/// whenever the user nudges the level via the Settings card or the
+/// `Ctrl+=` / `Ctrl+-` / `Ctrl+0` shortcuts. The backend keeps it
+/// stateless — no atomic mirror because nothing in the hot path needs
+/// to read it.
+const KEY_UI_ZOOM: &str = "ui.zoom_level";
+
+/// Bounds shared with the frontend. The Settings UI clamps to the
+/// same range; this is a server-side safety net so a stray
+/// `set_ui_zoom(50)` from a future caller can't blow the layout away
+/// (Tauri's `set_zoom` would accept it silently).
+const UI_ZOOM_MIN: f64 = 0.5;
+const UI_ZOOM_MAX: f64 = 2.0;
+
+#[tauri::command]
+pub async fn get_ui_zoom(state: tauri::State<'_, AppState>) -> AppResult<f64> {
+    let raw: Option<String> =
+        sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+            .bind(KEY_UI_ZOOM)
+            .fetch_optional(&state.app_db)
+            .await?;
+    let zoom = raw
+        .as_deref()
+        .and_then(|s| s.parse::<f64>().ok())
+        .filter(|v| v.is_finite())
+        .map(|v| v.clamp(UI_ZOOM_MIN, UI_ZOOM_MAX))
+        .unwrap_or(1.0);
+    Ok(zoom)
+}
+
+#[tauri::command]
+pub async fn set_ui_zoom(state: tauri::State<'_, AppState>, zoom: f64) -> AppResult<()> {
+    let clamped = if zoom.is_finite() {
+        zoom.clamp(UI_ZOOM_MIN, UI_ZOOM_MAX)
+    } else {
+        1.0
+    };
+    sqlx::query(
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'real', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(KEY_UI_ZOOM)
+    .bind(format!("{clamped}"))
+    .bind(Utc::now().timestamp_millis())
+    .execute(&state.app_db)
+    .await?;
+    Ok(())
+}

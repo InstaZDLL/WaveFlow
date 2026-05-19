@@ -1319,6 +1319,13 @@
         "saveFailed": "Opslaan mislukt. Probeer opnieuw.",
         "runFailed": "Back-up mislukt. Controleer de logs."
       }
+    },
+    "uiZoom": {
+      "title": "Interface-zoom",
+      "subtitle": "Schaal de hele interface (Ctrl+= / Ctrl+- / Ctrl+0 werken ook)",
+      "decreaseAria": "Uitzoomen",
+      "increaseAria": "Inzoomen",
+      "resetAria": "Zoom terugzetten op 100 %"
     }
   },
   "scanProgress": {
