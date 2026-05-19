@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 import {
@@ -24,6 +24,11 @@ import {
  */
 export function useUiZoom() {
   const [zoom, setZoomState] = useState(1);
+  // Ref mirror of the latest committed zoom. The keyboard handler
+  // reads from this rather than the closed-over `zoom` so rapid
+  // `Ctrl+=` presses accumulate correctly even before React has had
+  // a chance to flush a re-render between events.
+  const zoomRef = useRef(1);
 
   // Initial hydration: read once from app_setting, apply to the
   // webview, mirror in state. Any failure leaves the default 1.0
@@ -33,6 +38,7 @@ export function useUiZoom() {
     getUiZoom()
       .then(async (z) => {
         if (cancelled) return;
+        zoomRef.current = z;
         setZoomState(z);
         try {
           await getCurrentWebviewWindow().setZoom(z);
@@ -52,7 +58,10 @@ export function useUiZoom() {
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<number>).detail;
-      if (typeof detail === "number") setZoomState(detail);
+      if (typeof detail === "number") {
+        zoomRef.current = detail;
+        setZoomState(detail);
+      }
     };
     window.addEventListener(UI_ZOOM_CHANGED_EVENT, handler);
     return () => window.removeEventListener(UI_ZOOM_CHANGED_EVENT, handler);
@@ -62,7 +71,8 @@ export function useUiZoom() {
   // regardless of which view has focus. `Ctrl+=` (often the same
   // physical key as `Ctrl++`) zooms in, `Ctrl+-` zooms out, `Ctrl+0`
   // resets to 100 %. Mirrors VS Code / Discord / Slack / browser
-  // conventions.
+  // conventions. The listener attaches once and reads through
+  // `zoomRef.current` so rapid keystrokes accumulate correctly.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       // Don't fight an input — let typing land normally.
@@ -76,23 +86,31 @@ export function useUiZoom() {
         return;
       }
       if (!(e.ctrlKey || e.metaKey)) return;
+      const current = zoomRef.current;
       let next: number | null = null;
       if (e.key === "+" || e.key === "=") {
-        next = clamp(zoom + UI_ZOOM_STEP);
+        next = clamp(current + UI_ZOOM_STEP);
       } else if (e.key === "-" || e.key === "_") {
-        next = clamp(zoom - UI_ZOOM_STEP);
+        next = clamp(current - UI_ZOOM_STEP);
       } else if (e.key === "0") {
         next = 1;
       }
-      if (next == null) return;
+      if (next == null || next === current) return;
       e.preventDefault();
-      apply(next).catch((err) =>
-        console.error("[useUiZoom] shortcut apply failed", err),
-      );
+      // Optimistically commit the ref so a second key event a few ms
+      // later accumulates from the new value. The broadcast event
+      // sync's `zoom` state once apply() returns.
+      zoomRef.current = next;
+      apply(next).catch((err) => {
+        // Roll back so a future keystroke doesn't compound on top of
+        // a target we never actually reached.
+        zoomRef.current = current;
+        console.error("[useUiZoom] shortcut apply failed", err);
+      });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [zoom]);
+  }, []);
 
   return zoom;
 }
@@ -116,8 +134,21 @@ function clamp(v: number): number {
 }
 
 async function apply(zoom: number): Promise<number> {
+  // Visual change first — if this throws (e.g. missing capability),
+  // we abort the whole chain and don't dispatch, because nothing on
+  // screen actually moved.
   await getCurrentWebviewWindow().setZoom(zoom);
-  await setUiZoom(zoom);
+  // Persist second. If this fails the visual zoom already happened,
+  // so we log and continue: dropping the broadcast here would leave
+  // the Settings card stuck at the old percentage while the WebView
+  // scaled. Better to surface the new value everywhere and only lose
+  // the persistence (the user sees their change in-session; the next
+  // boot reverts to the old persisted value).
+  try {
+    await setUiZoom(zoom);
+  } catch (err) {
+    console.error("[useUiZoom] persist failed (visual zoom applied)", err);
+  }
   window.dispatchEvent(
     new CustomEvent<number>(UI_ZOOM_CHANGED_EVENT, { detail: zoom }),
   );

@@ -1320,11 +1320,11 @@
       }
     },
     "uiZoom": {
-      "title": "UI 줄",
+      "title": "UI 확대/축소",
       "subtitle": "전체 인터페이스 스케일링 (Ctrl+= / Ctrl+- / Ctrl+0 동작)",
       "decreaseAria": "축소",
       "increaseAria": "확대",
-      "resetAria": "줄을 100 %로 재설정"
+      "resetAria": "확대/축소를 100 %로 재설정"
     }
   },
   "scanProgress": {

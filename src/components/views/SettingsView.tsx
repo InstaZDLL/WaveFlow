@@ -442,18 +442,34 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     return () => window.removeEventListener(UI_ZOOM_CHANGED_EVENT, handler);
   }, []);
 
-  const handleZoomDelta = useCallback(
-    (delta: number) => {
-      applyUiZoom(uiZoom + delta)
-        .then(setUiZoom)
-        .catch((err) => console.error("[Settings] applyUiZoom failed", err));
-    },
-    [uiZoom],
-  );
+  // Functional setter so rapid clicks accumulate from the latest
+  // committed value (and not from the value React captured at the
+  // click that triggered the handler). The fire-and-forget
+  // `applyUiZoom` runs on the side; its broadcast event reconciles
+  // the local state once it lands, so any clamping the backend does
+  // is reflected here without a second `setUiZoom` call racing the
+  // optimistic one we return.
+  const handleZoomDelta = useCallback((delta: number) => {
+    setUiZoom((prev) => {
+      const next = Math.min(
+        UI_ZOOM_MAX,
+        Math.max(UI_ZOOM_MIN, Math.round((prev + delta) * 10) / 10),
+      );
+      if (next === prev) return prev;
+      applyUiZoom(next).catch((err) =>
+        console.error("[Settings] applyUiZoom failed", err),
+      );
+      return next;
+    });
+  }, []);
   const handleZoomReset = useCallback(() => {
-    applyUiZoom(1)
-      .then(setUiZoom)
-      .catch((err) => console.error("[Settings] applyUiZoom failed", err));
+    setUiZoom((prev) => {
+      if (prev === 1) return prev;
+      applyUiZoom(1).catch((err) =>
+        console.error("[Settings] applyUiZoom failed", err),
+      );
+      return 1;
+    });
   }, []);
 
   const handleToggleSingleClickPlay = useCallback(() => {
