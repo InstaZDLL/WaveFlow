@@ -34,6 +34,7 @@ import {
   Upload,
   Activity,
   Gauge,
+  ZoomIn,
 } from "lucide-react";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
 import type { ViewId } from "../../types";
@@ -105,9 +106,15 @@ import {
 import {
   getAutoStart,
   getMinimizeToTray,
+  getUiZoom,
   setAutoStart as persistAutoStart,
   setMinimizeToTray as persistMinimizeToTray,
+  UI_ZOOM_CHANGED_EVENT,
+  UI_ZOOM_MAX,
+  UI_ZOOM_MIN,
+  UI_ZOOM_STEP,
 } from "../../lib/tauri/preferences";
+import { applyUiZoom } from "../../hooks/useUiZoom";
 import { DuplicatesModal } from "../common/DuplicatesModal";
 import { BackupCard } from "./settings/BackupCard";
 import { EqualizerCard } from "./settings/EqualizerCard";
@@ -344,6 +351,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [isRescanning, setIsRescanning] = useState(false);
   const [autoStart, setAutoStart] = useState(false);
   const [minimizeToTray, setMinimizeToTray] = useState(true);
+  // UI zoom slider value. Hydrated from `app_setting` and kept in
+  // sync with the `Ctrl+=` / `Ctrl+-` / `Ctrl+0` shortcuts via the
+  // window-level event the `useUiZoom` hook broadcasts.
+  const [uiZoom, setUiZoom] = useState(1);
   const [scanOnStart, setScanOnStart] = useState(false);
   const [singleClickPlay, setSingleClickPlay] = useState(false);
   // Visibility toggles for the sleep-timer / A-B loop icons in the
@@ -375,6 +386,12 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         setAutoStart(v);
       })
       .catch((err) => console.error("[Settings] load auto_start", err));
+    getUiZoom()
+      .then((v) => {
+        if (cancelled) return;
+        setUiZoom(v);
+      })
+      .catch((err) => console.error("[Settings] load ui_zoom", err));
     getProfileSetting("library.scan_on_start")
       .then((v) => {
         if (cancelled) return;
@@ -410,6 +427,57 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  // Keep the slider in sync when the user nudges zoom from the
+  // keyboard shortcuts (`Ctrl+=` / `Ctrl+-` / `Ctrl+0`) — those land
+  // in `useUiZoom` which broadcasts the new level via the window
+  // event. Same defensive bounds check as the hook: the event is
+  // public on `window` so we don't trust arbitrary numbers.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<number>).detail;
+      if (
+        typeof detail === "number" &&
+        Number.isFinite(detail) &&
+        detail >= UI_ZOOM_MIN &&
+        detail <= UI_ZOOM_MAX
+      ) {
+        setUiZoom(detail);
+      }
+    };
+    window.addEventListener(UI_ZOOM_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(UI_ZOOM_CHANGED_EVENT, handler);
+  }, []);
+
+  // Functional setter so rapid clicks accumulate from the latest
+  // committed value (and not from the value React captured at the
+  // click that triggered the handler). The fire-and-forget
+  // `applyUiZoom` runs on the side; its broadcast event reconciles
+  // the local state once it lands, so any clamping the backend does
+  // is reflected here without a second `setUiZoom` call racing the
+  // optimistic one we return.
+  const handleZoomDelta = useCallback((delta: number) => {
+    setUiZoom((prev) => {
+      const next = Math.min(
+        UI_ZOOM_MAX,
+        Math.max(UI_ZOOM_MIN, Math.round((prev + delta) * 10) / 10),
+      );
+      if (next === prev) return prev;
+      applyUiZoom(next).catch((err) =>
+        console.error("[Settings] applyUiZoom failed", err),
+      );
+      return next;
+    });
+  }, []);
+  const handleZoomReset = useCallback(() => {
+    setUiZoom((prev) => {
+      if (prev === 1) return prev;
+      applyUiZoom(1).catch((err) =>
+        console.error("[Settings] applyUiZoom failed", err),
+      );
+      return 1;
+    });
   }, []);
 
   const handleToggleSingleClickPlay = useCallback(() => {
@@ -1304,6 +1372,55 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               )}
               onSelect={handleLanguageChange}
             />
+          </div>
+
+          {/* UI zoom — same shape as VS Code / browser zoom. The
+              -/+/reset cluster on the right is a thin control band so
+              users with cramped 1080p screens can shrink everything
+              while 4K users can bump it up. Hooked to the same
+              keyboard shortcuts (Ctrl+=, Ctrl+-, Ctrl+0) via the
+              `useUiZoom` hook mounted on AppLayout. */}
+          <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+            <div className="flex items-center space-x-4">
+              <ZoomIn size={20} className="text-zinc-400" aria-hidden="true" />
+              <div>
+                <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                  {t("settings.uiZoom.title")}
+                </div>
+                <div className="text-xs text-zinc-400">
+                  {t("settings.uiZoom.subtitle")}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => handleZoomDelta(-UI_ZOOM_STEP)}
+                disabled={uiZoom <= UI_ZOOM_MIN + 1e-3}
+                aria-label={t("settings.uiZoom.decreaseAria")}
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-lg leading-none"
+              >
+                −
+              </button>
+              <button
+                type="button"
+                onClick={handleZoomReset}
+                aria-label={t("settings.uiZoom.resetAria")}
+                title={t("settings.uiZoom.resetAria")}
+                className="min-w-14 px-2 h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-sm font-mono tabular-nums"
+              >
+                {Math.round(uiZoom * 100)} %
+              </button>
+              <button
+                type="button"
+                onClick={() => handleZoomDelta(UI_ZOOM_STEP)}
+                disabled={uiZoom >= UI_ZOOM_MAX - 1e-3}
+                aria-label={t("settings.uiZoom.increaseAria")}
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-lg leading-none"
+              >
+                +
+              </button>
+            </div>
           </div>
 
           {/* Lancement au démarrage */}

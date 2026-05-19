@@ -1319,6 +1319,13 @@
         "saveFailed": "Salvataggio non riuscito. Riprova.",
         "runFailed": "Backup non riuscito. Controlla i log."
       }
+    },
+    "uiZoom": {
+      "title": "Zoom dell’interfaccia",
+      "subtitle": "Ridimensionare tutta l’interfaccia (Ctrl+= / Ctrl+- / Ctrl+0 funzionano anche)",
+      "decreaseAria": "Riduci zoom",
+      "increaseAria": "Aumenta zoom",
+      "resetAria": "Ripristina al 100 %"
     }
   },
   "scanProgress": {

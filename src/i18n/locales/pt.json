@@ -1319,6 +1319,13 @@
         "saveFailed": "Falha ao guardar. Tenta de novo.",
         "runFailed": "Falha na cópia. Consulta os registos."
       }
+    },
+    "uiZoom": {
+      "title": "Zoom da interface",
+      "subtitle": "Dimensionar toda a interface (Ctrl+= / Ctrl+- / Ctrl+0 também funcionam)",
+      "decreaseAria": "Diminuir zoom",
+      "increaseAria": "Aumentar zoom",
+      "resetAria": "Repor para 100 %"
     }
   },
   "scanProgress": {

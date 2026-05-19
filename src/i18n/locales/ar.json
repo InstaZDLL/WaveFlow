@@ -1323,6 +1323,13 @@
         "saveFailed": "فشل الحفظ. حاول مجددًا.",
         "runFailed": "فشل النسخ الاحتياطي. راجع السجلات."
       }
+    },
+    "uiZoom": {
+      "title": "تكبير الواجهة",
+      "subtitle": "تكبير الواجهة بالكامل (Ctrl+= / Ctrl+- / Ctrl+0 تعمل أيضًا)",
+      "decreaseAria": "تصغير",
+      "increaseAria": "تكبير",
+      "resetAria": "إعادة التكبير إلى 100 %"
     }
   },
   "scanProgress": {

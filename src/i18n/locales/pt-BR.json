@@ -1319,6 +1319,13 @@
         "saveFailed": "Falha ao salvar. Tente novamente.",
         "runFailed": "Falha no backup. Consulte os logs."
       }
+    },
+    "uiZoom": {
+      "title": "Zoom da interface",
+      "subtitle": "Redimensionar toda a interface (Ctrl+= / Ctrl+- / Ctrl+0 também funcionam)",
+      "decreaseAria": "Diminuir zoom",
+      "increaseAria": "Aumentar zoom",
+      "resetAria": "Redefinir para 100 %"
     }
   },
   "scanProgress": {

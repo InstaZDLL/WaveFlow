@@ -1319,6 +1319,13 @@
         "saveFailed": "Speichern fehlgeschlagen. Erneut versuchen.",
         "runFailed": "Backup fehlgeschlagen. Logs prüfen."
       }
+    },
+    "uiZoom": {
+      "title": "Oberflächen-Zoom",
+      "subtitle": "Gesamte Oberfläche skalieren (Ctrl+= / Ctrl+- / Ctrl+0 funktionieren ebenfalls)",
+      "decreaseAria": "Verkleinern",
+      "increaseAria": "Vergrößern",
+      "resetAria": "Zoom auf 100 % zurücksetzen"
     }
   },
   "scanProgress": {

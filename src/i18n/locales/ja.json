@@ -1318,6 +1318,13 @@
         "saveFailed": "保存に失敗しました。もう一度お試しください。",
         "runFailed": "バックアップに失敗しました。ログを確認してください。"
       }
+    },
+    "uiZoom": {
+      "title": "UI ズーム",
+      "subtitle": "インターフェース全体を拡大縮小 (Ctrl+= / Ctrl+- / Ctrl+0 も利用可)",
+      "decreaseAria": "縮小",
+      "increaseAria": "拡大",
+      "resetAria": "ズームを 100 % にリセット"
     }
   },
   "scanProgress": {

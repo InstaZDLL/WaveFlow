@@ -1318,6 +1318,13 @@
         "saveFailed": "Gagal menyimpan. Coba lagi.",
         "runFailed": "Cadangan gagal. Periksa log."
       }
+    },
+    "uiZoom": {
+      "title": "Zoom antarmuka",
+      "subtitle": "Skala seluruh antarmuka (Ctrl+= / Ctrl+- / Ctrl+0 juga berfungsi)",
+      "decreaseAria": "Perkecil",
+      "increaseAria": "Perbesar",
+      "resetAria": "Reset zoom ke 100 %"
     }
   },
   "scanProgress": {

@@ -1319,6 +1319,13 @@
         "saveFailed": "Error al guardar. Vuelve a intentarlo.",
         "runFailed": "Falló la copia. Consulta los registros."
       }
+    },
+    "uiZoom": {
+      "title": "Zoom de la interfaz",
+      "subtitle": "Escalar toda la interfaz (Ctrl+= / Ctrl+- / Ctrl+0 también funcionan)",
+      "decreaseAria": "Reducir zoom",
+      "increaseAria": "Aumentar zoom",
+      "resetAria": "Restablecer al 100 %"
     }
   },
   "scanProgress": {

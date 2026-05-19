@@ -1319,6 +1319,13 @@
         "saveFailed": "सहेजने में विफल। फिर से कोशिश करें।",
         "runFailed": "बैकअप विफल। लॉग देखें।"
       }
+    },
+    "uiZoom": {
+      "title": "यूआई ज़ूम",
+      "subtitle": "पूरा इंटरफ़ेस स्केल करें (Ctrl+= / Ctrl+- / Ctrl+0 भी चलते हैं)",
+      "decreaseAria": "ज़ूम घटाएं",
+      "increaseAria": "ज़ूम बढ़ाएं",
+      "resetAria": "ज़ूम को 100 % पर रीसेट करें"
     }
   },
   "scanProgress": {

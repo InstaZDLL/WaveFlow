@@ -1318,6 +1318,13 @@
         "saveFailed": "Kaydedilemedi. Tekrar deneyin.",
         "runFailed": "Yedekleme başarısız. Logları kontrol edin."
       }
+    },
+    "uiZoom": {
+      "title": "Arayüz yakınlaştırma",
+      "subtitle": "Tüm arayüzü ölçeklendir (Ctrl+= / Ctrl+- / Ctrl+0 da çalışır)",
+      "decreaseAria": "Uzaklaştır",
+      "increaseAria": "Yakınlaştır",
+      "resetAria": "Yakınlaştırmayı %100'e sıfırla"
     }
   },
   "scanProgress": {

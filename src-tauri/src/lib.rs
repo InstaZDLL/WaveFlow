@@ -552,6 +552,8 @@ pub fn run() {
             commands::preferences::set_minimize_to_tray,
             commands::preferences::get_auto_start,
             commands::preferences::set_auto_start,
+            commands::preferences::get_ui_zoom,
+            commands::preferences::set_ui_zoom,
             commands::tray::set_tray_labels,
             commands::lyrics::get_lyrics,
             commands::lyrics::fetch_lyrics,

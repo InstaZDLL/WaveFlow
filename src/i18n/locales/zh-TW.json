@@ -1318,6 +1318,13 @@
         "saveFailed": "儲存失敗。請重試。",
         "runFailed": "備份失敗。請檢查記錄。"
       }
+    },
+    "uiZoom": {
+      "title": "介面縮放",
+      "subtitle": "縮放整個介面 (Ctrl+= / Ctrl+- / Ctrl+0 同樣生效)",
+      "decreaseAria": "縮小",
+      "increaseAria": "放大",
+      "resetAria": "重置縮放為 100 %"
     }
   },
   "scanProgress": {

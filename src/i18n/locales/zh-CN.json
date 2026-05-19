@@ -1318,6 +1318,13 @@
         "saveFailed": "保存失败。请重试。",
         "runFailed": "备份失败。请查看日志。"
       }
+    },
+    "uiZoom": {
+      "title": "界面缩放",
+      "subtitle": "缩放整个界面 (Ctrl+= / Ctrl+- / Ctrl+0 同样生效)",
+      "decreaseAria": "缩小",
+      "increaseAria": "放大",
+      "resetAria": "重置缩放为 100 %"
     }
   },
   "scanProgress": {
