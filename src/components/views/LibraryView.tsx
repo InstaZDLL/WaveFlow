@@ -1083,6 +1083,13 @@ function TrackTable({
                 width: "100%",
                 height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+                // Hoist the row that owns the open "+" popover above its
+                // sibling rows so the popover isn't painted under (or
+                // click-blocked by) the rows rendered after it in DOM
+                // order. Every row is `position: absolute` without a
+                // z-index, so the popover's own `z-50` can't escape its
+                // row's stacking context — bumping the row itself does.
+                zIndex: isMenuOpen ? 20 : undefined,
               }}
               className={`group grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 ${
                 isRowSelected
