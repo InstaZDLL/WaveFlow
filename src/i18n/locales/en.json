@@ -735,7 +735,9 @@
     "startRadio": "Start radio",
     "rating": "Rating",
     "ratingNone": "No rating",
-    "batchEdit": "Edit tags for {{count}} tracks…"
+    "batchEdit": "Edit tags for {{count}} tracks…",
+    "addToPlaylistNamed": "Add to \"{{name}}\"",
+    "removeFromPlaylistNamed": "Remove from \"{{name}}\""
   },
   "batchTagEdit": {
     "title": "Batch edit tags",

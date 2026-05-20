@@ -727,7 +727,9 @@
     "startRadio": "रेडियो शुरू करें",
     "rating": "रेटिंग",
     "ratingNone": "कोई रेटिंग नहीं",
-    "batchEdit": "{{count}} ट्रैक के टैग संपादित करें…"
+    "batchEdit": "{{count}} ट्रैक के टैग संपादित करें…",
+    "addToPlaylistNamed": "\"{{name}}\" में जोड़ें",
+    "removeFromPlaylistNamed": "\"{{name}}\" से हटाएं"
   },
   "batchTagEdit": {
     "title": "एकसाथ टैग संपादन",

@@ -727,7 +727,9 @@
     "startRadio": "Radio starten",
     "rating": "Bewertung",
     "ratingNone": "Keine Bewertung",
-    "batchEdit": "Tags für {{count}} Titel bearbeiten…"
+    "batchEdit": "Tags für {{count}} Titel bearbeiten…",
+    "addToPlaylistNamed": "Zu \"{{name}}\" hinzufügen",
+    "removeFromPlaylistNamed": "Aus \"{{name}}\" entfernen"
   },
   "batchTagEdit": {
     "title": "Tags im Stapel bearbeiten",

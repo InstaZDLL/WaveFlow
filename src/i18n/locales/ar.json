@@ -727,7 +727,9 @@
     "startRadio": "تشغيل الراديو",
     "rating": "التقييم",
     "ratingNone": "بدون تقييم",
-    "batchEdit": "تعديل علامات {{count}} مقطوعات…"
+    "batchEdit": "تعديل علامات {{count}} مقطوعات…",
+    "addToPlaylistNamed": "إضافة إلى \"{{name}}\"",
+    "removeFromPlaylistNamed": "إزالة من \"{{name}}\""
   },
   "batchTagEdit": {
     "title": "تحرير العلامات بشكل جماعي",

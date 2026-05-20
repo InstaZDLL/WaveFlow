@@ -727,7 +727,9 @@
     "startRadio": "Start radio",
     "rating": "Beoordeling",
     "ratingNone": "Geen beoordeling",
-    "batchEdit": "Tags voor {{count}} nummers bewerken…"
+    "batchEdit": "Tags voor {{count}} nummers bewerken…",
+    "addToPlaylistNamed": "Toevoegen aan \"{{name}}\"",
+    "removeFromPlaylistNamed": "Verwijderen uit \"{{name}}\""
   },
   "batchTagEdit": {
     "title": "Tags in batch bewerken",

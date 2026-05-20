@@ -468,6 +468,7 @@ pub fn run() {
             commands::playlist::update_playlist,
             commands::playlist::delete_playlist,
             commands::playlist::list_playlist_tracks,
+            commands::playlist::list_playlists_containing_track,
             commands::playlist::add_track_to_playlist,
             commands::playlist::add_tracks_to_playlist,
             commands::playlist::remove_track_from_playlist,

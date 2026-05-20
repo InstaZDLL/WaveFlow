@@ -55,7 +55,10 @@ import { resolvePlaylistColor } from "../../lib/playlistVisuals";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import { FadeInImage } from "../common/FadeInImage";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
-import type { Playlist } from "../../lib/tauri/playlist";
+import {
+  listPlaylistsContainingTrack,
+  type Playlist,
+} from "../../lib/tauri/playlist";
 import { pickFolder } from "../../lib/tauri/dialog";
 import {
   removeFolderFromLibrary,
@@ -137,6 +140,7 @@ export function LibraryView({
   const {
     playlists,
     addTracksToPlaylist,
+    removeTrackFromPlaylist,
     addSourceToPlaylist,
     createPlaylist,
   } = usePlaylist();
@@ -539,6 +543,16 @@ export function LibraryView({
                     await addTracksToPlaylist(playlistId, [trackId]);
                   } catch (err) {
                     console.error("[LibraryView] add to playlist failed", err);
+                  }
+                }}
+                onRemoveFromPlaylist={async (playlistId, trackId) => {
+                  try {
+                    await removeTrackFromPlaylist(playlistId, trackId);
+                  } catch (err) {
+                    console.error(
+                      "[LibraryView] remove from playlist failed",
+                      err,
+                    );
                   }
                 }}
                 onCreatePlaylist={(trackId) => {
@@ -945,7 +959,11 @@ interface TrackTableProps {
   likedIds: Set<number>;
   onToggleLike: (trackId: number) => void;
   playlists: Playlist[];
-  onAddToPlaylist: (playlistId: number, trackId: number) => void;
+  onAddToPlaylist: (playlistId: number, trackId: number) => Promise<void> | void;
+  onRemoveFromPlaylist: (
+    playlistId: number,
+    trackId: number,
+  ) => Promise<void> | void;
   onCreatePlaylist: (trackId: number) => void;
   onNavigateToAlbum: (albumId: number) => void;
   onNavigateToArtist: (artistId: number) => void;
@@ -966,6 +984,7 @@ function TrackTable({
   onToggleLike,
   playlists,
   onAddToPlaylist,
+  onRemoveFromPlaylist,
   onCreatePlaylist,
   onNavigateToAlbum,
   onNavigateToArtist,
@@ -976,6 +995,13 @@ function TrackTable({
   "use no memo";
   const unknown = t("library.table.unknown");
   const [openMenuTrackId, setOpenMenuTrackId] = useState<number | null>(null);
+  // Per-track playlist membership snapshot, fetched the first time the
+  // user opens the `+` popover for a given track. Entry stays cached for
+  // the lifetime of the table so reopening the menu is instant. Optimistic
+  // updates flip the set on toggle.
+  const [trackMembership, setTrackMembership] = useState<
+    Map<number, Set<number>>
+  >(new Map());
   const [ratingOverrides, setRatingOverrides] = useState<
     Map<number, number | null>
   >(new Map());
@@ -1208,7 +1234,27 @@ function TrackTable({
                   data-add-to-playlist-trigger
                   onClick={(e) => {
                     e.stopPropagation();
-                    setOpenMenuTrackId(isMenuOpen ? null : track.id);
+                    const opening = !isMenuOpen;
+                    setOpenMenuTrackId(opening ? track.id : null);
+                    // Lazy-fetch membership the first time this track's
+                    // popover is opened. Subsequent opens reuse the cached
+                    // set (kept in sync via optimistic updates on toggle).
+                    if (opening && !trackMembership.has(track.id)) {
+                      listPlaylistsContainingTrack(track.id)
+                        .then((ids) => {
+                          setTrackMembership((prev) => {
+                            const next = new Map(prev);
+                            next.set(track.id, new Set(ids));
+                            return next;
+                          });
+                        })
+                        .catch((err) => {
+                          console.error(
+                            "[LibraryView] load membership failed",
+                            err,
+                          );
+                        });
+                    }
                   }}
                   aria-label={t("trackActions.addToPlaylist")}
                   aria-haspopup="menu"
@@ -1225,8 +1271,28 @@ function TrackTable({
                   <AddToPlaylistPopover
                     playlists={playlists}
                     trackId={track.id}
+                    memberPlaylistIds={trackMembership.get(track.id)}
                     onPick={(playlistId) => {
-                      onAddToPlaylist(playlistId, track.id);
+                      const members = trackMembership.get(track.id);
+                      const isMember = members?.has(playlistId) ?? false;
+                      // Optimistic membership flip — the underlying mutations
+                      // are idempotent on the backend, so a failed RPC just
+                      // means the visual state will drift until the next
+                      // popover open, which is the worst-case loss for a
+                      // single click.
+                      setTrackMembership((prev) => {
+                        const next = new Map(prev);
+                        const set = new Set(next.get(track.id) ?? []);
+                        if (isMember) set.delete(playlistId);
+                        else set.add(playlistId);
+                        next.set(track.id, set);
+                        return next;
+                      });
+                      if (isMember) {
+                        void onRemoveFromPlaylist(playlistId, track.id);
+                      } else {
+                        void onAddToPlaylist(playlistId, track.id);
+                      }
                       setOpenMenuTrackId(null);
                     }}
                     onCreate={() => {
@@ -1251,6 +1317,14 @@ interface AddToPlaylistPopoverProps {
   onPick: (playlistId: number) => void;
   onCreate: () => void;
   t: Translator;
+  /**
+   * Optional set of playlist IDs the target is already in. Only meaningful
+   * for the track popover — when provided, matching rows render a green
+   * checkmark and the caller is expected to toggle (remove) rather than
+   * add on click. Albums/artists/folders skip this prop because their
+   * "+ to playlist" action is a bulk add with no symmetric remove.
+   */
+  memberPlaylistIds?: ReadonlySet<number>;
 }
 
 /**
@@ -1266,6 +1340,7 @@ function AddToPlaylistPopover({
   onPick,
   onCreate,
   t,
+  memberPlaylistIds,
 }: AddToPlaylistPopoverProps) {
   return (
     <div
@@ -1285,11 +1360,19 @@ function AddToPlaylistPopover({
         ) : (
           playlists.map((pl) => {
             const color = resolvePlaylistColor(pl.color_id);
+            const isMember = memberPlaylistIds?.has(pl.id) ?? false;
             return (
               <button
                 key={pl.id}
                 type="button"
                 role="menuitem"
+                aria-label={
+                  isMember
+                    ? t("trackActions.removeFromPlaylistNamed", {
+                        name: pl.name,
+                      })
+                    : t("trackActions.addToPlaylistNamed", { name: pl.name })
+                }
                 onClick={() => onPick(pl.id)}
                 className="w-full flex items-center space-x-2 p-2 rounded-lg text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
               >
@@ -1298,9 +1381,16 @@ function AddToPlaylistPopover({
                 >
                   <PlaylistIcon iconId={pl.icon_id} size={14} />
                 </div>
-                <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                <span className="flex-1 text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
                   {pl.name}
                 </span>
+                {isMember && (
+                  <Check
+                    size={14}
+                    className="shrink-0 text-emerald-500"
+                    aria-hidden="true"
+                  />
+                )}
               </button>
             );
           })

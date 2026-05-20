@@ -416,6 +416,31 @@ pub async fn list_playlist_tracks(
     Ok(tracks)
 }
 
+/// Return the IDs of every user playlist that currently contains `track_id`.
+/// Smart playlists are excluded — their membership is computed on the fly
+/// from rules and would be misleading to expose as a toggle target.
+///
+/// Used by the `+` popover to render a checkmark on rows the track is
+/// already in (and to flip the click handler from "add" to "remove").
+#[tauri::command]
+pub async fn list_playlists_containing_track(
+    state: tauri::State<'_, AppState>,
+    track_id: i64,
+) -> AppResult<Vec<i64>> {
+    let pool = state.require_profile_pool().await?;
+    let rows: Vec<(i64,)> = sqlx::query_as(
+        "SELECT pt.playlist_id
+           FROM playlist_track pt
+           JOIN playlist p ON p.id = pt.playlist_id
+          WHERE pt.track_id = ?
+            AND p.is_smart = 0",
+    )
+    .bind(track_id)
+    .fetch_all(&pool)
+    .await?;
+    Ok(rows.into_iter().map(|(id,)| id).collect())
+}
+
 /// Append a single track to the end of a playlist. Idempotent — if the track
 /// is already in the playlist the existing row is preserved and `updated_at`
 /// is still bumped so the UI reflects the user's intent.
