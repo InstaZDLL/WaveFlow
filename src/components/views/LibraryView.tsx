@@ -1104,6 +1104,7 @@ function TrackTable({
             <div
               key={track.id}
               tabIndex={0}
+              role="button"
               onClick={(e) => onRowSelect(track, e)}
               onDoubleClick={() => onPlayTrack(index)}
               onKeyDown={(e) => {
@@ -1117,6 +1118,13 @@ function TrackTable({
                   e.preventDefault();
                   onPlayTrack(index);
                 }
+              }}
+              onKeyUp={(e) => {
+                // Belt-and-suspenders: a few browsers fire spacebar
+                // scroll on keyup for non-button elements even when
+                // keydown was cancelled. Suppress it here too.
+                if (e.target !== e.currentTarget) return;
+                if (e.key === " ") e.preventDefault();
               }}
               onContextMenu={(e) => onContextMenuRow(e, track)}
               style={{

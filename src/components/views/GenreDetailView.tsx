@@ -282,6 +282,7 @@ function GenreTrackTable({
             <li
               key={`${track.id}-${index}`}
               tabIndex={0}
+              role="button"
               onDoubleClick={() => onPlayTrack(index)}
               onKeyDown={(e) => {
                 // Only play when the row itself is focused — see LibraryView.
@@ -290,6 +291,10 @@ function GenreTrackTable({
                   e.preventDefault();
                   onPlayTrack(index);
                 }
+              }}
+              onKeyUp={(e) => {
+                if (e.target !== e.currentTarget) return;
+                if (e.key === " ") e.preventDefault();
               }}
               onContextMenu={(e) => onContextMenuRow(e, track)}
               className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${

@@ -154,6 +154,7 @@ export function LikedView({
                 <li
                   key={track.id}
                   tabIndex={0}
+                  role="button"
                   onDoubleClick={() =>
                     playTracks(tracks, index, { type: "liked", id: null })
                   }
@@ -166,6 +167,10 @@ export function LikedView({
                       e.preventDefault();
                       playTracks(tracks, index, { type: "liked", id: null });
                     }
+                  }}
+                  onKeyUp={(e) => {
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key === " ") e.preventDefault();
                   }}
                   onContextMenu={(e) => trackContextMenu.open(e, track)}
                   className={`group grid grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem_2.5rem] gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${

@@ -472,6 +472,7 @@ function AlbumTrackTable({
       <li
         key={`${track.id}-${globalIndex}`}
         tabIndex={0}
+        role="button"
         onClick={(e) => onRowSelect(playableTracks[globalIndex], e)}
         onDoubleClick={() => onPlayTrack(globalIndex)}
         onKeyDown={(e) => {
@@ -481,6 +482,10 @@ function AlbumTrackTable({
             e.preventDefault();
             onPlayTrack(globalIndex);
           }
+        }}
+        onKeyUp={(e) => {
+          if (e.target !== e.currentTarget) return;
+          if (e.key === " ") e.preventDefault();
         }}
         onContextMenu={(e) => onContextMenuRow(e, playableTracks[globalIndex])}
         className={`grid ${gridCols} gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${

@@ -542,6 +542,10 @@ const SortableQueueRow = memo(function SortableQueueRow({
             onJump(absoluteIndex);
           }
         }}
+        onKeyUp={(e) => {
+          if (e.target !== e.currentTarget) return;
+          if (e.key === " ") e.preventDefault();
+        }}
         className="group flex items-center space-x-2 p-2 rounded-lg transition-colors select-none cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
       >
         <button

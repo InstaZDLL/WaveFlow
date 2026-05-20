@@ -1108,6 +1108,7 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
       ref={setNodeRef}
       style={style}
       tabIndex={0}
+      role="button"
       onClick={(e) => onRowSelect(track, e)}
       onDoubleClick={() => onPlayTrack(index)}
       onKeyDown={(e) => {
@@ -1117,6 +1118,10 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
           e.preventDefault();
           onPlayTrack(index);
         }
+      }}
+      onKeyUp={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === " ") e.preventDefault();
       }}
       onContextMenu={(e) => onContextMenuRow(e, track)}
       className={`group grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
