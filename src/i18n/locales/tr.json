@@ -727,7 +727,9 @@
     "startRadio": "Radyoyu başlat",
     "rating": "Puan",
     "ratingNone": "Puan yok",
-    "batchEdit": "{{count}} parça için etiketleri düzenle…"
+    "batchEdit": "{{count}} parça için etiketleri düzenle…",
+    "addToPlaylistNamed": "\"{{name}}\" listesine ekle",
+    "removeFromPlaylistNamed": "\"{{name}}\" listesinden çıkar"
   },
   "batchTagEdit": {
     "title": "Toplu etiket düzenleme",

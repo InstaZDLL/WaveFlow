@@ -727,7 +727,9 @@
     "startRadio": "Iniciar la radio",
     "rating": "Valoración",
     "ratingNone": "Sin valoración",
-    "batchEdit": "Editar etiquetas de {{count}} canciones…"
+    "batchEdit": "Editar etiquetas de {{count}} canciones…",
+    "addToPlaylistNamed": "Añadir a \"{{name}}\"",
+    "removeFromPlaylistNamed": "Quitar de \"{{name}}\""
   },
   "batchTagEdit": {
     "title": "Editar etiquetas en lote",

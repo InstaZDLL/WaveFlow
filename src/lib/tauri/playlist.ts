@@ -96,6 +96,18 @@ export function removeTrackFromPlaylist(
   return invoke<void>("remove_track_from_playlist", { playlistId, trackId });
 }
 
+/**
+ * Return the IDs of every user playlist that currently contains the track.
+ * Smart playlists are excluded — their membership is rule-driven and not
+ * a toggle target. Used by the `+` popover to mark existing memberships
+ * with a checkmark and switch the click handler from add to remove.
+ */
+export function listPlaylistsContainingTrack(
+  trackId: number,
+): Promise<number[]> {
+  return invoke<number[]>("list_playlists_containing_track", { trackId });
+}
+
 export function reorderPlaylistTrack(
   playlistId: number,
   trackId: number,

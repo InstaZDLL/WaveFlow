@@ -727,7 +727,9 @@
     "startRadio": "ラジオを開始",
     "rating": "評価",
     "ratingNone": "評価なし",
-    "batchEdit": "{{count}}曲のタグを編集…"
+    "batchEdit": "{{count}}曲のタグを編集…",
+    "addToPlaylistNamed": "「{{name}}」に追加",
+    "removeFromPlaylistNamed": "「{{name}}」から削除"
   },
   "batchTagEdit": {
     "title": "タグの一括編集",

@@ -727,7 +727,9 @@
     "startRadio": "Avvia radio",
     "rating": "Valutazione",
     "ratingNone": "Nessuna valutazione",
-    "batchEdit": "Modifica tag per {{count}} brani…"
+    "batchEdit": "Modifica tag per {{count}} brani…",
+    "addToPlaylistNamed": "Aggiungi a \"{{name}}\"",
+    "removeFromPlaylistNamed": "Rimuovi da \"{{name}}\""
   },
   "batchTagEdit": {
     "title": "Modifica tag in blocco",

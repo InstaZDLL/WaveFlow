@@ -727,7 +727,9 @@
     "startRadio": "開始電台",
     "rating": "評分",
     "ratingNone": "無評分",
-    "batchEdit": "編輯 {{count}} 首曲目的標籤…"
+    "batchEdit": "編輯 {{count}} 首曲目的標籤…",
+    "addToPlaylistNamed": "加入「{{name}}」",
+    "removeFromPlaylistNamed": "從「{{name}}」移除"
   },
   "batchTagEdit": {
     "title": "批次編輯標籤",

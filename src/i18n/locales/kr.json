@@ -727,7 +727,9 @@
     "startRadio": "라디오 시작",
     "rating": "평점",
     "ratingNone": "평점 없음",
-    "batchEdit": "{{count}}곡의 태그 편집…"
+    "batchEdit": "{{count}}곡의 태그 편집…",
+    "addToPlaylistNamed": "\"{{name}}\"에 추가",
+    "removeFromPlaylistNamed": "\"{{name}}\"에서 제거"
   },
   "batchTagEdit": {
     "title": "태그 일괄 편집",

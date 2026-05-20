@@ -727,7 +727,9 @@
     "startRadio": "开始电台",
     "rating": "评分",
     "ratingNone": "无评分",
-    "batchEdit": "编辑 {{count}} 首曲目的标签…"
+    "batchEdit": "编辑 {{count}} 首曲目的标签…",
+    "addToPlaylistNamed": "添加到\"{{name}}\"",
+    "removeFromPlaylistNamed": "从\"{{name}}\"中移除"
   },
   "batchTagEdit": {
     "title": "批量编辑标签",

@@ -727,7 +727,9 @@
     "startRadio": "Включить радио",
     "rating": "Оценка",
     "ratingNone": "Без оценки",
-    "batchEdit": "Изменить теги для {{count}} треков…"
+    "batchEdit": "Изменить теги для {{count}} треков…",
+    "addToPlaylistNamed": "Добавить в \"{{name}}\"",
+    "removeFromPlaylistNamed": "Удалить из \"{{name}}\""
   },
   "batchTagEdit": {
     "title": "Массовое редактирование тегов",

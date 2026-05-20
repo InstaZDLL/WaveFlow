@@ -727,7 +727,9 @@
     "startRadio": "Mulai radio",
     "rating": "Peringkat",
     "ratingNone": "Tanpa peringkat",
-    "batchEdit": "Edit tag untuk {{count}} lagu…"
+    "batchEdit": "Edit tag untuk {{count}} lagu…",
+    "addToPlaylistNamed": "Tambahkan ke \"{{name}}\"",
+    "removeFromPlaylistNamed": "Hapus dari \"{{name}}\""
   },
   "batchTagEdit": {
     "title": "Edit tag massal",
