@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Music2,
@@ -1325,6 +1326,15 @@ interface AddToPlaylistPopoverProps {
    * "+ to playlist" action is a bulk add with no symmetric remove.
    */
   memberPlaylistIds?: ReadonlySet<number>;
+  /**
+   * Trigger element the popover anchors to. When provided, the popover
+   * is rendered through a portal at `document.body` and positioned via
+   * `getBoundingClientRect`, escaping every ancestor stacking context
+   * (virtualizer rows use `transform`, which traps `z-index` inside).
+   * Required for album / artist grids where the popover would otherwise
+   * paint under the row below it.
+   */
+  anchorEl?: HTMLElement | null;
 }
 
 /**
@@ -1332,7 +1342,14 @@ interface AddToPlaylistPopoverProps {
  * the active profile (resolved color tile + name) plus a "create new"
  * shortcut at the bottom. Picking a row calls `onPick(playlistId)`.
  *
- * Stops `onDoubleClick` from bubbling to the parent `<li>` so clicking a
+ * When `anchorEl` is supplied, the popover is rendered via React portal
+ * to `document.body` and positioned absolutely against the anchor's
+ * client rect. Without it, the popover falls back to absolute positioning
+ * inside its parent — only safe where the parent isn't sitting inside a
+ * `transform`-clipped stacking context (TrackTable rows qualify; album /
+ * artist grids don't).
+ *
+ * Stops `onDoubleClick` from bubbling to the parent so clicking a
  * playlist doesn't accidentally start playback of the row underneath.
  */
 function AddToPlaylistPopover({
@@ -1341,13 +1358,54 @@ function AddToPlaylistPopover({
   onCreate,
   t,
   memberPlaylistIds,
+  anchorEl,
 }: AddToPlaylistPopoverProps) {
-  return (
+  // Portal mode: track the anchor's viewport rect so the popover follows
+  // it on scroll / resize / virtualization recycling. `null` rect = first
+  // render before the layout effect runs; we keep the popover invisible
+  // until we know where it goes so it never flashes at (0,0).
+  const POPOVER_WIDTH = 224; // matches `w-56`
+  const [rect, setRect] = useState<DOMRect | null>(null);
+  useLayoutEffect(() => {
+    if (!anchorEl) return;
+    const update = () => setRect(anchorEl.getBoundingClientRect());
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(anchorEl);
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [anchorEl]);
+
+  const inner = (
     <div
       data-add-to-playlist-popover
       role="menu"
       onDoubleClick={(e) => e.stopPropagation()}
-      className="absolute top-full right-0 mt-1 z-50 w-56 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden animate-fade-in"
+      style={
+        anchorEl
+          ? rect
+            ? {
+                position: "fixed",
+                // Anchor the right edge to the trigger's right edge,
+                // matching the in-flow `right-0` behaviour. Drop 4 px
+                // below the trigger to match `mt-1`.
+                top: rect.bottom + 4,
+                left: rect.right - POPOVER_WIDTH,
+                width: POPOVER_WIDTH,
+              }
+            : { position: "fixed", visibility: "hidden" }
+          : undefined
+      }
+      className={`${
+        anchorEl
+          ? "z-100"
+          : "absolute top-full right-0 mt-1 z-50 w-56"
+      } rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden animate-fade-in`}
     >
       <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-3 pt-3 pb-2">
         {t("trackActions.addToPlaylist")}
@@ -1409,6 +1467,7 @@ function AddToPlaylistPopover({
       </div>
     </div>
   );
+  return anchorEl ? createPortal(inner, document.body) : inner;
 }
 
 interface AlbumGridProps {
@@ -1435,6 +1494,10 @@ function AlbumGrid({
   "use no memo";
   const unknown = t("library.table.unknown");
   const [openMenuAlbumId, setOpenMenuAlbumId] = useState<number | null>(null);
+  // Map album.id → the `+` button DOM node. The popover uses the live
+  // node to compute its portal position via `getBoundingClientRect`,
+  // sidestepping every ancestor stacking context.
+  const triggerRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
   const [contextMenu, setContextMenu] = useState<{
     albumId: number;
     x: number;
@@ -1576,6 +1639,10 @@ function AlbumGrid({
           <button
             type="button"
             data-add-to-playlist-trigger
+            ref={(el) => {
+              if (el) triggerRefs.current.set(album.id, el);
+              else triggerRefs.current.delete(album.id);
+            }}
             onClick={(e) => {
               e.stopPropagation();
               setOpenMenuAlbumId(isMenuOpen ? null : album.id);
@@ -1608,6 +1675,7 @@ function AlbumGrid({
           <AddToPlaylistPopover
             playlists={playlists}
             trackId={album.id}
+            anchorEl={triggerRefs.current.get(album.id) ?? null}
             onPick={(playlistId) => {
               onAddToPlaylist(playlistId, album.id);
               setOpenMenuAlbumId(null);
@@ -1719,6 +1787,10 @@ function ArtistList({
 }: ArtistListProps) {
   "use no memo";
   const [openMenuArtistId, setOpenMenuArtistId] = useState<number | null>(null);
+  // See AlbumGrid: the `+` button DOM nodes feed the popover's portal
+  // positioning, which is the only way to escape the virtualizer's
+  // transform-based stacking context.
+  const triggerRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
 
   // Virtual-grid plumbing — see AlbumGrid for the rationale; same math
   // applies to the artist tiles (same `minmax(180px,1fr)` + gap-5).
@@ -1855,6 +1927,10 @@ function ArtistList({
           <button
             type="button"
             data-add-to-playlist-trigger
+            ref={(el) => {
+              if (el) triggerRefs.current.set(artist.id, el);
+              else triggerRefs.current.delete(artist.id);
+            }}
             onClick={(e) => {
               e.stopPropagation();
               setOpenMenuArtistId(isMenuOpen ? null : artist.id);
@@ -1886,6 +1962,7 @@ function ArtistList({
           <AddToPlaylistPopover
             playlists={playlists}
             trackId={artist.id}
+            anchorEl={triggerRefs.current.get(artist.id) ?? null}
             onPick={(playlistId) => {
               onAddToPlaylist(playlistId, artist.id);
               setOpenMenuArtistId(null);
