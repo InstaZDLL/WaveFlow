@@ -82,11 +82,11 @@ pub async fn set_playlist_cover_from_file(
             MAX_UPLOAD_BYTES
         )));
     }
-    if detect_image_format(&bytes).is_none() {
+    let Some(ext) = detect_image_format(&bytes) else {
         return Err(AppError::Other(
             "unsupported image format (expected jpg/png/webp)".into(),
         ));
-    }
+    };
     // We don't keep the original extension in the metadata cache because
     // every smart-playlist cover is JPEG. Re-encode through the compositor
     // pipeline (single-tile fill) for two wins:
@@ -95,9 +95,13 @@ pub async fn set_playlist_cover_from_file(
     //   2. Resize-to-canvas — uploads larger than 640×640 get downscaled
     //      to the on-disk standard, capping disk usage and keeping the
     //      sidebar / carousel render fast.
+    // `image::open` infers the codec from the path extension, so the temp
+    // file MUST carry the real image extension — `.bin` falls back to
+    // PathExtension(Format) and the compositor rejects the input.
     let tmp = std::env::temp_dir().join(format!(
-        "waveflow-upload-{}.bin",
-        blake3::hash(&bytes).to_hex()
+        "waveflow-upload-{}.{}",
+        blake3::hash(&bytes).to_hex(),
+        ext
     ));
     std::fs::write(&tmp, &bytes).map_err(|e| AppError::Other(format!("temp write: {e}")))?;
     let result = cover::build_composite_cover(
