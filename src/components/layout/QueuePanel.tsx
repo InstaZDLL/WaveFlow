@@ -533,6 +533,10 @@ const SortableQueueRow = memo(function SortableQueueRow({
         tabIndex={0}
         role="button"
         onKeyDown={(e) => {
+          // Only jump when the row itself is focused. Hitting Enter on
+          // the drag-handle button would otherwise bubble up and also
+          // jump to the track.
+          if (e.target !== e.currentTarget) return;
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             onJump(absoluteIndex);

@@ -475,6 +475,8 @@ function AlbumTrackTable({
         onClick={(e) => onRowSelect(playableTracks[globalIndex], e)}
         onDoubleClick={() => onPlayTrack(globalIndex)}
         onKeyDown={(e) => {
+          // Only play when the row itself is focused — see LibraryView.
+          if (e.target !== e.currentTarget) return;
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             onPlayTrack(globalIndex);

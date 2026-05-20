@@ -158,6 +158,10 @@ export function LikedView({
                     playTracks(tracks, index, { type: "liked", id: null })
                   }
                   onKeyDown={(e) => {
+                    // Only play when the row itself is focused — keys
+                    // fired from nested buttons / links would otherwise
+                    // bubble here and double-fire playback.
+                    if (e.target !== e.currentTarget) return;
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
                       playTracks(tracks, index, { type: "liked", id: null });

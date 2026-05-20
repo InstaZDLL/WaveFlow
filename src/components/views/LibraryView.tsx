@@ -1107,6 +1107,12 @@ function TrackTable({
               onClick={(e) => onRowSelect(track, e)}
               onDoubleClick={() => onPlayTrack(index)}
               onKeyDown={(e) => {
+                // Only play when the row itself is focused. Without
+                // this guard, hitting Enter/Space on a nested button
+                // (like, +, ArtistLink, AlbumLink) bubbles up here and
+                // double-fires playback alongside the button's own
+                // action.
+                if (e.target !== e.currentTarget) return;
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   onPlayTrack(index);

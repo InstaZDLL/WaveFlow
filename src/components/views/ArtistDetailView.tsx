@@ -586,6 +586,8 @@ function ArtistTrackTable({
               tabIndex={0}
               onDoubleClick={() => onPlayTrack(index)}
               onKeyDown={(e) => {
+                // Only play when the row itself is focused — see LibraryView.
+                if (e.target !== e.currentTarget) return;
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   onPlayTrack(index);
