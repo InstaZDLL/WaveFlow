@@ -1546,6 +1546,13 @@ function AlbumGrid({
         {virtualizer.getVirtualItems().map((row) => {
           const startIdx = row.index * colCount;
           const rowItems = albums.slice(startIdx, startIdx + colCount);
+          // Hoist the row that owns the open card popover above the rows
+          // rendered after it in DOM order. Same stacking-context trap as
+          // TrackTable: every virtualized row is `position: absolute`, so
+          // a `z-50` inside one card can't escape its row.
+          const rowHasOpenMenu = rowItems.some(
+            (album) => album.id === openMenuAlbumId,
+          );
           return (
             <div
               key={row.key}
@@ -1559,6 +1566,7 @@ function AlbumGrid({
                 gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))`,
                 gap: `${GAP}px`,
                 paddingBottom: `${GAP}px`,
+                zIndex: rowHasOpenMenu ? 20 : undefined,
               }}
             >
               {rowItems.map((album) => renderAlbumCard(album))}
@@ -1815,6 +1823,11 @@ function ArtistList({
       {virtualizer.getVirtualItems().map((row) => {
         const startIdx = row.index * colCount;
         const rowItems = artists.slice(startIdx, startIdx + colCount);
+        // Same stacking fix as TrackTable / AlbumGrid: bump the row that
+        // owns the open `+` popover above the rows rendered after it.
+        const rowHasOpenMenu = rowItems.some(
+          (artist) => artist.id === openMenuArtistId,
+        );
         return (
           <div
             key={row.key}
@@ -1828,6 +1841,7 @@ function ArtistList({
               gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))`,
               gap: `${GAP}px`,
               paddingBottom: `${GAP}px`,
+              zIndex: rowHasOpenMenu ? 20 : undefined,
             }}
           >
             {rowItems.map((artist, i) =>
