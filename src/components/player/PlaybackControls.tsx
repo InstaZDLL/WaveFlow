@@ -60,7 +60,7 @@ export function PlaybackControls() {
         aria-label={t("player.controls.previous")}
         className="text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        <SkipBack size={22} />
+        <SkipBack size={20} />
       </button>
 
       <button
@@ -71,14 +71,14 @@ export function PlaybackControls() {
           isPlaying ? t("player.controls.pause") : t("player.controls.play")
         }
         aria-busy={isLoading}
-        className="w-11 h-11 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center shadow-md transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center shadow-md transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isLoading ? (
-          <Loader2 size={22} className="animate-spin" />
+          <Loader2 size={20} className="animate-spin" />
         ) : isPlaying ? (
-          <Pause size={22} className="fill-current" />
+          <Pause size={20} className="fill-current" />
         ) : (
-          <Play size={22} className="fill-current translate-x-px" />
+          <Play size={20} className="fill-current translate-x-px" />
         )}
       </button>
 
@@ -89,7 +89,7 @@ export function PlaybackControls() {
         aria-label={t("player.controls.next")}
         className="text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        <SkipForward size={22} />
+        <SkipForward size={20} />
       </button>
       <button
         type="button"
