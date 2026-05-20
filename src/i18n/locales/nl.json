@@ -6,7 +6,8 @@
     "close": "Sluiten",
     "confirm": "Bevestigen",
     "open": "Openen",
-    "optional": "(optioneel)"
+    "optional": "(optioneel)",
+    "viewArtwork": "Hoes bekijken"
   },
   "lastfmReauth": {
     "title": "Last.fm-sessie verlopen",

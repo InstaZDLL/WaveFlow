@@ -6,7 +6,8 @@
     "close": "閉じる",
     "confirm": "確認する",
     "open": "開く",
-    "optional": "（任意）"
+    "optional": "（任意）",
+    "viewArtwork": "アートワークを表示"
   },
   "lastfmReauth": {
     "title": "Last.fmのセッションが期限切れになりました",

@@ -251,18 +251,13 @@ export function QueuePanel() {
 function QueueRow({
   item,
   isCurrent = false,
-  onDoubleClick,
 }: {
   item: QueueTrackPayload;
   isCurrent?: boolean;
-  onDoubleClick?: () => void;
 }) {
   return (
     <div
-      onDoubleClick={onDoubleClick}
       className={`flex items-center space-x-3 p-2 rounded-lg transition-colors select-none ${
-        onDoubleClick ? "cursor-pointer" : ""
-      } ${
         isCurrent
           ? "bg-emerald-50 dark:bg-emerald-900/20"
           : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
@@ -528,9 +523,30 @@ const SortableQueueRow = memo(function SortableQueueRow({
   };
   return (
     <div ref={setNodeRef} style={style}>
+      {/* Row can't be a <button> because it contains the drag-handle
+          button below — nested buttons are invalid HTML. Keep the
+          interactive `<div>` and disable the jsx-a11y rule for this
+          specific compound; keyboard activation still works via the
+          tabIndex + role + onKeyDown wiring. */}
       <div
         onDoubleClick={() => onJump(absoluteIndex)}
-        className="group flex items-center space-x-2 p-2 rounded-lg transition-colors select-none cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
+        tabIndex={0}
+        role="button"
+        onKeyDown={(e) => {
+          // Only jump when the row itself is focused. Hitting Enter on
+          // the drag-handle button would otherwise bubble up and also
+          // jump to the track.
+          if (e.target !== e.currentTarget) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onJump(absoluteIndex);
+          }
+        }}
+        onKeyUp={(e) => {
+          if (e.target !== e.currentTarget) return;
+          if (e.key === " ") e.preventDefault();
+        }}
+        className="group flex items-center space-x-2 p-2 rounded-lg transition-colors select-none cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
       >
         <button
           type="button"

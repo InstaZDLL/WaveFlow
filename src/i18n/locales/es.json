@@ -6,7 +6,8 @@
     "close": "Cerrar",
     "confirm": "Confirmar",
     "open": "Abrir",
-    "optional": "(opcional)"
+    "optional": "(opcional)",
+    "viewArtwork": "Ver portada"
   },
   "lastfmReauth": {
     "title": "La sesión de Last.fm ha caducado",

@@ -6,7 +6,8 @@
     "close": "Schließen",
     "confirm": "Bestätigen",
     "open": "Öffnen",
-    "optional": "(optional)"
+    "optional": "(optional)",
+    "viewArtwork": "Cover ansehen"
   },
   "lastfmReauth": {
     "title": "Last.fm-Sitzung abgelaufen",

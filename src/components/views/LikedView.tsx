@@ -148,13 +148,32 @@ export function LikedView({
             {tracks.map((track, index) => {
               const isCurrent = track.id === currentTrack?.id;
               return (
+                // Row can't be a <button> because it contains action
+                // buttons; nested buttons are invalid HTML. Keyboard
+                // activation still works via tabIndex + onKeyDown.
                 <li
                   key={track.id}
+                  tabIndex={0}
+                  role="button"
                   onDoubleClick={() =>
                     playTracks(tracks, index, { type: "liked", id: null })
                   }
+                  onKeyDown={(e) => {
+                    // Only play when the row itself is focused — keys
+                    // fired from nested buttons / links would otherwise
+                    // bubble here and double-fire playback.
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      playTracks(tracks, index, { type: "liked", id: null });
+                    }
+                  }}
+                  onKeyUp={(e) => {
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key === " ") e.preventDefault();
+                  }}
                   onContextMenu={(e) => trackContextMenu.open(e, track)}
-                  className={`group grid grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem_2.5rem] gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer ${
+                  className={`group grid grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem_2.5rem] gap-4 px-5 py-2 items-center select-none transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
                     isCurrent
                       ? "bg-emerald-50 dark:bg-emerald-900/20"
                       : "hover:bg-zinc-50 dark:hover:bg-zinc-800/60"

@@ -575,29 +575,31 @@ function SlideRenderer({
                   ar.picture_url,
                 );
                 return (
-                  <li
-                    key={ar.artist_id}
-                    className="flex items-center gap-4 bg-white/10 rounded-2xl p-3 backdrop-blur-sm cursor-pointer hover:bg-white/15"
-                    onClick={() => onNavigateToArtist(ar.artist_id)}
-                  >
-                    <div className="text-3xl font-extrabold tabular-nums w-10 text-center text-white/70">
-                      {idx + 1}
-                    </div>
-                    <div className="w-14 h-14 rounded-full bg-white/10 overflow-hidden flex-shrink-0">
-                      {src && (
-                        <img
-                          src={src}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-semibold truncate">{ar.name}</div>
-                      <div className="text-sm text-white/60 truncate">
-                        {t("wrapped.playsShort", { count: ar.plays })}
+                  <li key={ar.artist_id}>
+                    <button
+                      type="button"
+                      className="flex items-center gap-4 bg-white/10 rounded-2xl p-3 backdrop-blur-sm cursor-pointer hover:bg-white/15 transition-colors w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                      onClick={() => onNavigateToArtist(ar.artist_id)}
+                    >
+                      <div className="text-3xl font-extrabold tabular-nums w-10 text-center text-white/70">
+                        {idx + 1}
                       </div>
-                    </div>
+                      <div className="w-14 h-14 rounded-full bg-white/10 overflow-hidden flex-shrink-0">
+                        {src && (
+                          <img
+                            src={src}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold truncate">{ar.name}</div>
+                        <div className="text-sm text-white/60 truncate">
+                          {t("wrapped.playsShort", { count: ar.plays })}
+                        </div>
+                      </div>
+                    </button>
                   </li>
                 );
               })}

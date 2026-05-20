@@ -1100,13 +1100,31 @@ const SortablePlaylistRow = memo(function SortablePlaylistRow({
     opacity: isDragging ? 0 : 1,
   };
   return (
+    // Row can't be a <button> because it contains action buttons
+    // (heart, more-options) and a drag handle; nested buttons are
+    // invalid HTML. Keyboard activation still works via tabIndex +
+    // onKeyDown.
     <div
       ref={setNodeRef}
       style={style}
+      tabIndex={0}
+      role="button"
       onClick={(e) => onRowSelect(track, e)}
       onDoubleClick={() => onPlayTrack(index)}
+      onKeyDown={(e) => {
+        // Only play when the row itself is focused — see LibraryView.
+        if (e.target !== e.currentTarget) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onPlayTrack(index);
+        }
+      }}
+      onKeyUp={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === " ") e.preventDefault();
+      }}
       onContextMenu={(e) => onContextMenuRow(e, track)}
-      className={`group grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 ${
+      className={`group grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
         isRowSelected
           ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
           : isCurrent

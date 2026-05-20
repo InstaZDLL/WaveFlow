@@ -1098,10 +1098,34 @@ function TrackTable({
           const isMenuOpen = openMenuTrackId === track.id;
           const isRowSelected = isSelected(track.id);
           return (
+            // Row can't be a <button> because it contains action buttons
+            // (heart, more-options); nested buttons are invalid HTML.
+            // Keyboard activation still works via tabIndex + onKeyDown.
             <div
               key={track.id}
+              tabIndex={0}
+              role="button"
               onClick={(e) => onRowSelect(track, e)}
               onDoubleClick={() => onPlayTrack(index)}
+              onKeyDown={(e) => {
+                // Only play when the row itself is focused. Without
+                // this guard, hitting Enter/Space on a nested button
+                // (like, +, ArtistLink, AlbumLink) bubbles up here and
+                // double-fires playback alongside the button's own
+                // action.
+                if (e.target !== e.currentTarget) return;
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onPlayTrack(index);
+                }
+              }}
+              onKeyUp={(e) => {
+                // Belt-and-suspenders: a few browsers fire spacebar
+                // scroll on keyup for non-button elements even when
+                // keydown was cancelled. Suppress it here too.
+                if (e.target !== e.currentTarget) return;
+                if (e.key === " ") e.preventDefault();
+              }}
               onContextMenu={(e) => onContextMenuRow(e, track)}
               style={{
                 position: "absolute",
@@ -1118,7 +1142,7 @@ function TrackTable({
                 // row's stacking context — bumping the row itself does.
                 zIndex: isMenuOpen ? 20 : undefined,
               }}
-              className={`group grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 ${
+              className={`group grid ${gridCols} gap-4 px-5 items-center select-none transition-colors cursor-pointer border-b border-zinc-100 dark:border-zinc-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500 ${
                 isRowSelected
                   ? "bg-blue-500/15 ring-1 ring-inset ring-blue-500/40 dark:bg-blue-500/20"
                   : isCurrent

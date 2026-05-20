@@ -64,3 +64,11 @@ secrets/
 
 #Ignore vscode AI rules
 .github/instructions/codacy.instructions.md
+
+# Codacy CLI machine-local artefacts. Only `.codacy/codacy.yaml`
+# (tracked) and `.codacy/.gitignore` (untracked but versioned by
+# convention) are part of the repo contract.
+.codacy/cli.sh
+.codacy/cli-config.yaml
+.codacy/logs/
+.codacy/tools-configs/

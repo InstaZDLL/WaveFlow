@@ -242,44 +242,48 @@ export function LyricsPanel() {
                     ref={(el) => {
                       lineRefs.current[index] = el;
                     }}
-                    onClick={() => handleSeekToLine(line)}
-                    className={`text-base leading-relaxed cursor-pointer transition-all select-none ${
-                      isActive
-                        ? "text-zinc-900 dark:text-white font-semibold scale-[1.02]"
-                        : isPast
-                          ? "text-zinc-300 dark:text-zinc-600"
-                          : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                    }`}
                   >
-                    {hasWords ? (
-                      <span>
-                        {line.words!.map((word, wi) => (
-                          <span
-                            key={wi}
-                            className={
-                              wi === activeWordIndex
-                                ? "text-pink-500 dark:text-pink-400"
-                                : wi < activeWordIndex
-                                  ? ""
-                                  : "opacity-60"
-                            }
-                            style={{
-                              display: "inline-block",
-                              transform:
+                    <button
+                      type="button"
+                      onClick={() => handleSeekToLine(line)}
+                      className={`block w-full text-left text-base leading-relaxed cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded ${
+                        isActive
+                          ? "text-zinc-900 dark:text-white font-semibold scale-[1.02]"
+                          : isPast
+                            ? "text-zinc-300 dark:text-zinc-600"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                      }`}
+                    >
+                      {hasWords ? (
+                        <span>
+                          {line.words!.map((word, wi) => (
+                            <span
+                              key={wi}
+                              className={
                                 wi === activeWordIndex
-                                  ? "scale(1.04)"
-                                  : "scale(1)",
-                              transition:
-                                "color 150ms ease, opacity 150ms ease, transform 150ms ease",
-                            }}
-                          >
-                            {word.text}
-                          </span>
-                        ))}
-                      </span>
-                    ) : (
-                      line.text || " "
-                    )}
+                                  ? "text-pink-500 dark:text-pink-400"
+                                  : wi < activeWordIndex
+                                    ? ""
+                                    : "opacity-60"
+                              }
+                              style={{
+                                display: "inline-block",
+                                transform:
+                                  wi === activeWordIndex
+                                    ? "scale(1.04)"
+                                    : "scale(1)",
+                                transition:
+                                  "color 150ms ease, opacity 150ms ease, transform 150ms ease",
+                              }}
+                            >
+                              {word.text}
+                            </span>
+                          ))}
+                        </span>
+                      ) : (
+                        line.text || " "
+                      )}
+                    </button>
                   </li>
                 );
               })}

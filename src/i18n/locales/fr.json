@@ -6,7 +6,8 @@
     "close": "Fermer",
     "confirm": "Confirmer",
     "open": "Ouvrir",
-    "optional": "(optionnel)"
+    "optional": "(optionnel)",
+    "viewArtwork": "Voir l'illustration"
   },
   "lastfmReauth": {
     "title": "Session Last.fm expirée",
