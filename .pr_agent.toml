@@ -1,0 +1,28 @@
+[github_app]
+pr_commands = ["/review"]
+
+[pr_reviewer]
+persistent_comment = true
+final_update_message = true
+enable_help_text = true
+require_security_review = true
+require_tests_review = true
+require_ticket_analysis_review = true
+require_score_review = true
+extra_instructions = """
+Réponds en français. Sois direct et concis.
+Priorise les bugs réels, les régressions utilisateur, les problèmes de sécurité,
+les erreurs de logique, les oublis de tests et de validation.
+Évite les remarques purement cosmétiques ou déjà couvertes par Prettier/ESLint.
+
+Contexte projet:
+- Frontend React 19 + Vite + Tailwind CSS 4 pour une app Tauri 2.
+- Vérifier les erreurs de state/effects, handlers Tauri, accessibilité visible, navigation et player.
+- Dans src/lib/tauri/**, vérifier l'alignement exact des arguments et types TS/Rust, et les erreurs masquées.
+- Dans src-tauri/src/audio/**, signaler toute allocation, lock, I/O, log ou blocage dans les callbacks audio; vérifier threads, atomics, buffers SPSC, channels/rates, fallback device.
+- Dans src-tauri/src/commands/**, vérifier profil actif, SQLx, erreurs UI, chemins fichiers, blocages async.
+- Dans src-tauri/migrations/**, ne jamais modifier une migration déjà release; demander une nouvelle migration timestampée si le schéma change.
+- Dans src/i18n/locales/**, vérifier clés manquantes, divergentes et placeholders i18next incohérents.
+- Dans .github/workflows/**, vérifier injection, secrets, permissions minimales et risques de publication incorrecte.
+- Dans packaging/**, vérifier chemins, dépendances système, metadata, permissions et cohérence release.
+"""
