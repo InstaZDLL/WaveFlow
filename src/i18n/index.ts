@@ -47,6 +47,21 @@ export const SUPPORTED_LANGUAGES: readonly SupportedLanguage[] = [
 
 const LOCAL_STORAGE_KEY = "waveflow-language";
 const SUPPORTED_LANGUAGE_CODES = SUPPORTED_LANGUAGES.map((lang) => lang.code);
+
+// Rewrite the historical "kr" preference to "ko" once, before i18next
+// reads localStorage. `convertDetectedLanguage` already normalises at
+// read time, but persisting the canonical value keeps DevTools / future
+// migrations honest.
+try {
+  if (typeof localStorage !== "undefined") {
+    if (localStorage.getItem(LOCAL_STORAGE_KEY) === "kr") {
+      localStorage.setItem(LOCAL_STORAGE_KEY, "ko");
+    }
+  }
+} catch {
+  // Storage unavailable (private browsing, embed sandbox) — non-fatal,
+  // the in-memory alias still maps "kr" → "ko" for the session.
+}
 const localeLoaders: Record<
   string,
   () => Promise<{ default: ResourceLanguage }>
@@ -61,8 +76,7 @@ const localeLoaders: Record<
   pt: () => import("./locales/pt.json"),
   "pt-BR": () => import("./locales/pt-BR.json"),
   ja: () => import("./locales/ja.json"),
-  ko: () => import("./locales/kr.json"),
-  kr: () => import("./locales/kr.json"),
+  ko: () => import("./locales/ko.json"),
   nl: () => import("./locales/nl.json"),
   ar: () => import("./locales/ar.json"),
   hi: () => import("./locales/hi.json"),
@@ -76,7 +90,10 @@ const localeLoaders: Record<
 // OS reporting `fr-FR` or `en-US` lands on `fr` / `en` instead of
 // falling all the way to the fallback language.
 const LANGUAGE_ALIASES: Record<string, string> = {
-  // Korean — historical "kr" code (the file is still kr.json)
+  // Korean — historical "kr" code that shipped before we normalised to
+  // the correct ISO 639-1 "ko". Old profiles may still have "kr" in
+  // localStorage; the alias keeps them working until they pick a
+  // language explicitly.
   kr: "ko",
   "ko-KR": "ko",
   // Chinese — pick simplified by default for ambiguous codes; preserve

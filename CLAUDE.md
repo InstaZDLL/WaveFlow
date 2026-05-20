@@ -116,6 +116,6 @@ Autostart + close-to-tray + scan-on-start ([`commands/preferences.rs`](src-tauri
 
 ## Language
 
-The README is in English. The app ships UI copy in **17 locales** via i18next — `fr` (source of truth), `en`, `es`, `de`, `it`, `nl`, `pt`, `pt-BR`, `ru`, `tr`, `id`, `ja`, `kr` (registered as `ko` + `kr` alias), `zh-CN`, `zh-TW`, `ar`, `hi`. Strings in `src/i18n/locales/<code>.json`. `index.ts` sets `document.documentElement.dir` per language so Arabic renders RTL automatically.
+The README is in English. The app ships UI copy in **17 locales** via i18next — `fr` (source of truth), `en`, `es`, `de`, `it`, `nl`, `pt`, `pt-BR`, `ru`, `tr`, `id`, `ja`, `ko`, `zh-CN`, `zh-TW`, `ar`, `hi`. Strings in `src/i18n/locales/<code>.json`. `index.ts` sets `document.documentElement.dir` per language so Arabic renders RTL automatically. The legacy `kr` code is still accepted as an alias for back-compat (early builds shipped `kr` instead of the ISO 639-1 `ko`); a one-time migration rewrites stored `kr` preferences to `ko` at startup.
 
 `fallbackLng: "en"` is set, but the project convention is **every locale carries every key** so the experience stays coherent without language-mixing. When you add a new key, propagate it to all 17 locales (a small Python script using `json.load`/`dump` with `ensure_ascii=False, indent=2` keeps the existing formatting intact). Brand tokens (`WaveFlow`, `Last.fm`, `Deezer`, `ReplayGain`, `LRCLIB`, `BPM`) stay verbatim across locales. Preserve i18next `{{placeholder}}` interpolation tokens unchanged.
