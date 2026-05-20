@@ -183,8 +183,8 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                 path1x={currentTrack?.artwork_path_1x ?? null}
                 path2x={currentTrack?.artwork_path_2x ?? null}
                 size="1x"
-                className="w-12 h-12 shadow-sm"
-                iconSize={20}
+                className="w-14 h-14 shadow-sm"
+                iconSize={24}
                 alt={title}
                 rounded="xl"
               />
