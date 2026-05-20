@@ -1360,12 +1360,15 @@ function AddToPlaylistPopover({
   memberPlaylistIds,
   anchorEl,
 }: AddToPlaylistPopoverProps) {
-  // Portal mode: track the anchor's viewport rect so the popover follows
-  // it on scroll / resize / virtualization recycling. `null` rect = first
-  // render before the layout effect runs; we keep the popover invisible
-  // until we know where it goes so it never flashes at (0,0).
+  // Portal mode: track the anchor's viewport rect AND the popover's own
+  // height so we can flip / clamp against the viewport. `null` rect =
+  // first render before the layout effect runs; we keep the popover
+  // invisible until we know where it goes so it never flashes at (0,0).
   const POPOVER_WIDTH = 224; // matches `w-56`
+  const VIEWPORT_MARGIN = 8;
+  const popoverRef = useRef<HTMLDivElement | null>(null);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const [popoverHeight, setPopoverHeight] = useState(0);
   useLayoutEffect(() => {
     if (!anchorEl) return;
     const update = () => setRect(anchorEl.getBoundingClientRect());
@@ -1380,22 +1383,69 @@ function AddToPlaylistPopover({
       window.removeEventListener("resize", update);
     };
   }, [anchorEl]);
+  // Measure the popover the first time it lays out and on content
+  // resize so the flip-above check has a real height. We intentionally
+  // do NOT depend on `rect` — scroll updates `rect` many times per
+  // second, and re-running this effect would tear down the
+  // ResizeObserver and force a synchronous `offsetHeight` reflow each
+  // tick. The ResizeObserver already covers every real height change
+  // (translated label wrap, scrollable list growth, etc.).
+  useLayoutEffect(() => {
+    if (!anchorEl) return;
+    const el = popoverRef.current;
+    if (!el) return;
+    setPopoverHeight(el.offsetHeight);
+    const ro = new ResizeObserver(() => setPopoverHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [anchorEl]);
+
+  // Compute placement: prefer below, flip above when below would clip,
+  // then clamp horizontally so the first-column trigger doesn't push
+  // the popover off the left edge.
+  const placement = (() => {
+    if (!anchorEl || !rect) return null;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let top = rect.bottom + 4;
+    if (
+      popoverHeight > 0 &&
+      top + popoverHeight > vh - VIEWPORT_MARGIN &&
+      rect.top - 4 - popoverHeight >= VIEWPORT_MARGIN
+    ) {
+      top = rect.top - 4 - popoverHeight;
+    }
+    top = Math.max(
+      VIEWPORT_MARGIN,
+      Math.min(top, vh - popoverHeight - VIEWPORT_MARGIN),
+    );
+    let left = rect.right - POPOVER_WIDTH;
+    left = Math.max(
+      VIEWPORT_MARGIN,
+      Math.min(left, vw - POPOVER_WIDTH - VIEWPORT_MARGIN),
+    );
+    return { top, left };
+  })();
 
   const inner = (
     <div
+      ref={popoverRef}
       data-add-to-playlist-popover
       role="menu"
+      // Stop click + double-click + mousedown from bubbling to the
+      // album / artist tile underneath. Portals re-parent the DOM but
+      // React events still bubble through the React tree, so without
+      // this picking a playlist would also navigate to the album.
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
       style={
         anchorEl
-          ? rect
+          ? placement
             ? {
                 position: "fixed",
-                // Anchor the right edge to the trigger's right edge,
-                // matching the in-flow `right-0` behaviour. Drop 4 px
-                // below the trigger to match `mt-1`.
-                top: rect.bottom + 4,
-                left: rect.right - POPOVER_WIDTH,
+                top: placement.top,
+                left: placement.left,
                 width: POPOVER_WIDTH,
               }
             : { position: "fixed", visibility: "hidden" }
