@@ -1328,6 +1328,10 @@
       "decreaseAria": "縮小",
       "increaseAria": "拡大",
       "resetAria": "ズームを 100 % にリセット"
+    },
+    "showAudioQualityFooter": {
+      "title": "オーディオ品質バーを表示",
+      "subtitle": "プレイヤーバー下に技術詳細（kHz、kbps、コーデック、ビット深度）を表示。スリムなバーを保つため既定でオフ。"
     }
   },
   "scanProgress": {

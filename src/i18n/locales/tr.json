@@ -1328,6 +1328,10 @@
       "decreaseAria": "Uzaklaştır",
       "increaseAria": "Yakınlaştır",
       "resetAria": "Yakınlaştırmayı %100'e sıfırla"
+    },
+    "showAudioQualityFooter": {
+      "title": "Ses kalitesi şeridini göster",
+      "subtitle": "Teknik ayrıntılar (kHz, kbps, codec, bit derinliği) oynatıcı çubuğunun altında. Daha ince bir çubuk için varsayılan olarak kapalı."
     }
   },
   "scanProgress": {

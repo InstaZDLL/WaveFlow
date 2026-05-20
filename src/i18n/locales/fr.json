@@ -1395,6 +1395,10 @@
       "decreaseAria": "Dézoomer l’interface",
       "increaseAria": "Zoomer l’interface",
       "resetAria": "Réinitialiser le zoom à 100 %"
+    },
+    "showAudioQualityFooter": {
+      "title": "Afficher la qualité audio sous la barre",
+      "subtitle": "Détails techniques (kHz, kb/s, codec, profondeur) sous la player bar. Désactivé par défaut pour une barre plus fine."
     }
   },
   "spotify": {

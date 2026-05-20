@@ -1328,6 +1328,10 @@
       "decreaseAria": "축소",
       "increaseAria": "확대",
       "resetAria": "확대/축소를 100 %로 재설정"
+    },
+    "showAudioQualityFooter": {
+      "title": "오디오 품질 바 표시",
+      "subtitle": "플레이어 바 아래에 기술 정보(kHz, kbps, 코덱, 비트 깊이)를 표시합니다. 슬림한 바를 위해 기본값은 꺼짐입니다."
     }
   },
   "scanProgress": {

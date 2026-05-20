@@ -53,6 +53,10 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   // we re-read without polling.
   const [pinSleepTimer, setPinSleepTimer] = useState(false);
   const [pinAbLoop, setPinAbLoop] = useState(false);
+  // Audio quality strip (kHz / kbps / codec / bit depth) — hidden by
+  // default so the bar stays slim, opt-in via Settings. Same dispatch
+  // pattern as the other UI toggles above.
+  const [showAudioQualityFooter, setShowAudioQualityFooter] = useState(false);
   useEffect(() => {
     const refreshSleep = () => {
       getProfileSetting("ui.show_sleep_timer")
@@ -69,16 +73,35 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
         })
         .catch(() => {});
     };
+    const refreshAudioQuality = () => {
+      getProfileSetting("ui.show_audio_quality_footer")
+        .then((v) => {
+          // Missing key → off (slim bar by default).
+          setShowAudioQualityFooter(
+            v == null ? false : v === "1" || v === "true",
+          );
+        })
+        .catch(() => {});
+    };
     refreshSleep();
     refreshAb();
+    refreshAudioQuality();
     window.addEventListener("waveflow:sleep-timer-visibility", refreshSleep);
     window.addEventListener("waveflow:ab-loop-visibility", refreshAb);
+    window.addEventListener(
+      "waveflow:audio-quality-footer-visibility",
+      refreshAudioQuality,
+    );
     return () => {
       window.removeEventListener(
         "waveflow:sleep-timer-visibility",
         refreshSleep,
       );
       window.removeEventListener("waveflow:ab-loop-visibility", refreshAb);
+      window.removeEventListener(
+        "waveflow:audio-quality-footer-visibility",
+        refreshAudioQuality,
+      );
     };
   }, []);
 
@@ -321,7 +344,11 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
             </button>
           </div>
         </div>
-        <AudioQualityFooter track={isSpotify ? null : (currentTrack ?? null)} />
+        {showAudioQualityFooter && (
+          <AudioQualityFooter
+            track={isSpotify ? null : (currentTrack ?? null)}
+          />
+        )}
       </div>
       {isFullscreenOpen && currentTrack && (
         <FullscreenNowPlaying
