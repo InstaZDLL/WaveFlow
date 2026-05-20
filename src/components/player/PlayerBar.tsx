@@ -141,9 +141,9 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   return (
     <>
       <div className="flex flex-col z-50 border-t bg-[#FAFAFA] border-zinc-200 text-zinc-600 dark:bg-surface-dark-elevated dark:border-zinc-800 dark:text-zinc-300">
-        <div className="h-24 px-6 flex items-center justify-between">
+        <div className="h-20 px-4 flex items-center justify-between">
           {/* Left: Track Info */}
-          <div className="w-1/3 flex items-center space-x-4 min-w-0">
+          <div className="w-1/3 flex items-center space-x-3 min-w-0">
             {/* Click the cover to open the immersive Now Playing
               overlay (mirrors Apple Music). Disabled when no track is
               loaded so the user doesn't open an empty card. */}
@@ -160,8 +160,8 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                 path1x={currentTrack?.artwork_path_1x ?? null}
                 path2x={currentTrack?.artwork_path_2x ?? null}
                 size="1x"
-                className="w-14 h-14 shadow-sm border border-zinc-200 dark:border-transparent"
-                iconSize={24}
+                className="w-12 h-12 shadow-sm border border-zinc-200 dark:border-transparent"
+                iconSize={20}
                 alt={title}
                 rounded="xl"
               />
@@ -205,7 +205,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
           </div>
 
           {/* Right: Extra Controls */}
-          <div className="w-1/3 flex items-center justify-end space-x-3">
+          <div className="w-1/3 flex items-center justify-end space-x-2">
             {/* A-B repeat (primary slot — opt-in pin via Settings).
               When unpinned, the entry lives in the "..." menu so the
               bar stays calm by default. */}
@@ -228,26 +228,26 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               onClick={toggleLyrics}
               aria-label={t("playerBar.lyrics")}
               title={t("playerBar.lyrics")}
-              className={`p-2 rounded-lg transition-colors ${
+              className={`p-1.5 rounded-lg transition-colors ${
                 isLyricsOpen
                   ? "text-emerald-500"
                   : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
               }`}
             >
-              <Mic2 size={20} />
+              <Mic2 size={18} />
             </button>
 
             <button
               onClick={toggleQueue}
               aria-label={t("playerBar.queue")}
               title={t("playerBar.queue")}
-              className={`p-2 rounded-lg transition-colors ${
+              className={`p-1.5 rounded-lg transition-colors ${
                 isQueueOpen
                   ? "text-emerald-500"
                   : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
               }`}
             >
-              <Menu size={20} />
+              <Menu size={18} />
             </button>
 
             {!isSpotify && (
@@ -257,13 +257,13 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                   aria-label={t("playerBar.devices")}
                   title={t("playerBar.devices")}
                   aria-expanded={isDeviceMenuOpen}
-                  className={`p-2 rounded-lg transition-colors border ${
+                  className={`p-1.5 rounded-lg transition-colors border ${
                     isDeviceMenuOpen
                       ? "border-emerald-500 text-emerald-500 bg-emerald-500/10"
                       : "border-transparent text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   }`}
                 >
-                  <MonitorSpeaker size={20} />
+                  <MonitorSpeaker size={18} />
                 </button>
               </div>
             )}
@@ -303,9 +303,9 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                 }}
                 aria-label={t("playerBar.miniPlayer")}
                 title={t("playerBar.miniPlayer")}
-                className="p-2 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
               >
-                <PictureInPicture2 size={20} />
+                <PictureInPicture2 size={18} />
               </button>
             )}
 
@@ -315,9 +315,9 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               disabled={!currentTrack}
               aria-label={t("playerBar.openFullscreen")}
               title={t("playerBar.openFullscreen")}
-              className="p-2 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <Maximize2 size={20} />
+              <Maximize2 size={18} />
             </button>
           </div>
         </div>
