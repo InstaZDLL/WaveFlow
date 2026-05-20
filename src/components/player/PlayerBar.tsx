@@ -164,7 +164,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   return (
     <>
       <div className="flex flex-col z-50 border-t bg-[#FAFAFA] border-zinc-200 text-zinc-600 dark:bg-surface-dark-elevated dark:border-zinc-800 dark:text-zinc-300">
-        <div className="h-20 px-4 flex items-center justify-between">
+        <div className="h-24 px-4 flex items-center justify-between">
           {/* Left: Track Info */}
           <div className="w-1/3 flex items-center space-x-3 min-w-0">
             {/* Click the cover to open the immersive Now Playing
@@ -210,13 +210,13 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                 type="button"
                 onClick={handleToggleLike}
                 aria-label={isLiked ? t("liked.unlike") : t("liked.like")}
-                className={`p-1.5 rounded-full transition-colors shrink-0 ${
+                className={`p-2 rounded-full transition-colors shrink-0 ${
                   isLiked
                     ? "text-pink-500"
                     : "text-zinc-300 dark:text-zinc-600 hover:text-pink-500"
                 }`}
               >
-                <Heart size={16} className={isLiked ? "fill-current" : ""} />
+                <Heart size={18} className={isLiked ? "fill-current" : ""} />
               </button>
             )}
           </div>
@@ -251,26 +251,26 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               onClick={toggleLyrics}
               aria-label={t("playerBar.lyrics")}
               title={t("playerBar.lyrics")}
-              className={`p-1.5 rounded-lg transition-colors ${
+              className={`p-2 rounded-lg transition-colors ${
                 isLyricsOpen
                   ? "text-emerald-500"
                   : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
               }`}
             >
-              <Mic2 size={18} />
+              <Mic2 size={20} />
             </button>
 
             <button
               onClick={toggleQueue}
               aria-label={t("playerBar.queue")}
               title={t("playerBar.queue")}
-              className={`p-1.5 rounded-lg transition-colors ${
+              className={`p-2 rounded-lg transition-colors ${
                 isQueueOpen
                   ? "text-emerald-500"
                   : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
               }`}
             >
-              <Menu size={18} />
+              <Menu size={20} />
             </button>
 
             {!isSpotify && (
@@ -286,7 +286,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                       : "border-transparent text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   }`}
                 >
-                  <MonitorSpeaker size={18} />
+                  <MonitorSpeaker size={20} />
                 </button>
               </div>
             )}
@@ -328,7 +328,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                 title={t("playerBar.miniPlayer")}
                 className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors"
               >
-                <PictureInPicture2 size={18} />
+                <PictureInPicture2 size={20} />
               </button>
             )}
 
@@ -340,7 +340,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               title={t("playerBar.openFullscreen")}
               className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <Maximize2 size={18} />
+              <Maximize2 size={20} />
             </button>
           </div>
         </div>
