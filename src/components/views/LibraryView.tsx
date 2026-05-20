@@ -1383,19 +1383,22 @@ function AddToPlaylistPopover({
       window.removeEventListener("resize", update);
     };
   }, [anchorEl]);
-  // Measure the popover the first time it lays out and on resize so the
-  // flip-above check has a real height. Without this we'd default to 0
-  // and never flip until the popover overflows.
+  // Measure the popover the first time it lays out and on content
+  // resize so the flip-above check has a real height. We intentionally
+  // do NOT depend on `rect` — scroll updates `rect` many times per
+  // second, and re-running this effect would tear down the
+  // ResizeObserver and force a synchronous `offsetHeight` reflow each
+  // tick. The ResizeObserver already covers every real height change
+  // (translated label wrap, scrollable list growth, etc.).
   useLayoutEffect(() => {
     if (!anchorEl) return;
     const el = popoverRef.current;
     if (!el) return;
-    const measure = () => setPopoverHeight(el.offsetHeight);
-    measure();
-    const ro = new ResizeObserver(measure);
+    setPopoverHeight(el.offsetHeight);
+    const ro = new ResizeObserver(() => setPopoverHeight(el.offsetHeight));
     ro.observe(el);
     return () => ro.disconnect();
-  }, [anchorEl, rect]);
+  }, [anchorEl]);
 
   // Compute placement: prefer below, flip above when below would clip,
   // then clamp horizontally so the first-column trigger doesn't push
