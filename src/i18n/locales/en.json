@@ -1114,6 +1114,7 @@
     "title": "Settings",
     "sections": {
       "general": "General",
+      "appearance": "Appearance",
       "playback": "Playback",
       "integrations": "Integrations",
       "storage": "Storage & Data",
@@ -1399,6 +1400,28 @@
     "showAudioQualityFooter": {
       "title": "Show audio quality strip",
       "subtitle": "Technical details (kHz, kbps, codec, bit depth) under the player bar. Off by default for a slimmer bar."
+    },
+    "appearance": {
+      "theme": {
+        "title": "Theme",
+        "subtitle": "Pick a vibe — switching themes re-tints the entire app instantly."
+      },
+      "mode": {
+        "light": "Light",
+        "dark": "Dark"
+      },
+      "themes": {
+        "default": "Emerald Light",
+        "defaultDark": "Emerald",
+        "oled": "OLED",
+        "midnight": "Midnight",
+        "forest": "Forest",
+        "sunset": "Sunset",
+        "lavender": "Lavender",
+        "crimson": "Crimson",
+        "ocean": "Ocean",
+        "neon": "Neon"
+      }
     }
   },
   "spotify": {

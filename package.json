@@ -27,6 +27,7 @@
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tauri-apps/plugin-opener": "^2.5.4",
     "@tauri-apps/plugin-updater": "^2.10.1",
+    "framer-motion": "^12.39.0",
     "i18next": "^26.2.0",
     "i18next-browser-languagedetector": "^8.2.1",
     "lucide-react": "^1.16.0",

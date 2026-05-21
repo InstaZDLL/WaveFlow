@@ -3,6 +3,10 @@ import { useTranslation } from "react-i18next";
 import { X, Loader2, Trash2, Copy } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import {
+  AnimatedModalContent,
+  AnimatedModalShell,
+} from "./AnimatedModalShell";
+import {
   deleteTracks,
   findDuplicates,
   type DuplicateGroup,
@@ -95,20 +99,14 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-100 bg-black/80 flex items-center justify-center animate-fade-in p-4"
-      onClick={onClose}
-    >
-      <div
+    <AnimatedModalShell isOpen={isOpen} onBackdropClick={onClose}>
+      <AnimatedModalContent
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="duplicates-modal-title"
-        className="relative bg-white dark:bg-surface-dark-elevated text-zinc-900 dark:text-zinc-100 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in"
-        onClick={(e) => e.stopPropagation()}
+        className="relative bg-white dark:bg-surface-dark-elevated text-zinc-900 dark:text-zinc-100 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
@@ -253,8 +251,8 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </AnimatedModalContent>
+    </AnimatedModalShell>
   );
 }
 

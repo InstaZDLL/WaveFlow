@@ -1101,6 +1101,7 @@
     "title": "Pengaturan",
     "sections": {
       "general": "Umum",
+      "appearance": "Tampilan",
       "playback": "Pemutaran",
       "integrations": "Integrasi",
       "storage": "Penyimpanan & Data",
@@ -1332,6 +1333,28 @@
     "showAudioQualityFooter": {
       "title": "Tampilkan strip kualitas audio",
       "subtitle": "Detail teknis (kHz, kbps, codec, kedalaman bit) di bawah bilah pemutar. Mati secara default untuk bilah yang lebih ramping."
+    },
+    "appearance": {
+      "theme": {
+        "title": "Tema",
+        "subtitle": "Pilih suasana — mengganti tema mewarnai ulang seluruh aplikasi seketika."
+      },
+      "mode": {
+        "light": "Terang",
+        "dark": "Gelap"
+      },
+      "themes": {
+        "default": "Zamrud Terang",
+        "defaultDark": "Zamrud",
+        "oled": "OLED",
+        "midnight": "Tengah Malam",
+        "forest": "Hutan",
+        "sunset": "Matahari Terbenam",
+        "lavender": "Lavender",
+        "crimson": "Merah Tua",
+        "ocean": "Samudra",
+        "neon": "Neon"
+      }
     }
   },
   "scanProgress": {

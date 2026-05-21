@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { motion } from "framer-motion";
 import { FolderPlus, Loader2, CheckCircle2, Music, X } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { useLibrary } from "../../hooks/useLibrary";
@@ -74,12 +75,20 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-100 bg-black/80 flex items-center justify-center animate-fade-in p-4">
-      <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className="fixed inset-0 z-100 bg-black/80 flex items-center justify-center p-4"
+    >
+      <motion.div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={t("onboarding.welcome.title")}
+        initial={{ opacity: 0, scale: 0.95, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 380, damping: 28, mass: 0.6 }}
         className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl border border-zinc-200 dark:border-zinc-800 p-8"
       >
         {step.kind === "welcome" && (
@@ -183,7 +192,7 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
             </div>
           </>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

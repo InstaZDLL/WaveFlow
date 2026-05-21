@@ -1102,6 +1102,7 @@
     "title": "Einstellungen",
     "sections": {
       "general": "Allgemeines",
+      "appearance": "Aussehen",
       "playback": "Wiedergabe",
       "integrations": "Integrationen",
       "storage": "Speicher & Daten",
@@ -1333,6 +1334,28 @@
     "showAudioQualityFooter": {
       "title": "Audioqualitätsleiste anzeigen",
       "subtitle": "Technische Details (kHz, kbps, Codec, Bittiefe) unter der Player-Leiste. Standardmäßig aus für eine schlankere Leiste."
+    },
+    "appearance": {
+      "theme": {
+        "title": "Thema",
+        "subtitle": "Wähle eine Stimmung – das Wechseln färbt die gesamte App neu ein."
+      },
+      "mode": {
+        "light": "Hell",
+        "dark": "Dunkel"
+      },
+      "themes": {
+        "default": "Smaragd Hell",
+        "defaultDark": "Smaragd",
+        "oled": "OLED",
+        "midnight": "Mitternacht",
+        "forest": "Wald",
+        "sunset": "Sonnenuntergang",
+        "lavender": "Lavendel",
+        "crimson": "Karmesin",
+        "ocean": "Ozean",
+        "neon": "Neon"
+      }
     }
   },
   "scanProgress": {

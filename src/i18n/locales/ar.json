@@ -1106,6 +1106,7 @@
     "title": "الإعدادات",
     "sections": {
       "general": "عام",
+      "appearance": "المظهر",
       "playback": "التشغيل",
       "integrations": "عمليات الدمج",
       "storage": "التخزين والبيانات",
@@ -1337,6 +1338,28 @@
     "showAudioQualityFooter": {
       "title": "إظهار شريط جودة الصوت",
       "subtitle": "تفاصيل تقنية (kHz، kbps، الترميز، عمق البت) أسفل شريط المشغل. معطل افتراضيًا للحفاظ على شريط أنحف."
+    },
+    "appearance": {
+      "theme": {
+        "title": "السمة",
+        "subtitle": "اختر الأجواء — تغيير السمة يعيد تلوين التطبيق بأكمله فوراً."
+      },
+      "mode": {
+        "light": "فاتح",
+        "dark": "داكن"
+      },
+      "themes": {
+        "default": "زمرد فاتح",
+        "defaultDark": "زمرد",
+        "oled": "OLED",
+        "midnight": "منتصف الليل",
+        "forest": "غابة",
+        "sunset": "غروب الشمس",
+        "lavender": "خزامى",
+        "crimson": "قرمزي",
+        "ocean": "محيط",
+        "neon": "نيون"
+      }
     }
   },
   "scanProgress": {

@@ -1114,11 +1114,34 @@
     "title": "Paramètres",
     "sections": {
       "general": "Général",
+      "appearance": "Apparence",
       "playback": "Lecture",
       "integrations": "Intégrations",
       "storage": "Stockage & Données",
       "shortcuts": "Raccourcis clavier",
       "diagnostics": "Diagnostics"
+    },
+    "appearance": {
+      "theme": {
+        "title": "Thème",
+        "subtitle": "Choisissez l'ambiance qui vous correspond. Le changement re-teinte l'application entière."
+      },
+      "mode": {
+        "light": "Clair",
+        "dark": "Sombre"
+      },
+      "themes": {
+        "default": "Émeraude Clair",
+        "defaultDark": "Émeraude",
+        "oled": "OLED",
+        "midnight": "Minuit",
+        "forest": "Forêt",
+        "sunset": "Coucher de soleil",
+        "lavender": "Lavande",
+        "crimson": "Cramoisi",
+        "ocean": "Océan",
+        "neon": "Néon"
+      }
     },
     "shortcuts": {
       "subtitle": "Cliquez sur un raccourci puis appuyez sur la combinaison souhaitée. Backspace pour effacer, Échap pour annuler.",

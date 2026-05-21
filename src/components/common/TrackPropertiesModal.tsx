@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { motion } from "framer-motion";
 import { ExternalLink, ImageUp, Pencil, Save, Sparkles, X } from "lucide-react";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { Artwork } from "./Artwork";
@@ -265,16 +266,22 @@ export function TrackPropertiesModal({
       : "—";
 
   return (
-    <div
-      className="fixed inset-0 z-100 bg-black/80 flex items-center justify-center animate-fade-in p-4"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className="fixed inset-0 z-100 bg-black/80 flex items-center justify-center p-4"
       onClick={onClose}
     >
-      <div
+      <motion.div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={t("trackProperties.title")}
-        className="relative w-full max-w-2xl rounded-3xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated animate-fade-in max-h-[90vh] overflow-y-auto"
+        initial={{ opacity: 0, scale: 0.95, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 380, damping: 28, mass: 0.6 }}
+        className="relative w-full max-w-2xl rounded-3xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -573,8 +580,8 @@ export function TrackPropertiesModal({
             </>
           )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

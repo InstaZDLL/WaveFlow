@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { motion } from "framer-motion";
 import { Loader2, Pencil, Save, X } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import {
@@ -119,16 +120,22 @@ export function BatchTagEditModal({
   if (!isOpen || trackIds == null) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-100 bg-black/80 flex items-center justify-center animate-fade-in p-4"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className="fixed inset-0 z-100 bg-black/80 flex items-center justify-center p-4"
       onClick={handleClose}
     >
-      <div
+      <motion.div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="batch-tag-edit-title"
-        className="relative w-full max-w-lg rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated animate-fade-in max-h-[90vh] overflow-y-auto"
+        initial={{ opacity: 0, scale: 0.95, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 380, damping: 28, mass: 0.6 }}
+        className="relative w-full max-w-lg rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 mb-5">
@@ -252,7 +259,7 @@ export function BatchTagEditModal({
             </span>
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

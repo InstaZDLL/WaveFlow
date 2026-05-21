@@ -1101,6 +1101,7 @@
     "title": "設定",
     "sections": {
       "general": "概要",
+      "appearance": "外観",
       "playback": "再生",
       "integrations": "連携",
       "storage": "ストレージとデータ",
@@ -1332,6 +1333,28 @@
     "showAudioQualityFooter": {
       "title": "オーディオ品質バーを表示",
       "subtitle": "プレイヤーバー下に技術詳細（kHz、kbps、コーデック、ビット深度）を表示。スリムなバーを保つため既定でオフ。"
+    },
+    "appearance": {
+      "theme": {
+        "title": "テーマ",
+        "subtitle": "気分を選んでください — テーマを変えると即座に全体が再彩色されます。"
+      },
+      "mode": {
+        "light": "ライト",
+        "dark": "ダーク"
+      },
+      "themes": {
+        "default": "エメラルド・ライト",
+        "defaultDark": "エメラルド",
+        "oled": "OLED",
+        "midnight": "ミッドナイト",
+        "forest": "フォレスト",
+        "sunset": "サンセット",
+        "lavender": "ラベンダー",
+        "crimson": "クリムゾン",
+        "ocean": "オーシャン",
+        "neon": "ネオン"
+      }
     }
   },
   "scanProgress": {

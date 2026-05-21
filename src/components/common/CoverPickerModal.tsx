@@ -3,6 +3,10 @@ import { useTranslation } from "react-i18next";
 import { ImageIcon, FolderOpen, Search, Loader2 } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import {
+  AnimatedModalContent,
+  AnimatedModalShell,
+} from "./AnimatedModalShell";
+import {
   searchAlbumsDeezer,
   setAlbumArtworkFromDeezer,
   setAlbumArtworkFromFile,
@@ -76,7 +80,6 @@ export function CoverPickerModal({
     };
   }, [query, tab, isOpen]);
 
-  if (!isOpen) return null;
 
   const handlePickDeezer = async (album: DeezerAlbumLite) => {
     if (isApplying) return;
@@ -116,17 +119,13 @@ export function CoverPickerModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-100 bg-black/80 flex items-center justify-center animate-fade-in p-4"
-      onClick={onClose}
-    >
-      <div
+    <AnimatedModalShell isOpen={isOpen} onBackdropClick={onClose}>
+      <AnimatedModalContent
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="cover-picker-title"
-        className="relative w-full max-w-2xl rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated animate-fade-in max-h-[90vh] overflow-hidden flex flex-col"
-        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-2xl rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated max-h-[90vh] overflow-hidden flex flex-col"
       >
         <h2
           id="cover-picker-title"
@@ -255,7 +254,7 @@ export function CoverPickerModal({
             {t("common.cancel")}
           </button>
         </div>
-      </div>
-    </div>
+      </AnimatedModalContent>
+    </AnimatedModalShell>
   );
 }

@@ -1102,6 +1102,7 @@
     "title": "Configuración",
     "sections": {
       "general": "General",
+      "appearance": "Apariencia",
       "playback": "Reproducción",
       "integrations": "Integraciones",
       "storage": "Almacenamiento y datos",
@@ -1333,6 +1334,28 @@
     "showAudioQualityFooter": {
       "title": "Mostrar tira de calidad de audio",
       "subtitle": "Detalles técnicos (kHz, kbps, códec, profundidad) bajo la barra de reproducción. Desactivado por defecto para una barra más fina."
+    },
+    "appearance": {
+      "theme": {
+        "title": "Tema",
+        "subtitle": "Elige un ambiente — cambiar el tema vuelve a tintar la app al instante."
+      },
+      "mode": {
+        "light": "Claro",
+        "dark": "Oscuro"
+      },
+      "themes": {
+        "default": "Esmeralda Claro",
+        "defaultDark": "Esmeralda",
+        "oled": "OLED",
+        "midnight": "Medianoche",
+        "forest": "Bosque",
+        "sunset": "Atardecer",
+        "lavender": "Lavanda",
+        "crimson": "Carmesí",
+        "ocean": "Océano",
+        "neon": "Neón"
+      }
     }
   },
   "scanProgress": {

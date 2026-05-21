@@ -7,7 +7,6 @@ import {
   useRef,
 } from "react";
 import type { ViewId, LibraryTab } from "../../types";
-import { useTheme } from "../../hooks/useTheme";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
 import { usePlayer } from "../../hooks/usePlayer";
@@ -18,6 +17,7 @@ import { useGlobalShortcuts } from "../../hooks/useGlobalShortcuts";
 import { useUiZoom } from "../../hooks/useUiZoom";
 import { useTranslation } from "react-i18next";
 import { Loader2, Upload } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { TopBar } from "./TopBar";
 import { QueuePanel } from "./QueuePanel";
 import { NowPlayingPanel } from "./NowPlayingPanel";
@@ -124,7 +124,6 @@ type HistoryEntry =
 
 export function AppLayout() {
   const { t } = useTranslation();
-  const { isDark } = useTheme();
   const { activeRightPanel } = usePlayer();
   const dragDrop = useDragDropImport();
   // Global keyboard shortcuts. The hook itself attaches the keydown
@@ -422,8 +421,8 @@ export function AppLayout() {
   }
 
   return (
-    <div className={`flex flex-col h-screen font-sans ${isDark ? "dark" : ""}`}>
-      <div className="flex flex-col h-screen bg-white text-zinc-600 dark:bg-surface-dark dark:text-zinc-300 relative">
+    <div className="flex flex-col h-screen font-sans">
+      <div className="flex flex-col h-screen bg-app-ambient text-zinc-600 dark:text-zinc-300 relative">
         {/* Drag-and-drop overlay — fades in while the user is dragging
             files over the window, and shows an "importing…" state while
             the backend scan runs. Pointer-events disabled so the drop
@@ -488,7 +487,22 @@ export function AppLayout() {
                     </div>
                   }
                 >
-                  {renderView()}
+                  {/* Crossfade + slight slide between views. Keyed on
+                      the structural view id (album/artist/genre/playlist
+                      keep a single key so the inner view handles its own
+                      internal navigation — re-keying on every payload
+                      change would jank the transition). */}
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={activeView}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.18, ease: "easeOut" }}
+                    >
+                      {renderView()}
+                    </motion.div>
+                  </AnimatePresence>
                 </Suspense>
               </PageScrollContext.Provider>
             </div>
@@ -506,12 +520,16 @@ export function AppLayout() {
           {/* Right Panels — siblings of the center column so opening
               one shrinks the content area instead of overlapping it
               (Spotify-style responsive layout). Only one is mounted at
-              a time; the conditional render is the structural mutex. */}
-          {activeRightPanel === "queue" && <QueuePanel />}
-          {activeRightPanel === "nowPlaying" && (
-            <NowPlayingPanel onNavigateToArtist={navigateToArtist} />
-          )}
-          {activeRightPanel === "lyrics" && <LyricsPanel />}
+              a time; the conditional render is the structural mutex.
+              Wrapped in AnimatePresence so width/opacity exit animations
+              play before unmount. */}
+          <AnimatePresence initial={false}>
+            {activeRightPanel === "queue" && <QueuePanel />}
+            {activeRightPanel === "nowPlaying" && (
+              <NowPlayingPanel onNavigateToArtist={navigateToArtist} />
+            )}
+            {activeRightPanel === "lyrics" && <LyricsPanel />}
+          </AnimatePresence>
         </div>
 
         {/* Bottom Player Bar */}

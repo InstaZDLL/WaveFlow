@@ -1102,6 +1102,7 @@
     "title": "Impostazioni",
     "sections": {
       "general": "Informazioni generali",
+      "appearance": "Aspetto",
       "playback": "Riproduzione",
       "integrations": "Integrazioni",
       "storage": "Archiviazione e dati",
@@ -1333,6 +1334,28 @@
     "showAudioQualityFooter": {
       "title": "Mostra la striscia di qualità audio",
       "subtitle": "Dettagli tecnici (kHz, kbps, codec, profondità) sotto la player bar. Disattivato di default per una barra più sottile."
+    },
+    "appearance": {
+      "theme": {
+        "title": "Tema",
+        "subtitle": "Scegli un'atmosfera — cambiare tema ritinge l'intera app istantaneamente."
+      },
+      "mode": {
+        "light": "Chiaro",
+        "dark": "Scuro"
+      },
+      "themes": {
+        "default": "Smeraldo Chiaro",
+        "defaultDark": "Smeraldo",
+        "oled": "OLED",
+        "midnight": "Mezzanotte",
+        "forest": "Foresta",
+        "sunset": "Tramonto",
+        "lavender": "Lavanda",
+        "crimson": "Cremisi",
+        "ocean": "Oceano",
+        "neon": "Neon"
+      }
     }
   },
   "scanProgress": {

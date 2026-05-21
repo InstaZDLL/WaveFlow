@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 
 /**
@@ -103,16 +104,19 @@ export function ContextMenu({
   }, [onClose]);
 
   return (
-    <div
+    <motion.div
       ref={ref}
       data-context-menu
       role="menu"
       style={pos}
-      className="z-100 rounded-lg border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-black/60 py-1 text-sm animate-fade-in"
+      initial={{ opacity: 0, scale: 0.96, y: 4 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 520, damping: 32, mass: 0.45 }}
+      className="z-100 rounded-lg border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-black/60 py-1 text-sm"
       onContextMenu={(e) => e.preventDefault()}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }
 
@@ -265,17 +269,20 @@ export function ContextMenuSub({
         <ChevronRight size={14} className="text-zinc-400" />
       </button>
       {open && (
-        <div
+        <motion.div
           ref={subRef}
           data-context-menu
           role="menu"
           style={subPos}
-          className="z-101 rounded-lg border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-black/60 py-1 animate-fade-in"
+          initial={{ opacity: 0, scale: 0.96, x: -4 }}
+          animate={{ opacity: 1, scale: 1, x: 0 }}
+          transition={{ type: "spring", stiffness: 520, damping: 32, mass: 0.45 }}
+          className="z-101 rounded-lg border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-black/60 py-1"
           onMouseEnter={cancelClose}
           onMouseLeave={scheduleClose}
         >
           {children}
-        </div>
+        </motion.div>
       )}
     </div>
   );

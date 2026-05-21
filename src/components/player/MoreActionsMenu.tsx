@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AnimatePresence, motion } from "framer-motion";
 import { MoreHorizontal, Moon, X } from "lucide-react";
 
 import type { SleepTimerStatus } from "../../hooks/useSleepTimer";
@@ -132,12 +133,18 @@ export function MoreActionsMenu({
         )}
       </button>
 
-      {isOpen && (
-        <div
-          role="dialog"
-          aria-label={t("playerBar.moreActions")}
-          className="absolute bottom-full right-0 mb-3 w-72 p-1 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl z-50"
-        >
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            role="dialog"
+            aria-label={t("playerBar.moreActions")}
+            initial={{ opacity: 0, scale: 0.96, y: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.97, y: 4 }}
+            transition={{ type: "spring", stiffness: 480, damping: 30, mass: 0.5 }}
+            style={{ transformOrigin: "bottom right" }}
+            className="absolute bottom-full right-0 mb-3 w-72 p-1 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl z-50"
+          >
           {showSpeed && (
             <div className="px-3 py-2 space-y-2">
               <div className="flex items-center justify-between">
@@ -269,8 +276,9 @@ export function MoreActionsMenu({
               </form>
             </div>
           )}
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

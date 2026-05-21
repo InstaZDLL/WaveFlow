@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AnimatePresence, motion } from "framer-motion";
 import { Moon, X } from "lucide-react";
 
 import type { SleepTimerStatus } from "../../hooks/useSleepTimer";
@@ -109,11 +110,17 @@ export function SleepTimerMenu({
         )}
       </button>
 
-      {isOpen && (
-        <div
-          role="menu"
-          className="absolute bottom-full right-0 mb-2 w-64 p-3 rounded-2xl shadow-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 z-50 space-y-3"
-        >
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            role="menu"
+            initial={{ opacity: 0, scale: 0.96, y: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.97, y: 4 }}
+            transition={{ type: "spring", stiffness: 480, damping: 30, mass: 0.5 }}
+            style={{ transformOrigin: "bottom right" }}
+            className="absolute bottom-full right-0 mb-2 w-64 p-3 rounded-2xl shadow-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 z-50 space-y-3"
+          >
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">
               {t("sleepTimer.title")}
@@ -172,8 +179,9 @@ export function SleepTimerMenu({
               {t("sleepTimer.start")}
             </button>
           </form>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

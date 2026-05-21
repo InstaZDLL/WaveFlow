@@ -1101,6 +1101,7 @@
     "title": "設定",
     "sections": {
       "general": "概述",
+      "appearance": "外觀",
       "playback": "播放",
       "integrations": "整合",
       "storage": "儲存與資料",
@@ -1332,6 +1333,28 @@
     "showAudioQualityFooter": {
       "title": "顯示音訊品質列",
       "subtitle": "在播放列下方顯示技術詳情（kHz、kbps、編解碼、位元深度）。為保持播放列輕巧，預設關閉。"
+    },
+    "appearance": {
+      "theme": {
+        "title": "主題",
+        "subtitle": "選擇氛圍——切換主題會立即重新染色整個應用程式。"
+      },
+      "mode": {
+        "light": "淺色",
+        "dark": "深色"
+      },
+      "themes": {
+        "default": "祖母綠 淺色",
+        "defaultDark": "祖母綠",
+        "oled": "OLED",
+        "midnight": "午夜",
+        "forest": "森林",
+        "sunset": "日落",
+        "lavender": "薰衣草",
+        "crimson": "深紅",
+        "ocean": "海洋",
+        "neon": "霓虹"
+      }
     }
   },
   "scanProgress": {

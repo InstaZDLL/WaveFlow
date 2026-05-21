@@ -1101,6 +1101,7 @@
     "title": "Ayarlar",
     "sections": {
       "general": "Genel",
+      "appearance": "Görünüm",
       "playback": "Oynatma",
       "integrations": "Entegrasyonlar",
       "storage": "Depolama ve Veri",
@@ -1332,6 +1333,28 @@
     "showAudioQualityFooter": {
       "title": "Ses kalitesi şeridini göster",
       "subtitle": "Teknik ayrıntılar (kHz, kbps, codec, bit derinliği) oynatıcı çubuğunun altında. Daha ince bir çubuk için varsayılan olarak kapalı."
+    },
+    "appearance": {
+      "theme": {
+        "title": "Tema",
+        "subtitle": "Bir hava seçin — temayı değiştirmek uygulamayı anında yeniden renklendirir."
+      },
+      "mode": {
+        "light": "Açık",
+        "dark": "Koyu"
+      },
+      "themes": {
+        "default": "Zümrüt Açık",
+        "defaultDark": "Zümrüt",
+        "oled": "OLED",
+        "midnight": "Gece Yarısı",
+        "forest": "Orman",
+        "sunset": "Gün Batımı",
+        "lavender": "Lavanta",
+        "crimson": "Koyu Kırmızı",
+        "ocean": "Okyanus",
+        "neon": "Neon"
+      }
     }
   },
   "scanProgress": {

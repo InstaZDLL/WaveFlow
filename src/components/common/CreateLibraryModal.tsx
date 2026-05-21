@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Library, Plus, Check } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import {
+  AnimatedModalContent,
+  AnimatedModalShell,
+} from "./AnimatedModalShell";
 
 type ModalMode = "create" | "edit";
 
@@ -52,8 +56,6 @@ export function CreateLibraryModal({
   // Modal a11y: Escape close, focus trap, focus restore on close.
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
-  if (!isOpen) return null;
-
   const canSubmit = name.trim().length > 0;
   const displayName = name.trim() || t("libraryModal.previewDefault");
   const titleKey =
@@ -75,17 +77,13 @@ export function CreateLibraryModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-100 bg-black/80 flex items-center justify-center animate-fade-in p-4"
-      onClick={onClose}
-    >
-      <div
+    <AnimatedModalShell isOpen={isOpen} onBackdropClick={onClose}>
+      <AnimatedModalContent
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="library-modal-title"
-        className="relative w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated animate-fade-in"
-        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-md rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated"
       >
         <h2
           id="library-modal-title"
@@ -174,7 +172,7 @@ export function CreateLibraryModal({
             <span>{t(submitKey)}</span>
           </button>
         </div>
-      </div>
-    </div>
+      </AnimatedModalContent>
+    </AnimatedModalShell>
   );
 }
