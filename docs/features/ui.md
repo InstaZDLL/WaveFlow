@@ -167,7 +167,14 @@ Per-profile isolated database (libraries, playlists, settings, play history); sh
 
 - The `profile` table lives in `app.db` along with `app_setting['app.last_profile_id']`.
 - Boot flow: if no profiles exist, create "Default"; otherwise activate `last_profile_id`, falling back to the most-recently-used profile if it points to a deleted row.
-- Profile switch closes the current per-profile pool and opens the new one — UI reactively re-fetches via every `*Provider` watching `activeProfile.id`.
+- Profile switch closes the current per-profile pool and opens the new one — UI reactively re-fetches via every `*Provider` watching `activeProfile.id`. [`LibraryContext`](../../src/contexts/LibraryContext.tsx) also exposes `loadedProfileId` (the id its `libraries` array was last fetched for) so consumers like the onboarding gate in [`AppLayout`](../../src/components/layout/AppLayout.tsx) wait for a fresh fetch instead of evaluating against the previous profile's data. `refresh()` snapshots the active profile id before its `await` and drops late writes when the user has since switched.
+
+### Create / delete
+
+[`ProfileSelectorModal`](../../src/components/common/ProfileSelectorModal.tsx) hosts the lifecycle:
+
+- **Create** → "+" tile in the select view → name + colour picker → backend [`create_profile`](../../src-tauri/src/commands/profile.rs) reserves the row, materialises `profiles/<id>/`, and runs the initial migration. The freshly-created profile is auto-activated.
+- **Delete** → Netflix-style "Manage" toggle (pencil ↔ check) in the top-left corner reveals a red trash badge on every non-active profile; tapping it opens a destructive confirmation view. Backend [`delete_profile`](../../src-tauri/src/commands/profile.rs) refuses the active profile and the last remaining profile. The guard is **atomic**: a single SQL statement (`DELETE FROM profile WHERE id = ? AND (SELECT COUNT(*) FROM profile) > 1`) couples the "must not be last" predicate with the mutation so two concurrent deletes can never empty the table. Disambiguation between "not found" and "last profile" is handled on the failure path. After the row is removed, `profiles/<id>/` is wiped from disk and `app.last_profile_id` is cleared if it pointed to the deleted profile.
 
 ### Export / import (`.waveflow` archive)
 
@@ -188,11 +195,42 @@ Opt-in scheduled mirror of the manual export so the user's playlists / likes / r
 - **Failure isolation:** per-profile errors are logged but don't abort the pass — one corrupt profile shouldn't block backups of the healthy ones.
 - **Commands** in [`commands/backup.rs`](../../src-tauri/src/commands/backup.rs): `get_backup_config`, `set_backup_config` (also signals the loop), `run_backup_now`. UI is [`BackupCard`](../../src/components/views/settings/BackupCard.tsx) in Settings → Stockage right after the manual export/import.
 
+## Settings categories
+
+[`SettingsView`](../../src/components/views/SettingsView.tsx) is split into seven Lokal-style horizontal tabs rendered as a proper ARIA `role="tablist"` at the top of the page (keyboard-navigable, `aria-selected` per panel):
+
+| Tab            | Houses                                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------------ |
+| `library`      | Library folders, scan-on-start, file watcher                                                           |
+| `playback`     | EQ, crossfade, ReplayGain, normalisation, WASAPI exclusive, mono                                       |
+| `integrations` | Last.fm, Discord RPC, Deezer enrichment, DLNA media server                                             |
+| `appearance`   | Theme, accent colour, language, zoom, immersive layout                                                 |
+| `data`         | Profile export / import, auto-backup, statistics export, offline                                       |
+| `shortcuts`    | Per-action keyboard rebinder ([`ShortcutsCard`](../../src/components/views/settings/ShortcutsCard.tsx)) |
+| `diagnostics`  | Log folder reveal, recent log tail, app info                                                           |
+
+Only one panel mounts at a time, so heavy sub-views (EQ visualiser, backup card, shortcuts editor) don't run their effects until the user opens that tab.
+
 ## Onboarding
 
-[`OnboardingModal`](../../src/components/common/OnboardingModal.tsx) prompts new profiles to point at a music folder. The decision is **latched once per profile** via `profile_setting['onboarding.dismissed']`, so the modal never reappears after a "configure later" choice — even if the library stays empty.
+[`OnboardingModal`](../../src/components/common/OnboardingModal.tsx) walks new profiles through a Lokal-style multi-step wizard. Steps in order:
 
-The modal only appears when the profile is fully resolved AND the library is empty AND the flag isn't set, preventing flashes during boot transitions.
+1. **welcome** — branding + privacy pitch.
+2. **language** — picker over [`SUPPORTED_LANGUAGES`](../../src/i18n/index.ts); persists immediately so the rest of the wizard renders in the chosen locale.
+3. **localOnly** — explainer that the library never leaves the device unless the user opts into Last.fm / Discord later.
+4. **folder** — calls [`pickFolder`](../../src/lib/tauri/dialog.ts) to select a music root and creates the first library entry.
+5. **lastfm** — optional Last.fm API key + secret pairing (skippable). Status lives in [`integration.rs`](../../src-tauri/src/commands/integration.rs).
+6. **scan** — kicks off the initial scan and surfaces progress.
+7. **done** — success state with a "Open the app" button.
+
+The decision is **latched once per profile** via `profile_setting['onboarding.dismissed']`, so the wizard never reappears after a "configure later" / completed run — even if the library stays empty.
+
+The modal only opens when:
+
+- the profile is fully resolved (no boot-time flicker),
+- the [`LibraryContext`](../../src/contexts/LibraryContext.tsx) has refetched **for the new profile id** (`loadedProfileId === activeProfile.id`), so a switch from a populated profile to a brand-new empty one is detected with the new profile's data instead of the previous closure,
+- the library is empty,
+- `onboarding.dismissed` isn't set for this profile.
 
 ## Auto-updater
 
