@@ -11,7 +11,7 @@
   },
   "lastfmReauth": {
     "title": "Session Last.fm expirée",
-    "message": "Tes scrobbles ne sont plus envoyés. Reconnecte-toi pour reprendre.",
+    "message": "Vos scrobbles ne sont plus envoyés. Reconnectez-vous pour reprendre.",
     "action": "Ouvrir les paramètres"
   },
   "updater": {
@@ -36,21 +36,21 @@
     "defaultLibraryName": "Musique",
     "welcome": {
       "title": "Bienvenue dans WaveFlow",
-      "description": "Ton lecteur musical local-first. Profite de toute ta bibliothèque sans abonnement streaming."
+      "description": "Votre lecteur musical local-first. Profitez de toute votre bibliothèque sans abonnement streaming."
     },
     "localOnly": {
       "title": "Important : musique locale uniquement",
-      "description": "WaveFlow n'est PAS un service de streaming. Il joue les fichiers déjà présents sur ton appareil.",
-      "calloutTitle": "Ce que tu dois savoir",
-      "bulletOwn": "Apporte ta propre bibliothèque (MP3, FLAC, ALAC, OGG, DSD…)",
-      "bulletImport": "Importe un dossier ou glisse-dépose des fichiers",
-      "bulletScrobble": "Connecte Last.fm pour scrobbler tes écoutes en arrière-plan"
+      "description": "WaveFlow n'est PAS un service de streaming. Il joue les fichiers déjà présents sur votre appareil.",
+      "calloutTitle": "Ce que vous devez savoir",
+      "bulletOwn": "Apportez votre propre bibliothèque (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletImport": "Importez un dossier ou glissez-déposez des fichiers",
+      "bulletScrobble": "Connectez Last.fm pour scrobbler vos écoutes en arrière-plan"
     },
     "folder": {
-      "title": "Choisis ton dossier musical",
-      "description": "Indique où sont stockés tes fichiers. WaveFlow va scanner et organiser ta bibliothèque.",
-      "placeholder": "Clique pour choisir ton dossier de musique",
-      "changeHint": "Clique pour changer de dossier",
+      "title": "Choisissez votre dossier musical",
+      "description": "Indiquez où sont stockés vos fichiers. WaveFlow va scanner et organiser votre bibliothèque.",
+      "placeholder": "Cliquez pour choisir votre dossier de musique",
+      "changeHint": "Cliquez pour changer de dossier",
       "quickSettings": "Réglages rapides",
       "autoAnalyze": {
         "title": "Auto-analyse des morceaux",
@@ -59,38 +59,38 @@
     },
     "lastfm": {
       "title": "Connecte Last.fm",
-      "description": "Le scrobbling envoie tes écoutes à ton profil Last.fm. Tu reçois en retour des bios d'artistes et des suggestions similaires directement dans l'app.",
+      "description": "Le scrobbling envoie vos écoutes à votre profil Last.fm. Vous recevez en retour des bios d'artistes et des suggestions similaires directement dans l'app.",
       "recommendedBadge": "Recommandé",
-      "keyHint": "Crée une clé API sur Last.fm",
+      "keyHint": "Créez une clé API sur Last.fm",
       "keyLabel": "Clé API",
-      "keyPlaceholder": "Ta clé API Last.fm",
+      "keyPlaceholder": "Votre clé API Last.fm",
       "secretLabel": "Secret partagé",
-      "secretPlaceholder": "Ton secret partagé",
+      "secretPlaceholder": "Votre secret partagé",
       "userLabel": "Nom d'utilisateur Last.fm",
-      "userPlaceholder": "ton-pseudo",
+      "userPlaceholder": "votre-pseudo",
       "passwordLabel": "Mot de passe",
-      "passwordPlaceholder": "Ton mot de passe Last.fm",
+      "passwordPlaceholder": "Votre mot de passe Last.fm",
       "toggleSecret": "Afficher/Masquer le secret",
       "togglePassword": "Afficher/Masquer le mot de passe",
       "connect": "Connecter Last.fm",
       "missingFields": "Renseigne la clé, le secret, le nom d'utilisateur et le mot de passe.",
       "connectedTitle": "Connecté en tant que {{user}}",
-      "connectedSubtitle": "Le scrobbling démarre automatiquement quand tu lis un morceau."
+      "connectedSubtitle": "Le scrobbling démarre automatiquement quand vous lisez un morceau."
     },
     "scan": {
-      "title": "Scanner ta bibliothèque",
-      "description": "Prêt à analyser ton dossier et découvrir tes morceaux ?",
+      "title": "Scanner votre bibliothèque",
+      "description": "Prêt à analyser votre dossier et découvrir vos morceaux ?",
       "noFolder": "Aucun dossier sélectionné",
-      "readyHint": "Ton dossier est configuré. Lance le scan dès que tu es prêt.",
-      "scanning": "Analyse de ta bibliothèque…",
+      "readyHint": "Votre dossier est configuré. Lancez le scan dès que vous êtes prêt.",
+      "scanning": "Analyse de votre bibliothèque…",
       "errorTitle": "Le scan a échoué"
     },
     "done": {
       "title": "C'est prêt !",
-      "description": "Ta bibliothèque est scannée et prête à jouer.",
+      "description": "Votre bibliothèque est scannée et prête à jouer.",
       "nextSteps": "Pour aller plus loin :",
-      "bulletExplore": "Explore ta lib via les onglets Bibliothèque, Albums et Artistes",
-      "bulletQueue": "Crée ta première file d'attente en cliquant sur un morceau",
+      "bulletExplore": "Explorez votre bibliothèque via les onglets Bibliothèque, Albums et Artistes",
+      "bulletQueue": "Créez votre première file d'attente en cliquant sur un morceau",
       "bulletSettings": "Affine les réglages dans la barre latérale (Apparence, Intégrations…)"
     },
     "actions": {
@@ -105,10 +105,10 @@
       "startListening": "Commencer à écouter"
     },
     "language": {
-      "title": "Choisis ta langue",
-      "description": "WaveFlow est traduit dans 17 langues. On a présélectionné celle de ton système — change-la si on s'est trompé.",
-      "detected": "Détectée depuis ton système",
-      "fallback": "Impossible de détecter la langue de ton système, on a basculé sur l'anglais par défaut. Choisis la tienne ci-dessous."
+      "title": "Choisissez votre langue",
+      "description": "WaveFlow est traduit dans 17 langues. Nous avons présélectionné celle de votre système — changez-la si nous nous sommes trompés.",
+      "detected": "Détectée depuis votre système",
+      "fallback": "Impossible de détecter la langue de votre système, nous avons basculé sur l'anglais par défaut. Choisissez la vôtre ci-dessous."
     }
   },
   "sidebar": {
@@ -145,7 +145,7 @@
         "new": "Nouvelle"
       },
       "nav": {
-        "tracks": "Morceaux",
+        "tracks": "Titres",
         "albums": "Albums",
         "artists": "Artistes",
         "genres": "Genres",
@@ -166,7 +166,7 @@
     "myMusic": {
       "title": "Ma musique",
       "addFolderAria": "Importer un dossier",
-      "tracks": "Morceaux",
+      "tracks": "Titres",
       "albums": "Albums",
       "artists": "Artistes",
       "genres": "Genres",
@@ -227,9 +227,9 @@
       "subtitle": "Découvrez votre musique préférée et explorez de nouveaux sons.",
       "openFile": "Ouvrir un fichier",
       "openFolder": "Ouvrir un dossier",
-      "importFiles": "Import fichiers",
+      "importFiles": "Importer des fichiers",
       "importFolder": "Importer un dossier",
-      "browseLibrary": "Parcourir ma bibliothèque"
+      "browseLibrary": "Parcourir votre bibliothèque"
     },
     "stats": {
       "library": "Bibliothèque",
@@ -278,7 +278,7 @@
       "regenerate": "Régénérer",
       "regenerating": "Génération…",
       "emptyTitle": "Pas encore de Daily Mix",
-      "emptyDescription": "Écoute quelques morceaux puis clique sur Régénérer pour créer tes mixes personnalisés.",
+      "emptyDescription": "Écoutez quelques morceaux puis cliquez sur Régénérer pour créer vos mixes personnalisés.",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} morceau",
       "trackCount_other": "{{count}} morceaux"
@@ -295,25 +295,25 @@
     "header": {
       "addFolder": "Ajouter un dossier",
       "subtext": {
-        "morceaux_zero": "0 Morceau",
-        "morceaux_one": "{{count}} Morceau",
-        "morceaux_other": "{{count}} Morceaux",
-        "albums_zero": "0 Album",
-        "albums_one": "{{count}} Album",
-        "albums_other": "{{count}} Albums",
-        "artistes_zero": "0 Artiste",
-        "artistes_one": "{{count}} Artiste",
-        "artistes_other": "{{count}} Artistes",
-        "genres_zero": "0 Genre",
-        "genres_one": "{{count}} Genre",
-        "genres_other": "{{count}} Genres",
-        "dossiers_zero": "0 Dossier",
-        "dossiers_one": "{{count}} Dossier",
-        "dossiers_other": "{{count}} Dossiers"
+        "morceaux_zero": "0 titre",
+        "morceaux_one": "{{count}} titre",
+        "morceaux_other": "{{count}} titres",
+        "albums_zero": "0 album",
+        "albums_one": "{{count}} album",
+        "albums_other": "{{count}} albums",
+        "artistes_zero": "0 artiste",
+        "artistes_one": "{{count}} artiste",
+        "artistes_other": "{{count}} artistes",
+        "genres_zero": "0 genre",
+        "genres_one": "{{count}} genre",
+        "genres_other": "{{count}} genres",
+        "dossiers_zero": "0 dossier",
+        "dossiers_one": "{{count}} dossier",
+        "dossiers_other": "{{count}} dossiers"
       }
     },
     "tabs": {
-      "morceaux": "Morceaux",
+      "morceaux": "Titres",
       "albums": "Albums",
       "artistes": "Artistes",
       "genres": "Genres",
@@ -404,7 +404,7 @@
       "watchOn": "Surveiller automatiquement les changements",
       "watchOff": "Arrêter la surveillance",
       "remove": "Retirer le dossier de la bibliothèque",
-      "removeConfirm": "Cliquer à nouveau pour confirmer"
+      "removeConfirm": "Cliquez à nouveau pour confirmer"
     }
   },
   "liked": {
@@ -428,7 +428,7 @@
     "loadingMore": "Chargement…",
     "endReached": "Début de l'historique",
     "emptyTitle": "Aucune écoute pour le moment",
-    "emptyDescription": "Lance un titre — il apparaîtra ici dès qu'il sera comptabilisé.",
+    "emptyDescription": "Lancez un titre — il apparaîtra ici dès qu'il sera comptabilisé.",
     "shownCount_one": "{{count}} écoute affichée",
     "shownCount_other": "{{count}} écoutes affichées",
     "plays_one": "{{count}} écoute",
@@ -559,10 +559,10 @@
       "loudness": "Loudness moyen : {{lufs}} LUFS",
       "energy": {
         "chill": "Chill",
-        "warm": "Warm",
+        "warm": "Chaleureux",
         "groove": "Groove",
         "energetic": "Énergique",
-        "fire": "Feu"
+        "fire": "Intense"
       }
     },
     "clock": {
@@ -614,8 +614,8 @@
     },
     "shortcuts": {
       "playPause": "Lecture / Pause",
-      "previousTrack": "Morceau précédent",
-      "nextTrack": "Morceau suivant",
+      "previousTrack": "Titre précédent",
+      "nextTrack": "Titre suivant",
       "volume": "Volume",
       "mute": "Couper le son",
       "keys": {
@@ -669,12 +669,12 @@
       "title": "Vitesse de lecture",
       "slider": "Curseur de vitesse",
       "custom": "Vitesse personnalisée",
-      "pitchHint": "Le ton suit la vitesse (pas de désynchronisation tonale)."
+      "pitchHint": "Le ton suit la vitesse (pas d'étirement temporel)."
     },
     "seek": "Position"
   },
   "queue": {
-    "title": "File de lecture",
+    "title": "File d'attente",
     "inactive": "INACTIF",
     "count_zero": "0 morceau",
     "count_one": "{{count}} morceau",
@@ -692,7 +692,7 @@
   },
   "spotifyQueue": {
     "emptyHint": "Rien dans la file Spotify pour le moment.",
-    "readonlyHint": "File en lecture seule — modifie la depuis l'app Spotify."
+    "readonlyHint": "File en lecture seule — modifiez-la depuis l'app Spotify."
   },
   "deviceMenu": {
     "activeLabel": "Sortie active",
@@ -703,7 +703,7 @@
   "profiles": {
     "select": {
       "title": "Qui écoute ?",
-      "subtitle": "Sélectionne ton profil pour retrouver tes bibliothèques et playlists",
+      "subtitle": "Sélectionnez votre profil pour retrouver vos bibliothèques et playlists",
       "add": "Ajouter",
       "edit": "Modifier",
       "active": "Profil actif",
@@ -711,7 +711,7 @@
     },
     "create": {
       "title": "Nouveau profil",
-      "subtitle": "Crée un profil pour personnaliser ton expérience",
+      "subtitle": "Créez un profil pour personnaliser votre expérience",
       "nameLabel": "Nom du profil",
       "namePlaceholder": "Entrer un nom...",
       "colorLabel": "Couleur du profil",
@@ -770,16 +770,16 @@
       "dialogTitle": "Exporter la playlist en M3U"
     },
     "emptyTitle": "Cette playlist est vide",
-    "emptyDescription": "Ajoute des morceaux depuis tes bibliothèques via le bouton + de chaque ligne.",
+    "emptyDescription": "Ajoutez des morceaux depuis vos bibliothèques via le bouton + de chaque ligne.",
     "noneTitle": "Aucune playlist sélectionnée",
-    "noneDescription": "Choisis une playlist dans la barre latérale pour la voir ici.",
+    "noneDescription": "Choisissez une playlist dans la barre latérale pour la voir ici.",
     "notFoundTitle": "Playlist introuvable",
     "notFoundDescription": "Cette playlist n'existe plus dans le profil actif.",
     "smartLabel": "Daily Mix"
   },
   "trackActions": {
     "addToPlaylist": "Ajouter à une playlist",
-    "noPlaylists": "Aucune playlist. Crée-en une ci-dessous.",
+    "noPlaylists": "Aucune playlist. Créez-en une ci-dessous.",
     "createPlaylist": "Nouvelle playlist",
     "playNext": "Lire la suite",
     "addToQueue": "Ajouter à la file d'attente",
@@ -941,12 +941,12 @@
     "aboutArtist": "À propos de l'artiste",
     "readMore": "Lire la suite",
     "readLess": "Réduire",
-    "noBio": "Aucune biographie disponible. Configure ta clé Last.fm dans les paramètres.",
+    "noBio": "Aucune biographie disponible. Configurez votre clé Last.fm dans les paramètres.",
     "nextInQueue": "Suivant dans la file",
     "openQueue": "Ouvrir la file",
     "lyrics": {
       "title": "Paroles",
-      "comingSoon": "Bientôt disponible"
+      "comingSoon": "Bientôt"
     },
     "startRadio": "Démarrer la radio",
     "share": {
@@ -962,8 +962,8 @@
     "nowPlaying": "Vue en cours de lecture",
     "queue": "File d'attente",
     "miniPlayer": "Mini-lecteur (toujours au-dessus)",
-    "previous": "Piste précédente",
-    "next": "Piste suivante",
+    "previous": "Titre précédent",
+    "next": "Titre suivant",
     "openFullscreen": "Vue immersive",
     "devices": "Périphériques de sortie",
     "moreActions": "Plus d'actions",
@@ -991,7 +991,7 @@
     "title": "Paroles",
     "loading": "Recherche des paroles…",
     "noTrack": "Aucun titre en cours",
-    "notFound": "Aucune parole trouvée pour ce titre. Tu peux importer un fichier .lrc.",
+    "notFound": "Aucune parole trouvée pour ce titre. Vous pouvez importer un fichier .lrc.",
     "importTitle": "Importer un fichier .lrc",
     "actions": {
       "import": "Importer un fichier .lrc",
@@ -1033,7 +1033,7 @@
       "bpm": "BPM",
       "durationMin": "Durée en minutes",
       "hiRes": "Hi-Res uniquement",
-      "liked": "Titres aimés uniquement",
+      "liked": "Titres likés uniquement",
       "minRating": "Note minimum",
       "formats": "Formats",
       "genres": "Genres",
@@ -1062,7 +1062,7 @@
     },
     "tree": {
       "sectionTitle": "Règles",
-      "sectionHint": "Combine des conditions avec ET / OU / NON. Cliquer sur ET ou OU pour basculer l'opérateur du groupe.",
+      "sectionHint": "Combinez des conditions avec ET / OU / NON. Cliquez sur ET ou OU pour basculer l'opérateur du groupe.",
       "and": "ET",
       "or": "OU",
       "not": "NON",
@@ -1103,7 +1103,7 @@
     "summary": "{{groups}} groupes · {{duplicates}} doublons à supprimer",
     "scanning": "Recherche en cours…",
     "empty": "Aucun doublon",
-    "emptyHint": "Ta bibliothèque est propre.",
+    "emptyHint": "Votre bibliothèque est propre.",
     "rescan": "Relancer",
     "deleteOthers_zero": "Rien à supprimer",
     "deleteOthers_one": "Supprimer {{count}} doublon",
@@ -1129,7 +1129,7 @@
     "plainPlaceholder": "Saisis les paroles ligne par ligne…",
     "linePlaceholder": "Texte de la ligne",
     "capture": "Capturer",
-    "captureHint": "Lance la lecture puis appuie sur Espace (ou Capturer) pour caler la ligne courante au temps actuel",
+    "captureHint": "Lancez la lecture puis appuyez sur Espace (ou Capturer) pour caler la ligne courante au temps actuel",
     "captureNow": "Capturer maintenant",
     "recapture": "Recaler sur la position actuelle",
     "seekToLine": "Aller à ce passage",
@@ -1163,7 +1163,7 @@
     "menuTitle": "Trier par",
     "name": "Nom",
     "albumsCount": "Nb albums",
-    "tracksCount": "Nb morceaux",
+    "tracksCount": "Nb titres",
     "ascending": "Croissant",
     "descending": "Décroissant",
     "filename": "Nom de fichier"
@@ -1185,7 +1185,7 @@
     "appearance": {
       "placeholder": {
         "title": "Le sélecteur de thèmes arrive en v1.3",
-        "subtitle": "10 presets (Émeraude, Minuit, OLED, Forêt, Coucher de soleil…) avec accent re-tinté sur toute l'app. Reste branché."
+        "subtitle": "10 presets (Émeraude, Minuit, OLED, Forêt, Coucher de soleil…) avec accent re-tinté sur toute l'app. À suivre."
       }
     },
     "shortcuts": {
@@ -1196,8 +1196,8 @@
       "unbound": "Aucun",
       "actions": {
         "togglePlayback": "Lecture / Pause",
-        "next": "Morceau suivant",
-        "previous": "Morceau précédent",
+        "next": "Titre suivant",
+        "previous": "Titre précédent",
         "volumeUp": "Augmenter le volume",
         "volumeDown": "Baisser le volume",
         "toggleMute": "Couper / Rétablir le son",
@@ -1225,7 +1225,7 @@
         "hide": "Masquer",
         "connectedAs": "Connecté en tant que",
         "disconnect": "Se déconnecter",
-        "loginPrompt": "Connecte-toi pour scrobbler tes écoutes :",
+        "loginPrompt": "Connectez-vous pour scrobbler vos écoutes :",
         "usernamePlaceholder": "Nom d'utilisateur",
         "passwordPlaceholder": "Mot de passe",
         "connect": "Se connecter",
@@ -1233,11 +1233,11 @@
       },
       "discord": {
         "title": "Discord Rich Presence",
-        "subtitle": "Afficher le morceau en cours d'écoute sur ton profil Discord"
+        "subtitle": "Afficher le morceau en cours d'écoute sur votre profil Discord"
       },
       "dlna": {
         "title": "Serveur DLNA / UPnP",
-        "subtitle": "Diffuser ta bibliothèque vers les amplis et appareils compatibles du réseau local",
+        "subtitle": "Diffuser votre bibliothèque vers les amplis et appareils compatibles du réseau local",
         "serverName": "Nom",
         "port": "Port",
         "portHint": "0 = port automatique",
@@ -1247,9 +1247,9 @@
       },
       "spotify": {
         "title": "Spotify",
-        "subtitle": "Connecte Spotify Premium avec ton propre Client ID Spotify Developer.",
+        "subtitle": "Connectez Spotify Premium avec votre propre Client ID Spotify Developer.",
         "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "Ajoute cette Redirect URI dans le Spotify Developer Dashboard : http://127.0.0.1:49387/spotify/callback",
+        "redirectHint": "Ajoutez cette Redirect URI dans le Spotify Developer Dashboard : http://127.0.0.1:49387/spotify/callback",
         "connectedAs": "Connecté en tant que",
         "disconnect": "Déconnecter",
         "connecting": "Connexion…",
@@ -1311,7 +1311,7 @@
     },
     "duplicates": {
       "title": "Détecter les doublons",
-      "subtitle": "Trouve les fichiers identiques (même blake3) dans ta bibliothèque",
+      "subtitle": "Trouvez les fichiers identiques (même blake3) dans votre bibliothèque",
       "action": "Rechercher"
     },
     "rescan": {
@@ -1470,17 +1470,17 @@
     }
   },
   "spotify": {
-    "notConfiguredTitle": "Enregistrer ton app Spotify",
-    "notConfiguredMessage": "Spotify exige que toute app tierce déclare un Client ID gratuit avant la moindre lecture. Crée-le dans le tableau de bord Spotify Developer, puis colle-le dans Paramètres → Intégrations.",
+    "notConfiguredTitle": "Enregistrer votre app Spotify",
+    "notConfiguredMessage": "Spotify exige que toute app tierce déclare un Client ID gratuit avant la moindre lecture. Créez-le dans le tableau de bord Spotify Developer, puis collez-le dans Paramètres → Intégrations.",
     "openDashboard": "Ouvrir le tableau de bord Spotify Developer",
     "openSettings": "Ouvrir les paramètres",
     "notConnectedTitle": "Spotify n'est pas connecté",
-    "notConnectedMessage": "Ton Client ID est configuré. Connecte ton compte Spotify Premium depuis les Paramètres pour charger tes playlists et lancer la lecture.",
-    "emptyPlaylist": "Aucune piste lisible dans cette playlist (Spotify peut bloquer les fichiers locaux ou les playlists que tu ne possèdes pas).",
+    "notConnectedMessage": "Votre Client ID est configuré. Connectez votre compte Spotify Premium depuis les Paramètres pour charger vos playlists et lancer la lecture.",
+    "emptyPlaylist": "Aucun titre lisible dans cette playlist (Spotify peut bloquer les fichiers locaux ou les playlists que vous ne possédez pas).",
     "deviceReady": "Appareil Spotify WaveFlow prêt",
     "devicePending": "Préparation de la lecture Spotify…",
     "searchPlaceholder": "Rechercher sur Spotify",
-    "tracks": "Morceaux",
+    "tracks": "Titres",
     "playlists": "Playlists"
   },
   "scanProgress": {
