@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Heart, Share2, Download, Copy, Loader2, Check } from "lucide-react";
+import {
+  X,
+  Heart,
+  Share2,
+  Download,
+  Copy,
+  Loader2,
+  Check,
+  Mic2,
+} from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
@@ -15,6 +24,7 @@ import { renderNowPlayingCard } from "../../lib/nowPlayingCard";
 
 interface FullscreenNowPlayingProps {
   onClose: () => void;
+  onOpenLyrics: () => void;
   onNavigateToArtist: (artistId: number) => void;
   isLiked: boolean;
   onToggleLike: () => void;
@@ -33,6 +43,7 @@ interface FullscreenNowPlayingProps {
  */
 export function FullscreenNowPlaying({
   onClose,
+  onOpenLyrics,
   onNavigateToArtist,
   isLiked,
   onToggleLike,
@@ -141,9 +152,20 @@ export function FullscreenNowPlaying({
 
       {/* Foreground */}
       <div className="relative h-full flex flex-col text-white">
-        {/* Top bar — share + close. Controls live at the bottom so
-            the cover gets the visual centre. */}
+        {/* Top bar — lyrics switcher + share + close. Controls live at
+            the bottom so the cover gets the visual centre. */}
         <div className="flex items-center justify-end gap-3 px-8 py-6 shrink-0">
+          {currentTrack && (
+            <button
+              type="button"
+              onClick={onOpenLyrics}
+              aria-label={t("playerBar.lyrics")}
+              title={t("playerBar.lyrics")}
+              className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            >
+              <Mic2 size={22} />
+            </button>
+          )}
           {currentTrack && (
             <div className="relative">
               <button

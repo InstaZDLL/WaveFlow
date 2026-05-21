@@ -132,6 +132,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const isLyricsOpen = activeRightPanel === "lyrics";
   const [isDeviceMenuOpen, setIsDeviceMenuOpen] = useState(false);
 
+  // Fullscreen overlays. Single nullable enum so the two are mutually
+  // exclusive by construction — switching from immersive to karaoke
+  // (or back) is just a single setter call.
+  const [fullscreenOverlay, setFullscreenOverlay] = useState<
+    "nowPlaying" | "lyrics" | null
+  >(null);
+  const isFullscreenNowPlayingOpen = fullscreenOverlay === "nowPlaying";
+  const isFullscreenLyricsOpen = fullscreenOverlay === "lyrics";
+
   // Cached output device list. Populated at boot + after every device
   // switch so the menu opens instantly with the up-to-date list — the
   // alternative (fetch-on-open) makes the first click feel laggy
@@ -516,6 +525,43 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const openFullscreenNowPlaying = useCallback(() => {
+    setFullscreenOverlay("nowPlaying");
+  }, []);
+  const closeFullscreenNowPlaying = useCallback(() => {
+    setFullscreenOverlay((o) => (o === "nowPlaying" ? null : o));
+  }, []);
+  // Opening the lyrics overlay forces the right-edge panel onto
+  // "lyrics" so the LyricsPanel mounts: the karaoke overlay reuses the
+  // panel's parsed lyrics + active-line tracking instead of running a
+  // second fetch. We snapshot the previous panel so closing the overlay
+  // can restore it — otherwise opening lyrics from the immersive view
+  // would silently flip the user's queue/now-playing panel to lyrics.
+  // `undefined` = no snapshot to restore (either we never forced a
+  // change, or fullscreen lyrics was opened from the panel's Maximize
+  // button while the lyrics panel was already active). `null` is a
+  // valid restore target meaning "no panel was open beforehand".
+  const rightPanelBeforeFullscreenLyricsRef = useRef<
+    "queue" | "nowPlaying" | "lyrics" | null | undefined
+  >(undefined);
+  const openFullscreenLyrics = useCallback(() => {
+    setActiveRightPanel((prev) => {
+      if (prev !== "lyrics") {
+        rightPanelBeforeFullscreenLyricsRef.current = prev;
+      }
+      return "lyrics";
+    });
+    setFullscreenOverlay("lyrics");
+  }, []);
+  const closeFullscreenLyrics = useCallback(() => {
+    setFullscreenOverlay((o) => (o === "lyrics" ? null : o));
+    const previous = rightPanelBeforeFullscreenLyricsRef.current;
+    if (previous !== undefined) {
+      setActiveRightPanel(previous);
+      rightPanelBeforeFullscreenLyricsRef.current = undefined;
+    }
+  }, []);
+
   const refreshOutputDevices = useCallback(async () => {
     try {
       const list = await playerListOutputDevices();
@@ -578,6 +624,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         toggleLyrics,
         isDeviceMenuOpen,
         toggleDeviceMenu,
+        isFullscreenNowPlayingOpen,
+        isFullscreenLyricsOpen,
+        openFullscreenNowPlaying,
+        closeFullscreenNowPlaying,
+        openFullscreenLyrics,
+        closeFullscreenLyrics,
         outputDevices,
         refreshOutputDevices,
         activeProvider,

@@ -20,6 +20,10 @@ interface FullscreenLyricsProps {
   isFetching: boolean;
   error: string | null;
   onClose: () => void;
+  /** Clicking the header cover switches back to the immersive Now
+   *  Playing overlay. The parent flips the fullscreen mutex so this
+   *  view unmounts and FullscreenNowPlaying paints in its place. */
+  onOpenNowPlaying: () => void;
   onSeek: (line: LyricsLine) => void;
 }
 
@@ -42,6 +46,7 @@ export function FullscreenLyrics({
   isFetching,
   error,
   onClose,
+  onOpenNowPlaying,
   onSeek,
 }: FullscreenLyricsProps) {
   const { t } = useTranslation();
@@ -104,16 +109,24 @@ export function FullscreenLyrics({
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 shrink-0">
           <div className="flex items-center gap-4 min-w-0">
-            <Artwork
-              path={track.artwork_path}
-              path1x={track.artwork_path_1x}
-              path2x={track.artwork_path_2x}
-              size="1x"
-              className="w-14 h-14 shadow-lg shrink-0"
-              iconSize={20}
-              alt={track.title}
-              rounded="lg"
-            />
+            <button
+              type="button"
+              onClick={onOpenNowPlaying}
+              aria-label={t("playerBar.openFullscreen")}
+              title={t("playerBar.openFullscreen")}
+              className="shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            >
+              <Artwork
+                path={track.artwork_path}
+                path1x={track.artwork_path_1x}
+                path2x={track.artwork_path_2x}
+                size="1x"
+                className="w-14 h-14 shadow-lg"
+                iconSize={20}
+                alt={track.title}
+                rounded="lg"
+              />
+            </button>
             <div className="min-w-0">
               <div
                 id="fullscreen-lyrics-title"
