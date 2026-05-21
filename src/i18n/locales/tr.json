@@ -35,22 +35,82 @@
   "onboarding": {
     "defaultLibraryName": "Müzik",
     "welcome": {
-      "title": "WaveFlow'e hoş geldiniz",
-      "message": "İlk olarak, müzik dosyalarının bulunduğu klasörü belirt. WaveFlow bu klasörü tarayacak ve müzik kitaplığını otomatik olarak düzenleyecektir.",
-      "action": "Müzik klasörümü seç",
-      "skip": "Daha sonra ayarla"
+      "title": "WaveFlow'a hoş geldin",
+      "description": "Kişisel local-first müzik çaların. Streaming aboneliği olmadan tüm kütüphanenin tadını çıkar."
     },
-    "scanning": {
-      "title": "Müziklerinizi taranıyor…"
+    "localOnly": {
+      "title": "Önemli: yalnızca yerel müzik",
+      "description": "WaveFlow bir streaming servisi DEĞİLDİR. Cihazında zaten bulunan dosyaları çalar.",
+      "calloutTitle": "Bilmen gerekenler",
+      "bulletOwn": "Kendi kütüphaneni getir (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletImport": "Bir klasör içe aktar veya dosyaları sürükle bırak",
+      "bulletScrobble": "Arka planda dinlemeleri scrobble etmek için Last.fm'i bağla"
+    },
+    "folder": {
+      "title": "Müzik klasörünü seç",
+      "description": "WaveFlow'a müziklerinin nerede olduğunu söyle. Tarayıcı kütüphaneni otomatik düzenler.",
+      "placeholder": "Müzik klasörünü seçmek için tıkla",
+      "changeHint": "Klasörü değiştirmek için tıkla",
+      "quickSettings": "Hızlı ayarlar",
+      "autoAnalyze": {
+        "title": "Parçaları otomatik analiz et",
+        "description": "Tarama sırasında BPM ve tonu algılar — Radio ve Mood Radio'yu besler."
+      }
+    },
+    "lastfm": {
+      "title": "Last.fm'i bağla",
+      "description": "Scrobbling, dinlemelerini Last.fm profiline gönderir. Karşılığında uygulamada sanatçı biyografileri ve benzer sanatçı önerileri alırsın.",
+      "recommendedBadge": "Önerilir",
+      "keyHint": "last.fm'de bir API anahtarı oluştur",
+      "keyLabel": "API anahtarı",
+      "keyPlaceholder": "Last.fm API anahtarın",
+      "secretLabel": "Paylaşılan sır",
+      "secretPlaceholder": "Paylaşılan sırrın",
+      "userLabel": "Last.fm kullanıcı adı",
+      "userPlaceholder": "kullanıcı-adın",
+      "passwordLabel": "Parola",
+      "passwordPlaceholder": "Last.fm parolan",
+      "toggleSecret": "Sırrı göster/gizle",
+      "togglePassword": "Parolayı göster/gizle",
+      "connect": "Last.fm'i bağla",
+      "missingFields": "Lütfen API anahtarı, sır, kullanıcı adı ve parolayı doldur.",
+      "connectedTitle": "{{user}} olarak bağlandın",
+      "connectedSubtitle": "Bir parça çaldığında scrobbling otomatik başlar."
+    },
+    "integrations": {
+      "title": "Entegrasyonlar",
+      "description": "Ne dinlediğini gerçek zamanlı paylaş — isteğe bağlı, Ayarlar'dan istediğin zaman değiştirebilirsin.",
+      "discord": {
+        "title": "Discord Rich Presence",
+        "description": "Discord profilinde mevcut parçayı ve sanatçıyı gösterir."
+      }
+    },
+    "scan": {
+      "title": "Kütüphaneni tara",
+      "description": "Klasörünü analiz edip parçalarını keşfetmeye hazır mısın?",
+      "noFolder": "Hiçbir klasör seçilmedi",
+      "readyHint": "Klasörün ayarlandı. Hazır olduğunda taramayı başlat.",
+      "scanning": "Kütüphanen taranıyor…",
+      "errorTitle": "Tarama başarısız"
     },
     "done": {
-      "title": "{{count}} parça eklendi",
-      "message": "Kütüphaneniz hazır. Keyfini çıkarın!",
-      "action": "Dinlemeye başla"
+      "title": "Her şey hazır!",
+      "description": "Kütüphanen tarandı ve çalmaya hazır.",
+      "nextSteps": "Sonraki adımlar:",
+      "bulletExplore": "Kütüphane, Albümler ve Sanatçılar sekmelerinden kütüphaneni keşfet",
+      "bulletQueue": "Bir parçaya tıklayarak ilk kuyruğunu oluştur",
+      "bulletSettings": "Ayarları kenar çubuğundan ince ayarla (Görünüm, Entegrasyonlar…)"
     },
-    "error": {
-      "title": "Tarama başarısız",
-      "retry": "Tekrar dene"
+    "actions": {
+      "skipSetup": "Kurulumu atla",
+      "getStarted": "Başla",
+      "back": "Geri",
+      "continue": "Devam",
+      "understood": "Anladım",
+      "skipForNow": "Şimdilik atla",
+      "scanLater": "Sonra tara",
+      "scanNow": "Şimdi tara",
+      "startListening": "Dinlemeye başla"
     }
   },
   "sidebar": {

@@ -35,22 +35,82 @@
   "onboarding": {
     "defaultLibraryName": "Musica",
     "welcome": {
-      "title": "Benvenuti su WaveFlow",
-      "message": "Per cominciare, indica la cartella che contiene la tua musica. WaveFlow la analizzerà e organizzerà automaticamente la tua libreria.",
-      "action": "Scegli la mia cartella musicale",
-      "skip": "Configura in un secondo momento"
+      "title": "Benvenuto in WaveFlow",
+      "description": "Il tuo lettore musicale local-first personale. Goditi tutta la tua libreria senza abbonamento streaming."
     },
-    "scanning": {
-      "title": "Analisi della tua musica…"
+    "localOnly": {
+      "title": "Importante: solo musica locale",
+      "description": "WaveFlow NON è un servizio di streaming. Riproduce i file già presenti sul tuo dispositivo.",
+      "calloutTitle": "Cosa devi sapere",
+      "bulletOwn": "Porta la tua libreria (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletImport": "Importa una cartella o trascina i file",
+      "bulletScrobble": "Collega Last.fm per fare scrobbling delle riproduzioni in background"
+    },
+    "folder": {
+      "title": "Scegli la tua cartella musicale",
+      "description": "Indica a WaveFlow dove si trova la tua musica. Lo scanner organizzerà la libreria automaticamente.",
+      "placeholder": "Clicca per scegliere la cartella musicale",
+      "changeHint": "Clicca per cambiare cartella",
+      "quickSettings": "Impostazioni rapide",
+      "autoAnalyze": {
+        "title": "Analisi automatica dei brani",
+        "description": "Rileva BPM e tonalità durante la scansione — alimenta Radio e Mood Radio."
+      }
+    },
+    "lastfm": {
+      "title": "Collega Last.fm",
+      "description": "Lo scrobbling invia le riproduzioni al tuo profilo Last.fm. In cambio ricevi biografie degli artisti e suggerimenti di artisti simili nell'app.",
+      "recommendedBadge": "Consigliato",
+      "keyHint": "Crea una chiave API su last.fm",
+      "keyLabel": "Chiave API",
+      "keyPlaceholder": "La tua chiave API Last.fm",
+      "secretLabel": "Segreto condiviso",
+      "secretPlaceholder": "Il tuo segreto condiviso",
+      "userLabel": "Nome utente Last.fm",
+      "userPlaceholder": "il-tuo-nome",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "La tua password Last.fm",
+      "toggleSecret": "Mostra/nascondi segreto",
+      "togglePassword": "Mostra/nascondi password",
+      "connect": "Collega Last.fm",
+      "missingFields": "Compila chiave API, segreto, nome utente e password.",
+      "connectedTitle": "Connesso come {{user}}",
+      "connectedSubtitle": "Lo scrobbling parte automaticamente quando riproduci un brano."
+    },
+    "integrations": {
+      "title": "Integrazioni",
+      "description": "Condividi cosa stai ascoltando in tempo reale — opzionale, modificabile in qualsiasi momento dalle Impostazioni.",
+      "discord": {
+        "title": "Discord Rich Presence",
+        "description": "Mostra il brano corrente e l'artista nel tuo profilo Discord."
+      }
+    },
+    "scan": {
+      "title": "Scansiona la tua libreria",
+      "description": "Pronto ad analizzare la tua cartella e scoprire i tuoi brani?",
+      "noFolder": "Nessuna cartella selezionata",
+      "readyHint": "La cartella è impostata. Avvia la scansione quando vuoi.",
+      "scanning": "Scansione della libreria…",
+      "errorTitle": "Scansione fallita"
     },
     "done": {
-      "title": "{{count}} brani aggiunti",
-      "message": "La tua libreria è pronta. Buon ascolto!",
-      "action": "Inizia ad ascoltare"
+      "title": "Tutto pronto!",
+      "description": "La libreria è stata scansionata ed è pronta da riprodurre.",
+      "nextSteps": "Prossimi passi:",
+      "bulletExplore": "Esplora la tua libreria tramite le schede Libreria, Album e Artisti",
+      "bulletQueue": "Crea la tua prima coda cliccando su un brano",
+      "bulletSettings": "Affina le impostazioni dalla barra laterale (Aspetto, Integrazioni…)"
     },
-    "error": {
-      "title": "L'analisi non è andata a buon fine",
-      "retry": "Riprovare"
+    "actions": {
+      "skipSetup": "Salta la configurazione",
+      "getStarted": "Inizia",
+      "back": "Indietro",
+      "continue": "Continua",
+      "understood": "Ho capito",
+      "skipForNow": "Salta per ora",
+      "scanLater": "Scansiona dopo",
+      "scanNow": "Scansiona ora",
+      "startListening": "Inizia ad ascoltare"
     }
   },
   "sidebar": {

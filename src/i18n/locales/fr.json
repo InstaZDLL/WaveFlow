@@ -36,21 +36,81 @@
     "defaultLibraryName": "Musique",
     "welcome": {
       "title": "Bienvenue dans WaveFlow",
-      "message": "Pour commencer, indique le dossier qui contient ta musique. WaveFlow va le scanner et organiser ta bibliothèque automatiquement.",
-      "action": "Choisir mon dossier de musique",
-      "skip": "Configurer plus tard"
+      "description": "Ton lecteur musical local-first. Profite de toute ta bibliothèque sans abonnement streaming."
     },
-    "scanning": {
-      "title": "Analyse de ta musique…"
+    "localOnly": {
+      "title": "Important : musique locale uniquement",
+      "description": "WaveFlow n'est PAS un service de streaming. Il joue les fichiers déjà présents sur ton appareil.",
+      "calloutTitle": "Ce que tu dois savoir",
+      "bulletOwn": "Apporte ta propre bibliothèque (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletImport": "Importe un dossier ou glisse-dépose des fichiers",
+      "bulletScrobble": "Connecte Last.fm pour scrobbler tes écoutes en arrière-plan"
+    },
+    "folder": {
+      "title": "Choisis ton dossier musical",
+      "description": "Indique où sont stockés tes fichiers. WaveFlow va scanner et organiser ta bibliothèque.",
+      "placeholder": "Clique pour choisir ton dossier de musique",
+      "changeHint": "Clique pour changer de dossier",
+      "quickSettings": "Réglages rapides",
+      "autoAnalyze": {
+        "title": "Auto-analyse des morceaux",
+        "description": "Détecte BPM et tonalité pendant le scan — alimente Radio et Mood Radio."
+      }
+    },
+    "lastfm": {
+      "title": "Connecte Last.fm",
+      "description": "Le scrobbling envoie tes écoutes à ton profil Last.fm. Tu reçois en retour des bios d'artistes et des suggestions similaires directement dans l'app.",
+      "recommendedBadge": "Recommandé",
+      "keyHint": "Crée une clé API sur last.fm",
+      "keyLabel": "Clé API",
+      "keyPlaceholder": "Ta clé API Last.fm",
+      "secretLabel": "Secret partagé",
+      "secretPlaceholder": "Ton secret partagé",
+      "userLabel": "Nom d'utilisateur Last.fm",
+      "userPlaceholder": "ton-pseudo",
+      "passwordLabel": "Mot de passe",
+      "passwordPlaceholder": "Ton mot de passe Last.fm",
+      "toggleSecret": "Afficher/Masquer le secret",
+      "togglePassword": "Afficher/Masquer le mot de passe",
+      "connect": "Connecter Last.fm",
+      "missingFields": "Renseigne la clé, le secret, le nom d'utilisateur et le mot de passe.",
+      "connectedTitle": "Connecté en tant que {{user}}",
+      "connectedSubtitle": "Le scrobbling démarre automatiquement quand tu lis un morceau."
+    },
+    "integrations": {
+      "title": "Intégrations",
+      "description": "Affiche ce que tu écoutes en temps réel — optionnel, modifiable à tout moment depuis les réglages.",
+      "discord": {
+        "title": "Discord Rich Presence",
+        "description": "Affiche le titre en cours et l'artiste dans ton profil Discord."
+      }
+    },
+    "scan": {
+      "title": "Scanner ta bibliothèque",
+      "description": "Prêt à analyser ton dossier et découvrir tes morceaux ?",
+      "noFolder": "Aucun dossier sélectionné",
+      "readyHint": "Ton dossier est configuré. Lance le scan dès que tu es prêt.",
+      "scanning": "Analyse de ta bibliothèque…",
+      "errorTitle": "Le scan a échoué"
     },
     "done": {
-      "title": "{{count}} morceaux ajoutés",
-      "message": "Ta bibliothèque est prête. Bonne écoute !",
-      "action": "Commencer à écouter"
+      "title": "C'est prêt !",
+      "description": "Ta bibliothèque est scannée et prête à jouer.",
+      "nextSteps": "Pour aller plus loin :",
+      "bulletExplore": "Explore ta lib via les onglets Bibliothèque, Albums et Artistes",
+      "bulletQueue": "Crée ta première file d'attente en cliquant sur un morceau",
+      "bulletSettings": "Affine les réglages dans la barre latérale (Apparence, Intégrations…)"
     },
-    "error": {
-      "title": "L'analyse a échoué",
-      "retry": "Réessayer"
+    "actions": {
+      "skipSetup": "Passer la configuration",
+      "getStarted": "Commencer",
+      "back": "Retour",
+      "continue": "Continuer",
+      "understood": "J'ai compris",
+      "skipForNow": "Passer pour l'instant",
+      "scanLater": "Scanner plus tard",
+      "scanNow": "Scanner maintenant",
+      "startListening": "Commencer à écouter"
     }
   },
   "sidebar": {

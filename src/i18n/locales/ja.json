@@ -35,22 +35,82 @@
   "onboarding": {
     "defaultLibraryName": "音楽",
     "welcome": {
-      "title": "WaveFlowへようこそ",
-      "message": "まず、音楽ファイルが保存されているフォルダを指定してください。WaveFlowが自動的にスキャンを行い、ライブラリを整理します。",
-      "action": "音楽フォルダを選択する",
-      "skip": "後で設定する"
+      "title": "WaveFlow へようこそ",
+      "description": "あなた専用のローカルファースト音楽プレーヤー。ストリーミングサブスクなしでライブラリ全体を楽しもう。"
     },
-    "scanning": {
-      "title": "君の音楽を分析する…"
+    "localOnly": {
+      "title": "重要：ローカル音楽専用",
+      "description": "WaveFlow はストリーミングサービスではありません。デバイス上にあるファイルを再生します。",
+      "calloutTitle": "知っておきたいこと",
+      "bulletOwn": "自分のライブラリを持ち込もう（MP3、FLAC、ALAC、OGG、DSD…）",
+      "bulletImport": "フォルダをインポート、またはファイルをドラッグ＆ドロップ",
+      "bulletScrobble": "Last.fm と接続してバックグラウンドで再生を Scrobble"
+    },
+    "folder": {
+      "title": "音楽フォルダを選択",
+      "description": "音楽のある場所を WaveFlow に教えてください。スキャナがライブラリを自動整理します。",
+      "placeholder": "音楽フォルダを選ぶにはクリック",
+      "changeHint": "フォルダを変更するにはクリック",
+      "quickSettings": "クイック設定",
+      "autoAnalyze": {
+        "title": "トラック自動解析",
+        "description": "スキャン中に BPM とキーを検出 — Radio と Mood Radio に活用されます。"
+      }
+    },
+    "lastfm": {
+      "title": "Last.fm を接続",
+      "description": "Scrobbling は再生履歴を Last.fm プロフィールに送ります。代わりにアーティストの bio と類似アーティストの提案がアプリ内で受け取れます。",
+      "recommendedBadge": "おすすめ",
+      "keyHint": "last.fm で API キーを作成",
+      "keyLabel": "API キー",
+      "keyPlaceholder": "あなたの Last.fm API キー",
+      "secretLabel": "共有シークレット",
+      "secretPlaceholder": "あなたの共有シークレット",
+      "userLabel": "Last.fm ユーザー名",
+      "userPlaceholder": "あなたのハンドル",
+      "passwordLabel": "パスワード",
+      "passwordPlaceholder": "あなたの Last.fm パスワード",
+      "toggleSecret": "シークレット表示切替",
+      "togglePassword": "パスワード表示切替",
+      "connect": "Last.fm を接続",
+      "missingFields": "API キー、シークレット、ユーザー名、パスワードをすべて入力してください。",
+      "connectedTitle": "{{user}} として接続済み",
+      "connectedSubtitle": "トラックを再生すると自動的に Scrobbling が始まります。"
+    },
+    "integrations": {
+      "title": "連携",
+      "description": "再生中の曲をリアルタイムで共有 — 任意、設定からいつでも変更可能。",
+      "discord": {
+        "title": "Discord Rich Presence",
+        "description": "Discord プロフィールに現在のトラックとアーティストを表示します。"
+      }
+    },
+    "scan": {
+      "title": "ライブラリをスキャン",
+      "description": "フォルダを解析してトラックを見つける準備はできましたか？",
+      "noFolder": "フォルダ未選択",
+      "readyHint": "フォルダ設定済み。準備ができたらスキャンを開始してください。",
+      "scanning": "ライブラリをスキャン中…",
+      "errorTitle": "スキャン失敗"
     },
     "done": {
-      "title": "{{count}} 追加された曲",
-      "message": "ライブラリの準備が整いました。どうぞお楽しみください！",
-      "action": "再生を開始する"
+      "title": "準備完了！",
+      "description": "ライブラリのスキャンが完了し、再生の準備ができました。",
+      "nextSteps": "次のステップ：",
+      "bulletExplore": "ライブラリ、アルバム、アーティストタブからライブラリを探索",
+      "bulletQueue": "トラックをクリックして最初のキューを作成",
+      "bulletSettings": "サイドバーから設定を微調整（外観、連携…）"
     },
-    "error": {
-      "title": "分析に失敗しました",
-      "retry": "もう一度試す"
+    "actions": {
+      "skipSetup": "セットアップをスキップ",
+      "getStarted": "始める",
+      "back": "戻る",
+      "continue": "次へ",
+      "understood": "了解",
+      "skipForNow": "今はスキップ",
+      "scanLater": "後でスキャン",
+      "scanNow": "今すぐスキャン",
+      "startListening": "聴き始める"
     }
   },
   "sidebar": {

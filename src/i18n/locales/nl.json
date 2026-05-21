@@ -35,22 +35,82 @@
   "onboarding": {
     "defaultLibraryName": "Muziek",
     "welcome": {
-      "title": "Welkom op WaveFlow",
-      "message": "Geef om te beginnen de map aan waarin je muziek staat. WaveFlow zal deze scannen en je bibliotheek automatisch ordenen.",
-      "action": "Mijn muziekmap selecteren",
-      "skip": "Later instellen"
+      "title": "Welkom bij WaveFlow",
+      "description": "Je persoonlijke local-first muziekspeler. Geniet van je hele bibliotheek zonder streamingabonnement."
     },
-    "scanning": {
-      "title": "Analyse van je muziek…"
+    "localOnly": {
+      "title": "Belangrijk: alleen lokale muziek",
+      "description": "WaveFlow is GEEN streamingdienst. Het speelt bestanden af die al op je apparaat staan.",
+      "calloutTitle": "Wat je moet weten",
+      "bulletOwn": "Breng je eigen bibliotheek mee (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletImport": "Importeer een map of sleep bestanden",
+      "bulletScrobble": "Verbind Last.fm om afspelers op de achtergrond te scrobblen"
+    },
+    "folder": {
+      "title": "Kies je muziekmap",
+      "description": "Vertel WaveFlow waar je muziek staat. De scanner organiseert je bibliotheek automatisch.",
+      "placeholder": "Klik om je muziekmap te kiezen",
+      "changeHint": "Klik om de map te wijzigen",
+      "quickSettings": "Snelle instellingen",
+      "autoAnalyze": {
+        "title": "Tracks automatisch analyseren",
+        "description": "Detecteert BPM en toonsoort tijdens het scannen — voedt Radio en Mood Radio."
+      }
+    },
+    "lastfm": {
+      "title": "Verbind Last.fm",
+      "description": "Scrobbling stuurt je afspelers naar je Last.fm-profiel. Je krijgt artiestbio's en vergelijkbare-artiest-suggesties terug, in de app.",
+      "recommendedBadge": "Aanbevolen",
+      "keyHint": "Maak een API-sleutel op last.fm",
+      "keyLabel": "API-sleutel",
+      "keyPlaceholder": "Je Last.fm API-sleutel",
+      "secretLabel": "Gedeeld geheim",
+      "secretPlaceholder": "Je gedeelde geheim",
+      "userLabel": "Last.fm-gebruikersnaam",
+      "userPlaceholder": "jouw-naam",
+      "passwordLabel": "Wachtwoord",
+      "passwordPlaceholder": "Je Last.fm-wachtwoord",
+      "toggleSecret": "Geheim tonen/verbergen",
+      "togglePassword": "Wachtwoord tonen/verbergen",
+      "connect": "Verbind Last.fm",
+      "missingFields": "Vul de API-sleutel, geheim, gebruikersnaam en wachtwoord in.",
+      "connectedTitle": "Verbonden als {{user}}",
+      "connectedSubtitle": "Scrobbling start automatisch zodra je een track afspeelt."
+    },
+    "integrations": {
+      "title": "Integraties",
+      "description": "Deel wat je luistert in realtime — optioneel, altijd aanpasbaar in Instellingen.",
+      "discord": {
+        "title": "Discord Rich Presence",
+        "description": "Toont de huidige track en artiest in je Discord-profiel."
+      }
+    },
+    "scan": {
+      "title": "Scan je bibliotheek",
+      "description": "Klaar om je map te analyseren en je tracks te ontdekken?",
+      "noFolder": "Geen map geselecteerd",
+      "readyHint": "Je map is ingesteld. Start de scan wanneer je klaar bent.",
+      "scanning": "Bibliotheek scannen…",
+      "errorTitle": "Scan mislukt"
     },
     "done": {
-      "title": "{{count}} toegevoegde nummers",
-      "message": "Je bibliotheek staat klaar. Veel luisterplezier!",
-      "action": "Begin met luisteren"
+      "title": "Alles klaar!",
+      "description": "Je bibliotheek is gescand en klaar om af te spelen.",
+      "nextSteps": "Volgende stappen:",
+      "bulletExplore": "Verken je bibliotheek via de tabs Bibliotheek, Albums en Artiesten",
+      "bulletQueue": "Bouw je eerste wachtrij door op een track te klikken",
+      "bulletSettings": "Verfijn instellingen vanuit de zijbalk (Weergave, Integraties…)"
     },
-    "error": {
-      "title": "De analyse is mislukt",
-      "retry": "Opnieuw proberen"
+    "actions": {
+      "skipSetup": "Setup overslaan",
+      "getStarted": "Aan de slag",
+      "back": "Terug",
+      "continue": "Doorgaan",
+      "understood": "Begrepen",
+      "skipForNow": "Nu overslaan",
+      "scanLater": "Later scannen",
+      "scanNow": "Nu scannen",
+      "startListening": "Beginnen met luisteren"
     }
   },
   "sidebar": {
