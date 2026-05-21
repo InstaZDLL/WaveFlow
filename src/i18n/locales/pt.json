@@ -1329,6 +1329,10 @@
       "decreaseAria": "Diminuir zoom",
       "increaseAria": "Aumentar zoom",
       "resetAria": "Repor para 100 %"
+    },
+    "showAudioQualityFooter": {
+      "title": "Mostrar faixa de qualidade de áudio",
+      "subtitle": "Detalhes técnicos (kHz, kbps, codec, profundidade) sob a barra do leitor. Desativado por padrão para uma barra mais fina."
     }
   },
   "scanProgress": {

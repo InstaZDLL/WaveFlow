@@ -1333,6 +1333,10 @@
       "decreaseAria": "تصغير",
       "increaseAria": "تكبير",
       "resetAria": "إعادة التكبير إلى 100 %"
+    },
+    "showAudioQualityFooter": {
+      "title": "إظهار شريط جودة الصوت",
+      "subtitle": "تفاصيل تقنية (kHz، kbps، الترميز، عمق البت) أسفل شريط المشغل. معطل افتراضيًا للحفاظ على شريط أنحف."
     }
   },
   "scanProgress": {

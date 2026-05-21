@@ -22,7 +22,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@tailwindcss/vite": "^4.3.0",
-    "@tanstack/react-virtual": "^3.13.24",
+    "@tanstack/react-virtual": "^3.13.25",
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tauri-apps/plugin-opener": "^2.5.4",
@@ -52,6 +52,6 @@
     "sharp": "^0.34.5",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.59.4",
-    "vite": "^8.0.13"
+    "vite": "^8.0.14"
   }
 }

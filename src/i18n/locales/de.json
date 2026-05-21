@@ -1329,6 +1329,10 @@
       "decreaseAria": "Verkleinern",
       "increaseAria": "Vergrößern",
       "resetAria": "Zoom auf 100 % zurücksetzen"
+    },
+    "showAudioQualityFooter": {
+      "title": "Audioqualitätsleiste anzeigen",
+      "subtitle": "Technische Details (kHz, kbps, Codec, Bittiefe) unter der Player-Leiste. Standardmäßig aus für eine schlankere Leiste."
     }
   },
   "scanProgress": {

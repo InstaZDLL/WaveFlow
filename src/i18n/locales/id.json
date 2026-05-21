@@ -1328,6 +1328,10 @@
       "decreaseAria": "Perkecil",
       "increaseAria": "Perbesar",
       "resetAria": "Reset zoom ke 100 %"
+    },
+    "showAudioQualityFooter": {
+      "title": "Tampilkan strip kualitas audio",
+      "subtitle": "Detail teknis (kHz, kbps, codec, kedalaman bit) di bawah bilah pemutar. Mati secara default untuk bilah yang lebih ramping."
     }
   },
   "scanProgress": {

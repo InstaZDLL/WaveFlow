@@ -34,7 +34,7 @@ export function PlaybackControls() {
   const isRepeatActive = repeatMode !== "off";
 
   return (
-    <div className="flex items-center space-x-6 mb-3">
+    <div className="flex items-center space-x-5 mb-1.5">
       <button
         type="button"
         onClick={toggleShuffle}
@@ -51,7 +51,7 @@ export function PlaybackControls() {
             : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
         }`}
       >
-        <Shuffle size={18} />
+        <Shuffle size={20} />
       </button>
       <button
         type="button"
@@ -108,7 +108,7 @@ export function PlaybackControls() {
             : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
         }`}
       >
-        <RepeatIcon size={18} />
+        <RepeatIcon size={20} />
       </button>
     </div>
   );

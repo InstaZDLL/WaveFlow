@@ -71,10 +71,16 @@ export function Artwork({
     xl: "rounded-xl",
     "2xl": "rounded-2xl",
   }[rounded];
-  // Gradient + border combo reused as the placeholder background, both
-  // when no image is available and behind the fading <img>.
+  // Gradient placeholder reused as the background behind the fading
+  // <img>. The border is split off because it would otherwise consume
+  // 2 px inside the wrapper's content box (Tailwind defaults to
+  // `box-sizing: border-box`), shrinking the visible image by 2 px on
+  // every Artwork in the app. The border is invisible behind a loaded
+  // image anyway — keep it only on the no-src placeholder branch.
   const placeholderBg =
-    "bg-linear-to-br from-emerald-100 to-emerald-200 dark:from-emerald-900/40 dark:to-emerald-800/30 border border-emerald-200/60 dark:border-emerald-800/40";
+    "bg-linear-to-br from-emerald-100 to-emerald-200 dark:from-emerald-900/40 dark:to-emerald-800/30";
+  const placeholderBorder =
+    "border border-emerald-200/60 dark:border-emerald-800/40";
   const discIcon = (
     <Disc
       size={iconSize}
@@ -85,7 +91,7 @@ export function Artwork({
   if (!src) {
     return (
       <div
-        className={`${className} ${radiusClass} ${placeholderBg} flex items-center justify-center overflow-hidden shrink-0`}
+        className={`${className} ${radiusClass} ${placeholderBg} ${placeholderBorder} flex items-center justify-center overflow-hidden shrink-0`}
         aria-hidden={alt ? undefined : true}
         aria-label={alt}
         role={alt ? "img" : undefined}

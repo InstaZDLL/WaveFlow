@@ -1328,6 +1328,10 @@
       "decreaseAria": "缩小",
       "increaseAria": "放大",
       "resetAria": "重置缩放为 100 %"
+    },
+    "showAudioQualityFooter": {
+      "title": "显示音频质量条",
+      "subtitle": "在播放栏下方显示技术详情（kHz、kbps、编解码、位深）。为保持播放栏轻巧，默认关闭。"
     }
   },
   "scanProgress": {

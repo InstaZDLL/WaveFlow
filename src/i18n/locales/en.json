@@ -1395,6 +1395,10 @@
       "decreaseAria": "Zoom out",
       "increaseAria": "Zoom in",
       "resetAria": "Reset zoom to 100 %"
+    },
+    "showAudioQualityFooter": {
+      "title": "Show audio quality strip",
+      "subtitle": "Technical details (kHz, kbps, codec, bit depth) under the player bar. Off by default for a slimmer bar."
     }
   },
   "spotify": {
