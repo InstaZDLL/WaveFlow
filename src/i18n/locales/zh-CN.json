@@ -727,17 +727,17 @@
     "manage": {
       "toggle": "管理",
       "done": "完成",
-      "title": "管理资料",
-      "subtitle": "选择要删除的资料。无法从此处删除当前使用的资料。",
-      "activeLocked": "当前资料",
+      "title": "管理个人资料",
+      "subtitle": "选择要删除的个人资料。无法从此处删除当前使用的个人资料。",
+      "activeLocked": "当前个人资料",
       "deleteHint": "点击删除",
-      "deleteAria": "删除资料 {{name}}"
+      "deleteAria": "删除个人资料 {{name}}"
     },
     "delete": {
       "title": "删除 {{name}}?",
-      "subtitle": "此资料将被永久删除。",
-      "warning": "此资料的所有曲库、播放列表和播放记录都会丢失。此操作无法撤销。",
-      "submit": "删除资料",
+      "subtitle": "此个人资料将被永久删除。",
+      "warning": "此个人资料的所有资料库、播放列表和播放记录都会丢失。此操作无法撤销。",
+      "submit": "删除个人资料",
       "submitting": "正在删除…"
     }
   },

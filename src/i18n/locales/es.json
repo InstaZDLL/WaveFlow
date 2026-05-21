@@ -730,7 +730,7 @@
     "delete": {
       "title": "¿Eliminar {{name}}?",
       "subtitle": "Este perfil se eliminará de forma permanente.",
-      "warning": "Se perderán todas las bibliotecas, listas de reproducción e historial de escucha de este perfil. Esta acción no se puede deshacer.",
+      "warning": "Se perderán todas las bibliotecas, listas de reproducción y el historial de escucha de este perfil. Esta acción no se puede deshacer.",
       "submit": "Eliminar perfil",
       "submitting": "Eliminando…"
     }

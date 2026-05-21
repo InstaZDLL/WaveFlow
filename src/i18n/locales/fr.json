@@ -724,13 +724,13 @@
       "title": "Gérer les profils",
       "subtitle": "Sélectionnez un profil à supprimer. Le profil actif ne peut pas être supprimé d'ici.",
       "activeLocked": "Profil actif",
-      "deleteHint": "Touchez pour supprimer",
+      "deleteHint": "Appuyez pour supprimer",
       "deleteAria": "Supprimer le profil {{name}}"
     },
     "delete": {
       "title": "Supprimer {{name}} ?",
       "subtitle": "Le profil sera définitivement retiré.",
-      "warning": "Toutes les bibliothèques, playlists et historiques d'écoute de ce profil seront perdus. Cette action est irréversible.",
+      "warning": "Toutes les bibliothèques, playlists et l'historique d'écoute de ce profil seront perdus. Cette action est irréversible.",
       "submit": "Supprimer le profil",
       "submitting": "Suppression…"
     }
