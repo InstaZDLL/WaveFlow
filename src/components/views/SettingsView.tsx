@@ -1462,8 +1462,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           swaps which section is visible. The mounted-on-demand model
           keeps heavy effects (EQ spectrum, backup card, shortcuts
           editor) idle until the user actually opens their tab. */}
-      <nav
+      <div
+        role="tablist"
         aria-label={t("settings.categoryNavLabel")}
+        aria-orientation="horizontal"
         className="-mx-2 flex flex-wrap gap-2"
       >
         {SETTINGS_CATEGORIES.map(({ id, labelKey, Icon }) => {
@@ -1472,8 +1474,17 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             <button
               key={id}
               type="button"
+              role="tab"
+              id={`settings-tab-${id}`}
+              aria-selected={isActive}
+              aria-controls={`settings-panel-${id}`}
+              // Roving tabindex: only the active tab is in the
+              // sequential tab order; arrow-key navigation between
+              // tabs is the standard WAI-ARIA tab pattern (not wired
+              // here yet — clicking a tab still works for keyboard
+              // users via Tab + Enter/Space).
+              tabIndex={isActive ? 0 : -1}
               onClick={() => handleCategoryChange(id)}
-              aria-pressed={isActive}
               className={`group inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                 isActive
                   ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 shadow-sm"
@@ -1489,11 +1500,16 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             </button>
           );
         })}
-      </nav>
+      </div>
 
       {/* Library category — app-level + library-management settings. */}
       {activeCategory === "library" && (
-      <section aria-labelledby="settings-general-heading">
+      <section
+        role="tabpanel"
+        id="settings-panel-library"
+        aria-labelledby="settings-tab-library"
+        tabIndex={0}
+      >
         <h2
           id="settings-general-heading"
           className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
@@ -1752,7 +1768,12 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
 
       {/* Playback category — audio engine, lyrics, EQ. */}
       {activeCategory === "playback" && (
-      <section aria-labelledby="settings-playback-heading">
+      <section
+        role="tabpanel"
+        id="settings-panel-playback"
+        aria-labelledby="settings-tab-playback"
+        tabIndex={0}
+      >
         <h2
           id="settings-playback-heading"
           className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
@@ -1960,7 +1981,12 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
 
       {/* Integrations category — Spotify, Last.fm, Discord, DLNA. */}
       {activeCategory === "integrations" && (
-      <section aria-labelledby="settings-integrations-heading">
+      <section
+        role="tabpanel"
+        id="settings-panel-integrations"
+        aria-labelledby="settings-tab-integrations"
+        tabIndex={0}
+      >
         <h2
           id="settings-integrations-heading"
           className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
@@ -2464,7 +2490,12 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       {/* Appearance category — placeholder. Theme picker arrives with
           the v1.3.0 PR (feat/animations-and-themes) and slots in here. */}
       {activeCategory === "appearance" && (
-      <section aria-labelledby="settings-appearance-heading">
+      <section
+        role="tabpanel"
+        id="settings-panel-appearance"
+        aria-labelledby="settings-tab-appearance"
+        tabIndex={0}
+      >
         <h2
           id="settings-appearance-heading"
           className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
@@ -2489,7 +2520,12 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
 
       {/* Data category — backup, offline mode, export/import. */}
       {activeCategory === "data" && (
-      <section aria-labelledby="settings-storage-heading">
+      <section
+        role="tabpanel"
+        id="settings-panel-data"
+        aria-labelledby="settings-tab-data"
+        tabIndex={0}
+      >
         <h2
           id="settings-storage-heading"
           className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
@@ -3003,7 +3039,12 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
 
       {/* Shortcuts category — keyboard shortcut editor. */}
       {activeCategory === "shortcuts" && (
-      <section aria-labelledby="settings-shortcuts-heading">
+      <section
+        role="tabpanel"
+        id="settings-panel-shortcuts"
+        aria-labelledby="settings-tab-shortcuts"
+        tabIndex={0}
+      >
         <h2
           id="settings-shortcuts-heading"
           className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
@@ -3016,7 +3057,12 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
 
       {/* Diagnostics category — logs, version. */}
       {activeCategory === "diagnostics" && (
-      <section aria-labelledby="settings-diagnostics-heading">
+      <section
+        role="tabpanel"
+        id="settings-panel-diagnostics"
+        aria-labelledby="settings-tab-diagnostics"
+        tabIndex={0}
+      >
         <h2
           id="settings-diagnostics-heading"
           className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
