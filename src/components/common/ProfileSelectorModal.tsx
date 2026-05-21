@@ -23,8 +23,13 @@ export function ProfileSelectorModal({
   onClose,
 }: ProfileSelectorModalProps) {
   const { t } = useTranslation();
-  const { profiles, activeProfile, createProfile, switchProfile, deleteProfile } =
-    useProfile();
+  const {
+    profiles,
+    activeProfile,
+    createProfile,
+    switchProfile,
+    deleteProfile,
+  } = useProfile();
 
   const [view, setView] = useState<ProfileModalView>("select");
   const [newProfileName, setNewProfileName] = useState("");

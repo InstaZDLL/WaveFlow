@@ -30,10 +30,7 @@ import {
   SUPPORTED_LANGUAGES,
   normalizeSupportedLanguageCode,
 } from "../../i18n";
-import {
-  getAutoAnalyze,
-  setAutoAnalyze,
-} from "../../lib/tauri/analysis";
+import { getAutoAnalyze, setAutoAnalyze } from "../../lib/tauri/analysis";
 import {
   getLastfmApiKey,
   getLastfmApiSecret,
@@ -90,15 +87,14 @@ const STEP_ICONS: Record<StepId, typeof Music> = {
 function detectInitialLanguage(): { code: string; fallback: boolean } {
   const raw =
     (typeof navigator !== "undefined"
-      ? navigator.language ?? navigator.languages?.[0]
+      ? (navigator.language ?? navigator.languages?.[0])
       : null) ?? "en";
   const normalized = normalizeSupportedLanguageCode(raw);
   // normalizeSupportedLanguageCode returns the first supported code
   // ("en") when the system locale can't be matched. If we end up on
   // "en" but the user's raw locale doesn't actually start with "en",
   // that's a genuine fallback — surface it to the user.
-  const isFallback =
-    normalized === "en" && !raw.toLowerCase().startsWith("en");
+  const isFallback = normalized === "en" && !raw.toLowerCase().startsWith("en");
   return { code: normalized, fallback: isFallback };
 }
 
@@ -264,12 +260,7 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
     const trimmedKey = lastfmKey.trim();
     const trimmedSecret = lastfmSecret.trim();
     const trimmedUser = lastfmUsername.trim();
-    if (
-      !trimmedKey ||
-      !trimmedSecret ||
-      !trimmedUser ||
-      !lastfmPassword
-    ) {
+    if (!trimmedKey || !trimmedSecret || !trimmedUser || !lastfmPassword) {
       setLastfmError(t("onboarding.lastfm.missingFields"));
       return;
     }
@@ -361,9 +352,7 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
             <div
               key={i}
               className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
-                isFilled
-                  ? "bg-emerald-500"
-                  : "bg-zinc-200 dark:bg-zinc-800"
+                isFilled ? "bg-emerald-500" : "bg-zinc-200 dark:bg-zinc-800"
               }`}
             />
           ))}
@@ -506,7 +495,9 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
                     </p>
                     <ToggleRow
                       label={t("onboarding.folder.autoAnalyze.title")}
-                      description={t("onboarding.folder.autoAnalyze.description")}
+                      description={t(
+                        "onboarding.folder.autoAnalyze.description",
+                      )}
                       value={autoAnalyze}
                       onChange={handleToggleAutoAnalyze}
                     />
@@ -569,9 +560,7 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
                         rightSlot={
                           <VisibilityToggle
                             visible={lastfmSecretVisible}
-                            onToggle={() =>
-                              setLastfmSecretVisible((v) => !v)
-                            }
+                            onToggle={() => setLastfmSecretVisible((v) => !v)}
                             ariaLabel={t("onboarding.lastfm.toggleSecret")}
                           />
                         }
@@ -591,9 +580,7 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
                         rightSlot={
                           <VisibilityToggle
                             visible={lastfmPasswordVisible}
-                            onToggle={() =>
-                              setLastfmPasswordVisible((v) => !v)
-                            }
+                            onToggle={() => setLastfmPasswordVisible((v) => !v)}
                             ariaLabel={t("onboarding.lastfm.togglePassword")}
                           />
                         }

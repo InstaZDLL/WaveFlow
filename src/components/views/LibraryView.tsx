@@ -960,7 +960,10 @@ interface TrackTableProps {
   likedIds: Set<number>;
   onToggleLike: (trackId: number) => void;
   playlists: Playlist[];
-  onAddToPlaylist: (playlistId: number, trackId: number) => Promise<void> | void;
+  onAddToPlaylist: (
+    playlistId: number,
+    trackId: number,
+  ) => Promise<void> | void;
   onRemoveFromPlaylist: (
     playlistId: number,
     trackId: number,
@@ -1476,9 +1479,7 @@ function AddToPlaylistPopover({
           : undefined
       }
       className={`${
-        anchorEl
-          ? "z-100"
-          : "absolute top-full right-0 mt-1 z-50 w-56"
+        anchorEl ? "z-100" : "absolute top-full right-0 mt-1 z-50 w-56"
       } rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden animate-fade-in`}
     >
       <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-3 pt-3 pb-2">

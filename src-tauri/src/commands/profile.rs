@@ -225,10 +225,7 @@ pub async fn deactivate_profile(
 /// `app.last_profile_id` setting is cleared if it pointed to this profile so
 /// the next startup falls back to the most-recently-used remaining profile.
 #[tauri::command]
-pub async fn delete_profile(
-    state: tauri::State<'_, AppState>,
-    profile_id: i64,
-) -> AppResult<()> {
+pub async fn delete_profile(state: tauri::State<'_, AppState>, profile_id: i64) -> AppResult<()> {
     let active_id = {
         let guard = state.profile.read().await;
         guard.as_ref().map(|p| p.profile_id)
@@ -256,11 +253,10 @@ pub async fn delete_profile(
         // existed but was the last remaining profile and the guard rejected
         // it. Disambiguate with a cheap follow-up so the caller gets a
         // useful error instead of a generic ProfileNotFound.
-        let still_exists: Option<i64> =
-            sqlx::query_scalar("SELECT id FROM profile WHERE id = ?")
-                .bind(profile_id)
-                .fetch_optional(&state.app_db)
-                .await?;
+        let still_exists: Option<i64> = sqlx::query_scalar("SELECT id FROM profile WHERE id = ?")
+            .bind(profile_id)
+            .fetch_optional(&state.app_db)
+            .await?;
         return if still_exists.is_some() {
             Err(AppError::Other(
                 "cannot delete the last remaining profile".into(),
