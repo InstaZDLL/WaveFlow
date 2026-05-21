@@ -174,7 +174,11 @@ export function AppLayout() {
   // a memo recomputed on every render would briefly satisfy "show"
   // mid-boot before flipping back — that's the flash the modal
   // used to do.
-  const { libraries, isLoading: isLibraryLoading } = useLibrary();
+  const {
+    libraries,
+    isLoading: isLibraryLoading,
+    loadedProfileId: librariesLoadedFor,
+  } = useLibrary();
   const { activeProfile, isLoading: isProfileLoading } = useProfile();
   const [showOnboarding, setShowOnboarding] = useState(false);
   // Tracks the active profile id we've already evaluated against, so
@@ -187,6 +191,11 @@ export function AppLayout() {
   useEffect(() => {
     if (isProfileLoading || isLibraryLoading) return;
     if (!activeProfile) return;
+    // Defer until LibraryContext has refetched FOR this profile. Without
+    // this check the gate would evaluate with the previous profile's
+    // libraries during a switch — a fresh profile would silently skip
+    // onboarding if the previous one happened to have folders.
+    if (librariesLoadedFor !== activeProfile.id) return;
     if (evaluatedProfileId.current === activeProfile.id) return;
 
     const profileId = activeProfile.id;
@@ -216,7 +225,13 @@ export function AppLayout() {
     return () => {
       cancelled = true;
     };
-  }, [activeProfile, isProfileLoading, isLibraryLoading, libraries]);
+  }, [
+    activeProfile,
+    isProfileLoading,
+    isLibraryLoading,
+    librariesLoadedFor,
+    libraries,
+  ]);
 
   const dismissOnboarding = useCallback(() => {
     // Persist the choice so the modal doesn't reappear on next
