@@ -717,6 +717,22 @@
       "colorLabel": "Profielkleur",
       "colorAria": "Kleur {{color}}",
       "submit": "Profiel maken"
+    },
+    "manage": {
+      "toggle": "Beheren",
+      "done": "Klaar",
+      "title": "Profielen beheren",
+      "subtitle": "Selecteer een profiel om te verwijderen. Het actieve profiel kan hier niet worden verwijderd.",
+      "activeLocked": "Actief profiel",
+      "deleteHint": "Tik om te verwijderen",
+      "deleteAria": "Profiel {{name}} verwijderen"
+    },
+    "delete": {
+      "title": "{{name}} verwijderen?",
+      "subtitle": "Dit profiel wordt definitief verwijderd.",
+      "warning": "Alle bibliotheken, afspeellijsten en luistergeschiedenis van dit profiel gaan verloren. Deze actie kan niet ongedaan worden gemaakt.",
+      "submit": "Profiel verwijderen",
+      "submitting": "Bezig met verwijderen…"
     }
   },
   "libraryModal": {

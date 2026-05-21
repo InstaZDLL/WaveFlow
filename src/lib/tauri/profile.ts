@@ -42,6 +42,14 @@ export function deactivateProfile(): Promise<void> {
   return invoke<void>("deactivate_profile");
 }
 
+/**
+ * Permanently delete a profile. The backend refuses if the profile is active
+ * (switch first) or if it's the last remaining profile.
+ */
+export function deleteProfile(profileId: number): Promise<void> {
+  return invoke<void>("delete_profile", { profileId });
+}
+
 /** Read a single value from the active profile's `profile_setting` table. */
 export function getProfileSetting(key: string): Promise<string | null> {
   return invoke<string | null>("get_profile_setting", { key });

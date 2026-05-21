@@ -717,6 +717,22 @@
       "colorLabel": "プロフィールの色",
       "colorAria": "色：{{color}}",
       "submit": "プロフィールを作成する"
+    },
+    "manage": {
+      "toggle": "管理",
+      "done": "完了",
+      "title": "プロフィールを管理",
+      "subtitle": "削除するプロフィールを選択してください。アクティブなプロフィールはここから削除できません。",
+      "activeLocked": "アクティブなプロフィール",
+      "deleteHint": "タップして削除",
+      "deleteAria": "プロフィール {{name}} を削除"
+    },
+    "delete": {
+      "title": "{{name}} を削除しますか?",
+      "subtitle": "このプロフィールは完全に削除されます。",
+      "warning": "このプロフィールのライブラリ、プレイリスト、再生履歴がすべて失われます。この操作は取り消せません。",
+      "submit": "プロフィールを削除",
+      "submitting": "削除中…"
     }
   },
   "libraryModal": {

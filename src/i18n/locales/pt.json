@@ -717,6 +717,22 @@
       "colorLabel": "Cor do perfil",
       "colorAria": "Cor {{color}}",
       "submit": "Criar o perfil"
+    },
+    "manage": {
+      "toggle": "Gerir",
+      "done": "Concluído",
+      "title": "Gerir perfis",
+      "subtitle": "Seleciona um perfil para remover. O perfil ativo não pode ser eliminado a partir daqui.",
+      "activeLocked": "Perfil ativo",
+      "deleteHint": "Toca para eliminar",
+      "deleteAria": "Eliminar perfil {{name}}"
+    },
+    "delete": {
+      "title": "Eliminar {{name}}?",
+      "subtitle": "Este perfil será removido permanentemente.",
+      "warning": "Todas as bibliotecas, listas de reprodução e histórico de audição deste perfil serão perdidos. Esta ação não pode ser anulada.",
+      "submit": "Eliminar perfil",
+      "submitting": "A eliminar…"
     }
   },
   "libraryModal": {

@@ -717,6 +717,22 @@
       "colorLabel": "Profil rengi",
       "colorAria": "Renk {{color}}",
       "submit": "Profil oluştur"
+    },
+    "manage": {
+      "toggle": "Yönet",
+      "done": "Tamam",
+      "title": "Profilleri yönet",
+      "subtitle": "Kaldırmak istediğiniz profili seçin. Etkin profil buradan silinemez.",
+      "activeLocked": "Etkin profil",
+      "deleteHint": "Silmek için dokunun",
+      "deleteAria": "{{name}} profilini sil"
+    },
+    "delete": {
+      "title": "{{name}} silinsin mi?",
+      "subtitle": "Bu profil kalıcı olarak kaldırılacak.",
+      "warning": "Bu profile ait tüm kütüphaneler, çalma listeleri ve dinleme geçmişi kaybolacak. Bu işlem geri alınamaz.",
+      "submit": "Profili sil",
+      "submitting": "Siliniyor…"
     }
   },
   "libraryModal": {

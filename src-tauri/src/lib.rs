@@ -441,6 +441,7 @@ pub fn run() {
             commands::profile::create_profile,
             commands::profile::switch_profile,
             commands::profile::deactivate_profile,
+            commands::profile::delete_profile,
             commands::profile::get_profile_setting,
             commands::profile::set_profile_setting,
             commands::profile_io::export_profile,
