@@ -1108,7 +1108,8 @@
       "appearance": "Aparência",
       "storage": "Armazenamento e Dados",
       "data": "Dados",
-      "diagnostics": "Diagnóstico"
+      "diagnostics": "Diagnóstico",
+      "shortcuts": "Atalhos de teclado"
     },
     "integrations": {
       "lastfm": {
@@ -1342,6 +1343,27 @@
       "placeholder": {
         "title": "Seletor de temas chega na v1.3",
         "subtitle": "10 presets (Esmeralda, Meia-noite, OLED, Floresta, Pôr do sol…) que repintam o app inteiro na hora."
+      }
+    },
+    "shortcuts": {
+      "subtitle": "Clique em um atalho e pressione a combinação de teclas que você quer. Backspace para limpar, Esc para cancelar.",
+      "captureHint": "Pressione uma tecla…",
+      "reset": "Redefinir tudo",
+      "unbind": "Desvincular",
+      "unbound": "Nenhum",
+      "actions": {
+        "togglePlayback": "Tocar / Pausar",
+        "next": "Próxima faixa",
+        "previous": "Faixa anterior",
+        "volumeUp": "Aumentar volume",
+        "volumeDown": "Diminuir volume",
+        "toggleMute": "Mudo / Ativar",
+        "toggleShuffle": "Aleatório",
+        "cycleRepeat": "Modo de repetição",
+        "toggleQueue": "Mostrar / Ocultar fila",
+        "toggleNowPlaying": "Mostrar / Ocultar reprodução",
+        "toggleLyrics": "Mostrar / Ocultar letra",
+        "toggleLike": "Curtir / Descurtir"
       }
     }
   },

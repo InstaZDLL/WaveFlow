@@ -1108,7 +1108,8 @@
       "appearance": "Weergave",
       "storage": "Opslag & gegevens",
       "data": "Gegevens",
-      "diagnostics": "Diagnostieken"
+      "diagnostics": "Diagnostieken",
+      "shortcuts": "Sneltoetsen"
     },
     "integrations": {
       "lastfm": {
@@ -1342,6 +1343,27 @@
       "placeholder": {
         "title": "Themakiezer komt in v1.3",
         "subtitle": "10 presets (Smaragd, Middernacht, OLED, Bos, Zonsondergang…) die de hele app direct hertinten."
+      }
+    },
+    "shortcuts": {
+      "subtitle": "Klik op een sneltoets en druk op de gewenste toetsencombinatie. Backspace om te wissen, Escape om te annuleren.",
+      "captureHint": "Druk op een toets…",
+      "reset": "Alles resetten",
+      "unbind": "Verwijderen",
+      "unbound": "Geen",
+      "actions": {
+        "togglePlayback": "Afspelen / Pauze",
+        "next": "Volgend nummer",
+        "previous": "Vorig nummer",
+        "volumeUp": "Volume omhoog",
+        "volumeDown": "Volume omlaag",
+        "toggleMute": "Dempen / Aan",
+        "toggleShuffle": "Willekeurig",
+        "cycleRepeat": "Herhaalmodus",
+        "toggleQueue": "Wachtrij tonen / verbergen",
+        "toggleNowPlaying": "Speelt nu tonen / verbergen",
+        "toggleLyrics": "Tekst tonen / verbergen",
+        "toggleLike": "Vind ik leuk / Verwijderen"
       }
     }
   },

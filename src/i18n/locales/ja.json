@@ -1107,7 +1107,8 @@
       "appearance": "外観",
       "storage": "ストレージとデータ",
       "data": "データ",
-      "diagnostics": "診断"
+      "diagnostics": "診断",
+      "shortcuts": "キーボードショートカット"
     },
     "integrations": {
       "lastfm": {
@@ -1341,6 +1342,27 @@
       "placeholder": {
         "title": "テーマピッカーは v1.3 で登場",
         "subtitle": "10種類のプリセット（エメラルド、ミッドナイト、OLED、フォレスト、サンセット…）でアプリ全体が即座に再彩色されます。"
+      }
+    },
+    "shortcuts": {
+      "subtitle": "ショートカットをクリックし、希望のキーの組み合わせを押してください。Backspaceで消去、Escapeでキャンセル。",
+      "captureHint": "キーを押してください…",
+      "reset": "すべてリセット",
+      "unbind": "解除",
+      "unbound": "なし",
+      "actions": {
+        "togglePlayback": "再生 / 一時停止",
+        "next": "次の曲",
+        "previous": "前の曲",
+        "volumeUp": "音量を上げる",
+        "volumeDown": "音量を下げる",
+        "toggleMute": "ミュート / 解除",
+        "toggleShuffle": "シャッフル",
+        "cycleRepeat": "リピートモード",
+        "toggleQueue": "キューを表示 / 非表示",
+        "toggleNowPlaying": "再生中を表示 / 非表示",
+        "toggleLyrics": "歌詞を表示 / 非表示",
+        "toggleLike": "いいね / 解除"
       }
     }
   },

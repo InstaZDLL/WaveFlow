@@ -1108,7 +1108,8 @@
       "appearance": "Aspetto",
       "storage": "Archiviazione e dati",
       "data": "Dati",
-      "diagnostics": "Diagnostica"
+      "diagnostics": "Diagnostica",
+      "shortcuts": "Scorciatoie da tastiera"
     },
     "integrations": {
       "lastfm": {
@@ -1342,6 +1343,27 @@
       "placeholder": {
         "title": "Il selettore di temi arriva in v1.3",
         "subtitle": "10 preset (Smeraldo, Mezzanotte, OLED, Foresta, Tramonto…) che ritingono l'intera app all'istante."
+      }
+    },
+    "shortcuts": {
+      "subtitle": "Fai clic su una scorciatoia e premi la combinazione di tasti desiderata. Backspace per cancellare, Esc per annullare.",
+      "captureHint": "Premi un tasto…",
+      "reset": "Ripristina tutto",
+      "unbind": "Rimuovi",
+      "unbound": "Nessuna",
+      "actions": {
+        "togglePlayback": "Riproduci / Pausa",
+        "next": "Brano successivo",
+        "previous": "Brano precedente",
+        "volumeUp": "Aumenta volume",
+        "volumeDown": "Diminuisci volume",
+        "toggleMute": "Disattiva / Attiva audio",
+        "toggleShuffle": "Riproduzione casuale",
+        "cycleRepeat": "Modalità di ripetizione",
+        "toggleQueue": "Mostra / Nascondi coda",
+        "toggleNowPlaying": "Mostra / Nascondi riproduzione",
+        "toggleLyrics": "Mostra / Nascondi testo",
+        "toggleLike": "Mi piace / Rimuovi"
       }
     }
   },

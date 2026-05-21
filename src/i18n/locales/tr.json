@@ -1107,7 +1107,8 @@
       "appearance": "Görünüm",
       "storage": "Depolama ve Veri",
       "data": "Veri",
-      "diagnostics": "Teşhis"
+      "diagnostics": "Teşhis",
+      "shortcuts": "Klavye kısayolları"
     },
     "integrations": {
       "lastfm": {
@@ -1341,6 +1342,27 @@
       "placeholder": {
         "title": "Tema seçici v1.3'te geliyor",
         "subtitle": "10 hazır ayar (Zümrüt, Gece Yarısı, OLED, Orman, Gün Batımı…) uygulamayı anında yeniden renklendirir."
+      }
+    },
+    "shortcuts": {
+      "subtitle": "Bir kısayola tıklayın ve istediğiniz tuş kombinasyonuna basın. Temizlemek için Backspace, iptal için Esc.",
+      "captureHint": "Bir tuşa basın…",
+      "reset": "Tümünü sıfırla",
+      "unbind": "Kaldır",
+      "unbound": "Yok",
+      "actions": {
+        "togglePlayback": "Oynat / Duraklat",
+        "next": "Sonraki parça",
+        "previous": "Önceki parça",
+        "volumeUp": "Sesi aç",
+        "volumeDown": "Sesi kıs",
+        "toggleMute": "Sessize / Açık",
+        "toggleShuffle": "Karıştır",
+        "cycleRepeat": "Tekrar modu",
+        "toggleQueue": "Kuyruğu göster / gizle",
+        "toggleNowPlaying": "Şu an çalanı göster / gizle",
+        "toggleLyrics": "Sözleri göster / gizle",
+        "toggleLike": "Beğen / Beğenme"
       }
     }
   },
