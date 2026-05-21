@@ -11,6 +11,12 @@ interface LibraryContextValue {
   /** All libraries belonging to the currently active profile. */
   libraries: Library[];
   /**
+   * The profile id `libraries` was last fetched for. `null` until the first
+   * load completes. Lets consumers wait for a fresh fetch after a profile
+   * switch instead of acting on the previous profile's data.
+   */
+  loadedProfileId: number | null;
+  /**
    * Id of the library the user has currently "focused" in the sidebar.
    * `null` until libraries are loaded or when the profile has no libraries.
    */

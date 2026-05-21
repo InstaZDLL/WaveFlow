@@ -24,6 +24,7 @@ import {
 export function LibraryProvider({ children }: { children: ReactNode }) {
   const { activeProfile } = useProfile();
   const [libraries, setLibraries] = useState<Library[]>([]);
+  const [loadedProfileId, setLoadedProfileId] = useState<number | null>(null);
   const [selectedLibraryId, setSelectedLibraryId] = useState<number | null>(
     null,
   );
@@ -41,12 +42,14 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     if (!activeProfile) {
       setLibraries([]);
+      setLoadedProfileId(null);
       setSelectedLibraryId(null);
       return;
     }
     try {
       const list = await listLibraries();
       setLibraries(list);
+      setLoadedProfileId(activeProfile.id);
       setError(null);
       // Keep the current selection if it still exists, otherwise fall back to
       // the most-recently-updated library (which is the first one because of
@@ -72,6 +75,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         if (!activeProfile) {
           if (!cancelled) {
             setLibraries([]);
+            setLoadedProfileId(null);
             setSelectedLibraryId(null);
           }
           return;
@@ -79,6 +83,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         const list = await listLibraries();
         if (cancelled) return;
         setLibraries(list);
+        setLoadedProfileId(activeProfile.id);
         setSelectedLibraryId((prev) => {
           if (prev != null && list.some((l) => l.id === prev)) return prev;
           return list[0]?.id ?? null;
@@ -191,6 +196,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     <LibraryContext.Provider
       value={{
         libraries,
+        loadedProfileId,
         selectedLibraryId,
         selectedLibrary,
         isLoading,
