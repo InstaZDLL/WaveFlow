@@ -239,29 +239,35 @@ pub async fn delete_profile(
         ));
     }
 
-    let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM profile")
-        .fetch_one(&state.app_db)
-        .await?;
-    if total <= 1 {
-        return Err(AppError::Other(
-            "cannot delete the last remaining profile".into(),
-        ));
-    }
+    // Atomic DELETE guarded by an in-statement subquery: the "more than one
+    // profile must remain" check and the delete are evaluated together, so
+    // a concurrent deletion can never leave the table empty (TOCTOU-free).
+    let deleted = sqlx::query(
+        "DELETE FROM profile
+          WHERE id = ?
+            AND (SELECT COUNT(*) FROM profile) > 1",
+    )
+    .bind(profile_id)
+    .execute(&state.app_db)
+    .await?;
 
-    let exists: Option<i64> = sqlx::query_scalar("SELECT id FROM profile WHERE id = ?")
-        .bind(profile_id)
-        .fetch_optional(&state.app_db)
-        .await?;
-    if exists.is_none() {
-        return Err(AppError::ProfileNotFound(profile_id));
-    }
-
-    let deleted = sqlx::query("DELETE FROM profile WHERE id = ?")
-        .bind(profile_id)
-        .execute(&state.app_db)
-        .await?;
     if deleted.rows_affected() == 0 {
-        return Err(AppError::ProfileNotFound(profile_id));
+        // 0 rows hit means either: (a) the row doesn't exist, or (b) it
+        // existed but was the last remaining profile and the guard rejected
+        // it. Disambiguate with a cheap follow-up so the caller gets a
+        // useful error instead of a generic ProfileNotFound.
+        let still_exists: Option<i64> =
+            sqlx::query_scalar("SELECT id FROM profile WHERE id = ?")
+                .bind(profile_id)
+                .fetch_optional(&state.app_db)
+                .await?;
+        return if still_exists.is_some() {
+            Err(AppError::Other(
+                "cannot delete the last remaining profile".into(),
+            ))
+        } else {
+            Err(AppError::ProfileNotFound(profile_id))
+        };
     }
 
     // Clear the last-profile pointer if it referenced the deleted profile so
