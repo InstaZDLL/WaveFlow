@@ -44,7 +44,7 @@
       "calloutTitle": "知っておきたいこと",
       "bulletOwn": "自分のライブラリを持ち込もう（MP3、FLAC、ALAC、OGG、DSD…）",
       "bulletImport": "フォルダをインポート、またはファイルをドラッグ＆ドロップ",
-      "bulletScrobble": "Last.fm と接続してバックグラウンドで再生を Scrobble"
+      "bulletScrobble": "Last.fm と接続してバックグラウンドで再生をスクロブル"
     },
     "folder": {
       "title": "音楽フォルダを選択",
@@ -59,7 +59,7 @@
     },
     "lastfm": {
       "title": "Last.fm を接続",
-      "description": "Scrobbling は再生履歴を Last.fm プロフィールに送ります。その見返りに、アーティスト紹介と類似アーティストの提案がアプリ内で受け取れます。",
+      "description": "スクロブルは再生履歴を Last.fm プロフィールに送ります。その見返りに、アーティスト紹介と類似アーティストの提案がアプリ内で受け取れます。",
       "recommendedBadge": "おすすめ",
       "keyHint": "Last.fm で API キーを作成",
       "keyLabel": "API キー",
@@ -75,7 +75,7 @@
       "connect": "Last.fm を接続",
       "missingFields": "API キー、シークレット、ユーザー名、パスワードをすべて入力してください。",
       "connectedTitle": "{{user}} として接続済み",
-      "connectedSubtitle": "トラックを再生すると自動的に Scrobbling が始まります。"
+      "connectedSubtitle": "トラックを再生すると自動的にスクロブルが始まります。"
     },
     "scan": {
       "title": "ライブラリをスキャン",
@@ -1497,8 +1497,5 @@
     "openSettings": "設定を開く",
     "notConnectedTitle": "Spotify は未接続です",
     "notConnectedMessage": "Client ID は設定済みです。「設定」から Spotify Premium アカウントにサインインして、プレイリストの読み込みと再生を行ってください。"
-  },
-  "diagnostics": {
-    "openFolder": "フォルダを開く"
   }
 }
