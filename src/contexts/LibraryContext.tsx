@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -23,6 +24,14 @@ import {
 
 export function LibraryProvider({ children }: { children: ReactNode }) {
   const { activeProfile } = useProfile();
+  // Tracks the currently-active profile id so `refresh()` can detect when
+  // its in-flight `listLibraries` response belongs to a profile the user
+  // has since switched away from, and drop the stale write.
+  const activeProfileIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    activeProfileIdRef.current = activeProfile?.id ?? null;
+  }, [activeProfile?.id]);
+
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [loadedProfileId, setLoadedProfileId] = useState<number | null>(null);
   const [selectedLibraryId, setSelectedLibraryId] = useState<number | null>(
@@ -46,10 +55,15 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       setSelectedLibraryId(null);
       return;
     }
+    const profileIdAtStart = activeProfile.id;
     try {
       const list = await listLibraries();
+      // Drop the response if the user switched profile mid-flight — writing
+      // it would clobber the new profile's libraries with the old one's data
+      // and re-block the onboarding gate (see fix/onboarding-on-new-profile).
+      if (activeProfileIdRef.current !== profileIdAtStart) return;
       setLibraries(list);
-      setLoadedProfileId(activeProfile.id);
+      setLoadedProfileId(profileIdAtStart);
       setError(null);
       // Keep the current selection if it still exists, otherwise fall back to
       // the most-recently-updated library (which is the first one because of
@@ -59,6 +73,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         return list[0]?.id ?? null;
       });
     } catch (err) {
+      if (activeProfileIdRef.current !== profileIdAtStart) return;
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
       console.error("[LibraryContext] refresh failed", err);
