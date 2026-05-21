@@ -77,14 +77,6 @@
       "connectedTitle": "Terhubung sebagai {{user}}",
       "connectedSubtitle": "Scrobbling otomatis aktif ketika kamu memutar trek."
     },
-    "integrations": {
-      "title": "Integrasi",
-      "description": "Bagikan apa yang kamu dengar secara real-time — opsional, bisa diubah kapan saja di Pengaturan.",
-      "discord": {
-        "title": "Discord Rich Presence",
-        "description": "Menampilkan trek dan artis saat ini di profil Discord-mu."
-      }
-    },
     "scan": {
       "title": "Pindai perpustakaanmu",
       "description": "Siap menganalisis foldermu dan menemukan trek-trekmu?",
@@ -111,6 +103,12 @@
       "scanLater": "Pindai nanti",
       "scanNow": "Pindai sekarang",
       "startListening": "Mulai mendengarkan"
+    },
+    "language": {
+      "title": "Pilih bahasamu",
+      "description": "WaveFlow tersedia dalam 17 bahasa. Kami sudah memilih bahasa sistemmu — ubah jika kami salah.",
+      "detected": "Dideteksi dari sistemmu",
+      "fallback": "Kami tidak bisa mendeteksi bahasa sistemmu, jadi kami beralih ke Bahasa Inggris. Pilih bahasamu di bawah."
     }
   },
   "sidebar": {

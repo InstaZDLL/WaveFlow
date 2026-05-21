@@ -77,14 +77,6 @@
       "connectedTitle": "已連接為 {{user}}",
       "connectedSubtitle": "播放曲目時 Scrobbling 會自動啟動。"
     },
-    "integrations": {
-      "title": "整合",
-      "description": "即時分享你正在聽的音樂 — 可選，可在設定中隨時修改。",
-      "discord": {
-        "title": "Discord Rich Presence",
-        "description": "在你的 Discord 個人檔案顯示目前的曲目與藝人。"
-      }
-    },
     "scan": {
       "title": "掃描你的音樂庫",
       "description": "準備好分析資料夾並發現你的曲目了嗎？",
@@ -111,6 +103,12 @@
       "scanLater": "稍後掃描",
       "scanNow": "立即掃描",
       "startListening": "開始聆聽"
+    },
+    "language": {
+      "title": "選擇你的語言",
+      "description": "WaveFlow 提供 17 種語言。我們已預選你的系統語言 — 如有誤請更改。",
+      "detected": "已從系統偵測到",
+      "fallback": "我們無法偵測到你的系統語言,已預設使用英文。請在下方選擇你的語言。"
     }
   },
   "sidebar": {

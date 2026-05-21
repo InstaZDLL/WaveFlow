@@ -77,14 +77,6 @@
       "connectedTitle": "Ligado como {{user}}",
       "connectedSubtitle": "O scrobbling arranca automaticamente quando reproduzes uma faixa."
     },
-    "integrations": {
-      "title": "Integrações",
-      "description": "Partilha o que estás a ouvir em tempo real — opcional, modificável a qualquer momento em Definições.",
-      "discord": {
-        "title": "Discord Rich Presence",
-        "description": "Mostra a faixa atual e o artista no teu perfil Discord."
-      }
-    },
     "scan": {
       "title": "Analisar a tua biblioteca",
       "description": "Pronto para analisar a tua pasta e descobrir as tuas faixas?",
@@ -111,6 +103,12 @@
       "scanLater": "Analisar mais tarde",
       "scanNow": "Analisar agora",
       "startListening": "Começar a ouvir"
+    },
+    "language": {
+      "title": "Escolhe o teu idioma",
+      "description": "O WaveFlow está disponível em 17 idiomas. Pré-selecionámos o do teu sistema — muda-o se nos enganámos.",
+      "detected": "Detetado a partir do teu sistema",
+      "fallback": "Não conseguimos detetar o idioma do sistema, por isso usámos inglês por defeito. Escolhe o teu abaixo."
     }
   },
   "sidebar": {

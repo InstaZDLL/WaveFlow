@@ -77,14 +77,6 @@
       "connectedTitle": "{{user}} olarak bağlandın",
       "connectedSubtitle": "Bir parça çaldığında scrobbling otomatik başlar."
     },
-    "integrations": {
-      "title": "Entegrasyonlar",
-      "description": "Ne dinlediğini gerçek zamanlı paylaş — isteğe bağlı, Ayarlar'dan istediğin zaman değiştirebilirsin.",
-      "discord": {
-        "title": "Discord Rich Presence",
-        "description": "Discord profilinde mevcut parçayı ve sanatçıyı gösterir."
-      }
-    },
     "scan": {
       "title": "Kütüphaneni tara",
       "description": "Klasörünü analiz edip parçalarını keşfetmeye hazır mısın?",
@@ -111,6 +103,12 @@
       "scanLater": "Sonra tara",
       "scanNow": "Şimdi tara",
       "startListening": "Dinlemeye başla"
+    },
+    "language": {
+      "title": "Dilini seç",
+      "description": "WaveFlow 17 dilde mevcut. Sistemin dilini önceden seçtik — yanılmışsak değiştir.",
+      "detected": "Sisteminden algılandı",
+      "fallback": "Sistem dilini algılayamadık, varsayılan olarak İngilizceye geçtik. Aşağıdan kendi dilini seç."
     }
   },
   "sidebar": {

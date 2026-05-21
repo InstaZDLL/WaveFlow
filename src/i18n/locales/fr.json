@@ -77,14 +77,6 @@
       "connectedTitle": "Connecté en tant que {{user}}",
       "connectedSubtitle": "Le scrobbling démarre automatiquement quand tu lis un morceau."
     },
-    "integrations": {
-      "title": "Intégrations",
-      "description": "Affiche ce que tu écoutes en temps réel — optionnel, modifiable à tout moment depuis les réglages.",
-      "discord": {
-        "title": "Discord Rich Presence",
-        "description": "Affiche le titre en cours et l'artiste dans ton profil Discord."
-      }
-    },
     "scan": {
       "title": "Scanner ta bibliothèque",
       "description": "Prêt à analyser ton dossier et découvrir tes morceaux ?",
@@ -111,6 +103,12 @@
       "scanLater": "Scanner plus tard",
       "scanNow": "Scanner maintenant",
       "startListening": "Commencer à écouter"
+    },
+    "language": {
+      "title": "Choisis ta langue",
+      "description": "WaveFlow est traduit dans 17 langues. On a présélectionné celle de ton système — change-la si on s'est trompé.",
+      "detected": "Détectée depuis ton système",
+      "fallback": "Impossible de détecter la langue de ton système, on a basculé sur l'anglais par défaut. Choisis la tienne ci-dessous."
     }
   },
   "sidebar": {

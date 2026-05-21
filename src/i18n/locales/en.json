@@ -77,14 +77,6 @@
       "connectedTitle": "Connected as {{user}}",
       "connectedSubtitle": "Scrobbling kicks in automatically once you play a track."
     },
-    "integrations": {
-      "title": "Integrations",
-      "description": "Share what you're listening to in real-time — optional, can be changed any time in Settings.",
-      "discord": {
-        "title": "Discord Rich Presence",
-        "description": "Shows the current track and artist on your Discord profile."
-      }
-    },
     "scan": {
       "title": "Scan your library",
       "description": "Ready to analyse your folder and discover your tracks?",
@@ -111,6 +103,12 @@
       "scanLater": "Scan later",
       "scanNow": "Scan now",
       "startListening": "Start listening"
+    },
+    "language": {
+      "title": "Pick your language",
+      "description": "WaveFlow ships in 17 languages. We pre-selected the one your system uses — switch if we got it wrong.",
+      "detected": "Detected from your system",
+      "fallback": "We couldn't match your system language, so we defaulted to English. Pick yours below."
     }
   },
   "sidebar": {

@@ -12,6 +12,7 @@ import {
   EyeOff,
   ExternalLink,
   FolderOpen,
+  Globe,
   Loader2,
   Mic2,
   Music,
@@ -19,7 +20,6 @@ import {
   SkipForward,
   Sparkles,
   X,
-  Zap,
 } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useModalA11y } from "../../hooks/useModalA11y";
@@ -27,16 +27,18 @@ import { useLibrary } from "../../hooks/useLibrary";
 import { pickFolder } from "../../lib/tauri/dialog";
 import type { ScanSummary } from "../../lib/tauri/library";
 import {
+  SUPPORTED_LANGUAGES,
+  normalizeSupportedLanguageCode,
+} from "../../i18n";
+import {
   getAutoAnalyze,
   setAutoAnalyze,
 } from "../../lib/tauri/analysis";
 import {
-  getDiscordRpcEnabled,
   getLastfmApiKey,
   getLastfmApiSecret,
   lastfmGetStatus,
   lastfmLogin,
-  setDiscordRpcEnabled,
   setLastfmApiKey,
   setLastfmApiSecret,
   type LastfmStatus,
@@ -50,32 +52,55 @@ interface OnboardingModalProps {
 
 type StepId =
   | "welcome"
+  | "language"
   | "localOnly"
   | "folder"
   | "lastfm"
-  | "integrations"
   | "scan"
   | "done";
 
 const STEPS: ReadonlyArray<StepId> = [
   "welcome",
+  "language",
   "localOnly",
   "folder",
   "lastfm",
-  "integrations",
   "scan",
   "done",
 ];
 
 const STEP_ICONS: Record<StepId, typeof Music> = {
   welcome: Music,
+  language: Globe,
   localOnly: AlertCircle,
   folder: FolderOpen,
   lastfm: AudioLines,
-  integrations: Zap,
   scan: Disc3,
   done: Sparkles,
 };
+
+/**
+ * Reads the browser/system language and tells the caller whether
+ * i18next ended up on a "real" detected language (matching the user's
+ * locale) or fell back to English because the OS language isn't
+ * supported. The UI uses this to show a green "Detected" badge or a
+ * yellow "we couldn't match your language" fallback hint on the
+ * language step.
+ */
+function detectInitialLanguage(): { code: string; fallback: boolean } {
+  const raw =
+    (typeof navigator !== "undefined"
+      ? navigator.language ?? navigator.languages?.[0]
+      : null) ?? "en";
+  const normalized = normalizeSupportedLanguageCode(raw);
+  // normalizeSupportedLanguageCode returns the first supported code
+  // ("en") when the system locale can't be matched. If we end up on
+  // "en" but the user's raw locale doesn't actually start with "en",
+  // that's a genuine fallback — surface it to the user.
+  const isFallback =
+    normalized === "en" && !raw.toLowerCase().startsWith("en");
+  return { code: normalized, fallback: isFallback };
+}
 
 type ScanState =
   | { kind: "idle" }
@@ -87,14 +112,23 @@ type ScanState =
  * Multi-step first-run wizard. Inspired by Lokal's onboarding flow,
  * adapted to WaveFlow's feature set:
  *
- *   1. welcome      — branding + skip-or-start
- *   2. localOnly    — set expectation that WaveFlow is not a streaming service
- *   3. folder       — pick music folder + auto-analyze toggle
- *   4. lastfm       — recommended scrobbling/bio integration (the user asked
- *                     for this to be highlighted)
- *   5. integrations — Discord Rich Presence opt-in
- *   6. scan         — confirm + kick off the initial library scan
- *   7. done         — celebrate + start listening
+ *   1. welcome   — branding + skip-or-start
+ *   2. language  — confirm the auto-detected UI language with a green
+ *                  "Detected" badge, or surface the fallback when the
+ *                  user's system locale isn't one of our 17 supported
+ *                  languages (e.g. Egyptian Arabic resolves to "ar",
+ *                  Greek falls back to "en" with a yellow hint)
+ *   3. localOnly — set expectation that WaveFlow is not a streaming service
+ *   4. folder    — pick music folder + auto-analyze toggle
+ *   5. lastfm    — recommended scrobbling/bio integration (the user asked
+ *                  for this to be highlighted)
+ *   6. scan      — confirm + kick off the initial library scan
+ *   7. done      — celebrate + start listening
+ *
+ * Discord Rich Presence is intentionally NOT a wizard step. It defaults
+ * to ON in the backend (`app_setting['integrations.discord_rpc'] = true`)
+ * so new users get the activity card by default; opt-out lives in
+ * Settings → Integrations.
  *
  * Shown by `AppLayout` once per profile (latched via
  * `onboarding.dismissed` profile setting). The wizard never persists
@@ -102,7 +136,7 @@ type ScanState =
  * step 1 next time, which is the desired UX for a 30-second flow.
  */
 export function OnboardingModal({ onSkip }: OnboardingModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { libraries, createLibrary, importFolder } = useLibrary();
 
   const [stepIndex, setStepIndex] = useState(0);
@@ -131,9 +165,14 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
   const [lastfmBusy, setLastfmBusy] = useState(false);
   const [lastfmError, setLastfmError] = useState<string | null>(null);
 
-  // Discord opt-in on the integrations step.
-  const [discordEnabled, setDiscordEnabled] = useState(false);
-  const [discordBusy, setDiscordBusy] = useState(false);
+  // Initial language detection — frozen at mount so the "Detected"
+  // badge keeps pointing at the user's system locale even after they
+  // manually switch language inside the step. The active selection is
+  // read live from i18n.resolvedLanguage further down.
+  const initialDetection = useMemo(() => detectInitialLanguage(), []);
+  const activeLanguageCode = normalizeSupportedLanguageCode(
+    i18n.resolvedLanguage ?? i18n.language,
+  );
 
   // Modal a11y wiring. The wizard is "open" for its entire lifetime
   // (the parent unmounts it when the user clicks Skip / Start), so
@@ -170,12 +209,6 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
       } catch (err) {
         console.error("[Onboarding] read lastfm status failed", err);
       }
-      try {
-        const enabled = await getDiscordRpcEnabled();
-        if (!cancelled) setDiscordEnabled(enabled);
-      } catch (err) {
-        console.error("[Onboarding] read discord rpc failed", err);
-      }
     })();
     return () => {
       cancelled = true;
@@ -186,6 +219,13 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
 
   const goNext = () => setStepIndex((i) => Math.min(STEPS.length - 1, i + 1));
   const goBack = () => setStepIndex((i) => Math.max(0, i - 1));
+
+  // === Language step actions ==========================================
+  const handlePickLanguage = (code: string) => {
+    i18n.changeLanguage(code).catch((err) => {
+      console.error("[Onboarding] changeLanguage failed", err);
+    });
+  };
 
   // === Folder step actions ============================================
   const handlePickFolder = async () => {
@@ -248,23 +288,6 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
       setLastfmError(err instanceof Error ? err.message : String(err));
     } finally {
       setLastfmBusy(false);
-    }
-  };
-
-  // === Integrations step actions ======================================
-  const handleToggleDiscord = async (next: boolean) => {
-    // Optimistic flip first, mirror the auto-analyze pattern so the
-    // switch reacts instantly. Roll back if the backend write fails.
-    const prev = discordEnabled;
-    setDiscordEnabled(next);
-    setDiscordBusy(true);
-    try {
-      await setDiscordRpcEnabled(next);
-    } catch (err) {
-      console.error("[Onboarding] set discord rpc failed", err);
-      setDiscordEnabled(prev);
-    } finally {
-      setDiscordBusy(false);
     }
   };
 
@@ -371,6 +394,57 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
               </p>
 
               {/* === Step bodies ====================================== */}
+
+              {stepId === "language" && (
+                <div className="mt-6 space-y-4">
+                  {initialDetection.fallback ? (
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 flex items-start gap-3">
+                      <AlertCircle
+                        size={16}
+                        className="text-amber-500 shrink-0 mt-0.5"
+                        aria-hidden="true"
+                      />
+                      <p className="text-xs text-amber-700 dark:text-amber-200/90 leading-relaxed">
+                        {t("onboarding.language.fallback")}
+                      </p>
+                    </div>
+                  ) : null}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[280px] overflow-y-auto pr-1">
+                    {SUPPORTED_LANGUAGES.map((lang) => {
+                      const isActive = lang.code === activeLanguageCode;
+                      const isDetected =
+                        !initialDetection.fallback &&
+                        lang.code === initialDetection.code;
+                      return (
+                        <button
+                          key={lang.code}
+                          type="button"
+                          onClick={() => handlePickLanguage(lang.code)}
+                          aria-pressed={isActive}
+                          className={`relative px-3 py-2.5 rounded-xl border text-sm text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+                            isActive
+                              ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                              : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600"
+                          }`}
+                        >
+                          <span className="block truncate font-medium">
+                            {lang.nativeLabel}
+                          </span>
+                          {isDetected && (
+                            <span
+                              className="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500 text-white"
+                              aria-label={t("onboarding.language.detected")}
+                              title={t("onboarding.language.detected")}
+                            >
+                              <CheckCircle2 size={12} strokeWidth={2.5} />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {stepId === "localOnly" && (
                 <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
@@ -547,20 +621,6 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
                 </div>
               )}
 
-              {stepId === "integrations" && (
-                <div className="mt-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40 p-4">
-                  <ToggleRow
-                    label={t("onboarding.integrations.discord.title")}
-                    description={t(
-                      "onboarding.integrations.discord.description",
-                    )}
-                    value={discordEnabled}
-                    onChange={handleToggleDiscord}
-                    busy={discordBusy}
-                  />
-                </div>
-              )}
-
               {stepId === "scan" && (
                 <div className="mt-6 space-y-3">
                   {scanState.kind === "running" ? (
@@ -654,6 +714,10 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
             </div>
           )}
 
+          {stepId === "language" && (
+            <DefaultActions onBack={goBack} onNext={goNext} t={t} />
+          )}
+
           {stepId === "localOnly" && (
             <DefaultActions
               onBack={goBack}
@@ -693,10 +757,6 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
                 <ChevronRight size={16} />
               </button>
             </div>
-          )}
-
-          {stepId === "integrations" && (
-            <DefaultActions onBack={goBack} onNext={goNext} t={t} />
           )}
 
           {stepId === "scan" && (

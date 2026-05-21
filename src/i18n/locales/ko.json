@@ -77,14 +77,6 @@
       "connectedTitle": "{{user}}(으)로 연결됨",
       "connectedSubtitle": "트랙을 재생하면 스크로블링이 자동으로 시작됩니다."
     },
-    "integrations": {
-      "title": "통합",
-      "description": "듣고 있는 음악을 실시간 공유 — 선택사항, 설정에서 언제든 변경 가능합니다.",
-      "discord": {
-        "title": "Discord Rich Presence",
-        "description": "Discord 프로필에 현재 트랙과 아티스트를 표시합니다."
-      }
-    },
     "scan": {
       "title": "라이브러리 스캔",
       "description": "폴더를 분석하고 트랙을 발견할 준비가 되셨나요?",
@@ -111,6 +103,12 @@
       "scanLater": "나중에 스캔",
       "scanNow": "지금 스캔",
       "startListening": "듣기 시작"
+    },
+    "language": {
+      "title": "언어 선택",
+      "description": "WaveFlow는 17개 언어를 지원합니다. 시스템 언어를 미리 선택했어요 — 잘못됐다면 바꾸세요.",
+      "detected": "시스템에서 감지됨",
+      "fallback": "시스템 언어를 감지하지 못해 영어로 기본 설정했습니다. 아래에서 선택하세요."
     }
   },
   "sidebar": {

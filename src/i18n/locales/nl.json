@@ -77,14 +77,6 @@
       "connectedTitle": "Verbonden als {{user}}",
       "connectedSubtitle": "Scrobbling start automatisch zodra je een track afspeelt."
     },
-    "integrations": {
-      "title": "Integraties",
-      "description": "Deel wat je luistert in realtime — optioneel, altijd aanpasbaar in Instellingen.",
-      "discord": {
-        "title": "Discord Rich Presence",
-        "description": "Toont de huidige track en artiest in je Discord-profiel."
-      }
-    },
     "scan": {
       "title": "Scan je bibliotheek",
       "description": "Klaar om je map te analyseren en je tracks te ontdekken?",
@@ -111,6 +103,12 @@
       "scanLater": "Later scannen",
       "scanNow": "Nu scannen",
       "startListening": "Beginnen met luisteren"
+    },
+    "language": {
+      "title": "Kies je taal",
+      "description": "WaveFlow is beschikbaar in 17 talen. We hebben die van je systeem voorgeselecteerd — wijzig hem als we het mis hebben.",
+      "detected": "Gedetecteerd uit je systeem",
+      "fallback": "We konden je systeemtaal niet detecteren en vielen terug op Engels. Kies hieronder je taal."
     }
   },
   "sidebar": {

@@ -77,14 +77,6 @@
       "connectedTitle": "已连接为 {{user}}",
       "connectedSubtitle": "播放曲目时 Scrobbling 自动开启。"
     },
-    "integrations": {
-      "title": "集成",
-      "description": "实时分享你正在听的音乐 — 可选，可在设置中随时修改。",
-      "discord": {
-        "title": "Discord Rich Presence",
-        "description": "在你的 Discord 个人资料中显示当前曲目和艺人。"
-      }
-    },
     "scan": {
       "title": "扫描你的音乐库",
       "description": "准备好分析文件夹并发现你的曲目了吗？",
@@ -111,6 +103,12 @@
       "scanLater": "稍后扫描",
       "scanNow": "立即扫描",
       "startListening": "开始聆听"
+    },
+    "language": {
+      "title": "选择你的语言",
+      "description": "WaveFlow 提供 17 种语言。我们已预选你的系统语言 — 如有误请更改。",
+      "detected": "已从系统检测到",
+      "fallback": "我们无法检测到你的系统语言,已默认使用英语。请在下方选择你的语言。"
     }
   },
   "sidebar": {

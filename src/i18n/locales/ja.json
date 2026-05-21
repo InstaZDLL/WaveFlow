@@ -77,14 +77,6 @@
       "connectedTitle": "{{user}} として接続済み",
       "connectedSubtitle": "トラックを再生すると自動的に Scrobbling が始まります。"
     },
-    "integrations": {
-      "title": "連携",
-      "description": "再生中の曲をリアルタイムで共有 — 任意、設定からいつでも変更可能。",
-      "discord": {
-        "title": "Discord Rich Presence",
-        "description": "Discord プロフィールに現在のトラックとアーティストを表示します。"
-      }
-    },
     "scan": {
       "title": "ライブラリをスキャン",
       "description": "フォルダを解析してトラックを見つける準備はできましたか？",
@@ -111,6 +103,12 @@
       "scanLater": "後でスキャン",
       "scanNow": "今すぐスキャン",
       "startListening": "聴き始める"
+    },
+    "language": {
+      "title": "言語を選択",
+      "description": "WaveFlow は17言語に対応しています。システムの言語を事前選択しました — 違っていれば変更してください。",
+      "detected": "システムから検出",
+      "fallback": "システム言語を検出できなかったため、英語にフォールバックしました。下から選んでください。"
     }
   },
   "sidebar": {

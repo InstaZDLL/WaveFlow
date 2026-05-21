@@ -77,14 +77,6 @@
       "connectedTitle": "Verbunden als {{user}}",
       "connectedSubtitle": "Scrobbling startet automatisch, sobald du einen Titel abspielst."
     },
-    "integrations": {
-      "title": "Integrationen",
-      "description": "Teile in Echtzeit, was du hörst — optional, jederzeit in den Einstellungen änderbar.",
-      "discord": {
-        "title": "Discord Rich Presence",
-        "description": "Zeigt den aktuellen Titel und Künstler in deinem Discord-Profil."
-      }
-    },
     "scan": {
       "title": "Bibliothek scannen",
       "description": "Bereit, deinen Ordner zu analysieren und deine Titel zu entdecken?",
@@ -111,6 +103,12 @@
       "scanLater": "Später scannen",
       "scanNow": "Jetzt scannen",
       "startListening": "Anfangen zu hören"
+    },
+    "language": {
+      "title": "Wähle deine Sprache",
+      "description": "WaveFlow ist in 17 Sprachen verfügbar. Wir haben die deines Systems vorausgewählt — ändere sie, falls wir falsch lagen.",
+      "detected": "Aus deinem System erkannt",
+      "fallback": "Wir konnten deine Systemsprache nicht erkennen und sind auf Englisch zurückgefallen. Wähle deine Sprache unten."
     }
   },
   "sidebar": {
