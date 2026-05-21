@@ -1114,9 +1114,12 @@
     "title": "Settings",
     "sections": {
       "general": "General",
+      "library": "Library",
       "playback": "Playback",
       "integrations": "Integrations",
+      "appearance": "Appearance",
       "storage": "Storage & Data",
+      "data": "Data",
       "shortcuts": "Keyboard shortcuts",
       "diagnostics": "Diagnostics"
     },
@@ -1399,6 +1402,13 @@
     "showAudioQualityFooter": {
       "title": "Show audio quality strip",
       "subtitle": "Technical details (kHz, kbps, codec, bit depth) under the player bar. Off by default for a slimmer bar."
+    },
+    "categoryNavLabel": "Settings categories",
+    "appearance": {
+      "placeholder": {
+        "title": "Theme picker ships in v1.3",
+        "subtitle": "10 presets (Emerald, Midnight, OLED, Forest, Sunset…) that retint the entire app instantly. Stay tuned."
+      }
     }
   },
   "spotify": {

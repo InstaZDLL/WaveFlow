@@ -1101,9 +1101,12 @@
     "title": "設定",
     "sections": {
       "general": "概述",
+      "library": "音樂庫",
       "playback": "播放",
       "integrations": "整合",
+      "appearance": "外觀",
       "storage": "儲存與資料",
+      "data": "資料",
       "diagnostics": "診斷"
     },
     "integrations": {
@@ -1332,6 +1335,13 @@
     "showAudioQualityFooter": {
       "title": "顯示音訊品質列",
       "subtitle": "在播放列下方顯示技術詳情（kHz、kbps、編解碼、位元深度）。為保持播放列輕巧，預設關閉。"
+    },
+    "categoryNavLabel": "設定分類",
+    "appearance": {
+      "placeholder": {
+        "title": "主題選擇器將在 v1.3 推出",
+        "subtitle": "10 個預設（祖母綠、午夜、OLED、森林、日落……）瞬間為整個應用程式重新著色。"
+      }
     }
   },
   "scanProgress": {

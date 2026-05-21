@@ -1114,11 +1114,21 @@
     "title": "Paramètres",
     "sections": {
       "general": "Général",
+      "library": "Bibliothèque",
       "playback": "Lecture",
       "integrations": "Intégrations",
+      "appearance": "Apparence",
       "storage": "Stockage & Données",
+      "data": "Données",
       "shortcuts": "Raccourcis clavier",
       "diagnostics": "Diagnostics"
+    },
+    "categoryNavLabel": "Catégories des paramètres",
+    "appearance": {
+      "placeholder": {
+        "title": "Le sélecteur de thèmes arrive en v1.3",
+        "subtitle": "10 presets (Émeraude, Minuit, OLED, Forêt, Coucher de soleil…) avec accent re-tinté sur toute l'app. Reste branché."
+      }
     },
     "shortcuts": {
       "subtitle": "Cliquez sur un raccourci puis appuyez sur la combinaison souhaitée. Backspace pour effacer, Échap pour annuler.",

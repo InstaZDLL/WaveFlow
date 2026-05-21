@@ -1102,9 +1102,12 @@
     "title": "सेटिंग्स",
     "sections": {
       "general": "सामान्य",
+      "library": "लाइब्रेरी",
       "playback": "प्लेबैक",
       "integrations": "एकीकरण",
+      "appearance": "रूप",
       "storage": "भंडारण और डेटा",
+      "data": "डेटा",
       "diagnostics": "निदान"
     },
     "integrations": {
@@ -1333,6 +1336,13 @@
     "showAudioQualityFooter": {
       "title": "ऑडियो गुणवत्ता पट्टी दिखाएं",
       "subtitle": "प्लेयर बार के नीचे तकनीकी विवरण (kHz, kbps, कोडेक, बिट डेप्थ)। पतले बार के लिए डिफ़ॉल्ट रूप से बंद।"
+    },
+    "categoryNavLabel": "सेटिंग्स श्रेणियाँ",
+    "appearance": {
+      "placeholder": {
+        "title": "थीम पिकर v1.3 में आ रहा है",
+        "subtitle": "10 प्रीसेट (एमराल्ड, मध्यरात्रि, OLED, वन, सूर्यास्त…) पूरे ऐप को तुरंत फिर से रंगते हैं।"
+      }
     }
   },
   "scanProgress": {

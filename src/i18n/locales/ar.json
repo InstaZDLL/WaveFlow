@@ -1106,9 +1106,12 @@
     "title": "الإعدادات",
     "sections": {
       "general": "عام",
+      "library": "المكتبة",
       "playback": "التشغيل",
       "integrations": "عمليات الدمج",
+      "appearance": "المظهر",
       "storage": "التخزين والبيانات",
+      "data": "البيانات",
       "diagnostics": "التشخيص"
     },
     "integrations": {
@@ -1337,6 +1340,13 @@
     "showAudioQualityFooter": {
       "title": "إظهار شريط جودة الصوت",
       "subtitle": "تفاصيل تقنية (kHz، kbps، الترميز، عمق البت) أسفل شريط المشغل. معطل افتراضيًا للحفاظ على شريط أنحف."
+    },
+    "categoryNavLabel": "فئات الإعدادات",
+    "appearance": {
+      "placeholder": {
+        "title": "أداة اختيار السمات تأتي في v1.3",
+        "subtitle": "10 سمات جاهزة (زمرد، منتصف الليل، OLED، غابة، غروب الشمس…) تعيد تلوين التطبيق بأكمله فوراً."
+      }
     }
   },
   "scanProgress": {

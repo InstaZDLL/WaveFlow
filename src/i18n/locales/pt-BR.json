@@ -1102,9 +1102,12 @@
     "title": "Configurações",
     "sections": {
       "general": "Geral",
+      "library": "Biblioteca",
       "playback": "Reprodução",
       "integrations": "Integrações",
+      "appearance": "Aparência",
       "storage": "Armazenamento e Dados",
+      "data": "Dados",
       "diagnostics": "Diagnóstico"
     },
     "integrations": {
@@ -1333,6 +1336,13 @@
     "showAudioQualityFooter": {
       "title": "Mostrar faixa de qualidade de áudio",
       "subtitle": "Detalhes técnicos (kHz, kbps, codec, profundidade) sob a barra do player. Desativado por padrão para uma barra mais fina."
+    },
+    "categoryNavLabel": "Categorias de configurações",
+    "appearance": {
+      "placeholder": {
+        "title": "Seletor de temas chega na v1.3",
+        "subtitle": "10 presets (Esmeralda, Meia-noite, OLED, Floresta, Pôr do sol…) que repintam o app inteiro na hora."
+      }
     }
   },
   "scanProgress": {

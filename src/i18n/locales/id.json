@@ -1101,9 +1101,12 @@
     "title": "Pengaturan",
     "sections": {
       "general": "Umum",
+      "library": "Pustaka",
       "playback": "Pemutaran",
       "integrations": "Integrasi",
+      "appearance": "Tampilan",
       "storage": "Penyimpanan & Data",
+      "data": "Data",
       "diagnostics": "Diagnostik"
     },
     "integrations": {
@@ -1332,6 +1335,13 @@
     "showAudioQualityFooter": {
       "title": "Tampilkan strip kualitas audio",
       "subtitle": "Detail teknis (kHz, kbps, codec, kedalaman bit) di bawah bilah pemutar. Mati secara default untuk bilah yang lebih ramping."
+    },
+    "categoryNavLabel": "Kategori pengaturan",
+    "appearance": {
+      "placeholder": {
+        "title": "Pemilih tema hadir di v1.3",
+        "subtitle": "10 preset (Zamrud, Tengah Malam, OLED, Hutan, Matahari Terbenam…) mewarnai ulang seluruh aplikasi seketika."
+      }
     }
   },
   "scanProgress": {

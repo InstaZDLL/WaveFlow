@@ -1102,9 +1102,12 @@
     "title": "Instellingen",
     "sections": {
       "general": "Algemeen",
+      "library": "Bibliotheek",
       "playback": "Afspelen",
       "integrations": "Integraties",
+      "appearance": "Weergave",
       "storage": "Opslag & gegevens",
+      "data": "Gegevens",
       "diagnostics": "Diagnostieken"
     },
     "integrations": {
@@ -1333,6 +1336,13 @@
     "showAudioQualityFooter": {
       "title": "Audiokwaliteitsbalk tonen",
       "subtitle": "Technische details (kHz, kbps, codec, bitdiepte) onder de afspeelbalk. Standaard uit voor een slankere balk."
+    },
+    "categoryNavLabel": "Instellingscategorieën",
+    "appearance": {
+      "placeholder": {
+        "title": "Themakiezer komt in v1.3",
+        "subtitle": "10 presets (Smaragd, Middernacht, OLED, Bos, Zonsondergang…) die de hele app direct hertinten."
+      }
     }
   },
   "scanProgress": {

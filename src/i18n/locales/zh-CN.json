@@ -1101,9 +1101,12 @@
     "title": "设置",
     "sections": {
       "general": "概述",
+      "library": "音乐库",
       "playback": "播放",
       "integrations": "集成",
+      "appearance": "外观",
       "storage": "存储与数据",
+      "data": "数据",
       "diagnostics": "诊断"
     },
     "integrations": {
@@ -1332,6 +1335,13 @@
     "showAudioQualityFooter": {
       "title": "显示音频质量条",
       "subtitle": "在播放栏下方显示技术详情（kHz、kbps、编解码、位深）。为保持播放栏轻巧，默认关闭。"
+    },
+    "categoryNavLabel": "设置分类",
+    "appearance": {
+      "placeholder": {
+        "title": "主题选择器将在 v1.3 推出",
+        "subtitle": "10 个预设（祖母绿、午夜、OLED、森林、日落……）瞬间为整个应用重新着色。"
+      }
     }
   },
   "scanProgress": {

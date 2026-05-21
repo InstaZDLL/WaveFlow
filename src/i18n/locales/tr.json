@@ -1101,9 +1101,12 @@
     "title": "Ayarlar",
     "sections": {
       "general": "Genel",
+      "library": "Kütüphane",
       "playback": "Oynatma",
       "integrations": "Entegrasyonlar",
+      "appearance": "Görünüm",
       "storage": "Depolama ve Veri",
+      "data": "Veri",
       "diagnostics": "Teşhis"
     },
     "integrations": {
@@ -1332,6 +1335,13 @@
     "showAudioQualityFooter": {
       "title": "Ses kalitesi şeridini göster",
       "subtitle": "Teknik ayrıntılar (kHz, kbps, codec, bit derinliği) oynatıcı çubuğunun altında. Daha ince bir çubuk için varsayılan olarak kapalı."
+    },
+    "categoryNavLabel": "Ayar kategorileri",
+    "appearance": {
+      "placeholder": {
+        "title": "Tema seçici v1.3'te geliyor",
+        "subtitle": "10 hazır ayar (Zümrüt, Gece Yarısı, OLED, Orman, Gün Batımı…) uygulamayı anında yeniden renklendirir."
+      }
     }
   },
   "scanProgress": {

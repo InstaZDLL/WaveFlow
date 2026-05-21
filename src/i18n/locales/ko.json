@@ -1101,9 +1101,12 @@
     "title": "설정",
     "sections": {
       "general": "일반",
+      "library": "라이브러리",
       "playback": "재생",
       "integrations": "통합",
+      "appearance": "외관",
       "storage": "저장소 및 데이터",
+      "data": "데이터",
       "diagnostics": "진단"
     },
     "integrations": {
@@ -1332,6 +1335,13 @@
     "showAudioQualityFooter": {
       "title": "오디오 품질 바 표시",
       "subtitle": "플레이어 바 아래에 기술 정보(kHz, kbps, 코덱, 비트 깊이)를 표시합니다. 슬림한 바를 위해 기본값은 꺼짐입니다."
+    },
+    "categoryNavLabel": "설정 카테고리",
+    "appearance": {
+      "placeholder": {
+        "title": "테마 선택기는 v1.3에 도착합니다",
+        "subtitle": "10개의 프리셋(에메랄드, 미드나잇, OLED, 포레스트, 선셋…)이 앱 전체를 즉시 다시 칠합니다."
+      }
     }
   },
   "scanProgress": {
