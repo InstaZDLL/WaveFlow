@@ -36,21 +36,79 @@
     "defaultLibraryName": "Music",
     "welcome": {
       "title": "Welcome to WaveFlow",
-      "message": "First, specify the folder that contains your music. WaveFlow will scan it and organize your library automatically.",
-      "action": "Select my music folder",
-      "skip": "Set up later"
+      "description": "Your personal local-first music player. Enjoy your entire library without a streaming subscription."
     },
-    "scanning": {
-      "title": "Analysis of your music…"
+    "localOnly": {
+      "title": "Important: local music only",
+      "description": "WaveFlow is NOT a streaming service. It plays files that already exist on your device.",
+      "calloutTitle": "What you should know",
+      "bulletOwn": "Bring your own library (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletImport": "Import a folder or drag-and-drop files",
+      "bulletScrobble": "Connect Last.fm to scrobble plays in the background"
+    },
+    "folder": {
+      "title": "Pick your music folder",
+      "description": "Tell WaveFlow where your music lives. The scanner will organise your library automatically.",
+      "placeholder": "Click to choose your music folder",
+      "changeHint": "Click to change folder",
+      "quickSettings": "Quick settings",
+      "autoAnalyze": {
+        "title": "Auto-analyse tracks",
+        "description": "Detect BPM and key during scanning — powers Radio and Mood Radio."
+      }
+    },
+    "lastfm": {
+      "title": "Connect Last.fm",
+      "description": "Scrobbling sends your plays to your Last.fm profile. You get artist bios and similar-artist suggestions back, right inside the app.",
+      "recommendedBadge": "Recommended",
+      "keyHint": "Create an API key on Last.fm",
+      "keyLabel": "API key",
+      "keyPlaceholder": "Your Last.fm API key",
+      "secretLabel": "Shared secret",
+      "secretPlaceholder": "Your shared secret",
+      "userLabel": "Last.fm username",
+      "userPlaceholder": "your-handle",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Your Last.fm password",
+      "toggleSecret": "Show/hide secret",
+      "togglePassword": "Show/hide password",
+      "connect": "Connect Last.fm",
+      "missingFields": "Please fill in the API key, secret, username and password.",
+      "connectedTitle": "Connected as {{user}}",
+      "connectedSubtitle": "Scrobbling kicks in automatically once you play a track."
+    },
+    "scan": {
+      "title": "Scan your library",
+      "description": "Ready to analyse your folder and discover your tracks?",
+      "noFolder": "No folder selected",
+      "readyHint": "Your folder is set. Start the scan whenever you're ready.",
+      "scanning": "Scanning your library…",
+      "errorTitle": "Scan failed"
     },
     "done": {
-      "title": "{{count}} songs added",
-      "message": "Your library is ready. Enjoy!",
-      "action": "Start listening"
+      "title": "You're all set!",
+      "description": "Your library has been scanned and is ready to play.",
+      "nextSteps": "Next steps:",
+      "bulletExplore": "Explore your library via the Library, Albums and Artists tabs",
+      "bulletQueue": "Build your first queue by clicking on a track",
+      "bulletSettings": "Fine-tune things from the sidebar (Appearance, Integrations…)"
     },
-    "error": {
-      "title": "The analysis failed",
-      "retry": "Try again"
+    "actions": {
+      "skipSetup": "Skip setup",
+      "getStarted": "Get started",
+      "back": "Back",
+      "continue": "Continue",
+      "understood": "I understand",
+      "skipForNow": "Skip for now",
+      "scanLater": "Scan later",
+      "scanNow": "Scan now",
+      "startListening": "Start listening"
+    },
+    "language": {
+      "title": "Pick your language",
+      "description": "WaveFlow ships in 17 languages. We pre-selected the one your system uses — switch if we got it wrong.",
+      "detected": "Detected from your system",
+      "fallback": "We couldn't match your system language, so we defaulted to English. Pick yours below."
     }
   },
   "sidebar": {

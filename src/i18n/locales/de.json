@@ -35,22 +35,80 @@
   "onboarding": {
     "defaultLibraryName": "Musik",
     "welcome": {
-      "title": "Willkommen bei „WaveFlow“",
-      "message": "Gib zunächst den Ordner an, in dem sich deine Musik befindet. WaveFlow wird diesen scannen und deine Mediathek automatisch organisieren.",
-      "action": "Meinen Musikordner auswählen",
-      "skip": "Später konfigurieren"
+      "title": "Willkommen bei WaveFlow",
+      "description": "Dein persönlicher Local-First-Musikplayer. Genieße deine gesamte Bibliothek ohne Streaming-Abo."
     },
-    "scanning": {
-      "title": "Analyse deiner Musik…"
+    "localOnly": {
+      "title": "Wichtig: nur lokale Musik",
+      "description": "WaveFlow ist KEIN Streaming-Dienst. Es spielt die Dateien ab, die bereits auf deinem Gerät liegen.",
+      "calloutTitle": "Was du wissen solltest",
+      "bulletOwn": "Bring deine eigene Bibliothek mit (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletImport": "Importiere einen Ordner oder ziehe Dateien per Drag-and-Drop",
+      "bulletScrobble": "Verbinde Last.fm, um Wiedergaben im Hintergrund zu scrobbeln"
+    },
+    "folder": {
+      "title": "Wähle deinen Musikordner",
+      "description": "Sag WaveFlow, wo deine Musik liegt. Der Scanner organisiert deine Bibliothek automatisch.",
+      "placeholder": "Klicke, um deinen Musikordner zu wählen",
+      "changeHint": "Klicke, um den Ordner zu ändern",
+      "quickSettings": "Schnelle Einstellungen",
+      "autoAnalyze": {
+        "title": "Titel automatisch analysieren",
+        "description": "Erkennt BPM und Tonart beim Scannen — versorgt Radio und Mood Radio."
+      }
+    },
+    "lastfm": {
+      "title": "Last.fm verbinden",
+      "description": "Scrobbling sendet deine Wiedergaben an dein Last.fm-Profil. Im Gegenzug erhältst du Künstler-Biografien und Vorschläge ähnlicher Künstler in der App.",
+      "recommendedBadge": "Empfohlen",
+      "keyHint": "Erstelle einen API-Schlüssel auf Last.fm",
+      "keyLabel": "API-Schlüssel",
+      "keyPlaceholder": "Dein Last.fm-API-Schlüssel",
+      "secretLabel": "Geteiltes Geheimnis",
+      "secretPlaceholder": "Dein geteiltes Geheimnis",
+      "userLabel": "Last.fm-Benutzername",
+      "userPlaceholder": "dein-name",
+      "passwordLabel": "Passwort",
+      "passwordPlaceholder": "Dein Last.fm-Passwort",
+      "toggleSecret": "Geheimnis ein-/ausblenden",
+      "togglePassword": "Passwort ein-/ausblenden",
+      "connect": "Last.fm verbinden",
+      "missingFields": "Bitte fülle API-Schlüssel, Geheimnis, Benutzername und Passwort aus.",
+      "connectedTitle": "Verbunden als {{user}}",
+      "connectedSubtitle": "Scrobbling startet automatisch, sobald du einen Titel abspielst."
+    },
+    "scan": {
+      "title": "Bibliothek scannen",
+      "description": "Bereit, deinen Ordner zu analysieren und deine Titel zu entdecken?",
+      "noFolder": "Kein Ordner ausgewählt",
+      "readyHint": "Dein Ordner ist eingerichtet. Starte den Scan, wenn du bereit bist.",
+      "scanning": "Scanne deine Bibliothek…",
+      "errorTitle": "Scan fehlgeschlagen"
     },
     "done": {
-      "title": "{{count}} hinzugefügte Titel",
-      "message": "Deine Bibliothek ist fertig. Viel Spaß beim Anhören!",
-      "action": "Zum Anhören"
+      "title": "Alles bereit!",
+      "description": "Deine Bibliothek wurde gescannt und ist bereit zur Wiedergabe.",
+      "nextSteps": "Nächste Schritte:",
+      "bulletExplore": "Erkunde deine Bibliothek über die Tabs Bibliothek, Alben und Künstler",
+      "bulletQueue": "Erstelle deine erste Warteschlange durch Klick auf einen Titel",
+      "bulletSettings": "Verfeinere Einstellungen in der Seitenleiste (Aussehen, Integrationen…)"
     },
-    "error": {
-      "title": "Die Analyse ist fehlgeschlagen",
-      "retry": "Es noch einmal versuchen"
+    "actions": {
+      "skipSetup": "Setup überspringen",
+      "getStarted": "Loslegen",
+      "back": "Zurück",
+      "continue": "Weiter",
+      "understood": "Verstanden",
+      "skipForNow": "Vorerst überspringen",
+      "scanLater": "Später scannen",
+      "scanNow": "Jetzt scannen",
+      "startListening": "Anfangen zu hören"
+    },
+    "language": {
+      "title": "Wähle deine Sprache",
+      "description": "WaveFlow ist in 17 Sprachen verfügbar. Wir haben die deines Systems vorausgewählt — ändere sie, falls wir falsch lagen.",
+      "detected": "Aus deinem System erkannt",
+      "fallback": "Wir konnten deine Systemsprache nicht erkennen und sind auf Englisch zurückgefallen. Wähle deine Sprache unten."
     }
   },
   "sidebar": {

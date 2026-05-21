@@ -35,22 +35,80 @@
   "onboarding": {
     "defaultLibraryName": "الموسيقى",
     "welcome": {
-      "title": "مرحبًا بكم في موقع WaveFlow",
-      "message": "بادئ ذي بدء، حدد المجلد الذي يحتوي على ملفات الموسيقى الخاصة بك. سيقوم برنامج «WaveFlow» بمسح هذا المجلد وتنظيم مكتبتك تلقائيًا.",
-      "action": "اختيار مجلد الموسيقى الخاص بي",
-      "skip": "تعيين الإعدادات لاحقًا"
+      "title": "مرحباً بك في WaveFlow",
+      "description": "مشغل الموسيقى المحلي الشخصي خاصتك. استمتع بمكتبتك بأكملها دون اشتراك بث."
     },
-    "scanning": {
-      "title": "تحليل موسيقاك..."
+    "localOnly": {
+      "title": "مهم: الموسيقى المحلية فقط",
+      "description": "WaveFlow ليس خدمة بث. إنه يشغل الملفات الموجودة على جهازك بالفعل.",
+      "calloutTitle": "ما يجب أن تعرفه",
+      "bulletOwn": "أحضر مكتبتك الخاصة (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletImport": "استورد مجلداً أو اسحب الملفات وأفلتها",
+      "bulletScrobble": "اربط Last.fm لتسجيل تشغيلاتك في الخلفية"
+    },
+    "folder": {
+      "title": "اختر مجلد الموسيقى",
+      "description": "أخبر WaveFlow بمكان موسيقاك. سيقوم الماسح بتنظيم مكتبتك تلقائياً.",
+      "placeholder": "اضغط لاختيار مجلد الموسيقى",
+      "changeHint": "اضغط لتغيير المجلد",
+      "quickSettings": "إعدادات سريعة",
+      "autoAnalyze": {
+        "title": "تحليل المقاطع تلقائياً",
+        "description": "يكتشف BPM والنغمة أثناء المسح — يغذي Radio و Mood Radio."
+      }
+    },
+    "lastfm": {
+      "title": "اربط Last.fm",
+      "description": "يرسل Scrobbling تشغيلاتك إلى ملفك الشخصي على Last.fm. وفي المقابل تحصل على سير الفنانين واقتراحات فنانين مشابهين داخل التطبيق.",
+      "recommendedBadge": "موصى به",
+      "keyHint": "أنشئ مفتاح API على Last.fm",
+      "keyLabel": "مفتاح API",
+      "keyPlaceholder": "مفتاح Last.fm API الخاص بك",
+      "secretLabel": "السر المشترك",
+      "secretPlaceholder": "السر المشترك الخاص بك",
+      "userLabel": "اسم مستخدم Last.fm",
+      "userPlaceholder": "اسمك",
+      "passwordLabel": "كلمة المرور",
+      "passwordPlaceholder": "كلمة مرور Last.fm الخاصة بك",
+      "toggleSecret": "إظهار/إخفاء السر",
+      "togglePassword": "إظهار/إخفاء كلمة المرور",
+      "connect": "اربط Last.fm",
+      "missingFields": "يرجى تعبئة مفتاح API والسر واسم المستخدم وكلمة المرور.",
+      "connectedTitle": "تم الاتصال باسم {{user}}",
+      "connectedSubtitle": "يبدأ Scrobbling تلقائياً عند تشغيل مقطع."
+    },
+    "scan": {
+      "title": "افحص مكتبتك",
+      "description": "هل أنت مستعد لتحليل مجلدك واكتشاف مقاطعك؟",
+      "noFolder": "لم يتم تحديد مجلد",
+      "readyHint": "تم ضبط المجلد. ابدأ المسح متى تشاء.",
+      "scanning": "جارٍ فحص مكتبتك…",
+      "errorTitle": "فشل الفحص"
     },
     "done": {
-      "title": "{{count}} المقاطع المضافة",
-      "message": "مكتبتك جاهزة. استمتع بالاستماع!",
-      "action": "ابدأ الاستماع"
+      "title": "كل شيء جاهز!",
+      "description": "تم فحص مكتبتك وهي جاهزة للتشغيل.",
+      "nextSteps": "الخطوات التالية:",
+      "bulletExplore": "استكشف مكتبتك عبر علامات تبويب المكتبة والألبومات والفنانين",
+      "bulletQueue": "أنشئ قائمة الانتظار الأولى بالنقر على مقطع",
+      "bulletSettings": "اضبط الإعدادات من الشريط الجانبي (المظهر، التكاملات…)"
     },
-    "error": {
-      "title": "فشل التحليل",
-      "retry": "حاول مرة أخرى"
+    "actions": {
+      "skipSetup": "تخطّى الإعداد",
+      "getStarted": "ابدأ",
+      "back": "رجوع",
+      "continue": "متابعة",
+      "understood": "فهمت",
+      "skipForNow": "تخطّى الآن",
+      "scanLater": "افحص لاحقاً",
+      "scanNow": "افحص الآن",
+      "startListening": "ابدأ الاستماع"
+    },
+    "language": {
+      "title": "اختر لغتك",
+      "description": "يدعم WaveFlow 17 لغة. لقد قمنا بتحديد لغة نظامك مسبقاً — غيّرها إذا أخطأنا.",
+      "detected": "اكتُشفت من نظامك",
+      "fallback": "لم نتمكن من اكتشاف لغة نظامك، فعدنا إلى الإنجليزية افتراضياً. اختر لغتك من الأسفل."
     }
   },
   "sidebar": {

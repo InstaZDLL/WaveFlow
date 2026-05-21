@@ -36,21 +36,79 @@
     "defaultLibraryName": "Musik",
     "welcome": {
       "title": "Selamat datang di WaveFlow",
-      "message": "Pertama-tama, tentukan folder yang berisi musikmu. WaveFlow akan memindai dan mengatur perpustakaan musikmu secara otomatis.",
-      "action": "Pilih folder musik saya",
-      "skip": "Atur nanti"
+      "description": "Pemutar musik local-first pribadimu. Nikmati seluruh perpustakaanmu tanpa langganan streaming."
     },
-    "scanning": {
-      "title": "Sedang memindai musik Anda…"
+    "localOnly": {
+      "title": "Penting: hanya musik lokal",
+      "description": "WaveFlow BUKAN layanan streaming. Ia memainkan file yang sudah ada di perangkatmu.",
+      "calloutTitle": "Yang perlu kamu tahu",
+      "bulletOwn": "Bawa perpustakaanmu sendiri (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletImport": "Impor folder atau seret file",
+      "bulletScrobble": "Hubungkan Last.fm untuk scrobble pemutaran di latar belakang"
+    },
+    "folder": {
+      "title": "Pilih folder musikmu",
+      "description": "Beritahu WaveFlow di mana musikmu berada. Pemindai akan mengatur perpustakaanmu otomatis.",
+      "placeholder": "Klik untuk memilih folder musikmu",
+      "changeHint": "Klik untuk mengubah folder",
+      "quickSettings": "Pengaturan cepat",
+      "autoAnalyze": {
+        "title": "Analisis otomatis trek",
+        "description": "Mendeteksi BPM dan nada saat pemindaian — memberi Radio dan Mood Radio."
+      }
+    },
+    "lastfm": {
+      "title": "Hubungkan Last.fm",
+      "description": "Scrobbling mengirim pemutaranmu ke profil Last.fm. Sebagai imbalan kamu mendapat bio artis dan saran artis serupa di dalam aplikasi.",
+      "recommendedBadge": "Disarankan",
+      "keyHint": "Buat kunci API di Last.fm",
+      "keyLabel": "Kunci API",
+      "keyPlaceholder": "Kunci API Last.fm kamu",
+      "secretLabel": "Rahasia bersama",
+      "secretPlaceholder": "Rahasia bersama kamu",
+      "userLabel": "Nama pengguna Last.fm",
+      "userPlaceholder": "nama-kamu",
+      "passwordLabel": "Kata sandi",
+      "passwordPlaceholder": "Kata sandi Last.fm kamu",
+      "toggleSecret": "Tampilkan/sembunyikan rahasia",
+      "togglePassword": "Tampilkan/sembunyikan kata sandi",
+      "connect": "Hubungkan Last.fm",
+      "missingFields": "Mohon isi kunci API, rahasia, nama pengguna dan kata sandi.",
+      "connectedTitle": "Terhubung sebagai {{user}}",
+      "connectedSubtitle": "Scrobbling otomatis aktif ketika kamu memutar trek."
+    },
+    "scan": {
+      "title": "Pindai perpustakaanmu",
+      "description": "Siap menganalisis foldermu dan menemukan trek-trekmu?",
+      "noFolder": "Tidak ada folder dipilih",
+      "readyHint": "Folder sudah diatur. Mulai pemindaian saat kamu siap.",
+      "scanning": "Memindai perpustakaan…",
+      "errorTitle": "Pemindaian gagal"
     },
     "done": {
-      "title": "{{count}} lagu telah ditambahkan",
-      "message": "Perpustakaan Anda sudah siap. Selamat menikmati!",
-      "action": "Mulailah mendengarkan"
+      "title": "Semua siap!",
+      "description": "Perpustakaanmu telah dipindai dan siap dimainkan.",
+      "nextSteps": "Langkah selanjutnya:",
+      "bulletExplore": "Jelajahi perpustakaan via tab Perpustakaan, Album dan Artis",
+      "bulletQueue": "Buat antrian pertamamu dengan mengklik trek",
+      "bulletSettings": "Perhalus pengaturan dari sidebar (Tampilan, Integrasi…)"
     },
-    "error": {
-      "title": "Pemindaian gagal",
-      "retry": "Coba lagi"
+    "actions": {
+      "skipSetup": "Lewati pengaturan",
+      "getStarted": "Mulai",
+      "back": "Kembali",
+      "continue": "Lanjutkan",
+      "understood": "Mengerti",
+      "skipForNow": "Lewati untuk sekarang",
+      "scanLater": "Pindai nanti",
+      "scanNow": "Pindai sekarang",
+      "startListening": "Mulai mendengarkan"
+    },
+    "language": {
+      "title": "Pilih bahasamu",
+      "description": "WaveFlow tersedia dalam 17 bahasa. Kami sudah memilih bahasa sistemmu — ubah jika kami salah.",
+      "detected": "Dideteksi dari sistemmu",
+      "fallback": "Kami tidak bisa mendeteksi bahasa sistemmu, jadi kami beralih ke Bahasa Inggris. Pilih bahasamu di bawah."
     }
   },
   "sidebar": {

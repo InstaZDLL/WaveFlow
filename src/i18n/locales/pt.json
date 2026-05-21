@@ -36,21 +36,79 @@
     "defaultLibraryName": "Música",
     "welcome": {
       "title": "Bem-vindo ao WaveFlow",
-      "message": "Para começar, indica a pasta que contém a tua música. O WaveFlow irá analisar essa pasta e organizar a tua biblioteca automaticamente.",
-      "action": "Escolher a minha pasta de música",
-      "skip": "Configurar mais tarde"
+      "description": "O teu leitor de música local-first. Desfruta de toda a tua biblioteca sem subscrição de streaming."
     },
-    "scanning": {
-      "title": "Análise da tua música…"
+    "localOnly": {
+      "title": "Importante: apenas música local",
+      "description": "O WaveFlow NÃO é um serviço de streaming. Reproduz ficheiros que já existem no teu dispositivo.",
+      "calloutTitle": "O que deves saber",
+      "bulletOwn": "Traz a tua própria biblioteca (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletImport": "Importa uma pasta ou arrasta ficheiros",
+      "bulletScrobble": "Liga o Last.fm para fazer scrobble das reproduções em segundo plano"
+    },
+    "folder": {
+      "title": "Escolhe a tua pasta de música",
+      "description": "Diz ao WaveFlow onde está a tua música. O scanner organiza a biblioteca automaticamente.",
+      "placeholder": "Clica para escolher a tua pasta de música",
+      "changeHint": "Clica para mudar de pasta",
+      "quickSettings": "Definições rápidas",
+      "autoAnalyze": {
+        "title": "Análise automática de faixas",
+        "description": "Deteta BPM e tonalidade durante a análise — alimenta Radio e Mood Radio."
+      }
+    },
+    "lastfm": {
+      "title": "Liga o Last.fm",
+      "description": "O scrobbling envia as tuas reproduções para o teu perfil Last.fm. Recebes em troca biografias de artistas e sugestões de artistas semelhantes na app.",
+      "recommendedBadge": "Recomendado",
+      "keyHint": "Cria uma chave API em Last.fm",
+      "keyLabel": "Chave API",
+      "keyPlaceholder": "A tua chave API Last.fm",
+      "secretLabel": "Segredo partilhado",
+      "secretPlaceholder": "O teu segredo partilhado",
+      "userLabel": "Nome de utilizador Last.fm",
+      "userPlaceholder": "o-teu-nome",
+      "passwordLabel": "Palavra-passe",
+      "passwordPlaceholder": "A tua palavra-passe Last.fm",
+      "toggleSecret": "Mostrar/ocultar segredo",
+      "togglePassword": "Mostrar/ocultar palavra-passe",
+      "connect": "Ligar Last.fm",
+      "missingFields": "Preenche a chave API, segredo, nome de utilizador e palavra-passe.",
+      "connectedTitle": "Ligado como {{user}}",
+      "connectedSubtitle": "O scrobbling arranca automaticamente quando reproduzes uma faixa."
+    },
+    "scan": {
+      "title": "Analisar a tua biblioteca",
+      "description": "Pronto para analisar a tua pasta e descobrir as tuas faixas?",
+      "noFolder": "Nenhuma pasta selecionada",
+      "readyHint": "A pasta está configurada. Inicia a análise quando quiseres.",
+      "scanning": "A analisar a tua biblioteca…",
+      "errorTitle": "Análise falhou"
     },
     "done": {
-      "title": "{{count}} faixas adicionadas",
-      "message": "A tua biblioteca está pronta. Boa audição!",
-      "action": "Começar a ouvir"
+      "title": "Está tudo pronto!",
+      "description": "A tua biblioteca foi analisada e está pronta a tocar.",
+      "nextSteps": "Próximos passos:",
+      "bulletExplore": "Explora a tua biblioteca pelos separadores Biblioteca, Álbuns e Artistas",
+      "bulletQueue": "Cria a tua primeira fila clicando numa faixa",
+      "bulletSettings": "Afina as definições na barra lateral (Aparência, Integrações…)"
     },
-    "error": {
-      "title": "A análise falhou",
-      "retry": "Tentar novamente"
+    "actions": {
+      "skipSetup": "Saltar configuração",
+      "getStarted": "Começar",
+      "back": "Voltar",
+      "continue": "Continuar",
+      "understood": "Compreendi",
+      "skipForNow": "Saltar por agora",
+      "scanLater": "Analisar mais tarde",
+      "scanNow": "Analisar agora",
+      "startListening": "Começar a ouvir"
+    },
+    "language": {
+      "title": "Escolhe o teu idioma",
+      "description": "O WaveFlow está disponível em 17 idiomas. Pré-selecionámos o do teu sistema — muda-o se nos enganámos.",
+      "detected": "Detetado a partir do teu sistema",
+      "fallback": "Não conseguimos detetar o idioma do sistema, por isso usámos inglês por defeito. Escolhe o teu abaixo."
     }
   },
   "sidebar": {

@@ -36,21 +36,79 @@
     "defaultLibraryName": "음악",
     "welcome": {
       "title": "WaveFlow에 오신 것을 환영합니다",
-      "message": "먼저, 음악 파일이 들어 있는 폴더를 지정하세요. WaveFlow에서 해당 폴더를 스캔하여 라이브러리를 자동으로 정리해 드립니다.",
-      "action": "내 음악 폴더 선택하기",
-      "skip": "나중에 설정하기"
+      "description": "당신만의 로컬 우선 음악 플레이어. 스트리밍 구독 없이 전체 라이브러리를 즐기세요."
     },
-    "scanning": {
-      "title": "네 음악 분석…"
+    "localOnly": {
+      "title": "중요: 로컬 음악 전용",
+      "description": "WaveFlow는 스트리밍 서비스가 아닙니다. 기기에 이미 있는 파일을 재생합니다.",
+      "calloutTitle": "알아두어야 할 사항",
+      "bulletOwn": "본인의 라이브러리를 준비하세요 (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletImport": "폴더를 가져오거나 파일을 끌어다 놓으세요",
+      "bulletScrobble": "Last.fm을 연결하여 백그라운드에서 재생 기록을 스크로블하세요"
+    },
+    "folder": {
+      "title": "음악 폴더를 선택하세요",
+      "description": "WaveFlow에게 음악 위치를 알려주세요. 스캐너가 라이브러리를 자동으로 정리합니다.",
+      "placeholder": "음악 폴더를 선택하려면 클릭하세요",
+      "changeHint": "폴더를 변경하려면 클릭하세요",
+      "quickSettings": "빠른 설정",
+      "autoAnalyze": {
+        "title": "트랙 자동 분석",
+        "description": "스캔 중 BPM과 키를 감지 — Radio와 Mood Radio에 활용됩니다."
+      }
+    },
+    "lastfm": {
+      "title": "Last.fm 연결",
+      "description": "스크로블링은 재생 기록을 Last.fm 프로필로 보냅니다. 대신 아티스트 소개와 유사 아티스트 추천을 앱 안에서 받아볼 수 있습니다.",
+      "recommendedBadge": "추천",
+      "keyHint": "Last.fm에서 API 키 생성",
+      "keyLabel": "API 키",
+      "keyPlaceholder": "당신의 Last.fm API 키",
+      "secretLabel": "공유 비밀",
+      "secretPlaceholder": "당신의 공유 비밀",
+      "userLabel": "Last.fm 사용자 이름",
+      "userPlaceholder": "당신의-핸들",
+      "passwordLabel": "비밀번호",
+      "passwordPlaceholder": "당신의 Last.fm 비밀번호",
+      "toggleSecret": "비밀 표시/숨기기",
+      "togglePassword": "비밀번호 표시/숨기기",
+      "connect": "Last.fm 연결",
+      "missingFields": "API 키, 비밀, 사용자 이름, 비밀번호를 모두 입력하세요.",
+      "connectedTitle": "{{user}}(으)로 연결됨",
+      "connectedSubtitle": "트랙을 재생하면 스크로블링이 자동으로 시작됩니다."
+    },
+    "scan": {
+      "title": "라이브러리 스캔",
+      "description": "폴더를 분석하고 트랙을 발견할 준비가 되셨나요?",
+      "noFolder": "선택된 폴더 없음",
+      "readyHint": "폴더가 설정되었습니다. 준비되면 스캔을 시작하세요.",
+      "scanning": "라이브러리 스캔 중…",
+      "errorTitle": "스캔 실패"
     },
     "done": {
-      "title": "{{count}} 추가된 곡",
-      "message": "책장이 준비되었습니다. 즐거운 감상 되세요!",
-      "action": "듣기 시작하기"
+      "title": "모두 준비됐어요!",
+      "description": "라이브러리 스캔이 완료되어 재생 준비가 되었습니다.",
+      "nextSteps": "다음 단계:",
+      "bulletExplore": "라이브러리, 앨범, 아티스트 탭에서 라이브러리를 탐색하세요",
+      "bulletQueue": "트랙을 클릭하여 첫 대기열을 만드세요",
+      "bulletSettings": "사이드바에서 세부 설정을 조정하세요 (외관, 통합…)"
     },
-    "error": {
-      "title": "분석에 실패했습니다",
-      "retry": "다시 시도하기"
+    "actions": {
+      "skipSetup": "설정 건너뛰기",
+      "getStarted": "시작하기",
+      "back": "뒤로",
+      "continue": "계속",
+      "understood": "이해했어요",
+      "skipForNow": "지금은 건너뛰기",
+      "scanLater": "나중에 스캔",
+      "scanNow": "지금 스캔",
+      "startListening": "듣기 시작"
+    },
+    "language": {
+      "title": "언어 선택",
+      "description": "WaveFlow는 17개 언어를 지원합니다. 시스템 언어를 미리 선택했어요 — 잘못됐다면 바꾸세요.",
+      "detected": "시스템에서 감지됨",
+      "fallback": "시스템 언어를 감지하지 못해 영어로 기본 설정했습니다. 아래에서 선택하세요."
     }
   },
   "sidebar": {

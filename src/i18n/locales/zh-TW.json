@@ -35,22 +35,80 @@
   "onboarding": {
     "defaultLibraryName": "音樂",
     "welcome": {
-      "title": "歡迎光臨 WaveFlow",
-      "message": "首先，請指定存放音樂的資料夾。WaveFlow 會自動掃描並整理您的音樂庫。",
-      "action": "選擇我的音樂資料夾",
-      "skip": "稍後設定"
+      "title": "歡迎使用 WaveFlow",
+      "description": "你的個人本地優先音樂播放器。無需串流訂閱，盡情享受整個音樂庫。"
     },
-    "scanning": {
-      "title": "你的音樂分析……"
+    "localOnly": {
+      "title": "重要：僅限本地音樂",
+      "description": "WaveFlow 不是串流服務，它播放裝置上已有的檔案。",
+      "calloutTitle": "你需要知道",
+      "bulletOwn": "自帶音樂庫（MP3、FLAC、ALAC、OGG、DSD…）",
+      "bulletImport": "匯入資料夾或拖放檔案",
+      "bulletScrobble": "連接 Last.fm，在背景 Scrobble 你的播放紀錄"
+    },
+    "folder": {
+      "title": "選擇你的音樂資料夾",
+      "description": "告訴 WaveFlow 你的音樂在哪。掃描器會自動整理你的音樂庫。",
+      "placeholder": "點擊選擇你的音樂資料夾",
+      "changeHint": "點擊更換資料夾",
+      "quickSettings": "快速設定",
+      "autoAnalyze": {
+        "title": "自動分析曲目",
+        "description": "掃描時偵測 BPM 和調性 — 為 Radio 與 Mood Radio 提供支援。"
+      }
+    },
+    "lastfm": {
+      "title": "連接 Last.fm",
+      "description": "Scrobbling 會將播放紀錄傳送到你的 Last.fm 個人檔案。作為回報，應用內可取得藝人簡介和相似藝人推薦。",
+      "recommendedBadge": "推薦",
+      "keyHint": "在 Last.fm 上建立 API 金鑰",
+      "keyLabel": "API 金鑰",
+      "keyPlaceholder": "你的 Last.fm API 金鑰",
+      "secretLabel": "共用密鑰",
+      "secretPlaceholder": "你的共用密鑰",
+      "userLabel": "Last.fm 使用者名稱",
+      "userPlaceholder": "你的-帳號",
+      "passwordLabel": "密碼",
+      "passwordPlaceholder": "你的 Last.fm 密碼",
+      "toggleSecret": "顯示/隱藏密鑰",
+      "togglePassword": "顯示/隱藏密碼",
+      "connect": "連接 Last.fm",
+      "missingFields": "請填寫 API 金鑰、共用密鑰、使用者名稱與密碼。",
+      "connectedTitle": "已連接為 {{user}}",
+      "connectedSubtitle": "播放曲目時 Scrobbling 會自動啟動。"
+    },
+    "scan": {
+      "title": "掃描你的音樂庫",
+      "description": "準備好分析資料夾並發現你的曲目了嗎？",
+      "noFolder": "未選擇資料夾",
+      "readyHint": "資料夾已設定。準備好後即可開始掃描。",
+      "scanning": "正在掃描你的音樂庫…",
+      "errorTitle": "掃描失敗"
     },
     "done": {
-      "title": "{{count}} 新增的曲目",
-      "message": "您的書單已準備就緒。祝您聆聽愉快！",
-      "action": "開始聆聽"
+      "title": "全部就緒！",
+      "description": "你的音樂庫已掃描完成，可以播放了。",
+      "nextSteps": "下一步：",
+      "bulletExplore": "透過音樂庫、專輯、藝人分頁探索你的音樂庫",
+      "bulletQueue": "點擊曲目以建立你的第一個播放佇列",
+      "bulletSettings": "在側邊欄微調設定（外觀、整合…）"
     },
-    "error": {
-      "title": "分析失敗",
-      "retry": "再試一次"
+    "actions": {
+      "skipSetup": "略過設定",
+      "getStarted": "開始",
+      "back": "返回",
+      "continue": "繼續",
+      "understood": "我知道了",
+      "skipForNow": "暫時略過",
+      "scanLater": "稍後掃描",
+      "scanNow": "立即掃描",
+      "startListening": "開始聆聽"
+    },
+    "language": {
+      "title": "選擇你的語言",
+      "description": "WaveFlow 提供 17 種語言。我們已預選你的系統語言 — 如有誤請更改。",
+      "detected": "已從系統偵測到",
+      "fallback": "我們無法偵測到你的系統語言,已預設使用英文。請在下方選擇你的語言。"
     }
   },
   "sidebar": {
