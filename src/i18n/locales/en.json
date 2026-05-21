@@ -61,7 +61,7 @@
       "title": "Connect Last.fm",
       "description": "Scrobbling sends your plays to your Last.fm profile. You get artist bios and similar-artist suggestions back, right inside the app.",
       "recommendedBadge": "Recommended",
-      "keyHint": "Create an API key on last.fm",
+      "keyHint": "Create an API key on Last.fm",
       "keyLabel": "API key",
       "keyPlaceholder": "Your Last.fm API key",
       "secretLabel": "Shared secret",

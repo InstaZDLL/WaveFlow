@@ -61,7 +61,7 @@
       "title": "اربط Last.fm",
       "description": "يرسل Scrobbling تشغيلاتك إلى ملفك الشخصي على Last.fm. وفي المقابل تحصل على سير الفنانين واقتراحات فنانين مشابهين داخل التطبيق.",
       "recommendedBadge": "موصى به",
-      "keyHint": "أنشئ مفتاح API على last.fm",
+      "keyHint": "أنشئ مفتاح API على Last.fm",
       "keyLabel": "مفتاح API",
       "keyPlaceholder": "مفتاح Last.fm API الخاص بك",
       "secretLabel": "السر المشترك",

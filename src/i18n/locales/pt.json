@@ -61,7 +61,7 @@
       "title": "Liga o Last.fm",
       "description": "O scrobbling envia as tuas reproduções para o teu perfil Last.fm. Recebes em troca biografias de artistas e sugestões de artistas semelhantes na app.",
       "recommendedBadge": "Recomendado",
-      "keyHint": "Cria uma chave API em last.fm",
+      "keyHint": "Cria uma chave API em Last.fm",
       "keyLabel": "Chave API",
       "keyPlaceholder": "A tua chave API Last.fm",
       "secretLabel": "Segredo partilhado",

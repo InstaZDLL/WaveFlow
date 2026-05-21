@@ -61,7 +61,7 @@
       "title": "Last.fm 연결",
       "description": "스크로블링은 재생 기록을 Last.fm 프로필로 보냅니다. 대신 아티스트 소개와 유사 아티스트 추천을 앱 안에서 받아볼 수 있습니다.",
       "recommendedBadge": "추천",
-      "keyHint": "last.fm에서 API 키 생성",
+      "keyHint": "Last.fm에서 API 키 생성",
       "keyLabel": "API 키",
       "keyPlaceholder": "당신의 Last.fm API 키",
       "secretLabel": "공유 비밀",

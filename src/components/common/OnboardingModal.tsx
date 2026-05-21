@@ -253,12 +253,16 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
 
   // === Integrations step actions ======================================
   const handleToggleDiscord = async (next: boolean) => {
+    // Optimistic flip first, mirror the auto-analyze pattern so the
+    // switch reacts instantly. Roll back if the backend write fails.
+    const prev = discordEnabled;
+    setDiscordEnabled(next);
     setDiscordBusy(true);
     try {
       await setDiscordRpcEnabled(next);
-      setDiscordEnabled(next);
     } catch (err) {
       console.error("[Onboarding] set discord rpc failed", err);
+      setDiscordEnabled(prev);
     } finally {
       setDiscordBusy(false);
     }
@@ -848,7 +852,7 @@ function Input({
           placeholder={placeholder}
           autoComplete="off"
           spellCheck={false}
-          className="w-full px-3 py-2 pr-10 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40"
+          className={`w-full px-3 py-2 ${rightSlot ? "pr-10" : ""} rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40`}
         />
         {rightSlot && (
           <div className="absolute inset-y-0 right-2 flex items-center">

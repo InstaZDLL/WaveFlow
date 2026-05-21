@@ -61,7 +61,7 @@
       "title": "Last.fm を接続",
       "description": "Scrobbling は再生履歴を Last.fm プロフィールに送ります。代わりにアーティストの bio と類似アーティストの提案がアプリ内で受け取れます。",
       "recommendedBadge": "おすすめ",
-      "keyHint": "last.fm で API キーを作成",
+      "keyHint": "Last.fm で API キーを作成",
       "keyLabel": "API キー",
       "keyPlaceholder": "あなたの Last.fm API キー",
       "secretLabel": "共有シークレット",

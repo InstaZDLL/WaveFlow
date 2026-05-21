@@ -61,7 +61,7 @@
       "title": "Conecta Last.fm",
       "description": "El scrobbling envía tus reproducciones a tu perfil Last.fm. A cambio recibes biografías de artistas y sugerencias similares dentro de la app.",
       "recommendedBadge": "Recomendado",
-      "keyHint": "Crea una clave API en last.fm",
+      "keyHint": "Crea una clave API en Last.fm",
       "keyLabel": "Clave API",
       "keyPlaceholder": "Tu clave API de Last.fm",
       "secretLabel": "Secreto compartido",

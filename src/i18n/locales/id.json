@@ -61,7 +61,7 @@
       "title": "Hubungkan Last.fm",
       "description": "Scrobbling mengirim pemutaranmu ke profil Last.fm. Sebagai imbalan kamu mendapat bio artis dan saran artis serupa di dalam aplikasi.",
       "recommendedBadge": "Disarankan",
-      "keyHint": "Buat kunci API di last.fm",
+      "keyHint": "Buat kunci API di Last.fm",
       "keyLabel": "Kunci API",
       "keyPlaceholder": "Kunci API Last.fm kamu",
       "secretLabel": "Rahasia bersama",

@@ -61,7 +61,7 @@
       "title": "连接 Last.fm",
       "description": "Scrobbling 会将播放记录发送到你的 Last.fm 个人资料。作为回报，应用内可获取艺人简介和相似艺人推荐。",
       "recommendedBadge": "推荐",
-      "keyHint": "在 last.fm 上创建 API 密钥",
+      "keyHint": "在 Last.fm 上创建 API 密钥",
       "keyLabel": "API 密钥",
       "keyPlaceholder": "你的 Last.fm API 密钥",
       "secretLabel": "共享密钥",

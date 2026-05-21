@@ -61,7 +61,7 @@
       "title": "Last.fm verbinden",
       "description": "Scrobbling sendet deine Wiedergaben an dein Last.fm-Profil. Im Gegenzug erhältst du Künstler-Biografien und Vorschläge ähnlicher Künstler in der App.",
       "recommendedBadge": "Empfohlen",
-      "keyHint": "Erstelle einen API-Schlüssel auf last.fm",
+      "keyHint": "Erstelle einen API-Schlüssel auf Last.fm",
       "keyLabel": "API-Schlüssel",
       "keyPlaceholder": "Dein Last.fm-API-Schlüssel",
       "secretLabel": "Geteiltes Geheimnis",

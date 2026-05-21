@@ -61,7 +61,7 @@
       "title": "連接 Last.fm",
       "description": "Scrobbling 會將播放紀錄傳送到你的 Last.fm 個人檔案。作為回報，應用內可取得藝人簡介和相似藝人推薦。",
       "recommendedBadge": "推薦",
-      "keyHint": "在 last.fm 上建立 API 金鑰",
+      "keyHint": "在 Last.fm 上建立 API 金鑰",
       "keyLabel": "API 金鑰",
       "keyPlaceholder": "你的 Last.fm API 金鑰",
       "secretLabel": "共用密鑰",

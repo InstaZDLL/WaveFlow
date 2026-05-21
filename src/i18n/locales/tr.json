@@ -61,7 +61,7 @@
       "title": "Last.fm'i bağla",
       "description": "Scrobbling, dinlemelerini Last.fm profiline gönderir. Karşılığında uygulamada sanatçı biyografileri ve benzer sanatçı önerileri alırsın.",
       "recommendedBadge": "Önerilir",
-      "keyHint": "last.fm'de bir API anahtarı oluştur",
+      "keyHint": "Last.fm'de bir API anahtarı oluştur",
       "keyLabel": "API anahtarı",
       "keyPlaceholder": "Last.fm API anahtarın",
       "secretLabel": "Paylaşılan sır",

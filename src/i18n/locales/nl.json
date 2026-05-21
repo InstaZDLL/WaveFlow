@@ -61,7 +61,7 @@
       "title": "Verbind Last.fm",
       "description": "Scrobbling stuurt je afspelers naar je Last.fm-profiel. Je krijgt artiestbio's en vergelijkbare-artiest-suggesties terug, in de app.",
       "recommendedBadge": "Aanbevolen",
-      "keyHint": "Maak een API-sleutel op last.fm",
+      "keyHint": "Maak een API-sleutel op Last.fm",
       "keyLabel": "API-sleutel",
       "keyPlaceholder": "Je Last.fm API-sleutel",
       "secretLabel": "Gedeeld geheim",

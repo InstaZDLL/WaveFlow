@@ -61,7 +61,7 @@
       "title": "Last.fm कनेक्ट करें",
       "description": "स्क्रॉबलिंग आपके प्ले को आपके Last.fm प्रोफ़ाइल पर भेजता है। बदले में आपको ऐप के अंदर ही आर्टिस्ट बायो और मिलते-जुलते आर्टिस्ट सुझाव मिलते हैं।",
       "recommendedBadge": "अनुशंसित",
-      "keyHint": "last.fm पर API कुंजी बनाएँ",
+      "keyHint": "Last.fm पर API कुंजी बनाएँ",
       "keyLabel": "API कुंजी",
       "keyPlaceholder": "आपकी Last.fm API कुंजी",
       "secretLabel": "साझा सीक्रेट",

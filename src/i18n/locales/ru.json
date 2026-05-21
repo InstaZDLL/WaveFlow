@@ -61,7 +61,7 @@
       "title": "Подключите Last.fm",
       "description": "Скробблинг отправляет ваши прослушивания в профиль Last.fm. Взамен вы получаете биографии артистов и подсказки похожих артистов прямо в приложении.",
       "recommendedBadge": "Рекомендуем",
-      "keyHint": "Создайте API-ключ на last.fm",
+      "keyHint": "Создайте API-ключ на Last.fm",
       "keyLabel": "API-ключ",
       "keyPlaceholder": "Ваш API-ключ Last.fm",
       "secretLabel": "Общий секрет",
