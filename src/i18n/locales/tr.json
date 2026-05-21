@@ -1,32 +1,32 @@
 {
   "common": {
-    "cancel": "İptal et",
+    "cancel": "İptal",
     "back": "Geri",
     "save": "Kaydet",
     "close": "Kapat",
     "confirm": "Onayla",
     "open": "Aç",
     "optional": "(isteğe bağlı)",
-    "viewArtwork": "Kapak görselini görüntüle"
+    "viewArtwork": "Kapağı görüntüle"
   },
   "lastfmReauth": {
-    "title": "Last.fm'in oturumu sona erdi",
-    "message": "Scrobble'larınız artık gönderilmiyor. Devam etmek için yeniden oturum açın.",
+    "title": "Last.fm oturumu sona erdi",
+    "message": "Scrobble'ların artık gönderilmiyor. Devam etmek için yeniden giriş yap.",
     "action": "Ayarları aç"
   },
   "updater": {
     "available": {
-      "title": "Güncelleme mevcut ({{version}} sürümü)",
-      "message": "WaveFlow'ın yeni bir sürümü kuruluma hazır.",
+      "title": "Güncelleme mevcut (v{{version}})",
+      "message": "WaveFlow'un yeni sürümü yüklenmeye hazır.",
       "action": "Şimdi yükle",
-      "later": "Daha sonra"
+      "later": "Sonra"
     },
     "downloading": {
       "title": "Güncelleme indiriliyor…"
     },
     "installed": {
       "title": "Güncelleme yüklendi",
-      "message": "WaveFlow'i yeniden başlatarak yeni sürümü uygulayın."
+      "message": "Yeni sürümü uygulamak için WaveFlow'u yeniden başlat."
     },
     "error": {
       "title": "Güncelleme başarısız oldu"
@@ -43,55 +43,55 @@
       "description": "WaveFlow bir streaming servisi DEĞİLDİR. Cihazında zaten bulunan dosyaları çalar.",
       "calloutTitle": "Bilmen gerekenler",
       "bulletOwn": "Kendi kütüphaneni getir (MP3, FLAC, ALAC, OGG, DSD…)",
-      "bulletImport": "Bir klasör içe aktar veya dosyaları sürükle bırak",
-      "bulletScrobble": "Arka planda dinlemeleri scrobble etmek için Last.fm'i bağla"
+      "bulletImport": "Bir klasör içe aktar veya dosyaları sürükleyip bırak",
+      "bulletScrobble": "Last.fm'i bağla ve dinlemeleri arka planda scrobble et"
     },
     "folder": {
       "title": "Müzik klasörünü seç",
-      "description": "WaveFlow'a müziklerinin nerede olduğunu söyle. Tarayıcı kütüphaneni otomatik düzenler.",
+      "description": "WaveFlow'a müziğinin yerini söyle. Tarayıcı kütüphaneni otomatik olarak düzenler.",
       "placeholder": "Müzik klasörünü seçmek için tıkla",
       "changeHint": "Klasörü değiştirmek için tıkla",
       "quickSettings": "Hızlı ayarlar",
       "autoAnalyze": {
         "title": "Parçaları otomatik analiz et",
-        "description": "Tarama sırasında BPM ve tonu algılar — Radio ve Mood Radio'yu besler."
+        "description": "Tarama sırasında BPM ve tonu algılar — Radio ve Mood Radio için kullanılır."
       }
     },
     "lastfm": {
       "title": "Last.fm'i bağla",
-      "description": "Scrobbling, dinlemelerini Last.fm profiline gönderir. Karşılığında uygulamada sanatçı biyografileri ve benzer sanatçı önerileri alırsın.",
-      "recommendedBadge": "Önerilir",
+      "description": "Scrobbling, dinlemelerini Last.fm profiline gönderir. Karşılığında sanatçı biyografileri ve benzer sanatçı önerileri doğrudan uygulamada görünür.",
+      "recommendedBadge": "Önerilen",
       "keyHint": "Last.fm'de bir API anahtarı oluştur",
       "keyLabel": "API anahtarı",
       "keyPlaceholder": "Last.fm API anahtarın",
-      "secretLabel": "Paylaşılan sır",
-      "secretPlaceholder": "Paylaşılan sırrın",
+      "secretLabel": "Paylaşılan secret",
+      "secretPlaceholder": "Paylaşılan secret'ın",
       "userLabel": "Last.fm kullanıcı adı",
       "userPlaceholder": "kullanıcı-adın",
-      "passwordLabel": "Parola",
-      "passwordPlaceholder": "Last.fm parolan",
-      "toggleSecret": "Sırrı göster/gizle",
-      "togglePassword": "Parolayı göster/gizle",
+      "passwordLabel": "Şifre",
+      "passwordPlaceholder": "Last.fm şifren",
+      "toggleSecret": "Secret'ı göster/gizle",
+      "togglePassword": "Şifreyi göster/gizle",
       "connect": "Last.fm'i bağla",
-      "missingFields": "Lütfen API anahtarı, sır, kullanıcı adı ve parolayı doldur.",
-      "connectedTitle": "{{user}} olarak bağlandın",
-      "connectedSubtitle": "Bir parça çaldığında scrobbling otomatik başlar."
+      "missingFields": "Lütfen API anahtarı, secret, kullanıcı adı ve şifreyi doldur.",
+      "connectedTitle": "{{user}} olarak bağlandı",
+      "connectedSubtitle": "Bir parça çaldığında scrobbling otomatik olarak başlar."
     },
     "scan": {
       "title": "Kütüphaneni tara",
-      "description": "Klasörünü analiz edip parçalarını keşfetmeye hazır mısın?",
-      "noFolder": "Hiçbir klasör seçilmedi",
-      "readyHint": "Klasörün ayarlandı. Hazır olduğunda taramayı başlat.",
-      "scanning": "Kütüphanen taranıyor…",
-      "errorTitle": "Tarama başarısız"
+      "description": "Klasörünü analiz etmeye ve parçalarını keşfetmeye hazır mısın?",
+      "noFolder": "Klasör seçilmedi",
+      "readyHint": "Klasörün hazır. Hazır olduğunda taramayı başlat.",
+      "scanning": "Kütüphane taranıyor…",
+      "errorTitle": "Tarama başarısız oldu"
     },
     "done": {
       "title": "Her şey hazır!",
       "description": "Kütüphanen tarandı ve çalmaya hazır.",
       "nextSteps": "Sonraki adımlar:",
       "bulletExplore": "Kütüphane, Albümler ve Sanatçılar sekmelerinden kütüphaneni keşfet",
-      "bulletQueue": "Bir parçaya tıklayarak ilk kuyruğunu oluştur",
-      "bulletSettings": "Ayarları kenar çubuğundan ince ayarla (Görünüm, Entegrasyonlar…)"
+      "bulletQueue": "Bir parçaya tıklayarak ilk sıranı oluştur",
+      "bulletSettings": "Yan kenar çubuğundan detayları ayarla (Görünüm, Entegrasyonlar…)"
     },
     "actions": {
       "skipSetup": "Kurulumu atla",
@@ -100,20 +100,20 @@
       "continue": "Devam",
       "understood": "Anladım",
       "skipForNow": "Şimdilik atla",
-      "scanLater": "Sonra tara",
+      "scanLater": "Daha sonra tara",
       "scanNow": "Şimdi tara",
       "startListening": "Dinlemeye başla"
     },
     "language": {
       "title": "Dilini seç",
-      "description": "WaveFlow 17 dilde mevcut. Sistemin dilini önceden seçtik — yanılmışsak değiştir.",
-      "detected": "Sisteminden algılandı",
-      "fallback": "Sistem dilini algılayamadık, varsayılan olarak İngilizceye geçtik. Aşağıdan kendi dilini seç."
+      "description": "WaveFlow 17 dilde sunuluyor. Sistem dilini önceden seçtik — yanlışsa değiştir.",
+      "detected": "Sistem dilinden algılandı",
+      "fallback": "Sistem dilini algılayamadık, bu yüzden varsayılan olarak İngilizce seçildi. Aşağıdan kendi dilini seç."
     }
   },
   "sidebar": {
     "nav": {
-      "home": "Ana Sayfa",
+      "home": "Ana sayfa",
       "spotify": "Spotify"
     },
     "sections": {
@@ -128,7 +128,7 @@
     "library": {
       "tracksCount_zero": "0 parça",
       "tracksCount_one": "{{count}} parça",
-      "tracksCount_other": "{{count}} parçalar",
+      "tracksCount_other": "{{count}} parça",
       "createLibraryAria": "Yeni bir kütüphane oluştur",
       "none": "Kütüphane yok",
       "popover": {
@@ -137,11 +137,11 @@
         "countLine": "{{tracks}} · {{albums}}",
         "tracks_zero": "0 parça",
         "tracks_one": "{{count}} parça",
-        "tracks_other": "{{count}} parçalar",
+        "tracks_other": "{{count}} parça",
         "albums_zero": "0 albüm",
         "albums_one": "{{count}} albüm",
-        "albums_other": "{{count}} albümler",
-        "see": "Görüntüle",
+        "albums_other": "{{count}} albüm",
+        "see": "Gör",
         "new": "Yeni"
       },
       "nav": {
@@ -149,23 +149,23 @@
         "albums": "Albümler",
         "artists": "Sanatçılar",
         "genres": "Türler",
-        "explorer": "Keşif"
+        "explorer": "Gezgin"
       }
     },
     "playlists": {
       "createPlaylistAria": "Yeni bir çalma listesi oluştur",
-      "importM3uAria": "M3U çalma listesini içe aktar",
-      "importDialogTitle": "M3U çalma listesini içe aktar",
-      "liked": "Beğenilen şarkılar",
-      "recent": "Son oynananlar",
+      "importM3uAria": "M3U çalma listesi içe aktar",
+      "importDialogTitle": "M3U çalma listesi içe aktar",
+      "liked": "Beğenilen parçalar",
+      "recent": "Son çalınanlar",
       "emptySubtext_zero": "0 parça",
       "emptySubtext_one": "{{count}} parça",
-      "emptySubtext_other": "{{count}} parçalar",
-      "createSmartAria": "Create a smart playlist"
+      "emptySubtext_other": "{{count}} parça",
+      "createSmartAria": "Akıllı çalma listesi oluştur"
     },
     "myMusic": {
-      "title": "Müziklerim",
-      "addFolderAria": "Bir klasör içe aktar",
+      "title": "Müziğim",
+      "addFolderAria": "Klasör içe aktar",
       "tracks": "Parçalar",
       "albums": "Albümler",
       "artists": "Sanatçılar",
@@ -178,33 +178,33 @@
     "myLibrary": {
       "playlistSubtext_zero": "0 parça",
       "playlistSubtext_one": "{{count}} parça",
-      "playlistSubtext_other": "{{count}} parçalar"
+      "playlistSubtext_other": "{{count}} parça"
     }
   },
   "topbar": {
     "search": {
-      "placeholder": "Bir şarkı, sanatçı veya albüm ara...",
-      "results_zero": "Sonuç bulunamadı",
+      "placeholder": "Parça, sanatçı veya albüm ara…",
+      "results_zero": "Sonuç yok",
       "results_one": "{{count}} sonuç",
-      "results_other": "{{count}} sonuçlar",
-      "empty": "Aramanızla eşleşen sonuç yok",
+      "results_other": "{{count}} sonuç",
+      "empty": "Aramana uygun sonuç bulunamadı",
       "filters": {
         "toggle": "Gelişmiş filtreler",
         "title": "Filtreler",
         "close": "Kapat",
         "reset": "Sıfırla",
-        "hiRes": "Yüksek çözünürlük",
-        "likedOnly": "Sadece beğenilenler",
-        "year": "Yıl (–dan → –a)",
-        "bpm": "BPM (–dan → –a)",
-        "durationMin": "Dakika cinsinden süre (–dan → –a)",
+        "hiRes": "Hi-Res",
+        "likedOnly": "Yalnızca beğenilenler",
+        "year": "Yıl (başlangıç → bitiş)",
+        "bpm": "BPM (başlangıç → bitiş)",
+        "durationMin": "Dakika cinsinden süre (başlangıç → bitiş)",
         "format": "Format",
         "genres": "Türler"
       }
     },
     "theme": {
-      "enableLight": "Aydınlık moda geç",
-      "enableDark": "Koyu moda geç"
+      "enableLight": "Aydınlık modu aç",
+      "enableDark": "Karanlık modu aç"
     },
     "profile": {
       "user": "Kullanıcı",
@@ -223,62 +223,62 @@
       "night": "İyi geceler"
     },
     "banner": {
-      "badge": "Dinlemeye hazır mısınız?",
-      "subtitle": "En sevdiğiniz müzikleri keşfedin ve yeni sesleri keşfedin.",
-      "openFile": "Bir dosya aç",
-      "openFolder": "Bir klasör aç",
+      "badge": "Dinlemeye hazır",
+      "subtitle": "Sevdiğin müziği keşfet, yeni sesler dene.",
+      "openFile": "Dosya aç",
+      "openFolder": "Klasör aç",
       "importFiles": "Dosyaları içe aktar",
       "importFolder": "Klasörü içe aktar",
-      "browseLibrary": "Kitaplığıma göz at"
+      "browseLibrary": "Kütüphaneme göz at"
     },
     "stats": {
       "library": "Kütüphane",
-      "liked": "Beğenilen şarkılar",
-      "recent": "Son oynananlar",
+      "liked": "Beğenilen parçalar",
+      "recent": "Son çalınanlar",
       "playlists": "Çalma listeleri"
     },
     "moodRadio": {
-      "title": "Ruh hali radyosu",
-      "subtitle": "Tempo ve enerjiye göre süzülür",
+      "title": "Mood Radio",
+      "subtitle": "Tempo ve enerjiye göre filtrelenmiş",
       "trackCount_one": "{{count}} parça",
       "trackCount_other": "{{count}} parça",
       "empty": "Yeterli analiz edilmiş parça yok",
       "loading": "Başlatılıyor…",
       "focus": {
         "title": "Odak",
-        "subtitle": "Derin iş için sakin tempolar"
+        "subtitle": "Odaklanmak için sakin tempolar"
       },
       "chill": {
-        "title": "Sakin",
-        "subtitle": "Rahatlamak için yumuşak ortamlar"
+        "title": "Chill",
+        "subtitle": "Gevşemek için hafif dinleme"
       },
       "workout": {
-        "title": "Antrenman",
-        "subtitle": "Hareket için istikrarlı tempo"
+        "title": "Workout",
+        "subtitle": "Hareketi sürdürmek için kararlı tempo"
       },
       "party": {
         "title": "Parti",
-        "subtitle": "Danslı tempo, yüksek enerji"
+        "subtitle": "Dans edilebilir tempo, yüksek enerji"
       },
       "sleep": {
         "title": "Uyku",
-        "subtitle": "Uykuya dalmak için çok yavaş ve sessiz"
+        "subtitle": "Uyumak için çok yavaş ve sessiz"
       }
     },
     "recentlyPlayed": {
-      "title": "Son oynananlar",
-      "emptyTitle": "Henüz hiçbir parça çalınmadı",
-      "emptyDescription": "Bir parçayı çalın, burada görünmesini sağlayın. Keşfettikçe dinleme geçmişiniz oluşur."
+      "title": "Son çalınanlar",
+      "emptyTitle": "Henüz hiçbir şey çalınmadı",
+      "emptyDescription": "Bir parça çal, burada görünsün. Yeni müzikler keşfettikçe dinleme geçmişin birikir."
     },
     "recentlyAdded": {
-      "title": "Yakın zamanda eklenenler"
+      "title": "Son eklenenler"
     },
     "dailyMix": {
       "title": "Senin için",
       "regenerate": "Yeniden oluştur",
       "regenerating": "Oluşturuluyor…",
       "emptyTitle": "Henüz Daily Mix yok",
-      "emptyDescription": "Birkaç parça dinle, sonra kişisel mikslerini oluşturmak için Yeniden oluştur'a tıkla.",
+      "emptyDescription": "Birkaç parça dinle ve sonra «Yeniden oluştur»a tıklayarak kişisel mixlerini oluştur.",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} parça",
       "trackCount_other": "{{count}} parça"
@@ -286,7 +286,7 @@
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "{{year}} özetin",
-      "subtitle": "Sanatçıların, dakikaların, yılın — birkaç slaytta.",
+      "subtitle": "Sanatçıların, dakikaların, yılın — birkaç slaytta anlatıldı.",
       "cta": "Aç"
     },
     "seeAll": "Tümünü gör"
@@ -295,21 +295,21 @@
     "header": {
       "addFolder": "Klasör ekle",
       "subtext": {
-        "morceaux_zero": "0 Parça",
-        "morceaux_one": "{{count}} Parça",
-        "morceaux_other": "{{count}} Parçalar",
-        "albums_zero": "0 Albüm",
-        "albums_one": "{{count}} Albüm",
-        "albums_other": "{{count}} Albümler",
-        "artistes_zero": "0 Sanatçı",
-        "artistes_one": "{{count}} Sanatçı",
-        "artistes_other": "{{count}} Sanatçılar",
-        "genres_zero": "0 Tür",
-        "genres_one": "{{count}} Tür",
-        "genres_other": "{{count}} Türler",
-        "dossiers_zero": "0 Klasör",
-        "dossiers_one": "{{count}} Klasör",
-        "dossiers_other": "{{count}} Klasörler"
+        "morceaux_zero": "0 parça",
+        "morceaux_one": "{{count}} parça",
+        "morceaux_other": "{{count}} parça",
+        "albums_zero": "0 albüm",
+        "albums_one": "{{count}} albüm",
+        "albums_other": "{{count}} albüm",
+        "artistes_zero": "0 sanatçı",
+        "artistes_one": "{{count}} sanatçı",
+        "artistes_other": "{{count}} sanatçı",
+        "genres_zero": "0 tür",
+        "genres_one": "{{count}} tür",
+        "genres_other": "{{count}} tür",
+        "dossiers_zero": "0 klasör",
+        "dossiers_one": "{{count}} klasör",
+        "dossiers_other": "{{count}} klasör"
       }
     },
     "tabs": {
@@ -322,45 +322,45 @@
     "empty": {
       "morceaux": {
         "title": "Boş kütüphane",
-        "description": "Kütüphanenizi doldurmak için ses dosyalarını veya bir klasörü içe aktarın."
+        "description": "Kütüphaneni doldurmak için ses dosyaları veya bir klasör içe aktar."
       },
       "albums": {
         "title": "Albüm bulunamadı",
-        "description": "Ses dosyalarını içe aktararak otomatik olarak albümler oluşturun."
+        "description": "Albümleri otomatik oluşturmak için ses dosyaları içe aktar."
       },
       "artistes": {
-        "title": "Hiçbir sanatçı bulunamadı",
-        "description": "Başlamak için ses dosyalarını içe aktarın."
+        "title": "Sanatçı bulunamadı",
+        "description": "Başlamak için birkaç ses dosyası içe aktar."
       },
       "genres": {
-        "title": "Hiçbir tür bulunamadı",
-        "description": "Ses dosyalarını içe aktararak müzik türlerini keşfedin."
+        "title": "Tür bulunamadı",
+        "description": "Farklı türleri keşfetmek için ses dosyaları içe aktar."
       },
       "dossiers": {
-        "title": "Hiçbir klasör içe aktarılmadı",
-        "description": "Eylem çubuğundan bir klasör içe aktararak buradan göz atın."
+        "title": "İçe aktarılmış klasör yok",
+        "description": "Burada gezinmek için eylem çubuğundan bir klasör içe aktar."
       }
     },
     "actions": {
       "importFiles": "Dosyaları içe aktar",
-      "importFolder": "Klasörü içe aktar",
+      "importFolder": "Klasör içe aktar",
       "share": "Paylaş (yakında)",
       "rescan": "Kütüphaneyi yeniden tara",
-      "rescanning": "Yeniden taranıyor…",
-      "changeArtwork": "Kapak resmini değiştir (yakında)",
+      "rescanning": "Yeniden tarama devam ediyor…",
+      "changeArtwork": "Görseli değiştir (yakında)",
       "edit": "Kütüphaneyi düzenle",
       "delete": "Kütüphaneyi sil",
-      "deleteConfirm": "Onaylamak için tekrar tıklayın",
+      "deleteConfirm": "Onaylamak için tekrar tıkla",
       "importing": "İçe aktarılıyor…"
     },
     "changeCover": "Kapağı değiştir",
-    "searchDeezer": "Deezer'i ara",
+    "searchDeezer": "Deezer'da ara",
     "localFile": "Yerel dosya",
-    "fetchMissingCovers": "Eksik olan tüm kapakları getir",
-    "noCover": "Giriş ücreti yok",
-    "fetchingCovers": "Kapaklar yükleniyor... ({{current}} / {{total}})",
+    "fetchMissingCovers": "Eksik tüm kapakları getir",
+    "noCover": "Kapak görseli yok",
+    "fetchingCovers": "Kapaklar getiriliyor… ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} kapak getirildi",
-    "fetchCoversFailed": "Kapaklar getirilemedi",
+    "fetchCoversFailed": "Kapakları getirme başarısız oldu",
     "table": {
       "number": "#",
       "title": "Başlık",
@@ -370,54 +370,54 @@
       "unknown": "—"
     },
     "rating": "Puan",
-    "noRating": "Değerlendirme yok",
+    "noRating": "Puan yok",
     "viewToggle": {
-      "label": "Görüntüleme modu",
+      "label": "Görünüm modu",
       "list": "Liste",
       "compact": "Kompakt"
     },
     "albumGrid": {
       "trackCount_zero": "0 parça",
       "trackCount_one": "{{count}} parça",
-      "trackCount_other": "{{count}} parçalar"
+      "trackCount_other": "{{count}} parça"
     },
     "artistList": {
       "trackCount_zero": "0 parça",
       "trackCount_one": "{{count}} parça",
-      "trackCount_other": "{{count}} parçalar",
+      "trackCount_other": "{{count}} parça",
       "albumCount_zero": "0 albüm",
       "albumCount_one": "{{count}} albüm",
-      "albumCount_other": "{{count}} albümler"
+      "albumCount_other": "{{count}} albüm"
     },
     "genreList": {
       "trackCount_zero": "0 parça",
       "trackCount_one": "{{count}} parça",
-      "trackCount_other": "{{count}} parçalar"
+      "trackCount_other": "{{count}} parça"
     },
     "folderList": {
       "trackCount_zero": "0 parça",
       "trackCount_one": "{{count}} parça",
-      "trackCount_other": "{{count}} parçalar",
-      "lastScanned": "Taranmış: {{date}}",
-      "neverScanned": "asla",
-      "watched": "İzledim",
-      "watchOn": "Bu klasördeki değişiklikleri takip edin",
-      "watchOff": "Bu klasörü izlemeyi bırak",
-      "remove": "Klasörü kütüphaneden kaldır",
-      "removeConfirm": "Onaylamak için tekrar tıklayın"
+      "trackCount_other": "{{count}} parça",
+      "lastScanned": "Tarama tarihi: {{date}}",
+      "neverScanned": "hiç",
+      "watched": "Takip ediliyor",
+      "watchOn": "Değişiklikleri otomatik takip et",
+      "watchOff": "Takibi durdur",
+      "remove": "Klasörü kütüphaneden çıkar",
+      "removeConfirm": "Onaylamak için tekrar tıkla"
     }
   },
   "liked": {
     "badge": "Koleksiyon",
-    "title": "Beğenilen şarkılar",
+    "title": "Beğenilen parçalar",
     "count_zero": "0 parça",
     "count_one": "{{count}} parça",
-    "count_other": "{{count}} parçalar",
+    "count_other": "{{count}} parça",
     "emptyTitle": "Beğenilen parça yok",
-    "emptyDescription": "Beğendiğiniz şarkılar burada görünecek. Müzik kitaplığınızı keşfedin ve favorilerinizi beğenin.",
+    "emptyDescription": "Beğendiğin parçalar burada görünür. Kütüphanende gezin ve sevdiğin parçaları beğen.",
     "playAll": "Tümünü çal",
-    "unlike": "Beğenilenler listesinden çıkar",
-    "like": "Beğenilenlere ekle"
+    "unlike": "Beğenilerden çıkar",
+    "like": "Beğenilere ekle"
   },
   "history": {
     "badge": "Geçmiş",
@@ -428,11 +428,11 @@
     "loadingMore": "Yükleniyor…",
     "endReached": "Geçmişin başı",
     "emptyTitle": "Henüz dinleme yok",
-    "emptyDescription": "Bir parça çal — sayıldığı anda burada görünecek.",
-    "shownCount_one": "{{count}} dinleme gösteriliyor",
-    "shownCount_other": "{{count}} dinleme gösteriliyor",
-    "plays_one": "{{count}} kez oynandı",
-    "plays_other": "{{count}} kez oynandı",
+    "emptyDescription": "Bir parça çal — sayıldığı anda burada görünür.",
+    "shownCount_one": "{{count}} oynatma gösteriliyor",
+    "shownCount_other": "{{count}} oynatma gösteriliyor",
+    "plays_one": "{{count}} oynatma",
+    "plays_other": "{{count}} oynatma",
     "range": {
       "all": "Tümü",
       "7d": "7 gün",
@@ -442,20 +442,20 @@
     }
   },
   "recent": {
-    "badge": "Tarihçe",
-    "title": "Son oynananlar",
+    "badge": "Geçmiş",
+    "title": "Son çalınanlar",
     "count_zero": "0 parça",
     "count_one": "{{count}} parça",
-    "count_other": "{{count}} parçalar",
-    "emptyTitle": "Son parçalar yok",
-    "emptyDescription": "Dinlediğiniz şarkılar buraya otomatik olarak eklenecektir."
+    "count_other": "{{count}} parça",
+    "emptyTitle": "Son çalınan parça yok",
+    "emptyDescription": "Dinlediğin parçalar burada otomatik olarak görünür."
   },
   "statistics": {
     "title": "İstatistikler",
     "emptyTitle": "İstatistik mevcut değil",
-    "emptyDescription": "Müzik dinleyin; dinleme istatistiklerinizin burada görünmeye başlaması için.",
+    "emptyDescription": "Dinleme istatistiklerinin burada görünmeye başlaması için biraz müzik çal.",
     "range": {
-      "label": "Aralık",
+      "label": "Dönem",
       "7d": "7 gün",
       "30d": "30 gün",
       "90d": "90 gün",
@@ -463,45 +463,45 @@
       "all": "Tüm zamanlar"
     },
     "kpi": {
-      "totalPlays": "Oyunlar",
+      "totalPlays": "Oynatmalar",
       "totalTime": "Dinleme süresi",
-      "uniqueTracks": "Eşsiz parçalar",
+      "uniqueTracks": "Benzersiz parçalar",
       "uniqueArtists_zero": "0 sanatçı",
       "uniqueArtists_one": "{{count}} sanatçı",
-      "uniqueArtists_other": "{{count}} sanatçılar",
-      "completionRate": "Tamamlanma oranı"
+      "uniqueArtists_other": "{{count}} sanatçı",
+      "completionRate": "Tam dinleme oranı"
     },
     "byDay": {
-      "title": "Günlük aktivite",
+      "title": "Günlük etkinlik",
       "empty": "Bu dönemde dinleme yok."
     },
     "byHour": {
-      "title": "Saatlik dinleme",
+      "title": "Yoğun saatler",
       "empty": "Bu dönemde dinleme yok.",
-      "tooltip": "{{hour}} h — {{plays}} oynatıyor"
+      "tooltip": "{{hour}} — {{plays}} oynatma"
     },
     "topTracks": {
-      "title": "En popüler şarkılar",
-      "empty": "Hiçbir parça çalınmadı."
+      "title": "En çok dinlenen parçalar",
+      "empty": "Hiç parça çalınmadı."
     },
     "topArtists": {
-      "title": "En popüler sanatçılar",
-      "empty": "Hiçbir sanatçı sahne almadı."
+      "title": "En çok dinlenen sanatçılar",
+      "empty": "Hiç sanatçı çalınmadı."
     },
     "topAlbums": {
-      "title": "En çok satan albümler",
-      "empty": "Çalınan albüm yok."
+      "title": "En çok dinlenen albümler",
+      "empty": "Hiç albüm çalınmadı."
     },
     "heatmap": {
       "title": "Yıllık etkinlik",
       "empty": "Son 12 ayda henüz dinleme yok.",
-      "summary": "Yıl boyunca {{time}} dinlendi — {{plays}} kez oynandı",
+      "summary": "Yıl boyunca {{time}} dinleme — {{plays}} oynatma",
       "less": "Daha az",
-      "more": "Daha çok"
+      "more": "Daha fazla"
     },
-    "plays_zero": "0 kez oynandı",
-    "plays_one": "{{count}} oyna",
-    "plays_other": "{{count}} oyunlar",
+    "plays_zero": "0 oynatma",
+    "plays_one": "{{count}} oynatma",
+    "plays_other": "{{count}} oynatma",
     "export": {
       "label": "İstatistikleri dışa aktar",
       "action": "Dışa aktar",
@@ -516,57 +516,57 @@
     "resume": "Devam et",
     "prev": "Önceki slayt",
     "next": "Sonraki slayt",
-    "yearPicker": "Bir yıl seç",
+    "yearPicker": "Yıl seç",
     "backToHome": "Ana sayfaya dön",
-    "playsShort_zero": "0 dinleme",
-    "playsShort_one": "{{count}} dinleme",
-    "playsShort_other": "{{count}} dinleme",
+    "playsShort_zero": "0 oynatma",
+    "playsShort_one": "{{count}} oynatma",
+    "playsShort_other": "{{count}} oynatma",
     "empty": {
-      "title": "Henüz geçmiş yok",
-      "subtitle": "Birkaç parça dinle ve sonra geri gel — Wrapped sen dinledikçe şekilleniyor."
+      "title": "Henüz dinleme geçmişi yok",
+      "subtitle": "Birkaç parça çal ve sonra geri dön — Wrapped, dinledikçe kendi kendine oluşur."
     },
     "intro": {
       "eyebrow": "WaveFlow Wrapped",
       "subtitle": "Müzikle dolu yılın."
     },
     "minutes": {
-      "eyebrow": "Şu kadar dinledin",
+      "eyebrow": "Şunu dinledin",
       "subtitle_zero": "0 dakika müzik",
       "subtitle_one": "{{count}} dakika müzik",
       "subtitle_other": "{{count}} dakika müzik"
     },
     "stats": {
-      "plays": "Dinleme",
-      "tracks": "Parça",
-      "artists": "Sanatçı"
+      "plays": "Oynatmalar",
+      "tracks": "Parçalar",
+      "artists": "Sanatçılar"
     },
     "topTracks": {
-      "title": "En sevdiğin parçalar"
+      "title": "En çok dinlediğin parçalar"
     },
     "topArtists": {
-      "title": "En sevdiğin sanatçılar"
+      "title": "En çok dinlediğin sanatçılar"
     },
     "topAlbums": {
-      "title": "En sevdiğin albümler"
+      "title": "En çok dinlediğin albümler"
     },
     "activeDay": {
-      "eyebrow": "Rekor günün",
+      "eyebrow": "En aktif günün",
       "subtitle": "{{duration}} dinleme, {{count}} parça"
     },
     "mood": {
-      "eyebrow": "Ortalama temponun",
+      "eyebrow": "Ortalama tempon",
       "subtitle": "Yılına eşlik eden ritim",
-      "loudness": "Ortalama loudness: {{lufs}} LUFS",
+      "loudness": "Ortalama ses yüksekliği: {{lufs}} LUFS",
       "energy": {
         "chill": "Chill",
         "warm": "Sıcak",
         "groove": "Groove",
         "energetic": "Enerjik",
-        "fire": "Ateş"
+        "fire": "Yoğun"
       }
     },
     "clock": {
-      "eyebrow": "Dinleme saatin",
+      "eyebrow": "Yoğun dinleme saatin",
       "subtitle": "Gününün zirvesi"
     },
     "streak": {
@@ -582,7 +582,7 @@
       "save": "PNG olarak kaydet",
       "copy": "Görseli kopyala",
       "brand": "WaveFlow Wrapped",
-      "poweredBy": "Yerel · Özel"
+      "poweredBy": "Yerel · Gizli"
     },
     "firstListen": {
       "eyebrow": "Yılın şununla başladı"
@@ -592,135 +592,143 @@
     },
     "outro": {
       "title": "WaveFlow ile dinlediğin için teşekkürler",
-      "subtitle": "Keşfetmeye devam et — Wrapped gerçek zamanlı güncellenir.",
+      "subtitle": "Keşfetmeye devam et — Wrapped'in gerçek zamanlı olarak güncellenir.",
       "cta": "Ana sayfaya dön"
     }
   },
   "about": {
     "title": "Hakkında",
     "hero": {
-      "subtitle": "Çoklu platformlu HD müzik çalar",
+      "subtitle": "Platformlar arası HD müzik çalar",
       "checkUpdates": "Güncellemeleri kontrol et",
       "developedBy": "Geliştiren"
     },
     "sections": {
-      "frameworkDesktop": "Masaüstü Çerçevesi",
-      "frontend": "Ön uç",
-      "backend": "Arka uç (Rust)",
+      "frameworkDesktop": "Masaüstü çatısı",
+      "frontend": "Frontend",
+      "backend": "Backend (Rust)",
       "audio": "Ses",
       "shortcuts": "Klavye kısayolları",
-      "credits": "Teşekkürler"
+      "changelog": "Değişiklik günlüğü",
+      "credits": "Katkıda bulunanlar"
     },
     "shortcuts": {
-      "playPause": "Oynat / Duraklat",
+      "playPause": "Çal / Duraklat",
       "previousTrack": "Önceki parça",
       "nextTrack": "Sonraki parça",
-      "volume": "Hacim",
-      "mute": "Sessize al",
+      "volume": "Ses düzeyi",
+      "mute": "Sustur",
       "keys": {
         "space": "Boşluk"
       }
     },
+    "changelog": {
+      "loading": "Yükleniyor…",
+      "empty": "Kayıt yok",
+      "expand": "{{count}} kayıt daha göster",
+      "collapse": "Daha az göster",
+      "breaking": "Kritik değişiklik"
+    },
     "credits": {
-      "text": "Tutkuyla tasarlanmış ve üretilmiştir. Açık kaynak teknolojileriyle desteklenmektedir.",
-      "icons": "Simgeler: Lucide, Phosphor, Mynaui ve Iconify."
+      "text": "Tutkuyla tasarlandı ve geliştirildi. Açık kaynak teknolojilerle inşa edildi.",
+      "icons": "Lucide, Phosphor, Mynaui ve Iconify ikonları."
     }
   },
   "feedback": {
     "title": "Geri bildirim",
     "hero": {
-      "title": "WaveFlow'i geliştirmemize yardımcı olun",
-      "description": "Bir hata mı fark ettiniz, bir iyileştirme öneriniz mi var ya da sadece düşüncelerinizi paylaşmak mı istiyorsunuz? Her mesajı okuyoruz ve önerilerinizi ciddiye alıyoruz."
+      "title": "WaveFlow'u geliştirmemize yardım et",
+      "description": "Bir hata mı keşfettin, geliştirme fikrin mi var ya da sadece geri bildirim mi paylaşmak istiyorsun? Her mesajı okur ve önerilerini dikkate alırız."
     },
     "contact": {
-      "section": "Bize ulaşın",
-      "subtitle": "Hata, öneri veya soru — her mesajı okuyoruz"
+      "section": "Bize ulaş",
+      "subtitle": "Hata, öneri veya soru — her mesajı okuruz"
     }
   },
   "player": {
     "noTrack": "Parça yok",
     "inactive": "Etkin değil",
     "controls": {
-      "play": "Çalmak",
+      "play": "Çal",
       "pause": "Duraklat",
       "previous": "Önceki",
       "next": "Sonraki",
-      "shuffleOn": "Karıştırmayı devre dışı bırak",
-      "shuffleOff": "Karıştırmayı etkinleştir",
-      "repeatOff": "Tekrarla seçeneğini etkinleştir",
-      "repeatAll": "Bir parçayı tekrarla",
-      "repeatOne": "Tekrarlamayı devre dışı bırak"
+      "shuffleOn": "Karışık çalmayı kapat",
+      "shuffleOff": "Karışık çalmayı aç",
+      "repeatOff": "Tekrarı aç",
+      "repeatAll": "Tek parçayı tekrarla",
+      "repeatOne": "Tekrarı kapat"
     },
     "volume": {
-      "label": "Hacim",
-      "mute": "Sessize al",
+      "label": "Ses düzeyi",
+      "mute": "Sustur",
       "unmute": "Sesi aç"
     },
     "speed": {
       "label": "Oynatma hızı ({{value}})",
       "title": "Oynatma hızı",
-      "slider": "Hız kaydırıcısı",
+      "slider": "Hız kaydırıcı",
       "custom": "Özel hız",
-      "pitchHint": "Perde hızla birlikte değişir (time-stretching yok)."
+      "pitchHint": "Ton, hızı takip eder (time-stretching yok)."
     },
-    "seek": "İlerleme"
+    "seek": "Konum"
   },
   "queue": {
-    "title": "Oynatma kuyruğu",
-    "inactive": "AKTİF DEĞİL",
+    "title": "Çalma sırası",
+    "inactive": "ETKİN DEĞİL",
     "count_zero": "0 parça",
     "count_one": "{{count}} parça",
-    "count_other": "{{count}} parçalar",
-    "emptyTitle": "Oynayacak bir şey yok",
-    "emptyDescription": "Kuyruğu doldurmak için kitaplığınızdaki müziklerden çalın.",
-    "nowPlaying": "Şu anda çalıyor",
+    "count_other": "{{count}} parça",
+    "emptyTitle": "Dinlenecek bir şey yok",
+    "emptyDescription": "Sırayı doldurmak için kütüphanenden bir parça çal.",
+    "nowPlaying": "Şimdi çalıyor",
     "upNext_zero": "Sıradaki",
-    "upNext_one": "Sıradaki · {{count}} track",
-    "upNext_other": "Sıradaki - {{count}} parçalar",
+    "upNext_one": "Sıradaki · {{count}} parça",
+    "upNext_other": "Sıradaki · {{count}} parça",
     "radio": {
-      "label": "Radyo",
-      "basedOn": "“{{title}}” temel alınarak"
+      "label": "Radio",
+      "basedOn": "Şuna dayalı: «{{title}}»"
     }
   },
   "spotifyQueue": {
-    "emptyHint": "Spotify kuyruğunda şu an hiçbir şey yok.",
-    "readonlyHint": "Salt okunur kuyruk — Spotify uygulamasından yönetin."
+    "emptyHint": "Spotify sırasında şu an hiçbir şey yok.",
+    "readonlyHint": "Salt okunur sıra — Spotify uygulamasından yönet."
   },
   "deviceMenu": {
-    "activeLabel": "Aktif çıkış",
-    "loading": "Cihaz aranıyor…",
-    "empty": "Kullanılabilir bir çıktı aygıtı yok",
+    "activeLabel": "Etkin çıkış",
+    "loading": "Cihazlar aranıyor…",
+    "empty": "Kullanılabilir çıkış cihazı yok",
     "systemDefault": "Sistem varsayılanı"
   },
   "profiles": {
     "select": {
       "title": "Kim dinliyor?",
-      "subtitle": "Kütüphanelerinizi ve çalma listelerinizi bulmak için profilinizi seçin",
+      "subtitle": "Kütüphanelerine ve çalma listelerine erişmek için profilini seç",
       "add": "Ekle",
       "edit": "Düzenle",
       "active": "Etkin profil",
-      "switchTo": "Anahtar"
+      "switchTo": "Geç"
     },
     "create": {
       "title": "Yeni profil",
-      "subtitle": "Deneyiminizi kişiselleştirmek için bir profil oluşturun",
+      "subtitle": "Deneyimini kişiselleştirmek için bir profil oluştur",
       "nameLabel": "Profil adı",
-      "namePlaceholder": "Bir isim girin...",
+      "namePlaceholder": "Bir ad gir…",
       "colorLabel": "Profil rengi",
-      "colorAria": "{{color}} renk",
+      "colorAria": "Renk {{color}}",
       "submit": "Profil oluştur"
     }
   },
   "libraryModal": {
-    "title": "Kütüphane Oluştur",
-    "editTitle": "Kütüphaneyi Düzenle",
-    "previewDefault": "Kütüphane Oluştur",
-    "previewSubtitle": "0 parça · Kitaplık",
+    "title": "Kütüphane oluştur",
+    "editTitle": "Kütüphaneyi düzenle",
+    "previewDefault": "Kütüphane oluştur",
+    "previewSubtitle": "0 parça · Kütüphane",
     "nameLabel": "Kütüphane adı",
-    "namePlaceholder": "Örneğin: Rock, Caz, Klasik...",
+    "namePlaceholder": "Örn. Rock, Jazz, Klasik…",
     "descriptionLabel": "Açıklama",
-    "descriptionPlaceholder": "Kısa bir açıklama...",
-    "submit": "Kütüphane Oluştur",
+    "descriptionPlaceholder": "Kısa bir açıklama…",
+    "submit": "Kütüphane oluştur",
     "submitEdit": "Kaydet"
   },
   "playlistModal": {
@@ -729,71 +737,71 @@
     "previewDefault": "Yeni çalma listesi",
     "previewSubtitle": "0 parça · Çalma listesi",
     "nameLabel": "Ad",
-    "namePlaceholder": "Örneğin: Rahat Müzikler, Egzersiz Mix'i...",
+    "namePlaceholder": "Örn. Chill Vibes, Workout Mix…",
     "descriptionLabel": "Açıklama",
-    "descriptionPlaceholder": "Kısa bir açıklama...",
+    "descriptionPlaceholder": "Kısa bir açıklama…",
     "colorLabel": "Renk",
-    "colorAria": "{{color}} renk",
+    "colorAria": "Renk {{color}}",
     "iconLabel": "Simge",
-    "iconAria": "{{icon}} simge",
+    "iconAria": "{{icon}} simgesi",
     "submit": "Oluştur",
     "editSubmit": "Kaydet",
     "coverChoose": "Fotoğraf seç",
     "coverMenu": "Kapak seçenekleri",
     "coverChange": "Fotoğrafı değiştir",
     "coverRemove": "Fotoğrafı kaldır",
-    "coverAutoHint": "Otomatik kapak — içerikle birlikte güncellenir",
+    "coverAutoHint": "Otomatik kapak — içeriğe göre güncellenir",
     "coverManualHint": "Özel görsel"
   },
   "playlistView": {
     "badge": "Çalma listesi",
     "trackCount_zero": "0 parça",
     "trackCount_one": "{{count}} parça",
-    "trackCount_other": "{{count}} parçalar",
+    "trackCount_other": "{{count}} parça",
     "actions": {
-      "play": "Çalmak",
-      "shuffle": "Karıştırma",
+      "play": "Çal",
+      "shuffle": "Karışık çal",
       "edit": "Çalma listesini düzenle",
       "exportM3u": "M3U olarak dışa aktar",
       "delete": "Çalma listesini sil",
-      "deleteConfirm": "Onaylamak için tekrar tıklayın"
+      "deleteConfirm": "Onaylamak için tekrar tıkla"
     },
     "export": {
       "dialogTitle": "Çalma listesini M3U olarak dışa aktar"
     },
     "emptyTitle": "Bu çalma listesi boş",
-    "emptyDescription": "Her satırdaki + düğmesini kullanarak kitaplıklarınızdaki parçaları ekleyin.",
-    "noneTitle": "Hiçbir çalma listesi seçilmedi",
-    "noneDescription": "Yan çubuktan bir çalma listesi seçin ve burada görüntüleyin.",
+    "emptyDescription": "Her satırdaki + düğmesini kullanarak kütüphanenden parça ekle.",
+    "noneTitle": "Seçili çalma listesi yok",
+    "noneDescription": "Burada görmek için yan menüden bir çalma listesi seç.",
     "notFoundTitle": "Çalma listesi bulunamadı",
-    "notFoundDescription": "Bu çalma listesi artık aktif profilde mevcut değil.",
+    "notFoundDescription": "Bu çalma listesi etkin profilde artık yok.",
     "smartLabel": "Daily Mix"
   },
   "trackActions": {
     "addToPlaylist": "Çalma listesine ekle",
-    "noPlaylists": "Henüz bir çalma listesi yok. Aşağıdan bir tane oluşturun.",
+    "noPlaylists": "Çalma listesi yok. Aşağıda yeni bir tane oluştur.",
     "createPlaylist": "Yeni çalma listesi",
-    "playNext": "Sonrakini çal",
-    "addToQueue": "Kuyruğa ekle",
-    "like": "Beğenilen şarkılara ekle",
-    "unlike": "Beğenilen şarkılardan çıkar",
+    "playNext": "Sıradakini oynat",
+    "addToQueue": "Sıraya ekle",
+    "like": "Beğenilere ekle",
+    "unlike": "Beğenilerden çıkar",
     "removeFromPlaylist": "Bu çalma listesinden çıkar",
     "goToAlbum": "Albüme git",
     "goToArtist": "Sanatçıya git",
-    "showInExplorer": "Dosya Gezgini'nde göster",
+    "showInExplorer": "Gezgin'de göster",
     "copyPath": "Dosya yolunu kopyala",
     "properties": "Özellikler",
-    "startRadio": "Radyoyu başlat",
+    "startRadio": "Radyo başlat",
     "rating": "Puan",
     "ratingNone": "Puan yok",
-    "batchEdit": "{{count}} parça için etiketleri düzenle…",
-    "addToPlaylistNamed": "\"{{name}}\" listesine ekle",
-    "removeFromPlaylistNamed": "\"{{name}}\" listesinden çıkar"
+    "batchEdit": "{{count}} parçanın etiketlerini düzenle…",
+    "addToPlaylistNamed": "«{{name}}» listesine ekle",
+    "removeFromPlaylistNamed": "«{{name}}» listesinden çıkar"
   },
   "batchTagEdit": {
-    "title": "Toplu etiket düzenleme",
+    "title": "Etiketleri toplu düzenle",
     "subtitle": "{{count}} parça seçildi",
-    "help": "Tüm seçime uygulanacak alanları işaretle. İşaretsiz alanlar parça başına olduğu gibi kalır.",
+    "help": "Tüm parçalara uygulanmasını istediğin alanları işaretle. İşaretlenmeyen alanlar her parçada olduğu gibi kalır.",
     "submit": "Uygula ({{count}} alan)",
     "fields": {
       "artist": "Sanatçı",
@@ -802,10 +810,10 @@
       "genre": "Tür"
     },
     "placeholders": {
-      "artist": "örn. Daft Punk, Justice",
+      "artist": "Örn. Daft Punk, Justice",
       "album": "Albüm adı",
-      "year": "örn. 2026",
-      "genre": "örn. Electronic"
+      "year": "Örn. 2026",
+      "genre": "Örn. Electronic"
     },
     "result": {
       "updated": "{{count}} parça güncellendi",
@@ -815,7 +823,7 @@
   "trackProperties": {
     "title": "Parça özellikleri",
     "sections": {
-      "metadata": "Meta veriler",
+      "metadata": "Üstveri",
       "audio": "Ses",
       "analysis": "Analiz",
       "file": "Dosya"
@@ -823,24 +831,24 @@
     "bpm": "BPM",
     "loudness": "Ses yüksekliği",
     "replayGain": "ReplayGain",
-    "peak": "Zirve",
+    "peak": "Tepe",
     "analyze": "Analiz et",
     "reanalyze": "Yeniden analiz et",
     "analyzing": "Analiz ediliyor…",
     "year": "Yıl",
     "trackNumber": "Parça numarası",
     "duration": "Süre",
-    "codec": "Kodek",
+    "codec": "Codec",
     "bitDepth": "Bit derinliği",
     "sampleRate": "Örnekleme hızı",
     "channels": "Kanallar",
     "bitrate": "Bit hızı",
-    "key": "Anahtar",
-    "fileSize": "Dosya boyutu",
-    "addedAt": "Eklendi",
+    "key": "Ton",
+    "fileSize": "Boyut",
+    "addedAt": "Eklenme tarihi",
     "filePath": "Yol",
-    "showInExplorer": "Dosya Gezgini'nde göster",
-    "mono": "Tek sesli",
+    "showInExplorer": "Gezgin'de göster",
+    "mono": "Mono",
     "stereo": "Stereo",
     "edit": "Düzenle",
     "save": "Kaydet",
@@ -849,228 +857,230 @@
       "title": "Başlık",
       "artist": "Sanatçı(lar)",
       "album": "Albüm",
-      "trackNumber": "Parça No.",
-      "discNumber": "Disk No.",
+      "trackNumber": "Parça #",
+      "discNumber": "Disk #",
       "genre": "Tür",
-      "genrePlaceholder": "Pop, Rock, Caz…"
+      "genrePlaceholder": "Pop, Rock, Jazz…"
     },
     "changeCover": "Kapağı değiştir"
   },
   "selection": {
-    "toolbarLabel": "Seçim işlemleri",
+    "toolbarLabel": "Seçim eylemleri",
     "count_zero": "0 seçildi",
-    "count_one": "{{count}} seçilen",
-    "count_other": "{{count}} seçilen",
-    "play": "Çalmak",
-    "addToQueue": "Kuyruğa ekle",
-    "playNext": "Sonrakini çal",
+    "count_one": "{{count}} seçildi",
+    "count_other": "{{count}} seçildi",
+    "play": "Çal",
+    "addToQueue": "Sıraya ekle",
+    "playNext": "Sıradakini oynat",
     "addToPlaylist": "Çalma listesine ekle",
     "removeFromPlaylist": "Çalma listesinden çıkar",
-    "clear": "Temizle"
+    "clear": "Seçimi kaldır"
   },
   "albumDetail": {
     "badge": "Albüm",
     "playAll": "Tümünü çal",
-    "shuffle": "Karıştırma",
+    "shuffle": "Karışık çal",
     "trackCount_zero": "0 parça",
     "trackCount_one": "{{count}} parça",
-    "trackCount_other": "{{count}} parçalar",
+    "trackCount_other": "{{count}} parça",
     "discHeader": "Disk {{number}}",
-    "releaseDate": "Yayınlandı",
+    "releaseDate": "Yayın tarihi",
     "emptyTitle": "Albüm bulunamadı",
-    "emptyDescription": "Bu albüm artık aktif profilde bulunmuyor.",
-    "emptyTracksTitle": "İz yok",
-    "emptyTracksDescription": "Bu albümde mevcut parça bulunmamaktadır."
+    "emptyDescription": "Bu albüm etkin profilde artık yok.",
+    "emptyTracksTitle": "Parça yok",
+    "emptyTracksDescription": "Bu albümde kullanılabilir parça yok."
   },
   "artistDetail": {
     "badge": "Sanatçı",
     "playAll": "Tümünü çal",
-    "shuffle": "Karıştırma",
+    "shuffle": "Karışık çal",
     "discography": "Diskografi",
     "allTracks": "Tüm parçalar",
     "trackCount_zero": "0 parça",
     "trackCount_one": "{{count}} parça",
-    "trackCount_other": "{{count}} parçalar",
+    "trackCount_other": "{{count}} parça",
     "albumCount_zero": "0 albüm",
     "albumCount_one": "{{count}} albüm",
-    "albumCount_other": "{{count}} albümler",
+    "albumCount_other": "{{count}} albüm",
     "albumTrackCount_zero": "0 parça",
     "albumTrackCount_one": "{{count}} parça",
-    "albumTrackCount_other": "{{count}} parçalar",
+    "albumTrackCount_other": "{{count}} parça",
     "emptyTitle": "Sanatçı bulunamadı",
-    "emptyDescription": "Bu sanatçının aktif profili artık mevcut değil.",
+    "emptyDescription": "Bu sanatçı etkin profilde artık listelenmiyor.",
     "bio": {
       "title": "Biyografi"
     },
     "similar": {
       "title": "Benzer sanatçılar",
-      "inLibrary": "Kütüphanenizde",
-      "notInLibrary": "Kütüphanenizde değil"
+      "inLibrary": "Kütüphanende",
+      "notInLibrary": "Kütüphanende yok"
     }
   },
   "artistImagePicker": {
     "title": "Sanatçı görselini değiştir",
     "editAria": "Sanatçı fotoğrafını değiştir",
     "removeAction": "Görseli kaldır",
+    "fansCount_one": "{{display}} hayran",
     "fansCount_other": "{{display}} hayran"
   },
   "genreDetail": {
     "badge": "Tür",
     "playAll": "Tümünü çal",
-    "shuffle": "Karıştır",
+    "shuffle": "Karışık çal",
     "trackCount_zero": "0 parça",
     "trackCount_one": "{{count}} parça",
     "trackCount_other": "{{count}} parça",
     "emptyTitle": "Tür bulunamadı",
-    "emptyDescription": "Bu tür artık aktif profilde mevcut değil.",
+    "emptyDescription": "Bu tür etkin profilde artık yok.",
     "emptyTracksTitle": "Parça yok",
     "emptyTracksDescription": "Bu tür kullanılabilir parça içermiyor."
   },
   "nowPlaying": {
     "title": "Şimdi çalıyor",
-    "empty": "Çalınan parça yok",
+    "empty": "Çalan parça yok",
     "aboutArtist": "Sanatçı hakkında",
-    "readMore": "Daha fazla bilgi",
-    "readLess": "Daha azını oku",
-    "noBio": "Biyografi mevcut değil. Ayarlar bölümünden \"Last.fm\" anahtarını yapılandır.",
-    "nextInQueue": "Sırada bir sonraki",
+    "readMore": "Daha fazla oku",
+    "readLess": "Daha az göster",
+    "noBio": "Biyografi mevcut değil. Ayarlardan Last.fm anahtarını ayarla.",
+    "nextInQueue": "Sırada sonraki",
     "openQueue": "Sırayı aç",
     "lyrics": {
-      "title": "Şarkı Sözleri",
+      "title": "Sözler",
       "comingSoon": "Yakında"
     },
-    "startRadio": "Radyoyu başlat",
+    "startRadio": "Radyo başlat",
     "share": {
       "open": "Paylaş",
       "save": "PNG olarak kaydet",
       "copy": "Görseli kopyala",
       "eyebrow": "Şimdi çalıyor",
-      "on": "uygulamasında"
+      "on": "—"
     }
   },
   "playerBar": {
-    "lyrics": "Şarkı Sözleri",
-    "nowPlaying": "Şimdi çalındığını göster",
-    "queue": "Kuyruk",
-    "miniPlayer": "Mini oynatıcı (her zaman üstte)",
+    "lyrics": "Sözler",
+    "nowPlaying": "Çalan parçayı göster",
+    "queue": "Sıra",
+    "miniPlayer": "Mini çalar (her zaman üstte)",
     "previous": "Önceki parça",
     "next": "Sonraki parça",
-    "devices": "Çıkış aygıtları",
-    "moreActions": "Daha fazla işlem",
-    "abLoop": "A-B Döngüsü"
+    "openFullscreen": "Sürükleyici görünüm",
+    "devices": "Çıkış cihazları",
+    "moreActions": "Daha fazla eylem",
+    "abLoop": "A-B döngüsü"
   },
   "miniPlayer": {
     "idle": "Çalan parça yok",
     "maximize": "Ana pencereyi geri yükle",
     "like": "Beğen",
     "pin": "Her zaman üstte",
-    "close": "Mini oynatıcıyı kapat"
+    "close": "Mini çaları kapat"
   },
   "sleepTimer": {
     "title": "Uyku zamanlayıcısı",
-    "endOfTrack": "Geçerli parça sonunda",
-    "endOfTrackBadge": "SON",
+    "endOfTrack": "Geçerli parçanın sonunda",
+    "endOfTrackBadge": "Son",
     "cancel": "İptal",
     "start": "Tamam",
-    "customPlaceholder": "Dak.",
+    "customPlaceholder": "Dk.",
     "customAriaLabel": "Dakika cinsinden özel süre",
     "minutes_one": "{{count}} dk",
     "minutes_other": "{{count}} dk"
   },
   "lyrics": {
-    "title": "Şarkı Sözleri",
-    "loading": "Şarkı sözleri aranıyor…",
-    "noTrack": "Çalınan parça yok",
-    "notFound": "Bu parça için şarkı sözü bulunamadı. Bir .lrc dosyası içe aktarabilirsiniz.",
-    "importTitle": ".lrc dosyasını içe aktar",
+    "title": "Sözler",
+    "loading": "Sözler aranıyor…",
+    "noTrack": "Çalan parça yok",
+    "notFound": "Bu parça için söz bulunamadı. Bir .lrc dosyası içe aktarabilirsin.",
+    "importTitle": ".lrc dosyası içe aktar",
     "actions": {
-      "import": ".lrc dosyasını içe aktar",
-      "refetch": "Şarkı sözlerini yeniden getir",
-      "clear": "Şarkı sözlerini göster",
+      "import": ".lrc dosyası içe aktar",
+      "refetch": "Tekrar ara",
+      "clear": "Sözleri temizle",
       "fullscreen": "Tam ekran",
-      "edit": "Şarkı sözlerini düzenle"
+      "edit": "Sözleri düzenle"
     },
     "source": {
-      "embedded": "Ses dosyasına gömülü",
+      "embedded": "Dosyada gömülü sözler",
       "lrc_file": "İçe aktarılan .lrc dosyası",
       "api": "LRCLIB",
-      "manual": "Elle giriş"
+      "manual": "Manuel giriş"
     },
     "format": {
       "lrc": "Senkronize",
-      "enhanced_lrc": "Sözcük sözcük senkronize",
-      "ttml": "TTML sözcük sözcük",
-      "plain": "Senkronsuz"
+      "enhanced_lrc": "Kelime kelime senkronize",
+      "ttml": "TTML kelime kelime",
+      "plain": "Senkronize değil"
     },
     "toast": {
       "tagWriteSkipped": "TTML yalnızca önbellekte tutuldu (ses etiketine yazılmadı)"
     }
   },
   "duplicates": {
-    "title": "Duplicates detected",
-    "summary": "{{groups}} groups · {{duplicates}} duplicates to remove",
-    "scanning": "Scanning…",
-    "empty": "No duplicates",
-    "emptyHint": "Your library is clean.",
-    "rescan": "Rescan",
-    "deleteOthers_zero": "Nothing to delete",
-    "deleteOthers_one": "Delete {{count}} duplicate",
-    "deleteOthers_other": "Delete {{count}} duplicates",
-    "keepAria": "Keep {{title}}"
+    "title": "Yinelenenler algılandı",
+    "summary": "{{groups}} grup · silinecek {{duplicates}} yineleme",
+    "scanning": "Taranıyor…",
+    "empty": "Yineleme yok",
+    "emptyHint": "Kütüphanen temiz.",
+    "rescan": "Yeniden tara",
+    "deleteOthers_zero": "Silinecek bir şey yok",
+    "deleteOthers_one": "{{count}} yinelemeyi sil",
+    "deleteOthers_other": "{{count}} yinelemeyi sil",
+    "keepAria": "{{title}} parçasını tut"
   },
   "dragDrop": {
     "dropHint": "İçe aktarmak için bırak",
     "importing": "İçe aktarılıyor…",
-    "subtitle": "Klasörler veya ses dosyaları kabul edilir"
+    "subtitle": "Klasör veya ses dosyaları kabul edilir"
   },
   "abLoop": {
-    "setA": "A-B tekrarı: A noktasını mevcut konuma ayarla",
-    "setB": "A-B tekrarı: B noktasını ayarla (A = {{a}})",
-    "armed": "A-B tekrarı etkin: {{a}} → {{b}} (temizlemek için tıkla)"
+    "setA": "A-B tekrar: A noktasını mevcut konuma ayarla",
+    "setB": "A-B tekrar: B noktasını ayarla (A = {{a}})",
+    "armed": "A-B tekrar etkin: {{a}} → {{b}} (temizlemek için tıkla)"
   },
   "smartPlaylistEditor": {
-    "createTitle": "New smart playlist",
-    "editTitle": "Edit smart playlist",
-    "create": "Create",
-    "preview": "Preview",
-    "previewCount": "{{count}} tracks match",
-    "nameRequired": "Name is required",
+    "createTitle": "Yeni akıllı çalma listesi",
+    "editTitle": "Akıllı çalma listesini düzenle",
+    "create": "Oluştur",
+    "preview": "Önizleme",
+    "previewCount": "{{count}} parça eşleşiyor",
+    "nameRequired": "Ad zorunlu",
     "fields": {
-      "name": "Name",
-      "description": "Description",
-      "title": "Title contains",
-      "artist": "Artist contains",
-      "album": "Album contains",
-      "year": "Year",
+      "name": "Ad",
+      "description": "Açıklama",
+      "title": "Başlık içerir",
+      "artist": "Sanatçı içerir",
+      "album": "Albüm içerir",
+      "year": "Yıl",
       "bpm": "BPM",
-      "durationMin": "Duration in minutes",
-      "hiRes": "Hi-Res only",
-      "liked": "Liked tracks only",
-      "formats": "Formats",
-      "genres": "Genres",
-      "sort": "Sort by",
-      "limit": "Max tracks",
-      "minRating": "Minimum puan"
+      "durationMin": "Dakika cinsinden süre",
+      "hiRes": "Yalnızca Hi-Res",
+      "liked": "Yalnızca beğenilen parçalar",
+      "formats": "Formatlar",
+      "genres": "Türler",
+      "sort": "Sıralama ölçütü",
+      "limit": "Maks. parça",
+      "minRating": "Asgari puan"
     },
     "placeholders": {
-      "name": "My 2024 favourites",
-      "description": "Optional",
-      "noLimit": "Unlimited"
+      "name": "2024 favorilerim",
+      "description": "İsteğe bağlı",
+      "noLimit": "Sınırsız"
     },
     "sections": {
-      "match": "Match",
-      "ranges": "Ranges",
-      "attributes": "Attributes",
-      "output": "Sort & limit"
+      "match": "Eşleşme",
+      "ranges": "Aralıklar",
+      "attributes": "Özellikler",
+      "output": "Sırala ve sınırla"
     },
     "sortOptions": {
-      "addedDesc": "Recently added",
-      "addedAsc": "Oldest added",
-      "yearDesc": "Year (descending)",
-      "yearAsc": "Year (ascending)",
-      "titleAsc": "Title (A → Z)",
-      "artistAsc": "Artist (A → Z)",
-      "random": "Random"
+      "addedDesc": "Son eklenenler",
+      "addedAsc": "İlk eklenenler",
+      "yearDesc": "Yıl (azalan)",
+      "yearAsc": "Yıl (artan)",
+      "titleAsc": "Başlık (A → Z)",
+      "artistAsc": "Sanatçı (A → Z)",
+      "random": "Rastgele"
     },
     "tree": {
       "sectionTitle": "Kurallar",
@@ -1078,20 +1088,20 @@
       "and": "VE",
       "or": "VEYA",
       "not": "DEĞİL",
-      "toggleOpHint": "VE ↔ VEYA",
+      "toggleOpHint": "VE ↔ VEYA değiştir",
       "matchAllEmpty": "(tüm kütüphane)",
       "matchNoneEmpty": "(parça yok)",
       "childCount_zero": "boş",
       "childCount_one": "{{count}} koşul",
       "childCount_other": "{{count}} koşul",
-      "notHint": "Çocuğa uyan her şeyi hariç tutar",
+      "notHint": "Alt koşula uyan her şeyi dışlar",
       "deleteNode": "Sil",
       "addCondition": "Koşul",
       "addGroupAnd": "VE grubu",
       "addGroupOr": "VEYA grubu",
       "addNot": "DEĞİL",
-      "contains": "İçeriyor…",
-      "pickGenre": "Tür seç…"
+      "contains": "İçerir…",
+      "pickGenre": "Bir tür seç…"
     },
     "predicates": {
       "titleContains": "Başlık içerir",
@@ -1106,38 +1116,38 @@
       "durationMaxMs": "Süre (ms) ≤",
       "format": "Format =",
       "hiRes": "Hi-Res",
-      "liked": "Beğenilen",
+      "liked": "Beğenildi",
       "ratingMin": "Puan ≥"
     }
   },
   "lyricsEditor": {
-    "title": "Şarkı sözü düzenleyici",
+    "title": "Söz düzenleyici",
     "tabs": {
-      "plain": "Metin",
-      "synced": "Senkronize"
+      "plain": "Düz",
+      "synced": "Senkron"
     },
     "plainPlaceholder": "Sözleri satır satır yaz…",
     "linePlaceholder": "Satır metni",
     "capture": "Yakala",
-    "captureHint": "Oynatmayı başlat ve mevcut satırı geçerli zamana sabitlemek için Boşluk (veya Yakala) tuşuna bas",
+    "captureHint": "Oynatmayı başlat ve mevcut satırı oynatma konumuna sabitlemek için Boşluk'a (veya «Yakala»ya) bas",
     "captureNow": "Şimdi yakala",
     "recapture": "Mevcut konuma yeniden sabitle",
-    "seekToLine": "Bu satıra git",
-    "insertBelow": "Aşağıya satır ekle",
+    "seekToLine": "Bu satıra atla",
+    "insertBelow": "Altına satır ekle",
     "removeLine": "Satırı kaldır",
     "lines": "satır sabitlendi",
     "writeToFile": "Ses dosyasına da yaz (USLT/LYRICS)",
     "offset": {
       "label": "Genel kaydırma",
-      "help": "Tüm yakalanan satırları aynı değer kadar kaydırır — yeknesak biçimde erken veya geç olan içe aktarılmış LRC dosyalarını düzeltmek için kullanışlıdır",
+      "help": "Her yakalanmış satırı aynı miktar kadar kaydırır — düzgün şekilde erken veya geç gelen içe aktarılmış LRC dosyalarını düzeltmek için kullanışlıdır",
       "reset": "Kaydırmayı sıfırla"
     },
     "granularity": {
-      "label": "Ayrıntı düzeyi:",
+      "label": "Hassasiyet:",
       "line": "Satır satır",
-      "word": "Sözcük sözcük"
+      "word": "Kelime kelime"
     },
-    "captureHintWord": "Boşluk = sonraki sözcük · Enter = sonraki satır · Geri = son sözcüğü geri al",
+    "captureHintWord": "Boşluk = sonraki kelime · Enter = sonraki satır · Backspace = son kelimeyi geri al",
     "notCaptured": "Yakalanmadı"
   },
   "sort": {
@@ -1146,11 +1156,14 @@
     "album": "Albüm",
     "duration": "Süre",
     "year": "Yıl",
-    "addedAt": "Son eklenen",
+    "addedAt": "Son eklenenler",
     "rating": "Puan",
+    "customOrder": "Özel sıra",
+    "recentlyAdded": "Son eklenenler",
+    "menuTitle": "Sıralama ölçütü",
     "name": "Ad",
-    "albumsCount": "Albümler",
-    "tracksCount": "Parçalar",
+    "albumsCount": "Albüm sayısı",
+    "tracksCount": "Parça sayısı",
     "ascending": "Artan",
     "descending": "Azalan",
     "filename": "Dosya adı"
@@ -1163,24 +1176,49 @@
       "playback": "Oynatma",
       "integrations": "Entegrasyonlar",
       "appearance": "Görünüm",
-      "storage": "Depolama ve Veri",
-      "data": "Veri",
-      "diagnostics": "Teşhis",
-      "shortcuts": "Klavye kısayolları"
+      "storage": "Depolama ve veriler",
+      "data": "Veriler",
+      "shortcuts": "Klavye kısayolları",
+      "diagnostics": "Tanılama"
+    },
+    "shortcuts": {
+      "subtitle": "Bir kısayola tıkla ve ardından istediğin tuş kombinasyonuna bas. Silmek için Backspace, iptal için Esc.",
+      "captureHint": "Bir tuşa bas…",
+      "reset": "Tümünü sıfırla",
+      "unbind": "Bağlantıyı kaldır",
+      "unbound": "Yok",
+      "actions": {
+        "togglePlayback": "Çal / Duraklat",
+        "next": "Sonraki parça",
+        "previous": "Önceki parça",
+        "volumeUp": "Sesi yükselt",
+        "volumeDown": "Sesi azalt",
+        "toggleMute": "Sustur / Sesi aç",
+        "toggleShuffle": "Karışık çalma",
+        "cycleRepeat": "Tekrar modunu değiştir",
+        "toggleQueue": "Sıra panelini aç/kapat",
+        "toggleNowPlaying": "«Şimdi çalıyor» panelini aç/kapat",
+        "toggleLyrics": "Söz panelini aç/kapat",
+        "toggleLike": "Mevcut parçayı beğen / beğenme"
+      }
+    },
+    "offlineMode": {
+      "title": "Çevrimdışı modu",
+      "subtitle": "Last.fm, Deezer ve LRCLIB'i devre dışı bırakır. Yalnızca önbellekteki verileri kullanır."
     },
     "integrations": {
       "lastfm": {
         "title": "Last.fm",
-        "subtitle": "Sanatçı biyografileri ve scrobbling. last.fm/api/account/create adresinden bir anahtar oluşturun",
+        "subtitle": "Sanatçı biyografileri ve scrobbling. last.fm/api/account/create üzerinden bir anahtar oluştur",
         "placeholder": "API anahtarı",
-        "secretPlaceholder": "Ortak şifre",
+        "secretPlaceholder": "Paylaşılan secret",
         "save": "Kaydet",
         "saved": "Kaydedildi ✓",
         "show": "Göster",
         "hide": "Gizle",
-        "connectedAs": "Şu kullanıcıyla oturum açıldı:",
-        "disconnect": "Çıkış",
-        "loginPrompt": "Dinlediklerinizi kaydetmek için giriş yapın:",
+        "connectedAs": "Şu adla giriş yapıldı",
+        "disconnect": "Çıkış yap",
+        "loginPrompt": "Dinlemelerini scrobble etmek için giriş yap:",
         "usernamePlaceholder": "Kullanıcı adı",
         "passwordPlaceholder": "Şifre",
         "connect": "Giriş yap",
@@ -1188,241 +1226,262 @@
       },
       "discord": {
         "title": "Discord Rich Presence",
-        "subtitle": "Şu anda çalan parçayı Discord profilinde göster"
+        "subtitle": "Şu an çalan parçayı Discord profilinde göster"
       },
       "dlna": {
         "title": "DLNA / UPnP sunucusu",
-        "subtitle": "Kütüphanenizi yerel ağdaki uyumlu amplifikatörlere ve cihazlara aktarın",
+        "subtitle": "Kütüphaneni yerel ağdaki uyumlu amplifikatörlere ve cihazlara yayınla",
         "serverName": "Ad",
         "port": "Port",
         "portHint": "0 = otomatik port",
         "statusRunning": "Çalışıyor",
         "statusStopped": "Durduruldu",
-        "copyUrl": "URL kopyala"
+        "copyUrl": "URL'yi kopyala"
       },
       "spotify": {
         "title": "Spotify",
-        "subtitle": "Spotify Premium'u kendi Spotify Developer Client ID'nle bağla.",
+        "subtitle": "Spotify Premium'u kendi Spotify Developer Client ID'n ile bağla.",
         "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "Bu Redirect URI'yi Spotify Developer Dashboard'a ekle: http://127.0.0.1:49387/spotify/callback",
-        "connectedAs": "Bağlı kullanıcı:",
+        "redirectHint": "Spotify Developer Dashboard'a şu Redirect URI'yi ekle: http://127.0.0.1:49387/spotify/callback",
+        "connectedAs": "Şu adla bağlandı",
         "disconnect": "Bağlantıyı kes",
         "connecting": "Bağlanıyor…",
-        "connect": "Spotify'a bağlan"
+        "connect": "Spotify'a bağla"
       }
     },
     "crossfade": {
-      "title": "Şarkıları çapraz geçişle birleştir",
-      "subtitle": "Parçalar arasında yumuşak geçiş (yakında)"
-    },
-    "dynamicCrossfade": {
-      "title": "Dinamik geçiş",
-      "subtitle": "Geçiş süresini parçalar arasındaki tempo farkına göre ayarlar (BPM bilinmiyorsa sabit geçişe geri döner)"
+      "title": "Crossfade",
+      "subtitle": "Parçalar arasında pürüzsüz geçişler (yakında)"
     },
     "normalize": {
-      "title": "Ses seviyesini normalleştir",
-      "subtitle": "Ses seviyesi yüksek parçalarda sesi kısarak dinleme ses seviyesini sabit tutun"
+      "title": "Sesi normalleştir",
+      "subtitle": "Tutarlı bir seviye için çok yüksek parçaların ses düzeyini düşürür"
     },
     "replayGain": {
-      "title": "ReplayGain'i yükle",
-      "subtitle": "Algılanan ses seviyesini dengelemek için her parçanın analiz edilmiş kazanç değerini kullanın"
+      "title": "ReplayGain uygula",
+      "subtitle": "Algılanan ses yüksekliğini dengelemek için her parçanın analiz edilmiş gain değerini kullanır"
     },
     "exclusive": {
-      "title": "WASAPI Özel Mod (Windows)",
-      "subtitle": "Bit-perfect: Windows karıştırıcısını atlayarak girişimsiz çıkış sağlar. Cihaz özel erişimi reddederse paylaşılan moda geri döner.",
-      "fallback": "Cihaz özel modu kabul etmiyor. Paylaşılan moda geri dönülüyor."
+      "title": "WASAPI özel modu (Windows)",
+      "subtitle": "Bit-perfect: parazitsiz çıkış için Windows mikserini atlar. Cihaz özel erişimi reddederse paylaşımlı moda geri döner.",
+      "fallback": "Cihaz özel modu kabul etmiyor. Paylaşımlı moda geri dönülüyor."
     },
     "mono": {
-      "title": "Tek kanallı ses",
-      "subtitle": "Sol ve sağ kanalları tek bir sinyalde birleştir"
+      "title": "Mono ses",
+      "subtitle": "Sol ve sağ kanalları tek bir sinyalde birleştirir"
     },
     "language": {
       "title": "Dil",
       "subtitle": "Arayüz dili"
     },
     "autoStart": {
-      "title": "Başlangıçta başlat",
-      "subtitle": "Sistem başlatıldığında WaveFlow'u otomatik olarak başlat"
+      "title": "Sistem başlangıcında çalıştır",
+      "subtitle": "Sistem açıldığında WaveFlow'u otomatik olarak başlat"
     },
     "minimizeToTray": {
       "title": "Sistem tepsisine küçült",
-      "subtitle": "Pencereyi kapatmak, uygulamayı sistem tepsisine küçültür"
+      "subtitle": "Pencereyi kapatınca uygulama sistem tepsisine küçülür"
     },
     "scanOnStart": {
-      "title": "Başlangıçta tarama",
-      "subtitle": "Uygulama açıldığında kitaplıkları otomatik olarak yeniden tara"
+      "title": "Başlangıçta tara",
+      "subtitle": "Başlangıçta kütüphaneleri otomatik olarak yeniden tara"
     },
     "singleClickPlay": {
-      "title": "Tek tıklamayla oynatma",
-      "subtitle": "Çalmayı başlatmak için bir parçaya tıklayın (aksi takdirde çift tıklayın)"
+      "title": "Tek tıkla oynat",
+      "subtitle": "Bir parçaya tıklayınca oynatma başlar (aksi halde çift tıkla)"
     },
     "showSleepTimer": {
       "title": "Uyku zamanlayıcısını çubuğa sabitle",
-      "subtitle": "Kapalıyken zamanlayıcıya \"…\" menüsünden erişilebilir"
+      "subtitle": "Devre dışıysa zamanlayıcı «…» menüsünden erişilebilir kalır"
     },
     "showAbLoop": {
       "title": "A-B döngüsünü çubuğa sabitle",
-      "subtitle": "Kapalıyken A-B döngüsüne \"…\" menüsünden erişilebilir"
+      "subtitle": "Devre dışıysa A-B döngüsü «…» menüsünden erişilebilir kalır"
     },
-    "analyze": {
-      "title": "Kütüphaneyi analiz et",
-      "subtitle": "Analiz edilmemiş parçalar için BPM, ses seviyesi ve tepe noktasını hesaplayın",
-      "action": "Analiz et",
-      "autoTitle": "Otomatik analiz",
-      "autoSubtitle": "Her taramadan sonra arka planda analiz çalıştırarak yeni parçalar ekleyin",
-      "failed_one": "{{count}} başarısızlık",
-      "failed_other": "{{count}} başarısızlıklar"
+    "showSpotify": {
+      "title": "Spotify kısayolunu göster",
+      "subtitle": "Yan menüde Spotify kısayolunu gösterir"
     },
     "duplicates": {
-      "title": "Detect duplicates",
-      "subtitle": "Find byte-identical files (same blake3) in your library",
-      "action": "Search"
+      "title": "Yinelenenleri tespit et",
+      "subtitle": "Kütüphanende bayt bazında aynı dosyaları (aynı blake3) bulur",
+      "action": "Ara"
     },
     "rescan": {
       "title": "Kütüphaneyi yeniden tara",
-      "subtitle": "Tüm klasörleri yeniden tarayın ve yeni dosyaları içe aktarın",
+      "subtitle": "Tüm klasörleri gözden geçir ve yeni dosyaları içe aktar",
       "action": "Yeniden tara"
     },
+    "analyze": {
+      "title": "Kütüphaneyi analiz et",
+      "subtitle": "Analiz edilmemiş parçalar için BPM, ses yüksekliği ve tepe hesapla",
+      "action": "Analiz et",
+      "autoTitle": "Otomatik analiz",
+      "autoSubtitle": "Yeni parça ekleyen her taramadan sonra arka planda analiz çalıştır",
+      "failed_one": "{{count}} hata",
+      "failed_other": "{{count}} hata"
+    },
     "artistImages": {
-      "title": "Sanatçı resimleri",
-      "subtitle": "Deezer sitesinden sanatçı albümlerini indirin",
+      "title": "Sanatçı görselleri",
+      "subtitle": "Sanatçı görsellerini Deezer'dan indirir",
       "action": "Getir",
       "progress": "{{current}}/{{total}} işlendi"
     },
     "localArtistImages": {
       "title": "Yerel sanatçı görselleri",
-      "subtitle": "Müziğin yanındaki artist.jpg (veya <ad>.jpg) dosyasını bulup sanatçı fotoğrafı olarak kullanır.",
+      "subtitle": "Müziğinin yanında bir artist.jpg (veya <ad>.jpg) arar ve sanatçı fotoğrafı olarak kullanır.",
       "action": "Tara",
-      "done": "{{considered}} sanatçıdan {{linked}} tanesi yerel görsele bağlandı"
+      "done": "{{considered}} sanatçıdan {{linked}} tanesi yerel görsel ile eşleştirildi"
+    },
+    "profileIo": {
+      "title": "Profil yedeği",
+      "subtitle": "Tüm profili (çalma listeleri, beğeniler, istatistikler, EQ, kısayollar) tek bir .waveflow dosyası olarak dışa aktar veya içe aktar.",
+      "export": {
+        "action": "Dışa aktar",
+        "dialogTitle": "WaveFlow profilini dışa aktar",
+        "done": "Profil başarıyla dışa aktarıldı.",
+        "failed": "Dışa aktarma başarısız oldu. Ayrıntılar için logları gör."
+      },
+      "import": {
+        "action": "İçe aktar",
+        "dialogTitle": "WaveFlow profilini içe aktar",
+        "done": "Profil içe aktarıldı (kimlik {{id}}). Profil seçiciden ona geç.",
+        "failed": "İçe aktarma başarısız oldu. Dosya bozuk veya uyumsuz olabilir."
+      }
     },
     "dataFolder": {
       "title": "Veri klasörü",
-      "subtitle": "Veritabanını ve kapak resmini içeren klasörü açın",
+      "subtitle": "Veritabanı ve kapakları içeren klasörü aç",
       "action": "Aç"
     },
-    "openDataFolder": "Açık veri klasörünü aç",
+    "openDataFolder": "Veri klasörünü aç",
     "lyricsPrefetch": {
-      "title": "Şarkı sözlerini önceden yükle",
-      "subtitle": "Çevrimdışı kullanım için tüm kütüphanenin şarkı sözlerini indir",
-      "result": "{{hits}} eşitlendi, {{misses}} bulunamadı, {{failed}} başarısız",
+      "title": "Sözleri ön belleğe yükle",
+      "subtitle": "Çevrimdışı kullanım için tüm kütüphanenin sözlerini indirir",
+      "result": "{{hits}} senkronize, {{misses}} bulunamadı, {{failed}} başarısız",
       "offline": "Çevrimdışı modu etkin",
-      "failed": "Önbelleğe alma başarısız",
-      "action": "Önceden yükle",
+      "failed": "Ön belleğe yükleme başarısız oldu",
+      "action": "Ön belleğe yükle",
       "progress": "{{current}}/{{total}} işlendi · {{hits}} bulundu"
     },
-    "regenerateThumbnails": "Küçük resimleri yeniden oluştur",
-    "regenerateThumbnailsSubtitle": "Her kapak için eksik olan 1x/2x varyantlarını yeniden oluştur",
+    "regenerateThumbnails": "Kapak önizlemelerini yeniden oluştur",
+    "regenerateThumbnailsSubtitle": "Tüm kapaklar için eksik 1x/2x varyantlarını yeniden inşa eder",
     "regenerateThumbnailsAction": "Yeniden oluştur",
-    "regenerateThumbnailsDone": "{{count}} küçük resimler yeniden oluşturuldu",
+    "regenerateThumbnailsDone": "{{count}} önizleme yeniden oluşturuldu",
     "reset": {
       "title": "Uygulamayı sıfırla",
-      "subtitle": "Tüm verileri sil ve başlangıç durumuna dön",
+      "subtitle": "Tüm verileri sil ve fabrika ayarlarına geri yükle",
       "action": "Sıfırla"
     },
     "diagnostics": {
       "title": "Uygulama günlüğü",
-      "subtitle": "Bir hatayı bildirmek için günlükler klasörünü açın veya son günlükleri kopyalayarak bir bilete yapıştırın.",
-      "openFolder": "Klasörü açın",
-      "copyLogs": "Günlükleri kopyala",
-      "copied": "Kopyalanan günlükler",
-      "copyFailed": "Günlükler kopyalanamıyor"
+      "subtitle": "Bir hatayı bildirmek için log klasörünü aç veya son logları kopyalayıp bir bilete yapıştır.",
+      "openFolder": "Klasörü aç",
+      "copyLogs": "Logları kopyala",
+      "copied": "Loglar kopyalandı",
+      "copyFailed": "Loglar kopyalanamadı"
+    },
+    "visualizer": {
+      "title": "Ses görselleştirici",
+      "subtitle": "Sürükleyici görünümde gerçek zamanlı spektrumu gösterir (decoder thread üzerinde hafif FFT)"
+    },
+    "smartCrossfade": {
+      "title": "Akıllı crossfade",
+      "subtitle": "Aynı albümün iki parçası arasındaki crossfade'i otomatik olarak atlar (konsept albümler ve canlı setler için harika)"
+    },
+    "dynamicCrossfade": {
+      "title": "Dinamik crossfade",
+      "subtitle": "Crossfade süresini parçalar arasındaki tempo farkına göre ölçeklendirir (BPM bilinmiyorsa sabit crossfade'e geri döner)"
     },
     "gapless": {
-      "title": "Boşluksuz çalma",
-      "subtitle": "Ardışık parçaları mikro-sessizlik olmadan zincirler (canlı ve konsept albümler için ideal)"
+      "title": "Gapless oynatma",
+      "subtitle": "Ardışık parçaları mikro sessizlik olmadan birbirine bağlar (canlı ve konsept albümler için idealdir)"
     },
     "equalizer": {
-      "title": "Ekolayzer",
-      "subtitle": "Altı peaking bandı, ±12 dB. Eğriyi şekillendirmek için noktaları sürükleyin.",
+      "title": "Equalizer",
+      "subtitle": "Altı peaking bant, ±12 dB. Eğriyi şekillendirmek için noktaları sürükle.",
       "presets": "Önayarlar",
       "reset": "Sıfırla",
       "preset": {
         "custom": "Özel",
-        "flat": "Düz",
-        "acoustic": "Akustik",
-        "bass_booster": "Bas yükseltici",
-        "bass_reducer": "Bas azaltıcı",
+        "flat": "Flat",
+        "acoustic": "Acoustic",
+        "bass_booster": "Bass booster",
+        "bass_reducer": "Bass reducer",
         "classical": "Klasik",
-        "dance": "Dans",
-        "deep": "Derin",
-        "electronic": "Elektronik",
+        "dance": "Dance",
+        "deep": "Deep",
+        "electronic": "Electronic",
         "hip_hop": "Hip-Hop",
-        "jazz": "Caz",
+        "jazz": "Jazz",
         "latin": "Latin",
         "loudness": "Loudness",
         "lounge": "Lounge",
-        "piano": "Piyano",
+        "piano": "Piano",
         "pop": "Pop",
         "rnb": "R&B",
         "rock": "Rock",
         "small_speakers": "Küçük hoparlörler",
-        "spoken_word": "Konuşma",
-        "treble_booster": "Tiz yükseltici"
+        "spoken_word": "Spoken word",
+        "treble_booster": "Treble booster"
       }
     },
     "backup": {
       "title": "Otomatik yedekleme",
-      "subtitle": "Seçilen klasörde her profilin bir .waveflow arşivini düzenli olarak oluşturur.",
+      "subtitle": "Seçilen klasöre her profil için periyodik olarak bir .waveflow arşivi oluşturur.",
       "intervalLabel": "Sıklık",
       "intervalDays_one": "Her gün",
-      "intervalDays_other": "{{count}} günde bir",
-      "retentionLabel": "Tutulan arşivler",
+      "intervalDays_other": "Her {{count}} günde bir",
+      "retentionLabel": "Saklanan arşivler",
       "retentionKeep_one": "Profil başına {{count}} arşiv",
       "retentionKeep_other": "Profil başına {{count}} arşiv",
       "includeMetadataArtworkLabel": "Deezer kapak önbelleğini dahil et",
-      "includeMetadataArtworkHint": "Daha büyük yedek, tamamen çevrimdışı geri yükleme. Hafif arşivler için işareti kaldırın (önbellek istendiğinde yeniden indirilir).",
+      "includeMetadataArtworkHint": "Daha büyük yedek, tamamen çevrimdışı geri yükleme. Daha hafif arşivler için işareti kaldır (önbellek istek üzerine yeniden alınır).",
       "changeFolder": "Klasörü değiştir",
-      "pickFolderTitle": "Yedekleme klasörünü seç",
-      "lastRun": "Son yedekleme: {{when}}",
+      "pickFolderTitle": "Yedek klasörünü seç",
+      "lastRun": "Son yedek: {{when}}",
       "neverRun": "hiç",
       "runNow": "Şimdi yedekle",
       "runOk_one": "{{count}} arşiv yazıldı.",
       "runOk_other": "{{count}} arşiv yazıldı.",
       "errors": {
-        "loadFailed": "Yedekleme yapılandırması okunamadı.",
-        "saveFailed": "Kaydedilemedi. Tekrar deneyin.",
-        "runFailed": "Yedekleme başarısız. Logları kontrol edin."
+        "loadFailed": "Yedekleme yapılandırması yüklenemedi.",
+        "saveFailed": "Kaydetme başarısız oldu. Tekrar dene.",
+        "runFailed": "Yedekleme başarısız oldu. Logları kontrol et."
       }
     },
     "uiZoom": {
-      "title": "Arayüz yakınlaştırma",
-      "subtitle": "Tüm arayüzü ölçeklendir (Ctrl+= / Ctrl+- / Ctrl+0 da çalışır)",
+      "title": "Arayüz yakınlaştırması",
+      "subtitle": "Tüm arayüzü ölçeklendirir (Ctrl+= / Ctrl+- / Ctrl+0 da çalışır)",
       "decreaseAria": "Uzaklaştır",
       "increaseAria": "Yakınlaştır",
       "resetAria": "Yakınlaştırmayı %100'e sıfırla"
     },
     "showAudioQualityFooter": {
-      "title": "Ses kalitesi şeridini göster",
-      "subtitle": "Teknik ayrıntılar (kHz, kbps, codec, bit derinliği) oynatıcı çubuğunun altında. Daha ince bir çubuk için varsayılan olarak kapalı."
+      "title": "Ses kalitesi çubuğunu göster",
+      "subtitle": "Teknik ayrıntılar (kHz, kbps, codec, bit derinliği) çalar çubuğunun altında. Daha ince bir çubuk için varsayılan olarak kapalı."
     },
     "categoryNavLabel": "Ayar kategorileri",
     "appearance": {
       "placeholder": {
         "title": "Tema seçici v1.3'te geliyor",
-        "subtitle": "10 hazır ayar (Zümrüt, Gece Yarısı, OLED, Orman, Gün Batımı…) uygulamayı anında yeniden renklendirir."
-      }
-    },
-    "shortcuts": {
-      "subtitle": "Bir kısayola tıklayın ve istediğiniz tuş kombinasyonuna basın. Temizlemek için Backspace, iptal için Esc.",
-      "captureHint": "Bir tuşa basın…",
-      "reset": "Tümünü sıfırla",
-      "unbind": "Kaldır",
-      "unbound": "Yok",
-      "actions": {
-        "togglePlayback": "Oynat / Duraklat",
-        "next": "Sonraki parça",
-        "previous": "Önceki parça",
-        "volumeUp": "Sesi aç",
-        "volumeDown": "Sesi kıs",
-        "toggleMute": "Sessize / Açık",
-        "toggleShuffle": "Karıştır",
-        "cycleRepeat": "Tekrar modu",
-        "toggleQueue": "Kuyruğu göster / gizle",
-        "toggleNowPlaying": "Şu an çalanı göster / gizle",
-        "toggleLyrics": "Sözleri göster / gizle",
-        "toggleLike": "Beğen / Beğenme"
+        "subtitle": "10 önayar (Emerald, Midnight, OLED, Forest, Sunset…) tüm uygulamayı anında yeniden renklendirir. Takipte kal."
       }
     }
+  },
+  "spotify": {
+    "notConfiguredTitle": "Spotify uygulamanı kaydet",
+    "notConfiguredMessage": "Spotify, her üçüncü taraf uygulamanın herhangi bir oynatmadan önce ücretsiz bir Client ID kaydetmesini gerektirir. Spotify Developer Dashboard'da bir tane oluştur ve ardından WaveFlow Ayarlar → Entegrasyonlar'a yapıştır.",
+    "openDashboard": "Spotify Developer Dashboard'ı aç",
+    "openSettings": "Ayarları aç",
+    "notConnectedTitle": "Spotify bağlı değil",
+    "notConnectedMessage": "Client ID'n ayarlandı. Çalma listelerini yüklemek ve müzik çalmak için Ayarlar'dan Spotify Premium hesabınla giriş yap.",
+    "emptyPlaylist": "Bu çalma listesinde oynatılabilir parça yok (Spotify yerel dosyaları veya sana ait olmayan çalma listelerini sunmayabilir).",
+    "deviceReady": "WaveFlow Spotify cihazı hazır",
+    "devicePending": "Spotify oynatması hazırlanıyor…",
+    "searchPlaceholder": "Spotify'da ara",
+    "tracks": "Parçalar",
+    "playlists": "Çalma listeleri"
   },
   "scanProgress": {
     "runningTitle": "Kütüphane taranıyor…",
@@ -1432,19 +1491,11 @@
   },
   "system": {
     "tray": {
-      "playPause": "Oynat / Duraklat",
+      "playPause": "Çal / Duraklat",
       "previous": "Önceki",
       "next": "Sonraki",
       "show": "WaveFlow'u aç",
       "quit": "Çık"
     }
-  },
-  "spotify": {
-    "deviceReady": "WaveFlow Spotify cihazı hazır",
-    "devicePending": "Spotify çalma hazırlanıyor…",
-    "searchPlaceholder": "Spotify'da ara",
-    "tracks": "Parçalar",
-    "playlists": "Çalma listeleri",
-    "emptyPlaylist": "Bu çalma listesinde kullanılabilir parça yok (Spotify yerel dosyaları veya sahibi olmadığın listeleri göstermeyebilir)."
   }
 }
