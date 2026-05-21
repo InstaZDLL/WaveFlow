@@ -128,7 +128,7 @@
     "library": {
       "tracksCount_zero": "0 首曲目",
       "tracksCount_one": "{{count}} 曲目",
-      "tracksCount_other": "{{count}} 標題",
+      "tracksCount_other": "{{count}} 曲目",
       "createLibraryAria": "建立新音樂庫",
       "none": "尚無音樂庫",
       "popover": {
@@ -137,7 +137,7 @@
         "countLine": "{{tracks}} · {{albums}}",
         "tracks_zero": "0 首曲目",
         "tracks_one": "{{count}} 曲目",
-        "tracks_other": "{{count}} 標題",
+        "tracks_other": "{{count}} 曲目",
         "albums_zero": "0 張專輯",
         "albums_one": "{{count}} 專輯",
         "albums_other": "{{count}} 專輯",
@@ -160,7 +160,7 @@
       "recent": "最近播放的",
       "emptySubtext_zero": "0 首曲目",
       "emptySubtext_one": "{{count}} 曲目",
-      "emptySubtext_other": "{{count}} 標題",
+      "emptySubtext_other": "{{count}} 曲目",
       "createSmartAria": "建立智慧型播放清單"
     },
     "myMusic": {
@@ -178,7 +178,7 @@
     "myLibrary": {
       "playlistSubtext_zero": "0 首曲目",
       "playlistSubtext_one": "{{count}} 曲目",
-      "playlistSubtext_other": "{{count}} 標題"
+      "playlistSubtext_other": "{{count}} 曲目"
     }
   },
   "topbar": {
@@ -380,12 +380,12 @@
     "albumGrid": {
       "trackCount_zero": "0 首曲目",
       "trackCount_one": "{{count}} 曲目",
-      "trackCount_other": "{{count}} 標題"
+      "trackCount_other": "{{count}} 曲目"
     },
     "artistList": {
       "trackCount_zero": "0 首曲目",
       "trackCount_one": "{{count}} 曲目",
-      "trackCount_other": "{{count}} 標題",
+      "trackCount_other": "{{count}} 曲目",
       "albumCount_zero": "0 張專輯",
       "albumCount_one": "{{count}} 張專輯",
       "albumCount_other": "{{count}} 張專輯"
@@ -393,12 +393,12 @@
     "genreList": {
       "trackCount_zero": "0 首曲目",
       "trackCount_one": "{{count}} 曲目",
-      "trackCount_other": "{{count}} 標題"
+      "trackCount_other": "{{count}} 曲目"
     },
     "folderList": {
       "trackCount_zero": "0 首曲目",
       "trackCount_one": "{{count}} 曲目",
-      "trackCount_other": "{{count}} 標題",
+      "trackCount_other": "{{count}} 曲目",
       "lastScanned": "掃描來源：{{date}}",
       "neverScanned": "從未",
       "watched": "受監控",
@@ -418,7 +418,7 @@
     "title": "已喜歡的曲目",
     "count_zero": "0 首曲目",
     "count_one": "{{count}} 曲目",
-    "count_other": "{{count}} 標題",
+    "count_other": "{{count}} 曲目",
     "emptyTitle": "沒有喜愛的曲目",
     "emptyDescription": "你喜歡的歌曲將顯示在這裡。瀏覽你的音樂庫,將喜歡的曲目加入收藏。",
     "playAll": "全部播放",
@@ -452,7 +452,7 @@
     "title": "最近播放的",
     "count_zero": "0 首曲目",
     "count_one": "{{count}} 曲目",
-    "count_other": "{{count}} 標題",
+    "count_other": "{{count}} 曲目",
     "emptyTitle": "沒有最近播放的曲目",
     "emptyDescription": "您正在聆聽的歌曲將自動顯示於此處。"
   },
@@ -472,9 +472,9 @@
       "totalPlays": "播放次數",
       "totalTime": "收聽時間",
       "uniqueTracks": "獨立曲目",
-      "uniqueArtists_zero": "0 位藝術家",
-      "uniqueArtists_one": "{{count}} 藝術家",
-      "uniqueArtists_other": "{{count}} 藝術家",
+      "uniqueArtists_zero": "0 位藝人",
+      "uniqueArtists_one": "{{count}} 藝人",
+      "uniqueArtists_other": "{{count}} 藝人",
       "completionRate": "完整收聽率"
     },
     "byDay": {
@@ -763,7 +763,7 @@
     "badge": "播放清單",
     "trackCount_zero": "0 首曲目",
     "trackCount_one": "{{count}} 曲目",
-    "trackCount_other": "{{count}} 標題",
+    "trackCount_other": "{{count}} 曲目",
     "actions": {
       "play": "播放",
       "shuffle": "隨機播放",
@@ -868,7 +868,8 @@
       "genre": "類型",
       "genrePlaceholder": "流行、搖滾、爵士…"
     },
-    "changeCover": "更換封面"
+    "changeCover": "更換封面",
+    "properties": "屬性"
   },
   "selection": {
     "toolbarLabel": "選取操作",
@@ -888,7 +889,7 @@
     "shuffle": "隨機播放",
     "trackCount_zero": "0 首曲目",
     "trackCount_one": "{{count}} 曲目",
-    "trackCount_other": "{{count}} 標題",
+    "trackCount_other": "{{count}} 曲目",
     "discHeader": "第 {{number}} 張",
     "releaseDate": "發行日期",
     "emptyTitle": "找不到專輯",
@@ -904,13 +905,13 @@
     "allTracks": "所有曲目",
     "trackCount_zero": "0 首曲目",
     "trackCount_one": "{{count}} 曲目",
-    "trackCount_other": "{{count}} 標題",
+    "trackCount_other": "{{count}} 曲目",
     "albumCount_zero": "0 張專輯",
     "albumCount_one": "{{count}} 專輯",
     "albumCount_other": "{{count}} 專輯",
     "albumTrackCount_zero": "0 首曲目",
     "albumTrackCount_one": "{{count}} 曲目",
-    "albumTrackCount_other": "{{count}} 標題",
+    "albumTrackCount_other": "{{count}} 曲目",
     "emptyTitle": "找不到該藝人",
     "emptyDescription": "該藝人已不在目前的個人檔案中。",
     "bio": {

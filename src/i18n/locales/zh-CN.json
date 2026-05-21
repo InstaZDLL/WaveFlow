@@ -128,7 +128,7 @@
     "library": {
       "tracksCount_zero": "0 首曲目",
       "tracksCount_one": "{{count}} 曲目",
-      "tracksCount_other": "{{count}} 标题",
+      "tracksCount_other": "{{count}} 曲目",
       "createLibraryAria": "新建音乐库",
       "none": "暂无音乐库",
       "popover": {
@@ -137,7 +137,7 @@
         "countLine": "{{tracks}} · {{albums}}",
         "tracks_zero": "0 首曲目",
         "tracks_one": "{{count}} 曲目",
-        "tracks_other": "{{count}} 标题",
+        "tracks_other": "{{count}} 曲目",
         "albums_zero": "0 张专辑",
         "albums_one": "{{count}} 专辑",
         "albums_other": "{{count}} 专辑",
@@ -160,7 +160,7 @@
       "recent": "最近播放的",
       "emptySubtext_zero": "0 首曲目",
       "emptySubtext_one": "{{count}} 曲目",
-      "emptySubtext_other": "{{count}} 标题",
+      "emptySubtext_other": "{{count}} 曲目",
       "createSmartAria": "创建智能播放列表"
     },
     "myMusic": {
@@ -178,7 +178,7 @@
     "myLibrary": {
       "playlistSubtext_zero": "0 首曲目",
       "playlistSubtext_one": "{{count}} 曲目",
-      "playlistSubtext_other": "{{count}} 标题"
+      "playlistSubtext_other": "{{count}} 曲目"
     }
   },
   "topbar": {
@@ -380,12 +380,12 @@
     "albumGrid": {
       "trackCount_zero": "0 首曲目",
       "trackCount_one": "{{count}} 曲目",
-      "trackCount_other": "{{count}} 标题"
+      "trackCount_other": "{{count}} 曲目"
     },
     "artistList": {
       "trackCount_zero": "0 首曲目",
       "trackCount_one": "{{count}} 曲目",
-      "trackCount_other": "{{count}} 标题",
+      "trackCount_other": "{{count}} 曲目",
       "albumCount_zero": "0 张专辑",
       "albumCount_one": "{{count}} 张专辑",
       "albumCount_other": "{{count}} 张专辑"
@@ -393,12 +393,12 @@
     "genreList": {
       "trackCount_zero": "0 首曲目",
       "trackCount_one": "{{count}} 曲目",
-      "trackCount_other": "{{count}} 标题"
+      "trackCount_other": "{{count}} 曲目"
     },
     "folderList": {
       "trackCount_zero": "0 首曲目",
       "trackCount_one": "{{count}} 曲目",
-      "trackCount_other": "{{count}} 标题",
+      "trackCount_other": "{{count}} 曲目",
       "lastScanned": "扫描自：{{date}}",
       "neverScanned": "从来没有",
       "watched": "受监控",
@@ -418,7 +418,7 @@
     "title": "已喜欢的曲目",
     "count_zero": "0 首曲目",
     "count_one": "{{count}} 曲目",
-    "count_other": "{{count}} 标题",
+    "count_other": "{{count}} 曲目",
     "emptyTitle": "没有收藏的曲目",
     "emptyDescription": "你喜欢的歌曲将显示在这里。浏览你的音乐库,将喜欢的曲目加入收藏。",
     "playAll": "全部播放",
@@ -452,7 +452,7 @@
     "title": "最近播放的",
     "count_zero": "0 首曲目",
     "count_one": "{{count}} 曲目",
-    "count_other": "{{count}} 标题",
+    "count_other": "{{count}} 曲目",
     "emptyTitle": "没有最近播放的曲目",
     "emptyDescription": "您正在收听的歌曲会自动显示在此处。"
   },
@@ -472,9 +472,9 @@
       "totalPlays": "播放次数",
       "totalTime": "收听时长",
       "uniqueTracks": "独立曲目",
-      "uniqueArtists_zero": "0位艺术家",
-      "uniqueArtists_one": "{{count}} 艺术家",
-      "uniqueArtists_other": "{{count}} 艺术家",
+      "uniqueArtists_zero": "0 位艺人",
+      "uniqueArtists_one": "{{count}} 艺人",
+      "uniqueArtists_other": "{{count}} 艺人",
       "completionRate": "完整收听率"
     },
     "byDay": {
@@ -763,7 +763,7 @@
     "badge": "播放列表",
     "trackCount_zero": "0 首曲目",
     "trackCount_one": "{{count}} 曲目",
-    "trackCount_other": "{{count}} 标题",
+    "trackCount_other": "{{count}} 曲目",
     "actions": {
       "play": "播放",
       "shuffle": "随机播放",
@@ -889,7 +889,7 @@
     "shuffle": "随机播放",
     "trackCount_zero": "0 首曲目",
     "trackCount_one": "{{count}} 曲目",
-    "trackCount_other": "{{count}} 标题",
+    "trackCount_other": "{{count}} 曲目",
     "discHeader": "第 {{number}} 张",
     "releaseDate": "发行日期",
     "emptyTitle": "找不到该专辑",
@@ -902,16 +902,16 @@
     "playAll": "全部播放",
     "shuffle": "随机播放",
     "discography": "专辑列表",
-    "allTracks": "所有标题",
+    "allTracks": "所有曲目",
     "trackCount_zero": "0 首曲目",
     "trackCount_one": "{{count}} 曲目",
-    "trackCount_other": "{{count}} 标题",
-    "albumCount_zero": "0 个相册",
-    "albumCount_one": "{{count}} 专辑",
-    "albumCount_other": "{{count}} 专辑",
+    "trackCount_other": "{{count}} 曲目",
+    "albumCount_zero": "0 张专辑",
+    "albumCount_one": "{{count}} 张专辑",
+    "albumCount_other": "{{count}} 张专辑",
     "albumTrackCount_zero": "0 首曲目",
     "albumTrackCount_one": "{{count}} 曲目",
-    "albumTrackCount_other": "{{count}} 标题",
+    "albumTrackCount_other": "{{count}} 曲目",
     "emptyTitle": "未找到该艺人",
     "emptyDescription": "该艺人已不在当前的个人资料中。",
     "bio": {
