@@ -534,13 +534,32 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // Opening the lyrics overlay forces the right-edge panel onto
   // "lyrics" so the LyricsPanel mounts: the karaoke overlay reuses the
   // panel's parsed lyrics + active-line tracking instead of running a
-  // second fetch.
+  // second fetch. We snapshot the previous panel so closing the overlay
+  // can restore it — otherwise opening lyrics from the immersive view
+  // would silently flip the user's queue/now-playing panel to lyrics.
+  // `undefined` = no snapshot to restore (either we never forced a
+  // change, or fullscreen lyrics was opened from the panel's Maximize
+  // button while the lyrics panel was already active). `null` is a
+  // valid restore target meaning "no panel was open beforehand".
+  const rightPanelBeforeFullscreenLyricsRef = useRef<
+    "queue" | "nowPlaying" | "lyrics" | null | undefined
+  >(undefined);
   const openFullscreenLyrics = useCallback(() => {
-    setActiveRightPanel("lyrics");
+    setActiveRightPanel((prev) => {
+      if (prev !== "lyrics") {
+        rightPanelBeforeFullscreenLyricsRef.current = prev;
+      }
+      return "lyrics";
+    });
     setFullscreenOverlay("lyrics");
   }, []);
   const closeFullscreenLyrics = useCallback(() => {
     setFullscreenOverlay((o) => (o === "lyrics" ? null : o));
+    const previous = rightPanelBeforeFullscreenLyricsRef.current;
+    if (previous !== undefined) {
+      setActiveRightPanel(previous);
+      rightPanelBeforeFullscreenLyricsRef.current = undefined;
+    }
   }, []);
 
   const refreshOutputDevices = useCallback(async () => {
