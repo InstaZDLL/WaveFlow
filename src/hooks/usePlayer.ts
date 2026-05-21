@@ -23,6 +23,17 @@ interface PlayerContextValue {
   isDeviceMenuOpen: boolean;
   toggleDeviceMenu: () => void;
 
+  // Fullscreen overlays (immersive Now Playing + karaoke Lyrics) share
+  // a single mutex so the two never paint on top of each other. Opening
+  // the lyrics overlay also flips the right-edge panel to "lyrics" so
+  // the LyricsPanel mounts and feeds the overlay its parsed state.
+  isFullscreenNowPlayingOpen: boolean;
+  isFullscreenLyricsOpen: boolean;
+  openFullscreenNowPlaying: () => void;
+  closeFullscreenNowPlaying: () => void;
+  openFullscreenLyrics: () => void;
+  closeFullscreenLyrics: () => void;
+
   // Output device picker — pre-fetched at boot so the first click on
   // the device button paints instantly. `refreshOutputDevices` is
   // called by `DeviceMenu` in the background on each open to catch

@@ -37,13 +37,21 @@ import { LyricsEditorModal } from "../common/LyricsEditorModal";
  */
 export function LyricsPanel() {
   const { t } = useTranslation();
-  const { isLyricsOpen, toggleLyrics, currentTrack, positionMs, seek } =
-    usePlayer();
+  const {
+    isLyricsOpen,
+    toggleLyrics,
+    currentTrack,
+    positionMs,
+    seek,
+    isFullscreenLyricsOpen,
+    openFullscreenLyrics,
+    closeFullscreenLyrics,
+    openFullscreenNowPlaying,
+  } = usePlayer();
 
   const [payload, setPayload] = useState<LyricsPayload | null>(null);
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
   const trackId = currentTrack?.id ?? null;
@@ -195,7 +203,7 @@ export function LyricsPanel() {
             </button>
             <button
               type="button"
-              onClick={() => setIsFullscreen(true)}
+              onClick={openFullscreenLyrics}
               aria-label={t("lyrics.actions.fullscreen")}
               title={t("lyrics.actions.fullscreen")}
               disabled={currentTrack == null}
@@ -306,8 +314,11 @@ export function LyricsPanel() {
         />
 
         {/* Fullscreen overlay — rendered as a sibling so it covers
-            the whole app, not just the panel. */}
-        {isFullscreen && currentTrack && (
+            the whole app, not just the panel. Toggled via PlayerContext
+            so the immersive Now Playing view can switch into karaoke
+            mode without unmounting the panel that owns the lyrics
+            state. */}
+        {isFullscreenLyricsOpen && currentTrack && (
           <FullscreenLyrics
             track={currentTrack}
             payload={payload}
@@ -316,7 +327,8 @@ export function LyricsPanel() {
             activeIndex={activeIndex}
             isFetching={isFetching}
             error={error}
-            onClose={() => setIsFullscreen(false)}
+            onClose={closeFullscreenLyrics}
+            onOpenNowPlaying={openFullscreenNowPlaying}
             onSeek={handleSeekToLine}
           />
         )}

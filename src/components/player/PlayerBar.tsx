@@ -40,6 +40,10 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
     volume,
     setVolume,
     activeProvider,
+    isFullscreenNowPlayingOpen,
+    openFullscreenNowPlaying,
+    closeFullscreenNowPlaying,
+    openFullscreenLyrics,
   } = usePlayer();
 
   const sleepTimer = useSleepTimer({ currentVolume: volume, setVolume });
@@ -156,11 +160,6 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
   const title = currentTrack?.title ?? t("player.noTrack");
 
-  // Apple-Music-style immersive Now Playing overlay. Local UI state —
-  // not in PlayerContext because no other view needs to know about it
-  // (unlike the side panels which other components query).
-  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
-
   return (
     <>
       <div className="flex flex-col z-50 border-t bg-[#FAFAFA] border-zinc-200 text-zinc-600 dark:bg-surface-dark-elevated dark:border-zinc-800 dark:text-zinc-300">
@@ -172,7 +171,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               loaded so the user doesn't open an empty card. */}
             <button
               type="button"
-              onClick={() => currentTrack && setIsFullscreenOpen(true)}
+              onClick={() => currentTrack && openFullscreenNowPlaying()}
               disabled={!currentTrack}
               aria-label={t("playerBar.openFullscreen")}
               title={t("playerBar.openFullscreen")}
@@ -334,7 +333,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
             <button
               type="button"
-              onClick={() => currentTrack && setIsFullscreenOpen(true)}
+              onClick={() => currentTrack && openFullscreenNowPlaying()}
               disabled={!currentTrack}
               aria-label={t("playerBar.openFullscreen")}
               title={t("playerBar.openFullscreen")}
@@ -350,9 +349,10 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
           />
         )}
       </div>
-      {isFullscreenOpen && currentTrack && (
+      {isFullscreenNowPlayingOpen && currentTrack && (
         <FullscreenNowPlaying
-          onClose={() => setIsFullscreenOpen(false)}
+          onClose={closeFullscreenNowPlaying}
+          onOpenLyrics={openFullscreenLyrics}
           onNavigateToArtist={onNavigateToArtist}
           isLiked={isLiked}
           onToggleLike={handleToggleLike}
