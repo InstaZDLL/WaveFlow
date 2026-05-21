@@ -717,6 +717,22 @@
       "colorLabel": "Colore del profilo",
       "colorAria": "Colore {{color}}",
       "submit": "Crea profilo"
+    },
+    "manage": {
+      "toggle": "Gestisci",
+      "done": "Fatto",
+      "title": "Gestisci profili",
+      "subtitle": "Seleziona un profilo da rimuovere. Il profilo attivo non può essere eliminato da qui.",
+      "activeLocked": "Profilo attivo",
+      "deleteHint": "Tocca per eliminare",
+      "deleteAria": "Elimina il profilo {{name}}"
+    },
+    "delete": {
+      "title": "Eliminare {{name}}?",
+      "subtitle": "Questo profilo verrà rimosso definitivamente.",
+      "warning": "Tutte le librerie, le playlist e la cronologia di ascolto di questo profilo andranno perse. L'azione è irreversibile.",
+      "submit": "Elimina profilo",
+      "submitting": "Eliminazione…"
     }
   },
   "libraryModal": {

@@ -717,6 +717,22 @@
       "colorLabel": "Warna profil",
       "colorAria": "Warna {{color}}",
       "submit": "Buat profil"
+    },
+    "manage": {
+      "toggle": "Kelola",
+      "done": "Selesai",
+      "title": "Kelola profil",
+      "subtitle": "Pilih profil untuk dihapus. Profil aktif tidak dapat dihapus dari sini.",
+      "activeLocked": "Profil aktif",
+      "deleteHint": "Ketuk untuk menghapus",
+      "deleteAria": "Hapus profil {{name}}"
+    },
+    "delete": {
+      "title": "Hapus {{name}}?",
+      "subtitle": "Profil ini akan dihapus secara permanen.",
+      "warning": "Semua perpustakaan, daftar putar, dan riwayat dengar profil ini akan hilang. Tindakan ini tidak dapat dibatalkan.",
+      "submit": "Hapus profil",
+      "submitting": "Menghapus…"
     }
   },
   "libraryModal": {

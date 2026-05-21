@@ -717,6 +717,22 @@
       "colorLabel": "프로필 색상",
       "colorAria": "색상{{color}}",
       "submit": "프로필 만들기"
+    },
+    "manage": {
+      "toggle": "관리",
+      "done": "완료",
+      "title": "프로필 관리",
+      "subtitle": "삭제할 프로필을 선택하세요. 활성 프로필은 여기서 삭제할 수 없습니다.",
+      "activeLocked": "활성 프로필",
+      "deleteHint": "탭하여 삭제",
+      "deleteAria": "{{name}} 프로필 삭제"
+    },
+    "delete": {
+      "title": "{{name}}을(를) 삭제할까요?",
+      "subtitle": "이 프로필은 영구적으로 삭제됩니다.",
+      "warning": "이 프로필의 모든 라이브러리, 재생목록, 재생 기록이 사라집니다. 이 작업은 되돌릴 수 없습니다.",
+      "submit": "프로필 삭제",
+      "submitting": "삭제 중…"
     }
   },
   "libraryModal": {

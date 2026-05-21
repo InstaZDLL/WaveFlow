@@ -723,6 +723,22 @@
       "colorLabel": "個人檔案顏色",
       "colorAria": "顏色{{color}}",
       "submit": "建立個人檔案"
+    },
+    "manage": {
+      "toggle": "管理",
+      "done": "完成",
+      "title": "管理個人檔案",
+      "subtitle": "選擇要刪除的個人檔案。無法從此處刪除目前使用的個人檔案。",
+      "activeLocked": "目前個人檔案",
+      "deleteHint": "輕觸以刪除",
+      "deleteAria": "刪除個人檔案 {{name}}"
+    },
+    "delete": {
+      "title": "刪除 {{name}}?",
+      "subtitle": "此個人檔案將被永久刪除。",
+      "warning": "此個人檔案的所有曲庫、播放清單與播放紀錄都會遺失。此操作無法復原。",
+      "submit": "刪除個人檔案",
+      "submitting": "刪除中…"
     }
   },
   "libraryModal": {

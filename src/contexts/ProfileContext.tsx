@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { ProfileContext } from "../hooks/useProfile";
 import {
   createProfile as apiCreateProfile,
+  deleteProfile as apiDeleteProfile,
   getActiveProfile,
   listProfiles,
   switchProfile as apiSwitchProfile,
@@ -91,6 +92,20 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
+  const deleteProfile = useCallback(
+    async (profileId: number) => {
+      try {
+        await apiDeleteProfile(profileId);
+        await refresh();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message);
+        throw err;
+      }
+    },
+    [refresh],
+  );
+
   return (
     <ProfileContext.Provider
       value={{
@@ -101,6 +116,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         refresh,
         switchProfile,
         createProfile,
+        deleteProfile,
       }}
     >
       {children}

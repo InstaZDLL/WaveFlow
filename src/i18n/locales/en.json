@@ -717,6 +717,22 @@
       "colorLabel": "Profile colour",
       "colorAria": "Colour {{color}}",
       "submit": "Create profile"
+    },
+    "manage": {
+      "toggle": "Manage",
+      "done": "Done",
+      "title": "Manage profiles",
+      "subtitle": "Select a profile to remove. The active profile cannot be deleted from here.",
+      "activeLocked": "Active profile",
+      "deleteHint": "Tap to delete",
+      "deleteAria": "Delete profile {{name}}"
+    },
+    "delete": {
+      "title": "Delete {{name}}?",
+      "subtitle": "This profile will be permanently removed.",
+      "warning": "All libraries, playlists and listening history for this profile will be lost. This action cannot be undone.",
+      "submit": "Delete profile",
+      "submitting": "Deleting…"
     }
   },
   "libraryModal": {

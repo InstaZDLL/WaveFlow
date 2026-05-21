@@ -717,6 +717,22 @@
       "colorLabel": "Profilfarbe",
       "colorAria": "Farbe {{color}}",
       "submit": "Profil erstellen"
+    },
+    "manage": {
+      "toggle": "Verwalten",
+      "done": "Fertig",
+      "title": "Profile verwalten",
+      "subtitle": "Wähle ein Profil zum Entfernen. Das aktive Profil kann hier nicht gelöscht werden.",
+      "activeLocked": "Aktives Profil",
+      "deleteHint": "Zum Löschen tippen",
+      "deleteAria": "Profil {{name}} löschen"
+    },
+    "delete": {
+      "title": "{{name}} löschen?",
+      "subtitle": "Dieses Profil wird endgültig entfernt.",
+      "warning": "Sämtliche Bibliotheken, Wiedergabelisten und der Wiedergabeverlauf dieses Profils gehen verloren. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "submit": "Profil löschen",
+      "submitting": "Wird gelöscht …"
     }
   },
   "libraryModal": {
