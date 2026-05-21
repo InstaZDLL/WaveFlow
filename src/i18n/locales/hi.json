@@ -1102,10 +1102,14 @@
     "title": "सेटिंग्स",
     "sections": {
       "general": "सामान्य",
+      "library": "लाइब्रेरी",
       "playback": "प्लेबैक",
       "integrations": "एकीकरण",
+      "appearance": "रूप",
       "storage": "भंडारण और डेटा",
-      "diagnostics": "निदान"
+      "data": "डेटा",
+      "diagnostics": "निदान",
+      "shortcuts": "कीबोर्ड शॉर्टकट"
     },
     "integrations": {
       "lastfm": {
@@ -1333,6 +1337,34 @@
     "showAudioQualityFooter": {
       "title": "ऑडियो गुणवत्ता पट्टी दिखाएं",
       "subtitle": "प्लेयर बार के नीचे तकनीकी विवरण (kHz, kbps, कोडेक, बिट डेप्थ)। पतले बार के लिए डिफ़ॉल्ट रूप से बंद।"
+    },
+    "categoryNavLabel": "सेटिंग्स श्रेणियाँ",
+    "appearance": {
+      "placeholder": {
+        "title": "थीम पिकर v1.3 में आ रहा है",
+        "subtitle": "10 प्रीसेट (एमराल्ड, मध्यरात्रि, OLED, वन, सूर्यास्त…) पूरे ऐप को तुरंत फिर से रंगते हैं।"
+      }
+    },
+    "shortcuts": {
+      "subtitle": "किसी शॉर्टकट पर क्लिक करें फिर अपनी इच्छित कुंजी संयोजन दबाएँ। साफ़ करने के लिए Backspace, रद्द करने के लिए Escape।",
+      "captureHint": "एक कुंजी दबाएँ…",
+      "reset": "सभी रीसेट करें",
+      "unbind": "अनबाइंड करें",
+      "unbound": "कोई नहीं",
+      "actions": {
+        "togglePlayback": "चलाएँ / रोकें",
+        "next": "अगला ट्रैक",
+        "previous": "पिछला ट्रैक",
+        "volumeUp": "वॉल्यूम बढ़ाएँ",
+        "volumeDown": "वॉल्यूम घटाएँ",
+        "toggleMute": "म्यूट / अनम्यूट",
+        "toggleShuffle": "शफल",
+        "cycleRepeat": "दोहराव मोड",
+        "toggleQueue": "क्यू दिखाएँ / छिपाएँ",
+        "toggleNowPlaying": "अभी चल रहा है दिखाएँ / छिपाएँ",
+        "toggleLyrics": "लिरिक्स दिखाएँ / छिपाएँ",
+        "toggleLike": "पसंद / नापसंद"
+      }
     }
   },
   "scanProgress": {

@@ -1101,10 +1101,14 @@
     "title": "设置",
     "sections": {
       "general": "概述",
+      "library": "音乐库",
       "playback": "播放",
       "integrations": "集成",
+      "appearance": "外观",
       "storage": "存储与数据",
-      "diagnostics": "诊断"
+      "data": "数据",
+      "diagnostics": "诊断",
+      "shortcuts": "键盘快捷键"
     },
     "integrations": {
       "lastfm": {
@@ -1332,6 +1336,34 @@
     "showAudioQualityFooter": {
       "title": "显示音频质量条",
       "subtitle": "在播放栏下方显示技术详情（kHz、kbps、编解码、位深）。为保持播放栏轻巧，默认关闭。"
+    },
+    "categoryNavLabel": "设置分类",
+    "appearance": {
+      "placeholder": {
+        "title": "主题选择器将在 v1.3 推出",
+        "subtitle": "10 个预设（祖母绿、午夜、OLED、森林、日落……）瞬间为整个应用重新着色。"
+      }
+    },
+    "shortcuts": {
+      "subtitle": "点击一个快捷键，然后按下你想要的组合键。按 Backspace 清除，按 Esc 取消。",
+      "captureHint": "按一个键…",
+      "reset": "全部重置",
+      "unbind": "解绑",
+      "unbound": "无",
+      "actions": {
+        "togglePlayback": "播放 / 暂停",
+        "next": "下一首",
+        "previous": "上一首",
+        "volumeUp": "增大音量",
+        "volumeDown": "减小音量",
+        "toggleMute": "静音 / 取消",
+        "toggleShuffle": "随机播放",
+        "cycleRepeat": "循环模式",
+        "toggleQueue": "显示 / 隐藏队列",
+        "toggleNowPlaying": "显示 / 隐藏正在播放",
+        "toggleLyrics": "显示 / 隐藏歌词",
+        "toggleLike": "喜欢 / 取消喜欢"
+      }
     }
   },
   "scanProgress": {

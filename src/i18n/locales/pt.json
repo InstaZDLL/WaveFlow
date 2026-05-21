@@ -1102,10 +1102,14 @@
     "title": "Parâmetros",
     "sections": {
       "general": "Geral",
+      "library": "Biblioteca",
       "playback": "Reprodução",
       "integrations": "Integrações",
+      "appearance": "Aparência",
       "storage": "Armazenamento e dados",
-      "diagnostics": "Diagnóstico"
+      "data": "Dados",
+      "diagnostics": "Diagnóstico",
+      "shortcuts": "Atalhos de teclado"
     },
     "integrations": {
       "lastfm": {
@@ -1333,6 +1337,34 @@
     "showAudioQualityFooter": {
       "title": "Mostrar faixa de qualidade de áudio",
       "subtitle": "Detalhes técnicos (kHz, kbps, codec, profundidade) sob a barra do leitor. Desativado por padrão para uma barra mais fina."
+    },
+    "categoryNavLabel": "Categorias de definições",
+    "appearance": {
+      "placeholder": {
+        "title": "O seletor de temas chega na v1.3",
+        "subtitle": "10 presets (Esmeralda, Meia-noite, OLED, Floresta, Pôr do sol…) que retingem toda a app instantaneamente."
+      }
+    },
+    "shortcuts": {
+      "subtitle": "Clique num atalho e pressione a combinação de teclas que deseja. Backspace para limpar, Escape para cancelar.",
+      "captureHint": "Pressione uma tecla…",
+      "reset": "Repor tudo",
+      "unbind": "Desvincular",
+      "unbound": "Nenhum",
+      "actions": {
+        "togglePlayback": "Reproduzir / Pausar",
+        "next": "Faixa seguinte",
+        "previous": "Faixa anterior",
+        "volumeUp": "Aumentar volume",
+        "volumeDown": "Diminuir volume",
+        "toggleMute": "Silenciar / Ativar",
+        "toggleShuffle": "Aleatório",
+        "cycleRepeat": "Modo de repetição",
+        "toggleQueue": "Mostrar / Ocultar fila",
+        "toggleNowPlaying": "Mostrar / Ocultar reprodução",
+        "toggleLyrics": "Mostrar / Ocultar letra",
+        "toggleLike": "Gosto / Remover"
+      }
     }
   },
   "scanProgress": {

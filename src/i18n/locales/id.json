@@ -1101,10 +1101,14 @@
     "title": "Pengaturan",
     "sections": {
       "general": "Umum",
+      "library": "Pustaka",
       "playback": "Pemutaran",
       "integrations": "Integrasi",
+      "appearance": "Tampilan",
       "storage": "Penyimpanan & Data",
-      "diagnostics": "Diagnostik"
+      "data": "Data",
+      "diagnostics": "Diagnostik",
+      "shortcuts": "Pintasan keyboard"
     },
     "integrations": {
       "lastfm": {
@@ -1332,6 +1336,34 @@
     "showAudioQualityFooter": {
       "title": "Tampilkan strip kualitas audio",
       "subtitle": "Detail teknis (kHz, kbps, codec, kedalaman bit) di bawah bilah pemutar. Mati secara default untuk bilah yang lebih ramping."
+    },
+    "categoryNavLabel": "Kategori pengaturan",
+    "appearance": {
+      "placeholder": {
+        "title": "Pemilih tema hadir di v1.3",
+        "subtitle": "10 preset (Zamrud, Tengah Malam, OLED, Hutan, Matahari Terbenam…) mewarnai ulang seluruh aplikasi seketika."
+      }
+    },
+    "shortcuts": {
+      "subtitle": "Klik pintasan lalu tekan kombinasi tombol yang diinginkan. Backspace untuk hapus, Escape untuk batal.",
+      "captureHint": "Tekan tombol…",
+      "reset": "Setel ulang semua",
+      "unbind": "Lepas",
+      "unbound": "Tidak ada",
+      "actions": {
+        "togglePlayback": "Putar / Jeda",
+        "next": "Trek berikutnya",
+        "previous": "Trek sebelumnya",
+        "volumeUp": "Naikkan volume",
+        "volumeDown": "Turunkan volume",
+        "toggleMute": "Bisukan / Aktifkan",
+        "toggleShuffle": "Acak",
+        "cycleRepeat": "Mode pengulangan",
+        "toggleQueue": "Tampilkan / Sembunyikan antrian",
+        "toggleNowPlaying": "Tampilkan / Sembunyikan pemutaran",
+        "toggleLyrics": "Tampilkan / Sembunyikan lirik",
+        "toggleLike": "Suka / Batal suka"
+      }
     }
   },
   "scanProgress": {

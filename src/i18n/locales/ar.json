@@ -1106,10 +1106,14 @@
     "title": "الإعدادات",
     "sections": {
       "general": "عام",
+      "library": "المكتبة",
       "playback": "التشغيل",
       "integrations": "عمليات الدمج",
+      "appearance": "المظهر",
       "storage": "التخزين والبيانات",
-      "diagnostics": "التشخيص"
+      "data": "البيانات",
+      "diagnostics": "التشخيص",
+      "shortcuts": "اختصارات لوحة المفاتيح"
     },
     "integrations": {
       "lastfm": {
@@ -1337,6 +1341,34 @@
     "showAudioQualityFooter": {
       "title": "إظهار شريط جودة الصوت",
       "subtitle": "تفاصيل تقنية (kHz، kbps، الترميز، عمق البت) أسفل شريط المشغل. معطل افتراضيًا للحفاظ على شريط أنحف."
+    },
+    "categoryNavLabel": "فئات الإعدادات",
+    "appearance": {
+      "placeholder": {
+        "title": "أداة اختيار السمات تأتي في v1.3",
+        "subtitle": "10 سمات جاهزة (زمرد، منتصف الليل، OLED، غابة، غروب الشمس…) تعيد تلوين التطبيق بأكمله فوراً."
+      }
+    },
+    "shortcuts": {
+      "subtitle": "انقر على اختصار ثم اضغط على مجموعة المفاتيح التي تريدها. Backspace للمسح، Escape للإلغاء.",
+      "captureHint": "اضغط على مفتاح…",
+      "reset": "إعادة تعيين الكل",
+      "unbind": "إلغاء التعيين",
+      "unbound": "لا شيء",
+      "actions": {
+        "togglePlayback": "تشغيل / إيقاف مؤقت",
+        "next": "المسار التالي",
+        "previous": "المسار السابق",
+        "volumeUp": "رفع الصوت",
+        "volumeDown": "خفض الصوت",
+        "toggleMute": "كتم / تشغيل الصوت",
+        "toggleShuffle": "تشغيل عشوائي",
+        "cycleRepeat": "وضع التكرار",
+        "toggleQueue": "إظهار / إخفاء قائمة الانتظار",
+        "toggleNowPlaying": "إظهار / إخفاء قيد التشغيل",
+        "toggleLyrics": "إظهار / إخفاء كلمات الأغنية",
+        "toggleLike": "إعجاب / إلغاء الإعجاب"
+      }
     }
   },
   "scanProgress": {

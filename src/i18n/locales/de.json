@@ -1102,10 +1102,14 @@
     "title": "Einstellungen",
     "sections": {
       "general": "Allgemeines",
+      "library": "Bibliothek",
       "playback": "Wiedergabe",
       "integrations": "Integrationen",
+      "appearance": "Aussehen",
       "storage": "Speicher & Daten",
-      "diagnostics": "Diagnostics"
+      "data": "Daten",
+      "diagnostics": "Diagnose",
+      "shortcuts": "Tastenkürzel"
     },
     "integrations": {
       "lastfm": {
@@ -1333,6 +1337,34 @@
     "showAudioQualityFooter": {
       "title": "Audioqualitätsleiste anzeigen",
       "subtitle": "Technische Details (kHz, kbps, Codec, Bittiefe) unter der Player-Leiste. Standardmäßig aus für eine schlankere Leiste."
+    },
+    "categoryNavLabel": "Einstellungskategorien",
+    "appearance": {
+      "placeholder": {
+        "title": "Themenauswahl kommt in v1.3",
+        "subtitle": "10 Presets (Smaragd, Mitternacht, OLED, Wald, Sonnenuntergang…), die die gesamte App sofort neu einfärben."
+      }
+    },
+    "shortcuts": {
+      "subtitle": "Klicke auf ein Kürzel und drücke die gewünschte Tastenkombination. Rücktaste zum Löschen, Escape zum Abbrechen.",
+      "captureHint": "Taste drücken…",
+      "reset": "Alle zurücksetzen",
+      "unbind": "Aufheben",
+      "unbound": "Keine",
+      "actions": {
+        "togglePlayback": "Wiedergabe / Pause",
+        "next": "Nächster Titel",
+        "previous": "Vorheriger Titel",
+        "volumeUp": "Lauter",
+        "volumeDown": "Leiser",
+        "toggleMute": "Ton aus / an",
+        "toggleShuffle": "Zufallswiedergabe",
+        "cycleRepeat": "Wiederholungsmodus",
+        "toggleQueue": "Warteschlange ein/aus",
+        "toggleNowPlaying": "Aktuelle Wiedergabe ein/aus",
+        "toggleLyrics": "Songtext ein/aus",
+        "toggleLike": "Gefällt mir / Entfernen"
+      }
     }
   },
   "scanProgress": {

@@ -1101,10 +1101,14 @@
     "title": "설정",
     "sections": {
       "general": "일반",
+      "library": "라이브러리",
       "playback": "재생",
       "integrations": "통합",
+      "appearance": "외관",
       "storage": "저장소 및 데이터",
-      "diagnostics": "진단"
+      "data": "데이터",
+      "diagnostics": "진단",
+      "shortcuts": "키보드 단축키"
     },
     "integrations": {
       "lastfm": {
@@ -1332,6 +1336,34 @@
     "showAudioQualityFooter": {
       "title": "오디오 품질 바 표시",
       "subtitle": "플레이어 바 아래에 기술 정보(kHz, kbps, 코덱, 비트 깊이)를 표시합니다. 슬림한 바를 위해 기본값은 꺼짐입니다."
+    },
+    "categoryNavLabel": "설정 카테고리",
+    "appearance": {
+      "placeholder": {
+        "title": "테마 선택기는 v1.3에 도착합니다",
+        "subtitle": "10개의 프리셋(에메랄드, 미드나잇, OLED, 포레스트, 선셋…)이 앱 전체를 즉시 다시 칠합니다."
+      }
+    },
+    "shortcuts": {
+      "subtitle": "단축키를 클릭한 후 원하는 키 조합을 누르세요. 지우려면 Backspace, 취소하려면 Escape를 누르세요.",
+      "captureHint": "키를 누르세요…",
+      "reset": "모두 초기화",
+      "unbind": "해제",
+      "unbound": "없음",
+      "actions": {
+        "togglePlayback": "재생 / 일시 정지",
+        "next": "다음 곡",
+        "previous": "이전 곡",
+        "volumeUp": "볼륨 올리기",
+        "volumeDown": "볼륨 내리기",
+        "toggleMute": "음소거 / 해제",
+        "toggleShuffle": "셔플",
+        "cycleRepeat": "반복 모드",
+        "toggleQueue": "재생 대기열 표시 / 숨기기",
+        "toggleNowPlaying": "현재 재생 표시 / 숨기기",
+        "toggleLyrics": "가사 표시 / 숨기기",
+        "toggleLike": "좋아요 / 좋아요 취소"
+      }
     }
   },
   "scanProgress": {
