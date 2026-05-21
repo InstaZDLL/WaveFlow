@@ -1101,6 +1101,7 @@
     "title": "설정",
     "sections": {
       "general": "일반",
+      "appearance": "외관",
       "playback": "재생",
       "integrations": "통합",
       "storage": "저장소 및 데이터",
@@ -1332,6 +1333,28 @@
     "showAudioQualityFooter": {
       "title": "오디오 품질 바 표시",
       "subtitle": "플레이어 바 아래에 기술 정보(kHz, kbps, 코덱, 비트 깊이)를 표시합니다. 슬림한 바를 위해 기본값은 꺼짐입니다."
+    },
+    "appearance": {
+      "theme": {
+        "title": "테마",
+        "subtitle": "분위기를 선택하세요 — 테마를 바꾸면 앱 전체가 즉시 다시 칠해집니다."
+      },
+      "mode": {
+        "light": "라이트",
+        "dark": "다크"
+      },
+      "themes": {
+        "default": "에메랄드 라이트",
+        "defaultDark": "에메랄드",
+        "oled": "OLED",
+        "midnight": "미드나잇",
+        "forest": "포레스트",
+        "sunset": "선셋",
+        "lavender": "라벤더",
+        "crimson": "크림슨",
+        "ocean": "오션",
+        "neon": "네온"
+      }
     }
   },
   "scanProgress": {

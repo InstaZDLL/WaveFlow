@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { motion } from "framer-motion";
 import { X, Music2, Radio } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -119,8 +120,15 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
   const primaryArtistName = currentTrack?.artist_name?.split(", ")[0] ?? null;
 
   return (
-    <div className="h-full w-80 shrink-0 border-l bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100">
-      <div className="flex flex-col h-full overflow-y-auto">
+    <motion.aside
+      key="nowPlaying"
+      initial={{ width: 0, opacity: 0 }}
+      animate={{ width: 320, opacity: 1 }}
+      exit={{ width: 0, opacity: 0 }}
+      transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.8 }}
+      className="h-full shrink-0 overflow-hidden border-l bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100"
+    >
+      <div className="flex flex-col h-full overflow-y-auto w-80">
         {/* Header */}
         <div className="flex items-center justify-between p-6 pb-4 sticky top-0 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 z-10">
           <h2 className="text-sm font-bold tracking-widest uppercase text-zinc-500 dark:text-zinc-400">
@@ -331,6 +339,6 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
         isOpen={isLightboxOpen}
         onClose={() => setIsLightboxOpen(false)}
       />
-    </div>
+    </motion.aside>
   );
 }

@@ -1102,6 +1102,7 @@
     "title": "Instellingen",
     "sections": {
       "general": "Algemeen",
+      "appearance": "Weergave",
       "playback": "Afspelen",
       "integrations": "Integraties",
       "storage": "Opslag & gegevens",
@@ -1333,6 +1334,28 @@
     "showAudioQualityFooter": {
       "title": "Audiokwaliteitsbalk tonen",
       "subtitle": "Technische details (kHz, kbps, codec, bitdiepte) onder de afspeelbalk. Standaard uit voor een slankere balk."
+    },
+    "appearance": {
+      "theme": {
+        "title": "Thema",
+        "subtitle": "Kies een sfeer — themawisseling verft de hele app direct opnieuw."
+      },
+      "mode": {
+        "light": "Licht",
+        "dark": "Donker"
+      },
+      "themes": {
+        "default": "Smaragd Licht",
+        "defaultDark": "Smaragd",
+        "oled": "OLED",
+        "midnight": "Middernacht",
+        "forest": "Bos",
+        "sunset": "Zonsondergang",
+        "lavender": "Lavendel",
+        "crimson": "Karmijn",
+        "ocean": "Oceaan",
+        "neon": "Neon"
+      }
     }
   },
   "scanProgress": {

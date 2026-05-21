@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronLeft,
   ChevronRight,
@@ -318,8 +319,15 @@ export function TopBar({
         </div>
 
         {/* Advanced filter panel */}
+        <AnimatePresence>
         {filtersOpen && (
-          <div className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 p-5 animate-fade-in max-h-[70vh] overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -2, scale: 0.99 }}
+            transition={{ type: "spring", stiffness: 520, damping: 32, mass: 0.5 }}
+            style={{ transformOrigin: "top center" }}
+            className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 p-5 max-h-[70vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
                 {t("topbar.search.filters.title")}
@@ -459,12 +467,20 @@ export function TopBar({
                 </div>
               </FilterRow>
             )}
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
 
         {/* Search results dropdown */}
+        <AnimatePresence>
         {isSearchOpen && !filtersOpen && (
-          <div className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden animate-fade-in">
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -2, scale: 0.99 }}
+            transition={{ type: "spring", stiffness: 520, damping: 32, mass: 0.5 }}
+            style={{ transformOrigin: "top center" }}
+            className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden">
             <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-4 pt-3 pb-2">
               {t("topbar.search.results", { count: searchResults.length })}
             </div>
@@ -504,8 +520,9 @@ export function TopBar({
                 ))}
               </ul>
             )}
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
 
       {/* Right Actions */}
@@ -574,8 +591,15 @@ export function TopBar({
             )}
           </button>
 
+          <AnimatePresence>
           {isProfileOpen && (
-            <div className="absolute top-full right-0 mt-2 w-56 rounded-xl shadow-lg border overflow-hidden z-50 bg-white border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 animate-fade-in">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97, y: 2 }}
+              transition={{ type: "spring", stiffness: 520, damping: 32, mass: 0.45 }}
+              style={{ transformOrigin: "top right" }}
+              className="absolute top-full right-0 mt-2 w-56 rounded-xl shadow-lg border overflow-hidden z-50 bg-white border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700">
               {/* Profile Header */}
               <div className="p-4 flex items-center space-x-3">
                 <div
@@ -632,8 +656,9 @@ export function TopBar({
                   onClick={handleQuit}
                 />
               </div>
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

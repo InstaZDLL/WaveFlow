@@ -19,6 +19,10 @@ import { pickFile } from "../../lib/tauri/dialog";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import {
+  AnimatedModalContent,
+  AnimatedModalShell,
+} from "./AnimatedModalShell";
 
 interface CreatePlaylistModalProps {
   isOpen: boolean;
@@ -141,8 +145,6 @@ export function CreatePlaylistModal({
     }
   }, [existing, coverBusy, onCoverChanged]);
 
-  if (!isOpen) return null;
-
   const currentColor =
     PLAYLIST_COLORS.find((c) => c.id === selectedColorId) ?? PLAYLIST_COLORS[0];
   const currentIcon =
@@ -164,17 +166,13 @@ export function CreatePlaylistModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-100 bg-black/80 flex items-center justify-center animate-fade-in p-4"
-      onClick={onClose}
-    >
-      <div
+    <AnimatedModalShell isOpen={isOpen} onBackdropClick={onClose}>
+      <AnimatedModalContent
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="playlist-modal-title"
-        className="relative w-full max-w-xl rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated animate-fade-in max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-xl rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated max-h-[90vh] overflow-y-auto"
       >
         <h2
           id="playlist-modal-title"
@@ -465,7 +463,7 @@ export function CreatePlaylistModal({
             </span>
           </button>
         </div>
-      </div>
-    </div>
+      </AnimatedModalContent>
+    </AnimatedModalShell>
   );
 }

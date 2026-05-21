@@ -1101,6 +1101,7 @@
     "title": "设置",
     "sections": {
       "general": "概述",
+      "appearance": "外观",
       "playback": "播放",
       "integrations": "集成",
       "storage": "存储与数据",
@@ -1332,6 +1333,28 @@
     "showAudioQualityFooter": {
       "title": "显示音频质量条",
       "subtitle": "在播放栏下方显示技术详情（kHz、kbps、编解码、位深）。为保持播放栏轻巧，默认关闭。"
+    },
+    "appearance": {
+      "theme": {
+        "title": "主题",
+        "subtitle": "选择氛围——切换主题会立即重新染色整个应用。"
+      },
+      "mode": {
+        "light": "浅色",
+        "dark": "深色"
+      },
+      "themes": {
+        "default": "祖母绿 浅色",
+        "defaultDark": "祖母绿",
+        "oled": "OLED",
+        "midnight": "午夜",
+        "forest": "森林",
+        "sunset": "日落",
+        "lavender": "薰衣草",
+        "crimson": "深红",
+        "ocean": "海洋",
+        "neon": "霓虹"
+      }
     }
   },
   "scanProgress": {

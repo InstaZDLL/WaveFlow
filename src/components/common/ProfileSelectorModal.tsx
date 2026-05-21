@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { AnimatePresence, motion } from "framer-motion";
 import { X, Plus, ArrowLeft, Check } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { useProfile } from "../../hooks/useProfile";
@@ -59,8 +60,6 @@ export function ProfileSelectorModal({
   }, [view, onClose]);
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, handleEscape);
 
-  if (!isOpen) return null;
-
   const canSubmit = newProfileName.trim().length > 0 && !isSubmitting;
   const currentColor = getProfileColor(selectedColorId);
 
@@ -99,14 +98,20 @@ export function ProfileSelectorModal({
   };
 
   return (
-    <div
-      ref={dialogRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={t("profiles.select.title")}
-      className="fixed inset-0 z-100 bg-black/80 flex items-center justify-center animate-fade-in p-4"
-      onClick={onClose}
-    >
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("profiles.select.title")}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className="fixed inset-0 z-100 bg-black/80 flex items-center justify-center p-4"
+          onClick={onClose}
+        >
       {view === "select" && (
         <>
           <button
@@ -302,6 +307,8 @@ export function ProfileSelectorModal({
           </div>
         </div>
       )}
-    </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

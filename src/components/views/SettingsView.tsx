@@ -35,7 +35,10 @@ import {
   Activity,
   Gauge,
   ZoomIn,
+  Palette,
 } from "lucide-react";
+import { useTheme } from "../../hooks/useTheme";
+import { THEME_PRESETS } from "../../lib/themes";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
 import type { ViewId } from "../../types";
 import {
@@ -306,6 +309,7 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
 
 export function SettingsView({ onNavigate }: SettingsViewProps) {
   const { t, i18n } = useTranslation();
+  const { theme, setThemeId } = useTheme();
   const { libraries, rescanLibrary } = useLibrary();
   const [isAnalyzingLib, setIsAnalyzingLib] = useState(false);
   const [analyzeProgress, setAnalyzeProgress] = useState<{
@@ -1373,6 +1377,91 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           <div className="w-8 h-1 bg-emerald-500 rounded-full mt-1" />
         </div>
       </div>
+
+      {/* Appearance — theme picker. Switching theme re-skins every
+          `bg-emerald-*` / `text-emerald-*` utility through the CSS
+          variable layer in app.css, so no component code changes. */}
+      <section aria-labelledby="settings-appearance-heading">
+        <h2
+          id="settings-appearance-heading"
+          className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
+        >
+          {t("settings.sections.appearance")}
+        </h2>
+        <div className="px-4 py-3">
+          <div className="flex items-center space-x-4 mb-4">
+            <Palette size={20} className="text-zinc-400" aria-hidden="true" />
+            <div>
+              <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                {t("settings.appearance.theme.title")}
+              </div>
+              <div className="text-xs text-zinc-400">
+                {t("settings.appearance.theme.subtitle")}
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            {THEME_PRESETS.map((preset) => {
+              const isActive = preset.id === theme.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={(event) => setThemeId(preset.id, event)}
+                  aria-pressed={isActive}
+                  className={`group relative rounded-xl border overflow-hidden transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+                    isActive
+                      ? "border-emerald-500 ring-2 ring-emerald-500/30"
+                      : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                  }`}
+                >
+                  <div
+                    className="h-16 flex items-center justify-between px-3 relative"
+                    style={{
+                      backgroundColor: preset.ambient
+                        ?? (preset.mode === "dark" ? "#121212" : "#ffffff"),
+                    }}
+                  >
+                    <div className="flex space-x-1">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: preset.accent[400] }}
+                      />
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: preset.accent[500] }}
+                      />
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: preset.accent[600] }}
+                      />
+                    </div>
+                    {isActive && (
+                      <span
+                        className="flex items-center justify-center w-5 h-5 rounded-full shadow-sm"
+                        style={{
+                          backgroundColor: preset.accent[500],
+                          color: preset.mode === "dark" ? "#fff" : "#fff",
+                        }}
+                      >
+                        <Check size={12} strokeWidth={3} />
+                      </span>
+                    )}
+                  </div>
+                  <div className="px-3 py-2 bg-white dark:bg-zinc-900 text-left">
+                    <div className="text-xs font-semibold text-zinc-800 dark:text-zinc-100 truncate">
+                      {t(preset.labelKey)}
+                    </div>
+                    <div className="text-[10px] text-zinc-400 capitalize">
+                      {t(`settings.appearance.mode.${preset.mode}`)}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
       {/* General Settings */}
       <section aria-labelledby="settings-general-heading">
