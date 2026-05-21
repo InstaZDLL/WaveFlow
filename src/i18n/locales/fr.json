@@ -58,7 +58,7 @@
       }
     },
     "lastfm": {
-      "title": "Connecte Last.fm",
+      "title": "Connectez-vous à Last.fm",
       "description": "Le scrobbling envoie vos écoutes à votre profil Last.fm. Vous recevez en retour des bios d'artistes et des suggestions similaires directement dans l'app.",
       "recommendedBadge": "Recommandé",
       "keyHint": "Créez une clé API sur Last.fm",
@@ -73,7 +73,7 @@
       "toggleSecret": "Afficher/Masquer le secret",
       "togglePassword": "Afficher/Masquer le mot de passe",
       "connect": "Connecter Last.fm",
-      "missingFields": "Renseigne la clé, le secret, le nom d'utilisateur et le mot de passe.",
+      "missingFields": "Renseignez la clé, le secret, le nom d'utilisateur et le mot de passe.",
       "connectedTitle": "Connecté en tant que {{user}}",
       "connectedSubtitle": "Le scrobbling démarre automatiquement quand vous lisez un morceau."
     },
@@ -91,7 +91,7 @@
       "nextSteps": "Pour aller plus loin :",
       "bulletExplore": "Explorez votre bibliothèque via les onglets Bibliothèque, Albums et Artistes",
       "bulletQueue": "Créez votre première file d'attente en cliquant sur un morceau",
-      "bulletSettings": "Affine les réglages dans la barre latérale (Apparence, Intégrations…)"
+      "bulletSettings": "Affinez les réglages dans la barre latérale (Apparence, Intégrations…)"
     },
     "actions": {
       "skipSetup": "Passer la configuration",
