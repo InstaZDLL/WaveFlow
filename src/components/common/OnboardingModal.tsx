@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -151,20 +151,36 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
   const { libraries, createLibrary, importFolder } = useLibrary();
   const { activeProfile, renameProfile } = useProfile();
 
-  // Drop the `profile` rename step when the active profile already
-  // carries a user-supplied name. Auto-bootstrapped profiles ship as
-  // "Default" (see [`AUTO_BOOTSTRAP_PROFILE_NAME`]); anything else
-  // means the user named it themselves via the New Profile modal and
-  // the rename step would just ask the same question twice.
-  const steps = useMemo(() => {
-    if (activeProfile && activeProfile.name !== AUTO_BOOTSTRAP_PROFILE_NAME) {
-      return STEPS.filter((s) => s !== "profile");
-    }
-    return STEPS;
-  }, [activeProfile]);
+  // Decide ONCE at mount whether to include the `profile` rename
+  // step, then never recompute it. The parent gates this modal on a
+  // resolved active profile (see [`ui.md`](../../docs/features/ui.md)),
+  // so the lazy initializer always has the truthful value.
+  //
+  // Recomputing this on every `activeProfile` change would shrink
+  // the steps array under our feet right after `renameProfile`
+  // optimistically updates the context — `stepIndex` would still
+  // point to the old `profile` position (now occupied by `localOnly`),
+  // and the subsequent `goNext()` would skip `localOnly` entirely.
+  const [includeProfileStep] = useState(
+    () => activeProfile?.name === AUTO_BOOTSTRAP_PROFILE_NAME,
+  );
+  const steps = useMemo(
+    () =>
+      includeProfileStep ? STEPS : STEPS.filter((s) => s !== "profile"),
+    [includeProfileStep],
+  );
 
   const [stepIndex, setStepIndex] = useState(0);
   const stepId = steps[stepIndex];
+
+  // Reset the body scroll on every step transition. The
+  // `AnimatePresence` swap re-renders the content but the surrounding
+  // scroll container is reused, so a user who scrolled to fill the
+  // tall Last.fm step would land mid-page on the next step otherwise.
+  const scrollBodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    scrollBodyRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [stepId]);
 
   // Profile-name step state. Seeded from the active profile so the
   // input reflects whatever name the auto-bootstrapper picked
@@ -437,7 +453,10 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
           ))}
         </div>
 
-        <div className="px-8 pt-6 overflow-y-auto flex-1 min-h-0">
+        <div
+          ref={scrollBodyRef}
+          className="px-8 pt-6 overflow-y-auto flex-1 min-h-0"
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={stepId}
