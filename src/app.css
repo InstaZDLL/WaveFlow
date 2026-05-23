@@ -40,6 +40,15 @@
 @theme {
   --color-surface-dark: #121212;
   --color-surface-dark-elevated: #181818;
+  /* Light-mode surface family. Defaults to flat white + a barely-perceivable
+     gray for elevated panels (player bar, audio quality footer). Themed
+     light presets override `--color-surface-light` to match their ambient
+     tint so sidebar / right panels carry the theme personality — without
+     this, every light theme would leave a stark white sidebar against a
+     pale-tinted body (Sunset Light / Lavender Light / etc were all broken
+     this way until the tokens went theme-aware). */
+  --color-surface-light: #ffffff;
+  --color-surface-light-elevated: #fafafa;
 }
 
 /* Theme ambient background. AppLayout's outer wrapper uses
