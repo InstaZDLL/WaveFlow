@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Music2 } from "lucide-react";
+import { X, Music2, Maximize2 } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import type { Track } from "../../lib/tauri/track";
 import {
@@ -140,14 +140,25 @@ export function FullscreenLyrics({
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t("common.close")}
-            className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors shrink-0"
-          >
-            <X size={22} />
-          </button>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={onOpenNowPlaying}
+              aria-label={t("playerBar.openFullscreen")}
+              title={t("playerBar.openFullscreen")}
+              className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            >
+              <Maximize2 size={22} />
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={t("common.close")}
+              className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            >
+              <X size={22} />
+            </button>
+          </div>
         </div>
 
         {/* Lyrics body */}
