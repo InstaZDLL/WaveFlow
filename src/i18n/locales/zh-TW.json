@@ -999,7 +999,12 @@
     "devices": "輸出裝置",
     "moreActions": "更多動作",
     "abLoop": "A-B 循環",
-    "openFullscreen": "沉浸式檢視"
+    "openFullscreen": "沉浸式檢視",
+    "eqPreset": "等化器",
+    "eq": {
+      "bypass": "啟用 EQ"
+    },
+    "toggleNowPlayingPanel": "顯示 / 隱藏目前播放"
   },
   "miniPlayer": {
     "idle": "沒有播放中的曲目",
@@ -1499,6 +1504,38 @@
     "showSpotify": {
       "title": "顯示 Spotify 入口",
       "subtitle": "在側邊欄中顯示 Spotify 快捷方式"
+    },
+    "playerBarLayout": {
+      "title": "播放列佈局",
+      "subtitle": "選擇播放列中顯示哪些按鈕，以及點擊封面後的動作。預覽會即時更新。",
+      "preview": "預覽",
+      "previewEmpty": "沒有按鈕 — 播放列只會顯示封面和播放控制項。",
+      "buttons": {
+        "abLoop": "A-B 循環",
+        "sleepTimer": "睡眠計時器",
+        "eqPreset": "等化器（預設）",
+        "lyrics": "歌詞",
+        "queue": "佇列",
+        "device": "音訊輸出",
+        "miniPlayer": "迷你播放器",
+        "immersive": "沉浸式檢視",
+        "audioQualityFooter": "音質資訊列"
+      },
+      "coverAction": {
+        "title": "點擊封面時",
+        "immersive": {
+          "label": "開啟沉浸式檢視",
+          "description": "預設 — 開啟全螢幕的目前播放畫面，封面會放大顯示。"
+        },
+        "nowPlaying": {
+          "label": "顯示目前播放面板",
+          "description": "Spotify 風格 — 顯示或隱藏含封面與歌詞的右側面板。"
+        },
+        "none": {
+          "label": "不執行任何動作",
+          "description": "完全停用點擊 — 適合常常誤觸的使用者。"
+        }
+      }
     }
   },
   "scanProgress": {

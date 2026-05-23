@@ -992,7 +992,12 @@
     "openFullscreen": "Immersieve weergave",
     "devices": "Uitvoerapparaten",
     "moreActions": "Meer acties",
-    "abLoop": "A-B-loop"
+    "abLoop": "A-B-loop",
+    "eqPreset": "Equalizer",
+    "eq": {
+      "bypass": "EQ inschakelen"
+    },
+    "toggleNowPlayingPanel": "Toon / verberg Speelt nu"
   },
   "miniPlayer": {
     "idle": "Geen nummer wordt afgespeeld",
@@ -1491,6 +1496,38 @@
       "placeholder": {
         "title": "De themakiezer komt in v1.3",
         "subtitle": "10 presets (Emerald, Midnight, OLED, Forest, Sunset…) die de hele app in één keer hertinten. Wordt vervolgd."
+      }
+    },
+    "playerBarLayout": {
+      "title": "Indeling van de afspeelbalk",
+      "subtitle": "Kies welke knoppen in de balk verschijnen en wat klikken op de hoes doet. De voorbeeldweergave werkt live mee.",
+      "preview": "Voorbeeld",
+      "previewEmpty": "Geen knoppen — de balk toont alleen de hoes en de afspeelknoppen.",
+      "buttons": {
+        "abLoop": "A-B-lus",
+        "sleepTimer": "Slaaptimer",
+        "eqPreset": "Equalizer (voorinstellingen)",
+        "lyrics": "Songteksten",
+        "queue": "Wachtrij",
+        "device": "Audio-uitvoer",
+        "miniPlayer": "Mini-speler",
+        "immersive": "Volledige weergave",
+        "audioQualityFooter": "Audio-kwaliteitsbalk"
+      },
+      "coverAction": {
+        "title": "Bij klik op de hoes",
+        "immersive": {
+          "label": "Open volledige weergave",
+          "description": "Standaard — opent de schermvullende Now Playing-weergave met grote hoes."
+        },
+        "nowPlaying": {
+          "label": "Toon paneel Speelt nu",
+          "description": "Spotify-stijl — toont of verbergt het rechterpaneel met hoes en songteksten."
+        },
+        "none": {
+          "label": "Niets doen",
+          "description": "Schakelt het klikken uit — handig als je het per ongeluk activeert."
+        }
       }
     }
   },

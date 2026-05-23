@@ -992,7 +992,12 @@
     "openFullscreen": "Vista inmersiva",
     "devices": "Dispositivos de salida",
     "moreActions": "Más acciones",
-    "abLoop": "Bucle A-B"
+    "abLoop": "Bucle A-B",
+    "eqPreset": "Ecualizador",
+    "eq": {
+      "bypass": "Activar EQ"
+    },
+    "toggleNowPlayingPanel": "Mostrar / ocultar Reproduciendo"
   },
   "miniPlayer": {
     "idle": "Ninguna pista en reproducción",
@@ -1491,6 +1496,38 @@
       "placeholder": {
         "title": "El selector de temas llega en v1.3",
         "subtitle": "10 presets (Esmeralda, Medianoche, OLED, Bosque, Atardecer…) que recolorean toda la app al instante. Continuará."
+      }
+    },
+    "playerBarLayout": {
+      "title": "Diseño de la barra de reproducción",
+      "subtitle": "Elige qué botones aparecen en la barra y qué hace al hacer clic en la carátula. La vista previa se actualiza al instante.",
+      "preview": "Vista previa",
+      "previewEmpty": "Sin botones — la barra solo mostrará la carátula y los controles de reproducción.",
+      "buttons": {
+        "abLoop": "Bucle A-B",
+        "sleepTimer": "Temporizador de apagado",
+        "eqPreset": "Ecualizador (preajustes)",
+        "lyrics": "Letras",
+        "queue": "Cola",
+        "device": "Salida de audio",
+        "miniPlayer": "Mini-reproductor",
+        "immersive": "Vista inmersiva",
+        "audioQualityFooter": "Franja de calidad de audio"
+      },
+      "coverAction": {
+        "title": "Al hacer clic en la carátula",
+        "immersive": {
+          "label": "Abrir la vista inmersiva",
+          "description": "Predeterminado — abre la pantalla completa con la carátula ampliada."
+        },
+        "nowPlaying": {
+          "label": "Mostrar el panel Reproduciendo",
+          "description": "Estilo Spotify — muestra u oculta el panel lateral derecho con la carátula y las letras."
+        },
+        "none": {
+          "label": "No hacer nada",
+          "description": "Desactiva el clic — útil si lo activas sin querer."
+        }
       }
     }
   },

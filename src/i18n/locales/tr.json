@@ -992,7 +992,12 @@
     "openFullscreen": "Sürükleyici görünüm",
     "devices": "Çıkış cihazları",
     "moreActions": "Daha fazla eylem",
-    "abLoop": "A-B döngüsü"
+    "abLoop": "A-B döngüsü",
+    "eqPreset": "Ekolayzer",
+    "eq": {
+      "bypass": "EQ'yu aç"
+    },
+    "toggleNowPlayingPanel": "Şu an çalan panelini göster / gizle"
   },
   "miniPlayer": {
     "idle": "Çalan parça yok",
@@ -1491,6 +1496,38 @@
       "placeholder": {
         "title": "Tema seçici v1.3'te geliyor",
         "subtitle": "10 önayar (Emerald, Midnight, OLED, Forest, Sunset…) tüm uygulamayı anında yeniden renklendirir. Takipte kal."
+      }
+    },
+    "playerBarLayout": {
+      "title": "Çalar çubuğu düzeni",
+      "subtitle": "Çubukta hangi düğmelerin görüneceğini ve kapağa tıklayınca ne olacağını seç. Önizleme anlık güncellenir.",
+      "preview": "Önizleme",
+      "previewEmpty": "Düğme yok — çubuk yalnızca kapağı ve oynatma kontrollerini gösterecek.",
+      "buttons": {
+        "abLoop": "A-B döngüsü",
+        "sleepTimer": "Uyku zamanlayıcısı",
+        "eqPreset": "Ekolayzer (ön ayarlar)",
+        "lyrics": "Şarkı sözleri",
+        "queue": "Sıra",
+        "device": "Ses çıkışı",
+        "miniPlayer": "Mini oynatıcı",
+        "immersive": "Sürükleyici görünüm",
+        "audioQualityFooter": "Ses kalitesi şeridi"
+      },
+      "coverAction": {
+        "title": "Kapağa tıklandığında",
+        "immersive": {
+          "label": "Sürükleyici görünümü aç",
+          "description": "Varsayılan — büyütülmüş kapakla tam ekran Şu an çalan'ı açar."
+        },
+        "nowPlaying": {
+          "label": "Şu an çalan panelini göster",
+          "description": "Spotify tarzı — kapak ve sözleri içeren sağ paneli açar veya kapatır."
+        },
+        "none": {
+          "label": "Hiçbir şey yapma",
+          "description": "Tıklamayı tamamen devre dışı bırakır — istemeden tetikliyorsan kullanışlı."
+        }
       }
     }
   },

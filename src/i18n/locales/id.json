@@ -992,7 +992,12 @@
     "openFullscreen": "Tampilan imersif",
     "devices": "Perangkat output",
     "moreActions": "Aksi lainnya",
-    "abLoop": "Loop A-B"
+    "abLoop": "Loop A-B",
+    "eqPreset": "Equalizer",
+    "eq": {
+      "bypass": "Aktifkan EQ"
+    },
+    "toggleNowPlayingPanel": "Tampilkan / sembunyikan Sedang diputar"
   },
   "miniPlayer": {
     "idle": "Tidak ada lagu yang diputar",
@@ -1491,6 +1496,38 @@
       "placeholder": {
         "title": "Pemilih tema datang di v1.3",
         "subtitle": "10 preset (Emerald, Midnight, OLED, Forest, Sunset…) yang seketika mengubah warna seluruh aplikasi. Nantikan."
+      }
+    },
+    "playerBarLayout": {
+      "title": "Tata letak bilah pemutar",
+      "subtitle": "Pilih tombol mana yang muncul di bilah dan apa yang terjadi saat sampul diklik. Pratinjau diperbarui langsung.",
+      "preview": "Pratinjau",
+      "previewEmpty": "Tidak ada tombol — bilah hanya menampilkan sampul dan kontrol pemutaran.",
+      "buttons": {
+        "abLoop": "Loop A-B",
+        "sleepTimer": "Pengatur waktu tidur",
+        "eqPreset": "Equalizer (preset)",
+        "lyrics": "Lirik",
+        "queue": "Antrean",
+        "device": "Output audio",
+        "miniPlayer": "Mini pemutar",
+        "immersive": "Tampilan imersif",
+        "audioQualityFooter": "Bilah kualitas audio"
+      },
+      "coverAction": {
+        "title": "Saat sampul diklik",
+        "immersive": {
+          "label": "Buka tampilan imersif",
+          "description": "Default — membuka layar penuh Sedang diputar dengan sampul diperbesar."
+        },
+        "nowPlaying": {
+          "label": "Tampilkan panel Sedang diputar",
+          "description": "Gaya Spotify — menampilkan atau menyembunyikan panel kanan dengan sampul dan lirik."
+        },
+        "none": {
+          "label": "Tidak melakukan apa-apa",
+          "description": "Menonaktifkan klik sepenuhnya — berguna kalau kamu sering memicunya tanpa sengaja."
+        }
       }
     }
   },

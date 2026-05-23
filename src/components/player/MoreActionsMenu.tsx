@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { MoreHorizontal, Moon, X } from "lucide-react";
+import { MoreHorizontal, Moon, SlidersHorizontal, X } from "lucide-react";
 
 import type { SleepTimerStatus } from "../../hooks/useSleepTimer";
 import { usePlayer } from "../../hooks/usePlayer";
 import { AbLoopButton } from "./AbLoopButton";
+import { EqPresetPanel } from "./EqPresetButton";
 
 const SLEEP_PRESETS_MIN = [5, 15, 30, 45, 60, 90];
 const SPEED_PRESETS = [0.75, 1.0, 1.25, 1.5, 2.0];
@@ -18,9 +19,16 @@ interface MoreActionsMenuProps {
   /** When `true`, sleep timer is pinned as a primary button in the
    *  bar and the overflow menu doesn't duplicate it. */
   pinSleepTimer: boolean;
+  /** When `true`, the EQ preset popover is pinned as a primary
+   *  button in the bar and the overflow menu doesn't duplicate it. */
+  pinEqPreset: boolean;
   /** When `true`, render the playback-speed section inside the menu.
    *  Hidden in Spotify mode (Web Playback SDK has no speed control). */
   showSpeed: boolean;
+  /** When `true`, render the EQ preset list inside the menu (when
+   *  not pinned). Hidden in Spotify mode for the same reason as
+   *  speed — Web Playback SDK doesn't run through our audio engine. */
+  showEq: boolean;
   sleepTimer: {
     status: SleepTimerStatus;
     onSetDuration: (minutes: number) => void;
@@ -40,7 +48,9 @@ interface MoreActionsMenuProps {
 export function MoreActionsMenu({
   pinAbLoop,
   pinSleepTimer,
+  pinEqPreset,
   showSpeed,
+  showEq,
   sleepTimer,
 }: MoreActionsMenuProps) {
   const { t } = useTranslation();
@@ -72,6 +82,7 @@ export function MoreActionsMenu({
 
   const showSleepInMenu = !pinSleepTimer;
   const showAbInMenu = !pinAbLoop;
+  const showEqInMenu = showEq && !pinEqPreset;
 
   const sleepArmed = sleepTimer.status.kind !== "off";
   const sleepBadge =
@@ -182,7 +193,28 @@ export function MoreActionsMenu({
             </div>
           )}
 
-          {showSpeed && (showAbInMenu || showSleepInMenu) && (
+          {showSpeed &&
+            (showEqInMenu || showAbInMenu || showSleepInMenu) && (
+              <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
+            )}
+
+          {/* EQ preset list — same panel as the primary-pin popover,
+              rendered inline here when the user hasn't pinned the EQ
+              button. Bypass toggle + 20 built-in presets. The full
+              draggable curve still lives in Settings → Lecture. */}
+          {showEqInMenu && (
+            <div className="px-3 py-2 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-400">
+                <SlidersHorizontal size={14} />
+                {t("playerBar.eqPreset")}
+              </div>
+              <div className="rounded-lg border border-zinc-100 dark:border-zinc-800 overflow-hidden">
+                <EqPresetPanel onPick={() => setIsOpen(false)} />
+              </div>
+            </div>
+          )}
+
+          {showEqInMenu && (showAbInMenu || showSleepInMenu) && (
             <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
           )}
 

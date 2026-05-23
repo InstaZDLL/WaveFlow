@@ -992,7 +992,12 @@
     "openFullscreen": "Vista imersiva",
     "devices": "Dispositivos de saída",
     "moreActions": "Mais ações",
-    "abLoop": "Ciclo A-B"
+    "abLoop": "Ciclo A-B",
+    "eqPreset": "Equalizador",
+    "eq": {
+      "bypass": "Ativar EQ"
+    },
+    "toggleNowPlayingPanel": "Mostrar / ocultar A reproduzir"
   },
   "miniPlayer": {
     "idle": "Nenhuma faixa em reprodução",
@@ -1491,6 +1496,38 @@
       "placeholder": {
         "title": "O seletor de temas chega na v1.3",
         "subtitle": "10 predefinições (Esmeralda, Meia-noite, OLED, Floresta, Pôr do sol…) que retingem toda a app instantaneamente."
+      }
+    },
+    "playerBarLayout": {
+      "title": "Disposição da barra de reprodução",
+      "subtitle": "Escolhe que botões aparecem na barra e o que acontece ao clicar na capa. A pré-visualização atualiza-se ao vivo.",
+      "preview": "Pré-visualização",
+      "previewEmpty": "Sem botões — a barra mostra apenas a capa e os controlos de reprodução.",
+      "buttons": {
+        "abLoop": "Ciclo A-B",
+        "sleepTimer": "Temporizador para dormir",
+        "eqPreset": "Equalizador (predefinições)",
+        "lyrics": "Letras",
+        "queue": "Fila",
+        "device": "Saída de áudio",
+        "miniPlayer": "Mini-leitor",
+        "immersive": "Vista imersiva",
+        "audioQualityFooter": "Faixa de qualidade áudio"
+      },
+      "coverAction": {
+        "title": "Ao clicar na capa",
+        "immersive": {
+          "label": "Abrir a vista imersiva",
+          "description": "Predefinido — abre o ecrã inteiro com a capa ampliada."
+        },
+        "nowPlaying": {
+          "label": "Mostrar o painel A reproduzir",
+          "description": "Estilo Spotify — mostra ou oculta o painel lateral direito com a capa e as letras."
+        },
+        "none": {
+          "label": "Não fazer nada",
+          "description": "Desativa o clique — útil se o accionares sem querer."
+        }
       }
     }
   },

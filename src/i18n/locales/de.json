@@ -992,7 +992,12 @@
     "openFullscreen": "Immersive Ansicht",
     "devices": "Ausgabegeräte",
     "moreActions": "Weitere Aktionen",
-    "abLoop": "A-B-Loop"
+    "abLoop": "A-B-Loop",
+    "eqPreset": "Equalizer",
+    "eq": {
+      "bypass": "EQ aktivieren"
+    },
+    "toggleNowPlayingPanel": "Aktuelle Wiedergabe ein-/ausblenden"
   },
   "miniPlayer": {
     "idle": "Kein Titel wird gespielt",
@@ -1491,6 +1496,38 @@
       "placeholder": {
         "title": "Theme-Auswahl kommt in v1.3",
         "subtitle": "10 Presets (Emerald, Midnight, OLED, Forest, Sunset…), die die gesamte App sofort umfärben. Bleib dran."
+      }
+    },
+    "playerBarLayout": {
+      "title": "Layout der Wiedergabeleiste",
+      "subtitle": "Wähle, welche Knöpfe in der Leiste erscheinen und was beim Klick auf das Cover passiert. Die Vorschau aktualisiert sich live.",
+      "preview": "Vorschau",
+      "previewEmpty": "Keine Knöpfe — die Leiste zeigt nur das Cover und die Wiedergabesteuerung.",
+      "buttons": {
+        "abLoop": "A-B-Schleife",
+        "sleepTimer": "Sleep-Timer",
+        "eqPreset": "Equalizer (Voreinstellungen)",
+        "lyrics": "Songtext",
+        "queue": "Warteschlange",
+        "device": "Audioausgabe",
+        "miniPlayer": "Mini-Player",
+        "immersive": "Immersive Ansicht",
+        "audioQualityFooter": "Audioqualitätsleiste"
+      },
+      "coverAction": {
+        "title": "Klick auf das Cover",
+        "immersive": {
+          "label": "Immersive Ansicht öffnen",
+          "description": "Standard — öffnet die Vollbildansicht mit vergrößertem Cover."
+        },
+        "nowPlaying": {
+          "label": "Aktuelle Wiedergabe einblenden",
+          "description": "Spotify-Stil — blendet das rechte Seitenpanel mit Cover und Songtext ein bzw. aus."
+        },
+        "none": {
+          "label": "Nichts tun",
+          "description": "Deaktiviert den Klick — praktisch, wenn du ihn aus Versehen auslöst."
+        }
       }
     }
   },

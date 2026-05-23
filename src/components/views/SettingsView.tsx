@@ -26,8 +26,6 @@ import {
   Check as CheckIcon,
   Mic2,
   Server,
-  Moon,
-  Repeat2,
   ChevronsRight,
   WifiOff,
   Download,
@@ -126,6 +124,7 @@ import { DuplicatesModal } from "../common/DuplicatesModal";
 import { BackupCard } from "./settings/BackupCard";
 import { EqualizerCard } from "./settings/EqualizerCard";
 import { ExclusiveModeCard } from "./settings/ExclusiveModeCard";
+import { PlayerBarLayoutCard } from "./settings/PlayerBarLayoutCard";
 import { ShortcutsCard } from "./settings/ShortcutsCard";
 
 interface SettingsViewProps {
@@ -440,15 +439,6 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [uiZoom, setUiZoom] = useState(1);
   const [scanOnStart, setScanOnStart] = useState(false);
   const [singleClickPlay, setSingleClickPlay] = useState(false);
-  // Visibility toggles for the sleep-timer / A-B loop icons in the
-  // player bar. Both default to off — opt-in features that would
-  // clutter the bar for the typical user.
-  const [showSleepTimer, setShowSleepTimer] = useState(false);
-  const [showAbLoop, setShowAbLoop] = useState(false);
-  // Audio quality strip under the player bar — opt-in. Off by default
-  // so the bar stays slim; audiophiles toggle it on for the kHz / kbps
-  // / codec / bit-depth readout.
-  const [showAudioQualityFooter, setShowAudioQualityFooter] = useState(false);
   // Per-profile toggle for the Spotify sidebar entry. Default ON;
   // hide it for profiles that never use Spotify.
   const [showSpotify, setShowSpotify] = useState(true);
@@ -491,26 +481,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         if (v === "true" || v === "1") setSingleClickPlay(true);
       })
       .catch(() => {});
-    getProfileSetting("ui.show_sleep_timer")
-      .then((v) => {
-        if (cancelled) return;
-        // Missing key → off (matches PlayerBar default).
-        if (v != null) setShowSleepTimer(v === "true" || v === "1");
-      })
-      .catch(() => {});
-    getProfileSetting("ui.show_ab_loop")
-      .then((v) => {
-        if (cancelled) return;
-        if (v != null) setShowAbLoop(v === "true" || v === "1");
-      })
-      .catch(() => {});
-    getProfileSetting("ui.show_audio_quality_footer")
-      .then((v) => {
-        if (cancelled) return;
-        // Missing key → off (matches PlayerBar default).
-        if (v != null) setShowAudioQualityFooter(v === "true" || v === "1");
-      })
-      .catch(() => {});
+    // Sleep timer / A-B loop / audio-quality-footer visibility now
+    // live inside `PlayerBarLayoutCard` and are read through the
+    // shared `usePlayerBarLayout` hook — no need to hydrate them
+    // here anymore.
     getProfileSetting("ui.show_spotify")
       .then((v) => {
         if (cancelled) return;
@@ -587,22 +561,6 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     });
   }, [singleClickPlay]);
 
-  const handleToggleShowSleepTimer = useCallback(() => {
-    const next = !showSleepTimer;
-    setShowSleepTimer(next);
-    setProfileSetting("ui.show_sleep_timer", next ? "true" : "false", "bool")
-      .then(() => {
-        // Notify the PlayerBar to re-read without polling.
-        window.dispatchEvent(
-          new CustomEvent("waveflow:sleep-timer-visibility"),
-        );
-      })
-      .catch((err) => {
-        console.error("[Settings] set show_sleep_timer failed", err);
-        setShowSleepTimer(!next);
-      });
-  }, [showSleepTimer]);
-
   const handleToggleShowSpotify = useCallback(() => {
     const next = !showSpotify;
     setShowSpotify(next);
@@ -617,38 +575,6 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         setShowSpotify(!next);
       });
   }, [showSpotify]);
-
-  const handleToggleShowAbLoop = useCallback(() => {
-    const next = !showAbLoop;
-    setShowAbLoop(next);
-    setProfileSetting("ui.show_ab_loop", next ? "true" : "false", "bool")
-      .then(() => {
-        window.dispatchEvent(new CustomEvent("waveflow:ab-loop-visibility"));
-      })
-      .catch((err) => {
-        console.error("[Settings] set show_ab_loop failed", err);
-        setShowAbLoop(!next);
-      });
-  }, [showAbLoop]);
-
-  const handleToggleShowAudioQualityFooter = useCallback(() => {
-    const next = !showAudioQualityFooter;
-    setShowAudioQualityFooter(next);
-    setProfileSetting(
-      "ui.show_audio_quality_footer",
-      next ? "true" : "false",
-      "bool",
-    )
-      .then(() => {
-        window.dispatchEvent(
-          new CustomEvent("waveflow:audio-quality-footer-visibility"),
-        );
-      })
-      .catch((err) => {
-        console.error("[Settings] set show_audio_quality_footer failed", err);
-        setShowAudioQualityFooter(!next);
-      });
-  }, [showAudioQualityFooter]);
 
   const handleToggleAutoStart = useCallback(() => {
     const next = !autoStart;
@@ -1682,73 +1608,15 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               />
             </div>
 
-            {/* Visibilité du minuteur de sommeil */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Moon size={20} className="text-zinc-400" aria-hidden="true" />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.showSleepTimer.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.showSleepTimer.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={showSleepTimer}
-                onToggle={handleToggleShowSleepTimer}
-                label={t("settings.showSleepTimer.title")}
-              />
-            </div>
-
-            {/* Visibilité du bouton boucle A-B */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Repeat2
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.showAbLoop.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.showAbLoop.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={showAbLoop}
-                onToggle={handleToggleShowAbLoop}
-                label={t("settings.showAbLoop.title")}
-              />
-            </div>
-
-            {/* Visibilité du bandeau qualité audio sous la player bar */}
-            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center space-x-4">
-                <Activity
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
-                <div>
-                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                    {t("settings.showAudioQualityFooter.title")}
-                  </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("settings.showAudioQualityFooter.subtitle")}
-                  </div>
-                </div>
-              </div>
-              <ToggleSwitch
-                enabled={showAudioQualityFooter}
-                onToggle={handleToggleShowAudioQualityFooter}
-                label={t("settings.showAudioQualityFooter.title")}
-              />
-            </div>
+            {/* Player-bar layout — unified panel that replaced the
+                per-feature pin toggles (sleep timer, A-B loop, audio
+                quality footer). Covers every player-bar button plus
+                the cover-thumbnail click action. The component
+                manages its own writes through `setProfileSetting`
+                and dispatches the unified
+                `waveflow:playerbar-layout-changed` event so the
+                PlayerBar re-reads without polling. */}
+            <PlayerBarLayoutCard />
 
             {/* Visibilité de l'entrée Spotify dans la sidebar */}
             <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">

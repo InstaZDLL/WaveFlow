@@ -992,7 +992,12 @@
     "devices": "出力デバイス",
     "moreActions": "その他の操作",
     "abLoop": "A-Bループ",
-    "openFullscreen": "イマーシブビュー"
+    "openFullscreen": "イマーシブビュー",
+    "eqPreset": "イコライザ",
+    "eq": {
+      "bypass": "EQ を有効にする"
+    },
+    "toggleNowPlayingPanel": "再生中パネルの表示 / 非表示"
   },
   "miniPlayer": {
     "idle": "再生中のトラックなし",
@@ -1492,6 +1497,38 @@
     "showSpotify": {
       "title": "Spotify 入口を表示",
       "subtitle": "サイドバーに Spotify ショートカットを表示します"
+    },
+    "playerBarLayout": {
+      "title": "プレイヤーバーのレイアウト",
+      "subtitle": "バーに表示するボタンと、ジャケットをクリックしたときの動作を選びます。プレビューは即時に更新されます。",
+      "preview": "プレビュー",
+      "previewEmpty": "ボタンなし — バーにはジャケットと再生コントロールのみが表示されます。",
+      "buttons": {
+        "abLoop": "A-B ループ",
+        "sleepTimer": "スリープタイマー",
+        "eqPreset": "イコライザ(プリセット)",
+        "lyrics": "歌詞",
+        "queue": "キュー",
+        "device": "音声出力",
+        "miniPlayer": "ミニプレイヤー",
+        "immersive": "イマーシブ表示",
+        "audioQualityFooter": "音質情報バー"
+      },
+      "coverAction": {
+        "title": "ジャケットをクリックしたとき",
+        "immersive": {
+          "label": "イマーシブ表示を開く",
+          "description": "既定 — ジャケットを大きく表示するフルスクリーンの再生中ビューを開きます。"
+        },
+        "nowPlaying": {
+          "label": "再生中パネルを表示",
+          "description": "Spotify 風 — ジャケットと歌詞を含む右側パネルの表示と非表示を切り替えます。"
+        },
+        "none": {
+          "label": "何もしない",
+          "description": "クリックを完全に無効化します — 誤って押しがちなときに便利です。"
+        }
+      }
     }
   },
   "scanProgress": {
