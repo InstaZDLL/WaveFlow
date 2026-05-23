@@ -47,6 +47,23 @@ export interface ThemePreset {
    * the Tailwind default (`bg-white` / `dark:bg-surface-dark`).
    */
   ambient?: string | null;
+  /**
+   * Optional override for the `--color-surface-dark` token used by the
+   * Sidebar, right panels (Queue/NowPlaying/Lyrics) and other base
+   * panels via `dark:bg-surface-dark`. Default `#121212`. Set this to
+   * the theme's ambient family so sidebar + panels carry the theme tint
+   * instead of staying flat charcoal — otherwise a "Lavender" theme
+   * leaves a black sidebar against a violet body, which is the bug the
+   * theme-aware surfaces were introduced to fix.
+   */
+  surfaceDark?: string | null;
+  /**
+   * Optional override for `--color-surface-dark-elevated` used by the
+   * PlayerBar, AudioQualityFooter and modal cards. Default `#181818`.
+   * Should sit one notch lighter than `surfaceDark` so elevated panels
+   * read above the body without breaking the theme palette.
+   */
+  surfaceDarkElevated?: string | null;
 }
 
 const EMERALD = {
@@ -168,6 +185,10 @@ export const THEME_PRESETS: ThemePreset[] = [
     mode: "dark",
     accent: EMERALD,
     ambient: "#000000",
+    // True black canvas — keep surface pitch black, elevate by the
+    // smallest perceivable step so cards still read above the body.
+    surfaceDark: "#000000",
+    surfaceDarkElevated: "#0a0a0a",
   },
   {
     id: "midnight",
@@ -175,6 +196,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     mode: "dark",
     accent: INDIGO,
     ambient: "#0b1020",
+    surfaceDark: "#0b1020",
+    surfaceDarkElevated: "#141a2e",
   },
   {
     id: "forest",
@@ -182,6 +205,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     mode: "dark",
     accent: EMERALD,
     ambient: "#0c1612",
+    surfaceDark: "#0c1612",
+    surfaceDarkElevated: "#13201b",
   },
   {
     id: "sunset",
@@ -189,6 +214,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     mode: "dark",
     accent: AMBER,
     ambient: "#1a0e08",
+    surfaceDark: "#1a0e08",
+    surfaceDarkElevated: "#241612",
   },
   {
     id: "lavender",
@@ -196,6 +223,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     mode: "dark",
     accent: VIOLET,
     ambient: "#15101e",
+    surfaceDark: "#15101e",
+    surfaceDarkElevated: "#1f1828",
   },
   {
     id: "crimson",
@@ -203,6 +232,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     mode: "dark",
     accent: ROSE,
     ambient: "#19090c",
+    surfaceDark: "#19090c",
+    surfaceDarkElevated: "#241016",
   },
   {
     id: "ocean",
@@ -210,6 +241,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     mode: "dark",
     accent: SKY,
     ambient: "#081420",
+    surfaceDark: "#081420",
+    surfaceDarkElevated: "#0f1c30",
   },
   {
     id: "neon",
@@ -217,6 +250,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     mode: "dark",
     accent: FUCHSIA,
     ambient: "#1a0a18",
+    surfaceDark: "#1a0a18",
+    surfaceDarkElevated: "#231022",
   },
 ];
 
@@ -234,6 +269,12 @@ export function findTheme(id: string | null | undefined): ThemePreset {
  * Apply the theme's CSS variables + dark class to the document root.
  * Idempotent — calling repeatedly with the same theme is a no-op.
  */
+// Tailwind v4 `@theme { --color-surface-dark }` defaults — re-applied
+// when a theme doesn't override them so a swap from "Lavender" back to
+// "Émeraude" doesn't leave the previous violet surface lingering.
+const DEFAULT_SURFACE_DARK = "#121212";
+const DEFAULT_SURFACE_DARK_ELEVATED = "#181818";
+
 export function applyTheme(theme: ThemePreset) {
   const root = document.documentElement;
   // Accent palette overrides — picked up by emerald-* utilities in
@@ -244,6 +285,20 @@ export function applyTheme(theme: ThemePreset) {
   root.style.setProperty(
     "--ambient-bg",
     theme.ambient ?? (theme.mode === "dark" ? "#121212" : "#ffffff"),
+  );
+  // Surface tokens that drive `bg-surface-dark` / `bg-surface-dark-elevated`
+  // (Tailwind v4 generates the utilities from these custom-property
+  // names). Themed dark palettes override both so sidebar / right panels
+  // / player bar carry the theme tint instead of staying flat charcoal.
+  // Always re-set: switching from a custom dark theme back to the
+  // default needs to clear the lingering override.
+  root.style.setProperty(
+    "--color-surface-dark",
+    theme.surfaceDark ?? DEFAULT_SURFACE_DARK,
+  );
+  root.style.setProperty(
+    "--color-surface-dark-elevated",
+    theme.surfaceDarkElevated ?? DEFAULT_SURFACE_DARK_ELEVATED,
   );
   root.setAttribute("data-theme", theme.id);
   // Keep the legacy `dark` class wired to mode so the existing

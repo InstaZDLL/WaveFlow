@@ -170,7 +170,7 @@ export function QueuePanel() {
       animate={{ width: 320, opacity: 1 }}
       exit={{ width: 0, opacity: 0 }}
       transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.8 }}
-      className="h-full shrink-0 overflow-hidden border-l bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100"
+      className="h-full shrink-0 overflow-hidden border-l bg-white border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
     >
       <div className="p-6 flex flex-col h-full w-80">
         <div className="flex items-center justify-between mb-6">

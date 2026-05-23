@@ -126,11 +126,11 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
       animate={{ width: 320, opacity: 1 }}
       exit={{ width: 0, opacity: 0 }}
       transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.8 }}
-      className="h-full shrink-0 overflow-hidden border-l bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100"
+      className="h-full shrink-0 overflow-hidden border-l bg-white border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
     >
       <div className="flex flex-col h-full overflow-y-auto w-80">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 pb-4 sticky top-0 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 z-10">
+        <div className="flex items-center justify-between p-6 pb-4 sticky top-0 bg-white dark:bg-surface-dark border-b border-zinc-100 dark:border-zinc-800 z-10">
           <h2 className="text-sm font-bold tracking-widest uppercase text-zinc-500 dark:text-zinc-400">
             {t("nowPlaying.title")}
           </h2>
