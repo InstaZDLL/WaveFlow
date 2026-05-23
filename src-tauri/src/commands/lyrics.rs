@@ -403,8 +403,21 @@ fn read_stem_match_in_dir(dir: &Path, stem: &str) -> Option<String> {
             _ => {}
         }
     }
-    let chosen = lrc_match.or(txt_match)?;
-    let raw = std::fs::read_to_string(&chosen).ok()?;
+    // Try .lrc first (synced wins), then .txt — but skip whichever
+    // candidate turns out to be empty / whitespace-only on disk.
+    // Without this fallback an empty `Song.lrc` (common in low-quality
+    // rips that ship a stub file) would silently mask a valid
+    // `Song.txt` next to it.
+    lrc_match
+        .as_deref()
+        .and_then(read_non_empty_file)
+        .or_else(|| txt_match.as_deref().and_then(read_non_empty_file))
+}
+
+/// Read a text file and return its trimmed contents, or `None` if
+/// the file is missing, unreadable, or contains only whitespace.
+fn read_non_empty_file(path: &Path) -> Option<String> {
+    let raw = std::fs::read_to_string(path).ok()?;
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         None
@@ -1397,6 +1410,20 @@ mod tests {
         let audio = dir.path().join("Lonely.mp3");
         std::fs::write(&audio, b"").unwrap();
         assert!(read_sidecar_lyrics(&audio).is_none());
+    }
+
+    #[test]
+    fn sidecar_empty_lrc_falls_back_to_txt() {
+        // Some low-quality rips ship a stub empty `.lrc` alongside a
+        // valid plain `.txt`. The empty `.lrc` must NOT short-circuit
+        // the waterfall — the `.txt` should win.
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Song.mp3");
+        std::fs::write(&audio, b"").unwrap();
+        std::fs::write(dir.path().join("Song.lrc"), "   \n  \n").unwrap();
+        std::fs::write(dir.path().join("Song.txt"), "plain backup").unwrap();
+        let content = read_sidecar_lyrics(&audio).expect("should fall back to txt");
+        assert_eq!(content, "plain backup");
     }
 
     #[test]
