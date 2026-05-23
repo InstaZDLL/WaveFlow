@@ -138,6 +138,7 @@ export function PlaylistView({
     playlists,
     removeTrackFromPlaylist,
     createPlaylist,
+    refresh: refreshPlaylists,
   } = usePlaylist();
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
@@ -721,10 +722,15 @@ export function PlaylistView({
         onCoverChanged={async () => {
           // Cover backend command already wrote the new hash; pull the
           // fresh row so `cover_path` updates without waiting for the
-          // next user navigation.
+          // next user navigation, AND refresh PlaylistContext so the
+          // sidebar tile re-renders (it reads from the context, not
+          // from this view's local state).
           if (playlistId == null) return;
           try {
-            const fresh = await getPlaylist(playlistId);
+            const [fresh] = await Promise.all([
+              getPlaylist(playlistId),
+              refreshPlaylists(),
+            ]);
             setPlaylist(fresh);
           } catch (err) {
             console.error("[PlaylistView] refresh after cover change", err);
