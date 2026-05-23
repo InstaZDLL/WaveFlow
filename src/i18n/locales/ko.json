@@ -109,6 +109,15 @@
       "description": "WaveFlow는 17개 언어를 지원합니다. 시스템 언어를 미리 선택했어요 — 잘못됐다면 바꾸세요.",
       "detected": "시스템에서 감지됨",
       "fallback": "시스템 언어를 감지하지 못해 영어로 기본 설정했습니다. 아래에서 선택하세요."
+    },
+    "profile": {
+      "title": "프로필 이름 짓기",
+      "description": "WaveFlow는 라이브러리를 구분하기 위해 프로필을 사용합니다. 나중에 알아보기 쉬운 이름을 정해 주세요.",
+      "nameLabel": "프로필 이름",
+      "namePlaceholder": "예: Daisy",
+      "hint": "필요하면 나중에 다른 프로필을 추가로 만들 수 있어요.",
+      "required": "프로필 이름을 입력하세요.",
+      "unavailable": "프로필을 사용할 수 없어요. 잠시 후 다시 시도해 주세요."
     }
   },
   "sidebar": {

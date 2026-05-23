@@ -109,6 +109,15 @@
       "description": "WaveFlow ships in 17 languages. We pre-selected the one your system uses — switch if we got it wrong.",
       "detected": "Detected from your system",
       "fallback": "We couldn't match your system language, so we defaulted to English. Pick yours below."
+    },
+    "profile": {
+      "title": "Name your profile",
+      "description": "WaveFlow uses profiles to separate libraries. Give this one a name you'll recognise later.",
+      "nameLabel": "Profile name",
+      "namePlaceholder": "e.g. Daisy",
+      "hint": "You can create additional profiles later if needed.",
+      "required": "Profile name is required.",
+      "unavailable": "Profile unavailable — please try again in a moment."
     }
   },
   "sidebar": {

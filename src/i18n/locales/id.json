@@ -109,6 +109,15 @@
       "description": "WaveFlow tersedia dalam 17 bahasa. Kami sudah memilih bahasa sistemmu — ubah jika salah.",
       "detected": "Terdeteksi dari sistemmu",
       "fallback": "Kami tidak bisa mendeteksi bahasa sistemmu, jadi default-nya bahasa Inggris. Pilih bahasamu di bawah."
+    },
+    "profile": {
+      "title": "Beri nama profil kamu",
+      "description": "WaveFlow memakai profil untuk memisahkan pustaka. Pilih nama yang mudah kamu kenali nanti.",
+      "nameLabel": "Nama profil",
+      "namePlaceholder": "Mis. Daisy",
+      "hint": "Kamu bisa membuat profil lain nanti kalau perlu.",
+      "required": "Nama profil wajib diisi.",
+      "unavailable": "Profil belum tersedia — coba lagi sebentar."
     }
   },
   "sidebar": {

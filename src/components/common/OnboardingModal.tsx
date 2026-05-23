@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -19,11 +19,13 @@ import {
   Play,
   SkipForward,
   Sparkles,
+  UserRound,
   X,
 } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { useLibrary } from "../../hooks/useLibrary";
+import { useProfile } from "../../hooks/useProfile";
 import { pickFolder } from "../../lib/tauri/dialog";
 import type { ScanSummary } from "../../lib/tauri/library";
 import {
@@ -50,6 +52,7 @@ interface OnboardingModalProps {
 type StepId =
   | "welcome"
   | "language"
+  | "profile"
   | "localOnly"
   | "folder"
   | "lastfm"
@@ -59,6 +62,7 @@ type StepId =
 const STEPS: ReadonlyArray<StepId> = [
   "welcome",
   "language",
+  "profile",
   "localOnly",
   "folder",
   "lastfm",
@@ -66,9 +70,20 @@ const STEPS: ReadonlyArray<StepId> = [
   "done",
 ];
 
+/**
+ * Name the backend hardcodes for the auto-bootstrapped first profile
+ * (see [`state.rs::create_default_profile`](src-tauri/src/state.rs)).
+ * Not localised — a user-created profile from the "New profile" modal
+ * always carries a user-supplied name, so anything other than this
+ * literal means we already have the user's intent and the rename
+ * step would be redundant.
+ */
+const AUTO_BOOTSTRAP_PROFILE_NAME = "Default";
+
 const STEP_ICONS: Record<StepId, typeof Music> = {
   welcome: Music,
   language: Globe,
+  profile: UserRound,
   localOnly: AlertCircle,
   folder: FolderOpen,
   lastfm: AudioLines,
@@ -134,9 +149,51 @@ type ScanState =
 export function OnboardingModal({ onSkip }: OnboardingModalProps) {
   const { t, i18n } = useTranslation();
   const { libraries, createLibrary, importFolder } = useLibrary();
+  const { activeProfile, renameProfile } = useProfile();
+
+  // Decide ONCE at mount whether to include the `profile` rename
+  // step, then never recompute it. The parent gates this modal on a
+  // resolved active profile (see [`ui.md`](../../docs/features/ui.md)),
+  // so the lazy initializer always has the truthful value.
+  //
+  // Recomputing this on every `activeProfile` change would shrink
+  // the steps array under our feet right after `renameProfile`
+  // optimistically updates the context — `stepIndex` would still
+  // point to the old `profile` position (now occupied by `localOnly`),
+  // and the subsequent `goNext()` would skip `localOnly` entirely.
+  const [includeProfileStep] = useState(
+    () => activeProfile?.name === AUTO_BOOTSTRAP_PROFILE_NAME,
+  );
+  const steps = useMemo(
+    () =>
+      includeProfileStep ? STEPS : STEPS.filter((s) => s !== "profile"),
+    [includeProfileStep],
+  );
 
   const [stepIndex, setStepIndex] = useState(0);
-  const stepId = STEPS[stepIndex];
+  const stepId = steps[stepIndex];
+
+  // Reset the body scroll on every step transition. The
+  // `AnimatePresence` swap re-renders the content but the surrounding
+  // scroll container is reused, so a user who scrolled to fill the
+  // tall Last.fm step would land mid-page on the next step otherwise.
+  const scrollBodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    scrollBodyRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [stepId]);
+
+  // Profile-name step state. Seeded from the active profile so the
+  // input reflects whatever name the auto-bootstrapper picked
+  // ("Default" on a fresh install).
+  const [profileName, setProfileName] = useState("");
+  const [profileBusy, setProfileBusy] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  useEffect(() => {
+    if (activeProfile && profileName === "") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setProfileName(activeProfile.name);
+    }
+  }, [activeProfile, profileName]);
 
   // Folder + scan state shared across steps.
   const [musicFolder, setMusicFolder] = useState<string | null>(null);
@@ -213,7 +270,7 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
 
   const Icon = STEP_ICONS[stepId];
 
-  const goNext = () => setStepIndex((i) => Math.min(STEPS.length - 1, i + 1));
+  const goNext = () => setStepIndex((i) => Math.min(steps.length - 1, i + 1));
   const goBack = () => setStepIndex((i) => Math.max(0, i - 1));
 
   // === Language step actions ==========================================
@@ -221,6 +278,38 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
     i18n.changeLanguage(code).catch((err) => {
       console.error("[Onboarding] changeLanguage failed", err);
     });
+  };
+
+  // === Profile step actions ===========================================
+  const handleProfileContinue = async () => {
+    const trimmed = profileName.trim();
+    if (!trimmed) {
+      setProfileError(t("onboarding.profile.required"));
+      return;
+    }
+    // The modal is supposed to open only once the profile is resolved
+    // (see ui.md), but guard against the race anyway — without this we
+    // would silently drop the user's name and advance.
+    if (!activeProfile) {
+      setProfileError(t("onboarding.profile.unavailable"));
+      return;
+    }
+    // Skip the backend round-trip when the name hasn't actually
+    // changed (user accepted the seeded default).
+    if (trimmed !== activeProfile.name) {
+      setProfileBusy(true);
+      setProfileError(null);
+      try {
+        await renameProfile(activeProfile.id, trimmed);
+      } catch (err) {
+        console.error("[Onboarding] rename profile failed", err);
+        setProfileError(err instanceof Error ? err.message : String(err));
+        setProfileBusy(false);
+        return;
+      }
+      setProfileBusy(false);
+    }
+    goNext();
   };
 
   // === Folder step actions ============================================
@@ -309,11 +398,11 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
   // the active step. We never animate beyond the current index so
   // back-navigation visually dims the trailing bars.
   const progress = useMemo(
-    () => STEPS.map((_, i) => i <= stepIndex),
-    [stepIndex],
+    () => steps.map((_, i) => i <= stepIndex),
+    [steps, stepIndex],
   );
 
-  const isLastStep = stepIndex === STEPS.length - 1;
+  const isLastStep = stepIndex === steps.length - 1;
   const showCloseButton = stepIndex === 0;
 
   return (
@@ -331,7 +420,12 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
         initial={{ opacity: 0, scale: 0.95, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 380, damping: 28, mass: 0.6 }}
-        className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-zinc-900 shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden"
+        // Cap the modal at the viewport height (minus the parent's 1rem
+        // padding on each side = 2rem) and lay out as a column with a
+        // scrollable middle. Without this cap the wizard's tallest step
+        // (Last.fm with 4 inputs + button) pushed both the progress bar
+        // and the action bar off-screen on 1080p displays (#107).
+        className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-zinc-900 shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[calc(100vh-2rem)]"
       >
         {/* Close button — only available on the very first step so the
             user can't half-onboard themselves into a broken state. */}
@@ -346,8 +440,9 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
           </button>
         )}
 
-        {/* Progress bar */}
-        <div className="flex items-center gap-1.5 p-4 pb-0">
+        {/* Progress bar — sticky header inside the flex column so it
+            stays visible while the body scrolls. */}
+        <div className="flex items-center gap-1.5 p-4 pb-0 shrink-0">
           {progress.map((isFilled, i) => (
             <div
               key={i}
@@ -358,7 +453,10 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
           ))}
         </div>
 
-        <div className="px-8 pt-6">
+        <div
+          ref={scrollBodyRef}
+          className="px-8 pt-6 overflow-y-auto flex-1 min-h-0"
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={stepId}
@@ -432,6 +530,28 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
                       );
                     })}
                   </div>
+                </div>
+              )}
+
+              {stepId === "profile" && (
+                <div className="mt-6 space-y-3">
+                  <Input
+                    label={t("onboarding.profile.nameLabel")}
+                    value={profileName}
+                    onChange={(next) => {
+                      setProfileName(next);
+                      if (profileError) setProfileError(null);
+                    }}
+                    placeholder={t("onboarding.profile.namePlaceholder")}
+                  />
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                    {t("onboarding.profile.hint")}
+                  </p>
+                  {profileError && (
+                    <p className="text-xs text-rose-500" role="alert">
+                      {profileError}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -678,8 +798,10 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
         </div>
 
         {/* Action bar — varies per step. Kept outside AnimatePresence so
-            the buttons don't shimmer between transitions. */}
-        <div className="px-8 pb-8 pt-6">
+            the buttons don't shimmer between transitions. `shrink-0` +
+            its position as the last flex child pin it to the modal's
+            bottom edge regardless of body height. */}
+        <div className="px-8 pb-8 pt-6 shrink-0">
           {stepId === "welcome" && (
             <div className="flex gap-2">
               <button
@@ -703,6 +825,32 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
 
           {stepId === "language" && (
             <DefaultActions onBack={goBack} onNext={goNext} t={t} />
+          )}
+
+          {stepId === "profile" && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={goBack}
+                disabled={profileBusy}
+                className="px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 text-sm text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors inline-flex items-center gap-1 disabled:opacity-50"
+              >
+                <ChevronLeft size={16} />
+                {t("onboarding.actions.back")}
+              </button>
+              <button
+                type="button"
+                onClick={handleProfileContinue}
+                disabled={profileBusy || !profileName.trim()}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {profileBusy ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : null}
+                {t("onboarding.actions.continue")}
+                {!profileBusy && <ChevronRight size={16} />}
+              </button>
+            </div>
           )}
 
           {stepId === "localOnly" && (

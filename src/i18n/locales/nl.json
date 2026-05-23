@@ -109,6 +109,15 @@
       "description": "WaveFlow is beschikbaar in 17 talen. We hebben de taal van je systeem alvast gekozen — wijzig dit als we ernaast zaten.",
       "detected": "Gedetecteerd vanuit je systeem",
       "fallback": "We konden de taal van je systeem niet detecteren, dus is Engels gekozen. Selecteer hieronder de jouwe."
+    },
+    "profile": {
+      "title": "Geef je profiel een naam",
+      "description": "WaveFlow gebruikt profielen om bibliotheken te scheiden. Kies een naam die je later herkent.",
+      "nameLabel": "Profielnaam",
+      "namePlaceholder": "Bv. Daisy",
+      "hint": "Je kunt later extra profielen aanmaken als dat nodig is.",
+      "required": "Profielnaam is vereist.",
+      "unavailable": "Profiel niet beschikbaar — probeer het zo opnieuw."
     }
   },
   "sidebar": {

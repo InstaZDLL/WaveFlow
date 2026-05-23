@@ -109,6 +109,15 @@
       "description": "WaveFlow est traduit dans 17 langues. Nous avons présélectionné celle de votre système — changez-la si nous nous sommes trompés.",
       "detected": "Détectée depuis votre système",
       "fallback": "Impossible de détecter la langue de votre système, nous avons basculé sur l'anglais par défaut. Choisissez la vôtre ci-dessous."
+    },
+    "profile": {
+      "title": "Nommez votre profil",
+      "description": "WaveFlow utilise des profils pour séparer les bibliothèques. Donnez à celui-ci un nom que vous reconnaîtrez plus tard.",
+      "nameLabel": "Nom du profil",
+      "namePlaceholder": "Ex. Daisy",
+      "hint": "Vous pourrez créer d'autres profils plus tard si nécessaire.",
+      "required": "Le nom du profil est requis.",
+      "unavailable": "Profil indisponible — réessayez dans un instant."
     }
   },
   "sidebar": {

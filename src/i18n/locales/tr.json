@@ -109,6 +109,15 @@
       "description": "WaveFlow 17 dilde sunuluyor. Sistem dilini önceden seçtik — yanlışsa değiştir.",
       "detected": "Sistem dilinden algılandı",
       "fallback": "Sistem dilini algılayamadık, bu yüzden varsayılan olarak İngilizce seçildi. Aşağıdan kendi dilini seç."
+    },
+    "profile": {
+      "title": "Profiline ad ver",
+      "description": "WaveFlow, kütüphaneleri ayırmak için profiller kullanır. Daha sonra tanıyabileceğin bir ad seç.",
+      "nameLabel": "Profil adı",
+      "namePlaceholder": "Örn. Daisy",
+      "hint": "Gerekirse daha sonra başka profiller oluşturabilirsin.",
+      "required": "Profil adı zorunlu.",
+      "unavailable": "Profil kullanılamıyor — biraz sonra tekrar dene."
     }
   },
   "sidebar": {

@@ -203,6 +203,42 @@ pub async fn switch_profile(
     })
 }
 
+/// Rename an existing profile in place. Trims and validates the new
+/// name the same way [`create_profile`] does. Used by the onboarding
+/// wizard so the auto-created "Default" profile can be renamed
+/// without forcing a full create-then-rescan flow, and is safe to
+/// call against the active profile (only `app.db` is touched, the
+/// per-profile pool is untouched).
+#[tauri::command]
+pub async fn rename_profile(
+    state: tauri::State<'_, AppState>,
+    profile_id: i64,
+    name: String,
+) -> AppResult<Profile> {
+    let trimmed = name.trim().to_string();
+    if trimmed.is_empty() {
+        return Err(AppError::Other("profile name cannot be empty".into()));
+    }
+
+    let updated = sqlx::query("UPDATE profile SET name = ? WHERE id = ?")
+        .bind(&trimmed)
+        .bind(profile_id)
+        .execute(&state.app_db)
+        .await?;
+    if updated.rows_affected() == 0 {
+        return Err(AppError::ProfileNotFound(profile_id));
+    }
+
+    let profile = sqlx::query_as::<_, Profile>(
+        "SELECT id, name, color_id, avatar_hash, data_dir, created_at, last_used_at
+           FROM profile WHERE id = ?",
+    )
+    .bind(profile_id)
+    .fetch_one(&state.app_db)
+    .await?;
+    Ok(profile)
+}
+
 /// Close the active profile without activating a new one. Useful for a
 /// "logout" flow.
 #[tauri::command]
