@@ -26,6 +26,11 @@ export function VolumeControl() {
     const el = wheelHostRef.current;
     if (!el) return;
     const handler = (e: WheelEvent) => {
+      // Ignore horizontal-only scrolls (trackpad swipes deliver
+      // `deltaY === 0` with non-zero `deltaX`) — without this guard
+      // the `< 0 ? up : down` ternary would treat them as a
+      // volume-down tick.
+      if (e.deltaY === 0) return;
       e.preventDefault();
       // Negative deltaY = wheel up = volume up. The `setVolume`
       // setter in `PlayerContext` clamps to [0, 100].
