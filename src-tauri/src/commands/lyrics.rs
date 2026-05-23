@@ -379,6 +379,14 @@ fn read_stem_match_in_dir(dir: &Path, stem: &str) -> Option<String> {
     let mut txt_match: Option<std::path::PathBuf> = None;
     for entry in entries.flatten() {
         let path = entry.path();
+        // Skip directories early. Without this a directory named
+        // `Song.lrc` would be picked into `lrc_match`, `read_to_string`
+        // below would fail, and a legitimate `Song.txt` in the same
+        // directory would be silently masked. `is_file` follows
+        // symlinks, so a symlinked sidecar still works.
+        if !path.is_file() {
+            continue;
+        }
         let Some(file_stem) = path.file_stem().and_then(|s| s.to_str()) else {
             continue;
         };
@@ -1389,6 +1397,21 @@ mod tests {
         let audio = dir.path().join("Lonely.mp3");
         std::fs::write(&audio, b"").unwrap();
         assert!(read_sidecar_lyrics(&audio).is_none());
+    }
+
+    #[test]
+    fn sidecar_skips_directory_named_like_a_sidecar() {
+        // A directory named `Song.lrc` must NOT shadow a real
+        // `Song.txt` sidecar in the same folder. Before the fix,
+        // the directory was selected into `lrc_match`,
+        // `read_to_string` failed, and the txt was silently lost.
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Song.mp3");
+        std::fs::write(&audio, b"").unwrap();
+        std::fs::create_dir(dir.path().join("Song.lrc")).unwrap();
+        std::fs::write(dir.path().join("Song.txt"), "fallback ok").unwrap();
+        let content = read_sidecar_lyrics(&audio).expect("should fall back to txt");
+        assert_eq!(content, "fallback ok");
     }
 
     #[test]
