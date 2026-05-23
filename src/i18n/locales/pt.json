@@ -111,12 +111,13 @@
       "fallback": "Não conseguimos detetar o idioma do sistema, por isso usámos inglês por defeito. Escolhe o teu abaixo."
     },
     "profile": {
-      "title": "Dê um nome ao seu perfil",
-      "description": "O WaveFlow usa perfis para separar bibliotecas. Escolha um nome que você reconheça depois.",
+      "title": "Dá um nome ao teu perfil",
+      "description": "O WaveFlow usa perfis para separar bibliotecas. Escolhe um nome que reconheças depois.",
       "nameLabel": "Nome do perfil",
       "namePlaceholder": "Ex.: Daisy",
-      "hint": "Pode criar mais perfis mais tarde, se precisar.",
-      "required": "O nome do perfil é obrigatório."
+      "hint": "Podes criar mais perfis depois, se precisares.",
+      "required": "O nome do perfil é obrigatório.",
+      "unavailable": "Perfil indisponível — tenta de novo daqui a um instante."
     }
   },
   "sidebar": {

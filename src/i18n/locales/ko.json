@@ -116,7 +116,8 @@
       "nameLabel": "프로필 이름",
       "namePlaceholder": "예: Daisy",
       "hint": "필요하면 나중에 다른 프로필을 추가로 만들 수 있어요.",
-      "required": "프로필 이름을 입력하세요."
+      "required": "프로필 이름을 입력하세요.",
+      "unavailable": "프로필을 사용할 수 없어요. 잠시 후 다시 시도해 주세요."
     }
   },
   "sidebar": {

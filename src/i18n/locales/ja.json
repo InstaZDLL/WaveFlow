@@ -116,7 +116,8 @@
       "nameLabel": "プロフィール名",
       "namePlaceholder": "例: Daisy",
       "hint": "必要に応じて、あとで別のプロフィールを作成できます。",
-      "required": "プロフィール名は必須です。"
+      "required": "プロフィール名は必須です。",
+      "unavailable": "プロフィールを利用できません。少し待ってからもう一度お試しください。"
     }
   },
   "sidebar": {

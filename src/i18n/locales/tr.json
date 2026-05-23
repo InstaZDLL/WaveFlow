@@ -116,7 +116,8 @@
       "nameLabel": "Profil adı",
       "namePlaceholder": "Örn. Daisy",
       "hint": "Gerekirse daha sonra ek profiller oluşturabilirsiniz.",
-      "required": "Profil adı zorunludur."
+      "required": "Profil adı zorunludur.",
+      "unavailable": "Profil kullanılamıyor — biraz sonra tekrar deneyin."
     }
   },
   "sidebar": {

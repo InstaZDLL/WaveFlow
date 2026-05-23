@@ -116,7 +116,8 @@
       "nameLabel": "资料名称",
       "namePlaceholder": "例如：Daisy",
       "hint": "之后如有需要，你可以再创建其他资料。",
-      "required": "请填写资料名称。"
+      "required": "请填写资料名称。",
+      "unavailable": "资料暂不可用，请稍后再试。"
     }
   },
   "sidebar": {

@@ -116,7 +116,8 @@
       "nameLabel": "設定檔名稱",
       "namePlaceholder": "例如：Daisy",
       "hint": "之後若有需要，可以再建立其他設定檔。",
-      "required": "請輸入設定檔名稱。"
+      "required": "請輸入設定檔名稱。",
+      "unavailable": "設定檔暫時無法使用，請稍後再試。"
     }
   },
   "sidebar": {

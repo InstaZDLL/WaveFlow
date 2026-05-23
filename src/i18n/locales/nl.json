@@ -116,7 +116,8 @@
       "nameLabel": "Profielnaam",
       "namePlaceholder": "Bv. Daisy",
       "hint": "Je kunt later extra profielen aanmaken als dat nodig is.",
-      "required": "Profielnaam is vereist."
+      "required": "Profielnaam is vereist.",
+      "unavailable": "Profiel niet beschikbaar — probeer het zo opnieuw."
     }
   },
   "sidebar": {

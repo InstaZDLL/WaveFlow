@@ -116,7 +116,8 @@
       "nameLabel": "Nombre del perfil",
       "namePlaceholder": "P. ej. Daisy",
       "hint": "Podrás crear más perfiles más adelante si lo necesitas.",
-      "required": "El nombre del perfil es obligatorio."
+      "required": "El nombre del perfil es obligatorio.",
+      "unavailable": "Perfil no disponible — inténtalo de nuevo en un momento."
     }
   },
   "sidebar": {

@@ -249,9 +249,16 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
       setProfileError(t("onboarding.profile.required"));
       return;
     }
+    // The modal is supposed to open only once the profile is resolved
+    // (see ui.md), but guard against the race anyway — without this we
+    // would silently drop the user's name and advance.
+    if (!activeProfile) {
+      setProfileError(t("onboarding.profile.unavailable"));
+      return;
+    }
     // Skip the backend round-trip when the name hasn't actually
     // changed (user accepted the seeded default).
-    if (activeProfile && trimmed !== activeProfile.name) {
+    if (trimmed !== activeProfile.name) {
       setProfileBusy(true);
       setProfileError(null);
       try {

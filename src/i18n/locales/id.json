@@ -111,12 +111,13 @@
       "fallback": "Kami tidak bisa mendeteksi bahasa sistemmu, jadi default-nya bahasa Inggris. Pilih bahasamu di bawah."
     },
     "profile": {
-      "title": "Beri nama profil Anda",
-      "description": "WaveFlow menggunakan profil untuk memisahkan pustaka. Pilih nama yang akan Anda kenali nanti.",
+      "title": "Beri nama profil kamu",
+      "description": "WaveFlow memakai profil untuk memisahkan pustaka. Pilih nama yang mudah kamu kenali nanti.",
       "nameLabel": "Nama profil",
       "namePlaceholder": "Mis. Daisy",
-      "hint": "Anda dapat membuat profil tambahan nanti jika diperlukan.",
-      "required": "Nama profil wajib diisi."
+      "hint": "Kamu bisa membuat profil lain nanti kalau perlu.",
+      "required": "Nama profil wajib diisi.",
+      "unavailable": "Profil belum tersedia — coba lagi sebentar."
     }
   },
   "sidebar": {
