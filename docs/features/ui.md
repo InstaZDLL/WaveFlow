@@ -35,7 +35,7 @@ The right panel is **a flex sibling** of the center column, not an overlay — o
 
 [`FullscreenNowPlaying`](../../src/components/player/FullscreenNowPlaying.tsx) is an Apple-Music-style overlay (`fixed inset-0 z-100`) that turns the current track into the focal point: huge centred cover, large title + clickable artist + album, the same `PlaybackControls` / `ProgressBar` / `VolumeControl` the bottom bar uses, and a like toggle. Background is a blurred copy of the artwork (with a 55% black wash over it) so the view stays visually anchored to the track without any extra theming work.
 
-Two entry points in the [`PlayerBar`](../../src/components/player/PlayerBar.tsx): clicking the cover in the bottom bar (mirrors Spotify) or the dedicated Maximize2 icon next to the lyrics toggle. Closes on Escape or the X button. State is local to the bar — no `PlayerContext` involvement because nothing else needs to know about the overlay.
+Two entry points in the [`PlayerBar`](../../src/components/player/PlayerBar.tsx): clicking the cover in the bottom bar (mirrors Spotify) or the dedicated Maximize2 icon next to the lyrics toggle. The header of [`FullscreenLyrics`](../../src/components/player/FullscreenLyrics.tsx) also carries a Maximize2 button (symmetric to the Mic2 "open lyrics" button in `FullscreenNowPlaying`) so the user can round-trip Immersive ↔ Lyrics without leaving fullscreen — the parent flips the fullscreen mutex so only one overlay is ever mounted. Closes on Escape or the X button. State is local to the bar — no `PlayerContext` involvement because nothing else needs to know about the overlay.
 
 ## Mini-player
 
