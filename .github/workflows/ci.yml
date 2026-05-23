@@ -83,6 +83,13 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        # Resolving `bun-version: latest` hits the GitHub API to list
+        # `oven-sh/bun` tags. The action reads GITHUB_TOKEN from env to
+        # authenticate; without it the request returns 401 ("Bad
+        # credentials") on GitHub-hosted runners. The action has no
+        # `github-token` input, so we plumb the token through env.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           bun-version: latest
 
