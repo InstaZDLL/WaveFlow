@@ -97,16 +97,23 @@ export async function openMiniPlayer(): Promise<void> {
     }
 
     // 2) No usable saved position → anchor to the bottom-right of the
-    //    primary monitor (Spotify-style default).
+    //    current monitor (Spotify-style default). `monitor.position`
+    //    is the logical origin of the monitor in the virtual desktop
+    //    space — non-zero on secondary monitors and negative when a
+    //    monitor is placed to the left of (or above) the primary — so
+    //    we must add it to land on the right monitor instead of
+    //    snapping to the primary's bottom-right corner.
     if (x == null || y == null) {
       try {
         const monitor = await currentMonitor();
         if (monitor) {
           const scale = monitor.scaleFactor || 1;
+          const logicalX = monitor.position.x / scale;
+          const logicalY = monitor.position.y / scale;
           const logicalW = monitor.size.width / scale;
           const logicalH = monitor.size.height / scale;
-          x = Math.max(0, Math.round(logicalW - width - EDGE_MARGIN));
-          y = Math.max(0, Math.round(logicalH - height - EDGE_MARGIN));
+          x = Math.round(logicalX + logicalW - width - EDGE_MARGIN);
+          y = Math.round(logicalY + logicalH - height - EDGE_MARGIN);
         }
       } catch (err) {
         console.warn(
