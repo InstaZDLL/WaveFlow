@@ -1,9 +1,12 @@
 //! Lyrics fetch + cache.
 //!
-//! Lazy three-tier lookup, in order:
+//! Lazy four-tier lookup, in order:
 //!   1. Local DB cache (`lyrics` table, keyed by `track_id`)
 //!   2. Embedded `USLT` / lyrics tag inside the audio file (via lofty)
-//!   3. LRCLIB public API (matched by artist + track + album + duration)
+//!   3. Local sidecar file — `{stem}.lrc` / `{stem}.txt` next to the
+//!      audio file, or inside a `Lyrics/` (case-insensitive) subfolder
+//!      next to it. `.lrc` wins over `.txt` (timing info).
+//!   4. LRCLIB public API (matched by artist + track + album + duration)
 //!
 //! Whichever tier hits first becomes the cached entry. We never refetch
 //! once a row exists — the user can manually overwrite by importing a
@@ -314,6 +317,115 @@ fn read_embedded_lyrics(path: &Path) -> Option<String> {
     }
 }
 
+/// Match a sidecar lyrics file on disk for an audio track.
+///
+/// Looks for `{stem}.lrc` / `{stem}.txt` (case-insensitive on both
+/// the stem and the extension) either next to the audio file or inside
+/// a sibling `Lyrics/` directory. Returns the file contents and which
+/// flavour matched so the caller can pick a sensible format default.
+///
+/// Common K-Pop / J-Pop rip layouts ship synced lyrics as sidecars
+/// rather than embedded tags, and the user may also keep them in a
+/// `Lyrics/` subfolder to declutter the listing. Both layouts are
+/// supported here.
+///
+/// Preference order at every directory we probe:
+///   1. `.lrc` (carries line-level timing)
+///   2. `.txt` (plain text fallback)
+///
+/// Same-folder hits always beat `Lyrics/` hits because users who
+/// duplicate lyrics in both spots almost certainly want the same-
+/// folder copy as the primary.
+fn read_sidecar_lyrics(audio_path: &Path) -> Option<String> {
+    let stem = audio_path.file_stem()?.to_str()?;
+    let parent = audio_path.parent()?;
+
+    if let Some(content) = read_stem_match_in_dir(parent, stem) {
+        return Some(content);
+    }
+
+    // Sibling `Lyrics/` (or any case variant). Iterate the parent
+    // directory once and probe the first directory whose name
+    // case-insensitively matches "lyrics".
+    for entry in std::fs::read_dir(parent).ok()?.flatten() {
+        let file_type = match entry.file_type() {
+            Ok(ft) => ft,
+            Err(_) => continue,
+        };
+        if !file_type.is_dir() {
+            continue;
+        }
+        let name = entry.file_name();
+        let Some(name_str) = name.to_str() else {
+            continue;
+        };
+        if !name_str.eq_ignore_ascii_case("lyrics") {
+            continue;
+        }
+        if let Some(content) = read_stem_match_in_dir(&entry.path(), stem) {
+            return Some(content);
+        }
+    }
+
+    None
+}
+
+/// Inner helper for [`read_sidecar_lyrics`]: scan `dir` once, prefer
+/// `.lrc` over `.txt`. Stem matching is case-insensitive so a Windows
+/// rip with `Song.MP3` still finds `song.lrc` cleanly on Linux.
+fn read_stem_match_in_dir(dir: &Path, stem: &str) -> Option<String> {
+    let entries = std::fs::read_dir(dir).ok()?;
+    let mut lrc_match: Option<std::path::PathBuf> = None;
+    let mut txt_match: Option<std::path::PathBuf> = None;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        // Skip directories early. Without this a directory named
+        // `Song.lrc` would be picked into `lrc_match`, `read_to_string`
+        // below would fail, and a legitimate `Song.txt` in the same
+        // directory would be silently masked. `is_file` follows
+        // symlinks, so a symlinked sidecar still works.
+        if !path.is_file() {
+            continue;
+        }
+        let Some(file_stem) = path.file_stem().and_then(|s| s.to_str()) else {
+            continue;
+        };
+        if !file_stem.eq_ignore_ascii_case(stem) {
+            continue;
+        }
+        match path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_ascii_lowercase())
+        {
+            Some(ref ext) if ext == "lrc" => lrc_match = Some(path),
+            Some(ref ext) if ext == "txt" => txt_match = Some(path),
+            _ => {}
+        }
+    }
+    // Try .lrc first (synced wins), then .txt — but skip whichever
+    // candidate turns out to be empty / whitespace-only on disk.
+    // Without this fallback an empty `Song.lrc` (common in low-quality
+    // rips that ship a stub file) would silently mask a valid
+    // `Song.txt` next to it.
+    lrc_match
+        .as_deref()
+        .and_then(read_non_empty_file)
+        .or_else(|| txt_match.as_deref().and_then(read_non_empty_file))
+}
+
+/// Read a text file and return its trimmed contents, or `None` if
+/// the file is missing, unreadable, or contains only whitespace.
+fn read_non_empty_file(path: &Path) -> Option<String> {
+    let raw = std::fs::read_to_string(path).ok()?;
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
 /// Insert (or replace) the lyrics row, keyed by file content hash so the
 /// cache is shared across profiles that contain the same audio file.
 async fn upsert_lyrics(
@@ -455,7 +567,31 @@ pub async fn fetch_lyrics(
         }));
     }
 
-    // 3. LRCLIB fallback. Skip if we have no artist (matching is
+    // 3. Local sidecar `.lrc` / `.txt`. Cheap (a couple of stat calls
+    //    + at most two `read_dir` scans), runs before the network so
+    //    a user with bundled lyrics never pays the LRCLIB latency.
+    let path_for_sidecar = meta.file_path.clone();
+    let sidecar = tokio::task::spawn_blocking(move || {
+        read_sidecar_lyrics(Path::new(&path_for_sidecar))
+    })
+    .await
+    .ok()
+    .flatten();
+
+    if let Some(content) = sidecar {
+        let format = detect_format(&content);
+        let source = LyricsSource::LrcFile;
+        upsert_lyrics(&pool, &meta.file_hash, &content, &format, &source).await?;
+        return Ok(Some(LyricsPayload {
+            track_id,
+            content,
+            format,
+            source,
+            tag_write_skipped: None,
+        }));
+    }
+
+    // 4. LRCLIB fallback. Skip if we have no artist (matching is
     //    useless without one) or if offline mode is on (the cache +
     //    embedded tiers above already ran).
     if crate::offline::is_offline() {
@@ -753,7 +889,30 @@ async fn run_prefetch(
             continue;
         }
 
-        // 2. LRCLIB. Skip if metadata is too thin to match.
+        // 2. Local sidecar `.lrc` / `.txt`. Cheap; runs before the
+        //    network so a user prefetching with bundled lyrics never
+        //    hits LRCLIB unnecessarily.
+        let path_for_sidecar = file_path.clone();
+        let sidecar = tokio::task::spawn_blocking(move || {
+            read_sidecar_lyrics(Path::new(&path_for_sidecar))
+        })
+        .await
+        .ok()
+        .flatten();
+        if let Some(content) = sidecar {
+            let format = detect_format(&content);
+            let source = LyricsSource::LrcFile;
+            if let Err(e) = upsert_lyrics(&pool, &file_hash, &content, &format, &source).await {
+                tracing::warn!(track_id, ?e, "persist sidecar lyrics failed");
+                failed += 1;
+            } else {
+                hits += 1;
+            }
+            processed += 1;
+            continue;
+        }
+
+        // 3. LRCLIB. Skip if metadata is too thin to match.
         let Some(artist) = artist_name.as_deref() else {
             misses += 1;
             processed += 1;
@@ -1158,5 +1317,138 @@ mod tests {
         assert!(word_stamp_present("plain<5:00>more"));
         assert!(!word_stamp_present("nothing here"));
         assert!(!word_stamp_present("<not:a:stamp>"));
+    }
+
+    #[test]
+    fn sidecar_finds_same_folder_lrc() {
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("01 Track.mp3");
+        std::fs::write(&audio, b"fake audio").unwrap();
+        std::fs::write(
+            dir.path().join("01 Track.lrc"),
+            "[00:01.00]Hello world",
+        )
+        .unwrap();
+        let content = read_sidecar_lyrics(&audio).expect("sidecar should be found");
+        assert!(content.contains("Hello world"));
+    }
+
+    #[test]
+    fn sidecar_prefers_lrc_over_txt_in_same_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"").unwrap();
+        std::fs::write(dir.path().join("Song.txt"), "plain content").unwrap();
+        std::fs::write(dir.path().join("Song.lrc"), "[00:01.00]synced").unwrap();
+        let content = read_sidecar_lyrics(&audio).unwrap();
+        assert!(content.contains("synced"), "got: {content}");
+        assert!(!content.contains("plain content"));
+    }
+
+    #[test]
+    fn sidecar_falls_back_to_txt() {
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Song.flac");
+        std::fs::write(&audio, b"").unwrap();
+        std::fs::write(dir.path().join("Song.txt"), "plain content").unwrap();
+        let content = read_sidecar_lyrics(&audio).unwrap();
+        assert_eq!(content, "plain content");
+    }
+
+    #[test]
+    fn sidecar_finds_lyrics_subfolder() {
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Track.mp3");
+        std::fs::write(&audio, b"").unwrap();
+        let sub = dir.path().join("Lyrics");
+        std::fs::create_dir(&sub).unwrap();
+        std::fs::write(sub.join("Track.lrc"), "[00:00.00]from subfolder").unwrap();
+        let content = read_sidecar_lyrics(&audio).unwrap();
+        assert!(content.contains("from subfolder"));
+    }
+
+    #[test]
+    fn sidecar_subfolder_case_insensitive() {
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Track.mp3");
+        std::fs::write(&audio, b"").unwrap();
+        // lowercase variant — common on Linux rips.
+        let sub = dir.path().join("lyrics");
+        std::fs::create_dir(&sub).unwrap();
+        std::fs::write(sub.join("Track.lrc"), "[00:00.00]lower").unwrap();
+        let content = read_sidecar_lyrics(&audio).unwrap();
+        assert!(content.contains("lower"));
+    }
+
+    #[test]
+    fn sidecar_stem_match_case_insensitive() {
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Song.MP3");
+        std::fs::write(&audio, b"").unwrap();
+        // Stem differs in casing — should still match.
+        std::fs::write(dir.path().join("song.LRC"), "[00:00.00]ok").unwrap();
+        let content = read_sidecar_lyrics(&audio).unwrap();
+        assert!(content.contains("ok"));
+    }
+
+    #[test]
+    fn sidecar_same_folder_beats_lyrics_subfolder() {
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Track.mp3");
+        std::fs::write(&audio, b"").unwrap();
+        std::fs::write(dir.path().join("Track.lrc"), "primary").unwrap();
+        let sub = dir.path().join("Lyrics");
+        std::fs::create_dir(&sub).unwrap();
+        std::fs::write(sub.join("Track.lrc"), "secondary").unwrap();
+        let content = read_sidecar_lyrics(&audio).unwrap();
+        assert_eq!(content, "primary");
+    }
+
+    #[test]
+    fn sidecar_returns_none_when_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Lonely.mp3");
+        std::fs::write(&audio, b"").unwrap();
+        assert!(read_sidecar_lyrics(&audio).is_none());
+    }
+
+    #[test]
+    fn sidecar_empty_lrc_falls_back_to_txt() {
+        // Some low-quality rips ship a stub empty `.lrc` alongside a
+        // valid plain `.txt`. The empty `.lrc` must NOT short-circuit
+        // the waterfall — the `.txt` should win.
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Song.mp3");
+        std::fs::write(&audio, b"").unwrap();
+        std::fs::write(dir.path().join("Song.lrc"), "   \n  \n").unwrap();
+        std::fs::write(dir.path().join("Song.txt"), "plain backup").unwrap();
+        let content = read_sidecar_lyrics(&audio).expect("should fall back to txt");
+        assert_eq!(content, "plain backup");
+    }
+
+    #[test]
+    fn sidecar_skips_directory_named_like_a_sidecar() {
+        // A directory named `Song.lrc` must NOT shadow a real
+        // `Song.txt` sidecar in the same folder. Before the fix,
+        // the directory was selected into `lrc_match`,
+        // `read_to_string` failed, and the txt was silently lost.
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Song.mp3");
+        std::fs::write(&audio, b"").unwrap();
+        std::fs::create_dir(dir.path().join("Song.lrc")).unwrap();
+        std::fs::write(dir.path().join("Song.txt"), "fallback ok").unwrap();
+        let content = read_sidecar_lyrics(&audio).expect("should fall back to txt");
+        assert_eq!(content, "fallback ok");
+    }
+
+    #[test]
+    fn sidecar_returns_none_for_empty_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let audio = dir.path().join("Song.mp3");
+        std::fs::write(&audio, b"").unwrap();
+        std::fs::write(dir.path().join("Song.lrc"), "   \n  \n").unwrap();
+        // Whitespace-only payload is treated as a miss so we fall
+        // through to the next tier instead of caching an empty hit.
+        assert!(read_sidecar_lyrics(&audio).is_none());
     }
 }
