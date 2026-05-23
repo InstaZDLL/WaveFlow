@@ -725,12 +725,15 @@ export function PlaylistView({
           // next user navigation, AND refresh PlaylistContext so the
           // sidebar tile re-renders (it reads from the context, not
           // from this view's local state).
+          //
+          // Decoupled on purpose: a context-refresh failure must not
+          // block the local-state update. `PlaylistContext.refresh`
+          // swallows its own errors (logs to console), so the bare
+          // fire-and-forget is safe.
           if (playlistId == null) return;
+          void refreshPlaylists();
           try {
-            const [fresh] = await Promise.all([
-              getPlaylist(playlistId),
-              refreshPlaylists(),
-            ]);
+            const fresh = await getPlaylist(playlistId);
             setPlaylist(fresh);
           } catch (err) {
             console.error("[PlaylistView] refresh after cover change", err);
