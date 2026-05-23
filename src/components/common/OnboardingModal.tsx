@@ -70,6 +70,16 @@ const STEPS: ReadonlyArray<StepId> = [
   "done",
 ];
 
+/**
+ * Name the backend hardcodes for the auto-bootstrapped first profile
+ * (see [`state.rs::create_default_profile`](src-tauri/src/state.rs)).
+ * Not localised — a user-created profile from the "New profile" modal
+ * always carries a user-supplied name, so anything other than this
+ * literal means we already have the user's intent and the rename
+ * step would be redundant.
+ */
+const AUTO_BOOTSTRAP_PROFILE_NAME = "Default";
+
 const STEP_ICONS: Record<StepId, typeof Music> = {
   welcome: Music,
   language: Globe,
@@ -141,8 +151,20 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
   const { libraries, createLibrary, importFolder } = useLibrary();
   const { activeProfile, renameProfile } = useProfile();
 
+  // Drop the `profile` rename step when the active profile already
+  // carries a user-supplied name. Auto-bootstrapped profiles ship as
+  // "Default" (see [`AUTO_BOOTSTRAP_PROFILE_NAME`]); anything else
+  // means the user named it themselves via the New Profile modal and
+  // the rename step would just ask the same question twice.
+  const steps = useMemo(() => {
+    if (activeProfile && activeProfile.name !== AUTO_BOOTSTRAP_PROFILE_NAME) {
+      return STEPS.filter((s) => s !== "profile");
+    }
+    return STEPS;
+  }, [activeProfile]);
+
   const [stepIndex, setStepIndex] = useState(0);
-  const stepId = STEPS[stepIndex];
+  const stepId = steps[stepIndex];
 
   // Profile-name step state. Seeded from the active profile so the
   // input reflects whatever name the auto-bootstrapper picked
@@ -232,7 +254,7 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
 
   const Icon = STEP_ICONS[stepId];
 
-  const goNext = () => setStepIndex((i) => Math.min(STEPS.length - 1, i + 1));
+  const goNext = () => setStepIndex((i) => Math.min(steps.length - 1, i + 1));
   const goBack = () => setStepIndex((i) => Math.max(0, i - 1));
 
   // === Language step actions ==========================================
@@ -360,11 +382,11 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
   // the active step. We never animate beyond the current index so
   // back-navigation visually dims the trailing bars.
   const progress = useMemo(
-    () => STEPS.map((_, i) => i <= stepIndex),
-    [stepIndex],
+    () => steps.map((_, i) => i <= stepIndex),
+    [steps, stepIndex],
   );
 
-  const isLastStep = stepIndex === STEPS.length - 1;
+  const isLastStep = stepIndex === steps.length - 1;
   const showCloseButton = stepIndex === 0;
 
   return (

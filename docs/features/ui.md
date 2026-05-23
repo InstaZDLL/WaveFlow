@@ -217,7 +217,7 @@ Only one panel mounts at a time, so heavy sub-views (EQ visualiser, backup card,
 
 1. **welcome** — branding + privacy pitch.
 2. **language** — picker over [`SUPPORTED_LANGUAGES`](../../src/i18n/index.ts); persists immediately so the rest of the wizard renders in the chosen locale.
-3. **profile** — name the auto-created "Default" profile in place via [`rename_profile`](../../src-tauri/src/commands/profile.rs). Safe against the active profile since only `app.db` is touched; the per-profile pool keeps its open handle. Skipping the rename (input unchanged) avoids the backend round-trip entirely.
+3. **profile** *(conditional)* — name the auto-created "Default" profile in place via [`rename_profile`](../../src-tauri/src/commands/profile.rs). Safe against the active profile since only `app.db` is touched; the per-profile pool keeps its open handle. Skipping the rename (input unchanged) avoids the backend round-trip entirely. The step is **omitted entirely** when the active profile's name isn't the literal `"Default"` — i.e. profiles created through the New Profile modal already carry a user-supplied name, so the rename step would just ask the same question twice. `"Default"` is the hardcoded auto-bootstrap name from [`state.rs::create_default_profile`](../../src-tauri/src/state.rs) (not localised, so the comparison is reliable).
 4. **localOnly** — explainer that the library never leaves the device unless the user opts into Last.fm / Discord later.
 5. **folder** — calls [`pickFolder`](../../src/lib/tauri/dialog.ts) to select a music root and creates the first library entry.
 6. **lastfm** — optional Last.fm API key + secret pairing (skippable). Status lives in [`integration.rs`](../../src-tauri/src/commands/integration.rs).
