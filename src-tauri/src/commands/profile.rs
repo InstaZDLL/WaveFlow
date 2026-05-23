@@ -203,6 +203,42 @@ pub async fn switch_profile(
     })
 }
 
+/// Rename an existing profile in place. Trims and validates the new
+/// name the same way [`create_profile`] does. Used by the onboarding
+/// wizard so the auto-created "Default" profile can be renamed
+/// without forcing a full create-then-rescan flow, and is safe to
+/// call against the active profile (only `app.db` is touched, the
+/// per-profile pool is untouched).
+#[tauri::command]
+pub async fn rename_profile(
+    state: tauri::State<'_, AppState>,
+    profile_id: i64,
+    name: String,
+) -> AppResult<Profile> {
+    let trimmed = name.trim().to_string();
+    if trimmed.is_empty() {
+        return Err(AppError::Other("profile name cannot be empty".into()));
+    }
+
+    let updated = sqlx::query("UPDATE profile SET name = ? WHERE id = ?")
+        .bind(&trimmed)
+        .bind(profile_id)
+        .execute(&state.app_db)
+        .await?;
+    if updated.rows_affected() == 0 {
+        return Err(AppError::ProfileNotFound(profile_id));
+    }
+
+    let profile = sqlx::query_as::<_, Profile>(
+        "SELECT id, name, color_id, avatar_hash, data_dir, created_at, last_used_at
+           FROM profile WHERE id = ?",
+    )
+    .bind(profile_id)
+    .fetch_one(&state.app_db)
+    .await?;
+    Ok(profile)
+}
+
 /// Close the active profile without activating a new one. Useful for a
 /// "logout" flow.
 #[tauri::command]
@@ -212,6 +248,79 @@ pub async fn deactivate_profile(
 ) -> AppResult<()> {
     watcher.unwatch_all();
     state.deactivate_profile().await;
+    Ok(())
+}
+
+/// Permanently delete a profile, its `data.db` and its on-disk artwork.
+///
+/// Guard rails:
+/// - cannot delete the active profile (frontend must `switch_profile` first);
+/// - cannot delete the last remaining profile (keeps the app usable).
+///
+/// After the row is removed, the profile directory is wiped from disk and the
+/// `app.last_profile_id` setting is cleared if it pointed to this profile so
+/// the next startup falls back to the most-recently-used remaining profile.
+#[tauri::command]
+pub async fn delete_profile(state: tauri::State<'_, AppState>, profile_id: i64) -> AppResult<()> {
+    let active_id = {
+        let guard = state.profile.read().await;
+        guard.as_ref().map(|p| p.profile_id)
+    };
+    if active_id == Some(profile_id) {
+        return Err(AppError::Other(
+            "cannot delete the active profile; switch to another profile first".into(),
+        ));
+    }
+
+    // Atomic DELETE guarded by an in-statement subquery: the "more than one
+    // profile must remain" check and the delete are evaluated together, so
+    // a concurrent deletion can never leave the table empty (TOCTOU-free).
+    let deleted = sqlx::query(
+        "DELETE FROM profile
+          WHERE id = ?
+            AND (SELECT COUNT(*) FROM profile) > 1",
+    )
+    .bind(profile_id)
+    .execute(&state.app_db)
+    .await?;
+
+    if deleted.rows_affected() == 0 {
+        // 0 rows hit means either: (a) the row doesn't exist, or (b) it
+        // existed but was the last remaining profile and the guard rejected
+        // it. Disambiguate with a cheap follow-up so the caller gets a
+        // useful error instead of a generic ProfileNotFound.
+        let still_exists: Option<i64> = sqlx::query_scalar("SELECT id FROM profile WHERE id = ?")
+            .bind(profile_id)
+            .fetch_optional(&state.app_db)
+            .await?;
+        return if still_exists.is_some() {
+            Err(AppError::Other(
+                "cannot delete the last remaining profile".into(),
+            ))
+        } else {
+            Err(AppError::ProfileNotFound(profile_id))
+        };
+    }
+
+    // Clear the last-profile pointer if it referenced the deleted profile so
+    // startup doesn't try to reopen a profile that no longer exists.
+    sqlx::query(
+        "DELETE FROM app_setting
+          WHERE key = 'app.last_profile_id' AND value = ?",
+    )
+    .bind(profile_id.to_string())
+    .execute(&state.app_db)
+    .await?;
+
+    let dir = state.paths.profile_dir(profile_id);
+    if dir.exists() {
+        if let Err(err) = std::fs::remove_dir_all(&dir) {
+            // The DB row is already gone — log so the user can clean up the
+            // stale directory manually, but don't fail the command.
+            tracing::warn!(profile_id, path = %dir.display(), %err, "failed to remove profile directory");
+        }
+    }
+
     Ok(())
 }
 

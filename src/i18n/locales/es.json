@@ -1,7 +1,7 @@
 {
   "common": {
     "cancel": "Cancelar",
-    "back": "Volver",
+    "back": "Atrás",
     "save": "Guardar",
     "close": "Cerrar",
     "confirm": "Confirmar",
@@ -10,14 +10,14 @@
     "viewArtwork": "Ver portada"
   },
   "lastfmReauth": {
-    "title": "La sesión de Last.fm ha caducado",
-    "message": "Ya no se envían tus scrobbles. Vuelve a iniciar sesión para continuar.",
-    "action": "Abrir la configuración"
+    "title": "Sesión de Last.fm caducada",
+    "message": "Tus scrobbles ya no se envían. Vuelve a iniciar sesión para reanudar.",
+    "action": "Abrir configuración"
   },
   "updater": {
     "available": {
-      "title": "Actualización disponible (v. {{version}})",
-      "message": "Hay una nueva versión de WaveFlow lista para instalar.",
+      "title": "Actualización disponible (v{{version}})",
+      "message": "Una nueva versión de WaveFlow está lista para instalar.",
       "action": "Instalar ahora",
       "later": "Más tarde"
     },
@@ -29,28 +29,95 @@
       "message": "Reinicia WaveFlow para aplicar la nueva versión."
     },
     "error": {
-      "title": "Error en la actualización"
+      "title": "La actualización ha fallado"
     }
   },
   "onboarding": {
     "defaultLibraryName": "Música",
     "welcome": {
-      "title": "Bienvenido a WaveFlow",
-      "message": "Para empezar, indica la carpeta que contiene tu música. WaveFlow la escaneará y organizará tu biblioteca automáticamente.",
-      "action": "Elegir mi carpeta de música",
-      "skip": "Configurar más tarde"
+      "title": "Te damos la bienvenida a WaveFlow",
+      "description": "Tu reproductor de música local-first. Disfruta de toda tu biblioteca sin suscripción de streaming."
     },
-    "scanning": {
-      "title": "Análisis de tu música…"
+    "localOnly": {
+      "title": "Importante: solo música local",
+      "description": "WaveFlow NO es un servicio de streaming. Reproduce los archivos que ya tienes en tu dispositivo.",
+      "calloutTitle": "Lo que debes saber",
+      "bulletOwn": "Trae tu propia biblioteca (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletImport": "Importa una carpeta o arrastra y suelta archivos",
+      "bulletScrobble": "Conecta Last.fm para hacer scrobble de tus reproducciones en segundo plano"
+    },
+    "folder": {
+      "title": "Elige tu carpeta de música",
+      "description": "Indica a WaveFlow dónde está tu música. El escáner organizará tu biblioteca automáticamente.",
+      "placeholder": "Haz clic para elegir tu carpeta de música",
+      "changeHint": "Haz clic para cambiar de carpeta",
+      "quickSettings": "Ajustes rápidos",
+      "autoAnalyze": {
+        "title": "Analizar pistas automáticamente",
+        "description": "Detecta BPM y tonalidad durante el escaneo — necesario para Radio y Mood Radio."
+      }
+    },
+    "lastfm": {
+      "title": "Conectar Last.fm",
+      "description": "El scrobbling envía tus reproducciones a tu perfil de Last.fm. A cambio recibes biografías de artistas y sugerencias de artistas similares directamente en la app.",
+      "recommendedBadge": "Recomendado",
+      "keyHint": "Crea una clave API en Last.fm",
+      "keyLabel": "Clave API",
+      "keyPlaceholder": "Tu clave API de Last.fm",
+      "secretLabel": "Secreto compartido",
+      "secretPlaceholder": "Tu secreto compartido",
+      "userLabel": "Nombre de usuario de Last.fm",
+      "userPlaceholder": "tu-usuario",
+      "passwordLabel": "Contraseña",
+      "passwordPlaceholder": "Tu contraseña de Last.fm",
+      "toggleSecret": "Mostrar/ocultar secreto",
+      "togglePassword": "Mostrar/ocultar contraseña",
+      "connect": "Conectar Last.fm",
+      "missingFields": "Rellena la clave API, el secreto, el nombre de usuario y la contraseña.",
+      "connectedTitle": "Conectado como {{user}}",
+      "connectedSubtitle": "El scrobbling se activa automáticamente en cuanto reproduces una pista."
+    },
+    "scan": {
+      "title": "Escanear tu biblioteca",
+      "description": "¿Listo para analizar tu carpeta y descubrir tus pistas?",
+      "noFolder": "Ninguna carpeta seleccionada",
+      "readyHint": "Tu carpeta está configurada. Inicia el escaneo cuando quieras.",
+      "scanning": "Escaneando tu biblioteca…",
+      "errorTitle": "El escaneo ha fallado"
     },
     "done": {
-      "title": "{{count}} canciones añadidas",
-      "message": "Tu biblioteca ya está lista. ¡Que disfrutes de la música!",
-      "action": "Empezar a escuchar"
+      "title": "¡Todo listo!",
+      "description": "Tu biblioteca está escaneada y lista para reproducir.",
+      "nextSteps": "Próximos pasos:",
+      "bulletExplore": "Explora tu biblioteca con las pestañas Biblioteca, Álbumes y Artistas",
+      "bulletQueue": "Crea tu primera cola haciendo clic en una pista",
+      "bulletSettings": "Ajusta los detalles desde la barra lateral (Apariencia, Integraciones…)"
     },
-    "error": {
-      "title": "El análisis ha fallado",
-      "retry": "Inténtalo de nuevo"
+    "actions": {
+      "skipSetup": "Omitir configuración",
+      "getStarted": "Empezar",
+      "back": "Atrás",
+      "continue": "Continuar",
+      "understood": "Entendido",
+      "skipForNow": "Omitir por ahora",
+      "scanLater": "Escanear más tarde",
+      "scanNow": "Escanear ahora",
+      "startListening": "Empezar a escuchar"
+    },
+    "language": {
+      "title": "Elige tu idioma",
+      "description": "WaveFlow está disponible en 17 idiomas. Hemos preseleccionado el de tu sistema — cámbialo si nos hemos equivocado.",
+      "detected": "Detectado desde tu sistema",
+      "fallback": "No hemos podido detectar el idioma de tu sistema, así que hemos puesto inglés por defecto. Elige el tuyo abajo."
+    },
+    "profile": {
+      "title": "Pon nombre a tu perfil",
+      "description": "WaveFlow usa perfiles para separar bibliotecas. Dale uno que reconozcas más adelante.",
+      "nameLabel": "Nombre del perfil",
+      "namePlaceholder": "P. ej. Daisy",
+      "hint": "Podrás crear más perfiles más adelante si lo necesitas.",
+      "required": "El nombre del perfil es obligatorio.",
+      "unavailable": "Perfil no disponible — inténtalo de nuevo en un momento."
     }
   },
   "sidebar": {
@@ -65,26 +132,26 @@
     },
     "open": {
       "file": "Archivo",
-      "folder": "Dossier"
+      "folder": "Carpeta"
     },
     "library": {
       "tracksCount_zero": "0 pistas",
       "tracksCount_one": "{{count}} pista",
-      "tracksCount_other": "{{count}} títulos",
+      "tracksCount_other": "{{count}} pistas",
       "createLibraryAria": "Crear una nueva biblioteca",
-      "none": "No hay bibliotecas",
+      "none": "Sin bibliotecas",
       "popover": {
-        "label": "Selección de la biblioteca",
+        "label": "Selección de biblioteca",
         "header": "Bibliotecas",
         "countLine": "{{tracks}} · {{albums}}",
         "tracks_zero": "0 pistas",
         "tracks_one": "{{count}} pista",
-        "tracks_other": "{{count}} títulos",
+        "tracks_other": "{{count}} pistas",
         "albums_zero": "0 álbumes",
         "albums_one": "{{count}} álbum",
         "albums_other": "{{count}} álbumes",
         "see": "Ver",
-        "new": "Noticia"
+        "new": "Nueva"
       },
       "nav": {
         "tracks": "Pistas",
@@ -96,14 +163,14 @@
     },
     "playlists": {
       "createPlaylistAria": "Crear una nueva lista de reproducción",
-      "importM3uAria": "Importar una lista de reproducción M3U",
-      "importDialogTitle": "Importar una lista de reproducción M3U",
-      "liked": "Títulos con «Me gusta»",
-      "recent": "Jugados recientemente",
+      "importM3uAria": "Importar una lista M3U",
+      "importDialogTitle": "Importar una lista M3U",
+      "liked": "Pistas que te gustan",
+      "recent": "Reproducido recientemente",
       "emptySubtext_zero": "0 pistas",
       "emptySubtext_one": "{{count}} pista",
-      "emptySubtext_other": "{{count}} títulos",
-      "createSmartAria": "Crear una playlist inteligente"
+      "emptySubtext_other": "{{count}} pistas",
+      "createSmartAria": "Crear una lista inteligente"
     },
     "myMusic": {
       "title": "Mi música",
@@ -112,7 +179,7 @@
       "albums": "Álbumes",
       "artists": "Artistas",
       "genres": "Géneros",
-      "folders": "Archivos"
+      "folders": "Carpetas"
     },
     "playlistSection": {
       "title": "Listas de reproducción"
@@ -120,13 +187,13 @@
     "myLibrary": {
       "playlistSubtext_zero": "0 pistas",
       "playlistSubtext_one": "{{count}} pista",
-      "playlistSubtext_other": "{{count}} títulos"
+      "playlistSubtext_other": "{{count}} pistas"
     }
   },
   "topbar": {
     "search": {
-      "placeholder": "Buscar un título, un artista, un álbum...",
-      "results_zero": "No se han encontrado resultados",
+      "placeholder": "Buscar pista, artista o álbum…",
+      "results_zero": "Sin resultados",
       "results_one": "{{count}} resultado",
       "results_other": "{{count}} resultados",
       "empty": "Ningún resultado coincide con tu búsqueda",
@@ -136,99 +203,99 @@
         "close": "Cerrar",
         "reset": "Restablecer",
         "hiRes": "Alta resolución",
-        "likedOnly": "Solo favoritos",
-        "year": "Año (de → a)",
-        "bpm": "BPM (de → a)",
-        "durationMin": "Duración en minutos (de → a)",
+        "likedOnly": "Solo favoritas",
+        "year": "Año (desde → hasta)",
+        "bpm": "BPM (desde → hasta)",
+        "durationMin": "Duración en minutos (desde → hasta)",
         "format": "Formato",
         "genres": "Géneros"
       }
     },
     "theme": {
-      "enableLight": "Activar el modo claro",
-      "enableDark": "Activar el modo oscuro"
+      "enableLight": "Activar modo claro",
+      "enableDark": "Activar modo oscuro"
     },
     "profile": {
       "user": "Usuario",
       "changeProfile": "Cambiar de perfil",
       "statistics": "Estadísticas",
       "settings": "Configuración",
-      "feedback": "Comentarios",
+      "feedback": "Feedback",
       "about": "Acerca de",
       "quit": "Salir de la aplicación"
     }
   },
   "home": {
     "greeting": {
-      "morning": "Hola",
-      "evening": "Buenas noches",
+      "morning": "Buenos días",
+      "evening": "Buenas tardes",
       "night": "Buenas noches"
     },
     "banner": {
-      "badge": "¿Listo para escuchar?",
-      "subtitle": "Descubre tu música favorita y explora nuevos sonidos.",
+      "badge": "Listo para escuchar",
+      "subtitle": "Descubre tu música favorita y explora sonidos nuevos.",
       "openFile": "Abrir un archivo",
-      "openFolder": "Abrir un expediente",
+      "openFolder": "Abrir una carpeta",
       "importFiles": "Importar archivos",
       "importFolder": "Importar carpeta",
-      "browseLibrary": "Explorar mi biblioteca"
+      "browseLibrary": "Explorar tu biblioteca"
     },
     "stats": {
       "library": "Biblioteca",
-      "liked": "Títulos con «Me gusta»",
-      "recent": "Jugados recientemente",
+      "liked": "Pistas que te gustan",
+      "recent": "Reproducido recientemente",
       "playlists": "Listas de reproducción"
     },
     "moodRadio": {
-      "title": "Radio por estado de ánimo",
+      "title": "Mood Radio",
       "subtitle": "Filtrada por tempo y energía",
-      "trackCount_one": "{{count}} canción",
-      "trackCount_other": "{{count}} canciones",
-      "empty": "No hay canciones analizadas suficientes",
+      "trackCount_one": "{{count}} pista",
+      "trackCount_other": "{{count}} pistas",
+      "empty": "No hay suficientes pistas analizadas",
       "loading": "Iniciando…",
       "focus": {
         "title": "Concentración",
-        "subtitle": "Tempos tranquilos para trabajar"
+        "subtitle": "Ritmos tranquilos para concentrarse"
       },
       "chill": {
-        "title": "Relax",
-        "subtitle": "Ambiente suave para desconectar"
+        "title": "Chill",
+        "subtitle": "Escucha relajada para desconectar"
       },
       "workout": {
-        "title": "Entrenamiento",
-        "subtitle": "Ritmo constante para moverte"
+        "title": "Workout",
+        "subtitle": "Ritmo constante para mantenerte en movimiento"
       },
       "party": {
         "title": "Fiesta",
-        "subtitle": "Tempo bailable, alta energía"
+        "subtitle": "Ritmos bailables, mucha energía"
       },
       "sleep": {
         "title": "Dormir",
-        "subtitle": "Muy lento y discreto para dormir"
+        "subtitle": "Muy lento y suave para conciliar el sueño"
       }
     },
     "recentlyPlayed": {
-      "title": "Jugados recientemente",
-      "emptyTitle": "No se ha escuchado ninguna canción",
-      "emptyDescription": "Pon una canción para que aparezca aquí. Tu historial de reproducción se va completando a medida que descubres nuevas canciones."
+      "title": "Reproducido recientemente",
+      "emptyTitle": "Aún no se ha reproducido nada",
+      "emptyDescription": "Reproduce una pista para que aparezca aquí. Tu historial de escucha se va construyendo a medida que descubres música."
     },
     "recentlyAdded": {
-      "title": "Añadidos recientemente"
+      "title": "Añadido recientemente"
     },
     "dailyMix": {
       "title": "Para ti",
       "regenerate": "Regenerar",
       "regenerating": "Generando…",
       "emptyTitle": "Aún no hay Daily Mix",
-      "emptyDescription": "Escucha algunas canciones y luego pulsa Regenerar para crear tus mixes personalizados.",
+      "emptyDescription": "Escucha unas pistas y luego pulsa «Regenerar» para crear tus mixes personalizados.",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} pista",
       "trackCount_other": "{{count}} pistas"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
-      "title": "Tu resumen {{year}}",
-      "subtitle": "Tus artistas, tus minutos, tu año — contado en unas diapositivas.",
+      "title": "Tu resumen de {{year}}",
+      "subtitle": "Tus artistas, tus minutos, tu año — contado en unas pocas slides.",
       "cta": "Abrir"
     },
     "seeAll": "Ver todo"
@@ -237,21 +304,21 @@
     "header": {
       "addFolder": "Añadir una carpeta",
       "subtext": {
-        "morceaux_zero": "0 Canciones",
-        "morceaux_one": "{{count}} Pieza",
-        "morceaux_other": "{{count}} Pistas",
-        "albums_zero": "0 Álbum",
-        "albums_one": "{{count}} Álbum",
-        "albums_other": "{{count}} Álbumes",
-        "artistes_zero": "0 Artista",
-        "artistes_one": "{{count}} Artista",
-        "artistes_other": "{{count}} Artistas",
-        "genres_zero": "0 Género",
-        "genres_one": "{{count}} Género",
-        "genres_other": "{{count}} Géneros",
-        "dossiers_zero": "0 Archivo",
-        "dossiers_one": "{{count}} Dossier",
-        "dossiers_other": "{{count}} Archivos"
+        "morceaux_zero": "0 pistas",
+        "morceaux_one": "{{count}} pista",
+        "morceaux_other": "{{count}} pistas",
+        "albums_zero": "0 álbumes",
+        "albums_one": "{{count}} álbum",
+        "albums_other": "{{count}} álbumes",
+        "artistes_zero": "0 artistas",
+        "artistes_one": "{{count}} artista",
+        "artistes_other": "{{count}} artistas",
+        "genres_zero": "0 géneros",
+        "genres_one": "{{count}} género",
+        "genres_other": "{{count}} géneros",
+        "dossiers_zero": "0 carpetas",
+        "dossiers_one": "{{count}} carpeta",
+        "dossiers_other": "{{count}} carpetas"
       }
     },
     "tabs": {
@@ -259,27 +326,27 @@
       "albums": "Álbumes",
       "artistes": "Artistas",
       "genres": "Géneros",
-      "dossiers": "Archivos"
+      "dossiers": "Carpetas"
     },
     "empty": {
       "morceaux": {
         "title": "Biblioteca vacía",
-        "description": "Importa archivos de audio o una carpeta para completar tu biblioteca."
+        "description": "Importa archivos de audio o una carpeta para llenar tu biblioteca."
       },
       "albums": {
-        "title": "No se ha encontrado ningún álbum",
-        "description": "Importa archivos de audio para generar álbumes automáticamente."
+        "title": "No se han encontrado álbumes",
+        "description": "Importa archivos de audio para crear álbumes automáticamente."
       },
       "artistes": {
-        "title": "No se ha encontrado ningún artista",
+        "title": "No se han encontrado artistas",
         "description": "Importa archivos de audio para empezar."
       },
       "genres": {
-        "title": "No se ha encontrado ningún género",
-        "description": "Importa archivos de audio para descubrir los géneros."
+        "title": "No se han encontrado géneros",
+        "description": "Importa archivos de audio para explorar distintos géneros."
       },
       "dossiers": {
-        "title": "No hay archivos importados",
+        "title": "No hay carpetas importadas",
         "description": "Importa una carpeta desde la barra de acciones para explorarla aquí."
       }
     },
@@ -288,19 +355,19 @@
       "importFolder": "Importar una carpeta",
       "share": "Compartir (próximamente)",
       "rescan": "Volver a escanear la biblioteca",
-      "rescanning": "Se está realizando un nuevo escaneo…",
+      "rescanning": "Reescaneo en curso…",
       "changeArtwork": "Cambiar la imagen (próximamente)",
-      "edit": "Modificar la biblioteca",
+      "edit": "Editar la biblioteca",
       "delete": "Eliminar la biblioteca",
       "deleteConfirm": "Haz clic de nuevo para confirmar",
       "importing": "Importando…"
     },
-    "changeCover": "Cambiar la portada",
-    "searchDeezer": "Búsqueda Deezer",
+    "changeCover": "Cambiar portada",
+    "searchDeezer": "Buscar en Deezer",
     "localFile": "Archivo local",
-    "fetchMissingCovers": "Recuperar todas las fundas que faltan",
-    "noCover": "Sin funda",
-    "fetchingCovers": "Recuperación de las fundas... ({{current}} / {{total}})",
+    "fetchMissingCovers": "Recuperar todas las portadas que faltan",
+    "noCover": "Sin portada",
+    "fetchingCovers": "Recuperando portadas… ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} portadas recuperadas",
     "fetchCoversFailed": "Error al recuperar las portadas",
     "table": {
@@ -311,8 +378,8 @@
       "duration": "Duración",
       "unknown": "—"
     },
-    "rating": "Nota",
-    "noRating": "Sin nota",
+    "rating": "Valoración",
+    "noRating": "Sin valoración",
     "viewToggle": {
       "label": "Modo de visualización",
       "list": "Lista",
@@ -321,12 +388,12 @@
     "albumGrid": {
       "trackCount_zero": "0 pistas",
       "trackCount_one": "{{count}} pista",
-      "trackCount_other": "{{count}} títulos"
+      "trackCount_other": "{{count}} pistas"
     },
     "artistList": {
       "trackCount_zero": "0 pistas",
       "trackCount_one": "{{count}} pista",
-      "trackCount_other": "{{count}} títulos",
+      "trackCount_other": "{{count}} pistas",
       "albumCount_zero": "0 álbumes",
       "albumCount_one": "{{count}} álbum",
       "albumCount_other": "{{count}} álbumes"
@@ -334,32 +401,32 @@
     "genreList": {
       "trackCount_zero": "0 pistas",
       "trackCount_one": "{{count}} pista",
-      "trackCount_other": "{{count}} títulos"
+      "trackCount_other": "{{count}} pistas"
     },
     "folderList": {
       "trackCount_zero": "0 pistas",
       "trackCount_one": "{{count}} pista",
-      "trackCount_other": "{{count}} títulos",
+      "trackCount_other": "{{count}} pistas",
       "lastScanned": "Escaneado: {{date}}",
       "neverScanned": "nunca",
-      "watched": "Vigilado",
-      "watchOn": "Supervisar automáticamente los cambios",
-      "watchOff": "Detener la vigilancia",
+      "watched": "Monitorizado",
+      "watchOn": "Monitorizar cambios automáticamente",
+      "watchOff": "Dejar de monitorizar",
       "remove": "Quitar carpeta de la biblioteca",
       "removeConfirm": "Haz clic de nuevo para confirmar"
     }
   },
   "liked": {
     "badge": "Colección",
-    "title": "Títulos con «Me gusta»",
+    "title": "Pistas que te gustan",
     "count_zero": "0 pistas",
     "count_one": "{{count}} pista",
-    "count_other": "{{count}} títulos",
-    "emptyTitle": "No hay canciones marcadas como favoritas",
-    "emptyDescription": "Las canciones que te gustan aparecerán aquí. Explora tu biblioteca y dale a «Me gusta» a tus canciones favoritas.",
+    "count_other": "{{count}} pistas",
+    "emptyTitle": "Sin pistas favoritas",
+    "emptyDescription": "Las pistas que te gusten aparecerán aquí. Explora tu biblioteca y da «Me gusta» a tus favoritas.",
     "playAll": "Reproducir todo",
-    "unlike": "Retirar los «Me gusta»",
-    "like": "Añadir a los favoritos"
+    "unlike": "Quitar de Me gusta",
+    "like": "Añadir a Me gusta"
   },
   "history": {
     "badge": "Historial",
@@ -369,8 +436,8 @@
     "timeline": "Cronología",
     "loadingMore": "Cargando…",
     "endReached": "Inicio del historial",
-    "emptyTitle": "Aún sin reproducciones",
-    "emptyDescription": "Reproduce una canción y aparecerá aquí en cuanto cuente.",
+    "emptyTitle": "Aún no hay reproducciones",
+    "emptyDescription": "Reproduce una pista — aparecerá aquí en cuanto cuente.",
     "shownCount_one": "{{count}} reproducción mostrada",
     "shownCount_other": "{{count}} reproducciones mostradas",
     "plays_one": "{{count}} reproducción",
@@ -384,66 +451,66 @@
     }
   },
   "recent": {
-    "badge": "Historia",
-    "title": "Jugados recientemente",
+    "badge": "Historial",
+    "title": "Reproducido recientemente",
     "count_zero": "0 pistas",
     "count_one": "{{count}} pista",
-    "count_other": "{{count}} títulos",
-    "emptyTitle": "No hay pistas recientes",
-    "emptyDescription": "Las canciones que estés escuchando aparecerán aquí automáticamente."
+    "count_other": "{{count}} pistas",
+    "emptyTitle": "Sin pistas recientes",
+    "emptyDescription": "Las pistas que escuches aparecerán aquí automáticamente."
   },
   "statistics": {
     "title": "Estadísticas",
-    "emptyTitle": "No hay estadísticas disponibles",
-    "emptyDescription": "Escucha música para que empiecen a aparecer aquí tus estadísticas de reproducción.",
+    "emptyTitle": "Sin estadísticas disponibles",
+    "emptyDescription": "Reproduce algo de música para empezar a ver tus estadísticas de escucha aquí.",
     "range": {
       "label": "Periodo",
       "7d": "7 días",
       "30d": "30 días",
       "90d": "90 días",
       "1y": "1 año",
-      "all": "Todo"
+      "all": "Todo el tiempo"
     },
     "kpi": {
-      "totalPlays": "Escuchas",
-      "totalTime": "Duración",
-      "uniqueTracks": "Títulos únicos",
+      "totalPlays": "Reproducciones",
+      "totalTime": "Tiempo de escucha",
+      "uniqueTracks": "Pistas únicas",
       "uniqueArtists_zero": "0 artistas",
       "uniqueArtists_one": "{{count}} artista",
       "uniqueArtists_other": "{{count}} artistas",
-      "completionRate": "Porcentaje de reproducciones completas"
+      "completionRate": "Tasa de escucha completa"
     },
     "byDay": {
       "title": "Actividad diaria",
-      "empty": "No se han realizado escuchas durante este periodo."
+      "empty": "Sin escucha en este periodo."
     },
     "byHour": {
-      "title": "Horario preferido",
-      "empty": "No se han realizado escuchas durante ese periodo.",
-      "tooltip": "{{hour}} h — {{plays}} escuchas"
+      "title": "Horas pico",
+      "empty": "Sin escucha en este periodo.",
+      "tooltip": "{{hour}} h — {{plays}} reproducciones"
     },
     "topTracks": {
-      "title": "Titulares destacados",
-      "empty": "No se ha escuchado ninguna canción."
+      "title": "Pistas más escuchadas",
+      "empty": "No se ha reproducido ninguna pista."
     },
     "topArtists": {
-      "title": "Artistas más destacados",
-      "empty": "No se ha escuchado a ningún artista."
+      "title": "Artistas más escuchados",
+      "empty": "No se ha reproducido ningún artista."
     },
     "topAlbums": {
-      "title": "Álbumes más vendidos",
-      "empty": "No se ha escuchado ningún álbum."
+      "title": "Álbumes más escuchados",
+      "empty": "No se ha reproducido ningún álbum."
     },
     "heatmap": {
       "title": "Actividad anual",
-      "empty": "Aún no hay reproducciones en los últimos 12 meses.",
-      "summary": "{{time}} escuchados en el año — {{plays}} reproducciones",
+      "empty": "Sin escucha en los últimos 12 meses.",
+      "summary": "{{time}} de escucha en el año — {{plays}} reproducciones",
       "less": "Menos",
       "more": "Más"
     },
     "plays_zero": "0 reproducciones",
-    "plays_one": "{{count}} escucha",
-    "plays_other": "{{count}} escuchas",
+    "plays_one": "{{count}} reproducción",
+    "plays_other": "{{count}} reproducciones",
     "export": {
       "label": "Exportar estadísticas",
       "action": "Exportar",
@@ -451,21 +518,21 @@
     }
   },
   "wrapped": {
-    "loading": "Preparando tu año…",
-    "errorTitle": "No se pudo cargar tu Wrapped",
+    "loading": "Construyendo tu año…",
+    "errorTitle": "No se ha podido cargar tu Wrapped",
     "close": "Cerrar",
-    "pause": "Pausa",
+    "pause": "Pausar",
     "resume": "Reanudar",
-    "prev": "Diapositiva anterior",
-    "next": "Diapositiva siguiente",
+    "prev": "Slide anterior",
+    "next": "Slide siguiente",
     "yearPicker": "Elegir un año",
     "backToHome": "Volver al inicio",
     "playsShort_zero": "0 reproducciones",
     "playsShort_one": "{{count}} reproducción",
     "playsShort_other": "{{count}} reproducciones",
     "empty": {
-      "title": "Aún no hay historial",
-      "subtitle": "Reproduce algunos temas y vuelve más tarde — tu Wrapped se construye mientras escuchas."
+      "title": "Aún no hay historial de escucha",
+      "subtitle": "Reproduce unas pistas y vuelve más tarde — tu Wrapped se construye a medida que escuchas."
     },
     "intro": {
       "eyebrow": "WaveFlow Wrapped",
@@ -483,33 +550,33 @@
       "artists": "Artistas"
     },
     "topTracks": {
-      "title": "Tus temas favoritos"
+      "title": "Tus pistas más escuchadas"
     },
     "topArtists": {
-      "title": "Tus artistas favoritos"
+      "title": "Tus artistas más escuchados"
     },
     "topAlbums": {
-      "title": "Tus álbumes favoritos"
+      "title": "Tus álbumes más escuchados"
     },
     "activeDay": {
-      "eyebrow": "Tu día récord",
+      "eyebrow": "Tu día más activo",
       "subtitle": "{{duration}} de escucha, {{count}} pistas"
     },
     "mood": {
       "eyebrow": "Tu tempo medio",
-      "subtitle": "El ritmo que marcó tu año",
-      "loudness": "Loudness medio: {{lufs}} LUFS",
+      "subtitle": "El ritmo que ha guiado tu año",
+      "loudness": "Sonoridad media: {{lufs}} LUFS",
       "energy": {
         "chill": "Chill",
         "warm": "Cálido",
         "groove": "Groove",
         "energetic": "Enérgico",
-        "fire": "Fuego"
+        "fire": "Intenso"
       }
     },
     "clock": {
-      "eyebrow": "Tu hora de escucha",
-      "subtitle": "El pico de tu día"
+      "eyebrow": "Tu hora pico de escucha",
+      "subtitle": "El punto álgido de tu día"
     },
     "streak": {
       "eyebrow": "Tu racha más larga",
@@ -542,41 +609,49 @@
     "title": "Acerca de",
     "hero": {
       "subtitle": "Reproductor de música HD multiplataforma",
-      "checkUpdates": "Comprobar si hay actualizaciones",
+      "checkUpdates": "Buscar actualizaciones",
       "developedBy": "Desarrollado por"
     },
     "sections": {
-      "frameworkDesktop": "Entorno de escritorio",
-      "frontend": "Interfaz de usuario",
+      "frameworkDesktop": "Framework de escritorio",
+      "frontend": "Frontend",
       "backend": "Backend (Rust)",
       "audio": "Audio",
       "shortcuts": "Atajos de teclado",
+      "changelog": "Historial de cambios",
       "credits": "Créditos"
     },
     "shortcuts": {
-      "playPause": "Reproducir / Pausa",
+      "playPause": "Reproducir / Pausar",
       "previousTrack": "Pista anterior",
-      "nextTrack": "Siguiente canción",
+      "nextTrack": "Pista siguiente",
       "volume": "Volumen",
-      "mute": "Silenciar el sonido",
+      "mute": "Silenciar",
       "keys": {
         "space": "Espacio"
       }
     },
+    "changelog": {
+      "loading": "Cargando…",
+      "empty": "Sin entradas disponibles",
+      "expand": "Mostrar {{count}} entradas más",
+      "collapse": "Mostrar menos",
+      "breaking": "Cambio importante"
+    },
     "credits": {
-      "text": "Diseñado y desarrollado con pasión. Creado con tecnologías de código abierto.",
+      "text": "Diseñado y desarrollado con pasión. Construido con tecnologías de código abierto.",
       "icons": "Iconos de Lucide, Phosphor, Mynaui e Iconify."
     }
   },
   "feedback": {
-    "title": "Comentarios",
+    "title": "Feedback",
     "hero": {
       "title": "Ayúdanos a mejorar WaveFlow",
-      "description": "¿Has detectado un error, tienes alguna sugerencia de mejora o simplemente quieres hacernos llegar tus comentarios? Leemos todos los mensajes y tenemos en cuenta tus sugerencias."
+      "description": "¿Has detectado un fallo, tienes una idea para mejorar la app o simplemente quieres compartir feedback? Leemos todos los mensajes y tenemos en cuenta tus sugerencias."
     },
     "contact": {
       "section": "Contáctanos",
-      "subtitle": "¿Un error, una sugerencia o una pregunta? Leemos todos los mensajes"
+      "subtitle": "Fallo, sugerencia o pregunta — leemos cada mensaje"
     }
   },
   "player": {
@@ -584,60 +659,60 @@
     "inactive": "Inactivo",
     "controls": {
       "play": "Reproducir",
-      "pause": "Pausa",
+      "pause": "Pausar",
       "previous": "Anterior",
       "next": "Siguiente",
-      "shuffleOn": "Desactivar la reproducción aleatoria",
+      "shuffleOn": "Desactivar reproducción aleatoria",
       "shuffleOff": "Activar reproducción aleatoria",
-      "repeatOff": "Activar la repetición",
-      "repeatAll": "Repetir solo una vez",
-      "repeatOne": "Desactivar la repetición"
+      "repeatOff": "Activar repetición",
+      "repeatAll": "Repetir una pista",
+      "repeatOne": "Desactivar repetición"
     },
     "volume": {
       "label": "Volumen",
-      "mute": "Silenciar el sonido",
-      "unmute": "Activar el sonido"
+      "mute": "Silenciar",
+      "unmute": "Quitar silencio"
     },
     "speed": {
       "label": "Velocidad de reproducción ({{value}})",
       "title": "Velocidad de reproducción",
       "slider": "Control de velocidad",
       "custom": "Velocidad personalizada",
-      "pitchHint": "El tono sigue la velocidad (sin time-stretching)."
+      "pitchHint": "El tono sigue a la velocidad (sin time-stretching)."
     },
     "seek": "Posición"
   },
   "queue": {
     "title": "Cola de reproducción",
-    "inactive": "INACTIVO",
+    "inactive": "INACTIVA",
     "count_zero": "0 pistas",
     "count_one": "{{count}} pista",
-    "count_other": "{{count}} trozos",
-    "emptyTitle": "No hay nada que escuchar",
-    "emptyDescription": "Reproduce una canción de tu biblioteca para completar la cola.",
-    "nowPlaying": "En curso",
-    "upNext_zero": "Próximamente",
-    "upNext_one": "Próximo · Pista «{{count}}»",
-    "upNext_other": "Siguiente - {{count}} pistas",
+    "count_other": "{{count}} pistas",
+    "emptyTitle": "Nada que escuchar",
+    "emptyDescription": "Reproduce una pista desde tu biblioteca para llenar la cola.",
+    "nowPlaying": "Reproduciendo ahora",
+    "upNext_zero": "A continuación",
+    "upNext_one": "A continuación · {{count}} pista",
+    "upNext_other": "A continuación · {{count}} pistas",
     "radio": {
       "label": "Radio",
       "basedOn": "Basada en «{{title}}»"
     }
   },
   "spotifyQueue": {
-    "emptyHint": "No hay nada en la cola de Spotify por ahora.",
-    "readonlyHint": "Cola de solo lectura — modifícala desde la app de Spotify."
+    "emptyHint": "Nada en la cola de Spotify ahora mismo.",
+    "readonlyHint": "Cola de solo lectura — gestiónala desde la app de Spotify."
   },
   "deviceMenu": {
     "activeLabel": "Salida activa",
     "loading": "Buscando dispositivos…",
-    "empty": "No hay ningún dispositivo de salida disponible",
-    "systemDefault": "Por defecto"
+    "empty": "No hay dispositivos de salida disponibles",
+    "systemDefault": "Predeterminado del sistema"
   },
   "profiles": {
     "select": {
       "title": "¿Quién está escuchando?",
-      "subtitle": "Selecciona tu perfil para encontrar tus bibliotecas y listas de reproducción",
+      "subtitle": "Selecciona tu perfil para acceder a tus bibliotecas y listas",
       "add": "Añadir",
       "edit": "Editar",
       "active": "Perfil activo",
@@ -647,37 +722,53 @@
       "title": "Nuevo perfil",
       "subtitle": "Crea un perfil para personalizar tu experiencia",
       "nameLabel": "Nombre del perfil",
-      "namePlaceholder": "Escribe un nombre...",
+      "namePlaceholder": "Introduce un nombre…",
       "colorLabel": "Color del perfil",
-      "colorAria": "Color{{color}}",
-      "submit": "Crear el perfil"
+      "colorAria": "Color {{color}}",
+      "submit": "Crear perfil"
+    },
+    "manage": {
+      "toggle": "Gestionar",
+      "done": "Listo",
+      "title": "Gestionar perfiles",
+      "subtitle": "Selecciona un perfil para eliminarlo. El perfil activo no se puede eliminar desde aquí.",
+      "activeLocked": "Perfil activo",
+      "deleteHint": "Toca para eliminar",
+      "deleteAria": "Eliminar perfil {{name}}"
+    },
+    "delete": {
+      "title": "¿Eliminar {{name}}?",
+      "subtitle": "Este perfil se eliminará de forma permanente.",
+      "warning": "Se perderán todas las bibliotecas, listas de reproducción y el historial de escucha de este perfil. Esta acción no se puede deshacer.",
+      "submit": "Eliminar perfil",
+      "submitting": "Eliminando…"
     }
   },
   "libraryModal": {
     "title": "Crear una biblioteca",
-    "editTitle": "Modificar la biblioteca",
+    "editTitle": "Editar la biblioteca",
     "previewDefault": "Crear una biblioteca",
     "previewSubtitle": "0 pistas · Biblioteca",
     "nameLabel": "Nombre de la biblioteca",
-    "namePlaceholder": "Por ejemplo: rock, jazz, música clásica...",
+    "namePlaceholder": "p. ej. Rock, Jazz, Clásica…",
     "descriptionLabel": "Descripción",
-    "descriptionPlaceholder": "Una breve descripción...",
+    "descriptionPlaceholder": "Una breve descripción…",
     "submit": "Crear una biblioteca",
     "submitEdit": "Guardar"
   },
   "playlistModal": {
     "title": "Nueva lista de reproducción",
-    "editTitle": "Modificar la lista de reproducción",
+    "editTitle": "Editar la lista de reproducción",
     "previewDefault": "Nueva lista de reproducción",
     "previewSubtitle": "0 pistas · Lista de reproducción",
     "nameLabel": "Nombre",
-    "namePlaceholder": "Ej.: Chill Vibes, Workout Mix...",
+    "namePlaceholder": "p. ej. Chill Vibes, Workout Mix…",
     "descriptionLabel": "Descripción",
-    "descriptionPlaceholder": "Una breve descripción...",
+    "descriptionPlaceholder": "Una breve descripción…",
     "colorLabel": "Color",
-    "colorAria": "Color{{color}}",
+    "colorAria": "Color {{color}}",
     "iconLabel": "Icono",
-    "iconAria": "Icono{{icon}}",
+    "iconAria": "Icono {{icon}}",
     "submit": "Crear",
     "editSubmit": "Guardar",
     "coverChoose": "Elegir foto",
@@ -691,51 +782,51 @@
     "badge": "Lista de reproducción",
     "trackCount_zero": "0 pistas",
     "trackCount_one": "{{count}} pista",
-    "trackCount_other": "{{count}} títulos",
+    "trackCount_other": "{{count}} pistas",
     "actions": {
       "play": "Reproducir",
       "shuffle": "Aleatorio",
-      "edit": "Modificar la lista de reproducción",
-      "exportM3u": "Exportar a M3U",
+      "edit": "Editar la lista de reproducción",
+      "exportM3u": "Exportar como M3U",
       "delete": "Eliminar la lista de reproducción",
       "deleteConfirm": "Haz clic de nuevo para confirmar"
     },
     "export": {
-      "dialogTitle": "Exportar la lista de reproducción en formato M3U"
+      "dialogTitle": "Exportar la lista de reproducción como M3U"
     },
-    "emptyTitle": "Esta lista de reproducción está vacía",
-    "emptyDescription": "Añade canciones desde tus bibliotecas mediante el botón «+» de cada fila.",
-    "noneTitle": "No hay ninguna lista de reproducción seleccionada",
-    "noneDescription": "Elige una lista de reproducción en la barra lateral para verla aquí.",
-    "notFoundTitle": "No se encuentra la lista de reproducción",
-    "notFoundDescription": "Esta lista de reproducción ya no existe en el perfil activo.",
+    "emptyTitle": "Esta lista está vacía",
+    "emptyDescription": "Añade pistas desde tus bibliotecas usando el botón + de cada fila.",
+    "noneTitle": "Ninguna lista seleccionada",
+    "noneDescription": "Selecciona una lista en la barra lateral para verla aquí.",
+    "notFoundTitle": "Lista no encontrada",
+    "notFoundDescription": "Esta lista ya no existe en el perfil activo.",
     "smartLabel": "Daily Mix"
   },
   "trackActions": {
-    "addToPlaylist": "Añadir a una lista de reproducción",
-    "noPlaylists": "No hay ninguna lista de reproducción. Crea una a continuación.",
-    "createPlaylist": "Nueva lista de reproducción",
-    "playNext": "Reproducir siguiente",
+    "addToPlaylist": "Añadir a una lista",
+    "noPlaylists": "Sin listas. Crea una abajo.",
+    "createPlaylist": "Nueva lista",
+    "playNext": "Reproducir a continuación",
     "addToQueue": "Añadir a la cola",
-    "like": "Añadir a los títulos que me gustan",
-    "unlike": "Eliminar publicaciones a las que se ha dado «Me gusta»",
-    "removeFromPlaylist": "Eliminar de esta lista de reproducción",
+    "like": "Añadir a Me gusta",
+    "unlike": "Quitar de Me gusta",
+    "removeFromPlaylist": "Quitar de esta lista",
     "goToAlbum": "Ir al álbum",
     "goToArtist": "Ir al artista",
-    "showInExplorer": "Mostrar en el explorador",
-    "copyPath": "Copiar la ruta del archivo",
+    "showInExplorer": "Mostrar en el Explorador",
+    "copyPath": "Copiar ruta del archivo",
     "properties": "Propiedades",
-    "startRadio": "Iniciar la radio",
+    "startRadio": "Iniciar radio",
     "rating": "Valoración",
     "ratingNone": "Sin valoración",
-    "batchEdit": "Editar etiquetas de {{count}} canciones…",
-    "addToPlaylistNamed": "Añadir a \"{{name}}\"",
-    "removeFromPlaylistNamed": "Quitar de \"{{name}}\""
+    "batchEdit": "Editar etiquetas de {{count}} pistas…",
+    "addToPlaylistNamed": "Añadir a «{{name}}»",
+    "removeFromPlaylistNamed": "Quitar de «{{name}}»"
   },
   "batchTagEdit": {
     "title": "Editar etiquetas en lote",
-    "subtitle": "{{count}} canciones seleccionadas",
-    "help": "Marca los campos que quieres propagar a toda la selección. Los campos sin marcar se mantienen por canción.",
+    "subtitle": "{{count}} pistas seleccionadas",
+    "help": "Marca los campos que quieres aplicar a todas las pistas. Los campos sin marcar quedan intactos por pista.",
     "submit": "Aplicar ({{count}} campo(s))",
     "fields": {
       "artist": "Artista",
@@ -744,13 +835,13 @@
       "genre": "Género"
     },
     "placeholders": {
-      "artist": "ej. Daft Punk, Justice",
+      "artist": "p. ej. Daft Punk, Justice",
       "album": "Nombre del álbum",
-      "year": "ej. 2026",
-      "genre": "ej. Electrónica"
+      "year": "p. ej. 2026",
+      "genre": "p. ej. Electrónica"
     },
     "result": {
-      "updated": "{{count}} canción(es) actualizada(s)",
+      "updated": "{{count}} pista(s) actualizada(s)",
       "failed": "{{count}} fallo(s):"
     }
   },
@@ -763,25 +854,25 @@
       "file": "Archivo"
     },
     "bpm": "BPM",
-    "loudness": "Volumen",
+    "loudness": "Sonoridad",
     "replayGain": "ReplayGain",
     "peak": "Pico",
     "analyze": "Analizar",
     "reanalyze": "Volver a analizar",
-    "analyzing": "Análisis…",
+    "analyzing": "Analizando…",
     "year": "Año",
     "trackNumber": "Número de pista",
     "duration": "Duración",
     "codec": "Códec",
-    "bitDepth": "Profundidad",
-    "sampleRate": "Muestreo",
+    "bitDepth": "Profundidad de bits",
+    "sampleRate": "Frecuencia de muestreo",
     "channels": "Canales",
-    "bitrate": "Caudal",
+    "bitrate": "Tasa de bits",
     "key": "Tonalidad",
     "fileSize": "Tamaño",
     "addedAt": "Añadido el",
-    "filePath": "Camino",
-    "showInExplorer": "Mostrar en el explorador",
+    "filePath": "Ruta",
+    "showInExplorer": "Mostrar en el Explorador",
     "mono": "Mono",
     "stereo": "Estéreo",
     "edit": "Editar",
@@ -796,18 +887,18 @@
       "genre": "Género",
       "genrePlaceholder": "Pop, Rock, Jazz…"
     },
-    "changeCover": "Cambiar carátula"
+    "changeCover": "Cambiar portada"
   },
   "selection": {
     "toolbarLabel": "Acciones de selección",
-    "count_zero": "0 seleccionados",
-    "count_one": "{{count}} seleccionado",
-    "count_other": "{{count}} seleccionados",
+    "count_zero": "0 seleccionadas",
+    "count_one": "{{count}} seleccionada",
+    "count_other": "{{count}} seleccionadas",
     "play": "Reproducir",
     "addToQueue": "Añadir a la cola",
-    "playNext": "Reproducir siguiente",
-    "addToPlaylist": "Añadir a una lista de reproducción",
-    "removeFromPlaylist": "Eliminar de la lista de reproducción",
+    "playNext": "Reproducir a continuación",
+    "addToPlaylist": "Añadir a una lista",
+    "removeFromPlaylist": "Quitar de la lista",
     "clear": "Deseleccionar"
   },
   "albumDetail": {
@@ -816,29 +907,29 @@
     "shuffle": "Aleatorio",
     "trackCount_zero": "0 pistas",
     "trackCount_one": "{{count}} pista",
-    "trackCount_other": "{{count}} títulos",
-    "discHeader": "Álbum{{number}}",
-    "releaseDate": "Salida",
+    "trackCount_other": "{{count}} pistas",
+    "discHeader": "Disco {{number}}",
+    "releaseDate": "Fecha de lanzamiento",
     "emptyTitle": "Álbum no encontrado",
-    "emptyDescription": "Este álbum ya no aparece en el perfil activo.",
-    "emptyTracksTitle": "Ninguna canción",
-    "emptyTracksDescription": "Este álbum no contiene ninguna canción disponible."
+    "emptyDescription": "Este álbum ya no está disponible en el perfil activo.",
+    "emptyTracksTitle": "Sin pistas",
+    "emptyTracksDescription": "Este álbum no contiene pistas disponibles."
   },
   "artistDetail": {
     "badge": "Artista",
     "playAll": "Reproducir todo",
     "shuffle": "Aleatorio",
     "discography": "Discografía",
-    "allTracks": "Todos los títulos",
+    "allTracks": "Todas las pistas",
     "trackCount_zero": "0 pistas",
     "trackCount_one": "{{count}} pista",
-    "trackCount_other": "{{count}} títulos",
+    "trackCount_other": "{{count}} pistas",
     "albumCount_zero": "0 álbumes",
     "albumCount_one": "{{count}} álbum",
     "albumCount_other": "{{count}} álbumes",
     "albumTrackCount_zero": "0 pistas",
     "albumTrackCount_one": "{{count}} pista",
-    "albumTrackCount_other": "{{count}} títulos",
+    "albumTrackCount_other": "{{count}} pistas",
     "emptyTitle": "Artista no encontrado",
     "emptyDescription": "Este artista ya no figura en el perfil activo.",
     "bio": {
@@ -847,13 +938,13 @@
     "similar": {
       "title": "Artistas similares",
       "inLibrary": "En tu biblioteca",
-      "notInLibrary": "Fuera de tu biblioteca"
+      "notInLibrary": "No está en tu biblioteca"
     }
   },
   "artistImagePicker": {
     "title": "Cambiar imagen del artista",
-    "editAria": "Cambiar la foto del artista",
-    "removeAction": "Eliminar imagen",
+    "editAria": "Cambiar foto del artista",
+    "removeAction": "Quitar imagen",
     "fansCount_one": "{{display}} fan",
     "fansCount_other": "{{display}} fans"
   },
@@ -861,58 +952,64 @@
     "badge": "Género",
     "playAll": "Reproducir todo",
     "shuffle": "Aleatorio",
-    "trackCount_zero": "0 canciones",
-    "trackCount_one": "{{count}} canción",
-    "trackCount_other": "{{count}} canciones",
+    "trackCount_zero": "0 pistas",
+    "trackCount_one": "{{count}} pista",
+    "trackCount_other": "{{count}} pistas",
     "emptyTitle": "Género no encontrado",
     "emptyDescription": "Este género ya no existe en el perfil activo.",
-    "emptyTracksTitle": "Sin canciones",
-    "emptyTracksDescription": "Este género no contiene canciones disponibles."
+    "emptyTracksTitle": "Sin pistas",
+    "emptyTracksDescription": "Este género no contiene pistas disponibles."
   },
   "nowPlaying": {
-    "title": "Reproduciendo",
-    "empty": "No se está reproduciendo ninguna pista",
-    "aboutArtist": "Acerca del artista",
+    "title": "Reproduciendo ahora",
+    "empty": "Ninguna pista en reproducción",
+    "aboutArtist": "Sobre el artista",
     "readMore": "Leer más",
-    "readLess": "Reducir",
-    "noBio": "No hay biografía disponible. Configura tu clave «Last.fm» en los ajustes.",
+    "readLess": "Mostrar menos",
+    "noBio": "Biografía no disponible. Configura tu clave de Last.fm en la configuración.",
     "nextInQueue": "Siguiente en la cola",
-    "openQueue": "Abrir cola",
+    "openQueue": "Abrir la cola",
     "lyrics": {
-      "title": "Letra",
-      "comingSoon": "Próximamente disponible"
+      "title": "Letras",
+      "comingSoon": "Próximamente"
     },
-    "startRadio": "Iniciar la radio",
+    "startRadio": "Iniciar radio",
     "share": {
       "open": "Compartir",
       "save": "Guardar como PNG",
       "copy": "Copiar imagen",
-      "eyebrow": "Escuchando ahora",
+      "eyebrow": "Reproduciendo ahora",
       "on": "en"
     }
   },
   "playerBar": {
-    "lyrics": "Letra",
-    "nowPlaying": "Mostrar en reproducción",
+    "lyrics": "Letras",
+    "nowPlaying": "Mostrar reproducción actual",
     "queue": "Cola",
-    "miniPlayer": "Mini-reproductor (siempre encima)",
+    "miniPlayer": "Mini reproductor (siempre encima)",
     "previous": "Pista anterior",
     "next": "Pista siguiente",
+    "openFullscreen": "Vista inmersiva",
     "devices": "Dispositivos de salida",
     "moreActions": "Más acciones",
-    "abLoop": "Bucle A-B"
+    "abLoop": "Bucle A-B",
+    "eqPreset": "Ecualizador",
+    "eq": {
+      "bypass": "Activar EQ"
+    },
+    "toggleNowPlayingPanel": "Mostrar / ocultar Reproduciendo"
   },
   "miniPlayer": {
-    "idle": "Sin pista en reproducción",
+    "idle": "Ninguna pista en reproducción",
     "maximize": "Restaurar ventana principal",
     "like": "Me gusta",
     "pin": "Siempre encima",
-    "close": "Cerrar mini-reproductor"
+    "close": "Cerrar mini reproductor"
   },
   "sleepTimer": {
-    "title": "Temporizador de apagado",
+    "title": "Temporizador",
     "endOfTrack": "Al final de la pista actual",
-    "endOfTrackBadge": "FIN",
+    "endOfTrackBadge": "Fin",
     "cancel": "Cancelar",
     "start": "OK",
     "customPlaceholder": "Min.",
@@ -921,59 +1018,59 @@
     "minutes_other": "{{count}} min"
   },
   "lyrics": {
-    "title": "Letra",
-    "loading": "Buscando la letra…",
-    "noTrack": "No se está reproduciendo ninguna pista",
+    "title": "Letras",
+    "loading": "Buscando letras…",
+    "noTrack": "Ninguna pista en reproducción",
     "notFound": "No se han encontrado letras para esta pista. Puedes importar un archivo .lrc.",
     "importTitle": "Importar un archivo .lrc",
     "actions": {
       "import": "Importar un archivo .lrc",
-      "refetch": "Reanudar la búsqueda",
-      "clear": "Borrar la letra",
+      "refetch": "Volver a buscar",
+      "clear": "Borrar letras",
       "fullscreen": "Pantalla completa",
-      "edit": "Editar la letra"
+      "edit": "Editar letras"
     },
     "source": {
-      "embedded": "Letra incluida en el archivo",
+      "embedded": "Letras incrustadas en el archivo",
       "lrc_file": "Archivo .lrc importado",
       "api": "LRCLIB",
-      "manual": "Introducción manual"
+      "manual": "Entrada manual"
     },
     "format": {
-      "lrc": "Sincronizado",
-      "enhanced_lrc": "Sincronizado palabra a palabra",
-      "ttml": "TTML palabra a palabra",
+      "lrc": "Sincronizadas",
+      "enhanced_lrc": "Sincronizadas palabra por palabra",
+      "ttml": "TTML palabra por palabra",
       "plain": "Sin sincronizar"
     },
     "toast": {
-      "tagWriteSkipped": "TTML guardado solo en caché (no escrito en la etiqueta de audio)"
+      "tagWriteSkipped": "TTML guardado solo en caché (no se escribe en la etiqueta de audio)"
     }
   },
   "duplicates": {
     "title": "Duplicados detectados",
     "summary": "{{groups}} grupos · {{duplicates}} duplicados por eliminar",
-    "scanning": "Buscando…",
+    "scanning": "Escaneando…",
     "empty": "Sin duplicados",
     "emptyHint": "Tu biblioteca está limpia.",
-    "rescan": "Reanalizar",
+    "rescan": "Volver a escanear",
     "deleteOthers_zero": "Nada que eliminar",
     "deleteOthers_one": "Eliminar {{count}} duplicado",
     "deleteOthers_other": "Eliminar {{count}} duplicados",
     "keepAria": "Conservar {{title}}"
   },
   "dragDrop": {
-    "dropHint": "Soltar para importar",
+    "dropHint": "Suelta para importar",
     "importing": "Importando…",
     "subtitle": "Se aceptan carpetas o archivos de audio"
   },
   "abLoop": {
-    "setA": "Repetición A-B: fijar punto A en la posición actual",
-    "setB": "Repetición A-B: fijar punto B (A = {{a}})",
-    "armed": "Repetición A-B activa: {{a}} → {{b}} (clic para borrar)"
+    "setA": "Bucle A-B: marcar punto A en la posición actual",
+    "setB": "Bucle A-B: marcar punto B (A = {{a}})",
+    "armed": "Bucle A-B activo: {{a}} → {{b}} (haz clic para limpiar)"
   },
   "smartPlaylistEditor": {
-    "createTitle": "Nueva playlist inteligente",
-    "editTitle": "Editar playlist inteligente",
+    "createTitle": "Nueva lista inteligente",
+    "editTitle": "Editar lista inteligente",
     "create": "Crear",
     "preview": "Vista previa",
     "previewCount": "{{count}} pistas coinciden",
@@ -987,16 +1084,16 @@
       "year": "Año",
       "bpm": "BPM",
       "durationMin": "Duración en minutos",
-      "hiRes": "Solo Hi-Res",
-      "liked": "Solo favoritas",
+      "hiRes": "Solo Alta resolución",
+      "liked": "Solo pistas con Me gusta",
       "formats": "Formatos",
       "genres": "Géneros",
       "sort": "Ordenar por",
-      "limit": "Máx. pistas",
+      "limit": "Máx. de pistas",
       "minRating": "Valoración mínima"
     },
     "placeholders": {
-      "name": "Mis favoritas 2024",
+      "name": "Mis favoritas de 2024",
       "description": "Opcional",
       "noLimit": "Sin límite"
     },
@@ -1007,8 +1104,8 @@
       "output": "Orden y límite"
     },
     "sortOptions": {
-      "addedDesc": "Añadido recientemente",
-      "addedAsc": "Añadido antiguo",
+      "addedDesc": "Añadidas recientemente",
+      "addedAsc": "Añadidas más antiguas",
       "yearDesc": "Año (descendente)",
       "yearAsc": "Año (ascendente)",
       "titleAsc": "Título (A → Z)",
@@ -1022,24 +1119,24 @@
       "or": "O",
       "not": "NO",
       "toggleOpHint": "Cambiar Y ↔ O",
-      "matchAllEmpty": "(toda la biblioteca)",
-      "matchNoneEmpty": "(sin pistas)",
+      "matchAllEmpty": "(biblioteca completa)",
+      "matchNoneEmpty": "(ninguna pista)",
       "childCount_zero": "vacío",
       "childCount_one": "{{count}} condición",
       "childCount_other": "{{count}} condiciones",
-      "notHint": "Excluye lo que coincida con el hijo",
+      "notHint": "Excluye todo lo que coincida con el hijo",
       "deleteNode": "Eliminar",
       "addCondition": "Condición",
       "addGroupAnd": "Grupo Y",
       "addGroupOr": "Grupo O",
       "addNot": "NO",
       "contains": "Contiene…",
-      "pickGenre": "Elegir un género…"
+      "pickGenre": "Elige un género…"
     },
     "predicates": {
-      "titleContains": "Título contiene",
-      "artistContains": "Artista contiene",
-      "albumContains": "Álbum contiene",
+      "titleContains": "El título contiene",
+      "artistContains": "El artista contiene",
+      "albumContains": "El álbum contiene",
       "genreIs": "Género =",
       "yearMin": "Año ≥",
       "yearMax": "Año ≤",
@@ -1048,31 +1145,31 @@
       "durationMinMs": "Duración (ms) ≥",
       "durationMaxMs": "Duración (ms) ≤",
       "format": "Formato =",
-      "hiRes": "Hi-Res",
-      "liked": "Me gusta",
-      "ratingMin": "Puntuación ≥"
+      "hiRes": "Alta resolución",
+      "liked": "Con Me gusta",
+      "ratingMin": "Valoración ≥"
     }
   },
   "lyricsEditor": {
-    "title": "Editor de letra",
+    "title": "Editor de letras",
     "tabs": {
       "plain": "Texto",
       "synced": "Sincronizado"
     },
-    "plainPlaceholder": "Escribe la letra línea por línea…",
+    "plainPlaceholder": "Escribe las letras línea por línea…",
     "linePlaceholder": "Texto de la línea",
     "capture": "Capturar",
-    "captureHint": "Inicia la reproducción y pulsa Espacio (o Capturar) para fijar la línea actual al tiempo actual",
+    "captureHint": "Inicia la reproducción y pulsa Espacio (o Capturar) para anclar la línea actual a la posición de reproducción",
     "captureNow": "Capturar ahora",
-    "recapture": "Volver a fijar a la posición actual",
-    "seekToLine": "Ir a esta línea",
-    "insertBelow": "Insertar una línea debajo",
+    "recapture": "Volver a anclar a la posición actual",
+    "seekToLine": "Saltar a esta línea",
+    "insertBelow": "Insertar línea debajo",
     "removeLine": "Eliminar línea",
-    "lines": "líneas fijadas",
+    "lines": "líneas ancladas",
     "writeToFile": "Escribir también en el archivo de audio (USLT/LYRICS)",
     "offset": {
       "label": "Desplazamiento global",
-      "help": "Desplaza todas las líneas capturadas por el mismo delta — útil para corregir archivos LRC importados que están adelantados o retrasados de manera uniforme",
+      "help": "Desplaza todas las líneas capturadas el mismo delta — útil para arreglar archivos LRC importados que llegan uniformemente antes o después",
       "reset": "Restablecer desplazamiento"
     },
     "granularity": {
@@ -1080,8 +1177,8 @@
       "line": "Línea por línea",
       "word": "Palabra por palabra"
     },
-    "captureHintWord": "Espacio = palabra siguiente · Intro = línea siguiente · Retroceso = deshacer última palabra",
-    "notCaptured": "Sin marcar"
+    "captureHintWord": "Espacio = siguiente palabra · Intro = siguiente línea · Retroceso = deshacer última palabra",
+    "notCaptured": "No capturada"
   },
   "sort": {
     "title": "Título",
@@ -1089,38 +1186,69 @@
     "album": "Álbum",
     "duration": "Duración",
     "year": "Año",
-    "addedAt": "Añadido recientemente",
-    "rating": "Nota",
+    "addedAt": "Añadidas recientemente",
+    "rating": "Valoración",
+    "customOrder": "Orden personalizado",
+    "recentlyAdded": "Añadidas recientemente",
+    "menuTitle": "Ordenar por",
     "name": "Nombre",
-    "albumsCount": "N.º de álbumes",
-    "tracksCount": "N.º de canciones",
+    "albumsCount": "Número de álbumes",
+    "tracksCount": "Número de pistas",
     "ascending": "Ascendente",
     "descending": "Descendente",
-    "filename": "Nombre del archivo"
+    "filename": "Nombre de archivo"
   },
   "settings": {
     "title": "Configuración",
     "sections": {
       "general": "General",
-      "appearance": "Apariencia",
+      "library": "Biblioteca",
       "playback": "Reproducción",
       "integrations": "Integraciones",
+      "appearance": "Apariencia",
       "storage": "Almacenamiento y datos",
-      "diagnostics": "Diagnósticos"
+      "data": "Datos",
+      "shortcuts": "Atajos de teclado",
+      "diagnostics": "Diagnóstico"
+    },
+    "shortcuts": {
+      "subtitle": "Haz clic en un atajo y pulsa la combinación de teclas que quieras. Retroceso para borrar, Esc para cancelar.",
+      "captureHint": "Pulsa una tecla…",
+      "reset": "Restablecer todo",
+      "unbind": "Desvincular",
+      "unbound": "Ninguno",
+      "actions": {
+        "togglePlayback": "Reproducir / Pausar",
+        "next": "Pista siguiente",
+        "previous": "Pista anterior",
+        "volumeUp": "Subir volumen",
+        "volumeDown": "Bajar volumen",
+        "toggleMute": "Silenciar / Quitar silencio",
+        "toggleShuffle": "Reproducción aleatoria",
+        "cycleRepeat": "Cambiar modo de repetición",
+        "toggleQueue": "Mostrar/ocultar panel de cola",
+        "toggleNowPlaying": "Mostrar/ocultar panel «Reproduciendo ahora»",
+        "toggleLyrics": "Mostrar/ocultar panel de letras",
+        "toggleLike": "Me gusta / Quitar Me gusta a la pista actual"
+      }
+    },
+    "offlineMode": {
+      "title": "Modo sin conexión",
+      "subtitle": "Desactiva Last.fm, Deezer y LRCLIB. Solo se usan datos en caché."
     },
     "integrations": {
       "lastfm": {
         "title": "Last.fm",
-        "subtitle": "Biografías de artistas y scrobbling. Crear una clave en last.fm/api/account/create",
+        "subtitle": "Biografías de artistas y scrobbling. Crea una clave en last.fm/api/account/create",
         "placeholder": "Clave API",
-        "secretPlaceholder": "Un secreto compartido",
+        "secretPlaceholder": "Secreto compartido",
         "save": "Guardar",
-        "saved": "Registrado ✓",
+        "saved": "Guardado ✓",
         "show": "Mostrar",
         "hide": "Ocultar",
-        "connectedAs": "Iniciado sesión como",
+        "connectedAs": "Conectado como",
         "disconnect": "Cerrar sesión",
-        "loginPrompt": "Inicia sesión para registrar lo que escuchas:",
+        "loginPrompt": "Inicia sesión para scrobblear tus reproducciones:",
         "usernamePlaceholder": "Nombre de usuario",
         "passwordPlaceholder": "Contraseña",
         "connect": "Iniciar sesión",
@@ -1128,23 +1256,23 @@
       },
       "discord": {
         "title": "Discord Rich Presence",
-        "subtitle": "Mostrar la canción en reproducción en tu perfil de Discord"
+        "subtitle": "Muestra la pista en reproducción en tu perfil de Discord"
       },
       "dlna": {
         "title": "Servidor DLNA / UPnP",
-        "subtitle": "Transmite tu biblioteca a los amplificadores y dispositivos compatibles de tu red local",
+        "subtitle": "Transmite tu biblioteca a amplificadores y dispositivos compatibles de la red local",
         "serverName": "Nombre",
         "port": "Puerto",
         "portHint": "0 = puerto automático",
-        "statusRunning": "Activo",
+        "statusRunning": "En ejecución",
         "statusStopped": "Detenido",
         "copyUrl": "Copiar URL"
       },
       "spotify": {
         "title": "Spotify",
         "subtitle": "Conecta Spotify Premium con tu propio Client ID de Spotify Developer.",
-        "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "Añade este Redirect URI en Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
+        "clientIdPlaceholder": "Client ID de Spotify",
+        "redirectHint": "Añade esta Redirect URI en el Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
         "connectedAs": "Conectado como",
         "disconnect": "Desconectar",
         "connecting": "Conectando…",
@@ -1152,143 +1280,171 @@
       }
     },
     "crossfade": {
-      "title": "Fundido encadenado",
-      "subtitle": "Transición fluida entre las canciones (próximamente)"
-    },
-    "dynamicCrossfade": {
-      "title": "Fundido dinámico",
-      "subtitle": "Ajusta la duración del fundido según la diferencia de tempo entre los temas (vuelve al fundido fijo si se desconoce el BPM)"
+      "title": "Crossfade",
+      "subtitle": "Transiciones fluidas entre pistas (próximamente)"
     },
     "normalize": {
-      "title": "Ajustar el volumen",
-      "subtitle": "Reducir el volumen de los fragmentos demasiado altos para conseguir un nivel homogéneo"
+      "title": "Normalizar volumen",
+      "subtitle": "Baja el volumen de las pistas demasiado fuertes para mantener un nivel constante"
     },
     "replayGain": {
       "title": "Aplicar ReplayGain",
-      "subtitle": "Utiliza la ganancia analizada de cada pista para equilibrar el volumen percibido"
+      "subtitle": "Usa la ganancia analizada de cada pista para equilibrar el volumen percibido"
     },
     "exclusive": {
       "title": "Modo exclusivo WASAPI (Windows)",
-      "subtitle": "Bit-perfect: omite el mezclador de Windows para una salida sin interferencias. Vuelve al modo compartido si el dispositivo rechaza la exclusividad.",
-      "fallback": "El dispositivo no acepta el modo exclusivo. Volviendo al modo compartido."
+      "subtitle": "Bit-perfect: omite el mezclador de Windows para una salida sin interferencias. Recurre al modo compartido si el dispositivo rechaza el acceso exclusivo.",
+      "fallback": "El dispositivo no acepta el modo exclusivo. Recurriendo al modo compartido."
     },
     "mono": {
       "title": "Audio mono",
-      "subtitle": "Combina los canales izquierdo y derecho en una sola señal"
+      "subtitle": "Mezcla los canales izquierdo y derecho en una sola señal"
     },
     "language": {
       "title": "Idioma",
       "subtitle": "Idioma de la interfaz"
     },
     "autoStart": {
-      "title": "Inicio al arrancar",
-      "subtitle": "Iniciar WaveFlow automáticamente al arrancar el sistema"
+      "title": "Iniciar con el sistema",
+      "subtitle": "Inicia WaveFlow automáticamente al arrancar el sistema"
     },
     "minimizeToTray": {
-      "title": "Minimizar en la barra de tareas",
-      "subtitle": "Al cerrar la ventana, la aplicación se minimiza en la bandeja del sistema"
+      "title": "Minimizar a la bandeja del sistema",
+      "subtitle": "Al cerrar la ventana, la aplicación se minimiza a la bandeja del sistema"
     },
     "scanOnStart": {
-      "title": "Escanear al iniciar el sistema",
-      "subtitle": "Volver a escanear automáticamente las bibliotecas al iniciar la aplicación"
+      "title": "Escanear al iniciar",
+      "subtitle": "Vuelve a escanear las bibliotecas automáticamente al iniciar"
     },
     "singleClickPlay": {
       "title": "Reproducción con un solo clic",
-      "subtitle": "Haz clic en una pista para iniciar la reproducción (o haz doble clic)."
+      "subtitle": "Haz clic en una pista para iniciar la reproducción (si no, doble clic)"
     },
     "showSleepTimer": {
-      "title": "Anclar el temporizador en la barra",
-      "subtitle": "Desactivado, el temporizador sigue disponible desde el menú « … »"
+      "title": "Fijar el temporizador en la barra",
+      "subtitle": "Si está desactivado, el temporizador sigue disponible en el menú «…»"
     },
     "showAbLoop": {
-      "title": "Anclar el bucle A-B en la barra",
-      "subtitle": "Desactivado, el bucle A-B sigue disponible desde el menú « … »"
+      "title": "Fijar el bucle A-B en la barra",
+      "subtitle": "Si está desactivado, el bucle A-B sigue disponible en el menú «…»"
+    },
+    "showSpotify": {
+      "title": "Mostrar entrada de Spotify",
+      "subtitle": "Muestra el acceso directo a Spotify en la barra lateral"
     },
     "duplicates": {
       "title": "Detectar duplicados",
-      "subtitle": "Encuentra archivos idénticos (mismo blake3) en tu biblioteca",
+      "subtitle": "Encuentra archivos idénticos byte a byte (mismo blake3) en tu biblioteca",
       "action": "Buscar"
     },
     "rescan": {
       "title": "Volver a escanear la biblioteca",
-      "subtitle": "Revisar todas las carpetas e importar los archivos nuevos",
+      "subtitle": "Revisar todas las carpetas e importar archivos nuevos",
       "action": "Volver a escanear"
     },
     "analyze": {
       "title": "Analizar la biblioteca",
-      "subtitle": "Calcular el valor «BPM», el volumen sonoro y el pico para las canciones no analizadas",
+      "subtitle": "Calcular BPM, sonoridad y pico de las pistas no analizadas",
       "action": "Analizar",
       "autoTitle": "Análisis automático",
-      "autoSubtitle": "Ejecutar un análisis en segundo plano después de cada escaneo que añada nuevas pistas",
-      "failed_one": "{{count}} fracaso",
-      "failed_other": "{{count}} fracasos"
+      "autoSubtitle": "Lanzar el análisis en segundo plano tras cada escaneo que añada pistas nuevas",
+      "failed_one": "{{count}} fallo",
+      "failed_other": "{{count}} fallos"
     },
     "artistImages": {
       "title": "Imágenes de artistas",
-      "subtitle": "Descargar las carátulas de los artistas desde Deezer",
+      "subtitle": "Descarga las imágenes de los artistas desde Deezer",
       "action": "Recuperar",
       "progress": "{{current}}/{{total}} procesados"
     },
     "localArtistImages": {
       "title": "Imágenes locales de artistas",
-      "subtitle": "Busca un archivo artist.jpg (o <nombre>.jpg) junto a la música y lo usa como foto del artista.",
+      "subtitle": "Busca una artist.jpg (o <nombre>.jpg) junto a tu música y la usa como foto del artista.",
       "action": "Escanear",
       "done": "{{linked}} de {{considered}} artistas vinculados a una imagen local"
     },
+    "profileIo": {
+      "title": "Copia de seguridad del perfil",
+      "subtitle": "Exporta o importa un perfil completo (listas, Me gusta, estadísticas, EQ, atajos) como un único archivo .waveflow.",
+      "export": {
+        "action": "Exportar",
+        "dialogTitle": "Exportar perfil de WaveFlow",
+        "done": "Perfil exportado correctamente.",
+        "failed": "La exportación ha fallado. Consulta los logs."
+      },
+      "import": {
+        "action": "Importar",
+        "dialogTitle": "Importar perfil de WaveFlow",
+        "done": "Perfil importado (id {{id}}). Cámbiate a él desde el selector de perfiles.",
+        "failed": "La importación ha fallado. El archivo puede estar dañado o ser incompatible."
+      }
+    },
     "dataFolder": {
-      "title": "Archivo de datos",
-      "subtitle": "Abre la carpeta que contiene la base de datos y las carátulas",
+      "title": "Carpeta de datos",
+      "subtitle": "Abre la carpeta que contiene la base de datos y las portadas",
       "action": "Abrir"
     },
     "openDataFolder": "Abrir la carpeta de datos",
     "lyricsPrefetch": {
       "title": "Precargar letras",
-      "subtitle": "Descargar las letras de toda la biblioteca para uso sin conexión",
+      "subtitle": "Descarga las letras de toda la biblioteca para usarlas sin conexión",
       "result": "{{hits}} sincronizadas, {{misses}} no encontradas, {{failed}} fallidas",
-      "offline": "Modo sin conexión activado",
-      "failed": "Error al precargar",
+      "offline": "El modo sin conexión está activado",
+      "failed": "La precarga ha fallado",
       "action": "Precargar",
       "progress": "{{current}}/{{total}} procesadas · {{hits}} encontradas"
     },
-    "regenerateThumbnails": "Actualizar las miniaturas",
-    "regenerateThumbnailsSubtitle": "Reconstruir las variantes 1x/2x que faltan para todas las carátulas",
+    "regenerateThumbnails": "Regenerar miniaturas",
+    "regenerateThumbnailsSubtitle": "Reconstruye las variantes 1x/2x que faltan para todas las portadas",
     "regenerateThumbnailsAction": "Regenerar",
     "regenerateThumbnailsDone": "{{count}} miniaturas regeneradas",
     "reset": {
-      "title": "Restablecer la aplicación",
-      "subtitle": "Borrar todos los datos y restablecer la configuración de fábrica",
+      "title": "Restablecer la app",
+      "subtitle": "Borra todos los datos y restablece la configuración de fábrica",
       "action": "Restablecer"
     },
     "diagnostics": {
       "title": "Registro de la aplicación",
-      "subtitle": "Para informar de un error, abra la carpeta de registros o copie los registros recientes para pegarlos en un ticket.",
-      "openFolder": "Abra la carpeta",
-      "copyLogs": "Copiar registros",
-      "copied": "Registros copiados",
-      "copyFailed": "No se pueden copiar los registros"
+      "subtitle": "Para reportar un fallo, abre la carpeta de logs o copia los logs recientes y pégalos en un ticket.",
+      "openFolder": "Abrir carpeta",
+      "copyLogs": "Copiar logs",
+      "copied": "Logs copiados",
+      "copyFailed": "No se han podido copiar los logs"
+    },
+    "visualizer": {
+      "title": "Visualizador de audio",
+      "subtitle": "Muestra un espectro en tiempo real en la vista inmersiva (FFT ligero en el hilo del decoder)"
+    },
+    "smartCrossfade": {
+      "title": "Crossfade inteligente",
+      "subtitle": "Omite automáticamente el crossfade entre dos pistas del mismo álbum (ideal para discos conceptuales y sets en directo)"
+    },
+    "dynamicCrossfade": {
+      "title": "Crossfade dinámico",
+      "subtitle": "Ajusta la duración del crossfade según la diferencia de tempo entre las pistas (vuelve al crossfade fijo si el BPM es desconocido)"
     },
     "gapless": {
-      "title": "Reproducción sin pausas",
-      "subtitle": "Encadena los temas siguientes sin micro-silencio (ideal para directos y álbumes conceptuales)"
+      "title": "Reproducción gapless",
+      "subtitle": "Encadena pistas consecutivas sin micro-silencios (ideal para directos y discos conceptuales)"
     },
     "equalizer": {
       "title": "Ecualizador",
-      "subtitle": "Seis bandas peaking, ±12 dB. Arrastra los puntos para ajustar.",
-      "presets": "Preajustes",
+      "subtitle": "Seis bandas peaking, ±12 dB. Arrastra los puntos para dar forma a la curva.",
+      "presets": "Presets",
       "reset": "Restablecer",
       "preset": {
         "custom": "Personalizado",
         "flat": "Plano",
         "acoustic": "Acústico",
-        "bass_booster": "Refuerzo de graves",
-        "bass_reducer": "Reducción de graves",
-        "classical": "Clásico",
+        "bass_booster": "Potenciador de graves",
+        "bass_reducer": "Reductor de graves",
+        "classical": "Clásica",
         "dance": "Dance",
-        "deep": "Profundo",
+        "deep": "Deep",
         "electronic": "Electrónica",
         "hip_hop": "Hip-Hop",
         "jazz": "Jazz",
-        "latin": "Latino",
+        "latin": "Latina",
         "loudness": "Loudness",
         "lounge": "Lounge",
         "piano": "Piano",
@@ -1296,8 +1452,8 @@
         "rnb": "R&B",
         "rock": "Rock",
         "small_speakers": "Altavoces pequeños",
-        "spoken_word": "Voz hablada",
-        "treble_booster": "Refuerzo de agudos"
+        "spoken_word": "Spoken word",
+        "treble_booster": "Potenciador de agudos"
       }
     },
     "backup": {
@@ -1309,32 +1465,33 @@
       "retentionLabel": "Archivos conservados",
       "retentionKeep_one": "{{count}} archivo por perfil",
       "retentionKeep_other": "{{count}} archivos por perfil",
-      "includeMetadataArtworkLabel": "Incluir caché de imágenes Deezer",
-      "includeMetadataArtworkHint": "Copia de seguridad más grande, restauración totalmente sin conexión. Desactivar para archivos ligeros (el caché se volverá a descargar a petición).",
+      "includeMetadataArtworkLabel": "Incluir caché de portadas de Deezer",
+      "includeMetadataArtworkHint": "Copia más grande, restauración totalmente sin conexión. Desmarca para copias ligeras (la caché se vuelve a obtener bajo demanda).",
       "changeFolder": "Cambiar carpeta",
-      "pickFolderTitle": "Elige la carpeta de copias",
+      "pickFolderTitle": "Elige la carpeta de copia",
       "lastRun": "Última copia: {{when}}",
       "neverRun": "nunca",
       "runNow": "Hacer copia ahora",
       "runOk_one": "{{count}} archivo escrito.",
       "runOk_other": "{{count}} archivos escritos.",
       "errors": {
-        "loadFailed": "No se pudo cargar la configuración de copias.",
-        "saveFailed": "Error al guardar. Vuelve a intentarlo.",
-        "runFailed": "Falló la copia. Consulta los registros."
+        "loadFailed": "No se ha podido cargar la configuración de copia.",
+        "saveFailed": "No se ha podido guardar. Inténtalo de nuevo.",
+        "runFailed": "La copia ha fallado. Revisa los logs."
       }
     },
     "uiZoom": {
       "title": "Zoom de la interfaz",
-      "subtitle": "Escalar toda la interfaz (Ctrl+= / Ctrl+- / Ctrl+0 también funcionan)",
-      "decreaseAria": "Reducir zoom",
-      "increaseAria": "Aumentar zoom",
-      "resetAria": "Restablecer al 100 %"
+      "subtitle": "Escala toda la interfaz (Ctrl+= / Ctrl+- / Ctrl+0 también funcionan)",
+      "decreaseAria": "Alejar",
+      "increaseAria": "Acercar",
+      "resetAria": "Restablecer zoom al 100 %"
     },
     "showAudioQualityFooter": {
-      "title": "Mostrar tira de calidad de audio",
-      "subtitle": "Detalles técnicos (kHz, kbps, códec, profundidad) bajo la barra de reproducción. Desactivado por defecto para una barra más fina."
+      "title": "Mostrar barra de calidad de audio",
+      "subtitle": "Detalles técnicos (kHz, kbps, códec, profundidad de bits) bajo la barra del reproductor. Desactivado por defecto para una barra más estrecha."
     },
+    "categoryNavLabel": "Categorías de configuración",
     "appearance": {
       "theme": {
         "title": "Tema",
@@ -1356,29 +1513,67 @@
         "ocean": "Océano",
         "neon": "Neón"
       }
+    },
+    "playerBarLayout": {
+      "title": "Diseño de la barra de reproducción",
+      "subtitle": "Elige qué botones aparecen en la barra y qué hace al hacer clic en la carátula. La vista previa se actualiza al instante.",
+      "preview": "Vista previa",
+      "previewEmpty": "Sin botones — la barra solo mostrará la carátula y los controles de reproducción.",
+      "buttons": {
+        "abLoop": "Bucle A-B",
+        "sleepTimer": "Temporizador de apagado",
+        "eqPreset": "Ecualizador (preajustes)",
+        "lyrics": "Letras",
+        "queue": "Cola",
+        "device": "Salida de audio",
+        "miniPlayer": "Mini-reproductor",
+        "immersive": "Vista inmersiva",
+        "audioQualityFooter": "Franja de calidad de audio"
+      },
+      "coverAction": {
+        "title": "Al hacer clic en la carátula",
+        "immersive": {
+          "label": "Abrir la vista inmersiva",
+          "description": "Predeterminado — abre la pantalla completa con la carátula ampliada."
+        },
+        "nowPlaying": {
+          "label": "Mostrar el panel Reproduciendo",
+          "description": "Estilo Spotify — muestra u oculta el panel lateral derecho con la carátula y las letras."
+        },
+        "none": {
+          "label": "No hacer nada",
+          "description": "Desactiva el clic — útil si lo activas sin querer."
+        }
+      }
     }
   },
+  "spotify": {
+    "notConfiguredTitle": "Registra tu app de Spotify",
+    "notConfiguredMessage": "Spotify exige que toda app de terceros registre un Client ID gratuito antes de cualquier reproducción. Crea uno en el Spotify Developer Dashboard y luego pégalo en la Configuración de WaveFlow → Integraciones.",
+    "openDashboard": "Abrir Spotify Developer Dashboard",
+    "openSettings": "Abrir Configuración",
+    "notConnectedTitle": "Spotify no está conectado",
+    "notConnectedMessage": "Tu Client ID está configurado. Inicia sesión con tu cuenta Spotify Premium en la Configuración para cargar tus listas y reproducir música.",
+    "emptyPlaylist": "No hay pistas reproducibles en esta lista (Spotify puede no exponer archivos locales o listas que no sean tuyas).",
+    "deviceReady": "Dispositivo Spotify de WaveFlow listo",
+    "devicePending": "Preparando la reproducción de Spotify…",
+    "searchPlaceholder": "Buscar en Spotify",
+    "tracks": "Pistas",
+    "playlists": "Listas de reproducción"
+  },
   "scanProgress": {
-    "runningTitle": "Analizando biblioteca…",
+    "runningTitle": "Escaneando biblioteca…",
     "runningSubtitle": "{{current}} / {{total}} archivos",
-    "doneTitle": "Análisis completado",
+    "doneTitle": "Escaneo completado",
     "doneSubtitle": "{{added}} añadidos · {{updated}} actualizados · {{skipped}} omitidos"
   },
   "system": {
     "tray": {
-      "playPause": "Reproducir / Pausa",
+      "playPause": "Reproducir / Pausar",
       "previous": "Anterior",
       "next": "Siguiente",
       "show": "Abrir WaveFlow",
       "quit": "Salir"
     }
-  },
-  "spotify": {
-    "deviceReady": "Dispositivo Spotify WaveFlow listo",
-    "devicePending": "Preparando la reproducción de Spotify…",
-    "searchPlaceholder": "Buscar en Spotify",
-    "tracks": "Canciones",
-    "playlists": "Listas",
-    "emptyPlaylist": "No hay pistas disponibles en esta lista (Spotify puede no exponer los archivos locales o las playlists que no son tuyas)."
   }
 }

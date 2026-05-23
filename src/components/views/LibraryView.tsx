@@ -960,7 +960,10 @@ interface TrackTableProps {
   likedIds: Set<number>;
   onToggleLike: (trackId: number) => void;
   playlists: Playlist[];
-  onAddToPlaylist: (playlistId: number, trackId: number) => Promise<void> | void;
+  onAddToPlaylist: (
+    playlistId: number,
+    trackId: number,
+  ) => Promise<void> | void;
   onRemoveFromPlaylist: (
     playlistId: number,
     trackId: number,
@@ -1476,9 +1479,7 @@ function AddToPlaylistPopover({
           : undefined
       }
       className={`${
-        anchorEl
-          ? "z-100"
-          : "absolute top-full right-0 mt-1 z-50 w-56"
+        anchorEl ? "z-100" : "absolute top-full right-0 mt-1 z-50 w-56"
       } rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden animate-fade-in`}
     >
       <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-3 pt-3 pb-2">
@@ -1984,7 +1985,12 @@ function ArtistList({
             <FadeInImage
               src={artistPictureSrc}
               alt={artist.name}
-              wrapperClassName="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 shadow-sm group-hover:shadow-md transition-shadow"
+              // No violet border here on purpose — `rounded-full` + a
+              // 1 px violet border draws around the image clip, which
+              // reads as a visible halo on dark portraits (#106).
+              // The placeholder bg gradient is fine because `object-cover`
+              // fully covers it once the image decodes.
+              wrapperClassName="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 shadow-sm group-hover:shadow-md transition-shadow"
               placeholder={
                 <span className="text-5xl font-bold text-violet-500/70 dark:text-violet-400/60">
                   {artist.name.trim().charAt(0).toUpperCase() || "?"}

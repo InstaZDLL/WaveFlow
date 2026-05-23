@@ -2,8 +2,10 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { ProfileContext } from "../hooks/useProfile";
 import {
   createProfile as apiCreateProfile,
+  deleteProfile as apiDeleteProfile,
   getActiveProfile,
   listProfiles,
+  renameProfile as apiRenameProfile,
   switchProfile as apiSwitchProfile,
   type CreateProfileInput,
   type Profile,
@@ -91,6 +93,40 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
+  const deleteProfile = useCallback(
+    async (profileId: number) => {
+      try {
+        await apiDeleteProfile(profileId);
+        await refresh();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message);
+        throw err;
+      }
+    },
+    [refresh],
+  );
+
+  const renameProfile = useCallback(
+    async (profileId: number, name: string) => {
+      try {
+        const updated = await apiRenameProfile(profileId, name);
+        // Optimistic update so the sidebar/header reflect the new name
+        // before the next list fetch resolves.
+        setActiveProfile((current) =>
+          current && current.id === profileId ? updated : current,
+        );
+        await refresh();
+        return updated;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message);
+        throw err;
+      }
+    },
+    [refresh],
+  );
+
   return (
     <ProfileContext.Provider
       value={{
@@ -101,6 +137,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         refresh,
         switchProfile,
         createProfile,
+        deleteProfile,
+        renameProfile,
       }}
     >
       {children}

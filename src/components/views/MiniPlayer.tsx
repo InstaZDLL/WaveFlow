@@ -28,6 +28,7 @@ import { resolveArtwork } from "../../lib/tauri/artwork";
 import { dominantColor, darken, rgb } from "../../lib/dominantColor";
 import { listLikedTrackIds, toggleLikeTrack } from "../../lib/tauri/track";
 import { formatDuration } from "../../lib/tauri/track";
+import { setMiniPlayerBounds } from "../../lib/tauri/preferences";
 
 /**
  * Spotify-style always-on-top widget. Square cover floats centered
@@ -120,6 +121,58 @@ export function MiniPlayer() {
   }, [artworkUrl]);
 
   const gradient = `linear-gradient(160deg, ${rgb(bgColor)} 0%, ${rgb(darken(bgColor, 0.45))} 70%, ${rgb(darken(bgColor, 0.2))} 100%)`;
+
+  // ── Persist window bounds (position + size) ─────────────────────
+  // Debounced because onMoved / onResized fire continuously while the
+  // user drags or resizes — without this we'd hammer SQLite at 60 Hz.
+  // 300 ms after the last gesture is short enough that closing the
+  // window with Alt-F4 still captures the final position.
+  useEffect(() => {
+    const win = getCurrentWindow();
+    let timer: number | null = null;
+    let unlistenMoved: (() => void) | null = null;
+    let unlistenResized: (() => void) | null = null;
+
+    const scheduleSave = () => {
+      if (timer != null) window.clearTimeout(timer);
+      timer = window.setTimeout(async () => {
+        try {
+          const scale = await win.scaleFactor();
+          const pos = await win.outerPosition();
+          const size = await win.outerSize();
+          await setMiniPlayerBounds({
+            x: pos.x / scale,
+            y: pos.y / scale,
+            width: size.width / scale,
+            height: size.height / scale,
+          });
+        } catch (err) {
+          console.error("[MiniPlayer] persist bounds failed", err);
+        }
+      }, 300);
+    };
+
+    win
+      .onMoved(scheduleSave)
+      .then((fn) => {
+        unlistenMoved = fn;
+      })
+      .catch((err) => console.error("[MiniPlayer] onMoved listen failed", err));
+    win
+      .onResized(scheduleSave)
+      .then((fn) => {
+        unlistenResized = fn;
+      })
+      .catch((err) =>
+        console.error("[MiniPlayer] onResized listen failed", err),
+      );
+
+    return () => {
+      if (timer != null) window.clearTimeout(timer);
+      unlistenMoved?.();
+      unlistenResized?.();
+    };
+  }, []);
 
   // ── Window controls (always-on-top toggle persisted; close ≠ exit
   //    — we just close the mini window, the main app keeps running) ─

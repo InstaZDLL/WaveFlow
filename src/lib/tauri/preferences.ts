@@ -36,3 +36,21 @@ export function setUiZoom(zoom: number): Promise<void> {
  *  time it nudges the zoom, so the Settings card stays in sync
  *  without us having to plumb a context through. */
 export const UI_ZOOM_CHANGED_EVENT = "waveflow:ui-zoom-changed";
+
+/** Mini-player window bounds in logical pixels. Persisted as a single
+ *  JSON blob so the four fields move as one row — restoring half a
+ *  position is worse than restoring none of it. */
+export interface MiniPlayerBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export function getMiniPlayerBounds(): Promise<MiniPlayerBounds | null> {
+  return invoke<MiniPlayerBounds | null>("get_mini_player_bounds");
+}
+
+export function setMiniPlayerBounds(bounds: MiniPlayerBounds): Promise<void> {
+  return invoke<void>("set_mini_player_bounds", { bounds });
+}

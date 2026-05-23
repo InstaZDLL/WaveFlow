@@ -7,55 +7,122 @@
     "confirm": "Bevestigen",
     "open": "Openen",
     "optional": "(optioneel)",
-    "viewArtwork": "Hoes bekijken"
+    "viewArtwork": "Albumhoes bekijken"
   },
   "lastfmReauth": {
     "title": "Last.fm-sessie verlopen",
     "message": "Je scrobbles worden niet meer verzonden. Log opnieuw in om door te gaan.",
-    "action": "Open de instellingen"
+    "action": "Instellingen openen"
   },
   "updater": {
     "available": {
-      "title": "Update beschikbaar (versie {{version}})",
-      "message": "Er staat een nieuwe versie van WaveFlow klaar om te worden geïnstalleerd.",
+      "title": "Update beschikbaar (v{{version}})",
+      "message": "Een nieuwe versie van WaveFlow staat klaar om te installeren.",
       "action": "Nu installeren",
       "later": "Later"
     },
     "downloading": {
-      "title": "De update wordt gedownload…"
+      "title": "Update wordt gedownload…"
     },
     "installed": {
       "title": "Update geïnstalleerd",
-      "message": "Start WaveFlow opnieuw op om de nieuwe versie toe te passen."
+      "message": "Herstart WaveFlow om de nieuwe versie toe te passen."
     },
     "error": {
-      "title": "De update is mislukt"
+      "title": "Update mislukt"
     }
   },
   "onboarding": {
     "defaultLibraryName": "Muziek",
     "welcome": {
-      "title": "Welkom op WaveFlow",
-      "message": "Geef om te beginnen de map aan waarin je muziek staat. WaveFlow zal deze scannen en je bibliotheek automatisch ordenen.",
-      "action": "Mijn muziekmap selecteren",
-      "skip": "Later instellen"
+      "title": "Welkom bij WaveFlow",
+      "description": "Jouw persoonlijke local-first muziekspeler. Geniet van je hele bibliotheek zonder streaming-abonnement."
     },
-    "scanning": {
-      "title": "Analyse van je muziek…"
+    "localOnly": {
+      "title": "Belangrijk: alleen lokale muziek",
+      "description": "WaveFlow is GEEN streamingdienst. Het speelt bestanden af die al op je apparaat staan.",
+      "calloutTitle": "Wat je moet weten",
+      "bulletOwn": "Neem je eigen bibliotheek mee (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletImport": "Importeer een map of sleep bestanden",
+      "bulletScrobble": "Koppel Last.fm om je luistergeschiedenis op de achtergrond te scrobblen"
+    },
+    "folder": {
+      "title": "Kies je muziekmap",
+      "description": "Vertel WaveFlow waar je muziek staat. De scanner organiseert je bibliotheek automatisch.",
+      "placeholder": "Klik om je muziekmap te kiezen",
+      "changeHint": "Klik om van map te wisselen",
+      "quickSettings": "Snelle instellingen",
+      "autoAnalyze": {
+        "title": "Nummers automatisch analyseren",
+        "description": "Detecteert BPM en toonsoort tijdens het scannen — wordt gebruikt voor Radio en Mood Radio."
+      }
+    },
+    "lastfm": {
+      "title": "Last.fm koppelen",
+      "description": "Scrobblen stuurt je afspeellijst naar je Last.fm-profiel. In ruil krijg je artiestbio's en vergelijkbare artiesten direct in de app.",
+      "recommendedBadge": "Aanbevolen",
+      "keyHint": "Maak een API-sleutel aan op Last.fm",
+      "keyLabel": "API-sleutel",
+      "keyPlaceholder": "Je Last.fm-API-sleutel",
+      "secretLabel": "Shared secret",
+      "secretPlaceholder": "Je shared secret",
+      "userLabel": "Last.fm-gebruikersnaam",
+      "userPlaceholder": "je-naam",
+      "passwordLabel": "Wachtwoord",
+      "passwordPlaceholder": "Je Last.fm-wachtwoord",
+      "toggleSecret": "Secret tonen/verbergen",
+      "togglePassword": "Wachtwoord tonen/verbergen",
+      "connect": "Last.fm koppelen",
+      "missingFields": "Vul API-sleutel, secret, gebruikersnaam en wachtwoord in.",
+      "connectedTitle": "Verbonden als {{user}}",
+      "connectedSubtitle": "Scrobblen start automatisch zodra je een nummer afspeelt."
+    },
+    "scan": {
+      "title": "Bibliotheek scannen",
+      "description": "Klaar om je map te analyseren en je nummers te ontdekken?",
+      "noFolder": "Geen map geselecteerd",
+      "readyHint": "Je map is ingesteld. Start de scan wanneer je er klaar voor bent.",
+      "scanning": "Bibliotheek wordt gescand…",
+      "errorTitle": "Scan mislukt"
     },
     "done": {
-      "title": "{{count}} toegevoegde nummers",
-      "message": "Je bibliotheek staat klaar. Veel luisterplezier!",
-      "action": "Begin met luisteren"
+      "title": "Helemaal klaar!",
+      "description": "Je bibliotheek is gescand en klaar om af te spelen.",
+      "nextSteps": "Volgende stappen:",
+      "bulletExplore": "Verken je bibliotheek via de tabs Bibliotheek, Albums en Artiesten",
+      "bulletQueue": "Maak je eerste wachtrij door op een nummer te klikken",
+      "bulletSettings": "Verfijn alles via de zijbalk (Weergave, Integraties…)"
     },
-    "error": {
-      "title": "De analyse is mislukt",
-      "retry": "Opnieuw proberen"
+    "actions": {
+      "skipSetup": "Configuratie overslaan",
+      "getStarted": "Beginnen",
+      "back": "Terug",
+      "continue": "Doorgaan",
+      "understood": "Begrepen",
+      "skipForNow": "Nu overslaan",
+      "scanLater": "Later scannen",
+      "scanNow": "Nu scannen",
+      "startListening": "Begin met luisteren"
+    },
+    "language": {
+      "title": "Kies je taal",
+      "description": "WaveFlow is beschikbaar in 17 talen. We hebben de taal van je systeem alvast gekozen — wijzig dit als we ernaast zaten.",
+      "detected": "Gedetecteerd vanuit je systeem",
+      "fallback": "We konden de taal van je systeem niet detecteren, dus is Engels gekozen. Selecteer hieronder de jouwe."
+    },
+    "profile": {
+      "title": "Geef je profiel een naam",
+      "description": "WaveFlow gebruikt profielen om bibliotheken te scheiden. Kies een naam die je later herkent.",
+      "nameLabel": "Profielnaam",
+      "namePlaceholder": "Bv. Daisy",
+      "hint": "Je kunt later extra profielen aanmaken als dat nodig is.",
+      "required": "Profielnaam is vereist.",
+      "unavailable": "Profiel niet beschikbaar — probeer het zo opnieuw."
     }
   },
   "sidebar": {
     "nav": {
-      "home": "Home",
+      "home": "Start",
       "spotify": "Spotify"
     },
     "sections": {
@@ -65,76 +132,76 @@
     },
     "open": {
       "file": "Bestand",
-      "folder": "Dossier"
+      "folder": "Map"
     },
     "library": {
       "tracksCount_zero": "0 nummers",
-      "tracksCount_one": "{{count}} track",
-      "tracksCount_other": "{{count}} titels",
-      "createLibraryAria": "Een nieuwe bibliotheek aanmaken",
-      "none": "Geen bibliotheek",
+      "tracksCount_one": "{{count}} nummer",
+      "tracksCount_other": "{{count}} nummers",
+      "createLibraryAria": "Nieuwe bibliotheek maken",
+      "none": "Geen bibliotheken",
       "popover": {
-        "label": "Selectie uit de bibliotheek",
+        "label": "Bibliotheekselectie",
         "header": "Bibliotheken",
         "countLine": "{{tracks}} · {{albums}}",
         "tracks_zero": "0 nummers",
-        "tracks_one": "{{count}} track",
-        "tracks_other": "{{count}} titels",
+        "tracks_one": "{{count}} nummer",
+        "tracks_other": "{{count}} nummers",
         "albums_zero": "0 albums",
         "albums_one": "{{count}} album",
         "albums_other": "{{count}} albums",
-        "see": "Zie",
-        "new": "Nieuws"
+        "see": "Bekijken",
+        "new": "Nieuw"
       },
       "nav": {
         "tracks": "Nummers",
         "albums": "Albums",
         "artists": "Artiesten",
-        "genres": "Soorten",
+        "genres": "Genres",
         "explorer": "Verkenner"
       }
     },
     "playlists": {
-      "createPlaylistAria": "Een nieuwe afspeellijst maken",
-      "importM3uAria": "Een M3U-afspeellijst importeren",
-      "importDialogTitle": "Een M3U-afspeellijst importeren",
-      "liked": "Gelikete titels",
-      "recent": "Onlangs gespeeld",
+      "createPlaylistAria": "Nieuwe afspeellijst maken",
+      "importM3uAria": "M3U-afspeellijst importeren",
+      "importDialogTitle": "M3U-afspeellijst importeren",
+      "liked": "Vind-ik-leuks",
+      "recent": "Recent afgespeeld",
       "emptySubtext_zero": "0 nummers",
-      "emptySubtext_one": "{{count}} track",
-      "emptySubtext_other": "{{count}} titels",
-      "createSmartAria": "Create a smart playlist"
+      "emptySubtext_one": "{{count}} nummer",
+      "emptySubtext_other": "{{count}} nummers",
+      "createSmartAria": "Slimme afspeellijst maken"
     },
     "myMusic": {
       "title": "Mijn muziek",
-      "addFolderAria": "Een map importeren",
+      "addFolderAria": "Map importeren",
       "tracks": "Nummers",
       "albums": "Albums",
       "artists": "Artiesten",
-      "genres": "Soorten",
-      "folders": "Dossiers"
+      "genres": "Genres",
+      "folders": "Mappen"
     },
     "playlistSection": {
       "title": "Afspeellijsten"
     },
     "myLibrary": {
       "playlistSubtext_zero": "0 nummers",
-      "playlistSubtext_one": "{{count}} track",
-      "playlistSubtext_other": "{{count}} titels"
+      "playlistSubtext_one": "{{count}} nummer",
+      "playlistSubtext_other": "{{count}} nummers"
     }
   },
   "topbar": {
     "search": {
-      "placeholder": "Zoek een titel, een artiest, een album...",
+      "placeholder": "Zoek een nummer, artiest of album…",
       "results_zero": "Geen resultaten",
       "results_one": "{{count}} resultaat",
       "results_other": "{{count}} resultaten",
-      "empty": "Geen resultaten voor je zoekopdracht",
+      "empty": "Geen resultaten gevonden voor je zoekopdracht",
       "filters": {
         "toggle": "Geavanceerde filters",
         "title": "Filters",
         "close": "Sluiten",
-        "reset": "Opnieuw instellen",
+        "reset": "Resetten",
         "hiRes": "Hi-Res",
         "likedOnly": "Alleen favorieten",
         "year": "Jaar (van → tot)",
@@ -145,42 +212,42 @@
       }
     },
     "theme": {
-      "enableLight": "De lichte modus inschakelen",
+      "enableLight": "Lichte modus inschakelen",
       "enableDark": "Donkere modus inschakelen"
     },
     "profile": {
       "user": "Gebruiker",
-      "changeProfile": "Van profiel wisselen",
+      "changeProfile": "Profiel wisselen",
       "statistics": "Statistieken",
       "settings": "Instellingen",
       "feedback": "Feedback",
       "about": "Over",
-      "quit": "De app afsluiten"
+      "quit": "App afsluiten"
     }
   },
   "home": {
     "greeting": {
-      "morning": "Hallo",
+      "morning": "Goedemorgen",
       "evening": "Goedenavond",
-      "night": "Welterusten"
+      "night": "Goedenacht"
     },
     "banner": {
       "badge": "Klaar om te luisteren",
       "subtitle": "Ontdek je favoriete muziek en verken nieuwe geluiden.",
-      "openFile": "Een bestand openen",
-      "openFolder": "Een dossier openen",
+      "openFile": "Bestand openen",
+      "openFolder": "Map openen",
       "importFiles": "Bestanden importeren",
-      "importFolder": "Bestanden importeren",
-      "browseLibrary": "Mijn bibliotheek doorzoeken"
+      "importFolder": "Map importeren",
+      "browseLibrary": "Door je bibliotheek bladeren"
     },
     "stats": {
       "library": "Bibliotheek",
-      "liked": "Gelikete titels",
-      "recent": "Onlangs gespeeld",
+      "liked": "Vind-ik-leuks",
+      "recent": "Recent afgespeeld",
       "playlists": "Afspeellijsten"
     },
     "moodRadio": {
-      "title": "Stemming-radio",
+      "title": "Mood Radio",
       "subtitle": "Gefilterd op tempo en energie",
       "trackCount_one": "{{count}} nummer",
       "trackCount_other": "{{count}} nummers",
@@ -188,130 +255,130 @@
       "loading": "Starten…",
       "focus": {
         "title": "Focus",
-        "subtitle": "Rustige tempo's voor diep werk"
+        "subtitle": "Rustige tempi om je te concentreren"
       },
       "chill": {
         "title": "Chill",
-        "subtitle": "Rustige sferen om te ontspannen"
+        "subtitle": "Lichte muziek om te ontspannen"
       },
       "workout": {
         "title": "Workout",
-        "subtitle": "Stevig tempo om in beweging te blijven"
+        "subtitle": "Stabiel tempo om in beweging te blijven"
       },
       "party": {
         "title": "Feest",
-        "subtitle": "Dansbare tempo's, hoge energie"
+        "subtitle": "Dansbare tempi, hoge energie"
       },
       "sleep": {
-        "title": "Slaap",
+        "title": "Slapen",
         "subtitle": "Heel langzaam en zacht om in slaap te vallen"
       }
     },
     "recentlyPlayed": {
-      "title": "Onlangs gespeeld",
-      "emptyTitle": "Er zijn geen nummers beluisterd",
-      "emptyDescription": "Voer een titel in om deze hier te laten verschijnen. Je luistergeschiedenis wordt opgebouwd naarmate je nieuwe nummers ontdekt."
+      "title": "Recent afgespeeld",
+      "emptyTitle": "Nog niets afgespeeld",
+      "emptyDescription": "Speel een nummer af om het hier te laten verschijnen. Je luistergeschiedenis groeit naarmate je nieuwe muziek ontdekt."
     },
     "recentlyAdded": {
-      "title": "Onlangs toegevoegd"
+      "title": "Recent toegevoegd"
     },
     "dailyMix": {
       "title": "Voor jou",
       "regenerate": "Opnieuw genereren",
       "regenerating": "Genereren…",
       "emptyTitle": "Nog geen Daily Mix",
-      "emptyDescription": "Luister naar een paar nummers en klik dan op Opnieuw genereren om je gepersonaliseerde mixen te maken.",
+      "emptyDescription": "Luister naar wat nummers en klik dan op «Opnieuw genereren» om je persoonlijke mixes te maken.",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} nummer",
       "trackCount_other": "{{count}} nummers"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
-      "title": "Jouw {{year}} samenvatting",
-      "subtitle": "Jouw artiesten, jouw minuten, jouw jaar — in een paar slides.",
+      "title": "Je jaaroverzicht {{year}}",
+      "subtitle": "Je artiesten, je minuten, je jaar — verteld in een paar slides.",
       "cta": "Openen"
     },
-    "seeAll": "Alles tonen"
+    "seeAll": "Alles bekijken"
   },
   "library": {
     "header": {
-      "addFolder": "Een map toevoegen",
+      "addFolder": "Map toevoegen",
       "subtext": {
-        "morceaux_zero": "0 Nummer",
-        "morceaux_one": "{{count}} Nummer",
-        "morceaux_other": "{{count}} Nummers",
-        "albums_zero": "0 Album",
-        "albums_one": "{{count}} Album",
-        "albums_other": "{{count}} Albums",
-        "artistes_zero": "0 Artiest",
-        "artistes_one": "{{count}} Kunstenaar",
-        "artistes_other": "{{count}} Artiesten",
-        "genres_zero": "0 Soort",
-        "genres_one": "{{count}} Soort",
-        "genres_other": "{{count}} Soorten",
-        "dossiers_zero": "0 Dossier",
-        "dossiers_one": "{{count}} Dossier",
-        "dossiers_other": "{{count}} Dossiers"
+        "morceaux_zero": "0 nummers",
+        "morceaux_one": "{{count}} nummer",
+        "morceaux_other": "{{count}} nummers",
+        "albums_zero": "0 albums",
+        "albums_one": "{{count}} album",
+        "albums_other": "{{count}} albums",
+        "artistes_zero": "0 artiesten",
+        "artistes_one": "{{count}} artiest",
+        "artistes_other": "{{count}} artiesten",
+        "genres_zero": "0 genres",
+        "genres_one": "{{count}} genre",
+        "genres_other": "{{count}} genres",
+        "dossiers_zero": "0 mappen",
+        "dossiers_one": "{{count}} map",
+        "dossiers_other": "{{count}} mappen"
       }
     },
     "tabs": {
       "morceaux": "Nummers",
       "albums": "Albums",
       "artistes": "Artiesten",
-      "genres": "Soorten",
-      "dossiers": "Dossiers"
+      "genres": "Genres",
+      "dossiers": "Mappen"
     },
     "empty": {
       "morceaux": {
         "title": "Lege bibliotheek",
-        "description": "Importeer audiobestanden of een map om je bibliotheek aan te vullen."
+        "description": "Importeer audiobestanden of een map om je bibliotheek te vullen."
       },
       "albums": {
-        "title": "Er zijn geen albums gevonden",
-        "description": "Importeer audiobestanden om automatisch albums aan te maken."
+        "title": "Geen albums gevonden",
+        "description": "Importeer audiobestanden om albums automatisch te laten aanmaken."
       },
       "artistes": {
-        "title": "Er zijn geen artiesten gevonden",
-        "description": "Importeer eerst enkele audiobestanden."
+        "title": "Geen artiesten gevonden",
+        "description": "Importeer wat audiobestanden om te beginnen."
       },
       "genres": {
-        "title": "Geen genre gevonden",
-        "description": "Importeer audiobestanden om de genres te ontdekken."
+        "title": "Geen genres gevonden",
+        "description": "Importeer audiobestanden om verschillende genres te ontdekken."
       },
       "dossiers": {
-        "title": "Er zijn geen bestanden geïmporteerd",
-        "description": "Importeer een map via de actiebalk om deze hier te bekijken."
+        "title": "Geen mappen geïmporteerd",
+        "description": "Importeer een map vanuit de actiebalk om die hier te bekijken."
       }
     },
     "actions": {
       "importFiles": "Bestanden importeren",
-      "importFolder": "Een map importeren",
+      "importFolder": "Map importeren",
       "share": "Delen (binnenkort)",
-      "rescan": "De bibliotheek opnieuw scannen",
-      "rescanning": "Opnieuw scannen bezig…",
+      "rescan": "Bibliotheek opnieuw scannen",
+      "rescanning": "Opnieuw scannen…",
       "changeArtwork": "Afbeelding wijzigen (binnenkort)",
-      "edit": "De bibliotheek bewerken",
-      "delete": "De bibliotheek verwijderen",
+      "edit": "Bibliotheek bewerken",
+      "delete": "Bibliotheek verwijderen",
       "deleteConfirm": "Klik nogmaals om te bevestigen",
       "importing": "Importeren…"
     },
-    "changeCover": "De hoes vervangen",
-    "searchDeezer": "Zoeken Deezer",
+    "changeCover": "Albumhoes wijzigen",
+    "searchDeezer": "Zoeken op Deezer",
     "localFile": "Lokaal bestand",
-    "fetchMissingCovers": "Alle ontbrekende hoesjes ophalen",
-    "noCover": "Zonder hoesje",
-    "fetchingCovers": "De hoesjes ophalen... ({{current}} / {{total}})",
-    "fetchCoversResult": "{{count}} hoesjes opgehaald",
-    "fetchCoversFailed": "Hoesjes ophalen mislukt",
+    "fetchMissingCovers": "Alle ontbrekende albumhoezen ophalen",
+    "noCover": "Geen albumhoes",
+    "fetchingCovers": "Albumhoezen ophalen… ({{current}} / {{total}})",
+    "fetchCoversResult": "{{count}} albumhoezen opgehaald",
+    "fetchCoversFailed": "Ophalen van albumhoezen mislukt",
     "table": {
       "number": "#",
       "title": "Titel",
-      "artist": "Kunstenaar",
+      "artist": "Artiest",
       "album": "Album",
       "duration": "Duur",
       "unknown": "—"
     },
-    "rating": "Opmerking",
+    "rating": "Beoordeling",
     "noRating": "Geen beoordeling",
     "viewToggle": {
       "label": "Weergavemodus",
@@ -320,46 +387,46 @@
     },
     "albumGrid": {
       "trackCount_zero": "0 nummers",
-      "trackCount_one": "{{count}} track",
-      "trackCount_other": "{{count}} titels"
+      "trackCount_one": "{{count}} nummer",
+      "trackCount_other": "{{count}} nummers"
     },
     "artistList": {
       "trackCount_zero": "0 nummers",
-      "trackCount_one": "{{count}} track",
-      "trackCount_other": "{{count}} titels",
+      "trackCount_one": "{{count}} nummer",
+      "trackCount_other": "{{count}} nummers",
       "albumCount_zero": "0 albums",
       "albumCount_one": "{{count}} album",
       "albumCount_other": "{{count}} albums"
     },
     "genreList": {
       "trackCount_zero": "0 nummers",
-      "trackCount_one": "{{count}} track",
-      "trackCount_other": "{{count}} titels"
+      "trackCount_one": "{{count}} nummer",
+      "trackCount_other": "{{count}} nummers"
     },
     "folderList": {
       "trackCount_zero": "0 nummers",
-      "trackCount_one": "{{count}} track",
-      "trackCount_other": "{{count}} titels",
+      "trackCount_one": "{{count}} nummer",
+      "trackCount_other": "{{count}} nummers",
       "lastScanned": "Gescand: {{date}}",
       "neverScanned": "nooit",
       "watched": "In de gaten gehouden",
-      "watchOn": "Wijzigingen automatisch bijhouden",
-      "watchOff": "Bewaking stoppen",
+      "watchOn": "Wijzigingen automatisch volgen",
+      "watchOff": "Stoppen met volgen",
       "remove": "Map uit bibliotheek verwijderen",
       "removeConfirm": "Klik nogmaals om te bevestigen"
     }
   },
   "liked": {
-    "badge": "Collectie",
-    "title": "Gelikete titels",
+    "badge": "Verzameling",
+    "title": "Vind-ik-leuks",
     "count_zero": "0 nummers",
-    "count_one": "{{count}} track",
-    "count_other": "{{count}} titels",
-    "emptyTitle": "Geen favoriete nummers",
-    "emptyDescription": "De nummers die je leuk vindt, verschijnen hier. Blader door je bibliotheek en like je favoriete nummers.",
+    "count_one": "{{count}} nummer",
+    "count_other": "{{count}} nummers",
+    "emptyTitle": "Geen vind-ik-leuks",
+    "emptyDescription": "Nummers die je leuk vindt verschijnen hier. Verken je bibliotheek en geef je favoriete nummers een vind-ik-leuk.",
     "playAll": "Alles afspelen",
-    "unlike": "Likes verwijderen",
-    "like": "Toevoegen aan favorieten"
+    "unlike": "Vind-ik-leuk verwijderen",
+    "like": "Vind-ik-leuk geven"
   },
   "history": {
     "badge": "Geschiedenis",
@@ -369,12 +436,12 @@
     "timeline": "Tijdlijn",
     "loadingMore": "Laden…",
     "endReached": "Begin van de geschiedenis",
-    "emptyTitle": "Nog geen weergaven",
+    "emptyTitle": "Nog geen afspeelacties",
     "emptyDescription": "Speel een nummer af — het verschijnt hier zodra het meetelt.",
-    "shownCount_one": "{{count}} weergave getoond",
-    "shownCount_other": "{{count}} weergaven getoond",
-    "plays_one": "{{count}} keer beluisterd",
-    "plays_other": "{{count}} keer beluisterd",
+    "shownCount_one": "{{count}} afspeelactie getoond",
+    "shownCount_other": "{{count}} afspeelacties getoond",
+    "plays_one": "{{count}} keer afgespeeld",
+    "plays_other": "{{count}} keer afgespeeld",
     "range": {
       "all": "Alles",
       "7d": "7 dagen",
@@ -385,69 +452,69 @@
   },
   "recent": {
     "badge": "Geschiedenis",
-    "title": "Onlangs gespeeld",
+    "title": "Recent afgespeeld",
     "count_zero": "0 nummers",
-    "count_one": "{{count}} track",
-    "count_other": "{{count}} titels",
+    "count_one": "{{count}} nummer",
+    "count_other": "{{count}} nummers",
     "emptyTitle": "Geen recente nummers",
-    "emptyDescription": "De nummers die je beluistert, verschijnen hier automatisch."
+    "emptyDescription": "Nummers die je beluistert verschijnen hier automatisch."
   },
   "statistics": {
     "title": "Statistieken",
-    "emptyTitle": "Er zijn geen statistieken beschikbaar",
-    "emptyDescription": "Luister naar muziek om je luisterstatistieken hier te zien verschijnen.",
+    "emptyTitle": "Geen statistieken beschikbaar",
+    "emptyDescription": "Speel wat muziek af om je luisterstatistieken hier te zien verschijnen.",
     "range": {
       "label": "Periode",
       "7d": "7 dagen",
       "30d": "30 dagen",
       "90d": "90 dagen",
       "1y": "1 jaar",
-      "all": "Alles"
+      "all": "Altijd"
     },
     "kpi": {
-      "totalPlays": "Afluisteren",
+      "totalPlays": "Luisterbeurten",
       "totalTime": "Luistertijd",
-      "uniqueTracks": "Unieke titels",
+      "uniqueTracks": "Unieke nummers",
       "uniqueArtists_zero": "0 artiesten",
-      "uniqueArtists_one": "{{count}} kunstenaar",
-      "uniqueArtists_other": "{{count}} kunstenaars",
-      "completionRate": "Percentage volledige luisterbeurten"
+      "uniqueArtists_one": "{{count}} artiest",
+      "uniqueArtists_other": "{{count}} artiesten",
+      "completionRate": "Percentage volledig beluisterd"
     },
     "byDay": {
-      "title": "Activiteit per dag",
-      "empty": "Er is in deze periode geen afluisterpraktijk geweest."
+      "title": "Dagelijkse activiteit",
+      "empty": "Geen luisteractiviteit in deze periode."
     },
     "byHour": {
-      "title": "Favoriete uren",
-      "empty": "Er is in deze periode geen afluisteractiviteit geweest.",
-      "tooltip": "{{hour}} h — {{plays}} luister"
+      "title": "Piekuren",
+      "empty": "Geen luisteractiviteit in deze periode.",
+      "tooltip": "{{hour}} uur — {{plays}} keer afgespeeld"
     },
     "topTracks": {
-      "title": "Topnummers",
-      "empty": "Er zijn geen nummers beluisterd."
+      "title": "Top-nummers",
+      "empty": "Geen nummers afgespeeld."
     },
     "topArtists": {
-      "title": "Topartiesten",
-      "empty": "Er is naar geen enkele artiest geluisterd."
+      "title": "Top-artiesten",
+      "empty": "Geen artiesten afgespeeld."
     },
     "topAlbums": {
-      "title": "Topalbums",
-      "empty": "Er zijn geen albums beluisterd."
+      "title": "Top-albums",
+      "empty": "Geen albums afgespeeld."
     },
     "heatmap": {
-      "title": "Activiteit van het jaar",
-      "empty": "Nog niets beluisterd in de laatste 12 maanden.",
-      "summary": "{{time}} beluisterd over het jaar — {{plays}} keer beluisterd",
+      "title": "Activiteit per jaar",
+      "empty": "Nog niets beluisterd in de afgelopen 12 maanden.",
+      "summary": "{{time}} beluisterd dit jaar — {{plays}} keer afgespeeld",
       "less": "Minder",
       "more": "Meer"
     },
-    "plays_zero": "0 keer beluisterd",
-    "plays_one": "{{count}} luister",
-    "plays_other": "{{count}} afluisteren",
+    "plays_zero": "0 keer afgespeeld",
+    "plays_one": "{{count}} keer afgespeeld",
+    "plays_other": "{{count}} keer afgespeeld",
     "export": {
       "label": "Statistieken exporteren",
       "action": "Exporteren",
-      "dialogTitle": "Statistieken exporteren als JSON"
+      "dialogTitle": "Statistieken als JSON exporteren"
     }
   },
   "wrapped": {
@@ -459,65 +526,65 @@
     "prev": "Vorige slide",
     "next": "Volgende slide",
     "yearPicker": "Kies een jaar",
-    "backToHome": "Terug naar Home",
+    "backToHome": "Terug naar start",
     "playsShort_zero": "0 keer afgespeeld",
     "playsShort_one": "{{count}} keer afgespeeld",
     "playsShort_other": "{{count}} keer afgespeeld",
     "empty": {
-      "title": "Nog geen geschiedenis",
-      "subtitle": "Luister naar wat nummers en kom later terug — je Wrapped bouwt zich op terwijl je luistert."
+      "title": "Nog geen luistergeschiedenis",
+      "subtitle": "Speel wat nummers af en kom later terug — je Wrapped wordt opgebouwd terwijl je luistert."
     },
     "intro": {
       "eyebrow": "WaveFlow Wrapped",
-      "subtitle": "Jouw jaar in muziek."
+      "subtitle": "Je jaar in muziek."
     },
     "minutes": {
-      "eyebrow": "Je luisterde naar",
+      "eyebrow": "Je hebt geluisterd naar",
       "subtitle_zero": "0 minuten muziek",
       "subtitle_one": "{{count}} minuut muziek",
       "subtitle_other": "{{count}} minuten muziek"
     },
     "stats": {
-      "plays": "Keer afgespeeld",
+      "plays": "Luisterbeurten",
       "tracks": "Nummers",
       "artists": "Artiesten"
     },
     "topTracks": {
-      "title": "Jouw favoriete nummers"
+      "title": "Je top-nummers"
     },
     "topArtists": {
-      "title": "Jouw favoriete artiesten"
+      "title": "Je top-artiesten"
     },
     "topAlbums": {
-      "title": "Jouw favoriete albums"
+      "title": "Je top-albums"
     },
     "activeDay": {
-      "eyebrow": "Jouw recorddag",
-      "subtitle": "{{duration}} geluisterd, {{count}} nummers"
+      "eyebrow": "Je drukste dag",
+      "subtitle": "{{duration}} aan luistertijd, {{count}} nummers"
     },
     "mood": {
-      "eyebrow": "Jouw gemiddelde tempo",
-      "subtitle": "Het ritme dat je jaar bepaalde",
-      "loudness": "Gemiddelde luidheid: {{lufs}} LUFS",
+      "eyebrow": "Je gemiddelde tempo",
+      "subtitle": "Het ritme dat je jaar kleurde",
+      "loudness": "Gemiddelde loudness: {{lufs}} LUFS",
       "energy": {
         "chill": "Chill",
         "warm": "Warm",
         "groove": "Groove",
         "energetic": "Energiek",
-        "fire": "Vuur"
+        "fire": "Heftig"
       }
     },
     "clock": {
-      "eyebrow": "Jouw luisteruur",
-      "subtitle": "De piek van je dag"
+      "eyebrow": "Je piekuur",
+      "subtitle": "Het hoogtepunt van je dag"
     },
     "streak": {
       "eyebrow": "Je langste reeks",
-      "daysLabel_zero": "0 dagen op rij",
-      "daysLabel_one": "{{count}} dag op rij",
-      "daysLabel_other": "{{count}} dagen op rij",
+      "daysLabel_zero": "0 dagen achter elkaar",
+      "daysLabel_one": "{{count}} dag achter elkaar",
+      "daysLabel_other": "{{count}} dagen achter elkaar",
       "range": "Van {{start}} tot {{end}}",
-      "daysShort": "dagen op rij"
+      "daysShort": "dagen achter elkaar"
     },
     "share": {
       "open": "Delen",
@@ -530,19 +597,19 @@
       "eyebrow": "Je jaar begon met"
     },
     "months": {
-      "title": "Maand per maand"
+      "title": "Maand voor maand"
     },
     "outro": {
       "title": "Bedankt dat je naar WaveFlow luistert",
-      "subtitle": "Blijf ontdekken — je Wrapped wordt in real time bijgewerkt.",
-      "cta": "Terug naar Home"
+      "subtitle": "Blijf ontdekken — je Wrapped wordt in realtime bijgewerkt.",
+      "cta": "Terug naar start"
     }
   },
   "about": {
     "title": "Over",
     "hero": {
-      "subtitle": "Platformonafhankelijke HD-muziekspeler",
-      "checkUpdates": "Controleer of er updates beschikbaar zijn",
+      "subtitle": "Cross-platform HD-muziekspeler",
+      "checkUpdates": "Controleren op updates",
       "developedBy": "Ontwikkeld door"
     },
     "sections": {
@@ -551,191 +618,215 @@
       "backend": "Backend (Rust)",
       "audio": "Audio",
       "shortcuts": "Sneltoetsen",
-      "credits": "Colofon"
+      "changelog": "Wijzigingslog",
+      "credits": "Credits"
     },
     "shortcuts": {
-      "playPause": "Afspelen/pauzeren",
+      "playPause": "Afspelen / Pauzeren",
       "previousTrack": "Vorige nummer",
-      "nextTrack": "Volgend nummer",
+      "nextTrack": "Volgende nummer",
       "volume": "Volume",
-      "mute": "Het geluid dempen",
+      "mute": "Dempen",
       "keys": {
-        "space": "Ruimte"
+        "space": "Spatiebalk"
       }
     },
+    "changelog": {
+      "loading": "Laden…",
+      "empty": "Geen vermeldingen beschikbaar",
+      "expand": "Toon {{count}} extra vermeldingen",
+      "collapse": "Minder tonen",
+      "breaking": "Breaking"
+    },
     "credits": {
-      "text": "Met passie ontworpen en ontwikkeld. Gebouwd met open-source-technologieën.",
-      "icons": "Pictogrammen door Lucide, Phosphor, Mynaui en Iconify."
+      "text": "Met passie ontworpen en ontwikkeld. Gebouwd met opensourcetechnologieën.",
+      "icons": "Iconen van Lucide, Phosphor, Mynaui en Iconify."
     }
   },
   "feedback": {
     "title": "Feedback",
     "hero": {
       "title": "Help ons WaveFlow te verbeteren",
-      "description": "Heb je een fout ontdekt, een idee voor verbetering of wil je gewoon even feedback geven? We lezen elk bericht en houden rekening met je suggesties."
+      "description": "Heb je een bug ontdekt, een idee ter verbetering of gewoon feedback voor ons? We lezen elk bericht en nemen je suggesties ter harte."
     },
     "contact": {
-      "section": "Neem contact met ons op",
-      "subtitle": "Een bug, suggestie of vraag — we lezen elk bericht"
+      "section": "Neem contact op",
+      "subtitle": "Bug, suggestie of vraag — we lezen elk bericht"
     }
   },
   "player": {
-    "noTrack": "Geen track",
+    "noTrack": "Geen nummer",
     "inactive": "Inactief",
     "controls": {
       "play": "Afspelen",
-      "pause": "Pauze",
+      "pause": "Pauzeren",
       "previous": "Vorige",
       "next": "Volgende",
-      "shuffleOn": "Shuffle uitschakelen",
-      "shuffleOff": "Shuffle inschakelen",
-      "repeatOff": "Herhaling inschakelen",
-      "repeatAll": "Eenmalig herhalen",
-      "repeatOne": "Herhaling uitschakelen"
+      "shuffleOn": "Willekeurig uitschakelen",
+      "shuffleOff": "Willekeurig inschakelen",
+      "repeatOff": "Herhalen inschakelen",
+      "repeatAll": "Eén nummer herhalen",
+      "repeatOne": "Herhalen uitschakelen"
     },
     "volume": {
       "label": "Volume",
-      "mute": "Het geluid dempen",
-      "unmute": "Geluid inschakelen"
+      "mute": "Dempen",
+      "unmute": "Dempen opheffen"
     },
     "speed": {
       "label": "Afspeelsnelheid ({{value}})",
       "title": "Afspeelsnelheid",
-      "slider": "Snelheidsschuif",
+      "slider": "Snelheidsschuifregelaar",
       "custom": "Aangepaste snelheid",
-      "pitchHint": "Toonhoogte volgt snelheid (geen time-stretching)."
+      "pitchHint": "Toonhoogte volgt de snelheid (geen time-stretching)."
     },
     "seek": "Positie"
   },
   "queue": {
-    "title": "Wachtrij afspelen",
+    "title": "Afspeelwachtrij",
     "inactive": "INACTIEF",
     "count_zero": "0 nummers",
-    "count_one": "{{count}} track",
-    "count_other": "{{count}} stukken",
+    "count_one": "{{count}} nummer",
+    "count_other": "{{count}} nummers",
     "emptyTitle": "Niets om naar te luisteren",
     "emptyDescription": "Speel een nummer uit je bibliotheek af om de wachtrij te vullen.",
-    "nowPlaying": "In uitvoering",
+    "nowPlaying": "Speelt nu",
     "upNext_zero": "Volgende",
-    "upNext_one": "Volgende · {{count}} track",
-    "upNext_other": "Volgende - {{count}} tracks",
+    "upNext_one": "Volgende · {{count}} nummer",
+    "upNext_other": "Volgende · {{count}} nummers",
     "radio": {
       "label": "Radio",
-      "basedOn": "Gebaseerd op “{{title}}”"
+      "basedOn": "Gebaseerd op «{{title}}»"
     }
   },
   "spotifyQueue": {
-    "emptyHint": "Niets in de Spotify-wachtrij op dit moment.",
-    "readonlyHint": "Alleen-lezen wachtrij — beheer die in de Spotify-app."
+    "emptyHint": "Nu niets in de Spotify-wachtrij.",
+    "readonlyHint": "Alleen-lezen wachtrij — beheer hem vanuit de Spotify-app."
   },
   "deviceMenu": {
-    "activeLabel": "Actieve uitgang",
-    "loading": "Zoeken naar apparaten…",
-    "empty": "Er is geen uitvoerapparaat beschikbaar",
-    "systemDefault": "Standaard"
+    "activeLabel": "Actieve uitvoer",
+    "loading": "Apparaten zoeken…",
+    "empty": "Geen uitvoerapparaat beschikbaar",
+    "systemDefault": "Systeemstandaard"
   },
   "profiles": {
     "select": {
       "title": "Wie luistert er?",
-      "subtitle": "Kies je profiel om je bibliotheken en afspeellijsten te bekijken",
+      "subtitle": "Selecteer je profiel om je bibliotheken en afspeellijsten te bereiken",
       "add": "Toevoegen",
-      "edit": "Wijzigen",
+      "edit": "Bewerken",
       "active": "Actief profiel",
-      "switchTo": "Omschakelen"
+      "switchTo": "Wisselen"
     },
     "create": {
       "title": "Nieuw profiel",
-      "subtitle": "Maak een profiel aan om je ervaring aan te passen",
-      "nameLabel": "Naam van het profiel",
-      "namePlaceholder": "Voer een naam in...",
-      "colorLabel": "Kleur van het profiel",
-      "colorAria": "Kleur{{color}}",
-      "submit": "Profiel aanmaken"
+      "subtitle": "Maak een profiel om je ervaring te personaliseren",
+      "nameLabel": "Profielnaam",
+      "namePlaceholder": "Voer een naam in…",
+      "colorLabel": "Profielkleur",
+      "colorAria": "Kleur {{color}}",
+      "submit": "Profiel maken"
+    },
+    "manage": {
+      "toggle": "Beheren",
+      "done": "Klaar",
+      "title": "Profielen beheren",
+      "subtitle": "Selecteer een profiel om te verwijderen. Het actieve profiel kan hier niet worden verwijderd.",
+      "activeLocked": "Actief profiel",
+      "deleteHint": "Tik om te verwijderen",
+      "deleteAria": "Profiel {{name}} verwijderen"
+    },
+    "delete": {
+      "title": "{{name}} verwijderen?",
+      "subtitle": "Dit profiel wordt definitief verwijderd.",
+      "warning": "Alle bibliotheken, afspeellijsten en luistergeschiedenis van dit profiel gaan verloren. Deze actie kan niet ongedaan worden gemaakt.",
+      "submit": "Profiel verwijderen",
+      "submitting": "Bezig met verwijderen…"
     }
   },
   "libraryModal": {
-    "title": "Een bibliotheek aanmaken",
-    "editTitle": "De bibliotheek bewerken",
-    "previewDefault": "Een bibliotheek aanmaken",
+    "title": "Bibliotheek maken",
+    "editTitle": "Bibliotheek bewerken",
+    "previewDefault": "Bibliotheek maken",
     "previewSubtitle": "0 nummers · Bibliotheek",
     "nameLabel": "Naam van de bibliotheek",
-    "namePlaceholder": "Bijv.: rock, jazz, klassiek...",
+    "namePlaceholder": "bv. Rock, Jazz, Klassiek…",
     "descriptionLabel": "Beschrijving",
-    "descriptionPlaceholder": "Een korte beschrijving...",
-    "submit": "Een bibliotheek aanmaken",
+    "descriptionPlaceholder": "Een korte beschrijving…",
+    "submit": "Bibliotheek maken",
     "submitEdit": "Opslaan"
   },
   "playlistModal": {
     "title": "Nieuwe afspeellijst",
-    "editTitle": "De afspeellijst bewerken",
+    "editTitle": "Afspeellijst bewerken",
     "previewDefault": "Nieuwe afspeellijst",
     "previewSubtitle": "0 nummers · Afspeellijst",
     "nameLabel": "Naam",
-    "namePlaceholder": "Bijv.: Chill Vibes, Workout Mix...",
+    "namePlaceholder": "bv. Chill Vibes, Workout Mix…",
     "descriptionLabel": "Beschrijving",
-    "descriptionPlaceholder": "Een korte beschrijving...",
+    "descriptionPlaceholder": "Een korte beschrijving…",
     "colorLabel": "Kleur",
-    "colorAria": "Kleur{{color}}",
+    "colorAria": "Kleur {{color}}",
     "iconLabel": "Pictogram",
-    "iconAria": "Pictogram '{{icon}}'",
-    "submit": "Aanmaken",
+    "iconAria": "Pictogram {{icon}}",
+    "submit": "Maken",
     "editSubmit": "Opslaan",
     "coverChoose": "Foto kiezen",
-    "coverMenu": "Hoesopties",
+    "coverMenu": "Albumhoesopties",
     "coverChange": "Foto wijzigen",
     "coverRemove": "Foto verwijderen",
-    "coverAutoHint": "Automatische hoes — past zich aan de inhoud aan",
+    "coverAutoHint": "Automatische albumhoes — past zich aan de inhoud aan",
     "coverManualHint": "Aangepaste afbeelding"
   },
   "playlistView": {
     "badge": "Afspeellijst",
     "trackCount_zero": "0 nummers",
-    "trackCount_one": "{{count}} track",
-    "trackCount_other": "{{count}} titels",
+    "trackCount_one": "{{count}} nummer",
+    "trackCount_other": "{{count}} nummers",
     "actions": {
       "play": "Afspelen",
-      "shuffle": "Shuffle",
-      "edit": "De afspeellijst bewerken",
-      "exportM3u": "Exporteren naar M3U",
-      "delete": "De afspeellijst verwijderen",
+      "shuffle": "Willekeurig",
+      "edit": "Afspeellijst bewerken",
+      "exportM3u": "Exporteren als M3U",
+      "delete": "Afspeellijst verwijderen",
       "deleteConfirm": "Klik nogmaals om te bevestigen"
     },
     "export": {
-      "dialogTitle": "De afspeellijst exporteren als M3U"
+      "dialogTitle": "Afspeellijst als M3U exporteren"
     },
     "emptyTitle": "Deze afspeellijst is leeg",
-    "emptyDescription": "Voeg nummers uit je bibliotheken toe via de knop + bij elke regel.",
-    "noneTitle": "Er is geen afspeellijst geselecteerd",
-    "noneDescription": "Kies een afspeellijst in de zijbalk om deze hier te bekijken.",
+    "emptyDescription": "Voeg nummers uit je bibliotheken toe met de +-knop op elke rij.",
+    "noneTitle": "Geen afspeellijst geselecteerd",
+    "noneDescription": "Selecteer een afspeellijst in de zijbalk om hem hier te bekijken.",
     "notFoundTitle": "Afspeellijst niet gevonden",
-    "notFoundDescription": "Deze afspeellijst is niet meer aanwezig in het actieve profiel.",
+    "notFoundDescription": "Deze afspeellijst bestaat niet meer in het actieve profiel.",
     "smartLabel": "Daily Mix"
   },
   "trackActions": {
-    "addToPlaylist": "Aan een afspeellijst toevoegen",
-    "noPlaylists": "Geen afspeellijst. Maak er hieronder een aan.",
+    "addToPlaylist": "Toevoegen aan afspeellijst",
+    "noPlaylists": "Geen afspeellijsten. Maak er hieronder een.",
     "createPlaylist": "Nieuwe afspeellijst",
-    "playNext": "Volgende afspelen",
-    "addToQueue": "Aan de wachtrij toevoegen",
-    "like": "Toevoegen aan gelikete titels",
-    "unlike": "Gelikete titels verwijderen",
-    "removeFromPlaylist": "Uit deze afspeellijst verwijderen",
-    "goToAlbum": "Naar het album gaan",
-    "goToArtist": "Naar de artiest",
-    "showInExplorer": "Weergeven in de verkenner",
-    "copyPath": "Kopieer het pad naar het bestand",
+    "playNext": "Hierna afspelen",
+    "addToQueue": "Toevoegen aan wachtrij",
+    "like": "Vind-ik-leuk geven",
+    "unlike": "Vind-ik-leuk verwijderen",
+    "removeFromPlaylist": "Verwijderen uit deze afspeellijst",
+    "goToAlbum": "Naar album",
+    "goToArtist": "Naar artiest",
+    "showInExplorer": "Tonen in Verkenner",
+    "copyPath": "Bestandspad kopiëren",
     "properties": "Eigenschappen",
-    "startRadio": "Start radio",
+    "startRadio": "Radio starten",
     "rating": "Beoordeling",
     "ratingNone": "Geen beoordeling",
-    "batchEdit": "Tags voor {{count}} nummers bewerken…",
-    "addToPlaylistNamed": "Toevoegen aan \"{{name}}\"",
-    "removeFromPlaylistNamed": "Verwijderen uit \"{{name}}\""
+    "batchEdit": "Tags van {{count}} nummers bewerken…",
+    "addToPlaylistNamed": "Toevoegen aan «{{name}}»",
+    "removeFromPlaylistNamed": "Verwijderen uit «{{name}}»"
   },
   "batchTagEdit": {
-    "title": "Tags in batch bewerken",
+    "title": "Tags batchgewijs bewerken",
     "subtitle": "{{count}} nummers geselecteerd",
-    "help": "Vink de velden aan die op de hele selectie moeten worden toegepast. Niet aangevinkte velden blijven per nummer onveranderd.",
+    "help": "Vink de velden aan die je op alle nummers wilt toepassen. Niet-aangevinkte velden blijven per nummer onaangeroerd.",
     "submit": "Toepassen ({{count}} veld(en))",
     "fields": {
       "artist": "Artiest",
@@ -744,18 +835,18 @@
       "genre": "Genre"
     },
     "placeholders": {
-      "artist": "bijv. Daft Punk, Justice",
-      "album": "Albumnaam",
-      "year": "bijv. 2026",
-      "genre": "bijv. Electronic"
+      "artist": "bv. Daft Punk, Justice",
+      "album": "Naam van het album",
+      "year": "bv. 2026",
+      "genre": "bv. Electronic"
     },
     "result": {
       "updated": "{{count}} nummer(s) bijgewerkt",
-      "failed": "{{count}} fout(en):"
+      "failed": "{{count}} mislukt:"
     }
   },
   "trackProperties": {
-    "title": "Eigenschappen van een track",
+    "title": "Eigenschappen van het nummer",
     "sections": {
       "metadata": "Metadata",
       "audio": "Audio",
@@ -763,25 +854,25 @@
       "file": "Bestand"
     },
     "bpm": "BPM",
-    "loudness": "Geluidsvolume",
+    "loudness": "Loudness",
     "replayGain": "ReplayGain",
     "peak": "Piek",
     "analyze": "Analyseren",
     "reanalyze": "Opnieuw analyseren",
-    "analyzing": "Analyse…",
+    "analyzing": "Bezig met analyseren…",
     "year": "Jaar",
-    "trackNumber": "Nummer van het nummer",
+    "trackNumber": "Tracknummer",
     "duration": "Duur",
     "codec": "Codec",
-    "bitDepth": "Diepte",
-    "sampleRate": "Steekproeven",
+    "bitDepth": "Bitdiepte",
+    "sampleRate": "Samplefrequentie",
     "channels": "Kanalen",
-    "bitrate": "Debiet",
+    "bitrate": "Bitrate",
     "key": "Toonsoort",
-    "fileSize": "Maat",
+    "fileSize": "Bestandsgrootte",
     "addedAt": "Toegevoegd op",
     "filePath": "Pad",
-    "showInExplorer": "Weergeven in de verkenner",
+    "showInExplorer": "Tonen in Verkenner",
     "mono": "Mono",
     "stereo": "Stereo",
     "edit": "Bewerken",
@@ -796,49 +887,49 @@
       "genre": "Genre",
       "genrePlaceholder": "Pop, Rock, Jazz…"
     },
-    "changeCover": "Hoes wijzigen"
+    "changeCover": "Albumhoes wijzigen"
   },
   "selection": {
-    "toolbarLabel": "Selectieprocedures",
+    "toolbarLabel": "Selectieacties",
     "count_zero": "0 geselecteerd",
     "count_one": "{{count}} geselecteerd",
     "count_other": "{{count}} geselecteerd",
     "play": "Afspelen",
-    "addToQueue": "Aan de wachtrij toevoegen",
-    "playNext": "Volgende afspelen",
-    "addToPlaylist": "Aan een afspeellijst toevoegen",
-    "removeFromPlaylist": "Uit de afspeellijst verwijderen",
+    "addToQueue": "Toevoegen aan wachtrij",
+    "playNext": "Hierna afspelen",
+    "addToPlaylist": "Toevoegen aan afspeellijst",
+    "removeFromPlaylist": "Verwijderen uit afspeellijst",
     "clear": "Deselecteren"
   },
   "albumDetail": {
     "badge": "Album",
     "playAll": "Alles afspelen",
-    "shuffle": "Shuffle",
+    "shuffle": "Willekeurig",
     "trackCount_zero": "0 nummers",
-    "trackCount_one": "{{count}} track",
-    "trackCount_other": "{{count}} titels",
-    "discHeader": "Album{{number}}",
-    "releaseDate": "Uitgang",
+    "trackCount_one": "{{count}} nummer",
+    "trackCount_other": "{{count}} nummers",
+    "discHeader": "Schijf {{number}}",
+    "releaseDate": "Releasedatum",
     "emptyTitle": "Album niet gevonden",
-    "emptyDescription": "Dit album is niet meer aanwezig in het actieve profiel.",
-    "emptyTracksTitle": "Geen enkel nummer",
-    "emptyTracksDescription": "Dit album bevat geen nummers."
+    "emptyDescription": "Dit album is niet meer beschikbaar in het actieve profiel.",
+    "emptyTracksTitle": "Geen nummers",
+    "emptyTracksDescription": "Dit album bevat geen beschikbare nummers."
   },
   "artistDetail": {
-    "badge": "Kunstenaar",
+    "badge": "Artiest",
     "playAll": "Alles afspelen",
-    "shuffle": "Shuffle",
+    "shuffle": "Willekeurig",
     "discography": "Discografie",
-    "allTracks": "Alle titels",
+    "allTracks": "Alle nummers",
     "trackCount_zero": "0 nummers",
-    "trackCount_one": "{{count}} track",
-    "trackCount_other": "{{count}} titels",
+    "trackCount_one": "{{count}} nummer",
+    "trackCount_other": "{{count}} nummers",
     "albumCount_zero": "0 albums",
     "albumCount_one": "{{count}} album",
     "albumCount_other": "{{count}} albums",
     "albumTrackCount_zero": "0 nummers",
-    "albumTrackCount_one": "{{count}} track",
-    "albumTrackCount_other": "{{count}} titels",
+    "albumTrackCount_one": "{{count}} nummer",
+    "albumTrackCount_other": "{{count}} nummers",
     "emptyTitle": "Artiest niet gevonden",
     "emptyDescription": "Deze artiest staat niet meer in het actieve profiel.",
     "bio": {
@@ -860,7 +951,7 @@
   "genreDetail": {
     "badge": "Genre",
     "playAll": "Alles afspelen",
-    "shuffle": "Willekeurig afspelen",
+    "shuffle": "Willekeurig",
     "trackCount_zero": "0 nummers",
     "trackCount_one": "{{count}} nummer",
     "trackCount_other": "{{count}} nummers",
@@ -870,49 +961,55 @@
     "emptyTracksDescription": "Dit genre bevat geen beschikbare nummers."
   },
   "nowPlaying": {
-    "title": "Nu afspelen",
-    "empty": "Er wordt geen nummer afgespeeld",
-    "aboutArtist": "Over de kunstenaar",
-    "readMore": "Lees verder",
-    "readLess": "Verkleinen",
-    "noBio": "Er is geen biografie beschikbaar. Stel je sleutel Last.fm in via de instellingen.",
+    "title": "Speelt nu",
+    "empty": "Geen nummer wordt afgespeeld",
+    "aboutArtist": "Over de artiest",
+    "readMore": "Meer lezen",
+    "readLess": "Minder tonen",
+    "noBio": "Geen biografie beschikbaar. Stel je Last.fm-sleutel in via de instellingen.",
     "nextInQueue": "Volgende in de wachtrij",
     "openQueue": "Wachtrij openen",
     "lyrics": {
-      "title": "Tekst",
+      "title": "Songtekst",
       "comingSoon": "Binnenkort beschikbaar"
     },
-    "startRadio": "Start radio",
+    "startRadio": "Radio starten",
     "share": {
       "open": "Delen",
       "save": "Opslaan als PNG",
       "copy": "Afbeelding kopiëren",
-      "eyebrow": "Wordt afgespeeld",
+      "eyebrow": "Speelt nu",
       "on": "op"
     }
   },
   "playerBar": {
-    "lyrics": "Tekst",
-    "nowPlaying": "Nu afspelen tonen",
+    "lyrics": "Songtekst",
+    "nowPlaying": "Toon wat er nu speelt",
     "queue": "Wachtrij",
-    "miniPlayer": "Mini-speler (altijd op de voorgrond)",
-    "previous": "Vorig nummer",
-    "next": "Volgend nummer",
+    "miniPlayer": "Mini-speler (altijd boven)",
+    "previous": "Vorige nummer",
+    "next": "Volgende nummer",
+    "openFullscreen": "Immersieve weergave",
     "devices": "Uitvoerapparaten",
     "moreActions": "Meer acties",
-    "abLoop": "A-B-lus"
+    "abLoop": "A-B-loop",
+    "eqPreset": "Equalizer",
+    "eq": {
+      "bypass": "EQ inschakelen"
+    },
+    "toggleNowPlayingPanel": "Toon / verberg Speelt nu"
   },
   "miniPlayer": {
-    "idle": "Geen nummer afgespeeld",
+    "idle": "Geen nummer wordt afgespeeld",
     "maximize": "Hoofdvenster herstellen",
-    "like": "Vind ik leuk",
-    "pin": "Altijd op de voorgrond",
+    "like": "Vind-ik-leuk",
+    "pin": "Altijd boven",
     "close": "Mini-speler sluiten"
   },
   "sleepTimer": {
     "title": "Slaaptimer",
     "endOfTrack": "Aan het einde van het huidige nummer",
-    "endOfTrackBadge": "EOT",
+    "endOfTrackBadge": "Einde",
     "cancel": "Annuleren",
     "start": "OK",
     "customPlaceholder": "Min.",
@@ -921,23 +1018,23 @@
     "minutes_other": "{{count}} min"
   },
   "lyrics": {
-    "title": "Tekst",
-    "loading": "Zoeken naar songteksten…",
-    "noTrack": "Er wordt geen nummer afgespeeld",
-    "notFound": "Er zijn geen songteksten gevonden voor dit nummer. U kunt een .lrc-bestand importeren.",
+    "title": "Songtekst",
+    "loading": "Songtekst zoeken…",
+    "noTrack": "Geen nummer wordt afgespeeld",
+    "notFound": "Geen songtekst gevonden voor dit nummer. Je kunt een .lrc-bestand importeren.",
     "importTitle": "Een .lrc-bestand importeren",
     "actions": {
       "import": "Een .lrc-bestand importeren",
-      "refetch": "Het onderzoek hervatten",
-      "clear": "Tekst wissen",
+      "refetch": "Opnieuw zoeken",
+      "clear": "Songtekst wissen",
       "fullscreen": "Volledig scherm",
       "edit": "Songtekst bewerken"
     },
     "source": {
-      "embedded": "Tekst opgenomen in het bestand",
+      "embedded": "Songtekst ingebed in het bestand",
       "lrc_file": "Geïmporteerd .lrc-bestand",
       "api": "LRCLIB",
-      "manual": "Handmatig invoeren"
+      "manual": "Handmatige invoer"
     },
     "format": {
       "lrc": "Gesynchroniseerd",
@@ -946,24 +1043,24 @@
       "plain": "Niet gesynchroniseerd"
     },
     "toast": {
-      "tagWriteSkipped": "TTML alleen in cache bewaard (niet geschreven naar audiotag)"
+      "tagWriteSkipped": "TTML alleen in de cache bewaard (niet naar de audiotag geschreven)"
     }
   },
   "duplicates": {
-    "title": "Duplicates detected",
-    "summary": "{{groups}} groups · {{duplicates}} duplicates to remove",
-    "scanning": "Scanning…",
-    "empty": "No duplicates",
-    "emptyHint": "Your library is clean.",
-    "rescan": "Rescan",
-    "deleteOthers_zero": "Nothing to delete",
-    "deleteOthers_one": "Delete {{count}} duplicate",
-    "deleteOthers_other": "Delete {{count}} duplicates",
-    "keepAria": "Keep {{title}}"
+    "title": "Duplicaten gevonden",
+    "summary": "{{groups}} groepen · {{duplicates}} duplicaten om te verwijderen",
+    "scanning": "Scannen…",
+    "empty": "Geen duplicaten",
+    "emptyHint": "Je bibliotheek is netjes.",
+    "rescan": "Opnieuw scannen",
+    "deleteOthers_zero": "Niets te verwijderen",
+    "deleteOthers_one": "{{count}} duplicaat verwijderen",
+    "deleteOthers_other": "{{count}} duplicaten verwijderen",
+    "keepAria": "{{title}} behouden"
   },
   "dragDrop": {
     "dropHint": "Loslaten om te importeren",
-    "importing": "Bezig met importeren…",
+    "importing": "Importeren…",
     "subtitle": "Mappen of audiobestanden geaccepteerd"
   },
   "abLoop": {
@@ -972,62 +1069,62 @@
     "armed": "A-B-herhaling actief: {{a}} → {{b}} (klik om te wissen)"
   },
   "smartPlaylistEditor": {
-    "createTitle": "New smart playlist",
-    "editTitle": "Edit smart playlist",
-    "create": "Create",
-    "preview": "Preview",
-    "previewCount": "{{count}} tracks match",
-    "nameRequired": "Name is required",
+    "createTitle": "Nieuwe slimme afspeellijst",
+    "editTitle": "Slimme afspeellijst bewerken",
+    "create": "Maken",
+    "preview": "Voorbeeld",
+    "previewCount": "{{count}} nummers komen overeen",
+    "nameRequired": "Naam is verplicht",
     "fields": {
-      "name": "Name",
-      "description": "Description",
-      "title": "Title contains",
-      "artist": "Artist contains",
-      "album": "Album contains",
-      "year": "Year",
+      "name": "Naam",
+      "description": "Beschrijving",
+      "title": "Titel bevat",
+      "artist": "Artiest bevat",
+      "album": "Album bevat",
+      "year": "Jaar",
       "bpm": "BPM",
-      "durationMin": "Duration in minutes",
-      "hiRes": "Hi-Res only",
-      "liked": "Liked tracks only",
-      "formats": "Formats",
+      "durationMin": "Duur in minuten",
+      "hiRes": "Alleen Hi-Res",
+      "liked": "Alleen vind-ik-leuks",
+      "formats": "Formaten",
       "genres": "Genres",
-      "sort": "Sort by",
-      "limit": "Max tracks",
-      "minRating": "Minimumbeoordeling"
+      "sort": "Sorteren op",
+      "limit": "Max. nummers",
+      "minRating": "Minimale beoordeling"
     },
     "placeholders": {
-      "name": "My 2024 favourites",
-      "description": "Optional",
-      "noLimit": "Unlimited"
+      "name": "Mijn favorieten 2024",
+      "description": "Optioneel",
+      "noLimit": "Onbeperkt"
     },
     "sections": {
-      "match": "Match",
-      "ranges": "Ranges",
-      "attributes": "Attributes",
-      "output": "Sort & limit"
+      "match": "Overeenkomst",
+      "ranges": "Bereiken",
+      "attributes": "Attributen",
+      "output": "Sortering en limiet"
     },
     "sortOptions": {
-      "addedDesc": "Recently added",
-      "addedAsc": "Oldest added",
-      "yearDesc": "Year (descending)",
-      "yearAsc": "Year (ascending)",
-      "titleAsc": "Title (A → Z)",
-      "artistAsc": "Artist (A → Z)",
-      "random": "Random"
+      "addedDesc": "Recent toegevoegd",
+      "addedAsc": "Eerst toegevoegd",
+      "yearDesc": "Jaar (aflopend)",
+      "yearAsc": "Jaar (oplopend)",
+      "titleAsc": "Titel (A → Z)",
+      "artistAsc": "Artiest (A → Z)",
+      "random": "Willekeurig"
     },
     "tree": {
       "sectionTitle": "Regels",
-      "sectionHint": "Combineer voorwaarden met EN / OF / NIET. Klik op EN of OF om de groepsoperator om te wisselen.",
+      "sectionHint": "Combineer voorwaarden met EN / OF / NIET. Klik op EN of OF om de groepsoperator te wisselen.",
       "and": "EN",
       "or": "OF",
       "not": "NIET",
-      "toggleOpHint": "EN ↔ OF",
-      "matchAllEmpty": "(hele bibliotheek)",
+      "toggleOpHint": "EN ↔ OF wisselen",
+      "matchAllEmpty": "(volledige bibliotheek)",
       "matchNoneEmpty": "(geen nummers)",
       "childCount_zero": "leeg",
       "childCount_one": "{{count}} voorwaarde",
       "childCount_other": "{{count}} voorwaarden",
-      "notHint": "Sluit alles uit wat het kind matcht",
+      "notHint": "Sluit alles uit dat aan het kind voldoet",
       "deleteNode": "Verwijderen",
       "addCondition": "Voorwaarde",
       "addGroupAnd": "EN-groep",
@@ -1049,30 +1146,30 @@
       "durationMaxMs": "Duur (ms) ≤",
       "format": "Formaat =",
       "hiRes": "Hi-Res",
-      "liked": "Geliked",
+      "liked": "Vind-ik-leuk",
       "ratingMin": "Beoordeling ≥"
     }
   },
   "lyricsEditor": {
-    "title": "Songtekst-editor",
+    "title": "Songtekstbewerker",
     "tabs": {
       "plain": "Tekst",
       "synced": "Gesynchroniseerd"
     },
-    "plainPlaceholder": "Typ de songtekst regel voor regel…",
+    "plainPlaceholder": "Typ de songtekst regel per regel…",
     "linePlaceholder": "Regeltekst",
     "capture": "Vastleggen",
-    "captureHint": "Start de weergave en druk op de spatiebalk (of Vastleggen) om de huidige regel aan de afspeelkop te koppelen",
+    "captureHint": "Start de weergave en druk dan op Spatie (of «Vastleggen») om de huidige regel te koppelen aan de afspeelpositie",
     "captureNow": "Nu vastleggen",
     "recapture": "Opnieuw koppelen aan huidige positie",
-    "seekToLine": "Spring naar deze regel",
+    "seekToLine": "Naar deze regel springen",
     "insertBelow": "Regel hieronder invoegen",
     "removeLine": "Regel verwijderen",
     "lines": "regels gekoppeld",
-    "writeToFile": "Ook in het audiobestand schrijven (USLT/LYRICS)",
+    "writeToFile": "Ook naar het audiobestand schrijven (USLT/LYRICS)",
     "offset": {
       "label": "Globale verschuiving",
-      "help": "Verschuift elke vastgelegde regel met dezelfde delta — handig om geïmporteerde LRC-bestanden te corrigeren die gelijkmatig te vroeg of te laat zijn",
+      "help": "Verschuift elke vastgelegde regel met dezelfde delta — handig om geïmporteerde LRC-bestanden recht te zetten die uniform te vroeg of te laat zijn",
       "reset": "Verschuiving resetten"
     },
     "granularity": {
@@ -1085,53 +1182,84 @@
   },
   "sort": {
     "title": "Titel",
-    "artist": "Kunstenaar",
+    "artist": "Artiest",
     "album": "Album",
     "duration": "Duur",
     "year": "Jaar",
     "addedAt": "Recent toegevoegd",
-    "rating": "Opmerking",
+    "rating": "Beoordeling",
+    "customOrder": "Aangepaste volgorde",
+    "recentlyAdded": "Recent toegevoegd",
+    "menuTitle": "Sorteren op",
     "name": "Naam",
     "albumsCount": "Aantal albums",
     "tracksCount": "Aantal nummers",
     "ascending": "Oplopend",
-    "descending": "Afnemend",
+    "descending": "Aflopend",
     "filename": "Bestandsnaam"
   },
   "settings": {
     "title": "Instellingen",
     "sections": {
       "general": "Algemeen",
-      "appearance": "Weergave",
+      "library": "Bibliotheek",
       "playback": "Afspelen",
       "integrations": "Integraties",
-      "storage": "Opslag & gegevens",
-      "diagnostics": "Diagnostieken"
+      "appearance": "Weergave",
+      "storage": "Opslag en gegevens",
+      "data": "Gegevens",
+      "shortcuts": "Sneltoetsen",
+      "diagnostics": "Diagnostiek"
+    },
+    "shortcuts": {
+      "subtitle": "Klik op een sneltoets en druk vervolgens op de gewenste toetscombinatie. Backspace om te wissen, Esc om te annuleren.",
+      "captureHint": "Druk op een toets…",
+      "reset": "Alles resetten",
+      "unbind": "Loskoppelen",
+      "unbound": "Geen",
+      "actions": {
+        "togglePlayback": "Afspelen / Pauzeren",
+        "next": "Volgende nummer",
+        "previous": "Vorige nummer",
+        "volumeUp": "Volume omhoog",
+        "volumeDown": "Volume omlaag",
+        "toggleMute": "Dempen / Dempen opheffen",
+        "toggleShuffle": "Willekeurig",
+        "cycleRepeat": "Herhaalmodus doorlopen",
+        "toggleQueue": "Wachtrijpaneel in-/uitschakelen",
+        "toggleNowPlaying": "Paneel «Speelt nu» in-/uitschakelen",
+        "toggleLyrics": "Songtekstpaneel in-/uitschakelen",
+        "toggleLike": "Huidige nummer leuk vinden / niet meer leuk vinden"
+      }
+    },
+    "offlineMode": {
+      "title": "Offlinemodus",
+      "subtitle": "Schakelt Last.fm, Deezer en LRCLIB uit. Gebruikt alleen gegevens uit de cache."
     },
     "integrations": {
       "lastfm": {
         "title": "Last.fm",
-        "subtitle": "Biografieën van artiesten en scrobbelen. Maak een sleutel aan via last.fm/api/account/create",
+        "subtitle": "Artiestbio's en scrobblen. Maak een sleutel aan op last.fm/api/account/create",
         "placeholder": "API-sleutel",
-        "secretPlaceholder": "Een gedeeld geheim",
+        "secretPlaceholder": "Shared secret",
         "save": "Opslaan",
-        "saved": "Geregistreerd ✓",
-        "show": "Weergeven",
+        "saved": "Opgeslagen ✓",
+        "show": "Tonen",
         "hide": "Verbergen",
         "connectedAs": "Aangemeld als",
-        "disconnect": "Uitloggen",
-        "loginPrompt": "Log in om je luistergeschiedenis te scrobbelen:",
+        "disconnect": "Afmelden",
+        "loginPrompt": "Meld je aan om je luistergeschiedenis te scrobblen:",
         "usernamePlaceholder": "Gebruikersnaam",
         "passwordPlaceholder": "Wachtwoord",
-        "connect": "Inloggen",
-        "connecting": "Inloggen…"
+        "connect": "Aanmelden",
+        "connecting": "Aanmelden…"
       },
       "discord": {
         "title": "Discord Rich Presence",
-        "subtitle": "Toon het nummer dat nu wordt afgespeeld op je Discord-profiel"
+        "subtitle": "Toon het huidige nummer op je Discord-profiel"
       },
       "dlna": {
-        "title": "DLNA / UPnP-server",
+        "title": "DLNA-/UPnP-server",
         "subtitle": "Stream je bibliotheek naar compatibele versterkers en apparaten in het lokale netwerk",
         "serverName": "Naam",
         "port": "Poort",
@@ -1142,144 +1270,172 @@
       },
       "spotify": {
         "title": "Spotify",
-        "subtitle": "Verbind Spotify Premium met je eigen Spotify Developer Client ID.",
+        "subtitle": "Koppel Spotify Premium met je eigen Spotify Developer Client ID.",
         "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "Voeg deze Redirect URI toe in Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
+        "redirectHint": "Voeg deze Redirect URI toe in het Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
         "connectedAs": "Verbonden als",
-        "disconnect": "Verbinding verbreken",
+        "disconnect": "Verbreken",
         "connecting": "Verbinden…",
-        "connect": "Spotify verbinden"
+        "connect": "Spotify koppelen"
       }
     },
     "crossfade": {
-      "title": "Overgang",
-      "subtitle": "Vloeiende overgangen tussen nummers (binnenkort)"
-    },
-    "dynamicCrossfade": {
-      "title": "Dynamische crossfade",
-      "subtitle": "Past de fade-duur aan op het tempoverschil tussen tracks (valt terug op de vaste crossfade als BPM onbekend is)"
+      "title": "Crossfade",
+      "subtitle": "Naadloze overgangen tussen nummers (binnenkort)"
     },
     "normalize": {
-      "title": "Het volume op een vast niveau instellen",
-      "subtitle": "Het volume van te luide nummers verlagen om een gelijkmatig geluidsniveau te verkrijgen"
+      "title": "Volume normaliseren",
+      "subtitle": "Verlaagt het volume van te luide nummers voor een consistent niveau"
     },
     "replayGain": {
-      "title": "Solliciteren ReplayGain",
-      "subtitle": "Gebruik de geanalyseerde versterking van elk nummer om het waargenomen volume in balans te brengen"
+      "title": "ReplayGain toepassen",
+      "subtitle": "Gebruikt de geanalyseerde gain van elk nummer om het waargenomen volume te balanceren"
     },
     "exclusive": {
-      "title": "WASAPI Exclusive-modus (Windows)",
-      "subtitle": "Bit-perfect: omzeilt de Windows-mixer voor interferentievrije uitvoer. Valt terug op gedeelde modus als het apparaat exclusieve toegang weigert.",
-      "fallback": "Het apparaat accepteert geen exclusieve modus. Terug naar gedeelde modus."
+      "title": "WASAPI exclusive-modus (Windows)",
+      "subtitle": "Bit-perfect: omzeilt de Windows-mixer voor een storingsvrije uitvoer. Valt terug op shared-modus als het apparaat exclusive-toegang weigert.",
+      "fallback": "Het apparaat accepteert geen exclusive-modus. Terugvallen op shared-modus."
     },
     "mono": {
-      "title": "Mono-geluid",
-      "subtitle": "Voeg het linker- en rechterkanaal samen tot één signaal"
+      "title": "Mono-audio",
+      "subtitle": "Combineert de linker- en rechterkanalen tot één signaal"
     },
     "language": {
       "title": "Taal",
-      "subtitle": "Taal van de interface"
+      "subtitle": "Interfacetaal"
     },
     "autoStart": {
-      "title": "Opstarten bij het opstarten",
-      "subtitle": "WaveFlow automatisch starten wanneer het systeem opstart"
+      "title": "Starten bij opstart",
+      "subtitle": "Start WaveFlow automatisch wanneer het systeem opstart"
     },
     "minimizeToTray": {
-      "title": "Naar de taakbalk minimaliseren",
-      "subtitle": "Als je het venster sluit, wordt de app naar het systeemvak verplaatst"
+      "title": "Naar het systeemvak minimaliseren",
+      "subtitle": "Het sluiten van het venster minimaliseert de app naar het systeemvak"
     },
     "scanOnStart": {
-      "title": "Scannen bij het opstarten",
+      "title": "Scannen bij opstart",
       "subtitle": "Bibliotheken automatisch opnieuw scannen bij het opstarten"
     },
     "singleClickPlay": {
       "title": "Afspelen met één klik",
-      "subtitle": "Klik op een track om het afspelen te starten (anders dubbelklikken)"
+      "subtitle": "Klik op een nummer om het af te spelen (anders dubbelklik)"
     },
     "showSleepTimer": {
-      "title": "Slaaptimer aan de balk vastmaken",
-      "subtitle": "Uitgeschakeld blijft de timer beschikbaar via het menu „…“"
+      "title": "Slaaptimer vastpinnen in de balk",
+      "subtitle": "Als dit uitstaat blijft de timer beschikbaar via het menu «…»"
     },
     "showAbLoop": {
-      "title": "A-B-lus aan de balk vastmaken",
-      "subtitle": "Uitgeschakeld blijft de A-B-lus beschikbaar via het menu „…“"
+      "title": "A-B-loop vastpinnen in de balk",
+      "subtitle": "Als dit uitstaat blijft A-B-loop beschikbaar via het menu «…»"
+    },
+    "showSpotify": {
+      "title": "Spotify-snelkoppeling tonen",
+      "subtitle": "Toon de Spotify-snelkoppeling in de zijbalk"
     },
     "duplicates": {
-      "title": "Detect duplicates",
-      "subtitle": "Find byte-identical files (same blake3) in your library",
-      "action": "Search"
+      "title": "Duplicaten detecteren",
+      "subtitle": "Zoekt bestanden die byte-voor-byte identiek zijn (dezelfde blake3) in je bibliotheek",
+      "action": "Zoeken"
     },
     "rescan": {
-      "title": "De bibliotheek opnieuw scannen",
-      "subtitle": "Alle mappen opnieuw doorlopen en de nieuwe bestanden importeren",
+      "title": "Bibliotheek opnieuw scannen",
+      "subtitle": "Controleer alle mappen en importeer nieuwe bestanden",
       "action": "Opnieuw scannen"
     },
     "analyze": {
-      "title": "De bibliotheek analyseren",
-      "subtitle": "BPM berekenen, geluidsvolume en piekwaarden voor niet-geanalyseerde nummers",
+      "title": "Bibliotheek analyseren",
+      "subtitle": "Bereken BPM, loudness en piek voor niet-geanalyseerde nummers",
       "action": "Analyseren",
       "autoTitle": "Automatische analyse",
-      "autoSubtitle": "Voer na elke scan die nieuwe tracks toevoegt een analyse uit op de achtergrond",
-      "failed_one": "{{count}} mislukking",
-      "failed_other": "{{count}} schaken"
+      "autoSubtitle": "Voer de analyse op de achtergrond uit na elke scan die nieuwe nummers toevoegt",
+      "failed_one": "{{count}} mislukt",
+      "failed_other": "{{count}} mislukt"
     },
     "artistImages": {
-      "title": "Afbeeldingen van kunstenaars",
-      "subtitle": "De albumhoezen downloaden van Deezer",
-      "action": "Terugwinnen",
+      "title": "Artiestafbeeldingen",
+      "subtitle": "Download artiestafbeeldingen van Deezer",
+      "action": "Ophalen",
       "progress": "{{current}}/{{total}} verwerkt"
     },
     "localArtistImages": {
       "title": "Lokale artiestafbeeldingen",
-      "subtitle": "Zoekt naar een artist.jpg (of <naam>.jpg) naast de muziek en gebruikt die als artiestfoto.",
+      "subtitle": "Zoekt naar een artist.jpg (of <naam>.jpg) naast je muziek en gebruikt die als artiestfoto.",
       "action": "Scannen",
       "done": "{{linked}} van {{considered}} artiesten gekoppeld aan een lokale afbeelding"
     },
+    "profileIo": {
+      "title": "Profiel-back-up",
+      "subtitle": "Exporteer of importeer een volledig profiel (afspeellijsten, vind-ik-leuks, statistieken, EQ, sneltoetsen) als één .waveflow-bestand.",
+      "export": {
+        "action": "Exporteren",
+        "dialogTitle": "WaveFlow-profiel exporteren",
+        "done": "Profiel succesvol geëxporteerd.",
+        "failed": "Export mislukt. Raadpleeg de logs voor details."
+      },
+      "import": {
+        "action": "Importeren",
+        "dialogTitle": "WaveFlow-profiel importeren",
+        "done": "Profiel geïmporteerd (id {{id}}). Wissel ernaartoe via de profielkiezer.",
+        "failed": "Import mislukt. Het bestand is mogelijk beschadigd of incompatibel."
+      }
+    },
     "dataFolder": {
-      "title": "Gegevensbestand",
-      "subtitle": "Open de map met de database en de omslagen",
+      "title": "Gegevensmap",
+      "subtitle": "Open de map met de database en de albumhoezen",
       "action": "Openen"
     },
-    "openDataFolder": "De gegevensmap openen",
+    "openDataFolder": "Gegevensmap openen",
     "lyricsPrefetch": {
-      "title": "Songteksten vooraf ophalen",
-      "subtitle": "Songteksten van de hele bibliotheek downloaden voor offline gebruik",
+      "title": "Songteksten vooraf laden",
+      "subtitle": "Download songteksten voor de hele bibliotheek voor offline gebruik",
       "result": "{{hits}} gesynchroniseerd, {{misses}} niet gevonden, {{failed}} mislukt",
-      "offline": "Offlinemodus is ingeschakeld",
+      "offline": "Offlinemodus staat aan",
       "failed": "Vooraf laden mislukt",
-      "action": "Vooraf ophalen",
+      "action": "Vooraf laden",
       "progress": "{{current}}/{{total}} verwerkt · {{hits}} gevonden"
     },
-    "regenerateThumbnails": "Miniatuurafbeeldingen vernieuwen",
-    "regenerateThumbnailsSubtitle": "De ontbrekende 1x/2x-varianten voor alle hoesjes opnieuw samenstellen",
-    "regenerateThumbnailsAction": "Herstellen",
-    "regenerateThumbnailsDone": "{{count}} vernieuwde thumbnails",
+    "regenerateThumbnails": "Miniaturen opnieuw genereren",
+    "regenerateThumbnailsSubtitle": "Maakt de ontbrekende 1x-/2x-varianten van alle albumhoezen opnieuw aan",
+    "regenerateThumbnailsAction": "Opnieuw genereren",
+    "regenerateThumbnailsDone": "{{count}} miniaturen opnieuw gegenereerd",
     "reset": {
-      "title": "De app opnieuw opstarten",
-      "subtitle": "Alle gegevens verwijderen en terugkeren naar de oorspronkelijke staat",
+      "title": "App resetten",
+      "subtitle": "Verwijder alle gegevens en herstel de fabrieksinstellingen",
       "action": "Resetten"
     },
     "diagnostics": {
-      "title": "Toepassingslogboek",
-      "subtitle": "Om een bug te melden, open je de logboekmap of kopieer je recente logboeken om ze in een ticket te plakken.",
-      "openFolder": "Open de map",
+      "title": "Applicatielog",
+      "subtitle": "Open de logmap of kopieer recente logs en plak ze in een ticket om een bug te melden.",
+      "openFolder": "Map openen",
       "copyLogs": "Logs kopiëren",
-      "copied": "Gekopieerde logbestanden",
-      "copyFailed": "Kan logs niet kopiëren"
+      "copied": "Logs gekopieerd",
+      "copyFailed": "Logs konden niet worden gekopieerd"
+    },
+    "visualizer": {
+      "title": "Audio-visualizer",
+      "subtitle": "Toont een real-time spectrum in de immersieve weergave (lichte FFT op de decoderthread)"
+    },
+    "smartCrossfade": {
+      "title": "Slimme crossfade",
+      "subtitle": "Slaat automatisch de crossfade over tussen twee nummers van hetzelfde album (ideaal voor conceptalbums en livesets)"
+    },
+    "dynamicCrossfade": {
+      "title": "Dynamische crossfade",
+      "subtitle": "Schaalt de crossfade-duur met het tempoverschil tussen nummers (valt terug op de vaste crossfade als BPM onbekend is)"
     },
     "gapless": {
-      "title": "Naadloze weergave",
-      "subtitle": "Sluit opeenvolgende nummers zonder microstilte aan (ideaal voor live- en conceptalbums)"
+      "title": "Gapless afspelen",
+      "subtitle": "Koppelt opeenvolgende nummers zonder micro-stiltes (ideaal voor live- en conceptalbums)"
     },
     "equalizer": {
       "title": "Equalizer",
       "subtitle": "Zes peaking-banden, ±12 dB. Sleep de punten om de curve te vormen.",
       "presets": "Presets",
-      "reset": "Opnieuw instellen",
+      "reset": "Resetten",
       "preset": {
         "custom": "Aangepast",
-        "flat": "Vlak",
-        "acoustic": "Akoestisch",
+        "flat": "Flat",
+        "acoustic": "Acoustic",
         "bass_booster": "Bass booster",
         "bass_reducer": "Bass reducer",
         "classical": "Klassiek",
@@ -1295,8 +1451,8 @@
         "pop": "Pop",
         "rnb": "R&B",
         "rock": "Rock",
-        "small_speakers": "Kleine speakers",
-        "spoken_word": "Gesproken woord",
+        "small_speakers": "Kleine luidsprekers",
+        "spoken_word": "Spoken word",
         "treble_booster": "Treble booster"
       }
     },
@@ -1304,28 +1460,28 @@
       "title": "Automatische back-up",
       "subtitle": "Maakt periodiek een .waveflow-archief van elk profiel in de gekozen map.",
       "intervalLabel": "Frequentie",
-      "intervalDays_one": "Dagelijks",
+      "intervalDays_one": "Elke dag",
       "intervalDays_other": "Elke {{count}} dagen",
       "retentionLabel": "Bewaarde archieven",
       "retentionKeep_one": "{{count}} archief per profiel",
       "retentionKeep_other": "{{count}} archieven per profiel",
-      "includeMetadataArtworkLabel": "Deezer-afbeeldingscache opnemen",
-      "includeMetadataArtworkHint": "Grotere back-up, volledig offline herstel. Vink uit voor compacte archieven (cache wordt op aanvraag opnieuw opgehaald).",
+      "includeMetadataArtworkLabel": "Deezer-albumhoezencache opnemen",
+      "includeMetadataArtworkHint": "Grotere back-up, volledig offline herstel mogelijk. Vink uit voor lichtere archieven (de cache wordt op aanvraag opnieuw opgehaald).",
       "changeFolder": "Map wijzigen",
       "pickFolderTitle": "Kies de back-upmap",
       "lastRun": "Laatste back-up: {{when}}",
       "neverRun": "nooit",
-      "runNow": "Nu back-uppen",
+      "runNow": "Nu een back-up maken",
       "runOk_one": "{{count}} archief geschreven.",
       "runOk_other": "{{count}} archieven geschreven.",
       "errors": {
-        "loadFailed": "Kon back-upconfiguratie niet laden.",
-        "saveFailed": "Opslaan mislukt. Probeer opnieuw.",
-        "runFailed": "Back-up mislukt. Controleer de logs."
+        "loadFailed": "De back-upconfiguratie kon niet worden geladen.",
+        "saveFailed": "Opslaan mislukt. Probeer het opnieuw.",
+        "runFailed": "Back-up mislukt. Bekijk de logs."
       }
     },
     "uiZoom": {
-      "title": "Interface-zoom",
+      "title": "UI-zoom",
       "subtitle": "Schaal de hele interface (Ctrl+= / Ctrl+- / Ctrl+0 werken ook)",
       "decreaseAria": "Uitzoomen",
       "increaseAria": "Inzoomen",
@@ -1333,8 +1489,9 @@
     },
     "showAudioQualityFooter": {
       "title": "Audiokwaliteitsbalk tonen",
-      "subtitle": "Technische details (kHz, kbps, codec, bitdiepte) onder de afspeelbalk. Standaard uit voor een slankere balk."
+      "subtitle": "Technische details (kHz, kbps, codec, bitdiepte) onder de spelerbalk. Standaard uit voor een smallere balk."
     },
+    "categoryNavLabel": "Instellingscategorieën",
     "appearance": {
       "theme": {
         "title": "Thema",
@@ -1356,29 +1513,67 @@
         "ocean": "Oceaan",
         "neon": "Neon"
       }
+    },
+    "playerBarLayout": {
+      "title": "Indeling van de afspeelbalk",
+      "subtitle": "Kies welke knoppen in de balk verschijnen en wat klikken op de hoes doet. De voorbeeldweergave werkt live mee.",
+      "preview": "Voorbeeld",
+      "previewEmpty": "Geen knoppen — de balk toont alleen de hoes en de afspeelknoppen.",
+      "buttons": {
+        "abLoop": "A-B-lus",
+        "sleepTimer": "Slaaptimer",
+        "eqPreset": "Equalizer (voorinstellingen)",
+        "lyrics": "Songteksten",
+        "queue": "Wachtrij",
+        "device": "Audio-uitvoer",
+        "miniPlayer": "Mini-speler",
+        "immersive": "Volledige weergave",
+        "audioQualityFooter": "Audio-kwaliteitsbalk"
+      },
+      "coverAction": {
+        "title": "Bij klik op de hoes",
+        "immersive": {
+          "label": "Open volledige weergave",
+          "description": "Standaard — opent de schermvullende Now Playing-weergave met grote hoes."
+        },
+        "nowPlaying": {
+          "label": "Toon paneel Speelt nu",
+          "description": "Spotify-stijl — toont of verbergt het rechterpaneel met hoes en songteksten."
+        },
+        "none": {
+          "label": "Niets doen",
+          "description": "Schakelt het klikken uit — handig als je het per ongeluk activeert."
+        }
+      }
     }
   },
+  "spotify": {
+    "notConfiguredTitle": "Registreer je Spotify-app",
+    "notConfiguredMessage": "Spotify vereist dat elke app van derden een gratis Client ID registreert voordat er kan worden afgespeeld. Maak er een aan op het Spotify Developer Dashboard en plak hem in WaveFlow → Instellingen → Integraties.",
+    "openDashboard": "Spotify Developer Dashboard openen",
+    "openSettings": "Instellingen openen",
+    "notConnectedTitle": "Spotify is niet verbonden",
+    "notConnectedMessage": "Je Client ID is ingesteld. Log via Instellingen in op je Spotify Premium-account om je afspeellijsten te laden en muziek af te spelen.",
+    "emptyPlaylist": "Geen afspeelbare nummers in deze afspeellijst (Spotify toont mogelijk geen lokale bestanden of afspeellijsten die niet van jou zijn).",
+    "deviceReady": "WaveFlow Spotify-apparaat klaar",
+    "devicePending": "Spotify-afspelen wordt voorbereid…",
+    "searchPlaceholder": "Zoeken op Spotify",
+    "tracks": "Nummers",
+    "playlists": "Afspeellijsten"
+  },
   "scanProgress": {
-    "runningTitle": "Bibliotheek scannen…",
+    "runningTitle": "Bibliotheek wordt gescand…",
     "runningSubtitle": "{{current}} / {{total}} bestanden",
     "doneTitle": "Scan voltooid",
     "doneSubtitle": "{{added}} toegevoegd · {{updated}} bijgewerkt · {{skipped}} overgeslagen"
   },
   "system": {
     "tray": {
-      "playPause": "Afspelen / Pauze",
+      "playPause": "Afspelen / Pauzeren",
       "previous": "Vorige",
       "next": "Volgende",
       "show": "WaveFlow openen",
       "quit": "Afsluiten"
     }
-  },
-  "spotify": {
-    "deviceReady": "WaveFlow Spotify-apparaat klaar",
-    "devicePending": "Spotify-weergave voorbereiden…",
-    "searchPlaceholder": "Spotify doorzoeken",
-    "tracks": "Nummers",
-    "playlists": "Afspeellijsten",
-    "emptyPlaylist": "Geen beschikbare nummers in deze afspeellijst (Spotify toont lokale bestanden of afspeellijsten die je niet bezit mogelijk niet)."
   }
 }

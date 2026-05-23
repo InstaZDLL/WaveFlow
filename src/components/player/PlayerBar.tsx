@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useSleepTimer } from "../../hooks/useSleepTimer";
+import { usePlayerBarLayout } from "../../hooks/usePlayerBarLayout";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { PlaybackControls } from "./PlaybackControls";
@@ -17,11 +18,11 @@ import { ProgressBar } from "./ProgressBar";
 import { SleepTimerMenu } from "./SleepTimerMenu";
 import { AbLoopButton } from "./AbLoopButton";
 import { VolumeControl } from "./VolumeControl";
+import { EqPresetButton } from "./EqPresetButton";
 import { MoreActionsMenu } from "./MoreActionsMenu";
 import { AudioQualityFooter } from "./AudioQualityFooter";
 import { FullscreenNowPlaying } from "./FullscreenNowPlaying";
 import { toggleLikeTrack, listLikedTrackIds } from "../../lib/tauri/track";
-import { getProfileSetting } from "../../lib/tauri/profile";
 
 interface PlayerBarProps {
   onNavigateToArtist: (artistId: number) => void;
@@ -44,70 +45,17 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
     openFullscreenNowPlaying,
     closeFullscreenNowPlaying,
     openFullscreenLyrics,
+    toggleNowPlaying,
   } = usePlayer();
 
   const sleepTimer = useSleepTimer({ currentVolume: volume, setVolume });
 
-  // Per-profile preference: pin sleep-timer / A-B loop as primary
-  // buttons in the bar. Default: OFF — both features live in the
-  // overflow ("...") menu by default so the bar stays calm, and
-  // users opt in to surface them when they use them often.
-  // SettingsView dispatches `waveflow:sleep-timer-visibility` /
-  // `waveflow:ab-loop-visibility` window events after toggling so
-  // we re-read without polling.
-  const [pinSleepTimer, setPinSleepTimer] = useState(false);
-  const [pinAbLoop, setPinAbLoop] = useState(false);
-  // Audio quality strip (kHz / kbps / codec / bit depth) — hidden by
-  // default so the bar stays slim, opt-in via Settings. Same dispatch
-  // pattern as the other UI toggles above.
-  const [showAudioQualityFooter, setShowAudioQualityFooter] = useState(false);
-  useEffect(() => {
-    const refreshSleep = () => {
-      getProfileSetting("ui.show_sleep_timer")
-        .then((v) => {
-          // Missing key → treat as "false" (in overflow menu by default).
-          setPinSleepTimer(v == null ? false : v === "1" || v === "true");
-        })
-        .catch(() => {});
-    };
-    const refreshAb = () => {
-      getProfileSetting("ui.show_ab_loop")
-        .then((v) => {
-          setPinAbLoop(v == null ? false : v === "1" || v === "true");
-        })
-        .catch(() => {});
-    };
-    const refreshAudioQuality = () => {
-      getProfileSetting("ui.show_audio_quality_footer")
-        .then((v) => {
-          // Missing key → off (slim bar by default).
-          setShowAudioQualityFooter(
-            v == null ? false : v === "1" || v === "true",
-          );
-        })
-        .catch(() => {});
-    };
-    refreshSleep();
-    refreshAb();
-    refreshAudioQuality();
-    window.addEventListener("waveflow:sleep-timer-visibility", refreshSleep);
-    window.addEventListener("waveflow:ab-loop-visibility", refreshAb);
-    window.addEventListener(
-      "waveflow:audio-quality-footer-visibility",
-      refreshAudioQuality,
-    );
-    return () => {
-      window.removeEventListener(
-        "waveflow:sleep-timer-visibility",
-        refreshSleep,
-      );
-      window.removeEventListener("waveflow:ab-loop-visibility", refreshAb);
-      window.removeEventListener(
-        "waveflow:audio-quality-footer-visibility",
-        refreshAudioQuality,
-      );
-    };
-  }, []);
+  // Per-profile player-bar layout: which optional buttons render in
+  // the primary cluster, which fall through to the "⋯" overflow,
+  // and what clicking the small cover thumbnail does. Defaults
+  // match the historical hard-coded behaviour so the upgrade is
+  // invisible until the user visits Settings → Playback.
+  const layout = usePlayerBarLayout();
 
   // Subscribe to the backend's track-ended event so the sleep timer
   // in "end of track" mode triggers when the current track finishes
@@ -160,21 +108,36 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
   const title = currentTrack?.title ?? t("player.noTrack");
 
+  // Cover-thumbnail click action — defaults to opening the immersive
+  // overlay (Apple Music style), can be reconfigured to open the Now
+  // Playing right-side panel (Spotify style) or do nothing.
+  const coverDisabled = !currentTrack || layout.coverAction === "none";
+  const coverLabelKey =
+    layout.coverAction === "now_playing"
+      ? "playerBar.toggleNowPlayingPanel"
+      : "playerBar.openFullscreen";
+  const handleCoverClick = () => {
+    if (!currentTrack) return;
+    if (layout.coverAction === "now_playing") toggleNowPlaying();
+    else if (layout.coverAction === "immersive") openFullscreenNowPlaying();
+    // `none` → no-op (button is disabled, this branch is defensive).
+  };
+
   return (
     <>
       <div className="flex flex-col z-50 border-t bg-[#FAFAFA] border-zinc-200 text-zinc-600 dark:bg-surface-dark-elevated dark:border-zinc-800 dark:text-zinc-300">
         <div className="h-24 px-4 flex items-center justify-between">
           {/* Left: Track Info */}
           <div className="w-1/3 flex items-center space-x-3 min-w-0">
-            {/* Click the cover to open the immersive Now Playing
-              overlay (mirrors Apple Music). Disabled when no track is
-              loaded so the user doesn't open an empty card. */}
+            {/* Click the cover — action driven by `ui.cover_action`
+              (immersive / now-playing panel / none). Disabled when
+              no track is loaded OR the user opted out via Settings. */}
             <button
               type="button"
-              onClick={() => currentTrack && openFullscreenNowPlaying()}
-              disabled={!currentTrack}
-              aria-label={t("playerBar.openFullscreen")}
-              title={t("playerBar.openFullscreen")}
+              onClick={handleCoverClick}
+              disabled={coverDisabled}
+              aria-label={t(coverLabelKey)}
+              title={t(coverLabelKey)}
               className="shrink-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-default"
             >
               <Artwork
@@ -229,13 +192,12 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
           {/* Right: Extra Controls */}
           <div className="w-1/3 flex items-center justify-end space-x-2">
             {/* A-B repeat (primary slot — opt-in pin via Settings).
-              When unpinned, the entry lives in the "..." menu so the
-              bar stays calm by default. */}
-            {pinAbLoop && <AbLoopButton />}
+              When unpinned, the entry lives in the "⋯" overflow. */}
+            {layout.showAbLoop && <AbLoopButton />}
 
             {/* Sleep timer (primary slot — opt-in pin via Settings).
               Same overflow-by-default rule as A-B loop. */}
-            {pinSleepTimer && (
+            {layout.showSleepTimer && (
               <SleepTimerMenu
                 status={sleepTimer.status}
                 onSetDuration={sleepTimer.setDurationMinutes}
@@ -244,35 +206,45 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               />
             )}
 
+            {/* EQ preset popover (primary slot — opt-in pin via
+              Settings). Quick switcher between the 20 built-in
+              presets without opening the full EQ card. */}
+            {layout.showEqPreset && !isSpotify && <EqPresetButton />}
+
             {/* Lyrics panel toggle */}
-            <button
-              type="button"
-              onClick={toggleLyrics}
-              aria-label={t("playerBar.lyrics")}
-              title={t("playerBar.lyrics")}
-              className={`p-2 rounded-lg transition-colors ${
-                isLyricsOpen
-                  ? "text-emerald-500"
-                  : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
-              }`}
-            >
-              <Mic2 size={20} />
-            </button>
+            {layout.showLyrics && (
+              <button
+                type="button"
+                onClick={toggleLyrics}
+                aria-label={t("playerBar.lyrics")}
+                title={t("playerBar.lyrics")}
+                className={`p-2 rounded-lg transition-colors ${
+                  isLyricsOpen
+                    ? "text-emerald-500"
+                    : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
+                }`}
+              >
+                <Mic2 size={20} />
+              </button>
+            )}
 
-            <button
-              onClick={toggleQueue}
-              aria-label={t("playerBar.queue")}
-              title={t("playerBar.queue")}
-              className={`p-2 rounded-lg transition-colors ${
-                isQueueOpen
-                  ? "text-emerald-500"
-                  : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
-              }`}
-            >
-              <Menu size={20} />
-            </button>
+            {layout.showQueue && (
+              <button
+                type="button"
+                onClick={toggleQueue}
+                aria-label={t("playerBar.queue")}
+                title={t("playerBar.queue")}
+                className={`p-2 rounded-lg transition-colors ${
+                  isQueueOpen
+                    ? "text-emerald-500"
+                    : "text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
+                }`}
+              >
+                <Menu size={20} />
+              </button>
+            )}
 
-            {!isSpotify && (
+            {layout.showDevice && !isSpotify && (
               <div className="relative">
                 <button
                   onClick={toggleDeviceMenu}
@@ -290,14 +262,20 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               </div>
             )}
 
-            {/* Overflow menu — hosts playback speed, Sleep timer and
-              A-B loop. Hidden when nothing would go inside (Spotify
-              mode + both features pinned to the bar). */}
-            {(!isSpotify || !pinSleepTimer || !pinAbLoop) && (
+            {/* Overflow menu — hosts playback speed, EQ presets,
+              Sleep timer, A-B loop (each appears here only when NOT
+              pinned to the primary cluster). Hidden when nothing
+              would go inside (Spotify mode + every feature pinned). */}
+            {(!isSpotify ||
+              !layout.showSleepTimer ||
+              !layout.showAbLoop ||
+              !layout.showEqPreset) && (
               <MoreActionsMenu
-                pinAbLoop={pinAbLoop}
-                pinSleepTimer={pinSleepTimer}
+                pinAbLoop={layout.showAbLoop}
+                pinSleepTimer={layout.showSleepTimer}
+                pinEqPreset={layout.showEqPreset}
                 showSpeed={!isSpotify}
+                showEq={!isSpotify}
                 sleepTimer={{
                   status: sleepTimer.status,
                   onSetDuration: sleepTimer.setDurationMinutes,
@@ -309,11 +287,12 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
             <VolumeControl />
 
-            {/* Spotify-style right cluster: mini-player + fullscreen as
-              primary icon buttons after volume. Mini-player is hidden
-              in Spotify mode (Web Playback SDK can't drive a second
-              webview). */}
-            {!isSpotify && (
+            {/* Spotify-style right cluster: mini-player + immersive
+              full-screen as primary icon buttons after volume. Both
+              are now opt-out via Settings → Playback → Player bar
+              layout. Mini-player stays unavailable in Spotify mode
+              (Web Playback SDK can't drive a second webview). */}
+            {layout.showMiniPlayer && !isSpotify && (
               <button
                 type="button"
                 onClick={() => {
@@ -331,19 +310,21 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={() => currentTrack && openFullscreenNowPlaying()}
-              disabled={!currentTrack}
-              aria-label={t("playerBar.openFullscreen")}
-              title={t("playerBar.openFullscreen")}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Maximize2 size={20} />
-            </button>
+            {layout.showImmersive && (
+              <button
+                type="button"
+                onClick={() => currentTrack && openFullscreenNowPlaying()}
+                disabled={!currentTrack}
+                aria-label={t("playerBar.openFullscreen")}
+                title={t("playerBar.openFullscreen")}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Maximize2 size={20} />
+              </button>
+            )}
           </div>
         </div>
-        {showAudioQualityFooter && (
+        {layout.showAudioQualityFooter && (
           <AudioQualityFooter
             track={isSpotify ? null : (currentTrack ?? null)}
           />

@@ -124,7 +124,7 @@ export function BatchTagEditModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="fixed inset-0 z-100 bg-black/80 flex items-center justify-center p-4"
+      className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
       onClick={handleClose}
     >
       <motion.div

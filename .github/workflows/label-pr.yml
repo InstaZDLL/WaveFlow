@@ -13,11 +13,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
+    # Prefer the maintainer-provided PAT (`LABELER_PAT`) when set, fall
+    # back to the workflow's auto-generated `GITHUB_TOKEN` otherwise.
+    # GitHub started rejecting the auto token on POST /labels with
+    # spurious 401 "Bad credentials" earlier in 2026; a fine-grained
+    # PAT scoped to this repo (issues: write + pull_requests: write)
+    # is the documented escape hatch. Empty secrets are falsy in this
+    # ternary, so unset → fallback works without extra plumbing.
+    env:
+      LABEL_TOKEN: ${{ secrets.LABELER_PAT || secrets.GITHUB_TOKEN }}
+
     steps:
       # Scope labels based on changed files
       - name: Path-based labels
         uses: actions/labeler@f27b608878404679385c85cfa523b85ccb86e213 # v6.1.0
         with:
+          repo-token: ${{ env.LABEL_TOKEN }}
           sync-labels: true
 
       # Type labels based on PR title (conventional commits)
@@ -26,6 +37,7 @@ jobs:
       - name: Type labels
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
+          github-token: ${{ env.LABEL_TOKEN }}
           script: |
             const title = context.payload.pull_request.title;
             const prefixMap = {
@@ -56,6 +68,7 @@ jobs:
       - name: Size labels
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
+          github-token: ${{ env.LABEL_TOKEN }}
           script: |
             const { data: files } = await github.rest.pulls.listFiles({
               owner: context.repo.owner,

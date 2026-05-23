@@ -16,6 +16,10 @@ interface ProfileContextValue {
   switchProfile: (profileId: number) => Promise<void>;
   /** Create a new profile. Does NOT activate it. */
   createProfile: (input: CreateProfileInput) => Promise<Profile>;
+  /** Permanently delete a profile (must not be the active one or the last one). */
+  deleteProfile: (profileId: number) => Promise<void>;
+  /** Rename a profile in place. Safe against the active profile. */
+  renameProfile: (profileId: number, name: string) => Promise<Profile>;
 }
 
 export const ProfileContext = createContext<ProfileContextValue | null>(null);

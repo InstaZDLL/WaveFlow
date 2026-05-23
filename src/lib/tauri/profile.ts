@@ -34,12 +34,30 @@ export function createProfile(input: CreateProfileInput): Promise<Profile> {
   return invoke<Profile>("create_profile", { input });
 }
 
+/**
+ * Rename an existing profile in place. Safe to call against the
+ * active profile — only `app.db` is touched. Used by the onboarding
+ * wizard so the auto-created "Default" profile can be renamed
+ * without forcing a full create-then-rescan flow.
+ */
+export function renameProfile(profileId: number, name: string): Promise<Profile> {
+  return invoke<Profile>("rename_profile", { profileId, name });
+}
+
 export function switchProfile(profileId: number): Promise<Profile> {
   return invoke<Profile>("switch_profile", { profileId });
 }
 
 export function deactivateProfile(): Promise<void> {
   return invoke<void>("deactivate_profile");
+}
+
+/**
+ * Permanently delete a profile. The backend refuses if the profile is active
+ * (switch first) or if it's the last remaining profile.
+ */
+export function deleteProfile(profileId: number): Promise<void> {
+  return invoke<void>("delete_profile", { profileId });
 }
 
 /** Read a single value from the active profile's `profile_setting` table. */

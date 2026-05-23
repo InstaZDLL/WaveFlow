@@ -7,7 +7,7 @@
     "confirm": "Bestätigen",
     "open": "Öffnen",
     "optional": "(optional)",
-    "viewArtwork": "Cover ansehen"
+    "viewArtwork": "Cover anzeigen"
   },
   "lastfmReauth": {
     "title": "Last.fm-Sitzung abgelaufen",
@@ -16,8 +16,8 @@
   },
   "updater": {
     "available": {
-      "title": "Update verfügbar (Version {{version}})",
-      "message": "Eine neue Version von „WaveFlow“ steht zur Installation bereit.",
+      "title": "Update verfügbar (v{{version}})",
+      "message": "Eine neue Version von WaveFlow kann installiert werden.",
       "action": "Jetzt installieren",
       "later": "Später"
     },
@@ -26,31 +26,98 @@
     },
     "installed": {
       "title": "Update installiert",
-      "message": "Starte „WaveFlow“ neu, um die neue Version zu übernehmen."
+      "message": "Starte WaveFlow neu, um die neue Version zu übernehmen."
     },
     "error": {
-      "title": "Das Update ist fehlgeschlagen"
+      "title": "Update fehlgeschlagen"
     }
   },
   "onboarding": {
     "defaultLibraryName": "Musik",
     "welcome": {
-      "title": "Willkommen bei „WaveFlow“",
-      "message": "Gib zunächst den Ordner an, in dem sich deine Musik befindet. WaveFlow wird diesen scannen und deine Mediathek automatisch organisieren.",
-      "action": "Meinen Musikordner auswählen",
-      "skip": "Später konfigurieren"
+      "title": "Willkommen bei WaveFlow",
+      "description": "Dein persönlicher Local-First-Musikplayer. Genieße deine gesamte Bibliothek ohne Streaming-Abo."
     },
-    "scanning": {
-      "title": "Analyse deiner Musik…"
+    "localOnly": {
+      "title": "Wichtig: nur lokale Musik",
+      "description": "WaveFlow ist KEIN Streaming-Dienst. Es spielt die Dateien, die bereits auf deinem Gerät liegen.",
+      "calloutTitle": "Was du wissen solltest",
+      "bulletOwn": "Bring deine eigene Bibliothek mit (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletImport": "Importiere einen Ordner oder ziehe Dateien per Drag-and-Drop",
+      "bulletScrobble": "Verbinde Last.fm, um deine Wiedergaben im Hintergrund zu scrobbeln"
+    },
+    "folder": {
+      "title": "Wähle deinen Musikordner",
+      "description": "Sag WaveFlow, wo deine Musik liegt. Der Scanner organisiert deine Bibliothek automatisch.",
+      "placeholder": "Klicke, um deinen Musikordner zu wählen",
+      "changeHint": "Klicke, um den Ordner zu wechseln",
+      "quickSettings": "Schnelleinstellungen",
+      "autoAnalyze": {
+        "title": "Titel automatisch analysieren",
+        "description": "Erkenne BPM und Tonart während des Scans — Grundlage für Radio und Mood-Radio."
+      }
+    },
+    "lastfm": {
+      "title": "Mit Last.fm verbinden",
+      "description": "Scrobbling sendet deine Wiedergaben an dein Last.fm-Profil. Im Gegenzug bekommst du Künstler-Biografien und Vorschläge zu ähnlichen Künstlern direkt in der App.",
+      "recommendedBadge": "Empfohlen",
+      "keyHint": "Erstelle einen API-Schlüssel auf Last.fm",
+      "keyLabel": "API-Schlüssel",
+      "keyPlaceholder": "Dein Last.fm-API-Schlüssel",
+      "secretLabel": "Shared Secret",
+      "secretPlaceholder": "Dein Shared Secret",
+      "userLabel": "Last.fm-Benutzername",
+      "userPlaceholder": "dein-name",
+      "passwordLabel": "Passwort",
+      "passwordPlaceholder": "Dein Last.fm-Passwort",
+      "toggleSecret": "Secret ein-/ausblenden",
+      "togglePassword": "Passwort ein-/ausblenden",
+      "connect": "Last.fm verbinden",
+      "missingFields": "Bitte fülle API-Schlüssel, Secret, Benutzername und Passwort aus.",
+      "connectedTitle": "Verbunden als {{user}}",
+      "connectedSubtitle": "Scrobbling startet automatisch, sobald du einen Titel abspielst."
+    },
+    "scan": {
+      "title": "Bibliothek scannen",
+      "description": "Bereit, deinen Ordner zu analysieren und deine Titel zu entdecken?",
+      "noFolder": "Kein Ordner ausgewählt",
+      "readyHint": "Dein Ordner ist eingerichtet. Starte den Scan, wenn du bereit bist.",
+      "scanning": "Bibliothek wird gescannt…",
+      "errorTitle": "Scan fehlgeschlagen"
     },
     "done": {
-      "title": "{{count}} hinzugefügte Titel",
-      "message": "Deine Bibliothek ist fertig. Viel Spaß beim Anhören!",
-      "action": "Zum Anhören"
+      "title": "Alles bereit!",
+      "description": "Deine Bibliothek wurde gescannt und ist startklar.",
+      "nextSteps": "Nächste Schritte:",
+      "bulletExplore": "Erkunde deine Bibliothek über die Tabs Bibliothek, Alben und Künstler",
+      "bulletQueue": "Erstelle deine erste Warteschlange, indem du auf einen Titel klickst",
+      "bulletSettings": "Justiere alles über die Seitenleiste (Aussehen, Integrationen…)"
     },
-    "error": {
-      "title": "Die Analyse ist fehlgeschlagen",
-      "retry": "Es noch einmal versuchen"
+    "actions": {
+      "skipSetup": "Einrichtung überspringen",
+      "getStarted": "Loslegen",
+      "back": "Zurück",
+      "continue": "Weiter",
+      "understood": "Verstanden",
+      "skipForNow": "Vorerst überspringen",
+      "scanLater": "Später scannen",
+      "scanNow": "Jetzt scannen",
+      "startListening": "Hören starten"
+    },
+    "language": {
+      "title": "Wähle deine Sprache",
+      "description": "WaveFlow ist in 17 Sprachen verfügbar. Wir haben die deines Systems vorausgewählt — ändere sie, falls wir falsch lagen.",
+      "detected": "Aus deinem System erkannt",
+      "fallback": "Wir konnten die Sprache deines Systems nicht erkennen und sind auf Englisch zurückgefallen. Wähle deine unten aus."
+    },
+    "profile": {
+      "title": "Profil benennen",
+      "description": "WaveFlow verwendet Profile, um Bibliotheken zu trennen. Wähle einen Namen, den du später wiedererkennst.",
+      "nameLabel": "Profilname",
+      "namePlaceholder": "z. B. Daisy",
+      "hint": "Du kannst später bei Bedarf weitere Profile erstellen.",
+      "required": "Der Profilname ist erforderlich.",
+      "unavailable": "Profil nicht verfügbar — bitte gleich erneut versuchen."
     }
   },
   "sidebar": {
@@ -65,16 +132,16 @@
     },
     "open": {
       "file": "Datei",
-      "folder": "Dossier"
+      "folder": "Ordner"
     },
     "library": {
       "tracksCount_zero": "0 Titel",
       "tracksCount_one": "{{count}} Titel",
       "tracksCount_other": "{{count}} Titel",
-      "createLibraryAria": "Eine neue Bibliothek erstellen",
-      "none": "Keine Bibliothek",
+      "createLibraryAria": "Neue Bibliothek erstellen",
+      "none": "Keine Bibliotheken",
       "popover": {
-        "label": "Auswahl der Bibliothek",
+        "label": "Bibliotheksauswahl",
         "header": "Bibliotheken",
         "countLine": "{{tracks}} · {{albums}}",
         "tracks_zero": "0 Titel",
@@ -83,11 +150,11 @@
         "albums_zero": "0 Alben",
         "albums_one": "{{count}} Album",
         "albums_other": "{{count}} Alben",
-        "see": "Siehe",
+        "see": "Anzeigen",
         "new": "Neu"
       },
       "nav": {
-        "tracks": "Stücke",
+        "tracks": "Titel",
         "albums": "Alben",
         "artists": "Künstler",
         "genres": "Genres",
@@ -95,11 +162,11 @@
       }
     },
     "playlists": {
-      "createPlaylistAria": "Eine neue Wiedergabeliste erstellen",
-      "importM3uAria": "Eine M3U-Playlist importieren",
-      "importDialogTitle": "Eine M3U-Playlist importieren",
-      "liked": "Gefundene Titel",
-      "recent": "Zuletzt gespielt",
+      "createPlaylistAria": "Neue Playlist erstellen",
+      "importM3uAria": "M3U-Playlist importieren",
+      "importDialogTitle": "M3U-Playlist importieren",
+      "liked": "Gelikte Titel",
+      "recent": "Kürzlich gespielt",
       "emptySubtext_zero": "0 Titel",
       "emptySubtext_one": "{{count}} Titel",
       "emptySubtext_other": "{{count}} Titel",
@@ -108,11 +175,11 @@
     "myMusic": {
       "title": "Meine Musik",
       "addFolderAria": "Ordner importieren",
-      "tracks": "Stücke",
+      "tracks": "Titel",
       "albums": "Alben",
       "artists": "Künstler",
       "genres": "Genres",
-      "folders": "Akten"
+      "folders": "Ordner"
     },
     "playlistSection": {
       "title": "Playlists"
@@ -125,11 +192,11 @@
   },
   "topbar": {
     "search": {
-      "placeholder": "Nach einem Titel, einem Interpreten, einem Album suchen...",
+      "placeholder": "Nach einem Titel, Künstler oder Album suchen…",
       "results_zero": "Keine Ergebnisse",
       "results_one": "{{count}} Ergebnis",
       "results_other": "{{count}} Ergebnisse",
-      "empty": "Keine Ergebnisse für deine Suche",
+      "empty": "Keine Ergebnisse passen zu deiner Suche",
       "filters": {
         "toggle": "Erweiterte Filter",
         "title": "Filter",
@@ -145,72 +212,72 @@
       }
     },
     "theme": {
-      "enableLight": "Hellmodus aktivieren",
-      "enableDark": "Dunkelmodus aktivieren"
+      "enableLight": "Helles Design aktivieren",
+      "enableDark": "Dunkles Design aktivieren"
     },
     "profile": {
       "user": "Benutzer",
-      "changeProfile": "Profil ändern",
+      "changeProfile": "Profil wechseln",
       "statistics": "Statistiken",
       "settings": "Einstellungen",
       "feedback": "Feedback",
       "about": "Über",
-      "quit": "Die App beenden"
+      "quit": "App beenden"
     }
   },
   "home": {
     "greeting": {
-      "morning": "Hallo",
+      "morning": "Guten Morgen",
       "evening": "Guten Abend",
       "night": "Gute Nacht"
     },
     "banner": {
-      "badge": "Bereit zum Anhören",
-      "subtitle": "Entdecke deine Lieblingsmusik und lerne neue Klänge kennen.",
+      "badge": "Bereit zum Hören",
+      "subtitle": "Entdecke deine Lieblingsmusik und finde neue Klänge.",
       "openFile": "Datei öffnen",
-      "openFolder": "Einen Ordner öffnen",
+      "openFolder": "Ordner öffnen",
       "importFiles": "Dateien importieren",
       "importFolder": "Ordner importieren",
-      "browseLibrary": "Meine Bibliothek durchsuchen"
+      "browseLibrary": "Deine Bibliothek durchsuchen"
     },
     "stats": {
       "library": "Bibliothek",
-      "liked": "Gefundene Titel",
+      "liked": "Gelikte Titel",
       "recent": "Kürzlich gespielt",
       "playlists": "Playlists"
     },
     "moodRadio": {
-      "title": "Stimmungs-Radio",
-      "subtitle": "Nach Tempo und Energie gefiltert",
+      "title": "Mood-Radio",
+      "subtitle": "Gefiltert nach Tempo und Energie",
       "trackCount_one": "{{count}} Titel",
       "trackCount_other": "{{count}} Titel",
       "empty": "Nicht genug analysierte Titel",
-      "loading": "Starte…",
+      "loading": "Wird gestartet…",
       "focus": {
         "title": "Fokus",
-        "subtitle": "Ruhige Tempos für konzentriertes Arbeiten"
+        "subtitle": "Ruhige Tempi für konzentriertes Arbeiten"
       },
       "chill": {
         "title": "Chill",
-        "subtitle": "Entspannte Klänge zum Runterkommen"
+        "subtitle": "Entspanntes Hören zum Runterkommen"
       },
       "workout": {
         "title": "Workout",
-        "subtitle": "Stetiges Tempo zum Trainieren"
+        "subtitle": "Gleichmäßiges Tempo zum Bewegen"
       },
       "party": {
         "title": "Party",
-        "subtitle": "Tanzbare Tempos, hohe Energie"
+        "subtitle": "Tanzbare Tempi, hohe Energie"
       },
       "sleep": {
-        "title": "Schlafen",
+        "title": "Schlaf",
         "subtitle": "Sehr langsam und leise zum Einschlafen"
       }
     },
     "recentlyPlayed": {
-      "title": "Zuletzt gespielt",
-      "emptyTitle": "Kein Titel angehört",
-      "emptyDescription": "Geben Sie einen Titel ein, damit er hier angezeigt wird. Ihr Hörverlauf füllt sich im Laufe Ihrer Entdeckungen."
+      "title": "Kürzlich gespielt",
+      "emptyTitle": "Noch nichts gespielt",
+      "emptyDescription": "Spiele einen Titel, damit er hier erscheint. Dein Hörverlauf füllt sich, während du neue Musik entdeckst."
     },
     "recentlyAdded": {
       "title": "Kürzlich hinzugefügt"
@@ -218,91 +285,91 @@
     "dailyMix": {
       "title": "Für dich",
       "regenerate": "Neu generieren",
-      "regenerating": "Wird generiert…",
+      "regenerating": "Generierung läuft…",
       "emptyTitle": "Noch kein Daily Mix",
-      "emptyDescription": "Höre ein paar Titel und klicke dann auf Neu generieren, um deine persönlichen Mixe zu erstellen.",
+      "emptyDescription": "Höre ein paar Titel und klicke dann auf „Neu generieren“, um deine persönlichen Mixe zu erstellen.",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} Titel",
       "trackCount_other": "{{count}} Titel"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
-      "title": "Dein Rückblick {{year}}",
-      "subtitle": "Deine Künstler, deine Minuten, dein Jahr — in wenigen Slides.",
+      "title": "Dein Jahresrückblick {{year}}",
+      "subtitle": "Deine Künstler, deine Minuten, dein Jahr — erzählt in ein paar Slides.",
       "cta": "Öffnen"
     },
-    "seeAll": "Alle anzeigen"
+    "seeAll": "Alles anzeigen"
   },
   "library": {
     "header": {
       "addFolder": "Ordner hinzufügen",
       "subtext": {
         "morceaux_zero": "0 Titel",
-        "morceaux_one": "{{count}} Stück",
-        "morceaux_other": "{{count}} Stücke",
+        "morceaux_one": "{{count}} Titel",
+        "morceaux_other": "{{count}} Titel",
         "albums_zero": "0 Alben",
         "albums_one": "{{count}} Album",
         "albums_other": "{{count}} Alben",
         "artistes_zero": "0 Künstler",
         "artistes_one": "{{count}} Künstler",
         "artistes_other": "{{count}} Künstler",
-        "genres_zero": "0 Geschlecht",
+        "genres_zero": "0 Genres",
         "genres_one": "{{count}} Genre",
         "genres_other": "{{count}} Genres",
         "dossiers_zero": "0 Ordner",
-        "dossiers_one": "{{count}} Dossier",
-        "dossiers_other": "{{count}} Akten"
+        "dossiers_one": "{{count}} Ordner",
+        "dossiers_other": "{{count}} Ordner"
       }
     },
     "tabs": {
-      "morceaux": "Stücke",
+      "morceaux": "Titel",
       "albums": "Alben",
       "artistes": "Künstler",
       "genres": "Genres",
-      "dossiers": "Akten"
+      "dossiers": "Ordner"
     },
     "empty": {
       "morceaux": {
         "title": "Leere Bibliothek",
-        "description": "Importieren Sie Audiodateien oder einen Ordner, um Ihre Bibliothek zu füllen."
+        "description": "Importiere Audiodateien oder einen Ordner, um deine Bibliothek zu füllen."
       },
       "albums": {
-        "title": "Es wurden keine Alben gefunden",
-        "description": "Importiere Audiodateien, um automatisch Alben zu erstellen."
+        "title": "Keine Alben gefunden",
+        "description": "Importiere Audiodateien, um Alben automatisch zu erstellen."
       },
       "artistes": {
-        "title": "Es wurde kein Künstler gefunden",
-        "description": "Importiere zunächst einige Audiodateien."
+        "title": "Keine Künstler gefunden",
+        "description": "Importiere Audiodateien, um loszulegen."
       },
       "genres": {
-        "title": "Es wurde kein Genre gefunden",
-        "description": "Importiere Audiodateien, um die Genres kennenzulernen."
+        "title": "Keine Genres gefunden",
+        "description": "Importiere Audiodateien, um verschiedene Genres zu erkunden."
       },
       "dossiers": {
-        "title": "Es wurden keine Dateien importiert",
+        "title": "Keine Ordner importiert",
         "description": "Importiere einen Ordner über die Aktionsleiste, um ihn hier zu durchsuchen."
       }
     },
     "actions": {
       "importFiles": "Dateien importieren",
       "importFolder": "Ordner importieren",
-      "share": "Teilen (in Kürze)",
+      "share": "Teilen (bald verfügbar)",
       "rescan": "Bibliothek erneut scannen",
-      "rescanning": "Neuer Scan läuft…",
-      "changeArtwork": "Bild ändern (in Kürze)",
+      "rescanning": "Erneuter Scan läuft…",
+      "changeArtwork": "Bild ändern (bald verfügbar)",
       "edit": "Bibliothek bearbeiten",
       "delete": "Bibliothek löschen",
-      "deleteConfirm": "Klicken Sie erneut, um zu bestätigen",
+      "deleteConfirm": "Zur Bestätigung erneut klicken",
       "importing": "Wird importiert…"
     },
-    "changeCover": "Das Cover austauschen",
-    "searchDeezer": "Suche nach „Deezer“",
+    "changeCover": "Cover ändern",
+    "searchDeezer": "Auf Deezer suchen",
     "localFile": "Lokale Datei",
-    "fetchMissingCovers": "Alle fehlenden Hüllen abrufen",
-    "noCover": "Ohne Hülle",
-    "fetchingCovers": "Abholung der Hüllen... ({{current}} / {{total}})",
+    "fetchMissingCovers": "Alle fehlenden Cover abrufen",
+    "noCover": "Kein Cover",
+    "fetchingCovers": "Cover werden abgerufen… ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} Cover abgerufen",
-    "fetchCoversFailed": "Cover-Abruf fehlgeschlagen",
+    "fetchCoversFailed": "Cover konnten nicht abgerufen werden",
     "table": {
       "number": "#",
       "title": "Titel",
@@ -311,10 +378,10 @@
       "duration": "Dauer",
       "unknown": "—"
     },
-    "rating": "Anmerkung",
+    "rating": "Bewertung",
     "noRating": "Keine Bewertung",
     "viewToggle": {
-      "label": "Anzeigemodus",
+      "label": "Anzeigeform",
       "list": "Liste",
       "compact": "Kompakt"
     },
@@ -341,42 +408,42 @@
       "trackCount_one": "{{count}} Titel",
       "trackCount_other": "{{count}} Titel",
       "lastScanned": "Gescannt: {{date}}",
-      "neverScanned": "niemals",
+      "neverScanned": "nie",
       "watched": "Überwacht",
       "watchOn": "Änderungen automatisch überwachen",
       "watchOff": "Überwachung beenden",
       "remove": "Ordner aus Bibliothek entfernen",
-      "removeConfirm": "Erneut klicken zum Bestätigen"
+      "removeConfirm": "Zur Bestätigung erneut klicken"
     }
   },
   "liked": {
-    "badge": "Kollektion",
-    "title": "Gefundene Titel",
+    "badge": "Sammlung",
+    "title": "Gelikte Titel",
     "count_zero": "0 Titel",
     "count_one": "{{count}} Titel",
     "count_other": "{{count}} Titel",
-    "emptyTitle": "Keine favorisierten Titel",
-    "emptyDescription": "Die Titel, die dir gefallen, werden hier angezeigt. Durchsuche deine Bibliothek und like deine Lieblingstitel.",
+    "emptyTitle": "Keine gelikten Titel",
+    "emptyDescription": "Titel, die du likest, erscheinen hier. Stöbere in deiner Bibliothek und like deine Lieblingstitel.",
     "playAll": "Alle abspielen",
-    "unlike": "Likes entfernen",
-    "like": "Zu den Favoriten hinzufügen"
+    "unlike": "Aus Favoriten entfernen",
+    "like": "Zu Favoriten hinzufügen"
   },
   "history": {
     "badge": "Verlauf",
-    "title": "Wiedergabeverlauf",
+    "title": "Hörverlauf",
     "today": "Heute",
     "yesterday": "Gestern",
-    "timeline": "Zeitleiste",
+    "timeline": "Zeitachse",
     "loadingMore": "Wird geladen…",
     "endReached": "Anfang des Verlaufs",
     "emptyTitle": "Noch keine Wiedergaben",
-    "emptyDescription": "Starte einen Titel — er erscheint hier, sobald er zählt.",
+    "emptyDescription": "Spiele einen Titel — er erscheint hier, sobald er gezählt wird.",
     "shownCount_one": "{{count}} Wiedergabe angezeigt",
     "shownCount_other": "{{count}} Wiedergaben angezeigt",
     "plays_one": "{{count}} Wiedergabe",
     "plays_other": "{{count}} Wiedergaben",
     "range": {
-      "all": "Alles",
+      "all": "Alle",
       "7d": "7 Tage",
       "30d": "30 Tage",
       "90d": "90 Tage",
@@ -384,66 +451,66 @@
     }
   },
   "recent": {
-    "badge": "Geschichte",
-    "title": "Zuletzt gespielt",
+    "badge": "Verlauf",
+    "title": "Kürzlich gespielt",
     "count_zero": "0 Titel",
     "count_one": "{{count}} Titel",
     "count_other": "{{count}} Titel",
-    "emptyTitle": "Keine kürzlich abgespielten Titel",
-    "emptyDescription": "Die Titel, die Sie gerade hören, werden hier automatisch angezeigt."
+    "emptyTitle": "Keine kürzlich gespielten Titel",
+    "emptyDescription": "Titel, die du hörst, erscheinen hier automatisch."
   },
   "statistics": {
     "title": "Statistiken",
-    "emptyTitle": "Es liegen keine Statistiken vor",
-    "emptyDescription": "Hören Sie Musik, damit Ihre Hörstatistiken hier angezeigt werden.",
+    "emptyTitle": "Keine Statistiken verfügbar",
+    "emptyDescription": "Spiele etwas Musik, damit deine Hörstatistiken hier erscheinen.",
     "range": {
       "label": "Zeitraum",
       "7d": "7 Tage",
       "30d": "30 Tage",
       "90d": "90 Tage",
       "1y": "1 Jahr",
-      "all": "Alles"
+      "all": "Gesamt"
     },
     "kpi": {
-      "totalPlays": "Abhörmaßnahmen",
+      "totalPlays": "Wiedergaben",
       "totalTime": "Hörzeit",
-      "uniqueTracks": "Einzelne Titel",
+      "uniqueTracks": "Eindeutige Titel",
       "uniqueArtists_zero": "0 Künstler",
       "uniqueArtists_one": "{{count}} Künstler",
       "uniqueArtists_other": "{{count}} Künstler",
-      "completionRate": "Anhörungsquote"
+      "completionRate": "Komplette Hörquote"
     },
     "byDay": {
-      "title": "Tägliche Aktivitäten",
-      "empty": "In diesem Zeitraum fanden keine Abhörmaßnahmen statt."
+      "title": "Tägliche Aktivität",
+      "empty": "Keine Wiedergaben in diesem Zeitraum."
     },
     "byHour": {
-      "title": "Lieblingszeiten",
-      "empty": "In diesem Zeitraum fanden keine Abhörmaßnahmen statt.",
-      "tooltip": "{{hour}} h — {{plays}} Aufrufe"
+      "title": "Spitzenstunden",
+      "empty": "Keine Wiedergaben in diesem Zeitraum.",
+      "tooltip": "{{hour}} Uhr — {{plays}} Wiedergaben"
     },
     "topTracks": {
       "title": "Top-Titel",
-      "empty": "Es wurde kein Titel abgespielt."
+      "empty": "Keine Titel gespielt."
     },
     "topArtists": {
       "title": "Top-Künstler",
-      "empty": "Es wurde kein Künstler angehört."
+      "empty": "Keine Künstler gespielt."
     },
     "topAlbums": {
       "title": "Top-Alben",
-      "empty": "Es wurde kein Album angehört."
+      "empty": "Keine Alben gespielt."
     },
     "heatmap": {
-      "title": "Aktivität des Jahres",
-      "empty": "Noch keine Wiedergaben in den letzten 12 Monaten.",
+      "title": "Jahresaktivität",
+      "empty": "In den letzten 12 Monaten noch nichts gehört.",
       "summary": "{{time}} im Jahr gehört — {{plays}} Wiedergaben",
       "less": "Weniger",
       "more": "Mehr"
     },
-    "plays_zero": "0 Aufrufe",
-    "plays_one": "{{count}} Zuhören",
-    "plays_other": "{{count}} Abhörmaßnahmen",
+    "plays_zero": "0 Wiedergaben",
+    "plays_one": "{{count}} Wiedergabe",
+    "plays_other": "{{count}} Wiedergaben",
     "export": {
       "label": "Statistiken exportieren",
       "action": "Exportieren",
@@ -456,26 +523,26 @@
     "close": "Schließen",
     "pause": "Pause",
     "resume": "Fortsetzen",
-    "prev": "Vorherige Folie",
-    "next": "Nächste Folie",
-    "yearPicker": "Jahr wählen",
-    "backToHome": "Zurück zum Start",
+    "prev": "Vorheriger Slide",
+    "next": "Nächster Slide",
+    "yearPicker": "Jahr auswählen",
+    "backToHome": "Zurück zur Startseite",
     "playsShort_zero": "0 Wiedergaben",
     "playsShort_one": "{{count}} Wiedergabe",
     "playsShort_other": "{{count}} Wiedergaben",
     "empty": {
-      "title": "Noch kein Verlauf",
-      "subtitle": "Hör ein paar Titel und komm später wieder — dein Wrapped baut sich beim Hören auf."
+      "title": "Noch kein Hörverlauf",
+      "subtitle": "Spiele ein paar Titel und komm später zurück — dein Wrapped baut sich beim Hören auf."
     },
     "intro": {
       "eyebrow": "WaveFlow Wrapped",
       "subtitle": "Dein Jahr in Musik."
     },
     "minutes": {
-      "eyebrow": "Du hast gehört",
-      "subtitle_zero": "0 Minuten Musik",
-      "subtitle_one": "{{count}} Minute Musik",
-      "subtitle_other": "{{count}} Minuten Musik"
+      "eyebrow": "Du hast",
+      "subtitle_zero": "0 Minuten Musik gehört",
+      "subtitle_one": "{{count}} Minute Musik gehört",
+      "subtitle_other": "{{count}} Minuten Musik gehört"
     },
     "stats": {
       "plays": "Wiedergaben",
@@ -483,32 +550,32 @@
       "artists": "Künstler"
     },
     "topTracks": {
-      "title": "Deine Lieblingstitel"
+      "title": "Deine Top-Titel"
     },
     "topArtists": {
-      "title": "Deine Lieblingskünstler"
+      "title": "Deine Top-Künstler"
     },
     "topAlbums": {
-      "title": "Deine Lieblingsalben"
+      "title": "Deine Top-Alben"
     },
     "activeDay": {
-      "eyebrow": "Dein Spitzentag",
-      "subtitle": "{{duration}} gehört, {{count}} Titel"
+      "eyebrow": "Dein aktivster Tag",
+      "subtitle": "{{duration}} Hörzeit, {{count}} Titel"
     },
     "mood": {
-      "eyebrow": "Dein Durchschnittstempo",
-      "subtitle": "Der Rhythmus deines Jahres",
+      "eyebrow": "Dein durchschnittliches Tempo",
+      "subtitle": "Der Rhythmus, der dein Jahr begleitet hat",
       "loudness": "Durchschnittliche Lautheit: {{lufs}} LUFS",
       "energy": {
         "chill": "Chill",
         "warm": "Warm",
         "groove": "Groove",
-        "energetic": "Energisch",
-        "fire": "Feuer"
+        "energetic": "Energetisch",
+        "fire": "Intensiv"
       }
     },
     "clock": {
-      "eyebrow": "Deine Hörstunde",
+      "eyebrow": "Deine Spitzenstunde",
       "subtitle": "Der Höhepunkt deines Tages"
     },
     "streak": {
@@ -516,7 +583,7 @@
       "daysLabel_zero": "0 Tage am Stück",
       "daysLabel_one": "{{count}} Tag am Stück",
       "daysLabel_other": "{{count}} Tage am Stück",
-      "range": "Vom {{start}} bis {{end}}",
+      "range": "Vom {{start}} bis zum {{end}}",
       "daysShort": "Tage am Stück"
     },
     "share": {
@@ -534,8 +601,8 @@
     },
     "outro": {
       "title": "Danke, dass du mit WaveFlow hörst",
-      "subtitle": "Entdecke weiter — dein Wrapped aktualisiert sich in Echtzeit.",
-      "cta": "Zurück zum Start"
+      "subtitle": "Erkunde weiter — dein Wrapped aktualisiert sich in Echtzeit.",
+      "cta": "Zurück zur Startseite"
     }
   },
   "about": {
@@ -550,107 +617,131 @@
       "frontend": "Frontend",
       "backend": "Backend (Rust)",
       "audio": "Audio",
-      "shortcuts": "Tastaturbefehle",
-      "credits": "Impressum"
+      "shortcuts": "Tastenkürzel",
+      "changelog": "Änderungsprotokoll",
+      "credits": "Credits"
     },
     "shortcuts": {
-      "playPause": "Wiedergabe/Pause",
+      "playPause": "Wiedergabe / Pause",
       "previousTrack": "Vorheriger Titel",
       "nextTrack": "Nächster Titel",
-      "volume": "Umfang",
-      "mute": "Ton ausschalten",
+      "volume": "Lautstärke",
+      "mute": "Stummschalten",
       "keys": {
-        "space": "Leerzeichen"
+        "space": "Leertaste"
       }
     },
+    "changelog": {
+      "loading": "Wird geladen…",
+      "empty": "Keine Einträge verfügbar",
+      "expand": "{{count}} weitere Einträge anzeigen",
+      "collapse": "Weniger anzeigen",
+      "breaking": "Breaking"
+    },
     "credits": {
-      "text": "Mit Leidenschaft konzipiert und entwickelt. Auf Basis von Open-Source-Technologien erstellt.",
-      "icons": "Symbole von Lucide, Phosphor, Mynaui und Iconify."
+      "text": "Mit Leidenschaft entworfen und entwickelt. Gebaut mit Open-Source-Technologien.",
+      "icons": "Icons von Lucide, Phosphor, Mynaui und Iconify."
     }
   },
   "feedback": {
     "title": "Feedback",
     "hero": {
-      "title": "Helfen Sie uns, WaveFlow zu verbessern",
-      "description": "Haben Sie einen Fehler entdeckt, eine Verbesserungsidee oder einfach nur Feedback für uns? Wir lesen jede Nachricht und berücksichtigen Ihre Vorschläge."
+      "title": "Hilf uns, WaveFlow zu verbessern",
+      "description": "Hast du einen Fehler entdeckt, eine Idee zur Verbesserung oder einfach nur Feedback? Wir lesen jede Nachricht und nehmen deine Vorschläge ernst."
     },
     "contact": {
-      "section": "Kontakt",
-      "subtitle": "Fehler, Vorschlag oder Frage – wir lesen jede Nachricht"
+      "section": "Kontakt aufnehmen",
+      "subtitle": "Bug, Vorschlag oder Frage — wir lesen jede Nachricht"
     }
   },
   "player": {
     "noTrack": "Kein Titel",
     "inactive": "Inaktiv",
     "controls": {
-      "play": "Wiedergabe",
+      "play": "Abspielen",
       "pause": "Pause",
-      "previous": "Zurück",
-      "next": "Weiter",
+      "previous": "Vorheriger",
+      "next": "Nächster",
       "shuffleOn": "Zufallswiedergabe deaktivieren",
       "shuffleOff": "Zufallswiedergabe aktivieren",
       "repeatOff": "Wiederholung aktivieren",
-      "repeatAll": "Nur einmal wiederholen",
+      "repeatAll": "Einen Titel wiederholen",
       "repeatOne": "Wiederholung deaktivieren"
     },
     "volume": {
-      "label": "Umfang",
-      "mute": "Ton ausschalten",
-      "unmute": "Ton einschalten"
+      "label": "Lautstärke",
+      "mute": "Stummschalten",
+      "unmute": "Stummschaltung aufheben"
     },
     "speed": {
       "label": "Wiedergabegeschwindigkeit ({{value}})",
       "title": "Wiedergabegeschwindigkeit",
       "slider": "Geschwindigkeitsregler",
-      "custom": "Benutzerdefinierte Geschwindigkeit",
+      "custom": "Eigene Geschwindigkeit",
       "pitchHint": "Tonhöhe folgt der Geschwindigkeit (kein Time-Stretching)."
     },
     "seek": "Position"
   },
   "queue": {
-    "title": "Warteschlange abspielen",
+    "title": "Warteschlange",
     "inactive": "INAKTIV",
     "count_zero": "0 Titel",
     "count_one": "{{count}} Titel",
-    "count_other": "{{count}} Stücke",
+    "count_other": "{{count}} Titel",
     "emptyTitle": "Nichts zum Anhören",
-    "emptyDescription": "Starten Sie einen Titel aus Ihrer Bibliothek, um die Warteschlange zu füllen.",
-    "nowPlaying": "In Bearbeitung",
+    "emptyDescription": "Spiele einen Titel aus deiner Bibliothek, um die Warteschlange zu füllen.",
+    "nowPlaying": "Wird gespielt",
     "upNext_zero": "Als Nächstes",
-    "upNext_one": "Als Nächstes · Titel „{{count}}“",
-    "upNext_other": "Nächster Punkt - {{count}} Tracks",
+    "upNext_one": "Als Nächstes · {{count}} Titel",
+    "upNext_other": "Als Nächstes · {{count}} Titel",
     "radio": {
       "label": "Radio",
       "basedOn": "Basierend auf „{{title}}“"
     }
   },
   "spotifyQueue": {
-    "emptyHint": "Nichts in der Spotify-Warteschlange gerade.",
-    "readonlyHint": "Nur-lesen Warteschlange — verwalte sie in der Spotify-App."
+    "emptyHint": "Aktuell nichts in der Spotify-Warteschlange.",
+    "readonlyHint": "Schreibgeschützte Warteschlange — verwalte sie in der Spotify-App."
   },
   "deviceMenu": {
-    "activeLabel": "Aktiver Ausgang",
-    "loading": "Nach Geräten suchen…",
-    "empty": "Es ist kein Ausgabegerät verfügbar",
-    "systemDefault": "Standardmäßig"
+    "activeLabel": "Aktive Ausgabe",
+    "loading": "Geräte werden gesucht…",
+    "empty": "Kein Ausgabegerät verfügbar",
+    "systemDefault": "Systemstandard"
   },
   "profiles": {
     "select": {
-      "title": "Wer hört zu?",
-      "subtitle": "Wähle dein Profil aus, um deine Bibliotheken und Wiedergabelisten zu finden",
+      "title": "Wer hört?",
+      "subtitle": "Wähle dein Profil, um deine Bibliotheken und Playlists zu finden",
       "add": "Hinzufügen",
       "edit": "Bearbeiten",
       "active": "Aktives Profil",
-      "switchTo": "Umschalten"
+      "switchTo": "Wechseln"
     },
     "create": {
       "title": "Neues Profil",
-      "subtitle": "Erstelle ein Profil, um dein Erlebnis individuell anzupassen",
+      "subtitle": "Erstelle ein Profil, um dein Erlebnis zu personalisieren",
       "nameLabel": "Profilname",
-      "namePlaceholder": "Gib einen Namen ein...",
-      "colorLabel": "Farbe des Profils",
-      "colorAria": "Farbe{{color}}",
+      "namePlaceholder": "Namen eingeben…",
+      "colorLabel": "Profilfarbe",
+      "colorAria": "Farbe {{color}}",
       "submit": "Profil erstellen"
+    },
+    "manage": {
+      "toggle": "Verwalten",
+      "done": "Fertig",
+      "title": "Profile verwalten",
+      "subtitle": "Wähle ein Profil zum Entfernen. Das aktive Profil kann hier nicht gelöscht werden.",
+      "activeLocked": "Aktives Profil",
+      "deleteHint": "Zum Löschen tippen",
+      "deleteAria": "Profil {{name}} löschen"
+    },
+    "delete": {
+      "title": "{{name}} löschen?",
+      "subtitle": "Dieses Profil wird endgültig entfernt.",
+      "warning": "Sämtliche Bibliotheken, Wiedergabelisten und der Wiedergabeverlauf dieses Profils gehen verloren. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "submit": "Profil löschen",
+      "submitting": "Wird gelöscht …"
     }
   },
   "libraryModal": {
@@ -658,10 +749,10 @@
     "editTitle": "Bibliothek bearbeiten",
     "previewDefault": "Bibliothek erstellen",
     "previewSubtitle": "0 Titel · Bibliothek",
-    "nameLabel": "Name der Bibliothek",
-    "namePlaceholder": "z. B.: Rock, Jazz, Klassik...",
+    "nameLabel": "Bibliotheksname",
+    "namePlaceholder": "z. B. Rock, Jazz, Klassik…",
     "descriptionLabel": "Beschreibung",
-    "descriptionPlaceholder": "Eine kurze Beschreibung...",
+    "descriptionPlaceholder": "Eine kurze Beschreibung…",
     "submit": "Bibliothek erstellen",
     "submitEdit": "Speichern"
   },
@@ -669,22 +760,22 @@
     "title": "Neue Playlist",
     "editTitle": "Playlist bearbeiten",
     "previewDefault": "Neue Playlist",
-    "previewSubtitle": "0 Titel · Wiedergabeliste",
+    "previewSubtitle": "0 Titel · Playlist",
     "nameLabel": "Name",
-    "namePlaceholder": "Beispiele: Chill Vibes, Workout Mix...",
+    "namePlaceholder": "z. B. Chill Vibes, Workout Mix…",
     "descriptionLabel": "Beschreibung",
-    "descriptionPlaceholder": "Eine kurze Beschreibung...",
+    "descriptionPlaceholder": "Eine kurze Beschreibung…",
     "colorLabel": "Farbe",
-    "colorAria": "Farbe{{color}}",
+    "colorAria": "Farbe {{color}}",
     "iconLabel": "Symbol",
-    "iconAria": "{{icon}}-Symbol",
+    "iconAria": "Symbol {{icon}}",
     "submit": "Erstellen",
     "editSubmit": "Speichern",
-    "coverChoose": "Foto wählen",
+    "coverChoose": "Foto auswählen",
     "coverMenu": "Cover-Optionen",
     "coverChange": "Foto ändern",
     "coverRemove": "Foto entfernen",
-    "coverAutoHint": "Automatisches Cover — passt sich dem Inhalt an",
+    "coverAutoHint": "Auto-Cover — passt sich dem Inhalt an",
     "coverManualHint": "Eigenes Bild"
   },
   "playlistView": {
@@ -693,33 +784,33 @@
     "trackCount_one": "{{count}} Titel",
     "trackCount_other": "{{count}} Titel",
     "actions": {
-      "play": "Wiedergabe",
+      "play": "Abspielen",
       "shuffle": "Zufallswiedergabe",
       "edit": "Playlist bearbeiten",
       "exportM3u": "Als M3U exportieren",
       "delete": "Playlist löschen",
-      "deleteConfirm": "Klicken Sie erneut, um zu bestätigen"
+      "deleteConfirm": "Zur Bestätigung erneut klicken"
     },
     "export": {
       "dialogTitle": "Playlist als M3U exportieren"
     },
-    "emptyTitle": "Diese Wiedergabeliste ist leer",
-    "emptyDescription": "Füge über die Schaltfläche „+“ in jeder Zeile Titel aus deinen Bibliotheken hinzu.",
-    "noneTitle": "Es wurde keine Wiedergabeliste ausgewählt",
-    "noneDescription": "Wähle eine Wiedergabeliste in der Seitenleiste aus, um sie hier anzuzeigen.",
+    "emptyTitle": "Diese Playlist ist leer",
+    "emptyDescription": "Füge Titel aus deinen Bibliotheken über den +-Button in jeder Zeile hinzu.",
+    "noneTitle": "Keine Playlist ausgewählt",
+    "noneDescription": "Wähle eine Playlist in der Seitenleiste, um sie hier zu sehen.",
     "notFoundTitle": "Playlist nicht gefunden",
-    "notFoundDescription": "Diese Wiedergabeliste ist im aktiven Profil nicht mehr vorhanden.",
+    "notFoundDescription": "Diese Playlist existiert im aktiven Profil nicht mehr.",
     "smartLabel": "Daily Mix"
   },
   "trackActions": {
-    "addToPlaylist": "Zur Wiedergabeliste hinzufügen",
-    "noPlaylists": "Keine Wiedergabeliste. Erstelle unten eine.",
+    "addToPlaylist": "Zu einer Playlist hinzufügen",
+    "noPlaylists": "Keine Playlists. Erstelle unten eine.",
     "createPlaylist": "Neue Playlist",
-    "playNext": "Nächsten Titel abspielen",
+    "playNext": "Als Nächstes spielen",
     "addToQueue": "Zur Warteschlange hinzufügen",
-    "like": "Zu den gelikten Titeln hinzufügen",
-    "unlike": "Gefundene Titel entfernen",
-    "removeFromPlaylist": "Aus dieser Wiedergabeliste entfernen",
+    "like": "Zu Favoriten hinzufügen",
+    "unlike": "Aus Favoriten entfernen",
+    "removeFromPlaylist": "Aus dieser Playlist entfernen",
     "goToAlbum": "Zum Album",
     "goToArtist": "Zum Künstler",
     "showInExplorer": "Im Explorer anzeigen",
@@ -729,13 +820,13 @@
     "rating": "Bewertung",
     "ratingNone": "Keine Bewertung",
     "batchEdit": "Tags für {{count}} Titel bearbeiten…",
-    "addToPlaylistNamed": "Zu \"{{name}}\" hinzufügen",
-    "removeFromPlaylistNamed": "Aus \"{{name}}\" entfernen"
+    "addToPlaylistNamed": "Zu „{{name}}“ hinzufügen",
+    "removeFromPlaylistNamed": "Aus „{{name}}“ entfernen"
   },
   "batchTagEdit": {
-    "title": "Tags im Stapel bearbeiten",
+    "title": "Tags in Stapelverarbeitung bearbeiten",
     "subtitle": "{{count}} Titel ausgewählt",
-    "help": "Aktiviere die Felder, die auf alle Titel angewendet werden sollen. Nicht aktivierte Felder bleiben pro Titel unverändert.",
+    "help": "Hake die Felder ab, die auf alle Titel angewendet werden sollen. Nicht angehakte Felder bleiben pro Titel unberührt.",
     "submit": "Anwenden ({{count}} Feld(er))",
     "fields": {
       "artist": "Künstler",
@@ -755,7 +846,7 @@
     }
   },
   "trackProperties": {
-    "title": "Titel-Eigenschaften",
+    "title": "Titeleigenschaften",
     "sections": {
       "metadata": "Metadaten",
       "audio": "Audio",
@@ -763,20 +854,20 @@
       "file": "Datei"
     },
     "bpm": "BPM",
-    "loudness": "Lautstärke",
+    "loudness": "Lautheit",
     "replayGain": "ReplayGain",
     "peak": "Peak",
     "analyze": "Analysieren",
-    "reanalyze": "Neu analysieren",
-    "analyzing": "Analyse…",
+    "reanalyze": "Erneut analysieren",
+    "analyzing": "Wird analysiert…",
     "year": "Jahr",
     "trackNumber": "Titelnummer",
     "duration": "Dauer",
     "codec": "Codec",
-    "bitDepth": "Tiefe",
-    "sampleRate": "Stichproben",
+    "bitDepth": "Bittiefe",
+    "sampleRate": "Abtastrate",
     "channels": "Kanäle",
-    "bitrate": "Durchfluss",
+    "bitrate": "Bitrate",
     "key": "Tonart",
     "fileSize": "Größe",
     "addedAt": "Hinzugefügt am",
@@ -786,28 +877,28 @@
     "stereo": "Stereo",
     "edit": "Bearbeiten",
     "save": "Speichern",
-    "saving": "Speichern…",
+    "saving": "Wird gespeichert…",
     "fields": {
       "title": "Titel",
       "artist": "Künstler",
       "album": "Album",
-      "trackNumber": "Titel-Nr.",
-      "discNumber": "CD-Nr.",
+      "trackNumber": "Titelnr.",
+      "discNumber": "Disc-Nr.",
       "genre": "Genre",
       "genrePlaceholder": "Pop, Rock, Jazz…"
     },
     "changeCover": "Cover ändern"
   },
   "selection": {
-    "toolbarLabel": "Auswahlkriterien",
+    "toolbarLabel": "Auswahlaktionen",
     "count_zero": "0 ausgewählt",
     "count_one": "{{count}} ausgewählt",
     "count_other": "{{count}} ausgewählt",
-    "play": "Wiedergabe",
+    "play": "Abspielen",
     "addToQueue": "Zur Warteschlange hinzufügen",
-    "playNext": "Nächsten Titel abspielen",
-    "addToPlaylist": "Zur Wiedergabeliste hinzufügen",
-    "removeFromPlaylist": "Aus der Wiedergabeliste entfernen",
+    "playNext": "Als Nächstes spielen",
+    "addToPlaylist": "Zu einer Playlist hinzufügen",
+    "removeFromPlaylist": "Aus Playlist entfernen",
     "clear": "Auswahl aufheben"
   },
   "albumDetail": {
@@ -817,11 +908,11 @@
     "trackCount_zero": "0 Titel",
     "trackCount_one": "{{count}} Titel",
     "trackCount_other": "{{count}} Titel",
-    "discHeader": "{{number}}-Festplatte",
-    "releaseDate": "Ausgang",
+    "discHeader": "CD {{number}}",
+    "releaseDate": "Veröffentlichung",
     "emptyTitle": "Album nicht gefunden",
-    "emptyDescription": "Dieses Album ist im aktiven Profil nicht mehr vorhanden.",
-    "emptyTracksTitle": "Kein Stück",
+    "emptyDescription": "Dieses Album ist im aktiven Profil nicht mehr verfügbar.",
+    "emptyTracksTitle": "Keine Titel",
     "emptyTracksDescription": "Dieses Album enthält keine verfügbaren Titel."
   },
   "artistDetail": {
@@ -840,7 +931,7 @@
     "albumTrackCount_one": "{{count}} Titel",
     "albumTrackCount_other": "{{count}} Titel",
     "emptyTitle": "Künstler nicht gefunden",
-    "emptyDescription": "Dieser Künstler ist nicht mehr im aktiven Profil aufgeführt.",
+    "emptyDescription": "Dieser Künstler ist im aktiven Profil nicht mehr gelistet.",
     "bio": {
       "title": "Biografie"
     },
@@ -870,89 +961,95 @@
     "emptyTracksDescription": "Dieses Genre enthält keine verfügbaren Titel."
   },
   "nowPlaying": {
-    "title": "Jetzt spielen",
-    "empty": "Es wird kein Titel abgespielt",
+    "title": "Wird gespielt",
+    "empty": "Kein Titel wird gespielt",
     "aboutArtist": "Über den Künstler",
-    "readMore": "Weiterlesen",
-    "readLess": "Reduzieren",
-    "noBio": "Es ist keine Biografie verfügbar. Konfiguriere deinen Schlüssel „Last.fm“ in den Einstellungen.",
+    "readMore": "Mehr lesen",
+    "readLess": "Weniger anzeigen",
+    "noBio": "Keine Biografie verfügbar. Hinterlege deinen Last.fm-Schlüssel in den Einstellungen.",
     "nextInQueue": "Als Nächstes in der Warteschlange",
     "openQueue": "Warteschlange öffnen",
     "lyrics": {
-      "title": "Text",
-      "comingSoon": "In Kürze erhältlich"
+      "title": "Songtext",
+      "comingSoon": "Bald verfügbar"
     },
     "startRadio": "Radio starten",
     "share": {
       "open": "Teilen",
       "save": "Als PNG speichern",
       "copy": "Bild kopieren",
-      "eyebrow": "Wird abgespielt",
+      "eyebrow": "Wird gespielt",
       "on": "auf"
     }
   },
   "playerBar": {
-    "lyrics": "Text",
-    "nowPlaying": "Jetzt abspielen anzeigen",
+    "lyrics": "Songtext",
+    "nowPlaying": "Aktuellen Titel anzeigen",
     "queue": "Warteschlange",
     "miniPlayer": "Mini-Player (immer im Vordergrund)",
     "previous": "Vorheriger Titel",
     "next": "Nächster Titel",
+    "openFullscreen": "Immersive Ansicht",
     "devices": "Ausgabegeräte",
     "moreActions": "Weitere Aktionen",
-    "abLoop": "A-B-Schleife"
+    "abLoop": "A-B-Loop",
+    "eqPreset": "Equalizer",
+    "eq": {
+      "bypass": "EQ aktivieren"
+    },
+    "toggleNowPlayingPanel": "Aktuelle Wiedergabe ein-/ausblenden"
   },
   "miniPlayer": {
-    "idle": "Kein Titel wird abgespielt",
+    "idle": "Kein Titel wird gespielt",
     "maximize": "Hauptfenster wiederherstellen",
-    "like": "Gefällt mir",
+    "like": "Liken",
     "pin": "Immer im Vordergrund",
     "close": "Mini-Player schließen"
   },
   "sleepTimer": {
     "title": "Sleep-Timer",
     "endOfTrack": "Am Ende des aktuellen Titels",
-    "endOfTrackBadge": "ENDE",
+    "endOfTrackBadge": "EOT",
     "cancel": "Abbrechen",
     "start": "OK",
     "customPlaceholder": "Min.",
-    "customAriaLabel": "Benutzerdefinierte Dauer in Minuten",
+    "customAriaLabel": "Eigene Dauer in Minuten",
     "minutes_one": "{{count}} Min.",
     "minutes_other": "{{count}} Min."
   },
   "lyrics": {
-    "title": "Text",
-    "loading": "Suche nach Liedtexten…",
-    "noTrack": "Es wird kein Titel abgespielt",
-    "notFound": "Für diesen Titel wurden keine Liedtexte gefunden. Du kannst eine .lrc-Datei importieren.",
-    "importTitle": "Eine .lrc-Datei importieren",
+    "title": "Songtext",
+    "loading": "Songtext wird gesucht…",
+    "noTrack": "Kein Titel wird gespielt",
+    "notFound": "Kein Songtext für diesen Titel gefunden. Du kannst eine .lrc-Datei importieren.",
+    "importTitle": ".lrc-Datei importieren",
     "actions": {
-      "import": "Eine .lrc-Datei importieren",
-      "refetch": "Suche erneut starten",
-      "clear": "Text löschen",
+      "import": ".lrc-Datei importieren",
+      "refetch": "Erneut suchen",
+      "clear": "Songtext löschen",
       "fullscreen": "Vollbild",
-      "edit": "Liedtext bearbeiten"
+      "edit": "Songtext bearbeiten"
     },
     "source": {
-      "embedded": "In die Datei integrierte Liedtexte",
+      "embedded": "In Datei eingebetteter Songtext",
       "lrc_file": "Importierte .lrc-Datei",
       "api": "LRCLIB",
       "manual": "Manuelle Eingabe"
     },
     "format": {
       "lrc": "Synchronisiert",
-      "enhanced_lrc": "Wort-für-Wort synchronisiert",
-      "ttml": "TTML Wort-für-Wort",
-      "plain": "Unsynchronisiert"
+      "enhanced_lrc": "Wort für Wort synchronisiert",
+      "ttml": "TTML Wort für Wort",
+      "plain": "Nicht synchronisiert"
     },
     "toast": {
-      "tagWriteSkipped": "TTML nur im Cache gespeichert (nicht in das Audio-Tag geschrieben)"
+      "tagWriteSkipped": "TTML nur im Cache behalten (nicht in den Audio-Tag geschrieben)"
     }
   },
   "duplicates": {
-    "title": "Duplikate gefunden",
-    "summary": "{{groups}} Gruppen · {{duplicates}} zu entfernen",
-    "scanning": "Suche läuft…",
+    "title": "Duplikate erkannt",
+    "summary": "{{groups}} Gruppen · {{duplicates}} zu löschende Duplikate",
+    "scanning": "Wird gescannt…",
     "empty": "Keine Duplikate",
     "emptyHint": "Deine Bibliothek ist sauber.",
     "rescan": "Erneut scannen",
@@ -969,7 +1066,7 @@
   "abLoop": {
     "setA": "A-B-Wiederholung: Punkt A an aktueller Position setzen",
     "setB": "A-B-Wiederholung: Punkt B setzen (A = {{a}})",
-    "armed": "A-B-Wiederholung aktiv: {{a}} → {{b}} (klicken zum Löschen)"
+    "armed": "A-B-Wiederholung aktiv: {{a}} → {{b}} (zum Löschen klicken)"
   },
   "smartPlaylistEditor": {
     "createTitle": "Neue intelligente Playlist",
@@ -988,7 +1085,7 @@
       "bpm": "BPM",
       "durationMin": "Dauer in Minuten",
       "hiRes": "Nur Hi-Res",
-      "liked": "Nur Favoriten",
+      "liked": "Nur gelikte Titel",
       "formats": "Formate",
       "genres": "Genres",
       "sort": "Sortieren nach",
@@ -1007,7 +1104,7 @@
       "output": "Sortierung & Limit"
     },
     "sortOptions": {
-      "addedDesc": "Zuletzt hinzugefügt",
+      "addedDesc": "Kürzlich hinzugefügt",
       "addedAsc": "Zuerst hinzugefügt",
       "yearDesc": "Jahr (absteigend)",
       "yearAsc": "Jahr (aufsteigend)",
@@ -1017,24 +1114,24 @@
     },
     "tree": {
       "sectionTitle": "Regeln",
-      "sectionHint": "Kombiniere Bedingungen mit UND / ODER / NICHT. Klicke auf UND oder ODER, um den Operator umzuschalten.",
+      "sectionHint": "Verknüpfe Bedingungen mit UND / ODER / NICHT. Klicke auf UND oder ODER, um den Gruppenoperator umzuschalten.",
       "and": "UND",
       "or": "ODER",
       "not": "NICHT",
-      "toggleOpHint": "UND ↔ ODER",
+      "toggleOpHint": "UND ↔ ODER umschalten",
       "matchAllEmpty": "(gesamte Bibliothek)",
       "matchNoneEmpty": "(keine Titel)",
       "childCount_zero": "leer",
       "childCount_one": "{{count}} Bedingung",
       "childCount_other": "{{count}} Bedingungen",
-      "notHint": "Schließt alles aus, was das Kind erfüllt",
+      "notHint": "Schließt alles aus, was auf den Kind-Knoten zutrifft",
       "deleteNode": "Löschen",
       "addCondition": "Bedingung",
       "addGroupAnd": "UND-Gruppe",
       "addGroupOr": "ODER-Gruppe",
       "addNot": "NICHT",
       "contains": "Enthält…",
-      "pickGenre": "Genre wählen…"
+      "pickGenre": "Genre auswählen…"
     },
     "predicates": {
       "titleContains": "Titel enthält",
@@ -1054,33 +1151,33 @@
     }
   },
   "lyricsEditor": {
-    "title": "Liedtext-Editor",
+    "title": "Songtext-Editor",
     "tabs": {
-      "plain": "Text",
+      "plain": "Einfach",
       "synced": "Synchronisiert"
     },
-    "plainPlaceholder": "Tippe den Liedtext Zeile für Zeile ein…",
+    "plainPlaceholder": "Tippe den Songtext Zeile für Zeile…",
     "linePlaceholder": "Zeilentext",
     "capture": "Erfassen",
-    "captureHint": "Starte die Wiedergabe und drücke Leertaste (oder Erfassen), um die aktuelle Zeile am Abspielkopf zu verankern",
+    "captureHint": "Starte die Wiedergabe und drücke dann Leertaste (oder „Erfassen“), um die aktuelle Zeile an die Wiedergabeposition zu binden",
     "captureNow": "Jetzt erfassen",
-    "recapture": "Auf aktuelle Position neu verankern",
+    "recapture": "An aktueller Position neu verankern",
     "seekToLine": "Zu dieser Zeile springen",
     "insertBelow": "Zeile darunter einfügen",
     "removeLine": "Zeile entfernen",
     "lines": "Zeilen verankert",
     "writeToFile": "Auch in die Audiodatei schreiben (USLT/LYRICS)",
     "offset": {
-      "label": "Globaler Versatz",
-      "help": "Verschiebt jede erfasste Zeile um denselben Wert — hilfreich, um importierte LRC-Dateien zu korrigieren, die gleichmäßig zu früh oder zu spät sind",
-      "reset": "Versatz zurücksetzen"
+      "label": "Globale Verschiebung",
+      "help": "Verschiebt jede erfasste Zeile um denselben Wert — nützlich für importierte LRC-Dateien, die gleichmäßig zu früh oder zu spät sind",
+      "reset": "Verschiebung zurücksetzen"
     },
     "granularity": {
       "label": "Granularität:",
       "line": "Zeile für Zeile",
       "word": "Wort für Wort"
     },
-    "captureHintWord": "Leertaste = nächstes Wort · Eingabe = nächste Zeile · Rücktaste = letztes Wort rückgängig",
+    "captureHintWord": "Leertaste = nächstes Wort · Enter = nächste Zeile · Rücktaste = letztes Wort rückgängig",
     "notCaptured": "Nicht erfasst"
   },
   "sort": {
@@ -1090,10 +1187,13 @@
     "duration": "Dauer",
     "year": "Jahr",
     "addedAt": "Kürzlich hinzugefügt",
-    "rating": "Anmerkung",
+    "rating": "Bewertung",
+    "customOrder": "Eigene Reihenfolge",
+    "recentlyAdded": "Kürzlich hinzugefügt",
+    "menuTitle": "Sortieren nach",
     "name": "Name",
-    "albumsCount": "Anzahl der Alben",
-    "tracksCount": "Anzahl der Titel",
+    "albumsCount": "Anzahl Alben",
+    "tracksCount": "Anzahl Titel",
     "ascending": "Aufsteigend",
     "descending": "Absteigend",
     "filename": "Dateiname"
@@ -1101,38 +1201,66 @@
   "settings": {
     "title": "Einstellungen",
     "sections": {
-      "general": "Allgemeines",
-      "appearance": "Aussehen",
+      "general": "Allgemein",
+      "library": "Bibliothek",
       "playback": "Wiedergabe",
       "integrations": "Integrationen",
+      "appearance": "Aussehen",
       "storage": "Speicher & Daten",
-      "diagnostics": "Diagnostics"
+      "data": "Daten",
+      "shortcuts": "Tastenkürzel",
+      "diagnostics": "Diagnose"
+    },
+    "shortcuts": {
+      "subtitle": "Klicke auf ein Tastenkürzel und drücke dann die gewünschte Tastenkombination. Rücktaste zum Löschen, Esc zum Abbrechen.",
+      "captureHint": "Drücke eine Taste…",
+      "reset": "Alle zurücksetzen",
+      "unbind": "Entkoppeln",
+      "unbound": "Keine",
+      "actions": {
+        "togglePlayback": "Wiedergabe / Pause",
+        "next": "Nächster Titel",
+        "previous": "Vorheriger Titel",
+        "volumeUp": "Lauter",
+        "volumeDown": "Leiser",
+        "toggleMute": "Stummschaltung umschalten",
+        "toggleShuffle": "Zufallswiedergabe",
+        "cycleRepeat": "Wiederholmodus durchschalten",
+        "toggleQueue": "Warteschlangen-Panel umschalten",
+        "toggleNowPlaying": "„Wird gespielt“-Panel umschalten",
+        "toggleLyrics": "Songtext-Panel umschalten",
+        "toggleLike": "Aktuellen Titel liken / unliken"
+      }
+    },
+    "offlineMode": {
+      "title": "Offline-Modus",
+      "subtitle": "Deaktiviert Last.fm, Deezer und LRCLIB. Es werden nur zwischengespeicherte Daten verwendet."
     },
     "integrations": {
       "lastfm": {
         "title": "Last.fm",
-        "subtitle": "Künstlerprofile und Scrobbling. Einen Schlüssel erstellen unter last.fm/api/account/create",
+        "subtitle": "Künstler-Biografien und Scrobbling. Schlüssel erstellen unter last.fm/api/account/create",
         "placeholder": "API-Schlüssel",
-        "secretPlaceholder": "Ein gemeinsames Geheimnis",
+        "secretPlaceholder": "Shared Secret",
         "save": "Speichern",
-        "saved": "Registriert ✓",
+        "saved": "Gespeichert ✓",
         "show": "Anzeigen",
         "hide": "Ausblenden",
         "connectedAs": "Angemeldet als",
         "disconnect": "Abmelden",
-        "loginPrompt": "Melde dich an, um deine Hörgewohnheiten zu scrobbeln:",
+        "loginPrompt": "Melde dich an, um deinen Hörverlauf zu scrobbeln:",
         "usernamePlaceholder": "Benutzername",
         "passwordPlaceholder": "Passwort",
         "connect": "Anmelden",
-        "connecting": "Anmelden…"
+        "connecting": "Wird angemeldet…"
       },
       "discord": {
         "title": "Discord Rich Presence",
-        "subtitle": "Aktuell gespielten Titel in deinem Discord-Profil anzeigen"
+        "subtitle": "Zeige den aktuell gespielten Titel in deinem Discord-Profil an"
       },
       "dlna": {
-        "title": "DLNA / UPnP-Server",
-        "subtitle": "Übertrage deine Bibliothek an kompatible Verstärker und Geräte im lokalen Netzwerk",
+        "title": "DLNA-/UPnP-Server",
+        "subtitle": "Streame deine Bibliothek an LAN-kompatible Verstärker und Geräte",
         "serverName": "Name",
         "port": "Port",
         "portHint": "0 = automatischer Port",
@@ -1142,67 +1270,67 @@
       },
       "spotify": {
         "title": "Spotify",
-        "subtitle": "Verbinde Spotify Premium mit deiner eigenen Spotify Developer Client-ID.",
-        "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "Füge diese Redirect URI im Spotify Developer Dashboard hinzu: http://127.0.0.1:49387/spotify/callback",
+        "subtitle": "Verbinde Spotify Premium mit deiner eigenen Spotify-Developer-Client-ID.",
+        "clientIdPlaceholder": "Spotify-Client-ID",
+        "redirectHint": "Füge diese Redirect-URI im Spotify Developer Dashboard hinzu: http://127.0.0.1:49387/spotify/callback",
         "connectedAs": "Verbunden als",
         "disconnect": "Trennen",
-        "connecting": "Verbindung wird hergestellt…",
+        "connecting": "Wird verbunden…",
         "connect": "Spotify verbinden"
       }
     },
     "crossfade": {
-      "title": "Überblendung",
-      "subtitle": "Flüssige Übergänge zwischen den Titeln (in Kürze)"
-    },
-    "dynamicCrossfade": {
-      "title": "Dynamisches Crossfade",
-      "subtitle": "Passt die Überblendungsdauer an die Tempodifferenz der Titel an (fällt auf festes Crossfade zurück, wenn BPM unbekannt ist)"
+      "title": "Crossfade",
+      "subtitle": "Nahtlose Übergänge zwischen Titeln (bald verfügbar)"
     },
     "normalize": {
       "title": "Lautstärke normalisieren",
-      "subtitle": "Die Lautstärke zu lauter Titel reduzieren, um einen einheitlichen Pegel zu erzielen"
+      "subtitle": "Senkt zu laute Titel ab, um ein gleichmäßiges Niveau zu halten"
     },
     "replayGain": {
       "title": "ReplayGain anwenden",
-      "subtitle": "Verwende die analysierte Verstärkung jedes Titels, um die wahrgenommene Lautstärke auszugleichen"
+      "subtitle": "Nutze den analysierten Gain jedes Titels, um die wahrgenommene Lautstärke auszugleichen"
     },
     "exclusive": {
-      "title": "WASAPI Exclusive-Modus (Windows)",
-      "subtitle": "Bit-perfekt: umgeht den Windows-Mixer für eine interferenzfreie Ausgabe. Fällt auf Shared-Modus zurück, wenn das Gerät den Exklusivzugriff verweigert.",
-      "fallback": "Das Gerät akzeptiert keinen Exclusive-Modus. Wechsel zu Shared-Modus."
+      "title": "WASAPI-Exklusivmodus (Windows)",
+      "subtitle": "Bit-genau: umgeht den Windows-Mixer für störungsfreie Ausgabe. Fällt auf den Shared-Modus zurück, wenn das Gerät den Exklusivzugriff ablehnt.",
+      "fallback": "Das Gerät akzeptiert den Exklusivmodus nicht. Fallback auf den Shared-Modus."
     },
     "mono": {
-      "title": "Mono-Ton",
-      "subtitle": "Mischt den linken und den rechten Kanal zu einem einzigen Signal"
+      "title": "Mono-Audio",
+      "subtitle": "Mischt den linken und rechten Kanal zu einem einzigen Signal"
     },
     "language": {
       "title": "Sprache",
-      "subtitle": "Sprache der Benutzeroberfläche"
+      "subtitle": "Sprache der Oberfläche"
     },
     "autoStart": {
-      "title": "Start beim Hochfahren",
-      "subtitle": "WaveFlow beim Systemstart automatisch starten"
+      "title": "Beim Systemstart starten",
+      "subtitle": "WaveFlow beim Hochfahren des Systems automatisch starten"
     },
     "minimizeToTray": {
-      "title": "In die Taskleiste minimieren",
-      "subtitle": "Wenn du das Fenster schließt, wird die Anwendung in die Taskleiste minimiert"
+      "title": "In den Infobereich minimieren",
+      "subtitle": "Beim Schließen des Fensters wird die App in den Infobereich minimiert"
     },
     "scanOnStart": {
-      "title": "Beim Systemstart scannen",
-      "subtitle": "Bibliotheken beim Öffnen automatisch neu scannen"
+      "title": "Beim Start scannen",
+      "subtitle": "Bibliotheken beim Start automatisch erneut scannen"
     },
     "singleClickPlay": {
-      "title": "Einzelklick-Wiedergabe",
-      "subtitle": "Klicken Sie auf einen Titel, um die Wiedergabe zu starten (oder doppelklicken Sie darauf)."
+      "title": "Wiedergabe per Einfachklick",
+      "subtitle": "Klicke einen Titel an, um die Wiedergabe zu starten (sonst Doppelklick)"
     },
     "showSleepTimer": {
       "title": "Sleep-Timer in der Leiste anheften",
-      "subtitle": "Wenn aus, bleibt der Timer über das Menü „…“ erreichbar"
+      "subtitle": "Wenn deaktiviert, bleibt der Timer über das „…“-Menü erreichbar"
     },
     "showAbLoop": {
-      "title": "A-B-Schleife in der Leiste anheften",
-      "subtitle": "Wenn aus, bleibt die A-B-Schleife über das Menü „…“ erreichbar"
+      "title": "A-B-Loop in der Leiste anheften",
+      "subtitle": "Wenn deaktiviert, bleibt A-B-Loop über das „…“-Menü erreichbar"
+    },
+    "showSpotify": {
+      "title": "Spotify-Eintrag anzeigen",
+      "subtitle": "Zeige die Spotify-Verknüpfung in der Seitenleiste an"
     },
     "duplicates": {
       "title": "Duplikate erkennen",
@@ -1211,130 +1339,159 @@
     },
     "rescan": {
       "title": "Bibliothek erneut scannen",
-      "subtitle": "Alle Ordner erneut durchsuchen und neue Dateien importieren",
+      "subtitle": "Alle Ordner überprüfen und neue Dateien importieren",
       "action": "Erneut scannen"
     },
     "analyze": {
-      "title": "Die Bibliothek analysieren",
-      "subtitle": "BPM berechnen, Lautstärke und Spitzenwert für nicht analysierte Titel",
+      "title": "Bibliothek analysieren",
+      "subtitle": "BPM, Lautheit und Peak für noch nicht analysierte Titel berechnen",
       "action": "Analysieren",
       "autoTitle": "Automatische Analyse",
-      "autoSubtitle": "Führen Sie nach jedem Scan, der neue Titel hinzufügt, eine Analyse im Hintergrund durch",
-      "failed_one": "{{count}} Misserfolg",
-      "failed_other": "{{count}} Schach"
+      "autoSubtitle": "Im Hintergrund analysieren, nachdem ein Scan neue Titel hinzugefügt hat",
+      "failed_one": "{{count}} Fehler",
+      "failed_other": "{{count}} Fehler"
     },
     "artistImages": {
-      "title": "Bilder von Künstlern",
-      "subtitle": "Künstlercover von Deezer herunterladen",
-      "action": "Wiederherstellen",
+      "title": "Künstlerbilder",
+      "subtitle": "Künstlerbilder von Deezer herunterladen",
+      "action": "Abrufen",
       "progress": "{{current}}/{{total}} verarbeitet"
     },
     "localArtistImages": {
       "title": "Lokale Künstlerbilder",
-      "subtitle": "Sucht nach einer artist.jpg-Datei (oder <name>.jpg) neben der Musik und nutzt sie als Künstlerfoto.",
+      "subtitle": "Sucht neben deiner Musik nach einer artist.jpg (oder <name>.jpg) und nutzt sie als Künstlerfoto.",
       "action": "Scannen",
-      "done": "{{linked}} von {{considered}} Künstlern mit lokalem Bild verknüpft"
+      "done": "{{linked}} von {{considered}} Künstlern einem lokalen Bild zugeordnet"
+    },
+    "profileIo": {
+      "title": "Profil-Sicherung",
+      "subtitle": "Exportiere oder importiere ein komplettes Profil (Playlists, Favoriten, Statistiken, EQ, Tastenkürzel) als einzelne .waveflow-Datei.",
+      "export": {
+        "action": "Exportieren",
+        "dialogTitle": "WaveFlow-Profil exportieren",
+        "done": "Profil erfolgreich exportiert.",
+        "failed": "Export fehlgeschlagen. Details siehe Logs."
+      },
+      "import": {
+        "action": "Importieren",
+        "dialogTitle": "WaveFlow-Profil importieren",
+        "done": "Profil importiert (ID {{id}}). Wechsle über die Profilauswahl dorthin.",
+        "failed": "Import fehlgeschlagen. Die Datei könnte beschädigt oder inkompatibel sein."
+      }
     },
     "dataFolder": {
-      "title": "Datenblatt",
-      "subtitle": "Öffne den Ordner, der die Datenbank und die Cover enthält",
+      "title": "Datenordner",
+      "subtitle": "Öffne den Ordner mit der Datenbank und den Covern",
       "action": "Öffnen"
     },
     "openDataFolder": "Datenordner öffnen",
     "lyricsPrefetch": {
       "title": "Songtexte vorab laden",
-      "subtitle": "Songtexte der gesamten Bibliothek für Offline-Nutzung herunterladen",
+      "subtitle": "Lade Songtexte für die gesamte Bibliothek für die Offline-Nutzung herunter",
       "result": "{{hits}} synchronisiert, {{misses}} nicht gefunden, {{failed}} fehlgeschlagen",
-      "offline": "Offlinemodus aktiviert",
+      "offline": "Offline-Modus ist aktiviert",
       "failed": "Vorabladen fehlgeschlagen",
       "action": "Vorab laden",
       "progress": "{{current}}/{{total}} verarbeitet · {{hits}} gefunden"
     },
-    "regenerateThumbnails": "Miniaturansichten neu laden",
-    "regenerateThumbnailsSubtitle": "Die fehlenden 1x/2x-Varianten für alle Hüllen neu erstellen",
-    "regenerateThumbnailsAction": "Regenerieren",
-    "regenerateThumbnailsDone": "{{count}} erneuerte Miniaturansichten",
+    "regenerateThumbnails": "Vorschaubilder neu erzeugen",
+    "regenerateThumbnailsSubtitle": "Fehlende 1x-/2x-Varianten für alle Cover neu erstellen",
+    "regenerateThumbnailsAction": "Neu erzeugen",
+    "regenerateThumbnailsDone": "{{count}} Vorschaubilder neu erzeugt",
     "reset": {
       "title": "App zurücksetzen",
-      "subtitle": "Alle Daten löschen und auf die Werkseinstellungen zurücksetzen",
+      "subtitle": "Alle Daten löschen und auf Werkseinstellungen zurücksetzen",
       "action": "Zurücksetzen"
     },
     "diagnostics": {
-      "title": "Anwendungsprotokoll",
-      "subtitle": "Um einen Fehler zu melden, öffne den Log-Ordner oder kopiere die letzten Logs, um sie in ein Ticket einzufügen.",
+      "title": "Anwendungs-Log",
+      "subtitle": "Um einen Fehler zu melden, öffne den Log-Ordner oder kopiere die aktuellen Logs und füge sie in ein Ticket ein.",
       "openFolder": "Ordner öffnen",
       "copyLogs": "Logs kopieren",
-      "copied": "Kopierte Logs",
-      "copyFailed": "Logs können nicht kopiert werden"
+      "copied": "Logs kopiert",
+      "copyFailed": "Logs konnten nicht kopiert werden"
+    },
+    "visualizer": {
+      "title": "Audio-Visualizer",
+      "subtitle": "Zeigt ein Echtzeit-Spektrum in der immersiven Ansicht (leichtgewichtige FFT im Decoder-Thread)"
+    },
+    "smartCrossfade": {
+      "title": "Smartes Crossfade",
+      "subtitle": "Überspringt automatisch das Crossfade zwischen zwei Titeln desselben Albums (ideal für Konzeptalben und Live-Sets)"
+    },
+    "dynamicCrossfade": {
+      "title": "Dynamisches Crossfade",
+      "subtitle": "Skaliert die Crossfade-Dauer mit der Tempodifferenz zwischen den Titeln (fällt auf das feste Crossfade zurück, wenn die BPM unbekannt ist)"
     },
     "gapless": {
-      "title": "Lückenlose Wiedergabe",
-      "subtitle": "Verkettet aufeinanderfolgende Titel ohne Mikropause (ideal für Live- und Konzeptalben)"
+      "title": "Gapless-Wiedergabe",
+      "subtitle": "Verknüpft aufeinanderfolgende Titel ohne Mikrostille (ideal für Live- und Konzeptalben)"
     },
     "equalizer": {
       "title": "Equalizer",
-      "subtitle": "Sechs Peaking-Bänder, ±12 dB. Punkte ziehen, um die Kurve zu formen.",
+      "subtitle": "Sechs Peaking-Bänder, ±12 dB. Ziehe die Punkte, um die Kurve zu formen.",
       "presets": "Presets",
       "reset": "Zurücksetzen",
       "preset": {
-        "custom": "Benutzerdefiniert",
-        "flat": "Linear",
-        "acoustic": "Akustisch",
-        "bass_booster": "Bass-Verstärkung",
-        "bass_reducer": "Bass-Reduzierung",
+        "custom": "Eigene",
+        "flat": "Flat",
+        "acoustic": "Acoustic",
+        "bass_booster": "Bass Booster",
+        "bass_reducer": "Bass Reducer",
         "classical": "Klassik",
         "dance": "Dance",
         "deep": "Deep",
-        "electronic": "Elektronisch",
+        "electronic": "Electronic",
         "hip_hop": "Hip-Hop",
         "jazz": "Jazz",
         "latin": "Latin",
         "loudness": "Loudness",
         "lounge": "Lounge",
-        "piano": "Klavier",
+        "piano": "Piano",
         "pop": "Pop",
         "rnb": "R&B",
         "rock": "Rock",
         "small_speakers": "Kleine Lautsprecher",
-        "spoken_word": "Sprache",
-        "treble_booster": "Höhen-Verstärkung"
+        "spoken_word": "Spoken Word",
+        "treble_booster": "Treble Booster"
       }
     },
     "backup": {
-      "title": "Automatisches Backup",
+      "title": "Automatische Sicherung",
       "subtitle": "Erstellt regelmäßig ein .waveflow-Archiv jedes Profils im gewählten Ordner.",
       "intervalLabel": "Häufigkeit",
-      "intervalDays_one": "Täglich",
+      "intervalDays_one": "Jeden Tag",
       "intervalDays_other": "Alle {{count}} Tage",
       "retentionLabel": "Aufbewahrte Archive",
       "retentionKeep_one": "{{count}} Archiv pro Profil",
       "retentionKeep_other": "{{count}} Archive pro Profil",
-      "includeMetadataArtworkLabel": "Deezer-Bildcache einbeziehen",
-      "includeMetadataArtworkHint": "Größere Sicherung, vollständig offline wiederherstellbar. Deaktivieren für schlanke Archive (Cache wird bei Bedarf neu geladen).",
+      "includeMetadataArtworkLabel": "Deezer-Cover-Cache einschließen",
+      "includeMetadataArtworkHint": "Größere Sicherung, vollständig offline wiederherstellbar. Abwählen für schlanke Archive (Cache wird bei Bedarf neu abgerufen).",
       "changeFolder": "Ordner ändern",
-      "pickFolderTitle": "Backup-Ordner wählen",
-      "lastRun": "Letztes Backup: {{when}}",
+      "pickFolderTitle": "Sicherungsordner auswählen",
+      "lastRun": "Letzte Sicherung: {{when}}",
       "neverRun": "nie",
       "runNow": "Jetzt sichern",
       "runOk_one": "{{count}} Archiv geschrieben.",
       "runOk_other": "{{count}} Archive geschrieben.",
       "errors": {
-        "loadFailed": "Backup-Konfiguration konnte nicht geladen werden.",
-        "saveFailed": "Speichern fehlgeschlagen. Erneut versuchen.",
-        "runFailed": "Backup fehlgeschlagen. Logs prüfen."
+        "loadFailed": "Sicherungskonfiguration konnte nicht geladen werden.",
+        "saveFailed": "Speichern fehlgeschlagen. Versuche es erneut.",
+        "runFailed": "Sicherung fehlgeschlagen. Prüfe die Logs."
       }
     },
     "uiZoom": {
-      "title": "Oberflächen-Zoom",
-      "subtitle": "Gesamte Oberfläche skalieren (Ctrl+= / Ctrl+- / Ctrl+0 funktionieren ebenfalls)",
+      "title": "UI-Zoom",
+      "subtitle": "Skaliere die gesamte Oberfläche (Strg+= / Strg+- / Strg+0 funktionieren ebenfalls)",
       "decreaseAria": "Verkleinern",
       "increaseAria": "Vergrößern",
       "resetAria": "Zoom auf 100 % zurücksetzen"
     },
     "showAudioQualityFooter": {
-      "title": "Audioqualitätsleiste anzeigen",
+      "title": "Audioqualitäts-Streifen anzeigen",
       "subtitle": "Technische Details (kHz, kbps, Codec, Bittiefe) unter der Player-Leiste. Standardmäßig aus für eine schlankere Leiste."
     },
+    "categoryNavLabel": "Einstellungskategorien",
     "appearance": {
       "theme": {
         "title": "Thema",
@@ -1356,29 +1513,67 @@
         "ocean": "Ozean",
         "neon": "Neon"
       }
+    },
+    "playerBarLayout": {
+      "title": "Layout der Wiedergabeleiste",
+      "subtitle": "Wähle, welche Knöpfe in der Leiste erscheinen und was beim Klick auf das Cover passiert. Die Vorschau aktualisiert sich live.",
+      "preview": "Vorschau",
+      "previewEmpty": "Keine Knöpfe — die Leiste zeigt nur das Cover und die Wiedergabesteuerung.",
+      "buttons": {
+        "abLoop": "A-B-Schleife",
+        "sleepTimer": "Sleep-Timer",
+        "eqPreset": "Equalizer (Voreinstellungen)",
+        "lyrics": "Songtext",
+        "queue": "Warteschlange",
+        "device": "Audioausgabe",
+        "miniPlayer": "Mini-Player",
+        "immersive": "Immersive Ansicht",
+        "audioQualityFooter": "Audioqualitätsleiste"
+      },
+      "coverAction": {
+        "title": "Klick auf das Cover",
+        "immersive": {
+          "label": "Immersive Ansicht öffnen",
+          "description": "Standard — öffnet die Vollbildansicht mit vergrößertem Cover."
+        },
+        "nowPlaying": {
+          "label": "Aktuelle Wiedergabe einblenden",
+          "description": "Spotify-Stil — blendet das rechte Seitenpanel mit Cover und Songtext ein bzw. aus."
+        },
+        "none": {
+          "label": "Nichts tun",
+          "description": "Deaktiviert den Klick — praktisch, wenn du ihn aus Versehen auslöst."
+        }
+      }
     }
   },
+  "spotify": {
+    "notConfiguredTitle": "Registriere deine Spotify-App",
+    "notConfiguredMessage": "Spotify verlangt, dass jede Drittanbieter-App eine kostenlose Client-ID registriert, bevor irgendetwas abgespielt wird. Erstelle eine im Spotify Developer Dashboard und füge sie dann in WaveFlows Einstellungen → Integrationen ein.",
+    "openDashboard": "Spotify Developer Dashboard öffnen",
+    "openSettings": "Einstellungen öffnen",
+    "notConnectedTitle": "Spotify ist nicht verbunden",
+    "notConnectedMessage": "Deine Client-ID ist hinterlegt. Melde dich in den Einstellungen mit deinem Spotify-Premium-Konto an, um deine Playlists zu laden und Musik abzuspielen.",
+    "emptyPlaylist": "Keine abspielbaren Titel in dieser Playlist (Spotify gibt lokale Dateien oder Playlists, die dir nicht gehören, möglicherweise nicht frei).",
+    "deviceReady": "WaveFlow-Spotify-Gerät bereit",
+    "devicePending": "Spotify-Wiedergabe wird vorbereitet…",
+    "searchPlaceholder": "Spotify durchsuchen",
+    "tracks": "Titel",
+    "playlists": "Playlists"
+  },
   "scanProgress": {
-    "runningTitle": "Bibliothek wird analysiert…",
+    "runningTitle": "Bibliothek wird gescannt…",
     "runningSubtitle": "{{current}} / {{total}} Dateien",
-    "doneTitle": "Analyse abgeschlossen",
+    "doneTitle": "Scan abgeschlossen",
     "doneSubtitle": "{{added}} hinzugefügt · {{updated}} aktualisiert · {{skipped}} übersprungen"
   },
   "system": {
     "tray": {
       "playPause": "Wiedergabe / Pause",
-      "previous": "Zurück",
-      "next": "Weiter",
+      "previous": "Vorheriger",
+      "next": "Nächster",
       "show": "WaveFlow öffnen",
       "quit": "Beenden"
     }
-  },
-  "spotify": {
-    "deviceReady": "WaveFlow Spotify-Gerät bereit",
-    "devicePending": "Spotify-Wiedergabe wird vorbereitet…",
-    "searchPlaceholder": "Spotify durchsuchen",
-    "tracks": "Titel",
-    "playlists": "Playlists",
-    "emptyPlaylist": "Keine abspielbaren Titel in dieser Playlist (Spotify blendet lokale Dateien oder Playlists, die dir nicht gehören, möglicherweise aus)."
   }
 }

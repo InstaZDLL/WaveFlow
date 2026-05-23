@@ -27,6 +27,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use chrono::Utc;
+use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use tauri_plugin_autostart::ManagerExt;
 
@@ -169,6 +170,65 @@ pub async fn set_ui_zoom(state: tauri::State<'_, AppState>, zoom: f64) -> AppRes
     )
     .bind(KEY_UI_ZOOM)
     .bind(format!("{clamped}"))
+    .bind(Utc::now().timestamp_millis())
+    .execute(&state.app_db)
+    .await?;
+    Ok(())
+}
+
+/// Mini-player window bounds in logical pixels. Persisted as a JSON blob
+/// under `app_setting['mini_player.bounds']` so the four fields move as
+/// one row — restoring half a position is worse than restoring none of
+/// it. Position is machine-level (same reason as the zoom level above):
+/// a 4K and a 1080p monitor would never share a sensible corner.
+const KEY_MINI_PLAYER_BOUNDS: &str = "mini_player.bounds";
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MiniPlayerBounds {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
+#[tauri::command]
+pub async fn get_mini_player_bounds(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Option<MiniPlayerBounds>> {
+    let raw: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(KEY_MINI_PLAYER_BOUNDS)
+        .fetch_optional(&state.app_db)
+        .await?;
+    Ok(raw.and_then(|s| serde_json::from_str::<MiniPlayerBounds>(&s).ok()))
+}
+
+#[tauri::command]
+pub async fn set_mini_player_bounds(
+    state: tauri::State<'_, AppState>,
+    bounds: MiniPlayerBounds,
+) -> AppResult<()> {
+    // Drop non-finite or non-positive sizes silently — the frontend can
+    // fire a save in the middle of the window being destroyed, where
+    // outerSize / outerPosition briefly return junk on some platforms.
+    if !bounds.x.is_finite()
+        || !bounds.y.is_finite()
+        || !bounds.width.is_finite()
+        || !bounds.height.is_finite()
+        || bounds.width <= 0.0
+        || bounds.height <= 0.0
+    {
+        return Ok(());
+    }
+    let json = serde_json::to_string(&bounds)
+        .map_err(|err| crate::error::AppError::Other(format!("mini_player bounds: {err}")))?;
+    sqlx::query(
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'json', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(KEY_MINI_PLAYER_BOUNDS)
+    .bind(json)
     .bind(Utc::now().timestamp_millis())
     .execute(&state.app_db)
     .await?;

@@ -21,15 +21,23 @@ const LEGACY_DARK_KEY = "waveflow.theme.is_dark";
 
 // Read the persisted preset synchronously so the very first render
 // already matches the user's last choice. Falls back to legacy dark
-// boolean if no new-format value exists.
+// boolean if no new-format value exists — and migrates it to the new
+// key in the same pass so a downgrade-then-upgrade cycle can't silently
+// overwrite a custom preset with the stale boolean.
 const readStoredTheme = (): ThemePreset => {
   if (typeof window === "undefined") return findTheme(DEFAULT_THEME_ID);
   try {
     const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
     if (stored) return findTheme(stored);
     const legacyDark = window.localStorage.getItem(LEGACY_DARK_KEY);
-    if (legacyDark === "true") return findTheme("default-dark");
-    if (legacyDark === "false") return findTheme("default");
+    if (legacyDark === "true" || legacyDark === "false") {
+      const migrated = findTheme(
+        legacyDark === "true" ? "default-dark" : "default",
+      );
+      window.localStorage.setItem(THEME_STORAGE_KEY, migrated.id);
+      window.localStorage.removeItem(LEGACY_DARK_KEY);
+      return migrated;
+    }
     return findTheme(DEFAULT_THEME_ID);
   } catch {
     return findTheme(DEFAULT_THEME_ID);
@@ -70,7 +78,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const transition = document.startViewTransition(() => setTheme(next));
+    // `startViewTransition` itself can throw synchronously on some
+    // WebKitGTK builds (same family of bugs as the comment above). If
+    // it does, swap the theme without animation so we don't leave the
+    // app desynced (theme id persisted but `setTheme` never called).
+    let transition: ViewTransition;
+    try {
+      transition = document.startViewTransition(() => setTheme(next));
+    } catch {
+      setTheme(next);
+      return;
+    }
 
     // Radial reveal from the click point if a mouse event was provided
     // (e.g. clicking a theme card in Settings). Falls back to the

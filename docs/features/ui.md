@@ -35,13 +35,14 @@ The right panel is **a flex sibling** of the center column, not an overlay — o
 
 [`FullscreenNowPlaying`](../../src/components/player/FullscreenNowPlaying.tsx) is an Apple-Music-style overlay (`fixed inset-0 z-100`) that turns the current track into the focal point: huge centred cover, large title + clickable artist + album, the same `PlaybackControls` / `ProgressBar` / `VolumeControl` the bottom bar uses, and a like toggle. Background is a blurred copy of the artwork (with a 55% black wash over it) so the view stays visually anchored to the track without any extra theming work.
 
-Two entry points in the [`PlayerBar`](../../src/components/player/PlayerBar.tsx): clicking the cover in the bottom bar (mirrors Spotify) or the dedicated Maximize2 icon next to the lyrics toggle. Closes on Escape or the X button. State is local to the bar — no `PlayerContext` involvement because nothing else needs to know about the overlay.
+Two entry points in the [`PlayerBar`](../../src/components/player/PlayerBar.tsx): clicking the cover in the bottom bar (mirrors Spotify) or the dedicated Maximize2 icon next to the lyrics toggle. The header of [`FullscreenLyrics`](../../src/components/player/FullscreenLyrics.tsx) also carries a Maximize2 button (symmetric to the Mic2 "open lyrics" button in `FullscreenNowPlaying`) so the user can round-trip Immersive ↔ Lyrics without leaving fullscreen — the parent flips the fullscreen mutex so only one overlay is ever mounted. Closes on Escape or the X button. State is local to the bar — no `PlayerContext` involvement because nothing else needs to know about the overlay.
 
 ## Mini-player
 
 [`MiniPlayerApp`](../../src/MiniPlayerApp.tsx) + [`MiniPlayer`](../../src/components/views/MiniPlayer.tsx) ship a Spotify-style always-on-top widget. Launched from the picture-in-picture button in the PlayerBar via [`lib/miniPlayer.ts::openMiniPlayer`](../../src/lib/miniPlayer.ts).
 
-- **Window** — second `WebviewWindow` (label `mini`), 280×380 with `decorations: false` (we render our own top bar) and `alwaysOnTop: true`. Anchored bottom-right of the primary monitor (`currentMonitor` → physical size ÷ scale factor → logical px) with a 24 px edge margin so the OS taskbar / Dock isn't covered. Hides the main window on open; the mini's Maximize button restores it and closes the mini.
+- **Window** — second `WebviewWindow` (label `mini`), default 280×380 with `decorations: false` (we render our own top bar) and `alwaysOnTop: true`. Hides the main window on open; the mini's Maximize button restores it and closes the mini.
+- **Persistent bounds** — position + size are persisted in `app_setting['mini_player.bounds']` (JSON blob, machine-level) via debounced `onMoved` / `onResized` listeners in [`MiniPlayer.tsx`](../../src/components/views/MiniPlayer.tsx) (300 ms after the last gesture so SQLite isn't hammered at 60 Hz while dragging). On open, [`miniPlayer.ts::openMiniPlayer`](../../src/lib/miniPlayer.ts) restores the saved rectangle when it still overlaps an available monitor by at least 80 px on both axes (`availableMonitors()` check guards against monitor disconnects / resolution changes). Otherwise it falls back to anchoring bottom-right of the primary monitor (`currentMonitor` → physical size ÷ scale factor → logical px) with a 24 px edge margin so the OS taskbar / Dock isn't covered.
 - **Routing** — same Vite bundle, branched in [`main.tsx`](../../src/main.tsx) on `?mini=1` so the mini boots into a stripped-down provider tree (`Theme + Profile + Player` only — no `Library` / `Playlist` since the widget never browses).
 - **Cover-derived background** — [`lib/dominantColor.ts`](../../src/lib/dominantColor.ts) draws the artwork onto a 64×64 canvas, samples every 4th pixel, skips near-monochrome runs (white margins, black bars) so the average reflects the real hue, and produces a 3-stop gradient applied to the window background.
 - **Hover overlay controls** — shuffle / prev / play (white round Spotify-style) / next / repeat fade in over the cover; idle state shows just the artwork.
@@ -114,13 +115,27 @@ Track tables themselves are **borderless** — no `rounded-2xl border bg-white` 
 
 Right side of [`PlayerBar`](../../src/components/player/PlayerBar.tsx) is the highest-pressure real estate in the UI — every new feature wants an icon there. To keep the bar from running out of width on narrow windows, controls cluster by frequency:
 
-| Tier         | Controls                                                                   | Where                                                                                                                                        |
-| ------------ | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Primary**  | Lyrics, Queue, Device picker, "⋯", Volume, **Mini-player**, **Fullscreen** | Always visible. Spotify-style right cluster (mini-player + fullscreen) sits after volume                                                     |
-| **Overflow** | Playback speed (slider + presets), A-B loop, Sleep timer (panel)           | [`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx) — "⋯" popover; the trigger itself is hidden when nothing inside is left |
-| **Pinnable** | A-B loop, Sleep timer (promote to primary)                                 | Toggle in Settings → Lecture (see below)                                                                                                     |
+| Tier         | Controls                                                                                                                                                                                                                | Where                                                                                                                                                                                                                  |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Primary**  | Lyrics, Queue, Device picker, "⋯", Volume, Mini-player, Immersive view, plus any pinned overflow item (A-B loop, Sleep timer, EQ presets). Every entry is opt-out from the user side via Settings → Playback (defaults match the pre-customisation layout — zero visible change after the upgrade). | Each button reads its visibility from `usePlayerBarLayout` ([`src/hooks/usePlayerBarLayout.ts`](../../src/hooks/usePlayerBarLayout.ts)). The same hook drives the live preview in the Settings panel.                  |
+| **Overflow** | Playback speed (slider + presets), EQ presets, A-B loop, Sleep timer                                                                                                                                                    | [`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx) — "⋯" popover; trigger auto-hides when every overflow entry is pinned. EQ presets share their inner `EqPresetPanel` body with the primary popover variant. |
+| **Pinnable** | A-B loop, Sleep timer, EQ presets (promote each to primary independently)                                                                                                                                               | Settings → Playback → "Player bar layout" — single panel covering every button + the cover-click action.                                                                                                            |
 
-When adding a new player-bar action: default it into the overflow menu first — promote to primary only when usage data or user feedback warrants it. If both placements make sense, expose a pin toggle. The "⋯" trigger auto-hides when its menu would be empty.
+The Settings panel ([`PlayerBarLayoutCard`](../../src/components/views/settings/PlayerBarLayoutCard.tsx)) replaces the three earlier per-feature toggles (sleep timer / A-B loop / audio-quality footer). Layout is read through [`usePlayerBarLayout`](../../src/hooks/usePlayerBarLayout.ts) and writes are persisted via `setProfileSetting` + a single `waveflow:playerbar-layout-changed` window event so every consumer re-reads in one go (the legacy per-feature events `waveflow:sleep-timer-visibility` / `waveflow:ab-loop-visibility` / `waveflow:audio-quality-footer-visibility` are still observed by the hook for back-compat with any external dispatcher).
+
+Order is **fixed** — drag-to-reorder would add a sortable library dependency and a fairly minor UX gain since the player bar is small and the conventional left-to-right sequence (overflow → utility toggles → volume → window-management) is what users from Spotify / Apple Music already expect.
+
+The **cover thumbnail** at the bottom-left of the player bar carries its own action (`ui.cover_action`, default `immersive`):
+
+| Value         | Behaviour                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------------- |
+| `immersive`   | Open the full-screen Now Playing overlay (the pre-customisation default — Apple-Music style).   |
+| `now_playing` | Toggle the right-edge Now Playing panel — Spotify-style "click cover, see lyrics + cover wall". |
+| `none`        | No-op. Useful for users who keep mis-triggering it.                                              |
+
+When adding a new player-bar action: default it into the overflow menu first — promote to primary only when usage data or user feedback warrants it. Always wire it through `PLAYER_BAR_LAYOUT_KEYS` + the `PlayerBarLayoutCard` toggle grid so users can opt out from one place. The "⋯" trigger auto-hides when its menu would be empty.
+
+**Volume control** ([`VolumeControl`](../../src/components/player/VolumeControl.tsx)) supports three input modalities: pointer drag on the track, keyboard arrows / Home / End when the slider has focus (5 % step, 0 / 100 jumps), and **mouse-wheel scroll** anywhere over the icon + track area (5 % step, wheel up raises). The wheel handler is bound through `addEventListener('wheel', ..., { passive: false })` so it can `preventDefault` the underlying page scroll — React 17+'s JSX `onWheel` is passive and would let the track list behind the player bar scroll at the same time. Horizontal-only scrolls (`deltaY === 0`, e.g. trackpad sideways swipes) are ignored so they don't get treated as a volume-down tick.
 
 **Playback speed** lives inside [`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx) (range slider + five presets) rather than a dedicated bar button — it's used too rarely to deserve a permanent slot. When speed ≠ 1×, the "⋯" trigger surfaces a compact `1.25×` badge in emerald (same corner as the sleep-timer countdown — the countdown wins when both are active). See [playback / Playback speed](playback.md#playback-speed-05--2) for the backend side.
 
@@ -167,7 +182,14 @@ Per-profile isolated database (libraries, playlists, settings, play history); sh
 
 - The `profile` table lives in `app.db` along with `app_setting['app.last_profile_id']`.
 - Boot flow: if no profiles exist, create "Default"; otherwise activate `last_profile_id`, falling back to the most-recently-used profile if it points to a deleted row.
-- Profile switch closes the current per-profile pool and opens the new one — UI reactively re-fetches via every `*Provider` watching `activeProfile.id`.
+- Profile switch closes the current per-profile pool and opens the new one — UI reactively re-fetches via every `*Provider` watching `activeProfile.id`. [`LibraryContext`](../../src/contexts/LibraryContext.tsx) also exposes `loadedProfileId` (the id its `libraries` array was last fetched for) so consumers like the onboarding gate in [`AppLayout`](../../src/components/layout/AppLayout.tsx) wait for a fresh fetch instead of evaluating against the previous profile's data. `refresh()` snapshots the active profile id before its `await` and drops late writes when the user has since switched.
+
+### Create / delete
+
+[`ProfileSelectorModal`](../../src/components/common/ProfileSelectorModal.tsx) hosts the lifecycle:
+
+- **Create** → "+" tile in the select view → name + colour picker → backend [`create_profile`](../../src-tauri/src/commands/profile.rs) reserves the row, materialises `profiles/<id>/`, and runs the initial migration. The freshly-created profile is auto-activated.
+- **Delete** → Netflix-style "Manage" toggle (pencil ↔ check) in the top-left corner reveals a red trash badge on every non-active profile; tapping it opens a destructive confirmation view. Backend [`delete_profile`](../../src-tauri/src/commands/profile.rs) refuses the active profile and the last remaining profile. The guard is **atomic**: a single SQL statement (`DELETE FROM profile WHERE id = ? AND (SELECT COUNT(*) FROM profile) > 1`) couples the "must not be last" predicate with the mutation so two concurrent deletes can never empty the table. Disambiguation between "not found" and "last profile" is handled on the failure path. After the row is removed, `profiles/<id>/` is wiped from disk and `app.last_profile_id` is cleared if it pointed to the deleted profile.
 
 ### Export / import (`.waveflow` archive)
 
@@ -188,11 +210,45 @@ Opt-in scheduled mirror of the manual export so the user's playlists / likes / r
 - **Failure isolation:** per-profile errors are logged but don't abort the pass — one corrupt profile shouldn't block backups of the healthy ones.
 - **Commands** in [`commands/backup.rs`](../../src-tauri/src/commands/backup.rs): `get_backup_config`, `set_backup_config` (also signals the loop), `run_backup_now`. UI is [`BackupCard`](../../src/components/views/settings/BackupCard.tsx) in Settings → Stockage right after the manual export/import.
 
+## Settings categories
+
+[`SettingsView`](../../src/components/views/SettingsView.tsx) is split into seven Lokal-style horizontal tabs rendered as a proper ARIA `role="tablist"` at the top of the page (keyboard-navigable, `aria-selected` per panel):
+
+| Tab            | Houses                                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------------ |
+| `library`      | Library folders, scan-on-start, file watcher                                                           |
+| `playback`     | EQ, crossfade, ReplayGain, normalisation, WASAPI exclusive, mono                                       |
+| `integrations` | Last.fm, Discord RPC, Deezer enrichment, DLNA media server                                             |
+| `appearance`   | Theme, accent colour, language, zoom, immersive layout                                                 |
+| `data`         | Profile export / import, auto-backup, statistics export, offline                                       |
+| `shortcuts`    | Per-action keyboard rebinder ([`ShortcutsCard`](../../src/components/views/settings/ShortcutsCard.tsx)) |
+| `diagnostics`  | Log folder reveal, recent log tail, app info                                                           |
+
+Only one panel mounts at a time, so heavy sub-views (EQ visualiser, backup card, shortcuts editor) don't run their effects until the user opens that tab.
+
 ## Onboarding
 
-[`OnboardingModal`](../../src/components/common/OnboardingModal.tsx) prompts new profiles to point at a music folder. The decision is **latched once per profile** via `profile_setting['onboarding.dismissed']`, so the modal never reappears after a "configure later" choice — even if the library stays empty.
+[`OnboardingModal`](../../src/components/common/OnboardingModal.tsx) walks new profiles through a Lokal-style multi-step wizard. Steps in order:
 
-The modal only appears when the profile is fully resolved AND the library is empty AND the flag isn't set, preventing flashes during boot transitions.
+1. **welcome** — branding + privacy pitch.
+2. **language** — picker over [`SUPPORTED_LANGUAGES`](../../src/i18n/index.ts); persists immediately so the rest of the wizard renders in the chosen locale.
+3. **profile** *(conditional)* — name the auto-created "Default" profile in place via [`rename_profile`](../../src-tauri/src/commands/profile.rs). Safe against the active profile since only `app.db` is touched; the per-profile pool keeps its open handle. Skipping the rename (input unchanged) avoids the backend round-trip entirely. The step is **omitted entirely** when the active profile's name isn't the literal `"Default"` — i.e. profiles created through the New Profile modal already carry a user-supplied name, so the rename step would just ask the same question twice. `"Default"` is the hardcoded auto-bootstrap name from [`state.rs::create_default_profile`](../../src-tauri/src/state.rs) (not localised, so the comparison is reliable).
+4. **localOnly** — explainer that the library never leaves the device unless the user opts into Last.fm / Discord later.
+5. **folder** — calls [`pickFolder`](../../src/lib/tauri/dialog.ts) to select a music root and creates the first library entry.
+6. **lastfm** — optional Last.fm API key + secret pairing (skippable). Status lives in [`integration.rs`](../../src-tauri/src/commands/integration.rs).
+7. **scan** — kicks off the initial scan and surfaces progress.
+8. **done** — success state with a "Open the app" button.
+
+The modal is laid out as `flex flex-col max-h-[calc(100vh-2rem)]` with the progress bar pinned to the top (`shrink-0`), the step body in the middle (`overflow-y-auto flex-1 min-h-0`), and the action bar pinned to the bottom (`shrink-0`). Without those constraints the wizard's tallest steps (Last.fm with 4 inputs + button) push the header and footer off-screen on 1080p displays.
+
+The decision is **latched once per profile** via `profile_setting['onboarding.dismissed']`, so the wizard never reappears after a "configure later" / completed run — even if the library stays empty.
+
+The modal only opens when:
+
+- the profile is fully resolved (no boot-time flicker),
+- the [`LibraryContext`](../../src/contexts/LibraryContext.tsx) has refetched **for the new profile id** (`loadedProfileId === activeProfile.id`), so a switch from a populated profile to a brand-new empty one is detected with the new profile's data instead of the previous closure,
+- the library is empty,
+- `onboarding.dismissed` isn't set for this profile.
 
 ## Auto-updater
 

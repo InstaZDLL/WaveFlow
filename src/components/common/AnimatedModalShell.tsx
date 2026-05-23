@@ -39,7 +39,7 @@ export function AnimatedModalShell({
           onClick={onBackdropClick}
           className={
             backdropClassName ??
-            "fixed inset-0 z-100 bg-black/80 flex items-center justify-center p-4"
+            "fixed inset-0 z-100 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
           }
         >
           {children}

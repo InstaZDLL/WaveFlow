@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 
 /**
  * Modal accessibility helper. Wires up the three behaviours every
@@ -24,6 +24,15 @@ export function useModalA11y<T extends HTMLElement>(
 ) {
   const containerRef = useRef<T | null>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
+  // Latest-onClose ref so the effect below depends ONLY on `isOpen`.
+  // Callers typically pass an inline lambda (`onClose={() =>
+  // setOpen(false)}`), which would otherwise re-run the focus-trap
+  // setup on every parent re-render — yanking focus back to the first
+  // input mid-typing (the playlist edit modal symptom).
+  const onCloseRef = useRef(onClose);
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -43,7 +52,7 @@ export function useModalA11y<T extends HTMLElement>(
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== "Tab" || !containerRef.current) return;
@@ -75,7 +84,7 @@ export function useModalA11y<T extends HTMLElement>(
       const prev = lastFocusedRef.current;
       if (prev && document.contains(prev)) prev.focus();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   return containerRef;
 }

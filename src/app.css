@@ -230,9 +230,10 @@
  * Many components rely on Tailwind's `focus-visible:ring-*` per-button,
  * but plenty of icon buttons forgot it. `:where()` keeps specificity at
  * zero so any inline `focus-visible:ring-*` (or `focus:outline-none`)
- * still wins — this is a baseline, not an override. The colour matches
- * the app's emerald accent so the indicator harmonises with the rest
- * of the focus / hover states. */
+ * still wins — this is a baseline, not an override. The colour reads
+ * from the active theme's accent so the indicator harmonises with the
+ * rest of the focus / hover states (was hardcoded `#10b981` which left
+ * non-emerald presets with a mismatched green ring). */
 :where(
   button,
   a,
@@ -243,7 +244,7 @@
   [role="option"],
   [tabindex]
 ):focus-visible {
-  outline: 2px solid #10b981;
+  outline: 2px solid var(--accent-500);
   outline-offset: 2px;
   border-radius: 4px;
 }
