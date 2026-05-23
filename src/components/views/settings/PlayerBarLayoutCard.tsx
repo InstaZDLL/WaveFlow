@@ -23,7 +23,7 @@ import {
 import { setProfileSetting } from "../../../lib/tauri/profile";
 
 /**
- * Unified Settings → Apparence section that replaces the per-feature
+ * Unified Settings → Appearance section that replaces the per-feature
  * pin toggles (sleep timer, A-B loop, audio quality footer) with a
  * single panel covering every player-bar button + the cover-click
  * action selector. Order is fixed (matches `PlayerBar.tsx` render
@@ -49,21 +49,17 @@ export function PlayerBarLayoutCard() {
   // resolves.
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
-  const writeBool = useCallback(
-    async (key: string, value: boolean, optimistic?: () => void) => {
-      setBusyKey(key);
-      optimistic?.();
-      try {
-        await setProfileSetting(key, value ? "true" : "false", "bool");
-        window.dispatchEvent(new CustomEvent(PLAYER_BAR_LAYOUT_EVENT));
-      } catch (err) {
-        console.error(`[PlayerBarLayoutCard] set ${key} failed`, err);
-      } finally {
-        setBusyKey(null);
-      }
-    },
-    [],
-  );
+  const writeBool = useCallback(async (key: string, value: boolean) => {
+    setBusyKey(key);
+    try {
+      await setProfileSetting(key, value ? "true" : "false", "bool");
+      window.dispatchEvent(new CustomEvent(PLAYER_BAR_LAYOUT_EVENT));
+    } catch (err) {
+      console.error(`[PlayerBarLayoutCard] set ${key} failed`, err);
+    } finally {
+      setBusyKey(null);
+    }
+  }, []);
 
   const writeCoverAction = useCallback(async (value: CoverAction) => {
     setBusyKey(COVER_ACTION_KEY);

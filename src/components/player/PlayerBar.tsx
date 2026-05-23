@@ -54,7 +54,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   // the primary cluster, which fall through to the "⋯" overflow,
   // and what clicking the small cover thumbnail does. Defaults
   // match the historical hard-coded behaviour so the upgrade is
-  // invisible until the user visits Settings → Apparence.
+  // invisible until the user visits Settings → Appearance.
   const layout = usePlayerBarLayout();
 
   // Subscribe to the backend's track-ended event so the sleep timer
@@ -288,7 +288,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
             {/* Spotify-style right cluster: mini-player + immersive
               full-screen as primary icon buttons after volume. Both
-              are now opt-out via Settings → Apparence → Player bar
+              are now opt-out via Settings → Appearance → Player bar
               layout. Mini-player stays unavailable in Spotify mode
               (Web Playback SDK can't drive a second webview). */}
             {layout.showMiniPlayer && !isSpotify && (
