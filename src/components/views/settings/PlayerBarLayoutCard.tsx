@@ -23,7 +23,7 @@ import {
 import { setProfileSetting } from "../../../lib/tauri/profile";
 
 /**
- * Unified Settings → Appearance section that replaces the per-feature
+ * Unified Settings → Playback section that replaces the per-feature
  * pin toggles (sleep timer, A-B loop, audio quality footer) with a
  * single panel covering every player-bar button + the cover-click
  * action selector. Order is fixed (matches `PlayerBar.tsx` render

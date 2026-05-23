@@ -1608,16 +1608,6 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               />
             </div>
 
-            {/* Player-bar layout — unified panel that replaced the
-                per-feature pin toggles (sleep timer, A-B loop, audio
-                quality footer). Covers every player-bar button plus
-                the cover-thumbnail click action. The component
-                manages its own writes through `setProfileSetting`
-                and dispatches the unified
-                `waveflow:playerbar-layout-changed` event so the
-                PlayerBar re-reads without polling. */}
-            <PlayerBarLayoutCard />
-
             {/* Visibilité de l'entrée Spotify dans la sidebar */}
             <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
               <div className="flex items-center space-x-4">
@@ -1844,6 +1834,20 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             {/* WASAPI Exclusive Mode — Windows-only, the card hides
               itself on other platforms via UA sniff. */}
             <ExclusiveModeCard />
+
+            {/* Player-bar layout — unified panel that replaced the
+                per-feature pin toggles (sleep timer, A-B loop, audio
+                quality footer). Lives under Playback alongside the
+                equalizer / exclusive-mode / mono cards since every
+                control it exposes is about playback ergonomics
+                rather than visual theming. The component manages
+                its own writes through `setProfileSetting` and
+                dispatches the unified `waveflow:playerbar-layout-
+                changed` event so the PlayerBar re-reads without
+                polling. */}
+            <div className="px-4">
+              <PlayerBarLayoutCard />
+            </div>
 
             {/* Audio mono */}
             <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
