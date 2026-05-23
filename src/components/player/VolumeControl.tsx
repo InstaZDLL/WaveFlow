@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useRef,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
@@ -7,10 +8,32 @@ import { useTranslation } from "react-i18next";
 import { Volume1, Volume2, VolumeX } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 
+/** Scroll-wheel step in percent, matched to the keyboard arrow step
+ *  below so wheel + keyboard feel identical. */
+const WHEEL_STEP = 5;
+
 export function VolumeControl() {
   const { t } = useTranslation();
   const { volume, setVolume, toggleMute } = usePlayer();
   const trackRef = useRef<HTMLDivElement>(null);
+  const wheelHostRef = useRef<HTMLDivElement>(null);
+
+  // Scroll-wheel volume control. React 17+ attaches `wheel` listeners
+  // as passive at the root, so an `onWheel={...}` JSX handler can't
+  // `preventDefault` to suppress the page scroll behind the player
+  // bar. Bind directly with `{ passive: false }` instead.
+  useEffect(() => {
+    const el = wheelHostRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      // Negative deltaY = wheel up = volume up. The `setVolume`
+      // setter in `PlayerContext` clamps to [0, 100].
+      setVolume(volume + (e.deltaY < 0 ? WHEEL_STEP : -WHEEL_STEP));
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, [volume, setVolume]);
 
   const updateFromClientX = (clientX: number) => {
     const track = trackRef.current;
@@ -70,7 +93,7 @@ export function VolumeControl() {
 
   return (
     <>
-      <div className="flex items-center space-x-2 w-32">
+      <div ref={wheelHostRef} className="flex items-center space-x-2 w-32">
         <button
           type="button"
           onClick={toggleMute}
