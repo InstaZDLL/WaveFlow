@@ -122,6 +122,8 @@ Right side of [`PlayerBar`](../../src/components/player/PlayerBar.tsx) is the hi
 
 When adding a new player-bar action: default it into the overflow menu first — promote to primary only when usage data or user feedback warrants it. If both placements make sense, expose a pin toggle. The "⋯" trigger auto-hides when its menu would be empty.
 
+**Volume control** ([`VolumeControl`](../../src/components/player/VolumeControl.tsx)) supports three input modalities: pointer drag on the track, keyboard arrows / Home / End when the slider has focus (5 % step, 0 / 100 jumps), and **mouse-wheel scroll** anywhere over the icon + track area (5 % step, wheel up raises). The wheel handler is bound through `addEventListener('wheel', ..., { passive: false })` so it can `preventDefault` the underlying page scroll — React 17+'s JSX `onWheel` is passive and would let the track list behind the player bar scroll at the same time. Horizontal-only scrolls (`deltaY === 0`, e.g. trackpad sideways swipes) are ignored so they don't get treated as a volume-down tick.
+
 **Playback speed** lives inside [`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx) (range slider + five presets) rather than a dedicated bar button — it's used too rarely to deserve a permanent slot. When speed ≠ 1×, the "⋯" trigger surfaces a compact `1.25×` badge in emerald (same corner as the sleep-timer countdown — the countdown wins when both are active). See [playback / Playback speed](playback.md#playback-speed-05--2) for the backend side.
 
 ### Pin toggles
