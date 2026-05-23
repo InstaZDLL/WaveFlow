@@ -557,6 +557,8 @@ pub fn run() {
             commands::preferences::set_auto_start,
             commands::preferences::get_ui_zoom,
             commands::preferences::set_ui_zoom,
+            commands::preferences::get_mini_player_bounds,
+            commands::preferences::set_mini_player_bounds,
             commands::tray::set_tray_labels,
             commands::lyrics::get_lyrics,
             commands::lyrics::fetch_lyrics,
