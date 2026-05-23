@@ -992,7 +992,12 @@
     "openFullscreen": "Vue immersive",
     "devices": "Périphériques de sortie",
     "moreActions": "Plus d'actions",
-    "abLoop": "Boucle A-B"
+    "abLoop": "Boucle A-B",
+    "eqPreset": "Égaliseur",
+    "eq": {
+      "bypass": "Activer l'EQ"
+    },
+    "toggleNowPlayingPanel": "Afficher / masquer Lecture en cours"
   },
   "miniPlayer": {
     "idle": "Aucun titre en cours",
@@ -1492,6 +1497,38 @@
     "showAudioQualityFooter": {
       "title": "Afficher la qualité audio sous la barre",
       "subtitle": "Détails techniques (kHz, kb/s, codec, profondeur) sous la player bar. Désactivé par défaut pour une barre plus fine."
+    },
+    "playerBarLayout": {
+      "title": "Disposition de la barre de lecture",
+      "subtitle": "Choisissez quels boutons apparaissent dans la barre et ce que fait un clic sur la pochette. L'aperçu se met à jour en direct.",
+      "preview": "Aperçu",
+      "previewEmpty": "Aucun bouton — la barre n'affichera que la pochette et les contrôles de lecture.",
+      "buttons": {
+        "abLoop": "Boucle A-B",
+        "sleepTimer": "Minuteur de sommeil",
+        "eqPreset": "Égaliseur (presets)",
+        "lyrics": "Paroles",
+        "queue": "File d'attente",
+        "device": "Sortie audio",
+        "miniPlayer": "Mini-lecteur",
+        "immersive": "Mode immersif",
+        "audioQualityFooter": "Bandeau qualité audio"
+      },
+      "coverAction": {
+        "title": "Au clic sur la pochette",
+        "immersive": {
+          "label": "Ouvrir le mode immersif",
+          "description": "Comportement par défaut — ouvre la vue plein écran avec la pochette agrandie."
+        },
+        "nowPlaying": {
+          "label": "Afficher le panneau Lecture en cours",
+          "description": "Style Spotify — affiche ou masque le panneau latéral droit avec la pochette et les paroles."
+        },
+        "none": {
+          "label": "Ne rien faire",
+          "description": "Désactive complètement le clic — utile si vous le déclenchez par mégarde."
+        }
+      }
     }
   },
   "spotify": {

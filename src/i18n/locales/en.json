@@ -992,7 +992,12 @@
     "openFullscreen": "Immersive view",
     "devices": "Output devices",
     "moreActions": "More actions",
-    "abLoop": "A-B loop"
+    "abLoop": "A-B loop",
+    "eqPreset": "Equaliser",
+    "eq": {
+      "bypass": "Enable EQ"
+    },
+    "toggleNowPlayingPanel": "Show / hide Now Playing"
   },
   "miniPlayer": {
     "idle": "No track playing",
@@ -1491,6 +1496,38 @@
       "placeholder": {
         "title": "Theme picker ships in v1.3",
         "subtitle": "10 presets (Emerald, Midnight, OLED, Forest, Sunset…) that retint the entire app instantly. Stay tuned."
+      }
+    },
+    "playerBarLayout": {
+      "title": "Player bar layout",
+      "subtitle": "Choose which buttons appear in the bar and what clicking the cover thumbnail does. The preview updates live.",
+      "preview": "Preview",
+      "previewEmpty": "No buttons — the bar will only show the cover and the playback controls.",
+      "buttons": {
+        "abLoop": "A-B loop",
+        "sleepTimer": "Sleep timer",
+        "eqPreset": "Equaliser (presets)",
+        "lyrics": "Lyrics",
+        "queue": "Queue",
+        "device": "Audio output",
+        "miniPlayer": "Mini-player",
+        "immersive": "Immersive view",
+        "audioQualityFooter": "Audio quality strip"
+      },
+      "coverAction": {
+        "title": "When the cover is clicked",
+        "immersive": {
+          "label": "Open the immersive view",
+          "description": "Default — opens the full-screen Now Playing card with the cover blown up."
+        },
+        "nowPlaying": {
+          "label": "Show the Now Playing panel",
+          "description": "Spotify-style — opens or closes the right-edge panel with the cover and lyrics."
+        },
+        "none": {
+          "label": "Do nothing",
+          "description": "Disable the click entirely — handy if you keep triggering it by accident."
+        }
       }
     }
   },

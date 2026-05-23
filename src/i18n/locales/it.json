@@ -992,7 +992,12 @@
     "openFullscreen": "Vista immersiva",
     "devices": "Dispositivi di uscita",
     "moreActions": "Altre azioni",
-    "abLoop": "Loop A-B"
+    "abLoop": "Loop A-B",
+    "eqPreset": "Equalizzatore",
+    "eq": {
+      "bypass": "Attiva EQ"
+    },
+    "toggleNowPlayingPanel": "Mostra / nascondi In riproduzione"
   },
   "miniPlayer": {
     "idle": "Nessun brano in riproduzione",
@@ -1491,6 +1496,38 @@
       "placeholder": {
         "title": "Il selettore dei temi arriva in v1.3",
         "subtitle": "10 preset (Emerald, Midnight, OLED, Forest, Sunset…) che ricolorano subito l'intera app. Resta sintonizzato."
+      }
+    },
+    "playerBarLayout": {
+      "title": "Disposizione della barra di riproduzione",
+      "subtitle": "Scegli quali pulsanti compaiono nella barra e cosa fa il clic sulla copertina. L'anteprima si aggiorna in tempo reale.",
+      "preview": "Anteprima",
+      "previewEmpty": "Nessun pulsante — la barra mostrerà solo la copertina e i controlli di riproduzione.",
+      "buttons": {
+        "abLoop": "Loop A-B",
+        "sleepTimer": "Timer di spegnimento",
+        "eqPreset": "Equalizzatore (preset)",
+        "lyrics": "Testi",
+        "queue": "Coda",
+        "device": "Uscita audio",
+        "miniPlayer": "Mini-player",
+        "immersive": "Vista immersiva",
+        "audioQualityFooter": "Striscia qualità audio"
+      },
+      "coverAction": {
+        "title": "Al clic sulla copertina",
+        "immersive": {
+          "label": "Apri la vista immersiva",
+          "description": "Predefinito — apre la schermata intera con la copertina ingrandita."
+        },
+        "nowPlaying": {
+          "label": "Mostra il pannello In riproduzione",
+          "description": "Stile Spotify — mostra o nasconde il pannello laterale destro con copertina e testi."
+        },
+        "none": {
+          "label": "Non fare nulla",
+          "description": "Disattiva il clic — utile se lo attivi per sbaglio."
+        }
       }
     }
   },

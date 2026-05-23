@@ -992,7 +992,12 @@
     "openFullscreen": "몰입 모드",
     "devices": "출력 장치",
     "moreActions": "추가 작업",
-    "abLoop": "A-B 루프"
+    "abLoop": "A-B 루프",
+    "eqPreset": "이퀄라이저",
+    "eq": {
+      "bypass": "EQ 사용"
+    },
+    "toggleNowPlayingPanel": "재생 중 패널 표시 / 숨기기"
   },
   "miniPlayer": {
     "idle": "재생 중인 트랙 없음",
@@ -1491,6 +1496,38 @@
       "placeholder": {
         "title": "테마 선택기는 v1.3에 도착합니다",
         "subtitle": "10개의 프리셋 (에메랄드, 미드나잇, OLED, 포레스트, 선셋…)이 앱 전체를 즉시 다시 칠합니다."
+      }
+    },
+    "playerBarLayout": {
+      "title": "재생 막대 레이아웃",
+      "subtitle": "막대에 어떤 버튼을 표시할지, 커버를 클릭했을 때의 동작을 고르세요. 미리 보기는 실시간으로 갱신됩니다.",
+      "preview": "미리 보기",
+      "previewEmpty": "버튼 없음 — 막대에는 커버와 재생 컨트롤만 나타납니다.",
+      "buttons": {
+        "abLoop": "A-B 반복",
+        "sleepTimer": "수면 타이머",
+        "eqPreset": "이퀄라이저 (프리셋)",
+        "lyrics": "가사",
+        "queue": "대기열",
+        "device": "오디오 출력",
+        "miniPlayer": "미니 플레이어",
+        "immersive": "몰입형 보기",
+        "audioQualityFooter": "오디오 품질 표시줄"
+      },
+      "coverAction": {
+        "title": "커버를 클릭했을 때",
+        "immersive": {
+          "label": "몰입형 보기 열기",
+          "description": "기본값 — 커버를 크게 보여 주는 전체 화면 재생 중 화면을 엽니다."
+        },
+        "nowPlaying": {
+          "label": "재생 중 패널 표시",
+          "description": "Spotify 스타일 — 커버와 가사가 있는 오른쪽 패널을 열거나 닫습니다."
+        },
+        "none": {
+          "label": "아무것도 하지 않기",
+          "description": "클릭을 완전히 비활성화 — 실수로 자주 누른다면 유용합니다."
+        }
       }
     }
   },

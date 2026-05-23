@@ -999,7 +999,12 @@
     "devices": "输出设备",
     "moreActions": "更多操作",
     "abLoop": "A-B 循环",
-    "openFullscreen": "沉浸式视图"
+    "openFullscreen": "沉浸式视图",
+    "eqPreset": "均衡器",
+    "eq": {
+      "bypass": "启用均衡器"
+    },
+    "toggleNowPlayingPanel": "显示 / 隐藏正在播放"
   },
   "miniPlayer": {
     "idle": "未播放任何曲目",
@@ -1499,6 +1504,38 @@
     "showSpotify": {
       "title": "显示 Spotify 入口",
       "subtitle": "在侧边栏显示 Spotify 快捷方式"
+    },
+    "playerBarLayout": {
+      "title": "播放栏布局",
+      "subtitle": "选择播放栏中显示哪些按钮，以及点击封面后的行为。预览会实时更新。",
+      "preview": "预览",
+      "previewEmpty": "无按钮 — 播放栏只显示封面和播放控件。",
+      "buttons": {
+        "abLoop": "A-B 循环",
+        "sleepTimer": "睡眠定时",
+        "eqPreset": "均衡器（预设）",
+        "lyrics": "歌词",
+        "queue": "队列",
+        "device": "音频输出",
+        "miniPlayer": "迷你播放器",
+        "immersive": "沉浸视图",
+        "audioQualityFooter": "音质信息条"
+      },
+      "coverAction": {
+        "title": "点击封面时",
+        "immersive": {
+          "label": "打开沉浸视图",
+          "description": "默认 — 打开全屏的正在播放界面，封面会放大显示。"
+        },
+        "nowPlaying": {
+          "label": "显示正在播放面板",
+          "description": "Spotify 风格 — 显示或隐藏右侧带封面和歌词的面板。"
+        },
+        "none": {
+          "label": "不执行任何操作",
+          "description": "完全禁用点击 — 适合误触较多的用户。"
+        }
+      }
     }
   },
   "scanProgress": {
