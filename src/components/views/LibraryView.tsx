@@ -1985,7 +1985,12 @@ function ArtistList({
             <FadeInImage
               src={artistPictureSrc}
               alt={artist.name}
-              wrapperClassName="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 border border-violet-200/60 dark:border-violet-800/40 shadow-sm group-hover:shadow-md transition-shadow"
+              // No violet border here on purpose — `rounded-full` + a
+              // 1 px violet border draws around the image clip, which
+              // reads as a visible halo on dark portraits (#106).
+              // The placeholder bg gradient is fine because `object-cover`
+              // fully covers it once the image decodes.
+              wrapperClassName="w-full aspect-square rounded-full bg-linear-to-br from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-800/30 shadow-sm group-hover:shadow-md transition-shadow"
               placeholder={
                 <span className="text-5xl font-bold text-violet-500/70 dark:text-violet-400/60">
                   {artist.name.trim().charAt(0).toUpperCase() || "?"}
