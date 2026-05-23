@@ -99,13 +99,14 @@ PNG sources live in [`assets/discord/png/`](../../assets/discord/png/), generate
 
 ## LRCLIB (synchronized lyrics)
 
-[`lrclib.rs`](../../src-tauri/src/lrclib.rs) — public lookup by `artist_name + track_name + album_name + duration` against [LRCLIB](https://lrclib.net). Three-tier resolution in [`commands/lyrics.rs`](../../src-tauri/src/commands/lyrics.rs), driven on demand by `fetch_lyrics`:
+[`lrclib.rs`](../../src-tauri/src/lrclib.rs) — public lookup by `artist_name + track_name + album_name + duration` against [LRCLIB](https://lrclib.net). Four-tier resolution in [`commands/lyrics.rs`](../../src-tauri/src/commands/lyrics.rs), driven on demand by `fetch_lyrics` (the library-wide `prefetch_library_lyrics` walks the same waterfall):
 
 1. **Cache** — `app.lyrics` row keyed by `track.file_hash` (BLAKE3). No TTL, shared across profiles.
 2. **Embedded** — `LYRICS` / `USLT` / `©lyr` tag in the file (lofty), incl. synced `LRC` blocks. Lookup tries `ItemKey::UnsyncLyrics` first (the only key that maps to ID3v2's `USLT` in lofty 0.24), then `ItemKey::Lyrics` for Vorbis / MP4. For MP3s tagged with Mp3tag / foobar2000 / lame `--tg`, lyrics often live in a TXXX user-defined frame named `LYRICS` or `UNSYNCEDLYRICS` (common on K-Pop / J-Pop rips); these are invisible to the generic `Tag` interface so [`commands/lyrics.rs::read_id3v2_txxx_lyrics`](../../src-tauri/src/commands/lyrics.rs) re-opens the file as `MpegFile`, downcasts to `Id3v2Tag`, and scans the TXXX descriptions explicitly.
-3. **LRCLIB** — synced lyrics first, falls back to plain text. Result cached as a new row.
+3. **Sidecar file** — `{stem}.lrc` / `{stem}.txt` next to the audio file (e.g. `01 Song.mp3` + `01 Song.lrc`), or inside a sibling `Lyrics/` folder (case-insensitive, so `lyrics/` is also matched — common Linux convention). Stem matching is also case-insensitive so `Song.MP3` finds `song.lrc` on case-sensitive filesystems. `.lrc` wins over `.txt` at every probed directory because it carries timing info; same-folder hits beat `Lyrics/` hits. Format is auto-detected via `detect_format` and the row is cached with `source = lrc_file`. Whitespace-only files are treated as misses so the waterfall keeps falling through. `save_lyrics` still writes back only to the embedded tag — the sidecar file remains read-only — so a user who edits via the in-app editor sees the new content immediately (from the freshly-hashed cache row), and the old sidecar copy is silently superseded by the new embedded tag on subsequent re-hashes.
+4. **LRCLIB** — synced lyrics first, falls back to plain text. Result cached as a new row.
 
-In addition, `import_lrc_file` lets the user pick a `.lrc` file by hand and overwrite the cached entry — there is no automatic sidecar pickup.
+`import_lrc_file` is still available for the explicit "pick this file" flow (e.g. when the sidecar lives in a non-conventional location like `~/Documents/lyrics/`); it overwrites the cached row regardless of which tier filled it.
 
 **In-app editor.** `save_lyrics(track_id, { content, format, write_to_file })` upserts the cache row with `source = manual` and, when `write_to_file` is true, also writes the content into the file's `USLT` (ID3v2) / `UNSYNCEDLYRICS` (Vorbis) / `©lyr` (MP4) frame via lofty. Same Windows file-lock dance as the tag editor — pause if the engine has the file open, then re-hash with blake3 and update `track.file_hash` so the cache row stays addressable after the write. Emits a typed `lyrics:updated` event the panel listens to.
 
