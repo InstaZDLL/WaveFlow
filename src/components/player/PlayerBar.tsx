@@ -230,6 +230,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
             {layout.showQueue && (
               <button
+                type="button"
                 onClick={toggleQueue}
                 aria-label={t("playerBar.queue")}
                 title={t("playerBar.queue")}
