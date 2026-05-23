@@ -164,7 +164,22 @@ const FUCHSIA = {
   950: "oklch(0.293 0.136 325.661)",
 };
 
+/**
+ * Theme catalog organised in two visual rows for the Settings picker:
+ *   Row 1 (light, 6) — Emerald · Midnight · Sunset · Lavender · Crimson · Ocean
+ *   Row 2 (dark,  8) — Emerald · OLED · Midnight · Sunset · Lavender · Crimson · Ocean · Neon
+ *
+ * Light variants pair the same accent family with a very pale ambient
+ * tint of the matching hue so the entire app picks up the personality
+ * without sacrificing readability.
+ *
+ * `forest` was removed (its emerald accent + dark-green ambient was too
+ * close to `default-dark` to justify a slot in the grid).
+ * `neon` stays dark-only — a fluorescent fuchsia on a pale ambient
+ * doesn't read as a coherent design choice.
+ */
 export const THEME_PRESETS: ThemePreset[] = [
+  // ── Light row ────────────────────────────────────────────────────
   {
     id: "default",
     labelKey: "settings.appearance.themes.default",
@@ -172,6 +187,42 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: EMERALD,
     ambient: null,
   },
+  {
+    id: "midnight-light",
+    labelKey: "settings.appearance.themes.midnightLight",
+    mode: "light",
+    accent: INDIGO,
+    ambient: "#f4f6ff",
+  },
+  {
+    id: "sunset-light",
+    labelKey: "settings.appearance.themes.sunsetLight",
+    mode: "light",
+    accent: AMBER,
+    ambient: "#fff7ed",
+  },
+  {
+    id: "lavender-light",
+    labelKey: "settings.appearance.themes.lavenderLight",
+    mode: "light",
+    accent: VIOLET,
+    ambient: "#faf5ff",
+  },
+  {
+    id: "crimson-light",
+    labelKey: "settings.appearance.themes.crimsonLight",
+    mode: "light",
+    accent: ROSE,
+    ambient: "#fff1f2",
+  },
+  {
+    id: "ocean-light",
+    labelKey: "settings.appearance.themes.oceanLight",
+    mode: "light",
+    accent: SKY,
+    ambient: "#eff6ff",
+  },
+  // ── Dark row ─────────────────────────────────────────────────────
   {
     id: "default-dark",
     labelKey: "settings.appearance.themes.defaultDark",
@@ -198,15 +249,6 @@ export const THEME_PRESETS: ThemePreset[] = [
     ambient: "#0b1020",
     surfaceDark: "#0b1020",
     surfaceDarkElevated: "#141a2e",
-  },
-  {
-    id: "forest",
-    labelKey: "settings.appearance.themes.forest",
-    mode: "dark",
-    accent: EMERALD,
-    ambient: "#0c1612",
-    surfaceDark: "#0c1612",
-    surfaceDarkElevated: "#13201b",
   },
   {
     id: "sunset",

@@ -1506,12 +1506,16 @@
         "defaultDark": "에메랄드",
         "oled": "OLED",
         "midnight": "미드나잇",
-        "forest": "포레스트",
         "sunset": "선셋",
         "lavender": "라벤더",
         "crimson": "크림슨",
         "ocean": "오션",
-        "neon": "네온"
+        "neon": "네온",
+        "midnightLight": "미드나잇 라이트",
+        "sunsetLight": "선셋 라이트",
+        "lavenderLight": "라벤더 라이트",
+        "crimsonLight": "크림슨 라이트",
+        "oceanLight": "오션 라이트"
       }
     },
     "playerBarLayout": {

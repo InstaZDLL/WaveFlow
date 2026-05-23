@@ -1506,12 +1506,16 @@
         "defaultDark": "Smeraldo",
         "oled": "OLED",
         "midnight": "Mezzanotte",
-        "forest": "Foresta",
         "sunset": "Tramonto",
         "lavender": "Lavanda",
         "crimson": "Cremisi",
         "ocean": "Oceano",
-        "neon": "Neon"
+        "neon": "Neon",
+        "midnightLight": "Mezzanotte Chiaro",
+        "sunsetLight": "Tramonto Chiaro",
+        "lavenderLight": "Lavanda Chiaro",
+        "crimsonLight": "Cremisi Chiaro",
+        "oceanLight": "Oceano Chiaro"
       }
     },
     "playerBarLayout": {

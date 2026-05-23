@@ -1506,12 +1506,16 @@
         "defaultDark": "Emerald",
         "oled": "OLED",
         "midnight": "Midnight",
-        "forest": "Forest",
         "sunset": "Sunset",
         "lavender": "Lavender",
         "crimson": "Crimson",
         "ocean": "Ocean",
-        "neon": "Neon"
+        "neon": "Neon",
+        "midnightLight": "Midnight Light",
+        "sunsetLight": "Sunset Light",
+        "lavenderLight": "Lavender Light",
+        "crimsonLight": "Crimson Light",
+        "oceanLight": "Ocean Light"
       }
     },
     "playerBarLayout": {

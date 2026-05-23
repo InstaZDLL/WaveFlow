@@ -14,8 +14,9 @@
       the dark class + ambient color need to be right on the first paint;
       the full accent palette is hydrated by `ThemeProvider`'s effect a
       few ms later, which is invisible against an already-correct bg.
-      Mirrors `themes.ts` — only `default` is light, every other preset
-      (including the default `default-dark`) is dark.
+      Mirrors `themes.ts` — `LIGHT_IDS` lists every light preset (6),
+      everything else is dark (8). Keep the two tables in sync if a
+      preset is added / removed.
     -->
     <script>
       (function () {
@@ -25,12 +26,24 @@
             (localStorage.getItem("waveflow.theme.is_dark") === "false"
               ? "default"
               : "default-dark");
+          var LIGHT_IDS = {
+            "default": 1,
+            "midnight-light": 1,
+            "sunset-light": 1,
+            "lavender-light": 1,
+            "crimson-light": 1,
+            "ocean-light": 1,
+          };
           var ambient = {
             "default": "#ffffff",
+            "midnight-light": "#f4f6ff",
+            "sunset-light": "#fff7ed",
+            "lavender-light": "#faf5ff",
+            "crimson-light": "#fff1f2",
+            "ocean-light": "#eff6ff",
             "default-dark": "#121212",
             "oled": "#000000",
             "midnight": "#0b1020",
-            "forest": "#0c1612",
             "sunset": "#1a0e08",
             "lavender": "#15101e",
             "crimson": "#19090c",
@@ -40,7 +53,7 @@
           var root = document.documentElement;
           root.setAttribute("data-theme", id);
           root.style.setProperty("--ambient-bg", ambient);
-          if (id !== "default") root.classList.add("dark");
+          if (!LIGHT_IDS[id]) root.classList.add("dark");
         } catch (_) {
           // localStorage unavailable — fall through to :root defaults.
         }

@@ -1453,12 +1453,16 @@
         "defaultDark": "エメラルド",
         "oled": "OLED",
         "midnight": "ミッドナイト",
-        "forest": "フォレスト",
         "sunset": "サンセット",
         "lavender": "ラベンダー",
         "crimson": "クリムゾン",
         "ocean": "オーシャン",
-        "neon": "ネオン"
+        "neon": "ネオン",
+        "midnightLight": "ミッドナイト ライト",
+        "sunsetLight": "サンセット ライト",
+        "lavenderLight": "ラベンダー ライト",
+        "crimsonLight": "クリムゾン ライト",
+        "oceanLight": "オーシャン ライト"
       }
     },
     "shortcuts": {

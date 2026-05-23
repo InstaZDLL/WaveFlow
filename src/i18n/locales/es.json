@@ -1506,12 +1506,16 @@
         "defaultDark": "Esmeralda",
         "oled": "OLED",
         "midnight": "Medianoche",
-        "forest": "Bosque",
         "sunset": "Atardecer",
         "lavender": "Lavanda",
         "crimson": "Carmesí",
         "ocean": "Océano",
-        "neon": "Neón"
+        "neon": "Neón",
+        "midnightLight": "Medianoche Claro",
+        "sunsetLight": "Atardecer Claro",
+        "lavenderLight": "Lavanda Claro",
+        "crimsonLight": "Carmesí Claro",
+        "oceanLight": "Océano Claro"
       }
     },
     "playerBarLayout": {

@@ -1506,12 +1506,16 @@
         "defaultDark": "Smaragd",
         "oled": "OLED",
         "midnight": "Mitternacht",
-        "forest": "Wald",
         "sunset": "Sonnenuntergang",
         "lavender": "Lavendel",
         "crimson": "Karmesin",
         "ocean": "Ozean",
-        "neon": "Neon"
+        "neon": "Neon",
+        "midnightLight": "Mitternacht Hell",
+        "sunsetLight": "Sonnenuntergang Hell",
+        "lavenderLight": "Lavendel Hell",
+        "crimsonLight": "Karmesinrot Hell",
+        "oceanLight": "Ozean Hell"
       }
     },
     "playerBarLayout": {

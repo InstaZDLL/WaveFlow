@@ -1510,12 +1510,16 @@
         "defaultDark": "زمرد",
         "oled": "OLED",
         "midnight": "منتصف الليل",
-        "forest": "غابة",
         "sunset": "غروب الشمس",
         "lavender": "خزامى",
         "crimson": "قرمزي",
         "ocean": "محيط",
-        "neon": "نيون"
+        "neon": "نيون",
+        "midnightLight": "منتصف الليل فاتح",
+        "sunsetLight": "غروب الشمس فاتح",
+        "lavenderLight": "خزامى فاتح",
+        "crimsonLight": "قرمزي فاتح",
+        "oceanLight": "محيط فاتح"
       }
     },
     "playerBarLayout": {

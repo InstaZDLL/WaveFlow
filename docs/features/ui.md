@@ -219,12 +219,29 @@ Opt-in scheduled mirror of the manual export so the user's playlists / likes / r
 | `library`      | Library folders, scan-on-start, file watcher                                                           |
 | `playback`     | EQ, crossfade, ReplayGain, normalisation, WASAPI exclusive, mono                                       |
 | `integrations` | Last.fm, Discord RPC, Deezer enrichment, DLNA media server                                             |
-| `appearance`   | Theme, accent colour, language, zoom, immersive layout                                                 |
+| `appearance`   | Theme picker (14 presets) + player-bar layout                                                          |
 | `data`         | Profile export / import, auto-backup, statistics export, offline                                       |
 | `shortcuts`    | Per-action keyboard rebinder ([`ShortcutsCard`](../../src/components/views/settings/ShortcutsCard.tsx)) |
 | `diagnostics`  | Log folder reveal, recent log tail, app info                                                           |
 
 Only one panel mounts at a time, so heavy sub-views (EQ visualiser, backup card, shortcuts editor) don't run their effects until the user opens that tab.
+
+## Theme system
+
+[`THEME_PRESETS`](../../src/lib/themes.ts) ships 14 presets split into two visual rows:
+
+| Row   | Presets                                                                                 |
+| ----- | --------------------------------------------------------------------------------------- |
+| Light | Émeraude · Midnight · Sunset · Lavender · Crimson · Ocean                               |
+| Dark  | Émeraude · OLED · Midnight · Sunset · Lavender · Crimson · Ocean · Neon                 |
+
+Each preset declares a 50→950 OKLCH accent palette + a `mode` (`light` / `dark`) + an `ambient` body color + optional `surfaceDark` / `surfaceDarkElevated` overrides. `applyTheme` writes `--accent-50..950`, `--ambient-bg`, `--color-surface-dark`, `--color-surface-dark-elevated` on `<html>`, and Tailwind v4's `@theme inline` block in [`app.css`](../../src/app.css) remaps every `bg-emerald-*` / `text-emerald-*` utility + the `bg-surface-dark*` utilities to those vars — so a swap re-tints the entire app without touching a single component.
+
+The `surfaceDark` family is **non-optional in practice** for any themed dark preset: leaving it on the default `#121212` produces a flat charcoal sidebar against a violet / amber / rose body (the bug fixed when these tokens went theme-aware). Each themed dark preset sets `surfaceDark = ambient` and `surfaceDarkElevated ≈ ambient + small lightening step` so sidebar / right panels / player bar all carry the theme tint while elevated cards still read above the body.
+
+A small inline script in [`index.html`](../../index.html) runs **before React mounts** to paint the right `dark` class + `data-theme` + `--ambient-bg` from the stored preset id, so a fresh boot doesn't flash white when the default theme is dark. The script keeps a `LIGHT_IDS` lookup mirroring `themes.ts` — both tables must stay in sync if a preset is added or removed.
+
+Switching uses [View Transitions API](https://developer.mozilla.org/en-US/docs/Web/API/View_Transitions_API): a radial reveal from the click point on supported browsers, a plain crossfade on the rest. [`setThemeId`](../../src/contexts/ThemeContext.tsx) wraps `document.startViewTransition` in try/catch because some WebKitGTK builds throw synchronously — the fallback calls `setTheme(next)` directly so the persisted id never desyncs from the applied palette. The persisted id lives in `localStorage['waveflow.theme.id']`; the legacy `waveflow.theme.is_dark` boolean from v1.x is migrated on first read (written under the new key + removed) so a downgrade-then-upgrade cycle can't silently overwrite a custom preset.
 
 ## Onboarding
 

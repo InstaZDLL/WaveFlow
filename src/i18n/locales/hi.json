@@ -1506,12 +1506,16 @@
         "defaultDark": "एमराल्ड",
         "oled": "OLED",
         "midnight": "मध्यरात्रि",
-        "forest": "वन",
         "sunset": "सूर्यास्त",
         "lavender": "लैवेंडर",
         "crimson": "लाल",
         "ocean": "महासागर",
-        "neon": "नियॉन"
+        "neon": "नियॉन",
+        "midnightLight": "मध्यरात्रि हल्का",
+        "sunsetLight": "सूर्यास्त हल्का",
+        "lavenderLight": "लैवेंडर हल्का",
+        "crimsonLight": "किरमिजी हल्का",
+        "oceanLight": "महासागर हल्का"
       }
     },
     "playerBarLayout": {

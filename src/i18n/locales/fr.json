@@ -1226,12 +1226,16 @@
         "defaultDark": "Émeraude",
         "oled": "OLED",
         "midnight": "Minuit",
-        "forest": "Forêt",
         "sunset": "Coucher de soleil",
         "lavender": "Lavande",
         "crimson": "Cramoisi",
         "ocean": "Océan",
-        "neon": "Néon"
+        "neon": "Néon",
+        "midnightLight": "Minuit Clair",
+        "sunsetLight": "Coucher de soleil Clair",
+        "lavenderLight": "Lavande Claire",
+        "crimsonLight": "Cramoisi Clair",
+        "oceanLight": "Océan Clair"
       }
     },
     "shortcuts": {

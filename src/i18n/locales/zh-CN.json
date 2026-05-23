@@ -1460,12 +1460,16 @@
         "defaultDark": "祖母绿",
         "oled": "OLED",
         "midnight": "午夜",
-        "forest": "森林",
         "sunset": "日落",
         "lavender": "薰衣草",
         "crimson": "深红",
         "ocean": "海洋",
-        "neon": "霓虹"
+        "neon": "霓虹",
+        "midnightLight": "午夜浅色",
+        "sunsetLight": "日落浅色",
+        "lavenderLight": "薰衣草浅色",
+        "crimsonLight": "深红浅色",
+        "oceanLight": "海洋浅色"
       }
     },
     "shortcuts": {

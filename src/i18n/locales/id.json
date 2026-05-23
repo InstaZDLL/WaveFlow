@@ -1506,12 +1506,16 @@
         "defaultDark": "Zamrud",
         "oled": "OLED",
         "midnight": "Tengah Malam",
-        "forest": "Hutan",
         "sunset": "Matahari Terbenam",
         "lavender": "Lavender",
         "crimson": "Merah Tua",
         "ocean": "Samudra",
-        "neon": "Neon"
+        "neon": "Neon",
+        "midnightLight": "Tengah Malam Terang",
+        "sunsetLight": "Matahari Terbenam Terang",
+        "lavenderLight": "Lavender Terang",
+        "crimsonLight": "Merah Tua Terang",
+        "oceanLight": "Samudra Terang"
       }
     },
     "playerBarLayout": {

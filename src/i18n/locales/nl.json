@@ -1506,12 +1506,16 @@
         "defaultDark": "Smaragd",
         "oled": "OLED",
         "midnight": "Middernacht",
-        "forest": "Bos",
         "sunset": "Zonsondergang",
         "lavender": "Lavendel",
         "crimson": "Karmijn",
         "ocean": "Oceaan",
-        "neon": "Neon"
+        "neon": "Neon",
+        "midnightLight": "Middernacht Licht",
+        "sunsetLight": "Zonsondergang Licht",
+        "lavenderLight": "Lavendel Licht",
+        "crimsonLight": "Karmijn Licht",
+        "oceanLight": "Oceaan Licht"
       }
     },
     "playerBarLayout": {

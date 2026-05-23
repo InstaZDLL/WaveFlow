@@ -1508,12 +1508,16 @@
         "defaultDark": "Изумруд",
         "oled": "OLED",
         "midnight": "Полночь",
-        "forest": "Лес",
         "sunset": "Закат",
         "lavender": "Лаванда",
         "crimson": "Багровый",
         "ocean": "Океан",
-        "neon": "Неон"
+        "neon": "Неон",
+        "midnightLight": "Полночь светлая",
+        "sunsetLight": "Закат светлый",
+        "lavenderLight": "Лаванда светлая",
+        "crimsonLight": "Малиновый светлый",
+        "oceanLight": "Океан светлый"
       }
     },
     "playerBarLayout": {

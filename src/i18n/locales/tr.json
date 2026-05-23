@@ -1506,12 +1506,16 @@
         "defaultDark": "Zümrüt",
         "oled": "OLED",
         "midnight": "Gece Yarısı",
-        "forest": "Orman",
         "sunset": "Gün Batımı",
         "lavender": "Lavanta",
         "crimson": "Koyu Kırmızı",
         "ocean": "Okyanus",
-        "neon": "Neon"
+        "neon": "Neon",
+        "midnightLight": "Gece Yarısı Açık",
+        "sunsetLight": "Gün Batımı Açık",
+        "lavenderLight": "Lavanta Açık",
+        "crimsonLight": "Kızıl Açık",
+        "oceanLight": "Okyanus Açık"
       }
     },
     "playerBarLayout": {
