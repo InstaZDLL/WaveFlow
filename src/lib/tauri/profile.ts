@@ -34,6 +34,16 @@ export function createProfile(input: CreateProfileInput): Promise<Profile> {
   return invoke<Profile>("create_profile", { input });
 }
 
+/**
+ * Rename an existing profile in place. Safe to call against the
+ * active profile — only `app.db` is touched. Used by the onboarding
+ * wizard so the auto-created "Default" profile can be renamed
+ * without forcing a full create-then-rescan flow.
+ */
+export function renameProfile(profileId: number, name: string): Promise<Profile> {
+  return invoke<Profile>("rename_profile", { profileId, name });
+}
+
 export function switchProfile(profileId: number): Promise<Profile> {
   return invoke<Profile>("switch_profile", { profileId });
 }

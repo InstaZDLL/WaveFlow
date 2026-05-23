@@ -109,6 +109,14 @@
       "description": "WaveFlow 提供 17 種語言。我們已預選你的系統語言 — 如有誤請更改。",
       "detected": "已從系統偵測到",
       "fallback": "我們無法偵測到你的系統語言,已預設使用英文。請在下方選擇你的語言。"
+    },
+    "profile": {
+      "title": "為你的設定檔取名",
+      "description": "WaveFlow 透過不同的設定檔來區隔音樂庫。請取一個之後能輕易辨認的名稱。",
+      "nameLabel": "設定檔名稱",
+      "namePlaceholder": "例如：Daisy",
+      "hint": "之後若有需要，可以再建立其他設定檔。",
+      "required": "請輸入設定檔名稱。"
     }
   },
   "sidebar": {

@@ -109,6 +109,14 @@
       "description": "O WaveFlow está disponível em 17 idiomas. Pré-selecionámos o do teu sistema — muda-o se nos enganámos.",
       "detected": "Detetado a partir do teu sistema",
       "fallback": "Não conseguimos detetar o idioma do sistema, por isso usámos inglês por defeito. Escolhe o teu abaixo."
+    },
+    "profile": {
+      "title": "Dê um nome ao seu perfil",
+      "description": "O WaveFlow usa perfis para separar bibliotecas. Escolha um nome que você reconheça depois.",
+      "nameLabel": "Nome do perfil",
+      "namePlaceholder": "Ex.: Daisy",
+      "hint": "Pode criar mais perfis mais tarde, se precisar.",
+      "required": "O nome do perfil é obrigatório."
     }
   },
   "sidebar": {

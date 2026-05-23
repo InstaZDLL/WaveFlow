@@ -109,6 +109,14 @@
       "description": "WaveFlow 提供 17 种语言。我们已预选你的系统语言 — 如有误请更改。",
       "detected": "已从系统检测到",
       "fallback": "我们无法检测到你的系统语言,已默认使用英语。请在下方选择你的语言。"
+    },
+    "profile": {
+      "title": "为你的资料起个名字",
+      "description": "WaveFlow 通过不同的资料来区分音乐库。请取一个你以后能认出的名字。",
+      "nameLabel": "资料名称",
+      "namePlaceholder": "例如：Daisy",
+      "hint": "之后如有需要，你可以再创建其他资料。",
+      "required": "请填写资料名称。"
     }
   },
   "sidebar": {

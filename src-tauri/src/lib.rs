@@ -439,6 +439,7 @@ pub fn run() {
             commands::profile::list_profiles,
             commands::profile::get_active_profile,
             commands::profile::create_profile,
+            commands::profile::rename_profile,
             commands::profile::switch_profile,
             commands::profile::deactivate_profile,
             commands::profile::delete_profile,
