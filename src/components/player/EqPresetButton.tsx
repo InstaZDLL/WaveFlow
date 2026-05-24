@@ -193,6 +193,7 @@ export function EqPresetPanel({ onPick, collapsible = false }: EqPresetPanelProp
         type="button"
         role="switch"
         aria-checked={enabled}
+        aria-label={t("playerBar.eq.bypass")}
         onClick={handleToggle}
         className={`relative h-5 w-9 rounded-full transition-colors ${
           enabled ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700"
