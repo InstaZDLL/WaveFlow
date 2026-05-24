@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getProfileSetting, setProfileSetting } from "../lib/tauri/profile";
+import { useProfile } from "./useProfile";
 
 /**
  * How the Wrapped banner on the Home view decides to show itself.
@@ -67,10 +68,15 @@ export interface WrappedBannerVisibility {
  * Settings change flips the Home banner without a remount.
  */
 export function useWrappedBannerVisibility(): WrappedBannerVisibility {
+  const { activeProfile } = useProfile();
   const [mode, setModeState] = useState<WrappedBannerMode>(DEFAULT_MODE);
   const [dismissedYear, setDismissedYearState] = useState<number | null>(null);
   const inSeason = useMemo(() => isInWrappedSeason(), []);
 
+  // Re-read on profile switch — `get_profile_setting` is scoped to
+  // the active profile's pool, so the previous profile's values would
+  // otherwise linger. Tracking `activeProfile?.id` rebinds the event
+  // listener too, which keeps the cleanup symmetric.
   useEffect(() => {
     let cancelled = false;
     const refresh = async () => {
@@ -92,7 +98,7 @@ export function useWrappedBannerVisibility(): WrappedBannerVisibility {
       cancelled = true;
       window.removeEventListener(WRAPPED_BANNER_EVENT, refresh);
     };
-  }, []);
+  }, [activeProfile?.id]);
 
   const setMode = useCallback(async (next: WrappedBannerMode) => {
     setModeState(next);
