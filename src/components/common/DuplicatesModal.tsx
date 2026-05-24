@@ -84,6 +84,10 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
       setGroups([]);
       setError(null);
       setIsScanning(false);
+      // Same reason as `isScanning`: `handleDeleteOthers`'s `finally`
+      // short-circuits on the staleness check so we can't rely on it
+      // to clear the spinner when the modal closes mid-delete.
+      setIsDeleting(false);
       /* eslint-enable react-hooks/set-state-in-effect */
       return;
     }
@@ -105,15 +109,25 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
       }
     }
     if (toDelete.length === 0) return;
+    // Snapshot the current request id so a mid-delete close (the
+    // `!isOpen` effect bumps the counter) skips the wasted refresh and
+    // any state writes that would land on a closed modal. The shared
+    // counter means `handleDeleteOthers` participates in the same
+    // staleness contract as `refresh` itself.
+    const requestId = requestIdRef.current;
     setIsDeleting(true);
     try {
       await deleteTracks(toDelete);
+      if (requestId !== requestIdRef.current) return;
       await refresh();
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       console.error("[DuplicatesModal] delete failed", err);
       setError(String(err));
     } finally {
-      setIsDeleting(false);
+      if (requestId === requestIdRef.current) {
+        setIsDeleting(false);
+      }
     }
   };
 
