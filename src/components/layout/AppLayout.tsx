@@ -30,6 +30,7 @@ import { LastfmReauthBanner } from "../common/LastfmReauthBanner";
 import { UpdateBanner } from "../common/UpdateBanner";
 import { ScanProgressToast } from "../common/ScanProgressToast";
 import { OnboardingModal } from "../common/OnboardingModal";
+import { ViewSuspenseFallback } from "../common/ViewSuspenseFallback";
 import { PageScrollContext } from "../../contexts/PageScrollContext";
 
 const HomeView = lazy(() =>
@@ -186,6 +187,39 @@ export function AppLayout() {
   // Ref handed down to virtualized tables so they share the page-level
   // scroller instead of nesting their own.
   const pageScrollRef = useRef<HTMLDivElement>(null);
+
+  // Idle-time chunk warm-up for every lazily-loaded view. Once these
+  // imports resolve they're cached in the module registry, so a later
+  // navigation hits the Suspense fallback for zero ms instead of
+  // pausing for the network round-trip on the first click.
+  useEffect(() => {
+    const warmup = () => {
+      void import("../views/LibraryView");
+      void import("../views/LikedView");
+      void import("../views/HistoryView");
+      void import("../views/PlaylistView");
+      void import("../views/AlbumDetailView");
+      void import("../views/ArtistDetailView");
+      void import("../views/GenreDetailView");
+      void import("../views/StatisticsView");
+      void import("../views/WrappedView");
+      void import("../views/SettingsView");
+    };
+    type IdleWindow = Window & {
+      requestIdleCallback?: (
+        cb: () => void,
+        opts?: { timeout?: number },
+      ) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    const w = window as IdleWindow;
+    if (typeof w.requestIdleCallback === "function") {
+      const handle = w.requestIdleCallback(warmup, { timeout: 2000 });
+      return () => w.cancelIdleCallback?.(handle);
+    }
+    const timer = setTimeout(warmup, 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (isProfileLoading || isLibraryLoading) return;
@@ -500,13 +534,7 @@ export function AppLayout() {
               className="flex-1 overflow-y-auto p-8 relative"
             >
               <PageScrollContext.Provider value={pageScrollRef}>
-                <Suspense
-                  fallback={
-                    <div className="flex min-h-64 items-center justify-center text-zinc-500 dark:text-zinc-400">
-                      <Loader2 size={22} className="animate-spin" />
-                    </div>
-                  }
-                >
+                <Suspense fallback={<ViewSuspenseFallback />}>
                   {/* Crossfade + slight slide between views. Keyed on
                       the structural view id (album/artist/genre/playlist
                       keep a single key so the inner view handles its own

@@ -145,7 +145,12 @@ export function PlaylistView({
 
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // Init `true` so the skeleton paints on first render — the
+  // not-found EmptyState (`playlist == null && !isLoading` early return
+  // a few lines down) is also predicated on this flag, so leaving it
+  // `false` here would flash "playlist not found" for one frame
+  // before the fetch effect schedules.
+  const [isLoading, setIsLoading] = useState(true);
   // Per-playlist sort mode, persisted in `profile_setting['sort.playlist:<id>']`
   // via `useSortMemory`. The hook keeps a `direction` field for API
   // symmetry with the library view, but the playlist UI only exposes
@@ -684,7 +689,9 @@ export function PlaylistView({
       )}
 
       {/* Tracks list */}
-      {tracks.length > 0 ? (
+      {tracks.length === 0 && isLoading ? (
+        <PlaylistSkeleton t={t} />
+      ) : tracks.length > 0 ? (
         <PlaylistTrackTable
           tracks={displayTracks}
           isLoading={isLoading}
@@ -1326,6 +1333,36 @@ function PlaylistSortMenu({ current, onChange, t }: PlaylistSortMenuProps) {
           })}
         </ul>
       )}
+    </div>
+  );
+}
+
+function PlaylistSkeleton({
+  t,
+}: {
+  t: (key: string, options?: Record<string, unknown>) => string;
+}) {
+  const tile = "bg-zinc-200/70 dark:bg-zinc-700/40";
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label={t("playlistView.emptyTitle")}
+      className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40 overflow-hidden animate-pulse"
+    >
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div
+          key={i}
+          className="grid grid-cols-[3rem_2.75rem_1fr_1fr_1fr_5rem] gap-4 px-5 py-2 h-14 items-center border-b border-zinc-100 dark:border-zinc-800/60"
+        >
+          <div className={`h-3 w-4 rounded ${tile} justify-self-end`} />
+          <div className={`w-10 h-10 rounded-md ${tile}`} />
+          <div className={`h-3 rounded ${tile}`} />
+          <div className={`h-3 rounded ${tile}`} />
+          <div className={`h-3 rounded ${tile}`} />
+          <div className={`h-3 w-10 rounded ${tile} justify-self-end`} />
+        </div>
+      ))}
     </div>
   );
 }

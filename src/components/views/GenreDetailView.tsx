@@ -4,6 +4,7 @@ import { Play, Shuffle, Clock, Music2, Heart, Tags } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { EmptyState } from "../common/EmptyState";
+import { DetailViewSkeleton } from "../common/DetailViewSkeleton";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { HiResBadge } from "../common/HiResBadge";
 import { PlayingIndicator } from "../common/PlayingIndicator";
@@ -36,7 +37,10 @@ export function GenreDetailView({
   const { createPlaylist } = usePlaylist();
 
   const [genre, setGenre] = useState<GenreDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  // Init true so the skeleton paints on first render (paired with the
+  // `!genre && !isLoading` early-return below to avoid a one-frame
+  // "genre not found" flash before the fetch effect schedules).
+  const [isLoading, setIsLoading] = useState(true);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
@@ -109,7 +113,7 @@ export function GenreDetailView({
     );
   }
 
-  if (!genre) return null;
+  if (!genre) return <DetailViewSkeleton ariaLabel={t("genreDetail.badge")} />;
 
   const tracks = genre.tracks;
 

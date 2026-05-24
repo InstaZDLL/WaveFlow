@@ -24,6 +24,12 @@ Three-column flex row:
 
 The right panel is **a flex sibling** of the center column, not an overlay — opening it shrinks the content area Spotify-style. The center column has `min-w-0` so wide tables collapse instead of pushing the panel off-screen. Only one of the three right-panels is mounted at a time (mutex via `PlayerContext`).
 
+### View loading & code-splitting
+
+Every full-page view (Home, Library, Liked, History, Playlist, Album/Artist/Genre detail, Statistics, Wrapped, Settings) is `React.lazy()`-loaded. The Suspense fallback in [`AppLayout`](../../src/components/layout/AppLayout.tsx) is [`ViewSuspenseFallback`](../../src/components/common/ViewSuspenseFallback.tsx) — a layout-shaped skeleton (`role="status"` / `aria-busy="true"`) instead of a spinner that read as a blank screen. To make the fallback rarely fire at all, AppLayout schedules a `requestIdleCallback` after first mount that warm-imports every lazy view module; once those imports resolve they're cached in the module registry, so a sidebar click usually skips Suspense entirely.
+
+Per-view data fetches initialise their `isLoading` state to `true` (not `false`) so the first render paints a skeleton matching the view's shape rather than flashing the empty-state for the frame between mount and the first effect tick. Detail pages (Album/Artist/Genre) share [`DetailViewSkeleton`](../../src/components/common/DetailViewSkeleton.tsx); list-shaped pages use inline `<…Skeleton>` components colocated with their view file.
+
 ## Panels
 
 - [`NowPlayingPanel`](../../src/components/layout/NowPlayingPanel.tsx) — large artwork, clickable artists, "About the artist" section populated from the Deezer + Last.fm caches, and a "Next in queue" teaser with an "Open queue" link that hands the right slot off to `QueuePanel`. Lightbox on cover click.

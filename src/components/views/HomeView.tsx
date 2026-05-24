@@ -113,7 +113,11 @@ export function HomeView({
     importFolder,
   } = useLibrary();
   const { playTracks, playbackState, currentTrack } = usePlayer();
-  const { playlists, refresh: refreshPlaylists } = usePlaylist();
+  const {
+    playlists,
+    isLoading: playlistsLoading,
+    refresh: refreshPlaylists,
+  } = usePlaylist();
   const [isRegenerating, setIsRegenerating] = useState(false);
 
   // Smart playlists are stored in the same `playlist` table as user
@@ -148,6 +152,11 @@ export function HomeView({
   const [recentAlbums, setRecentAlbums] = useState<AlbumRow[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const [wrappedYears, setWrappedYears] = useState<number[]>([]);
+  // Per-section loading flags — start true so each carousel paints a
+  // skeleton on first render rather than flashing its (large) empty
+  // state for the duration of the first SQL fetch.
+  const [recentPlaysLoading, setRecentPlaysLoading] = useState(true);
+  const [recentAlbumsLoading, setRecentAlbumsLoading] = useState(true);
 
   const greetingName = activeProfile?.name ?? "";
   const totalTracks = useMemo(
@@ -195,7 +204,10 @@ export function HomeView({
       .then((rows) => {
         if (!cancelled) setRecentPlays(rows);
       })
-      .catch((err) => console.error("[HomeView] list recent plays", err));
+      .catch((err) => console.error("[HomeView] list recent plays", err))
+      .finally(() => {
+        if (!cancelled) setRecentPlaysLoading(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -216,7 +228,10 @@ export function HomeView({
       .then((rows) => {
         if (!cancelled) setRecentAlbums(rows.slice(0, ALBUMS_LIMIT));
       })
-      .catch((err) => console.error("[HomeView] list albums", err));
+      .catch((err) => console.error("[HomeView] list albums", err))
+      .finally(() => {
+        if (!cancelled) setRecentAlbumsLoading(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -406,7 +421,9 @@ export function HomeView({
               : t("home.dailyMix.regenerate", "Régénérer")}
           </button>
         </div>
-        {smartPlaylists.length === 0 ? (
+        {smartPlaylists.length === 0 && playlistsLoading ? (
+          <HomeBannerSkeleton label={t("home.dailyMix.title", "Pour vous")} />
+        ) : smartPlaylists.length === 0 ? (
           <div className="relative overflow-hidden min-h-32 rounded-3xl border flex items-center justify-center p-8 border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/40 dark:shadow-none">
             <EmptyState
               icon={<Sparkles size={32} />}
@@ -477,7 +494,9 @@ export function HomeView({
             </button>
           )}
         </div>
-        {recentPlays.length === 0 ? (
+        {recentPlays.length === 0 && recentPlaysLoading ? (
+          <HomeCarouselSkeleton label={t("home.recentlyPlayed.title")} />
+        ) : recentPlays.length === 0 ? (
           <div className="relative overflow-hidden min-h-80 rounded-3xl border flex items-center justify-center p-8 border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/40 dark:shadow-none">
             <EmptyState
               icon={<Clock size={32} />}
@@ -590,6 +609,9 @@ export function HomeView({
               {t("home.seeAll")}
             </button>
           </div>
+          {recentAlbums.length === 0 && recentAlbumsLoading ? (
+            <HomeCarouselSkeleton label={t("home.recentlyAdded.title")} />
+          ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
             {recentAlbums.map((album) => (
               <button
@@ -623,8 +645,49 @@ export function HomeView({
               </button>
             ))}
           </div>
+          )}
         </section>
       )}
+    </div>
+  );
+}
+
+function HomeBannerSkeleton({ label }: { label: string }) {
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label={label}
+      className="relative overflow-hidden min-h-32 rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/40 dark:shadow-none animate-pulse"
+    >
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="aspect-16/7 rounded-2xl bg-zinc-200/70 dark:bg-zinc-700/40"
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HomeCarouselSkeleton({ label }: { label: string }) {
+  const tile = "bg-zinc-200/70 dark:bg-zinc-700/40";
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label={label}
+      className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4 animate-pulse"
+    >
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="p-3 space-y-3">
+          <div className={`w-full aspect-square rounded-2xl ${tile}`} />
+          <div className={`h-3 w-3/4 rounded ${tile}`} />
+          <div className={`h-3 w-1/2 rounded ${tile}`} />
+        </div>
+      ))}
     </div>
   );
 }
