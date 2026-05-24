@@ -7,7 +7,8 @@
     "confirm": "تأكيد",
     "open": "فتح",
     "optional": "(اختياري)",
-    "viewArtwork": "عرض الغلاف"
+    "viewArtwork": "عرض الغلاف",
+    "loading": "جارٍ التحميل…"
   },
   "lastfmReauth": {
     "title": "انتهت جلسة Last.fm",

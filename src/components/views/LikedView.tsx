@@ -278,11 +278,11 @@ export function LikedView({
   );
 }
 
-function LikedSkeleton({
-  t,
-}: {
+interface LikedSkeletonProps {
   t: (key: string, options?: Record<string, unknown>) => string;
-}) {
+}
+
+function LikedSkeleton({ t }: LikedSkeletonProps) {
   const tile = "bg-zinc-200/70 dark:bg-zinc-700/40";
   return (
     <div

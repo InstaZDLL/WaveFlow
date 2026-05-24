@@ -7,7 +7,8 @@
     "confirm": "Conferma",
     "open": "Apri",
     "optional": "(opzionale)",
-    "viewArtwork": "Mostra copertina"
+    "viewArtwork": "Mostra copertina",
+    "loading": "Caricamento…"
   },
   "lastfmReauth": {
     "title": "Sessione Last.fm scaduta",

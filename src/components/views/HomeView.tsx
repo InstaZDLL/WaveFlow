@@ -594,8 +594,11 @@ export function HomeView({
         )}
       </section>
 
-      {/* Récemment ajoutés — only render when we have albums to show. */}
-      {hasLibrary && recentAlbums.length > 0 && (
+      {/* Récemment ajoutés — render while loading (skeleton) or once
+          we have data; only suppress when the library is empty AND
+          nothing is loading, which is the "no library yet" state where
+          the welcome banner handles the empty case on its own. */}
+      {hasLibrary && (recentAlbumsLoading || recentAlbums.length > 0) && (
         <section>
           <div className="flex items-end justify-between mb-6">
             <h2 className="text-2xl font-bold inline-block border-b-4 border-emerald-500 pb-1 text-zinc-900 dark:text-white">
@@ -652,7 +655,11 @@ export function HomeView({
   );
 }
 
-function HomeBannerSkeleton({ label }: { label: string }) {
+interface HomeSkeletonProps {
+  label: string;
+}
+
+function HomeBannerSkeleton({ label }: HomeSkeletonProps) {
   return (
     <div
       role="status"
@@ -672,7 +679,7 @@ function HomeBannerSkeleton({ label }: { label: string }) {
   );
 }
 
-function HomeCarouselSkeleton({ label }: { label: string }) {
+function HomeCarouselSkeleton({ label }: HomeSkeletonProps) {
   const tile = "bg-zinc-200/70 dark:bg-zinc-700/40";
   return (
     <div

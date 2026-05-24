@@ -7,7 +7,8 @@
     "confirm": "Confirmer",
     "open": "Ouvrir",
     "optional": "(optionnel)",
-    "viewArtwork": "Voir l'illustration"
+    "viewArtwork": "Voir l'illustration",
+    "loading": "Chargement…"
   },
   "lastfmReauth": {
     "title": "Session Last.fm expirée",

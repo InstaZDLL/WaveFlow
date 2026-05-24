@@ -7,7 +7,8 @@
     "confirm": "確認",
     "open": "開啟",
     "optional": "（可選）",
-    "viewArtwork": "查看封面"
+    "viewArtwork": "查看封面",
+    "loading": "載入中…"
   },
   "lastfmReauth": {
     "title": "Last.fm的連線已過期",

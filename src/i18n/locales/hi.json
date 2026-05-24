@@ -7,7 +7,8 @@
     "confirm": "पुष्टि करें",
     "open": "खोलें",
     "optional": "(वैकल्पिक)",
-    "viewArtwork": "आर्टवर्क देखें"
+    "viewArtwork": "आर्टवर्क देखें",
+    "loading": "लोड हो रहा है…"
   },
   "lastfmReauth": {
     "title": "Last.fm का सत्र समाप्त हो गया है",

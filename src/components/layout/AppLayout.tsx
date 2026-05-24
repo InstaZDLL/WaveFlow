@@ -204,6 +204,9 @@ export function AppLayout() {
       void import("../views/StatisticsView");
       void import("../views/WrappedView");
       void import("../views/SettingsView");
+      void import("../views/SpotifyView");
+      void import("../views/AboutView");
+      void import("../views/FeedbackView");
     };
     type IdleWindow = Window & {
       requestIdleCallback?: (

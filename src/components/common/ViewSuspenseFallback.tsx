@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 /**
  * Generic skeleton shown while a lazily-loaded view's JS chunk
  * downloads. Replaces the tiny centered spinner that previously
@@ -6,12 +8,13 @@
  * pre-warms every view chunk at idle time after first mount.
  */
 export function ViewSuspenseFallback() {
+  const { t } = useTranslation();
   const tile = "bg-zinc-200/70 dark:bg-zinc-700/40";
   return (
     <div
       role="status"
       aria-busy="true"
-      aria-label="Loading"
+      aria-label={t("common.loading")}
       className="space-y-8 animate-pulse pb-12"
     >
       <div className="flex items-start space-x-5">

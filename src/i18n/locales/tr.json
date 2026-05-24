@@ -7,7 +7,8 @@
     "confirm": "Onayla",
     "open": "Aç",
     "optional": "(isteğe bağlı)",
-    "viewArtwork": "Kapağı görüntüle"
+    "viewArtwork": "Kapağı görüntüle",
+    "loading": "Yükleniyor…"
   },
   "lastfmReauth": {
     "title": "Last.fm oturumu sona erdi",

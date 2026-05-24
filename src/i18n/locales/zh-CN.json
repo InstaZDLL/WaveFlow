@@ -7,7 +7,8 @@
     "confirm": "确认",
     "open": "打开",
     "optional": "（可选）",
-    "viewArtwork": "查看封面"
+    "viewArtwork": "查看封面",
+    "loading": "加载中…"
   },
   "lastfmReauth": {
     "title": "Last.fm会话已过期",
