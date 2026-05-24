@@ -48,6 +48,11 @@ export function CoverPickerModal({
       setResults([]);
       setError(null);
       setTab("deezer");
+      // Clear the spinner too — if the modal was closed mid-fetch, the
+      // search effect's `.finally` short-circuits on its `cancelled`
+      // token (to avoid clobbering a newer query's state) and would
+      // otherwise leave `isSearching=true` lingering on the next open.
+      setIsSearching(false);
     }
   }, [isOpen, initialQuery]);
 
@@ -60,6 +65,11 @@ export function CoverPickerModal({
     if (trimmed.length < 2) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([]);
+      // If a previous fetch is still in-flight, its `.finally` will be
+      // short-circuited by the `cancelled` token below — so the spinner
+      // would stay on forever (user deletes letters and the loader
+      // never stops). Force-clear here.
+      setIsSearching(false);
       return;
     }
     // Cancellation token — `AnimatedModalShell` keeps this component

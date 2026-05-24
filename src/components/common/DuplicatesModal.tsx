@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Loader2, Trash2, Copy } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
@@ -41,12 +41,21 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
   // to the first (oldest) track, which the backend orders by
   // added_at ASC.
   const [keepIds, setKeepIds] = useState<Map<string, number>>(new Map());
+  // Monotonic request id — `AnimatedModalShell` keeps the component
+  // mounted across its exit animation and the user can re-open the
+  // modal (or trigger a delete-then-refresh) while a previous
+  // `findDuplicates` call is still in flight. Each `refresh` bumps the
+  // counter and only commits state when its captured id still matches
+  // the latest one, so a stale response can't clobber a fresh scan.
+  const requestIdRef = useRef(0);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setIsScanning(true);
     setError(null);
     try {
       const result = await findDuplicates();
+      if (requestId !== requestIdRef.current) return;
       setGroups(result);
       const next = new Map<string, number>();
       for (const g of result) {
@@ -54,23 +63,32 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
       }
       setKeepIds(next);
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       console.error("[DuplicatesModal] scan failed", err);
       setError(String(err));
     } finally {
-      setIsScanning(false);
+      if (requestId === requestIdRef.current) {
+        setIsScanning(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
+      // Invalidate any in-flight request — its setters will short-circuit
+      // when they see `requestIdRef.current` has moved past their captured
+      // id, so the closed modal can't end up with stale `groups` /
+      // `keepIds` written after the user re-opens it.
+      requestIdRef.current++;
       /* eslint-disable react-hooks/set-state-in-effect */
       setGroups([]);
       setError(null);
+      setIsScanning(false);
       /* eslint-enable react-hooks/set-state-in-effect */
       return;
     }
     refresh();
-  }, [isOpen]);
+  }, [isOpen, refresh]);
 
   const totalDuplicates = useMemo(
     () => groups.reduce((sum, g) => sum + g.tracks.length - 1, 0),
