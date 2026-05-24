@@ -157,8 +157,19 @@ export function ProfileSelectorModal({
           className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
           onClick={onClose}
         >
+          {/* Inner AnimatePresence cross-fades between the three internal
+              views (select / create / delete) so switching feels smooth
+              instead of snapping. `mode="wait"` lets the outgoing view
+              finish its exit before the incoming view mounts. */}
+          <AnimatePresence mode="wait">
       {view === "select" && (
-        <>
+        <motion.div
+          key="select"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+        >
           <button
             type="button"
             onClick={onClose}
@@ -281,11 +292,16 @@ export function ProfileSelectorModal({
               )}
             </div>
           </div>
-        </>
+        </motion.div>
       )}
 
       {view === "delete" && profileToDelete && (
-        <div
+        <motion.div
+          key="delete"
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.97 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
           className="relative w-full max-w-md rounded-3xl border border-zinc-800 bg-surface-dark-elevated p-8 shadow-2xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
@@ -360,11 +376,16 @@ export function ProfileSelectorModal({
               </span>
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {view === "create" && (
-        <div
+        <motion.div
+          key="create"
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.97 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
           className="relative w-full max-w-md rounded-3xl border border-zinc-800 bg-surface-dark-elevated p-8 shadow-2xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
@@ -480,8 +501,9 @@ export function ProfileSelectorModal({
               <span>{t("profiles.create.submit")}</span>
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
+          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>

@@ -10,7 +10,6 @@ interface AnimatedModalShellProps {
   isOpen: boolean;
   onBackdropClick?: () => void;
   children: ReactNode;
-  className?: string;
   backdropClassName?: string;
 }
 
