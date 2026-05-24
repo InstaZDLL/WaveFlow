@@ -7,7 +7,8 @@
     "confirm": "Подтвердить",
     "open": "Открыть",
     "optional": "(необязательно)",
-    "viewArtwork": "Посмотреть обложку"
+    "viewArtwork": "Посмотреть обложку",
+    "loading": "Загрузка…"
   },
   "lastfmReauth": {
     "title": "Сессия Last.fm истекла",

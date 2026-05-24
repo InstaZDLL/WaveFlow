@@ -7,7 +7,8 @@
     "confirm": "확인",
     "open": "열기",
     "optional": "(선택 사항)",
-    "viewArtwork": "아트워크 보기"
+    "viewArtwork": "아트워크 보기",
+    "loading": "불러오는 중…"
   },
   "lastfmReauth": {
     "title": "Last.fm 세션이 만료되었습니다",

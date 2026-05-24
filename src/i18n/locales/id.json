@@ -7,7 +7,8 @@
     "confirm": "Konfirmasi",
     "open": "Buka",
     "optional": "(opsional)",
-    "viewArtwork": "Lihat sampul"
+    "viewArtwork": "Lihat sampul",
+    "loading": "Memuat…"
   },
   "lastfmReauth": {
     "title": "Sesi Last.fm kedaluwarsa",

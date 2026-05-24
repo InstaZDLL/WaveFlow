@@ -4,6 +4,7 @@ import { Play, Shuffle, Clock, Music2, Heart, ImageIcon } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { EmptyState } from "../common/EmptyState";
+import { DetailViewSkeleton } from "../common/DetailViewSkeleton";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { CoverPickerModal } from "../common/CoverPickerModal";
 import { HiResBadge } from "../common/HiResBadge";
@@ -44,7 +45,10 @@ export function AlbumDetailView({
   const { createPlaylist } = usePlaylist();
 
   const [album, setAlbum] = useState<AlbumDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  // Init true so the skeleton paints on first render — paired with the
+  // `!album && !isLoading` early-return below, this also prevents a
+  // one-frame "album not found" flash before the fetch schedules.
+  const [isLoading, setIsLoading] = useState(true);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
@@ -153,7 +157,7 @@ export function AlbumDetailView({
     );
   }
 
-  if (!album) return null; // loading
+  if (!album) return <DetailViewSkeleton ariaLabel={t("albumDetail.badge")} />; // loading
 
   // Build playable Track[] from AlbumTrack[] for the player
   const playableTracks = album.tracks.map((at) => ({

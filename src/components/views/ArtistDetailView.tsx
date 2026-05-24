@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Play, Shuffle, Music2, Clock, Heart, Pencil } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { EmptyState } from "../common/EmptyState";
+import { DetailViewSkeleton } from "../common/DetailViewSkeleton";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { ArtistImagePickerModal } from "../common/ArtistImagePickerModal";
 import { HiResBadge } from "../common/HiResBadge";
@@ -48,7 +49,10 @@ export function ArtistDetailView({
 
   const [artist, setArtist] = useState<ArtistDetail | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // Init true so the skeleton paints on first render (paired with the
+  // `!artist && !isLoading` early-return below to avoid a one-frame
+  // "artist not found" flash before the fetch effect schedules).
+  const [isLoading, setIsLoading] = useState(true);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
@@ -223,7 +227,11 @@ export function ArtistDetailView({
     );
   }
 
-  if (!artist) return null;
+  if (!artist) {
+    return (
+      <DetailViewSkeleton ariaLabel={t("artistDetail.badge")} shape="circle" />
+    );
+  }
 
   const handlePlayAll = async () => {
     if (tracks.length === 0) return;

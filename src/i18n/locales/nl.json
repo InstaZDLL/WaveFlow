@@ -7,7 +7,8 @@
     "confirm": "Bevestigen",
     "open": "Openen",
     "optional": "(optioneel)",
-    "viewArtwork": "Albumhoes bekijken"
+    "viewArtwork": "Albumhoes bekijken",
+    "loading": "Laden…"
   },
   "lastfmReauth": {
     "title": "Last.fm-sessie verlopen",
