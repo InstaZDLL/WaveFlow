@@ -7,7 +7,7 @@ import {
   type CSSProperties,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { SlidersHorizontal, Check } from "lucide-react";
+import { SlidersHorizontal, Check, ChevronDown } from "lucide-react";
 import {
   playerGetEq,
   playerSetEqEnabled,
@@ -100,6 +100,11 @@ interface EqPresetPanelProps {
    *  it to close itself; the inline-in-menu variant in
    *  `MoreActionsMenu` uses it to dismiss the parent menu. */
   onPick?: () => void;
+  /** When `true`, render a collapsed "current preset" button instead
+   *  of the full scrollable list. The list expands inline on click.
+   *  Used by the overflow menu to keep the popover compact on
+   *  smaller (1080p) displays. */
+  collapsible?: boolean;
 }
 
 /**
@@ -109,12 +114,20 @@ interface EqPresetPanelProps {
  * pin is OFF). Hydrates EQ state lazily on mount so closing then
  * re-opening always reflects the latest backend snapshot (e.g. user
  * changed preset from the full EqualizerCard in Settings).
+ *
+ * Pass `collapsible` to hide the 20-row preset list behind a
+ * dropdown trigger that shows the current preset name. The list
+ * stays inline (no nested popover) so the parent menu's max-height +
+ * scroll keeps governing the layout.
  */
-export function EqPresetPanel({ onPick }: EqPresetPanelProps) {
+export function EqPresetPanel({ onPick, collapsible = false }: EqPresetPanelProps) {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState(false);
   const [presets, setPresets] = useState<EqPresetEntry[]>([]);
   const [bands, setBands] = useState<number[]>([0, 0, 0, 0, 0, 0]);
+  // Only relevant when `collapsible` is true. The list stays hidden
+  // until the user clicks the current-preset row to expand it.
+  const [listExpanded, setListExpanded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,60 +171,104 @@ export function EqPresetPanel({ onPick }: EqPresetPanelProps) {
       playerSetEqPreset(key).catch((err) =>
         console.error("[EqPresetPanel] preset failed", err),
       );
+      // In compact mode the user picked from the expanded list — fold
+      // it back up so the menu returns to its tight default layout.
+      if (collapsible) setListExpanded(false);
       onPick?.();
     },
-    [presets, onPick],
+    [presets, onPick, collapsible],
   );
+
+  const activePresetLabel =
+    activeKey === "custom"
+      ? t("settings.equalizer.preset.custom", { defaultValue: "Custom" })
+      : t(`settings.equalizer.preset.${activeKey}`, { defaultValue: activeKey });
+
+  const bypassRow = (
+    <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-100 dark:border-zinc-800">
+      <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200">
+        {t("playerBar.eq.bypass")}
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={enabled}
+        aria-label={t("playerBar.eq.bypass")}
+        onClick={handleToggle}
+        className={`relative h-5 w-9 rounded-full transition-colors ${
+          enabled ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+            enabled ? "translate-x-4" : "translate-x-0.5"
+          }`}
+        />
+      </button>
+    </div>
+  );
+
+  const presetList = (
+    <ul className="max-h-64 overflow-y-auto py-1" role="listbox">
+      {presets.map((preset) => {
+        const isActive = preset.key === activeKey;
+        return (
+          <li key={preset.key}>
+            <button
+              type="button"
+              role="option"
+              aria-selected={isActive}
+              onClick={() => handlePick(preset.key)}
+              className={`w-full flex items-center justify-between px-3 py-1.5 text-sm text-left transition-colors ${
+                isActive
+                  ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/5"
+                  : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              }`}
+            >
+              <span className="truncate">
+                {t(`settings.equalizer.preset.${preset.key}`, {
+                  defaultValue: preset.key,
+                })}
+              </span>
+              {isActive && <Check size={14} aria-hidden="true" />}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
+  if (!collapsible) {
+    return (
+      <>
+        {bypassRow}
+        {presetList}
+      </>
+    );
+  }
 
   return (
     <>
-      <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-100 dark:border-zinc-800">
-        <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200">
-          {t("playerBar.eq.bypass")}
-        </span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={enabled}
-          onClick={handleToggle}
-          className={`relative h-5 w-9 rounded-full transition-colors ${
-            enabled ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700"
-          }`}
-        >
-          <span
-            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-              enabled ? "translate-x-4" : "translate-x-0.5"
-            }`}
-          />
-        </button>
-      </div>
-      <ul className="max-h-64 overflow-y-auto py-1" role="listbox">
-        {presets.map((preset) => {
-          const isActive = preset.key === activeKey;
-          return (
-            <li key={preset.key}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={isActive}
-                onClick={() => handlePick(preset.key)}
-                className={`w-full flex items-center justify-between px-3 py-1.5 text-sm text-left transition-colors ${
-                  isActive
-                    ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/5"
-                    : "text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                }`}
-              >
-                <span className="truncate">
-                  {t(`settings.equalizer.preset.${preset.key}`, {
-                    defaultValue: preset.key,
-                  })}
-                </span>
-                {isActive && <Check size={14} aria-hidden="true" />}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+      {bypassRow}
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={listExpanded}
+        onClick={() => setListExpanded((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+      >
+        <span className="truncate">{activePresetLabel}</span>
+        <ChevronDown
+          size={14}
+          aria-hidden="true"
+          className={`shrink-0 transition-transform ${listExpanded ? "rotate-180" : ""}`}
+        />
+      </button>
+      {listExpanded && (
+        <div className="border-t border-zinc-100 dark:border-zinc-800">
+          {presetList}
+        </div>
+      )}
     </>
   );
 }
