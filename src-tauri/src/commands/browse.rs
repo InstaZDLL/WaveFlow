@@ -317,10 +317,8 @@ pub async fn list_albums(
             .map(|row| {
                 let (artwork_has_1x, artwork_has_2x) = match row.artwork_hash.as_deref() {
                     Some(hash) => {
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(
-                            &artwork_dir_for_blocking,
-                            hash,
-                        );
+                        let (p1, p2) =
+                            crate::thumbnails::thumbnail_paths_for(&artwork_dir_for_blocking, hash);
                         (p1.is_some(), p2.is_some())
                     }
                     None => (false, false),
@@ -406,10 +404,8 @@ pub async fn list_artists(
             .map(|r| {
                 let (artwork_has_1x, artwork_has_2x) = match r.artwork_hash.as_deref() {
                     Some(hash) => {
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(
-                            &artwork_dir_for_blocking,
-                            hash,
-                        );
+                        let (p1, p2) =
+                            crate::thumbnails::thumbnail_paths_for(&artwork_dir_for_blocking, hash);
                         (p1.is_some(), p2.is_some())
                     }
                     None => (false, false),
@@ -429,10 +425,8 @@ pub async fn list_artists(
                 });
                 let (picture_has_1x, picture_has_2x) = match picture_hash.as_deref() {
                     Some(h) => {
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(
-                            &metadata_dir_for_blocking,
-                            h,
-                        );
+                        let (p1, p2) =
+                            crate::thumbnails::thumbnail_paths_for(&metadata_dir_for_blocking, h);
                         (p1.is_some(), p2.is_some())
                     }
                     None => (false, false),

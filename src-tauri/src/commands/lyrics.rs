@@ -571,12 +571,11 @@ pub async fn fetch_lyrics(
     //    + at most two `read_dir` scans), runs before the network so
     //    a user with bundled lyrics never pays the LRCLIB latency.
     let path_for_sidecar = meta.file_path.clone();
-    let sidecar = tokio::task::spawn_blocking(move || {
-        read_sidecar_lyrics(Path::new(&path_for_sidecar))
-    })
-    .await
-    .ok()
-    .flatten();
+    let sidecar =
+        tokio::task::spawn_blocking(move || read_sidecar_lyrics(Path::new(&path_for_sidecar)))
+            .await
+            .ok()
+            .flatten();
 
     if let Some(content) = sidecar {
         let format = detect_format(&content);
@@ -893,12 +892,11 @@ async fn run_prefetch(
         //    network so a user prefetching with bundled lyrics never
         //    hits LRCLIB unnecessarily.
         let path_for_sidecar = file_path.clone();
-        let sidecar = tokio::task::spawn_blocking(move || {
-            read_sidecar_lyrics(Path::new(&path_for_sidecar))
-        })
-        .await
-        .ok()
-        .flatten();
+        let sidecar =
+            tokio::task::spawn_blocking(move || read_sidecar_lyrics(Path::new(&path_for_sidecar)))
+                .await
+                .ok()
+                .flatten();
         if let Some(content) = sidecar {
             let format = detect_format(&content);
             let source = LyricsSource::LrcFile;
@@ -1324,11 +1322,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let audio = dir.path().join("01 Track.mp3");
         std::fs::write(&audio, b"fake audio").unwrap();
-        std::fs::write(
-            dir.path().join("01 Track.lrc"),
-            "[00:01.00]Hello world",
-        )
-        .unwrap();
+        std::fs::write(dir.path().join("01 Track.lrc"), "[00:01.00]Hello world").unwrap();
         let content = read_sidecar_lyrics(&audio).expect("sidecar should be found");
         assert!(content.contains("Hello world"));
     }

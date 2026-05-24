@@ -916,9 +916,7 @@ pub async fn list_liked_track_ids(state: tauri::State<'_, AppState>) -> AppResul
 /// List every liked track with full metadata, ordered by most recently
 /// liked first. Used by the LikedView.
 #[tauri::command]
-pub async fn list_liked_tracks(
-    state: tauri::State<'_, AppState>,
-) -> AppResult<ListTracksResponse> {
+pub async fn list_liked_tracks(state: tauri::State<'_, AppState>) -> AppResult<ListTracksResponse> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);

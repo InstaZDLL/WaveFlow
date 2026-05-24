@@ -16,10 +16,7 @@ import {
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useModalA11y } from "../../hooks/useModalA11y";
-import {
-  AnimatedModalContent,
-  AnimatedModalShell,
-} from "./AnimatedModalShell";
+import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 import {
   formatLrcTimestamp,
   parseLrc,

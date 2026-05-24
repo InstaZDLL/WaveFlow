@@ -2,10 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Loader2, Trash2, Copy } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
-import {
-  AnimatedModalContent,
-  AnimatedModalShell,
-} from "./AnimatedModalShell";
+import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 import {
   deleteTracks,
   findDuplicates,

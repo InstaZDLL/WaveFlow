@@ -27,29 +27,30 @@
               ? "default"
               : "default-dark");
           var LIGHT_IDS = {
-            "default": 1,
+            default: 1,
             "midnight-light": 1,
             "sunset-light": 1,
             "lavender-light": 1,
             "crimson-light": 1,
             "ocean-light": 1,
           };
-          var ambient = {
-            "default": "#ffffff",
-            "midnight-light": "#e0e7ff",
-            "sunset-light": "#fef3c7",
-            "lavender-light": "#ede9fe",
-            "crimson-light": "#ffe4e6",
-            "ocean-light": "#e0f2fe",
-            "default-dark": "#121212",
-            "oled": "#000000",
-            "midnight": "#0b1020",
-            "sunset": "#1a0e08",
-            "lavender": "#15101e",
-            "crimson": "#19090c",
-            "ocean": "#081420",
-            "neon": "#1a0a18",
-          }[id] || "#121212";
+          var ambient =
+            {
+              default: "#ffffff",
+              "midnight-light": "#e0e7ff",
+              "sunset-light": "#fef3c7",
+              "lavender-light": "#ede9fe",
+              "crimson-light": "#ffe4e6",
+              "ocean-light": "#e0f2fe",
+              "default-dark": "#121212",
+              oled: "#000000",
+              midnight: "#0b1020",
+              sunset: "#1a0e08",
+              lavender: "#15101e",
+              crimson: "#19090c",
+              ocean: "#081420",
+              neon: "#1a0a18",
+            }[id] || "#121212";
           var root = document.documentElement;
           root.setAttribute("data-theme", id);
           root.style.setProperty("--ambient-bg", ambient);
