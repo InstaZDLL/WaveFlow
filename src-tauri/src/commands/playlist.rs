@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 use crate::{
-    commands::track::Track,
     error::{AppError, AppResult},
     state::AppState,
 };
@@ -72,35 +71,6 @@ pub struct UpdatePlaylistInput {
 }
 
 /// Raw row shape for the joined track query — private because the public
-/// [`Track`] struct holds a derived `artwork_path` the DB can't compute.
-#[derive(FromRow)]
-struct PlaylistTrackRow {
-    id: i64,
-    library_id: i64,
-    title: String,
-    album_id: Option<i64>,
-    album_title: Option<String>,
-    artist_id: Option<i64>,
-    artist_name: Option<String>,
-    artist_ids: Option<String>,
-    duration_ms: i64,
-    track_number: Option<i64>,
-    disc_number: Option<i64>,
-    year: Option<i64>,
-    bitrate: Option<i64>,
-    sample_rate: Option<i64>,
-    channels: Option<i64>,
-    bit_depth: Option<i64>,
-    codec: Option<String>,
-    musical_key: Option<String>,
-    file_path: String,
-    file_size: i64,
-    added_at: i64,
-    artwork_hash: Option<String>,
-    artwork_format: Option<String>,
-    rating: Option<i64>,
-}
-
 fn now_millis() -> i64 {
     Utc::now().timestamp_millis()
 }
@@ -326,12 +296,12 @@ pub async fn delete_playlist(state: tauri::State<'_, AppState>, playlist_id: i64
 pub async fn list_playlist_tracks(
     state: tauri::State<'_, AppState>,
     playlist_id: i64,
-) -> AppResult<Vec<Track>> {
+) -> AppResult<crate::commands::track::ListTracksResponse> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
-    let rows = sqlx::query_as::<_, PlaylistTrackRow>(
+    let rows = sqlx::query_as::<_, crate::commands::track::TrackRow>(
         r#"
         SELECT t.id, t.library_id, t.title,
                t.album_id,
@@ -368,52 +338,15 @@ pub async fn list_playlist_tracks(
     .fetch_all(&pool)
     .await?;
 
-    let tracks = rows
+    let items = rows
         .into_iter()
-        .map(|row| {
-            let (artwork_path, artwork_path_1x, artwork_path_2x) =
-                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
-                    (Some(hash), Some(format)) => {
-                        let full = artwork_dir
-                            .join(format!("{}.{}", hash, format))
-                            .to_string_lossy()
-                            .to_string();
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
-                        (Some(full), p1, p2)
-                    }
-                    _ => (None, None, None),
-                };
-            Track {
-                id: row.id,
-                library_id: row.library_id,
-                title: row.title,
-                album_id: row.album_id,
-                album_title: row.album_title,
-                artist_id: row.artist_id,
-                artist_name: row.artist_name,
-                artist_ids: row.artist_ids,
-                duration_ms: row.duration_ms,
-                track_number: row.track_number,
-                disc_number: row.disc_number,
-                year: row.year,
-                bitrate: row.bitrate,
-                sample_rate: row.sample_rate,
-                channels: row.channels,
-                bit_depth: row.bit_depth,
-                codec: row.codec,
-                musical_key: row.musical_key,
-                file_path: row.file_path,
-                file_size: row.file_size,
-                added_at: row.added_at,
-                artwork_path,
-                artwork_path_1x,
-                artwork_path_2x,
-                rating: row.rating,
-            }
-        })
+        .map(|row| crate::commands::track::track_list_item_from_row(row, &artwork_dir))
         .collect();
 
-    Ok(tracks)
+    Ok(crate::commands::track::ListTracksResponse {
+        artwork_base: artwork_dir.to_string_lossy().into_owned(),
+        items,
+    })
 }
 
 /// Return the IDs of every user playlist that currently contains `track_id`.
