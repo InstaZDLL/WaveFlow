@@ -414,7 +414,8 @@
       "watchOff": "إيقاف المراقبة",
       "remove": "إزالة المجلد من المكتبة",
       "removeConfirm": "انقر مرة أخرى للتأكيد"
-    }
+    },
+    "skeletonAriaLabel": "جارٍ تحميل {{name}}…"
   },
   "liked": {
     "badge": "المجموعة",

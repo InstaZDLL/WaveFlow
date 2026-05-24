@@ -414,7 +414,8 @@
       "watchOff": "Stoppen met volgen",
       "remove": "Map uit bibliotheek verwijderen",
       "removeConfirm": "Klik nogmaals om te bevestigen"
-    }
+    },
+    "skeletonAriaLabel": "{{name}} laden…"
   },
   "liked": {
     "badge": "Verzameling",

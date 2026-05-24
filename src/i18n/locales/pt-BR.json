@@ -414,7 +414,8 @@
       "watchOff": "Parar o monitoramento",
       "remove": "Remover pasta da biblioteca",
       "removeConfirm": "Clique novamente para confirmar"
-    }
+    },
+    "skeletonAriaLabel": "Carregando {{name}}…"
   },
   "liked": {
     "badge": "Coleção",

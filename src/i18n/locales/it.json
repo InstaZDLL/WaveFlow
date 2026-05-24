@@ -414,7 +414,8 @@
       "watchOff": "Smetti di monitorare",
       "remove": "Rimuovi la cartella dalla libreria",
       "removeConfirm": "Clicca di nuovo per confermare"
-    }
+    },
+    "skeletonAriaLabel": "Caricamento {{name}}…"
   },
   "liked": {
     "badge": "Raccolta",

@@ -414,7 +414,8 @@
       "watchOff": "Takibi durdur",
       "remove": "Klasörü kütüphaneden çıkar",
       "removeConfirm": "Onaylamak için tekrar tıkla"
-    }
+    },
+    "skeletonAriaLabel": "{{name}} yükleniyor…"
   },
   "liked": {
     "badge": "Koleksiyon",
