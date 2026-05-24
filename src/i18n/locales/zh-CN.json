@@ -1447,9 +1447,29 @@
     },
     "categoryNavLabel": "设置分类",
     "appearance": {
-      "placeholder": {
-        "title": "主题选择器将在 v1.3 推出",
-        "subtitle": "10 个预设（祖母绿、午夜、OLED、森林、日落……）瞬间为整个应用重新着色。"
+      "theme": {
+        "title": "主题",
+        "subtitle": "选择氛围——切换主题会立即重新染色整个应用。"
+      },
+      "mode": {
+        "light": "浅色",
+        "dark": "深色"
+      },
+      "themes": {
+        "default": "祖母绿 浅色",
+        "defaultDark": "祖母绿",
+        "oled": "OLED",
+        "midnight": "午夜",
+        "sunset": "日落",
+        "lavender": "薰衣草",
+        "crimson": "深红",
+        "ocean": "海洋",
+        "neon": "霓虹",
+        "midnightLight": "午夜浅色",
+        "sunsetLight": "日落浅色",
+        "lavenderLight": "薰衣草浅色",
+        "crimsonLight": "深红浅色",
+        "oceanLight": "海洋浅色"
       }
     },
     "shortcuts": {

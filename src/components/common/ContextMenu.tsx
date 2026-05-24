@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 
 /**
@@ -57,21 +58,26 @@ export function ContextMenu({
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const rect = el.getBoundingClientRect();
+    // Use the untransformed layout size — `getBoundingClientRect()`
+    // returns the post-transform box, and the motion.div below mounts
+    // at `scale: 0.96`, so the rect would be ~4 % smaller than the
+    // settled menu and the flip would misfire near the viewport edges.
+    const menuWidth = el.offsetWidth;
+    const menuHeight = el.offsetHeight;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     let left = point.x;
     let top = point.y;
-    if (left + rect.width + MENU_HORIZONTAL_MARGIN > vw) {
+    if (left + menuWidth + MENU_HORIZONTAL_MARGIN > vw) {
       left = Math.max(
         MENU_HORIZONTAL_MARGIN,
-        vw - rect.width - MENU_HORIZONTAL_MARGIN,
+        vw - menuWidth - MENU_HORIZONTAL_MARGIN,
       );
     }
-    if (top + rect.height + MENU_VERTICAL_MARGIN > vh) {
+    if (top + menuHeight + MENU_VERTICAL_MARGIN > vh) {
       top = Math.max(
         MENU_VERTICAL_MARGIN,
-        vh - rect.height - MENU_VERTICAL_MARGIN,
+        vh - menuHeight - MENU_VERTICAL_MARGIN,
       );
     }
     setPos({ top, left, position: "fixed", width });
@@ -103,16 +109,19 @@ export function ContextMenu({
   }, [onClose]);
 
   return (
-    <div
+    <motion.div
       ref={ref}
       data-context-menu
       role="menu"
       style={pos}
-      className="z-100 rounded-lg border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-black/60 py-1 text-sm animate-fade-in"
+      initial={{ opacity: 0, scale: 0.96, y: 4 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 520, damping: 32, mass: 0.45 }}
+      className="z-100 rounded-lg border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-black/60 py-1 text-sm"
       onContextMenu={(e) => e.preventDefault()}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }
 
@@ -218,20 +227,26 @@ export function ContextMenuSub({
     const trigger = itemRef.current;
     const sub = subRef.current;
     if (!trigger || !sub) return;
+    // Trigger isn't transformed → its rect is the layout rect.
     const tRect = trigger.getBoundingClientRect();
-    const sRect = sub.getBoundingClientRect();
+    // Submenu mounts at `scale: 0.96`, so `getBoundingClientRect()`
+    // would underestimate its size — use the untransformed layout
+    // dimensions for the flip math (see the root menu for the same
+    // pattern).
+    const subWidth = sub.offsetWidth;
+    const subHeight = sub.offsetHeight;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     let left = tRect.right;
     let top = tRect.top;
-    if (left + sRect.width + MENU_HORIZONTAL_MARGIN > vw) {
+    if (left + subWidth + MENU_HORIZONTAL_MARGIN > vw) {
       // Flip to the trigger's left edge.
-      left = Math.max(MENU_HORIZONTAL_MARGIN, tRect.left - sRect.width);
+      left = Math.max(MENU_HORIZONTAL_MARGIN, tRect.left - subWidth);
     }
-    if (top + sRect.height + MENU_VERTICAL_MARGIN > vh) {
+    if (top + subHeight + MENU_VERTICAL_MARGIN > vh) {
       top = Math.max(
         MENU_VERTICAL_MARGIN,
-        vh - sRect.height - MENU_VERTICAL_MARGIN,
+        vh - subHeight - MENU_VERTICAL_MARGIN,
       );
     }
     setSubPos({ top, left, position: "fixed", width });
@@ -265,17 +280,20 @@ export function ContextMenuSub({
         <ChevronRight size={14} className="text-zinc-400" />
       </button>
       {open && (
-        <div
+        <motion.div
           ref={subRef}
           data-context-menu
           role="menu"
           style={subPos}
-          className="z-101 rounded-lg border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-black/60 py-1 animate-fade-in"
+          initial={{ opacity: 0, scale: 0.96, x: -4 }}
+          animate={{ opacity: 1, scale: 1, x: 0 }}
+          transition={{ type: "spring", stiffness: 520, damping: 32, mass: 0.45 }}
+          className="z-101 rounded-lg border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-black/60 py-1"
           onMouseEnter={cancelClose}
           onMouseLeave={scheduleClose}
         >
           {children}
-        </div>
+        </motion.div>
       )}
     </div>
   );

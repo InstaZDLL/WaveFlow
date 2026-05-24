@@ -1497,9 +1497,29 @@
     },
     "categoryNavLabel": "فئات الإعدادات",
     "appearance": {
-      "placeholder": {
-        "title": "محدّد القوالب قادم في الإصدار v1.3",
-        "subtitle": "10 إعدادات مسبقة (Emerald، Midnight، OLED، Forest، Sunset…) تعيد تلوين التطبيق بأكمله فورًا. ترقّب المزيد."
+      "theme": {
+        "title": "السمة",
+        "subtitle": "اختر الأجواء — تغيير السمة يعيد تلوين التطبيق بأكمله فوراً."
+      },
+      "mode": {
+        "light": "فاتح",
+        "dark": "داكن"
+      },
+      "themes": {
+        "default": "زمرد فاتح",
+        "defaultDark": "زمرد",
+        "oled": "OLED",
+        "midnight": "منتصف الليل",
+        "sunset": "غروب الشمس",
+        "lavender": "خزامى",
+        "crimson": "قرمزي",
+        "ocean": "محيط",
+        "neon": "نيون",
+        "midnightLight": "منتصف الليل فاتح",
+        "sunsetLight": "غروب الشمس فاتح",
+        "lavenderLight": "خزامى فاتح",
+        "crimsonLight": "قرمزي فاتح",
+        "oceanLight": "محيط فاتح"
       }
     },
     "playerBarLayout": {

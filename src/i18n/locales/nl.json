@@ -1493,9 +1493,29 @@
     },
     "categoryNavLabel": "Instellingscategorieën",
     "appearance": {
-      "placeholder": {
-        "title": "De themakiezer komt in v1.3",
-        "subtitle": "10 presets (Emerald, Midnight, OLED, Forest, Sunset…) die de hele app in één keer hertinten. Wordt vervolgd."
+      "theme": {
+        "title": "Thema",
+        "subtitle": "Kies een sfeer — themawisseling verft de hele app direct opnieuw."
+      },
+      "mode": {
+        "light": "Licht",
+        "dark": "Donker"
+      },
+      "themes": {
+        "default": "Smaragd Licht",
+        "defaultDark": "Smaragd",
+        "oled": "OLED",
+        "midnight": "Middernacht",
+        "sunset": "Zonsondergang",
+        "lavender": "Lavendel",
+        "crimson": "Karmijn",
+        "ocean": "Oceaan",
+        "neon": "Neon",
+        "midnightLight": "Middernacht Licht",
+        "sunsetLight": "Zonsondergang Licht",
+        "lavenderLight": "Lavendel Licht",
+        "crimsonLight": "Karmijn Licht",
+        "oceanLight": "Oceaan Licht"
       }
     },
     "playerBarLayout": {

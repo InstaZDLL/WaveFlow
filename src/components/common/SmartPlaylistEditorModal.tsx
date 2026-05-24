@@ -13,6 +13,10 @@ import {
 import { listGenres, type GenreRow } from "../../lib/tauri/browse";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { RuleTreeEditor } from "./RuleTreeEditor";
+import {
+  AnimatedModalContent,
+  AnimatedModalShell,
+} from "./AnimatedModalShell";
 
 interface SmartPlaylistEditorModalProps {
   isOpen: boolean;
@@ -94,8 +98,6 @@ export function SmartPlaylistEditorModal({
       .catch(() => {});
   }, [isOpen, existing]);
 
-  if (!isOpen) return null;
-
   const currentRules = (): CustomRules => ({ tree, sort, limit });
 
   const handlePreview = async () => {
@@ -140,17 +142,13 @@ export function SmartPlaylistEditorModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md flex items-center justify-center animate-fade-in p-4"
-      onClick={onClose}
-    >
-      <div
+    <AnimatedModalShell isOpen={isOpen} onBackdropClick={onClose}>
+      <AnimatedModalContent
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="smart-playlist-editor-title"
-        className="relative bg-white dark:bg-surface-dark-elevated text-zinc-900 dark:text-zinc-100 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in"
-        onClick={(e) => e.stopPropagation()}
+        className="relative bg-white dark:bg-surface-dark-elevated text-zinc-900 dark:text-zinc-100 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
@@ -291,8 +289,8 @@ export function SmartPlaylistEditorModal({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </AnimatedModalContent>
+    </AnimatedModalShell>
   );
 }
 

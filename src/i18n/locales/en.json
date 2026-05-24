@@ -1493,9 +1493,29 @@
     },
     "categoryNavLabel": "Settings categories",
     "appearance": {
-      "placeholder": {
-        "title": "Theme picker ships in v1.3",
-        "subtitle": "10 presets (Emerald, Midnight, OLED, Forest, Sunset…) that retint the entire app instantly. Stay tuned."
+      "theme": {
+        "title": "Theme",
+        "subtitle": "Pick a vibe — switching themes re-tints the entire app instantly."
+      },
+      "mode": {
+        "light": "Light",
+        "dark": "Dark"
+      },
+      "themes": {
+        "default": "Emerald Light",
+        "defaultDark": "Emerald",
+        "oled": "OLED",
+        "midnight": "Midnight",
+        "sunset": "Sunset",
+        "lavender": "Lavender",
+        "crimson": "Crimson",
+        "ocean": "Ocean",
+        "neon": "Neon",
+        "midnightLight": "Midnight Light",
+        "sunsetLight": "Sunset Light",
+        "lavenderLight": "Lavender Light",
+        "crimsonLight": "Crimson Light",
+        "oceanLight": "Ocean Light"
       }
     },
     "playerBarLayout": {

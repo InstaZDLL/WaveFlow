@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { AnimatePresence, motion } from "framer-motion";
 import { X, Plus, ArrowLeft, Check, Pencil, Trash2 } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { useProfile } from "../../hooks/useProfile";
@@ -74,8 +75,6 @@ export function ProfileSelectorModal({
   }, [view, onClose]);
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, handleEscape);
 
-  if (!isOpen) return null;
-
   const canSubmit = newProfileName.trim().length > 0 && !isSubmitting;
   const currentColor = getProfileColor(selectedColorId);
 
@@ -136,16 +135,41 @@ export function ProfileSelectorModal({
   };
 
   return (
-    <div
-      ref={dialogRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={t("profiles.select.title")}
-      className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md flex items-center justify-center animate-fade-in p-4"
-      onClick={onClose}
-    >
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={
+            view === "create"
+              ? t("profiles.create.title")
+              : view === "delete"
+                ? t("profiles.delete.title", {
+                    name: profileToDelete?.name ?? "",
+                  })
+                : t("profiles.select.title")
+          }
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={onClose}
+        >
+          {/* Inner AnimatePresence cross-fades between the three internal
+              views (select / create / delete) so switching feels smooth
+              instead of snapping. `mode="wait"` lets the outgoing view
+              finish its exit before the incoming view mounts. */}
+          <AnimatePresence mode="wait">
       {view === "select" && (
-        <>
+        <motion.div
+          key="select"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+        >
           <button
             type="button"
             onClick={onClose}
@@ -268,12 +292,17 @@ export function ProfileSelectorModal({
               )}
             </div>
           </div>
-        </>
+        </motion.div>
       )}
 
       {view === "delete" && profileToDelete && (
-        <div
-          className="relative w-full max-w-md rounded-3xl border border-zinc-800 bg-surface-dark-elevated p-8 shadow-2xl overflow-hidden animate-fade-in"
+        <motion.div
+          key="delete"
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.97 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+          className="relative w-full max-w-md rounded-3xl border border-zinc-800 bg-surface-dark-elevated p-8 shadow-2xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           <button
@@ -347,12 +376,17 @@ export function ProfileSelectorModal({
               </span>
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {view === "create" && (
-        <div
-          className="relative w-full max-w-md rounded-3xl border border-zinc-800 bg-surface-dark-elevated p-8 shadow-2xl overflow-hidden animate-fade-in"
+        <motion.div
+          key="create"
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.97 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+          className="relative w-full max-w-md rounded-3xl border border-zinc-800 bg-surface-dark-elevated p-8 shadow-2xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Back button */}
@@ -467,8 +501,11 @@ export function ProfileSelectorModal({
               <span>{t("profiles.create.submit")}</span>
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
-    </div>
+          </AnimatePresence>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

@@ -1493,9 +1493,29 @@
     },
     "categoryNavLabel": "Categorie delle impostazioni",
     "appearance": {
-      "placeholder": {
-        "title": "Il selettore dei temi arriva in v1.3",
-        "subtitle": "10 preset (Emerald, Midnight, OLED, Forest, Sunset…) che ricolorano subito l'intera app. Resta sintonizzato."
+      "theme": {
+        "title": "Tema",
+        "subtitle": "Scegli un'atmosfera — cambiare tema ritinge l'intera app istantaneamente."
+      },
+      "mode": {
+        "light": "Chiaro",
+        "dark": "Scuro"
+      },
+      "themes": {
+        "default": "Smeraldo Chiaro",
+        "defaultDark": "Smeraldo",
+        "oled": "OLED",
+        "midnight": "Mezzanotte",
+        "sunset": "Tramonto",
+        "lavender": "Lavanda",
+        "crimson": "Cremisi",
+        "ocean": "Oceano",
+        "neon": "Neon",
+        "midnightLight": "Mezzanotte Chiaro",
+        "sunsetLight": "Tramonto Chiaro",
+        "lavenderLight": "Lavanda Chiaro",
+        "crimsonLight": "Cremisi Chiaro",
+        "oceanLight": "Oceano Chiaro"
       }
     },
     "playerBarLayout": {

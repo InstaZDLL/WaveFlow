@@ -1493,9 +1493,29 @@
     },
     "categoryNavLabel": "Categorías de configuración",
     "appearance": {
-      "placeholder": {
-        "title": "El selector de temas llega en v1.3",
-        "subtitle": "10 presets (Esmeralda, Medianoche, OLED, Bosque, Atardecer…) que recolorean toda la app al instante. Continuará."
+      "theme": {
+        "title": "Tema",
+        "subtitle": "Elige un ambiente — cambiar el tema vuelve a tintar la app al instante."
+      },
+      "mode": {
+        "light": "Claro",
+        "dark": "Oscuro"
+      },
+      "themes": {
+        "default": "Esmeralda Claro",
+        "defaultDark": "Esmeralda",
+        "oled": "OLED",
+        "midnight": "Medianoche",
+        "sunset": "Atardecer",
+        "lavender": "Lavanda",
+        "crimson": "Carmesí",
+        "ocean": "Océano",
+        "neon": "Neón",
+        "midnightLight": "Medianoche Claro",
+        "sunsetLight": "Atardecer Claro",
+        "lavenderLight": "Lavanda Claro",
+        "crimsonLight": "Carmesí Claro",
+        "oceanLight": "Océano Claro"
       }
     },
     "playerBarLayout": {

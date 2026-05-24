@@ -1493,9 +1493,29 @@
     },
     "categoryNavLabel": "설정 카테고리",
     "appearance": {
-      "placeholder": {
-        "title": "테마 선택기는 v1.3에 도착합니다",
-        "subtitle": "10개의 프리셋 (에메랄드, 미드나잇, OLED, 포레스트, 선셋…)이 앱 전체를 즉시 다시 칠합니다."
+      "theme": {
+        "title": "테마",
+        "subtitle": "분위기를 선택하세요 — 테마를 바꾸면 앱 전체가 즉시 다시 칠해집니다."
+      },
+      "mode": {
+        "light": "라이트",
+        "dark": "다크"
+      },
+      "themes": {
+        "default": "에메랄드 라이트",
+        "defaultDark": "에메랄드",
+        "oled": "OLED",
+        "midnight": "미드나잇",
+        "sunset": "선셋",
+        "lavender": "라벤더",
+        "crimson": "크림슨",
+        "ocean": "오션",
+        "neon": "네온",
+        "midnightLight": "미드나잇 라이트",
+        "sunsetLight": "선셋 라이트",
+        "lavenderLight": "라벤더 라이트",
+        "crimsonLight": "크림슨 라이트",
+        "oceanLight": "오션 라이트"
       }
     },
     "playerBarLayout": {

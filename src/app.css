@@ -2,9 +2,60 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Default accent palette = Tailwind's emerald, exposed as CSS
+   variables so themes (see `src/lib/themes.ts`) can override every
+   shade at runtime. Components keep using `bg-emerald-*` /
+   `text-emerald-*` etc — those utilities resolve to these vars in
+   `@theme inline` below, so a theme swap re-tints the entire app
+   without touching a single component. */
+:root {
+  --accent-50: oklch(0.979 0.021 166.113);
+  --accent-100: oklch(0.95 0.052 163.051);
+  --accent-200: oklch(0.905 0.093 164.15);
+  --accent-300: oklch(0.845 0.143 164.978);
+  --accent-400: oklch(0.765 0.177 163.223);
+  --accent-500: oklch(0.696 0.17 162.48);
+  --accent-600: oklch(0.596 0.145 163.225);
+  --accent-700: oklch(0.508 0.118 165.612);
+  --accent-800: oklch(0.432 0.095 166.913);
+  --accent-900: oklch(0.378 0.077 168.94);
+  --accent-950: oklch(0.262 0.051 172.552);
+  --ambient-bg: #ffffff;
+}
+
+@theme inline {
+  --color-emerald-50: var(--accent-50);
+  --color-emerald-100: var(--accent-100);
+  --color-emerald-200: var(--accent-200);
+  --color-emerald-300: var(--accent-300);
+  --color-emerald-400: var(--accent-400);
+  --color-emerald-500: var(--accent-500);
+  --color-emerald-600: var(--accent-600);
+  --color-emerald-700: var(--accent-700);
+  --color-emerald-800: var(--accent-800);
+  --color-emerald-900: var(--accent-900);
+  --color-emerald-950: var(--accent-950);
+}
+
 @theme {
   --color-surface-dark: #121212;
   --color-surface-dark-elevated: #181818;
+  /* Light-mode surface family. Defaults to flat white + a barely-perceivable
+     gray for elevated panels (player bar, audio quality footer). Themed
+     light presets override `--color-surface-light` to match their ambient
+     tint so sidebar / right panels carry the theme personality — without
+     this, every light theme would leave a stark white sidebar against a
+     pale-tinted body (Sunset Light / Lavender Light / etc were all broken
+     this way until the tokens went theme-aware). */
+  --color-surface-light: #ffffff;
+  --color-surface-light-elevated: #fafafa;
+}
+
+/* Theme ambient background. AppLayout's outer wrapper uses
+   `bg-app-ambient` (defined as a utility below) so themes can paint
+   their signature tint without touching any JSX. */
+@utility bg-app-ambient {
+  background-color: var(--ambient-bg);
 }
 
 @utility animate-fade-in {
@@ -188,9 +239,10 @@
  * Many components rely on Tailwind's `focus-visible:ring-*` per-button,
  * but plenty of icon buttons forgot it. `:where()` keeps specificity at
  * zero so any inline `focus-visible:ring-*` (or `focus:outline-none`)
- * still wins — this is a baseline, not an override. The colour matches
- * the app's emerald accent so the indicator harmonises with the rest
- * of the focus / hover states. */
+ * still wins — this is a baseline, not an override. The colour reads
+ * from the active theme's accent so the indicator harmonises with the
+ * rest of the focus / hover states (was hardcoded `#10b981` which left
+ * non-emerald presets with a mismatched green ring). */
 :where(
   button,
   a,
@@ -201,7 +253,7 @@
   [role="option"],
   [tabindex]
 ):focus-visible {
-  outline: 2px solid #10b981;
+  outline: 2px solid var(--accent-500);
   outline-offset: 2px;
   border-radius: 4px;
 }

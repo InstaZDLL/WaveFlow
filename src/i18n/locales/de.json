@@ -1493,9 +1493,29 @@
     },
     "categoryNavLabel": "Einstellungskategorien",
     "appearance": {
-      "placeholder": {
-        "title": "Theme-Auswahl kommt in v1.3",
-        "subtitle": "10 Presets (Emerald, Midnight, OLED, Forest, Sunset…), die die gesamte App sofort umfärben. Bleib dran."
+      "theme": {
+        "title": "Thema",
+        "subtitle": "Wähle eine Stimmung – das Wechseln färbt die gesamte App neu ein."
+      },
+      "mode": {
+        "light": "Hell",
+        "dark": "Dunkel"
+      },
+      "themes": {
+        "default": "Smaragd Hell",
+        "defaultDark": "Smaragd",
+        "oled": "OLED",
+        "midnight": "Mitternacht",
+        "sunset": "Sonnenuntergang",
+        "lavender": "Lavendel",
+        "crimson": "Karmesin",
+        "ocean": "Ozean",
+        "neon": "Neon",
+        "midnightLight": "Mitternacht Hell",
+        "sunsetLight": "Sonnenuntergang Hell",
+        "lavenderLight": "Lavendel Hell",
+        "crimsonLight": "Karmesinrot Hell",
+        "oceanLight": "Ozean Hell"
       }
     },
     "playerBarLayout": {

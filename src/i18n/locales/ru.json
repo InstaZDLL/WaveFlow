@@ -1495,9 +1495,29 @@
     },
     "categoryNavLabel": "Категории настроек",
     "appearance": {
-      "placeholder": {
-        "title": "Выбор тем появится в v1.3",
-        "subtitle": "10 пресетов (Emerald, Midnight, OLED, Forest, Sunset…), которые мгновенно перекрашивают всё приложение. Следите за обновлениями."
+      "theme": {
+        "title": "Тема",
+        "subtitle": "Выберите настроение — смена темы мгновенно перекрашивает всё приложение."
+      },
+      "mode": {
+        "light": "Светлая",
+        "dark": "Тёмная"
+      },
+      "themes": {
+        "default": "Изумруд Светлый",
+        "defaultDark": "Изумруд",
+        "oled": "OLED",
+        "midnight": "Полночь",
+        "sunset": "Закат",
+        "lavender": "Лаванда",
+        "crimson": "Багровый",
+        "ocean": "Океан",
+        "neon": "Неон",
+        "midnightLight": "Полночь светлая",
+        "sunsetLight": "Закат светлый",
+        "lavenderLight": "Лаванда светлая",
+        "crimsonLight": "Малиновый светлый",
+        "oceanLight": "Океан светлый"
       }
     },
     "playerBarLayout": {

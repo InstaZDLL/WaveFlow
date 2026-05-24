@@ -1440,9 +1440,29 @@
     },
     "categoryNavLabel": "設定カテゴリ",
     "appearance": {
-      "placeholder": {
-        "title": "テーマピッカーは v1.3 で登場",
-        "subtitle": "10種類のプリセット（エメラルド、ミッドナイト、OLED、フォレスト、サンセット…）でアプリ全体が即座に再彩色されます。"
+      "theme": {
+        "title": "テーマ",
+        "subtitle": "気分を選んでください — テーマを変えると即座に全体が再彩色されます。"
+      },
+      "mode": {
+        "light": "ライト",
+        "dark": "ダーク"
+      },
+      "themes": {
+        "default": "エメラルド・ライト",
+        "defaultDark": "エメラルド",
+        "oled": "OLED",
+        "midnight": "ミッドナイト",
+        "sunset": "サンセット",
+        "lavender": "ラベンダー",
+        "crimson": "クリムゾン",
+        "ocean": "オーシャン",
+        "neon": "ネオン",
+        "midnightLight": "ミッドナイト ライト",
+        "sunsetLight": "サンセット ライト",
+        "lavenderLight": "ラベンダー ライト",
+        "crimsonLight": "クリムゾン ライト",
+        "oceanLight": "オーシャン ライト"
       }
     },
     "shortcuts": {

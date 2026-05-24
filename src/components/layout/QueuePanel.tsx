@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { motion } from "framer-motion";
 import { X, ListMusic, GripVertical, Radio } from "lucide-react";
 import {
   DndContext,
@@ -163,8 +164,15 @@ export function QueuePanel() {
   const isActive = playbackState === "playing" || playbackState === "paused";
 
   return (
-    <div className="h-full w-80 shrink-0 border-l bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100">
-      <div className="p-6 flex flex-col h-full">
+    <motion.aside
+      key="queue"
+      initial={{ width: 0, opacity: 0 }}
+      animate={{ width: 320, opacity: 1 }}
+      exit={{ width: 0, opacity: 0 }}
+      transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.8 }}
+      className="h-full shrink-0 overflow-hidden border-l bg-surface-light border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
+    >
+      <div className="p-6 flex flex-col h-full w-80">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold">{t("queue.title")}</h2>
@@ -244,7 +252,7 @@ export function QueuePanel() {
           </div>
         )}
       </div>
-    </div>
+    </motion.aside>
   );
 }
 

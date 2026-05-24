@@ -1213,9 +1213,29 @@
     },
     "categoryNavLabel": "Catégories des paramètres",
     "appearance": {
-      "placeholder": {
-        "title": "Le sélecteur de thèmes arrive en v1.3",
-        "subtitle": "10 presets (Émeraude, Minuit, OLED, Forêt, Coucher de soleil…) avec accent re-tinté sur toute l'app. À suivre."
+      "theme": {
+        "title": "Thème",
+        "subtitle": "Choisissez l'ambiance qui vous correspond. Le changement re-teinte l'application entière."
+      },
+      "mode": {
+        "light": "Clair",
+        "dark": "Sombre"
+      },
+      "themes": {
+        "default": "Émeraude Clair",
+        "defaultDark": "Émeraude",
+        "oled": "OLED",
+        "midnight": "Minuit",
+        "sunset": "Coucher de soleil",
+        "lavender": "Lavande",
+        "crimson": "Cramoisi",
+        "ocean": "Océan",
+        "neon": "Néon",
+        "midnightLight": "Minuit Clair",
+        "sunsetLight": "Coucher de soleil Clair",
+        "lavenderLight": "Lavande Claire",
+        "crimsonLight": "Cramoisi Clair",
+        "oceanLight": "Océan Clair"
       }
     },
     "shortcuts": {

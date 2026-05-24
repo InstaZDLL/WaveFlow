@@ -1493,9 +1493,29 @@
     },
     "categoryNavLabel": "Categorias de definições",
     "appearance": {
-      "placeholder": {
-        "title": "O seletor de temas chega na v1.3",
-        "subtitle": "10 predefinições (Esmeralda, Meia-noite, OLED, Floresta, Pôr do sol…) que retingem toda a app instantaneamente."
+      "theme": {
+        "title": "Tema",
+        "subtitle": "Escolha uma vibe — mudar de tema retinge toda a app instantaneamente."
+      },
+      "mode": {
+        "light": "Claro",
+        "dark": "Escuro"
+      },
+      "themes": {
+        "default": "Esmeralda Claro",
+        "defaultDark": "Esmeralda",
+        "oled": "OLED",
+        "midnight": "Meia-noite",
+        "sunset": "Pôr do sol",
+        "lavender": "Lavanda",
+        "crimson": "Carmesim",
+        "ocean": "Oceano",
+        "neon": "Néon",
+        "midnightLight": "Meia-noite Claro",
+        "sunsetLight": "Pôr do Sol Claro",
+        "lavenderLight": "Lavanda Claro",
+        "crimsonLight": "Carmesim Claro",
+        "oceanLight": "Oceano Claro"
       }
     },
     "playerBarLayout": {

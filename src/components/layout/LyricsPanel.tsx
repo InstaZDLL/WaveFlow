@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { motion } from "framer-motion";
 import {
   X,
   Music2,
@@ -176,8 +177,15 @@ export function LyricsPanel() {
 
   // ── Render ──────────────────────────────────────────────────────
   return (
-    <div className="h-full w-80 shrink-0 border-l bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100">
-      <div className="flex flex-col h-full">
+    <motion.aside
+      key="lyrics"
+      initial={{ width: 0, opacity: 0 }}
+      animate={{ width: 320, opacity: 1 }}
+      exit={{ width: 0, opacity: 0 }}
+      transition={{ type: "spring", stiffness: 320, damping: 32, mass: 0.8 }}
+      className="h-full shrink-0 overflow-hidden border-l bg-surface-light border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
+    >
+      <div className="flex flex-col h-full w-80">
         {/* Header */}
         <div className="flex items-center justify-between p-6 pb-4 border-b border-zinc-100 dark:border-zinc-800">
           <div className="min-w-0">
@@ -389,7 +397,7 @@ export function LyricsPanel() {
           </div>
         )}
       </div>
-    </div>
+    </motion.aside>
   );
 }
 

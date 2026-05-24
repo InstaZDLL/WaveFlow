@@ -1493,9 +1493,29 @@
     },
     "categoryNavLabel": "Kategori pengaturan",
     "appearance": {
-      "placeholder": {
-        "title": "Pemilih tema datang di v1.3",
-        "subtitle": "10 preset (Emerald, Midnight, OLED, Forest, Sunset…) yang seketika mengubah warna seluruh aplikasi. Nantikan."
+      "theme": {
+        "title": "Tema",
+        "subtitle": "Pilih suasana — mengganti tema mewarnai ulang seluruh aplikasi seketika."
+      },
+      "mode": {
+        "light": "Terang",
+        "dark": "Gelap"
+      },
+      "themes": {
+        "default": "Zamrud Terang",
+        "defaultDark": "Zamrud",
+        "oled": "OLED",
+        "midnight": "Tengah Malam",
+        "sunset": "Matahari Terbenam",
+        "lavender": "Lavender",
+        "crimson": "Merah Tua",
+        "ocean": "Samudra",
+        "neon": "Neon",
+        "midnightLight": "Tengah Malam Terang",
+        "sunsetLight": "Matahari Terbenam Terang",
+        "lavenderLight": "Lavender Terang",
+        "crimsonLight": "Merah Tua Terang",
+        "oceanLight": "Samudra Terang"
       }
     },
     "playerBarLayout": {

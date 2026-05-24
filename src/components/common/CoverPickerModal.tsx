@@ -3,6 +3,10 @@ import { useTranslation } from "react-i18next";
 import { ImageIcon, FolderOpen, Search, Loader2 } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import {
+  AnimatedModalContent,
+  AnimatedModalShell,
+} from "./AnimatedModalShell";
+import {
   searchAlbumsDeezer,
   setAlbumArtworkFromDeezer,
   setAlbumArtworkFromFile,
@@ -35,98 +39,163 @@ export function CoverPickerModal({
   const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<number | null>(null);
+  // Session token bumped on every close → handlers that await a
+  // long-running backend call (`setAlbumArtworkFromDeezer`, the native
+  // `pickFile` dialog, `setAlbumArtworkFromFile`) can detect that the
+  // user closed the modal mid-flight and skip the post-await
+  // `onSuccess` / `onClose` / `setError` writes so they don't trigger
+  // on a now-reopened modal targeting a different album.
+  const sessionRef = useRef(0);
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
   useEffect(() => {
     if (!isOpen) {
+      // Bump the session so any in-flight apply handler skips its
+      // post-await writes (success or error) — they'd otherwise land
+      // on a now-reopened modal that's targeting a different album.
+      sessionRef.current++;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setQuery(initialQuery ?? "");
       setResults([]);
       setError(null);
       setTab("deezer");
+      // Clear the spinner too — if the modal was closed mid-fetch, the
+      // search effect's `.finally` short-circuits on its `cancelled`
+      // token (to avoid clobbering a newer query's state) and would
+      // otherwise leave `isSearching=true` lingering on the next open.
+      setIsSearching(false);
+      // Same reason for the apply spinner — `handlePickDeezer` /
+      // `handlePickFile`'s `finally` short-circuits on the session
+      // staleness check, so the loader would persist on the next open.
+      setIsApplying(false);
     }
   }, [isOpen, initialQuery]);
 
   useEffect(() => {
-    if (!isOpen || tab !== "deezer") return;
+    if (!isOpen || tab !== "deezer") {
+      // If the user switches tabs (or the modal closes) while a fetch
+      // is in flight, the in-flight `.finally` short-circuits on the
+      // `cancelled` token below and would leave `isSearching=true`
+      // visible on the new tab (or stale on the next reopen). The
+      // `!isOpen` path is also covered by the reset effect above, so
+      // this is the load-bearing case for the `tab !== "deezer"` swap.
+      // Also clear any error from a previous Deezer search — the
+      // banner is rendered against the Deezer tab body, so leaving it
+      // armed while the user is on the Local tab is misleading.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsSearching(false);
+      setError(null);
+      return;
+    }
     if (debounceRef.current != null) {
       window.clearTimeout(debounceRef.current);
     }
     const trimmed = query.trim();
     if (trimmed.length < 2) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([]);
+      // If a previous fetch is still in-flight, its `.finally` will be
+      // short-circuited by the `cancelled` token below — so the spinner
+      // would stay on forever (user deletes letters and the loader
+      // never stops). Force-clear here. Clear the error too so a
+      // failed previous query doesn't keep a banner visible against
+      // an empty results list.
+      setIsSearching(false);
+      setError(null);
       return;
     }
+    // Cancellation token — `AnimatedModalShell` keeps this component
+    // mounted across its exit animation, and the user can re-type while
+    // a request is in flight. Without this guard a slow Deezer response
+    // could clobber `results` / `error` / `isSearching` after the user
+    // closed the modal or moved on to a new query.
+    let cancelled = false;
     debounceRef.current = window.setTimeout(() => {
       setIsSearching(true);
       setError(null);
       searchAlbumsDeezer(trimmed)
-        .then((res) => setResults(res))
+        .then((res) => {
+          if (cancelled) return;
+          setResults(res);
+        })
         .catch((err) => {
+          if (cancelled) return;
           console.error("[CoverPickerModal] search failed", err);
           setError(String(err));
         })
-        .finally(() => setIsSearching(false));
+        .finally(() => {
+          if (cancelled) return;
+          setIsSearching(false);
+        });
     }, 300);
     return () => {
+      cancelled = true;
       if (debounceRef.current != null) {
         window.clearTimeout(debounceRef.current);
       }
     };
   }, [query, tab, isOpen]);
 
-  if (!isOpen) return null;
 
   const handlePickDeezer = async (album: DeezerAlbumLite) => {
     if (isApplying) return;
+    // Snapshot the session — if the user closes the modal (or it
+    // re-opens against a different album) mid-await, the post-await
+    // `onSuccess` / `onClose` would apply to the wrong target, and
+    // `setError` / `setIsApplying` would land on a stale instance.
+    const session = sessionRef.current;
     setIsApplying(true);
     setError(null);
     try {
       await setAlbumArtworkFromDeezer(albumId, album.deezer_id);
+      if (session !== sessionRef.current) return;
       onSuccess();
       onClose();
     } catch (err) {
+      if (session !== sessionRef.current) return;
       console.error("[CoverPickerModal] set deezer cover failed", err);
       setError(String(err));
     } finally {
-      setIsApplying(false);
+      if (session === sessionRef.current) {
+        setIsApplying(false);
+      }
     }
   };
 
   const handlePickFile = async () => {
     if (isApplying) return;
+    const session = sessionRef.current;
     try {
       const path = await pickFile(
         ["jpg", "jpeg", "png", "webp"],
         t("library.changeCover"),
       );
+      if (session !== sessionRef.current) return;
       if (!path) return;
       setIsApplying(true);
       setError(null);
       await setAlbumArtworkFromFile(albumId, path);
+      if (session !== sessionRef.current) return;
       onSuccess();
       onClose();
     } catch (err) {
+      if (session !== sessionRef.current) return;
       console.error("[CoverPickerModal] set file cover failed", err);
       setError(String(err));
     } finally {
-      setIsApplying(false);
+      if (session === sessionRef.current) {
+        setIsApplying(false);
+      }
     }
   };
 
   return (
-    <div
-      className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md flex items-center justify-center animate-fade-in p-4"
-      onClick={onClose}
-    >
-      <div
+    <AnimatedModalShell isOpen={isOpen} onBackdropClick={onClose}>
+      <AnimatedModalContent
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="cover-picker-title"
-        className="relative w-full max-w-2xl rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated animate-fade-in max-h-[90vh] overflow-hidden flex flex-col"
-        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-2xl rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-surface-dark-elevated max-h-[90vh] overflow-hidden flex flex-col"
       >
         <h2
           id="cover-picker-title"
@@ -255,7 +324,7 @@ export function CoverPickerModal({
             {t("common.cancel")}
           </button>
         </div>
-      </div>
-    </div>
+      </AnimatedModalContent>
+    </AnimatedModalShell>
   );
 }

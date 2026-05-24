@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AnimatePresence, motion } from "framer-motion";
 import { Volume2, Speaker, Check, Loader2 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import {
@@ -25,8 +26,6 @@ export function DeviceMenu() {
     void refreshOutputDevices();
   }, [isDeviceMenuOpen, refreshOutputDevices]);
 
-  if (!isDeviceMenuOpen) return null;
-
   const activeDevice = outputDevices.find((d) => d.is_active) ?? null;
 
   const handleSelect = async (device: OutputDevice) => {
@@ -49,7 +48,16 @@ export function DeviceMenu() {
   const isEmpty = outputDevices.length === 0;
 
   return (
-    <div className="absolute bottom-4 right-20 w-96 rounded-xl shadow-2xl z-50 border py-2 flex flex-col max-h-[60vh] overflow-y-auto bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200">
+    <AnimatePresence>
+      {isDeviceMenuOpen && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.97, y: 4 }}
+          transition={{ type: "spring", stiffness: 480, damping: 30, mass: 0.5 }}
+          style={{ transformOrigin: "bottom right" }}
+          className="absolute bottom-4 right-20 w-96 rounded-xl shadow-2xl z-50 border py-2 flex flex-col max-h-[60vh] overflow-y-auto bg-white border-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200"
+        >
       <div className="px-4 py-2 text-sm font-semibold flex items-center space-x-2 text-emerald-500 bg-emerald-500/10 mb-1">
         <Volume2 size={16} aria-hidden="true" />
         <span className="truncate">
@@ -95,6 +103,8 @@ export function DeviceMenu() {
           </button>
         );
       })}
-    </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

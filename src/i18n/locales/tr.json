@@ -1493,9 +1493,29 @@
     },
     "categoryNavLabel": "Ayar kategorileri",
     "appearance": {
-      "placeholder": {
-        "title": "Tema seçici v1.3'te geliyor",
-        "subtitle": "10 önayar (Emerald, Midnight, OLED, Forest, Sunset…) tüm uygulamayı anında yeniden renklendirir. Takipte kal."
+      "theme": {
+        "title": "Tema",
+        "subtitle": "Bir hava seçin — temayı değiştirmek uygulamayı anında yeniden renklendirir."
+      },
+      "mode": {
+        "light": "Açık",
+        "dark": "Koyu"
+      },
+      "themes": {
+        "default": "Zümrüt Açık",
+        "defaultDark": "Zümrüt",
+        "oled": "OLED",
+        "midnight": "Gece Yarısı",
+        "sunset": "Gün Batımı",
+        "lavender": "Lavanta",
+        "crimson": "Koyu Kırmızı",
+        "ocean": "Okyanus",
+        "neon": "Neon",
+        "midnightLight": "Gece Yarısı Açık",
+        "sunsetLight": "Gün Batımı Açık",
+        "lavenderLight": "Lavanta Açık",
+        "crimsonLight": "Kızıl Açık",
+        "oceanLight": "Okyanus Açık"
       }
     },
     "playerBarLayout": {

@@ -1493,9 +1493,29 @@
     },
     "categoryNavLabel": "सेटिंग्स श्रेणियाँ",
     "appearance": {
-      "placeholder": {
-        "title": "थीम पिकर v1.3 में आ रहा है",
-        "subtitle": "10 प्रीसेट (एमराल्ड, मध्यरात्रि, OLED, वन, सूर्यास्त…) पूरे ऐप को तुरंत फिर से रंगते हैं।"
+      "theme": {
+        "title": "थीम",
+        "subtitle": "एक माहौल चुनें — थीम बदलने पर पूरा ऐप तुरंत फिर से रंगा जाता है।"
+      },
+      "mode": {
+        "light": "हल्का",
+        "dark": "गहरा"
+      },
+      "themes": {
+        "default": "एमराल्ड लाइट",
+        "defaultDark": "एमराल्ड",
+        "oled": "OLED",
+        "midnight": "मध्यरात्रि",
+        "sunset": "सूर्यास्त",
+        "lavender": "लैवेंडर",
+        "crimson": "लाल",
+        "ocean": "महासागर",
+        "neon": "नियॉन",
+        "midnightLight": "मध्यरात्रि हल्का",
+        "sunsetLight": "सूर्यास्त हल्का",
+        "lavenderLight": "लैवेंडर हल्का",
+        "crimsonLight": "किरमिजी हल्का",
+        "oceanLight": "महासागर हल्का"
       }
     },
     "playerBarLayout": {

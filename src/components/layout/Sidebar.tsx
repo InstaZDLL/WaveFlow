@@ -232,7 +232,7 @@ export function Sidebar({
   );
 
   return (
-    <div className="w-64 flex flex-col border-r h-full border-zinc-200 bg-white dark:border-zinc-800 dark:bg-surface-dark">
+    <div className="w-64 flex flex-col border-r h-full border-zinc-200 bg-surface-light dark:border-zinc-800 dark:bg-surface-dark">
       {/* Brand & Profile */}
       <div className="p-6 pb-2">
         <div className="flex items-center space-x-2 font-bold text-xl mb-6">

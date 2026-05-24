@@ -1,7 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Loader2, Trash2, Copy } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import {
+  AnimatedModalContent,
+  AnimatedModalShell,
+} from "./AnimatedModalShell";
 import {
   deleteTracks,
   findDuplicates,
@@ -37,12 +41,27 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
   // to the first (oldest) track, which the backend orders by
   // added_at ASC.
   const [keepIds, setKeepIds] = useState<Map<string, number>>(new Map());
+  // Two independent staleness tokens:
+  //   - `scanSeqRef` is bumped by every `refresh()` invocation so two
+  //     overlapping scans don't race on the setters.
+  //   - `sessionRef` is bumped only when the modal closes, so async
+  //     handlers (`handleDeleteOthers`) can detect a mid-flight close
+  //     without being thrown off by `refresh()` bumping a shared
+  //     counter.
+  // Splitting them resolves a deadlock between two CodeRabbit findings:
+  // (a) the delete spinner must clear on the happy path, and (b) the
+  // Delete-others button must stay disabled across the post-delete
+  // rescan so a second click can't fire against stale `groups`.
+  const scanSeqRef = useRef(0);
+  const sessionRef = useRef(0);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
+    const seq = ++scanSeqRef.current;
     setIsScanning(true);
     setError(null);
     try {
       const result = await findDuplicates();
+      if (seq !== scanSeqRef.current) return;
       setGroups(result);
       const next = new Map<string, number>();
       for (const g of result) {
@@ -50,23 +69,37 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
       }
       setKeepIds(next);
     } catch (err) {
+      if (seq !== scanSeqRef.current) return;
       console.error("[DuplicatesModal] scan failed", err);
       setError(String(err));
     } finally {
-      setIsScanning(false);
+      if (seq === scanSeqRef.current) {
+        setIsScanning(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
+      // Invalidate any in-flight scan AND any in-flight delete — their
+      // setters short-circuit when their captured token no longer
+      // matches the latest ref, so the closed modal can't end up with
+      // stale `groups` / `keepIds` / spinner state after re-open.
+      scanSeqRef.current++;
+      sessionRef.current++;
       /* eslint-disable react-hooks/set-state-in-effect */
       setGroups([]);
       setError(null);
+      setIsScanning(false);
+      // Both spinners need clearing here: the guarded finally in
+      // `refresh()` / `handleDeleteOthers` short-circuits on staleness
+      // and can't be relied on once we've invalidated the tokens.
+      setIsDeleting(false);
       /* eslint-enable react-hooks/set-state-in-effect */
       return;
     }
     refresh();
-  }, [isOpen]);
+  }, [isOpen, refresh]);
 
   const totalDuplicates = useMemo(
     () => groups.reduce((sum, g) => sum + g.tracks.length - 1, 0),
@@ -83,32 +116,39 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
       }
     }
     if (toDelete.length === 0) return;
+    // Snapshot the modal session — only the `!isOpen` reset bumps it,
+    // so the guard remains valid across the embedded `refresh()` call
+    // (which bumps a *different* token, `scanSeqRef`). That lets the
+    // button stay disabled across the whole delete-then-rescan flow
+    // while still clearing correctly on success.
+    const session = sessionRef.current;
     setIsDeleting(true);
     try {
       await deleteTracks(toDelete);
+      if (session !== sessionRef.current) return;
+      // Run the rescan with the spinner still on — clicking Delete
+      // mid-rescan would target the pre-delete `groups` snapshot and
+      // hit the backend with already-removed track ids.
       await refresh();
     } catch (err) {
+      if (session !== sessionRef.current) return;
       console.error("[DuplicatesModal] delete failed", err);
       setError(String(err));
     } finally {
-      setIsDeleting(false);
+      if (session === sessionRef.current) {
+        setIsDeleting(false);
+      }
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md flex items-center justify-center animate-fade-in p-4"
-      onClick={onClose}
-    >
-      <div
+    <AnimatedModalShell isOpen={isOpen} onBackdropClick={onClose}>
+      <AnimatedModalContent
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="duplicates-modal-title"
-        className="relative bg-white dark:bg-surface-dark-elevated text-zinc-900 dark:text-zinc-100 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in"
-        onClick={(e) => e.stopPropagation()}
+        className="relative bg-white dark:bg-surface-dark-elevated text-zinc-900 dark:text-zinc-100 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
@@ -253,8 +293,8 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </AnimatedModalContent>
+    </AnimatedModalShell>
   );
 }
 
