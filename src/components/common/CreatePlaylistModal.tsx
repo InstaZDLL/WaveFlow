@@ -88,6 +88,13 @@ export function CreatePlaylistModal({
       setDescription(existing?.description ?? "");
       setSelectedColorId(existing?.color_id ?? PLAYLIST_COLORS[0].id);
       setSelectedIconId(existing?.icon_id ?? PLAYLIST_ICONS[0].id);
+      // Also collapse the cover "..." menu — call sites mount this
+      // component unconditionally (parent owns the `isOpen` prop, not
+      // a mount/unmount), so without this reset the menu would still
+      // be open on the next launch. The dedicated `coverMenuOpen`
+      // listener at line 101 detaches itself when the value flips to
+      // false, so no extra cleanup is needed here.
+      setCoverMenuOpen(false);
     }
   }, [isOpen, existing]);
 

@@ -62,18 +62,32 @@ export function CoverPickerModal({
       setResults([]);
       return;
     }
+    // Cancellation token — `AnimatedModalShell` keeps this component
+    // mounted across its exit animation, and the user can re-type while
+    // a request is in flight. Without this guard a slow Deezer response
+    // could clobber `results` / `error` / `isSearching` after the user
+    // closed the modal or moved on to a new query.
+    let cancelled = false;
     debounceRef.current = window.setTimeout(() => {
       setIsSearching(true);
       setError(null);
       searchAlbumsDeezer(trimmed)
-        .then((res) => setResults(res))
+        .then((res) => {
+          if (cancelled) return;
+          setResults(res);
+        })
         .catch((err) => {
+          if (cancelled) return;
           console.error("[CoverPickerModal] search failed", err);
           setError(String(err));
         })
-        .finally(() => setIsSearching(false));
+        .finally(() => {
+          if (cancelled) return;
+          setIsSearching(false);
+        });
     }, 300);
     return () => {
+      cancelled = true;
       if (debounceRef.current != null) {
         window.clearTimeout(debounceRef.current);
       }
