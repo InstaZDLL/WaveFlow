@@ -206,9 +206,10 @@ export const THEME_PRESETS: ThemePreset[] = [
   // "-50" range was so close to pure white that the theme was effectively
   // invisible outside the accent buttons. "-100" gives a clearly readable
   // tint without veering into saturated "sticky-note" territory.
-  // Sidebar / panels match the body so the theme tint reads as one
-  // surface; elevated panels (player bar / footer) go pure white to pop
-  // cleanly above the tinted body.
+  // All three surfaces (body / sidebar+panels / player bar) share the
+  // same value so the theme reads as one continuous tinted canvas;
+  // separation comes from borders + the slight blend of `bg-zinc-50/50`
+  // on the center column.
   {
     id: "midnight-light",
     labelKey: "settings.appearance.themes.midnightLight",
@@ -216,7 +217,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: INDIGO,
     ambient: "#e0e7ff", // indigo-100
     surfaceLight: "#e0e7ff",
-    surfaceLightElevated: "#ffffff",
+    surfaceLightElevated: "#e0e7ff",
   },
   {
     id: "sunset-light",
@@ -225,7 +226,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: AMBER,
     ambient: "#fef3c7", // amber-100
     surfaceLight: "#fef3c7",
-    surfaceLightElevated: "#ffffff",
+    surfaceLightElevated: "#fef3c7",
   },
   {
     id: "lavender-light",
@@ -234,7 +235,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: VIOLET,
     ambient: "#ede9fe", // violet-100
     surfaceLight: "#ede9fe",
-    surfaceLightElevated: "#ffffff",
+    surfaceLightElevated: "#ede9fe",
   },
   {
     id: "crimson-light",
@@ -243,7 +244,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: ROSE,
     ambient: "#ffe4e6", // rose-100
     surfaceLight: "#ffe4e6",
-    surfaceLightElevated: "#ffffff",
+    surfaceLightElevated: "#ffe4e6",
   },
   {
     id: "ocean-light",
@@ -252,7 +253,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: SKY,
     ambient: "#e0f2fe", // sky-100
     surfaceLight: "#e0f2fe",
-    surfaceLightElevated: "#ffffff",
+    surfaceLightElevated: "#e0f2fe",
   },
   // ── Dark row ─────────────────────────────────────────────────────
   {
