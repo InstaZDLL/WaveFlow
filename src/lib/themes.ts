@@ -202,16 +202,20 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: EMERALD,
     ambient: null,
   },
+  // Light variants use Tailwind's "-100" shade as the ambient because the
+  // "-50" range was so close to pure white that the theme was effectively
+  // invisible outside the accent buttons. "-100" gives a clearly readable
+  // tint without veering into saturated "sticky-note" territory.
+  // Sidebar / panels match the body so the theme tint reads as one
+  // surface; elevated panels (player bar / footer) go pure white to pop
+  // cleanly above the tinted body.
   {
     id: "midnight-light",
     labelKey: "settings.appearance.themes.midnightLight",
     mode: "light",
     accent: INDIGO,
-    ambient: "#f4f6ff",
-    // Sidebar / panels match the body so the theme tint reads as one
-    // surface; elevated panels (player bar / footer) go pure white to
-    // pop cleanly above the tinted body.
-    surfaceLight: "#f4f6ff",
+    ambient: "#e0e7ff", // indigo-100
+    surfaceLight: "#e0e7ff",
     surfaceLightElevated: "#ffffff",
   },
   {
@@ -219,8 +223,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     labelKey: "settings.appearance.themes.sunsetLight",
     mode: "light",
     accent: AMBER,
-    ambient: "#fff7ed",
-    surfaceLight: "#fff7ed",
+    ambient: "#fef3c7", // amber-100
+    surfaceLight: "#fef3c7",
     surfaceLightElevated: "#ffffff",
   },
   {
@@ -228,8 +232,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     labelKey: "settings.appearance.themes.lavenderLight",
     mode: "light",
     accent: VIOLET,
-    ambient: "#faf5ff",
-    surfaceLight: "#faf5ff",
+    ambient: "#ede9fe", // violet-100
+    surfaceLight: "#ede9fe",
     surfaceLightElevated: "#ffffff",
   },
   {
@@ -237,8 +241,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     labelKey: "settings.appearance.themes.crimsonLight",
     mode: "light",
     accent: ROSE,
-    ambient: "#fff1f2",
-    surfaceLight: "#fff1f2",
+    ambient: "#ffe4e6", // rose-100
+    surfaceLight: "#ffe4e6",
     surfaceLightElevated: "#ffffff",
   },
   {
@@ -246,8 +250,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     labelKey: "settings.appearance.themes.oceanLight",
     mode: "light",
     accent: SKY,
-    ambient: "#eff6ff",
-    surfaceLight: "#eff6ff",
+    ambient: "#e0f2fe", // sky-100
+    surfaceLight: "#e0f2fe",
     surfaceLightElevated: "#ffffff",
   },
   // ── Dark row ─────────────────────────────────────────────────────

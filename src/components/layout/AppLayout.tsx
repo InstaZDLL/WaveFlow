@@ -477,8 +477,13 @@ export function AppLayout() {
 
           {/* Center Content. `min-w-0` is required so a long playlist
               title or wide table doesn't blow the flex item's intrinsic
-              width past `flex-1` and push the right panel off-screen. */}
-          <div className="flex flex-col flex-1 min-w-0 relative bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
+              width past `flex-1` and push the right panel off-screen.
+              Background uses `/50` opacity so the theme ambient bleeds
+              through both modes — without `/50` on the light side, the
+              solid `bg-zinc-50` covered the ambient and themed light
+              presets (Sunset Light / Lavender Light…) looked stark
+              white in the main area. */}
+          <div className="flex flex-col flex-1 min-w-0 relative bg-zinc-50/50 dark:bg-zinc-900/50 overflow-hidden">
             <TopBar
               activeView={activeView}
               setActiveView={setActiveView}
