@@ -128,6 +128,7 @@ import { EqualizerCard } from "./settings/EqualizerCard";
 import { ExclusiveModeCard } from "./settings/ExclusiveModeCard";
 import { PlayerBarLayoutCard } from "./settings/PlayerBarLayoutCard";
 import { ShortcutsCard } from "./settings/ShortcutsCard";
+import { WrappedBannerCard } from "./settings/WrappedBannerCard";
 
 interface SettingsViewProps {
   onNavigate: (view: ViewId) => void;
@@ -2485,6 +2486,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           </div>
 
           <PlayerBarLayoutCard />
+
+          <WrappedBannerCard />
         </section>
       )}
 

@@ -297,7 +297,8 @@
       "eyebrow": "WaveFlow Wrapped",
       "title": "Dein Jahresrückblick {{year}}",
       "subtitle": "Deine Künstler, deine Minuten, dein Jahr — erzählt in ein paar Slides.",
-      "cta": "Öffnen"
+      "cta": "Öffnen",
+      "dismiss": "Wrapped-Banner ausblenden"
     },
     "seeAll": "Alles anzeigen"
   },
@@ -1549,6 +1550,27 @@
         "none": {
           "label": "Nichts tun",
           "description": "Deaktiviert den Klick — praktisch, wenn du ihn aus Versehen auslöst."
+        }
+      }
+    },
+    "wrappedBanner": {
+      "title": "WaveFlow Wrapped-Banner",
+      "subtitle": "Der Jahresrückblick-Banner auf dem Startbildschirm. Der Automatik-Modus zeigt ihn während der Wrapped-Saison (1. Dezember → 31. Januar).",
+      "legend": "Sichtbarkeit des Wrapped-Banners",
+      "seasonActive": "Wrapped-Saison läuft — der Banner wird angezeigt.",
+      "seasonIdle": "Außerhalb der Saison — der Banner kehrt am 1. Dezember automatisch zurück.",
+      "modes": {
+        "auto": {
+          "label": "Automatisch",
+          "description": "Nur vom 1. Dezember bis 31. Januar sichtbar — wie Spotify Wrapped."
+        },
+        "always": {
+          "label": "Immer anzeigen",
+          "description": "Banner das ganze Jahr über auf dem Startbildschirm anzeigen."
+        },
+        "never": {
+          "label": "Ausblenden",
+          "description": "Banner nie auf dem Startbildschirm anzeigen. Die Wrapped-Ansicht bleibt erreichbar."
         }
       }
     }

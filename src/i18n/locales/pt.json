@@ -297,7 +297,8 @@
       "eyebrow": "WaveFlow Wrapped",
       "title": "A tua retrospetiva {{year}}",
       "subtitle": "Os teus artistas, os teus minutos, o teu ano — em alguns slides.",
-      "cta": "Abrir"
+      "cta": "Abrir",
+      "dismiss": "Ocultar o banner Wrapped"
     },
     "seeAll": "Ver tudo"
   },
@@ -1549,6 +1550,27 @@
         "none": {
           "label": "Não fazer nada",
           "description": "Desativa o clique — útil se o accionares sem querer."
+        }
+      }
+    },
+    "wrappedBanner": {
+      "title": "Banner WaveFlow Wrapped",
+      "subtitle": "O banner de retrospetiva anual no ecrã inicial. O modo Automático mostra-o durante a época Wrapped (1 de dezembro → 31 de janeiro).",
+      "legend": "Visibilidade do banner Wrapped",
+      "seasonActive": "Época Wrapped em curso — o banner está visível.",
+      "seasonIdle": "Fora de época — o banner regressa automaticamente a 1 de dezembro.",
+      "modes": {
+        "auto": {
+          "label": "Automático",
+          "description": "Visível apenas de 1 de dezembro a 31 de janeiro — como o Spotify Wrapped."
+        },
+        "always": {
+          "label": "Mostrar sempre",
+          "description": "Manter o banner visível no ecrã inicial todo o ano."
+        },
+        "never": {
+          "label": "Ocultar",
+          "description": "Nunca mostrar o banner no ecrã inicial. A vista Wrapped continua acessível."
         }
       }
     }

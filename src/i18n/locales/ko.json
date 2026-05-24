@@ -297,7 +297,8 @@
       "eyebrow": "WaveFlow Wrapped",
       "title": "{{year}}년 결산",
       "subtitle": "당신의 아티스트, 분, 1년을 몇 장의 슬라이드로.",
-      "cta": "열기"
+      "cta": "열기",
+      "dismiss": "Wrapped 배너 숨기기"
     },
     "seeAll": "모두 보기"
   },
@@ -1549,6 +1550,27 @@
         "none": {
           "label": "아무것도 하지 않기",
           "description": "클릭을 완전히 비활성화 — 실수로 자주 누른다면 유용합니다."
+        }
+      }
+    },
+    "wrappedBanner": {
+      "title": "WaveFlow Wrapped 배너",
+      "subtitle": "홈 화면의 연간 결산 배너입니다. 자동 모드에서는 Wrapped 시즌(12월 1일 → 1월 31일) 동안만 표시됩니다.",
+      "legend": "Wrapped 배너 표시",
+      "seasonActive": "Wrapped 시즌이 진행 중입니다 — 배너가 표시됩니다.",
+      "seasonIdle": "시즌이 아닙니다 — 배너는 12월 1일에 자동으로 다시 나타납니다.",
+      "modes": {
+        "auto": {
+          "label": "자동",
+          "description": "12월 1일부터 1월 31일까지만 표시 — Spotify Wrapped와 동일."
+        },
+        "always": {
+          "label": "항상 표시",
+          "description": "배너를 홈 화면에 1년 내내 유지합니다."
+        },
+        "never": {
+          "label": "숨기기",
+          "description": "홈 화면에 배너를 절대 표시하지 않습니다. Wrapped 페이지는 계속 접근할 수 있습니다."
         }
       }
     }

@@ -297,7 +297,8 @@
       "eyebrow": "WaveFlow Wrapped",
       "title": "Je jaaroverzicht {{year}}",
       "subtitle": "Je artiesten, je minuten, je jaar — verteld in een paar slides.",
-      "cta": "Openen"
+      "cta": "Openen",
+      "dismiss": "Wrapped-banner verbergen"
     },
     "seeAll": "Alles bekijken"
   },
@@ -1549,6 +1550,27 @@
         "none": {
           "label": "Niets doen",
           "description": "Schakelt het klikken uit — handig als je het per ongeluk activeert."
+        }
+      }
+    },
+    "wrappedBanner": {
+      "title": "WaveFlow Wrapped-banner",
+      "subtitle": "De jaaroverzicht-banner op het startscherm. De automatische modus toont hem tijdens het Wrapped-seizoen (1 december → 31 januari).",
+      "legend": "Zichtbaarheid van Wrapped-banner",
+      "seasonActive": "Wrapped-seizoen loopt — de banner is zichtbaar.",
+      "seasonIdle": "Buiten het seizoen — de banner komt automatisch terug op 1 december.",
+      "modes": {
+        "auto": {
+          "label": "Automatisch",
+          "description": "Alleen zichtbaar van 1 december tot 31 januari — net als Spotify Wrapped."
+        },
+        "always": {
+          "label": "Altijd tonen",
+          "description": "Houd de banner het hele jaar zichtbaar op de startpagina."
+        },
+        "never": {
+          "label": "Verbergen",
+          "description": "Toon de banner nooit op de startpagina. De Wrapped-weergave blijft bereikbaar."
         }
       }
     }

@@ -297,7 +297,8 @@
       "eyebrow": "WaveFlow Wrapped",
       "title": "{{year}}年のあなた",
       "subtitle": "あなたのアーティスト、分数、1年を数枚のスライドで。",
-      "cta": "開く"
+      "cta": "開く",
+      "dismiss": "Wrapped バナーを隠す"
     },
     "seeAll": "すべて表示"
   },
@@ -1549,6 +1550,27 @@
         "none": {
           "label": "何もしない",
           "description": "クリックを完全に無効化します — 誤って押しがちなときに便利です。"
+        }
+      }
+    },
+    "wrappedBanner": {
+      "title": "WaveFlow Wrapped バナー",
+      "subtitle": "ホーム画面の年間まとめバナーです。自動モードでは Wrapped シーズン(12月1日 → 1月31日)中だけ表示されます。",
+      "legend": "Wrapped バナーの表示",
+      "seasonActive": "Wrapped シーズン中 — バナーを表示しています。",
+      "seasonIdle": "シーズン外 — バナーは 12月1日 に自動的に戻ります。",
+      "modes": {
+        "auto": {
+          "label": "自動",
+          "description": "12月1日から1月31日までのみ表示 — Spotify Wrapped と同じ。"
+        },
+        "always": {
+          "label": "常に表示",
+          "description": "バナーをホーム画面に1年中表示します。"
+        },
+        "never": {
+          "label": "非表示",
+          "description": "ホーム画面にバナーを表示しません。Wrapped ページには引き続きアクセスできます。"
         }
       }
     }

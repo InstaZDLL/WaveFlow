@@ -9,7 +9,9 @@ import {
   Music2,
   Sparkles,
   RefreshCw,
+  X,
 } from "lucide-react";
+import { useWrappedBannerVisibility } from "../../hooks/useWrappedBannerVisibility";
 import type { ViewId } from "../../types";
 import { ActionLink } from "../common/ActionLink";
 import { StatCard } from "../common/StatCard";
@@ -152,6 +154,7 @@ export function HomeView({
   const [recentAlbums, setRecentAlbums] = useState<AlbumRow[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const [wrappedYears, setWrappedYears] = useState<number[]>([]);
+  const wrappedBanner = useWrappedBannerVisibility();
   // Per-section loading flags — start true so each carousel paints a
   // skeleton on first render rather than flashing its (large) empty
   // state for the duration of the first SQL fetch.
@@ -348,13 +351,13 @@ export function HomeView({
         />
       </div>
 
-      {/* Wrapped year-in-review banner — only renders when the
-          profile has at least one play_event year. Tapping opens the
-          immersive overlay defaulted to the most recent year. */}
-      {wrappedYears.length > 0 && (
-        <button
-          type="button"
-          onClick={() => onNavigateToWrapped(wrappedYears[0])}
+      {/* Wrapped year-in-review banner — gated by
+          `useWrappedBannerVisibility`: hidden by default and auto-
+          surfaces during the Wrapped season (Dec 1 → Jan 31). Users
+          can force it on, force it off, or dismiss it for the current
+          recap year from the close button below. */}
+      {wrappedYears.length > 0 && wrappedBanner.shouldShow(wrappedYears[0]) && (
+        <div
           className="relative overflow-hidden w-full text-left rounded-3xl p-8 group transition-transform hover:scale-[1.01]"
           style={{
             background:
@@ -369,11 +372,27 @@ export function HomeView({
             aria-hidden="true"
             className="pointer-events-none absolute -bottom-32 -left-16 w-96 h-96 rounded-full bg-orange-400/25 blur-3xl"
           />
-          <div className="relative flex items-center gap-6 text-white">
+          {/* Dismiss button — persists the year so the banner stays
+              hidden until the next recap year is available. Sits in
+              its own stacking context above the navigate trigger so
+              clicks don't fall through. */}
+          <button
+            type="button"
+            onClick={() => wrappedBanner.dismissYear(wrappedYears[0])}
+            aria-label={t("home.wrapped.dismiss")}
+            className="absolute top-3 right-3 z-10 p-1.5 rounded-full text-white/70 hover:text-white hover:bg-white/15 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          >
+            <X size={18} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigateToWrapped(wrappedYears[0])}
+            className="relative w-full text-left flex items-center gap-6 text-white"
+          >
             <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
               <Sparkles size={32} />
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 pr-6">
               <div className="uppercase tracking-[0.4em] text-xs text-white/70 mb-1">
                 {t("home.wrapped.eyebrow")}
               </div>
@@ -387,8 +406,8 @@ export function HomeView({
             <div className="hidden md:inline-block px-4 py-2 rounded-full bg-white text-zinc-900 font-semibold text-sm group-hover:scale-105 transition-transform">
               {t("home.wrapped.cta")}
             </div>
-          </div>
-        </button>
+          </button>
+        </div>
       )}
 
       {/* Mood radios — BPM/loudness-filtered queues. Hidden entirely

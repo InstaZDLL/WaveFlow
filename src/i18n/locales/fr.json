@@ -297,7 +297,8 @@
       "eyebrow": "WaveFlow Wrapped",
       "title": "Votre rétro {{year}}",
       "subtitle": "Vos artistes, vos minutes, votre année — racontée en quelques slides.",
-      "cta": "Découvrir"
+      "cta": "Découvrir",
+      "dismiss": "Masquer le bandeau Wrapped"
     },
     "seeAll": "Tout voir"
   },
@@ -1549,6 +1550,27 @@
         "none": {
           "label": "Ne rien faire",
           "description": "Désactive complètement le clic — utile si vous le déclenchez par mégarde."
+        }
+      }
+    },
+    "wrappedBanner": {
+      "title": "Bandeau WaveFlow Wrapped",
+      "subtitle": "Le bandeau de rétrospective annuelle sur l'écran d'accueil. Le mode Automatique le fait apparaître pendant la saison Wrapped (1er décembre → 31 janvier).",
+      "legend": "Visibilité du bandeau Wrapped",
+      "seasonActive": "Saison Wrapped en cours — le bandeau s'affiche.",
+      "seasonIdle": "Hors saison — le bandeau réapparaîtra automatiquement le 1er décembre.",
+      "modes": {
+        "auto": {
+          "label": "Automatique",
+          "description": "Visible uniquement du 1er décembre au 31 janvier — comme Spotify Wrapped."
+        },
+        "always": {
+          "label": "Toujours afficher",
+          "description": "Garder le bandeau visible sur l'accueil toute l'année."
+        },
+        "never": {
+          "label": "Masquer",
+          "description": "Ne jamais afficher le bandeau sur l'accueil. La page Wrapped reste accessible."
         }
       }
     }
