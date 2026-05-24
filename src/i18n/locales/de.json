@@ -414,7 +414,8 @@
       "watchOff": "Überwachung beenden",
       "remove": "Ordner aus Bibliothek entfernen",
       "removeConfirm": "Zur Bestätigung erneut klicken"
-    }
+    },
+    "skeletonAriaLabel": "{{name}} werden geladen…"
   },
   "liked": {
     "badge": "Sammlung",

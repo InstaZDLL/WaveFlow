@@ -167,7 +167,18 @@ export function LibraryView({
   const [artists, setArtists] = useState<ArtistRow[]>([]);
   const [genres, setGenres] = useState<GenreRow[]>([]);
   const [folders, setFolders] = useState<FolderRow[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // Per-tab loading state — drives both the in-place dim and the
+  // first-load skeleton. Independent flags let the 5 fetches run in
+  // parallel without one tab's dim leaking onto another. Initial value
+  // is `true` everywhere so the skeleton paints on first render instead
+  // of a one-frame EmptyState flash before the effects schedule.
+  const [loading, setLoading] = useState<Record<LibraryTab, boolean>>({
+    morceaux: true,
+    albums: true,
+    artistes: true,
+    genres: true,
+    dossiers: true,
+  });
   const [tracksView, setTracksView] = useState<TracksView>("list");
   const [albumsNoCoverFilter, setAlbumsNoCoverFilter] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
@@ -242,74 +253,119 @@ export function LibraryView({
     clearSelection();
   }, [activeTab, clearSelection]);
 
+  // Per-tab parallel fetchers — each runs independently of `activeTab`,
+  // so navigating into LibraryView fires all 5 SQL queries at once and
+  // every subsequent tab switch hits cached state instantly. The 500 ms
+  // "EmptyState flash" disappears because the data lands during the
+  // very first paint instead of after the user picks a tab.
   useEffect(() => {
-    // Hold off the first fetch until the relevant sort memory has
-    // resolved — otherwise we'd query the default ordering and then
-    // re-query the persisted one a tick later.
-    if (activeTab === "morceaux" && !tracksSort.isLoaded) return;
-    if (activeTab === "albums" && !albumsSort.isLoaded) return;
-    if (activeTab === "artistes" && !artistsSort.isLoaded) return;
-
+    if (!tracksSort.isLoaded) return;
     let cancelled = false;
-    (async () => {
-      setIsLoading(true);
-      try {
-        // Pass null → aggregate across ALL libraries ("Ma musique" mode).
-        switch (activeTab) {
-          case "morceaux": {
-            const list = await listTracks(null, tracksSort.sort);
-            if (!cancelled) setTracks(list);
-            break;
-          }
-          case "albums": {
-            const list = await listAlbums(null, {
-              filterNoCover: albumsNoCoverFilter,
-              orderBy: albumsSort.sort.orderBy,
-              direction: albumsSort.sort.direction,
-            });
-            if (!cancelled) setAlbums(list);
-            break;
-          }
-          case "artistes": {
-            const list = await listArtists(null, artistsSort.sort);
-            if (!cancelled) setArtists(list);
-            break;
-          }
-          case "genres": {
-            const list = await listGenres(null);
-            if (!cancelled) setGenres(list);
-            break;
-          }
-          case "dossiers": {
-            const list = await listFolders(null);
-            if (!cancelled) setFolders(list);
-            break;
-          }
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.error("[LibraryView] failed to load tab data", err);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading((p) => ({ ...p, morceaux: true }));
+    listTracks(null, tracksSort.sort)
+      .then((list) => {
+        if (!cancelled) setTracks(list);
+      })
+      .catch((err) => {
+        if (!cancelled) console.error("[LibraryView] listTracks failed", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading((p) => ({ ...p, morceaux: false }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [librariesSignature, tracksSort.isLoaded, tracksSort.sort, editRefetch]);
+
+  useEffect(() => {
+    if (!albumsSort.isLoaded) return;
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading((p) => ({ ...p, albums: true }));
+    listAlbums(null, {
+      filterNoCover: albumsNoCoverFilter,
+      orderBy: albumsSort.sort.orderBy,
+      direction: albumsSort.sort.direction,
+    })
+      .then((list) => {
+        if (!cancelled) setAlbums(list);
+      })
+      .catch((err) => {
+        if (!cancelled) console.error("[LibraryView] listAlbums failed", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading((p) => ({ ...p, albums: false }));
+      });
     return () => {
       cancelled = true;
     };
   }, [
-    activeTab,
     librariesSignature,
-    albumsNoCoverFilter,
-    coverReloadKey,
-    tracksSort.isLoaded,
-    tracksSort.sort,
     albumsSort.isLoaded,
     albumsSort.sort,
-    artistsSort.isLoaded,
-    artistsSort.sort,
+    albumsNoCoverFilter,
+    coverReloadKey,
     editRefetch,
   ]);
+
+  useEffect(() => {
+    if (!artistsSort.isLoaded) return;
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading((p) => ({ ...p, artistes: true }));
+    listArtists(null, artistsSort.sort)
+      .then((list) => {
+        if (!cancelled) setArtists(list);
+      })
+      .catch((err) => {
+        if (!cancelled) console.error("[LibraryView] listArtists failed", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading((p) => ({ ...p, artistes: false }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [librariesSignature, artistsSort.isLoaded, artistsSort.sort, editRefetch]);
+
+  useEffect(() => {
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading((p) => ({ ...p, genres: true }));
+    listGenres(null)
+      .then((list) => {
+        if (!cancelled) setGenres(list);
+      })
+      .catch((err) => {
+        if (!cancelled) console.error("[LibraryView] listGenres failed", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading((p) => ({ ...p, genres: false }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [librariesSignature, editRefetch]);
+
+  useEffect(() => {
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading((p) => ({ ...p, dossiers: true }));
+    listFolders(null)
+      .then((list) => {
+        if (!cancelled) setFolders(list);
+      })
+      .catch((err) => {
+        if (!cancelled) console.error("[LibraryView] listFolders failed", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading((p) => ({ ...p, dossiers: false }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [librariesSignature]);
 
   // Load liked track IDs once on mount so the TrackTable can show
   // filled hearts. Re-fetches when the libraries change (scan might
@@ -513,7 +569,7 @@ export function LibraryView({
               </div>
               <TrackTable
                 tracks={tracks}
-                isLoading={isLoading}
+                isLoading={loading.morceaux}
                 view={tracksView}
                 t={t}
                 onPlayTrack={(index) =>
@@ -609,7 +665,7 @@ export function LibraryView({
               </div>
               <AlbumGrid
                 albums={albums}
-                isLoading={isLoading}
+                isLoading={loading.albums}
                 t={t}
                 playlists={playlists}
                 onAddToPlaylist={(playlistId, albumId) =>
@@ -637,7 +693,7 @@ export function LibraryView({
               <div className="relative">
                 <ArtistList
                   artists={artists}
-                  isLoading={isLoading}
+                  isLoading={loading.artistes}
                   t={t}
                   playlists={playlists}
                   onAddToPlaylist={(playlistId, artistId) =>
@@ -665,7 +721,7 @@ export function LibraryView({
           {activeTab === "genres" && (
             <GenreList
               genres={genres}
-              isLoading={isLoading}
+              isLoading={loading.genres}
               t={t}
               onSelect={onNavigateToGenre}
             />
@@ -673,7 +729,7 @@ export function LibraryView({
           {activeTab === "dossiers" && (
             <FolderList
               folders={folders}
-              isLoading={isLoading}
+              isLoading={loading.dossiers}
               t={t}
               playlists={playlists}
               onAddToPlaylist={(playlistId, folderId) =>
@@ -717,6 +773,11 @@ export function LibraryView({
             />
           )}
         </>
+      ) : loading[activeTab] ? (
+        // First-load skeleton — keeps the layout occupied while the
+        // initial SQL query lands, instead of flashing the "No X
+        // found" EmptyState for the duration of the fetch.
+        <LibraryTabSkeleton tab={activeTab} t={t} />
       ) : (
         <EmptyState
           icon={<EmptyIcon size={40} />}
@@ -2325,6 +2386,135 @@ function FolderList({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// =============================================================================
+// First-load skeleton
+// =============================================================================
+
+/**
+ * Layout-shaped placeholder shown during a tab's *first* fetch (state is
+ * empty and `loading[tab]` is true). Each branch mirrors the real list's
+ * structure so the swap to live data is a content change, not a layout
+ * shift. Subsequent re-fetches (sort change, tag edit) keep the previous
+ * data on screen and just dim it via `opacity-50` on the list itself.
+ */
+function LibraryTabSkeleton({ tab, t }: { tab: LibraryTab; t: Translator }) {
+  const tile = "bg-zinc-200/70 dark:bg-zinc-700/40";
+  // Screen readers announce "Loading <tab name>…" via role=status. The
+  // name is fed from the existing tab label so we don't fork a second
+  // copy in every locale.
+  const ariaLabel = t("library.skeletonAriaLabel", {
+    name: t(`library.tabs.${tab}`),
+  });
+  if (tab === "morceaux") {
+    return (
+      <div
+        role="status"
+        aria-busy="true"
+        aria-label={ariaLabel}
+        className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40 overflow-hidden animate-pulse"
+      >
+        {Array.from({ length: 12 }).map((_, i) => (
+          <div
+            key={i}
+            className="grid grid-cols-[3rem_2.75rem_1fr_1fr_1fr_7rem_5rem_2rem_2.5rem] gap-4 px-5 h-14 items-center border-b border-zinc-100 dark:border-zinc-800/60"
+          >
+            <div className={`h-3 w-4 rounded ${tile} justify-self-end`} />
+            <div className={`w-10 h-10 rounded-md ${tile}`} />
+            <div className={`h-3 rounded ${tile}`} />
+            <div className={`h-3 rounded ${tile}`} />
+            <div className={`h-3 rounded ${tile}`} />
+            <div className={`h-3 rounded ${tile}`} />
+            <div className={`h-3 w-10 rounded ${tile} justify-self-end`} />
+            <div className={`h-3 w-3 rounded ${tile} justify-self-center`} />
+            <div />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (tab === "albums") {
+    return (
+      <div
+        role="status"
+        aria-busy="true"
+        aria-label={ariaLabel}
+        className="grid gap-5 animate-pulse"
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))" }}
+      >
+        {Array.from({ length: 18 }).map((_, i) => (
+          <div key={i} className="space-y-3">
+            <div className={`aspect-square rounded-xl ${tile}`} />
+            <div className={`h-3 rounded ${tile}`} />
+            <div className={`h-3 w-2/3 rounded ${tile}`} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (tab === "artistes") {
+    return (
+      <div
+        role="status"
+        aria-busy="true"
+        aria-label={ariaLabel}
+        className="grid gap-5 animate-pulse"
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))" }}
+      >
+        {Array.from({ length: 18 }).map((_, i) => (
+          <div key={i} className="flex flex-col items-center space-y-3">
+            <div className={`aspect-square w-full rounded-full ${tile}`} />
+            <div className={`h-3 w-2/3 rounded ${tile}`} />
+            <div className={`h-3 w-1/2 rounded ${tile}`} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (tab === "genres") {
+    return (
+      <div
+        role="status"
+        aria-busy="true"
+        aria-label={ariaLabel}
+        className="grid gap-4 animate-pulse"
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))" }}
+      >
+        {Array.from({ length: 12 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex items-center space-x-3 p-4 rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40"
+          >
+            <div className={`w-12 h-12 rounded-xl ${tile} shrink-0`} />
+            <div className="flex-1 space-y-2">
+              <div className={`h-3 w-2/3 rounded ${tile}`} />
+              <div className={`h-3 w-1/3 rounded ${tile}`} />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  // dossiers
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label={ariaLabel}
+      className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-800/40 divide-y divide-zinc-100 dark:divide-zinc-800/60 animate-pulse"
+    >
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="flex items-center space-x-4 p-4">
+          <div className={`w-10 h-10 rounded-lg ${tile} shrink-0`} />
+          <div className="flex-1 space-y-2">
+            <div className={`h-3 w-1/2 rounded ${tile}`} />
+            <div className={`h-3 w-1/3 rounded ${tile}`} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

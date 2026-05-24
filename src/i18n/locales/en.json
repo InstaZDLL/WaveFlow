@@ -414,7 +414,8 @@
       "watchOff": "Stop monitoring",
       "remove": "Remove folder from library",
       "removeConfirm": "Click again to confirm"
-    }
+    },
+    "skeletonAriaLabel": "Loading {{name}}…"
   },
   "liked": {
     "badge": "Collection",

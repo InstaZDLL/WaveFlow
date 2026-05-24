@@ -414,7 +414,8 @@
       "watchOff": "모니터링 중지",
       "remove": "라이브러리에서 폴더 제거",
       "removeConfirm": "확인하려면 다시 클릭"
-    }
+    },
+    "skeletonAriaLabel": "{{name}} 불러오는 중…"
   },
   "liked": {
     "badge": "컬렉션",

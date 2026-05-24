@@ -414,7 +414,8 @@
       "watchOff": "Berhenti memantau",
       "remove": "Keluarkan folder dari pustaka",
       "removeConfirm": "Klik lagi untuk konfirmasi"
-    }
+    },
+    "skeletonAriaLabel": "Memuat {{name}}…"
   },
   "liked": {
     "badge": "Koleksi",

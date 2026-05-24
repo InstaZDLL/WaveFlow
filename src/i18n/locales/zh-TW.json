@@ -420,7 +420,8 @@
       "nav": {
         "artists": "藝人"
       }
-    }
+    },
+    "skeletonAriaLabel": "正在載入{{name}}…"
   },
   "liked": {
     "badge": "收藏",
