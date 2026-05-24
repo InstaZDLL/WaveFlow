@@ -2,10 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageIcon, FolderOpen, Search, Loader2 } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
-import {
-  AnimatedModalContent,
-  AnimatedModalShell,
-} from "./AnimatedModalShell";
+import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 import {
   searchAlbumsDeezer,
   setAlbumArtworkFromDeezer,
@@ -134,7 +131,6 @@ export function CoverPickerModal({
       }
     };
   }, [query, tab, isOpen]);
-
 
   const handlePickDeezer = async (album: DeezerAlbumLite) => {
     if (isApplying) return;

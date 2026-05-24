@@ -19,10 +19,7 @@ import { pickFile } from "../../lib/tauri/dialog";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import { PlaylistIcon } from "../../lib/PlaylistIcon";
 import { useModalA11y } from "../../hooks/useModalA11y";
-import {
-  AnimatedModalContent,
-  AnimatedModalShell,
-} from "./AnimatedModalShell";
+import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 
 interface CreatePlaylistModalProps {
   isOpen: boolean;

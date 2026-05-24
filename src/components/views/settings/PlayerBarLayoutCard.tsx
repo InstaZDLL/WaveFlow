@@ -145,7 +145,8 @@ export function PlayerBarLayoutCard() {
     {
       value: "immersive",
       labelKey: "settings.playerBarLayout.coverAction.immersive.label",
-      descriptionKey: "settings.playerBarLayout.coverAction.immersive.description",
+      descriptionKey:
+        "settings.playerBarLayout.coverAction.immersive.description",
     },
     {
       value: "now_playing",

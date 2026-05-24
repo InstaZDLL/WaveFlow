@@ -165,8 +165,7 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
     () => activeProfile?.name === AUTO_BOOTSTRAP_PROFILE_NAME,
   );
   const steps = useMemo(
-    () =>
-      includeProfileStep ? STEPS : STEPS.filter((s) => s !== "profile"),
+    () => (includeProfileStep ? STEPS : STEPS.filter((s) => s !== "profile")),
     [includeProfileStep],
   );
 

@@ -120,7 +120,10 @@ interface EqPresetPanelProps {
  * stays inline (no nested popover) so the parent menu's max-height +
  * scroll keeps governing the layout.
  */
-export function EqPresetPanel({ onPick, collapsible = false }: EqPresetPanelProps) {
+export function EqPresetPanel({
+  onPick,
+  collapsible = false,
+}: EqPresetPanelProps) {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState(false);
   const [presets, setPresets] = useState<EqPresetEntry[]>([]);
@@ -182,7 +185,9 @@ export function EqPresetPanel({ onPick, collapsible = false }: EqPresetPanelProp
   const activePresetLabel =
     activeKey === "custom"
       ? t("settings.equalizer.preset.custom", { defaultValue: "Custom" })
-      : t(`settings.equalizer.preset.${activeKey}`, { defaultValue: activeKey });
+      : t(`settings.equalizer.preset.${activeKey}`, {
+          defaultValue: activeKey,
+        });
 
   const bypassRow = (
     <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-100 dark:border-zinc-800">

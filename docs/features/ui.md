@@ -133,11 +133,11 @@ Track tables themselves are **borderless** — no `rounded-2xl border bg-white` 
 
 Right side of [`PlayerBar`](../../src/components/player/PlayerBar.tsx) is the highest-pressure real estate in the UI — every new feature wants an icon there. To keep the bar from running out of width on narrow windows, controls cluster by frequency:
 
-| Tier         | Controls                                                                                                                                                                                                                | Where                                                                                                                                                                                                                  |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Primary**  | Lyrics, Queue, Device picker, "⋯", Volume, Mini-player, Immersive view, plus any pinned overflow item (A-B loop, Sleep timer, EQ presets). Every entry is opt-out from the user side via Settings → Playback (defaults match the pre-customisation layout — zero visible change after the upgrade). | Each button reads its visibility from `usePlayerBarLayout` ([`src/hooks/usePlayerBarLayout.ts`](../../src/hooks/usePlayerBarLayout.ts)). The same hook drives the live preview in the Settings panel.                  |
-| **Overflow** | Playback speed (slider + presets), EQ presets, A-B loop, Sleep timer                                                                                                                                                    | [`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx) — "⋯" popover; trigger auto-hides when every overflow entry is pinned. EQ presets share their inner `EqPresetPanel` body with the primary popover variant. |
-| **Pinnable** | A-B loop, Sleep timer, EQ presets (promote each to primary independently)                                                                                                                                               | Settings → Playback → "Player bar layout" — single panel covering every button + the cover-click action.                                                                                                            |
+| Tier         | Controls                                                                                                                                                                                                                                                                                            | Where                                                                                                                                                                                                                           |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Primary**  | Lyrics, Queue, Device picker, "⋯", Volume, Mini-player, Immersive view, plus any pinned overflow item (A-B loop, Sleep timer, EQ presets). Every entry is opt-out from the user side via Settings → Playback (defaults match the pre-customisation layout — zero visible change after the upgrade). | Each button reads its visibility from `usePlayerBarLayout` ([`src/hooks/usePlayerBarLayout.ts`](../../src/hooks/usePlayerBarLayout.ts)). The same hook drives the live preview in the Settings panel.                           |
+| **Overflow** | Playback speed (slider + presets), EQ presets, A-B loop, Sleep timer                                                                                                                                                                                                                                | [`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx) — "⋯" popover; trigger auto-hides when every overflow entry is pinned. EQ presets share their inner `EqPresetPanel` body with the primary popover variant. |
+| **Pinnable** | A-B loop, Sleep timer, EQ presets (promote each to primary independently)                                                                                                                                                                                                                           | Settings → Playback → "Player bar layout" — single panel covering every button + the cover-click action.                                                                                                                        |
 
 The Settings panel ([`PlayerBarLayoutCard`](../../src/components/views/settings/PlayerBarLayoutCard.tsx)) replaces the three earlier per-feature toggles (sleep timer / A-B loop / audio-quality footer). Layout is read through [`usePlayerBarLayout`](../../src/hooks/usePlayerBarLayout.ts) and writes are persisted via `setProfileSetting` + a single `waveflow:playerbar-layout-changed` window event so every consumer re-reads in one go (the legacy per-feature events `waveflow:sleep-timer-visibility` / `waveflow:ab-loop-visibility` / `waveflow:audio-quality-footer-visibility` are still observed by the hook for back-compat with any external dispatcher).
 
@@ -149,7 +149,7 @@ The **cover thumbnail** at the bottom-left of the player bar carries its own act
 | ------------- | ----------------------------------------------------------------------------------------------- |
 | `immersive`   | Open the full-screen Now Playing overlay (the pre-customisation default — Apple-Music style).   |
 | `now_playing` | Toggle the right-edge Now Playing panel — Spotify-style "click cover, see lyrics + cover wall". |
-| `none`        | No-op. Useful for users who keep mis-triggering it.                                              |
+| `none`        | No-op. Useful for users who keep mis-triggering it.                                             |
 
 When adding a new player-bar action: default it into the overflow menu first — promote to primary only when usage data or user feedback warrants it. Always wire it through `PLAYER_BAR_LAYOUT_KEYS` + the `PlayerBarLayoutCard` toggle grid so users can opt out from one place. The "⋯" trigger auto-hides when its menu would be empty.
 
@@ -232,15 +232,15 @@ Opt-in scheduled mirror of the manual export so the user's playlists / likes / r
 
 [`SettingsView`](../../src/components/views/SettingsView.tsx) is split into seven Lokal-style horizontal tabs rendered as a proper ARIA `role="tablist"` at the top of the page (keyboard-navigable, `aria-selected` per panel):
 
-| Tab            | Houses                                                                                                 |
-| -------------- | ------------------------------------------------------------------------------------------------------ |
-| `library`      | Library folders, scan-on-start, file watcher                                                           |
-| `playback`     | EQ, crossfade, ReplayGain, normalisation, WASAPI exclusive, mono                                       |
-| `integrations` | Last.fm, Discord RPC, Deezer enrichment, DLNA media server                                             |
-| `appearance`   | Theme picker (14 presets) + player-bar layout                                                          |
-| `data`         | Profile export / import, auto-backup, statistics export, offline                                       |
+| Tab            | Houses                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------- |
+| `library`      | Library folders, scan-on-start, file watcher                                                            |
+| `playback`     | EQ, crossfade, ReplayGain, normalisation, WASAPI exclusive, mono                                        |
+| `integrations` | Last.fm, Discord RPC, Deezer enrichment, DLNA media server                                              |
+| `appearance`   | Theme picker (14 presets) + player-bar layout                                                           |
+| `data`         | Profile export / import, auto-backup, statistics export, offline                                        |
 | `shortcuts`    | Per-action keyboard rebinder ([`ShortcutsCard`](../../src/components/views/settings/ShortcutsCard.tsx)) |
-| `diagnostics`  | Log folder reveal, recent log tail, app info                                                           |
+| `diagnostics`  | Log folder reveal, recent log tail, app info                                                            |
 
 Only one panel mounts at a time, so heavy sub-views (EQ visualiser, backup card, shortcuts editor) don't run their effects until the user opens that tab.
 
@@ -248,10 +248,10 @@ Only one panel mounts at a time, so heavy sub-views (EQ visualiser, backup card,
 
 [`THEME_PRESETS`](../../src/lib/themes.ts) ships 14 presets split into two visual rows:
 
-| Row   | Presets                                                                                 |
-| ----- | --------------------------------------------------------------------------------------- |
-| Light | Émeraude · Midnight · Sunset · Lavender · Crimson · Ocean                               |
-| Dark  | Émeraude · OLED · Midnight · Sunset · Lavender · Crimson · Ocean · Neon                 |
+| Row   | Presets                                                                 |
+| ----- | ----------------------------------------------------------------------- |
+| Light | Émeraude · Midnight · Sunset · Lavender · Crimson · Ocean               |
+| Dark  | Émeraude · OLED · Midnight · Sunset · Lavender · Crimson · Ocean · Neon |
 
 Each preset declares a 50→950 OKLCH accent palette + a `mode` (`light` / `dark`) + an `ambient` body color + optional `surfaceDark` / `surfaceDarkElevated` overrides. `applyTheme` writes `--accent-50..950`, `--ambient-bg`, `--color-surface-dark`, `--color-surface-dark-elevated` on `<html>`, and Tailwind v4's `@theme inline` block in [`app.css`](../../src/app.css) remaps every `bg-emerald-*` / `text-emerald-*` utility + the `bg-surface-dark*` utilities to those vars — so a swap re-tints the entire app without touching a single component.
 
@@ -267,7 +267,7 @@ Switching uses [View Transitions API](https://developer.mozilla.org/en-US/docs/W
 
 1. **welcome** — branding + privacy pitch.
 2. **language** — picker over [`SUPPORTED_LANGUAGES`](../../src/i18n/index.ts); persists immediately so the rest of the wizard renders in the chosen locale.
-3. **profile** *(conditional)* — name the auto-created "Default" profile in place via [`rename_profile`](../../src-tauri/src/commands/profile.rs). Safe against the active profile since only `app.db` is touched; the per-profile pool keeps its open handle. Skipping the rename (input unchanged) avoids the backend round-trip entirely. The step is **omitted entirely** when the active profile's name isn't the literal `"Default"` — i.e. profiles created through the New Profile modal already carry a user-supplied name, so the rename step would just ask the same question twice. `"Default"` is the hardcoded auto-bootstrap name from [`state.rs::create_default_profile`](../../src-tauri/src/state.rs) (not localised, so the comparison is reliable).
+3. **profile** _(conditional)_ — name the auto-created "Default" profile in place via [`rename_profile`](../../src-tauri/src/commands/profile.rs). Safe against the active profile since only `app.db` is touched; the per-profile pool keeps its open handle. Skipping the rename (input unchanged) avoids the backend round-trip entirely. The step is **omitted entirely** when the active profile's name isn't the literal `"Default"` — i.e. profiles created through the New Profile modal already carry a user-supplied name, so the rename step would just ask the same question twice. `"Default"` is the hardcoded auto-bootstrap name from [`state.rs::create_default_profile`](../../src-tauri/src/state.rs) (not localised, so the comparison is reliable).
 4. **localOnly** — explainer that the library never leaves the device unless the user opts into Last.fm / Discord later.
 5. **folder** — calls [`pickFolder`](../../src/lib/tauri/dialog.ts) to select a music root and creates the first library entry.
 6. **lastfm** — optional Last.fm API key + secret pairing (skippable). Status lives in [`integration.rs`](../../src-tauri/src/commands/integration.rs).

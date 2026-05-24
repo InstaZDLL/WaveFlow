@@ -152,162 +152,166 @@ export function MoreActionsMenu({
             initial={{ opacity: 0, scale: 0.96, y: 6 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: 4 }}
-            transition={{ type: "spring", stiffness: 480, damping: 30, mass: 0.5 }}
+            transition={{
+              type: "spring",
+              stiffness: 480,
+              damping: 30,
+              mass: 0.5,
+            }}
             style={{ transformOrigin: "bottom right" }}
             className="absolute bottom-full right-0 mb-3 w-72 max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain p-1 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl z-50"
           >
-          {showSpeed && (
-            <div className="px-3 py-2 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="text-xs font-bold uppercase tracking-widest text-zinc-400">
-                  {t("player.speed.title")}
+            {showSpeed && (
+              <div className="px-3 py-2 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold uppercase tracking-widest text-zinc-400">
+                    {t("player.speed.title")}
+                  </div>
+                  <span className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                    {formatSpeed(playbackSpeed)}
+                  </span>
                 </div>
-                <span className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
-                  {formatSpeed(playbackSpeed)}
-                </span>
+
+                <input
+                  type="range"
+                  min={SPEED_MIN}
+                  max={SPEED_MAX}
+                  step={0.05}
+                  value={playbackSpeed}
+                  onChange={(e) => setPlaybackSpeed(parseFloat(e.target.value))}
+                  aria-label={t("player.speed.slider")}
+                  className="w-full accent-emerald-500"
+                />
+
+                <div className="grid grid-cols-5 gap-1">
+                  {SPEED_PRESETS.map((preset) => {
+                    const active = Math.abs(playbackSpeed - preset) < 0.001;
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setPlaybackSpeed(preset)}
+                        className={`py-1 text-[11px] font-semibold tabular-nums rounded-md transition-colors ${
+                          active
+                            ? "bg-emerald-500 text-white"
+                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                        }`}
+                      >
+                        {formatSpeed(preset)}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+            )}
 
-              <input
-                type="range"
-                min={SPEED_MIN}
-                max={SPEED_MAX}
-                step={0.05}
-                value={playbackSpeed}
-                onChange={(e) => setPlaybackSpeed(parseFloat(e.target.value))}
-                aria-label={t("player.speed.slider")}
-                className="w-full accent-emerald-500"
-              />
-
-              <div className="grid grid-cols-5 gap-1">
-                {SPEED_PRESETS.map((preset) => {
-                  const active = Math.abs(playbackSpeed - preset) < 0.001;
-                  return (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setPlaybackSpeed(preset)}
-                      className={`py-1 text-[11px] font-semibold tabular-nums rounded-md transition-colors ${
-                        active
-                          ? "bg-emerald-500 text-white"
-                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                      }`}
-                    >
-                      {formatSpeed(preset)}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {showSpeed &&
-            (showEqInMenu || showAbInMenu || showSleepInMenu) && (
+            {showSpeed && (showEqInMenu || showAbInMenu || showSleepInMenu) && (
               <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
             )}
 
-          {/* EQ preset list — same panel as the primary-pin popover,
+            {/* EQ preset list — same panel as the primary-pin popover,
               rendered inline here when the user hasn't pinned the EQ
               button. Bypass toggle + 20 built-in presets. The full
               draggable curve still lives in Settings → Lecture. */}
-          {showEqInMenu && (
-            <div className="px-3 py-2 space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-400">
-                <SlidersHorizontal size={14} />
-                {t("playerBar.eqPreset")}
-              </div>
-              <div className="rounded-lg border border-zinc-100 dark:border-zinc-800 overflow-hidden">
-                <EqPresetPanel collapsible onPick={() => setIsOpen(false)} />
-              </div>
-            </div>
-          )}
-
-          {showEqInMenu && (showAbInMenu || showSleepInMenu) && (
-            <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
-          )}
-
-          {showAbInMenu && (
-            <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
-              <span className="text-sm text-zinc-700 dark:text-zinc-200">
-                {t("playerBar.abLoop")}
-              </span>
-              <AbLoopButton />
-            </div>
-          )}
-
-          {showSleepInMenu && showAbInMenu && (
-            <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
-          )}
-
-          {showSleepInMenu && (
-            <div className="px-3 py-2 space-y-2">
-              <div className="flex items-center justify-between">
+            {showEqInMenu && (
+              <div className="px-3 py-2 space-y-2">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-400">
-                  <Moon size={14} />
-                  {t("sleepTimer.title")}
+                  <SlidersHorizontal size={14} />
+                  {t("playerBar.eqPreset")}
                 </div>
-                {sleepArmed && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sleepTimer.onCancel();
-                      setIsOpen(false);
-                    }}
-                    className="flex items-center space-x-1 text-xs text-rose-500 hover:text-rose-400"
-                  >
-                    <X size={12} />
-                    <span>{t("sleepTimer.cancel")}</span>
-                  </button>
-                )}
+                <div className="rounded-lg border border-zinc-100 dark:border-zinc-800 overflow-hidden">
+                  <EqPresetPanel collapsible onPick={() => setIsOpen(false)} />
+                </div>
               </div>
+            )}
 
-              <div className="grid grid-cols-3 gap-2">
-                {SLEEP_PRESETS_MIN.map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => {
-                      sleepTimer.onSetDuration(m);
-                      setIsOpen(false);
-                    }}
-                    className="px-2 py-1.5 rounded-lg text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-                  >
-                    {t("sleepTimer.minutes", { count: m })}
-                  </button>
-                ))}
+            {showEqInMenu && (showAbInMenu || showSleepInMenu) && (
+              <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
+            )}
+
+            {showAbInMenu && (
+              <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                <span className="text-sm text-zinc-700 dark:text-zinc-200">
+                  {t("playerBar.abLoop")}
+                </span>
+                <AbLoopButton />
               </div>
+            )}
 
-              <button
-                type="button"
-                onClick={() => {
-                  sleepTimer.onSetEndOfTrack();
-                  setIsOpen(false);
-                }}
-                className="w-full px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-              >
-                {t("sleepTimer.endOfTrack")}
-              </button>
+            {showSleepInMenu && showAbInMenu && (
+              <div className="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
+            )}
 
-              <form onSubmit={handleCustomSleep} className="flex gap-2">
-                <input
-                  type="number"
-                  min={1}
-                  max={720}
-                  value={customMinutes}
-                  onChange={(e) => setCustomMinutes(e.target.value)}
-                  placeholder={t("sleepTimer.customPlaceholder")}
-                  aria-label={t("sleepTimer.customAriaLabel")}
-                  className="flex-1 px-2 py-1.5 rounded-lg text-xs bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
-                />
+            {showSleepInMenu && (
+              <div className="px-3 py-2 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-400">
+                    <Moon size={14} />
+                    {t("sleepTimer.title")}
+                  </div>
+                  {sleepArmed && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sleepTimer.onCancel();
+                        setIsOpen(false);
+                      }}
+                      className="flex items-center space-x-1 text-xs text-rose-500 hover:text-rose-400"
+                    >
+                      <X size={12} />
+                      <span>{t("sleepTimer.cancel")}</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {SLEEP_PRESETS_MIN.map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => {
+                        sleepTimer.onSetDuration(m);
+                        setIsOpen(false);
+                      }}
+                      className="px-2 py-1.5 rounded-lg text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                    >
+                      {t("sleepTimer.minutes", { count: m })}
+                    </button>
+                  ))}
+                </div>
+
                 <button
-                  type="submit"
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-50"
-                  disabled={!customMinutes}
+                  type="button"
+                  onClick={() => {
+                    sleepTimer.onSetEndOfTrack();
+                    setIsOpen(false);
+                  }}
+                  className="w-full px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-700 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
                 >
-                  {t("sleepTimer.start")}
+                  {t("sleepTimer.endOfTrack")}
                 </button>
-              </form>
-            </div>
-          )}
+
+                <form onSubmit={handleCustomSleep} className="flex gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={720}
+                    value={customMinutes}
+                    onChange={(e) => setCustomMinutes(e.target.value)}
+                    placeholder={t("sleepTimer.customPlaceholder")}
+                    aria-label={t("sleepTimer.customAriaLabel")}
+                    className="flex-1 px-2 py-1.5 rounded-lg text-xs bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                    disabled={!customMinutes}
+                  >
+                    {t("sleepTimer.start")}
+                  </button>
+                </form>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

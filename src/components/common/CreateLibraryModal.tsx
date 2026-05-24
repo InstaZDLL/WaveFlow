@@ -2,10 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Library, Plus, Check } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
-import {
-  AnimatedModalContent,
-  AnimatedModalShell,
-} from "./AnimatedModalShell";
+import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 
 type ModalMode = "create" | "edit";
 

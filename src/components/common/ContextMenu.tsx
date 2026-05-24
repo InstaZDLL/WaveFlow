@@ -287,7 +287,12 @@ export function ContextMenuSub({
           style={subPos}
           initial={{ opacity: 0, scale: 0.96, x: -4 }}
           animate={{ opacity: 1, scale: 1, x: 0 }}
-          transition={{ type: "spring", stiffness: 520, damping: 32, mass: 0.45 }}
+          transition={{
+            type: "spring",
+            stiffness: 520,
+            damping: 32,
+            mass: 0.45,
+          }}
           className="z-101 rounded-lg border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-black/60 py-1"
           onMouseEnter={cancelClose}
           onMouseLeave={scheduleClose}

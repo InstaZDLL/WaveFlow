@@ -40,7 +40,10 @@ export function createProfile(input: CreateProfileInput): Promise<Profile> {
  * wizard so the auto-created "Default" profile can be renamed
  * without forcing a full create-then-rescan flow.
  */
-export function renameProfile(profileId: number, name: string): Promise<Profile> {
+export function renameProfile(
+  profileId: number,
+  name: string,
+): Promise<Profile> {
   return invoke<Profile>("rename_profile", { profileId, name });
 }
 

@@ -320,208 +320,224 @@ export function TopBar({
 
         {/* Advanced filter panel */}
         <AnimatePresence>
-        {filtersOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -2, scale: 0.99 }}
-            transition={{ type: "spring", stiffness: 520, damping: 32, mass: 0.5 }}
-            style={{ transformOrigin: "top center" }}
-            className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 p-5 max-h-[70vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
-                {t("topbar.search.filters.title")}
-              </span>
-              <div className="flex items-center gap-2">
-                {hasActiveFilters && (
+          {filtersOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -4, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -2, scale: 0.99 }}
+              transition={{
+                type: "spring",
+                stiffness: 520,
+                damping: 32,
+                mass: 0.5,
+              }}
+              style={{ transformOrigin: "top center" }}
+              className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 p-5 max-h-[70vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
+                  {t("topbar.search.filters.title")}
+                </span>
+                <div className="flex items-center gap-2">
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      onClick={resetFilters}
+                      className="text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 px-2 py-1 rounded"
+                    >
+                      {t("topbar.search.filters.reset")}
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={resetFilters}
-                    className="text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 px-2 py-1 rounded"
+                    onClick={() => setFiltersOpen(false)}
+                    className="p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
+                    aria-label={t("topbar.search.filters.close")}
                   >
-                    {t("topbar.search.filters.reset")}
+                    <X size={14} />
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setFiltersOpen(false)}
-                  className="p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500"
-                  aria-label={t("topbar.search.filters.close")}
-                >
-                  <X size={14} />
-                </button>
+                </div>
               </div>
-            </div>
 
-            {/* Quick toggles */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              <FilterChip
-                active={filters.hi_res_only === true}
-                onClick={() =>
-                  updateFilter("hi_res_only", filters.hi_res_only ? null : true)
-                }
-                label={t("topbar.search.filters.hiRes")}
-              />
-              <FilterChip
-                active={filters.liked_only === true}
-                onClick={() =>
-                  updateFilter("liked_only", filters.liked_only ? null : true)
-                }
-                label={t("topbar.search.filters.likedOnly")}
-              />
-            </div>
-
-            {/* Year range */}
-            <FilterRow label={t("topbar.search.filters.year")}>
-              <RangeInput
-                min={filters.year_min ?? null}
-                max={filters.year_max ?? null}
-                onMin={(v) => updateFilter("year_min", v)}
-                onMax={(v) => updateFilter("year_max", v)}
-                placeholderMin="1900"
-                placeholderMax="2099"
-              />
-            </FilterRow>
-
-            {/* BPM range */}
-            <FilterRow label={t("topbar.search.filters.bpm")}>
-              <RangeInput
-                min={filters.bpm_min ?? null}
-                max={filters.bpm_max ?? null}
-                onMin={(v) => updateFilter("bpm_min", v)}
-                onMax={(v) => updateFilter("bpm_max", v)}
-                placeholderMin="40"
-                placeholderMax="220"
-              />
-            </FilterRow>
-
-            {/* Duration range (in minutes for ergonomics) */}
-            <FilterRow label={t("topbar.search.filters.durationMin")}>
-              <RangeInput
-                min={
-                  filters.duration_min_ms != null
-                    ? Math.round(filters.duration_min_ms / 60_000)
-                    : null
-                }
-                max={
-                  filters.duration_max_ms != null
-                    ? Math.round(filters.duration_max_ms / 60_000)
-                    : null
-                }
-                onMin={(v) =>
-                  updateFilter(
-                    "duration_min_ms",
-                    v != null ? Math.round(v * 60_000) : null,
-                  )
-                }
-                onMax={(v) =>
-                  updateFilter(
-                    "duration_max_ms",
-                    v != null ? Math.round(v * 60_000) : null,
-                  )
-                }
-                placeholderMin="0"
-                placeholderMax="60"
-              />
-            </FilterRow>
-
-            {/* Format chips */}
-            <FilterRow label={t("topbar.search.filters.format")}>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  "FLAC",
-                  "WAV",
-                  "AIFF",
-                  "ALAC",
-                  "DSF",
-                  "DFF",
-                  "MP3",
-                  "AAC",
-                  "OGG",
-                  "OPUS",
-                ].map((fmt) => (
-                  <FilterChip
-                    key={fmt}
-                    active={(filters.formats ?? []).includes(fmt)}
-                    onClick={() => toggleFormat(fmt)}
-                    label={fmt}
-                    compact
-                  />
-                ))}
+              {/* Quick toggles */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <FilterChip
+                  active={filters.hi_res_only === true}
+                  onClick={() =>
+                    updateFilter(
+                      "hi_res_only",
+                      filters.hi_res_only ? null : true,
+                    )
+                  }
+                  label={t("topbar.search.filters.hiRes")}
+                />
+                <FilterChip
+                  active={filters.liked_only === true}
+                  onClick={() =>
+                    updateFilter("liked_only", filters.liked_only ? null : true)
+                  }
+                  label={t("topbar.search.filters.likedOnly")}
+                />
               </div>
-            </FilterRow>
 
-            {/* Genres */}
-            {genres.length > 0 && (
-              <FilterRow label={t("topbar.search.filters.genres")}>
-                <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
-                  {genres.map((g) => (
+              {/* Year range */}
+              <FilterRow label={t("topbar.search.filters.year")}>
+                <RangeInput
+                  min={filters.year_min ?? null}
+                  max={filters.year_max ?? null}
+                  onMin={(v) => updateFilter("year_min", v)}
+                  onMax={(v) => updateFilter("year_max", v)}
+                  placeholderMin="1900"
+                  placeholderMax="2099"
+                />
+              </FilterRow>
+
+              {/* BPM range */}
+              <FilterRow label={t("topbar.search.filters.bpm")}>
+                <RangeInput
+                  min={filters.bpm_min ?? null}
+                  max={filters.bpm_max ?? null}
+                  onMin={(v) => updateFilter("bpm_min", v)}
+                  onMax={(v) => updateFilter("bpm_max", v)}
+                  placeholderMin="40"
+                  placeholderMax="220"
+                />
+              </FilterRow>
+
+              {/* Duration range (in minutes for ergonomics) */}
+              <FilterRow label={t("topbar.search.filters.durationMin")}>
+                <RangeInput
+                  min={
+                    filters.duration_min_ms != null
+                      ? Math.round(filters.duration_min_ms / 60_000)
+                      : null
+                  }
+                  max={
+                    filters.duration_max_ms != null
+                      ? Math.round(filters.duration_max_ms / 60_000)
+                      : null
+                  }
+                  onMin={(v) =>
+                    updateFilter(
+                      "duration_min_ms",
+                      v != null ? Math.round(v * 60_000) : null,
+                    )
+                  }
+                  onMax={(v) =>
+                    updateFilter(
+                      "duration_max_ms",
+                      v != null ? Math.round(v * 60_000) : null,
+                    )
+                  }
+                  placeholderMin="0"
+                  placeholderMax="60"
+                />
+              </FilterRow>
+
+              {/* Format chips */}
+              <FilterRow label={t("topbar.search.filters.format")}>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    "FLAC",
+                    "WAV",
+                    "AIFF",
+                    "ALAC",
+                    "DSF",
+                    "DFF",
+                    "MP3",
+                    "AAC",
+                    "OGG",
+                    "OPUS",
+                  ].map((fmt) => (
                     <FilterChip
-                      key={g.id}
-                      active={(filters.genre_ids ?? []).includes(g.id)}
-                      onClick={() => toggleGenre(g.id)}
-                      label={g.name}
+                      key={fmt}
+                      active={(filters.formats ?? []).includes(fmt)}
+                      onClick={() => toggleFormat(fmt)}
+                      label={fmt}
                       compact
                     />
                   ))}
                 </div>
               </FilterRow>
-            )}
-          </motion.div>
-        )}
+
+              {/* Genres */}
+              {genres.length > 0 && (
+                <FilterRow label={t("topbar.search.filters.genres")}>
+                  <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
+                    {genres.map((g) => (
+                      <FilterChip
+                        key={g.id}
+                        active={(filters.genre_ids ?? []).includes(g.id)}
+                        onClick={() => toggleGenre(g.id)}
+                        label={g.name}
+                        compact
+                      />
+                    ))}
+                  </div>
+                </FilterRow>
+              )}
+            </motion.div>
+          )}
         </AnimatePresence>
 
         {/* Search results dropdown */}
         <AnimatePresence>
-        {isSearchOpen && !filtersOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -2, scale: 0.99 }}
-            transition={{ type: "spring", stiffness: 520, damping: 32, mass: 0.5 }}
-            style={{ transformOrigin: "top center" }}
-            className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden">
-            <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-4 pt-3 pb-2">
-              {t("topbar.search.results", { count: searchResults.length })}
-            </div>
-            {searchResults.length === 0 ? (
-              <div className="px-4 py-6 text-center text-sm text-zinc-500">
-                {t("topbar.search.empty")}
+          {isSearchOpen && !filtersOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -4, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -2, scale: 0.99 }}
+              transition={{
+                type: "spring",
+                stiffness: 520,
+                damping: 32,
+                mass: 0.5,
+              }}
+              style={{ transformOrigin: "top center" }}
+              className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden"
+            >
+              <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-4 pt-3 pb-2">
+                {t("topbar.search.results", { count: searchResults.length })}
               </div>
-            ) : (
-              <ul className="max-h-80 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800/60">
-                {searchResults.map((track, index) => (
-                  <li
-                    key={track.id}
-                    onClick={() =>
-                      handleSearchResultClick(searchResults, index)
-                    }
-                    className="flex items-center space-x-3 px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
-                  >
-                    <Artwork
-                      path={track.artwork_path}
-                      className="w-10 h-10"
-                      iconSize={16}
-                      alt={track.title}
-                      rounded="md"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
-                        {track.title}
+              {searchResults.length === 0 ? (
+                <div className="px-4 py-6 text-center text-sm text-zinc-500">
+                  {t("topbar.search.empty")}
+                </div>
+              ) : (
+                <ul className="max-h-80 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800/60">
+                  {searchResults.map((track, index) => (
+                    <li
+                      key={track.id}
+                      onClick={() =>
+                        handleSearchResultClick(searchResults, index)
+                      }
+                      className="flex items-center space-x-3 px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
+                    >
+                      <Artwork
+                        path={track.artwork_path}
+                        className="w-10 h-10"
+                        iconSize={16}
+                        alt={track.title}
+                        rounded="md"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                          {track.title}
+                        </div>
+                        <div className="text-xs text-zinc-500 truncate">
+                          {track.artist_name ?? "—"} ·{" "}
+                          {track.album_title ?? "—"}
+                        </div>
                       </div>
-                      <div className="text-xs text-zinc-500 truncate">
-                        {track.artist_name ?? "—"} · {track.album_title ?? "—"}
-                      </div>
-                    </div>
-                    <span className="text-xs text-zinc-400 tabular-nums shrink-0">
-                      {formatDuration(track.duration_ms)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </motion.div>
-        )}
+                      <span className="text-xs text-zinc-400 tabular-nums shrink-0">
+                        {formatDuration(track.duration_ms)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 
@@ -592,72 +608,78 @@ export function TopBar({
           </button>
 
           <AnimatePresence>
-          {isProfileOpen && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 4 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.97, y: 2 }}
-              transition={{ type: "spring", stiffness: 520, damping: 32, mass: 0.45 }}
-              style={{ transformOrigin: "top right" }}
-              className="absolute top-full right-0 mt-2 w-56 rounded-xl shadow-lg border overflow-hidden z-50 bg-white border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700">
-              {/* Profile Header */}
-              <div className="p-4 flex items-center space-x-3">
-                <div
-                  className={`w-10 h-10 rounded-full ${profileColor.avatarBg} ${profileColor.avatarText} flex items-center justify-center font-bold text-lg shadow-sm`}
-                >
-                  {profileLetter}
-                </div>
-                <div className="flex flex-col text-left min-w-0">
-                  <div className="font-semibold text-sm text-zinc-900 dark:text-white truncate">
-                    {profileName}
+            {isProfileOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.97, y: 2 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 520,
+                  damping: 32,
+                  mass: 0.45,
+                }}
+                style={{ transformOrigin: "top right" }}
+                className="absolute top-full right-0 mt-2 w-56 rounded-xl shadow-lg border overflow-hidden z-50 bg-white border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700"
+              >
+                {/* Profile Header */}
+                <div className="p-4 flex items-center space-x-3">
+                  <div
+                    className={`w-10 h-10 rounded-full ${profileColor.avatarBg} ${profileColor.avatarText} flex items-center justify-center font-bold text-lg shadow-sm`}
+                  >
+                    {profileLetter}
                   </div>
-                  <div className="text-xs text-zinc-400">
-                    {t("topbar.profile.user")}
+                  <div className="flex flex-col text-left min-w-0">
+                    <div className="font-semibold text-sm text-zinc-900 dark:text-white truncate">
+                      {profileName}
+                    </div>
+                    <div className="text-xs text-zinc-400">
+                      {t("topbar.profile.user")}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="border-t py-2 border-zinc-100 dark:border-zinc-700">
-                <MenuActionItem
-                  icon={<Users size={16} />}
-                  label={t("topbar.profile.changeProfile")}
-                  onClick={() => {
-                    onOpenProfileSelector();
-                    setIsProfileOpen(false);
-                  }}
-                />
-                <MenuActionItem
-                  icon={<BarChart2 size={16} />}
-                  label={t("topbar.profile.statistics")}
-                  onClick={() => handleMenuNav("statistics")}
-                />
-                <MenuActionItem
-                  icon={<Settings size={16} />}
-                  label={t("topbar.profile.settings")}
-                  onClick={() => handleMenuNav("settings")}
-                />
-                <MenuActionItem
-                  icon={<MessageSquare size={16} />}
-                  label={t("topbar.profile.feedback")}
-                  onClick={() => handleMenuNav("feedback")}
-                />
-                <MenuActionItem
-                  icon={<Info size={16} />}
-                  label={t("topbar.profile.about")}
-                  onClick={() => handleMenuNav("about")}
-                />
-              </div>
+                <div className="border-t py-2 border-zinc-100 dark:border-zinc-700">
+                  <MenuActionItem
+                    icon={<Users size={16} />}
+                    label={t("topbar.profile.changeProfile")}
+                    onClick={() => {
+                      onOpenProfileSelector();
+                      setIsProfileOpen(false);
+                    }}
+                  />
+                  <MenuActionItem
+                    icon={<BarChart2 size={16} />}
+                    label={t("topbar.profile.statistics")}
+                    onClick={() => handleMenuNav("statistics")}
+                  />
+                  <MenuActionItem
+                    icon={<Settings size={16} />}
+                    label={t("topbar.profile.settings")}
+                    onClick={() => handleMenuNav("settings")}
+                  />
+                  <MenuActionItem
+                    icon={<MessageSquare size={16} />}
+                    label={t("topbar.profile.feedback")}
+                    onClick={() => handleMenuNav("feedback")}
+                  />
+                  <MenuActionItem
+                    icon={<Info size={16} />}
+                    label={t("topbar.profile.about")}
+                    onClick={() => handleMenuNav("about")}
+                  />
+                </div>
 
-              <div className="border-t py-2 border-zinc-100 dark:border-zinc-700">
-                <MenuActionItem
-                  icon={<LogOut size={16} />}
-                  label={t("topbar.profile.quit")}
-                  danger
-                  onClick={handleQuit}
-                />
-              </div>
-            </motion.div>
-          )}
+                <div className="border-t py-2 border-zinc-100 dark:border-zinc-700">
+                  <MenuActionItem
+                    icon={<LogOut size={16} />}
+                    label={t("topbar.profile.quit")}
+                    danger
+                    onClick={handleQuit}
+                  />
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
       </div>

@@ -127,8 +127,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       // Binary toggle for the existing topbar button: flip between
       // the two default presets. Custom themes are picked from the
       // Settings appearance panel, not from the topbar.
-      const nextId =
-        theme.mode === "dark" ? "default" : "default-dark";
+      const nextId = theme.mode === "dark" ? "default" : "default-dark";
       setThemeId(nextId, event);
     },
     [theme.mode, setThemeId],
@@ -137,9 +136,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const isDark = theme.mode === "dark";
 
   return (
-    <ThemeContext.Provider
-      value={{ theme, setThemeId, isDark, toggleTheme }}
-    >
+    <ThemeContext.Provider value={{ theme, setThemeId, isDark, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

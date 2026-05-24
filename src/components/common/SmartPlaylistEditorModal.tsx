@@ -13,10 +13,7 @@ import {
 import { listGenres, type GenreRow } from "../../lib/tauri/browse";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { RuleTreeEditor } from "./RuleTreeEditor";
-import {
-  AnimatedModalContent,
-  AnimatedModalShell,
-} from "./AnimatedModalShell";
+import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 
 interface SmartPlaylistEditorModalProps {
   isOpen: boolean;

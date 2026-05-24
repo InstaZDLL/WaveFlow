@@ -164,7 +164,6 @@ export async function listTracks(
   return expandTrackResponse(resp);
 }
 
-
 /** Full-text search across title, album and artist. Returns up to 50 results. */
 export function searchTracks(query: string): Promise<Track[]> {
   return invoke<Track[]>("search_tracks", { query });

@@ -634,39 +634,39 @@ export function HomeView({
           {recentAlbums.length === 0 && recentAlbumsLoading ? (
             <HomeCarouselSkeleton label={t("home.recentlyAdded.title")} />
           ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
-            {recentAlbums.map((album) => (
-              <button
-                key={album.id}
-                type="button"
-                onClick={() => onNavigateToAlbum(album.id)}
-                className="group flex flex-col items-stretch text-left rounded-2xl p-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-              >
-                <Artwork
-                  path={album.artwork_path}
-                  path1x={album.artwork_path_1x}
-                  path2x={album.artwork_path_2x}
-                  // See "Récemment joués" comment above — same reason.
-                  size="full"
-                  alt={album.title}
-                  className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
-                  iconSize={36}
-                  rounded="2xl"
-                />
-                <div className="mt-3 min-w-0">
-                  <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
-                    {album.title}
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+              {recentAlbums.map((album) => (
+                <button
+                  key={album.id}
+                  type="button"
+                  onClick={() => onNavigateToAlbum(album.id)}
+                  className="group flex flex-col items-stretch text-left rounded-2xl p-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                >
+                  <Artwork
+                    path={album.artwork_path}
+                    path1x={album.artwork_path_1x}
+                    path2x={album.artwork_path_2x}
+                    // See "Récemment joués" comment above — same reason.
+                    size="full"
+                    alt={album.title}
+                    className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
+                    iconSize={36}
+                    rounded="2xl"
+                  />
+                  <div className="mt-3 min-w-0">
+                    <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+                      {album.title}
+                    </div>
+                    <div className="text-xs text-zinc-500 truncate flex items-center gap-1">
+                      <Music2 size={11} className="shrink-0" />
+                      <span className="truncate">
+                        {album.artist_name ?? t("library.table.unknown")}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-xs text-zinc-500 truncate flex items-center gap-1">
-                    <Music2 size={11} className="shrink-0" />
-                    <span className="truncate">
-                      {album.artist_name ?? t("library.table.unknown")}
-                    </span>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
+                </button>
+              ))}
+            </div>
           )}
         </section>
       )}
