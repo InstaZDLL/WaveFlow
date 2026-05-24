@@ -338,10 +338,20 @@ pub async fn list_playlist_tracks(
     .fetch_all(&pool)
     .await?;
 
-    let items = rows
-        .into_iter()
-        .map(|row| crate::commands::track::track_list_item_from_row(row, &artwork_dir))
-        .collect();
+    // Same blocking-pool offload as `list_tracks` — large playlists
+    // (the Liked Songs pseudo-playlist routinely runs 800+ rows on a
+    // healthy library) would otherwise stall the runtime on per-row
+    // `Path::exists` thumbnail probes.
+    let artwork_dir_for_blocking = artwork_dir.clone();
+    let items = tokio::task::spawn_blocking(move || {
+        rows.into_iter()
+            .map(|row| {
+                crate::commands::track::track_list_item_from_row(row, &artwork_dir_for_blocking)
+            })
+            .collect()
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("list_playlist_tracks join: {e}")))?;
 
     Ok(crate::commands::track::ListTracksResponse {
         artwork_base: artwork_dir.to_string_lossy().into_owned(),

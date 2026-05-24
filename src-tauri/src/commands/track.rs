@@ -272,10 +272,18 @@ pub async fn list_tracks(
         .fetch_all(&pool)
         .await?;
 
-    let items = rows
-        .into_iter()
-        .map(|row| track_list_item_from_row(row, &artwork_dir))
-        .collect();
+    // Each row triggers 2 synchronous `Path::exists` probes for the
+    // thumbnail variants — at 1k+ tracks that's enough to stall the
+    // tokio runtime. Hand the batch off to the blocking pool in one
+    // hop rather than spawning per row.
+    let artwork_dir_for_blocking = artwork_dir.clone();
+    let items = tokio::task::spawn_blocking(move || {
+        rows.into_iter()
+            .map(|row| track_list_item_from_row(row, &artwork_dir_for_blocking))
+            .collect()
+    })
+    .await
+    .map_err(|e| crate::error::AppError::Other(format!("list_tracks join: {e}")))?;
 
     Ok(ListTracksResponse {
         artwork_base: artwork_dir.to_string_lossy().into_owned(),
@@ -951,10 +959,15 @@ pub async fn list_liked_tracks(
     .fetch_all(&pool)
     .await?;
 
-    let items = rows
-        .into_iter()
-        .map(|row| track_list_item_from_row(row, &artwork_dir))
-        .collect();
+    // Same blocking-pool offload as `list_tracks`.
+    let artwork_dir_for_blocking = artwork_dir.clone();
+    let items = tokio::task::spawn_blocking(move || {
+        rows.into_iter()
+            .map(|row| track_list_item_from_row(row, &artwork_dir_for_blocking))
+            .collect()
+    })
+    .await
+    .map_err(|e| crate::error::AppError::Other(format!("list_liked_tracks join: {e}")))?;
 
     Ok(ListTracksResponse {
         artwork_base: artwork_dir.to_string_lossy().into_owned(),
