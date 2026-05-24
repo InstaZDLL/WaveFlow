@@ -216,7 +216,7 @@ export function MoreActionsMenu({
                 {t("playerBar.eqPreset")}
               </div>
               <div className="rounded-lg border border-zinc-100 dark:border-zinc-800 overflow-hidden">
-                <EqPresetPanel onPick={() => setIsOpen(false)} />
+                <EqPresetPanel collapsible onPick={() => setIsOpen(false)} />
               </div>
             </div>
           )}
