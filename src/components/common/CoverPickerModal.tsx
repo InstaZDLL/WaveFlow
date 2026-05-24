@@ -57,13 +57,22 @@ export function CoverPickerModal({
   }, [isOpen, initialQuery]);
 
   useEffect(() => {
-    if (!isOpen || tab !== "deezer") return;
+    if (!isOpen || tab !== "deezer") {
+      // If the user switches tabs (or the modal closes) while a fetch
+      // is in flight, the in-flight `.finally` short-circuits on the
+      // `cancelled` token below and would leave `isSearching=true`
+      // visible on the new tab (or stale on the next reopen). The
+      // `!isOpen` path is also covered by the reset effect above, so
+      // this is the load-bearing case for the `tab !== "deezer"` swap.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsSearching(false);
+      return;
+    }
     if (debounceRef.current != null) {
       window.clearTimeout(debounceRef.current);
     }
     const trimmed = query.trim();
     if (trimmed.length < 2) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([]);
       // If a previous fetch is still in-flight, its `.finally` will be
       // short-circuited by the `cancelled` token below — so the spinner
