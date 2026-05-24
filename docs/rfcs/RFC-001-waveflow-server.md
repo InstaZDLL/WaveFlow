@@ -200,6 +200,21 @@ CREATE TABLE device_sync_cursor (
   last_seen_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (user_id, device_id)
 );
+
+-- Composite index for the compaction MIN(last_seen_id) query with the
+-- staleness predicate on last_seen_at. Lets Postgres do an index-only
+-- scan instead of a heap fetch per row.
+CREATE INDEX device_sync_cursor_compaction_idx
+  ON device_sync_cursor (user_id, last_seen_at, last_seen_id);
+
+-- High-water mark of compacted ops, per user. Pull handlers consult this
+-- to detect resurrected devices whose requested `since` falls below the
+-- last truncated id (those devices have lost ops and must full-resync).
+CREATE TABLE sync_compaction_watermark (
+  user_id           UUID PRIMARY KEY,
+  compacted_up_to   BIGINT NOT NULL DEFAULT 0,
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 ```
 
 `operation_id` is a client-generated UUID (v4 or v7) attached to each op at the moment it is created locally and persisted with it. It must remain stable across retries — a client that re-sends an op after a 409 monotonicity reject **must** reuse the same `operation_id`, only the `lamport_ts` changes. Clients that cannot generate UUIDs may use a deterministic content-hash `BLAKE3(entity_id || field || value || device_id || local_serial)` instead; the value must remain stable across retries of the same logical operation.
@@ -211,12 +226,17 @@ CREATE TABLE device_sync_cursor (
 3. **On every received remote op** (via pull or WebSocket), merge clocks before applying: `local_lamport = max(local_lamport, remote.lamport_ts) + 1`.
 4. The counter is monotonic on a given device; it never decreases.
 
-**Pull**: `GET /sync/ops?since=<last_seen_id>` returns ops with `id > since` ordered by `id` ASC. The endpoint requires the caller's `device_id` (extracted from a header or JWT claim) so the server can update `device_sync_cursor`.
+**Pull**: `GET /sync/ops?since=<last_seen_id>` returns ops with `id > since` ordered by `id` ASC. The endpoint requires the caller's `device_id` (extracted from a header or JWT claim).
 
-- **First sync**: a brand-new device has no cursor. It calls `GET /sync/ops` (no `since` parameter) or equivalently `GET /sync/ops?since=0`; both are treated identically and return every op the user has from `id > 0`. The server inserts a new row in `device_sync_cursor` on first contact.
+- **First sync**: a brand-new device has no cursor. It calls `GET /sync/ops` (no `since` parameter) or equivalently `GET /sync/ops?since=0`; both are treated identically and return every op the user has from `id > 0`. The server lazily creates the `device_sync_cursor` row on first ACK (see below).
 - **Subsequent sync**: client passes its locally-stored `last_seen_id`.
-- **After receiving the response**: the client applies ops in `id` ASC order, runs the Lamport merge rule (#3 above) for each one before applying locally, then advances its local `last_seen_id` to the highest `id` received. The server updates `device_sync_cursor.last_seen_id` to the same value at the end of a successful response (or on an explicit `POST /sync/ack` ping if the client uses streaming/WebSocket and wants to acknowledge ranges incrementally).
-- **WebSocket equivalent**: the `client → server` channel includes periodic `{ "ack": <highest_id_applied> }` frames; the server treats each as a cursor update and writes to `device_sync_cursor`.
+- **Resurrected-device guard**: before streaming ops, the server checks `sync_compaction_watermark`. If `since < compacted_up_to`, the requested range has been partially or fully truncated by compaction. The server responds **`410 Gone`** with `{"type": "resync_required", "compacted_up_to": <n>}` (or, over WebSocket, a `{"type": "resync_required", "compacted_up_to": <n>}` frame followed by connection close). On receipt, the client wipes its local op-derived state for the affected entities and re-pulls from `since=0`. Without this guard, the client would silently apply a truncated delta — strictly worse than a hard error.
+- **Client-side apply order**: apply ops in `id` ASC, run the Lamport merge rule (#3 above) for each before applying locally, then advance the local `last_seen_id` to the highest `id` durably persisted.
+- **Server-side cursor advancement** — **ACK is the only authoritative source**. The server does **not** write `device_sync_cursor.last_seen_id` at the end of a Pull response (response sent ≠ client durably applied). The client must explicitly acknowledge applied ranges:
+  - REST clients: `POST /sync/ack { "last_seen_id": <highest_id_durably_applied> }`.
+  - WebSocket clients: periodic `{ "ack": <highest_id_durably_applied> }` frames on the same channel.
+  - The server upserts `device_sync_cursor (user_id, device_id, last_seen_id, last_seen_at)` on each ACK whose `last_seen_id` is strictly greater than the stored value (older or equal ACKs are no-ops).
+- **ACK debouncing on the server**: high-throughput clients may emit ACK frames every op. The server may debounce writes to `device_sync_cursor` — accumulate the latest ACK in memory per `(user_id, device_id)` and flush either every N seconds (default 5s) or on disconnect / shutdown. This is a write-amplification optimization only; the in-memory value is always used when computing the compaction MIN so debouncing never causes premature compaction.
 
 **Push**: `POST /sync/ops` with the client's pending ops batch. Each op carries its client-generated `operation_id`. For every op the server processes:
 
@@ -297,7 +317,8 @@ These are flagged and will be resolved at the relevant sub-phase, not now:
 | TanStack Start matures slower than expected, blocks 1.c | Low | Medium | Fallback to Next.js Pages Router (no RSC). Decision deadline: start of 1.c. |
 | Better Auth JWKS rotation breaks desktop clients with cached keys | Medium | Medium | Cache TTL = 1h, keys rotate quarterly, overlap window = 1 week. Document the rotation runbook. |
 | Postgres feels heavy for a single-family self-host | Medium | Low | Document that SQLite is supported on the server too via `--features sqlite-server` build flag (single-writer, but fine for ≤ 5 concurrent users). |
-| Sync ops table grows unboundedly | High | Low | Background compaction job (Phase 1.f): reads `MIN(last_seen_id)` from `device_sync_cursor` across all of a user's devices and only collapses ops with `id < min` for the same `(entity_id, field)`. Run nightly. Devices that haven't synced in N days (configurable, default 90) are excluded from the `MIN` so a single stale device can't block compaction forever. |
+| Sync ops table grows unboundedly | High | Low | Background compaction job (Phase 1.f): reads `MIN(last_seen_id)` from `device_sync_cursor` across all of a user's devices and only collapses ops with `id < min` for the same `(entity_id, field)`. Run nightly. Devices that haven't synced in N days (configurable, default 90) are excluded from the `MIN` so a single stale device can't block compaction forever. The job updates `sync_compaction_watermark.compacted_up_to` after each pass. |
+| Resurrected device returns past the staleness cutoff and silently misses compacted ops | Medium | Medium | Pull handler checks `sync_compaction_watermark` first; if `since < compacted_up_to` it returns `410 Gone` with `compacted_up_to`, forcing a client full-resync from `since=0`. Without this guard the client would apply a truncated delta and drift permanently out of sync. |
 
 ## 10. Alternatives considered
 
