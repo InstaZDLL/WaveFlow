@@ -119,6 +119,13 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
     try {
       await deleteTracks(toDelete);
       if (requestId !== requestIdRef.current) return;
+      // Clear the spinner BEFORE delegating to refresh(): refresh()
+      // bumps requestIdRef.current, so the staleness guard in the
+      // finally below would (correctly) skip the reset on the happy
+      // path and leave the spinner stuck on after a successful
+      // delete. The finally guard stays to cover the
+      // error / early-exit paths where refresh isn't reached.
+      setIsDeleting(false);
       await refresh();
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
