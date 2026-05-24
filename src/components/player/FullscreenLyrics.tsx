@@ -83,11 +83,15 @@ export function FullscreenLyrics({
       role="dialog"
       aria-modal="true"
       aria-labelledby="fullscreen-lyrics-title"
-      className="fixed inset-0 z-[100] animate-fade-in"
+      className="fixed inset-0 z-[100] bg-zinc-950"
     >
       {/* Blurred artwork background — falls back to a flat dark
-          gradient when the track has no cover. */}
-      <div className="absolute inset-0 overflow-hidden">
+          gradient when the track has no cover.
+          The `animate-fade-in` lives here (not on the outer wrapper)
+          so the opaque `bg-zinc-950` above paints solid from frame 1
+          — without that base the wrapper's own opacity tween would
+          let the home view bleed through during the 300 ms ramp. */}
+      <div className="absolute inset-0 overflow-hidden animate-fade-in">
         {track.artwork_path ? (
           <Artwork
             path={track.artwork_path}
@@ -99,13 +103,13 @@ export function FullscreenLyrics({
             rounded="md"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-950" />
+          <div className="w-full h-full bg-linear-to-br from-zinc-800 to-zinc-950" />
         )}
         <div className="absolute inset-0 bg-black/65" />
       </div>
 
       {/* Foreground */}
-      <div className="relative h-full flex flex-col text-white">
+      <div className="relative h-full flex flex-col text-white animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 shrink-0">
           <div className="flex items-center gap-4 min-w-0">

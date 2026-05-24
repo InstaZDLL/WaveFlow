@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
@@ -321,25 +322,31 @@ export function LyricsPanel() {
           onSaved={(next) => setPayload(next)}
         />
 
-        {/* Fullscreen overlay — rendered as a sibling so it covers
-            the whole app, not just the panel. Toggled via PlayerContext
-            so the immersive Now Playing view can switch into karaoke
-            mode without unmounting the panel that owns the lyrics
-            state. */}
-        {isFullscreenLyricsOpen && currentTrack && (
-          <FullscreenLyrics
-            track={currentTrack}
-            payload={payload}
-            lrcLines={lrcLines}
-            isSynced={isSynced}
-            activeIndex={activeIndex}
-            isFetching={isFetching}
-            error={error}
-            onClose={closeFullscreenLyrics}
-            onOpenNowPlaying={openFullscreenNowPlaying}
-            onSeek={handleSeekToLine}
-          />
-        )}
+        {/* Fullscreen overlay — portalled to `document.body` so it
+            escapes the `motion.aside`'s opacity/width animation; without
+            the portal the overlay inherits the parent's `opacity: 0`
+            tween at mount and the app background flashes through during
+            the immersive→lyrics transition (the reverse direction is
+            unaffected because LyricsPanel is already fully opaque by
+            then). Mounted as a portal sibling at the document root keeps
+            the panel as the owner of the lyrics fetch / parse state. */}
+        {isFullscreenLyricsOpen &&
+          currentTrack &&
+          createPortal(
+            <FullscreenLyrics
+              track={currentTrack}
+              payload={payload}
+              lrcLines={lrcLines}
+              isSynced={isSynced}
+              activeIndex={activeIndex}
+              isFetching={isFetching}
+              error={error}
+              onClose={closeFullscreenLyrics}
+              onOpenNowPlaying={openFullscreenNowPlaying}
+              onSeek={handleSeekToLine}
+            />,
+            document.body,
+          )}
 
         {/* Footer actions */}
         {currentTrack != null && (

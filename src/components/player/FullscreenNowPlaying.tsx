@@ -128,12 +128,16 @@ export function FullscreenNowPlaying({
       role="dialog"
       aria-modal="true"
       aria-label={t("playerBar.openFullscreen")}
-      className="fixed inset-0 z-100 animate-fade-in"
+      className="fixed inset-0 z-100 bg-zinc-950"
     >
       {/* Blurred artwork background — falls back to a flat dark
           gradient when the track has no cover. Same recipe as the
-          fullscreen lyrics overlay so they feel like siblings. */}
-      <div className="absolute inset-0 overflow-hidden">
+          fullscreen lyrics overlay so they feel like siblings.
+          The `animate-fade-in` lives here (not on the outer wrapper)
+          so the opaque `bg-zinc-950` above paints solid from frame 1
+          — without that base the wrapper's own opacity tween would
+          let the home view bleed through during the 300 ms ramp. */}
+      <div className="absolute inset-0 overflow-hidden animate-fade-in">
         {currentTrack?.artwork_path ? (
           <Artwork
             path={currentTrack.artwork_path}
@@ -151,7 +155,7 @@ export function FullscreenNowPlaying({
       </div>
 
       {/* Foreground */}
-      <div className="relative h-full flex flex-col text-white">
+      <div className="relative h-full flex flex-col text-white animate-fade-in">
         {/* Top bar — lyrics switcher + share + close. Controls live at
             the bottom so the cover gets the visual centre. */}
         <div className="flex items-center justify-end gap-3 px-8 py-6 shrink-0">
