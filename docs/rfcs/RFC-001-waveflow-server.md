@@ -177,6 +177,7 @@ CREATE TABLE sync_op (
   id              BIGSERIAL PRIMARY KEY,  -- server sequence, authoritative ordering
   user_id         UUID NOT NULL,
   device_id       UUID NOT NULL,
+  operation_id    UUID NOT NULL,      -- client-generated, stable across retries (idempotency key)
   entity_type     TEXT NOT NULL,      -- 'track', 'playlist', 'like', ...
   entity_id       TEXT NOT NULL,      -- stable cross-device id
   op              TEXT NOT NULL,      -- 'upsert', 'delete'
@@ -184,11 +185,24 @@ CREATE TABLE sync_op (
   value           JSONB,              -- new value
   lamport_ts      BIGINT NOT NULL,    -- device-side clock, used for local merging
   wall_clock      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, device_id, operation_id),
   UNIQUE (user_id, device_id, lamport_ts)
 );
 
 CREATE INDEX sync_op_pull_idx ON sync_op (user_id, id);
+
+-- Per-device pull cursor. Drives the compaction job (only ops older than
+-- min(last_seen_id) across all of a user's devices are safe to compact).
+CREATE TABLE device_sync_cursor (
+  user_id         UUID NOT NULL,
+  device_id       UUID NOT NULL,
+  last_seen_id    BIGINT NOT NULL DEFAULT 0,
+  last_seen_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, device_id)
+);
 ```
+
+`operation_id` is a client-generated UUID (v4 or v7) attached to each op at the moment it is created locally and persisted with it. It must remain stable across retries — a client that re-sends an op after a 409 monotonicity reject **must** reuse the same `operation_id`, only the `lamport_ts` changes. Clients that cannot generate UUIDs may use a deterministic content-hash `BLAKE3(entity_id || field || value || device_id || local_serial)` instead; the value must remain stable across retries of the same logical operation.
 
 **Device-side Lamport clock rules** (every client must implement these):
 
@@ -197,13 +211,19 @@ CREATE INDEX sync_op_pull_idx ON sync_op (user_id, id);
 3. **On every received remote op** (via pull or WebSocket), merge clocks before applying: `local_lamport = max(local_lamport, remote.lamport_ts) + 1`.
 4. The counter is monotonic on a given device; it never decreases.
 
-**Pull**: `GET /sync/ops?since=<last_seen_id>` returns ops ordered by `id` ASC. Client applies in order and advances `last_seen_id` to the highest `id` seen. Lamport merge rule (#3 above) runs for each remote op before it is applied locally.
+**Pull**: `GET /sync/ops?since=<last_seen_id>` returns ops with `id > since` ordered by `id` ASC. The endpoint requires the caller's `device_id` (extracted from a header or JWT claim) so the server can update `device_sync_cursor`.
 
-**Push**: `POST /sync/ops` with the client's pending ops batch. The server:
+- **First sync**: a brand-new device has no cursor. It calls `GET /sync/ops` (no `since` parameter) or equivalently `GET /sync/ops?since=0`; both are treated identically and return every op the user has from `id > 0`. The server inserts a new row in `device_sync_cursor` on first contact.
+- **Subsequent sync**: client passes its locally-stored `last_seen_id`.
+- **After receiving the response**: the client applies ops in `id` ASC order, runs the Lamport merge rule (#3 above) for each one before applying locally, then advances its local `last_seen_id` to the highest `id` received. The server updates `device_sync_cursor.last_seen_id` to the same value at the end of a successful response (or on an explicit `POST /sync/ack` ping if the client uses streaming/WebSocket and wants to acknowledge ranges incrementally).
+- **WebSocket equivalent**: the `client → server` channel includes periodic `{ "ack": <highest_id_applied> }` frames; the server treats each as a cursor update and writes to `device_sync_cursor`.
 
-1. **Validates per-device monotonicity**: rejects any op whose `lamport_ts` is `<=` the highest `lamport_ts` already stored for this `(user_id, device_id)`. A reject returns `409 Conflict` with the stored max so the client can re-merge its clock and retry.
-2. Assigns `id` via `BIGSERIAL` inside a transaction (the authoritative global order for this user).
-3. Broadcasts the assigned op(s) via WebSocket to other devices of the same user.
+**Push**: `POST /sync/ops` with the client's pending ops batch. Each op carries its client-generated `operation_id`. For every op the server processes:
+
+1. **Idempotency check**: if a row with the same `(user_id, device_id, operation_id)` already exists, the server skips insertion and returns the stored row's `id` + `lamport_ts` in the response payload as if it had just been inserted. **The server responds `200 OK` with the existing row, never a raw DB unique-violation error.** This lets a client that crashed mid-push (or mid-ack) safely retry without producing semantic duplicates.
+2. **Per-device monotonicity check** (only when step 1 did not match an existing op): rejects any op whose `lamport_ts` is `<=` the highest `lamport_ts` already stored for this `(user_id, device_id)`. A reject returns `409 Conflict` with the stored max so the client can re-merge its clock and retry. **The retry must reuse the same `operation_id`** so step 1 keeps the operation idempotent if the original somehow landed.
+3. Assigns `id` via `BIGSERIAL` inside a transaction (the authoritative global order for this user).
+4. Broadcasts the assigned op(s) via WebSocket to other devices of the same user.
 
 **Conflict resolution**: per `(entity_id, field)`, **the op with the highest server-assigned `id` wins**. `lamport_ts` is no longer the resolution key — it is a device-side ordering hint that helps the client reason about its own pending ops before the server round-trip. Because `id` is `BIGSERIAL` assigned inside a transaction, ties are impossible by construction; the deterministic tie-breaker on `device_id` is therefore unnecessary.
 
@@ -277,7 +297,7 @@ These are flagged and will be resolved at the relevant sub-phase, not now:
 | TanStack Start matures slower than expected, blocks 1.c | Low | Medium | Fallback to Next.js Pages Router (no RSC). Decision deadline: start of 1.c. |
 | Better Auth JWKS rotation breaks desktop clients with cached keys | Medium | Medium | Cache TTL = 1h, keys rotate quarterly, overlap window = 1 week. Document the rotation runbook. |
 | Postgres feels heavy for a single-family self-host | Medium | Low | Document that SQLite is supported on the server too via `--features sqlite-server` build flag (single-writer, but fine for ≤ 5 concurrent users). |
-| Sync ops table grows unboundedly | High | Low | Background compaction job: collapse ops for the same `(entity, field)` older than the oldest device's `last_seen_id`. Run nightly. |
+| Sync ops table grows unboundedly | High | Low | Background compaction job (Phase 1.f): reads `MIN(last_seen_id)` from `device_sync_cursor` across all of a user's devices and only collapses ops with `id < min` for the same `(entity_id, field)`. Run nightly. Devices that haven't synced in N days (configurable, default 90) are excluded from the `MIN` so a single stale device can't block compaction forever. |
 
 ## 10. Alternatives considered
 
