@@ -41,21 +41,27 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
   // to the first (oldest) track, which the backend orders by
   // added_at ASC.
   const [keepIds, setKeepIds] = useState<Map<string, number>>(new Map());
-  // Monotonic request id — `AnimatedModalShell` keeps the component
-  // mounted across its exit animation and the user can re-open the
-  // modal (or trigger a delete-then-refresh) while a previous
-  // `findDuplicates` call is still in flight. Each `refresh` bumps the
-  // counter and only commits state when its captured id still matches
-  // the latest one, so a stale response can't clobber a fresh scan.
-  const requestIdRef = useRef(0);
+  // Two independent staleness tokens:
+  //   - `scanSeqRef` is bumped by every `refresh()` invocation so two
+  //     overlapping scans don't race on the setters.
+  //   - `sessionRef` is bumped only when the modal closes, so async
+  //     handlers (`handleDeleteOthers`) can detect a mid-flight close
+  //     without being thrown off by `refresh()` bumping a shared
+  //     counter.
+  // Splitting them resolves a deadlock between two CodeRabbit findings:
+  // (a) the delete spinner must clear on the happy path, and (b) the
+  // Delete-others button must stay disabled across the post-delete
+  // rescan so a second click can't fire against stale `groups`.
+  const scanSeqRef = useRef(0);
+  const sessionRef = useRef(0);
 
   const refresh = useCallback(async () => {
-    const requestId = ++requestIdRef.current;
+    const seq = ++scanSeqRef.current;
     setIsScanning(true);
     setError(null);
     try {
       const result = await findDuplicates();
-      if (requestId !== requestIdRef.current) return;
+      if (seq !== scanSeqRef.current) return;
       setGroups(result);
       const next = new Map<string, number>();
       for (const g of result) {
@@ -63,11 +69,11 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
       }
       setKeepIds(next);
     } catch (err) {
-      if (requestId !== requestIdRef.current) return;
+      if (seq !== scanSeqRef.current) return;
       console.error("[DuplicatesModal] scan failed", err);
       setError(String(err));
     } finally {
-      if (requestId === requestIdRef.current) {
+      if (seq === scanSeqRef.current) {
         setIsScanning(false);
       }
     }
@@ -75,18 +81,19 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
 
   useEffect(() => {
     if (!isOpen) {
-      // Invalidate any in-flight request — its setters will short-circuit
-      // when they see `requestIdRef.current` has moved past their captured
-      // id, so the closed modal can't end up with stale `groups` /
-      // `keepIds` written after the user re-opens it.
-      requestIdRef.current++;
+      // Invalidate any in-flight scan AND any in-flight delete — their
+      // setters short-circuit when their captured token no longer
+      // matches the latest ref, so the closed modal can't end up with
+      // stale `groups` / `keepIds` / spinner state after re-open.
+      scanSeqRef.current++;
+      sessionRef.current++;
       /* eslint-disable react-hooks/set-state-in-effect */
       setGroups([]);
       setError(null);
       setIsScanning(false);
-      // Same reason as `isScanning`: `handleDeleteOthers`'s `finally`
-      // short-circuits on the staleness check so we can't rely on it
-      // to clear the spinner when the modal closes mid-delete.
+      // Both spinners need clearing here: the guarded finally in
+      // `refresh()` / `handleDeleteOthers` short-circuits on staleness
+      // and can't be relied on once we've invalidated the tokens.
       setIsDeleting(false);
       /* eslint-enable react-hooks/set-state-in-effect */
       return;
@@ -109,30 +116,26 @@ export function DuplicatesModal({ isOpen, onClose }: DuplicatesModalProps) {
       }
     }
     if (toDelete.length === 0) return;
-    // Snapshot the current request id so a mid-delete close (the
-    // `!isOpen` effect bumps the counter) skips the wasted refresh and
-    // any state writes that would land on a closed modal. The shared
-    // counter means `handleDeleteOthers` participates in the same
-    // staleness contract as `refresh` itself.
-    const requestId = requestIdRef.current;
+    // Snapshot the modal session — only the `!isOpen` reset bumps it,
+    // so the guard remains valid across the embedded `refresh()` call
+    // (which bumps a *different* token, `scanSeqRef`). That lets the
+    // button stay disabled across the whole delete-then-rescan flow
+    // while still clearing correctly on success.
+    const session = sessionRef.current;
     setIsDeleting(true);
     try {
       await deleteTracks(toDelete);
-      if (requestId !== requestIdRef.current) return;
-      // Clear the spinner BEFORE delegating to refresh(): refresh()
-      // bumps requestIdRef.current, so the staleness guard in the
-      // finally below would (correctly) skip the reset on the happy
-      // path and leave the spinner stuck on after a successful
-      // delete. The finally guard stays to cover the
-      // error / early-exit paths where refresh isn't reached.
-      setIsDeleting(false);
+      if (session !== sessionRef.current) return;
+      // Run the rescan with the spinner still on — clicking Delete
+      // mid-rescan would target the pre-delete `groups` snapshot and
+      // hit the backend with already-removed track ids.
       await refresh();
     } catch (err) {
-      if (requestId !== requestIdRef.current) return;
+      if (session !== sessionRef.current) return;
       console.error("[DuplicatesModal] delete failed", err);
       setError(String(err));
     } finally {
-      if (requestId === requestIdRef.current) {
+      if (session === sessionRef.current) {
         setIsDeleting(false);
       }
     }

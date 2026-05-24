@@ -39,10 +39,21 @@ export function CoverPickerModal({
   const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<number | null>(null);
+  // Session token bumped on every close → handlers that await a
+  // long-running backend call (`setAlbumArtworkFromDeezer`, the native
+  // `pickFile` dialog, `setAlbumArtworkFromFile`) can detect that the
+  // user closed the modal mid-flight and skip the post-await
+  // `onSuccess` / `onClose` / `setError` writes so they don't trigger
+  // on a now-reopened modal targeting a different album.
+  const sessionRef = useRef(0);
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
   useEffect(() => {
     if (!isOpen) {
+      // Bump the session so any in-flight apply handler skips its
+      // post-await writes (success or error) — they'd otherwise land
+      // on a now-reopened modal that's targeting a different album.
+      sessionRef.current++;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setQuery(initialQuery ?? "");
       setResults([]);
@@ -53,6 +64,10 @@ export function CoverPickerModal({
       // token (to avoid clobbering a newer query's state) and would
       // otherwise leave `isSearching=true` lingering on the next open.
       setIsSearching(false);
+      // Same reason for the apply spinner — `handlePickDeezer` /
+      // `handlePickFile`'s `finally` short-circuits on the session
+      // staleness check, so the loader would persist on the next open.
+      setIsApplying(false);
     }
   }, [isOpen, initialQuery]);
 
@@ -64,8 +79,12 @@ export function CoverPickerModal({
       // visible on the new tab (or stale on the next reopen). The
       // `!isOpen` path is also covered by the reset effect above, so
       // this is the load-bearing case for the `tab !== "deezer"` swap.
+      // Also clear any error from a previous Deezer search — the
+      // banner is rendered against the Deezer tab body, so leaving it
+      // armed while the user is on the Local tab is misleading.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsSearching(false);
+      setError(null);
       return;
     }
     if (debounceRef.current != null) {
@@ -77,8 +96,11 @@ export function CoverPickerModal({
       // If a previous fetch is still in-flight, its `.finally` will be
       // short-circuited by the `cancelled` token below — so the spinner
       // would stay on forever (user deletes letters and the loader
-      // never stops). Force-clear here.
+      // never stops). Force-clear here. Clear the error too so a
+      // failed previous query doesn't keep a banner visible against
+      // an empty results list.
       setIsSearching(false);
+      setError(null);
       return;
     }
     // Cancellation token — `AnimatedModalShell` keeps this component
@@ -116,38 +138,53 @@ export function CoverPickerModal({
 
   const handlePickDeezer = async (album: DeezerAlbumLite) => {
     if (isApplying) return;
+    // Snapshot the session — if the user closes the modal (or it
+    // re-opens against a different album) mid-await, the post-await
+    // `onSuccess` / `onClose` would apply to the wrong target, and
+    // `setError` / `setIsApplying` would land on a stale instance.
+    const session = sessionRef.current;
     setIsApplying(true);
     setError(null);
     try {
       await setAlbumArtworkFromDeezer(albumId, album.deezer_id);
+      if (session !== sessionRef.current) return;
       onSuccess();
       onClose();
     } catch (err) {
+      if (session !== sessionRef.current) return;
       console.error("[CoverPickerModal] set deezer cover failed", err);
       setError(String(err));
     } finally {
-      setIsApplying(false);
+      if (session === sessionRef.current) {
+        setIsApplying(false);
+      }
     }
   };
 
   const handlePickFile = async () => {
     if (isApplying) return;
+    const session = sessionRef.current;
     try {
       const path = await pickFile(
         ["jpg", "jpeg", "png", "webp"],
         t("library.changeCover"),
       );
+      if (session !== sessionRef.current) return;
       if (!path) return;
       setIsApplying(true);
       setError(null);
       await setAlbumArtworkFromFile(albumId, path);
+      if (session !== sessionRef.current) return;
       onSuccess();
       onClose();
     } catch (err) {
+      if (session !== sessionRef.current) return;
       console.error("[CoverPickerModal] set file cover failed", err);
       setError(String(err));
     } finally {
-      setIsApplying(false);
+      if (session === sessionRef.current) {
+        setIsApplying(false);
+      }
     }
   };
 
