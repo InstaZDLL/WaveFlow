@@ -297,7 +297,8 @@
       "eyebrow": "WaveFlow Wrapped",
       "title": "Rangkuman {{year}} kamu",
       "subtitle": "Artismu, menitmu, tahunmu — diceritakan dalam beberapa slide.",
-      "cta": "Buka"
+      "cta": "Buka",
+      "dismiss": "Sembunyikan banner Wrapped"
     },
     "seeAll": "Lihat semua"
   },
@@ -1549,6 +1550,27 @@
         "none": {
           "label": "Tidak melakukan apa-apa",
           "description": "Menonaktifkan klik sepenuhnya — berguna kalau kamu sering memicunya tanpa sengaja."
+        }
+      }
+    },
+    "wrappedBanner": {
+      "title": "Banner WaveFlow Wrapped",
+      "subtitle": "Banner rangkuman tahunan di layar beranda. Mode Otomatis menampilkannya selama musim Wrapped (1 Desember → 31 Januari).",
+      "legend": "Visibilitas banner Wrapped",
+      "seasonActive": "Musim Wrapped berlangsung — banner ditampilkan.",
+      "seasonIdle": "Di luar musim — banner akan kembali otomatis pada 1 Desember.",
+      "modes": {
+        "auto": {
+          "label": "Otomatis",
+          "description": "Hanya muncul dari 1 Desember sampai 31 Januari — seperti Spotify Wrapped."
+        },
+        "always": {
+          "label": "Selalu tampilkan",
+          "description": "Tetap tampilkan banner di beranda sepanjang tahun."
+        },
+        "never": {
+          "label": "Sembunyikan",
+          "description": "Jangan pernah tampilkan banner di beranda. Tampilan Wrapped tetap dapat diakses."
         }
       }
     }

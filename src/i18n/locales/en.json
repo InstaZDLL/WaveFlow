@@ -297,7 +297,8 @@
       "eyebrow": "WaveFlow Wrapped",
       "title": "Your {{year}} recap",
       "subtitle": "Your artists, your minutes, your year — told in a few slides.",
-      "cta": "Open"
+      "cta": "Open",
+      "dismiss": "Hide the Wrapped banner"
     },
     "seeAll": "See all"
   },
@@ -1549,6 +1550,27 @@
         "none": {
           "label": "Do nothing",
           "description": "Disable the click entirely — handy if you keep triggering it by accident."
+        }
+      }
+    },
+    "wrappedBanner": {
+      "title": "WaveFlow Wrapped banner",
+      "subtitle": "The year-in-review banner on the home screen. Auto mode shows it during Wrapped season (December 1 → January 31).",
+      "legend": "Wrapped banner visibility",
+      "seasonActive": "Wrapped season is live — the banner is showing.",
+      "seasonIdle": "Off-season — the banner returns automatically on December 1.",
+      "modes": {
+        "auto": {
+          "label": "Automatic",
+          "description": "Only visible from December 1 through January 31 — matching Spotify Wrapped's release window."
+        },
+        "always": {
+          "label": "Always show",
+          "description": "Keep the banner pinned to the home screen all year."
+        },
+        "never": {
+          "label": "Hide",
+          "description": "Never show the banner on the home screen. The Wrapped view itself stays reachable."
         }
       }
     }

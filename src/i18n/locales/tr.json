@@ -297,7 +297,8 @@
       "eyebrow": "WaveFlow Wrapped",
       "title": "{{year}} özetin",
       "subtitle": "Sanatçıların, dakikaların, yılın — birkaç slaytta anlatıldı.",
-      "cta": "Aç"
+      "cta": "Aç",
+      "dismiss": "Wrapped afişini gizle"
     },
     "seeAll": "Tümünü gör"
   },
@@ -1549,6 +1550,27 @@
         "none": {
           "label": "Hiçbir şey yapma",
           "description": "Tıklamayı tamamen devre dışı bırakır — istemeden tetikliyorsan kullanışlı."
+        }
+      }
+    },
+    "wrappedBanner": {
+      "title": "WaveFlow Wrapped afişi",
+      "subtitle": "Ana ekrandaki yıllık özet afişi. Otomatik mod, Wrapped sezonu boyunca (1 Aralık → 31 Ocak) gösterir.",
+      "legend": "Wrapped afişi görünürlüğü",
+      "seasonActive": "Wrapped sezonu sürüyor — afiş görünür durumda.",
+      "seasonIdle": "Sezon dışı — afiş 1 Aralık'ta otomatik olarak geri dönecek.",
+      "modes": {
+        "auto": {
+          "label": "Otomatik",
+          "description": "Yalnızca 1 Aralık ile 31 Ocak arasında görünür — Spotify Wrapped gibi."
+        },
+        "always": {
+          "label": "Her zaman göster",
+          "description": "Afişi ana ekranda tüm yıl boyunca görünür tut."
+        },
+        "never": {
+          "label": "Gizle",
+          "description": "Afişi ana ekranda asla gösterme. Wrapped görünümüne yine de erişilebilir."
         }
       }
     }

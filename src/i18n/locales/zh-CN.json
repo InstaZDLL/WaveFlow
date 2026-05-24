@@ -297,7 +297,8 @@
       "eyebrow": "WaveFlow Wrapped",
       "title": "你的 {{year}} 年度回顾",
       "subtitle": "你的艺人、分钟数、一整年 — 通过几张幻灯片讲述。",
-      "cta": "打开"
+      "cta": "打开",
+      "dismiss": "隐藏 Wrapped 横幅"
     },
     "seeAll": "查看全部"
   },
@@ -1556,6 +1557,27 @@
         "none": {
           "label": "不执行任何操作",
           "description": "完全禁用点击 — 适合误触较多的用户。"
+        }
+      }
+    },
+    "wrappedBanner": {
+      "title": "WaveFlow Wrapped 横幅",
+      "subtitle": "首页上的年度回顾横幅。自动模式仅在 Wrapped 季(12 月 1 日 → 1 月 31 日)期间显示。",
+      "legend": "Wrapped 横幅可见性",
+      "seasonActive": "Wrapped 季正在进行 — 横幅已显示。",
+      "seasonIdle": "非赛季 — 横幅将在 12 月 1 日自动回归。",
+      "modes": {
+        "auto": {
+          "label": "自动",
+          "description": "仅在 12 月 1 日至 1 月 31 日显示 — 与 Spotify Wrapped 一致。"
+        },
+        "always": {
+          "label": "始终显示",
+          "description": "全年在首页上保留横幅。"
+        },
+        "never": {
+          "label": "隐藏",
+          "description": "永远不在首页显示横幅。Wrapped 页面仍可访问。"
         }
       }
     }

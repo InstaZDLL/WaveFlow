@@ -297,7 +297,8 @@
       "eyebrow": "WaveFlow Wrapped",
       "title": "你的 {{year}} 年度回顧",
       "subtitle": "你的藝人、分鐘數、一整年 — 透過幾張投影片講述。",
-      "cta": "開啟"
+      "cta": "開啟",
+      "dismiss": "隱藏 Wrapped 橫幅"
     },
     "seeAll": "查看全部"
   },
@@ -1556,6 +1557,27 @@
         "none": {
           "label": "不執行任何動作",
           "description": "完全停用點擊 — 適合常常誤觸的使用者。"
+        }
+      }
+    },
+    "wrappedBanner": {
+      "title": "WaveFlow Wrapped 橫幅",
+      "subtitle": "首頁上的年度回顧橫幅。自動模式僅在 Wrapped 季(12 月 1 日 → 1 月 31 日)期間顯示。",
+      "legend": "Wrapped 橫幅可見性",
+      "seasonActive": "Wrapped 季進行中 — 橫幅已顯示。",
+      "seasonIdle": "非季節期間 — 橫幅將於 12 月 1 日自動回歸。",
+      "modes": {
+        "auto": {
+          "label": "自動",
+          "description": "僅在 12 月 1 日至 1 月 31 日顯示 — 與 Spotify Wrapped 相同。"
+        },
+        "always": {
+          "label": "永遠顯示",
+          "description": "全年在首頁保留橫幅。"
+        },
+        "never": {
+          "label": "隱藏",
+          "description": "永遠不在首頁顯示橫幅。Wrapped 頁面仍可存取。"
         }
       }
     }

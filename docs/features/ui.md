@@ -93,7 +93,19 @@ Year bounds are computed in **local time** (Jan 1 00:00 → Dec 31 23:59:59, exc
 
 The streak walks the distinct-day list once and tracks the longest run of dates that increment by exactly one day. Bounded at 366 rows per year — no fancy gaps-and-islands SQL needed.
 
-Frontend overlay (`fixed inset-0 z-100`, same pattern as `FullscreenNowPlaying`) ships 10–12 auto-advancing slides at ~6.5 s each. Slides without data are filtered out before the rotation starts — no analysed tracks → no mood slide; no streak ≥ 2 days → no streak slide — so a brand-new profile with three plays still gets a coherent (if short) experience. Top-of-screen progress segments + space-to-pause + arrow-key navigation match Instagram / Snapchat story conventions. The HomeView entry point is a gradient banner above the Mood Radio grid, hidden entirely when `available_wrapped_years` returns an empty list.
+Frontend overlay (`fixed inset-0 z-100`, same pattern as `FullscreenNowPlaying`) ships 10–12 auto-advancing slides at ~6.5 s each. Slides without data are filtered out before the rotation starts — no analysed tracks → no mood slide; no streak ≥ 2 days → no streak slide — so a brand-new profile with three plays still gets a coherent (if short) experience. Top-of-screen progress segments + space-to-pause + arrow-key navigation match Instagram / Snapchat story conventions.
+
+### Home banner visibility
+
+The HomeView entry point is a gradient banner above the Mood Radio grid, gated by [`useWrappedBannerVisibility`](../../src/hooks/useWrappedBannerVisibility.ts) — three modes persisted in `profile_setting['wrapped.banner_visibility']`:
+
+- **`auto`** (default) — shows the banner only during the **Wrapped season** (December 1 → January 31, local time), matching Spotify Wrapped's release cadence so the recap stays an event rather than permanent dashboard furniture. The rest of the year the banner is hidden but the WrappedView remains reachable.
+- **`always`** — render whenever `available_wrapped_years` returns at least one year. Power-user opt-in for people who want their recap pinned year-round.
+- **`never`** — never on Home. The view itself stays reachable.
+
+The banner also exposes a per-recap-year dismiss button (the `X` in the top-right corner) that writes `profile_setting['wrapped.dismissed_year']` so a quick close hides the banner for that year only — next year's recap re-appears automatically. Mode is configured from Settings → Appearance via [`WrappedBannerCard`](../../src/components/views/settings/WrappedBannerCard.tsx). The card also surfaces the current season status (`seasonActive` / `seasonIdle`) when `auto` is selected so the user understands why the banner is or isn't on their Home right now.
+
+The full banner stack — visibility check + `available_wrapped_years` length — collapses to nothing when either condition is unmet, so an empty library never paints the banner regardless of mode.
 
 ### Shareable PNG
 

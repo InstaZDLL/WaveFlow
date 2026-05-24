@@ -297,7 +297,8 @@
       "eyebrow": "WaveFlow Wrapped",
       "title": "Il tuo riepilogo {{year}}",
       "subtitle": "I tuoi artisti, i tuoi minuti, il tuo anno — raccontato in poche slide.",
-      "cta": "Apri"
+      "cta": "Apri",
+      "dismiss": "Nascondi il banner Wrapped"
     },
     "seeAll": "Vedi tutto"
   },
@@ -1549,6 +1550,27 @@
         "none": {
           "label": "Non fare nulla",
           "description": "Disattiva il clic — utile se lo attivi per sbaglio."
+        }
+      }
+    },
+    "wrappedBanner": {
+      "title": "Banner WaveFlow Wrapped",
+      "subtitle": "Il banner del riepilogo annuale nella schermata iniziale. La modalità Automatica lo mostra durante la stagione Wrapped (1 dicembre → 31 gennaio).",
+      "legend": "Visibilità del banner Wrapped",
+      "seasonActive": "Stagione Wrapped in corso — il banner è visibile.",
+      "seasonIdle": "Fuori stagione — il banner tornerà automaticamente il 1 dicembre.",
+      "modes": {
+        "auto": {
+          "label": "Automatico",
+          "description": "Visibile solo dal 1 dicembre al 31 gennaio — come Spotify Wrapped."
+        },
+        "always": {
+          "label": "Mostra sempre",
+          "description": "Mantieni il banner visibile sulla home tutto l'anno."
+        },
+        "never": {
+          "label": "Nascondi",
+          "description": "Non mostrare mai il banner sulla home. La vista Wrapped resta accessibile."
         }
       }
     }
