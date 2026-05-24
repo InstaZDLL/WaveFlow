@@ -34,7 +34,7 @@ The desktop app stays the primary surface. Everything below is additive — no e
 
 ## 4. Architecture overview
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                     shared PostgreSQL                           │
 │  users · sessions · profiles · libraries · tracks · playlists   │
@@ -130,7 +130,7 @@ Better Auth lives in `waveflow-web`. The server-side handlers run inside TanStac
 
 ### 6.4 Authentication boundary
 
-```
+```text
 Login flow:
   1. User → waveflow-web (TanStack Start)
   2. Better Auth issues JWT (RS256, exp = 1h) + refresh token (90 days)
@@ -166,13 +166,15 @@ Migration strategy: server migrations live in `waveflow-server/migrations/` and 
 
 ### 6.6 Sync protocol
 
-**Decision: append-only operations log + Lamport clock per device, Last-Write-Wins per field, tombstones for deletes.**
+**Decision: append-only operations log with a two-level clock — device-side Lamport clock for local ordering, server-assigned monotonic sequence as the authoritative conflict-resolution key. Tombstones for deletes.**
 
 Rejected full CRDTs (Yjs / Automerge) — overkill for likes / playlists / history, and the JSON-binary overhead is non-trivial on a multi-thousand-track library.
 
+Rejected "Lamport clock alone as LWW key" — vulnerable to clock-inflation by a misbehaving or out-of-date client. The server must remain the source of truth for ordering.
+
 ```sql
 CREATE TABLE sync_op (
-  id              BIGSERIAL PRIMARY KEY,
+  id              BIGSERIAL PRIMARY KEY,  -- server sequence, authoritative ordering
   user_id         UUID NOT NULL,
   device_id       UUID NOT NULL,
   entity_type     TEXT NOT NULL,      -- 'track', 'playlist', 'like', ...
@@ -180,7 +182,7 @@ CREATE TABLE sync_op (
   op              TEXT NOT NULL,      -- 'upsert', 'delete'
   field           TEXT,               -- NULL for delete; column name for upsert
   value           JSONB,              -- new value
-  lamport_ts      BIGINT NOT NULL,
+  lamport_ts      BIGINT NOT NULL,    -- device-side clock, used for local merging
   wall_clock      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (user_id, device_id, lamport_ts)
 );
@@ -188,11 +190,24 @@ CREATE TABLE sync_op (
 CREATE INDEX sync_op_pull_idx ON sync_op (user_id, id);
 ```
 
-**Pull**: `GET /sync/ops?since=<last_seen_id>` returns ops in order. Client applies, advances `last_seen_id`.
+**Device-side Lamport clock rules** (every client must implement these):
 
-**Push**: `POST /sync/ops` with the client's pending ops batch. Server assigns `id`, broadcasts via WebSocket to other devices of the same user.
+1. Each device maintains a single `local_lamport` counter, persisted across restarts.
+2. **On every local op**, increment first, then assign: `local_lamport += 1; op.lamport_ts = local_lamport`.
+3. **On every received remote op** (via pull or WebSocket), merge clocks before applying: `local_lamport = max(local_lamport, remote.lamport_ts) + 1`.
+4. The counter is monotonic on a given device; it never decreases.
 
-**Conflict resolution**: per-(entity_id, field), the op with the highest `lamport_ts` wins. Ties broken by `device_id` lexical order (deterministic).
+**Pull**: `GET /sync/ops?since=<last_seen_id>` returns ops ordered by `id` ASC. Client applies in order and advances `last_seen_id` to the highest `id` seen. Lamport merge rule (#3 above) runs for each remote op before it is applied locally.
+
+**Push**: `POST /sync/ops` with the client's pending ops batch. The server:
+
+1. **Validates per-device monotonicity**: rejects any op whose `lamport_ts` is `<=` the highest `lamport_ts` already stored for this `(user_id, device_id)`. A reject returns `409 Conflict` with the stored max so the client can re-merge its clock and retry.
+2. Assigns `id` via `BIGSERIAL` inside a transaction (the authoritative global order for this user).
+3. Broadcasts the assigned op(s) via WebSocket to other devices of the same user.
+
+**Conflict resolution**: per `(entity_id, field)`, **the op with the highest server-assigned `id` wins**. `lamport_ts` is no longer the resolution key — it is a device-side ordering hint that helps the client reason about its own pending ops before the server round-trip. Because `id` is `BIGSERIAL` assigned inside a transaction, ties are impossible by construction; the deterministic tie-breaker on `device_id` is therefore unnecessary.
+
+**Why this hybrid**: Lamport clocks alone are correct only if every participant respects the protocol. A buggy or malicious device that ships `lamport_ts = i64::MAX` would win every conflict forever. By making the server-assigned `id` the LWW key, the server retains final authority while the Lamport clock still gives clients a useful local ordering signal between sync round-trips.
 
 **What syncs**: playlists, playlist tracks, likes, listening history, ratings, smart-playlist rules.
 
@@ -202,7 +217,7 @@ CREATE INDEX sync_op_pull_idx ON sync_op (user_id, id);
 
 **Decision: HTTP range requests on flat files for native formats. Transcode on demand only when client signals incompatibility.**
 
-```
+```http
 GET /stream/:track_id?format=auto
   Header: Accept: audio/flac, audio/mpeg, audio/ogg
   Header: Range: bytes=0-65535
