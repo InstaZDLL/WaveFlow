@@ -455,7 +455,7 @@ export function HomeView({
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex flex-wrap gap-4">
             {smartPlaylists.map((pl) => {
               const cover = resolveRemoteImage(pl.cover_path, null);
               return (
@@ -463,7 +463,7 @@ export function HomeView({
                   key={`smart-${pl.id}`}
                   type="button"
                   onClick={() => onNavigateToPlaylist(pl.id)}
-                  className="group relative overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-800 aspect-16/7 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 transition-transform hover:-translate-y-0.5"
+                  className="group relative overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-800 aspect-16/7 basis-70 grow max-w-100 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 transition-transform hover:-translate-y-0.5"
                 >
                   {cover ? (
                     <img
@@ -684,16 +684,14 @@ function HomeBannerSkeleton({ label }: HomeSkeletonProps) {
       role="status"
       aria-busy="true"
       aria-label={label}
-      className="relative overflow-hidden min-h-32 rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/40 dark:shadow-none animate-pulse"
+      className="flex flex-wrap gap-4 animate-pulse"
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div
-            key={i}
-            className="aspect-16/7 rounded-2xl bg-zinc-200/70 dark:bg-zinc-700/40"
-          />
-        ))}
-      </div>
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div
+          key={i}
+          className="aspect-16/7 basis-70 grow max-w-100 rounded-2xl bg-zinc-200/70 dark:bg-zinc-700/40"
+        />
+      ))}
     </div>
   );
 }
