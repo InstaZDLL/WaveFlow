@@ -42,7 +42,7 @@ export function AudioQualityFooter({ track }: AudioQualityFooterProps) {
   const hiRes = isHiRes(track.bit_depth, track.sample_rate);
 
   return (
-    <div className="h-5 px-4 flex items-center justify-between text-[10px] text-zinc-500 dark:text-zinc-400 border-t border-zinc-100 dark:border-zinc-800/60 bg-surface-light-elevated dark:bg-surface-dark-elevated">
+    <div className="h-5 px-4 flex items-center justify-between text-[10px] text-zinc-500 dark:text-zinc-400 border-t border-zinc-100 dark:border-zinc-800/60 bg-white dark:bg-surface-dark-elevated">
       <span className="tabular-nums truncate">{leftBits.join(" · ")}</span>
       <span className="flex items-center gap-2 tabular-nums">
         {hiRes && (

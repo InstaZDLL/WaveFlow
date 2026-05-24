@@ -202,14 +202,18 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: EMERALD,
     ambient: null,
   },
-  // Light variants use Tailwind's "-100" shade as the ambient because the
-  // "-50" range was so close to pure white that the theme was effectively
-  // invisible outside the accent buttons. "-100" gives a clearly readable
-  // tint without veering into saturated "sticky-note" territory.
-  // All three surfaces (body / sidebar+panels / player bar) share the
-  // same value so the theme reads as one continuous tinted canvas;
-  // separation comes from borders + the slight blend of `bg-zinc-50/50`
-  // on the center column.
+  // Light variants use Tailwind's "-100" shade as the ambient. The
+  // "-50" range was so close to pure white that the theme was
+  // effectively invisible outside the accent buttons. "-100" gives a
+  // clearly readable tint without veering into saturated "sticky-note"
+  // territory. surfaceLight = ambient so sidebar + right panels + the
+  // tinted UI surfaces (search bar, Settings pills, profile dropdown)
+  // read as one continuous canvas. surfaceLightElevated stays at the
+  // default `#fafafa` so it isn't actively used by themed light
+  // presets — the player bar + audio quality footer keep their own
+  // hardcoded white background for contrast (user-tested: tinting the
+  // player bar made the playback controls hard to read against the
+  // ambient body).
   {
     id: "midnight-light",
     labelKey: "settings.appearance.themes.midnightLight",
@@ -217,7 +221,6 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: INDIGO,
     ambient: "#e0e7ff", // indigo-100
     surfaceLight: "#e0e7ff",
-    surfaceLightElevated: "#e0e7ff",
   },
   {
     id: "sunset-light",
@@ -226,7 +229,6 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: AMBER,
     ambient: "#fef3c7", // amber-100
     surfaceLight: "#fef3c7",
-    surfaceLightElevated: "#fef3c7",
   },
   {
     id: "lavender-light",
@@ -235,7 +237,6 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: VIOLET,
     ambient: "#ede9fe", // violet-100
     surfaceLight: "#ede9fe",
-    surfaceLightElevated: "#ede9fe",
   },
   {
     id: "crimson-light",
@@ -244,7 +245,6 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: ROSE,
     ambient: "#ffe4e6", // rose-100
     surfaceLight: "#ffe4e6",
-    surfaceLightElevated: "#ffe4e6",
   },
   {
     id: "ocean-light",
@@ -253,7 +253,6 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: SKY,
     ambient: "#e0f2fe", // sky-100
     surfaceLight: "#e0f2fe",
-    surfaceLightElevated: "#e0f2fe",
   },
   // ── Dark row ─────────────────────────────────────────────────────
   {

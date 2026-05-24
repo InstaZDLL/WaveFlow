@@ -125,7 +125,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
 
   return (
     <>
-      <div className="flex flex-col z-50 border-t bg-surface-light-elevated border-zinc-200 text-zinc-600 dark:bg-surface-dark-elevated dark:border-zinc-800 dark:text-zinc-300">
+      <div className="flex flex-col z-50 border-t bg-white border-zinc-200 text-zinc-600 dark:bg-surface-dark-elevated dark:border-zinc-800 dark:text-zinc-300">
         <div className="h-24 px-4 flex items-center justify-between">
           {/* Left: Track Info */}
           <div className="w-1/3 flex items-center space-x-3 min-w-0">
