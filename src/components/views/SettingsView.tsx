@@ -1416,7 +1416,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               className={`group inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                 isActive
                   ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 shadow-sm"
-                  : "border-zinc-200 dark:border-zinc-700 bg-surface-light dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-white"
+                  : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/50 text-zinc-600 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
               <Icon

@@ -285,7 +285,7 @@ export function TopBar({
 
       {/* Search Bar */}
       <div className="flex-1 max-w-xl mx-8 relative" ref={searchRef}>
-        <div className="flex items-center px-4 py-2.5 rounded-full border transition-all focus-within:ring-2 ring-emerald-500/20 bg-surface-light border-zinc-200 dark:bg-zinc-800/50 dark:border-zinc-700 dark:text-zinc-200">
+        <div className="flex items-center px-4 py-2.5 rounded-full border transition-all focus-within:ring-2 ring-emerald-500/20 bg-white border-zinc-200 dark:bg-zinc-800/50 dark:border-zinc-700 dark:text-zinc-200">
           <Search size={18} className="text-zinc-400 mr-3" />
           <input
             type="text"
@@ -327,7 +327,7 @@ export function TopBar({
             exit={{ opacity: 0, y: -2, scale: 0.99 }}
             transition={{ type: "spring", stiffness: 520, damping: 32, mass: 0.5 }}
             style={{ transformOrigin: "top center" }}
-            className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-surface-light shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 p-5 max-h-[70vh] overflow-y-auto">
+            className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 p-5 max-h-[70vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs font-bold tracking-widest text-zinc-500 uppercase">
                 {t("topbar.search.filters.title")}
@@ -480,7 +480,7 @@ export function TopBar({
             exit={{ opacity: 0, y: -2, scale: 0.99 }}
             transition={{ type: "spring", stiffness: 520, damping: 32, mass: 0.5 }}
             style={{ transformOrigin: "top center" }}
-            className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-surface-light shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden">
+            className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden">
             <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-4 pt-3 pb-2">
               {t("topbar.search.results", { count: searchResults.length })}
             </div>
@@ -599,7 +599,7 @@ export function TopBar({
               exit={{ opacity: 0, scale: 0.97, y: 2 }}
               transition={{ type: "spring", stiffness: 520, damping: 32, mass: 0.45 }}
               style={{ transformOrigin: "top right" }}
-              className="absolute top-full right-0 mt-2 w-56 rounded-xl shadow-lg border overflow-hidden z-50 bg-surface-light border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700">
+              className="absolute top-full right-0 mt-2 w-56 rounded-xl shadow-lg border overflow-hidden z-50 bg-white border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700">
               {/* Profile Header */}
               <div className="p-4 flex items-center space-x-3">
                 <div
