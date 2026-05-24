@@ -1,5 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Track } from "./track";
+import {
+  expandTrackResponse,
+  type ListTracksResponse,
+  type Track,
+} from "./track";
 
 /**
  * Playlist row returned by the Rust backend (mirrors
@@ -71,8 +75,11 @@ export function deletePlaylist(playlistId: number): Promise<void> {
   return invoke<void>("delete_playlist", { playlistId });
 }
 
-export function listPlaylistTracks(playlistId: number): Promise<Track[]> {
-  return invoke<Track[]>("list_playlist_tracks", { playlistId });
+export async function listPlaylistTracks(playlistId: number): Promise<Track[]> {
+  const resp = await invoke<ListTracksResponse>("list_playlist_tracks", {
+    playlistId,
+  });
+  return expandTrackResponse(resp);
 }
 
 export function addTrackToPlaylist(

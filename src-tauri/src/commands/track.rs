@@ -1,7 +1,94 @@
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use std::path::Path;
 
 use crate::{error::AppResult, state::AppState};
+
+/// Slim row shipped by the bulk list endpoints (`list_tracks`,
+/// `list_playlist_tracks`, `list_liked_tracks`) where 800–1000+
+/// rows can land in a single response. Artwork is identified by
+/// `(hash, format)` plus thumbnail-existence flags; the absolute
+/// path strings are stitched on the frontend from the response-level
+/// `artwork_base` so the per-profile prefix isn't repeated thousands
+/// of times in the JSON payload (~30 % size reduction).
+#[derive(Debug, Clone, Serialize)]
+pub struct TrackListItem {
+    pub id: i64,
+    pub library_id: i64,
+    pub title: String,
+    pub album_id: Option<i64>,
+    pub album_title: Option<String>,
+    pub artist_id: Option<i64>,
+    pub artist_name: Option<String>,
+    pub artist_ids: Option<String>,
+    pub duration_ms: i64,
+    pub track_number: Option<i64>,
+    pub disc_number: Option<i64>,
+    pub year: Option<i64>,
+    pub bitrate: Option<i64>,
+    pub sample_rate: Option<i64>,
+    pub channels: Option<i64>,
+    pub bit_depth: Option<i64>,
+    pub codec: Option<String>,
+    pub musical_key: Option<String>,
+    pub file_path: String,
+    pub file_size: i64,
+    pub added_at: i64,
+    pub artwork_hash: Option<String>,
+    pub artwork_format: Option<String>,
+    pub artwork_has_1x: bool,
+    pub artwork_has_2x: bool,
+    pub rating: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ListTracksResponse {
+    /// Per-profile artwork directory — sent once instead of repeated
+    /// as a ~70-char prefix on every row.
+    pub artwork_base: String,
+    pub items: Vec<TrackListItem>,
+}
+
+/// Build the slim row + check thumbnail existence on disk in one
+/// pass. Shared between every bulk endpoint so the conversion stays
+/// in lockstep.
+pub fn track_list_item_from_row(row: TrackRow, artwork_dir: &Path) -> TrackListItem {
+    let (artwork_has_1x, artwork_has_2x) = match row.artwork_hash.as_deref() {
+        Some(hash) => {
+            let (p1, p2) = crate::thumbnails::thumbnail_paths_for(artwork_dir, hash);
+            (p1.is_some(), p2.is_some())
+        }
+        None => (false, false),
+    };
+    TrackListItem {
+        id: row.id,
+        library_id: row.library_id,
+        title: row.title,
+        album_id: row.album_id,
+        album_title: row.album_title,
+        artist_id: row.artist_id,
+        artist_name: row.artist_name,
+        artist_ids: row.artist_ids,
+        duration_ms: row.duration_ms,
+        track_number: row.track_number,
+        disc_number: row.disc_number,
+        year: row.year,
+        bitrate: row.bitrate,
+        sample_rate: row.sample_rate,
+        channels: row.channels,
+        bit_depth: row.bit_depth,
+        codec: row.codec,
+        musical_key: row.musical_key,
+        file_path: row.file_path,
+        file_size: row.file_size,
+        added_at: row.added_at,
+        artwork_hash: row.artwork_hash,
+        artwork_format: row.artwork_format,
+        artwork_has_1x,
+        artwork_has_2x,
+        rating: row.rating,
+    }
+}
 
 /// Track row returned to the frontend, already joined with album + primary
 /// artist so the UI never has to issue a follow-up query per row. Ordering
@@ -53,35 +140,36 @@ pub struct Track {
     pub rating: Option<i64>,
 }
 
-/// Raw row shape as it comes out of the SQL query — kept private because the
-/// public `Track` struct adds a derived `artwork_path` that the database
-/// doesn't know how to compute.
+/// Raw row shape as it comes out of the SQL query — the single-track
+/// `Track` adds a derived `artwork_path`, the bulk `TrackListItem`
+/// adds thumbnail existence flags. Reused by `commands::playlist` so
+/// the slim list shape stays in lockstep across endpoints.
 #[derive(FromRow)]
-struct TrackRow {
-    id: i64,
-    library_id: i64,
-    title: String,
-    album_id: Option<i64>,
-    album_title: Option<String>,
-    artist_id: Option<i64>,
-    artist_name: Option<String>,
-    artist_ids: Option<String>,
-    duration_ms: i64,
-    track_number: Option<i64>,
-    disc_number: Option<i64>,
-    year: Option<i64>,
-    bitrate: Option<i64>,
-    sample_rate: Option<i64>,
-    channels: Option<i64>,
-    bit_depth: Option<i64>,
-    codec: Option<String>,
-    musical_key: Option<String>,
-    file_path: String,
-    file_size: i64,
-    added_at: i64,
-    artwork_hash: Option<String>,
-    artwork_format: Option<String>,
-    rating: Option<i64>,
+pub struct TrackRow {
+    pub id: i64,
+    pub library_id: i64,
+    pub title: String,
+    pub album_id: Option<i64>,
+    pub album_title: Option<String>,
+    pub artist_id: Option<i64>,
+    pub artist_name: Option<String>,
+    pub artist_ids: Option<String>,
+    pub duration_ms: i64,
+    pub track_number: Option<i64>,
+    pub disc_number: Option<i64>,
+    pub year: Option<i64>,
+    pub bitrate: Option<i64>,
+    pub sample_rate: Option<i64>,
+    pub channels: Option<i64>,
+    pub bit_depth: Option<i64>,
+    pub codec: Option<String>,
+    pub musical_key: Option<String>,
+    pub file_path: String,
+    pub file_size: i64,
+    pub added_at: i64,
+    pub artwork_hash: Option<String>,
+    pub artwork_format: Option<String>,
+    pub rating: Option<i64>,
 }
 
 /// Resolve a sort spec to a SQL `ORDER BY` clause. Whitelisted columns
@@ -138,7 +226,7 @@ pub async fn list_tracks(
     library_id: Option<i64>,
     order_by: Option<String>,
     direction: Option<String>,
-) -> AppResult<Vec<Track>> {
+) -> AppResult<ListTracksResponse> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
@@ -184,52 +272,23 @@ pub async fn list_tracks(
         .fetch_all(&pool)
         .await?;
 
-    let tracks = rows
-        .into_iter()
-        .map(|row| {
-            let (artwork_path, artwork_path_1x, artwork_path_2x) =
-                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
-                    (Some(hash), Some(format)) => {
-                        let full = artwork_dir
-                            .join(format!("{}.{}", hash, format))
-                            .to_string_lossy()
-                            .to_string();
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
-                        (Some(full), p1, p2)
-                    }
-                    _ => (None, None, None),
-                };
-            Track {
-                id: row.id,
-                library_id: row.library_id,
-                title: row.title,
-                album_id: row.album_id,
-                album_title: row.album_title,
-                artist_id: row.artist_id,
-                artist_name: row.artist_name,
-                artist_ids: row.artist_ids,
-                duration_ms: row.duration_ms,
-                track_number: row.track_number,
-                disc_number: row.disc_number,
-                year: row.year,
-                bitrate: row.bitrate,
-                sample_rate: row.sample_rate,
-                channels: row.channels,
-                bit_depth: row.bit_depth,
-                codec: row.codec,
-                musical_key: row.musical_key,
-                file_path: row.file_path,
-                file_size: row.file_size,
-                added_at: row.added_at,
-                artwork_path,
-                artwork_path_1x,
-                artwork_path_2x,
-                rating: row.rating,
-            }
-        })
-        .collect();
+    // Each row triggers 2 synchronous `Path::exists` probes for the
+    // thumbnail variants — at 1k+ tracks that's enough to stall the
+    // tokio runtime. Hand the batch off to the blocking pool in one
+    // hop rather than spawning per row.
+    let artwork_dir_for_blocking = artwork_dir.clone();
+    let items = tokio::task::spawn_blocking(move || {
+        rows.into_iter()
+            .map(|row| track_list_item_from_row(row, &artwork_dir_for_blocking))
+            .collect()
+    })
+    .await
+    .map_err(|e| crate::error::AppError::Other(format!("list_tracks join: {e}")))?;
 
-    Ok(tracks)
+    Ok(ListTracksResponse {
+        artwork_base: artwork_dir.to_string_lossy().into_owned(),
+        items,
+    })
 }
 
 /// Fetch a single track by id with the same joined shape as
@@ -857,7 +916,9 @@ pub async fn list_liked_track_ids(state: tauri::State<'_, AppState>) -> AppResul
 /// List every liked track with full metadata, ordered by most recently
 /// liked first. Used by the LikedView.
 #[tauri::command]
-pub async fn list_liked_tracks(state: tauri::State<'_, AppState>) -> AppResult<Vec<Track>> {
+pub async fn list_liked_tracks(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<ListTracksResponse> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
@@ -898,50 +959,18 @@ pub async fn list_liked_tracks(state: tauri::State<'_, AppState>) -> AppResult<V
     .fetch_all(&pool)
     .await?;
 
-    let tracks = rows
-        .into_iter()
-        .map(|row| {
-            let (artwork_path, artwork_path_1x, artwork_path_2x) =
-                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
-                    (Some(hash), Some(format)) => {
-                        let full = artwork_dir
-                            .join(format!("{}.{}", hash, format))
-                            .to_string_lossy()
-                            .to_string();
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
-                        (Some(full), p1, p2)
-                    }
-                    _ => (None, None, None),
-                };
-            Track {
-                id: row.id,
-                library_id: row.library_id,
-                title: row.title,
-                album_id: row.album_id,
-                album_title: row.album_title,
-                artist_id: row.artist_id,
-                artist_name: row.artist_name,
-                artist_ids: row.artist_ids,
-                duration_ms: row.duration_ms,
-                track_number: row.track_number,
-                disc_number: row.disc_number,
-                year: row.year,
-                bitrate: row.bitrate,
-                sample_rate: row.sample_rate,
-                channels: row.channels,
-                bit_depth: row.bit_depth,
-                codec: row.codec,
-                musical_key: row.musical_key,
-                file_path: row.file_path,
-                file_size: row.file_size,
-                added_at: row.added_at,
-                artwork_path,
-                artwork_path_1x,
-                artwork_path_2x,
-                rating: row.rating,
-            }
-        })
-        .collect();
+    // Same blocking-pool offload as `list_tracks`.
+    let artwork_dir_for_blocking = artwork_dir.clone();
+    let items = tokio::task::spawn_blocking(move || {
+        rows.into_iter()
+            .map(|row| track_list_item_from_row(row, &artwork_dir_for_blocking))
+            .collect()
+    })
+    .await
+    .map_err(|e| crate::error::AppError::Other(format!("list_liked_tracks join: {e}")))?;
 
-    Ok(tracks)
+    Ok(ListTracksResponse {
+        artwork_base: artwork_dir.to_string_lossy().into_owned(),
+        items,
+    })
 }

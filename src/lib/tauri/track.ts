@@ -53,16 +53,117 @@ export interface SortSpec {
   direction?: "asc" | "desc";
 }
 
-export function listTracks(
+/**
+ * Wire-format row shipped by the bulk track endpoints. Artwork is
+ * represented by `(hash, format, has_1x, has_2x)` instead of three
+ * absolute path strings — the per-profile prefix would otherwise be
+ * repeated thousands of times in one response. [`expandTrack`] stitches
+ * the paths back together client-side so every UI consumer keeps the
+ * full `Track` shape.
+ */
+export interface TrackListItem {
+  id: number;
+  library_id: number;
+  title: string;
+  album_id: number | null;
+  album_title: string | null;
+  artist_id: number | null;
+  artist_name: string | null;
+  artist_ids: string | null;
+  duration_ms: number;
+  track_number: number | null;
+  disc_number: number | null;
+  year: number | null;
+  bitrate: number | null;
+  sample_rate: number | null;
+  channels: number | null;
+  bit_depth: number | null;
+  codec: string | null;
+  musical_key: string | null;
+  file_path: string;
+  file_size: number;
+  added_at: number;
+  artwork_hash: string | null;
+  artwork_format: string | null;
+  artwork_has_1x: boolean;
+  artwork_has_2x: boolean;
+  rating: number | null;
+}
+
+export interface ListTracksResponse {
+  /** Per-profile artwork directory — `<base>/<hash>.<ext>` for the full,
+   *  `<base>/<hash>_1x.jpg` and `<base>/<hash>_2x.jpg` for the thumbnails. */
+  artwork_base: string;
+  items: TrackListItem[];
+}
+
+/** Path separator used by `artwork_base`. Windows libraries ship `\`,
+ *  POSIX libraries ship `/`. Detect from the base itself so we don't
+ *  hard-code an OS assumption that breaks on imported `.waveflow`
+ *  archives crossing platforms. */
+function pathSep(base: string): string {
+  return base.includes("\\") ? "\\" : "/";
+}
+
+function expandTrack(item: TrackListItem, base: string, sep: string): Track {
+  const artwork_path =
+    item.artwork_hash && item.artwork_format
+      ? `${base}${sep}${item.artwork_hash}.${item.artwork_format}`
+      : null;
+  const artwork_path_1x =
+    item.artwork_hash && item.artwork_has_1x
+      ? `${base}${sep}${item.artwork_hash}_1x.jpg`
+      : null;
+  const artwork_path_2x =
+    item.artwork_hash && item.artwork_has_2x
+      ? `${base}${sep}${item.artwork_hash}_2x.jpg`
+      : null;
+  return {
+    id: item.id,
+    library_id: item.library_id,
+    title: item.title,
+    album_id: item.album_id,
+    album_title: item.album_title,
+    artist_id: item.artist_id,
+    artist_name: item.artist_name,
+    artist_ids: item.artist_ids,
+    duration_ms: item.duration_ms,
+    track_number: item.track_number,
+    disc_number: item.disc_number,
+    year: item.year,
+    bitrate: item.bitrate,
+    sample_rate: item.sample_rate,
+    channels: item.channels,
+    bit_depth: item.bit_depth,
+    codec: item.codec,
+    musical_key: item.musical_key,
+    file_path: item.file_path,
+    file_size: item.file_size,
+    added_at: item.added_at,
+    artwork_path,
+    artwork_path_1x,
+    artwork_path_2x,
+    rating: item.rating,
+  };
+}
+
+export function expandTrackResponse(resp: ListTracksResponse): Track[] {
+  const sep = pathSep(resp.artwork_base);
+  return resp.items.map((item) => expandTrack(item, resp.artwork_base, sep));
+}
+
+export async function listTracks(
   libraryId: number | null,
   sort?: SortSpec,
 ): Promise<Track[]> {
-  return invoke<Track[]>("list_tracks", {
+  const resp = await invoke<ListTracksResponse>("list_tracks", {
     libraryId,
     orderBy: sort?.orderBy ?? null,
     direction: sort?.direction ?? null,
   });
+  return expandTrackResponse(resp);
 }
+
 
 /** Full-text search across title, album and artist. Returns up to 50 results. */
 export function searchTracks(query: string): Promise<Track[]> {
@@ -119,8 +220,9 @@ export function listLikedTrackIds(): Promise<number[]> {
 }
 
 /** All liked tracks with full metadata, ordered by most recently liked. */
-export function listLikedTracks(): Promise<Track[]> {
-  return invoke<Track[]>("list_liked_tracks");
+export async function listLikedTracks(): Promise<Track[]> {
+  const resp = await invoke<ListTracksResponse>("list_liked_tracks");
+  return expandTrackResponse(resp);
 }
 
 /**

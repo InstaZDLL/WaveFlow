@@ -11,7 +11,11 @@ use sqlx::FromRow;
 
 use crate::{error::AppResult, state::AppState};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Slim album row shipped by `list_albums` — artwork is represented by
+/// `(hash, format, has_1x, has_2x)` so the response-level
+/// `artwork_base` carries the per-profile prefix once instead of
+/// repeating it on every row.
+#[derive(Debug, Clone, Serialize)]
 pub struct AlbumRow {
     pub id: i64,
     pub title: String,
@@ -19,15 +23,26 @@ pub struct AlbumRow {
     pub year: Option<i64>,
     pub track_count: i64,
     pub total_duration_ms: i64,
-    pub artwork_path: Option<String>,
-    pub artwork_path_1x: Option<String>,
-    pub artwork_path_2x: Option<String>,
+    pub artwork_hash: Option<String>,
+    pub artwork_format: Option<String>,
+    pub artwork_has_1x: bool,
+    pub artwork_has_2x: bool,
     /// Best-quality bit depth across the album's tracks. Drives the
     /// Hi-Res cover badge — if any track in the album is mastered at
     /// 24-bit, the badge shows on the cover. `None` when no track
     /// has a known bit depth (e.g. all MP3s).
     pub max_bit_depth: Option<i64>,
     pub max_sample_rate: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ListAlbumsResponse {
+    /// Per-profile artwork dir. Stitch `<base>/<hash>.<format>` for the
+    /// full image, `<base>/<hash>_1x.jpg` / `<base>/<hash>_2x.jpg` for
+    /// thumbnails (the thumbnail pipeline always emits JPEG regardless
+    /// of the source extension).
+    pub artwork_base: String,
+    pub items: Vec<AlbumRow>,
 }
 
 /// Private SQL row — the public `AlbumRow` derives `artwork_path` from the
@@ -46,29 +61,36 @@ struct AlbumRawRow {
     max_sample_rate: Option<i64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Slim artist row — same wire-format contract as `AlbumRow`. Two
+/// hash families (local `artwork_*` and Deezer-cached `picture_*`)
+/// because the UI prefers the extracted local image and only falls
+/// back to the Deezer cache when the local one is missing.
+#[derive(Debug, Clone, Serialize)]
 pub struct ArtistRow {
     pub id: i64,
     pub name: String,
     pub track_count: i64,
     pub album_count: i64,
-    /// Absolute filesystem path to a locally-extracted artist image
-    /// (sidecar `artist.jpg` or `<name>.jpg` discovered next to the
-    /// tracks during scan). Mirrors `ArtistDetail.artwork_path`.
-    /// `None` when no local image was found.
-    pub artwork_path: Option<String>,
-    pub artwork_path_1x: Option<String>,
-    pub artwork_path_2x: Option<String>,
-    /// Deezer CDN URL from the `metadata_artist` cache, if the artist
-    /// has been enriched at least once. Kept as a fallback — the UI
-    /// should prefer `artwork_path`, then `picture_path`, then this
-    /// remote URL last.
+    pub artwork_hash: Option<String>,
+    pub artwork_format: Option<String>,
+    pub artwork_has_1x: bool,
+    pub artwork_has_2x: bool,
+    /// Cached-Deezer picture hash. Files are stored under the shared
+    /// `metadata_artwork_base`, always as `<hash>.jpg`.
+    pub picture_hash: Option<String>,
+    pub picture_has_1x: bool,
+    pub picture_has_2x: bool,
+    /// Deezer CDN URL — last-resort fallback when no local file is
+    /// available (e.g. when the cache was wiped or the picture is on a
+    /// remote profile being browsed offline).
     pub picture_url: Option<String>,
-    /// Absolute filesystem path to the locally-cached Deezer picture,
-    /// when the metadata cache holds a hash and the file still exists.
-    pub picture_path: Option<String>,
-    pub picture_path_1x: Option<String>,
-    pub picture_path_2x: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ListArtistsResponse {
+    pub artwork_base: String,
+    pub metadata_artwork_base: String,
+    pub items: Vec<ArtistRow>,
 }
 
 #[derive(FromRow)]
@@ -245,7 +267,7 @@ pub async fn list_albums(
     filter_no_cover: Option<bool>,
     order_by: Option<String>,
     direction: Option<String>,
-) -> AppResult<Vec<AlbumRow>> {
+) -> AppResult<ListAlbumsResponse> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
@@ -284,38 +306,49 @@ pub async fn list_albums(
         .fetch_all(&pool)
         .await?;
 
-    let rows = raw
-        .into_iter()
-        .map(|row| {
-            let (artwork_path, artwork_path_1x, artwork_path_2x) =
-                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
-                    (Some(hash), Some(format)) => {
-                        let full = artwork_dir
-                            .join(format!("{}.{}", hash, format))
-                            .to_string_lossy()
-                            .to_string();
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
-                        (Some(full), p1, p2)
+    // Per-row mapping does N synchronous `Path::exists` probes against
+    // the artwork dir (via `thumbnail_paths_for`). At 850+ albums × 2
+    // checks that's enough sustained syscalls to noticeably stall the
+    // tokio runtime, so we hand the whole batch off to the blocking
+    // pool in one shot — single hop, no per-row overhead.
+    let artwork_dir_for_blocking = artwork_dir.clone();
+    let items = tokio::task::spawn_blocking(move || {
+        raw.into_iter()
+            .map(|row| {
+                let (artwork_has_1x, artwork_has_2x) = match row.artwork_hash.as_deref() {
+                    Some(hash) => {
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(
+                            &artwork_dir_for_blocking,
+                            hash,
+                        );
+                        (p1.is_some(), p2.is_some())
                     }
-                    _ => (None, None, None),
+                    None => (false, false),
                 };
-            AlbumRow {
-                id: row.id,
-                title: row.title,
-                artist_name: row.artist_name,
-                year: row.year,
-                track_count: row.track_count,
-                total_duration_ms: row.total_duration_ms,
-                artwork_path,
-                artwork_path_1x,
-                artwork_path_2x,
-                max_bit_depth: row.max_bit_depth,
-                max_sample_rate: row.max_sample_rate,
-            }
-        })
-        .collect();
+                AlbumRow {
+                    id: row.id,
+                    title: row.title,
+                    artist_name: row.artist_name,
+                    year: row.year,
+                    track_count: row.track_count,
+                    total_duration_ms: row.total_duration_ms,
+                    artwork_hash: row.artwork_hash,
+                    artwork_format: row.artwork_format,
+                    artwork_has_1x,
+                    artwork_has_2x,
+                    max_bit_depth: row.max_bit_depth,
+                    max_sample_rate: row.max_sample_rate,
+                }
+            })
+            .collect()
+    })
+    .await
+    .map_err(|e| crate::error::AppError::Other(format!("list_albums join: {e}")))?;
 
-    Ok(rows)
+    Ok(ListAlbumsResponse {
+        artwork_base: artwork_dir.to_string_lossy().into_owned(),
+        items,
+    })
 }
 
 /// List every primary artist that has at least one available track in the
@@ -326,7 +359,7 @@ pub async fn list_artists(
     library_id: Option<i64>,
     order_by: Option<String>,
     direction: Option<String>,
-) -> AppResult<Vec<ArtistRow>> {
+) -> AppResult<ListArtistsResponse> {
     let pool = state.require_profile_pool().await?;
 
     let order_clause = artist_order_clause(order_by.as_deref(), direction.as_deref());
@@ -360,46 +393,75 @@ pub async fn list_artists(
 
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
-    let metadata_dir = &state.paths.metadata_artwork_dir;
-    let rows = raw
-        .into_iter()
-        .map(|r| {
-            let (artwork_path, artwork_path_1x, artwork_path_2x) =
-                match (r.artwork_hash.as_deref(), r.artwork_format.as_deref()) {
-                    (Some(hash), Some(fmt)) => {
-                        let full = artwork_dir
-                            .join(format!("{hash}.{fmt}"))
-                            .to_string_lossy()
-                            .to_string();
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
-                        (Some(full), p1, p2)
+    let metadata_dir = state.paths.metadata_artwork_dir.clone();
+    // Same blocking-pool offload as `list_albums`: each row triggers up
+    // to 5 `Path::exists` probes (1 Deezer-full + 2 local thumbs + 2
+    // Deezer thumbs) — at 900 artists that's ~4 500 syscalls in a
+    // tight loop, well past the threshold where stalling the tokio
+    // runtime starts to matter.
+    let artwork_dir_for_blocking = artwork_dir.clone();
+    let metadata_dir_for_blocking = metadata_dir.clone();
+    let items = tokio::task::spawn_blocking(move || {
+        raw.into_iter()
+            .map(|r| {
+                let (artwork_has_1x, artwork_has_2x) = match r.artwork_hash.as_deref() {
+                    Some(hash) => {
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(
+                            &artwork_dir_for_blocking,
+                            hash,
+                        );
+                        (p1.is_some(), p2.is_some())
                     }
-                    _ => (None, None, None),
+                    None => (false, false),
                 };
-            let (picture_path_1x, picture_path_2x) = match r.picture_hash.as_deref() {
-                Some(h) => crate::thumbnails::thumbnail_paths_for(metadata_dir, h),
-                None => (None, None),
-            };
-            ArtistRow {
-                id: r.id,
-                name: r.name,
-                track_count: r.track_count,
-                album_count: r.album_count,
-                artwork_path,
-                artwork_path_1x,
-                artwork_path_2x,
-                picture_path: r
-                    .picture_hash
-                    .as_deref()
-                    .and_then(|h| crate::metadata_artwork::existing_path(metadata_dir, h)),
-                picture_url: r.picture_url,
-                picture_path_1x,
-                picture_path_2x,
-            }
-        })
-        .collect();
+                // For the Deezer cache the "full" file uses the same
+                // `<hash>.jpg` naming pattern, so we can drop a `picture_hash`
+                // when the source file is missing — the frontend won't have
+                // anything to point a thumbnail variant at either.
+                let picture_hash = r.picture_hash.and_then(|h| {
+                    if crate::metadata_artwork::existing_path(&metadata_dir_for_blocking, &h)
+                        .is_some()
+                    {
+                        Some(h)
+                    } else {
+                        None
+                    }
+                });
+                let (picture_has_1x, picture_has_2x) = match picture_hash.as_deref() {
+                    Some(h) => {
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(
+                            &metadata_dir_for_blocking,
+                            h,
+                        );
+                        (p1.is_some(), p2.is_some())
+                    }
+                    None => (false, false),
+                };
+                ArtistRow {
+                    id: r.id,
+                    name: r.name,
+                    track_count: r.track_count,
+                    album_count: r.album_count,
+                    artwork_hash: r.artwork_hash,
+                    artwork_format: r.artwork_format,
+                    artwork_has_1x,
+                    artwork_has_2x,
+                    picture_hash,
+                    picture_has_1x,
+                    picture_has_2x,
+                    picture_url: r.picture_url,
+                }
+            })
+            .collect()
+    })
+    .await
+    .map_err(|e| crate::error::AppError::Other(format!("list_artists join: {e}")))?;
 
-    Ok(rows)
+    Ok(ListArtistsResponse {
+        artwork_base: artwork_dir.to_string_lossy().into_owned(),
+        metadata_artwork_base: metadata_dir.to_string_lossy().into_owned(),
+        items,
+    })
 }
 
 /// List every genre that tags at least one available track in the given
