@@ -684,16 +684,14 @@ function HomeBannerSkeleton({ label }: HomeSkeletonProps) {
       role="status"
       aria-busy="true"
       aria-label={label}
-      className="relative overflow-hidden min-h-32 rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/40 dark:shadow-none animate-pulse"
+      className="flex flex-wrap gap-4 animate-pulse"
     >
-      <div className="flex flex-wrap gap-4 p-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div
-            key={i}
-            className="aspect-16/7 basis-70 grow max-w-100 rounded-2xl bg-zinc-200/70 dark:bg-zinc-700/40"
-          />
-        ))}
-      </div>
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div
+          key={i}
+          className="aspect-16/7 basis-70 grow max-w-100 rounded-2xl bg-zinc-200/70 dark:bg-zinc-700/40"
+        />
+      ))}
     </div>
   );
 }
