@@ -154,7 +154,7 @@ export function MoreActionsMenu({
             exit={{ opacity: 0, scale: 0.97, y: 4 }}
             transition={{ type: "spring", stiffness: 480, damping: 30, mass: 0.5 }}
             style={{ transformOrigin: "bottom right" }}
-            className="absolute bottom-full right-0 mb-3 w-72 p-1 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl z-50"
+            className="absolute bottom-full right-0 mb-3 w-72 max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain p-1 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl z-50"
           >
           {showSpeed && (
             <div className="px-3 py-2 space-y-2">
