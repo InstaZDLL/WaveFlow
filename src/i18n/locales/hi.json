@@ -1000,7 +1000,27 @@
     "eq": {
       "bypass": "EQ चालू करें"
     },
-    "toggleNowPlayingPanel": "अभी चल रहा है — दिखाएँ / छिपाएँ"
+    "toggleNowPlayingPanel": "अभी चल रहा है — दिखाएँ / छिपाएँ",
+    "pipeline": {
+      "title": "ऑडियो पाइपलाइन",
+      "openHint": "ऑडियो पाइपलाइन विस्तार से देखें",
+      "source": "स्रोत",
+      "processing": "प्रसंस्करण",
+      "output": "आउटपुट",
+      "noProcessing": "कोई प्रसंस्करण लागू नहीं",
+      "bitPerfect": "बिट-परफेक्ट",
+      "loading": "लोड हो रहा है…",
+      "chip": {
+        "dsdToPcm": "DSD → PCM",
+        "resample": "रीसैम्पल",
+        "downmix": "डाउनमिक्स",
+        "eq": "EQ",
+        "replayGain": "ReplayGain",
+        "normalize": "नॉर्मलाइज़",
+        "mono": "मोनो",
+        "speed": "गति {{value}}×"
+      }
+    }
   },
   "miniPlayer": {
     "idle": "कोई ट्रैक नहीं चल रहा",

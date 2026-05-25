@@ -1002,7 +1002,27 @@
     "eq": {
       "bypass": "Включить эквалайзер"
     },
-    "toggleNowPlayingPanel": "Показать / скрыть «Сейчас играет»"
+    "toggleNowPlayingPanel": "Показать / скрыть «Сейчас играет»",
+    "pipeline": {
+      "title": "Аудио-пайплайн",
+      "openHint": "Показать аудио-пайплайн подробно",
+      "source": "Источник",
+      "processing": "Обработка",
+      "output": "Выход",
+      "noProcessing": "Обработка не применяется",
+      "bitPerfect": "Bit-perfect",
+      "loading": "Загрузка…",
+      "chip": {
+        "dsdToPcm": "DSD → PCM",
+        "resample": "Ресэмплинг",
+        "downmix": "Downmix",
+        "eq": "Эквалайзер",
+        "replayGain": "ReplayGain",
+        "normalize": "Нормализация",
+        "mono": "Моно",
+        "speed": "Скорость {{value}}×"
+      }
+    }
   },
   "miniPlayer": {
     "idle": "Нет воспроизводимого трека",

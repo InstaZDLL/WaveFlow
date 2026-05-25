@@ -1007,7 +1007,27 @@
     "eq": {
       "bypass": "啟用 EQ"
     },
-    "toggleNowPlayingPanel": "顯示 / 隱藏目前播放"
+    "toggleNowPlayingPanel": "顯示 / 隱藏目前播放",
+    "pipeline": {
+      "title": "音訊管線",
+      "openHint": "查看音訊管線詳情",
+      "source": "來源",
+      "processing": "處理",
+      "output": "輸出",
+      "noProcessing": "無處理",
+      "bitPerfect": "位元完美",
+      "loading": "載入中…",
+      "chip": {
+        "dsdToPcm": "DSD → PCM",
+        "resample": "重新取樣",
+        "downmix": "下混",
+        "eq": "等化器",
+        "replayGain": "ReplayGain",
+        "normalize": "正規化",
+        "mono": "單聲道",
+        "speed": "速度 {{value}}×"
+      }
+    }
   },
   "miniPlayer": {
     "idle": "沒有播放中的曲目",

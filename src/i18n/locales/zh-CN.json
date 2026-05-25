@@ -1007,7 +1007,27 @@
     "eq": {
       "bypass": "启用均衡器"
     },
-    "toggleNowPlayingPanel": "显示 / 隐藏正在播放"
+    "toggleNowPlayingPanel": "显示 / 隐藏正在播放",
+    "pipeline": {
+      "title": "音频管线",
+      "openHint": "查看音频管线详情",
+      "source": "源",
+      "processing": "处理",
+      "output": "输出",
+      "noProcessing": "无处理",
+      "bitPerfect": "比特完美",
+      "loading": "加载中…",
+      "chip": {
+        "dsdToPcm": "DSD → PCM",
+        "resample": "重采样",
+        "downmix": "下混",
+        "eq": "均衡器",
+        "replayGain": "ReplayGain",
+        "normalize": "归一化",
+        "mono": "单声道",
+        "speed": "速度 {{value}}×"
+      }
+    }
   },
   "miniPlayer": {
     "idle": "未播放任何曲目",

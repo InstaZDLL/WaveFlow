@@ -1000,7 +1000,27 @@
     "eq": {
       "bypass": "Aktifkan EQ"
     },
-    "toggleNowPlayingPanel": "Tampilkan / sembunyikan Sedang diputar"
+    "toggleNowPlayingPanel": "Tampilkan / sembunyikan Sedang diputar",
+    "pipeline": {
+      "title": "Pipeline audio",
+      "openHint": "Lihat pipeline audio secara rinci",
+      "source": "Sumber",
+      "processing": "Pemrosesan",
+      "output": "Keluaran",
+      "noProcessing": "Tidak ada pemrosesan aktif",
+      "bitPerfect": "Bit-perfect",
+      "loading": "Memuat…",
+      "chip": {
+        "dsdToPcm": "DSD → PCM",
+        "resample": "Resample",
+        "downmix": "Downmix",
+        "eq": "EQ",
+        "replayGain": "ReplayGain",
+        "normalize": "Normalisasi",
+        "mono": "Mono",
+        "speed": "Kecepatan {{value}}×"
+      }
+    }
   },
   "miniPlayer": {
     "idle": "Tidak ada lagu yang diputar",

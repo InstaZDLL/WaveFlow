@@ -1000,7 +1000,27 @@
     "eq": {
       "bypass": "EQ を有効にする"
     },
-    "toggleNowPlayingPanel": "再生中パネルの表示 / 非表示"
+    "toggleNowPlayingPanel": "再生中パネルの表示 / 非表示",
+    "pipeline": {
+      "title": "オーディオパイプライン",
+      "openHint": "オーディオパイプラインの詳細を表示",
+      "source": "ソース",
+      "processing": "処理",
+      "output": "出力",
+      "noProcessing": "処理は適用されていません",
+      "bitPerfect": "ビットパーフェクト",
+      "loading": "読み込み中…",
+      "chip": {
+        "dsdToPcm": "DSD → PCM",
+        "resample": "リサンプル",
+        "downmix": "ダウンミックス",
+        "eq": "EQ",
+        "replayGain": "ReplayGain",
+        "normalize": "正規化",
+        "mono": "モノラル",
+        "speed": "速度 {{value}}×"
+      }
+    }
   },
   "miniPlayer": {
     "idle": "再生中のトラックなし",

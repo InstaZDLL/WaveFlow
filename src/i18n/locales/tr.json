@@ -1000,7 +1000,27 @@
     "eq": {
       "bypass": "EQ'yu aç"
     },
-    "toggleNowPlayingPanel": "Şu an çalan panelini göster / gizle"
+    "toggleNowPlayingPanel": "Şu an çalan panelini göster / gizle",
+    "pipeline": {
+      "title": "Ses akışı",
+      "openHint": "Ses akışını ayrıntılı görüntüle",
+      "source": "Kaynak",
+      "processing": "İşlem",
+      "output": "Çıkış",
+      "noProcessing": "İşlem uygulanmıyor",
+      "bitPerfect": "Bit-perfect",
+      "loading": "Yükleniyor…",
+      "chip": {
+        "dsdToPcm": "DSD → PCM",
+        "resample": "Yeniden örnekleme",
+        "downmix": "Downmix",
+        "eq": "EQ",
+        "replayGain": "ReplayGain",
+        "normalize": "Normalleştirme",
+        "mono": "Mono",
+        "speed": "Hız {{value}}×"
+      }
+    }
   },
   "miniPlayer": {
     "idle": "Çalan parça yok",

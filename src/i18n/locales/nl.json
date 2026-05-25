@@ -1000,7 +1000,27 @@
     "eq": {
       "bypass": "EQ inschakelen"
     },
-    "toggleNowPlayingPanel": "Toon / verberg Speelt nu"
+    "toggleNowPlayingPanel": "Toon / verberg Speelt nu",
+    "pipeline": {
+      "title": "Audio-pipeline",
+      "openHint": "Toon de audio-pipeline",
+      "source": "Bron",
+      "processing": "Verwerking",
+      "output": "Uitvoer",
+      "noProcessing": "Geen verwerking actief",
+      "bitPerfect": "Bit-perfect",
+      "loading": "Laden…",
+      "chip": {
+        "dsdToPcm": "DSD → PCM",
+        "resample": "Resampling",
+        "downmix": "Downmix",
+        "eq": "EQ",
+        "replayGain": "ReplayGain",
+        "normalize": "Normaliseren",
+        "mono": "Mono",
+        "speed": "Snelheid {{value}}×"
+      }
+    }
   },
   "miniPlayer": {
     "idle": "Geen nummer wordt afgespeeld",
