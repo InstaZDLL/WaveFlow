@@ -162,7 +162,7 @@ pub async fn get_similar_artists(
     //    every similar artist that isn't already in their library.
     //    This step is a no-op when offline mode is on.
     let metadata_map =
-        enrich_with_deezer_pictures(&pool, &artwork_dir, &canonicals, &raw, now).await;
+        enrich_with_deezer_pictures(&pool, &artwork_dir, &raw, now).await;
 
     let out = raw
         .into_iter()
@@ -199,6 +199,12 @@ pub async fn get_similar_artists(
     Ok(out)
 }
 
+/// Hard cap on concurrent Deezer `search_artist` round-trips kicked off
+/// by the enrichment fan-out. Matches `RESULT_LIMIT` — the displayed
+/// list is capped at 12, so there's never a reason to overlap more than
+/// 12 outbound requests for a single artist-page click.
+const CONCURRENCY_LIMIT: usize = RESULT_LIMIT;
+
 /// Backfill `app.metadata_artist` for every name in `raw` that we don't
 /// already have a non-expired cache row for, then return a
 /// `canonical_name → (picture_url, picture_hash)` lookup map ready to
@@ -207,65 +213,92 @@ pub async fn get_similar_artists(
 /// The cache is the cross-profile `app.metadata_artist` so the work is
 /// shared with other features (the `ArtistDetailView` Deezer enrichment,
 /// the Wrapped year-in-review, etc.). Cache misses fan out to Deezer
-/// `search_artist` in parallel — bounded by `RESULT_LIMIT` so we never
-/// fire more than 12 requests per artist-page click.
+/// `search_artist` through a buffered stream bounded by
+/// [`CONCURRENCY_LIMIT`], and the miss set is itself trimmed to
+/// [`RESULT_LIMIT`] so we never spend network on entries that the
+/// final `.take(RESULT_LIMIT)` will drop anyway.
 async fn enrich_with_deezer_pictures(
     pool: &SqlitePool,
     artwork_dir: &std::path::Path,
-    canonicals: &[String],
     raw: &[RawSimilar],
     now: i64,
 ) -> HashMap<String, (Option<String>, Option<String>)> {
+    use futures::stream::StreamExt;
+
     let mut map: HashMap<String, (Option<String>, Option<String>)> = HashMap::new();
-    if canonicals.is_empty() || crate::offline::is_offline() {
+    if raw.is_empty() {
         return map;
     }
 
-    // Pull every relevant cached row in one round-trip. `LOWER(TRIM(name))`
-    // matches `canonical_name` precisely (see `commands::scan`). No
-    // index on the expression — the metadata cache is small (hundreds
-    // to low thousands of rows) and the request runs ≤ 12 lookups, so
-    // a single scan stays cheap.
-    let placeholders = canonicals.iter().map(|_| "?").collect::<Vec<_>>().join(",");
-    let sql = format!(
+    // Pull every non-expired metadata row in one round-trip then filter
+    // in Rust against `canonical_name()`. We deliberately don't push the
+    // canonicalisation into SQL (`LOWER(TRIM(name))` would mismatch
+    // names like "AC/DC" → "acdc" or "P!nk" → "pnk" because SQLite's
+    // standard build has no REGEXP function), and SQLite has no
+    // user-defined alphanumeric filter. The cache is bounded by the
+    // user's library size + enrichment activity (~hundreds to a few
+    // thousand rows in steady state), so a full table scan + Rust-side
+    // filter is sub-millisecond and removes the canonicalisation
+    // mismatch bug. Promote to a stored `canonical_name` column with an
+    // index if profiling ever flags this query.
+    let canon_targets: std::collections::HashSet<String> = raw
+        .iter()
+        .map(|r| canonical_name(&r.name))
+        .filter(|c| !c.is_empty())
+        .collect();
+    match sqlx::query_as::<_, (String, Option<String>, Option<String>)>(
         "SELECT name, picture_url, picture_hash
            FROM app.metadata_artist
-          WHERE LOWER(TRIM(name)) IN ({placeholders})
-            AND expires_at > ?"
-    );
-    let mut q = sqlx::query_as::<_, (String, Option<String>, Option<String>)>(
-        sqlx::AssertSqlSafe(sql),
-    );
-    for c in canonicals {
-        q = q.bind(c);
-    }
-    q = q.bind(now);
-    if let Ok(rows) = q.fetch_all(pool).await {
-        for (name, picture_url, picture_hash) in rows {
-            map.insert(canonical_name(&name), (picture_url, picture_hash));
+          WHERE expires_at > ?",
+    )
+    .bind(now)
+    .fetch_all(pool)
+    .await
+    {
+        Ok(rows) => {
+            for (name, picture_url, picture_hash) in rows {
+                let canon = canonical_name(&name);
+                if canon_targets.contains(&canon) {
+                    map.insert(canon, (picture_url, picture_hash));
+                }
+            }
+        }
+        Err(err) => {
+            tracing::warn!(
+                ?err,
+                "similar-artist picture cache lookup failed — falling through to Deezer"
+            );
         }
     }
 
-    // Identify misses, then resolve them through Deezer in parallel.
-    // Skipping entries with an empty canonical name keeps the search
-    // query meaningful — Deezer returns junk for empty strings.
-    let misses: Vec<&RawSimilar> = raw
+    // Trim misses to the same RESULT_LIMIT window the caller's `.take`
+    // applies. `raw` arrives ordered by upstream affinity (Last.fm
+    // match score or Deezer ranking) so the first slice is exactly
+    // the entries that'll end up on screen. Collect owned names so the
+    // downstream stream owns its inputs — avoids HRTB lifetime grief
+    // with `buffer_unordered` borrowing back into `raw`.
+    let miss_names: Vec<String> = raw[..raw.len().min(RESULT_LIMIT)]
         .iter()
-        .filter(|r| {
+        .filter_map(|r| {
             let canon = canonical_name(&r.name);
-            !canon.is_empty() && !map.contains_key(&canon)
+            if !canon.is_empty() && !map.contains_key(&canon) {
+                Some(r.name.clone())
+            } else {
+                None
+            }
         })
         .collect();
-    if misses.is_empty() {
+    if miss_names.is_empty() || crate::offline::is_offline() {
+        // Offline mode still serves whatever's in the cache (the read
+        // above is local); we just skip the network refresh.
         return map;
     }
 
     let client = DeezerClient::new();
     let expires = now + CACHE_TTL_MS;
     let fetched: Vec<(String, Option<crate::deezer::DeezerArtistHit>)> =
-        futures::future::join_all(misses.iter().map(|r| {
-            let client = &client;
-            let name = r.name.clone();
+        futures::stream::iter(miss_names.into_iter().map(|name| {
+            let client = client.clone();
             async move {
                 let canon = canonical_name(&name);
                 let hit = match client.search_artist(&name).await {
@@ -284,6 +317,8 @@ async fn enrich_with_deezer_pictures(
                 (canon, hit)
             }
         }))
+        .buffer_unordered(CONCURRENCY_LIMIT)
+        .collect()
         .await;
 
     for (canon, hit) in fetched {
@@ -298,7 +333,7 @@ async fn enrich_with_deezer_pictures(
         // result instead of poking Deezer again. ON CONFLICT also
         // refreshes the expiry for entries that already existed but
         // were expired — same shape as `enrich_artist_deezer`.
-        let _ = sqlx::query(
+        if let Err(err) = sqlx::query(
             "INSERT INTO app.metadata_artist
                 (deezer_id, name, picture_url, picture_hash, fetched_at, expires_at)
              VALUES (?, ?, ?, ?, ?, ?)
@@ -316,7 +351,14 @@ async fn enrich_with_deezer_pictures(
         .bind(now)
         .bind(expires)
         .execute(pool)
-        .await;
+        .await
+        {
+            tracing::warn!(
+                ?err,
+                artist = %hit.name,
+                "metadata_artist upsert failed during similar-artist enrichment"
+            );
+        }
 
         map.insert(canon, (picture_url, picture_hash));
     }

@@ -15,6 +15,10 @@ const USER_AGENT: &str = "WaveFlow/0.1";
 const TIMEOUT_SECS: u64 = 5;
 
 /// Thin wrapper around `reqwest::Client` pre-configured for Deezer.
+/// `Clone` is cheap — `reqwest::Client` is `Arc`-backed — and lets
+/// callers stamp the client into each future of a `buffer_unordered`
+/// stream without hitting the closure-lifetime HRTB wall.
+#[derive(Clone)]
 pub struct DeezerClient {
     http: reqwest::Client,
 }
