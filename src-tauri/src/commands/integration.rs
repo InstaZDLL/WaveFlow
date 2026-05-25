@@ -277,9 +277,7 @@ pub async fn set_discord_rpc_enabled(
 /// to `false` (off) when never configured — toast notifications are
 /// intrusive and we want explicit opt-in rather than silent spam.
 #[tauri::command]
-pub async fn get_notifications_track_change(
-    state: tauri::State<'_, AppState>,
-) -> AppResult<bool> {
+pub async fn get_notifications_track_change(state: tauri::State<'_, AppState>) -> AppResult<bool> {
     Ok(crate::notifications::read_enabled(&state.app_db).await)
 }
 

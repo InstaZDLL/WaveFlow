@@ -58,7 +58,10 @@ export type SmartPlaylistKind =
 export function smartPlaylistKind(p: Playlist): SmartPlaylistKind {
   if (p.is_smart !== 1 || !p.smart_rules) return null;
   try {
-    const parsed = JSON.parse(p.smart_rules) as { kind?: string; slot?: number };
+    const parsed = JSON.parse(p.smart_rules) as {
+      kind?: string;
+      slot?: number;
+    };
     if (parsed.kind === "daily_mix" && typeof parsed.slot === "number") {
       return { kind: "daily_mix", slot: parsed.slot };
     }

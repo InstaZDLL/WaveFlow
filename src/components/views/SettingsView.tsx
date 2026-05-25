@@ -2276,11 +2276,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 Not Disturb on every platform, opt-in only). */}
             <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
               <div className="flex items-center space-x-4">
-                <Bell
-                  size={20}
-                  className="text-zinc-400"
-                  aria-hidden="true"
-                />
+                <Bell size={20} className="text-zinc-400" aria-hidden="true" />
                 <div>
                   <div className="text-sm font-medium text-zinc-900 dark:text-white">
                     {t("settings.integrations.notifications.title")}

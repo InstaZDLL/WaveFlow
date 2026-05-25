@@ -130,8 +130,11 @@ fn render_on_repeat_canvas() -> RgbImage {
     const RING: [u8; 3] = [236, 72, 153]; // tailwind pink-500
     const RING_HIGHLIGHT: [u8; 3] = [244, 114, 182]; // tailwind pink-400
 
-    let mut canvas: RgbImage =
-        ImageBuffer::from_pixel(CANVAS_PX, CANVAS_PX, Rgb([TOP_LEFT[0] as u8, TOP_LEFT[1] as u8, TOP_LEFT[2] as u8]));
+    let mut canvas: RgbImage = ImageBuffer::from_pixel(
+        CANVAS_PX,
+        CANVAS_PX,
+        Rgb([TOP_LEFT[0] as u8, TOP_LEFT[1] as u8, TOP_LEFT[2] as u8]),
+    );
 
     // Diagonal background gradient — top-left → bottom-right.
     let max_d = ((CANVAS_PX - 1) as f32) * 2.0;

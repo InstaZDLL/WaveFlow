@@ -2,10 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FileAudio, Cpu, Speaker, Sparkles } from "lucide-react";
 import type { QueueTrackPayload } from "../../lib/tauri/player";
-import {
-  playerGetAudioSettings,
-  playerGetState,
-} from "../../lib/tauri/player";
+import { playerGetAudioSettings, playerGetState } from "../../lib/tauri/player";
 import { playerGetEq } from "../../lib/tauri/eq";
 import { usePlayer } from "../../hooks/usePlayer";
 
@@ -174,7 +171,9 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
       // footer's `48 kHz → 44.1 kHz` arrow. Stripped of the unit on
       // the left side since the `kHz` suffix on the right reads for
       // both (matches the way audio devices are usually labelled).
-      label: `${t("playerBar.pipeline.chip.resample")} ${(track.sample_rate! / 1000)
+      label: `${t("playerBar.pipeline.chip.resample")} ${(
+        track.sample_rate! / 1000
+      )
         .toFixed(1)
         .replace(/\.0$/, "")} → ${formatSampleRate(snap!.outputSampleRate)}`,
       tone: "convert",
@@ -323,11 +322,7 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
           last thing the audiophile reads. */}
       {isBitPerfect && (
         <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-2">
-          <Sparkles
-            size={14}
-            className="text-emerald-500"
-            aria-hidden="true"
-          />
+          <Sparkles size={14} className="text-emerald-500" aria-hidden="true" />
           <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
             {t("playerBar.pipeline.bitPerfect")}
           </span>
