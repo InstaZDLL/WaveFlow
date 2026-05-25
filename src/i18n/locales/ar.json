@@ -1004,7 +1004,27 @@
     "eq": {
       "bypass": "تفعيل المعادل"
     },
-    "toggleNowPlayingPanel": "إظهار / إخفاء «قيد التشغيل»"
+    "toggleNowPlayingPanel": "إظهار / إخفاء «قيد التشغيل»",
+    "pipeline": {
+      "title": "خط معالجة الصوت",
+      "openHint": "عرض خط معالجة الصوت بالتفصيل",
+      "source": "المصدر",
+      "processing": "المعالجة",
+      "output": "الخرج",
+      "noProcessing": "لا توجد معالجة مطبقة",
+      "bitPerfect": "Bit-perfect",
+      "loading": "جارٍ التحميل…",
+      "chip": {
+        "dsdToPcm": "DSD → PCM",
+        "resample": "إعادة تركيب",
+        "downmix": "Downmix",
+        "eq": "معادل الصوت",
+        "replayGain": "ReplayGain",
+        "normalize": "تسوية",
+        "mono": "أحادي",
+        "speed": "السرعة {{value}}×"
+      }
+    }
   },
   "miniPlayer": {
     "idle": "لا يوجد مقطع قيد التشغيل",

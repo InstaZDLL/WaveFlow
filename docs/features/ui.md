@@ -172,6 +172,26 @@ When a pin is OFF, the entry stays in the overflow menu and the sleep-timer coun
 
 The overflow popover itself is capped at `max-h-[calc(100dvh-7rem)]` with `overflow-y-auto overscroll-contain` ([`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx)). On a 1080p display with nothing pinned, the stack (speed slider + 5-preset grid, EQ section, A-B loop row, sleep-timer 6-preset grid + end-of-track + custom-minutes form) would otherwise run past the viewport top. `100dvh` rather than `100vh` keeps the math right when Tauri window chrome hides on Linux/macOS fullscreen; `overscroll-contain` prevents wheel/touch scrolls from chaining to the page underneath.
 
+### Audio-quality footer + pipeline popover
+
+The opt-in audio-quality footer ([`AudioQualityFooter`](../../src/components/player/AudioQualityFooter.tsx), pinned via Settings → Appearance → Player bar layout) is a thin strip below the player bar that surfaces the source file specs in compact form (`48 kHz · 256 kb/s · 6 Mo` on the left, `AAC · 24bit · 48kHz` on the right; bitrates ≥ 1000 kbps render as `Mb/s`). The Hi-Res pill surfaces when [`isHiRes`](../../src/lib/hiRes.ts) accepts the source bit depth / sample rate combination.
+
+Hovering (or keyboard-focusing) the footer opens [`AudioPipelinePopover`](../../src/components/player/AudioPipelinePopover.tsx) — an audiophile-grade breakdown of what the engine is actually doing.
+
+#### Sections displayed
+
+- **Source** — codec, sample rate, bit depth, bitrate, channel layout (`Mono` / `Stereo` / `3.0` / `4.0` / `5.0` / `5.1` / `6.1` / `7.1`).
+- **Processing** — chips lighting up for every active stage: `DSD → PCM`, `Resample`, `Downmix`, `EQ`, `ReplayGain`, `Normalize`, `Mono` mixdown, `Speed ≠ 1×`. No chip → "Aucun traitement appliqué".
+- **Output** — device sample rate + channel layout read from the live engine snapshot (`PlayerStateSnapshot.sample_rate` / `channels`), not the track row, so resampling and downmix are reflected correctly.
+
+#### Bit-perfect conditions
+
+The green `Bit-perfect` pill at the bottom appears **only** when no processing chip is active **and** the source rate matches the output rate. Any single chip lit (including `EQ` and `Speed`) suppresses it.
+
+#### State refresh
+
+Hydration on open runs `playerGetState` / `playerGetAudioSettings` / `playerGetEq` in parallel so every read reflects the freshest engine state — the EQ may have been flipped from another popover seconds ago and we want truth, not stale React state. The popover unmounts on hover-leave so we never display stale data once it closes. 120 ms open / 200 ms close hover delays so brushing the footer doesn't flicker the popover open.
+
 ## Keyboard shortcuts
 
 Action ↔ key bindings live in [`src/lib/shortcuts.ts`](../../src/lib/shortcuts.ts) (12 actions, defaults like `Space` → play/pause, `←`/`→` → previous/next, `M` → mute, `S` → shuffle, `R` → repeat, `L` → toggle lyrics, `Shift+L` → like). [`useGlobalShortcuts`](../../src/hooks/useGlobalShortcuts.ts) is mounted once in [`AppLayout`](../../src/components/layout/AppLayout.tsx) and attaches a single `window.keydown` listener that dispatches against `PlayerContext`. Listener skips when the focus target is `INPUT` / `TEXTAREA` / `contenteditable` so typing in a search box doesn't toggle shuffle.

@@ -1000,7 +1000,27 @@
     "eq": {
       "bypass": "Attiva EQ"
     },
-    "toggleNowPlayingPanel": "Mostra / nascondi In riproduzione"
+    "toggleNowPlayingPanel": "Mostra / nascondi In riproduzione",
+    "pipeline": {
+      "title": "Pipeline audio",
+      "openHint": "Mostra la pipeline audio in dettaglio",
+      "source": "Sorgente",
+      "processing": "Elaborazione",
+      "output": "Uscita",
+      "noProcessing": "Nessuna elaborazione attiva",
+      "bitPerfect": "Bit-perfect",
+      "loading": "Caricamento…",
+      "chip": {
+        "dsdToPcm": "DSD → PCM",
+        "resample": "Resampling",
+        "downmix": "Downmix",
+        "eq": "EQ",
+        "replayGain": "ReplayGain",
+        "normalize": "Normalizzazione",
+        "mono": "Mono",
+        "speed": "Velocità {{value}}×"
+      }
+    }
   },
   "miniPlayer": {
     "idle": "Nessun brano in riproduzione",

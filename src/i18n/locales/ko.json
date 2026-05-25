@@ -1000,7 +1000,27 @@
     "eq": {
       "bypass": "EQ 사용"
     },
-    "toggleNowPlayingPanel": "재생 중 패널 표시 / 숨기기"
+    "toggleNowPlayingPanel": "재생 중 패널 표시 / 숨기기",
+    "pipeline": {
+      "title": "오디오 파이프라인",
+      "openHint": "오디오 파이프라인 자세히 보기",
+      "source": "소스",
+      "processing": "처리",
+      "output": "출력",
+      "noProcessing": "처리 없음",
+      "bitPerfect": "비트 퍼펙트",
+      "loading": "로드 중…",
+      "chip": {
+        "dsdToPcm": "DSD → PCM",
+        "resample": "리샘플링",
+        "downmix": "다운믹스",
+        "eq": "EQ",
+        "replayGain": "ReplayGain",
+        "normalize": "노멀라이즈",
+        "mono": "모노",
+        "speed": "속도 {{value}}×"
+      }
+    }
   },
   "miniPlayer": {
     "idle": "재생 중인 트랙 없음",
