@@ -212,9 +212,9 @@ export function QueuePanel() {
             </p>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto -mx-2 px-2 space-y-5 scrollbar-hide">
+          <div className="flex-1 flex flex-col min-h-0 -mx-2 px-2 space-y-5">
             {snapshot?.source_type === "radio" && items[0] && (
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40">
+              <div className="shrink-0 flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40">
                 <div className="shrink-0 w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                   <Radio size={18} />
                 </div>
@@ -229,7 +229,7 @@ export function QueuePanel() {
               </div>
             )}
             {nowPlaying && (
-              <section>
+              <section className="shrink-0">
                 <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-2 px-1">
                   {t("queue.nowPlaying")}
                 </div>
@@ -237,7 +237,7 @@ export function QueuePanel() {
               </section>
             )}
             {upNext.length > 0 && (
-              <section>
+              <section className="flex-1 flex flex-col min-h-0">
                 <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-2 px-1">
                   {t("queue.upNext", { count: upNext.length })}
                 </div>
@@ -394,7 +394,7 @@ function SortableUpNext({
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <div
           ref={scrollRef}
-          className="max-h-[55vh] overflow-y-auto scrollbar-hide"
+          className="flex-1 min-h-0 overflow-y-auto scrollbar-hide"
         >
           <div
             style={{
