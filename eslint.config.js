@@ -14,6 +14,7 @@ export default tseslint.config(
       "waveflow-landing/**",
       "vscode-discord-rich-presence/**",
       "scripts/**",
+      "secrets/**",
       "**/*.config.ts",
       "**/*.config.js",
       "**/.commitlintrc.cjs",
