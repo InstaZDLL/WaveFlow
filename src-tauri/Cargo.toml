@@ -139,6 +139,13 @@ notify = "8"
 # extension-locked.
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "bmp", "gif", "tiff"] }
 fast_image_resize = "6"
+# Static SVG → raster pipeline for smart-playlist brand covers (On Repeat
+# today, future families). default-features disabled because we don't
+# rasterise text or embedded raster — the SVGs are pure shapes/gradients,
+# which trims ~2 MB of font + image-codec deps from the bundle.
+resvg = { version = "0.47", default-features = false }
+usvg = { version = "0.47", default-features = false }
+tiny-skia = "0.12"
 anyhow = "1"
 
 # Last.fm signed API methods (auth.getMobileSession, track.scrobble,

@@ -328,7 +328,7 @@ export function AboutView({ onNavigate }: AboutViewProps) {
         </h2>
         <div className="grid grid-cols-2 gap-x-8">
           <TechItem name="Rust" version="2021 ed." />
-          <TechItem icon={<Database size={16} />} name="SQLx" version="0.8" />
+          <TechItem icon={<Database size={16} />} name="SQLx" version="0.9" />
           <TechItem name="SQLite" version="3.x" />
           <TechItem icon={<Zap size={16} />} name="Tokio" version="1.x" />
         </div>
