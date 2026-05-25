@@ -33,6 +33,13 @@ function parseVisible(raw: string | null): boolean {
 let currentVisible: boolean = DEFAULT_VISIBLE;
 let hydrated = false;
 let windowListenerAttached = false;
+// Monotonic token for in-flight backend reads. Bumped before each
+// fetch; the resolver only commits if its captured token still
+// matches — protects against an older async response overwriting a
+// newer one if two `hydrateFromBackend` calls race (e.g. settings
+// toggle dispatching the window event right next to a profile-switch
+// `refreshHiResBadgeVisibility`).
+let hydrateToken = 0;
 const listeners: Set<() => void> = new Set();
 
 function notify(): void {
@@ -40,8 +47,10 @@ function notify(): void {
 }
 
 async function hydrateFromBackend(): Promise<void> {
+  const token = ++hydrateToken;
   try {
     const raw = await getProfileSetting(KEY);
+    if (token !== hydrateToken) return; // a newer read superseded us
     const next = parseVisible(raw);
     if (next !== currentVisible) {
       currentVisible = next;
@@ -122,8 +131,12 @@ export function useHiResBadgeVisibility(): HiResBadgeVisibility {
     try {
       await setProfileSetting(KEY, next ? "true" : "false", "bool");
       // Broadcast for other tabs / mini-player webview so they
-      // re-hydrate from the same store.
-      window.dispatchEvent(new CustomEvent(HI_RES_BADGE_EVENT));
+      // re-hydrate from the same store. Guarded so callers running
+      // in a non-DOM environment (Node tests, future SSR) don't
+      // crash here — `ensureWindowListener` applies the same guard.
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent(HI_RES_BADGE_EVENT));
+      }
     } catch (err) {
       console.error("[useHiResBadgeVisibility] write failed", err);
       // Roll back so the UI stays consistent with the persisted
