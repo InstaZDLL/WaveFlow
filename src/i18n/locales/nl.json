@@ -293,6 +293,9 @@
       "trackCount_one": "{{count}} nummer",
       "trackCount_other": "{{count}} nummers"
     },
+    "onRepeat": {
+      "label": "On Repeat"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Je jaaroverzicht {{year}}",

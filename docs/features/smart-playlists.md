@@ -1,6 +1,6 @@
 # Smart playlists
 
-Auto-generated playlists materialised from the user's listening history. Today: a 3-slot **Daily Mix** family bucketed by tempo. Tomorrow: "On Repeat", "Repeat Rewind", per-mood mixes — the engine in [`smart_playlists/`](../../src-tauri/src/smart_playlists) is built around a discriminated `SmartPlaylistRules` enum so new families plug in without touching the regen flow.
+Auto-generated playlists materialised from the user's listening history. Today: a 3-slot **Daily Mix** family bucketed by tempo, plus a single **On Repeat** playlist tracking the user's top played tracks over the last 30 days. Tomorrow: "Repeat Rewind", "Release Radar", per-mood mixes — the engine in [`smart_playlists/`](../../src-tauri/src/smart_playlists) is built around a discriminated `SmartPlaylistRules` enum so new families plug in without touching the regen flow.
 
 ## Storage
 
@@ -68,19 +68,54 @@ Determinism matters: the same input set always produces the same listening order
 
 Why the label isn't rasterised in Rust: avoids a font dep (`ab_glyph` / `fontdue` + a bundled TTF) and lets the frontend re-style / re-translate without regenerating images.
 
+## On Repeat algorithm
+
+Implemented in [`on_repeat.rs`](../../src-tauri/src/smart_playlists/on_repeat.rs). Single playlist, no slot bucketing — the top tracks the user has rotated the most over the last 30 days, ordered by play count descending. The materialised playlist holds **up to `TRACKS_LIMIT = 30` tracks**; the SQL fetches up to 60 candidates first so the Rust caller has headroom to filter for future variants (e.g. dropping tracks already on another smart playlist) without re-issuing the query, then truncates client-side via `tracks.iter().take(TRACKS_LIMIT)` before the upsert.
+
+```sql
+SELECT pe.track_id,
+       COUNT(pe.id) AS play_count
+  FROM play_event pe
+  JOIN track t ON t.id = pe.track_id
+ WHERE pe.played_at >= now() - 30 days
+   AND t.is_available  = 1
+ GROUP BY pe.track_id
+HAVING play_count > 0
+ ORDER BY play_count DESC, MAX(pe.played_at) DESC
+ LIMIT 60          -- candidate pool; truncated to TRACKS_LIMIT = 30 in Rust
+```
+
+Differences vs Daily Mix:
+
+- **Lookback is 30 days** (not 90) so the playlist reflects the *current* rotation, not last quarter's binges. Matches Spotify's On Repeat cadence.
+- **No shuffle** — the playlist is the top-N tracks in straight play-count order, so the user's #1 most-played song lands at the top. Deterministic by construction, no seed needed.
+- **No tempo bucketing** — On Repeat is a single playlist, not a 3-way split.
+- **Minimum 8 distinct tracks** in the window before anything is materialised. Below that the playlist would be "the same handful of songs you already listened to a lot" and adds nothing over the History view. A previously-materialised row is *deleted* when this guard kicks in so a stale playlist doesn't linger after a quiet month.
+- **Position is fixed at 0** so the row sorts ahead of every Daily Mix slot in the Home carousel and the sidebar.
+
+### Brand cover
+
+On Repeat doesn't use the album-art composite — its identity is a fixed visual rendered deterministically by [`cover::build_on_repeat_cover`](../../src-tauri/src/smart_playlists/cover.rs): a 640×640 JPEG with a deep indigo → royal violet diagonal gradient overlaid with two intersecting pink rings forming an infinity loop. Same bytes every regen → same blake3 hash → the cache dedupes against the existing file instead of piling up orphans. No text is rasterised into the image (the playlist name and "On Repeat" eyebrow are rendered by React on top of the tile), so the canvas stays locale-agnostic.
+
+Future per-track-art families (Release Radar, Recently Added) will resolve the *first track's artist image* instead — that's why [`generator::first_track_artwork_paths`](../../src-tauri/src/smart_playlists/generator.rs) is `pub(super)` even though On Repeat doesn't use it.
+
 ## Regen flow
 
 ```bash
 User clicks "Régénérer" on HomeView
-  → invoke('regenerate_daily_mixes')
-    → smart_playlists::generator::regenerate_daily_mixes(pool, paths)
-      ├── top_artists_with_bpm()        ← profile DB + cross-DB lookup to app.db for picture_hash
-      ├── for each bucket:
-      │     ├── pick_tracks_for_artists()
-      │     ├── shuffle_with_seed()
-      │     ├── cover::build_daily_mix_cover()  ← only if any cached picture exists
-      │     └── upsert_smart_playlist()         ← LIKE-match on smart_rules to refresh in place
-      └── returns Vec<i64> of refreshed playlist ids
+  → invoke('regenerate_all_smart_playlists')
+    → smart_playlists::generator::regenerate_daily_mixes()
+    ├── top_artists_with_bpm()        ← profile DB + cross-DB lookup to app.db for picture_hash
+    ├── for each bucket:
+    │     ├── pick_tracks_for_artists()
+    │     ├── shuffle_with_seed()
+    │     ├── cover::build_daily_mix_cover()  ← only if any cached picture exists
+    │     └── upsert_smart_playlist()         ← LIKE-match on smart_rules to refresh in place
+    │
+    → smart_playlists::on_repeat::regenerate_on_repeat()
+    ├── top_played_tracks()           ← profile DB, 30-day window
+    ├── cover::build_on_repeat_cover()← deterministic brand artwork
+    └── upsert_smart_playlist()       ← LIKE-match on "kind":"on_repeat" needle
   → frontend usePlaylist().refresh() → sidebar + home carousel update
 ```
 

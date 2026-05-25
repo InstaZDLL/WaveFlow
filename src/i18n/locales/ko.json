@@ -293,6 +293,9 @@
       "trackCount_one": "{{count}}곡",
       "trackCount_other": "{{count}}곡"
     },
+    "onRepeat": {
+      "label": "On Repeat"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "{{year}}년 결산",

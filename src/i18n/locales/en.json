@@ -293,6 +293,9 @@
       "trackCount_one": "{{count}} track",
       "trackCount_other": "{{count}} tracks"
     },
+    "onRepeat": {
+      "label": "On Repeat"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Your {{year}} recap",

@@ -293,6 +293,9 @@
       "trackCount_one": "{{count}} brano",
       "trackCount_other": "{{count}} brani"
     },
+    "onRepeat": {
+      "label": "On Repeat"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Il tuo riepilogo {{year}}",

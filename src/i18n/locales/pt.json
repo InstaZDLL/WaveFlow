@@ -293,6 +293,9 @@
       "trackCount_one": "{{count}} faixa",
       "trackCount_other": "{{count}} faixas"
     },
+    "onRepeat": {
+      "label": "On Repeat"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "A tua retrospetiva {{year}}",

@@ -258,11 +258,13 @@ async fn generate_one_mix(
     let rules = SmartPlaylistRules::DailyMix {
         slot: bucket.slot(),
     };
+    let needle = format!("\"slot\":{}", bucket.slot());
     upsert_smart_playlist(
         pool,
         bucket.label(),
         bucket.description(),
-        bucket.slot(),
+        &needle,
+        bucket.slot() as i64,
         cover_hash.as_deref(),
         &rules.to_json(),
         &shuffled,
@@ -373,7 +375,7 @@ async fn top_artists_with_bpm(
 /// cluster's top artists have a Deezer picture cached. Tracks without
 /// embedded artwork are silently skipped — we walk the input until `take`
 /// hits or the source is exhausted.
-async fn first_track_artwork_paths(
+pub(super) async fn first_track_artwork_paths(
     pool: &SqlitePool,
     paths: &AppPaths,
     profile_id: i64,
@@ -477,15 +479,21 @@ async fn pick_tracks_for_artists(
     Ok(q.fetch_all(pool).await?)
 }
 
-/// Insert or refresh the playlist for one Daily Mix slot. Idempotent: a
-/// previous slot with the same `smart_rules` JSON is wiped (tracks +
-/// metadata) before the new contents are written, so repeated regens never
-/// stack up duplicate playlists.
-async fn upsert_smart_playlist(
+/// Insert or refresh a smart playlist row keyed by a `smart_rules` JSON
+/// needle. Idempotent: a previous row matching the same needle is wiped
+/// (tracks + metadata) before the new contents are written, so repeated
+/// regens never stack up duplicate playlists.
+///
+/// `needle` is the substring used in the `LIKE '%...%'` lookup against
+/// `smart_rules`. Pass a fragment unique to the family (e.g. `"slot":2`
+/// for Daily Mix slot 2, or `"kind":"on_repeat"` for the On Repeat
+/// family) so the upsert can't accidentally match a sibling row.
+pub(super) async fn upsert_smart_playlist(
     pool: &SqlitePool,
     name: &str,
     description: &str,
-    slot: u8,
+    needle: &str,
+    position: i64,
     cover_hash: Option<&str>,
     rules_json: &str,
     track_ids: &[i64],
@@ -493,10 +501,9 @@ async fn upsert_smart_playlist(
     let now = Utc::now().timestamp_millis();
     let mut tx = pool.begin().await?;
 
-    // Look for an existing slot by smart_rules JSON match. SQLite has no
-    // first-class JSON ops here so we LIKE on the raw string — the slot
-    // discriminator is unambiguous in our serialiser output.
-    let needle = format!("\"slot\":{slot}");
+    // SQLite has no first-class JSON ops here so we LIKE on the raw
+    // string — the caller-supplied needle must be specific enough to
+    // identify the family + slot unambiguously.
     let existing: Option<(i64,)> = sqlx::query_as(
         r#"
         SELECT id FROM playlist
@@ -512,6 +519,10 @@ async fn upsert_smart_playlist(
     let playlist_id = match existing {
         Some((id,)) => {
             // Refresh metadata + clear out the old tracks before re-inserting.
+            // `position` is included so a family that shifts its sort order
+            // between releases (e.g. moving On Repeat from 1 to 0 to land
+            // ahead of Daily Mix) actually re-anchors existing rows instead
+            // of silently keeping the stale position from the first regen.
             sqlx::query(
                 r#"
                 UPDATE playlist
@@ -519,6 +530,7 @@ async fn upsert_smart_playlist(
                        description = ?,
                        cover_hash  = ?,
                        smart_rules = ?,
+                       position    = ?,
                        updated_at  = ?
                  WHERE id = ?
                 "#,
@@ -527,6 +539,7 @@ async fn upsert_smart_playlist(
             .bind(description)
             .bind(cover_hash)
             .bind(rules_json)
+            .bind(position)
             .bind(now)
             .bind(id)
             .execute(&mut *tx)
@@ -550,7 +563,7 @@ async fn upsert_smart_playlist(
             .bind(description)
             .bind(rules_json)
             .bind(cover_hash)
-            .bind(slot as i64) // sort smart playlists ahead of user ones
+            .bind(position) // caller decides sort order vs sibling smart playlists
             .bind(now)
             .bind(now)
             .execute(&mut *tx)

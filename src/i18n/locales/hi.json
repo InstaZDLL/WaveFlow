@@ -293,6 +293,9 @@
       "trackCount_one": "{{count}} ट्रैक",
       "trackCount_other": "{{count}} ट्रैक"
     },
+    "onRepeat": {
+      "label": "On Repeat"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "आपका {{year}} रीकैप",

@@ -293,6 +293,9 @@
       "trackCount_one": "{{count}} lagu",
       "trackCount_other": "{{count}} lagu"
     },
+    "onRepeat": {
+      "label": "On Repeat"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Rangkuman {{year}} kamu",

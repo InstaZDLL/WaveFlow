@@ -293,6 +293,9 @@
       "trackCount_one": "{{count}} 曲",
       "trackCount_other": "{{count}} 曲"
     },
+    "onRepeat": {
+      "label": "On Repeat"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "{{year}}年のあなた",

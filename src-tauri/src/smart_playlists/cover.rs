@@ -95,6 +95,92 @@ pub fn build_daily_mix_cover(image_paths: &[PathBuf], metadata_dir: &Path) -> Ap
     build_composite_cover(image_paths, metadata_dir)
 }
 
+/// Render a deterministic brand cover for a smart-playlist family that
+/// has no per-track imagery (e.g. On Repeat — a fixed visual identity,
+/// not a contact-sheet of the user's library). The output is a 640×640
+/// JPEG with a diagonal gradient and a stylised infinity-loop motif —
+/// no text, since the family label and playlist name render below the
+/// tile on the Home view anyway.
+///
+/// Identical inputs always produce the same JPEG bytes (and therefore
+/// the same blake3 hash), so a regen pass against an unchanged family
+/// dedupes against the existing file in the shared cache instead of
+/// piling up orphans.
+pub fn build_on_repeat_cover(metadata_dir: &Path) -> AppResult<String> {
+    let canvas = render_on_repeat_canvas();
+    let bytes = encode_jpeg(&canvas)?;
+    let hash = blake3::hash(&bytes).to_hex().to_string();
+    let out = metadata_artwork::path_for_hash(metadata_dir, &hash);
+    if !out.exists() {
+        std::fs::write(&out, &bytes)
+            .map_err(|e| AppError::Audio(format!("smart cover write: {e}")))?;
+    }
+    Ok(hash)
+}
+
+/// Paint the On Repeat brand canvas: indigo→magenta diagonal gradient
+/// background overlaid with two intersecting magenta rings that form an
+/// infinity loop. Kept separate from [`build_on_repeat_cover`] so the
+/// pixel-level behaviour can be unit-tested without touching the disk.
+fn render_on_repeat_canvas() -> RgbImage {
+    // Anchor colours sampled to read well next to the emerald accent the
+    // Home tile uses for On Repeat's ring + gradient fallback.
+    const TOP_LEFT: [f32; 3] = [29.0, 16.0, 64.0]; // deep indigo
+    const BOTTOM_RIGHT: [f32; 3] = [60.0, 8.0, 92.0]; // royal violet
+    const RING: [u8; 3] = [236, 72, 153]; // tailwind pink-500
+    const RING_HIGHLIGHT: [u8; 3] = [244, 114, 182]; // tailwind pink-400
+
+    let mut canvas: RgbImage =
+        ImageBuffer::from_pixel(CANVAS_PX, CANVAS_PX, Rgb([TOP_LEFT[0] as u8, TOP_LEFT[1] as u8, TOP_LEFT[2] as u8]));
+
+    // Diagonal background gradient — top-left → bottom-right.
+    let max_d = ((CANVAS_PX - 1) as f32) * 2.0;
+    for y in 0..CANVAS_PX {
+        for x in 0..CANVAS_PX {
+            let t = ((x + y) as f32 / max_d).clamp(0.0, 1.0);
+            let r = TOP_LEFT[0] + (BOTTOM_RIGHT[0] - TOP_LEFT[0]) * t;
+            let g = TOP_LEFT[1] + (BOTTOM_RIGHT[1] - TOP_LEFT[1]) * t;
+            let b = TOP_LEFT[2] + (BOTTOM_RIGHT[2] - TOP_LEFT[2]) * t;
+            canvas.put_pixel(x, y, Rgb([r as u8, g as u8, b as u8]));
+        }
+    }
+
+    // Infinity loop: two overlapping ring strokes centred horizontally.
+    // Radius + thickness are tuned so the two lobes touch at the centre
+    // without overlapping into a single oval — the same proportions
+    // Spotify uses on its own On Repeat cover.
+    let cy = CANVAS_PX as f32 * 0.55;
+    let radius = CANVAS_PX as f32 * 0.18;
+    let cx_left = CANVAS_PX as f32 * 0.5 - radius * 0.95;
+    let cx_right = CANVAS_PX as f32 * 0.5 + radius * 0.95;
+    let stroke = CANVAS_PX as f32 * 0.05;
+    let inner = radius - stroke * 0.5;
+    let outer = radius + stroke * 0.5;
+
+    for y in 0..CANVAS_PX {
+        for x in 0..CANVAS_PX {
+            let dx_l = x as f32 - cx_left;
+            let dy = y as f32 - cy;
+            let dx_r = x as f32 - cx_right;
+            let dist_l = (dx_l * dx_l + dy * dy).sqrt();
+            let dist_r = (dx_r * dx_r + dy * dy).sqrt();
+            let in_left = dist_l >= inner && dist_l <= outer;
+            let in_right = dist_r >= inner && dist_r <= outer;
+            if in_left || in_right {
+                // Highlight the upper arc to fake a soft top-light and
+                // give the ring some depth instead of reading as a flat
+                // sticker.
+                let highlight = dy < 0.0;
+                let color = if highlight { RING_HIGHLIGHT } else { RING };
+                canvas.put_pixel(x, y, Rgb(color));
+            }
+        }
+    }
+
+    apply_bottom_gradient(&mut canvas);
+    canvas
+}
+
 /// Slice the canvas into N equal vertical strips, centre-crop each source
 /// image to fill its strip, and paint into the output buffer. Errors when
 /// `strips` is empty so callers never silently render an all-black square
@@ -305,6 +391,26 @@ mod tests {
     fn grid_2x2_rejects_under_four_tiles() {
         let tiles = vec![solid(100, 100, [255, 255, 255]); 3];
         assert!(composite_grid_2x2(&tiles).is_err());
+    }
+
+    #[test]
+    fn on_repeat_canvas_paints_background_and_ring() {
+        let canvas = render_on_repeat_canvas();
+        assert_eq!(canvas.width(), CANVAS_PX);
+        assert_eq!(canvas.height(), CANVAS_PX);
+        // Top-left corner should have at least some blue from the
+        // indigo background — i.e. not all-black, not all-magenta.
+        let tl = canvas.get_pixel(8, 8);
+        assert!(tl[2] > 40, "expected indigo blue in top-left, got {tl:?}");
+        // A pixel on the ring (top arc, left lobe) should be pink-ish:
+        // strong red, low green relative to red.
+        let r_x = (CANVAS_PX as f32 * 0.31) as u32;
+        let r_y = (CANVAS_PX as f32 * 0.39) as u32;
+        let ring = canvas.get_pixel(r_x, r_y);
+        assert!(
+            ring[0] > 200 && ring[1] < 200,
+            "expected pink ring pixel at ({r_x},{r_y}), got {ring:?}"
+        );
     }
 
     #[test]

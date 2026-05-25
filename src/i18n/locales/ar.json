@@ -293,6 +293,9 @@
       "trackCount_one": "{{count}} مقطع",
       "trackCount_other": "{{count}} مقطع"
     },
+    "onRepeat": {
+      "label": "On Repeat"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "ملخصك لعام {{year}}",
