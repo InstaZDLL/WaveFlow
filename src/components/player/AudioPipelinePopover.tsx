@@ -170,13 +170,19 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
   if (isResampling)
     chips.push({
       key: "resample",
-      label: t("playerBar.pipeline.chip.resample"),
+      // Surface the actual from→to rates so the chip mirrors the
+      // footer's `48 kHz → 44.1 kHz` arrow. Stripped of the unit on
+      // the left side since the `kHz` suffix on the right reads for
+      // both (matches the way audio devices are usually labelled).
+      label: `${t("playerBar.pipeline.chip.resample")} ${(track.sample_rate! / 1000)
+        .toFixed(1)
+        .replace(/\.0$/, "")} → ${formatSampleRate(snap!.outputSampleRate)}`,
       tone: "convert",
     });
   if (isDownmixing)
     chips.push({
       key: "downmix",
-      label: t("playerBar.pipeline.chip.downmix"),
+      label: `${t("playerBar.pipeline.chip.downmix")} ${formatChannelLayout(track.channels)} → ${formatChannelLayout(snap!.outputChannels)}`,
       tone: "convert",
     });
   if (isEq)

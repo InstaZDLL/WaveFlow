@@ -181,7 +181,7 @@ Hovering (or keyboard-focusing) the footer opens [`AudioPipelinePopover`](../../
 #### Sections displayed
 
 - **Source** — codec, sample rate, bit depth, bitrate, channel layout (`Mono` / `Stereo` / `3.0` / `4.0` / `5.0` / `5.1` / `6.1` / `7.1`).
-- **Processing** — chips lighting up for every active stage: `DSD → PCM`, `Resample`, `Downmix`, `EQ`, `ReplayGain`, `Normalize`, `Mono` mixdown, `Speed ≠ 1×`. No chip → "Aucun traitement appliqué".
+- **Processing** — chips lighting up for every active stage. The two conversion chips inline the actual delta so they match the footer's arrow notation: `Rééchantillonnage 48 → 44.1 kHz`, `Downmix 5.1 → Stereo`. The other chips stay as bare labels: `DSD → PCM`, `EQ`, `ReplayGain`, `Normalize`, `Mono` mixdown, `Speed ≠ 1×`. No chip → "Aucun traitement appliqué".
 - **Output** — device sample rate + channel layout read from the live engine snapshot (`PlayerStateSnapshot.sample_rate` / `channels`), not the track row, so resampling and downmix are reflected correctly.
 
 #### Bit-perfect conditions
