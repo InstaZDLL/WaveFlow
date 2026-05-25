@@ -1555,9 +1555,12 @@ pub async fn player_reorder_queue(
     Ok(())
 }
 
-/// Append a list of tracks to the end of the playback queue without
-/// disturbing the current cursor. Used by the context menu's
-/// "Add to queue" action.
+/// Append a list of tracks to the **user queue** (the contiguous
+/// 'manual' block sitting between the current track and the context
+/// tail), without disturbing the current cursor. Mirrors Spotify's
+/// "Add to queue" — manual picks fire after Now Playing and before
+/// the album / playlist tail resumes, rather than being banished to
+/// the very end of the list.
 #[tauri::command]
 pub async fn player_add_to_queue(
     app: AppHandle,
@@ -1565,7 +1568,7 @@ pub async fn player_add_to_queue(
     track_ids: Vec<i64>,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
-    queue::append(&pool, &track_ids, "manual", None).await?;
+    queue::append_to_user_queue(&pool, &track_ids, None).await?;
     emit_queue_changed(&app);
     Ok(())
 }
