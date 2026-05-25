@@ -299,7 +299,7 @@ pub async fn list_albums(
 "#
     );
 
-    let raw = sqlx::query_as::<_, AlbumRawRow>(&sql)
+    let raw = sqlx::query_as::<_, AlbumRawRow>(sqlx::AssertSqlSafe(sql))
         .bind(library_id)
         .bind(library_id)
         .bind(if no_cover { 1_i64 } else { 0_i64 })
@@ -383,7 +383,7 @@ pub async fn list_artists(
         "#
     );
 
-    let raw = sqlx::query_as::<_, ArtistRowRaw>(&sql)
+    let raw = sqlx::query_as::<_, ArtistRowRaw>(sqlx::AssertSqlSafe(sql))
         .bind(library_id)
         .bind(library_id)
         .fetch_all(&pool)

@@ -266,7 +266,7 @@ pub async fn list_tracks(
         "#
     );
 
-    let rows = sqlx::query_as::<_, TrackRow>(&sql)
+    let rows = sqlx::query_as::<_, TrackRow>(sqlx::AssertSqlSafe(sql))
         .bind(library_id)
         .bind(library_id)
         .fetch_all(&pool)
@@ -688,7 +688,7 @@ pub async fn search_tracks_advanced(
     }
     sql.push_str("LIMIT 200");
 
-    let mut q = sqlx::query_as::<_, TrackRow>(&sql);
+    let mut q = sqlx::query_as::<_, TrackRow>(sqlx::AssertSqlSafe(sql));
     for b in binds {
         q = match b {
             Bind::Str(s) => q.bind(s),

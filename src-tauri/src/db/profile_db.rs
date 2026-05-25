@@ -2,7 +2,7 @@ use std::path::Path;
 
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
-    Executor, SqlitePool,
+    SqlitePool,
 };
 
 use crate::error::AppResult;
@@ -47,7 +47,7 @@ pub async fn open(path: &Path, app_db_path: &Path) -> AppResult<SqlitePool> {
                 let path_str = app_db_path_owned.to_string_lossy().into_owned();
                 let escaped = path_str.replace('\'', "''");
                 let stmt = format!("ATTACH DATABASE '{escaped}' AS app");
-                conn.execute(stmt.as_str()).await?;
+                sqlx::query(sqlx::AssertSqlSafe(stmt)).execute(&mut *conn).await?;
                 Ok(())
             })
         })

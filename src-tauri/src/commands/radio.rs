@@ -222,7 +222,7 @@ async fn pick_candidate_tracks(
          LIMIT 200
         "#
     );
-    let mut q = sqlx::query_as::<_, TrackCandidate>(&sql);
+    let mut q = sqlx::query_as::<_, TrackCandidate>(sqlx::AssertSqlSafe(sql));
     for id in artist_ids {
         q = q.bind(*id);
     }
@@ -288,7 +288,7 @@ async fn cached_similar_library_ids(pool: &SqlitePool, seed_artist_id: i64) -> A
     let placeholders = canonicals.iter().map(|_| "?").collect::<Vec<_>>().join(",");
     let sql =
         format!("SELECT id, canonical_name FROM artist WHERE canonical_name IN ({placeholders})");
-    let mut q = sqlx::query_as::<_, (i64, String)>(&sql);
+    let mut q = sqlx::query_as::<_, (i64, String)>(sqlx::AssertSqlSafe(sql));
     for c in &canonicals {
         q = q.bind(c);
     }

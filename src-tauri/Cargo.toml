@@ -65,7 +65,7 @@ tokio = { version = "1", features = ["full"] }
 futures = { version = "0.3", default-features = false, features = ["std"] }
 
 # Database
-sqlx = { version = "0.8", features = [
+sqlx = { version = "0.9", features = [
     "runtime-tokio",
     "sqlite",
     "migrate",
