@@ -170,6 +170,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // each rebuild costs ~one rubato chunk of audio (negligible).
   const [playbackSpeed, setPlaybackSpeedState] = useState(1.0);
 
+  // Live output-device sample rate (Hz) and channel count, as
+  // reported by the engine snapshot. Used by the AudioQualityFooter
+  // resampling arrow and by other UI bits that want to surface the
+  // bit-perfect vs. resampled distinction. Refreshed on profile load
+  // and on every `player:track-changed` because WASAPI exclusive
+  // mode can re-open the device at the new track's native rate.
+  const [deviceSampleRate, setDeviceSampleRate] = useState<number | null>(null);
+  const [deviceChannels, setDeviceChannels] = useState<number | null>(null);
+
   // Suppress incoming position events while the user drags the
   // progress bar, so the thumb doesn't fight the mouse.
   const isSeekingRef = useRef(false);
@@ -200,6 +209,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         previousVolumeRef.current = Math.round(snap.volume * 100);
         setIsShuffled(snap.shuffle);
         setRepeatMode(snap.repeat_mode);
+        // Device-side audio fields are unset (0) before the first
+        // stream opens; null'ing them out keeps the type honest so
+        // downstream UI can skip the "0 kHz" display.
+        setDeviceSampleRate(snap.sample_rate > 0 ? snap.sample_rate : null);
+        setDeviceChannels(snap.channels > 0 ? snap.channels : null);
         if (snap.current_track) {
           setCurrentTrack(queuePayloadToTrack(snap.current_track));
           setDurationMs(snap.current_track.duration_ms);
@@ -257,6 +271,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             setCurrentTrack(queuePayloadToTrack(e.payload));
             setDurationMs(e.payload.duration_ms);
             setPositionMs(0);
+            // Refresh the device-side fields from the engine: WASAPI
+            // exclusive mode may have reopened the stream at the new
+            // track's native rate, and we want the AudioQualityFooter
+            // resampling arrow to reflect that without polling.
+            playerGetState()
+              .then((snap) => {
+                setDeviceSampleRate(
+                  snap.sample_rate > 0 ? snap.sample_rate : null,
+                );
+                setDeviceChannels(snap.channels > 0 ? snap.channels : null);
+              })
+              .catch((err) =>
+                console.error(
+                  "[PlayerContext] refresh device rate failed",
+                  err,
+                ),
+              );
           }),
         );
         unlisten.push(
@@ -643,6 +674,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         toggleMute,
         playbackSpeed,
         setPlaybackSpeed,
+        deviceSampleRate,
+        deviceChannels,
         isShuffled,
         toggleShuffle,
         repeatMode,
