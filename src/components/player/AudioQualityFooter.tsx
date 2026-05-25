@@ -38,15 +38,6 @@ export function AudioQualityFooter({ track }: AudioQualityFooterProps) {
   const openTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
 
-  useEffect(
-    () => () => {
-      if (openTimerRef.current != null) window.clearTimeout(openTimerRef.current);
-      if (closeTimerRef.current != null)
-        window.clearTimeout(closeTimerRef.current);
-    },
-    [],
-  );
-
   const cancelTimers = () => {
     if (openTimerRef.current != null) {
       window.clearTimeout(openTimerRef.current);
@@ -58,9 +49,39 @@ export function AudioQualityFooter({ track }: AudioQualityFooterProps) {
     }
   };
 
+  useEffect(
+    () => () => {
+      cancelTimers();
+    },
+    [],
+  );
+
+  // When the current track clears (queue ended, user stopped, profile
+  // switch) we must force the popover closed and drop any pending
+  // open/close timers. Otherwise `isPopoverOpen` stays true while the
+  // component renders the empty-footer fallback, and as soon as a new
+  // track arrives the popover would pop back open at the previous
+  // position without the user hovering again.
+  useEffect(() => {
+    if (track == null) {
+      cancelTimers();
+      // Resetting derived UI state in response to a prop change is the
+      // standard exception to the "no setState in effect" rule —
+      // there's no user gesture to model and we don't want to push
+      // this into a `key` reset that nukes the entire component.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsPopoverOpen(false);
+    }
+  }, [track]);
+
   const scheduleOpen = () => {
-    if (!track || isPopoverOpen) return;
+    // Cancel any pending close timer first — re-hovering the trigger
+    // while the close timer is ticking but before it fires must keep
+    // the popover open. The guard below then short-circuits if there's
+    // nothing left to schedule (no track, or already open), but the
+    // pending close still needed to die.
     cancelTimers();
+    if (!track || isPopoverOpen) return;
     openTimerRef.current = window.setTimeout(() => {
       setIsPopoverOpen(true);
     }, HOVER_OPEN_DELAY_MS);

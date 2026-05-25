@@ -213,8 +213,15 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
     });
 
   return (
+    // Hover-triggered informational popover — not a dialog. Skipping
+    // `role="dialog"` (and the associated `useModalA11y` focus trap)
+    // by design: the popover holds no actionable controls, dismisses
+    // automatically on hover-leave, and trapping focus inside it
+    // would feel broken when the user only meant to glance at the
+    // specs. `role="group"` keeps the heading + chip structure
+    // grouped for assistive tech without claiming dialog semantics.
     <div
-      role="dialog"
+      role="group"
       aria-label={t("playerBar.pipeline.title")}
       className="absolute bottom-full right-0 mb-2 w-80 p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl z-50 text-left"
     >
