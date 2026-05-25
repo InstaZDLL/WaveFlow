@@ -1300,6 +1300,10 @@
         "disconnect": "Trennen",
         "connecting": "Wird verbunden…",
         "connect": "Spotify verbinden"
+      },
+      "notifications": {
+        "title": "Benachrichtigungen beim Titelwechsel",
+        "subtitle": "Zeigt eine System-Benachrichtigung am Anfang jedes Titels (Titel + Künstler). Standardmäßig deaktiviert."
       }
     },
     "crossfade": {

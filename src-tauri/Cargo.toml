@@ -49,6 +49,10 @@ tauri-plugin-single-instance = "2"
 # Persisted state lives entirely in the OS so the toggle survives an
 # uninstall/reinstall the same way Spotify's "Open on startup" does.
 tauri-plugin-autostart = "2"
+# Cross-platform native toast notifications. Bridged to Windows Action
+# Center (toastify), macOS NSUserNotification, and libnotify on Linux.
+# Off by default and gated on `app_setting['notifications.track_change']`.
+tauri-plugin-notification = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_urlencoded = "0.7"

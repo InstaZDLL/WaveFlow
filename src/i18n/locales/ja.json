@@ -1275,6 +1275,10 @@
         "disconnect": "切断",
         "connecting": "接続中…",
         "connect": "Spotify に接続"
+      },
+      "notifications": {
+        "title": "曲変更通知",
+        "subtitle": "曲が変わるたびにシステム通知を表示します(タイトル + アーティスト)。デフォルトはオフ。"
       }
     },
     "crossfade": {

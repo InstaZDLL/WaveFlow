@@ -101,7 +101,7 @@ Playlist sort dropdown (custom / title / artist / album / recently added / durat
 
 ### Integrations ([`docs/features/integrations.md`](docs/features/integrations.md))
 
-Deezer enrichment (pictures, covers, fans — cached 30 days in `deezer_artist` / `deezer_album` in `app.db`, hashes point into shared `metadata_artwork/<blake3>.jpg` so artwork renders offline) · Last.fm (bios, similar artists, scrobbler) · Discord RPC · DLNA / UPnP MediaServer ([`docs/features/dlna.md`](docs/features/dlna.md)).
+Deezer enrichment (pictures, covers, fans — cached 30 days in `deezer_artist` / `deezer_album` in `app.db`, hashes point into shared `metadata_artwork/<blake3>.jpg` so artwork renders offline) · Last.fm (bios, similar artists, scrobbler) · Discord RPC · Native OS track-change toast notifications ([`notifications.rs`](src-tauri/src/notifications.rs) — `tauri-plugin-notification` bridge to Windows Action Center / macOS Notification Center / libnotify, opt-in `app_setting['notifications.track_change']` default OFF) · DLNA / UPnP MediaServer ([`docs/features/dlna.md`](docs/features/dlna.md)).
 
 ### Preferences & maintenance
 

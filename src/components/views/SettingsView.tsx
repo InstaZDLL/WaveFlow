@@ -20,6 +20,7 @@ import {
   EyeOff,
   MousePointerClick,
   Sparkles,
+  Bell,
   Gamepad2,
   FileText,
   Copy,
@@ -61,12 +62,14 @@ import {
   getDiscordRpcEnabled,
   getLastfmApiKey,
   getLastfmApiSecret,
+  getNotificationsTrackChange,
   lastfmGetStatus,
   lastfmLogin,
   lastfmLogout,
   setDiscordRpcEnabled,
   setLastfmApiKey,
   setLastfmApiSecret,
+  setNotificationsTrackChange,
   type LastfmStatus,
 } from "../../lib/tauri/integration";
 import {
@@ -945,6 +948,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // Discord Rich Presence opt-in. Hydrated once at mount, flipped
   // optimistically with rollback on failure.
   const [discordRpc, setDiscordRpc] = useState(false);
+  // Native OS track-change toast — opt-in (default OFF). Persisted
+  // app-wide in `app_setting['notifications.track_change']`.
+  const [trackChangeNotif, setTrackChangeNotif] = useState(false);
 
   // Global offline-mode flag. Persisted in app_setting (process-wide,
   // not per-profile), hydrated at mount.
@@ -1039,6 +1045,11 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       .catch((err) =>
         console.error("[SettingsView] get discord rpc failed", err),
       );
+    getNotificationsTrackChange()
+      .then(setTrackChangeNotif)
+      .catch((err) =>
+        console.error("[SettingsView] get track-change notif failed", err),
+      );
   }, []);
 
   const handleToggleDiscordRpc = useCallback(() => {
@@ -1049,6 +1060,15 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       setDiscordRpc(!next);
     });
   }, [discordRpc]);
+
+  const handleToggleTrackChangeNotif = useCallback(() => {
+    const next = !trackChangeNotif;
+    setTrackChangeNotif(next);
+    setNotificationsTrackChange(next).catch((err) => {
+      console.error("[SettingsView] set track-change notif failed", err);
+      setTrackChangeNotif(!next);
+    });
+  }, [trackChangeNotif]);
 
   // DLNA — load persisted config + live status at mount.
   useEffect(() => {
@@ -2247,6 +2267,32 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 enabled={discordRpc}
                 onToggle={handleToggleDiscordRpc}
                 label={t("settings.integrations.discord.title")}
+              />
+            </div>
+
+            {/* Native track-change notifications (off by default —
+                toasts are intrusive and trigger Focus Assist / Do
+                Not Disturb on every platform, opt-in only). */}
+            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <div className="flex items-center space-x-4">
+                <Bell
+                  size={20}
+                  className="text-zinc-400"
+                  aria-hidden="true"
+                />
+                <div>
+                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                    {t("settings.integrations.notifications.title")}
+                  </div>
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.integrations.notifications.subtitle")}
+                  </div>
+                </div>
+              </div>
+              <ToggleSwitch
+                enabled={trackChangeNotif}
+                onToggle={handleToggleTrackChangeNotif}
+                label={t("settings.integrations.notifications.title")}
               />
             </div>
 

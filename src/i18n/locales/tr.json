@@ -1300,6 +1300,10 @@
         "disconnect": "Bağlantıyı kes",
         "connecting": "Bağlanıyor…",
         "connect": "Spotify'a bağla"
+      },
+      "notifications": {
+        "title": "Parça değişimi bildirimleri",
+        "subtitle": "Her parça başında sistem bildirimi göster (başlık + sanatçı). Varsayılan olarak kapalı."
       }
     },
     "crossfade": {

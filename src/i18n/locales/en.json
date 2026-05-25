@@ -1300,6 +1300,10 @@
         "disconnect": "Disconnect",
         "connecting": "Connecting…",
         "connect": "Connect Spotify"
+      },
+      "notifications": {
+        "title": "Track-change notifications",
+        "subtitle": "Show a system toast at the start of every track (title + artist). Off by default."
       }
     },
     "crossfade": {

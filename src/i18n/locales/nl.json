@@ -1300,6 +1300,10 @@
         "disconnect": "Verbreken",
         "connecting": "Verbinden…",
         "connect": "Spotify koppelen"
+      },
+      "notifications": {
+        "title": "Meldingen bij nummerwissel",
+        "subtitle": "Toon een systeemmelding aan het begin van elk nummer (titel + artiest). Standaard uit."
       }
     },
     "crossfade": {

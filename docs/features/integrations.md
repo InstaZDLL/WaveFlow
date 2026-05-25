@@ -97,6 +97,14 @@ The Discord application (ID `1502611865698570291`) hosts three asset keys upload
 
 PNG sources live in [`assets/discord/png/`](../../assets/discord/png/), generated from the SVG sources in [`assets/discord/`](../../assets/discord/) via `bun scripts/build-discord-assets.mjs` (uses [`sharp`](https://sharp.pixelplumbing.com/) for SVG → 1024×1024 PNG conversion). Re-running the script after editing an SVG re-emits the PNGs ready to drop on the developer portal — Discord's CDN takes ~10 min to propagate updated assets.
 
+## Native OS notifications
+
+[`notifications.rs`](../../src-tauri/src/notifications.rs) — fires a single track-change toast via `tauri-plugin-notification`. Different axis from [`media_controls.rs`](../../src-tauri/src/media_controls.rs): SMTC / MPRIS / MediaRemote drive the **OS media overlay** (lock screen, volume flyout, Now Playing widget), while a notification is a **transient toast**. Both can coexist and most desktop players ship both.
+
+Triggered from [`emit_track_changed`](../../src-tauri/src/commands/player.rs) in a tokio task so the SQLite opt-in lookup doesn't sit on the path that flips the player-bar metadata. The notification carries only the track title + artist (no cover image) — Windows Action Center, KDE / GNOME notification daemons, and macOS Notification Center all support an icon slot but they expect a URL or file path the OS can read, and we'd need a fourth path next to SMTC's `127.0.0.1` shim + Discord's public Deezer URL to feed it cleanly. Title + artist is the format every system handles uniformly.
+
+**Off by default** — opposite default from Discord RPC because toasts are intrusive and trigger Focus Assist (Windows), Do Not Disturb (macOS), and `org.freedesktop.Notifications` filters (Linux) on every platform. Opt-in via Settings → Intégrations → "Notifications de changement de morceau". Stored in `app_setting['notifications.track_change']` (typed `bool`, shared across profiles like Discord RPC since toasts are an OS-level user preference, not per-listener). Toggling on doesn't fire a toast for the current track — first toast lands on the **next** track change.
+
 ## LRCLIB (synchronized lyrics)
 
 [`lrclib.rs`](../../src-tauri/src/lrclib.rs) — public lookup by `artist_name + track_name + album_name + duration` against [LRCLIB](https://lrclib.net). Four-tier resolution in [`commands/lyrics.rs`](../../src-tauri/src/commands/lyrics.rs), driven on demand by `fetch_lyrics` (the library-wide `prefetch_library_lyrics` walks the same waterfall):

@@ -18,6 +18,7 @@ mod logging;
 mod lrclib;
 mod media_controls;
 mod metadata_artwork;
+mod notifications;
 mod offline;
 mod paths;
 mod queue;
@@ -85,7 +86,8 @@ pub fn run() {
             Some(vec!["--minimized"]),
         ))
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_dialog::init());
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init());
 
     // Auto-updater is wired in release builds only. In dev (`tauri dev`)
     // the binary points at the local source tree, the version is the
@@ -538,6 +540,8 @@ pub fn run() {
             commands::integration::lastfm_logout,
             commands::integration::get_discord_rpc_enabled,
             commands::integration::set_discord_rpc_enabled,
+            commands::integration::get_notifications_track_change,
+            commands::integration::set_notifications_track_change,
             commands::spotify::get_spotify_client_id,
             commands::spotify::set_spotify_client_id,
             commands::spotify::spotify_get_status,
