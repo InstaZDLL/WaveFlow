@@ -180,11 +180,11 @@ The opt-in audio-quality footer ([`AudioQualityFooter`](../../src/components/pla
 
 [`HiResBadge`](../../src/components/common/HiResBadge.tsx) is the green pill that decorates track rows, album grid tiles, and the player-bar metadata when the source qualifies as Hi-Res (`isHiRes` — ≥ 24-bit, ≥ 44.1 kHz) or as DSD (`dsdLabel` returns `DSD64` / `DSD128` / …). Three variants:
 
-| Variant   | Used in                                                              | Style                                                                                                  |
-| --------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `overlay` | Album / artist grid covers (default).                                | Absolute-positioned pill in the cover's top-left corner with a drop shadow.                            |
-| `inline`  | TrackTable rows, sidebar lists.                                      | Inline rounded pill next to the title.                                                                 |
-| `text`    | Player bar — under the artist name.                                  | Spotify-style minimal green uppercase text, no pill background, blends into the metadata stack.        |
+| Variant   | Used in                               | Style                                                                                           |
+| --------- | ------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `overlay` | Album / artist grid covers (default). | Absolute-positioned pill in the cover's top-left corner with a drop shadow.                     |
+| `inline`  | TrackTable rows, sidebar lists.       | Inline rounded pill next to the title.                                                          |
+| `text`    | Player bar — under the artist name.   | Spotify-style minimal green uppercase text, no pill background, blends into the metadata stack. |
 
 All variants are gated by [`useHiResBadgeVisibility`](../../src/hooks/useHiResBadgeVisibility.ts), which reads `profile_setting['ui.show_hi_res_badge']` (default `true`) and re-reads on the `waveflow:hi-res-badge-visibility` window event. Settings → Appearance ships [`HiResBadgeCard`](../../src/components/views/settings/HiResBadgeCard.tsx) to flip the flag — when off, every mounted `HiResBadge` returns `null` in one render, including the player-bar text label. Per-profile so a kid's profile can hide the audiophile chrome while the audiophile profile keeps it.
 

@@ -83,7 +83,7 @@ pub async fn heal_line_ending_drift(pool: &SqlitePool, migrator: &Migrator) -> A
             continue;
         }
 
-        let sql_bytes = migration.sql.as_bytes();
+        let sql_bytes = migration.sql.as_str().as_bytes();
         let lf = normalize_to_lf(sql_bytes);
         let crlf = lf_to_crlf(&lf);
 

@@ -56,10 +56,7 @@ struct TrackPlayRow {
 /// profile id is not required here; future per-track-art families
 /// (Release Radar, Recently Added) will take a `profile_id` to resolve
 /// the active library's artwork cache.
-pub async fn regenerate_on_repeat(
-    pool: &SqlitePool,
-    paths: &AppPaths,
-) -> AppResult<Option<i64>> {
+pub async fn regenerate_on_repeat(pool: &SqlitePool, paths: &AppPaths) -> AppResult<Option<i64>> {
     let cutoff_ms = Utc::now().timestamp_millis() - (LOOKBACK_DAYS * 86_400_000);
     let tracks = top_played_tracks(pool, cutoff_ms).await?;
 

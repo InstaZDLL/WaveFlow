@@ -146,7 +146,7 @@ pub async fn get_similar_artists(
                LEFT JOIN app.metadata_artist ma ON ma.deezer_id = a.deezer_id
               WHERE a.canonical_name IN ({placeholders})"
         );
-        let mut q = sqlx::query_as::<_, (i64, String, Option<String>)>(&sql);
+        let mut q = sqlx::query_as::<_, (i64, String, Option<String>)>(sqlx::AssertSqlSafe(sql));
         for c in &canonicals {
             q = q.bind(c);
         }

@@ -344,7 +344,7 @@ async fn top_artists_with_bpm(
                 picture_hash: String,
             }
             let rows: Vec<PRow> = {
-                let mut q = sqlx::query_as::<_, PRow>(&sql);
+                let mut q = sqlx::query_as::<_, PRow>(sqlx::AssertSqlSafe(sql));
                 for id in &ids {
                     q = q.bind(*id);
                 }
@@ -413,7 +413,7 @@ pub(super) async fn first_track_artwork_paths(
         hash: String,
         format: String,
     }
-    let mut q = sqlx::query_as::<_, Row>(&sql);
+    let mut q = sqlx::query_as::<_, Row>(sqlx::AssertSqlSafe(sql));
     for id in track_ids {
         q = q.bind(*id);
     }
@@ -472,7 +472,7 @@ async fn pick_tracks_for_artists(
          LIMIT 200
         "#,
     );
-    let mut q = sqlx::query_as::<_, TrackPickRow>(&sql);
+    let mut q = sqlx::query_as::<_, TrackPickRow>(sqlx::AssertSqlSafe(sql));
     for id in artist_ids {
         q = q.bind(*id);
     }

@@ -489,7 +489,7 @@ pub async fn run_query(pool: &SqlitePool, rules: &CustomRules) -> AppResult<Vec<
     sql.push_str(" LIMIT ?");
     binds.push(BindValue::Int(limit));
 
-    let mut q = sqlx::query_scalar::<_, i64>(&sql);
+    let mut q = sqlx::query_scalar::<_, i64>(sqlx::AssertSqlSafe(sql));
     for b in binds {
         q = match b {
             BindValue::Int(v) => q.bind(v),

@@ -14,10 +14,7 @@ export function HiResBadgeCard() {
   const { visible, setVisible } = useHiResBadgeVisibility();
 
   return (
-    <section
-      aria-label={t("settings.hiResBadge.title")}
-      className="px-4 py-3"
-    >
+    <section aria-label={t("settings.hiResBadge.title")} className="px-4 py-3">
       <label className="flex items-start justify-between gap-3 cursor-pointer">
         <span className="flex items-start gap-3 min-w-0">
           <Sparkles

@@ -427,7 +427,7 @@ async fn sync_db(pool: &SqlitePool, track_id: i64, edit: &TrackEdit) -> AppResul
 
     if !sets.is_empty() {
         let sql = format!("UPDATE track SET {} WHERE id = ?", sets.join(", "));
-        let mut q = sqlx::query(&sql);
+        let mut q = sqlx::query(sqlx::AssertSqlSafe(sql));
         if let Some(t) = edit.title.as_ref() {
             q = q.bind(t.trim());
         }

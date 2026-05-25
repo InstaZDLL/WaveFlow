@@ -87,17 +87,17 @@ HAVING play_count > 0
 
 Differences vs Daily Mix:
 
-- **Lookback is 30 days** (not 90) so the playlist reflects the *current* rotation, not last quarter's binges. Matches Spotify's On Repeat cadence.
+- **Lookback is 30 days** (not 90) so the playlist reflects the _current_ rotation, not last quarter's binges. Matches Spotify's On Repeat cadence.
 - **No shuffle** — the playlist is the top-N tracks in straight play-count order, so the user's #1 most-played song lands at the top. Deterministic by construction, no seed needed.
 - **No tempo bucketing** — On Repeat is a single playlist, not a 3-way split.
-- **Minimum 8 distinct tracks** in the window before anything is materialised. Below that the playlist would be "the same handful of songs you already listened to a lot" and adds nothing over the History view. A previously-materialised row is *deleted* when this guard kicks in so a stale playlist doesn't linger after a quiet month.
+- **Minimum 8 distinct tracks** in the window before anything is materialised. Below that the playlist would be "the same handful of songs you already listened to a lot" and adds nothing over the History view. A previously-materialised row is _deleted_ when this guard kicks in so a stale playlist doesn't linger after a quiet month.
 - **Position is fixed at 0** so the row sorts ahead of every Daily Mix slot in the Home carousel and the sidebar.
 
 ### Brand cover
 
 On Repeat doesn't use the album-art composite — its identity is a fixed visual rendered deterministically by [`cover::build_on_repeat_cover`](../../src-tauri/src/smart_playlists/cover.rs): a 640×640 JPEG with a deep indigo → royal violet diagonal gradient overlaid with two intersecting pink rings forming an infinity loop. Same bytes every regen → same blake3 hash → the cache dedupes against the existing file instead of piling up orphans. No text is rasterised into the image (the playlist name and "On Repeat" eyebrow are rendered by React on top of the tile), so the canvas stays locale-agnostic.
 
-Future per-track-art families (Release Radar, Recently Added) will resolve the *first track's artist image* instead — that's why [`generator::first_track_artwork_paths`](../../src-tauri/src/smart_playlists/generator.rs) is `pub(super)` even though On Repeat doesn't use it.
+Future per-track-art families (Release Radar, Recently Added) will resolve the _first track's artist image_ instead — that's why [`generator::first_track_artwork_paths`](../../src-tauri/src/smart_playlists/generator.rs) is `pub(super)` even though On Repeat doesn't use it.
 
 ## Regen flow
 
