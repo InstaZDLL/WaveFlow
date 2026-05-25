@@ -108,16 +108,19 @@ export function AudioQualityFooter({ track }: AudioQualityFooterProps) {
     );
   }
 
+  // Resampling check works on raw Hz, not the formatted kHz strings.
+  // Otherwise a source like 44 056 Hz (rare non-standard CD rip) on a
+  // 44 100 Hz device would silently round to "44.1" on both sides and
+  // hide the resampling. `track.sample_rate` and `deviceSampleRate`
+  // are both already integers from the engine.
+  const isResampling =
+    track.sample_rate != null &&
+    track.sample_rate > 0 &&
+    deviceSampleRate != null &&
+    deviceSampleRate > 0 &&
+    track.sample_rate !== deviceSampleRate;
   const sampleRateKHz = formatRateKHz(track.sample_rate);
   const deviceRateKHz = formatRateKHz(deviceSampleRate);
-  // Resampling is the source rate ≠ output rate case. Both have to
-  // be known for the arrow to mean anything — if the device rate
-  // hasn't been hydrated yet we just show the source rate alone
-  // rather than printing a misleading "48 kHz → null".
-  const isResampling =
-    sampleRateKHz != null &&
-    deviceRateKHz != null &&
-    sampleRateKHz !== deviceRateKHz;
   const sampleRateLabel = isResampling
     ? `${sampleRateKHz} kHz → ${deviceRateKHz} kHz`
     : sampleRateKHz != null

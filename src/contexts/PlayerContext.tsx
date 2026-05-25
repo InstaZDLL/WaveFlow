@@ -178,6 +178,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // mode can re-open the device at the new track's native rate.
   const [deviceSampleRate, setDeviceSampleRate] = useState<number | null>(null);
   const [deviceChannels, setDeviceChannels] = useState<number | null>(null);
+  // Monotonic token for in-flight `playerGetState` refreshes triggered
+  // by `player:track-changed`. If the user fires three skips in a row,
+  // three snapshot fetches race; without the token an older snapshot
+  // resolving second would overwrite the newer one and stick a stale
+  // device rate into the UI until the next track change.
+  const deviceRefreshTokenRef = useRef(0);
 
   // Suppress incoming position events while the user drags the
   // progress bar, so the thumb doesn't fight the mouse.
@@ -274,20 +280,25 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             // Refresh the device-side fields from the engine: WASAPI
             // exclusive mode may have reopened the stream at the new
             // track's native rate, and we want the AudioQualityFooter
-            // resampling arrow to reflect that without polling.
-            playerGetState()
-              .then((snap) => {
+            // resampling arrow to reflect that without polling. Token-
+            // guarded so a slow earlier snapshot can't overwrite a
+            // faster later one when the user rage-clicks `next`.
+            const reqToken = ++deviceRefreshTokenRef.current;
+            void (async () => {
+              try {
+                const snap = await playerGetState();
+                if (reqToken !== deviceRefreshTokenRef.current) return;
                 setDeviceSampleRate(
                   snap.sample_rate > 0 ? snap.sample_rate : null,
                 );
                 setDeviceChannels(snap.channels > 0 ? snap.channels : null);
-              })
-              .catch((err) =>
+              } catch (err) {
                 console.error(
                   "[PlayerContext] refresh device rate failed",
                   err,
-                ),
-              );
+                );
+              }
+            })();
           }),
         );
         unlisten.push(
