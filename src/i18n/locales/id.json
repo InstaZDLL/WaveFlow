@@ -1597,6 +1597,10 @@
           "description": "Jangan pernah tampilkan banner di beranda. Tampilan Wrapped tetap dapat diakses."
         }
       }
+    },
+    "hiResBadge": {
+      "title": "Lencana Hi-Res / DSD",
+      "subtitle": "Tampilkan pil «Hi-Res 24-bit» atau «DSD128» di samping lagu yang memenuhi syarat dan di bawah nama artis di bilah pemutar. Aktif secara default."
     }
   },
   "spotify": {

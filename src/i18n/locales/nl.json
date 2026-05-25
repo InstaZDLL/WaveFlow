@@ -1597,6 +1597,10 @@
           "description": "Toon de banner nooit op de startpagina. De Wrapped-weergave blijft bereikbaar."
         }
       }
+    },
+    "hiResBadge": {
+      "title": "Hi-Res / DSD-badge",
+      "subtitle": "Toon de “Hi-Res 24-bit”- of “DSD128”-pil naast tracks die ervoor in aanmerking komen en onder de artiestennaam in de afspeelbalk. Standaard aan."
     }
   },
   "spotify": {

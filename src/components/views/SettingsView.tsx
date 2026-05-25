@@ -132,6 +132,7 @@ import { ExclusiveModeCard } from "./settings/ExclusiveModeCard";
 import { PlayerBarLayoutCard } from "./settings/PlayerBarLayoutCard";
 import { ShortcutsCard } from "./settings/ShortcutsCard";
 import { WrappedBannerCard } from "./settings/WrappedBannerCard";
+import { HiResBadgeCard } from "./settings/HiResBadgeCard";
 
 interface SettingsViewProps {
   onNavigate: (view: ViewId) => void;
@@ -2532,6 +2533,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           </div>
 
           <PlayerBarLayoutCard />
+
+          <HiResBadgeCard />
 
           <WrappedBannerCard />
         </section>

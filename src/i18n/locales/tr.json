@@ -1597,6 +1597,10 @@
           "description": "Afişi ana ekranda asla gösterme. Wrapped görünümüne yine de erişilebilir."
         }
       }
+    },
+    "hiResBadge": {
+      "title": "Hi-Res / DSD rozeti",
+      "subtitle": "Uygun parçaların yanında ve oynatma çubuğunda sanatçı adının altında «Hi-Res 24-bit» veya «DSD128» rozetini gösterir. Varsayılan olarak açık."
     }
   },
   "spotify": {

@@ -1597,6 +1597,10 @@
           "description": "Never show the banner on the home screen. The Wrapped view itself stays reachable."
         }
       }
+    },
+    "hiResBadge": {
+      "title": "Hi-Res / DSD badge",
+      "subtitle": "Show the “Hi-Res 24-bit” or “DSD128” pill next to qualifying tracks and under the artist name in the player bar. On by default."
     }
   },
   "spotify": {

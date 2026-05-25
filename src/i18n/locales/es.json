@@ -1597,6 +1597,10 @@
           "description": "Nunca mostrar el banner en el inicio. La vista Wrapped sigue siendo accesible."
         }
       }
+    },
+    "hiResBadge": {
+      "title": "Insignia Hi-Res / DSD",
+      "subtitle": "Muestra la etiqueta «Hi-Res 24-bit» o «DSD128» junto a las pistas que califican y bajo el nombre del artista en la barra del reproductor. Activado por defecto."
     }
   },
   "spotify": {

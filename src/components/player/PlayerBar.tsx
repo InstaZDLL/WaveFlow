@@ -13,6 +13,7 @@ import { useSleepTimer } from "../../hooks/useSleepTimer";
 import { usePlayerBarLayout } from "../../hooks/usePlayerBarLayout";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
+import { HiResBadge } from "../common/HiResBadge";
 import { PlaybackControls } from "./PlaybackControls";
 import { ProgressBar } from "./ProgressBar";
 import { SleepTimerMenu } from "./SleepTimerMenu";
@@ -166,6 +167,19 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                   (currentTrack?.album_title ?? t("player.inactive"))
                 )}
               </span>
+              {/* Spotify-style minimal quality label under the artist.
+                  HiResBadge renders null when the track isn't Hi-Res /
+                  DSD OR when the user has hidden the badge from
+                  Settings → Appearance, so the row collapses naturally
+                  for lossy / lossless-16-bit content. */}
+              {currentTrack && (
+                <HiResBadge
+                  bitDepth={currentTrack.bit_depth}
+                  sampleRate={currentTrack.sample_rate}
+                  codec={currentTrack.codec}
+                  variant="text"
+                />
+              )}
             </div>
             {currentTrack && !isSpotify && (
               <button

@@ -1597,6 +1597,10 @@
           "description": "Nunca mostrar o banner na tela inicial. A visão Wrapped continua acessível."
         }
       }
+    },
+    "hiResBadge": {
+      "title": "Selo Hi-Res / DSD",
+      "subtitle": "Mostra a pílula «Hi-Res 24-bit» ou «DSD128» ao lado das faixas elegíveis e abaixo do nome do artista na barra do reprodutor. Ativado por padrão."
     }
   },
   "spotify": {

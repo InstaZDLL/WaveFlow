@@ -1597,6 +1597,10 @@
           "description": "Banner nie auf dem Startbildschirm anzeigen. Die Wrapped-Ansicht bleibt erreichbar."
         }
       }
+    },
+    "hiResBadge": {
+      "title": "Hi-Res / DSD-Badge",
+      "subtitle": "Zeigt die Plakette „Hi-Res 24-bit“ oder „DSD128“ neben qualifizierenden Titeln und unter dem Künstlernamen in der Wiedergabeleiste. Standardmäßig aktiviert."
     }
   },
   "spotify": {

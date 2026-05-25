@@ -1597,6 +1597,10 @@
           "description": "ホーム画面にバナーを表示しません。Wrapped ページには引き続きアクセスできます。"
         }
       }
+    },
+    "hiResBadge": {
+      "title": "Hi-Res / DSD バッジ",
+      "subtitle": "対象トラックの横と、プレイヤーバーのアーティスト名の下に「Hi-Res 24-bit」または「DSD128」のラベルを表示します。デフォルトはオン。"
     }
   },
   "scanProgress": {
