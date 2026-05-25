@@ -15,6 +15,7 @@
     "core:webview:allow-set-webview-zoom",
     "opener:default",
     "dialog:default",
-    "updater:default"
+    "updater:default",
+    "notification:default"
   ]
 }

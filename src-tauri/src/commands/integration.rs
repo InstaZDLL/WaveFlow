@@ -273,6 +273,39 @@ pub async fn set_discord_rpc_enabled(
     Ok(())
 }
 
+/// Return the current track-change notification opt-in flag. Defaults
+/// to `false` (off) when never configured — toast notifications are
+/// intrusive and we want explicit opt-in rather than silent spam.
+#[tauri::command]
+pub async fn get_notifications_track_change(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<bool> {
+    Ok(crate::notifications::read_enabled(&state.app_db).await)
+}
+
+/// Toggle native track-change notifications. Persists to `app_setting`.
+/// Takes effect on the **next** track change — we don't fire a toast
+/// for the current track because that would be noise immediately after
+/// the user flipped the toggle.
+#[tauri::command]
+pub async fn set_notifications_track_change(
+    state: tauri::State<'_, AppState>,
+    enabled: bool,
+) -> AppResult<()> {
+    sqlx::query(
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'bool', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(crate::notifications::TRACK_CHANGE_KEY)
+    .bind(if enabled { "true" } else { "false" })
+    .bind(now_ms())
+    .execute(&state.app_db)
+    .await?;
+    Ok(())
+}
+
 /// Look up the active profile's Last.fm session key, if any. Returns
 /// `(api_key, api_secret, session_key, username)` so the worker has
 /// every bit it needs to sign and post a scrobble in a single hop.

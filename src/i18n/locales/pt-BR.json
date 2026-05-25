@@ -1280,6 +1280,10 @@
         "disconnect": "Desconectar",
         "connecting": "Conectando…",
         "connect": "Conectar Spotify"
+      },
+      "notifications": {
+        "title": "Notificações de mudança de faixa",
+        "subtitle": "Mostra uma notificação do sistema no início de cada faixa (título + artista). Desativado por padrão."
       }
     },
     "crossfade": {

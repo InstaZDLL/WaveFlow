@@ -72,3 +72,21 @@ export function getDiscordRpcEnabled(): Promise<boolean> {
 export function setDiscordRpcEnabled(enabled: boolean): Promise<void> {
   return invoke<void>("set_discord_rpc_enabled", { enabled });
 }
+
+/**
+ * Read the native track-change notification opt-in flag. Returns
+ * `false` (off) when never enabled — toast notifications are
+ * intrusive and we require explicit opt-in.
+ */
+export function getNotificationsTrackChange(): Promise<boolean> {
+  return invoke<boolean>("get_notifications_track_change");
+}
+
+/**
+ * Toggle native track-change toasts. Takes effect on the **next**
+ * track change; no toast fires for the currently playing track to
+ * avoid spamming the user right after the flip.
+ */
+export function setNotificationsTrackChange(enabled: boolean): Promise<void> {
+  return invoke<void>("set_notifications_track_change", { enabled });
+}

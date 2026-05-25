@@ -1280,6 +1280,10 @@
         "disconnect": "Disconnetti",
         "connecting": "Connessione…",
         "connect": "Collega Spotify"
+      },
+      "notifications": {
+        "title": "Notifiche di cambio brano",
+        "subtitle": "Mostra una notifica di sistema all'inizio di ogni brano (titolo + artista). Disattivata di default."
       }
     },
     "crossfade": {

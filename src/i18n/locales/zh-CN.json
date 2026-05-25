@@ -1262,6 +1262,10 @@
         "disconnect": "断开连接",
         "connecting": "正在连接…",
         "connect": "连接 Spotify"
+      },
+      "notifications": {
+        "title": "曲目变更通知",
+        "subtitle": "每首曲目开始时显示系统通知(标题 + 艺人)。默认关闭。"
       }
     },
     "crossfade": {

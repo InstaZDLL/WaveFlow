@@ -1280,6 +1280,10 @@
         "disconnect": "Putuskan",
         "connecting": "Menghubungkan…",
         "connect": "Hubungkan Spotify"
+      },
+      "notifications": {
+        "title": "Notifikasi pergantian lagu",
+        "subtitle": "Tampilkan notifikasi sistem di awal setiap lagu (judul + artis). Mati secara default."
       }
     },
     "crossfade": {

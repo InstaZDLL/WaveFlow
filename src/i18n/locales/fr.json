@@ -1307,6 +1307,10 @@
         "disconnect": "Déconnecter",
         "connecting": "Connexion…",
         "connect": "Connecter Spotify"
+      },
+      "notifications": {
+        "title": "Notifications de changement de morceau",
+        "subtitle": "Affiche une notification système au début de chaque morceau (titre + artiste). Désactivé par défaut."
       }
     },
     "crossfade": {

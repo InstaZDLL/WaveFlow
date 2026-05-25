@@ -219,6 +219,12 @@ pub(crate) fn emit_track_changed(
     // task because we need an async DB lookup for the public Deezer
     // cover URL — the local artwork path Discord can't reach.
     schedule_discord_presence(app, track);
+
+    // Optional native OS toast (off by default). Same fire-and-
+    // forget pattern as Discord RPC — gated on
+    // `app_setting['notifications.track_change']`, no-op when off
+    // or when the plugin failed to initialise.
+    crate::notifications::schedule(app, track.title.clone(), track.artist_name.clone());
 }
 
 /// Spawn a tokio task that resolves the Deezer cover URL for the new

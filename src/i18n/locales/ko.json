@@ -1280,6 +1280,10 @@
         "disconnect": "연결 해제",
         "connecting": "연결 중…",
         "connect": "Spotify 연결"
+      },
+      "notifications": {
+        "title": "곡 변경 알림",
+        "subtitle": "곡이 바뀔 때마다 시스템 알림을 표시합니다(제목 + 아티스트). 기본값은 끔."
       }
     },
     "crossfade": {
