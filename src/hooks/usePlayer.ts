@@ -59,6 +59,12 @@ interface PlayerContextValue {
   playbackSpeed: number;
   setPlaybackSpeed: (value: number) => void;
 
+  // Live output-device fields, refreshed on every `player:track-changed`
+  // so WASAPI exclusive re-opens are reflected. Both are `null` before
+  // the first stream has opened; UI must skip the "0 kHz" display.
+  deviceSampleRate: number | null;
+  deviceChannels: number | null;
+
   // Shuffle / repeat are backend-synced via player_toggle_shuffle /
   // player_cycle_repeat. The UI flips optimistically and rolls back
   // on backend error.

@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { QueueTrackPayload } from "../../lib/tauri/player";
 import { isHiRes } from "../../lib/hiRes";
+import { usePlayer } from "../../hooks/usePlayer";
 import { AudioPipelinePopover } from "./AudioPipelinePopover";
+
+/** Format an Hz value as a compact "44.1 kHz" / "48 kHz" label. */
+function formatRateKHz(hz: number | null | undefined): string | null {
+  if (hz == null || hz <= 0) return null;
+  return (hz / 1000).toFixed(1).replace(/\.0$/, "");
+}
 
 interface AudioQualityFooterProps {
   track: QueueTrackPayload | null;
@@ -16,10 +23,10 @@ const HOVER_CLOSE_DELAY_MS = 200;
 
 /**
  * Thin status strip below the PlayerBar that surfaces the source
- * file's audio specs — sample rate, bitrate, file size on the left
- * and codec / bit depth / sample rate again on the right (the
- * compact "FLAC · 24bit · 44kHz" pill that audiophiles recognise
- * from RustMusic and similar players).
+ * file's audio specs — sample rate (with an arrow when the engine
+ * is resampling to a different device rate), bitrate, file size on
+ * the left and codec / bit depth / sample rate again on the right
+ * (the compact "FLAC · 24bit · 44kHz" pill audiophiles expect).
  *
  * On hover (or keyboard focus) opens [`AudioPipelinePopover`] above
  * the strip with the full Source → DSP chips → Output breakdown so
@@ -34,6 +41,7 @@ const HOVER_CLOSE_DELAY_MS = 200;
  */
 export function AudioQualityFooter({ track }: AudioQualityFooterProps) {
   const { t } = useTranslation();
+  const { deviceSampleRate } = usePlayer();
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const openTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
@@ -100,17 +108,32 @@ export function AudioQualityFooter({ track }: AudioQualityFooterProps) {
     );
   }
 
-  const sampleRateKHz = track.sample_rate
-    ? (track.sample_rate / 1000).toFixed(1).replace(/\.0$/, "")
-    : null;
+  // Resampling check works on raw Hz, not the formatted kHz strings.
+  // Otherwise a source like 44 056 Hz (rare non-standard CD rip) on a
+  // 44 100 Hz device would silently round to "44.1" on both sides and
+  // hide the resampling. `track.sample_rate` and `deviceSampleRate`
+  // are both already integers from the engine.
+  const isResampling =
+    track.sample_rate != null &&
+    track.sample_rate > 0 &&
+    deviceSampleRate != null &&
+    deviceSampleRate > 0 &&
+    track.sample_rate !== deviceSampleRate;
+  const sampleRateKHz = formatRateKHz(track.sample_rate);
+  const deviceRateKHz = formatRateKHz(deviceSampleRate);
+  const sampleRateLabel = isResampling
+    ? `${sampleRateKHz} kHz → ${deviceRateKHz} kHz`
+    : sampleRateKHz != null
+      ? `${sampleRateKHz} kHz`
+      : null;
   const sizeMB =
     track.file_size > 0 ? Math.round(track.file_size / (1024 * 1024)) : null;
 
   const leftBits: string[] = [];
-  if (sampleRateKHz) leftBits.push(`${sampleRateKHz} kHz`);
+  if (sampleRateLabel) leftBits.push(sampleRateLabel);
   if (track.bitrate) {
-    // RustMusic convention — show Mb/s when ≥ 1000 kbps so 24-bit
-    // 192 kHz lossless reads "9.2 Mb/s" rather than a wall of digits.
+    // Show Mb/s when ≥ 1000 kbps so 24-bit 192 kHz lossless reads
+    // "9.2 Mb/s" rather than a wall of digits.
     leftBits.push(
       track.bitrate >= 1000
         ? `${(track.bitrate / 1000).toFixed(track.bitrate >= 10000 ? 1 : 2).replace(/\.?0+$/, "")} Mb/s`

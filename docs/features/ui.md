@@ -174,14 +174,14 @@ The overflow popover itself is capped at `max-h-[calc(100dvh-7rem)]` with `overf
 
 ### Audio-quality footer + pipeline popover
 
-The opt-in audio-quality footer ([`AudioQualityFooter`](../../src/components/player/AudioQualityFooter.tsx), pinned via Settings → Appearance → Player bar layout) is a thin strip below the player bar that surfaces the source file specs in compact form (`48 kHz · 256 kb/s · 6 Mo` on the left, `AAC · 24bit · 48kHz` on the right; bitrates ≥ 1000 kbps render as `Mb/s`). The Hi-Res pill surfaces when [`isHiRes`](../../src/lib/hiRes.ts) accepts the source bit depth / sample rate combination.
+The opt-in audio-quality footer ([`AudioQualityFooter`](../../src/components/player/AudioQualityFooter.tsx), pinned via Settings → Appearance → Player bar layout) is a thin strip below the player bar that surfaces the source file specs in compact form (`48 kHz · 256 kb/s · 6 Mo` on the left, `AAC · 24bit · 48kHz` on the right; bitrates ≥ 1000 kbps render as `Mb/s`). When the engine is resampling — source rate ≠ output device rate — the left chunk renders an arrow instead: `48 kHz → 44.1 kHz · …`, so the user can spot the conversion at a glance without opening the popover. The arrow is gated on the device rate being known (the engine reports `0` before the first stream opens); otherwise we fall back to the source rate alone rather than printing a misleading `48 kHz → null`. The Hi-Res pill surfaces when [`isHiRes`](../../src/lib/hiRes.ts) accepts the source bit depth / sample rate combination.
 
 Hovering (or keyboard-focusing) the footer opens [`AudioPipelinePopover`](../../src/components/player/AudioPipelinePopover.tsx) — an audiophile-grade breakdown of what the engine is actually doing.
 
 #### Sections displayed
 
 - **Source** — codec, sample rate, bit depth, bitrate, channel layout (`Mono` / `Stereo` / `3.0` / `4.0` / `5.0` / `5.1` / `6.1` / `7.1`).
-- **Processing** — chips lighting up for every active stage: `DSD → PCM`, `Resample`, `Downmix`, `EQ`, `ReplayGain`, `Normalize`, `Mono` mixdown, `Speed ≠ 1×`. No chip → "Aucun traitement appliqué".
+- **Processing** — chips lighting up for every active stage. The two conversion chips inline the actual delta so they match the footer's arrow notation: `Rééchantillonnage 48 → 44.1 kHz`, `Downmix 5.1 → Stereo`. The other chips stay as bare labels: `DSD → PCM`, `EQ`, `ReplayGain`, `Normalize`, `Mono` mixdown, `Speed ≠ 1×`. No chip → "Aucun traitement appliqué".
 - **Output** — device sample rate + channel layout read from the live engine snapshot (`PlayerStateSnapshot.sample_rate` / `channels`), not the track row, so resampling and downmix are reflected correctly.
 
 #### Bit-perfect conditions
