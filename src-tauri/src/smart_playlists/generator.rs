@@ -519,6 +519,10 @@ pub(super) async fn upsert_smart_playlist(
     let playlist_id = match existing {
         Some((id,)) => {
             // Refresh metadata + clear out the old tracks before re-inserting.
+            // `position` is included so a family that shifts its sort order
+            // between releases (e.g. moving On Repeat from 1 to 0 to land
+            // ahead of Daily Mix) actually re-anchors existing rows instead
+            // of silently keeping the stale position from the first regen.
             sqlx::query(
                 r#"
                 UPDATE playlist
@@ -526,6 +530,7 @@ pub(super) async fn upsert_smart_playlist(
                        description = ?,
                        cover_hash  = ?,
                        smart_rules = ?,
+                       position    = ?,
                        updated_at  = ?
                  WHERE id = ?
                 "#,
@@ -534,6 +539,7 @@ pub(super) async fn upsert_smart_playlist(
             .bind(description)
             .bind(cover_hash)
             .bind(rules_json)
+            .bind(position)
             .bind(now)
             .bind(id)
             .execute(&mut *tx)

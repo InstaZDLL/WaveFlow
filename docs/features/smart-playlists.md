@@ -70,7 +70,7 @@ Why the label isn't rasterised in Rust: avoids a font dep (`ab_glyph` / `fontdue
 
 ## On Repeat algorithm
 
-Implemented in [`on_repeat.rs`](../../src-tauri/src/smart_playlists/on_repeat.rs). Single playlist, no slot bucketing — the top ~30 tracks the user has rotated the most over the last 30 days, ordered by play count descending.
+Implemented in [`on_repeat.rs`](../../src-tauri/src/smart_playlists/on_repeat.rs). Single playlist, no slot bucketing — the top tracks the user has rotated the most over the last 30 days, ordered by play count descending. The materialised playlist holds **up to `TRACKS_LIMIT = 30` tracks**; the SQL fetches up to 60 candidates first so the Rust caller has headroom to filter for future variants (e.g. dropping tracks already on another smart playlist) without re-issuing the query, then truncates client-side via `tracks.iter().take(TRACKS_LIMIT)` before the upsert.
 
 ```sql
 SELECT pe.track_id,
@@ -82,7 +82,7 @@ SELECT pe.track_id,
  GROUP BY pe.track_id
 HAVING play_count > 0
  ORDER BY play_count DESC, MAX(pe.played_at) DESC
- LIMIT 60
+ LIMIT 60          -- candidate pool; truncated to TRACKS_LIMIT = 30 in Rust
 ```
 
 Differences vs Daily Mix:
