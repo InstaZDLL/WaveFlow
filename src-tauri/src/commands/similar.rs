@@ -246,15 +246,31 @@ async fn enrich_with_deezer_pictures(
         .map(|r| canonical_name(&r.name))
         .filter(|c| !c.is_empty())
         .collect();
-    match sqlx::query_as::<_, (String, Option<String>, Option<String>)>(
-        "SELECT name, picture_url, picture_hash
-           FROM app.metadata_artist
-          WHERE expires_at > ?",
-    )
-    .bind(now)
-    .fetch_all(pool)
-    .await
-    {
+
+    // Offline mode reads the cache *without* the TTL filter — we have
+    // no way to refresh anyway, and any locally cached picture (the
+    // shared `metadata_artwork/<hash>.jpg` blob is keyed by blake3 and
+    // never expires) is strictly better than a grey star. Online mode
+    // applies `expires_at > now` so an expired row falls through to a
+    // Deezer refresh.
+    let offline = crate::offline::is_offline();
+    let cache_result = if offline {
+        sqlx::query_as::<_, (String, Option<String>, Option<String>)>(
+            "SELECT name, picture_url, picture_hash FROM app.metadata_artist",
+        )
+        .fetch_all(pool)
+        .await
+    } else {
+        sqlx::query_as::<_, (String, Option<String>, Option<String>)>(
+            "SELECT name, picture_url, picture_hash
+               FROM app.metadata_artist
+              WHERE expires_at > ?",
+        )
+        .bind(now)
+        .fetch_all(pool)
+        .await
+    };
+    match cache_result {
         Ok(rows) => {
             for (name, picture_url, picture_hash) in rows {
                 let canon = canonical_name(&name);
@@ -269,6 +285,12 @@ async fn enrich_with_deezer_pictures(
                 "similar-artist picture cache lookup failed — falling through to Deezer"
             );
         }
+    }
+
+    // Network refresh is out of the question when offline — short-circuit
+    // here so neither the miss computation nor the Deezer fan-out runs.
+    if offline {
+        return map;
     }
 
     // Trim misses to the same RESULT_LIMIT window the caller's `.take`
@@ -288,9 +310,7 @@ async fn enrich_with_deezer_pictures(
             }
         })
         .collect();
-    if miss_names.is_empty() || crate::offline::is_offline() {
-        // Offline mode still serves whatever's in the cache (the read
-        // above is local); we just skip the network refresh.
+    if miss_names.is_empty() {
         return map;
     }
 
