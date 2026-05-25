@@ -484,6 +484,8 @@ pub fn run() {
             commands::playlist_cover::regenerate_playlist_auto_cover,
             commands::playlist_cover::clear_playlist_cover,
             commands::smart_playlists::regenerate_daily_mixes,
+            commands::smart_playlists::regenerate_on_repeat,
+            commands::smart_playlists::regenerate_all_smart_playlists,
             commands::smart_playlists::create_custom_smart_playlist,
             commands::smart_playlists::update_custom_smart_playlist,
             commands::smart_playlists::regenerate_custom_smart_playlist,

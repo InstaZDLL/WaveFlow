@@ -23,7 +23,8 @@ import { useLibrary } from "../../hooks/useLibrary";
 import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { pickFolder } from "../../lib/tauri/dialog";
-import { regenerateDailyMixes } from "../../lib/tauri/smart_playlists";
+import { regenerateAllSmartPlaylists } from "../../lib/tauri/smart_playlists";
+import { smartPlaylistKind } from "../../lib/tauri/playlist";
 import { availableWrappedYears } from "../../lib/tauri/wrapped";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
 import {
@@ -136,13 +137,16 @@ export function HomeView({
     if (isRegenerating) return;
     setIsRegenerating(true);
     try {
-      await regenerateDailyMixes();
+      // Single round-trip regenerates Daily Mix slots + On Repeat so
+      // the whole "Made for you" carousel refreshes together — the
+      // frontend doesn't need to know about the family split.
+      await regenerateAllSmartPlaylists();
       await refreshPlaylists();
     } catch (err) {
       // Non-fatal — empty libraries / not enough listening data return
-      // an empty list rather than throw, so a hard error here means a
+      // empty payloads rather than throw, so a hard error here means a
       // SQL or filesystem issue worth surfacing in the console.
-      console.error("[HomeView] regenerate daily mixes failed", err);
+      console.error("[HomeView] regenerate smart playlists failed", err);
     } finally {
       setIsRegenerating(false);
     }
@@ -458,12 +462,26 @@ export function HomeView({
           <div className="flex flex-wrap gap-4">
             {smartPlaylists.map((pl) => {
               const cover = resolveRemoteImage(pl.cover_path, null);
+              const kind = smartPlaylistKind(pl);
+              // Per-family styling so On Repeat reads as a distinct
+              // surface from Daily Mix — different eyebrow, gradient,
+              // and focus ring tint without needing a separate carousel.
+              const isOnRepeat = kind?.kind === "on_repeat";
+              const eyebrow = isOnRepeat
+                ? t("home.onRepeat.label", "On Repeat")
+                : t("home.dailyMix.label", "Daily Mix");
+              const fallbackGradient = isOnRepeat
+                ? "bg-linear-to-br from-emerald-400 to-emerald-700"
+                : "bg-linear-to-br from-violet-400 to-violet-700";
+              const ringTint = isOnRepeat
+                ? "focus-visible:ring-emerald-500"
+                : "focus-visible:ring-violet-500";
               return (
                 <button
                   key={`smart-${pl.id}`}
                   type="button"
                   onClick={() => onNavigateToPlaylist(pl.id)}
-                  className="group relative overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-800 aspect-16/7 basis-70 grow max-w-100 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 transition-transform hover:-translate-y-0.5"
+                  className={`group relative overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-800 aspect-16/7 basis-70 grow max-w-100 text-left focus:outline-none focus-visible:ring-2 ${ringTint} transition-transform hover:-translate-y-0.5`}
                 >
                   {cover ? (
                     <img
@@ -473,12 +491,12 @@ export function HomeView({
                       loading="lazy"
                     />
                   ) : (
-                    <div className="absolute inset-0 bg-linear-to-br from-violet-400 to-violet-700" />
+                    <div className={`absolute inset-0 ${fallbackGradient}`} />
                   )}
                   <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/30 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-4 text-white">
                     <div className="text-xs uppercase tracking-widest opacity-80">
-                      {t("home.dailyMix.label", "Daily Mix")}
+                      {eyebrow}
                     </div>
                     <div className="text-xl font-bold leading-tight mt-1 truncate">
                       {pl.name}

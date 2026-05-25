@@ -35,6 +35,39 @@ export interface Playlist {
   updated_at: number;
   track_count: number;
   total_duration_ms: number;
+  /** Raw JSON payload from `playlist.smart_rules`. `null` for user
+   * playlists. For smart playlists the frontend parses the `kind`
+   * discriminant to distinguish Daily Mix slots, On Repeat, and
+   * custom rule sets — see {@link smartPlaylistKind}. */
+  smart_rules: string | null;
+}
+
+/** Family discriminator parsed from {@link Playlist.smart_rules}. */
+export type SmartPlaylistKind =
+  | { kind: "daily_mix"; slot: number }
+  | { kind: "on_repeat" }
+  | { kind: "custom" }
+  | null;
+
+/**
+ * Parse a playlist's `smart_rules` JSON into its family discriminant.
+ * Returns `null` for user playlists or smart playlists with an
+ * unrecognised payload — callers should treat that as "fall back to
+ * the generic smart-playlist styling".
+ */
+export function smartPlaylistKind(p: Playlist): SmartPlaylistKind {
+  if (p.is_smart !== 1 || !p.smart_rules) return null;
+  try {
+    const parsed = JSON.parse(p.smart_rules) as { kind?: string; slot?: number };
+    if (parsed.kind === "daily_mix" && typeof parsed.slot === "number") {
+      return { kind: "daily_mix", slot: parsed.slot };
+    }
+    if (parsed.kind === "on_repeat") return { kind: "on_repeat" };
+    if (parsed.kind === "custom") return { kind: "custom" };
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export interface CreatePlaylistInput {

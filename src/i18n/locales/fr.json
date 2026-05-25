@@ -293,6 +293,9 @@
       "trackCount_one": "{{count}} morceau",
       "trackCount_other": "{{count}} morceaux"
     },
+    "onRepeat": {
+      "label": "On Repeat"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Votre rétro {{year}}",

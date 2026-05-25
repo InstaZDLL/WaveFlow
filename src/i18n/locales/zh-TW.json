@@ -293,6 +293,9 @@
       "trackCount_one": "{{count}} 首",
       "trackCount_other": "{{count}} 首"
     },
+    "onRepeat": {
+      "label": "On Repeat"
+    },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "你的 {{year}} 年度回顧",

@@ -15,6 +15,34 @@ export function regenerateDailyMixes(): Promise<number[]> {
   return invoke<number[]>("regenerate_daily_mixes");
 }
 
+/**
+ * Trigger a regen of the active profile's On Repeat playlist (top
+ * tracks of the last 30 days). Resolves to the playlist id, or `null`
+ * when the listening window has too few distinct tracks — in that case
+ * any previously-materialized On Repeat row is removed so the user
+ * doesn't see a stale playlist after a quiet month.
+ */
+export function regenerateOnRepeat(): Promise<number | null> {
+  return invoke<number | null>("regenerate_on_repeat");
+}
+
+export interface RegenerateAllSmartPlaylistsOutput {
+  daily_mix_ids: number[];
+  on_repeat_id: number | null;
+}
+
+/**
+ * Regen every built-in smart-playlist family (Daily Mix slots +
+ * On Repeat) in one round-trip. Used by the Home view's "Régénérer"
+ * button so the whole "Made for you" surface refreshes together
+ * without the frontend having to know about the family split.
+ */
+export function regenerateAllSmartPlaylists(): Promise<RegenerateAllSmartPlaylistsOutput> {
+  return invoke<RegenerateAllSmartPlaylistsOutput>(
+    "regenerate_all_smart_playlists",
+  );
+}
+
 // ── Custom smart playlists ──────────────────────────────────────────
 
 export type CustomSort =

@@ -50,6 +50,11 @@ pub struct Playlist {
     pub updated_at: i64,
     pub track_count: i64,
     pub total_duration_ms: i64,
+    /// Raw JSON payload from `playlist.smart_rules`. `None` for user
+    /// playlists (`is_smart = 0`); for smart playlists the frontend
+    /// parses the `kind` discriminant to distinguish Daily Mix slots,
+    /// On Repeat, and custom rule sets without an extra round-trip.
+    pub smart_rules: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -99,7 +104,8 @@ pub async fn list_playlists(state: tauri::State<'_, AppState>) -> AppResult<Vec<
                p.cover_is_auto,
                p.position, p.created_at, p.updated_at,
                COALESCE(pc.track_count,       0) AS track_count,
-               COALESCE(pc.total_duration_ms, 0) AS total_duration_ms
+               COALESCE(pc.total_duration_ms, 0) AS total_duration_ms,
+               p.smart_rules
           FROM playlist p
           LEFT JOIN (
               SELECT pt.playlist_id,
@@ -137,7 +143,8 @@ pub async fn get_playlist(
                p.cover_is_auto,
                p.position, p.created_at, p.updated_at,
                COALESCE(pc.track_count,       0) AS track_count,
-               COALESCE(pc.total_duration_ms, 0) AS total_duration_ms
+               COALESCE(pc.total_duration_ms, 0) AS total_duration_ms,
+               p.smart_rules
           FROM playlist p
           LEFT JOIN (
               SELECT pt.playlist_id,
@@ -214,6 +221,7 @@ pub async fn create_playlist(
         updated_at: now,
         track_count: 0,
         total_duration_ms: 0,
+        smart_rules: None,
     })
 }
 

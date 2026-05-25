@@ -7,7 +7,7 @@
 use crate::error::{AppError, AppResult};
 use crate::smart_playlists::{
     custom::{self, CustomRules},
-    generator, SmartPlaylistRules,
+    generator, on_repeat, SmartPlaylistRules,
 };
 use crate::state::AppState;
 use serde::Deserialize;
@@ -21,6 +21,40 @@ pub async fn regenerate_daily_mixes(state: tauri::State<'_, AppState>) -> AppRes
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     generator::regenerate_daily_mixes(&pool, &state.paths, profile_id).await
+}
+
+/// Regenerate the active profile's On Repeat playlist from the last
+/// 30 days of listening history. Returns the playlist id, or `null`
+/// when there's not enough data to materialize anything (the previous
+/// row, if any, is cleaned up in that case).
+#[tauri::command]
+pub async fn regenerate_on_repeat(state: tauri::State<'_, AppState>) -> AppResult<Option<i64>> {
+    let pool = state.require_profile_pool().await?;
+    on_repeat::regenerate_on_repeat(&pool, &state.paths).await
+}
+
+/// One-shot regen for every built-in smart-playlist family (Daily Mix
+/// slots + On Repeat). The frontend's "Régénérer" button calls this so
+/// the user gets the whole "Made for you" surface refreshed in a single
+/// click without having to know about the family split.
+#[derive(Debug, serde::Serialize)]
+pub struct RegenerateAllSmartPlaylistsOutput {
+    pub daily_mix_ids: Vec<i64>,
+    pub on_repeat_id: Option<i64>,
+}
+
+#[tauri::command]
+pub async fn regenerate_all_smart_playlists(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<RegenerateAllSmartPlaylistsOutput> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let daily_mix_ids = generator::regenerate_daily_mixes(&pool, &state.paths, profile_id).await?;
+    let on_repeat_id = on_repeat::regenerate_on_repeat(&pool, &state.paths).await?;
+    Ok(RegenerateAllSmartPlaylistsOutput {
+        daily_mix_ids,
+        on_repeat_id,
+    })
 }
 
 #[derive(Debug, Deserialize)]
