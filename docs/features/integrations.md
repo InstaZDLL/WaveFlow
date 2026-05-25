@@ -41,6 +41,8 @@ The frontend helper `lib/tauri/artwork.ts::resolveRemoteImage` prefers the local
 
 Results are cached in `app.lastfm_similar` (30-day TTL, keyed by the source artist's canonical name — same `canonical_name()` routine as the scanner). Each suggestion is augmented at query time with a `library_artist_id` when its canonical name matches a row in the active profile, so the UI can badge it as "in your library" and route the click back to the local artist page. Suggestions outside the library are rendered greyed out and non-interactive — no in-app destination exists for them yet.
 
+**Picture enrichment.** Last.fm's `artist.getSimilar` returns the same generic star placeholder URL for every result (their artist-image endpoint was retired in 2019). To avoid a sea of grey stars when the cascade picks the Last.fm branch, `get_similar_artists` runs the raw list through `enrich_with_deezer_pictures` before responding: it joins against the cross-profile `app.metadata_artist` cache by canonical name, fans out parallel Deezer `search_artist` calls for cache misses (≤ 12 in flight, bounded by the result limit), and writes the new rows back so the picture survives for 30 days. The DTO's `picture_url` is rewritten to the Deezer URL whenever one is available; `picture_path` prefers the in-library hash (set by the existing profile-DB join) before falling back to the freshly cached `metadata_artist.picture_hash`. Skipped silently when offline mode is on — stale cache only.
+
 ### Authenticated (scrobbling)
 
 [`scrobbler.rs`](../../src-tauri/src/scrobbler.rs) is the worker thread that drives Last.fm scrobbles:

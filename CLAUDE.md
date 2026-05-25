@@ -101,7 +101,7 @@ Playlist sort dropdown (custom / title / artist / album / recently added / durat
 
 ### Integrations ([`docs/features/integrations.md`](docs/features/integrations.md))
 
-Deezer enrichment (pictures, covers, fans — cached 30 days in `deezer_artist` / `deezer_album` in `app.db`, hashes point into shared `metadata_artwork/<blake3>.jpg` so artwork renders offline) · Last.fm (bios, similar artists, scrobbler) · Discord RPC · Native OS track-change toast notifications ([`notifications.rs`](src-tauri/src/notifications.rs) — `tauri-plugin-notification` bridge to Windows Action Center / macOS Notification Center / libnotify, opt-in `app_setting['notifications.track_change']` default OFF) · DLNA / UPnP MediaServer ([`docs/features/dlna.md`](docs/features/dlna.md)).
+Deezer enrichment (pictures, covers, fans — cached 30 days in `deezer_artist` / `deezer_album` in `app.db`, hashes point into shared `metadata_artwork/<blake3>.jpg` so artwork renders offline) · Last.fm (bios, similar artists with Deezer picture backfill — Last.fm's `artist.getSimilar` returns generic star placeholders for every image since their artist-image API was killed in 2019, so [`similar::enrich_with_deezer_pictures`](src-tauri/src/commands/similar.rs) joins the result against `app.metadata_artist` and fans out parallel Deezer `search_artist` calls for any cache miss before responding; scrobbler) · Discord RPC · Native OS track-change toast notifications ([`notifications.rs`](src-tauri/src/notifications.rs) — `tauri-plugin-notification` bridge to Windows Action Center / macOS Notification Center / libnotify, opt-in `app_setting['notifications.track_change']` default OFF) · DLNA / UPnP MediaServer ([`docs/features/dlna.md`](docs/features/dlna.md)).
 
 ### Preferences & maintenance
 

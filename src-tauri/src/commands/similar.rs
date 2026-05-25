@@ -155,19 +155,41 @@ pub async fn get_similar_artists(
         }
     }
 
+    // 4. Picture enrichment via Deezer. Last.fm's `artist.getSimilar`
+    //    returns the same generic star placeholder URL for every entry
+    //    (their artist-image API was retired in 2019), so without this
+    //    step Last.fm-configured users get a sea of grey stars for
+    //    every similar artist that isn't already in their library.
+    //    This step is a no-op when offline mode is on.
+    let metadata_map =
+        enrich_with_deezer_pictures(&pool, &artwork_dir, &canonicals, &raw, now).await;
+
     let out = raw
         .into_iter()
         .take(RESULT_LIMIT)
         .map(|r| {
             let canon = canonical_name(&r.name);
             let local = local_map.get(&canon);
+            let meta = metadata_map.get(&canon);
+            // Picture-path priority: profile-DB Deezer hash (works
+            // offline) → cross-profile `metadata_artist` hash (filled
+            // by the enrichment step above for entries not in the
+            // library) → no local fallback, UI uses `picture_url`.
             let picture_path = local
                 .and_then(|(_, hash)| hash.as_deref())
+                .or_else(|| meta.and_then(|(_, hash)| hash.as_deref()))
                 .and_then(|h| metadata_artwork::existing_path(&artwork_dir, h));
+            // Prefer the Deezer URL over Last.fm's placeholder when
+            // both are present. Falls back to whatever the upstream
+            // gave us so a Deezer-fetch failure still surfaces *some*
+            // remote URL (good enough for the in-library badge case).
+            let picture_url = meta
+                .and_then(|(url, _)| url.clone())
+                .or(r.picture_url);
             SimilarArtistDto {
                 name: r.name,
                 match_score: r.match_score,
-                picture_url: r.picture_url,
+                picture_url,
                 picture_path,
                 library_artist_id: local.map(|(id, _)| *id),
                 source: r.source,
@@ -175,6 +197,131 @@ pub async fn get_similar_artists(
         })
         .collect();
     Ok(out)
+}
+
+/// Backfill `app.metadata_artist` for every name in `raw` that we don't
+/// already have a non-expired cache row for, then return a
+/// `canonical_name → (picture_url, picture_hash)` lookup map ready to
+/// be merged into the outgoing DTOs.
+///
+/// The cache is the cross-profile `app.metadata_artist` so the work is
+/// shared with other features (the `ArtistDetailView` Deezer enrichment,
+/// the Wrapped year-in-review, etc.). Cache misses fan out to Deezer
+/// `search_artist` in parallel — bounded by `RESULT_LIMIT` so we never
+/// fire more than 12 requests per artist-page click.
+async fn enrich_with_deezer_pictures(
+    pool: &SqlitePool,
+    artwork_dir: &std::path::Path,
+    canonicals: &[String],
+    raw: &[RawSimilar],
+    now: i64,
+) -> HashMap<String, (Option<String>, Option<String>)> {
+    let mut map: HashMap<String, (Option<String>, Option<String>)> = HashMap::new();
+    if canonicals.is_empty() || crate::offline::is_offline() {
+        return map;
+    }
+
+    // Pull every relevant cached row in one round-trip. `LOWER(TRIM(name))`
+    // matches `canonical_name` precisely (see `commands::scan`). No
+    // index on the expression — the metadata cache is small (hundreds
+    // to low thousands of rows) and the request runs ≤ 12 lookups, so
+    // a single scan stays cheap.
+    let placeholders = canonicals.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+    let sql = format!(
+        "SELECT name, picture_url, picture_hash
+           FROM app.metadata_artist
+          WHERE LOWER(TRIM(name)) IN ({placeholders})
+            AND expires_at > ?"
+    );
+    let mut q = sqlx::query_as::<_, (String, Option<String>, Option<String>)>(
+        sqlx::AssertSqlSafe(sql),
+    );
+    for c in canonicals {
+        q = q.bind(c);
+    }
+    q = q.bind(now);
+    if let Ok(rows) = q.fetch_all(pool).await {
+        for (name, picture_url, picture_hash) in rows {
+            map.insert(canonical_name(&name), (picture_url, picture_hash));
+        }
+    }
+
+    // Identify misses, then resolve them through Deezer in parallel.
+    // Skipping entries with an empty canonical name keeps the search
+    // query meaningful — Deezer returns junk for empty strings.
+    let misses: Vec<&RawSimilar> = raw
+        .iter()
+        .filter(|r| {
+            let canon = canonical_name(&r.name);
+            !canon.is_empty() && !map.contains_key(&canon)
+        })
+        .collect();
+    if misses.is_empty() {
+        return map;
+    }
+
+    let client = DeezerClient::new();
+    let expires = now + CACHE_TTL_MS;
+    let fetched: Vec<(String, Option<crate::deezer::DeezerArtistHit>)> =
+        futures::future::join_all(misses.iter().map(|r| {
+            let client = &client;
+            let name = r.name.clone();
+            async move {
+                let canon = canonical_name(&name);
+                let hit = match client.search_artist(&name).await {
+                    Ok(hits) => hits
+                        .into_iter()
+                        .find(|h| canonical_name(&h.name) == canon),
+                    Err(err) => {
+                        tracing::warn!(
+                            ?err,
+                            artist = %name,
+                            "Deezer search for similar-artist enrichment failed"
+                        );
+                        None
+                    }
+                };
+                (canon, hit)
+            }
+        }))
+        .await;
+
+    for (canon, hit) in fetched {
+        let Some(hit) = hit else { continue };
+        let picture_url = hit.picture_xl.clone().or_else(|| hit.picture_big.clone());
+        let picture_hash = match picture_url.as_deref() {
+            Some(url) => metadata_artwork::download_and_cache(url, artwork_dir).await,
+            None => None,
+        };
+        // Persist the lookup so the next request for the SAME similar
+        // artist (or a different page asking about them) reuses this
+        // result instead of poking Deezer again. ON CONFLICT also
+        // refreshes the expiry for entries that already existed but
+        // were expired — same shape as `enrich_artist_deezer`.
+        let _ = sqlx::query(
+            "INSERT INTO app.metadata_artist
+                (deezer_id, name, picture_url, picture_hash, fetched_at, expires_at)
+             VALUES (?, ?, ?, ?, ?, ?)
+             ON CONFLICT(deezer_id) DO UPDATE SET
+               name = excluded.name,
+               picture_url = excluded.picture_url,
+               picture_hash = excluded.picture_hash,
+               fetched_at = excluded.fetched_at,
+               expires_at = excluded.expires_at",
+        )
+        .bind(hit.id)
+        .bind(&hit.name)
+        .bind(picture_url.as_deref())
+        .bind(picture_hash.as_deref())
+        .bind(now)
+        .bind(expires)
+        .execute(pool)
+        .await;
+
+        map.insert(canon, (picture_url, picture_hash));
+    }
+
+    map
 }
 
 /// Populate `app.lastfm_similar` for `artist_id` when the cache row is
