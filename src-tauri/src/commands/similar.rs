@@ -155,19 +155,41 @@ pub async fn get_similar_artists(
         }
     }
 
+    // 4. Picture enrichment via Deezer. Last.fm's `artist.getSimilar`
+    //    returns the same generic star placeholder URL for every entry
+    //    (their artist-image API was retired in 2019), so without this
+    //    step Last.fm-configured users get a sea of grey stars for
+    //    every similar artist that isn't already in their library.
+    //    This step is a no-op when offline mode is on.
+    let metadata_map =
+        enrich_with_deezer_pictures(&pool, &artwork_dir, &raw, now).await;
+
     let out = raw
         .into_iter()
         .take(RESULT_LIMIT)
         .map(|r| {
             let canon = canonical_name(&r.name);
             let local = local_map.get(&canon);
+            let meta = metadata_map.get(&canon);
+            // Picture-path priority: profile-DB Deezer hash (works
+            // offline) → cross-profile `metadata_artist` hash (filled
+            // by the enrichment step above for entries not in the
+            // library) → no local fallback, UI uses `picture_url`.
             let picture_path = local
                 .and_then(|(_, hash)| hash.as_deref())
+                .or_else(|| meta.and_then(|(_, hash)| hash.as_deref()))
                 .and_then(|h| metadata_artwork::existing_path(&artwork_dir, h));
+            // Prefer the Deezer URL over Last.fm's placeholder when
+            // both are present. Falls back to whatever the upstream
+            // gave us so a Deezer-fetch failure still surfaces *some*
+            // remote URL (good enough for the in-library badge case).
+            let picture_url = meta
+                .and_then(|(url, _)| url.clone())
+                .or(r.picture_url);
             SimilarArtistDto {
                 name: r.name,
                 match_score: r.match_score,
-                picture_url: r.picture_url,
+                picture_url,
                 picture_path,
                 library_artist_id: local.map(|(id, _)| *id),
                 source: r.source,
@@ -175,6 +197,193 @@ pub async fn get_similar_artists(
         })
         .collect();
     Ok(out)
+}
+
+/// Hard cap on concurrent Deezer `search_artist` round-trips kicked off
+/// by the enrichment fan-out. Matches `RESULT_LIMIT` — the displayed
+/// list is capped at 12, so there's never a reason to overlap more than
+/// 12 outbound requests for a single artist-page click.
+const CONCURRENCY_LIMIT: usize = RESULT_LIMIT;
+
+/// Backfill `app.metadata_artist` for every name in `raw` that we don't
+/// already have a non-expired cache row for, then return a
+/// `canonical_name → (picture_url, picture_hash)` lookup map ready to
+/// be merged into the outgoing DTOs.
+///
+/// The cache is the cross-profile `app.metadata_artist` so the work is
+/// shared with other features (the `ArtistDetailView` Deezer enrichment,
+/// the Wrapped year-in-review, etc.). Cache misses fan out to Deezer
+/// `search_artist` through a buffered stream bounded by
+/// [`CONCURRENCY_LIMIT`], and the miss set is itself trimmed to
+/// [`RESULT_LIMIT`] so we never spend network on entries that the
+/// final `.take(RESULT_LIMIT)` will drop anyway.
+async fn enrich_with_deezer_pictures(
+    pool: &SqlitePool,
+    artwork_dir: &std::path::Path,
+    raw: &[RawSimilar],
+    now: i64,
+) -> HashMap<String, (Option<String>, Option<String>)> {
+    use futures::stream::StreamExt;
+
+    let mut map: HashMap<String, (Option<String>, Option<String>)> = HashMap::new();
+    if raw.is_empty() {
+        return map;
+    }
+
+    // Pull every non-expired metadata row in one round-trip then filter
+    // in Rust against `canonical_name()`. We deliberately don't push the
+    // canonicalisation into SQL (`LOWER(TRIM(name))` would mismatch
+    // names like "AC/DC" → "acdc" or "P!nk" → "pnk" because SQLite's
+    // standard build has no REGEXP function), and SQLite has no
+    // user-defined alphanumeric filter. The cache is bounded by the
+    // user's library size + enrichment activity (~hundreds to a few
+    // thousand rows in steady state), so a full table scan + Rust-side
+    // filter is sub-millisecond and removes the canonicalisation
+    // mismatch bug. Promote to a stored `canonical_name` column with an
+    // index if profiling ever flags this query.
+    let canon_targets: std::collections::HashSet<String> = raw
+        .iter()
+        .map(|r| canonical_name(&r.name))
+        .filter(|c| !c.is_empty())
+        .collect();
+
+    // Offline mode reads the cache *without* the TTL filter — we have
+    // no way to refresh anyway, and any locally cached picture (the
+    // shared `metadata_artwork/<hash>.jpg` blob is keyed by blake3 and
+    // never expires) is strictly better than a grey star. Online mode
+    // applies `expires_at > now` so an expired row falls through to a
+    // Deezer refresh.
+    let offline = crate::offline::is_offline();
+    let cache_result = if offline {
+        sqlx::query_as::<_, (String, Option<String>, Option<String>)>(
+            "SELECT name, picture_url, picture_hash FROM app.metadata_artist",
+        )
+        .fetch_all(pool)
+        .await
+    } else {
+        sqlx::query_as::<_, (String, Option<String>, Option<String>)>(
+            "SELECT name, picture_url, picture_hash
+               FROM app.metadata_artist
+              WHERE expires_at > ?",
+        )
+        .bind(now)
+        .fetch_all(pool)
+        .await
+    };
+    match cache_result {
+        Ok(rows) => {
+            for (name, picture_url, picture_hash) in rows {
+                let canon = canonical_name(&name);
+                if canon_targets.contains(&canon) {
+                    map.insert(canon, (picture_url, picture_hash));
+                }
+            }
+        }
+        Err(err) => {
+            tracing::warn!(
+                ?err,
+                "similar-artist picture cache lookup failed — falling through to Deezer"
+            );
+        }
+    }
+
+    // Network refresh is out of the question when offline — short-circuit
+    // here so neither the miss computation nor the Deezer fan-out runs.
+    if offline {
+        return map;
+    }
+
+    // Trim misses to the same RESULT_LIMIT window the caller's `.take`
+    // applies. `raw` arrives ordered by upstream affinity (Last.fm
+    // match score or Deezer ranking) so the first slice is exactly
+    // the entries that'll end up on screen. Collect owned names so the
+    // downstream stream owns its inputs — avoids HRTB lifetime grief
+    // with `buffer_unordered` borrowing back into `raw`.
+    let miss_names: Vec<String> = raw[..raw.len().min(RESULT_LIMIT)]
+        .iter()
+        .filter_map(|r| {
+            let canon = canonical_name(&r.name);
+            if !canon.is_empty() && !map.contains_key(&canon) {
+                Some(r.name.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+    if miss_names.is_empty() {
+        return map;
+    }
+
+    let client = DeezerClient::new();
+    let expires = now + CACHE_TTL_MS;
+    let fetched: Vec<(String, Option<crate::deezer::DeezerArtistHit>)> =
+        futures::stream::iter(miss_names.into_iter().map(|name| {
+            let client = client.clone();
+            async move {
+                let canon = canonical_name(&name);
+                let hit = match client.search_artist(&name).await {
+                    Ok(hits) => hits
+                        .into_iter()
+                        .find(|h| canonical_name(&h.name) == canon),
+                    Err(err) => {
+                        tracing::warn!(
+                            ?err,
+                            artist = %name,
+                            "Deezer search for similar-artist enrichment failed"
+                        );
+                        None
+                    }
+                };
+                (canon, hit)
+            }
+        }))
+        .buffer_unordered(CONCURRENCY_LIMIT)
+        .collect()
+        .await;
+
+    for (canon, hit) in fetched {
+        let Some(hit) = hit else { continue };
+        let picture_url = hit.picture_xl.clone().or_else(|| hit.picture_big.clone());
+        let picture_hash = match picture_url.as_deref() {
+            Some(url) => metadata_artwork::download_and_cache(url, artwork_dir).await,
+            None => None,
+        };
+        // Persist the lookup so the next request for the SAME similar
+        // artist (or a different page asking about them) reuses this
+        // result instead of poking Deezer again. ON CONFLICT also
+        // refreshes the expiry for entries that already existed but
+        // were expired — same shape as `enrich_artist_deezer`.
+        if let Err(err) = sqlx::query(
+            "INSERT INTO app.metadata_artist
+                (deezer_id, name, picture_url, picture_hash, fetched_at, expires_at)
+             VALUES (?, ?, ?, ?, ?, ?)
+             ON CONFLICT(deezer_id) DO UPDATE SET
+               name = excluded.name,
+               picture_url = excluded.picture_url,
+               picture_hash = excluded.picture_hash,
+               fetched_at = excluded.fetched_at,
+               expires_at = excluded.expires_at",
+        )
+        .bind(hit.id)
+        .bind(&hit.name)
+        .bind(picture_url.as_deref())
+        .bind(picture_hash.as_deref())
+        .bind(now)
+        .bind(expires)
+        .execute(pool)
+        .await
+        {
+            tracing::warn!(
+                ?err,
+                artist = %hit.name,
+                "metadata_artist upsert failed during similar-artist enrichment"
+            );
+        }
+
+        map.insert(canon, (picture_url, picture_hash));
+    }
+
+    map
 }
 
 /// Populate `app.lastfm_similar` for `artist_id` when the cache row is
