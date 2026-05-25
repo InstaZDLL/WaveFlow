@@ -1597,6 +1597,10 @@
           "description": "홈 화면에 배너를 절대 표시하지 않습니다. Wrapped 페이지는 계속 접근할 수 있습니다."
         }
       }
+    },
+    "hiResBadge": {
+      "title": "Hi-Res / DSD 배지",
+      "subtitle": "해당 트랙 옆과 플레이어 바의 아티스트 이름 아래에 «Hi-Res 24-bit» 또는 «DSD128» 배지를 표시합니다. 기본값은 켬."
     }
   },
   "spotify": {

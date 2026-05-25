@@ -1597,6 +1597,10 @@
           "description": "Ne jamais afficher le bandeau sur l'accueil. La page Wrapped reste accessible."
         }
       }
+    },
+    "hiResBadge": {
+      "title": "Badge Hi-Res / DSD",
+      "subtitle": "Affiche la pastille « Hi-Res 24-bit » ou « DSD128 » à côté des morceaux concernés et sous l'artiste dans la barre de lecture. Activé par défaut."
     }
   },
   "spotify": {

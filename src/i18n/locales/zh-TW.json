@@ -1604,6 +1604,10 @@
           "description": "永遠不在首頁顯示橫幅。Wrapped 頁面仍可存取。"
         }
       }
+    },
+    "hiResBadge": {
+      "title": "Hi-Res / DSD 標籤",
+      "subtitle": "在符合條件的曲目旁以及播放列的演出者名稱下方顯示「Hi-Res 24-bit」或「DSD128」標籤。預設開啟。"
     }
   },
   "scanProgress": {

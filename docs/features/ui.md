@@ -176,6 +176,18 @@ The overflow popover itself is capped at `max-h-[calc(100dvh-7rem)]` with `overf
 
 The opt-in audio-quality footer ([`AudioQualityFooter`](../../src/components/player/AudioQualityFooter.tsx), pinned via Settings → Appearance → Player bar layout) is a thin strip below the player bar that surfaces the source file specs in compact form (`48 kHz · 256 kb/s · 6 Mo` on the left, `AAC · 24bit · 48kHz` on the right; bitrates ≥ 1000 kbps render as `Mb/s`). When the engine is resampling — source rate ≠ output device rate — the left chunk renders an arrow instead: `48 kHz → 44.1 kHz · …`, so the user can spot the conversion at a glance without opening the popover. The arrow is gated on the device rate being known (the engine reports `0` before the first stream opens); otherwise we fall back to the source rate alone rather than printing a misleading `48 kHz → null`. The Hi-Res pill surfaces when [`isHiRes`](../../src/lib/hiRes.ts) accepts the source bit depth / sample rate combination.
 
+### Hi-Res / DSD badge
+
+[`HiResBadge`](../../src/components/common/HiResBadge.tsx) is the green pill that decorates track rows, album grid tiles, and the player-bar metadata when the source qualifies as Hi-Res (`isHiRes` — ≥ 24-bit, ≥ 44.1 kHz) or as DSD (`dsdLabel` returns `DSD64` / `DSD128` / …). Three variants:
+
+| Variant   | Used in                                                              | Style                                                                                                  |
+| --------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `overlay` | Album / artist grid covers (default).                                | Absolute-positioned pill in the cover's top-left corner with a drop shadow.                            |
+| `inline`  | TrackTable rows, sidebar lists.                                      | Inline rounded pill next to the title.                                                                 |
+| `text`    | Player bar — under the artist name.                                  | Spotify-style minimal green uppercase text, no pill background, blends into the metadata stack.        |
+
+All variants are gated by [`useHiResBadgeVisibility`](../../src/hooks/useHiResBadgeVisibility.ts), which reads `profile_setting['ui.show_hi_res_badge']` (default `true`) and re-reads on the `waveflow:hi-res-badge-visibility` window event. Settings → Appearance ships [`HiResBadgeCard`](../../src/components/views/settings/HiResBadgeCard.tsx) to flip the flag — when off, every mounted `HiResBadge` returns `null` in one render, including the player-bar text label. Per-profile so a kid's profile can hide the audiophile chrome while the audiophile profile keeps it.
+
 Hovering (or keyboard-focusing) the footer opens [`AudioPipelinePopover`](../../src/components/player/AudioPipelinePopover.tsx) — an audiophile-grade breakdown of what the engine is actually doing.
 
 #### Sections displayed

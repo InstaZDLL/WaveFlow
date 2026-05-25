@@ -1604,6 +1604,10 @@
           "description": "永远不在首页显示横幅。Wrapped 页面仍可访问。"
         }
       }
+    },
+    "hiResBadge": {
+      "title": "Hi-Res / DSD 标识",
+      "subtitle": "在符合条件的曲目旁以及播放栏的艺人姓名下方显示「Hi-Res 24-bit」或「DSD128」标识。默认开启。"
     }
   },
   "scanProgress": {
