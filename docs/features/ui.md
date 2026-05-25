@@ -43,6 +43,8 @@ Per-view data fetches initialise their `isLoading` state to `true` (not `false`)
 
 Two entry points in the [`PlayerBar`](../../src/components/player/PlayerBar.tsx): clicking the cover in the bottom bar (mirrors Spotify) or the dedicated Maximize2 icon next to the lyrics toggle. The header of [`FullscreenLyrics`](../../src/components/player/FullscreenLyrics.tsx) also carries a Maximize2 button (symmetric to the Mic2 "open lyrics" button in `FullscreenNowPlaying`) so the user can round-trip Immersive ↔ Lyrics without leaving fullscreen — the parent flips the fullscreen mutex so only one overlay is ever mounted. Closes on Escape or the X button. State is local to the bar — no `PlayerContext` involvement because nothing else needs to know about the overlay.
 
+**Transition hygiene** — both overlays paint a solid `bg-zinc-950` on the outer wrapper from the first frame; the `animate-fade-in` keyframe lives on the inner backdrop + foreground layers, not the wrapper. Without that opaque base the wrapper's own opacity ramp (0 → 1 over 300 ms) would let the page underneath (search bar, sidebar, cards) bleed through during the transition. Same reason `FullscreenLyrics` is portalled to `document.body` from [`LyricsPanel`](../../src/components/layout/LyricsPanel.tsx) via `createPortal`: the panel itself is a `motion.aside` that animates `opacity 0 → 1` on mount, and a nested overlay would inherit the parent's opacity (the immersive→lyrics direction would have flashed the home view through the overlay until the side panel finished its spring tween). Portalling moves the rendered subtree to the document root while the panel keeps owning the fetch + parse state.
+
 ## Mini-player
 
 [`MiniPlayerApp`](../../src/MiniPlayerApp.tsx) + [`MiniPlayer`](../../src/components/views/MiniPlayer.tsx) ship a Spotify-style always-on-top widget. Launched from the picture-in-picture button in the PlayerBar via [`lib/miniPlayer.ts::openMiniPlayer`](../../src/lib/miniPlayer.ts).
@@ -167,6 +169,8 @@ A-B loop and Sleep timer are **always available** — they live in the "⋯" ove
 | `ui.show_ab_loop`     | Repeat icon (A-B loop)                 | off     |
 
 When a pin is OFF, the entry stays in the overflow menu and the sleep-timer countdown badge surfaces on the "⋯" trigger itself so the user keeps live feedback while the timer is armed. The PlayerBar listens to `waveflow:sleep-timer-visibility` / `waveflow:ab-loop-visibility` window events dispatched by the Settings toggle so the layout re-renders without a polling loop.
+
+The overflow popover itself is capped at `max-h-[calc(100dvh-7rem)]` with `overflow-y-auto overscroll-contain` ([`MoreActionsMenu`](../../src/components/player/MoreActionsMenu.tsx)). On a 1080p display with nothing pinned, the stack (speed slider + 5-preset grid, EQ section, A-B loop row, sleep-timer 6-preset grid + end-of-track + custom-minutes form) would otherwise run past the viewport top. `100dvh` rather than `100vh` keeps the math right when Tauri window chrome hides on Linux/macOS fullscreen; `overscroll-contain` prevents wheel/touch scrolls from chaining to the page underneath.
 
 ## Keyboard shortcuts
 
