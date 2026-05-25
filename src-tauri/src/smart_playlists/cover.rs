@@ -55,8 +55,18 @@ const MAX_GRID_TILES: usize = 4;
 /// disk write).
 pub fn build_composite_cover(image_paths: &[PathBuf], metadata_dir: &Path) -> AppResult<String> {
     let take = MAX_GRID_TILES.max(MAX_STRIPS);
+    // Dedupe by path so a Daily Mix whose top 3 artists share a picture
+    // (or whose fallback album arts all point at the same release)
+    // collapses to a single full-canvas tile instead of a contact-sheet
+    // of identical thumbnails. Mirrors the hash-level dedup that
+    // `playlist_cover::top_track_artwork_paths` already applies for
+    // user playlists — paths here are hash-keyed too (metadata_artwork
+    // cache + per-profile artwork dir), so path equality is hash equality.
+    let mut seen: std::collections::HashSet<&PathBuf> =
+        std::collections::HashSet::with_capacity(image_paths.len());
     let tiles: Vec<RgbImage> = image_paths
         .iter()
+        .filter(|p| seen.insert(*p))
         .take(take)
         .filter_map(|p| match image::open(p) {
             Ok(img) => Some(img.to_rgb8()),
@@ -425,5 +435,25 @@ mod tests {
         // Bottom row darker than start of gradient.
         let bottom = canvas.get_pixel(0, CANVAS_PX - 1)[0];
         assert!(bottom < 200, "expected darkening, got {bottom}");
+    }
+
+    #[test]
+    fn composite_collapses_identical_inputs_to_single_tile() {
+        // Three identical paths must produce the same cover as a single
+        // path — anything else means the Daily Mix carousel would still
+        // show a 3-strip contact sheet of the same picture.
+        let dir = tempfile::tempdir().expect("tempdir");
+        let src = dir.path().join("artist.jpg");
+        let img = solid(640, 640, [180, 120, 60]);
+        img.save_with_format(&src, ImageFormat::Jpeg)
+            .expect("write source jpg");
+
+        let hash_dup = build_composite_cover(&[src.clone(), src.clone(), src.clone()], dir.path())
+            .expect("dup composite");
+        let hash_single = build_composite_cover(&[src.clone()], dir.path()).expect("single composite");
+        assert_eq!(
+            hash_dup, hash_single,
+            "duplicate inputs should collapse to the single-tile composite"
+        );
     }
 }
