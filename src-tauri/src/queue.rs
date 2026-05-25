@@ -312,6 +312,164 @@ pub async fn append(
     Ok(())
 }
 
+/// Append `track_ids` to the **user queue** — the contiguous block of
+/// `source_type = 'manual'` items sitting between the current track
+/// and the context tail (whatever album / playlist / smart-playlist
+/// fill seeded the queue). Matches Spotify semantics: "Add to queue"
+/// stacks tracks at the *bottom* of the user queue, not at the
+/// absolute end past every remaining album track, so the user can
+/// keep playing the album they started while their manual picks fire
+/// one by one in between.
+///
+/// Boundary = `MIN(position)` among items past the current cursor
+/// whose `source_type != 'manual'`. NULL boundary means the entire
+/// tail is already manual (or there's nothing past the cursor) — that
+/// degenerates into [`append`]. Empty queue still degenerates into
+/// [`fill_queue`] so the first "Add to queue" click on a fresh
+/// session starts playback.
+pub async fn append_to_user_queue(
+    pool: &SqlitePool,
+    track_ids: &[i64],
+    source_id: Option<i64>,
+) -> AppResult<()> {
+    if track_ids.is_empty() {
+        return Ok(());
+    }
+
+    // Single transaction wraps the boundary lookup AND the insert so the
+    // decision can't be invalidated between reads and writes by a
+    // concurrent advance / fill_queue / shuffle (SQLite WAL allows
+    // many readers but only one writer, and our reads were happening
+    // outside that single-writer envelope before this commit). Every
+    // SQL inside the function now runs against `&mut *tx`.
+    let mut tx = pool.begin().await?;
+    let now = Utc::now().timestamp_millis();
+
+    let len: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM queue_item")
+        .fetch_one(&mut *tx)
+        .await?;
+
+    // Empty queue — replicate `fill_queue` inline so it stays in the
+    // same tx. Same shape, just bound to "manual" since we know the
+    // origin.
+    if len == 0 {
+        for (pos, id) in track_ids.iter().enumerate() {
+            sqlx::query(
+                "INSERT INTO queue_item (track_id, position, source_type, source_id, added_at)
+                 VALUES (?, ?, 'manual', ?, ?)",
+            )
+            .bind(id)
+            .bind(pos as i64)
+            .bind(source_id)
+            .bind(now)
+            .execute(&mut *tx)
+            .await?;
+        }
+        sqlx::query(
+            "UPDATE profile_setting
+                SET value = ?, updated_at = ?
+              WHERE key = 'queue.current_index'",
+        )
+        .bind("0")
+        .bind(now)
+        .execute(&mut *tx)
+        .await?;
+        sqlx::query("DELETE FROM profile_setting WHERE key = 'queue.preshuffle'")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+        return Ok(());
+    }
+
+    let current_raw: Option<String> = sqlx::query_scalar(
+        "SELECT value FROM profile_setting WHERE key = 'queue.current_index'",
+    )
+    .fetch_optional(&mut *tx)
+    .await?;
+    let current = current_raw
+        .and_then(|s| s.parse::<i64>().ok())
+        .unwrap_or(0)
+        .clamp(0, len - 1);
+
+    let boundary: Option<i64> = sqlx::query_scalar(
+        "SELECT MIN(position) FROM queue_item
+          WHERE position > ?
+            AND source_type != 'manual'",
+    )
+    .bind(current)
+    .fetch_one(&mut *tx)
+    .await?;
+
+    // NULL boundary = no context tail past the cursor (entire tail is
+    // already manual, or current is at the very end). Same end shape as
+    // `append`: drop the new rows at MAX(position) + 1.
+    let insert_at = match boundary {
+        Some(p) => p,
+        None => {
+            let max_pos: Option<i64> = sqlx::query_scalar("SELECT MAX(position) FROM queue_item")
+                .fetch_one(&mut *tx)
+                .await?;
+            max_pos.map(|p| p + 1).unwrap_or(0)
+        }
+    };
+    let needs_shift = boundary.is_some();
+
+    let count = track_ids.len() as i64;
+
+    if needs_shift {
+        // Park-shift detour — same trick as `insert_after_current`.
+        // SQLite checks UNIQUE(position) per row so a direct
+        // `position + N` collides mid-update; bump the affected rows
+        // to a high range, then bring them back down past the freshly
+        // inserted block.
+        const OFFSET: i64 = 10_000_000;
+        sqlx::query("UPDATE queue_item SET position = position + ? WHERE position >= ?")
+            .bind(OFFSET)
+            .bind(insert_at)
+            .execute(&mut *tx)
+            .await?;
+
+        for (offset, id) in track_ids.iter().enumerate() {
+            sqlx::query(
+                "INSERT INTO queue_item (track_id, position, source_type, source_id, added_at)
+                 VALUES (?, ?, 'manual', ?, ?)",
+            )
+            .bind(id)
+            .bind(insert_at + offset as i64)
+            .bind(source_id)
+            .bind(now)
+            .execute(&mut *tx)
+            .await?;
+        }
+        sqlx::query("UPDATE queue_item SET position = position - ? + ? WHERE position >= ?")
+            .bind(OFFSET)
+            .bind(count)
+            .bind(insert_at + OFFSET)
+            .execute(&mut *tx)
+            .await?;
+    } else {
+        // No shift needed — append directly past the last row.
+        for (offset, id) in track_ids.iter().enumerate() {
+            sqlx::query(
+                "INSERT INTO queue_item (track_id, position, source_type, source_id, added_at)
+                 VALUES (?, ?, 'manual', ?, ?)",
+            )
+            .bind(id)
+            .bind(insert_at + offset as i64)
+            .bind(source_id)
+            .bind(now)
+            .execute(&mut *tx)
+            .await?;
+        }
+    }
+
+    sqlx::query("DELETE FROM profile_setting WHERE key = 'queue.preshuffle'")
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
 /// Insert `track_ids` immediately after the current cursor position.
 /// Existing items past the cursor are pushed down to keep the queue
 /// dense. Returns nothing — the cursor itself doesn't move so the

@@ -108,3 +108,11 @@ UI is a tri-state click cycle in [`AbLoopButton`](../../src/components/player/Ab
 ## Queue
 
 [`queue.rs`](../../src-tauri/src/queue.rs) — persistent SQLite-backed queue with shuffle (Fisher-Yates with seeded xorshift), repeat (off/all/one), auto-advance and drag-and-drop reorder. The frontend operates on a virtualised list so a 6000-track shuffle doesn't lock the UI.
+
+**User queue vs context tail.** Every `queue_item` carries a `source_type` (`'album'`, `'playlist'`, `'smart'`, `'manual'`, …). The Spotify-style split flows out of that flag:
+
+- `fill_queue` (Play album / Play playlist / Play smart) populates the queue with `source_type = 'album' | 'playlist' | …` from the current view.
+- `insert_after_current` (Play next, context-menu action) drops the picks at `current_index + 1` with `source_type = 'manual'` — pushes the rest of the queue down by N.
+- `append_to_user_queue` (Add to queue, context-menu action) finds the boundary `MIN(position) WHERE position > current AND source_type != 'manual'` — i.e. the first context-tail item — and inserts the new picks right before it with `source_type = 'manual'`. Falls back to `append` when the entire post-cursor tail is already manual (or there's nothing past the cursor), and to `fill_queue` when the queue is empty.
+
+Net effect matches Spotify's behaviour: the manual block stacks between Now Playing and the album / playlist tail. "Play next" pushes to the top of that block, "Add to queue" stacks at the bottom, and the album resumes once the user queue drains. No tracks get banished to the very end past the rest of the album any more.
