@@ -223,7 +223,7 @@ export function AudioPipelinePopover({ track }: AudioPipelinePopoverProps) {
     <div
       role="group"
       aria-label={t("playerBar.pipeline.title")}
-      className="absolute bottom-full right-0 mb-2 w-80 p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl z-50 text-left"
+      className="absolute bottom-full right-4 mb-3 w-80 p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl z-50 text-left"
     >
       <div className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-3">
         {t("playerBar.pipeline.title")}
