@@ -99,6 +99,10 @@ chrono = { version = "0.4", features = ["serde"] }
 # Same minor as the desktop crate so the workspace's effective lofty
 # build stays cached.
 lofty = "0.24"
+# DSF container footer carries an embedded ID3v2 blob; lofty doesn't
+# accept a raw byte buffer (it wants a full file), so `audio_format::dsd::metadata`
+# parses it via the lower-level `id3` crate.
+id3 = "1"
 
 [dev-dependencies]
 # Sandboxed scratch directories for the smart-playlist cover render

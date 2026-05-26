@@ -293,7 +293,7 @@ fn build_blackman_harris_lowpass(taps: usize, cutoff: f32) -> Vec<f32> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::audio::dsd::parser::{DsdChannels, DsdContainer, DsdLayout};
+    use crate::audio_format::dsd::parser::{DsdChannels, DsdContainer, DsdLayout};
 
     fn dsd64_stereo(block_interleave: Option<u32>, lsb_first: bool) -> DsdLayout {
         DsdLayout {

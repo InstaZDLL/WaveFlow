@@ -12,6 +12,7 @@
 
 pub mod analysis;
 pub mod artwork;
+pub mod audio_format;
 pub mod domain;
 pub mod error;
 pub mod metadata;

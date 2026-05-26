@@ -18,8 +18,9 @@ use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::units::Time;
 
-use super::dsd::parser::{parse_dff, parse_dsf, DsdLayout};
-use super::dsd::pcm::DsdToPcm;
+use waveflow_core::audio_format::dsd::parser::{parse_dff, parse_dsf, DsdLayout};
+use waveflow_core::audio_format::dsd::pcm::DsdToPcm;
+
 use super::resampler::Resampler;
 
 /// Per-stream decoder backend. Symphonia handles the FLAC / MP3 /

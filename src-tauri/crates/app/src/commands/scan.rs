@@ -115,8 +115,8 @@ fn extract_dsd_file(
     hash: String,
     ext: &str,
 ) -> Result<ExtractedFile, String> {
-    use crate::audio::dsd::metadata::read_metadata;
-    use crate::audio::dsd::parser::{parse_dff, parse_dsf, DsdContainer};
+    use waveflow_core::audio_format::dsd::metadata::read_metadata;
+    use waveflow_core::audio_format::dsd::parser::{parse_dff, parse_dsf, DsdContainer};
 
     let mut file = std::fs::File::open(path).map_err(|e| format!("dsd open: {e}"))?;
     let layout = match ext {
