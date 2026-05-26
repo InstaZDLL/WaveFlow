@@ -148,11 +148,11 @@
         "tracks_zero": "0曲",
         "tracks_one": "{{count}}曲",
         "tracks_other": "{{count}}曲",
-        "albums_zero": "0アルバム",
-        "albums_one": "{{count}} アルバム",
-        "albums_other": "{{count}} アルバム",
-        "see": "参照",
-        "new": "新作"
+        "albums_zero": "0枚",
+        "albums_one": "{{count}}枚",
+        "albums_other": "{{count}}枚",
+        "see": "表示",
+        "new": "新規作成"
       },
       "nav": {
         "tracks": "曲",
@@ -195,8 +195,8 @@
     "search": {
       "placeholder": "曲名、アーティスト名、アルバム名を検索...",
       "results_zero": "結果はありません",
-      "results_one": "{{count}} 結果",
-      "results_other": "{{count}} 結果",
+      "results_one": "{{count}}件",
+      "results_other": "{{count}}件",
       "empty": "検索に一致する結果はありません",
       "filters": {
         "toggle": "詳細フィルター",
@@ -213,7 +213,7 @@
       }
     },
     "theme": {
-      "enableLight": "明るいモードを有効にする",
+      "enableLight": "ライトモードに切り替え",
       "enableDark": "ダークモードを有効にする"
     },
     "profile": {
@@ -278,7 +278,7 @@
     "recentlyPlayed": {
       "title": "最近再生した曲",
       "emptyTitle": "再生した曲はありません",
-      "emptyDescription": "タイトルを入力すると、ここに表示されます。新しい曲を見つけるたびに、再生履歴が蓄積されていきます。"
+      "emptyDescription": "曲を再生するとここに表示されます。新しい曲を見つけるたびに、再生履歴が蓄積されていきます。"
     },
     "recentlyAdded": {
       "title": "最近追加された曲"
@@ -294,12 +294,12 @@
       "trackCount_other": "{{count}} 曲"
     },
     "onRepeat": {
-      "label": "On Repeat"
+      "label": "ヘビーローテーション"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "{{year}}年のあなた",
-      "subtitle": "あなたのアーティスト、分数、1年を数枚のスライドで。",
+      "subtitle": "あなたのアーティスト、聴いた時間、あなたの1年を数枚のスライドで。",
       "cta": "開く",
       "dismiss": "Wrapped バナーを隠す"
     },
@@ -315,9 +315,9 @@
         "albums_zero": "0アルバム",
         "albums_one": "{{count}}アルバム",
         "albums_other": "{{count}}アルバム",
-        "artistes_zero": "0アーティスト",
-        "artistes_one": "{{count}}アーティスト",
-        "artistes_other": "{{count}}アーティスト",
+        "artistes_zero": "0組",
+        "artistes_one": "{{count}}組",
+        "artistes_other": "{{count}}組",
         "genres_zero": "0ジャンル",
         "genres_one": "{{count}}ジャンル",
         "genres_other": "{{count}}ジャンル",
@@ -351,7 +351,7 @@
         "description": "オーディオファイルをインポートして、ジャンルを確認しましょう。"
       },
       "dossiers": {
-        "title": "インポートされたファイルはありません",
+        "title": "インポートされたフォルダはありません",
         "description": "アクションバーからフォルダをインポートして、ここでその中を確認してください。"
       }
     },
@@ -412,7 +412,7 @@
       "trackCount_zero": "0曲",
       "trackCount_one": "{{count}}曲",
       "trackCount_other": "{{count}}曲",
-      "lastScanned": "スキャン元：{{date}}",
+      "lastScanned": "最終スキャン: {{date}}",
       "neverScanned": "未スキャン",
       "watched": "監視中",
       "watchOn": "変更を自動的に監視する",
@@ -481,9 +481,9 @@
       "totalPlays": "総再生回数",
       "totalTime": "再生時間",
       "uniqueTracks": "ユニーク曲数",
-      "uniqueArtists_zero": "0アーティスト",
-      "uniqueArtists_one": "{{count}}アーティスト",
-      "uniqueArtists_other": "{{count}}アーティスト",
+      "uniqueArtists_zero": "0組",
+      "uniqueArtists_one": "{{count}}組",
+      "uniqueArtists_other": "{{count}}組",
       "completionRate": "完聴率"
     },
     "byDay": {
@@ -696,7 +696,7 @@
     "count_other": "{{count}}曲",
     "emptyTitle": "聴くものがない",
     "emptyDescription": "ライブラリから音楽を再生して、キューを埋めてください。",
-    "nowPlaying": "進行中",
+    "nowPlaying": "再生中",
     "upNext_zero": "次に再生",
     "upNext_one": "次に再生 · {{count}}曲",
     "upNext_other": "次に再生 · {{count}}曲",
@@ -926,7 +926,7 @@
     "playAll": "すべて再生",
     "shuffle": "シャッフル",
     "discography": "ディスコグラフィー",
-    "allTracks": "すべてのタイトル",
+    "allTracks": "すべての曲",
     "trackCount_zero": "0曲",
     "trackCount_one": "{{count}}曲",
     "trackCount_other": "{{count}}曲",
@@ -985,7 +985,7 @@
       "save": "PNGとして保存",
       "copy": "画像をコピー",
       "eyebrow": "再生中",
-      "on": "で"
+      "on": "収録"
     }
   },
   "playerBar": {
@@ -1035,7 +1035,7 @@
   "sleepTimer": {
     "title": "スリープタイマー",
     "endOfTrack": "現在の曲の終わりに",
-    "endOfTrackBadge": "終",
+    "endOfTrackBadge": "曲末",
     "cancel": "キャンセル",
     "start": "OK",
     "customPlaceholder": "分",
@@ -1066,7 +1066,7 @@
       "lrc": "同期済み",
       "enhanced_lrc": "単語単位で同期",
       "ttml": "TTML 単語単位",
-      "plain": "非同期"
+      "plain": "同期なし"
     },
     "toast": {
       "tagWriteSkipped": "TTML はキャッシュにのみ保存されました（音声タグには書き込まれていません）"
@@ -1240,7 +1240,7 @@
     "integrations": {
       "lastfm": {
         "title": "Last.fm",
-        "subtitle": "アーティストのプロフィールとスクロブリング。last.fm/api/account/create でキーを作成する",
+        "subtitle": "アーティストのバイオグラフィーとスクロブル。last.fm/api/account/create でキーを作成",
         "placeholder": "APIキー",
         "secretPlaceholder": "共有シークレット",
         "save": "保存",
@@ -1318,7 +1318,7 @@
       "subtitle": "システムの起動時に WaveFlow を自動的に起動する"
     },
     "minimizeToTray": {
-      "title": "タスクバーに最小化",
+      "title": "システムトレイに最小化",
       "subtitle": "ウィンドウを閉じると、アプリケーションがタスクトレイに最小化されます"
     },
     "scanOnStart": {
@@ -1353,23 +1353,23 @@
       "action": "分析する",
       "autoTitle": "自動分析",
       "autoSubtitle": "新しいトラックが追加されるスキャンが終了するたびに、バックグラウンドで分析を実行する",
-      "failed_one": "{{count}} 失敗",
-      "failed_other": "{{count}} 失敗"
+      "failed_one": "{{count}}件失敗",
+      "failed_other": "{{count}}件失敗"
     },
     "artistImages": {
       "title": "アーティストの画像",
       "subtitle": "Deezerからアーティストのジャケット画像を取得する",
-      "action": "復元する",
+      "action": "取得",
       "progress": "{{current}}/{{total}} 処理済み"
     },
     "localArtistImages": {
       "title": "ローカルアーティスト画像",
       "subtitle": "音楽ファイルの隣にある artist.jpg（または <名前>.jpg）を探し、アーティスト写真として利用します。",
       "action": "スキャン",
-      "done": "{{considered}} 人中 {{linked}} 人のアーティストにローカル画像をリンクしました"
+      "done": "{{considered}}組中{{linked}}組のアーティストにローカル画像をリンクしました"
     },
     "dataFolder": {
-      "title": "データファイル",
+      "title": "データフォルダ",
       "subtitle": "データベースとカバー画像が入っているフォルダを開く",
       "action": "開く"
     },
@@ -1397,7 +1397,7 @@
       "subtitle": "バグを報告するには、ログフォルダを開くか、最近のログをコピーしてチケットに貼り付けます。",
       "openFolder": "フォルダを開く",
       "copyLogs": "ログのコピー",
-      "copied": "コピーされたログ",
+      "copied": "ログをコピーしました",
       "copyFailed": "ログをコピーできませんでした"
     },
     "gapless": {

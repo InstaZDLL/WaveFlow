@@ -84,7 +84,7 @@
       "noFolder": "Nenhuma pasta selecionada",
       "readyHint": "A pasta está configurada. Inicia a análise quando quiseres.",
       "scanning": "A analisar a tua biblioteca…",
-      "errorTitle": "Análise falhou"
+      "errorTitle": "Falha na análise"
     },
     "done": {
       "title": "Está tudo pronto!",
@@ -228,8 +228,8 @@
   },
   "home": {
     "greeting": {
-      "morning": "Olá",
-      "evening": "Boa noite",
+      "morning": "Bom dia",
+      "evening": "Boa tarde",
       "night": "Boa noite"
     },
     "banner": {
@@ -249,14 +249,14 @@
     },
     "moodRadio": {
       "title": "Rádio por humor",
-      "subtitle": "Filtrada por tempo e energia",
+      "subtitle": "Filtrada por ritmo e energia",
       "trackCount_one": "{{count}} faixa",
       "trackCount_other": "{{count}} faixas",
       "empty": "Não há faixas analisadas suficientes",
       "loading": "A iniciar…",
       "focus": {
         "title": "Foco",
-        "subtitle": "Tempos calmos para trabalho profundo"
+        "subtitle": "Ritmos calmos para trabalho profundo"
       },
       "chill": {
         "title": "Descontrair",
@@ -268,7 +268,7 @@
       },
       "party": {
         "title": "Festa",
-        "subtitle": "Tempo dançante, energia alta"
+        "subtitle": "Ritmos dançantes, energia alta"
       },
       "sleep": {
         "title": "Dormir",
@@ -414,9 +414,9 @@
       "trackCount_other": "{{count}} faixas",
       "lastScanned": "Última análise: {{date}}",
       "neverScanned": "nunca",
-      "watched": "Sob vigilância",
+      "watched": "Monitorizada",
       "watchOn": "Monitorizar automaticamente as alterações",
-      "watchOff": "Interromper a vigilância",
+      "watchOff": "Deixar de monitorizar",
       "remove": "Remover pasta da biblioteca",
       "removeConfirm": "Clica novamente para confirmar"
     },
@@ -696,7 +696,7 @@
     "count_other": "{{count}} faixas",
     "emptyTitle": "Não há nada para ouvir",
     "emptyDescription": "Reproduz uma música da tua biblioteca para preencher a fila.",
-    "nowPlaying": "Em curso",
+    "nowPlaying": "A reproduzir",
     "upNext_zero": "A seguir",
     "upNext_one": "A seguir · {{count}} faixa",
     "upNext_other": "A seguir · {{count}} faixas",
@@ -745,7 +745,7 @@
     "delete": {
       "title": "Eliminar {{name}}?",
       "subtitle": "Este perfil será removido permanentemente.",
-      "warning": "Todas as bibliotecas, listas de reprodução e histórico de audição deste perfil serão perdidos. Esta ação não pode ser anulada.",
+      "warning": "Todas as bibliotecas, listas de reprodução e o histórico de audição deste perfil serão eliminados. Esta ação não pode ser anulada.",
       "submit": "Eliminar perfil",
       "submitting": "A eliminar…"
     }
@@ -985,7 +985,7 @@
       "save": "Guardar como PNG",
       "copy": "Copiar imagem",
       "eyebrow": "A tocar agora",
-      "on": "no"
+      "on": "em"
     }
   },
   "playerBar": {
@@ -1255,7 +1255,7 @@
         "toggleQueue": "Mostrar / Ocultar fila",
         "toggleNowPlaying": "Mostrar / Ocultar reprodução",
         "toggleLyrics": "Mostrar / Ocultar letra",
-        "toggleLike": "Gosto / Remover"
+        "toggleLike": "Adicionar / Remover dos favoritos"
       }
     },
     "offlineMode": {
@@ -1389,7 +1389,7 @@
       "subtitle": "Calcular BPM, loudness e pico para faixas ainda não analisadas",
       "action": "Analisar",
       "autoTitle": "Análise automática",
-      "autoSubtitle": "Executar análise em segundo plano após cada análise que adicione novas faixas",
+      "autoSubtitle": "Executar a análise em segundo plano após cada scan que adicione novas faixas",
       "failed_one": "{{count}} falha",
       "failed_other": "{{count}} falhas"
     },
@@ -1436,7 +1436,7 @@
       "action": "Pré-carregar",
       "progress": "{{current}}/{{total}} processadas · {{hits}} encontradas"
     },
-    "regenerateThumbnails": "Atualizar as miniaturas",
+    "regenerateThumbnails": "Regenerar miniaturas",
     "regenerateThumbnailsSubtitle": "Recriar as variantes 1x/2x em falta para todas as capas",
     "regenerateThumbnailsAction": "Regenerar",
     "regenerateThumbnailsDone": "{{count}} miniaturas atualizadas",
@@ -1525,7 +1525,7 @@
     "appearance": {
       "theme": {
         "title": "Tema",
-        "subtitle": "Escolha uma vibe — mudar de tema retinge toda a app instantaneamente."
+        "subtitle": "Escolhe um ambiente — mudar de tema altera as cores de toda a app instantaneamente."
       },
       "mode": {
         "light": "Claro",
@@ -1603,7 +1603,7 @@
     },
     "hiResBadge": {
       "title": "Distintivo Hi-Res / DSD",
-      "subtitle": "Mostra a pílula «Hi-Res 24-bit» ou «DSD128» ao lado das faixas elegíveis e sob o nome do artista na barra do reprodutor. Ativado por defeito."
+      "subtitle": "Mostra o selo «Hi-Res 24-bit» ou «DSD128» ao lado das faixas elegíveis e sob o nome do artista na barra do reprodutor. Ativado por defeito."
     }
   },
   "spotify": {

@@ -138,6 +138,7 @@
     "library": {
       "tracksCount_zero": "0 треков",
       "tracksCount_one": "{{count}} трек",
+      "tracksCount_few": "{{count}} трека",
       "tracksCount_other": "{{count}} треков",
       "createLibraryAria": "Создать новую библиотеку",
       "none": "Нет библиотек",
@@ -147,9 +148,11 @@
         "countLine": "{{tracks}} · {{albums}}",
         "tracks_zero": "0 треков",
         "tracks_one": "{{count}} трек",
+        "tracks_few": "{{count}} трека",
         "tracks_other": "{{count}} треков",
         "albums_zero": "0 альбомов",
         "albums_one": "{{count}} альбом",
+        "albums_few": "{{count}} альбома",
         "albums_other": "{{count}} альбомов",
         "see": "Открыть",
         "new": "Новая"
@@ -170,6 +173,7 @@
       "recent": "Недавно проигранные",
       "emptySubtext_zero": "0 треков",
       "emptySubtext_one": "{{count}} трек",
+      "emptySubtext_few": "{{count}} трека",
       "emptySubtext_other": "{{count}} треков",
       "createSmartAria": "Создать умный плейлист"
     },
@@ -188,6 +192,7 @@
     "myLibrary": {
       "playlistSubtext_zero": "0 треков",
       "playlistSubtext_one": "{{count}} трек",
+      "playlistSubtext_few": "{{count}} трека",
       "playlistSubtext_other": "{{count}} треков"
     }
   },
@@ -196,6 +201,7 @@
       "placeholder": "Поиск трека, исполнителя или альбома…",
       "results_zero": "Нет результатов",
       "results_one": "{{count}} результат",
+      "results_few": "{{count}} результата",
       "results_other": "{{count}} результатов",
       "empty": "Ничего не найдено по вашему запросу",
       "filters": {
@@ -230,7 +236,7 @@
     "greeting": {
       "morning": "Доброе утро",
       "evening": "Добрый вечер",
-      "night": "Спокойной ночи"
+      "night": "Доброй ночи"
     },
     "banner": {
       "badge": "Готовы слушать",
@@ -248,9 +254,10 @@
       "playlists": "Плейлисты"
     },
     "moodRadio": {
-      "title": "Mood Radio",
+      "title": "Радио по настроению",
       "subtitle": "Фильтр по темпу и энергии",
       "trackCount_one": "{{count}} трек",
+      "trackCount_few": "{{count}} трека",
       "trackCount_other": "{{count}} треков",
       "empty": "Недостаточно проанализированных треков",
       "loading": "Запуск…",
@@ -259,7 +266,7 @@
         "subtitle": "Спокойный темп для сосредоточенной работы"
       },
       "chill": {
-        "title": "Chill",
+        "title": "Расслабление",
         "subtitle": "Лёгкое прослушивание, чтобы расслабиться"
       },
       "workout": {
@@ -291,6 +298,7 @@
       "emptyDescription": "Послушайте несколько треков и нажмите «Обновить», чтобы создать персональные миксы.",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} трек",
+      "trackCount_few": "{{count}} трека",
       "trackCount_other": "{{count}} треков"
     },
     "onRepeat": {
@@ -311,18 +319,23 @@
       "subtext": {
         "morceaux_zero": "0 треков",
         "morceaux_one": "{{count}} трек",
+        "morceaux_few": "{{count}} трека",
         "morceaux_other": "{{count}} треков",
         "albums_zero": "0 альбомов",
         "albums_one": "{{count}} альбом",
+        "albums_few": "{{count}} альбома",
         "albums_other": "{{count}} альбомов",
         "artistes_zero": "0 исполнителей",
         "artistes_one": "{{count}} исполнитель",
+        "artistes_few": "{{count}} исполнителя",
         "artistes_other": "{{count}} исполнителей",
         "genres_zero": "0 жанров",
         "genres_one": "{{count}} жанр",
+        "genres_few": "{{count}} жанра",
         "genres_other": "{{count}} жанров",
         "dossiers_zero": "0 папок",
         "dossiers_one": "{{count}} папка",
+        "dossiers_few": "{{count}} папки",
         "dossiers_other": "{{count}} папок"
       }
     },
@@ -393,24 +406,29 @@
     "albumGrid": {
       "trackCount_zero": "0 треков",
       "trackCount_one": "{{count}} трек",
+      "trackCount_few": "{{count}} трека",
       "trackCount_other": "{{count}} треков"
     },
     "artistList": {
       "trackCount_zero": "0 треков",
       "trackCount_one": "{{count}} трек",
+      "trackCount_few": "{{count}} трека",
       "trackCount_other": "{{count}} треков",
       "albumCount_zero": "0 альбомов",
       "albumCount_one": "{{count}} альбом",
+      "albumCount_few": "{{count}} альбома",
       "albumCount_other": "{{count}} альбомов"
     },
     "genreList": {
       "trackCount_zero": "0 треков",
       "trackCount_one": "{{count}} трек",
+      "trackCount_few": "{{count}} трека",
       "trackCount_other": "{{count}} треков"
     },
     "folderList": {
       "trackCount_zero": "0 треков",
       "trackCount_one": "{{count}} трек",
+      "trackCount_few": "{{count}} трека",
       "trackCount_other": "{{count}} треков",
       "lastScanned": "Отсканировано: {{date}}",
       "neverScanned": "никогда",
@@ -427,6 +445,7 @@
     "title": "Любимые треки",
     "count_zero": "0 треков",
     "count_one": "{{count}} трек",
+    "count_few": "{{count}} трека",
     "count_other": "{{count}} треков",
     "emptyTitle": "Нет любимых треков",
     "emptyDescription": "Треки, которые вы лайкнете, появятся здесь. Откройте библиотеку и добавьте в любимое те, что нравятся.",
@@ -445,8 +464,10 @@
     "emptyTitle": "Пока нет прослушиваний",
     "emptyDescription": "Запустите трек — он появится здесь, как только будет засчитан.",
     "shownCount_one": "Показано {{count}} прослушивание",
+    "shownCount_few": "Показано {{count}} прослушивания",
     "shownCount_other": "Показано {{count}} прослушиваний",
     "plays_one": "{{count}} прослушивание",
+    "plays_few": "{{count}} прослушивания",
     "plays_other": "{{count}} прослушиваний",
     "range": {
       "all": "Всё",
@@ -461,6 +482,7 @@
     "title": "Недавно проигранные",
     "count_zero": "0 треков",
     "count_one": "{{count}} трек",
+    "count_few": "{{count}} трека",
     "count_other": "{{count}} треков",
     "emptyTitle": "Нет недавних треков",
     "emptyDescription": "Треки, которые вы слушаете, появятся здесь автоматически."
@@ -483,6 +505,7 @@
       "uniqueTracks": "Уникальные треки",
       "uniqueArtists_zero": "0 исполнителей",
       "uniqueArtists_one": "{{count}} исполнитель",
+      "uniqueArtists_few": "{{count}} исполнителя",
       "uniqueArtists_other": "{{count}} исполнителей",
       "completionRate": "Доля полностью прослушанных"
     },
@@ -516,6 +539,7 @@
     },
     "plays_zero": "0 прослушиваний",
     "plays_one": "{{count}} прослушивание",
+    "plays_few": "{{count}} прослушивания",
     "plays_other": "{{count}} прослушиваний",
     "export": {
       "label": "Экспорт статистики",
@@ -535,6 +559,7 @@
     "backToHome": "На главную",
     "playsShort_zero": "0 прослушиваний",
     "playsShort_one": "{{count}} прослушивание",
+    "playsShort_few": "{{count}} прослушивания",
     "playsShort_other": "{{count}} прослушиваний",
     "empty": {
       "title": "Пока нет истории прослушиваний",
@@ -548,6 +573,7 @@
       "eyebrow": "Вы прослушали",
       "subtitle_zero": "0 минут музыки",
       "subtitle_one": "{{count}} минута музыки",
+      "subtitle_few": "{{count}} минуты музыки",
       "subtitle_other": "{{count}} минут музыки"
     },
     "stats": {
@@ -573,11 +599,11 @@
       "subtitle": "Ритм, который сопровождал вас весь год",
       "loudness": "Средняя громкость: {{lufs}} LUFS",
       "energy": {
-        "chill": "Chill",
+        "chill": "Расслабление",
         "warm": "Тёплый",
-        "groove": "Groove",
+        "groove": "Грув",
         "energetic": "Энергичный",
-        "fire": "Заряженный"
+        "fire": "Зажигательный"
       }
     },
     "clock": {
@@ -588,6 +614,7 @@
       "eyebrow": "Ваша самая длинная серия",
       "daysLabel_zero": "0 дней подряд",
       "daysLabel_one": "{{count}} день подряд",
+      "daysLabel_few": "{{count}} дня подряд",
       "daysLabel_other": "{{count}} дней подряд",
       "range": "С {{start}} по {{end}}",
       "daysShort": "дней подряд"
@@ -620,8 +647,8 @@
     },
     "sections": {
       "frameworkDesktop": "Десктопный фреймворк",
-      "frontend": "Frontend",
-      "backend": "Backend (Rust)",
+      "frontend": "Фронтенд",
+      "backend": "Бэкенд (Rust)",
       "audio": "Аудио",
       "shortcuts": "Сочетания клавиш",
       "changelog": "Список изменений",
@@ -684,7 +711,7 @@
       "title": "Скорость воспроизведения",
       "slider": "Ползунок скорости",
       "custom": "Своя скорость",
-      "pitchHint": "Высота следует за скоростью (без time-stretching)."
+      "pitchHint": "Высота тона меняется вместе со скоростью (без растягивания времени)."
     },
     "seek": "Позиция"
   },
@@ -693,15 +720,17 @@
     "inactive": "НЕАКТИВНА",
     "count_zero": "0 треков",
     "count_one": "{{count}} трек",
+    "count_few": "{{count}} трека",
     "count_other": "{{count}} треков",
     "emptyTitle": "Нечего слушать",
     "emptyDescription": "Запустите трек из библиотеки, чтобы заполнить очередь.",
     "nowPlaying": "Сейчас играет",
     "upNext_zero": "Далее",
     "upNext_one": "Далее · {{count}} трек",
+    "upNext_few": "Далее · {{count}} трека",
     "upNext_other": "Далее · {{count}} треков",
     "radio": {
-      "label": "Radio",
+      "label": "Радио",
       "basedOn": "На основе «{{title}}»"
     }
   },
@@ -788,6 +817,7 @@
     "badge": "Плейлист",
     "trackCount_zero": "0 треков",
     "trackCount_one": "{{count}} трек",
+    "trackCount_few": "{{count}} трека",
     "trackCount_other": "{{count}} треков",
     "actions": {
       "play": "Воспроизвести",
@@ -833,7 +863,7 @@
     "title": "Пакетное редактирование тегов",
     "subtitle": "Выбрано треков: {{count}}",
     "help": "Отметьте поля, которые нужно применить ко всем трекам. Неотмеченные поля останутся без изменений у каждого трека.",
-    "submit": "Применить ({{count}} поле(й))",
+    "submit": "Применить ({{count}} полей)",
     "fields": {
       "artist": "Исполнитель",
       "album": "Альбом",
@@ -899,6 +929,7 @@
     "toolbarLabel": "Действия с выбранным",
     "count_zero": "0 выбрано",
     "count_one": "{{count}} выбран",
+    "count_few": "{{count}} выбрано",
     "count_other": "{{count}} выбрано",
     "play": "Воспроизвести",
     "addToQueue": "Добавить в очередь",
@@ -913,6 +944,7 @@
     "shuffle": "Перемешать",
     "trackCount_zero": "0 треков",
     "trackCount_one": "{{count}} трек",
+    "trackCount_few": "{{count}} трека",
     "trackCount_other": "{{count}} треков",
     "discHeader": "Диск {{number}}",
     "releaseDate": "Дата выхода",
@@ -929,12 +961,15 @@
     "allTracks": "Все треки",
     "trackCount_zero": "0 треков",
     "trackCount_one": "{{count}} трек",
+    "trackCount_few": "{{count}} трека",
     "trackCount_other": "{{count}} треков",
     "albumCount_zero": "0 альбомов",
     "albumCount_one": "{{count}} альбом",
+    "albumCount_few": "{{count}} альбома",
     "albumCount_other": "{{count}} альбомов",
     "albumTrackCount_zero": "0 треков",
     "albumTrackCount_one": "{{count}} трек",
+    "albumTrackCount_few": "{{count}} трека",
     "albumTrackCount_other": "{{count}} треков",
     "emptyTitle": "Исполнитель не найден",
     "emptyDescription": "Этого исполнителя больше нет в активном профиле.",
@@ -962,6 +997,7 @@
     "shuffle": "Перемешать",
     "trackCount_zero": "0 треков",
     "trackCount_one": "{{count}} трек",
+    "trackCount_few": "{{count}} трека",
     "trackCount_other": "{{count}} треков",
     "emptyTitle": "Жанр не найден",
     "emptyDescription": "Этого жанра больше нет в активном профиле.",
@@ -1043,6 +1079,7 @@
     "customPlaceholder": "Мин.",
     "customAriaLabel": "Своя длительность в минутах",
     "minutes_one": "{{count}} мин",
+    "minutes_few": "{{count}} мин",
     "minutes_other": "{{count}} мин"
   },
   "lyrics": {
@@ -1083,6 +1120,7 @@
     "rescan": "Пересканировать",
     "deleteOthers_zero": "Удалять нечего",
     "deleteOthers_one": "Удалить {{count}} дубликат",
+    "deleteOthers_few": "Удалить {{count}} дубликата",
     "deleteOthers_other": "Удалить {{count}} дубликатов",
     "keepAria": "Сохранить {{title}}"
   },
@@ -1151,6 +1189,7 @@
       "matchNoneEmpty": "(нет треков)",
       "childCount_zero": "пусто",
       "childCount_one": "{{count}} условие",
+      "childCount_few": "{{count}} условия",
       "childCount_other": "{{count}} условий",
       "notHint": "Исключает всё, что подходит под вложенное условие",
       "deleteNode": "Удалить",
@@ -1312,7 +1351,7 @@
       }
     },
     "crossfade": {
-      "title": "Crossfade",
+      "title": "Кроссфейд",
       "subtitle": "Плавные переходы между треками (скоро)"
     },
     "normalize": {
@@ -1381,6 +1420,7 @@
       "autoTitle": "Автоматический анализ",
       "autoSubtitle": "Запускать анализ в фоне после каждого сканирования, которое добавляет новые треки",
       "failed_one": "{{count}} ошибка",
+      "failed_few": "{{count}} ошибки",
       "failed_other": "{{count}} ошибок"
     },
     "artistImages": {
@@ -1448,12 +1488,12 @@
       "subtitle": "Показывает спектр в реальном времени в иммерсивном режиме (лёгкий FFT в потоке декодера)"
     },
     "smartCrossfade": {
-      "title": "Умный crossfade",
-      "subtitle": "Автоматически пропускает crossfade между двумя треками одного альбома (отлично для концептуальных альбомов и live-сетов)"
+      "title": "Умный кроссфейд",
+      "subtitle": "Автоматически пропускает кроссфейд между двумя треками одного альбома (отлично для концептуальных альбомов и live-сетов)"
     },
     "dynamicCrossfade": {
-      "title": "Динамический crossfade",
-      "subtitle": "Подстраивает длительность crossfade под разницу темпов треков (возвращается к фиксированному crossfade, если BPM неизвестен)"
+      "title": "Динамический кроссфейд",
+      "subtitle": "Подстраивает длительность кроссфейда под разницу темпов треков (возвращается к фиксированному кроссфейду, если BPM неизвестен)"
     },
     "gapless": {
       "title": "Воспроизведение без пауз (gapless)",
@@ -1461,31 +1501,31 @@
     },
     "equalizer": {
       "title": "Эквалайзер",
-      "subtitle": "Шесть peaking-полос, ±12 дБ. Перетаскивайте точки, чтобы изменять кривую.",
+      "subtitle": "Шесть пиковых полос, ±12 дБ. Перетаскивайте точки, чтобы настраивать кривую.",
       "presets": "Пресеты",
       "reset": "Сбросить",
       "preset": {
         "custom": "Свой",
-        "flat": "Flat",
-        "acoustic": "Acoustic",
-        "bass_booster": "Bass booster",
-        "bass_reducer": "Bass reducer",
+        "flat": "Ровный",
+        "acoustic": "Акустика",
+        "bass_booster": "Усиление баса",
+        "bass_reducer": "Ослабление баса",
         "classical": "Классика",
-        "dance": "Dance",
-        "deep": "Deep",
-        "electronic": "Electronic",
+        "dance": "Танцевальная",
+        "deep": "Глубокий",
+        "electronic": "Электронная",
         "hip_hop": "Hip-Hop",
         "jazz": "Jazz",
         "latin": "Latin",
-        "loudness": "Loudness",
-        "lounge": "Lounge",
+        "loudness": "Громкость",
+        "lounge": "Лаунж",
         "piano": "Piano",
         "pop": "Pop",
         "rnb": "R&B",
         "rock": "Rock",
         "small_speakers": "Малые колонки",
-        "spoken_word": "Spoken word",
-        "treble_booster": "Treble booster"
+        "spoken_word": "Разговорный",
+        "treble_booster": "Усиление высоких"
       }
     },
     "backup": {
@@ -1493,9 +1533,11 @@
       "subtitle": "Регулярно создаёт архив .waveflow для каждого профиля в выбранной папке.",
       "intervalLabel": "Периодичность",
       "intervalDays_one": "Каждый день",
+      "intervalDays_few": "Каждые {{count}} дня",
       "intervalDays_other": "Каждые {{count}} дней",
       "retentionLabel": "Сколько хранить архивов",
       "retentionKeep_one": "{{count}} архив на профиль",
+      "retentionKeep_few": "{{count}} архива на профиль",
       "retentionKeep_other": "{{count}} архивов на профиль",
       "includeMetadataArtworkLabel": "Включать кеш обложек Deezer",
       "includeMetadataArtworkHint": "Архив больше, полное офлайн-восстановление. Снимите флажок для облегчённых архивов (кеш будет получен заново по требованию).",
@@ -1505,6 +1547,7 @@
       "neverRun": "никогда",
       "runNow": "Создать копию сейчас",
       "runOk_one": "Записан {{count}} архив.",
+      "runOk_few": "Записано {{count}} архива.",
       "runOk_other": "Записано архивов: {{count}}.",
       "errors": {
         "loadFailed": "Не удалось загрузить настройки резервного копирования.",
@@ -1578,7 +1621,7 @@
         },
         "none": {
           "label": "Ничего не делать",
-          "description": "Отключает клик полностью — удобно, если вы случайно его срабатываете."
+          "description": "Отключает клик полностью — удобно, если вы нажимаете случайно."
         }
       }
     },

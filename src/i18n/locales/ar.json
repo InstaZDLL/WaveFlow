@@ -91,7 +91,7 @@
       "description": "تم فحص مكتبتك وهي جاهزة للتشغيل.",
       "nextSteps": "الخطوات التالية:",
       "bulletExplore": "استكشف مكتبتك عبر علامات التبويب «المكتبة» و«الألبومات» و«الفنانون»",
-      "bulletQueue": "أنشئ أول قائمة تشغيل لك بالنقر على مقطع",
+      "bulletQueue": "أنشئ أول قائمة انتظار لك بالنقر على أغنية",
       "bulletSettings": "اضبط التفاصيل من الشريط الجانبي (المظهر، التكاملات…)"
     },
     "actions": {
@@ -155,7 +155,7 @@
         "new": "جديد"
       },
       "nav": {
-        "tracks": "المقاطع",
+        "tracks": "الأغاني",
         "albums": "الألبومات",
         "artists": "الفنانون",
         "genres": "الأنواع",
@@ -248,7 +248,7 @@
       "playlists": "قوائم التشغيل"
     },
     "moodRadio": {
-      "title": "Mood Radio",
+      "title": "راديو المزاج",
       "subtitle": "مصفّاة حسب الإيقاع والطاقة",
       "trackCount_one": "{{count}} مقطع",
       "trackCount_other": "{{count}} مقطع",
@@ -259,7 +259,7 @@
         "subtitle": "إيقاعات هادئة للتركيز"
       },
       "chill": {
-        "title": "Chill",
+        "title": "استرخاء",
         "subtitle": "استماع خفيف للاسترخاء"
       },
       "workout": {
@@ -327,7 +327,7 @@
       }
     },
     "tabs": {
-      "morceaux": "المقاطع",
+      "morceaux": "الأغاني",
       "albums": "الألبومات",
       "artistes": "الفنانون",
       "genres": "الأنواع",
@@ -573,9 +573,9 @@
       "subtitle": "الإيقاع الذي رافق سنتك",
       "loudness": "متوسط الجهارة: {{lufs}} LUFS",
       "energy": {
-        "chill": "Chill",
+        "chill": "استرخاء",
         "warm": "دافئ",
-        "groove": "Groove",
+        "groove": "إيقاع",
         "energetic": "حيوي",
         "fire": "حماسي"
       }
@@ -607,7 +607,7 @@
     },
     "outro": {
       "title": "شكرًا لاستماعك مع WaveFlow",
-      "subtitle": "واصل الاستكشاف — يتحدث Wrapped خاصتك في الوقت الفعلي.",
+      "subtitle": "واصل الاستكشاف — يتم تحديث ملخصك السنوي في الوقت الفعلي.",
       "cta": "العودة إلى الرئيسية"
     }
   },
@@ -684,24 +684,24 @@
       "title": "سرعة التشغيل",
       "slider": "شريط السرعة",
       "custom": "سرعة مخصصة",
-      "pitchHint": "الطبقة تتبع السرعة (دون time-stretching)."
+      "pitchHint": "الطبقة تتبع السرعة (دون تمديد الوقت)."
     },
     "seek": "الموضع"
   },
   "queue": {
-    "title": "قائمة التشغيل",
+    "title": "قائمة الانتظار",
     "inactive": "غير نشطة",
-    "count_zero": "0 مقطع",
-    "count_one": "{{count}} مقطع",
-    "count_other": "{{count}} مقطع",
+    "count_zero": "0 أغنية",
+    "count_one": "{{count}} أغنية",
+    "count_other": "{{count}} أغنية",
     "emptyTitle": "لا شيء للاستماع إليه",
-    "emptyDescription": "شغّل مقطعًا من مكتبتك لملء القائمة.",
+    "emptyDescription": "شغّل أغنية من مكتبتك لملء قائمة الانتظار.",
     "nowPlaying": "قيد التشغيل",
     "upNext_zero": "التالي",
     "upNext_one": "التالي · {{count}} مقطع",
     "upNext_other": "التالي · {{count}} مقطع",
     "radio": {
-      "label": "Radio",
+      "label": "الراديو",
       "basedOn": "استنادًا إلى «{{title}}»"
     }
   },
@@ -813,7 +813,7 @@
     "noPlaylists": "لا توجد قوائم تشغيل. أنشئ واحدة أدناه.",
     "createPlaylist": "قائمة تشغيل جديدة",
     "playNext": "تشغيل التالي",
-    "addToQueue": "إضافة إلى القائمة",
+    "addToQueue": "إضافة إلى قائمة الانتظار",
     "like": "إضافة إلى المفضلة",
     "unlike": "إزالة من المفضلة",
     "removeFromPlaylist": "إزالة من قائمة التشغيل هذه",
@@ -822,7 +822,7 @@
     "showInExplorer": "إظهار في المستكشف",
     "copyPath": "نسخ مسار الملف",
     "properties": "الخصائص",
-    "startRadio": "تشغيل Radio",
+    "startRadio": "تشغيل الراديو",
     "rating": "التقييم",
     "ratingNone": "بدون تقييم",
     "batchEdit": "تعديل وسوم {{count}} مقطع…",
@@ -869,7 +869,7 @@
     "year": "السنة",
     "trackNumber": "رقم المقطع",
     "duration": "المدة",
-    "codec": "Codec",
+    "codec": "الترميز",
     "bitDepth": "عمق البت",
     "sampleRate": "معدل أخذ العينات",
     "channels": "القنوات",
@@ -954,8 +954,8 @@
     "fansCount_zero": "لا يوجد معجبون",
     "fansCount_one": "{{display}} معجب",
     "fansCount_two": "معجبان",
-    "fansCount_few": "{{display}} معجبين",
-    "fansCount_many": "{{display}} معجبًا",
+    "fansCount_few": "{{display}} معجب",
+    "fansCount_many": "{{display}} معجب",
     "fansCount_other": "{{display}} معجب"
   },
   "genreDetail": {
@@ -983,7 +983,7 @@
       "title": "الكلمات",
       "comingSoon": "قريبًا"
     },
-    "startRadio": "تشغيل Radio",
+    "startRadio": "تشغيل الراديو",
     "share": {
       "open": "مشاركة",
       "save": "حفظ كصورة PNG",
@@ -995,7 +995,7 @@
   "playerBar": {
     "lyrics": "الكلمات",
     "nowPlaying": "إظهار المقطع قيد التشغيل",
-    "queue": "القائمة",
+    "queue": "قائمة الانتظار",
     "miniPlayer": "المشغّل المصغّر (دائمًا في الأعلى)",
     "previous": "المقطع السابق",
     "next": "المقطع التالي",
@@ -1015,12 +1015,12 @@
       "processing": "المعالجة",
       "output": "الخرج",
       "noProcessing": "لا توجد معالجة مطبقة",
-      "bitPerfect": "Bit-perfect",
+      "bitPerfect": "دقة بت مثالية",
       "loading": "جارٍ التحميل…",
       "chip": {
         "dsdToPcm": "DSD → PCM",
         "resample": "إعادة تركيب",
-        "downmix": "Downmix",
+        "downmix": "تقليل القنوات",
         "eq": "معادل الصوت",
         "replayGain": "ReplayGain",
         "normalize": "تسوية",
@@ -1189,7 +1189,7 @@
     "plainPlaceholder": "اكتب الكلمات سطرًا تلو الآخر…",
     "linePlaceholder": "نص السطر",
     "capture": "التقاط",
-    "captureHint": "ابدأ التشغيل ثم اضغط على المسطار (أو «التقاط») لربط السطر الحالي بموضع التشغيل",
+    "captureHint": "ابدأ التشغيل ثم اضغط على مفتاح المسافة (أو «التقاط») لربط السطر الحالي بموضع التشغيل",
     "captureNow": "التقاط الآن",
     "recapture": "إعادة الربط بالموضع الحالي",
     "seekToLine": "الانتقال إلى هذا السطر",
@@ -1207,7 +1207,7 @@
       "line": "سطرًا بسطر",
       "word": "كلمة بكلمة"
     },
-    "captureHintWord": "مسطار = الكلمة التالية · Enter = السطر التالي · Backspace = التراجع عن الكلمة الأخيرة",
+    "captureHintWord": "مفتاح المسافة = الكلمة التالية · Enter = السطر التالي · Backspace = التراجع عن الكلمة الأخيرة",
     "notCaptured": "لم يتم الالتقاط"
   },
   "sort": {
@@ -1309,12 +1309,12 @@
         "connect": "ربط Spotify"
       },
       "notifications": {
-        "title": "إشعارات تغيير المسار",
-        "subtitle": "عرض إشعار نظام في بداية كل مسار (العنوان + الفنان). معطّل افتراضيًا."
+        "title": "إشعارات تغيير الأغنية",
+        "subtitle": "عرض إشعار نظام في بداية كل أغنية (العنوان + الفنان). معطّل افتراضيًا."
       }
     },
     "crossfade": {
-      "title": "Crossfade",
+      "title": "المزج المتقاطع",
       "subtitle": "انتقالات سلسة بين المقاطع (قريبًا)"
     },
     "normalize": {
@@ -1450,12 +1450,12 @@
       "subtitle": "يعرض طيفًا في الوقت الفعلي في العرض الانغماسي (FFT خفيف على خيط فك التشفير)"
     },
     "smartCrossfade": {
-      "title": "Crossfade ذكي",
-      "subtitle": "يتخطى تلقائيًا الـ Crossfade بين مقطعين من نفس الألبوم (مثالي لألبومات المفهوم والحفلات الحية)"
+      "title": "المزج المتقاطع الذكي",
+      "subtitle": "يتخطى تلقائيًا المزج المتقاطع بين مقطعين من نفس الألبوم (مثالي لألبومات المفهوم والحفلات الحية)"
     },
     "dynamicCrossfade": {
-      "title": "Crossfade ديناميكي",
-      "subtitle": "يضبط مدة الـ Crossfade وفق فارق الإيقاع بين المقاطع (يعود إلى الـ Crossfade الثابت إذا كان BPM غير معروف)"
+      "title": "المزج المتقاطع الديناميكي",
+      "subtitle": "يضبط مدة المزج المتقاطع وفق فارق الإيقاع بين المقاطع (يعود إلى المزج الثابت إذا كان BPM غير معروف)"
     },
     "gapless": {
       "title": "تشغيل دون فجوات",
@@ -1468,23 +1468,23 @@
       "reset": "إعادة تعيين",
       "preset": {
         "custom": "مخصص",
-        "flat": "Flat",
-        "acoustic": "Acoustic",
+        "flat": "مسطح",
+        "acoustic": "صوتي",
         "bass_booster": "تعزيز الجهير",
         "bass_reducer": "تخفيف الجهير",
         "classical": "كلاسيكي",
-        "dance": "Dance",
-        "deep": "Deep",
-        "electronic": "Electronic",
+        "dance": "رقص",
+        "deep": "عميق",
+        "electronic": "إلكتروني",
         "hip_hop": "Hip-Hop",
         "jazz": "Jazz",
         "latin": "Latin",
         "loudness": "تعزيز الجهارة",
-        "lounge": "Lounge",
+        "lounge": "استرخاء",
         "piano": "بيانو",
-        "pop": "Pop",
+        "pop": "بوب",
         "rnb": "R&B",
-        "rock": "Rock",
+        "rock": "روك",
         "small_speakers": "مكبرات صغيرة",
         "spoken_word": "كلام منطوق",
         "treble_booster": "تعزيز الحادة"
@@ -1519,7 +1519,7 @@
       "subtitle": "تكبير الواجهة بالكامل (Ctrl+= / Ctrl+- / Ctrl+0 تعمل أيضًا)",
       "decreaseAria": "تصغير",
       "increaseAria": "تكبير",
-      "resetAria": "إعادة الزوم إلى 100 %"
+      "resetAria": "إعادة التكبير إلى 100 %"
     },
     "showAudioQualityFooter": {
       "title": "إظهار شريط جودة الصوت",
@@ -1554,7 +1554,7 @@
     },
     "playerBarLayout": {
       "title": "تخطيط شريط التشغيل",
-      "subtitle": "اختر الأزرار الظاهرة في الشريط، وحدد ما يحدث عند النقر على الغلاف. تتحدث المعاينة فوراً.",
+      "subtitle": "اختر الأزرار الظاهرة في الشريط، وحدد ما يحدث عند النقر على الغلاف. تُحدَّث المعاينة فورًا.",
       "preview": "معاينة",
       "previewEmpty": "لا توجد أزرار — سيُعرض في الشريط الغلافُ وعناصرُ التحكم بالتشغيل فقط.",
       "buttons": {
@@ -1607,7 +1607,7 @@
     },
     "hiResBadge": {
       "title": "شارة Hi-Res / DSD",
-      "subtitle": "عرض ملصق «Hi-Res 24-bit» أو «DSD128» بجانب المسارات المؤهلة وأسفل اسم الفنان في شريط المشغل. مفعّل افتراضيًا."
+      "subtitle": "عرض ملصق «Hi-Res 24-bit» أو «DSD128» بجانب الأغاني المؤهلة وأسفل اسم الفنان في شريط المشغّل. مفعّل افتراضيًا."
     }
   },
   "spotify": {

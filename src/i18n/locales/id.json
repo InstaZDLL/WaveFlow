@@ -65,16 +65,16 @@
       "keyHint": "Buat kunci API di Last.fm",
       "keyLabel": "Kunci API",
       "keyPlaceholder": "Kunci API Last.fm-mu",
-      "secretLabel": "Shared secret",
-      "secretPlaceholder": "Shared secret kamu",
+      "secretLabel": "Rahasia bersama",
+      "secretPlaceholder": "Rahasia bersama kamu",
       "userLabel": "Nama pengguna Last.fm",
       "userPlaceholder": "nama-kamu",
       "passwordLabel": "Kata sandi",
       "passwordPlaceholder": "Kata sandi Last.fm-mu",
-      "toggleSecret": "Tampilkan/sembunyikan secret",
+      "toggleSecret": "Tampilkan/sembunyikan rahasia",
       "togglePassword": "Tampilkan/sembunyikan kata sandi",
       "connect": "Hubungkan Last.fm",
-      "missingFields": "Mohon isi kunci API, secret, nama pengguna, dan kata sandi.",
+      "missingFields": "Mohon isi kunci API, rahasia, nama pengguna, dan kata sandi.",
       "connectedTitle": "Terhubung sebagai {{user}}",
       "connectedSubtitle": "Scrobbling otomatis aktif begitu kamu memutar lagu."
     },
@@ -263,7 +263,7 @@
         "subtitle": "Dengaran ringan untuk bersantai"
       },
       "workout": {
-        "title": "Workout",
+        "title": "Olahraga",
         "subtitle": "Tempo stabil untuk tetap bergerak"
       },
       "party": {
@@ -383,8 +383,8 @@
       "duration": "Durasi",
       "unknown": "—"
     },
-    "rating": "Peringkat",
-    "noRating": "Tanpa peringkat",
+    "rating": "Penilaian",
+    "noRating": "Tanpa penilaian",
     "viewToggle": {
       "label": "Mode tampilan",
       "list": "Daftar",
@@ -510,7 +510,7 @@
     "heatmap": {
       "title": "Aktivitas tahunan",
       "empty": "Belum ada pemutaran dalam 12 bulan terakhir.",
-      "summary": "{{time}} pemutaran sepanjang tahun — {{plays}} pemutaran",
+      "summary": "{{time}} didengarkan sepanjang tahun — {{plays}} pemutaran",
       "less": "Kurang",
       "more": "Lebih"
     },
@@ -686,7 +686,7 @@
       "custom": "Kecepatan kustom",
       "pitchHint": "Pitch mengikuti kecepatan (tanpa time-stretching)."
     },
-    "seek": "Posisi"
+    "seek": "Geser posisi"
   },
   "queue": {
     "title": "Antrean putar",
@@ -820,11 +820,11 @@
     "goToAlbum": "Ke album",
     "goToArtist": "Ke artis",
     "showInExplorer": "Tampilkan di Penjelajah",
-    "copyPath": "Salin path berkas",
+    "copyPath": "Salin jalur berkas",
     "properties": "Properti",
     "startRadio": "Mulai radio",
-    "rating": "Peringkat",
-    "ratingNone": "Tanpa peringkat",
+    "rating": "Penilaian",
+    "ratingNone": "Tanpa penilaian",
     "batchEdit": "Sunting tag untuk {{count}} lagu…",
     "addToPlaylistNamed": "Tambahkan ke «{{name}}»",
     "removeFromPlaylistNamed": "Hapus dari «{{name}}»"
@@ -877,7 +877,7 @@
     "key": "Nada dasar",
     "fileSize": "Ukuran",
     "addedAt": "Ditambahkan pada",
-    "filePath": "Path",
+    "filePath": "Jalur",
     "showInExplorer": "Tampilkan di Penjelajah",
     "mono": "Mono",
     "stereo": "Stereo",
@@ -1090,9 +1090,9 @@
     "subtitle": "Menerima folder atau berkas audio"
   },
   "abLoop": {
-    "setA": "Ulang A-B: tandai titik A di posisi saat ini",
-    "setB": "Ulang A-B: tandai titik B (A = {{a}})",
-    "armed": "Ulang A-B aktif: {{a}} → {{b}} (klik untuk membersihkan)"
+    "setA": "Loop A-B: tandai titik A di posisi saat ini",
+    "setB": "Loop A-B: tandai titik B (A = {{a}})",
+    "armed": "Loop A-B aktif: {{a}} → {{b}} (klik untuk membatalkan)"
   },
   "smartPlaylistEditor": {
     "createTitle": "Daftar putar pintar baru",
@@ -1267,7 +1267,7 @@
         "title": "Last.fm",
         "subtitle": "Bio artis dan scrobbling. Buat kunci di last.fm/api/account/create",
         "placeholder": "Kunci API",
-        "secretPlaceholder": "Shared secret",
+        "secretPlaceholder": "Rahasia bersama",
         "save": "Simpan",
         "saved": "Tersimpan ✓",
         "show": "Tampilkan",
@@ -1603,7 +1603,7 @@
     },
     "hiResBadge": {
       "title": "Lencana Hi-Res / DSD",
-      "subtitle": "Tampilkan pil «Hi-Res 24-bit» atau «DSD128» di samping lagu yang memenuhi syarat dan di bawah nama artis di bilah pemutar. Aktif secara default."
+      "subtitle": "Tampilkan lencana «Hi-Res 24-bit» atau «DSD128» di samping lagu yang memenuhi syarat dan di bawah nama artis di bilah pemutar. Aktif secara default."
     }
   },
   "spotify": {
