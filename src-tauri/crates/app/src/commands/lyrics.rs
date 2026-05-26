@@ -24,10 +24,11 @@ use lofty::tag::ItemKey;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 
+use waveflow_core::metadata::lrclib::LrclibClient;
+
 use crate::{
     audio::AudioEngine,
     error::{AppError, AppResult},
-    lrclib::LrclibClient,
     state::AppState,
 };
 

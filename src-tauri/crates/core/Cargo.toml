@@ -28,3 +28,20 @@ thiserror = "2"
 # means the workspace's effective sqlx build still has `sqlite`,
 # `runtime-tokio`, `migrate`, … when `crates/app` opts into them.
 sqlx = { version = "0.9", default-features = false, features = ["macros"] }
+
+# Metadata enrichment HTTP clients (Deezer, Last.fm, LRCLIB). Pure
+# `reqwest` over rustls — no Tauri, no DB, designed to be reusable
+# from the future `waveflow-server` axum handlers.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+# Last.fm signed write methods (`auth.getMobileSession`, `track.scrobble`,
+# `track.updateNowPlaying`) require an md5 of the param block + secret;
+# `hex` encodes the digest into the canonical 32-char lowercase string
+# the API expects.
+md-5 = "0.11"
+hex = "0.4"
+# Stripping HTML tags out of Last.fm bio summaries before the desktop
+# renders them.
+regex = "1"
+# Used by the Last.fm + LRCLIB clients to parse the more dynamic
+# response shapes that don't deserialize cleanly into a fixed struct.
+serde_json = "1"

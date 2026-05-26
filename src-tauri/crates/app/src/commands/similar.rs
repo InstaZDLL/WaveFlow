@@ -20,11 +20,11 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
+use waveflow_core::metadata::{deezer::DeezerClient, lastfm::LastfmClient};
+
 use crate::{
     commands::{integration::read_lastfm_api_key, scan::canonical_name},
-    deezer::DeezerClient,
     error::AppResult,
-    lastfm::LastfmClient,
     metadata_artwork,
     state::AppState,
 };
@@ -316,7 +316,7 @@ async fn enrich_with_deezer_pictures(
 
     let client = DeezerClient::new();
     let expires = now + CACHE_TTL_MS;
-    let fetched: Vec<(String, Option<crate::deezer::DeezerArtistHit>)> =
+    let fetched: Vec<(String, Option<waveflow_core::metadata::deezer::DeezerArtistHit>)> =
         futures::stream::iter(miss_names.into_iter().map(|name| {
             let client = client.clone();
             async move {

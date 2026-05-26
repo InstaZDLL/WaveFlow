@@ -11,9 +11,10 @@
 use chrono::Utc;
 use serde::Serialize;
 
+use waveflow_core::metadata::lastfm::{LastfmClient, LastfmError};
+
 use crate::{
     error::{AppError, AppResult},
-    lastfm::{LastfmClient, LastfmError},
     state::AppState,
 };
 

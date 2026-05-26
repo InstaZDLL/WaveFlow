@@ -20,11 +20,11 @@ use serde::Serialize;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter};
 
+use waveflow_core::metadata::{deezer::DeezerClient, lastfm::LastfmClient};
+
 use crate::{
     commands::integration::read_lastfm_api_key,
-    deezer::DeezerClient,
     error::{AppError, AppResult},
-    lastfm::LastfmClient,
     metadata_artwork,
     state::AppState,
 };

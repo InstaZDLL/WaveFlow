@@ -25,11 +25,9 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::time;
 
-use crate::{
-    commands::integration::read_lastfm_credentials,
-    lastfm::{is_permanent_error, LastfmClient, LastfmError},
-    state::AppState,
-};
+use waveflow_core::metadata::lastfm::{is_permanent_error, LastfmClient, LastfmError};
+
+use crate::{commands::integration::read_lastfm_credentials, state::AppState};
 
 /// Last.fm error code that signals our session key is no longer
 /// valid (the user revoked the app, changed password, or Last.fm

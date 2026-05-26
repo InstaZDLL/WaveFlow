@@ -307,7 +307,7 @@ fn schedule_now_playing(app: &AppHandle, track: &QueueTrack) {
         };
         let (api_key, api_secret, session_key, _username) = creds;
 
-        let client = crate::lastfm::LastfmClient::new();
+        let client = waveflow_core::metadata::lastfm::LastfmClient::new();
         let duration_s = if duration_ms > 0 {
             Some(duration_ms / 1000)
         } else {
@@ -328,7 +328,7 @@ fn schedule_now_playing(app: &AppHandle, track: &QueueTrack) {
             Ok(()) => {
                 tracing::debug!(track_id, "lastfm updateNowPlaying ok");
             }
-            Err(crate::lastfm::LastfmError::Api { code: 9, .. }) => {
+            Err(waveflow_core::metadata::lastfm::LastfmError::Api { code: 9, .. }) => {
                 // Same recovery as the scrobbler: wipe the dead
                 // session + raise the re-auth banner. Pulling the
                 // pool here is best-effort — failure to acquire it
