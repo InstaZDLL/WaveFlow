@@ -9,6 +9,8 @@
 //! repo.list_all().await
 //! ```
 
+pub mod library;
 pub mod profile;
 
+pub use library::SqliteLibraryRepository;
 pub use profile::SqliteProfileRepository;

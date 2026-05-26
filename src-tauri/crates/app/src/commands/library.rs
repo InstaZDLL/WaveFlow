@@ -1,6 +1,10 @@
 use chrono::Utc;
 use serde::Serialize;
-use sqlx::FromRow;
+
+use waveflow_core::repository::{
+    library::{LibraryDraft, LibraryRepository, LibraryUpdate},
+    sqlite::SqliteLibraryRepository,
+};
 
 use crate::{
     commands::scan::{scan_folder_inner, ScanSummary},
@@ -10,7 +14,10 @@ use crate::{
 };
 // `Library` + input DTOs moved to `waveflow_core::domain::library` in the
 // Phase 1.a refactor. Re-exported so existing call sites keep resolving.
-pub use waveflow_core::domain::library::{CreateLibraryInput, Library, UpdateLibraryInput};
+// `LibraryFolder` moved alongside them in step 5.b.
+pub use waveflow_core::domain::library::{
+    CreateLibraryInput, Library, LibraryFolder, UpdateLibraryInput,
+};
 
 /// Aggregate result returned by `rescan_library` — summed across every
 /// registered folder. `folders` is the number of folders walked so the UI
@@ -31,52 +38,17 @@ fn now_millis() -> i64 {
     Utc::now().timestamp_millis()
 }
 
+async fn library_repo(state: &AppState) -> AppResult<SqliteLibraryRepository> {
+    Ok(SqliteLibraryRepository::new(
+        state.require_profile_pool().await?,
+    ))
+}
+
 /// List every library in the active profile's database, most-recently-updated
 /// first, with track / album / folder counts.
 #[tauri::command]
 pub async fn list_libraries(state: tauri::State<'_, AppState>) -> AppResult<Vec<Library>> {
-    let pool = state.require_profile_pool().await?;
-
-    // A single query with LEFT JOIN + COUNT(DISTINCT ...) keeps ordering stable
-    // and avoids the N+1 problem when rendering the sidebar.
-    let libraries = sqlx::query_as::<_, Library>(
-        r#"
-        SELECT l.id, l.name, l.description, l.color_id, l.icon_id,
-               l.created_at, l.updated_at,
-               COALESCE(tc.track_count,  0) AS track_count,
-               COALESCE(tc.album_count,  0) AS album_count,
-               COALESCE(tc.artist_count, 0) AS artist_count,
-               COALESCE(gc.genre_count,  0) AS genre_count,
-               COALESCE(f.folder_count,  0) AS folder_count
-          FROM library l
-          LEFT JOIN (
-              SELECT library_id,
-                     COUNT(*)                         AS track_count,
-                     COUNT(DISTINCT album_id)         AS album_count,
-                     COUNT(DISTINCT primary_artist)   AS artist_count
-                FROM track
-               WHERE is_available = 1
-               GROUP BY library_id
-          ) tc ON tc.library_id = l.id
-          LEFT JOIN (
-              SELECT t.library_id, COUNT(DISTINCT tg.genre_id) AS genre_count
-                FROM track t
-                JOIN track_genre tg ON tg.track_id = t.id
-               WHERE t.is_available = 1
-               GROUP BY t.library_id
-          ) gc ON gc.library_id = l.id
-          LEFT JOIN (
-              SELECT library_id, COUNT(*) AS folder_count
-                FROM library_folder
-               GROUP BY library_id
-          ) f ON f.library_id = l.id
-         ORDER BY l.updated_at DESC
-        "#,
-    )
-    .fetch_all(&pool)
-    .await?;
-
-    Ok(libraries)
+    Ok(library_repo(&state).await?.list_all_with_counts().await?)
 }
 
 /// Create a new library in the active profile. The UI is expected to follow
@@ -94,22 +66,14 @@ pub async fn create_library(
     let icon_id = input.icon_id.unwrap_or_else(|| "library".to_string());
     let now = now_millis();
 
-    let pool = state.require_profile_pool().await?;
-
-    let insert = sqlx::query(
-        "INSERT INTO library (name, description, color_id, icon_id, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?)",
-    )
-    .bind(&name)
-    .bind(input.description.as_deref())
-    .bind(&color_id)
-    .bind(&icon_id)
-    .bind(now)
-    .bind(now)
-    .execute(&pool)
-    .await?;
-
-    let id = insert.last_insert_rowid();
+    let draft = LibraryDraft {
+        name: name.clone(),
+        description: input.description.clone(),
+        color_id: color_id.clone(),
+        icon_id: icon_id.clone(),
+        now_ms: now,
+    };
+    let id = library_repo(&state).await?.insert(&draft).await?;
 
     Ok(Library {
         id,
@@ -137,15 +101,11 @@ pub async fn update_library(
     library_id: i64,
     input: UpdateLibraryInput,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
+    let repo = library_repo(&state).await?;
 
     // Validate the library exists up-front so the caller gets a precise
     // error instead of a "0 rows updated" silent no-op.
-    let exists: Option<i64> = sqlx::query_scalar("SELECT id FROM library WHERE id = ?")
-        .bind(library_id)
-        .fetch_optional(&pool)
-        .await?;
-    if exists.is_none() {
+    if !repo.exists(library_id).await? {
         return Err(AppError::Other(format!(
             "library {library_id} not found in active profile"
         )));
@@ -158,25 +118,13 @@ pub async fn update_library(
         }
     }
 
-    let now = now_millis();
-    sqlx::query(
-        "UPDATE library
-            SET name        = COALESCE(?, name),
-                description = COALESCE(?, description),
-                color_id    = COALESCE(?, color_id),
-                icon_id     = COALESCE(?, icon_id),
-                updated_at  = ?
-          WHERE id = ?",
-    )
-    .bind(trimmed_name.as_deref())
-    .bind(input.description.as_deref())
-    .bind(input.color_id.as_deref())
-    .bind(input.icon_id.as_deref())
-    .bind(now)
-    .bind(library_id)
-    .execute(&pool)
-    .await?;
-
+    let patch = LibraryUpdate {
+        name: trimmed_name,
+        description: input.description,
+        color_id: input.color_id,
+        icon_id: input.icon_id,
+    };
+    repo.update(library_id, &patch, now_millis()).await?;
     Ok(())
 }
 
@@ -187,19 +135,11 @@ pub async fn update_library(
 /// DELETE and the DB takes care of the rest.
 #[tauri::command]
 pub async fn delete_library(state: tauri::State<'_, AppState>, library_id: i64) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-
-    let result = sqlx::query("DELETE FROM library WHERE id = ?")
-        .bind(library_id)
-        .execute(&pool)
-        .await?;
-
-    if result.rows_affected() == 0 {
+    if !library_repo(&state).await?.delete(library_id).await? {
         return Err(AppError::Other(format!(
             "library {library_id} not found in active profile"
         )));
     }
-
     tracing::info!(library_id, "library deleted");
     Ok(())
 }
@@ -216,12 +156,9 @@ pub async fn rescan_library(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    let repo = SqliteLibraryRepository::new(pool.clone());
 
-    let folder_ids: Vec<i64> =
-        sqlx::query_scalar("SELECT id FROM library_folder WHERE library_id = ? ORDER BY id")
-            .bind(library_id)
-            .fetch_all(&pool)
-            .await?;
+    let folder_ids = repo.list_folder_ids(library_id).await?;
 
     let mut total = RescanSummary {
         library_id,
@@ -257,11 +194,7 @@ pub async fn rescan_library(
 
     // Bump library.updated_at so the UI (keyed on this field) re-renders
     // the track/album lists, even when individual folder scans noop'd.
-    sqlx::query("UPDATE library SET updated_at = ? WHERE id = ?")
-        .bind(now_millis())
-        .bind(library_id)
-        .execute(&pool)
-        .await?;
+    repo.touch_updated_at(library_id, now_millis()).await?;
 
     if total.added > 0 {
         crate::commands::analysis::maybe_auto_analyze(&app);
@@ -284,43 +217,17 @@ pub async fn add_folder_to_library(
     if path.trim().is_empty() {
         return Err(AppError::Other("folder path cannot be empty".into()));
     }
-    let pool = state.require_profile_pool().await?;
+    let repo = library_repo(&state).await?;
 
     // Validate the library exists to return a precise error rather than a
     // foreign-key constraint failure.
-    let exists: Option<i64> = sqlx::query_scalar("SELECT id FROM library WHERE id = ?")
-        .bind(library_id)
-        .fetch_optional(&pool)
-        .await?;
-    if exists.is_none() {
+    if !repo.exists(library_id).await? {
         return Err(AppError::Other(format!(
             "library {library_id} does not exist in active profile"
         )));
     }
 
-    let result = sqlx::query(
-        "INSERT INTO library_folder (library_id, path, last_scanned_at, is_watched)
-         VALUES (?, ?, NULL, 0)",
-    )
-    .bind(library_id)
-    .bind(&path)
-    .execute(&pool)
-    .await?;
-
-    Ok(result.last_insert_rowid())
-}
-
-/// Row shape for the per-library folder list — only the bits the UI
-/// needs (path, scan timestamp, watch flag). Counts come from
-/// `list_folders` in `browse.rs`; this command is dedicated to the
-/// folder management surface (toggle watcher, see scan timestamps).
-#[derive(Debug, Clone, Serialize, FromRow)]
-pub struct LibraryFolder {
-    pub id: i64,
-    pub library_id: i64,
-    pub path: String,
-    pub last_scanned_at: Option<i64>,
-    pub is_watched: i64,
+    Ok(repo.insert_folder(library_id, &path).await?)
 }
 
 /// List every folder for a library, with its watch flag. Returned
@@ -331,17 +238,7 @@ pub async fn list_library_folders(
     state: tauri::State<'_, AppState>,
     library_id: i64,
 ) -> AppResult<Vec<LibraryFolder>> {
-    let pool = state.require_profile_pool().await?;
-    let rows = sqlx::query_as::<_, LibraryFolder>(
-        "SELECT id, library_id, path, last_scanned_at, is_watched
-           FROM library_folder
-          WHERE library_id = ?
-          ORDER BY id",
-    )
-    .bind(library_id)
-    .fetch_all(&pool)
-    .await?;
-    Ok(rows)
+    Ok(library_repo(&state).await?.list_folders(library_id).await?)
 }
 
 /// Import a list of arbitrary filesystem paths into a library.
@@ -365,12 +262,9 @@ pub async fn import_paths(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    let repo = SqliteLibraryRepository::new(pool.clone());
 
-    let exists: Option<i64> = sqlx::query_scalar("SELECT id FROM library WHERE id = ?")
-        .bind(library_id)
-        .fetch_optional(&pool)
-        .await?;
-    if exists.is_none() {
+    if !repo.exists(library_id).await? {
         return Err(AppError::Other(format!(
             "library {library_id} does not exist in active profile"
         )));
@@ -402,29 +296,7 @@ pub async fn import_paths(
 
     let mut total = ScanSummary::default();
     for path in folder_paths {
-        // Add or look up the existing folder row. INSERT OR IGNORE
-        // returns last_insert_rowid = 0 on a duplicate; in that case
-        // we resolve the existing id by (library_id, path).
-        let res = sqlx::query(
-            "INSERT OR IGNORE INTO library_folder
-                 (library_id, path, last_scanned_at, is_watched)
-             VALUES (?, ?, NULL, 0)",
-        )
-        .bind(library_id)
-        .bind(&path)
-        .execute(&pool)
-        .await?;
-        let folder_id = if res.rows_affected() == 0 {
-            sqlx::query_scalar::<_, i64>(
-                "SELECT id FROM library_folder WHERE library_id = ? AND path = ?",
-            )
-            .bind(library_id)
-            .bind(&path)
-            .fetch_one(&pool)
-            .await?
-        } else {
-            res.last_insert_rowid()
-        };
+        let folder_id = repo.insert_or_get_folder(library_id, &path).await?;
 
         match crate::commands::scan::scan_folder_inner(&pool, &artwork_dir, folder_id, Some(&app))
             .await
@@ -444,11 +316,7 @@ pub async fn import_paths(
         }
     }
 
-    sqlx::query("UPDATE library SET updated_at = ? WHERE id = ?")
-        .bind(now_millis())
-        .bind(library_id)
-        .execute(&pool)
-        .await?;
+    repo.touch_updated_at(library_id, now_millis()).await?;
 
     if total.added > 0 {
         crate::commands::analysis::maybe_auto_analyze(&app);
@@ -473,22 +341,15 @@ pub async fn remove_folder_from_library(
     folder_id: i64,
 ) -> AppResult<()> {
     use tauri::Emitter;
-    let pool = state.require_profile_pool().await?;
 
     // Detach the watcher first so a midway notify event doesn't try
     // to write back into a row we're about to delete.
     watcher.unwatch(folder_id);
 
-    let mut tx = pool.begin().await?;
-    sqlx::query("DELETE FROM track WHERE folder_id = ?")
-        .bind(folder_id)
-        .execute(&mut *tx)
+    library_repo(&state)
+        .await?
+        .delete_folder_with_tracks(folder_id)
         .await?;
-    sqlx::query("DELETE FROM library_folder WHERE id = ?")
-        .bind(folder_id)
-        .execute(&mut *tx)
-        .await?;
-    tx.commit().await?;
 
     let _ = app.emit("library:rescanned", ());
     Ok(())

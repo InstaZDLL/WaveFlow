@@ -43,3 +43,18 @@ pub struct UpdateLibraryInput {
     pub color_id: Option<String>,
     pub icon_id: Option<String>,
 }
+
+/// One filesystem path registered under a library, with its watcher
+/// flag and the timestamp of the last successful scan. The desktop
+/// folder-management surface (Settings → Library) lists these rows
+/// directly so toggling the watcher round-trips without going through
+/// the heavier aggregated `list_folders` query.
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "sqlite", derive(sqlx::FromRow))]
+pub struct LibraryFolder {
+    pub id: i64,
+    pub library_id: i64,
+    pub path: String,
+    pub last_scanned_at: Option<i64>,
+    pub is_watched: i64,
+}

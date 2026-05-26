@@ -11,5 +11,6 @@
 //! so they stay dyn-compatible. Errors flow through
 //! [`crate::error::CoreError`].
 
+pub mod library;
 pub mod profile;
 pub mod sqlite;
