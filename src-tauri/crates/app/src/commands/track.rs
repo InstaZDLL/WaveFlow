@@ -1,13 +1,22 @@
 use serde::Deserialize;
-use sqlx::FromRow;
 use std::path::Path;
+
+use waveflow_core::{
+    domain::track::TrackRow,
+    repository::{
+        sqlite::SqliteTrackRepository,
+        track::{
+            SortDirection, TrackListFilter, TrackRepository, TrackSort, TrackSortColumn,
+        },
+    },
+};
 
 use crate::{error::AppResult, state::AppState};
 // The plain-data DTOs (`Track`, `TrackListItem`, `ListTracksResponse`)
-// moved to `waveflow_core::domain::track` in the Phase 1.a refactor.
-// Re-exported here so existing call sites (`crate::commands::track::Track`)
-// keep resolving — the row glue below (`TrackRow`) stays in app because
-// it's tied to specific SQL projections.
+// + the joined `TrackRow` query target live in
+// `waveflow_core::domain::track` since step 5.d. Re-exported here so
+// existing call sites (`crate::commands::track::TrackRow`) keep
+// resolving.
 pub use waveflow_core::domain::track::{ListTracksResponse, Track, TrackListItem};
 
 /// Build the slim row + check thumbnail existence on disk in one
@@ -51,77 +60,73 @@ pub fn track_list_item_from_row(row: TrackRow, artwork_dir: &Path) -> TrackListI
     }
 }
 
-/// Raw row shape as it comes out of the SQL query — the single-track
-/// `Track` adds a derived `artwork_path`, the bulk `TrackListItem`
-/// adds thumbnail existence flags. Reused by `commands::playlist` so
-/// the slim list shape stays in lockstep across endpoints.
-#[derive(FromRow)]
-pub struct TrackRow {
-    pub id: i64,
-    pub library_id: i64,
-    pub title: String,
-    pub album_id: Option<i64>,
-    pub album_title: Option<String>,
-    pub artist_id: Option<i64>,
-    pub artist_name: Option<String>,
-    pub artist_ids: Option<String>,
-    pub duration_ms: i64,
-    pub track_number: Option<i64>,
-    pub disc_number: Option<i64>,
-    pub year: Option<i64>,
-    pub bitrate: Option<i64>,
-    pub sample_rate: Option<i64>,
-    pub channels: Option<i64>,
-    pub bit_depth: Option<i64>,
-    pub codec: Option<String>,
-    pub musical_key: Option<String>,
-    pub file_path: String,
-    pub file_size: i64,
-    pub added_at: i64,
-    pub artwork_hash: Option<String>,
-    pub artwork_format: Option<String>,
-    pub rating: Option<i64>,
+/// Inflate a [`TrackRow`] into the frontend-facing [`Track`] by
+/// resolving the artwork hash + format against the per-profile artwork
+/// directory. Shared between every single-track endpoint
+/// (`get_track`, `search_tracks`, `search_tracks_advanced`).
+pub fn track_from_row(row: TrackRow, artwork_dir: &Path) -> Track {
+    let (artwork_path, artwork_path_1x, artwork_path_2x) =
+        match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
+            (Some(hash), Some(format)) => {
+                let full = artwork_dir
+                    .join(format!("{}.{}", hash, format))
+                    .to_string_lossy()
+                    .to_string();
+                let (p1, p2) = crate::thumbnails::thumbnail_paths_for(artwork_dir, hash);
+                (Some(full), p1, p2)
+            }
+            _ => (None, None, None),
+        };
+    Track {
+        id: row.id,
+        library_id: row.library_id,
+        title: row.title,
+        album_id: row.album_id,
+        album_title: row.album_title,
+        artist_id: row.artist_id,
+        artist_name: row.artist_name,
+        artist_ids: row.artist_ids,
+        duration_ms: row.duration_ms,
+        track_number: row.track_number,
+        disc_number: row.disc_number,
+        year: row.year,
+        bitrate: row.bitrate,
+        sample_rate: row.sample_rate,
+        channels: row.channels,
+        bit_depth: row.bit_depth,
+        codec: row.codec,
+        musical_key: row.musical_key,
+        file_path: row.file_path,
+        file_size: row.file_size,
+        added_at: row.added_at,
+        artwork_path,
+        artwork_path_1x,
+        artwork_path_2x,
+        rating: row.rating,
+    }
 }
 
-/// Resolve a sort spec to a SQL `ORDER BY` clause. Whitelisted columns
-/// only — never interpolate user input directly. Returns the default
-/// "Artist → Album → Disc → Track" ordering when the spec is invalid
-/// or absent.
-fn track_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'static str {
-    let dir_default_desc = matches!(
-        order_by,
-        Some("rating") | Some("duration_ms") | Some("added_at") | Some("year"),
-    );
-    let dir = match direction {
-        Some(d) if d.eq_ignore_ascii_case("asc") => "ASC",
-        Some(d) if d.eq_ignore_ascii_case("desc") => "DESC",
-        _ => {
-            if dir_default_desc {
-                "DESC"
-            } else {
-                "ASC"
-            }
-        }
+/// Parse the wire-format `order_by` / `direction` strings into a
+/// typed [`TrackSort`]. Unknown values fall back to the column /
+/// direction defaults. Kept in app because the wire format is a
+/// frontend contract.
+fn parse_sort(order_by: Option<&str>, direction: Option<&str>) -> TrackSort {
+    let column = match order_by {
+        Some("title") => TrackSortColumn::Title,
+        Some("artist") => TrackSortColumn::Artist,
+        Some("album") => TrackSortColumn::Album,
+        Some("duration_ms") => TrackSortColumn::DurationMs,
+        Some("year") => TrackSortColumn::Year,
+        Some("added_at") => TrackSortColumn::AddedAt,
+        Some("rating") => TrackSortColumn::Rating,
+        _ => TrackSortColumn::Default,
     };
-    match (order_by, dir) {
-        (Some("title"), "ASC") => "ORDER BY t.title COLLATE NOCASE ASC",
-        (Some("title"), "DESC") => "ORDER BY t.title COLLATE NOCASE DESC",
-        (Some("artist"), "ASC") => "ORDER BY ar.canonical_name COLLATE NOCASE ASC, t.title COLLATE NOCASE",
-        (Some("artist"), "DESC") => "ORDER BY ar.canonical_name COLLATE NOCASE DESC, t.title COLLATE NOCASE",
-        (Some("album"), "ASC") => "ORDER BY al.canonical_title COLLATE NOCASE ASC, t.disc_number, t.track_number",
-        (Some("album"), "DESC") => "ORDER BY al.canonical_title COLLATE NOCASE DESC, t.disc_number, t.track_number",
-        (Some("duration_ms"), "ASC") => "ORDER BY t.duration_ms ASC",
-        (Some("duration_ms"), "DESC") => "ORDER BY t.duration_ms DESC",
-        (Some("year"), "ASC") => "ORDER BY t.year ASC, t.title COLLATE NOCASE",
-        (Some("year"), "DESC") => "ORDER BY t.year DESC, t.title COLLATE NOCASE",
-        (Some("added_at"), "ASC") => "ORDER BY t.added_at ASC",
-        (Some("added_at"), "DESC") => "ORDER BY t.added_at DESC",
-        (Some("rating"), "ASC") => "ORDER BY t.rating ASC, t.title COLLATE NOCASE",
-        (Some("rating"), "DESC") => "ORDER BY t.rating DESC, t.title COLLATE NOCASE",
-        _ => {
-            "ORDER BY ar.canonical_name COLLATE NOCASE,\n                  al.canonical_title COLLATE NOCASE,\n                  t.disc_number,\n                  t.track_number,\n                  t.title COLLATE NOCASE"
-        }
-    }
+    let direction = match direction {
+        Some(d) if d.eq_ignore_ascii_case("asc") => Some(SortDirection::Asc),
+        Some(d) if d.eq_ignore_ascii_case("desc") => Some(SortDirection::Desc),
+        _ => None,
+    };
+    TrackSort { column, direction }
 }
 
 /// List tracks. When `library_id` is `Some`, only tracks from that library
@@ -129,8 +134,8 @@ fn track_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'stat
 /// the "Ma musique" mode where the concept of multiple libraries is hidden
 /// from the user.
 ///
-/// `order_by` and `direction` are whitelisted in [`track_order_clause`]
-/// to keep this command injection-free.
+/// `order_by` and `direction` map to a whitelisted `ORDER BY` clause via
+/// [`parse_sort`] + `repository::sqlite::track::order_clause`.
 #[tauri::command]
 pub async fn list_tracks(
     state: tauri::State<'_, AppState>,
@@ -142,45 +147,9 @@ pub async fn list_tracks(
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
-    let order_clause = track_order_clause(order_by.as_deref(), direction.as_deref());
-
-    let sql = format!(
-        r#"
-        SELECT t.id, t.library_id, t.title,
-               t.album_id,
-               al.title AS album_title,
-               t.primary_artist AS artist_id,
-               (SELECT GROUP_CONCAT(name, ', ') FROM (
-                  SELECT ar2.name FROM track_artist ta2
-                  JOIN artist ar2 ON ar2.id = ta2.artist_id
-                  WHERE ta2.track_id = t.id
-                  ORDER BY ta2.position
-               )) AS artist_name,
-               (SELECT GROUP_CONCAT(id, ',') FROM (
-                  SELECT ta2.artist_id AS id FROM track_artist ta2
-                  WHERE ta2.track_id = t.id
-                  ORDER BY ta2.position
-               )) AS artist_ids,
-               t.duration_ms, t.track_number, t.disc_number, t.year,
-               t.bitrate, t.sample_rate, t.channels,
-               t.bit_depth, t.codec, t.musical_key,
-               t.file_path, t.file_size, t.added_at,
-               aw.hash   AS artwork_hash,
-               aw.format AS artwork_format,
-               t.rating  AS rating
-          FROM track t
-          LEFT JOIN album   al ON al.id = t.album_id
-          LEFT JOIN artist  ar ON ar.id = t.primary_artist
-          LEFT JOIN artwork aw ON aw.id = al.artwork_id
-         WHERE (? IS NULL OR t.library_id = ?) AND t.is_available = 1
-         {order_clause}
-        "#
-    );
-
-    let rows = sqlx::query_as::<_, TrackRow>(sqlx::AssertSqlSafe(sql))
-        .bind(library_id)
-        .bind(library_id)
-        .fetch_all(&pool)
+    let sort = parse_sort(order_by.as_deref(), direction.as_deref());
+    let rows = SqliteTrackRepository::new(pool)
+        .list(TrackListFilter { library_id }, sort)
         .await?;
 
     // Each row triggers 2 synchronous `Path::exists` probes for the
@@ -216,82 +185,8 @@ pub async fn get_track(
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
-    let row = sqlx::query_as::<_, TrackRow>(
-        r#"
-        SELECT t.id, t.library_id, t.title,
-               t.album_id,
-               al.title AS album_title,
-               t.primary_artist AS artist_id,
-               (SELECT GROUP_CONCAT(name, ', ') FROM (
-                  SELECT ar2.name FROM track_artist ta2
-                  JOIN artist ar2 ON ar2.id = ta2.artist_id
-                  WHERE ta2.track_id = t.id
-                  ORDER BY ta2.position
-               )) AS artist_name,
-               (SELECT GROUP_CONCAT(id, ',') FROM (
-                  SELECT ta2.artist_id AS id FROM track_artist ta2
-                  WHERE ta2.track_id = t.id
-                  ORDER BY ta2.position
-               )) AS artist_ids,
-               t.duration_ms, t.track_number, t.disc_number, t.year,
-               t.bitrate, t.sample_rate, t.channels,
-               t.bit_depth, t.codec, t.musical_key,
-               t.file_path, t.file_size, t.added_at,
-               aw.hash   AS artwork_hash,
-               aw.format AS artwork_format,
-               t.rating  AS rating
-          FROM track t
-          LEFT JOIN album   al ON al.id = t.album_id
-          LEFT JOIN artist  ar ON ar.id = t.primary_artist
-          LEFT JOIN artwork aw ON aw.id = al.artwork_id
-         WHERE t.id = ?
-        "#,
-    )
-    .bind(track_id)
-    .fetch_optional(&pool)
-    .await?;
-
-    Ok(row.map(|row| {
-        let (artwork_path, artwork_path_1x, artwork_path_2x) =
-            match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
-                (Some(hash), Some(format)) => {
-                    let full = artwork_dir
-                        .join(format!("{}.{}", hash, format))
-                        .to_string_lossy()
-                        .to_string();
-                    let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
-                    (Some(full), p1, p2)
-                }
-                _ => (None, None, None),
-            };
-        Track {
-            id: row.id,
-            library_id: row.library_id,
-            title: row.title,
-            album_id: row.album_id,
-            album_title: row.album_title,
-            artist_id: row.artist_id,
-            artist_name: row.artist_name,
-            artist_ids: row.artist_ids,
-            duration_ms: row.duration_ms,
-            track_number: row.track_number,
-            disc_number: row.disc_number,
-            year: row.year,
-            bitrate: row.bitrate,
-            sample_rate: row.sample_rate,
-            channels: row.channels,
-            bit_depth: row.bit_depth,
-            codec: row.codec,
-            musical_key: row.musical_key,
-            file_path: row.file_path,
-            file_size: row.file_size,
-            added_at: row.added_at,
-            artwork_path,
-            artwork_path_1x,
-            artwork_path_2x,
-            rating: row.rating,
-        }
-    }))
+    let row = SqliteTrackRepository::new(pool).get(track_id).await?;
+    Ok(row.map(|row| track_from_row(row, &artwork_dir)))
 }
 
 /// Full-text search via the `track_fts` FTS5 virtual table (kept in sync
@@ -318,90 +213,13 @@ pub async fn search_tracks(
         .collect::<Vec<_>>()
         .join(" ");
 
-    let rows = sqlx::query_as::<_, TrackRow>(
-        r#"
-        SELECT t.id, t.library_id, t.title,
-               t.album_id,
-               al.title AS album_title,
-               t.primary_artist AS artist_id,
-               (SELECT GROUP_CONCAT(name, ', ') FROM (
-                  SELECT ar2.name FROM track_artist ta2
-                  JOIN artist ar2 ON ar2.id = ta2.artist_id
-                  WHERE ta2.track_id = t.id
-                  ORDER BY ta2.position
-               )) AS artist_name,
-               (SELECT GROUP_CONCAT(id, ',') FROM (
-                  SELECT ta2.artist_id AS id FROM track_artist ta2
-                  WHERE ta2.track_id = t.id
-                  ORDER BY ta2.position
-               )) AS artist_ids,
-               t.duration_ms, t.track_number, t.disc_number, t.year,
-               t.bitrate, t.sample_rate, t.channels,
-               t.bit_depth, t.codec, t.musical_key,
-               t.file_path, t.file_size, t.added_at,
-               aw.hash   AS artwork_hash,
-               aw.format AS artwork_format,
-               t.rating  AS rating
-          FROM track_fts fts
-          JOIN track t        ON t.id  = fts.rowid
-          LEFT JOIN album   al ON al.id = t.album_id
-          LEFT JOIN artist  ar ON ar.id = t.primary_artist
-          LEFT JOIN artwork aw ON aw.id = al.artwork_id
-         WHERE track_fts MATCH ? AND t.is_available = 1
-         ORDER BY rank
-         LIMIT 50
-        "#,
-    )
-    .bind(&fts_query)
-    .fetch_all(&pool)
-    .await?;
-
-    let tracks = rows
+    let rows = SqliteTrackRepository::new(pool)
+        .search_fts(&fts_query, 50)
+        .await?;
+    Ok(rows
         .into_iter()
-        .map(|row| {
-            let (artwork_path, artwork_path_1x, artwork_path_2x) =
-                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
-                    (Some(hash), Some(format)) => {
-                        let full = artwork_dir
-                            .join(format!("{}.{}", hash, format))
-                            .to_string_lossy()
-                            .to_string();
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
-                        (Some(full), p1, p2)
-                    }
-                    _ => (None, None, None),
-                };
-            Track {
-                id: row.id,
-                library_id: row.library_id,
-                title: row.title,
-                album_id: row.album_id,
-                album_title: row.album_title,
-                artist_id: row.artist_id,
-                artist_name: row.artist_name,
-                artist_ids: row.artist_ids,
-                duration_ms: row.duration_ms,
-                track_number: row.track_number,
-                disc_number: row.disc_number,
-                year: row.year,
-                bitrate: row.bitrate,
-                sample_rate: row.sample_rate,
-                channels: row.channels,
-                bit_depth: row.bit_depth,
-                codec: row.codec,
-                musical_key: row.musical_key,
-                file_path: row.file_path,
-                file_size: row.file_size,
-                added_at: row.added_at,
-                artwork_path,
-                artwork_path_1x,
-                artwork_path_2x,
-                rating: row.rating,
-            }
-        })
-        .collect();
-
-    Ok(tracks)
+        .map(|row| track_from_row(row, &artwork_dir))
+        .collect())
 }
 
 /// Optional multi-criteria filters layered on top of the FTS5 search.
@@ -442,6 +260,10 @@ pub struct SearchFilters {
 /// because users often want to browse the result of a filter-only
 /// query. Ordering: FTS rank when a query is supplied, otherwise the
 /// canonical "Artist → Album → Disc → Track" order.
+///
+/// SQL is built dynamically here (still app-side) — the shape is too
+/// client-specific to commit to a stable core trait method before the
+/// future server defines its own filter language.
 #[tauri::command]
 pub async fn search_tracks_advanced(
     state: tauri::State<'_, AppState>,
@@ -608,53 +430,10 @@ pub async fn search_tracks_advanced(
         };
     }
     let rows = q.fetch_all(&pool).await?;
-
-    let tracks = rows
+    Ok(rows
         .into_iter()
-        .map(|row| {
-            let (artwork_path, artwork_path_1x, artwork_path_2x) =
-                match (row.artwork_hash.as_deref(), row.artwork_format.as_deref()) {
-                    (Some(hash), Some(format)) => {
-                        let full = artwork_dir
-                            .join(format!("{}.{}", hash, format))
-                            .to_string_lossy()
-                            .to_string();
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
-                        (Some(full), p1, p2)
-                    }
-                    _ => (None, None, None),
-                };
-            Track {
-                id: row.id,
-                library_id: row.library_id,
-                title: row.title,
-                album_id: row.album_id,
-                album_title: row.album_title,
-                artist_id: row.artist_id,
-                artist_name: row.artist_name,
-                artist_ids: row.artist_ids,
-                duration_ms: row.duration_ms,
-                track_number: row.track_number,
-                disc_number: row.disc_number,
-                year: row.year,
-                bitrate: row.bitrate,
-                sample_rate: row.sample_rate,
-                channels: row.channels,
-                bit_depth: row.bit_depth,
-                codec: row.codec,
-                musical_key: row.musical_key,
-                file_path: row.file_path,
-                file_size: row.file_size,
-                added_at: row.added_at,
-                artwork_path,
-                artwork_path_1x,
-                artwork_path_2x,
-                rating: row.rating,
-            }
-        })
-        .collect();
-
-    Ok(tracks)
+        .map(|row| track_from_row(row, &artwork_dir))
+        .collect())
 }
 
 /// Set or clear a track's rating. The value is the raw POPM byte (0-255);
@@ -683,12 +462,10 @@ pub async fn set_track_rating(
     use tauri::Emitter;
 
     let pool = state.require_profile_pool().await?;
+    let repo = SqliteTrackRepository::new(pool);
 
     // 1. Resolve the file path so we can write the POPM frame back.
-    let file_path: Option<String> = sqlx::query_scalar("SELECT file_path FROM track WHERE id = ?")
-        .bind(track_id)
-        .fetch_optional(&pool)
-        .await?;
+    let file_path = repo.get_file_path(track_id).await?;
 
     // 2. Pause playback if the engine has this track open — required on
     //    Windows so lofty's atomic rename can take an exclusive handle.
@@ -711,11 +488,7 @@ pub async fn set_track_rating(
     }
 
     // 4. DB update (always — even when the file write fell through).
-    sqlx::query("UPDATE track SET rating = ? WHERE id = ?")
-        .bind(rating.map(|r| r as i64))
-        .bind(track_id)
-        .execute(&pool)
-        .await?;
+    repo.set_rating(track_id, rating).await?;
 
     let _ = app.emit("track:updated", track_id);
     Ok(())
@@ -789,26 +562,14 @@ pub async fn toggle_like_track(
     track_id: i64,
 ) -> AppResult<bool> {
     let pool = state.require_profile_pool().await?;
+    let repo = SqliteTrackRepository::new(pool);
 
-    let exists: Option<i64> =
-        sqlx::query_scalar("SELECT track_id FROM liked_track WHERE track_id = ?")
-            .bind(track_id)
-            .fetch_optional(&pool)
-            .await?;
-
-    if exists.is_some() {
-        sqlx::query("DELETE FROM liked_track WHERE track_id = ?")
-            .bind(track_id)
-            .execute(&pool)
-            .await?;
+    if repo.is_liked(track_id).await? {
+        repo.unlike(track_id).await?;
         Ok(false)
     } else {
         let now = chrono::Utc::now().timestamp_millis();
-        sqlx::query("INSERT INTO liked_track (track_id, liked_at) VALUES (?, ?)")
-            .bind(track_id)
-            .bind(now)
-            .execute(&pool)
-            .await?;
+        repo.like(track_id, now).await?;
         Ok(true)
     }
 }
@@ -818,10 +579,7 @@ pub async fn toggle_like_track(
 #[tauri::command]
 pub async fn list_liked_track_ids(state: tauri::State<'_, AppState>) -> AppResult<Vec<i64>> {
     let pool = state.require_profile_pool().await?;
-    let ids = sqlx::query_scalar("SELECT track_id FROM liked_track ORDER BY liked_at DESC")
-        .fetch_all(&pool)
-        .await?;
-    Ok(ids)
+    Ok(SqliteTrackRepository::new(pool).liked_ids().await?)
 }
 
 /// List every liked track with full metadata, ordered by most recently
@@ -832,41 +590,7 @@ pub async fn list_liked_tracks(state: tauri::State<'_, AppState>) -> AppResult<L
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
-    let rows = sqlx::query_as::<_, TrackRow>(
-        r#"
-        SELECT t.id, t.library_id, t.title,
-               t.album_id,
-               al.title AS album_title,
-               t.primary_artist AS artist_id,
-               (SELECT GROUP_CONCAT(name, ', ') FROM (
-                  SELECT ar2.name FROM track_artist ta2
-                  JOIN artist ar2 ON ar2.id = ta2.artist_id
-                  WHERE ta2.track_id = t.id
-                  ORDER BY ta2.position
-               )) AS artist_name,
-               (SELECT GROUP_CONCAT(id, ',') FROM (
-                  SELECT ta2.artist_id AS id FROM track_artist ta2
-                  WHERE ta2.track_id = t.id
-                  ORDER BY ta2.position
-               )) AS artist_ids,
-               t.duration_ms, t.track_number, t.disc_number, t.year,
-               t.bitrate, t.sample_rate, t.channels,
-               t.bit_depth, t.codec, t.musical_key,
-               t.file_path, t.file_size, t.added_at,
-               aw.hash   AS artwork_hash,
-               aw.format AS artwork_format,
-               t.rating  AS rating
-          FROM liked_track lt
-          JOIN track t        ON t.id  = lt.track_id
-          LEFT JOIN album   al ON al.id = t.album_id
-          LEFT JOIN artist  ar ON ar.id = t.primary_artist
-          LEFT JOIN artwork aw ON aw.id = al.artwork_id
-         WHERE t.is_available = 1
-         ORDER BY lt.liked_at DESC
-        "#,
-    )
-    .fetch_all(&pool)
-    .await?;
+    let rows = SqliteTrackRepository::new(pool).list_liked().await?;
 
     // Same blocking-pool offload as `list_tracks`.
     let artwork_dir_for_blocking = artwork_dir.clone();

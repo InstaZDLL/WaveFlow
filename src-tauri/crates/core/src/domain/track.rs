@@ -1,9 +1,12 @@
 //! Track-related DTOs shared by every WaveFlow client surface.
 //!
-//! These types describe what the UI sees, not how rows are loaded —
-//! the SQLite query targets (`TrackRow`) still live in
-//! `crates/app/src/commands/track.rs` until the repository traits
-//! land in step 5 of the Phase 1.a refactor.
+//! These types describe what the UI sees and what the SQLite
+//! repository loads (`TrackRow`). The frontend-facing `Track` carries
+//! resolved on-disk artwork paths derived in the app layer; the
+//! `TrackListItem` slim shape strips them to keep bulk responses
+//! compact. `TrackRow` is the raw `query_as` target shared by every
+//! repository method that fans out the same joined projection (track
+//! + album + primary artist + artist names + artwork pointer).
 
 use serde::{Deserialize, Serialize};
 
@@ -99,5 +102,39 @@ pub struct Track {
     /// Raw POPM byte (0-255). `None` when no rating was extracted from
     /// the file's tags or set by the user. The frontend converts this
     /// to a 0-5 star scale with half-step increments.
+    pub rating: Option<i64>,
+}
+
+/// Raw row shape as it comes out of the shared joined `SELECT`
+/// (track + album + primary artist + GROUP_CONCAT'd artists + artwork
+/// pointer). Every bulk track endpoint goes through this struct to
+/// keep the projection in lockstep; the per-endpoint conversion
+/// (resolving thumbnail paths, etc.) happens in `crates/app`.
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "sqlite", derive(sqlx::FromRow))]
+pub struct TrackRow {
+    pub id: i64,
+    pub library_id: i64,
+    pub title: String,
+    pub album_id: Option<i64>,
+    pub album_title: Option<String>,
+    pub artist_id: Option<i64>,
+    pub artist_name: Option<String>,
+    pub artist_ids: Option<String>,
+    pub duration_ms: i64,
+    pub track_number: Option<i64>,
+    pub disc_number: Option<i64>,
+    pub year: Option<i64>,
+    pub bitrate: Option<i64>,
+    pub sample_rate: Option<i64>,
+    pub channels: Option<i64>,
+    pub bit_depth: Option<i64>,
+    pub codec: Option<String>,
+    pub musical_key: Option<String>,
+    pub file_path: String,
+    pub file_size: i64,
+    pub added_at: i64,
+    pub artwork_hash: Option<String>,
+    pub artwork_format: Option<String>,
     pub rating: Option<i64>,
 }

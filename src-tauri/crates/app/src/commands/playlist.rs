@@ -13,7 +13,8 @@ use sqlx::FromRow;
 
 use waveflow_core::repository::{
     playlist::{PlaylistDraft, PlaylistRepository, PlaylistUpdate},
-    sqlite::SqlitePlaylistRepository,
+    sqlite::{SqlitePlaylistRepository, SqliteTrackRepository},
+    track::{TrackRepository, TrackSource},
 };
 
 use crate::{
@@ -180,44 +181,9 @@ pub async fn list_playlist_tracks(
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
-    // Stays inline until step 5.d migrates `TrackRow` into core/repository
-    // alongside the rest of the TrackRepository.
-    let rows = sqlx::query_as::<_, crate::commands::track::TrackRow>(
-        r#"
-        SELECT t.id, t.library_id, t.title,
-               t.album_id,
-               al.title AS album_title,
-               t.primary_artist AS artist_id,
-               (SELECT GROUP_CONCAT(name, ', ') FROM (
-                  SELECT ar2.name FROM track_artist ta2
-                  JOIN artist ar2 ON ar2.id = ta2.artist_id
-                  WHERE ta2.track_id = t.id
-                  ORDER BY ta2.position
-               )) AS artist_name,
-               (SELECT GROUP_CONCAT(id, ',') FROM (
-                  SELECT ta2.artist_id AS id FROM track_artist ta2
-                  WHERE ta2.track_id = t.id
-                  ORDER BY ta2.position
-               )) AS artist_ids,
-               t.duration_ms, t.track_number, t.disc_number, t.year,
-               t.bitrate, t.sample_rate, t.channels,
-               t.bit_depth, t.codec, t.musical_key,
-               t.file_path, t.file_size, t.added_at,
-               aw.hash   AS artwork_hash,
-               aw.format AS artwork_format,
-               t.rating  AS rating
-          FROM playlist_track pt
-          JOIN track   t  ON t.id  = pt.track_id
-          LEFT JOIN album   al ON al.id = t.album_id
-          LEFT JOIN artist  ar ON ar.id = t.primary_artist
-          LEFT JOIN artwork aw ON aw.id = al.artwork_id
-         WHERE pt.playlist_id = ? AND t.is_available = 1
-         ORDER BY pt.position ASC
-        "#,
-    )
-    .bind(playlist_id)
-    .fetch_all(&pool)
-    .await?;
+    let rows = SqliteTrackRepository::new(pool)
+        .list_in_playlist(playlist_id)
+        .await?;
 
     // Same blocking-pool offload as `list_tracks` — large playlists
     // (the Liked Songs pseudo-playlist routinely runs 800+ rows on a
@@ -368,42 +334,19 @@ pub async fn add_source_to_playlist(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
 
-    // Source-resolution still uses inline SQL — moves into the future
-    // `TrackRepository::list_ids_for_source` in step 5.d.
-    let track_ids: Vec<i64> = match source_type.as_str() {
-        "folder" => {
-            sqlx::query_scalar(
-                "SELECT id FROM track WHERE folder_id = ? AND is_available = 1
-                 ORDER BY disc_number, track_number, title COLLATE NOCASE",
-            )
-            .bind(source_id)
-            .fetch_all(&pool)
-            .await?
-        }
-        "album" => {
-            sqlx::query_scalar(
-                "SELECT id FROM track WHERE album_id = ? AND is_available = 1
-                 ORDER BY disc_number, track_number, title COLLATE NOCASE",
-            )
-            .bind(source_id)
-            .fetch_all(&pool)
-            .await?
-        }
-        "artist" => {
-            sqlx::query_scalar(
-                "SELECT id FROM track WHERE primary_artist = ? AND is_available = 1
-                 ORDER BY title COLLATE NOCASE",
-            )
-            .bind(source_id)
-            .fetch_all(&pool)
-            .await?
-        }
+    let source = match source_type.as_str() {
+        "folder" => TrackSource::Folder(source_id),
+        "album" => TrackSource::Album(source_id),
+        "artist" => TrackSource::Artist(source_id),
         other => {
             return Err(AppError::Other(format!(
                 "unknown source_type '{other}', expected folder/album/artist"
             )));
         }
     };
+    let track_ids = SqliteTrackRepository::new(pool.clone())
+        .list_ids_in_source(source)
+        .await?;
 
     let inserted = SqlitePlaylistRepository::new(pool.clone())
         .append_tracks(playlist_id, &track_ids, now_millis())
