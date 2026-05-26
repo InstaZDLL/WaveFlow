@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { Fragment, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Music2, Maximize2 } from "lucide-react";
 import { Artwork } from "../common/Artwork";
@@ -217,27 +217,40 @@ export function FullscreenLyrics({
                                   : wi < activeWordIndex
                                     ? "past"
                                     : "future";
+                              // Render a literal space between adjacent
+                              // word boxes. `display: inline-block` strips
+                              // the JSX whitespace that would normally
+                              // separate inline siblings, and many
+                              // Enhanced LRC sources omit spaces between
+                              // word stamps (`<wt>Meet<wt>me<wt>in…`),
+                              // so without this the active line collapses
+                              // to "Meetmeinthecrowd". If the source did
+                              // include trailing space inside `word.text`,
+                              // `white-space: normal` collapses the pair
+                              // back to one.
                               return (
-                                <span
-                                  key={wi}
-                                  style={{
-                                    opacity:
-                                      wState === "active"
-                                        ? 1
-                                        : wState === "past"
-                                          ? 0.8
-                                          : 0.45,
-                                    transform:
-                                      wState === "active"
-                                        ? "scale(1.04)"
-                                        : "scale(1)",
-                                    display: "inline-block",
-                                    transition:
-                                      "opacity 150ms ease, transform 150ms ease",
-                                  }}
-                                >
-                                  {word.text}
-                                </span>
+                                <Fragment key={wi}>
+                                  <span
+                                    style={{
+                                      opacity:
+                                        wState === "active"
+                                          ? 1
+                                          : wState === "past"
+                                            ? 0.8
+                                            : 0.45,
+                                      transform:
+                                        wState === "active"
+                                          ? "scale(1.04)"
+                                          : "scale(1)",
+                                      display: "inline-block",
+                                      transition:
+                                        "opacity 150ms ease, transform 150ms ease",
+                                    }}
+                                  >
+                                    {word.text}
+                                  </span>
+                                  {wi < line.words!.length - 1 && " "}
+                                </Fragment>
                               );
                             })}
                           </span>
