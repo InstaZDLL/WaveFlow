@@ -6914,8 +6914,12 @@ dependencies = [
 name = "waveflow-core"
 version = "1.3.0"
 dependencies = [
+ "anyhow",
  "async-trait",
+ "blake3",
+ "fast_image_resize",
  "hex",
+ "image",
  "md-5",
  "regex",
  "reqwest 0.12.28",
@@ -6923,6 +6927,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "thiserror 2.0.18",
+ "tracing",
 ]
 
 [[package]]

@@ -21,6 +21,10 @@ sqlite = ["sqlx/sqlite", "sqlx/runtime-tokio"]
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 thiserror = "2"
+# Diagnostics surface for the core modules — every `tracing::warn!`
+# in the migrated artwork / metadata code already has an app-side
+# subscriber set up via `tracing-subscriber`; core just emits.
+tracing = "0.1"
 # `async-trait` lets the repository traits in `crate::repository`
 # expose `async fn` while staying dyn-compatible. Native `async fn in
 # trait` is stable since 1.75 but drops the `dyn` capability; the
@@ -50,3 +54,14 @@ regex = "1"
 # Used by the Last.fm + LRCLIB clients to parse the more dynamic
 # response shapes that don't deserialize cleanly into a fixed struct.
 serde_json = "1"
+
+# Artwork pipeline (`artwork::thumbnails` + `artwork::metadata`):
+# `image` decodes the source covers, `fast_image_resize` SIMD-resizes
+# the 1x / 2x JPEG variants, `blake3` keys the shared metadata cache,
+# `anyhow` carries the thumbnail-job error chain (it's only ever
+# logged, never bubbled to a Result variant — a `thiserror`-typed
+# error would be busywork here).
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "bmp", "gif", "tiff"] }
+fast_image_resize = "6"
+blake3 = "1"
+anyhow = "1"
