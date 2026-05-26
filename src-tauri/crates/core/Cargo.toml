@@ -15,12 +15,16 @@ default = []
 # as `query_as` targets without redeclaring the row shape. The core
 # crate stays storage-agnostic when the feature is off — repository
 # trait definitions belong here regardless, only their derives are
-# gated.
-sqlite = ["dep:sqlx"]
+# gated. The flag does not control whether `sqlx` itself is compiled
+# (it is needed unconditionally by `CoreError::Database`).
+sqlite = []
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+thiserror = "2"
 # `macros` is the only feature needed for the `FromRow` derive itself;
 # the per-database row glue (`sqlx::sqlite::SqliteRow`) lives in the
-# downstream crate that picks a runtime.
-sqlx = { version = "0.9", default-features = false, features = ["macros"], optional = true }
+# downstream crate that picks a runtime. Cargo's feature unification
+# means the workspace's effective sqlx build still has `sqlite`,
+# `runtime-tokio`, `migrate`, … when `crates/app` opts into them.
+sqlx = { version = "0.9", default-features = false, features = ["macros"] }

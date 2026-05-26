@@ -11,3 +11,4 @@
 //! `crates/app`.
 
 pub mod domain;
+pub mod error;

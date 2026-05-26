@@ -6916,6 +6916,7 @@ version = "1.3.0"
 dependencies = [
  "serde",
  "sqlx",
+ "thiserror 2.0.18",
 ]
 
 [[package]]

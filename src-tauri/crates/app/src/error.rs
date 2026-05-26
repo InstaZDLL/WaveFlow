@@ -4,8 +4,25 @@ use serde::{Serialize, Serializer};
 ///
 /// Implements [`serde::Serialize`] so it can be returned from Tauri commands.
 /// The wire format is a single `String` (the `Display` representation).
+///
+/// During the Phase 1.a refactor (RFC-001) this type lives at the
+/// boundary: it wraps `waveflow_core::error::CoreError` for everything
+/// portable (storage, IO, profile invariants) and carries the
+/// Tauri-specific variants that have no place in a `waveflow-server`
+/// build (`tauri::Error`, `MissingAppDataDir` from `dirs::data_dir()`,
+/// the audio engine's `cpal`/`rubato` error wrappers). The legacy
+/// generic variants (`Database`, `Io`, `ProfileNotFound`, …) are kept
+/// here for now so existing call sites continue to compile; future
+/// commits migrate them to `CoreError` as their owning modules move
+/// into `crates/core`.
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
+    /// Errors raised by `waveflow-core` functions. Stays at the top of
+    /// the enum so reviewers immediately see where new error sources
+    /// land once the bulk of the migration completes.
+    #[error(transparent)]
+    Core(#[from] waveflow_core::error::CoreError),
+
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),
 
