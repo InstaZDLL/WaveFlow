@@ -22,60 +22,40 @@
 
 WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI. It scans your local audio folders, organizes tracks by album/artist/genre, and plays them with a real-time audio engine — no streaming, no cloud, your music stays on your machine.
 
-## Download
+**Install** — grab the bundle for your OS on the [latest release](https://github.com/InstaZDLL/WaveFlow/releases/latest); every release page lists the per-distro one-liner (AUR / COPR / apt / winget) and the standalone installers.
 
-Pre-built bundles for every tagged release are on the [GitHub Releases page](https://github.com/InstaZDLL/WaveFlow/releases/latest). Pick the one that matches your environment:
+## Screenshots
 
-### Linux
-
-**Recommended — use your distro's package manager** so updates flow through the same tool you already use for the rest of your system:
-
-- **Arch / Manjaro / EndeavourOS** — install [`waveflow-bin`](https://aur.archlinux.org/packages/waveflow-bin) from the AUR:
-  ```bash
-  yay -S waveflow-bin   # or paru, etc.
-  ```
-- **Fedora / RHEL / Rocky / Alma / CentOS Stream** — enable the [InstaZDLL/waveflow COPR](https://copr.fedorainfracloud.org/coprs/instazdll/waveflow/) once, then install via `dnf`:
-  ```bash
-  sudo dnf copr enable instazdll/waveflow
-  sudo dnf install waveflow
-  ```
-- **Debian / Ubuntu / Mint / Pop!\_OS** — add the apt repo once, then install via `apt`. Note the package name is `wave-flow` (kebab-case, required by Debian naming rules — Tauri bundles it that way from the `WaveFlow` product name):
-  ```bash
-  sudo install -d -m 0755 /etc/apt/keyrings
-  curl -fsSL https://packages.buildkite.com/instazdll/waveflow/gpgkey \
-    | sudo gpg --dearmor -o /etc/apt/keyrings/waveflow.gpg
-  echo "deb [signed-by=/etc/apt/keyrings/waveflow.gpg] https://packages.buildkite.com/instazdll/waveflow/any/ any main" \
-    | sudo tee /etc/apt/sources.list.d/waveflow.list
-  sudo apt update && sudo apt install wave-flow
-  ```
-
-Standalone bundles (for everything else, or if you'd rather skip a repo):
-
-- `WaveFlow_<ver>_linux-x86_64.deb` — Debian / Ubuntu / Mint / Pop!\_OS. Native install via `apt`/`dpkg`, integrates with the system menu.
-- `WaveFlow_<ver>_linux-x86_64.rpm` — Fedora / RHEL / openSUSE / Rocky / Alma. Native install via `dnf`/`rpm`.
-- `WaveFlow_<ver>_linux-x86_64.AppImage` — Anything else (Calculate Linux, Oracle Linux, NixOS, …). `chmod +x` then run; no install required.
-
-### Windows
-
-- **One-liner via [winget](https://github.com/microsoft/winget-cli)** — `winget install InstaZDLL.WaveFlow`. Auto-tracks updates with `winget upgrade`.
-- `WaveFlow_<ver>_windows-x86_64-setup.exe` — NSIS installer, **per-user** install under `%LOCALAPPDATA%`, doesn't need admin. This is what the in-app updater patches.
-- `WaveFlow_<ver>_windows-x86_64.msi` — MSI installer, **system-wide** install under `Program Files`, suitable for IT deployment via GPO/SCCM. Requires admin.
-
-Both are Authenticode-signed. SmartScreen may still warn the first few users while a fresh certificate accumulates reputation — click **More info → Run anyway**.
-
-### macOS
-
-- `WaveFlow_<ver>_macos-universal.dmg` — Intel + Apple Silicon in one bundle.
-
-The macOS build is **not Apple-Developer-signed yet**, so Gatekeeper will block the first launch:
-
-- macOS 14 (Sonoma) and earlier: **right-click the app → Open**, confirm the dialog.
-- macOS 15 (Sequoia) and later: launch normally, then go to **System Settings → Privacy & Security** and click **Open Anyway** next to the blocked app.
-- Terminal escape hatch (any version): `xattr -cr /Applications/WaveFlow.app`
-
-### Auto-updates
-
-Once installed (any of the above), the in-app updater fetches future versions automatically — but only the AppImage and the NSIS setup are auto-updatable. DEB / RPM / MSI are managed by their respective package managers and stay on the version you installed until you upgrade them externally.
+<!-- markdownlint-disable MD033 -->
+<!-- HTML table because there's no clean Markdown way to render a
+     two-column image grid with captions; GitHub renders this fine. -->
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/home.png" alt="Home view with profile-aware greeting, mood radio and recently played" /></td>
+    <td width="50%"><img src="docs/screenshots/library-albums.png" alt="Virtualised library albums grid" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Home</b> · profile-aware greeting, mood radio, Daily Mix carousel</sub></td>
+    <td align="center"><sub><b>Library</b> · virtualised album grid with Hi-Res badges and A-Z jump</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/album-detail.png" alt="Album detail view with multi-disc grouping and side now-playing panel" /></td>
+    <td width="50%"><img src="docs/screenshots/immersive-view.png" alt="Fullscreen Now Playing view with real-time spectrum visualizer" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Album detail</b> · multi-disc grouping, side Now Playing panel with artist bio</sub></td>
+    <td align="center"><sub><b>Immersive Now Playing</b> · full-bleed artwork with real-time spectrum visualizer</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/karaoke-lyrics.png" alt="Apple Music style fullscreen karaoke lyrics" /></td>
+    <td width="50%"><img src="docs/screenshots/wrapped.png" alt="WaveFlow Wrapped year-in-review with top tracks, average tempo and longest streak" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Karaoke lyrics</b> · Apple-Music-style word-level highlight with click-to-seek</sub></td>
+    <td align="center"><sub><b>Wrapped</b> · year-in-review with top tracks, average tempo, longest streak — local & private</sub></td>
+  </tr>
+</table>
+<!-- markdownlint-enable MD033 -->
 
 ## Features
 
