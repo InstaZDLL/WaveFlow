@@ -74,7 +74,7 @@
       "toggleSecret": "Geheim tonen/verbergen",
       "togglePassword": "Wachtwoord tonen/verbergen",
       "connect": "Last.fm koppelen",
-      "missingFields": "Vul API-sleutel, secret, gebruikersnaam en wachtwoord in.",
+      "missingFields": "Vul API-sleutel, Gedeeld geheim, gebruikersnaam en wachtwoord in.",
       "connectedTitle": "Verbonden als {{user}}",
       "connectedSubtitle": "Scrobblen start automatisch zodra je een nummer afspeelt."
     },

@@ -698,8 +698,8 @@
     "emptyDescription": "شغّل أغنية من مكتبتك لملء قائمة الانتظار.",
     "nowPlaying": "قيد التشغيل",
     "upNext_zero": "التالي",
-    "upNext_one": "التالي · {{count}} مقطع",
-    "upNext_other": "التالي · {{count}} مقطع",
+    "upNext_one": "التالي · {{count}} أغنية",
+    "upNext_other": "التالي · {{count}} أغنية",
     "radio": {
       "label": "الراديو",
       "basedOn": "استنادًا إلى «{{title}}»"

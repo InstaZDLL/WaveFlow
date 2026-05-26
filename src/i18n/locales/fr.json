@@ -428,8 +428,8 @@
     "count_zero": "0 titre",
     "count_one": "{{count}} titre",
     "count_other": "{{count}} titres",
-    "emptyTitle": "Aucun titre liké",
-    "emptyDescription": "Les morceaux que vous aimez apparaîtront ici. Explorez votre bibliothèque et likez vos titres favoris.",
+    "emptyTitle": "Aucun titre aimé",
+    "emptyDescription": "Les morceaux que vous aimez apparaîtront ici. Explorez votre bibliothèque et ajoutez-les à vos coups de cœur.",
     "playAll": "Tout lire",
     "unlike": "Retirer des coups de cœur",
     "like": "Ajouter aux coups de cœur"
