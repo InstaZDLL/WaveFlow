@@ -1,6 +1,6 @@
 [package]
 name = "waveflow"
-version = "1.3.0"
+version = "1.3.1"
 description = "Local music player for desktop — Spotify-inspired UI, real-time audio engine, your files stay on your machine."
 authors = ["InstaZDLL <github.105mh@8shield.net>"]
 edition = "2021"

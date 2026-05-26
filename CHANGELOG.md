@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/InstaZDLL/WaveFlow/compare/v1.3.0...v1.3.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* **release:** bump Cargo.lock to 1.3.0 to unblock --locked builds ([12a13e8](https://github.com/InstaZDLL/WaveFlow/commit/12a13e8a53f15aad54663ad0000c5acda5707d41))
+
 ## [1.3.0](https://github.com/InstaZDLL/WaveFlow/compare/v1.2.0...v1.3.0) (2026-05-26)
 
 
