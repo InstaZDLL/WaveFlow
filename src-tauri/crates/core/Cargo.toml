@@ -10,18 +10,23 @@ homepage = "https://waveflow.app"
 
 [features]
 default = []
-# Opt-in `sqlx::FromRow` derives on the domain types so the desktop
-# `crates/app` (and the future `waveflow-server`) can use them directly
-# as `query_as` targets without redeclaring the row shape. The core
-# crate stays storage-agnostic when the feature is off — repository
-# trait definitions belong here regardless, only their derives are
-# gated. The flag does not control whether `sqlx` itself is compiled
-# (it is needed unconditionally by `CoreError::Database`).
-sqlite = []
+# Opt in to the SQLite backend: enables `sqlx::FromRow` derives on the
+# domain types (via `cfg_attr`) and pulls the `sqlite` + `runtime-tokio`
+# sqlx features so the `repository::sqlite` implementations compile.
+# The trait definitions in `repository::*` stay backend-agnostic so the
+# future `waveflow-server` can add a sibling `postgres` feature without
+# disturbing them.
+sqlite = ["sqlx/sqlite", "sqlx/runtime-tokio"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 thiserror = "2"
+# `async-trait` lets the repository traits in `crate::repository`
+# expose `async fn` while staying dyn-compatible. Native `async fn in
+# trait` is stable since 1.75 but drops the `dyn` capability; the
+# desktop side leans on `&dyn ProfileRepository` parameters in some
+# of the higher-level command handlers, so we still need the macro.
+async-trait = "0.1"
 # `macros` is the only feature needed for the `FromRow` derive itself;
 # the per-database row glue (`sqlx::sqlite::SqliteRow`) lives in the
 # downstream crate that picks a runtime. Cargo's feature unification

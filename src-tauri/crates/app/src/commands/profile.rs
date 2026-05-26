@@ -2,6 +2,11 @@ use chrono::Utc;
 
 use std::sync::Arc;
 
+use waveflow_core::repository::{
+    profile::{ProfileDeleteOutcome, ProfileDraft, ProfileRepository},
+    sqlite::SqliteProfileRepository,
+};
+
 use crate::{
     audio::{AudioCmd, AudioEngine},
     error::{AppError, AppResult},
@@ -17,18 +22,14 @@ fn now_millis() -> i64 {
     Utc::now().timestamp_millis()
 }
 
+fn profile_repo(state: &AppState) -> SqliteProfileRepository {
+    SqliteProfileRepository::new(state.app_db.clone())
+}
+
 /// List every profile registered in `app.db`, most-recently-used first.
 #[tauri::command]
 pub async fn list_profiles(state: tauri::State<'_, AppState>) -> AppResult<Vec<Profile>> {
-    let profiles = sqlx::query_as::<_, Profile>(
-        "SELECT id, name, color_id, avatar_hash, data_dir, created_at, last_used_at
-           FROM profile
-          ORDER BY last_used_at DESC",
-    )
-    .fetch_all(&state.app_db)
-    .await?;
-
-    Ok(profiles)
+    Ok(profile_repo(&state).list_all().await?)
 }
 
 /// Return the currently active profile (the one whose `data.db` is opened),
@@ -42,15 +43,7 @@ pub async fn get_active_profile(state: tauri::State<'_, AppState>) -> AppResult<
         return Ok(None);
     };
 
-    let profile = sqlx::query_as::<_, Profile>(
-        "SELECT id, name, color_id, avatar_hash, data_dir, created_at, last_used_at
-           FROM profile WHERE id = ?",
-    )
-    .bind(profile_id)
-    .fetch_optional(&state.app_db)
-    .await?;
-
-    Ok(profile)
+    Ok(profile_repo(&state).get(profile_id).await?)
 }
 
 /// Create a new profile.
@@ -73,27 +66,17 @@ pub async fn create_profile(
     let color_id = input.color_id.unwrap_or_else(|| "emerald".to_string());
     let now = now_millis();
 
-    // Reserve the row so we get a stable id for the data directory.
-    let insert = sqlx::query(
-        "INSERT INTO profile (name, color_id, avatar_hash, data_dir, created_at, last_used_at)
-         VALUES (?, ?, ?, '', ?, ?)",
-    )
-    .bind(&name)
-    .bind(&color_id)
-    .bind(input.avatar_hash.as_deref())
-    .bind(now)
-    .bind(now)
-    .execute(&state.app_db)
-    .await?;
+    let repo = profile_repo(&state);
+    let draft = ProfileDraft {
+        name: name.clone(),
+        color_id: color_id.clone(),
+        avatar_hash: input.avatar_hash.clone(),
+        now_ms: now,
+    };
+    let profile_id = repo.insert(&draft).await?;
 
-    let profile_id = insert.last_insert_rowid();
     let rel_dir = AppPaths::profile_rel_dir(profile_id);
-
-    sqlx::query("UPDATE profile SET data_dir = ? WHERE id = ?")
-        .bind(&rel_dir)
-        .bind(profile_id)
-        .execute(&state.app_db)
-        .await?;
+    repo.set_data_dir(profile_id, &rel_dir).await?;
 
     // Materialize the filesystem layout and initialize the per-profile DB.
     state.paths.ensure_profile_dirs(profile_id)?;
@@ -123,14 +106,11 @@ pub async fn switch_profile(
     watcher: tauri::State<'_, Arc<crate::watcher::WatcherManager>>,
     profile_id: i64,
 ) -> AppResult<Profile> {
-    let profile = sqlx::query_as::<_, Profile>(
-        "SELECT id, name, color_id, avatar_hash, data_dir, created_at, last_used_at
-           FROM profile WHERE id = ?",
-    )
-    .bind(profile_id)
-    .fetch_optional(&state.app_db)
-    .await?
-    .ok_or(AppError::ProfileNotFound(profile_id))?;
+    let repo = profile_repo(&state);
+    let profile = repo
+        .get(profile_id)
+        .await?
+        .ok_or(AppError::ProfileNotFound(profile_id))?;
 
     // Stop playback before swapping the pool — the queue references
     // track IDs from the old profile's database, which would become
@@ -158,12 +138,7 @@ pub async fn switch_profile(
     }
 
     let now = now_millis();
-
-    sqlx::query("UPDATE profile SET last_used_at = ? WHERE id = ?")
-        .bind(now)
-        .bind(profile_id)
-        .execute(&state.app_db)
-        .await?;
+    repo.touch_last_used(profile_id, now).await?;
 
     sqlx::query(
         "INSERT INTO app_setting (key, value, value_type, updated_at)
@@ -199,23 +174,13 @@ pub async fn rename_profile(
         return Err(AppError::Other("profile name cannot be empty".into()));
     }
 
-    let updated = sqlx::query("UPDATE profile SET name = ? WHERE id = ?")
-        .bind(&trimmed)
-        .bind(profile_id)
-        .execute(&state.app_db)
-        .await?;
-    if updated.rows_affected() == 0 {
+    let repo = profile_repo(&state);
+    if !repo.rename(profile_id, &trimmed).await? {
         return Err(AppError::ProfileNotFound(profile_id));
     }
-
-    let profile = sqlx::query_as::<_, Profile>(
-        "SELECT id, name, color_id, avatar_hash, data_dir, created_at, last_used_at
-           FROM profile WHERE id = ?",
-    )
-    .bind(profile_id)
-    .fetch_one(&state.app_db)
-    .await?;
-    Ok(profile)
+    repo.get(profile_id)
+        .await?
+        .ok_or(AppError::ProfileNotFound(profile_id))
 }
 
 /// Close the active profile without activating a new one. Useful for a
@@ -251,34 +216,17 @@ pub async fn delete_profile(state: tauri::State<'_, AppState>, profile_id: i64) 
         ));
     }
 
-    // Atomic DELETE guarded by an in-statement subquery: the "more than one
-    // profile must remain" check and the delete are evaluated together, so
-    // a concurrent deletion can never leave the table empty (TOCTOU-free).
-    let deleted = sqlx::query(
-        "DELETE FROM profile
-          WHERE id = ?
-            AND (SELECT COUNT(*) FROM profile) > 1",
-    )
-    .bind(profile_id)
-    .execute(&state.app_db)
-    .await?;
-
-    if deleted.rows_affected() == 0 {
-        // 0 rows hit means either: (a) the row doesn't exist, or (b) it
-        // existed but was the last remaining profile and the guard rejected
-        // it. Disambiguate with a cheap follow-up so the caller gets a
-        // useful error instead of a generic ProfileNotFound.
-        let still_exists: Option<i64> = sqlx::query_scalar("SELECT id FROM profile WHERE id = ?")
-            .bind(profile_id)
-            .fetch_optional(&state.app_db)
-            .await?;
-        return if still_exists.is_some() {
-            Err(AppError::Other(
+    let repo = profile_repo(&state);
+    match repo.delete_guarded(profile_id).await? {
+        ProfileDeleteOutcome::Deleted => {}
+        ProfileDeleteOutcome::WasLast => {
+            return Err(AppError::Other(
                 "cannot delete the last remaining profile".into(),
-            ))
-        } else {
-            Err(AppError::ProfileNotFound(profile_id))
-        };
+            ));
+        }
+        ProfileDeleteOutcome::NotFound => {
+            return Err(AppError::ProfileNotFound(profile_id));
+        }
     }
 
     // Clear the last-profile pointer if it referenced the deleted profile so
