@@ -18,8 +18,8 @@ use sqlx::{FromRow, SqlitePool};
 
 use super::cover;
 use super::SmartPlaylistRules;
-use crate::error::AppResult;
-use crate::paths::AppPaths;
+use crate::error::CoreResult;
+use crate::smart_playlists::PathsContext;
 
 /// How far back the generator looks for listening events. 90 days strikes a
 /// balance between staleness (a one-off binge from last summer shouldn't
@@ -128,9 +128,9 @@ impl Bucket {
 /// the shared cache.
 pub async fn regenerate_daily_mixes(
     pool: &SqlitePool,
-    paths: &AppPaths,
+    paths: &PathsContext,
     profile_id: i64,
-) -> AppResult<Vec<i64>> {
+) -> CoreResult<Vec<i64>> {
     let cutoff_ms = Utc::now().timestamp_millis() - (LOOKBACK_DAYS * 86_400_000);
 
     // Top artists by total listened time over the lookback window. We join
@@ -182,11 +182,11 @@ pub async fn regenerate_daily_mixes(
 /// Build (or refresh) the playlist for a single bucket and return its id.
 async fn generate_one_mix(
     pool: &SqlitePool,
-    paths: &AppPaths,
+    paths: &PathsContext,
     profile_id: i64,
     bucket: Bucket,
     artists: &[&ArtistListenRow],
-) -> AppResult<i64> {
+) -> CoreResult<i64> {
     let top_artist_ids: Vec<i64> = artists
         .iter()
         .take(ARTISTS_PER_BUCKET)
@@ -217,7 +217,7 @@ async fn generate_one_mix(
         .take(3)
         .filter_map(|a| {
             let hash = a.picture_hash.as_deref()?;
-            crate::metadata_artwork::existing_path(&paths.metadata_artwork_dir, hash)
+            crate::artwork::metadata::existing_path(&paths.metadata_artwork_dir, hash)
                 .map(PathBuf::from)
         })
         .collect();
@@ -274,9 +274,9 @@ async fn generate_one_mix(
 
 async fn top_artists_with_bpm(
     pool: &SqlitePool,
-    paths: &AppPaths,
+    paths: &PathsContext,
     cutoff_ms: i64,
-) -> AppResult<Vec<ArtistListenRow>> {
+) -> CoreResult<Vec<ArtistListenRow>> {
     // Step 1: aggregate listened_ms per artist + median BPM, all in the
     // profile DB (the cross-DB picture hash is added in step 2).
     #[derive(FromRow)]
@@ -320,7 +320,7 @@ async fn top_artists_with_bpm(
     // open a short-lived connection to app.db rather than ATTACH because
     // ATTACH would require routing through the same pool the deezer
     // commands use — easier to stay connection-local here.
-    let app_db_path = &paths.app_db;
+    let app_db_path = &paths.app_db_path;
     let pool_app = sqlx::sqlite::SqlitePoolOptions::new()
         .max_connections(1)
         .connect(&format!("sqlite://{}", app_db_path.display()))
@@ -377,8 +377,13 @@ async fn top_artists_with_bpm(
 /// hits or the source is exhausted.
 pub(super) async fn first_track_artwork_paths(
     pool: &SqlitePool,
-    paths: &AppPaths,
-    profile_id: i64,
+    paths: &PathsContext,
+    // `profile_id` was previously required to resolve the per-profile
+    // artwork directory; that path is now carried by `PathsContext`
+    // itself. The argument is kept for the public symmetry with the
+    // other `generator::*` helpers — easier to spot at the call site
+    // which profile a job is running for.
+    _profile_id: i64,
     track_ids: &[i64],
     take: usize,
 ) -> Vec<PathBuf> {
@@ -430,7 +435,7 @@ pub(super) async fn first_track_artwork_paths(
         .into_iter()
         .map(|r| (r.track_id, (r.hash, r.format)))
         .collect();
-    let artwork_dir = paths.profile_artwork_dir(profile_id);
+    let artwork_dir = paths.profile_artwork_dir.clone();
     let mut out = Vec::with_capacity(take);
     for id in track_ids {
         if out.len() >= take {
@@ -450,7 +455,7 @@ pub(super) async fn first_track_artwork_paths(
 async fn pick_tracks_for_artists(
     pool: &SqlitePool,
     artist_ids: &[i64],
-) -> AppResult<Vec<TrackPickRow>> {
+) -> CoreResult<Vec<TrackPickRow>> {
     if artist_ids.is_empty() {
         return Ok(vec![]);
     }
@@ -497,7 +502,7 @@ pub(super) async fn upsert_smart_playlist(
     cover_hash: Option<&str>,
     rules_json: &str,
     track_ids: &[i64],
-) -> AppResult<i64> {
+) -> CoreResult<i64> {
     let now = Utc::now().timestamp_millis();
     let mut tx = pool.begin().await?;
 
@@ -594,7 +599,7 @@ pub(super) async fn upsert_smart_playlist(
     Ok(playlist_id)
 }
 
-async fn delete_existing_slot(pool: &SqlitePool, slot: u8) -> AppResult<()> {
+async fn delete_existing_slot(pool: &SqlitePool, slot: u8) -> CoreResult<()> {
     let needle = format!("\"slot\":{slot}");
     sqlx::query("DELETE FROM playlist WHERE is_smart = 1 AND smart_rules LIKE ?")
         .bind(format!("%{needle}%"))

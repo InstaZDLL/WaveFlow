@@ -18,8 +18,8 @@ use fast_image_resize::images::Image as FirImage;
 use fast_image_resize::{PixelType, ResizeOptions, Resizer};
 use image::{ImageBuffer, ImageFormat, Rgb, RgbImage};
 
-use crate::error::{AppError, AppResult};
-use crate::metadata_artwork;
+use crate::artwork::metadata as metadata_artwork;
+use crate::error::{CoreError, CoreResult};
 
 /// Final canvas side in pixels. Spotify uses 640×640 for playlist covers and
 /// it's a comfortable retina size — anything larger inflates JPEG bytes
@@ -53,7 +53,7 @@ const MAX_GRID_TILES: usize = 4;
 /// Images that fail to decode are skipped silently; the function only errors
 /// if the *final* JPEG can't be produced (zero usable inputs, encoder error,
 /// disk write).
-pub fn build_composite_cover(image_paths: &[PathBuf], metadata_dir: &Path) -> AppResult<String> {
+pub fn build_composite_cover(image_paths: &[PathBuf], metadata_dir: &Path) -> CoreResult<String> {
     let take = MAX_GRID_TILES.max(MAX_STRIPS);
     // Dedupe by path so a Daily Mix whose top 3 artists share a picture
     // (or whose fallback album arts all point at the same release)
@@ -78,7 +78,7 @@ pub fn build_composite_cover(image_paths: &[PathBuf], metadata_dir: &Path) -> Ap
         .collect();
 
     if tiles.is_empty() {
-        return Err(AppError::Audio(
+        return Err(CoreError::Audio(
             "smart cover: no decodable input images".into(),
         ));
     }
@@ -93,7 +93,7 @@ pub fn build_composite_cover(image_paths: &[PathBuf], metadata_dir: &Path) -> Ap
     let out = metadata_artwork::path_for_hash(metadata_dir, &hash);
     if !out.exists() {
         std::fs::write(&out, &bytes)
-            .map_err(|e| AppError::Audio(format!("smart cover write: {e}")))?;
+            .map_err(|e| CoreError::Audio(format!("smart cover write: {e}")))?;
     }
     Ok(hash)
 }
@@ -101,7 +101,7 @@ pub fn build_composite_cover(image_paths: &[PathBuf], metadata_dir: &Path) -> Ap
 /// Backwards-compatible shim — Daily Mix specifically prefers strips for 1-3
 /// inputs (matches Spotify's Daily Mix visual). New callers should use
 /// [`build_composite_cover`] which auto-picks the layout.
-pub fn build_daily_mix_cover(image_paths: &[PathBuf], metadata_dir: &Path) -> AppResult<String> {
+pub fn build_daily_mix_cover(image_paths: &[PathBuf], metadata_dir: &Path) -> CoreResult<String> {
     build_composite_cover(image_paths, metadata_dir)
 }
 
@@ -116,14 +116,14 @@ pub fn build_daily_mix_cover(image_paths: &[PathBuf], metadata_dir: &Path) -> Ap
 /// the same blake3 hash), so a regen pass against an unchanged family
 /// dedupes against the existing file in the shared cache instead of
 /// piling up orphans.
-pub fn build_on_repeat_cover(metadata_dir: &Path) -> AppResult<String> {
+pub fn build_on_repeat_cover(metadata_dir: &Path) -> CoreResult<String> {
     let canvas = render_on_repeat_canvas()?;
     let bytes = encode_jpeg(&canvas)?;
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let out = metadata_artwork::path_for_hash(metadata_dir, &hash);
     if !out.exists() {
         std::fs::write(&out, &bytes)
-            .map_err(|e| AppError::Audio(format!("smart cover write: {e}")))?;
+            .map_err(|e| CoreError::Audio(format!("smart cover write: {e}")))?;
     }
     Ok(hash)
 }
@@ -138,15 +138,15 @@ const ON_REPEAT_SVG: &str = include_str!("on_repeat.svg");
 
 /// Rasterise [`ON_REPEAT_SVG`] into a 640×640 RGB canvas via resvg. The
 /// SVG declares a 500-px viewBox so resvg autoscales to fill the canvas
-/// without us touching coordinates. Errors are converted to AppError so
+/// without us touching coordinates. Errors are converted to CoreError so
 /// they ladder through the existing cover pipeline.
-fn render_on_repeat_canvas() -> AppResult<RgbImage> {
+fn render_on_repeat_canvas() -> CoreResult<RgbImage> {
     let tree = usvg::Tree::from_str(ON_REPEAT_SVG, &usvg::Options::default())
-        .map_err(|e| AppError::Audio(format!("on repeat: parse SVG: {e}")))?;
+        .map_err(|e| CoreError::Audio(format!("on repeat: parse SVG: {e}")))?;
     let svg_size = tree.size();
     let scale = CANVAS_PX as f32 / svg_size.width().max(svg_size.height());
     let mut pixmap = tiny_skia::Pixmap::new(CANVAS_PX, CANVAS_PX)
-        .ok_or_else(|| AppError::Audio("on repeat: allocate pixmap".into()))?;
+        .ok_or_else(|| CoreError::Audio("on repeat: allocate pixmap".into()))?;
     resvg::render(
         &tree,
         tiny_skia::Transform::from_scale(scale, scale),
@@ -171,9 +171,9 @@ fn render_on_repeat_canvas() -> AppResult<RgbImage> {
 /// `strips` is empty so callers never silently render an all-black square
 /// — the public entry point pre-checks too, but defending here keeps the
 /// helper safe for future callers.
-fn composite_strips(strips: &[RgbImage]) -> AppResult<RgbImage> {
+fn composite_strips(strips: &[RgbImage]) -> CoreResult<RgbImage> {
     if strips.is_empty() {
-        return Err(AppError::Audio(
+        return Err(CoreError::Audio(
             "smart cover: composite_strips requires at least one strip".into(),
         ));
     }
@@ -207,9 +207,9 @@ fn composite_strips(strips: &[RgbImage]) -> AppResult<RgbImage> {
 /// covers (which are nearly always square anyway) drop in without
 /// distortion. Used for user-playlist auto-covers à la Spotify; the smart
 /// playlist family takes the strips path for 1-3 inputs.
-fn composite_grid_2x2(tiles: &[RgbImage]) -> AppResult<RgbImage> {
+fn composite_grid_2x2(tiles: &[RgbImage]) -> CoreResult<RgbImage> {
     if tiles.len() < 4 {
-        return Err(AppError::Audio(
+        return Err(CoreError::Audio(
             "smart cover: composite_grid_2x2 requires 4 tiles".into(),
         ));
     }
@@ -233,10 +233,10 @@ fn composite_grid_2x2(tiles: &[RgbImage]) -> AppResult<RgbImage> {
 
 /// Centre-crop `src` to the `dst_w × dst_h` aspect ratio, then SIMD-resize
 /// to that exact size. Mirrors CSS `object-fit: cover`.
-fn cover_fit(src: &RgbImage, dst_w: u32, dst_h: u32) -> AppResult<RgbImage> {
+fn cover_fit(src: &RgbImage, dst_w: u32, dst_h: u32) -> CoreResult<RgbImage> {
     let (sw, sh) = (src.width(), src.height());
     if sw == 0 || sh == 0 {
-        return Err(AppError::Audio("smart cover: empty source image".into()));
+        return Err(CoreError::Audio("smart cover: empty source image".into()));
     }
     let src_ratio = sw as f32 / sh as f32;
     let dst_ratio = dst_w as f32 / dst_h as f32;
@@ -263,14 +263,14 @@ fn cover_fit(src: &RgbImage, dst_w: u32, dst_h: u32) -> AppResult<RgbImage> {
     let dst_h_nz = NonZeroU32::new(dst_h).expect("dst_h > 0");
     let _ = (src_w_nz, src_h_nz, dst_w_nz, dst_h_nz); // crate API uses u32 directly in v6
     let src_fir = FirImage::from_vec_u8(crop_w, crop_h, cropped.into_raw(), PixelType::U8x3)
-        .map_err(|e| AppError::Audio(format!("smart cover: fir from src: {e}")))?;
+        .map_err(|e| CoreError::Audio(format!("smart cover: fir from src: {e}")))?;
     let mut dst_fir = FirImage::new(dst_w, dst_h, PixelType::U8x3);
     let mut resizer = Resizer::new();
     resizer
         .resize(&src_fir, &mut dst_fir, &ResizeOptions::default())
-        .map_err(|e| AppError::Audio(format!("smart cover: resize: {e}")))?;
+        .map_err(|e| CoreError::Audio(format!("smart cover: resize: {e}")))?;
     let resized = ImageBuffer::<Rgb<u8>, _>::from_raw(dst_w, dst_h, dst_fir.into_vec())
-        .ok_or_else(|| AppError::Audio("smart cover: rebuild ImageBuffer".into()))?;
+        .ok_or_else(|| CoreError::Audio("smart cover: rebuild ImageBuffer".into()))?;
     Ok(resized)
 }
 
@@ -294,13 +294,13 @@ fn apply_bottom_gradient(canvas: &mut RgbImage) {
     }
 }
 
-fn encode_jpeg(canvas: &RgbImage) -> AppResult<Vec<u8>> {
+fn encode_jpeg(canvas: &RgbImage) -> CoreResult<Vec<u8>> {
     let mut buf: Vec<u8> = Vec::with_capacity(96 * 1024);
     let mut cursor = std::io::Cursor::new(&mut buf);
     let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut cursor, JPEG_QUALITY);
     canvas
         .write_with_encoder(encoder)
-        .map_err(|e| AppError::Audio(format!("smart cover encode: {e}")))?;
+        .map_err(|e| CoreError::Audio(format!("smart cover encode: {e}")))?;
     let _ = ImageFormat::Jpeg; // assert symbol use
     Ok(buf)
 }

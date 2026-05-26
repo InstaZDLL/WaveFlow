@@ -29,7 +29,7 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use sqlx::SqlitePool;
 
-use crate::error::{AppError, AppResult};
+use crate::error::{CoreError, CoreResult};
 
 // =============================================================================
 // Rule tree types
@@ -440,7 +440,7 @@ pub async fn materialize(
     pool: &SqlitePool,
     playlist_id: i64,
     rules: &CustomRules,
-) -> AppResult<i64> {
+) -> CoreResult<i64> {
     let track_ids = run_query(pool, rules).await?;
 
     let mut tx = pool.begin().await?;
@@ -474,7 +474,7 @@ pub async fn materialize(
 
 /// Resolve the rule set into a list of track ids in the canonical sort
 /// order. Public for the dry-run "Preview" button in the rule editor.
-pub async fn run_query(pool: &SqlitePool, rules: &CustomRules) -> AppResult<Vec<i64>> {
+pub async fn run_query(pool: &SqlitePool, rules: &CustomRules) -> CoreResult<Vec<i64>> {
     let mut binds = Vec::<BindValue>::new();
     let tree_where = build_node_sql(&rules.tree, &mut binds);
 
@@ -500,7 +500,7 @@ pub async fn run_query(pool: &SqlitePool, rules: &CustomRules) -> AppResult<Vec<
     let rows = q
         .fetch_all(pool)
         .await
-        .map_err(|e| AppError::Other(format!("custom smart playlist query failed: {e}")))?;
+        .map_err(|e| CoreError::Other(format!("custom smart playlist query failed: {e}")))?;
     Ok(rows)
 }
 

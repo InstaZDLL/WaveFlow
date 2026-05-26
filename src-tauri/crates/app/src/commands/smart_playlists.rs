@@ -7,9 +7,21 @@
 use crate::error::{AppError, AppResult};
 use crate::smart_playlists::{
     custom::{self, CustomRules},
-    generator, on_repeat, SmartPlaylistRules,
+    generator, on_repeat, PathsContext, SmartPlaylistRules,
 };
 use crate::state::AppState;
+
+/// Build the path bundle the smart-playlist generators expect from
+/// the desktop's `AppPaths`. The clones are cheap (`PathBuf` is just
+/// a `Vec<u8>` under the hood) and centralising the construction
+/// here keeps every regen call site one line shorter.
+fn paths_ctx(state: &AppState, profile_id: i64) -> PathsContext {
+    PathsContext {
+        metadata_artwork_dir: state.paths.metadata_artwork_dir.clone(),
+        app_db_path: state.paths.app_db.clone(),
+        profile_artwork_dir: state.paths.profile_artwork_dir(profile_id),
+    }
+}
 use serde::Deserialize;
 use tauri::{AppHandle, Emitter};
 
@@ -20,7 +32,8 @@ use tauri::{AppHandle, Emitter};
 pub async fn regenerate_daily_mixes(state: tauri::State<'_, AppState>) -> AppResult<Vec<i64>> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
-    generator::regenerate_daily_mixes(&pool, &state.paths, profile_id).await
+    let ctx = paths_ctx(&state, profile_id);
+    Ok(generator::regenerate_daily_mixes(&pool, &ctx, profile_id).await?)
 }
 
 /// Regenerate the active profile's On Repeat playlist from the last
@@ -30,7 +43,9 @@ pub async fn regenerate_daily_mixes(state: tauri::State<'_, AppState>) -> AppRes
 #[tauri::command]
 pub async fn regenerate_on_repeat(state: tauri::State<'_, AppState>) -> AppResult<Option<i64>> {
     let pool = state.require_profile_pool().await?;
-    on_repeat::regenerate_on_repeat(&pool, &state.paths).await
+    let profile_id = state.require_profile_id().await?;
+    let ctx = paths_ctx(&state, profile_id);
+    Ok(on_repeat::regenerate_on_repeat(&pool, &ctx).await?)
 }
 
 /// One-shot regen for every built-in smart-playlist family (Daily Mix
@@ -49,8 +64,9 @@ pub async fn regenerate_all_smart_playlists(
 ) -> AppResult<RegenerateAllSmartPlaylistsOutput> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
-    let daily_mix_ids = generator::regenerate_daily_mixes(&pool, &state.paths, profile_id).await?;
-    let on_repeat_id = on_repeat::regenerate_on_repeat(&pool, &state.paths).await?;
+    let ctx = paths_ctx(&state, profile_id);
+    let daily_mix_ids = generator::regenerate_daily_mixes(&pool, &ctx, profile_id).await?;
+    let on_repeat_id = on_repeat::regenerate_on_repeat(&pool, &ctx).await?;
     Ok(RegenerateAllSmartPlaylistsOutput {
         daily_mix_ids,
         on_repeat_id,

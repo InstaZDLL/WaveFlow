@@ -11,9 +11,8 @@
 use chrono::Utc;
 use sqlx::{FromRow, SqlitePool};
 
-use super::{cover, generator, SmartPlaylistRules};
-use crate::error::AppResult;
-use crate::paths::AppPaths;
+use super::{cover, generator, PathsContext, SmartPlaylistRules};
+use crate::error::CoreResult;
 
 /// Short lookback so "On Repeat" reflects what the user is actually
 /// rotating right now — a 90-day window would let last quarter's binges
@@ -56,7 +55,10 @@ struct TrackPlayRow {
 /// profile id is not required here; future per-track-art families
 /// (Release Radar, Recently Added) will take a `profile_id` to resolve
 /// the active library's artwork cache.
-pub async fn regenerate_on_repeat(pool: &SqlitePool, paths: &AppPaths) -> AppResult<Option<i64>> {
+pub async fn regenerate_on_repeat(
+    pool: &SqlitePool,
+    paths: &PathsContext,
+) -> CoreResult<Option<i64>> {
     let cutoff_ms = Utc::now().timestamp_millis() - (LOOKBACK_DAYS * 86_400_000);
     let tracks = top_played_tracks(pool, cutoff_ms).await?;
 
@@ -111,7 +113,7 @@ pub async fn regenerate_on_repeat(pool: &SqlitePool, paths: &AppPaths) -> AppRes
     Ok(Some(id))
 }
 
-async fn top_played_tracks(pool: &SqlitePool, cutoff_ms: i64) -> AppResult<Vec<TrackPlayRow>> {
+async fn top_played_tracks(pool: &SqlitePool, cutoff_ms: i64) -> CoreResult<Vec<TrackPlayRow>> {
     Ok(sqlx::query_as::<_, TrackPlayRow>(
         r#"
         SELECT pe.track_id        AS track_id,
@@ -131,7 +133,7 @@ async fn top_played_tracks(pool: &SqlitePool, cutoff_ms: i64) -> AppResult<Vec<T
     .await?)
 }
 
-async fn delete_existing(pool: &SqlitePool) -> AppResult<()> {
+async fn delete_existing(pool: &SqlitePool) -> CoreResult<()> {
     sqlx::query("DELETE FROM playlist WHERE is_smart = 1 AND smart_rules LIKE ?")
         .bind("%\"kind\":\"on_repeat\"%")
         .execute(pool)

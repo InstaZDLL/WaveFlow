@@ -6917,18 +6917,23 @@ dependencies = [
  "anyhow",
  "async-trait",
  "blake3",
+ "chrono",
  "fast_image_resize",
  "hex",
  "image",
  "md-5",
  "regex",
  "reqwest 0.12.28",
+ "resvg",
  "serde",
  "serde_json",
  "sqlx",
  "symphonia",
+ "tempfile",
  "thiserror 2.0.18",
+ "tiny-skia",
  "tracing",
+ "usvg",
 ]
 
 [[package]]

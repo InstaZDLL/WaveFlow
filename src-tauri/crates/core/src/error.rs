@@ -25,6 +25,13 @@ pub enum CoreError {
     #[error("no profile is currently active")]
     NoActiveProfile,
 
+    /// Catch-all for the audio-pipeline + image-composition error
+    /// surfaces (smart-playlist covers, future scanner artwork
+    /// helpers). Mirrors `AppError::Audio` so the wire format stays
+    /// the same when the variant crosses the boundary.
+    #[error("audio error: {0}")]
+    Audio(String),
+
     #[error("{0}")]
     Other(String),
 }

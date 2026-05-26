@@ -16,7 +16,33 @@ pub mod custom;
 pub mod generator;
 pub mod on_repeat;
 
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
+
+/// Filesystem context the smart-playlist generators need. Owned
+/// `PathBuf`s rather than borrows so the struct can be `Clone`d
+/// across async boundaries without lifetime gymnastics — the
+/// generators are user-triggered (1 call every few minutes at peak)
+/// so the allocation is irrelevant.
+///
+/// Constructed app-side from `AppPaths`; mirrored by a future
+/// server-side path resolver in `waveflow-server`.
+#[derive(Debug, Clone)]
+pub struct PathsContext {
+    /// Per-installation shared cache for downloaded artwork
+    /// (Deezer pictures, on-disk JPEGs). Mirrors
+    /// `AppPaths::metadata_artwork_dir`.
+    pub metadata_artwork_dir: PathBuf,
+    /// Absolute path to `app.db`. Opened with a short-lived single-
+    /// connection pool by the daily-mix generator to look up Deezer
+    /// picture hashes without routing through the per-profile pool.
+    pub app_db_path: PathBuf,
+    /// Per-profile artwork directory
+    /// (`<profile_root>/<profile_id>/artwork`). Mirrors the result of
+    /// `AppPaths::profile_artwork_dir(profile_id)`.
+    pub profile_artwork_dir: PathBuf,
+}
 
 /// JSON payload stored in `playlist.smart_rules` so a future regen pass can
 /// recognise the row and replace it deterministically. The `kind` discriminant
