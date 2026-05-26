@@ -11,6 +11,11 @@
 use chrono::Utc;
 use sqlx::FromRow;
 
+use waveflow_core::repository::{
+    playlist::{PlaylistDraft, PlaylistRepository, PlaylistUpdate},
+    sqlite::SqlitePlaylistRepository,
+};
+
 use crate::{
     error::{AppError, AppResult},
     state::AppState,
@@ -20,9 +25,14 @@ use crate::{
 // (`crate::commands::playlist::Playlist`) keep resolving.
 pub use waveflow_core::domain::playlist::{CreatePlaylistInput, Playlist, UpdatePlaylistInput};
 
-/// Raw row shape for the joined track query — private because the public
 fn now_millis() -> i64 {
     Utc::now().timestamp_millis()
+}
+
+async fn playlist_repo(state: &AppState) -> AppResult<SqlitePlaylistRepository> {
+    Ok(SqlitePlaylistRepository::new(
+        state.require_profile_pool().await?,
+    ))
 }
 
 /// Resolve `cover_hash` to an absolute on-disk path if (and only if) the
@@ -40,33 +50,7 @@ fn resolve_cover_path(p: &mut Playlist, paths: &crate::paths::AppPaths) {
 /// recently-edited playlists float to the top by default.
 #[tauri::command]
 pub async fn list_playlists(state: tauri::State<'_, AppState>) -> AppResult<Vec<Playlist>> {
-    let pool = state.require_profile_pool().await?;
-
-    let mut playlists = sqlx::query_as::<_, Playlist>(
-        r#"
-        SELECT p.id, p.name, p.description, p.color_id, p.icon_id,
-               p.is_smart, p.cover_hash, NULL AS cover_path,
-               p.cover_is_auto,
-               p.position, p.created_at, p.updated_at,
-               COALESCE(pc.track_count,       0) AS track_count,
-               COALESCE(pc.total_duration_ms, 0) AS total_duration_ms,
-               p.smart_rules
-          FROM playlist p
-          LEFT JOIN (
-              SELECT pt.playlist_id,
-                     COUNT(*)                AS track_count,
-                     SUM(t.duration_ms)      AS total_duration_ms
-                FROM playlist_track pt
-                JOIN track t ON t.id = pt.track_id
-               WHERE t.is_available = 1
-               GROUP BY pt.playlist_id
-          ) pc ON pc.playlist_id = p.id
-         ORDER BY p.position ASC, p.updated_at DESC
-        "#,
-    )
-    .fetch_all(&pool)
-    .await?;
-
+    let mut playlists = playlist_repo(&state).await?.list_all_with_counts().await?;
     for p in &mut playlists {
         resolve_cover_path(p, &state.paths);
     }
@@ -79,39 +63,15 @@ pub async fn get_playlist(
     state: tauri::State<'_, AppState>,
     playlist_id: i64,
 ) -> AppResult<Playlist> {
-    let pool = state.require_profile_pool().await?;
-
-    let mut playlist = sqlx::query_as::<_, Playlist>(
-        r#"
-        SELECT p.id, p.name, p.description, p.color_id, p.icon_id,
-               p.is_smart, p.cover_hash, NULL AS cover_path,
-               p.cover_is_auto,
-               p.position, p.created_at, p.updated_at,
-               COALESCE(pc.track_count,       0) AS track_count,
-               COALESCE(pc.total_duration_ms, 0) AS total_duration_ms,
-               p.smart_rules
-          FROM playlist p
-          LEFT JOIN (
-              SELECT pt.playlist_id,
-                     COUNT(*)                AS track_count,
-                     SUM(t.duration_ms)      AS total_duration_ms
-                FROM playlist_track pt
-                JOIN track t ON t.id = pt.track_id
-               WHERE t.is_available = 1
-               GROUP BY pt.playlist_id
-          ) pc ON pc.playlist_id = p.id
-         WHERE p.id = ?
-        "#,
-    )
-    .bind(playlist_id)
-    .fetch_optional(&pool)
-    .await?
-    .ok_or_else(|| {
-        AppError::Other(format!(
-            "playlist {playlist_id} not found in active profile"
-        ))
-    })?;
-
+    let mut playlist = playlist_repo(&state)
+        .await?
+        .get_with_counts(playlist_id)
+        .await?
+        .ok_or_else(|| {
+            AppError::Other(format!(
+                "playlist {playlist_id} not found in active profile"
+            ))
+        })?;
     resolve_cover_path(&mut playlist, &state.paths);
     Ok(playlist)
 }
@@ -132,24 +92,14 @@ pub async fn create_playlist(
     let icon_id = input.icon_id.unwrap_or_else(|| "music".to_string());
     let now = now_millis();
 
-    let pool = state.require_profile_pool().await?;
-
-    let insert = sqlx::query(
-        "INSERT INTO playlist
-             (name, description, color_id, icon_id, is_smart, position,
-              created_at, updated_at)
-         VALUES (?, ?, ?, ?, 0, 0, ?, ?)",
-    )
-    .bind(&name)
-    .bind(input.description.as_deref())
-    .bind(&color_id)
-    .bind(&icon_id)
-    .bind(now)
-    .bind(now)
-    .execute(&pool)
-    .await?;
-
-    let id = insert.last_insert_rowid();
+    let draft = PlaylistDraft {
+        name: name.clone(),
+        description: input.description.clone(),
+        color_id: color_id.clone(),
+        icon_id: icon_id.clone(),
+        now_ms: now,
+    };
+    let id = playlist_repo(&state).await?.insert_custom(&draft).await?;
 
     Ok(Playlist {
         id,
@@ -177,14 +127,10 @@ pub async fn update_playlist(
     playlist_id: i64,
     input: UpdatePlaylistInput,
 ) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
+    let repo = playlist_repo(&state).await?;
 
     // Precise error for missing id instead of a silent "0 rows updated".
-    let exists: Option<i64> = sqlx::query_scalar("SELECT id FROM playlist WHERE id = ?")
-        .bind(playlist_id)
-        .fetch_optional(&pool)
-        .await?;
-    if exists.is_none() {
+    if !repo.exists(playlist_id).await? {
         return Err(AppError::Other(format!(
             "playlist {playlist_id} not found in active profile"
         )));
@@ -197,25 +143,13 @@ pub async fn update_playlist(
         }
     }
 
-    let now = now_millis();
-    sqlx::query(
-        "UPDATE playlist
-            SET name        = COALESCE(?, name),
-                description = COALESCE(?, description),
-                color_id    = COALESCE(?, color_id),
-                icon_id     = COALESCE(?, icon_id),
-                updated_at  = ?
-          WHERE id = ?",
-    )
-    .bind(trimmed_name.as_deref())
-    .bind(input.description.as_deref())
-    .bind(input.color_id.as_deref())
-    .bind(input.icon_id.as_deref())
-    .bind(now)
-    .bind(playlist_id)
-    .execute(&pool)
-    .await?;
-
+    let patch = PlaylistUpdate {
+        name: trimmed_name,
+        description: input.description,
+        color_id: input.color_id,
+        icon_id: input.icon_id,
+    };
+    repo.update(playlist_id, &patch, now_millis()).await?;
     Ok(())
 }
 
@@ -224,19 +158,11 @@ pub async fn update_playlist(
 /// belong to their library.
 #[tauri::command]
 pub async fn delete_playlist(state: tauri::State<'_, AppState>, playlist_id: i64) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-
-    let result = sqlx::query("DELETE FROM playlist WHERE id = ?")
-        .bind(playlist_id)
-        .execute(&pool)
-        .await?;
-
-    if result.rows_affected() == 0 {
+    if !playlist_repo(&state).await?.delete(playlist_id).await? {
         return Err(AppError::Other(format!(
             "playlist {playlist_id} not found in active profile"
         )));
     }
-
     tracing::info!(playlist_id, "playlist deleted");
     Ok(())
 }
@@ -254,6 +180,8 @@ pub async fn list_playlist_tracks(
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
+    // Stays inline until step 5.d migrates `TrackRow` into core/repository
+    // alongside the rest of the TrackRepository.
     let rows = sqlx::query_as::<_, crate::commands::track::TrackRow>(
         r#"
         SELECT t.id, t.library_id, t.title,
@@ -323,18 +251,10 @@ pub async fn list_playlists_containing_track(
     state: tauri::State<'_, AppState>,
     track_id: i64,
 ) -> AppResult<Vec<i64>> {
-    let pool = state.require_profile_pool().await?;
-    let rows: Vec<(i64,)> = sqlx::query_as(
-        "SELECT pt.playlist_id
-           FROM playlist_track pt
-           JOIN playlist p ON p.id = pt.playlist_id
-          WHERE pt.track_id = ?
-            AND p.is_smart = 0",
-    )
-    .bind(track_id)
-    .fetch_all(&pool)
-    .await?;
-    Ok(rows.into_iter().map(|(id,)| id).collect())
+    Ok(playlist_repo(&state)
+        .await?
+        .list_user_playlists_containing(track_id)
+        .await?)
 }
 
 /// Append a single track to the end of a playlist. Idempotent — if the track
@@ -350,28 +270,8 @@ pub async fn add_track_to_playlist(
     let profile_id = state.require_profile_id().await?;
     let now = now_millis();
 
-    // Compute next position in a single query so concurrent inserts from
-    // different callers don't collide. Sqlite serializes writes at the
-    // connection level, which is enough here.
-    sqlx::query(
-        "INSERT OR IGNORE INTO playlist_track (playlist_id, track_id, position, added_at)
-         VALUES (?, ?,
-                 (SELECT COALESCE(MAX(position), -1) + 1
-                    FROM playlist_track
-                   WHERE playlist_id = ?),
-                 ?)",
-    )
-    .bind(playlist_id)
-    .bind(track_id)
-    .bind(playlist_id)
-    .bind(now)
-    .execute(&pool)
-    .await?;
-
-    sqlx::query("UPDATE playlist SET updated_at = ? WHERE id = ?")
-        .bind(now)
-        .bind(playlist_id)
-        .execute(&pool)
+    SqlitePlaylistRepository::new(pool.clone())
+        .append_track(playlist_id, track_id, now)
         .await?;
 
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
@@ -388,49 +288,14 @@ pub async fn add_tracks_to_playlist(
     playlist_id: i64,
     track_ids: Vec<i64>,
 ) -> AppResult<u32> {
-    if track_ids.is_empty() {
-        return Ok(0);
-    }
-
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let now = now_millis();
 
-    // Start from the current max + 1 and increment locally. A single
-    // transaction keeps the write cheap and the positions contiguous.
-    let mut tx = pool.begin().await?;
-    let current_max: Option<i64> =
-        sqlx::query_scalar("SELECT MAX(position) FROM playlist_track WHERE playlist_id = ?")
-            .bind(playlist_id)
-            .fetch_one(&mut *tx)
-            .await?;
-    let mut next_position = current_max.map(|p| p + 1).unwrap_or(0);
-    let mut inserted: u32 = 0;
-
-    for track_id in track_ids {
-        let result = sqlx::query(
-            "INSERT OR IGNORE INTO playlist_track (playlist_id, track_id, position, added_at)
-             VALUES (?, ?, ?, ?)",
-        )
-        .bind(playlist_id)
-        .bind(track_id)
-        .bind(next_position)
-        .bind(now)
-        .execute(&mut *tx)
-        .await?;
-        if result.rows_affected() > 0 {
-            inserted += 1;
-            next_position += 1;
-        }
-    }
-
-    sqlx::query("UPDATE playlist SET updated_at = ? WHERE id = ?")
-        .bind(now)
-        .bind(playlist_id)
-        .execute(&mut *tx)
+    let inserted = SqlitePlaylistRepository::new(pool.clone())
+        .append_tracks(playlist_id, &track_ids, now)
         .await?;
 
-    tx.commit().await?;
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
     Ok(inserted)
@@ -446,44 +311,10 @@ pub async fn remove_track_from_playlist(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
 
-    let removed_position: Option<i64> = sqlx::query_scalar(
-        "SELECT position FROM playlist_track WHERE playlist_id = ? AND track_id = ?",
-    )
-    .bind(playlist_id)
-    .bind(track_id)
-    .fetch_optional(&pool)
-    .await?;
-
-    let Some(pos) = removed_position else {
-        // Not in the playlist — nothing to do.
-        return Ok(());
-    };
-
-    let mut tx = pool.begin().await?;
-
-    sqlx::query("DELETE FROM playlist_track WHERE playlist_id = ? AND track_id = ?")
-        .bind(playlist_id)
-        .bind(track_id)
-        .execute(&mut *tx)
+    SqlitePlaylistRepository::new(pool.clone())
+        .remove_track(playlist_id, track_id, now_millis())
         .await?;
 
-    sqlx::query(
-        "UPDATE playlist_track
-            SET position = position - 1
-          WHERE playlist_id = ? AND position > ?",
-    )
-    .bind(playlist_id)
-    .bind(pos)
-    .execute(&mut *tx)
-    .await?;
-
-    sqlx::query("UPDATE playlist SET updated_at = ? WHERE id = ?")
-        .bind(now_millis())
-        .bind(playlist_id)
-        .execute(&mut *tx)
-        .await?;
-
-    tx.commit().await?;
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
     Ok(())
@@ -506,73 +337,16 @@ pub async fn reorder_playlist_track(
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
-    let mut tx = pool.begin().await?;
 
-    let from: Option<i64> = sqlx::query_scalar(
-        "SELECT position FROM playlist_track WHERE playlist_id = ? AND track_id = ?",
-    )
-    .bind(playlist_id)
-    .bind(track_id)
-    .fetch_optional(&mut *tx)
-    .await?;
-    let from = from.ok_or_else(|| {
-        AppError::Other(format!("track {track_id} not in playlist {playlist_id}"))
-    })?;
-
-    let len: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM playlist_track WHERE playlist_id = ?")
-        .bind(playlist_id)
-        .fetch_one(&mut *tx)
+    let moved = SqlitePlaylistRepository::new(pool.clone())
+        .reorder_track(playlist_id, track_id, new_position, now_millis())
         .await?;
-    let to = new_position.clamp(0, (len - 1).max(0));
-
-    if from == to {
-        tx.commit().await?;
-        return Ok(());
+    if !moved {
+        return Err(AppError::Other(format!(
+            "track {track_id} not in playlist {playlist_id}"
+        )));
     }
 
-    if to > from {
-        // Items in (from, to] shift down by 1.
-        sqlx::query(
-            "UPDATE playlist_track
-                SET position = position - 1
-              WHERE playlist_id = ? AND position > ? AND position <= ?",
-        )
-        .bind(playlist_id)
-        .bind(from)
-        .bind(to)
-        .execute(&mut *tx)
-        .await?;
-    } else {
-        // Items in [to, from) shift up by 1.
-        sqlx::query(
-            "UPDATE playlist_track
-                SET position = position + 1
-              WHERE playlist_id = ? AND position >= ? AND position < ?",
-        )
-        .bind(playlist_id)
-        .bind(to)
-        .bind(from)
-        .execute(&mut *tx)
-        .await?;
-    }
-
-    sqlx::query(
-        "UPDATE playlist_track SET position = ?
-          WHERE playlist_id = ? AND track_id = ?",
-    )
-    .bind(to)
-    .bind(playlist_id)
-    .bind(track_id)
-    .execute(&mut *tx)
-    .await?;
-
-    sqlx::query("UPDATE playlist SET updated_at = ? WHERE id = ?")
-        .bind(now_millis())
-        .bind(playlist_id)
-        .execute(&mut *tx)
-        .await?;
-
-    tx.commit().await?;
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
     Ok(())
@@ -594,7 +368,8 @@ pub async fn add_source_to_playlist(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
 
-    // Resolve the set of track IDs belonging to the source.
+    // Source-resolution still uses inline SQL — moves into the future
+    // `TrackRepository::list_ids_for_source` in step 5.d.
     let track_ids: Vec<i64> = match source_type.as_str() {
         "folder" => {
             sqlx::query_scalar(
@@ -630,45 +405,10 @@ pub async fn add_source_to_playlist(
         }
     };
 
-    if track_ids.is_empty() {
-        return Ok(0);
-    }
-
-    let now = now_millis();
-    let mut tx = pool.begin().await?;
-
-    let current_max: Option<i64> =
-        sqlx::query_scalar("SELECT MAX(position) FROM playlist_track WHERE playlist_id = ?")
-            .bind(playlist_id)
-            .fetch_one(&mut *tx)
-            .await?;
-    let mut next_position = current_max.map(|p| p + 1).unwrap_or(0);
-    let mut inserted: u32 = 0;
-
-    for track_id in track_ids {
-        let result = sqlx::query(
-            "INSERT OR IGNORE INTO playlist_track (playlist_id, track_id, position, added_at)
-             VALUES (?, ?, ?, ?)",
-        )
-        .bind(playlist_id)
-        .bind(track_id)
-        .bind(next_position)
-        .bind(now)
-        .execute(&mut *tx)
-        .await?;
-        if result.rows_affected() > 0 {
-            inserted += 1;
-            next_position += 1;
-        }
-    }
-
-    sqlx::query("UPDATE playlist SET updated_at = ? WHERE id = ?")
-        .bind(now)
-        .bind(playlist_id)
-        .execute(&mut *tx)
+    let inserted = SqlitePlaylistRepository::new(pool.clone())
+        .append_tracks(playlist_id, &track_ids, now_millis())
         .await?;
 
-    tx.commit().await?;
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
     Ok(inserted)
@@ -746,17 +486,17 @@ pub async fn export_playlist_m3u(
     dest_path: String,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
+    let name = SqlitePlaylistRepository::new(pool.clone())
+        .get_name(playlist_id)
+        .await?
+        .ok_or_else(|| {
+            AppError::Other(format!(
+                "playlist {playlist_id} not found in active profile"
+            ))
+        })?;
 
-    let name: Option<String> = sqlx::query_scalar("SELECT name FROM playlist WHERE id = ?")
-        .bind(playlist_id)
-        .fetch_optional(&pool)
-        .await?;
-    let name = name.ok_or_else(|| {
-        AppError::Other(format!(
-            "playlist {playlist_id} not found in active profile"
-        ))
-    })?;
-
+    // Custom projection for the export — small enough that it doesn't
+    // earn its own repository method.
     #[derive(FromRow)]
     struct ExportRow {
         title: String,
@@ -933,38 +673,17 @@ pub async fn import_playlist_m3u(
         .unwrap_or_else(|| "Imported playlist".to_string());
 
     let now = now_millis();
-    let mut tx = pool.begin().await?;
-    let insert = sqlx::query(
-        "INSERT INTO playlist
-            (name, description, color_id, icon_id, is_smart, position, created_at, updated_at)
-         VALUES (?, NULL, 'violet', 'music', 0, 0, ?, ?)",
-    )
-    .bind(&name)
-    .bind(now)
-    .bind(now)
-    .execute(&mut *tx)
-    .await?;
-    let new_id = insert.last_insert_rowid();
-
-    let mut imported: i64 = 0;
-    let mut next_position: i64 = 0;
-    for track_id in &matched {
-        let result = sqlx::query(
-            "INSERT OR IGNORE INTO playlist_track (playlist_id, track_id, position, added_at)
-             VALUES (?, ?, ?, ?)",
-        )
-        .bind(new_id)
-        .bind(track_id)
-        .bind(next_position)
-        .bind(now)
-        .execute(&mut *tx)
+    let draft = PlaylistDraft {
+        name,
+        description: None,
+        color_id: "violet".to_string(),
+        icon_id: "music".to_string(),
+        now_ms: now,
+    };
+    let (new_id, imported_u32) = SqlitePlaylistRepository::new(pool.clone())
+        .create_with_tracks(&draft, &matched)
         .await?;
-        if result.rows_affected() > 0 {
-            imported += 1;
-            next_position += 1;
-        }
-    }
-    tx.commit().await?;
+    let imported = i64::from(imported_u32);
 
     let missing_count = missing.len() as i64;
     tracing::info!(

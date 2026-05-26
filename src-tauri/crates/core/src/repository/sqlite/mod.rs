@@ -10,7 +10,9 @@
 //! ```
 
 pub mod library;
+pub mod playlist;
 pub mod profile;
 
 pub use library::SqliteLibraryRepository;
+pub use playlist::SqlitePlaylistRepository;
 pub use profile::SqliteProfileRepository;

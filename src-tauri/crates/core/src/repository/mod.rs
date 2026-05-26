@@ -12,5 +12,6 @@
 //! [`crate::error::CoreError`].
 
 pub mod library;
+pub mod playlist;
 pub mod profile;
 pub mod sqlite;
