@@ -35,10 +35,11 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [dependencies]
-# Workspace-local: the business-logic crate. Empty at step 1 of the
-# Phase 1.a refactor; functionality moves over incrementally in
-# subsequent commits.
-waveflow-core = { path = "../core" }
+# Workspace-local: the business-logic crate. The `sqlite` feature opts
+# in to `sqlx::FromRow` derives on every domain type so the desktop
+# command handlers can still use them as `query_as` targets after the
+# move out of `commands/*.rs`.
+waveflow-core = { path = "../core", features = ["sqlite"] }
 
 tauri = { version = "2", features = ["protocol-asset", "tray-icon", "image-png"] }
 tauri-plugin-opener = "2"

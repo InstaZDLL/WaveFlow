@@ -1,6 +1,4 @@
 use chrono::Utc;
-use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
 
 use std::sync::Arc;
 
@@ -10,29 +8,10 @@ use crate::{
     paths::AppPaths,
     state::AppState,
 };
-
-/// Profile row returned to the frontend.
-///
-/// Mirrors the `profile` table in `app.db`, plus a `data_dir` resolved to an
-/// absolute path so the frontend can display it if needed.
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct Profile {
-    pub id: i64,
-    pub name: String,
-    pub color_id: String,
-    pub avatar_hash: Option<String>,
-    pub data_dir: String,
-    pub created_at: i64,
-    pub last_used_at: i64,
-}
-
-/// Input payload for [`create_profile`].
-#[derive(Debug, Deserialize)]
-pub struct CreateProfileInput {
-    pub name: String,
-    pub color_id: Option<String>,
-    pub avatar_hash: Option<String>,
-}
+// `Profile` + `CreateProfileInput` moved to `waveflow_core::domain::profile`
+// in the Phase 1.a refactor. Re-exported so existing call sites
+// (`crate::commands::profile::Profile`) keep resolving.
+pub use waveflow_core::domain::profile::{CreateProfileInput, Profile};
 
 fn now_millis() -> i64 {
     Utc::now().timestamp_millis()

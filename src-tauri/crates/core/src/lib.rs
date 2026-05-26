@@ -9,3 +9,5 @@
 //! traits, smart-playlist algorithms) belongs here; anything coupled to
 //! the Tauri runtime or to the real-time `cpal` audio engine stays in
 //! `crates/app`.
+
+pub mod domain;

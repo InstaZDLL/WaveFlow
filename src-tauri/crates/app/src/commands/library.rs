@@ -1,5 +1,5 @@
 use chrono::Utc;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sqlx::FromRow;
 
 use crate::{
@@ -8,44 +8,9 @@ use crate::{
     state::AppState,
     watcher::{apply_toggle, WatcherManager},
 };
-
-/// Library row returned to the frontend, with denormalized counts computed on
-/// the fly so the sidebar can display "X titres · Y albums" without issuing a
-/// second query per library.
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct Library {
-    pub id: i64,
-    pub name: String,
-    pub description: Option<String>,
-    pub color_id: String,
-    pub icon_id: String,
-    pub created_at: i64,
-    pub updated_at: i64,
-    pub track_count: i64,
-    pub album_count: i64,
-    pub artist_count: i64,
-    pub genre_count: i64,
-    pub folder_count: i64,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct CreateLibraryInput {
-    pub name: String,
-    pub description: Option<String>,
-    pub color_id: Option<String>,
-    pub icon_id: Option<String>,
-}
-
-/// Partial update payload — any field left as `None` is preserved via
-/// SQL `COALESCE`. The description cannot be cleared through this shape,
-/// which is fine for the current UX.
-#[derive(Debug, Deserialize)]
-pub struct UpdateLibraryInput {
-    pub name: Option<String>,
-    pub description: Option<String>,
-    pub color_id: Option<String>,
-    pub icon_id: Option<String>,
-}
+// `Library` + input DTOs moved to `waveflow_core::domain::library` in the
+// Phase 1.a refactor. Re-exported so existing call sites keep resolving.
+pub use waveflow_core::domain::library::{CreateLibraryInput, Library, UpdateLibraryInput};
 
 /// Aggregate result returned by `rescan_library` — summed across every
 /// registered folder. `folders` is the number of folders walked so the UI

@@ -8,6 +8,19 @@ license = "GPL-3.0-only"
 repository = "https://github.com/InstaZDLL/WaveFlow"
 homepage = "https://waveflow.app"
 
+[features]
+default = []
+# Opt-in `sqlx::FromRow` derives on the domain types so the desktop
+# `crates/app` (and the future `waveflow-server`) can use them directly
+# as `query_as` targets without redeclaring the row shape. The core
+# crate stays storage-agnostic when the feature is off — repository
+# trait definitions belong here regardless, only their derives are
+# gated.
+sqlite = ["dep:sqlx"]
+
 [dependencies]
-# Populated incrementally as functionality migrates over from `crates/app/`.
-# See docs/architecture/crates.md for the split rules.
+serde = { version = "1", features = ["derive"] }
+# `macros` is the only feature needed for the `FromRow` derive itself;
+# the per-database row glue (`sqlx::sqlite::SqliteRow`) lives in the
+# downstream crate that picks a runtime.
+sqlx = { version = "0.9", default-features = false, features = ["macros"], optional = true }
