@@ -37,11 +37,11 @@
     "defaultLibraryName": "Müzik",
     "welcome": {
       "title": "WaveFlow'a hoş geldin",
-      "description": "Kişisel local-first müzik çaların. Streaming aboneliği olmadan tüm kütüphanenin tadını çıkar."
+      "description": "Kişisel, yerel tabanlı müzik çaların. Akış aboneliği olmadan tüm kütüphanenin tadını çıkar."
     },
     "localOnly": {
       "title": "Önemli: yalnızca yerel müzik",
-      "description": "WaveFlow bir streaming servisi DEĞİLDİR. Cihazında zaten bulunan dosyaları çalar.",
+      "description": "WaveFlow bir akış servisi DEĞİLDİR. Cihazında zaten bulunan dosyaları çalar.",
       "calloutTitle": "Bilmen gerekenler",
       "bulletOwn": "Kendi kütüphaneni getir (MP3, FLAC, ALAC, OGG, DSD…)",
       "bulletImport": "Bir klasör içe aktar veya dosyaları sürükleyip bırak",
@@ -55,7 +55,7 @@
       "quickSettings": "Hızlı ayarlar",
       "autoAnalyze": {
         "title": "Parçaları otomatik analiz et",
-        "description": "Tarama sırasında BPM ve tonu algılar — Radio ve Mood Radio için kullanılır."
+        "description": "Tarama sırasında BPM ve tonu algılar — Radyo ve Mod Radyosu için kullanılır."
       }
     },
     "lastfm": {
@@ -65,16 +65,16 @@
       "keyHint": "Last.fm'de bir API anahtarı oluştur",
       "keyLabel": "API anahtarı",
       "keyPlaceholder": "Last.fm API anahtarın",
-      "secretLabel": "Paylaşılan secret",
-      "secretPlaceholder": "Paylaşılan secret'ın",
+      "secretLabel": "Paylaşılan gizli anahtar",
+      "secretPlaceholder": "Paylaşılan gizli anahtarın",
       "userLabel": "Last.fm kullanıcı adı",
       "userPlaceholder": "kullanıcı-adın",
       "passwordLabel": "Şifre",
       "passwordPlaceholder": "Last.fm şifren",
-      "toggleSecret": "Secret'ı göster/gizle",
+      "toggleSecret": "Gizli anahtarı göster/gizle",
       "togglePassword": "Şifreyi göster/gizle",
       "connect": "Last.fm'i bağla",
-      "missingFields": "Lütfen API anahtarı, secret, kullanıcı adı ve şifreyi doldur.",
+      "missingFields": "Lütfen API anahtarı, gizli anahtar, kullanıcı adı ve şifreyi doldur.",
       "connectedTitle": "{{user}} olarak bağlandı",
       "connectedSubtitle": "Bir parça çaldığında scrobbling otomatik olarak başlar."
     },
@@ -248,7 +248,7 @@
       "playlists": "Çalma listeleri"
     },
     "moodRadio": {
-      "title": "Mood Radio",
+      "title": "Mod Radyosu",
       "subtitle": "Tempo ve enerjiye göre filtrelenmiş",
       "trackCount_one": "{{count}} parça",
       "trackCount_other": "{{count}} parça",
@@ -259,11 +259,11 @@
         "subtitle": "Odaklanmak için sakin tempolar"
       },
       "chill": {
-        "title": "Chill",
+        "title": "Rahatlama",
         "subtitle": "Gevşemek için hafif dinleme"
       },
       "workout": {
-        "title": "Workout",
+        "title": "Antrenman",
         "subtitle": "Hareketi sürdürmek için kararlı tempo"
       },
       "party": {
@@ -288,7 +288,7 @@
       "regenerate": "Yeniden oluştur",
       "regenerating": "Oluşturuluyor…",
       "emptyTitle": "Henüz Daily Mix yok",
-      "emptyDescription": "Birkaç parça dinle ve sonra «Yeniden oluştur»a tıklayarak kişisel mixlerini oluştur.",
+      "emptyDescription": "Birkaç parça dinle ve sonra «Yeniden oluştur»a tıklayarak kişisel mikslerini oluştur.",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} parça",
       "trackCount_other": "{{count}} parça"
@@ -493,7 +493,7 @@
     "byHour": {
       "title": "Yoğun saatler",
       "empty": "Bu dönemde dinleme yok.",
-      "tooltip": "{{hour}} — {{plays}} oynatma"
+      "tooltip": "{{hour}}. saat — {{plays}} oynatma"
     },
     "topTracks": {
       "title": "En çok dinlenen parçalar",
@@ -573,11 +573,11 @@
       "subtitle": "Yılına eşlik eden ritim",
       "loudness": "Ortalama ses yüksekliği: {{lufs}} LUFS",
       "energy": {
-        "chill": "Chill",
+        "chill": "Rahatlatıcı",
         "warm": "Sıcak",
-        "groove": "Groove",
+        "groove": "Ritmik",
         "energetic": "Enerjik",
-        "fire": "Yoğun"
+        "fire": "Ateşli"
       }
     },
     "clock": {
@@ -619,7 +619,7 @@
       "developedBy": "Geliştiren"
     },
     "sections": {
-      "frameworkDesktop": "Masaüstü çatısı",
+      "frameworkDesktop": "Masaüstü altyapısı",
       "frontend": "Frontend",
       "backend": "Backend (Rust)",
       "audio": "Ses",
@@ -684,7 +684,7 @@
       "title": "Oynatma hızı",
       "slider": "Hız kaydırıcı",
       "custom": "Özel hız",
-      "pitchHint": "Ton, hızı takip eder (time-stretching yok)."
+      "pitchHint": "Ton, hızı takip eder (zaman genişletme yok)."
     },
     "seek": "Konum"
   },
@@ -1005,8 +1005,8 @@
     },
     "toggleNowPlayingPanel": "Şu an çalan panelini göster / gizle",
     "pipeline": {
-      "title": "Ses akışı",
-      "openHint": "Ses akışını ayrıntılı görüntüle",
+      "title": "Ses zinciri",
+      "openHint": "Ses zincirini ayrıntılı görüntüle",
       "source": "Kaynak",
       "processing": "İşlem",
       "output": "Çıkış",
@@ -1267,7 +1267,7 @@
         "title": "Last.fm",
         "subtitle": "Sanatçı biyografileri ve scrobbling. last.fm/api/account/create üzerinden bir anahtar oluştur",
         "placeholder": "API anahtarı",
-        "secretPlaceholder": "Paylaşılan secret",
+        "secretPlaceholder": "Paylaşılan gizli anahtar",
         "save": "Kaydet",
         "saved": "Kaydedildi ✓",
         "show": "Göster",
@@ -1310,7 +1310,7 @@
       }
     },
     "crossfade": {
-      "title": "Crossfade",
+      "title": "Çapraz geçiş",
       "subtitle": "Parçalar arasında pürüzsüz geçişler (yakında)"
     },
     "normalize": {
@@ -1443,18 +1443,18 @@
     },
     "visualizer": {
       "title": "Ses görselleştirici",
-      "subtitle": "Sürükleyici görünümde gerçek zamanlı spektrumu gösterir (decoder thread üzerinde hafif FFT)"
+      "subtitle": "Sürükleyici görünümde gerçek zamanlı spektrumu gösterir (kod çözücü iş parçacığında hafif FFT)"
     },
     "smartCrossfade": {
-      "title": "Akıllı crossfade",
-      "subtitle": "Aynı albümün iki parçası arasındaki crossfade'i otomatik olarak atlar (konsept albümler ve canlı setler için harika)"
+      "title": "Akıllı çapraz geçiş",
+      "subtitle": "Aynı albümün iki parçası arasındaki çapraz geçişi otomatik olarak atlar (konsept albümler ve canlı setler için harika)"
     },
     "dynamicCrossfade": {
-      "title": "Dinamik crossfade",
-      "subtitle": "Crossfade süresini parçalar arasındaki tempo farkına göre ölçeklendirir (BPM bilinmiyorsa sabit crossfade'e geri döner)"
+      "title": "Dinamik çapraz geçiş",
+      "subtitle": "Çapraz geçiş süresini parçalar arasındaki tempo farkına göre ölçeklendirir (BPM bilinmiyorsa sabit çapraz geçişe geri döner)"
     },
     "gapless": {
-      "title": "Gapless oynatma",
+      "title": "Aralıksız oynatma",
       "subtitle": "Ardışık parçaları mikro sessizlik olmadan birbirine bağlar (canlı ve konsept albümler için idealdir)"
     },
     "equalizer": {
@@ -1464,26 +1464,26 @@
       "reset": "Sıfırla",
       "preset": {
         "custom": "Özel",
-        "flat": "Flat",
-        "acoustic": "Acoustic",
-        "bass_booster": "Bass booster",
-        "bass_reducer": "Bass reducer",
+        "flat": "Düz",
+        "acoustic": "Akustik",
+        "bass_booster": "Bas güçlendirici",
+        "bass_reducer": "Bas azaltıcı",
         "classical": "Klasik",
-        "dance": "Dance",
-        "deep": "Deep",
-        "electronic": "Electronic",
+        "dance": "Dans",
+        "deep": "Derin",
+        "electronic": "Elektronik",
         "hip_hop": "Hip-Hop",
         "jazz": "Jazz",
         "latin": "Latin",
-        "loudness": "Loudness",
+        "loudness": "Ses Yüksekliği",
         "lounge": "Lounge",
         "piano": "Piano",
         "pop": "Pop",
         "rnb": "R&B",
         "rock": "Rock",
         "small_speakers": "Küçük hoparlörler",
-        "spoken_word": "Spoken word",
-        "treble_booster": "Treble booster"
+        "spoken_word": "Konuşma",
+        "treble_booster": "Tiz güçlendirici"
       }
     },
     "backup": {
@@ -1525,7 +1525,7 @@
     "appearance": {
       "theme": {
         "title": "Tema",
-        "subtitle": "Bir hava seçin — temayı değiştirmek uygulamayı anında yeniden renklendirir."
+        "subtitle": "Bir tarz seçin — temayı değiştirmek uygulamayı anında yeniden renklendirir."
       },
       "mode": {
         "light": "Açık",
@@ -1557,7 +1557,7 @@
         "abLoop": "A-B döngüsü",
         "sleepTimer": "Uyku zamanlayıcısı",
         "eqPreset": "Ekolayzer (ön ayarlar)",
-        "lyrics": "Şarkı sözleri",
+        "lyrics": "Sözler",
         "queue": "Sıra",
         "device": "Ses çıkışı",
         "miniPlayer": "Mini oynatıcı",

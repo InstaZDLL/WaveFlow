@@ -109,7 +109,7 @@
       "title": "選擇你的語言",
       "description": "WaveFlow 提供 17 種語言。我們已預選你的系統語言 — 如有誤請更改。",
       "detected": "已從系統偵測到",
-      "fallback": "我們無法偵測到你的系統語言,已預設使用英文。請在下方選擇你的語言。"
+      "fallback": "我們無法偵測到您的系統語言，已預設使用英文。請在下方選擇您的語言。"
     },
     "profile": {
       "title": "為你的設定檔取名",
@@ -228,8 +228,8 @@
   },
   "home": {
     "greeting": {
-      "morning": "您好",
-      "evening": "晚安",
+      "morning": "早安",
+      "evening": "晚上好",
       "night": "晚安"
     },
     "banner": {
@@ -278,7 +278,7 @@
     "recentlyPlayed": {
       "title": "最近播放的",
       "emptyTitle": "尚未聆聽任何歌曲",
-      "emptyDescription": "播放一首歌曲後它會出現在這裡。隨著你不斷探索,聆聽紀錄會逐漸累積。"
+      "emptyDescription": "播放一首曲目後它會出現在這裡。隨著您不斷探索，聆聽紀錄會逐漸累積。"
     },
     "recentlyAdded": {
       "title": "最近新增"
@@ -371,8 +371,8 @@
     "searchDeezer": "搜尋Deezer",
     "localFile": "本機檔案",
     "fetchMissingCovers": "找回所有遺失的封套",
-    "noCover": "無外袋",
-    "fetchingCovers": "領取封套……（{{current}} / {{total}}）",
+    "noCover": "沒有封面",
+    "fetchingCovers": "正在取得封面…（{{current}} / {{total}}）",
     "fetchCoversResult": "已取得 {{count}} 張封套",
     "fetchCoversFailed": "封套取得失敗",
     "table": {
@@ -381,8 +381,7 @@
       "artist": "藝人",
       "album": "專輯",
       "duration": "時長",
-      "unknown": "—",
-      "rating": "評分"
+      "unknown": "—"
     },
     "rating": "評分",
     "noRating": "無評分",
@@ -413,18 +412,13 @@
       "trackCount_zero": "0 首曲目",
       "trackCount_one": "{{count}} 曲目",
       "trackCount_other": "{{count}} 曲目",
-      "lastScanned": "掃描來源：{{date}}",
+      "lastScanned": "上次掃描：{{date}}",
       "neverScanned": "從未",
       "watched": "受監控",
       "watchOn": "自動監控變更",
       "watchOff": "停止監控",
       "remove": "從音樂庫中移除資料夾",
       "removeConfirm": "再次點擊確認"
-    },
-    "library": {
-      "nav": {
-        "artists": "藝人"
-      }
     },
     "skeletonAriaLabel": "正在載入{{name}}…"
   },
@@ -435,7 +429,7 @@
     "count_one": "{{count}} 曲目",
     "count_other": "{{count}} 曲目",
     "emptyTitle": "沒有喜愛的曲目",
-    "emptyDescription": "你喜歡的歌曲將顯示在這裡。瀏覽你的音樂庫,將喜歡的曲目加入收藏。",
+    "emptyDescription": "您喜歡的曲目將顯示在這裡。瀏覽您的音樂庫，將喜歡的曲目加入收藏。",
     "playAll": "全部播放",
     "unlike": "取消喜歡",
     "like": "加入已喜歡"
@@ -497,7 +491,7 @@
       "empty": "此期間無收聽紀錄。"
     },
     "byHour": {
-      "title": "最喜歡的時間",
+      "title": "收聽尖峰",
       "empty": "此期間無收聽紀錄。",
       "tooltip": "{{hour}} 點 — {{plays}} 次播放"
     },
@@ -592,11 +586,11 @@
     },
     "streak": {
       "eyebrow": "最長連續紀錄",
-      "daysLabel_zero": "0 天連續",
-      "daysLabel_one": "{{count}} 天連續",
-      "daysLabel_other": "{{count}} 天連續",
+      "daysLabel_zero": "連續 0 天",
+      "daysLabel_one": "連續 {{count}} 天",
+      "daysLabel_other": "連續 {{count}} 天",
       "range": "{{start}} 至 {{end}}",
-      "daysShort": "天連續"
+      "daysShort": "連續天數"
     },
     "share": {
       "open": "分享",
@@ -620,7 +614,7 @@
   "about": {
     "title": "關於",
     "hero": {
-      "subtitle": "跨平台高畫質音樂播放器",
+      "subtitle": "跨平台高音質音樂播放器",
       "checkUpdates": "檢查更新",
       "developedBy": "開發者"
     },
@@ -702,7 +696,7 @@
     "count_other": "{{count}} 首",
     "emptyTitle": "沒什麼可聽的",
     "emptyDescription": "從你的音樂庫中選取一首歌,加入播放佇列。",
-    "nowPlaying": "進行中",
+    "nowPlaying": "正在播放",
     "upNext_zero": "接下來",
     "upNext_one": "接下來 · {{count}} 首",
     "upNext_other": "接下來 · {{count}} 首",
@@ -716,7 +710,7 @@
     "readonlyHint": "唯讀佇列 — 從 Spotify 應用程式管理。"
   },
   "deviceMenu": {
-    "activeLabel": "主動輸出",
+    "activeLabel": "作用中的輸出",
     "loading": "正在搜尋裝置……",
     "empty": "沒有可用的輸出裝置",
     "systemDefault": "預設"
@@ -727,7 +721,7 @@
       "subtitle": "選擇您的個人檔案，以查看您的資料庫和播放清單",
       "add": "新增",
       "edit": "編輯",
-      "active": "活躍個人檔案",
+      "active": "使用中的設定檔",
       "switchTo": "切換"
     },
     "create": {
@@ -899,8 +893,7 @@
       "genre": "類型",
       "genrePlaceholder": "流行、搖滾、爵士…"
     },
-    "changeCover": "更換封面",
-    "properties": "屬性"
+    "changeCover": "更換封面"
   },
   "selection": {
     "toolbarLabel": "選取操作",
@@ -1249,12 +1242,12 @@
         "title": "Last.fm",
         "subtitle": "藝術家簡介與播放記錄追蹤。請至 last.fm/api/account/create 建立金鑰",
         "placeholder": "API 金鑰",
-        "secretPlaceholder": "共同的秘密",
+        "secretPlaceholder": "共用密鑰",
         "save": "儲存",
         "saved": "已註冊 ✓",
         "show": "顯示",
         "hide": "隱藏",
-        "connectedAs": "以...身分登入",
+        "connectedAs": "已登入為",
         "disconnect": "登出",
         "loginPrompt": "請登入以記錄您的聆聽紀錄：",
         "usernamePlaceholder": "使用者名稱",
@@ -1309,7 +1302,7 @@
     },
     "exclusive": {
       "title": "WASAPI 獨佔模式(Windows)",
-      "subtitle": "位元完美:繞過 Windows 混音器以提供無干擾輸出。如果裝置拒絕獨佔存取,則退回共享模式。",
+      "subtitle": "位元完美：繞過 Windows 混音器以提供無干擾輸出。如果裝置拒絕獨佔存取，則退回共用模式。",
       "fallback": "裝置不接受獨佔模式,正在退回共享模式。"
     },
     "mono": {
@@ -1330,7 +1323,7 @@
     },
     "scanOnStart": {
       "title": "開機時執行掃描",
-      "subtitle": "開啟時自動重新掃描資料庫"
+      "subtitle": "啟動時自動重新掃描音樂庫"
     },
     "singleClickPlay": {
       "title": "單鍵播放",
@@ -1356,7 +1349,7 @@
     },
     "analyze": {
       "title": "分析音樂庫",
-      "subtitle": "計算未經分析曲目的BPM、音量及峰值",
+      "subtitle": "計算未經分析曲目的 BPM、響度及峰值",
       "action": "分析",
       "autoTitle": "自動分析",
       "autoSubtitle": "每次掃描並新增曲目後，在背景執行分析",
@@ -1366,12 +1359,12 @@
     "artistImages": {
       "title": "藝人圖片",
       "subtitle": "從 Deezer 下載藝人專輯封面",
-      "action": "恢復",
+      "action": "取得",
       "progress": "已處理 {{current}}/{{total}}"
     },
     "localArtistImages": {
       "title": "本地藝人圖片",
-      "subtitle": "在音樂旁尋找 artist.jpg(或 <名稱>.jpg)檔案,並將其用作藝人照片。",
+      "subtitle": "在音樂旁尋找 artist.jpg（或 <名稱>.jpg）檔案，並將其用作藝人照片。",
       "action": "掃描",
       "done": "已為 {{considered}} 位藝人中的 {{linked}} 位連結本地圖片"
     },
@@ -1392,8 +1385,8 @@
     },
     "regenerateThumbnails": "重新生成縮圖",
     "regenerateThumbnailsSubtitle": "為所有封面重建缺失的 1x/2x 版本",
-    "regenerateThumbnailsAction": "再生",
-    "regenerateThumbnailsDone": "{{count}} 重新生成的縮圖",
+    "regenerateThumbnailsAction": "重新產生",
+    "regenerateThumbnailsDone": "已重新產生 {{count}} 張縮圖",
     "reset": {
       "title": "重置應用程式",
       "subtitle": "刪除所有資料並恢復至初始狀態",
@@ -1430,7 +1423,7 @@
         "jazz": "爵士",
         "latin": "拉丁",
         "loudness": "響度",
-        "lounge": "Lounge",
+        "lounge": "休閒",
         "piano": "鋼琴",
         "pop": "流行",
         "rnb": "R&B",

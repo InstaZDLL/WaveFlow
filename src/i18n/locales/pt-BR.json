@@ -55,7 +55,7 @@
       "quickSettings": "Configurações rápidas",
       "autoAnalyze": {
         "title": "Auto-analisar faixas",
-        "description": "Detecta BPM e tonalidade durante o escaneamento — alimenta Radio e Mood Radio."
+        "description": "Detecta BPM e tonalidade durante o escaneamento — alimenta o Rádio e o Rádio por Humor."
       }
     },
     "lastfm": {
@@ -76,7 +76,7 @@
       "connect": "Conectar Last.fm",
       "missingFields": "Preencha a chave de API, segredo, nome de usuário e senha.",
       "connectedTitle": "Conectado como {{user}}",
-      "connectedSubtitle": "O scrobbling começa automaticamente quando você toca uma faixa."
+      "connectedSubtitle": "O scrobbling começa automaticamente quando você reproduz uma faixa."
     },
     "scan": {
       "title": "Escaneie sua biblioteca",
@@ -249,7 +249,7 @@
     },
     "moodRadio": {
       "title": "Rádio por humor",
-      "subtitle": "Filtrada por tempo e energia",
+      "subtitle": "Filtrada por andamento e energia",
       "trackCount_one": "{{count}} faixa",
       "trackCount_other": "{{count}} faixas",
       "empty": "Não há faixas analisadas suficientes",
@@ -288,13 +288,13 @@
       "regenerate": "Regenerar",
       "regenerating": "Gerando…",
       "emptyTitle": "Nenhum Daily Mix ainda",
-      "emptyDescription": "Ouça algumas faixas e depois clique em Regenerar para criar suas mixes personalizadas.",
+      "emptyDescription": "Ouça algumas faixas e depois clique em Regenerar para criar suas mixagens personalizadas.",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} faixa",
       "trackCount_other": "{{count}} faixas"
     },
     "onRepeat": {
-      "label": "On Repeat"
+      "label": "Em repetição"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
@@ -510,7 +510,7 @@
     "heatmap": {
       "title": "Atividade do ano",
       "empty": "Ainda sem reproduções nos últimos 12 meses.",
-      "summary": "{{time}} ouvidos no ano — {{plays}} reproduções",
+      "summary": "{{time}} de audição no ano — {{plays}} reproduções",
       "less": "Menos",
       "more": "Mais"
     },
@@ -573,7 +573,7 @@
       "subtitle": "O ritmo do seu ano",
       "loudness": "Loudness médio: {{lufs}} LUFS",
       "energy": {
-        "chill": "Chill",
+        "chill": "Relax",
         "warm": "Quente",
         "groove": "Groove",
         "energetic": "Energético",
@@ -642,7 +642,7 @@
       "empty": "Nenhuma entrada disponível",
       "expand": "Ver mais {{count}} entradas",
       "collapse": "Ver menos",
-      "breaking": "Mudança significativa"
+      "breaking": "Alteração incompatível"
     },
     "credits": {
       "text": "Concebido e desenvolvido com paixão. Construído com tecnologias de código aberto.",
@@ -665,7 +665,7 @@
     "inactive": "Inativo",
     "controls": {
       "play": "Reproduzir",
-      "pause": "Pausa",
+      "pause": "Pausar",
       "previous": "Anterior",
       "next": "Próximo",
       "shuffleOn": "Desativar a reprodução aleatória",
@@ -684,7 +684,7 @@
       "title": "Velocidade de reprodução",
       "slider": "Controle de velocidade",
       "custom": "Velocidade personalizada",
-      "pitchHint": "O tom acompanha a velocidade (sem time-stretching)."
+      "pitchHint": "O tom acompanha a velocidade (sem alterar a duração)."
     },
     "seek": "Posição"
   },
@@ -697,9 +697,9 @@
     "emptyTitle": "Nada para ouvir",
     "emptyDescription": "Reproduza uma música da sua biblioteca para preencher a fila.",
     "nowPlaying": "Tocando agora",
-    "upNext_zero": "Próximo",
-    "upNext_one": "Próximo · {{count}} faixa",
-    "upNext_other": "Próximo · {{count}} faixas",
+    "upNext_zero": "A seguir",
+    "upNext_one": "A seguir · {{count}} faixa",
+    "upNext_other": "A seguir · {{count}} faixas",
     "radio": {
       "label": "Rádio",
       "basedOn": "Baseada em “{{title}}”"
@@ -985,7 +985,7 @@
       "save": "Salvar como PNG",
       "copy": "Copiar imagem",
       "eyebrow": "Tocando agora",
-      "on": "no"
+      "on": "em"
     }
   },
   "playerBar": {
@@ -1360,11 +1360,11 @@
     },
     "showSleepTimer": {
       "title": "Fixar o temporizador na barra",
-      "subtitle": "Quando desativado, o temporizador continua disponível no menu « … »"
+      "subtitle": "Quando desativado, o temporizador continua disponível no menu '...'"
     },
     "showAbLoop": {
       "title": "Fixar o loop A-B na barra",
-      "subtitle": "Quando desativado, o loop A-B continua disponível no menu « … »"
+      "subtitle": "Quando desativado, o loop A-B continua disponível no menu '...'"
     },
     "showSpotify": {
       "title": "Mostrar entrada do Spotify",
@@ -1447,7 +1447,7 @@
     },
     "diagnostics": {
       "title": "Registro do aplicativo",
-      "subtitle": "Para relatar um erro, abra a pasta de registros ou copie os registros recentes para colá-los em um tíquete.",
+      "subtitle": "Para relatar um erro, abra a pasta de registros ou copie os registros recentes para colá-los em um chamado.",
       "openFolder": "Abrir pasta",
       "copyLogs": "Copiar registros",
       "copied": "Registros copiados",
@@ -1459,7 +1459,7 @@
     },
     "equalizer": {
       "title": "Equalizador",
-      "subtitle": "Seis bandas peaking, ±12 dB. Arraste os pontos para ajustar.",
+      "subtitle": "Seis bandas de pico, ±12 dB. Arraste os pontos para ajustar.",
       "presets": "Predefinições",
       "reset": "Redefinir",
       "preset": {
@@ -1603,7 +1603,7 @@
     },
     "hiResBadge": {
       "title": "Selo Hi-Res / DSD",
-      "subtitle": "Mostra a pílula «Hi-Res 24-bit» ou «DSD128» ao lado das faixas elegíveis e abaixo do nome do artista na barra do reprodutor. Ativado por padrão."
+      "subtitle": "Mostra o selo \"Hi-Res 24-bit\" ou \"DSD128\" ao lado das faixas elegíveis e abaixo do nome do artista na barra do reprodutor. Ativado por padrão."
     }
   },
   "spotify": {

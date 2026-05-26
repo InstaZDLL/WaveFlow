@@ -37,7 +37,7 @@
     "defaultLibraryName": "Música",
     "welcome": {
       "title": "Te damos la bienvenida a WaveFlow",
-      "description": "Tu reproductor de música local-first. Disfruta de toda tu biblioteca sin suscripción de streaming."
+      "description": "Tu reproductor de música de prioridad local. Disfruta de toda tu biblioteca sin suscripción de streaming."
     },
     "localOnly": {
       "title": "Importante: solo música local",
@@ -221,7 +221,7 @@
       "changeProfile": "Cambiar de perfil",
       "statistics": "Estadísticas",
       "settings": "Configuración",
-      "feedback": "Feedback",
+      "feedback": "Comentarios",
       "about": "Acerca de",
       "quit": "Salir de la aplicación"
     }
@@ -248,7 +248,7 @@
       "playlists": "Listas de reproducción"
     },
     "moodRadio": {
-      "title": "Mood Radio",
+      "title": "Radio por estado de ánimo",
       "subtitle": "Filtrada por tempo y energía",
       "trackCount_one": "{{count}} pista",
       "trackCount_other": "{{count}} pistas",
@@ -259,11 +259,11 @@
         "subtitle": "Ritmos tranquilos para concentrarse"
       },
       "chill": {
-        "title": "Chill",
+        "title": "Relajación",
         "subtitle": "Escucha relajada para desconectar"
       },
       "workout": {
-        "title": "Workout",
+        "title": "Entrenamiento",
         "subtitle": "Ritmo constante para mantenerte en movimiento"
       },
       "party": {
@@ -299,7 +299,7 @@
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "Tu resumen de {{year}}",
-      "subtitle": "Tus artistas, tus minutos, tu año — contado en unas pocas slides.",
+      "subtitle": "Tus artistas, tus minutos, tu año — contado en unas pocas diapositivas.",
       "cta": "Abrir",
       "dismiss": "Ocultar el banner Wrapped"
     },
@@ -529,8 +529,8 @@
     "close": "Cerrar",
     "pause": "Pausar",
     "resume": "Reanudar",
-    "prev": "Slide anterior",
-    "next": "Slide siguiente",
+    "prev": "Diapositiva anterior",
+    "next": "Diapositiva siguiente",
     "yearPicker": "Elegir un año",
     "backToHome": "Volver al inicio",
     "playsShort_zero": "0 reproducciones",
@@ -575,7 +575,7 @@
       "energy": {
         "chill": "Chill",
         "warm": "Cálido",
-        "groove": "Groove",
+        "groove": "Ritmo",
         "energetic": "Enérgico",
         "fire": "Intenso"
       }
@@ -650,7 +650,7 @@
     }
   },
   "feedback": {
-    "title": "Feedback",
+    "title": "Comentarios",
     "hero": {
       "title": "Ayúdanos a mejorar WaveFlow",
       "description": "¿Has detectado un fallo, tienes una idea para mejorar la app o simplemente quieres compartir feedback? Leemos todos los mensajes y tenemos en cuenta tus sugerencias."
@@ -684,7 +684,7 @@
       "title": "Velocidad de reproducción",
       "slider": "Control de velocidad",
       "custom": "Velocidad personalizada",
-      "pitchHint": "El tono sigue a la velocidad (sin time-stretching)."
+      "pitchHint": "El tono sigue a la velocidad (sin estiramiento de tiempo)."
     },
     "seek": "Posición"
   },
@@ -992,7 +992,7 @@
     "lyrics": "Letras",
     "nowPlaying": "Mostrar reproducción actual",
     "queue": "Cola",
-    "miniPlayer": "Mini reproductor (siempre encima)",
+    "miniPlayer": "Mini-reproductor (siempre en primer plano)",
     "previous": "Pista anterior",
     "next": "Pista siguiente",
     "openFullscreen": "Vista inmersiva",
@@ -1005,8 +1005,8 @@
     },
     "toggleNowPlayingPanel": "Mostrar / ocultar Reproduciendo",
     "pipeline": {
-      "title": "Pipeline de audio",
-      "openHint": "Ver el pipeline de audio en detalle",
+      "title": "Cadena de audio",
+      "openHint": "Ver la cadena de audio en detalle",
       "source": "Fuente",
       "processing": "Procesamiento",
       "output": "Salida",
@@ -1016,7 +1016,7 @@
       "chip": {
         "dsdToPcm": "DSD → PCM",
         "resample": "Remuestreo",
-        "downmix": "Downmix",
+        "downmix": "Reducción de canales",
         "eq": "EQ",
         "replayGain": "ReplayGain",
         "normalize": "Normalización",
@@ -1029,7 +1029,7 @@
     "idle": "Ninguna pista en reproducción",
     "maximize": "Restaurar ventana principal",
     "like": "Me gusta",
-    "pin": "Siempre encima",
+    "pin": "Siempre en primer plano",
     "close": "Cerrar mini reproductor"
   },
   "sleepTimer": {
@@ -1092,7 +1092,7 @@
   "abLoop": {
     "setA": "Bucle A-B: marcar punto A en la posición actual",
     "setB": "Bucle A-B: marcar punto B (A = {{a}})",
-    "armed": "Bucle A-B activo: {{a}} → {{b}} (haz clic para limpiar)"
+    "armed": "Bucle A-B activo: {{a}} → {{b}} (haz clic para desactivar)"
   },
   "smartPlaylistEditor": {
     "createTitle": "Nueva lista inteligente",
@@ -1150,7 +1150,7 @@
       "childCount_zero": "vacío",
       "childCount_one": "{{count}} condición",
       "childCount_other": "{{count}} condiciones",
-      "notHint": "Excluye todo lo que coincida con el hijo",
+      "notHint": "Excluye todo lo que coincida con la subcondición",
       "deleteNode": "Eliminar",
       "addCondition": "Condición",
       "addGroupAnd": "Grupo Y",
@@ -1296,9 +1296,9 @@
       },
       "spotify": {
         "title": "Spotify",
-        "subtitle": "Conecta Spotify Premium con tu propio Client ID de Spotify Developer.",
-        "clientIdPlaceholder": "Client ID de Spotify",
-        "redirectHint": "Añade esta Redirect URI en el Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
+        "subtitle": "Conecta Spotify Premium con tu propio ID de cliente de Spotify Developer.",
+        "clientIdPlaceholder": "ID de cliente de Spotify",
+        "redirectHint": "Añade esta URI de redirección en el panel de desarrolladores de Spotify: http://127.0.0.1:49387/spotify/callback",
         "connectedAs": "Conectado como",
         "disconnect": "Desconectar",
         "connecting": "Conectando…",
@@ -1389,7 +1389,7 @@
     },
     "localArtistImages": {
       "title": "Imágenes locales de artistas",
-      "subtitle": "Busca una artist.jpg (o <nombre>.jpg) junto a tu música y la usa como foto del artista.",
+      "subtitle": "Busca una artist.jpg (o <name>.jpg) junto a tu música y la usa como foto del artista.",
       "action": "Escanear",
       "done": "{{linked}} de {{considered}} artistas vinculados a una imagen local"
     },
@@ -1435,15 +1435,15 @@
     },
     "diagnostics": {
       "title": "Registro de la aplicación",
-      "subtitle": "Para reportar un fallo, abre la carpeta de logs o copia los logs recientes y pégalos en un ticket.",
+      "subtitle": "Para reportar un fallo, abre la carpeta de registros o copia los registros recientes y pégalos en un ticket.",
       "openFolder": "Abrir carpeta",
-      "copyLogs": "Copiar logs",
-      "copied": "Logs copiados",
-      "copyFailed": "No se han podido copiar los logs"
+      "copyLogs": "Copiar registros",
+      "copied": "Registros copiados",
+      "copyFailed": "No se han podido copiar los registros"
     },
     "visualizer": {
       "title": "Visualizador de audio",
-      "subtitle": "Muestra un espectro en tiempo real en la vista inmersiva (FFT ligero en el hilo del decoder)"
+      "subtitle": "Muestra un espectro en tiempo real en la vista inmersiva (FFT ligero en el hilo del decodificador)"
     },
     "smartCrossfade": {
       "title": "Crossfade inteligente",
@@ -1454,13 +1454,13 @@
       "subtitle": "Ajusta la duración del crossfade según la diferencia de tempo entre las pistas (vuelve al crossfade fijo si el BPM es desconocido)"
     },
     "gapless": {
-      "title": "Reproducción gapless",
+      "title": "Reproducción sin pausas",
       "subtitle": "Encadena pistas consecutivas sin micro-silencios (ideal para directos y discos conceptuales)"
     },
     "equalizer": {
       "title": "Ecualizador",
-      "subtitle": "Seis bandas peaking, ±12 dB. Arrastra los puntos para dar forma a la curva.",
-      "presets": "Presets",
+      "subtitle": "Seis bandas de pico, ±12 dB. Arrastra los puntos para dar forma a la curva.",
+      "presets": "Preajustes",
       "reset": "Restablecer",
       "preset": {
         "custom": "Personalizado",
@@ -1482,7 +1482,7 @@
         "rnb": "R&B",
         "rock": "Rock",
         "small_speakers": "Altavoces pequeños",
-        "spoken_word": "Spoken word",
+        "spoken_word": "Palabra hablada",
         "treble_booster": "Potenciador de agudos"
       }
     },
@@ -1525,7 +1525,7 @@
     "appearance": {
       "theme": {
         "title": "Tema",
-        "subtitle": "Elige un ambiente — cambiar el tema vuelve a tintar la app al instante."
+        "subtitle": "Elige un ambiente — cambiar el tema cambia el tono de toda la app al instante."
       },
       "mode": {
         "light": "Claro",
@@ -1550,7 +1550,7 @@
     },
     "playerBarLayout": {
       "title": "Diseño de la barra de reproducción",
-      "subtitle": "Elige qué botones aparecen en la barra y qué hace al hacer clic en la carátula. La vista previa se actualiza al instante.",
+      "subtitle": "Elige qué botones aparecen en la barra y qué ocurre al hacer clic en la miniatura de la portada. La vista previa se actualiza al instante.",
       "preview": "Vista previa",
       "previewEmpty": "Sin botones — la barra solo mostrará la carátula y los controles de reproducción.",
       "buttons": {
@@ -1603,12 +1603,12 @@
     },
     "hiResBadge": {
       "title": "Insignia Hi-Res / DSD",
-      "subtitle": "Muestra la etiqueta «Hi-Res 24-bit» o «DSD128» junto a las pistas que califican y bajo el nombre del artista en la barra del reproductor. Activado por defecto."
+      "subtitle": "Muestra la etiqueta «Hi-Res 24-bit» o «DSD128» junto a las pistas compatibles y bajo el nombre del artista en la barra del reproductor. Activado por defecto."
     }
   },
   "spotify": {
     "notConfiguredTitle": "Registra tu app de Spotify",
-    "notConfiguredMessage": "Spotify exige que toda app de terceros registre un Client ID gratuito antes de cualquier reproducción. Crea uno en el Spotify Developer Dashboard y luego pégalo en la Configuración de WaveFlow → Integraciones.",
+    "notConfiguredMessage": "Spotify exige que toda app de terceros registre un ID de cliente gratuito antes de cualquier reproducción. Créalo en el panel de desarrolladores de Spotify y luego pégalo en Configuración → Integraciones de WaveFlow.",
     "openDashboard": "Abrir Spotify Developer Dashboard",
     "openSettings": "Abrir Configuración",
     "notConnectedTitle": "Spotify no está conectado",

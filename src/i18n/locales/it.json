@@ -65,16 +65,16 @@
       "keyHint": "Crea una chiave API su Last.fm",
       "keyLabel": "Chiave API",
       "keyPlaceholder": "La tua chiave API Last.fm",
-      "secretLabel": "Shared secret",
-      "secretPlaceholder": "Il tuo shared secret",
+      "secretLabel": "Segreto condiviso",
+      "secretPlaceholder": "Il tuo segreto condiviso",
       "userLabel": "Nome utente Last.fm",
       "userPlaceholder": "il-tuo-utente",
       "passwordLabel": "Password",
       "passwordPlaceholder": "La tua password Last.fm",
-      "toggleSecret": "Mostra/nascondi secret",
+      "toggleSecret": "Mostra/nascondi segreto",
       "togglePassword": "Mostra/nascondi password",
       "connect": "Collega Last.fm",
-      "missingFields": "Compila chiave API, secret, nome utente e password.",
+      "missingFields": "Compila chiave API, segreto, nome utente e password.",
       "connectedTitle": "Connesso come {{user}}",
       "connectedSubtitle": "Lo scrobbling si attiva automaticamente quando riproduci un brano."
     },
@@ -272,7 +272,7 @@
       },
       "sleep": {
         "title": "Sonno",
-        "subtitle": "Molto lento e morbido per addormentarsi"
+        "subtitle": "Molto lento e tranquillo per addormentarsi"
       }
     },
     "recentlyPlayed": {
@@ -294,7 +294,7 @@
       "trackCount_other": "{{count}} brani"
     },
     "onRepeat": {
-      "label": "On Repeat"
+      "label": "In ripetizione"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
@@ -493,7 +493,7 @@
     "byHour": {
       "title": "Ore di punta",
       "empty": "Nessun ascolto in questo periodo.",
-      "tooltip": "Ore {{hour}} — {{plays}} riproduzioni"
+      "tooltip": "{{hour}}h — {{plays}} riproduzioni"
     },
     "topTracks": {
       "title": "Brani principali",
@@ -1015,7 +1015,7 @@
       "loading": "Caricamento…",
       "chip": {
         "dsdToPcm": "DSD → PCM",
-        "resample": "Resampling",
+        "resample": "Ricampionamento",
         "downmix": "Downmix",
         "eq": "EQ",
         "replayGain": "ReplayGain",
@@ -1267,7 +1267,7 @@
         "title": "Last.fm",
         "subtitle": "Biografie degli artisti e scrobbling. Crea una chiave su last.fm/api/account/create",
         "placeholder": "Chiave API",
-        "secretPlaceholder": "Shared secret",
+        "secretPlaceholder": "Segreto condiviso",
         "save": "Salva",
         "saved": "Salvato ✓",
         "show": "Mostra",
@@ -1324,7 +1324,7 @@
     "exclusive": {
       "title": "Modalità esclusiva WASAPI (Windows)",
       "subtitle": "Bit-perfect: bypassa il mixer di Windows per un'uscita senza interferenze. Ricade sulla modalità condivisa se il dispositivo rifiuta l'accesso esclusivo.",
-      "fallback": "Il dispositivo non accetta la modalità esclusiva. Ricado sulla modalità condivisa."
+      "fallback": "Il dispositivo non accetta la modalità esclusiva. Ricade sulla modalità condivisa."
     },
     "mono": {
       "title": "Audio mono",
@@ -1339,8 +1339,8 @@
       "subtitle": "Avvia WaveFlow automaticamente all'avvio del sistema"
     },
     "minimizeToTray": {
-      "title": "Riduci nella barra delle applicazioni",
-      "subtitle": "Chiudendo la finestra l'app viene ridotta nella barra delle applicazioni"
+      "title": "Riduci nell'area di notifica",
+      "subtitle": "Chiudendo la finestra l'app viene ridotta nell'area di notifica"
     },
     "scanOnStart": {
       "title": "Scansiona all'avvio",
@@ -1389,7 +1389,7 @@
     },
     "localArtistImages": {
       "title": "Immagini locali degli artisti",
-      "subtitle": "Cerca un'artist.jpg (o <nome>.jpg) accanto alla musica e la usa come foto dell'artista.",
+      "subtitle": "Cerca un file artist.jpg (o <nome>.jpg) accanto ai file musicali e usalo come foto dell'artista.",
       "action": "Scansiona",
       "done": "{{linked}} su {{considered}} artisti collegati a un'immagine locale"
     },
@@ -1405,7 +1405,7 @@
       "import": {
         "action": "Importa",
         "dialogTitle": "Importa profilo WaveFlow",
-        "done": "Profilo importato (id {{id}}). Passa a esso dal selettore profili.",
+        "done": "Profilo importato (id {{id}}). Selezionalo dal selettore dei profili.",
         "failed": "Importazione non riuscita. Il file potrebbe essere corrotto o incompatibile."
       }
     },
@@ -1465,16 +1465,16 @@
       "preset": {
         "custom": "Personalizzato",
         "flat": "Flat",
-        "acoustic": "Acoustic",
-        "bass_booster": "Bass booster",
-        "bass_reducer": "Bass reducer",
+        "acoustic": "Acustico",
+        "bass_booster": "Potenziamento bassi",
+        "bass_reducer": "Riduzione bassi",
         "classical": "Classica",
         "dance": "Dance",
-        "deep": "Deep",
-        "electronic": "Electronic",
+        "deep": "Profondo",
+        "electronic": "Elettronica",
         "hip_hop": "Hip-Hop",
         "jazz": "Jazz",
-        "latin": "Latin",
+        "latin": "Latino",
         "loudness": "Loudness",
         "lounge": "Lounge",
         "piano": "Piano",
@@ -1482,8 +1482,8 @@
         "rnb": "R&B",
         "rock": "Rock",
         "small_speakers": "Piccoli altoparlanti",
-        "spoken_word": "Spoken word",
-        "treble_booster": "Treble booster"
+        "spoken_word": "Parlato",
+        "treble_booster": "Potenziamento alti"
       }
     },
     "backup": {
@@ -1562,7 +1562,7 @@
         "device": "Uscita audio",
         "miniPlayer": "Mini-player",
         "immersive": "Vista immersiva",
-        "audioQualityFooter": "Striscia qualità audio"
+        "audioQualityFooter": "Barra qualità audio"
       },
       "coverAction": {
         "title": "Al clic sulla copertina",
@@ -1608,7 +1608,7 @@
   },
   "spotify": {
     "notConfiguredTitle": "Registra la tua app Spotify",
-    "notConfiguredMessage": "Spotify richiede a ogni app di terze parti di registrare un Client ID gratuito prima di qualsiasi riproduzione. Creane uno nel Spotify Developer Dashboard, poi incollalo in Impostazioni di WaveFlow → Integrazioni.",
+    "notConfiguredMessage": "Spotify richiede a ogni app di terze parti di registrare un Client ID gratuito prima di qualsiasi riproduzione. Creane uno nella Spotify Developer Dashboard, poi incollalo in Impostazioni di WaveFlow → Integrazioni.",
     "openDashboard": "Apri Spotify Developer Dashboard",
     "openSettings": "Apri Impostazioni",
     "notConnectedTitle": "Spotify non è connesso",

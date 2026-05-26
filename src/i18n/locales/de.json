@@ -204,7 +204,7 @@
         "close": "Schließen",
         "reset": "Zurücksetzen",
         "hiRes": "Hi-Res",
-        "likedOnly": "Nur Favoriten",
+        "likedOnly": "Nur gelikte Titel",
         "year": "Jahr (von → bis)",
         "bpm": "BPM (von → bis)",
         "durationMin": "Dauer in Minuten (von → bis)",
@@ -294,7 +294,7 @@
       "trackCount_other": "{{count}} Titel"
     },
     "onRepeat": {
-      "label": "On Repeat"
+      "label": "Auf Wiederholung"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
@@ -361,7 +361,7 @@
       "share": "Teilen (bald verfügbar)",
       "rescan": "Bibliothek erneut scannen",
       "rescanning": "Erneuter Scan läuft…",
-      "changeArtwork": "Bild ändern (bald verfügbar)",
+      "changeArtwork": "Cover ändern (bald verfügbar)",
       "edit": "Bibliothek bearbeiten",
       "delete": "Bibliothek löschen",
       "deleteConfirm": "Zur Bestätigung erneut klicken",
@@ -386,7 +386,7 @@
     "rating": "Bewertung",
     "noRating": "Keine Bewertung",
     "viewToggle": {
-      "label": "Anzeigeform",
+      "label": "Anzeigemodus",
       "list": "Liste",
       "compact": "Kompakt"
     },
@@ -431,8 +431,8 @@
     "emptyTitle": "Keine gelikten Titel",
     "emptyDescription": "Titel, die du likest, erscheinen hier. Stöbere in deiner Bibliothek und like deine Lieblingstitel.",
     "playAll": "Alle abspielen",
-    "unlike": "Aus Favoriten entfernen",
-    "like": "Zu Favoriten hinzufügen"
+    "unlike": "Aus gelikten Titeln entfernen",
+    "like": "Zu gelikten Titeln hinzufügen"
   },
   "history": {
     "badge": "Verlauf",
@@ -484,7 +484,7 @@
       "uniqueArtists_zero": "0 Künstler",
       "uniqueArtists_one": "{{count}} Künstler",
       "uniqueArtists_other": "{{count}} Künstler",
-      "completionRate": "Komplette Hörquote"
+      "completionRate": "Vollständig gehört"
     },
     "byDay": {
       "title": "Tägliche Aktivität",
@@ -642,7 +642,7 @@
       "empty": "Keine Einträge verfügbar",
       "expand": "{{count}} weitere Einträge anzeigen",
       "collapse": "Weniger anzeigen",
-      "breaking": "Breaking"
+      "breaking": "Wichtige Änderung"
     },
     "credits": {
       "text": "Mit Leidenschaft entworfen und entwickelt. Gebaut mit Open-Source-Technologien.",
@@ -745,7 +745,7 @@
     "delete": {
       "title": "{{name}} löschen?",
       "subtitle": "Dieses Profil wird endgültig entfernt.",
-      "warning": "Sämtliche Bibliotheken, Wiedergabelisten und der Wiedergabeverlauf dieses Profils gehen verloren. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "warning": "Sämtliche Bibliotheken, Playlists und der Hörverlauf dieses Profils gehen verloren. Diese Aktion kann nicht rückgängig gemacht werden.",
       "submit": "Profil löschen",
       "submitting": "Wird gelöscht …"
     }
@@ -777,10 +777,10 @@
     "iconAria": "Symbol {{icon}}",
     "submit": "Erstellen",
     "editSubmit": "Speichern",
-    "coverChoose": "Foto auswählen",
+    "coverChoose": "Cover auswählen",
     "coverMenu": "Cover-Optionen",
-    "coverChange": "Foto ändern",
-    "coverRemove": "Foto entfernen",
+    "coverChange": "Cover ändern",
+    "coverRemove": "Cover entfernen",
     "coverAutoHint": "Auto-Cover — passt sich dem Inhalt an",
     "coverManualHint": "Eigenes Bild"
   },
@@ -814,8 +814,8 @@
     "createPlaylist": "Neue Playlist",
     "playNext": "Als Nächstes spielen",
     "addToQueue": "Zur Warteschlange hinzufügen",
-    "like": "Zu Favoriten hinzufügen",
-    "unlike": "Aus Favoriten entfernen",
+    "like": "Zu gelikten Titeln hinzufügen",
+    "unlike": "Aus gelikten Titeln entfernen",
     "removeFromPlaylist": "Aus dieser Playlist entfernen",
     "goToAlbum": "Zum Album",
     "goToArtist": "Zum Künstler",
@@ -914,7 +914,7 @@
     "trackCount_zero": "0 Titel",
     "trackCount_one": "{{count}} Titel",
     "trackCount_other": "{{count}} Titel",
-    "discHeader": "CD {{number}}",
+    "discHeader": "Disc {{number}}",
     "releaseDate": "Veröffentlichung",
     "emptyTitle": "Album nicht gefunden",
     "emptyDescription": "Dieses Album ist im aktiven Profil nicht mehr verfügbar.",
@@ -998,7 +998,7 @@
     "openFullscreen": "Immersive Ansicht",
     "devices": "Ausgabegeräte",
     "moreActions": "Weitere Aktionen",
-    "abLoop": "A-B-Loop",
+    "abLoop": "A-B-Schleife",
     "eqPreset": "Equalizer",
     "eq": {
       "bypass": "EQ aktivieren"
@@ -1090,9 +1090,9 @@
     "subtitle": "Ordner oder Audiodateien akzeptiert"
   },
   "abLoop": {
-    "setA": "A-B-Wiederholung: Punkt A an aktueller Position setzen",
-    "setB": "A-B-Wiederholung: Punkt B setzen (A = {{a}})",
-    "armed": "A-B-Wiederholung aktiv: {{a}} → {{b}} (zum Löschen klicken)"
+    "setA": "A-B-Schleife: Punkt A an aktueller Position setzen",
+    "setB": "A-B-Schleife: Punkt B setzen (A = {{a}})",
+    "armed": "A-B-Schleife aktiv: {{a}} → {{b}} (zum Löschen klicken)"
   },
   "smartPlaylistEditor": {
     "createTitle": "Neue intelligente Playlist",
@@ -1355,8 +1355,8 @@
       "subtitle": "Wenn deaktiviert, bleibt der Timer über das „…“-Menü erreichbar"
     },
     "showAbLoop": {
-      "title": "A-B-Loop in der Leiste anheften",
-      "subtitle": "Wenn deaktiviert, bleibt A-B-Loop über das „…“-Menü erreichbar"
+      "title": "A-B-Schleife in der Leiste anheften",
+      "subtitle": "Wenn deaktiviert, bleibt A-B-Schleife über das „…“-Menü erreichbar"
     },
     "showSpotify": {
       "title": "Spotify-Eintrag anzeigen",
@@ -1463,14 +1463,14 @@
       "presets": "Presets",
       "reset": "Zurücksetzen",
       "preset": {
-        "custom": "Eigene",
+        "custom": "Benutzerdefiniert",
         "flat": "Flat",
         "acoustic": "Acoustic",
-        "bass_booster": "Bass Booster",
-        "bass_reducer": "Bass Reducer",
+        "bass_booster": "Bass-Booster",
+        "bass_reducer": "Bass-Reduzierer",
         "classical": "Klassik",
         "dance": "Dance",
-        "deep": "Deep",
+        "deep": "Tief",
         "electronic": "Electronic",
         "hip_hop": "Hip-Hop",
         "jazz": "Jazz",
@@ -1482,8 +1482,8 @@
         "rnb": "R&B",
         "rock": "Rock",
         "small_speakers": "Kleine Lautsprecher",
-        "spoken_word": "Spoken Word",
-        "treble_booster": "Treble Booster"
+        "spoken_word": "Sprache",
+        "treble_booster": "Höhen-Booster"
       }
     },
     "backup": {
@@ -1544,7 +1544,7 @@
         "midnightLight": "Mitternacht Hell",
         "sunsetLight": "Sonnenuntergang Hell",
         "lavenderLight": "Lavendel Hell",
-        "crimsonLight": "Karmesinrot Hell",
+        "crimsonLight": "Karmesin Hell",
         "oceanLight": "Ozean Hell"
       }
     },
@@ -1582,7 +1582,7 @@
     },
     "wrappedBanner": {
       "title": "WaveFlow Wrapped-Banner",
-      "subtitle": "Der Jahresrückblick-Banner auf dem Startbildschirm. Der Automatik-Modus zeigt ihn während der Wrapped-Saison (1. Dezember → 31. Januar).",
+      "subtitle": "Das Jahresrückblick-Banner auf dem Startbildschirm. Der Automatik-Modus zeigt ihn während der Wrapped-Saison (1. Dezember → 31. Januar).",
       "legend": "Sichtbarkeit des Wrapped-Banners",
       "seasonActive": "Wrapped-Saison läuft — der Banner wird angezeigt.",
       "seasonIdle": "Außerhalb der Saison — der Banner kehrt am 1. Dezember automatisch zurück.",

@@ -27,7 +27,7 @@
     },
     "installed": {
       "title": "Mise à jour installée",
-      "message": "Redémarre WaveFlow pour appliquer la nouvelle version."
+      "message": "Redémarrez WaveFlow pour appliquer la nouvelle version."
     },
     "error": {
       "title": "Échec de la mise à jour"
@@ -37,11 +37,11 @@
     "defaultLibraryName": "Musique",
     "welcome": {
       "title": "Bienvenue dans WaveFlow",
-      "description": "Votre lecteur musical local-first. Profitez de toute votre bibliothèque sans abonnement streaming."
+      "description": "Votre lecteur de musique 100% local. Profitez de toute votre bibliothèque sans abonnement streaming."
     },
     "localOnly": {
       "title": "Important : musique locale uniquement",
-      "description": "WaveFlow n'est PAS un service de streaming. Il joue les fichiers déjà présents sur votre appareil.",
+      "description": "WaveFlow n'est PAS un service de streaming. Il lit les fichiers déjà présents sur votre appareil.",
       "calloutTitle": "Ce que vous devez savoir",
       "bulletOwn": "Apportez votre propre bibliothèque (MP3, FLAC, ALAC, OGG, DSD…)",
       "bulletImport": "Importez un dossier ou glissez-déposez des fichiers",
@@ -76,7 +76,7 @@
       "connect": "Connecter Last.fm",
       "missingFields": "Renseignez la clé, le secret, le nom d'utilisateur et le mot de passe.",
       "connectedTitle": "Connecté en tant que {{user}}",
-      "connectedSubtitle": "Le scrobbling démarre automatiquement quand vous lisez un morceau."
+      "connectedSubtitle": "Le scrobbling démarre automatiquement dès que vous écoutez un titre."
     },
     "scan": {
       "title": "Scanner votre bibliothèque",
@@ -167,7 +167,7 @@
       "createSmartAria": "Créer une playlist intelligente",
       "importM3uAria": "Importer une playlist M3U",
       "importDialogTitle": "Importer une playlist M3U",
-      "liked": "Titres likés",
+      "liked": "Titres aimés",
       "recent": "Récemment joués",
       "emptySubtext_zero": "0 titre",
       "emptySubtext_one": "{{count}} titre",
@@ -221,7 +221,7 @@
       "changeProfile": "Changer de profil",
       "statistics": "Statistiques",
       "settings": "Paramètres",
-      "feedback": "Feedback",
+      "feedback": "Commentaires",
       "about": "À propos",
       "quit": "Quitter l'application"
     }
@@ -243,15 +243,15 @@
     },
     "stats": {
       "library": "Bibliothèque",
-      "liked": "Titres likés",
+      "liked": "Titres aimés",
       "recent": "Joués récemment",
       "playlists": "Playlists"
     },
     "moodRadio": {
       "title": "Radio par humeur",
       "subtitle": "Filtrée par tempo et énergie",
-      "trackCount_one": "{{count}} morceau",
-      "trackCount_other": "{{count}} morceaux",
+      "trackCount_one": "{{count}} titre",
+      "trackCount_other": "{{count}} titres",
       "empty": "Pas assez de morceaux analysés",
       "loading": "Démarrage…",
       "focus": {
@@ -424,15 +424,15 @@
   },
   "liked": {
     "badge": "Collection",
-    "title": "Titres likés",
+    "title": "Titres aimés",
     "count_zero": "0 titre",
     "count_one": "{{count}} titre",
     "count_other": "{{count}} titres",
-    "emptyTitle": "Aucun titre liké",
-    "emptyDescription": "Les morceaux que vous aimez apparaîtront ici. Explorez votre bibliothèque et likez vos titres favoris.",
+    "emptyTitle": "Aucun titre aimé",
+    "emptyDescription": "Les morceaux que vous aimez apparaîtront ici. Explorez votre bibliothèque et ajoutez-les à vos coups de cœur.",
     "playAll": "Tout lire",
-    "unlike": "Retirer des likés",
-    "like": "Ajouter aux likés"
+    "unlike": "Retirer des coups de cœur",
+    "like": "Ajouter aux coups de cœur"
   },
   "history": {
     "badge": "Historique",
@@ -619,9 +619,9 @@
       "developedBy": "Développé par"
     },
     "sections": {
-      "frameworkDesktop": "Framework Desktop",
-      "frontend": "Frontend",
-      "backend": "Backend (Rust)",
+      "frameworkDesktop": "Moteur de bureau",
+      "frontend": "Interface",
+      "backend": "Moteur (Rust)",
       "audio": "Audio",
       "shortcuts": "Raccourcis clavier",
       "changelog": "Journal des modifications",
@@ -642,7 +642,7 @@
       "empty": "Aucune entrée disponible",
       "expand": "Voir {{count}} entrées de plus",
       "collapse": "Voir moins",
-      "breaking": "Rupture"
+      "breaking": "Changements majeurs"
     },
     "credits": {
       "text": "Conçu et développé avec passion. Construit avec des technologies open source.",
@@ -684,16 +684,16 @@
       "title": "Vitesse de lecture",
       "slider": "Curseur de vitesse",
       "custom": "Vitesse personnalisée",
-      "pitchHint": "Le ton suit la vitesse (pas d'étirement temporel)."
+      "pitchHint": "La hauteur suit la vitesse (pas d'étirement temporel)."
     },
     "seek": "Position"
   },
   "queue": {
     "title": "File d'attente",
     "inactive": "INACTIF",
-    "count_zero": "0 morceau",
-    "count_one": "{{count}} morceau",
-    "count_other": "{{count}} morceaux",
+    "count_zero": "0 titre",
+    "count_one": "{{count}} titre",
+    "count_other": "{{count}} titres",
     "emptyTitle": "Rien à écouter",
     "emptyDescription": "Lancez une musique depuis votre bibliothèque pour remplir la file.",
     "nowPlaying": "En cours",
@@ -781,7 +781,7 @@
     "coverMenu": "Options de pochette",
     "coverChange": "Changer la photo",
     "coverRemove": "Retirer la photo",
-    "coverAutoHint": "Cover automatique — se met à jour avec le contenu",
+    "coverAutoHint": "Pochette automatique — se met à jour avec le contenu",
     "coverManualHint": "Image personnalisée"
   },
   "playlistView": {
@@ -814,8 +814,8 @@
     "createPlaylist": "Nouvelle playlist",
     "playNext": "Lire la suite",
     "addToQueue": "Ajouter à la file d'attente",
-    "like": "Ajouter aux titres likés",
-    "unlike": "Retirer des titres likés",
+    "like": "Ajouter aux coups de cœur",
+    "unlike": "Retirer des coups de cœur",
     "removeFromPlaylist": "Retirer de cette playlist",
     "goToAlbum": "Aller à l'album",
     "goToArtist": "Aller à l'artiste",
@@ -826,13 +826,13 @@
     "rating": "Note",
     "ratingNone": "Aucune note",
     "batchEdit": "Modifier les tags de {{count}} morceaux…",
-    "addToPlaylistNamed": "Ajouter \"{{name}}\" à cette playlist",
-    "removeFromPlaylistNamed": "Retirer \"{{name}}\" de cette playlist"
+    "addToPlaylistNamed": "Ajouter à « {{name}} »",
+    "removeFromPlaylistNamed": "Retirer de « {{name}} »"
   },
   "batchTagEdit": {
     "title": "Modifier les tags en lot",
     "subtitle": "{{count}} morceaux sélectionnés",
-    "help": "Coche les champs à appliquer à toute la sélection. Les champs non cochés restent intacts par morceau.",
+    "help": "Cochez les champs à appliquer à toute la sélection. Les champs non cochés restent intacts par titre.",
     "submit": "Appliquer ({{count}} champ(s))",
     "fields": {
       "artist": "Artiste",
@@ -862,7 +862,7 @@
     "bpm": "BPM",
     "loudness": "Volume sonore",
     "replayGain": "ReplayGain",
-    "peak": "Peak",
+    "peak": "Crête",
     "analyze": "Analyser",
     "reanalyze": "Réanalyser",
     "analyzing": "Analyse…",
@@ -870,10 +870,10 @@
     "trackNumber": "Piste",
     "duration": "Durée",
     "codec": "Codec",
-    "bitDepth": "Profondeur",
-    "sampleRate": "Échantillonnage",
+    "bitDepth": "Profondeur de bits",
+    "sampleRate": "Fréquence d'échantillonnage",
     "channels": "Canaux",
-    "bitrate": "Débit",
+    "bitrate": "Débit binaire",
     "key": "Tonalité",
     "fileSize": "Taille",
     "addedAt": "Ajouté le",
@@ -918,8 +918,8 @@
     "releaseDate": "Sortie",
     "emptyTitle": "Album introuvable",
     "emptyDescription": "Cet album n'existe plus dans le profil actif.",
-    "emptyTracksTitle": "Aucun morceau",
-    "emptyTracksDescription": "Cet album ne contient aucun morceau disponible."
+    "emptyTracksTitle": "Aucun titre",
+    "emptyTracksDescription": "Cet album ne contient aucun titre disponible."
   },
   "artistDetail": {
     "badge": "Artiste",
@@ -963,8 +963,8 @@
     "trackCount_other": "{{count}} titres",
     "emptyTitle": "Genre introuvable",
     "emptyDescription": "Ce genre n'existe plus dans le profil actif.",
-    "emptyTracksTitle": "Aucun morceau",
-    "emptyTracksDescription": "Ce genre ne contient aucun morceau disponible."
+    "emptyTracksTitle": "Aucun titre",
+    "emptyTracksDescription": "Ce genre ne contient aucun titre disponible."
   },
   "nowPlaying": {
     "title": "En cours de lecture",
@@ -1089,7 +1089,7 @@
       "bpm": "BPM",
       "durationMin": "Durée en minutes",
       "hiRes": "Hi-Res uniquement",
-      "liked": "Titres likés uniquement",
+      "liked": "Coups de cœur uniquement",
       "minRating": "Note minimum",
       "formats": "Formats",
       "genres": "Genres",
@@ -1150,7 +1150,7 @@
       "durationMaxMs": "Durée (ms) ≤",
       "format": "Format =",
       "hiRes": "Hi-Res",
-      "liked": "Aimé",
+      "liked": "Coup de cœur",
       "ratingMin": "Note ≥"
     }
   },
@@ -1182,7 +1182,7 @@
       "plain": "Texte",
       "synced": "Synchronisé"
     },
-    "plainPlaceholder": "Saisis les paroles ligne par ligne…",
+    "plainPlaceholder": "Saisissez les paroles ligne par ligne…",
     "linePlaceholder": "Texte de la ligne",
     "capture": "Capturer",
     "captureHint": "Lancez la lecture puis appuyez sur Espace (ou Capturer) pour caler la ligne courante au temps actuel",
@@ -1367,7 +1367,7 @@
     },
     "minimizeToTray": {
       "title": "Minimiser dans la barre système",
-      "subtitle": "Fermer la fenêtre réduit l'application dans le tray"
+      "subtitle": "La fermeture de la fenêtre réduit l'application dans la zone de notification."
     },
     "scanOnStart": {
       "title": "Scanner au démarrage",
@@ -1410,7 +1410,7 @@
     },
     "artistImages": {
       "title": "Images artistes",
-      "subtitle": "Récupérer les pochettes artistes depuis Deezer",
+      "subtitle": "Récupère les photos des artistes depuis Deezer",
       "action": "Récupérer",
       "progress": "{{current}}/{{total}} traités"
     },
@@ -1456,13 +1456,13 @@
       "runOk_other": "{{count}} archives écrites.",
       "errors": {
         "loadFailed": "Impossible de lire la configuration de sauvegarde.",
-        "saveFailed": "Échec de l'enregistrement. Réessaie.",
+        "saveFailed": "Échec de l'enregistrement. Réessayez.",
         "runFailed": "Échec de la sauvegarde. Voir les logs."
       }
     },
     "dataFolder": {
       "title": "Dossier de données",
-      "subtitle": "Ouvrir le dossier contenant la base de données et les covers",
+      "subtitle": "Ouvrir le dossier contenant la base de données et les pochettes",
       "action": "Ouvrir"
     },
     "openDataFolder": "Ouvrir le dossier de données",
@@ -1486,7 +1486,7 @@
     },
     "diagnostics": {
       "title": "Journal de l'application",
-      "subtitle": "Pour signaler un bug, ouvre le dossier des journaux ou copie les logs récents pour les coller dans un ticket.",
+      "subtitle": "Pour signaler un bug, ouvrez le dossier des journaux ou copiez les logs récents pour les coller dans un ticket.",
       "openFolder": "Ouvrir le dossier",
       "copyLogs": "Copier les logs",
       "copied": "Logs copiés",
@@ -1510,7 +1510,7 @@
     },
     "equalizer": {
       "title": "Égaliseur",
-      "subtitle": "Six bandes peaking, ±12 dB. Glissez les points pour ajuster.",
+      "subtitle": "Six bandes paramétriques, ±12 dB. Glissez les points pour ajuster.",
       "presets": "Préréglages",
       "reset": "Réinitialiser",
       "preset": {
@@ -1546,7 +1546,7 @@
     },
     "showAudioQualityFooter": {
       "title": "Afficher la qualité audio sous la barre",
-      "subtitle": "Détails techniques (kHz, kb/s, codec, profondeur) sous la player bar. Désactivé par défaut pour une barre plus fine."
+      "subtitle": "Détails techniques (kHz, kb/s, codec, profondeur) sous la barre de lecture. Désactivé par défaut pour une barre plus fine."
     },
     "playerBarLayout": {
       "title": "Disposition de la barre de lecture",

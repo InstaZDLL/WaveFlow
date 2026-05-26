@@ -60,21 +60,21 @@
     },
     "lastfm": {
       "title": "Last.fm koppelen",
-      "description": "Scrobblen stuurt je afspeellijst naar je Last.fm-profiel. In ruil krijg je artiestbio's en vergelijkbare artiesten direct in de app.",
+      "description": "Scrobblen stuurt je luisterbeurten naar je Last.fm-profiel. In ruil krijg je artiestbio's en vergelijkbare artiesten direct in de app.",
       "recommendedBadge": "Aanbevolen",
       "keyHint": "Maak een API-sleutel aan op Last.fm",
       "keyLabel": "API-sleutel",
       "keyPlaceholder": "Je Last.fm-API-sleutel",
-      "secretLabel": "Shared secret",
-      "secretPlaceholder": "Je shared secret",
+      "secretLabel": "Gedeeld geheim",
+      "secretPlaceholder": "Je gedeelde geheim",
       "userLabel": "Last.fm-gebruikersnaam",
       "userPlaceholder": "je-naam",
       "passwordLabel": "Wachtwoord",
       "passwordPlaceholder": "Je Last.fm-wachtwoord",
-      "toggleSecret": "Secret tonen/verbergen",
+      "toggleSecret": "Geheim tonen/verbergen",
       "togglePassword": "Wachtwoord tonen/verbergen",
       "connect": "Last.fm koppelen",
-      "missingFields": "Vul API-sleutel, secret, gebruikersnaam en wachtwoord in.",
+      "missingFields": "Vul API-sleutel, Gedeeld geheim, gebruikersnaam en wachtwoord in.",
       "connectedTitle": "Verbonden als {{user}}",
       "connectedSubtitle": "Scrobblen start automatisch zodra je een nummer afspeelt."
     },
@@ -118,7 +118,7 @@
       "namePlaceholder": "Bv. Daisy",
       "hint": "Je kunt later extra profielen aanmaken als dat nodig is.",
       "required": "Profielnaam is vereist.",
-      "unavailable": "Profiel niet beschikbaar — probeer het zo opnieuw."
+      "unavailable": "Profiel niet beschikbaar — probeer het over een ogenblik opnieuw."
     }
   },
   "sidebar": {
@@ -166,7 +166,7 @@
       "createPlaylistAria": "Nieuwe afspeellijst maken",
       "importM3uAria": "M3U-afspeellijst importeren",
       "importDialogTitle": "M3U-afspeellijst importeren",
-      "liked": "Vind-ik-leuks",
+      "liked": "Favoriete nummers",
       "recent": "Recent afgespeeld",
       "emptySubtext_zero": "0 nummers",
       "emptySubtext_one": "{{count}} nummer",
@@ -243,7 +243,7 @@
     },
     "stats": {
       "library": "Bibliotheek",
-      "liked": "Vind-ik-leuks",
+      "liked": "Favoriete nummers",
       "recent": "Recent afgespeeld",
       "playlists": "Afspeellijsten"
     },
@@ -424,15 +424,15 @@
   },
   "liked": {
     "badge": "Verzameling",
-    "title": "Vind-ik-leuks",
+    "title": "Favoriete nummers",
     "count_zero": "0 nummers",
     "count_one": "{{count}} nummer",
     "count_other": "{{count}} nummers",
-    "emptyTitle": "Geen vind-ik-leuks",
+    "emptyTitle": "Geen favoriete nummers",
     "emptyDescription": "Nummers die je leuk vindt verschijnen hier. Verken je bibliotheek en geef je favoriete nummers een vind-ik-leuk.",
     "playAll": "Alles afspelen",
-    "unlike": "Vind-ik-leuk verwijderen",
-    "like": "Vind-ik-leuk geven"
+    "unlike": "Verwijderen uit favorieten",
+    "like": "Toevoegen aan favorieten"
   },
   "history": {
     "badge": "Geschiedenis",
@@ -442,12 +442,12 @@
     "timeline": "Tijdlijn",
     "loadingMore": "Laden…",
     "endReached": "Begin van de geschiedenis",
-    "emptyTitle": "Nog geen afspeelacties",
+    "emptyTitle": "Nog geen luisterbeurten",
     "emptyDescription": "Speel een nummer af — het verschijnt hier zodra het meetelt.",
-    "shownCount_one": "{{count}} afspeelactie getoond",
-    "shownCount_other": "{{count}} afspeelacties getoond",
-    "plays_one": "{{count}} keer afgespeeld",
-    "plays_other": "{{count}} keer afgespeeld",
+    "shownCount_one": "{{count}} luisterbeurt getoond",
+    "shownCount_other": "{{count}} luisterbeurten getoond",
+    "plays_one": "{{count}} luisterbeurt",
+    "plays_other": "{{count}} luisterbeurten",
     "range": {
       "all": "Alles",
       "7d": "7 dagen",
@@ -514,9 +514,9 @@
       "less": "Minder",
       "more": "Meer"
     },
-    "plays_zero": "0 keer afgespeeld",
-    "plays_one": "{{count}} keer afgespeeld",
-    "plays_other": "{{count}} keer afgespeeld",
+    "plays_zero": "0 luisterbeurten",
+    "plays_one": "{{count}} luisterbeurt",
+    "plays_other": "{{count}} luisterbeurten",
     "export": {
       "label": "Statistieken exporteren",
       "action": "Exporteren",
@@ -533,9 +533,9 @@
     "next": "Volgende slide",
     "yearPicker": "Kies een jaar",
     "backToHome": "Terug naar start",
-    "playsShort_zero": "0 keer afgespeeld",
-    "playsShort_one": "{{count}} keer afgespeeld",
-    "playsShort_other": "{{count}} keer afgespeeld",
+    "playsShort_zero": "0 luisterbeurten",
+    "playsShort_one": "{{count}} luisterbeurt",
+    "playsShort_other": "{{count}} luisterbeurten",
     "empty": {
       "title": "Nog geen luistergeschiedenis",
       "subtitle": "Speel wat nummers af en kom later terug — je Wrapped wordt opgebouwd terwijl je luistert."
@@ -629,8 +629,8 @@
     },
     "shortcuts": {
       "playPause": "Afspelen / Pauzeren",
-      "previousTrack": "Vorige nummer",
-      "nextTrack": "Volgende nummer",
+      "previousTrack": "Vorig nummer",
+      "nextTrack": "Volgend nummer",
       "volume": "Volume",
       "mute": "Dempen",
       "keys": {
@@ -814,8 +814,8 @@
     "createPlaylist": "Nieuwe afspeellijst",
     "playNext": "Hierna afspelen",
     "addToQueue": "Toevoegen aan wachtrij",
-    "like": "Vind-ik-leuk geven",
-    "unlike": "Vind-ik-leuk verwijderen",
+    "like": "Toevoegen aan favorieten",
+    "unlike": "Verwijderen uit favorieten",
     "removeFromPlaylist": "Verwijderen uit deze afspeellijst",
     "goToAlbum": "Naar album",
     "goToArtist": "Naar artiest",
@@ -848,7 +848,7 @@
     },
     "result": {
       "updated": "{{count}} nummer(s) bijgewerkt",
-      "failed": "{{count}} mislukt:"
+      "failed": "{{count}} fout(en):"
     }
   },
   "trackProperties": {
@@ -993,8 +993,8 @@
     "nowPlaying": "Toon wat er nu speelt",
     "queue": "Wachtrij",
     "miniPlayer": "Mini-speler (altijd boven)",
-    "previous": "Vorige nummer",
-    "next": "Volgende nummer",
+    "previous": "Vorig nummer",
+    "next": "Volgend nummer",
     "openFullscreen": "Immersieve weergave",
     "devices": "Uitvoerapparaten",
     "moreActions": "Meer acties",
@@ -1111,7 +1111,7 @@
       "bpm": "BPM",
       "durationMin": "Duur in minuten",
       "hiRes": "Alleen Hi-Res",
-      "liked": "Alleen vind-ik-leuks",
+      "liked": "Alleen favorieten",
       "formats": "Formaten",
       "genres": "Genres",
       "sort": "Sorteren op",
@@ -1150,7 +1150,7 @@
       "childCount_zero": "leeg",
       "childCount_one": "{{count}} voorwaarde",
       "childCount_other": "{{count}} voorwaarden",
-      "notHint": "Sluit alles uit dat aan het kind voldoet",
+      "notHint": "Sluit alles uit dat aan de subregel voldoet",
       "deleteNode": "Verwijderen",
       "addCondition": "Voorwaarde",
       "addGroupAnd": "EN-groep",
@@ -1172,7 +1172,7 @@
       "durationMaxMs": "Duur (ms) ≤",
       "format": "Formaat =",
       "hiRes": "Hi-Res",
-      "liked": "Vind-ik-leuk",
+      "liked": "Favoriet",
       "ratingMin": "Beoordeling ≥"
     }
   },
@@ -1245,8 +1245,8 @@
       "unbound": "Geen",
       "actions": {
         "togglePlayback": "Afspelen / Pauzeren",
-        "next": "Volgende nummer",
-        "previous": "Vorige nummer",
+        "next": "Volgend nummer",
+        "previous": "Vorig nummer",
         "volumeUp": "Volume omhoog",
         "volumeDown": "Volume omlaag",
         "toggleMute": "Dempen / Dempen opheffen",
@@ -1255,7 +1255,7 @@
         "toggleQueue": "Wachtrijpaneel in-/uitschakelen",
         "toggleNowPlaying": "Paneel «Speelt nu» in-/uitschakelen",
         "toggleLyrics": "Songtekstpaneel in-/uitschakelen",
-        "toggleLike": "Huidige nummer leuk vinden / niet meer leuk vinden"
+        "toggleLike": "Huidig nummer favoriet maken / verwijderen"
       }
     },
     "offlineMode": {
@@ -1267,7 +1267,7 @@
         "title": "Last.fm",
         "subtitle": "Artiestbio's en scrobblen. Maak een sleutel aan op last.fm/api/account/create",
         "placeholder": "API-sleutel",
-        "secretPlaceholder": "Shared secret",
+        "secretPlaceholder": "Gedeeld geheim",
         "save": "Opslaan",
         "saved": "Opgeslagen ✓",
         "show": "Tonen",
@@ -1464,26 +1464,26 @@
       "reset": "Resetten",
       "preset": {
         "custom": "Aangepast",
-        "flat": "Flat",
-        "acoustic": "Acoustic",
-        "bass_booster": "Bass booster",
-        "bass_reducer": "Bass reducer",
+        "flat": "Vlak",
+        "acoustic": "Akoestisch",
+        "bass_booster": "Basversterker",
+        "bass_reducer": "Basverzwakker",
         "classical": "Klassiek",
         "dance": "Dance",
-        "deep": "Deep",
-        "electronic": "Electronic",
+        "deep": "Diep",
+        "electronic": "Elektronisch",
         "hip_hop": "Hip-Hop",
         "jazz": "Jazz",
         "latin": "Latin",
-        "loudness": "Loudness",
+        "loudness": "Luidheid",
         "lounge": "Lounge",
         "piano": "Piano",
         "pop": "Pop",
         "rnb": "R&B",
         "rock": "Rock",
         "small_speakers": "Kleine luidsprekers",
-        "spoken_word": "Spoken word",
-        "treble_booster": "Treble booster"
+        "spoken_word": "Gesproken woord",
+        "treble_booster": "Hoge-tonenversterker"
       }
     },
     "backup": {
@@ -1603,7 +1603,7 @@
     },
     "hiResBadge": {
       "title": "Hi-Res / DSD-badge",
-      "subtitle": "Toon de “Hi-Res 24-bit”- of “DSD128”-pil naast tracks die ervoor in aanmerking komen en onder de artiestennaam in de afspeelbalk. Standaard aan."
+      "subtitle": "Toon de “Hi-Res 24-bit”- of “DSD128”-pil naast nummers die ervoor in aanmerking komen en onder de artiestennaam in de afspeelbalk. Standaard aan."
     }
   },
   "spotify": {
