@@ -93,7 +93,12 @@ pub fn run() {
     // the binary points at the local source tree, the version is the
     // working copy, and there's no signed manifest to fetch — the
     // plugin would just spam errors. Ship-only by design.
-    #[cfg(not(debug_assertions))]
+    //
+    // Also gated on the `updater` Cargo feature (default-on) so the
+    // Flatpak / app-store builds can compile it out — those channels
+    // manage updates themselves and the in-app updater would clash
+    // with their read-only install root.
+    #[cfg(all(not(debug_assertions), feature = "updater"))]
     {
         builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     }

@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>app.waveflow.WaveFlow</id>
+
+  <name>WaveFlow</name>
+  <summary>Local-first music player with a Spotify-inspired UI</summary>
+  <summary xml:lang="fr">Lecteur de musique local avec une interface inspirée de Spotify</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+
+  <developer id="dev.waveflow">
+    <name>InstaZDLL</name>
+  </developer>
+
+  <description>
+    <p>
+      WaveFlow is a local music player desktop app with a Spotify-inspired three-panel UI.
+      It scans your local audio folders, organizes tracks by album, artist and genre, and
+      plays them with a real-time audio engine — no streaming, no cloud, your music stays
+      on your machine.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Gapless playback, crossfade (static / smart album-aware / dynamic tempo-aware), ReplayGain, 6-band peaking EQ with 20 presets, playback speed 0.5×–2×</li>
+      <li>DSD → PCM conversion (256-tap Blackman-Harris FIR), FLAC, ALAC, MP3, AAC, OGG, Opus, WavPack and more via Symphonia</li>
+      <li>Real-time spectrum visualizer, fullscreen Now Playing, word-level karaoke lyrics (Enhanced LRC + TTML), sidecar .lrc / .txt auto-discovery</li>
+      <li>Smart playlists: Daily Mix, On Repeat, custom boolean rule trees, M3U import/export</li>
+      <li>Library scanner with multi-artist split, sticky compilation grouping, BLAKE3 duplicate detection, virtualised tables for 6000+ tracks</li>
+      <li>Deezer + Last.fm enrichment, Last.fm scrobbling, Discord Rich Presence, LRCLIB lyrics fetch, DLNA/UPnP server (opt-in)</li>
+      <li>WaveFlow Wrapped year-in-review, listening history, advanced search (FTS5)</li>
+      <li>14-preset theme system, mini-player window, immersive Now Playing, configurable keyboard shortcuts, 17-language UI</li>
+      <li>Multi-profile support with per-profile databases, full export/import, automatic backups</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">app.waveflow.WaveFlow.desktop</launchable>
+
+  <url type="homepage">https://waveflow.app</url>
+  <url type="bugtracker">https://github.com/InstaZDLL/WaveFlow/issues</url>
+  <url type="vcs-browser">https://github.com/InstaZDLL/WaveFlow</url>
+  <url type="donation">https://github.com/sponsors/InstaZDLL</url>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Home view — profile-aware greeting, mood radio, Daily Mix carousel</caption>
+      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/v1.3.0/docs/screenshots/home.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Library — virtualised album grid with Hi-Res badges and A-Z jump</caption>
+      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/v1.3.0/docs/screenshots/library-albums.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Album detail — multi-disc grouping with side Now Playing panel</caption>
+      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/v1.3.0/docs/screenshots/album-detail.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Immersive Now Playing — full-bleed artwork with real-time spectrum visualizer</caption>
+      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/v1.3.0/docs/screenshots/immersive-view.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Karaoke lyrics — word-level highlight with click-to-seek</caption>
+      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/v1.3.0/docs/screenshots/karaoke-lyrics.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>WaveFlow Wrapped — year-in-review with top tracks, average tempo, longest streak</caption>
+      <image>https://raw.githubusercontent.com/InstaZDLL/WaveFlow/v1.3.0/docs/screenshots/wrapped.png</image>
+    </screenshot>
+  </screenshots>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#10b981</color>
+    <color type="primary" scheme_preference="dark">#064e3b</color>
+  </branding>
+
+  <categories>
+    <category>AudioVideo</category>
+    <category>Audio</category>
+    <category>Player</category>
+    <category>Music</category>
+  </categories>
+
+  <keywords>
+    <keyword>music</keyword>
+    <keyword>player</keyword>
+    <keyword>audio</keyword>
+    <keyword>flac</keyword>
+    <keyword>mp3</keyword>
+    <keyword>dsd</keyword>
+    <keyword>library</keyword>
+    <keyword>playlist</keyword>
+    <keyword>lyrics</keyword>
+    <keyword>scrobble</keyword>
+    <keyword>last.fm</keyword>
+    <keyword>equalizer</keyword>
+  </keywords>
+
+  <provides>
+    <binary>waveflow</binary>
+    <mediatype>audio/flac</mediatype>
+    <mediatype>audio/mpeg</mediatype>
+    <mediatype>audio/mp4</mediatype>
+    <mediatype>audio/ogg</mediatype>
+    <mediatype>audio/opus</mediatype>
+    <mediatype>audio/wav</mediatype>
+    <mediatype>audio/x-wavpack</mediatype>
+    <mediatype>audio/x-aiff</mediatype>
+    <mediatype>audio/x-dsd</mediatype>
+    <mediatype>audio/x-musepack</mediatype>
+  </provides>
+
+  <recommends>
+    <display_length compare="ge">768</display_length>
+    <internet>offline-only</internet>
+  </recommends>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="1.3.0" date="2026-05-26">
+      <url type="details">https://github.com/InstaZDLL/WaveFlow/releases/tag/v1.3.0</url>
+      <description>
+        <p>Highlights of this release:</p>
+        <ul>
+          <li>New On Repeat smart playlist family — top ~30 tracks of the last 30 days with a rainbow-gradient cover</li>
+          <li>Word-level karaoke lyrics with Enhanced LRC + TTML parsing and a mot-à-mot editor</li>
+          <li>Automatic sidecar .lrc / .txt lyrics discovery next to audio files</li>
+          <li>Native OS toast notifications on track change (opt-in)</li>
+          <li>Unified player-bar layout panel with EQ presets and configurable cover-click action</li>
+          <li>Mini-player remembers position and size across launches</li>
+          <li>Audio pipeline popover on the quality footer (Source → Processing → Output)</li>
+          <li>Wrapped banner gated to the December–January season with per-year dismiss</li>
+          <li>Performance: parallel library tab prefetch, skeleton loaders, slimmer payloads via shared artwork base</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.2.0" date="2026-05-21">
+      <url type="details">https://github.com/InstaZDLL/WaveFlow/releases/tag/v1.2.0</url>
+      <description>
+        <p>Settings split into category tabs, multi-step onboarding wizard with language picker, profile delete + rename, persistent zoom with VS Code shortcuts, and a host of library/UI polish.</p>
+      </description>
+    </release>
+    <release version="1.1.1" date="2026-05-15">
+      <url type="details">https://github.com/InstaZDLL/WaveFlow/releases/tag/v1.1.1</url>
+      <description>
+        <p>Stability fixes across the library scanner, playback engine and theme system.</p>
+      </description>
+    </release>
+    <release version="1.0.0" date="2026-05-13">
+      <url type="details">https://github.com/InstaZDLL/WaveFlow/releases/tag/v1.0.0</url>
+      <description>
+        <p>Initial public release of WaveFlow.</p>
+      </description>
+    </release>
+  </releases>
+</component>

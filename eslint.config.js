@@ -15,6 +15,7 @@ export default tseslint.config(
       "vscode-discord-rich-presence/**",
       "scripts/**",
       "secrets/**",
+      "packaging/**",
       "**/*.config.ts",
       "**/*.config.js",
       "**/.commitlintrc.cjs",

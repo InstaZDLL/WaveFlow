@@ -17,6 +17,16 @@ homepage = "https://waveflow.app"
 name = "waveflow_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+# The in-app auto-updater is on by default for the Tauri-bundled installers
+# (NSIS, MSI, .deb, .rpm, .dmg, .AppImage). It is incompatible with package
+# managers that own update flow themselves — notably Flatpak (read-only
+# /app), the Microsoft Store, the Mac App Store and any future repo where
+# the system updater owns the binary. Those builds opt out via
+# `cargo build --no-default-features`.
+default = ["updater"]
+updater = ["dep:tauri-plugin-updater"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 # Build-time changelog generation (build.rs): parses `git log` and
@@ -37,7 +47,7 @@ glib = { path = "vendor/glib-0.18.5" }
 tauri = { version = "2", features = ["protocol-asset", "tray-icon", "image-png"] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
-tauri-plugin-updater = "2"
+tauri-plugin-updater = { version = "2", optional = true }
 # Single-instance lock: a second `waveflow` invocation surrenders to the
 # first, which surfaces and focuses its main window. Prevents two audio
 # engines fighting over the same SQLite file and cpal device.
