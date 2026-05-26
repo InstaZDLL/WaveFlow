@@ -207,7 +207,7 @@ uuid = { version = "1", features = ["v4", "v5"] }
 
 # Profile export / import: bundle the per-profile `data.db` + the
 # user's manual artwork into a single `.waveflow` (zip) file. We pick
-# zip 4.x for its `deflate` feature with a pure-Rust backend (no
+# zip 8.x for its `deflate` feature with a pure-Rust backend (no
 # native libz dep), keeping the cross-compile story clean.
 zip = { version = "8", default-features = false, features = ["deflate", "time"] }
 

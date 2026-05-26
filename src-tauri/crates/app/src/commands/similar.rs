@@ -505,9 +505,9 @@ async fn try_deezer(deezer_id: Option<i64>, source_name: &str) -> Option<Vec<Raw
         Some(id) => id,
         None => match client.search_artist(source_name).await {
             Ok(hits) => {
-                let canon = source_name.to_lowercase();
+                let canon = canonical_name(source_name);
                 hits.into_iter()
-                    .find(|h| h.name.to_lowercase() == canon)?
+                    .find(|h| canonical_name(&h.name) == canon)?
                     .id
             }
             Err(err) => {

@@ -230,18 +230,22 @@ impl PlaylistRepository for SqlitePlaylistRepository {
         track_id: i64,
         now_ms: i64,
     ) -> CoreResult<bool> {
+        // Lookup + delete + renumber must run in the same transaction so a
+        // concurrent remove_track/reorder_track can't shift positions
+        // between the SELECT and the position-shifting UPDATE below.
+        let mut tx = self.pool.begin().await?;
         let removed_position: Option<i64> = sqlx::query_scalar(
             "SELECT position FROM playlist_track WHERE playlist_id = ? AND track_id = ?",
         )
         .bind(playlist_id)
         .bind(track_id)
-        .fetch_optional(&self.pool)
+        .fetch_optional(&mut *tx)
         .await?;
         let Some(pos) = removed_position else {
+            tx.commit().await?;
             return Ok(false);
         };
 
-        let mut tx = self.pool.begin().await?;
         sqlx::query("DELETE FROM playlist_track WHERE playlist_id = ? AND track_id = ?")
             .bind(playlist_id)
             .bind(track_id)
