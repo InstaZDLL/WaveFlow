@@ -35,7 +35,7 @@ pub async fn open(path: &Path) -> AppResult<SqlitePool> {
     // briefly held CRLF when a new migration was first applied will
     // panic at every subsequent boot once the file is restored to LF.
     // See [`crate::db::migration_heal`] for the full backstory.
-    let migrator = sqlx::migrate!("./migrations/app");
+    let migrator = sqlx::migrate!("../../migrations/app");
     super::migration_heal::heal_line_ending_drift(&pool, &migrator).await?;
     migrator.run(&pool).await?;
 

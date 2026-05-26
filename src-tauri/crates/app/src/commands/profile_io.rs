@@ -468,7 +468,7 @@ fn extract_archive(
 /// "migrations are immutable once merged" rule means a version that
 /// exists in both sides represents the same DDL by construction.
 async fn normalise_migration_checksums(db_path: &Path) -> AppResult<()> {
-    let migrator = sqlx::migrate!("./migrations/profile");
+    let migrator = sqlx::migrate!("../../migrations/profile");
 
     let opts = SqliteConnectOptions::new()
         .filename(db_path)

@@ -1,0 +1,13 @@
+[package]
+name = "waveflow-core"
+version = "1.3.0"
+description = "Business logic shared between the WaveFlow desktop app and the future waveflow-server: scanning, metadata enrichment, DSD conversion, smart-playlist algorithms, repository traits."
+authors = ["InstaZDLL <github.105mh@8shield.net>"]
+edition = "2021"
+license = "GPL-3.0-only"
+repository = "https://github.com/InstaZDLL/WaveFlow"
+homepage = "https://waveflow.app"
+
+[dependencies]
+# Populated incrementally as functionality migrates over from `crates/app/`.
+# See docs/architecture/crates.md for the split rules.

@@ -7,7 +7,7 @@
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "bun run build",
-    "frontendDist": "../dist"
+    "frontendDist": "../../../dist"
   },
   "app": {
     "windows": [
@@ -60,7 +60,7 @@
     "shortDescription": "Local-first music player with a Spotify-inspired UI.",
     "longDescription": "WaveFlow is a local music player desktop app built with Tauri 2 and React 19. It scans your local audio folders, organizes tracks by album/artist/genre, and plays them with a real-time audio engine — no streaming, no cloud, your music stays on your machine.",
     "homepage": "https://waveflow.app",
-    "licenseFile": "../LICENSE",
+    "licenseFile": "../../../LICENSE",
     "icon": [
       "icons/32x32.png",
       "icons/64x64.png",

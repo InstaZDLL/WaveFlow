@@ -83,8 +83,11 @@ fn generate_changelog() {
     // Re-run when HEAD moves (new commit, branch switch). We don't
     // watch every ref because in dev that would mean re-emitting the
     // file on every fetch.
-    println!("cargo:rerun-if-changed=../.git/HEAD");
-    println!("cargo:rerun-if-changed=../.git/refs/heads");
+    //
+    // Paths are relative to CARGO_MANIFEST_DIR of this crate
+    // (`src-tauri/crates/app/`); the repo root is three levels up.
+    println!("cargo:rerun-if-changed=../../../.git/HEAD");
+    println!("cargo:rerun-if-changed=../../../.git/refs/heads");
 
     let entries = read_git_log().unwrap_or_default();
     let json = serde_json::to_string(&entries).unwrap_or_else(|_| "[]".into());
@@ -107,7 +110,9 @@ fn read_git_log() -> Option<Vec<ChangelogEntry>> {
             "--no-merges",
             "--pretty=format:%h\x1f%s\x1f%cI\x1e",
         ])
-        .current_dir("..")
+        // CARGO_MANIFEST_DIR is `src-tauri/crates/app/`; the repo root
+        // sits three levels up.
+        .current_dir("../../..")
         .output()
         .ok()?;
     if !output.status.success() {
