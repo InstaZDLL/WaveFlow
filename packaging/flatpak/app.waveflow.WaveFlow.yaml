@@ -39,9 +39,14 @@ finish-args:
   - --socket=wayland
   - --device=dri
 
-  # Audio
+  # Audio — PulseAudio socket also covers PipeWire's pulse-compat layer,
+  # which is what runs on every recent GNOME / KDE / Fedora install.
+  # Direct ALSA device enumeration (the cpal output-device picker's
+  # human-readable names on Linux) is degraded inside the sandbox
+  # without `--device=all`, but playback still works through the PA
+  # socket. We take that downgrade rather than ask for raw /dev/snd
+  # access, which Flathub reviewers reject on sight.
   - --socket=pulseaudio
-  - --device=all  # required for ALSA / cpal direct device picker; revisit
 
   # Network — required for Deezer / Last.fm / LRCLIB / Discord RPC
   # (process-wide offline mode in WaveFlow short-circuits these at the

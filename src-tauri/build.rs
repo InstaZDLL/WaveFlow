@@ -42,20 +42,26 @@ fn sync_updater_capability() {
             Err(_) => true,
         };
         if needs_write {
-            if let Err(err) = fs::write(&path, contents) {
-                println!(
-                    "cargo:warning=updater capability: failed to write {}: {err}",
+            // Fail fast: a silent miss here resurfaces later as a
+            // tauri-build "unknown permission updater:default" error
+            // that's much harder to map back to its real cause.
+            fs::write(&path, contents).unwrap_or_else(|err| {
+                panic!(
+                    "updater capability: failed to write {}: {err}",
                     path.display()
-                );
-            }
+                )
+            });
         }
     } else if path.exists() {
-        if let Err(err) = fs::remove_file(&path) {
-            println!(
-                "cargo:warning=updater capability: failed to remove {}: {err}",
+        // Same reasoning: a stale updater.json under capabilities/
+        // with the feature off blows up tauri-build's validation with
+        // a confusing error far from this site.
+        fs::remove_file(&path).unwrap_or_else(|err| {
+            panic!(
+                "updater capability: failed to remove {}: {err}",
                 path.display()
-            );
-        }
+            )
+        });
     }
 }
 
