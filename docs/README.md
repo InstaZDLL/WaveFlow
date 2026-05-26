@@ -31,4 +31,4 @@ Long-form design documents that lock in cross-cutting architectural decisions be
 
 ## Contributing
 
-[CONTRIBUTING.md](../CONTRIBUTING.md) and [RELEASING.md](../RELEASING.md) cover the contribution and release flows respectively. Anything project-wide that should always be loaded into Claude Code's context lives in [`CLAUDE.md`](../CLAUDE.md) at the repo root.
+[CONTRIBUTING.md](../CONTRIBUTING.md) and [RELEASING.md](../RELEASING.md) cover the contribution and release flows respectively. [`upstream-blockers.md`](upstream-blockers.md) tracks Tauri-ecosystem issues that affect WaveFlow and the policy for handling them. Anything project-wide that should always be loaded into Claude Code's context lives in [`CLAUDE.md`](../CLAUDE.md) at the repo root.
