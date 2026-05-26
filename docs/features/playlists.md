@@ -4,7 +4,7 @@ User-curated playlists live in the per-profile `playlist` table alongside the au
 
 ## CRUD
 
-[`commands/playlist.rs`](../../src-tauri/src/commands/playlist.rs) exposes:
+[`commands/playlist.rs`](../../src-tauri/crates/app/src/commands/playlist.rs) exposes:
 
 - `list_playlists` / `get_playlist` — both compute `track_count` and `total_duration_ms` in the SELECT (denormalisation lives in the query, not the schema) and resolve `cover_hash` → `cover_path` from the shared `metadata_artwork` cache.
 - `create_playlist`, `update_playlist`, `delete_playlist` — all bump `updated_at`.
@@ -37,7 +37,7 @@ User playlists support custom covers, managed alongside the existing `cover_hash
 | `1` (default)   | Auto-cover. After **every** mutation (`add_track`, `add_tracks`, `remove_track`, `reorder_track`, `add_source`, `import_m3u`), the backend re-runs the compositor on the first 4 album artworks (Spotify-style 2×2 grid). |
 | `0`             | Manual upload. Mutations leave the cover untouched.                                                                                                                                                                       |
 
-[`commands/playlist_cover.rs`](../../src-tauri/src/commands/playlist_cover.rs) exposes three Tauri commands:
+[`commands/playlist_cover.rs`](../../src-tauri/crates/app/src/commands/playlist_cover.rs) exposes three Tauri commands:
 
 - **`set_playlist_cover_from_file(playlist_id, file_path)`** — magic-byte validates jpg/png/webp (8 MB cap), normalises through the same compositor used for auto-covers (re-encodes to a 640×640 JPEG so every `cover_hash` resolves to one extension), flips `cover_is_auto = 0`.
 - **`regenerate_playlist_auto_cover(playlist_id)`** — explicit "refresh now" escape hatch.
@@ -49,4 +49,4 @@ The frontend exposes the controls in the **edit modal** ([`CreatePlaylistModal.t
 
 ## Recently played
 
-[`browse.rs::list_recent_plays`](../../src-tauri/src/commands/browse.rs) projects the last 50 distinct tracks from `play_event`, deduplicated by track id (you only see a given track once even if you played it three times in a row). Drives both the "Récents" sidebar entry and the home carousel.
+[`browse.rs::list_recent_plays`](../../src-tauri/crates/app/src/commands/browse.rs) projects the last 50 distinct tracks from `play_event`, deduplicated by track id (you only see a given track once even if you played it three times in a row). Drives both the "Récents" sidebar entry and the home carousel.

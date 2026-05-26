@@ -25,7 +25,7 @@
 
 ## Shared state
 
-[`SharedPlayback`](../../src-tauri/src/audio/state.rs) — an `Arc<...>` of atomics plus the rtrb consumer half. Read on the hot path; mutated by the decoder and the command layer. No locks anywhere in the pipeline.
+[`SharedPlayback`](../../src-tauri/crates/app/src/audio/state.rs) — an `Arc<...>` of atomics plus the rtrb consumer half. Read on the hot path; mutated by the decoder and the command layer. No locks anywhere in the pipeline.
 
 | Atomic                                        | Owner writes                                 | Hot-path reads             |
 | --------------------------------------------- | -------------------------------------------- | -------------------------- |
@@ -37,11 +37,11 @@
 | `playback_speed_bits`, `speed_dirty`          | command layer / decoder                      | decoder + UI position math |
 | `current_track_id`, `seek_generation`         | decoder                                      | UI                         |
 
-`playback_speed_bits` is read on every position computation (UI 4 Hz + analytics) — see [`current_position_ms`](../../src-tauri/src/audio/state.rs) and [playback / Playback speed](../features/playback.md#playback-speed-05--2). `speed_dirty` is a one-shot flag the decoder consumes once per `'pkt` loop iteration to trigger a resampler rebuild.
+`playback_speed_bits` is read on every position computation (UI 4 Hz + analytics) — see [`current_position_ms`](../../src-tauri/crates/app/src/audio/state.rs) and [playback / Playback speed](../features/playback.md#playback-speed-05--2). `speed_dirty` is a one-shot flag the decoder consumes once per `'pkt` loop iteration to trigger a resampler rebuild.
 
 ## WASAPI Exclusive Mode (Windows opt-in)
 
-[`audio/wasapi_exclusive.rs`](../../src-tauri/src/audio/wasapi_exclusive.rs) is a parallel output backend to the cpal shared-mode default. Engaged via the `audio.wasapi_exclusive` profile setting (toggle in Settings → Audio). When on:
+[`audio/wasapi_exclusive.rs`](../../src-tauri/crates/app/src/audio/wasapi_exclusive.rs) is a parallel output backend to the cpal shared-mode default. Engaged via the `audio.wasapi_exclusive` profile setting (toggle in Settings → Audio). When on:
 
 1. `output::spawn_output_with_mode` tries the exclusive backend first via the [`wasapi` crate](https://crates.io/crates/wasapi).
 2. The backend opens the device in **event-driven exclusive mode** at the device's mix-format sample rate (whatever the user picked in the Windows Sound control panel). 32-bit float stereo, anchored on `KSDATAFORMAT_SUBTYPE_IEEE_FLOAT`.

@@ -1,6 +1,6 @@
 # Smart playlists
 
-Auto-generated playlists materialised from the user's listening history. Today: a 3-slot **Daily Mix** family bucketed by tempo, plus a single **On Repeat** playlist tracking the user's top played tracks over the last 30 days. Tomorrow: "Repeat Rewind", "Release Radar", per-mood mixes — the engine in [`smart_playlists/`](../../src-tauri/src/smart_playlists) is built around a discriminated `SmartPlaylistRules` enum so new families plug in without touching the regen flow.
+Auto-generated playlists materialised from the user's listening history. Today: a 3-slot **Daily Mix** family bucketed by tempo, plus a single **On Repeat** playlist tracking the user's top played tracks over the last 30 days. Tomorrow: "Repeat Rewind", "Release Radar", per-mood mixes — the engine in [`smart_playlists/`](../../src-tauri/crates/app/src/smart_playlists) is built around a discriminated `SmartPlaylistRules` enum so new families plug in without touching the regen flow.
 
 ## Storage
 
@@ -12,11 +12,11 @@ Smart playlists share the regular `playlist` table with user playlists. Three co
 | `smart_rules` (`TEXT`)                                                                                                                  | JSON payload — `SmartPlaylistRules` enum. The regenerator looks up an existing slot via `LIKE '%"slot":N%'` so an upsert rewrites the same row instead of stacking duplicates.    |
 | `cover_hash` (`TEXT`, added in [migration `20260509000000`](../../src-tauri/migrations/profile/20260509000000_playlist_cover_hash.sql)) | Blake3 hash of the composite cover, looked up in the shared `<root>/metadata_artwork/<hash>.jpg` cache. `NULL` → frontend falls back to the `icon_id` + `color_id` gradient tile. |
 
-The Tauri layer additionally returns a derived `cover_path: Option<String>` resolved by [`metadata_artwork::existing_path`](../../src-tauri/src/metadata_artwork.rs) so a stale `cover_hash` (cache wiped, file gone) doesn't render a broken image.
+The Tauri layer additionally returns a derived `cover_path: Option<String>` resolved by [`metadata_artwork::existing_path`](../../src-tauri/crates/core/src/artwork/metadata.rs) so a stale `cover_hash` (cache wiped, file gone) doesn't render a broken image.
 
 ## Daily Mix algorithm
 
-Implemented in [`generator.rs`](../../src-tauri/src/smart_playlists/generator.rs). Inputs are read from the active profile's database; outputs are three playlists named `Daily Mix 1` / `2` / `3`.
+Implemented in [`generator.rs`](../../src-tauri/crates/core/src/smart_playlists/generator.rs). Inputs are read from the active profile's database; outputs are three playlists named `Daily Mix 1` / `2` / `3`.
 
 ### 1. Top artists window
 
@@ -58,7 +58,7 @@ Determinism matters: the same input set always produces the same listening order
 
 ### 4. Cover composition
 
-[`cover.rs`](../../src-tauri/src/smart_playlists/cover.rs):
+[`cover.rs`](../../src-tauri/crates/core/src/smart_playlists/cover.rs):
 
 - **Image source priority** — try the top 3 artists' Deezer pictures first (shared `metadata_artwork/<hash>.jpg` cache, looks best because portraits crop cleanly). If none of the cluster's artists are Deezer-enriched (common with niche / soundtrack libraries), fall back to **album artwork of the first 3 shuffled tracks** from the per-profile cache (`<root>/profiles/<id>/artwork/<hash>.<format>`). The fallback is what guarantees a real cover even for libraries dominated by obscure artists.
 - **Layout auto-pick** — the `build_composite_cover` entry point dispatches by input count: 1 → fill the canvas, 2 → vertical halves, 3 → 3 strips (the Daily Mix look), 4+ → **2×2 grid** (Spotify-style auto-playlist cover, used by the user-playlist auto-cover pipeline; smart playlists never reach this branch since they cap at 3 artist pictures).
@@ -71,7 +71,7 @@ Why the label isn't rasterised in Rust: avoids a font dep (`ab_glyph` / `fontdue
 
 ## On Repeat algorithm
 
-Implemented in [`on_repeat.rs`](../../src-tauri/src/smart_playlists/on_repeat.rs). Single playlist, no slot bucketing — the top tracks the user has rotated the most over the last 30 days, ordered by play count descending. The materialised playlist holds **up to `TRACKS_LIMIT = 30` tracks**; the SQL fetches up to 60 candidates first so the Rust caller has headroom to filter for future variants (e.g. dropping tracks already on another smart playlist) without re-issuing the query, then truncates client-side via `tracks.iter().take(TRACKS_LIMIT)` before the upsert.
+Implemented in [`on_repeat.rs`](../../src-tauri/crates/core/src/smart_playlists/on_repeat.rs). Single playlist, no slot bucketing — the top tracks the user has rotated the most over the last 30 days, ordered by play count descending. The materialised playlist holds **up to `TRACKS_LIMIT = 30` tracks**; the SQL fetches up to 60 candidates first so the Rust caller has headroom to filter for future variants (e.g. dropping tracks already on another smart playlist) without re-issuing the query, then truncates client-side via `tracks.iter().take(TRACKS_LIMIT)` before the upsert.
 
 ```sql
 SELECT pe.track_id,
@@ -96,9 +96,9 @@ Differences vs Daily Mix:
 
 ### Brand cover
 
-On Repeat doesn't use the album-art composite — its identity is a fixed visual rendered deterministically by [`cover::build_on_repeat_cover`](../../src-tauri/src/smart_playlists/cover.rs): a 640×640 JPEG composited from the embedded SVG at [`on_repeat.svg`](../../src-tauri/src/smart_playlists/on_repeat.svg) — deep indigo → near-black diagonal gradient, a faint vertical-bar equaliser motif at 4 % opacity, and a centred bezier infinity loop stroked with a `#ff3377 → #9933ff → #33ccff` gradient under a gaussian glow filter with a thin white inner-rim. Rasterised through `resvg + usvg + tiny-skia` (default features disabled — no font / raster-image bloat since the SVG is shape + gradient + filter primitives only), so the curves anti-alias at the canvas resolution instead of looking like the old hand-rolled pixel grid. Same bytes every regen → same blake3 hash → the cache dedupes against the existing file instead of piling up orphans. No `<text>` baked in (the playlist name and "On Repeat" eyebrow are rendered by React on top of the tile), so the canvas stays locale-agnostic.
+On Repeat doesn't use the album-art composite — its identity is a fixed visual rendered deterministically by [`cover::build_on_repeat_cover`](../../src-tauri/crates/core/src/smart_playlists/cover.rs): a 640×640 JPEG composited from the embedded SVG at [`on_repeat.svg`](../../src-tauri/crates/core/src/smart_playlists/on_repeat.svg) — deep indigo → near-black diagonal gradient, a faint vertical-bar equaliser motif at 4 % opacity, and a centred bezier infinity loop stroked with a `#ff3377 → #9933ff → #33ccff` gradient under a gaussian glow filter with a thin white inner-rim. Rasterised through `resvg + usvg + tiny-skia` (default features disabled — no font / raster-image bloat since the SVG is shape + gradient + filter primitives only), so the curves anti-alias at the canvas resolution instead of looking like the old hand-rolled pixel grid. Same bytes every regen → same blake3 hash → the cache dedupes against the existing file instead of piling up orphans. No `<text>` baked in (the playlist name and "On Repeat" eyebrow are rendered by React on top of the tile), so the canvas stays locale-agnostic.
 
-Future per-track-art families (Release Radar, Recently Added) will resolve the _first track's artist image_ instead — that's why [`generator::first_track_artwork_paths`](../../src-tauri/src/smart_playlists/generator.rs) is `pub(super)` even though On Repeat doesn't use it.
+Future per-track-art families (Release Radar, Recently Added) will resolve the _first track's artist image_ instead — that's why [`generator::first_track_artwork_paths`](../../src-tauri/crates/core/src/smart_playlists/generator.rs) is `pub(super)` even though On Repeat doesn't use it.
 
 ## Regen flow
 
@@ -134,7 +134,7 @@ A user adding or removing a track from a Daily Mix **will lose the change on the
 
 ## Custom smart playlists (recursive boolean rule tree)
 
-The user-driven counterpart to Daily Mix lives in [`smart_playlists/custom.rs`](../../src-tauri/src/smart_playlists/custom.rs). `CustomRules` now wraps a **`RuleNode` tree** (`All` / `Any` / `Not` / `Leaf`) plus a sort + limit, so the editor can express arbitrary boolean expressions like `(artist contains "Daft Punk" OR artist contains "Justice") AND year ≥ 2000 AND NOT liked`. Predicates (leaves) carry the actual comparison; group nodes nest other nodes; `Not` wraps a single child.
+The user-driven counterpart to Daily Mix lives in [`smart_playlists/custom.rs`](../../src-tauri/crates/core/src/smart_playlists/custom.rs). `CustomRules` now wraps a **`RuleNode` tree** (`All` / `Any` / `Not` / `Leaf`) plus a sort + limit, so the editor can express arbitrary boolean expressions like `(artist contains "Daft Punk" OR artist contains "Justice") AND year ≥ 2000 AND NOT liked`. Predicates (leaves) carry the actual comparison; group nodes nest other nodes; `Not` wraps a single child.
 
 ### Tree shape
 
@@ -173,7 +173,7 @@ Pre-tree user data lives in flat predicates (`title_contains: "foo", year_min: 2
 
 ### Commands
 
-[`commands/smart_playlists.rs`](../../src-tauri/src/commands/smart_playlists.rs):
+[`commands/smart_playlists.rs`](../../src-tauri/crates/app/src/commands/smart_playlists.rs):
 
 - `create_custom_smart_playlist(input)` — insert the row + materialise tracks.
 - `update_custom_smart_playlist(playlist_id, input)` — update + re-materialise. Errors out when the target isn't a custom smart playlist (e.g. a Daily Mix slot or a manual playlist) so the editor never overwrites a wrong row.

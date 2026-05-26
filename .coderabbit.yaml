@@ -43,17 +43,74 @@ reviews:
         d'arguments correspondent exactement aux commandes Rust, que les types
         frontend/backend restent alignés, et que les erreurs importantes ne
         sont pas masquées.
-    - path: "src-tauri/src/audio/**"
+    - path: "src-tauri/crates/app/src/audio/**"
       instructions: >-
-        Moteur audio temps réel. Dans les callbacks audio, signale toute
-        allocation, lock, I/O, log ou opération bloquante. Vérifie aussi les
-        channels/rates, la gestion des threads, des atomics, des buffers SPSC,
-        et les cas de fallback de périphérique audio.
-    - path: "src-tauri/src/commands/**"
+        Moteur audio temps réel. Dans les callbacks audio (cpal + WASAPI
+        exclusive), signale toute allocation, lock, I/O, log ou opération
+        bloquante. Vérifie aussi les channels/rates, la gestion des threads,
+        des atomics, des buffers SPSC, et les cas de fallback de périphérique
+        audio.
+    - path: "src-tauri/crates/app/src/commands/**"
       instructions: >-
         Commandes Tauri exposées au frontend. Vérifie les contrôles de profil
-        actif, les accès SQLx, les erreurs retournées à l'UI, les chemins
-        fichiers, et les changements qui peuvent bloquer le runtime async.
+        actif (require_profile_pool/require_profile_id), les accès SQLx, les
+        erreurs retournées à l'UI, les chemins fichiers, et les changements qui
+        peuvent bloquer le runtime async. La logique métier portable doit vivre
+        dans `crates/core/` — signale toute duplication entre une commande et
+        un repository/helper core qui pourrait être déléguée.
+    - path: "src-tauri/crates/app/**"
+      instructions: >-
+        Code Tauri-spécifique (binaire `waveflow`). Aucune restriction sur
+        `tauri::*`, `cpal`, `souvlaki`, `discord-rich-presence`. Vérifie que la
+        logique réutilisable côté serveur reste poussée vers `crates/core/`
+        plutôt que dupliquée ici.
+    - path: "src-tauri/crates/core/**"
+      instructions: >-
+        Crate portable `waveflow-core` (logique métier réutilisable par le
+        futur `waveflow-server`). Refuse toute dépendance directe à `tauri`,
+        `cpal`, `souvlaki`, `tauri-plugin-*`. Le code SQLite doit rester
+        derrière la feature `sqlite`. Privilégie les traits + impl SQLite pour
+        toute nouvelle CRUD plutôt que des fonctions concrètes liées à
+        `sqlx::SqlitePool`.
+    - path: "src-tauri/crates/core/src/repository/**"
+      instructions: >-
+        Traits de repository (`ProfileRepository`, `LibraryRepository`,
+        `PlaylistRepository`, `TrackRepository`) et leurs implémentations
+        SQLite. Le trait doit rester storage-agnostique (pas de `sqlx::*` dans
+        la signature). Les impls dans `sqlite/` doivent prendre `&mut
+        SqliteConnection` pour les helpers d'upsert afin de participer aux
+        transactions ouvertes (single-writer SQLite). Toute lecture suivie
+        d'une écriture sur la même clé doit vivre dans une transaction unique
+        pour éviter les races.
+    - path: "src-tauri/crates/core/src/scanner/**"
+      instructions: >-
+        Helpers purs du scanner (`extract.rs` + `upserts.rs`). Pas de Tauri,
+        pas d'`AppHandle`, pas d'émission d'events. L'orchestrateur
+        (`scan_folder_inner`) reste dans `crates/app/src/commands/scan.rs`
+        parce qu'il émet `scan:progress`. Toute fonction qui aurait besoin
+        d'émettre un event doit passer par un trait `ScannerEventSink` à
+        définir, pas un appel direct à `app.emit(...)`.
+    - path: "src-tauri/crates/core/src/smart_playlists/**"
+      instructions: >-
+        Moteur de smart playlists (Daily Mix, On Repeat, custom rules, cover
+        composer). Doit consommer `PathsContext` (pas `AppPaths`) et rester
+        portable côté serveur. Vérifie que les changements de schéma sur
+        `playlist.smart_rules` restent rétro-compatibles (la migration v1 →
+        v2 est en place).
+    - path: "src-tauri/crates/core/src/metadata/**"
+      instructions: >-
+        Clients HTTP tiers (Deezer / Last.fm / LRCLIB). Pure `reqwest` over
+        rustls, aucune dépendance Tauri. Le respect du mode offline est géré
+        par les appelants côté `crates/app/` via `crate::offline::is_offline()`
+        — signale toute regression où un nouveau chemin réseau ne court-circuite
+        pas en mode offline.
+    - path: "src-tauri/crates/core/src/audio_format/**"
+      instructions: >-
+        Parseurs DSD (DSF / DFF) + convertisseur 1-bit → PCM 24-bit. Code
+        portable (utilisé par le scanner et par `crates/app/src/audio/crossfade.rs`
+        au runtime). Pas de Tauri, pas de cpal. Les ratios de décimation et
+        les coefficients FIR doivent rester documentés pour qu'un futur
+        backend serveur puisse les reprendre tels quels.
     - path: "src-tauri/migrations/**"
       instructions: >-
         Migrations SQLite app/profile. Les migrations existantes ne doivent

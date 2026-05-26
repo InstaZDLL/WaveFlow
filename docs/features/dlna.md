@@ -6,7 +6,7 @@ The integration ships disabled by default — enable it from **Settings → Inte
 
 ## Architecture
 
-A single dedicated worker thread (`dlna-worker`) owns a tokio runtime and the running tasks. Same pattern as [`media_controls`](../../src-tauri/src/media_controls.rs) and [`discord_presence`](../../src-tauri/src/discord_presence.rs): a sync `DlnaServer` handle on `AppState` ferries `Cmd::{Start, Stop, Status}` over a crossbeam channel so the rest of the app keeps a sync API.
+A single dedicated worker thread (`dlna-worker`) owns a tokio runtime and the running tasks. Same pattern as [`media_controls`](../../src-tauri/crates/app/src/media_controls.rs) and [`discord_presence`](../../src-tauri/crates/app/src/discord_presence.rs): a sync `DlnaServer` handle on `AppState` ferries `Cmd::{Start, Stop, Status}` over a crossbeam channel so the rest of the app keeps a sync API.
 
 ```bash
 AppState.dlna ─► Cmd channel ─► dlna-worker
@@ -33,7 +33,7 @@ Persisted in the global `app_setting` table because the server is process-wide, 
 
 ## Object hierarchy (ContentDirectory)
 
-Object IDs are **string prefixes**, routed by [`cds.rs`](../../src-tauri/src/dlna/cds.rs):
+Object IDs are **string prefixes**, routed by [`cds.rs`](../../src-tauri/crates/app/src/dlna/cds.rs):
 
 ```bash
 0                    Root container
@@ -60,7 +60,7 @@ The `transferMode.dlna.org: Streaming` and `contentFeatures.dlna.org` headers on
 
 ## SSDP discovery
 
-[`ssdp.rs`](../../src-tauri/src/dlna/ssdp.rs) joins `239.255.255.250:1900` via socket2 (so we get `SO_REUSEADDR` on Windows + `SO_REUSEPORT` on unix and coexist with other UPnP services).
+[`ssdp.rs`](../../src-tauri/crates/app/src/dlna/ssdp.rs) joins `239.255.255.250:1900` via socket2 (so we get `SO_REUSEADDR` on Windows + `SO_REUSEPORT` on unix and coexist with other UPnP services).
 
 - **Periodic NOTIFY ssdp:alive** — one batch every `CACHE_MAX_AGE/4` ≈ 7 minutes, advertising `upnp:rootdevice`, the device UUID, `MediaServer:1`, `ContentDirectory:1`, `ConnectionManager:1`.
 - **M-SEARCH responder** — unicast HTTP/1.1 200 OK to controllers that probe with `ST:` matching one of our targets (or `ssdp:all`).
