@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
@@ -274,27 +274,38 @@ export function LyricsPanel() {
                       {hasWords ? (
                         <span>
                           {line.words!.map((word, wi) => (
-                            <span
-                              key={wi}
-                              className={
-                                wi === activeWordIndex
-                                  ? "text-pink-500 dark:text-pink-400"
-                                  : wi < activeWordIndex
-                                    ? ""
-                                    : "opacity-60"
-                              }
-                              style={{
-                                display: "inline-block",
-                                transform:
+                            // See FullscreenLyrics for the rationale:
+                            // `inline-block` strips the JSX whitespace
+                            // that would normally separate inline
+                            // siblings, and many Enhanced LRC sources
+                            // omit spaces between word stamps. A literal
+                            // `" "` text node restores the gap; if the
+                            // source did carry trailing whitespace in
+                            // `word.text`, `white-space: normal`
+                            // collapses the pair to one.
+                            <Fragment key={wi}>
+                              <span
+                                className={
                                   wi === activeWordIndex
-                                    ? "scale(1.04)"
-                                    : "scale(1)",
-                                transition:
-                                  "color 150ms ease, opacity 150ms ease, transform 150ms ease",
-                              }}
-                            >
-                              {word.text}
-                            </span>
+                                    ? "text-pink-500 dark:text-pink-400"
+                                    : wi < activeWordIndex
+                                      ? ""
+                                      : "opacity-60"
+                                }
+                                style={{
+                                  display: "inline-block",
+                                  transform:
+                                    wi === activeWordIndex
+                                      ? "scale(1.04)"
+                                      : "scale(1)",
+                                  transition:
+                                    "color 150ms ease, opacity 150ms ease, transform 150ms ease",
+                                }}
+                              >
+                                {word.text}
+                              </span>
+                              {wi < line.words!.length - 1 && " "}
+                            </Fragment>
                           ))}
                         </span>
                       ) : (
