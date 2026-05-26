@@ -95,6 +95,11 @@ tiny-skia = "0.12"
 # arithmetic, deterministic seeds) and the audio analysis pipeline.
 chrono = { version = "0.4", features = ["serde"] }
 
+# Tag parser used by the scanner extract helpers (`crate::scanner::extract`).
+# Same minor as the desktop crate so the workspace's effective lofty
+# build stays cached.
+lofty = "0.24"
+
 [dev-dependencies]
 # Sandboxed scratch directories for the smart-playlist cover render
 # tests. Same usage shape as the app crate's existing dev-dep.

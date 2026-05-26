@@ -20,12 +20,12 @@ use serde::Deserialize;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter};
 
+use waveflow_core::scanner::{
+    canonical_name, split_artist_name, upsert_album, upsert_artist, upsert_artwork, upsert_genre,
+};
+
 use crate::{
     audio::AudioEngine,
-    commands::scan::{
-        canonical_name, split_artist_name, upsert_album, upsert_artist, upsert_artwork,
-        upsert_genre,
-    },
     error::{AppError, AppResult},
     state::AppState,
 };

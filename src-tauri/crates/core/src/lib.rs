@@ -16,4 +16,5 @@ pub mod domain;
 pub mod error;
 pub mod metadata;
 pub mod repository;
+pub mod scanner;
 pub mod smart_playlists;

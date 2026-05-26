@@ -6921,6 +6921,7 @@ dependencies = [
  "fast_image_resize",
  "hex",
  "image",
+ "lofty",
  "md-5",
  "regex",
  "reqwest 0.12.28",
