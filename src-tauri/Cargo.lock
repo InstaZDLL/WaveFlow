@@ -6926,6 +6926,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
+ "symphonia",
  "thiserror 2.0.18",
  "tracing",
 ]

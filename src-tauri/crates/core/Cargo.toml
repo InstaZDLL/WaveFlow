@@ -65,3 +65,19 @@ image = { version = "0.25", default-features = false, features = ["jpeg", "png",
 fast_image_resize = "6"
 blake3 = "1"
 anyhow = "1"
+
+# Per-track audio analysis (ReplayGain, BPM): decode the file with
+# symphonia, compute peak / loudness / BPM. Same codec feature set
+# the desktop runtime needs — Cargo unifies them.
+symphonia = { version = "0.6", default-features = false, features = [
+    "mp3",
+    "flac",
+    "wav",
+    "vorbis",
+    "ogg",
+    "aac",
+    "alac",
+    "isomp4",
+    "pcm",
+    "all-meta",
+] }
