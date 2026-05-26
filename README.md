@@ -55,6 +55,8 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
     <td align="center"><sub><b>Wrapped</b> · year-in-review with top tracks, average tempo, longest streak — local & private</sub></td>
   </tr>
 </table>
+
+<p align="center"><sub><i>Cover art shown in the screenshots above remains the property of its respective rights holders. WaveFlow is a local-file player — no music content is bundled, and you must legally own the files in your library.</i></sub></p>
 <!-- markdownlint-enable MD033 -->
 
 ## Features
