@@ -78,3 +78,8 @@ secrets/
 .codacy/cli-config.yaml
 .codacy/logs/
 .codacy/tools-configs/
+
+# Flatpak generator cache (Python venv + downloaded generators). The
+# committed outputs in packaging/flatpak/generated/ are what Flathub
+# consumes; this dir is local scratch and can be regenerated anytime.
+packaging/flatpak/.cache/

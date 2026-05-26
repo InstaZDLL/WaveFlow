@@ -1,0 +1,18 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=WaveFlow
+GenericName=Music Player
+GenericName[fr]=Lecteur de musique
+Comment=Local-first music player with a Spotify-inspired UI
+Comment[fr]=Lecteur de musique local avec une interface inspirée de Spotify
+Exec=waveflow %U
+Icon=app.waveflow.WaveFlow
+Terminal=false
+StartupNotify=true
+StartupWMClass=waveflow
+Categories=AudioVideo;Audio;Player;Music;
+Keywords=music;player;audio;flac;mp3;dsd;library;playlist;lyrics;scrobble;equalizer;
+Keywords[fr]=musique;lecteur;audio;flac;mp3;dsd;bibliothèque;playlist;paroles;scrobble;égaliseur;
+MimeType=audio/flac;audio/mpeg;audio/mp4;audio/ogg;audio/opus;audio/wav;audio/x-wav;audio/x-wavpack;audio/x-aiff;audio/x-dsd;audio/x-dsf;audio/x-dff;audio/x-musepack;audio/aac;audio/aiff;application/vnd.apple.mpegurl;application/x-mpegurl;audio/x-mpegurl;audio/x-scpls;
+SingleMainWindow=true
