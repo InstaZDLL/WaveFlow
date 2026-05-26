@@ -48,7 +48,7 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
   </tr>
   <tr>
     <td width="50%"><img src="docs/screenshots/karaoke-lyrics.png" alt="Apple Music style fullscreen karaoke lyrics" /></td>
-    <td width="50%"><img src="docs/screenshots/wrapped.png" alt="WaveFlow Wrapped year-in-review with top tracks, average tempo and longest streak" /></td>
+    <td width="50%" align="center"><img src="docs/screenshots/wrapped.png" alt="WaveFlow Wrapped year-in-review with top tracks, average tempo and longest streak" style="max-height: 520px; width: auto;" /></td>
   </tr>
   <tr>
     <td align="center"><sub><b>Karaoke lyrics</b> · Apple-Music-style word-level highlight with click-to-seek</sub></td>
