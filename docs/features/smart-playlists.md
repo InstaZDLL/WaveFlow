@@ -1,6 +1,6 @@
 # Smart playlists
 
-Auto-generated playlists materialised from the user's listening history. Today: a 3-slot **Daily Mix** family bucketed by tempo, plus a single **On Repeat** playlist tracking the user's top played tracks over the last 30 days. Tomorrow: "Repeat Rewind", "Release Radar", per-mood mixes — the engine in [`smart_playlists/`](../../src-tauri/crates/app/src/smart_playlists) is built around a discriminated `SmartPlaylistRules` enum so new families plug in without touching the regen flow.
+Auto-generated playlists materialised from the user's listening history. Today: a 3-slot **Daily Mix** family bucketed by tempo, plus a single **On Repeat** playlist tracking the user's top played tracks over the last 30 days. Tomorrow: "Repeat Rewind", "Release Radar", per-mood mixes — the engine in [`smart_playlists/`](../../src-tauri/crates/core/src/smart_playlists) is built around a discriminated `SmartPlaylistRules` enum so new families plug in without touching the regen flow.
 
 ## Storage
 

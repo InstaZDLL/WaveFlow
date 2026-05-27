@@ -2,8 +2,9 @@
 //! `playlist_track` tables of a profile's `data.db`. Smart-playlist
 //! generation logic stays out of this trait — the repository only
 //! moves rows around; rule evaluation lives in the smart-playlist
-//! module (still in `crates/app` at this point, scheduled to migrate
-//! in step 6).
+//! engine at [`crate::smart_playlists`] (path:
+//! `src-tauri/crates/core/src/smart_playlists`), which consumes a
+//! `PathsContext` to stay portable on the future `waveflow-server`.
 
 use async_trait::async_trait;
 
