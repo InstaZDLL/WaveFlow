@@ -1,0 +1,85 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "WaveFlow",
+  "version": "1.3.0",
+  "identifier": "app.waveflow",
+  "build": {
+    "beforeDevCommand": "bun run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "bun run build",
+    "frontendDist": "../../../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "WaveFlow",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1000,
+        "minHeight": 650,
+        "center": true,
+        "visible": false
+      },
+      {
+        "label": "splashscreen",
+        "url": "splash.html",
+        "title": "WaveFlow",
+        "width": 360,
+        "height": 240,
+        "center": true,
+        "resizable": false,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "focus": false,
+        "shadow": false,
+        "backgroundColor": "#121212"
+      }
+    ],
+    "security": {
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "$APPDATA/waveflow/profiles/**",
+          "$APPLOCALDATA/waveflow/profiles/**",
+          "$APPDATA/waveflow/metadata_artwork/**",
+          "$APPLOCALDATA/waveflow/metadata_artwork/**"
+        ]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "publisher": "InstaZDLL",
+    "copyright": "Copyright © 2026 InstaZDLL. Licensed under GPL-3.0-only.",
+    "category": "Music",
+    "shortDescription": "Local-first music player with a Spotify-inspired UI.",
+    "longDescription": "WaveFlow is a local music player desktop app built with Tauri 2 and React 19. It scans your local audio folders, organizes tracks by album/artist/genre, and plays them with a real-time audio engine — no streaming, no cloud, your music stays on your machine.",
+    "homepage": "https://waveflow.app",
+    "licenseFile": "../../../LICENSE",
+    "icon": [
+      "icons/32x32.png",
+      "icons/64x64.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/InstaZDLL/WaveFlow/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY3QkUyODExMTcwQjVFM0MKUldROFhnc1hFU2krWitudmcvdHNIamo5RHVjV0tzaWJsS2ZVa3g5QUdKa3B0NXJ1dzF1QU1oNGgK",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

@@ -19,7 +19,7 @@
 - macOS: `~/Library/Application Support/app.waveflow/waveflow/`
 - Linux: `~/.local/share/app.waveflow/waveflow/`
 
-The inner `waveflow/` segment is a hardcoded subdirectory in [`paths.rs`](../../src-tauri/src/paths.rs). Don't rename it — existing user libraries point at it. The product display name is `WaveFlow` ([`tauri.conf.json`](../../src-tauri/tauri.conf.json)) but the path stays lowercase for backwards compatibility.
+The inner `waveflow/` segment is a hardcoded subdirectory in [`paths.rs`](../../src-tauri/crates/app/src/paths.rs). Don't rename it — existing user libraries point at it. The product display name is `WaveFlow` ([`tauri.conf.json`](../../src-tauri/tauri.conf.json)) but the path stays lowercase for backwards compatibility.
 
 ## Two databases
 

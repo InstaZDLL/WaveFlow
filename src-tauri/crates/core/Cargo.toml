@@ -1,0 +1,110 @@
+[package]
+name = "waveflow-core"
+version = "1.3.0"
+description = "Business logic shared between the WaveFlow desktop app and the future waveflow-server: scanning, metadata enrichment, DSD conversion, smart-playlist algorithms, repository traits."
+authors = ["InstaZDLL <github.105mh@8shield.net>"]
+edition = "2021"
+license = "GPL-3.0-only"
+repository = "https://github.com/InstaZDLL/WaveFlow"
+homepage = "https://waveflow.app"
+
+[features]
+default = []
+# Opt in to the SQLite backend: enables `sqlx::FromRow` derives on the
+# domain types (via `cfg_attr`) and pulls the `sqlite` + `runtime-tokio`
+# sqlx features so the `repository::sqlite` implementations compile.
+# The trait definitions in `repository::*` stay backend-agnostic so the
+# future `waveflow-server` can add a sibling `postgres` feature without
+# disturbing them.
+sqlite = ["sqlx/sqlite", "sqlx/runtime-tokio"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+# Diagnostics surface for the core modules — every `tracing::warn!`
+# in the migrated artwork / metadata code already has an app-side
+# subscriber set up via `tracing-subscriber`; core just emits.
+tracing = "0.1"
+# `async-trait` lets the repository traits in `crate::repository`
+# expose `async fn` while staying dyn-compatible. Native `async fn in
+# trait` is stable since 1.75 but drops the `dyn` capability; the
+# desktop side leans on `&dyn ProfileRepository` parameters in some
+# of the higher-level command handlers, so we still need the macro.
+async-trait = "0.1"
+# `macros` is the only feature needed for the `FromRow` derive itself;
+# the per-database row glue (`sqlx::sqlite::SqliteRow`) lives in the
+# downstream crate that picks a runtime. Cargo's feature unification
+# means the workspace's effective sqlx build still has `sqlite`,
+# `runtime-tokio`, `migrate`, … when `crates/app` opts into them.
+sqlx = { version = "0.9", default-features = false, features = ["macros"] }
+
+# Metadata enrichment HTTP clients (Deezer, Last.fm, LRCLIB). Pure
+# `reqwest` over rustls — no Tauri, no DB, designed to be reusable
+# from the future `waveflow-server` axum handlers.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+# Last.fm signed write methods (`auth.getMobileSession`, `track.scrobble`,
+# `track.updateNowPlaying`) require an md5 of the param block + secret;
+# `hex` encodes the digest into the canonical 32-char lowercase string
+# the API expects.
+md-5 = "0.11"
+hex = "0.4"
+# Stripping HTML tags out of Last.fm bio summaries before the desktop
+# renders them.
+regex = "1"
+# Used by the Last.fm + LRCLIB clients to parse the more dynamic
+# response shapes that don't deserialize cleanly into a fixed struct.
+serde_json = "1"
+
+# Artwork pipeline (`artwork::thumbnails` + `artwork::metadata`):
+# `image` decodes the source covers, `fast_image_resize` SIMD-resizes
+# the 1x / 2x JPEG variants, `blake3` keys the shared metadata cache,
+# `anyhow` carries the thumbnail-job error chain (it's only ever
+# logged, never bubbled to a Result variant — a `thiserror`-typed
+# error would be busywork here).
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "bmp", "gif", "tiff"] }
+fast_image_resize = "6"
+blake3 = "1"
+anyhow = "1"
+
+# Per-track audio analysis (ReplayGain, BPM): decode the file with
+# symphonia, compute peak / loudness / BPM. Same codec feature set
+# the desktop runtime needs — Cargo unifies them.
+symphonia = { version = "0.6", default-features = false, features = [
+    "mp3",
+    "flac",
+    "wav",
+    "vorbis",
+    "ogg",
+    "aac",
+    "alac",
+    "isomp4",
+    "pcm",
+    "all-meta",
+] }
+
+# Smart-playlist cover rasterisation: `resvg` + `usvg` parse and
+# rasterise the On Repeat brand cover SVG; `tiny-skia` is the pixel
+# canvas they paint into. Same default-features-disabled tightening
+# the desktop already applies — the SVG is pure shapes + gradients,
+# no embedded raster or text.
+resvg = { version = "0.47", default-features = false }
+usvg = { version = "0.47", default-features = false }
+tiny-skia = "0.12"
+
+# Time stamps for the smart-playlist generators (`play_event.played_at`
+# arithmetic, deterministic seeds) and the audio analysis pipeline.
+chrono = { version = "0.4", features = ["serde"] }
+
+# Tag parser used by the scanner extract helpers (`crate::scanner::extract`).
+# Same minor as the desktop crate so the workspace's effective lofty
+# build stays cached.
+lofty = "0.24"
+# DSF container footer carries an embedded ID3v2 blob; lofty doesn't
+# accept a raw byte buffer (it wants a full file), so `audio_format::dsd::metadata`
+# parses it via the lower-level `id3` crate.
+id3 = "1"
+
+[dev-dependencies]
+# Sandboxed scratch directories for the smart-playlist cover render
+# tests. Same usage shape as the app crate's existing dev-dep.
+tempfile = "3"

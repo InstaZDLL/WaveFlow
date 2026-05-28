@@ -20,7 +20,7 @@
 
 app-id: app.waveflow.WaveFlow
 runtime: org.gnome.Platform
-runtime-version: '50'
+runtime-version: "50"
 sdk: org.gnome.Sdk
 sdk-extensions:
   # rust-stable bundles rustc + cargo + clang + lld; covers every
@@ -110,14 +110,14 @@ modules:
         # convention. CARGO_NET_OFFLINE makes any accidental network
         # fetch a hard error instead of a silent stall.
         CARGO_HOME: /run/build/waveflow/cargo
-        CARGO_NET_OFFLINE: 'true'
+        CARGO_NET_OFFLINE: "true"
         # npm offline knobs. The cache dir matches where
         # flatpak-node-generator places its content-addressed store
         # (flatpak-node/npm-cache/_cacache/...).
-        npm_config_offline: 'true'
-        npm_config_audit: 'false'
-        npm_config_fund: 'false'
-        npm_config_loglevel: 'error'
+        npm_config_offline: "true"
+        npm_config_audit: "false"
+        npm_config_fund: "false"
+        npm_config_loglevel: "error"
     build-commands:
       # Swap bun.lock for the npm-flavored lockfile produced by
       # generate-sources.sh. Same package.json, same registry, same

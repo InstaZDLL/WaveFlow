@@ -2,7 +2,7 @@
   "name": "libappindicator",
   "build-options": {
     "cflags": "-Wno-error",
-    "make-args": [ "-j1" ],
+    "make-args": ["-j1"],
     "env": {
       "GTKDOCIZE": "true"
     }
@@ -107,11 +107,7 @@
         "/share/gtk-doc",
         "/share/gir-1.0"
       ],
-      "config-opts": [
-        "--disable-static",
-        "--disable-tests",
-        "--with-gtk=3"
-      ],
+      "config-opts": ["--disable-static", "--disable-tests", "--with-gtk=3"],
       "sources": [
         {
           "type": "archive",

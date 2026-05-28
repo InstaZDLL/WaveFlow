@@ -1,6 +1,6 @@
 {
   "name": "intltool",
-  "cleanup": [ "*" ],
+  "cleanup": ["*"],
   "sources": [
     {
       "type": "archive",

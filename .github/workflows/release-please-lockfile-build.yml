@@ -74,7 +74,7 @@ jobs:
             pkg-config
 
       - name: Refresh Cargo.lock against bumped Cargo.toml
-        run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
+        run: cargo check --manifest-path src-tauri/Cargo.toml --workspace --all-targets
 
       - name: Stage artifact (Cargo.lock + PR metadata)
         # Bundle the refreshed Cargo.lock alongside the PR number,

@@ -4,11 +4,11 @@ External services WaveFlow talks to. All clients use [`reqwest 0.12`](https://cr
 
 ## Offline mode
 
-A single global toggle — Settings → Intégrations → "Mode hors-ligne" — short-circuits every outbound call described below. The flag is a `static AtomicBool` in [`offline.rs`](../../src-tauri/src/offline.rs); it is consulted by Deezer enrichment, Last.fm now-playing + the scrobble worker tick, similar-artist lookups, and the LRCLIB lyrics fetch + library prefetch. Each gated path returns an empty payload (or whatever the local cache holds), nothing throws, so the UI keeps rendering with whatever metadata is already on disk. Persisted in `app_setting['network.offline_mode']` because the flag is process-wide — switching profiles must not silently re-enable network calls.
+A single global toggle — Settings → Intégrations → "Mode hors-ligne" — short-circuits every outbound call described below. The flag is a `static AtomicBool` in [`offline.rs`](../../src-tauri/crates/app/src/offline.rs); it is consulted by Deezer enrichment, Last.fm now-playing + the scrobble worker tick, similar-artist lookups, and the LRCLIB lyrics fetch + library prefetch. Each gated path returns an empty payload (or whatever the local cache holds), nothing throws, so the UI keeps rendering with whatever metadata is already on disk. Persisted in `app_setting['network.offline_mode']` because the flag is process-wide — switching profiles must not silently re-enable network calls.
 
 ## Deezer (metadata)
 
-[`deezer.rs`](../../src-tauri/src/deezer.rs) — public Deezer API, no auth. Used for:
+[`deezer.rs`](../../src-tauri/crates/core/src/metadata/deezer.rs) — public Deezer API, no auth. Used for:
 
 - Artist pictures (`enrich_artist_deezer`, `batch_fetch_missing_artist_pictures`)
 - Album covers (`enrich_album_deezer`, `search_albums_deezer`, `set_album_artwork_from_deezer`, `batch_fetch_missing_album_covers`)
@@ -20,13 +20,13 @@ Results are cached in the `deezer_artist` / `deezer_album` tables of the **share
 
 **Batch fill-in.** `batch_fetch_missing_artist_pictures` walks every artist with no cached row (or an expired one), runs the standard enrichment per artist, and emits `artist-fetch-progress` so a Settings progress bar can drive the UI. Throttled at 200 ms (~5 req/s) to stay well below Deezer's anonymous rate limit. Same idempotent semantics as `batch_fetch_missing_album_covers`: re-running just resumes on whatever's still missing.
 
-Downloaded images go through [`metadata_artwork::download_and_cache`](../../src-tauri/src/metadata_artwork.rs): Blake3-hashed bytes → `<root>/metadata_artwork/<hash>.jpg`. The hash is persisted in `deezer_artist.picture_hash` / `deezer_album.cover_hash` so a cache hit on the metadata table avoids re-downloading. Thumbnails (1×, 2×) are generated asynchronously by [`thumbnails.rs`](../../src-tauri/src/thumbnails.rs).
+Downloaded images go through [`metadata_artwork::download_and_cache`](../../src-tauri/crates/core/src/artwork/metadata.rs): Blake3-hashed bytes → `<root>/metadata_artwork/<hash>.jpg`. The hash is persisted in `deezer_artist.picture_hash` / `deezer_album.cover_hash` so a cache hit on the metadata table avoids re-downloading. Thumbnails (1×, 2×) are generated asynchronously by [`thumbnails.rs`](../../src-tauri/crates/core/src/artwork/thumbnails.rs).
 
 The frontend helper `lib/tauri/artwork.ts::resolveRemoteImage` prefers the local file via `convertFileSrc` so artist imagery renders offline. The `metadata_artwork/**` scope must stay listed in `tauri.conf.json` `assetProtocol`.
 
 ## Last.fm
 
-[`lastfm.rs`](../../src-tauri/src/lastfm.rs) — split into two flows:
+[`lastfm.rs`](../../src-tauri/crates/core/src/metadata/lastfm.rs) — split into two flows:
 
 ### Read-only (artist bios)
 
@@ -34,7 +34,7 @@ The frontend helper `lib/tauri/artwork.ts::resolveRemoteImage` prefers the local
 
 ### Read-only (similar artists)
 
-[`commands/similar.rs::get_similar_artists`](../../src-tauri/src/commands/similar.rs) drives the "Similar artists" carousel on `ArtistDetailView`. Cascade:
+[`commands/similar.rs::get_similar_artists`](../../src-tauri/crates/app/src/commands/similar.rs) drives the "Similar artists" carousel on `ArtistDetailView`. Cascade:
 
 1. **Last.fm `artist.getSimilar`** when an API key is configured — returns up to 12 hits with a real 0-1 affinity score.
 2. **Deezer `/artist/{id}/related`** as a fallback when Last.fm has no key, errors out, or returns an empty list. Score is synthesised from the Deezer ranking (`1.0 - i / N`) so the UI can sort uniformly across providers.
@@ -45,7 +45,7 @@ Results are cached in `app.lastfm_similar` (30-day TTL, keyed by the source arti
 
 ### Authenticated (scrobbling)
 
-[`scrobbler.rs`](../../src-tauri/src/scrobbler.rs) is the worker thread that drives Last.fm scrobbles:
+[`scrobbler.rs`](../../src-tauri/crates/app/src/scrobbler.rs) is the worker thread that drives Last.fm scrobbles:
 
 - **Login** — signed `auth.getMobileSession` (md-5 of params + secret). Session key persisted in `app_setting['lastfm_session_key']`.
 - **Now Playing** — `track.updateNowPlaying` fires on every `player:track-changed` event after the 240 s threshold. Best-effort; failures are logged but never block playback.
@@ -54,7 +54,7 @@ Results are cached in `app.lastfm_similar` (30-day TTL, keyed by the source arti
 
 ## Discord Rich Presence
 
-[`discord_presence.rs`](../../src-tauri/src/discord_presence.rs) — speaks Discord's local IPC named pipe via the [`discord-rich-presence`](https://crates.io/crates/discord-rich-presence) crate (no network, no auth, no token). Architecture mirrors [`media_controls.rs`](../../src-tauri/src/media_controls.rs): a dedicated thread owns the `DiscordIpcClient` (which is `!Send` on Windows because it wraps a Win32 pipe handle), with a `crossbeam-channel` carrying update messages from the player code.
+[`discord_presence.rs`](../../src-tauri/crates/app/src/discord_presence.rs) — speaks Discord's local IPC named pipe via the [`discord-rich-presence`](https://crates.io/crates/discord-rich-presence) crate (no network, no auth, no token). Architecture mirrors [`media_controls.rs`](../../src-tauri/crates/app/src/media_controls.rs): a dedicated thread owns the `DiscordIpcClient` (which is `!Send` on Windows because it wraps a Win32 pipe handle), with a `crossbeam-channel` carrying update messages from the player code.
 
 ### Activity layout
 
@@ -74,7 +74,7 @@ Spotify-style card under "Listening to WaveFlow":
 
 ### Cover URL resolution
 
-Discord propagates `large_image` URLs to other users' clients, so local files / our `127.0.0.1` artwork shim are off-limits — only public HTTPS works. [`resolve_cover_url`](../../src-tauri/src/discord_presence.rs) is two-stage:
+Discord propagates `large_image` URLs to other users' clients, so local files / our `127.0.0.1` artwork shim are off-limits — only public HTTPS works. [`resolve_cover_url`](../../src-tauri/crates/app/src/discord_presence.rs) is two-stage:
 
 1. **Cache hit** — `JOIN track → album → deezer_album` in the per-profile pool. Cheap, no network.
 2. **Cache miss** — call `commands::deezer::enrich_album_inner` which searches Deezer by title+artist and persists the result. Subsequent plays of the same album hit stage 1.
@@ -101,18 +101,18 @@ PNG sources live in [`assets/discord/png/`](../../assets/discord/png/), generate
 
 ## Native OS notifications
 
-[`notifications.rs`](../../src-tauri/src/notifications.rs) — fires a single track-change toast via `tauri-plugin-notification`. Different axis from [`media_controls.rs`](../../src-tauri/src/media_controls.rs): SMTC / MPRIS / MediaRemote drive the **OS media overlay** (lock screen, volume flyout, Now Playing widget), while a notification is a **transient toast**. Both can coexist and most desktop players ship both.
+[`notifications.rs`](../../src-tauri/crates/app/src/notifications.rs) — fires a single track-change toast via `tauri-plugin-notification`. Different axis from [`media_controls.rs`](../../src-tauri/crates/app/src/media_controls.rs): SMTC / MPRIS / MediaRemote drive the **OS media overlay** (lock screen, volume flyout, Now Playing widget), while a notification is a **transient toast**. Both can coexist and most desktop players ship both.
 
-Triggered from [`emit_track_changed`](../../src-tauri/src/commands/player.rs) in a tokio task so the SQLite opt-in lookup doesn't sit on the path that flips the player-bar metadata. The notification carries only the track title + artist (no cover image) — Windows Action Center, KDE / GNOME notification daemons, and macOS Notification Center all support an icon slot but they expect a URL or file path the OS can read, and we'd need a fourth path next to SMTC's `127.0.0.1` shim + Discord's public Deezer URL to feed it cleanly. Title + artist is the format every system handles uniformly.
+Triggered from [`emit_track_changed`](../../src-tauri/crates/app/src/commands/player.rs) in a tokio task so the SQLite opt-in lookup doesn't sit on the path that flips the player-bar metadata. The notification carries only the track title + artist (no cover image) — Windows Action Center, KDE / GNOME notification daemons, and macOS Notification Center all support an icon slot but they expect a URL or file path the OS can read, and we'd need a fourth path next to SMTC's `127.0.0.1` shim + Discord's public Deezer URL to feed it cleanly. Title + artist is the format every system handles uniformly.
 
 **Off by default** — opposite default from Discord RPC because toasts are intrusive and trigger Focus Assist (Windows), Do Not Disturb (macOS), and `org.freedesktop.Notifications` filters (Linux) on every platform. Opt-in via Settings → Intégrations → "Notifications de changement de morceau". Stored in `app_setting['notifications.track_change']` (typed `bool`, shared across profiles like Discord RPC since toasts are an OS-level user preference, not per-listener). Toggling on doesn't fire a toast for the current track — first toast lands on the **next** track change.
 
 ## LRCLIB (synchronized lyrics)
 
-[`lrclib.rs`](../../src-tauri/src/lrclib.rs) — public lookup by `artist_name + track_name + album_name + duration` against [LRCLIB](https://lrclib.net). Four-tier resolution in [`commands/lyrics.rs`](../../src-tauri/src/commands/lyrics.rs), driven on demand by `fetch_lyrics` (the library-wide `prefetch_library_lyrics` walks the same waterfall):
+[`lrclib.rs`](../../src-tauri/crates/core/src/metadata/lrclib.rs) — public lookup by `artist_name + track_name + album_name + duration` against [LRCLIB](https://lrclib.net). Four-tier resolution in [`commands/lyrics.rs`](../../src-tauri/crates/app/src/commands/lyrics.rs), driven on demand by `fetch_lyrics` (the library-wide `prefetch_library_lyrics` walks the same waterfall):
 
 1. **Cache** — `app.lyrics` row keyed by `track.file_hash` (BLAKE3). No TTL, shared across profiles.
-2. **Embedded** — `LYRICS` / `USLT` / `©lyr` tag in the file (lofty), incl. synced `LRC` blocks. Lookup tries `ItemKey::UnsyncLyrics` first (the only key that maps to ID3v2's `USLT` in lofty 0.24), then `ItemKey::Lyrics` for Vorbis / MP4. For MP3s tagged with Mp3tag / foobar2000 / lame `--tg`, lyrics often live in a TXXX user-defined frame named `LYRICS` or `UNSYNCEDLYRICS` (common on K-Pop / J-Pop rips); these are invisible to the generic `Tag` interface so [`commands/lyrics.rs::read_id3v2_txxx_lyrics`](../../src-tauri/src/commands/lyrics.rs) re-opens the file as `MpegFile`, downcasts to `Id3v2Tag`, and scans the TXXX descriptions explicitly.
+2. **Embedded** — `LYRICS` / `USLT` / `©lyr` tag in the file (lofty), incl. synced `LRC` blocks. Lookup tries `ItemKey::UnsyncLyrics` first (the only key that maps to ID3v2's `USLT` in lofty 0.24), then `ItemKey::Lyrics` for Vorbis / MP4. For MP3s tagged with Mp3tag / foobar2000 / lame `--tg`, lyrics often live in a TXXX user-defined frame named `LYRICS` or `UNSYNCEDLYRICS` (common on K-Pop / J-Pop rips); these are invisible to the generic `Tag` interface so [`commands/lyrics.rs::read_id3v2_txxx_lyrics`](../../src-tauri/crates/app/src/commands/lyrics.rs) re-opens the file as `MpegFile`, downcasts to `Id3v2Tag`, and scans the TXXX descriptions explicitly.
 3. **Sidecar file** — `{stem}.lrc` / `{stem}.txt` next to the audio file (e.g. `01 Song.mp3` + `01 Song.lrc`), or inside a sibling `Lyrics/` folder (case-insensitive, so `lyrics/` is also matched — common Linux convention). Stem matching is also case-insensitive so `Song.MP3` finds `song.lrc` on case-sensitive filesystems. `.lrc` wins over `.txt` at every probed directory because it carries timing info; same-folder hits beat `Lyrics/` hits. Format is auto-detected via `detect_format` and the row is cached with `source = lrc_file`. Whitespace-only files are treated as misses so the waterfall keeps falling through. `save_lyrics` still writes back only to the embedded tag — the sidecar file remains read-only — so a user who edits via the in-app editor sees the new content immediately (from the freshly-hashed cache row), and the old sidecar copy is silently superseded by the new embedded tag on subsequent re-hashes.
 4. **LRCLIB** — synced lyrics first, falls back to plain text. Result cached as a new row.
 
@@ -145,7 +145,7 @@ WaveFlow recognises two word-timed formats in addition to plain LRC:
 - **Enhanced LRC** — `[mm:ss.xx]La <mm:ss.xx>nuit <mm:ss.xx>tombe`. Plain-text extension of the LRC ecosystem; round-trips cleanly through `USLT` so other players see it as regular synced LRC if they don't parse the inline word stamps.
 - **TTML** (Apple Music) — XML envelope with `<p begin="…" end="…"><span begin="…" end="…">word</span></p>`. Imported from `.ttml` / `.xml` files exported by tools like LyricsX. Char-level spans nested inside word spans are folded into their parent — v1 ships with word-level animation only.
 
-**Detection** — [`commands/lyrics.rs::detect_format`](../../src-tauri/src/commands/lyrics.rs) sniffs the cached content. TTML matches first on `<?xml`, `<tt`, or the `http://www.w3.org/ns/ttml` namespace. Enhanced LRC requires both a `[mm:ss…]` line stamp and at least one `<mm:ss…>` word stamp inside the line body; falling back to plain LRC otherwise. The same heuristic runs on the editor's save path so user-typed content gets re-classified if they switch between modes.
+**Detection** — [`commands/lyrics.rs::detect_format`](../../src-tauri/crates/app/src/commands/lyrics.rs) sniffs the cached content. TTML matches first on `<?xml`, `<tt`, or the `http://www.w3.org/ns/ttml` namespace. Enhanced LRC requires both a `[mm:ss…]` line stamp and at least one `<mm:ss…>` word stamp inside the line body; falling back to plain LRC otherwise. The same heuristic runs on the editor's save path so user-typed content gets re-classified if they switch between modes.
 
 **Storage** — `app.lyrics.format` accepts the new `'ttml'` value via [migration 20260516120000_lyrics_ttml_format.sql](../../src-tauri/migrations/app/20260516120000_lyrics_ttml_format.sql) (CHECK rebuild — SQLite has no ALTER CONSTRAINT). The `content` column stays raw text — there's no separate `words` column; parsing is done at render time on the frontend. This keeps the cache byte-for-byte identical to what would be written into the tag and avoids a hot migration over user data.
 
