@@ -371,7 +371,6 @@
     "searchDeezer": "Deezer में खोजें",
     "localFile": "स्थानीय फ़ाइल",
     "fetchMissingCovers": "सभी गुमशुदा कवर पुनः प्राप्त करें",
-    "noCover": "कवर रहित केवल",
     "fetchingCovers": "कवर डाउनलोड हो रहे हैं... ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} कवर प्राप्त हुए",
     "fetchCoversFailed": "कवर प्राप्त करने में विफल",
@@ -420,8 +419,7 @@
       "remove": "लाइब्रेरी से फ़ोल्डर हटाएँ",
       "removeConfirm": "पुष्टि के लिए फिर से क्लिक करें"
     },
-    "skeletonAriaLabel": "{{name}} लोड हो रहे हैं…",
-    "noCoverTooltip": "केवल बिना कवर वाले एल्बम दिखाएं"
+    "skeletonAriaLabel": "{{name}} लोड हो रहे हैं…"
   },
   "liked": {
     "badge": "संग्रह",

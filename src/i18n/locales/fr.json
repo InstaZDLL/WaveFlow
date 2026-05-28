@@ -371,7 +371,6 @@
     "searchDeezer": "Recherche Deezer",
     "localFile": "Fichier local",
     "fetchMissingCovers": "Récupérer toutes les pochettes manquantes",
-    "noCover": "Pochettes manquantes",
     "fetchingCovers": "Récupération des pochettes... ({{current}}/{{total}})",
     "fetchCoversResult": "{{count}} pochettes récupérées",
     "fetchCoversFailed": "Échec de la récupération",
@@ -420,8 +419,7 @@
       "remove": "Retirer le dossier de la bibliothèque",
       "removeConfirm": "Cliquez à nouveau pour confirmer"
     },
-    "skeletonAriaLabel": "Chargement de {{name}}…",
-    "noCoverTooltip": "Affiche uniquement les albums sans pochette"
+    "skeletonAriaLabel": "Chargement de {{name}}…"
   },
   "liked": {
     "badge": "Collection",

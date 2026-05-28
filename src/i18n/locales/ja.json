@@ -371,7 +371,6 @@
     "searchDeezer": "Deezerの検索",
     "localFile": "ローカルファイル",
     "fetchMissingCovers": "不足しているジャケットをすべて取得",
-    "noCover": "ジャケットなしのみ",
     "fetchingCovers": "ジャケットを取得中……({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} 件のジャケットを取得しました",
     "fetchCoversFailed": "ジャケットの取得に失敗しました",
@@ -420,8 +419,7 @@
       "remove": "ライブラリからフォルダを削除",
       "removeConfirm": "もう一度クリックで確定"
     },
-    "skeletonAriaLabel": "{{name}}を読み込み中…",
-    "noCoverTooltip": "ジャケットがないアルバムのみを表示"
+    "skeletonAriaLabel": "{{name}}を読み込み中…"
   },
   "liked": {
     "badge": "コレクション",

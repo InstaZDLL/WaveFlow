@@ -371,7 +371,6 @@
     "searchDeezer": "搜尋Deezer",
     "localFile": "本機檔案",
     "fetchMissingCovers": "找回所有遺失的封套",
-    "noCover": "僅缺少封面",
     "fetchingCovers": "正在取得封面…（{{current}} / {{total}}）",
     "fetchCoversResult": "已取得 {{count}} 張封套",
     "fetchCoversFailed": "封套取得失敗",
@@ -420,8 +419,7 @@
       "remove": "從音樂庫中移除資料夾",
       "removeConfirm": "再次點擊確認"
     },
-    "skeletonAriaLabel": "正在載入{{name}}…",
-    "noCoverTooltip": "僅顯示沒有封面的專輯"
+    "skeletonAriaLabel": "正在載入{{name}}…"
   },
   "liked": {
     "badge": "收藏",

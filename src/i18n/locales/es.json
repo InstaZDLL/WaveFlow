@@ -371,7 +371,6 @@
     "searchDeezer": "Buscar en Deezer",
     "localFile": "Archivo local",
     "fetchMissingCovers": "Recuperar todas las portadas que faltan",
-    "noCover": "Sin portada",
     "fetchingCovers": "Recuperando portadas… ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} portadas recuperadas",
     "fetchCoversFailed": "Error al recuperar las portadas",
@@ -420,8 +419,7 @@
       "remove": "Quitar carpeta de la biblioteca",
       "removeConfirm": "Haz clic de nuevo para confirmar"
     },
-    "skeletonAriaLabel": "Cargando {{name}}…",
-    "noCoverTooltip": "Mostrar solo álbumes sin portada"
+    "skeletonAriaLabel": "Cargando {{name}}…"
   },
   "liked": {
     "badge": "Colección",

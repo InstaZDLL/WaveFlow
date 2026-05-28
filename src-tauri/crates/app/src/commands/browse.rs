@@ -264,7 +264,6 @@ fn artist_order_clause(order_by: Option<&str>, direction: Option<&str>) -> &'sta
 pub async fn list_albums(
     state: tauri::State<'_, AppState>,
     library_id: Option<i64>,
-    filter_no_cover: Option<bool>,
     order_by: Option<String>,
     direction: Option<String>,
 ) -> AppResult<ListAlbumsResponse> {
@@ -272,7 +271,6 @@ pub async fn list_albums(
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
-    let no_cover = filter_no_cover.unwrap_or(false);
     let order_clause = album_order_clause(order_by.as_deref(), direction.as_deref());
 
     let sql = format!(
@@ -293,7 +291,6 @@ pub async fn list_albums(
           LEFT JOIN artwork aw ON aw.id = al.artwork_id
          WHERE (? IS NULL OR t.library_id = ?)
            AND t.is_available = 1
-           AND (? = 0 OR al.artwork_id IS NULL)
          GROUP BY al.id
          {order_clause}
 "#
@@ -302,7 +299,6 @@ pub async fn list_albums(
     let raw = sqlx::query_as::<_, AlbumRawRow>(sqlx::AssertSqlSafe(sql))
         .bind(library_id)
         .bind(library_id)
-        .bind(if no_cover { 1_i64 } else { 0_i64 })
         .fetch_all(&pool)
         .await?;
 

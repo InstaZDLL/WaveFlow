@@ -371,7 +371,6 @@
     "searchDeezer": "Deezer 검색",
     "localFile": "로컬 파일",
     "fetchMissingCovers": "누락된 모든 커버 가져오기",
-    "noCover": "커버 없음만",
     "fetchingCovers": "커버 가져오는 중... ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}}개의 커버를 가져왔습니다",
     "fetchCoversFailed": "커버 가져오기 실패",
@@ -420,8 +419,7 @@
       "remove": "라이브러리에서 폴더 제거",
       "removeConfirm": "확인하려면 다시 클릭"
     },
-    "skeletonAriaLabel": "{{name}} 불러오는 중…",
-    "noCoverTooltip": "커버가 없는 앨범만 표시"
+    "skeletonAriaLabel": "{{name}} 불러오는 중…"
   },
   "liked": {
     "badge": "컬렉션",

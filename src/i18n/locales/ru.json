@@ -384,7 +384,6 @@
     "searchDeezer": "Поиск в Deezer",
     "localFile": "Локальный файл",
     "fetchMissingCovers": "Загрузить все недостающие обложки",
-    "noCover": "Без обложки",
     "fetchingCovers": "Загрузка обложек… ({{current}} / {{total}})",
     "fetchCoversResult": "Загружено обложек: {{count}}",
     "fetchCoversFailed": "Не удалось загрузить обложки",
@@ -438,8 +437,7 @@
       "remove": "Удалить папку из библиотеки",
       "removeConfirm": "Нажмите ещё раз для подтверждения"
     },
-    "skeletonAriaLabel": "Загрузка {{name}}…",
-    "noCoverTooltip": "Показывать только альбомы без обложки"
+    "skeletonAriaLabel": "Загрузка {{name}}…"
   },
   "liked": {
     "badge": "Коллекция",
