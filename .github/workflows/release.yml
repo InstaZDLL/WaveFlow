@@ -182,7 +182,7 @@ jobs:
             exit 1
           }
 
-          $configPath = "src-tauri/tauri.conf.json"
+          $configPath = "src-tauri/crates/app/tauri.conf.json"
           $config = Get-Content $configPath -Raw | ConvertFrom-Json
           $signCommandObj = [pscustomobject]@{
             cmd = $signtoolPath
@@ -211,10 +211,16 @@ jobs:
           BUNDLES: ${{ matrix.tauri_bundles }}
           TARGET: ${{ matrix.tauri_target }}
         run: |
+          # `bun run tauri` routes through `scripts/tauri.mjs`, the
+          # wrapper that injects `--config src-tauri/crates/app/tauri.conf.json`
+          # after the subcommand. The Tauri CLI can't auto-discover the
+          # config from the repo root since Phase 1.a moved it under
+          # the workspace's `crates/app/` member — bypassing the
+          # wrapper here would fail with "tauri.conf.json not found".
           if [ -n "$TARGET" ]; then
-            bun x tauri build --target "$TARGET" --bundles "$BUNDLES"
+            bun run tauri build --target "$TARGET" --bundles "$BUNDLES"
           else
-            bun x tauri build --bundles "$BUNDLES"
+            bun run tauri build --bundles "$BUNDLES"
           fi
 
       - name: Scrub Authenticode secrets (Windows)
@@ -229,7 +235,7 @@ jobs:
             Remove-Item -LiteralPath $pfx -Force
             Write-Host "[sign] Removed $pfx"
           }
-          $config = "src-tauri/tauri.conf.json"
+          $config = "src-tauri/crates/app/tauri.conf.json"
           if (Test-Path $config) {
             git checkout -- $config
             Write-Host "[sign] Reverted $config to HEAD"
