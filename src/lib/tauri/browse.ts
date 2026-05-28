@@ -193,14 +193,12 @@ export interface FolderRow {
 export async function listAlbums(
   libraryId: number | null,
   options?: {
-    filterNoCover?: boolean;
     orderBy?: string;
     direction?: "asc" | "desc";
   },
 ): Promise<AlbumRow[]> {
   const resp = await invoke<ListAlbumsResponse>("list_albums", {
     libraryId,
-    filterNoCover: options?.filterNoCover ?? null,
     orderBy: options?.orderBy ?? null,
     direction: options?.direction ?? null,
   });

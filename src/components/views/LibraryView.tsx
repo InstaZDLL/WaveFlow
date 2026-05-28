@@ -180,7 +180,6 @@ export function LibraryView({
     dossiers: true,
   });
   const [tracksView, setTracksView] = useState<TracksView>("list");
-  const [albumsNoCoverFilter, setAlbumsNoCoverFilter] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const selection = useMultiSelect<Track>();
   const EmptyIcon = emptyStateIcons[activeTab];
@@ -284,7 +283,6 @@ export function LibraryView({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading((p) => ({ ...p, albums: true }));
     listAlbums(null, {
-      filterNoCover: albumsNoCoverFilter,
       orderBy: albumsSort.sort.orderBy,
       direction: albumsSort.sort.direction,
     })
@@ -304,7 +302,6 @@ export function LibraryView({
     librariesSignature,
     albumsSort.isLoaded,
     albumsSort.sort,
-    albumsNoCoverFilter,
     coverReloadKey,
     editRefetch,
   ]);
@@ -647,15 +644,6 @@ export function LibraryView({
           {activeTab === "albums" && (
             <>
               <div className="flex items-center justify-end space-x-3 -mt-4">
-                <label className="inline-flex items-center space-x-2 cursor-pointer select-none text-sm text-zinc-600 dark:text-zinc-300">
-                  <input
-                    type="checkbox"
-                    checked={albumsNoCoverFilter}
-                    onChange={(e) => setAlbumsNoCoverFilter(e.target.checked)}
-                    className="accent-emerald-500"
-                  />
-                  <span>{t("library.noCover")}</span>
-                </label>
                 <SortDropdown
                   options={albumSortOptions(t)}
                   current={albumsSort.sort}

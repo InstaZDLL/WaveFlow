@@ -371,7 +371,6 @@
     "searchDeezer": "البحث في Deezer",
     "localFile": "ملف محلي",
     "fetchMissingCovers": "جلب جميع الأغلفة المفقودة",
-    "noCover": "لا يوجد غلاف",
     "fetchingCovers": "جارٍ جلب الأغلفة… ({{current}} / {{total}})",
     "fetchCoversResult": "تم جلب {{count}} غلاف",
     "fetchCoversFailed": "فشل جلب الأغلفة",

@@ -371,7 +371,6 @@
     "searchDeezer": "Recherche Deezer",
     "localFile": "Fichier local",
     "fetchMissingCovers": "Récupérer toutes les pochettes manquantes",
-    "noCover": "Sans pochette",
     "fetchingCovers": "Récupération des pochettes... ({{current}}/{{total}})",
     "fetchCoversResult": "{{count}} pochettes récupérées",
     "fetchCoversFailed": "Échec de la récupération",

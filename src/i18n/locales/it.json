@@ -371,7 +371,6 @@
     "searchDeezer": "Cerca su Deezer",
     "localFile": "File locale",
     "fetchMissingCovers": "Recupera tutte le copertine mancanti",
-    "noCover": "Nessuna copertina",
     "fetchingCovers": "Recupero copertine… ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} copertine recuperate",
     "fetchCoversFailed": "Recupero delle copertine non riuscito",

@@ -371,7 +371,6 @@
     "searchDeezer": "Deezer 검색",
     "localFile": "로컬 파일",
     "fetchMissingCovers": "누락된 모든 커버 가져오기",
-    "noCover": "앨범 아트 없음",
     "fetchingCovers": "커버 가져오는 중... ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}}개의 커버를 가져왔습니다",
     "fetchCoversFailed": "커버 가져오기 실패",

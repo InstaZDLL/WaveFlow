@@ -371,7 +371,6 @@
     "searchDeezer": "Pesquisar no Deezer",
     "localFile": "Ficheiro local",
     "fetchMissingCovers": "Recuperar todas as capas em falta",
-    "noCover": "Sem capa",
     "fetchingCovers": "A descarregar as capas... ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} capas obtidas",
     "fetchCoversFailed": "Falha ao obter capas",

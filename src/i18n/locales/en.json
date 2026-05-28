@@ -371,7 +371,6 @@
     "searchDeezer": "Search Deezer",
     "localFile": "Local file",
     "fetchMissingCovers": "Retrieve all missing covers",
-    "noCover": "No cover",
     "fetchingCovers": "Fetching covers... ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} covers retrieved",
     "fetchCoversFailed": "Failed to retrieve covers",

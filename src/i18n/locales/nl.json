@@ -371,7 +371,6 @@
     "searchDeezer": "Zoeken op Deezer",
     "localFile": "Lokaal bestand",
     "fetchMissingCovers": "Alle ontbrekende albumhoezen ophalen",
-    "noCover": "Geen albumhoes",
     "fetchingCovers": "Albumhoezen ophalen… ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} albumhoezen opgehaald",
     "fetchCoversFailed": "Ophalen van albumhoezen mislukt",

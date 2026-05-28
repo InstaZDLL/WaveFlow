@@ -371,7 +371,6 @@
     "searchDeezer": "Cari di Deezer",
     "localFile": "Berkas lokal",
     "fetchMissingCovers": "Ambil semua sampul yang hilang",
-    "noCover": "Tanpa sampul",
     "fetchingCovers": "Mengambil sampul… ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} sampul diambil",
     "fetchCoversFailed": "Gagal mengambil sampul",

@@ -371,7 +371,6 @@
     "searchDeezer": "Deezer'da ara",
     "localFile": "Yerel dosya",
     "fetchMissingCovers": "Eksik tüm kapakları getir",
-    "noCover": "Kapak görseli yok",
     "fetchingCovers": "Kapaklar getiriliyor… ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} kapak getirildi",
     "fetchCoversFailed": "Kapakları getirme başarısız oldu",

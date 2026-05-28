@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { SlidersHorizontal, Check, ChevronDown } from "lucide-react";
 import {
   playerGetEq,
+  playerOnEq,
   playerSetEqEnabled,
   playerSetEqPreset,
   type EqPresetEntry,
@@ -132,7 +133,12 @@ export function EqPresetPanel({
   // until the user clicks the current-preset row to expand it.
   const [listExpanded, setListExpanded] = useState(false);
 
+  // Mount-time hydrate + live `player:eq` subscription so the popup
+  // stays in lockstep with the Settings EQ card (and the next time the
+  // popup re-opens, the toggle reflects whatever the user did in
+  // Settings while it was closed). See #166.
   useEffect(() => {
+    let unlisten: (() => void) | null = null;
     let cancelled = false;
     playerGetEq()
       .then((snap) => {
@@ -142,8 +148,23 @@ export function EqPresetPanel({
         setBands(snap.bands_db);
       })
       .catch((err) => console.error("[EqPresetPanel] hydrate failed", err));
+    playerOnEq((snap) => {
+      if (cancelled) return;
+      setEnabled(snap.enabled);
+      setPresets(snap.presets);
+      setBands(snap.bands_db);
+    })
+      .then((un) => {
+        if (cancelled) {
+          un();
+          return;
+        }
+        unlisten = un;
+      })
+      .catch((err) => console.error("[EqPresetPanel] listen failed", err));
     return () => {
       cancelled = true;
+      unlisten?.();
     };
   }, []);
 
@@ -204,9 +225,14 @@ export function EqPresetPanel({
           enabled ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700"
         }`}
       >
+        {/* Anchor the thumb with `left:` (not `translate-x:`) so the OFF
+            and ON positions are symmetric around the track edges — see
+            #166 where `translate-x-0.5` left the thumb visually drifted
+            in the OFF state on Windows. Mirrors the Settings
+            ToggleSwitch pattern. */}
         <span
-          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-            enabled ? "translate-x-4" : "translate-x-0.5"
+          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
+            enabled ? "left-[calc(100%-1.125rem)]" : "left-0.5"
           }`}
         />
       </button>

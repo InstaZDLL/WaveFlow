@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { ChevronDown } from "lucide-react";
 import {
   playerGetEq,
+  playerOnEq,
   playerSetEqBand,
   playerSetEqEnabled,
   playerSetEqPreset,
@@ -40,10 +41,16 @@ export function EqualizerCard() {
   const [presetOpen, setPresetOpen] = useState(false);
   const presetRef = useRef<HTMLDivElement>(null);
 
-  // Hydrate from backend at mount.
+  // Hydrate from backend at mount, then keep in sync via `player:eq`
+  // broadcasts so a mutation from the player-bar popup (or any other
+  // surface) shows up here without remount (#166). The unlisten guard
+  // is async so we capture it on resolve and call it from cleanup.
   useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    let cancelled = false;
     playerGetEq()
       .then((snap) => {
+        if (cancelled) return;
         setEnabled(snap.enabled);
         setBands(snap.bands_db);
         setFreqs(snap.band_freqs);
@@ -51,6 +58,26 @@ export function EqualizerCard() {
         setPresets(snap.presets);
       })
       .catch((err) => console.error("[EqualizerCard] hydrate failed", err));
+    playerOnEq((snap) => {
+      if (cancelled) return;
+      setEnabled(snap.enabled);
+      setBands(snap.bands_db);
+      setFreqs(snap.band_freqs);
+      setMaxGain(snap.max_gain_db);
+      setPresets(snap.presets);
+    })
+      .then((un) => {
+        if (cancelled) {
+          un();
+          return;
+        }
+        unlisten = un;
+      })
+      .catch((err) => console.error("[EqualizerCard] listen failed", err));
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
   }, []);
 
   // Identify the active preset by exact-gain match (within 0.01 dB).

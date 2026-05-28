@@ -371,7 +371,6 @@
     "searchDeezer": "搜索Deezer",
     "localFile": "本地文件",
     "fetchMissingCovers": "找回所有缺失的封套",
-    "noCover": "无封面",
     "fetchingCovers": "正在获取封面…（{{current}} / {{total}}）",
     "fetchCoversResult": "已获取 {{count}} 张封套",
     "fetchCoversFailed": "封套获取失败",
