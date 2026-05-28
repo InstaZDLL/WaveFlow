@@ -69,11 +69,7 @@ pub trait TrackRepository: Send + Sync {
 
     /// Bulk list with optional library scope + sort. Used by both the
     /// "Tracks" tab and the "Ma musique" all-libraries view.
-    async fn list(
-        &self,
-        filter: TrackListFilter,
-        sort: TrackSort,
-    ) -> CoreResult<Vec<TrackRow>>;
+    async fn list(&self, filter: TrackListFilter, sort: TrackSort) -> CoreResult<Vec<TrackRow>>;
 
     /// Tracks of a playlist in the user's stored order
     /// (`pt.position ASC`). Skips unavailable rows so the UI never

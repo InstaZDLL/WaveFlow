@@ -5,9 +5,7 @@ use waveflow_core::{
     domain::track::TrackRow,
     repository::{
         sqlite::SqliteTrackRepository,
-        track::{
-            SortDirection, TrackListFilter, TrackRepository, TrackSort, TrackSortColumn,
-        },
+        track::{SortDirection, TrackListFilter, TrackRepository, TrackSort, TrackSortColumn},
     },
 };
 

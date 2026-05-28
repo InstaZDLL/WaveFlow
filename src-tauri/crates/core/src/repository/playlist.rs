@@ -77,12 +77,7 @@ pub trait PlaylistRepository: Send + Sync {
     /// Append a single track at the end. Idempotent — duplicates are
     /// silently skipped via `INSERT OR IGNORE`. Bumps `updated_at` in
     /// the same call so the caller doesn't need a follow-up.
-    async fn append_track(
-        &self,
-        playlist_id: i64,
-        track_id: i64,
-        now_ms: i64,
-    ) -> CoreResult<()>;
+    async fn append_track(&self, playlist_id: i64, track_id: i64, now_ms: i64) -> CoreResult<()>;
 
     /// Bulk append, in order, under one transaction. Returns the count
     /// of rows that were actually inserted (the rest were duplicates).
@@ -98,12 +93,7 @@ pub trait PlaylistRepository: Send + Sync {
     /// positions stay contiguous. `Ok(false)` when the track is not in
     /// the playlist (no error — the UI may legitimately re-issue the
     /// command after an optimistic delete).
-    async fn remove_track(
-        &self,
-        playlist_id: i64,
-        track_id: i64,
-        now_ms: i64,
-    ) -> CoreResult<bool>;
+    async fn remove_track(&self, playlist_id: i64, track_id: i64, now_ms: i64) -> CoreResult<bool>;
 
     /// Move a track to a new absolute position, shifting the
     /// surrounding rows so positions stay dense. `new_position` is

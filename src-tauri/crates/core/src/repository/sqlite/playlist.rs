@@ -147,12 +147,7 @@ impl PlaylistRepository for SqlitePlaylistRepository {
         Ok(rows.into_iter().map(|(id,)| id).collect())
     }
 
-    async fn append_track(
-        &self,
-        playlist_id: i64,
-        track_id: i64,
-        now_ms: i64,
-    ) -> CoreResult<()> {
+    async fn append_track(&self, playlist_id: i64, track_id: i64, now_ms: i64) -> CoreResult<()> {
         // Compute next position in a single query so concurrent inserts from
         // different callers don't collide. Sqlite serializes writes at the
         // connection level, which is enough here.
@@ -189,12 +184,11 @@ impl PlaylistRepository for SqlitePlaylistRepository {
             return Ok(0);
         }
         let mut tx = self.pool.begin().await?;
-        let current_max: Option<i64> = sqlx::query_scalar(
-            "SELECT MAX(position) FROM playlist_track WHERE playlist_id = ?",
-        )
-        .bind(playlist_id)
-        .fetch_one(&mut *tx)
-        .await?;
+        let current_max: Option<i64> =
+            sqlx::query_scalar("SELECT MAX(position) FROM playlist_track WHERE playlist_id = ?")
+                .bind(playlist_id)
+                .fetch_one(&mut *tx)
+                .await?;
         let mut next_position = current_max.map(|p| p + 1).unwrap_or(0);
         let mut inserted: u32 = 0;
 
@@ -224,12 +218,7 @@ impl PlaylistRepository for SqlitePlaylistRepository {
         Ok(inserted)
     }
 
-    async fn remove_track(
-        &self,
-        playlist_id: i64,
-        track_id: i64,
-        now_ms: i64,
-    ) -> CoreResult<bool> {
+    async fn remove_track(&self, playlist_id: i64, track_id: i64, now_ms: i64) -> CoreResult<bool> {
         // Lookup + delete + renumber must run in the same transaction so a
         // concurrent remove_track/reorder_track can't shift positions
         // between the SELECT and the position-shifting UPDATE below.
@@ -290,12 +279,11 @@ impl PlaylistRepository for SqlitePlaylistRepository {
             return Ok(false);
         };
 
-        let len: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM playlist_track WHERE playlist_id = ?",
-        )
-        .bind(playlist_id)
-        .fetch_one(&mut *tx)
-        .await?;
+        let len: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM playlist_track WHERE playlist_id = ?")
+                .bind(playlist_id)
+                .fetch_one(&mut *tx)
+                .await?;
         let to = new_position.clamp(0, (len - 1).max(0));
 
         if from == to {

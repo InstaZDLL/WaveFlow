@@ -161,8 +161,7 @@ pub async fn get_similar_artists(
     //    step Last.fm-configured users get a sea of grey stars for
     //    every similar artist that isn't already in their library.
     //    This step is a no-op when offline mode is on.
-    let metadata_map =
-        enrich_with_deezer_pictures(&pool, &artwork_dir, &raw, now).await;
+    let metadata_map = enrich_with_deezer_pictures(&pool, &artwork_dir, &raw, now).await;
 
     let out = raw
         .into_iter()
@@ -183,9 +182,7 @@ pub async fn get_similar_artists(
             // both are present. Falls back to whatever the upstream
             // gave us so a Deezer-fetch failure still surfaces *some*
             // remote URL (good enough for the in-library badge case).
-            let picture_url = meta
-                .and_then(|(url, _)| url.clone())
-                .or(r.picture_url);
+            let picture_url = meta.and_then(|(url, _)| url.clone()).or(r.picture_url);
             SimilarArtistDto {
                 name: r.name,
                 match_score: r.match_score,
@@ -316,30 +313,30 @@ async fn enrich_with_deezer_pictures(
 
     let client = DeezerClient::new();
     let expires = now + CACHE_TTL_MS;
-    let fetched: Vec<(String, Option<waveflow_core::metadata::deezer::DeezerArtistHit>)> =
-        futures::stream::iter(miss_names.into_iter().map(|name| {
-            let client = client.clone();
-            async move {
-                let canon = canonical_name(&name);
-                let hit = match client.search_artist(&name).await {
-                    Ok(hits) => hits
-                        .into_iter()
-                        .find(|h| canonical_name(&h.name) == canon),
-                    Err(err) => {
-                        tracing::warn!(
-                            ?err,
-                            artist = %name,
-                            "Deezer search for similar-artist enrichment failed"
-                        );
-                        None
-                    }
-                };
-                (canon, hit)
-            }
-        }))
-        .buffer_unordered(CONCURRENCY_LIMIT)
-        .collect()
-        .await;
+    let fetched: Vec<(
+        String,
+        Option<waveflow_core::metadata::deezer::DeezerArtistHit>,
+    )> = futures::stream::iter(miss_names.into_iter().map(|name| {
+        let client = client.clone();
+        async move {
+            let canon = canonical_name(&name);
+            let hit = match client.search_artist(&name).await {
+                Ok(hits) => hits.into_iter().find(|h| canonical_name(&h.name) == canon),
+                Err(err) => {
+                    tracing::warn!(
+                        ?err,
+                        artist = %name,
+                        "Deezer search for similar-artist enrichment failed"
+                    );
+                    None
+                }
+            };
+            (canon, hit)
+        }
+    }))
+    .buffer_unordered(CONCURRENCY_LIMIT)
+    .collect()
+    .await;
 
     for (canon, hit) in fetched {
         let Some(hit) = hit else { continue };

@@ -84,11 +84,9 @@ pub async fn create_profile(
     let init = async {
         repo.set_data_dir(profile_id, &rel_dir).await?;
         state.paths.ensure_profile_dirs(profile_id)?;
-        let pool = crate::db::profile_db::open(
-            &state.paths.profile_db(profile_id),
-            &state.paths.app_db,
-        )
-        .await?;
+        let pool =
+            crate::db::profile_db::open(&state.paths.profile_db(profile_id), &state.paths.app_db)
+                .await?;
         pool.close().await;
         Ok::<(), AppError>(())
     }
@@ -270,8 +268,8 @@ pub async fn delete_profile(state: tauri::State<'_, AppState>, profile_id: i64) 
         // stall the tokio runtime. Push it off to the blocking pool so
         // the command (and every queued sibling) stays responsive.
         let dir_for_blocking = dir.clone();
-        let removal = tokio::task::spawn_blocking(move || std::fs::remove_dir_all(&dir_for_blocking))
-            .await;
+        let removal =
+            tokio::task::spawn_blocking(move || std::fs::remove_dir_all(&dir_for_blocking)).await;
         match removal {
             Ok(Ok(())) => {}
             Ok(Err(err)) => {

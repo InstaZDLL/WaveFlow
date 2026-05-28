@@ -171,7 +171,11 @@ pub fn extract_cover(tag: &Tag, artwork_dir: &Path) -> Option<ExtractedCover> {
             return None;
         }
     }
-    crate::artwork::thumbnails::spawn_thumbnail_job(out_path, artwork_dir.to_path_buf(), hash.clone());
+    crate::artwork::thumbnails::spawn_thumbnail_job(
+        out_path,
+        artwork_dir.to_path_buf(),
+        hash.clone(),
+    );
     Some(ExtractedCover {
         hash,
         format,
@@ -258,7 +262,11 @@ pub fn extract_folder_cover(track_path: &Path, artwork_dir: &Path) -> Option<Ext
             return None;
         }
     }
-    crate::artwork::thumbnails::spawn_thumbnail_job(out_path, artwork_dir.to_path_buf(), hash.clone());
+    crate::artwork::thumbnails::spawn_thumbnail_job(
+        out_path,
+        artwork_dir.to_path_buf(),
+        hash.clone(),
+    );
     Some(ExtractedCover {
         hash,
         format,
@@ -378,7 +386,11 @@ pub fn write_artist_image(picked: &Path, artwork_dir: &Path) -> Option<Extracted
             return None;
         }
     }
-    crate::artwork::thumbnails::spawn_thumbnail_job(out_path, artwork_dir.to_path_buf(), hash.clone());
+    crate::artwork::thumbnails::spawn_thumbnail_job(
+        out_path,
+        artwork_dir.to_path_buf(),
+        hash.clone(),
+    );
     Some(ExtractedCover {
         hash,
         format,

@@ -2,48 +2,45 @@
 
 ## [1.3.0](https://github.com/InstaZDLL/WaveFlow/compare/v1.2.0...v1.3.0) (2026-05-26)
 
-
 ### Features
 
-* **integrations:** native OS toast on track change ([#145](https://github.com/InstaZDLL/WaveFlow/issues/145)) ([9bbd3ff](https://github.com/InstaZDLL/WaveFlow/commit/9bbd3fff9afb2dcf4dcce660ceaebe8bdd6b6ab8))
-* **lyrics:** add immersive button to fullscreen lyrics header ([#124](https://github.com/InstaZDLL/WaveFlow/issues/124)) ([09de8bc](https://github.com/InstaZDLL/WaveFlow/commit/09de8bca72b7e68aac5c597346f5ac361fd72856)), closes [#109](https://github.com/InstaZDLL/WaveFlow/issues/109)
-* **lyrics:** auto-discover local sidecar .lrc / .txt files ([#115](https://github.com/InstaZDLL/WaveFlow/issues/115)) ([#117](https://github.com/InstaZDLL/WaveFlow/issues/117)) ([0274cf2](https://github.com/InstaZDLL/WaveFlow/commit/0274cf25e9fecb9e072740306500d54ad2f6508e))
-* **mini-player:** remember window position and size ([#125](https://github.com/InstaZDLL/WaveFlow/issues/125)) ([3012cd5](https://github.com/InstaZDLL/WaveFlow/commit/3012cd5d931ce157f3bec360d3264f5d27cbd281))
-* **player:** scroll wheel on volume slider to adjust volume ([#118](https://github.com/InstaZDLL/WaveFlow/issues/118)) ([#121](https://github.com/InstaZDLL/WaveFlow/issues/121)) ([d444339](https://github.com/InstaZDLL/WaveFlow/commit/d444339f6ac2772a407cbf0d4dfa1324d727a46a))
-* **player:** unified player-bar layout panel + EQ presets + cover-click action ([#122](https://github.com/InstaZDLL/WaveFlow/issues/122)) ([2f539ec](https://github.com/InstaZDLL/WaveFlow/commit/2f539ec95f2184ad5d7656a983cd2f6bf119e71d))
-* **playlists:** add on repeat smart playlist family ([#148](https://github.com/InstaZDLL/WaveFlow/issues/148)) ([a9400ca](https://github.com/InstaZDLL/WaveFlow/commit/a9400cafc163deb955b0eb1ba99fc8dac6ef3aee))
-* **similar-artists:** backfill Deezer pictures when Last.fm wins the cascade ([#156](https://github.com/InstaZDLL/WaveFlow/issues/156)) ([32c2e6d](https://github.com/InstaZDLL/WaveFlow/commit/32c2e6de133ad6a273e8fe74a04eda90dcfe60b6))
-* **ui:** add audio pipeline popover on the quality footer ([#144](https://github.com/InstaZDLL/WaveFlow/issues/144)) ([e369a54](https://github.com/InstaZDLL/WaveFlow/commit/e369a54a4e5ad375dde61a468e0a875dc6da2227))
-* **ui:** animate panels/modals/menus + add 10 theme presets ([#82](https://github.com/InstaZDLL/WaveFlow/issues/82)) ([7473852](https://github.com/InstaZDLL/WaveFlow/commit/7473852eea57f28851b776f7f2c2d1c5eae00351))
-* **ui:** gate wrapped banner to season + add visibility toggle ([#138](https://github.com/InstaZDLL/WaveFlow/issues/138)) ([4a7611e](https://github.com/InstaZDLL/WaveFlow/commit/4a7611e102eb3b0a62601883fdda398032e6ed50))
-* **ui:** surface the resampling arrow in the audio quality footer ([#146](https://github.com/InstaZDLL/WaveFlow/issues/146)) ([7e2a86f](https://github.com/InstaZDLL/WaveFlow/commit/7e2a86f0ae59352d4c9d9e9991e6b2cd7adc6d22))
-* **ui:** toggle Hi-Res badge + add Spotify-style label in PlayerBar ([#147](https://github.com/InstaZDLL/WaveFlow/issues/147)) ([85c877b](https://github.com/InstaZDLL/WaveFlow/commit/85c877bfb5742a39243e6098740a92e3df51561b))
-
+- **integrations:** native OS toast on track change ([#145](https://github.com/InstaZDLL/WaveFlow/issues/145)) ([9bbd3ff](https://github.com/InstaZDLL/WaveFlow/commit/9bbd3fff9afb2dcf4dcce660ceaebe8bdd6b6ab8))
+- **lyrics:** add immersive button to fullscreen lyrics header ([#124](https://github.com/InstaZDLL/WaveFlow/issues/124)) ([09de8bc](https://github.com/InstaZDLL/WaveFlow/commit/09de8bca72b7e68aac5c597346f5ac361fd72856)), closes [#109](https://github.com/InstaZDLL/WaveFlow/issues/109)
+- **lyrics:** auto-discover local sidecar .lrc / .txt files ([#115](https://github.com/InstaZDLL/WaveFlow/issues/115)) ([#117](https://github.com/InstaZDLL/WaveFlow/issues/117)) ([0274cf2](https://github.com/InstaZDLL/WaveFlow/commit/0274cf25e9fecb9e072740306500d54ad2f6508e))
+- **mini-player:** remember window position and size ([#125](https://github.com/InstaZDLL/WaveFlow/issues/125)) ([3012cd5](https://github.com/InstaZDLL/WaveFlow/commit/3012cd5d931ce157f3bec360d3264f5d27cbd281))
+- **player:** scroll wheel on volume slider to adjust volume ([#118](https://github.com/InstaZDLL/WaveFlow/issues/118)) ([#121](https://github.com/InstaZDLL/WaveFlow/issues/121)) ([d444339](https://github.com/InstaZDLL/WaveFlow/commit/d444339f6ac2772a407cbf0d4dfa1324d727a46a))
+- **player:** unified player-bar layout panel + EQ presets + cover-click action ([#122](https://github.com/InstaZDLL/WaveFlow/issues/122)) ([2f539ec](https://github.com/InstaZDLL/WaveFlow/commit/2f539ec95f2184ad5d7656a983cd2f6bf119e71d))
+- **playlists:** add on repeat smart playlist family ([#148](https://github.com/InstaZDLL/WaveFlow/issues/148)) ([a9400ca](https://github.com/InstaZDLL/WaveFlow/commit/a9400cafc163deb955b0eb1ba99fc8dac6ef3aee))
+- **similar-artists:** backfill Deezer pictures when Last.fm wins the cascade ([#156](https://github.com/InstaZDLL/WaveFlow/issues/156)) ([32c2e6d](https://github.com/InstaZDLL/WaveFlow/commit/32c2e6de133ad6a273e8fe74a04eda90dcfe60b6))
+- **ui:** add audio pipeline popover on the quality footer ([#144](https://github.com/InstaZDLL/WaveFlow/issues/144)) ([e369a54](https://github.com/InstaZDLL/WaveFlow/commit/e369a54a4e5ad375dde61a468e0a875dc6da2227))
+- **ui:** animate panels/modals/menus + add 10 theme presets ([#82](https://github.com/InstaZDLL/WaveFlow/issues/82)) ([7473852](https://github.com/InstaZDLL/WaveFlow/commit/7473852eea57f28851b776f7f2c2d1c5eae00351))
+- **ui:** gate wrapped banner to season + add visibility toggle ([#138](https://github.com/InstaZDLL/WaveFlow/issues/138)) ([4a7611e](https://github.com/InstaZDLL/WaveFlow/commit/4a7611e102eb3b0a62601883fdda398032e6ed50))
+- **ui:** surface the resampling arrow in the audio quality footer ([#146](https://github.com/InstaZDLL/WaveFlow/issues/146)) ([7e2a86f](https://github.com/InstaZDLL/WaveFlow/commit/7e2a86f0ae59352d4c9d9e9991e6b2cd7adc6d22))
+- **ui:** toggle Hi-Res badge + add Spotify-style label in PlayerBar ([#147](https://github.com/InstaZDLL/WaveFlow/issues/147)) ([85c877b](https://github.com/InstaZDLL/WaveFlow/commit/85c877bfb5742a39243e6098740a92e3df51561b))
 
 ### Bug Fixes
 
-* **about:** correct Rubato version (1.0 -&gt; 2.0) ([#142](https://github.com/InstaZDLL/WaveFlow/issues/142)) ([ec0e81b](https://github.com/InstaZDLL/WaveFlow/commit/ec0e81b36e7a6f1d5257e560fcdb03754a18664c))
-* **dependencies:** update package versions in Cargo.lock ([14ffa81](https://github.com/InstaZDLL/WaveFlow/commit/14ffa81f266e130ef56a5a4943c834b4f576bb20))
-* **library:** drop violet halo around artist tiles on dark portraits ([#106](https://github.com/InstaZDLL/WaveFlow/issues/106)) ([#113](https://github.com/InstaZDLL/WaveFlow/issues/113)) ([4608a7b](https://github.com/InstaZDLL/WaveFlow/commit/4608a7bc4eb247b658fe95482292abcd762e2285))
-* **lint:** ignore secrets/ in eslint ([#149](https://github.com/InstaZDLL/WaveFlow/issues/149)) ([3275940](https://github.com/InstaZDLL/WaveFlow/commit/327594096925df552cc8ec37b08b687962af2a11))
-* **lyrics:** restore spacing between word-synced lyric tokens ([#160](https://github.com/InstaZDLL/WaveFlow/issues/160)) ([bb2c36e](https://github.com/InstaZDLL/WaveFlow/commit/bb2c36edd4d1a0e016212fff8e5d3c43eeaa1253))
-* **onboarding:** rescue 1080p layout + add profile-name step ([#107](https://github.com/InstaZDLL/WaveFlow/issues/107)) ([#114](https://github.com/InstaZDLL/WaveFlow/issues/114)) ([23a36d8](https://github.com/InstaZDLL/WaveFlow/commit/23a36d8fa95b2349d0453e89cac53044baa592fb))
-* **playlist:** stop freezing edit modal after cover upload ([#105](https://github.com/InstaZDLL/WaveFlow/issues/105)) ([#112](https://github.com/InstaZDLL/WaveFlow/issues/112)) ([ab1f1d2](https://github.com/InstaZDLL/WaveFlow/commit/ab1f1d2a6c0806715bc7809b9c7987c1aad243f0))
-* **queue-panel:** let the Up Next list fill the available height ([#157](https://github.com/InstaZDLL/WaveFlow/issues/157)) ([53c271d](https://github.com/InstaZDLL/WaveFlow/commit/53c271d62eb13de97902cfd1ba3b0692897f7061))
-* **queue:** manual additions stack in user queue, not at absolute end ([#158](https://github.com/InstaZDLL/WaveFlow/issues/158)) ([cefbe6e](https://github.com/InstaZDLL/WaveFlow/commit/cefbe6eb6c6e02c18892367499d4be435e6bb0b7))
-* **smart-playlists:** dedupe identical inputs in cover compositor ([#154](https://github.com/InstaZDLL/WaveFlow/issues/154)) ([d8c80cc](https://github.com/InstaZDLL/WaveFlow/commit/d8c80ccaa8f4c40315c74f8f7a6ffb0d9be3f81e))
-* **smart-playlists:** replace hand-drawn On Repeat cover with SVG via resvg ([#155](https://github.com/InstaZDLL/WaveFlow/issues/155)) ([e5fc3a0](https://github.com/InstaZDLL/WaveFlow/commit/e5fc3a083418ddcaefcc87782b8b820851c2618e))
-* **ui:** apply backdrop blur to modal scrims for better separation ([#123](https://github.com/InstaZDLL/WaveFlow/issues/123)) ([715762a](https://github.com/InstaZDLL/WaveFlow/commit/715762a2da018fd929743d7f2801571070c4b796)), closes [#108](https://github.com/InstaZDLL/WaveFlow/issues/108)
-* **ui:** cap overflow menu height and let it scroll on 1080p ([#141](https://github.com/InstaZDLL/WaveFlow/issues/141)) ([b30b5ab](https://github.com/InstaZDLL/WaveFlow/commit/b30b5abeafba1a2105f3394e6fbcaa674ea07c77))
-* **ui:** portal fullscreen lyrics so opacity tween doesn't bleed through ([#140](https://github.com/InstaZDLL/WaveFlow/issues/140)) ([7097318](https://github.com/InstaZDLL/WaveFlow/commit/7097318694498fa5042cd022c3fe955ec91b1180))
-* **ui:** switch daily mix grid to flex-wrap with capped basis ([#139](https://github.com/InstaZDLL/WaveFlow/issues/139)) ([02c68b1](https://github.com/InstaZDLL/WaveFlow/commit/02c68b17e67408598eed65d5e2df623da9957b15))
-
+- **about:** correct Rubato version (1.0 -&gt; 2.0) ([#142](https://github.com/InstaZDLL/WaveFlow/issues/142)) ([ec0e81b](https://github.com/InstaZDLL/WaveFlow/commit/ec0e81b36e7a6f1d5257e560fcdb03754a18664c))
+- **dependencies:** update package versions in Cargo.lock ([14ffa81](https://github.com/InstaZDLL/WaveFlow/commit/14ffa81f266e130ef56a5a4943c834b4f576bb20))
+- **library:** drop violet halo around artist tiles on dark portraits ([#106](https://github.com/InstaZDLL/WaveFlow/issues/106)) ([#113](https://github.com/InstaZDLL/WaveFlow/issues/113)) ([4608a7b](https://github.com/InstaZDLL/WaveFlow/commit/4608a7bc4eb247b658fe95482292abcd762e2285))
+- **lint:** ignore secrets/ in eslint ([#149](https://github.com/InstaZDLL/WaveFlow/issues/149)) ([3275940](https://github.com/InstaZDLL/WaveFlow/commit/327594096925df552cc8ec37b08b687962af2a11))
+- **lyrics:** restore spacing between word-synced lyric tokens ([#160](https://github.com/InstaZDLL/WaveFlow/issues/160)) ([bb2c36e](https://github.com/InstaZDLL/WaveFlow/commit/bb2c36edd4d1a0e016212fff8e5d3c43eeaa1253))
+- **onboarding:** rescue 1080p layout + add profile-name step ([#107](https://github.com/InstaZDLL/WaveFlow/issues/107)) ([#114](https://github.com/InstaZDLL/WaveFlow/issues/114)) ([23a36d8](https://github.com/InstaZDLL/WaveFlow/commit/23a36d8fa95b2349d0453e89cac53044baa592fb))
+- **playlist:** stop freezing edit modal after cover upload ([#105](https://github.com/InstaZDLL/WaveFlow/issues/105)) ([#112](https://github.com/InstaZDLL/WaveFlow/issues/112)) ([ab1f1d2](https://github.com/InstaZDLL/WaveFlow/commit/ab1f1d2a6c0806715bc7809b9c7987c1aad243f0))
+- **queue-panel:** let the Up Next list fill the available height ([#157](https://github.com/InstaZDLL/WaveFlow/issues/157)) ([53c271d](https://github.com/InstaZDLL/WaveFlow/commit/53c271d62eb13de97902cfd1ba3b0692897f7061))
+- **queue:** manual additions stack in user queue, not at absolute end ([#158](https://github.com/InstaZDLL/WaveFlow/issues/158)) ([cefbe6e](https://github.com/InstaZDLL/WaveFlow/commit/cefbe6eb6c6e02c18892367499d4be435e6bb0b7))
+- **smart-playlists:** dedupe identical inputs in cover compositor ([#154](https://github.com/InstaZDLL/WaveFlow/issues/154)) ([d8c80cc](https://github.com/InstaZDLL/WaveFlow/commit/d8c80ccaa8f4c40315c74f8f7a6ffb0d9be3f81e))
+- **smart-playlists:** replace hand-drawn On Repeat cover with SVG via resvg ([#155](https://github.com/InstaZDLL/WaveFlow/issues/155)) ([e5fc3a0](https://github.com/InstaZDLL/WaveFlow/commit/e5fc3a083418ddcaefcc87782b8b820851c2618e))
+- **ui:** apply backdrop blur to modal scrims for better separation ([#123](https://github.com/InstaZDLL/WaveFlow/issues/123)) ([715762a](https://github.com/InstaZDLL/WaveFlow/commit/715762a2da018fd929743d7f2801571070c4b796)), closes [#108](https://github.com/InstaZDLL/WaveFlow/issues/108)
+- **ui:** cap overflow menu height and let it scroll on 1080p ([#141](https://github.com/InstaZDLL/WaveFlow/issues/141)) ([b30b5ab](https://github.com/InstaZDLL/WaveFlow/commit/b30b5abeafba1a2105f3394e6fbcaa674ea07c77))
+- **ui:** portal fullscreen lyrics so opacity tween doesn't bleed through ([#140](https://github.com/InstaZDLL/WaveFlow/issues/140)) ([7097318](https://github.com/InstaZDLL/WaveFlow/commit/7097318694498fa5042cd022c3fe955ec91b1180))
+- **ui:** switch daily mix grid to flex-wrap with capped basis ([#139](https://github.com/InstaZDLL/WaveFlow/issues/139)) ([02c68b1](https://github.com/InstaZDLL/WaveFlow/commit/02c68b17e67408598eed65d5e2df623da9957b15))
 
 ### Performance Improvements
 
-* **library:** parallel tab prefetch + first-load skeleton ([#135](https://github.com/InstaZDLL/WaveFlow/issues/135)) ([ee1f13d](https://github.com/InstaZDLL/WaveFlow/commit/ee1f13ddf54bc94cd79a694770ef1a52b0ffcc94))
-* **track:** trim bulk list payloads via shared artwork_base ([#137](https://github.com/InstaZDLL/WaveFlow/issues/137)) ([db62523](https://github.com/InstaZDLL/WaveFlow/commit/db62523c651e48c23cb764b6b8512dca12c7c1dd))
-* **views:** skeleton + lazy-chunk prefetch across all views ([#136](https://github.com/InstaZDLL/WaveFlow/issues/136)) ([313cd0f](https://github.com/InstaZDLL/WaveFlow/commit/313cd0fce08e428fb8319dc5195802ebfa409389))
+- **library:** parallel tab prefetch + first-load skeleton ([#135](https://github.com/InstaZDLL/WaveFlow/issues/135)) ([ee1f13d](https://github.com/InstaZDLL/WaveFlow/commit/ee1f13ddf54bc94cd79a694770ef1a52b0ffcc94))
+- **track:** trim bulk list payloads via shared artwork_base ([#137](https://github.com/InstaZDLL/WaveFlow/issues/137)) ([db62523](https://github.com/InstaZDLL/WaveFlow/commit/db62523c651e48c23cb764b6b8512dca12c7c1dd))
+- **views:** skeleton + lazy-chunk prefetch across all views ([#136](https://github.com/InstaZDLL/WaveFlow/issues/136)) ([313cd0f](https://github.com/InstaZDLL/WaveFlow/commit/313cd0fce08e428fb8319dc5195802ebfa409389))
 
 ## [1.2.0](https://github.com/InstaZDLL/WaveFlow/compare/v1.1.1...v1.2.0) (2026-05-21)
 

@@ -12,8 +12,8 @@ use tauri::Emitter;
 use walkdir::WalkDir;
 
 use waveflow_core::scanner::{
-    extract_album_artist, extract_compilation_flag, extract_cover, extract_folder_cover,
-    extract_artist_image, extract_musical_key, extract_rating, file_type_label, hash_file,
+    extract_album_artist, extract_artist_image, extract_compilation_flag, extract_cover,
+    extract_folder_cover, extract_musical_key, extract_rating, file_type_label, hash_file,
     link_local_artist_image, maybe_link_artist_images, merge_implicit_compilations, now_millis,
     split_artist_name, upsert_album, upsert_artist, upsert_artist_list, upsert_artwork,
     upsert_genre, ExtractedFile, AUDIO_EXTENSIONS, VARIOUS_ARTISTS_LABEL,

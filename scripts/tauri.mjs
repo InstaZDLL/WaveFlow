@@ -10,30 +10,30 @@
 // intact for both contributors and CI. It is a no-op for invocations
 // that have no subcommand (e.g. `bun run tauri --version`).
 
-import { spawn } from 'node:child_process';
+import { spawn } from "node:child_process";
 
-const CONFIG_PATH = 'src-tauri/crates/app/tauri.conf.json';
+const CONFIG_PATH = "src-tauri/crates/app/tauri.conf.json";
 
 // `--config` is a per-subcommand flag on the Tauri CLI, not a global
 // one, and not every subcommand accepts it. Empirically (Tauri CLI
 // 2.11) only the subcommands that actually load `tauri.conf.json`
 // take the flag: `dev`, `build`, `bundle`. Everything else (info,
 // icon, signer, completions, …) is passed through unchanged.
-const CONFIG_AWARE = new Set(['dev', 'build', 'bundle']);
+const CONFIG_AWARE = new Set(["dev", "build", "bundle"]);
 
 const argv = process.argv.slice(2);
 const [subcommand] = argv;
 const args =
   subcommand && CONFIG_AWARE.has(subcommand)
-    ? [subcommand, '--config', CONFIG_PATH, ...argv.slice(1)]
+    ? [subcommand, "--config", CONFIG_PATH, ...argv.slice(1)]
     : argv;
 
-const child = spawn('tauri', args, { stdio: 'inherit' });
-child.on('error', (err) => {
+const child = spawn("tauri", args, { stdio: "inherit" });
+child.on("error", (err) => {
   console.error(`failed to spawn tauri: ${err.message}`);
   process.exit(1);
 });
-child.on('exit', (code, signal) => {
+child.on("exit", (code, signal) => {
   if (signal) {
     process.kill(process.pid, signal);
   } else {

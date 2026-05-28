@@ -288,11 +288,10 @@ pub async fn upsert_genre(
         return Ok(None);
     }
 
-    let existing: Option<i64> =
-        sqlx::query_scalar("SELECT id FROM genre WHERE canonical_name = ?")
-            .bind(&canon)
-            .fetch_optional(&mut *conn)
-            .await?;
+    let existing: Option<i64> = sqlx::query_scalar("SELECT id FROM genre WHERE canonical_name = ?")
+        .bind(&canon)
+        .fetch_optional(&mut *conn)
+        .await?;
     if let Some(id) = existing {
         return Ok(Some(id));
     }

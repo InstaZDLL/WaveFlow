@@ -90,9 +90,9 @@ Until then: anything `waveflow-server` would need lives at `waveflow_core::*` al
 
 ## Feature flags on `waveflow-core`
 
-| Flag       | What it enables                                                                                                                                                    |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `sqlite`   | `sqlx`'s `sqlite` + `runtime-tokio` features (so `repository::sqlite::*` compiles) and the `sqlx::FromRow` derives on the domain types (via `cfg_attr`).           |
+| Flag     | What it enables                                                                                                                                          |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sqlite` | `sqlx`'s `sqlite` + `runtime-tokio` features (so `repository::sqlite::*` compiles) and the `sqlx::FromRow` derives on the domain types (via `cfg_attr`). |
 
 The desktop crate opts in with `features = ["sqlite"]`. The future server will add a `postgres` feature with the same shape (`sqlx/postgres`, FromRow derives gated on it). Trait definitions in `repository/` itself stay storage-agnostic — only their implementations live behind a feature flag.
 

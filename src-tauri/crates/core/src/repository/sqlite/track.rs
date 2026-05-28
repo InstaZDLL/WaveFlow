@@ -108,11 +108,7 @@ impl TrackRepository for SqliteTrackRepository {
         Ok(row)
     }
 
-    async fn list(
-        &self,
-        filter: TrackListFilter,
-        sort: TrackSort,
-    ) -> CoreResult<Vec<TrackRow>> {
+    async fn list(&self, filter: TrackListFilter, sort: TrackSort) -> CoreResult<Vec<TrackRow>> {
         let order = order_clause(sort);
         let sql = format!(
             "{SELECT_TRACK_ROW}{FROM_TRACK_BASE} \
@@ -212,10 +208,9 @@ impl TrackRepository for SqliteTrackRepository {
     }
 
     async fn liked_ids(&self) -> CoreResult<Vec<i64>> {
-        let ids =
-            sqlx::query_scalar("SELECT track_id FROM liked_track ORDER BY liked_at DESC")
-                .fetch_all(&self.pool)
-                .await?;
+        let ids = sqlx::query_scalar("SELECT track_id FROM liked_track ORDER BY liked_at DESC")
+            .fetch_all(&self.pool)
+            .await?;
         Ok(ids)
     }
 
@@ -246,11 +241,10 @@ impl TrackRepository for SqliteTrackRepository {
     }
 
     async fn get_file_path(&self, track_id: i64) -> CoreResult<Option<String>> {
-        let path: Option<String> =
-            sqlx::query_scalar("SELECT file_path FROM track WHERE id = ?")
-                .bind(track_id)
-                .fetch_optional(&self.pool)
-                .await?;
+        let path: Option<String> = sqlx::query_scalar("SELECT file_path FROM track WHERE id = ?")
+            .bind(track_id)
+            .fetch_optional(&self.pool)
+            .await?;
         Ok(path)
     }
 

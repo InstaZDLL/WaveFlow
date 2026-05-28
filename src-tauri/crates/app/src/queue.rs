@@ -381,11 +381,10 @@ pub async fn append_to_user_queue(
         return Ok(());
     }
 
-    let current_raw: Option<String> = sqlx::query_scalar(
-        "SELECT value FROM profile_setting WHERE key = 'queue.current_index'",
-    )
-    .fetch_optional(&mut *tx)
-    .await?;
+    let current_raw: Option<String> =
+        sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = 'queue.current_index'")
+            .fetch_optional(&mut *tx)
+            .await?;
     let current = current_raw
         .and_then(|s| s.parse::<i64>().ok())
         .unwrap_or(0)

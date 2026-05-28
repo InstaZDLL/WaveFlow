@@ -14,14 +14,14 @@ pub mod upserts;
 
 pub use extract::{
     extension_for_mime, extract_artist_image, extract_compilation_flag, extract_cover,
-    extract_folder_cover, extract_musical_key, extract_rating, file_type_label, find_artist_image_in_dir,
-    hash_file, write_artist_image, ExtractedCover, ExtractedFile, AUDIO_EXTENSIONS,
+    extract_folder_cover, extract_musical_key, extract_rating, file_type_label,
+    find_artist_image_in_dir, hash_file, write_artist_image, ExtractedCover, ExtractedFile,
+    AUDIO_EXTENSIONS,
 };
 pub use upserts::{
-    canonical_name, link_local_artist_image, maybe_link_artist_images,
-    merge_implicit_compilations, now_millis, resolve_album_artist, split_artist_name,
-    upsert_album, upsert_artist, upsert_artist_list, upsert_artwork, upsert_genre,
-    VARIOUS_ARTISTS_LABEL,
+    canonical_name, link_local_artist_image, maybe_link_artist_images, merge_implicit_compilations,
+    now_millis, resolve_album_artist, split_artist_name, upsert_album, upsert_artist,
+    upsert_artist_list, upsert_artwork, upsert_genre, VARIOUS_ARTISTS_LABEL,
 };
 
 /// Helper used inside the audio file extractors. Pulled out into the
