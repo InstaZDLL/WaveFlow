@@ -30,6 +30,35 @@ use crate::{
     state::AppState,
 };
 
+/// Recompute the BLAKE3 hash of an on-disk audio file and persist it to
+/// `track.file_hash`. Required after every command that mutates the file
+/// on disk (tag write, cover write, rating, lyrics write) so the
+/// scanner's `(file_modified, file_hash)` fast path keeps recognising
+/// the file on the next pass and the per-hash caches (lyrics, etc.) stay
+/// addressable. Errors propagate so the caller can decide whether to
+/// fail the command or just warn.
+pub(crate) async fn rehash_track_file(
+    pool: &SqlitePool,
+    track_id: i64,
+    path: &std::path::Path,
+) -> AppResult<String> {
+    let path_owned = path.to_path_buf();
+    let new_hash = tokio::task::spawn_blocking(move || -> Result<String, std::io::Error> {
+        let bytes = std::fs::read(&path_owned)?;
+        Ok(blake3::hash(&bytes).to_hex().to_string())
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("rehash join: {e}")))?
+    .map_err(|e| AppError::Other(format!("rehash read: {e}")))?;
+    sqlx::query("UPDATE track SET file_hash = ? WHERE id = ?")
+        .bind(&new_hash)
+        .bind(track_id)
+        .execute(pool)
+        .await
+        .map_err(|e| AppError::Other(format!("rehash update: {e}")))?;
+    Ok(new_hash)
+}
+
 /// Edit payload from the frontend. Every field is optional — `None`
 /// means "leave this field untouched"; `Some("")` means "clear this
 /// field" (where applicable). The frontend sends whatever's currently
@@ -94,6 +123,15 @@ pub async fn update_track_tags(
     //    actually carry.
     write_tags_to_file(&path, &edit)
         .map_err(|e| AppError::Other(format!("tag write failed: {e}")))?;
+
+    // 3b. The file has changed on disk; recompute its hash so the
+    //     scanner's (mtime, size, hash) fast path keeps matching and
+    //     the shared lyrics cache (keyed on file_hash) doesn't drift.
+    //     Failure here is non-fatal — log and continue with the tag/DB
+    //     sync below; a follow-up scan will pick up the new hash.
+    if let Err(err) = rehash_track_file(&pool, track_id, &path).await {
+        tracing::warn!(track_id, ?err, "rehash after tag write failed");
+    }
 
     // 4. DB sync. Run inside a transaction so a partial failure
     //    (artist resolved but album INSERT racing) doesn't leave the
@@ -186,6 +224,13 @@ pub async fn update_tracks_batch(
                 .errors
                 .push((*track_id, format!("tag write failed: {err}")));
             continue;
+        }
+
+        // Rehash the file before the DB sync so the new hash lands
+        // alongside the metadata update. Failure here is non-fatal
+        // (logged) — the metadata commit still proceeds.
+        if let Err(err) = rehash_track_file(&pool, *track_id, &path).await {
+            tracing::warn!(track_id = *track_id, ?err, "batch rehash failed");
         }
 
         if let Err(err) = sync_db(&pool, *track_id, &edit).await {
@@ -546,6 +591,14 @@ pub async fn update_track_cover(
 
     write_cover_to_file(std::path::Path::new(&file_path), &bytes, &mime)
         .map_err(|e| AppError::Other(format!("cover tag write failed: {e}")))?;
+
+    // The audio file itself just changed (a new picture frame was
+    // embedded), so its blake3 hash drifted. Recompute and persist so
+    // the scanner's fast-path and the lyrics cache (keyed on file_hash)
+    // stay valid. Non-fatal — a rescan would recover.
+    if let Err(err) = rehash_track_file(&pool, track_id, std::path::Path::new(&file_path)).await {
+        tracing::warn!(track_id, ?err, "rehash after cover write failed");
+    }
 
     // Hash + persist the bytes in the shared artwork cache. blake3
     // makes "same image, different file" deduplicate naturally.

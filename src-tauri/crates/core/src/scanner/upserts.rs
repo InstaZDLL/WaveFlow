@@ -42,14 +42,19 @@ pub fn canonical_name(s: &str) -> String {
 }
 
 /// Split a raw artist string like `"Elior, DJ Garlik"` into individual
-/// names. Conservative: only splits on `", "` and `"; "` so that artist
-/// names containing `&`, `/`, or `feat.` (e.g. `"AC/DC"`, `"Simon &
-/// Garfunkel"`) stay intact.
+/// names. Conservative: only splits on the literal sequences `", "` and
+/// `"; "` so that artist names containing `&`, `/`, `feat.`, or a bare
+/// comma (e.g. `"Tyler, The Creator"`, `"AC/DC"`, `"Simon & Garfunkel"`)
+/// stay intact. The earlier `split([',', ';'])` shape over-split anything
+/// whose own name contained a comma — `"Tyler, The Creator"` came out as
+/// two artists, which then collapsed `Tyler` and `The Creator` into
+/// separate rows on the artist tab.
 ///
 /// Returns the trimmed, non-empty names in the order they appeared —
 /// the first entry is treated as the primary artist by the caller.
 pub fn split_artist_name(raw: &str) -> Vec<String> {
-    raw.split([',', ';'])
+    raw.split(", ")
+        .flat_map(|s| s.split("; "))
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
         .map(|s| s.to_string())

@@ -92,7 +92,11 @@ async fn run_once(app: &AppHandle) -> Result<(), String> {
         Err(_) => return Ok(()),
     };
 
-    let pending = fetch_due(&pool).await.map_err(|e| format!("fetch: {e}"))?;
+    let FetchedDue {
+        pending,
+        poison_ids,
+    } = fetch_due(&pool).await.map_err(|e| format!("fetch: {e}"))?;
+    delete_poison(&pool, &poison_ids).await;
     if pending.is_empty() {
         return Ok(());
     }
@@ -163,11 +167,19 @@ struct PendingScrobble {
     retry_count: i64,
 }
 
+/// Result of [`fetch_due`]: the rows ready to scrobble plus the ids of
+/// "poison" rows (no artist resolvable from the join) that should be
+/// purged from `scrobble_queue` so they don't get re-fetched forever.
+struct FetchedDue {
+    pending: Vec<PendingScrobble>,
+    poison_ids: Vec<i64>,
+}
+
 /// Pull the next batch of scrobbles whose `next_retry_at` is past
 /// (or null = first attempt) and that haven't burned all their
 /// retries. Joined with the track row so the worker doesn't need a
 /// second query per item to assemble the API payload.
-async fn fetch_due(pool: &SqlitePool) -> Result<Vec<PendingScrobble>, sqlx::Error> {
+async fn fetch_due(pool: &SqlitePool) -> Result<FetchedDue, sqlx::Error> {
     let now = chrono::Utc::now().timestamp_millis();
     #[allow(clippy::type_complexity)]
     let rows: Vec<(
@@ -210,35 +222,62 @@ async fn fetch_due(pool: &SqlitePool) -> Result<Vec<PendingScrobble>, sqlx::Erro
     .fetch_all(pool)
     .await?;
 
-    Ok(rows
-        .into_iter()
-        .filter_map(|row| {
-            let (id, track_id, title, artist, album, track_no, duration_ms, played_at_ms, retry) =
-                row;
-            // Last.fm requires an artist; if the joined GROUP_CONCAT
-            // yielded nothing, drop the scrobble — re-enqueueing it
-            // wouldn't help.
-            let artist_name = artist?.trim().to_string();
-            if artist_name.is_empty() {
-                return None;
+    let mut pending = Vec::with_capacity(rows.len());
+    let mut poison_ids = Vec::new();
+    for row in rows {
+        let (id, track_id, title, artist, album, track_no, duration_ms, played_at_ms, retry) = row;
+        // Last.fm requires an artist; if the joined GROUP_CONCAT
+        // yielded nothing the row is unfixable — collect its id so
+        // the caller can DELETE it, otherwise we'd re-select the same
+        // poison row every tick and keep dropping it client-side.
+        let artist_name = match artist.map(|s| s.trim().to_string()) {
+            Some(s) if !s.is_empty() => s,
+            _ => {
+                poison_ids.push(id);
+                continue;
             }
-            Some(PendingScrobble {
-                id,
-                track_id,
-                title,
-                artist_name,
-                album_title: album.filter(|s| !s.is_empty()),
-                track_number: track_no.filter(|n| *n > 0),
-                duration_s: if duration_ms > 0 {
-                    Some(duration_ms / 1000)
-                } else {
-                    None
-                },
-                played_at_unix_s: played_at_ms / 1000,
-                retry_count: retry,
-            })
-        })
-        .collect())
+        };
+        pending.push(PendingScrobble {
+            id,
+            track_id,
+            title,
+            artist_name,
+            album_title: album.filter(|s| !s.is_empty()),
+            track_number: track_no.filter(|n| *n > 0),
+            duration_s: if duration_ms > 0 {
+                Some(duration_ms / 1000)
+            } else {
+                None
+            },
+            played_at_unix_s: played_at_ms / 1000,
+            retry_count: retry,
+        });
+    }
+    Ok(FetchedDue {
+        pending,
+        poison_ids,
+    })
+}
+
+/// Bulk DELETE the rows [`fetch_due`] flagged as unfixable. Errors are
+/// logged but never propagated — losing a delete just delays the
+/// cleanup to a later tick.
+async fn delete_poison(pool: &SqlitePool, ids: &[i64]) {
+    if ids.is_empty() {
+        return;
+    }
+    let placeholders = std::iter::repeat("?")
+        .take(ids.len())
+        .collect::<Vec<_>>()
+        .join(",");
+    let sql = format!("DELETE FROM scrobble_queue WHERE id IN ({placeholders})");
+    let mut q = sqlx::query(sqlx::AssertSqlSafe(sql));
+    for id in ids {
+        q = q.bind(*id);
+    }
+    if let Err(err) = q.execute(pool).await {
+        tracing::warn!(?err, count = ids.len(), "scrobble poison delete failed");
+    }
 }
 
 async fn delete_item(pool: &SqlitePool, id: i64) -> Result<(), sqlx::Error> {

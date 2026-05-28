@@ -176,6 +176,15 @@ pub async fn lastfm_login(
     username: String,
     password: String,
 ) -> AppResult<LastfmStatus> {
+    // Honour the process-wide offline flag (`app_setting['network.offline_mode']`,
+    // mirrored in memory by `offline::is_offline()`). A blind network call
+    // here would hang the Settings dialog for the full reqwest timeout —
+    // surface a clear error instead.
+    if crate::offline::is_offline() {
+        return Err(AppError::Other(
+            "offline mode is enabled — disable it to sign in to Last.fm".into(),
+        ));
+    }
     let api_key = read_lastfm_api_key(&state)
         .await?
         .ok_or_else(|| AppError::Other("Last.fm API key is not configured".into()))?;

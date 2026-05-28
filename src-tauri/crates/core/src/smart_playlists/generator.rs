@@ -173,20 +173,30 @@ pub async fn regenerate_daily_mixes(
             delete_existing_slot(pool, bucket.slot()).await?;
             continue;
         }
-        let id = generate_one_mix(pool, paths, profile_id, bucket, &bucket_artists).await?;
-        created.push(id);
+        // `generate_one_mix` returns `None` when the bucket's listening
+        // history yields no playable tracks (rare but happens on a
+        // user whose only matching artists are now unavailable). Skip
+        // such slots instead of pushing a sentinel `0` into the result
+        // vector — the Home view would otherwise try to navigate to
+        // playlist id 0.
+        if let Some(id) = generate_one_mix(pool, paths, profile_id, bucket, &bucket_artists).await?
+        {
+            created.push(id);
+        }
     }
     Ok(created)
 }
 
 /// Build (or refresh) the playlist for a single bucket and return its id.
+/// Returns `None` when no playable tracks could be picked for the bucket —
+/// any stale playlist row for the slot is removed in that case.
 async fn generate_one_mix(
     pool: &SqlitePool,
     paths: &PathsContext,
     profile_id: i64,
     bucket: Bucket,
     artists: &[&ArtistListenRow],
-) -> CoreResult<i64> {
+) -> CoreResult<Option<i64>> {
     let top_artist_ids: Vec<i64> = artists
         .iter()
         .take(ARTISTS_PER_BUCKET)
@@ -196,7 +206,7 @@ async fn generate_one_mix(
     let tracks = pick_tracks_for_artists(pool, &top_artist_ids).await?;
     if tracks.is_empty() {
         delete_existing_slot(pool, bucket.slot()).await?;
-        return Ok(0);
+        return Ok(None);
     }
 
     // Deterministic shuffle so the same input set produces the same listening
@@ -259,7 +269,7 @@ async fn generate_one_mix(
         slot: bucket.slot(),
     };
     let needle = format!("\"slot\":{}", bucket.slot());
-    upsert_smart_playlist(
+    let id = upsert_smart_playlist(
         pool,
         bucket.label(),
         bucket.description(),
@@ -269,7 +279,8 @@ async fn generate_one_mix(
         &rules.to_json(),
         &shuffled,
     )
-    .await
+    .await?;
+    Ok(Some(id))
 }
 
 async fn top_artists_with_bpm(

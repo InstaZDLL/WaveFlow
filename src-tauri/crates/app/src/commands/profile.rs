@@ -75,15 +75,39 @@ pub async fn create_profile(
     };
     let profile_id = repo.insert(&draft).await?;
 
+    // Wrap every post-insert step that can fail in a single async block,
+    // and roll the profile row back if any of them error. Without this,
+    // a failure to `mkdir` the profile dir or to open its `data.db`
+    // leaves an orphan row in `app.db` that the profile picker would
+    // still surface but couldn't activate.
     let rel_dir = AppPaths::profile_rel_dir(profile_id);
-    repo.set_data_dir(profile_id, &rel_dir).await?;
-
-    // Materialize the filesystem layout and initialize the per-profile DB.
-    state.paths.ensure_profile_dirs(profile_id)?;
-    let pool =
-        crate::db::profile_db::open(&state.paths.profile_db(profile_id), &state.paths.app_db)
-            .await?;
-    pool.close().await;
+    let init = async {
+        repo.set_data_dir(profile_id, &rel_dir).await?;
+        state.paths.ensure_profile_dirs(profile_id)?;
+        let pool = crate::db::profile_db::open(
+            &state.paths.profile_db(profile_id),
+            &state.paths.app_db,
+        )
+        .await?;
+        pool.close().await;
+        Ok::<(), AppError>(())
+    }
+    .await;
+    if let Err(init_err) = init {
+        if let Err(rollback_err) = sqlx::query("DELETE FROM profile WHERE id = ?")
+            .bind(profile_id)
+            .execute(&state.app_db)
+            .await
+        {
+            tracing::warn!(
+                profile_id,
+                ?rollback_err,
+                "rollback after failed profile init also failed; orphan row left in app.db"
+            );
+        }
+        let _ = std::fs::remove_dir_all(state.paths.profile_dir(profile_id));
+        return Err(init_err);
+    }
 
     Ok(Profile {
         id: profile_id,
@@ -241,10 +265,28 @@ pub async fn delete_profile(state: tauri::State<'_, AppState>, profile_id: i64) 
 
     let dir = state.paths.profile_dir(profile_id);
     if dir.exists() {
-        if let Err(err) = std::fs::remove_dir_all(&dir) {
-            // The DB row is already gone — log so the user can clean up the
-            // stale directory manually, but don't fail the command.
-            tracing::warn!(profile_id, path = %dir.display(), %err, "failed to remove profile directory");
+        // `remove_dir_all` walks the tree synchronously — on a profile
+        // with a populated artwork cache that's enough I/O to noticeably
+        // stall the tokio runtime. Push it off to the blocking pool so
+        // the command (and every queued sibling) stays responsive.
+        let dir_for_blocking = dir.clone();
+        let removal = tokio::task::spawn_blocking(move || std::fs::remove_dir_all(&dir_for_blocking))
+            .await;
+        match removal {
+            Ok(Ok(())) => {}
+            Ok(Err(err)) => {
+                // The DB row is already gone — log so the user can clean up
+                // the stale directory manually, but don't fail the command.
+                tracing::warn!(profile_id, path = %dir.display(), %err, "failed to remove profile directory");
+            }
+            Err(join_err) => {
+                tracing::warn!(
+                    profile_id,
+                    path = %dir.display(),
+                    %join_err,
+                    "remove_dir_all join failed; directory may have been partially removed"
+                );
+            }
         }
     }
 

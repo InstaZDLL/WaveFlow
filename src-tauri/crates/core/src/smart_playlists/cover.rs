@@ -11,7 +11,6 @@
 //! orphaned files between runs unless the cluster's top artists actually
 //! change.
 
-use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 
 use fast_image_resize::images::Image as FirImage;
@@ -254,14 +253,9 @@ fn cover_fit(src: &RgbImage, dst_w: u32, dst_h: u32) -> CoreResult<RgbImage> {
     let crop_y = (sh - crop_h) / 2;
     let cropped = image::imageops::crop_imm(src, crop_x, crop_y, crop_w, crop_h).to_image();
 
-    // SIMD resize via fast_image_resize. The crate wants its own image type;
-    // we hand it the raw RGB buffer and read the result back into an
-    // `ImageBuffer` for the compositing step.
-    let src_w_nz = NonZeroU32::new(crop_w).expect("crop_w > 0");
-    let src_h_nz = NonZeroU32::new(crop_h).expect("crop_h > 0");
-    let dst_w_nz = NonZeroU32::new(dst_w).expect("dst_w > 0");
-    let dst_h_nz = NonZeroU32::new(dst_h).expect("dst_h > 0");
-    let _ = (src_w_nz, src_h_nz, dst_w_nz, dst_h_nz); // crate API uses u32 directly in v6
+    // SIMD resize via fast_image_resize. The v6 API takes plain `u32`s
+    // directly (NonZeroU32 was needed by the v3 surface this code was
+    // ported from); the earlier NonZeroU32 dance has been dropped.
     let src_fir = FirImage::from_vec_u8(crop_w, crop_h, cropped.into_raw(), PixelType::U8x3)
         .map_err(|e| CoreError::Audio(format!("smart cover: fir from src: {e}")))?;
     let mut dst_fir = FirImage::new(dst_w, dst_h, PixelType::U8x3);

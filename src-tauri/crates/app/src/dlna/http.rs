@@ -233,8 +233,13 @@ async fn serve_art(
     State(ctx): State<Arc<ServerCtx>>,
     Path(hash_with_ext): Path<String>,
 ) -> Response {
-    // Reject path traversal up-front.
-    if hash_with_ext.contains('/') || hash_with_ext.contains("..") {
+    // Reject path traversal up-front. Both `/` and `\\` are checked so a
+    // Windows-flavoured payload like `..\\..\\secret.jpg` can't escape the
+    // artwork dir on a host whose Path parser accepts backslashes.
+    if hash_with_ext.contains('/')
+        || hash_with_ext.contains('\\')
+        || hash_with_ext.contains("..")
+    {
         return (StatusCode::BAD_REQUEST, "bad hash").into_response();
     }
     for dir in [&ctx.profile_artwork_dir, &ctx.metadata_artwork_dir] {

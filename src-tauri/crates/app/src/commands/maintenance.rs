@@ -17,7 +17,18 @@ use crate::{
 pub async fn regenerate_thumbnails(state: tauri::State<'_, AppState>) -> AppResult<u32> {
     let mut total: u32 = 0;
 
-    total = total.saturating_add(regen_in_dir(&state.paths.metadata_artwork_dir)?);
+    // `regen_in_dir` is intentionally synchronous (walks the directory
+    // with `std::fs`, decodes JPEGs/PNGs via the `image` crate, calls into
+    // `fast_image_resize` and writes results). Calling it directly from
+    // this async command would block the tokio runtime for as long as the
+    // pass takes — easily several seconds on a populated library — and
+    // stall every other command queued behind it. Run each batch through
+    // `spawn_blocking` so the runtime stays responsive.
+    let metadata_dir = state.paths.metadata_artwork_dir.clone();
+    let metadata_total = tokio::task::spawn_blocking(move || regen_in_dir(&metadata_dir))
+        .await
+        .map_err(|e| AppError::Other(format!("regen_thumbnails join: {e}")))??;
+    total = total.saturating_add(metadata_total);
 
     let profile_ids: Vec<i64> = sqlx::query_scalar("SELECT id FROM profile")
         .fetch_all(&state.app_db)
@@ -25,7 +36,10 @@ pub async fn regenerate_thumbnails(state: tauri::State<'_, AppState>) -> AppResu
         .unwrap_or_default();
     for pid in profile_ids {
         let dir = state.paths.profile_artwork_dir(pid);
-        total = total.saturating_add(regen_in_dir(&dir)?);
+        let profile_total = tokio::task::spawn_blocking(move || regen_in_dir(&dir))
+            .await
+            .map_err(|e| AppError::Other(format!("regen_thumbnails join: {e}")))??;
+        total = total.saturating_add(profile_total);
     }
 
     Ok(total)

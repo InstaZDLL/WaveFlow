@@ -756,6 +756,12 @@ pub async fn get_album_detail(
     // file_size desc, then id asc as a stable tie-breaker. Tracks without a
     // track_number get their own slot (-id) so they're never collapsed
     // together blindly.
+    //
+    // DSD nuance: DSF/DFF tracks report `bit_depth = 1` (one bit per sample,
+    // not 1-bit lossy). A naïve `bit_depth DESC` would rank them BELOW
+    // 16-bit MP3, dropping the higher-quality DSD variant from a mixed
+    // DSD/PCM album. The first sort key promotes `bit_depth = 1` rows ahead
+    // of every PCM row so DSD always wins the collapse when present.
     let tracks_raw = sqlx::query_as::<_, AlbumTrackRaw>(
         r#"
         WITH ranked AS (
@@ -764,6 +770,7 @@ pub async fn get_album_detail(
                        PARTITION BY COALESCE(t.disc_number, 1),
                                     COALESCE(t.track_number, -t.id)
                        ORDER BY (t.bit_depth IS NULL),
+                                (t.bit_depth = 1) DESC,
                                 t.bit_depth DESC,
                                 t.sample_rate DESC,
                                 t.file_size DESC,
@@ -1391,14 +1398,27 @@ pub async fn play_history_months(
     let mut out = Vec::with_capacity(raw.len());
     for r in raw {
         // bucket = "YYYY-MM" — split & convert to (year, month) plus
-        // the first-of-month epoch ms in local time so the frontend
-        // doesn't have to redo the timezone arithmetic.
+        // the first-of-month epoch ms. The SQL `strftime(..., 'localtime')`
+        // above bucketed by **local** time, so the reconstructed midnight
+        // must also be interpreted as local time. Using `and_utc()` here
+        // would push the start_ms off by the local UTC offset (visible at
+        // a glance as the scrubber showing the wrong month label for
+        // events that happened near midnight on the boundary days).
+        use chrono::{LocalResult, NaiveDate, TimeZone};
         let mut parts = r.bucket.splitn(2, '-');
         let year: i32 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(1970);
         let month: u32 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(1);
-        let start_ms = chrono::NaiveDate::from_ymd_opt(year, month, 1)
+        let start_ms = NaiveDate::from_ymd_opt(year, month, 1)
             .and_then(|d| d.and_hms_opt(0, 0, 0))
-            .map(|dt| dt.and_utc().timestamp_millis())
+            .and_then(|naive| match chrono::Local.from_local_datetime(&naive) {
+                LocalResult::Single(dt) => Some(dt.timestamp_millis()),
+                // The first of a month falls inside a DST spring-forward
+                // gap (`None`) or fall-back ambiguity (`Ambiguous`) only
+                // in vanishingly rare jurisdictions. Pick the earlier
+                // interpretation so the scrubber stays monotonic.
+                LocalResult::Ambiguous(early, _late) => Some(early.timestamp_millis()),
+                LocalResult::None => None,
+            })
             .unwrap_or(0);
         out.push(PlayHistoryMonth {
             year,

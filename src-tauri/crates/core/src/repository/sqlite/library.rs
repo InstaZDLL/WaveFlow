@@ -36,13 +36,21 @@ impl LibraryRepository for SqliteLibraryRepository {
                    COALESCE(f.folder_count,  0) AS folder_count
               FROM library l
               LEFT JOIN (
-                  SELECT library_id,
-                         COUNT(*)                         AS track_count,
-                         COUNT(DISTINCT album_id)         AS album_count,
-                         COUNT(DISTINCT primary_artist)   AS artist_count
-                    FROM track
-                   WHERE is_available = 1
-                   GROUP BY library_id
+                  SELECT t.library_id,
+                         COUNT(DISTINCT t.id)             AS track_count,
+                         COUNT(DISTINCT t.album_id)       AS album_count,
+                         -- Join to `track_artist` so a track with several
+                         -- contributing artists (multi-artist split) is
+                         -- counted under each of them. The earlier
+                         -- `COUNT(DISTINCT primary_artist)` only saw the
+                         -- first artist of each track and under-reported
+                         -- the sidebar's "Artistes" total on libraries
+                         -- with many featurings / collaborations.
+                         COUNT(DISTINCT ta.artist_id)     AS artist_count
+                    FROM track t
+                    LEFT JOIN track_artist ta ON ta.track_id = t.id
+                   WHERE t.is_available = 1
+                   GROUP BY t.library_id
               ) tc ON tc.library_id = l.id
               LEFT JOIN (
                   SELECT t.library_id, COUNT(DISTINCT tg.genre_id) AS genre_count

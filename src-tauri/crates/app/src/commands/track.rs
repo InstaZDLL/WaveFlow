@@ -462,7 +462,7 @@ pub async fn set_track_rating(
     use tauri::Emitter;
 
     let pool = state.require_profile_pool().await?;
-    let repo = SqliteTrackRepository::new(pool);
+    let repo = SqliteTrackRepository::new(pool.clone());
 
     // 1. Resolve the file path so we can write the POPM frame back.
     let file_path = repo.get_file_path(track_id).await?;
@@ -482,8 +482,21 @@ pub async fn set_track_rating(
         //    have no writable rating frame, and we don't want a popup
         //    every time a user rates a DSF.
         let path = std::path::PathBuf::from(path_str);
+        let mut tag_written = true;
         if let Err(err) = write_rating_to_file(&path, rating) {
             tracing::warn!(track_id, ?err, "rating tag write failed — DB-only");
+            tag_written = false;
+        }
+        // 3b. If the tag write actually mutated the file, recompute its
+        //     blake3 hash so the scanner's fast path keeps recognising
+        //     the file on the next pass and the per-hash caches stay
+        //     addressable. The pool inside SqliteTrackRepository is the
+        //     same one we'd update through anyway, so go via the helper
+        //     in `edit` to keep the rehash + DB write in one place.
+        if tag_written {
+            if let Err(err) = super::edit::rehash_track_file(&pool, track_id, &path).await {
+                tracing::warn!(track_id, ?err, "rehash after rating tag write failed");
+            }
         }
     }
 

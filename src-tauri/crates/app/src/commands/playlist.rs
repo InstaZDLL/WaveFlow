@@ -389,33 +389,51 @@ pub struct ImportPlaylistResult {
 /// still match scanned tracks even if the file isn't currently
 /// mounted.
 ///
-/// Uses a byte-level prefix match instead of `str::strip_prefix(r"...")` —
-/// the raw-string version was silently dropping a backslash in transit
-/// through some shells, leaving keys diverging between candidates and
-/// DB rows.
+/// **Platform-aware case folding**: filesystems are case-insensitive on
+/// Windows + macOS (HFS+/APFS default) and case-sensitive on Linux. We
+/// lowercase only on Windows so a Linux library where `Song.flac` and
+/// `song.flac` are two distinct files (rare but legal) doesn't collide
+/// during the M3U → DB match. macOS is treated as case-sensitive too —
+/// the rare case-sensitive HFS+/APFS volume gets a correct match, and
+/// the common case-insensitive one only suffers when the M3U casing
+/// disagrees with the on-disk casing (which `canonicalize` usually
+/// fixes anyway).
 fn canonical_path_key(p: &std::path::Path) -> String {
     let canon = std::fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf());
     let s = canon.to_string_lossy().to_string();
-    let bytes = s.as_bytes();
-    let has_verbatim = bytes.len() >= 4
-        && bytes[0] == b'\\'
-        && bytes[1] == b'\\'
-        && bytes[2] == b'?'
-        && bytes[3] == b'\\';
-    let has_unc = has_verbatim
-        && bytes.len() >= 8
-        && (bytes[4] == b'U' || bytes[4] == b'u')
-        && (bytes[5] == b'N' || bytes[5] == b'n')
-        && (bytes[6] == b'C' || bytes[6] == b'c')
-        && bytes[7] == b'\\';
-    if has_unc {
-        // \\?\UNC\server\share\... → \\server\share\...
-        format!("\\\\{}", &s[8..]).to_lowercase()
-    } else if has_verbatim {
-        // \\?\C:\... → C:\...
-        s[4..].to_lowercase()
-    } else {
-        s.to_lowercase()
+    #[cfg(windows)]
+    {
+        // Windows: strip `\\?\` / `\\?\UNC\` prefixes that canonicalize
+        // adds (extended-length paths), then lowercase since NTFS is
+        // case-insensitive by default. Byte-level prefix match used so
+        // some shells that mangle raw strings can't drop a backslash.
+        let bytes = s.as_bytes();
+        let has_verbatim = bytes.len() >= 4
+            && bytes[0] == b'\\'
+            && bytes[1] == b'\\'
+            && bytes[2] == b'?'
+            && bytes[3] == b'\\';
+        let has_unc = has_verbatim
+            && bytes.len() >= 8
+            && (bytes[4] == b'U' || bytes[4] == b'u')
+            && (bytes[5] == b'N' || bytes[5] == b'n')
+            && (bytes[6] == b'C' || bytes[6] == b'c')
+            && bytes[7] == b'\\';
+        if has_unc {
+            // \\?\UNC\server\share\... → \\server\share\...
+            return format!("\\\\{}", &s[8..]).to_lowercase();
+        }
+        if has_verbatim {
+            // \\?\C:\... → C:\...
+            return s[4..].to_lowercase();
+        }
+        return s.to_lowercase();
+    }
+    #[cfg(not(windows))]
+    {
+        // Linux / macOS: case-sensitive matching. No extended-length
+        // prefix to strip — `canonicalize` returns plain absolute paths.
+        s
     }
 }
 

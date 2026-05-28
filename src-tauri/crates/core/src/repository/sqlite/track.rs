@@ -162,6 +162,11 @@ impl TrackRepository for SqliteTrackRepository {
     }
 
     async fn search_fts(&self, fts_query: &str, limit: i64) -> CoreResult<Vec<TrackRow>> {
+        // Clamp `limit` so a caller passing 0 or a negative value (SQLite
+        // treats negative LIMIT as "no limit") can't accidentally fetch
+        // the entire FTS index. The upper bound stays open since legitimate
+        // callers want to pick their own ceiling.
+        let bounded = limit.max(1);
         let sql = format!(
             "{SELECT_TRACK_ROW} \
              FROM track_fts fts \
@@ -175,7 +180,7 @@ impl TrackRepository for SqliteTrackRepository {
         );
         let rows = sqlx::query_as::<_, TrackRow>(sqlx::AssertSqlSafe(sql))
             .bind(fts_query)
-            .bind(limit)
+            .bind(bounded)
             .fetch_all(&self.pool)
             .await?;
         Ok(rows)

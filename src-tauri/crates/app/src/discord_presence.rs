@@ -380,6 +380,14 @@ pub async fn resolve_cover_url(
     // helper handles cache check + Deezer search + DB upsert, so a
     // subsequent call will hit the cache. Returns `None` if the
     // album doesn't exist or Deezer has nothing matching.
+    // Skip the network leg when offline mode is on — the desktop's
+    // `offline::is_offline()` flag is the same one the Tauri command
+    // checks before any outbound HTTP call elsewhere in the app, so
+    // a Discord cover refresh shouldn't bypass it just because it
+    // happens on a worker thread.
+    if crate::offline::is_offline() {
+        return None;
+    }
     let album_id: Option<i64> = sqlx::query_scalar("SELECT album_id FROM track WHERE id = ?")
         .bind(track_id)
         .fetch_optional(pool)

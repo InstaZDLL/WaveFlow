@@ -70,6 +70,12 @@ pub struct DeezerAlbumArtist {
 
 // ── Client implementation ───────────────────────────────────────────
 
+impl Default for DeezerClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DeezerClient {
     pub fn new() -> Self {
         let http = reqwest::Client::builder()

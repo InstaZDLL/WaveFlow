@@ -167,25 +167,39 @@ impl AppState {
     /// Open (or reopen) the per-profile `data.db` for `profile_id`. If a
     /// profile is currently active, its pool is closed first so that WAL
     /// files can be cleanly checkpointed.
+    ///
+    /// `pool.close().await` is called **without** the write lock held —
+    /// closing a pool waits for in-flight queries to finish, which can
+    /// block for a noticeable fraction of a second on a busy profile
+    /// switch. Holding the write lock across that await would freeze
+    /// every other command that hits `state.profile.read().await` for
+    /// the duration.
     pub async fn activate_profile(&self, profile_id: i64) -> AppResult<()> {
         self.paths.ensure_profile_dirs(profile_id)?;
 
         let db_path = self.paths.profile_db(profile_id);
         let pool = db::profile_db::open(&db_path, &self.paths.app_db).await?;
 
-        let mut guard = self.profile.write().await;
-        if let Some(previous) = guard.take() {
+        let previous = {
+            let mut guard = self.profile.write().await;
+            let previous = guard.take();
+            *guard = Some(ActiveProfile { profile_id, pool });
+            previous
+        };
+        if let Some(previous) = previous {
             previous.pool.close().await;
         }
-        *guard = Some(ActiveProfile { profile_id, pool });
 
         Ok(())
     }
 
     /// Close the active profile pool, if any, leaving no profile active.
     pub async fn deactivate_profile(&self) {
-        let mut guard = self.profile.write().await;
-        if let Some(previous) = guard.take() {
+        let previous = {
+            let mut guard = self.profile.write().await;
+            guard.take()
+        };
+        if let Some(previous) = previous {
             previous.pool.close().await;
         }
     }

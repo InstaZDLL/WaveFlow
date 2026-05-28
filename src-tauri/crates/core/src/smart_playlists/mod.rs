@@ -65,7 +65,18 @@ pub enum SmartPlaylistRules {
 }
 
 impl SmartPlaylistRules {
+    /// Serialize the rule payload for storage in `playlist.smart_rules`.
+    /// All variants derive `Serialize` over plain owned data, so the
+    /// underlying `serde_json::to_string` call is total in practice;
+    /// the `unwrap_or_else` here keeps a hostile future `Custom` payload
+    /// (e.g. a non-string map key smuggled in via a schema change) from
+    /// panicking the generator. A fallback `{}` reaches the upsert,
+    /// which will then store an unrecognised rules blob — recognisable
+    /// at the next regen pass so a developer can act on it.
     pub fn to_json(&self) -> String {
-        serde_json::to_string(self).expect("SmartPlaylistRules serialize")
+        serde_json::to_string(self).unwrap_or_else(|err| {
+            tracing::error!(?err, "SmartPlaylistRules serialize failed; storing empty object");
+            "{}".to_string()
+        })
     }
 }

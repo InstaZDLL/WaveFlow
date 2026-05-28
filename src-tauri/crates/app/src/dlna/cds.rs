@@ -377,9 +377,14 @@ async fn browse_metadata(ctx: &ServerCtx, object_id: &str) -> Result<BrowseResul
     }
     if let Some(id_str) = object_id.strip_prefix("0/track/") {
         if let Ok(track_id) = id_str.parse::<i64>() {
+            // Column aliases must match `TrackRow`: `ar.name AS artist_name`
+            // (not `t.primary_artist`) and `t.bitrate AS bitrate` (the column
+            // is `bitrate`, not `bit_rate` — the earlier shape would fail at
+            // bind time on every BrowseMetadata request).
             let row: Option<TrackRow> = sqlx::query_as(
-                "SELECT t.id, t.title, t.primary_artist,
-                        t.duration_ms, t.file_size, t.bit_rate, t.sample_rate, t.channels,
+                "SELECT t.id, t.title,
+                        ar.name AS artist_name,
+                        t.duration_ms, t.file_size, t.bitrate, t.sample_rate, t.channels,
                         t.file_path,
                         aw.hash  AS artwork_hash,
                         aw.format AS artwork_format,
@@ -387,6 +392,7 @@ async fn browse_metadata(ctx: &ServerCtx, object_id: &str) -> Result<BrowseResul
                    FROM track t
                    LEFT JOIN album al   ON al.id = t.album_id
                    LEFT JOIN artwork aw ON aw.id = al.artwork_id
+                   LEFT JOIN artist ar  ON ar.id = t.primary_artist
                   WHERE t.id = ? AND t.is_available = 1",
             )
             .bind(track_id)
