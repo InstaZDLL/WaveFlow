@@ -371,7 +371,7 @@
     "searchDeezer": "Pesquisar no Deezer",
     "localFile": "Arquivo local",
     "fetchMissingCovers": "Recuperar todas as capas que faltam",
-    "noCover": "Sem capa",
+    "noCover": "Capas faltando",
     "fetchingCovers": "Baixando capas... ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} capas obtidas",
     "fetchCoversFailed": "Falha ao obter capas",
@@ -420,7 +420,8 @@
       "remove": "Remover pasta da biblioteca",
       "removeConfirm": "Clique novamente para confirmar"
     },
-    "skeletonAriaLabel": "Carregando {{name}}…"
+    "skeletonAriaLabel": "Carregando {{name}}…",
+    "noCoverTooltip": "Mostrar apenas álbuns sem capa"
   },
   "liked": {
     "badge": "Coleção",

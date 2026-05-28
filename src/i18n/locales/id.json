@@ -371,7 +371,7 @@
     "searchDeezer": "Cari di Deezer",
     "localFile": "Berkas lokal",
     "fetchMissingCovers": "Ambil semua sampul yang hilang",
-    "noCover": "Tanpa sampul",
+    "noCover": "Sampul hilang",
     "fetchingCovers": "Mengambil sampul… ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} sampul diambil",
     "fetchCoversFailed": "Gagal mengambil sampul",
@@ -420,7 +420,8 @@
       "remove": "Keluarkan folder dari pustaka",
       "removeConfirm": "Klik lagi untuk konfirmasi"
     },
-    "skeletonAriaLabel": "Memuat {{name}}…"
+    "skeletonAriaLabel": "Memuat {{name}}…",
+    "noCoverTooltip": "Tampilkan hanya album tanpa sampul"
   },
   "liked": {
     "badge": "Koleksi",

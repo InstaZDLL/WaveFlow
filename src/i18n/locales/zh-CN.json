@@ -371,7 +371,7 @@
     "searchDeezer": "搜索Deezer",
     "localFile": "本地文件",
     "fetchMissingCovers": "找回所有缺失的封套",
-    "noCover": "无封面",
+    "noCover": "仅缺少封面",
     "fetchingCovers": "正在获取封面…（{{current}} / {{total}}）",
     "fetchCoversResult": "已获取 {{count}} 张封套",
     "fetchCoversFailed": "封套获取失败",
@@ -420,7 +420,8 @@
       "remove": "从音乐库中移除文件夹",
       "removeConfirm": "再次点击确认"
     },
-    "skeletonAriaLabel": "正在加载{{name}}…"
+    "skeletonAriaLabel": "正在加载{{name}}…",
+    "noCoverTooltip": "仅显示没有封面的专辑"
   },
   "liked": {
     "badge": "收藏",

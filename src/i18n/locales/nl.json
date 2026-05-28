@@ -371,7 +371,7 @@
     "searchDeezer": "Zoeken op Deezer",
     "localFile": "Lokaal bestand",
     "fetchMissingCovers": "Alle ontbrekende albumhoezen ophalen",
-    "noCover": "Geen albumhoes",
+    "noCover": "Ontbrekende hoezen",
     "fetchingCovers": "Albumhoezen ophalen… ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} albumhoezen opgehaald",
     "fetchCoversFailed": "Ophalen van albumhoezen mislukt",
@@ -420,7 +420,8 @@
       "remove": "Map uit bibliotheek verwijderen",
       "removeConfirm": "Klik nogmaals om te bevestigen"
     },
-    "skeletonAriaLabel": "{{name}} laden…"
+    "skeletonAriaLabel": "{{name}} laden…",
+    "noCoverTooltip": "Toon alleen albums zonder hoes"
   },
   "liked": {
     "badge": "Verzameling",

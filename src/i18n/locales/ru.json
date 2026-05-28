@@ -438,7 +438,8 @@
       "remove": "Удалить папку из библиотеки",
       "removeConfirm": "Нажмите ещё раз для подтверждения"
     },
-    "skeletonAriaLabel": "Загрузка {{name}}…"
+    "skeletonAriaLabel": "Загрузка {{name}}…",
+    "noCoverTooltip": "Показывать только альбомы без обложки"
   },
   "liked": {
     "badge": "Коллекция",

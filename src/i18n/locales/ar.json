@@ -371,7 +371,7 @@
     "searchDeezer": "البحث في Deezer",
     "localFile": "ملف محلي",
     "fetchMissingCovers": "جلب جميع الأغلفة المفقودة",
-    "noCover": "لا يوجد غلاف",
+    "noCover": "بدون غلاف فقط",
     "fetchingCovers": "جارٍ جلب الأغلفة… ({{current}} / {{total}})",
     "fetchCoversResult": "تم جلب {{count}} غلاف",
     "fetchCoversFailed": "فشل جلب الأغلفة",
@@ -420,7 +420,8 @@
       "remove": "إزالة المجلد من المكتبة",
       "removeConfirm": "انقر مرة أخرى للتأكيد"
     },
-    "skeletonAriaLabel": "جارٍ تحميل {{name}}…"
+    "skeletonAriaLabel": "جارٍ تحميل {{name}}…",
+    "noCoverTooltip": "إظهار الألبومات التي ليس لها غلاف فقط"
   },
   "liked": {
     "badge": "المجموعة",

@@ -420,7 +420,8 @@
       "remove": "Quitar carpeta de la biblioteca",
       "removeConfirm": "Haz clic de nuevo para confirmar"
     },
-    "skeletonAriaLabel": "Cargando {{name}}…"
+    "skeletonAriaLabel": "Cargando {{name}}…",
+    "noCoverTooltip": "Mostrar solo álbumes sin portada"
   },
   "liked": {
     "badge": "Colección",

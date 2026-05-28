@@ -371,7 +371,7 @@
     "searchDeezer": "Deezer'da ara",
     "localFile": "Yerel dosya",
     "fetchMissingCovers": "Eksik tüm kapakları getir",
-    "noCover": "Kapak görseli yok",
+    "noCover": "Kapağı eksik",
     "fetchingCovers": "Kapaklar getiriliyor… ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} kapak getirildi",
     "fetchCoversFailed": "Kapakları getirme başarısız oldu",
@@ -420,7 +420,8 @@
       "remove": "Klasörü kütüphaneden çıkar",
       "removeConfirm": "Onaylamak için tekrar tıkla"
     },
-    "skeletonAriaLabel": "{{name}} yükleniyor…"
+    "skeletonAriaLabel": "{{name}} yükleniyor…",
+    "noCoverTooltip": "Yalnızca kapağı olmayan albümleri göster"
   },
   "liked": {
     "badge": "Koleksiyon",

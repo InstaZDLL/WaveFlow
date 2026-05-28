@@ -371,7 +371,7 @@
     "searchDeezer": "Auf Deezer suchen",
     "localFile": "Lokale Datei",
     "fetchMissingCovers": "Alle fehlenden Cover abrufen",
-    "noCover": "Kein Cover",
+    "noCover": "Fehlende Cover",
     "fetchingCovers": "Cover werden abgerufen… ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} Cover abgerufen",
     "fetchCoversFailed": "Cover konnten nicht abgerufen werden",
@@ -420,7 +420,8 @@
       "remove": "Ordner aus Bibliothek entfernen",
       "removeConfirm": "Zur Bestätigung erneut klicken"
     },
-    "skeletonAriaLabel": "{{name}} werden geladen…"
+    "skeletonAriaLabel": "{{name}} werden geladen…",
+    "noCoverTooltip": "Nur Alben ohne Cover anzeigen"
   },
   "liked": {
     "badge": "Sammlung",

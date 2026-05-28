@@ -23,6 +23,7 @@ import {
   EyeOff,
   Trash2,
   ImageIcon,
+  ImageOff,
   ArrowUpDown,
   ArrowDown,
   ArrowUp,
@@ -647,14 +648,27 @@ export function LibraryView({
           {activeTab === "albums" && (
             <>
               <div className="flex items-center justify-end space-x-3 -mt-4">
-                <label className="inline-flex items-center space-x-2 cursor-pointer select-none text-sm text-zinc-600 dark:text-zinc-300">
+                {/* Filter to ONLY albums missing artwork (so the user can
+                    bulk-fix them via "Récupérer toutes les pochettes
+                    manquantes" or per-album Deezer search). The label
+                    plus icon plus tooltip together make the direction
+                    of the filter explicit — see #170 where "No cover"
+                    on its own read as "hide no-cover albums". */}
+                <label
+                  className="inline-flex items-center space-x-2 cursor-pointer select-none text-sm text-zinc-600 dark:text-zinc-300"
+                  title={t("library.noCoverTooltip")}
+                >
                   <input
                     type="checkbox"
                     checked={albumsNoCoverFilter}
                     onChange={(e) => setAlbumsNoCoverFilter(e.target.checked)}
                     className="accent-emerald-500"
+                    aria-describedby="albums-no-cover-tooltip"
                   />
-                  <span>{t("library.noCover")}</span>
+                  <ImageOff size={14} aria-hidden="true" />
+                  <span id="albums-no-cover-tooltip">
+                    {t("library.noCover")}
+                  </span>
                 </label>
                 <SortDropdown
                   options={albumSortOptions(t)}
