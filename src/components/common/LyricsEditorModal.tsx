@@ -522,7 +522,7 @@ export function LyricsEditorModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="lyrics-editor-title"
-        className="relative bg-white dark:bg-surface-dark-elevated text-zinc-900 dark:text-zinc-100 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
+        className="relative bg-white dark:bg-surface-dark-elevated text-zinc-900 dark:text-zinc-100 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl w-full max-w-3xl max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
@@ -563,14 +563,20 @@ export function LyricsEditorModal({
           />
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 min-h-75">
+        {/* Body — flex-1 so it absorbs the leftover height between the
+            header/tabs and the footer (and the synced controls when
+            visible) without ever pushing the action bar off-screen.
+            Plain-mode textarea fills the body via `h-full`; in synced
+            mode the row list scrolls inside this same scroll container.
+            See #172 — a fixed `h-[50vh]` here hid the footer on 1080p
+            + Windows display scaling. */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-6">
           {mode === "plain" ? (
             <textarea
               value={plainText}
               onChange={(e) => setPlainText(e.target.value)}
               placeholder={t("lyricsEditor.plainPlaceholder")}
-              className="w-full h-[50vh] resize-none rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 p-4 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full h-full min-h-48 resize-none rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 p-4 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-pink-500"
             />
           ) : (
             <>
