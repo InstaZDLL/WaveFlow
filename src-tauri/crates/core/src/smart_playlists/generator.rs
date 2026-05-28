@@ -268,9 +268,11 @@ async fn generate_one_mix(
     let rules = SmartPlaylistRules::DailyMix {
         slot: bucket.slot(),
     };
+    // Catch-all `Other` for serde failures (matching `on_repeat.rs`);
+    // unreachable in practice but propagated rather than placeholder-ed.
     let rules_json = rules
         .to_json()
-        .map_err(|e| crate::error::CoreError::Audio(format!("smart rules serialize: {e}")))?;
+        .map_err(|e| crate::error::CoreError::Other(format!("smart rules serialize: {e}")))?;
     let needle = format!("\"slot\":{}", bucket.slot());
     let id = upsert_smart_playlist(
         pool,

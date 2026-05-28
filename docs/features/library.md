@@ -19,7 +19,7 @@ The library is a per-profile SQLite database (`<root>/profiles/<id>/data.db`) ke
 
 ## Multi-artist
 
-The scanner splits `"Artist A, Artist B"` (and `;` / `feat.` / `&` variants) on insert. Each contributor lands in its own `artist` row, linked to the track via the `track_artist` many-to-many table with a `position` column for stable ordering. Queries rebuild the display string with `GROUP_CONCAT(...) ORDER BY position`. The `ArtistLink` React component receives parallel `artist_name` + `artist_ids` strings so every contributor is individually clickable, matching Spotify's behaviour.
+The scanner splits multi-artist tag values on `"; "` only — the convention used by MusicBrainz Picard, foobar2000, Beets and Mp3Tag for multi-value artist fields. `"Artist A; Artist B"` becomes two `artist` rows linked to the track via the `track_artist` many-to-many table with a `position` column for stable ordering. `", "` is deliberately NOT a separator because a comma can be part of an artist name (`"Tyler, The Creator"`, `"Earth, Wind & Fire"`, `"Crosby, Stills, Nash & Young"`); the earlier comma-split silently fragmented those into multiple artists. Libraries that comma-joined their multi-artist fields will see those tracks under the combined-name artist until re-tagged with `"; "`. Queries rebuild the display string with `GROUP_CONCAT(...) ORDER BY position`. The `ArtistLink` React component receives parallel `artist_name` + `artist_ids` strings so every contributor is individually clickable, matching Spotify's behaviour.
 
 ## Browsing
 

@@ -96,9 +96,14 @@ pub async fn regenerate_on_repeat(
     };
 
     let rules = SmartPlaylistRules::OnRepeat;
+    // `CoreError::Audio` would be a category mismatch for a serde
+    // serialization failure; `Other` is the catch-all here. The path is
+    // unreachable in practice (every variant derives `Serialize` over
+    // plain owned data) but we propagate rather than fall back to a
+    // placeholder blob — see `SmartPlaylistRules::to_json` doc.
     let rules_json = rules
         .to_json()
-        .map_err(|e| CoreError::Audio(format!("smart rules serialize: {e}")))?;
+        .map_err(|e| CoreError::Other(format!("smart rules serialize: {e}")))?;
     let id = generator::upsert_smart_playlist(
         pool,
         "On Repeat",
