@@ -11,12 +11,17 @@
       "extra-files": [
         {
           "type": "json",
-          "path": "src-tauri/tauri.conf.json",
+          "path": "src-tauri/crates/app/tauri.conf.json",
           "jsonpath": "$.version"
         },
         {
           "type": "toml",
-          "path": "src-tauri/Cargo.toml",
+          "path": "src-tauri/crates/app/Cargo.toml",
+          "jsonpath": "$.package.version"
+        },
+        {
+          "type": "toml",
+          "path": "src-tauri/crates/core/Cargo.toml",
           "jsonpath": "$.package.version"
         },
         {
