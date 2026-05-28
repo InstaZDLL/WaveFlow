@@ -1132,8 +1132,11 @@ pub async fn player_set_gapless(
 
 /// Snapshot returned by `player_get_eq` so the Settings view can
 /// hydrate the curve + bypass + preset dropdown without three
-/// round-trips.
-#[derive(Debug, serde::Serialize)]
+/// round-trips. Also broadcast verbatim on `player:eq` after every
+/// mutation so the popup + Settings stay in sync when both are open
+/// (issue #166 — turning the EQ on from the player-bar popup left the
+/// Settings card showing "off" until it was re-mounted).
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct EqSnapshot {
     pub enabled: bool,
     pub bands_db: Vec<f32>,
@@ -1142,16 +1145,17 @@ pub struct EqSnapshot {
     pub presets: Vec<EqPresetEntry>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct EqPresetEntry {
     pub key: String,
     pub gains: Vec<f32>,
 }
 
-#[tauri::command]
-pub async fn player_get_eq(engine: tauri::State<'_, Arc<AudioEngine>>) -> AppResult<EqSnapshot> {
+/// Build the same payload `player_get_eq` returns so the setters can
+/// emit it on `player:eq`. Reading is lock-free (atomic loads) so
+/// taking a fresh snapshot per mutation is cheap.
+fn build_eq_snapshot(engine: &AudioEngine) -> EqSnapshot {
     let eq = &engine.shared().eq;
-    let bands = eq.read_bands_db().to_vec();
     let presets = crate::audio::eq::PRESETS
         .iter()
         .map(|(k, g)| EqPresetEntry {
@@ -1159,28 +1163,44 @@ pub async fn player_get_eq(engine: tauri::State<'_, Arc<AudioEngine>>) -> AppRes
             gains: g.to_vec(),
         })
         .collect();
-    Ok(EqSnapshot {
+    EqSnapshot {
         enabled: eq.is_enabled(),
-        bands_db: bands,
+        bands_db: eq.read_bands_db().to_vec(),
         band_freqs: crate::audio::eq::BAND_FREQS.to_vec(),
         max_gain_db: crate::audio::eq::MAX_GAIN_DB,
         presets,
-    })
+    }
+}
+
+/// Fire `player:eq` so every mounted EQ surface (Settings card +
+/// player-bar popup) refreshes from the same snapshot. Errors are
+/// silently dropped — emit only fails when the app is shutting down,
+/// at which point a stale UI is irrelevant.
+fn emit_eq(app: &AppHandle, engine: &AudioEngine) {
+    let _ = app.emit("player:eq", build_eq_snapshot(engine));
+}
+
+#[tauri::command]
+pub async fn player_get_eq(engine: tauri::State<'_, Arc<AudioEngine>>) -> AppResult<EqSnapshot> {
+    Ok(build_eq_snapshot(&engine))
 }
 
 #[tauri::command]
 pub async fn player_set_eq_enabled(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     enabled: bool,
 ) -> AppResult<()> {
     engine.shared().eq.set_enabled(enabled);
     persist_eq(&state, engine.shared()).await;
+    emit_eq(&app, &engine);
     Ok(())
 }
 
 #[tauri::command]
 pub async fn player_set_eq_band(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     index: usize,
@@ -1188,11 +1208,13 @@ pub async fn player_set_eq_band(
 ) -> AppResult<()> {
     engine.shared().eq.set_band_db(index, gain_db);
     persist_eq(&state, engine.shared()).await;
+    emit_eq(&app, &engine);
     Ok(())
 }
 
 #[tauri::command]
 pub async fn player_set_eq_preset(
+    app: AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
     preset_key: String,
@@ -1200,6 +1222,7 @@ pub async fn player_set_eq_preset(
     if let Some(gains) = crate::audio::eq::preset_gains(&preset_key) {
         engine.shared().eq.set_all_bands_db(&gains);
         persist_eq(&state, engine.shared()).await;
+        emit_eq(&app, &engine);
     }
     Ok(())
 }
