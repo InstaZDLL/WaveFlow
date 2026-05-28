@@ -427,7 +427,7 @@ fn canonical_path_key(p: &std::path::Path) -> String {
             // \\?\C:\... → C:\...
             return s[4..].to_lowercase();
         }
-        return s.to_lowercase();
+        s.to_lowercase()
     }
     #[cfg(not(windows))]
     {

@@ -66,6 +66,12 @@ pub struct LastfmClient {
     http: reqwest::Client,
 }
 
+impl Default for LastfmClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LastfmClient {
     pub fn new() -> Self {
         let http = reqwest::Client::builder()

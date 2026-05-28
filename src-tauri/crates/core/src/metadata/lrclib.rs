@@ -35,6 +35,12 @@ pub struct LrclibClient {
     http: reqwest::Client,
 }
 
+impl Default for LrclibClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LrclibClient {
     pub fn new() -> Self {
         let http = reqwest::Client::builder()

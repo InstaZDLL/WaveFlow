@@ -436,8 +436,8 @@ mod tests {
 
         let hash_dup = build_composite_cover(&[src.clone(), src.clone(), src.clone()], dir.path())
             .expect("dup composite");
-        let hash_single =
-            build_composite_cover(&[src.clone()], dir.path()).expect("single composite");
+        let hash_single = build_composite_cover(std::slice::from_ref(&src), dir.path())
+            .expect("single composite");
         assert_eq!(
             hash_dup, hash_single,
             "duplicate inputs should collapse to the single-tile composite"
