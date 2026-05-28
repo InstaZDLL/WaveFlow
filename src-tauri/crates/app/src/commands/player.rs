@@ -1219,11 +1219,14 @@ pub async fn player_set_eq_preset(
     engine: tauri::State<'_, Arc<AudioEngine>>,
     preset_key: String,
 ) -> AppResult<()> {
-    if let Some(gains) = crate::audio::eq::preset_gains(&preset_key) {
-        engine.shared().eq.set_all_bands_db(&gains);
-        persist_eq(&state, engine.shared()).await;
-        emit_eq(&app, &engine);
-    }
+    let Some(gains) = crate::audio::eq::preset_gains(&preset_key) else {
+        return Err(AppError::Other(format!(
+            "unknown EQ preset: {preset_key}"
+        )));
+    };
+    engine.shared().eq.set_all_bands_db(&gains);
+    persist_eq(&state, engine.shared()).await;
+    emit_eq(&app, &engine);
     Ok(())
 }
 
