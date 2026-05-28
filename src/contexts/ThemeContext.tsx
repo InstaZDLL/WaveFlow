@@ -124,13 +124,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const toggleTheme = useCallback(
     (event?: ReactMouseEvent) => {
-      // Binary toggle for the existing topbar button: flip between
-      // the two default presets. Custom themes are picked from the
-      // Settings appearance panel, not from the topbar.
-      const nextId = theme.mode === "dark" ? "default" : "default-dark";
+      // Binary topbar toggle: flip to the current preset's opposite-mode
+      // counterpart (the `pair` field on `ThemePreset`) so picking
+      // "Lavender" then clicking the sun toggle lands on "Lavender Light"
+      // instead of resetting to the global Émeraude default — the v1.3.0
+      // behaviour that lost the user's theme family on every click.
+      // One-off presets without a mirrored variant (OLED black, Neon)
+      // fall back to the global `default` / `default-dark` swap so the
+      // toggle still does something sensible.
+      const nextId =
+        theme.pair ?? (theme.mode === "dark" ? "default" : "default-dark");
       setThemeId(nextId, event);
     },
-    [theme.mode, setThemeId],
+    [theme.pair, theme.mode, setThemeId],
   );
 
   const isDark = theme.mode === "dark";

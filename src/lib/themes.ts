@@ -79,6 +79,15 @@ export interface ThemePreset {
    * tinted body.
    */
   surfaceLightElevated?: string | null;
+  /**
+   * Id of the opposite-mode counterpart for this preset. Drives the
+   * top-bar sun/moon binary toggle: clicking it on `lavender` (dark)
+   * flips to `lavender-light` rather than resetting to the default
+   * Émeraude palette. Leave undefined for one-off presets that have
+   * no mirrored variant (OLED black, Neon dark) — the toggle falls
+   * back to the global `default` / `default-dark` pair in that case.
+   */
+  pair?: string;
 }
 
 const EMERALD = {
@@ -201,6 +210,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     mode: "light",
     accent: EMERALD,
     ambient: null,
+    pair: "default-dark",
   },
   // Light variants use Tailwind's "-100" shade as the ambient. The
   // "-50" range was so close to pure white that the theme was
@@ -221,6 +231,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: INDIGO,
     ambient: "#e0e7ff", // indigo-100
     surfaceLight: "#e0e7ff",
+    pair: "midnight",
   },
   {
     id: "sunset-light",
@@ -229,6 +240,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: AMBER,
     ambient: "#fef3c7", // amber-100
     surfaceLight: "#fef3c7",
+    pair: "sunset",
   },
   {
     id: "lavender-light",
@@ -237,6 +249,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: VIOLET,
     ambient: "#ede9fe", // violet-100
     surfaceLight: "#ede9fe",
+    pair: "lavender",
   },
   {
     id: "crimson-light",
@@ -245,6 +258,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: ROSE,
     ambient: "#ffe4e6", // rose-100
     surfaceLight: "#ffe4e6",
+    pair: "crimson",
   },
   {
     id: "ocean-light",
@@ -253,6 +267,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     accent: SKY,
     ambient: "#e0f2fe", // sky-100
     surfaceLight: "#e0f2fe",
+    pair: "ocean",
   },
   // ── Dark row ─────────────────────────────────────────────────────
   {
@@ -261,6 +276,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     mode: "dark",
     accent: EMERALD,
     ambient: null,
+    pair: "default",
   },
   {
     id: "oled",
@@ -281,6 +297,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     ambient: "#0b1020",
     surfaceDark: "#0b1020",
     surfaceDarkElevated: "#141a2e",
+    pair: "midnight-light",
   },
   {
     id: "sunset",
@@ -290,6 +307,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     ambient: "#1a0e08",
     surfaceDark: "#1a0e08",
     surfaceDarkElevated: "#241612",
+    pair: "sunset-light",
   },
   {
     id: "lavender",
@@ -299,6 +317,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     ambient: "#15101e",
     surfaceDark: "#15101e",
     surfaceDarkElevated: "#1f1828",
+    pair: "lavender-light",
   },
   {
     id: "crimson",
@@ -308,6 +327,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     ambient: "#19090c",
     surfaceDark: "#19090c",
     surfaceDarkElevated: "#241016",
+    pair: "crimson-light",
   },
   {
     id: "ocean",
@@ -317,6 +337,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     ambient: "#081420",
     surfaceDark: "#081420",
     surfaceDarkElevated: "#0f1c30",
+    pair: "ocean-light",
   },
   {
     id: "neon",
