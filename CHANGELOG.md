@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.4.0](https://github.com/InstaZDLL/WaveFlow/compare/v1.3.0...v1.4.0) (2026-05-28)
+
+
+### Features
+
+* **packaging:** add flatpak manifest for flathub ([#164](https://github.com/InstaZDLL/WaveFlow/issues/164)) ([5cfa5b4](https://github.com/InstaZDLL/WaveFlow/commit/5cfa5b49b50d070519458972be564528b6dc5978))
+
+
+### Bug Fixes
+
+* 1.4.0 release blockers (Jo-El bugs [#166](https://github.com/InstaZDLL/WaveFlow/issues/166), [#170](https://github.com/InstaZDLL/WaveFlow/issues/170), [#172](https://github.com/InstaZDLL/WaveFlow/issues/172)) ([c5bcaf1](https://github.com/InstaZDLL/WaveFlow/commit/c5bcaf171a7a1b782dc14d5776f4e651c6b4f52b))
+* change file mode from 755 to 644 ([80bd6aa](https://github.com/InstaZDLL/WaveFlow/commit/80bd6aaa03c8242c82e24ace26f310e4444e4443))
+* **deps:** update typescript-eslint to latest versions ([e919b96](https://github.com/InstaZDLL/WaveFlow/commit/e919b96f263e8635be86e2d5988f3137aa4b7330))
+* **eq:** broadcast snapshot so popup + Settings stay in sync ([a19fe28](https://github.com/InstaZDLL/WaveFlow/commit/a19fe281e75a34cc5a0cebe3d670d6c8a6093dff)), closes [#166](https://github.com/InstaZDLL/WaveFlow/issues/166)
+* **eq:** reject unknown preset keys instead of silently no-op ([d63ec98](https://github.com/InstaZDLL/WaveFlow/commit/d63ec98450b7cd1affd41e6586f4be8f4a6fb0a6))
+* **flatpak:** change script file permissions from executable to non-executable ([9215754](https://github.com/InstaZDLL/WaveFlow/commit/9215754b890d4b57e712f0981b645dac88f0729d))
+* **library:** clarify "No cover" filter direction ([e53a04e](https://github.com/InstaZDLL/WaveFlow/commit/e53a04e3477da8d93d64fef6235294283f5eb7e0)), closes [#170](https://github.com/InstaZDLL/WaveFlow/issues/170)
+* **library:** remove "no cover" filter from albums tab ([e435a35](https://github.com/InstaZDLL/WaveFlow/commit/e435a357d4af1e4335be91b4abf3da8b42fdc32f)), closes [#170](https://github.com/InstaZDLL/WaveFlow/issues/170)
+* **lyrics-editor:** keep footer visible on 1080p displays ([5f5c9f0](https://github.com/InstaZDLL/WaveFlow/commit/5f5c9f02cd78d80d9faea4c8d870c5095fb72179)), closes [#172](https://github.com/InstaZDLL/WaveFlow/issues/172)
+* **review:** address CodeRabbit findings on Phase 1.a ([8dbbc32](https://github.com/InstaZDLL/WaveFlow/commit/8dbbc3276a97bb83d94a50db4f5a9a604b9beb85))
+* **review:** apply CodeRabbit feedback on Phase 1.a ([81dd967](https://github.com/InstaZDLL/WaveFlow/commit/81dd9678dd63c71e8904fb74800d6b818fe19c87))
+* **review:** second pass on CodeRabbit findings ([3c632f1](https://github.com/InstaZDLL/WaveFlow/commit/3c632f152d3ae15bac5db55128098d5c11fc8e4b))
+* **review:** third pass — CoreError category + docs sync ([3ec5f3c](https://github.com/InstaZDLL/WaveFlow/commit/3ec5f3cccaf3b9d810d18c5fea62447eff3a8990))
+* **ui:** preserve theme family on topbar sun/moon toggle ([76fa5e7](https://github.com/InstaZDLL/WaveFlow/commit/76fa5e7797b49dd8ea4a25648775abb6e421fffc))
+
 ## [1.3.0](https://github.com/InstaZDLL/WaveFlow/compare/v1.2.0...v1.3.0) (2026-05-26)
 
 ### Features
