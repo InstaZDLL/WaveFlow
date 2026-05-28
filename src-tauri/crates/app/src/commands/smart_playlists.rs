@@ -107,10 +107,14 @@ pub async fn create_custom_smart_playlist(
     let now = chrono::Utc::now().timestamp_millis();
     let color_id = input.color_id.unwrap_or_else(|| "violet".to_string());
     let icon_id = input.icon_id.unwrap_or_else(|| "sparkles".to_string());
+    // Serialize before the INSERT so a malformed Custom rules payload
+    // surfaces as a clean error instead of an unrecognisable
+    // smart_rules blob written to the row.
     let rules_json = SmartPlaylistRules::Custom {
         rules: input.rules.clone(),
     }
-    .to_json();
+    .to_json()
+    .map_err(|e| AppError::Other(format!("smart rules serialize: {e}")))?;
 
     let insert = sqlx::query(
         "INSERT INTO playlist
@@ -170,7 +174,8 @@ pub async fn update_custom_smart_playlist(
     let rules_json = SmartPlaylistRules::Custom {
         rules: input.rules.clone(),
     }
-    .to_json();
+    .to_json()
+    .map_err(|e| AppError::Other(format!("smart rules serialize: {e}")))?;
     let name = input.name.trim().to_string();
     if name.is_empty() {
         return Err(AppError::Other("playlist name cannot be empty".into()));

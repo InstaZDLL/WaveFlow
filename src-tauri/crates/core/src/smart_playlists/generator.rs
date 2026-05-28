@@ -268,6 +268,9 @@ async fn generate_one_mix(
     let rules = SmartPlaylistRules::DailyMix {
         slot: bucket.slot(),
     };
+    let rules_json = rules
+        .to_json()
+        .map_err(|e| crate::error::CoreError::Audio(format!("smart rules serialize: {e}")))?;
     let needle = format!("\"slot\":{}", bucket.slot());
     let id = upsert_smart_playlist(
         pool,
@@ -276,7 +279,7 @@ async fn generate_one_mix(
         &needle,
         bucket.slot() as i64,
         cover_hash.as_deref(),
-        &rules.to_json(),
+        &rules_json,
         &shuffled,
     )
     .await?;
@@ -650,7 +653,9 @@ mod tests {
 
     #[test]
     fn rules_json_contains_slot_for_lookup() {
-        let json = SmartPlaylistRules::DailyMix { slot: 2 }.to_json();
+        let json = SmartPlaylistRules::DailyMix { slot: 2 }
+            .to_json()
+            .expect("serialize");
         // The upsert query LIKEs on `"slot":N` — guard the format here so
         // a serde rename doesn't silently break refresh-in-place behaviour.
         assert!(

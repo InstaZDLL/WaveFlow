@@ -494,9 +494,12 @@ pub async fn set_track_rating(
         //     same one we'd update through anyway, so go via the helper
         //     in `edit` to keep the rehash + DB write in one place.
         if tag_written {
-            if let Err(err) = super::edit::rehash_track_file(&pool, track_id, &path).await {
-                tracing::warn!(track_id, ?err, "rehash after rating tag write failed");
-            }
+            // Propagate any rehash error — if we wrote to the file
+            // but can't read it back to recompute the hash, the
+            // scanner would mis-detect the row as new on its next
+            // pass. Better to surface the failure to the user (and
+            // skip the DB rating update below) than silently drift.
+            super::edit::rehash_track_file(&pool, track_id, &path).await?;
         }
     }
 

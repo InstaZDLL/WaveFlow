@@ -127,11 +127,11 @@ pub async fn update_track_tags(
     // 3b. The file has changed on disk; recompute its hash so the
     //     scanner's (mtime, size, hash) fast path keeps matching and
     //     the shared lyrics cache (keyed on file_hash) doesn't drift.
-    //     Failure here is non-fatal — log and continue with the tag/DB
-    //     sync below; a follow-up scan will pick up the new hash.
-    if let Err(err) = rehash_track_file(&pool, track_id, &path).await {
-        tracing::warn!(track_id, ?err, "rehash after tag write failed");
-    }
+    //     Propagate the error — if we can't even read the file we
+    //     just wrote, something serious is wrong (disk full, perms,
+    //     file deleted mid-write) and continuing would silently leave
+    //     `track.file_hash` pointing at a stale digest.
+    rehash_track_file(&pool, track_id, &path).await?;
 
     // 4. DB sync. Run inside a transaction so a partial failure
     //    (artist resolved but album INSERT racing) doesn't leave the
@@ -227,10 +227,16 @@ pub async fn update_tracks_batch(
         }
 
         // Rehash the file before the DB sync so the new hash lands
-        // alongside the metadata update. Failure here is non-fatal
-        // (logged) — the metadata commit still proceeds.
+        // alongside the metadata update. Batch mode: record the
+        // failure on this row's slot in `errors` and skip the DB
+        // sync — without a fresh hash the DB would point at a
+        // file we can't address anymore, and the scanner would
+        // either pick it up as "new" or never reconcile.
         if let Err(err) = rehash_track_file(&pool, *track_id, &path).await {
-            tracing::warn!(track_id = *track_id, ?err, "batch rehash failed");
+            summary
+                .errors
+                .push((*track_id, format!("rehash failed: {err}")));
+            continue;
         }
 
         if let Err(err) = sync_db(&pool, *track_id, &edit).await {
@@ -595,10 +601,10 @@ pub async fn update_track_cover(
     // The audio file itself just changed (a new picture frame was
     // embedded), so its blake3 hash drifted. Recompute and persist so
     // the scanner's fast-path and the lyrics cache (keyed on file_hash)
-    // stay valid. Non-fatal — a rescan would recover.
-    if let Err(err) = rehash_track_file(&pool, track_id, std::path::Path::new(&file_path)).await {
-        tracing::warn!(track_id, ?err, "rehash after cover write failed");
-    }
+    // stay valid. Propagate the error — leaving `track.file_hash`
+    // pointing at the pre-write digest would silently invalidate the
+    // lyrics cache for this row and confuse the next scan pass.
+    rehash_track_file(&pool, track_id, std::path::Path::new(&file_path)).await?;
 
     // Hash + persist the bytes in the shared artwork cache. blake3
     // makes "same image, different file" deduplicate naturally.

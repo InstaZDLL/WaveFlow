@@ -12,7 +12,7 @@ use chrono::Utc;
 use sqlx::{FromRow, SqlitePool};
 
 use super::{cover, generator, PathsContext, SmartPlaylistRules};
-use crate::error::CoreResult;
+use crate::error::{CoreError, CoreResult};
 
 /// Short lookback so "On Repeat" reflects what the user is actually
 /// rotating right now — a 90-day window would let last quarter's binges
@@ -96,6 +96,9 @@ pub async fn regenerate_on_repeat(
     };
 
     let rules = SmartPlaylistRules::OnRepeat;
+    let rules_json = rules
+        .to_json()
+        .map_err(|e| CoreError::Audio(format!("smart rules serialize: {e}")))?;
     let id = generator::upsert_smart_playlist(
         pool,
         "On Repeat",
@@ -106,7 +109,7 @@ pub async fn regenerate_on_repeat(
         "\"kind\":\"on_repeat\"",
         PLAYLIST_POSITION,
         cover_hash.as_deref(),
-        &rules.to_json(),
+        &rules_json,
         &track_ids,
     )
     .await?;
@@ -151,7 +154,7 @@ mod tests {
 
     #[test]
     fn rules_json_carries_on_repeat_kind() {
-        let json = SmartPlaylistRules::OnRepeat.to_json();
+        let json = SmartPlaylistRules::OnRepeat.to_json().expect("serialize");
         assert!(
             json.contains("\"kind\":\"on_repeat\""),
             "OnRepeat serialized incorrectly: {json}"

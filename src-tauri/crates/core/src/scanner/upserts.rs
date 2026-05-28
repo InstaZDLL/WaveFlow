@@ -41,20 +41,24 @@ pub fn canonical_name(s: &str) -> String {
         .join(" ")
 }
 
-/// Split a raw artist string like `"Elior, DJ Garlik"` into individual
-/// names. Conservative: only splits on the literal sequences `", "` and
-/// `"; "` so that artist names containing `&`, `/`, `feat.`, or a bare
-/// comma (e.g. `"Tyler, The Creator"`, `"AC/DC"`, `"Simon & Garfunkel"`)
-/// stay intact. The earlier `split([',', ';'])` shape over-split anything
-/// whose own name contained a comma — `"Tyler, The Creator"` came out as
-/// two artists, which then collapsed `Tyler` and `The Creator` into
-/// separate rows on the artist tab.
+/// Split a raw artist string into individual names. Only `"; "` is
+/// honoured as a separator — the convention used by MusicBrainz Picard,
+/// foobar2000, Beets and Mp3Tag for multi-value artist fields. We
+/// deliberately do **not** split on `", "` even though plenty of
+/// ad-hoc taggers use it, because a comma can be part of the name
+/// itself (`"Tyler, The Creator"`, `"Earth, Wind & Fire"`,
+/// `"Crosby, Stills, Nash & Young"`); the earlier comma split
+/// silently fragmented those into multiple artists.
+///
+/// Libraries that stored multi-artist values comma-joined will see
+/// every track listed under the combined-name artist; the user can
+/// re-tag with `; ` (the round-trip is documented in CLAUDE.md and
+/// `docs/features/library.md`) to opt back in to per-artist linking.
 ///
 /// Returns the trimmed, non-empty names in the order they appeared —
 /// the first entry is treated as the primary artist by the caller.
 pub fn split_artist_name(raw: &str) -> Vec<String> {
-    raw.split(", ")
-        .flat_map(|s| s.split("; "))
+    raw.split("; ")
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
         .map(|s| s.to_string())
