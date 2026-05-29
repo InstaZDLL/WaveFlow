@@ -25,9 +25,10 @@ User-facing references and per-feature deep dives. The top-level [README](../REA
 
 Long-form design documents that lock in cross-cutting architectural decisions before implementation. New RFCs live under [`rfcs/`](rfcs/) and are numbered sequentially.
 
-| RFC                                                          | Status   | Scope                                                                                       |
-| ------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------- |
-| [RFC-001 — WaveFlow Server](rfcs/RFC-001-waveflow-server.md) | Accepted | Server stack, web app stack, auth boundary, sync protocol, streaming, Phase 1 delivery plan |
+| RFC                                                          | Status   | Scope                                                                                                    |
+| ------------------------------------------------------------ | -------- | -------------------------------------------------------------------------------------------------------- |
+| [RFC-001 — WaveFlow Server](rfcs/RFC-001-waveflow-server.md) | Accepted | Server stack, web app stack, auth boundary, sync protocol, streaming, Phase 1 delivery plan              |
+| [RFC-002 — Plugin SDK](rfcs/RFC-002-plugin-sdk.md)           | Draft    | WASM Component Model plugins for sources / metadata / UI, sideload distribution, desktop ↔ server parity |
 
 ## Contributing
 
