@@ -35,7 +35,7 @@ This RFC locks in the plugin architecture **before any plugin code lands** so th
 
 ## 4. Architecture overview
 
-```text
+```bash
                                 ┌─────────────────────────────────────────────┐
                                 │  ~/.config/waveflow/plugins/                │
                                 │    webradio/                                │
@@ -80,11 +80,11 @@ This RFC locks in the plugin architecture **before any plugin code lands** so th
 
 No new top-level repo for v1. Everything lands inside the existing two:
 
-| Repo                | Path                                                                                   | Purpose                                                                                            |
-| ------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `waveflow`          | `src-tauri/crates/core/src/plugin/`                                                    | `PluginHost`, runtime, WIT bindings, type-level traits. Lives in core so the server consumes them. |
-| `waveflow`          | `src-tauri/crates/plugin-sdk/`                                                         | Rust crate published to crates.io as `waveflow-plugin`. WIT files + guest macros + dev harness.    |
-| _(authors' repos)_  | independent                                                                            | Each plugin author owns their repo. We provide a `cargo generate` template + CI examples.          |
+| Repo               | Path                                | Purpose                                                                                            |
+| ------------------ | ----------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `waveflow`         | `src-tauri/crates/core/src/plugin/` | `PluginHost`, runtime, WIT bindings, type-level traits. Lives in core so the server consumes them. |
+| `waveflow`         | `src-tauri/crates/plugin-sdk/`      | Rust crate published to crates.io as `waveflow-plugin`. WIT files + guest macros + dev harness.    |
+| _(authors' repos)_ | independent                         | Each plugin author owns their repo. We provide a `cargo generate` template + CI examples.          |
 
 The WIT files (`.wit`) are the public contract. They are duplicated nowhere — both core and SDK consume the same files from `crates/plugin-sdk/wit/`.
 
@@ -219,11 +219,11 @@ interface extension {
 
 Plugins import three host capabilities, declared in their manifest and gated at instantiation:
 
-| Import                        | What it does                                                            | Sensitive?                                            |
-| ----------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------- |
-| `waveflow:host/http@1.0.0`    | Async HTTPS GET / POST with a per-plugin allow-list of origins.         | Yes — controls who the plugin talks to.               |
-| `waveflow:host/log@1.0.0`     | `info`, `warn`, `error` log functions routed to the host tracing crate. | No — log only.                                        |
-| `waveflow:host/storage@1.0.0` | Key-value store scoped to the plugin. ~1 MB cap default.                | No — sandboxed to the plugin's own namespace.         |
+| Import                        | What it does                                                            | Sensitive?                                    |
+| ----------------------------- | ----------------------------------------------------------------------- | --------------------------------------------- |
+| `waveflow:host/http@1.0.0`    | Async HTTPS GET / POST with a per-plugin allow-list of origins.         | Yes — controls who the plugin talks to.       |
+| `waveflow:host/log@1.0.0`     | `info`, `warn`, `error` log functions routed to the host tracing crate. | No — log only.                                |
+| `waveflow:host/storage@1.0.0` | Key-value store scoped to the plugin. ~1 MB cap default.                | No — sandboxed to the plugin's own namespace. |
 
 WASI 0.2 `wasi:filesystem` and `wasi:sockets` are **not** exposed in v1. A plugin that needs to read the user's filesystem (e.g., a local-files-elsewhere source) has to wait for v2.
 
@@ -266,7 +266,7 @@ The host fingerprints the WASM artifact (BLAKE3) and stores `(id, version, hash,
 
 ### 6.5 Lifecycle
 
-```
+```text
 Boot:
   1. Scan ~/.config/waveflow/plugins/*/manifest.toml
   2. For each:
@@ -336,49 +336,49 @@ Metadata enricher and UI extension examples (a MusicBrainz plugin and a "DJ sets
 
 This RFC lives inside Phase 3 of the project roadmap. Sub-phases mirror RFC-001's structure — each shippable independently, no flag-day cutover.
 
-| Phase   | Scope                                                                                                                                                 | Repos touched                                    | Visible to user?                  |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------- |
-| **3.a** | `crates/plugin-sdk/` skeleton: WIT files, Rust binding crate, `waveflow-plugin dev` harness, `cargo generate` template. No host runtime yet.          | `waveflow`                                       | No (SDK is for authors).          |
-| **3.b** | `waveflow-core::plugin` host: wasmtime runtime, manifest loader, sideload directory scan, lifecycle, host APIs (http + log + storage), fuel timeouts. | `waveflow`                                       | Hidden "Plugins" page in Settings |
-| **3.c** | Source-provider trait wiring: plugin tracks show up in the library search results, play through the engine via on-demand `stream-url`.                | `waveflow`                                       | Web Radio works on desktop        |
-| **3.d** | Metadata-enricher trait wiring: scanner + library refresh pipeline call enabled enrichers after Deezer / Last.fm; per-plugin fallback ranking.        | `waveflow`                                       | Optional MusicBrainz plugin       |
-| **3.e** | UI-extension trait + descriptor renderer in `src/components/plugin/`. Settings → Plugins page (enable / disable, view permissions, plugin config).    | `waveflow`                                       | Plugins UI live                   |
-| **3.f** | Mirror the runtime into `waveflow-server` (RFC-001). Same code, different plugin directory + per-user paths.                                          | `waveflow-server`                                | Plugins on web                    |
+| Phase   | Scope                                                                                                                                                 | Repos touched     | Visible to user?                  |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | --------------------------------- |
+| **3.a** | `crates/plugin-sdk/` skeleton: WIT files, Rust binding crate, `waveflow-plugin dev` harness, `cargo generate` template. No host runtime yet.          | `waveflow`        | No (SDK is for authors).          |
+| **3.b** | `waveflow-core::plugin` host: wasmtime runtime, manifest loader, sideload directory scan, lifecycle, host APIs (http + log + storage), fuel timeouts. | `waveflow`        | Hidden "Plugins" page in Settings |
+| **3.c** | Source-provider trait wiring: plugin tracks show up in the library search results, play through the engine via on-demand `stream-url`.                | `waveflow`        | Web Radio works on desktop        |
+| **3.d** | Metadata-enricher trait wiring: scanner + library refresh pipeline call enabled enrichers after Deezer / Last.fm; per-plugin fallback ranking.        | `waveflow`        | Optional MusicBrainz plugin       |
+| **3.e** | UI-extension trait + descriptor renderer in `src/components/plugin/`. Settings → Plugins page (enable / disable, view permissions, plugin config).    | `waveflow`        | Plugins UI live                   |
+| **3.f** | Mirror the runtime into `waveflow-server` (RFC-001). Same code, different plugin directory + per-user paths.                                          | `waveflow-server` | Plugins on web                    |
 
 Estimated cadence: ~2 weeks per sub-phase = ~3 months for Phase 3. Phases 3.a → 3.c are the v1.5.0 cut; 3.d → 3.f land in 1.6.0+.
 
 ## 8. Open questions (deferred)
 
-| Question                                                                                       | Defer to | Why deferred                                                                                                                            |
-| ---------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Curated registry: discovery surface, signing model, abuse policy.                              | v1.7+    | Need ≥ 3 third-party plugins in the wild before designing a registry — design without real data leads to over-engineering.              |
-| Audio DSP plugin world (`waveflow:dsp/v1`).                                                    | TBD      | The real-time audio thread doesn't allow general WASM. Solving this needs research into compile-time-validated DSP graphs (Faust-like). |
-| Cross-plugin RPC.                                                                              | TBD      | No use case yet. Don't add features looking for users.                                                                                  |
-| Hot reload of running plugins during authoring.                                                | 3.b      | A stretch goal of the `waveflow-plugin dev` harness, not the production host.                                                           |
-| Plugin auto-update (sideload still, but pull manifest version diffs from a user-set URL).      | v1.7+    | Lower priority than registry; users can update by replacing files.                                                                      |
-| What happens when two source plugins claim the same track id.                                  | 3.c      | Need a real conflict to design — most likely first-loaded wins, surface a warning.                                                      |
+| Question                                                                                  | Defer to | Why deferred                                                                                                                            |
+| ----------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Curated registry: discovery surface, signing model, abuse policy.                         | v1.7+    | Need ≥ 3 third-party plugins in the wild before designing a registry — design without real data leads to over-engineering.              |
+| Audio DSP plugin world (`waveflow:dsp/v1`).                                               | TBD      | The real-time audio thread doesn't allow general WASM. Solving this needs research into compile-time-validated DSP graphs (Faust-like). |
+| Cross-plugin RPC.                                                                         | TBD      | No use case yet. Don't add features looking for users.                                                                                  |
+| Hot reload of running plugins during authoring.                                           | 3.b      | A stretch goal of the `waveflow-plugin dev` harness, not the production host.                                                           |
+| Plugin auto-update (sideload still, but pull manifest version diffs from a user-set URL). | v1.7+    | Lower priority than registry; users can update by replacing files.                                                                      |
+| What happens when two source plugins claim the same track id.                             | 3.c      | Need a real conflict to design — most likely first-loaded wins, surface a warning.                                                      |
 
 ## 9. Risks
 
-| Risk                                                                                  | Likelihood | Impact | Mitigation                                                                                                                                                                      |
-| ------------------------------------------------------------------------------------- | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Component Model toolchain breaking changes during 3.a → 3.c                           | Medium     | Medium | Pin `wit-bindgen` and `wasmtime` to exact versions; treat upgrades as scheduled work. Keep the WIT files versioned (`waveflow:source@1.0.0`) so authors aren't broken by host bumps. |
-| Binary size blowup from wasmtime adds 12+ MB to the bundle                            | High       | Low    | Already accepted. Document in the Linux package descriptions. Cut elsewhere (e.g., feature-gate Deezer in `--no-default-features` server builds) if budget tightens.            |
-| Web Radio plugin can't keep up with Radio-Browser API instability                     | Medium     | Medium | Web Radio plugin ships as a separate repo on its own release cadence; SDK can roll forward independently. Plugin caches station lists to weather upstream outages.              |
-| UI descriptor DSL is too restrictive — authors want bespoke React                     | Medium     | Medium | The DSL is intentionally limited in v1. If real plugins hit the ceiling, v2 adds a `block-html` view variant that renders sanitized HTML in a Shadow DOM iframe — opt-in, scoped. |
-| A malicious plugin abuses `waveflow:host/http` allow-list to chain through an open proxy | Low        | High   | The host's HTTP impl rejects non-CONNECT proxies and validates the resolved IP isn't private (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`) before dialing.   |
-| Plugin crash cascades into the host process                                           | Low        | High   | Each plugin runs in its own `wasmtime::Store` with fuel limits + panic = trap. A trap surfaces as `Result::Err` to core; the plugin instance is dropped, the host continues.    |
+| Risk                                                                                     | Likelihood | Impact | Mitigation                                                                                                                                                                           |
+| ---------------------------------------------------------------------------------------- | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Component Model toolchain breaking changes during 3.a → 3.c                              | Medium     | Medium | Pin `wit-bindgen` and `wasmtime` to exact versions; treat upgrades as scheduled work. Keep the WIT files versioned (`waveflow:source@1.0.0`) so authors aren't broken by host bumps. |
+| Binary size blowup from wasmtime adds 12+ MB to the bundle                               | High       | Low    | Already accepted. Document in the Linux package descriptions. Cut elsewhere (e.g., feature-gate Deezer in `--no-default-features` server builds) if budget tightens.                 |
+| Web Radio plugin can't keep up with Radio-Browser API instability                        | Medium     | Medium | Web Radio plugin ships as a separate repo on its own release cadence; SDK can roll forward independently. Plugin caches station lists to weather upstream outages.                   |
+| UI descriptor DSL is too restrictive — authors want bespoke React                        | Medium     | Medium | The DSL is intentionally limited in v1. If real plugins hit the ceiling, v2 adds a `block-html` view variant that renders sanitized HTML in a Shadow DOM iframe — opt-in, scoped.    |
+| A malicious plugin abuses `waveflow:host/http` allow-list to chain through an open proxy | Low        | High   | The host's HTTP impl rejects non-CONNECT proxies and validates the resolved IP isn't private (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`) before dialing.        |
+| Plugin crash cascades into the host process                                              | Low        | High   | Each plugin runs in its own `wasmtime::Store` with fuel limits + panic = trap. A trap surfaces as `Result::Err` to core; the plugin instance is dropped, the host continues.         |
 
 ## 10. Alternatives considered
 
-| Alternative                                          | Why rejected                                                                                                                                                       |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Dynamic libraries (`.so` / `.dll` / `.dylib`)        | Native speed, but no sandbox. A bad plugin segfaults the audio engine. Not portable across desktop / server hosts.                                                 |
-| JavaScript sandbox (Deno-style isolates)             | Doubles the runtime footprint (V8 alongside wasmtime would be ~30 MB extra). WASM Component Model already accepts JS via `componentize-js` without that overhead.  |
-| Lua scripting                                        | Same JS argument but smaller. Loses cross-language compat (no Rust / Go authoring). Custom ABI work for every host call.                                            |
-| Tauri-style plugin (Rust crate compiled into the app) | Forces authors to rebuild WaveFlow. Not user-installable. Defeats the whole purpose.                                                                               |
-| Webhook-style plugins (HTTP server somewhere else)   | Latency, deployment complexity, makes offline-only WaveFlow no longer offline-only. Acceptable for power users but not as the default model.                       |
-| Inline React component injection for UI extensions   | Couples plugin authors to the desktop's React version; impossible on the server without an SSR rendering pass per request. View descriptors decouple cleanly.       |
+| Alternative                                           | Why rejected                                                                                                                                                      |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dynamic libraries (`.so` / `.dll` / `.dylib`)         | Native speed, but no sandbox. A bad plugin segfaults the audio engine. Not portable across desktop / server hosts.                                                |
+| JavaScript sandbox (Deno-style isolates)              | Doubles the runtime footprint (V8 alongside wasmtime would be ~30 MB extra). WASM Component Model already accepts JS via `componentize-js` without that overhead. |
+| Lua scripting                                         | Same JS argument but smaller. Loses cross-language compat (no Rust / Go authoring). Custom ABI work for every host call.                                          |
+| Tauri-style plugin (Rust crate compiled into the app) | Forces authors to rebuild WaveFlow. Not user-installable. Defeats the whole purpose.                                                                              |
+| Webhook-style plugins (HTTP server somewhere else)    | Latency, deployment complexity, makes offline-only WaveFlow no longer offline-only. Acceptable for power users but not as the default model.                      |
+| Inline React component injection for UI extensions    | Couples plugin authors to the desktop's React version; impossible on the server without an SSR rendering pass per request. View descriptors decouple cleanly.     |
 
 ## 11. Glossary
 
