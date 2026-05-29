@@ -12,8 +12,22 @@
 //! the next pass.
 
 pub mod cover;
+
+// `custom` holds the rule-tree types (`CustomRules`, `RuleNode`, …)
+// that `SmartPlaylistRules::Custom` references — keep it always
+// compiled so the enum survives a postgres-only build. The sqlite-
+// specific `materialize` function inside is feature-gated at the
+// function level.
 pub mod custom;
+
+// `generator` and `on_repeat` are wholesale SQLite materialisers —
+// they build queries against a `sqlx::SqlitePool` and write back the
+// resulting smart-playlist rows. Skipped on the postgres-only build
+// (used by `waveflow-server`) until a parallel Postgres regenerator
+// lands later in Phase 1.
+#[cfg(feature = "sqlite")]
 pub mod generator;
+#[cfg(feature = "sqlite")]
 pub mod on_repeat;
 
 use std::path::PathBuf;

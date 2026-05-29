@@ -27,8 +27,14 @@
 //! on-startup pass is the practical compromise.
 
 use serde::{Deserialize, Deserializer, Serialize};
+// `SqlitePool` is only used by the materialiser functions below
+// (`materialize`, `run_query`) — both gated on `feature = "sqlite"`.
+// The rule-tree types in this module are storage-agnostic and stay
+// available in postgres-only builds.
+#[cfg(feature = "sqlite")]
 use sqlx::SqlitePool;
 
+#[cfg(feature = "sqlite")]
 use crate::error::{CoreError, CoreResult};
 
 // =============================================================================
@@ -144,6 +150,7 @@ pub enum CustomSort {
     Random,
 }
 
+#[cfg(feature = "sqlite")]
 fn order_by_sql(sort: &CustomSort) -> &'static str {
     match sort {
         CustomSort::AddedDesc => "t.added_at DESC",
@@ -169,6 +176,7 @@ pub struct CustomRules {
     pub limit: Option<i64>,
 }
 
+#[cfg(feature = "sqlite")]
 const HARD_LIMIT: i64 = 5_000;
 
 // =============================================================================
@@ -321,9 +329,10 @@ fn migrate_legacy(raw: &RawCustomRules) -> RuleNode {
 }
 
 // =============================================================================
-// SQL builder
+// SQL builder (sqlite-only)
 // =============================================================================
 
+#[cfg(feature = "sqlite")]
 enum BindValue {
     Int(i64),
     Real(f64),
@@ -335,6 +344,7 @@ enum BindValue {
 ///
 /// - empty `All` → `"1=1"` (matches all rows)
 /// - empty `Any` → `"0=1"` (matches nothing)
+#[cfg(feature = "sqlite")]
 fn build_node_sql(node: &RuleNode, binds: &mut Vec<BindValue>) -> String {
     match node {
         RuleNode::All { children } => {
@@ -362,6 +372,7 @@ fn build_node_sql(node: &RuleNode, binds: &mut Vec<BindValue>) -> String {
 /// One SQL fragment per predicate. Every join-needing predicate uses
 /// an `EXISTS` subquery so the tree can be nested arbitrarily without
 /// row duplication at the top level.
+#[cfg(feature = "sqlite")]
 fn build_predicate_sql(pred: &Predicate, binds: &mut Vec<BindValue>) -> String {
     match pred {
         Predicate::TitleContains { value } => {
@@ -428,7 +439,7 @@ fn build_predicate_sql(pred: &Predicate, binds: &mut Vec<BindValue>) -> String {
 }
 
 // =============================================================================
-// Public materialize / query
+// Public materialize / query (sqlite-only)
 // =============================================================================
 
 /// Re-materialize the playlist's tracks from its rule set. Wipes
@@ -436,6 +447,7 @@ fn build_predicate_sql(pred: &Predicate, binds: &mut Vec<BindValue>) -> String {
 /// re-inserts the results in the sorted order. The rule set is read
 /// from `playlist.smart_rules` so this command is idempotent (calling
 /// it twice yields the same membership unless the library changed).
+#[cfg(feature = "sqlite")]
 pub async fn materialize(
     pool: &SqlitePool,
     playlist_id: i64,
@@ -474,6 +486,7 @@ pub async fn materialize(
 
 /// Resolve the rule set into a list of track ids in the canonical sort
 /// order. Public for the dry-run "Preview" button in the rule editor.
+#[cfg(feature = "sqlite")]
 pub async fn run_query(pool: &SqlitePool, rules: &CustomRules) -> CoreResult<Vec<i64>> {
     let mut binds = Vec::<BindValue>::new();
     let tree_where = build_node_sql(&rules.tree, &mut binds);

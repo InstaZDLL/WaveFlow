@@ -111,7 +111,7 @@ pub struct Track {
 /// keep the projection in lockstep; the per-endpoint conversion
 /// (resolving thumbnail paths, etc.) happens in `crates/app`.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "sqlite", derive(sqlx::FromRow))]
+#[cfg_attr(any(feature = "sqlite", feature = "postgres"), derive(sqlx::FromRow))]
 pub struct TrackRow {
     pub id: i64,
     pub library_id: i64,
