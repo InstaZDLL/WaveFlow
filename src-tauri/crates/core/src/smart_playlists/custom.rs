@@ -521,7 +521,12 @@ pub async fn run_query(pool: &SqlitePool, rules: &CustomRules) -> CoreResult<Vec
 // Tests
 // =============================================================================
 
-#[cfg(test)]
+// These tests assert on the SQL produced by `build_node_sql`, which is
+// itself sqlite-only. Gate the module on the same feature so that a
+// `cargo test -p waveflow-core --no-default-features --features postgres`
+// run still type-checks. A future postgres-specific test module would
+// live alongside, gated on its own feature.
+#[cfg(all(test, feature = "sqlite"))]
 mod tests {
     use super::*;
 

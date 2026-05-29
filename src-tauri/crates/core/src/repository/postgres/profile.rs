@@ -105,28 +105,51 @@ impl ProfileRepository for PostgresProfileRepository {
     }
 
     async fn delete_guarded(&self, id: i64) -> CoreResult<ProfileDeleteOutcome> {
-        // Atomic DELETE guarded by an in-statement subquery: the
-        // "more than one profile must remain" check and the delete are
-        // evaluated together, so a concurrent deletion can never leave
-        // the table empty (TOCTOU-free). Same shape as the SQLite
-        // implementation; the parenthesised subquery is portable.
-        let deleted = sqlx::query(
-            "DELETE FROM profile
-              WHERE id = $1
-                AND (SELECT COUNT(*) FROM profile) > 1",
-        )
-        .bind(id)
-        .execute(&self.pool)
-        .await?;
+        // The SQLite sibling can rely on a single-statement
+        // `WHERE … AND (SELECT COUNT(*) … ) > 1` because SQLite
+        // serialises every writer at the file level. Postgres' READ
+        // COMMITTED isolation does not: two concurrent DELETEs against
+        // distinct rows can each read `COUNT = 2`, decide they're safe,
+        // lock their own row, and both commit — emptying the table.
+        //
+        // Take a `SHARE ROW EXCLUSIVE` lock on the table for the
+        // duration of the transaction: blocks concurrent writers
+        // (DELETE / UPDATE / INSERT) while letting SELECTs proceed.
+        // Inside that critical section the `COUNT(*)` re-check is
+        // guaranteed to observe the same row set the DELETE will see.
+        let mut tx = self.pool.begin().await?;
 
-        if deleted.rows_affected() > 0 {
-            return Ok(ProfileDeleteOutcome::Deleted);
+        sqlx::query("LOCK TABLE profile IN SHARE ROW EXCLUSIVE MODE")
+            .execute(&mut *tx)
+            .await?;
+
+        let exists: Option<i64> = sqlx::query_scalar("SELECT id FROM profile WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&mut *tx)
+            .await?;
+
+        if exists.is_none() {
+            // Nothing to delete; release the lock cheaply.
+            tx.commit().await?;
+            return Ok(ProfileDeleteOutcome::NotFound);
         }
-        if self.exists(id).await? {
-            Ok(ProfileDeleteOutcome::WasLast)
-        } else {
-            Ok(ProfileDeleteOutcome::NotFound)
+
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM profile")
+            .fetch_one(&mut *tx)
+            .await?;
+
+        if count <= 1 {
+            tx.commit().await?;
+            return Ok(ProfileDeleteOutcome::WasLast);
         }
+
+        sqlx::query("DELETE FROM profile WHERE id = $1")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+
+        tx.commit().await?;
+        Ok(ProfileDeleteOutcome::Deleted)
     }
 
     async fn exists(&self, id: i64) -> CoreResult<bool> {
