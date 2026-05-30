@@ -104,6 +104,10 @@ pub async fn create_playlist(
 
     Ok(Playlist {
         id,
+        // Desktop single-tenant — profile boundary is the database
+        // file itself. `0` is the sentinel waveflow-core's
+        // `Playlist.profile_id` doc-comment defines for this side.
+        profile_id: 0,
         name,
         description: input.description,
         color_id,

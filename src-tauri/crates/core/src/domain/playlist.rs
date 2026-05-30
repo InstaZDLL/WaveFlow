@@ -13,6 +13,15 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(any(feature = "sqlite", feature = "postgres"), derive(sqlx::FromRow))]
 pub struct Playlist {
     pub id: i64,
+    /// Owning profile id. `0` on the desktop's single-tenant SQLite
+    /// (the `playlist` table on `data.db` has no `profile_id` column
+    /// — the profile boundary is the database file). `> 0` on the
+    /// multi-tenant Postgres schema where `playlist.profile_id`
+    /// references `profile.id`. `#[sqlx(default)]` keeps the desktop
+    /// SELECTs that omit the column round-tripping cleanly. Same
+    /// pattern as [`crate::domain::library::Library::profile_id`].
+    #[cfg_attr(any(feature = "sqlite", feature = "postgres"), sqlx(default))]
+    pub profile_id: i64,
     pub name: String,
     pub description: Option<String>,
     pub color_id: String,
