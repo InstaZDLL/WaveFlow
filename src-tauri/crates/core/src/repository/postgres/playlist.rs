@@ -139,11 +139,17 @@ impl PostgresPlaylistRepository {
     /// Insert a custom playlist owned by `profile_id`. Smart
     /// playlists aren't supported here yet — `is_smart` is hardcoded
     /// to `0`, `smart_rules` to `NULL`, `position` to `0`,
-    /// `cover_hash` to `NULL` and `cover_is_auto` to `0` (no
-    /// auto-cover pipeline on the server). The `INSERT … SELECT …
-    /// WHERE EXISTS` pattern makes a foreign / non-existent profile
-    /// fail in the same round-trip as the write — no race window
-    /// between an existence check and the insert.
+    /// `cover_hash` to `NULL` and `cover_is_auto` to `1` (no manual
+    /// cover yet — the auto-regen pipeline owns the slot). The flag
+    /// matches the desktop's `commands/playlist.rs::create_playlist`
+    /// and the SQLite migration's `DEFAULT 1`; `0` would mark the
+    /// row as "user uploaded their own cover", which would make a
+    /// future server-side auto-cover pipeline skip it.
+    ///
+    /// The `INSERT ... SELECT ... WHERE EXISTS` pattern makes a
+    /// foreign / non-existent profile fail in the same round-trip
+    /// as the write — no race window between an existence check and
+    /// the insert.
     ///
     /// Returns `Some(playlist)` on success, `None` when the profile
     /// isn't owned by `user_id`.
@@ -160,7 +166,7 @@ impl PostgresPlaylistRepository {
                 created_at, updated_at, smart_rules
             )
             SELECT $1, $2, $3, $4, $5,
-                   0, NULL, 0, 0,
+                   0, NULL, 1, 0,
                    $6, $6, NULL
               FROM profile p
              WHERE p.id = $1 AND p.user_id = $7
