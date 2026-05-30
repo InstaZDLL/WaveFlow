@@ -16,6 +16,8 @@
 //! only provides the trait implementations that assume the schema
 //! exists.
 
+pub mod library;
 pub mod profile;
 
+pub use library::PostgresLibraryRepository;
 pub use profile::PostgresProfileRepository;

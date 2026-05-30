@@ -12,6 +12,14 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(any(feature = "sqlite", feature = "postgres"), derive(sqlx::FromRow))]
 pub struct Library {
     pub id: i64,
+    /// Owning profile id. `0` on the desktop's single-tenant SQLite
+    /// (the `library` table on `data.db` has no `profile_id` column
+    /// — the profile boundary is the database file). `> 0` on the
+    /// multi-tenant Postgres schema where `library.profile_id`
+    /// references `profile.id`. `#[sqlx(default)]` keeps the desktop
+    /// SELECTs that omit the column round-tripping cleanly.
+    #[cfg_attr(any(feature = "sqlite", feature = "postgres"), sqlx(default))]
+    pub profile_id: i64,
     pub name: String,
     pub description: Option<String>,
     pub color_id: String,

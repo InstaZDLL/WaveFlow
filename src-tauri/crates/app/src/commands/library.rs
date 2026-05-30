@@ -77,6 +77,12 @@ pub async fn create_library(
 
     Ok(Library {
         id,
+        // Single-tenant: the desktop's `library` table has no
+        // `profile_id` column. The `0` sentinel matches what
+        // `#[sqlx(default)]` would yield from a SELECT that omits
+        // the column anyway, so writing it explicitly keeps the
+        // round-trip consistent.
+        profile_id: 0,
         name,
         description: input.description,
         color_id,
