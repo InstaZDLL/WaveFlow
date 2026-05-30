@@ -52,10 +52,14 @@ pub struct TrackUpdate {
     pub track_number: Option<i64>,
     pub disc_number: Option<i64>,
     pub year: Option<i64>,
-    /// Raw POPM byte (0-255). `None` leaves the existing value alone;
-    /// the file-side tag write happens in `waveflow` (desktop) and is
-    /// not the server's concern.
-    pub rating: Option<i64>,
+    /// Raw POPM byte (0-255). Typed as `u8` so out-of-range values
+    /// can never reach the SQL bind — serde rejects `256+` at the
+    /// HTTP deserialization boundary before the repository sees the
+    /// patch. Matches the convention already established by
+    /// [`TrackRepository::set_rating`]. `None` leaves the existing
+    /// value alone; the file-side tag write happens in `waveflow`
+    /// (desktop) and is not the server's concern.
+    pub rating: Option<u8>,
 }
 
 /// "What to list" predicate for [`TrackRepository::list`].

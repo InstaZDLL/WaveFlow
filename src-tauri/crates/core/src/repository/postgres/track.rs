@@ -261,7 +261,11 @@ impl PostgresTrackRepository {
             .bind(patch.track_number)
             .bind(patch.disc_number)
             .bind(patch.year)
-            .bind(patch.rating)
+            // `u8` isn't natively bindable on Postgres (no unsigned
+            // integer types), so widen to `i64` for the BIGINT column.
+            // The `u8` typing at the struct level already guarantees
+            // `0..=255` — the cast is a no-op semantically.
+            .bind(patch.rating.map(i64::from))
             .bind(id)
             .bind(library_id)
             .bind(profile_id)
