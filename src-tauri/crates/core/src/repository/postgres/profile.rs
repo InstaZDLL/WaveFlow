@@ -118,22 +118,30 @@ impl PostgresProfileRepository {
         Ok(id)
     }
 
-    /// Rename a profile only if owned by `user_id`. `Ok(false)` covers
-    /// both "no such id" and "id belongs to another user".
+    /// Rename a profile only if owned by `user_id`. Returns the
+    /// updated row in one round-trip via `UPDATE ... RETURNING *`,
+    /// so the caller never has to follow up with a separate
+    /// `get_for_user` that could race a concurrent DELETE and flip
+    /// the response to a misleading 404. `Ok(None)` covers both "no
+    /// such id" and "id belongs to another user".
     pub async fn rename_for_user(
         &self,
         id: i64,
         new_name: &str,
         user_id: i64,
-    ) -> CoreResult<bool> {
-        let updated =
-            sqlx::query("UPDATE profile SET name = $1 WHERE id = $2 AND user_id = $3")
-                .bind(new_name)
-                .bind(id)
-                .bind(user_id)
-                .execute(&self.pool)
-                .await?;
-        Ok(updated.rows_affected() > 0)
+    ) -> CoreResult<Option<Profile>> {
+        let row = sqlx::query_as::<_, Profile>(
+            "UPDATE profile
+                SET name = $1
+              WHERE id = $2 AND user_id = $3
+          RETURNING id, user_id, name, color_id, avatar_hash, data_dir, created_at, last_used_at",
+        )
+        .bind(new_name)
+        .bind(id)
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row)
     }
 
     /// Stamp `last_used_at` only if owned by `user_id`. No-op when
