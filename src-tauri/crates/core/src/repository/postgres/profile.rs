@@ -151,10 +151,18 @@ impl PostgresProfileRepository {
     /// Tenant-scoped delete. The "more than one profile must remain"
     /// invariant is enforced **per-user** (the COUNT subquery filters
     /// by `user_id`) so user A's delete is never blocked by user B's
-    /// row. Lock semantics mirror the single-tenant `delete_guarded`:
-    /// `LOCK TABLE profile IN SHARE ROW EXCLUSIVE MODE` inside a
-    /// transaction so a concurrent delete from the same user can't
-    /// race past the count check.
+    /// row.
+    ///
+    /// Concurrency: open a transaction and acquire `FOR UPDATE` row
+    /// locks on *every* profile row owned by `user_id` up-front. Two
+    /// concurrent deletes from the same user serialise on those row
+    /// locks, so the COUNT(*) re-check below observes the same row
+    /// set the DELETE will see — without holding a table-level lock
+    /// that would block writes from other tenants. (A bare
+    /// `SELECT ... FOR UPDATE` on the target row alone wouldn't
+    /// suffice: two concurrent deletes targeting *different* rows of
+    /// the same user could each succeed and empty the set; locking
+    /// the whole tenant's row set is what closes that window.)
     pub async fn delete_guarded_for_user(
         &self,
         id: i64,
@@ -162,8 +170,9 @@ impl PostgresProfileRepository {
     ) -> CoreResult<ProfileDeleteOutcome> {
         let mut tx = self.pool.begin().await?;
 
-        sqlx::query("LOCK TABLE profile IN SHARE ROW EXCLUSIVE MODE")
-            .execute(&mut *tx)
+        sqlx::query("SELECT id FROM profile WHERE user_id = $1 FOR UPDATE")
+            .bind(user_id)
+            .fetch_all(&mut *tx)
             .await?;
 
         let exists: Option<i64> = sqlx::query_scalar(
@@ -202,21 +211,25 @@ impl PostgresProfileRepository {
     }
 
     /// Set the resolved `data_dir` for a freshly inserted profile,
-    /// scoped to the owning user. Mirrors `set_data_dir` from the
-    /// trait but with tenant isolation.
+    /// scoped to the owning user. `Ok(false)` covers both "no such
+    /// id" and "id belongs to another user" — same shape as
+    /// `rename_for_user` so callers can distinguish a no-op from a
+    /// successful write (a silently-discarded update would mask
+    /// `insert_for_user` + `set_data_dir_for_user` race bugs).
     pub async fn set_data_dir_for_user(
         &self,
         id: i64,
         data_dir: &str,
         user_id: i64,
-    ) -> CoreResult<()> {
-        sqlx::query("UPDATE profile SET data_dir = $1 WHERE id = $2 AND user_id = $3")
-            .bind(data_dir)
-            .bind(id)
-            .bind(user_id)
-            .execute(&self.pool)
-            .await?;
-        Ok(())
+    ) -> CoreResult<bool> {
+        let updated =
+            sqlx::query("UPDATE profile SET data_dir = $1 WHERE id = $2 AND user_id = $3")
+                .bind(data_dir)
+                .bind(id)
+                .bind(user_id)
+                .execute(&self.pool)
+                .await?;
+        Ok(updated.rows_affected() > 0)
     }
 }
 
