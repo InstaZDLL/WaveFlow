@@ -109,6 +109,12 @@ pub async fn create_profile(
 
     Ok(Profile {
         id: profile_id,
+        // Single-tenant: the desktop's `profile` table has no
+        // `user_id` column. The `0` sentinel is what
+        // `#[sqlx(default)]` would hand back from a `SELECT` that
+        // omits the column anyway, so writing it explicitly here
+        // keeps the round-trip consistent.
+        user_id: 0,
         name,
         color_id,
         avatar_hash: input.avatar_hash,

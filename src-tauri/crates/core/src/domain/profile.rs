@@ -13,6 +13,14 @@ use serde::{Deserialize, Serialize};
 )]
 pub struct Profile {
     pub id: i64,
+    /// Owning user id. `0` on single-tenant backends (desktop SQLite
+    /// has no `user_id` column on its `profile` table); set to the
+    /// row's real owner on multi-tenant Postgres. Sqlx's `#[sqlx(default)]`
+    /// makes the field default to `0` when the column is absent from
+    /// the SELECT, so the same `Profile` struct round-trips on both
+    /// backends without a per-feature shape.
+    #[cfg_attr(any(feature = "sqlite", feature = "postgres"), sqlx(default))]
+    pub user_id: i64,
     pub name: String,
     pub color_id: String,
     pub avatar_hash: Option<String>,
