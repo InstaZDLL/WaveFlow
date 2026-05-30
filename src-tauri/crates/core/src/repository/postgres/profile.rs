@@ -15,10 +15,15 @@
 //!
 //! - `$1`, `$2`, … placeholders instead of `?`
 //! - `RETURNING id` instead of `last_insert_rowid()`
-//! - `delete_guarded_for_user` wraps the check + DELETE in a
-//!   transaction with `LOCK TABLE profile IN SHARE ROW EXCLUSIVE
-//!   MODE`; READ COMMITTED isolation can't TOCTOU two concurrent
-//!   deletes the way SQLite's single-writer lock does.
+//! - `delete_guarded_for_user` opens a transaction, takes
+//!   `SELECT id FROM profile WHERE user_id = $1 ORDER BY id FOR
+//!   UPDATE` up-front (row-level locks on every profile the user
+//!   owns, in a deterministic order to avoid cross-transaction
+//!   deadlocks), then re-checks the per-user COUNT before the
+//!   DELETE. Concurrent deletes from the same user serialise on
+//!   those row locks so neither can race past the count check and
+//!   empty the user's profile set; deletes from a different user
+//!   touch disjoint rows and proceed in parallel.
 //!
 //! Schema (`profile.user_id BIGINT NOT NULL REFERENCES users(id)
 //! ON DELETE CASCADE`) lives in `waveflow-server/migrations/`
@@ -170,7 +175,12 @@ impl PostgresProfileRepository {
     ) -> CoreResult<ProfileDeleteOutcome> {
         let mut tx = self.pool.begin().await?;
 
-        sqlx::query("SELECT id FROM profile WHERE user_id = $1 FOR UPDATE")
+        // `ORDER BY id` so two transactions that both target the same
+        // user acquire their row locks in the same order — without it
+        // the lock-acquisition order depends on Postgres' chosen plan
+        // and a concurrent INSERT could push us toward an A→B / B→A
+        // deadlock loop.
+        sqlx::query("SELECT id FROM profile WHERE user_id = $1 ORDER BY id FOR UPDATE")
             .bind(user_id)
             .fetch_all(&mut *tx)
             .await?;
