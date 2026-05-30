@@ -8,6 +8,60 @@ use async_trait::async_trait;
 
 use crate::{domain::track::TrackRow, error::CoreResult};
 
+/// Insert payload for the multi-tenant server's track CRUD. Mirrors
+/// the columns the Postgres repository writes; joined fields
+/// (`album_id`, `primary_artist`, `artwork_id`, …) are deliberately
+/// absent because the server's 1.b.5b schema doesn't ship the
+/// album / artist / artwork tables yet — they'll be added when the
+/// scanner is ported. Until then a freshly-inserted track has `None`
+/// for every joined column on the wire.
+///
+/// The single-tenant SQLite path doesn't consume this type today
+/// (the scanner does its own raw `INSERT` from `scanner::upserts`);
+/// it lives here so the future SQLite CRUD parity can reuse it
+/// without a second migration.
+#[derive(Debug, Clone)]
+pub struct TrackDraft {
+    pub title: String,
+    pub file_path: String,
+    pub file_size: i64,
+    pub duration_ms: i64,
+    pub track_number: Option<i64>,
+    pub disc_number: Option<i64>,
+    pub year: Option<i64>,
+    pub bitrate: Option<i64>,
+    pub sample_rate: Option<i64>,
+    pub channels: Option<i64>,
+    pub bit_depth: Option<i64>,
+    pub codec: Option<String>,
+    pub musical_key: Option<String>,
+    /// Epoch milliseconds. Used for both the row's `added_at` and the
+    /// initial position in any "recently added" sort.
+    pub now_ms: i64,
+}
+
+/// Partial update payload. Every field is optional; the Postgres
+/// repository writes `COALESCE(?, column)` so `None` preserves the
+/// existing value. Scope is intentionally narrow — title + ordering
+/// fields + rating cover the realistic hand-edit surface; the rest
+/// (bitrate, file_size, …) are scan-derived and shouldn't be tweaked
+/// through the API.
+#[derive(Debug, Clone, Default)]
+pub struct TrackUpdate {
+    pub title: Option<String>,
+    pub track_number: Option<i64>,
+    pub disc_number: Option<i64>,
+    pub year: Option<i64>,
+    /// Raw POPM byte (0-255). Typed as `u8` so out-of-range values
+    /// can never reach the SQL bind — serde rejects `256+` at the
+    /// HTTP deserialization boundary before the repository sees the
+    /// patch. Matches the convention already established by
+    /// [`TrackRepository::set_rating`]. `None` leaves the existing
+    /// value alone; the file-side tag write happens in `waveflow`
+    /// (desktop) and is not the server's concern.
+    pub rating: Option<u8>,
+}
+
 /// "What to list" predicate for [`TrackRepository::list`].
 #[derive(Debug, Clone, Copy, Default)]
 pub struct TrackListFilter {

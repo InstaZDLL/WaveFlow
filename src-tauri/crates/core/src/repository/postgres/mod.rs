@@ -18,6 +18,8 @@
 
 pub mod library;
 pub mod profile;
+pub mod track;
 
 pub use library::PostgresLibraryRepository;
 pub use profile::PostgresProfileRepository;
+pub use track::PostgresTrackRepository;
