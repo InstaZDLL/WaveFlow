@@ -521,116 +521,121 @@ pub async fn run_query(pool: &SqlitePool, rules: &CustomRules) -> CoreResult<Vec
 // Tests
 // =============================================================================
 
-// These tests assert on the SQL produced by `build_node_sql`, which is
-// itself sqlite-only. Gate the module on the same feature so that a
-// `cargo test -p waveflow-core --no-default-features --features postgres`
-// run still type-checks. A future postgres-specific test module would
-// live alongside, gated on its own feature.
-#[cfg(all(test, feature = "sqlite"))]
+#[cfg(test)]
 mod tests {
     use super::*;
 
-    /// Helper: build SQL string from a tree (binds are discarded for
-    /// readability — the tests only assert on the textual shape).
-    fn sql_of(node: &RuleNode) -> String {
-        let mut binds = Vec::new();
-        build_node_sql(node, &mut binds)
-    }
+    // SQL-shape assertions live in a nested module gated on `sqlite`
+    // because `build_node_sql` (and its `BindValue` argument) are
+    // sqlite-only. The serde / migration tests below stay outside this
+    // module so a postgres-only test run still exercises the v1 → v2
+    // rule-tree migration contract.
+    #[cfg(feature = "sqlite")]
+    mod sql_tests {
+        use super::*;
 
-    #[test]
-    fn empty_all_matches_everything() {
-        assert_eq!(sql_of(&RuleNode::All { children: vec![] }), "1=1");
-    }
+        /// Helper: build SQL string from a tree (binds are discarded for
+        /// readability — the tests only assert on the textual shape).
+        fn sql_of(node: &RuleNode) -> String {
+            let mut binds = Vec::new();
+            build_node_sql(node, &mut binds)
+        }
 
-    #[test]
-    fn empty_any_matches_nothing() {
-        assert_eq!(sql_of(&RuleNode::Any { children: vec![] }), "0=1");
-    }
+        #[test]
+        fn empty_all_matches_everything() {
+            assert_eq!(sql_of(&RuleNode::All { children: vec![] }), "1=1");
+        }
 
-    #[test]
-    fn single_leaf_wraps_predicate() {
-        let n = RuleNode::Leaf {
-            predicate: Predicate::TitleContains {
-                value: "foo".into(),
-            },
-        };
-        assert_eq!(sql_of(&n), "t.title LIKE ? COLLATE NOCASE");
-    }
+        #[test]
+        fn empty_any_matches_nothing() {
+            assert_eq!(sql_of(&RuleNode::Any { children: vec![] }), "0=1");
+        }
 
-    #[test]
-    fn and_joins_with_and() {
-        let n = RuleNode::All {
-            children: vec![
-                RuleNode::Leaf {
-                    predicate: Predicate::HiRes,
+        #[test]
+        fn single_leaf_wraps_predicate() {
+            let n = RuleNode::Leaf {
+                predicate: Predicate::TitleContains {
+                    value: "foo".into(),
                 },
-                RuleNode::Leaf {
-                    predicate: Predicate::Liked,
-                },
-            ],
-        };
-        let s = sql_of(&n);
-        assert!(s.contains(" AND "));
-        assert!(s.starts_with('(') && s.ends_with(')'));
-    }
+            };
+            assert_eq!(sql_of(&n), "t.title LIKE ? COLLATE NOCASE");
+        }
 
-    #[test]
-    fn or_joins_with_or() {
-        let n = RuleNode::Any {
-            children: vec![
-                RuleNode::Leaf {
-                    predicate: Predicate::GenreIs { value: 1 },
-                },
-                RuleNode::Leaf {
-                    predicate: Predicate::GenreIs { value: 2 },
-                },
-            ],
-        };
-        let s = sql_of(&n);
-        assert!(s.contains(" OR "));
-    }
-
-    #[test]
-    fn not_wraps_child() {
-        let n = RuleNode::Not {
-            child: Box::new(RuleNode::Leaf {
-                predicate: Predicate::Liked,
-            }),
-        };
-        let s = sql_of(&n);
-        assert!(s.starts_with("NOT ("));
-        assert!(s.ends_with(')'));
-    }
-
-    #[test]
-    fn nested_tree_renders_full_expression() {
-        // (artist=X OR artist=Y) AND year >= 2000 AND NOT liked
-        let n = RuleNode::All {
-            children: vec![
-                RuleNode::Any {
-                    children: vec![
-                        RuleNode::Leaf {
-                            predicate: Predicate::ArtistContains { value: "X".into() },
-                        },
-                        RuleNode::Leaf {
-                            predicate: Predicate::ArtistContains { value: "Y".into() },
-                        },
-                    ],
-                },
-                RuleNode::Leaf {
-                    predicate: Predicate::YearMin { value: 2000 },
-                },
-                RuleNode::Not {
-                    child: Box::new(RuleNode::Leaf {
+        #[test]
+        fn and_joins_with_and() {
+            let n = RuleNode::All {
+                children: vec![
+                    RuleNode::Leaf {
+                        predicate: Predicate::HiRes,
+                    },
+                    RuleNode::Leaf {
                         predicate: Predicate::Liked,
-                    }),
-                },
-            ],
-        };
-        let s = sql_of(&n);
-        assert!(s.contains(" OR "));
-        assert!(s.contains(" AND "));
-        assert!(s.contains("NOT ("));
+                    },
+                ],
+            };
+            let s = sql_of(&n);
+            assert!(s.contains(" AND "));
+            assert!(s.starts_with('(') && s.ends_with(')'));
+        }
+
+        #[test]
+        fn or_joins_with_or() {
+            let n = RuleNode::Any {
+                children: vec![
+                    RuleNode::Leaf {
+                        predicate: Predicate::GenreIs { value: 1 },
+                    },
+                    RuleNode::Leaf {
+                        predicate: Predicate::GenreIs { value: 2 },
+                    },
+                ],
+            };
+            let s = sql_of(&n);
+            assert!(s.contains(" OR "));
+        }
+
+        #[test]
+        fn not_wraps_child() {
+            let n = RuleNode::Not {
+                child: Box::new(RuleNode::Leaf {
+                    predicate: Predicate::Liked,
+                }),
+            };
+            let s = sql_of(&n);
+            assert!(s.starts_with("NOT ("));
+            assert!(s.ends_with(')'));
+        }
+
+        #[test]
+        fn nested_tree_renders_full_expression() {
+            // (artist=X OR artist=Y) AND year >= 2000 AND NOT liked
+            let n = RuleNode::All {
+                children: vec![
+                    RuleNode::Any {
+                        children: vec![
+                            RuleNode::Leaf {
+                                predicate: Predicate::ArtistContains { value: "X".into() },
+                            },
+                            RuleNode::Leaf {
+                                predicate: Predicate::ArtistContains { value: "Y".into() },
+                            },
+                        ],
+                    },
+                    RuleNode::Leaf {
+                        predicate: Predicate::YearMin { value: 2000 },
+                    },
+                    RuleNode::Not {
+                        child: Box::new(RuleNode::Leaf {
+                            predicate: Predicate::Liked,
+                        }),
+                    },
+                ],
+            };
+            let s = sql_of(&n);
+            assert!(s.contains(" OR "));
+            assert!(s.contains(" AND "));
+            assert!(s.contains("NOT ("));
+        }
     }
 
     #[test]
