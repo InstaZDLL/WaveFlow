@@ -7,7 +7,10 @@ use serde::{Deserialize, Serialize};
 /// Mirrors the `profile` table in `app.db`, plus a `data_dir` resolved to
 /// an absolute path so the frontend can display it if needed.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "sqlite", derive(sqlx::FromRow))]
+#[cfg_attr(
+    any(feature = "sqlite", feature = "postgres"),
+    derive(sqlx::FromRow)
+)]
 pub struct Profile {
     pub id: i64,
     pub name: String,

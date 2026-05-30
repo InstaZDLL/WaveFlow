@@ -47,7 +47,7 @@ The full workspace builds with `cargo check --workspace --all-targets --manifest
 Anything that could run inside an axum handler in the future `waveflow-server` (RFC-001 §6.2) without dragging Tauri or `cpal` along. Specifically:
 
 - **Domain types** — the DTOs the UI sees. Plain `serde::Serialize`/`Deserialize` plus an opt-in `sqlx::FromRow` derive (via the `sqlite` feature) so the same struct backs `query_as` calls without a parallel row type.
-- **Repository traits** — `ProfileRepository`, `LibraryRepository`, `PlaylistRepository`, `TrackRepository`. Each lives in `repository/<entity>.rs` with a SQLite implementation under `repository/sqlite/`. A future `repository/postgres/` will be the server's counterpart.
+- **Repository traits** — `ProfileRepository`, `LibraryRepository`, `PlaylistRepository`, `TrackRepository`. Each lives in `repository/<entity>.rs` and is implementation-agnostic. Two implementations ship alongside: `repository/sqlite/` (compiled when the `sqlite` feature is on, what the desktop crate uses) and `repository/postgres/` (compiled when the `postgres` feature is on, what `waveflow-server` uses). Both submodules implement the same traits, so a swap of `Box<dyn ProfileRepository>` at runtime is the only line that differs between consumers.
 - **HTTP clients** for the third-party metadata sources we enrich the local library with (`metadata/{deezer,lastfm,lrclib}.rs`). Pure `reqwest` over rustls; no Tauri.
 - **Scanner helpers** — every pure function the file-walker calls per track (`scanner/extract.rs` for the lofty / blake3 / cover-extraction side, `scanner/upserts.rs` for the SQL writes and the album-grouping policy). The Tauri-aware orchestrator (`scan_folder_inner` + the `scan:progress` emit) stays in `app/commands/scan.rs` until a future `ScannerEventSink` decoupling.
 - **Smart-playlist engine** — Daily Mix generator, On Repeat regen, custom rule evaluator, cover composer. The `PathsContext` struct decouples the engine from `AppPaths`; the app constructs one from its `state.paths`.
@@ -90,11 +90,14 @@ Until then: anything `waveflow-server` would need lives at `waveflow_core::*` al
 
 ## Feature flags on `waveflow-core`
 
-| Flag     | What it enables                                                                                                                                          |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sqlite` | `sqlx`'s `sqlite` + `runtime-tokio` features (so `repository::sqlite::*` compiles) and the `sqlx::FromRow` derives on the domain types (via `cfg_attr`). |
+| Flag       | What it enables                                                                                                                                                                                                                                                                                                                                          |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sqlite`   | `sqlx`'s `sqlite` + `runtime-tokio` features (so `repository::sqlite::*` compiles), `scanner::upserts` and the smart-playlist materialisers in `smart_playlists::{custom,generator,on_repeat}` (all `SqlitePool`-bound), and the `sqlx::FromRow` derives on the domain types (via `cfg_attr`).                                                           |
+| `postgres` | `sqlx`'s `postgres` + `runtime-tokio` features (so `repository::postgres::*` compiles), and the same `sqlx::FromRow` derives. Mirrors `sqlite` in scope but ships only the repository implementations — schema-aware surfaces like the scanner upserts and smart-playlist materialisers stay sqlite-only until the server grows a parallel ingest job. |
 
-The desktop crate opts in with `features = ["sqlite"]`. The future server will add a `postgres` feature with the same shape (`sqlx/postgres`, FromRow derives gated on it). Trait definitions in `repository/` itself stay storage-agnostic — only their implementations live behind a feature flag.
+The desktop crate opts in with `features = ["sqlite"]`. `waveflow-server` opts in with `features = ["postgres"]`. The two features are mutually compatible — Cargo's feature unification means a downstream wanting both backends in one build (e.g. a future migration tool) gets a single `sqlx` build with both drivers. Trait definitions under `repository/` stay storage-agnostic; only the per-backend submodules live behind a feature flag.
+
+A small pure helper module (`scanner::canonical`) sits outside both feature gates so the postgres-only build can still consume `canonical_name` from `scanner::extract`. Backwards-compatible re-export from `scanner::upserts` so existing imports keep working.
 
 ## Tauri config + bundle paths
 

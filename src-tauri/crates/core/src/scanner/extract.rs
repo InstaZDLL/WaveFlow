@@ -15,7 +15,7 @@ use lofty::file::FileType;
 use lofty::picture::MimeType;
 use lofty::tag::{ItemKey, Tag, TagType};
 
-use super::upserts::canonical_name;
+use super::canonical::canonical_name;
 
 /// Extensions considered "audio files" by the scanner. Limited to
 /// formats the symphonia + cpal engine can actually decode and play,

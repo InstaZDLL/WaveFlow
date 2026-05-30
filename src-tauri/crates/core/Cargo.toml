@@ -13,10 +13,13 @@ default = []
 # Opt in to the SQLite backend: enables `sqlx::FromRow` derives on the
 # domain types (via `cfg_attr`) and pulls the `sqlite` + `runtime-tokio`
 # sqlx features so the `repository::sqlite` implementations compile.
-# The trait definitions in `repository::*` stay backend-agnostic so the
-# future `waveflow-server` can add a sibling `postgres` feature without
-# disturbing them.
+# The trait definitions in `repository::*` stay backend-agnostic; the
+# `postgres` feature below ships the parallel implementation for
+# `waveflow-server` (RFC-001 §6.5). The two features are mutually
+# compatible — Cargo's feature unification means a workspace that
+# happens to depend on both backends still gets a single build.
 sqlite = ["sqlx/sqlite", "sqlx/runtime-tokio"]
+postgres = ["sqlx/postgres", "sqlx/runtime-tokio"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

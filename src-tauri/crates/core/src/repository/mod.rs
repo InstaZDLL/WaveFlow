@@ -14,5 +14,16 @@
 pub mod library;
 pub mod playlist;
 pub mod profile;
-pub mod sqlite;
 pub mod track;
+
+// Backend implementations are gated behind their respective Cargo
+// features so a consumer that only needs one of the two stays cheap
+// to compile. The `sqlite` feature is what the desktop crate enables;
+// `postgres` is for `waveflow-server` (RFC-001 §6.5). The trait
+// modules above stay always-compiled — they describe the contract,
+// not the storage.
+#[cfg(feature = "sqlite")]
+pub mod sqlite;
+
+#[cfg(feature = "postgres")]
+pub mod postgres;

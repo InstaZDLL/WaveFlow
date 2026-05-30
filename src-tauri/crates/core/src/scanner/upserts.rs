@@ -26,20 +26,11 @@ pub fn now_millis() -> i64 {
     Utc::now().timestamp_millis()
 }
 
-/// Normalize a title/name for dedup purposes: lowercase, strip punctuation
-/// and collapse whitespace. Good enough to match "The Beatles" / "THE  BEATLES"
-/// or "the beatles!" onto a single canonical key without pulling in a proper
-/// Unicode normalization library.
-pub fn canonical_name(s: &str) -> String {
-    s.trim()
-        .chars()
-        .flat_map(|c| c.to_lowercase())
-        .map(|c| if c.is_alphanumeric() { c } else { ' ' })
-        .collect::<String>()
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
-}
+// `canonical_name` moved to `super::canonical` so the postgres-only
+// build (which skips this whole `upserts` module) can still consume it
+// from the always-compiled `extract` module. Re-exported here for
+// backwards source compatibility with existing imports.
+pub use super::canonical::canonical_name;
 
 /// Split a raw artist string into individual names. Only `"; "` is
 /// honoured as a separator — the convention used by MusicBrainz Picard,

@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 /// duration denormalised so the sidebar can show "Playlist · N titres"
 /// without issuing a follow-up query per playlist.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "sqlite", derive(sqlx::FromRow))]
+#[cfg_attr(any(feature = "sqlite", feature = "postgres"), derive(sqlx::FromRow))]
 pub struct Playlist {
     pub id: i64,
     pub name: String,

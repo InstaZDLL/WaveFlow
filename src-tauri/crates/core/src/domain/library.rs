@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 /// computed on the fly so the sidebar can display "X titres · Y albums"
 /// without issuing a second query per library.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "sqlite", derive(sqlx::FromRow))]
+#[cfg_attr(any(feature = "sqlite", feature = "postgres"), derive(sqlx::FromRow))]
 pub struct Library {
     pub id: i64,
     pub name: String,
@@ -50,7 +50,7 @@ pub struct UpdateLibraryInput {
 /// directly so toggling the watcher round-trips without going through
 /// the heavier aggregated `list_folders` query.
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(feature = "sqlite", derive(sqlx::FromRow))]
+#[cfg_attr(any(feature = "sqlite", feature = "postgres"), derive(sqlx::FromRow))]
 pub struct LibraryFolder {
     pub id: i64,
     pub library_id: i64,
