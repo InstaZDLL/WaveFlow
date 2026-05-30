@@ -42,35 +42,13 @@ pub struct PostgresTrackRepository {
     pool: PgPool,
 }
 
-/// Shared `SELECT … FROM track t` projection, NULL-cast for every
-/// join the server doesn't ship yet (album / artist / artwork). The
-/// casts are mandatory — without them `sqlx::query_as::<_, TrackRow>`
-/// can't decide which Rust type to map the literal `NULL` to.
-const SELECT_TRACK_ROW: &str = "SELECT t.id,
-        t.library_id,
-        t.title,
-        NULL::bigint  AS album_id,
-        NULL::text    AS album_title,
-        NULL::bigint  AS artist_id,
-        NULL::text    AS artist_name,
-        NULL::text    AS artist_ids,
-        t.duration_ms,
-        t.track_number,
-        t.disc_number,
-        t.year,
-        t.bitrate,
-        t.sample_rate,
-        t.channels,
-        t.bit_depth,
-        t.codec,
-        t.musical_key,
-        t.file_path,
-        t.file_size,
-        t.added_at,
-        NULL::text    AS artwork_hash,
-        NULL::text    AS artwork_format,
-        t.rating
-   FROM track t";
+// The shared NULL-cast projection lived in a `const SELECT_TRACK_ROW`
+// previously, but sqlx 0.9's `query_as` argument is `impl SqlSafeStr`,
+// which only accepts a `'static` literal — a runtime `format!()` over
+// the const produced a `String` and failed to coerce. Inlining the
+// projection at each call site is the cheapest fix; the duplication
+// stays bounded because every method projects the same shape, and a
+// future schema change would touch each branch the same way anyway.
 
 impl PostgresTrackRepository {
     pub fn new(pool: PgPool) -> Self {
@@ -87,15 +65,47 @@ impl PostgresTrackRepository {
         profile_id: i64,
         user_id: i64,
     ) -> CoreResult<Vec<TrackRow>> {
-        let sql = format!(
-            "{SELECT_TRACK_ROW}\n              WHERE t.library_id = $1\n                AND EXISTS (\n                    SELECT 1 FROM library l\n                      JOIN profile p ON p.id = l.profile_id\n                     WHERE l.id = t.library_id\n                       AND l.profile_id = $2\n                       AND p.user_id = $3\n                )\n              ORDER BY t.added_at DESC"
-        );
-        let rows = sqlx::query_as::<_, TrackRow>(&sql)
-            .bind(library_id)
-            .bind(profile_id)
-            .bind(user_id)
-            .fetch_all(&self.pool)
-            .await?;
+        let rows = sqlx::query_as::<_, TrackRow>(
+            "SELECT t.id,
+                    t.library_id,
+                    t.title,
+                    NULL::bigint  AS album_id,
+                    NULL::text    AS album_title,
+                    NULL::bigint  AS artist_id,
+                    NULL::text    AS artist_name,
+                    NULL::text    AS artist_ids,
+                    t.duration_ms,
+                    t.track_number,
+                    t.disc_number,
+                    t.year,
+                    t.bitrate,
+                    t.sample_rate,
+                    t.channels,
+                    t.bit_depth,
+                    t.codec,
+                    t.musical_key,
+                    t.file_path,
+                    t.file_size,
+                    t.added_at,
+                    NULL::text    AS artwork_hash,
+                    NULL::text    AS artwork_format,
+                    t.rating
+               FROM track t
+              WHERE t.library_id = $1
+                AND EXISTS (
+                    SELECT 1 FROM library l
+                      JOIN profile p ON p.id = l.profile_id
+                     WHERE l.id = t.library_id
+                       AND l.profile_id = $2
+                       AND p.user_id = $3
+                )
+              ORDER BY t.added_at DESC",
+        )
+        .bind(library_id)
+        .bind(profile_id)
+        .bind(user_id)
+        .fetch_all(&self.pool)
+        .await?;
         Ok(rows)
     }
 
@@ -111,16 +121,48 @@ impl PostgresTrackRepository {
         profile_id: i64,
         user_id: i64,
     ) -> CoreResult<Option<TrackRow>> {
-        let sql = format!(
-            "{SELECT_TRACK_ROW}\n              WHERE t.id = $1\n                AND t.library_id = $2\n                AND EXISTS (\n                    SELECT 1 FROM library l\n                      JOIN profile p ON p.id = l.profile_id\n                     WHERE l.id = t.library_id\n                       AND l.profile_id = $3\n                       AND p.user_id = $4\n                )"
-        );
-        let row = sqlx::query_as::<_, TrackRow>(&sql)
-            .bind(id)
-            .bind(library_id)
-            .bind(profile_id)
-            .bind(user_id)
-            .fetch_optional(&self.pool)
-            .await?;
+        let row = sqlx::query_as::<_, TrackRow>(
+            "SELECT t.id,
+                    t.library_id,
+                    t.title,
+                    NULL::bigint  AS album_id,
+                    NULL::text    AS album_title,
+                    NULL::bigint  AS artist_id,
+                    NULL::text    AS artist_name,
+                    NULL::text    AS artist_ids,
+                    t.duration_ms,
+                    t.track_number,
+                    t.disc_number,
+                    t.year,
+                    t.bitrate,
+                    t.sample_rate,
+                    t.channels,
+                    t.bit_depth,
+                    t.codec,
+                    t.musical_key,
+                    t.file_path,
+                    t.file_size,
+                    t.added_at,
+                    NULL::text    AS artwork_hash,
+                    NULL::text    AS artwork_format,
+                    t.rating
+               FROM track t
+              WHERE t.id = $1
+                AND t.library_id = $2
+                AND EXISTS (
+                    SELECT 1 FROM library l
+                      JOIN profile p ON p.id = l.profile_id
+                     WHERE l.id = t.library_id
+                       AND l.profile_id = $3
+                       AND p.user_id = $4
+                )",
+        )
+        .bind(id)
+        .bind(library_id)
+        .bind(profile_id)
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await?;
         Ok(row)
     }
 
