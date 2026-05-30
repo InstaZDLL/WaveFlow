@@ -17,9 +17,11 @@
 //! exists.
 
 pub mod library;
+pub mod playlist;
 pub mod profile;
 pub mod track;
 
 pub use library::PostgresLibraryRepository;
+pub use playlist::PostgresPlaylistRepository;
 pub use profile::PostgresProfileRepository;
 pub use track::PostgresTrackRepository;
