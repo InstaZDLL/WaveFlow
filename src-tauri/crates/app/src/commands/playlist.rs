@@ -102,6 +102,26 @@ pub async fn create_playlist(
     };
     let id = playlist_repo(&state).await?.insert_custom(&draft).await?;
 
+    // Phase 1.f.desktop.2b — queue a whole-entity insert op so a
+    // future drain task (1.f.desktop.4) replays the create on the
+    // server. Hook is a no-op when the profile isn't signed in.
+    crate::sync::hooks::enqueue_op(
+        &state,
+        crate::sync::hooks::PendingOpDraft {
+            entity: "playlist".into(),
+            entity_id: id.to_string(),
+            field: None,
+            op: "insert".into(),
+            payload: Some(serde_json::json!({
+                "name": name,
+                "description": input.description,
+                "color_id": color_id,
+                "icon_id": icon_id,
+            })),
+        },
+    )
+    .await;
+
     Ok(Playlist {
         id,
         // Desktop single-tenant — profile boundary is the database
@@ -149,12 +169,42 @@ pub async fn update_playlist(
     }
 
     let patch = PlaylistUpdate {
-        name: trimmed_name,
-        description: input.description,
-        color_id: input.color_id,
-        icon_id: input.icon_id,
+        name: trimmed_name.clone(),
+        description: input.description.clone(),
+        color_id: input.color_id.clone(),
+        icon_id: input.icon_id.clone(),
     };
     repo.update(playlist_id, &patch, now_millis()).await?;
+
+    // One sync op per supplied field — each gets its own
+    // `lamport_ts` so the server can replay them in a sane order
+    // even when interleaved with concurrent updates from another
+    // device.
+    let entity_id = playlist_id.to_string();
+    for (field, value) in [
+        ("name", trimmed_name.map(serde_json::Value::String)),
+        (
+            "description",
+            input.description.map(serde_json::Value::String),
+        ),
+        ("color_id", input.color_id.map(serde_json::Value::String)),
+        ("icon_id", input.icon_id.map(serde_json::Value::String)),
+    ] {
+        if let Some(value) = value {
+            crate::sync::hooks::enqueue_op(
+                &state,
+                crate::sync::hooks::PendingOpDraft {
+                    entity: "playlist".into(),
+                    entity_id: entity_id.clone(),
+                    field: Some(field.into()),
+                    op: "set".into(),
+                    payload: Some(serde_json::json!({ "value": value })),
+                },
+            )
+            .await;
+        }
+    }
+
     Ok(())
 }
 
@@ -169,6 +219,18 @@ pub async fn delete_playlist(state: tauri::State<'_, AppState>, playlist_id: i64
         )));
     }
     tracing::info!(playlist_id, "playlist deleted");
+
+    crate::sync::hooks::enqueue_op(
+        &state,
+        crate::sync::hooks::PendingOpDraft {
+            entity: "playlist".into(),
+            entity_id: playlist_id.to_string(),
+            field: None,
+            op: "delete".into(),
+            payload: None,
+        },
+    )
+    .await;
     Ok(())
 }
 
@@ -246,6 +308,18 @@ pub async fn add_track_to_playlist(
 
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
+
+    crate::sync::hooks::enqueue_op(
+        &state,
+        crate::sync::hooks::PendingOpDraft {
+            entity: "playlist".into(),
+            entity_id: playlist_id.to_string(),
+            field: Some("tracks".into()),
+            op: "insert".into(),
+            payload: Some(serde_json::json!({ "track_ids": [track_id] })),
+        },
+    )
+    .await;
     Ok(())
 }
 
@@ -268,6 +342,21 @@ pub async fn add_tracks_to_playlist(
 
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
+
+    // One coalesced op for the whole batch — emitting N ops would
+    // cost N Lamport draws and bloat the queue without giving the
+    // server side any extra signal.
+    crate::sync::hooks::enqueue_op(
+        &state,
+        crate::sync::hooks::PendingOpDraft {
+            entity: "playlist".into(),
+            entity_id: playlist_id.to_string(),
+            field: Some("tracks".into()),
+            op: "insert".into(),
+            payload: Some(serde_json::json!({ "track_ids": track_ids })),
+        },
+    )
+    .await;
     Ok(inserted)
 }
 
@@ -287,6 +376,18 @@ pub async fn remove_track_from_playlist(
 
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
+
+    crate::sync::hooks::enqueue_op(
+        &state,
+        crate::sync::hooks::PendingOpDraft {
+            entity: "playlist".into(),
+            entity_id: playlist_id.to_string(),
+            field: Some("tracks".into()),
+            op: "delete".into(),
+            payload: Some(serde_json::json!({ "track_ids": [track_id] })),
+        },
+    )
+    .await;
     Ok(())
 }
 
@@ -319,6 +420,25 @@ pub async fn reorder_playlist_track(
 
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
+
+    // Reorder uses `op="set"` against the `tracks` field — the
+    // server-side handler in 1.f.desktop.4 / `waveflow-server` will
+    // interpret the payload's `(track_id, position)` pair to bump
+    // the row.
+    crate::sync::hooks::enqueue_op(
+        &state,
+        crate::sync::hooks::PendingOpDraft {
+            entity: "playlist".into(),
+            entity_id: playlist_id.to_string(),
+            field: Some("tracks".into()),
+            op: "set".into(),
+            payload: Some(serde_json::json!({
+                "track_id": track_id,
+                "position": new_position,
+            })),
+        },
+    )
+    .await;
     Ok(())
 }
 
@@ -358,6 +478,21 @@ pub async fn add_source_to_playlist(
 
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
+
+    crate::sync::hooks::enqueue_op(
+        &state,
+        crate::sync::hooks::PendingOpDraft {
+            entity: "playlist".into(),
+            entity_id: playlist_id.to_string(),
+            field: Some("tracks".into()),
+            op: "insert".into(),
+            payload: Some(serde_json::json!({
+                "track_ids": track_ids,
+                "via_source": { "type": source_type, "id": source_id },
+            })),
+        },
+    )
+    .await;
     Ok(inserted)
 }
 

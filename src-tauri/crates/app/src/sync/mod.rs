@@ -33,5 +33,6 @@
 //!   WebSocket subscriber.
 
 pub mod device;
+pub mod hooks;
 pub mod lamport;
 pub mod queue;
