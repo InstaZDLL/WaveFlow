@@ -97,11 +97,7 @@ impl PostgresProfileRepository {
     /// The FK on `profile.user_id REFERENCES users(id)` makes a
     /// dangling user_id fail at the DB layer, so callers don't need
     /// a separate existence check.
-    pub async fn insert_for_user(
-        &self,
-        draft: &ProfileDraft,
-        user_id: i64,
-    ) -> CoreResult<i64> {
+    pub async fn insert_for_user(&self, draft: &ProfileDraft, user_id: i64) -> CoreResult<i64> {
         let id: i64 = sqlx::query_scalar(
             "INSERT INTO profile (user_id, name, color_id, avatar_hash, data_dir, created_at, last_used_at)
              VALUES ($1, $2, $3, $4, '', $5, $6)
@@ -193,25 +189,22 @@ impl PostgresProfileRepository {
             .fetch_all(&mut *tx)
             .await?;
 
-        let exists: Option<i64> = sqlx::query_scalar(
-            "SELECT id FROM profile WHERE id = $1 AND user_id = $2",
-        )
-        .bind(id)
-        .bind(user_id)
-        .fetch_optional(&mut *tx)
-        .await?;
+        let exists: Option<i64> =
+            sqlx::query_scalar("SELECT id FROM profile WHERE id = $1 AND user_id = $2")
+                .bind(id)
+                .bind(user_id)
+                .fetch_optional(&mut *tx)
+                .await?;
 
         if exists.is_none() {
             tx.commit().await?;
             return Ok(ProfileDeleteOutcome::NotFound);
         }
 
-        let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM profile WHERE user_id = $1",
-        )
-        .bind(user_id)
-        .fetch_one(&mut *tx)
-        .await?;
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM profile WHERE user_id = $1")
+            .bind(user_id)
+            .fetch_one(&mut *tx)
+            .await?;
 
         if count <= 1 {
             tx.commit().await?;
@@ -250,4 +243,3 @@ impl PostgresProfileRepository {
         Ok(updated.rows_affected() > 0)
     }
 }
-

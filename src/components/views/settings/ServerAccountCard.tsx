@@ -60,8 +60,14 @@ export function ServerAccountCard() {
     setError(null);
     setBusy(true);
     try {
-      const next = await serverSetUrl(urlDraft);
+      // Normalise client-side so the input mirrors what got persisted
+      // (the backend trims too, but reflecting that here keeps the
+      // draft and the stored value in sync without a refresh
+      // round-trip).
+      const normalizedUrl = urlDraft.trim();
+      const next = await serverSetUrl(normalizedUrl);
       setStatus(next);
+      setUrlDraft(normalizedUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -73,7 +79,12 @@ export function ServerAccountCard() {
     setError(null);
     setBusy(true);
     try {
-      const next = await serverSetToken(tokenDraft);
+      // Trim before send so a copy-paste that pulled a trailing
+      // newline (or `Bearer ` prefix-style padding the user might
+      // accidentally include) doesn't drag spurious bytes into the
+      // structural three-segment check.
+      const normalizedToken = tokenDraft.trim();
+      const next = await serverSetToken(normalizedToken);
       setStatus(next);
       setTokenDraft("");
     } catch (err) {
