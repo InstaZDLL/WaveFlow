@@ -144,7 +144,18 @@ struct PendingOpRow {
 /// Return the next `limit` pending rows in FIFO order. The drain
 /// task calls this in a loop with a small `limit` so a flaky server
 /// doesn't pin the whole queue in memory.
+///
+/// `limit <= 0` short-circuits to an empty `Vec` rather than going
+/// through to SQLite. SQLite treats a negative `LIMIT` as "no limit"
+/// (returns every row), so a caller that miscomputes the page size
+/// would otherwise pull the entire queue into memory. `limit == 0`
+/// is technically a valid no-op against SQLite but the guard keeps
+/// the contract uniform: every non-positive input maps to "nothing
+/// requested".
 pub async fn list_pending(profile_pool: &SqlitePool, limit: i64) -> AppResult<Vec<PendingOp>> {
+    if limit <= 0 {
+        return Ok(Vec::new());
+    }
     let rows: Vec<PendingOpRow> = sqlx::query_as(
         "SELECT id, operation_id, lamport_ts, entity, entity_id, field, op,
                 payload, created_at, last_attempt_at, attempt_count, last_error
@@ -263,7 +274,7 @@ mod tests {
             .unwrap();
         sqlx::query(
             "CREATE TABLE sync_pending_op (
-                id INTEGER PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 operation_id TEXT NOT NULL UNIQUE,
                 lamport_ts INTEGER NOT NULL UNIQUE CHECK (lamport_ts > 0),
                 entity TEXT NOT NULL,
@@ -397,6 +408,42 @@ mod tests {
         };
         let err = enqueue(&pool, &draft, 1).await.unwrap_err();
         assert!(format!("{err}").to_lowercase().contains("check"));
+    }
+
+    #[tokio::test]
+    async fn list_pending_guards_against_non_positive_limit() {
+        let pool = pool().await;
+        for lamport in 1..=3 {
+            enqueue(&pool, &draft(&lamport.to_string(), None), lamport)
+                .await
+                .unwrap();
+        }
+        // `LIMIT 0` is a no-op against SQLite anyway, but the guard
+        // turns it into an explicit early return that doesn't pay
+        // the round-trip.
+        assert!(list_pending(&pool, 0).await.unwrap().is_empty());
+        // `LIMIT -1` would otherwise be treated as "no limit" by
+        // SQLite — the dangerous case the guard exists to catch.
+        assert!(list_pending(&pool, -1).await.unwrap().is_empty());
+        // Positive limit still works.
+        assert_eq!(list_pending(&pool, 10).await.unwrap().len(), 3);
+    }
+
+    #[tokio::test]
+    async fn ids_stay_monotonic_after_clear() {
+        // Without `INTEGER PRIMARY KEY AUTOINCREMENT` SQLite would
+        // restart the id counter at 1 after a full drain. A future
+        // high-water-mark drain task that tracks `last_processed_id`
+        // would silently miss ops appended after the reset; pin the
+        // AUTOINCREMENT behaviour with a regression test.
+        let pool = pool().await;
+        let (id_a, _) = enqueue(&pool, &draft("1", None), 1).await.unwrap();
+        clear(&pool).await.unwrap();
+        let (id_b, _) = enqueue(&pool, &draft("2", None), 2).await.unwrap();
+        assert!(
+            id_b > id_a,
+            "AUTOINCREMENT must keep ids monotonic across clears: id_a={id_a}, id_b={id_b}",
+        );
     }
 
     #[tokio::test]

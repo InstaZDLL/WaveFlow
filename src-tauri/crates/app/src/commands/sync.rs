@@ -46,10 +46,20 @@ pub async fn sync_get_queue_state(state: tauri::State<'_, AppState>) -> AppResul
             lamport::read(&pool).await?,
             queue::count_pending(&pool).await?,
         ),
-        // No active profile — return defaults so the UI can render
-        // without a hard error. Should be unreachable post-bootstrap
-        // but covered defensively.
-        Err(_) => (0, 0),
+        Err(err) => {
+            // No active profile is the only legitimate path here
+            // post-bootstrap (we render defaults so the Settings card
+            // can still mount). Anything else — a pool init failure,
+            // a closed RwLock, etc. — should at minimum land in the
+            // tracing sink so an operator can correlate the "0 / 0"
+            // surface with the actual cause instead of staring at a
+            // silently-empty card.
+            tracing::warn!(
+                error = %err,
+                "sync_get_queue_state: require_profile_pool failed, returning defaults",
+            );
+            (0, 0)
+        }
     };
 
     Ok(SyncQueueState {

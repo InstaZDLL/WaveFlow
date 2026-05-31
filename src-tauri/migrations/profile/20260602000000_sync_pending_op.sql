@@ -24,11 +24,20 @@
 --   surface at INSERT instead of after a costly round-trip.
 -- - `op` is gated by a CHECK so a typo'd write doesn't land bytes the
 --   server would 400 on.
--- - The `id INTEGER PRIMARY KEY` is SQLite's rowid alias and gives us
---   stable FIFO ordering for the drain pass.
+-- - `id INTEGER PRIMARY KEY AUTOINCREMENT` keeps the rowid strictly
+--   monotonic across the table's lifetime — without `AUTOINCREMENT`,
+--   SQLite reuses ids after deletes (the next insert picks
+--   `MAX(rowid) + 1` of the surviving rows). A future drain task
+--   that tracks a "last-processed id" high-water mark would silently
+--   miss ops appended after the queue was fully drained, because
+--   their reused ids would slot below the mark. The
+--   `sqlite_sequence` bookkeeping row that AUTOINCREMENT plants
+--   costs one extra small write per insert, which is unmeasurable
+--   next to the JSON-payload serialisation the same INSERT already
+--   does.
 
 CREATE TABLE sync_pending_op (
-    id              INTEGER PRIMARY KEY,
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
     operation_id    TEXT NOT NULL UNIQUE,
     lamport_ts      INTEGER NOT NULL UNIQUE CHECK (lamport_ts > 0),
     entity          TEXT NOT NULL,
