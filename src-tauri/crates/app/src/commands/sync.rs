@@ -8,12 +8,12 @@
 //! No CRUD enqueue hooks are wired in this PR — see the
 //! [`crate::sync`] module docstring for the scope split.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
-    error::AppResult,
+    error::{AppError, AppResult},
     state::AppState,
-    sync::{device, lamport, queue},
+    sync::{device, lamport, mode, queue},
 };
 
 #[derive(Debug, Serialize)]
@@ -30,6 +30,10 @@ pub struct SyncQueueState {
     pub lamport_local_max: i64,
     /// Number of rows currently in the local queue.
     pub pending_count: i64,
+    /// Current per-profile sync mode (`"local"` | `"hybrid"`). Falls
+    /// back to `"hybrid"` (the default) on a fresh profile with no
+    /// stored row.
+    pub mode: &'static str,
 }
 
 /// Snapshot of the desktop's sync infrastructure for the Settings
@@ -41,10 +45,11 @@ pub struct SyncQueueState {
 pub async fn sync_get_queue_state(state: tauri::State<'_, AppState>) -> AppResult<SyncQueueState> {
     let device_id = device::read(&state.app_db).await?;
 
-    let (lamport_local_max, pending_count) = match state.require_profile_pool().await {
+    let (lamport_local_max, pending_count, sync_mode) = match state.require_profile_pool().await {
         Ok(pool) => (
             lamport::read(&pool).await?,
             queue::count_pending(&pool).await?,
+            mode::read(&pool).await?,
         ),
         Err(err) => {
             // No active profile is the only legitimate path here
@@ -58,7 +63,7 @@ pub async fn sync_get_queue_state(state: tauri::State<'_, AppState>) -> AppResul
                 error = %err,
                 "sync_get_queue_state: require_profile_pool failed, returning defaults",
             );
-            (0, 0)
+            (0, 0, mode::SyncMode::Hybrid)
         }
     };
 
@@ -66,6 +71,7 @@ pub async fn sync_get_queue_state(state: tauri::State<'_, AppState>) -> AppResul
         device_id,
         lamport_local_max,
         pending_count,
+        mode: sync_mode.as_str(),
     })
 }
 
@@ -77,4 +83,43 @@ pub async fn sync_get_queue_state(state: tauri::State<'_, AppState>) -> AppResul
 pub async fn sync_clear_pending(state: tauri::State<'_, AppState>) -> AppResult<u64> {
     let pool = state.require_profile_pool().await?;
     queue::clear(&pool).await
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SetSyncModeRequest {
+    /// Canonical lowercase string — must match
+    /// [`mode::SyncMode::as_str`] (currently `"local"` or
+    /// `"hybrid"`). Anything else fails 400-style with a clear
+    /// error so a typoed JSON payload can't silently land an
+    /// unknown mode in storage.
+    pub mode: String,
+}
+
+/// Read the active profile's current sync mode. Returns the canonical
+/// string form so the frontend doesn't have to enumerate the variants
+/// in two places.
+#[tauri::command]
+pub async fn sync_get_mode(state: tauri::State<'_, AppState>) -> AppResult<&'static str> {
+    let pool = state.require_profile_pool().await?;
+    Ok(mode::read(&pool).await?.as_str())
+}
+
+/// Persist the active profile's sync mode.
+#[tauri::command]
+pub async fn sync_set_mode(
+    state: tauri::State<'_, AppState>,
+    req: SetSyncModeRequest,
+) -> AppResult<&'static str> {
+    let parsed = match req.mode.trim() {
+        "local" => mode::SyncMode::Local,
+        "hybrid" => mode::SyncMode::Hybrid,
+        other => {
+            return Err(AppError::Other(format!(
+                "unknown sync mode '{other}', expected 'local' or 'hybrid'",
+            )));
+        }
+    };
+    let pool = state.require_profile_pool().await?;
+    mode::write(&pool, parsed).await?;
+    Ok(parsed.as_str())
 }

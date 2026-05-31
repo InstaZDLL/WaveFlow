@@ -1621,7 +1621,18 @@
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "通过浏览器登录",
       "signInWithBrowserHint": "在浏览器中打开 WaveFlow Web；您在那里登录，应用通过本地交换自动获取 JWT。",
-      "loginInProgress": "等待浏览器…"
+      "loginInProgress": "等待浏览器…",
+      "modeLabel": "同步模式",
+      "modes": {
+        "hybrid": {
+          "label": "混合（默认）",
+          "description": "您的更改保留在本地，同时也会排队等待发送到服务器。"
+        },
+        "local": {
+          "label": "仅本地",
+          "description": "即使已登录，也不会向服务器发送任何更改。适用于希望保持隐私的配置文件。"
+        }
+      }
     }
   },
   "scanProgress": {

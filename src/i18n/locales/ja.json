@@ -1621,7 +1621,18 @@
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "ブラウザでサインイン",
       "signInWithBrowserHint": "ブラウザで WaveFlow Web を開きます。そこでサインインすると、アプリがローカル交換を通じて JWT を自動的に受け取ります。",
-      "loginInProgress": "ブラウザを待機中…"
+      "loginInProgress": "ブラウザを待機中…",
+      "modeLabel": "同期モード",
+      "modes": {
+        "hybrid": {
+          "label": "ハイブリッド（既定）",
+          "description": "変更はローカルに残りますが、サーバーへ送信するためにキューにも追加されます。"
+        },
+        "local": {
+          "label": "ローカルのみ",
+          "description": "サインインしていても変更はサーバーに送信されません。プライベートに保ちたいプロファイルに便利です。"
+        }
+      }
     }
   },
   "scanProgress": {

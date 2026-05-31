@@ -1621,7 +1621,18 @@
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "透過瀏覽器登入",
       "signInWithBrowserHint": "在瀏覽器中開啟 WaveFlow Web；您在那裡登入，應用程式透過本地交握自動取得 JWT。",
-      "loginInProgress": "等待瀏覽器…"
+      "loginInProgress": "等待瀏覽器…",
+      "modeLabel": "同步模式",
+      "modes": {
+        "hybrid": {
+          "label": "混合（預設）",
+          "description": "您的變更保留在本機，同時也會排入佇列以傳送至伺服器。"
+        },
+        "local": {
+          "label": "僅本機",
+          "description": "即使已登入，也不會向伺服器傳送任何變更。適合您想保持私人的設定檔。"
+        }
+      }
     }
   },
   "scanProgress": {

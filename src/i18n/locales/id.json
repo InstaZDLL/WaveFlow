@@ -1621,7 +1621,18 @@
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "Masuk lewat peramban",
       "signInWithBrowserHint": "Membuka WaveFlow Web di peramban Anda; Anda masuk di sana dan aplikasi menangkap JWT secara otomatis lewat pertukaran lokal.",
-      "loginInProgress": "Menunggu peramban…"
+      "loginInProgress": "Menunggu peramban…",
+      "modeLabel": "Mode sinkronisasi",
+      "modes": {
+        "hybrid": {
+          "label": "Hibrida (default)",
+          "description": "Perubahan Anda tetap lokal tetapi juga diantrekan untuk dikirim ke server."
+        },
+        "local": {
+          "label": "Hanya lokal",
+          "description": "Tidak ada perubahan yang dikirim ke server, bahkan saat masuk. Berguna untuk profil yang ingin Anda jaga privasinya."
+        }
+      }
     }
   },
   "spotify": {
