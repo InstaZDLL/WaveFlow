@@ -54,13 +54,19 @@ pub async fn insert_custom_conn(
 
 /// Partial `UPDATE playlist` via `COALESCE` — every `Some` field
 /// overwrites, every `None` leaves the existing value alone.
+///
+/// Returns `true` when a row was actually touched, `false` when no
+/// playlist matched. The boolean lets the desktop's tx-aware caller
+/// drop the surrounding transaction without enqueueing outbox ops
+/// against a row that vanished — same-tx existence check + write +
+/// outbox in a single atomic pass.
 pub async fn update_conn(
     conn: &mut SqliteConnection,
     id: i64,
     patch: &PlaylistUpdate,
     now_ms: i64,
-) -> CoreResult<()> {
-    sqlx::query(
+) -> CoreResult<bool> {
+    let res = sqlx::query(
         "UPDATE playlist
             SET name        = COALESCE(?, name),
                 description = COALESCE(?, description),
@@ -77,7 +83,7 @@ pub async fn update_conn(
     .bind(id)
     .execute(conn)
     .await?;
-    Ok(())
+    Ok(res.rows_affected() > 0)
 }
 
 /// `true` when a row was deleted, `false` when no row matched.
@@ -364,7 +370,13 @@ impl PlaylistRepository for SqlitePlaylistRepository {
 
     async fn update(&self, id: i64, patch: &PlaylistUpdate, now_ms: i64) -> CoreResult<()> {
         let mut conn = self.pool.acquire().await?;
-        update_conn(&mut conn, id, patch, now_ms).await
+        // Drop the boolean for trait back-compat — the trait method
+        // never communicated existence to the caller and changing it
+        // would break every non-tx-aware site (smart playlists,
+        // playlist_cover regen, etc.). Sites that need the signal
+        // call `update_conn` directly.
+        let _ = update_conn(&mut conn, id, patch, now_ms).await?;
+        Ok(())
     }
 
     async fn delete(&self, id: i64) -> CoreResult<bool> {

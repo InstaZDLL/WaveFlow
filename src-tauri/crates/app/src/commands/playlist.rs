@@ -163,15 +163,6 @@ pub async fn update_playlist(
     playlist_id: i64,
     input: UpdatePlaylistInput,
 ) -> AppResult<()> {
-    let repo = playlist_repo(&state).await?;
-
-    // Precise error for missing id instead of a silent "0 rows updated".
-    if !repo.exists(playlist_id).await? {
-        return Err(AppError::Other(format!(
-            "playlist {playlist_id} not found in active profile"
-        )));
-    }
-
     let trimmed_name = input.name.as_ref().map(|s| s.trim().to_string());
     if let Some(name) = &trimmed_name {
         if name.is_empty() {
@@ -186,13 +177,23 @@ pub async fn update_playlist(
         icon_id: input.icon_id.clone(),
     };
 
-    // Atomic update + per-field outbox ops in one tx. One Lamport
-    // bump per supplied field so the server can replay them in a
-    // sane order even when interleaved with concurrent updates from
-    // another device.
+    // Atomic existence-check + update + per-field outbox ops in one
+    // tx. `update_conn` now returns the rows-affected boolean so a
+    // concurrent delete between the pre-1.f exists() probe and the
+    // UPDATE can't slip an enqueue past — if no row was touched we
+    // drop the tx (auto-rollback on drop) and return the same 404-
+    // style error the previous shape did, but without the race
+    // window. One Lamport bump per supplied field so the server can
+    // replay them in order against concurrent updates from another
+    // device.
     let pool = state.require_profile_pool().await?;
     let mut tx = pool.begin().await?;
-    update_conn(&mut tx, playlist_id, &patch, now_millis()).await?;
+    let updated = update_conn(&mut tx, playlist_id, &patch, now_millis()).await?;
+    if !updated {
+        return Err(AppError::Other(format!(
+            "playlist {playlist_id} not found in active profile"
+        )));
+    }
 
     let entity_id = playlist_id.to_string();
     for (field, value) in [
@@ -389,22 +390,32 @@ pub async fn remove_track_from_playlist(
     let profile_id = state.require_profile_id().await?;
 
     let mut tx = pool.begin().await?;
-    remove_track_conn(&mut tx, playlist_id, track_id, now_millis()).await?;
-    crate::sync::hooks::enqueue_op_in_tx(
-        &mut tx,
-        &crate::sync::hooks::PendingOpDraft {
-            entity: "playlist".into(),
-            entity_id: playlist_id.to_string(),
-            field: Some("tracks".into()),
-            op: "delete".into(),
-            payload: Some(serde_json::json!({ "track_ids": [track_id] })),
-        },
-    )
-    .await?;
+    let removed = remove_track_conn(&mut tx, playlist_id, track_id, now_millis()).await?;
+    // Only enqueue when the local DELETE actually touched a row —
+    // otherwise a `remove` op against a track that wasn't in the
+    // playlist (concurrent removal, double-click, stale UI state)
+    // would replay on the server and drop a row that legitimately
+    // belonged there. The tx still commits so the no-op stays
+    // idempotent from the caller's POV.
+    if removed {
+        crate::sync::hooks::enqueue_op_in_tx(
+            &mut tx,
+            &crate::sync::hooks::PendingOpDraft {
+                entity: "playlist".into(),
+                entity_id: playlist_id.to_string(),
+                field: Some("tracks".into()),
+                op: "delete".into(),
+                payload: Some(serde_json::json!({ "track_ids": [track_id] })),
+            },
+        )
+        .await?;
+    }
     tx.commit().await?;
 
-    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
-        .await;
+    if removed {
+        super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
+            .await;
+    }
     Ok(())
 }
 
