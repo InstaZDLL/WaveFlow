@@ -39,7 +39,7 @@
 
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+use sqlx::{SqliteConnection, SqlitePool};
 
 use crate::error::AppResult;
 
@@ -93,9 +93,18 @@ fn now_ms() -> i64 {
 /// gate combines this with a JWT-presence check, so a fresh
 /// unconfigured profile still doesn't enqueue anything).
 pub async fn read(profile_pool: &SqlitePool) -> AppResult<SyncMode> {
+    let mut conn = profile_pool.acquire().await?;
+    read_conn(&mut conn).await
+}
+
+/// Same as [`read`] but takes a caller-owned connection so the SELECT
+/// joins an open transaction. Used by
+/// [`crate::sync::hooks::enqueue_op_in_tx`] to gate the outbox write
+/// against the persisted mode without a separate round-trip.
+pub async fn read_conn(conn: &mut SqliteConnection) -> AppResult<SyncMode> {
     let raw: Option<String> = sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = ?")
         .bind(KEY)
-        .fetch_optional(profile_pool)
+        .fetch_optional(conn)
         .await?;
     Ok(raw
         .map(|s| SyncMode::from_storage(&s))

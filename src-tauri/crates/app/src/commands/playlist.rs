@@ -13,7 +13,13 @@ use sqlx::FromRow;
 
 use waveflow_core::repository::{
     playlist::{PlaylistDraft, PlaylistRepository, PlaylistUpdate},
-    sqlite::{SqlitePlaylistRepository, SqliteTrackRepository},
+    sqlite::{
+        playlist::{
+            append_track_conn, append_tracks_conn, delete_conn, insert_custom_conn,
+            remove_track_conn, reorder_track_conn, update_conn,
+        },
+        SqlitePlaylistRepository, SqliteTrackRepository,
+    },
     track::{TrackRepository, TrackSource},
 };
 
@@ -100,14 +106,18 @@ pub async fn create_playlist(
         icon_id: icon_id.clone(),
         now_ms: now,
     };
-    let id = playlist_repo(&state).await?.insert_custom(&draft).await?;
 
-    // Phase 1.f.desktop.2b — queue a whole-entity insert op so a
-    // future drain task (1.f.desktop.4) replays the create on the
-    // server. Hook is a no-op when the profile isn't signed in.
-    crate::sync::hooks::enqueue_op(
-        &state,
-        crate::sync::hooks::PendingOpDraft {
+    // Atomic write + outbox enqueue (issue #193). The playlist
+    // INSERT and the matching `sync_pending_op` row land in the
+    // same SQLite transaction; either both commit or both roll
+    // back. Closes the drift window the fire-and-forget
+    // `enqueue_op` had between two consecutive commits.
+    let pool = state.require_profile_pool().await?;
+    let mut tx = pool.begin().await?;
+    let id = insert_custom_conn(&mut tx, &draft).await?;
+    crate::sync::hooks::enqueue_op_in_tx(
+        &mut tx,
+        &crate::sync::hooks::PendingOpDraft {
             entity: "playlist".into(),
             entity_id: id.to_string(),
             field: None,
@@ -120,7 +130,8 @@ pub async fn create_playlist(
             })),
         },
     )
-    .await;
+    .await?;
+    tx.commit().await?;
 
     Ok(Playlist {
         id,
@@ -152,15 +163,6 @@ pub async fn update_playlist(
     playlist_id: i64,
     input: UpdatePlaylistInput,
 ) -> AppResult<()> {
-    let repo = playlist_repo(&state).await?;
-
-    // Precise error for missing id instead of a silent "0 rows updated".
-    if !repo.exists(playlist_id).await? {
-        return Err(AppError::Other(format!(
-            "playlist {playlist_id} not found in active profile"
-        )));
-    }
-
     let trimmed_name = input.name.as_ref().map(|s| s.trim().to_string());
     if let Some(name) = &trimmed_name {
         if name.is_empty() {
@@ -174,12 +176,25 @@ pub async fn update_playlist(
         color_id: input.color_id.clone(),
         icon_id: input.icon_id.clone(),
     };
-    repo.update(playlist_id, &patch, now_millis()).await?;
 
-    // One sync op per supplied field — each gets its own
-    // `lamport_ts` so the server can replay them in a sane order
-    // even when interleaved with concurrent updates from another
+    // Atomic existence-check + update + per-field outbox ops in one
+    // tx. `update_conn` now returns the rows-affected boolean so a
+    // concurrent delete between the pre-1.f exists() probe and the
+    // UPDATE can't slip an enqueue past — if no row was touched we
+    // drop the tx (auto-rollback on drop) and return the same 404-
+    // style error the previous shape did, but without the race
+    // window. One Lamport bump per supplied field so the server can
+    // replay them in order against concurrent updates from another
     // device.
+    let pool = state.require_profile_pool().await?;
+    let mut tx = pool.begin().await?;
+    let updated = update_conn(&mut tx, playlist_id, &patch, now_millis()).await?;
+    if !updated {
+        return Err(AppError::Other(format!(
+            "playlist {playlist_id} not found in active profile"
+        )));
+    }
+
     let entity_id = playlist_id.to_string();
     for (field, value) in [
         ("name", trimmed_name.map(serde_json::Value::String)),
@@ -191,9 +206,9 @@ pub async fn update_playlist(
         ("icon_id", input.icon_id.map(serde_json::Value::String)),
     ] {
         if let Some(value) = value {
-            crate::sync::hooks::enqueue_op(
-                &state,
-                crate::sync::hooks::PendingOpDraft {
+            crate::sync::hooks::enqueue_op_in_tx(
+                &mut tx,
+                &crate::sync::hooks::PendingOpDraft {
                     entity: "playlist".into(),
                     entity_id: entity_id.clone(),
                     field: Some(field.into()),
@@ -201,9 +216,10 @@ pub async fn update_playlist(
                     payload: Some(serde_json::json!({ "value": value })),
                 },
             )
-            .await;
+            .await?;
         }
     }
+    tx.commit().await?;
 
     Ok(())
 }
@@ -213,16 +229,16 @@ pub async fn update_playlist(
 /// belong to their library.
 #[tauri::command]
 pub async fn delete_playlist(state: tauri::State<'_, AppState>, playlist_id: i64) -> AppResult<()> {
-    if !playlist_repo(&state).await?.delete(playlist_id).await? {
+    let pool = state.require_profile_pool().await?;
+    let mut tx = pool.begin().await?;
+    if !delete_conn(&mut tx, playlist_id).await? {
         return Err(AppError::Other(format!(
             "playlist {playlist_id} not found in active profile"
         )));
     }
-    tracing::info!(playlist_id, "playlist deleted");
-
-    crate::sync::hooks::enqueue_op(
-        &state,
-        crate::sync::hooks::PendingOpDraft {
+    crate::sync::hooks::enqueue_op_in_tx(
+        &mut tx,
+        &crate::sync::hooks::PendingOpDraft {
             entity: "playlist".into(),
             entity_id: playlist_id.to_string(),
             field: None,
@@ -230,7 +246,9 @@ pub async fn delete_playlist(state: tauri::State<'_, AppState>, playlist_id: i64
             payload: None,
         },
     )
-    .await;
+    .await?;
+    tx.commit().await?;
+    tracing::info!(playlist_id, "playlist deleted");
     Ok(())
 }
 
@@ -302,16 +320,11 @@ pub async fn add_track_to_playlist(
     let profile_id = state.require_profile_id().await?;
     let now = now_millis();
 
-    SqlitePlaylistRepository::new(pool.clone())
-        .append_track(playlist_id, track_id, now)
-        .await?;
-
-    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
-        .await;
-
-    crate::sync::hooks::enqueue_op(
-        &state,
-        crate::sync::hooks::PendingOpDraft {
+    let mut tx = pool.begin().await?;
+    append_track_conn(&mut tx, playlist_id, track_id, now).await?;
+    crate::sync::hooks::enqueue_op_in_tx(
+        &mut tx,
+        &crate::sync::hooks::PendingOpDraft {
             entity: "playlist".into(),
             entity_id: playlist_id.to_string(),
             field: Some("tracks".into()),
@@ -319,7 +332,14 @@ pub async fn add_track_to_playlist(
             payload: Some(serde_json::json!({ "track_ids": [track_id] })),
         },
     )
-    .await;
+    .await?;
+    tx.commit().await?;
+
+    // Cover regen runs OUTSIDE the tx — it does its own pool read +
+    // a filesystem-level rasterise, neither of which belongs in the
+    // atomic write window.
+    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
+        .await;
     Ok(())
 }
 
@@ -336,19 +356,14 @@ pub async fn add_tracks_to_playlist(
     let profile_id = state.require_profile_id().await?;
     let now = now_millis();
 
-    let inserted = SqlitePlaylistRepository::new(pool.clone())
-        .append_tracks(playlist_id, &track_ids, now)
-        .await?;
-
-    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
-        .await;
-
+    let mut tx = pool.begin().await?;
+    let inserted = append_tracks_conn(&mut tx, playlist_id, &track_ids, now).await?;
     // One coalesced op for the whole batch — emitting N ops would
     // cost N Lamport draws and bloat the queue without giving the
     // server side any extra signal.
-    crate::sync::hooks::enqueue_op(
-        &state,
-        crate::sync::hooks::PendingOpDraft {
+    crate::sync::hooks::enqueue_op_in_tx(
+        &mut tx,
+        &crate::sync::hooks::PendingOpDraft {
             entity: "playlist".into(),
             entity_id: playlist_id.to_string(),
             field: Some("tracks".into()),
@@ -356,7 +371,11 @@ pub async fn add_tracks_to_playlist(
             payload: Some(serde_json::json!({ "track_ids": track_ids })),
         },
     )
-    .await;
+    .await?;
+    tx.commit().await?;
+
+    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
+        .await;
     Ok(inserted)
 }
 
@@ -370,24 +389,33 @@ pub async fn remove_track_from_playlist(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
 
-    SqlitePlaylistRepository::new(pool.clone())
-        .remove_track(playlist_id, track_id, now_millis())
+    let mut tx = pool.begin().await?;
+    let removed = remove_track_conn(&mut tx, playlist_id, track_id, now_millis()).await?;
+    // Only enqueue when the local DELETE actually touched a row —
+    // otherwise a `remove` op against a track that wasn't in the
+    // playlist (concurrent removal, double-click, stale UI state)
+    // would replay on the server and drop a row that legitimately
+    // belonged there. The tx still commits so the no-op stays
+    // idempotent from the caller's POV.
+    if removed {
+        crate::sync::hooks::enqueue_op_in_tx(
+            &mut tx,
+            &crate::sync::hooks::PendingOpDraft {
+                entity: "playlist".into(),
+                entity_id: playlist_id.to_string(),
+                field: Some("tracks".into()),
+                op: "delete".into(),
+                payload: Some(serde_json::json!({ "track_ids": [track_id] })),
+            },
+        )
         .await?;
+    }
+    tx.commit().await?;
 
-    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
-        .await;
-
-    crate::sync::hooks::enqueue_op(
-        &state,
-        crate::sync::hooks::PendingOpDraft {
-            entity: "playlist".into(),
-            entity_id: playlist_id.to_string(),
-            field: Some("tracks".into()),
-            op: "delete".into(),
-            payload: Some(serde_json::json!({ "track_ids": [track_id] })),
-        },
-    )
-    .await;
+    if removed {
+        super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
+            .await;
+    }
     Ok(())
 }
 
@@ -409,67 +437,22 @@ pub async fn reorder_playlist_track(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
 
-    let moved = SqlitePlaylistRepository::new(pool.clone())
-        .reorder_track(playlist_id, track_id, new_position, now_millis())
-        .await?;
-    if !moved {
+    // Atomic move + outbox enqueue in one tx. `reorder_track_conn`
+    // returns the effective position (the value after the repo's
+    // internal clamp) so the sync payload matches the row's actual
+    // new state — closes the divergence path #192 documented when
+    // sending the raw `new_position` to the server.
+    let mut tx = pool.begin().await?;
+    let effective =
+        reorder_track_conn(&mut tx, playlist_id, track_id, new_position, now_millis()).await?;
+    let Some(position_for_sync) = effective else {
         return Err(AppError::Other(format!(
             "track {track_id} not in playlist {playlist_id}"
         )));
-    }
-
-    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
-        .await;
-
-    // Read the effective position back so the sync op matches the
-    // row's actual state — the repo's internal clamp
-    // (`new_position.clamp(0, len - 1)`) means the value we hand
-    // the server has to be what landed, not what was requested.
-    // Otherwise a "move to 999" in a 10-track playlist would replay
-    // on the server as 999, the server's own clamp would coerce it
-    // to its-current-length-minus-one, and the two devices could
-    // disagree on the final order whenever lengths diverge.
-    //
-    // If the read-back itself fails (DB hiccup) or the row vanished
-    // out from under us (concurrent delete on another thread), log
-    // + skip the enqueue. Sending the raw `new_position` as a
-    // fallback would silently reintroduce exactly the divergence
-    // this readback exists to prevent — better to drop the sync op
-    // for this single action and let the next mutation requeue
-    // normally.
-    let position_for_sync = match sqlx::query_scalar::<_, i64>(
-        "SELECT position FROM playlist_track WHERE playlist_id = ? AND track_id = ?",
-    )
-    .bind(playlist_id)
-    .bind(track_id)
-    .fetch_optional(&pool)
-    .await
-    {
-        Ok(Some(p)) => p,
-        Ok(None) => {
-            tracing::warn!(
-                playlist_id,
-                track_id,
-                requested_position = new_position,
-                "sync skipped: reordered row vanished before readback",
-            );
-            return Ok(());
-        }
-        Err(err) => {
-            tracing::warn!(
-                error = %err,
-                playlist_id,
-                track_id,
-                requested_position = new_position,
-                "sync skipped: effective position readback failed",
-            );
-            return Ok(());
-        }
     };
-
-    crate::sync::hooks::enqueue_op(
-        &state,
-        crate::sync::hooks::PendingOpDraft {
+    crate::sync::hooks::enqueue_op_in_tx(
+        &mut tx,
+        &crate::sync::hooks::PendingOpDraft {
             entity: "playlist".into(),
             entity_id: playlist_id.to_string(),
             field: Some("tracks".into()),
@@ -480,7 +463,11 @@ pub async fn reorder_playlist_track(
             })),
         },
     )
-    .await;
+    .await?;
+    tx.commit().await?;
+
+    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
+        .await;
     Ok(())
 }
 
@@ -514,16 +501,11 @@ pub async fn add_source_to_playlist(
         .list_ids_in_source(source)
         .await?;
 
-    let inserted = SqlitePlaylistRepository::new(pool.clone())
-        .append_tracks(playlist_id, &track_ids, now_millis())
-        .await?;
-
-    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
-        .await;
-
-    crate::sync::hooks::enqueue_op(
-        &state,
-        crate::sync::hooks::PendingOpDraft {
+    let mut tx = pool.begin().await?;
+    let inserted = append_tracks_conn(&mut tx, playlist_id, &track_ids, now_millis()).await?;
+    crate::sync::hooks::enqueue_op_in_tx(
+        &mut tx,
+        &crate::sync::hooks::PendingOpDraft {
             entity: "playlist".into(),
             entity_id: playlist_id.to_string(),
             field: Some("tracks".into()),
@@ -534,7 +516,11 @@ pub async fn add_source_to_playlist(
             })),
         },
     )
-    .await;
+    .await?;
+    tx.commit().await?;
+
+    super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
+        .await;
     Ok(inserted)
 }
 

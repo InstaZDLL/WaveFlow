@@ -33,7 +33,7 @@
 
 use chrono::Utc;
 use serde::Serialize;
-use sqlx::{QueryBuilder, Sqlite, SqlitePool};
+use sqlx::{QueryBuilder, Sqlite, SqliteConnection, SqlitePool};
 use uuid::Uuid;
 
 use crate::error::AppResult;
@@ -95,6 +95,19 @@ pub async fn enqueue(
     draft: &PendingOpDraft,
     lamport_ts: i64,
 ) -> AppResult<(i64, String)> {
+    let mut conn = profile_pool.acquire().await?;
+    enqueue_conn(&mut conn, draft, lamport_ts).await
+}
+
+/// Same as [`enqueue`] but takes a caller-owned connection so the
+/// INSERT joins an open transaction. Used by
+/// [`crate::sync::hooks::enqueue_op_in_tx`] to keep the playlist
+/// write + outbox row + Lamport bump in a single atomic commit.
+pub async fn enqueue_conn(
+    conn: &mut SqliteConnection,
+    draft: &PendingOpDraft,
+    lamport_ts: i64,
+) -> AppResult<(i64, String)> {
     let operation_id = Uuid::new_v4().to_string();
     let payload_json = match draft.payload.as_ref() {
         Some(v) => Some(serde_json::to_string(v).map_err(|e| {
@@ -117,7 +130,7 @@ pub async fn enqueue(
     .bind(&draft.op)
     .bind(payload_json.as_deref())
     .bind(now)
-    .fetch_one(profile_pool)
+    .fetch_one(conn)
     .await?;
     Ok((row.0, operation_id))
 }
