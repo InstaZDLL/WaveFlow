@@ -102,6 +102,26 @@ pub async fn create_playlist(
     };
     let id = playlist_repo(&state).await?.insert_custom(&draft).await?;
 
+    // Phase 1.f.desktop.2b — queue a whole-entity insert op so a
+    // future drain task (1.f.desktop.4) replays the create on the
+    // server. Hook is a no-op when the profile isn't signed in.
+    crate::sync::hooks::enqueue_op(
+        &state,
+        crate::sync::hooks::PendingOpDraft {
+            entity: "playlist".into(),
+            entity_id: id.to_string(),
+            field: None,
+            op: "insert".into(),
+            payload: Some(serde_json::json!({
+                "name": name,
+                "description": input.description,
+                "color_id": color_id,
+                "icon_id": icon_id,
+            })),
+        },
+    )
+    .await;
+
     Ok(Playlist {
         id,
         // Desktop single-tenant — profile boundary is the database
@@ -149,12 +169,42 @@ pub async fn update_playlist(
     }
 
     let patch = PlaylistUpdate {
-        name: trimmed_name,
-        description: input.description,
-        color_id: input.color_id,
-        icon_id: input.icon_id,
+        name: trimmed_name.clone(),
+        description: input.description.clone(),
+        color_id: input.color_id.clone(),
+        icon_id: input.icon_id.clone(),
     };
     repo.update(playlist_id, &patch, now_millis()).await?;
+
+    // One sync op per supplied field — each gets its own
+    // `lamport_ts` so the server can replay them in a sane order
+    // even when interleaved with concurrent updates from another
+    // device.
+    let entity_id = playlist_id.to_string();
+    for (field, value) in [
+        ("name", trimmed_name.map(serde_json::Value::String)),
+        (
+            "description",
+            input.description.map(serde_json::Value::String),
+        ),
+        ("color_id", input.color_id.map(serde_json::Value::String)),
+        ("icon_id", input.icon_id.map(serde_json::Value::String)),
+    ] {
+        if let Some(value) = value {
+            crate::sync::hooks::enqueue_op(
+                &state,
+                crate::sync::hooks::PendingOpDraft {
+                    entity: "playlist".into(),
+                    entity_id: entity_id.clone(),
+                    field: Some(field.into()),
+                    op: "set".into(),
+                    payload: Some(serde_json::json!({ "value": value })),
+                },
+            )
+            .await;
+        }
+    }
+
     Ok(())
 }
 
@@ -169,6 +219,18 @@ pub async fn delete_playlist(state: tauri::State<'_, AppState>, playlist_id: i64
         )));
     }
     tracing::info!(playlist_id, "playlist deleted");
+
+    crate::sync::hooks::enqueue_op(
+        &state,
+        crate::sync::hooks::PendingOpDraft {
+            entity: "playlist".into(),
+            entity_id: playlist_id.to_string(),
+            field: None,
+            op: "delete".into(),
+            payload: None,
+        },
+    )
+    .await;
     Ok(())
 }
 
@@ -246,6 +308,18 @@ pub async fn add_track_to_playlist(
 
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
+
+    crate::sync::hooks::enqueue_op(
+        &state,
+        crate::sync::hooks::PendingOpDraft {
+            entity: "playlist".into(),
+            entity_id: playlist_id.to_string(),
+            field: Some("tracks".into()),
+            op: "insert".into(),
+            payload: Some(serde_json::json!({ "track_ids": [track_id] })),
+        },
+    )
+    .await;
     Ok(())
 }
 
@@ -268,6 +342,21 @@ pub async fn add_tracks_to_playlist(
 
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
+
+    // One coalesced op for the whole batch — emitting N ops would
+    // cost N Lamport draws and bloat the queue without giving the
+    // server side any extra signal.
+    crate::sync::hooks::enqueue_op(
+        &state,
+        crate::sync::hooks::PendingOpDraft {
+            entity: "playlist".into(),
+            entity_id: playlist_id.to_string(),
+            field: Some("tracks".into()),
+            op: "insert".into(),
+            payload: Some(serde_json::json!({ "track_ids": track_ids })),
+        },
+    )
+    .await;
     Ok(inserted)
 }
 
@@ -287,6 +376,18 @@ pub async fn remove_track_from_playlist(
 
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
+
+    crate::sync::hooks::enqueue_op(
+        &state,
+        crate::sync::hooks::PendingOpDraft {
+            entity: "playlist".into(),
+            entity_id: playlist_id.to_string(),
+            field: Some("tracks".into()),
+            op: "delete".into(),
+            payload: Some(serde_json::json!({ "track_ids": [track_id] })),
+        },
+    )
+    .await;
     Ok(())
 }
 
@@ -319,6 +420,67 @@ pub async fn reorder_playlist_track(
 
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
+
+    // Read the effective position back so the sync op matches the
+    // row's actual state — the repo's internal clamp
+    // (`new_position.clamp(0, len - 1)`) means the value we hand
+    // the server has to be what landed, not what was requested.
+    // Otherwise a "move to 999" in a 10-track playlist would replay
+    // on the server as 999, the server's own clamp would coerce it
+    // to its-current-length-minus-one, and the two devices could
+    // disagree on the final order whenever lengths diverge.
+    //
+    // If the read-back itself fails (DB hiccup) or the row vanished
+    // out from under us (concurrent delete on another thread), log
+    // + skip the enqueue. Sending the raw `new_position` as a
+    // fallback would silently reintroduce exactly the divergence
+    // this readback exists to prevent — better to drop the sync op
+    // for this single action and let the next mutation requeue
+    // normally.
+    let position_for_sync = match sqlx::query_scalar::<_, i64>(
+        "SELECT position FROM playlist_track WHERE playlist_id = ? AND track_id = ?",
+    )
+    .bind(playlist_id)
+    .bind(track_id)
+    .fetch_optional(&pool)
+    .await
+    {
+        Ok(Some(p)) => p,
+        Ok(None) => {
+            tracing::warn!(
+                playlist_id,
+                track_id,
+                requested_position = new_position,
+                "sync skipped: reordered row vanished before readback",
+            );
+            return Ok(());
+        }
+        Err(err) => {
+            tracing::warn!(
+                error = %err,
+                playlist_id,
+                track_id,
+                requested_position = new_position,
+                "sync skipped: effective position readback failed",
+            );
+            return Ok(());
+        }
+    };
+
+    crate::sync::hooks::enqueue_op(
+        &state,
+        crate::sync::hooks::PendingOpDraft {
+            entity: "playlist".into(),
+            entity_id: playlist_id.to_string(),
+            field: Some("tracks".into()),
+            op: "set".into(),
+            payload: Some(serde_json::json!({
+                "track_id": track_id,
+                "position": position_for_sync,
+            })),
+        },
+    )
+    .await;
     Ok(())
 }
 
@@ -358,6 +520,21 @@ pub async fn add_source_to_playlist(
 
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
+
+    crate::sync::hooks::enqueue_op(
+        &state,
+        crate::sync::hooks::PendingOpDraft {
+            entity: "playlist".into(),
+            entity_id: playlist_id.to_string(),
+            field: Some("tracks".into()),
+            op: "insert".into(),
+            payload: Some(serde_json::json!({
+                "track_ids": track_ids,
+                "via_source": { "type": source_type, "id": source_id },
+            })),
+        },
+    )
+    .await;
     Ok(inserted)
 }
 
