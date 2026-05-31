@@ -6,6 +6,35 @@
 //! future drain task (1.f.desktop.4) will POST these ops to the
 //! waveflow-server's `/api/v1/sync/ops` endpoint.
 //!
+//! ## Atomicity gap (known, documented, deferred)
+//!
+//! The current shape commits the SQLite entity write FIRST, then
+//! calls [`enqueue_op`] in a separate await. A crash or DB error
+//! in the few-ms window between the two commits leaves the local
+//! state ahead of the queue — the user's edit landed, the server
+//! never hears about it.
+//!
+//! The strict fix is wrapping both writes in the same SQLite
+//! transaction. That requires every `Sqlite*Repository` method on
+//! the playlist surface to accept `&mut SqliteConnection` instead
+//! of cloning the pool internally — a `waveflow-core` change wide
+//! enough to deserve its own PR (tracked as a follow-up to
+//! 1.f.desktop.2b). Once that lands, [`enqueue_op`] gains a
+//! `enqueue_op_in_tx` sibling and the command sites do:
+//!
+//! ```ignore
+//! let mut tx = pool.begin().await?;
+//! repo.insert_with(&mut *tx, …).await?;
+//! sync::hooks::enqueue_op_in_tx(&mut *tx, draft).await?;
+//! tx.commit().await?;
+//! ```
+//!
+//! Until then, the failure window is bounded to two consecutive
+//! commits on the same already-open pool — practically tiny — and
+//! the future drain task (1.f.desktop.4) is positioned to detect
+//! drift by reconciling on `operation_id` and prompt for a full
+//! re-sync if the local + server views ever disagree.
+//!
 //! ## Failure model
 //!
 //! [`enqueue_op`] returns nothing — every failure is logged via

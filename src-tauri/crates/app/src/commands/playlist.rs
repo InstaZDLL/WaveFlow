@@ -421,10 +421,25 @@ pub async fn reorder_playlist_track(
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
 
-    // Reorder uses `op="set"` against the `tracks` field — the
-    // server-side handler in 1.f.desktop.4 / `waveflow-server` will
-    // interpret the payload's `(track_id, position)` pair to bump
-    // the row.
+    // Read the effective position back so the sync op matches the
+    // row's actual state — the repo's internal clamp
+    // (`new_position.clamp(0, len - 1)`) means the value we hand
+    // the server has to be what landed, not what was requested.
+    // Otherwise a "move to 999" in a 10-track playlist would replay
+    // on the server as 999, the server's own clamp would coerce it
+    // to its-current-length-minus-one, and the two devices could
+    // disagree on the final order whenever lengths diverge.
+    let effective_position: Option<i64> = sqlx::query_scalar(
+        "SELECT position FROM playlist_track WHERE playlist_id = ? AND track_id = ?",
+    )
+    .bind(playlist_id)
+    .bind(track_id)
+    .fetch_optional(&pool)
+    .await
+    .ok()
+    .flatten();
+    let position_for_sync = effective_position.unwrap_or(new_position);
+
     crate::sync::hooks::enqueue_op(
         &state,
         crate::sync::hooks::PendingOpDraft {
@@ -434,7 +449,7 @@ pub async fn reorder_playlist_track(
             op: "set".into(),
             payload: Some(serde_json::json!({
                 "track_id": track_id,
-                "position": new_position,
+                "position": position_for_sync,
             })),
         },
     )
