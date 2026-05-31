@@ -20,7 +20,7 @@
 //! enqueue calls.
 
 use chrono::Utc;
-use sqlx::SqlitePool;
+use sqlx::{SqliteConnection, SqlitePool};
 
 use crate::error::AppResult;
 
@@ -44,17 +44,27 @@ fn now_ms() -> i64 {
 /// `profile_setting` schema requires for compat with every other
 /// setting type) while operating arithmetically.
 pub async fn next(profile_pool: &SqlitePool) -> AppResult<i64> {
+    let mut conn = profile_pool.acquire().await?;
+    next_conn(&mut conn).await
+}
+
+/// Same as [`next`] but takes a caller-owned connection so the bump
+/// can join an open transaction (composed with a playlist write +
+/// outbox enqueue to keep the trio atomic — see
+/// [`crate::sync::hooks::enqueue_op_in_tx`]).
+pub async fn next_conn(conn: &mut SqliteConnection) -> AppResult<i64> {
     let row: (i64,) = sqlx::query_as(
         "INSERT INTO profile_setting (key, value, value_type, updated_at)
          VALUES (?, '1', 'int', ?)
          ON CONFLICT(key) DO UPDATE
             SET value = CAST(CAST(profile_setting.value AS INTEGER) + 1 AS TEXT),
+                value_type = excluded.value_type,
                 updated_at = excluded.updated_at
          RETURNING CAST(value AS INTEGER)",
     )
     .bind(KEY)
     .bind(now_ms())
-    .fetch_one(profile_pool)
+    .fetch_one(conn)
     .await?;
     Ok(row.0)
 }

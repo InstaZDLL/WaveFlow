@@ -34,7 +34,7 @@
 //!   route lives on `waveflow-web` and ships in its own PR.
 
 use chrono::Utc;
-use sqlx::SqlitePool;
+use sqlx::{SqliteConnection, SqlitePool};
 
 use crate::{
     error::{AppError, AppResult},
@@ -136,10 +136,19 @@ pub async fn read_token(state: &AppState) -> AppResult<Option<String>> {
         Ok(p) => p,
         Err(_) => return Ok(None),
     };
+    let mut conn = pool.acquire().await?;
+    read_token_conn(&mut conn).await
+}
+
+/// Same as [`read_token`] but takes a caller-owned connection so the
+/// SELECT joins an open transaction. Used by
+/// [`crate::sync::hooks::enqueue_op_in_tx`] to gate the outbox write
+/// against the JWT presence inside the same atomic commit.
+pub async fn read_token_conn(conn: &mut SqliteConnection) -> AppResult<Option<String>> {
     let row: Option<Vec<u8>> =
         sqlx::query_scalar("SELECT token_encrypted FROM auth_credential WHERE provider = ?")
             .bind(PROVIDER)
-            .fetch_optional(&pool)
+            .fetch_optional(conn)
             .await?;
     let Some(bytes) = row else { return Ok(None) };
     let token = String::from_utf8(bytes)

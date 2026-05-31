@@ -1,109 +1,67 @@
 //! Glue between CRUD command handlers and the local sync queue.
 //!
 //! Every command in `commands/playlist.rs` that mutates a syncable
-//! entity ends with a call to [`enqueue_op`] so the change lands in
-//! the local `sync_pending_op` log alongside the SQLite write. A
-//! future drain task (1.f.desktop.4) will POST these ops to the
-//! waveflow-server's `/api/v1/sync/ops` endpoint.
-//!
-//! ## Atomicity gap (known, documented, deferred)
-//!
-//! The current shape commits the SQLite entity write FIRST, then
-//! calls [`enqueue_op`] in a separate await. A crash or DB error
-//! in the few-ms window between the two commits leaves the local
-//! state ahead of the queue — the user's edit landed, the server
-//! never hears about it.
-//!
-//! The strict fix is wrapping both writes in the same SQLite
-//! transaction. That requires every `Sqlite*Repository` method on
-//! the playlist surface to accept `&mut SqliteConnection` instead
-//! of cloning the pool internally — a `waveflow-core` change wide
-//! enough to deserve its own PR (tracked as a follow-up to
-//! 1.f.desktop.2b). Once that lands, [`enqueue_op`] gains a
-//! `enqueue_op_in_tx` sibling and the command sites do:
-//!
-//! ```ignore
-//! let mut tx = pool.begin().await?;
-//! repo.insert_with(&mut *tx, …).await?;
-//! sync::hooks::enqueue_op_in_tx(&mut *tx, draft).await?;
-//! tx.commit().await?;
-//! ```
-//!
-//! Until then, the failure window is bounded to two consecutive
-//! commits on the same already-open pool — practically tiny — and
-//! the future drain task (1.f.desktop.4) is positioned to detect
-//! drift by reconciling on `operation_id` and prompt for a full
-//! re-sync if the local + server views ever disagree.
-//!
-//! ## Failure model
-//!
-//! [`enqueue_op`] returns nothing — every failure is logged via
-//! `tracing` and swallowed. Two reasons:
-//!
-//! 1. The user's CRUD operation already succeeded by the time we
-//!    hit the queue. Aborting here would surface a confusing error
-//!    ("your playlist was created but…") for what is internally a
-//!    sync-pipeline hiccup.
-//! 2. The future drain task (1.f.desktop.4) is the right place to
-//!    detect server-view drift — it can compare the local state to
-//!    the server's known set and prompt for a full re-sync if the
-//!    operation_ids don't line up.
+//! entity wraps its SQLite write AND the matching
+//! [`enqueue_op_in_tx`] call in a single transaction. The two writes
+//! either both commit or both roll back — closing the drift window
+//! issue #193 documented (where the playlist write committed but a
+//! subsequent enqueue could fail without touching the entity row).
 //!
 //! ## Skip path
 //!
-//! When no `waveflow_server` JWT is stored for the active profile,
-//! [`enqueue_op`] short-circuits without writing. A local-only user
-//! never accumulates pending ops they'll never sync — the queue
-//! stays empty until the first sign-in.
+//! [`enqueue_op_in_tx`] returns `Ok(false)` without writing when
+//! either:
+//!
+//! - no `waveflow_server` JWT is stored for the active profile
+//!   (local-only user, never accumulates ops they won't sync), OR
+//! - the active profile's [`mode::SyncMode`] is
+//!   [`mode::SyncMode::Local`] — an explicit user opt-out from
+//!   1.f.desktop.3 even when signed in.
+//!
+//! Both checks run on the same connection as the write so they see
+//! whatever the caller's transaction has already committed, without
+//! an extra pool acquire.
+//!
+//! ## Failure model
+//!
+//! Errors from [`enqueue_op_in_tx`] propagate to the caller. The
+//! caller is expected to `?` them so the transaction rolls back the
+//! entity write too — the whole point of the atomic path is that a
+//! failure in the outbox aborts the user's CRUD operation rather
+//! than leaving the local state ahead of the queue.
+
+use sqlx::SqliteConnection;
 
 use crate::{
+    error::AppResult,
     server_client,
-    state::AppState,
     sync::{lamport, mode, queue},
 };
 
 pub use crate::sync::queue::PendingOpDraft;
 
-/// Enqueue an op against the active profile's local sync queue.
+/// Atomically enqueue an op against a caller-owned connection
+/// (typically an open `Transaction<'_, Sqlite>` borrowed as
+/// `&mut *tx`). Composes with the entity mutation in the same
+/// transaction so the playlist write + the outbox row + the Lamport
+/// bump either ALL land or ALL roll back.
 ///
-/// Logs + swallows every failure mode (see the module docstring on
-/// the failure model). The caller never has to `?` or `let _ =` —
-/// the function shape is "fire and forget".
-pub async fn enqueue_op(state: &AppState, draft: PendingOpDraft) {
-    if let Err(err) = enqueue_op_inner(state, &draft).await {
-        // The structured fields make a `tracing::error!` correlation
-        // easy without dumping the (potentially large) payload into
-        // the log — a future operator can re-fetch the row by
-        // entity / op if needed.
-        tracing::error!(
-            error = %err,
-            entity = %draft.entity,
-            entity_id = %draft.entity_id,
-            op = %draft.op,
-            field = ?draft.field,
-            "sync enqueue failed; server view will diverge until reconciled",
-        );
+/// Returns `true` when an op was actually inserted, `false` when
+/// the skip conditions kicked in (no JWT for the active profile,
+/// or `SyncMode::Local`). Callers can use the boolean to decide
+/// whether to log a "synced" trace, but the truth-source for the
+/// queue is still the row itself.
+pub async fn enqueue_op_in_tx(
+    conn: &mut SqliteConnection,
+    draft: &PendingOpDraft,
+) -> AppResult<bool> {
+    if server_client::read_token_conn(conn).await?.is_none() {
+        return Ok(false);
     }
-}
-
-async fn enqueue_op_inner(state: &AppState, draft: &PendingOpDraft) -> crate::error::AppResult<()> {
-    // Skip when no JWT is stored. Once the OAuth-loopback handshake
-    // (1.f.desktop.1 / 1.f.desktop.1b) lands a token, the very next
-    // CRUD op flips this branch on and the queue starts accumulating.
-    if server_client::read_token(state).await?.is_none() {
-        return Ok(());
+    if mode::read_conn(conn).await? == mode::SyncMode::Local {
+        return Ok(false);
     }
-    let pool = state.require_profile_pool().await?;
-    // Mode gate (1.f.desktop.3) — a profile set to `Local` skips the
-    // queue even when signed in. Lets a user keep their account
-    // configured (for the occasional cross-device pull) while their
-    // CURRENT desktop session stays private. Mode read defaults to
-    // `Hybrid` on a fresh profile_setting row, so this only filters
-    // out an explicit user-side opt-out.
-    if mode::read(&pool).await? == mode::SyncMode::Local {
-        return Ok(());
-    }
-    let lamport_ts = lamport::next(&pool).await?;
-    queue::enqueue(&pool, draft, lamport_ts).await?;
-    Ok(())
+    let lamport_ts = lamport::next_conn(conn).await?;
+    queue::enqueue_conn(conn, draft, lamport_ts).await?;
+    Ok(true)
 }
