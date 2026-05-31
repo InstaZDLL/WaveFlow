@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CheckCircle2, ExternalLink, Server } from "lucide-react";
+import { CheckCircle2, ExternalLink, LogIn, Server } from "lucide-react";
 import {
+  serverBeginLoopbackLogin,
   serverGetStatus,
   serverOpenLoginBrowser,
   serverSetToken,
   serverSetUrl,
+  serverSetWebUrl,
   serverSignOut,
   type ServerStatus,
 } from "../../../lib/tauri/serverAuth";
@@ -31,9 +33,11 @@ export function ServerAccountCard() {
   const { t } = useTranslation();
   const [status, setStatus] = useState<ServerStatus | null>(null);
   const [urlDraft, setUrlDraft] = useState("");
+  const [webUrlDraft, setWebUrlDraft] = useState("");
   const [tokenDraft, setTokenDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
 
   // Initial load. The `cancelled` flag pattern keeps the lint
   // rule (`react-hooks/set-state-in-effect`) happy — the setState
@@ -46,6 +50,9 @@ export function ServerAccountCard() {
         if (cancelled) return;
         setStatus(next);
         setUrlDraft((current) => (current ? current : (next.url ?? "")));
+        setWebUrlDraft((current) =>
+          current ? current : (next.web_url ?? ""),
+        );
       })
       .catch((err) => {
         if (cancelled) return;
@@ -74,6 +81,21 @@ export function ServerAccountCard() {
       setBusy(false);
     }
   }, [urlDraft]);
+
+  const handleSaveWebUrl = useCallback(async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      const normalized = webUrlDraft.trim();
+      const next = await serverSetWebUrl(normalized);
+      setStatus(next);
+      setWebUrlDraft(normalized);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }, [webUrlDraft]);
 
   const handleSaveToken = useCallback(async () => {
     setError(null);
@@ -116,8 +138,22 @@ export function ServerAccountCard() {
     }
   }, []);
 
+  const handleOauthLogin = useCallback(async () => {
+    setError(null);
+    setLoggingIn(true);
+    try {
+      const next = await serverBeginLoopbackLogin();
+      setStatus(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoggingIn(false);
+    }
+  }, []);
+
   const signedIn = status?.signed_in ?? false;
   const urlConfigured = Boolean(status?.url);
+  const webUrlConfigured = Boolean(status?.web_url);
 
   return (
     <section
@@ -178,7 +214,58 @@ export function ServerAccountCard() {
             </div>
           </label>
 
-          {/* Browser sign-in shortcut + JWT paste */}
+          {/* Web URL (for OAuth-loopback handshake) */}
+          <label className="block mt-3">
+            <span className="block text-xs font-medium text-zinc-600 dark:text-zinc-300 mb-1">
+              {t("settings.serverAccount.webUrlLabel")}
+            </span>
+            <div className="flex items-center space-x-2">
+              <input
+                type="url"
+                value={webUrlDraft}
+                onChange={(e) => {
+                  setWebUrlDraft(e.target.value);
+                }}
+                placeholder={t("settings.serverAccount.webUrlPlaceholder")}
+                spellCheck={false}
+                autoComplete="off"
+                disabled={busy}
+                className="flex-1 px-3 py-2 rounded-xl text-sm bg-white border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100 dark:placeholder-zinc-500 disabled:opacity-60"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  void handleSaveWebUrl();
+                }}
+                disabled={busy}
+                className="px-3 py-2 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {t("settings.serverAccount.urlSave")}
+              </button>
+            </div>
+          </label>
+
+          {/* OAuth-loopback primary action */}
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => {
+                void handleOauthLogin();
+              }}
+              disabled={!webUrlConfigured || loggingIn || busy}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <LogIn size={14} aria-hidden="true" />
+              {loggingIn
+                ? t("settings.serverAccount.loginInProgress")
+                : t("settings.serverAccount.signInWithBrowser")}
+            </button>
+            <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+              {t("settings.serverAccount.signInWithBrowserHint")}
+            </p>
+          </div>
+
+          {/* Manual paste fallback */}
           <div className="mt-4">
             <div className="flex items-center justify-between gap-3 mb-2">
               <span className="text-xs font-medium text-zinc-600 dark:text-zinc-300">

@@ -1616,7 +1616,12 @@
       "tokenPlaceholder": "Cole o JWT (três segmentos separados por pontos)",
       "tokenSave": "Salvar",
       "openLogin": "Abrir login",
-      "signOut": "Sair"
+      "signOut": "Sair",
+      "webUrlLabel": "URL do WaveFlow Web",
+      "webUrlPlaceholder": "https://waveflow.app",
+      "signInWithBrowser": "Entrar pelo navegador",
+      "signInWithBrowserHint": "Abre o WaveFlow Web no seu navegador; você entra por lá e o app captura o JWT automaticamente via uma troca local.",
+      "loginInProgress": "Aguardando o navegador…"
     }
   },
   "spotify": {

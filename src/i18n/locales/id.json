@@ -1616,7 +1616,12 @@
       "tokenPlaceholder": "Tempel JWT (tiga segmen dipisahkan titik)",
       "tokenSave": "Simpan",
       "openLogin": "Buka login",
-      "signOut": "Keluar"
+      "signOut": "Keluar",
+      "webUrlLabel": "URL WaveFlow Web",
+      "webUrlPlaceholder": "https://waveflow.app",
+      "signInWithBrowser": "Masuk lewat peramban",
+      "signInWithBrowserHint": "Membuka WaveFlow Web di peramban Anda; Anda masuk di sana dan aplikasi menangkap JWT secara otomatis lewat pertukaran lokal.",
+      "loginInProgress": "Menunggu peramban…"
     }
   },
   "spotify": {

@@ -1616,7 +1616,12 @@
       "tokenPlaceholder": "JWT चिपकाएँ (बिंदु से अलग किए गए तीन खंड)",
       "tokenSave": "सहेजें",
       "openLogin": "लॉगिन खोलें",
-      "signOut": "साइन आउट"
+      "signOut": "साइन आउट",
+      "webUrlLabel": "WaveFlow Web URL",
+      "webUrlPlaceholder": "https://waveflow.app",
+      "signInWithBrowser": "ब्राउज़र से साइन इन करें",
+      "signInWithBrowserHint": "आपके ब्राउज़र में WaveFlow Web खोलता है; आप वहाँ साइन इन करते हैं और ऐप एक स्थानीय आदान-प्रदान के माध्यम से JWT को स्वचालित रूप से प्राप्त करता है।",
+      "loginInProgress": "ब्राउज़र की प्रतीक्षा है…"
     }
   },
   "spotify": {
