@@ -1603,6 +1603,20 @@
     "hiResBadge": {
       "title": "Hi-Res / DSD バッジ",
       "subtitle": "対象トラックの横と、プレイヤーバーのアーティスト名の下に「Hi-Res 24-bit」または「DSD128」のラベルを表示します。デフォルトはオン。"
+    },
+    "serverAccount": {
+      "title": "WaveFlow サーバーアカウント",
+      "subtitle": "このプロファイルを waveflow-server インスタンスに紐付けて、マルチデバイス同期とブラウザ再生を有効にします。",
+      "signedIn": "サインイン中",
+      "urlLabel": "サーバー URL",
+      "urlPlaceholder": "https://api.waveflow.app",
+      "urlSave": "保存",
+      "tokenLabel": "JWT トークン",
+      "tokenHint": "ブラウザでサーバーにサインインし、Better Auth が発行した JWT をコピーしてここに貼り付けてください。",
+      "tokenPlaceholder": "JWT を貼り付け（ドット区切りの3セグメント）",
+      "tokenSave": "保存",
+      "openLogin": "ログインを開く",
+      "signOut": "サインアウト"
     }
   },
   "scanProgress": {

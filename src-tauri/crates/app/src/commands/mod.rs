@@ -27,6 +27,7 @@ pub mod profile;
 pub mod profile_io;
 pub mod radio;
 pub mod scan;
+pub mod server_auth;
 pub mod share;
 pub mod similar;
 pub mod smart_playlists;

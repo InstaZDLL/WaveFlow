@@ -42,6 +42,7 @@ import {
   Keyboard,
   Stethoscope,
 } from "lucide-react";
+import { ServerAccountCard } from "./settings/ServerAccountCard";
 import { useTheme } from "../../hooks/useTheme";
 import { THEME_PRESETS } from "../../lib/themes";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
@@ -1927,6 +1928,13 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 label={t("settings.offlineMode.title")}
               />
             </div>
+
+            {/* WaveFlow server account binding (Phase 1.f.desktop.1).
+              Sits at the top of Intégrations because every later
+              sync surface (Settings → Mode serveur, the sync queue,
+              the WS subscriber) reads from the URL + JWT this card
+              configures. */}
+            <ServerAccountCard />
 
             <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
               <div className="flex items-start space-x-4">

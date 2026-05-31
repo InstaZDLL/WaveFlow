@@ -1603,6 +1603,20 @@
     "hiResBadge": {
       "title": "Hi-Res / DSD rozeti",
       "subtitle": "Uygun parçaların yanında ve oynatma çubuğunda sanatçı adının altında «Hi-Res 24-bit» veya «DSD128» rozetini gösterir. Varsayılan olarak açık."
+    },
+    "serverAccount": {
+      "title": "WaveFlow sunucu hesabı",
+      "subtitle": "Çoklu cihaz senkronizasyonunu ve tarayıcı oynatmayı etkinleştirmek için bu profili waveflow-server örneğinize bağlayın.",
+      "signedIn": "Oturum açıldı",
+      "urlLabel": "Sunucu URL'si",
+      "urlPlaceholder": "https://api.waveflow.app",
+      "urlSave": "Kaydet",
+      "tokenLabel": "JWT belirteci",
+      "tokenHint": "Tarayıcıdan sunucuya giriş yapın, Better Auth tarafından verilen JWT'yi kopyalayın ve buraya yapıştırın.",
+      "tokenPlaceholder": "JWT'yi yapıştırın (noktayla ayrılmış üç segment)",
+      "tokenSave": "Kaydet",
+      "openLogin": "Girişi aç",
+      "signOut": "Çıkış yap"
     }
   },
   "spotify": {

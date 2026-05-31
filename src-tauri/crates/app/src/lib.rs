@@ -20,6 +20,7 @@ mod offline;
 mod paths;
 mod queue;
 mod scrobbler;
+mod server_client;
 mod smart_playlists;
 mod spotify;
 mod state;
@@ -557,6 +558,11 @@ pub fn run() {
             commands::spotify::spotify_get_queue,
             commands::spotify::spotify_search,
             commands::spotify::spotify_pause_local,
+            commands::server_auth::server_get_status,
+            commands::server_auth::server_set_url,
+            commands::server_auth::server_set_token,
+            commands::server_auth::server_sign_out,
+            commands::server_auth::server_open_login_browser,
             commands::offline::get_offline_mode,
             commands::offline::set_offline_mode,
             commands::preferences::get_minimize_to_tray,

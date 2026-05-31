@@ -1648,6 +1648,20 @@
     "hiResBadge": {
       "title": "Бейдж Hi-Res / DSD",
       "subtitle": "Показывает значок «Hi-Res 24-bit» или «DSD128» рядом с подходящими треками и под именем исполнителя в панели плеера. Включено по умолчанию."
+    },
+    "serverAccount": {
+      "title": "Аккаунт сервера WaveFlow",
+      "subtitle": "Привяжите этот профиль к вашему экземпляру waveflow-server, чтобы включить синхронизацию между устройствами и воспроизведение в браузере.",
+      "signedIn": "Вход выполнен",
+      "urlLabel": "URL сервера",
+      "urlPlaceholder": "https://api.waveflow.app",
+      "urlSave": "Сохранить",
+      "tokenLabel": "JWT-токен",
+      "tokenHint": "Войдите на сервер в браузере, скопируйте JWT, выданный Better Auth, и вставьте его сюда.",
+      "tokenPlaceholder": "Вставьте JWT (три сегмента, разделённых точками)",
+      "tokenSave": "Сохранить",
+      "openLogin": "Открыть вход",
+      "signOut": "Выйти"
     }
   },
   "spotify": {

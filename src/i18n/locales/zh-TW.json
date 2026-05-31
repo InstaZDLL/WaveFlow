@@ -1603,6 +1603,20 @@
     "hiResBadge": {
       "title": "Hi-Res / DSD 標籤",
       "subtitle": "在符合條件的曲目旁以及播放列的演出者名稱下方顯示「Hi-Res 24-bit」或「DSD128」標籤。預設開啟。"
+    },
+    "serverAccount": {
+      "title": "WaveFlow 伺服器帳號",
+      "subtitle": "將此設定檔關聯到您的 waveflow-server 執行個體，以啟用多裝置同步與瀏覽器播放。",
+      "signedIn": "已登入",
+      "urlLabel": "伺服器 URL",
+      "urlPlaceholder": "https://api.waveflow.app",
+      "urlSave": "儲存",
+      "tokenLabel": "JWT 權杖",
+      "tokenHint": "在瀏覽器登入伺服器，複製 Better Auth 發行的 JWT，再貼到這裡。",
+      "tokenPlaceholder": "貼上 JWT（以點分隔的三段）",
+      "tokenSave": "儲存",
+      "openLogin": "開啟登入",
+      "signOut": "登出"
     }
   },
   "scanProgress": {
