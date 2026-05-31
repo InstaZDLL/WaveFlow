@@ -429,16 +429,43 @@ pub async fn reorder_playlist_track(
     // on the server as 999, the server's own clamp would coerce it
     // to its-current-length-minus-one, and the two devices could
     // disagree on the final order whenever lengths diverge.
-    let effective_position: Option<i64> = sqlx::query_scalar(
+    //
+    // If the read-back itself fails (DB hiccup) or the row vanished
+    // out from under us (concurrent delete on another thread), log
+    // + skip the enqueue. Sending the raw `new_position` as a
+    // fallback would silently reintroduce exactly the divergence
+    // this readback exists to prevent — better to drop the sync op
+    // for this single action and let the next mutation requeue
+    // normally.
+    let position_for_sync = match sqlx::query_scalar::<_, i64>(
         "SELECT position FROM playlist_track WHERE playlist_id = ? AND track_id = ?",
     )
     .bind(playlist_id)
     .bind(track_id)
     .fetch_optional(&pool)
     .await
-    .ok()
-    .flatten();
-    let position_for_sync = effective_position.unwrap_or(new_position);
+    {
+        Ok(Some(p)) => p,
+        Ok(None) => {
+            tracing::warn!(
+                playlist_id,
+                track_id,
+                requested_position = new_position,
+                "sync skipped: reordered row vanished before readback",
+            );
+            return Ok(());
+        }
+        Err(err) => {
+            tracing::warn!(
+                error = %err,
+                playlist_id,
+                track_id,
+                requested_position = new_position,
+                "sync skipped: effective position readback failed",
+            );
+            return Ok(());
+        }
+    };
 
     crate::sync::hooks::enqueue_op(
         &state,
