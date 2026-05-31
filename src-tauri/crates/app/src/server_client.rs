@@ -272,23 +272,24 @@ pub async fn write_web_url(app_db: &SqlitePool, url: &str) -> AppResult<()> {
 /// Errors map to [`AppError`] so handlers don't have to thread an
 /// extra error type — same convention as [`crate::spotify`].
 ///
-/// Currently unused — the sync surface (`1.f.desktop.2`+) is the
-/// first consumer. Kept here so the foundational PR ships the
-/// complete shape and reviewers can audit the auth header attachment
-/// in one place.
-#[allow(dead_code)]
+/// First consumer: [`crate::sync::drain`] (Phase 1.f.desktop.4a).
 pub struct WaveflowServerClient {
     base_url: String,
     token: String,
     http: reqwest::Client,
 }
 
-#[allow(dead_code)]
 impl WaveflowServerClient {
     /// Build a client against the active profile's stored config.
     /// Returns `Err` when either the URL or the JWT is missing —
     /// callers that want a "no-op when offline" semantic should use
     /// [`try_build`] instead.
+    ///
+    /// Currently unused — [`try_build`] is the only consumer — but
+    /// kept for parity with the contract docstring and for the WS
+    /// subscriber landing in 1.f.desktop.4b, which needs the
+    /// erroring variant for boot-time wiring.
+    #[allow(dead_code)]
     pub async fn build(state: &AppState) -> AppResult<Self> {
         Self::try_build(state).await?.ok_or_else(|| {
             AppError::Other(
@@ -343,11 +344,13 @@ impl WaveflowServerClient {
     /// off to another protocol (the WebSocket subscriber in
     /// 1.f.desktop.4 has to attach it via the upgrade headers, not
     /// the reqwest builder).
+    #[allow(dead_code)]
     pub fn token(&self) -> &str {
         &self.token
     }
 
     /// Base URL accessor — same use case as [`token`].
+    #[allow(dead_code)]
     pub fn base_url(&self) -> &str {
         &self.base_url
     }

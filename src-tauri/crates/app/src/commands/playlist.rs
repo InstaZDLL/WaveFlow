@@ -132,6 +132,9 @@ pub async fn create_playlist(
     )
     .await?;
     tx.commit().await?;
+    // Wake the drain task so a chatty user's edits don't wait the
+    // full 30 s tick before reaching the server.
+    state.drain.notify();
 
     Ok(Playlist {
         id,
@@ -220,6 +223,9 @@ pub async fn update_playlist(
         }
     }
     tx.commit().await?;
+    // Wake the drain task so a chatty user's edits don't wait the
+    // full 30 s tick before reaching the server.
+    state.drain.notify();
 
     Ok(())
 }
@@ -248,6 +254,9 @@ pub async fn delete_playlist(state: tauri::State<'_, AppState>, playlist_id: i64
     )
     .await?;
     tx.commit().await?;
+    // Wake the drain task so a chatty user's edits don't wait the
+    // full 30 s tick before reaching the server.
+    state.drain.notify();
     tracing::info!(playlist_id, "playlist deleted");
     Ok(())
 }
@@ -334,6 +343,9 @@ pub async fn add_track_to_playlist(
     )
     .await?;
     tx.commit().await?;
+    // Wake the drain task so a chatty user's edits don't wait the
+    // full 30 s tick before reaching the server.
+    state.drain.notify();
 
     // Cover regen runs OUTSIDE the tx — it does its own pool read +
     // a filesystem-level rasterise, neither of which belongs in the
@@ -373,6 +385,9 @@ pub async fn add_tracks_to_playlist(
     )
     .await?;
     tx.commit().await?;
+    // Wake the drain task so a chatty user's edits don't wait the
+    // full 30 s tick before reaching the server.
+    state.drain.notify();
 
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
@@ -411,6 +426,9 @@ pub async fn remove_track_from_playlist(
         .await?;
     }
     tx.commit().await?;
+    // Wake the drain task so a chatty user's edits don't wait the
+    // full 30 s tick before reaching the server.
+    state.drain.notify();
 
     if removed {
         super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
@@ -465,6 +483,9 @@ pub async fn reorder_playlist_track(
     )
     .await?;
     tx.commit().await?;
+    // Wake the drain task so a chatty user's edits don't wait the
+    // full 30 s tick before reaching the server.
+    state.drain.notify();
 
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;
@@ -518,6 +539,9 @@ pub async fn add_source_to_playlist(
     )
     .await?;
     tx.commit().await?;
+    // Wake the drain task so a chatty user's edits don't wait the
+    // full 30 s tick before reaching the server.
+    state.drain.notify();
 
     super::playlist_cover::maybe_regen_auto_cover(&pool, &state.paths, profile_id, playlist_id)
         .await;

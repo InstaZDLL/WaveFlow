@@ -32,6 +32,13 @@ pub struct AppState {
     /// thread is spawned at init even when DLNA is disabled) so the
     /// Settings page can call into it without re-spawning.
     pub dlna: DlnaServer,
+    /// Wake handle for the sync drain task (Phase 1.f.desktop.4a).
+    /// CRUD command sites notify after `tx.commit()` so a chatty
+    /// user's edits reach the server without waiting for the
+    /// periodic tick. Defaults to an unparked notifier on a fresh
+    /// `AppState` — the live task is spawned in `lib.rs::run` once
+    /// the AppHandle is available.
+    pub drain: Arc<crate::sync::drain::DrainHandle>,
 }
 
 impl AppState {
@@ -74,6 +81,11 @@ impl AppState {
             app_db,
             profile: Arc::new(RwLock::new(None)),
             dlna: DlnaServer::spawn(),
+            // Placeholder until `lib.rs::run` wires the live task.
+            // CRUD command sites can `notify()` against it harmlessly
+            // before the task spawns (no waiter parked yet); the
+            // first real tick will pick up any queued work.
+            drain: Arc::new(crate::sync::drain::DrainHandle::default()),
         };
 
         state.bootstrap().await?;
