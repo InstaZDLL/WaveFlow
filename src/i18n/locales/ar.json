@@ -1620,7 +1620,12 @@
       "tokenPlaceholder": "ألصق رمز JWT (ثلاثة مقاطع مفصولة بنقاط)",
       "tokenSave": "حفظ",
       "openLogin": "فتح تسجيل الدخول",
-      "signOut": "تسجيل الخروج"
+      "signOut": "تسجيل الخروج",
+      "webUrlLabel": "عنوان WaveFlow Web",
+      "webUrlPlaceholder": "https://waveflow.app",
+      "signInWithBrowser": "تسجيل الدخول عبر المتصفح",
+      "signInWithBrowserHint": "يفتح WaveFlow Web في متصفحك؛ تسجّل الدخول هناك ويلتقط التطبيق رمز JWT تلقائيًا عبر تبادل محلي.",
+      "loginInProgress": "في انتظار المتصفح…"
     }
   },
   "spotify": {

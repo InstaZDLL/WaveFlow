@@ -45,6 +45,14 @@ use crate::{
 /// module docstring.
 pub const SERVER_URL_KEY: &str = "app.waveflow_server_url";
 
+/// `app_setting` key for the `waveflow-web` URL — the Better Auth
+/// frontend the OAuth-loopback handshake (Phase 1.f.desktop.1b) opens
+/// in the system browser. May or may not be the same host as the
+/// server URL; we keep them separate so a deployment that proxies the
+/// two through different domains (e.g. `api.waveflow.app` vs
+/// `waveflow.app`) is configurable without a derivation rule.
+pub const WEB_URL_KEY: &str = "app.waveflow_web_url";
+
 /// `auth_credential.provider` value reserved for the waveflow-server
 /// JWT. Must match the CHECK constraint in the
 /// `20260601000000_waveflow_server_auth_provider` migration.
@@ -60,6 +68,10 @@ pub struct ServerStatus {
     /// configured one; the rest of the app should treat that as
     /// "local-only mode".
     pub url: Option<String>,
+    /// `waveflow-web` URL used by the OAuth-loopback handshake. `None`
+    /// when not yet configured; the OAuth flow refuses to start
+    /// without it and points the user back at Settings.
+    pub web_url: Option<String>,
     /// `true` when a JWT row exists for the active profile under the
     /// `'waveflow_server'` provider. Does NOT validate the token
     /// against the server — that's an HTTP round-trip the caller can
@@ -194,8 +206,53 @@ pub async fn clear_token(state: &AppState) -> AppResult<()> {
 /// the "Compte serveur" card.
 pub async fn status(state: &AppState) -> AppResult<ServerStatus> {
     let url = read_url(&state.app_db).await?;
+    let web_url = read_web_url(&state.app_db).await?;
     let signed_in = read_token(state).await?.is_some();
-    Ok(ServerStatus { url, signed_in })
+    Ok(ServerStatus {
+        url,
+        web_url,
+        signed_in,
+    })
+}
+
+/// Read the persisted `waveflow-web` URL. Same trim-and-filter
+/// semantics as [`read_url`].
+pub async fn read_web_url(app_db: &SqlitePool) -> AppResult<Option<String>> {
+    let raw: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(WEB_URL_KEY)
+        .fetch_optional(app_db)
+        .await?;
+    Ok(raw.map(|s| s.trim().to_string()).filter(|s| !s.is_empty()))
+}
+
+/// Persist the `waveflow-web` URL. Same validation gate as
+/// [`write_url`] — `http(s)` only, empty input clears the row.
+pub async fn write_web_url(app_db: &SqlitePool, url: &str) -> AppResult<()> {
+    let trimmed = url.trim();
+    if trimmed.is_empty() {
+        sqlx::query("DELETE FROM app_setting WHERE key = ?")
+            .bind(WEB_URL_KEY)
+            .execute(app_db)
+            .await?;
+        return Ok(());
+    }
+    let parsed = url::Url::parse(trimmed)
+        .map_err(|err| AppError::Other(format!("invalid web URL: {err}")))?;
+    if !matches!(parsed.scheme(), "http" | "https") {
+        return Err(AppError::Other("web URL must use http or https".into()));
+    }
+    sqlx::query(
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'string', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(WEB_URL_KEY)
+    .bind(trimmed)
+    .bind(now_ms())
+    .execute(app_db)
+    .await?;
+    Ok(())
 }
 
 /// HTTP client wired against the persisted URL + JWT. Build once per

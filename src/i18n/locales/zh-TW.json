@@ -1616,7 +1616,12 @@
       "tokenPlaceholder": "貼上 JWT（以點分隔的三段）",
       "tokenSave": "儲存",
       "openLogin": "開啟登入",
-      "signOut": "登出"
+      "signOut": "登出",
+      "webUrlLabel": "WaveFlow Web URL",
+      "webUrlPlaceholder": "https://waveflow.app",
+      "signInWithBrowser": "透過瀏覽器登入",
+      "signInWithBrowserHint": "在瀏覽器中開啟 WaveFlow Web；您在那裡登入，應用程式透過本地交握自動取得 JWT。",
+      "loginInProgress": "等待瀏覽器…"
     }
   },
   "scanProgress": {

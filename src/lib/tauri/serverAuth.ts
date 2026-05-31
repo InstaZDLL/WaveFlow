@@ -10,6 +10,13 @@ import { invoke } from "@tauri-apps/api/core";
  */
 export interface ServerStatus {
   url: string | null;
+  /**
+   * waveflow-web URL the OAuth-loopback handshake (Phase
+   * 1.f.desktop.1b) opens in the system browser. May differ from
+   * `url` for deployments that proxy the API and the web on separate
+   * domains.
+   */
+  web_url: string | null;
   signed_in: boolean;
 }
 
@@ -28,6 +35,11 @@ export function serverSetUrl(url: string): Promise<ServerStatus> {
   return invoke<ServerStatus>("server_set_url", { url });
 }
 
+/** Persist the waveflow-web URL used by the OAuth-loopback flow. */
+export function serverSetWebUrl(url: string): Promise<ServerStatus> {
+  return invoke<ServerStatus>("server_set_web_url", { url });
+}
+
 /**
  * Persist the Bearer JWT the user pasted in from the browser
  * sign-in. Rejects empty / non-JWT-shaped input server-side.
@@ -42,12 +54,24 @@ export function serverSignOut(): Promise<ServerStatus> {
 }
 
 /**
- * Open the configured server URL in the user's default browser. The
- * user is expected to sign in there (Better Auth handles the actual
- * flow) and copy the JWT back into the Settings card. A future
- * `1.f.desktop.1b` PR replaces this with a local-loopback OAuth flow
- * mirroring the existing Spotify pattern.
+ * Open the configured server URL in the user's default browser —
+ * kept as a fallback for users who prefer to copy the JWT manually.
+ * The OAuth-loopback flow below is the default since 1.f.desktop.1b.
  */
 export function serverOpenLoginBrowser(): Promise<void> {
   return invoke<void>("server_open_login_browser");
+}
+
+/**
+ * Run the local-loopback OAuth-style handshake against `waveflow-web`.
+ * Opens the system browser to `<web-url>/desktop-login?cb=…&state=…`,
+ * binds a one-shot listener on 127.0.0.1:49388 for up to three
+ * minutes, and persists the JWT the web side hands back. Returns the
+ * fresh `ServerStatus` once the round-trip completes.
+ *
+ * Throws on user cancellation, timeout, or `state` mismatch (treated
+ * as a possible CSRF — the UI surfaces the error string verbatim).
+ */
+export function serverBeginLoopbackLogin(): Promise<ServerStatus> {
+  return invoke<ServerStatus>("server_begin_loopback_login");
 }

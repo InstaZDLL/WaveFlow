@@ -1616,7 +1616,12 @@
       "tokenPlaceholder": "JWT を貼り付け（ドット区切りの3セグメント）",
       "tokenSave": "保存",
       "openLogin": "ログインを開く",
-      "signOut": "サインアウト"
+      "signOut": "サインアウト",
+      "webUrlLabel": "WaveFlow Web の URL",
+      "webUrlPlaceholder": "https://waveflow.app",
+      "signInWithBrowser": "ブラウザでサインイン",
+      "signInWithBrowserHint": "ブラウザで WaveFlow Web を開きます。そこでサインインすると、アプリがローカル交換を通じて JWT を自動的に受け取ります。",
+      "loginInProgress": "ブラウザを待機中…"
     }
   },
   "scanProgress": {

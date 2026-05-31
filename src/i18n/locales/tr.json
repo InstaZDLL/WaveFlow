@@ -1616,7 +1616,12 @@
       "tokenPlaceholder": "JWT'yi yapıştırın (noktayla ayrılmış üç segment)",
       "tokenSave": "Kaydet",
       "openLogin": "Girişi aç",
-      "signOut": "Çıkış yap"
+      "signOut": "Çıkış yap",
+      "webUrlLabel": "WaveFlow Web URL'si",
+      "webUrlPlaceholder": "https://waveflow.app",
+      "signInWithBrowser": "Tarayıcı ile giriş yap",
+      "signInWithBrowserHint": "Tarayıcınızda WaveFlow Web'i açar; orada giriş yaparsınız ve uygulama yerel bir el sıkışma ile JWT'yi otomatik olarak yakalar.",
+      "loginInProgress": "Tarayıcı bekleniyor…"
     }
   },
   "spotify": {
