@@ -1603,6 +1603,20 @@
     "hiResBadge": {
       "title": "Hi-Res / DSD badge",
       "subtitle": "Show the “Hi-Res 24-bit” or “DSD128” pill next to qualifying tracks and under the artist name in the player bar. On by default."
+    },
+    "serverAccount": {
+      "title": "WaveFlow server account",
+      "subtitle": "Link this profile to your waveflow-server instance to enable multi-device sync and browser playback.",
+      "signedIn": "Signed in",
+      "urlLabel": "Server URL",
+      "urlPlaceholder": "https://api.waveflow.app",
+      "urlSave": "Save",
+      "tokenLabel": "JWT token",
+      "tokenHint": "Sign in to the server in your browser, copy the JWT Better Auth issues, then paste it here.",
+      "tokenPlaceholder": "Paste the JWT (three dot-separated segments)",
+      "tokenSave": "Save",
+      "openLogin": "Open login",
+      "signOut": "Sign out"
     }
   },
   "spotify": {

@@ -1603,6 +1603,20 @@
     "hiResBadge": {
       "title": "Hi-Res / DSD 배지",
       "subtitle": "해당 트랙 옆과 플레이어 바의 아티스트 이름 아래에 «Hi-Res 24-bit» 또는 «DSD128» 배지를 표시합니다. 기본값은 켬."
+    },
+    "serverAccount": {
+      "title": "WaveFlow 서버 계정",
+      "subtitle": "이 프로필을 waveflow-server 인스턴스에 연결하여 멀티 디바이스 동기화와 브라우저 재생을 활성화합니다.",
+      "signedIn": "로그인됨",
+      "urlLabel": "서버 URL",
+      "urlPlaceholder": "https://api.waveflow.app",
+      "urlSave": "저장",
+      "tokenLabel": "JWT 토큰",
+      "tokenHint": "브라우저에서 서버에 로그인한 뒤 Better Auth가 발급한 JWT를 복사해 여기에 붙여넣으세요.",
+      "tokenPlaceholder": "JWT 붙여넣기 (점으로 구분된 3개 세그먼트)",
+      "tokenSave": "저장",
+      "openLogin": "로그인 열기",
+      "signOut": "로그아웃"
     }
   },
   "spotify": {

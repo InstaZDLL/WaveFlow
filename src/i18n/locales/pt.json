@@ -1603,6 +1603,20 @@
     "hiResBadge": {
       "title": "Distintivo Hi-Res / DSD",
       "subtitle": "Mostra o selo «Hi-Res 24-bit» ou «DSD128» ao lado das faixas elegíveis e sob o nome do artista na barra do reprodutor. Ativado por defeito."
+    },
+    "serverAccount": {
+      "title": "Conta do servidor WaveFlow",
+      "subtitle": "Associe este perfil à sua instância do waveflow-server para ativar a sincronização entre dispositivos e a reprodução no navegador.",
+      "signedIn": "Sessão iniciada",
+      "urlLabel": "URL do servidor",
+      "urlPlaceholder": "https://api.waveflow.app",
+      "urlSave": "Guardar",
+      "tokenLabel": "Token JWT",
+      "tokenHint": "Inicie sessão no servidor através do navegador, copie o JWT que o Better Auth emite e cole-o aqui.",
+      "tokenPlaceholder": "Cole o JWT (três segmentos separados por pontos)",
+      "tokenSave": "Guardar",
+      "openLogin": "Abrir início de sessão",
+      "signOut": "Terminar sessão"
     }
   },
   "spotify": {

@@ -1603,6 +1603,20 @@
     "hiResBadge": {
       "title": "Hi-Res / DSD-badge",
       "subtitle": "Toon de “Hi-Res 24-bit”- of “DSD128”-pil naast nummers die ervoor in aanmerking komen en onder de artiestennaam in de afspeelbalk. Standaard aan."
+    },
+    "serverAccount": {
+      "title": "WaveFlow-serveraccount",
+      "subtitle": "Koppel dit profiel aan je waveflow-server-instantie om multi-apparaatsync en weergave in de browser in te schakelen.",
+      "signedIn": "Aangemeld",
+      "urlLabel": "Server-URL",
+      "urlPlaceholder": "https://api.waveflow.app",
+      "urlSave": "Opslaan",
+      "tokenLabel": "JWT-token",
+      "tokenHint": "Meld je in de browser aan op de server, kopieer het JWT dat Better Auth uitgeeft en plak het hier.",
+      "tokenPlaceholder": "Plak het JWT (drie door punten gescheiden segmenten)",
+      "tokenSave": "Opslaan",
+      "openLogin": "Aanmelding openen",
+      "signOut": "Afmelden"
     }
   },
   "spotify": {

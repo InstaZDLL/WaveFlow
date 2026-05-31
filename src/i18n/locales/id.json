@@ -1603,6 +1603,20 @@
     "hiResBadge": {
       "title": "Lencana Hi-Res / DSD",
       "subtitle": "Tampilkan lencana «Hi-Res 24-bit» atau «DSD128» di samping lagu yang memenuhi syarat dan di bawah nama artis di bilah pemutar. Aktif secara default."
+    },
+    "serverAccount": {
+      "title": "Akun server WaveFlow",
+      "subtitle": "Hubungkan profil ini ke instans waveflow-server Anda untuk mengaktifkan sinkronisasi multi-perangkat dan pemutaran di peramban.",
+      "signedIn": "Masuk",
+      "urlLabel": "URL server",
+      "urlPlaceholder": "https://api.waveflow.app",
+      "urlSave": "Simpan",
+      "tokenLabel": "Token JWT",
+      "tokenHint": "Masuk ke server di peramban Anda, salin JWT yang dikeluarkan Better Auth, lalu tempel di sini.",
+      "tokenPlaceholder": "Tempel JWT (tiga segmen dipisahkan titik)",
+      "tokenSave": "Simpan",
+      "openLogin": "Buka login",
+      "signOut": "Keluar"
     }
   },
   "spotify": {

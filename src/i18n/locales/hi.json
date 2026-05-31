@@ -1603,6 +1603,20 @@
     "hiResBadge": {
       "title": "Hi-Res / DSD बैज",
       "subtitle": "योग्य ट्रैक के बगल में और प्लेयर बार में कलाकार के नाम के नीचे «Hi-Res 24-bit» या «DSD128» पिल दिखाएँ। डिफ़ॉल्ट रूप से चालू।"
+    },
+    "serverAccount": {
+      "title": "WaveFlow सर्वर खाता",
+      "subtitle": "मल्टी-डिवाइस सिंक और ब्राउज़र प्लेबैक सक्षम करने के लिए इस प्रोफ़ाइल को अपने waveflow-server इंस्टेंस से लिंक करें।",
+      "signedIn": "साइन इन है",
+      "urlLabel": "सर्वर URL",
+      "urlPlaceholder": "https://api.waveflow.app",
+      "urlSave": "सहेजें",
+      "tokenLabel": "JWT टोकन",
+      "tokenHint": "अपने ब्राउज़र में सर्वर पर साइन इन करें, Better Auth द्वारा जारी JWT कॉपी करें और यहाँ चिपकाएँ।",
+      "tokenPlaceholder": "JWT चिपकाएँ (बिंदु से अलग किए गए तीन खंड)",
+      "tokenSave": "सहेजें",
+      "openLogin": "लॉगिन खोलें",
+      "signOut": "साइन आउट"
     }
   },
   "spotify": {
