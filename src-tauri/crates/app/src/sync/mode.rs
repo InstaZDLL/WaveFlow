@@ -107,10 +107,17 @@ pub async fn read(profile_pool: &SqlitePool) -> AppResult<SyncMode> {
 /// touches the row.
 pub async fn write(profile_pool: &SqlitePool, mode: SyncMode) -> AppResult<()> {
     sqlx::query(
+        // ON CONFLICT also touches `value_type` even though
+        // `mode::write` is the only writer for this key and always
+        // inserts `'string'` — keeps the row internally coherent
+        // against a hypothetical future writer that mistakenly used
+        // a different type. Cheap defence in depth.
         "INSERT INTO profile_setting (key, value, value_type, updated_at)
          VALUES (?, ?, 'string', ?)
          ON CONFLICT(key) DO UPDATE
-            SET value = excluded.value, updated_at = excluded.updated_at",
+            SET value = excluded.value,
+                value_type = excluded.value_type,
+                updated_at = excluded.updated_at",
     )
     .bind(KEY)
     .bind(mode.as_str())
