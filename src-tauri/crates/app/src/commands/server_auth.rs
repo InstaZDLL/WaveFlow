@@ -194,7 +194,12 @@ fn wait_for_callback(expected_state: &str) -> AppResult<String> {
         .map_err(|err| AppError::Other(format!("callback parse failed: {err}")))?;
 
     let result = match (parsed.token, parsed.error, parsed.state.as_deref()) {
-        (Some(token), _, state_value) if state_value == Some(expected_state) => {
+        // Defensive: require `error` to be absent on the success
+        // path. The web side never sends both today, but accepting a
+        // token alongside an `error` claim would silently mask a
+        // future protocol change — falling through to the error arm
+        // below is the safer default.
+        (Some(token), None, state_value) if state_value == Some(expected_state) => {
             let _ = request.respond(Response::from_string(
                 "<!doctype html><title>WaveFlow</title>\
                  <p>Signed in. You can close this tab and return to WaveFlow.</p>",
