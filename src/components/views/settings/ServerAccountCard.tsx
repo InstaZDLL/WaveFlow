@@ -9,7 +9,10 @@ import {
   serverSetUrl,
   serverSetWebUrl,
   serverSignOut,
+  syncGetMode,
+  syncSetMode,
   type ServerStatus,
+  type SyncMode,
 } from "../../../lib/tauri/serverAuth";
 
 /**
@@ -38,6 +41,8 @@ export function ServerAccountCard() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [mode, setMode] = useState<SyncMode | null>(null);
+  const [modeBusy, setModeBusy] = useState(false);
 
   // Initial load. The `cancelled` flag pattern keeps the lint
   // rule (`react-hooks/set-state-in-effect`) happy — the setState
@@ -45,14 +50,21 @@ export function ServerAccountCard() {
   // body, and the flag guards against a setState-after-unmount.
   useEffect(() => {
     let cancelled = false;
-    serverGetStatus()
-      .then((next) => {
+    Promise.all([serverGetStatus(), syncGetMode().catch(() => null)])
+      .then(([nextStatus, nextMode]) => {
         if (cancelled) return;
-        setStatus(next);
-        setUrlDraft((current) => (current ? current : (next.url ?? "")));
+        setStatus(nextStatus);
+        setUrlDraft((current) => (current ? current : (nextStatus.url ?? "")));
         setWebUrlDraft((current) =>
-          current ? current : (next.web_url ?? ""),
+          current ? current : (nextStatus.web_url ?? ""),
         );
+        // `syncGetMode` requires an active profile pool — if it
+        // failed (e.g. mid-profile-switch) we just don't render the
+        // radio rather than blow up the whole card. The promise
+        // above swallows the error so the destructure is safe.
+        if (nextMode) {
+          setMode(nextMode);
+        }
       })
       .catch((err) => {
         if (cancelled) return;
@@ -61,6 +73,19 @@ export function ServerAccountCard() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  const handleSetMode = useCallback(async (next: SyncMode) => {
+    setError(null);
+    setModeBusy(true);
+    try {
+      const stored = await syncSetMode(next);
+      setMode(stored);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setModeBusy(false);
+    }
   }, []);
 
   const handleSaveUrl = useCallback(async () => {
@@ -311,6 +336,48 @@ export function ServerAccountCard() {
               </button>
             </div>
           </div>
+
+          {/* Sync mode radio — only meaningful once signed in, since
+            the queue gate also requires a JWT. Hidden while `mode`
+            hydrates so we don't flash an empty radio group. */}
+          {signedIn && mode !== null && (
+            <fieldset className="mt-4">
+              <legend className="text-xs font-medium text-zinc-600 dark:text-zinc-300 mb-2">
+                {t("settings.serverAccount.modeLabel")}
+              </legend>
+              <div className="space-y-1">
+                {(["hybrid", "local"] as const).map((value) => {
+                  const checked = mode === value;
+                  return (
+                    <label
+                      key={value}
+                      className="flex items-start gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors"
+                    >
+                      <input
+                        type="radio"
+                        name="sync-mode"
+                        value={value}
+                        checked={checked}
+                        disabled={modeBusy}
+                        onChange={() => {
+                          void handleSetMode(value);
+                        }}
+                        className="mt-0.5 w-4 h-4 accent-emerald-500 cursor-pointer disabled:opacity-50"
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-sm text-zinc-800 dark:text-zinc-200">
+                          {t(`settings.serverAccount.modes.${value}.label`)}
+                        </span>
+                        <span className="block text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                          {t(`settings.serverAccount.modes.${value}.description`)}
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          )}
 
           {signedIn && (
             <div className="mt-4 flex justify-end">

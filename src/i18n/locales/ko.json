@@ -1621,7 +1621,18 @@
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "브라우저로 로그인",
       "signInWithBrowserHint": "브라우저에서 WaveFlow Web을 엽니다. 그곳에서 로그인하면 앱이 로컬 핸드셰이크를 통해 JWT를 자동으로 받아옵니다.",
-      "loginInProgress": "브라우저 대기 중…"
+      "loginInProgress": "브라우저 대기 중…",
+      "modeLabel": "동기화 모드",
+      "modes": {
+        "hybrid": {
+          "label": "하이브리드 (기본)",
+          "description": "변경 사항은 로컬에 유지되지만 서버로 전송되기 위해 큐에도 추가됩니다."
+        },
+        "local": {
+          "label": "로컬만",
+          "description": "로그인되어 있어도 서버로 변경 사항이 전송되지 않습니다. 비공개로 유지하려는 프로필에 유용합니다."
+        }
+      }
     }
   },
   "spotify": {

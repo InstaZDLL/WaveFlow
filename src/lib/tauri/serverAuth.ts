@@ -75,3 +75,20 @@ export function serverOpenLoginBrowser(): Promise<void> {
 export function serverBeginLoopbackLogin(): Promise<ServerStatus> {
   return invoke<ServerStatus>("server_begin_loopback_login");
 }
+
+/**
+ * Sync mode for the active profile. `local` skips the
+ * sync_pending_op queue entirely even when a JWT is configured
+ * (useful for privacy-conscious profiles); `hybrid` is the default
+ * once signed in — reads stay local, writes hit local + the queue,
+ * and the drain task posts them upstream.
+ */
+export type SyncMode = "local" | "hybrid";
+
+export function syncGetMode(): Promise<SyncMode> {
+  return invoke<SyncMode>("sync_get_mode");
+}
+
+export function syncSetMode(mode: SyncMode): Promise<SyncMode> {
+  return invoke<SyncMode>("sync_set_mode", { req: { mode } });
+}

@@ -568,6 +568,8 @@ pub fn run() {
             commands::server_auth::server_begin_loopback_login,
             commands::sync::sync_get_queue_state,
             commands::sync::sync_clear_pending,
+            commands::sync::sync_get_mode,
+            commands::sync::sync_set_mode,
             commands::offline::get_offline_mode,
             commands::offline::set_offline_mode,
             commands::preferences::get_minimize_to_tray,

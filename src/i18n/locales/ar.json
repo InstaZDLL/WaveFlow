@@ -1625,7 +1625,18 @@
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "تسجيل الدخول عبر المتصفح",
       "signInWithBrowserHint": "يفتح WaveFlow Web في متصفحك؛ تسجّل الدخول هناك ويلتقط التطبيق رمز JWT تلقائيًا عبر تبادل محلي.",
-      "loginInProgress": "في انتظار المتصفح…"
+      "loginInProgress": "في انتظار المتصفح…",
+      "modeLabel": "وضع المزامنة",
+      "modes": {
+        "hybrid": {
+          "label": "هجين (افتراضي)",
+          "description": "تبقى تغييراتك محلية ولكن يتم إدراجها أيضًا في قائمة الانتظار لإرسالها إلى الخادم."
+        },
+        "local": {
+          "label": "محلي فقط",
+          "description": "لا يتم إرسال أي تغييرات إلى الخادم حتى عند تسجيل الدخول. مفيد لملف شخصي تريد إبقاءه خاصًا."
+        }
+      }
     }
   },
   "spotify": {

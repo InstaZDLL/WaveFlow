@@ -35,4 +35,5 @@
 pub mod device;
 pub mod hooks;
 pub mod lamport;
+pub mod mode;
 pub mod queue;

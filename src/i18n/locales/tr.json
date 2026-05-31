@@ -1621,7 +1621,18 @@
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "Tarayıcı ile giriş yap",
       "signInWithBrowserHint": "Tarayıcınızda WaveFlow Web'i açar; orada giriş yaparsınız ve uygulama yerel bir el sıkışma ile JWT'yi otomatik olarak yakalar.",
-      "loginInProgress": "Tarayıcı bekleniyor…"
+      "loginInProgress": "Tarayıcı bekleniyor…",
+      "modeLabel": "Senkronizasyon modu",
+      "modes": {
+        "hybrid": {
+          "label": "Hibrit (varsayılan)",
+          "description": "Değişiklikleriniz yerel kalır ancak sunucuya gönderilmek üzere kuyruğa da alınır."
+        },
+        "local": {
+          "label": "Yalnızca yerel",
+          "description": "Oturum açık olsa bile sunucuya hiçbir değişiklik gönderilmez. Gizli tutmak istediğiniz bir profil için yararlıdır."
+        }
+      }
     }
   },
   "spotify": {

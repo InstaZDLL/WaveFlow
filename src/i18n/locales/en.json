@@ -1621,7 +1621,18 @@
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "Sign in with browser",
       "signInWithBrowserHint": "Opens WaveFlow Web in your browser; you sign in there, and the app captures the JWT automatically via a local handshake.",
-      "loginInProgress": "Waiting for the browser…"
+      "loginInProgress": "Waiting for the browser…",
+      "modeLabel": "Sync mode",
+      "modes": {
+        "hybrid": {
+          "label": "Hybrid (default)",
+          "description": "Your changes stay local but are also queued to be sent to the server."
+        },
+        "local": {
+          "label": "Local only",
+          "description": "No changes are sent to the server, even when signed in. Useful for a profile you want to keep private."
+        }
+      }
     }
   },
   "spotify": {

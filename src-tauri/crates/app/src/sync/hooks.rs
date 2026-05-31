@@ -59,7 +59,7 @@
 use crate::{
     server_client,
     state::AppState,
-    sync::{lamport, queue},
+    sync::{lamport, mode, queue},
 };
 
 pub use crate::sync::queue::PendingOpDraft;
@@ -87,14 +87,22 @@ pub async fn enqueue_op(state: &AppState, draft: PendingOpDraft) {
 }
 
 async fn enqueue_op_inner(state: &AppState, draft: &PendingOpDraft) -> crate::error::AppResult<()> {
-    // Skip when no JWT is stored. Once 1.f.desktop.1 ships the
-    // OAuth-loopback handshake and the user signs into a waveflow-
-    // server, the very next CRUD operation flips this branch on and
-    // the queue starts accumulating.
+    // Skip when no JWT is stored. Once the OAuth-loopback handshake
+    // (1.f.desktop.1 / 1.f.desktop.1b) lands a token, the very next
+    // CRUD op flips this branch on and the queue starts accumulating.
     if server_client::read_token(state).await?.is_none() {
         return Ok(());
     }
     let pool = state.require_profile_pool().await?;
+    // Mode gate (1.f.desktop.3) — a profile set to `Local` skips the
+    // queue even when signed in. Lets a user keep their account
+    // configured (for the occasional cross-device pull) while their
+    // CURRENT desktop session stays private. Mode read defaults to
+    // `Hybrid` on a fresh profile_setting row, so this only filters
+    // out an explicit user-side opt-out.
+    if mode::read(&pool).await? == mode::SyncMode::Local {
+        return Ok(());
+    }
     let lamport_ts = lamport::next(&pool).await?;
     queue::enqueue(&pool, draft, lamport_ts).await?;
     Ok(())
