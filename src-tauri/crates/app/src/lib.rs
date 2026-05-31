@@ -24,6 +24,7 @@ mod server_client;
 mod smart_playlists;
 mod spotify;
 mod state;
+mod sync;
 mod thumbnails;
 mod watcher;
 
@@ -565,6 +566,8 @@ pub fn run() {
             commands::server_auth::server_sign_out,
             commands::server_auth::server_open_login_browser,
             commands::server_auth::server_begin_loopback_login,
+            commands::sync::sync_get_queue_state,
+            commands::sync::sync_clear_pending,
             commands::offline::get_offline_mode,
             commands::offline::set_offline_mode,
             commands::preferences::get_minimize_to_tray,
