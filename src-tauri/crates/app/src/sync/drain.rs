@@ -157,6 +157,16 @@ pub fn spawn(app: AppHandle) {
                 _ = task_handle.notifier.notified() => {}
             }
             let state = app.state::<AppState>();
+            // Serialise against the `sync_drain_now` Tauri command
+            // — a manual user-driven push racing this background
+            // tick would otherwise read the same `sync_pending_op`
+            // rows and POST them twice (server absorbs the
+            // duplicates via the `operation_id` UNIQUE, but the
+            // wasted round-trip + duplicated accounting is
+            // avoidable). The lock is held across the whole pass;
+            // dropped automatically when `_guard` falls out of
+            // scope at the end of the match.
+            let _guard = state.drain_lock.lock().await;
             match drain_once(&state).await {
                 Ok(DrainOutcome::Skipped) => {
                     // Common path when not signed in / not Hybrid —
@@ -249,10 +259,20 @@ pub async fn drain_once(state: &AppState) -> AppResult<DrainOutcome> {
                 let regression: LamportRegression = match resp.json().await {
                     Ok(b) => b,
                     Err(err) => {
+                        // A 409 we can't parse is still a server
+                        // rejection — leaving the rows untouched
+                        // would just have us hit the same 409 next
+                        // pass forever. Mark the batch failed so it
+                        // surfaces in diagnostics + the
+                        // `attempt_count` climbs, then break.
+                        let summary = format!("409 body parse failed: {err}");
                         tracing::warn!(
                             error = %err,
                             "sync push: 409 body did not parse as LamportRegression",
                         );
+                        for p in &pending {
+                            let _ = queue::mark_failed(&pool, p.id, &summary).await;
+                        }
                         break;
                     }
                 };

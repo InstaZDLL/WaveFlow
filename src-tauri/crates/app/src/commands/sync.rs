@@ -133,7 +133,13 @@ pub async fn sync_set_mode(
 /// Force an immediate drain pass — used by the Settings diagnostic
 /// "Push now" button so the operator doesn't have to wait for the
 /// periodic tick to verify the wiring.
+///
+/// Serialised against the background drain task via
+/// [`AppState::drain_lock`] so a manual click while the periodic
+/// pass is in flight waits for it to finish instead of racing it
+/// onto the same batch.
 #[tauri::command]
 pub async fn sync_drain_now(state: tauri::State<'_, AppState>) -> AppResult<drain::DrainOutcome> {
+    let _guard = state.drain_lock.lock().await;
     drain::drain_once(&state).await
 }

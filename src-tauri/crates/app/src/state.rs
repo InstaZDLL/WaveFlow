@@ -39,6 +39,14 @@ pub struct AppState {
     /// `AppState` — the live task is spawned in `lib.rs::run` once
     /// the AppHandle is available.
     pub drain: Arc<crate::sync::drain::DrainHandle>,
+    /// Mutual-exclusion lock around [`crate::sync::drain::drain_once`].
+    /// The background task and the `sync_drain_now` Tauri command
+    /// share the same `Arc<Mutex<()>>` so a manual user-driven push
+    /// never races a periodic tick (would otherwise read the same
+    /// `sync_pending_op` rows and double-send — server absorbs the
+    /// duplicates via the `operation_id` UNIQUE but the wasted
+    /// round-trip + duplicated `total_sent` accounting is avoidable).
+    pub drain_lock: Arc<tokio::sync::Mutex<()>>,
 }
 
 impl AppState {
@@ -86,6 +94,7 @@ impl AppState {
             // before the task spawns (no waiter parked yet); the
             // first real tick will pick up any queued work.
             drain: Arc::new(crate::sync::drain::DrainHandle::default()),
+            drain_lock: Arc::new(tokio::sync::Mutex::new(())),
         };
 
         state.bootstrap().await?;
