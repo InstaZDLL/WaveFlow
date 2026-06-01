@@ -368,18 +368,19 @@ fn string_value_from_payload(op: &RemoteSyncOp) -> AppResult<Option<String>> {
         .payload
         .as_ref()
         .ok_or_else(|| AppError::Other("set op missing payload (expected {value: ...})".into()))?;
-    // `null` (cleared) and a missing key are both legitimate "reset
-    // to NULL" signals — the outbound side only emits
-    // `Some(serde_json::Value::String)` for user-supplied values, but
-    // a future hook variant can still land. Anything OTHER than
-    // string/null/missing (number, bool, array, object) is a
-    // type-mismatch we must reject so a corrupted frame can't
-    // silently clear the field by coercing through `as_str() -> None`.
+    // Strict shape: outbound hooks always send `{"value": <string or
+    // null>}` — never an empty payload. Both type-mismatch (number,
+    // bool, …) AND the missing-key case are rejected so a corrupted
+    // frame can't silently clear a field. Explicit `null` is the only
+    // legitimate "reset" signal a future hook variant might emit.
     match payload.get("value") {
         Some(serde_json::Value::String(s)) => Ok(Some(s.clone())),
-        Some(serde_json::Value::Null) | None => Ok(None),
+        Some(serde_json::Value::Null) => Ok(None),
         Some(_) => Err(AppError::Other(
             "set op: value must be a string or null".into(),
+        )),
+        None => Err(AppError::Other(
+            "set op: payload missing required 'value' key".into(),
         )),
     }
 }
@@ -903,6 +904,18 @@ mod tests {
     #[tokio::test]
     async fn malformed_tracks_array_mixed_types_is_ignored() {
         let pool = pool().await;
+        // Seed a track that matches one of the IDs in the malformed
+        // payload. Without this seed, the OLD permissive behaviour
+        // (filter_map on track_ids) would still produce an empty
+        // `resolved` list because `filter_existing_track_ids` would
+        // drop the unseen IDs — the test would pass for the wrong
+        // reason. The seed ensures a partial apply would observably
+        // insert a row, so a green test pins the strict-array
+        // invariant rather than the empty-resolved short-circuit.
+        sqlx::query("INSERT INTO track (id, title) VALUES (1, 'seed')")
+            .execute(&pool)
+            .await
+            .unwrap();
         let canonical = Uuid::new_v4().to_string();
         let outcome = {
             let mut conn = pool.acquire().await.unwrap();
@@ -936,7 +949,9 @@ mod tests {
             .unwrap()
         };
         assert_eq!(outcome, AppliedOutcome::Ignored);
-        // No partial track insert.
+        // No partial track insert — even though track id=1 exists,
+        // the strict parser rejected the whole array so nothing was
+        // appended.
         let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM playlist_track")
             .fetch_one(&pool)
             .await
