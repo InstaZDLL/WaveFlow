@@ -115,11 +115,16 @@ pub async fn create_playlist(
     let pool = state.require_profile_pool().await?;
     let mut tx = pool.begin().await?;
     let id = insert_custom_conn(&mut tx, &draft).await?;
+    // Mint the canonical id INSIDE the same tx so the playlist row +
+    // sync_id_map row + outbox op all reference the same UUID. Other
+    // devices reading the broadcast will route entity_id through
+    // their own sync_id_map to find the local rowid.
+    let canonical = crate::sync::canonical::ensure_local_playlist(&mut tx, id).await?;
     crate::sync::hooks::enqueue_op_in_tx(
         &mut tx,
         &crate::sync::hooks::PendingOpDraft {
             entity: "playlist".into(),
-            entity_id: id.to_string(),
+            entity_id: canonical,
             field: None,
             op: "insert".into(),
             payload: Some(serde_json::json!({
@@ -198,7 +203,12 @@ pub async fn update_playlist(
         )));
     }
 
-    let entity_id = playlist_id.to_string();
+    // Resolve the playlist's canonical id so the outbox row carries
+    // the cross-device identifier rather than the local rowid. A
+    // playlist without a canonical (pre-1.f.desktop.4b row that
+    // dodged the migration backfill — shouldn't happen, but the
+    // fallback keeps the tx atomic) gets one minted here.
+    let entity_id = crate::sync::canonical::ensure_local_playlist(&mut tx, playlist_id).await?;
     for (field, value) in [
         ("name", trimmed_name.map(serde_json::Value::String)),
         (
@@ -237,16 +247,37 @@ pub async fn update_playlist(
 pub async fn delete_playlist(state: tauri::State<'_, AppState>, playlist_id: i64) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     let mut tx = pool.begin().await?;
+    // Resolve canonical BEFORE the DELETE — the row (and any
+    // canonical_id column on it) is gone after delete_conn.
+    let canonical = crate::sync::canonical::canonical_for_local(
+        &mut tx,
+        crate::sync::canonical::ENTITY_PLAYLIST,
+        playlist_id,
+    )
+    .await?;
     if !delete_conn(&mut tx, playlist_id).await? {
         return Err(AppError::Other(format!(
             "playlist {playlist_id} not found in active profile"
         )));
     }
+    // Drop the mapping row in the same tx so a future inbound op
+    // referencing the same canonical doesn't get routed to a
+    // dangling rowid. Falls back to the local rowid as `entity_id`
+    // when the mapping was missing (pre-1.f.desktop.4b row that
+    // dodged the migration backfill — shouldn't happen, but the
+    // fallback keeps the tx shape consistent).
+    let entity_id = if let Some(ref c) = canonical {
+        crate::sync::canonical::drop_mapping(&mut tx, crate::sync::canonical::ENTITY_PLAYLIST, c)
+            .await?;
+        c.clone()
+    } else {
+        playlist_id.to_string()
+    };
     crate::sync::hooks::enqueue_op_in_tx(
         &mut tx,
         &crate::sync::hooks::PendingOpDraft {
             entity: "playlist".into(),
-            entity_id: playlist_id.to_string(),
+            entity_id,
             field: None,
             op: "delete".into(),
             payload: None,
@@ -331,11 +362,12 @@ pub async fn add_track_to_playlist(
 
     let mut tx = pool.begin().await?;
     append_track_conn(&mut tx, playlist_id, track_id, now).await?;
+    let entity_id = crate::sync::canonical::ensure_local_playlist(&mut tx, playlist_id).await?;
     crate::sync::hooks::enqueue_op_in_tx(
         &mut tx,
         &crate::sync::hooks::PendingOpDraft {
             entity: "playlist".into(),
-            entity_id: playlist_id.to_string(),
+            entity_id,
             field: Some("tracks".into()),
             op: "insert".into(),
             payload: Some(serde_json::json!({ "track_ids": [track_id] })),
@@ -370,6 +402,7 @@ pub async fn add_tracks_to_playlist(
 
     let mut tx = pool.begin().await?;
     let inserted = append_tracks_conn(&mut tx, playlist_id, &track_ids, now).await?;
+    let entity_id = crate::sync::canonical::ensure_local_playlist(&mut tx, playlist_id).await?;
     // One coalesced op for the whole batch — emitting N ops would
     // cost N Lamport draws and bloat the queue without giving the
     // server side any extra signal.
@@ -377,7 +410,7 @@ pub async fn add_tracks_to_playlist(
         &mut tx,
         &crate::sync::hooks::PendingOpDraft {
             entity: "playlist".into(),
-            entity_id: playlist_id.to_string(),
+            entity_id,
             field: Some("tracks".into()),
             op: "insert".into(),
             payload: Some(serde_json::json!({ "track_ids": track_ids })),
@@ -413,11 +446,12 @@ pub async fn remove_track_from_playlist(
     // belonged there. The tx still commits so the no-op stays
     // idempotent from the caller's POV.
     if removed {
+        let entity_id = crate::sync::canonical::ensure_local_playlist(&mut tx, playlist_id).await?;
         crate::sync::hooks::enqueue_op_in_tx(
             &mut tx,
             &crate::sync::hooks::PendingOpDraft {
                 entity: "playlist".into(),
-                entity_id: playlist_id.to_string(),
+                entity_id,
                 field: Some("tracks".into()),
                 op: "delete".into(),
                 payload: Some(serde_json::json!({ "track_ids": [track_id] })),
@@ -468,11 +502,12 @@ pub async fn reorder_playlist_track(
             "track {track_id} not in playlist {playlist_id}"
         )));
     };
+    let entity_id = crate::sync::canonical::ensure_local_playlist(&mut tx, playlist_id).await?;
     crate::sync::hooks::enqueue_op_in_tx(
         &mut tx,
         &crate::sync::hooks::PendingOpDraft {
             entity: "playlist".into(),
-            entity_id: playlist_id.to_string(),
+            entity_id,
             field: Some("tracks".into()),
             op: "set".into(),
             payload: Some(serde_json::json!({
@@ -524,11 +559,12 @@ pub async fn add_source_to_playlist(
 
     let mut tx = pool.begin().await?;
     let inserted = append_tracks_conn(&mut tx, playlist_id, &track_ids, now_millis()).await?;
+    let entity_id = crate::sync::canonical::ensure_local_playlist(&mut tx, playlist_id).await?;
     crate::sync::hooks::enqueue_op_in_tx(
         &mut tx,
         &crate::sync::hooks::PendingOpDraft {
             entity: "playlist".into(),
-            entity_id: playlist_id.to_string(),
+            entity_id,
             field: Some("tracks".into()),
             op: "insert".into(),
             payload: Some(serde_json::json!({

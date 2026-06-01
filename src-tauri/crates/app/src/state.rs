@@ -47,6 +47,13 @@ pub struct AppState {
     /// duplicates via the `operation_id` UNIQUE but the wasted
     /// round-trip + duplicated `total_sent` accounting is avoidable).
     pub drain_lock: Arc<tokio::sync::Mutex<()>>,
+    /// Wake handle for the sync WebSocket subscriber (Phase
+    /// 1.f.desktop.4b). The `server_account` commands fire it after
+    /// the user signs in / signs out / changes mode so the
+    /// subscriber doesn't sit on its idle gate while something has
+    /// actually changed. Defaults to an unparked handle; the live
+    /// task spawns in `lib.rs::run` once the AppHandle is available.
+    pub ws: Arc<crate::sync::ws::SubscribeHandle>,
 }
 
 impl AppState {
@@ -95,6 +102,7 @@ impl AppState {
             // first real tick will pick up any queued work.
             drain: Arc::new(crate::sync::drain::DrainHandle::default()),
             drain_lock: Arc::new(tokio::sync::Mutex::new(())),
+            ws: Arc::new(crate::sync::ws::SubscribeHandle::default()),
         };
 
         state.bootstrap().await?;

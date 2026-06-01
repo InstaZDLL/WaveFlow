@@ -134,6 +134,14 @@ pub fn run() {
             // import path.
             sync::drain::spawn(app.handle().clone());
 
+            // Sync WebSocket subscriber + catch-up pull (Phase
+            // 1.f.desktop.4b). Closes the loop: drain pushes local
+            // edits upstream, ws subscribes to other devices'. Both
+            // gate on `mode = Hybrid` + a configured JWT, so a
+            // local-only profile spawns the task but its gates
+            // short-circuit every pass without HTTP.
+            sync::ws::spawn(app.handle().clone());
+
             // Audio engine lives alongside AppState. `new` spawns the cpal
             // output thread (silence callback) and the decoder thread, both
             // receiving a clone of the AppHandle so they can emit Tauri

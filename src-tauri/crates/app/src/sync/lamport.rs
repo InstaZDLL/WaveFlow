@@ -79,6 +79,15 @@ pub async fn next_conn(conn: &mut SqliteConnection) -> AppResult<i64> {
 /// the next local op the user fires can't slot below a remote op the
 /// server has already committed.
 pub async fn observe_remote(profile_pool: &SqlitePool, remote: i64) -> AppResult<()> {
+    let mut conn = profile_pool.acquire().await?;
+    observe_remote_conn(&mut conn, remote).await
+}
+
+/// Same as [`observe_remote`] but takes a caller-owned connection so
+/// the bump can join an open transaction. Used by the inbound apply
+/// path ([`crate::sync::apply::apply_remote_op_in_tx`]) so the
+/// Lamport observe + the entity write + the mapping row land atomic.
+pub async fn observe_remote_conn(conn: &mut SqliteConnection, remote: i64) -> AppResult<()> {
     if remote <= 0 {
         return Ok(());
     }
@@ -107,7 +116,7 @@ pub async fn observe_remote(profile_pool: &SqlitePool, remote: i64) -> AppResult
     .bind(KEY)
     .bind(remote)
     .bind(now_ms())
-    .execute(profile_pool)
+    .execute(conn)
     .await?;
     Ok(())
 }
