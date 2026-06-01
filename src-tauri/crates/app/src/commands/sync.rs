@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     error::{AppError, AppResult},
     state::AppState,
-    sync::{device, lamport, mode, queue},
+    sync::{device, drain, lamport, mode, queue},
 };
 
 #[derive(Debug, Serialize)]
@@ -121,5 +121,25 @@ pub async fn sync_set_mode(
     };
     let pool = state.require_profile_pool().await?;
     mode::write(&pool, parsed).await?;
+    // Flipping to Hybrid likely means the user wants their pending
+    // ops to fly upstream right away — wake the drain task so the
+    // first push doesn't wait for the 30 s tick.
+    if parsed == mode::SyncMode::Hybrid {
+        state.drain.notify();
+    }
     Ok(parsed.as_str())
+}
+
+/// Force an immediate drain pass — used by the Settings diagnostic
+/// "Push now" button so the operator doesn't have to wait for the
+/// periodic tick to verify the wiring.
+///
+/// Serialised against the background drain task via
+/// [`AppState::drain_lock`] so a manual click while the periodic
+/// pass is in flight waits for it to finish instead of racing it
+/// onto the same batch.
+#[tauri::command]
+pub async fn sync_drain_now(state: tauri::State<'_, AppState>) -> AppResult<drain::DrainOutcome> {
+    let _guard = state.drain_lock.lock().await;
+    drain::drain_once(&state).await
 }

@@ -125,6 +125,15 @@ pub fn run() {
 
             app.manage(state);
 
+            // Sync drain task — pushes pending `sync_pending_op`
+            // rows to the waveflow-server in the background. Spawned
+            // here so it picks up `AppState` from `app.manage(state)`
+            // above. Wake handle already lives in `AppState::drain`,
+            // so CRUD commands can `state.drain.notify()` after a
+            // successful tx.commit() without needing a separate
+            // import path.
+            sync::drain::spawn(app.handle().clone());
+
             // Audio engine lives alongside AppState. `new` spawns the cpal
             // output thread (silence callback) and the decoder thread, both
             // receiving a clone of the AppHandle so they can emit Tauri
@@ -570,6 +579,7 @@ pub fn run() {
             commands::sync::sync_clear_pending,
             commands::sync::sync_get_mode,
             commands::sync::sync_set_mode,
+            commands::sync::sync_drain_now,
             commands::offline::get_offline_mode,
             commands::offline::set_offline_mode,
             commands::preferences::get_minimize_to_tray,

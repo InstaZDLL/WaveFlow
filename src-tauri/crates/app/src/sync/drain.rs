@@ -1,0 +1,401 @@
+//! Drain task — pushes pending `sync_pending_op` rows to the
+//! `waveflow-server`'s `POST /api/v1/sync/ops` endpoint and removes
+//! the rows the server accepts. Phase 1.f.desktop.4a.
+//!
+//! ## Lifecycle
+//!
+//! Spawned once at boot via [`spawn`]. The returned [`DrainHandle`]
+//! lives on [`AppState`] so any CRUD command can wake the task on
+//! demand via [`DrainHandle::notify`] — typically the playlist
+//! commands fire it after a successful `tx.commit()` so a chatty
+//! user doesn't wait the full poll interval to see their changes
+//! reach the server.
+//!
+//! ## Gates (cheap, evaluated per pass)
+//!
+//! 1. [`WaveflowServerClient::try_build`] — both the server URL and
+//!    the active profile's JWT must be configured. A local-only or
+//!    half-configured profile no-ops without any HTTP.
+//! 2. [`mode::SyncMode::Hybrid`] — a profile explicitly set to
+//!    `Local` keeps its queue local even when signed in.
+//!
+//! Either gate short-circuits to [`DrainOutcome::Skipped`].
+//!
+//! ## Failure semantics
+//!
+//! - **HTTP 200** — server accepted the batch. `drop_acked` removes
+//!   the rows from the local queue; the loop runs again to see if
+//!   more pending rows surfaced while we were posting.
+//! - **HTTP 409** — `lamport_regression`. [`lamport::observe_remote`]
+//!   bumps the local floor past the server's view; the offending row
+//!   is `mark_failed`d so it surfaces in diagnostics; the pass
+//!   breaks. The next iteration retries with the bumped clock.
+//! - **Other HTTP statuses + network errors** — the batch is
+//!   `mark_failed`d with the server reply for operator triage; the
+//!   pass breaks. The periodic poll re-attempts later.
+//!
+//! ## What this PR does NOT ship
+//!
+//! - **WebSocket subscriber + apply remote ops** — 1.f.desktop.4b.
+//!   This module's drain is one-way push only; the desktop's local
+//!   SQLite stays the source of truth until the WS path lands.
+//! - **Canonical-id mapping** — also 1.f.desktop.4b. Today's
+//!   `entity_id` is the local i64 coerced to TEXT, which is fine for
+//!   the push direction (server keys ops on `(user_id, device_id,
+//!   entity, entity_id)`, so different devices' ops live in disjoint
+//!   namespaces). Cross-device replay needs a separate `local_id ↔
+//!   canonical_id` table the WS subscriber will introduce.
+
+use std::time::Duration;
+
+use reqwest::StatusCode;
+use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Manager};
+use tokio::sync::Notify;
+
+use crate::{
+    error::AppResult,
+    server_client::WaveflowServerClient,
+    state::AppState,
+    sync::{device, lamport, mode, queue},
+};
+
+/// How often the task wakes on its own. A user-driven push notifies
+/// the task immediately, so this is really just the floor for "we
+/// went a while without any activity, are there any retries to
+/// attempt?". 30 s is comfortable for a typical edit cadence.
+const POLL_INTERVAL: Duration = Duration::from_secs(30);
+
+/// Max ops per HTTP request. Mirrors waveflow-server's
+/// `MAX_BATCH_SIZE` (1024) but a smaller floor keeps a flaky server
+/// from holding a huge batch in flight.
+const BATCH_SIZE: i64 = 100;
+
+/// Wake-up signal the rest of the app uses to nudge the drain task
+/// after a successful enqueue. Internally a `tokio::sync::Notify`,
+/// which means `notify_one` is a cheap atomic flag set — never
+/// blocks the caller, never drops a permit even if no waiter is
+/// currently parked (the next `notified().await` resolves
+/// immediately).
+#[derive(Default)]
+pub struct DrainHandle {
+    notifier: Notify,
+}
+
+impl DrainHandle {
+    /// Wake the drain task on the next iteration.
+    pub fn notify(&self) {
+        self.notifier.notify_one();
+    }
+}
+
+/// Result of a single drain pass. Surface for the diagnostic
+/// `sync_drain_now` Tauri command.
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(tag = "outcome", rename_all = "snake_case")]
+pub enum DrainOutcome {
+    /// The gates short-circuited the pass. No HTTP round-trip.
+    Skipped,
+    /// The pass ran; `sent` is the number of ops the server
+    /// accepted, `remaining` is the queue depth observed after the
+    /// pass completed.
+    Drained { sent: usize, remaining: i64 },
+}
+
+// ── Wire shape mirroring waveflow-server's sync types ────────────
+
+/// Mirrors `waveflow_server::sync::SyncOpIn`.
+#[derive(Debug, Serialize)]
+struct SyncOpInBody {
+    operation_id: String,
+    lamport_ts: i64,
+    entity: String,
+    entity_id: String,
+    field: Option<String>,
+    op: String,
+    payload: Option<serde_json::Value>,
+}
+
+/// Mirrors `waveflow_server::api::sync::PushBatchRequest`.
+#[derive(Debug, Serialize)]
+struct PushBatchRequest<'a> {
+    device_id: &'a str,
+    ops: Vec<SyncOpInBody>,
+}
+
+/// Subset of `waveflow_server::api::sync::LamportRegression` we
+/// actually consume. `error` + `device_id` are echoed for diagnostic
+/// log lines; `stored_max` drives [`lamport::observe_remote`] and
+/// `offending_lamport_ts` drives the per-row mark_failed.
+#[derive(Debug, Deserialize)]
+struct LamportRegression {
+    #[allow(dead_code)]
+    error: String,
+    device_id: String,
+    stored_max: i64,
+    offending_lamport_ts: i64,
+}
+
+// ── Public surface ───────────────────────────────────────────────
+
+/// Spawn the drain task. The wake handle is already in
+/// [`AppState::drain`] — both sides of the notification (CRUD
+/// command sites + the task itself) clone the same `Arc<DrainHandle>`
+/// so a single `notify_one` wakes the task regardless of which
+/// caller fires it.
+pub fn spawn(app: AppHandle) {
+    let task_handle = app.state::<AppState>().drain.clone();
+    tokio::spawn(async move {
+        let mut ticker = tokio::time::interval(POLL_INTERVAL);
+        ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        // First tick fires immediately — burn it so we don't spam
+        // the server on startup before the user has done anything.
+        ticker.tick().await;
+        loop {
+            tokio::select! {
+                _ = ticker.tick() => {}
+                _ = task_handle.notifier.notified() => {}
+            }
+            let state = app.state::<AppState>();
+            // Serialise against the `sync_drain_now` Tauri command
+            // — a manual user-driven push racing this background
+            // tick would otherwise read the same `sync_pending_op`
+            // rows and POST them twice (server absorbs the
+            // duplicates via the `operation_id` UNIQUE, but the
+            // wasted round-trip + duplicated accounting is
+            // avoidable). The lock is held across the whole pass;
+            // dropped automatically when `_guard` falls out of
+            // scope at the end of the match.
+            let _guard = state.drain_lock.lock().await;
+            match drain_once(&state).await {
+                Ok(DrainOutcome::Skipped) => {
+                    // Common path when not signed in / not Hybrid —
+                    // silent, no log spam.
+                }
+                Ok(DrainOutcome::Drained { sent, remaining }) => {
+                    if sent > 0 || remaining > 0 {
+                        tracing::debug!(sent, remaining, "sync drain pass completed",);
+                    }
+                }
+                Err(err) => {
+                    tracing::warn!(error = %err, "sync drain pass failed");
+                }
+            }
+        }
+    });
+}
+
+/// Run one drain pass synchronously. Exposed so the
+/// `sync_drain_now` Tauri command (Settings diagnostics) can force
+/// an immediate attempt without waiting for the periodic tick.
+pub async fn drain_once(state: &AppState) -> AppResult<DrainOutcome> {
+    // Gate 1: client buildable. Both the server URL and the active
+    // profile's JWT must be configured.
+    let Some(client) = WaveflowServerClient::try_build(state).await? else {
+        return Ok(DrainOutcome::Skipped);
+    };
+    let pool = state.require_profile_pool().await?;
+    // Gate 2: per-profile mode = Hybrid.
+    if mode::read(&pool).await? != mode::SyncMode::Hybrid {
+        return Ok(DrainOutcome::Skipped);
+    }
+    let device_id = device::ensure(&state.app_db).await?;
+
+    let mut total_sent = 0usize;
+    loop {
+        let pending = queue::list_pending(&pool, BATCH_SIZE).await?;
+        if pending.is_empty() {
+            break;
+        }
+
+        let ops: Vec<SyncOpInBody> = pending
+            .iter()
+            .map(|p| SyncOpInBody {
+                operation_id: p.operation_id.clone(),
+                lamport_ts: p.lamport_ts,
+                entity: p.entity.clone(),
+                entity_id: p.entity_id.clone(),
+                field: p.field.clone(),
+                op: p.op.clone(),
+                payload: p.payload.clone(),
+            })
+            .collect();
+        let body = PushBatchRequest {
+            device_id: &device_id,
+            ops,
+        };
+
+        let resp = match client
+            .request(reqwest::Method::POST, "/api/v1/sync/ops")
+            .json(&body)
+            .send()
+            .await
+        {
+            Ok(r) => r,
+            Err(err) => {
+                // Network-level failure — mark the batch failed for
+                // diagnostics and break the loop. The periodic pass
+                // will retry; we don't `?` because a transient DNS
+                // hiccup shouldn't surface as a hard error from the
+                // drain task.
+                let summary = format!("network: {err}");
+                for p in &pending {
+                    let _ = queue::mark_failed(&pool, p.id, &summary).await;
+                }
+                tracing::warn!(error = %err, "sync push: network failure");
+                break;
+            }
+        };
+
+        match resp.status() {
+            StatusCode::OK => {
+                let ids: Vec<i64> = pending.iter().map(|p| p.id).collect();
+                queue::drop_acked(&pool, &ids).await?;
+                total_sent += pending.len();
+                // Continue the loop to drain any rows that surfaced
+                // while we were posting.
+            }
+            StatusCode::CONFLICT => {
+                let regression: LamportRegression = match resp.json().await {
+                    Ok(b) => b,
+                    Err(err) => {
+                        // A 409 we can't parse is still a server
+                        // rejection — leaving the rows untouched
+                        // would just have us hit the same 409 next
+                        // pass forever. Mark the batch failed so it
+                        // surfaces in diagnostics + the
+                        // `attempt_count` climbs, then break.
+                        let summary = format!("409 body parse failed: {err}");
+                        tracing::warn!(
+                            error = %err,
+                            "sync push: 409 body did not parse as LamportRegression",
+                        );
+                        for p in &pending {
+                            let _ = queue::mark_failed(&pool, p.id, &summary).await;
+                        }
+                        break;
+                    }
+                };
+                lamport::observe_remote(&pool, regression.stored_max).await?;
+                if let Some(off) = pending
+                    .iter()
+                    .find(|p| p.lamport_ts == regression.offending_lamport_ts)
+                {
+                    let _ = queue::mark_failed(
+                        &pool,
+                        off.id,
+                        &format!("lamport_regression stored_max={}", regression.stored_max,),
+                    )
+                    .await;
+                }
+                tracing::warn!(
+                    device_id = %regression.device_id,
+                    stored_max = regression.stored_max,
+                    offending = regression.offending_lamport_ts,
+                    "sync push: lamport regression; bumped local clock",
+                );
+                break;
+            }
+            other => {
+                let body_text = resp.text().await.unwrap_or_default();
+                tracing::warn!(
+                    status = %other,
+                    body = %body_text,
+                    "sync push: server rejected batch",
+                );
+                let summary = format!("HTTP {other}: {body_text}");
+                for p in &pending {
+                    let _ = queue::mark_failed(&pool, p.id, &summary).await;
+                }
+                break;
+            }
+        }
+    }
+
+    let remaining = queue::count_pending(&pool).await?;
+    Ok(DrainOutcome::Drained {
+        sent: total_sent,
+        remaining,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn drain_outcome_serialises_with_snake_case_tag() {
+        let skipped = DrainOutcome::Skipped;
+        let drained = DrainOutcome::Drained {
+            sent: 3,
+            remaining: 7,
+        };
+        // Tag is `snake_case`-renamed so the frontend's
+        // discriminated-union matcher reads `outcome === "drained"`
+        // rather than `"Drained"`.
+        let s = serde_json::to_value(skipped).unwrap();
+        assert_eq!(s, serde_json::json!({"outcome": "skipped"}));
+        let d = serde_json::to_value(drained).unwrap();
+        assert_eq!(
+            d,
+            serde_json::json!({
+                "outcome": "drained",
+                "sent": 3,
+                "remaining": 7,
+            }),
+        );
+    }
+
+    #[test]
+    fn push_batch_request_body_matches_server_wire_shape() {
+        // Tightens the contract against waveflow-server's
+        // `SyncOpIn`. A divergence here would surface at the first
+        // real POST, which is far from the test boundary; pinning
+        // the shape locally catches it at compile + serialise time.
+        let body = PushBatchRequest {
+            device_id: "device-a",
+            ops: vec![SyncOpInBody {
+                operation_id: "00000000-0000-0000-0000-000000000001".into(),
+                lamport_ts: 42,
+                entity: "playlist".into(),
+                entity_id: "7".into(),
+                field: Some("name".into()),
+                op: "set".into(),
+                payload: Some(serde_json::json!({ "value": "Soirée" })),
+            }],
+        };
+        let v = serde_json::to_value(&body).unwrap();
+        assert_eq!(
+            v,
+            serde_json::json!({
+                "device_id": "device-a",
+                "ops": [{
+                    "operation_id": "00000000-0000-0000-0000-000000000001",
+                    "lamport_ts": 42,
+                    "entity": "playlist",
+                    "entity_id": "7",
+                    "field": "name",
+                    "op": "set",
+                    "payload": { "value": "Soirée" },
+                }],
+            }),
+        );
+    }
+
+    #[test]
+    fn lamport_regression_parses_server_409_body() {
+        // Mirrors the JSON waveflow-server's `LamportRegression`
+        // serialises. Renaming a field on either side trips this
+        // test before a regression lands in tracked code paths.
+        let body = serde_json::json!({
+            "error": "lamport_regression",
+            "device_id": "device-a",
+            "stored_max": 11,
+            "offending_lamport_ts": 10,
+        });
+        let parsed: LamportRegression = serde_json::from_value(body).unwrap();
+        assert_eq!(parsed.device_id, "device-a");
+        assert_eq!(parsed.stored_max, 11);
+        assert_eq!(parsed.offending_lamport_ts, 10);
+    }
+}
