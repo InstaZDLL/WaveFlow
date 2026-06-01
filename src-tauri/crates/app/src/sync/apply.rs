@@ -369,11 +369,19 @@ fn string_value_from_payload(op: &RemoteSyncOp) -> AppResult<Option<String>> {
         .as_ref()
         .ok_or_else(|| AppError::Other("set op missing payload (expected {value: ...})".into()))?;
     // `null` (cleared) and a missing key are both legitimate "reset
-    // to NULL" signals — the outbound side only emits `Some(...)` for
-    // user-supplied values, but we accept the looser shape here so a
-    // future hook variant can still land.
-    let raw = payload.get("value");
-    Ok(raw.and_then(|v| v.as_str()).map(str::to_string))
+    // to NULL" signals — the outbound side only emits
+    // `Some(serde_json::Value::String)` for user-supplied values, but
+    // a future hook variant can still land. Anything OTHER than
+    // string/null/missing (number, bool, array, object) is a
+    // type-mismatch we must reject so a corrupted frame can't
+    // silently clear the field by coercing through `as_str() -> None`.
+    match payload.get("value") {
+        Some(serde_json::Value::String(s)) => Ok(Some(s.clone())),
+        Some(serde_json::Value::Null) | None => Ok(None),
+        Some(_) => Err(AppError::Other(
+            "set op: value must be a string or null".into(),
+        )),
+    }
 }
 
 fn build_patch(field: &str, value: Option<String>) -> PlaylistUpdate {
@@ -401,7 +409,16 @@ fn track_ids_from_payload(op: &RemoteSyncOp) -> AppResult<Vec<i64>> {
         .get("track_ids")
         .and_then(|v| v.as_array())
         .ok_or_else(|| AppError::Other("tracks op: track_ids array missing".into()))?;
-    Ok(arr.iter().filter_map(|v| v.as_i64()).collect())
+    // Reject mixed-type arrays rather than silently dropping the
+    // non-integer entries — a malformed frame would otherwise apply
+    // partially and leave the playlist out of sync with the broadcast.
+    let mut ids = Vec::with_capacity(arr.len());
+    for value in arr {
+        ids.push(value.as_i64().ok_or_else(|| {
+            AppError::Other("tracks op: track_ids must contain only integers".into())
+        })?);
+    }
+    Ok(ids)
 }
 
 /// Filter a list of remote track ids down to the ones this profile
@@ -788,6 +805,143 @@ mod tests {
                 .unwrap()
                 .is_none()
         );
+    }
+
+    /// A `{"value": 123}` payload (number where a string is expected)
+    /// must NOT be coerced to "clear the field" — pin that the type-
+    /// mismatch path takes the Ignored branch.
+    #[tokio::test]
+    async fn malformed_set_value_type_is_ignored_not_coerced_to_null() {
+        let pool = pool().await;
+        let canonical = Uuid::new_v4().to_string();
+        let outcome = {
+            let mut conn = pool.acquire().await.unwrap();
+            apply_remote_op_in_tx(
+                &mut conn,
+                &op(
+                    "device-b",
+                    &canonical,
+                    "insert",
+                    None,
+                    Some(serde_json::json!({"name": "before"})),
+                    1,
+                ),
+                "device-a",
+            )
+            .await
+            .unwrap();
+            apply_remote_op_in_tx(
+                &mut conn,
+                &op(
+                    "device-b",
+                    &canonical,
+                    "set",
+                    Some("name"),
+                    Some(serde_json::json!({ "value": 42 })),
+                    2,
+                ),
+                "device-a",
+            )
+            .await
+            .unwrap()
+        };
+        assert_eq!(outcome, AppliedOutcome::Ignored);
+        // Name MUST NOT have been cleared — the malformed type
+        // mismatch is rejected, not silently coerced to NULL.
+        let name: String = sqlx::query_scalar("SELECT name FROM playlist LIMIT 1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(name, "before");
+    }
+
+    /// A `{"value": null}` payload is a legitimate "clear the field"
+    /// signal — the strict-type guard MUST NOT misclassify it as
+    /// malformed.
+    #[tokio::test]
+    async fn set_value_null_clears_field() {
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        let canonical = Uuid::new_v4().to_string();
+        apply_remote_op_in_tx(
+            &mut conn,
+            &op(
+                "device-b",
+                &canonical,
+                "insert",
+                None,
+                Some(serde_json::json!({
+                    "name": "x",
+                    "description": "old"
+                })),
+                1,
+            ),
+            "device-a",
+        )
+        .await
+        .unwrap();
+        let outcome = apply_remote_op_in_tx(
+            &mut conn,
+            &op(
+                "device-b",
+                &canonical,
+                "set",
+                Some("description"),
+                Some(serde_json::json!({ "value": null })),
+                2,
+            ),
+            "device-a",
+        )
+        .await
+        .unwrap();
+        assert_eq!(outcome, AppliedOutcome::Applied);
+    }
+
+    /// `{"track_ids": [1, "x", 3]}` is rejected wholesale — a
+    /// partial apply would leave the playlist diverged from the
+    /// broadcast view on every peer.
+    #[tokio::test]
+    async fn malformed_tracks_array_mixed_types_is_ignored() {
+        let pool = pool().await;
+        let canonical = Uuid::new_v4().to_string();
+        let outcome = {
+            let mut conn = pool.acquire().await.unwrap();
+            apply_remote_op_in_tx(
+                &mut conn,
+                &op(
+                    "device-b",
+                    &canonical,
+                    "insert",
+                    None,
+                    Some(serde_json::json!({"name": "p"})),
+                    1,
+                ),
+                "device-a",
+            )
+            .await
+            .unwrap();
+            apply_remote_op_in_tx(
+                &mut conn,
+                &op(
+                    "device-b",
+                    &canonical,
+                    "insert",
+                    Some("tracks"),
+                    Some(serde_json::json!({ "track_ids": [1, "x", 3] })),
+                    2,
+                ),
+                "device-a",
+            )
+            .await
+            .unwrap()
+        };
+        assert_eq!(outcome, AppliedOutcome::Ignored);
+        // No partial track insert.
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM playlist_track")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(count, 0);
     }
 
     #[tokio::test]
