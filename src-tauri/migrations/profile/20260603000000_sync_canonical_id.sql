@@ -57,6 +57,51 @@ UPDATE playlist
 
 CREATE UNIQUE INDEX idx_playlist_canonical_id ON playlist(canonical_id);
 
+-- Runtime enforcement of the non-null invariant. SQLite's UNIQUE
+-- index allows multiple NULL rows, and adding `NOT NULL` to an
+-- existing column requires the rebuild-table dance — these triggers
+-- are a lower-friction backstop that the application layer's
+-- `ensure_local_playlist` would have to bypass to plant a NULL.
+--
+-- The AFTER INSERT trigger fills in a fresh UUIDv4 when a row lands
+-- without one (SQLite BEFORE INSERT triggers can't mutate NEW — the
+-- canonical workaround is an AFTER INSERT that UPDATEs the row).
+-- The BEFORE UPDATE trigger RAISEs if a later UPDATE tries to NULL
+-- the column back out.
+--
+-- Together with `idx_playlist_canonical_id` (which enforces
+-- uniqueness on the non-null values), the table behaves like
+-- `canonical_id TEXT NOT NULL UNIQUE` without an ALTER COLUMN
+-- (unsupported in SQLite). The AFTER INSERT UPDATE itself does not
+-- fire the BEFORE UPDATE guard because it sets a non-NULL value.
+
+CREATE TRIGGER trg_playlist_set_canonical_id_on_insert
+AFTER INSERT ON playlist
+FOR EACH ROW
+WHEN NEW.canonical_id IS NULL
+BEGIN
+    UPDATE playlist
+       SET canonical_id = (
+           WITH s(h) AS (SELECT lower(hex(randomblob(16))))
+           SELECT substr(s.h,  1, 8)              || '-'
+               || substr(s.h,  9, 4)              || '-'
+               || '4' || substr(s.h, 14, 3)       || '-'
+               || substr('89ab', (abs(random()) % 4) + 1, 1)
+                      || substr(s.h, 18, 3)       || '-'
+               || substr(s.h, 21, 12)
+             FROM s
+       )
+     WHERE id = NEW.id AND canonical_id IS NULL;
+END;
+
+CREATE TRIGGER trg_playlist_prevent_null_canonical_id_on_update
+BEFORE UPDATE OF canonical_id ON playlist
+FOR EACH ROW
+WHEN NEW.canonical_id IS NULL
+BEGIN
+    SELECT RAISE(ABORT, 'playlist.canonical_id may not be NULL');
+END;
+
 -- Local ↔ canonical id mapping for INBOUND ops the WS subscriber
 -- applies. Two roles:
 --

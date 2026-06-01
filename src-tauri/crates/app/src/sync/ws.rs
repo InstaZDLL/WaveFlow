@@ -268,10 +268,15 @@ async fn catchup_pull(
         let was_empty = page.ops.is_empty();
         for op in &page.ops {
             let mut tx = pool.begin().await?;
-            apply_remote_op_in_tx(&mut tx, op, device_id).await?;
+            let outcome = apply_remote_op_in_tx(&mut tx, op, device_id).await?;
             cursor::advance_conn(&mut tx, op.id).await?;
             tx.commit().await?;
-            applied += 1;
+            // Same accounting as the WS branch — only count ops that
+            // actually wrote to the local DB. Echoes/ignores still
+            // advance the cursor without inflating `catchup_applied`.
+            if matches!(outcome, AppliedOutcome::Applied) {
+                applied += 1;
+            }
         }
         // ACK the page end so the server's per-device cursor row
         // climbs even if no new ops arrive on the WS for a while.
@@ -353,10 +358,11 @@ async fn open_ws_session(
         let outcome = apply_remote_op_in_tx(&mut tx, &op, device_id).await?;
         cursor::advance_conn(&mut tx, op_id).await?;
         tx.commit().await?;
-        if matches!(
-            outcome,
-            AppliedOutcome::Applied | AppliedOutcome::Skipped | AppliedOutcome::Ignored
-        ) {
+        // Only count ops that actually wrote to the local DB. Echoes
+        // (self-broadcasts) and ignores (unknown entity / mapping
+        // miss / malformed payload) still advance the cursor — they
+        // just shouldn't inflate `live_applied`.
+        if matches!(outcome, AppliedOutcome::Applied) {
             applied += 1;
         }
         // ACK back so the server can advance its per-device cursor

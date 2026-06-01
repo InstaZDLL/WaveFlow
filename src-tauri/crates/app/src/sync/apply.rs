@@ -152,7 +152,22 @@ async fn apply_playlist_op(
             {
                 return Ok(AppliedOutcome::Skipped);
             }
-            let draft = playlist_draft_from_payload(op, now)?;
+            // Parser errors must NOT roll back the tx — that would leave
+            // the cursor unmoved and a malformed frame would replay on
+            // every reconnect. Log + Ignore so the cursor advances. DB
+            // errors below still propagate via `?` (a real failure
+            // should retry).
+            let draft = match playlist_draft_from_payload(op, now) {
+                Ok(d) => d,
+                Err(err) => {
+                    tracing::warn!(
+                        error = %err,
+                        canonical = %op.entity_id,
+                        "apply: malformed insert payload, ignoring"
+                    );
+                    return Ok(AppliedOutcome::Ignored);
+                }
+            };
             let local_id = insert_custom_conn(conn, &draft).await?;
             canonical::set_canonical_playlist(conn, local_id, &op.entity_id).await?;
             tracing::debug!(
@@ -186,7 +201,18 @@ async fn apply_playlist_op(
             else {
                 return Ok(AppliedOutcome::Ignored);
             };
-            let value = string_value_from_payload(op)?;
+            let value = match string_value_from_payload(op) {
+                Ok(v) => v,
+                Err(err) => {
+                    tracing::warn!(
+                        error = %err,
+                        field = %field,
+                        canonical = %op.entity_id,
+                        "apply: malformed set payload, ignoring"
+                    );
+                    return Ok(AppliedOutcome::Ignored);
+                }
+            };
             let patch = build_patch(field, value);
             let updated = update_conn(conn, local_id, &patch, now).await?;
             if updated {
@@ -202,7 +228,17 @@ async fn apply_playlist_op(
             else {
                 return Ok(AppliedOutcome::Ignored);
             };
-            let track_ids = track_ids_from_payload(op)?;
+            let track_ids = match track_ids_from_payload(op) {
+                Ok(t) => t,
+                Err(err) => {
+                    tracing::warn!(
+                        error = %err,
+                        canonical = %op.entity_id,
+                        "apply: malformed insert tracks payload, ignoring"
+                    );
+                    return Ok(AppliedOutcome::Ignored);
+                }
+            };
             // Map remote track ids (integers in this desktop's
             // local-i64 world) into rows we actually have. Tracks
             // don't carry canonical ids in this PR scope — a future
@@ -227,7 +263,17 @@ async fn apply_playlist_op(
             else {
                 return Ok(AppliedOutcome::Ignored);
             };
-            let track_ids = track_ids_from_payload(op)?;
+            let track_ids = match track_ids_from_payload(op) {
+                Ok(t) => t,
+                Err(err) => {
+                    tracing::warn!(
+                        error = %err,
+                        canonical = %op.entity_id,
+                        "apply: malformed delete tracks payload, ignoring"
+                    );
+                    return Ok(AppliedOutcome::Ignored);
+                }
+            };
             let mut applied = false;
             for tid in track_ids {
                 if remove_track_conn(conn, local_id, tid, now).await? {
@@ -248,20 +294,20 @@ async fn apply_playlist_op(
             };
             // Payload shape from the outbound hook is
             // `{"track_id": N, "position": M}`. Mirror it on the
-            // inbound side via `reorder_track_conn`.
-            let payload = op.payload.as_ref().ok_or_else(|| {
-                AppError::Other(
-                    "set tracks op missing payload (expected track_id + position)".into(),
-                )
-            })?;
-            let track_id = payload
-                .get("track_id")
-                .and_then(|v| v.as_i64())
-                .ok_or_else(|| AppError::Other("track_id missing".into()))?;
-            let new_position = payload
-                .get("position")
-                .and_then(|v| v.as_i64())
-                .ok_or_else(|| AppError::Other("position missing".into()))?;
+            // inbound side via `reorder_track_conn`. A malformed
+            // payload becomes Ignored (cursor still advances)
+            // instead of an Err that would replay forever.
+            let Some((track_id, new_position)) = op.payload.as_ref().and_then(|p| {
+                let t = p.get("track_id").and_then(|v| v.as_i64())?;
+                let n = p.get("position").and_then(|v| v.as_i64())?;
+                Some((t, n))
+            }) else {
+                tracing::warn!(
+                    canonical = %op.entity_id,
+                    "apply: malformed set tracks payload (expected track_id + position), ignoring"
+                );
+                return Ok(AppliedOutcome::Ignored);
+            };
             let effective = reorder_track_conn(conn, local_id, track_id, new_position, now).await?;
             Ok(if effective.is_some() {
                 AppliedOutcome::Applied
@@ -707,6 +753,78 @@ mod tests {
         let outcome = apply_remote_op_in_tx(&mut conn, &weird, "device-a")
             .await
             .unwrap();
+        assert_eq!(outcome, AppliedOutcome::Ignored);
+    }
+
+    /// Malformed payloads MUST NOT bubble as DB errors — that would
+    /// roll back the calling tx, leave the cursor unmoved, and have
+    /// the same frame replay every reconnect. Pin the fall-through
+    /// to `Ignored` so the cursor still advances.
+    #[tokio::test]
+    async fn malformed_insert_payload_is_ignored_not_error() {
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        let canonical = Uuid::new_v4().to_string();
+        // Missing required `name` field.
+        let outcome = apply_remote_op_in_tx(
+            &mut conn,
+            &op(
+                "device-b",
+                &canonical,
+                "insert",
+                None,
+                Some(serde_json::json!({ "color_id": "indigo" })),
+                3,
+            ),
+            "device-a",
+        )
+        .await
+        .unwrap();
+        assert_eq!(outcome, AppliedOutcome::Ignored);
+        // No mapping row planted.
+        assert!(
+            canonical::local_for_canonical(&mut conn, "playlist", &canonical)
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn malformed_set_tracks_payload_is_ignored_not_error() {
+        let pool = pool().await;
+        let mut conn = pool.acquire().await.unwrap();
+        let canonical = Uuid::new_v4().to_string();
+        // Seed a playlist so the canonical lookup hits.
+        apply_remote_op_in_tx(
+            &mut conn,
+            &op(
+                "device-b",
+                &canonical,
+                "insert",
+                None,
+                Some(serde_json::json!({"name": "p"})),
+                1,
+            ),
+            "device-a",
+        )
+        .await
+        .unwrap();
+        // Reorder op missing both `track_id` and `position`.
+        let outcome = apply_remote_op_in_tx(
+            &mut conn,
+            &op(
+                "device-b",
+                &canonical,
+                "set",
+                Some("tracks"),
+                Some(serde_json::json!({ "wrong_shape": true })),
+                2,
+            ),
+            "device-a",
+        )
+        .await
+        .unwrap();
         assert_eq!(outcome, AppliedOutcome::Ignored);
     }
 }
