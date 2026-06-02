@@ -622,33 +622,49 @@ pub async fn toggle_like_track(
         .bind(track_id)
         .fetch_optional(&mut *tx)
         .await?;
-    let now_liked = if was_liked.is_some() {
-        sqlx::query("DELETE FROM liked_track WHERE track_id = ?")
+    // Both branches derive the post-state from `rows_affected()`
+    // rather than assuming the action landed. `INSERT OR IGNORE`
+    // silently no-ops on an FK violation (the scanner removed the
+    // track between the UI render and this command, or a future
+    // UNIQUE constraint trips), and we don't want to return
+    // `now_liked = true` to a UI rendering a heart against a row
+    // that doesn't exist anymore. A DELETE that matched 0 rows
+    // means a concurrent unlike already happened — the post-state
+    // is still "not liked".
+    let (now_liked, did_change) = if was_liked.is_some() {
+        let res = sqlx::query("DELETE FROM liked_track WHERE track_id = ?")
             .bind(track_id)
             .execute(&mut *tx)
             .await?;
-        false
+        (false, res.rows_affected() > 0)
     } else {
-        sqlx::query("INSERT OR IGNORE INTO liked_track (track_id, liked_at) VALUES (?, ?)")
-            .bind(track_id)
-            .bind(now)
-            .execute(&mut *tx)
-            .await?;
-        true
+        let res =
+            sqlx::query("INSERT OR IGNORE INTO liked_track (track_id, liked_at) VALUES (?, ?)")
+                .bind(track_id)
+                .bind(now)
+                .execute(&mut *tx)
+                .await?;
+        let actually_inserted = res.rows_affected() > 0;
+        (actually_inserted, actually_inserted)
     };
 
-    if let Some(hash) = file_hash {
-        crate::sync::hooks::enqueue_op_in_tx(
-            &mut tx,
-            &crate::sync::hooks::PendingOpDraft {
-                entity: "liked_track".into(),
-                entity_id: hash,
-                field: None,
-                op: if now_liked { "insert" } else { "delete" }.into(),
-                payload: None,
-            },
-        )
-        .await?;
+    // Only enqueue when the local DB actually moved — emitting a
+    // phantom op for a no-op INSERT wastes a Lamport draw and
+    // bloats the queue with a like the peer can't resolve anyway.
+    if did_change {
+        if let Some(hash) = file_hash {
+            crate::sync::hooks::enqueue_op_in_tx(
+                &mut tx,
+                &crate::sync::hooks::PendingOpDraft {
+                    entity: "liked_track".into(),
+                    entity_id: hash,
+                    field: None,
+                    op: if now_liked { "insert" } else { "delete" }.into(),
+                    payload: None,
+                },
+            )
+            .await?;
+        }
     }
     tx.commit().await?;
     state.drain.notify();
