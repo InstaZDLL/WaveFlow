@@ -362,31 +362,41 @@ fn playlist_draft_from_payload(op: &RemoteSyncOp, now_ms: i64) -> AppResult<Play
     })
 }
 
-/// Extract a `{"value": "..."}` string from a `set <field>` op. The
-/// `field` param drives per-column nullability: `description` is the
-/// only `NULL`-able column on `playlist` (see the initial profile
-/// schema), so `{"value": null}` is only a legitimate "reset" signal
-/// for that field. Sending `null` for a `NOT NULL` column like
-/// `name`, `color_id`, or `icon_id` is corruption and lands Ignored.
+/// Extract a `{"value": "..."}` string from a `set <field>` op.
+///
+/// `null` is rejected for EVERY field — even `description`, which is
+/// the only nullable column on `playlist`. Rationale:
+///
+/// 1. The outbound hooks ([`commands::playlist::update_playlist`])
+///    only emit `{"value": "<string>"}` — they never produce
+///    `{"value": null}`. A user clearing the description via the UI
+///    passes through `Some("")` (empty string), not `Some(None)`.
+/// 2. Accepting `null` on `description` here was a silent no-op:
+///    `update_conn` uses `COALESCE(?, description)` so a `None` bind
+///    leaves the column unchanged. The op surfaced `Applied` but the
+///    DB never moved. Worse than not supporting it — the caller
+///    thinks the clear landed.
+/// 3. Properly wiring "clear to NULL" requires a three-state encoding
+///    (`unchanged | set(string) | clear`) in `crates/core`'s
+///    `PlaylistUpdate` or a dedicated `clear_description_conn` repo
+///    method. That refactor is a real feature change, not a fix —
+///    deferred until a product surface actually emits `null`.
+///
+/// `field` is plumbed in for future use (per-field error messages /
+/// per-field type rules); today it just disambiguates the log line
+/// for the caller.
 fn string_value_from_payload(op: &RemoteSyncOp, field: &str) -> AppResult<Option<String>> {
     let payload = op
         .payload
         .as_ref()
         .ok_or_else(|| AppError::Other("set op missing payload (expected {value: ...})".into()))?;
-    // Strict shape: outbound hooks always send `{"value": "<string>"}`
-    // for user-supplied values; they never emit an empty payload nor
-    // a `null` value today. Anything other than the per-field-allowed
-    // shape is rejected so a corrupted frame can't silently mutate
-    // a row.
     match payload.get("value") {
         Some(serde_json::Value::String(s)) => Ok(Some(s.clone())),
-        Some(serde_json::Value::Null) if field == "description" => Ok(None),
         Some(serde_json::Value::Null) => Err(AppError::Other(format!(
-            "set op: '{field}' is NOT NULL — value cannot be null"
+            "set op: '{field}' value cannot be null — outbound never emits null today \
+             and the inbound clear path is not wired through (see module docstring)"
         ))),
-        Some(_) => Err(AppError::Other(
-            "set op: value must be a string or null".into(),
-        )),
+        Some(_) => Err(AppError::Other("set op: value must be a string".into())),
         None => Err(AppError::Other(
             "set op: payload missing required 'value' key".into(),
         )),
@@ -909,46 +919,61 @@ mod tests {
         assert_eq!(name, "kept");
     }
 
-    /// A `{"value": null}` payload on the nullable `description`
-    /// column is a legitimate "clear the field" signal — the
-    /// strict-type guard MUST NOT misclassify it as malformed.
+    /// `{"value": null}` on `description` was a silent no-op before
+    /// — the COALESCE in `update_conn` left the column unchanged but
+    /// the op surfaced `Applied`, lying to the caller. Until a real
+    /// "clear to NULL" path is wired through `crates/core` (see the
+    /// `string_value_from_payload` doc comment for the rationale),
+    /// null on ANY field is rejected so a corrupted frame can't
+    /// silently lose data while looking like it landed.
     #[tokio::test]
-    async fn set_value_null_clears_field() {
+    async fn set_value_null_on_description_is_ignored() {
         let pool = pool().await;
-        let mut conn = pool.acquire().await.unwrap();
         let canonical = Uuid::new_v4().to_string();
-        apply_remote_op_in_tx(
-            &mut conn,
-            &op(
-                "device-b",
-                &canonical,
-                "insert",
-                None,
-                Some(serde_json::json!({
-                    "name": "x",
-                    "description": "old"
-                })),
-                1,
-            ),
-            "device-a",
-        )
-        .await
-        .unwrap();
-        let outcome = apply_remote_op_in_tx(
-            &mut conn,
-            &op(
-                "device-b",
-                &canonical,
-                "set",
-                Some("description"),
-                Some(serde_json::json!({ "value": null })),
-                2,
-            ),
-            "device-a",
-        )
-        .await
-        .unwrap();
-        assert_eq!(outcome, AppliedOutcome::Applied);
+        let outcome = {
+            let mut conn = pool.acquire().await.unwrap();
+            apply_remote_op_in_tx(
+                &mut conn,
+                &op(
+                    "device-b",
+                    &canonical,
+                    "insert",
+                    None,
+                    Some(serde_json::json!({
+                        "name": "x",
+                        "description": "old"
+                    })),
+                    1,
+                ),
+                "device-a",
+            )
+            .await
+            .unwrap();
+            apply_remote_op_in_tx(
+                &mut conn,
+                &op(
+                    "device-b",
+                    &canonical,
+                    "set",
+                    Some("description"),
+                    Some(serde_json::json!({ "value": null })),
+                    2,
+                ),
+                "device-a",
+            )
+            .await
+            .unwrap()
+        };
+        assert_eq!(outcome, AppliedOutcome::Ignored);
+        // Description column MUST stay at "old" — neither cleared
+        // (the wire-through isn't implemented) nor silently no-op'd
+        // under a misleading `Applied` outcome.
+        let description: Option<String> =
+            sqlx::query_scalar("SELECT description FROM playlist LIMIT 1")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(description.as_deref(), Some("old"));
     }
 
     /// `{"track_ids": [1, "x", 3]}` is rejected wholesale — a
