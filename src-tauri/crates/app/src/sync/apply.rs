@@ -213,7 +213,7 @@ async fn apply_playlist_op(
                     return Ok(AppliedOutcome::Ignored);
                 }
             };
-            let patch = build_patch(field, value);
+            let patch = build_patch(field, Some(value));
             let updated = update_conn(conn, local_id, &patch, now).await?;
             if updated {
                 Ok(AppliedOutcome::Applied)
@@ -385,13 +385,13 @@ fn playlist_draft_from_payload(op: &RemoteSyncOp, now_ms: i64) -> AppResult<Play
 /// `field` is plumbed in for future use (per-field error messages /
 /// per-field type rules); today it just disambiguates the log line
 /// for the caller.
-fn string_value_from_payload(op: &RemoteSyncOp, field: &str) -> AppResult<Option<String>> {
+fn string_value_from_payload(op: &RemoteSyncOp, field: &str) -> AppResult<String> {
     let payload = op
         .payload
         .as_ref()
         .ok_or_else(|| AppError::Other("set op missing payload (expected {value: ...})".into()))?;
     match payload.get("value") {
-        Some(serde_json::Value::String(s)) => Ok(Some(s.clone())),
+        Some(serde_json::Value::String(s)) => Ok(s.clone()),
         Some(serde_json::Value::Null) => Err(AppError::Other(format!(
             "set op: '{field}' value cannot be null — outbound never emits null today \
              and the inbound clear path is not wired through (see module docstring)"
