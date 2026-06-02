@@ -123,9 +123,12 @@ pub async fn sync_set_mode(
     mode::write(&pool, parsed).await?;
     // Flipping to Hybrid likely means the user wants their pending
     // ops to fly upstream right away — wake the drain task so the
-    // first push doesn't wait for the 30 s tick.
+    // first push doesn't wait for the 30 s tick, and wake the WS
+    // subscriber so the catch-up pull + live socket connect without
+    // the 30 s idle gate.
     if parsed == mode::SyncMode::Hybrid {
         state.drain.notify();
+        state.ws.wake();
     }
     Ok(parsed.as_str())
 }

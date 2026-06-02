@@ -134,6 +134,24 @@ pub fn run() {
             // import path.
             sync::drain::spawn(app.handle().clone());
 
+            // Install the rustls process-wide CryptoProvider before
+            // the WS subscriber spawns. rustls 0.23 panics on the
+            // first TLS handshake when no provider is installed, and
+            // tokio-tungstenite's `connect_async` is the first
+            // wss:// consumer in the codebase (reqwest uses its own
+            // per-connector setup). Ignore the Result — a second
+            // call (e.g. after a future reqwest version starts
+            // installing one) returns Err which is harmless here.
+            let _ = rustls::crypto::ring::default_provider().install_default();
+
+            // Sync WebSocket subscriber + catch-up pull (Phase
+            // 1.f.desktop.4b). Closes the loop: drain pushes local
+            // edits upstream, ws subscribes to other devices'. Both
+            // gate on `mode = Hybrid` + a configured JWT, so a
+            // local-only profile spawns the task but its gates
+            // short-circuit every pass without HTTP.
+            sync::ws::spawn(app.handle().clone());
+
             // Audio engine lives alongside AppState. `new` spawns the cpal
             // output thread (silence callback) and the decoder thread, both
             // receiving a clone of the AppHandle so they can emit Tauri
