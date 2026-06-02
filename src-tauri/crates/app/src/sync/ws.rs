@@ -248,12 +248,11 @@ async fn catchup_pull(
                 compacted_up_to = body.compacted_up_to,
                 "sync pull: 410 Gone — resetting cursor and re-pulling"
             );
-            // We can't go below 0; advance is monotonic. Clear the
-            // row directly so the next read returns 0.
-            sqlx::query("DELETE FROM profile_setting WHERE key = ?")
-                .bind(cursor::KEY)
-                .execute(pool)
-                .await?;
+            // We can't go below 0; advance is monotonic. Use the
+            // module-level reset so any future "cursor wiped"
+            // side-effects (logging, events) live next to the cursor
+            // logic instead of an inline DELETE here.
+            cursor::reset(pool).await?;
             continue;
         }
         if !status.is_success() {

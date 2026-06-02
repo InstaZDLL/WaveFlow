@@ -38,6 +38,21 @@ pub async fn read(profile_pool: &SqlitePool) -> AppResult<i64> {
     Ok(raw.unwrap_or(0))
 }
 
+/// Reset the cursor to 0 (= "send me the whole log on next pull").
+/// Used by the WS subscriber's 410 Gone handler — when the server's
+/// compaction watermark climbs past our cursor we can't pull from
+/// `since=N` cleanly, so we drop the row and the next [`read`]
+/// returns the default 0. Centralised here so any future "reset"
+/// side-effects (logging, eviction events) land in one place rather
+/// than against an inline SQL DELETE at the call site.
+pub async fn reset(profile_pool: &SqlitePool) -> AppResult<()> {
+    sqlx::query("DELETE FROM profile_setting WHERE key = ?")
+        .bind(KEY)
+        .execute(profile_pool)
+        .await?;
+    Ok(())
+}
+
 /// Advance the cursor in the caller's transaction. Idempotent via
 /// the `max(...)` clamp: a stale advance (e.g. a catch-up batch
 /// processing a row the WS already applied) never drags the value
@@ -118,6 +133,20 @@ mod tests {
             advance_conn(&mut conn, 42).await.unwrap();
         }
         assert_eq!(read(&pool).await.unwrap(), 42);
+    }
+
+    #[tokio::test]
+    async fn reset_clears_row_so_next_read_is_zero() {
+        let pool = pool().await;
+        {
+            let mut conn = pool.acquire().await.unwrap();
+            advance_conn(&mut conn, 50).await.unwrap();
+        }
+        assert_eq!(read(&pool).await.unwrap(), 50);
+        reset(&pool).await.unwrap();
+        assert_eq!(read(&pool).await.unwrap(), 0);
+        // Idempotent — second call still succeeds.
+        reset(&pool).await.unwrap();
     }
 
     #[tokio::test]

@@ -111,9 +111,17 @@ pub async fn ensure_local_playlist(
 
 /// Mint a canonical id on the local row + plant the mapping. Shared
 /// between [`ensure_local_playlist`] (outbound) and the apply path
-/// (inbound) where the canonical is server-supplied. Idempotent on
-/// the mapping: a duplicate `(entity, canonical_id)` keeps the
-/// existing row.
+/// (inbound) where the canonical is server-supplied.
+///
+/// Idempotent on `(entity, local_id)`: a prior mapping pointing the
+/// same local row at a DIFFERENT canonical is dropped first, so a
+/// re-mint never leaves orphan rows in `sync_id_map`. The current
+/// callers can't trigger this (ensure_local_playlist short-circuits
+/// on existing mapping, apply's insert branch always operates on a
+/// fresh local_id), but the defensive DELETE keeps the invariant
+/// "exactly one (entity, local_id) row" intact against future call
+/// sites — and the cost is one cheap DELETE against the same index
+/// the INSERT below uses.
 pub async fn set_canonical_playlist(
     conn: &mut SqliteConnection,
     local_id: i64,
@@ -124,6 +132,22 @@ pub async fn set_canonical_playlist(
         .bind(local_id)
         .execute(&mut *conn)
         .await?;
+    // Drop any prior `(entity, local_id)` row pointing at a
+    // different canonical. Skipped when the existing row already
+    // matches `canonical_id` (the INSERT OR IGNORE below would
+    // otherwise no-op cleanly, but pre-deleting is cheaper than
+    // walking the UNIQUE index a second time).
+    sqlx::query(
+        "DELETE FROM sync_id_map
+          WHERE entity = ?
+            AND local_id = ?
+            AND canonical_id != ?",
+    )
+    .bind(ENTITY_PLAYLIST)
+    .bind(local_id)
+    .bind(canonical_id)
+    .execute(&mut *conn)
+    .await?;
     sqlx::query(
         "INSERT OR IGNORE INTO sync_id_map (entity, canonical_id, local_id)
          VALUES (?, ?, ?)",
@@ -261,6 +285,54 @@ mod tests {
                 .unwrap();
         assert_eq!(row, Some(server_canonical));
         assert_eq!(resolved_local, Some(id));
+    }
+
+    /// `set_canonical_playlist` must keep exactly one mapping row
+    /// per `(entity, local_id)` pair even when called twice with
+    /// different canonical UUIDs. Without the defensive DELETE the
+    /// second INSERT OR IGNORE would leave the stale first row
+    /// hanging — the reverse-lookup of the OLD canonical would
+    /// still resolve to the local row, which is precisely the
+    /// inconsistency the helper exists to prevent.
+    #[tokio::test]
+    async fn set_canonical_replaces_prior_mapping_for_same_local() {
+        let pool = pool().await;
+        let id = insert_playlist(&pool, "p1").await;
+        let canonical_a = Uuid::new_v4().to_string();
+        let canonical_b = Uuid::new_v4().to_string();
+        {
+            let mut conn = pool.acquire().await.unwrap();
+            set_canonical_playlist(&mut conn, id, &canonical_a)
+                .await
+                .unwrap();
+            set_canonical_playlist(&mut conn, id, &canonical_b)
+                .await
+                .unwrap();
+        }
+        // Exactly one mapping row for the local id.
+        let count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM sync_id_map WHERE entity = ? AND local_id = ?",
+        )
+        .bind(ENTITY_PLAYLIST)
+        .bind(id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(count, 1);
+        // Stale canonical is unreachable; fresh one resolves.
+        let mut conn = pool.acquire().await.unwrap();
+        assert!(
+            local_for_canonical(&mut conn, ENTITY_PLAYLIST, &canonical_a)
+                .await
+                .unwrap()
+                .is_none()
+        );
+        assert_eq!(
+            local_for_canonical(&mut conn, ENTITY_PLAYLIST, &canonical_b)
+                .await
+                .unwrap(),
+            Some(id)
+        );
     }
 
     #[tokio::test]

@@ -143,6 +143,14 @@ tokio-tungstenite = { version = "0.29", default-features = false, features = [
     "rustls-tls-native-roots",
 ] }
 
+# rustls 0.23 requires a process-wide default `CryptoProvider` to be
+# installed before the first TLS handshake. reqwest configures its own
+# per-connector, but tokio-tungstenite's `connect_async` panics with
+# "no process-level CryptoProvider available" unless one is installed
+# at boot. We pull rustls directly to call `install_default()` once in
+# `lib.rs::run` (see the call site there).
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
+
 # Regex for stripping HTML from Last.fm bio summaries
 regex = "1"
 

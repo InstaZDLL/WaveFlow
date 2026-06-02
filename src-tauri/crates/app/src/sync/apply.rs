@@ -444,6 +444,12 @@ fn track_ids_from_payload(op: &RemoteSyncOp) -> AppResult<Vec<i64>> {
 /// actually has. A future sub-PR will replace this with a
 /// canonical-id lookup once tracks carry one too; today we just
 /// project against `track.id`.
+///
+/// Single query via a dynamically-built `IN (…)` clause + a HashSet
+/// to preserve the input order. Avoids the N+1 SELECT loop that the
+/// initial implementation ran (one round-trip per remote track id),
+/// which for a 200-track batch was 200× the SQLite work for no
+/// reason.
 async fn filter_existing_track_ids(
     conn: &mut SqliteConnection,
     ids: &[i64],
@@ -451,20 +457,24 @@ async fn filter_existing_track_ids(
     if ids.is_empty() {
         return Ok(Vec::new());
     }
-    // Re-use the existing repository on the same connection. The
-    // `list_ids_filter_existing` helper isn't on the trait yet — do
-    // the projection here so the apply path stays self-contained.
-    let mut out = Vec::with_capacity(ids.len());
+    // QueryBuilder is the canonical way to assemble dynamic SQL with
+    // bound parameters under sqlx 0.9 — `SqlSafeStr` only impls for
+    // `&'static str` so a `format!`-built string can't go through
+    // the typed `query()` path. Same idiom as `queue::drop_acked`.
+    let mut qb: sqlx::QueryBuilder<sqlx::Sqlite> =
+        sqlx::QueryBuilder::new("SELECT id FROM track WHERE id IN (");
+    let mut sep = qb.separated(", ");
     for id in ids {
-        let row: Option<i64> = sqlx::query_scalar("SELECT id FROM track WHERE id = ?")
-            .bind(id)
-            .fetch_optional(&mut *conn)
-            .await?;
-        if row.is_some() {
-            out.push(*id);
-        }
+        sep.push_bind(*id);
     }
-    Ok(out)
+    sep.push_unseparated(")");
+    let existing: Vec<i64> = qb.build_query_scalar().fetch_all(&mut *conn).await?;
+    let existing: std::collections::HashSet<i64> = existing.into_iter().collect();
+    Ok(ids
+        .iter()
+        .copied()
+        .filter(|id| existing.contains(id))
+        .collect())
 }
 
 #[cfg(test)]

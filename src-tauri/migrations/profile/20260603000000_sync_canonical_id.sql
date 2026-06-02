@@ -37,7 +37,11 @@ ALTER TABLE playlist ADD COLUMN canonical_id TEXT;
 -- `xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx` where:
 --   - the `4` at the start of the third group is the version nibble
 --   - the `y` at the start of the fourth group is one of {8,9,a,b}
---     (the variant nibble — we pick from `'89ab'` via abs(random())%4)
+--     (the variant nibble — we pick from `'89ab'` via `random() & 3`,
+--     which extracts the bottom two bits and is overflow-safe; the
+--     alternative `abs(random()) % 4` blows up on `random() ==
+--     INT64_MIN` because abs(INT64_MIN) is unrepresentable in i64
+--     and SQLite raises "integer overflow")
 WITH src AS (
     SELECT id, lower(hex(randomblob(16))) AS h
       FROM playlist
@@ -47,7 +51,7 @@ UPDATE playlist
        SELECT substr(s.h,  1, 8)              || '-'
            || substr(s.h,  9, 4)              || '-'
            || '4' || substr(s.h, 14, 3)       || '-'
-           || substr('89ab', (abs(random()) % 4) + 1, 1)
+           || substr('89ab', (random() & 3) + 1, 1)
                   || substr(s.h, 18, 3)       || '-'
            || substr(s.h, 21, 12)
          FROM src s
@@ -86,7 +90,7 @@ BEGIN
            SELECT substr(s.h,  1, 8)              || '-'
                || substr(s.h,  9, 4)              || '-'
                || '4' || substr(s.h, 14, 3)       || '-'
-               || substr('89ab', (abs(random()) % 4) + 1, 1)
+               || substr('89ab', (random() & 3) + 1, 1)
                       || substr(s.h, 18, 3)       || '-'
                || substr(s.h, 21, 12)
              FROM s
