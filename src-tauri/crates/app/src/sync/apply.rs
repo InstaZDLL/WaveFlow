@@ -31,7 +31,12 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::SqliteConnection;
 
+use waveflow_core::repository::library::{LibraryDraft, LibraryUpdate};
 use waveflow_core::repository::playlist::{PlaylistDraft, PlaylistUpdate};
+use waveflow_core::repository::sqlite::library::{
+    delete_conn as library_delete_conn, insert_conn as library_insert_conn,
+    update_conn as library_update_conn,
+};
 use waveflow_core::repository::sqlite::playlist::{
     append_tracks_conn, delete_conn, insert_custom_conn, remove_track_conn, reorder_track_conn,
     update_conn,
@@ -119,6 +124,9 @@ pub async fn apply_remote_op_in_tx(
 
     match op.entity.as_str() {
         canonical::ENTITY_PLAYLIST => apply_playlist_op(conn, op).await,
+        canonical::ENTITY_LIBRARY => apply_library_op(conn, op).await,
+        canonical::ENTITY_LIKED_TRACK => apply_liked_track_op(conn, op).await,
+        canonical::ENTITY_TRACK_RATING => apply_track_rating_op(conn, op).await,
         other => {
             // Forward compat: a future entity (`library`, `track`, …)
             // arrives but this desktop doesn't know how to apply it.
@@ -327,6 +335,241 @@ async fn apply_playlist_op(
     }
 }
 
+async fn apply_library_op(
+    conn: &mut SqliteConnection,
+    op: &RemoteSyncOp,
+) -> AppResult<AppliedOutcome> {
+    let now = now_ms();
+    let entity = canonical::ENTITY_LIBRARY;
+    match (op.op.as_str(), op.field.as_deref()) {
+        ("insert", None) => {
+            if canonical::local_for_canonical(conn, entity, &op.entity_id)
+                .await?
+                .is_some()
+            {
+                return Ok(AppliedOutcome::Skipped);
+            }
+            let draft = match library_draft_from_payload(op, now) {
+                Ok(d) => d,
+                Err(err) => {
+                    tracing::warn!(
+                        error = %err,
+                        canonical = %op.entity_id,
+                        "apply: malformed library insert payload, ignoring"
+                    );
+                    return Ok(AppliedOutcome::Ignored);
+                }
+            };
+            let local_id = library_insert_conn(conn, &draft).await?;
+            canonical::set_canonical_library(conn, local_id, &op.entity_id).await?;
+            Ok(AppliedOutcome::Applied)
+        }
+        ("delete", None) => {
+            let Some(local_id) =
+                canonical::local_for_canonical(conn, entity, &op.entity_id).await?
+            else {
+                return Ok(AppliedOutcome::Ignored);
+            };
+            let removed = library_delete_conn(conn, local_id).await?;
+            canonical::drop_mapping(conn, entity, &op.entity_id).await?;
+            Ok(if removed {
+                AppliedOutcome::Applied
+            } else {
+                AppliedOutcome::Ignored
+            })
+        }
+        ("set", Some(field @ ("name" | "description" | "color_id" | "icon_id"))) => {
+            let Some(local_id) =
+                canonical::local_for_canonical(conn, entity, &op.entity_id).await?
+            else {
+                return Ok(AppliedOutcome::Ignored);
+            };
+            let value = match string_value_from_payload(op, field) {
+                Ok(v) => v,
+                Err(err) => {
+                    tracing::warn!(
+                        error = %err,
+                        field = %field,
+                        canonical = %op.entity_id,
+                        "apply: malformed library set payload, ignoring"
+                    );
+                    return Ok(AppliedOutcome::Ignored);
+                }
+            };
+            let patch = build_library_patch(field, Some(value));
+            let updated = library_update_conn(conn, local_id, &patch, now).await?;
+            Ok(if updated {
+                AppliedOutcome::Applied
+            } else {
+                AppliedOutcome::Ignored
+            })
+        }
+        other => {
+            tracing::debug!(
+                entity = "library",
+                op = ?other,
+                "apply_library_op: unknown (op, field), ignored"
+            );
+            Ok(AppliedOutcome::Ignored)
+        }
+    }
+}
+
+/// `liked_track` ops carry the BLAKE3 file_hash as `entity_id`. The
+/// apply path resolves the hash against the local `track` table; a
+/// miss (file not scanned on this device) lands Ignored — the user
+/// sees the like materialise the next time they re-scan the same
+/// file.
+async fn apply_liked_track_op(
+    conn: &mut SqliteConnection,
+    op: &RemoteSyncOp,
+) -> AppResult<AppliedOutcome> {
+    let now = now_ms();
+    let Some(local_track_id) = canonical::local_track_for_hash(conn, &op.entity_id).await? else {
+        return Ok(AppliedOutcome::Ignored);
+    };
+    match op.op.as_str() {
+        "insert" => {
+            let res =
+                sqlx::query("INSERT OR IGNORE INTO liked_track (track_id, liked_at) VALUES (?, ?)")
+                    .bind(local_track_id)
+                    .bind(now)
+                    .execute(conn)
+                    .await?;
+            Ok(if res.rows_affected() > 0 {
+                AppliedOutcome::Applied
+            } else {
+                // Already liked — idempotent skip.
+                AppliedOutcome::Skipped
+            })
+        }
+        "delete" => {
+            let res = sqlx::query("DELETE FROM liked_track WHERE track_id = ?")
+                .bind(local_track_id)
+                .execute(conn)
+                .await?;
+            Ok(if res.rows_affected() > 0 {
+                AppliedOutcome::Applied
+            } else {
+                AppliedOutcome::Ignored
+            })
+        }
+        other => {
+            tracing::debug!(
+                op = %other,
+                "apply_liked_track_op: unknown op, ignored"
+            );
+            Ok(AppliedOutcome::Ignored)
+        }
+    }
+}
+
+/// `track_rating` ops set / clear a 0-5 star rating on the local
+/// row matching the broadcast file_hash. Same hash-keyed routing as
+/// `liked_track`.
+async fn apply_track_rating_op(
+    conn: &mut SqliteConnection,
+    op: &RemoteSyncOp,
+) -> AppResult<AppliedOutcome> {
+    let Some(local_track_id) = canonical::local_track_for_hash(conn, &op.entity_id).await? else {
+        return Ok(AppliedOutcome::Ignored);
+    };
+    match op.op.as_str() {
+        "set" => {
+            // Strict shape: `{"value": 0..=5}`. Anything else lands
+            // Ignored (cursor still advances).
+            let Some(payload) = op.payload.as_ref() else {
+                return Ok(AppliedOutcome::Ignored);
+            };
+            let Some(value) = payload.get("value").and_then(|v| v.as_i64()) else {
+                return Ok(AppliedOutcome::Ignored);
+            };
+            if !(0..=5).contains(&value) {
+                return Ok(AppliedOutcome::Ignored);
+            }
+            let res = sqlx::query("UPDATE track SET rating = ? WHERE id = ?")
+                .bind(value)
+                .bind(local_track_id)
+                .execute(conn)
+                .await?;
+            Ok(if res.rows_affected() > 0 {
+                AppliedOutcome::Applied
+            } else {
+                AppliedOutcome::Ignored
+            })
+        }
+        "delete" => {
+            let res = sqlx::query("UPDATE track SET rating = NULL WHERE id = ?")
+                .bind(local_track_id)
+                .execute(conn)
+                .await?;
+            Ok(if res.rows_affected() > 0 {
+                AppliedOutcome::Applied
+            } else {
+                AppliedOutcome::Ignored
+            })
+        }
+        other => {
+            tracing::debug!(
+                op = %other,
+                "apply_track_rating_op: unknown op, ignored"
+            );
+            Ok(AppliedOutcome::Ignored)
+        }
+    }
+}
+
+/// Build a [`LibraryDraft`] from the inbound `insert` op. Same blob
+/// shape as the outbound hook in `commands::library::create_library`.
+fn library_draft_from_payload(op: &RemoteSyncOp, now_ms: i64) -> AppResult<LibraryDraft> {
+    let payload = op.payload.as_ref().ok_or_else(|| {
+        AppError::Other("insert library op missing payload (expected name/…)".into())
+    })?;
+    let name = payload
+        .get("name")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| AppError::Other("insert library op: name missing".into()))?
+        .to_string();
+    let description = payload
+        .get("description")
+        .and_then(|v| v.as_str())
+        .map(str::to_string);
+    let color_id = payload
+        .get("color_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("emerald")
+        .to_string();
+    let icon_id = payload
+        .get("icon_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("library")
+        .to_string();
+    Ok(LibraryDraft {
+        name,
+        description,
+        color_id,
+        icon_id,
+        now_ms,
+    })
+}
+
+fn build_library_patch(field: &str, value: Option<String>) -> LibraryUpdate {
+    let mut patch = LibraryUpdate {
+        name: None,
+        description: None,
+        color_id: None,
+        icon_id: None,
+    };
+    match field {
+        "name" => patch.name = value,
+        "description" => patch.description = value,
+        "color_id" => patch.color_id = value,
+        "icon_id" => patch.icon_id = value,
+        _ => {}
+    }
+    patch
+}
+
 /// Build a [`PlaylistDraft`] from the `insert` op's payload. Hooks
 /// outbound at [`crate::commands::playlist::create_playlist`] send a
 /// `{name, description, color_id, icon_id}` blob; mirror it here.
@@ -524,7 +767,33 @@ mod tests {
         sqlx::query(
             "CREATE TABLE track (
                 id INTEGER PRIMARY KEY,
-                title TEXT NOT NULL
+                title TEXT NOT NULL,
+                file_hash TEXT,
+                rating INTEGER
+            )",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "CREATE TABLE library (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                color_id TEXT NOT NULL DEFAULT 'emerald',
+                icon_id TEXT NOT NULL DEFAULT 'library',
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                canonical_id TEXT
+            )",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "CREATE TABLE liked_track (
+                track_id INTEGER PRIMARY KEY,
+                liked_at INTEGER NOT NULL
             )",
         )
         .execute(&pool)
@@ -1045,6 +1314,187 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(count, 0);
+    }
+
+    fn library_op(
+        device: &str,
+        canonical_id: &str,
+        op: &str,
+        field: Option<&str>,
+        payload: Option<serde_json::Value>,
+        lamport: i64,
+    ) -> RemoteSyncOp {
+        RemoteSyncOp {
+            id: lamport,
+            lamport_ts: lamport,
+            device_id: device.into(),
+            entity: "library".into(),
+            entity_id: canonical_id.into(),
+            field: field.map(str::to_string),
+            op: op.into(),
+            payload,
+        }
+    }
+
+    fn hash_op(
+        device: &str,
+        entity: &str,
+        file_hash: &str,
+        op: &str,
+        payload: Option<serde_json::Value>,
+        lamport: i64,
+    ) -> RemoteSyncOp {
+        RemoteSyncOp {
+            id: lamport,
+            lamport_ts: lamport,
+            device_id: device.into(),
+            entity: entity.into(),
+            entity_id: file_hash.into(),
+            field: None,
+            op: op.into(),
+            payload,
+        }
+    }
+
+    #[tokio::test]
+    async fn applies_remote_library_insert() {
+        let pool = pool().await;
+        let canonical = Uuid::new_v4().to_string();
+        let outcome = {
+            let mut conn = pool.acquire().await.unwrap();
+            apply_remote_op_in_tx(
+                &mut conn,
+                &library_op(
+                    "device-b",
+                    &canonical,
+                    "insert",
+                    None,
+                    Some(serde_json::json!({
+                        "name": "Vinyles",
+                        "color_id": "amber",
+                        "icon_id": "disc"
+                    })),
+                    3,
+                ),
+                "device-a",
+            )
+            .await
+            .unwrap()
+        };
+        assert_eq!(outcome, AppliedOutcome::Applied);
+        let name: String = sqlx::query_scalar("SELECT name FROM library WHERE canonical_id = ?")
+            .bind(&canonical)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(name, "Vinyles");
+    }
+
+    #[tokio::test]
+    async fn applies_liked_track_via_file_hash() {
+        let pool = pool().await;
+        // Seed a track with a known hash so the apply path's
+        // hash → local id lookup hits.
+        sqlx::query("INSERT INTO track (id, title, file_hash) VALUES (1, 't', 'blake3-abc')")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let outcome = {
+            let mut conn = pool.acquire().await.unwrap();
+            apply_remote_op_in_tx(
+                &mut conn,
+                &hash_op("device-b", "liked_track", "blake3-abc", "insert", None, 1),
+                "device-a",
+            )
+            .await
+            .unwrap()
+        };
+        assert_eq!(outcome, AppliedOutcome::Applied);
+        let liked: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM liked_track WHERE track_id = 1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(liked, 1);
+    }
+
+    #[tokio::test]
+    async fn liked_track_for_unknown_hash_is_ignored() {
+        let pool = pool().await;
+        let outcome = {
+            let mut conn = pool.acquire().await.unwrap();
+            apply_remote_op_in_tx(
+                &mut conn,
+                &hash_op("device-b", "liked_track", "no-such-hash", "insert", None, 1),
+                "device-a",
+            )
+            .await
+            .unwrap()
+        };
+        assert_eq!(outcome, AppliedOutcome::Ignored);
+    }
+
+    #[tokio::test]
+    async fn applies_track_rating_via_file_hash() {
+        let pool = pool().await;
+        sqlx::query("INSERT INTO track (id, title, file_hash) VALUES (1, 't', 'h')")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let outcome = {
+            let mut conn = pool.acquire().await.unwrap();
+            apply_remote_op_in_tx(
+                &mut conn,
+                &hash_op(
+                    "device-b",
+                    "track_rating",
+                    "h",
+                    "set",
+                    Some(serde_json::json!({ "value": 4 })),
+                    1,
+                ),
+                "device-a",
+            )
+            .await
+            .unwrap()
+        };
+        assert_eq!(outcome, AppliedOutcome::Applied);
+        let rating: Option<i64> = sqlx::query_scalar("SELECT rating FROM track WHERE id = 1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(rating, Some(4));
+    }
+
+    #[tokio::test]
+    async fn track_rating_out_of_range_is_ignored() {
+        let pool = pool().await;
+        sqlx::query("INSERT INTO track (id, title, file_hash) VALUES (1, 't', 'h')")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let outcome = {
+            let mut conn = pool.acquire().await.unwrap();
+            apply_remote_op_in_tx(
+                &mut conn,
+                &hash_op(
+                    "device-b",
+                    "track_rating",
+                    "h",
+                    "set",
+                    Some(serde_json::json!({ "value": 99 })),
+                    1,
+                ),
+                "device-a",
+            )
+            .await
+            .unwrap()
+        };
+        assert_eq!(outcome, AppliedOutcome::Ignored);
+        let rating: Option<i64> = sqlx::query_scalar("SELECT rating FROM track WHERE id = 1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(rating, None);
     }
 
     #[tokio::test]

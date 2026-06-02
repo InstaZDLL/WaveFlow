@@ -445,8 +445,8 @@ impl PlaylistRepository for SqlitePlaylistRepository {
         now_ms: i64,
     ) -> CoreResult<bool> {
         let mut tx = self.pool.begin().await?;
-        let effective = reorder_track_conn(&mut tx, playlist_id, track_id, new_position, now_ms)
-            .await?;
+        let effective =
+            reorder_track_conn(&mut tx, playlist_id, track_id, new_position, now_ms).await?;
         tx.commit().await?;
         Ok(effective.is_some())
     }

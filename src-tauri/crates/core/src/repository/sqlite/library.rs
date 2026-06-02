@@ -1,13 +1,80 @@
 //! SQLite implementation of [`LibraryRepository`].
+//!
+//! Same two-flavour shape as the playlist repo: a trait impl on
+//! [`SqliteLibraryRepository`] for legacy callers, plus free
+//! `*_conn` helpers that take `&mut SqliteConnection` so the
+//! desktop's CRUD commands can compose the library write + an
+//! `enqueue_op_in_tx` outbox row + a `set_canonical_library`
+//! mapping update inside a single transaction. The trait methods
+//! just `pool.acquire()` + delegate.
 
 use async_trait::async_trait;
-use sqlx::SqlitePool;
+use sqlx::{SqliteConnection, SqlitePool};
 
 use crate::{
     domain::library::{Library, LibraryFolder},
     error::CoreResult,
     repository::library::{LibraryDraft, LibraryRepository, LibraryUpdate},
 };
+
+// ── Connection-taking helpers ───────────────────────────────────
+
+/// Insert a new library row. Returns the assigned rowid.
+pub async fn insert_conn(conn: &mut SqliteConnection, draft: &LibraryDraft) -> CoreResult<i64> {
+    let insert = sqlx::query(
+        "INSERT INTO library (name, description, color_id, icon_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)",
+    )
+    .bind(&draft.name)
+    .bind(draft.description.as_deref())
+    .bind(&draft.color_id)
+    .bind(&draft.icon_id)
+    .bind(draft.now_ms)
+    .bind(draft.now_ms)
+    .execute(conn)
+    .await?;
+    Ok(insert.last_insert_rowid())
+}
+
+/// Partial `UPDATE library` via COALESCE. Returns `true` when a row
+/// was actually touched. Mirrors the playlist `update_conn` shape so
+/// the desktop's tx-aware caller can collapse the pre-tx exists()
+/// probe into the same transaction as the update + outbox enqueue.
+pub async fn update_conn(
+    conn: &mut SqliteConnection,
+    id: i64,
+    patch: &LibraryUpdate,
+    now_ms: i64,
+) -> CoreResult<bool> {
+    let res = sqlx::query(
+        "UPDATE library
+            SET name        = COALESCE(?, name),
+                description = COALESCE(?, description),
+                color_id    = COALESCE(?, color_id),
+                icon_id     = COALESCE(?, icon_id),
+                updated_at  = ?
+          WHERE id = ?",
+    )
+    .bind(patch.name.as_deref())
+    .bind(patch.description.as_deref())
+    .bind(patch.color_id.as_deref())
+    .bind(patch.icon_id.as_deref())
+    .bind(now_ms)
+    .bind(id)
+    .execute(conn)
+    .await?;
+    Ok(res.rows_affected() > 0)
+}
+
+/// Delete a library. `true` when a row was deleted, `false` when no
+/// row matched. Cascades through `library_folder`, `track`, …
+pub async fn delete_conn(conn: &mut SqliteConnection, id: i64) -> CoreResult<bool> {
+    let result = sqlx::query("DELETE FROM library WHERE id = ?")
+        .bind(id)
+        .execute(conn)
+        .await?;
+    Ok(result.rows_affected() > 0)
+}
 
 #[derive(Debug, Clone)]
 pub struct SqliteLibraryRepository {
@@ -81,48 +148,23 @@ impl LibraryRepository for SqliteLibraryRepository {
     }
 
     async fn insert(&self, draft: &LibraryDraft) -> CoreResult<i64> {
-        let insert = sqlx::query(
-            "INSERT INTO library (name, description, color_id, icon_id, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?)",
-        )
-        .bind(&draft.name)
-        .bind(draft.description.as_deref())
-        .bind(&draft.color_id)
-        .bind(&draft.icon_id)
-        .bind(draft.now_ms)
-        .bind(draft.now_ms)
-        .execute(&self.pool)
-        .await?;
-        Ok(insert.last_insert_rowid())
+        let mut conn = self.pool.acquire().await?;
+        insert_conn(&mut conn, draft).await
     }
 
     async fn update(&self, id: i64, patch: &LibraryUpdate, now_ms: i64) -> CoreResult<()> {
-        sqlx::query(
-            "UPDATE library
-                SET name        = COALESCE(?, name),
-                    description = COALESCE(?, description),
-                    color_id    = COALESCE(?, color_id),
-                    icon_id     = COALESCE(?, icon_id),
-                    updated_at  = ?
-              WHERE id = ?",
-        )
-        .bind(patch.name.as_deref())
-        .bind(patch.description.as_deref())
-        .bind(patch.color_id.as_deref())
-        .bind(patch.icon_id.as_deref())
-        .bind(now_ms)
-        .bind(id)
-        .execute(&self.pool)
-        .await?;
+        let mut conn = self.pool.acquire().await?;
+        // Drop the boolean for trait back-compat — the existing
+        // callers don't read it. Tx-aware sites call `update_conn`
+        // directly so they can collapse the existence-check into
+        // the write.
+        let _ = update_conn(&mut conn, id, patch, now_ms).await?;
         Ok(())
     }
 
     async fn delete(&self, id: i64) -> CoreResult<bool> {
-        let result = sqlx::query("DELETE FROM library WHERE id = ?")
-            .bind(id)
-            .execute(&self.pool)
-            .await?;
-        Ok(result.rows_affected() > 0)
+        let mut conn = self.pool.acquire().await?;
+        delete_conn(&mut conn, id).await
     }
 
     async fn touch_updated_at(&self, id: i64, now_ms: i64) -> CoreResult<()> {
