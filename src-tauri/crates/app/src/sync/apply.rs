@@ -201,7 +201,7 @@ async fn apply_playlist_op(
             else {
                 return Ok(AppliedOutcome::Ignored);
             };
-            let value = match string_value_from_payload(op) {
+            let value = match string_value_from_payload(op, field) {
                 Ok(v) => v,
                 Err(err) => {
                     tracing::warn!(
@@ -362,20 +362,28 @@ fn playlist_draft_from_payload(op: &RemoteSyncOp, now_ms: i64) -> AppResult<Play
     })
 }
 
-/// Extract a `{"value": "..."}` string from a `set <field>` op.
-fn string_value_from_payload(op: &RemoteSyncOp) -> AppResult<Option<String>> {
+/// Extract a `{"value": "..."}` string from a `set <field>` op. The
+/// `field` param drives per-column nullability: `description` is the
+/// only `NULL`-able column on `playlist` (see the initial profile
+/// schema), so `{"value": null}` is only a legitimate "reset" signal
+/// for that field. Sending `null` for a `NOT NULL` column like
+/// `name`, `color_id`, or `icon_id` is corruption and lands Ignored.
+fn string_value_from_payload(op: &RemoteSyncOp, field: &str) -> AppResult<Option<String>> {
     let payload = op
         .payload
         .as_ref()
         .ok_or_else(|| AppError::Other("set op missing payload (expected {value: ...})".into()))?;
-    // Strict shape: outbound hooks always send `{"value": <string or
-    // null>}` — never an empty payload. Both type-mismatch (number,
-    // bool, …) AND the missing-key case are rejected so a corrupted
-    // frame can't silently clear a field. Explicit `null` is the only
-    // legitimate "reset" signal a future hook variant might emit.
+    // Strict shape: outbound hooks always send `{"value": "<string>"}`
+    // for user-supplied values; they never emit an empty payload nor
+    // a `null` value today. Anything other than the per-field-allowed
+    // shape is rejected so a corrupted frame can't silently mutate
+    // a row.
     match payload.get("value") {
         Some(serde_json::Value::String(s)) => Ok(Some(s.clone())),
-        Some(serde_json::Value::Null) => Ok(None),
+        Some(serde_json::Value::Null) if field == "description" => Ok(None),
+        Some(serde_json::Value::Null) => Err(AppError::Other(format!(
+            "set op: '{field}' is NOT NULL — value cannot be null"
+        ))),
         Some(_) => Err(AppError::Other(
             "set op: value must be a string or null".into(),
         )),
@@ -856,9 +864,54 @@ mod tests {
         assert_eq!(name, "before");
     }
 
-    /// A `{"value": null}` payload is a legitimate "clear the field"
-    /// signal — the strict-type guard MUST NOT misclassify it as
-    /// malformed.
+    /// `null` on a `NOT NULL` column (name / color_id / icon_id) is
+    /// corruption — the per-field nullability guard MUST reject it.
+    #[tokio::test]
+    async fn set_value_null_on_non_nullable_field_is_ignored() {
+        let pool = pool().await;
+        let canonical = Uuid::new_v4().to_string();
+        let outcome = {
+            let mut conn = pool.acquire().await.unwrap();
+            apply_remote_op_in_tx(
+                &mut conn,
+                &op(
+                    "device-b",
+                    &canonical,
+                    "insert",
+                    None,
+                    Some(serde_json::json!({"name": "kept"})),
+                    1,
+                ),
+                "device-a",
+            )
+            .await
+            .unwrap();
+            apply_remote_op_in_tx(
+                &mut conn,
+                &op(
+                    "device-b",
+                    &canonical,
+                    "set",
+                    Some("name"),
+                    Some(serde_json::json!({ "value": null })),
+                    2,
+                ),
+                "device-a",
+            )
+            .await
+            .unwrap()
+        };
+        assert_eq!(outcome, AppliedOutcome::Ignored);
+        let name: String = sqlx::query_scalar("SELECT name FROM playlist LIMIT 1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(name, "kept");
+    }
+
+    /// A `{"value": null}` payload on the nullable `description`
+    /// column is a legitimate "clear the field" signal — the
+    /// strict-type guard MUST NOT misclassify it as malformed.
     #[tokio::test]
     async fn set_value_null_clears_field() {
         let pool = pool().await;
