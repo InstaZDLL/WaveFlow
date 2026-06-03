@@ -3,7 +3,10 @@ use serde::Serialize;
 
 use waveflow_core::repository::{
     library::{LibraryDraft, LibraryRepository, LibraryUpdate},
-    sqlite::SqliteLibraryRepository,
+    sqlite::{
+        library::{delete_conn, insert_conn, update_conn},
+        SqliteLibraryRepository,
+    },
 };
 
 use crate::{
@@ -73,7 +76,32 @@ pub async fn create_library(
         icon_id: icon_id.clone(),
         now_ms: now,
     };
-    let id = library_repo(&state).await?.insert(&draft).await?;
+
+    // Atomic write + outbox enqueue. Same shape as `create_playlist`
+    // — the library INSERT, canonical-id mapping and outbox row all
+    // land in a single tx so a crash mid-create rolls back cleanly.
+    let pool = state.require_profile_pool().await?;
+    let mut tx = pool.begin().await?;
+    let id = insert_conn(&mut tx, &draft).await?;
+    let canonical = crate::sync::canonical::ensure_local_library(&mut tx, id).await?;
+    crate::sync::hooks::enqueue_op_in_tx(
+        &mut tx,
+        &crate::sync::hooks::PendingOpDraft {
+            entity: "library".into(),
+            entity_id: canonical,
+            field: None,
+            op: "insert".into(),
+            payload: Some(serde_json::json!({
+                "name": name,
+                "description": input.description,
+                "color_id": color_id,
+                "icon_id": icon_id,
+            })),
+        },
+    )
+    .await?;
+    tx.commit().await?;
+    state.drain.notify();
 
     Ok(Library {
         id,
@@ -107,16 +135,6 @@ pub async fn update_library(
     library_id: i64,
     input: UpdateLibraryInput,
 ) -> AppResult<()> {
-    let repo = library_repo(&state).await?;
-
-    // Validate the library exists up-front so the caller gets a precise
-    // error instead of a "0 rows updated" silent no-op.
-    if !repo.exists(library_id).await? {
-        return Err(AppError::Other(format!(
-            "library {library_id} not found in active profile"
-        )));
-    }
-
     let trimmed_name = input.name.as_ref().map(|s| s.trim().to_string());
     if let Some(name) = &trimmed_name {
         if name.is_empty() {
@@ -125,12 +143,50 @@ pub async fn update_library(
     }
 
     let patch = LibraryUpdate {
-        name: trimmed_name,
-        description: input.description,
-        color_id: input.color_id,
-        icon_id: input.icon_id,
+        name: trimmed_name.clone(),
+        description: input.description.clone(),
+        color_id: input.color_id.clone(),
+        icon_id: input.icon_id.clone(),
     };
-    repo.update(library_id, &patch, now_millis()).await?;
+
+    // Same atomic pattern as `update_playlist`: existence check +
+    // write + per-field outbox ops in one tx so a concurrent delete
+    // between the legacy pre-tx `exists()` probe and the UPDATE
+    // can't slip a stale enqueue past.
+    let pool = state.require_profile_pool().await?;
+    let mut tx = pool.begin().await?;
+    let updated = update_conn(&mut tx, library_id, &patch, now_millis()).await?;
+    if !updated {
+        return Err(AppError::Other(format!(
+            "library {library_id} not found in active profile"
+        )));
+    }
+    let entity_id = crate::sync::canonical::ensure_local_library(&mut tx, library_id).await?;
+    for (field, value) in [
+        ("name", trimmed_name.map(serde_json::Value::String)),
+        (
+            "description",
+            input.description.map(serde_json::Value::String),
+        ),
+        ("color_id", input.color_id.map(serde_json::Value::String)),
+        ("icon_id", input.icon_id.map(serde_json::Value::String)),
+    ] {
+        if let Some(value) = value {
+            crate::sync::hooks::enqueue_op_in_tx(
+                &mut tx,
+                &crate::sync::hooks::PendingOpDraft {
+                    entity: "library".into(),
+                    entity_id: entity_id.clone(),
+                    field: Some(field.into()),
+                    op: "set".into(),
+                    payload: Some(serde_json::json!({ "value": value })),
+                },
+            )
+            .await?;
+        }
+    }
+    tx.commit().await?;
+    state.drain.notify();
     Ok(())
 }
 
@@ -141,11 +197,41 @@ pub async fn update_library(
 /// DELETE and the DB takes care of the rest.
 #[tauri::command]
 pub async fn delete_library(state: tauri::State<'_, AppState>, library_id: i64) -> AppResult<()> {
-    if !library_repo(&state).await?.delete(library_id).await? {
+    let pool = state.require_profile_pool().await?;
+    let mut tx = pool.begin().await?;
+    // Resolve canonical BEFORE the DELETE — the row (and its
+    // mapping) are gone after.
+    let canonical = crate::sync::canonical::canonical_for_local(
+        &mut tx,
+        crate::sync::canonical::ENTITY_LIBRARY,
+        library_id,
+    )
+    .await?;
+    if !delete_conn(&mut tx, library_id).await? {
         return Err(AppError::Other(format!(
             "library {library_id} not found in active profile"
         )));
     }
+    let entity_id = if let Some(ref c) = canonical {
+        crate::sync::canonical::drop_mapping(&mut tx, crate::sync::canonical::ENTITY_LIBRARY, c)
+            .await?;
+        c.clone()
+    } else {
+        library_id.to_string()
+    };
+    crate::sync::hooks::enqueue_op_in_tx(
+        &mut tx,
+        &crate::sync::hooks::PendingOpDraft {
+            entity: "library".into(),
+            entity_id,
+            field: None,
+            op: "delete".into(),
+            payload: None,
+        },
+    )
+    .await?;
+    tx.commit().await?;
+    state.drain.notify();
     tracing::info!(library_id, "library deleted");
     Ok(())
 }

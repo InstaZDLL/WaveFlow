@@ -501,8 +501,37 @@ pub async fn set_track_rating(
         }
     }
 
-    // 4. DB update (always — even when the file write fell through).
-    repo.set_rating(track_id, rating).await?;
+    // 4. DB update + outbox enqueue in a single tx so a peer device
+    //    sees the rating change at the same cross-device key
+    //    (file_hash). The set_rating call above used the repo pool;
+    //    we drop down to raw SQL for the tx so the enqueue is
+    //    atomic with the rating write.
+    let mut tx = pool.begin().await?;
+    sqlx::query("UPDATE track SET rating = ? WHERE id = ?")
+        .bind(rating.map(i64::from))
+        .bind(track_id)
+        .execute(&mut *tx)
+        .await?;
+    let file_hash = crate::sync::canonical::file_hash_for_local_track(&mut tx, track_id).await?;
+    if let Some(hash) = file_hash {
+        crate::sync::hooks::enqueue_op_in_tx(
+            &mut tx,
+            &crate::sync::hooks::PendingOpDraft {
+                entity: "track_rating".into(),
+                entity_id: hash,
+                field: None,
+                op: if rating.is_some() { "set" } else { "delete" }.into(),
+                payload: rating.map(|r| serde_json::json!({ "value": r })),
+            },
+        )
+        .await?;
+    }
+    tx.commit().await?;
+    state.drain.notify();
+
+    // Drop the legacy repo call now that the tx above wrote the row
+    // — kept the binding alive only for its other call sites.
+    let _ = repo;
 
     let _ = app.emit("track:updated", track_id);
     Ok(())
@@ -576,16 +605,70 @@ pub async fn toggle_like_track(
     track_id: i64,
 ) -> AppResult<bool> {
     let pool = state.require_profile_pool().await?;
-    let repo = SqliteTrackRepository::new(pool);
+    let mut tx = pool.begin().await?;
 
-    if repo.is_liked(track_id).await? {
-        repo.unlike(track_id).await?;
-        Ok(false)
+    // Resolve the file hash once so both branches enqueue against
+    // the same cross-device key. A track without a hash (shouldn't
+    // happen post-scan, but handle defensively) silently skips the
+    // outbox enqueue — the local DB still moves so the UI heart
+    // animation lands.
+    let file_hash = crate::sync::canonical::file_hash_for_local_track(&mut tx, track_id).await?;
+
+    let now = chrono::Utc::now().timestamp_millis();
+    // Inline the like-state check + flip against the open tx so the
+    // read + write land atomically without a separate
+    // SqliteTrackRepository acquire/release pair.
+    let was_liked: Option<i64> = sqlx::query_scalar("SELECT 1 FROM liked_track WHERE track_id = ?")
+        .bind(track_id)
+        .fetch_optional(&mut *tx)
+        .await?;
+    // Both branches derive the post-state from `rows_affected()`
+    // rather than assuming the action landed. `INSERT OR IGNORE`
+    // silently no-ops on an FK violation (the scanner removed the
+    // track between the UI render and this command, or a future
+    // UNIQUE constraint trips), and we don't want to return
+    // `now_liked = true` to a UI rendering a heart against a row
+    // that doesn't exist anymore. A DELETE that matched 0 rows
+    // means a concurrent unlike already happened — the post-state
+    // is still "not liked".
+    let (now_liked, did_change) = if was_liked.is_some() {
+        let res = sqlx::query("DELETE FROM liked_track WHERE track_id = ?")
+            .bind(track_id)
+            .execute(&mut *tx)
+            .await?;
+        (false, res.rows_affected() > 0)
     } else {
-        let now = chrono::Utc::now().timestamp_millis();
-        repo.like(track_id, now).await?;
-        Ok(true)
+        let res =
+            sqlx::query("INSERT OR IGNORE INTO liked_track (track_id, liked_at) VALUES (?, ?)")
+                .bind(track_id)
+                .bind(now)
+                .execute(&mut *tx)
+                .await?;
+        let actually_inserted = res.rows_affected() > 0;
+        (actually_inserted, actually_inserted)
+    };
+
+    // Only enqueue when the local DB actually moved — emitting a
+    // phantom op for a no-op INSERT wastes a Lamport draw and
+    // bloats the queue with a like the peer can't resolve anyway.
+    if did_change {
+        if let Some(hash) = file_hash {
+            crate::sync::hooks::enqueue_op_in_tx(
+                &mut tx,
+                &crate::sync::hooks::PendingOpDraft {
+                    entity: "liked_track".into(),
+                    entity_id: hash,
+                    field: None,
+                    op: if now_liked { "insert" } else { "delete" }.into(),
+                    payload: None,
+                },
+            )
+            .await?;
+        }
     }
+    tx.commit().await?;
+    state.drain.notify();
+    Ok(now_liked)
 }
 
 /// Return the set of liked track IDs so the frontend can render hearts

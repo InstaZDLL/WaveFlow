@@ -30,9 +30,23 @@ use uuid::Uuid;
 use crate::error::AppResult;
 
 /// Entity tags. Free-form `TEXT` in the schema so a new family
-/// (`library`, `track`, …) doesn't need a CHECK-constraint migration —
-/// pinning them as constants keeps the call sites typo-safe.
+/// doesn't need a CHECK-constraint migration — pinning them as
+/// constants keeps the call sites typo-safe.
 pub const ENTITY_PLAYLIST: &str = "playlist";
+
+/// Library entity tag. Phase 1.f.desktop.5 — same canonical-id-UUID
+/// pattern as playlist (user-curated, no natural cross-device key).
+pub const ENTITY_LIBRARY: &str = "library";
+
+/// Liked-track entity tag. Phase 1.f.desktop.5. `entity_id` carries
+/// the BLAKE3 `track.file_hash` directly — same physical file on a
+/// peer device hashes identically, so no mapping table is needed.
+pub const ENTITY_LIKED_TRACK: &str = "liked_track";
+
+/// Track-rating entity tag. Phase 1.f.desktop.5. Same key strategy
+/// as `liked_track` — `entity_id` is the BLAKE3 file hash, the
+/// payload carries the 0-5 rating (or null to clear).
+pub const ENTITY_TRACK_RATING: &str = "track_rating";
 
 /// Resolve a local rowid to its canonical UUID. Returns `None` when
 /// no mapping row exists — the caller decides whether that's a hard
@@ -107,6 +121,97 @@ pub async fn ensure_local_playlist(
     };
     set_canonical_playlist(conn, local_id, &canonical).await?;
     Ok(canonical)
+}
+
+/// Library variant of [`ensure_local_playlist`]. Same flow: prefer
+/// an existing mapping, fall back to the column the migration's
+/// AFTER INSERT trigger filled in, mint a fresh UUID only if both
+/// are missing. Single trip through [`set_canonical_library`] keeps
+/// the playlist column + sync_id_map row coherent.
+pub async fn ensure_local_library(conn: &mut SqliteConnection, local_id: i64) -> AppResult<String> {
+    if let Some(existing) = canonical_for_local(conn, ENTITY_LIBRARY, local_id).await? {
+        return Ok(existing);
+    }
+    let existing_col: Option<String> =
+        sqlx::query_scalar("SELECT canonical_id FROM library WHERE id = ?")
+            .bind(local_id)
+            .fetch_optional(&mut *conn)
+            .await?;
+    let canonical = match existing_col.as_deref().map(str::trim) {
+        Some(s) if !s.is_empty() => s.to_string(),
+        _ => Uuid::new_v4().to_string(),
+    };
+    set_canonical_library(conn, local_id, &canonical).await?;
+    Ok(canonical)
+}
+
+/// Library variant of [`set_canonical_playlist`]. Same defensive
+/// DELETE of any prior `(entity, local_id)` row pointing at a
+/// different canonical before the INSERT OR IGNORE.
+pub async fn set_canonical_library(
+    conn: &mut SqliteConnection,
+    local_id: i64,
+    canonical_id: &str,
+) -> AppResult<()> {
+    sqlx::query("UPDATE library SET canonical_id = ? WHERE id = ?")
+        .bind(canonical_id)
+        .bind(local_id)
+        .execute(&mut *conn)
+        .await?;
+    sqlx::query(
+        "DELETE FROM sync_id_map
+          WHERE entity = ?
+            AND local_id = ?
+            AND canonical_id != ?",
+    )
+    .bind(ENTITY_LIBRARY)
+    .bind(local_id)
+    .bind(canonical_id)
+    .execute(&mut *conn)
+    .await?;
+    sqlx::query(
+        "INSERT OR IGNORE INTO sync_id_map (entity, canonical_id, local_id)
+         VALUES (?, ?, ?)",
+    )
+    .bind(ENTITY_LIBRARY)
+    .bind(canonical_id)
+    .bind(local_id)
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
+/// Look up a local `track.id` by its BLAKE3 file hash. Tracks don't
+/// carry a canonical_id column — the file content already is the
+/// cross-device key, so the inbound apply path resolves
+/// `liked_track` / `track_rating` ops by hash → local track id
+/// directly against `track`. Returns `None` when the file hasn't
+/// been scanned on this device yet (the apply branch surfaces it as
+/// Ignored so the cursor still advances).
+pub async fn local_track_for_hash(
+    conn: &mut SqliteConnection,
+    file_hash: &str,
+) -> AppResult<Option<i64>> {
+    let row: Option<i64> = sqlx::query_scalar("SELECT id FROM track WHERE file_hash = ?")
+        .bind(file_hash)
+        .fetch_optional(conn)
+        .await?;
+    Ok(row)
+}
+
+/// Read a track's `file_hash` by its local rowid. Used by the
+/// outbound hooks (`toggle_like_track`, `set_track_rating`) to
+/// stamp the op's `entity_id` with the file-content key the peer
+/// device will use for the reverse lookup.
+pub async fn file_hash_for_local_track(
+    conn: &mut SqliteConnection,
+    local_id: i64,
+) -> AppResult<Option<String>> {
+    let row: Option<String> = sqlx::query_scalar("SELECT file_hash FROM track WHERE id = ?")
+        .bind(local_id)
+        .fetch_optional(conn)
+        .await?;
+    Ok(row)
 }
 
 /// Mint a canonical id on the local row + plant the mapping. Shared
