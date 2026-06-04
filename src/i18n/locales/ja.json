@@ -794,7 +794,8 @@
       "edit": "プレイリストを編集する",
       "exportM3u": "M3U形式でエクスポート",
       "delete": "プレイリストを削除する",
-      "deleteConfirm": "もう一度クリックして確認してください"
+      "deleteConfirm": "もう一度クリックして確認してください",
+      "share": "共有"
     },
     "export": {
       "dialogTitle": "プレイリストをM3U形式でエクスポートする"
@@ -1663,5 +1664,19 @@
     "openSettings": "設定を開く",
     "notConnectedTitle": "Spotify は未接続です",
     "notConnectedMessage": "Client ID は設定済みです。「設定」から Spotify Premium アカウントにサインインして、プレイリストの読み込みと再生を行ってください。"
+  },
+  "share": {
+    "title": "プレイリストを共有",
+    "subtitle": "「{{name}}」の公開リンクを生成します。誰でもブラウザで開けます。",
+    "idleHint": "リンクは無効化するまで有効です。このウィンドウからいつでも無効にできます。",
+    "mint": "リンクを生成",
+    "activeHint": "リンクはすべての端末でアクティブです。",
+    "revoke": "無効化",
+    "qrAlt": "共有リンクの QR コード",
+    "urlLabel": "公開 URL",
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "close": "閉じる",
+    "errorClipboard": "クリップボードにアクセスできません。URL を選択して手動でコピーしてください。"
   }
 }

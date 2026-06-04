@@ -794,7 +794,8 @@
       "edit": "Modifica la playlist",
       "exportM3u": "Esporta come M3U",
       "delete": "Elimina la playlist",
-      "deleteConfirm": "Clicca di nuovo per confermare"
+      "deleteConfirm": "Clicca di nuovo per confermare",
+      "share": "Condividi"
     },
     "export": {
       "dialogTitle": "Esporta la playlist come M3U"
@@ -1663,5 +1664,19 @@
       "show": "Apri WaveFlow",
       "quit": "Esci"
     }
+  },
+  "share": {
+    "title": "Condividi la playlist",
+    "subtitle": "Genera un link pubblico per «{{name}}». Chiunque potrà aprirlo in un browser.",
+    "idleHint": "Il link rimarrà attivo finché non lo revochi. Puoi disattivarlo in qualsiasi momento da questa finestra.",
+    "mint": "Genera link",
+    "activeHint": "Link attivo su tutti i tuoi dispositivi.",
+    "revoke": "Disattiva",
+    "qrAlt": "Codice QR del link condiviso",
+    "urlLabel": "URL pubblico",
+    "copy": "Copia",
+    "copied": "Copiato",
+    "close": "Chiudi",
+    "errorClipboard": "Impossibile accedere agli appunti. Seleziona l'URL per copiarlo manualmente."
   }
 }

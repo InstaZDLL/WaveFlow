@@ -794,7 +794,8 @@
       "edit": "Afspeellijst bewerken",
       "exportM3u": "Exporteren als M3U",
       "delete": "Afspeellijst verwijderen",
-      "deleteConfirm": "Klik nogmaals om te bevestigen"
+      "deleteConfirm": "Klik nogmaals om te bevestigen",
+      "share": "Delen"
     },
     "export": {
       "dialogTitle": "Afspeellijst als M3U exporteren"
@@ -1663,5 +1664,19 @@
       "show": "WaveFlow openen",
       "quit": "Afsluiten"
     }
+  },
+  "share": {
+    "title": "Afspeellijst delen",
+    "subtitle": "Genereer een openbare link voor “{{name}}”. Iedereen kan deze in een browser openen.",
+    "idleHint": "De link blijft actief totdat je hem intrekt. Je kunt hem op elk moment via dit venster uitschakelen.",
+    "mint": "Link genereren",
+    "activeHint": "Link is actief op al je apparaten.",
+    "revoke": "Uitschakelen",
+    "qrAlt": "QR-code voor de gedeelde link",
+    "urlLabel": "Openbare URL",
+    "copy": "Kopiëren",
+    "copied": "Gekopieerd",
+    "close": "Sluiten",
+    "errorClipboard": "Geen toegang tot het klembord. Selecteer de URL om deze handmatig te kopiëren."
   }
 }

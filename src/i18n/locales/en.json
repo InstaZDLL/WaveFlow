@@ -794,7 +794,8 @@
       "edit": "Edit the playlist",
       "exportM3u": "Export as M3U",
       "delete": "Delete the playlist",
-      "deleteConfirm": "Click again to confirm"
+      "deleteConfirm": "Click again to confirm",
+      "share": "Share"
     },
     "export": {
       "dialogTitle": "Export the playlist as M3U"
@@ -1663,5 +1664,19 @@
       "show": "Open WaveFlow",
       "quit": "Quit"
     }
+  },
+  "share": {
+    "title": "Share playlist",
+    "subtitle": "Generate a public link for “{{name}}”. Anyone can open it in a browser.",
+    "idleHint": "The link stays active until you revoke it. You can disable it at any time from this dialog.",
+    "mint": "Generate link",
+    "activeHint": "Link is active on all your devices.",
+    "revoke": "Disable",
+    "qrAlt": "QR code for the shared link",
+    "urlLabel": "Public URL",
+    "copy": "Copy",
+    "copied": "Copied",
+    "close": "Close",
+    "errorClipboard": "Could not access the clipboard. Select the URL above to copy it manually."
   }
 }

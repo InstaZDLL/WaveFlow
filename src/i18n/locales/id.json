@@ -794,7 +794,8 @@
       "edit": "Sunting daftar putar",
       "exportM3u": "Ekspor sebagai M3U",
       "delete": "Hapus daftar putar",
-      "deleteConfirm": "Klik lagi untuk konfirmasi"
+      "deleteConfirm": "Klik lagi untuk konfirmasi",
+      "share": "Bagikan"
     },
     "export": {
       "dialogTitle": "Ekspor daftar putar sebagai M3U"
@@ -1663,5 +1664,19 @@
       "show": "Buka WaveFlow",
       "quit": "Keluar"
     }
+  },
+  "share": {
+    "title": "Bagikan playlist",
+    "subtitle": "Buat tautan publik untuk “{{name}}”. Siapa pun dapat membukanya di peramban.",
+    "idleHint": "Tautan tetap aktif sampai Anda mencabutnya. Anda dapat menonaktifkannya kapan saja dari jendela ini.",
+    "mint": "Buat tautan",
+    "activeHint": "Tautan aktif di semua perangkat Anda.",
+    "revoke": "Nonaktifkan",
+    "qrAlt": "Kode QR untuk tautan yang dibagikan",
+    "urlLabel": "URL publik",
+    "copy": "Salin",
+    "copied": "Tersalin",
+    "close": "Tutup",
+    "errorClipboard": "Tidak dapat mengakses papan klip. Pilih URL untuk menyalinnya secara manual."
   }
 }

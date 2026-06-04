@@ -88,6 +88,11 @@ pub async fn create_profile(
             crate::db::profile_db::open(&state.paths.profile_db(profile_id), &state.paths.app_db)
                 .await?;
         pool.close().await;
+        // Phase 1.g.3 — plant the canonical UUID inside the post-insert
+        // block so a failure here also rolls the row back. The next
+        // drain pass needs this to be non-NULL to inject
+        // `profile_canonical_id` into outbound ops.
+        crate::db::profile_meta::ensure_canonical_id(&state.app_db, profile_id).await?;
         Ok::<(), AppError>(())
     }
     .await;

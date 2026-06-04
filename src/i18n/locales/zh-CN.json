@@ -794,7 +794,8 @@
       "edit": "编辑播放列表",
       "exportM3u": "导出为 M3U",
       "delete": "删除播放列表",
-      "deleteConfirm": "再次点击以确认"
+      "deleteConfirm": "再次点击以确认",
+      "share": "分享"
     },
     "export": {
       "dialogTitle": "将播放列表导出为M3U格式"
@@ -1663,5 +1664,19 @@
     "openSettings": "打开设置",
     "notConnectedTitle": "Spotify 未连接",
     "notConnectedMessage": "你的 Client ID 已配置。请到「设置」登录 Spotify Premium 账户,以加载播放列表并开始播放。"
+  },
+  "share": {
+    "title": "分享播放列表",
+    "subtitle": "为“{{name}}”生成公开链接。任何人都可以在浏览器中打开。",
+    "idleHint": "链接会一直有效，直到你撤销它。可以随时在此窗口中停用。",
+    "mint": "生成链接",
+    "activeHint": "链接在你所有设备上均已激活。",
+    "revoke": "停用",
+    "qrAlt": "分享链接的二维码",
+    "urlLabel": "公开 URL",
+    "copy": "复制",
+    "copied": "已复制",
+    "close": "关闭",
+    "errorClipboard": "无法访问剪贴板。请选中 URL 手动复制。"
   }
 }

@@ -794,7 +794,8 @@
       "edit": "Modifier la playlist",
       "exportM3u": "Exporter en M3U",
       "delete": "Supprimer la playlist",
-      "deleteConfirm": "Cliquez à nouveau pour confirmer"
+      "deleteConfirm": "Cliquez à nouveau pour confirmer",
+      "share": "Partager"
     },
     "export": {
       "dialogTitle": "Exporter la playlist en M3U"
@@ -1663,5 +1664,19 @@
       "show": "Ouvrir WaveFlow",
       "quit": "Quitter"
     }
+  },
+  "share": {
+    "title": "Partager la playlist",
+    "subtitle": "Générez un lien public pour « {{name}} ». Tout le monde pourra le consulter dans un navigateur.",
+    "idleHint": "Le lien sera actif jusqu'à ce que vous le révoquiez. Vous pourrez toujours le désactiver depuis cette fenêtre.",
+    "mint": "Générer le lien",
+    "activeHint": "Lien actif sur tous vos appareils.",
+    "revoke": "Désactiver",
+    "qrAlt": "QR code du lien partagé",
+    "urlLabel": "URL publique",
+    "copy": "Copier",
+    "copied": "Copié",
+    "close": "Fermer",
+    "errorClipboard": "Impossible d'accéder au presse-papier. Sélectionnez l'URL pour la copier manuellement."
   }
 }

@@ -794,7 +794,8 @@
       "edit": "Editar la lista de reproducción",
       "exportM3u": "Exportar como M3U",
       "delete": "Eliminar la lista de reproducción",
-      "deleteConfirm": "Haz clic de nuevo para confirmar"
+      "deleteConfirm": "Haz clic de nuevo para confirmar",
+      "share": "Compartir"
     },
     "export": {
       "dialogTitle": "Exportar la lista de reproducción como M3U"
@@ -1663,5 +1664,19 @@
       "show": "Abrir WaveFlow",
       "quit": "Salir"
     }
+  },
+  "share": {
+    "title": "Compartir la lista",
+    "subtitle": "Genera un enlace público para «{{name}}». Cualquiera podrá abrirlo en un navegador.",
+    "idleHint": "El enlace permanecerá activo hasta que lo revoques. Puedes desactivarlo en cualquier momento desde esta ventana.",
+    "mint": "Generar enlace",
+    "activeHint": "Enlace activo en todos tus dispositivos.",
+    "revoke": "Desactivar",
+    "qrAlt": "Código QR del enlace compartido",
+    "urlLabel": "URL pública",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "close": "Cerrar",
+    "errorClipboard": "No se pudo acceder al portapapeles. Selecciona la URL para copiarla manualmente."
   }
 }

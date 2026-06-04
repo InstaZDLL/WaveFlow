@@ -8,3 +8,4 @@
 pub mod app_db;
 pub mod migration_heal;
 pub mod profile_db;
+pub mod profile_meta;

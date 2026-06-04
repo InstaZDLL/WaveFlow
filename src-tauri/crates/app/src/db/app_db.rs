@@ -39,5 +39,10 @@ pub async fn open(path: &Path) -> AppResult<SqlitePool> {
     super::migration_heal::heal_line_ending_drift(&pool, &migrator).await?;
     migrator.run(&pool).await?;
 
+    // Phase 1.g.3 — UUIDs every pre-existing `profile.canonical_id`
+    // row that arrived as NULL from the `20260605000000` migration.
+    // Idempotent: post-first-boot this is a single zero-row SELECT.
+    super::profile_meta::backfill_canonical_ids(&pool).await?;
+
     Ok(pool)
 }
