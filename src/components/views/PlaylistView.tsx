@@ -177,6 +177,18 @@ export function PlaylistView({
   );
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  // Close the share modal whenever the route swaps to another
+  // playlist — otherwise the modal would stay mounted against the
+  // new playlist's id but display the previously-opened share
+  // state. React-19 "adjust state during render in response to a
+  // prop change" pattern: the marker state catches the change,
+  // schedules the reset, and the render returns the post-reset
+  // value in the same pass (no extra commit, no effect).
+  const [shareOpenForId, setShareOpenForId] = useState(playlistId);
+  if (shareOpenForId !== playlistId) {
+    setShareOpenForId(playlistId);
+    setIsShareOpen(false);
+  }
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);

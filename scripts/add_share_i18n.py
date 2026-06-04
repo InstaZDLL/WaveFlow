@@ -71,7 +71,7 @@ TRANSLATIONS: dict[str, tuple[str, dict[str, str]]] = {
         "Teilen",
         {
             "title": "Playlist teilen",
-            "subtitle": "Erstelle einen öffentlichen Link für „{{name}}\". Jeder kann ihn im Browser öffnen.",
+            "subtitle": "Erstelle einen öffentlichen Link für „{{name}}“. Jeder kann ihn im Browser öffnen.",
             "idleHint": "Der Link bleibt aktiv, bis du ihn widerrufst. Du kannst ihn jederzeit in diesem Fenster deaktivieren.",
             "mint": "Link erstellen",
             "activeHint": "Link auf all deinen Geräten aktiv.",
@@ -343,12 +343,21 @@ def patch_locale(path: Path, action_label: str, share_block: dict[str, str]) -> 
 
 def main() -> int:
     root = Path(__file__).resolve().parent.parent / "src" / "i18n" / "locales"
+    missing = [
+        locale for locale in TRANSLATIONS if not (root / f"{locale}.json").exists()
+    ]
+    if missing:
+        # Fail-fast: silently skipping a locale would let a PR land
+        # with incomplete translations and only surface as
+        # missing-key warnings at runtime. Stop with a non-zero
+        # status so CI catches the gap before merge.
+        raise FileNotFoundError(
+            "Missing locale file(s): " + ", ".join(f"{m}.json" for m in missing)
+        )
+
     total = 0
     for locale, (label, block) in TRANSLATIONS.items():
         path = root / f"{locale}.json"
-        if not path.exists():
-            print(f"  skip: {path.name} not found")
-            continue
         if patch_locale(path, label, block):
             print(f"  patched: {path.name}")
             total += 1

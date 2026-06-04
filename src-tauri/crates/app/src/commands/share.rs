@@ -214,9 +214,15 @@ async fn resolve_canonicals(
     let profile_canonical = crate::db::profile_meta::canonical_id_for(&state.app_db, profile_id)
         .await?
         .ok_or_else(|| {
-            AppError::Other(
-                "profile.canonical_id not backfilled yet — restart the app to seed it".into(),
-            )
+            // Unexpected post-boot: `db::app_db::open` runs the
+            // `backfill_canonical_ids` startup hook against every
+            // NULL row, so a miss here means the row was deleted
+            // between bootstrap and now, or the migration didn't
+            // land. Surface the state without prescribing a fix
+            // — the caller can check logs to disambiguate.
+            AppError::Other(format!(
+                "profile {profile_id}.canonical_id is NULL; this should normally be backfilled at startup",
+            ))
         })?;
 
     Ok((playlist_canonical, profile_canonical))

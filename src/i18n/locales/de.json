@@ -1667,7 +1667,7 @@
   },
   "share": {
     "title": "Playlist teilen",
-    "subtitle": "Erstelle einen öffentlichen Link für „{{name}}\". Jeder kann ihn im Browser öffnen.",
+    "subtitle": "Erstelle einen öffentlichen Link für „{{name}}“. Jeder kann ihn im Browser öffnen.",
     "idleHint": "Der Link bleibt aktiv, bis du ihn widerrufst. Du kannst ihn jederzeit in diesem Fenster deaktivieren.",
     "mint": "Link erstellen",
     "activeHint": "Link auf all deinen Geräten aktiv.",

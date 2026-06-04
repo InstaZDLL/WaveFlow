@@ -113,7 +113,12 @@ export function ShareModal({
   const handleMint = useCallback(async () => {
     setIsMinting(true);
     setError(null);
-    const session = sessionRef.current;
+    // Bump BEFORE the await so any in-flight `shareLinkStatus` from
+    // the open-effect resolves into a stale session and short-
+    // circuits in its own .then() guard. Without this, a slow
+    // status call landing after a quick mint would overwrite the
+    // freshly-minted link with the cached (null) value.
+    const session = ++sessionRef.current;
     try {
       const minted = await shareLinkMint(playlistId);
       if (session !== sessionRef.current) return;
@@ -131,7 +136,9 @@ export function ShareModal({
   const handleRevoke = useCallback(async () => {
     setIsRevoking(true);
     setError(null);
-    const session = sessionRef.current;
+    // Same race protection as `handleMint` — pre-bump invalidates
+    // any in-flight status read before the network round-trip.
+    const session = ++sessionRef.current;
     try {
       await shareLinkRevoke(playlistId);
       if (session !== sessionRef.current) return;
