@@ -794,7 +794,8 @@
       "edit": "Çalma listesini düzenle",
       "exportM3u": "M3U olarak dışa aktar",
       "delete": "Çalma listesini sil",
-      "deleteConfirm": "Onaylamak için tekrar tıkla"
+      "deleteConfirm": "Onaylamak için tekrar tıkla",
+      "share": "Paylaş"
     },
     "export": {
       "dialogTitle": "Çalma listesini M3U olarak dışa aktar"
@@ -1663,5 +1664,19 @@
       "show": "WaveFlow'u aç",
       "quit": "Çık"
     }
+  },
+  "share": {
+    "title": "Çalma listesini paylaş",
+    "subtitle": "“{{name}}” için herkese açık bir bağlantı oluşturun. Herkes tarayıcıda açabilir.",
+    "idleHint": "Bağlantı, iptal edene kadar aktif kalır. Bu pencereden istediğiniz zaman devre dışı bırakabilirsiniz.",
+    "mint": "Bağlantı oluştur",
+    "activeHint": "Bağlantı tüm cihazlarınızda aktif.",
+    "revoke": "Devre dışı bırak",
+    "qrAlt": "Paylaşılan bağlantının QR kodu",
+    "urlLabel": "Herkese açık URL",
+    "copy": "Kopyala",
+    "copied": "Kopyalandı",
+    "close": "Kapat",
+    "errorClipboard": "Panoya erişilemiyor. URL'yi seçerek manuel olarak kopyalayın."
   }
 }

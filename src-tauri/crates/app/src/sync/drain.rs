@@ -114,6 +114,14 @@ struct SyncOpInBody {
     field: Option<String>,
     op: String,
     payload: Option<serde_json::Value>,
+    /// Active profile's canonical UUID (Phase 1.g.3-desktop). The
+    /// server's apply pipeline (PR #26) routes each op to a
+    /// materialised server profile via this field. Always `Some` on
+    /// outbound pushes — the drain gates on it before serialising
+    /// the batch — but kept `Option` so the JSON omits the key when
+    /// a hypothetical future caller wants the legacy shape.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    profile_canonical_id: Option<String>,
 }
 
 /// Mirrors `waveflow_server::api::sync::PushBatchRequest`.
@@ -201,6 +209,25 @@ pub async fn drain_once(state: &AppState) -> AppResult<DrainOutcome> {
     }
     let device_id = device::ensure(&state.app_db).await?;
 
+    // Gate 3 (Phase 1.g.3) — the server's apply pipeline (PR #26)
+    // routes each op to a materialised profile via
+    // `profile_canonical_id`. Without it, the durable log still
+    // accepts the op, but apply silently skips — i.e. the desktop
+    // would "succeed" in pushing while the server's entity tables
+    // stay empty. Better to defer the push until the canonical id
+    // is backfilled (background job, at most one boot away) than
+    // to drop ops on the floor.
+    let profile_id = state.require_profile_id().await?;
+    let Some(profile_canonical_id) =
+        crate::db::profile_meta::canonical_id_for(&state.app_db, profile_id).await?
+    else {
+        tracing::warn!(
+            profile_id,
+            "drain: profile.canonical_id is NULL — backfill pending, skipping push",
+        );
+        return Ok(DrainOutcome::Skipped);
+    };
+
     let mut total_sent = 0usize;
     loop {
         let pending = queue::list_pending(&pool, BATCH_SIZE).await?;
@@ -218,6 +245,7 @@ pub async fn drain_once(state: &AppState) -> AppResult<DrainOutcome> {
                 field: p.field.clone(),
                 op: p.op.clone(),
                 payload: p.payload.clone(),
+                profile_canonical_id: Some(profile_canonical_id.clone()),
             })
             .collect();
         let body = PushBatchRequest {
@@ -362,6 +390,9 @@ mod tests {
                 field: Some("name".into()),
                 op: "set".into(),
                 payload: Some(serde_json::json!({ "value": "Soirée" })),
+                profile_canonical_id: Some(
+                    "11111111-2222-4333-8444-555555555555".into(),
+                ),
             }],
         };
         let v = serde_json::to_value(&body).unwrap();
@@ -377,6 +408,7 @@ mod tests {
                     "field": "name",
                     "op": "set",
                     "payload": { "value": "Soirée" },
+                    "profile_canonical_id": "11111111-2222-4333-8444-555555555555",
                 }],
             }),
         );

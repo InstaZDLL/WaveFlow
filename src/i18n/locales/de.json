@@ -794,7 +794,8 @@
       "edit": "Playlist bearbeiten",
       "exportM3u": "Als M3U exportieren",
       "delete": "Playlist löschen",
-      "deleteConfirm": "Zur Bestätigung erneut klicken"
+      "deleteConfirm": "Zur Bestätigung erneut klicken",
+      "share": "Teilen"
     },
     "export": {
       "dialogTitle": "Playlist als M3U exportieren"
@@ -1663,5 +1664,19 @@
       "show": "WaveFlow öffnen",
       "quit": "Beenden"
     }
+  },
+  "share": {
+    "title": "Playlist teilen",
+    "subtitle": "Erstelle einen öffentlichen Link für „{{name}}“. Jeder kann ihn im Browser öffnen.",
+    "idleHint": "Der Link bleibt aktiv, bis du ihn widerrufst. Du kannst ihn jederzeit in diesem Fenster deaktivieren.",
+    "mint": "Link erstellen",
+    "activeHint": "Link auf all deinen Geräten aktiv.",
+    "revoke": "Deaktivieren",
+    "qrAlt": "QR-Code des geteilten Links",
+    "urlLabel": "Öffentliche URL",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "close": "Schließen",
+    "errorClipboard": "Zugriff auf die Zwischenablage nicht möglich. Markiere die URL, um sie manuell zu kopieren."
   }
 }

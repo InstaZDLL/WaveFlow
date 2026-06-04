@@ -794,7 +794,8 @@
       "edit": "Editar a lista de reprodução",
       "exportM3u": "Exportar para M3U",
       "delete": "Eliminar a lista de reprodução",
-      "deleteConfirm": "Clica novamente para confirmar"
+      "deleteConfirm": "Clica novamente para confirmar",
+      "share": "Partilhar"
     },
     "export": {
       "dialogTitle": "Exportar a lista de reprodução em M3U"
@@ -1663,5 +1664,19 @@
       "show": "Abrir WaveFlow",
       "quit": "Sair"
     }
+  },
+  "share": {
+    "title": "Partilhar a playlist",
+    "subtitle": "Gere uma ligação pública para “{{name}}”. Qualquer pessoa poderá abri-la num navegador.",
+    "idleHint": "A ligação permanecerá ativa até a revogar. Pode desativá-la a qualquer momento nesta janela.",
+    "mint": "Gerar ligação",
+    "activeHint": "Ligação ativa em todos os seus dispositivos.",
+    "revoke": "Desativar",
+    "qrAlt": "Código QR da ligação partilhada",
+    "urlLabel": "URL pública",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "close": "Fechar",
+    "errorClipboard": "Não foi possível aceder à área de transferência. Selecione o URL para o copiar manualmente."
   }
 }

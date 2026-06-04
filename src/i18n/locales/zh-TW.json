@@ -794,7 +794,8 @@
       "edit": "編輯播放清單",
       "exportM3u": "匯出為 M3U",
       "delete": "刪除播放清單",
-      "deleteConfirm": "請再次點擊以確認"
+      "deleteConfirm": "請再次點擊以確認",
+      "share": "分享"
     },
     "export": {
       "dialogTitle": "將播放清單匯出為 M3U 格式"
@@ -1663,5 +1664,19 @@
     "openSettings": "開啟設定",
     "notConnectedTitle": "Spotify 尚未連接",
     "notConnectedMessage": "你的 Client ID 已設定。請至「設定」登入 Spotify Premium 帳號,以載入播放清單並開始播放。"
+  },
+  "share": {
+    "title": "分享播放清單",
+    "subtitle": "為「{{name}}」產生公開連結。任何人都可以在瀏覽器中開啟。",
+    "idleHint": "連結會持續有效，直到您撤銷為止。可隨時在此視窗中停用。",
+    "mint": "產生連結",
+    "activeHint": "連結在您所有裝置上皆已啟用。",
+    "revoke": "停用",
+    "qrAlt": "分享連結的 QR code",
+    "urlLabel": "公開 URL",
+    "copy": "複製",
+    "copied": "已複製",
+    "close": "關閉",
+    "errorClipboard": "無法存取剪貼簿。請選取 URL 手動複製。"
   }
 }

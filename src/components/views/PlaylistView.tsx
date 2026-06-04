@@ -21,6 +21,7 @@ import {
   Download,
   ArrowUpDown,
   Check,
+  Share2,
 } from "lucide-react";
 import {
   DndContext,
@@ -49,6 +50,7 @@ import { ArtistLink } from "../common/ArtistLink";
 import { Tooltip } from "../common/Tooltip";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
+import { ShareModal } from "../common/ShareModal";
 import { HiResBadge } from "../common/HiResBadge";
 import { PlayingIndicator } from "../common/PlayingIndicator";
 import { SelectionActionBar } from "../common/SelectionActionBar";
@@ -174,6 +176,19 @@ export function PlaylistView({
     [playlistSort],
   );
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  // Close the share modal whenever the route swaps to another
+  // playlist — otherwise the modal would stay mounted against the
+  // new playlist's id but display the previously-opened share
+  // state. React-19 "adjust state during render in response to a
+  // prop change" pattern: the marker state catches the change,
+  // schedules the reset, and the render returns the post-reset
+  // value in the same pass (no extra commit, no effect).
+  const [shareOpenForId, setShareOpenForId] = useState(playlistId);
+  if (shareOpenForId !== playlistId) {
+    setShareOpenForId(playlistId);
+    setIsShareOpen(false);
+  }
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
@@ -650,6 +665,17 @@ export function PlaylistView({
                   </button>
                 </Tooltip>
 
+                <Tooltip label={t("playlistView.actions.share")}>
+                  <button
+                    type="button"
+                    onClick={() => setIsShareOpen(true)}
+                    aria-label={t("playlistView.actions.share")}
+                    className="p-2 rounded-lg transition-colors hover:bg-zinc-100 text-zinc-500 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-white"
+                  >
+                    <Share2 size={18} />
+                  </button>
+                </Tooltip>
+
                 <Tooltip
                   label={
                     confirmDelete
@@ -766,6 +792,15 @@ export function PlaylistView({
       />
 
       {trackContextMenu.render()}
+
+      {playlistId != null && playlist && (
+        <ShareModal
+          playlistId={playlistId}
+          playlistName={playlist.name}
+          isOpen={isShareOpen}
+          onClose={() => setIsShareOpen(false)}
+        />
+      )}
 
       {playlistId != null && (
         <SelectionActionBar
