@@ -26,7 +26,7 @@ This RFC locks the data model + API surface **before any contribution code lands
 
 ## 2. Goals
 
-- **A shared, opt-in pool** of crowdsourced metadata across all `waveflow-server` instances that opt in: lyrics (already covered by LRCLIB, mirrored for offline + privacy), artist bios, album metadata corrections, BPM + musical key + duration spectra (from the existing audio analyser), user-uploaded cover art.
+- **A shared, opt-in pool** of crowdsourced metadata across all `waveflow-server` instances that opt in: lyrics (already covered by LRCLIB, mirrored for offline + privacy), artist bios, album metadata corrections, BPM + musical key + duration spectra (from the existing audio analyser). User-uploaded **cover art is a product goal but out of scope for v1 (planned v2)** — see §5.4 for the deferral rationale.
 - **Privacy-first.** Contributions carry no listener identity. The contributing instance's user_id stays local; the upstream sees an anonymous BLAKE3 fingerprint of the track / album / artist key and the payload. No play history, no listening behaviour, no library contents.
 - **Self-hostable at every level.** A single-binary `waveflow-server` ships with a built-in community-DB schema. Operators choose whether to mirror the public pool, run their own private pool (LAN family, school music club, fan community), or both. No mandatory dependency on a central hosted service.
 - **Vote-based moderation, not algorithmic.** Contributions accrue +1 / −1 votes from users who looked at them. Conflicting versions are surfaced by the client with the winning vote count, not auto-merged. Same model LRCLIB ships and that's worked for two years.
@@ -39,7 +39,7 @@ This RFC locks the data model + API surface **before any contribution code lands
 - **Hosted SaaS pool.** A reference public mirror may exist (run on the project's own infra) but is not a SaaS — it's just one mirror among many. Users self-host theirs.
 - **Real-time push notifications** when someone contributes to a track in your library. Pull-only on a fixed cadence keeps the architecture simple. A polling client checks every 24 h by default.
 - **User-to-user direct sharing.** Contributions go through a server. Two desktops can't gossip directly. Keeps the privacy boundary at the server.
-- **Audio fingerprinting (Chromaprint / AcoustID).** Out of v1 scope. v1 keys contributions on track metadata (file BLAKE3 hash + duration + scanner-extracted artist/album/title), not waveform. AcoustID integration is a Phase 3+ conversation.
+- **Audio fingerprinting (Chromaprint / AcoustID).** Out of v1 scope. v1 keys contributions on scanner-extracted track metadata (artist + album + title + duration, NUL-separated and BLAKE3-hashed — see §5.3 for the exact recipe), not on the audio waveform. AcoustID integration is a Phase 3+ conversation.
 - **Personal data.** Ratings, likes, listening history, playlists — none of those are community-shareable. Those stay in the per-user sync stream (Phase 1.f).
 - **Spotify / Apple Music feature parity.** No mood vectors, no playlist recommendations, no editorial content. Community DB is a structured-facts pool — not a curation product.
 
@@ -137,7 +137,7 @@ Each contribution declares its `payload_kind`. v1 ships five kinds:
 | `album_metadata`   | album           | `{ release_date?: 'YYYY-MM-DD', label?: string, genre?: string, total_tracks?: int }` (each field independently votable) |
 | `audio_features`   | track           | `{ bpm?: number, musical_key?: string (Camelot), tempo_confidence?: number, energy?: number, valence?: number }` (numeric, same shape the local analyser emits) |
 
-A future v2 can add `cover_art` (upload-via-artwork-pipeline as a separate hash, with the contribution pointing at the artwork hash so we reuse RFC-001's existing pipeline). Out of v1 scope to keep the moderation surface small.
+**`cover_art` is a product goal but out of scope for v1 (planned v2).** It lands as a sixth `payload_kind` (upload-via-artwork-pipeline as a separate hash, with the contribution pointing at the artwork hash so we reuse RFC-001's existing pipeline). Deferred so the moderation surface stays small for the first ship — community-contributed bitmap content needs its own review pass (legal review for embedded photos, takedown flow) that the text-only kinds don't.
 
 ### 5.5 Vote-based moderation, not state machines
 
@@ -259,7 +259,17 @@ CREATE TRIGGER community_vote_score_sync
     FOR EACH ROW EXECUTE FUNCTION update_contribution_score();
 ```
 
-The trigger keeps `community_contribution.score` in lockstep with `community_vote` writes — the lookup endpoint reads `community_contribution` only, so the vote table can be archived after a cooldown without breaking reads.
+The trigger keeps `community_contribution.score` in lockstep with `community_vote` writes — the lookup endpoint at `GET /api/v1/community/lookup` reads `community_contribution.score` directly and never joins against `community_vote`.
+
+**Archival procedure for `community_vote` (operational, not auto-run).** Once `community_vote` rows are older than the archival cooldown (target: 1 year), an operator can move them out of the hot table without corrupting `community_contribution.score`. The naïve approach — `DELETE FROM community_vote WHERE created_at < $cutoff` — would fire the `community_vote_score_sync` trigger and decrement every contribution's score back down to zero, which is precisely what we want to avoid (the score is the historical tally; the votes themselves are auditing). The supported procedure is a single transaction that:
+
+1. Opens `BEGIN; SET LOCAL session_replication_role = 'replica';` — suppresses user-defined row triggers (`community_vote_score_sync` included) for the duration of THIS transaction only. `LOCAL` scopes the setting to the txn so a peer write on another connection still fires the trigger normally.
+2. `SELECT id FROM community_contribution WHERE id IN (SELECT contribution_id FROM community_vote WHERE created_at < $cutoff) FOR UPDATE;` — locks every contribution whose votes are about to move, so a concurrent vote on those rows blocks until the archival commits. Without this, a vote landing mid-archival could see a stale score and roll back the running tally.
+3. `INSERT INTO community_vote_archive SELECT * FROM community_vote WHERE created_at < $cutoff;` — moves the rows to the archive table (same shape as `community_vote`, no triggers attached).
+4. `DELETE FROM community_vote WHERE created_at < $cutoff;` — fires nothing because of step 1, so `community_contribution.score` is preserved bit-for-bit.
+5. `COMMIT;` — releases the row locks and restores normal trigger behaviour for the connection.
+
+`community_vote_archive` is created on the fly the first time the procedure runs; the operator's cron job (no automated archival job ships in v1) is the only caller. A future Phase 2.d sub-task can wrap this in a `waveflow-server-admin community vote archive --before <date>` CLI for ergonomics.
 
 Epoch-millis BIGINT for every timestamp (per the [server CLAUDE.md](../../CLAUDE.md) convention).
 
