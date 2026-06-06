@@ -74,12 +74,12 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
 
 | Layer                     | Technologies                                                                                                                       |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **Desktop shell**         | Tauri 2.10 (tray icon, opener, dialog, updater plugins)                                                                            |
+| **Desktop shell**         | Tauri 2.11 (tray icon, opener, dialog, updater plugins)                                                                            |
 | **OS media controls**     | souvlaki 0.8 (SMTC / MPRIS / MediaRemote bridge)                                                                                   |
 | **Discord Rich Presence** | discord-rich-presence 1.1 (local IPC named pipe, no auth)                                                                          |
 | **Frontend**              | React 19, TypeScript, Vite 8, Tailwind CSS 4, Lucide icons, `@dnd-kit` (drag-and-drop), `@tanstack/react-virtual` (virtualization) |
 | **Backend**               | Rust, SQLite (sqlx), FTS5 contentless full-text search                                                                             |
-| **Audio**                 | symphonia 0.6 (decode), cpal 0.17 (output), rubato 2.0 (resample), rtrb 0.3 (SPSC ring)                                            |
+| **Audio**                 | symphonia 0.6 (decode), cpal 0.17 (output), rubato 3.0 (resample), rtrb 0.3 (SPSC ring)                                            |
 | **Metadata extraction**   | lofty 0.24 (tags, embedded art, POPM, INITIALKEY)                                                                                  |
 | **Imaging**               | image 0.25 + fast_image_resize 6 (SIMD thumbnails)                                                                                 |
 | **Filesystem watcher**    | notify 8 (debounced rescans of watched folders)                                                                                    |
