@@ -363,6 +363,11 @@ pub async fn add_track_to_playlist(
     let mut tx = pool.begin().await?;
     append_track_conn(&mut tx, playlist_id, track_id, now).await?;
     let entity_id = crate::sync::canonical::ensure_local_playlist(&mut tx, playlist_id).await?;
+    // Phase 1.j.b — fold per-track snapshots into the outbound
+    // payload so the server's `playlist_track.snapshot_*` columns
+    // land populated and the public share preview can render the
+    // track without resolving the local-i64 id cross-device.
+    let snapshots = crate::sync::track_snapshots::build_snapshots(&mut tx, &[track_id]).await?;
     crate::sync::hooks::enqueue_op_in_tx(
         &mut tx,
         &crate::sync::hooks::PendingOpDraft {
@@ -370,7 +375,10 @@ pub async fn add_track_to_playlist(
             entity_id,
             field: Some("tracks".into()),
             op: "insert".into(),
-            payload: Some(serde_json::json!({ "track_ids": [track_id] })),
+            payload: Some(serde_json::json!({
+                "track_ids": [track_id],
+                "snapshots": snapshots,
+            })),
         },
     )
     .await?;
@@ -403,6 +411,9 @@ pub async fn add_tracks_to_playlist(
     let mut tx = pool.begin().await?;
     let inserted = append_tracks_conn(&mut tx, playlist_id, &track_ids, now).await?;
     let entity_id = crate::sync::canonical::ensure_local_playlist(&mut tx, playlist_id).await?;
+    // Phase 1.j.b — per-track snapshots for the public share
+    // preview. See [`add_track_to_playlist`] for the rationale.
+    let snapshots = crate::sync::track_snapshots::build_snapshots(&mut tx, &track_ids).await?;
     // One coalesced op for the whole batch — emitting N ops would
     // cost N Lamport draws and bloat the queue without giving the
     // server side any extra signal.
@@ -413,7 +424,10 @@ pub async fn add_tracks_to_playlist(
             entity_id,
             field: Some("tracks".into()),
             op: "insert".into(),
-            payload: Some(serde_json::json!({ "track_ids": track_ids })),
+            payload: Some(serde_json::json!({
+                "track_ids": track_ids,
+                "snapshots": snapshots,
+            })),
         },
     )
     .await?;
@@ -560,6 +574,9 @@ pub async fn add_source_to_playlist(
     let mut tx = pool.begin().await?;
     let inserted = append_tracks_conn(&mut tx, playlist_id, &track_ids, now_millis()).await?;
     let entity_id = crate::sync::canonical::ensure_local_playlist(&mut tx, playlist_id).await?;
+    // Phase 1.j.b — per-track snapshots for the public share
+    // preview.
+    let snapshots = crate::sync::track_snapshots::build_snapshots(&mut tx, &track_ids).await?;
     crate::sync::hooks::enqueue_op_in_tx(
         &mut tx,
         &crate::sync::hooks::PendingOpDraft {
@@ -569,6 +586,7 @@ pub async fn add_source_to_playlist(
             op: "insert".into(),
             payload: Some(serde_json::json!({
                 "track_ids": track_ids,
+                "snapshots": snapshots,
                 "via_source": { "type": source_type, "id": source_id },
             })),
         },

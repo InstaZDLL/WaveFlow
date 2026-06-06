@@ -37,11 +37,10 @@ use crate::error::AppResult;
 /// boot after the first post-migration boot) hits zero rows and
 /// commits an empty transaction, which is essentially free.
 pub async fn backfill_canonical_ids(pool: &SqlitePool) -> AppResult<usize> {
-    let needs_uuid: Vec<i64> = sqlx::query_scalar(
-        "SELECT id FROM profile WHERE canonical_id IS NULL ORDER BY id",
-    )
-    .fetch_all(pool)
-    .await?;
+    let needs_uuid: Vec<i64> =
+        sqlx::query_scalar("SELECT id FROM profile WHERE canonical_id IS NULL ORDER BY id")
+            .fetch_all(pool)
+            .await?;
 
     if needs_uuid.is_empty() {
         return Ok(0);
@@ -80,21 +79,16 @@ pub async fn ensure_canonical_id(pool: &SqlitePool, profile_id: i64) -> AppResul
     // Re-read — either we wrote `candidate` or a racing caller wrote
     // its own value first. In both cases the row now has a non-NULL
     // canonical, and the read returns the winning value.
-    canonical_id_for(pool, profile_id)
-        .await?
-        .ok_or_else(|| {
-            crate::error::AppError::Other(format!(
-                "profile {profile_id} disappeared mid-ensure_canonical_id"
-            ))
-        })
+    canonical_id_for(pool, profile_id).await?.ok_or_else(|| {
+        crate::error::AppError::Other(format!(
+            "profile {profile_id} disappeared mid-ensure_canonical_id"
+        ))
+    })
 }
 
 /// Look up the canonical id of a given profile. `None` for rows that
 /// don't exist (deleted) or haven't been backfilled yet.
-pub async fn canonical_id_for(
-    pool: &SqlitePool,
-    profile_id: i64,
-) -> AppResult<Option<String>> {
+pub async fn canonical_id_for(pool: &SqlitePool, profile_id: i64) -> AppResult<Option<String>> {
     let row: Option<Option<String>> =
         sqlx::query_scalar("SELECT canonical_id FROM profile WHERE id = ?")
             .bind(profile_id)
