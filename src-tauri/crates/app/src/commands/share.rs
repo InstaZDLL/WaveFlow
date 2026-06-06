@@ -110,7 +110,9 @@ pub async fn share_link_mint(
                 url,
             })
         }
-        reqwest::StatusCode::NOT_FOUND => Err(AppError::Other("playlist not found or not owned by the active profile".into())),
+        reqwest::StatusCode::NOT_FOUND => Err(AppError::Other(
+            "playlist not found or not owned by the active profile".into(),
+        )),
         other => Err(AppError::Other(format!(
             "share mint returned {other} ({})",
             resp.text().await.unwrap_or_default()
@@ -150,7 +152,9 @@ pub async fn share_link_revoke(
             write_cached_token(&pool, &playlist_canonical, None).await?;
             Ok(())
         }
-        reqwest::StatusCode::NOT_FOUND => Err(AppError::Other("playlist not found or not owned by the active profile".into())),
+        reqwest::StatusCode::NOT_FOUND => Err(AppError::Other(
+            "playlist not found or not owned by the active profile".into(),
+        )),
         other => Err(AppError::Other(format!(
             "share revoke returned {other} ({})",
             resp.text().await.unwrap_or_default()
@@ -172,7 +176,9 @@ pub async fn share_link_status(
     let playlist_canonical =
         canonical::canonical_for_local(&mut conn, canonical::ENTITY_PLAYLIST, playlist_id)
             .await?
-            .ok_or(AppError::Other("playlist not found or not owned by the active profile".into()))?;
+            .ok_or(AppError::Other(
+                "playlist not found or not owned by the active profile".into(),
+            ))?;
     drop(conn);
 
     let token = read_cached_token(&pool, &playlist_canonical).await?;
@@ -208,7 +214,9 @@ async fn resolve_canonicals(
     let playlist_canonical =
         canonical::canonical_for_local(&mut conn, canonical::ENTITY_PLAYLIST, playlist_id)
             .await?
-            .ok_or(AppError::Other("playlist not found or not owned by the active profile".into()))?;
+            .ok_or(AppError::Other(
+                "playlist not found or not owned by the active profile".into(),
+            ))?;
     drop(conn);
 
     let profile_canonical = crate::db::profile_meta::canonical_id_for(&state.app_db, profile_id)
@@ -240,7 +248,10 @@ async fn build_share_url(app_db: &SqlitePool, token: &str) -> AppResult<String> 
 
 const CACHE_KEY_PREFIX: &str = "share.token.";
 
-async fn read_cached_token(pool: &SqlitePool, playlist_canonical: &str) -> AppResult<Option<String>> {
+async fn read_cached_token(
+    pool: &SqlitePool,
+    playlist_canonical: &str,
+) -> AppResult<Option<String>> {
     let key = format!("{CACHE_KEY_PREFIX}{playlist_canonical}");
     let value: Option<String> =
         sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = ?")

@@ -390,9 +390,7 @@ mod tests {
                 field: Some("name".into()),
                 op: "set".into(),
                 payload: Some(serde_json::json!({ "value": "Soirée" })),
-                profile_canonical_id: Some(
-                    "11111111-2222-4333-8444-555555555555".into(),
-                ),
+                profile_canonical_id: Some("11111111-2222-4333-8444-555555555555".into()),
             }],
         };
         let v = serde_json::to_value(&body).unwrap();
