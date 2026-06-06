@@ -115,11 +115,13 @@ The desktop UI surfaces the three as a Settings → Community section. The defau
 
 Each contribution attaches to one **entity key**. Three kinds:
 
-- **Track key**: BLAKE3 hex of `lowercase(artist) || "" || lowercase(album) || "" || lowercase(title) || "" || duration_ms_rounded_to_seconds`. Matches LRCLIB's input shape — chosen because file-BLAKE3 would tie contributions to a single rip (re-mastered re-releases would never benefit from a prior contribution).
-- **Album key**: BLAKE3 hex of `lowercase(album_artist) || "" || lowercase(album_title) || "" || release_year`. `release_year` rounds down to the decade for albums whose year is unknown locally, with a `year_precision` discriminator on the contribution.
+- **Track key**: BLAKE3 hex of `lowercase(artist) || "\0" || lowercase(album) || "\0" || lowercase(title) || "\0" || duration_ms_rounded_to_seconds`. Matches LRCLIB's input shape — chosen because file-BLAKE3 would tie contributions to a single rip (re-mastered re-releases would never benefit from a prior contribution).
+- **Album key**: BLAKE3 hex of `lowercase(album_artist) || "\0" || lowercase(album_title) || "\0" || release_year`. `release_year` rounds down to the decade for albums whose year is unknown locally, with a `year_precision` discriminator on the contribution.
 - **Artist key**: BLAKE3 hex of `lowercase(artist_name)`. Single-string key; no disambiguation — the highest-voted contribution per `(artist_name)` wins. Disambiguation by sub-genre / country is a Phase 3+ extension.
 
 Lowercase before hashing because case is a font choice, not a music-identity choice. Unicode normalization (NFKC) before lowercase because we don't want `É` (composed) vs `É` (decomposed) to produce two contributions.
+
+**Separator is `\0` (NUL byte), not the empty string.** An empty separator would collapse `("AB", "C")` and `("A", "BC")` into the same hash — a silent collision on every split-point ambiguity between adjacent fields. NFKC + lowercase never produces a NUL byte from real metadata, so the boundary parser can reject a NUL-containing field outright as malformed input and the separator stays a content-free marker.
 
 **Why not MusicBrainz IDs:** they're the cleanest identifier in theory but require the desktop to have already resolved them, which most installations don't. Plus, MusicBrainz contributions belong upstream of WaveFlow — we don't want to host a parallel MBID database. The track/album/artist hash keys above accept a contribution without requiring any prior lookup.
 
@@ -218,9 +220,46 @@ CREATE TABLE community_moderation_log (
     reason          TEXT,
     created_at      BIGINT NOT NULL
 );
+
+-- Score-sync trigger: keep `community_contribution.score` consistent
+-- with the live tally in `community_vote` without an explicit
+-- `recompute_score` call site. INSERT bumps by NEW.weight, DELETE
+-- by -OLD.weight, UPDATE applies the delta. Pure-SQL trigger so
+-- the score is the row state after the writing transaction commits;
+-- the lookup endpoint reads `community_contribution.score`
+-- directly and never has to JOIN against `community_vote`.
+CREATE OR REPLACE FUNCTION update_contribution_score()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE community_contribution
+            SET score = score + NEW.weight
+          WHERE id = NEW.contribution_id;
+        RETURN NEW;
+    ELSIF TG_OP = 'UPDATE' THEN
+        -- The PK is `(contribution_id, user_id)` so this branch
+        -- only fires when `weight` flips (`+1` ↔ `-1`); contribution
+        -- moves are impossible from this trigger's POV.
+        UPDATE community_contribution
+            SET score = score + NEW.weight - OLD.weight
+          WHERE id = NEW.contribution_id;
+        RETURN NEW;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE community_contribution
+            SET score = score - OLD.weight
+          WHERE id = OLD.contribution_id;
+        RETURN OLD;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER community_vote_score_sync
+    AFTER INSERT OR UPDATE OR DELETE ON community_vote
+    FOR EACH ROW EXECUTE FUNCTION update_contribution_score();
 ```
 
-A trigger on `community_vote` keeps `community_contribution.score` in sync. The lookup endpoint reads only `community_contribution`, so the vote table can be archived after a cooldown without breaking reads.
+The trigger keeps `community_contribution.score` in lockstep with `community_vote` writes — the lookup endpoint reads `community_contribution` only, so the vote table can be archived after a cooldown without breaking reads.
 
 Epoch-millis BIGINT for every timestamp (per the [server CLAUDE.md](../../CLAUDE.md) convention).
 
