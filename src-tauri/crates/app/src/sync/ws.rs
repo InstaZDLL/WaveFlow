@@ -315,6 +315,22 @@ async fn open_ws_session(
     device_id: &str,
 ) -> AppResult<usize> {
     let ws_url = http_to_ws_url(client.base_url(), device_id)?;
+    // Defense-in-depth: the Bearer JWT rides in the WS upgrade's
+    // `Authorization` header, so a `ws://` connection to a
+    // non-loopback host puts the credential in cleartext on the
+    // wire. We still allow it (parity with the persisted-URL gate
+    // in `server_client::write_url`, which accepts http:// for
+    // self-hosted LAN deployments + localhost dev), but log a
+    // visible warning per connect so a misconfigured production
+    // setup is loud rather than silent. Loopback hosts are skipped
+    // — there's no realistic eavesdropping risk on a local socket.
+    if ws_url.starts_with("ws://") && !host_is_loopback(client.base_url()) {
+        tracing::warn!(
+            server_url = %client.base_url(),
+            "sync ws: opening cleartext ws:// connection — JWT rides in upgrade headers without TLS; \
+             use https:// for production deployments",
+        );
+    }
     let request = build_ws_request(&ws_url, client.token())?;
 
     let (ws_stream, _resp) = match tokio_tungstenite::connect_async(request).await {
@@ -382,6 +398,14 @@ async fn open_ws_session(
 /// returns + appends the path manually rather than letting `url`
 /// re-encode + risk losing the `?device_id=` shape across reqwest
 /// versions.
+///
+/// `http://` → `ws://` is allowed by design — the persisted-URL
+/// gate in [`crate::server_client::write_url`] accepts plain HTTP
+/// so self-hosted LAN deployments + localhost dev work without
+/// fighting the framework. The non-loopback `ws://` branch is
+/// reported per-session as a `tracing::warn!` from
+/// [`open_ws_session`] so a misconfigured production setup surfaces
+/// loudly in logs.
 fn http_to_ws_url(base: &str, device_id: &str) -> AppResult<String> {
     let trimmed = base.trim_end_matches('/');
     let lowered = trimmed.to_ascii_lowercase();
@@ -390,6 +414,9 @@ fn http_to_ws_url(base: &str, device_id: &str) -> AppResult<String> {
         // case-sensitive proxy path stays intact.
         format!("wss://{}", &trimmed[8..8 + rest.len()])
     } else if let Some(rest) = lowered.strip_prefix("http://") {
+        // nosemgrep: detect-insecure-websocket -- intentional ws://
+        // for self-hosted LAN + localhost dev; non-loopback hosts
+        // are flagged at connect via `host_is_loopback`.
         format!("ws://{}", &trimmed[7..7 + rest.len()])
     } else {
         return Err(AppError::Other(format!(
@@ -399,6 +426,28 @@ fn http_to_ws_url(base: &str, device_id: &str) -> AppResult<String> {
     let encoded = serde_urlencoded::to_string([("device_id", device_id)])
         .map_err(|err| AppError::Other(format!("encode device_id for ws upgrade: {err}")))?;
     Ok(format!("{body}/api/v1/sync/ws?{encoded}"))
+}
+
+/// `true` when the URL's host resolves to a loopback address
+/// (`localhost`, `127.0.0.0/8`, `::1`) — i.e. an `http://` →
+/// `ws://` downgrade carries no realistic eavesdropping risk
+/// because the bytes never leave the machine. Anything else
+/// (LAN IPs, public hostnames) triggers the cleartext warning
+/// in [`open_ws_session`].
+///
+/// Parse failures fall back to "not loopback" — better to warn
+/// once on an unparseable URL than silently treat an odd value
+/// as safe.
+fn host_is_loopback(base: &str) -> bool {
+    let Ok(parsed) = url::Url::parse(base) else {
+        return false;
+    };
+    match parsed.host() {
+        Some(url::Host::Domain(host)) => host.eq_ignore_ascii_case("localhost"),
+        Some(url::Host::Ipv4(addr)) => addr.is_loopback(),
+        Some(url::Host::Ipv6(addr)) => addr.is_loopback(),
+        None => false,
+    }
 }
 
 /// Build the WS upgrade request with the Bearer token attached. The
@@ -451,6 +500,28 @@ mod tests {
     fn http_to_ws_url_rejects_other_schemes() {
         let err = http_to_ws_url("ftp://x", "d").unwrap_err();
         assert!(format!("{err}").contains("http"));
+    }
+
+    #[test]
+    fn host_is_loopback_recognises_localhost_and_127_0_0_x_and_ipv6_one() {
+        assert!(host_is_loopback("http://localhost"));
+        assert!(host_is_loopback("http://localhost:8787"));
+        assert!(host_is_loopback("https://LOCALHOST/path"));
+        assert!(host_is_loopback("http://127.0.0.1"));
+        assert!(host_is_loopback("http://127.0.0.1:8787"));
+        assert!(host_is_loopback("http://127.1.2.3")); // 127.0.0.0/8
+        assert!(host_is_loopback("http://[::1]"));
+        assert!(host_is_loopback("http://[::1]:8787"));
+    }
+
+    #[test]
+    fn host_is_loopback_rejects_lan_and_public_hosts() {
+        assert!(!host_is_loopback("http://192.168.1.10"));
+        assert!(!host_is_loopback("http://10.0.0.5:8787"));
+        assert!(!host_is_loopback("http://api.example.com"));
+        assert!(!host_is_loopback("https://prod.waveflow.app"));
+        // Parse failure → "not loopback" so the warning still fires.
+        assert!(!host_is_loopback("not a url"));
     }
 
     #[test]
