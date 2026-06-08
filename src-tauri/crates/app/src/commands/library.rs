@@ -448,10 +448,47 @@ pub async fn remove_folder_from_library(
     // to write back into a row we're about to delete.
     watcher.unwatch(folder_id);
 
-    library_repo(&state)
-        .await?
-        .delete_folder_with_tracks(folder_id)
-        .await?;
+    // Phase 4.d.0 follow-up: capture `(library_id, file_path)` for
+    // every track in the folder BEFORE the DELETE so we can enqueue
+    // matching per-track sync ops inside the same transaction. Same
+    // pattern as `commands/duplicates.rs::delete_tracks`. Without
+    // this loop, the server would keep ghost rows for the removed
+    // tracks until the parent library is dropped — folder removal
+    // isn't its own sync entity, so the desktop has to emit per-row
+    // deletes from here. Bypassing `delete_folder_with_tracks` (which
+    // is a 2-statement DELETE without paths) lets the SELECT live in
+    // the same tx as the DELETE + emit chain so the three either all
+    // land or all roll back.
+    let pool = state.require_profile_pool().await?;
+    let mut tx = pool.begin().await?;
+    let tracks: Vec<(i64, String)> =
+        sqlx::query_as("SELECT library_id, file_path FROM track WHERE folder_id = ?")
+            .bind(folder_id)
+            .fetch_all(&mut *tx)
+            .await
+            .map_err(|e| AppError::Other(format!("list tracks in folder {folder_id}: {e}")))?;
+
+    sqlx::query("DELETE FROM track WHERE folder_id = ?")
+        .bind(folder_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| AppError::Other(format!("delete tracks in folder {folder_id}: {e}")))?;
+
+    for (library_id, file_path) in &tracks {
+        crate::sync::track_emit::emit_track_delete_in_tx(&mut tx, *library_id, file_path).await?;
+    }
+
+    sqlx::query("DELETE FROM library_folder WHERE id = ?")
+        .bind(folder_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| AppError::Other(format!("delete folder {folder_id}: {e}")))?;
+
+    tx.commit().await?;
+
+    // Nudge the drain so the per-track delete ops ship before the
+    // idle poll wakes up — matches every other sync-emitting command.
+    state.drain.notify();
 
     let _ = app.emit("library:rescanned", ());
     Ok(())
