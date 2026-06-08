@@ -2,6 +2,7 @@
 //! Settings screen (regenerate thumbnails, prune orphan covers, …).
 
 use std::path::Path;
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -61,7 +62,15 @@ pub async fn regenerate_thumbnails(state: tauri::State<'_, AppState>) -> AppResu
 ///
 /// Order matters here:
 ///
-/// 1. `engine.stop_and_wait` — fire `AudioCmd::Stop` AND await the
+/// 1. Silence the cpal output immediately by flipping
+///    `paused_output`. The rtrb ring still holds a few hundred ms
+///    of decoded samples from before the reset; without this the
+///    callback flushes them to the device during step 2's wait,
+///    producing a jarring tail at the worst possible moment. Same
+///    mechanism the window-close handler uses in `lib.rs`. The
+///    previous value is captured so a wipe failure can restore it
+///    rather than leave the engine permanently muted.
+/// 2. `engine.stop_and_wait` — fire `AudioCmd::Stop` AND await the
 ///    decoder thread's transition back to `Idle`. The decoder
 ///    publishes the `Idle` state only after it drops the active
 ///    stream (closing the `File` / `HttpMediaSource` handle), so
@@ -71,18 +80,22 @@ pub async fn regenerate_thumbnails(state: tauri::State<'_, AppState>) -> AppResu
 ///    currently-playing track's file refuses to delete. A 2 s
 ///    timeout is a generous upper bound for the cmd_rx → drop
 ///    cycle; if the decoder is stuck we log and proceed anyway,
-///    because waiting forever serves no one.
-/// 2. Close the active profile pool, then `app.db`. On Windows the
+///    because waiting forever serves no one — and step 1 already
+///    muted the device so any straggling samples stay inaudible.
+/// 3. Close the active profile pool, then `app.db`. On Windows the
 ///    SQLite WAL keeps the database file locked while a pool is
 ///    open; we MUST drain the pools before deleting the data dir.
-/// 3. `remove_dir_all` the entire `AppPaths::root`. Run it on the
+/// 4. `remove_dir_all` the entire `AppPaths::root`. Run it on the
 ///    blocking pool — recursive directory deletion across a
 ///    populated install (thousands of artwork files + WAL files)
 ///    can take a noticeable fraction of a second and would stall
 ///    the runtime if done in-place. Treat `NotFound` as a no-op
 ///    (already-reset / install half-broken) so the restart still
-///    happens.
-/// 4. `app.restart()` swaps the process — this call never returns.
+///    happens. On wipe failure (e.g. an external process holds a
+///    file open), restore the captured `paused_output` value so
+///    the user isn't left with a silenced engine on top of a
+///    failed reset.
+/// 5. `app.restart()` swaps the process — this call never returns.
 ///    `AppState::bootstrap` will re-create a "Default" profile on
 ///    the next boot and the onboarding wizard kicks in.
 #[tauri::command]
@@ -91,6 +104,12 @@ pub async fn reset_app(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<()> {
+    let was_paused_output = engine.shared().paused_output.load(Ordering::Acquire);
+    engine
+        .shared()
+        .paused_output
+        .store(true, Ordering::Release);
+
     if let Err(err) = engine.stop_and_wait(Duration::from_secs(2)).await {
         tracing::warn!(
             ?err,
@@ -104,13 +123,29 @@ pub async fn reset_app(
     state.app_db.close().await;
 
     let wipe_root = root.clone();
-    let wipe_result = tokio::task::spawn_blocking(move || std::fs::remove_dir_all(&wipe_root))
+    let wipe_join = tokio::task::spawn_blocking(move || std::fs::remove_dir_all(&wipe_root))
         .await
-        .map_err(|e| AppError::Other(format!("reset_app join: {e}")))?;
+        .map_err(|e| AppError::Other(format!("reset_app join: {e}")));
+    let wipe_result = match wipe_join {
+        Ok(r) => r,
+        Err(err) => {
+            engine
+                .shared()
+                .paused_output
+                .store(was_paused_output, Ordering::Release);
+            return Err(err);
+        }
+    };
     match wipe_result {
         Ok(()) => {}
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
-        Err(err) => return Err(AppError::Io(err)),
+        Err(err) => {
+            engine
+                .shared()
+                .paused_output
+                .store(was_paused_output, Ordering::Release);
+            return Err(AppError::Io(err));
+        }
     }
 
     app.restart();
