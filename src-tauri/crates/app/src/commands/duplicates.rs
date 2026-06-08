@@ -153,14 +153,38 @@ pub async fn delete_tracks(
     let mut deleted = 0i64;
     let mut tx = pool.begin().await?;
     for id in track_ids {
+        // Phase 4.d.0.3: capture (library_id, file_path) BEFORE
+        // the DELETE so we can enqueue the matching sync op while
+        // the row still exists. Skipped silently when the row is
+        // already gone (a concurrent scan / second delete-tracks
+        // call could race us).
+        let row: Option<(i64, String)> =
+            sqlx::query_as("SELECT library_id, file_path FROM track WHERE id = ?")
+                .bind(id)
+                .fetch_optional(&mut *tx)
+                .await
+                .map_err(|e| AppError::Other(format!("lookup track {id}: {e}")))?;
         let res = sqlx::query("DELETE FROM track WHERE id = ?")
             .bind(id)
             .execute(&mut *tx)
             .await
             .map_err(|e| AppError::Other(format!("delete track {id}: {e}")))?;
         deleted += res.rows_affected() as i64;
+        if let Some((library_id, file_path)) = row {
+            // User-initiated delete (NOT a library / folder cascade
+            // — those replay on the server when the parent library
+            // op lands). The sync op stays in the same tx as the
+            // DELETE so the two either both land or both roll back.
+            crate::sync::track_emit::emit_track_delete_in_tx(&mut tx, library_id, &file_path)
+                .await?;
+        }
     }
     tx.commit().await?;
+
+    // Phase 4.d.0.3: nudge the drain so the per-track delete ops
+    // ship before the drain's idle poll wakes up. Matches the
+    // convention every other sync-emitting command follows.
+    state.drain.notify();
 
     let _ = app.emit("library:rescanned", ());
     Ok(deleted)

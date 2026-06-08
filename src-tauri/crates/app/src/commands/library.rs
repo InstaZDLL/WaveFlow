@@ -288,6 +288,12 @@ pub async fn rescan_library(
     // the track/album lists, even when individual folder scans noop'd.
     repo.touch_updated_at(library_id, now_millis()).await?;
 
+    // Phase 4.d.0.3: wake the sync drain so the track ops the
+    // folder scans enqueued ship immediately. Matches the
+    // notify-after-CRUD convention every other command in this
+    // file already follows.
+    state.drain.notify();
+
     if total.added > 0 {
         crate::commands::analysis::maybe_auto_analyze(&app);
     }
@@ -409,6 +415,10 @@ pub async fn import_paths(
     }
 
     repo.touch_updated_at(library_id, now_millis()).await?;
+
+    // Phase 4.d.0.3: wake the sync drain so the freshly-imported
+    // tracks ship without waiting on the drain's idle poll.
+    state.drain.notify();
 
     if total.added > 0 {
         crate::commands::analysis::maybe_auto_analyze(&app);
