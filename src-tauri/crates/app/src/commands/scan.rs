@@ -313,6 +313,12 @@ pub async fn scan_folder(
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let summary = scan_folder_inner(&pool, &artwork_dir, folder_id, Some(&app)).await?;
+    // Phase 4.d.0.3: wake the sync drain so the freshly enqueued
+    // track ops ship immediately instead of waiting on the
+    // drain's idle poll. Matches the convention every other
+    // CRUD command in this crate already follows
+    // (`commands/library.rs`, `commands/playlist.rs`).
+    state.drain.notify();
     // Fire the auto-analyzer in the background when the user has
     // opted in. Spawned so the IPC reply doesn't block on a
     // potentially long analysis pass.
@@ -506,15 +512,22 @@ pub(crate) async fn scan_folder_inner(
         // File is on disk → keep it out of the deletion sweep below.
         existing_meta.remove(&extracted.abs_path);
 
-        let existing: Option<(i64, i64, String)> = sqlx::query_as(
-            "SELECT id, file_modified, file_hash FROM track WHERE library_id = ? AND file_path = ?",
+        // Pulls `added_at` so we can preserve the row's original
+        // "first import" timestamp on the wire — re-emits must NOT
+        // bump it (a peer device receiving a re-emit op for an
+        // existing track would otherwise see the file as "just
+        // added" in its `Recently added` view). Brand-new track
+        // path keeps using `now`.
+        let existing: Option<(i64, i64, String, i64)> = sqlx::query_as(
+            "SELECT id, file_modified, file_hash, added_at \
+               FROM track WHERE library_id = ? AND file_path = ?",
         )
         .bind(library_id)
         .bind(&extracted.abs_path)
         .fetch_optional(&mut *tx)
         .await?;
 
-        if let Some((existing_track_id, mtime, ref hash)) = existing {
+        if let Some((existing_track_id, mtime, ref hash, existing_added_at)) = existing {
             if mtime == extracted.modified_ms && hash == &extracted.hash {
                 // Track content hasn't changed — backfill paths only.
                 // See the historical comments at the top of this branch
@@ -557,6 +570,7 @@ pub(crate) async fn scan_folder_inner(
                 .execute(&mut *tx)
                 .await?;
 
+                let mut multi_artist_renormalised = false;
                 if let Some(raw) = &extracted.artist {
                     let splits = split_artist_name(raw);
                     let current_count: i64 =
@@ -565,6 +579,7 @@ pub(crate) async fn scan_folder_inner(
                             .fetch_one(&mut *tx)
                             .await?;
                     if current_count as usize != splits.len() {
+                        multi_artist_renormalised = true;
                         let mut ids = Vec::new();
                         for name in splits {
                             if let Some(id) = upsert_artist(&mut tx, &name).await? {
@@ -624,6 +639,25 @@ pub(crate) async fn scan_folder_inner(
                         &current_ids,
                         track_path,
                         artwork_dir,
+                    )
+                    .await?;
+                }
+
+                // Phase 4.d.0.3: emit a sync op ONLY when the skip
+                // branch actually rewrote multi-artist rows
+                // (`track_artist` re-link from comma-joined → ";"-
+                // split). Without this, a peer device that pulls
+                // down the original track via sync would never
+                // observe the multi-artist normalisation. Cover
+                // and codec backfills don't need to round-trip
+                // because they're server-derived metadata; only
+                // the multi-artist relink is wire-visible.
+                if multi_artist_renormalised {
+                    emit_track_insert_from_extracted(
+                        &mut tx,
+                        library_id,
+                        &extracted,
+                        existing_added_at,
                     )
                     .await?;
                 }
@@ -738,6 +772,24 @@ pub(crate) async fn scan_folder_inner(
                         .await?;
                 }
 
+                // Phase 4.d.0.3: emit the track insert op so the
+                // server's apply pipeline mirrors the update. The
+                // upsert merges every scalar — wire-shape-identical
+                // to the brand-new track branch below. Skipped
+                // gracefully when sync isn't configured (no JWT /
+                // Local mode).
+                //
+                // `added_at` carries the row's ORIGINAL import
+                // timestamp, not `now` — a re-emit must not bump
+                // the peer's `Recently added` ordering.
+                emit_track_insert_from_extracted(
+                    &mut tx,
+                    library_id,
+                    &extracted,
+                    existing_added_at,
+                )
+                .await?;
+
                 summary.updated += 1;
                 tx_count += 1;
             }
@@ -836,6 +888,13 @@ pub(crate) async fn scan_folder_inner(
                     .execute(&mut *tx)
                     .await?;
             }
+
+            // Phase 4.d.0.3: emit the track insert op for the
+            // sync server. Sits inside the same tx as the entity
+            // write — outbox rolls back with the track row if the
+            // commit fails. Skipped gracefully when sync isn't
+            // configured.
+            emit_track_insert_from_extracted(&mut tx, library_id, &extracted, now).await?;
 
             summary.added += 1;
             tx_count += 1;
@@ -1015,4 +1074,53 @@ pub async fn rescan_local_artist_images(
         "rescan_local_artist_images complete",
     );
     Ok(summary)
+}
+
+/// Sync-emit shim — converts an `ExtractedFile` into the wire shape
+/// the server's `apply::track::insert` handler expects (phase
+/// 4.d.0.2) and enqueues the op via the standard outbox path.
+///
+/// Inlined here rather than in `sync::track_emit` because the
+/// scanner is the only call site that operates on
+/// `ExtractedFile`; the lower-level helper takes a borrowed
+/// `TrackInsertWire` so other call sites (duplicates UI, future
+/// importers) build it from their own context.
+async fn emit_track_insert_from_extracted(
+    tx: &mut sqlx::SqliteConnection,
+    library_id: i64,
+    extracted: &ExtractedFile,
+    added_at: i64,
+) -> AppResult<()> {
+    // The scanner's `; `-split convention drives the wire-shape
+    // `artists` array. Position derives from the index after the
+    // split, matching the server's `track_artist.position`
+    // semantic.
+    let artists: Vec<String> = match &extracted.artist {
+        Some(s) => split_artist_name(s),
+        None => Vec::new(),
+    };
+    let wire = crate::sync::track_emit::TrackInsertWire {
+        file_hash: &extracted.hash,
+        title: &extracted.title,
+        file_size: extracted.size,
+        file_modified: extracted.modified_ms,
+        duration_ms: extracted.duration_ms,
+        track_number: extracted.track_number,
+        disc_number: extracted.disc_number,
+        year: extracted.year,
+        bitrate: extracted.bitrate,
+        sample_rate: extracted.sample_rate,
+        channels: extracted.channels,
+        bit_depth: extracted.bit_depth,
+        codec: extracted.codec.as_deref(),
+        musical_key: extracted.musical_key.as_deref(),
+        added_at,
+        album_title: extracted.album.as_deref(),
+        album_artist_name: extracted.album_artist.as_deref(),
+        is_compilation: extracted.is_compilation,
+        artists: &artists,
+    };
+    crate::sync::track_emit::emit_track_insert_in_tx(tx, library_id, &extracted.abs_path, &wire)
+        .await?;
+    Ok(())
 }

@@ -56,5 +56,6 @@ pub mod hooks;
 pub mod lamport;
 pub mod mode;
 pub mod queue;
+pub mod track_emit;
 pub mod track_snapshots;
 pub mod ws;

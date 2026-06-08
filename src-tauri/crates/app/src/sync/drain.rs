@@ -153,7 +153,12 @@ struct LamportRegression {
 /// caller fires it.
 pub fn spawn(app: AppHandle) {
     let task_handle = app.state::<AppState>().drain.clone();
-    tokio::spawn(async move {
+    // Tauri 2's `setup` callback runs without an ambient tokio
+    // runtime, so a bare `tokio::spawn` panics with "no reactor
+    // running". `tauri::async_runtime::spawn` resolves to the
+    // runtime Tauri configures internally (tokio under the hood)
+    // and is safe to call from the setup hook.
+    tauri::async_runtime::spawn(async move {
         let mut ticker = tokio::time::interval(POLL_INTERVAL);
         ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
         // First tick fires immediately — burn it so we don't spam
