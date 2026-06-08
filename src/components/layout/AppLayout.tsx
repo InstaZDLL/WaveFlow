@@ -536,13 +536,20 @@ export function AppLayout() {
               full width — `overflow-hidden` on the wrapper clips it
               when collapsed. `shrink-0` keeps the wrapper from
               participating in the flex shrink algorithm during the
-              animation. */}
+              animation.
+
+              `inert` removes the collapsed subtree from the focus
+              order and pointer events in one step (no `tabIndex=-1`
+              cascade needed). `aria-hidden` is set in parallel for
+              older screen-reader engines that don't follow `inert`
+              yet. React 19 supports `inert` as a boolean prop. */}
           <motion.aside
             initial={false}
             animate={{ width: isSidebarHidden ? 0 : 256 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
             className="shrink-0 overflow-hidden"
             aria-hidden={isSidebarHidden}
+            inert={isSidebarHidden}
           >
             <Sidebar
               activeView={activeView}
