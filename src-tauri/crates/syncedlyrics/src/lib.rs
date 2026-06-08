@@ -106,15 +106,13 @@ pub struct SyncedLyricsClient {
     http: reqwest::Client,
 }
 
-impl Default for SyncedLyricsClient {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl SyncedLyricsClient {
     /// Build the client, returning an error instead of panicking if the HTTP
     /// stack (e.g. the TLS backend) fails to initialize.
+    ///
+    /// There is no infallible constructor on purpose: `reqwest::Client::new()`
+    /// itself panics on a TLS/backend init failure, so callers must handle the
+    /// error rather than hide it behind a panic-prone fallback.
     pub fn try_new() -> Result<Self> {
         let http = reqwest::Client::builder()
             .user_agent("WaveFlow/1.4 (https://github.com/InstaZDLL/WaveFlow)")
@@ -122,18 +120,6 @@ impl SyncedLyricsClient {
             .connect_timeout(std::time::Duration::from_secs(5))
             .build()?;
         Ok(Self { http })
-    }
-
-    /// Infallible constructor for callers that can't propagate an error.
-    /// Falls back to a default reqwest client if the tuned builder fails so a
-    /// transient init issue never aborts the process.
-    pub fn new() -> Self {
-        Self::try_new().unwrap_or_else(|err| {
-            tracing::warn!(?err, "falling back to default reqwest client");
-            Self {
-                http: reqwest::Client::new(),
-            }
-        })
     }
 
     pub async fn search(&self, options: SearchOptions) -> Result<Option<LyricsResult>> {
