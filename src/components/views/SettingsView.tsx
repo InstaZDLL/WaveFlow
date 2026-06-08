@@ -127,6 +127,7 @@ import {
 } from "../../lib/tauri/preferences";
 import { applyUiZoom } from "../../hooks/useUiZoom";
 import { DuplicatesModal } from "../common/DuplicatesModal";
+import { ResetAppModal } from "../common/ResetAppModal";
 import { BackupCard } from "./settings/BackupCard";
 import { EqualizerCard } from "./settings/EqualizerCard";
 import { ExclusiveModeCard } from "./settings/ExclusiveModeCard";
@@ -452,6 +453,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   // hide it for profiles that never use Spotify.
   const [showSpotify, setShowSpotify] = useState(true);
   const [isDuplicatesOpen, setIsDuplicatesOpen] = useState(false);
+  const [isResetOpen, setIsResetOpen] = useState(false);
   // Status of the last "Copy logs" click — null when idle, "ok" or
   // "fail" briefly during the toast period before clearing back to null.
   const [copyLogsStatus, setCopyLogsStatus] = useState<"ok" | "fail" | null>(
@@ -3058,6 +3060,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               </div>
               <button
                 type="button"
+                onClick={() => setIsResetOpen(true)}
+                aria-label={t("settings.reset.action")}
                 className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-red-200 bg-white text-sm font-medium text-red-500 hover:bg-red-50 dark:border-red-500/30 dark:bg-zinc-800 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
               >
                 <Trash2 size={14} aria-hidden="true" />
@@ -3159,6 +3163,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       <DuplicatesModal
         isOpen={isDuplicatesOpen}
         onClose={() => setIsDuplicatesOpen(false)}
+      />
+      <ResetAppModal
+        isOpen={isResetOpen}
+        onClose={() => setIsResetOpen(false)}
       />
     </div>
   );

@@ -666,6 +666,7 @@ pub fn run() {
             commands::stats::stats_listening_by_day,
             commands::stats::stats_listening_by_hour,
             commands::maintenance::regenerate_thumbnails,
+            commands::maintenance::reset_app,
             commands::backup::get_backup_config,
             commands::backup::set_backup_config,
             commands::backup::run_backup_now,

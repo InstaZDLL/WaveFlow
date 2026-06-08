@@ -1431,7 +1431,15 @@
     "reset": {
       "title": "Atur ulang aplikasi",
       "subtitle": "Hapus semua data dan kembalikan ke pengaturan awal",
-      "action": "Atur ulang"
+      "action": "Atur ulang",
+      "confirm": {
+        "title": "Setel ulang seluruh aplikasi?",
+        "warning": "Ini menghapus setiap profil, perpustakaan, daftar putar, peringkat, riwayat pemutaran, dan sampul yang di-cache. Aplikasi akan memulai ulang ke onboarding bersih. Tindakan ini tidak dapat dibatalkan.",
+        "typeToConfirm": "Ketik RESET untuk konfirmasi",
+        "error": "Gagal menyetel ulang. Tutup program eksternal apa pun yang menahan file WaveFlow (pemutar musik yang terbuka, penjelajah file di folder data) dan coba lagi.",
+        "cancel": "Batal",
+        "confirmButton": "Setel ulang dan mulai ulang"
+      }
     },
     "diagnostics": {
       "title": "Log aplikasi",

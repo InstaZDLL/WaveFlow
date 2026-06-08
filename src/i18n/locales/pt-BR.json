@@ -1443,7 +1443,15 @@
     "reset": {
       "title": "Redefinir o aplicativo",
       "subtitle": "Apaga todos os dados e restaura as configurações de fábrica",
-      "action": "Redefinir"
+      "action": "Redefinir",
+      "confirm": {
+        "title": "Redefinir todo o aplicativo?",
+        "warning": "Isso exclui todos os perfis, bibliotecas, playlists, avaliações, histórico de audição e capas em cache. O aplicativo reiniciará em uma configuração inicial limpa. Esta ação não pode ser desfeita.",
+        "typeToConfirm": "Digite RESET para confirmar",
+        "error": "Falha ao redefinir. Feche qualquer programa externo que esteja segurando um arquivo do WaveFlow (um reprodutor de música aberto, explorador de arquivos na pasta de dados) e tente novamente.",
+        "cancel": "Cancelar",
+        "confirmButton": "Redefinir e reiniciar"
+      }
     },
     "diagnostics": {
       "title": "Registro do aplicativo",

@@ -8,6 +8,7 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
+use std::time::Duration;
 
 use crossbeam_channel::{unbounded, Sender};
 use rtrb::Producer;
@@ -235,6 +236,45 @@ impl AudioEngine {
     /// current position / volume / state without hitting the decoder.
     pub fn shared(&self) -> &Arc<SharedPlayback> {
         &self.shared
+    }
+
+    /// Send `Stop` and await the decoder thread's transition back to
+    /// `PlayerState::Idle`. The decoder publishes the new state
+    /// AFTER it drops the active stream (and therefore the
+    /// underlying `File` / `HttpMediaSource` handle), so once this
+    /// returns we know the audio side is no longer holding any file
+    /// open under the data dir.
+    ///
+    /// Polls `shared.state` every 10 ms via `tokio::time::sleep` so
+    /// the wait yields to the runtime instead of pinning a worker
+    /// thread. Falls back to the timeout if the decoder is stuck or
+    /// already dead (channel closed) — the caller can choose to
+    /// surface or swallow the error depending on whether it's a
+    /// hard requirement or best-effort.
+    pub async fn stop_and_wait(&self, timeout: Duration) -> AppResult<()> {
+        use std::sync::atomic::Ordering;
+        use std::time::Instant;
+
+        use crate::audio::state::PlayerState;
+
+        // Channel-closed (decoder dead) → nothing left holding files,
+        // treat as already-stopped. Any other send error propagates.
+        match self.send(AudioCmd::Stop) {
+            Ok(()) => {}
+            Err(_) => return Ok(()),
+        }
+
+        let deadline = Instant::now() + timeout;
+        let idle_marker = PlayerState::Idle as u8;
+        while self.shared.state.load(Ordering::Acquire) != idle_marker {
+            if Instant::now() >= deadline {
+                return Err(AppError::Audio(
+                    "audio engine did not reach Idle within timeout".into(),
+                ));
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        Ok(())
     }
 
     /// Name of the cpal device feeding the current output thread, or

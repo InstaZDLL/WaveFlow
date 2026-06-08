@@ -184,3 +184,17 @@ export function importPaths(
 export function regenerateThumbnails(): Promise<number> {
   return invoke<number>("regenerate_thumbnails");
 }
+
+/**
+ * Wipe every profile, library, playlist and cache, then restart the
+ * app into onboarding. The backend never returns — `app.restart()`
+ * swaps the process — so the returned Promise resolves only if the
+ * teardown failed before the restart point (e.g. couldn't delete the
+ * data dir because a file was held by another process).
+ *
+ * The caller is responsible for showing a confirmation dialog before
+ * invoking this; the backend trusts that the user already confirmed.
+ */
+export function resetApp(): Promise<void> {
+  return invoke<void>("reset_app");
+}

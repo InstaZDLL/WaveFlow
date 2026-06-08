@@ -1431,7 +1431,15 @@
     "reset": {
       "title": "Uygulamayı sıfırla",
       "subtitle": "Tüm verileri sil ve fabrika ayarlarına geri yükle",
-      "action": "Sıfırla"
+      "action": "Sıfırla",
+      "confirm": {
+        "title": "Tüm uygulama sıfırlansın mı?",
+        "warning": "Bu işlem her profili, kitaplığı, çalma listesini, derecelendirmeyi, dinleme geçmişini ve önbelleğe alınmış kapakları siler. Uygulama temiz bir kurulum akışıyla yeniden başlatılır. Bu işlem geri alınamaz.",
+        "typeToConfirm": "Onaylamak için RESET yazın",
+        "error": "Sıfırlama başarısız oldu. WaveFlow dosyasını tutan harici bir programı (açık bir müzik çalar, veri klasöründeki dosya gezgini) kapatın ve tekrar deneyin.",
+        "cancel": "İptal",
+        "confirmButton": "Sıfırla ve yeniden başlat"
+      }
     },
     "diagnostics": {
       "title": "Uygulama günlüğü",
