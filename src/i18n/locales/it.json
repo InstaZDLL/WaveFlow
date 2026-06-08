@@ -224,7 +224,9 @@
       "feedback": "Feedback",
       "about": "Informazioni",
       "quit": "Esci dall'app"
-    }
+    },
+    "showSidebar": "Mostra la barra laterale",
+    "hideSidebar": "Nascondi la barra laterale"
   },
   "home": {
     "greeting": {

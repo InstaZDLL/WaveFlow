@@ -224,7 +224,9 @@
       "feedback": "Commentaires",
       "about": "À propos",
       "quit": "Quitter l'application"
-    }
+    },
+    "showSidebar": "Afficher la barre latérale",
+    "hideSidebar": "Masquer la barre latérale"
   },
   "home": {
     "greeting": {

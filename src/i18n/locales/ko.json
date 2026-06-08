@@ -224,7 +224,9 @@
       "feedback": "피드백",
       "about": "정보",
       "quit": "앱 종료"
-    }
+    },
+    "showSidebar": "사이드바 표시",
+    "hideSidebar": "사이드바 숨기기"
   },
   "home": {
     "greeting": {

@@ -224,7 +224,9 @@
       "feedback": "Feedback",
       "about": "About",
       "quit": "Quit app"
-    }
+    },
+    "showSidebar": "Show sidebar",
+    "hideSidebar": "Hide sidebar"
   },
   "home": {
     "greeting": {

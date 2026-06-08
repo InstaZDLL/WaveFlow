@@ -224,7 +224,9 @@
       "feedback": "回饋",
       "about": "關於",
       "quit": "退出應用程式"
-    }
+    },
+    "showSidebar": "顯示側邊欄",
+    "hideSidebar": "隱藏側邊欄"
   },
   "home": {
     "greeting": {
