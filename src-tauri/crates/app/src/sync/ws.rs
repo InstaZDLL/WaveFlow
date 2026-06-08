@@ -150,7 +150,10 @@ struct AckFrame {
 /// itself.
 pub fn spawn(app: AppHandle) {
     let handle = app.state::<AppState>().ws.clone();
-    tokio::spawn(async move {
+    // Same Tauri-setup-no-runtime concern as `sync::drain::spawn`
+    // — use the Tauri-configured runtime rather than the bare
+    // `tokio::spawn` (which panics in `setup`).
+    tauri::async_runtime::spawn(async move {
         let mut backoff = BACKOFF_MIN;
         loop {
             let state = app.state::<AppState>();
