@@ -55,15 +55,27 @@ export function useFullscreenLyricsCentering(): FullscreenLyricsCentering {
     };
   }, [activeProfile?.id]);
 
-  const setCentered = useCallback(async (next: boolean) => {
-    setCenteredState(next);
-    try {
-      await setProfileSetting(KEY, next ? "true" : "false", "bool");
-      window.dispatchEvent(new CustomEvent(FULLSCREEN_LYRICS_CENTERING_EVENT));
-    } catch (err) {
-      console.error("[useFullscreenLyricsCentering] write failed", err);
-    }
-  }, []);
+  const setCentered = useCallback(
+    async (next: boolean) => {
+      // Snapshot the value the user is currently seeing so we can
+      // roll back on a persistence failure — otherwise the UI keeps
+      // showing the new value while the backend never recorded it,
+      // and the next mount / refresh would silently revert.
+      const previous = centered;
+      setCenteredState(next);
+      try {
+        await setProfileSetting(KEY, next ? "true" : "false", "bool");
+        // Only broadcast on success — other consumers re-reading
+        // from the backend after a failed write would just confirm
+        // the rolled-back value and the event would be misleading.
+        window.dispatchEvent(new CustomEvent(FULLSCREEN_LYRICS_CENTERING_EVENT));
+      } catch (err) {
+        console.error("[useFullscreenLyricsCentering] write failed", err);
+        setCenteredState(previous);
+      }
+    },
+    [centered],
+  );
 
   return { centered, setCentered };
 }
