@@ -13,11 +13,15 @@
 //! waveflow-server side): a thin row carrying the columns that
 //! actually exist on disk for every file. The album / artist /
 //! artwork joins from the desktop's `TrackRow` projection still
-//! materialise in the response shape — they're projected as `NULL`
-//! casts of the right Postgres type until the album / artist /
-//! artwork tables ship on the server. Same pattern as
-//! `library.track_count = 0::bigint`: keep the wire field so the
-//! client doesn't need to adapt when the joins become real.
+//! materialise in the response shape — most are projected as `NULL`
+//! casts of the right Postgres type until the joined tables ship.
+//! `album_id` IS projected real since phase 4.d.0.1 added the
+//! `album` table + the nullable `track.album_id` FK; the album
+//! drill-down endpoint already relies on it, and the legacy
+//! `/tracks` collection now matches (closing the asymmetry
+//! documented in the server's CLAUDE.md). The remaining NULL casts
+//! (`album_title`, `artist_*`, `artwork_*`) stay until their
+//! materialisation paths land on the server.
 //!
 //! Insert + update follow the race-free patterns established by
 //! `PostgresProfileRepository::rename_for_user` and
@@ -69,7 +73,7 @@ impl PostgresTrackRepository {
             "SELECT t.id,
                     t.library_id,
                     t.title,
-                    NULL::bigint  AS album_id,
+                    t.album_id,
                     NULL::text    AS album_title,
                     NULL::bigint  AS artist_id,
                     NULL::text    AS artist_name,
@@ -125,7 +129,7 @@ impl PostgresTrackRepository {
             "SELECT t.id,
                     t.library_id,
                     t.title,
-                    NULL::bigint  AS album_id,
+                    t.album_id,
                     NULL::text    AS album_title,
                     NULL::bigint  AS artist_id,
                     NULL::text    AS artist_name,
@@ -201,7 +205,7 @@ impl PostgresTrackRepository {
          RETURNING id,
                    library_id,
                    title,
-                   NULL::bigint  AS album_id,
+                   album_id,
                    NULL::text    AS album_title,
                    NULL::bigint  AS artist_id,
                    NULL::text    AS artist_name,
@@ -277,7 +281,7 @@ impl PostgresTrackRepository {
           RETURNING id,
                     library_id,
                     title,
-                    NULL::bigint  AS album_id,
+                    album_id,
                     NULL::text    AS album_title,
                     NULL::bigint  AS artist_id,
                     NULL::text    AS artist_name,
