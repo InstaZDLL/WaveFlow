@@ -14,6 +14,7 @@ import {
   Upload,
   Sparkles,
   Headphones,
+  Radio,
 } from "lucide-react";
 import type { ViewId, LibraryTab } from "../../types";
 import { NavItem } from "../common/NavItem";
@@ -275,6 +276,12 @@ export function Sidebar({
             onClick={() => setActiveView("spotify")}
           />
         )}
+        <NavItem
+          icon={<Radio size={18} />}
+          label={t("sidebar.nav.webRadio", "Web Radio")}
+          active={activeView === "web-radio"}
+          onClick={() => setActiveView("web-radio")}
+        />
       </div>
 
       {/* Single scroll surface for everything below the pinned nav so

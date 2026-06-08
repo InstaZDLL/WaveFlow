@@ -658,6 +658,8 @@ pub fn run() {
             commands::player::player_list_output_devices,
             commands::player::player_set_output_device,
             commands::player::player_set_wasapi_exclusive,
+            commands::web_radio::web_radio_list_stations,
+            commands::web_radio::web_radio_play_station,
             commands::player::player_get_wasapi_exclusive,
             commands::stats::stats_overview,
             commands::stats::stats_top_tracks,

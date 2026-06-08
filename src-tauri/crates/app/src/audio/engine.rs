@@ -41,6 +41,13 @@ pub enum AudioCmd {
         /// stays out of the SQLite path.
         replay_gain_db: Option<f64>,
     },
+    LoadUrlAndPlay {
+        url: String,
+        codec_hint: Option<String>,
+        track_id: i64,
+        source_type: String,
+        source_id: Option<i64>,
+    },
     Pause,
     Resume,
     Stop,
@@ -94,6 +101,9 @@ impl std::fmt::Debug for AudioCmd {
                 f,
                 "LoadAndPlay {{ track_id: {track_id}, start_ms: {start_ms} }}"
             ),
+            AudioCmd::LoadUrlAndPlay { track_id, url, .. } => {
+                write!(f, "LoadUrlAndPlay {{ track_id: {track_id}, url: {url} }}")
+            }
             AudioCmd::Pause => write!(f, "Pause"),
             AudioCmd::Resume => write!(f, "Resume"),
             AudioCmd::Stop => write!(f, "Stop"),

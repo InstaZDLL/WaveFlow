@@ -7,14 +7,16 @@
 //! re-implementing the symphonia init dance twice.
 
 use std::fs::File;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{self, Read, Seek, SeekFrom};
 use std::path::Path;
+use std::sync::Mutex;
+use std::time::Duration;
 
 use symphonia::core::codecs::audio::{AudioDecoder, AudioDecoderOptions};
 use symphonia::core::errors::Error as SymphoniaError;
 use symphonia::core::formats::probe::Hint;
 use symphonia::core::formats::{FormatOptions, FormatReader, SeekMode, SeekTo, TrackType};
-use symphonia::core::io::MediaSourceStream;
+use symphonia::core::io::{MediaSource, MediaSourceStream};
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::units::Time;
 
@@ -88,6 +90,54 @@ pub struct ActiveStream {
 /// 64 KiB ≈ 23 ms of DSD64 stereo, comfortably below the SPSC ring
 /// capacity but large enough to amortise the FIR convolution cost.
 const DSD_READ_CHUNK: usize = 64 * 1024;
+
+struct HttpMediaSource {
+    inner: Mutex<reqwest::blocking::Response>,
+}
+
+impl HttpMediaSource {
+    fn open(url: &str) -> Result<Self, String> {
+        let client = reqwest::blocking::Client::builder()
+            .connect_timeout(Duration::from_secs(10))
+            .user_agent("WaveFlow/1.0 web-radio")
+            .build()
+            .map_err(|e| format!("http client: {e}"))?;
+        let response = client
+            .get(url)
+            .send()
+            .and_then(|res| res.error_for_status())
+            .map_err(|e| format!("stream request: {e}"))?;
+        Ok(Self {
+            inner: Mutex::new(response),
+        })
+    }
+}
+
+impl Read for HttpMediaSource {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let mut response = self
+            .inner
+            .lock()
+            .map_err(|_| io::Error::other("radio stream mutex poisoned"))?;
+        response.read(buf)
+    }
+}
+
+impl Seek for HttpMediaSource {
+    fn seek(&mut self, _: SeekFrom) -> io::Result<u64> {
+        Err(io::Error::other("radio streams are not seekable"))
+    }
+}
+
+impl MediaSource for HttpMediaSource {
+    fn is_seekable(&self) -> bool {
+        false
+    }
+
+    fn byte_len(&self) -> Option<u64> {
+        None
+    }
+}
 
 impl ActiveStream {
     /// Open `path`, probe + build the codec, and stash everything
@@ -167,6 +217,60 @@ impl ActiveStream {
             source_type,
             source_id,
             replay_gain_linear: replay_gain_db_to_linear(replay_gain_db),
+            src_sample_rate: 0,
+            playback_speed: 1.0,
+        })
+    }
+
+    pub fn open_url(
+        url: &str,
+        codec_hint: Option<&str>,
+        track_id: i64,
+        source_type: String,
+        source_id: Option<i64>,
+    ) -> Result<Self, String> {
+        let source = HttpMediaSource::open(url)?;
+        let mss = MediaSourceStream::new(Box::new(source), Default::default());
+        let mut hint = Hint::new();
+        if let Some(ext) = codec_hint {
+            hint.with_extension(ext);
+        }
+        let format = symphonia::default::get_probe()
+            .probe(
+                &hint,
+                mss,
+                FormatOptions::default(),
+                MetadataOptions::default(),
+            )
+            .map_err(|e| format!("probe: {e}"))?;
+        let track_symphonia = format
+            .default_track(TrackType::Audio)
+            .ok_or_else(|| "no decodable stream".to_string())?;
+        let symphonia_track_id = track_symphonia.id;
+        let audio_params = track_symphonia
+            .codec_params
+            .as_ref()
+            .and_then(|p| p.audio())
+            .ok_or_else(|| "stream has no audio codec params".to_string())?;
+        let decoder = symphonia::default::get_codecs()
+            .make_audio_decoder(audio_params, &AudioDecoderOptions::default())
+            .map_err(|e| format!("codec init: {e}"))?;
+
+        Ok(Self {
+            backend: StreamBackend::Symphonia {
+                format,
+                decoder,
+                decoded_interleaved: Vec::new(),
+                symphonia_track_id,
+                spec_captured: false,
+            },
+            resampler: Resampler::Passthrough,
+            src_channels: 0,
+            track_id,
+            duration_ms: 0,
+            source_type,
+            source_id,
+            replay_gain_linear: 1.0,
             src_sample_rate: 0,
             playback_speed: 1.0,
         })

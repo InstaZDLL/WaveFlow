@@ -124,7 +124,8 @@
   "sidebar": {
     "nav": {
       "home": "Home",
-      "spotify": "Spotify"
+      "spotify": "Spotify",
+      "webRadio": "Web Radio"
     },
     "sections": {
       "open": "Open",
@@ -189,6 +190,18 @@
       "playlistSubtext_zero": "0 tracks",
       "playlistSubtext_one": "{{count}} track",
       "playlistSubtext_other": "{{count}} tracks"
+    }
+  },
+  "webRadio": {
+    "eyebrow": "Live streams",
+    "title": "Web Radio",
+    "subtitle": "Tune into curated internet radio stations without adding anything to your local library.",
+    "stationCount_zero": "0 stations",
+    "stationCount_one": "{{count}} station",
+    "stationCount_other": "{{count}} stations",
+    "errors": {
+      "load": "Unable to load web radio stations.",
+      "play": "Unable to start {{station}}."
     }
   },
   "topbar": {

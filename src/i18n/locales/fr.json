@@ -124,7 +124,8 @@
   "sidebar": {
     "nav": {
       "home": "Accueil",
-      "spotify": "Spotify"
+      "spotify": "Spotify",
+      "webRadio": "Web Radio"
     },
     "sections": {
       "open": "Ouvrir",
@@ -189,6 +190,18 @@
       "playlistSubtext_zero": "0 titre",
       "playlistSubtext_one": "{{count}} titre",
       "playlistSubtext_other": "{{count}} titres"
+    }
+  },
+  "webRadio": {
+    "eyebrow": "Flux en direct",
+    "title": "Web Radio",
+    "subtitle": "Écoutez des stations de radio internet sélectionnées sans rien ajouter à votre bibliothèque locale.",
+    "stationCount_zero": "0 station",
+    "stationCount_one": "{{count}} station",
+    "stationCount_other": "{{count}} stations",
+    "errors": {
+      "load": "Impossible de charger les stations web radio.",
+      "play": "Impossible de lancer {{station}}."
     }
   },
   "topbar": {

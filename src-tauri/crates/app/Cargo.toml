@@ -131,7 +131,7 @@ crossbeam-channel = "0.5"
 realfft = "3"
 
 # HTTP client for Deezer public API metadata enrichment
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
 
 # WebSocket client for the multi-device sync subscriber (Phase
 # 1.f.desktop.4b). Same rustls stack as reqwest so the TLS roots stay

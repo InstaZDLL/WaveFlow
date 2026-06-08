@@ -248,7 +248,7 @@ fn decoder_loop(
                 shared.current_track_id.store(track_id, Ordering::Release);
 
                 let outcome = play_track(
-                    &path,
+                    InitialAudioSource::Local(&path),
                     start_ms,
                     track_id,
                     duration_ms,
@@ -298,6 +298,77 @@ fn decoder_loop(
                     }
                     Err(err) => {
                         tracing::warn!(?err, path = %path.display(), "playback failed");
+                        let _ = app.emit(
+                            EVENT_ERROR,
+                            ErrorPayload {
+                                message: err.clone(),
+                            },
+                        );
+                        transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
+                    }
+                }
+            }
+            AudioCmd::LoadUrlAndPlay {
+                url,
+                codec_hint,
+                track_id,
+                source_type,
+                source_id,
+            } => {
+                shared.clear_ab_loop();
+                transition_state(&shared, &app, PlayerState::Loading, Some(track_id));
+                if producer.slots() != super::output::RING_CAPACITY {
+                    shared.paused_output.store(false, Ordering::Release);
+                    shared.drain_silent.store(true, Ordering::Release);
+                    let start = std::time::Instant::now();
+                    while producer.slots() < super::output::RING_CAPACITY
+                        && start.elapsed() < Duration::from_millis(500)
+                    {
+                        std::thread::sleep(Duration::from_millis(1));
+                    }
+                    shared.drain_silent.store(false, Ordering::Release);
+                } else {
+                    shared.paused_output.store(false, Ordering::Release);
+                }
+                shared.samples_played.store(0, Ordering::Relaxed);
+                shared.base_offset_ms.store(0, Ordering::Relaxed);
+                shared.current_track_id.store(track_id, Ordering::Release);
+
+                let outcome = play_track(
+                    InitialAudioSource::RemoteUrl {
+                        url: &url,
+                        codec_hint: codec_hint.as_deref(),
+                    },
+                    0,
+                    track_id,
+                    0,
+                    source_type,
+                    source_id,
+                    None,
+                    producer,
+                    &shared,
+                    cmd_rx,
+                    &app,
+                    &mut pending_cmd,
+                    analytics_tx,
+                );
+                match outcome {
+                    Ok((PlaybackEnd::Natural, listened_ms, finished)) => {
+                        tracing::info!(
+                            finished_track_id = finished.track_id,
+                            listened_ms,
+                            "web radio stream ended"
+                        );
+                    }
+                    Ok((PlaybackEnd::Interrupted, listened_ms, finished)) => {
+                        tracing::info!(
+                            finished_track_id = finished.track_id,
+                            listened_ms,
+                            "web radio stream interrupted"
+                        );
+                    }
+                    Err(err) => {
+                        tracing::warn!(?err, url, "web radio playback failed");
                         let _ = app.emit(
                             EVENT_ERROR,
                             ErrorPayload {
@@ -363,6 +434,14 @@ pub struct FinishedTrack {
     pub source_id: Option<i64>,
 }
 
+enum InitialAudioSource<'a> {
+    Local(&'a Path),
+    RemoteUrl {
+        url: &'a str,
+        codec_hint: Option<&'a str>,
+    },
+}
+
 /// Decode tracks until either an interruption or a track ends naturally.
 /// Honors crossfade: if `shared.crossfade_ms > 0` and there's a pending
 /// next track (delivered by `AudioCmd::SetNextTrack`), this function
@@ -379,7 +458,7 @@ pub struct FinishedTrack {
 /// obscure the call site without changing what the function does.
 #[allow(clippy::too_many_arguments)]
 fn play_track(
-    initial_path: &Path,
+    initial_source: InitialAudioSource<'_>,
     initial_start_ms: u64,
     initial_track_id: i64,
     initial_duration_ms: u64,
@@ -399,14 +478,23 @@ fn play_track(
         return Err("cpal output not initialized (sample_rate=0)".into());
     }
 
-    let mut stream = ActiveStream::open(
-        initial_path,
-        initial_track_id,
-        initial_duration_ms,
-        initial_source_type,
-        initial_source_id,
-        initial_replay_gain_db,
-    )?;
+    let mut stream = match initial_source {
+        InitialAudioSource::Local(path) => ActiveStream::open(
+            path,
+            initial_track_id,
+            initial_duration_ms,
+            initial_source_type,
+            initial_source_id,
+            initial_replay_gain_db,
+        )?,
+        InitialAudioSource::RemoteUrl { url, codec_hint } => ActiveStream::open_url(
+            url,
+            codec_hint,
+            initial_track_id,
+            initial_source_type,
+            initial_source_id,
+        )?,
+    };
     // Inherit the active playback speed so the lazy resampler init
     // inside decode_next builds against the correct effective input
     // rate from the very first packet. Without this, a track that
@@ -420,7 +508,7 @@ fn play_track(
     tracing::info!(
         dst_sample_rate,
         dst_channels,
-        path = %initial_path.display(),
+        source = %stream.source_type,
         "decoding start"
     );
 
@@ -1049,7 +1137,7 @@ fn drain_commands(
             Ok(AudioCmd::Shutdown) => return ControlFlow::Shutdown,
             Ok(AudioCmd::Stop) => return ControlFlow::Break,
             Ok(AudioCmd::Seek(ms)) => return ControlFlow::Seek(ms),
-            Ok(cmd @ AudioCmd::LoadAndPlay { .. }) => {
+            Ok(cmd @ (AudioCmd::LoadAndPlay { .. } | AudioCmd::LoadUrlAndPlay { .. })) => {
                 shared.paused_output.store(false, Ordering::Release);
                 *pending_cmd = Some(cmd);
                 return ControlFlow::LoadNext;
@@ -1132,7 +1220,9 @@ fn drain_commands(
                             shared.gapless_enabled.store(on, Ordering::Release)
                         }
                         Ok(AudioCmd::SetSpeed(v)) => shared.set_playback_speed(v),
-                        Ok(cmd @ AudioCmd::LoadAndPlay { .. }) => {
+                        Ok(
+                            cmd @ (AudioCmd::LoadAndPlay { .. } | AudioCmd::LoadUrlAndPlay { .. }),
+                        ) => {
                             shared.paused_output.store(false, Ordering::Release);
                             *pending_cmd = Some(cmd);
                             return ControlFlow::LoadNext;

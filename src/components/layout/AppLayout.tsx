@@ -51,6 +51,11 @@ const SpotifyView = lazy(() =>
     default: module.SpotifyView,
   })),
 );
+const WebRadioView = lazy(() =>
+  import("../views/WebRadioView").then((module) => ({
+    default: module.WebRadioView,
+  })),
+);
 const AboutView = lazy(() =>
   import("../views/AboutView").then((module) => ({
     default: module.AboutView,
@@ -117,6 +122,7 @@ type HistoryEntry =
   | { id: "statistics" }
   | { id: "liked" }
   | { id: "recent" }
+  | { id: "web-radio" }
   | { id: "wrapped"; year?: number | null }
   | { id: "playlist"; playlistId?: number | null }
   | { id: "album-detail"; albumId?: number | null }
@@ -205,6 +211,7 @@ export function AppLayout() {
       void import("../views/WrappedView");
       void import("../views/SettingsView");
       void import("../views/SpotifyView");
+      void import("../views/WebRadioView");
       void import("../views/AboutView");
       void import("../views/FeedbackView");
     };
@@ -411,6 +418,8 @@ export function AppLayout() {
         return <SettingsView onNavigate={setActiveView} />;
       case "spotify":
         return <SpotifyView onNavigate={setActiveView} />;
+      case "web-radio":
+        return <WebRadioView />;
       case "about":
         return <AboutView onNavigate={setActiveView} />;
       case "feedback":
