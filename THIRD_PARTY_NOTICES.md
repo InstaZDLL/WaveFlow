@@ -6,10 +6,16 @@ from third-party projects with compatible licenses.
 
 ## syncedlyrics
 
-`src-tauri/crates/syncedlyrics` is a Rust implementation of the multi-provider
-lyrics lookup behavior originally provided by the `syncedlyrics` Python
-project. It is included in WaveFlow under GPL-3.0-only, with the original MIT
-notice preserved below.
+`src-tauri/crates/syncedlyrics` is a Rust port of the multi-provider lyrics
+lookup behavior originally provided by the `syncedlyrics` Python project. Its
+lineage is:
+
+1. Upstream Python project by Momo — <https://github.com/moehmeni/syncedlyrics>
+2. Forked and rewritten in Zig — <https://github.com/InstaZDLL/zig-syncedlyrics>
+3. Ported to Rust as the `waveflow-syncedlyrics` crate for WaveFlow (this tree)
+
+It is included in WaveFlow under GPL-3.0-only, with the original MIT notice
+preserved below.
 
 MIT License
 
