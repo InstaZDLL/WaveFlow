@@ -4,7 +4,7 @@ External services WaveFlow talks to. All clients use [`reqwest 0.12`](https://cr
 
 ## Offline mode
 
-A single global toggle — Settings → Intégrations → "Mode hors-ligne" — short-circuits every outbound call described below. The flag is a `static AtomicBool` in [`offline.rs`](../../src-tauri/crates/app/src/offline.rs); it is consulted by Deezer enrichment, Last.fm now-playing + the scrobble worker tick, similar-artist lookups, and the LRCLIB lyrics fetch + library prefetch. Each gated path returns an empty payload (or whatever the local cache holds), nothing throws, so the UI keeps rendering with whatever metadata is already on disk. Persisted in `app_setting['network.offline_mode']` because the flag is process-wide — switching profiles must not silently re-enable network calls.
+A single global toggle — Settings → Intégrations → "Mode hors-ligne" — short-circuits every outbound call described below. The flag is a `static AtomicBool` in [`offline.rs`](../../src-tauri/crates/app/src/offline.rs); it is consulted by Deezer enrichment, Last.fm now-playing + the scrobble worker tick, similar-artist lookups, and lyrics fetch + library prefetch providers. Each gated path returns an empty payload (or whatever the local cache holds), nothing throws, so the UI keeps rendering with whatever metadata is already on disk. Persisted in `app_setting['network.offline_mode']` because the flag is process-wide — switching profiles must not silently re-enable network calls.
 
 ## Deezer (metadata)
 
@@ -107,14 +107,16 @@ Triggered from [`emit_track_changed`](../../src-tauri/crates/app/src/commands/pl
 
 **Off by default** — opposite default from Discord RPC because toasts are intrusive and trigger Focus Assist (Windows), Do Not Disturb (macOS), and `org.freedesktop.Notifications` filters (Linux) on every platform. Opt-in via Settings → Intégrations → "Notifications de changement de morceau". Stored in `app_setting['notifications.track_change']` (typed `bool`, shared across profiles like Discord RPC since toasts are an OS-level user preference, not per-listener). Toggling on doesn't fire a toast for the current track — first toast lands on the **next** track change.
 
-## LRCLIB (synchronized lyrics)
+## Lyrics providers
 
-[`lrclib.rs`](../../src-tauri/crates/core/src/metadata/lrclib.rs) — public lookup by `artist_name + track_name + album_name + duration` against [LRCLIB](https://lrclib.net). Four-tier resolution in [`commands/lyrics.rs`](../../src-tauri/crates/app/src/commands/lyrics.rs), driven on demand by `fetch_lyrics` (the library-wide `prefetch_library_lyrics` walks the same waterfall):
+[`lrclib.rs`](../../src-tauri/crates/core/src/metadata/lrclib.rs) still handles the exact [LRCLIB](https://lrclib.net) lookup by `artist_name + track_name + album_name + duration`. Query-based providers live in the Tauri-free [`waveflow-syncedlyrics`](../../src-tauri/crates/syncedlyrics/src/lib.rs) crate and are called from [`commands/lyrics.rs`](../../src-tauri/crates/app/src/commands/lyrics.rs). `fetch_lyrics` and the library-wide `prefetch_library_lyrics` walk the same waterfall:
 
 1. **Cache** — `app.lyrics` row keyed by `track.file_hash` (BLAKE3). No TTL, shared across profiles.
 2. **Embedded** — `LYRICS` / `USLT` / `©lyr` tag in the file (lofty), incl. synced `LRC` blocks. Lookup tries `ItemKey::UnsyncLyrics` first (the only key that maps to ID3v2's `USLT` in lofty 0.24), then `ItemKey::Lyrics` for Vorbis / MP4. For MP3s tagged with Mp3tag / foobar2000 / lame `--tg`, lyrics often live in a TXXX user-defined frame named `LYRICS` or `UNSYNCEDLYRICS` (common on K-Pop / J-Pop rips); these are invisible to the generic `Tag` interface so [`commands/lyrics.rs::read_id3v2_txxx_lyrics`](../../src-tauri/crates/app/src/commands/lyrics.rs) re-opens the file as `MpegFile`, downcasts to `Id3v2Tag`, and scans the TXXX descriptions explicitly.
 3. **Sidecar file** — `{stem}.lrc` / `{stem}.txt` next to the audio file (e.g. `01 Song.mp3` + `01 Song.lrc`), or inside a sibling `Lyrics/` folder (case-insensitive, so `lyrics/` is also matched — common Linux convention). Stem matching is also case-insensitive so `Song.MP3` finds `song.lrc` on case-sensitive filesystems. `.lrc` wins over `.txt` at every probed directory because it carries timing info; same-folder hits beat `Lyrics/` hits. Format is auto-detected via `detect_format` and the row is cached with `source = lrc_file`. Whitespace-only files are treated as misses so the waterfall keeps falling through. `save_lyrics` still writes back only to the embedded tag — the sidecar file remains read-only — so a user who edits via the in-app editor sees the new content immediately (from the freshly-hashed cache row), and the old sidecar copy is silently superseded by the new embedded tag on subsequent re-hashes.
-4. **LRCLIB** — synced lyrics first, falls back to plain text. Result cached as a new row.
+4. **Musixmatch Enhanced** — asks for word-level karaoke first. It only wins early when the result is actually Enhanced LRC; regular line-level LRC from Musixmatch falls through so LRCLIB's stricter metadata match can still win.
+5. **LRCLIB** — synced lyrics first, falls back to plain text. Result cached as a new row.
+6. **Query-based fallback providers** — Musixmatch, NetEase, Megalobiz, then Genius. This broader scan only runs after LRCLIB returns 404 or an empty payload, and prefers synced content over plain text.
 
 `import_lrc_file` is still available for the explicit "pick this file" flow (e.g. when the sidecar lives in a non-conventional location like `~/Documents/lyrics/`); it overwrites the cached row regardless of which tier filled it.
 
@@ -127,14 +129,14 @@ UI is [`LyricsEditorModal`](../../src/components/common/LyricsEditorModal.tsx) o
 
 **Cache discipline.** `clear_lyrics` flushes the row keyed by the track's hash so the next fetch re-runs the waterfall. Cached outcomes:
 
-- Hit (embedded or LRCLIB) → row written.
+- Hit (embedded, sidecar, LRCLIB, or query provider) → row written.
 - Instrumental flag from LRCLIB → empty row written (suppresses retries).
-- LRCLIB 404 / empty payload → empty row written. Without this, lo-fi / ambient libraries would re-hit the network on every panel open since most of their tracks are genuinely missing from LRCLIB. The lyrics panel renders "no lyrics found" against an empty cached row, and the "Refetch" button (`clearLyrics + fetchLyrics`) is the manual escape hatch for the user to retry once they think LRCLIB might have added the track.
+- LRCLIB 404 / empty payload and every query provider misses → empty row written. Without this, lo-fi / ambient libraries would re-hit the network on every panel open since many of their tracks are genuinely missing from public lyric providers. The lyrics panel renders "no lyrics found" against an empty cached row, and the "Refetch" button (`clearLyrics + fetchLyrics`) is the manual escape hatch for the user to retry once they think providers might have added the track.
 - Network error → **not cached** and bubbled up to the UI as `Err` so the panel can show "retry" instead of a misleading "no lyrics" state.
 
-**Network defaults.** 15 s overall timeout + 5 s connect-timeout in `LrclibClient` so a slow LRCLIB instance still gets a chance to respond while a truly unreachable host fails fast.
+**Network defaults.** 15 s overall timeout + 5 s connect-timeout in both `LrclibClient` and `SyncedLyricsClient` so a slow provider still gets a chance to respond while a truly unreachable host fails fast. Genius and NetEase can receive cookies through `SYNCEDLYRICS_GENIUS_COOKIE` and `SYNCEDLYRICS_NETEASE_COOKIE` for deployments that need them; secrets stay in the environment, never in the database.
 
-**Library-wide prefetch.** `prefetch_library_lyrics` walks every available track without a cached row (deduped by `file_hash`), runs the embedded → LRCLIB chain, and persists each hit. Network calls are throttled at 500 ms (~2 req/s) to be a polite guest; embedded hits skip the throttle. Progress streams over `lyrics:prefetch-progress`. A single global run is enforced via an `AtomicBool`; `cancel_lyrics_prefetch` flips a second `AtomicBool` the worker checks per iteration. Resumable — a partial cancel just leaves uncached rows for the next run.
+**Library-wide prefetch.** `prefetch_library_lyrics` walks every available track without a cached row (deduped by `file_hash`), runs the same waterfall, and persists each hit. Network calls are throttled at 500 ms (~2 req/s) to be a polite guest; embedded and sidecar hits skip the throttle. Progress streams over `lyrics:prefetch-progress`. A single global run is enforced via an `AtomicBool`; `cancel_lyrics_prefetch` flips a second `AtomicBool` the worker checks per iteration. Resumable — a partial cancel just leaves uncached rows for the next run.
 
 The lyrics panel renders synced lines with auto-scroll and a 200 ms transition; un-synced lyrics fall back to a static block.
 

@@ -1,6 +1,6 @@
 # Crate layout
 
-`src-tauri/` is a Cargo workspace with two members:
+`src-tauri/` is a Cargo workspace with three members:
 
 ```text
 src-tauri/
@@ -22,6 +22,11 @@ src-tauri/
     │       │   └── sqlite/            (Sqlite* impls of each trait)
     │       ├── scanner/               (file extract + upsert helpers, no orchestration)
     │       └── smart_playlists/       (Daily Mix, On Repeat, custom rule eval, cover composer)
+    ├── syncedlyrics/  (waveflow-syncedlyrics — query-based lyrics providers)
+    │   └── src/
+    │       ├── lib.rs                 (provider orchestration + search options)
+    │       ├── providers/             (Musixmatch / LRCLIB / NetEase / Megalobiz / Genius)
+    │       └── utils.rs               (LRC detection, scoring, text helpers)
     └── app/           (waveflow — Tauri 2 application)
         ├── Cargo.toml                 (produces the `waveflow` binary)
         ├── tauri.conf.json
@@ -55,6 +60,14 @@ Anything that could run inside an axum handler in the future `waveflow-server` (
 - **Audio format conversion** — DSD parser + decimating FIR (`audio_format/dsd/*`). The real-time playback pipeline still uses this from `app/src/audio/crossfade.rs`.
 - **Artwork pipeline** — the shared blake3-keyed metadata cache + the SIMD thumbnail variants (`artwork/{metadata,thumbnails}.rs`).
 - **Error type** — `CoreError`. The desktop's `AppError` wraps it via `#[from] CoreError` so `?` flattens automatically across the boundary.
+
+## What goes in `waveflow-syncedlyrics`
+
+Lyrics providers that are query-based rather than exact metadata clients. The crate is deliberately independent from Tauri and SQLite: callers pass a free-form query plus a provider list, and receive raw lyrics content with a detected format (`plain`, `lrc`, or `enhanced_lrc`).
+
+- **Provider adapters** — Musixmatch, LRCLIB search, NetEase, Megalobiz, and Genius. Network requests stay inside `providers/`.
+- **Search policy** — `SearchMode` controls plaintext vs synced-only vs synced-preferred results; `enhanced` asks Musixmatch for word-level karaoke before falling back to regular synced lyrics.
+- **Format/scoring helpers** — LRC / Enhanced LRC detection, timestamp formatting, rough token-set scoring, and small HTML text decoding helpers.
 
 ## What stays in `waveflow` (`crates/app/`)
 

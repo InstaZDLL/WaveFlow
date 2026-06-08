@@ -1,12 +1,14 @@
 //! Lyrics fetch + cache.
 //!
-//! Lazy four-tier lookup, in order:
+//! Lazy multi-tier lookup, in order:
 //!   1. Local DB cache (`lyrics` table, keyed by `track_id`)
 //!   2. Embedded `USLT` / lyrics tag inside the audio file (via lofty)
 //!   3. Local sidecar file — `{stem}.lrc` / `{stem}.txt` next to the
 //!      audio file, or inside a `Lyrics/` (case-insensitive) subfolder
 //!      next to it. `.lrc` wins over `.txt` (timing info).
-//!   4. LRCLIB public API (matched by artist + track + album + duration)
+//!   4. Musixmatch Enhanced LRC when word-level timing exists
+//!   5. LRCLIB public API (matched by artist + track + album + duration)
+//!   6. Query-based external providers before caching a network miss
 //!
 //! Whichever tier hits first becomes the cached entry. We never refetch
 //! once a row exists — the user can manually overwrite by importing a
@@ -25,6 +27,10 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 
 use waveflow_core::metadata::lrclib::LrclibClient;
+use waveflow_syncedlyrics::{
+    LyricsFormat as ExternalLyricsFormat, LyricsResult as ExternalLyricsResult, Provider,
+    SearchMode, SearchOptions, SyncedLyricsClient,
+};
 
 use crate::{
     audio::AudioEngine,
@@ -230,6 +236,79 @@ fn source_to_db(src: &LyricsSource) -> &'static str {
         LyricsSource::Api => "api",
         LyricsSource::Manual => "manual",
     }
+}
+
+fn external_format_to_app(format: ExternalLyricsFormat) -> LyricsFormat {
+    match format {
+        ExternalLyricsFormat::Plain => LyricsFormat::Plain,
+        ExternalLyricsFormat::Lrc => LyricsFormat::Lrc,
+        ExternalLyricsFormat::EnhancedLrc => LyricsFormat::EnhancedLrc,
+    }
+}
+
+fn external_query(title: &str, artist_name: Option<&str>) -> String {
+    match artist_name {
+        Some(artist) if !artist.trim().is_empty() => {
+            let primary_artist = artist.split(", ").next().unwrap_or(artist);
+            format!("{title} {primary_artist}")
+        }
+        _ => title.to_string(),
+    }
+}
+
+fn external_fallback_providers() -> Vec<Provider> {
+    vec![
+        Provider::Musixmatch,
+        Provider::NetEase,
+        Provider::Megalobiz,
+        Provider::Genius,
+    ]
+}
+
+async fn external_lyrics_search(
+    meta: &TrackMeta,
+    providers: Vec<Provider>,
+    mode: SearchMode,
+    enhanced: bool,
+) -> Option<ExternalLyricsResult> {
+    let query = external_query(&meta.title, meta.artist_name.as_deref());
+    let client = SyncedLyricsClient::new();
+    match client
+        .search(SearchOptions {
+            query,
+            mode,
+            providers,
+            enhanced,
+            lang: None,
+            genius_cookie: std::env::var("SYNCEDLYRICS_GENIUS_COOKIE").ok(),
+            netease_cookie: std::env::var("SYNCEDLYRICS_NETEASE_COOKIE").ok(),
+        })
+        .await
+    {
+        Ok(result) => result,
+        Err(err) => {
+            tracing::debug!(?err, "external lyrics search failed");
+            None
+        }
+    }
+}
+
+async fn cache_external_lyrics(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+    file_hash: &str,
+    result: ExternalLyricsResult,
+) -> AppResult<LyricsPayload> {
+    let format = external_format_to_app(result.format);
+    let source = LyricsSource::Api;
+    upsert_lyrics(pool, file_hash, &result.content, &format, &source).await?;
+    Ok(LyricsPayload {
+        track_id,
+        content: result.content,
+        format,
+        source,
+        tag_write_skipped: None,
+    })
 }
 
 /// Re-open an MP3 as a typed `Id3v2Tag` and pull the lyrics out of any
@@ -528,8 +607,9 @@ pub async fn get_lyrics(
     read_cached(&pool, track_id).await
 }
 
-/// Three-tier lookup: cache → embedded tag → LRCLIB. Caches the first
-/// hit and returns it. Returns `None` if every tier failed.
+/// Multi-tier lookup: cache → embedded tag → sidecar → enhanced/API
+/// providers. Caches the first hit and returns it. Returns `None` if
+/// local tiers fail and offline mode prevents network lookup.
 #[tauri::command]
 pub async fn fetch_lyrics(
     state: tauri::State<'_, AppState>,
@@ -591,7 +671,27 @@ pub async fn fetch_lyrics(
         }));
     }
 
-    // 4. LRCLIB fallback. Skip if we have no artist (matching is
+    // 4. Musixmatch enhanced fallback. This runs before LRCLIB only
+    //    when it returns true word-level LRC; regular line-level LRC
+    //    still lets the stricter metadata LRCLIB lookup below win.
+    if !crate::offline::is_offline() {
+        if let Some(result) = external_lyrics_search(
+            &meta,
+            vec![Provider::Musixmatch],
+            SearchMode::SyncedOnly,
+            true,
+        )
+        .await
+        {
+            if matches!(result.format, ExternalLyricsFormat::EnhancedLrc) {
+                return cache_external_lyrics(&pool, track_id, &meta.file_hash, result)
+                    .await
+                    .map(Some);
+            }
+        }
+    }
+
+    // 5. LRCLIB fallback. Skip if we have no artist (matching is
     //    useless without one) or if offline mode is on (the cache +
     //    embedded tiers above already ran).
     if crate::offline::is_offline() {
@@ -614,11 +714,27 @@ pub async fn fetch_lyrics(
     {
         Ok(Some(r)) => r,
         Ok(None) => {
-            // LRCLIB 404 — track unknown to the database. Cache as an
-            // empty row so we don't re-hit the network on every panel
-            // open. The user can force a re-search by clicking
-            // "Refetch" in the lyrics panel (clears the row, re-runs
-            // the waterfall) when LRCLIB might have added the track.
+            // LRCLIB 404 — try the broader provider chain before
+            // caching a miss. These sources are query-based and less
+            // strict than LRCLIB's metadata endpoint, so they only run
+            // after the exact lookup fails.
+            if let Some(result) = external_lyrics_search(
+                &meta,
+                external_fallback_providers(),
+                SearchMode::PreferSynced,
+                true,
+            )
+            .await
+            {
+                return cache_external_lyrics(&pool, track_id, &meta.file_hash, result)
+                    .await
+                    .map(Some);
+            }
+
+            // No provider had lyrics. Cache as an empty row so we
+            // don't re-hit the network on every panel open. The user
+            // can force a re-search by clicking "Refetch" in the
+            // lyrics panel (clears the row, re-runs the waterfall).
             let empty = String::new();
             upsert_lyrics(
                 &pool,
@@ -675,6 +791,19 @@ pub async fn fetch_lyrics(
         (Some(s), _) if !s.trim().is_empty() => (s, LyricsFormat::Lrc),
         (_, Some(p)) if !p.trim().is_empty() => (p, LyricsFormat::Plain),
         _ => {
+            if let Some(result) = external_lyrics_search(
+                &meta,
+                external_fallback_providers(),
+                SearchMode::PreferSynced,
+                true,
+            )
+            .await
+            {
+                return cache_external_lyrics(&pool, track_id, &meta.file_hash, result)
+                    .await
+                    .map(Some);
+            }
+
             let empty = String::new();
             upsert_lyrics(
                 &pool,
@@ -764,8 +893,9 @@ pub struct LyricsPrefetchSummary {
 }
 
 /// Walk every available track that doesn't have a cached lyric and try
-/// to populate the cache (embedded tag → LRCLIB). Throttles network
-/// calls at ~2 req/s. Cancellable via [`cancel_lyrics_prefetch`].
+/// to populate the cache using the same local/network priority as
+/// [`fetch_lyrics`]. Throttles network calls at ~2 req/s. Cancellable
+/// via [`cancel_lyrics_prefetch`].
 ///
 /// Idempotent: the `WHERE l.file_hash IS NULL` filter skips anything
 /// already cached, so re-running after a partial cancel just resumes.
@@ -911,7 +1041,39 @@ async fn run_prefetch(
             continue;
         }
 
-        // 3. LRCLIB. Skip if metadata is too thin to match.
+        let meta = TrackMeta {
+            file_path: file_path.clone(),
+            file_hash: file_hash.clone(),
+            title: title.clone(),
+            artist_name: artist_name.clone(),
+            album_title: album_title.clone(),
+            duration_ms,
+        };
+
+        // 3. Musixmatch enhanced. If word-level timing exists, keep it
+        //    before LRCLIB's line-level result can fill the cache.
+        if let Some(result) = external_lyrics_search(
+            &meta,
+            vec![Provider::Musixmatch],
+            SearchMode::SyncedOnly,
+            true,
+        )
+        .await
+        {
+            if matches!(result.format, ExternalLyricsFormat::EnhancedLrc) {
+                if let Err(e) = cache_external_lyrics(&pool, track_id, &file_hash, result).await {
+                    tracing::warn!(track_id, ?e, "persist Musixmatch enhanced lyrics failed");
+                    failed += 1;
+                } else {
+                    hits += 1;
+                }
+                processed += 1;
+                tokio::time::sleep(LRCLIB_THROTTLE).await;
+                continue;
+            }
+        }
+
+        // 4. LRCLIB. Skip if metadata is too thin to match.
         let Some(artist) = artist_name.as_deref() else {
             misses += 1;
             processed += 1;
@@ -958,33 +1120,71 @@ async fn run_prefetch(
                         }
                     } else {
                         // Row exists but neither synced nor plain
-                        // lyrics — treat like a 404 and cache empty.
-                        let _ = upsert_lyrics(
-                            &pool,
-                            &file_hash,
-                            "",
-                            &LyricsFormat::Plain,
-                            &LyricsSource::Api,
+                        // lyrics. Try query-based providers before
+                        // caching this as a miss.
+                        if let Some(result) = external_lyrics_search(
+                            &meta,
+                            external_fallback_providers(),
+                            SearchMode::PreferSynced,
+                            true,
                         )
-                        .await;
-                        misses += 1;
+                        .await
+                        {
+                            if let Err(e) =
+                                cache_external_lyrics(&pool, track_id, &file_hash, result).await
+                            {
+                                tracing::warn!(track_id, ?e, "persist external lyrics failed");
+                                failed += 1;
+                            } else {
+                                hits += 1;
+                            }
+                        } else {
+                            let _ = upsert_lyrics(
+                                &pool,
+                                &file_hash,
+                                "",
+                                &LyricsFormat::Plain,
+                                &LyricsSource::Api,
+                            )
+                            .await;
+                            misses += 1;
+                        }
                     }
                 }
             }
             Ok(None) => {
-                // LRCLIB 404. Cache as empty so re-runs of the
-                // prefetch and re-opens of the lyrics panel skip this
-                // track. User can force a re-search per-track via the
-                // "Refetch" button in the lyrics panel.
-                let _ = upsert_lyrics(
-                    &pool,
-                    &file_hash,
-                    "",
-                    &LyricsFormat::Plain,
-                    &LyricsSource::Api,
+                // LRCLIB 404. Try query-based providers before caching
+                // as empty.
+                if let Some(result) = external_lyrics_search(
+                    &meta,
+                    external_fallback_providers(),
+                    SearchMode::PreferSynced,
+                    true,
                 )
-                .await;
-                misses += 1;
+                .await
+                {
+                    if let Err(e) = cache_external_lyrics(&pool, track_id, &file_hash, result).await
+                    {
+                        tracing::warn!(track_id, ?e, "persist external lyrics failed");
+                        failed += 1;
+                    } else {
+                        hits += 1;
+                    }
+                } else {
+                    // No provider had lyrics. Cache as empty so re-runs
+                    // of the prefetch and re-opens of the lyrics panel
+                    // skip this track. User can force a re-search
+                    // per-track via the "Refetch" button.
+                    let _ = upsert_lyrics(
+                        &pool,
+                        &file_hash,
+                        "",
+                        &LyricsFormat::Plain,
+                        &LyricsSource::Api,
+                    )
+                    .await;
+                    misses += 1;
+                }
             }
             Err(err) => {
                 tracing::warn!(track_id, ?err, "LRCLIB prefetch failed");
