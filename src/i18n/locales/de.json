@@ -1634,6 +1634,10 @@
           "description": "Es werden keine Änderungen an den Server gesendet, auch wenn du angemeldet bist. Nützlich für ein privates Profil."
         }
       }
+    },
+    "fullscreenLyricsCentering": {
+      "title": "Synchronisierten Liedtext im Vollbild zentrieren",
+      "subtitle": "Richtet zeitgesteuerten Liedtext in der Vollbildansicht zentriert aus, passend zur reinen Textansicht."
     }
   },
   "spotify": {

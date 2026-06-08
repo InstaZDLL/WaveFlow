@@ -10,6 +10,7 @@ import {
 } from "../../lib/tauri/lyrics";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import { useFullscreenLyricsCentering } from "../../hooks/useFullscreenLyricsCentering";
 
 interface FullscreenLyricsProps {
   track: Track;
@@ -51,6 +52,9 @@ export function FullscreenLyrics({
 }: FullscreenLyricsProps) {
   const { t } = useTranslation();
   const { positionMs } = usePlayer();
+  // Per-profile opt-in (#168). Default OFF — see
+  // `useFullscreenLyricsCentering`.
+  const { centered: syncCentered } = useFullscreenLyricsCentering();
   const lineRefs = useRef<Array<HTMLLIElement | null>>([]);
   // The overlay is mounted only when the side panel toggles it on, so
   // the hook is always opened against `true` while alive — passing
@@ -200,7 +204,9 @@ export function FullscreenLyrics({
                       <button
                         type="button"
                         onClick={() => onSeek(line)}
-                        className={`block w-full text-left text-3xl md:text-4xl font-bold leading-snug cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded ${
+                        className={`block w-full text-3xl md:text-4xl font-bold leading-snug cursor-pointer transition-all select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded ${
+                          syncCentered ? "text-center" : "text-left"
+                        } ${
                           isActive
                             ? "text-white scale-[1.04]"
                             : isPast
