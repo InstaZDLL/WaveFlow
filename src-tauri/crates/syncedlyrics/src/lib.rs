@@ -113,19 +113,33 @@ impl Default for SyncedLyricsClient {
 }
 
 impl SyncedLyricsClient {
-    pub fn new() -> Self {
+    /// Build the client, returning an error instead of panicking if the HTTP
+    /// stack (e.g. the TLS backend) fails to initialize.
+    pub fn try_new() -> Result<Self> {
         let http = reqwest::Client::builder()
             .user_agent("WaveFlow/1.4 (https://github.com/InstaZDLL/WaveFlow)")
             .timeout(std::time::Duration::from_secs(15))
             .connect_timeout(std::time::Duration::from_secs(5))
-            .build()
-            .expect("failed to build reqwest client");
-        Self { http }
+            .build()?;
+        Ok(Self { http })
+    }
+
+    /// Infallible constructor for callers that can't propagate an error.
+    /// Falls back to a default reqwest client if the tuned builder fails so a
+    /// transient init issue never aborts the process.
+    pub fn new() -> Self {
+        Self::try_new().unwrap_or_else(|err| {
+            tracing::warn!(?err, "falling back to default reqwest client");
+            Self {
+                http: reqwest::Client::new(),
+            }
+        })
     }
 
     pub async fn search(&self, options: SearchOptions) -> Result<Option<LyricsResult>> {
         let mut aggregate = Candidate::default();
         let mut last_provider = None;
+        let mut last_error = None;
 
         for provider in options.providers.iter().copied() {
             if options.lang.is_some() && provider != Provider::Musixmatch {
@@ -160,6 +174,7 @@ impl SyncedLyricsClient {
                 Ok(value) => value,
                 Err(err) => {
                     tracing::debug!(?provider, ?err, "lyrics provider failed");
+                    last_error = Some(err);
                     None
                 }
             }) else {
@@ -174,7 +189,14 @@ impl SyncedLyricsClient {
         }
 
         if !aggregate.acceptable(options.mode) {
-            return Ok(None);
+            // Distinguish "every provider genuinely had nothing" (Ok(None),
+            // safe to cache as a miss) from "we never reached a verdict
+            // because a provider errored" (propagate so the caller doesn't
+            // poison the cache with an empty entry on a transient failure).
+            return match last_error {
+                Some(err) => Err(err),
+                None => Ok(None),
+            };
         }
         Ok(aggregate.into_result(options.mode, last_provider.unwrap_or(Provider::Lrclib)))
     }

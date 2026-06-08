@@ -13,10 +13,57 @@ pub(crate) fn synced_to_plaintext(input: &str) -> String {
             while let Some(stripped) = strip_lrc_stamp(rest) {
                 rest = stripped.trim_start();
             }
-            rest
+            // Enhanced LRC carries inline word-stamps (`<mm:ss.xx>`) that the
+            // line-stamp strip above leaves untouched; drop them so plaintext
+            // output never leaks timing tokens.
+            strip_word_stamps(rest).trim().to_string()
         })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+/// Remove inline `<mm:ss.xx>` / `<mm:ss>` word-stamps from a line, leaving any
+/// other angle-bracketed text intact.
+fn strip_word_stamps(line: &str) -> String {
+    let mut out = String::with_capacity(line.len());
+    let mut rest = line;
+    while let Some(lt) = rest.find('<') {
+        match rest[lt + 1..].find('>') {
+            Some(gt_rel) => {
+                let gt = lt + 1 + gt_rel;
+                if is_time_token(&rest[lt + 1..gt]) {
+                    out.push_str(&rest[..lt]);
+                    rest = &rest[gt + 1..];
+                } else {
+                    out.push_str(&rest[..=lt]);
+                    rest = &rest[lt + 1..];
+                }
+            }
+            None => break,
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+/// `true` when `s` looks like a timestamp body: `mm:ss` or `mm:ss.xx`.
+fn is_time_token(s: &str) -> bool {
+    let Some((minutes, after)) = s.split_once(':') else {
+        return false;
+    };
+    if minutes.is_empty() || !minutes.bytes().all(|b| b.is_ascii_digit()) {
+        return false;
+    }
+    let seconds = match after.split_once('.') {
+        Some((secs, frac)) => {
+            if frac.is_empty() || !frac.bytes().all(|b| b.is_ascii_digit()) {
+                return false;
+            }
+            secs
+        }
+        None => after,
+    };
+    !seconds.is_empty() && seconds.bytes().all(|b| b.is_ascii_digit())
 }
 
 pub fn detect_format(content: &str) -> LyricsFormat {
@@ -193,5 +240,17 @@ mod tests {
             str_score("Gloria Estefan - Get on Your Feet", "get on your feet"),
             100.0
         );
+    }
+
+    #[test]
+    fn plaintext_drops_word_stamps() {
+        let enhanced = "[00:01.00]<00:01.00>Hello <00:01.50>world";
+        assert_eq!(synced_to_plaintext(enhanced), "Hello world");
+    }
+
+    #[test]
+    fn plaintext_keeps_non_timestamp_brackets() {
+        let line = "[00:01.00]a < b and c > d";
+        assert_eq!(synced_to_plaintext(line), "a < b and c > d");
     }
 }

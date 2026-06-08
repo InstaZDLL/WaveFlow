@@ -38,9 +38,20 @@ fn best_lrc_href(html: &str, query: &str) -> Option<String> {
     let mut pos = 0;
     while let Some(idx) = html[pos..].find("href=\"/lrc/maker/") {
         let href_start = pos + idx + "href=\"".len();
-        let href_end = html[href_start..].find('"').map(|i| href_start + i)?;
-        let tag_end = html[href_end..].find('>').map(|i| href_end + i)?;
-        let close = html[tag_end..].find("</a>").map(|i| tag_end + i)?;
+        // A single malformed anchor must not abort the whole scan — skip past
+        // it and keep looking at the remaining results.
+        let Some(href_end) = html[href_start..].find('"').map(|i| href_start + i) else {
+            pos = href_start;
+            continue;
+        };
+        let Some(tag_end) = html[href_end..].find('>').map(|i| href_end + i) else {
+            pos = href_end;
+            continue;
+        };
+        let Some(close) = html[tag_end..].find("</a>").map(|i| tag_end + i) else {
+            pos = tag_end;
+            continue;
+        };
         let text = utils::html_text_decode(&html[tag_end + 1..close]);
         let label = comparable_text(&text, query);
         let score = utils::str_score(&label, query);

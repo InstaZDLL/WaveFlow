@@ -2,6 +2,11 @@ use serde::Deserialize;
 
 use crate::{utils, Candidate, Result};
 
+/// Minimum fuzzy score for a search hit to be considered the same track.
+/// Mirrors the threshold used by the Musixmatch and Megalobiz providers so
+/// the query-based fallback never latches onto an off-topic result.
+const MIN_SCORE: f64 = 65.0;
+
 #[derive(Debug, Deserialize)]
 struct SearchTrack {
     id: serde_json::Value,
@@ -78,6 +83,9 @@ fn best_track<'a>(tracks: &'a [SearchTrack], query: &str) -> Option<&'a SearchTr
             best_cluster_count = cluster_count;
             best_has_synced = has_synced;
         }
+    }
+    if best_score < MIN_SCORE {
+        return None;
     }
     best
 }

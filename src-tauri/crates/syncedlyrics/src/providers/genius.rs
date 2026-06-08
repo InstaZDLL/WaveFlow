@@ -14,12 +14,27 @@ pub async fn search(
         req = req.header(reqwest::header::COOKIE, cookie);
     }
     let response: Value = req.send().await?.error_for_status()?.json().await?;
+    // The multi-search response groups results into sections (song, lyric,
+    // artist, album…) and the order is not contractual, so we can't index a
+    // fixed slot. Prefer the dedicated "song" section, then fall back to the
+    // first section that actually carries hits.
     let Some(url) = response["response"]["sections"]
         .as_array()
-        .and_then(|sections| sections.get(1))
-        .and_then(|section| section["hits"].as_array())
-        .and_then(|hits| hits.first())
-        .and_then(|hit| hit["result"]["url"].as_str())
+        .and_then(|sections| {
+            sections
+                .iter()
+                .find(|section| section["type"].as_str() == Some("song"))
+                .or_else(|| {
+                    sections.iter().find(|section| {
+                        section["hits"]
+                            .as_array()
+                            .is_some_and(|hits| !hits.is_empty())
+                    })
+                })
+                .and_then(|section| section["hits"].as_array())
+                .and_then(|hits| hits.first())
+                .and_then(|hit| hit["result"]["url"].as_str())
+        })
     else {
         return Ok(None);
     };
