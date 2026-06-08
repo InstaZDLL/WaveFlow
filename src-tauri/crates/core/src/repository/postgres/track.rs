@@ -281,7 +281,7 @@ impl PostgresTrackRepository {
           RETURNING id,
                     library_id,
                     title,
-                    NULL::bigint  AS album_id,
+                    album_id,
                     NULL::text    AS album_title,
                     NULL::bigint  AS artist_id,
                     NULL::text    AS artist_name,
