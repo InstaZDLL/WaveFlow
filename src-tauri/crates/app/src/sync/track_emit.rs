@@ -136,11 +136,29 @@ pub async fn emit_track_insert_in_tx(
 }
 
 /// Enqueue a `track + delete` op for a file the user explicitly
-/// removed (e.g. duplicate cleanup). Cascade-driven deletes (the
-/// parent library or folder being dropped) MUST NOT call this —
-/// the server-side library apply pipeline already cascades the
-/// tracks; an explicit per-track delete would be redundant + race
-/// the cascade in the apply order.
+/// removed.
+///
+/// Call this when:
+/// - The user deletes a track from the duplicates UI
+///   (`commands/duplicates.rs::delete_tracks`).
+/// - The user removes a library FOLDER
+///   (`commands/library.rs::remove_folder_from_library`). The
+///   server has no `library_folder` entity, so a folder removal
+///   doesn't cascade server-side — without per-row delete ops the
+///   tracks linger as ghost rows under the still-live library
+///   until the library itself is dropped.
+///
+/// Don't call this when:
+/// - The user removes an entire LIBRARY. The server has a
+///   `library` entity and its apply pipeline cascades the tracks
+///   when the parent `library + delete` op lands. Emitting
+///   explicit track deletes alongside would be redundant and race
+///   the cascade in the apply order.
+/// - A file vanished from disk between scans but wasn't
+///   user-deleted (`is_available = 0`). The scanner intentionally
+///   skips that path so the track resurfaces on the next scan if
+///   the file reappears; a noisy delete-then-insert pair would
+///   just churn the apply pipeline.
 pub async fn emit_track_delete_in_tx(
     conn: &mut SqliteConnection,
     library_id: i64,
