@@ -1636,6 +1636,10 @@
           "description": "Oturum açık olsa bile sunucuya hiçbir değişiklik gönderilmez. Gizli tutmak istediğiniz bir profil için yararlıdır."
         }
       }
+    },
+    "fullscreenLyricsCentering": {
+      "title": "Tam ekranda senkronize sözleri ortala",
+      "subtitle": "Tam ekran görünümünde senkronize sözleri düz metin gibi ortaya hizalar."
     }
   },
   "spotify": {

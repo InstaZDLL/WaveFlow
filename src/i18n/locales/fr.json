@@ -1636,6 +1636,10 @@
           "description": "Aucune modification n'est envoyée au serveur, même connecté. Utile pour un profil que vous voulez garder privé."
         }
       }
+    },
+    "fullscreenLyricsCentering": {
+      "title": "Centrer les paroles synchronisées en plein écran",
+      "subtitle": "Aligne les paroles synchronisées au centre de l'aperçu plein écran, comme l'affichage du texte brut."
     }
   },
   "spotify": {

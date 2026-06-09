@@ -1636,6 +1636,10 @@
           "description": "即使已登录，也不会向服务器发送任何更改。适用于希望保持隐私的配置文件。"
         }
       }
+    },
+    "fullscreenLyricsCentering": {
+      "title": "全屏中将同步歌词居中",
+      "subtitle": "在全屏视图中将带时间戳的歌词居中对齐,与纯文本视图保持一致。"
     }
   },
   "scanProgress": {

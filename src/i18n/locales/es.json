@@ -1636,6 +1636,10 @@
           "description": "Ningún cambio se envía al servidor, ni siquiera con sesión iniciada. Útil para un perfil que quieres mantener privado."
         }
       }
+    },
+    "fullscreenLyricsCentering": {
+      "title": "Centrar las letras sincronizadas en pantalla completa",
+      "subtitle": "Alinea las letras sincronizadas al centro de la vista a pantalla completa, igual que el texto plano."
     }
   },
   "spotify": {

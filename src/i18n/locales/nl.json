@@ -1636,6 +1636,10 @@
           "description": "Er worden geen wijzigingen naar de server gestuurd, zelfs niet wanneer je aangemeld bent. Handig voor een profiel dat je privé wilt houden."
         }
       }
+    },
+    "fullscreenLyricsCentering": {
+      "title": "Gesynchroniseerde songtekst centreren in volledig scherm",
+      "subtitle": "Plaatst de gesynchroniseerde songtekst in het midden van de volledige weergave, zoals de gewone tekst."
     }
   },
   "spotify": {

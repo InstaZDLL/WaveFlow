@@ -134,6 +134,7 @@ import { PlayerBarLayoutCard } from "./settings/PlayerBarLayoutCard";
 import { ShortcutsCard } from "./settings/ShortcutsCard";
 import { WrappedBannerCard } from "./settings/WrappedBannerCard";
 import { HiResBadgeCard } from "./settings/HiResBadgeCard";
+import { FullscreenLyricsCenteringCard } from "./settings/FullscreenLyricsCenteringCard";
 
 interface SettingsViewProps {
   onNavigate: (view: ViewId) => void;
@@ -2539,6 +2540,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
           <PlayerBarLayoutCard />
 
           <HiResBadgeCard />
+
+          <FullscreenLyricsCenteringCard />
 
           <WrappedBannerCard />
         </section>

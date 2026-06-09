@@ -1636,6 +1636,10 @@
           "description": "Tidak ada perubahan yang dikirim ke server, bahkan saat masuk. Berguna untuk profil yang ingin Anda jaga privasinya."
         }
       }
+    },
+    "fullscreenLyricsCentering": {
+      "title": "Pusatkan lirik tersinkron di layar penuh",
+      "subtitle": "Menyelaraskan lirik tersinkron di tengah tampilan layar penuh, sama seperti teks polos."
     }
   },
   "spotify": {

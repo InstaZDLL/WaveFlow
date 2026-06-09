@@ -1636,6 +1636,10 @@
           "description": "No changes are sent to the server, even when signed in. Useful for a profile you want to keep private."
         }
       }
+    },
+    "fullscreenLyricsCentering": {
+      "title": "Center synced lyrics in fullscreen",
+      "subtitle": "Align time-coded lyrics to the center of the fullscreen overlay, matching the plain text view."
     }
   },
   "spotify": {

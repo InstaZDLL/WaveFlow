@@ -1636,6 +1636,10 @@
           "description": "Nessuna modifica viene inviata al server, anche con accesso effettuato. Utile per un profilo da mantenere privato."
         }
       }
+    },
+    "fullscreenLyricsCentering": {
+      "title": "Centra i testi sincronizzati a schermo intero",
+      "subtitle": "Allinea i testi sincronizzati al centro della vista a schermo intero, come la versione testuale."
     }
   },
   "spotify": {
