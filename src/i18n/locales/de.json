@@ -1433,7 +1433,15 @@
     "reset": {
       "title": "App zurücksetzen",
       "subtitle": "Alle Daten löschen und auf Werkseinstellungen zurücksetzen",
-      "action": "Zurücksetzen"
+      "action": "Zurücksetzen",
+      "confirm": {
+        "title": "Die gesamte App zurücksetzen?",
+        "warning": "Dies löscht jedes Profil, jede Bibliothek, Playlist, Bewertung, jeden Wiedergabeverlauf und das Cover-Cache. Die App startet neu mit einer sauberen Einrichtung. Dies kann nicht rückgängig gemacht werden.",
+        "typeToConfirm": "Geben Sie RESET ein, um zu bestätigen",
+        "error": "Zurücksetzen fehlgeschlagen. Schließen Sie ein externes Programm, das eine WaveFlow-Datei hält (geöffneter Musikplayer, Datei-Explorer im Datenordner), und versuchen Sie es erneut.",
+        "cancel": "Abbrechen",
+        "confirmButton": "Zurücksetzen und neu starten"
+      }
     },
     "diagnostics": {
       "title": "Anwendungs-Log",

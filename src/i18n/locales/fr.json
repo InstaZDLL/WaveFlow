@@ -1484,7 +1484,15 @@
     "reset": {
       "title": "Réinitialiser l'application",
       "subtitle": "Supprimer toutes les données et revenir à l'état initial",
-      "action": "Réinitialiser"
+      "action": "Réinitialiser",
+      "confirm": {
+        "title": "Réinitialiser l'application ?",
+        "warning": "Cela supprime chaque profil, bibliothèque, playlist, note, historique d'écoute et pochette mise en cache. L'application redémarrera sur une configuration initiale propre. Cette action est irréversible.",
+        "typeToConfirm": "Tapez RESET pour confirmer",
+        "error": "Échec de la réinitialisation. Fermez tout programme externe qui retient un fichier WaveFlow (lecteur de musique ouvert, explorateur de fichiers dans le dossier de données) puis réessayez.",
+        "cancel": "Annuler",
+        "confirmButton": "Réinitialiser et redémarrer"
+      }
     },
     "diagnostics": {
       "title": "Journal de l'application",

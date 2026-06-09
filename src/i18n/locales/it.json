@@ -1433,7 +1433,15 @@
     "reset": {
       "title": "Reimposta l'app",
       "subtitle": "Elimina tutti i dati e ripristina le impostazioni di fabbrica",
-      "action": "Reimposta"
+      "action": "Reimposta",
+      "confirm": {
+        "title": "Ripristinare l'intera app?",
+        "warning": "Verranno eliminati tutti i profili, le librerie, le playlist, le valutazioni, la cronologia di ascolto e le copertine in cache. L'app si riavvierà con una configurazione iniziale pulita. Questa azione non può essere annullata.",
+        "typeToConfirm": "Digita RESET per confermare",
+        "error": "Ripristino non riuscito. Chiudi qualsiasi programma esterno che trattiene un file di WaveFlow (un lettore musicale aperto, l'esplora file nella cartella dati) e riprova.",
+        "cancel": "Annulla",
+        "confirmButton": "Ripristina e riavvia"
+      }
     },
     "diagnostics": {
       "title": "Log dell'applicazione",

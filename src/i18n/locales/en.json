@@ -1433,7 +1433,15 @@
     "reset": {
       "title": "Reset the app",
       "subtitle": "Delete all data and restore to factory settings",
-      "action": "Reset"
+      "action": "Reset",
+      "confirm": {
+        "title": "Reset the entire app?",
+        "warning": "This deletes every profile, library, playlist, rating, listening history and cached cover. The app will restart into a clean onboarding. This cannot be undone.",
+        "typeToConfirm": "Type RESET to confirm",
+        "error": "Failed to reset. Close any external program holding a WaveFlow file (an open music player, file explorer in the data folder) and try again.",
+        "cancel": "Cancel",
+        "confirmButton": "Reset and restart"
+      }
     },
     "diagnostics": {
       "title": "Application log",

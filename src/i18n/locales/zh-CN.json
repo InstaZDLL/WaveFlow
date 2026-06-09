@@ -1392,7 +1392,15 @@
     "reset": {
       "title": "重置应用程序",
       "subtitle": "删除所有数据并恢复出厂设置",
-      "action": "重置"
+      "action": "重置",
+      "confirm": {
+        "title": "重置整个应用？",
+        "warning": "此操作将删除每个个人资料、音乐库、播放列表、评分、收听历史和缓存的封面。应用将重新启动到全新的引导流程。此操作无法撤销。",
+        "typeToConfirm": "输入 RESET 以确认",
+        "error": "重置失败。请关闭任何持有 WaveFlow 文件的外部程序（已打开的音乐播放器、数据文件夹中的文件资源管理器），然后重试。",
+        "cancel": "取消",
+        "confirmButton": "重置并重启"
+      }
     },
     "diagnostics": {
       "title": "应用程序日志",

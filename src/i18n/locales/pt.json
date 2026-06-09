@@ -1443,9 +1443,17 @@
     "regenerateThumbnailsAction": "Regenerar",
     "regenerateThumbnailsDone": "{{count}} miniaturas atualizadas",
     "reset": {
-      "title": "Reiniciar a aplicação",
+      "title": "Repor a aplicação",
       "subtitle": "Apagar todos os dados e restaurar as definições de fábrica",
-      "action": "Reiniciar"
+      "action": "Repor",
+      "confirm": {
+        "title": "Repor toda a aplicação?",
+        "warning": "Isto apaga todos os perfis, bibliotecas, playlists, classificações, histórico de audição e capas em cache. A aplicação reiniciará numa configuração inicial limpa. Esta ação não pode ser anulada.",
+        "typeToConfirm": "Escreva RESET para confirmar",
+        "error": "Falha ao repor. Feche qualquer programa externo que esteja a reter um ficheiro WaveFlow (um leitor de música aberto, explorador de ficheiros na pasta de dados) e tente novamente.",
+        "cancel": "Cancelar",
+        "confirmButton": "Repor e reiniciar"
+      }
     },
     "diagnostics": {
       "title": "Registo da aplicação",

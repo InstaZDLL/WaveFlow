@@ -1433,7 +1433,15 @@
     "reset": {
       "title": "App resetten",
       "subtitle": "Verwijder alle gegevens en herstel de fabrieksinstellingen",
-      "action": "Resetten"
+      "action": "Resetten",
+      "confirm": {
+        "title": "De hele app resetten?",
+        "warning": "Hiermee worden alle profielen, bibliotheken, afspeellijsten, beoordelingen, luistergeschiedenis en hoesjes in de cache verwijderd. De app start opnieuw op met een schone onboarding. Dit kan niet ongedaan worden gemaakt.",
+        "typeToConfirm": "Typ RESET om te bevestigen",
+        "error": "Reset mislukt. Sluit elk extern programma dat een WaveFlow-bestand vasthoudt (een geopende muziekspeler, verkenner in de gegevensmap) en probeer het opnieuw.",
+        "cancel": "Annuleren",
+        "confirmButton": "Resetten en herstarten"
+      }
     },
     "diagnostics": {
       "title": "Applicatielog",

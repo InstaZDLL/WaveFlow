@@ -1433,7 +1433,15 @@
     "reset": {
       "title": "Restablecer la app",
       "subtitle": "Borra todos los datos y restablece la configuración de fábrica",
-      "action": "Restablecer"
+      "action": "Restablecer",
+      "confirm": {
+        "title": "¿Restablecer toda la aplicación?",
+        "warning": "Esto elimina todos los perfiles, bibliotecas, listas de reproducción, valoraciones, historial de escucha y portadas en caché. La aplicación se reiniciará con una configuración inicial limpia. Esta acción no se puede deshacer.",
+        "typeToConfirm": "Escriba RESET para confirmar",
+        "error": "Error al restablecer. Cierre cualquier programa externo que mantenga un archivo de WaveFlow (un reproductor de música abierto, el explorador en la carpeta de datos) e inténtelo de nuevo.",
+        "cancel": "Cancelar",
+        "confirmButton": "Restablecer y reiniciar"
+      }
     },
     "diagnostics": {
       "title": "Registro de la aplicación",
