@@ -155,6 +155,32 @@ export function AppLayout() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [libraryTab, setLibraryTab] = useState<LibraryTab>("morceaux");
 
+  // Sidebar visibility toggle (#167). Hidden state is persisted in
+  // localStorage rather than `profile_setting` because it's a UI
+  // affordance — not data — and users on 1080p screens typically
+  // hide once and forget. The Sidebar component stays mounted at
+  // `width: 0` so its data fetches / event listeners don't tear
+  // down on every toggle. Hydration happens lazily so the initial
+  // render matches the persisted choice without a flash.
+  const [isSidebarHidden, setIsSidebarHidden] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("waveflow.sidebar.hidden") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarHidden((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("waveflow.sidebar.hidden", next ? "1" : "0");
+      } catch {
+        // Private mode / quota — UI still works for this session.
+      }
+      return next;
+    });
+  }, []);
+
   // First-run onboarding: prompt the user to point WaveFlow at a
   // music folder when no library has been populated yet.
   //
@@ -503,14 +529,37 @@ export function AppLayout() {
 
         {/* Main Container */}
         <div className="flex flex-1 overflow-hidden">
-          <Sidebar
-            activeView={activeView}
-            setActiveView={setActiveView}
-            libraryTab={libraryTab}
-            setLibraryTab={setLibraryTab}
-            activePlaylistId={activePlaylistId}
-            navigateToPlaylist={navigateToPlaylist}
-          />
+          {/* Sidebar wrapper. Animates `width` between 0 and the
+              Sidebar's intrinsic `w-64` (256 px) so the toggle
+              actually frees the screen real estate instead of just
+              hiding the content. The Sidebar itself stays mounted at
+              full width — `overflow-hidden` on the wrapper clips it
+              when collapsed. `shrink-0` keeps the wrapper from
+              participating in the flex shrink algorithm during the
+              animation.
+
+              `inert` removes the collapsed subtree from the focus
+              order and pointer events in one step (no `tabIndex=-1`
+              cascade needed). `aria-hidden` is set in parallel for
+              older screen-reader engines that don't follow `inert`
+              yet. React 19 supports `inert` as a boolean prop. */}
+          <motion.aside
+            initial={false}
+            animate={{ width: isSidebarHidden ? 0 : 256 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="shrink-0 overflow-hidden"
+            aria-hidden={isSidebarHidden}
+            inert={isSidebarHidden}
+          >
+            <Sidebar
+              activeView={activeView}
+              setActiveView={setActiveView}
+              libraryTab={libraryTab}
+              setLibraryTab={setLibraryTab}
+              activePlaylistId={activePlaylistId}
+              navigateToPlaylist={navigateToPlaylist}
+            />
+          </motion.aside>
 
           {/* Center Content. `min-w-0` is required so a long playlist
               title or wide table doesn't blow the flex item's intrinsic
@@ -529,6 +578,8 @@ export function AppLayout() {
               canGoForward={canGoForward}
               onGoBack={goBack}
               onGoForward={goForward}
+              isSidebarHidden={isSidebarHidden}
+              onToggleSidebar={toggleSidebar}
             />
 
             {/* Main Scrollable Content */}

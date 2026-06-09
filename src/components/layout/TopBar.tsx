@@ -16,6 +16,8 @@ import {
   ChevronDown,
   ChevronUp,
   SlidersHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
   X,
 } from "lucide-react";
 import type { ViewId } from "../../types";
@@ -42,6 +44,8 @@ interface TopBarProps {
   canGoForward: boolean;
   onGoBack: () => void;
   onGoForward: () => void;
+  isSidebarHidden: boolean;
+  onToggleSidebar: () => void;
 }
 
 export function TopBar({
@@ -51,6 +55,8 @@ export function TopBar({
   canGoForward,
   onGoBack,
   onGoForward,
+  isSidebarHidden,
+  onToggleSidebar,
 }: TopBarProps) {
   const { t } = useTranslation();
   const { isDark, toggleTheme } = useTheme();
@@ -257,8 +263,28 @@ export function TopBar({
 
   return (
     <div className="h-16 flex items-center justify-between px-6 z-10 sticky top-0 bg-zinc-50/80 backdrop-blur-md dark:bg-zinc-900/80">
-      {/* Navigation Arrows */}
+      {/* Navigation Arrows + sidebar toggle (#167). The toggle sits
+          left of the back/forward chevrons because that's where the
+          sidebar's right edge would be when visible — keeps muscle
+          memory consistent. */}
       <div className="flex space-x-2">
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          aria-label={t(
+            isSidebarHidden ? "topbar.showSidebar" : "topbar.hideSidebar",
+          )}
+          title={t(
+            isSidebarHidden ? "topbar.showSidebar" : "topbar.hideSidebar",
+          )}
+          className="p-2 rounded-full border transition-colors border-zinc-200 bg-white text-zinc-600 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:text-white"
+        >
+          {isSidebarHidden ? (
+            <PanelLeftOpen size={20} />
+          ) : (
+            <PanelLeftClose size={20} />
+          )}
+        </button>
         <button
           onClick={onGoBack}
           disabled={!canGoBack}

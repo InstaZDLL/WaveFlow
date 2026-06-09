@@ -224,7 +224,9 @@
       "feedback": "Geri bildirim",
       "about": "Hakkında",
       "quit": "Uygulamadan çık"
-    }
+    },
+    "showSidebar": "Kenar çubuğunu göster",
+    "hideSidebar": "Kenar çubuğunu gizle"
   },
   "home": {
     "greeting": {

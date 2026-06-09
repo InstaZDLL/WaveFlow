@@ -224,7 +224,9 @@
       "feedback": "Feedback",
       "about": "Over",
       "quit": "App afsluiten"
-    }
+    },
+    "showSidebar": "Zijbalk tonen",
+    "hideSidebar": "Zijbalk verbergen"
   },
   "home": {
     "greeting": {
