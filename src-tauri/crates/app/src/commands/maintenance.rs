@@ -67,9 +67,10 @@ pub async fn regenerate_thumbnails(state: tauri::State<'_, AppState>) -> AppResu
 ///    of decoded samples from before the reset; without this the
 ///    callback flushes them to the device during step 2's wait,
 ///    producing a jarring tail at the worst possible moment. Same
-///    mechanism the window-close handler uses in `lib.rs`. The
-///    previous value is captured so a wipe failure can restore it
-///    rather than leave the engine permanently muted.
+///    mechanism the window-close handler uses in `lib.rs`. No
+///    paired restore is needed because step 5 below replaces the
+///    process unconditionally — the in-memory engine state goes
+///    with it.
 /// 2. `engine.stop_and_wait` — fire `AudioCmd::Stop` AND await the
 ///    decoder thread's transition back to `Idle`. The decoder
 ///    publishes the `Idle` state only after it drops the active
@@ -90,21 +91,24 @@ pub async fn regenerate_thumbnails(state: tauri::State<'_, AppState>) -> AppResu
 ///    populated install (thousands of artwork files + WAL files)
 ///    can take a noticeable fraction of a second and would stall
 ///    the runtime if done in-place. Treat `NotFound` as a no-op
-///    (already-reset / install half-broken) so the restart still
-///    happens. On wipe failure (e.g. an external process holds a
-///    file open), restore the captured `paused_output` value so
-///    the user isn't left with a silenced engine on top of a
-///    failed reset.
-/// 5. `app.restart()` swaps the process — this call never returns.
-///    `AppState::bootstrap` will re-create a "Default" profile on
-///    the next boot and the onboarding wizard kicks in.
+///    (already-reset / install half-broken).
+/// 5. `app.restart()` swaps the process unconditionally — including
+///    on a partial-wipe failure or a spawn_blocking join error.
+///    Returning `Err` here would leave the app in a zombie state:
+///    `state.profile` is `None`, `state.app_db` is closed, and
+///    `AppState::app_db` is a plain `SqlitePool` (no `RwLock`
+///    wrapper) so it can't be reopened from a command. Restarting
+///    is the only deterministic recovery — the bootstrap pass
+///    re-creates a fresh "Default" profile on whatever survived
+///    on disk and the user lands back in onboarding. Errors are
+///    logged before the restart so the user-facing report still
+///    captures what went wrong.
 #[tauri::command]
 pub async fn reset_app(
     app: AppHandle,
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<()> {
-    let was_paused_output = engine.shared().paused_output.load(Ordering::Acquire);
     engine
         .shared()
         .paused_output
@@ -123,28 +127,24 @@ pub async fn reset_app(
     state.app_db.close().await;
 
     let wipe_root = root.clone();
-    let wipe_join = tokio::task::spawn_blocking(move || std::fs::remove_dir_all(&wipe_root))
-        .await
-        .map_err(|e| AppError::Other(format!("reset_app join: {e}")));
-    let wipe_result = match wipe_join {
-        Ok(r) => r,
-        Err(err) => {
-            engine
-                .shared()
-                .paused_output
-                .store(was_paused_output, Ordering::Release);
-            return Err(err);
+    match tokio::task::spawn_blocking(move || std::fs::remove_dir_all(&wipe_root)).await {
+        Ok(Ok(())) => {}
+        Ok(Err(err)) if err.kind() == std::io::ErrorKind::NotFound => {}
+        Ok(Err(err)) => {
+            // Wipe failed (file held by external process, permission
+            // denied, …). The app is already half-torn-down at this
+            // point — fall through to the restart, which is the only
+            // recovery path that doesn't leave the user stuck.
+            tracing::error!(
+                ?err,
+                "remove_dir_all failed during reset; restarting to recover from half-teardown"
+            );
         }
-    };
-    match wipe_result {
-        Ok(()) => {}
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
         Err(err) => {
-            engine
-                .shared()
-                .paused_output
-                .store(was_paused_output, Ordering::Release);
-            return Err(AppError::Io(err));
+            tracing::error!(
+                ?err,
+                "reset_app spawn_blocking join failed; restarting to recover from half-teardown"
+            );
         }
     }
 
