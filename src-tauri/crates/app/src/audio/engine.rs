@@ -440,14 +440,25 @@ impl AudioEngine {
                         .ok()
                         .flatten();
                 if let Some((file_path, duration_ms)) = row {
+                    // Fetch ReplayGain at resume time so a user who
+                    // enabled the toggle keeps their analysed gain
+                    // across an unintended device flap — matches
+                    // set_output_device and set_wasapi_exclusive.
+                    let replay_gain_db =
+                        crate::commands::player::fetch_replay_gain_db(&pool, track_id).await;
                     let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
                         path: std::path::PathBuf::from(file_path),
                         start_ms: position_ms,
                         track_id,
-                        duration_ms: duration_ms as u64,
+                        // `duration_ms` is stored as `i64` in SQLite
+                        // (no `u64` column type). Saturate to 0 before
+                        // casting so a corrupted negative row can't
+                        // wrap into a huge `u64` and confuse the
+                        // decoder's end-of-track guard.
+                        duration_ms: duration_ms.max(0) as u64,
                         source_type: "device-rebuild".into(),
                         source_id: None,
-                        replay_gain_db: None,
+                        replay_gain_db,
                     });
                 }
             });
