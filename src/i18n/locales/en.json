@@ -1236,8 +1236,36 @@
       "appearance": "Appearance",
       "storage": "Storage & data",
       "data": "Data",
+      "plugins": "Plugins",
       "shortcuts": "Keyboard shortcuts",
       "diagnostics": "Diagnostics"
+    },
+    "plugins": {
+      "title": "Installed plugins",
+      "subtitle": "Manage extensions that add sources, metadata, or views to WaveFlow.",
+      "loading": "Loading…",
+      "emptyTitle": "No plugins installed",
+      "emptyHint": "Manual install: drop a directory under <data>/waveflow/plugins/. An official store is coming.",
+      "byAuthor": "By {{author}}",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "toggleAria": "Enable or disable {{name}}",
+      "uninstall": "Uninstall",
+      "uninstallAria": "Uninstall {{name}}",
+      "confirmUninstall": "Confirm uninstalling {{name}}",
+      "confirmYes": "Confirm",
+      "confirmNo": "Cancel",
+      "worlds": {
+        "source": "Source",
+        "metadata": "Metadata",
+        "ui": "UI"
+      },
+      "permissions": {
+        "http": "HTTP ({{count}})",
+        "storageState": "User storage",
+        "assets": "Assets ({{count}})",
+        "none": "No permission requested"
+      }
     },
     "shortcuts": {
       "subtitle": "Click a shortcut then press the key combination you want. Backspace to clear, Escape to cancel.",

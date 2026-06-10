@@ -1236,8 +1236,36 @@
       "appearance": "Aussehen",
       "storage": "Speicher & Daten",
       "data": "Daten",
+      "plugins": "Plugins",
       "shortcuts": "Tastenkürzel",
       "diagnostics": "Diagnose"
+    },
+    "plugins": {
+      "title": "Installierte Plugins",
+      "subtitle": "Verwalte Erweiterungen, die WaveFlow Quellen, Metadaten oder Ansichten hinzufügen.",
+      "loading": "Lädt…",
+      "emptyTitle": "Keine Plugins installiert",
+      "emptyHint": "Manuelle Installation: Ordner in <data>/waveflow/plugins/ ablegen. Ein offizieller Store folgt.",
+      "byAuthor": "Von {{author}}",
+      "enabled": "Aktiviert",
+      "disabled": "Deaktiviert",
+      "toggleAria": "{{name}} aktivieren oder deaktivieren",
+      "uninstall": "Deinstallieren",
+      "uninstallAria": "{{name}} deinstallieren",
+      "confirmUninstall": "Deinstallation von {{name}} bestätigen",
+      "confirmYes": "Bestätigen",
+      "confirmNo": "Abbrechen",
+      "worlds": {
+        "source": "Quelle",
+        "metadata": "Metadaten",
+        "ui": "Oberfläche"
+      },
+      "permissions": {
+        "http": "HTTP ({{count}})",
+        "storageState": "Nutzerspeicher",
+        "assets": "Ressourcen ({{count}})",
+        "none": "Keine Berechtigungen angefordert"
+      }
     },
     "shortcuts": {
       "subtitle": "Klicke auf ein Tastenkürzel und drücke dann die gewünschte Tastenkombination. Rücktaste zum Löschen, Esc zum Abbrechen.",

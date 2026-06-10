@@ -1236,8 +1236,36 @@
       "appearance": "Tampilan",
       "storage": "Penyimpanan & data",
       "data": "Data",
+      "plugins": "Plugin",
       "shortcuts": "Pintasan keyboard",
       "diagnostics": "Diagnostik"
+    },
+    "plugins": {
+      "title": "Plugin terpasang",
+      "subtitle": "Kelola ekstensi yang menambahkan sumber, metadata, atau tampilan ke WaveFlow.",
+      "loading": "Memuat…",
+      "emptyTitle": "Tidak ada plugin terpasang",
+      "emptyHint": "Pemasangan manual: letakkan folder di <data>/waveflow/plugins/. Toko resmi segera hadir.",
+      "byAuthor": "Oleh {{author}}",
+      "enabled": "Aktif",
+      "disabled": "Nonaktif",
+      "toggleAria": "Aktifkan atau nonaktifkan {{name}}",
+      "uninstall": "Hapus",
+      "uninstallAria": "Hapus {{name}}",
+      "confirmUninstall": "Konfirmasi penghapusan {{name}}",
+      "confirmYes": "Konfirmasi",
+      "confirmNo": "Batal",
+      "worlds": {
+        "source": "Sumber",
+        "metadata": "Metadata",
+        "ui": "Antarmuka"
+      },
+      "permissions": {
+        "http": "HTTP ({{count}})",
+        "storageState": "Penyimpanan pengguna",
+        "assets": "Aset ({{count}})",
+        "none": "Tidak ada izin diminta"
+      }
     },
     "shortcuts": {
       "subtitle": "Klik sebuah pintasan lalu tekan kombinasi tombol yang kamu inginkan. Backspace untuk menghapus, Esc untuk membatalkan.",

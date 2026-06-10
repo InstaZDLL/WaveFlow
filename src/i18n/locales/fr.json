@@ -1236,8 +1236,36 @@
       "appearance": "Apparence",
       "storage": "Stockage & Données",
       "data": "Données",
+      "plugins": "Plugins",
       "shortcuts": "Raccourcis clavier",
       "diagnostics": "Diagnostics"
+    },
+    "plugins": {
+      "title": "Plugins installés",
+      "subtitle": "Gérez les extensions qui ajoutent des sources, des métadonnées ou des vues à WaveFlow.",
+      "loading": "Chargement…",
+      "emptyTitle": "Aucun plugin installé",
+      "emptyHint": "L'installation manuelle se fait en déposant un dossier sous <data>/waveflow/plugins/. Un magasin officiel suivra.",
+      "byAuthor": "Par {{author}}",
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "toggleAria": "Activer ou désactiver {{name}}",
+      "uninstall": "Désinstaller",
+      "uninstallAria": "Désinstaller {{name}}",
+      "confirmUninstall": "Confirmer la désinstallation de {{name}}",
+      "confirmYes": "Confirmer",
+      "confirmNo": "Annuler",
+      "worlds": {
+        "source": "Source",
+        "metadata": "Métadonnées",
+        "ui": "Interface"
+      },
+      "permissions": {
+        "http": "HTTP ({{count}})",
+        "storageState": "Stockage utilisateur",
+        "assets": "Ressources ({{count}})",
+        "none": "Aucune permission demandée"
+      }
     },
     "categoryNavLabel": "Catégories des paramètres",
     "appearance": {

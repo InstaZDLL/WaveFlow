@@ -1236,8 +1236,36 @@
       "appearance": "Aparência",
       "storage": "Armazenamento e dados",
       "data": "Dados",
+      "plugins": "Plugins",
       "diagnostics": "Diagnóstico",
       "shortcuts": "Atalhos de teclado"
+    },
+    "plugins": {
+      "title": "Plugins instalados",
+      "subtitle": "Gere as extensões que adicionam fontes, metadados ou vistas ao WaveFlow.",
+      "loading": "A carregar…",
+      "emptyTitle": "Nenhum plugin instalado",
+      "emptyHint": "Instalação manual: coloque uma pasta em <data>/waveflow/plugins/. Uma loja oficial está a caminho.",
+      "byAuthor": "Por {{author}}",
+      "enabled": "Ativado",
+      "disabled": "Desativado",
+      "toggleAria": "Ativar ou desativar {{name}}",
+      "uninstall": "Desinstalar",
+      "uninstallAria": "Desinstalar {{name}}",
+      "confirmUninstall": "Confirmar a desinstalação de {{name}}",
+      "confirmYes": "Confirmar",
+      "confirmNo": "Cancelar",
+      "worlds": {
+        "source": "Fonte",
+        "metadata": "Metadados",
+        "ui": "Interface"
+      },
+      "permissions": {
+        "http": "HTTP ({{count}})",
+        "storageState": "Armazenamento do utilizador",
+        "assets": "Recursos ({{count}})",
+        "none": "Nenhuma permissão pedida"
+      }
     },
     "shortcuts": {
       "subtitle": "Clica num atalho e prime a combinação de teclas que desejas. Backspace para limpar, Escape para cancelar.",

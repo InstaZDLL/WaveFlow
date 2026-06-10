@@ -1236,8 +1236,36 @@
       "appearance": "外觀",
       "storage": "儲存與資料",
       "data": "資料",
+      "plugins": "外掛",
       "diagnostics": "診斷",
       "shortcuts": "鍵盤快速鍵"
+    },
+    "plugins": {
+      "title": "已安裝的外掛",
+      "subtitle": "管理為 WaveFlow 新增來源、中繼資料或檢視的擴充功能。",
+      "loading": "載入中…",
+      "emptyTitle": "未安裝任何外掛",
+      "emptyHint": "手動安裝:將資料夾放在 <data>/waveflow/plugins/ 下。官方商店即將推出。",
+      "byAuthor": "作者:{{author}}",
+      "enabled": "已啟用",
+      "disabled": "已停用",
+      "toggleAria": "啟用或停用 {{name}}",
+      "uninstall": "解除安裝",
+      "uninstallAria": "解除安裝 {{name}}",
+      "confirmUninstall": "確認解除安裝 {{name}}",
+      "confirmYes": "確認",
+      "confirmNo": "取消",
+      "worlds": {
+        "source": "來源",
+        "metadata": "中繼資料",
+        "ui": "介面"
+      },
+      "permissions": {
+        "http": "HTTP ({{count}})",
+        "storageState": "使用者儲存",
+        "assets": "資源 ({{count}})",
+        "none": "未請求任何權限"
+      }
     },
     "integrations": {
       "lastfm": {

@@ -1236,8 +1236,36 @@
       "appearance": "Aspetto",
       "storage": "Archiviazione e dati",
       "data": "Dati",
+      "plugins": "Plugin",
       "shortcuts": "Scorciatoie da tastiera",
       "diagnostics": "Diagnostica"
+    },
+    "plugins": {
+      "title": "Plugin installati",
+      "subtitle": "Gestisci le estensioni che aggiungono sorgenti, metadati o viste a WaveFlow.",
+      "loading": "Caricamento…",
+      "emptyTitle": "Nessun plugin installato",
+      "emptyHint": "Installazione manuale: lascia una cartella in <data>/waveflow/plugins/. Uno store ufficiale è in arrivo.",
+      "byAuthor": "Di {{author}}",
+      "enabled": "Attivo",
+      "disabled": "Disattivato",
+      "toggleAria": "Attiva o disattiva {{name}}",
+      "uninstall": "Disinstalla",
+      "uninstallAria": "Disinstalla {{name}}",
+      "confirmUninstall": "Conferma la disinstallazione di {{name}}",
+      "confirmYes": "Conferma",
+      "confirmNo": "Annulla",
+      "worlds": {
+        "source": "Sorgente",
+        "metadata": "Metadati",
+        "ui": "Interfaccia"
+      },
+      "permissions": {
+        "http": "HTTP ({{count}})",
+        "storageState": "Archivio utente",
+        "assets": "Risorse ({{count}})",
+        "none": "Nessun permesso richiesto"
+      }
     },
     "shortcuts": {
       "subtitle": "Clicca su una scorciatoia e premi la combinazione di tasti desiderata. Backspace per cancellare, Esc per annullare.",

@@ -1236,8 +1236,36 @@
       "appearance": "Weergave",
       "storage": "Opslag en gegevens",
       "data": "Gegevens",
+      "plugins": "Plug-ins",
       "shortcuts": "Sneltoetsen",
       "diagnostics": "Diagnostiek"
+    },
+    "plugins": {
+      "title": "Geïnstalleerde plug-ins",
+      "subtitle": "Beheer uitbreidingen die bronnen, metadata of weergaven aan WaveFlow toevoegen.",
+      "loading": "Laden…",
+      "emptyTitle": "Geen plug-ins geïnstalleerd",
+      "emptyHint": "Handmatige installatie: plaats een map in <data>/waveflow/plugins/. Een officiële store komt eraan.",
+      "byAuthor": "Door {{author}}",
+      "enabled": "Ingeschakeld",
+      "disabled": "Uitgeschakeld",
+      "toggleAria": "{{name}} in- of uitschakelen",
+      "uninstall": "Verwijderen",
+      "uninstallAria": "{{name}} verwijderen",
+      "confirmUninstall": "Bevestig het verwijderen van {{name}}",
+      "confirmYes": "Bevestigen",
+      "confirmNo": "Annuleren",
+      "worlds": {
+        "source": "Bron",
+        "metadata": "Metadata",
+        "ui": "Interface"
+      },
+      "permissions": {
+        "http": "HTTP ({{count}})",
+        "storageState": "Gebruikersopslag",
+        "assets": "Resources ({{count}})",
+        "none": "Geen rechten gevraagd"
+      }
     },
     "shortcuts": {
       "subtitle": "Klik op een sneltoets en druk vervolgens op de gewenste toetscombinatie. Backspace om te wissen, Esc om te annuleren.",

@@ -41,8 +41,10 @@ import {
   Database,
   Keyboard,
   Stethoscope,
+  Puzzle,
 } from "lucide-react";
 import { ServerAccountCard } from "./settings/ServerAccountCard";
+import { PluginsCard } from "./settings/PluginsCard";
 import { useTheme } from "../../hooks/useTheme";
 import { THEME_PRESETS } from "../../lib/themes";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
@@ -153,6 +155,7 @@ type SettingsCategory =
   | "integrations"
   | "appearance"
   | "data"
+  | "plugins"
   | "shortcuts"
   | "diagnostics";
 
@@ -174,6 +177,7 @@ const SETTINGS_CATEGORIES: ReadonlyArray<{
     Icon: Palette,
   },
   { id: "data", labelKey: "settings.sections.data", Icon: Database },
+  { id: "plugins", labelKey: "settings.sections.plugins", Icon: Puzzle },
   {
     id: "shortcuts",
     labelKey: "settings.sections.shortcuts",
@@ -3071,6 +3075,26 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 <span>{t("settings.reset.action")}</span>
               </button>
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* Plugins category — list / toggle / uninstall installed plugins. */}
+      {activeCategory === "plugins" && (
+        <section
+          role="tabpanel"
+          id="settings-panel-plugins"
+          aria-labelledby="settings-tab-plugins"
+          tabIndex={0}
+        >
+          <h2
+            id="settings-plugins-section-heading"
+            className="text-[10px] font-bold tracking-widest text-zinc-400 mb-4 px-4 uppercase"
+          >
+            {t("settings.sections.plugins")}
+          </h2>
+          <div className="px-4">
+            <PluginsCard />
           </div>
         </section>
       )}

@@ -1236,8 +1236,36 @@
       "appearance": "Görünüm",
       "storage": "Depolama ve veriler",
       "data": "Veriler",
+      "plugins": "Eklentiler",
       "shortcuts": "Klavye kısayolları",
       "diagnostics": "Tanılama"
+    },
+    "plugins": {
+      "title": "Yüklü eklentiler",
+      "subtitle": "WaveFlow'a kaynak, üst veri veya görünüm ekleyen uzantıları yönetin.",
+      "loading": "Yükleniyor…",
+      "emptyTitle": "Yüklü eklenti yok",
+      "emptyHint": "Manuel kurulum: <data>/waveflow/plugins/ altına bir klasör bırakın. Resmi mağaza yakında.",
+      "byAuthor": "Yazan: {{author}}",
+      "enabled": "Etkin",
+      "disabled": "Devre dışı",
+      "toggleAria": "{{name}} etkinleştir veya devre dışı bırak",
+      "uninstall": "Kaldır",
+      "uninstallAria": "{{name}} kaldır",
+      "confirmUninstall": "{{name}} kaldırmayı onayla",
+      "confirmYes": "Onayla",
+      "confirmNo": "İptal",
+      "worlds": {
+        "source": "Kaynak",
+        "metadata": "Üst veri",
+        "ui": "Arayüz"
+      },
+      "permissions": {
+        "http": "HTTP ({{count}})",
+        "storageState": "Kullanıcı deposu",
+        "assets": "Varlıklar ({{count}})",
+        "none": "İstenen izin yok"
+      }
     },
     "shortcuts": {
       "subtitle": "Bir kısayola tıkla ve ardından istediğin tuş kombinasyonuna bas. Silmek için Backspace, iptal için Esc.",
