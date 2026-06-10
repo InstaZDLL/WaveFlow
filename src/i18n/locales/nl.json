@@ -1263,7 +1263,7 @@
       "permissions": {
         "http": "HTTP ({{count}})",
         "storageState": "Gebruikersopslag",
-        "storageRead": "Resources lezen",
+        "storageRead": "Opslag lezen",
         "assets": "Resources ({{count}})",
         "none": "Geen rechten gevraagd"
       }

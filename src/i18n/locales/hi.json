@@ -1263,7 +1263,7 @@
       "permissions": {
         "http": "HTTP ({{count}})",
         "storageState": "उपयोगकर्ता संग्रहण",
-        "storageRead": "संपत्ति पढ़ना",
+        "storageRead": "संग्रहण पढ़ना",
         "assets": "संपत्तियाँ ({{count}})",
         "none": "कोई अनुमति अनुरोधित नहीं"
       }

@@ -1263,7 +1263,7 @@
       "permissions": {
         "http": "HTTP ({{count}})",
         "storageState": "ユーザーストレージ",
-        "storageRead": "アセット読み取り",
+        "storageRead": "ストレージ読み取り",
         "assets": "アセット ({{count}})",
         "none": "要求された権限はありません"
       }

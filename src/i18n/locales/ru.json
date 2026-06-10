@@ -1304,7 +1304,7 @@
       "permissions": {
         "http": "HTTP ({{count}})",
         "storageState": "Хранилище пользователя",
-        "storageRead": "Чтение ресурсов",
+        "storageRead": "Чтение хранилища",
         "assets": "Ресурсы ({{count}})",
         "none": "Права не запрошены"
       }

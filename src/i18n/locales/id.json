@@ -1263,7 +1263,7 @@
       "permissions": {
         "http": "HTTP ({{count}})",
         "storageState": "Penyimpanan pengguna",
-        "storageRead": "Baca aset",
+        "storageRead": "Baca penyimpanan",
         "assets": "Aset ({{count}})",
         "none": "Tidak ada izin diminta"
       }

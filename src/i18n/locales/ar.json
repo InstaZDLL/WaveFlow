@@ -1267,7 +1267,7 @@
       "permissions": {
         "http": "HTTP ({{count}})",
         "storageState": "تخزين المستخدم",
-        "storageRead": "قراءة الموارد",
+        "storageRead": "قراءة التخزين",
         "assets": "الموارد ({{count}})",
         "none": "لا توجد أذونات مطلوبة"
       }
