@@ -19,6 +19,7 @@
 
 pub mod assets;
 pub mod manifest;
+pub mod runtime;
 
 use std::path::{Component, Path, PathBuf};
 
