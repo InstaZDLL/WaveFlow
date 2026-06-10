@@ -17,7 +17,7 @@ use std::sync::Arc;
 use serde::Serialize;
 use tauri::State;
 use tokio::sync::{Mutex, OwnedMutexGuard};
-use waveflow_core::plugin::manifest::Manifest;
+use waveflow_core::plugin::manifest::{Manifest, ManifestError};
 
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
@@ -336,28 +336,34 @@ pub async fn uninstall_plugin(
     // setting-drop.
     let _guard = lock_plugin(&state, &plugin_id).await;
 
-    // Manifest id pin (mirror `set_plugin_enabled`): refuse to
-    // remove a tree whose manifest declares a different id. On
+    // Manifest id pin (asymmetric vs `set_plugin_enabled`): refuse
+    // to remove a tree whose manifest declares a DIFFERENT id, but
+    // allow cleanup when the manifest is simply MISSING. On
     // case-insensitive filesystems `uninstall_plugin("Foo")` would
     // otherwise wipe `plugins/foo/` while leaving the
     // `plugin.foo.enabled` row intact, since our DELETE keys on
-    // the param. If the manifest is missing or unparsable we
-    // refuse too — the user can clean up a corrupt install by
-    // hand (Phase 3.2 UI can add a "force uninstall" affordance if
-    // it shows up as a real need).
+    // the param. The mismatch attack only matters when a manifest
+    // IS present with another id — a missing manifest can't carry
+    // a mismatch and refusing it would orphan the user's
+    // `plugin-data/<id>/` + `app_setting` row forever (post-crash
+    // leftover, half-installed plugin, manual `rm` of the install
+    // dir). Other parse errors are still rejected because a corrupt
+    // manifest could be a deliberately malformed file.
     let id_for_blocking = plugin_id.clone();
     let manifest_install_dir = install_dir.clone();
     let manifest_ok = tokio::task::spawn_blocking(move || {
         let manifest_path = manifest_install_dir.join("manifest.toml");
-        Manifest::load_from_path(&manifest_path)
-            .map(|m| m.plugin.id == id_for_blocking)
-            .unwrap_or(false)
+        match Manifest::load_from_path(&manifest_path) {
+            Ok(m) => m.plugin.id == id_for_blocking,
+            Err(ManifestError::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => true,
+            Err(_) => false,
+        }
     })
     .await
     .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?;
     if !manifest_ok {
         return Err(AppError::Other(format!(
-            "plugin not installed (or manifest id mismatch): {plugin_id}"
+            "plugin manifest present but id mismatch (or corrupt): {plugin_id}"
         )));
     }
 
