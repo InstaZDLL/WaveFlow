@@ -288,17 +288,22 @@ impl PluginRuntime {
     /// resolver (when assets are declared), the scratch-store
     /// handle, and a shared reqwest blocking client.
     ///
-    /// Why this function takes a `&LoadedPlugin` + `&PluginPaths` +
-    /// `plugin_id`: the LoadedPlugin owns the manifest (permissions
-    /// + asset declarations), the paths provide the on-disk
-    /// locations the store reads from / writes to, and the id is
-    /// re-validated for the state-dir lookup (`PluginPaths::state_dir`).
+    /// The plugin id used to resolve on-disk paths + scope log
+    /// events + key the scratch store comes from
+    /// `loaded.manifest.plugin.id` — one canonical source. An
+    /// earlier signature took an extra `plugin_id: &str` parameter
+    /// alongside the LoadedPlugin, which let the install-dir id and
+    /// the manifest id drift apart (assets would resolve against
+    /// one tree while permissions + log scope referenced another).
+    /// The manifest validator already restricts the id to
+    /// `[a-z0-9-]+`, and `PluginPaths` re-checks the shape via
+    /// `sanitise_id`, so leaning on the manifest id is safe.
     pub fn new_store_for_plugin(
         &self,
         loaded: &LoadedPlugin,
         paths: &PluginPaths,
-        plugin_id: &str,
     ) -> Result<Store<HostCtx>, RuntimeError> {
+        let plugin_id = loaded.manifest.plugin.id.as_str();
         let plugin_dir = paths.plugin_dir(plugin_id)?;
         let state_dir = paths.state_dir(plugin_id)?;
         let assets = if loaded.manifest.assets.is_empty() {

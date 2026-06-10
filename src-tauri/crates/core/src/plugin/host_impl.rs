@@ -16,7 +16,7 @@
 //! the host explicitly reloading the plugin.
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use sha2::{Digest, Sha256};
@@ -30,6 +30,13 @@ use crate::plugin::runtime::HostCtx;
 /// the host pick a different value per plugin; Phase 2b uses one
 /// number across the board.
 pub const STATE_QUOTA_BYTES: usize = 10 * 1024 * 1024;
+
+/// Sentinel filename for the per-plugin write lock. The dot prefix
+/// keeps it inconspicuous when a user inspects the scratch dir, and
+/// the underscore prefix on the extension keeps it out of any
+/// "looks like a key" pattern. Excluded from the quota tally + from
+/// the read-dir iteration in [`StateStore::write`].
+const LOCK_FILE: &str = ".write-lock";
 
 /// Snapshot of plugin permissions taken at instantiation. Holds the
 /// HTTP allowlist as a compiled [`GlobSet`] so per-request matching
@@ -185,32 +192,41 @@ impl StateStore {
     }
 
     /// Write a key. Creates the per-plugin directory on first call.
-    /// Quota check sums every existing file (skipping the one
-    /// being overwritten so an in-place write of unchanged size is
-    /// never quota-rejected) and bails before touching the FS if
-    /// the new total would exceed [`Self::quota_bytes`].
+    ///
+    /// Concurrency contract — the function holds an exclusive lock
+    /// on `LOCK_FILE` for the duration of the quota check + the
+    /// rename. Two concurrent writers (same OR different processes
+    /// — the lock is OS-level via [`fs::File::lock`]) serialise on
+    /// it, so the quota check + the file replacement act as one
+    /// atomic transaction. Without the lock, two writers could each
+    /// observe the pre-write total + each pass the check + each
+    /// write, leaving the store over quota.
+    ///
+    /// Atomic replace — values are first written to a sibling
+    /// `<hash>.tmp` file, then `fs::rename`d onto the canonical
+    /// path. Both POSIX `rename` and Windows `MoveFileEx` are
+    /// atomic when source + destination live in the same directory
+    /// on the same filesystem, so a concurrent reader (or a host
+    /// crash mid-write) can only see either the old content or
+    /// the complete new content — never a truncated partial.
     pub fn write(&self, key: &str, value: &[u8]) -> Result<(), HostError> {
         Self::check_key(key)?;
         fs::create_dir_all(&self.dir)?;
         let path = self.key_path(key);
+        let lock_path = self.dir.join(LOCK_FILE);
 
-        let mut existing_total = 0usize;
-        for entry in fs::read_dir(&self.dir)? {
-            let entry = entry?;
-            let entry_path = entry.path();
-            // Skip the file we're about to overwrite — its existing
-            // size doesn't count against the quota for the new write
-            // (otherwise an in-place same-size update would always
-            // fail at usage ~= quota).
-            if entry_path == path {
-                continue;
-            }
-            // file_type() skips the directory entry itself and any
-            // future subdirs — only count regular files.
-            if entry.file_type()?.is_file() {
-                existing_total = existing_total.saturating_add(entry.metadata()?.len() as usize);
-            }
-        }
+        // Acquire the per-plugin write lock. The handle drops at
+        // end-of-function, which releases the OS lock — explicit
+        // `unlock()` not needed.
+        let lock_file = fs::OpenOptions::new()
+            .create(true)
+            .read(true)
+            .write(true)
+            .truncate(false)
+            .open(&lock_path)?;
+        lock_file.lock()?;
+
+        let existing_total = sum_state_dir_bytes(&self.dir, Some(&path), &lock_path)?;
         let projected = existing_total.saturating_add(value.len());
         if projected > self.quota_bytes {
             return Err(HostError::QuotaExceeded {
@@ -219,7 +235,21 @@ impl StateStore {
             });
         }
 
-        fs::write(&path, value)?;
+        // Write to a temp sibling first. `with_extension("tmp")`
+        // gives a deterministic per-key tmp path; since the lock
+        // serialises writes against `path`, two writers can never
+        // contend on the same tmp name.
+        let tmp_path = path.with_extension("tmp");
+        fs::write(&tmp_path, value)?;
+        // `fs::rename` overwrites the destination on Windows
+        // (MoveFileEx with REPLACE_EXISTING) and POSIX (atomic
+        // unlink + link), so this single call swaps the old
+        // content for the new without an intermediate "no file"
+        // window. If the rename fails the tmp file gets left
+        // behind; the next successful write of the same key
+        // overwrites the same tmp path, so the leak is bounded
+        // by the number of distinct keys ever written.
+        fs::rename(&tmp_path, &path)?;
         Ok(())
     }
 
@@ -231,15 +261,36 @@ impl StateStore {
         if !self.dir.exists() {
             return Ok(0);
         }
-        let mut total = 0usize;
-        for entry in fs::read_dir(&self.dir)? {
-            let entry = entry?;
-            if entry.file_type()?.is_file() {
-                total = total.saturating_add(entry.metadata()?.len() as usize);
-            }
-        }
-        Ok(total)
+        let lock_path = self.dir.join(LOCK_FILE);
+        sum_state_dir_bytes(&self.dir, None, &lock_path)
     }
+}
+
+/// Sum the size (in bytes) of every regular file under `dir`,
+/// skipping `lock_path` (the per-plugin write lock — outside the
+/// quota) and `skip` (typically the file being overwritten, whose
+/// existing size doesn't count against the projected total — an
+/// in-place same-size write would otherwise fail at usage ≈ quota).
+fn sum_state_dir_bytes(
+    dir: &Path,
+    skip: Option<&Path>,
+    lock_path: &Path,
+) -> Result<usize, HostError> {
+    let mut total = 0usize;
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let entry_path = entry.path();
+        if entry_path == *lock_path {
+            continue;
+        }
+        if skip == Some(entry_path.as_path()) {
+            continue;
+        }
+        if entry.file_type()?.is_file() {
+            total = total.saturating_add(entry.metadata()?.len() as usize);
+        }
+    }
+    Ok(total)
 }
 
 // ----- waveflow:host/http -------------------------------------------------
@@ -249,21 +300,23 @@ impl wit_host::http::Host for HostCtx {
         &mut self,
         req: wit_host::http::Request,
     ) -> wasmtime::Result<Result<wit_host::http::Response, String>> {
-        if !self.permissions.http_allowed(&req.url) {
-            return Ok(Err(format!("permission denied: {}", req.url)));
-        }
-        // Offline mode short-circuit. Returns an empty 503 body so
-        // plugins can keep their normal HTTP error handling path
-        // (status + retry-later) instead of needing a separate
-        // "offline" branch. Matches the empty-payload convention
-        // CLAUDE.md spells for every other outbound HTTP path
-        // (Deezer, Last.fm, LRCLIB).
+        // Offline mode short-circuit runs BEFORE the permission
+        // check: a guest probing a non-allowlisted URL while the
+        // host is offline should see the same empty 503 every other
+        // call would get, not a misleading "permission denied". The
+        // offline state is a process-wide answer ("nothing is
+        // reachable") that supersedes per-call authorisation. Empty
+        // body matches the convention CLAUDE.md spells for every
+        // other outbound HTTP path (Deezer, Last.fm, LRCLIB).
         if (self.offline_probe)() {
             return Ok(Ok(wit_host::http::Response {
                 status: 503,
                 headers: Vec::new(),
                 body: Vec::new(),
             }));
+        }
+        if !self.permissions.http_allowed(&req.url) {
+            return Ok(Err(format!("permission denied: {}", req.url)));
         }
         let method = match req.method.parse::<reqwest::Method>() {
             Ok(m) => m,
@@ -488,6 +541,38 @@ mod tests {
     }
 
     #[test]
+    fn http_send_offline_supersedes_permission_denial() {
+        // A request to a NON-allowlisted URL while offline must
+        // still return the empty 503, NOT "permission denied" —
+        // the offline state is a process-wide answer that should
+        // mask per-call authorisation differences. Otherwise a
+        // plugin trying random URLs while offline would learn which
+        // ones are permission-gated, a small information leak.
+        use crate::plugin::runtime::HostCtx;
+        use crate::plugin::bindings::source::waveflow::host::http::{Host, Request};
+        use std::sync::Arc;
+
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let mut ctx = HostCtx::stub(64 * 1024 * 1024, tmp.path().to_path_buf());
+        // Empty allowlist (= deny everything) and offline.
+        ctx.offline_probe = Arc::new(|| true);
+
+        let req = Request {
+            method: "GET".into(),
+            url: "https://example.com/api".into(),
+            headers: Vec::new(),
+            body: None,
+        };
+        let result = ctx.send(req).expect("host call should not trap");
+        match result {
+            Ok(resp) => {
+                assert_eq!(resp.status, 503, "offline must short-circuit before permission check");
+            }
+            Err(err) => panic!("expected empty 503 response, got Err({err})"),
+        }
+    }
+
+    #[test]
     fn http_send_short_circuits_when_offline() {
         // Build a HostCtx with an HTTP allowlist that authorises
         // example.com + an offline probe that says "yes, offline".
@@ -528,6 +613,67 @@ mod tests {
             }
             Err(err) => panic!("expected empty 503 response, got Err({err})"),
         }
+    }
+
+    #[test]
+    fn state_store_lock_file_excluded_from_quota() {
+        // After a write, the on-disk dir contains both the value
+        // file AND the `.write-lock` sentinel. The lock file must
+        // not count against the quota or every subsequent write
+        // would slowly run out of room over the lock-file's own
+        // size (zero today but defensive — Windows occasionally
+        // leaves a few bytes in similar handles).
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let store = StateStore::new(tmp.path().join("plugin-x"), 1024);
+        store.write("a", &vec![0u8; 1024]).expect("fills exactly");
+        assert_eq!(store.used_bytes().expect("usage"), 1024);
+        // Lock file is present on disk but excluded from the tally.
+        assert!(tmp.path().join("plugin-x").join(".write-lock").exists());
+    }
+
+    #[test]
+    fn state_store_serialises_concurrent_writes() {
+        // Two threads racing the same key. With the lock + atomic
+        // rename, both writes succeed and the post-condition is
+        // ONE of the two values — never a truncated mix. Without
+        // the serialisation, the quota check + write could
+        // interleave and leave the store over quota.
+        use std::sync::Arc as StdArc;
+        use std::thread;
+
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let store = StdArc::new(StateStore::new(tmp.path().join("plugin-x"), 8192));
+
+        let store_a = StdArc::clone(&store);
+        let store_b = StdArc::clone(&store);
+        let h_a = thread::spawn(move || {
+            for _ in 0..10 {
+                store_a.write("shared", &vec![b'A'; 1000]).expect("write A");
+            }
+        });
+        let h_b = thread::spawn(move || {
+            for _ in 0..10 {
+                store_b.write("shared", &vec![b'B'; 1000]).expect("write B");
+            }
+        });
+        h_a.join().expect("thread A");
+        h_b.join().expect("thread B");
+
+        // Whichever thread wrote last wins. The post-condition we
+        // verify is that the result is one of the two pure values —
+        // never a mix from a torn write.
+        let got = store.read("shared").expect("read").expect("present");
+        assert!(got.len() == 1000);
+        let is_pure_a = got.iter().all(|&b| b == b'A');
+        let is_pure_b = got.iter().all(|&b| b == b'B');
+        assert!(
+            is_pure_a || is_pure_b,
+            "concurrent write produced a torn value"
+        );
+        // Quota was 8192 — 10 writes per side × 1000 bytes serially
+        // unsupervised would balloon to 20 000 bytes. With the lock,
+        // the dir holds exactly one 1000-byte file at any time.
+        assert_eq!(store.used_bytes().expect("usage"), 1000);
     }
 
     #[test]
