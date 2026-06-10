@@ -43,8 +43,19 @@ sqlx = { version = "0.9", default-features = false, features = ["macros"] }
 
 # Metadata enrichment HTTP clients (Deezer, Last.fm, LRCLIB). Pure
 # `reqwest` over rustls — no Tauri, no DB, designed to be reusable
-# from the future `waveflow-server` axum handlers.
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+# from the future `waveflow-server` axum handlers. The `blocking`
+# feature is gated for the plugin host: `waveflow:host/http.send` is
+# a SYNC WIT function called from the wasm guest, and bridging an
+# async reqwest call through `tokio::Handle::current().block_on`
+# inside a wasmtime callback would deadlock on the same worker
+# thread the guest is running on. `reqwest::blocking::Client` shares
+# the rustls stack so we don't double the TLS code size.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "blocking"] }
+# HTTP allowlist matching for the plugin SDK. Compiles a manifest
+# pattern like `https://*.radio-browser.info/*` into a finite
+# automaton that matches at request time without per-request regex
+# compilation. Tiny dep, single-purpose.
+globset = "0.4"
 # Last.fm signed write methods (`auth.getMobileSession`, `track.scrobble`,
 # `track.updateNowPlaying`) require an md5 of the param block + secret;
 # `hex` encodes the digest into the canonical 32-char lowercase string

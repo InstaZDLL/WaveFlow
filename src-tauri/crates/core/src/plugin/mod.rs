@@ -18,17 +18,31 @@
 //! bundle size unchanged for the bug-fix release.
 
 pub mod assets;
+pub mod bindings;
+pub mod host_impl;
 pub mod manifest;
 pub mod runtime;
 
 use std::path::{Component, Path, PathBuf};
 
-/// Root layout: `<app-data>/waveflow/plugins/<plugin-id>/manifest.toml
-/// + <plugin-id>/assets/*`. One directory per installed plugin.
+/// Two parallel roots under the host's app-data dir:
+///
+/// - `plugins_root` (`<app-data>/waveflow/plugins/`) — install
+///   directory, treated as read-only at runtime. One subdirectory
+///   per installed plugin holding `manifest.toml`, `plugin.wasm`,
+///   and the `assets/` subtree.
+/// - `data_root` (`<app-data>/waveflow/plugin-data/`) — per-user
+///   scratch store the host hands to the plugin via
+///   `waveflow:host/storage.{read,write}-state`. Kept separate from
+///   the install dir so reinstalls / updates don't risk clobbering
+///   the user's plugin state and so a `plugin-data/` wipe doesn't
+///   require touching the install tree.
 #[derive(Debug, Clone)]
 pub struct PluginPaths {
-    /// `<app-data>/waveflow/plugins/`.
-    pub root: PathBuf,
+    /// `<app-data>/waveflow/plugins/` — install root, one dir per plugin.
+    pub plugins_root: PathBuf,
+    /// `<app-data>/waveflow/plugin-data/` — scratch root, one dir per plugin.
+    pub data_root: PathBuf,
 }
 
 /// `plugin_id` failed the path-shape check inside [`PluginPaths`].
@@ -42,20 +56,21 @@ impl PluginPaths {
     /// Build a [`PluginPaths`] anchored at the given app-data dir.
     /// The host caller (`waveflow::AppPaths`) owns the OS-specific
     /// resolution; this helper just appends the canonical
-    /// subdirectory so every plugin shares one layout.
+    /// subdirectories so every plugin shares one layout.
     pub fn from_app_data(app_data_dir: &Path) -> Self {
         Self {
-            root: app_data_dir.join("plugins"),
+            plugins_root: app_data_dir.join("plugins"),
+            data_root: app_data_dir.join("plugin-data"),
         }
     }
 
-    /// Sanitise a plugin id so it can never escape `self.root`. The
-    /// manifest validator already restricts ids to `[a-z0-9-]+`,
-    /// but `PluginPaths` is the last line of defence: anything
-    /// that walks the id through `Path::join` without checking
-    /// would let an absolute id (`/etc/passwd`, `C:\Windows`) or
-    /// one carrying `..` segments land outside the plugins
-    /// directory. We require the input to decompose into exactly
+    /// Sanitise a plugin id so it can never escape `self.plugins_root`
+    /// or `self.data_root`. The manifest validator already restricts
+    /// ids to `[a-z0-9-]+`, but `PluginPaths` is the last line of
+    /// defence: anything that walks the id through `Path::join`
+    /// without checking would let an absolute id (`/etc/passwd`,
+    /// `C:\Windows`) or one carrying `..` segments land outside the
+    /// plugin tree. We require the input to decompose into exactly
     /// one `Component::Normal` whose string form is byte-for-byte
     /// what was passed in — that rules out separators, parent
     /// segments, drive letters, and empty strings.
@@ -77,12 +92,25 @@ impl PluginPaths {
         }
     }
 
-    /// Path of one plugin's root directory. Returns
+    /// Path of one plugin's install directory. Returns
     /// [`InvalidPluginId`] when `plugin_id` would escape
-    /// `self.root` (absolute path, `..` segment, embedded
+    /// `self.plugins_root` (absolute path, `..` segment, embedded
     /// separator).
     pub fn plugin_dir(&self, plugin_id: &str) -> Result<PathBuf, InvalidPluginId> {
-        Self::sanitise_id(plugin_id).map(|id| self.root.join(id))
+        Self::sanitise_id(plugin_id).map(|id| self.plugins_root.join(id))
+    }
+
+    /// Path of one plugin's per-user scratch directory under
+    /// `data_root`. Same id sanitisation contract as
+    /// [`Self::plugin_dir`]. Phase 2b's `waveflow:host/storage.{read,write}-state`
+    /// reads + writes inside this tree (one file per state key).
+    /// The helper itself is non-mutating; the directory is created
+    /// lazily by [`crate::plugin::host_impl::StateStore::write`] on
+    /// the first call, so callers don't need to `create_dir_all` it
+    /// up front (a plugin that never writes leaves no trace on
+    /// disk).
+    pub fn state_dir(&self, plugin_id: &str) -> Result<PathBuf, InvalidPluginId> {
+        Self::sanitise_id(plugin_id).map(|id| self.data_root.join(id))
     }
 
     /// Path to `manifest.toml` for one plugin.
@@ -112,7 +140,8 @@ mod tests {
     #[test]
     fn plugin_paths_compose_under_root() {
         let paths = PluginPaths::from_app_data(Path::new("/tmp/waveflow"));
-        assert_eq!(paths.root, Path::new("/tmp/waveflow/plugins"));
+        assert_eq!(paths.plugins_root, Path::new("/tmp/waveflow/plugins"));
+        assert_eq!(paths.data_root, Path::new("/tmp/waveflow/plugin-data"));
         assert_eq!(
             paths.manifest_path("web-radio").unwrap(),
             Path::new("/tmp/waveflow/plugins/web-radio/manifest.toml")
@@ -125,6 +154,19 @@ mod tests {
             paths.wasm_path("web-radio").unwrap(),
             Path::new("/tmp/waveflow/plugins/web-radio/plugin.wasm")
         );
+        assert_eq!(
+            paths.state_dir("web-radio").unwrap(),
+            Path::new("/tmp/waveflow/plugin-data/web-radio")
+        );
+    }
+
+    #[test]
+    fn state_dir_shares_sanitisation_with_plugin_dir() {
+        let paths = PluginPaths::from_app_data(Path::new("/tmp/waveflow"));
+        assert!(paths.state_dir("/etc/passwd").is_err());
+        assert!(paths.state_dir("..").is_err());
+        assert!(paths.state_dir("web-radio/subdir").is_err());
+        assert!(paths.state_dir("").is_err());
     }
 
     #[test]

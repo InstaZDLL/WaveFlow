@@ -20,12 +20,34 @@
 use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 
-use wasmtime::component::{Component, ResourceTable};
+use wasmtime::component::{Component, Linker, ResourceTable};
 use wasmtime::{Config, Engine, OptLevel, Store, StoreLimits, StoreLimitsBuilder};
 
+use crate::plugin::assets::AssetResolver;
+use crate::plugin::host_impl::{HostError, HostPermissions, StateStore, STATE_QUOTA_BYTES};
 use crate::plugin::manifest::{Manifest, ManifestError};
 use crate::plugin::{InvalidPluginId, PluginPaths};
+
+/// Process-wide "offline mode" probe. Returns `true` when the host
+/// has flipped offline mode (`app_setting['network.offline_mode']`
+/// on the desktop side, equivalent gate on the server side). Every
+/// plugin HTTP call short-circuits to an empty 503 response while
+/// the probe returns `true`, matching the convention CLAUDE.md
+/// spells for every other outbound HTTP path (Deezer, Last.fm,
+/// LRCLIB, similar).
+///
+/// `waveflow-core` doesn't own user-facing settings — those live in
+/// the host crates (`waveflow`, `waveflow-server`). The host
+/// injects its real probe via [`PluginRuntime::new_with_offline_probe`];
+/// the default [`PluginRuntime::new`] uses an always-online stub so
+/// `core` tests don't need to thread a probe through every call.
+pub type OfflineProbe = Arc<dyn Fn() -> bool + Send + Sync>;
+
+fn always_online() -> OfflineProbe {
+    Arc::new(|| false)
+}
 
 /// Hard cap on the compiled `plugin.wasm` size we'll read off disk.
 /// Defence-in-depth against a hostile sideload: a multi-GB file
@@ -80,6 +102,10 @@ impl Default for RuntimeConfig {
 pub enum RuntimeError {
     #[error("invalid plugin id: {0}")]
     InvalidId(#[from] InvalidPluginId),
+    #[error(
+        "manifest plugin.id {found:?} does not match install dir {expected:?} — refusing to load"
+    )]
+    PluginIdMismatch { expected: String, found: String },
     #[error("manifest: {0}")]
     Manifest(#[from] ManifestError),
     #[error("io: {0}")]
@@ -90,6 +116,10 @@ pub enum RuntimeError {
     WasmTooLarge { size: u64, max: u64 },
     #[error("plugin.wasm is not a regular file")]
     WasmNotRegularFile,
+    #[error("host: {0}")]
+    Host(#[from] HostError),
+    #[error("http client init: {0}")]
+    HttpClient(#[from] reqwest::Error),
 }
 
 /// Process-wide plugin runtime. Owns the [`Engine`] (`Send + Sync`
@@ -103,14 +133,43 @@ pub struct PluginRuntime {
 struct RuntimeInner {
     engine: Engine,
     config: RuntimeConfig,
+    /// Shared blocking HTTP client. Built ONCE here with redirect
+    /// following disabled so a plugin's `permissions.http` allowlist
+    /// can't be bypassed by an allowlisted host returning a 302 to
+    /// an arbitrary URL — reqwest's default policy follows up to 10
+    /// hops, the allowlist only gates the initial `req.url`, so
+    /// without this we'd grant transitive access to anywhere the
+    /// allowlisted server cared to redirect to. The plugin sees the
+    /// 3xx + `Location` header in the response and re-issues
+    /// through the allowlist if it wants to follow.
+    ///
+    /// Cloning the client is cheap — reqwest wraps its connection
+    /// pool in `Arc` internally, so per-plugin Stores share one
+    /// pool and reuse warm TLS sessions.
+    http_client: reqwest::blocking::Client,
+    /// See [`OfflineProbe`]. Cloned into every `HostCtx`
+    /// `new_store_for_plugin` builds, so a probe flip takes effect
+    /// on the next plugin instantiation without rebuilding the
+    /// runtime.
+    offline_probe: OfflineProbe,
 }
 
 impl PluginRuntime {
-    /// Build a runtime with the given sandbox config. Fails if
-    /// wasmtime rejects the `Config` (impossible with the static
-    /// settings here today — defensive against future feature
-    /// upgrades).
+    /// Build a runtime with the given sandbox config and the
+    /// always-online offline stub. Use [`Self::new_with_offline_probe`]
+    /// from the host crate to plumb the real
+    /// `app_setting['network.offline_mode']` flag.
     pub fn new(config: RuntimeConfig) -> Result<Self, RuntimeError> {
+        Self::new_with_offline_probe(config, always_online())
+    }
+
+    /// Same as [`Self::new`] but accepts a process-wide offline
+    /// probe. Phase 3's host wiring passes its real
+    /// `offline::is_offline` closure here.
+    pub fn new_with_offline_probe(
+        config: RuntimeConfig,
+        offline_probe: OfflineProbe,
+    ) -> Result<Self, RuntimeError> {
         let mut wt = Config::new();
         // Component Model is the only execution mode plugins use —
         // raw wasm modules aren't a supported plugin shape.
@@ -134,8 +193,26 @@ impl PluginRuntime {
         wt.cranelift_opt_level(OptLevel::Speed);
 
         let engine = Engine::new(&wt)?;
+        // Timeouts are the second-line bound on a misbehaving host.
+        // The wasmtime epoch deadline (~30 s by default) would
+        // eventually trap a request that hangs, but the trap takes
+        // down the whole guest call rather than letting the plugin
+        // surface a clean error. A 15 s request timeout + 5 s
+        // connect timeout returns a recoverable `reqwest::Error`
+        // the plugin sees as `Err(...)` while the epoch is left as
+        // the last-resort sandbox catch.
+        let http_client = reqwest::blocking::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .timeout(Duration::from_secs(15))
+            .connect_timeout(Duration::from_secs(5))
+            .build()?;
         Ok(Self {
-            inner: Arc::new(RuntimeInner { engine, config }),
+            inner: Arc::new(RuntimeInner {
+                engine,
+                config,
+                http_client,
+                offline_probe,
+            }),
         })
     }
 
@@ -176,6 +253,21 @@ impl PluginRuntime {
     ) -> Result<LoadedPlugin, RuntimeError> {
         let manifest_path = paths.manifest_path(plugin_id)?;
         let manifest = Manifest::load_from_path(&manifest_path)?;
+        // Pin the manifest's declared id to the install-dir id.
+        // Without this check the install path (`plugins/<dir>/`)
+        // and the runtime id (`manifest.plugin.id`) can drift — a
+        // plugin installed under `plugins/foo/` but declaring
+        // `id = "bar"` would later read assets from `plugins/bar/`
+        // and write state into `plugin-data/bar/` once
+        // `new_store_for_plugin` keys everything off the manifest
+        // id. Refuse at load time so the host never instantiates a
+        // mismatched layout.
+        if manifest.plugin.id != plugin_id {
+            return Err(RuntimeError::PluginIdMismatch {
+                expected: plugin_id.to_string(),
+                found: manifest.plugin.id.clone(),
+            });
+        }
         let wasm_path = paths.wasm_path(plugin_id)?;
         // Open once, stat the same handle, read from the same handle.
         // Separating `fs::metadata` from `fs::read` is a TOCTOU window
@@ -208,25 +300,76 @@ impl PluginRuntime {
         })
     }
 
-    /// Construct a fresh [`Store`] for one plugin invocation. The
-    /// store is preconfigured with this runtime's fuel + epoch
-    /// deadlines + memory cap — callers don't need to remember to
-    /// apply them. The `data` field on the returned store is the
-    /// host context (Phase 2b will substitute the real `HostCtx`
-    /// once the import traits are wired).
-    pub fn new_store(&self) -> Result<Store<HostCtx>, RuntimeError> {
-        let ctx = HostCtx::new(self.inner.config.max_memory_bytes);
+    /// Construct a fresh [`Store`] for one plugin invocation,
+    /// pre-loaded with the sandbox limits + the host context
+    /// derived from `loaded` and `paths`. The HostCtx pulls in the
+    /// manifest's permission snapshot, the per-plugin asset
+    /// resolver (when assets are declared), the scratch-store
+    /// handle, and a shared reqwest blocking client.
+    ///
+    /// The plugin id used to resolve on-disk paths + scope log
+    /// events + key the scratch store comes from
+    /// `loaded.manifest.plugin.id` — one canonical source. An
+    /// earlier signature took an extra `plugin_id: &str` parameter
+    /// alongside the LoadedPlugin, which let the install-dir id and
+    /// the manifest id drift apart (assets would resolve against
+    /// one tree while permissions + log scope referenced another).
+    /// The manifest validator already restricts the id to
+    /// `[a-z0-9-]+`, and `PluginPaths` re-checks the shape via
+    /// `sanitise_id`, so leaning on the manifest id is safe.
+    pub fn new_store_for_plugin(
+        &self,
+        loaded: &LoadedPlugin,
+        paths: &PluginPaths,
+    ) -> Result<Store<HostCtx>, RuntimeError> {
+        let plugin_id = loaded.manifest.plugin.id.as_str();
+        let plugin_dir = paths.plugin_dir(plugin_id)?;
+        let state_dir = paths.state_dir(plugin_id)?;
+        let assets = if loaded.manifest.assets.is_empty() {
+            None
+        } else {
+            Some(AssetResolver::new(&plugin_dir, &loaded.manifest))
+        };
+        let permissions = HostPermissions::from_manifest(&loaded.manifest)?;
+        let state = StateStore::new(state_dir, STATE_QUOTA_BYTES);
+        // Clone the runtime's redirect-disabled client (cheap — the
+        // connection pool sits behind an internal Arc, so per-Store
+        // clones share one warm TLS / DNS cache across plugins).
+        let http_client = self.inner.http_client.clone();
+        let offline_probe = Arc::clone(&self.inner.offline_probe);
+        let limits = StoreLimitsBuilder::new()
+            .memory_size(self.inner.config.max_memory_bytes)
+            .build();
+
+        let ctx = HostCtx {
+            table: ResourceTable::new(),
+            limits,
+            plugin_id: plugin_id.to_string(),
+            permissions,
+            assets,
+            state,
+            http_client,
+            offline_probe,
+        };
         let mut store = Store::new(&self.inner.engine, ctx);
 
         store.set_fuel(self.inner.config.fuel_per_call)?;
-        // `set_epoch_deadline` is in epoch-tick units; the host
-        // increments the engine's epoch counter and the store
-        // traps when it crosses the deadline.
         store.set_epoch_deadline(self.inner.config.epoch_ticks_per_call);
-        // Apply the memory limiter we configured on `HostCtx::new`.
         store.limiter(|ctx| &mut ctx.limits);
 
         Ok(store)
+    }
+
+    /// Build a [`Linker`] pre-populated with every
+    /// `waveflow:host/*` import the SDK ships. One linker covers
+    /// every store this runtime spins up — wasmtime's
+    /// `Linker<HostCtx>` is `Send + Sync` and `Component::instantiate`
+    /// only reads it, so the caller can keep a single `Arc<Linker>`
+    /// around and clone-share it across instantiations.
+    pub fn build_linker(&self) -> Result<Linker<HostCtx>, RuntimeError> {
+        let mut linker = Linker::<HostCtx>::new(&self.inner.engine);
+        crate::plugin::host_impl::add_to_linker(&mut linker)?;
+        Ok(linker)
     }
 }
 
@@ -238,15 +381,21 @@ pub struct LoadedPlugin {
     pub wasm_path: PathBuf,
 }
 
-/// Per-Store host context. Phase 2a only carries the resource
-/// table + memory limiter so the runtime can already enforce its
-/// sandbox; Phase 2b adds the HTTP allowlist, log scope (plugin id),
-/// scratch-store handle, and any other state the host imports need
-/// at call time.
+/// Per-Store host context. Owns everything the `waveflow:host/*`
+/// import impls read from at call time: the permission snapshot
+/// taken at instantiate, the asset resolver (when assets are
+/// declared), the scratch-store handle, a shared HTTP client, and
+/// the plugin id used for log scoping.
 ///
-/// Why a struct vs `()`: the `bindgen!`-generated `Host` trait will
-/// be implemented on `HostCtx` (not on a generic), so introducing
-/// the type now keeps Phase 2b's diff small + reviewable.
+/// Fields that pin runtime invariants — `plugin_id`, `permissions`,
+/// `assets`, `state`, `http_client`, `offline_probe` — are
+/// `pub(crate)` so external crates (the app, the server) can't
+/// rewrite them after instantiation and slip past the manifest's
+/// permission gates, asset sandbox, scratch-store isolation, or
+/// the runtime's redirect / timeout / offline policy on the HTTP
+/// client. `table` + `limits` stay `pub` because wasmtime itself
+/// reaches into them and there's no equivalent invariant to
+/// protect on those.
 pub struct HostCtx {
     /// Wasmtime resource table — required by `bindgen!` even when
     /// the WIT files don't declare resources (the macro stitches it
@@ -256,16 +405,72 @@ pub struct HostCtx {
     /// at this field so a guest `memory.grow` over the cap returns
     /// 0 instead of asking the OS for more pages.
     pub limits: StoreLimits,
+
+    /// Manifest id for tracing scope. Every `waveflow:host/log.emit`
+    /// call routes the message into the host's tracing subsystem
+    /// with `plugin = <id>` set automatically. `pub(crate)` so
+    /// outside callers can't relabel a running plugin.
+    pub(crate) plugin_id: String,
+    /// Compiled allowlist + storage flags pinned at instantiate
+    /// time. See [`HostPermissions::from_manifest`]. `pub(crate)`
+    /// so the manifest's gates can't be widened post-hoc — a host
+    /// that wants different permissions builds a new store.
+    pub(crate) permissions: HostPermissions,
+    /// Sidecar asset reader. `None` when the manifest declared no
+    /// `[[assets]]` table; the storage host impl returns a clear
+    /// error in that case instead of pretending the resolver
+    /// exists but is empty. `pub(crate)` so the asset sandbox
+    /// can't be swapped from outside the runtime.
+    pub(crate) assets: Option<AssetResolver>,
+    /// Per-plugin scratch key/value store with the global 10 MB
+    /// quota baked in. `pub(crate)` so an external caller can't
+    /// swap the backend mid-flight to point at another plugin's
+    /// scratch dir (or anywhere else on disk).
+    pub(crate) state: StateStore,
+    /// Blocking reqwest client. Sync because the WIT `http.send`
+    /// signature is sync and bridging through tokio::block_on
+    /// inside a wasmtime callback would deadlock on the same
+    /// worker thread the guest is running on. `pub(crate)` so an
+    /// external caller can't replace it with a client that follows
+    /// redirects, removes timeouts, or otherwise undoes the
+    /// runtime's HTTP policy.
+    pub(crate) http_client: reqwest::blocking::Client,
+    /// Cloned snapshot of the runtime's [`OfflineProbe`]. The HTTP
+    /// host impl reads this on every `http.send` and short-circuits
+    /// to an empty 503 response when it returns `true`, matching
+    /// the convention every other outbound HTTP path in this
+    /// workspace follows. `pub(crate)` so a caller can't pin the
+    /// probe to a constant and bypass the host's offline switch.
+    pub(crate) offline_probe: OfflineProbe,
 }
 
 impl HostCtx {
-    pub fn new(max_memory_bytes: usize) -> Self {
+    /// Stub builder for unit tests that don't go through
+    /// `PluginRuntime::new_store_for_plugin`. Empty permissions,
+    /// no assets, an isolated scratch dir under the OS temp tree,
+    /// fresh reqwest client.
+    #[cfg(test)]
+    pub fn stub(max_memory_bytes: usize, state_dir: PathBuf) -> Self {
         let limits = StoreLimitsBuilder::new()
             .memory_size(max_memory_bytes)
             .build();
         Self {
             table: ResourceTable::new(),
             limits,
+            plugin_id: "test-plugin".into(),
+            permissions: HostPermissions::empty(),
+            assets: None,
+            state: StateStore::new(state_dir, STATE_QUOTA_BYTES),
+            // Match the production redirect policy + timeouts so
+            // tests don't accidentally pass with permissive defaults
+            // the production runtime explicitly disables.
+            http_client: reqwest::blocking::Client::builder()
+                .redirect(reqwest::redirect::Policy::none())
+                .timeout(Duration::from_secs(15))
+                .connect_timeout(Duration::from_secs(5))
+                .build()
+                .expect("redirect-disabled client builds"),
+            offline_probe: always_online(),
         }
     }
 }
@@ -290,9 +495,19 @@ mod tests {
 
     #[test]
     fn store_carries_sandbox_limits() {
+        // Builds a Store manually (bypassing `new_store_for_plugin`,
+        // which needs an on-disk plugin) so the sandbox handoff —
+        // fuel + epoch + memory limiter — is testable in isolation.
+        let tmp = tempfile::tempdir().expect("tempdir");
         let runtime = PluginRuntime::new(RuntimeConfig::default()).expect("engine builds");
-        let store = runtime.new_store().expect("store builds");
-        // Fuel is set; reading it back should match the config.
+        let ctx = HostCtx::stub(runtime.config().max_memory_bytes, tmp.path().to_path_buf());
+        let mut store = Store::new(runtime.engine(), ctx);
+        store
+            .set_fuel(runtime.config().fuel_per_call)
+            .expect("fuel set");
+        store.set_epoch_deadline(runtime.config().epoch_ticks_per_call);
+        store.limiter(|ctx| &mut ctx.limits);
+
         let fuel = store.get_fuel().expect("store has fuel enabled");
         assert_eq!(fuel, runtime.config().fuel_per_call);
     }
@@ -305,6 +520,17 @@ mod tests {
         // verify the deadline actually traps a guest.
         runtime.tick_epoch();
         runtime.tick_epoch();
+    }
+
+    #[test]
+    fn build_linker_succeeds() {
+        // Regression: if any host import wires up wrong (signature
+        // drift between WIT + impl, missing trait, double-add) the
+        // generated `add_to_linker` returns an error or panics.
+        // The handshake is silent — we just need it to succeed.
+        let runtime = PluginRuntime::new(RuntimeConfig::default()).expect("engine builds");
+        let linker = runtime.build_linker();
+        assert!(linker.is_ok(), "linker build failed: {:?}", linker.err());
     }
 
     #[test]
@@ -358,6 +584,45 @@ world = "waveflow:source/v1"
                 assert_eq!(max, MAX_WASM_SIZE);
             }
             Err(err) => panic!("expected WasmTooLarge, got {err:?}"),
+        }
+    }
+
+    #[test]
+    fn load_plugin_rejects_id_mismatch_between_dir_and_manifest() {
+        // Lay down a plugin under `plugins/foo/` whose manifest
+        // declares `id = "bar"`. Without the load-time pin, the
+        // runtime would happily go on to read assets from
+        // `plugins/bar/assets/` and write state to
+        // `plugin-data/bar/` once `new_store_for_plugin` keys off
+        // the manifest id — the install dir effectively forgers
+        // a different plugin's resources.
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let runtime = PluginRuntime::new(RuntimeConfig::default()).expect("engine builds");
+        let paths = PluginPaths::from_app_data(tmp.path());
+
+        let install_dir = paths.plugin_dir("foo").expect("dir");
+        std::fs::create_dir_all(&install_dir).expect("mkdir");
+        let manifest = r#"
+schema_version = 1
+
+[plugin]
+id = "bar"
+name = "x"
+version = "1"
+author = "x"
+world = "waveflow:source/v1"
+"#;
+        std::fs::write(install_dir.join("manifest.toml"), manifest).expect("write manifest");
+        // Empty wasm — the load-time check fires before we read it.
+        std::fs::write(install_dir.join("plugin.wasm"), b"").expect("touch wasm");
+
+        match runtime.load_plugin(&paths, "foo") {
+            Ok(_) => panic!("expected error, got Ok"),
+            Err(RuntimeError::PluginIdMismatch { expected, found }) => {
+                assert_eq!(expected, "foo");
+                assert_eq!(found, "bar");
+            }
+            Err(err) => panic!("expected PluginIdMismatch, got {err:?}"),
         }
     }
 
