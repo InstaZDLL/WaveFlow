@@ -21,9 +21,11 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use wasmtime::component::{Component, ResourceTable};
+use wasmtime::component::{Component, Linker, ResourceTable};
 use wasmtime::{Config, Engine, OptLevel, Store, StoreLimits, StoreLimitsBuilder};
 
+use crate::plugin::assets::AssetResolver;
+use crate::plugin::host_impl::{HostError, HostPermissions, StateStore, STATE_QUOTA_BYTES};
 use crate::plugin::manifest::{Manifest, ManifestError};
 use crate::plugin::{InvalidPluginId, PluginPaths};
 
@@ -90,6 +92,8 @@ pub enum RuntimeError {
     WasmTooLarge { size: u64, max: u64 },
     #[error("plugin.wasm is not a regular file")]
     WasmNotRegularFile,
+    #[error("host: {0}")]
+    Host(#[from] HostError),
 }
 
 /// Process-wide plugin runtime. Owns the [`Engine`] (`Send + Sync`
@@ -208,25 +212,69 @@ impl PluginRuntime {
         })
     }
 
-    /// Construct a fresh [`Store`] for one plugin invocation. The
-    /// store is preconfigured with this runtime's fuel + epoch
-    /// deadlines + memory cap — callers don't need to remember to
-    /// apply them. The `data` field on the returned store is the
-    /// host context (Phase 2b will substitute the real `HostCtx`
-    /// once the import traits are wired).
-    pub fn new_store(&self) -> Result<Store<HostCtx>, RuntimeError> {
-        let ctx = HostCtx::new(self.inner.config.max_memory_bytes);
+    /// Construct a fresh [`Store`] for one plugin invocation,
+    /// pre-loaded with the sandbox limits + the host context
+    /// derived from `loaded` and `paths`. The HostCtx pulls in the
+    /// manifest's permission snapshot, the per-plugin asset
+    /// resolver (when assets are declared), the scratch-store
+    /// handle, and a shared reqwest blocking client.
+    ///
+    /// Why this function takes a `&LoadedPlugin` + `&PluginPaths` +
+    /// `plugin_id`: the LoadedPlugin owns the manifest (permissions
+    /// + asset declarations), the paths provide the on-disk
+    /// locations the store reads from / writes to, and the id is
+    /// re-validated for the state-dir lookup (`PluginPaths::state_dir`).
+    pub fn new_store_for_plugin(
+        &self,
+        loaded: &LoadedPlugin,
+        paths: &PluginPaths,
+        plugin_id: &str,
+    ) -> Result<Store<HostCtx>, RuntimeError> {
+        let plugin_dir = paths.plugin_dir(plugin_id)?;
+        let state_dir = paths.state_dir(plugin_id)?;
+        let assets = if loaded.manifest.assets.is_empty() {
+            None
+        } else {
+            Some(AssetResolver::new(&plugin_dir, &loaded.manifest))
+        };
+        let permissions = HostPermissions::from_manifest(&loaded.manifest)?;
+        let state = StateStore::new(state_dir, STATE_QUOTA_BYTES);
+        // Cheap shared client (reqwest pools internally). Phase 3
+        // will inject an app-wide client so DNS + TLS handshakes
+        // are reused across plugins.
+        let http_client = reqwest::blocking::Client::new();
+        let limits = StoreLimitsBuilder::new()
+            .memory_size(self.inner.config.max_memory_bytes)
+            .build();
+
+        let ctx = HostCtx {
+            table: ResourceTable::new(),
+            limits,
+            plugin_id: plugin_id.to_string(),
+            permissions,
+            assets,
+            state,
+            http_client,
+        };
         let mut store = Store::new(&self.inner.engine, ctx);
 
         store.set_fuel(self.inner.config.fuel_per_call)?;
-        // `set_epoch_deadline` is in epoch-tick units; the host
-        // increments the engine's epoch counter and the store
-        // traps when it crosses the deadline.
         store.set_epoch_deadline(self.inner.config.epoch_ticks_per_call);
-        // Apply the memory limiter we configured on `HostCtx::new`.
         store.limiter(|ctx| &mut ctx.limits);
 
         Ok(store)
+    }
+
+    /// Build a [`Linker`] pre-populated with every
+    /// `waveflow:host/*` import the SDK ships. One linker covers
+    /// every store this runtime spins up — wasmtime's
+    /// `Linker<HostCtx>` is `Send + Sync` and `Component::instantiate`
+    /// only reads it, so the caller can keep a single `Arc<Linker>`
+    /// around and clone-share it across instantiations.
+    pub fn build_linker(&self) -> Result<Linker<HostCtx>, RuntimeError> {
+        let mut linker = Linker::<HostCtx>::new(&self.inner.engine);
+        crate::plugin::host_impl::add_to_linker(&mut linker)?;
+        Ok(linker)
     }
 }
 
@@ -238,15 +286,15 @@ pub struct LoadedPlugin {
     pub wasm_path: PathBuf,
 }
 
-/// Per-Store host context. Phase 2a only carries the resource
-/// table + memory limiter so the runtime can already enforce its
-/// sandbox; Phase 2b adds the HTTP allowlist, log scope (plugin id),
-/// scratch-store handle, and any other state the host imports need
-/// at call time.
+/// Per-Store host context. Owns everything the `waveflow:host/*`
+/// import impls read from at call time: the permission snapshot
+/// taken at instantiate, the asset resolver (when assets are
+/// declared), the scratch-store handle, a shared HTTP client, and
+/// the plugin id used for log scoping.
 ///
-/// Why a struct vs `()`: the `bindgen!`-generated `Host` trait will
-/// be implemented on `HostCtx` (not on a generic), so introducing
-/// the type now keeps Phase 2b's diff small + reviewable.
+/// All fields are `pub(crate)` so [`crate::plugin::host_impl`] can
+/// read them from inside its trait impls without exposing them on
+/// the public API surface.
 pub struct HostCtx {
     /// Wasmtime resource table — required by `bindgen!` even when
     /// the WIT files don't declare resources (the macro stitches it
@@ -256,16 +304,47 @@ pub struct HostCtx {
     /// at this field so a guest `memory.grow` over the cap returns
     /// 0 instead of asking the OS for more pages.
     pub limits: StoreLimits,
+
+    /// Manifest id for tracing scope. Every `waveflow:host/log.emit`
+    /// call routes the message into the host's tracing subsystem
+    /// with `plugin = <id>` set automatically.
+    pub plugin_id: String,
+    /// Compiled allowlist + storage flags pinned at instantiate
+    /// time. See [`HostPermissions::from_manifest`].
+    pub permissions: HostPermissions,
+    /// Sidecar asset reader. `None` when the manifest declared no
+    /// `[[assets]]` table; the storage host impl returns a clear
+    /// error in that case instead of pretending the resolver
+    /// exists but is empty.
+    pub assets: Option<AssetResolver>,
+    /// Per-plugin scratch key/value store with the global 10 MB
+    /// quota baked in.
+    pub state: StateStore,
+    /// Blocking reqwest client. Sync because the WIT `http.send`
+    /// signature is sync and bridging through tokio::block_on
+    /// inside a wasmtime callback would deadlock on the same
+    /// worker thread the guest is running on.
+    pub http_client: reqwest::blocking::Client,
 }
 
 impl HostCtx {
-    pub fn new(max_memory_bytes: usize) -> Self {
+    /// Stub builder for unit tests that don't go through
+    /// `PluginRuntime::new_store_for_plugin`. Empty permissions,
+    /// no assets, an isolated scratch dir under the OS temp tree,
+    /// fresh reqwest client.
+    #[cfg(test)]
+    pub fn stub(max_memory_bytes: usize, state_dir: PathBuf) -> Self {
         let limits = StoreLimitsBuilder::new()
             .memory_size(max_memory_bytes)
             .build();
         Self {
             table: ResourceTable::new(),
             limits,
+            plugin_id: "test-plugin".into(),
+            permissions: HostPermissions::empty(),
+            assets: None,
+            state: StateStore::new(state_dir, STATE_QUOTA_BYTES),
+            http_client: reqwest::blocking::Client::new(),
         }
     }
 }
@@ -290,9 +369,19 @@ mod tests {
 
     #[test]
     fn store_carries_sandbox_limits() {
+        // Builds a Store manually (bypassing `new_store_for_plugin`,
+        // which needs an on-disk plugin) so the sandbox handoff —
+        // fuel + epoch + memory limiter — is testable in isolation.
+        let tmp = tempfile::tempdir().expect("tempdir");
         let runtime = PluginRuntime::new(RuntimeConfig::default()).expect("engine builds");
-        let store = runtime.new_store().expect("store builds");
-        // Fuel is set; reading it back should match the config.
+        let ctx = HostCtx::stub(runtime.config().max_memory_bytes, tmp.path().to_path_buf());
+        let mut store = Store::new(runtime.engine(), ctx);
+        store
+            .set_fuel(runtime.config().fuel_per_call)
+            .expect("fuel set");
+        store.set_epoch_deadline(runtime.config().epoch_ticks_per_call);
+        store.limiter(|ctx| &mut ctx.limits);
+
         let fuel = store.get_fuel().expect("store has fuel enabled");
         assert_eq!(fuel, runtime.config().fuel_per_call);
     }
@@ -305,6 +394,17 @@ mod tests {
         // verify the deadline actually traps a guest.
         runtime.tick_epoch();
         runtime.tick_epoch();
+    }
+
+    #[test]
+    fn build_linker_succeeds() {
+        // Regression: if any host import wires up wrong (signature
+        // drift between WIT + impl, missing trait, double-add) the
+        // generated `add_to_linker` returns an error or panics.
+        // The handshake is silent — we just need it to succeed.
+        let runtime = PluginRuntime::new(RuntimeConfig::default()).expect("engine builds");
+        let linker = runtime.build_linker();
+        assert!(linker.is_ok(), "linker build failed: {:?}", linker.err());
     }
 
     #[test]
