@@ -1240,8 +1240,37 @@
       "appearance": "المظهر",
       "storage": "التخزين والبيانات",
       "data": "البيانات",
+      "plugins": "الإضافات",
       "shortcuts": "اختصارات لوحة المفاتيح",
       "diagnostics": "التشخيص"
+    },
+    "plugins": {
+      "title": "الإضافات المثبتة",
+      "subtitle": "أدر الامتدادات التي تضيف مصادر أو بيانات وصفية أو طرق عرض إلى WaveFlow.",
+      "loading": "جارٍ التحميل…",
+      "emptyTitle": "لا توجد إضافات مثبتة",
+      "emptyHint": "التثبيت اليدوي: ضع مجلدًا تحت <data>/waveflow/plugins/. سيتوفر متجر رسمي قريبًا.",
+      "byAuthor": "بواسطة {{author}}",
+      "enabled": "مفعّل",
+      "disabled": "معطّل",
+      "toggleAria": "تفعيل أو تعطيل {{name}}",
+      "uninstall": "إلغاء التثبيت",
+      "uninstallAria": "إلغاء تثبيت {{name}}",
+      "confirmUninstall": "تأكيد إلغاء تثبيت {{name}}",
+      "confirmYes": "تأكيد",
+      "confirmNo": "إلغاء",
+      "worlds": {
+        "source": "مصدر",
+        "metadata": "بيانات وصفية",
+        "ui": "واجهة"
+      },
+      "permissions": {
+        "http": "HTTP ({{count}})",
+        "storageState": "تخزين المستخدم",
+        "storageRead": "قراءة التخزين",
+        "assets": "الموارد ({{count}})",
+        "none": "لا توجد أذونات مطلوبة"
+      }
     },
     "shortcuts": {
       "subtitle": "انقر على اختصار ثم اضغط على تركيبة المفاتيح المطلوبة. Backspace للمسح، Esc للإلغاء.",

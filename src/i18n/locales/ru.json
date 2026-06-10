@@ -1277,8 +1277,37 @@
       "appearance": "Внешний вид",
       "storage": "Хранилище и данные",
       "data": "Данные",
+      "plugins": "Плагины",
       "shortcuts": "Сочетания клавиш",
       "diagnostics": "Диагностика"
+    },
+    "plugins": {
+      "title": "Установленные плагины",
+      "subtitle": "Управляйте расширениями, которые добавляют в WaveFlow источники, метаданные или представления.",
+      "loading": "Загрузка…",
+      "emptyTitle": "Плагины не установлены",
+      "emptyHint": "Ручная установка: поместите каталог в <data>/waveflow/plugins/. Официальный магазин скоро будет.",
+      "byAuthor": "От {{author}}",
+      "enabled": "Включено",
+      "disabled": "Отключено",
+      "toggleAria": "Включить или отключить {{name}}",
+      "uninstall": "Удалить",
+      "uninstallAria": "Удалить {{name}}",
+      "confirmUninstall": "Подтвердите удаление {{name}}",
+      "confirmYes": "Подтвердить",
+      "confirmNo": "Отмена",
+      "worlds": {
+        "source": "Источник",
+        "metadata": "Метаданные",
+        "ui": "Интерфейс"
+      },
+      "permissions": {
+        "http": "HTTP ({{count}})",
+        "storageState": "Хранилище пользователя",
+        "storageRead": "Чтение хранилища",
+        "assets": "Ресурсы ({{count}})",
+        "none": "Права не запрошены"
+      }
     },
     "shortcuts": {
       "subtitle": "Нажмите на сочетание клавиш, затем введите нужную комбинацию. Backspace — очистить, Esc — отменить.",

@@ -1236,8 +1236,37 @@
       "appearance": "外观",
       "storage": "存储与数据",
       "data": "数据",
+      "plugins": "插件",
       "diagnostics": "诊断",
       "shortcuts": "键盘快捷键"
+    },
+    "plugins": {
+      "title": "已安装的插件",
+      "subtitle": "管理向 WaveFlow 添加来源、元数据或视图的扩展。",
+      "loading": "加载中…",
+      "emptyTitle": "未安装插件",
+      "emptyHint": "手动安装：将文件夹放在 <data>/waveflow/plugins/ 下。官方商店即将推出。",
+      "byAuthor": "作者：{{author}}",
+      "enabled": "已启用",
+      "disabled": "已禁用",
+      "toggleAria": "启用或禁用 {{name}}",
+      "uninstall": "卸载",
+      "uninstallAria": "卸载 {{name}}",
+      "confirmUninstall": "确认卸载 {{name}}",
+      "confirmYes": "确认",
+      "confirmNo": "取消",
+      "worlds": {
+        "source": "来源",
+        "metadata": "元数据",
+        "ui": "界面"
+      },
+      "permissions": {
+        "http": "HTTP ({{count}})",
+        "storageState": "用户存储",
+        "storageRead": "读取存储",
+        "assets": "资源 ({{count}})",
+        "none": "未请求任何权限"
+      }
     },
     "integrations": {
       "lastfm": {

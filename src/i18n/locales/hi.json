@@ -1236,8 +1236,37 @@
       "appearance": "रूप",
       "storage": "भंडारण और डेटा",
       "data": "डेटा",
+      "plugins": "प्लगइन्स",
       "diagnostics": "निदान",
       "shortcuts": "कीबोर्ड शॉर्टकट"
+    },
+    "plugins": {
+      "title": "इंस्टॉल किए गए प्लगइन्स",
+      "subtitle": "WaveFlow में स्रोत, मेटाडेटा या दृश्य जोड़ने वाले एक्सटेंशन प्रबंधित करें।",
+      "loading": "लोड हो रहा है…",
+      "emptyTitle": "कोई प्लगइन इंस्टॉल नहीं है",
+      "emptyHint": "मैन्युअल इंस्टॉल: <data>/waveflow/plugins/ के अंतर्गत एक फ़ोल्डर रखें। आधिकारिक स्टोर जल्द आ रहा है।",
+      "byAuthor": "{{author}} द्वारा",
+      "enabled": "सक्षम",
+      "disabled": "अक्षम",
+      "toggleAria": "{{name}} सक्षम या अक्षम करें",
+      "uninstall": "अनइंस्टॉल",
+      "uninstallAria": "{{name}} अनइंस्टॉल करें",
+      "confirmUninstall": "{{name}} अनइंस्टॉल करने की पुष्टि करें",
+      "confirmYes": "पुष्टि करें",
+      "confirmNo": "रद्द करें",
+      "worlds": {
+        "source": "स्रोत",
+        "metadata": "मेटाडेटा",
+        "ui": "UI"
+      },
+      "permissions": {
+        "http": "HTTP ({{count}})",
+        "storageState": "उपयोगकर्ता संग्रहण",
+        "storageRead": "संग्रहण पढ़ना",
+        "assets": "संपत्तियाँ ({{count}})",
+        "none": "कोई अनुमति अनुरोधित नहीं"
+      }
     },
     "shortcuts": {
       "subtitle": "किसी शॉर्टकट पर क्लिक करें फिर अपनी इच्छित कुंजी संयोजन दबाएँ। साफ़ करने के लिए Backspace, रद्द करने के लिए Escape।",

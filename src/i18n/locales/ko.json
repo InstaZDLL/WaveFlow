@@ -1236,8 +1236,37 @@
       "appearance": "외관",
       "storage": "저장소 및 데이터",
       "data": "데이터",
+      "plugins": "플러그인",
       "diagnostics": "진단",
       "shortcuts": "키보드 단축키"
+    },
+    "plugins": {
+      "title": "설치된 플러그인",
+      "subtitle": "WaveFlow에 소스, 메타데이터 또는 뷰를 추가하는 확장 기능을 관리합니다.",
+      "loading": "로드 중…",
+      "emptyTitle": "설치된 플러그인이 없습니다",
+      "emptyHint": "수동 설치: <data>/waveflow/plugins/에 폴더를 넣으세요. 공식 스토어가 곧 출시됩니다.",
+      "byAuthor": "{{author}} 작성",
+      "enabled": "활성화됨",
+      "disabled": "비활성화됨",
+      "toggleAria": "{{name}} 활성화 또는 비활성화",
+      "uninstall": "제거",
+      "uninstallAria": "{{name}} 제거",
+      "confirmUninstall": "{{name}} 제거 확인",
+      "confirmYes": "확인",
+      "confirmNo": "취소",
+      "worlds": {
+        "source": "소스",
+        "metadata": "메타데이터",
+        "ui": "UI"
+      },
+      "permissions": {
+        "http": "HTTP ({{count}})",
+        "storageState": "사용자 저장소",
+        "storageRead": "스토리지 읽기",
+        "assets": "자산 ({{count}})",
+        "none": "요청된 권한 없음"
+      }
     },
     "shortcuts": {
       "subtitle": "단축키를 클릭한 후 원하는 키 조합을 누르세요. 지우려면 Backspace, 취소하려면 Escape를 누르세요.",

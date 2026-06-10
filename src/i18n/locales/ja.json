@@ -1236,8 +1236,37 @@
       "appearance": "外観",
       "storage": "ストレージとデータ",
       "data": "データ",
+      "plugins": "プラグイン",
       "diagnostics": "診断",
       "shortcuts": "キーボードショートカット"
+    },
+    "plugins": {
+      "title": "インストール済みプラグイン",
+      "subtitle": "WaveFlow にソース、メタデータ、ビューを追加する拡張機能を管理します。",
+      "loading": "読み込み中…",
+      "emptyTitle": "プラグインがインストールされていません",
+      "emptyHint": "手動インストール: <data>/waveflow/plugins/ 内にフォルダを置きます。公式ストアは近日公開予定です。",
+      "byAuthor": "作者: {{author}}",
+      "enabled": "有効",
+      "disabled": "無効",
+      "toggleAria": "{{name}} を有効または無効にする",
+      "uninstall": "アンインストール",
+      "uninstallAria": "{{name}} をアンインストール",
+      "confirmUninstall": "{{name}} のアンインストールを確認",
+      "confirmYes": "確認",
+      "confirmNo": "キャンセル",
+      "worlds": {
+        "source": "ソース",
+        "metadata": "メタデータ",
+        "ui": "UI"
+      },
+      "permissions": {
+        "http": "HTTP ({{count}})",
+        "storageState": "ユーザーストレージ",
+        "storageRead": "ストレージ読み取り",
+        "assets": "アセット ({{count}})",
+        "none": "要求された権限はありません"
+      }
     },
     "integrations": {
       "lastfm": {
