@@ -120,6 +120,20 @@ sha2 = "0.10"
 # crate both sides import.
 waveflow-plugin-sdk = { path = "../plugin-sdk" }
 
+# WebAssembly Component Model runtime — Phase 2a wires the engine,
+# component loader, and sandbox config (fuel, memory cap, epoch
+# interrupt). The `bindgen!` macro generates the host-side trait shells
+# from the WIT files under `../plugin-sdk/wit/`; Phase 2b implements
+# them in `plugin::host_impl`. Defaults trimmed: we don't need the
+# pooling allocator, async API, coredump, or addr2line debug-info paths
+# in v1 — sync API + cranelift JIT keeps the bundle bump near 5 MB.
+wasmtime = { version = "45", default-features = false, features = [
+    "runtime",
+    "cranelift",
+    "component-model",
+    "parallel-compilation",
+] }
+
 [dev-dependencies]
 # Sandboxed scratch directories for the smart-playlist cover render
 # tests. Same usage shape as the app crate's existing dev-dep.
