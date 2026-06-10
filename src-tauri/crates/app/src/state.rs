@@ -118,10 +118,23 @@ impl AppState {
         // the same `crate::offline` atomic Deezer / Last.fm / LRCLIB
         // do, so flipping the user-facing offline switch reaches
         // plugin HTTP without a separate wiring path.
-        let plugins = PluginRuntime::new_with_offline_probe(
-            RuntimeConfig::default(),
-            Arc::new(crate::offline::is_offline),
-        )
+        //
+        // MUST run on `spawn_blocking`: `reqwest::blocking::Client::build`
+        // spawns its own internal tokio runtime on a sidecar thread,
+        // and reqwest panics ("Cannot drop a runtime in a context
+        // where blocking is not allowed") when that construction is
+        // attempted from inside an outer async context. Tauri's
+        // setup callback hosts the entire `AppState::init`, so the
+        // direct call here would tank startup. The blocking task
+        // returns a `PluginRuntime` we can move back to the async
+        // side — clones share the inner Arc, no second-build pain.
+        let probe: waveflow_core::plugin::runtime::OfflineProbe =
+            Arc::new(crate::offline::is_offline);
+        let plugins = tokio::task::spawn_blocking(move || {
+            PluginRuntime::new_with_offline_probe(RuntimeConfig::default(), probe)
+        })
+        .await
+        .map_err(|e| AppError::Other(format!("plugin runtime init join: {e}")))?
         .map_err(|e| AppError::Other(format!("plugin runtime init: {e}")))?;
 
         let state = Self {
