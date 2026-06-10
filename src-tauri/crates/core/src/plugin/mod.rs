@@ -104,8 +104,11 @@ impl PluginPaths {
     /// `data_root`. Same id sanitisation contract as
     /// [`Self::plugin_dir`]. Phase 2b's `waveflow:host/storage.{read,write}-state`
     /// reads + writes inside this tree (one file per state key).
-    /// Callers MUST `create_dir_all` it before writing — the path
-    /// helpers stay non-mutating.
+    /// The helper itself is non-mutating; the directory is created
+    /// lazily by [`crate::plugin::host_impl::StateStore::write`] on
+    /// the first call, so callers don't need to `create_dir_all` it
+    /// up front (a plugin that never writes leaves no trace on
+    /// disk).
     pub fn state_dir(&self, plugin_id: &str) -> Result<PathBuf, InvalidPluginId> {
         Self::sanitise_id(plugin_id).map(|id| self.data_root.join(id))
     }
