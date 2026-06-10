@@ -102,6 +102,10 @@ impl Default for RuntimeConfig {
 pub enum RuntimeError {
     #[error("invalid plugin id: {0}")]
     InvalidId(#[from] InvalidPluginId),
+    #[error(
+        "manifest plugin.id {found:?} does not match install dir {expected:?} — refusing to load"
+    )]
+    PluginIdMismatch { expected: String, found: String },
     #[error("manifest: {0}")]
     Manifest(#[from] ManifestError),
     #[error("io: {0}")]
@@ -249,6 +253,21 @@ impl PluginRuntime {
     ) -> Result<LoadedPlugin, RuntimeError> {
         let manifest_path = paths.manifest_path(plugin_id)?;
         let manifest = Manifest::load_from_path(&manifest_path)?;
+        // Pin the manifest's declared id to the install-dir id.
+        // Without this check the install path (`plugins/<dir>/`)
+        // and the runtime id (`manifest.plugin.id`) can drift — a
+        // plugin installed under `plugins/foo/` but declaring
+        // `id = "bar"` would later read assets from `plugins/bar/`
+        // and write state into `plugin-data/bar/` once
+        // `new_store_for_plugin` keys everything off the manifest
+        // id. Refuse at load time so the host never instantiates a
+        // mismatched layout.
+        if manifest.plugin.id != plugin_id {
+            return Err(RuntimeError::PluginIdMismatch {
+                expected: plugin_id.to_string(),
+                found: manifest.plugin.id.clone(),
+            });
+        }
         let wasm_path = paths.wasm_path(plugin_id)?;
         // Open once, stat the same handle, read from the same handle.
         // Separating `fs::metadata` from `fs::read` is a TOCTOU window
@@ -549,6 +568,45 @@ world = "waveflow:source/v1"
                 assert_eq!(max, MAX_WASM_SIZE);
             }
             Err(err) => panic!("expected WasmTooLarge, got {err:?}"),
+        }
+    }
+
+    #[test]
+    fn load_plugin_rejects_id_mismatch_between_dir_and_manifest() {
+        // Lay down a plugin under `plugins/foo/` whose manifest
+        // declares `id = "bar"`. Without the load-time pin, the
+        // runtime would happily go on to read assets from
+        // `plugins/bar/assets/` and write state to
+        // `plugin-data/bar/` once `new_store_for_plugin` keys off
+        // the manifest id — the install dir effectively forgers
+        // a different plugin's resources.
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let runtime = PluginRuntime::new(RuntimeConfig::default()).expect("engine builds");
+        let paths = PluginPaths::from_app_data(tmp.path());
+
+        let install_dir = paths.plugin_dir("foo").expect("dir");
+        std::fs::create_dir_all(&install_dir).expect("mkdir");
+        let manifest = r#"
+schema_version = 1
+
+[plugin]
+id = "bar"
+name = "x"
+version = "1"
+author = "x"
+world = "waveflow:source/v1"
+"#;
+        std::fs::write(install_dir.join("manifest.toml"), manifest).expect("write manifest");
+        // Empty wasm — the load-time check fires before we read it.
+        std::fs::write(install_dir.join("plugin.wasm"), b"").expect("touch wasm");
+
+        match runtime.load_plugin(&paths, "foo") {
+            Ok(_) => panic!("expected error, got Ok"),
+            Err(RuntimeError::PluginIdMismatch { expected, found }) => {
+                assert_eq!(expected, "foo");
+                assert_eq!(found, "bar");
+            }
+            Err(err) => panic!("expected PluginIdMismatch, got {err:?}"),
         }
     }
 

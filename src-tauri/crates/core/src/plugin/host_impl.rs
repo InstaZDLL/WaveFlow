@@ -311,23 +311,31 @@ impl wit_host::http::Host for HostCtx {
         &mut self,
         req: wit_host::http::Request,
     ) -> wasmtime::Result<Result<wit_host::http::Response, String>> {
-        // Offline mode short-circuit runs BEFORE the permission
-        // check: a guest probing a non-allowlisted URL while the
-        // host is offline should see the same empty 503 every other
-        // call would get, not a misleading "permission denied". The
-        // offline state is a process-wide answer ("nothing is
-        // reachable") that supersedes per-call authorisation. Empty
-        // body matches the convention CLAUDE.md spells for every
-        // other outbound HTTP path (Deezer, Last.fm, LRCLIB).
+        // WIT contract first — `host.wit` says the host "validates
+        // `url` against the plugin's `permissions.http` allowlist
+        // BEFORE dispatching" and a non-allowlisted url returns
+        // `Err("permission denied: <url>")`. The permission gate is
+        // a protocol invariant the guest is allowed to rely on, so
+        // it runs ahead of any host-state short-circuits (offline
+        // mode, future rate limits, etc.). Information-leak via
+        // probing isn't a concern here: the guest already ships
+        // its own manifest, so it always knows its own allowlist.
+        if !self.permissions.http_allowed(&req.url) {
+            return Ok(Err(format!("permission denied: {}", req.url)));
+        }
+        // Offline mode short-circuit runs AFTER the allowlist gate
+        // but BEFORE the network dispatch. Returns an empty 503 so
+        // plugins can keep their normal HTTP error path (status +
+        // retry-later) instead of needing a separate offline
+        // branch — matches the empty-payload convention CLAUDE.md
+        // spells for every other outbound HTTP path (Deezer,
+        // Last.fm, LRCLIB).
         if (self.offline_probe)() {
             return Ok(Ok(wit_host::http::Response {
                 status: 503,
                 headers: Vec::new(),
                 body: Vec::new(),
             }));
-        }
-        if !self.permissions.http_allowed(&req.url) {
-            return Ok(Err(format!("permission denied: {}", req.url)));
         }
         let method = match req.method.parse::<reqwest::Method>() {
             Ok(m) => m,
@@ -552,13 +560,15 @@ mod tests {
     }
 
     #[test]
-    fn http_send_offline_supersedes_permission_denial() {
-        // A request to a NON-allowlisted URL while offline must
-        // still return the empty 503, NOT "permission denied" —
-        // the offline state is a process-wide answer that should
-        // mask per-call authorisation differences. Otherwise a
-        // plugin trying random URLs while offline would learn which
-        // ones are permission-gated, a small information leak.
+    fn http_send_permission_denial_wins_over_offline() {
+        // The WIT contract pins permission denial as the FIRST
+        // gate ("validates `url` against the allowlist BEFORE
+        // dispatching"). Offline mode is a host-state short-circuit
+        // that runs after the allowlist gate — so a non-allowlisted
+        // URL must surface `Err("permission denied: ...")` even
+        // when the host is offline. The guest already ships its own
+        // manifest, so it always knows its own allowlist; there's
+        // no information leak to plug.
         use crate::plugin::runtime::HostCtx;
         use crate::plugin::bindings::source::waveflow::host::http::{Host, Request};
         use std::sync::Arc;
@@ -576,10 +586,14 @@ mod tests {
         };
         let result = ctx.send(req).expect("host call should not trap");
         match result {
-            Ok(resp) => {
-                assert_eq!(resp.status, 503, "offline must short-circuit before permission check");
-            }
-            Err(err) => panic!("expected empty 503 response, got Err({err})"),
+            Ok(resp) => panic!(
+                "expected Err(permission denied) per WIT contract, got Ok(status={})",
+                resp.status
+            ),
+            Err(msg) => assert!(
+                msg.starts_with("permission denied:"),
+                "expected permission-denied prefix, got {msg:?}"
+            ),
         }
     }
 
