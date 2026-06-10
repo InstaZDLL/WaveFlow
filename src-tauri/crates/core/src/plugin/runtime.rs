@@ -20,6 +20,7 @@
 use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 
 use wasmtime::component::{Component, Linker, ResourceTable};
 use wasmtime::{Config, Engine, OptLevel, Store, StoreLimits, StoreLimitsBuilder};
@@ -28,6 +29,25 @@ use crate::plugin::assets::AssetResolver;
 use crate::plugin::host_impl::{HostError, HostPermissions, StateStore, STATE_QUOTA_BYTES};
 use crate::plugin::manifest::{Manifest, ManifestError};
 use crate::plugin::{InvalidPluginId, PluginPaths};
+
+/// Process-wide "offline mode" probe. Returns `true` when the host
+/// has flipped offline mode (`app_setting['network.offline_mode']`
+/// on the desktop side, equivalent gate on the server side). Every
+/// plugin HTTP call short-circuits to an empty 503 response while
+/// the probe returns `true`, matching the convention CLAUDE.md
+/// spells for every other outbound HTTP path (Deezer, Last.fm,
+/// LRCLIB, similar).
+///
+/// `waveflow-core` doesn't own user-facing settings — those live in
+/// the host crates (`waveflow`, `waveflow-server`). The host
+/// injects its real probe via [`PluginRuntime::new_with_offline_probe`];
+/// the default [`PluginRuntime::new`] uses an always-online stub so
+/// `core` tests don't need to thread a probe through every call.
+pub type OfflineProbe = Arc<dyn Fn() -> bool + Send + Sync>;
+
+fn always_online() -> OfflineProbe {
+    Arc::new(|| false)
+}
 
 /// Hard cap on the compiled `plugin.wasm` size we'll read off disk.
 /// Defence-in-depth against a hostile sideload: a multi-GB file
@@ -123,14 +143,29 @@ struct RuntimeInner {
     /// pool in `Arc` internally, so per-plugin Stores share one
     /// pool and reuse warm TLS sessions.
     http_client: reqwest::blocking::Client,
+    /// See [`OfflineProbe`]. Cloned into every `HostCtx`
+    /// `new_store_for_plugin` builds, so a probe flip takes effect
+    /// on the next plugin instantiation without rebuilding the
+    /// runtime.
+    offline_probe: OfflineProbe,
 }
 
 impl PluginRuntime {
-    /// Build a runtime with the given sandbox config. Fails if
-    /// wasmtime rejects the `Config` (impossible with the static
-    /// settings here today — defensive against future feature
-    /// upgrades).
+    /// Build a runtime with the given sandbox config and the
+    /// always-online offline stub. Use [`Self::new_with_offline_probe`]
+    /// from the host crate to plumb the real
+    /// `app_setting['network.offline_mode']` flag.
     pub fn new(config: RuntimeConfig) -> Result<Self, RuntimeError> {
+        Self::new_with_offline_probe(config, always_online())
+    }
+
+    /// Same as [`Self::new`] but accepts a process-wide offline
+    /// probe. Phase 3's host wiring passes its real
+    /// `offline::is_offline` closure here.
+    pub fn new_with_offline_probe(
+        config: RuntimeConfig,
+        offline_probe: OfflineProbe,
+    ) -> Result<Self, RuntimeError> {
         let mut wt = Config::new();
         // Component Model is the only execution mode plugins use —
         // raw wasm modules aren't a supported plugin shape.
@@ -154,14 +189,25 @@ impl PluginRuntime {
         wt.cranelift_opt_level(OptLevel::Speed);
 
         let engine = Engine::new(&wt)?;
+        // Timeouts are the second-line bound on a misbehaving host.
+        // The wasmtime epoch deadline (~30 s by default) would
+        // eventually trap a request that hangs, but the trap takes
+        // down the whole guest call rather than letting the plugin
+        // surface a clean error. A 15 s request timeout + 5 s
+        // connect timeout returns a recoverable `reqwest::Error`
+        // the plugin sees as `Err(...)` while the epoch is left as
+        // the last-resort sandbox catch.
         let http_client = reqwest::blocking::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
+            .timeout(Duration::from_secs(15))
+            .connect_timeout(Duration::from_secs(5))
             .build()?;
         Ok(Self {
             inner: Arc::new(RuntimeInner {
                 engine,
                 config,
                 http_client,
+                offline_probe,
             }),
         })
     }
@@ -266,6 +312,7 @@ impl PluginRuntime {
         // connection pool sits behind an internal Arc, so per-Store
         // clones share one warm TLS / DNS cache across plugins).
         let http_client = self.inner.http_client.clone();
+        let offline_probe = Arc::clone(&self.inner.offline_probe);
         let limits = StoreLimitsBuilder::new()
             .memory_size(self.inner.config.max_memory_bytes)
             .build();
@@ -278,6 +325,7 @@ impl PluginRuntime {
             assets,
             state,
             http_client,
+            offline_probe,
         };
         let mut store = Store::new(&self.inner.engine, ctx);
 
@@ -348,6 +396,12 @@ pub struct HostCtx {
     /// inside a wasmtime callback would deadlock on the same
     /// worker thread the guest is running on.
     pub http_client: reqwest::blocking::Client,
+    /// Cloned snapshot of the runtime's [`OfflineProbe`]. The HTTP
+    /// host impl reads this on every `http.send` and short-circuits
+    /// to an empty 503 response when it returns `true`, matching
+    /// the convention every other outbound HTTP path in this
+    /// workspace follows.
+    pub offline_probe: OfflineProbe,
 }
 
 impl HostCtx {
@@ -367,13 +421,16 @@ impl HostCtx {
             permissions: HostPermissions::empty(),
             assets: None,
             state: StateStore::new(state_dir, STATE_QUOTA_BYTES),
-            // Match the production redirect policy so tests don't
-            // accidentally pass with permissive defaults the
-            // production runtime explicitly disables.
+            // Match the production redirect policy + timeouts so
+            // tests don't accidentally pass with permissive defaults
+            // the production runtime explicitly disables.
             http_client: reqwest::blocking::Client::builder()
                 .redirect(reqwest::redirect::Policy::none())
+                .timeout(Duration::from_secs(15))
+                .connect_timeout(Duration::from_secs(5))
                 .build()
                 .expect("redirect-disabled client builds"),
+            offline_probe: always_online(),
         }
     }
 }

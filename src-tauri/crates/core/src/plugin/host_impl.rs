@@ -252,6 +252,19 @@ impl wit_host::http::Host for HostCtx {
         if !self.permissions.http_allowed(&req.url) {
             return Ok(Err(format!("permission denied: {}", req.url)));
         }
+        // Offline mode short-circuit. Returns an empty 503 body so
+        // plugins can keep their normal HTTP error handling path
+        // (status + retry-later) instead of needing a separate
+        // "offline" branch. Matches the empty-payload convention
+        // CLAUDE.md spells for every other outbound HTTP path
+        // (Deezer, Last.fm, LRCLIB).
+        if (self.offline_probe)() {
+            return Ok(Ok(wit_host::http::Response {
+                status: 503,
+                headers: Vec::new(),
+                body: Vec::new(),
+            }));
+        }
         let method = match req.method.parse::<reqwest::Method>() {
             Ok(m) => m,
             Err(_) => return Ok(Err(format!("invalid http method: {}", req.method))),
@@ -472,6 +485,49 @@ mod tests {
             .write("one", &vec![1u8; 800])
             .expect("overwrite fits");
         assert_eq!(store.used_bytes().expect("usage"), 800);
+    }
+
+    #[test]
+    fn http_send_short_circuits_when_offline() {
+        // Build a HostCtx with an HTTP allowlist that authorises
+        // example.com + an offline probe that says "yes, offline".
+        // The send must NOT hit the network — it must return an
+        // empty 503 response synthesised by the offline branch,
+        // verifiable by `Vec::is_empty()` on the body without
+        // depending on what `example.com` would actually serve.
+        use crate::plugin::runtime::HostCtx;
+        use crate::plugin::bindings::source::waveflow::host::http::{Host, Request};
+        use std::sync::Arc;
+
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let mut ctx = HostCtx::stub(64 * 1024 * 1024, tmp.path().to_path_buf());
+        // Allow the request URL so we DON'T trip the permission
+        // branch — the offline check is what we want to exercise.
+        ctx.permissions = HostPermissions::from_manifest(&manifest_with_permissions(
+            crate::plugin::manifest::Permissions {
+                http: vec!["https://example.com/*".into()],
+                storage_read: false,
+                storage_state: false,
+            },
+        ))
+        .expect("compile allowlist");
+        ctx.offline_probe = Arc::new(|| true);
+
+        let req = Request {
+            method: "GET".into(),
+            url: "https://example.com/api".into(),
+            headers: Vec::new(),
+            body: None,
+        };
+        let result = ctx.send(req).expect("host call should not trap");
+        match result {
+            Ok(resp) => {
+                assert_eq!(resp.status, 503);
+                assert!(resp.headers.is_empty());
+                assert!(resp.body.is_empty());
+            }
+            Err(err) => panic!("expected empty 503 response, got Err({err})"),
+        }
     }
 
     #[test]
