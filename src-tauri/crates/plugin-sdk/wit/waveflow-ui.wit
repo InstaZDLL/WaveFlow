@@ -1,0 +1,24 @@
+// WaveFlow UI extension world — v1 SKELETON.
+//
+// Reserved for v1.7+ scope: plugins can describe custom views the
+// host renders (categories in the sidebar, panels in the right
+// drawer). The shape is sketched here so the world id is stable,
+// but the host runtime won't bind this world until UI plugins
+// actually land.
+
+package waveflow:ui@1.0.0;
+
+interface extension {
+  /// Sketched: a JSON-encoded view descriptor the host's React
+  /// renderer interprets. The exact schema is still in design —
+  /// holding the surface flat for v1 keeps the world id reusable
+  /// while leaving room to evolve.
+  render: func() -> result<string, string>;
+}
+
+world plugin {
+  import waveflow:host/http@1.0.0;
+  import waveflow:host/log@1.0.0;
+  import waveflow:host/storage@1.0.0;
+  export extension;
+}

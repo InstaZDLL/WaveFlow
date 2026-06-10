@@ -1,0 +1,18 @@
+[package]
+name = "waveflow-plugin-sdk"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+description = "Type-level contracts + WIT definitions shared by WaveFlow's plugin host and authors."
+publish = false
+
+# Plugin authors do NOT depend on this crate directly. They depend on
+# the `waveflow-plugin` crate that wraps the WIT-generated bindings
+# behind ergonomic traits. This crate is the workspace-internal
+# canonical source: it owns the `wit/` directory + Rust constants
+# (manifest schema version, supported world versions) that both the
+# host (`waveflow-core`) and the future `waveflow-plugin` author crate
+# import without duplicating.
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }

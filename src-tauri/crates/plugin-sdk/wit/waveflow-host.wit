@@ -1,0 +1,65 @@
+// WaveFlow host API — v1.
+//
+// Imports that EVERY plugin world pulls in. Plugins don't talk to
+// the network, the filesystem, or the host's log subsystem
+// directly: those operations go through `waveflow:host/*` so the
+// host can permission-check, rate-limit, and observe them.
+
+package waveflow:host@1.0.0;
+
+interface http {
+  record request {
+    method: string,                 // "GET", "POST", ...
+    url: string,
+    headers: list<tuple<string, string>>,
+    /// Optional request body. UTF-8 encoded if it's text; raw bytes
+    /// if it's binary (the host doesn't transcode).
+    body: option<list<u8>>,
+  }
+
+  record response {
+    status: u16,
+    headers: list<tuple<string, string>>,
+    body: list<u8>,
+  }
+
+  /// Outbound HTTP. The host validates `url` against the plugin's
+  /// `permissions.http` allowlist BEFORE dispatching. A url that's
+  /// not on the list returns `Err("permission denied: <url>")`
+  /// without making a network call.
+  send: func(req: request) -> result<response, string>;
+}
+
+interface log {
+  enum level {
+    trace,
+    debug,
+    info,
+    warn,
+    error,
+  }
+
+  /// Forwarded into the host's `tracing` subsystem as a structured
+  /// event with `plugin = <plugin-id>` set automatically — plugins
+  /// don't need to thread their id into every message.
+  emit: func(level: level, message: string);
+}
+
+interface storage {
+  /// Read a bundled sidecar asset. `path` is a relative path within
+  /// the plugin's `assets/` directory; `..` segments are rejected.
+  ///
+  /// The asset bundle is declared in `manifest.toml` (`[[assets]]`
+  /// table). Reading an asset not declared in the manifest fails
+  /// with `Err("asset not bundled: <path>")`.
+  read-asset: func(path: string) -> result<list<u8>, string>;
+
+  /// Read a key from the plugin's per-user scratch store. Returns
+  /// `none` if the key was never written.
+  read-state: func(key: string) -> result<option<list<u8>>, string>;
+
+  /// Write a key into the plugin's per-user scratch store. The
+  /// host enforces a per-plugin 10 MB cap (total across all keys);
+  /// overflowing writes fail with `Err("storage quota exceeded")`.
+  write-state: func(key: string, value: list<u8>) -> result<_, string>;
+}

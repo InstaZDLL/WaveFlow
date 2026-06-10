@@ -107,6 +107,19 @@ lofty = "0.24"
 # parses it via the lower-level `id3` crate.
 id3 = "1"
 
+# Plugin manifest parsing (`crate::plugin::manifest`). TOML over
+# JSON because authors write these by hand — TOML reads cleaner.
+toml = "0.9"
+# Plugin sidecar asset hashing (`crate::plugin::assets`). Standard
+# SHA-256 hex digest so a third-party tool can verify the file
+# without depending on us. Re-uses the same `sha2` codegen the
+# rest of the workspace already pulls in transitively.
+sha2 = "0.10"
+# Shared plugin contract (manifest schema version + WIT world / permission
+# catalog). The SDK crate doesn't depend on us — it's a flat constants
+# crate both sides import.
+waveflow-plugin-sdk = { path = "../plugin-sdk" }
+
 [dev-dependencies]
 # Sandboxed scratch directories for the smart-playlist cover render
 # tests. Same usage shape as the app crate's existing dev-dep.
