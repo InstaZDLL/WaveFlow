@@ -125,6 +125,32 @@ pub fn run() {
 
             app.manage(state);
 
+            // Plugin SDK epoch ticker. Wasmtime's epoch-interruption
+            // deadline only fires when something is bumping the
+            // engine's epoch counter — the runtime's `set_epoch_deadline`
+            // is expressed in ticks, not wall-clock, so without a
+            // ticker a runaway guest call would never trap. 10 ms
+            // cadence matches `RuntimeConfig::epoch_ticks_per_call`'s
+            // 3 000-tick default = ~30 s wall-clock per call. Cheap
+            // — one atomic increment per tick, the tokio interval
+            // handle keeps no allocator pressure.
+            let plugin_ticker_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let runtime = plugin_ticker_handle
+                    .state::<AppState>()
+                    .plugins
+                    .clone();
+                let mut interval =
+                    tokio::time::interval(std::time::Duration::from_millis(10));
+                interval.set_missed_tick_behavior(
+                    tokio::time::MissedTickBehavior::Skip,
+                );
+                loop {
+                    interval.tick().await;
+                    runtime.tick_epoch();
+                }
+            });
+
             // Sync drain task — pushes pending `sync_pending_op`
             // rows to the waveflow-server in the background. Spawned
             // here so it picks up `AppState` from `app.manage(state)`
@@ -564,6 +590,10 @@ pub fn run() {
             commands::dlna::dlna_get_config,
             commands::dlna::dlna_set_config,
             commands::dlna::dlna_get_status,
+            commands::plugins::list_installed_plugins,
+            commands::plugins::get_plugin_info,
+            commands::plugins::set_plugin_enabled,
+            commands::plugins::uninstall_plugin,
             commands::integration::get_lastfm_api_key,
             commands::integration::set_lastfm_api_key,
             commands::integration::get_lastfm_api_secret,

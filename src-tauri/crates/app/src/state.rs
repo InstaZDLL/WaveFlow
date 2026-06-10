@@ -4,6 +4,7 @@ use chrono::Utc;
 use sqlx::SqlitePool;
 use tauri::AppHandle;
 use tokio::sync::RwLock;
+use waveflow_core::plugin::runtime::{PluginRuntime, RuntimeConfig};
 
 use crate::{
     db,
@@ -54,6 +55,12 @@ pub struct AppState {
     /// actually changed. Defaults to an unparked handle; the live
     /// task spawns in `lib.rs::run` once the AppHandle is available.
     pub ws: Arc<crate::sync::ws::SubscribeHandle>,
+    /// Plugin SDK runtime. One engine + one shared HTTP client per
+    /// process; `Clone` is cheap (wraps the inner `Arc`). The offline
+    /// probe is wired to [`crate::offline::is_offline`] so plugin
+    /// HTTP calls short-circuit on the same flag as Deezer / Last.fm
+    /// / LRCLIB.
+    pub plugins: PluginRuntime,
 }
 
 impl AppState {
@@ -91,6 +98,16 @@ impl AppState {
                 .unwrap_or(false),
         );
 
+        // Plugin runtime — one per process. The offline probe reads
+        // the same `crate::offline` atomic Deezer / Last.fm / LRCLIB
+        // do, so flipping the user-facing offline switch reaches
+        // plugin HTTP without a separate wiring path.
+        let plugins = PluginRuntime::new_with_offline_probe(
+            RuntimeConfig::default(),
+            Arc::new(crate::offline::is_offline),
+        )
+        .map_err(|e| AppError::Other(format!("plugin runtime init: {e}")))?;
+
         let state = Self {
             paths,
             app_db,
@@ -103,6 +120,7 @@ impl AppState {
             drain: Arc::new(crate::sync::drain::DrainHandle::default()),
             drain_lock: Arc::new(tokio::sync::Mutex::new(())),
             ws: Arc::new(crate::sync::ws::SubscribeHandle::default()),
+            plugins,
         };
 
         state.bootstrap().await?;
