@@ -398,17 +398,31 @@ impl AudioEngine {
         let (producer, handle) =
             spawn_output_with_mode(self.shared.clone(), self.app.clone(), device_name, exclusive)?;
 
-        if was_playing {
+        // The freshly-spawned `handle` owns a live cpal output
+        // thread. If either send below fails (decoder dead, channel
+        // closed mid-recovery), `handle` would otherwise be dropped
+        // without `stop()` being called — the cpal Stream lives on
+        // a `!Send` thread that can't be reaped from Drop, so we'd
+        // leak the thread until process exit. Same pattern as
+        // `set_output_device`'s error rollback.
+        let send_result = (|| {
+            if was_playing {
+                self.cmd_tx
+                    .send(AudioCmd::Stop)
+                    .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
+            }
+            if let Some(old) = guard.take() {
+                old.stop();
+            }
             self.cmd_tx
-                .send(AudioCmd::Stop)
+                .send(AudioCmd::SwapProducer(producer))
                 .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
+            Ok::<(), AppError>(())
+        })();
+        if let Err(err) = send_result {
+            handle.stop();
+            return Err(err);
         }
-        if let Some(old) = guard.take() {
-            old.stop();
-        }
-        self.cmd_tx
-            .send(AudioCmd::SwapProducer(producer))
-            .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
         *guard = Some(handle);
         self.wasapi_exclusive_active.store(
             guard.as_ref().map(|h| h.wasapi_exclusive).unwrap_or(false),
