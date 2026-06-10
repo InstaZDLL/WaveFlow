@@ -124,6 +124,7 @@
   "sidebar": {
     "nav": {
       "home": "Página inicial",
+      "webRadio": "Rádio Web",
       "spotify": "Spotify"
     },
     "sections": {
@@ -1721,5 +1722,16 @@
     "copied": "Copiado",
     "close": "Fechar",
     "errorClipboard": "Não foi possível aceder à área de transferência. Selecione o URL para o copiar manualmente."
+  },
+  "webRadio": {
+    "title": "Rádio Web",
+    "subtitle": "Mais de 30 000 estações de rádio online via radio-browser.info.",
+    "loading": "A carregar categorias…",
+    "resolving": "A procurar estações…",
+    "emptyResults": "Nenhuma estação encontrada.",
+    "searchPlaceholder": "Pesquisar uma estação…",
+    "backToCategories": "Voltar às categorias",
+    "live": "AO VIVO",
+    "nowPlaying": "A reproduzir agora"
   }
 }

@@ -3,7 +3,8 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use sqlx::SqlitePool;
-use tauri::AppHandle;
+use tauri::path::BaseDirectory;
+use tauri::{AppHandle, Manager};
 use tokio::sync::{Mutex, RwLock};
 use waveflow_core::plugin::runtime::{PluginRuntime, RuntimeConfig};
 
@@ -94,6 +95,16 @@ impl AppState {
     pub async fn init(handle: &AppHandle) -> AppResult<Self> {
         let paths = AppPaths::from_handle(handle)?;
         paths.ensure_dirs()?;
+
+        // First-launch + post-update extract of every plugin we ship
+        // bundled inside the app installer. Idempotent: only copies
+        // when the install dir is missing on disk, so a user who
+        // sideloaded a newer version of the same plugin doesn't see
+        // it clobbered on the next launch. Logged-only on failure
+        // — a corrupt bundle should not block the rest of startup.
+        if let Err(e) = ensure_bundled_plugins(handle, &paths).await {
+            tracing::warn!(%e, "bundled plugin extract failed");
+        }
 
         let app_db = db::app_db::open(&paths.app_db).await?;
 
@@ -305,4 +316,63 @@ impl AppState {
             .map(|p| p.profile_id)
             .ok_or(AppError::NoActiveProfile)
     }
+}
+
+/// Hardcoded list of plugins WaveFlow ships bundled in the
+/// installer. Phase 5 will replace this with a manifest-driven
+/// discovery (loop over `<resource_dir>/plugins/*/manifest.toml`)
+/// so adding a plugin to the bundle doesn't require touching app
+/// code; for v1.5.0 the static list keeps the diff focused.
+const BUNDLED_PLUGINS: &[&str] = &["web-radio"];
+
+/// Copy every entry in [`BUNDLED_PLUGINS`] from the installer's
+/// resource dir into `<plugins_root>/<id>/` when the install dir
+/// is missing. Idempotent on success — a user who sideloaded a
+/// newer version of the same plugin id keeps it.
+///
+/// File ops run on `spawn_blocking`: `fs::copy` of the ~140 KB
+/// .wasm is fast but every plugin call adds another set of
+/// syscalls, and we don't want them tying up an executor worker
+/// during boot.
+async fn ensure_bundled_plugins(handle: &AppHandle, paths: &AppPaths) -> AppResult<()> {
+    let plugins_root = paths.plugin_paths().plugins_root;
+    let resolved: Vec<(String, std::path::PathBuf, std::path::PathBuf)> = BUNDLED_PLUGINS
+        .iter()
+        .filter_map(|id| {
+            let wasm = handle
+                .path()
+                .resolve(
+                    format!("plugins/{id}/plugin.wasm"),
+                    BaseDirectory::Resource,
+                )
+                .ok()?;
+            let manifest = handle
+                .path()
+                .resolve(
+                    format!("plugins/{id}/manifest.toml"),
+                    BaseDirectory::Resource,
+                )
+                .ok()?;
+            Some(((*id).to_string(), wasm, manifest))
+        })
+        .collect();
+
+    tokio::task::spawn_blocking(move || -> AppResult<()> {
+        for (id, wasm, manifest) in resolved {
+            let install_dir = plugins_root.join(&id);
+            // Skip if there's already a manifest at the target —
+            // user might have sideloaded an updated version we
+            // don't want to overwrite.
+            if install_dir.join("manifest.toml").is_file() {
+                continue;
+            }
+            std::fs::create_dir_all(&install_dir)?;
+            std::fs::copy(&wasm, install_dir.join("plugin.wasm"))?;
+            std::fs::copy(&manifest, install_dir.join("manifest.toml"))?;
+            tracing::info!(plugin_id = %id, "extracted bundled plugin");
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("bundled plugin extract join: {e}")))?
 }

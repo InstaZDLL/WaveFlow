@@ -124,6 +124,7 @@
   "sidebar": {
     "nav": {
       "home": "Startseite",
+      "webRadio": "Web-Radio",
       "spotify": "Spotify"
     },
     "sections": {
@@ -1721,5 +1722,16 @@
     "copied": "Kopiert",
     "close": "Schließen",
     "errorClipboard": "Zugriff auf die Zwischenablage nicht möglich. Markiere die URL, um sie manuell zu kopieren."
+  },
+  "webRadio": {
+    "title": "Web-Radio",
+    "subtitle": "Über 30 000 Online-Radiosender via radio-browser.info.",
+    "loading": "Kategorien werden geladen…",
+    "resolving": "Sender werden gesucht…",
+    "emptyResults": "Keine Sender gefunden.",
+    "searchPlaceholder": "Sender suchen…",
+    "backToCategories": "Zurück zu den Kategorien",
+    "live": "LIVE",
+    "nowPlaying": "Läuft gerade"
   }
 }

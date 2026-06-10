@@ -124,6 +124,7 @@
   "sidebar": {
     "nav": {
       "home": "Accueil",
+      "webRadio": "Web Radio",
       "spotify": "Spotify"
     },
     "sections": {
@@ -1721,5 +1722,16 @@
     "copied": "Copié",
     "close": "Fermer",
     "errorClipboard": "Impossible d'accéder au presse-papier. Sélectionnez l'URL pour la copier manuellement."
+  },
+  "webRadio": {
+    "title": "Web Radio",
+    "subtitle": "Plus de 30 000 stations radio en ligne via radio-browser.info.",
+    "loading": "Chargement des catégories…",
+    "resolving": "Recherche des stations…",
+    "emptyResults": "Aucune station trouvée.",
+    "searchPlaceholder": "Rechercher une station…",
+    "backToCategories": "Retour aux catégories",
+    "live": "LIVE",
+    "nowPlaying": "Lecture en cours"
   }
 }

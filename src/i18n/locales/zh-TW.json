@@ -124,6 +124,7 @@
   "sidebar": {
     "nav": {
       "home": "首頁",
+      "webRadio": "網路電台",
       "spotify": "Spotify"
     },
     "sections": {
@@ -1721,5 +1722,16 @@
     "copied": "已複製",
     "close": "關閉",
     "errorClipboard": "無法存取剪貼簿。請選取 URL 手動複製。"
+  },
+  "webRadio": {
+    "title": "網路電台",
+    "subtitle": "透過 radio-browser.info 收聽超過 30 000 個線上電台。",
+    "loading": "正在載入分類…",
+    "resolving": "正在尋找電台…",
+    "emptyResults": "找不到電台。",
+    "searchPlaceholder": "搜尋電台…",
+    "backToCategories": "返回分類",
+    "live": "直播",
+    "nowPlaying": "正在播放"
   }
 }

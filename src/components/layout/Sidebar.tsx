@@ -14,6 +14,7 @@ import {
   Upload,
   Sparkles,
   Headphones,
+  Radio,
 } from "lucide-react";
 import type { ViewId, LibraryTab } from "../../types";
 import { NavItem } from "../common/NavItem";
@@ -266,6 +267,12 @@ export function Sidebar({
           label={t("sidebar.nav.home")}
           active={activeView === "home"}
           onClick={() => setActiveView("home")}
+        />
+        <NavItem
+          icon={<Radio size={18} />}
+          label={t("sidebar.nav.webRadio")}
+          active={activeView === "web-radio"}
+          onClick={() => setActiveView("web-radio")}
         />
         {showSpotify && (
           <NavItem

@@ -124,6 +124,7 @@
   "sidebar": {
     "nav": {
       "home": "होम",
+      "webRadio": "वेब रेडियो",
       "spotify": "Spotify"
     },
     "sections": {
@@ -1721,5 +1722,16 @@
     "copied": "कॉपी हो गया",
     "close": "बंद करें",
     "errorClipboard": "क्लिपबोर्ड तक पहुँच नहीं हुई। URL को चुनकर मैन्युअल रूप से कॉपी करें।"
+  },
+  "webRadio": {
+    "title": "वेब रेडियो",
+    "subtitle": "radio-browser.info के माध्यम से 30,000 से अधिक ऑनलाइन रेडियो स्टेशन।",
+    "loading": "श्रेणियाँ लोड हो रही हैं…",
+    "resolving": "स्टेशन ढूँढ रहे हैं…",
+    "emptyResults": "कोई स्टेशन नहीं मिला।",
+    "searchPlaceholder": "स्टेशन खोजें…",
+    "backToCategories": "श्रेणियों पर वापस",
+    "live": "लाइव",
+    "nowPlaying": "अभी चल रहा है"
   }
 }

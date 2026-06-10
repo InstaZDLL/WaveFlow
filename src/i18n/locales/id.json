@@ -124,6 +124,7 @@
   "sidebar": {
     "nav": {
       "home": "Beranda",
+      "webRadio": "Radio Web",
       "spotify": "Spotify"
     },
     "sections": {
@@ -1721,5 +1722,16 @@
     "copied": "Tersalin",
     "close": "Tutup",
     "errorClipboard": "Tidak dapat mengakses papan klip. Pilih URL untuk menyalinnya secara manual."
+  },
+  "webRadio": {
+    "title": "Radio Web",
+    "subtitle": "Lebih dari 30 000 stasiun radio online via radio-browser.info.",
+    "loading": "Memuat kategori…",
+    "resolving": "Mencari stasiun…",
+    "emptyResults": "Tidak ada stasiun ditemukan.",
+    "searchPlaceholder": "Cari stasiun…",
+    "backToCategories": "Kembali ke kategori",
+    "live": "LANGSUNG",
+    "nowPlaying": "Sedang diputar"
   }
 }

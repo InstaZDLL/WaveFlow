@@ -51,6 +51,11 @@ const SpotifyView = lazy(() =>
     default: module.SpotifyView,
   })),
 );
+const WebRadioView = lazy(() =>
+  import("../views/WebRadioView").then((module) => ({
+    default: module.WebRadioView,
+  })),
+);
 const AboutView = lazy(() =>
   import("../views/AboutView").then((module) => ({
     default: module.AboutView,
@@ -437,6 +442,8 @@ export function AppLayout() {
         return <SettingsView onNavigate={setActiveView} />;
       case "spotify":
         return <SpotifyView onNavigate={setActiveView} />;
+      case "web-radio":
+        return <WebRadioView />;
       case "about":
         return <AboutView onNavigate={setActiveView} />;
       case "feedback":
