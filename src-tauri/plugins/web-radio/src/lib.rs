@@ -106,13 +106,15 @@ fn entry(label: &str, query: &str) -> Entry {
 /// - `top` → top-voted stations
 /// - `trending` → most-recently-updated stations
 /// - `tag:<name>` → stations tagged `<name>`, ordered by votes
-/// - `search:<term>` → free-form name search (used by the host's
-///   search box)
-///
-/// Anything else is rejected with a clear error so a stale UI
-/// can't silently 404 against an unknown endpoint.
+/// - `search:<term>` → explicit name search prefix
+/// - anything else non-empty → treated as a free-text search term
+///   (the host's search box hands its raw input here and expects
+///   matches against station names)
 fn build_url(query: &str) -> Result<String, String> {
     let trimmed = query.trim();
+    if trimmed.is_empty() {
+        return Err("empty query".into());
+    }
     if trimmed.eq_ignore_ascii_case("top") {
         return Ok(format!(
             "{MIRROR}/json/stations/topvote/{PAGE_LIMIT}?hidebroken=true"
@@ -132,16 +134,18 @@ fn build_url(query: &str) -> Result<String, String> {
             "{MIRROR}/json/stations/bytag/{tag}?limit={PAGE_LIMIT}&order=votes&reverse=true&hidebroken=true"
         ));
     }
-    if let Some(term) = trimmed.strip_prefix("search:") {
-        let term = url_encode(term.trim());
-        if term.is_empty() {
-            return Err("empty search term".into());
-        }
-        return Ok(format!(
-            "{MIRROR}/json/stations/search?name={term}&limit={PAGE_LIMIT}&order=votes&reverse=true&hidebroken=true"
-        ));
+    // Both the explicit `search:` form and the free-text fallback
+    // hit the same endpoint. The prefix is kept as a hint for the
+    // host UI to disambiguate "this was a search" from "this was a
+    // category click" in user-facing breadcrumbs.
+    let term_raw = trimmed.strip_prefix("search:").unwrap_or(trimmed).trim();
+    let term = url_encode(term_raw);
+    if term.is_empty() {
+        return Err("empty search term".into());
     }
-    Err(format!("unknown query token: {trimmed}"))
+    Ok(format!(
+        "{MIRROR}/json/stations/search?name={term}&limit={PAGE_LIMIT}&order=votes&reverse=true&hidebroken=true"
+    ))
 }
 
 /// Issue a GET, surface the body bytes. The host enforces the
@@ -207,7 +211,18 @@ struct RbStation {
 /// so the resolve list automatically drops dead entries instead
 /// of polluting the UI with "0 ms" rows.
 fn to_track(s: RbStation) -> Option<Track> {
-    let stream = s.url_resolved.unwrap_or_else(|| s.url.clone());
+    // radio-browser sometimes emits `url_resolved == Some("")` when
+    // the federation bot reached the source but couldn't extract a
+    // playable URL (typical of streams gated behind an HTML
+    // landing page). Treat an empty `url_resolved` exactly like a
+    // null one — fall back to `url`, then drop the row only if
+    // both are empty.
+    let stream = s
+        .url_resolved
+        .as_deref()
+        .filter(|r| !r.is_empty())
+        .map(str::to_string)
+        .unwrap_or(s.url);
     if stream.is_empty() {
         return None;
     }

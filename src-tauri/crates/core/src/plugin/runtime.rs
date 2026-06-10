@@ -430,9 +430,13 @@ pub struct HostCtx {
     /// `wasi:io/streams`, `wasi:clocks/wall-clock`, etc. for panic
     /// handling + stdio + clock APIs that wit-bindgen-rt's
     /// glue code calls. The context here is intentionally bare —
-    /// no fs preopens, no network, no env inheritance, no args.
-    /// The plugin's actual reach into the host stays gated by the
-    /// `waveflow:host/*` permissions snapshot.
+    /// no filesystem preopens, no env inheritance, no args. The
+    /// `wasi:sockets/*` surface stays callable (wasmtime-wasi
+    /// doesn't strip it), but every destination is denied by
+    /// default because no `allow_*` rule is registered; together
+    /// with the `waveflow:host/http` allowlist gating the only
+    /// HTTP path we actually expose, the result is "no host
+    /// resources reachable unless the manifest asked for them".
     pub(crate) wasi: WasiCtx,
     /// Memory cap enforcement. The [`Store::limiter`] closure points
     /// at this field so a guest `memory.grow` over the cap returns

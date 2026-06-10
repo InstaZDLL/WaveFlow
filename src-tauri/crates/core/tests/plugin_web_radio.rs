@@ -61,23 +61,46 @@ fn web_radio_plugin_loads_and_lists_categories() {
         Plugin::instantiate(&mut store, &loaded.component, &linker).expect("instantiate");
 
     // Call the guest's `list-entries` and verify the catalogue
-    // matches what `web-radio/src/lib.rs` ships. A non-empty list
-    // here proves the full wasmtime → bindgen → host-import →
-    // guest export round-trip works end-to-end.
+    // matches what `web-radio/src/lib.rs` ships exactly. A
+    // round-trip through bindgen → wasm → host imports → guest
+    // exports + a faithful entry list together prove the full
+    // SDK end-to-end. The expected vector mirrors the plugin's
+    // hardcoded catalogue; any drift (add / remove / rename /
+    // reorder) trips the equality check so the test fails loudly
+    // on silent regressions.
     let entries = plugin
         .waveflow_source_provider()
         .call_list_entries(&mut store)
         .expect("list_entries call")
         .expect("list_entries Ok");
 
-    assert!(
-        entries.iter().any(|e| e.label == "Top stations"),
-        "Top stations entry should be present: {:?}",
-        entries.iter().map(|e| &e.label).collect::<Vec<_>>()
+    let labels: Vec<&str> = entries.iter().map(|e| e.label.as_str()).collect();
+    let expected: Vec<&str> = vec![
+        "Top stations",
+        "Trending now",
+        "Jazz",
+        "Rock",
+        "Pop",
+        "Electronic",
+        "Classical",
+        "News",
+        "Hip-Hop",
+        "Country",
+        "Lofi",
+        "Ambient",
+    ];
+    assert_eq!(
+        labels, expected,
+        "category list mismatch — refresh the fixture and update the expected vector if intentional"
     );
-    assert!(
-        entries.iter().any(|e| e.label == "Jazz"),
-        "Jazz entry should be present"
-    );
-    assert!(entries.len() >= 10, "expected >= 10 categories");
+
+    // Every category MUST carry a non-empty opaque `query` token —
+    // an empty value would make the host's resolve call a no-op.
+    for entry in &entries {
+        assert!(
+            !entry.query.is_empty(),
+            "entry {:?} has empty query",
+            entry.label
+        );
+    }
 }
