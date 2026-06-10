@@ -1,9 +1,10 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use chrono::Utc;
 use sqlx::SqlitePool;
 use tauri::AppHandle;
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 use waveflow_core::plugin::runtime::{PluginRuntime, RuntimeConfig};
 
 use crate::{
@@ -61,6 +62,21 @@ pub struct AppState {
     /// HTTP calls short-circuit on the same flag as Deezer / Last.fm
     /// / LRCLIB.
     pub plugins: PluginRuntime,
+    /// Per-plugin serialisation locks. Used by
+    /// [`crate::commands::plugins`] to make the manifest-existence
+    /// check + the `app_setting` upsert in `set_plugin_enabled`
+    /// atomic against a concurrent `uninstall_plugin` for the same
+    /// id — otherwise the enable toggle could observe a present
+    /// manifest, then the uninstall removes the install dir + drops
+    /// the row, then the toggle's INSERT lands as an orphan.
+    ///
+    /// Held while async work runs, so the inner lock is
+    /// `tokio::sync::Mutex`. The map itself is also a tokio mutex
+    /// because insertions happen on the async side and we want to
+    /// keep the same lock primitive throughout. Map size is bounded
+    /// by how many distinct plugin ids the user ever touches in
+    /// one session — sub-dozen for v1.5.0, no GC needed.
+    pub plugin_locks: Arc<Mutex<HashMap<String, Arc<Mutex<()>>>>>,
 }
 
 impl AppState {
@@ -121,6 +137,7 @@ impl AppState {
             drain_lock: Arc::new(tokio::sync::Mutex::new(())),
             ws: Arc::new(crate::sync::ws::SubscribeHandle::default()),
             plugins,
+            plugin_locks: Arc::new(Mutex::new(HashMap::new())),
         };
 
         state.bootstrap().await?;

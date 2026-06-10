@@ -12,13 +12,36 @@
 //! warm across the session.
 
 use std::fs;
+use std::sync::Arc;
 
 use serde::Serialize;
 use tauri::State;
+use tokio::sync::{Mutex, OwnedMutexGuard};
 use waveflow_core::plugin::manifest::Manifest;
 
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
+
+/// Acquire the per-plugin write lock. Inserts a fresh `Mutex<()>`
+/// into the runtime's map the first time we see this id; returns
+/// an owned guard the caller holds for the duration of the
+/// command. Two commands targeting the same `plugin_id` serialise;
+/// commands on different ids run in parallel.
+///
+/// Hold this BEFORE the manifest-existence check in
+/// `set_plugin_enabled` and BEFORE `remove_dir_all` in
+/// `uninstall_plugin`. Releasing only at function end (guard
+/// drop) keeps the manifest probe + the SQL UPSERT atomic against
+/// a racing uninstall.
+async fn lock_plugin(state: &AppState, plugin_id: &str) -> OwnedMutexGuard<()> {
+    let arc_mutex: Arc<Mutex<()>> = {
+        let mut map = state.plugin_locks.lock().await;
+        map.entry(plugin_id.to_string())
+            .or_insert_with(|| Arc::new(Mutex::new(())))
+            .clone()
+    };
+    arc_mutex.lock_owned().await
+}
 
 /// Frontend-facing summary of one installed plugin. Mirrors the
 /// manifest's public-ish fields + carries the per-plugin enabled
@@ -229,6 +252,12 @@ pub async fn set_plugin_enabled(
         .plugin_dir(&plugin_id)
         .map_err(|e| AppError::Other(format!("invalid plugin id: {e}")))?;
 
+    // Serialise against `uninstall_plugin` for the same id. Without
+    // this lock, a concurrent uninstall could remove the install
+    // dir between our existence check and the UPSERT below, leaving
+    // an orphan row exactly like the previous code path did.
+    let _guard = lock_plugin(&state, &plugin_id).await;
+
     // Existence gate runs on a blocking thread (`exists()` is a
     // syscall on every OS). If the install dir or manifest is
     // missing, we refuse the write so a stale frontend cache can't
@@ -288,6 +317,12 @@ pub async fn uninstall_plugin(
     let state_dir = paths
         .state_dir(&plugin_id)
         .map_err(|e| AppError::Other(format!("invalid plugin id: {e}")))?;
+
+    // Serialise against `set_plugin_enabled` for the same id. Held
+    // through both the FS removal AND the DELETE so the toggle
+    // can never sneak in a new row between the dir-rm and the
+    // setting-drop.
+    let _guard = lock_plugin(&state, &plugin_id).await;
 
     // Remove install + state on a blocking thread — `remove_dir_all`
     // on a multi-MB plugin tree (e.g. Web Radio embedding a ~10 MB
