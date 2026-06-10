@@ -324,31 +324,40 @@ impl wit_host::http::Host for HostCtx {
         &mut self,
         req: wit_host::http::Request,
     ) -> wasmtime::Result<Result<wit_host::http::Response, String>> {
-        // WIT contract first — `host.wit` says the host "validates
-        // `url` against the plugin's `permissions.http` allowlist
-        // BEFORE dispatching" and a non-allowlisted url returns
-        // `Err("permission denied: <url>")`. The permission gate is
-        // a protocol invariant the guest is allowed to rely on, so
-        // it runs ahead of any host-state short-circuits (offline
-        // mode, future rate limits, etc.). Information-leak via
-        // probing isn't a concern here: the guest already ships
-        // its own manifest, so it always knows its own allowlist.
-        if !self.permissions.http_allowed(&req.url) {
-            return Ok(Err(format!("permission denied: {}", req.url)));
-        }
-        // Offline mode short-circuit runs AFTER the allowlist gate
-        // but BEFORE the network dispatch. Returns an empty 503 so
-        // plugins can keep their normal HTTP error path (status +
-        // retry-later) instead of needing a separate offline
-        // branch — matches the empty-payload convention CLAUDE.md
-        // spells for every other outbound HTTP path (Deezer,
-        // Last.fm, LRCLIB).
+        // ORDERING INVARIANT — DO NOT REORDER WITHOUT READING THIS.
+        //
+        // 1. Offline short-circuit FIRST. CLAUDE.md is explicit:
+        //    "every outbound HTTP path (Deezer, Last.fm, similar,
+        //    LRCLIB) checks `offline::is_offline()` first and
+        //    short-circuits to an empty payload or cache. Treat
+        //    new HTTP code paths the same way." Plugin HTTP is a
+        //    new HTTP code path, so it behaves like the rest of
+        //    the workspace.
+        // 2. Permission allowlist SECOND. The WIT contract in
+        //    `host.wit` says "validates `url` against the allowlist
+        //    BEFORE dispatching". It pins permission ahead of the
+        //    NETWORK dispatch — it does NOT pin it ahead of host-
+        //    state short-circuits like offline mode. Both gates run
+        //    before any actual `builder.send()`, so the WIT
+        //    invariant is honoured either way.
+        // 3. Network dispatch LAST.
+        //
+        // The information-leak concern raised in earlier review
+        // rounds — a guest probing offline state via 503 vs
+        // permission-denied — doesn't bite: the guest already
+        // ships its own manifest, so it always knows its own
+        // allowlist; the only thing it could learn from the
+        // probe is the host's offline flag, which is user-visible
+        // anyway.
         if (self.offline_probe)() {
             return Ok(Ok(wit_host::http::Response {
                 status: 503,
                 headers: Vec::new(),
                 body: Vec::new(),
             }));
+        }
+        if !self.permissions.http_allowed(&req.url) {
+            return Ok(Err(format!("permission denied: {}", req.url)));
         }
         let method = match req.method.parse::<reqwest::Method>() {
             Ok(m) => m,
@@ -584,15 +593,14 @@ mod tests {
     }
 
     #[test]
-    fn http_send_permission_denial_wins_over_offline() {
-        // The WIT contract pins permission denial as the FIRST
-        // gate ("validates `url` against the allowlist BEFORE
-        // dispatching"). Offline mode is a host-state short-circuit
-        // that runs after the allowlist gate — so a non-allowlisted
-        // URL must surface `Err("permission denied: ...")` even
-        // when the host is offline. The guest already ships its own
-        // manifest, so it always knows its own allowlist; there's
-        // no information leak to plug.
+    fn http_send_offline_supersedes_permission_denial() {
+        // Locks the ORDERING INVARIANT in `Host::send`. CLAUDE.md
+        // says every outbound HTTP path checks offline first; a
+        // guest probing a non-allowlisted URL while the host is
+        // offline must see the same empty 503 every other call
+        // gets. The WIT contract pins permission ahead of the
+        // network dispatch, not ahead of host-state short-circuits
+        // — both gates still fire before any actual `builder.send()`.
         use crate::plugin::runtime::HostCtx;
         use crate::plugin::bindings::source::waveflow::host::http::{Host, Request};
         use std::sync::Arc;
@@ -610,14 +618,13 @@ mod tests {
         };
         let result = ctx.send(req).expect("host call should not trap");
         match result {
-            Ok(resp) => panic!(
-                "expected Err(permission denied) per WIT contract, got Ok(status={})",
-                resp.status
-            ),
-            Err(msg) => assert!(
-                msg.starts_with("permission denied:"),
-                "expected permission-denied prefix, got {msg:?}"
-            ),
+            Ok(resp) => {
+                assert_eq!(
+                    resp.status, 503,
+                    "offline must short-circuit before the allowlist check"
+                );
+            }
+            Err(err) => panic!("expected empty 503 response, got Err({err})"),
         }
     }
 

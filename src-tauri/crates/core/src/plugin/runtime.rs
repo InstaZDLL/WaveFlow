@@ -388,12 +388,14 @@ pub struct LoadedPlugin {
 /// the plugin id used for log scoping.
 ///
 /// Fields that pin runtime invariants — `plugin_id`, `permissions`,
-/// `assets`, `offline_probe` — are `pub(crate)` so external crates
-/// (the app, the server) can't rewrite them after instantiation
-/// and slip past the manifest's permission gates or asset sandbox.
-/// `table`, `limits`, `state`, and `http_client` stay `pub` because
-/// wasmtime + the host imports legitimately reach into them at
-/// call time and there's no equivalent invariant to protect.
+/// `assets`, `state`, `http_client`, `offline_probe` — are
+/// `pub(crate)` so external crates (the app, the server) can't
+/// rewrite them after instantiation and slip past the manifest's
+/// permission gates, asset sandbox, scratch-store isolation, or
+/// the runtime's redirect / timeout / offline policy on the HTTP
+/// client. `table` + `limits` stay `pub` because wasmtime itself
+/// reaches into them and there's no equivalent invariant to
+/// protect on those.
 pub struct HostCtx {
     /// Wasmtime resource table — required by `bindgen!` even when
     /// the WIT files don't declare resources (the macro stitches it
@@ -421,13 +423,18 @@ pub struct HostCtx {
     /// can't be swapped from outside the runtime.
     pub(crate) assets: Option<AssetResolver>,
     /// Per-plugin scratch key/value store with the global 10 MB
-    /// quota baked in.
-    pub state: StateStore,
+    /// quota baked in. `pub(crate)` so an external caller can't
+    /// swap the backend mid-flight to point at another plugin's
+    /// scratch dir (or anywhere else on disk).
+    pub(crate) state: StateStore,
     /// Blocking reqwest client. Sync because the WIT `http.send`
     /// signature is sync and bridging through tokio::block_on
     /// inside a wasmtime callback would deadlock on the same
-    /// worker thread the guest is running on.
-    pub http_client: reqwest::blocking::Client,
+    /// worker thread the guest is running on. `pub(crate)` so an
+    /// external caller can't replace it with a client that follows
+    /// redirects, removes timeouts, or otherwise undoes the
+    /// runtime's HTTP policy.
+    pub(crate) http_client: reqwest::blocking::Client,
     /// Cloned snapshot of the runtime's [`OfflineProbe`]. The HTTP
     /// host impl reads this on every `http.send` and short-circuits
     /// to an empty 503 response when it returns `true`, matching
