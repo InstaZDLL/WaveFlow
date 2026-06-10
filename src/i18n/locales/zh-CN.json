@@ -1263,6 +1263,7 @@
       "permissions": {
         "http": "HTTP ({{count}})",
         "storageState": "用户存储",
+        "storageRead": "读取资源",
         "assets": "资源 ({{count}})",
         "none": "未请求任何权限"
       }

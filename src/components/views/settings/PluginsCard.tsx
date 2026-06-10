@@ -298,7 +298,21 @@ function PermissionsRow({
       label: t("settings.plugins.permissions.storageState"),
     });
   }
-  if (assetsCount > 0 || permissions.storageRead) {
+  // `storage.read` (permission to read bundled assets) and the
+  // declared asset count are independent surfaces — a plugin can
+  // request the permission without shipping assets (forward-compat)
+  // and a plugin can ship assets without asking for the
+  // permission (manifest oversight). Surface them as separate
+  // chips so the user sees the truth on each axis instead of an
+  // "Assets (0)" chip when only the permission is set.
+  if (permissions.storageRead) {
+    chips.push({
+      key: "storageRead",
+      icon: FileText,
+      label: t("settings.plugins.permissions.storageRead"),
+    });
+  }
+  if (assetsCount > 0) {
     chips.push({
       key: "assets",
       icon: FileText,

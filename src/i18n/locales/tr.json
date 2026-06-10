@@ -1263,6 +1263,7 @@
       "permissions": {
         "http": "HTTP ({{count}})",
         "storageState": "Kullanıcı deposu",
+        "storageRead": "Varlık okuma",
         "assets": "Varlıklar ({{count}})",
         "none": "İstenen izin yok"
       }

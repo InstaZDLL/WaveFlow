@@ -1263,6 +1263,7 @@
       "permissions": {
         "http": "HTTP ({{count}})",
         "storageState": "사용자 저장소",
+        "storageRead": "자산 읽기",
         "assets": "자산 ({{count}})",
         "none": "요청된 권한 없음"
       }

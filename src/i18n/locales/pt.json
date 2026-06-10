@@ -1263,6 +1263,7 @@
       "permissions": {
         "http": "HTTP ({{count}})",
         "storageState": "Armazenamento do utilizador",
+        "storageRead": "Leitura de recursos",
         "assets": "Recursos ({{count}})",
         "none": "Nenhuma permissão pedida"
       }
