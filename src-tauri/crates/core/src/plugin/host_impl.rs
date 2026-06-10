@@ -271,6 +271,14 @@ impl StateStore {
 /// quota) and `skip` (typically the file being overwritten, whose
 /// existing size doesn't count against the projected total — an
 /// in-place same-size write would otherwise fail at usage ≈ quota).
+///
+/// `.tmp` siblings are also excluded: `StateStore::write` stages a
+/// `<hash>.tmp` next to the canonical file before `fs::rename`, and
+/// a host crash between the two steps leaves an orphan that the
+/// next write of the same key overwrites. Counting orphans toward
+/// the quota would inflate usage by every interrupted write the
+/// store ever survived — that's a real footgun on a long-lived
+/// install — so we skip the suffix at the read step.
 fn sum_state_dir_bytes(
     dir: &Path,
     skip: Option<&Path>,
@@ -284,6 +292,9 @@ fn sum_state_dir_bytes(
             continue;
         }
         if skip == Some(entry_path.as_path()) {
+            continue;
+        }
+        if entry_path.extension().and_then(|e| e.to_str()) == Some("tmp") {
             continue;
         }
         if entry.file_type()?.is_file() {
@@ -629,6 +640,29 @@ mod tests {
         assert_eq!(store.used_bytes().expect("usage"), 1024);
         // Lock file is present on disk but excluded from the tally.
         assert!(tmp.path().join("plugin-x").join(".write-lock").exists());
+    }
+
+    #[test]
+    fn state_store_ignores_orphan_tmp_files() {
+        // Simulates a host crash between `fs::write(tmp)` and
+        // `fs::rename(tmp, path)`: the orphan `<hash>.tmp` sits in
+        // the dir but must not consume the quota. Otherwise long-
+        // lived installs would slowly lose available state to every
+        // interrupted write that ever happened.
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dir = tmp.path().join("plugin-x");
+        std::fs::create_dir_all(&dir).expect("mkdir");
+        let store = StateStore::new(dir.clone(), 1024);
+
+        // Synthesise an orphan tmp (any filename ending in `.tmp`).
+        std::fs::write(dir.join("deadbeef.tmp"), vec![0u8; 900]).expect("write orphan");
+        // Quota tally must still be zero — the orphan is invisible.
+        assert_eq!(store.used_bytes().expect("usage"), 0);
+
+        // A 1 KiB write must succeed; the orphan does NOT count
+        // against the cap.
+        store.write("a", &vec![1u8; 1024]).expect("fills quota");
+        assert_eq!(store.used_bytes().expect("usage"), 1024);
     }
 
     #[test]
