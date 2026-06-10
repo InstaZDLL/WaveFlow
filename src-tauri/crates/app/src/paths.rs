@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use tauri::{AppHandle, Manager};
+use waveflow_core::plugin::PluginPaths;
 
 use crate::error::{AppError, AppResult};
 
@@ -51,13 +52,18 @@ impl AppPaths {
 
     /// Create every directory that the application expects to exist.
     ///
-    /// Individual profile directories are created lazily when a profile is
-    /// provisioned, not here.
+    /// Individual profile + plugin install/state directories are created
+    /// lazily (when a profile is provisioned, when a plugin is installed,
+    /// when a plugin writes its first state key); only their parent roots
+    /// are pre-created here so `read_dir` calls for `list_installed_plugins`
+    /// don't have to special-case a missing tree on a fresh install.
     pub fn ensure_dirs(&self) -> AppResult<()> {
         std::fs::create_dir_all(&self.root)?;
         std::fs::create_dir_all(&self.avatars_dir)?;
         std::fs::create_dir_all(&self.metadata_artwork_dir)?;
         std::fs::create_dir_all(&self.profiles_dir)?;
+        let plugin_paths = self.plugin_paths();
+        std::fs::create_dir_all(&plugin_paths.plugins_root)?;
         Ok(())
     }
 
@@ -87,5 +93,17 @@ impl AppPaths {
     /// stays portable if the app data root moves.
     pub fn profile_rel_dir(profile_id: i64) -> String {
         format!("profiles/{}", profile_id)
+    }
+
+    /// Plugin install + scratch roots, in [`PluginPaths`] form so the
+    /// runtime can pass it straight into `PluginRuntime::load_plugin`
+    /// and `new_store_for_plugin`. Layout:
+    ///
+    /// ```text
+    /// <root>/plugins/<plugin-id>/       (install dir, read-only at runtime)
+    /// <root>/plugin-data/<plugin-id>/   (per-user scratch, written by host imports)
+    /// ```
+    pub fn plugin_paths(&self) -> PluginPaths {
+        PluginPaths::from_app_data(&self.root)
     }
 }

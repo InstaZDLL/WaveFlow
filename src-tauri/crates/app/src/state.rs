@@ -1,9 +1,11 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use chrono::Utc;
 use sqlx::SqlitePool;
 use tauri::AppHandle;
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
+use waveflow_core::plugin::runtime::{PluginRuntime, RuntimeConfig};
 
 use crate::{
     db,
@@ -54,6 +56,27 @@ pub struct AppState {
     /// actually changed. Defaults to an unparked handle; the live
     /// task spawns in `lib.rs::run` once the AppHandle is available.
     pub ws: Arc<crate::sync::ws::SubscribeHandle>,
+    /// Plugin SDK runtime. One engine + one shared HTTP client per
+    /// process; `Clone` is cheap (wraps the inner `Arc`). The offline
+    /// probe is wired to [`crate::offline::is_offline`] so plugin
+    /// HTTP calls short-circuit on the same flag as Deezer / Last.fm
+    /// / LRCLIB.
+    pub plugins: PluginRuntime,
+    /// Per-plugin serialisation locks. Used by
+    /// [`crate::commands::plugins`] to make the manifest-existence
+    /// check + the `app_setting` upsert in `set_plugin_enabled`
+    /// atomic against a concurrent `uninstall_plugin` for the same
+    /// id — otherwise the enable toggle could observe a present
+    /// manifest, then the uninstall removes the install dir + drops
+    /// the row, then the toggle's INSERT lands as an orphan.
+    ///
+    /// Held while async work runs, so the inner lock is
+    /// `tokio::sync::Mutex`. The map itself is also a tokio mutex
+    /// because insertions happen on the async side and we want to
+    /// keep the same lock primitive throughout. Map size is bounded
+    /// by how many distinct plugin ids the user ever touches in
+    /// one session — sub-dozen for v1.5.0, no GC needed.
+    pub plugin_locks: Arc<Mutex<HashMap<String, Arc<Mutex<()>>>>>,
 }
 
 impl AppState {
@@ -91,6 +114,16 @@ impl AppState {
                 .unwrap_or(false),
         );
 
+        // Plugin runtime — one per process. The offline probe reads
+        // the same `crate::offline` atomic Deezer / Last.fm / LRCLIB
+        // do, so flipping the user-facing offline switch reaches
+        // plugin HTTP without a separate wiring path.
+        let plugins = PluginRuntime::new_with_offline_probe(
+            RuntimeConfig::default(),
+            Arc::new(crate::offline::is_offline),
+        )
+        .map_err(|e| AppError::Other(format!("plugin runtime init: {e}")))?;
+
         let state = Self {
             paths,
             app_db,
@@ -103,6 +136,8 @@ impl AppState {
             drain: Arc::new(crate::sync::drain::DrainHandle::default()),
             drain_lock: Arc::new(tokio::sync::Mutex::new(())),
             ws: Arc::new(crate::sync::ws::SubscribeHandle::default()),
+            plugins,
+            plugin_locks: Arc::new(Mutex::new(HashMap::new())),
         };
 
         state.bootstrap().await?;
