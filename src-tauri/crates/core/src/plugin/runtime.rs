@@ -26,6 +26,15 @@ use wasmtime::{Config, Engine, OptLevel, Store, StoreLimits, StoreLimitsBuilder}
 use crate::plugin::manifest::{Manifest, ManifestError};
 use crate::plugin::{InvalidPluginId, PluginPaths};
 
+/// Hard cap on the compiled `plugin.wasm` size we'll read off disk.
+/// Defence-in-depth against a hostile sideload: a multi-GB file
+/// would OOM the host long before wasmtime ever got a chance to
+/// reject it. 50 MB is comfortable headroom for our largest planned
+/// plugin (Web Radio with a ~10 MB SQLite + icon cache + bindings,
+/// ballparked at 15-20 MB compiled); anything bigger is suspect and
+/// gets refused at the syscall boundary.
+const MAX_WASM_SIZE: u64 = 50 * 1024 * 1024;
+
 /// Sandbox limits applied to every plugin Store this runtime spins
 /// up. Cloning is cheap (three integers); the runtime takes one of
 /// these by value at construction and hands it to each Store.
@@ -76,6 +85,8 @@ pub enum RuntimeError {
     Io(#[from] std::io::Error),
     #[error("wasmtime: {0}")]
     Wasmtime(#[from] wasmtime::Error),
+    #[error("plugin.wasm too large: {size} bytes (max {max})")]
+    WasmTooLarge { size: u64, max: u64 },
 }
 
 /// Process-wide plugin runtime. Owns the [`Engine`] (`Send + Sync`
@@ -163,6 +174,17 @@ impl PluginRuntime {
         let manifest_path = paths.manifest_path(plugin_id)?;
         let manifest = Manifest::load_from_path(&manifest_path)?;
         let wasm_path = paths.wasm_path(plugin_id)?;
+        // Stat first — refuse to slurp a multi-GB blob into a `Vec<u8>`
+        // even if the user (or a malicious sideload) put one in the
+        // plugin directory. `fs::metadata` is cheap and lets us
+        // surface the size in the error without paying the read cost.
+        let size = std::fs::metadata(&wasm_path)?.len();
+        if size > MAX_WASM_SIZE {
+            return Err(RuntimeError::WasmTooLarge {
+                size,
+                max: MAX_WASM_SIZE,
+            });
+        }
         let bytes = std::fs::read(&wasm_path)?;
         let component = Component::from_binary(&self.inner.engine, &bytes)?;
         Ok(LoadedPlugin {
@@ -283,6 +305,45 @@ mod tests {
             Ok(_) => panic!("expected error, got Ok"),
             Err(RuntimeError::InvalidId(_)) => {}
             Err(err) => panic!("expected InvalidId, got {err:?}"),
+        }
+    }
+
+    #[test]
+    fn load_plugin_refuses_oversized_wasm() {
+        // Lay down a valid manifest + a sparse "plugin.wasm" whose
+        // file length exceeds `MAX_WASM_SIZE`. We use `set_len` on
+        // an empty file so the disk footprint stays trivial — the
+        // guard reads `fs::metadata().len()` which reflects the
+        // logical (sparse) size, not allocated blocks.
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let runtime = PluginRuntime::new(RuntimeConfig::default()).expect("engine builds");
+        let paths = PluginPaths::from_app_data(tmp.path());
+        let plugin_dir = paths.plugin_dir("oversize").expect("dir");
+        std::fs::create_dir_all(&plugin_dir).expect("mkdir");
+
+        let manifest = r#"
+schema_version = 1
+
+[plugin]
+id = "oversize"
+name = "x"
+version = "1"
+author = "x"
+world = "waveflow:source/v1"
+"#;
+        std::fs::write(plugin_dir.join("manifest.toml"), manifest).expect("write manifest");
+
+        let wasm = std::fs::File::create(plugin_dir.join("plugin.wasm")).expect("create wasm");
+        wasm.set_len(MAX_WASM_SIZE + 1).expect("set_len");
+        drop(wasm);
+
+        match runtime.load_plugin(&paths, "oversize") {
+            Ok(_) => panic!("expected error, got Ok"),
+            Err(RuntimeError::WasmTooLarge { size, max }) => {
+                assert_eq!(size, MAX_WASM_SIZE + 1);
+                assert_eq!(max, MAX_WASM_SIZE);
+            }
+            Err(err) => panic!("expected WasmTooLarge, got {err:?}"),
         }
     }
 
