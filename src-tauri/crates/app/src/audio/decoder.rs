@@ -500,6 +500,17 @@ fn play_track(
                     mix_active = false;
                     next_requested = false;
                 }
+                // Clear every already-resampled buffer + EOF flag so
+                // a stale block from before the seek can't be pushed
+                // into the ring after we re-fill it. PushOutcome::Seek
+                // (deeper in the loop) does the same — keep the two
+                // branches symmetric so a seek behaves identically
+                // whether the user triggered it via Tauri command or
+                // an A-B wrap.
+                primary_resampled.clear();
+                secondary_resampled.clear();
+                primary_at_eof = false;
+                secondary_at_eof = false;
                 stream.seek_ms(ms);
                 reset_clock(shared, ms);
                 reset_resampler_for_seek(&mut stream, shared, dst_sample_rate, dst_channels);
@@ -991,18 +1002,18 @@ fn finished_from(stream: &ActiveStream) -> FinishedTrack {
 /// reach the device — particularly important in the Resume-then-Seek
 /// sequence where `paused_output` gets cleared before the seek lands.
 ///
-/// Also briefly forces `paused_output = true` so the cpal callback
-/// writes silence for the duration of the spin-wait (#173). Without
-/// that, a callback whose `drain_silent` atomic load was hoisted
-/// above the store below — or whose buffer was already mid-fill
-/// when the seek landed — can leak ~5-20 ms of pre-seek samples
-/// past the drain. The previous `paused_output` value is restored
-/// at the end so a user who paused before seeking stays paused.
+/// **Do not pre-flip `paused_output = true` here**: the cpal callback
+/// (and the WASAPI exclusive event loop) checks `paused_output`
+/// BEFORE `drain_silent` and short-circuits on silence without
+/// draining. The earlier round-1 fix did the swap first and locked
+/// the ring at full slots for the entire 500 ms timeout, defeating
+/// its own purpose. The `drain_silent` branch already writes silence
+/// AND pops the ring, so it's sufficient to cover the user-facing
+/// "no pre-seek leak" guarantee on its own.
 fn drain_ring_silent(producer: &Producer<f32>, shared: &SharedPlayback) {
     if producer.slots() == super::output::RING_CAPACITY {
         return;
     }
-    let was_paused = shared.paused_output.swap(true, Ordering::AcqRel);
     shared.drain_silent.store(true, Ordering::Release);
     let start = Instant::now();
     while producer.slots() < super::output::RING_CAPACITY
@@ -1011,9 +1022,6 @@ fn drain_ring_silent(producer: &Producer<f32>, shared: &SharedPlayback) {
         std::thread::sleep(Duration::from_millis(1));
     }
     shared.drain_silent.store(false, Ordering::Release);
-    // Restore the pre-call paused_output value so a deliberate
-    // user-driven pause isn't lifted by a downstream seek/A-B wrap.
-    shared.paused_output.store(was_paused, Ordering::Release);
 }
 
 /// Full resampler reset for a seek (#173). `Resampler::flush()`
