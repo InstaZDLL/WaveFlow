@@ -245,12 +245,23 @@ pub async fn set_plugin_enabled(
         )));
     }
 
+    // Full column set — `app_setting.value_type` and `updated_at`
+    // are NOT NULL with a `CHECK` constraint on the type tag (see
+    // `migrations/app/20260411120000_initial.sql`), so a shorter
+    // INSERT would crash on the NOT NULL guard. Same UPSERT shape
+    // every other writer in the workspace uses (`backup.rs` etc.).
+    let now = chrono::Utc::now().timestamp_millis();
     sqlx::query(
-        "INSERT INTO app_setting (key, value) VALUES (?, ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'bool', ?)
+         ON CONFLICT(key) DO UPDATE SET
+            value = excluded.value,
+            value_type = excluded.value_type,
+            updated_at = excluded.updated_at",
     )
     .bind(enabled_key(&plugin_id))
     .bind(if enabled { "true" } else { "false" })
+    .bind(now)
     .execute(&state.app_db)
     .await?;
     Ok(())
