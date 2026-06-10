@@ -115,6 +115,32 @@ fn enabled_key(plugin_id: &str) -> String {
     format!("plugin.{plugin_id}.enabled")
 }
 
+/// Enforce the same character class the manifest validator pins on
+/// `plugin.id`: `[a-z0-9-]+`. Called at the top of every mutating
+/// command BEFORE the lock map is touched so a case-variant call
+/// (`"Foo"` on Windows / macOS where the FS is case-insensitive)
+/// doesn't pollute `plugin_locks` with entries that can never lead
+/// to a successful write — the per-id manifest byte-match later
+/// in the pipeline would reject them anyway. Surfacing the
+/// mismatch as a clear "illegal character" error here also gives
+/// the frontend a single, unambiguous failure mode instead of the
+/// downstream "manifest id mismatch" which reads like a sandbox
+/// breach.
+fn validate_plugin_id_chars(plugin_id: &str) -> AppResult<()> {
+    if plugin_id.is_empty() {
+        return Err(AppError::Other("plugin id is empty".into()));
+    }
+    for ch in plugin_id.chars() {
+        let ok = ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '-';
+        if !ok {
+            return Err(AppError::Other(format!(
+                "plugin id contains illegal character {ch:?} (allowed: [a-z0-9-])"
+            )));
+        }
+    }
+    Ok(())
+}
+
 async fn read_enabled(app_db: &sqlx::SqlitePool, plugin_id: &str) -> AppResult<bool> {
     // Missing row = enabled. We don't pre-populate on install so a
     // brand-new plugin always starts on; the user has to flip the
@@ -244,6 +270,11 @@ pub async fn set_plugin_enabled(
     plugin_id: String,
     enabled: bool,
 ) -> AppResult<()> {
+    // Character-class gate FIRST: rejects case-variant input
+    // before any lock entry is created. See doc on
+    // `validate_plugin_id_chars`.
+    validate_plugin_id_chars(&plugin_id)?;
+
     let paths = state.paths.plugin_paths();
     // Validate the id shape via PluginPaths. Refuses absolute paths,
     // `..` segments, embedded separators — same contract
@@ -322,6 +353,11 @@ pub async fn uninstall_plugin(
     state: State<'_, AppState>,
     plugin_id: String,
 ) -> AppResult<()> {
+    // Character-class gate FIRST: rejects case-variant input
+    // before any lock entry is created. See doc on
+    // `validate_plugin_id_chars`.
+    validate_plugin_id_chars(&plugin_id)?;
+
     let paths = state.paths.plugin_paths();
     let install_dir = paths
         .plugin_dir(&plugin_id)
