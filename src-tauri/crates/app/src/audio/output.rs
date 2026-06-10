@@ -486,6 +486,15 @@ where
     // Paused, emit player:state + player:error so the UI can surface
     // the problem, and keep the Stream itself untouched — it's about
     // to be dropped by cpal anyway.
+    //
+    // On `DeviceNotAvailable` (#175) we additionally schedule an
+    // auto-rebuild via tokio: 300 ms backoff (covers the OS settling
+    // a USB replug / driver restart / Windows session reset), then a
+    // SAME-DEVICE rebuild through the engine. Re-querying the OS
+    // default here would land the user on a different output every
+    // time their pinned device flapped — the engine's debounce guard
+    // also coalesces a quick double-flap into a single rebuild
+    // attempt.
     let err_shared = shared.clone();
     let err_app = app.clone();
     let err_fn = move |err: cpal::StreamError| {
@@ -501,6 +510,23 @@ where
         );
         if let Some(controls) = err_app.try_state::<crate::media_controls::MediaControlsHandle>() {
             controls.update_playback(PlayerState::Paused, err_shared.current_position_ms());
+        }
+
+        if matches!(err, cpal::StreamError::DeviceNotAvailable) {
+            let app_clone = err_app.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+                if let Some(engine) =
+                    app_clone.try_state::<std::sync::Arc<super::AudioEngine>>()
+                {
+                    if let Err(err) = engine.try_rebuild_after_device_error() {
+                        tracing::warn!(
+                            %err,
+                            "auto-rebuild after DeviceNotAvailable failed"
+                        );
+                    }
+                }
+            });
         }
     };
 
