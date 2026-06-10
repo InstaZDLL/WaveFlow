@@ -16,6 +16,7 @@ pub mod audio_format;
 pub mod domain;
 pub mod error;
 pub mod metadata;
+pub mod plugin;
 pub mod repository;
 pub mod scanner;
 pub mod smart_playlists;

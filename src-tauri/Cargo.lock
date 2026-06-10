@@ -6976,13 +6976,23 @@ dependencies = [
  "resvg",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "sqlx",
  "symphonia",
  "tempfile",
  "thiserror 2.0.18",
  "tiny-skia",
+ "toml 0.9.12+spec-1.1.0",
  "tracing",
  "usvg",
+ "waveflow-plugin-sdk",
+]
+
+[[package]]
+name = "waveflow-plugin-sdk"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

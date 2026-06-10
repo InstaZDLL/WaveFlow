@@ -1,0 +1,50 @@
+// WaveFlow metadata enricher world — v1.
+//
+// Plugins exporting this world enrich existing library rows: artist
+// biographies, similar-artist suggestions, lyrics. They don't yield
+// new tracks; the engine fans calls out to every metadata plugin in
+// parallel and merges the results behind a fallback chain.
+
+package waveflow:metadata@1.0.0;
+
+interface enricher {
+  record artist-info {
+    bio: option<string>,
+    image-url: option<string>,
+    similar: list<string>,
+  }
+
+  record album-info {
+    description: option<string>,
+    cover-url: option<string>,
+    track-count: option<u32>,
+  }
+
+  record lyrics-line {
+    /// Timecode in milliseconds from track start. `none` = the
+    /// line is plain (un-synced) text.
+    time-ms: option<u32>,
+    text: string,
+  }
+
+  /// Free-form artist info lookup by name. Plugins normalise the
+  /// name themselves (case, diacritics) — the host hands what the
+  /// user has, verbatim.
+  artist-info: func(name: string) -> result<artist-info, string>;
+
+  /// Album lookup. Some plugins key on `(artist, title)` pairs;
+  /// pass both even if your DB only uses one.
+  album-info: func(artist: string, title: string) -> result<album-info, string>;
+
+  /// Lyrics lookup. Plugins return a list of lines (possibly
+  /// time-coded) so the host doesn't need to parse multiple text
+  /// formats — empty list = no lyrics for this track.
+  lyrics: func(artist: string, title: string) -> result<list<lyrics-line>, string>;
+}
+
+world plugin {
+  import waveflow:host/http@1.0.0;
+  import waveflow:host/log@1.0.0;
+  import waveflow:host/storage@1.0.0;
+  export enricher;
+}
