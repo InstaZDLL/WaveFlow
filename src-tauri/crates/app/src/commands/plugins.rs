@@ -113,45 +113,59 @@ async fn read_enabled(app_db: &sqlx::SqlitePool, plugin_id: &str) -> AppResult<b
 /// skipped + logged at warn level — listing must never fail because
 /// one entry is corrupt; the user should still be able to see (and
 /// uninstall) their other plugins.
+///
+/// The FS walk + TOML parse run on a blocking thread (each manifest
+/// is a `read_to_string` + `toml::from_str`, both sync); the
+/// per-plugin `app_setting` lookup stays on the async side so the
+/// SQLite pool's lock contention isn't pulled into the blocking pool.
 #[tauri::command]
 pub async fn list_installed_plugins(state: State<'_, AppState>) -> AppResult<Vec<PluginInfo>> {
     let paths = state.paths.plugin_paths();
-    let mut out = Vec::new();
-
-    let entries = match fs::read_dir(&paths.plugins_root) {
-        Ok(e) => e,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(out),
-        Err(e) => return Err(AppError::Io(e)),
-    };
-
-    for entry in entries.flatten() {
-        let dir = entry.path();
-        let Some(plugin_id) = dir.file_name().and_then(|n| n.to_str()) else {
-            continue;
+    let manifests = tokio::task::spawn_blocking(move || -> AppResult<Vec<(String, Manifest)>> {
+        let mut out = Vec::new();
+        let entries = match fs::read_dir(&paths.plugins_root) {
+            Ok(e) => e,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(out),
+            Err(e) => return Err(AppError::Io(e)),
         };
-        let manifest_path = dir.join("manifest.toml");
-        match Manifest::load_from_path(&manifest_path) {
-            Ok(manifest) => {
-                // Pin: install dir name MUST match the manifest's
-                // declared id. The runtime refuses to load a
-                // mismatched plugin (Phase 2b's load-time guard),
-                // so skip it here too rather than surfacing a
-                // dangling row the user can't actually run.
-                if manifest.plugin.id != plugin_id {
-                    tracing::warn!(
-                        plugin_id,
-                        manifest_id = %manifest.plugin.id,
-                        "skipping plugin with id mismatch between dir and manifest"
-                    );
-                    continue;
+        for entry in entries.flatten() {
+            let dir = entry.path();
+            let Some(plugin_id) = dir.file_name().and_then(|n| n.to_str()).map(str::to_string)
+            else {
+                continue;
+            };
+            let manifest_path = dir.join("manifest.toml");
+            match Manifest::load_from_path(&manifest_path) {
+                Ok(manifest) => {
+                    // Pin: install dir name MUST match the manifest's
+                    // declared id. The runtime refuses to load a
+                    // mismatched plugin (Phase 2b's load-time guard),
+                    // so skip it here too rather than surfacing a
+                    // dangling row the user can't actually run.
+                    if manifest.plugin.id != plugin_id {
+                        tracing::warn!(
+                            plugin_id,
+                            manifest_id = %manifest.plugin.id,
+                            "skipping plugin with id mismatch between dir and manifest"
+                        );
+                        continue;
+                    }
+                    out.push((plugin_id, manifest));
                 }
-                let enabled = read_enabled(&state.app_db, plugin_id).await?;
-                out.push(manifest_to_info(manifest, enabled));
-            }
-            Err(err) => {
-                tracing::warn!(plugin_id, ?err, "skipping unreadable plugin manifest");
+                Err(err) => {
+                    tracing::warn!(plugin_id, ?err, "skipping unreadable plugin manifest");
+                }
             }
         }
+        Ok(out)
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
+
+    let mut out = Vec::with_capacity(manifests.len());
+    for (plugin_id, manifest) in manifests {
+        let enabled = read_enabled(&state.app_db, &plugin_id).await?;
+        out.push(manifest_to_info(manifest, enabled));
     }
 
     // Stable order so the frontend gets the same list across calls
@@ -173,12 +187,20 @@ pub async fn get_plugin_info(
         Ok(p) => p,
         Err(_) => return Ok(None), // id failed sanitisation → no such plugin
     };
-    match Manifest::load_from_path(&manifest_path) {
-        Ok(manifest) if manifest.plugin.id == plugin_id => {
+    let id_for_blocking = plugin_id.clone();
+    let manifest_opt = tokio::task::spawn_blocking(move || -> Option<Manifest> {
+        Manifest::load_from_path(&manifest_path)
+            .ok()
+            .filter(|m| m.plugin.id == id_for_blocking)
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?;
+    match manifest_opt {
+        Some(manifest) => {
             let enabled = read_enabled(&state.app_db, &plugin_id).await?;
             Ok(Some(manifest_to_info(manifest, enabled)))
         }
-        Ok(_) | Err(_) => Ok(None),
+        None => Ok(None),
     }
 }
 
@@ -186,6 +208,13 @@ pub async fn get_plugin_info(
 /// instance — Phase 4 will reload-on-flip when the player has
 /// active plugin sources; for now the toggle is consulted by the
 /// host before instantiation.
+///
+/// Refuses to write the toggle for a plugin that isn't actually
+/// installed — a missing `manifest.toml` means the frontend asked
+/// for an id that doesn't exist on disk, and silently creating the
+/// row would leave an orphan in `app_setting` that survives
+/// reinstall cycles. The id-shape validation is the second line of
+/// defence; the existence check is the first.
 #[tauri::command]
 pub async fn set_plugin_enabled(
     state: State<'_, AppState>,
@@ -193,12 +222,28 @@ pub async fn set_plugin_enabled(
     enabled: bool,
 ) -> AppResult<()> {
     let paths = state.paths.plugin_paths();
-    // Validate the id shape via PluginPaths to keep the same
-    // contract `list_installed_plugins` uses. Refuses absolute
-    // paths, `..` segments, embedded separators.
-    paths
+    // Validate the id shape via PluginPaths. Refuses absolute paths,
+    // `..` segments, embedded separators — same contract
+    // `list_installed_plugins` uses.
+    let plugin_dir = paths
         .plugin_dir(&plugin_id)
         .map_err(|e| AppError::Other(format!("invalid plugin id: {e}")))?;
+
+    // Existence gate runs on a blocking thread (`exists()` is a
+    // syscall on every OS). If the install dir or manifest is
+    // missing, we refuse the write so a stale frontend cache can't
+    // sneak a setting in for a plugin the user already
+    // uninstalled.
+    let manifest_present = tokio::task::spawn_blocking(move || {
+        plugin_dir.is_dir() && plugin_dir.join("manifest.toml").is_file()
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?;
+    if !manifest_present {
+        return Err(AppError::Other(format!(
+            "plugin not installed: {plugin_id}"
+        )));
+    }
 
     sqlx::query(
         "INSERT INTO app_setting (key, value) VALUES (?, ?)
@@ -233,15 +278,23 @@ pub async fn uninstall_plugin(
         .state_dir(&plugin_id)
         .map_err(|e| AppError::Other(format!("invalid plugin id: {e}")))?;
 
-    // Remove install + state. Missing dirs are not an error — the
-    // user might be cleaning up a half-installed plugin where one
-    // tree already went away.
-    if install_dir.exists() {
-        fs::remove_dir_all(&install_dir)?;
-    }
-    if state_dir.exists() {
-        fs::remove_dir_all(&state_dir)?;
-    }
+    // Remove install + state on a blocking thread — `remove_dir_all`
+    // on a multi-MB plugin tree (e.g. Web Radio embedding a ~10 MB
+    // SQLite) can stretch into double-digit milliseconds and would
+    // otherwise tie up a tokio worker. Missing dirs are not an
+    // error — the user might be cleaning up a half-installed plugin
+    // where one tree already went away.
+    tokio::task::spawn_blocking(move || -> AppResult<()> {
+        if install_dir.exists() {
+            fs::remove_dir_all(&install_dir)?;
+        }
+        if state_dir.exists() {
+            fs::remove_dir_all(&state_dir)?;
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
 
     // Drop the enabled flag so a reinstall of the same id starts
     // fresh. ON CONFLICT not needed — DELETE on a missing row is
