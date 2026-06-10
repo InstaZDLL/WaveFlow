@@ -16,6 +16,7 @@
 //! the host explicitly reloading the plugin.
 
 use std::fs;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use globset::{Glob, GlobSet, GlobSetBuilder};
@@ -30,6 +31,18 @@ use crate::plugin::runtime::HostCtx;
 /// the host pick a different value per plugin; Phase 2b uses one
 /// number across the board.
 pub const STATE_QUOTA_BYTES: usize = 10 * 1024 * 1024;
+
+/// Hard cap on the response body size `waveflow:host/http.send`
+/// will buffer for a guest. A misbehaving (or malicious)
+/// allowlisted server could otherwise stream multi-GB into our
+/// `Vec<u8>` before the guest ever sees it — the wasmtime epoch
+/// would eventually trap the call but only after the host
+/// allocated the entire response. 10 MB covers the largest
+/// realistic JSON catalogue (radio-browser station lists clock
+/// around 1-3 MB) with a 3× safety margin; anything bigger is
+/// surfaced as a clean `Err("response body too large")` the plugin
+/// can pivot on (paginate, retry with `Range`, surface to the user).
+const MAX_BODY_BYTES: u64 = 10 * 1024 * 1024;
 
 /// Sentinel filename for the per-plugin write lock. The dot prefix
 /// keeps it inconspicuous when a user inspects the scratch dir, and
@@ -363,10 +376,21 @@ impl wit_host::http::Host for HostCtx {
                 )
             })
             .collect();
-        let body = match resp.bytes() {
-            Ok(b) => b.to_vec(),
+        // Bounded read: `take(MAX + 1)` lets us detect a body that
+        // ran over the cap without ever holding more than `MAX + 1`
+        // bytes in memory. The `+ 1` is the saturating count — if
+        // the read returns exactly that we know there was at least
+        // one more byte the take refused. `resp.bytes()` would have
+        // happily slurped a multi-GB stream into a `Vec<u8>` before
+        // we got a chance to reject it.
+        let mut body = Vec::new();
+        let read = match resp.take(MAX_BODY_BYTES + 1).read_to_end(&mut body) {
+            Ok(n) => n as u64,
             Err(e) => return Ok(Err(e.to_string())),
         };
+        if read > MAX_BODY_BYTES {
+            return Ok(Err("response body too large".to_string()));
+        }
         Ok(Ok(wit_host::http::Response {
             status,
             headers,

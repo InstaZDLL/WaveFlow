@@ -387,9 +387,13 @@ pub struct LoadedPlugin {
 /// declared), the scratch-store handle, a shared HTTP client, and
 /// the plugin id used for log scoping.
 ///
-/// All fields are `pub(crate)` so [`crate::plugin::host_impl`] can
-/// read them from inside its trait impls without exposing them on
-/// the public API surface.
+/// Fields that pin runtime invariants — `plugin_id`, `permissions`,
+/// `assets`, `offline_probe` — are `pub(crate)` so external crates
+/// (the app, the server) can't rewrite them after instantiation
+/// and slip past the manifest's permission gates or asset sandbox.
+/// `table`, `limits`, `state`, and `http_client` stay `pub` because
+/// wasmtime + the host imports legitimately reach into them at
+/// call time and there's no equivalent invariant to protect.
 pub struct HostCtx {
     /// Wasmtime resource table — required by `bindgen!` even when
     /// the WIT files don't declare resources (the macro stitches it
@@ -402,16 +406,20 @@ pub struct HostCtx {
 
     /// Manifest id for tracing scope. Every `waveflow:host/log.emit`
     /// call routes the message into the host's tracing subsystem
-    /// with `plugin = <id>` set automatically.
-    pub plugin_id: String,
+    /// with `plugin = <id>` set automatically. `pub(crate)` so
+    /// outside callers can't relabel a running plugin.
+    pub(crate) plugin_id: String,
     /// Compiled allowlist + storage flags pinned at instantiate
-    /// time. See [`HostPermissions::from_manifest`].
-    pub permissions: HostPermissions,
+    /// time. See [`HostPermissions::from_manifest`]. `pub(crate)`
+    /// so the manifest's gates can't be widened post-hoc — a host
+    /// that wants different permissions builds a new store.
+    pub(crate) permissions: HostPermissions,
     /// Sidecar asset reader. `None` when the manifest declared no
     /// `[[assets]]` table; the storage host impl returns a clear
     /// error in that case instead of pretending the resolver
-    /// exists but is empty.
-    pub assets: Option<AssetResolver>,
+    /// exists but is empty. `pub(crate)` so the asset sandbox
+    /// can't be swapped from outside the runtime.
+    pub(crate) assets: Option<AssetResolver>,
     /// Per-plugin scratch key/value store with the global 10 MB
     /// quota baked in.
     pub state: StateStore,
@@ -424,8 +432,9 @@ pub struct HostCtx {
     /// host impl reads this on every `http.send` and short-circuits
     /// to an empty 503 response when it returns `true`, matching
     /// the convention every other outbound HTTP path in this
-    /// workspace follows.
-    pub offline_probe: OfflineProbe,
+    /// workspace follows. `pub(crate)` so a caller can't pin the
+    /// probe to a constant and bypass the host's offline switch.
+    pub(crate) offline_probe: OfflineProbe,
 }
 
 impl HostCtx {
