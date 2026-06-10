@@ -115,12 +115,27 @@ export function WebRadioView() {
       setError(null);
       try {
         const url = await pluginStreamUrl(PLUGIN_ID, track.id);
+        // Pause the current source BEFORE the src rebind so the
+        // browser doesn't emit "The play() request was interrupted
+        // by a new load request" — that AbortError fires when the
+        // user clicks a different station while the previous one
+        // is still resolving its load. Pausing first cancels the
+        // in-flight load cleanly.
+        if (audioRef.current) {
+          audioRef.current.pause();
+        }
         setPlayingUrl(url);
         setPlayingId(track.id);
         setPlayingTitle(`${track.title} — ${track.artist}`);
         // Wait a tick for the `<audio src=...>` rebind, then play.
         window.setTimeout(() => {
-          audioRef.current?.play().catch((e) => {
+          audioRef.current?.play().catch((e: unknown) => {
+            // Swallow the AbortError that still surfaces if the
+            // user clicked twice fast enough to race the
+            // setTimeout — it's benign and gone by the next click.
+            if (e instanceof DOMException && e.name === "AbortError") {
+              return;
+            }
             setError(e instanceof Error ? e.message : String(e));
             setPlayingId(null);
           });
