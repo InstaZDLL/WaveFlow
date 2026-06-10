@@ -144,6 +144,23 @@ wasmtime = { version = "45", default-features = false, features = [
     "component-model",
     "parallel-compilation",
 ] }
+# WASI Preview 2 imports the host must satisfy for any Component
+# Model guest compiled by `cargo component` — wit-bindgen-rt
+# pulls in `wasi:cli/environment` (panic handler), `wasi:io/streams`
+# (stdio), `wasi:clocks/wall-clock` (random + monotonic), etc.,
+# even when the plugin author never explicitly opts into WASI.
+#
+# We wire a MINIMAL context per Store (`WasiCtxBuilder::new().build()`
+# in `crate::plugin::runtime::PluginRuntime::new_store_for_plugin`):
+# no filesystem preopens, no env-var inheritance, no command-line
+# args. Networking isn't globally removed — wasmtime-wasi keeps
+# the `wasi:sockets/*` APIs callable — but every destination
+# starts denied because no `allow_*` rule is registered. Together
+# with our own `waveflow:host/http` allowlist gating the only HTTP
+# path we actually expose to plugins, the result is "no host
+# resources reachable unless the manifest explicitly asked for
+# them".
+wasmtime-wasi = { version = "45", default-features = false }
 
 [dev-dependencies]
 # Sandboxed scratch directories for the smart-playlist cover render

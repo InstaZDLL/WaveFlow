@@ -1,0 +1,67 @@
+# Empty workspace block — this crate is intentionally NOT part of
+# the host workspace (`src-tauri/Cargo.toml`), but cargo's
+# auto-discovery walks up the tree and finds the host workspace
+# anyway. Declaring our own (empty) workspace marker tells cargo
+# "this package owns its own resolution context" so native host
+# builds and `cargo component build` for wasm32-wasip2 stay
+# independent.
+[workspace]
+
+[package]
+name = "waveflow-plugin-web-radio"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+description = "WaveFlow plugin — internet radio source backed by radio-browser.info"
+authors = ["InstaZDLL <github.105mh@8shield.net>"]
+publish = false
+
+# This crate is NOT part of the host workspace. It builds for
+# `wasm32-wasip2` via `cargo component build`, and lives entirely
+# behind the Plugin SDK protocol — pulling it into the workspace
+# would force every host build to also target wasm.
+#
+# `cdylib` because the Component Model expects a dynamic-library
+# style output that `wasm-tools component new` (invoked
+# transparently by `cargo component`) wraps into a true wasm
+# component.
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Guest-side bindings generator. The `cargo component` workflow
+# wires this against `wit/world.wit` automatically — author code
+# implements the generated `Guest` trait.
+wit-bindgen-rt = { version = "0.44", features = ["bitflags"] }
+# Pure-Rust JSON parsing for radio-browser.info responses. No
+# `reqwest` here — the WIT contract routes HTTP through the host.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Component Model metadata consumed by `cargo component build`.
+[package.metadata.component]
+package = "waveflow:web-radio"
+
+[package.metadata.component.target]
+path = "wit"
+world = "plugin"
+
+# Explicit deps mapping — cargo-component's wit-parser walks
+# `wit/deps/` but won't merge a package unless it knows the
+# expected id. Pointing `waveflow:host` at the subdir tells it
+# "merge this package definition into the resolution context"
+# so `world.wit`'s `import waveflow:host/http@1.0.0;` resolves.
+[package.metadata.component.target.dependencies]
+"waveflow:host" = { path = "wit/deps/waveflow-host" }
+
+# WIT-bindgen ownership knobs: borrowing is fine for guest-side
+# string handling, default codegen is the right call here.
+
+# Tiny binary on release — strip debug, opt for size since the
+# whole plugin must ship as a bundled resource. `lto` shaves
+# another 20-30% off the wasm.
+[profile.release]
+opt-level = "s"
+strip = true
+lto = true
+codegen-units = 1

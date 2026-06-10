@@ -24,6 +24,7 @@ use std::time::Duration;
 
 use wasmtime::component::{Component, Linker, ResourceTable};
 use wasmtime::{Config, Engine, OptLevel, Store, StoreLimits, StoreLimitsBuilder};
+use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView};
 
 use crate::plugin::assets::AssetResolver;
 use crate::plugin::host_impl::{HostError, HostPermissions, StateStore, STATE_QUOTA_BYTES};
@@ -343,6 +344,7 @@ impl PluginRuntime {
 
         let ctx = HostCtx {
             table: ResourceTable::new(),
+            wasi: WasiCtxBuilder::new().build(),
             limits,
             plugin_id: plugin_id.to_string(),
             permissions,
@@ -361,15 +363,35 @@ impl PluginRuntime {
     }
 
     /// Build a [`Linker`] pre-populated with every
-    /// `waveflow:host/*` import the SDK ships. One linker covers
-    /// every store this runtime spins up — wasmtime's
+    /// `waveflow:host/*` import the SDK ships PLUS the minimal
+    /// WASI P2 surface every `cargo component`-built plugin
+    /// implicitly imports for panic / stdio / clock glue. One
+    /// linker covers every store this runtime spins up — wasmtime's
     /// `Linker<HostCtx>` is `Send + Sync` and `Component::instantiate`
     /// only reads it, so the caller can keep a single `Arc<Linker>`
     /// around and clone-share it across instantiations.
     pub fn build_linker(&self) -> Result<Linker<HostCtx>, RuntimeError> {
         let mut linker = Linker::<HostCtx>::new(&self.inner.engine);
+        wasmtime_wasi::p2::add_to_linker_sync(&mut linker)?;
         crate::plugin::host_impl::add_to_linker(&mut linker)?;
         Ok(linker)
+    }
+}
+
+// ----- wasmtime_wasi WasiView wiring --------------------------------------
+
+impl WasiView for HostCtx {
+    /// Returns the combined ctx + resource-table view wasmtime_wasi
+    /// 45 reads on every WASI import call. We share `self.table`
+    /// with the bindgen-generated `waveflow:host/*` resources — both
+    /// sides allocate into the same handle space, which is the
+    /// expected pattern when a host implements multiple WIT
+    /// interfaces against one Store.
+    fn ctx(&mut self) -> WasiCtxView<'_> {
+        WasiCtxView {
+            ctx: &mut self.wasi,
+            table: &mut self.table,
+        }
     }
 }
 
@@ -397,10 +419,25 @@ pub struct LoadedPlugin {
 /// reaches into them and there's no equivalent invariant to
 /// protect on those.
 pub struct HostCtx {
-    /// Wasmtime resource table — required by `bindgen!` even when
-    /// the WIT files don't declare resources (the macro stitches it
-    /// into the generated `add_to_linker` boilerplate).
+    /// Wasmtime resource table — required by `bindgen!` AND by
+    /// `wasmtime_wasi::p2::IoView`. Shared by both: the same handle
+    /// space backs guest-allocated resources from our `waveflow:host/*`
+    /// imports and the WASI minimal-context streams.
     pub table: ResourceTable,
+    /// Minimal WASI P2 context. The host adds `wasmtime_wasi` to
+    /// every plugin's linker because `cargo component`'s default
+    /// adapter implicitly imports `wasi:cli/environment`,
+    /// `wasi:io/streams`, `wasi:clocks/wall-clock`, etc. for panic
+    /// handling + stdio + clock APIs that wit-bindgen-rt's
+    /// glue code calls. The context here is intentionally bare —
+    /// no filesystem preopens, no env inheritance, no args. The
+    /// `wasi:sockets/*` surface stays callable (wasmtime-wasi
+    /// doesn't strip it), but every destination is denied by
+    /// default because no `allow_*` rule is registered; together
+    /// with the `waveflow:host/http` allowlist gating the only
+    /// HTTP path we actually expose, the result is "no host
+    /// resources reachable unless the manifest asked for them".
+    pub(crate) wasi: WasiCtx,
     /// Memory cap enforcement. The [`Store::limiter`] closure points
     /// at this field so a guest `memory.grow` over the cap returns
     /// 0 instead of asking the OS for more pages.
@@ -456,6 +493,7 @@ impl HostCtx {
             .build();
         Self {
             table: ResourceTable::new(),
+            wasi: WasiCtxBuilder::new().build(),
             limits,
             plugin_id: "test-plugin".into(),
             permissions: HostPermissions::empty(),
