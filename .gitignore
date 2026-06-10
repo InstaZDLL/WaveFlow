@@ -83,3 +83,7 @@ secrets/
 # committed outputs in packaging/flatpak/generated/ are what Flathub
 # consumes; this dir is local scratch and can be regenerated anytime.
 packaging/flatpak/.cache/
+
+# graphify knowledge-graph output (interactive HTML + GraphRAG JSON + per-file
+# extraction cache). Machine-specific, fully regenerable from the cache.
+graphify-out/
