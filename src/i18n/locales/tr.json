@@ -124,6 +124,7 @@
   "sidebar": {
     "nav": {
       "home": "Ana sayfa",
+      "webRadio": "Web Radyo",
       "spotify": "Spotify"
     },
     "sections": {
@@ -1721,5 +1722,16 @@
     "copied": "Kopyalandı",
     "close": "Kapat",
     "errorClipboard": "Panoya erişilemiyor. URL'yi seçerek manuel olarak kopyalayın."
+  },
+  "webRadio": {
+    "title": "Web Radyo",
+    "subtitle": "radio-browser.info üzerinden 30 000'den fazla çevrimiçi radyo istasyonu.",
+    "loading": "Kategoriler yükleniyor…",
+    "resolving": "İstasyonlar aranıyor…",
+    "emptyResults": "İstasyon bulunamadı.",
+    "searchPlaceholder": "İstasyon ara…",
+    "backToCategories": "Kategorilere dön",
+    "live": "CANLI",
+    "nowPlaying": "Şimdi çalıyor"
   }
 }

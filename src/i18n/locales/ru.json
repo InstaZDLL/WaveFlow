@@ -124,6 +124,7 @@
   "sidebar": {
     "nav": {
       "home": "Главная",
+      "webRadio": "Веб-радио",
       "spotify": "Spotify"
     },
     "sections": {
@@ -1766,5 +1767,16 @@
     "copied": "Скопировано",
     "close": "Закрыть",
     "errorClipboard": "Нет доступа к буферу обмена. Выделите ссылку и скопируйте вручную."
+  },
+  "webRadio": {
+    "title": "Веб-радио",
+    "subtitle": "Более 30 000 онлайн-радиостанций через radio-browser.info.",
+    "loading": "Загрузка категорий…",
+    "resolving": "Поиск станций…",
+    "emptyResults": "Станции не найдены.",
+    "searchPlaceholder": "Поиск станции…",
+    "backToCategories": "К категориям",
+    "live": "ЭФИР",
+    "nowPlaying": "Сейчас играет"
   }
 }

@@ -14,7 +14,8 @@ export type ViewId =
   | "wrapped"
   | "album-detail"
   | "artist-detail"
-  | "genre-detail";
+  | "genre-detail"
+  | "web-radio";
 
 export type LibraryTab =
   | "morceaux"

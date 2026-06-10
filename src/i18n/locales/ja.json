@@ -124,6 +124,7 @@
   "sidebar": {
     "nav": {
       "home": "ホーム",
+      "webRadio": "ウェブラジオ",
       "spotify": "Spotify"
     },
     "sections": {
@@ -1721,5 +1722,16 @@
     "copied": "コピーしました",
     "close": "閉じる",
     "errorClipboard": "クリップボードにアクセスできません。URL を選択して手動でコピーしてください。"
+  },
+  "webRadio": {
+    "title": "ウェブラジオ",
+    "subtitle": "radio-browser.info 経由で 30 000 以上のオンラインラジオ局。",
+    "loading": "カテゴリーを読み込み中…",
+    "resolving": "ステーションを検索中…",
+    "emptyResults": "ステーションが見つかりませんでした。",
+    "searchPlaceholder": "ステーションを検索…",
+    "backToCategories": "カテゴリーに戻る",
+    "live": "ライブ",
+    "nowPlaying": "再生中"
   }
 }

@@ -1,0 +1,39 @@
+# WaveFlow plugin manifest. Loaded by the host's
+# `waveflow_core::plugin::manifest::Manifest::load_from_path`
+# alongside `plugin.wasm`. The shape pins what the user agrees
+# to when installing — changes here are visible in Settings →
+# Plugins after the next host reload.
+
+schema_version = 1
+
+[plugin]
+id = "web-radio"
+name = "Web Radio"
+version = "0.1.0"
+author = "InstaZDLL"
+description = "Internet radio backed by radio-browser.info — 30 000+ stations searchable by country, language, tag, or codec."
+homepage = "https://github.com/InstaZDLL/WaveFlow"
+license = "GPL-3.0-only"
+world = "waveflow:source/v1"
+
+[permissions]
+# radio-browser.info exposes a federated JSON API across multiple
+# regional mirrors. Allowlist the full DNS suffix so any healthy
+# mirror works without re-shipping the plugin every time the round-
+# robin shifts. The host's `globset` matcher reads `**` as "match
+# any path", so the patterns cover both `de1.api.radio-browser.info/json/...`
+# and `https://all.api.radio-browser.info/...`.
+http = [
+    "https://*.api.radio-browser.info/**",
+    "https://radio-browser.info/**",
+]
+# No bundled assets in v0.1.0 — the plugin makes live API calls
+# every time. A future cut may embed a station catalogue snapshot
+# as a `[[assets]]` SQLite file for offline browsing; that lands
+# alongside `storage_read = true` here.
+storage_read = false
+# Per-user scratch off too — the only state worth caching today is
+# the active mirror choice, and refreshing per session via the
+# `servers.json` endpoint is fast enough that persisting it would
+# trade a few hundred ms of startup latency for stale-mirror bugs.
+storage_state = false

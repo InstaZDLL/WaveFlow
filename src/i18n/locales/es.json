@@ -124,6 +124,7 @@
   "sidebar": {
     "nav": {
       "home": "Inicio",
+      "webRadio": "Radio Web",
       "spotify": "Spotify"
     },
     "sections": {
@@ -1721,5 +1722,16 @@
     "copied": "Copiado",
     "close": "Cerrar",
     "errorClipboard": "No se pudo acceder al portapapeles. Selecciona la URL para copiarla manualmente."
+  },
+  "webRadio": {
+    "title": "Radio Web",
+    "subtitle": "Más de 30 000 emisoras de radio en línea vía radio-browser.info.",
+    "loading": "Cargando categorías…",
+    "resolving": "Buscando emisoras…",
+    "emptyResults": "No se encontraron emisoras.",
+    "searchPlaceholder": "Buscar una emisora…",
+    "backToCategories": "Volver a las categorías",
+    "live": "EN VIVO",
+    "nowPlaying": "Reproduciendo ahora"
   }
 }

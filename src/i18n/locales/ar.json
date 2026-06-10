@@ -124,6 +124,7 @@
   "sidebar": {
     "nav": {
       "home": "الرئيسية",
+      "webRadio": "راديو الويب",
       "spotify": "Spotify"
     },
     "sections": {
@@ -1725,5 +1726,16 @@
     "copied": "تم النسخ",
     "close": "إغلاق",
     "errorClipboard": "تعذّر الوصول إلى الحافظة. حدّد الرابط لنسخه يدوياً."
+  },
+  "webRadio": {
+    "title": "راديو الويب",
+    "subtitle": "أكثر من 30,000 محطة إذاعية عبر الإنترنت من radio-browser.info.",
+    "loading": "جارٍ تحميل الفئات…",
+    "resolving": "جارٍ البحث عن المحطات…",
+    "emptyResults": "لم يتم العثور على محطات.",
+    "searchPlaceholder": "ابحث عن محطة…",
+    "backToCategories": "العودة إلى الفئات",
+    "live": "مباشر",
+    "nowPlaying": "قيد التشغيل الآن"
   }
 }

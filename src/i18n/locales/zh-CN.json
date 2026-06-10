@@ -124,6 +124,7 @@
   "sidebar": {
     "nav": {
       "home": "首页",
+      "webRadio": "网络电台",
       "spotify": "Spotify"
     },
     "sections": {
@@ -1721,5 +1722,16 @@
     "copied": "已复制",
     "close": "关闭",
     "errorClipboard": "无法访问剪贴板。请选中 URL 手动复制。"
+  },
+  "webRadio": {
+    "title": "网络电台",
+    "subtitle": "通过 radio-browser.info 收听 30 000 多个在线电台。",
+    "loading": "加载分类中…",
+    "resolving": "查找电台中…",
+    "emptyResults": "未找到电台。",
+    "searchPlaceholder": "搜索电台…",
+    "backToCategories": "返回分类",
+    "live": "直播",
+    "nowPlaying": "正在播放"
   }
 }

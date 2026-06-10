@@ -124,6 +124,7 @@
   "sidebar": {
     "nav": {
       "home": "Start",
+      "webRadio": "Web-radio",
       "spotify": "Spotify"
     },
     "sections": {
@@ -1721,5 +1722,16 @@
     "copied": "Gekopieerd",
     "close": "Sluiten",
     "errorClipboard": "Geen toegang tot het klembord. Selecteer de URL om deze handmatig te kopiëren."
+  },
+  "webRadio": {
+    "title": "Web-radio",
+    "subtitle": "Meer dan 30 000 online radiostations via radio-browser.info.",
+    "loading": "Categorieën laden…",
+    "resolving": "Stations zoeken…",
+    "emptyResults": "Geen stations gevonden.",
+    "searchPlaceholder": "Zoek een station…",
+    "backToCategories": "Terug naar categorieën",
+    "live": "LIVE",
+    "nowPlaying": "Speelt nu"
   }
 }

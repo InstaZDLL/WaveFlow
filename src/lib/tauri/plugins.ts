@@ -80,3 +80,56 @@ export async function setPluginEnabled(
 export async function uninstallPlugin(pluginId: string): Promise<void> {
   return invoke<void>("uninstall_plugin", { pluginId });
 }
+
+// ----- waveflow:source/provider invocation surface -----------------------
+//
+// The host's source-v1 binding exposes three exports (list-entries,
+// resolve, stream-url) the frontend reaches through these wrappers.
+// Each call reloads + reinstantiates the wasm component server-
+// side — Phase 5 will cache the instance per plugin id when a real
+// perf complaint surfaces.
+
+/** Top-level category the plugin exposes through `list-entries`. */
+export interface PluginEntry {
+  label: string;
+  /** Opaque token the host hands back to `pluginResolve` to ask
+   *  for this entry's tracks. Treat as a black box. */
+  query: string;
+  iconUrl: string | null;
+}
+
+/** One playable item the plugin returns from `resolve`. */
+export interface PluginTrack {
+  id: string;
+  title: string;
+  artist: string;
+  album: string | null;
+  /** `0` for live streams (radio); the UI hides the seek bar and
+   *  shows "LIVE" in that case. */
+  durationMs: number;
+  artworkUrl: string | null;
+  icyUrl: string | null;
+}
+
+/** List the plugin's top-level categories. */
+export async function pluginListEntries(
+  pluginId: string,
+): Promise<PluginEntry[]> {
+  return invoke<PluginEntry[]>("plugin_list_entries", { pluginId });
+}
+
+/** Resolve a category token (or a free-form search) to tracks. */
+export async function pluginResolve(
+  pluginId: string,
+  query: string,
+): Promise<PluginTrack[]> {
+  return invoke<PluginTrack[]>("plugin_resolve", { pluginId, query });
+}
+
+/** Mint the playable stream URL for one track. */
+export async function pluginStreamUrl(
+  pluginId: string,
+  trackId: string,
+): Promise<string> {
+  return invoke<string>("plugin_stream_url", { pluginId, trackId });
+}
