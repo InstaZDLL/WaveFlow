@@ -336,26 +336,27 @@ const BUNDLED_PLUGINS: &[&str] = &["web-radio"];
 /// during boot.
 async fn ensure_bundled_plugins(handle: &AppHandle, paths: &AppPaths) -> AppResult<()> {
     let plugins_root = paths.plugin_paths().plugins_root;
-    let resolved: Vec<(String, std::path::PathBuf, std::path::PathBuf)> = BUNDLED_PLUGINS
-        .iter()
-        .filter_map(|id| {
-            let wasm = handle
-                .path()
-                .resolve(
-                    format!("plugins/{id}/plugin.wasm"),
-                    BaseDirectory::Resource,
-                )
-                .ok()?;
-            let manifest = handle
-                .path()
-                .resolve(
-                    format!("plugins/{id}/manifest.toml"),
-                    BaseDirectory::Resource,
-                )
-                .ok()?;
-            Some(((*id).to_string(), wasm, manifest))
-        })
-        .collect();
+    let mut resolved: Vec<(String, std::path::PathBuf, std::path::PathBuf)> =
+        Vec::with_capacity(BUNDLED_PLUGINS.len());
+    for id in BUNDLED_PLUGINS {
+        let wasm = handle.path().resolve(
+            format!("plugins/{id}/plugin.wasm"),
+            BaseDirectory::Resource,
+        );
+        let manifest = handle.path().resolve(
+            format!("plugins/{id}/manifest.toml"),
+            BaseDirectory::Resource,
+        );
+        match (wasm, manifest) {
+            (Ok(wasm), Ok(manifest)) => resolved.push(((*id).to_string(), wasm, manifest)),
+            (Err(e), _) => {
+                tracing::warn!(plugin_id = %id, %e, "bundled plugin wasm resource not resolvable, skipping");
+            }
+            (_, Err(e)) => {
+                tracing::warn!(plugin_id = %id, %e, "bundled plugin manifest resource not resolvable, skipping");
+            }
+        }
+    }
 
     tokio::task::spawn_blocking(move || -> AppResult<()> {
         for (id, wasm, manifest) in resolved {

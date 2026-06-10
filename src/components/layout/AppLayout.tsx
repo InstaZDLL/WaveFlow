@@ -117,6 +117,7 @@ type HistoryEntry =
   | { id: "library" }
   | { id: "settings" }
   | { id: "spotify" }
+  | { id: "web-radio" }
   | { id: "about" }
   | { id: "feedback" }
   | { id: "statistics" }
@@ -236,6 +237,7 @@ export function AppLayout() {
       void import("../views/WrappedView");
       void import("../views/SettingsView");
       void import("../views/SpotifyView");
+      void import("../views/WebRadioView");
       void import("../views/AboutView");
       void import("../views/FeedbackView");
     };
