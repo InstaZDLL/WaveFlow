@@ -94,6 +94,8 @@ pub enum RuntimeError {
     WasmNotRegularFile,
     #[error("host: {0}")]
     Host(#[from] HostError),
+    #[error("http client init: {0}")]
+    HttpClient(#[from] reqwest::Error),
 }
 
 /// Process-wide plugin runtime. Owns the [`Engine`] (`Send + Sync`
@@ -107,6 +109,20 @@ pub struct PluginRuntime {
 struct RuntimeInner {
     engine: Engine,
     config: RuntimeConfig,
+    /// Shared blocking HTTP client. Built ONCE here with redirect
+    /// following disabled so a plugin's `permissions.http` allowlist
+    /// can't be bypassed by an allowlisted host returning a 302 to
+    /// an arbitrary URL — reqwest's default policy follows up to 10
+    /// hops, the allowlist only gates the initial `req.url`, so
+    /// without this we'd grant transitive access to anywhere the
+    /// allowlisted server cared to redirect to. The plugin sees the
+    /// 3xx + `Location` header in the response and re-issues
+    /// through the allowlist if it wants to follow.
+    ///
+    /// Cloning the client is cheap — reqwest wraps its connection
+    /// pool in `Arc` internally, so per-plugin Stores share one
+    /// pool and reuse warm TLS sessions.
+    http_client: reqwest::blocking::Client,
 }
 
 impl PluginRuntime {
@@ -138,8 +154,15 @@ impl PluginRuntime {
         wt.cranelift_opt_level(OptLevel::Speed);
 
         let engine = Engine::new(&wt)?;
+        let http_client = reqwest::blocking::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .build()?;
         Ok(Self {
-            inner: Arc::new(RuntimeInner { engine, config }),
+            inner: Arc::new(RuntimeInner {
+                engine,
+                config,
+                http_client,
+            }),
         })
     }
 
@@ -239,10 +262,10 @@ impl PluginRuntime {
         };
         let permissions = HostPermissions::from_manifest(&loaded.manifest)?;
         let state = StateStore::new(state_dir, STATE_QUOTA_BYTES);
-        // Cheap shared client (reqwest pools internally). Phase 3
-        // will inject an app-wide client so DNS + TLS handshakes
-        // are reused across plugins.
-        let http_client = reqwest::blocking::Client::new();
+        // Clone the runtime's redirect-disabled client (cheap — the
+        // connection pool sits behind an internal Arc, so per-Store
+        // clones share one warm TLS / DNS cache across plugins).
+        let http_client = self.inner.http_client.clone();
         let limits = StoreLimitsBuilder::new()
             .memory_size(self.inner.config.max_memory_bytes)
             .build();
@@ -344,7 +367,13 @@ impl HostCtx {
             permissions: HostPermissions::empty(),
             assets: None,
             state: StateStore::new(state_dir, STATE_QUOTA_BYTES),
-            http_client: reqwest::blocking::Client::new(),
+            // Match the production redirect policy so tests don't
+            // accidentally pass with permissive defaults the
+            // production runtime explicitly disables.
+            http_client: reqwest::blocking::Client::builder()
+                .redirect(reqwest::redirect::Policy::none())
+                .build()
+                .expect("redirect-disabled client builds"),
         }
     }
 }
