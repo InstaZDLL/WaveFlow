@@ -22,6 +22,30 @@ pub const MANIFEST_SCHEMA_VERSION: u32 = 1;
 /// The three WIT worlds a plugin can export. Each one corresponds to
 /// a file under `wit/`. A plugin manifest declares exactly one
 /// world; mixing exports is out of scope for v1 of the SDK.
+///
+/// **Label vs WIT package name — intentional mismatch.** The
+/// manifest-side label uses a `/vN` major-version suffix
+/// (`"waveflow:source/v1"`) — a stable human-typed identifier
+/// authors hand-paste from this file. The WIT-side package
+/// declaration uses semver decoration (`waveflow:source@1.0.0`),
+/// which is what `wit-bindgen` / `componentize-rs` emit into the
+/// compiled binary. The two strings are related but NOT
+/// interchangeable:
+///
+/// - [`worlds::is_known`] checks the MANIFEST label only. It
+///   never sees the WIT package name.
+/// - When adding a new world you MUST update BOTH: the constant
+///   here AND the WIT package line under `wit/`. Forgetting the
+///   WIT side won't break this catalog but will refuse to
+///   instantiate the wasm at runtime; forgetting the constant
+///   means the manifest parser rejects every plugin shipping the
+///   new world.
+///
+/// Mapping convention for label → WIT package: `waveflow:<name>/v<N>`
+/// → `waveflow:<name>@<N>.0.0`. The first WIT bump beyond `<N>.0.0`
+/// (e.g. `1.1.0`) stays backwards-compatible with `v1` plugins;
+/// only a major bump (`2.0.0`) requires a new label `v2` entry
+/// here.
 pub mod worlds {
     /// `waveflow:source/v1` — source providers (Web Radio, podcasts,
     /// alternative metadata sources that yield tracks the engine
@@ -39,8 +63,10 @@ pub mod worlds {
     pub const UI_V1: &str = "waveflow:ui/v1";
 
     /// Returns `true` if the label names a world this version of the
-    /// SDK knows about. The host uses it to reject manifests
-    /// pointing at unknown worlds before instantiating the wasm.
+    /// SDK knows about. **Compares against manifest labels only**
+    /// — the WIT package strings (`waveflow:source@1.0.0`) are a
+    /// different namespace; see module-level doc for the mapping
+    /// convention.
     pub fn is_known(world: &str) -> bool {
         matches!(world, SOURCE_V1 | METADATA_V1 | UI_V1)
     }
@@ -62,21 +88,27 @@ pub mod permissions {
     /// have NO access to the host's user data, profile DBs, or
     /// arbitrary filesystem locations — this permission only
     /// covers what the plugin author shipped with the manifest.
+    /// Backs `waveflow:host/storage.read-asset`.
     pub const STORAGE_READ: &str = "storage.read";
 
-    /// Read-write access to a small per-plugin scratch directory
+    /// Read AND write access to a small per-plugin scratch store
     /// the host allocates (`~/.config/waveflow/plugin-data/<plugin-id>/`).
-    /// Used by plugins that need to persist a small amount of
-    /// per-user state (favourites, settings). Capped at 10 MB by
-    /// the host; over-quota writes fail.
-    pub const STORAGE_WRITE: &str = "storage.write";
+    /// Both `waveflow:host/storage.read-state` and
+    /// `waveflow:host/storage.write-state` gate on this single
+    /// permission — the per-plugin key/value space is a single
+    /// scope and granting only one direction would be a paper
+    /// security boundary (a plugin that can write but not read
+    /// is the same as one that can write into a key it can then
+    /// re-read with the same call). Capped at 10 MB by the host;
+    /// over-quota writes fail.
+    pub const STORAGE_STATE: &str = "storage.state";
 
     /// Returns `true` if the string names a permission this SDK
     /// version recognises. Unknown permissions in a manifest are
     /// surfaced as a load-time error so a future-permission plugin
     /// doesn't silently get NO access.
     pub fn is_known(perm: &str) -> bool {
-        matches!(perm, HTTP | STORAGE_READ | STORAGE_WRITE)
+        matches!(perm, HTTP | STORAGE_READ | STORAGE_STATE)
     }
 }
 
@@ -96,7 +128,7 @@ mod tests {
     fn known_permissions_round_trip() {
         assert!(permissions::is_known(permissions::HTTP));
         assert!(permissions::is_known(permissions::STORAGE_READ));
-        assert!(permissions::is_known(permissions::STORAGE_WRITE));
+        assert!(permissions::is_known(permissions::STORAGE_STATE));
         assert!(!permissions::is_known("network.tcp"));
     }
 }

@@ -66,15 +66,21 @@ pub struct Permissions {
     /// invocation.
     #[serde(default)]
     pub http: Vec<String>,
-    /// Whether the plugin can read its bundled sidecar assets.
-    /// Default `false` — plugins that don't ship assets don't need
-    /// it. Defended at the host import layer.
+    /// Whether the plugin can read its bundled sidecar assets
+    /// (the read-only `assets/` directory shipped next to
+    /// `manifest.toml`). Default `false`. Defended at the host
+    /// import layer (`waveflow:host/storage.read-asset`).
     #[serde(default)]
     pub storage_read: bool,
-    /// Whether the plugin can write into its per-user scratch
-    /// directory. Default `false`. Subject to the 10 MB quota.
+    /// Whether the plugin can read AND write its per-user scratch
+    /// store (`waveflow:host/storage.{read,write}-state`). One
+    /// toggle covers both directions because the two host
+    /// functions operate on the same per-plugin key/value space:
+    /// granting only one would let a plugin write data it can
+    /// never read back, or vice-versa, which isn't a meaningful
+    /// security boundary. Subject to a 10 MB quota.
     #[serde(default)]
-    pub storage_write: bool,
+    pub storage_state: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -83,10 +89,13 @@ pub struct AssetDecl {
     /// load time so a malformed manifest can't escape the sandbox.
     pub filename: String,
     pub description: Option<String>,
-    /// Optional SHA-256 of the file's contents, hex-encoded. When
-    /// present the host verifies the asset before each load —
-    /// makes drive-by tampering detectable without a full signing
-    /// chain.
+    /// Optional SHA-256 of the file's contents, lower-case
+    /// hex-encoded. When present the host verifies the asset
+    /// before each load — makes drive-by tampering detectable
+    /// without a full signing chain. The validator normalises
+    /// uppercase input to lowercase so the comparison in
+    /// [`crate::plugin::assets::AssetResolver`] is a simple
+    /// constant-time byte equality.
     pub sha256: Option<String>,
 }
 
@@ -110,6 +119,8 @@ pub enum ManifestError {
     AssetEscape(String),
     #[error("manifest asset filename is empty")]
     EmptyAssetFilename,
+    #[error("manifest asset sha256 must be 64 hex chars: {0:?}")]
+    InvalidAssetHash(String),
 }
 
 impl Manifest {
@@ -125,8 +136,18 @@ impl Manifest {
     /// [`Self::load_from_path`] so tests can feed strings without
     /// touching the filesystem.
     pub fn parse(raw: &str) -> Result<Self, ManifestError> {
-        let parsed: Self = toml::from_str(raw)?;
+        let mut parsed: Self = toml::from_str(raw)?;
         parsed.validate()?;
+        // Lower-case every asset hash post-validation so the
+        // downstream `AssetResolver::read` byte-equality compare
+        // doesn't need to know the input came from a mixed-case
+        // source. Validation already proved each hash is 64 hex
+        // chars so this is just a case fold.
+        for asset in &mut parsed.assets {
+            if let Some(hash) = &mut asset.sha256 {
+                hash.make_ascii_lowercase();
+            }
+        }
         Ok(parsed)
     }
 
@@ -167,11 +188,11 @@ impl Manifest {
                 permissions::STORAGE_READ.into(),
             ));
         }
-        if self.permissions.storage_write
-            && !permissions::is_known(permissions::STORAGE_WRITE)
+        if self.permissions.storage_state
+            && !permissions::is_known(permissions::STORAGE_STATE)
         {
             return Err(ManifestError::UnknownPermission(
-                permissions::STORAGE_WRITE.into(),
+                permissions::STORAGE_STATE.into(),
             ));
         }
 
@@ -184,6 +205,17 @@ impl Manifest {
             // forgiving toolchain can't sneak past us.
             if asset.filename.split(['/', '\\']).any(|seg| seg == "..") {
                 return Err(ManifestError::AssetEscape(asset.filename.clone()));
+            }
+            // SHA-256 hex shape: exactly 64 hex digits (case-
+            // insensitive — `parse` normalises to lowercase post-
+            // validation). Anything else means the author typoed
+            // the digest or pasted the wrong line; reject so we
+            // don't compare against a malformed expected value
+            // and pass through a tampered asset.
+            if let Some(hash) = &asset.sha256 {
+                if hash.len() != 64 || !hash.chars().all(|c| c.is_ascii_hexdigit()) {
+                    return Err(ManifestError::InvalidAssetHash(hash.clone()));
+                }
             }
         }
 

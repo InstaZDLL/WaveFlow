@@ -48,6 +48,7 @@ interface log {
 interface storage {
   /// Read a bundled sidecar asset. `path` is a relative path within
   /// the plugin's `assets/` directory; `..` segments are rejected.
+  /// Gated by the manifest permission `storage.read`.
   ///
   /// The asset bundle is declared in `manifest.toml` (`[[assets]]`
   /// table). Reading an asset not declared in the manifest fails
@@ -55,11 +56,18 @@ interface storage {
   read-asset: func(path: string) -> result<list<u8>, string>;
 
   /// Read a key from the plugin's per-user scratch store. Returns
-  /// `none` if the key was never written.
+  /// `none` if the key was never written. Gated by the manifest
+  /// permission `storage.state` — the SAME permission that gates
+  /// `write-state`. The two functions operate on a single
+  /// per-plugin key/value space; granting only one direction
+  /// would be a paper boundary, so the manifest spells the
+  /// capability as one toggle.
   read-state: func(key: string) -> result<option<list<u8>>, string>;
 
   /// Write a key into the plugin's per-user scratch store. The
   /// host enforces a per-plugin 10 MB cap (total across all keys);
   /// overflowing writes fail with `Err("storage quota exceeded")`.
+  /// Gated by the manifest permission `storage.state` — see
+  /// `read-state` for why read + write share one toggle.
   write-state: func(key: string, value: list<u8>) -> result<_, string>;
 }
