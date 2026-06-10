@@ -141,6 +141,13 @@ pub struct AudioEngine {
     /// WASAPI Exclusive Mode. This can differ from the preference
     /// when init falls back to cpal shared mode.
     wasapi_exclusive_active: std::sync::atomic::AtomicBool,
+    /// Debounce guard for [`Self::try_rebuild_after_device_error`]
+    /// (#175). Windows session resets and USB DAC flaps fire the
+    /// cpal `DeviceNotAvailable` callback on a random thread; the
+    /// callback schedules a rebuild via tokio, and a quick double
+    /// flap would otherwise queue two concurrent rebuilds that
+    /// each interrupt the same track.
+    rebuild_in_progress: std::sync::atomic::AtomicBool,
 }
 
 impl AudioEngine {
@@ -221,6 +228,7 @@ impl AudioEngine {
             app,
             wasapi_exclusive: std::sync::atomic::AtomicBool::new(wasapi_exclusive),
             wasapi_exclusive_active: std::sync::atomic::AtomicBool::new(wasapi_exclusive_active),
+            rebuild_in_progress: std::sync::atomic::AtomicBool::new(false),
         })
     }
 
@@ -304,6 +312,150 @@ impl AudioEngine {
     /// 6. send `LoadAndPlay` with the saved position so playback
     ///    resumes at the same spot through the new device.
     ///
+    /// Recover from a mid-stream `cpal::StreamError::DeviceNotAvailable`
+    /// (#175). The cpal error callback fires on a random thread when
+    /// Windows resets its audio session, a USB DAC unplugs, or a
+    /// Bluetooth source flaps — without an automatic rebuild the user
+    /// is stuck on a paused stream until they touch the device menu.
+    ///
+    /// Rebuilds with the SAME pinned device + WASAPI Exclusive
+    /// preference the engine was using before the error. Re-querying
+    /// the OS default here would be wrong: the default is what gets
+    /// SWAPPED when Windows decides to reset the session, so the user
+    /// would silently land on a different output (different sample
+    /// rate, different channel count) every time the original device
+    /// flapped.
+    ///
+    /// Debounced via `rebuild_in_progress`: a quick double-flap (the
+    /// pattern seen in the original bug report — three open/close
+    /// cycles in 14 seconds) only triggers one rebuild attempt
+    /// instead of stacking three concurrent SwapProducer cmds onto
+    /// the decoder.
+    pub fn try_rebuild_after_device_error(&self) -> AppResult<()> {
+        use std::sync::atomic::Ordering;
+
+        // Acquire the debounce slot. `swap(true)` returns the
+        // previous value, so a `true` here means somebody else is
+        // already rebuilding — bail without disturbing them.
+        if self.rebuild_in_progress.swap(true, Ordering::AcqRel) {
+            tracing::debug!(
+                "device-error rebuild already in flight; skipping concurrent trigger"
+            );
+            return Ok(());
+        }
+
+        // RAII guard so the debounce slot clears even if rebuild
+        // panics or returns Err mid-flight — otherwise a single
+        // failure would lock out every subsequent retry.
+        struct ResetGuard<'a>(&'a std::sync::atomic::AtomicBool);
+        impl Drop for ResetGuard<'_> {
+            fn drop(&mut self) {
+                self.0.store(false, Ordering::Release);
+            }
+        }
+        let _guard = ResetGuard(&self.rebuild_in_progress);
+
+        let pinned = self.current_output_device();
+        let exclusive = self.wasapi_exclusive.load(Ordering::Relaxed);
+
+        tracing::info!(
+            device = pinned.as_deref().unwrap_or("<os-default>"),
+            exclusive,
+            "rebuilding cpal output after DeviceNotAvailable"
+        );
+
+        // Force-rebuild path: bypasses set_output_device's no-op
+        // shortcut for "same device" because the device is the
+        // same — we just need a fresh stream after the OS reset.
+        self.force_rebuild_output(pinned, exclusive)
+    }
+
+    /// Internal helper: rebuild the output stream against the given
+    /// (device_name, exclusive) tuple, bypassing the same-device
+    /// no-op check. Shared by [`Self::try_rebuild_after_device_error`]
+    /// and (in the future) any other "rebuild without changing the
+    /// user preference" path.
+    fn force_rebuild_output(
+        &self,
+        device_name: Option<String>,
+        exclusive: bool,
+    ) -> AppResult<()> {
+        let mut guard = self
+            .output
+            .lock()
+            .map_err(|_| AppError::Audio("output mutex poisoned".into()))?;
+
+        let was_playing = matches!(
+            self.shared.state(),
+            super::state::PlayerState::Playing | super::state::PlayerState::Paused
+        );
+        let track_id = self
+            .shared
+            .current_track_id
+            .load(std::sync::atomic::Ordering::Acquire);
+        let position_ms = self.shared.current_position_ms();
+
+        let (producer, handle) =
+            spawn_output_with_mode(self.shared.clone(), self.app.clone(), device_name, exclusive)?;
+
+        if was_playing {
+            self.cmd_tx
+                .send(AudioCmd::Stop)
+                .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
+        }
+        if let Some(old) = guard.take() {
+            old.stop();
+        }
+        self.cmd_tx
+            .send(AudioCmd::SwapProducer(producer))
+            .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
+        *guard = Some(handle);
+        self.wasapi_exclusive_active.store(
+            guard.as_ref().map(|h| h.wasapi_exclusive).unwrap_or(false),
+            std::sync::atomic::Ordering::Release,
+        );
+
+        // Resume best-effort. Same async pattern as
+        // `set_output_device` and `set_wasapi_exclusive` — pull the
+        // track row off the synchronous path so a slow DB doesn't
+        // hold the audio recovery up.
+        if was_playing && track_id > 0 {
+            let app = self.app.clone();
+            let cmd_tx = self.cmd_tx.clone();
+            tauri::async_runtime::spawn(async move {
+                use tauri::Manager as _;
+                let state = app.state::<crate::state::AppState>();
+                let pool = match state.require_profile_pool().await {
+                    Ok(p) => p,
+                    Err(err) => {
+                        tracing::warn!(%err, "device-error rebuild: no profile pool, skipping resume");
+                        return;
+                    }
+                };
+                let row: Option<(String, i64)> =
+                    sqlx::query_as("SELECT file_path, duration_ms FROM track WHERE id = ?")
+                        .bind(track_id)
+                        .fetch_optional(&pool)
+                        .await
+                        .ok()
+                        .flatten();
+                if let Some((file_path, duration_ms)) = row {
+                    let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
+                        path: std::path::PathBuf::from(file_path),
+                        start_ms: position_ms,
+                        track_id,
+                        duration_ms: duration_ms as u64,
+                        source_type: "device-rebuild".into(),
+                        source_id: None,
+                        replay_gain_db: None,
+                    });
+                }
+            });
+        }
+
+        Ok(())
+    }
+
     /// `device_name = None` means "follow the OS default". Picking the
     /// already-active device is a no-op so spamming the menu doesn't
     /// glitch playback.
