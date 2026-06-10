@@ -502,7 +502,7 @@ fn play_track(
                 }
                 stream.seek_ms(ms);
                 reset_clock(shared, ms);
-                stream.resampler.flush();
+                reset_resampler_for_seek(&mut stream, shared, dst_sample_rate, dst_channels);
                 stream.reset_decoder();
                 drain_ring_silent(producer, shared);
                 let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
@@ -541,7 +541,7 @@ fn play_track(
                 if pos >= b_ms {
                     stream.seek_ms(a_ms);
                     reset_clock(shared, a_ms);
-                    stream.resampler.flush();
+                    reset_resampler_for_seek(&mut stream, shared, dst_sample_rate, dst_channels);
                     stream.reset_decoder();
                     drain_ring_silent(producer, shared);
                     let _ = app.emit(EVENT_POSITION, PositionPayload { ms: a_ms });
@@ -758,7 +758,12 @@ fn play_track(
                         secondary_resampled.clear();
                         stream.seek_ms(ms);
                         reset_clock(shared, ms);
-                        stream.resampler.flush();
+                        reset_resampler_for_seek(
+                            &mut stream,
+                            shared,
+                            dst_sample_rate,
+                            dst_channels,
+                        );
                         stream.reset_decoder();
                         drain_ring_silent(producer, shared);
                         let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
@@ -928,7 +933,7 @@ fn play_track(
                     primary_at_eof = false;
                     stream.seek_ms(ms);
                     reset_clock(shared, ms);
-                    stream.resampler.flush();
+                    reset_resampler_for_seek(&mut stream, shared, dst_sample_rate, dst_channels);
                     stream.reset_decoder();
                     drain_ring_silent(producer, shared);
                     let _ = app.emit(EVENT_POSITION, PositionPayload { ms });
@@ -985,10 +990,19 @@ fn finished_from(stream: &ActiveStream) -> FinishedTrack {
 /// for the ring to empty. Used after a seek so pre-seek samples don't
 /// reach the device — particularly important in the Resume-then-Seek
 /// sequence where `paused_output` gets cleared before the seek lands.
+///
+/// Also briefly forces `paused_output = true` so the cpal callback
+/// writes silence for the duration of the spin-wait (#173). Without
+/// that, a callback whose `drain_silent` atomic load was hoisted
+/// above the store below — or whose buffer was already mid-fill
+/// when the seek landed — can leak ~5-20 ms of pre-seek samples
+/// past the drain. The previous `paused_output` value is restored
+/// at the end so a user who paused before seeking stays paused.
 fn drain_ring_silent(producer: &Producer<f32>, shared: &SharedPlayback) {
     if producer.slots() == super::output::RING_CAPACITY {
         return;
     }
+    let was_paused = shared.paused_output.swap(true, Ordering::AcqRel);
     shared.drain_silent.store(true, Ordering::Release);
     let start = Instant::now();
     while producer.slots() < super::output::RING_CAPACITY
@@ -997,6 +1011,35 @@ fn drain_ring_silent(producer: &Producer<f32>, shared: &SharedPlayback) {
         std::thread::sleep(Duration::from_millis(1));
     }
     shared.drain_silent.store(false, Ordering::Release);
+    // Restore the pre-call paused_output value so a deliberate
+    // user-driven pause isn't lifted by a downstream seek/A-B wrap.
+    shared.paused_output.store(was_paused, Ordering::Release);
+}
+
+/// Full resampler reset for a seek (#173). `Resampler::flush()`
+/// only clears the pending input queue — the underlying `rubato`
+/// FFT resampler keeps an overlap-save window that holds 10-30 ms
+/// of interpolation history from BEFORE the seek. Without a
+/// rebuild that history bleeds across the boundary and adds an
+/// audible discontinuity to whatever the SPSC drain didn't catch.
+///
+/// Rebuilding the resampler at the same `(speed, dst_rate, dst_channels)`
+/// triple produces a brand-new state machine with empty history,
+/// so the first post-seek block is interpolated against zeros
+/// rather than the pre-seek samples. Falls back to the cheap
+/// `flush()` if rubato refuses to re-init (logged warn — the user
+/// will hear the old behaviour but won't lose the seek).
+fn reset_resampler_for_seek(
+    stream: &mut super::crossfade::ActiveStream,
+    shared: &SharedPlayback,
+    dst_sample_rate: u32,
+    dst_channels: usize,
+) {
+    let speed = shared.playback_speed();
+    if let Err(err) = stream.rebuild_resampler(speed, dst_sample_rate, dst_channels) {
+        tracing::warn!(?err, "resampler rebuild on seek failed; falling back to flush");
+        stream.resampler.flush();
+    }
 }
 
 /// Reset the position counters so the UI clock jumps to `ms`. Must be
