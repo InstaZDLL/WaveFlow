@@ -17,6 +17,7 @@
 //! long-running compute task. The host can raise them per plugin
 //! later; Phase 2a only exposes the defaults.
 
+use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -85,8 +86,10 @@ pub enum RuntimeError {
     Io(#[from] std::io::Error),
     #[error("wasmtime: {0}")]
     Wasmtime(#[from] wasmtime::Error),
-    #[error("plugin.wasm too large: {size} bytes (max {max})")]
+    #[error("plugin.wasm too large: at least {size} bytes (max {max})")]
     WasmTooLarge { size: u64, max: u64 },
+    #[error("plugin.wasm is not a regular file")]
+    WasmNotRegularFile,
 }
 
 /// Process-wide plugin runtime. Owns the [`Engine`] (`Send + Sync`
@@ -174,18 +177,29 @@ impl PluginRuntime {
         let manifest_path = paths.manifest_path(plugin_id)?;
         let manifest = Manifest::load_from_path(&manifest_path)?;
         let wasm_path = paths.wasm_path(plugin_id)?;
-        // Stat first — refuse to slurp a multi-GB blob into a `Vec<u8>`
-        // even if the user (or a malicious sideload) put one in the
-        // plugin directory. `fs::metadata` is cheap and lets us
-        // surface the size in the error without paying the read cost.
-        let size = std::fs::metadata(&wasm_path)?.len();
-        if size > MAX_WASM_SIZE {
+        // Open once, stat the same handle, read from the same handle.
+        // Separating `fs::metadata` from `fs::read` is a TOCTOU window
+        // (a sideloaded plugin could swap the file between the two
+        // syscalls) AND `metadata.len()` reports 0 for FIFOs / sockets
+        // / character devices — those would slip past a pre-stat size
+        // check and stream unbounded bytes into our `Vec`. Open the
+        // handle, confirm it's a regular file, then bound the read at
+        // `MAX_WASM_SIZE + 1` so anything over the cap is detected
+        // without ever holding more than `MAX_WASM_SIZE + 1` bytes
+        // in memory.
+        let file = std::fs::File::open(&wasm_path)?;
+        let meta = file.metadata()?;
+        if !meta.file_type().is_file() {
+            return Err(RuntimeError::WasmNotRegularFile);
+        }
+        let mut bytes = Vec::with_capacity(meta.len().min(MAX_WASM_SIZE) as usize);
+        let read = file.take(MAX_WASM_SIZE + 1).read_to_end(&mut bytes)? as u64;
+        if read > MAX_WASM_SIZE {
             return Err(RuntimeError::WasmTooLarge {
-                size,
+                size: read,
                 max: MAX_WASM_SIZE,
             });
         }
-        let bytes = std::fs::read(&wasm_path)?;
         let component = Component::from_binary(&self.inner.engine, &bytes)?;
         Ok(LoadedPlugin {
             manifest,
