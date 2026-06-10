@@ -128,15 +128,42 @@ export function WebRadioView() {
   }, [searchTerm]);
 
   const backToCategories = useCallback(() => {
+    // Invalidate every in-flight async on the way out:
+    // - Bumping `resolveReqRef` makes a pending `pluginResolve`
+    //   continuation drop itself instead of restoring the
+    //   abandoned category's tracks on top of the home view.
+    // - Bumping `streamReqRef` does the same for `pluginStreamUrl`
+    //   so a click on a station + an immediate "back" can't
+    //   surface audio under the category list a moment later.
+    // - Clearing the deferred `play()` timer + pausing the audio
+    //   element close any imperative side-effect already queued.
+    resolveReqRef.current += 1;
+    streamReqRef.current += 1;
+    if (playTimerRef.current !== null) {
+      window.clearTimeout(playTimerRef.current);
+      playTimerRef.current = null;
+    }
+    audioRef.current?.pause();
     setActiveEntry(null);
     setSearchActive(false);
     setTracks([]);
+    setPlayingId(null);
+    setPlayingUrl(null);
   }, []);
 
   const playTrack = useCallback(
     async (track: PluginTrack) => {
       // Toggle off if the user clicks the currently-playing row.
+      // Same belt-and-braces as `backToCategories`: bump the
+      // stream counter + drop any pending deferred `play()` so a
+      // stale stream-url that's about to land can't restart the
+      // station the user just asked to stop.
       if (playingId === track.id) {
+        streamReqRef.current += 1;
+        if (playTimerRef.current !== null) {
+          window.clearTimeout(playTimerRef.current);
+          playTimerRef.current = null;
+        }
         audioRef.current?.pause();
         setPlayingId(null);
         setPlayingUrl(null);
