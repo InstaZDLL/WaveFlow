@@ -258,19 +258,31 @@ pub async fn set_plugin_enabled(
     // an orphan row exactly like the previous code path did.
     let _guard = lock_plugin(&state, &plugin_id).await;
 
-    // Existence gate runs on a blocking thread (`exists()` is a
-    // syscall on every OS). If the install dir or manifest is
-    // missing, we refuse the write so a stale frontend cache can't
-    // sneak a setting in for a plugin the user already
-    // uninstalled.
-    let manifest_present = tokio::task::spawn_blocking(move || {
-        plugin_dir.is_dir() && plugin_dir.join("manifest.toml").is_file()
+    // Strong existence gate: PARSE the manifest and confirm its
+    // declared id matches the param byte-for-byte. The manifest
+    // validator restricts ids to `[a-z0-9-]+`, so this rejects:
+    //
+    // - Case-mismatched calls on case-insensitive filesystems
+    //   (Windows / macOS HFS+) where `plugins/Foo/` and
+    //   `plugins/foo/` resolve to the same dir but would produce
+    //   distinct `app_setting` rows (`plugin.Foo.enabled` vs
+    //   `plugin.foo.enabled`) and distinct lock map entries.
+    // - Corrupt / unparsable manifests (no row for a plugin the
+    //   host can't actually load).
+    // - Dir-vs-manifest id drift (mirrors the runtime's load-time
+    //   guard from Phase 2b).
+    let id_for_blocking = plugin_id.clone();
+    let manifest_ok = tokio::task::spawn_blocking(move || {
+        let manifest_path = plugin_dir.join("manifest.toml");
+        Manifest::load_from_path(&manifest_path)
+            .map(|m| m.plugin.id == id_for_blocking)
+            .unwrap_or(false)
     })
     .await
     .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?;
-    if !manifest_present {
+    if !manifest_ok {
         return Err(AppError::Other(format!(
-            "plugin not installed: {plugin_id}"
+            "plugin not installed (or manifest id mismatch): {plugin_id}"
         )));
     }
 
@@ -324,18 +336,49 @@ pub async fn uninstall_plugin(
     // setting-drop.
     let _guard = lock_plugin(&state, &plugin_id).await;
 
+    // Manifest id pin (mirror `set_plugin_enabled`): refuse to
+    // remove a tree whose manifest declares a different id. On
+    // case-insensitive filesystems `uninstall_plugin("Foo")` would
+    // otherwise wipe `plugins/foo/` while leaving the
+    // `plugin.foo.enabled` row intact, since our DELETE keys on
+    // the param. If the manifest is missing or unparsable we
+    // refuse too — the user can clean up a corrupt install by
+    // hand (Phase 3.2 UI can add a "force uninstall" affordance if
+    // it shows up as a real need).
+    let id_for_blocking = plugin_id.clone();
+    let manifest_install_dir = install_dir.clone();
+    let manifest_ok = tokio::task::spawn_blocking(move || {
+        let manifest_path = manifest_install_dir.join("manifest.toml");
+        Manifest::load_from_path(&manifest_path)
+            .map(|m| m.plugin.id == id_for_blocking)
+            .unwrap_or(false)
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?;
+    if !manifest_ok {
+        return Err(AppError::Other(format!(
+            "plugin not installed (or manifest id mismatch): {plugin_id}"
+        )));
+    }
+
     // Remove install + state on a blocking thread — `remove_dir_all`
     // on a multi-MB plugin tree (e.g. Web Radio embedding a ~10 MB
     // SQLite) can stretch into double-digit milliseconds and would
-    // otherwise tie up a tokio worker. Missing dirs are not an
-    // error — the user might be cleaning up a half-installed plugin
-    // where one tree already went away.
+    // otherwise tie up a tokio worker. We don't pre-check
+    // `exists()` (TOCTOU window between the check and the
+    // syscall); `NotFound` on the rename itself is treated as
+    // success since "user wanted it gone, it's already gone" is
+    // the same end state.
     tokio::task::spawn_blocking(move || -> AppResult<()> {
-        if install_dir.exists() {
-            fs::remove_dir_all(&install_dir)?;
+        match fs::remove_dir_all(&install_dir) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(AppError::Io(e)),
         }
-        if state_dir.exists() {
-            fs::remove_dir_all(&state_dir)?;
+        match fs::remove_dir_all(&state_dir) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(AppError::Io(e)),
         }
         Ok(())
     })
