@@ -14,7 +14,7 @@
 use std::time::Duration;
 
 use serde::Deserialize;
-use tiny_http::{Response, Server};
+use tiny_http::{Header, Response, Server};
 
 use crate::{
     error::{AppError, AppResult},
@@ -200,21 +200,21 @@ fn wait_for_callback(expected_state: &str) -> AppResult<String> {
         // future protocol change — falling through to the error arm
         // below is the safer default.
         (Some(token), None, state_value) if state_value == Some(expected_state) => {
-            let _ = request.respond(Response::from_string(
+            let _ = request.respond(html_response(
                 "<!doctype html><title>WaveFlow</title>\
                  <p>Signed in. You can close this tab and return to WaveFlow.</p>",
             ));
             Ok(token)
         }
         (_, Some(err), _) => {
-            let _ = request.respond(Response::from_string(
+            let _ = request.respond(html_response(
                 "<!doctype html><title>WaveFlow</title>\
                  <p>Sign-in was cancelled or denied.</p>",
             ));
             Err(AppError::Other(format!("sign-in failed: {err}")))
         }
         _ => {
-            let _ = request.respond(Response::from_string(
+            let _ = request.respond(html_response(
                 "<!doctype html><title>WaveFlow</title>\
                  <p>Sign-in failed: state mismatch (possible CSRF). Try again from the desktop.</p>",
             ));
@@ -223,4 +223,15 @@ fn wait_for_callback(expected_state: &str) -> AppResult<String> {
     };
 
     result
+}
+
+/// Build a `tiny_http` response with `Content-Type: text/html; charset=utf-8`
+/// so the browser renders the confirmation page instead of dumping the
+/// raw HTML as plaintext. `tiny_http::Response::from_string` does not
+/// stamp a Content-Type header on its own.
+fn html_response(body: &'static str) -> Response<std::io::Cursor<Vec<u8>>> {
+    Response::from_string(body).with_header(
+        Header::from_bytes(&b"Content-Type"[..], &b"text/html; charset=utf-8"[..])
+            .expect("static html content-type header is well-formed"),
+    )
 }
