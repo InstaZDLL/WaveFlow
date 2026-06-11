@@ -152,6 +152,44 @@ async fn add_translations(
     Ok(lrc)
 }
 
+/// Validate that the richsync rows form a real word-level lyric.
+///
+/// Returns `Some(stamps)` when every row carries a finite, non-negative
+/// numeric `ts` AND there are at least 4 rows AND at least 80 % of the
+/// stamps are unique. `None` means the row set must be rejected.
+///
+/// Used by both the live `richsync` path and the unit tests; the
+/// caller in `commands/lyrics.rs::fetch_lyrics` caches a Musixmatch
+/// hit with `EnhancedLrc` format AHEAD of LRCLIB, so a corrupted
+/// row set must not slip through — Musixmatch occasionally returns
+/// rows where `ts` is missing or shaped as a string, which the
+/// previous `as_f64().unwrap_or_default()` path silently coerced to
+/// `0.0` (producing a fake word-level LRC with every line stamped
+/// `[00:00.00]`).
+fn validate_rows(rows: &[Value]) -> Option<Vec<f64>> {
+    let mut stamps: Vec<f64> = Vec::with_capacity(rows.len());
+    for row in rows {
+        let ts = row.get("ts").and_then(Value::as_f64)?;
+        if !ts.is_finite() || ts < 0.0 {
+            return None;
+        }
+        stamps.push(ts);
+    }
+    if stamps.len() < 4 {
+        return None;
+    }
+    let unique_ratio = {
+        let mut sorted = stamps.clone();
+        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        sorted.dedup();
+        sorted.len() as f64 / stamps.len() as f64
+    };
+    if unique_ratio < 0.80 {
+        return None;
+    }
+    Some(stamps)
+}
+
 async fn richsync(
     http: &reqwest::Client,
     token: &str,
@@ -180,25 +218,17 @@ async fn richsync(
     let Some(rows) = rows.as_array() else {
         return Ok(None);
     };
-    // Validate every row carries a real numeric `ts` BEFORE building
-    // the output. Musixmatch occasionally returns rows where `ts` is
-    // missing or shaped as a string instead of a number; the previous
-    // `as_f64().unwrap_or_default()` path silently coerced those to
-    // `0.0`, producing a fake word-level LRC where every line was
-    // stamped `[00:00.00]`. The caller (`commands/lyrics.rs`) caches
-    // any Musixmatch result with EnhancedLrc format AHEAD of LRCLIB,
-    // so a corrupted richsync would defeat the "real word-level only"
-    // gate the PR description advertises.
+    // Reject up-front via the shared validator so tests + production
+    // share a single source of truth for what counts as real
+    // word-level. See [`validate_rows`] for the contract.
+    if validate_rows(rows).is_none() {
+        return Ok(None);
+    }
     let mut out = String::new();
-    let mut row_stamps: Vec<f64> = Vec::with_capacity(rows.len());
     for row in rows {
-        let Some(ts) = row.get("ts").and_then(Value::as_f64) else {
-            return Ok(None);
-        };
-        if !ts.is_finite() || ts < 0.0 {
-            return Ok(None);
-        }
-        row_stamps.push(ts);
+        // Safe to expect: `validate_rows` already proved every row
+        // has a finite non-negative `ts`.
+        let ts = row.get("ts").and_then(Value::as_f64).expect("validated");
         out.push_str(&format!("[{}] ", utils::format_time(ts)));
         if let Some(letters) = row["l"].as_array() {
             for letter in letters {
@@ -212,24 +242,6 @@ async fn richsync(
             }
         }
         out.push('\n');
-    }
-    // Need at least 4 rows AND ≥ 80 % unique line stamps before we
-    // call this a real word-level result. A track whose every line
-    // shares the same `ts` is either an outright bug in the upstream
-    // response OR a corrupted record (Musixmatch returns these for
-    // some instrumental tracks); either way it must not poison the
-    // cache as "word-level lyrics found".
-    if row_stamps.len() < 4 {
-        return Ok(None);
-    }
-    let unique_ratio = {
-        let mut sorted = row_stamps.clone();
-        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-        sorted.dedup();
-        sorted.len() as f64 / row_stamps.len() as f64
-    };
-    if unique_ratio < 0.80 {
-        return Ok(None);
     }
     Ok((!out.trim().is_empty()).then_some(Candidate {
         synced: Some(out),
@@ -248,43 +260,13 @@ fn timestamp_ms() -> String {
 
 #[cfg(test)]
 mod richsync_tests {
-    //! These tests exercise the richsync validation in isolation: the
-    //! function under test (`richsync`) is async + does HTTP, so we
-    //! factor the validation logic into a sibling helper that takes
-    //! the parsed rows and reproduce the regression #5 scenarios.
-    //!
-    //! Replication: copy the body of the row-validation loop and the
-    //! ratio check into `validate_rows_for_test` below so the public
-    //! `richsync` function stays a single network-boundary entry point.
+    //! Tests for the regression #5 scenarios. Exercise the shared
+    //! [`validate_rows`] helper directly so production + tests run
+    //! against a single source of truth — when the production path
+    //! evolves, the tests follow automatically.
 
+    use super::validate_rows;
     use serde_json::json;
-
-    /// Strict copy of the validation logic in `richsync`. Returns
-    /// `None` when the rows should be rejected (= the production
-    /// function would return Ok(None)), `Some(stamps)` otherwise.
-    fn validate_rows_for_test(rows: &[serde_json::Value]) -> Option<Vec<f64>> {
-        let mut stamps: Vec<f64> = Vec::with_capacity(rows.len());
-        for row in rows {
-            let ts = row.get("ts").and_then(serde_json::Value::as_f64)?;
-            if !ts.is_finite() || ts < 0.0 {
-                return None;
-            }
-            stamps.push(ts);
-        }
-        if stamps.len() < 4 {
-            return None;
-        }
-        let unique_ratio = {
-            let mut sorted = stamps.clone();
-            sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-            sorted.dedup();
-            sorted.len() as f64 / stamps.len() as f64
-        };
-        if unique_ratio < 0.80 {
-            return None;
-        }
-        Some(stamps)
-    }
 
     #[test]
     fn rejects_all_zero_timestamps() {
@@ -295,7 +277,7 @@ mod richsync_tests {
             json!({"ts": 0.0, "l": []}),
             json!({"ts": 0.0, "l": []}),
         ];
-        assert!(validate_rows_for_test(&rows).is_none());
+        assert!(validate_rows(&rows).is_none());
     }
 
     #[test]
@@ -308,7 +290,7 @@ mod richsync_tests {
             json!({"ts": "3.0", "l": []}),
             json!({"ts": "4.0", "l": []}),
         ];
-        assert!(validate_rows_for_test(&rows).is_none());
+        assert!(validate_rows(&rows).is_none());
     }
 
     #[test]
@@ -318,7 +300,7 @@ mod richsync_tests {
             json!({"ts": 1.0, "l": []}),
             json!({"ts": 2.0, "l": []}),
         ];
-        assert!(validate_rows_for_test(&rows).is_none());
+        assert!(validate_rows(&rows).is_none());
     }
 
     #[test]
@@ -331,7 +313,7 @@ mod richsync_tests {
             json!({"ts": 2.0, "l": []}),
             json!({"ts": 2.0, "l": []}),
         ];
-        assert!(validate_rows_for_test(&rows).is_none());
+        assert!(validate_rows(&rows).is_none());
     }
 
     #[test]
@@ -343,7 +325,7 @@ mod richsync_tests {
             json!({"ts": 3.0, "l": []}),
             json!({"ts": 4.0, "l": []}),
         ];
-        assert!(validate_rows_for_test(&rows).is_some());
+        assert!(validate_rows(&rows).is_some());
     }
 
     #[test]
@@ -354,7 +336,7 @@ mod richsync_tests {
             json!({"ts": 2.0, "l": []}),
             json!({"ts": 3.0, "l": []}),
         ];
-        assert!(validate_rows_for_test(&rows).is_none());
+        assert!(validate_rows(&rows).is_none());
 
         let rows = vec![
             json!({"ts": f64::NAN, "l": []}),
@@ -362,6 +344,6 @@ mod richsync_tests {
             json!({"ts": 2.0, "l": []}),
             json!({"ts": 3.0, "l": []}),
         ];
-        assert!(validate_rows_for_test(&rows).is_none());
+        assert!(validate_rows(&rows).is_none());
     }
 }

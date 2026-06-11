@@ -16,7 +16,7 @@
 
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 use chrono::Utc;
@@ -300,6 +300,31 @@ fn external_fallback_providers() -> Vec<Provider> {
     ]
 }
 
+/// Process-wide shared `SyncedLyricsClient`. Standing one up per call
+/// re-initialises rustls + builds a fresh reqwest connection pool every
+/// time `external_lyrics_search` runs — wasted work, especially during
+/// `prefetch_library_lyrics` where the same waterfall fires N times in
+/// quick succession. The shared client caches its connection pool, so
+/// back-to-back calls reuse keep-alive sockets to the providers.
+fn shared_external_client() -> AppResult<&'static SyncedLyricsClient> {
+    static CLIENT: OnceLock<SyncedLyricsClient> = OnceLock::new();
+    if let Some(c) = CLIENT.get() {
+        return Ok(c);
+    }
+    // `try_new` is fallible (TLS backend init can fail), so we can't
+    // use `OnceLock::get_or_init` which only accepts an infallible
+    // initializer. Build + insert via `get_or_try_init` shape: try to
+    // initialise, fall back to whatever `set` lost the race to.
+    let built = SyncedLyricsClient::try_new()
+        .map_err(|err| AppError::Other(format!("lyrics client init failed: {err}")))?;
+    match CLIENT.set(built) {
+        Ok(()) => Ok(CLIENT.get().expect("just set")),
+        // A concurrent caller initialised it first; ours is dropped
+        // (and its idle pool too — cost-of-once on cold startup race).
+        Err(_) => Ok(CLIENT.get().expect("set by concurrent caller")),
+    }
+}
+
 async fn external_lyrics_search(
     meta: &TrackMeta,
     providers: Vec<Provider>,
@@ -321,8 +346,7 @@ async fn external_lyrics_search(
         return Ok(None);
     }
     let query = external_query(&meta.title, meta.artist_name.as_deref());
-    let client = SyncedLyricsClient::try_new()
-        .map_err(|err| AppError::Other(format!("lyrics client init failed: {err}")))?;
+    let client = shared_external_client()?;
     // A transient provider error surfaces as Err here (not Ok(None)) so
     // callers don't cache an empty "miss" on a network blip.
     client
@@ -1124,6 +1148,18 @@ async fn run_prefetch(
             // No enhanced hit (or a transient failure): fall through to LRCLIB.
             Ok(_) => {}
             Err(err) => tracing::warn!(track_id, ?err, "Musixmatch enhanced prefetch failed"),
+        }
+        // Throttle the Musixmatch call we just made before firing
+        // LRCLIB right after. Without this the prefetch loop hits two
+        // distinct backends back-to-back per track for any
+        // Musixmatch-attempted slot, doubling the effective request
+        // rate on the user's network. Only sleep when Musixmatch was
+        // actually attempted — when the toggle is off,
+        // `filter_providers` returns an empty list and
+        // `external_lyrics_search` short-circuits to Ok(None) without
+        // touching the network.
+        if musixmatch_enabled() {
+            tokio::time::sleep(LRCLIB_THROTTLE).await;
         }
 
         // 4. LRCLIB. Skip if metadata is too thin to match.

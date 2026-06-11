@@ -1,6 +1,6 @@
 # Crate layout
 
-`src-tauri/` is a Cargo workspace with three members:
+`src-tauri/` is a Cargo workspace with four members:
 
 ```text
 src-tauri/
@@ -25,8 +25,13 @@ src-tauri/
     ├── syncedlyrics/  (waveflow-syncedlyrics — query-based lyrics providers)
     │   └── src/
     │       ├── lib.rs                 (provider orchestration + search options)
+    │       ├── http.rs                (size caps + redirect host pinning + url redaction)
     │       ├── providers/             (Musixmatch / LRCLIB / NetEase / Megalobiz / Genius)
     │       └── utils.rs               (LRC detection, scoring, text helpers)
+    ├── plugin-sdk/    (waveflow-plugin-sdk — wasmtime Component Model runtime + manifest schema)
+    │   └── src/
+    │       ├── lib.rs                 (RuntimeConfig, manifest parsing, world ids)
+    │       └── ...                    (WIT worlds + bindings live in wit/ next door)
     └── app/           (waveflow — Tauri 2 application)
         ├── Cargo.toml                 (produces the `waveflow` binary)
         ├── tauri.conf.json

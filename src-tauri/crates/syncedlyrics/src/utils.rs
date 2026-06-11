@@ -88,7 +88,7 @@ pub fn detect_format(content: &str) -> LyricsFormat {
 
 fn strip_lrc_stamp(line: &str) -> Option<&str> {
     let close = line.find(']')?;
-    let body = &line.get(1..close)?;
+    let body = line.get(1..close)?;
     let colon = body.find(':')?;
     if colon == 0 || !body[..colon].chars().all(|c| c.is_ascii_digit()) {
         return None;
@@ -200,7 +200,17 @@ pub(crate) fn html_text_decode(input: &str) -> String {
             out.push('\n');
             rest = after;
         } else if rest.starts_with('<') {
-            let Some(end) = rest.find('>') else { break };
+            // Malformed HTML (a `<` with no closing `>`) used to
+            // `break` and truncate the remainder of the input —
+            // costing every character after the stray `<`. Consume
+            // the lone `<` as a literal instead and keep going so a
+            // single rough byte in a scraped lyric page can't drop
+            // the rest of the verse.
+            let Some(end) = rest.find('>') else {
+                out.push('<');
+                rest = &rest[1..];
+                continue;
+            };
             rest = &rest[end + 1..];
         } else if let Some(after) = rest.strip_prefix("&amp;") {
             out.push('&');

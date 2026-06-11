@@ -176,8 +176,16 @@ impl SyncedLyricsClient {
                 continue;
             };
 
+            // Only credit `last_provider` when this provider actually
+            // contributed content — otherwise an empty Candidate from
+            // a later provider would overwrite the attribution for
+            // content that came from an earlier one (`into_result`
+            // attaches `last_provider` to the returned LyricsResult).
+            let contributed = candidate.synced.is_some() || candidate.unsynced.is_some();
             aggregate.update(candidate);
-            last_provider = Some(provider);
+            if contributed {
+                last_provider = Some(provider);
+            }
             if aggregate.preferred(options.mode) {
                 break;
             }
