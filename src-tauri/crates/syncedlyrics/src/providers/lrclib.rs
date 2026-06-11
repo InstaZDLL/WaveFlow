@@ -39,11 +39,11 @@ pub async fn search(http: &reqwest::Client, query: &str) -> Result<Option<Candid
     let Some(best) = best_track(&tracks, query) else {
         return Ok(None);
     };
-    let id = match &best.id {
-        serde_json::Value::Number(n) => n.to_string(),
-        serde_json::Value::String(s) => s.clone(),
-        _ => return Ok(None),
-    };
+    // `best_track` already filtered out any candidate without an
+    // extractable id (see the `extract_id` gate there) — an unknown
+    // variant here would be a logic break, not a normal API miss,
+    // so `expect` it instead of swallowing the search.
+    let id = extract_id(&best.id).expect("best_track must yield an extractable id");
     let track: GetTrack = safe_json(
         http.get(format!("https://lrclib.net/api/get/{id}"))
             .send()
@@ -57,6 +57,19 @@ pub async fn search(http: &reqwest::Client, query: &str) -> Result<Option<Candid
     }))
 }
 
+/// Pull the LRCLIB row id out of the JSON `Value`. LRCLIB's contract
+/// is that `id` is a number, but the field is typed `Value` here
+/// because the search-list deserialiser doesn't know that up front;
+/// `extract_id` returns `None` for any other shape so a poisoned entry
+/// can be filtered out instead of aborting the whole search.
+fn extract_id(value: &serde_json::Value) -> Option<String> {
+    match value {
+        serde_json::Value::Number(n) => Some(n.to_string()),
+        serde_json::Value::String(s) => Some(s.clone()),
+        _ => None,
+    }
+}
+
 fn best_track<'a>(tracks: &'a [SearchTrack], query: &str) -> Option<&'a SearchTrack> {
     let mut best = None;
     let mut best_score = -1.0;
@@ -64,6 +77,14 @@ fn best_track<'a>(tracks: &'a [SearchTrack], query: &str) -> Option<&'a SearchTr
     let mut best_has_synced = false;
 
     for track in tracks {
+        // Skip any entry whose `id` shape isn't usable downstream —
+        // without this guard the calling `search` function would
+        // abort the whole query when the top-scoring hit happens to
+        // carry a malformed id, even though other candidates in the
+        // result set still had usable ones.
+        if extract_id(&track.id).is_none() {
+            continue;
+        }
         let label = format!("{} - {}", track.artist_name, track.track_name);
         let score = utils::str_score(&label, query);
         let has_synced = track

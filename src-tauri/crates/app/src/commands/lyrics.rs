@@ -291,13 +291,19 @@ fn external_query(title: &str, artist_name: Option<&str>) -> String {
     }
 }
 
+/// Provider order for the query-based fallback chain that runs after
+/// LRCLIB's exact-metadata match has missed.
+///
+/// **Musixmatch is intentionally absent.** Both [`fetch_lyrics`] and
+/// [`run_prefetch`] already invoke Musixmatch on its own dedicated tier
+/// (the enhanced word-level lookup, gated on `MUSIXMATCH_ENABLED`). If
+/// we listed it here too, every cache miss that fell through the
+/// dedicated tier would issue a second Musixmatch request — same
+/// endpoint, same query, same token — for a result we already knew
+/// wasn't word-level. The fallback chain stays Musixmatch-free; the
+/// dedicated tier owns it.
 fn external_fallback_providers() -> Vec<Provider> {
-    vec![
-        Provider::Musixmatch,
-        Provider::NetEase,
-        Provider::Megalobiz,
-        Provider::Genius,
-    ]
+    vec![Provider::NetEase, Provider::Megalobiz, Provider::Genius]
 }
 
 /// Process-wide shared `SyncedLyricsClient`. Standing one up per call
