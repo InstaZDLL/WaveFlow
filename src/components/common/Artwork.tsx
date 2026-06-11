@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { Disc } from "lucide-react";
+import { useMemo, type ComponentType } from "react";
+import { Disc, type LucideProps } from "lucide-react";
 import { resolveArtwork, type ArtworkSize } from "../../lib/tauri/artwork";
 import { FadeInImage } from "./FadeInImage";
 
@@ -32,6 +32,13 @@ interface ArtworkProps {
   alt?: string;
   /** Border radius preset. Defaults to `lg` for in-row thumbnails. */
   rounded?: "md" | "lg" | "xl" | "2xl";
+  /**
+   * Optional lucide icon used in place of the default `Disc` when no
+   * artwork is available. Useful for non-music sources whose
+   * placeholder should be semantic — e.g. `Radio` for a Web Radio
+   * stream that ships no cover URL.
+   */
+  placeholderIcon?: ComponentType<LucideProps>;
 }
 
 /**
@@ -51,6 +58,7 @@ export function Artwork({
   iconSize = 18,
   alt,
   rounded = "lg",
+  placeholderIcon: PlaceholderIcon = Disc,
 }: ArtworkProps) {
   const src = useMemo(
     () =>
@@ -82,7 +90,7 @@ export function Artwork({
   const placeholderBorder =
     "border border-emerald-200/60 dark:border-emerald-800/40";
   const discIcon = (
-    <Disc
+    <PlaceholderIcon
       size={iconSize}
       className="text-emerald-500/70 dark:text-emerald-400/60"
     />

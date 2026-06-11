@@ -7,6 +7,7 @@ import {
   Mic2,
   Maximize2,
   PictureInPicture2,
+  Radio,
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useSleepTimer } from "../../hooks/useSleepTimer";
@@ -150,6 +151,12 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                 iconSize={24}
                 alt={title}
                 rounded="xl"
+                // Web Radio streams that ship no cover URL fall back
+                // to a radio icon instead of the generic CD disc so
+                // the source type is recognisable at a glance.
+                placeholderIcon={
+                  currentTrack?.codec === "Web Radio" ? Radio : undefined
+                }
               />
             </button>
             <div className="flex flex-col min-w-0">

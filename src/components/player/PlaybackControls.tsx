@@ -30,6 +30,12 @@ export function PlaybackControls() {
   const isLoading = playbackState === "loading";
   const disableTransport = !currentTrack && playbackState === "idle";
   const isSpotify = activeProvider === "spotify";
+  // Web Radio is a single-stream source — there's no queue cursor to
+  // advance, so Previous / Next / Shuffle / Repeat would either be a
+  // no-op (the queue cursor still points at the last local track) or
+  // worse, kick off the next queued local track in the background.
+  // Disable the queue-bound transports while a live stream is loaded.
+  const isRadio = currentTrack?.codec === "Web Radio";
   const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
   const isRepeatActive = repeatMode !== "off";
 
@@ -38,7 +44,7 @@ export function PlaybackControls() {
       <button
         type="button"
         onClick={toggleShuffle}
-        disabled={isSpotify}
+        disabled={isSpotify || isRadio}
         aria-pressed={isShuffled}
         aria-label={
           isShuffled
@@ -56,7 +62,7 @@ export function PlaybackControls() {
       <button
         type="button"
         onClick={() => previous()}
-        disabled={disableTransport}
+        disabled={disableTransport || isRadio}
         aria-label={t("player.controls.previous")}
         className="text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
@@ -85,7 +91,7 @@ export function PlaybackControls() {
       <button
         type="button"
         onClick={() => next()}
-        disabled={disableTransport}
+        disabled={disableTransport || isRadio}
         aria-label={t("player.controls.next")}
         className="text-zinc-400 hover:text-zinc-800 dark:hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
@@ -94,7 +100,7 @@ export function PlaybackControls() {
       <button
         type="button"
         onClick={cycleRepeatMode}
-        disabled={isSpotify}
+        disabled={isSpotify || isRadio}
         aria-label={
           repeatMode === "off"
             ? t("player.controls.repeatOff")

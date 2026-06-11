@@ -21,8 +21,10 @@
 //!
 //! `symphonia::core::io::MediaSource: Read + Seek + Send + Sync`.
 //! `reqwest::blocking::Response` is `Send` but not `Sync`, so we wrap
-//! it in a `parking_lot::Mutex` to satisfy the bound. The decoder is
-//! the only reader — the mutex is uncontended in practice.
+//! it in a `std::sync::Mutex` to satisfy the bound (no extra dep on
+//! `parking_lot` — the decoder thread is the only reader and the
+//! mutex is uncontended in practice, so std's slower contended path
+//! never matters here).
 //!
 //! ## Seek semantics
 //!
@@ -40,6 +42,35 @@ use std::time::Duration;
 
 use reqwest::blocking::{Client, Response};
 use symphonia::core::io::MediaSource;
+
+/// Strip credentials + query string from a URL before logging it.
+/// Radio mount URLs sometimes carry userinfo (`http://user:pwd@host`)
+/// or auth tokens in the query (`?key=abcd`); echoing them into the
+/// tracing layer would leak the secret into the rolling log file the
+/// user could later attach to a bug report.
+///
+/// Falls back to the literal string on parse failure so we never
+/// accidentally swallow a malformed URL — an unparseable URL is its
+/// own diagnostic signal.
+pub fn redact_url(raw: &str) -> String {
+    match url::Url::parse(raw) {
+        Ok(parsed) => {
+            // Manually rebuild scheme://host[:port]/path so userinfo
+            // + query + fragment are gone. Host can be None for
+            // exotic schemes like `data:` but we only handle http(s)
+            // here in practice.
+            let scheme = parsed.scheme();
+            let host = parsed.host_str().unwrap_or("");
+            let port = match parsed.port() {
+                Some(p) => format!(":{p}"),
+                None => String::new(),
+            };
+            let path = parsed.path();
+            format!("{scheme}://{host}{port}{path}")
+        }
+        Err(_) => raw.to_string(),
+    }
+}
 
 /// Connect timeout for the initial HTTP GET. Radio streams can take a
 /// few hundred ms to start sending bytes on a slow source; 10 s is
@@ -201,6 +232,27 @@ mod tests {
             url: "http://example/".to_string(),
         };
         let _ = &stub;
+    }
+
+    #[test]
+    fn redact_url_strips_userinfo_and_query() {
+        // Userinfo + query both gone, scheme + host + port + path kept.
+        assert_eq!(
+            redact_url("https://user:pwd@stream.example.com:8443/mount?key=abcd"),
+            "https://stream.example.com:8443/mount"
+        );
+        // No userinfo / query → idempotent (no spurious `:` / `?` etc.).
+        assert_eq!(
+            redact_url("http://radio.example/mount.mp3"),
+            "http://radio.example/mount.mp3"
+        );
+        // Default port (no `:` segment).
+        assert_eq!(
+            redact_url("https://radio.example/stream"),
+            "https://radio.example/stream"
+        );
+        // Unparseable input round-trips so the diagnostic isn't lost.
+        assert_eq!(redact_url("not a url"), "not a url");
     }
 
     #[test]

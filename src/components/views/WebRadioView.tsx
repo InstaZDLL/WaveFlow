@@ -162,11 +162,20 @@ export function WebRadioView() {
     // the category list shouldn't kill audio (the PlayerBar still
     // owns playback). If the user wants to stop, that's the
     // PlayerBar's job.
+    //
+    // Clearing `playingId` is the right rollback when the bump above
+    // strands an optimistic highlight from a click whose stream-url
+    // resolve hadn't landed yet — otherwise the row would stay lit
+    // even though `playerPlayUrl` never fired. Trade-off: if a stream
+    // is actually playing when the user backs out, the highlight is
+    // lost on re-entry until they click again. PlayerBar remains the
+    // source of truth for "what's playing".
     resolveReqRef.current += 1;
     streamReqRef.current += 1;
     setActiveEntry(null);
     setSearchActive(false);
     setTracks([]);
+    setPlayingId(null);
   }, []);
 
   const playTrack = useCallback(

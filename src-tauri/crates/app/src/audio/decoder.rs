@@ -415,11 +415,37 @@ fn decoder_loop(
                 // few hundred ms on slow servers).
                 emit_radio_metadata(&app, track_id, &title, &artist, &artwork_url);
 
+                // Defence in depth: `player_play_url` already gates on
+                // `offline::is_offline()` before dispatching the
+                // command, but the decoder is the last hop before
+                // reqwest::blocking opens a socket. Honouring the
+                // toggle here guarantees the project-wide convention
+                // ("every outbound HTTP path checks offline first")
+                // holds even if some future code path enqueues a
+                // LoadUrlAndPlay directly.
+                if crate::offline::is_offline() {
+                    let _ = app.emit(
+                        EVENT_ERROR,
+                        ErrorPayload {
+                            message: "offline mode is enabled".to_string(),
+                        },
+                    );
+                    transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
+                    continue;
+                }
+
+                // Snapshot the redacted URL once for both log sites
+                // below + the outcome handler — `redact_url` is a
+                // small string clone, cheap, and avoids per-log re-
+                // parses while keeping any userinfo / query out of
+                // the rolling log file.
+                let redacted = super::http_source::redact_url(&url);
+
                 let http_source =
                     match super::http_source::HttpMediaSource::open(&url) {
                         Ok(s) => s,
                         Err(err) => {
-                            tracing::warn!(?err, %url, "radio stream open failed");
+                            tracing::warn!(?err, url = %redacted, "radio stream open failed");
                             let _ = app.emit(
                                 EVENT_ERROR,
                                 ErrorPayload {
@@ -445,7 +471,7 @@ fn decoder_loop(
                 ) {
                     Ok(s) => s,
                     Err(err) => {
-                        tracing::warn!(?err, %url, "radio stream probe failed");
+                        tracing::warn!(?err, url = %redacted, "radio stream probe failed");
                         let _ = app.emit(
                             EVENT_ERROR,
                             ErrorPayload {
@@ -473,7 +499,7 @@ fn decoder_loop(
                     &app,
                     track_id,
                     analytics_tx,
-                    Some(url),
+                    Some(redacted),
                 );
             }
             AudioCmd::SwapProducer(new_producer) => {
