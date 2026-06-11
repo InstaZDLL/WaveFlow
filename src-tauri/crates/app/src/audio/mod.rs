@@ -19,6 +19,7 @@ pub mod crossfade;
 pub mod decoder;
 pub mod engine;
 pub mod eq;
+pub mod http_source;
 pub mod output;
 pub mod resampler;
 pub mod spectrum;

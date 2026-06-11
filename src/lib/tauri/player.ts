@@ -158,6 +158,36 @@ export function playerPlayTracks(
   });
 }
 
+export interface PlayUrlArgs {
+  url: string;
+  title?: string;
+  artist?: string;
+  /** Cover URL (Deezer / radio-browser) — passed through to the
+   *  `player:radio-metadata` event for the PlayerBar to render. */
+  artworkUrl?: string;
+  /** Optional codec hint forwarded to the symphonia probe. */
+  extHint?: string;
+}
+
+/**
+ * Play a live HTTP(S) audio stream through the cpal engine.
+ * Returns the negative sentinel track id assigned to this session —
+ * useful for distinguishing back-to-back radio loads.
+ *
+ * Distinct from `playerPlayTracks`: there's no queue insertion, no
+ * library row, no `play_event` credit. Metadata supplied here drives
+ * the PlayerBar / OS overlay via the `player:radio-metadata` event.
+ */
+export function playerPlayUrl(args: PlayUrlArgs): Promise<number> {
+  return invoke<number>("player_play_url", {
+    url: args.url,
+    title: args.title,
+    artist: args.artist,
+    artworkUrl: args.artworkUrl,
+    extHint: args.extHint,
+  });
+}
+
 export function playerNext(): Promise<void> {
   return invoke<void>("player_next");
 }

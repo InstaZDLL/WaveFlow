@@ -130,8 +130,12 @@ crossbeam-channel = "0.5"
 # the post-EQ output, throttled to ~30 Hz.
 realfft = "3"
 
-# HTTP client for Deezer public API metadata enrichment
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+# HTTP client for Deezer public API metadata enrichment.
+# `blocking` is enabled so the audio decoder thread can open a live
+# HTTP stream synchronously from inside its non-tokio worker (Web
+# Radio: see `audio::http_source`). The async client stays the
+# default everywhere else.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "blocking"] }
 
 # WebSocket client for the multi-device sync subscriber (Phase
 # 1.f.desktop.4b). Same rustls stack as reqwest so the TLS roots stay

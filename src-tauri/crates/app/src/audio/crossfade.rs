@@ -14,7 +14,7 @@ use symphonia::core::codecs::audio::{AudioDecoder, AudioDecoderOptions};
 use symphonia::core::errors::Error as SymphoniaError;
 use symphonia::core::formats::probe::Hint;
 use symphonia::core::formats::{FormatOptions, FormatReader, SeekMode, SeekTo, TrackType};
-use symphonia::core::io::MediaSourceStream;
+use symphonia::core::io::{MediaSource, MediaSourceStream};
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::units::Time;
 
@@ -124,9 +124,41 @@ impl ActiveStream {
         }
 
         let file = File::open(path).map_err(|e| format!("open: {e}"))?;
-        let mss = MediaSourceStream::new(Box::new(file), Default::default());
+        Self::open_from_source(
+            Box::new(file),
+            ext.as_deref(),
+            track_id,
+            duration_ms,
+            source_type,
+            source_id,
+            replay_gain_db,
+        )
+    }
+
+    /// Probe + decode any `MediaSource`. Shared between the file-backed
+    /// path (`open(path)` above) and the live-stream path
+    /// (`audio::http_source::HttpMediaSource` for Web Radio).
+    ///
+    /// `ext_hint` is forwarded to the probe so symphonia ranks the
+    /// correct demuxer first when the source's bytes don't lead with an
+    /// unambiguous magic — Icecast servers often serve "audio/mpeg"
+    /// streams that need the "mp3" hint to probe cleanly.
+    ///
+    /// `duration_ms = 0` is the canonical "live stream" marker — the
+    /// decoder loop reads this to suppress the end-of-track guard, the
+    /// crossfade prefetch hand-off, and the auto-advance round trip.
+    pub fn open_from_source(
+        source: Box<dyn MediaSource>,
+        ext_hint: Option<&str>,
+        track_id: i64,
+        duration_ms: u64,
+        source_type: String,
+        source_id: Option<i64>,
+        replay_gain_db: Option<f64>,
+    ) -> Result<Self, String> {
+        let mss = MediaSourceStream::new(source, Default::default());
         let mut hint = Hint::new();
-        if let Some(ext) = ext.as_deref() {
+        if let Some(ext) = ext_hint {
             hint.with_extension(ext);
         }
         let format = symphonia::default::get_probe()
