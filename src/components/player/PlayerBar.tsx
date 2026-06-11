@@ -15,6 +15,7 @@ import { usePlayerBarLayout } from "../../hooks/usePlayerBarLayout";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { HiResBadge } from "../common/HiResBadge";
+import { isRadioTrack } from "../../lib/playerSources";
 import { PlaybackControls } from "./PlaybackControls";
 import { ProgressBar } from "./ProgressBar";
 import { SleepTimerMenu } from "./SleepTimerMenu";
@@ -155,7 +156,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                 // to a radio icon instead of the generic CD disc so
                 // the source type is recognisable at a glance.
                 placeholderIcon={
-                  currentTrack?.codec === "Web Radio" ? Radio : undefined
+                  isRadioTrack(currentTrack) ? Radio : undefined
                 }
               />
             </button>

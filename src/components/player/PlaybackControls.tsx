@@ -10,6 +10,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
+import { isRadioTrack } from "../../lib/playerSources";
 
 export function PlaybackControls() {
   const { t } = useTranslation();
@@ -35,7 +36,9 @@ export function PlaybackControls() {
   // no-op (the queue cursor still points at the last local track) or
   // worse, kick off the next queued local track in the background.
   // Disable the queue-bound transports while a live stream is loaded.
-  const isRadio = currentTrack?.codec === "Web Radio";
+  // Discrimination contract lives in `isRadioTrack` — keep the
+  // gating decentralised here, the invariant centralised there.
+  const isRadio = isRadioTrack(currentTrack);
   const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
   const isRepeatActive = repeatMode !== "off";
 
