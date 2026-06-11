@@ -75,6 +75,52 @@ function queuePayloadToTrack(payload: QueueTrackPayload): Track {
   };
 }
 
+/**
+ * Wire shape of the `player:radio-metadata` event emitted by the
+ * audio engine on `LoadUrlAndPlay`. `track_id` is the negative
+ * sentinel `player_play_url` returned to the caller — distinct from
+ * any library row id.
+ */
+interface RadioMetadataPayload {
+  track_id: number;
+  title: string | null;
+  artist: string | null;
+  artwork_url: string | null;
+}
+
+function radioMetadataToTrack(payload: RadioMetadataPayload): Track {
+  return {
+    id: payload.track_id,
+    library_id: 0,
+    title: payload.title ?? "Live Radio",
+    album_id: null,
+    album_title: null,
+    artist_id: null,
+    artist_name: payload.artist,
+    artist_ids: null,
+    // 0 = open-ended scrubber. The PlayerBar's progress fields special-
+    // case duration_ms === 0 already (live mode for DLNA / Spotify),
+    // so the radio inherits that path without extra logic.
+    duration_ms: 0,
+    track_number: null,
+    disc_number: null,
+    year: null,
+    bitrate: null,
+    sample_rate: null,
+    channels: null,
+    bit_depth: null,
+    codec: "Web Radio",
+    musical_key: null,
+    file_path: "",
+    file_size: 0,
+    added_at: 0,
+    artwork_path: payload.artwork_url,
+    artwork_path_1x: null,
+    artwork_path_2x: null,
+    rating: null,
+  };
+}
+
 function spotifyTrackToTrack(track: SpotifyTrackLite): Track {
   return {
     id: -1,
@@ -300,6 +346,20 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
               }
             })();
           }),
+        );
+        unlisten.push(
+          await listen<RadioMetadataPayload>(
+            "player:radio-metadata",
+            (e) => {
+              // Web Radio (LoadUrlAndPlay) emits this in lieu of
+              // `player:track-changed` — no library row to look up,
+              // metadata rides on the event payload directly.
+              setActiveProvider("local");
+              setCurrentTrack(radioMetadataToTrack(e.payload));
+              setDurationMs(0);
+              setPositionMs(0);
+            },
+          ),
         );
         unlisten.push(
           await listen<PlayerErrorPayload>("player:error", (e) => {

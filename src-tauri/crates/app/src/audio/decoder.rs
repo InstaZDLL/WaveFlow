@@ -10,7 +10,6 @@
 //! pause / stop / seek feel responsive even during long tracks.
 
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::path::Path;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::thread::JoinHandle;
@@ -60,6 +59,102 @@ struct TrackEndedPayload {
 #[derive(Serialize, Clone)]
 struct ErrorPayload {
     message: String,
+}
+
+#[derive(Serialize, Clone)]
+struct RadioMetadataPayload {
+    track_id: i64,
+    title: Option<String>,
+    artist: Option<String>,
+    artwork_url: Option<String>,
+}
+
+/// Emit `player:radio-metadata` so the PlayerBar + OS overlay can
+/// paint the live-stream title / cover during the symphonia probe.
+/// No-op for non-radio loads — this event is purely additive on top
+/// of the existing `player:track-changed`.
+fn emit_radio_metadata(
+    app: &AppHandle,
+    track_id: i64,
+    title: &Option<String>,
+    artist: &Option<String>,
+    artwork_url: &Option<String>,
+) {
+    let _ = app.emit(
+        "player:radio-metadata",
+        RadioMetadataPayload {
+            track_id,
+            title: title.clone(),
+            artist: artist.clone(),
+            artwork_url: artwork_url.clone(),
+        },
+    );
+}
+
+/// Common path for `LoadAndPlay` / `LoadUrlAndPlay` — fire the right
+/// analytics message depending on how the stream finished. Live
+/// radio (`finished.track_id < 0`, `finished.source_type == "radio"`)
+/// skips the play_event credit entirely — there's no library row to
+/// reference and the play wouldn't be eligible for scrobbling anyway.
+fn handle_playback_outcome(
+    outcome: Result<(PlaybackEnd, u64, FinishedTrack), String>,
+    shared: &SharedPlayback,
+    app: &AppHandle,
+    requested_track_id: i64,
+    analytics_tx: &UnboundedSender<AnalyticsMsg>,
+    source_label: Option<String>,
+) {
+    match outcome {
+        Ok((PlaybackEnd::Natural, listened_ms, finished)) => {
+            let completed =
+                listened_ms + 2000 >= finished.duration_ms && finished.duration_ms > 0;
+            tracing::info!(
+                finished_track_id = finished.track_id,
+                listened_ms,
+                completed,
+                "play_track ended naturally"
+            );
+            if finished.track_id > 0 {
+                let _ = analytics_tx.send(AnalyticsMsg::TrackEnded {
+                    track_id: finished.track_id,
+                    completed,
+                    listened_ms,
+                    source_type: finished.source_type,
+                    source_id: finished.source_id,
+                });
+            }
+        }
+        Ok((PlaybackEnd::Interrupted, listened_ms, finished)) => {
+            tracing::info!(
+                finished_track_id = finished.track_id,
+                listened_ms,
+                will_credit = listened_ms >= 15_000,
+                "play_track interrupted"
+            );
+            if finished.track_id > 0 && listened_ms >= 15_000 {
+                let _ = analytics_tx.send(AnalyticsMsg::TrackListened {
+                    track_id: finished.track_id,
+                    listened_ms,
+                    source_type: finished.source_type,
+                    source_id: finished.source_id,
+                });
+            }
+        }
+        Err(err) => {
+            tracing::warn!(
+                ?err,
+                source = source_label.as_deref().unwrap_or(""),
+                "playback failed"
+            );
+            let _ = app.emit(
+                EVENT_ERROR,
+                ErrorPayload {
+                    message: err.clone(),
+                },
+            );
+            transition_state(shared, app, PlayerState::Idle, Some(requested_track_id));
+        }
+    }
 }
 
 /// Transition [`SharedPlayback`] state and emit a `player:state` event
@@ -247,14 +342,29 @@ fn decoder_loop(
                 shared.base_offset_ms.store(start_ms, Ordering::Relaxed);
                 shared.current_track_id.store(track_id, Ordering::Release);
 
-                let outcome = play_track(
+                let stream = match ActiveStream::open(
                     &path,
-                    start_ms,
                     track_id,
                     duration_ms,
                     source_type.clone(),
                     source_id,
                     replay_gain_db,
+                ) {
+                    Ok(s) => s,
+                    Err(err) => {
+                        tracing::warn!(?err, path = %path.display(), "open failed");
+                        let _ = app.emit(
+                            EVENT_ERROR,
+                            ErrorPayload { message: err },
+                        );
+                        transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
+                        continue;
+                    }
+                };
+
+                let outcome = play_track(
+                    stream,
+                    start_ms,
                     producer,
                     &shared,
                     cmd_rx,
@@ -262,51 +372,135 @@ fn decoder_loop(
                     &mut pending_cmd,
                     analytics_tx,
                 );
-                match outcome {
-                    Ok((PlaybackEnd::Natural, listened_ms, finished)) => {
-                        let completed =
-                            listened_ms + 2000 >= finished.duration_ms && finished.duration_ms > 0;
-                        tracing::info!(
-                            finished_track_id = finished.track_id,
-                            listened_ms,
-                            completed,
-                            "play_track ended naturally"
-                        );
-                        let _ = analytics_tx.send(AnalyticsMsg::TrackEnded {
-                            track_id: finished.track_id,
-                            completed,
-                            listened_ms,
-                            source_type: finished.source_type,
-                            source_id: finished.source_id,
-                        });
+                handle_playback_outcome(
+                    outcome,
+                    &shared,
+                    &app,
+                    track_id,
+                    analytics_tx,
+                    Some(path.display().to_string()),
+                );
+            }
+            AudioCmd::LoadUrlAndPlay {
+                url,
+                ext_hint,
+                track_id,
+                title,
+                artist,
+                artwork_url,
+            } => {
+                shared.clear_ab_loop();
+                transition_state(&shared, &app, PlayerState::Loading, Some(track_id));
+
+                if producer.slots() != super::output::RING_CAPACITY {
+                    shared.paused_output.store(false, Ordering::Release);
+                    shared.drain_silent.store(true, Ordering::Release);
+                    let start = std::time::Instant::now();
+                    while producer.slots() < super::output::RING_CAPACITY
+                        && start.elapsed() < Duration::from_millis(500)
+                    {
+                        std::thread::sleep(Duration::from_millis(1));
                     }
-                    Ok((PlaybackEnd::Interrupted, listened_ms, finished)) => {
-                        tracing::info!(
-                            finished_track_id = finished.track_id,
-                            listened_ms,
-                            will_credit = listened_ms >= 15_000,
-                            "play_track interrupted"
-                        );
-                        if listened_ms >= 15_000 {
-                            let _ = analytics_tx.send(AnalyticsMsg::TrackListened {
-                                track_id: finished.track_id,
-                                listened_ms,
-                                source_type: finished.source_type,
-                                source_id: finished.source_id,
-                            });
+                    shared.drain_silent.store(false, Ordering::Release);
+                } else {
+                    shared.paused_output.store(false, Ordering::Release);
+                }
+                shared.samples_played.store(0, Ordering::Relaxed);
+                shared.base_offset_ms.store(0, Ordering::Relaxed);
+                shared.current_track_id.store(track_id, Ordering::Release);
+
+                // Emit the radio metadata up front so the OS overlay /
+                // PlayerBar can paint the title + cover during the
+                // network handshake (the symphonia probe blocks for a
+                // few hundred ms on slow servers).
+                emit_radio_metadata(&app, track_id, &title, &artist, &artwork_url);
+
+                // Defence in depth: `player_play_url` already gates on
+                // `offline::is_offline()` before dispatching the
+                // command, but the decoder is the last hop before
+                // reqwest::blocking opens a socket. Honouring the
+                // toggle here guarantees the project-wide convention
+                // ("every outbound HTTP path checks offline first")
+                // holds even if some future code path enqueues a
+                // LoadUrlAndPlay directly.
+                if crate::offline::is_offline() {
+                    let _ = app.emit(
+                        EVENT_ERROR,
+                        ErrorPayload {
+                            message: "offline mode is enabled".to_string(),
+                        },
+                    );
+                    transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
+                    continue;
+                }
+
+                // Snapshot the redacted URL once for both log sites
+                // below + the outcome handler — `redact_url` is a
+                // small string clone, cheap, and avoids per-log re-
+                // parses while keeping any userinfo / query out of
+                // the rolling log file.
+                let redacted = super::http_source::redact_url(&url);
+
+                let http_source =
+                    match super::http_source::HttpMediaSource::open(&url) {
+                        Ok(s) => s,
+                        Err(err) => {
+                            tracing::warn!(?err, url = %redacted, "radio stream open failed");
+                            let _ = app.emit(
+                                EVENT_ERROR,
+                                ErrorPayload {
+                                    message: format!("radio stream open: {err}"),
+                                },
+                            );
+                            transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
+                            continue;
                         }
-                    }
+                    };
+
+                let stream = match ActiveStream::open_from_source(
+                    Box::new(http_source),
+                    ext_hint.as_deref(),
+                    track_id,
+                    // duration_ms = 0 is the live-stream sentinel —
+                    // play_track interprets it to suppress crossfade
+                    // prefetch + end-of-track guard.
+                    0,
+                    "radio".to_string(),
+                    None,
+                    None,
+                ) {
+                    Ok(s) => s,
                     Err(err) => {
-                        tracing::warn!(?err, path = %path.display(), "playback failed");
+                        tracing::warn!(?err, url = %redacted, "radio stream probe failed");
                         let _ = app.emit(
                             EVENT_ERROR,
                             ErrorPayload {
-                                message: err.clone(),
+                                message: format!("radio stream probe: {err}"),
                             },
                         );
                         transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
+                        continue;
                     }
-                }
+                };
+
+                let outcome = play_track(
+                    stream,
+                    0,
+                    producer,
+                    &shared,
+                    cmd_rx,
+                    &app,
+                    &mut pending_cmd,
+                    analytics_tx,
+                );
+                handle_playback_outcome(
+                    outcome,
+                    &shared,
+                    &app,
+                    track_id,
+                    analytics_tx,
+                    Some(redacted),
+                );
             }
             AudioCmd::SwapProducer(new_producer) => {
                 // The output thread was rebuilt on a different cpal
@@ -373,19 +567,23 @@ pub struct FinishedTrack {
 ///
 /// Returns `(PlaybackEnd, listened_ms_of_final_track, FinishedTrack)`.
 ///
+/// `stream` is opened by the caller (file: [`ActiveStream::open`], live
+/// HTTP: [`ActiveStream::open_from_source`] over an
+/// [`super::http_source::HttpMediaSource`]). Hoisting the open out lets
+/// the same playback loop drive both file-backed tracks and Web Radio
+/// streams without re-deriving "is this a path or a URL" inside the
+/// hot loop. A `stream` with `duration_ms == 0` is the canonical
+/// live-stream marker — the prefetch + end-of-track guards branch on
+/// it to suppress crossfade and auto-advance.
+///
 /// Yes, this takes a lot of parameters — but each one is load-bearing
 /// (initial track context + the I/O + sync handles the decoder loop
 /// needs) and folding them into a struct just to satisfy a lint would
 /// obscure the call site without changing what the function does.
 #[allow(clippy::too_many_arguments)]
 fn play_track(
-    initial_path: &Path,
+    initial_stream: ActiveStream,
     initial_start_ms: u64,
-    initial_track_id: i64,
-    initial_duration_ms: u64,
-    initial_source_type: String,
-    initial_source_id: Option<i64>,
-    initial_replay_gain_db: Option<f64>,
     producer: &mut Producer<f32>,
     shared: &SharedPlayback,
     cmd_rx: &Receiver<AudioCmd>,
@@ -399,14 +597,7 @@ fn play_track(
         return Err("cpal output not initialized (sample_rate=0)".into());
     }
 
-    let mut stream = ActiveStream::open(
-        initial_path,
-        initial_track_id,
-        initial_duration_ms,
-        initial_source_type,
-        initial_source_id,
-        initial_replay_gain_db,
-    )?;
+    let mut stream = initial_stream;
     // Inherit the active playback speed so the lazy resampler init
     // inside decode_next builds against the correct effective input
     // rate from the very first packet. Without this, a track that
@@ -420,7 +611,8 @@ fn play_track(
     tracing::info!(
         dst_sample_rate,
         dst_channels,
-        path = %initial_path.display(),
+        track_id = stream.track_id,
+        is_live = stream.duration_ms == 0,
         "decoding start"
     );
 
@@ -1105,6 +1297,11 @@ fn drain_commands(
                 *pending_cmd = Some(cmd);
                 return ControlFlow::LoadNext;
             }
+            Ok(cmd @ AudioCmd::LoadUrlAndPlay { .. }) => {
+                shared.paused_output.store(false, Ordering::Release);
+                *pending_cmd = Some(cmd);
+                return ControlFlow::LoadNext;
+            }
             Ok(AudioCmd::SetCrossfade(ms)) => {
                 shared.crossfade_ms.store(ms, Ordering::Release);
             }
@@ -1184,6 +1381,11 @@ fn drain_commands(
                         }
                         Ok(AudioCmd::SetSpeed(v)) => shared.set_playback_speed(v),
                         Ok(cmd @ AudioCmd::LoadAndPlay { .. }) => {
+                            shared.paused_output.store(false, Ordering::Release);
+                            *pending_cmd = Some(cmd);
+                            return ControlFlow::LoadNext;
+                        }
+                        Ok(cmd @ AudioCmd::LoadUrlAndPlay { .. }) => {
                             shared.paused_output.store(false, Ordering::Release);
                             *pending_cmd = Some(cmd);
                             return ControlFlow::LoadNext;

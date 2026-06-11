@@ -72,6 +72,34 @@ pub enum AudioCmd {
         source_id: Option<i64>,
         replay_gain_db: Option<f64>,
     },
+    /// Play a live HTTP audio stream (Web Radio). The decoder opens
+    /// the URL in a blocking client (safe because the decoder thread
+    /// is non-tokio), wraps the response in a `HttpMediaSource`, and
+    /// reuses the symphonia probe + decode path.
+    ///
+    /// Distinct from `LoadAndPlay` because:
+    /// - `track_id` is a negative sentinel (no library row to write a
+    ///   `play_event` against),
+    /// - `duration_ms = 0` suppresses end-of-track guards / prefetch /
+    ///   auto-advance — the stream runs until the user hits Stop,
+    /// - `title` / `artist` / `artwork_url` ride along the command so
+    ///   the OS media overlay + Discord RPC + UI can be populated
+    ///   without a DB lookup.
+    LoadUrlAndPlay {
+        url: String,
+        /// File-extension hint forwarded to the symphonia probe (e.g.
+        /// "mp3", "aac"). Many Icecast streams need this to probe
+        /// cleanly because the first bytes aren't an unambiguous
+        /// magic — derive from the server's Content-Type when known.
+        ext_hint: Option<String>,
+        /// Sentinel track id — negative, unique per active radio
+        /// session so `current_track_id` reads can still distinguish
+        /// streams from one another.
+        track_id: i64,
+        title: Option<String>,
+        artist: Option<String>,
+        artwork_url: Option<String>,
+    },
     /// Hand the decoder thread a fresh ring producer after the output
     /// thread was rebuilt on a different cpal device. The decoder
     /// drops its old producer (the consumer is already gone with the
@@ -109,6 +137,12 @@ impl std::fmt::Debug for AudioCmd {
             AudioCmd::SetNextTrack { track_id, .. } => {
                 write!(f, "SetNextTrack {{ track_id: {track_id} }}")
             }
+            AudioCmd::LoadUrlAndPlay {
+                url, track_id, ..
+            } => write!(
+                f,
+                "LoadUrlAndPlay {{ track_id: {track_id}, url: {url} }}"
+            ),
             AudioCmd::SwapProducer(_) => write!(f, "SwapProducer(<producer>)"),
             AudioCmd::Shutdown => write!(f, "Shutdown"),
         }

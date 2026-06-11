@@ -660,6 +660,7 @@ pub fn run() {
             commands::player::player_seek,
             commands::player::player_set_volume,
             commands::player::player_play_tracks,
+            commands::player::player_play_url,
             commands::player::player_add_to_queue,
             commands::player::player_play_next,
             commands::player::player_reorder_queue,

@@ -10,6 +10,7 @@
 //! [`crate::queue`] module and then self-send a `LoadAndPlay` to the
 //! decoder thread.
 
+use std::sync::atomic::{AtomicI64, Ordering as AtomicOrdering};
 use std::sync::Arc;
 
 use serde::Serialize;
@@ -1682,4 +1683,100 @@ pub async fn player_previous(
         source_id: None,
         replay_gain_db,
     })
+}
+
+/// Monotonic counter for the synthetic track ids assigned to live
+/// radio streams. Negative ids are the canonical "non-library"
+/// sentinel — see [`crate::audio::engine::AudioCmd::LoadUrlAndPlay`]
+/// docs and the `track_id > 0` filter in `handle_playback_outcome`.
+///
+/// Starts at `0`; first call returns `-1`. Decrements per call so
+/// back-to-back radio loads retain distinct ids — the queue panel /
+/// OS overlay use the id as a stable key for their "is this still
+/// the active row" check.
+static RADIO_TRACK_ID: AtomicI64 = AtomicI64::new(0);
+
+fn next_radio_track_id() -> i64 {
+    // `fetch_sub` returns the value *before* the subtraction. We want
+    // strictly-negative ids; sub then read.
+    RADIO_TRACK_ID.fetch_sub(1, AtomicOrdering::Relaxed) - 1
+}
+
+/// Play a live HTTP(S) audio stream through the cpal engine.
+///
+/// Distinct from `player_play_tracks` because there's no library row,
+/// no queue insertion, and no `play_event` credit at the end. The
+/// metadata supplied here populates the PlayerBar / OS media overlay
+/// directly via a `player:radio-metadata` event the frontend listens
+/// to alongside `player:track-changed`.
+///
+/// `ext_hint` is an optional codec hint ("mp3", "aac", "ogg")
+/// forwarded to the symphonia probe via the active stream's
+/// `ext_hint`. Frontend derives this from the radio-browser `codec`
+/// field when known so the probe locks on faster.
+///
+/// Scheme is gated to http/https so a maliciously-crafted file:// URL
+/// can't get the decoder to open an arbitrary local file via this
+/// path. Other paranoia (size limits, redirect caps) is delegated to
+/// `HttpMediaSource::open`.
+#[tauri::command]
+pub async fn player_play_url(
+    app: AppHandle,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    url: String,
+    title: Option<String>,
+    artist: Option<String>,
+    artwork_url: Option<String>,
+    ext_hint: Option<String>,
+) -> AppResult<i64> {
+    let parsed = url::Url::parse(&url)
+        .map_err(|e| AppError::Other(format!("invalid url: {e}")))?;
+    match parsed.scheme() {
+        "http" | "https" => {}
+        other => return Err(AppError::Other(format!("unsupported scheme: {other}"))),
+    }
+
+    // Process-wide offline mode: short-circuit before opening a socket
+    // so a deliberately offline session can't be tricked into network
+    // chatter by a stale tab.
+    if crate::offline::is_offline() {
+        return Err(AppError::Other("offline mode is enabled".into()));
+    }
+
+    let track_id = next_radio_track_id();
+
+    // Push the metadata to the OS overlay before dispatching the
+    // command so the SMTC / MPRIS tile updates while the HTTP probe
+    // is still settling. The decoder emits `player:radio-metadata`
+    // *also* — that event drives the in-app PlayerBar.
+    //
+    // Cover URL is intentionally left `None`: `update_metadata`'s
+    // cover param is treated as a local artwork path and shovelled
+    // through the artwork server / `file://` resolver — feeding it an
+    // external `https://e-cdns-images.dzcdn.net/…` URL would land it
+    // in the wrong code path. The in-app PlayerBar still renders the
+    // cover from the `player:radio-metadata` event we emit below.
+    if let Some(controls) = app.try_state::<crate::media_controls::MediaControlsHandle>() {
+        controls.update_metadata(
+            title.clone().unwrap_or_else(|| "Live Radio".to_string()),
+            artist.clone(),
+            None,
+            None,
+            // Duration is unknown for live streams — pass 0 so the
+            // overlay treats this as an open-ended scrubber.
+            0,
+        );
+        controls.update_playback(crate::audio::PlayerState::Playing, 0);
+    }
+
+    engine.send(AudioCmd::LoadUrlAndPlay {
+        url,
+        ext_hint,
+        track_id,
+        title,
+        artist,
+        artwork_url,
+    })?;
+
+    Ok(track_id)
 }

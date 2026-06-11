@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { Radio, Search, ChevronLeft, Play, Pause } from "lucide-react";
 
+import { playerPlayUrl, playerStop } from "../../lib/tauri/player";
 import {
   pluginListEntries,
   pluginResolve,
@@ -13,19 +15,17 @@ import {
 const PLUGIN_ID = "web-radio";
 
 /**
- * Web Radio view (Phase 4.b). The category list shows what the
- * plugin's `list-entries` returned; clicking a category fires
- * `resolve(query)` and renders the resulting stations. Clicking a
- * station fires `stream-url` and pipes the URL into an inline
- * `<audio>` element.
+ * Web Radio view (Phase 4.c — engine-integrated).
  *
- * Why HTML5 `<audio>` instead of the Rust audio engine: the engine
- * is fed by symphonia from local file readers, and bridging an
- * HTTP stream through it (chunked download → ring buffer → cpal)
- * is its own non-trivial work item — punted to v1.6. The dedicated
- * `<audio>` here keeps Web Radio shippable + lets the user pick a
- * station today without competing with the local-library player
- * for the cpal stream.
+ * Clicking a category fires the plugin's `resolve(query)`; clicking a
+ * station resolves the stream URL via `stream-url` and hands it to
+ * `player_play_url`. From that point on, the cpal engine drives
+ * playback through the same EQ / ReplayGain / WASAPI Exclusive /
+ * spectrum / Discord RPC pipeline the local library uses — the radio
+ * is a first-class source, not a sandboxed HTML5 audio element.
+ *
+ * The previous HTML5 `<audio>` stop-gap (Phase 4.b) lived here through
+ * one release window before being promoted.
  */
 export function WebRadioView() {
   const { t } = useTranslation();
@@ -37,22 +37,19 @@ export function WebRadioView() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchActive, setSearchActive] = useState(false);
+  // The PluginTrack.id of the currently-playing station, or null when
+  // nothing in this view owns the engine. Driven by user clicks AND
+  // by `player:state` events so an external stop (PlayerBar, OS
+  // overlay, queue resume) collapses the highlight cleanly.
   const [playingId, setPlayingId] = useState<string | null>(null);
-  const [playingUrl, setPlayingUrl] = useState<string | null>(null);
-  const [playingTitle, setPlayingTitle] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   // Per-async-call request tokens. Each handler increments + captures
   // its value before await; the await's continuation drops itself
-  // when the ref has moved on. Two counters because category
-  // resolves (openEntry + runSearch) race the same surface, but
-  // stream-url clicks are independent — a play click shouldn't
-  // invalidate a pending category fetch.
+  // when the ref has moved on. Two counters because category resolves
+  // (openEntry + runSearch) race the same surface, but stream-url
+  // clicks are independent — a play click shouldn't invalidate a
+  // pending category fetch.
   const resolveReqRef = useRef(0);
   const streamReqRef = useRef(0);
-  // Pending `setTimeout` id for the `play()` deferral. Cleared on
-  // unmount + before scheduling a new one so the callback can never
-  // fire against an unmounted audio element.
-  const playTimerRef = useRef<number | null>(null);
 
   // Initial fetch of the category list (`.then`-style per the same
   // `react-hooks/set-state-in-effect` constraint that drives
@@ -74,6 +71,33 @@ export function WebRadioView() {
     );
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  // Track the engine's lifecycle so a stream that dies on its own
+  // (server timeout, mid-stream 5xx, user hits Stop on the PlayerBar)
+  // un-highlights the row. The engine emits `player:state` with
+  // `state: "idle"` whenever the decoder backs out of `play_track`
+  // — natural EOF, Stop, or open-failure all converge there.
+  useEffect(() => {
+    let cancelled = false;
+    const unlisten: UnlistenFn[] = [];
+    (async () => {
+      try {
+        const u = await listen<{ state: string }>("player:state", (e) => {
+          if (e.payload.state === "idle" || e.payload.state === "ended") {
+            setPlayingId(null);
+          }
+        });
+        unlisten.push(u);
+      } catch (err) {
+        console.error("[WebRadioView] listen setup failed", err);
+      }
+      if (cancelled) unlisten.forEach((u) => u());
+    })();
+    return () => {
+      cancelled = true;
+      unlisten.forEach((u) => u());
     };
   }, []);
 
@@ -104,9 +128,6 @@ export function WebRadioView() {
   const runSearch = useCallback(async () => {
     const term = searchTerm.trim();
     if (term.length === 0) return;
-    // Same token guard as openEntry — search + category clicks
-    // race the same `resolveReqRef`, so a search fired mid-resolve
-    // wins and vice-versa.
     const token = ++resolveReqRef.current;
     setActiveEntry(null);
     setSearchActive(true);
@@ -132,128 +153,76 @@ export function WebRadioView() {
     // - Bumping `resolveReqRef` makes a pending `pluginResolve`
     //   continuation drop itself instead of restoring the
     //   abandoned category's tracks on top of the home view.
-    // - Bumping `streamReqRef` does the same for `pluginStreamUrl`
-    //   so a click on a station + an immediate "back" can't
-    //   surface audio under the category list a moment later.
-    // - Clearing the deferred `play()` timer + pausing the audio
-    //   element close any imperative side-effect already queued.
+    // - Bumping `streamReqRef` does the same for `pluginStreamUrl` /
+    //   `playerPlayUrl` so a click on a station + an immediate "back"
+    //   can't fire `playerPlayUrl` a moment later under the category
+    //   list.
+    //
+    // We deliberately do NOT call `playerStop` here — going back to
+    // the category list shouldn't kill audio (the PlayerBar still
+    // owns playback). If the user wants to stop, that's the
+    // PlayerBar's job.
+    //
+    // Clearing `playingId` is the right rollback when the bump above
+    // strands an optimistic highlight from a click whose stream-url
+    // resolve hadn't landed yet — otherwise the row would stay lit
+    // even though `playerPlayUrl` never fired. Trade-off: if a stream
+    // is actually playing when the user backs out, the highlight is
+    // lost on re-entry until they click again. PlayerBar remains the
+    // source of truth for "what's playing".
     resolveReqRef.current += 1;
     streamReqRef.current += 1;
-    if (playTimerRef.current !== null) {
-      window.clearTimeout(playTimerRef.current);
-      playTimerRef.current = null;
-    }
-    audioRef.current?.pause();
     setActiveEntry(null);
     setSearchActive(false);
     setTracks([]);
     setPlayingId(null);
-    setPlayingUrl(null);
   }, []);
 
   const playTrack = useCallback(
     async (track: PluginTrack) => {
       // Toggle off if the user clicks the currently-playing row.
-      // Same belt-and-braces as `backToCategories`: bump the
-      // stream counter + drop any pending deferred `play()` so a
-      // stale stream-url that's about to land can't restart the
-      // station the user just asked to stop.
+      // `playerStop` will trigger a `player:state` event that
+      // collapses `playingId` for us — no need to clear it here.
       if (playingId === track.id) {
         streamReqRef.current += 1;
-        if (playTimerRef.current !== null) {
-          window.clearTimeout(playTimerRef.current);
-          playTimerRef.current = null;
+        try {
+          await playerStop();
+        } catch (e) {
+          setError(e instanceof Error ? e.message : String(e));
         }
-        audioRef.current?.pause();
-        setPlayingId(null);
-        setPlayingUrl(null);
         return;
       }
       const token = ++streamReqRef.current;
       setError(null);
+      // Optimistically highlight before the await so the row gives
+      // immediate feedback. If the stream-url resolve fails or a
+      // newer click supersedes us, we roll back in the catch / token
+      // guard below.
+      setPlayingId(track.id);
       try {
         const url = await pluginStreamUrl(PLUGIN_ID, track.id);
-        // Drop the stale URL silently if another track was
-        // clicked while we awaited — without this guard the older
-        // station can land state + start playing on top of the
-        // newer one.
         if (streamReqRef.current !== token) return;
-        // Pause the current source BEFORE the src rebind so the
-        // browser doesn't emit "The play() request was interrupted
-        // by a new load request" — that AbortError fires when the
-        // user clicks a different station while the previous one
-        // is still resolving its load. Pausing first cancels the
-        // in-flight load cleanly.
-        if (audioRef.current) {
-          audioRef.current.pause();
-        }
-        setPlayingUrl(url);
-        setPlayingId(track.id);
-        setPlayingTitle(`${track.title} — ${track.artist}`);
-        // Wait a tick for the `<audio src=...>` rebind, then play.
-        // The pending timer id rides on `playTimerRef` so the
-        // unmount cleanup can cancel it AND a back-to-back
-        // playTrack call cancels its predecessor before scheduling
-        // a fresh one.
-        if (playTimerRef.current !== null) {
-          window.clearTimeout(playTimerRef.current);
-        }
-        playTimerRef.current = window.setTimeout(() => {
-          playTimerRef.current = null;
-          if (streamReqRef.current !== token) return;
-          audioRef.current?.play().catch((e: unknown) => {
-            if (streamReqRef.current !== token) return;
-            // Swallow the AbortError that still surfaces if the
-            // user clicked twice fast enough to race the
-            // setTimeout — it's benign and gone by the next click.
-            if (e instanceof DOMException && e.name === "AbortError") {
-              return;
-            }
-            setError(e instanceof Error ? e.message : String(e));
-            setPlayingId(null);
-          });
-        }, 0);
+        // Hand off to the cpal engine. `playerPlayUrl` returns the
+        // negative sentinel track id — we don't need it here, the
+        // PlayerContext picks the metadata up off the
+        // `player:radio-metadata` event the decoder emits.
+        await playerPlayUrl({
+          url,
+          title: track.title,
+          artist: track.artist,
+          artworkUrl: track.artworkUrl ?? undefined,
+        });
+        // No success-side state update: the engine will emit
+        // `player:state -> playing` on its own.
       } catch (e) {
         if (streamReqRef.current !== token) return;
         setError(e instanceof Error ? e.message : String(e));
+        // Roll back the optimistic highlight.
+        setPlayingId(null);
       }
     },
     [playingId],
   );
-
-  // Cancel any pending `play()` timer when the component unmounts
-  // so its callback can't fire against a detached audio element.
-  useEffect(
-    () => () => {
-      if (playTimerRef.current !== null) {
-        window.clearTimeout(playTimerRef.current);
-        playTimerRef.current = null;
-      }
-    },
-    [],
-  );
-
-  // Sync component state with the audio element's `ended` / `error`
-  // events so a stream that drops on its own (server timeout, 5xx
-  // mid-stream) collapses the highlighted row + the now-playing
-  // strip rather than leaving them claiming a station is playing.
-  // We don't subscribe to `play` / `pause` because our `playTrack`
-  // function already owns those transitions imperatively, and
-  // listening would race our own state updates during track swaps.
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const clear = () => {
-      setPlayingId(null);
-      setPlayingUrl(null);
-    };
-    audio.addEventListener("ended", clear);
-    audio.addEventListener("error", clear);
-    return () => {
-      audio.removeEventListener("ended", clear);
-      audio.removeEventListener("error", clear);
-    };
-  }, [playingUrl]);
 
   const showCategoryList = activeEntry === null && !searchActive;
 
@@ -393,34 +362,6 @@ export function WebRadioView() {
           </ul>
         )}
       </div>
-
-      {playingUrl && (
-        <div
-          aria-label={t("webRadio.nowPlaying")}
-          className="px-6 py-3 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center gap-3"
-        >
-          <Radio
-            size={18}
-            className="text-emerald-500 shrink-0"
-            aria-hidden="true"
-          />
-          <span className="text-xs text-zinc-700 dark:text-zinc-200 truncate flex-1">
-            {playingTitle ?? ""}
-          </span>
-          {/* No `controls` attribute: row clicks own the play /
-              pause transitions and the component state would
-              de-sync with the native button. Volume falls back to
-              the OS mixer; Phase 4.c routes Web Radio through the
-              cpal engine where volume + the EQ + the rest of the
-              player surface apply for real. */}
-          <audio
-            ref={audioRef}
-            src={playingUrl}
-            preload="none"
-            className="hidden"
-          />
-        </div>
-      )}
     </div>
   );
 }
