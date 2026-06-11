@@ -10,7 +10,7 @@ User-facing references and per-feature deep dives. The top-level [README](../REA
 | [Library](features/library.md)                 | Folder scanning + management (add / watch / remove), filesystem watcher, drag-and-drop import, duplicate detection, on-demand audio analysis, multi-artist split, ratings, A-Z navigator |
 | [Playlists](features/playlists.md)             | User playlists CRUD, M3U import/export, likes, recently-played                                                                                                                           |
 | [Smart playlists](features/smart-playlists.md) | Daily Mix auto-generation + user-defined rule editor: algorithm, cover compositor, regen flow                                                                                            |
-| [Integrations](features/integrations.md)       | Deezer / Last.fm / LRCLIB clients, metadata cache, scrobble worker, similar-artists discovery, in-app lyrics editor                                                                      |
+| [Integrations](features/integrations.md)       | Deezer / Last.fm / lyrics providers, metadata cache, scrobble worker, similar-artists discovery, in-app lyrics editor                                                                    |
 | [DLNA / UPnP server](features/dlna.md)         | Built-in MediaServer: SSDP discovery, ContentDirectory Browse, Range streaming to LAN amplifiers                                                                                         |
 | [UI & UX](features/ui.md)                      | Layout, panels, mini-player widget, tray, statistics, dark mode, i18n, profiles, onboarding, auto-updater                                                                                |
 

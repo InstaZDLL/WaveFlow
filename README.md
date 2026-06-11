@@ -67,7 +67,7 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
 | **Library**         | Folder scanning + filesystem watcher, on-demand audio analysis (peak, loudness, ReplayGain, BPM), Hi-Res badges, multi-artist split, POPM 5-star ratings, A-Z navigator, multi-select action bar                                                                                                                | [docs](docs/features/library.md)         |
 | **Playlists**       | Drag-and-drop reorder (virtualised), bulk add from any source, M3U import / export with basename-fallback matching, likes, recently-played                                                                                                                                                                      | [docs](docs/features/playlists.md)       |
 | **Smart playlists** | Auto-generated **Daily Mix** family bucketed by tempo, with composite artist-photo covers rendered from your Deezer cache                                                                                                                                                                                       | [docs](docs/features/smart-playlists.md) |
-| **Integrations**    | Deezer (artwork + labels), Last.fm (bios + scrobbling with retry queue), LRCLIB (synchronised lyrics), Discord Rich Presence ("Listening to WaveFlow" with cover + progress bar) — all cached locally for offline use                                                                                           | [docs](docs/features/integrations.md)    |
+| **Integrations**    | Deezer (artwork + labels), Last.fm (bios + scrobbling with retry queue), LRCLIB + Musixmatch/NetEase/Megalobiz/Genius lyrics, Discord Rich Presence ("Listening to WaveFlow" with cover + progress bar) — all cached locally for offline use                                                                       | [docs](docs/features/integrations.md)    |
 | **UI & UX**         | Spotify-style 3-panel layout, system tray, statistics dashboard with JSON export, **WaveFlow Wrapped** year-in-review (story-style overlay), virtual scroll for 6000+ tracks, dark mode (View Transitions API), 17 locales (RTL-aware), per-profile isolated DB with scheduled auto-backup, signed auto-updater | [docs](docs/features/ui.md)              |
 
 ## Tech Stack
@@ -83,7 +83,7 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
 | **Metadata extraction**   | lofty 0.24 (tags, embedded art, POPM, INITIALKEY)                                                                                  |
 | **Imaging**               | image 0.25 + fast_image_resize 6 (SIMD thumbnails)                                                                                 |
 | **Filesystem watcher**    | notify 8 (debounced rescans of watched folders)                                                                                    |
-| **External APIs**         | Deezer public API (no auth) + Last.fm (read + signed methods via md-5 + reqwest 0.12 with rustls) + LRCLIB (synchronized lyrics)   |
+| **External APIs**         | Deezer public API (no auth) + Last.fm (read + signed methods via md-5 + reqwest 0.12 with rustls) + LRCLIB/Musixmatch/NetEase/Megalobiz/Genius lyrics |
 | **Package manager**       | Bun                                                                                                                                |
 
 ## Getting Started
@@ -150,4 +150,5 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 ```
 
-See [LICENSE](LICENSE) for the full text.
+See [LICENSE](LICENSE) for the full text. Third-party notices are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
