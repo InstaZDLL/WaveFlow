@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { Radio, Search, ChevronLeft, Play, Pause } from "lucide-react";
+import { Radio, Search, ChevronLeft, Play, Pause, Loader2 } from "lucide-react";
 
 import { playerPlayUrl, playerStop } from "../../lib/tauri/player";
 import {
@@ -38,10 +38,19 @@ export function WebRadioView() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchActive, setSearchActive] = useState(false);
   // The PluginTrack.id of the currently-playing station, or null when
-  // nothing in this view owns the engine. Driven by user clicks AND
-  // by `player:state` events so an external stop (PlayerBar, OS
-  // overlay, queue resume) collapses the highlight cleanly.
+  // nothing in this view owns the engine. Driven by `playerPlayUrl`
+  // success AND by `player:state` events so an external stop
+  // (PlayerBar, OS overlay, queue resume) collapses the highlight
+  // cleanly.
   const [playingId, setPlayingId] = useState<string | null>(null);
+  // The PluginTrack.id we are currently resolving the stream-url +
+  // dispatching `playerPlayUrl` for. Drives the per-row Loader2
+  // spinner. Kept separate from `playingId` so an in-flight click
+  // never paints a Pause icon — which would invite the user to
+  // re-click and accidentally toggle the request off via the
+  // `playingId === track.id` branch before the audio has even
+  // started.
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   // Per-async-call request tokens. Each handler increments + captures
   // its value before await; the await's continuation drops itself
   // when the ref has moved on. Two counters because category resolves
@@ -87,6 +96,7 @@ export function WebRadioView() {
         const u = await listen<{ state: string }>("player:state", (e) => {
           if (e.payload.state === "idle" || e.payload.state === "ended") {
             setPlayingId(null);
+            setLoadingId(null);
           }
         });
         unlisten.push(u);
@@ -176,13 +186,24 @@ export function WebRadioView() {
     setSearchActive(false);
     setTracks([]);
     setPlayingId(null);
+    setLoadingId(null);
   }, []);
 
   const playTrack = useCallback(
     async (track: PluginTrack) => {
-      // Toggle off if the user clicks the currently-playing row.
-      // `playerStop` will trigger a `player:state` event that
-      // collapses `playingId` for us — no need to clear it here.
+      // Click on a row that's currently loading → cancel the request
+      // and clear the spinner. NO `playerStop` because the audio
+      // engine has not been told to play anything yet — firing Stop
+      // here would also interrupt whatever local track was playing
+      // before the user clicked the radio (regression from PR #228).
+      if (loadingId === track.id) {
+        streamReqRef.current += 1;
+        setLoadingId(null);
+        return;
+      }
+      // Click on a row that is confirmed playing → toggle off via
+      // the engine. The `player:state -> idle` listener clears
+      // `playingId` for us.
       if (playingId === track.id) {
         streamReqRef.current += 1;
         try {
@@ -194,11 +215,16 @@ export function WebRadioView() {
       }
       const token = ++streamReqRef.current;
       setError(null);
-      // Optimistically highlight before the await so the row gives
-      // immediate feedback. If the stream-url resolve fails or a
-      // newer click supersedes us, we roll back in the catch / token
-      // guard below.
-      setPlayingId(track.id);
+      // Show the Loader2 spinner immediately so the click gives
+      // tactile feedback while `pluginStreamUrl` + `playerPlayUrl`
+      // are in flight (the radio-browser → http_source probe can
+      // take several hundred ms). Deliberately NOT touching
+      // `playingId` here — painting a Pause icon before the engine
+      // actually plays anything is the same trap that broke clicks
+      // in PR #228 (users re-click thinking the first didn't
+      // register, the second click hits the toggle-off branch,
+      // `playerPlayUrl` never fires because its token is stale).
+      setLoadingId(track.id);
       try {
         const url = await pluginStreamUrl(PLUGIN_ID, track.id);
         if (streamReqRef.current !== token) return;
@@ -212,16 +238,20 @@ export function WebRadioView() {
           artist: track.artist,
           artworkUrl: track.artworkUrl ?? undefined,
         });
-        // No success-side state update: the engine will emit
-        // `player:state -> playing` on its own.
+        if (streamReqRef.current !== token) return;
+        // Engine accepted the command. Move from loading → playing.
+        // The decoder still has to probe + decode before audio is
+        // audible, but UX-wise the row should now show Pause so a
+        // second click toggles off cleanly.
+        setLoadingId(null);
+        setPlayingId(track.id);
       } catch (e) {
         if (streamReqRef.current !== token) return;
         setError(e instanceof Error ? e.message : String(e));
-        // Roll back the optimistic highlight.
-        setPlayingId(null);
+        setLoadingId(null);
       }
     },
-    [playingId],
+    [playingId, loadingId],
   );
 
   const showCategoryList = activeEntry === null && !searchActive;
@@ -320,10 +350,19 @@ export function WebRadioView() {
           </div>
         ) : (
           <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {tracks.map((track) => {
+            {tracks.map((track, idx) => {
               const isPlaying = playingId === track.id;
+              const isLoading = loadingId === track.id;
+              // The plugin encodes `track.id` as `url:<stream>` and
+              // radio-browser sometimes returns multiple distinct
+              // stations sharing the same stream URL. Without an
+              // index prefix React collapses those rows into one
+              // (duplicate-key warning) and click handlers can fire
+              // against the wrong instance. The index disambiguates
+              // for React; `track.id` stays as-is for `playingId`
+              // comparison + `pluginStreamUrl` lookup.
               return (
-                <li key={track.id} className="py-2">
+                <li key={`${idx}-${track.id}`} className="py-2">
                   <button
                     type="button"
                     onClick={() => {
@@ -333,13 +372,19 @@ export function WebRadioView() {
                   >
                     <span
                       className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${
-                        isPlaying
+                        isPlaying || isLoading
                           ? "bg-emerald-500 text-white"
                           : "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300"
                       }`}
                       aria-hidden="true"
                     >
-                      {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+                      {isLoading ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : isPlaying ? (
+                        <Pause size={14} />
+                      ) : (
+                        <Play size={14} />
+                      )}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-medium text-zinc-900 dark:text-white truncate">

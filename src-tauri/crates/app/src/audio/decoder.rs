@@ -389,6 +389,11 @@ fn decoder_loop(
                 artist,
                 artwork_url,
             } => {
+                tracing::info!(
+                    track_id,
+                    url = %super::http_source::redact_url(&url),
+                    "decoder picked up LoadUrlAndPlay"
+                );
                 shared.clear_ab_loop();
                 transition_state(&shared, &app, PlayerState::Loading, Some(track_id));
 

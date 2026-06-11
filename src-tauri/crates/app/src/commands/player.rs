@@ -1729,6 +1729,14 @@ pub async fn player_play_url(
     artwork_url: Option<String>,
     ext_hint: Option<String>,
 ) -> AppResult<i64> {
+    tracing::info!(
+        url = %crate::audio::http_source::redact_url(&url),
+        title = ?title,
+        artist = ?artist,
+        ext_hint = ?ext_hint,
+        "player_play_url invoked"
+    );
+
     let parsed = url::Url::parse(&url)
         .map_err(|e| AppError::Other(format!("invalid url: {e}")))?;
     match parsed.scheme() {
@@ -1740,6 +1748,7 @@ pub async fn player_play_url(
     // so a deliberately offline session can't be tricked into network
     // chatter by a stale tab.
     if crate::offline::is_offline() {
+        tracing::warn!("player_play_url short-circuited: offline mode enabled");
         return Err(AppError::Other("offline mode is enabled".into()));
     }
 
@@ -1769,6 +1778,7 @@ pub async fn player_play_url(
         controls.update_playback(crate::audio::PlayerState::Playing, 0);
     }
 
+    tracing::info!(track_id, "dispatching AudioCmd::LoadUrlAndPlay");
     engine.send(AudioCmd::LoadUrlAndPlay {
         url,
         ext_hint,
