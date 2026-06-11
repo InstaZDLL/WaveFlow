@@ -45,6 +45,41 @@ use crate::{
 static PREFETCH_RUNNING: AtomicBool = AtomicBool::new(false);
 static PREFETCH_CANCEL: AtomicBool = AtomicBool::new(false);
 
+/// Process-wide Musixmatch opt-in. Off by default because the upstream
+/// `syncedlyrics` Python project — and therefore this Rust port — hits
+/// Musixmatch's `apic-desktop.musixmatch.com` private endpoint via a
+/// reverse-engineered desktop-app `app_id`. That is not an authorised
+/// integration; Musixmatch has historically issued takedowns against
+/// clients that ship it on by default. Hydrated from
+/// `app_setting['lyrics.musixmatch_enabled']` at startup. Users who
+/// want the word-level provider can opt in via SQL today; a Settings
+/// toggle ships in v1.6.
+static MUSIXMATCH_ENABLED: AtomicBool = AtomicBool::new(false);
+
+#[inline]
+pub fn musixmatch_enabled() -> bool {
+    MUSIXMATCH_ENABLED.load(Ordering::Acquire)
+}
+
+#[inline]
+pub fn set_musixmatch_enabled(value: bool) {
+    MUSIXMATCH_ENABLED.store(value, Ordering::Release);
+}
+
+/// Filter Musixmatch out of a provider list when the opt-in is off.
+/// Used at every external-search call site so the opt-in is a single
+/// chokepoint instead of N scattered checks.
+fn filter_providers(providers: Vec<Provider>) -> Vec<Provider> {
+    if musixmatch_enabled() {
+        providers
+    } else {
+        providers
+            .into_iter()
+            .filter(|p| !matches!(p, Provider::Musixmatch))
+            .collect()
+    }
+}
+
 /// LRCLIB throttle — be a polite guest on the public instance. 500 ms
 /// per call ≈ 2 req/s, which clears a 10k-track library in ~1h30 even
 /// when every track misses the embedded tag and goes to the network.
@@ -275,6 +310,14 @@ async fn external_lyrics_search(
     // regardless of caller. Returning Ok(None) short-circuits before any
     // request is issued (see the process-wide offline contract).
     if crate::offline::is_offline() {
+        return Ok(None);
+    }
+    // Apply the Musixmatch opt-in here — at a single chokepoint — so
+    // call sites don't have to know whether Musixmatch is in their
+    // provider list. An empty list after filtering means "nothing left
+    // to query": short-circuit instead of building a no-op client.
+    let providers = filter_providers(providers);
+    if providers.is_empty() {
         return Ok(None);
     }
     let query = external_query(&meta.title, meta.artist_name.as_deref());

@@ -14,13 +14,14 @@ lineage is:
 2. Forked and rewritten in Zig — <https://github.com/InstaZDLL/zig-syncedlyrics>
 3. Ported to Rust as the `waveflow-syncedlyrics` crate for WaveFlow (this tree)
 
-It is included in WaveFlow under GPL-3.0-only, with the original MIT notice
-preserved below.
+The Rust port itself is part of WaveFlow and is licensed under **GPL-3.0-only**
+(see [LICENSE](./LICENSE)). The MIT notice from the upstream Python project is
+preserved verbatim below — it covers the original implementation by Momo, not
+the InstaZDLL-authored Rust rewrite which is governed by the GPL terms.
 
 MIT License
 
 Copyright (c) 2022 Momo
-Copyright (c) 2026 InstaZDLL
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

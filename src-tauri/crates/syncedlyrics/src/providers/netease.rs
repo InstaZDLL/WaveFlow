@@ -1,5 +1,6 @@
 use serde_json::Value;
 
+use crate::http::safe_json;
 use crate::{utils, Candidate, Result};
 
 pub async fn search(
@@ -16,7 +17,7 @@ pub async fn search(
     if let Some(cookie) = cookie {
         req = req.header(reqwest::header::COOKIE, cookie);
     }
-    let response: Value = req.send().await?.error_for_status()?.json().await?;
+    let response: Value = safe_json(req.send().await?.error_for_status()?).await?;
     let Some(songs) = response["result"]["songs"].as_array() else {
         return Ok(None);
     };
@@ -55,7 +56,7 @@ async fn lyrics_by_id(
     if let Some(cookie) = cookie {
         req = req.header(reqwest::header::COOKIE, cookie);
     }
-    let response: Value = req.send().await?.error_for_status()?.json().await?;
+    let response: Value = safe_json(req.send().await?.error_for_status()?).await?;
     let Some(lyric) = response["lrc"]["lyric"]
         .as_str()
         .filter(|s| !s.trim().is_empty())

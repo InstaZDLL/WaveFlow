@@ -1,6 +1,12 @@
 use serde_json::Value;
 
+use crate::http::{safe_json, safe_text, validate_outbound_url};
 use crate::{utils, Candidate, Result};
+
+/// Hosts the Genius search response is permitted to redirect us to —
+/// the search API can return URLs that point at `genius.com` proper or
+/// the locale subdomain pattern that ultimately serves the lyric page.
+const GENIUS_ALLOWED_HOSTS: &[&str] = &["genius.com", "www.genius.com"];
 
 pub async fn search(
     http: &reqwest::Client,
@@ -13,12 +19,13 @@ pub async fn search(
     if let Some(cookie) = cookie {
         req = req.header(reqwest::header::COOKIE, cookie);
     }
-    let response: Value = req.send().await?.error_for_status()?.json().await?;
+    let response: Value =
+        safe_json(req.send().await?.error_for_status()?).await?;
     // The multi-search response groups results into sections (song, lyric,
     // artist, album…) and the order is not contractual, so we can't index a
     // fixed slot. Prefer the dedicated "song" section, then fall back to the
     // first section that actually carries hits.
-    let Some(url) = response["response"]["sections"]
+    let Some(url_str) = response["response"]["sections"]
         .as_array()
         .and_then(|sections| {
             sections
@@ -38,13 +45,12 @@ pub async fn search(
     else {
         return Ok(None);
     };
-    let page = http
-        .get(url)
-        .send()
-        .await?
-        .error_for_status()?
-        .text()
-        .await?;
+    // The lyric-page URL came out of a third-party JSON response — pin
+    // it to genius.com before we follow it. Without this guard a
+    // compromised Genius API response could ship a URL pointing at an
+    // attacker-controlled host and we'd happily GET it.
+    let url = validate_outbound_url(url_str, GENIUS_ALLOWED_HOSTS)?;
+    let page = safe_text(http.get(url).send().await?.error_for_status()?).await?;
     let text = extract_lyrics_containers(&page);
     Ok((!text.trim().is_empty()).then_some(Candidate {
         synced: None,

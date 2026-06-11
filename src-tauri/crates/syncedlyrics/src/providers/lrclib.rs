@@ -1,5 +1,6 @@
 use serde::Deserialize;
 
+use crate::http::safe_json;
 use crate::{utils, Candidate, Result};
 
 /// Minimum fuzzy score for a search hit to be considered the same track.
@@ -27,14 +28,14 @@ struct GetTrack {
 }
 
 pub async fn search(http: &reqwest::Client, query: &str) -> Result<Option<Candidate>> {
-    let tracks: Vec<SearchTrack> = http
-        .get("https://lrclib.net/api/search")
-        .query(&[("q", query)])
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await?;
+    let tracks: Vec<SearchTrack> = safe_json(
+        http.get("https://lrclib.net/api/search")
+            .query(&[("q", query)])
+            .send()
+            .await?
+            .error_for_status()?,
+    )
+    .await?;
     let Some(best) = best_track(&tracks, query) else {
         return Ok(None);
     };
@@ -43,13 +44,13 @@ pub async fn search(http: &reqwest::Client, query: &str) -> Result<Option<Candid
         serde_json::Value::String(s) => s.clone(),
         _ => return Ok(None),
     };
-    let track: GetTrack = http
-        .get(format!("https://lrclib.net/api/get/{id}"))
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await?;
+    let track: GetTrack = safe_json(
+        http.get(format!("https://lrclib.net/api/get/{id}"))
+            .send()
+            .await?
+            .error_for_status()?,
+    )
+    .await?;
     Ok(Some(Candidate {
         synced: non_empty(track.synced_lyrics),
         unsynced: non_empty(track.plain_lyrics),

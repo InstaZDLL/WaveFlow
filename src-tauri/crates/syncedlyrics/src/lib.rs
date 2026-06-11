@@ -4,6 +4,7 @@
 //! Callers provide a free-form query and receive a lyrics body plus the
 //! detected format/provider.
 
+pub(crate) mod http;
 mod providers;
 mod utils;
 
@@ -114,11 +115,10 @@ impl SyncedLyricsClient {
     /// itself panics on a TLS/backend init failure, so callers must handle the
     /// error rather than hide it behind a panic-prone fallback.
     pub fn try_new() -> Result<Self> {
-        let http = reqwest::Client::builder()
-            .user_agent("WaveFlow/1.4 (https://github.com/InstaZDLL/WaveFlow)")
-            .timeout(std::time::Duration::from_secs(15))
-            .connect_timeout(std::time::Duration::from_secs(5))
-            .build()?;
+        // `http::build_client` carries the redirect host pinning + 3-hop
+        // cap + connect/total timeouts. Constructing reqwest by hand
+        // here would silently drop those guards.
+        let http = http::build_client()?;
         Ok(Self { http })
     }
 
@@ -159,7 +159,16 @@ impl SyncedLyricsClient {
             let Some(candidate) = (match candidate {
                 Ok(value) => value,
                 Err(err) => {
-                    tracing::debug!(?provider, ?err, "lyrics provider failed");
+                    // Sanitize the error message before tracing —
+                    // `reqwest::Error`'s Debug impl echoes the request
+                    // URL, and Musixmatch URLs carry `usertoken=` as a
+                    // query parameter. Without this, a failed
+                    // Musixmatch request would leak the token into the
+                    // rolling log file. We log a static message and
+                    // the provider variant; the underlying error
+                    // chain is preserved through `last_error` for the
+                    // structured return path.
+                    tracing::debug!(?provider, "lyrics provider failed");
                     last_error = Some(err);
                     None
                 }

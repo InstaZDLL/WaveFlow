@@ -1,28 +1,40 @@
-use crate::{utils, Candidate, Result};
+use crate::http::safe_text;
+use crate::{utils, Candidate, Error, Result};
 
 pub async fn search(http: &reqwest::Client, query: &str) -> Result<Option<Candidate>> {
-    let page = http
-        .get("https://www.megalobiz.com/search/all")
-        .query(&[
-            ("qry", query),
-            ("searchButton.x", "0"),
-            ("searchButton.y", "0"),
-        ])
-        .send()
-        .await?
-        .error_for_status()?
-        .text()
-        .await?;
+    let page = safe_text(
+        http.get("https://www.megalobiz.com/search/all")
+            .query(&[
+                ("qry", query),
+                ("searchButton.x", "0"),
+                ("searchButton.y", "0"),
+            ])
+            .send()
+            .await?
+            .error_for_status()?,
+    )
+    .await?;
     let Some(href) = best_lrc_href(&page, query) else {
         return Ok(None);
     };
-    let detail = http
-        .get(format!("https://www.megalobiz.com{href}"))
-        .send()
-        .await?
-        .error_for_status()?
-        .text()
-        .await?;
+    // The href came out of an HTML scrape; assert it's a same-host
+    // relative path before pasting it onto `https://www.megalobiz.com`.
+    // Without this guard a poisoned anchor like `//attacker.com/...`
+    // would resolve to `https://www.megalobiz.com//attacker.com/...`
+    // and reqwest's URL parser may follow into the foreign origin on
+    // redirect.
+    if !href.starts_with('/') || href.starts_with("//") {
+        return Err(Error::Provider(format!(
+            "megalobiz href is not a same-host relative path: {href}"
+        )));
+    }
+    let detail = safe_text(
+        http.get(format!("https://www.megalobiz.com{href}"))
+            .send()
+            .await?
+            .error_for_status()?,
+    )
+    .await?;
     let Some(id) = href.rsplit('.').next() else {
         return Ok(None);
     };
