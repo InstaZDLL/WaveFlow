@@ -14,9 +14,10 @@
 use std::time::Duration;
 
 use serde::Deserialize;
-use tiny_http::{Header, Response, Server};
+use tiny_http::Server;
 
 use crate::{
+    commands::loopback::html_response,
     error::{AppError, AppResult},
     server_client::{self, ServerStatus},
     state::AppState,
@@ -223,15 +224,4 @@ fn wait_for_callback(expected_state: &str) -> AppResult<String> {
     };
 
     result
-}
-
-/// Build a `tiny_http` response with `Content-Type: text/html; charset=utf-8`
-/// so the browser renders the confirmation page instead of dumping the
-/// raw HTML as plaintext. `tiny_http::Response::from_string` does not
-/// stamp a Content-Type header on its own.
-fn html_response(body: &'static str) -> Response<std::io::Cursor<Vec<u8>>> {
-    Response::from_string(body).with_header(
-        Header::from_bytes(&b"Content-Type"[..], &b"text/html; charset=utf-8"[..])
-            .expect("static html content-type header is well-formed"),
-    )
 }
