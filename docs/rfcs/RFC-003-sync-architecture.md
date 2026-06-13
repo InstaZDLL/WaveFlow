@@ -137,7 +137,7 @@ Caveat: this drops the loser's write. For names this is acceptable (the user can
 
 `library_folder`, `liked_track`: `(canonical_id, add/remove)` pairs.
 
-Insert: `{canonical_id, add_at_hlc}`. Delete: `{canonical_id, delete_at_hlc}`. A row is "in the set" iff its latest add_hlc > its latest delete_hlc (or no delete). Add-bias on tie (`>=`). Concurrent add and delete = add wins (typical OR-Set semantics).
+Insert stamps `{canonical_id, add_at: (hlc, origin_device_id)}`. Delete stamps `{canonical_id, delete_at: (hlc, origin_device_id)}`. Membership uses the **same total order** as §2: a row is "in the set" iff `add_at > delete_at` under lex-compare on the full `(hlc.wall, hlc.logical, origin_device_id)` tuple — never a bare `hlc` comparison. This matters because two replicas would otherwise converge to different verdicts when an add and a delete share the exact same `hlc` but came from different devices: the §2 total order makes both replicas agree on which device wins. Add-bias on the boundary: `add_at >= delete_at` ⇒ present (concurrent add wins, classic OR-Set semantics).
 
 Why add-bias: a user re-adding a folder after a remote delete is the common case; remote delete after local re-add is the rare case. Bias matches user intent.
 
@@ -167,14 +167,17 @@ On first sign-in OR on user "Re-sync everything":
    3a. Server has rows desktop doesn't → pull (catchup, see §5)
    3b. Desktop has rows server doesn't → push as inserts (backfill)
    3c. Both have the same canonical_id → no-op (assume identical state until §3 conflict rules trigger on next edit)
-4. Mark device as "backfilled" in app_setting['sync.backfill_done.<device_id>']
+4. Mark this profile as "backfilled" in profile_setting['sync.backfill_done']
+   (per-profile, because the active profile's SQLite is the per-device scope
+   that owns this marker; signing in to a different profile starts its own
+   independent backfill against the same device + server)
 ```
 
 The digest is small (bytes per entity, not per row): MerkleHash of the sorted canonical_id set + a row count, computed lazy on first request, cached server-side.
 
 **Streaming chunked push** for the backfill: desktop fans out `POST /api/v1/sync/ops` with batches of 200 ops at a time, throttled so the server's apply pipeline doesn't queue indefinitely.
 
-The "Re-sync everything" button re-runs the same flow but ignores the `backfill_done` flag.
+The "Re-sync everything" button re-runs the same flow but ignores the `backfill_done` flag. A missing key in `profile_setting` is treated as "not backfilled", which also covers the legacy migration window: any installs that wrote an app-wide `app_setting['sync.backfill_done.<device_id>']` from an earlier draft get a fresh per-profile backfill on first boot of this version. The old app-wide key is deliberately not consulted on read so a backfill against profile A can't silently mask the need for one on profile B.
 
 ### 5. Catchup compression
 
