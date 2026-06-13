@@ -4,10 +4,11 @@ use std::time::Duration;
 
 use serde::Deserialize;
 use tauri::Manager;
-use tiny_http::{Response, Server};
+use tiny_http::Server;
 
 use crate::{
     audio::{engine::AudioCmd, AudioEngine},
+    commands::loopback::html_response,
     error::{AppError, AppResult},
     spotify::{
         self, SpotifyAccessToken, SpotifyPlaylistLite, SpotifySearchResults, SpotifyStatus,
@@ -173,27 +174,21 @@ fn wait_for_callback(expected_state: &str) -> AppResult<String> {
 
     let result = match (parsed.code, parsed.error) {
         (Some(code), _) if parsed.state.as_deref() == Some(expected_state) => {
-            let _ = request.respond(
-                Response::from_string(
-                    "<!doctype html><title>WaveFlow Spotify</title><p>Spotify connected. You can close this tab.</p>",
-                ),
-            );
+            let _ = request.respond(html_response(
+                "<!doctype html><title>WaveFlow Spotify</title><p>Spotify connected. You can close this tab.</p>",
+            ));
             Ok(code)
         }
         (_, Some(err)) => {
-            let _ = request.respond(
-                Response::from_string(
-                    "<!doctype html><title>WaveFlow Spotify</title><p>Spotify login was cancelled or denied.</p>",
-                ),
-            );
+            let _ = request.respond(html_response(
+                "<!doctype html><title>WaveFlow Spotify</title><p>Spotify login was cancelled or denied.</p>",
+            ));
             Err(AppError::Other(format!("Spotify login failed: {err}")))
         }
         _ => {
-            let _ = request.respond(
-                Response::from_string(
-                    "<!doctype html><title>WaveFlow Spotify</title><p>Spotify login failed: invalid state.</p>",
-                ),
-            );
+            let _ = request.respond(html_response(
+                "<!doctype html><title>WaveFlow Spotify</title><p>Spotify login failed: invalid state.</p>",
+            ));
             Err(AppError::Other("Spotify callback state mismatch".into()))
         }
     };

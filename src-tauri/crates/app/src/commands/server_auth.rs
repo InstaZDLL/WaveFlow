@@ -14,9 +14,10 @@
 use std::time::Duration;
 
 use serde::Deserialize;
-use tiny_http::{Response, Server};
+use tiny_http::Server;
 
 use crate::{
+    commands::loopback::html_response,
     error::{AppError, AppResult},
     server_client::{self, ServerStatus},
     state::AppState,
@@ -200,21 +201,21 @@ fn wait_for_callback(expected_state: &str) -> AppResult<String> {
         // future protocol change — falling through to the error arm
         // below is the safer default.
         (Some(token), None, state_value) if state_value == Some(expected_state) => {
-            let _ = request.respond(Response::from_string(
+            let _ = request.respond(html_response(
                 "<!doctype html><title>WaveFlow</title>\
                  <p>Signed in. You can close this tab and return to WaveFlow.</p>",
             ));
             Ok(token)
         }
         (_, Some(err), _) => {
-            let _ = request.respond(Response::from_string(
+            let _ = request.respond(html_response(
                 "<!doctype html><title>WaveFlow</title>\
                  <p>Sign-in was cancelled or denied.</p>",
             ));
             Err(AppError::Other(format!("sign-in failed: {err}")))
         }
         _ => {
-            let _ = request.respond(Response::from_string(
+            let _ = request.respond(html_response(
                 "<!doctype html><title>WaveFlow</title>\
                  <p>Sign-in failed: state mismatch (possible CSRF). Try again from the desktop.</p>",
             ));

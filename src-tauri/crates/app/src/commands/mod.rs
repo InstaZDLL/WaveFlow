@@ -15,6 +15,7 @@ pub mod duplicates;
 pub mod edit;
 pub mod integration;
 pub mod library;
+pub mod loopback;
 pub mod lyrics;
 pub mod maintenance;
 pub mod mood_radio;
