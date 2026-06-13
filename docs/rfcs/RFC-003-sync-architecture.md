@@ -139,7 +139,7 @@ Caveat: this drops the loser's write. For names this is acceptable (the user can
 
 Insert stamps `{canonical_id, add_at: (hlc, op_type, origin_device_id)}`. Delete stamps `{canonical_id, delete_at: (hlc, op_type, origin_device_id)}`. Membership uses the **same total order** as §2 plus a third-level `op_type` tiebreaker that makes the add-bias rule explicit: lex-compare on `(hlc.wall, hlc.logical, op_type, origin_device_id)` where `op_type` ranks `add` > `delete`. **The placement matters**: `op_type` precedes `origin_device_id` so that, on an exact `(wall, logical)` tie between two devices, the add wins regardless of which device's UUID sorts higher. Putting `origin_device_id` ahead of `op_type` would let an unrelated UUID lottery override the user-intent add-bias.
 
-A row is "in the set" iff `add_at > delete_at` under this order — never a bare `hlc` comparison. This matters because two replicas would otherwise converge to different verdicts when an add and a delete share the exact same `hlc` but came from different devices. With `op_type` between `hlc` and `origin_device_id`, `add_at > delete_at` is unambiguous in every case AND preserves the add-bias semantics. Add-bias on the boundary: `add_at >= delete_at` ⇒ present (concurrent add wins, classic OR-Set semantics).
+A row is "in the set" iff `add_at > delete_at` under this order — never a bare `hlc` comparison. This matters because two replicas would otherwise converge to different verdicts when an add and a delete tie on `(hlc.wall, hlc.logical)` — the HLC time portion — but originate from different devices (different `origin_device_id`). With `op_type` placed between the HLC pair and `origin_device_id`, `add_at > delete_at` is unambiguous in that case AND preserves the add-bias semantics. Add-bias on the boundary: `add_at >= delete_at` ⇒ present (concurrent add wins, classic OR-Set semantics).
 
 Why add-bias: a user re-adding a folder after a remote delete is the common case; remote delete after local re-add is the rare case. Bias matches user intent.
 
@@ -190,8 +190,9 @@ One canonical schema for both `§4` (full backfill) and `§5` (catchup compressi
   "<entity>": {
     "count":     u64,                       // # of rows in (profile, entity)
     "set_hash":  "<blake3-hex>",            // MerkleHash over sorted (canonical_id, payload_hash) pairs
-    "max_hlc":   { "wall": u64,             // highest HLC observed for this (profile, entity)
-                   "logical": u32 },        // see "max_hlc invariant" below
+    "max_hlc":   { "wall": u64,             // highest HLC triple observed for this (profile, entity)
+                   "logical": u32,
+                   "origin_device_id": "<uuid>" },   // see "max_hlc invariant" below — full §2 total-order triple
     "rows":      [ { "canonical_id":  "<uuid-v7>",
                      "payload_hash": "<blake3-hex>" }, … ]   // present in §4, omitted in §5
   },
