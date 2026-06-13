@@ -137,7 +137,9 @@ Caveat: this drops the loser's write. For names this is acceptable (the user can
 
 `library_folder`, `liked_track`: `(canonical_id, add/remove)` pairs.
 
-Insert stamps `{canonical_id, add_at: (hlc, origin_device_id)}`. Delete stamps `{canonical_id, delete_at: (hlc, origin_device_id)}`. Membership uses the **same total order** as §2 plus a fourth `op_type` tiebreaker that makes the add-bias rule explicit: lex-compare on `(hlc.wall, hlc.logical, origin_device_id, op_type)` where `op_type` ranks `add` > `delete`. A row is "in the set" iff `add_at > delete_at` under this order — never a bare `hlc` comparison. This matters because two replicas would otherwise converge to different verdicts when an add and a delete share the exact same `hlc` but came from different devices, AND would still be ambiguous in the degenerate corner case where both stamps share the full `(hlc, origin_device_id)` tuple (impossible in practice — HLC's logical counter monotonically increments per device per event — but cleaner to spell out than to rely on the impossibility). With `op_type` in the tuple, `add_at > delete_at` is unambiguous in every case. Add-bias on the boundary: `add_at >= delete_at` ⇒ present (concurrent add wins, classic OR-Set semantics).
+Insert stamps `{canonical_id, add_at: (hlc, op_type, origin_device_id)}`. Delete stamps `{canonical_id, delete_at: (hlc, op_type, origin_device_id)}`. Membership uses the **same total order** as §2 plus a third-level `op_type` tiebreaker that makes the add-bias rule explicit: lex-compare on `(hlc.wall, hlc.logical, op_type, origin_device_id)` where `op_type` ranks `add` > `delete`. **The placement matters**: `op_type` precedes `origin_device_id` so that, on an exact `(wall, logical)` tie between two devices, the add wins regardless of which device's UUID sorts higher. Putting `origin_device_id` ahead of `op_type` would let an unrelated UUID lottery override the user-intent add-bias.
+
+A row is "in the set" iff `add_at > delete_at` under this order — never a bare `hlc` comparison. This matters because two replicas would otherwise converge to different verdicts when an add and a delete share the exact same `hlc` but came from different devices. With `op_type` between `hlc` and `origin_device_id`, `add_at > delete_at` is unambiguous in every case AND preserves the add-bias semantics. Add-bias on the boundary: `add_at >= delete_at` ⇒ present (concurrent add wins, classic OR-Set semantics).
 
 Why add-bias: a user re-adding a folder after a remote delete is the common case; remote delete after local re-add is the rare case. Bias matches user intent.
 
@@ -387,10 +389,32 @@ CREATE INDEX playlist_track_position_fi_idx
 
 The apply pipeline accepts BOTH wire shapes:
 
-- Legacy: `{ position: <i32>, … }` → server writes `position` (kept INT) AND derives an FI string for `position_fi`, then bumps `schema_version` to 1 unchanged.
-- New: `{ position_fi: "<string>", … }` → server writes `position_fi`, derives a synthetic `position` by linear-mapping the lex order to `1..N` for back-compat reads by stale clients, sets `schema_version = 2`.
+- Legacy: `{ position: <i32>, … }` → server writes `position` (kept INT) AND derives an FI string for `position_fi`, then keeps `schema_version = 1`.
+- New: `{ position_fi: "<string>", … }` → server writes `position_fi` only, leaves `position` NULL, sets `schema_version = 2`. **No synthetic `position` is persisted for v2 rows** — see "v1 back-compat reads" below.
 
-Server-side derivation rule (`int → fi`): emit `(i * STEP)::text` where `STEP = "01"` so concurrent inserts always have room between any two adjacent slots. The derivation is deterministic so two replicas backfilling the same playlist arrive at the same FI string.
+Server-side derivation rule for the legacy → FI direction (only used by Legacy writes during cohabitation AND by the C.2 desktop backfill, NEVER on a v2 write): emit `(i * STEP)::text` where `STEP = "01"` so concurrent inserts always have room between any two adjacent slots. The derivation is deterministic so two replicas backfilling the same playlist arrive at the same FI string.
+
+**v1 back-compat reads** use a read-time projection, not a persisted column. A view (or a query helper that wraps every legacy SELECT path) maps `position_fi` → synthetic `position` at read time via `ROW_NUMBER() OVER (PARTITION BY playlist_id ORDER BY position_fi)`:
+
+```sql
+CREATE VIEW playlist_track_v1 AS
+SELECT pt.playlist_id,
+       pt.track_id,
+       COALESCE(
+         pt.position,
+         (ROW_NUMBER() OVER (
+            PARTITION BY pt.playlist_id
+            ORDER BY pt.position_fi
+         ))::int
+       ) AS position,
+       pt.snapshot_title,
+       pt.snapshot_artist,
+       pt.snapshot_duration_ms,
+       pt.added_at
+  FROM playlist_track pt;
+```
+
+This avoids the O(N)-per-write rewrite cost that storing `position` for v2 rows would impose: every concurrent insert would otherwise have to renumber every other row in the playlist to maintain a contiguous `1..N`. Read-time projection moves that cost to read time and only for v1 clients (a population that shrinks to zero by Phase C.3). The cost is bounded by the read-side index already on `(playlist_id, position_fi)`.
 
 **Step C.2 — desktop backfill + client version bump.** Once the server has cohabited for at least one release:
 
