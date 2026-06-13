@@ -1,8 +1,14 @@
 # RFC-003 — Sync architecture v2
 
-**Status:** Draft (2026-06-12)
-**Supersedes:** RFC-001 §Phase 1.f sync, the practical parts (apply pipeline + ops log stay; semantics and protocol are redesigned).
-**Touches:** desktop (`WaveFlow`), monorepo (`waveflow-server` + `waveflow-server/web/`).
+- **Status**: Draft
+- **Date**: 2026-06-12
+- **Authors**: @InstaZDLL
+- **Supersedes**: RFC-001 §Phase 1.f sync (the practical parts — apply pipeline + ops log stay; semantics and protocol are redesigned).
+- **Depends on**: [RFC-001](RFC-001-waveflow-server.md) — reuses its apply pipeline, JWT boundary, and entity dispatch shape.
+- **Touches**: desktop ([`InstaZDLL/WaveFlow`](https://github.com/InstaZDLL/WaveFlow)), monorepo ([`InstaZDLL/waveflow-server`](https://github.com/InstaZDLL/waveflow-server), root + `web/`).
+- **Implementation tracking**: to be opened as a GitHub project once Phase A lands.
+
+---
 
 ## Why this RFC exists
 
@@ -41,7 +47,7 @@ Out of scope:
 
 ## Current state — what stays, what goes
 
-```
+```text
 ✓ STAYS                                  ✗ GETS REPLACED
 ─────────────────────────                ─────────────────
 sync_op log (append-only)                Per-(user,device) Lamport
@@ -61,10 +67,10 @@ The wire shape evolves; the storage layout is largely preserved.
 Every syncable thing carries:
 
 - `canonical_id: UUID v7` (instead of v4: time-ordered, sortable, doubles as a tiebreaker).
-- `created_at: i64` (millis since epoch, **monotonic counter local to the originating device**, not wall clock).
-- `updated_at: i64` (same).
-- `lamport_ts: u64` (see §2).
-- `origin_device_id: UUID` (which device originated this op; needed for OR-Set conflict resolution).
+- `created_at: i64` — wall-clock millis since Unix epoch (UTC), originating device's read of its system clock. Used for human-facing display ("created 2 days ago"); never for ordering or conflict resolution. Ordering uses `hlc` (see §2).
+- `updated_at: i64` — same shape as `created_at`, refreshed on every write that mutates the entity.
+- `hlc: (wall: u64, logical: u32)` — the causal ordering primitive (see §2). Authoritative for conflict resolution; supersedes the legacy `lamport_ts: u64` (kept during Phase A for back-compat, dropped in Phase D).
+- `origin_device_id: UUID` (which device originated this op; the lex-compare tiebreaker for equal `hlc` values, and needed for OR-Set conflict resolution).
 
 Six top-level entities:
 
@@ -83,7 +89,7 @@ Six top-level entities:
 
 The current per-`(user, device)` counter is replaced with a **hybrid logical clock (HLC)** per device:
 
-```
+```text
 hlc = (wall_clock_millis, logical_counter)
 ```
 
@@ -115,7 +121,7 @@ else:
 
 Why HLC and not pure Lamport: pure Lamport drifts arbitrarily far from wall clock, which makes "show me the last 30 days" client queries non-trivial. HLC stays bounded near wall time while still preserving the causality property (`a → b ⇒ hlc(a) < hlc(b)`).
 
-The (`hlc`, `origin_device_id`) pair is a **total order** without needing a central authority: two ops with identical hlc tiebreak on device_id (lex-compared).
+The (`hlc`, `origin_device_id`) pair is a **total order** without needing a central authority: two ops with identical `hlc` tiebreak on `origin_device_id` (lex-compared).
 
 Server stores `hlc_wall: BIGINT`, `hlc_logical: INT`, `origin_device_id: UUID`. The existing `lamport_ts` column is retired (kept as a view for legacy queries during transition).
 
@@ -123,7 +129,7 @@ Server stores `hlc_wall: BIGINT`, `hlc_logical: INT`, `origin_device_id: UUID`. 
 
 #### LWW on scalar fields
 
-Profile name, library name, playlist name, track rating: each gets its own (`hlc`, `origin_device_id`) version vector. On conflict (two writes with overlapping hlc range), pick the (`hlc`, `device_id`) max.
+Profile name, library name, playlist name, track rating: each gets its own (`hlc`, `origin_device_id`) version vector. On conflict (two writes with overlapping hlc range), pick the (`hlc`, `origin_device_id`) max — same total-order rule as §2.
 
 Caveat: this drops the loser's write. For names this is acceptable (the user can re-edit). For irrecoverable data we'd need MVCC; we don't have irrecoverable scalar data in scope.
 
@@ -139,7 +145,7 @@ Why add-bias: a user re-adding a folder after a remote delete is the common case
 
 `playlist_track.position`: a `String` Fractional Index (FI), not an integer.
 
-```
+```text
 [a]   pos = "5"
 [a,b] insert b after a: pos = "55"   (lex-sorted between "5" and any "6+")
 [a,c,b] insert c between a and b: pos = "53"
@@ -153,7 +159,7 @@ Why FI and not list-CRDT (RGA, etc.): FI is O(1) per op, no garbage, no tombston
 
 On first sign-in OR on user "Re-sync everything":
 
-```
+```text
 1. Desktop fetches GET /api/v1/sync/digest
    → server returns {entity → {count, hash_of_canonical_id_set}} per profile
 2. Desktop computes its local digest, diffs
@@ -174,7 +180,7 @@ The "Re-sync everything" button re-runs the same flow but ignores the `backfill_
 
 When a device reconnects after a long offline window, instead of pulling every op since the cursor:
 
-```
+```text
 1. Server runs `GET /api/v1/sync/ops?since=<cursor>` AS A DIGEST FIRST
    → returns {count, hash_of_canonical_id_set, max_hlc}
 2. Device asks: "how many ops will it take to converge?"
@@ -188,7 +194,7 @@ Threshold is per-device (heuristic from connection speed) eventually; v1 ships a
 
 Settings → "WaveFlow server" card gains:
 
-```
+```text
 [ ● Signed in as you@example.com ]
 
   Sync status:    All synced (2 minutes ago)
@@ -215,14 +221,14 @@ States:
 
 Currently:
 
-```
+```text
 library
   ↳ tracks (resolved scan-time from folder path)
 ```
 
 After:
 
-```
+```text
 library
   ↳ library_folder (canonical_id, path, OR-Set)
        ↳ tracks
