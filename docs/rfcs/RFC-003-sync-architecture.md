@@ -161,19 +161,31 @@ On first sign-in OR on user "Re-sync everything":
 
 ```text
 1. Desktop fetches GET /api/v1/sync/digest
-   → server returns {entity → {count, hash_of_canonical_id_set}} per profile
-2. Desktop computes its local digest, diffs
-3. For each entity where the diff is non-empty:
-   3a. Server has rows desktop doesn't → pull (catchup, see §5)
-   3b. Desktop has rows server doesn't → push as inserts (backfill)
-   3c. Both have the same canonical_id → no-op (assume identical state until §3 conflict rules trigger on next edit)
+   → server returns {entity → {
+         count,
+         set_hash,                  # MerkleHash of (canonical_id, payload_hash) pairs, sorted
+         rows: [{canonical_id, payload_hash}, …]
+       }} per profile
+2. Desktop computes its local digest the same way and diffs row-by-row
+3. For each canonical_id:
+   3a. Server has it, desktop doesn't        → pull (catchup, see §5)
+   3b. Desktop has it, server doesn't        → push as insert (backfill)
+   3c. Both, same payload_hash               → no-op (verified identical state)
+   3d. Both, different payload_hash          → conflict — apply the §3 rule for
+                                                 the entity (LWW / OR-Set / FI),
+                                                 the side with the lower
+                                                 (hlc, origin_device_id) is the
+                                                 one whose op gets pushed or
+                                                 pulled to converge
 4. Mark this profile as "backfilled" in profile_setting['sync.backfill_done']
    (per-profile, because the active profile's SQLite is the per-device scope
    that owns this marker; signing in to a different profile starts its own
    independent backfill against the same device + server)
 ```
 
-The digest is small (bytes per entity, not per row): MerkleHash of the sorted canonical_id set + a row count, computed lazy on first request, cached server-side.
+The digest stays compact (`count + set_hash + per-row (canonical_id, payload_hash)` is ~48 bytes per row at BLAKE3-128). `payload_hash` is BLAKE3 over the entity's canonical wire form — every synced field plus `(hlc.wall, hlc.logical, origin_device_id)` — serialised in a deterministic shape (sorted JSON keys, lower-case hex for binary blobs) so identical row state on two replicas hashes identically regardless of platform endianness or JSON-encoding quirks. The set is sorted on `canonical_id` before the MerkleHash so a transposed pair doesn't flap the top-level hash.
+
+Server-side caching is keyed on `(profile_id, entity, set_hash)`: the cache invalidates whenever the apply pipeline lands a row whose payload_hash differs from the cached value, not just when a new `canonical_id` enters or leaves the set — a rename of an existing playlist mutates `payload_hash` but leaves the set unchanged, and silently serving the stale cache would re-introduce exactly the divergence this digest is meant to catch. Implementation: the `apply::*` handlers recompute the row's `payload_hash` post-write and bump a `metadata_digest_version` counter per `(profile, entity)`; the digest endpoint reads the counter and rebuilds the cache lazily on miss.
 
 **Streaming chunked push** for the backfill: desktop fans out `POST /api/v1/sync/ops` with batches of 200 ops at a time, throttled so the server's apply pipeline doesn't queue indefinitely.
 
