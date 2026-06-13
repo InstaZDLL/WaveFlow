@@ -160,13 +160,9 @@ Why FI and not list-CRDT (RGA, etc.): FI is O(1) per op, no garbage, no tombston
 On first sign-in OR on user "Re-sync everything":
 
 ```text
-1. Desktop fetches GET /api/v1/sync/digest
-   → server returns {entity → {
-         count,
-         set_hash,                  # MerkleHash of (canonical_id, payload_hash) pairs, sorted
-         rows: [{canonical_id, payload_hash}, …]
-       }} per profile
-2. Desktop computes its local digest the same way and diffs row-by-row
+1. Device requests GET /api/v1/sync/digest?profile_id=<canonical>
+   → server responds per entity (see "Digest response shape" below).
+2. Device computes its local digest the same way and diffs row-by-row.
 3. For each canonical_id:
    3a. Server has it, desktop doesn't        → pull (catchup, see §5)
    3b. Desktop has it, server doesn't        → push as insert (backfill)
@@ -183,27 +179,99 @@ On first sign-in OR on user "Re-sync everything":
    independent backfill against the same device + server)
 ```
 
-The digest stays compact (`count + set_hash + per-row (canonical_id, payload_hash)` is ~48 bytes per row at BLAKE3-128). `payload_hash` is BLAKE3 over the entity's canonical wire form — every synced field plus `(hlc.wall, hlc.logical, origin_device_id)` — serialised in a deterministic shape (sorted JSON keys, lower-case hex for binary blobs) so identical row state on two replicas hashes identically regardless of platform endianness or JSON-encoding quirks. The set is sorted on `canonical_id` before the MerkleHash so a transposed pair doesn't flap the top-level hash.
+#### Digest response shape
 
-Server-side caching is keyed on `(profile_id, entity, set_hash)`: the cache invalidates whenever the apply pipeline lands a row whose payload_hash differs from the cached value, not just when a new `canonical_id` enters or leaves the set — a rename of an existing playlist mutates `payload_hash` but leaves the set unchanged, and silently serving the stale cache would re-introduce exactly the divergence this digest is meant to catch. Implementation: the `apply::*` handlers recompute the row's `payload_hash` post-write and bump a `metadata_digest_version` counter per `(profile, entity)`; the digest endpoint reads the counter and rebuilds the cache lazily on miss.
+One canonical schema for both `§4` (full backfill) and `§5` (catchup compression). The two callers differ only in whether `rows` is present.
 
-**Streaming chunked push** for the backfill: desktop fans out `POST /api/v1/sync/ops` with batches of 200 ops at a time, throttled so the server's apply pipeline doesn't queue indefinitely.
+```text
+{
+  "<entity>": {
+    "count":     u64,                       // # of rows in (profile, entity)
+    "set_hash":  "<blake3-hex>",            // MerkleHash over sorted (canonical_id, payload_hash) pairs
+    "max_hlc":   { "wall": u64,             // highest HLC observed for this (profile, entity)
+                   "logical": u32 },        // see "max_hlc invariant" below
+    "rows":      [ { "canonical_id":  "<uuid-v7>",
+                     "payload_hash": "<blake3-hex>" }, … ]   // present in §4, omitted in §5
+  },
+  …
+}
+```
+
+`payload_hash` is BLAKE3 over the entity's canonical wire form — every synced field plus `(hlc.wall, hlc.logical, origin_device_id)` — serialised in a deterministic shape (sorted JSON keys, lower-case hex for binary blobs) so identical row state on two replicas hashes identically regardless of platform endianness or JSON-encoding quirks. The set is sorted on `canonical_id` before the MerkleHash so a transposed pair doesn't flap the top-level hash.
+
+Wire-size budget: ~48 bytes per row at BLAKE3-128 in the `rows` block. A 50 k-track library budgets ~2.4 MB for the full §4 digest, which fits in a single HTTP response (chunked transfer if it ever doesn't). The `§5` shape drops the `rows` block, so the response stays bounded regardless of library size.
+
+#### `max_hlc` invariant
+
+`max_hlc` is the **highest** `(hlc.wall, hlc.logical)` tuple the server has seen for any row of `(profile, entity)`. It's lex-monotonic by construction: the apply pipeline only accepts ops with `hlc > max_hlc` (or ties broken by `origin_device_id`, per §2). The field is required in every digest response and persisted on the client's cursor as `cursor.max_hlc` per entity, used to derive the **All synced** UI state (`cursor.max_hlc == server.max_hlc ∧ pending_ops == 0 ∧ last_drain_ok`).
+
+#### `metadata_digest_version` invariant
+
+Server-side caching is keyed on `(profile_id, entity, set_hash)`. The naïve invalidation rule ("invalidate when a new `canonical_id` enters or leaves the set") is wrong: a rename of an existing playlist mutates `payload_hash` but leaves the set unchanged, and silently serving the stale cache would re-introduce exactly the divergence this digest is meant to catch.
+
+The fix is a per-`(profile, entity)` monotonic counter. **Every `apply::*` handler that mutates a row's payload_hash MUST atomically bump the counter in the same transaction as the write.** No exceptions — rename, rating change, OR-Set add/delete, FI reorder, insert, delete; if it would change what `payload_hash` hashes to, it bumps. The digest endpoint reads the counter on entry, compares to the cache row's stored version, and rebuilds on mismatch:
+
+```sql
+-- Inside every apply::* handler, in the same tx as the row write:
+WITH bump AS (
+  INSERT INTO metadata_digest_version (profile_id, entity, version)
+  VALUES ($1, $2, 1)
+  ON CONFLICT (profile_id, entity)
+  DO UPDATE SET version = metadata_digest_version.version + 1
+  RETURNING version
+)
+UPDATE <entity_table>
+   SET <field> = $3,
+       payload_hash = $4,             -- recomputed by the handler
+       hlc_wall = $5,
+       hlc_logical = $6,
+       origin_device_id = $7
+ WHERE canonical_id = $8;
+```
+
+```rust
+// Digest endpoint, on request:
+let v = db::digest_version(profile_id, entity).await?;       // SELECT version FROM metadata_digest_version
+match cache.get(&(profile_id, entity)) {
+    Some(entry) if entry.version == v => entry.response,     // cache hit, serve as-is
+    _ => {
+        let rebuilt = compute_digest(profile_id, entity).await?;
+        cache.insert((profile_id, entity), CacheEntry { version: v, response: rebuilt.clone() });
+        rebuilt
+    }
+}
+```
+
+The counter never decreases (apply-pipeline ops are append-only; `metadata_digest_version` is essentially the high-water mark of the per-`(profile, entity)` op stream). A bump-and-rollback on a failed apply leaves the counter untouched because both writes share the same SQL transaction.
+
+#### Streaming chunked push
+
+For the backfill, desktop fans out `POST /api/v1/sync/ops` with batches of 200 ops at a time, throttled so the server's apply pipeline doesn't queue indefinitely.
 
 The "Re-sync everything" button re-runs the same flow but ignores the `backfill_done` flag. A missing key in `profile_setting` is treated as "not backfilled", which also covers the legacy migration window: any installs that wrote an app-wide `app_setting['sync.backfill_done.<device_id>']` from an earlier draft get a fresh per-profile backfill on first boot of this version. The old app-wide key is deliberately not consulted on read so a backfill against profile A can't silently mask the need for one on profile B.
 
 ### 5. Catchup compression
 
-When a device reconnects after a long offline window, instead of pulling every op since the cursor:
+When a device reconnects after a long offline window, instead of pulling every op since its cursor:
 
 ```text
-1. Server runs `GET /api/v1/sync/ops?since=<cursor>` AS A DIGEST FIRST
-   → returns {count, hash_of_canonical_id_set, max_hlc}
-2. Device asks: "how many ops will it take to converge?"
-3. If count > THRESHOLD (10k by default): device falls back to FULL digest exchange (§4)
-   Otherwise: device pulls the ops list as before
+1. Device requests GET /api/v1/sync/digest?profile_id=<canonical>&since=<cursor.hlc>
+   → server responds with the same shape as §4 minus the `rows` block:
+        { "<entity>": { count, set_hash, max_hlc } }
+2. Device compares `cursor.max_hlc` to the response's `max_hlc` per entity.
+3. If count <= THRESHOLD (10k by default, per-entity):
+       Device pulls the diff via GET /api/v1/sync/ops?since=<cursor.hlc> as before.
+   Else:
+       Device falls back to the FULL §4 backfill protocol — issues
+       GET /api/v1/sync/digest WITHOUT `since` (i.e., requests the full
+       per-row block), runs the row-by-row diff, executes the same
+       streaming chunked push / pull, and re-marks
+       profile_setting['sync.backfill_done'] on completion. The §4
+       flow is the authoritative reconciliation path; §5 is just the
+       cheap-when-cheap accelerator.
 ```
 
-Threshold is per-device (heuristic from connection speed) eventually; v1 ships a fixed 10k.
+Threshold is per-device (heuristic from connection speed) eventually; v1 ships a fixed 10k. Per-entity because a desktop catching up on `liked_track` (frequent small ops) shouldn't be forced into the full §4 path just because its playlist count is healthy.
 
 ### 6. Status UI on the desktop
 
@@ -224,7 +292,7 @@ Settings → "WaveFlow server" card gains:
 
 States:
 
-- **All synced**: cursor matches server's `max_hlc`, no pending ops, last drain succeeded.
+- **All synced**: `cursor.max_hlc == server.max_hlc` per entity (the §4/§5 invariant), no pending ops, last drain succeeded.
 - **Syncing**: drain in flight or pending ops > 0.
 - **Backfill in progress (X / Y)**: §4 protocol running.
 - **Error**: drain failed within the retry window; surface the cause inline.
@@ -283,8 +351,58 @@ The desktop has tens of installs in the wild; we can't break them. Phased:
 
 - Activate §3 per-entity rules.
 - OR-Set wins over the old "blanket LWW everything" for `liked_track` and `library_folder` membership.
-- Fractional Index for `playlist_track.position`. **Schema change**: `position TEXT` instead of `INT`. Desktop migration backfills FI strings from current integer positions.
+- Fractional Index for `playlist_track.position`. **Schema change** (the riskiest single step in the whole rollout — `playlist_track` is the hottest mutating table). Detailed plan below.
 - Profile + library_folder as first-class entities.
+
+#### Phase C migration plan — `playlist_track.position INT → TEXT`
+
+Three steps, each gated by its own feature flag and pipelined so the server is the first to land each compatibility window:
+
+**Step C.1 — server cohabitation.** Add the new column without dropping the old:
+
+```sql
+ALTER TABLE playlist_track ADD COLUMN position_fi TEXT;        -- NULL = legacy row
+ALTER TABLE playlist_track ADD COLUMN schema_version SMALLINT NOT NULL DEFAULT 1;
+CREATE INDEX playlist_track_position_fi_idx
+    ON playlist_track (playlist_id, position_fi) WHERE position_fi IS NOT NULL;
+-- Existing UNIQUE(playlist_id, position) stays in place.
+```
+
+The apply pipeline accepts BOTH wire shapes:
+
+- Legacy: `{ position: <i32>, … }` → server writes `position` (kept INT) AND derives an FI string for `position_fi`, then bumps `schema_version` to 1 unchanged.
+- New: `{ position_fi: "<string>", … }` → server writes `position_fi`, derives a synthetic `position` by linear-mapping the lex order to `1..N` for back-compat reads by stale clients, sets `schema_version = 2`.
+
+Server-side derivation rule (`int → fi`): emit `(i * STEP)::text` where `STEP = "01"` so concurrent inserts always have room between any two adjacent slots. The derivation is deterministic so two replicas backfilling the same playlist arrive at the same FI string.
+
+**Step C.2 — desktop backfill + client version bump.** Once the server has cohabited for at least one release:
+
+- Desktop migration on first boot bumps every local `playlist_track.position INT` → derives `position_fi TEXT` using the same `int → fi` rule.
+- Desktop wire shape v2 starts emitting `{ position_fi }` only.
+- Server's stale-client back-compat reads still synthesise `position` for any peer still on v1.
+
+**Step C.3 — drop legacy column.** Once telemetry confirms no v1 desktop emits ops for one full release cycle:
+
+```sql
+ALTER TABLE playlist_track DROP COLUMN position;
+ALTER TABLE playlist_track ALTER COLUMN position_fi SET NOT NULL;
+ALTER TABLE playlist_track RENAME COLUMN position_fi TO position;
+DROP INDEX playlist_track_position_fi_idx;
+CREATE UNIQUE INDEX playlist_track_pos_idx
+    ON playlist_track (playlist_id, position);
+```
+
+**Validation.** Each step ships behind its own feature flag (`sync.v2.position_fi.{cohabit,desktop_backfill,legacy_drop}`). Pre-step migration tests on a copy of the production schema with realistic playlist sizes (the 95th percentile is ~150 tracks; the long tail goes to ~5 k); the backfill is run end-to-end on this copy + on a synthetic worst-case playlist (Fisher-Yates-shuffled 5 k tracks) before any step lands in production.
+
+**Rollback.** Step C.1 is purely additive (drop the new column to revert). Step C.2 is the irreversible one: a desktop client emitting v2 ops can be downgraded but the server-side back-compat read still serves the synthesised integer position to v1 peers, so a partial revert is safe. Step C.3 is gated on telemetry — if any v1 op arrives in the cohabitation window after C.3 ships, the apply pipeline rejects it with `409 Conflict` and surfaces a structured error the desktop translates into "please update WaveFlow".
+
+**Testing.** Each step adds a sqlx-test:
+
+- `c1_cohabitation_roundtrip` — apply a v1 op + a v2 op against the same playlist, assert both reads succeed with the right shape.
+- `c2_desktop_backfill_idempotent` — run the desktop's backfill twice, assert the FI strings are identical and lex-sort matches the pre-backfill integer order.
+- `c3_v1_reject` — apply a v1 op against C.3 schema, assert the structured rejection error.
+
+The plan deliberately splits the schema change into three deploys instead of one big-bang ALTER + UPDATE: a wholesale rewrite of `playlist_track.position` on a multi-million-row table locks the table for minutes and would block the apply pipeline for every concurrent op.
 
 ### Phase D — Lamport retirement
 
