@@ -137,7 +137,7 @@ Caveat: this drops the loser's write. For names this is acceptable (the user can
 
 `library_folder`, `liked_track`: `(canonical_id, add/remove)` pairs.
 
-Insert stamps `{canonical_id, add_at: (hlc, origin_device_id)}`. Delete stamps `{canonical_id, delete_at: (hlc, origin_device_id)}`. Membership uses the **same total order** as §2: a row is "in the set" iff `add_at > delete_at` under lex-compare on the full `(hlc.wall, hlc.logical, origin_device_id)` tuple — never a bare `hlc` comparison. This matters because two replicas would otherwise converge to different verdicts when an add and a delete share the exact same `hlc` but came from different devices: the §2 total order makes both replicas agree on which device wins. Add-bias on the boundary: `add_at >= delete_at` ⇒ present (concurrent add wins, classic OR-Set semantics).
+Insert stamps `{canonical_id, add_at: (hlc, origin_device_id)}`. Delete stamps `{canonical_id, delete_at: (hlc, origin_device_id)}`. Membership uses the **same total order** as §2 plus a fourth `op_type` tiebreaker that makes the add-bias rule explicit: lex-compare on `(hlc.wall, hlc.logical, origin_device_id, op_type)` where `op_type` ranks `add` > `delete`. A row is "in the set" iff `add_at > delete_at` under this order — never a bare `hlc` comparison. This matters because two replicas would otherwise converge to different verdicts when an add and a delete share the exact same `hlc` but came from different devices, AND would still be ambiguous in the degenerate corner case where both stamps share the full `(hlc, origin_device_id)` tuple (impossible in practice — HLC's logical counter monotonically increments per device per event — but cleaner to spell out than to rely on the impossibility). With `op_type` in the tuple, `add_at > delete_at` is unambiguous in every case. Add-bias on the boundary: `add_at >= delete_at` ⇒ present (concurrent add wins, classic OR-Set semantics).
 
 Why add-bias: a user re-adding a folder after a remote delete is the common case; remote delete after local re-add is the rare case. Bias matches user intent.
 
@@ -203,7 +203,9 @@ Wire-size budget: ~48 bytes per row at BLAKE3-128 in the `rows` block. A 50 k-tr
 
 #### `max_hlc` invariant
 
-`max_hlc` is the **highest** `(hlc.wall, hlc.logical)` tuple the server has seen for any row of `(profile, entity)`. It's lex-monotonic by construction: the apply pipeline only accepts ops with `hlc > max_hlc` (or ties broken by `origin_device_id`, per §2). The field is required in every digest response and persisted on the client's cursor as `cursor.max_hlc` per entity, used to derive the **All synced** UI state (`cursor.max_hlc == server.max_hlc ∧ pending_ops == 0 ∧ last_drain_ok`).
+`max_hlc` is the **highest** `(hlc.wall, hlc.logical, origin_device_id)` triple the server has seen for any row of `(profile, entity)` — the full §2 total-order tuple, **not** just `(hlc.wall, hlc.logical)`. Without the `origin_device_id` component, two devices on the same logical tick produce equal `max_hlc` reads on the server but the underlying rows came from different origins; a cursor that only stored the truncated pair would flag "All synced" the moment one device caught up to its OWN ticks even though the OTHER device's row state hadn't reached this replica yet. The triple is required in every digest response (serialised as `{ "wall": u64, "logical": u32, "origin_device_id": "<uuid>" }`) and persisted on the client's cursor as `cursor.max_hlc` per entity. Lex-monotonic by construction: the apply pipeline only accepts ops with `hlc > max_hlc` under the §2 total order, refusing equal-tuple replays as a no-op (idempotency).
+
+The **All synced** UI state then reads: `cursor.max_hlc == server.max_hlc ∧ pending_ops == 0 ∧ last_drain_ok`, where `==` is full-triple equality, not the `(wall, logical)`-only shortcut.
 
 #### `metadata_digest_version` invariant
 
@@ -255,21 +257,36 @@ The "Re-sync everything" button re-runs the same flow but ignores the `backfill_
 When a device reconnects after a long offline window, instead of pulling every op since its cursor:
 
 ```text
-1. Device requests GET /api/v1/sync/digest?profile_id=<canonical>&since=<cursor.hlc>
+1. Device requests GET /api/v1/sync/digest?profile_id=<canonical>&since_max_hlc=<cursor.max_hlc>
    → server responds with the same shape as §4 minus the `rows` block:
         { "<entity>": { count, set_hash, max_hlc } }
-2. Device compares `cursor.max_hlc` to the response's `max_hlc` per entity.
+2. Device compares `cursor.max_hlc` to the response's `max_hlc` per entity
+   (full triple comparison, see "max_hlc invariant" above).
 3. If count <= THRESHOLD (10k by default, per-entity):
-       Device pulls the diff via GET /api/v1/sync/ops?since=<cursor.hlc> as before.
+       Device pulls the diff via GET /api/v1/sync/ops?since=<cursor.last_seen_id>
+       — see "Two cursors, two purposes" below.
    Else:
        Device falls back to the FULL §4 backfill protocol — issues
-       GET /api/v1/sync/digest WITHOUT `since` (i.e., requests the full
-       per-row block), runs the row-by-row diff, executes the same
-       streaming chunked push / pull, and re-marks
+       GET /api/v1/sync/digest WITHOUT `since_max_hlc` (i.e., requests
+       the full per-row block), runs the row-by-row diff, executes the
+       same streaming chunked push / pull, and re-marks
        profile_setting['sync.backfill_done'] on completion. The §4
        flow is the authoritative reconciliation path; §5 is just the
        cheap-when-cheap accelerator.
 ```
+
+#### Two cursors, two purposes
+
+The client carries **two** independent cursors, both persisted in `profile_setting`:
+
+| Cursor | Endpoint | Type | What it answers |
+| --- | --- | --- | --- |
+| `sync.last_seen_id` | `GET /api/v1/sync/ops?since=<id>` | `BIGINT` (server-assigned `sync_op.id`) | "Replay every op that landed after this point in the global server log." Inherited unchanged from RFC-001 §1.f. |
+| `sync.max_hlc[entity]` | `GET /api/v1/sync/digest?since_max_hlc=<max_hlc>` | `(wall, logical, origin_device_id)` triple per entity | "Is my materialised entity state aligned with the server's?" New in this RFC. |
+
+They're complementary, not redundant. `last_seen_id` is "where am I in the firehose" — append-only, monotone, server-assigned, the right shape for replay. `max_hlc` is "is my materialised state convergent" — per-entity, client-assigned (HLC), the right shape for digest-based convergence checks. A device can be caught up on the op log (`last_seen_id == server's max id`) AND still diverge in materialised state because of an apply-pipeline retry storm; a device can be behind on the op log (`last_seen_id < server's max id`) AND already convergent because the missing ops are commutative no-ops. Both signals are needed.
+
+**Migration from RFC-001 §1.f:** the `sync.last_seen_id` cursor is unchanged. Phase A adds the per-entity `sync.max_hlc[entity]` cursor as a new `profile_setting` key; a missing key reads as the zero triple `(0, 0, "00…0")`, which forces §4 backfill on first boot of the new client — which is what we want for legacy installs anyway.
 
 Threshold is per-device (heuristic from connection speed) eventually; v1 ships a fixed 10k. Per-entity because a desktop catching up on `liked_track` (frequent small ops) shouldn't be forced into the full §4 path just because its playlist count is healthy.
 
