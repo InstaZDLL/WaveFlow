@@ -54,7 +54,12 @@ use super::Hlc;
 /// §2 total-order triple. Wraps the three components RFC-003 specifies
 /// as the comparison key for Phase A's LWW rule (and as the leading
 /// prefix of Phase C's OR-Set tuple).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+///
+/// `Hash` is derived so triples can serve as keys in dedup sets the
+/// drain task may build to skip already-emitted ops in a single
+/// batch. All fields (`i64`, `i32`, `Option<Uuid>`) already implement
+/// `Hash`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct HlcTriple {
     pub wall: i64,
     pub logical: i32,
@@ -63,6 +68,22 @@ pub struct HlcTriple {
 
 impl HlcTriple {
     pub fn new(hlc: Hlc, origin_device_id: Option<Uuid>) -> Self {
+        // RFC-003 §2 fixes the logical counter's legal range at
+        // `0..=i32::MAX`. The desktop drain in A.4.2 (and the
+        // server's existing A.1.1 bind-site guard) refuse values
+        // outside that range at the wire boundary. Catch in-process
+        // bugs here too: a negative `logical` round-trips through
+        // canonical_serialize fine (it just hashes to a stable value)
+        // but compares BELOW every legitimate triple under the
+        // derived `Ord`, which would let LWW silently accept an
+        // overwrite from a malformed op. `debug_assert!` keeps the
+        // hot path zero-cost in release while surfacing the bug in
+        // dev / CI.
+        debug_assert!(
+            hlc.logical >= 0,
+            "HLC logical counter must be non-negative (0..=i32::MAX); got {}",
+            hlc.logical
+        );
         Self {
             wall: hlc.wall,
             logical: hlc.logical,
@@ -91,6 +112,17 @@ pub fn canonical_serialize(
     hlc: Hlc,
     origin_device_id: Option<Uuid>,
 ) -> Vec<u8> {
+    // Same contract as `HlcTriple::new` — RFC-003 §2 fixes the legal
+    // range at `0..=i32::MAX`. A negative `logical` hashes to a
+    // stable value, so a buggy caller would produce a self-consistent
+    // payload that still fails LWW comparison at the apply site.
+    // Catch it here too so the bug surfaces at the hash-compute call
+    // rather than three steps later in the comparator.
+    debug_assert!(
+        hlc.logical >= 0,
+        "HLC logical counter must be non-negative (0..=i32::MAX); got {}",
+        hlc.logical
+    );
     let wrapper = Value::Object({
         let mut wrapper = Map::new();
         wrapper.insert("fields".to_string(), Value::Object(fields.clone()));
@@ -354,6 +386,26 @@ mod tests {
         };
         assert!(hlc_strict_gt(v2, legacy));
         assert!(!hlc_strict_gt(legacy, v2));
+    }
+
+    #[test]
+    #[cfg(debug_assertions)]
+    #[should_panic(expected = "HLC logical counter must be non-negative")]
+    fn hlc_triple_new_rejects_negative_logical_in_debug() {
+        // RFC-003 §2 invariant — the desktop drain (A.4.2) + server
+        // bind site (A.1.1) refuse `logical < 0` at the wire boundary.
+        // Catch the in-process variant here so an integration bug
+        // can't ship a self-consistent-but-wrong hash. Release builds
+        // strip the assert; the wire guards still hold.
+        let _ = HlcTriple::new(Hlc { wall: 1, logical: -1 }, None);
+    }
+
+    #[test]
+    #[cfg(debug_assertions)]
+    #[should_panic(expected = "HLC logical counter must be non-negative")]
+    fn canonical_serialize_rejects_negative_logical_in_debug() {
+        let f = fields(json!({ "name": "A" }));
+        let _ = canonical_serialize(&f, Hlc { wall: 1, logical: -1 }, None);
     }
 
     #[test]

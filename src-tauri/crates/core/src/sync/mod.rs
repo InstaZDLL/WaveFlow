@@ -25,7 +25,7 @@ pub mod payload_hash;
 ///
 /// Paired with `origin_device_id` to form the §2 total-order triple
 /// the apply pipeline LWW rule runs on.
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Hash)]
 pub struct Hlc {
     pub wall: i64,
     pub logical: i32,
