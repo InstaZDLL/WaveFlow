@@ -24,11 +24,29 @@ use sqlx::{Row, SqlitePool};
 use std::str::FromStr;
 
 /// HLC + payload_hash quartet the migration adds to every synced entity.
-const HLC_COLUMNS: &[(&str, &str, i64)] = &[
-    ("hlc_wall", "INTEGER", 1),
-    ("hlc_logical", "INTEGER", 1),
-    ("origin_device_id", "TEXT", 0),
-    ("payload_hash", "BLOB", 0),
+///
+/// Tuple is `(name, type, notnull, default)`. The `default` Some("0")
+/// values lock down the backfill story documented in the migration
+/// header: existing rows fall to `(0, 0, NULL, NULL)` on ALTER. If a
+/// future migration drops the DEFAULT 0 on `hlc_wall` / `hlc_logical`,
+/// pre-migration rows would silently land at NULL on older SQLite
+/// builds — which would then violate the NOT NULL invariant the apply
+/// path relies on.
+const HLC_COLUMNS: &[(&str, &str, i64, Option<&str>)] = &[
+    ("hlc_wall", "INTEGER", 1, Some("0")),
+    ("hlc_logical", "INTEGER", 1, Some("0")),
+    ("origin_device_id", "TEXT", 0, None),
+    ("payload_hash", "BLOB", 0, None),
+];
+
+/// Same shape as `HLC_COLUMNS` but for the `rating_`-prefixed mirror
+/// that lives on `track` (rating is a column on `track` rather than a
+/// sibling table — see the migration header for the rationale).
+const RATING_HLC_COLUMNS: &[(&str, &str, i64, Option<&str>)] = &[
+    ("rating_hlc_wall", "INTEGER", 1, Some("0")),
+    ("rating_hlc_logical", "INTEGER", 1, Some("0")),
+    ("rating_origin_device_id", "TEXT", 0, None),
+    ("rating_payload_hash", "BLOB", 0, None),
 ];
 
 async fn fresh_pool() -> SqlitePool {
@@ -42,7 +60,11 @@ async fn fresh_pool() -> SqlitePool {
         .unwrap()
 }
 
-async fn column_info(pool: &SqlitePool, table: &str, column: &str) -> Option<(String, i64)> {
+async fn column_info(
+    pool: &SqlitePool,
+    table: &str,
+    column: &str,
+) -> Option<(String, i64, Option<String>)> {
     let stmt = format!("PRAGMA table_info({table})");
     let rows = sqlx::query(sqlx::AssertSqlSafe(stmt))
         .fetch_all(pool)
@@ -53,20 +75,38 @@ async fn column_info(pool: &SqlitePool, table: &str, column: &str) -> Option<(St
         if name == column {
             let ty: String = row.get("type");
             let notnull: i64 = row.get("notnull");
-            return Some((ty, notnull));
+            let dflt: Option<String> = row.get("dflt_value");
+            return Some((ty, notnull, dflt));
         }
     }
     None
 }
 
-async fn assert_hlc_quartet(pool: &SqlitePool, table: &str) {
-    for (col, ty, notnull) in HLC_COLUMNS {
+async fn assert_quartet(
+    pool: &SqlitePool,
+    table: &str,
+    columns: &[(&str, &str, i64, Option<&str>)],
+) {
+    for (col, ty, notnull, dflt) in columns {
         let info = column_info(pool, table, col)
             .await
             .unwrap_or_else(|| panic!("missing column {table}.{col}"));
         assert_eq!(info.0.to_uppercase(), *ty, "{table}.{col} type mismatch");
         assert_eq!(info.1, *notnull, "{table}.{col} notnull flag mismatch");
+        assert_eq!(
+            info.2.as_deref(),
+            *dflt,
+            "{table}.{col} default value mismatch"
+        );
     }
+}
+
+async fn assert_hlc_quartet(pool: &SqlitePool, table: &str) {
+    assert_quartet(pool, table, HLC_COLUMNS).await;
+}
+
+async fn assert_rating_hlc_quartet(pool: &SqlitePool) {
+    assert_quartet(pool, "track", RATING_HLC_COLUMNS).await;
 }
 
 #[tokio::test]
@@ -88,17 +128,7 @@ async fn profile_migrations_apply_hlc_quartet_to_every_entity() {
     }
 
     // Rating mirror lives on `track` because rating is a column.
-    for col in [
-        "rating_hlc_wall",
-        "rating_hlc_logical",
-        "rating_origin_device_id",
-        "rating_payload_hash",
-    ] {
-        assert!(
-            column_info(&pool, "track", col).await.is_some(),
-            "missing track.{col}"
-        );
-    }
+    assert_rating_hlc_quartet(&pool).await;
 }
 
 #[tokio::test]
