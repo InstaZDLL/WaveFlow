@@ -20,6 +20,19 @@ default = []
 # happens to depend on both backends still gets a single build.
 sqlite = ["sqlx/sqlite", "sqlx/runtime-tokio"]
 postgres = ["sqlx/postgres", "sqlx/runtime-tokio"]
+# Opt in to the WebAssembly Component Model plugin host. Pulls in
+# wasmtime + Cranelift + wasmtime-wasi + the WIT-generated bindings
+# and exposes `crate::plugin`. The desktop app (`crates/app`) enables
+# this; `waveflow-server` does not (the HTTP/WS surface doesn't run
+# guest WASM in v1, so the ~5 MiB Cranelift codegen tree would be
+# pure bloat).
+plugins = [
+    "dep:wasmtime",
+    "dep:wasmtime-wasi",
+    "dep:waveflow-plugin-sdk",
+    "dep:toml",
+    "dep:sha2",
+]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
@@ -129,16 +142,20 @@ id3 = "1"
 
 # Plugin manifest parsing (`crate::plugin::manifest`). TOML over
 # JSON because authors write these by hand — TOML reads cleaner.
-toml = "1.1"
+# Plugin-host stack starts here — every dep through the next blank
+# line is gated by the `plugins` feature so the server can opt out
+# of pulling ~5 MiB of Cranelift codegen + wasmtime runtime it never
+# executes.
+toml = { version = "1.1", optional = true }
 # Plugin sidecar asset hashing (`crate::plugin::assets`). Standard
 # SHA-256 hex digest so a third-party tool can verify the file
 # without depending on us. Re-uses the same `sha2` codegen the
 # rest of the workspace already pulls in transitively.
-sha2 = "0.11"
+sha2 = { version = "0.11", optional = true }
 # Shared plugin contract (manifest schema version + WIT world / permission
 # catalog). The SDK crate doesn't depend on us — it's a flat constants
 # crate both sides import.
-waveflow-plugin-sdk = { path = "../plugin-sdk" }
+waveflow-plugin-sdk = { path = "../plugin-sdk", optional = true }
 
 # WebAssembly Component Model runtime — Phase 2a wires the engine,
 # component loader, and sandbox config (fuel, memory cap, epoch
@@ -152,7 +169,7 @@ wasmtime = { version = "45", default-features = false, features = [
     "cranelift",
     "component-model",
     "parallel-compilation",
-] }
+], optional = true }
 # WASI Preview 2 imports the host must satisfy for any Component
 # Model guest compiled by `cargo component` — wit-bindgen-rt
 # pulls in `wasi:cli/environment` (panic handler), `wasi:io/streams`
@@ -169,7 +186,7 @@ wasmtime = { version = "45", default-features = false, features = [
 # path we actually expose to plugins, the result is "no host
 # resources reachable unless the manifest explicitly asked for
 # them".
-wasmtime-wasi = { version = "45", default-features = false }
+wasmtime-wasi = { version = "45", default-features = false, optional = true }
 
 [dev-dependencies]
 # Sandboxed scratch directories for the smart-playlist cover render
