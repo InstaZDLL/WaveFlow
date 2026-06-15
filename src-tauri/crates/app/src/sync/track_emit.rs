@@ -122,7 +122,7 @@ pub async fn emit_track_insert_in_tx(
 ) -> AppResult<bool> {
     let library_canonical = canonical::ensure_local_library(conn, library_id).await?;
     let payload = build_track_insert_payload(&library_canonical, wire);
-    hooks::enqueue_op_in_tx(
+    let stamp = hooks::enqueue_op_in_tx(
         conn,
         &hooks::PendingOpDraft {
             entity: "track".into(),
@@ -132,7 +132,8 @@ pub async fn emit_track_insert_in_tx(
             payload: Some(payload),
         },
     )
-    .await
+    .await?;
+    Ok(stamp.is_some())
 }
 
 /// Enqueue a `track + delete` op for a file the user explicitly
@@ -168,7 +169,7 @@ pub async fn emit_track_delete_in_tx(
     let payload = serde_json::json!({
         "library_canonical_id": library_canonical,
     });
-    hooks::enqueue_op_in_tx(
+    let stamp = hooks::enqueue_op_in_tx(
         conn,
         &hooks::PendingOpDraft {
             entity: "track".into(),
@@ -178,7 +179,8 @@ pub async fn emit_track_delete_in_tx(
             payload: Some(payload),
         },
     )
-    .await
+    .await?;
+    Ok(stamp.is_some())
 }
 
 #[cfg(test)]

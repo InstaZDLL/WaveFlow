@@ -63,6 +63,7 @@ pub mod hlc;
 pub mod hooks;
 pub mod lamport;
 pub mod mode;
+pub mod payload;
 pub mod queue;
 pub mod track_emit;
 pub mod track_snapshots;
