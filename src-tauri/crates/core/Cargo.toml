@@ -125,7 +125,7 @@ toml = "0.9"
 # SHA-256 hex digest so a third-party tool can verify the file
 # without depending on us. Re-uses the same `sha2` codegen the
 # rest of the workspace already pulls in transitively.
-sha2 = "0.10"
+sha2 = "0.11"
 # Shared plugin contract (manifest schema version + WIT world / permission
 # catalog). The SDK crate doesn't depend on us — it's a flat constants
 # crate both sides import.
