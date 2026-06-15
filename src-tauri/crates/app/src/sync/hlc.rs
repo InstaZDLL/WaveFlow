@@ -426,10 +426,12 @@ mod tests {
         // and could return duplicate pairs. The mutex makes the
         // draws strictly ordered, so the returned pairs are
         // distinct under the §2 total order.
-        let pool = pool().await;
-        // Need a pool that can serve > 1 connection so the two
-        // `acquire()` calls inside `next` don't queue at the pool
-        // level (which would mask the actual mutex behaviour).
+        //
+        // Built inline rather than via the shared `pool()` helper
+        // because we need `max_connections > 1` so the two
+        // `acquire()` calls inside concurrent `next` callers don't
+        // queue at the pool level (which would mask the actual
+        // mutex behaviour).
         let multi_pool = SqlitePoolOptions::new()
             .max_connections(4)
             .connect(":memory:")
@@ -446,7 +448,6 @@ mod tests {
         .execute(&multi_pool)
         .await
         .unwrap();
-        drop(pool); // freed; the rest of the test runs on multi_pool
 
         // Fire 8 draws concurrently. The mutex must give each one
         // a distinct triple under §2. We collect them and assert
