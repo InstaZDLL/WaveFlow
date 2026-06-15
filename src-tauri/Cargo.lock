@@ -7784,7 +7784,7 @@ dependencies = [
  "resvg",
  "serde",
  "serde_json",
- "sha2 0.10.9",
+ "sha2 0.11.0",
  "sqlx",
  "symphonia",
  "tempfile",
