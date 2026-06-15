@@ -120,7 +120,7 @@ id3 = "1"
 
 # Plugin manifest parsing (`crate::plugin::manifest`). TOML over
 # JSON because authors write these by hand — TOML reads cleaner.
-toml = "0.9"
+toml = "1.1"
 # Plugin sidecar asset hashing (`crate::plugin::assets`). Standard
 # SHA-256 hex digest so a third-party tool can verify the file
 # without depending on us. Re-uses the same `sha2` codegen the
