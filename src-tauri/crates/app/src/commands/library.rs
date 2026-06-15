@@ -105,13 +105,17 @@ pub async fn create_library(
     // counter. Only fires when `enqueue_op_in_tx` actually wrote
     // (signed-in + Hybrid mode); local-only / signed-out installs
     // leave the row's `payload_hash` NULL until they enable sync.
+    // Read the canonical fields BACK from the row (rather than
+    // re-using `input` verbatim) so a future normalisation inside
+    // `insert_conn` can't silently desync the desktop's hash from
+    // what the server computes on the same payload. See
+    // `payload::library::fields_from_row` for the rationale.
     if let Some(stamp) = stamp {
-        let fields = crate::sync::payload::library::canonical_fields(
-            &name,
-            input.description.as_deref(),
-            &color_id,
-            &icon_id,
-        );
+        let fields = crate::sync::payload::library::fields_from_row(&mut tx, id)
+            .await?
+            .ok_or_else(|| {
+                AppError::Other(format!("library {id} vanished mid-create transaction"))
+            })?;
         crate::sync::payload::library::stamp_in_tx(&mut tx, id, fields, stamp).await?;
     }
     tx.commit().await?;
@@ -210,22 +214,15 @@ pub async fn update_library(
         }
     }
     // Phase B.0a — stamp the row with the post-update full state.
-    // Read the row's WHOLE field set back; the user may have edited
-    // only a subset, and the canonical fields the hash covers
-    // include the unmutated columns too.
+    // Read the row's WHOLE field set back via `fields_from_row`;
+    // the user may have edited only a subset, and the canonical
+    // fields the hash covers include the unmutated columns too.
     if let Some(stamp) = last_stamp {
-        let row: (String, Option<String>, String, String) = sqlx::query_as(
-            "SELECT name, description, color_id, icon_id FROM library WHERE id = ?",
-        )
-        .bind(library_id)
-        .fetch_one(&mut *tx)
-        .await?;
-        let fields = crate::sync::payload::library::canonical_fields(
-            &row.0,
-            row.1.as_deref(),
-            &row.2,
-            &row.3,
-        );
+        let fields = crate::sync::payload::library::fields_from_row(&mut tx, library_id)
+            .await?
+            .ok_or_else(|| {
+                AppError::Other(format!("library {library_id} vanished mid-update transaction"))
+            })?;
         crate::sync::payload::library::stamp_in_tx(&mut tx, library_id, fields, stamp).await?;
     }
     tx.commit().await?;

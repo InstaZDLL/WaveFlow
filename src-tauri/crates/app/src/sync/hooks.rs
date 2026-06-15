@@ -93,12 +93,17 @@ pub async fn enqueue_op_in_tx(
     // there derives `(0, lamport_ts)` when `hlc` is absent.
     let hlc_pair = hlc::next_conn(conn).await?;
     queue::enqueue_conn(conn, draft, lamport_ts, hlc_pair.wall, hlc_pair.logical).await?;
-    // `device::ensure` reads from `app_setting` via the connection's
-    // ATTACHed `app` schema — same pattern the drain uses (see
-    // `sync::drain::drain_once`). UUID parse failure → `None`; the
-    // apply-side payload-hash builder treats it as "no tiebreaker",
-    // matching the server's apply::parse_origin_device_id contract.
-    let origin_device_id = device::ensure_conn(conn)
+    // `device::read_conn` reads from `app_setting` via the
+    // connection's ATTACHed `app` schema — same path the drain
+    // uses via `device::ensure(&state.app_db)`, except pure-read so
+    // we don't mint a UUID mid-tx. The desktop's main loop calls
+    // `device::ensure` at boot, so by the time enqueue runs the row
+    // always exists; the `None` branch only fires on the very first
+    // CRUD before `ensure` has had a chance to seed. UUID parse
+    // failure → `None`; the apply-side payload-hash builder treats
+    // it as "no tiebreaker", matching the server's
+    // `apply::parse_origin_device_id` contract.
+    let origin_device_id = device::read_conn(conn)
         .await?
         .and_then(|id| Uuid::parse_str(&id).ok());
     Ok(Some(EnqueuedStamp {

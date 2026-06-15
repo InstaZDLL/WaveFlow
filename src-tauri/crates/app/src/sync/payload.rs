@@ -1,10 +1,3 @@
-// `stamp_in_tx` and `bump_digest_in_tx` are the public surface for
-// the CRUD command sites. Only the entity-stamp helpers are wired
-// up to library today; playlist + playlist_track + track follow in
-// subsequent PRs. Unused warnings during the migration window —
-// allow at the module level so a half-converted state still builds.
-#![allow(dead_code)]
-
 //! Phase B.0 — per-entity `payload_hash` stamping + local
 //! `metadata_digest_version` bump.
 //!
@@ -162,8 +155,8 @@ mod tests {
         assert_eq!(v, 3);
     }
 
-    #[tokio::test]
-    async fn payload_hash_is_deterministic_for_same_input() {
+    #[test]
+    fn payload_hash_is_deterministic_for_same_input() {
         use serde_json::{Map, Value};
         let mut fields: Map<String, Value> = Map::new();
         fields.insert("name".into(), Value::String("Mix".into()));
@@ -177,8 +170,8 @@ mod tests {
         assert_eq!(h1, h2);
     }
 
-    #[tokio::test]
-    async fn payload_hash_changes_with_hlc() {
+    #[test]
+    fn payload_hash_changes_with_hlc() {
         use serde_json::{Map, Value};
         let mut fields: Map<String, Value> = Map::new();
         fields.insert("name".into(), Value::String("Mix".into()));
