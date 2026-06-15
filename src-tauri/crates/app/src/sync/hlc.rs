@@ -47,10 +47,36 @@
 //! - `sync.hlc.last_wall` — `i64`, last drawn wall (epoch-ms)
 //! - `sync.hlc.last_logical` — `i32`, last drawn logical counter
 
+use std::sync::LazyLock;
+
 use chrono::Utc;
 use sqlx::{SqliteConnection, SqlitePool};
+use tokio::sync::Mutex;
 
 use crate::error::{AppError, AppResult};
+
+/// Process-wide mutex serialising the read-modify-write cycle that
+/// makes up an HLC draw. The two-step nature of the draw —
+/// `read_pair_conn` SELECT followed by `write_pair_conn` SAVEPOINT
+/// — is not atomic at the SQLite layer when the caller does not
+/// already hold a write lock: two concurrent callers on sibling
+/// connections can read the same baseline, compute the same
+/// candidate, and both UPSERT it, returning duplicate pairs that
+/// would break the RFC-003 §2 total order.
+///
+/// The mutex closes that window for every caller that goes through
+/// [`next_conn`] or [`observe_remote_conn`]. In the production
+/// hook path the mutex is technically redundant (the caller's
+/// `Transaction<'_, Sqlite>` already serialises HLC writes via the
+/// SQLite write lock once the entity write fires), but it stays
+/// cheap (sub-microsecond contention) and gives the public API a
+/// race-free contract that doesn't depend on caller discipline.
+///
+/// Single mutex per process is enough — the desktop runs at most
+/// one active profile at a time, and cross-profile HLC contention
+/// is rare enough that per-pool granularity would buy nothing
+/// while complicating the ownership story.
+static HLC_DRAW_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 pub const KEY_WALL: &str = "sync.hlc.last_wall";
 pub const KEY_LOGICAL: &str = "sync.hlc.last_logical";
@@ -92,15 +118,17 @@ pub async fn next(profile_pool: &SqlitePool) -> AppResult<HlcPair> {
 /// 1. SELECT the persisted pair (defaults to `(0, 0)` on first
 ///    call).
 /// 2. Compute the candidate in Rust (cheap, no SQL trip).
-/// 3. UPSERT the new pair atomically.
+/// 3. UPSERT the new pair through a SAVEPOINT so both rows land or
+///    none.
 ///
-/// The connection serialises every other write under the SQLite
-/// per-connection lock — two concurrent `next_conn` calls on the
-/// same connection are impossible by construction, and two callers
-/// holding separate connections still hit the wall-clock floor
-/// (whichever commits first sets `last_wall`; the other reads it
-/// and either advances or bumps logical).
+/// [`HLC_DRAW_LOCK`] wraps the whole cycle. Without it, two
+/// concurrent callers on sibling connections could each
+/// read-compute-write the same baseline and return duplicate
+/// pairs — a §2 total-order violation. The mutex is held for the
+/// duration of the three round-trips (microseconds in practice).
 pub async fn next_conn(conn: &mut SqliteConnection) -> AppResult<HlcPair> {
+    let _guard = HLC_DRAW_LOCK.lock().await;
+
     let last = read_pair_conn(conn).await?;
     let now = now_ms();
 
@@ -138,6 +166,11 @@ pub async fn observe_remote_conn(conn: &mut SqliteConnection, remote: HlcPair) -
     if remote == HlcPair::ZERO {
         return Ok(());
     }
+    // Same serialisation rationale as `next_conn` — without the
+    // lock, a concurrent `next_conn` (or another `observe_remote`)
+    // could read between this read and the write_pair_conn UPSERT,
+    // missing the bump and shipping a stale pair on the next draw.
+    let _guard = HLC_DRAW_LOCK.lock().await;
     let local = read_pair_conn(conn).await?;
     // §2 total order — only bump if the remote strictly outranks.
     if (remote.wall, remote.logical) <= (local.wall, local.logical) {
@@ -383,6 +416,58 @@ mod tests {
         observe_remote_conn(&mut conn, HlcPair::ZERO).await.unwrap();
         let after = read_pair_conn(&mut conn).await.unwrap();
         assert_eq!(after, before);
+    }
+
+    #[tokio::test]
+    async fn next_serialises_concurrent_callers_on_sibling_connections() {
+        // Two concurrent draws through the public pool-level `next`
+        // — each acquires its own connection. Without the
+        // module-level mutex they would race the read/write cycle
+        // and could return duplicate pairs. The mutex makes the
+        // draws strictly ordered, so the returned pairs are
+        // distinct under the §2 total order.
+        let pool = pool().await;
+        // Need a pool that can serve > 1 connection so the two
+        // `acquire()` calls inside `next` don't queue at the pool
+        // level (which would mask the actual mutex behaviour).
+        let multi_pool = SqlitePoolOptions::new()
+            .max_connections(4)
+            .connect(":memory:")
+            .await
+            .unwrap();
+        sqlx::query(
+            "CREATE TABLE profile_setting (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                value_type TEXT NOT NULL,
+                updated_at INTEGER NOT NULL
+            )",
+        )
+        .execute(&multi_pool)
+        .await
+        .unwrap();
+        drop(pool); // freed; the rest of the test runs on multi_pool
+
+        // Fire 8 draws concurrently. The mutex must give each one
+        // a distinct triple under §2. We collect them and assert
+        // distinctness via a HashSet on the derived ordering key.
+        let handles: Vec<_> = (0..8)
+            .map(|_| {
+                let pool = multi_pool.clone();
+                tokio::spawn(async move { next(&pool).await.unwrap() })
+            })
+            .collect();
+        let mut pairs = Vec::with_capacity(handles.len());
+        for h in handles {
+            pairs.push(h.await.unwrap());
+        }
+        let unique: std::collections::HashSet<(i64, i32)> =
+            pairs.iter().map(|p| (p.wall, p.logical)).collect();
+        assert_eq!(
+            unique.len(),
+            pairs.len(),
+            "all concurrent draws must return distinct (wall, logical) pairs; got {pairs:?}",
+        );
     }
 
     #[tokio::test]
