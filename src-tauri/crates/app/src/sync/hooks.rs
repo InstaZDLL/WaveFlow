@@ -35,7 +35,7 @@ use sqlx::SqliteConnection;
 use crate::{
     error::AppResult,
     server_client,
-    sync::{lamport, mode, queue},
+    sync::{hlc, lamport, mode, queue},
 };
 
 pub use crate::sync::queue::PendingOpDraft;
@@ -62,6 +62,13 @@ pub async fn enqueue_op_in_tx(
         return Ok(false);
     }
     let lamport_ts = lamport::next_conn(conn).await?;
-    queue::enqueue_conn(conn, draft, lamport_ts).await?;
+    // Phase A.4.2 — draw the HLC pair on the same connection so the
+    // entity write + outbox row + Lamport bump + HLC bump are one
+    // atomic SQLite commit. The pair rides on the row for the drain
+    // to lift onto `SyncOpIn.hlc` (v2 wire shape — waveflow-server
+    // #52). v1 server reads still work because the dual-shape ingest
+    // there derives `(0, lamport_ts)` when `hlc` is absent.
+    let hlc_pair = hlc::next_conn(conn).await?;
+    queue::enqueue_conn(conn, draft, lamport_ts, hlc_pair.wall, hlc_pair.logical).await?;
     Ok(true)
 }

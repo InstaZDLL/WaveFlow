@@ -67,6 +67,13 @@ pub struct PendingOpDraft {
 /// A row read back from the queue. The drain task hydrates this and
 /// hands it to the server; `id` is the local SQLite rowid the drain
 /// later passes to [`drop_acked`].
+///
+/// `hlc_wall` + `hlc_logical` (Phase A.4.2) are the per-op pair
+/// drawn by [`crate::sync::hlc::next`] at enqueue time. The drain
+/// emits the v2 wire shape (`SyncOpIn.hlc: Some(Hlc)`) when both are
+/// > 0 — pre-A.4.2 rows backfill to `(0, 0)` via the migration
+/// DEFAULT and round-trip as v1 (server-side dual-shape ingest
+/// swallows either form, waveflow-server #52).
 #[derive(Debug, Clone, Serialize)]
 pub struct PendingOp {
     pub id: i64,
@@ -81,12 +88,15 @@ pub struct PendingOp {
     pub last_attempt_at: Option<i64>,
     pub attempt_count: i64,
     pub last_error: Option<String>,
+    pub hlc_wall: i64,
+    pub hlc_logical: i32,
 }
 
 /// Append a draft to the queue under the caller-supplied
-/// `lamport_ts`. The caller is responsible for drawing the lamport
-/// value via [`crate::sync::lamport::next`] — splitting the two
-/// responsibilities means the queue stays a pure-storage layer.
+/// `lamport_ts` + HLC pair. The caller is responsible for drawing
+/// both values (via [`crate::sync::lamport::next`] +
+/// [`crate::sync::hlc::next`]) — splitting the two responsibilities
+/// means the queue stays a pure-storage layer.
 ///
 /// Returns the assigned `(id, operation_id)` so the caller can
 /// correlate logs without an extra SELECT.
@@ -94,19 +104,24 @@ pub async fn enqueue(
     profile_pool: &SqlitePool,
     draft: &PendingOpDraft,
     lamport_ts: i64,
+    hlc_wall: i64,
+    hlc_logical: i32,
 ) -> AppResult<(i64, String)> {
     let mut conn = profile_pool.acquire().await?;
-    enqueue_conn(&mut conn, draft, lamport_ts).await
+    enqueue_conn(&mut conn, draft, lamport_ts, hlc_wall, hlc_logical).await
 }
 
 /// Same as [`enqueue`] but takes a caller-owned connection so the
 /// INSERT joins an open transaction. Used by
 /// [`crate::sync::hooks::enqueue_op_in_tx`] to keep the playlist
-/// write + outbox row + Lamport bump in a single atomic commit.
+/// write + outbox row + Lamport bump + HLC bump in a single atomic
+/// commit.
 pub async fn enqueue_conn(
     conn: &mut SqliteConnection,
     draft: &PendingOpDraft,
     lamport_ts: i64,
+    hlc_wall: i64,
+    hlc_logical: i32,
 ) -> AppResult<(i64, String)> {
     let operation_id = Uuid::new_v4().to_string();
     let payload_json = match draft.payload.as_ref() {
@@ -118,8 +133,9 @@ pub async fn enqueue_conn(
     let now = now_ms();
     let row: (i64,) = sqlx::query_as(
         "INSERT INTO sync_pending_op
-            (operation_id, lamport_ts, entity, entity_id, field, op, payload, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (operation_id, lamport_ts, entity, entity_id, field, op, payload, created_at,
+             hlc_wall, hlc_logical)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          RETURNING id",
     )
     .bind(&operation_id)
@@ -130,6 +146,8 @@ pub async fn enqueue_conn(
     .bind(&draft.op)
     .bind(payload_json.as_deref())
     .bind(now)
+    .bind(hlc_wall)
+    .bind(hlc_logical)
     .fetch_one(conn)
     .await?;
     Ok((row.0, operation_id))
@@ -152,6 +170,8 @@ struct PendingOpRow {
     last_attempt_at: Option<i64>,
     attempt_count: i64,
     last_error: Option<String>,
+    hlc_wall: i64,
+    hlc_logical: i32,
 }
 
 /// Return the next `limit` pending rows in FIFO order. The drain
@@ -171,7 +191,8 @@ pub async fn list_pending(profile_pool: &SqlitePool, limit: i64) -> AppResult<Ve
     }
     let rows: Vec<PendingOpRow> = sqlx::query_as(
         "SELECT id, operation_id, lamport_ts, entity, entity_id, field, op,
-                payload, created_at, last_attempt_at, attempt_count, last_error
+                payload, created_at, last_attempt_at, attempt_count, last_error,
+                hlc_wall, hlc_logical
          FROM sync_pending_op
          ORDER BY id ASC
          LIMIT ?",
@@ -204,6 +225,8 @@ pub async fn list_pending(profile_pool: &SqlitePool, limit: i64) -> AppResult<Ve
             last_attempt_at: row.last_attempt_at,
             attempt_count: row.attempt_count,
             last_error: row.last_error,
+            hlc_wall: row.hlc_wall,
+            hlc_logical: row.hlc_logical,
         });
     }
     Ok(out)
@@ -278,7 +301,9 @@ mod tests {
     /// copy-pasted from the migration. Updating the migration without
     /// updating this fixture would silently diverge the unit tests
     /// from production behaviour — a small price for not pulling the
-    /// real migrator into the unit suite.
+    /// real migrator into the unit suite. Phase A.4.2 added
+    /// `hlc_wall` / `hlc_logical` columns; the CHECK on the latter
+    /// mirrors the migration's `0..=i32::MAX` bound.
     async fn pool() -> SqlitePool {
         let pool = SqlitePoolOptions::new()
             .max_connections(1)
@@ -298,7 +323,10 @@ mod tests {
                 created_at INTEGER NOT NULL,
                 last_attempt_at INTEGER,
                 attempt_count INTEGER NOT NULL DEFAULT 0,
-                last_error TEXT
+                last_error TEXT,
+                hlc_wall INTEGER NOT NULL DEFAULT 0,
+                hlc_logical INTEGER NOT NULL DEFAULT 0
+                    CHECK (hlc_logical BETWEEN 0 AND 2147483647)
             )",
         )
         .execute(&pool)
@@ -317,10 +345,26 @@ mod tests {
         }
     }
 
+    /// Wrap [`enqueue`] with a zero HLC pair. Phase A.4.2 added two
+    /// columns + `enqueue` parameters; the legacy tests in this
+    /// module exercise the storage layer's shape concerns
+    /// (`UNIQUE`, FIFO, `AUTOINCREMENT`, …) which are orthogonal to
+    /// the HLC values. Passing `(0, 0)` mirrors the migration's
+    /// backfill semantics — rows landed before A.4.2 carry the
+    /// DEFAULT 0/0 pair which the drain treats as "absent" and
+    /// falls back to the v1 wire shape.
+    async fn enqueue_t(
+        pool: &SqlitePool,
+        draft: &PendingOpDraft,
+        lamport: i64,
+    ) -> AppResult<(i64, String)> {
+        enqueue(pool, draft, lamport, 0, 0).await
+    }
+
     #[tokio::test]
     async fn enqueue_writes_row_and_returns_ids() {
         let pool = pool().await;
-        let (id, operation_id) = enqueue(&pool, &draft("1", Some("name")), 1).await.unwrap();
+        let (id, operation_id) = enqueue_t(&pool, &draft("1", Some("name")), 1).await.unwrap();
         assert!(id > 0);
         Uuid::parse_str(&operation_id).expect("operation_id is a UUID");
 
@@ -345,7 +389,7 @@ mod tests {
     async fn list_pending_returns_fifo_order() {
         let pool = pool().await;
         for lamport in 1..=5 {
-            enqueue(&pool, &draft(&lamport.to_string(), None), lamport)
+            enqueue_t(&pool, &draft(&lamport.to_string(), None), lamport)
                 .await
                 .unwrap();
         }
@@ -357,8 +401,8 @@ mod tests {
     #[tokio::test]
     async fn lamport_unique_constraint_rejects_duplicates() {
         let pool = pool().await;
-        enqueue(&pool, &draft("1", None), 42).await.unwrap();
-        let err = enqueue(&pool, &draft("2", None), 42).await.unwrap_err();
+        enqueue_t(&pool, &draft("1", None), 42).await.unwrap();
+        let err = enqueue_t(&pool, &draft("2", None), 42).await.unwrap_err();
         let s = format!("{err}");
         assert!(
             s.contains("UNIQUE") || s.contains("constraint"),
@@ -371,7 +415,7 @@ mod tests {
         let pool = pool().await;
         let mut ids = Vec::new();
         for lamport in 1..=5 {
-            let (id, _) = enqueue(&pool, &draft(&lamport.to_string(), None), lamport)
+            let (id, _) = enqueue_t(&pool, &draft(&lamport.to_string(), None), lamport)
                 .await
                 .unwrap();
             ids.push(id);
@@ -390,7 +434,7 @@ mod tests {
     #[tokio::test]
     async fn drop_acked_empty_input_is_noop() {
         let pool = pool().await;
-        enqueue(&pool, &draft("1", None), 1).await.unwrap();
+        enqueue_t(&pool, &draft("1", None), 1).await.unwrap();
         assert_eq!(drop_acked(&pool, &[]).await.unwrap(), 0);
         assert_eq!(count_pending(&pool).await.unwrap(), 1);
     }
@@ -398,7 +442,7 @@ mod tests {
     #[tokio::test]
     async fn mark_failed_bumps_counter_and_records_error() {
         let pool = pool().await;
-        let (id, _) = enqueue(&pool, &draft("1", None), 1).await.unwrap();
+        let (id, _) = enqueue_t(&pool, &draft("1", None), 1).await.unwrap();
         mark_failed(&pool, id, "503 Service Unavailable")
             .await
             .unwrap();
@@ -419,7 +463,7 @@ mod tests {
             op: "rename".into(), // not in CHECK list
             payload: None,
         };
-        let err = enqueue(&pool, &draft, 1).await.unwrap_err();
+        let err = enqueue_t(&pool, &draft, 1).await.unwrap_err();
         assert!(format!("{err}").to_lowercase().contains("check"));
     }
 
@@ -427,7 +471,7 @@ mod tests {
     async fn list_pending_guards_against_non_positive_limit() {
         let pool = pool().await;
         for lamport in 1..=3 {
-            enqueue(&pool, &draft(&lamport.to_string(), None), lamport)
+            enqueue_t(&pool, &draft(&lamport.to_string(), None), lamport)
                 .await
                 .unwrap();
         }
@@ -450,9 +494,9 @@ mod tests {
         // would silently miss ops appended after the reset; pin the
         // AUTOINCREMENT behaviour with a regression test.
         let pool = pool().await;
-        let (id_a, _) = enqueue(&pool, &draft("1", None), 1).await.unwrap();
+        let (id_a, _) = enqueue_t(&pool, &draft("1", None), 1).await.unwrap();
         clear(&pool).await.unwrap();
-        let (id_b, _) = enqueue(&pool, &draft("2", None), 2).await.unwrap();
+        let (id_b, _) = enqueue_t(&pool, &draft("2", None), 2).await.unwrap();
         assert!(
             id_b > id_a,
             "AUTOINCREMENT must keep ids monotonic across clears: id_a={id_a}, id_b={id_b}",
@@ -463,7 +507,7 @@ mod tests {
     async fn count_and_clear_observable() {
         let pool = pool().await;
         for lamport in 1..=3 {
-            enqueue(&pool, &draft(&lamport.to_string(), None), lamport)
+            enqueue_t(&pool, &draft(&lamport.to_string(), None), lamport)
                 .await
                 .unwrap();
         }
@@ -471,5 +515,54 @@ mod tests {
         let cleared = clear(&pool).await.unwrap();
         assert_eq!(cleared, 3);
         assert_eq!(count_pending(&pool).await.unwrap(), 0);
+    }
+
+    // ── Phase A.4.2 — HLC pair round-trip ─────────────────────────
+
+    #[tokio::test]
+    async fn enqueue_persists_and_returns_hlc_pair() {
+        let pool = pool().await;
+        let (_, _) = enqueue(&pool, &draft("1", Some("name")), 1, 1_700_000_000_001, 7)
+            .await
+            .unwrap();
+        let row = &list_pending(&pool, 1).await.unwrap()[0];
+        assert_eq!(row.hlc_wall, 1_700_000_000_001);
+        assert_eq!(row.hlc_logical, 7);
+    }
+
+    #[tokio::test]
+    async fn enqueue_legacy_zero_pair_round_trips() {
+        // A pre-A.4.2 caller (still on the v1 wire shape) passes
+        // `(0, 0)` and the row carries the DEFAULT pair. The drain
+        // reads these as "absent HLC" and falls back to the legacy
+        // wire format.
+        let pool = pool().await;
+        enqueue_t(&pool, &draft("1", None), 1).await.unwrap();
+        let row = &list_pending(&pool, 1).await.unwrap()[0];
+        assert_eq!(row.hlc_wall, 0);
+        assert_eq!(row.hlc_logical, 0);
+    }
+
+    #[tokio::test]
+    async fn check_constraint_rejects_negative_logical_via_raw_sql() {
+        // The migration plants a CHECK on `hlc_logical` mirroring the
+        // RFC-003 §2 bound `0..=i32::MAX`. The Rust-side bind cannot
+        // express the `> i32::MAX` direction (parameter is `i32`), so
+        // we exercise the same CHECK via raw SQL — verifies the in-
+        // memory fixture stays in sync with the real migration. The
+        // sibling test in `db::rfc003_hlc_tests` exercises the
+        // overflow direction against the actual migrator.
+        let pool = pool().await;
+        let err = sqlx::query(
+            "INSERT INTO sync_pending_op
+                (operation_id, lamport_ts, entity, entity_id, op, created_at,
+                 hlc_wall, hlc_logical)
+             VALUES ('op-x', 1, 'playlist', '1', 'set', 0, 0, -1)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap_err();
+        let s = format!("{err}").to_lowercase();
+        assert!(s.contains("check"), "expected CHECK constraint failure: {s}");
     }
 }

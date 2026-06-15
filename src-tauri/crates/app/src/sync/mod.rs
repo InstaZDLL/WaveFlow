@@ -15,6 +15,13 @@
 //!   local clock past it so the next local op stays globally
 //!   monotonic.
 //!
+//! - [`hlc`] — RFC-003 §2 Hybrid Logical Clock pair `(wall,
+//!   logical)`. [`hlc::next`] atomically draws a strictly-increasing
+//!   pair the desktop ships under the v2 wire shape
+//!   `SyncOpIn.hlc: Option<Hlc>` (waveflow-server #52). Lamport stays
+//!   in the protocol during Phase A (still required by the dual-shape
+//!   ingest) and retires in Phase D.
+//!
 //! - [`queue`] — the local write-ahead log. Rows here are ops the
 //!   user produced while signed into a `waveflow-server`; the
 //!   [`drain`] task posts them to `/api/v1/sync/ops` and removes the
@@ -52,6 +59,7 @@ pub mod canonical;
 pub mod cursor;
 pub mod device;
 pub mod drain;
+pub mod hlc;
 pub mod hooks;
 pub mod lamport;
 pub mod mode;
