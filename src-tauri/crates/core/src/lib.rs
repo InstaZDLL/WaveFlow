@@ -16,6 +16,13 @@ pub mod audio_format;
 pub mod domain;
 pub mod error;
 pub mod metadata;
+// `plugin` carries the wasmtime + Cranelift + WASI stack (~5 MiB
+// of native codegen). Gated so `waveflow-server` (which never
+// executes guest WASM in v1) can opt out and stay lean. The
+// desktop app turns the feature on via its
+// `waveflow-core = { ..., features = ["sqlite", "plugins"] }`
+// path-dep.
+#[cfg(feature = "plugins")]
 pub mod plugin;
 pub mod repository;
 pub mod scanner;
