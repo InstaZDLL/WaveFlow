@@ -497,5 +497,18 @@ mod redact_tests {
             !rendered.contains(SECRET),
             "token leaked into Debug-formatted error: {rendered}",
         );
+        // Symmetry with `send_failure_drops_token_from_displayed_error`:
+        // the diagnostic context (redacted host + path) must survive
+        // through the Debug formatter so an operator chasing a
+        // `tracing::warn!(?err, …)` line in the rolling log still
+        // sees WHICH endpoint failed.
+        assert!(
+            rendered.contains("musixmatch-token-redact-test.invalid"),
+            "redacted host context missing from Debug: {rendered}",
+        );
+        assert!(
+            rendered.contains("/track.search"),
+            "redacted path context missing from Debug: {rendered}",
+        );
     }
 }
