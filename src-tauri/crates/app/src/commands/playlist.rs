@@ -120,7 +120,7 @@ pub async fn create_playlist(
     // devices reading the broadcast will route entity_id through
     // their own sync_id_map to find the local rowid.
     let canonical = crate::sync::canonical::ensure_local_playlist(&mut tx, id).await?;
-    crate::sync::hooks::enqueue_op_in_tx(
+    let stamp = crate::sync::hooks::enqueue_op_in_tx(
         &mut tx,
         &crate::sync::hooks::PendingOpDraft {
             entity: "playlist".into(),
@@ -136,6 +136,18 @@ pub async fn create_playlist(
         },
     )
     .await?;
+    // Phase B.0 — stamp the playlist row with the queued op's HLC +
+    // payload_hash so the desktop's metadata_digest reflects the
+    // INSERT. Only fires when `enqueue_op_in_tx` actually wrote (sync
+    // gate / SyncMode::Local short-circuits return `None`); the row
+    // INSERT itself proceeds either way.
+    if let Some(stamp) = stamp {
+        if let Some(fields) =
+            crate::sync::payload::playlist::fields_from_row(&mut tx, id).await?
+        {
+            crate::sync::payload::playlist::stamp_in_tx(&mut tx, id, fields, stamp).await?;
+        }
+    }
     tx.commit().await?;
     // Wake the drain task so a chatty user's edits don't wait the
     // full 30 s tick before reaching the server.
@@ -209,6 +221,7 @@ pub async fn update_playlist(
     // dodged the migration backfill — shouldn't happen, but the
     // fallback keeps the tx atomic) gets one minted here.
     let entity_id = crate::sync::canonical::ensure_local_playlist(&mut tx, playlist_id).await?;
+    let mut last_stamp: Option<crate::sync::hooks::EnqueuedStamp> = None;
     for (field, value) in [
         ("name", trimmed_name.map(serde_json::Value::String)),
         (
@@ -219,7 +232,7 @@ pub async fn update_playlist(
         ("icon_id", input.icon_id.map(serde_json::Value::String)),
     ] {
         if let Some(value) = value {
-            crate::sync::hooks::enqueue_op_in_tx(
+            let stamp = crate::sync::hooks::enqueue_op_in_tx(
                 &mut tx,
                 &crate::sync::hooks::PendingOpDraft {
                     entity: "playlist".into(),
@@ -230,6 +243,21 @@ pub async fn update_playlist(
                 },
             )
             .await?;
+            if let Some(s) = stamp {
+                last_stamp = Some(s);
+            }
+        }
+    }
+    // Phase B.0 — stamp once at the end with the latest queued op's
+    // HLC, reading the canonical fields from the persisted row so the
+    // hash reflects what's actually on disk (defence-in-depth against
+    // future normalisation in `update_conn`).
+    if let Some(stamp) = last_stamp {
+        if let Some(fields) =
+            crate::sync::payload::playlist::fields_from_row(&mut tx, playlist_id).await?
+        {
+            crate::sync::payload::playlist::stamp_in_tx(&mut tx, playlist_id, fields, stamp)
+                .await?;
         }
     }
     tx.commit().await?;
@@ -273,7 +301,7 @@ pub async fn delete_playlist(state: tauri::State<'_, AppState>, playlist_id: i64
     } else {
         playlist_id.to_string()
     };
-    crate::sync::hooks::enqueue_op_in_tx(
+    let stamp = crate::sync::hooks::enqueue_op_in_tx(
         &mut tx,
         &crate::sync::hooks::PendingOpDraft {
             entity: "playlist".into(),
@@ -284,6 +312,12 @@ pub async fn delete_playlist(state: tauri::State<'_, AppState>, playlist_id: i64
         },
     )
     .await?;
+    // Phase B.0 — bump the playlist digest counter on delete. No row
+    // to stamp (the DELETE already ran), but the set member's removal
+    // still has to be visible to the backfill protocol.
+    if stamp.is_some() {
+        crate::sync::payload::bump_digest_in_tx(&mut tx, "playlist").await?;
+    }
     tx.commit().await?;
     // Wake the drain task so a chatty user's edits don't wait the
     // full 30 s tick before reaching the server.

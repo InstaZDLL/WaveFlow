@@ -656,6 +656,7 @@ pub(crate) async fn scan_folder_inner(
                     emit_track_insert_from_extracted(
                         &mut tx,
                         library_id,
+                        existing_track_id,
                         &extracted,
                         existing_added_at,
                     )
@@ -785,6 +786,7 @@ pub(crate) async fn scan_folder_inner(
                 emit_track_insert_from_extracted(
                     &mut tx,
                     library_id,
+                    existing_track_id,
                     &extracted,
                     existing_added_at,
                 )
@@ -894,7 +896,8 @@ pub(crate) async fn scan_folder_inner(
             // write — outbox rolls back with the track row if the
             // commit fails. Skipped gracefully when sync isn't
             // configured.
-            emit_track_insert_from_extracted(&mut tx, library_id, &extracted, now).await?;
+            emit_track_insert_from_extracted(&mut tx, library_id, track_id, &extracted, now)
+                .await?;
 
             summary.added += 1;
             tx_count += 1;
@@ -1088,6 +1091,7 @@ pub async fn rescan_local_artist_images(
 async fn emit_track_insert_from_extracted(
     tx: &mut sqlx::SqliteConnection,
     library_id: i64,
+    track_id: i64,
     extracted: &ExtractedFile,
     added_at: i64,
 ) -> AppResult<()> {
@@ -1120,7 +1124,13 @@ async fn emit_track_insert_from_extracted(
         is_compilation: extracted.is_compilation,
         artists: &artists,
     };
-    crate::sync::track_emit::emit_track_insert_in_tx(tx, library_id, &extracted.abs_path, &wire)
-        .await?;
+    crate::sync::track_emit::emit_track_insert_in_tx(
+        tx,
+        library_id,
+        track_id,
+        &extracted.abs_path,
+        &wire,
+    )
+    .await?;
     Ok(())
 }
