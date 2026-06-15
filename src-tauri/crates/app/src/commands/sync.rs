@@ -197,6 +197,14 @@ pub async fn sync_digest_check(
     state: tauri::State<'_, AppState>,
     entity: Option<String>,
 ) -> AppResult<SyncDigestOutcome> {
+    // Gate 0 — process-wide offline mode. Same short-circuit every
+    // other outbound HTTP path applies (CLAUDE.md cross-cutting
+    // rule); no point building the HTTP client or hitting SQLite
+    // when the user explicitly set `network.offline_mode`.
+    if crate::offline::is_offline() {
+        return Ok(SyncDigestOutcome::Skipped { reason: "offline" });
+    }
+
     // Gate 1 — local-only profile means the digest comparison has
     // no remote to compare against. Surface the same `Skipped`
     // shape the drain task uses so the UI can treat them
@@ -234,6 +242,7 @@ pub async fn sync_digest_check(
     };
 
     let mut reports = Vec::with_capacity(entities.len());
+    let mut skipped_canonical = 0usize;
     for e in entities {
         let canonical_arg = match e {
             "library" | "playlist" | "track" => {
@@ -246,6 +255,7 @@ pub async fn sync_digest_check(
                         entity = e,
                         "digest: profile.canonical_id is NULL — skipping entity",
                     );
+                    skipped_canonical += 1;
                     continue;
                 };
                 Some(canon)
@@ -265,6 +275,17 @@ pub async fn sync_digest_check(
             missing_locally: d.missing_locally.len() as u32,
             missing_remotely: d.missing_remotely.len() as u32,
             divergent: d.divergent.len() as u32,
+        });
+    }
+
+    // If every targeted entity was skipped (caller asked for
+    // profile-scoped entities only, and `profile.canonical_id` is
+    // NULL pending the drain's backfill), `Ran { reports: [] }`
+    // would falsely render as "everything in sync" in the UI.
+    // Promote to `Skipped` so the surface matches reality.
+    if reports.is_empty() && skipped_canonical > 0 {
+        return Ok(SyncDigestOutcome::Skipped {
+            reason: "profile_canonical_id_missing",
         });
     }
 
