@@ -33,6 +33,10 @@ use crate::error::AppResult;
 use crate::sync::hooks::EnqueuedStamp;
 
 pub mod library;
+pub mod liked_track;
+pub mod playlist;
+pub mod track;
+pub mod track_rating;
 
 /// Bump the per-entity counter that `waveflow-server`'s digest
 /// endpoint reads to invalidate its cache (RFC-003 §4 — "every

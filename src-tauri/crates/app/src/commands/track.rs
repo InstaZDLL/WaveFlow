@@ -514,7 +514,7 @@ pub async fn set_track_rating(
         .await?;
     let file_hash = crate::sync::canonical::file_hash_for_local_track(&mut tx, track_id).await?;
     if let Some(hash) = file_hash {
-        crate::sync::hooks::enqueue_op_in_tx(
+        let stamp = crate::sync::hooks::enqueue_op_in_tx(
             &mut tx,
             &crate::sync::hooks::PendingOpDraft {
                 entity: "track_rating".into(),
@@ -525,6 +525,26 @@ pub async fn set_track_rating(
             },
         )
         .await?;
+        // Phase B.0 — stamp the rating_* mirror columns on the
+        // same track row. The metadata sub-entity ([`super::track`])
+        // owns the regular hlc_*/payload_hash columns; rating runs
+        // in parallel under its own §2 tuple so a metadata edit
+        // and a rating change don't clobber each other on
+        // read-modify-write.
+        if let Some(stamp) = stamp {
+            if let Some(value) = rating {
+                crate::sync::payload::track_rating::stamp_set_in_tx(
+                    &mut tx,
+                    track_id,
+                    i64::from(value),
+                    stamp,
+                )
+                .await?;
+            } else {
+                crate::sync::payload::track_rating::stamp_delete_in_tx(&mut tx, track_id, stamp)
+                    .await?;
+            }
+        }
     }
     tx.commit().await?;
     state.drain.notify();
@@ -653,7 +673,7 @@ pub async fn toggle_like_track(
     // bloats the queue with a like the peer can't resolve anyway.
     if did_change {
         if let Some(hash) = file_hash {
-            crate::sync::hooks::enqueue_op_in_tx(
+            let stamp = crate::sync::hooks::enqueue_op_in_tx(
                 &mut tx,
                 &crate::sync::hooks::PendingOpDraft {
                     entity: "liked_track".into(),
@@ -664,6 +684,17 @@ pub async fn toggle_like_track(
                 },
             )
             .await?;
+            // Phase B.0 — stamp the liked_track row's payload_hash
+            // on insert; on delete the row is already gone, so bump
+            // the digest counter directly.
+            if let Some(stamp) = stamp {
+                if now_liked {
+                    crate::sync::payload::liked_track::stamp_in_tx(&mut tx, track_id, stamp)
+                        .await?;
+                } else {
+                    crate::sync::payload::liked_track::bump_for_delete_in_tx(&mut tx).await?;
+                }
+            }
         }
     }
     tx.commit().await?;

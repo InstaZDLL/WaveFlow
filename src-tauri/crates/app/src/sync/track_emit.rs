@@ -105,21 +105,29 @@ pub fn build_track_insert_payload(library_canonical_id: &str, wire: &TrackInsert
     })
 }
 
-/// Resolve the library's canonical id, build the payload, and
-/// enqueue the `track + insert` op. All inside the caller's
-/// transaction so the entity write + outbox row + Lamport bump
-/// either ALL land or ALL roll back.
+/// Resolve the library's canonical id, build the payload, enqueue
+/// the `track + insert` op, AND stamp the local `track` row with
+/// the queued op's HLC + payload_hash. All inside the caller's
+/// transaction so the entity write + outbox row + HLC bump +
+/// `metadata_digest_version` bump either ALL land or ALL roll back.
 ///
-/// Returns `Ok(true)` when the op was enqueued, `Ok(false)` when
-/// the sync gate short-circuited (no JWT for the active profile,
-/// or `SyncMode::Local`). Either way the entity write proceeds —
-/// the boolean is just for telemetry.
+/// `track_id` is the rowid of the `track` row the caller just
+/// inserted or updated — required for the Phase B.0 stamp step.
+/// Used by scanner branches (`commands/scan.rs::emit_track_insert_from_extracted`)
+/// where the track row has already been INSERTed/UPDATEd before
+/// emission.
+///
+/// Returns `Ok(())`; the sync gate short-circuit (no JWT for the
+/// active profile, or `SyncMode::Local`) is handled silently — the
+/// entity write proceeds and the stamp step skips since
+/// `enqueue_op_in_tx` returned `None`.
 pub async fn emit_track_insert_in_tx(
     conn: &mut SqliteConnection,
     library_id: i64,
+    track_id: i64,
     file_path: &str,
     wire: &TrackInsertWire<'_>,
-) -> AppResult<bool> {
+) -> AppResult<()> {
     let library_canonical = canonical::ensure_local_library(conn, library_id).await?;
     let payload = build_track_insert_payload(&library_canonical, wire);
     let stamp = hooks::enqueue_op_in_tx(
@@ -133,7 +141,11 @@ pub async fn emit_track_insert_in_tx(
         },
     )
     .await?;
-    Ok(stamp.is_some())
+    if let Some(stamp) = stamp {
+        let fields = crate::sync::payload::track::canonical_fields_from_wire(wire);
+        crate::sync::payload::track::stamp_in_tx(conn, track_id, fields, stamp).await?;
+    }
+    Ok(())
 }
 
 /// Enqueue a `track + delete` op for a file the user explicitly
@@ -164,7 +176,7 @@ pub async fn emit_track_delete_in_tx(
     conn: &mut SqliteConnection,
     library_id: i64,
     file_path: &str,
-) -> AppResult<bool> {
+) -> AppResult<()> {
     let library_canonical = canonical::ensure_local_library(conn, library_id).await?;
     let payload = serde_json::json!({
         "library_canonical_id": library_canonical,
@@ -180,7 +192,14 @@ pub async fn emit_track_delete_in_tx(
         },
     )
     .await?;
-    Ok(stamp.is_some())
+    // Phase B.0 — the row is already gone (caller DELETEd it
+    // before emitting), so there's nothing to UPDATE — but the
+    // digest still has to move so the backfill protocol observes
+    // the set member's removal.
+    if stamp.is_some() {
+        crate::sync::payload::track::bump_for_delete_in_tx(conn).await?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
