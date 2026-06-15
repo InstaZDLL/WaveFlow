@@ -179,38 +179,87 @@ async fn write_pair_conn(
     wall: i64,
     logical: i32,
 ) -> AppResult<()> {
+    // RFC-003 §2 requires the pair to be observed as a unit by any
+    // reader. Two bare UPSERTs auto-commit independently in
+    // autocommit mode — a concurrent reader on a sibling
+    // connection could then observe `wall` bumped while `logical`
+    // still holds the previous value, breaking the total-order
+    // invariant.
+    //
+    // SAVEPOINT wraps the two UPSERTs into a single
+    // observable-as-a-unit step regardless of the caller's tx state:
+    //
+    // - From `enqueue_op_in_tx`, the caller already holds a
+    //   `Transaction<'_, Sqlite>` and the SAVEPOINT nests inside
+    //   it (SQLite supports unlimited nesting of savepoints).
+    //   `RELEASE SAVEPOINT` then defers the durable commit to the
+    //   outer caller's `tx.commit()`.
+    // - From the diagnostic / test path (`next` / `observe_remote`
+    //   wrappers that acquire a fresh pool connection in autocommit
+    //   mode), the SAVEPOINT acts as an implicit transaction —
+    //   `RELEASE` commits both writes atomically.
+    //
+    // Either way `now_ms()` is sampled once so the two rows agree
+    // on `updated_at` (the bare-UPSERT version sampled twice, which
+    // could differ by 1 ms across the round-trip pair).
     let updated_at = now_ms();
-    // Two separate UPSERTs because the pair lives under two keys.
-    // Same connection = same SQLite per-connection lock, so the
-    // pair appears atomic to every other reader on a different
-    // connection.
-    sqlx::query(
-        "INSERT INTO profile_setting (key, value, value_type, updated_at)
-         VALUES (?, CAST(? AS TEXT), 'int', ?)
-         ON CONFLICT(key) DO UPDATE
-            SET value = excluded.value,
-                value_type = excluded.value_type,
-                updated_at = excluded.updated_at",
-    )
-    .bind(KEY_WALL)
-    .bind(wall)
-    .bind(updated_at)
-    .execute(&mut *conn)
-    .await?;
-    sqlx::query(
-        "INSERT INTO profile_setting (key, value, value_type, updated_at)
-         VALUES (?, CAST(? AS TEXT), 'int', ?)
-         ON CONFLICT(key) DO UPDATE
-            SET value = excluded.value,
-                value_type = excluded.value_type,
-                updated_at = excluded.updated_at",
-    )
-    .bind(KEY_LOGICAL)
-    .bind(logical as i64)
-    .bind(updated_at)
-    .execute(&mut *conn)
-    .await?;
-    Ok(())
+    sqlx::query("SAVEPOINT hlc_write")
+        .execute(&mut *conn)
+        .await?;
+
+    let inner = async {
+        sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES (?, CAST(? AS TEXT), 'int', ?)
+             ON CONFLICT(key) DO UPDATE
+                SET value = excluded.value,
+                    value_type = excluded.value_type,
+                    updated_at = excluded.updated_at",
+        )
+        .bind(KEY_WALL)
+        .bind(wall)
+        .bind(updated_at)
+        .execute(&mut *conn)
+        .await?;
+        sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES (?, CAST(? AS TEXT), 'int', ?)
+             ON CONFLICT(key) DO UPDATE
+                SET value = excluded.value,
+                    value_type = excluded.value_type,
+                    updated_at = excluded.updated_at",
+        )
+        .bind(KEY_LOGICAL)
+        .bind(logical as i64)
+        .bind(updated_at)
+        .execute(&mut *conn)
+        .await?;
+        Ok::<_, AppError>(())
+    }
+    .await;
+
+    match inner {
+        Ok(()) => {
+            sqlx::query("RELEASE SAVEPOINT hlc_write")
+                .execute(&mut *conn)
+                .await?;
+            Ok(())
+        }
+        Err(e) => {
+            // Best-effort rollback to the savepoint — the original
+            // error is the one the caller cares about. `ROLLBACK TO
+            // SAVEPOINT … ; RELEASE SAVEPOINT …` is the SQLite
+            // dance to undo just the inner step without disturbing
+            // an outer transaction.
+            let _ = sqlx::query("ROLLBACK TO SAVEPOINT hlc_write")
+                .execute(&mut *conn)
+                .await;
+            let _ = sqlx::query("RELEASE SAVEPOINT hlc_write")
+                .execute(&mut *conn)
+                .await;
+            Err(e)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -334,6 +383,44 @@ mod tests {
         observe_remote_conn(&mut conn, HlcPair::ZERO).await.unwrap();
         let after = read_pair_conn(&mut conn).await.unwrap();
         assert_eq!(after, before);
+    }
+
+    #[tokio::test]
+    async fn next_conn_composes_with_caller_owned_transaction() {
+        // The hook path (`sync::hooks::enqueue_op_in_tx`) opens its
+        // own tx on the borrowed connection and expects the inner
+        // `next_conn` to nest cleanly. SAVEPOINT inside an active
+        // transaction is the SQLite-supported pattern; verify the
+        // composition end-to-end so a future refactor that swaps
+        // SAVEPOINT for `BEGIN IMMEDIATE` (which would fail with
+        // "cannot start a transaction within a transaction") trips
+        // this test before production.
+        let pool = pool().await;
+        let mut tx = pool.begin().await.unwrap();
+        let pair = next_conn(&mut tx).await.unwrap();
+        // The pair lands on the row even though the outer tx is
+        // still open — same connection, savepoint released, but
+        // the outer tx commit is deferred.
+        tx.commit().await.unwrap();
+        let after = read(&pool).await.unwrap();
+        assert_eq!(after, pair);
+    }
+
+    #[tokio::test]
+    async fn next_conn_two_writes_in_one_outer_tx_round_trip() {
+        // Two consecutive draws inside a single outer transaction
+        // must both land atomically when the outer commits.
+        let pool = pool().await;
+        let mut tx = pool.begin().await.unwrap();
+        let a = next_conn(&mut tx).await.unwrap();
+        let b = next_conn(&mut tx).await.unwrap();
+        assert!((a.wall, a.logical) < (b.wall, b.logical));
+        tx.commit().await.unwrap();
+        // The persisted row holds the LATER pair — the earlier
+        // savepoint was released into the outer tx, so the outer
+        // commit promotes both writes' net effect.
+        let after = read(&pool).await.unwrap();
+        assert_eq!(after, b);
     }
 
     #[tokio::test]

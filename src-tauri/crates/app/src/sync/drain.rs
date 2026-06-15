@@ -149,8 +149,18 @@ struct SyncOpInBody {
 /// migration DEFAULT — `None` rather than `Some(0, 0)` keeps the
 /// JSON identical to the legacy form, so the server picks the v1
 /// dual-shape branch and derives `(0, lamport_ts)` itself.
+///
+/// The gate is `wall == 0` rather than `wall == 0 && logical == 0`
+/// because `hlc::next_conn` ALWAYS produces a `wall = max(now_ms,
+/// last_wall)` that's strictly greater than zero (epoch-ms in 2026
+/// is ~1.7e12). A row carrying `(0, n > 0)` can only arise from
+/// corruption or a manual edit — emitting it on the wire as a v2
+/// HLC with `wall = 0` (= January 1970) would feed the server's
+/// LWW comparator an ancient pair that loses against every legit
+/// op. Falling back to the v1 shape lets the server derive a
+/// usable `(0, lamport_ts)` from the row's Lamport instead.
 fn wire_hlc_from_row(wall: i64, logical: i32) -> Option<WireHlc> {
-    if wall == 0 && logical == 0 {
+    if wall == 0 {
         None
     } else {
         Some(WireHlc { wall, logical })
@@ -497,15 +507,19 @@ mod tests {
     }
 
     #[test]
-    fn wire_hlc_from_row_treats_zero_pair_as_v1() {
-        // The (0, 0) backfill pair maps to None so the wire shape
-        // stays identical to the legacy form. Any non-zero
-        // component flips to the v2 branch.
+    fn wire_hlc_from_row_gates_on_wall_alone() {
+        // wall == 0 → None: covers both the (0, 0) backfill DEFAULT
+        // and the (0, n > 0) corruption case where emitting a v2
+        // hlc with wall=0 would feed the server an ancient
+        // 1970-epoch pair that loses every LWW comparison.
         assert!(wire_hlc_from_row(0, 0).is_none());
+        assert!(wire_hlc_from_row(0, 1).is_none());
+        assert!(wire_hlc_from_row(0, i32::MAX).is_none());
+        // wall > 0 → Some: the production path (hlc::next_conn
+        // produces wall = max(now_ms, last_wall) so wall is always
+        // ~1.7e12 in 2026).
         let hlc = wire_hlc_from_row(1, 0).unwrap();
         assert_eq!((hlc.wall, hlc.logical), (1, 0));
-        let hlc = wire_hlc_from_row(0, 1).unwrap();
-        assert_eq!((hlc.wall, hlc.logical), (0, 1));
         let hlc = wire_hlc_from_row(123, 456).unwrap();
         assert_eq!((hlc.wall, hlc.logical), (123, 456));
     }
