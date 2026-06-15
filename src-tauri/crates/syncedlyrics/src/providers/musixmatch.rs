@@ -1,25 +1,81 @@
+use reqwest::Response;
 use serde_json::Value;
 
-use crate::http::safe_json;
+use crate::http::{redact_url, safe_json};
 use crate::{utils, Candidate, Error, Result, SearchOptions};
 
 const ROOT: &str = "https://apic-desktop.musixmatch.com/ws/1.1";
 
+/// Send a Musixmatch GET request and wrap any failure with a redacted
+/// URL + `reqwest::Error::without_url()`.
+///
+/// The Musixmatch API takes `usertoken` as a query parameter. Without
+/// this wrapper, a network reset / 5xx / TLS error from `.send()` or
+/// `.error_for_status()` would propagate up via `Error::Http(reqwest::
+/// Error)` whose `Display` includes the full request URL — token and
+/// all — into `tracing::warn!(?err, …)` lines in [`commands/lyrics.
+/// rs`](crate::commands::lyrics) and into the IPC error returned to
+/// the frontend. The token is short-lived but a defence-in-depth gap
+/// is still a gap.
+///
+/// The helper:
+///
+/// 1. Materialises the URL (with query) once via
+///    [`reqwest::RequestBuilder::build`] so it can run
+///    [`redact_url`] against the final string.
+/// 2. Calls [`reqwest::Error::without_url`] on any failure so the
+///    inner error's `Display` drops the URL field entirely.
+/// 3. Re-attaches the REDACTED URL as context in the new
+///    [`Error::Provider`] message so the operator still gets the
+///    `host + path` for diagnostics, just without the credential.
+async fn redacted_get(
+    http: &reqwest::Client,
+    url: String,
+    query: &[(&str, &str)],
+    context: &'static str,
+) -> Result<Response> {
+    let request = http.get(&url).query(query);
+    // `try_clone()` returns `None` for streaming bodies — none of
+    // the Musixmatch endpoints stream, so the fallback path only
+    // triggers if the request builder itself rejects, in which
+    // case the pre-query URL is still safer than nothing.
+    let redacted = match request.try_clone().and_then(|r| r.build().ok()) {
+        Some(built) => redact_url(built.url().as_str()),
+        None => redact_url(&url),
+    };
+
+    let response = request.send().await.map_err(|err| {
+        Error::Provider(format!(
+            "{context} request failed at {redacted}: {}",
+            err.without_url(),
+        ))
+    })?;
+
+    response.error_for_status().map_err(|err| {
+        Error::Provider(format!(
+            "{context} returned non-2xx at {redacted}: {}",
+            err.without_url(),
+        ))
+    })
+}
+
 pub async fn search(http: &reqwest::Client, options: &SearchOptions) -> Result<Option<Candidate>> {
     let token = get_token(http).await?;
     let response: Value = safe_json(
-        http.get(format!("{ROOT}/track.search"))
-            .query(&[
+        redacted_get(
+            http,
+            format!("{ROOT}/track.search"),
+            &[
                 ("q", options.query.as_str()),
                 ("page_size", "5"),
                 ("page", "1"),
                 ("app_id", "web-desktop-app-v1.0"),
                 ("usertoken", token.as_str()),
                 ("t", &timestamp_ms()),
-            ])
-            .send()
-            .await?
-            .error_for_status()?,
+            ],
+            "musixmatch search",
+        )
+        .await?,
     )
     .await?;
 
@@ -46,16 +102,23 @@ pub async fn search(http: &reqwest::Client, options: &SearchOptions) -> Result<O
 }
 
 async fn get_token(http: &reqwest::Client) -> Result<String> {
+    // `token.get` doesn't ride a token in its query (it's the request
+    // that MINTS one), so the URL doesn't carry a credential. Still
+    // routed through `redacted_get` for uniform error-shape across
+    // every Musixmatch endpoint — the helper is idempotent on
+    // already-clean URLs.
     let response: Value = safe_json(
-        http.get(format!("{ROOT}/token.get"))
-            .query(&[
+        redacted_get(
+            http,
+            format!("{ROOT}/token.get"),
+            &[
                 ("user_language", "en"),
                 ("app_id", "web-desktop-app-v1.0"),
                 ("t", &timestamp_ms()),
-            ])
-            .send()
-            .await?
-            .error_for_status()?,
+            ],
+            "musixmatch token",
+        )
+        .await?,
     )
     .await?;
     response["message"]["body"]["user_token"]
@@ -87,17 +150,19 @@ async fn subtitle(
     lang: Option<&str>,
 ) -> Result<Option<Candidate>> {
     let response: Value = safe_json(
-        http.get(format!("{ROOT}/track.subtitle.get"))
-            .query(&[
+        redacted_get(
+            http,
+            format!("{ROOT}/track.subtitle.get"),
+            &[
                 ("track_id", track_id),
                 ("subtitle_format", "lrc"),
                 ("app_id", "web-desktop-app-v1.0"),
                 ("usertoken", token),
                 ("t", &timestamp_ms()),
-            ])
-            .send()
-            .await?
-            .error_for_status()?,
+            ],
+            "musixmatch subtitle",
+        )
+        .await?,
     )
     .await?;
     let Some(mut lrc) = response["message"]["body"]["subtitle"]["subtitle_body"]
@@ -125,8 +190,10 @@ async fn add_translations(
     mut lrc: String,
 ) -> Result<String> {
     let response: Value = safe_json(
-        http.get(format!("{ROOT}/crowd.track.translations.get"))
-            .query(&[
+        redacted_get(
+            http,
+            format!("{ROOT}/crowd.track.translations.get"),
+            &[
                 ("track_id", track_id),
                 ("subtitle_format", "lrc"),
                 ("translation_fields_set", "minimal"),
@@ -134,10 +201,10 @@ async fn add_translations(
                 ("app_id", "web-desktop-app-v1.0"),
                 ("usertoken", token),
                 ("t", &timestamp_ms()),
-            ])
-            .send()
-            .await?
-            .error_for_status()?,
+            ],
+            "musixmatch translations",
+        )
+        .await?,
     )
     .await?;
     if let Some(translations) = response["message"]["body"]["translations_list"].as_array() {
@@ -196,16 +263,18 @@ async fn richsync(
     track_id: &str,
 ) -> Result<Option<Candidate>> {
     let response: Value = safe_json(
-        http.get(format!("{ROOT}/track.richsync.get"))
-            .query(&[
+        redacted_get(
+            http,
+            format!("{ROOT}/track.richsync.get"),
+            &[
                 ("track_id", track_id),
                 ("app_id", "web-desktop-app-v1.0"),
                 ("usertoken", token),
                 ("t", &timestamp_ms()),
-            ])
-            .send()
-            .await?
-            .error_for_status()?,
+            ],
+            "musixmatch richsync",
+        )
+        .await?,
     )
     .await?;
     if response["message"]["header"]["status_code"].as_i64() != Some(200) {
@@ -345,5 +414,88 @@ mod richsync_tests {
             json!({"ts": 3.0, "l": []}),
         ];
         assert!(validate_rows(&rows).is_none());
+    }
+}
+
+#[cfg(test)]
+mod redact_tests {
+    //! GH #234 — Musixmatch passes `usertoken` as a query parameter.
+    //! Verify the redaction path: even when the underlying
+    //! `reqwest::Error` would normally Display with the full URL,
+    //! the error returned by [`redacted_get`] must not contain the
+    //! literal token.
+    //!
+    //! Tests don't hit the real Musixmatch — they point `redacted_get`
+    //! at an unresolvable hostname so `send().await` errors out
+    //! deterministically with a DNS/connect failure. The exact error
+    //! reason doesn't matter; the property we assert is "the token
+    //! string never appears in the formatted error".
+
+    use super::redacted_get;
+
+    const SECRET: &str = "deadbeefcafe1234usertokenSECRET";
+
+    fn client() -> reqwest::Client {
+        // Short timeouts so the test fails fast on real networks too.
+        reqwest::Client::builder()
+            .connect_timeout(std::time::Duration::from_millis(500))
+            .timeout(std::time::Duration::from_millis(500))
+            .build()
+            .expect("client builds")
+    }
+
+    #[tokio::test]
+    async fn send_failure_drops_token_from_displayed_error() {
+        // `.invalid` is RFC 6761-reserved — guaranteed never to
+        // resolve, so the DNS layer rejects deterministically.
+        let url = "https://musixmatch-token-redact-test.invalid/track.search".to_string();
+        let err = redacted_get(
+            &client(),
+            url,
+            &[
+                ("q", "any"),
+                ("usertoken", SECRET),
+                ("app_id", "web-desktop-app-v1.0"),
+            ],
+            "test endpoint",
+        )
+        .await
+        .expect_err("DNS for .invalid must fail");
+        let rendered = format!("{err}");
+        assert!(
+            !rendered.contains(SECRET),
+            "token leaked into formatted error: {rendered}",
+        );
+        // Sanity: the redacted host + path should still be there for
+        // operator diagnostics.
+        assert!(
+            rendered.contains("musixmatch-token-redact-test.invalid"),
+            "redacted host context missing: {rendered}",
+        );
+        assert!(
+            rendered.contains("/track.search"),
+            "redacted path context missing: {rendered}",
+        );
+    }
+
+    #[tokio::test]
+    async fn debug_formatted_error_also_drops_token() {
+        // Belt-and-suspenders: some `tracing::warn!(?err, …)` sites
+        // use `Debug` rather than `Display`. The `without_url()`
+        // strip must hold there too.
+        let url = "https://musixmatch-token-redact-test.invalid/track.search".to_string();
+        let err = redacted_get(
+            &client(),
+            url,
+            &[("usertoken", SECRET)],
+            "test endpoint",
+        )
+        .await
+        .expect_err("DNS for .invalid must fail");
+        let rendered = format!("{err:?}");
+        assert!(
+            !rendered.contains(SECRET),
+            "token leaked into Debug-formatted error: {rendered}",
+        );
     }
 }

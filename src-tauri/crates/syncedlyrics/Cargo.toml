@@ -16,3 +16,9 @@ tracing = "0.1"
 # explicitly so a future minor reqwest bump that swaps url for
 # something else doesn't silently break our SSRF guards.
 url = "2"
+
+[dev-dependencies]
+# `#[tokio::test]` async harness for the Musixmatch token-redaction
+# tests (GH #234). `rt` + `macros` are the minimal set needed for the
+# attribute to expand and the runtime to spin up on demand.
+tokio = { version = "1", features = ["rt", "macros"] }
