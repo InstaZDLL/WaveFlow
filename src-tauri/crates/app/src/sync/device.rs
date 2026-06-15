@@ -72,6 +72,29 @@ pub async fn read(app_db: &SqlitePool) -> AppResult<Option<String>> {
     Ok(raw.map(|s| s.trim().to_string()).filter(|s| !s.is_empty()))
 }
 
+/// Read the persisted device id through a per-profile connection.
+///
+/// Sibling of [`read`] for the caller-owned-connection path. The
+/// per-profile DB ATTACHes `app.db` as `app` on every connection
+/// (see `db::profile_db::open`), so the value the global pool's
+/// [`read`] returns is reachable from any profile-side connection
+/// via `app.app_setting`. Used by
+/// [`crate::sync::hooks::enqueue_op_in_tx`] to fetch the device id
+/// without spinning up a separate `app_db` pool acquire mid-tx.
+///
+/// Returns `None` on the same shape [`read`] does — a fresh install
+/// before [`ensure`] has fired. Pure read; does NOT mint a UUID
+/// (that's [`ensure`]'s job). Named `read_conn` to mirror the
+/// `read` / `ensure` pair already in this module.
+pub async fn read_conn(conn: &mut sqlx::SqliteConnection) -> AppResult<Option<String>> {
+    let raw: Option<String> =
+        sqlx::query_scalar("SELECT value FROM app.app_setting WHERE key = ?")
+            .bind(KEY)
+            .fetch_optional(conn)
+            .await?;
+    Ok(raw.map(|s| s.trim().to_string()).filter(|s| !s.is_empty()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

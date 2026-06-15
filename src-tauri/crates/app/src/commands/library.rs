@@ -84,7 +84,7 @@ pub async fn create_library(
     let mut tx = pool.begin().await?;
     let id = insert_conn(&mut tx, &draft).await?;
     let canonical = crate::sync::canonical::ensure_local_library(&mut tx, id).await?;
-    crate::sync::hooks::enqueue_op_in_tx(
+    let stamp = crate::sync::hooks::enqueue_op_in_tx(
         &mut tx,
         &crate::sync::hooks::PendingOpDraft {
             entity: "library".into(),
@@ -100,6 +100,24 @@ pub async fn create_library(
         },
     )
     .await?;
+    // Phase B.0a — stamp the library row with the same HLC + origin
+    // the queue row carries on the wire + bump the local digest
+    // counter. Only fires when `enqueue_op_in_tx` actually wrote
+    // (signed-in + Hybrid mode); local-only / signed-out installs
+    // leave the row's `payload_hash` NULL until they enable sync.
+    // Read the canonical fields BACK from the row (rather than
+    // re-using `input` verbatim) so a future normalisation inside
+    // `insert_conn` can't silently desync the desktop's hash from
+    // what the server computes on the same payload. See
+    // `payload::library::fields_from_row` for the rationale.
+    if let Some(stamp) = stamp {
+        let fields = crate::sync::payload::library::fields_from_row(&mut tx, id)
+            .await?
+            .ok_or_else(|| {
+                AppError::Other(format!("library {id} vanished mid-create transaction"))
+            })?;
+        crate::sync::payload::library::stamp_in_tx(&mut tx, id, fields, stamp).await?;
+    }
     tx.commit().await?;
     state.drain.notify();
 
@@ -162,6 +180,13 @@ pub async fn update_library(
         )));
     }
     let entity_id = crate::sync::canonical::ensure_local_library(&mut tx, library_id).await?;
+    // Track the latest stamp returned by the per-field enqueue
+    // loop. The desktop emits one `set` op per changed field, but
+    // the library row's `payload_hash` reflects its WHOLE post-
+    // update state — so we stamp once after the loop with the HLC
+    // from the last enqueue. Re-stamping per-field would compute
+    // intermediate hashes that the server's apply never sees.
+    let mut last_stamp: Option<crate::sync::hooks::EnqueuedStamp> = None;
     for (field, value) in [
         ("name", trimmed_name.map(serde_json::Value::String)),
         (
@@ -172,7 +197,7 @@ pub async fn update_library(
         ("icon_id", input.icon_id.map(serde_json::Value::String)),
     ] {
         if let Some(value) = value {
-            crate::sync::hooks::enqueue_op_in_tx(
+            let stamp = crate::sync::hooks::enqueue_op_in_tx(
                 &mut tx,
                 &crate::sync::hooks::PendingOpDraft {
                     entity: "library".into(),
@@ -183,7 +208,22 @@ pub async fn update_library(
                 },
             )
             .await?;
+            if stamp.is_some() {
+                last_stamp = stamp;
+            }
         }
+    }
+    // Phase B.0a — stamp the row with the post-update full state.
+    // Read the row's WHOLE field set back via `fields_from_row`;
+    // the user may have edited only a subset, and the canonical
+    // fields the hash covers include the unmutated columns too.
+    if let Some(stamp) = last_stamp {
+        let fields = crate::sync::payload::library::fields_from_row(&mut tx, library_id)
+            .await?
+            .ok_or_else(|| {
+                AppError::Other(format!("library {library_id} vanished mid-update transaction"))
+            })?;
+        crate::sync::payload::library::stamp_in_tx(&mut tx, library_id, fields, stamp).await?;
     }
     tx.commit().await?;
     state.drain.notify();
@@ -219,7 +259,7 @@ pub async fn delete_library(state: tauri::State<'_, AppState>, library_id: i64) 
     } else {
         library_id.to_string()
     };
-    crate::sync::hooks::enqueue_op_in_tx(
+    let stamp = crate::sync::hooks::enqueue_op_in_tx(
         &mut tx,
         &crate::sync::hooks::PendingOpDraft {
             entity: "library".into(),
@@ -230,6 +270,12 @@ pub async fn delete_library(state: tauri::State<'_, AppState>, library_id: i64) 
         },
     )
     .await?;
+    // Phase B.0a — the row is gone, so there's no `payload_hash` to
+    // recompute; just bump the digest counter so the next digest
+    // endpoint hit sees the entity-set has changed.
+    if stamp.is_some() {
+        crate::sync::payload::bump_digest_in_tx(&mut tx, "library").await?;
+    }
     tx.commit().await?;
     state.drain.notify();
     tracing::info!(library_id, "library deleted");
