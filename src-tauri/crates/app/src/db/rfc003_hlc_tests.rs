@@ -170,6 +170,71 @@ async fn profile_migrations_seed_metadata_digest_version() {
 }
 
 #[tokio::test]
+async fn profile_migrations_apply_hlc_pair_to_sync_pending_op() {
+    let pool = fresh_pool().await;
+    sqlx::migrate!("../../migrations/profile")
+        .run(&pool)
+        .await
+        .unwrap();
+
+    for (col, ty, notnull, dflt) in [
+        ("hlc_wall", "INTEGER", 1, Some("0")),
+        ("hlc_logical", "INTEGER", 1, Some("0")),
+    ] {
+        let info = column_info(&pool, "sync_pending_op", col)
+            .await
+            .unwrap_or_else(|| panic!("missing column sync_pending_op.{col}"));
+        assert_eq!(info.0.to_uppercase(), ty, "sync_pending_op.{col} type");
+        assert_eq!(info.1, notnull, "sync_pending_op.{col} notnull");
+        assert_eq!(
+            info.2.as_deref(),
+            dflt,
+            "sync_pending_op.{col} default value"
+        );
+    }
+}
+
+#[tokio::test]
+async fn sync_pending_op_check_rejects_logical_outside_i32_range() {
+    // RFC-003 §2 bounds `hlc_logical` to `0..=i32::MAX`. The CHECK
+    // constraint added in 20260616000000 is a defence-in-depth layer
+    // — the bind site in `sync::hlc::next` already refuses overflow,
+    // but a hand-rolled INSERT (test code, manual repair tool, …)
+    // would otherwise plant a poisoned value that fails server-side
+    // at the 23505 path.
+    let pool = fresh_pool().await;
+    sqlx::migrate!("../../migrations/profile")
+        .run(&pool)
+        .await
+        .unwrap();
+
+    let err = sqlx::query(
+        "INSERT INTO sync_pending_op
+            (operation_id, lamport_ts, entity, entity_id, op, created_at,
+             hlc_wall, hlc_logical)
+         VALUES ('op-1', 1, 'playlist', '1', 'set', 0, 0, 2147483648)",
+    )
+    .execute(&pool)
+    .await
+    .unwrap_err();
+    let s = format!("{err}").to_lowercase();
+    assert!(s.contains("check"), "expected CHECK constraint failure: {s}");
+
+    // Negative values get caught too.
+    let err = sqlx::query(
+        "INSERT INTO sync_pending_op
+            (operation_id, lamport_ts, entity, entity_id, op, created_at,
+             hlc_wall, hlc_logical)
+         VALUES ('op-2', 2, 'playlist', '1', 'set', 0, 0, -1)",
+    )
+    .execute(&pool)
+    .await
+    .unwrap_err();
+    let s = format!("{err}").to_lowercase();
+    assert!(s.contains("check"), "expected CHECK constraint failure: {s}");
+}
+
+#[tokio::test]
 async fn app_migrations_apply_hlc_quartet_to_profile() {
     let pool = fresh_pool().await;
     sqlx::migrate!("../../migrations/app")

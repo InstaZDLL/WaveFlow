@@ -104,6 +104,17 @@ pub enum DrainOutcome {
 
 // ── Wire shape mirroring waveflow-server's sync types ────────────
 
+/// Mirrors `waveflow_server::sync::Hlc`. RFC-003 v2 pair shipped
+/// under `SyncOpIn.hlc: Option<Hlc>` (waveflow-server #52). The
+/// server-side dual-shape ingest derives `(0, lamport_ts)` for v1
+/// (legacy) rows that omit this key, so the desktop can ship either
+/// form without coordinating a release.
+#[derive(Debug, Serialize)]
+struct WireHlc {
+    wall: i64,
+    logical: i32,
+}
+
 /// Mirrors `waveflow_server::sync::SyncOpIn`.
 #[derive(Debug, Serialize)]
 struct SyncOpInBody {
@@ -122,6 +133,28 @@ struct SyncOpInBody {
     /// a hypothetical future caller wants the legacy shape.
     #[serde(skip_serializing_if = "Option::is_none")]
     profile_canonical_id: Option<String>,
+    /// RFC-003 Phase A.4.2 — v2 wire shape. `Some` when the row in
+    /// `sync_pending_op` was enqueued with a non-zero pair (any
+    /// post-A.4.2 enqueue); `None` for legacy (0, 0) rows where the
+    /// server's dual-shape ingest will derive `(0, lamport_ts)`
+    /// itself. The key is omitted from the JSON when `None` so the
+    /// wire stays bit-identical to the v1 form when there's nothing
+    /// to send.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    hlc: Option<WireHlc>,
+}
+
+/// Lift a pending row's `(hlc_wall, hlc_logical)` pair onto the
+/// outbound wire field. Pre-A.4.2 rows backfill to `(0, 0)` via the
+/// migration DEFAULT — `None` rather than `Some(0, 0)` keeps the
+/// JSON identical to the legacy form, so the server picks the v1
+/// dual-shape branch and derives `(0, lamport_ts)` itself.
+fn wire_hlc_from_row(wall: i64, logical: i32) -> Option<WireHlc> {
+    if wall == 0 && logical == 0 {
+        None
+    } else {
+        Some(WireHlc { wall, logical })
+    }
 }
 
 /// Mirrors `waveflow_server::api::sync::PushBatchRequest`.
@@ -251,6 +284,7 @@ pub async fn drain_once(state: &AppState) -> AppResult<DrainOutcome> {
                 op: p.op.clone(),
                 payload: p.payload.clone(),
                 profile_canonical_id: Some(profile_canonical_id.clone()),
+                hlc: wire_hlc_from_row(p.hlc_wall, p.hlc_logical),
             })
             .collect();
         let body = PushBatchRequest {
@@ -380,11 +414,12 @@ mod tests {
     }
 
     #[test]
-    fn push_batch_request_body_matches_server_wire_shape() {
-        // Tightens the contract against waveflow-server's
-        // `SyncOpIn`. A divergence here would surface at the first
-        // real POST, which is far from the test boundary; pinning
-        // the shape locally catches it at compile + serialise time.
+    fn push_batch_request_body_matches_server_wire_shape_v1_legacy() {
+        // Legacy (v1) wire shape — `hlc` field stays absent so the
+        // server's dual-shape ingest derives `(0, lamport_ts)`. The
+        // desktop falls into this branch for rows enqueued before
+        // Phase A.4.2 (DEFAULT 0/0 columns mean
+        // `wire_hlc_from_row` returns `None`).
         let body = PushBatchRequest {
             device_id: "device-a",
             ops: vec![SyncOpInBody {
@@ -396,6 +431,7 @@ mod tests {
                 op: "set".into(),
                 payload: Some(serde_json::json!({ "value": "Soirée" })),
                 profile_canonical_id: Some("11111111-2222-4333-8444-555555555555".into()),
+                hlc: None,
             }],
         };
         let v = serde_json::to_value(&body).unwrap();
@@ -415,6 +451,63 @@ mod tests {
                 }],
             }),
         );
+    }
+
+    #[test]
+    fn push_batch_request_body_carries_hlc_on_v2_wire_shape() {
+        // Phase A.4.2 v2 shape — `hlc: { wall, logical }` rides on
+        // the op. `device_id` doubles as the §2 tiebreaker
+        // `origin_device_id` (UUID-shaped TEXT round-trip per the
+        // A.1.1 server header), so no separate wire key is needed.
+        let body = PushBatchRequest {
+            device_id: "11111111-1111-1111-1111-111111111111",
+            ops: vec![SyncOpInBody {
+                operation_id: "00000000-0000-0000-0000-000000000002".into(),
+                lamport_ts: 5,
+                entity: "playlist".into(),
+                entity_id: "9".into(),
+                field: None,
+                op: "insert".into(),
+                payload: Some(serde_json::json!({ "name": "Mix" })),
+                profile_canonical_id: Some("22222222-3333-4444-8555-666666666666".into()),
+                hlc: Some(WireHlc {
+                    wall: 1_700_000_000_001,
+                    logical: 3,
+                }),
+            }],
+        };
+        let v = serde_json::to_value(&body).unwrap();
+        assert_eq!(
+            v,
+            serde_json::json!({
+                "device_id": "11111111-1111-1111-1111-111111111111",
+                "ops": [{
+                    "operation_id": "00000000-0000-0000-0000-000000000002",
+                    "lamport_ts": 5,
+                    "entity": "playlist",
+                    "entity_id": "9",
+                    "field": null,
+                    "op": "insert",
+                    "payload": { "name": "Mix" },
+                    "profile_canonical_id": "22222222-3333-4444-8555-666666666666",
+                    "hlc": { "wall": 1_700_000_000_001_i64, "logical": 3 },
+                }],
+            }),
+        );
+    }
+
+    #[test]
+    fn wire_hlc_from_row_treats_zero_pair_as_v1() {
+        // The (0, 0) backfill pair maps to None so the wire shape
+        // stays identical to the legacy form. Any non-zero
+        // component flips to the v2 branch.
+        assert!(wire_hlc_from_row(0, 0).is_none());
+        let hlc = wire_hlc_from_row(1, 0).unwrap();
+        assert_eq!((hlc.wall, hlc.logical), (1, 0));
+        let hlc = wire_hlc_from_row(0, 1).unwrap();
+        assert_eq!((hlc.wall, hlc.logical), (0, 1));
+        let hlc = wire_hlc_from_row(123, 456).unwrap();
+        assert_eq!((hlc.wall, hlc.logical), (123, 456));
     }
 
     #[test]
