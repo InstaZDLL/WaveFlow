@@ -21,8 +21,11 @@ pub mod metadata;
 // executes guest WASM in v1) can opt out and stay lean. The
 // desktop app turns the feature on via its
 // `waveflow-core = { ..., features = ["sqlite", "plugins"] }`
-// path-dep.
+// path-dep. The `doc(cfg(...))` attribute surfaces the gate in
+// rendered docs on `docs.rs` so an external integrator sees the
+// requirement without grepping the manifest.
 #[cfg(feature = "plugins")]
+#[cfg_attr(docsrs, doc(cfg(feature = "plugins")))]
 pub mod plugin;
 pub mod repository;
 pub mod scanner;

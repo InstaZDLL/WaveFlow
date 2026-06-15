@@ -72,6 +72,22 @@ jobs:
       - name: cargo check
         run: cargo check --manifest-path src-tauri/Cargo.toml --workspace --all-targets
 
+      - name: cargo check (waveflow-core, server profile — no plugin host)
+        # Locks in the slim build path the future `waveflow-server` consumes:
+        # `default-features = false, features = ["postgres"]`. Without this
+        # step a future dep added unconditionally to `waveflow-core` (or a
+        # missing `optional = true` on a plugin-only crate) would silently
+        # re-introduce the wasmtime + Cranelift transitive tree the server's
+        # binary doesn't want. The desktop matrix slot above still exercises
+        # the full feature set under `--workspace --all-targets`.
+        if: runner.os == 'Linux'
+        run: >-
+          cargo check
+          --manifest-path src-tauri/Cargo.toml
+          -p waveflow-core
+          --no-default-features
+          --features postgres
+
       - name: cargo test
         run: cargo test --manifest-path src-tauri/Cargo.toml --workspace
 
