@@ -20,3 +20,4 @@ pub mod plugin;
 pub mod repository;
 pub mod scanner;
 pub mod smart_playlists;
+pub mod sync;

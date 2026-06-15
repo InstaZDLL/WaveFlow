@@ -80,6 +80,15 @@ fast_image_resize = "6"
 blake3 = "1"
 anyhow = "1"
 
+# RFC-003 sync protocol — `origin_device_id` rides as a UUIDv4 in the
+# §2 total-order triple. Used by `sync::payload_hash::HlcTriple` for
+# the LWW comparator that gates every Phase A apply-side write. The
+# `v4` feature is the only one the comparator needs; v5 (namespaced
+# UUIDs) is enabled here too because the desktop's existing UUID
+# helpers (under `crates/app`) already use it and Cargo's feature
+# unification gives us a single uuid build either way.
+uuid = { version = "1", features = ["v4", "v5", "serde"] }
+
 # Per-track audio analysis (ReplayGain, BPM): decode the file with
 # symphonia, compute peak / loudness / BPM. Same codec feature set
 # the desktop runtime needs — Cargo unifies them.
