@@ -86,20 +86,31 @@ export function SyncStatusCard() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const [outcome, enabled] = await Promise.all([
-          syncDigestCheck(),
-          syncBackfillGetEnabled().catch(() => false),
-        ]);
-        if (cancelled) return;
-        setAutoEnabled(enabled);
+      // `Promise.allSettled` so a digest_check failure doesn't
+      // strand `autoEnabled` at `null` for the rest of the
+      // session — the toggle would then be disabled because the
+      // checkbox gates on `autoEnabled === null` (loading). The
+      // two reads are independent backend calls; surface each
+      // outcome on its own state.
+      const [digestRes, enabledRes] = await Promise.allSettled([
+        syncDigestCheck(),
+        syncBackfillGetEnabled(),
+      ]);
+      if (cancelled) return;
+
+      setAutoEnabled(
+        enabledRes.status === "fulfilled" ? enabledRes.value : false,
+      );
+
+      if (digestRes.status === "fulfilled") {
+        const outcome = digestRes.value;
         if (outcome.status === "skipped") {
           setState({ kind: "skipped", reason: outcome.reason });
         } else {
           setState({ kind: "ran", reports: outcome.reports });
         }
-      } catch (err) {
-        if (cancelled) return;
+      } else {
+        const err = digestRes.reason;
         setState({
           kind: "error",
           message: err instanceof Error ? err.message : String(err),
