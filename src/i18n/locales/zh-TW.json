@@ -1468,7 +1468,9 @@
         "missingRemotely": "遠端缺少",
         "divergent": "差異"
       },
-      "backfillError": "失敗：{{message}}"
+      "backfillError": "失敗：{{message}}",
+      "autoToggleTitle": "自動同步",
+      "autoToggleSubtitle": "在啟動時和切換至混合模式時執行一次同步"
     },
     "gapless": {
       "title": "無縫播放",

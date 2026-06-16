@@ -180,6 +180,25 @@ async fn read_local_tuple(
             .fetch_optional(pool)
             .await?
         }
+        "track" => {
+            // Composite canonical: `<library.canonical_id>\u{1F}<file_path>`.
+            // Mirror the server's `entity_read::fetch_track` split.
+            let Some((lib_canonical, file_path)) = canonical_id.split_once('\u{001F}') else {
+                return Err(AppError::Other(format!(
+                    "lww track: composite canonical missing `\\u{{1F}}`, got `{canonical_id}`",
+                )));
+            };
+            sqlx::query_as(
+                "SELECT t.hlc_wall, t.hlc_logical, t.origin_device_id
+                   FROM track t
+                   JOIN library l ON l.id = t.library_id
+                  WHERE l.canonical_id = ? AND t.file_path = ?",
+            )
+            .bind(lib_canonical)
+            .bind(file_path)
+            .fetch_optional(pool)
+            .await?
+        }
         "playlist" => {
             sqlx::query_as(
                 "SELECT hlc_wall, hlc_logical, origin_device_id

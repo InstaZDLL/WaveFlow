@@ -1521,7 +1521,9 @@
         "missingRemotely": "दूरस्थ अनुपस्थित",
         "divergent": "अलग"
       },
-      "backfillError": "विफल: {{message}}"
+      "backfillError": "विफल: {{message}}",
+      "autoToggleTitle": "स्वचालित सिंक",
+      "autoToggleSubtitle": "बूट पर और हाइब्रिड मोड में स्विच करने पर एक पास चलाता है"
     },
     "gapless": {
       "title": "गैपलेस प्लेबैक",

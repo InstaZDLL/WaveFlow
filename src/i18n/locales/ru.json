@@ -1551,7 +1551,9 @@
         "missingRemotely": "Нет на сервере",
         "divergent": "Расхождение"
       },
-      "backfillError": "Сбой: {{message}}"
+      "backfillError": "Сбой: {{message}}",
+      "autoToggleTitle": "Автосинхронизация",
+      "autoToggleSubtitle": "Запускает проход при загрузке и при переключении в гибридный режим"
     },
     "visualizer": {
       "title": "Аудио-визуализатор",

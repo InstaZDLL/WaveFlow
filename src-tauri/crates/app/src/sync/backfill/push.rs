@@ -18,13 +18,6 @@
 //! re-emit doesn't go backwards. Since we always draw a fresh
 //! monotonic HLC, this property holds by construction.
 //!
-//! ## Track is deferred
-//!
-//! The orchestrator in [`super::run_backfill`] short-circuits
-//! `entity = "track"` before reaching this module — track's
-//! composite canonical + album/artist plumbing needs its own
-//! sub-PR.
-
 use serde_json::{Map, Value};
 use sqlx::{SqliteConnection, SqlitePool};
 
@@ -92,6 +85,7 @@ pub(super) async fn push_one_by_canonical(
     match entity {
         "library" => push_library(state, pool, canonical_id).await,
         "playlist" => push_playlist(state, pool, canonical_id).await,
+        "track" => push_track(state, pool, canonical_id).await,
         "liked_track" => push_liked_track(state, pool, canonical_id).await,
         "track_rating" => push_track_rating(state, pool, canonical_id).await,
         other => Err(AppError::Other(format!(
@@ -197,6 +191,131 @@ async fn push_liked_track(
     tx.commit().await?;
     let _ = state;
     Ok(true)
+}
+
+/// Push a `track` row. The canonical id is the composite
+/// `<library.canonical_id>\u{1F}<track.file_path>` shipped by the
+/// digest endpoint. We split it on `U+001F`, look up the local
+/// row, rebuild the [`TrackInsertWire`] from its joined state +
+/// `track_artist` list, and re-enqueue via
+/// [`crate::sync::track_emit::emit_track_insert_in_tx`] — the
+/// same helper the scanner uses for fresh imports + tag-edit
+/// re-emits, so the wire shape stays byte-identical regardless
+/// of which path triggered the push.
+///
+/// Returns `Ok(false)` when the local row vanished between the
+/// digest read and the push (concurrent delete) or when the
+/// composite canonical is malformed.
+async fn push_track(state: &AppState, pool: &SqlitePool, canonical_id: &str) -> AppResult<bool> {
+    let Some((lib_canonical, file_path)) = canonical_id.split_once('\u{001F}') else {
+        return Err(AppError::Other(format!(
+            "push_track: composite canonical must contain `\\u{{001F}}`, got `{canonical_id}`",
+        )));
+    };
+    if lib_canonical.is_empty() || file_path.is_empty() {
+        return Err(AppError::Other(
+            "push_track: composite canonical halves must be non-empty".into(),
+        ));
+    }
+
+    let mut tx = pool.begin().await?;
+    let row: Option<TrackPushRow> = sqlx::query_as::<_, TrackPushRow>(
+        "SELECT \
+            t.id, t.library_id, t.file_path, t.file_hash, \
+            t.file_size, t.file_modified, t.duration_ms, t.title, \
+            t.track_number, t.disc_number, t.year, t.bitrate, \
+            t.sample_rate, t.channels, t.bit_depth, t.codec, \
+            t.musical_key, t.added_at, \
+            al.title AS album_title, \
+            al.album_artist AS album_artist_name, \
+            COALESCE(al.is_compilation, 0) AS is_compilation \
+           FROM track t \
+           JOIN library l ON l.id = t.library_id \
+      LEFT JOIN album al ON al.id = t.album_id \
+          WHERE l.canonical_id = ? AND t.file_path = ?",
+    )
+    .bind(lib_canonical)
+    .bind(file_path)
+    .fetch_optional(&mut *tx)
+    .await?;
+    let Some(row) = row else {
+        return Ok(false);
+    };
+
+    // Multi-artist list, ordered by `track_artist.position` so the
+    // wire's array index matches the server's `position` column —
+    // critical because the canonical `artists: [String]` hash
+    // preserves source order.
+    let artists: Vec<String> = sqlx::query_scalar(
+        "SELECT a.name FROM track_artist ta \
+            JOIN artist a ON a.id = ta.artist_id \
+           WHERE ta.track_id = ? \
+           ORDER BY ta.position ASC",
+    )
+    .bind(row.id)
+    .fetch_all(&mut *tx)
+    .await?;
+
+    let wire = crate::sync::track_emit::TrackInsertWire {
+        file_hash: &row.file_hash,
+        title: &row.title,
+        file_size: row.file_size,
+        file_modified: row.file_modified,
+        duration_ms: row.duration_ms,
+        track_number: row.track_number,
+        disc_number: row.disc_number,
+        year: row.year,
+        bitrate: row.bitrate,
+        sample_rate: row.sample_rate,
+        channels: row.channels,
+        bit_depth: row.bit_depth,
+        codec: row.codec.as_deref(),
+        musical_key: row.musical_key.as_deref(),
+        added_at: row.added_at,
+        album_title: row.album_title.as_deref(),
+        album_artist_name: row.album_artist_name.as_deref(),
+        is_compilation: row.is_compilation != 0,
+        artists: &artists,
+    };
+    crate::sync::track_emit::emit_track_insert_in_tx(
+        &mut tx,
+        row.library_id,
+        row.id,
+        file_path,
+        &wire,
+    )
+    .await?;
+    tx.commit().await?;
+    let _ = state;
+    Ok(true)
+}
+
+/// Projection mirroring `commands/scan.rs`'s track row shape +
+/// the album fields the canonical_fields map needs.
+#[derive(sqlx::FromRow)]
+struct TrackPushRow {
+    id: i64,
+    library_id: i64,
+    #[allow(dead_code)]
+    file_path: String,
+    file_hash: String,
+    file_size: i64,
+    file_modified: i64,
+    duration_ms: i64,
+    title: String,
+    track_number: Option<i64>,
+    disc_number: Option<i64>,
+    year: Option<i64>,
+    bitrate: Option<i64>,
+    sample_rate: Option<i64>,
+    channels: Option<i64>,
+    bit_depth: Option<i64>,
+    codec: Option<String>,
+    musical_key: Option<String>,
+    added_at: i64,
+    album_title: Option<String>,
+    album_artist_name: Option<String>,
+    is_compilation: i64,
 }
 
 /// `track_rating` canonical is also the file_hash. The wire

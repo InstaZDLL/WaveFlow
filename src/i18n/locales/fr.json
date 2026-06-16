@@ -1560,7 +1560,9 @@
         "missingRemotely": "Manquant distant",
         "divergent": "Divergent"
       },
-      "backfillError": "Échec : {{message}}"
+      "backfillError": "Échec : {{message}}",
+      "autoToggleTitle": "Synchronisation automatique",
+      "autoToggleSubtitle": "Lance un passage au démarrage et lors du passage en mode Hybride"
     },
     "visualizer": {
       "title": "Visualiseur audio",

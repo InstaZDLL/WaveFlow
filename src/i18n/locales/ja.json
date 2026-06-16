@@ -1468,7 +1468,9 @@
         "missingRemotely": "リモート欠落",
         "divergent": "差異"
       },
-      "backfillError": "失敗: {{message}}"
+      "backfillError": "失敗: {{message}}",
+      "autoToggleTitle": "自動同期",
+      "autoToggleSubtitle": "起動時とハイブリッドモード切替時に同期を実行します"
     },
     "gapless": {
       "title": "ギャップレス再生",

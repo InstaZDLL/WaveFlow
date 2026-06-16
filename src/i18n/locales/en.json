@@ -1509,7 +1509,9 @@
         "missingRemotely": "Missing remotely",
         "divergent": "Divergent"
       },
-      "backfillError": "Failed: {{message}}"
+      "backfillError": "Failed: {{message}}",
+      "autoToggleTitle": "Auto sync",
+      "autoToggleSubtitle": "Runs a pass on boot and when switching to Hybrid mode"
     },
     "visualizer": {
       "title": "Audio visualizer",
