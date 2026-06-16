@@ -1737,6 +1737,11 @@
     "fullscreenLyricsCentering": {
       "title": "전체 화면에서 동기화된 가사를 가운데 정렬",
       "subtitle": "전체 화면 보기에서 시간 동기화된 가사를 일반 텍스트처럼 가운데에 정렬합니다."
+    },
+    "lyricsTranslation": {
+      "title": "가사 번역 (Musixmatch)",
+      "subtitle": "Musixmatch에 번역이 있을 때 각 LRC 줄 아래에 번역을 표시합니다",
+      "off": "사용 안 함"
     }
   },
   "spotify": {

@@ -1737,6 +1737,11 @@
     "fullscreenLyricsCentering": {
       "title": "Centrar las letras sincronizadas en pantalla completa",
       "subtitle": "Alinea las letras sincronizadas al centro de la vista a pantalla completa, igual que el texto plano."
+    },
+    "lyricsTranslation": {
+      "title": "Traducción de letras (Musixmatch)",
+      "subtitle": "Muestra una traducción bajo cada línea LRC cuando Musixmatch la tiene",
+      "off": "Desactivada"
     }
   },
   "spotify": {

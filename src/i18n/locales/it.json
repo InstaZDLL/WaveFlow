@@ -1737,6 +1737,11 @@
     "fullscreenLyricsCentering": {
       "title": "Centra i testi sincronizzati a schermo intero",
       "subtitle": "Allinea i testi sincronizzati al centro della vista a schermo intero, come la versione testuale."
+    },
+    "lyricsTranslation": {
+      "title": "Traduzione dei testi (Musixmatch)",
+      "subtitle": "Mostra una traduzione sotto ogni riga LRC quando Musixmatch ne fornisce una",
+      "off": "Disattivata"
     }
   },
   "spotify": {

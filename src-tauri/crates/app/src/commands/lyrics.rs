@@ -336,6 +336,7 @@ async fn external_lyrics_search(
     providers: Vec<Provider>,
     mode: SearchMode,
     enhanced: bool,
+    lang: Option<&str>,
 ) -> AppResult<Option<ExternalLyricsResult>> {
     // Defense in depth: every outbound HTTP path must honour offline mode
     // regardless of caller. Returning Ok(None) short-circuits before any
@@ -351,6 +352,17 @@ async fn external_lyrics_search(
     if providers.is_empty() {
         return Ok(None);
     }
+    // The syncedlyrics client treats `lang = Some(_)` as a hard
+    // filter for Musixmatch-only — passing it to a fallback chain
+    // that excludes Musixmatch would short-circuit every provider.
+    // Drop the lang silently when no Musixmatch provider is in
+    // play; the caller stays oblivious to which providers landed
+    // here post-filter.
+    let lang = if providers.contains(&Provider::Musixmatch) {
+        lang.map(str::to_string)
+    } else {
+        None
+    };
     let query = external_query(&meta.title, meta.artist_name.as_deref());
     let client = shared_external_client()?;
     // A transient provider error surfaces as Err here (not Ok(None)) so
@@ -361,12 +373,29 @@ async fn external_lyrics_search(
             mode,
             providers,
             enhanced,
-            lang: None,
+            lang,
             genius_cookie: std::env::var("SYNCEDLYRICS_GENIUS_COOKIE").ok(),
             netease_cookie: std::env::var("SYNCEDLYRICS_NETEASE_COOKIE").ok(),
         })
         .await
         .map_err(|err| AppError::Other(format!("external lyrics search failed: {err}")))
+}
+
+/// `profile_setting` key for the user-picked Musixmatch translation
+/// target language. Empty string / absent row → no translation
+/// (default). ISO 639-1 lowercase code otherwise (`"en"`, `"fr"`, …).
+pub const TRANSLATION_LANG_KEY: &str = "lyrics.translation_lang";
+
+/// Read the per-profile translation language. Returns `None` when
+/// the row is absent OR when the value is blank — both surface as
+/// "no translation" to the rest of the waterfall.
+async fn read_translation_lang(pool: &sqlx::SqlitePool) -> AppResult<Option<String>> {
+    let value: Option<String> =
+        sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = ?")
+            .bind(TRANSLATION_LANG_KEY)
+            .fetch_optional(pool)
+            .await?;
+    Ok(value.filter(|v| !v.trim().is_empty()))
 }
 
 async fn cache_external_lyrics(
@@ -751,6 +780,15 @@ pub async fn fetch_lyrics(
     //    when it returns true word-level LRC; regular line-level LRC
     //    still lets the stricter metadata LRCLIB lookup below win.
     if !crate::offline::is_offline() {
+        // User-driven path: opt into the per-profile translation
+        // language so a hit comes back with each line followed by
+        // its `(translation)` companion (issue #208). Prefetch +
+        // scanner paths stay `None` to avoid the extra Musixmatch
+        // hop per track on bulk operations.
+        let translation_lang = read_translation_lang(&pool).await.unwrap_or_else(|err| {
+            tracing::warn!(?err, "read_translation_lang failed; serving untranslated lyrics");
+            None
+        });
         // A Musixmatch failure here is non-fatal: fall through to LRCLIB
         // rather than aborting the whole lookup or caching a miss.
         match external_lyrics_search(
@@ -758,6 +796,7 @@ pub async fn fetch_lyrics(
             vec![Provider::Musixmatch],
             SearchMode::SyncedOnly,
             true,
+            translation_lang.as_deref(),
         )
         .await
         {
@@ -803,6 +842,9 @@ pub async fn fetch_lyrics(
                 external_fallback_providers(),
                 SearchMode::PreferSynced,
                 true,
+                // Fallback chain excludes Musixmatch — `external_lyrics_search`
+                // would drop the lang anyway. Keep it `None` to flag intent.
+                None,
             )
             .await?
             {
@@ -876,6 +918,7 @@ pub async fn fetch_lyrics(
                 external_fallback_providers(),
                 SearchMode::PreferSynced,
                 true,
+                None,
             )
             .await?
             {
@@ -1132,11 +1175,15 @@ async fn run_prefetch(
 
         // 3. Musixmatch enhanced. If word-level timing exists, keep it
         //    before LRCLIB's line-level result can fill the cache.
+        //    Prefetch path deliberately stays translation-free
+        //    (`lang = None`) — bulk runs would hammer Musixmatch's
+        //    rate limit with one extra hop per track.
         match external_lyrics_search(
             &meta,
             vec![Provider::Musixmatch],
             SearchMode::SyncedOnly,
             true,
+            None,
         )
         .await
         {
@@ -1222,6 +1269,7 @@ async fn run_prefetch(
                             external_fallback_providers(),
                             SearchMode::PreferSynced,
                             true,
+                            None,
                         )
                         .await
                         {
@@ -1262,6 +1310,7 @@ async fn run_prefetch(
                     external_fallback_providers(),
                     SearchMode::PreferSynced,
                     true,
+                    None,
                 )
                 .await
                 {
@@ -1557,6 +1606,76 @@ pub async fn clear_lyrics(state: tauri::State<'_, AppState>, track_id: i64) -> A
     .execute(&pool)
     .await?;
     Ok(())
+}
+
+/// Whitelist of language codes the Musixmatch translation endpoint
+/// accepts. Mirrors the union of locale codes WaveFlow ships UI for
+/// (CLAUDE.md "Language" section) — the 17 i18n locales — minus the
+/// `pt-BR` regional variant since Musixmatch only knows the base
+/// `pt` code, and minus `kr` (legacy alias for `ko`). Any value
+/// outside this set is rejected with a clear error so a typoed
+/// IPC payload can't land a row that silently disables translation
+/// across every fetch.
+const SUPPORTED_TRANSLATION_LANGS: &[&str] = &[
+    "en", "es", "de", "it", "nl", "pt", "ru", "tr", "id", "ja", "ko", "zh-CN", "zh-TW", "ar", "hi",
+    "fr",
+];
+
+/// Read the per-profile translation language flag the lyrics UI
+/// pre-fills its dropdown with. Empty / absent → no translation.
+#[tauri::command]
+pub async fn get_lyrics_translation_lang(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Option<String>> {
+    let pool = state.require_profile_pool().await?;
+    read_translation_lang(&pool).await
+}
+
+/// Persist the per-profile translation language flag. Passing
+/// `None` clears the row → translation disabled. The whitelist
+/// guards against an unknown / typoed code silently breaking the
+/// fetch (Musixmatch would return an empty body, which our merge
+/// pass would treat as "nothing to inject" — wasted hop).
+#[tauri::command]
+pub async fn set_lyrics_translation_lang(
+    state: tauri::State<'_, AppState>,
+    lang: Option<String>,
+) -> AppResult<Option<String>> {
+    let pool = state.require_profile_pool().await?;
+    let normalized: Option<String> = match lang.as_deref() {
+        Some(value) => {
+            let trimmed = value.trim();
+            if trimmed.is_empty() {
+                None
+            } else if !SUPPORTED_TRANSLATION_LANGS.contains(&trimmed) {
+                return Err(AppError::Other(format!(
+                    "set_lyrics_translation_lang: unsupported language '{trimmed}'",
+                )));
+            } else {
+                Some(trimmed.to_string())
+            }
+        }
+        None => None,
+    };
+    match &normalized {
+        Some(code) => {
+            sqlx::query(
+                "INSERT INTO profile_setting (key, value) VALUES (?, ?)
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            )
+            .bind(TRANSLATION_LANG_KEY)
+            .bind(code)
+            .execute(&pool)
+            .await?;
+        }
+        None => {
+            sqlx::query("DELETE FROM profile_setting WHERE key = ?")
+                .bind(TRANSLATION_LANG_KEY)
+                .execute(&pool)
+                .await?;
+        }
+    }
+    Ok(normalized)
 }
 
 /// Write a lyrics payload to an arbitrary on-disk path. Used by the

@@ -68,6 +68,28 @@ export function exportLyricsToPath(
   });
 }
 
+/**
+ * Read the per-profile Musixmatch translation target language.
+ * `null` when the user hasn't opted in — the lyrics fetch waterfall
+ * then runs without translation enrichment.
+ */
+export function getLyricsTranslationLang(): Promise<string | null> {
+  return invoke<string | null>("get_lyrics_translation_lang");
+}
+
+/**
+ * Persist the per-profile Musixmatch translation target language.
+ * Pass `null` to clear (default: no translation). The backend
+ * whitelists the value against the WaveFlow UI locale set; passing
+ * anything else rejects with an error so a typo can't silently
+ * disable the feature.
+ */
+export function setLyricsTranslationLang(
+  lang: string | null,
+): Promise<string | null> {
+  return invoke<string | null>("set_lyrics_translation_lang", { lang });
+}
+
 export interface SaveLyricsPayload {
   content: string;
   format: "plain" | "lrc" | "enhanced_lrc" | "ttml";

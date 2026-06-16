@@ -1737,6 +1737,11 @@
     "fullscreenLyricsCentering": {
       "title": "全屏中将同步歌词居中",
       "subtitle": "在全屏视图中将带时间戳的歌词居中对齐,与纯文本视图保持一致。"
+    },
+    "lyricsTranslation": {
+      "title": "歌词翻译 (Musixmatch)",
+      "subtitle": "当 Musixmatch 提供翻译时,在每行 LRC 下方显示翻译",
+      "off": "关闭"
     }
   },
   "scanProgress": {

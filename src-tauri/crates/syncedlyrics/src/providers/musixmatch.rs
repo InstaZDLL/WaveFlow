@@ -174,7 +174,21 @@ async fn subtitle(
     };
 
     if let Some(lang) = lang {
-        lrc = add_translations(http, token, track_id, lang, lrc).await?;
+        // Translation enrichment is best-effort: a network blip /
+        // rate-limit / decoded-but-empty response must not poison
+        // the underlying synced lyrics — fall through to the raw
+        // LRC and log instead of bubbling the error up. Closing
+        // the dead-code branch flagged on PR #207 (issue #208).
+        match add_translations(http, token, track_id, lang, &lrc).await {
+            Ok(with_translations) => lrc = with_translations,
+            Err(err) => {
+                tracing::warn!(
+                    error = %err,
+                    lang,
+                    "musixmatch translation enrichment failed; serving untranslated LRC",
+                );
+            }
+        }
     }
     Ok(Some(Candidate {
         synced: Some(lrc),
@@ -182,12 +196,60 @@ async fn subtitle(
     }))
 }
 
+/// Strip the leading `[mm:ss.xx]` / `[mm:ss]` / `[mm:ss.xxx]` LRC
+/// timestamp from a line and return `(timestamps, text)`. Multiple
+/// stamp brackets per line (Musixmatch + foobar2000 repeat a chorus
+/// line under several timestamps) are all peeled off, preserved in
+/// original order so the caller can re-emit the translation under
+/// the same stamps.
+///
+/// Returns an empty `Vec` for the stamps when the line carries
+/// none (header lines `[ar:…]` / `[ti:…]` / blank LRC headers also
+/// match `[…]` but their tag isn't a numeric stamp — we detect
+/// numeric by checking the first byte is ASCII digit).
+fn split_lrc_line(line: &str) -> (Vec<&str>, &str) {
+    let mut stamps = Vec::new();
+    let mut rest = line;
+    loop {
+        let trimmed = rest.trim_start();
+        let Some(rest_after_open) = trimmed.strip_prefix('[') else {
+            break;
+        };
+        let Some(close_idx) = rest_after_open.find(']') else {
+            break;
+        };
+        let inside = &rest_after_open[..close_idx];
+        // A numeric LRC stamp starts with an ASCII digit. Header
+        // tags like `[ar:Artist]` start with a letter and we
+        // deliberately leave them alone — they end up in the
+        // `text` half so the line round-trips unchanged.
+        if !inside
+            .bytes()
+            .next()
+            .map(|b| b.is_ascii_digit())
+            .unwrap_or(false)
+        {
+            break;
+        }
+        // Find the byte index of `]` relative to the *trimmed* slice,
+        // then map it back to the original `rest` so the stamp slice
+        // we push points into the original string. Layout of `rest`:
+        //   `[leading_ws]['['][close_idx bytes of stamp content][']']`
+        // → stamp_end = leading_ws + 1 (the `[`) + close_idx + 1 (the `]`).
+        let leading_ws = rest.len() - trimmed.len();
+        let stamp_end = leading_ws + 1 + close_idx + 1;
+        stamps.push(&rest[leading_ws..stamp_end]);
+        rest = &rest[stamp_end..];
+    }
+    (stamps, rest)
+}
+
 async fn add_translations(
     http: &reqwest::Client,
     token: &str,
     track_id: &str,
     lang: &str,
-    mut lrc: String,
+    lrc: &str,
 ) -> Result<String> {
     let response: Value = safe_json(
         redacted_get(
@@ -207,16 +269,70 @@ async fn add_translations(
         .await?,
     )
     .await?;
-    if let Some(translations) = response["message"]["body"]["translations_list"].as_array() {
-        for item in translations {
-            let original = item["translation"]["subtitle_matched_line"].as_str();
-            let translated = item["translation"]["description"].as_str();
-            if let (Some(original), Some(translated)) = (original, translated) {
-                lrc = lrc.replace(original, &format!("{original}\n({translated})"));
-            }
+    let Some(translations) = response["message"]["body"]["translations_list"].as_array() else {
+        return Ok(lrc.to_string());
+    };
+    // Pre-index `(original_line_text → translation)` so the per-line
+    // walk below is O(1) per row. The Musixmatch payload returns
+    // `subtitle_matched_line` as the bare lyric text (no LRC stamp
+    // prefix), which is why the previous `lrc.replace(original, …)`
+    // never hit — every LRC line carries `[mm:ss.xx]` ahead of the
+    // text. We strip the stamp before matching and re-emit the
+    // translation under the same stamp(s).
+    let mut table: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    for item in translations {
+        let Some(original) = item["translation"]["subtitle_matched_line"].as_str() else {
+            continue;
+        };
+        let Some(translated) = item["translation"]["description"].as_str() else {
+            continue;
+        };
+        let original = original.trim();
+        let translated = translated.trim();
+        if original.is_empty() || translated.is_empty() {
+            continue;
         }
+        table.insert(original.to_string(), translated.to_string());
     }
-    Ok(lrc)
+    if table.is_empty() {
+        return Ok(lrc.to_string());
+    }
+
+    let mut out = String::with_capacity(lrc.len() * 2);
+    for raw_line in lrc.split_inclusive('\n') {
+        // Preserve trailing CR/LF on the source line so the rebuilt
+        // LRC keeps the original line ending.
+        let line_terminator: &str = raw_line
+            .find(['\r', '\n'])
+            .map(|idx| &raw_line[idx..])
+            .unwrap_or("");
+        let line_no_eol = raw_line.trim_end_matches(['\r', '\n']);
+        out.push_str(line_no_eol);
+        out.push_str(line_terminator);
+        let (stamps, text) = split_lrc_line(line_no_eol);
+        if stamps.is_empty() {
+            continue;
+        }
+        let lookup = text.trim();
+        if lookup.is_empty() {
+            continue;
+        }
+        let Some(translated) = table.get(lookup) else {
+            continue;
+        };
+        // Emit a follow-up line wearing the same stamp prefix so the
+        // player groups the translation with its original cue (LRC
+        // readers stable-sort by stamp). Parens flag the translation
+        // visually for plain-text consumers.
+        for stamp in &stamps {
+            out.push_str(stamp);
+        }
+        out.push('(');
+        out.push_str(translated);
+        out.push(')');
+        out.push_str(line_terminator);
+    }
+    Ok(out)
 }
 
 /// Validate that the richsync rows form a real word-level lyric.
@@ -509,6 +625,169 @@ mod redact_tests {
         assert!(
             rendered.contains("/track.search"),
             "redacted path context missing from Debug: {rendered}",
+        );
+    }
+}
+
+#[cfg(test)]
+mod split_lrc_line_tests {
+    use super::split_lrc_line;
+
+    #[test]
+    fn peels_single_numeric_stamp() {
+        let (stamps, text) = split_lrc_line("[00:12.34]Hello world");
+        assert_eq!(stamps, vec!["[00:12.34]"]);
+        assert_eq!(text, "Hello world");
+    }
+
+    #[test]
+    fn peels_multi_stamp_chorus_line() {
+        let (stamps, text) = split_lrc_line("[00:30.10][01:05.40][02:11.00]Chorus line");
+        assert_eq!(stamps, vec!["[00:30.10]", "[01:05.40]", "[02:11.00]"]);
+        assert_eq!(text, "Chorus line");
+    }
+
+    #[test]
+    fn preserves_header_tags() {
+        // `[ar:Artist]` starts with a letter, not a digit — must stay
+        // in the text half so the LRC header lines round-trip.
+        let (stamps, text) = split_lrc_line("[ar:The Artist]");
+        assert!(stamps.is_empty());
+        assert_eq!(text, "[ar:The Artist]");
+    }
+
+    #[test]
+    fn handles_empty_line() {
+        let (stamps, text) = split_lrc_line("");
+        assert!(stamps.is_empty());
+        assert_eq!(text, "");
+    }
+
+    #[test]
+    fn handles_stamp_only_line() {
+        // Musixmatch occasionally returns instrumental marker lines
+        // as bare stamps with empty text.
+        let (stamps, text) = split_lrc_line("[01:30.00]");
+        assert_eq!(stamps, vec!["[01:30.00]"]);
+        assert_eq!(text, "");
+    }
+
+    #[test]
+    fn accepts_seconds_only_stamp() {
+        // LRC dialect with `[ss]` instead of `[mm:ss.xx]` is rare but
+        // still starts with a digit — must be peeled too.
+        let (stamps, text) = split_lrc_line("[00]intro");
+        assert_eq!(stamps, vec!["[00]"]);
+        assert_eq!(text, "intro");
+    }
+}
+
+#[cfg(test)]
+mod merge_translations_tests {
+    use super::split_lrc_line;
+    use std::collections::HashMap;
+
+    // Pure-helper variant of the merge loop in `add_translations`,
+    // factored here so the test doesn't have to roundtrip through
+    // a real Musixmatch HTTP call. Mirrors the exact algorithm
+    // (split → lookup trim → re-emit under same stamps).
+    fn merge(lrc: &str, table: &HashMap<String, String>) -> String {
+        let mut out = String::with_capacity(lrc.len() * 2);
+        for raw_line in lrc.split_inclusive('\n') {
+            let line_terminator: &str = raw_line
+                .find(['\r', '\n'])
+                .map(|idx| &raw_line[idx..])
+                .unwrap_or("");
+            let line_no_eol = raw_line.trim_end_matches(['\r', '\n']);
+            out.push_str(line_no_eol);
+            out.push_str(line_terminator);
+            let (stamps, text) = split_lrc_line(line_no_eol);
+            if stamps.is_empty() {
+                continue;
+            }
+            let lookup = text.trim();
+            if lookup.is_empty() {
+                continue;
+            }
+            let Some(translated) = table.get(lookup) else {
+                continue;
+            };
+            for stamp in &stamps {
+                out.push_str(stamp);
+            }
+            out.push('(');
+            out.push_str(translated);
+            out.push(')');
+            out.push_str(line_terminator);
+        }
+        out
+    }
+
+    #[test]
+    fn injects_translation_below_original_with_same_stamp() {
+        let lrc = "[00:12.34]Hello world\n[00:15.00]How are you\n";
+        let mut table = HashMap::new();
+        table.insert("Hello world".into(), "Bonjour le monde".into());
+        table.insert("How are you".into(), "Comment ça va".into());
+        let out = merge(lrc, &table);
+        assert_eq!(
+            out,
+            "[00:12.34]Hello world\n[00:12.34](Bonjour le monde)\n[00:15.00]How are you\n[00:15.00](Comment ça va)\n",
+        );
+    }
+
+    #[test]
+    fn skips_lines_without_a_match() {
+        let lrc = "[00:12.34]Untranslated line\n";
+        let table = HashMap::new();
+        let out = merge(lrc, &table);
+        assert_eq!(out, lrc);
+    }
+
+    #[test]
+    fn preserves_lrc_header_tags() {
+        let lrc = "[ti:Song Title]\n[ar:The Artist]\n[00:12.34]Hello world\n";
+        let mut table = HashMap::new();
+        table.insert("Hello world".into(), "Salut".into());
+        let out = merge(lrc, &table);
+        assert!(out.contains("[ti:Song Title]"));
+        assert!(out.contains("[ar:The Artist]"));
+        assert!(out.contains("[00:12.34](Salut)"));
+    }
+
+    #[test]
+    fn handles_multi_stamp_chorus() {
+        let lrc = "[00:30.10][01:05.40]Chorus\n";
+        let mut table = HashMap::new();
+        table.insert("Chorus".into(), "Refrain".into());
+        let out = merge(lrc, &table);
+        // Translation rides under the SAME compound stamp prefix so
+        // an LRC reader that stable-sorts by stamp groups the pair.
+        assert_eq!(
+            out,
+            "[00:30.10][01:05.40]Chorus\n[00:30.10][01:05.40](Refrain)\n",
+        );
+    }
+
+    #[test]
+    fn ignores_empty_text_lines() {
+        // A bare-stamp instrumental marker has nothing to translate.
+        let lrc = "[01:30.00]\n";
+        let mut table = HashMap::new();
+        table.insert("".into(), "should not appear".into());
+        let out = merge(lrc, &table);
+        assert_eq!(out, "[01:30.00]\n");
+    }
+
+    #[test]
+    fn round_trips_crlf_line_endings() {
+        let lrc = "[00:12.34]Hello\r\n[00:15.00]World\r\n";
+        let mut table = HashMap::new();
+        table.insert("Hello".into(), "Salut".into());
+        let out = merge(lrc, &table);
+        assert_eq!(
+            out,
+            "[00:12.34]Hello\r\n[00:12.34](Salut)\r\n[00:15.00]World\r\n",
         );
     }
 }

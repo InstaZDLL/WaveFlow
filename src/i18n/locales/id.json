@@ -1737,6 +1737,11 @@
     "fullscreenLyricsCentering": {
       "title": "Pusatkan lirik tersinkron di layar penuh",
       "subtitle": "Menyelaraskan lirik tersinkron di tengah tampilan layar penuh, sama seperti teks polos."
+    },
+    "lyricsTranslation": {
+      "title": "Terjemahan lirik (Musixmatch)",
+      "subtitle": "Menampilkan terjemahan di bawah setiap baris LRC saat Musixmatch menyediakannya",
+      "off": "Nonaktif"
     }
   },
   "spotify": {

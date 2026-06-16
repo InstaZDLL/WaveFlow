@@ -196,6 +196,34 @@ const SETTINGS_CATEGORY_IDS = new Set<SettingsCategory>(
   SETTINGS_CATEGORIES.map((c) => c.id),
 );
 
+/**
+ * Languages the Musixmatch translation pipeline can target.
+ * Mirrors `SUPPORTED_TRANSLATION_LANGS` in
+ * `src-tauri/crates/app/src/commands/lyrics.rs` exactly. Adding /
+ * removing a code requires touching both the Rust whitelist (the
+ * backend rejects unknown codes) and this list. The empty `value`
+ * entry is the "off" sentinel — the dropdown's default state.
+ */
+const TRANSLATION_LANG_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "", label: "Off" },
+  { value: "en", label: "English" },
+  { value: "es", label: "Español" },
+  { value: "de", label: "Deutsch" },
+  { value: "fr", label: "Français" },
+  { value: "it", label: "Italiano" },
+  { value: "nl", label: "Nederlands" },
+  { value: "pt", label: "Português" },
+  { value: "ru", label: "Русский" },
+  { value: "tr", label: "Türkçe" },
+  { value: "id", label: "Bahasa Indonesia" },
+  { value: "ja", label: "日本語" },
+  { value: "ko", label: "한국어" },
+  { value: "zh-CN", label: "简体中文" },
+  { value: "zh-TW", label: "繁體中文" },
+  { value: "ar", label: "العربية" },
+  { value: "hi", label: "हिन्दी" },
+];
+
 function readStoredCategory(): SettingsCategory {
   if (typeof window === "undefined") return "library";
   try {
@@ -819,6 +847,47 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     } finally {
       setIsFetchingArtists(false);
       window.setTimeout(() => setArtistFetchProgress(null), 3000);
+    }
+  };
+
+  // Lyrics translation language (Musixmatch) — issue #208.
+  // `null` = no translation (default). The backend whitelist must
+  // stay in sync with `SUPPORTED_TRANSLATION_LANGS` in
+  // `commands/lyrics.rs`; we propagate the same set + an "off"
+  // sentinel here.
+  const [translationLang, setTranslationLang] = useState<string | null>(null);
+  const [translationLangBusy, setTranslationLangBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getLyricsTranslationLang } = await import(
+          "../../lib/tauri/lyrics"
+        );
+        const stored = await getLyricsTranslationLang();
+        if (!cancelled) setTranslationLang(stored);
+      } catch (err) {
+        console.error("[SettingsView] getLyricsTranslationLang failed", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleTranslationLangChange = async (next: string) => {
+    setTranslationLangBusy(true);
+    try {
+      const { setLyricsTranslationLang } = await import(
+        "../../lib/tauri/lyrics"
+      );
+      const stored = await setLyricsTranslationLang(next === "" ? null : next);
+      setTranslationLang(stored);
+    } catch (err) {
+      console.error("[SettingsView] setLyricsTranslationLang failed", err);
+    } finally {
+      setTranslationLangBusy(false);
     }
   };
 
@@ -2913,6 +2982,46 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                   <span>{t("settings.lyricsPrefetch.action")}</span>
                 </button>
               )}
+            </div>
+
+            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <div className="flex items-center space-x-4 flex-1 min-w-0">
+                <Mic2
+                  size={20}
+                  className="text-zinc-400 shrink-0"
+                  aria-hidden="true"
+                />
+                <div className="min-w-0">
+                  <label
+                    htmlFor="lyrics-translation-lang-select"
+                    className="text-sm font-medium text-zinc-900 dark:text-white"
+                  >
+                    {t("settings.lyricsTranslation.title")}
+                  </label>
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.lyricsTranslation.subtitle")}
+                  </div>
+                </div>
+              </div>
+              <select
+                id="lyrics-translation-lang-select"
+                value={translationLang ?? ""}
+                disabled={translationLangBusy}
+                onChange={(e) => void handleTranslationLangChange(e.target.value)}
+                className="shrink-0 px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {TRANSLATION_LANG_OPTIONS.map((opt) =>
+                  opt.value === "" ? (
+                    <option key="off" value="">
+                      {t("settings.lyricsTranslation.off")}
+                    </option>
+                  ) : (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ),
+                )}
+              </select>
             </div>
 
             <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
