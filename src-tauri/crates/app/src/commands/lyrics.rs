@@ -1575,11 +1575,23 @@ pub async fn clear_lyrics(state: tauri::State<'_, AppState>, track_id: i64) -> A
 /// BOM because LRCLIB / Musicolet / Spotify-style consumers all read
 /// BOM-less files fine and a BOM trips up some smaller offline
 /// players.
+///
+/// The `state` parameter exists for the
+/// `state.require_profile_pool().await?` sentry: without an active
+/// profile the lyrics editor isn't reachable from the UI, and the
+/// call refuses to mint a sidecar file from an orphaned IPC payload.
+/// The pool itself isn't touched — this command does not read or
+/// write the per-profile DB, the bytes come straight from the
+/// frontend's `buildPayload`. Mirrors the same gate every sibling
+/// `commands::lyrics::*` handler applies (CLAUDE.md cross-cutting
+/// rule).
 #[tauri::command]
 pub async fn export_lyrics_to_path(
+    state: tauri::State<'_, AppState>,
     target_path: String,
     content: String,
 ) -> AppResult<()> {
+    let _pool = state.require_profile_pool().await?;
     let path = std::path::PathBuf::from(&target_path);
     let parent = path
         .parent()

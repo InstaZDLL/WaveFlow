@@ -525,7 +525,7 @@ export function LyricsEditorModal({
       const defaultPath = defaultExportPath(trackFilePath, stem, defaultExt);
       const target = await showSaveDialog({
         title: t("lyricsEditor.exportToFile") ?? undefined,
-        defaultPath: defaultPath ?? undefined,
+        defaultPath,
         filters: [
           {
             name: defaultExt === "lrc" ? "Synced lyrics (.lrc)" : "Plain lyrics (.txt)",
@@ -1068,18 +1068,22 @@ function filenameStem(
 }
 
 /**
- * Build the full default `defaultPath` the Tauri save dialog should
+ * Build the default `defaultPath` the Tauri save dialog should
  * open at. When `filePath` is known we anchor on its parent
  * directory so the user lands next to the song — the conventional
- * sidecar location. Returns `null` to let the dialog fall back to
- * its remembered last-used directory.
+ * sidecar location. When `filePath` is absent we still hand back
+ * a bare `<stem>.<ext>` filename so the dialog pre-fills the name
+ * field; Tauri's save dialog interprets a name-only `defaultPath`
+ * as "land in the last-used directory with this name" (OS-native
+ * behaviour on Windows / macOS / Linux), which is the best
+ * fallback when we have no song path to anchor on.
  */
 function defaultExportPath(
   filePath: string | null | undefined,
   stem: string,
   ext: string,
-): string | null {
-  if (!filePath) return null;
+): string {
+  if (!filePath) return `${stem}.${ext}`;
   // Preserve OS-native separators so the dialog re-renders the path
   // correctly on Windows + macOS + Linux. Splitting on both is fine
   // because Windows accepts both `\` and `/` in API paths.
