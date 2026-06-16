@@ -351,15 +351,23 @@ pub async fn sync_backfill_now(
     if crate::offline::is_offline() {
         return Ok(backfill::BackfillOutcome::Skipped { reason: "offline" });
     }
-    // Pin the active profile's pool ONCE at the top so the gate
-    // read, the post-pass stamp, and any future reads all hit the
-    // same per-profile SQLite database. A user-driven profile
-    // switch mid-pass would otherwise race: the gate / stamp could
-    // see one profile while the inner backfill saw another. The
-    // pool itself is `Arc<…>` internally (sqlx) so holding the
-    // clone is cheap, and the underlying connections survive the
-    // RwLock swap that `activate_profile` performs.
-    let pool = state.require_profile_pool().await?;
+    // Pin the active profile's pool AND profile_id under a SINGLE
+    // RwLock read guard so the gate read, the canonical lookup,
+    // the inner backfill orchestration, and the post-pass stamp
+    // all see the same per-profile `(pool, profile_id)` pair.
+    // Two separate `require_profile_pool` + `require_profile_id`
+    // calls would each re-acquire the lock and leave an interleave
+    // window where `activate_profile` swaps the inner
+    // `ActiveProfile` — pairing the wrong pool with the wrong
+    // canonical id silently corrupts the per-profile timestamp
+    // stamp. The pool itself is `Arc<…>` internally (sqlx) so
+    // holding the clone is cheap, and the underlying connections
+    // survive the swap that `activate_profile` performs.
+    let (pool, profile_id) = {
+        let guard = state.profile.read().await;
+        let active = guard.as_ref().ok_or(AppError::NoActiveProfile)?;
+        (active.pool.clone(), active.profile_id)
+    };
     // Gate 1 — Local mode.
     if mode::read(&pool).await? == mode::SyncMode::Local {
         return Ok(backfill::BackfillOutcome::Skipped {
@@ -380,7 +388,9 @@ pub async fn sync_backfill_now(
         return Ok(backfill::BackfillOutcome::AlreadyRunning);
     };
 
-    let profile_id = state.require_profile_id().await?;
+    // `canonical_id_for` hits the global `app.db`, not the
+    // per-profile pool, so it's safe to call with the pinned
+    // `profile_id` even after concurrent profile activity.
     let profile_canonical_id =
         crate::db::profile_meta::canonical_id_for(&state.app_db, profile_id).await?;
 
