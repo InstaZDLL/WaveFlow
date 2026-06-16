@@ -1509,7 +1509,9 @@
         "missingRemotely": "Extern ontbrekend",
         "divergent": "Afwijkend"
       },
-      "backfillError": "Mislukt: {{message}}"
+      "backfillError": "Mislukt: {{message}}",
+      "autoToggleTitle": "Automatische sync",
+      "autoToggleSubtitle": "Voert een pass uit bij het opstarten en bij overschakeling naar Hybride"
     },
     "visualizer": {
       "title": "Audio-visualizer",

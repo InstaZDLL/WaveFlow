@@ -43,11 +43,98 @@ pub mod pull;
 pub mod push;
 
 use serde::Serialize;
+use sqlx::SqlitePool;
 
 use crate::error::AppResult;
 use crate::server_client::WaveflowServerClient;
 use crate::state::AppState;
 use crate::sync::digest::{self, diff::DigestDiff};
+
+/// `profile_setting` key for the auto-poll toggle. When `true`,
+/// [`maybe_auto_backfill`] fires a pass on boot + every sync-mode
+/// flip to Hybrid. Default `false` — opt-in only.
+pub const AUTO_BACKFILL_KEY: &str = "sync.v2.backfill_enabled";
+
+/// Read the per-profile auto-backfill enabled flag. Returns
+/// `false` when the row is absent (matches the opt-in default).
+pub async fn read_auto_enabled(pool: &SqlitePool) -> AppResult<bool> {
+    let value: Option<String> =
+        sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = ?")
+            .bind(AUTO_BACKFILL_KEY)
+            .fetch_optional(pool)
+            .await?;
+    Ok(value.as_deref() == Some("1"))
+}
+
+/// Persist the per-profile auto-backfill enabled flag.
+pub async fn write_auto_enabled(pool: &SqlitePool, enabled: bool) -> AppResult<()> {
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value) VALUES (?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    )
+    .bind(AUTO_BACKFILL_KEY)
+    .bind(if enabled { "1" } else { "0" })
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Best-effort auto-backfill trigger. Reads every gate (auto
+/// enabled flag, offline mode, Local sync mode, JWT presence,
+/// profile canonical id) and short-circuits silently when any
+/// gate refuses. Fires nothing when the lock is already held by
+/// a concurrent pass.
+///
+/// Designed for fire-and-forget call sites: boot-time check in
+/// `lib.rs::run`, sync-mode flip Local→Hybrid in
+/// `commands::sync::sync_set_mode`. Failures log + swallow so a
+/// transient network blip doesn't blow up the wrapping command.
+pub async fn maybe_auto_backfill(state: &AppState) -> AppResult<()> {
+    // Gate 0 — auto flag must be on.
+    let pool = state.require_profile_pool().await?;
+    if !read_auto_enabled(&pool).await? {
+        return Ok(());
+    }
+    // Gate 1 — process-wide offline.
+    if crate::offline::is_offline() {
+        return Ok(());
+    }
+    // Gate 2 — Local sync mode.
+    if crate::sync::mode::read(&pool).await? == crate::sync::mode::SyncMode::Local {
+        return Ok(());
+    }
+    // Gate 3 — server URL + JWT.
+    let Some(client) = WaveflowServerClient::try_build(state).await? else {
+        return Ok(());
+    };
+    // Lock — silent skip if a concurrent caller is already
+    // mid-pass.
+    let Ok(_guard) = state.backfill_lock.try_lock() else {
+        return Ok(());
+    };
+
+    let profile_id = state.require_profile_id().await?;
+    let profile_canonical_id =
+        crate::db::profile_meta::canonical_id_for(&state.app_db, profile_id).await?;
+
+    match run_backfill(state, &client, profile_canonical_id.as_deref()).await {
+        Ok(report) => {
+            let entities_with_action = report
+                .reports
+                .iter()
+                .filter(|r| r.pushed + r.pulled + r.lww_local_wins + r.lww_remote_wins > 0)
+                .count();
+            tracing::info!(
+                entities_with_action,
+                "auto-backfill pass completed",
+            );
+        }
+        Err(err) => {
+            tracing::warn!(error = %err, "auto-backfill pass failed");
+        }
+    }
+    Ok(())
+}
 
 /// Per-entity outcome of a single backfill pass. Counts only —
 /// the orchestrator logs the per-row decisions; the user-facing
@@ -103,10 +190,6 @@ pub enum BackfillOutcome {
     AlreadyRunning,
 }
 
-/// Track entity skip reason — referenced by [`run_backfill`] and
-/// echoed in the Settings UI for transparency.
-pub const SKIP_REASON_TRACK_NOT_YET: &str = "track_backfill_not_implemented";
-
 /// Run a single backfill pass. Assumes the caller already
 /// validated gates (offline / sync mode / JWT presence) and
 /// acquired [`AppState::backfill_lock`].
@@ -148,15 +231,6 @@ pub async fn run_backfill(
                 continue;
             }
         };
-
-        // B.2 v1: track pull / push / LWW deferred. Digest still
-        // runs (so the Settings UI can show whether the entity is
-        // in sync), but no row-level action happens.
-        if entity == "track" {
-            report.skipped_reason = Some(SKIP_REASON_TRACK_NOT_YET);
-            reports.push(report);
-            continue;
-        }
 
         let local = match digest::read_local_digest(&pool, entity).await {
             Ok(d) => d,

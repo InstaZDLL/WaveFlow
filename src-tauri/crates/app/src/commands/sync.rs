@@ -108,6 +108,7 @@ pub async fn sync_get_mode(state: tauri::State<'_, AppState>) -> AppResult<&'sta
 /// Persist the active profile's sync mode.
 #[tauri::command]
 pub async fn sync_set_mode(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     req: SetSyncModeRequest,
 ) -> AppResult<&'static str> {
@@ -130,6 +131,18 @@ pub async fn sync_set_mode(
     if parsed == mode::SyncMode::Hybrid {
         state.drain.notify();
         state.ws.wake();
+        // Fire an auto-backfill pass too if the user opted in.
+        // Best-effort, fire-and-forget — the pass logs internally
+        // and the mode-flip response shouldn't wait on a multi-
+        // second network round-trip.
+        let app_handle = app.clone();
+        tokio::spawn(async move {
+            use tauri::Manager;
+            let inner_state = app_handle.state::<AppState>();
+            if let Err(err) = backfill::maybe_auto_backfill(inner_state.inner()).await {
+                tracing::warn!(error = %err, "auto-backfill after mode flip failed");
+            }
+        });
     }
     Ok(parsed.as_str())
 }
@@ -290,6 +303,30 @@ pub async fn sync_digest_check(
     }
 
     Ok(SyncDigestOutcome::Ran { reports })
+}
+
+/// Read the per-profile auto-backfill enabled flag. Settings UI
+/// reads this to render the toggle state on mount.
+#[tauri::command]
+pub async fn sync_backfill_get_enabled(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<bool> {
+    let pool = state.require_profile_pool().await?;
+    backfill::read_auto_enabled(&pool).await
+}
+
+/// Persist the per-profile auto-backfill enabled flag. The user
+/// can click the manual "Resync now" button immediately after to
+/// trigger a pass; the next boot / sync-mode flip to Hybrid
+/// fires it automatically.
+#[tauri::command]
+pub async fn sync_backfill_set_enabled(
+    state: tauri::State<'_, AppState>,
+    enabled: bool,
+) -> AppResult<bool> {
+    let pool = state.require_profile_pool().await?;
+    backfill::write_auto_enabled(&pool, enabled).await?;
+    Ok(enabled)
 }
 
 /// Trigger a backfill pass (RFC-003 Phase B.2). Same gates as

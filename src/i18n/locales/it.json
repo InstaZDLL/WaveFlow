@@ -1509,7 +1509,9 @@
         "missingRemotely": "Mancante remoto",
         "divergent": "Divergente"
       },
-      "backfillError": "Errore: {{message}}"
+      "backfillError": "Errore: {{message}}",
+      "autoToggleTitle": "Sincronizzazione automatica",
+      "autoToggleSubtitle": "Esegue una passata all'avvio e al passaggio alla modalità Ibrida"
     },
     "visualizer": {
       "title": "Visualizzatore audio",

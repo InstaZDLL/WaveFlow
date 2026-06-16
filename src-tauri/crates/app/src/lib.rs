@@ -160,6 +160,22 @@ pub fn run() {
             // import path.
             sync::drain::spawn(app.handle().clone());
 
+            // RFC-003 Phase B.2 — fire a one-shot auto-backfill
+            // pass on boot when the user opted in via
+            // `sync.v2.backfill_enabled`. All gates (offline /
+            // SyncMode::Local / no JWT / no profile canonical)
+            // short-circuit silently inside `maybe_auto_backfill`,
+            // so this is safe to fire unconditionally — the helper
+            // owns the gate logic.
+            let boot_handle = app.handle().clone();
+            tokio::spawn(async move {
+                use tauri::Manager;
+                let state = boot_handle.state::<state::AppState>();
+                if let Err(err) = sync::backfill::maybe_auto_backfill(state.inner()).await {
+                    tracing::warn!(error = %err, "auto-backfill on boot failed");
+                }
+            });
+
             // Install the rustls process-wide CryptoProvider before
             // the WS subscriber spawns. rustls 0.23 panics on the
             // first TLS handshake when no provider is installed, and
@@ -633,6 +649,8 @@ pub fn run() {
             commands::sync::sync_drain_now,
             commands::sync::sync_digest_check,
             commands::sync::sync_backfill_now,
+            commands::sync::sync_backfill_get_enabled,
+            commands::sync::sync_backfill_set_enabled,
             commands::offline::get_offline_mode,
             commands::offline::set_offline_mode,
             commands::preferences::get_minimize_to_tray,

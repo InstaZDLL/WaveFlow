@@ -1513,7 +1513,9 @@
         "missingRemotely": "مفقود بعيدًا",
         "divergent": "متباين"
       },
-      "backfillError": "فشل: {{message}}"
+      "backfillError": "فشل: {{message}}",
+      "autoToggleTitle": "المزامنة التلقائية",
+      "autoToggleSubtitle": "تشغيل مزامنة عند الإقلاع وعند التبديل إلى الوضع الهجين"
     },
     "visualizer": {
       "title": "محلل الصوت البصري",

@@ -1509,7 +1509,9 @@
         "missingRemotely": "Sunucuda eksik",
         "divergent": "Farklı"
       },
-      "backfillError": "Başarısız: {{message}}"
+      "backfillError": "Başarısız: {{message}}",
+      "autoToggleTitle": "Otomatik senkronizasyon",
+      "autoToggleSubtitle": "Açılışta ve Hibrit moda geçişte bir geçiş çalıştırır"
     },
     "visualizer": {
       "title": "Ses görselleştirici",

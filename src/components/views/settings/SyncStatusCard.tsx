@@ -10,7 +10,9 @@ import {
   WifiOff,
 } from "lucide-react";
 import {
+  syncBackfillGetEnabled,
   syncBackfillNow,
+  syncBackfillSetEnabled,
   syncDigestCheck,
   type BackfillOutcome,
   type SyncDigestOutcome,
@@ -51,6 +53,8 @@ export function SyncStatusCard() {
   const { t } = useTranslation();
   const [state, setState] = useState<CardState>({ kind: "loading" });
   const [backfilling, setBackfilling] = useState(false);
+  const [autoEnabled, setAutoEnabled] = useState<boolean | null>(null);
+  const [autoToggleBusy, setAutoToggleBusy] = useState(false);
   const [backfillOutcome, setBackfillOutcome] = useState<BackfillOutcome | null>(
     null,
   );
@@ -83,8 +87,12 @@ export function SyncStatusCard() {
     let cancelled = false;
     (async () => {
       try {
-        const outcome: SyncDigestOutcome = await syncDigestCheck();
+        const [outcome, enabled] = await Promise.all([
+          syncDigestCheck(),
+          syncBackfillGetEnabled().catch(() => false),
+        ]);
         if (cancelled) return;
+        setAutoEnabled(enabled);
         if (outcome.status === "skipped") {
           setState({ kind: "skipped", reason: outcome.reason });
         } else {
@@ -101,6 +109,21 @@ export function SyncStatusCard() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  const handleToggleAuto = useCallback(async (next: boolean) => {
+    setAutoToggleBusy(true);
+    try {
+      const stored = await syncBackfillSetEnabled(next);
+      setAutoEnabled(stored);
+    } catch (err) {
+      // Surface as the backfill-error banner — same channel a
+      // failed manual click uses, so the user sees one consistent
+      // error path rather than a separate toast.
+      setBackfillError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAutoToggleBusy(false);
+    }
   }, []);
 
   const handleBackfill = useCallback(async () => {
@@ -188,6 +211,29 @@ export function SyncStatusCard() {
           <EntityReportTable reports={state.reports} />
         </div>
       ) : null}
+
+      <div className="mt-4 ml-9 flex items-center justify-between gap-3 text-xs">
+        <div className="min-w-0">
+          <div className="font-medium text-zinc-700 dark:text-zinc-200">
+            {t("settings.syncStatus.autoToggleTitle")}
+          </div>
+          <div className="text-zinc-400">
+            {t("settings.syncStatus.autoToggleSubtitle")}
+          </div>
+        </div>
+        <label className="inline-flex items-center cursor-pointer shrink-0">
+          <input
+            type="checkbox"
+            className="sr-only peer"
+            checked={autoEnabled === true}
+            disabled={autoEnabled === null || autoToggleBusy}
+            onChange={(e) => void handleToggleAuto(e.target.checked)}
+          />
+          <span className="relative w-10 h-6 bg-zinc-200 dark:bg-zinc-700 rounded-full peer-checked:bg-emerald-500 transition-colors peer-disabled:opacity-50">
+            <span className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-4" />
+          </span>
+        </label>
+      </div>
     </div>
   );
 }

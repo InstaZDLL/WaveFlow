@@ -1509,7 +1509,9 @@
         "missingRemotely": "Tidak ada remote",
         "divergent": "Berbeda"
       },
-      "backfillError": "Gagal: {{message}}"
+      "backfillError": "Gagal: {{message}}",
+      "autoToggleTitle": "Sinkronisasi otomatis",
+      "autoToggleSubtitle": "Menjalankan pass saat boot dan saat beralih ke mode Hybrid"
     },
     "visualizer": {
       "title": "Visualizer audio",

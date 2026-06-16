@@ -114,6 +114,7 @@ pub(super) async fn apply_remote_row(
     match row.entity.as_str() {
         "library" => apply_library(conn, row).await,
         "playlist" => apply_playlist(conn, row).await,
+        "track" => apply_track(conn, row).await,
         "liked_track" => apply_liked_track(conn, row).await,
         "track_rating" => apply_track_rating(conn, row).await,
         other => Err(AppError::Other(format!(
@@ -285,6 +286,218 @@ async fn apply_liked_track(conn: &mut SqliteConnection, row: &RemoteEntityRow) -
     .execute(&mut *conn)
     .await?;
     bump_digest(conn, "liked_track").await
+}
+
+/// Apply a `track` row pulled from the server. The composite
+/// canonical `<library_canonical_id>\u{1F}<file_path>` is already
+/// split into `library_canonical_id` + `file_path` top-level
+/// fields on the response. We:
+///
+/// 1. Resolve the local `library_id` from the canonical id. If
+///    absent → defer (library backfill hasn't happened yet; the
+///    orchestrator re-runs in order).
+/// 2. Upsert `album` + every contributor `artist` via the core
+///    scanner helpers (same path the scanner uses) so the
+///    foreign keys resolve identically regardless of whether the
+///    row originated from a local scan or a remote pull.
+/// 3. UPSERT the `track` row on `(library_id, file_path)`. When
+///    the file isn't locally available yet (no scanner pass has
+///    seen it), `folder_id` stays NULL and `is_available = 0` —
+///    the next scanner pass flips the flag + populates folder_id.
+/// 4. Re-link `track_artist` to match the server's order.
+/// 5. Stamp the server's exact `(hlc, origin, payload_hash)`.
+async fn apply_track(conn: &mut SqliteConnection, row: &RemoteEntityRow) -> AppResult<()> {
+    use waveflow_core::scanner::upserts;
+
+    let library_canonical = row.library_canonical_id.as_deref().ok_or_else(|| {
+        AppError::Other("track pull: missing library_canonical_id on response".into())
+    })?;
+    let file_path = row
+        .file_path
+        .as_deref()
+        .ok_or_else(|| AppError::Other("track pull: missing file_path on response".into()))?;
+
+    let library_id: Option<i64> =
+        sqlx::query_scalar("SELECT id FROM library WHERE canonical_id = ?")
+            .bind(library_canonical)
+            .fetch_optional(&mut *conn)
+            .await?;
+    let Some(library_id) = library_id else {
+        tracing::debug!(
+            library_canonical,
+            file_path,
+            "backfill pull track: no local library for canonical, deferring",
+        );
+        return Ok(());
+    };
+
+    let title = str_required(row, "title")?;
+    let file_hash = str_required(row, "file_hash")?;
+    let file_size = row
+        .fields
+        .get("file_size")
+        .and_then(Value::as_i64)
+        .ok_or_else(|| AppError::Other("track pull: missing 'file_size'".into()))?;
+    let duration_ms = row
+        .fields
+        .get("duration_ms")
+        .and_then(Value::as_i64)
+        .ok_or_else(|| AppError::Other("track pull: missing 'duration_ms'".into()))?;
+    let track_number = row.fields.get("track_number").and_then(Value::as_i64);
+    let disc_number = row.fields.get("disc_number").and_then(Value::as_i64);
+    let year = row.fields.get("year").and_then(Value::as_i64);
+    let bitrate = row.fields.get("bitrate").and_then(Value::as_i64);
+    let sample_rate = row.fields.get("sample_rate").and_then(Value::as_i64);
+    let channels = row.fields.get("channels").and_then(Value::as_i64);
+    let bit_depth = row.fields.get("bit_depth").and_then(Value::as_i64);
+    let codec = opt_str(row, "codec");
+    let musical_key = opt_str(row, "musical_key");
+    let added_at = row
+        .fields
+        .get("added_at")
+        .and_then(Value::as_i64)
+        .ok_or_else(|| AppError::Other("track pull: missing 'added_at'".into()))?;
+    let album_title = opt_str(row, "album_title");
+    let album_artist_name = opt_str(row, "album_artist_name");
+    let is_compilation = row
+        .fields
+        .get("is_compilation")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let artists: Vec<String> = row
+        .fields
+        .get("artists")
+        .and_then(Value::as_array)
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    // Upsert every contributor artist via the per-artist helper
+    // (the multi-artist `upsert_artist_list` takes a raw `"A; B"`
+    // string + splits internally; we already have the split form
+    // from the server, so call per-name to skip the parse).
+    let mut artist_ids: Vec<i64> = Vec::with_capacity(artists.len());
+    for name in &artists {
+        if let Some(id) = upserts::upsert_artist(&mut *conn, name)
+            .await
+            .map_err(|err| AppError::Other(format!("upsert_artist: {err}")))?
+        {
+            artist_ids.push(id);
+        }
+    }
+    let primary_artist_id = artist_ids.first().copied();
+    let album_id = match album_title.as_deref() {
+        Some(title) => upserts::upsert_album(
+            &mut *conn,
+            title,
+            album_artist_name.as_deref(),
+            is_compilation,
+            primary_artist_id,
+            year,
+        )
+        .await
+        .map_err(|err| AppError::Other(format!("upsert_album: {err}")))?,
+        None => None,
+    };
+    let _ = added_at; // bound below in the INSERT
+
+    let payload_hash = hex::decode(&row.payload_hash)
+        .map_err(|err| AppError::Other(format!("track payload_hash hex: {err}")))?;
+    let origin = origin_string(row);
+
+    // UPSERT on `(library_id, file_path)`. Folder_id stays NULL
+    // when this is a fresh pull — the scanner fills it in when
+    // the file materialises on this device. Is_available = 0 for
+    // the same reason: the UI shouldn't try to play a row backed
+    // by no local audio file. The scanner's `(mtime, size)`
+    // fast-path will flip is_available + folder_id on its next
+    // pass over the library folder.
+    sqlx::query(
+        "INSERT INTO track (
+            library_id, folder_id, file_path, file_hash, file_size, file_modified,
+            title, album_id, primary_artist,
+            track_number, disc_number, year,
+            duration_ms, bitrate, sample_rate, channels,
+            bit_depth, codec, musical_key,
+            added_at, is_available,
+            hlc_wall, hlc_logical, origin_device_id, payload_hash
+         ) VALUES (?, NULL, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
+         ON CONFLICT(library_id, file_path) DO UPDATE SET
+            file_hash       = excluded.file_hash,
+            file_size       = excluded.file_size,
+            title           = excluded.title,
+            album_id        = excluded.album_id,
+            primary_artist  = excluded.primary_artist,
+            track_number    = excluded.track_number,
+            disc_number     = excluded.disc_number,
+            year            = excluded.year,
+            duration_ms     = excluded.duration_ms,
+            bitrate         = excluded.bitrate,
+            sample_rate     = excluded.sample_rate,
+            channels        = excluded.channels,
+            bit_depth       = excluded.bit_depth,
+            codec           = excluded.codec,
+            musical_key     = excluded.musical_key,
+            added_at        = excluded.added_at,
+            hlc_wall        = excluded.hlc_wall,
+            hlc_logical     = excluded.hlc_logical,
+            origin_device_id = excluded.origin_device_id,
+            payload_hash    = excluded.payload_hash",
+    )
+    .bind(library_id)
+    .bind(file_path)
+    .bind(&file_hash)
+    .bind(file_size)
+    .bind(&title)
+    .bind(album_id)
+    .bind(primary_artist_id)
+    .bind(track_number)
+    .bind(disc_number)
+    .bind(year)
+    .bind(duration_ms)
+    .bind(bitrate)
+    .bind(sample_rate)
+    .bind(channels)
+    .bind(bit_depth)
+    .bind(codec.as_deref())
+    .bind(musical_key.as_deref())
+    .bind(added_at)
+    .bind(row.hlc.wall)
+    .bind(row.hlc.logical)
+    .bind(origin.as_deref())
+    .bind(&payload_hash[..])
+    .execute(&mut *conn)
+    .await?;
+
+    // Re-link `track_artist` to match the server's order. DELETE
+    // first because positions can shift on a re-tag — INSERT OR
+    // IGNORE would leave stale positions behind.
+    let track_id: i64 =
+        sqlx::query_scalar("SELECT id FROM track WHERE library_id = ? AND file_path = ?")
+            .bind(library_id)
+            .bind(file_path)
+            .fetch_one(&mut *conn)
+            .await?;
+    sqlx::query("DELETE FROM track_artist WHERE track_id = ?")
+        .bind(track_id)
+        .execute(&mut *conn)
+        .await?;
+    for (position, aid) in artist_ids.iter().enumerate() {
+        sqlx::query(
+            "INSERT INTO track_artist (track_id, artist_id, role, position)
+             VALUES (?, ?, 'main', ?)",
+        )
+        .bind(track_id)
+        .bind(aid)
+        .bind(position as i64)
+        .execute(&mut *conn)
+        .await?;
+    }
+
+    bump_digest(conn, "track").await
 }
 
 async fn apply_track_rating(conn: &mut SqliteConnection, row: &RemoteEntityRow) -> AppResult<()> {

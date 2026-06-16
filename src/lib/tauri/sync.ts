@@ -90,3 +90,23 @@ export function syncDigestCheck(entity?: string): Promise<SyncDigestOutcome> {
 export function syncBackfillNow(): Promise<BackfillOutcome> {
   return invoke<BackfillOutcome>("sync_backfill_now");
 }
+
+/**
+ * Read the per-profile auto-backfill enabled flag. The Settings
+ * card renders this as a toggle alongside the manual "Resync now"
+ * button.
+ */
+export function syncBackfillGetEnabled(): Promise<boolean> {
+  return invoke<boolean>("sync_backfill_get_enabled");
+}
+
+/**
+ * Persist the per-profile auto-backfill enabled flag. When `true`,
+ * `maybe_auto_backfill` fires a pass on boot + every sync-mode
+ * flip to Hybrid. The toggle itself doesn't fire an immediate
+ * pass — the user can click the manual button right after if
+ * they want one now.
+ */
+export function syncBackfillSetEnabled(enabled: boolean): Promise<boolean> {
+  return invoke<boolean>("sync_backfill_set_enabled", { enabled });
+}

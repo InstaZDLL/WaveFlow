@@ -1521,7 +1521,9 @@
         "missingRemotely": "Em falta remoto",
         "divergent": "Divergente"
       },
-      "backfillError": "Falhou: {{message}}"
+      "backfillError": "Falhou: {{message}}",
+      "autoToggleTitle": "Sincronização automática",
+      "autoToggleSubtitle": "Executa uma passagem ao iniciar e ao mudar para o modo Híbrido"
     },
     "gapless": {
       "title": "Reprodução contínua",

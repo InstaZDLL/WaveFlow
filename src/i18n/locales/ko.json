@@ -1521,7 +1521,9 @@
         "missingRemotely": "원격 누락",
         "divergent": "불일치"
       },
-      "backfillError": "실패: {{message}}"
+      "backfillError": "실패: {{message}}",
+      "autoToggleTitle": "자동 동기화",
+      "autoToggleSubtitle": "부팅 시 그리고 하이브리드 모드로 전환할 때 동기화를 실행합니다"
     },
     "gapless": {
       "title": "갭리스 재생",
