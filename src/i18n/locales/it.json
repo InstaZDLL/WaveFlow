@@ -1481,6 +1481,35 @@
       "copied": "Log copiati",
       "copyFailed": "Impossibile copiare i log"
     },
+    "syncStatus": {
+      "title": "Stato di sincronizzazione",
+      "loading": "Verifica in corso…",
+      "subtitleEmpty": "Nessuna entità da confrontare",
+      "subtitleAllInSync": "Tutto è sincronizzato",
+      "subtitleOutOfSync": "{{outOfSync}} su {{total}} non sincronizzate",
+      "refresh": "Aggiorna",
+      "resyncNow": "Sincronizza ora",
+      "inSync": "Sincronizzato",
+      "outOfSync": "Divergente",
+      "error": "Errore: {{message}}",
+      "reasonGeneric": "Ignorato ({{reason}})",
+      "reason": {
+        "offline": "Modalità offline attiva",
+        "sync_mode_local": "Profilo in modalità locale",
+        "not_configured": "Server non configurato",
+        "profile_canonical_id_missing": "Sincronizzazione iniziale in attesa"
+      },
+      "backfillAlreadyRunning": "Una sincronizzazione è già in corso",
+      "backfillSkipped": "Sincronizzazione ignorata ({{reason}})",
+      "backfillSummary": "{{pushed}} inviati · {{pulled}} ricevuti · {{lww}} uniti · {{failed}} falliti",
+      "col": {
+        "entity": "Entità",
+        "state": "Stato",
+        "missingLocally": "Mancante locale",
+        "missingRemotely": "Mancante remoto",
+        "divergent": "Divergente"
+      }
+    },
     "visualizer": {
       "title": "Visualizzatore audio",
       "subtitle": "Mostra uno spettro in tempo reale nella vista immersiva (FFT leggera sul thread del decoder)"

@@ -1481,6 +1481,35 @@
       "copied": "Logs kopiert",
       "copyFailed": "Logs konnten nicht kopiert werden"
     },
+    "syncStatus": {
+      "title": "Synchronisationsstatus",
+      "loading": "Prüfung läuft…",
+      "subtitleEmpty": "Keine Entitäten zu vergleichen",
+      "subtitleAllInSync": "Alles ist synchron",
+      "subtitleOutOfSync": "{{outOfSync}} von {{total}} nicht synchron",
+      "refresh": "Aktualisieren",
+      "resyncNow": "Jetzt synchronisieren",
+      "inSync": "Synchron",
+      "outOfSync": "Abweichend",
+      "error": "Fehler: {{message}}",
+      "reasonGeneric": "Übersprungen ({{reason}})",
+      "reason": {
+        "offline": "Offline-Modus aktiv",
+        "sync_mode_local": "Profil im lokalen Modus",
+        "not_configured": "Server nicht konfiguriert",
+        "profile_canonical_id_missing": "Erste Synchronisation ausstehend"
+      },
+      "backfillAlreadyRunning": "Eine Synchronisation läuft bereits",
+      "backfillSkipped": "Synchronisation übersprungen ({{reason}})",
+      "backfillSummary": "{{pushed}} gesendet · {{pulled}} empfangen · {{lww}} zusammengeführt · {{failed}} fehlgeschlagen",
+      "col": {
+        "entity": "Entität",
+        "state": "Status",
+        "missingLocally": "Lokal fehlend",
+        "missingRemotely": "Remote fehlend",
+        "divergent": "Abweichend"
+      }
+    },
     "visualizer": {
       "title": "Audio-Visualizer",
       "subtitle": "Zeigt ein Echtzeit-Spektrum in der immersiven Ansicht (leichtgewichtige FFT im Decoder-Thread)"

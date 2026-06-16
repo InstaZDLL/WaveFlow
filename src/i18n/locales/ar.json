@@ -1485,6 +1485,35 @@
       "copied": "تم نسخ السجلات",
       "copyFailed": "تعذّر نسخ السجلات"
     },
+    "syncStatus": {
+      "title": "حالة المزامنة",
+      "loading": "جارٍ التحقق…",
+      "subtitleEmpty": "لا توجد كيانات للمقارنة",
+      "subtitleAllInSync": "كل شيء متزامن",
+      "subtitleOutOfSync": "{{outOfSync}} من {{total}} غير متزامنة",
+      "refresh": "تحديث",
+      "resyncNow": "إعادة المزامنة الآن",
+      "inSync": "متزامن",
+      "outOfSync": "غير متزامن",
+      "error": "خطأ: {{message}}",
+      "reasonGeneric": "تم التخطي ({{reason}})",
+      "reason": {
+        "offline": "وضع عدم الاتصال مفعّل",
+        "sync_mode_local": "الملف الشخصي في الوضع المحلي",
+        "not_configured": "الخادم غير مهيأ",
+        "profile_canonical_id_missing": "في انتظار المزامنة الأولى"
+      },
+      "backfillAlreadyRunning": "هناك مزامنة قيد التشغيل بالفعل",
+      "backfillSkipped": "تم تخطي المزامنة ({{reason}})",
+      "backfillSummary": "{{pushed}} مُرسلة · {{pulled}} مستلمة · {{lww}} مدمجة · {{failed}} فاشلة",
+      "col": {
+        "entity": "الكيان",
+        "state": "الحالة",
+        "missingLocally": "مفقود محليًا",
+        "missingRemotely": "مفقود بعيدًا",
+        "divergent": "متباين"
+      }
+    },
     "visualizer": {
       "title": "محلل الصوت البصري",
       "subtitle": "يعرض طيفًا في الوقت الفعلي في العرض الانغماسي (FFT خفيف على خيط فك التشفير)"

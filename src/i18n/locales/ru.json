@@ -1523,6 +1523,35 @@
       "copied": "Логи скопированы",
       "copyFailed": "Не удалось скопировать логи"
     },
+    "syncStatus": {
+      "title": "Статус синхронизации",
+      "loading": "Проверка…",
+      "subtitleEmpty": "Нет сущностей для сравнения",
+      "subtitleAllInSync": "Всё синхронизировано",
+      "subtitleOutOfSync": "{{outOfSync}} из {{total}} не синхронизировано",
+      "refresh": "Обновить",
+      "resyncNow": "Синхронизировать сейчас",
+      "inSync": "Синхронизировано",
+      "outOfSync": "Расхождение",
+      "error": "Ошибка: {{message}}",
+      "reasonGeneric": "Пропущено ({{reason}})",
+      "reason": {
+        "offline": "Активен автономный режим",
+        "sync_mode_local": "Профиль в локальном режиме",
+        "not_configured": "Сервер не настроен",
+        "profile_canonical_id_missing": "Ожидается первая синхронизация"
+      },
+      "backfillAlreadyRunning": "Синхронизация уже выполняется",
+      "backfillSkipped": "Синхронизация пропущена ({{reason}})",
+      "backfillSummary": "{{pushed}} отправлено · {{pulled}} получено · {{lww}} объединено · {{failed}} ошибок",
+      "col": {
+        "entity": "Сущность",
+        "state": "Статус",
+        "missingLocally": "Нет локально",
+        "missingRemotely": "Нет на сервере",
+        "divergent": "Расхождение"
+      }
+    },
     "visualizer": {
       "title": "Аудио-визуализатор",
       "subtitle": "Показывает спектр в реальном времени в иммерсивном режиме (лёгкий FFT в потоке декодера)"

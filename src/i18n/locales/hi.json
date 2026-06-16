@@ -1493,6 +1493,35 @@
       "copied": "लॉग्स कॉपी किए गए",
       "copyFailed": "लॉग्स कॉपी नहीं हो सके"
     },
+    "syncStatus": {
+      "title": "सिंक स्थिति",
+      "loading": "जाँच रहे हैं…",
+      "subtitleEmpty": "तुलना करने के लिए कोई इकाई नहीं",
+      "subtitleAllInSync": "सब कुछ सिंक है",
+      "subtitleOutOfSync": "{{total}} में से {{outOfSync}} सिंक नहीं",
+      "refresh": "रिफ़्रेश",
+      "resyncNow": "अभी रीसिंक करें",
+      "inSync": "सिंक",
+      "outOfSync": "अलग",
+      "error": "त्रुटि: {{message}}",
+      "reasonGeneric": "छोड़ा गया ({{reason}})",
+      "reason": {
+        "offline": "ऑफ़लाइन मोड सक्रिय है",
+        "sync_mode_local": "प्रोफ़ाइल लोकल मोड में है",
+        "not_configured": "सर्वर कॉन्फ़िगर नहीं है",
+        "profile_canonical_id_missing": "पहली सिंक की प्रतीक्षा है"
+      },
+      "backfillAlreadyRunning": "एक सिंक पहले से चल रहा है",
+      "backfillSkipped": "सिंक छोड़ा गया ({{reason}})",
+      "backfillSummary": "{{pushed}} भेजे · {{pulled}} प्राप्त · {{lww}} विलय · {{failed}} विफल",
+      "col": {
+        "entity": "इकाई",
+        "state": "स्थिति",
+        "missingLocally": "स्थानीय अनुपस्थित",
+        "missingRemotely": "दूरस्थ अनुपस्थित",
+        "divergent": "अलग"
+      }
+    },
     "gapless": {
       "title": "गैपलेस प्लेबैक",
       "subtitle": "लगातार ट्रैकों को बिना सूक्ष्म मौन के जोड़ता है (लाइव और कॉन्सेप्ट एल्बम के लिए आदर्श)"

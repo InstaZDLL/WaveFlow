@@ -1481,6 +1481,35 @@
       "copied": "Registros copiados",
       "copyFailed": "No se han podido copiar los registros"
     },
+    "syncStatus": {
+      "title": "Estado de sincronización",
+      "loading": "Comprobando…",
+      "subtitleEmpty": "No hay entidades para comparar",
+      "subtitleAllInSync": "Todo está sincronizado",
+      "subtitleOutOfSync": "{{outOfSync}} de {{total}} desincronizadas",
+      "refresh": "Actualizar",
+      "resyncNow": "Sincronizar ahora",
+      "inSync": "Sincronizado",
+      "outOfSync": "Desincronizado",
+      "error": "Error: {{message}}",
+      "reasonGeneric": "Omitido ({{reason}})",
+      "reason": {
+        "offline": "Modo sin conexión activo",
+        "sync_mode_local": "Perfil en modo local",
+        "not_configured": "Servidor no configurado",
+        "profile_canonical_id_missing": "Sincronización inicial pendiente"
+      },
+      "backfillAlreadyRunning": "Ya hay una sincronización en curso",
+      "backfillSkipped": "Sincronización omitida ({{reason}})",
+      "backfillSummary": "{{pushed}} enviados · {{pulled}} recibidos · {{lww}} fusionados · {{failed}} fallos",
+      "col": {
+        "entity": "Entidad",
+        "state": "Estado",
+        "missingLocally": "Falta local",
+        "missingRemotely": "Falta remoto",
+        "divergent": "Divergente"
+      }
+    },
     "visualizer": {
       "title": "Visualizador de audio",
       "subtitle": "Muestra un espectro en tiempo real en la vista inmersiva (FFT ligero en el hilo del decodificador)"

@@ -1440,6 +1440,35 @@
       "copied": "已复制",
       "copyFailed": "无法复制日志"
     },
+    "syncStatus": {
+      "title": "同步状态",
+      "loading": "正在检查…",
+      "subtitleEmpty": "没有可比较的实体",
+      "subtitleAllInSync": "已全部同步",
+      "subtitleOutOfSync": "{{total}} 项中有 {{outOfSync}} 项未同步",
+      "refresh": "刷新",
+      "resyncNow": "立即重新同步",
+      "inSync": "已同步",
+      "outOfSync": "存在差异",
+      "error": "错误：{{message}}",
+      "reasonGeneric": "已跳过（{{reason}}）",
+      "reason": {
+        "offline": "离线模式已启用",
+        "sync_mode_local": "配置文件处于本地模式",
+        "not_configured": "服务器未配置",
+        "profile_canonical_id_missing": "等待首次同步"
+      },
+      "backfillAlreadyRunning": "已有同步在运行",
+      "backfillSkipped": "已跳过同步（{{reason}}）",
+      "backfillSummary": "{{pushed}} 已发送 · {{pulled}} 已接收 · {{lww}} 已合并 · {{failed}} 失败",
+      "col": {
+        "entity": "实体",
+        "state": "状态",
+        "missingLocally": "本地缺失",
+        "missingRemotely": "远程缺失",
+        "divergent": "差异"
+      }
+    },
     "gapless": {
       "title": "无缝播放",
       "subtitle": "在连续曲目之间不留微小静音（适合现场和概念专辑）"

@@ -1481,6 +1481,35 @@
       "copied": "Logs gekopieerd",
       "copyFailed": "Logs konden niet worden gekopieerd"
     },
+    "syncStatus": {
+      "title": "Synchronisatiestatus",
+      "loading": "Controle…",
+      "subtitleEmpty": "Geen entiteiten om te vergelijken",
+      "subtitleAllInSync": "Alles is gesynchroniseerd",
+      "subtitleOutOfSync": "{{outOfSync}} van {{total}} niet synchroon",
+      "refresh": "Vernieuwen",
+      "resyncNow": "Nu synchroniseren",
+      "inSync": "Gesynchroniseerd",
+      "outOfSync": "Afwijkend",
+      "error": "Fout: {{message}}",
+      "reasonGeneric": "Overgeslagen ({{reason}})",
+      "reason": {
+        "offline": "Offline-modus actief",
+        "sync_mode_local": "Profiel in lokale modus",
+        "not_configured": "Server niet geconfigureerd",
+        "profile_canonical_id_missing": "Initiële synchronisatie in afwachting"
+      },
+      "backfillAlreadyRunning": "Er loopt al een synchronisatie",
+      "backfillSkipped": "Synchronisatie overgeslagen ({{reason}})",
+      "backfillSummary": "{{pushed}} verzonden · {{pulled}} ontvangen · {{lww}} samengevoegd · {{failed}} mislukt",
+      "col": {
+        "entity": "Entiteit",
+        "state": "Status",
+        "missingLocally": "Lokaal ontbrekend",
+        "missingRemotely": "Extern ontbrekend",
+        "divergent": "Afwijkend"
+      }
+    },
     "visualizer": {
       "title": "Audio-visualizer",
       "subtitle": "Toont een real-time spectrum in de immersieve weergave (lichte FFT op de decoderthread)"

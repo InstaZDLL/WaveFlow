@@ -1493,6 +1493,35 @@
       "copied": "Registos copiados",
       "copyFailed": "Não foi possível copiar os registos"
     },
+    "syncStatus": {
+      "title": "Estado da sincronização",
+      "loading": "A verificar…",
+      "subtitleEmpty": "Sem entidades para comparar",
+      "subtitleAllInSync": "Tudo está sincronizado",
+      "subtitleOutOfSync": "{{outOfSync}} de {{total}} dessincronizadas",
+      "refresh": "Atualizar",
+      "resyncNow": "Sincronizar agora",
+      "inSync": "Sincronizado",
+      "outOfSync": "Divergente",
+      "error": "Erro: {{message}}",
+      "reasonGeneric": "Ignorado ({{reason}})",
+      "reason": {
+        "offline": "Modo offline ativo",
+        "sync_mode_local": "Perfil em modo local",
+        "not_configured": "Servidor não configurado",
+        "profile_canonical_id_missing": "Sincronização inicial pendente"
+      },
+      "backfillAlreadyRunning": "Já existe uma sincronização em curso",
+      "backfillSkipped": "Sincronização ignorada ({{reason}})",
+      "backfillSummary": "{{pushed}} enviados · {{pulled}} recebidos · {{lww}} mesclados · {{failed}} falhas",
+      "col": {
+        "entity": "Entidade",
+        "state": "Estado",
+        "missingLocally": "Em falta local",
+        "missingRemotely": "Em falta remoto",
+        "divergent": "Divergente"
+      }
+    },
     "gapless": {
       "title": "Reprodução contínua",
       "subtitle": "Encadeia faixas consecutivas sem micro-silêncio (ideal para concertos e álbuns conceptuais)"

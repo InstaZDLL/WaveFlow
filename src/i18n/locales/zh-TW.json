@@ -1440,6 +1440,35 @@
       "copied": "已複製",
       "copyFailed": "無法複製日誌"
     },
+    "syncStatus": {
+      "title": "同步狀態",
+      "loading": "正在檢查…",
+      "subtitleEmpty": "沒有可比較的實體",
+      "subtitleAllInSync": "全部同步完成",
+      "subtitleOutOfSync": "{{total}} 項中有 {{outOfSync}} 項未同步",
+      "refresh": "重新整理",
+      "resyncNow": "立即重新同步",
+      "inSync": "已同步",
+      "outOfSync": "存在差異",
+      "error": "錯誤：{{message}}",
+      "reasonGeneric": "已略過（{{reason}}）",
+      "reason": {
+        "offline": "離線模式已啟用",
+        "sync_mode_local": "設定檔處於本機模式",
+        "not_configured": "伺服器未設定",
+        "profile_canonical_id_missing": "等待首次同步"
+      },
+      "backfillAlreadyRunning": "已有同步正在執行",
+      "backfillSkipped": "已略過同步（{{reason}}）",
+      "backfillSummary": "{{pushed}} 已傳送 · {{pulled}} 已接收 · {{lww}} 已合併 · {{failed}} 失敗",
+      "col": {
+        "entity": "實體",
+        "state": "狀態",
+        "missingLocally": "本機缺少",
+        "missingRemotely": "遠端缺少",
+        "divergent": "差異"
+      }
+    },
     "gapless": {
       "title": "無縫播放",
       "subtitle": "在連續曲目之間不留微小靜音（適合現場與概念專輯）"

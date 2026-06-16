@@ -1493,6 +1493,35 @@
       "copied": "로그가 복사되었습니다",
       "copyFailed": "로그를 복사할 수 없음"
     },
+    "syncStatus": {
+      "title": "동기화 상태",
+      "loading": "확인 중…",
+      "subtitleEmpty": "비교할 항목 없음",
+      "subtitleAllInSync": "모두 동기화됨",
+      "subtitleOutOfSync": "{{total}}개 중 {{outOfSync}}개가 동기화되지 않음",
+      "refresh": "새로고침",
+      "resyncNow": "지금 재동기화",
+      "inSync": "동기화됨",
+      "outOfSync": "불일치",
+      "error": "오류: {{message}}",
+      "reasonGeneric": "건너뜀 ({{reason}})",
+      "reason": {
+        "offline": "오프라인 모드 활성",
+        "sync_mode_local": "프로필이 로컬 모드입니다",
+        "not_configured": "서버가 구성되지 않음",
+        "profile_canonical_id_missing": "초기 동기화 대기 중"
+      },
+      "backfillAlreadyRunning": "이미 동기화가 실행 중입니다",
+      "backfillSkipped": "동기화 건너뜀 ({{reason}})",
+      "backfillSummary": "{{pushed}}개 전송 · {{pulled}}개 수신 · {{lww}}개 병합 · {{failed}}개 실패",
+      "col": {
+        "entity": "엔티티",
+        "state": "상태",
+        "missingLocally": "로컬 누락",
+        "missingRemotely": "원격 누락",
+        "divergent": "불일치"
+      }
+    },
     "gapless": {
       "title": "갭리스 재생",
       "subtitle": "연속된 트랙을 미세한 무음 없이 이어 재생합니다 (라이브 및 콘셉트 앨범에 적합)"

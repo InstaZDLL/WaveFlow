@@ -1481,6 +1481,35 @@
       "copied": "Log disalin",
       "copyFailed": "Tidak dapat menyalin log"
     },
+    "syncStatus": {
+      "title": "Status sinkronisasi",
+      "loading": "Memeriksa…",
+      "subtitleEmpty": "Tidak ada entitas untuk dibandingkan",
+      "subtitleAllInSync": "Semuanya tersinkronisasi",
+      "subtitleOutOfSync": "{{outOfSync}} dari {{total}} tidak sinkron",
+      "refresh": "Segarkan",
+      "resyncNow": "Sinkronkan sekarang",
+      "inSync": "Tersinkronisasi",
+      "outOfSync": "Berbeda",
+      "error": "Galat: {{message}}",
+      "reasonGeneric": "Dilewati ({{reason}})",
+      "reason": {
+        "offline": "Mode luring aktif",
+        "sync_mode_local": "Profil dalam mode lokal",
+        "not_configured": "Server belum dikonfigurasi",
+        "profile_canonical_id_missing": "Menunggu sinkronisasi awal"
+      },
+      "backfillAlreadyRunning": "Sinkronisasi sedang berjalan",
+      "backfillSkipped": "Sinkronisasi dilewati ({{reason}})",
+      "backfillSummary": "{{pushed}} dikirim · {{pulled}} diterima · {{lww}} digabungkan · {{failed}} gagal",
+      "col": {
+        "entity": "Entitas",
+        "state": "Status",
+        "missingLocally": "Tidak ada lokal",
+        "missingRemotely": "Tidak ada remote",
+        "divergent": "Berbeda"
+      }
+    },
     "visualizer": {
       "title": "Visualizer audio",
       "subtitle": "Tampilkan spektrum waktu nyata di tampilan imersif (FFT ringan di thread decoder)"

@@ -1481,6 +1481,35 @@
       "copied": "Loglar kopyalandı",
       "copyFailed": "Loglar kopyalanamadı"
     },
+    "syncStatus": {
+      "title": "Senkronizasyon durumu",
+      "loading": "Kontrol ediliyor…",
+      "subtitleEmpty": "Karşılaştırılacak öğe yok",
+      "subtitleAllInSync": "Her şey senkronize",
+      "subtitleOutOfSync": "{{total}} öğeden {{outOfSync}} senkronize değil",
+      "refresh": "Yenile",
+      "resyncNow": "Şimdi senkronize et",
+      "inSync": "Senkronize",
+      "outOfSync": "Farklı",
+      "error": "Hata: {{message}}",
+      "reasonGeneric": "Atlandı ({{reason}})",
+      "reason": {
+        "offline": "Çevrimdışı mod etkin",
+        "sync_mode_local": "Profil yerel modda",
+        "not_configured": "Sunucu yapılandırılmamış",
+        "profile_canonical_id_missing": "İlk senkronizasyon bekleniyor"
+      },
+      "backfillAlreadyRunning": "Bir senkronizasyon zaten çalışıyor",
+      "backfillSkipped": "Senkronizasyon atlandı ({{reason}})",
+      "backfillSummary": "{{pushed}} gönderildi · {{pulled}} alındı · {{lww}} birleştirildi · {{failed}} başarısız",
+      "col": {
+        "entity": "Öğe",
+        "state": "Durum",
+        "missingLocally": "Yerelde eksik",
+        "missingRemotely": "Sunucuda eksik",
+        "divergent": "Farklı"
+      }
+    },
     "visualizer": {
       "title": "Ses görselleştirici",
       "subtitle": "Sürükleyici görünümde gerçek zamanlı spektrumu gösterir (kod çözücü iş parçacığında hafif FFT)"
