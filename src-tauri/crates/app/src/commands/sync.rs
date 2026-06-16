@@ -14,7 +14,7 @@ use crate::{
     error::{AppError, AppResult},
     server_client::WaveflowServerClient,
     state::AppState,
-    sync::{device, digest, drain, lamport, mode, queue},
+    sync::{backfill, device, digest, drain, lamport, mode, queue},
 };
 
 #[derive(Debug, Serialize)]
@@ -290,4 +290,47 @@ pub async fn sync_digest_check(
     }
 
     Ok(SyncDigestOutcome::Ran { reports })
+}
+
+/// Trigger a backfill pass (RFC-003 Phase B.2). Same gates as
+/// [`sync_digest_check`] plus a process-wide mutual-exclusion
+/// lock — a second concurrent caller returns
+/// `BackfillOutcome::AlreadyRunning` without firing a parallel
+/// sweep.
+#[tauri::command]
+pub async fn sync_backfill_now(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<backfill::BackfillOutcome> {
+    // Gate 0 — offline mode short-circuits before any HTTP /
+    // SQLite work.
+    if crate::offline::is_offline() {
+        return Ok(backfill::BackfillOutcome::Ran { reports: vec![] });
+    }
+    // Gate 1 — Local mode.
+    let pool = state.require_profile_pool().await?;
+    if mode::read(&pool).await? == mode::SyncMode::Local {
+        return Ok(backfill::BackfillOutcome::Ran { reports: vec![] });
+    }
+    drop(pool);
+
+    // Gate 2 — server URL + JWT present.
+    let Some(client) = WaveflowServerClient::try_build(&state).await? else {
+        return Ok(backfill::BackfillOutcome::Ran { reports: vec![] });
+    };
+
+    // Mutex lock — a parallel call surfaces AlreadyRunning.
+    let guard = state.backfill_lock.try_lock();
+    let Ok(_guard) = guard else {
+        return Ok(backfill::BackfillOutcome::AlreadyRunning);
+    };
+
+    let profile_id = state.require_profile_id().await?;
+    let profile_canonical_id =
+        crate::db::profile_meta::canonical_id_for(&state.app_db, profile_id).await?;
+
+    let report =
+        backfill::run_backfill(&state, &client, profile_canonical_id.as_deref()).await?;
+    Ok(backfill::BackfillOutcome::Ran {
+        reports: report.reports,
+    })
 }

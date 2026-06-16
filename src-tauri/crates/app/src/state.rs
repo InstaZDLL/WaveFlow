@@ -50,6 +50,13 @@ pub struct AppState {
     /// duplicates via the `operation_id` UNIQUE but the wasted
     /// round-trip + duplicated `total_sent` accounting is avoidable).
     pub drain_lock: Arc<tokio::sync::Mutex<()>>,
+    /// Mutual-exclusion lock around [`crate::sync::backfill::run_backfill`]
+    /// (Phase B.2). Holds for the duration of a backfill pass so a
+    /// concurrent Tauri command surfaces `AlreadyRunning` instead of
+    /// firing a parallel sweep that would race the same digest +
+    /// entity fetches. Independent of [`drain_lock`] — a backfill can
+    /// trigger drains internally without deadlocking.
+    pub backfill_lock: Arc<tokio::sync::Mutex<()>>,
     /// Wake handle for the sync WebSocket subscriber (Phase
     /// 1.f.desktop.4b). The `server_account` commands fire it after
     /// the user signs in / signs out / changes mode so the
@@ -176,6 +183,7 @@ impl AppState {
             // first real tick will pick up any queued work.
             drain: Arc::new(crate::sync::drain::DrainHandle::default()),
             drain_lock: Arc::new(tokio::sync::Mutex::new(())),
+            backfill_lock: Arc::new(tokio::sync::Mutex::new(())),
             ws: Arc::new(crate::sync::ws::SubscribeHandle::default()),
             plugins,
             plugin_locks: Arc::new(Mutex::new(HashMap::new())),
