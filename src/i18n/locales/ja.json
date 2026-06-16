@@ -1737,6 +1737,11 @@
     "fullscreenLyricsCentering": {
       "title": "フルスクリーンで同期歌詞を中央揃え",
       "subtitle": "フルスクリーン表示でタイムコード付き歌詞をプレーンテキスト表示と同じく中央に揃えます。"
+    },
+    "lyricsTranslation": {
+      "title": "歌詞の翻訳 (Musixmatch)",
+      "subtitle": "Musixmatch に翻訳がある場合、各 LRC 行の下に翻訳を表示します",
+      "off": "オフ"
     }
   },
   "scanProgress": {

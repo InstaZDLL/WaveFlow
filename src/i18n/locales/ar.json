@@ -1741,6 +1741,11 @@
     "fullscreenLyricsCentering": {
       "title": "توسيط الكلمات المتزامنة في وضع ملء الشاشة",
       "subtitle": "يضع الكلمات المتزامنة في منتصف عرض ملء الشاشة، مثل عرض النص العادي."
+    },
+    "lyricsTranslation": {
+      "title": "ترجمة كلمات الأغنية (Musixmatch)",
+      "subtitle": "تعرض الترجمة أسفل كل سطر LRC عندما يوفرها Musixmatch",
+      "off": "متوقفة"
     }
   },
   "spotify": {

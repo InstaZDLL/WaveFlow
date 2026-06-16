@@ -1737,6 +1737,11 @@
     "fullscreenLyricsCentering": {
       "title": "全螢幕中將同步歌詞置中",
       "subtitle": "在全螢幕檢視中將帶時間戳的歌詞置中對齊,與純文字檢視保持一致。"
+    },
+    "lyricsTranslation": {
+      "title": "歌詞翻譯 (Musixmatch)",
+      "subtitle": "當 Musixmatch 有翻譯時,在每行 LRC 下方顯示翻譯",
+      "off": "關閉"
     }
   },
   "scanProgress": {

@@ -1510,6 +1510,11 @@
       "action": "Précharger",
       "progress": "{{current}}/{{total}} traités · {{hits}} trouvés"
     },
+    "lyricsTranslation": {
+      "title": "Traduction des paroles (Musixmatch)",
+      "subtitle": "Affiche une traduction sous chaque ligne LRC quand Musixmatch en propose une",
+      "off": "Désactivée"
+    },
     "regenerateThumbnails": "Régénérer les vignettes",
     "regenerateThumbnailsSubtitle": "Reconstruire les variantes 1x/2x manquantes pour toutes les pochettes",
     "regenerateThumbnailsAction": "Régénérer",

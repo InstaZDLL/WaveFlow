@@ -1737,6 +1737,11 @@
     "fullscreenLyricsCentering": {
       "title": "Gesynchroniseerde songtekst centreren in volledig scherm",
       "subtitle": "Plaatst de gesynchroniseerde songtekst in het midden van de volledige weergave, zoals de gewone tekst."
+    },
+    "lyricsTranslation": {
+      "title": "Songtekstvertaling (Musixmatch)",
+      "subtitle": "Toont onder elke LRC-regel een vertaling wanneer Musixmatch er een aanbiedt",
+      "off": "Uit"
     }
   },
   "spotify": {

@@ -1737,6 +1737,11 @@
     "fullscreenLyricsCentering": {
       "title": "Center synced lyrics in fullscreen",
       "subtitle": "Align time-coded lyrics to the center of the fullscreen overlay, matching the plain text view."
+    },
+    "lyricsTranslation": {
+      "title": "Lyrics translation (Musixmatch)",
+      "subtitle": "Displays a translation under each LRC line when Musixmatch has one",
+      "off": "Off"
     }
   },
   "spotify": {

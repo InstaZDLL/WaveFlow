@@ -1737,6 +1737,11 @@
     "fullscreenLyricsCentering": {
       "title": "Tam ekranda senkronize sözleri ortala",
       "subtitle": "Tam ekran görünümünde senkronize sözleri düz metin gibi ortaya hizalar."
+    },
+    "lyricsTranslation": {
+      "title": "Şarkı sözü çevirisi (Musixmatch)",
+      "subtitle": "Musixmatch çevirisi varsa her LRC satırının altında çeviriyi gösterir",
+      "off": "Kapalı"
     }
   },
   "spotify": {

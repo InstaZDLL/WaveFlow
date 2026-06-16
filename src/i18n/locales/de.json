@@ -1737,6 +1737,11 @@
     "fullscreenLyricsCentering": {
       "title": "Synchronisierten Liedtext im Vollbild zentrieren",
       "subtitle": "Richtet zeitgesteuerten Liedtext in der Vollbildansicht zentriert aus, passend zur reinen Textansicht."
+    },
+    "lyricsTranslation": {
+      "title": "Liedtextübersetzung (Musixmatch)",
+      "subtitle": "Zeigt unter jeder LRC-Zeile eine Übersetzung an, sofern Musixmatch eine bereitstellt",
+      "off": "Aus"
     }
   },
   "spotify": {
