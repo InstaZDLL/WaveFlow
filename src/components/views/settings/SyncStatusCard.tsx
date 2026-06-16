@@ -112,7 +112,14 @@ export function SyncStatusCard() {
   // bumps a counter `nowTick`; we don't store the actual
   // timestamp because `formatRelativeTime` derives it from
   // `Date.now()` at render time.
-  const [, setNowTick] = useState(0);
+  // `nowTick` is the dep that drags the "X min ago" suffix's
+  // memo invalidation. We don't read the value directly — only
+  // its identity matters — but stripping it with `[, setNowTick]`
+  // would prevent passing it to `useOverallStatus` below, and
+  // the memo there would never see a change to re-run
+  // `formatLastSyncSuffix(lastRunAt)` (which samples `Date.now()`
+  // at call time).
+  const [nowTick, setNowTick] = useState(0);
   const [expandedEntity, setExpandedEntity] = useState<string | null>(null);
   const [detailed, setDetailed] = useState<Record<string, DetailedEntry>>({});
   // Generation counter bumped on every `refresh()` so in-flight
@@ -307,7 +314,7 @@ export function SyncStatusCard() {
     [detailed],
   );
 
-  const overall = useOverallStatus(state, lastRunAt);
+  const overall = useOverallStatus(state, lastRunAt, nowTick);
 
   return (
     <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
@@ -442,8 +449,15 @@ interface OverallStatus {
 function useOverallStatus(
   state: CardState,
   lastRunAt: number | null,
+  nowTick: number,
 ): OverallStatus {
   return useMemo<OverallStatus>(() => {
+    // Touch `nowTick` so `react-hooks/exhaustive-deps` doesn't
+    // strip it from the dep list. The value itself is unused —
+    // its identity is the signal that the 30 s `setInterval` in
+    // the parent has bumped wall-clock and the suffix needs to
+    // re-sample `Date.now()`.
+    void nowTick;
     const lastSyncSuffix = formatLastSyncSuffix(lastRunAt);
     switch (state.kind) {
       case "loading":
@@ -541,7 +555,11 @@ function useOverallStatus(
             t("settings.syncStatus.error", { message: state.message }),
         };
     }
-  }, [state, lastRunAt]);
+    // `nowTick` enters the dep list so the 30 s `setInterval`
+    // in the parent invalidates this memo and `formatLastSyncSuffix`
+    // re-samples `Date.now()` — without it, the suffix stays
+    // pinned to whatever wall-clock the previous render saw.
+  }, [state, lastRunAt, nowTick]);
 }
 
 interface EntityReportTableProps {

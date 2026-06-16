@@ -514,7 +514,18 @@ pub async fn sync_digest_check_detailed(
     if crate::offline::is_offline() {
         return Ok(SyncDigestDetailedOutcome::Skipped { reason: "offline" });
     }
-    let pool = state.require_profile_pool().await?;
+    // Pin pool + profile_id under a SINGLE RwLock read guard so a
+    // mid-call profile switch can't pair the old pool's local
+    // digest with the new profile's canonical_id when querying
+    // the server. Two separate `require_profile_pool` +
+    // `require_profile_id` calls would each re-acquire the lock,
+    // leaving an interleave window where `activate_profile`
+    // swaps the inner `ActiveProfile` between them.
+    let (pool, profile_id) = {
+        let guard = state.profile.read().await;
+        let active = guard.as_ref().ok_or(AppError::NoActiveProfile)?;
+        (active.pool.clone(), active.profile_id)
+    };
     if mode::read(&pool).await? == mode::SyncMode::Local {
         return Ok(SyncDigestDetailedOutcome::Skipped {
             reason: "sync_mode_local",
@@ -532,7 +543,10 @@ pub async fn sync_digest_check_detailed(
         )));
     }
 
-    let profile_id = state.require_profile_id().await?;
+    // `canonical_id_for` hits the global `app.db`, not the
+    // per-profile pool, so a profile switch can't desync the
+    // canonical against the pinned profile_id (the row stays
+    // queryable by id for both the old and new active profile).
     let profile_canonical_id =
         crate::db::profile_meta::canonical_id_for(&state.app_db, profile_id).await?;
     let canonical_arg = match entity.as_str() {
