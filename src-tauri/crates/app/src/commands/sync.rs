@@ -302,20 +302,25 @@ pub async fn sync_backfill_now(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<backfill::BackfillOutcome> {
     // Gate 0 — offline mode short-circuits before any HTTP /
-    // SQLite work.
+    // SQLite work. Same `Skipped { reason }` shape the digest
+    // command uses so the UI renders both surfaces uniformly.
     if crate::offline::is_offline() {
-        return Ok(backfill::BackfillOutcome::Ran { reports: vec![] });
+        return Ok(backfill::BackfillOutcome::Skipped { reason: "offline" });
     }
     // Gate 1 — Local mode.
     let pool = state.require_profile_pool().await?;
     if mode::read(&pool).await? == mode::SyncMode::Local {
-        return Ok(backfill::BackfillOutcome::Ran { reports: vec![] });
+        return Ok(backfill::BackfillOutcome::Skipped {
+            reason: "sync_mode_local",
+        });
     }
     drop(pool);
 
     // Gate 2 — server URL + JWT present.
     let Some(client) = WaveflowServerClient::try_build(&state).await? else {
-        return Ok(backfill::BackfillOutcome::Ran { reports: vec![] });
+        return Ok(backfill::BackfillOutcome::Skipped {
+            reason: "not_configured",
+        });
     };
 
     // Mutex lock — a parallel call surfaces AlreadyRunning.

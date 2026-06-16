@@ -92,6 +92,11 @@ pub enum BackfillOutcome {
     /// The pass ran end-to-end. `reports` carries per-entity
     /// counts.
     Ran { reports: Vec<EntityBackfillReport> },
+    /// A gate short-circuited the pass before any HTTP / SQLite
+    /// work happened. `reason` is one of the static strings the
+    /// command paths emit ("offline" / "sync_mode_local" /
+    /// "not_configured") — same shape the digest command uses.
+    Skipped { reason: &'static str },
     /// A second concurrent caller arrived while the first was
     /// still in flight. The lock holder finishes; this caller
     /// returns immediately.

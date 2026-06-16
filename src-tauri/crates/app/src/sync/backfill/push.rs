@@ -223,7 +223,6 @@ async fn push_track_rating(
         // have flagged this row, but stay defensive.
         return Ok(false);
     };
-    let fields = payload::track_rating::canonical_fields(rating);
     let stamp = hooks::enqueue_op_in_tx(
         &mut tx,
         &PendingOpDraft {
@@ -236,9 +235,10 @@ async fn push_track_rating(
     )
     .await?;
     if let Some(stamp) = stamp {
+        // stamp_set_in_tx rebuilds the canonical fields internally
+        // from `rating` — no need to compute them here.
         payload::track_rating::stamp_set_in_tx(&mut tx, track_id, rating, stamp).await?;
     }
-    let _ = fields;
     tx.commit().await?;
     let _ = state;
     Ok(true)
