@@ -416,18 +416,41 @@ pub async fn sync_backfill_now(
 #[derive(Debug, Serialize)]
 pub struct SyncBackfillStatus {
     /// Epoch-millisecond timestamp of the last completed backfill
-    /// pass (automatic or manual). `None` when the user has never
-    /// run one — fresh profile, opted-out, or first launch.
+    /// pass on the **active** profile (automatic or manual).
+    /// Sourced from per-profile `profile_setting`, so it does NOT
+    /// reflect activity on a different profile. `None` when the
+    /// user has never run one on this profile — fresh profile,
+    /// opted-out, or first launch.
     pub last_run_at: Option<i64>,
     /// `true` when [`crate::state::AppState::backfill_lock`] is
     /// held by another caller — manual click or heartbeat tick
     /// currently mid-flight.
+    ///
+    /// **Process-wide, not per-profile.** The lock lives on the
+    /// global `AppState`, so a backfill running on profile A is
+    /// visible to a `sync_backfill_get_status` call after the
+    /// user switches to profile B. The Settings card uses this
+    /// to disable the Resync button across the swap window so a
+    /// click on B can't queue a parallel pass while A is still
+    /// in flight — `sync_backfill_now` would surface
+    /// `AlreadyRunning` anyway, but the disabled state makes the
+    /// affordance honest. The window where this matters is small
+    /// (a single backfill rarely outlives a profile switch the
+    /// user just initiated) but the conservative read keeps the
+    /// UI's "no parallel passes" contract aligned with the
+    /// backend's.
     pub in_progress: bool,
 }
 
 /// Read the persisted last-run timestamp + the live in-flight
 /// state. Cheap — one SELECT + one `try_lock`. Used by the Settings
 /// card on mount + every time the manual button completes.
+///
+/// Cross-profile note: `last_run_at` comes from the **active**
+/// profile's `profile_setting` so it's scoped per profile, but
+/// `in_progress` reflects the global `backfill_lock` — see the
+/// [`SyncBackfillStatus::in_progress`] doc for why this conservative
+/// read is the right surface.
 #[tauri::command]
 pub async fn sync_backfill_get_status(
     state: tauri::State<'_, AppState>,
