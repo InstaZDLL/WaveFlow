@@ -100,7 +100,6 @@ fn handle_playback_outcome(
     outcome: Result<(PlaybackEnd, u64, FinishedTrack), String>,
     shared: &SharedPlayback,
     app: &AppHandle,
-    requested_track_id: i64,
     analytics_tx: &UnboundedSender<AnalyticsMsg>,
     source_label: Option<String>,
 ) {
@@ -152,7 +151,17 @@ fn handle_playback_outcome(
                     message: err.clone(),
                 },
             );
-            transition_state(shared, app, PlayerState::Idle, Some(requested_track_id));
+            // Read the live `current_track_id` rather than the
+            // id passed in from the original `LoadAndPlay` /
+            // `LoadUrlAndPlay` command: `play_track`'s crossfade
+            // swap (and the gapless EOF hand-off) reassigns the
+            // active stream to a pre-fetched track and updates
+            // the atomic accordingly. Using the request id would
+            // surface the wrong track on the `player:state idle`
+            // emit when a decode error lands during the crossfade
+            // window (issue #229).
+            let failing_track_id = shared.current_track_id.load(Ordering::Acquire);
+            transition_state(shared, app, PlayerState::Idle, Some(failing_track_id));
         }
     }
 }
@@ -376,7 +385,6 @@ fn decoder_loop(
                     outcome,
                     &shared,
                     &app,
-                    track_id,
                     analytics_tx,
                     Some(path.display().to_string()),
                 );
@@ -502,7 +510,6 @@ fn decoder_loop(
                     outcome,
                     &shared,
                     &app,
-                    track_id,
                     analytics_tx,
                     Some(redacted),
                 );
