@@ -35,14 +35,22 @@ use crate::state::AppState;
 
 use super::{maybe_auto_backfill, read_heartbeat_interval_min, HEARTBEAT_INTERVAL_DEFAULT_MIN};
 
-/// Spawn the heartbeat task on the global tokio runtime. Called
-/// once from `lib.rs::run` after [`AppState`] is managed.
+/// Spawn the heartbeat task on the Tauri-managed tokio runtime.
+/// Called once from `lib.rs::run` after [`AppState`] is managed.
+///
+/// MUST use `tauri::async_runtime::spawn` rather than `tokio::spawn`:
+/// Tauri's `setup` callback runs OUTSIDE a tokio reactor, so a bare
+/// `tokio::spawn` panics with "no reactor running" — same pattern
+/// `sync::drain::spawn` documents at its own spawn site. The async
+/// body itself can still call `tokio::time::sleep` because, once
+/// spawned on the Tauri runtime, the future executes inside the
+/// reactor.
 ///
 /// The task lives for the entire process lifetime; there's no
 /// stop signal because the runtime tears it down with the rest
 /// of the tokio runtime at shutdown.
 pub fn spawn(app: AppHandle) {
-    tokio::spawn(async move {
+    tauri::async_runtime::spawn(async move {
         // First tick fires after the configured interval — the
         // boot-time pass in `lib.rs::run` covers the immediate
         // catch-up window, so the heartbeat doesn't need to race

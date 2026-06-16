@@ -168,7 +168,12 @@ pub fn run() {
             // so this is safe to fire unconditionally — the helper
             // owns the gate logic.
             let boot_handle = app.handle().clone();
-            tokio::spawn(async move {
+            // `setup` runs OUTSIDE a tokio reactor, so a bare
+            // `tokio::spawn` panics with "no reactor running".
+            // `tauri::async_runtime::spawn` resolves to the Tauri-
+            // managed tokio runtime — same pattern `sync::drain::spawn`
+            // documents at its own spawn site.
+            tauri::async_runtime::spawn(async move {
                 use tauri::Manager;
                 let state = boot_handle.state::<state::AppState>();
                 if let Err(err) = sync::backfill::maybe_auto_backfill(state.inner()).await {
