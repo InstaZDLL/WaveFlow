@@ -13,6 +13,7 @@
 use serde::{Deserialize, Serialize};
 
 pub mod canon;
+pub mod digest;
 pub mod payload_hash;
 
 /// Hybrid Logical Clock pair carried by RFC-003 v2 ops on the wire.

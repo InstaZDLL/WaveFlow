@@ -12,8 +12,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     error::{AppError, AppResult},
+    server_client::WaveflowServerClient,
     state::AppState,
-    sync::{device, drain, lamport, mode, queue},
+    sync::{device, digest, drain, lamport, mode, queue},
 };
 
 #[derive(Debug, Serialize)]
@@ -145,4 +146,148 @@ pub async fn sync_set_mode(
 pub async fn sync_drain_now(state: tauri::State<'_, AppState>) -> AppResult<drain::DrainOutcome> {
     let _guard = state.drain_lock.lock().await;
     drain::drain_once(&state).await
+}
+
+/// Per-entity outcome of a digest check pass. Mirrors
+/// [`digest::diff::DigestDiff`] minus the bulk member lists so the
+/// IPC payload stays bounded — the full diff is kept server-side
+/// internally for the future B.2 backfill orchestrator. Counts are
+/// `u32` because the wire never carries more than the row counts
+/// the user actually owns.
+#[derive(Debug, Serialize)]
+pub struct SyncDigestReport {
+    pub entity: String,
+    /// `true` when the server's `set_hash` matches the locally
+    /// recomputed one. Equivalent to `missing_*` + `divergent` all
+    /// being zero, but cheaper for the UI to render.
+    pub in_sync: bool,
+    pub local_version: i64,
+    pub remote_version: i64,
+    pub missing_locally: u32,
+    pub missing_remotely: u32,
+    pub divergent: u32,
+}
+
+/// Status returned to the frontend describing why
+/// [`sync_digest_check`] couldn't talk to the server. Mirrors the
+/// drain task's gating shape so the Settings card can render a
+/// single "All synced / Syncing / Offline" affordance.
+#[derive(Debug, Serialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum SyncDigestOutcome {
+    /// The active profile is sync-enabled and the digest pass ran.
+    /// `reports` holds one entry per checked entity.
+    Ran { reports: Vec<SyncDigestReport> },
+    /// The active profile isn't sync-enabled (no URL, no JWT, or
+    /// `SyncMode::Local`). Same shape the drain task surfaces as
+    /// `DrainOutcome::Skipped`.
+    Skipped { reason: &'static str },
+}
+
+/// Compute the local digest, fetch the server's digest, and diff
+/// per entity. Used by the Settings UI's "Sync status" card +
+/// future B.2 backfill orchestrator.
+///
+/// `entity` is optional — when omitted the check runs across every
+/// supported entity (`library`, `playlist`, `track`, `liked_track`,
+/// `track_rating`). When supplied, only that one is checked; an
+/// unknown name surfaces as `Err`.
+#[tauri::command]
+pub async fn sync_digest_check(
+    state: tauri::State<'_, AppState>,
+    entity: Option<String>,
+) -> AppResult<SyncDigestOutcome> {
+    // Gate 0 — process-wide offline mode. Same short-circuit every
+    // other outbound HTTP path applies (CLAUDE.md cross-cutting
+    // rule); no point building the HTTP client or hitting SQLite
+    // when the user explicitly set `network.offline_mode`.
+    if crate::offline::is_offline() {
+        return Ok(SyncDigestOutcome::Skipped { reason: "offline" });
+    }
+
+    // Gate 1 — local-only profile means the digest comparison has
+    // no remote to compare against. Surface the same `Skipped`
+    // shape the drain task uses so the UI can treat them
+    // uniformly.
+    let pool = state.require_profile_pool().await?;
+    if mode::read(&pool).await? == mode::SyncMode::Local {
+        return Ok(SyncDigestOutcome::Skipped {
+            reason: "sync_mode_local",
+        });
+    }
+
+    // Gate 2 — server URL + JWT present.
+    let Some(client) = WaveflowServerClient::try_build(&state).await? else {
+        return Ok(SyncDigestOutcome::Skipped {
+            reason: "not_configured",
+        });
+    };
+
+    // Gate 3 — the profile carries a canonical id; profile-scoped
+    // digest queries require it.
+    let profile_id = state.require_profile_id().await?;
+    let profile_canonical_id =
+        crate::db::profile_meta::canonical_id_for(&state.app_db, profile_id).await?;
+
+    let entities: Vec<&str> = match entity.as_deref() {
+        Some(e) => {
+            if !digest::SUPPORTED_ENTITIES.contains(&e) {
+                return Err(AppError::Other(format!(
+                    "sync_digest_check: unknown entity '{e}'"
+                )));
+            }
+            vec![e]
+        }
+        None => digest::SUPPORTED_ENTITIES.to_vec(),
+    };
+
+    let mut reports = Vec::with_capacity(entities.len());
+    let mut skipped_canonical = 0usize;
+    for e in entities {
+        let canonical_arg = match e {
+            "library" | "playlist" | "track" => {
+                let Some(canon) = profile_canonical_id.as_deref() else {
+                    // Same defer-don't-fail semantic as the drain
+                    // task — without a canonical id the
+                    // profile-scoped query would 400 on the server.
+                    tracing::warn!(
+                        profile_id,
+                        entity = e,
+                        "digest: profile.canonical_id is NULL — skipping entity",
+                    );
+                    skipped_canonical += 1;
+                    continue;
+                };
+                Some(canon)
+            }
+            "liked_track" | "track_rating" => None,
+            _ => continue,
+        };
+
+        let local = digest::read_local_digest(&pool, e).await?;
+        let remote = digest::client::fetch_remote_digest(&client, e, canonical_arg).await?;
+        let d = digest::diff::diff(&local, &remote);
+        reports.push(SyncDigestReport {
+            entity: d.entity,
+            in_sync: d.in_sync,
+            local_version: d.local_version,
+            remote_version: d.remote_version,
+            missing_locally: d.missing_locally.len() as u32,
+            missing_remotely: d.missing_remotely.len() as u32,
+            divergent: d.divergent.len() as u32,
+        });
+    }
+
+    // If every targeted entity was skipped (caller asked for
+    // profile-scoped entities only, and `profile.canonical_id` is
+    // NULL pending the drain's backfill), `Ran { reports: [] }`
+    // would falsely render as "everything in sync" in the UI.
+    // Promote to `Skipped` so the surface matches reality.
+    if reports.is_empty() && skipped_canonical > 0 {
+        return Ok(SyncDigestOutcome::Skipped {
+            reason: "profile_canonical_id_missing",
+        });
+    }
+
+    Ok(SyncDigestOutcome::Ran { reports })
 }

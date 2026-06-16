@@ -58,6 +58,7 @@ pub mod apply;
 pub mod canonical;
 pub mod cursor;
 pub mod device;
+pub mod digest;
 pub mod drain;
 pub mod hlc;
 pub mod hooks;
