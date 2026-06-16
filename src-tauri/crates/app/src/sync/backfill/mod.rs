@@ -38,7 +38,7 @@ use chrono::Utc;
 use serde::Serialize;
 use sqlx::SqlitePool;
 
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 use crate::server_client::WaveflowServerClient;
 use crate::state::AppState;
 use crate::sync::digest::{self, diff::DigestDiff};
@@ -188,8 +188,17 @@ pub async fn stamp_last_run_at(pool: &SqlitePool) {
 /// `commands::sync::sync_set_mode`. Failures log + swallow so a
 /// transient network blip doesn't blow up the wrapping command.
 pub async fn maybe_auto_backfill(state: &AppState) -> AppResult<()> {
+    // Atomic snapshot of `(pool, profile_id)` so every per-profile
+    // read in this function — auto flag, sync mode, canonical
+    // lookup, `run_backfill`, post-pass stamp — sees the same
+    // profile, even if `activate_profile` swaps in a different
+    // one mid-call. Same pattern as `commands::sync::sync_backfill_now`.
+    let (pool, profile_id) = {
+        let guard = state.profile.read().await;
+        let active = guard.as_ref().ok_or(AppError::NoActiveProfile)?;
+        (active.pool.clone(), active.profile_id)
+    };
     // Gate 0 — auto flag must be on.
-    let pool = state.require_profile_pool().await?;
     if !read_auto_enabled(&pool).await? {
         return Ok(());
     }
@@ -211,11 +220,13 @@ pub async fn maybe_auto_backfill(state: &AppState) -> AppResult<()> {
         return Ok(());
     };
 
-    let profile_id = state.require_profile_id().await?;
+    // `canonical_id_for` hits the global `app.db`, not the
+    // per-profile pool, so it stays consistent with the pinned
+    // `profile_id` even across a concurrent activation.
     let profile_canonical_id =
         crate::db::profile_meta::canonical_id_for(&state.app_db, profile_id).await?;
 
-    match run_backfill(state, &client, profile_canonical_id.as_deref()).await {
+    match run_backfill(state, &pool, &client, profile_canonical_id.as_deref()).await {
         Ok(report) => {
             let entities_with_action = report
                 .reports
@@ -299,12 +310,20 @@ pub enum BackfillOutcome {
 /// `client` is taken as a parameter (not built inside) so the
 /// caller can hand the same builder it used for the digest pass —
 /// reuses the underlying `reqwest::Client` connection pool.
+///
+/// `pool` is the **pinned** per-profile SQLite pool. The caller
+/// MUST acquire it under the same `state.profile.read()` guard
+/// that captures `profile_id` / `profile_canonical_id`, so a
+/// concurrent `activate_profile` swap can't pair this pass's
+/// local digest reads with another profile's canonical id on
+/// the wire. The submodules (`push`, `pull`, `lww`) consume the
+/// same `&pool` and never re-resolve from `state` themselves.
 pub async fn run_backfill(
     state: &AppState,
+    pool: &SqlitePool,
     client: &WaveflowServerClient,
     profile_canonical_id: Option<&str>,
 ) -> AppResult<BackfillReport> {
-    let pool = state.require_profile_pool().await?;
     let mut reports = Vec::with_capacity(digest::SUPPORTED_ENTITIES.len());
 
     for entity in digest::SUPPORTED_ENTITIES {
@@ -334,7 +353,7 @@ pub async fn run_backfill(
             }
         };
 
-        let local = match digest::read_local_digest(&pool, entity).await {
+        let local = match digest::read_local_digest(pool, entity).await {
             Ok(d) => d,
             Err(err) => {
                 report.error = Some(format!("local digest: {err}"));
@@ -363,7 +382,7 @@ pub async fn run_backfill(
         // ── push direction ───────────────────────────────────
         let push_res = push::push_missing_remotely(
             state,
-            &pool,
+            pool,
             entity,
             &d.missing_remotely,
             remote_max_hlc,
@@ -386,7 +405,7 @@ pub async fn run_backfill(
         let pull_res = pull::pull_missing_locally(
             state,
             client,
-            &pool,
+            pool,
             entity,
             canonical_arg,
             &d.missing_locally,
@@ -408,7 +427,7 @@ pub async fn run_backfill(
         let lww_res = lww::resolve_divergent(
             state,
             client,
-            &pool,
+            pool,
             entity,
             canonical_arg,
             &d.divergent,

@@ -395,7 +395,7 @@ pub async fn sync_backfill_now(
         crate::db::profile_meta::canonical_id_for(&state.app_db, profile_id).await?;
 
     let report =
-        backfill::run_backfill(&state, &client, profile_canonical_id.as_deref()).await?;
+        backfill::run_backfill(&state, &pool, &client, profile_canonical_id.as_deref()).await?;
 
     // Stamp the per-profile last-successful-backfill timestamp now
     // that the top-level pass returned `Ok`. Reuses the same pool
