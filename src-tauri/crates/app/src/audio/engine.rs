@@ -182,6 +182,37 @@ pub struct AudioEngine {
     /// flap would otherwise queue two concurrent rebuilds that
     /// each interrupt the same track.
     rebuild_in_progress: std::sync::atomic::AtomicBool,
+    /// Last Web Radio session captured at the boundary of
+    /// [`Self::send`] (#230). The three output-rebuild paths
+    /// ([`Self::set_output_device`], [`Self::set_wasapi_exclusive`],
+    /// [`Self::force_rebuild_output`]) snapshot
+    /// `shared.current_track_id`; for a radio stream that id is a
+    /// negative sentinel from
+    /// [`crate::commands::player::next_radio_track_id`] with no
+    /// matching `track` row, so a plain `WHERE id = ?` resume
+    /// returns nothing and the rebuild silently drops the user
+    /// off the stream. Holding the originating
+    /// [`AudioCmd::LoadUrlAndPlay`] payload lets those paths
+    /// re-dispatch the same command instead. Cleared on the next
+    /// [`AudioCmd::LoadAndPlay`] so a local-track switch doesn't
+    /// resurrect the dead radio session on a later rebuild.
+    radio_resume: Mutex<Option<RadioResumeState>>,
+}
+
+/// Snapshot of an active Web Radio session, retained by the
+/// engine so output-rebuild paths can re-dispatch
+/// [`AudioCmd::LoadUrlAndPlay`] verbatim. Mirrors the variant's
+/// payload one-for-one; lives behind a [`Mutex`] on
+/// [`AudioEngine`] (low contention — only set on stream start /
+/// track change, read on the rare rebuild paths).
+#[derive(Debug, Clone)]
+pub(crate) struct RadioResumeState {
+    pub url: String,
+    pub ext_hint: Option<String>,
+    pub track_id: i64,
+    pub title: Option<String>,
+    pub artist: Option<String>,
+    pub artwork_url: Option<String>,
 }
 
 impl AudioEngine {
@@ -263,15 +294,36 @@ impl AudioEngine {
             wasapi_exclusive: std::sync::atomic::AtomicBool::new(wasapi_exclusive),
             wasapi_exclusive_active: std::sync::atomic::AtomicBool::new(wasapi_exclusive_active),
             rebuild_in_progress: std::sync::atomic::AtomicBool::new(false),
+            radio_resume: Mutex::new(None),
         })
     }
 
     /// Send a command to the decoder. Returns `AppError::Audio` if the
     /// channel is disconnected (decoder thread has exited).
+    ///
+    /// Side-effect: maintains the [`Self::radio_resume`] snapshot at
+    /// the boundary. A `LoadUrlAndPlay` overwrites the previous radio
+    /// session; a `LoadAndPlay` clears it (the user moved to a local
+    /// track — resurrecting the dead radio URL on a future output
+    /// rebuild would be wrong). Other variants don't touch the
+    /// snapshot. Capture happens before the channel send so a failed
+    /// send still leaves the snapshot consistent with what the user
+    /// asked for.
     pub fn send(&self, cmd: AudioCmd) -> AppResult<()> {
+        apply_radio_resume_update(&self.radio_resume, &cmd);
         self.cmd_tx
             .send(cmd)
             .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))
+    }
+
+    /// Cheap clone of the last Web Radio session captured by
+    /// [`Self::send`]. Used by the three output-rebuild paths to
+    /// decide between re-dispatching `LoadUrlAndPlay` (radio) or
+    /// the SQLite-keyed `LoadAndPlay` (local track). `None` means
+    /// no radio session has run on this engine, or a local track
+    /// has played since.
+    fn snapshot_radio_resume(&self) -> Option<RadioResumeState> {
+        self.radio_resume.lock().ok().and_then(|g| g.clone())
     }
 
     /// Borrow the shared atomic state — used by commands that need to read
@@ -466,50 +518,67 @@ impl AudioEngine {
         // Resume best-effort. Same async pattern as
         // `set_output_device` and `set_wasapi_exclusive` — pull the
         // track row off the synchronous path so a slow DB doesn't
-        // hold the audio recovery up.
-        if was_playing && track_id > 0 {
-            let app = self.app.clone();
-            let cmd_tx = self.cmd_tx.clone();
-            tauri::async_runtime::spawn(async move {
-                use tauri::Manager as _;
-                let state = app.state::<crate::state::AppState>();
-                let pool = match state.require_profile_pool().await {
-                    Ok(p) => p,
-                    Err(err) => {
-                        tracing::warn!(%err, "device-error rebuild: no profile pool, skipping resume");
-                        return;
-                    }
-                };
-                let row: Option<(String, i64)> =
-                    sqlx::query_as("SELECT file_path, duration_ms FROM track WHERE id = ?")
-                        .bind(track_id)
-                        .fetch_optional(&pool)
-                        .await
-                        .ok()
-                        .flatten();
-                if let Some((file_path, duration_ms)) = row {
-                    // Fetch ReplayGain at resume time so a user who
-                    // enabled the toggle keeps their analysed gain
-                    // across an unintended device flap — matches
-                    // set_output_device and set_wasapi_exclusive.
-                    let replay_gain_db =
-                        crate::commands::player::fetch_replay_gain_db(&pool, track_id).await;
-                    let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
-                        path: std::path::PathBuf::from(file_path),
-                        start_ms: position_ms,
-                        track_id,
-                        // `duration_ms` is stored as `i64` in SQLite
-                        // (no `u64` column type). Saturate to 0 before
-                        // casting so a corrupted negative row can't
-                        // wrap into a huge `u64` and confuse the
-                        // decoder's end-of-track guard.
-                        duration_ms: duration_ms.max(0) as u64,
-                        source_type: "device-rebuild".into(),
-                        source_id: None,
-                        replay_gain_db,
-                    });
+        // hold the audio recovery up. Radio sessions resume by
+        // re-dispatching the cached `LoadUrlAndPlay` instead of
+        // looking up a (non-existent) `track` row.
+        if was_playing {
+            if track_id < 0 {
+                if let Some(state) = self.snapshot_radio_resume() {
+                    let _ = self
+                        .cmd_tx
+                        .send(AudioCmd::LoadUrlAndPlay {
+                            url: state.url,
+                            ext_hint: state.ext_hint,
+                            track_id: state.track_id,
+                            title: state.title,
+                            artist: state.artist,
+                            artwork_url: state.artwork_url,
+                        });
                 }
-            });
+            } else if track_id > 0 {
+                let app = self.app.clone();
+                let cmd_tx = self.cmd_tx.clone();
+                tauri::async_runtime::spawn(async move {
+                    use tauri::Manager as _;
+                    let state = app.state::<crate::state::AppState>();
+                    let pool = match state.require_profile_pool().await {
+                        Ok(p) => p,
+                        Err(err) => {
+                            tracing::warn!(%err, "device-error rebuild: no profile pool, skipping resume");
+                            return;
+                        }
+                    };
+                    let row: Option<(String, i64)> =
+                        sqlx::query_as("SELECT file_path, duration_ms FROM track WHERE id = ?")
+                            .bind(track_id)
+                            .fetch_optional(&pool)
+                            .await
+                            .ok()
+                            .flatten();
+                    if let Some((file_path, duration_ms)) = row {
+                        // Fetch ReplayGain at resume time so a user who
+                        // enabled the toggle keeps their analysed gain
+                        // across an unintended device flap — matches
+                        // set_output_device and set_wasapi_exclusive.
+                        let replay_gain_db =
+                            crate::commands::player::fetch_replay_gain_db(&pool, track_id).await;
+                        let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
+                            path: std::path::PathBuf::from(file_path),
+                            start_ms: position_ms,
+                            track_id,
+                            // `duration_ms` is stored as `i64` in SQLite
+                            // (no `u64` column type). Saturate to 0 before
+                            // casting so a corrupted negative row can't
+                            // wrap into a huge `u64` and confuse the
+                            // decoder's end-of-track guard.
+                            duration_ms: duration_ms.max(0) as u64,
+                            source_type: "device-rebuild".into(),
+                            source_id: None,
+                            replay_gain_db,
+                        });
+                    }
+                });
+            }
         }
 
         Ok(())
@@ -601,43 +670,61 @@ impl AudioEngine {
         );
 
         // Step 6 — resume the previous track if we were playing one.
-        if was_playing && track_id > 0 {
-            // Best-effort: pull file path + RG from the active profile
-            // so the decoder gets everything it needs.
-            let app = self.app.clone();
-            let cmd_tx = self.cmd_tx.clone();
-            tauri::async_runtime::spawn(async move {
-                use tauri::Manager as _;
-                let state = app.state::<crate::state::AppState>();
-                let pool = match state.require_profile_pool().await {
-                    Ok(p) => p,
-                    Err(err) => {
-                        tracing::warn!(%err, "set_output_device: no profile pool, skipping resume");
+        // Radio (negative sentinel id) re-dispatches the cached
+        // `LoadUrlAndPlay`; local tracks (positive id) hit the
+        // SQLite-keyed async resume.
+        if was_playing {
+            if track_id < 0 {
+                if let Some(state) = self.snapshot_radio_resume() {
+                    let _ = self
+                        .cmd_tx
+                        .send(AudioCmd::LoadUrlAndPlay {
+                            url: state.url,
+                            ext_hint: state.ext_hint,
+                            track_id: state.track_id,
+                            title: state.title,
+                            artist: state.artist,
+                            artwork_url: state.artwork_url,
+                        });
+                }
+            } else if track_id > 0 {
+                // Best-effort: pull file path + RG from the active profile
+                // so the decoder gets everything it needs.
+                let app = self.app.clone();
+                let cmd_tx = self.cmd_tx.clone();
+                tauri::async_runtime::spawn(async move {
+                    use tauri::Manager as _;
+                    let state = app.state::<crate::state::AppState>();
+                    let pool = match state.require_profile_pool().await {
+                        Ok(p) => p,
+                        Err(err) => {
+                            tracing::warn!(%err, "set_output_device: no profile pool, skipping resume");
+                            return;
+                        }
+                    };
+                    let row: Option<(String, i64)> =
+                        sqlx::query_as("SELECT file_path, duration_ms FROM track WHERE id = ?")
+                            .bind(track_id)
+                            .fetch_optional(&pool)
+                            .await
+                            .ok()
+                            .flatten();
+                    let Some((file_path, duration_ms)) = row else {
                         return;
-                    }
-                };
-                let row: Option<(String, i64)> =
-                    sqlx::query_as("SELECT file_path, duration_ms FROM track WHERE id = ?")
-                        .bind(track_id)
-                        .fetch_optional(&pool)
-                        .await
-                        .ok()
-                        .flatten();
-                let Some((file_path, duration_ms)) = row else {
-                    return;
-                };
-                let replay_gain_db =
-                    crate::commands::player::fetch_replay_gain_db(&pool, track_id).await;
-                let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
-                    path: std::path::PathBuf::from(file_path),
-                    start_ms: position_ms,
-                    track_id,
-                    duration_ms: duration_ms.max(0) as u64,
-                    source_type: "manual".into(),
-                    source_id: None,
-                    replay_gain_db,
+                    };
+                    let replay_gain_db =
+                        crate::commands::player::fetch_replay_gain_db(&pool, track_id).await;
+                    let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
+                        path: std::path::PathBuf::from(file_path),
+                        start_ms: position_ms,
+                        track_id,
+                        duration_ms: duration_ms.max(0) as u64,
+                        source_type: "manual".into(),
+                        source_id: None,
+                        replay_gain_db,
+                    });
                 });
-            });
+            }
         }
 
         Ok(())
@@ -696,41 +783,59 @@ impl AudioEngine {
         self.wasapi_exclusive_active
             .store(active_mode, std::sync::atomic::Ordering::Release);
 
-        if was_playing && track_id > 0 {
-            let app = self.app.clone();
-            let cmd_tx = self.cmd_tx.clone();
-            // Resolve track metadata async — same pattern as
-            // `set_output_device`. Off the synchronous path so a slow
-            // DB doesn't block the setting toggle.
-            tauri::async_runtime::spawn(async move {
-                use tauri::Manager as _;
-                let state = app.state::<crate::state::AppState>();
-                let pool = match state.require_profile_pool().await {
-                    Ok(p) => p,
-                    Err(_) => return,
-                };
-                let row: Option<(String, i64)> =
-                    sqlx::query_as("SELECT file_path, duration_ms FROM track WHERE id = ?")
-                        .bind(track_id)
-                        .fetch_optional(&pool)
-                        .await
-                        .ok()
-                        .flatten();
-                let Some((file_path, duration_ms)) = row else {
-                    return;
-                };
-                let replay_gain_db =
-                    crate::commands::player::fetch_replay_gain_db(&pool, track_id).await;
-                let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
-                    path: std::path::PathBuf::from(file_path),
-                    start_ms: position_ms,
-                    track_id,
-                    duration_ms: duration_ms.max(0) as u64,
-                    source_type: "manual".into(),
-                    source_id: None,
-                    replay_gain_db,
+        // Radio sessions re-dispatch `LoadUrlAndPlay` directly so
+        // the WASAPI flip doesn't drop the user off the stream.
+        // Local tracks hit the existing SQLite-keyed async resume.
+        if was_playing {
+            if track_id < 0 {
+                if let Some(state) = self.snapshot_radio_resume() {
+                    let _ = self
+                        .cmd_tx
+                        .send(AudioCmd::LoadUrlAndPlay {
+                            url: state.url,
+                            ext_hint: state.ext_hint,
+                            track_id: state.track_id,
+                            title: state.title,
+                            artist: state.artist,
+                            artwork_url: state.artwork_url,
+                        });
+                }
+            } else if track_id > 0 {
+                let app = self.app.clone();
+                let cmd_tx = self.cmd_tx.clone();
+                // Resolve track metadata async — same pattern as
+                // `set_output_device`. Off the synchronous path so a slow
+                // DB doesn't block the setting toggle.
+                tauri::async_runtime::spawn(async move {
+                    use tauri::Manager as _;
+                    let state = app.state::<crate::state::AppState>();
+                    let pool = match state.require_profile_pool().await {
+                        Ok(p) => p,
+                        Err(_) => return,
+                    };
+                    let row: Option<(String, i64)> =
+                        sqlx::query_as("SELECT file_path, duration_ms FROM track WHERE id = ?")
+                            .bind(track_id)
+                            .fetch_optional(&pool)
+                            .await
+                            .ok()
+                            .flatten();
+                    let Some((file_path, duration_ms)) = row else {
+                        return;
+                    };
+                    let replay_gain_db =
+                        crate::commands::player::fetch_replay_gain_db(&pool, track_id).await;
+                    let _ = cmd_tx.send(AudioCmd::LoadAndPlay {
+                        path: std::path::PathBuf::from(file_path),
+                        start_ms: position_ms,
+                        track_id,
+                        duration_ms: duration_ms.max(0) as u64,
+                        source_type: "manual".into(),
+                        source_id: None,
+                        replay_gain_db,
+                    });
                 });
-            });
+            }
         }
 
         Ok(())
@@ -742,5 +847,127 @@ impl AudioEngine {
     pub fn wasapi_exclusive(&self) -> bool {
         self.wasapi_exclusive_active
             .load(std::sync::atomic::Ordering::Acquire)
+    }
+}
+
+/// Update the [`AudioEngine::radio_resume`] snapshot in place
+/// according to the command about to be sent. Lifted out of the
+/// `send` method as a free function so the lifecycle invariant
+/// can be unit-tested without standing up a Tauri [`AppHandle`]
+/// (which the engine itself owns).
+fn apply_radio_resume_update(
+    snapshot: &Mutex<Option<RadioResumeState>>,
+    cmd: &AudioCmd,
+) {
+    match cmd {
+        AudioCmd::LoadUrlAndPlay {
+            url,
+            ext_hint,
+            track_id,
+            title,
+            artist,
+            artwork_url,
+        } => {
+            if let Ok(mut guard) = snapshot.lock() {
+                *guard = Some(RadioResumeState {
+                    url: url.clone(),
+                    ext_hint: ext_hint.clone(),
+                    track_id: *track_id,
+                    title: title.clone(),
+                    artist: artist.clone(),
+                    artwork_url: artwork_url.clone(),
+                });
+            }
+        }
+        AudioCmd::LoadAndPlay { .. } => {
+            if let Ok(mut guard) = snapshot.lock() {
+                *guard = None;
+            }
+        }
+        _ => {}
+    }
+}
+
+#[cfg(test)]
+mod radio_resume_tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    fn url_cmd(url: &str, track_id: i64) -> AudioCmd {
+        AudioCmd::LoadUrlAndPlay {
+            url: url.to_string(),
+            ext_hint: Some("mp3".to_string()),
+            track_id,
+            title: Some("Test stream".to_string()),
+            artist: Some("Test artist".to_string()),
+            artwork_url: Some("https://example.invalid/art.jpg".to_string()),
+        }
+    }
+
+    fn local_cmd(track_id: i64) -> AudioCmd {
+        AudioCmd::LoadAndPlay {
+            path: PathBuf::from("/dev/null"),
+            start_ms: 0,
+            track_id,
+            duration_ms: 1000,
+            source_type: "test".into(),
+            source_id: None,
+            replay_gain_db: None,
+        }
+    }
+
+    #[test]
+    fn load_url_writes_snapshot_verbatim() {
+        let lock: Mutex<Option<RadioResumeState>> = Mutex::new(None);
+        apply_radio_resume_update(&lock, &url_cmd("https://radio.invalid/live", -1));
+        let snap = lock.lock().unwrap().clone().expect("snapshot stored");
+        assert_eq!(snap.url, "https://radio.invalid/live");
+        assert_eq!(snap.track_id, -1);
+        assert_eq!(snap.ext_hint.as_deref(), Some("mp3"));
+        assert_eq!(snap.title.as_deref(), Some("Test stream"));
+    }
+
+    #[test]
+    fn load_url_overwrites_previous_radio_session() {
+        let lock: Mutex<Option<RadioResumeState>> = Mutex::new(None);
+        apply_radio_resume_update(&lock, &url_cmd("https://first.invalid/", -1));
+        apply_radio_resume_update(&lock, &url_cmd("https://second.invalid/", -2));
+        let snap = lock.lock().unwrap().clone().expect("snapshot present");
+        assert_eq!(snap.url, "https://second.invalid/");
+        assert_eq!(snap.track_id, -2);
+    }
+
+    #[test]
+    fn load_and_play_clears_snapshot() {
+        let lock: Mutex<Option<RadioResumeState>> = Mutex::new(None);
+        apply_radio_resume_update(&lock, &url_cmd("https://radio.invalid/", -1));
+        assert!(lock.lock().unwrap().is_some());
+        apply_radio_resume_update(&lock, &local_cmd(42));
+        assert!(
+            lock.lock().unwrap().is_none(),
+            "local-track LoadAndPlay must wipe the radio resume cache",
+        );
+    }
+
+    #[test]
+    fn unrelated_cmds_leave_snapshot_untouched() {
+        let lock: Mutex<Option<RadioResumeState>> = Mutex::new(None);
+        apply_radio_resume_update(&lock, &url_cmd("https://radio.invalid/", -1));
+        let baseline = lock.lock().unwrap().clone();
+        for cmd in [
+            AudioCmd::Pause,
+            AudioCmd::Resume,
+            AudioCmd::Stop,
+            AudioCmd::Seek(123),
+            AudioCmd::SetVolume(0.5),
+            AudioCmd::SetMono(true),
+        ] {
+            apply_radio_resume_update(&lock, &cmd);
+        }
+        let after = lock.lock().unwrap().clone();
+        assert!(
+            matches!((&baseline, &after), (Some(a), Some(b)) if a.url == b.url && a.track_id == b.track_id),
+            "non-Load* commands must not touch the snapshot",
+        );
     }
 }
