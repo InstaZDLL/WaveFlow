@@ -1520,7 +1520,8 @@
         "missingLocally": "स्थानीय अनुपस्थित",
         "missingRemotely": "दूरस्थ अनुपस्थित",
         "divergent": "अलग"
-      }
+      },
+      "backfillError": "विफल: {{message}}"
     },
     "gapless": {
       "title": "गैपलेस प्लेबैक",

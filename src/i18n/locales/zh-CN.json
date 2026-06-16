@@ -1467,7 +1467,8 @@
         "missingLocally": "本地缺失",
         "missingRemotely": "远程缺失",
         "divergent": "差异"
-      }
+      },
+      "backfillError": "失败：{{message}}"
     },
     "gapless": {
       "title": "无缝播放",

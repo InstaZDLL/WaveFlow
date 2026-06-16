@@ -1550,7 +1550,8 @@
         "missingLocally": "Нет локально",
         "missingRemotely": "Нет на сервере",
         "divergent": "Расхождение"
-      }
+      },
+      "backfillError": "Сбой: {{message}}"
     },
     "visualizer": {
       "title": "Аудио-визуализатор",

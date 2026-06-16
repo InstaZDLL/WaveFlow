@@ -1512,7 +1512,8 @@
         "missingLocally": "مفقود محليًا",
         "missingRemotely": "مفقود بعيدًا",
         "divergent": "متباين"
-      }
+      },
+      "backfillError": "فشل: {{message}}"
     },
     "visualizer": {
       "title": "محلل الصوت البصري",

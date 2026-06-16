@@ -1467,7 +1467,8 @@
         "missingLocally": "ローカル欠落",
         "missingRemotely": "リモート欠落",
         "divergent": "差異"
-      }
+      },
+      "backfillError": "失敗: {{message}}"
     },
     "gapless": {
       "title": "ギャップレス再生",

@@ -1508,7 +1508,8 @@
         "missingLocally": "Lokaal ontbrekend",
         "missingRemotely": "Extern ontbrekend",
         "divergent": "Afwijkend"
-      }
+      },
+      "backfillError": "Mislukt: {{message}}"
     },
     "visualizer": {
       "title": "Audio-visualizer",

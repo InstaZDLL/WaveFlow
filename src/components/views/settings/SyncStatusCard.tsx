@@ -54,6 +54,13 @@ export function SyncStatusCard() {
   const [backfillOutcome, setBackfillOutcome] = useState<BackfillOutcome | null>(
     null,
   );
+  // Runtime errors from `syncBackfillNow` (network, deserialize,
+  // unexpected status) are tracked separately from the backend's
+  // `BackfillOutcome` wire shape: mapping them onto `Skipped { reason }`
+  // would lie to the user ("the backend chose not to run") when the
+  // truth is "the call itself blew up". Cleared on every fresh
+  // attempt so a successful retry hides the stale banner.
+  const [backfillError, setBackfillError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setState({ kind: "loading" });
@@ -99,6 +106,7 @@ export function SyncStatusCard() {
   const handleBackfill = useCallback(async () => {
     setBackfilling(true);
     setBackfillOutcome(null);
+    setBackfillError(null);
     try {
       const outcome = await syncBackfillNow();
       setBackfillOutcome(outcome);
@@ -110,10 +118,7 @@ export function SyncStatusCard() {
         void refresh();
       }
     } catch (err) {
-      setBackfillOutcome({
-        status: "skipped",
-        reason: err instanceof Error ? err.message : String(err),
-      });
+      setBackfillError(err instanceof Error ? err.message : String(err));
     } finally {
       setBackfilling(false);
     }
@@ -131,7 +136,13 @@ export function SyncStatusCard() {
               {t("settings.syncStatus.title")}
             </div>
             <div className="text-xs text-zinc-400">{overall.subtitle(t)}</div>
-            {backfillOutcome ? (
+            {backfillError ? (
+              <div className="mt-2 text-xs text-rose-600 dark:text-rose-400">
+                {t("settings.syncStatus.backfillError", {
+                  message: backfillError,
+                })}
+              </div>
+            ) : backfillOutcome ? (
               <div className="mt-2 text-xs">
                 <BackfillOutcomeSummary outcome={backfillOutcome} />
               </div>

@@ -1520,7 +1520,8 @@
         "missingLocally": "로컬 누락",
         "missingRemotely": "원격 누락",
         "divergent": "불일치"
-      }
+      },
+      "backfillError": "실패: {{message}}"
     },
     "gapless": {
       "title": "갭리스 재생",

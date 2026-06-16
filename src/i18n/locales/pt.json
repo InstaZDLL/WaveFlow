@@ -1520,7 +1520,8 @@
         "missingLocally": "Em falta local",
         "missingRemotely": "Em falta remoto",
         "divergent": "Divergente"
-      }
+      },
+      "backfillError": "Falhou: {{message}}"
     },
     "gapless": {
       "title": "Reprodução contínua",

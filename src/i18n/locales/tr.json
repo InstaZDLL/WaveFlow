@@ -1508,7 +1508,8 @@
         "missingLocally": "Yerelde eksik",
         "missingRemotely": "Sunucuda eksik",
         "divergent": "Farklı"
-      }
+      },
+      "backfillError": "Başarısız: {{message}}"
     },
     "visualizer": {
       "title": "Ses görselleştirici",

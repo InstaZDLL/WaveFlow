@@ -1508,7 +1508,8 @@
         "missingLocally": "Mancante locale",
         "missingRemotely": "Mancante remoto",
         "divergent": "Divergente"
-      }
+      },
+      "backfillError": "Errore: {{message}}"
     },
     "visualizer": {
       "title": "Visualizzatore audio",
