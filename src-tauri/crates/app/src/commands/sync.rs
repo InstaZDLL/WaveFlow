@@ -122,13 +122,20 @@ pub async fn sync_set_mode(
         }
     };
     let pool = state.require_profile_pool().await?;
+    // Read the previous mode so the post-write side-effects only
+    // fire on a genuine Local → Hybrid transition. Without this,
+    // a user who clicks the same "Hybrid" radio repeatedly would
+    // spawn a fresh drain notify + WS wake + auto-backfill on
+    // every click.
+    let previous = mode::read(&pool).await?;
     mode::write(&pool, parsed).await?;
+    let became_hybrid = parsed == mode::SyncMode::Hybrid && previous != mode::SyncMode::Hybrid;
     // Flipping to Hybrid likely means the user wants their pending
     // ops to fly upstream right away — wake the drain task so the
     // first push doesn't wait for the 30 s tick, and wake the WS
     // subscriber so the catch-up pull + live socket connect without
     // the 30 s idle gate.
-    if parsed == mode::SyncMode::Hybrid {
+    if became_hybrid {
         state.drain.notify();
         state.ws.wake();
         // Fire an auto-backfill pass too if the user opted in.

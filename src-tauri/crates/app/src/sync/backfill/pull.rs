@@ -21,11 +21,6 @@
 //!   floor over the entity set's max would make every next local
 //!   write slot above an arbitrarily-old peer write.
 //!
-//! ## Track is deferred
-//!
-//! Same reason as [`super::push`]: composite canonical +
-//! album/artist relations need a dedicated upsert path.
-
 use chrono::Utc;
 use serde_json::Value;
 use sqlx::{SqliteConnection, SqlitePool};

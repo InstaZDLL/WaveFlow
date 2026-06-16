@@ -18,13 +18,6 @@
 //! re-emit doesn't go backwards. Since we always draw a fresh
 //! monotonic HLC, this property holds by construction.
 //!
-//! ## Track is deferred
-//!
-//! The orchestrator in [`super::run_backfill`] short-circuits
-//! `entity = "track"` before reaching this module — track's
-//! composite canonical + album/artist plumbing needs its own
-//! sub-PR.
-
 use serde_json::{Map, Value};
 use sqlx::{SqliteConnection, SqlitePool};
 

@@ -19,15 +19,6 @@
 //!     compare §2 (hlc, origin_device_id) tuples per RFC-003 §2;
 //!     remote winner → pull, local winner → push.
 //!
-//! ## Track entity is excluded in B.2 v1
-//!
-//! The composite canonical (`<lib_canonical>\u{1F}<file_path>`) +
-//! the album / artist / track_artist relations make track pull
-//! non-trivial — needs a dedicated upsert path that mirrors the
-//! scanner's. Deferred to a follow-up PR. Until then the
-//! orchestrator runs digest+diff for `track` but logs each diff
-//! bucket without acting on it.
-//!
 //! ## Gating
 //!
 //! The Tauri command (`commands::sync::sync_backfill_now`) holds

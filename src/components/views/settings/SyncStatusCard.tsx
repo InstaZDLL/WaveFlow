@@ -116,6 +116,9 @@ export function SyncStatusCard() {
     try {
       const stored = await syncBackfillSetEnabled(next);
       setAutoEnabled(stored);
+      // Clear any stale banner from a previous failed toggle so a
+      // successful retry doesn't keep the rose-600 error visible.
+      setBackfillError(null);
     } catch (err) {
       // Surface as the backfill-error banner — same channel a
       // failed manual click uses, so the user sees one consistent
@@ -228,8 +231,9 @@ export function SyncStatusCard() {
             checked={autoEnabled === true}
             disabled={autoEnabled === null || autoToggleBusy}
             onChange={(e) => void handleToggleAuto(e.target.checked)}
+            aria-label={t("settings.syncStatus.autoToggleTitle") ?? undefined}
           />
-          <span className="relative w-10 h-6 bg-zinc-200 dark:bg-zinc-700 rounded-full peer-checked:bg-emerald-500 transition-colors peer-disabled:opacity-50">
+          <span className="relative w-10 h-6 bg-zinc-200 dark:bg-zinc-700 rounded-full peer-checked:bg-emerald-500 transition-colors peer-disabled:opacity-50 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-white dark:peer-focus-visible:ring-offset-zinc-900">
             <span className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-4" />
           </span>
         </label>
