@@ -2,7 +2,9 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
+  type KeyboardEvent,
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -98,6 +100,13 @@ export function SyncStatusCard() {
   const [lastRunAt, setLastRunAt] = useState<number | null>(null);
   const [cadence, setCadence] = useState<number | null>(null);
   const [cadenceBusy, setCadenceBusy] = useState(false);
+  // Mirrors the backend's `state.backfill_lock` snapshot —
+  // surfaced by `sync_backfill_get_status` and refreshed on
+  // mount + after every `refresh()`. Used to disable the Resync
+  // button while a heartbeat / mode-flip pass is mid-flight so
+  // the user can't queue a redundant click that would surface
+  // `AlreadyRunning` on return.
+  const [serverInProgress, setServerInProgress] = useState(false);
   // Re-render every 30 s so the "X min ago" subtitle stays in
   // sync with wall-clock without polling the backend. Each tick
   // bumps a counter `nowTick`; we don't store the actual
@@ -106,9 +115,25 @@ export function SyncStatusCard() {
   const [, setNowTick] = useState(0);
   const [expandedEntity, setExpandedEntity] = useState<string | null>(null);
   const [detailed, setDetailed] = useState<Record<string, DetailedEntry>>({});
+  // Generation counter bumped on every `refresh()` so in-flight
+  // `syncDigestCheckDetailed` requests started before the user
+  // clicked Refresh can't repopulate the freshly-cleared cache
+  // with stale data. Each request captures the current value
+  // and drops its result if a newer generation is active by
+  // the time it resolves.
+  const detailedGenRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    // Invalidate any in-flight detailed fetches BEFORE wiping the
+    // cache so a request started pre-refresh can't repopulate it
+    // with stale member lists. The bump is observed by the
+    // closures captured in `handleToggleExpand`.
+    detailedGenRef.current += 1;
     setState({ kind: "loading" });
+    // Detailed cache is now stale — drop it. Next expand triggers
+    // a fresh fetch (gated on the new generation).
+    setDetailed({});
+    setExpandedEntity(null);
     try {
       const outcome: SyncDigestOutcome = await syncDigestCheck();
       if (outcome.status === "skipped") {
@@ -122,19 +147,16 @@ export function SyncStatusCard() {
         message: err instanceof Error ? err.message : String(err),
       });
     }
-    // Re-hydrate the last-run timestamp too — a heartbeat tick
-    // could have fired between the user clicking Refresh and the
-    // status command returning.
+    // Re-hydrate the last-run timestamp + in-progress flag too —
+    // a heartbeat tick could have fired between the user clicking
+    // Refresh and the status command returning.
     try {
       const status = await syncBackfillGetStatus();
       setLastRunAt(status.last_run_at);
+      setServerInProgress(status.in_progress);
     } catch {
       // Best-effort; the subtitle just stays on its previous value.
     }
-    // Detailed cache is now stale — drop it. Next expand triggers
-    // a fresh fetch.
-    setDetailed({});
-    setExpandedEntity(null);
   }, []);
 
   useEffect(() => {
@@ -159,6 +181,7 @@ export function SyncStatusCard() {
       );
       if (statusRes.status === "fulfilled") {
         setLastRunAt(statusRes.value.last_run_at);
+        setServerInProgress(statusRes.value.in_progress);
       }
       if (cadenceRes.status === "fulfilled") {
         setCadence(cadenceRes.value);
@@ -253,10 +276,15 @@ export function SyncStatusCard() {
       // if we already have one in cache — `refresh` clears the
       // cache so a manual Refresh re-hydrates.
       if (detailed[entity] !== undefined) return;
+      // Capture the current generation so a `refresh()` mid-fetch
+      // can invalidate this result on return rather than letting
+      // it land into a freshly-cleared cache.
+      const gen = detailedGenRef.current;
       setDetailed((prev) => ({ ...prev, [entity]: { kind: "loading" } }));
       void (async () => {
         try {
           const outcome = await syncDigestCheckDetailed(entity);
+          if (gen !== detailedGenRef.current) return;
           setDetailed((prev) => ({
             ...prev,
             [entity]:
@@ -265,6 +293,7 @@ export function SyncStatusCard() {
                 : { kind: "skipped", reason: outcome.reason },
           }));
         } catch (err) {
+          if (gen !== detailedGenRef.current) return;
           setDetailed((prev) => ({
             ...prev,
             [entity]: {
@@ -323,7 +352,8 @@ export function SyncStatusCard() {
             disabled={
               state.kind !== "ran" ||
               state.reports.every((r) => r.in_sync) ||
-              backfilling
+              backfilling ||
+              serverInProgress
             }
             className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-emerald-600 text-sm font-medium text-white hover:bg-emerald-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -589,13 +619,30 @@ function ExpandableRow({
 }: ExpandableRowProps) {
   const { t } = useTranslation();
   const interactive = expandable
-    ? "cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+    ? "cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/40 focus-visible:outline-none focus-visible:bg-zinc-100 dark:focus-visible:bg-zinc-800/60"
     : "";
+  // Keyboard handler so the chevron-row is reachable + activatable
+  // without a mouse. We deliberately leave `role="row"` on the `<tr>`
+  // (the implicit ARIA role of a `tr`) rather than swap to
+  // `role="button"`: overriding it would break the table's
+  // accessible tree (every row should expose a `row` role for
+  // assistive tech to grok the grid structure). `aria-expanded`
+  // + the visible chevron carry the "expandable button" affordance
+  // for screen readers.
+  const handleKeyDown = (e: KeyboardEvent<HTMLTableRowElement>) => {
+    if (!expandable) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onToggle();
+    }
+  };
   return (
     <>
       <tr
         className={`group ${interactive}`}
         onClick={expandable ? onToggle : undefined}
+        onKeyDown={expandable ? handleKeyDown : undefined}
+        tabIndex={expandable ? 0 : undefined}
         aria-expanded={expandable ? expanded : undefined}
       >
         <td className="px-2 py-2 text-zinc-400">

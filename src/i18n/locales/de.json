@@ -1532,7 +1532,7 @@
         "error": "Fehler: {{message}}",
         "empty": "Keine Details verfügbar",
         "missingLocally": "Lokal fehlend",
-        "missingRemotely": "Entfernt fehlend",
+        "missingRemotely": "Remote fehlend",
         "divergent": "Abweichend",
         "moreNotShown": "+ {{count}} weitere nicht angezeigt"
       }

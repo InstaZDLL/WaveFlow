@@ -1543,8 +1543,8 @@
         "loading": "Carregando detalhes…",
         "error": "Erro: {{message}}",
         "empty": "Sem detalhes",
-        "missingLocally": "Faltando localmente",
-        "missingRemotely": "Faltando no servidor",
+        "missingLocally": "Faltando local",
+        "missingRemotely": "Faltando remoto",
         "divergent": "Divergente",
         "moreNotShown": "+ {{count}} mais não exibidos"
       }

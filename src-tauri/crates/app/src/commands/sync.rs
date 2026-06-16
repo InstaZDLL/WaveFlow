@@ -351,14 +351,21 @@ pub async fn sync_backfill_now(
     if crate::offline::is_offline() {
         return Ok(backfill::BackfillOutcome::Skipped { reason: "offline" });
     }
-    // Gate 1 — Local mode.
+    // Pin the active profile's pool ONCE at the top so the gate
+    // read, the post-pass stamp, and any future reads all hit the
+    // same per-profile SQLite database. A user-driven profile
+    // switch mid-pass would otherwise race: the gate / stamp could
+    // see one profile while the inner backfill saw another. The
+    // pool itself is `Arc<…>` internally (sqlx) so holding the
+    // clone is cheap, and the underlying connections survive the
+    // RwLock swap that `activate_profile` performs.
     let pool = state.require_profile_pool().await?;
+    // Gate 1 — Local mode.
     if mode::read(&pool).await? == mode::SyncMode::Local {
         return Ok(backfill::BackfillOutcome::Skipped {
             reason: "sync_mode_local",
         });
     }
-    drop(pool);
 
     // Gate 2 — server URL + JWT present.
     let Some(client) = WaveflowServerClient::try_build(&state).await? else {
@@ -381,12 +388,11 @@ pub async fn sync_backfill_now(
         backfill::run_backfill(&state, &client, profile_canonical_id.as_deref()).await?;
 
     // Stamp the per-profile last-successful-backfill timestamp now
-    // that the top-level pass returned `Ok`. Mirrors the equivalent
-    // call in `backfill::maybe_auto_backfill` so the heartbeat /
-    // boot-time / manual paths all surface the same "Last sync"
-    // affordance to the user. Per-entity row failures don't gate
-    // the stamp; the Ran outcome reports them independently.
-    let pool = state.require_profile_pool().await?;
+    // that the top-level pass returned `Ok`. Reuses the same pool
+    // pinned at the top of the function so a concurrent profile
+    // switch can't land the stamp in the wrong profile's
+    // `profile_setting`. Per-entity row failures don't gate the
+    // stamp; the Ran outcome reports them independently.
     backfill::stamp_last_run_at(&pool).await;
 
     Ok(backfill::BackfillOutcome::Ran {

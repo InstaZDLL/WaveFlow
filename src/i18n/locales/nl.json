@@ -1532,7 +1532,7 @@
         "error": "Fout: {{message}}",
         "empty": "Geen details",
         "missingLocally": "Lokaal ontbrekend",
-        "missingRemotely": "Op afstand ontbrekend",
+        "missingRemotely": "Extern ontbrekend",
         "divergent": "Afwijkend",
         "moreNotShown": "+ {{count}} meer niet getoond"
       }
