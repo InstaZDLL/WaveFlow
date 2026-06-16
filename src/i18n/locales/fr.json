@@ -1562,7 +1562,31 @@
       },
       "backfillError": "Échec : {{message}}",
       "autoToggleTitle": "Synchronisation automatique",
-      "autoToggleSubtitle": "Lance un passage au démarrage et lors du passage en mode Hybride"
+      "autoToggleSubtitle": "Lance un passage au démarrage et lors du passage en mode Hybride",
+      "cadenceTitle": "Cadence en arrière-plan",
+      "cadenceSubtitle": "Intervalle entre deux synchronisations automatiques",
+      "cadence": {
+        "every15Min": "Toutes les 15 minutes",
+        "every30Min": "Toutes les 30 minutes",
+        "every1Hour": "Toutes les heures",
+        "every6Hours": "Toutes les 6 heures",
+        "every12Hours": "Toutes les 12 heures",
+        "every24Hours": "Une fois par jour"
+      },
+      "lastSyncNever": "Jamais synchronisé",
+      "lastSyncJustNow": "À l'instant",
+      "lastSyncMinutesAgo": "Il y a {{count}} min",
+      "lastSyncHoursAgo": "Il y a {{count}} h",
+      "lastSyncDaysAgo": "Il y a {{count}} j",
+      "drilldown": {
+        "loading": "Chargement des détails…",
+        "error": "Erreur : {{message}}",
+        "empty": "Aucun détail à afficher",
+        "missingLocally": "Manquant local",
+        "missingRemotely": "Manquant distant",
+        "divergent": "Divergent",
+        "moreNotShown": "+ {{count}} de plus non affichés"
+      }
     },
     "visualizer": {
       "title": "Visualiseur audio",

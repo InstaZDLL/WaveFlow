@@ -1511,7 +1511,31 @@
       },
       "backfillError": "Failed: {{message}}",
       "autoToggleTitle": "Auto sync",
-      "autoToggleSubtitle": "Runs a pass on boot and when switching to Hybrid mode"
+      "autoToggleSubtitle": "Runs a pass on boot and when switching to Hybrid mode",
+      "cadenceTitle": "Background cadence",
+      "cadenceSubtitle": "Time between automatic sync passes",
+      "cadence": {
+        "every15Min": "Every 15 minutes",
+        "every30Min": "Every 30 minutes",
+        "every1Hour": "Every hour",
+        "every6Hours": "Every 6 hours",
+        "every12Hours": "Every 12 hours",
+        "every24Hours": "Once a day"
+      },
+      "lastSyncNever": "Never synced",
+      "lastSyncJustNow": "Just now",
+      "lastSyncMinutesAgo": "{{count}} min ago",
+      "lastSyncHoursAgo": "{{count}} h ago",
+      "lastSyncDaysAgo": "{{count}} d ago",
+      "drilldown": {
+        "loading": "Loading details…",
+        "error": "Error: {{message}}",
+        "empty": "No details to show",
+        "missingLocally": "Missing locally",
+        "missingRemotely": "Missing remotely",
+        "divergent": "Divergent",
+        "moreNotShown": "+ {{count}} more not shown"
+      }
     },
     "visualizer": {
       "title": "Audio visualizer",

@@ -379,7 +379,195 @@ pub async fn sync_backfill_now(
 
     let report =
         backfill::run_backfill(&state, &client, profile_canonical_id.as_deref()).await?;
+
+    // Stamp the per-profile last-successful-backfill timestamp now
+    // that the top-level pass returned `Ok`. Mirrors the equivalent
+    // call in `backfill::maybe_auto_backfill` so the heartbeat /
+    // boot-time / manual paths all surface the same "Last sync"
+    // affordance to the user. Per-entity row failures don't gate
+    // the stamp; the Ran outcome reports them independently.
+    let pool = state.require_profile_pool().await?;
+    backfill::stamp_last_run_at(&pool).await;
+
     Ok(backfill::BackfillOutcome::Ran {
         reports: report.reports,
+    })
+}
+
+/// Snapshot of the backfill task surfaced to the Settings card.
+/// Used by the "Last sync: X ago" timestamp + the "in progress"
+/// disabled state on the Resync button.
+#[derive(Debug, Serialize)]
+pub struct SyncBackfillStatus {
+    /// Epoch-millisecond timestamp of the last completed backfill
+    /// pass (automatic or manual). `None` when the user has never
+    /// run one — fresh profile, opted-out, or first launch.
+    pub last_run_at: Option<i64>,
+    /// `true` when [`crate::state::AppState::backfill_lock`] is
+    /// held by another caller — manual click or heartbeat tick
+    /// currently mid-flight.
+    pub in_progress: bool,
+}
+
+/// Read the persisted last-run timestamp + the live in-flight
+/// state. Cheap — one SELECT + one `try_lock`. Used by the Settings
+/// card on mount + every time the manual button completes.
+#[tauri::command]
+pub async fn sync_backfill_get_status(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<SyncBackfillStatus> {
+    let pool = state.require_profile_pool().await?;
+    let last_run_at = backfill::read_last_run_at(&pool).await?;
+    // `try_lock` is non-blocking; we hold the guard only for the
+    // duration of the `is_ok` test (drops at end of statement).
+    // The race window where a concurrent pass starts between the
+    // check and the UI rendering is bounded by IPC latency — the
+    // user's next status poll resolves it.
+    let in_progress = state.backfill_lock.try_lock().is_err();
+    Ok(SyncBackfillStatus {
+        last_run_at,
+        in_progress,
+    })
+}
+
+/// Read the per-profile heartbeat cadence (minutes). Clamped to
+/// the documented range so a malformed stored value can't surface
+/// the heartbeat task with an out-of-range interval.
+#[tauri::command]
+pub async fn sync_backfill_get_heartbeat_interval(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<i64> {
+    let pool = state.require_profile_pool().await?;
+    backfill::read_heartbeat_interval_min(&pool).await
+}
+
+/// Persist the per-profile heartbeat cadence (minutes). Returns
+/// the clamped value so the caller can hydrate its UI even when
+/// the input was out of range.
+#[tauri::command]
+pub async fn sync_backfill_set_heartbeat_interval(
+    state: tauri::State<'_, AppState>,
+    minutes: i64,
+) -> AppResult<i64> {
+    let clamped = backfill::clamp_heartbeat_interval_min(minutes);
+    let pool = state.require_profile_pool().await?;
+    backfill::write_heartbeat_interval_min(&pool, clamped).await?;
+    Ok(clamped)
+}
+
+/// Detailed digest outcome carrying the full
+/// [`digest::diff::DigestDiff`] for a single entity. Used by the
+/// Settings card's drill-down panel: a click on a row out-of-sync
+/// fetches this and renders the divergent / missing-locally /
+/// missing-remotely member lists with their canonical_ids + hash
+/// previews.
+///
+/// Member lists are truncated server-side to
+/// [`DETAILED_BUCKET_CAP`] to keep IPC payloads bounded — a 10k-row
+/// divergence would otherwise marshal ~1 MB into the frontend for
+/// little incremental UX value. The truncated flags let the UI
+/// render a "+N more" affordance.
+#[derive(Debug, Serialize)]
+pub struct SyncDigestDetailed {
+    pub entity: String,
+    pub in_sync: bool,
+    pub local_version: i64,
+    pub remote_version: i64,
+    pub missing_locally: Vec<digest::client::RemoteMember>,
+    pub missing_locally_total: u32,
+    pub missing_remotely: Vec<digest::diff::DivergentMember>,
+    pub missing_remotely_total: u32,
+    pub divergent: Vec<digest::diff::DivergentMember>,
+    pub divergent_total: u32,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum SyncDigestDetailedOutcome {
+    Ran { diff: SyncDigestDetailed },
+    Skipped { reason: &'static str },
+}
+
+/// Per-bucket truncation cap surfaced through
+/// [`sync_digest_check_detailed`]. The Settings drill-down
+/// renders the first ~20 entries per bucket; the cap leaves
+/// headroom for a "show more" affordance without unbounded
+/// growth.
+pub const DETAILED_BUCKET_CAP: usize = 100;
+
+/// Detailed digest check for a single entity. Runs the same
+/// gates as [`sync_digest_check`] (offline / Local mode / no
+/// JWT / no canonical id) and returns the full member-level
+/// diff for the requested entity, truncated to
+/// [`DETAILED_BUCKET_CAP`] per bucket.
+#[tauri::command]
+pub async fn sync_digest_check_detailed(
+    state: tauri::State<'_, AppState>,
+    entity: String,
+) -> AppResult<SyncDigestDetailedOutcome> {
+    if crate::offline::is_offline() {
+        return Ok(SyncDigestDetailedOutcome::Skipped { reason: "offline" });
+    }
+    let pool = state.require_profile_pool().await?;
+    if mode::read(&pool).await? == mode::SyncMode::Local {
+        return Ok(SyncDigestDetailedOutcome::Skipped {
+            reason: "sync_mode_local",
+        });
+    }
+    let Some(client) = WaveflowServerClient::try_build(&state).await? else {
+        return Ok(SyncDigestDetailedOutcome::Skipped {
+            reason: "not_configured",
+        });
+    };
+
+    if !digest::SUPPORTED_ENTITIES.contains(&entity.as_str()) {
+        return Err(AppError::Other(format!(
+            "sync_digest_check_detailed: unknown entity '{entity}'"
+        )));
+    }
+
+    let profile_id = state.require_profile_id().await?;
+    let profile_canonical_id =
+        crate::db::profile_meta::canonical_id_for(&state.app_db, profile_id).await?;
+    let canonical_arg = match entity.as_str() {
+        "library" | "playlist" | "track" => {
+            let Some(canon) = profile_canonical_id.as_deref() else {
+                return Ok(SyncDigestDetailedOutcome::Skipped {
+                    reason: "profile_canonical_id_missing",
+                });
+            };
+            Some(canon)
+        }
+        _ => None,
+    };
+
+    let local = digest::read_local_digest(&pool, entity.as_str()).await?;
+    let remote =
+        digest::client::fetch_remote_digest(&client, entity.as_str(), canonical_arg).await?;
+    let d = digest::diff::diff(&local, &remote);
+
+    let missing_locally_total = d.missing_locally.len() as u32;
+    let missing_remotely_total = d.missing_remotely.len() as u32;
+    let divergent_total = d.divergent.len() as u32;
+    let mut missing_locally = d.missing_locally;
+    missing_locally.truncate(DETAILED_BUCKET_CAP);
+    let mut missing_remotely = d.missing_remotely;
+    missing_remotely.truncate(DETAILED_BUCKET_CAP);
+    let mut divergent = d.divergent;
+    divergent.truncate(DETAILED_BUCKET_CAP);
+
+    Ok(SyncDigestDetailedOutcome::Ran {
+        diff: SyncDigestDetailed {
+            entity: d.entity,
+            in_sync: d.in_sync,
+            local_version: d.local_version,
+            remote_version: d.remote_version,
+            missing_locally,
+            missing_locally_total,
+            missing_remotely,
+            missing_remotely_total,
+            divergent,
+            divergent_total,
+        },
     })
 }

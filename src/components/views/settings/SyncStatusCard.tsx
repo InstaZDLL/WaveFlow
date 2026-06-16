@@ -1,8 +1,16 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   AlertCircle,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   CloudOff,
   Loader2,
   RefreshCw,
@@ -11,36 +19,37 @@ import {
 } from "lucide-react";
 import {
   syncBackfillGetEnabled,
+  syncBackfillGetHeartbeatInterval,
+  syncBackfillGetStatus,
   syncBackfillNow,
   syncBackfillSetEnabled,
+  syncBackfillSetHeartbeatInterval,
   syncDigestCheck,
+  syncDigestCheckDetailed,
   type BackfillOutcome,
+  type SyncDigestDetailed,
   type SyncDigestOutcome,
   type SyncDigestReport,
 } from "../../../lib/tauri/sync";
 
 /**
- * Settings → Diagnostics → "Sync status" card (RFC-003 Phase B.3).
+ * Settings → Diagnostics → "Sync status" card (RFC-003 Phase B
+ * polish).
  *
- * Surface the digest_check + backfill commands the B.1/B.2 PRs
- * shipped so users can see whether their local state matches the
- * server's + trigger reconciliation when it doesn't.
+ * Surface the digest_check + backfill commands the B.1/B.2/B.3 PRs
+ * shipped, plus the polish round:
  *
- * The card is intentionally read-only beyond two action buttons —
- * no continuous polling, no background heartbeat. Triggers:
+ * - "Last sync: X ago" subtitle hydrated from `sync_backfill_get_status`.
+ * - Per-entity drill-down with the divergent / missing-locally /
+ *   missing-remotely canonical_id + hash preview lists.
+ * - Configurable heartbeat cadence (15 min – 24 h) for the
+ *   background poll wired in `lib.rs::run`.
  *
- * - On mount: one digest_check pass (cheap, read-only).
- * - "Refresh" button: another digest_check.
- * - "Resync now" button: a backfill pass + automatic digest_check
- *   re-run after to surface the new state.
- *
- * Gating reasons surfaced (matches the backend's `Skipped { reason }`):
- *
- * - `offline` — user enabled offline mode.
- * - `sync_mode_local` — profile is set to Local mode.
- * - `not_configured` — no server URL or no JWT.
- * - `profile_canonical_id_missing` — profile hasn't been backfilled
- *   with its canonical id yet (drain task handles it on next pass).
+ * The card stays read-only beyond the action buttons + the two
+ * toggles — no continuous polling on this surface (the heartbeat
+ * task lives in the backend and fires `maybe_auto_backfill`
+ * independently); the timestamp self-refreshes every 30 s while
+ * the card is mounted so "5 min ago" doesn't go stale.
  */
 
 type CardState =
@@ -48,6 +57,27 @@ type CardState =
   | { kind: "ran"; reports: SyncDigestReport[] }
   | { kind: "skipped"; reason: string }
   | { kind: "error"; message: string };
+
+type DetailedEntry =
+  | { kind: "loading" }
+  | { kind: "ran"; diff: SyncDigestDetailed }
+  | { kind: "skipped"; reason: string }
+  | { kind: "error"; message: string };
+
+/**
+ * Heartbeat cadence presets surfaced in the dropdown. Values
+ * match the `[15, 1440]` clamp the backend applies — picking from
+ * the list is always safe, the freeform path is reserved for
+ * future power-user tooling.
+ */
+const CADENCE_OPTIONS: ReadonlyArray<{ value: number; labelKey: string }> = [
+  { value: 15, labelKey: "settings.syncStatus.cadence.every15Min" },
+  { value: 30, labelKey: "settings.syncStatus.cadence.every30Min" },
+  { value: 60, labelKey: "settings.syncStatus.cadence.every1Hour" },
+  { value: 360, labelKey: "settings.syncStatus.cadence.every6Hours" },
+  { value: 720, labelKey: "settings.syncStatus.cadence.every12Hours" },
+  { value: 1440, labelKey: "settings.syncStatus.cadence.every24Hours" },
+] as const;
 
 export function SyncStatusCard() {
   const { t } = useTranslation();
@@ -65,6 +95,17 @@ export function SyncStatusCard() {
   // truth is "the call itself blew up". Cleared on every fresh
   // attempt so a successful retry hides the stale banner.
   const [backfillError, setBackfillError] = useState<string | null>(null);
+  const [lastRunAt, setLastRunAt] = useState<number | null>(null);
+  const [cadence, setCadence] = useState<number | null>(null);
+  const [cadenceBusy, setCadenceBusy] = useState(false);
+  // Re-render every 30 s so the "X min ago" subtitle stays in
+  // sync with wall-clock without polling the backend. Each tick
+  // bumps a counter `nowTick`; we don't store the actual
+  // timestamp because `formatRelativeTime` derives it from
+  // `Date.now()` at render time.
+  const [, setNowTick] = useState(0);
+  const [expandedEntity, setExpandedEntity] = useState<string | null>(null);
+  const [detailed, setDetailed] = useState<Record<string, DetailedEntry>>({});
 
   const refresh = useCallback(async () => {
     setState({ kind: "loading" });
@@ -81,26 +122,47 @@ export function SyncStatusCard() {
         message: err instanceof Error ? err.message : String(err),
       });
     }
+    // Re-hydrate the last-run timestamp too — a heartbeat tick
+    // could have fired between the user clicking Refresh and the
+    // status command returning.
+    try {
+      const status = await syncBackfillGetStatus();
+      setLastRunAt(status.last_run_at);
+    } catch {
+      // Best-effort; the subtitle just stays on its previous value.
+    }
+    // Detailed cache is now stale — drop it. Next expand triggers
+    // a fresh fetch.
+    setDetailed({});
+    setExpandedEntity(null);
   }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       // `Promise.allSettled` so a digest_check failure doesn't
-      // strand `autoEnabled` at `null` for the rest of the
-      // session — the toggle would then be disabled because the
-      // checkbox gates on `autoEnabled === null` (loading). The
-      // two reads are independent backend calls; surface each
-      // outcome on its own state.
-      const [digestRes, enabledRes] = await Promise.allSettled([
-        syncDigestCheck(),
-        syncBackfillGetEnabled(),
-      ]);
+      // strand `autoEnabled` / `cadence` / `lastRunAt` at their
+      // initial null state — each of the four reads is
+      // independent backend-side; we surface each outcome on its
+      // own slice.
+      const [digestRes, enabledRes, statusRes, cadenceRes] =
+        await Promise.allSettled([
+          syncDigestCheck(),
+          syncBackfillGetEnabled(),
+          syncBackfillGetStatus(),
+          syncBackfillGetHeartbeatInterval(),
+        ]);
       if (cancelled) return;
 
       setAutoEnabled(
         enabledRes.status === "fulfilled" ? enabledRes.value : false,
       );
+      if (statusRes.status === "fulfilled") {
+        setLastRunAt(statusRes.value.last_run_at);
+      }
+      if (cadenceRes.status === "fulfilled") {
+        setCadence(cadenceRes.value);
+      }
 
       if (digestRes.status === "fulfilled") {
         const outcome = digestRes.value;
@@ -122,6 +184,15 @@ export function SyncStatusCard() {
     };
   }, []);
 
+  // 30 s relative-time tick. Cheap — one re-render every 30 s
+  // while the card is mounted; the rest of the tree is unaffected
+  // because `nowTick` only lives here. `setNowTick` is stable
+  // across renders so the empty dependency array is honest.
+  useEffect(() => {
+    const id = setInterval(() => setNowTick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   const handleToggleAuto = useCallback(async (next: boolean) => {
     setAutoToggleBusy(true);
     try {
@@ -137,6 +208,19 @@ export function SyncStatusCard() {
       setBackfillError(err instanceof Error ? err.message : String(err));
     } finally {
       setAutoToggleBusy(false);
+    }
+  }, []);
+
+  const handleCadenceChange = useCallback(async (next: number) => {
+    setCadenceBusy(true);
+    try {
+      const stored = await syncBackfillSetHeartbeatInterval(next);
+      setCadence(stored);
+      setBackfillError(null);
+    } catch (err) {
+      setBackfillError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCadenceBusy(false);
     }
   }, []);
 
@@ -161,7 +245,40 @@ export function SyncStatusCard() {
     }
   }, [refresh]);
 
-  const overall = useOverallStatus(state);
+  const handleToggleExpand = useCallback(
+    (entity: string, inSync: boolean) => {
+      if (inSync) return;
+      setExpandedEntity((prev) => (prev === entity ? null : entity));
+      // Lazy-load the detailed diff on first expand. Don't re-fetch
+      // if we already have one in cache — `refresh` clears the
+      // cache so a manual Refresh re-hydrates.
+      if (detailed[entity] !== undefined) return;
+      setDetailed((prev) => ({ ...prev, [entity]: { kind: "loading" } }));
+      void (async () => {
+        try {
+          const outcome = await syncDigestCheckDetailed(entity);
+          setDetailed((prev) => ({
+            ...prev,
+            [entity]:
+              outcome.status === "ran"
+                ? { kind: "ran", diff: outcome.diff }
+                : { kind: "skipped", reason: outcome.reason },
+          }));
+        } catch (err) {
+          setDetailed((prev) => ({
+            ...prev,
+            [entity]: {
+              kind: "error",
+              message: err instanceof Error ? err.message : String(err),
+            },
+          }));
+        }
+      })();
+    },
+    [detailed],
+  );
+
+  const overall = useOverallStatus(state, lastRunAt);
 
   return (
     <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
@@ -222,7 +339,12 @@ export function SyncStatusCard() {
 
       {state.kind === "ran" && state.reports.length > 0 ? (
         <div className="mt-4 ml-9">
-          <EntityReportTable reports={state.reports} />
+          <EntityReportTable
+            reports={state.reports}
+            expandedEntity={expandedEntity}
+            detailed={detailed}
+            onToggle={handleToggleExpand}
+          />
         </div>
       ) : null}
 
@@ -244,10 +366,39 @@ export function SyncStatusCard() {
             onChange={(e) => void handleToggleAuto(e.target.checked)}
             aria-label={t("settings.syncStatus.autoToggleTitle") ?? undefined}
           />
-          <span className="relative w-10 h-6 bg-zinc-200 dark:bg-zinc-700 rounded-full peer-checked:bg-emerald-500 transition-colors peer-disabled:opacity-50 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-white dark:peer-focus-visible:ring-offset-zinc-900">
+          <span className="relative w-10 h-6 bg-zinc-200 dark:bg-zinc-700 rounded-full peer-checked:bg-emerald-600 transition-colors peer-disabled:opacity-50 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-white dark:peer-focus-visible:ring-offset-zinc-900">
             <span className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-4" />
           </span>
         </label>
+      </div>
+
+      <div className="mt-3 ml-9 flex items-center justify-between gap-3 text-xs">
+        <div className="min-w-0">
+          <label
+            htmlFor="sync-cadence-select"
+            className="font-medium text-zinc-700 dark:text-zinc-200"
+          >
+            {t("settings.syncStatus.cadenceTitle")}
+          </label>
+          <div className="text-zinc-400">
+            {t("settings.syncStatus.cadenceSubtitle")}
+          </div>
+        </div>
+        <select
+          id="sync-cadence-select"
+          value={cadence ?? 60}
+          disabled={
+            cadence === null || cadenceBusy || autoEnabled !== true
+          }
+          onChange={(e) => void handleCadenceChange(Number(e.target.value))}
+          className="shrink-0 px-3 py-1.5 rounded-lg border border-zinc-200 bg-white text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {CADENCE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {t(opt.labelKey)}
+            </option>
+          ))}
+        </select>
       </div>
     </div>
   );
@@ -258,8 +409,12 @@ interface OverallStatus {
   subtitle: (t: ReturnType<typeof useTranslation>["t"]) => string;
 }
 
-function useOverallStatus(state: CardState): OverallStatus {
+function useOverallStatus(
+  state: CardState,
+  lastRunAt: number | null,
+): OverallStatus {
   return useMemo<OverallStatus>(() => {
+    const lastSyncSuffix = formatLastSyncSuffix(lastRunAt);
     switch (state.kind) {
       case "loading":
         return {
@@ -292,26 +447,30 @@ function useOverallStatus(state: CardState): OverallStatus {
             icon: (
               <CheckCircle2
                 size={20}
-                className="text-emerald-500 shrink-0"
+                className="text-emerald-600 dark:text-emerald-400 shrink-0"
                 aria-hidden="true"
               />
             ),
-            subtitle: (t) => t("settings.syncStatus.subtitleAllInSync"),
+            subtitle: (t) =>
+              joinSubtitle(t("settings.syncStatus.subtitleAllInSync"), lastSyncSuffix(t)),
           };
         }
         return {
           icon: (
             <AlertCircle
               size={20}
-              className="text-amber-500 shrink-0"
+              className="text-amber-600 dark:text-amber-400 shrink-0"
               aria-hidden="true"
             />
           ),
           subtitle: (t) =>
-            t("settings.syncStatus.subtitleOutOfSync", {
-              outOfSync: total - inSync,
-              total,
-            }),
+            joinSubtitle(
+              t("settings.syncStatus.subtitleOutOfSync", {
+                outOfSync: total - inSync,
+                total,
+              }),
+              lastSyncSuffix(t),
+            ),
         };
       }
       case "skipped": {
@@ -344,7 +503,7 @@ function useOverallStatus(state: CardState): OverallStatus {
           icon: (
             <AlertCircle
               size={20}
-              className="text-rose-500 shrink-0"
+              className="text-rose-600 dark:text-rose-400 shrink-0"
               aria-hidden="true"
             />
           ),
@@ -352,69 +511,283 @@ function useOverallStatus(state: CardState): OverallStatus {
             t("settings.syncStatus.error", { message: state.message }),
         };
     }
-  }, [state]);
+  }, [state, lastRunAt]);
 }
 
-function EntityReportTable({ reports }: { reports: SyncDigestReport[] }) {
+interface EntityReportTableProps {
+  reports: SyncDigestReport[];
+  expandedEntity: string | null;
+  detailed: Record<string, DetailedEntry>;
+  onToggle: (entity: string, inSync: boolean) => void;
+}
+
+function EntityReportTable({
+  reports,
+  expandedEntity,
+  detailed,
+  onToggle,
+}: EntityReportTableProps) {
   const { t } = useTranslation();
   return (
     <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
       <table className="w-full text-xs">
         <thead className="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
           <tr>
-            <th className="px-3 py-2 text-left font-medium">
+            <th scope="col" className="w-6 px-2 py-2" aria-hidden="true" />
+            <th scope="col" className="px-3 py-2 text-left font-medium">
               {t("settings.syncStatus.col.entity")}
             </th>
-            <th className="px-3 py-2 text-center font-medium">
+            <th scope="col" className="px-3 py-2 text-center font-medium">
               {t("settings.syncStatus.col.state")}
             </th>
-            <th className="px-3 py-2 text-right font-medium">
+            <th scope="col" className="px-3 py-2 text-right font-medium">
               {t("settings.syncStatus.col.missingLocally")}
             </th>
-            <th className="px-3 py-2 text-right font-medium">
+            <th scope="col" className="px-3 py-2 text-right font-medium">
               {t("settings.syncStatus.col.missingRemotely")}
             </th>
-            <th className="px-3 py-2 text-right font-medium">
+            <th scope="col" className="px-3 py-2 text-right font-medium">
               {t("settings.syncStatus.col.divergent")}
             </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
-          {reports.map((r) => (
-            <tr key={r.entity}>
-              <td className="px-3 py-2 font-mono text-zinc-700 dark:text-zinc-200">
-                {r.entity}
-              </td>
-              <td className="px-3 py-2 text-center">
-                {r.in_sync ? (
-                  <span
-                    className="inline-flex items-center text-emerald-600 dark:text-emerald-400"
-                    title={t("settings.syncStatus.inSync") ?? undefined}
-                  >
-                    <CheckCircle2 size={14} aria-hidden="true" />
-                  </span>
-                ) : (
-                  <span
-                    className="inline-flex items-center text-amber-600 dark:text-amber-400"
-                    title={t("settings.syncStatus.outOfSync") ?? undefined}
-                  >
-                    <AlertCircle size={14} aria-hidden="true" />
-                  </span>
-                )}
-              </td>
-              <td className="px-3 py-2 text-right tabular-nums text-zinc-700 dark:text-zinc-200">
-                {r.missing_locally}
-              </td>
-              <td className="px-3 py-2 text-right tabular-nums text-zinc-700 dark:text-zinc-200">
-                {r.missing_remotely}
-              </td>
-              <td className="px-3 py-2 text-right tabular-nums text-zinc-700 dark:text-zinc-200">
-                {r.divergent}
-              </td>
-            </tr>
-          ))}
+          {reports.map((r) => {
+            const expanded = expandedEntity === r.entity;
+            const expandable = !r.in_sync;
+            return (
+              <ExpandableRow
+                key={r.entity}
+                report={r}
+                expanded={expanded}
+                expandable={expandable}
+                detailed={detailed[r.entity]}
+                onToggle={() => onToggle(r.entity, r.in_sync)}
+              />
+            );
+          })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+interface ExpandableRowProps {
+  report: SyncDigestReport;
+  expanded: boolean;
+  expandable: boolean;
+  detailed: DetailedEntry | undefined;
+  onToggle: () => void;
+}
+
+function ExpandableRow({
+  report: r,
+  expanded,
+  expandable,
+  detailed,
+  onToggle,
+}: ExpandableRowProps) {
+  const { t } = useTranslation();
+  const interactive = expandable
+    ? "cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+    : "";
+  return (
+    <>
+      <tr
+        className={`group ${interactive}`}
+        onClick={expandable ? onToggle : undefined}
+        aria-expanded={expandable ? expanded : undefined}
+      >
+        <td className="px-2 py-2 text-zinc-400">
+          {expandable ? (
+            expanded ? (
+              <ChevronDown size={14} aria-hidden="true" />
+            ) : (
+              <ChevronRight size={14} aria-hidden="true" />
+            )
+          ) : null}
+        </td>
+        <td className="px-3 py-2 font-mono text-zinc-700 dark:text-zinc-200">
+          {r.entity}
+        </td>
+        <td className="px-3 py-2 text-center">
+          {r.in_sync ? (
+            <span
+              className="inline-flex items-center text-emerald-600 dark:text-emerald-400"
+              title={t("settings.syncStatus.inSync") ?? undefined}
+            >
+              <CheckCircle2 size={14} aria-hidden="true" />
+            </span>
+          ) : (
+            <span
+              className="inline-flex items-center text-amber-600 dark:text-amber-400"
+              title={t("settings.syncStatus.outOfSync") ?? undefined}
+            >
+              <AlertCircle size={14} aria-hidden="true" />
+            </span>
+          )}
+        </td>
+        <td className="px-3 py-2 text-right tabular-nums text-zinc-700 dark:text-zinc-200">
+          {r.missing_locally}
+        </td>
+        <td className="px-3 py-2 text-right tabular-nums text-zinc-700 dark:text-zinc-200">
+          {r.missing_remotely}
+        </td>
+        <td className="px-3 py-2 text-right tabular-nums text-zinc-700 dark:text-zinc-200">
+          {r.divergent}
+        </td>
+      </tr>
+      {expanded ? (
+        <tr>
+          <td
+            colSpan={6}
+            className="px-3 py-3 bg-zinc-50/50 dark:bg-zinc-800/30"
+          >
+            <DetailedPanel entry={detailed} />
+          </td>
+        </tr>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * Maximum number of canonical_ids rendered per bucket in the
+ * drill-down panel. The backend already caps at 100; the UI
+ * shows the first 20 to keep the panel scannable, with a
+ * "+N more" footer surfacing the rest of the cap.
+ */
+const DRILLDOWN_PER_BUCKET_LIMIT = 20;
+
+function DetailedPanel({ entry }: { entry: DetailedEntry | undefined }) {
+  const { t } = useTranslation();
+  if (entry === undefined || entry.kind === "loading") {
+    return (
+      <div className="flex items-center space-x-2 text-zinc-500 dark:text-zinc-400">
+        <Loader2 size={12} className="animate-spin" aria-hidden="true" />
+        <span>{t("settings.syncStatus.drilldown.loading")}</span>
+      </div>
+    );
+  }
+  if (entry.kind === "skipped") {
+    return (
+      <div className="text-zinc-500 dark:text-zinc-400">
+        {t(`settings.syncStatus.reason.${entry.reason}`, {
+          defaultValue: t("settings.syncStatus.reasonGeneric", {
+            reason: entry.reason,
+          }),
+        })}
+      </div>
+    );
+  }
+  if (entry.kind === "error") {
+    return (
+      <div className="text-rose-600 dark:text-rose-400">
+        {t("settings.syncStatus.drilldown.error", { message: entry.message })}
+      </div>
+    );
+  }
+  const d = entry.diff;
+  const buckets: Array<{
+    titleKey: string;
+    rows: Array<{
+      canonical_id: string;
+      local_hash: string;
+      remote_hash: string;
+    }>;
+    total: number;
+  }> = [
+    {
+      titleKey: "settings.syncStatus.drilldown.missingLocally",
+      rows: d.missing_locally.map((m) => ({
+        canonical_id: m.canonical_id,
+        local_hash: "",
+        remote_hash: m.payload_hash,
+      })),
+      total: d.missing_locally_total,
+    },
+    {
+      titleKey: "settings.syncStatus.drilldown.missingRemotely",
+      rows: d.missing_remotely.map((m) => ({
+        canonical_id: m.canonical_id,
+        local_hash: m.local_payload_hash,
+        remote_hash: m.remote_payload_hash,
+      })),
+      total: d.missing_remotely_total,
+    },
+    {
+      titleKey: "settings.syncStatus.drilldown.divergent",
+      rows: d.divergent.map((m) => ({
+        canonical_id: m.canonical_id,
+        local_hash: m.local_payload_hash,
+        remote_hash: m.remote_payload_hash,
+      })),
+      total: d.divergent_total,
+    },
+  ];
+  const nonEmpty = buckets.filter((b) => b.rows.length > 0);
+  if (nonEmpty.length === 0) {
+    return (
+      <div className="text-zinc-500 dark:text-zinc-400">
+        {t("settings.syncStatus.drilldown.empty")}
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {nonEmpty.map((b) => (
+        <DrilldownBucket
+          key={b.titleKey}
+          title={t(b.titleKey)}
+          rows={b.rows}
+          total={b.total}
+        />
+      ))}
+    </div>
+  );
+}
+
+function DrilldownBucket({
+  title,
+  rows,
+  total,
+}: {
+  title: string;
+  rows: Array<{ canonical_id: string; local_hash: string; remote_hash: string }>;
+  total: number;
+}) {
+  const { t } = useTranslation();
+  const shown = rows.slice(0, DRILLDOWN_PER_BUCKET_LIMIT);
+  const remaining = total - shown.length;
+  return (
+    <div>
+      <div className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 mb-1">
+        {title}{" "}
+        <span className="font-normal text-zinc-400">({total})</span>
+      </div>
+      <ul className="space-y-0.5 text-[11px] font-mono text-zinc-600 dark:text-zinc-400">
+        {shown.map((row, idx) => (
+          <li key={`${row.canonical_id}-${idx}`} className="flex gap-2">
+            <span className="truncate" title={row.canonical_id}>
+              {row.canonical_id}
+            </span>
+            {row.local_hash || row.remote_hash ? (
+              <span className="shrink-0 text-zinc-400 dark:text-zinc-500">
+                {row.local_hash ? row.local_hash.slice(0, 8) : "—"}
+                {" / "}
+                {row.remote_hash ? row.remote_hash.slice(0, 8) : "—"}
+              </span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {remaining > 0 ? (
+        <div className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500">
+          {t("settings.syncStatus.drilldown.moreNotShown", {
+            count: remaining,
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -451,4 +824,41 @@ function BackfillOutcomeSummary({ outcome }: { outcome: BackfillOutcome }) {
       {t("settings.syncStatus.backfillSummary", totals)}
     </span>
   );
+}
+
+/**
+ * Format the "Last sync: X ago" suffix for the subtitle. Returns
+ * a function so the i18n `t` is captured at render time (the
+ * `useOverallStatus` hook receives a stale `t` otherwise).
+ */
+function formatLastSyncSuffix(
+  lastRunAt: number | null,
+): (t: ReturnType<typeof useTranslation>["t"]) => string {
+  if (lastRunAt === null) {
+    return (t) => t("settings.syncStatus.lastSyncNever");
+  }
+  // Recompute relative buckets at render time so the 30 s tick
+  // can re-render with fresh values.
+  const ageMs = Date.now() - lastRunAt;
+  if (ageMs < 60_000) {
+    return (t) => t("settings.syncStatus.lastSyncJustNow");
+  }
+  const minutes = Math.floor(ageMs / 60_000);
+  if (minutes < 60) {
+    return (t) =>
+      t("settings.syncStatus.lastSyncMinutesAgo", { count: minutes });
+  }
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return (t) => t("settings.syncStatus.lastSyncHoursAgo", { count: hours });
+  }
+  const days = Math.floor(hours / 24);
+  return (t) => t("settings.syncStatus.lastSyncDaysAgo", { count: days });
+}
+
+/** Join the in-sync / out-of-sync summary with the optional
+ *  "Last sync: X ago" suffix. Skips the separator when the
+ *  suffix is empty (no last_run_at). */
+function joinSubtitle(base: string, suffix: string): string {
+  return suffix ? `${base} · ${suffix}` : base;
 }

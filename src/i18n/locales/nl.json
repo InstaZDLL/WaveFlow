@@ -1511,7 +1511,31 @@
       },
       "backfillError": "Mislukt: {{message}}",
       "autoToggleTitle": "Automatische sync",
-      "autoToggleSubtitle": "Voert een pass uit bij het opstarten en bij overschakeling naar Hybride"
+      "autoToggleSubtitle": "Voert een pass uit bij het opstarten en bij overschakeling naar Hybride",
+      "cadenceTitle": "Achtergrondfrequentie",
+      "cadenceSubtitle": "Tijd tussen automatische synchronisaties",
+      "cadence": {
+        "every15Min": "Elke 15 minuten",
+        "every30Min": "Elke 30 minuten",
+        "every1Hour": "Elk uur",
+        "every6Hours": "Elke 6 uur",
+        "every12Hours": "Elke 12 uur",
+        "every24Hours": "Eén keer per dag"
+      },
+      "lastSyncNever": "Nooit gesynchroniseerd",
+      "lastSyncJustNow": "Zojuist",
+      "lastSyncMinutesAgo": "{{count}} min geleden",
+      "lastSyncHoursAgo": "{{count}} u geleden",
+      "lastSyncDaysAgo": "{{count}} d geleden",
+      "drilldown": {
+        "loading": "Details laden…",
+        "error": "Fout: {{message}}",
+        "empty": "Geen details",
+        "missingLocally": "Lokaal ontbrekend",
+        "missingRemotely": "Op afstand ontbrekend",
+        "divergent": "Afwijkend",
+        "moreNotShown": "+ {{count}} meer niet getoond"
+      }
     },
     "visualizer": {
       "title": "Audio-visualizer",

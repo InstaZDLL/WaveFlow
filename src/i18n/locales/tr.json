@@ -1511,7 +1511,31 @@
       },
       "backfillError": "Başarısız: {{message}}",
       "autoToggleTitle": "Otomatik senkronizasyon",
-      "autoToggleSubtitle": "Açılışta ve Hibrit moda geçişte bir geçiş çalıştırır"
+      "autoToggleSubtitle": "Açılışta ve Hibrit moda geçişte bir geçiş çalıştırır",
+      "cadenceTitle": "Arka plan sıklığı",
+      "cadenceSubtitle": "Otomatik senkronizasyonlar arası süre",
+      "cadence": {
+        "every15Min": "15 dakikada bir",
+        "every30Min": "30 dakikada bir",
+        "every1Hour": "Saatte bir",
+        "every6Hours": "6 saatte bir",
+        "every12Hours": "12 saatte bir",
+        "every24Hours": "Günde bir"
+      },
+      "lastSyncNever": "Hiç senkronize edilmedi",
+      "lastSyncJustNow": "Az önce",
+      "lastSyncMinutesAgo": "{{count}} dk önce",
+      "lastSyncHoursAgo": "{{count}} sa önce",
+      "lastSyncDaysAgo": "{{count}} g önce",
+      "drilldown": {
+        "loading": "Ayrıntılar yükleniyor…",
+        "error": "Hata: {{message}}",
+        "empty": "Ayrıntı yok",
+        "missingLocally": "Yerelde eksik",
+        "missingRemotely": "Uzakta eksik",
+        "divergent": "Sapma",
+        "moreNotShown": "+ {{count}} daha gösterilmiyor"
+      }
     },
     "visualizer": {
       "title": "Ses görselleştirici",

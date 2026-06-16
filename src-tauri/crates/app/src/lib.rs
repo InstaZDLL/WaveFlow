@@ -176,6 +176,17 @@ pub fn run() {
                 }
             });
 
+            // RFC-003 Phase B polish — periodic heartbeat that fires
+            // `maybe_auto_backfill` every
+            // `sync.backfill.heartbeat_interval_min` minutes (default
+            // 60 min). Same gates as the boot pass short-circuit
+            // inside the helper, so a Local / offline / no-JWT
+            // session spins idle without cost. Cadence is re-read at
+            // every tick from the active profile's
+            // `profile_setting`, so changing it from Settings applies
+            // on the next iteration without restart.
+            sync::backfill::heartbeat::spawn(app.handle().clone());
+
             // Install the rustls process-wide CryptoProvider before
             // the WS subscriber spawns. rustls 0.23 panics on the
             // first TLS handshake when no provider is installed, and
@@ -651,6 +662,10 @@ pub fn run() {
             commands::sync::sync_backfill_now,
             commands::sync::sync_backfill_get_enabled,
             commands::sync::sync_backfill_set_enabled,
+            commands::sync::sync_backfill_get_status,
+            commands::sync::sync_backfill_get_heartbeat_interval,
+            commands::sync::sync_backfill_set_heartbeat_interval,
+            commands::sync::sync_digest_check_detailed,
             commands::offline::get_offline_mode,
             commands::offline::set_offline_mode,
             commands::preferences::get_minimize_to_tray,

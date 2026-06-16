@@ -1511,7 +1511,31 @@
       },
       "backfillError": "Gagal: {{message}}",
       "autoToggleTitle": "Sinkronisasi otomatis",
-      "autoToggleSubtitle": "Menjalankan pass saat boot dan saat beralih ke mode Hybrid"
+      "autoToggleSubtitle": "Menjalankan pass saat boot dan saat beralih ke mode Hybrid",
+      "cadenceTitle": "Kecepatan latar",
+      "cadenceSubtitle": "Interval antar sinkronisasi otomatis",
+      "cadence": {
+        "every15Min": "Setiap 15 menit",
+        "every30Min": "Setiap 30 menit",
+        "every1Hour": "Setiap jam",
+        "every6Hours": "Setiap 6 jam",
+        "every12Hours": "Setiap 12 jam",
+        "every24Hours": "Sekali sehari"
+      },
+      "lastSyncNever": "Belum pernah disinkronkan",
+      "lastSyncJustNow": "Baru saja",
+      "lastSyncMinutesAgo": "{{count}} mnt lalu",
+      "lastSyncHoursAgo": "{{count}} j lalu",
+      "lastSyncDaysAgo": "{{count}} h lalu",
+      "drilldown": {
+        "loading": "Memuat detail…",
+        "error": "Kesalahan: {{message}}",
+        "empty": "Tidak ada detail",
+        "missingLocally": "Hilang di lokal",
+        "missingRemotely": "Hilang di server",
+        "divergent": "Divergen",
+        "moreNotShown": "+ {{count}} lainnya tak ditampilkan"
+      }
     },
     "visualizer": {
       "title": "Visualizer audio",

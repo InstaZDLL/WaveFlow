@@ -1523,7 +1523,31 @@
       },
       "backfillError": "विफल: {{message}}",
       "autoToggleTitle": "स्वचालित सिंक",
-      "autoToggleSubtitle": "बूट पर और हाइब्रिड मोड में स्विच करने पर एक पास चलाता है"
+      "autoToggleSubtitle": "बूट पर और हाइब्रिड मोड में स्विच करने पर एक पास चलाता है",
+      "cadenceTitle": "पृष्ठभूमि लय",
+      "cadenceSubtitle": "स्वचालित सिंक के बीच का अंतराल",
+      "cadence": {
+        "every15Min": "हर 15 मिनट",
+        "every30Min": "हर 30 मिनट",
+        "every1Hour": "हर घंटे",
+        "every6Hours": "हर 6 घंटे",
+        "every12Hours": "हर 12 घंटे",
+        "every24Hours": "दिन में एक बार"
+      },
+      "lastSyncNever": "कभी सिंक नहीं किया",
+      "lastSyncJustNow": "अभी-अभी",
+      "lastSyncMinutesAgo": "{{count}} मिनट पहले",
+      "lastSyncHoursAgo": "{{count}} घंटे पहले",
+      "lastSyncDaysAgo": "{{count}} दिन पहले",
+      "drilldown": {
+        "loading": "विवरण लोड हो रहे हैं…",
+        "error": "त्रुटि: {{message}}",
+        "empty": "दिखाने के लिए कोई विवरण नहीं",
+        "missingLocally": "स्थानीय रूप से अनुपस्थित",
+        "missingRemotely": "सर्वर पर अनुपस्थित",
+        "divergent": "भिन्न",
+        "moreNotShown": "+ {{count}} और नहीं दिखाए गए"
+      }
     },
     "gapless": {
       "title": "गैपलेस प्लेबैक",

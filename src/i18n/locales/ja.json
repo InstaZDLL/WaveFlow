@@ -1470,7 +1470,31 @@
       },
       "backfillError": "失敗: {{message}}",
       "autoToggleTitle": "自動同期",
-      "autoToggleSubtitle": "起動時とハイブリッドモード切替時に同期を実行します"
+      "autoToggleSubtitle": "起動時とハイブリッドモード切替時に同期を実行します",
+      "cadenceTitle": "バックグラウンド間隔",
+      "cadenceSubtitle": "自動同期の間隔",
+      "cadence": {
+        "every15Min": "15 分ごと",
+        "every30Min": "30 分ごと",
+        "every1Hour": "1 時間ごと",
+        "every6Hours": "6 時間ごと",
+        "every12Hours": "12 時間ごと",
+        "every24Hours": "1 日 1 回"
+      },
+      "lastSyncNever": "同期されていません",
+      "lastSyncJustNow": "たった今",
+      "lastSyncMinutesAgo": "{{count}} 分前",
+      "lastSyncHoursAgo": "{{count}} 時間前",
+      "lastSyncDaysAgo": "{{count}} 日前",
+      "drilldown": {
+        "loading": "詳細を読み込み中…",
+        "error": "エラー: {{message}}",
+        "empty": "表示する詳細はありません",
+        "missingLocally": "ローカルに不足",
+        "missingRemotely": "サーバーに不足",
+        "divergent": "不一致",
+        "moreNotShown": "他 {{count}} 件非表示"
+      }
     },
     "gapless": {
       "title": "ギャップレス再生",
