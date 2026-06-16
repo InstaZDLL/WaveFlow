@@ -1207,7 +1207,10 @@
       "word": "Palavra por palavra"
     },
     "captureHintWord": "Espaço = próxima palavra · Enter = próxima linha · Backspace = desfazer última palavra",
-    "notCaptured": "Não capturado"
+    "notCaptured": "Não capturado",
+    "exportToFile": "Salvar em arquivo…",
+    "exportToFileHint": "Exporta a letra para um arquivo .lrc ou .txt no local que você escolher, sem alterar o arquivo de áudio",
+    "exportedToFile": "Exportado para {{path}}"
   },
   "sort": {
     "title": "Título",

@@ -329,6 +329,7 @@ export function LyricsPanel() {
           onClose={() => setIsEditing(false)}
           trackId={trackId}
           trackTitle={currentTrack?.title ?? null}
+          trackFilePath={currentTrack?.file_path ?? null}
           initial={payload}
           onSaved={(next) => setPayload(next)}
         />

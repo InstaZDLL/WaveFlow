@@ -1207,7 +1207,10 @@
       "word": "Kelime kelime"
     },
     "captureHintWord": "Boşluk = sonraki kelime · Enter = sonraki satır · Backspace = son kelimeyi geri al",
-    "notCaptured": "Yakalanmadı"
+    "notCaptured": "Yakalanmadı",
+    "exportToFile": "Dosyaya kaydet…",
+    "exportToFileHint": "Sözleri seçtiğiniz konumda bir .lrc veya .txt dosyasına aktarır, ses dosyasını değiştirmez",
+    "exportedToFile": "{{path}} konumuna aktarıldı"
   },
   "sort": {
     "title": "Başlık",

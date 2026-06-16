@@ -1207,7 +1207,10 @@
       "word": "Word by word"
     },
     "captureHintWord": "Space = next word · Enter = next line · Backspace = undo last word",
-    "notCaptured": "Not captured"
+    "notCaptured": "Not captured",
+    "exportToFile": "Save to file…",
+    "exportToFileHint": "Export the lyrics to a .lrc or .txt file at the location of your choice, without touching the audio file",
+    "exportedToFile": "Exported to {{path}}"
   },
   "sort": {
     "title": "Title",

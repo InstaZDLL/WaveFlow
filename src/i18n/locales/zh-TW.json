@@ -1207,7 +1207,10 @@
       "word": "逐字"
     },
     "captureHintWord": "空格鍵 = 下一個字 · Enter = 下一行 · Backspace = 取消最後一個字",
-    "notCaptured": "未擷取"
+    "notCaptured": "未擷取",
+    "exportToFile": "儲存到檔案…",
+    "exportToFileHint": "將歌詞匯出為 .lrc 或 .txt 檔案至您選擇的位置,不會更動音訊檔案",
+    "exportedToFile": "已匯出至 {{path}}"
   },
   "sort": {
     "title": "標題",

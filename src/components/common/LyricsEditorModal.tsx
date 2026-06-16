@@ -13,11 +13,14 @@ import {
   Save,
   Minus,
   RotateCcw,
+  FileDown,
 } from "lucide-react";
+import { save as showSaveDialog } from "@tauri-apps/plugin-dialog";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 import {
+  exportLyricsToPath,
   formatLrcTimestamp,
   parseLrc,
   parseLyrics,
@@ -37,6 +40,13 @@ interface LyricsEditorModalProps {
   initial: LyricsPayload | null;
   /** Called with the freshly-saved payload so the panel can update. */
   onSaved: (next: LyricsPayload) => void;
+  /**
+   * Audio file path of the current track. Used as the default
+   * location + filename stem for the "Save to file…" affordance
+   * (issue #201). Optional — when absent the dialog opens at the
+   * user's last-used directory with no suggested filename.
+   */
+  trackFilePath?: string | null;
 }
 
 type Mode = "plain" | "synced";
@@ -78,6 +88,7 @@ export function LyricsEditorModal({
   trackTitle,
   initial,
   onSaved,
+  trackFilePath,
 }: LyricsEditorModalProps) {
   const { t } = useTranslation();
   const { isPlaying, togglePlayback, seek, positionMs } = usePlayer();
@@ -395,77 +406,88 @@ export function LyricsEditorModal({
     );
   };
 
+  // Serialize the current editor state (plain text or synced rows) to
+  // the same `{ content, format }` shape both the in-app save path
+  // (DB cache + optional tag write) and the "Save to file…" path
+  // consume. Extracted from `handleSave` so the export-to-disk
+  // affordance (issue #201) doesn't have to re-implement the
+  // word/line/plain dispatch.
+  const buildPayload = (): { content: string; format: "plain" | "lrc" | "enhanced_lrc" } => {
+    const isSyncedMode = mode === "synced";
+    const isWordMode = isSyncedMode && granularity === "word";
+
+    // Bake the previewed global offset into every captured stamp on
+    // save (both line- and word-level). Negative results are clamped
+    // to 0 so a user shifting past the start of the track doesn't
+    // emit invalid stamps.
+    const shift = (ts: number): number =>
+      ts < 0 ? -1 : Math.max(0, ts + globalOffsetMs);
+
+    if (!isSyncedMode) {
+      return { content: plainText.trim(), format: "plain" };
+    }
+    if (isWordMode) {
+      // Keep every row the user typed text into, even if they
+      // haven't captured a stamp yet — line mode does the same,
+      // so saving in word mode shouldn't silently delete unstamped
+      // text. `serializeEnhancedLrc` emits `[--:--.--]` for rows
+      // with `timeMs < 0` and folds uncaptured words into the
+      // previous segment (no phantom `<00:00.00>` stamp), so half-
+      // finished work round-trips cleanly through save → reload.
+      const rowsForSave: LyricsLine[] = syncedRows
+        .filter(
+          (r) =>
+            r.text.trim().length > 0 ||
+            r.timeMs >= 0 ||
+            (r.words?.some((w) => w.timeMs >= 0) ?? false),
+        )
+        .map((r) => ({
+          timeMs: shift(r.timeMs),
+          endMs: -1,
+          text: r.text,
+          words: r.words?.map((w) => ({
+            timeMs: shift(w.timeMs),
+            endMs: -1,
+            text: w.text,
+          })),
+        }))
+        // Untimed rows (timeMs < 0) sort to the end so the synced
+        // body stays monotonically ordered; the user can resume
+        // capturing them on the next edit.
+        .sort((a, b) => {
+          if (a.timeMs < 0 && b.timeMs < 0) return 0;
+          if (a.timeMs < 0) return 1;
+          if (b.timeMs < 0) return -1;
+          return a.timeMs - b.timeMs;
+        });
+      return {
+        content: serializeEnhancedLrc(rowsForSave),
+        format: "enhanced_lrc",
+      };
+    }
+    return {
+      content: serializeLrc(
+        syncedRows
+          .filter((r) => r.text.trim().length > 0 || r.timeMs >= 0)
+          .map((r) => (r.timeMs >= 0 ? { ...r, timeMs: shift(r.timeMs) } : r))
+          .sort((a, b) => {
+            if (a.timeMs < 0 && b.timeMs < 0) return 0;
+            if (a.timeMs < 0) return 1;
+            if (b.timeMs < 0) return -1;
+            return a.timeMs - b.timeMs;
+          }),
+      ),
+      format: "lrc",
+    };
+  };
+
   // ── Save ─────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (trackId == null) return;
     setIsSaving(true);
     setError(null);
     try {
-      const isSyncedMode = mode === "synced";
-      const isWordMode = isSyncedMode && granularity === "word";
-
-      // Bake the previewed global offset into every captured stamp on
-      // save (both line- and word-level). Negative results are clamped
-      // to 0 so a user shifting past the start of the track doesn't
-      // emit invalid stamps.
-      const shift = (ts: number): number =>
-        ts < 0 ? -1 : Math.max(0, ts + globalOffsetMs);
-
-      let content: string;
-      let saveFormat: "plain" | "lrc" | "enhanced_lrc";
-      if (!isSyncedMode) {
-        content = plainText.trim();
-        saveFormat = "plain";
-      } else if (isWordMode) {
-        // Keep every row the user typed text into, even if they
-        // haven't captured a stamp yet — line mode does the same,
-        // so saving in word mode shouldn't silently delete unstamped
-        // text. `serializeEnhancedLrc` emits `[--:--.--]` for rows
-        // with `timeMs < 0` and folds uncaptured words into the
-        // previous segment (no phantom `<00:00.00>` stamp), so half-
-        // finished work round-trips cleanly through save → reload.
-        const rowsForSave: LyricsLine[] = syncedRows
-          .filter(
-            (r) =>
-              r.text.trim().length > 0 ||
-              r.timeMs >= 0 ||
-              (r.words?.some((w) => w.timeMs >= 0) ?? false),
-          )
-          .map((r) => ({
-            timeMs: shift(r.timeMs),
-            endMs: -1,
-            text: r.text,
-            words: r.words?.map((w) => ({
-              timeMs: shift(w.timeMs),
-              endMs: -1,
-              text: w.text,
-            })),
-          }))
-          // Untimed rows (timeMs < 0) sort to the end so the synced
-          // body stays monotonically ordered; the user can resume
-          // capturing them on the next edit.
-          .sort((a, b) => {
-            if (a.timeMs < 0 && b.timeMs < 0) return 0;
-            if (a.timeMs < 0) return 1;
-            if (b.timeMs < 0) return -1;
-            return a.timeMs - b.timeMs;
-          });
-        content = serializeEnhancedLrc(rowsForSave);
-        saveFormat = "enhanced_lrc";
-      } else {
-        content = serializeLrc(
-          syncedRows
-            .filter((r) => r.text.trim().length > 0 || r.timeMs >= 0)
-            .map((r) => (r.timeMs >= 0 ? { ...r, timeMs: shift(r.timeMs) } : r))
-            .sort((a, b) => {
-              if (a.timeMs < 0 && b.timeMs < 0) return 0;
-              if (a.timeMs < 0) return 1;
-              if (b.timeMs < 0) return -1;
-              return a.timeMs - b.timeMs;
-            }),
-        );
-        saveFormat = "lrc";
-      }
+      const { content, format: saveFormat } = buildPayload();
 
       // The backend pauses playback if we're editing the currently
       // playing file, so the flag is passed through as-is.
@@ -487,6 +509,40 @@ export function LyricsEditorModal({
       setError(String(err));
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // ── Export to standalone file (issue #201) ────────────────────────
+  const handleExportToFile = async () => {
+    setError(null);
+    setWarning(null);
+    try {
+      const { content, format: saveFormat } = buildPayload();
+      // Default to `.lrc` for synced output, `.txt` for plain — the
+      // user can switch via the dialog's format dropdown either way.
+      const defaultExt = saveFormat === "plain" ? "txt" : "lrc";
+      const stem = filenameStem(trackFilePath, trackTitle);
+      const defaultPath = defaultExportPath(trackFilePath, stem, defaultExt);
+      const target = await showSaveDialog({
+        title: t("lyricsEditor.exportToFile") ?? undefined,
+        defaultPath: defaultPath ?? undefined,
+        filters: [
+          {
+            name: defaultExt === "lrc" ? "Synced lyrics (.lrc)" : "Plain lyrics (.txt)",
+            extensions: [defaultExt],
+          },
+          {
+            name: defaultExt === "lrc" ? "Plain lyrics (.txt)" : "Synced lyrics (.lrc)",
+            extensions: [defaultExt === "lrc" ? "txt" : "lrc"],
+          },
+        ],
+      });
+      if (!target) return;
+      await exportLyricsToPath(target, content);
+      setWarning(t("lyricsEditor.exportedToFile", { path: target }));
+    } catch (err) {
+      console.error("[LyricsEditor] export failed", err);
+      setError(String(err));
     }
   };
 
@@ -773,6 +829,16 @@ export function LyricsEditorModal({
             </button>
             <button
               type="button"
+              onClick={handleExportToFile}
+              disabled={isSaving}
+              className="px-4 py-2 rounded-full text-sm border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 flex items-center gap-2"
+              title={t("lyricsEditor.exportToFileHint") ?? undefined}
+            >
+              <FileDown size={14} />
+              {t("lyricsEditor.exportToFile")}
+            </button>
+            <button
+              type="button"
               onClick={handleSave}
               disabled={isSaving || trackId == null}
               className="px-5 py-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-2"
@@ -968,4 +1034,57 @@ function SyncedEditor({
       })}
     </ul>
   );
+}
+
+/**
+ * Resolve the filename stem the "Save to file…" dialog should
+ * suggest. Prefers the audio file's basename (so the sidecar lands
+ * next to it with a matching name, the convention every offline
+ * player understands), falls back to a sanitized track title, then
+ * to the literal string "lyrics" so the dialog isn't blank.
+ */
+function filenameStem(
+  filePath: string | null | undefined,
+  trackTitle: string | null | undefined,
+): string {
+  if (filePath) {
+    const normalized = filePath.replace(/\\/g, "/");
+    const base = normalized.substring(normalized.lastIndexOf("/") + 1);
+    const dot = base.lastIndexOf(".");
+    const stem = dot > 0 ? base.substring(0, dot) : base;
+    if (stem.length > 0) return stem;
+  }
+  if (trackTitle) {
+    // Sanitize the title for filesystem use — strip the characters
+    // every common OS rejects, collapse whitespace, trim. Falls back
+    // to "lyrics" if the result is empty (e.g. an emoji-only title).
+    const sanitized = trackTitle
+      .replace(/[/\\:*?"<>|]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (sanitized.length > 0) return sanitized;
+  }
+  return "lyrics";
+}
+
+/**
+ * Build the full default `defaultPath` the Tauri save dialog should
+ * open at. When `filePath` is known we anchor on its parent
+ * directory so the user lands next to the song — the conventional
+ * sidecar location. Returns `null` to let the dialog fall back to
+ * its remembered last-used directory.
+ */
+function defaultExportPath(
+  filePath: string | null | undefined,
+  stem: string,
+  ext: string,
+): string | null {
+  if (!filePath) return null;
+  // Preserve OS-native separators so the dialog re-renders the path
+  // correctly on Windows + macOS + Linux. Splitting on both is fine
+  // because Windows accepts both `\` and `/` in API paths.
+  const sepIdx = Math.max(filePath.lastIndexOf("/"), filePath.lastIndexOf("\\"));
+  if (sepIdx < 0) return `${stem}.${ext}`;
+  const sep = filePath[sepIdx];
+  return `${filePath.substring(0, sepIdx)}${sep}${stem}.${ext}`;
 }

@@ -1207,7 +1207,10 @@
       "word": "1 単語ずつ"
     },
     "captureHintWord": "スペース = 次の単語 · Enter = 次の行 · Backspace = 最後の単語を取り消す",
-    "notCaptured": "未キャプチャ"
+    "notCaptured": "未キャプチャ",
+    "exportToFile": "ファイルに保存…",
+    "exportToFileHint": "音声ファイルを変更せずに、任意の場所へ .lrc または .txt として歌詞を書き出します",
+    "exportedToFile": "{{path}} に書き出しました"
   },
   "sort": {
     "title": "タイトル",

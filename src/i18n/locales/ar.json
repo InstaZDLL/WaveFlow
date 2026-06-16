@@ -1211,7 +1211,10 @@
       "word": "كلمة بكلمة"
     },
     "captureHintWord": "مفتاح المسافة = الكلمة التالية · Enter = السطر التالي · Backspace = التراجع عن الكلمة الأخيرة",
-    "notCaptured": "لم يتم الالتقاط"
+    "notCaptured": "لم يتم الالتقاط",
+    "exportToFile": "حفظ إلى ملف…",
+    "exportToFileHint": "صدّر كلمات الأغنية إلى ملف .lrc أو .txt في الموقع الذي تختاره، دون تعديل ملف الصوت",
+    "exportedToFile": "تم التصدير إلى {{path}}"
   },
   "sort": {
     "title": "العنوان",

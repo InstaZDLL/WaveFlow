@@ -1207,7 +1207,10 @@
       "word": "Woord per woord"
     },
     "captureHintWord": "Spatie = volgend woord · Enter = volgende regel · Backspace = laatste woord ongedaan maken",
-    "notCaptured": "Niet vastgelegd"
+    "notCaptured": "Niet vastgelegd",
+    "exportToFile": "Opslaan in bestand…",
+    "exportToFileHint": "Exporteert de songtekst naar een .lrc- of .txt-bestand op de gekozen locatie, zonder het audiobestand aan te raken",
+    "exportedToFile": "Geëxporteerd naar {{path}}"
   },
   "sort": {
     "title": "Titel",

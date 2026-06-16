@@ -1207,7 +1207,10 @@
       "word": "Kata per kata"
     },
     "captureHintWord": "Spasi = kata berikutnya · Enter = baris berikutnya · Backspace = batalkan kata terakhir",
-    "notCaptured": "Belum ditangkap"
+    "notCaptured": "Belum ditangkap",
+    "exportToFile": "Simpan ke berkas…",
+    "exportToFileHint": "Ekspor lirik ke berkas .lrc atau .txt di lokasi pilihan Anda, tanpa menyentuh berkas audio",
+    "exportedToFile": "Diekspor ke {{path}}"
   },
   "sort": {
     "title": "Judul",

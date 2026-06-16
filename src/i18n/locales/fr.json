@@ -1196,6 +1196,9 @@
     "removeLine": "Supprimer la ligne",
     "lines": "lignes calées",
     "writeToFile": "Écrire aussi dans le fichier audio (USLT/LYRICS)",
+    "exportToFile": "Enregistrer dans un fichier…",
+    "exportToFileHint": "Exporte les paroles vers un .lrc ou .txt à l'emplacement de votre choix, sans toucher au fichier audio",
+    "exportedToFile": "Exporté vers {{path}}",
     "offset": {
       "label": "Décalage global",
       "help": "Décale toutes les lignes calées du même delta — utile pour corriger un fichier LRC importé qui est uniformément en avance ou en retard",
