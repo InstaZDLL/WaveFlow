@@ -48,6 +48,26 @@ export function clearLyrics(trackId: number): Promise<void> {
   return invoke<void>("clear_lyrics", { trackId });
 }
 
+/**
+ * Write a serialized lyrics payload (already trimmed + format-encoded)
+ * to an arbitrary on-disk path. Used by the Lyrics Editor "Save to
+ * file…" affordance so the user can ship the LRC/TXT as a sidecar
+ * next to the song file (the in-tag + cache-only options stay
+ * available via the existing `saveLyrics` flow). The caller is
+ * expected to resolve `targetPath` via the Tauri save dialog
+ * (`@tauri-apps/plugin-dialog`'s `save()`); the backend re-validates
+ * the parent directory exists before writing.
+ */
+export function exportLyricsToPath(
+  targetPath: string,
+  content: string,
+): Promise<void> {
+  return invoke<void>("export_lyrics_to_path", {
+    targetPath,
+    content,
+  });
+}
+
 export interface SaveLyricsPayload {
   content: string;
   format: "plain" | "lrc" | "enhanced_lrc" | "ttml";

@@ -1207,7 +1207,10 @@
       "word": "逐词"
     },
     "captureHintWord": "空格 = 下一个词 · 回车 = 下一行 · Backspace = 撤销最后一个词",
-    "notCaptured": "未捕获"
+    "notCaptured": "未捕获",
+    "exportToFile": "保存到文件…",
+    "exportToFileHint": "将歌词导出为 .lrc 或 .txt 文件到您选择的位置,不会修改音频文件",
+    "exportedToFile": "已导出到 {{path}}"
   },
   "sort": {
     "title": "标题",

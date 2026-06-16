@@ -1207,7 +1207,10 @@
       "word": "Wort für Wort"
     },
     "captureHintWord": "Leertaste = nächstes Wort · Enter = nächste Zeile · Rücktaste = letztes Wort rückgängig",
-    "notCaptured": "Nicht erfasst"
+    "notCaptured": "Nicht erfasst",
+    "exportToFile": "In Datei speichern…",
+    "exportToFileHint": "Exportiert den Text als .lrc oder .txt an einen frei gewählten Ort, ohne die Audiodatei zu verändern",
+    "exportedToFile": "Exportiert nach {{path}}"
   },
   "sort": {
     "title": "Titel",

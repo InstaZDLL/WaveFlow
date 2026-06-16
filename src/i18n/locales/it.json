@@ -1207,7 +1207,10 @@
       "word": "Parola per parola"
     },
     "captureHintWord": "Spazio = parola successiva · Invio = riga successiva · Backspace = annulla ultima parola",
-    "notCaptured": "Non catturata"
+    "notCaptured": "Non catturata",
+    "exportToFile": "Salva su file…",
+    "exportToFileHint": "Esporta il testo in un file .lrc o .txt nella posizione scelta, senza modificare il file audio",
+    "exportedToFile": "Esportato in {{path}}"
   },
   "sort": {
     "title": "Titolo",

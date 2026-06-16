@@ -681,6 +681,7 @@ pub fn run() {
             commands::lyrics::fetch_lyrics,
             commands::lyrics::import_lrc_file,
             commands::lyrics::save_lyrics,
+            commands::lyrics::export_lyrics_to_path,
             commands::lyrics::clear_lyrics,
             commands::lyrics::prefetch_library_lyrics,
             commands::lyrics::cancel_lyrics_prefetch,

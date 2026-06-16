@@ -1559,6 +1559,56 @@ pub async fn clear_lyrics(state: tauri::State<'_, AppState>, track_id: i64) -> A
     Ok(())
 }
 
+/// Write a lyrics payload to an arbitrary on-disk path. Used by the
+/// Lyrics Editor "Save to file…" affordance (issue #201) so the user
+/// can ship the LRC/TXT they just crafted as a sidecar next to the
+/// audio file or anywhere else on their filesystem — leaving the
+/// audio file's tag block untouched, complementing the existing
+/// "embed in tag" + "cache only" options.
+///
+/// The frontend resolves `target_path` via the Tauri save dialog
+/// (`@tauri-apps/plugin-dialog`'s `save()`), so the user explicitly
+/// picked it. We still defend against a malformed IPC payload by
+/// requiring the parent directory to exist before writing — the
+/// dialog already enforces that, but a stray call with a bogus path
+/// would otherwise surface as an opaque `os error 3`. UTF-8 without
+/// BOM because LRCLIB / Musicolet / Spotify-style consumers all read
+/// BOM-less files fine and a BOM trips up some smaller offline
+/// players.
+///
+/// The `state` parameter exists for the
+/// `state.require_profile_pool().await?` sentry: without an active
+/// profile the lyrics editor isn't reachable from the UI, and the
+/// call refuses to mint a sidecar file from an orphaned IPC payload.
+/// The pool itself isn't touched — this command does not read or
+/// write the per-profile DB, the bytes come straight from the
+/// frontend's `buildPayload`. Mirrors the same gate every sibling
+/// `commands::lyrics::*` handler applies (CLAUDE.md cross-cutting
+/// rule).
+#[tauri::command]
+pub async fn export_lyrics_to_path(
+    state: tauri::State<'_, AppState>,
+    target_path: String,
+    content: String,
+) -> AppResult<()> {
+    let _pool = state.require_profile_pool().await?;
+    let path = std::path::PathBuf::from(&target_path);
+    let parent = path
+        .parent()
+        .ok_or_else(|| AppError::Other(format!("export_lyrics_to_path: target has no parent: {target_path}")))?;
+    if !parent.as_os_str().is_empty() && !parent.exists() {
+        return Err(AppError::Other(format!(
+            "export_lyrics_to_path: parent directory does not exist: {}",
+            parent.display()
+        )));
+    }
+    tokio::task::spawn_blocking(move || std::fs::write(&path, content.as_bytes()))
+        .await
+        .map_err(|e| AppError::Other(format!("export_lyrics_to_path write panicked: {e}")))?
+        .map_err(|e| AppError::Other(format!("export_lyrics_to_path write failed: {e}")))?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

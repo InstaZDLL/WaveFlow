@@ -1207,7 +1207,10 @@
       "word": "한 단어씩"
     },
     "captureHintWord": "스페이스 = 다음 단어 · Enter = 다음 줄 · Backspace = 마지막 단어 취소",
-    "notCaptured": "캡처되지 않음"
+    "notCaptured": "캡처되지 않음",
+    "exportToFile": "파일로 저장…",
+    "exportToFileHint": "오디오 파일은 그대로 두고, 원하는 위치에 .lrc 또는 .txt 가사 파일을 내보냅니다",
+    "exportedToFile": "{{path}} (으)로 내보냈습니다"
   },
   "sort": {
     "title": "제목",
