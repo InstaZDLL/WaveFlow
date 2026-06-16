@@ -29,14 +29,16 @@
 //! command checks the same gates as the digest_check), so this
 //! module assumes a configured client.
 
+pub mod heartbeat;
 pub mod lww;
 pub mod pull;
 pub mod push;
 
+use chrono::Utc;
 use serde::Serialize;
 use sqlx::SqlitePool;
 
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 use crate::server_client::WaveflowServerClient;
 use crate::state::AppState;
 use crate::sync::digest::{self, diff::DigestDiff};
@@ -45,6 +47,40 @@ use crate::sync::digest::{self, diff::DigestDiff};
 /// [`maybe_auto_backfill`] fires a pass on boot + every sync-mode
 /// flip to Hybrid. Default `false` — opt-in only.
 pub const AUTO_BACKFILL_KEY: &str = "sync.v2.backfill_enabled";
+
+/// `profile_setting` key for the last successful backfill timestamp
+/// (epoch milliseconds). Stamped at the end of any pass — automatic
+/// (`maybe_auto_backfill`) or manual (`sync_backfill_now`) — that
+/// completed `run_backfill` without surfacing a top-level error.
+/// Per-entity row-level failures don't gate the stamp; the Settings
+/// card surfaces them via `BackfillOutcome::Ran.reports` independently.
+pub const LAST_RUN_AT_KEY: &str = "sync.backfill.last_run_at";
+
+/// `profile_setting` key for the background heartbeat cadence
+/// (minutes between successive passes). Read at the top of every
+/// [`heartbeat`] tick so a user-driven change applies on the next
+/// iteration without restarting the app.
+pub const HEARTBEAT_INTERVAL_KEY: &str = "sync.backfill.heartbeat_interval_min";
+
+/// Default heartbeat cadence — once per hour. Matches the typical
+/// "background sync" cadence other desktop clients (Spotify, Apple
+/// Music) advertise.
+pub const HEARTBEAT_INTERVAL_DEFAULT_MIN: i64 = 60;
+
+/// Lower bound on the heartbeat cadence. 15 minutes keeps a runaway
+/// `INSERT INTO profile_setting (key, value) VALUES ('…', '1')` from
+/// turning the desktop into a chatty polling client.
+pub const HEARTBEAT_INTERVAL_MIN_MIN: i64 = 15;
+
+/// Upper bound on the heartbeat cadence. 24 hours = the longest a
+/// user could reasonably want between automatic checks before they
+/// just disable the toggle outright.
+pub const HEARTBEAT_INTERVAL_MAX_MIN: i64 = 1440;
+
+/// Clamp a caller-supplied minutes value into the documented range.
+pub fn clamp_heartbeat_interval_min(minutes: i64) -> i64 {
+    minutes.clamp(HEARTBEAT_INTERVAL_MIN_MIN, HEARTBEAT_INTERVAL_MAX_MIN)
+}
 
 /// Read the per-profile auto-backfill enabled flag. Returns
 /// `false` when the row is absent (matches the opt-in default).
@@ -70,6 +106,77 @@ pub async fn write_auto_enabled(pool: &SqlitePool, enabled: bool) -> AppResult<(
     Ok(())
 }
 
+/// Read the epoch-millisecond timestamp of the last successful
+/// backfill pass. `None` when the user has never run one (fresh
+/// profile, opted-out, or first launch).
+pub async fn read_last_run_at(pool: &SqlitePool) -> AppResult<Option<i64>> {
+    let value: Option<String> =
+        sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = ?")
+            .bind(LAST_RUN_AT_KEY)
+            .fetch_optional(pool)
+            .await?;
+    // `parse::<i64>()` would normally fail on the corner case of a
+    // malformed value (the column is TEXT). Swallow the error so a
+    // corrupt row doesn't take the Settings card surface down — the
+    // next pass overwrites with a valid stamp.
+    Ok(value.and_then(|v| v.parse::<i64>().ok()))
+}
+
+/// Stamp the per-profile last-successful-backfill timestamp.
+async fn write_last_run_at(pool: &SqlitePool, epoch_ms: i64) -> AppResult<()> {
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value) VALUES (?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    )
+    .bind(LAST_RUN_AT_KEY)
+    .bind(epoch_ms.to_string())
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Read the per-profile heartbeat cadence (minutes). Falls back to
+/// [`HEARTBEAT_INTERVAL_DEFAULT_MIN`] when the row is absent or
+/// unparseable; the [`heartbeat`] task uses the same fallback so a
+/// fresh profile starts on the default cadence.
+pub async fn read_heartbeat_interval_min(pool: &SqlitePool) -> AppResult<i64> {
+    let value: Option<String> =
+        sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = ?")
+            .bind(HEARTBEAT_INTERVAL_KEY)
+            .fetch_optional(pool)
+            .await?;
+    Ok(value
+        .and_then(|v| v.parse::<i64>().ok())
+        .map(clamp_heartbeat_interval_min)
+        .unwrap_or(HEARTBEAT_INTERVAL_DEFAULT_MIN))
+}
+
+/// Persist the per-profile heartbeat cadence (minutes). The caller
+/// is responsible for [`clamp_heartbeat_interval_min`] — the Tauri
+/// command clamps so a malformed JSON payload can't land an
+/// out-of-range row.
+pub async fn write_heartbeat_interval_min(pool: &SqlitePool, minutes: i64) -> AppResult<()> {
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value) VALUES (?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    )
+    .bind(HEARTBEAT_INTERVAL_KEY)
+    .bind(minutes.to_string())
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Stamp `LAST_RUN_AT_KEY` with the current wall-clock. Best-effort:
+/// a write failure logs + swallows because losing the timestamp
+/// stamp shouldn't take down the surfaced backfill outcome.
+pub async fn stamp_last_run_at(pool: &SqlitePool) {
+    let now = Utc::now().timestamp_millis();
+    if let Err(err) = write_last_run_at(pool, now).await {
+        tracing::warn!(error = %err, "stamp_last_run_at failed");
+    }
+}
+
 /// Best-effort auto-backfill trigger. Reads every gate (auto
 /// enabled flag, offline mode, Local sync mode, JWT presence,
 /// profile canonical id) and short-circuits silently when any
@@ -81,8 +188,17 @@ pub async fn write_auto_enabled(pool: &SqlitePool, enabled: bool) -> AppResult<(
 /// `commands::sync::sync_set_mode`. Failures log + swallow so a
 /// transient network blip doesn't blow up the wrapping command.
 pub async fn maybe_auto_backfill(state: &AppState) -> AppResult<()> {
+    // Atomic snapshot of `(pool, profile_id)` so every per-profile
+    // read in this function — auto flag, sync mode, canonical
+    // lookup, `run_backfill`, post-pass stamp — sees the same
+    // profile, even if `activate_profile` swaps in a different
+    // one mid-call. Same pattern as `commands::sync::sync_backfill_now`.
+    let (pool, profile_id) = {
+        let guard = state.profile.read().await;
+        let active = guard.as_ref().ok_or(AppError::NoActiveProfile)?;
+        (active.pool.clone(), active.profile_id)
+    };
     // Gate 0 — auto flag must be on.
-    let pool = state.require_profile_pool().await?;
     if !read_auto_enabled(&pool).await? {
         return Ok(());
     }
@@ -104,11 +220,13 @@ pub async fn maybe_auto_backfill(state: &AppState) -> AppResult<()> {
         return Ok(());
     };
 
-    let profile_id = state.require_profile_id().await?;
+    // `canonical_id_for` hits the global `app.db`, not the
+    // per-profile pool, so it stays consistent with the pinned
+    // `profile_id` even across a concurrent activation.
     let profile_canonical_id =
         crate::db::profile_meta::canonical_id_for(&state.app_db, profile_id).await?;
 
-    match run_backfill(state, &client, profile_canonical_id.as_deref()).await {
+    match run_backfill(state, &pool, &client, profile_canonical_id.as_deref()).await {
         Ok(report) => {
             let entities_with_action = report
                 .reports
@@ -119,6 +237,10 @@ pub async fn maybe_auto_backfill(state: &AppState) -> AppResult<()> {
                 entities_with_action,
                 "auto-backfill pass completed",
             );
+            // Successful top-level pass — stamp regardless of
+            // per-entity row counters. The Settings card surfaces
+            // row-level failures separately via the live outcome.
+            stamp_last_run_at(&pool).await;
         }
         Err(err) => {
             tracing::warn!(error = %err, "auto-backfill pass failed");
@@ -188,12 +310,20 @@ pub enum BackfillOutcome {
 /// `client` is taken as a parameter (not built inside) so the
 /// caller can hand the same builder it used for the digest pass —
 /// reuses the underlying `reqwest::Client` connection pool.
+///
+/// `pool` is the **pinned** per-profile SQLite pool. The caller
+/// MUST acquire it under the same `state.profile.read()` guard
+/// that captures `profile_id` / `profile_canonical_id`, so a
+/// concurrent `activate_profile` swap can't pair this pass's
+/// local digest reads with another profile's canonical id on
+/// the wire. The submodules (`push`, `pull`, `lww`) consume the
+/// same `&pool` and never re-resolve from `state` themselves.
 pub async fn run_backfill(
     state: &AppState,
+    pool: &SqlitePool,
     client: &WaveflowServerClient,
     profile_canonical_id: Option<&str>,
 ) -> AppResult<BackfillReport> {
-    let pool = state.require_profile_pool().await?;
     let mut reports = Vec::with_capacity(digest::SUPPORTED_ENTITIES.len());
 
     for entity in digest::SUPPORTED_ENTITIES {
@@ -223,7 +353,7 @@ pub async fn run_backfill(
             }
         };
 
-        let local = match digest::read_local_digest(&pool, entity).await {
+        let local = match digest::read_local_digest(pool, entity).await {
             Ok(d) => d,
             Err(err) => {
                 report.error = Some(format!("local digest: {err}"));
@@ -252,7 +382,7 @@ pub async fn run_backfill(
         // ── push direction ───────────────────────────────────
         let push_res = push::push_missing_remotely(
             state,
-            &pool,
+            pool,
             entity,
             &d.missing_remotely,
             remote_max_hlc,
@@ -275,7 +405,7 @@ pub async fn run_backfill(
         let pull_res = pull::pull_missing_locally(
             state,
             client,
-            &pool,
+            pool,
             entity,
             canonical_arg,
             &d.missing_locally,
@@ -297,7 +427,7 @@ pub async fn run_backfill(
         let lww_res = lww::resolve_divergent(
             state,
             client,
-            &pool,
+            pool,
             entity,
             canonical_arg,
             &d.divergent,

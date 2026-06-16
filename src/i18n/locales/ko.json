@@ -1523,7 +1523,31 @@
       },
       "backfillError": "실패: {{message}}",
       "autoToggleTitle": "자동 동기화",
-      "autoToggleSubtitle": "부팅 시 그리고 하이브리드 모드로 전환할 때 동기화를 실행합니다"
+      "autoToggleSubtitle": "부팅 시 그리고 하이브리드 모드로 전환할 때 동기화를 실행합니다",
+      "cadenceTitle": "백그라운드 주기",
+      "cadenceSubtitle": "자동 동기화 간격",
+      "cadence": {
+        "every15Min": "15분마다",
+        "every30Min": "30분마다",
+        "every1Hour": "1시간마다",
+        "every6Hours": "6시간마다",
+        "every12Hours": "12시간마다",
+        "every24Hours": "하루 한 번"
+      },
+      "lastSyncNever": "동기화된 적 없음",
+      "lastSyncJustNow": "방금 전",
+      "lastSyncMinutesAgo": "{{count}}분 전",
+      "lastSyncHoursAgo": "{{count}}시간 전",
+      "lastSyncDaysAgo": "{{count}}일 전",
+      "drilldown": {
+        "loading": "세부 정보 불러오는 중…",
+        "error": "오류: {{message}}",
+        "empty": "표시할 세부 정보 없음",
+        "missingLocally": "로컬에 없음",
+        "missingRemotely": "원격에 없음",
+        "divergent": "불일치",
+        "moreNotShown": "{{count}}개 더 표시되지 않음"
+      }
     },
     "gapless": {
       "title": "갭리스 재생",

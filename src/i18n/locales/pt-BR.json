@@ -1523,7 +1523,31 @@
       },
       "backfillError": "Falhou: {{message}}",
       "autoToggleTitle": "Sincronização automática",
-      "autoToggleSubtitle": "Executa uma passada na inicialização e ao mudar para o modo Híbrido"
+      "autoToggleSubtitle": "Executa uma passada na inicialização e ao mudar para o modo Híbrido",
+      "cadenceTitle": "Cadência em segundo plano",
+      "cadenceSubtitle": "Intervalo entre sincronizações automáticas",
+      "cadence": {
+        "every15Min": "A cada 15 minutos",
+        "every30Min": "A cada 30 minutos",
+        "every1Hour": "A cada hora",
+        "every6Hours": "A cada 6 horas",
+        "every12Hours": "A cada 12 horas",
+        "every24Hours": "Uma vez por dia"
+      },
+      "lastSyncNever": "Nunca sincronizado",
+      "lastSyncJustNow": "Agora mesmo",
+      "lastSyncMinutesAgo": "Há {{count}} min",
+      "lastSyncHoursAgo": "Há {{count}} h",
+      "lastSyncDaysAgo": "Há {{count}} d",
+      "drilldown": {
+        "loading": "Carregando detalhes…",
+        "error": "Erro: {{message}}",
+        "empty": "Sem detalhes",
+        "missingLocally": "Faltando local",
+        "missingRemotely": "Faltando remoto",
+        "divergent": "Divergente",
+        "moreNotShown": "+ {{count}} mais não exibidos"
+      }
     },
     "gapless": {
       "title": "Reprodução contínua",

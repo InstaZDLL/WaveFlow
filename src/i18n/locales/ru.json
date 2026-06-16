@@ -1553,7 +1553,31 @@
       },
       "backfillError": "Сбой: {{message}}",
       "autoToggleTitle": "Автосинхронизация",
-      "autoToggleSubtitle": "Запускает проход при загрузке и при переключении в гибридный режим"
+      "autoToggleSubtitle": "Запускает проход при загрузке и при переключении в гибридный режим",
+      "cadenceTitle": "Фоновая частота",
+      "cadenceSubtitle": "Интервал между автоматическими синхронизациями",
+      "cadence": {
+        "every15Min": "Каждые 15 минут",
+        "every30Min": "Каждые 30 минут",
+        "every1Hour": "Каждый час",
+        "every6Hours": "Каждые 6 часов",
+        "every12Hours": "Каждые 12 часов",
+        "every24Hours": "Раз в день"
+      },
+      "lastSyncNever": "Никогда не синхронизировалось",
+      "lastSyncJustNow": "Только что",
+      "lastSyncMinutesAgo": "{{count}} мин назад",
+      "lastSyncHoursAgo": "{{count}} ч назад",
+      "lastSyncDaysAgo": "{{count}} д назад",
+      "drilldown": {
+        "loading": "Загрузка деталей…",
+        "error": "Ошибка: {{message}}",
+        "empty": "Нет данных",
+        "missingLocally": "Отсутствует локально",
+        "missingRemotely": "Отсутствует на сервере",
+        "divergent": "Расхождение",
+        "moreNotShown": "+ ещё {{count}} не показано"
+      }
     },
     "visualizer": {
       "title": "Аудио-визуализатор",

@@ -1515,7 +1515,31 @@
       },
       "backfillError": "فشل: {{message}}",
       "autoToggleTitle": "المزامنة التلقائية",
-      "autoToggleSubtitle": "تشغيل مزامنة عند الإقلاع وعند التبديل إلى الوضع الهجين"
+      "autoToggleSubtitle": "تشغيل مزامنة عند الإقلاع وعند التبديل إلى الوضع الهجين",
+      "cadenceTitle": "تواتر الخلفية",
+      "cadenceSubtitle": "الفاصل الزمني بين المزامنات التلقائية",
+      "cadence": {
+        "every15Min": "كل 15 دقيقة",
+        "every30Min": "كل 30 دقيقة",
+        "every1Hour": "كل ساعة",
+        "every6Hours": "كل 6 ساعات",
+        "every12Hours": "كل 12 ساعة",
+        "every24Hours": "مرة في اليوم"
+      },
+      "lastSyncNever": "لم تتم المزامنة مطلقاً",
+      "lastSyncJustNow": "للتو",
+      "lastSyncMinutesAgo": "قبل {{count}} دقيقة",
+      "lastSyncHoursAgo": "قبل {{count}} ساعة",
+      "lastSyncDaysAgo": "قبل {{count}} يوم",
+      "drilldown": {
+        "loading": "جاري تحميل التفاصيل…",
+        "error": "خطأ: {{message}}",
+        "empty": "لا توجد تفاصيل",
+        "missingLocally": "مفقود محلياً",
+        "missingRemotely": "مفقود عن بُعد",
+        "divergent": "متباين",
+        "moreNotShown": "+ {{count}} غير معروضة"
+      }
     },
     "visualizer": {
       "title": "محلل الصوت البصري",

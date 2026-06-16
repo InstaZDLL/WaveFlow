@@ -110,3 +110,119 @@ export function syncBackfillGetEnabled(): Promise<boolean> {
 export function syncBackfillSetEnabled(enabled: boolean): Promise<boolean> {
   return invoke<boolean>("sync_backfill_set_enabled", { enabled });
 }
+
+/**
+ * Snapshot of the backfill task surfaced to the Settings card.
+ * Powers the "Last sync: X ago" affordance and the disabled state
+ * on the manual button while a pass is mid-flight.
+ */
+export interface SyncBackfillStatus {
+  /** Epoch milliseconds of the last successful backfill pass,
+   * or `null` when none has ever run on this profile. */
+  last_run_at: number | null;
+  /** `true` when a pass is currently holding the per-state lock. */
+  in_progress: boolean;
+}
+
+/**
+ * Read the persisted "last successful backfill" timestamp + the
+ * live in-progress state. Cheap (one SELECT + one non-blocking
+ * `try_lock`), called on mount + after the manual button completes.
+ */
+export function syncBackfillGetStatus(): Promise<SyncBackfillStatus> {
+  return invoke<SyncBackfillStatus>("sync_backfill_get_status");
+}
+
+/**
+ * Read the per-profile heartbeat cadence (minutes between automatic
+ * background passes). Clamped server-side to the documented
+ * 15-1440 range so a malformed stored value can't crash the UI.
+ */
+export function syncBackfillGetHeartbeatInterval(): Promise<number> {
+  return invoke<number>("sync_backfill_get_heartbeat_interval");
+}
+
+/**
+ * Persist the per-profile heartbeat cadence (minutes). The backend
+ * clamps to the [15, 1440] range and echoes the stored value so the
+ * UI hydrates with whatever actually landed in the row.
+ */
+export function syncBackfillSetHeartbeatInterval(
+  minutes: number,
+): Promise<number> {
+  return invoke<number>("sync_backfill_set_heartbeat_interval", { minutes });
+}
+
+/**
+ * Hex-encoded `(canonical_id, payload_hash)` pair returned by the
+ * detailed digest endpoint. Used by the drill-down panel to show
+ * which specific rows the two replicas disagree on.
+ *
+ * For the `missing_remotely` and `divergent` buckets, the
+ * desktop's `local_payload_hash` is populated. For `divergent`,
+ * the server's `remote_payload_hash` is also present so the UI
+ * can render a side-by-side hash preview.
+ */
+export interface SyncDigestDivergentMember {
+  canonical_id: string;
+  /** Hex-encoded local payload_hash. Empty string when the member
+   * is absent locally (i.e. `missing_locally` direction handled by
+   * the sibling `SyncDigestRemoteMember`). */
+  local_payload_hash: string;
+  /** Hex-encoded server payload_hash. Empty string when the member
+   * is absent remotely (`missing_remotely` direction). */
+  remote_payload_hash: string;
+}
+
+/**
+ * Hex-encoded `(canonical_id, payload_hash)` pair from the server's
+ * digest response — used to surface the `missing_locally` bucket,
+ * where only the remote side has the row.
+ */
+export interface SyncDigestRemoteMember {
+  canonical_id: string;
+  /** Hex-encoded BLAKE3-256 payload_hash from the server. */
+  payload_hash: string;
+}
+
+/**
+ * Per-entity detailed digest diff — full member-level lists for
+ * the drill-down panel. Each bucket is truncated server-side to
+ * 100 entries so the IPC stays bounded; the `*_total` fields carry
+ * the un-truncated count so the UI can render "+N more".
+ */
+export interface SyncDigestDetailed {
+  entity: string;
+  in_sync: boolean;
+  local_version: number;
+  remote_version: number;
+  missing_locally: SyncDigestRemoteMember[];
+  missing_locally_total: number;
+  missing_remotely: SyncDigestDivergentMember[];
+  missing_remotely_total: number;
+  divergent: SyncDigestDivergentMember[];
+  divergent_total: number;
+}
+
+/**
+ * Outcome of [`syncDigestCheckDetailed`]. Mirrors the summary
+ * variant's shape so the UI can render gating reasons (offline /
+ * local mode / unconfigured) with the same code path.
+ */
+export type SyncDigestDetailedOutcome =
+  | { status: "ran"; diff: SyncDigestDetailed }
+  | { status: "skipped"; reason: string };
+
+/**
+ * Run a detailed digest check for a single entity. Returns the
+ * full member lists for the three diff buckets, truncated to 100
+ * entries per bucket. The Settings card calls this when the user
+ * expands a row in the summary table.
+ */
+export function syncDigestCheckDetailed(
+  entity: string,
+): Promise<SyncDigestDetailedOutcome> {
+  return invoke<SyncDigestDetailedOutcome>("sync_digest_check_detailed", {
+    entity,
+  });
+}

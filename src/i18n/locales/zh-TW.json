@@ -1470,7 +1470,31 @@
       },
       "backfillError": "失敗：{{message}}",
       "autoToggleTitle": "自動同步",
-      "autoToggleSubtitle": "在啟動時和切換至混合模式時執行一次同步"
+      "autoToggleSubtitle": "在啟動時和切換至混合模式時執行一次同步",
+      "cadenceTitle": "背景同步頻率",
+      "cadenceSubtitle": "自動同步間隔",
+      "cadence": {
+        "every15Min": "每 15 分鐘",
+        "every30Min": "每 30 分鐘",
+        "every1Hour": "每小時",
+        "every6Hours": "每 6 小時",
+        "every12Hours": "每 12 小時",
+        "every24Hours": "每天一次"
+      },
+      "lastSyncNever": "尚未同步",
+      "lastSyncJustNow": "剛剛",
+      "lastSyncMinutesAgo": "{{count}} 分鐘前",
+      "lastSyncHoursAgo": "{{count}} 小時前",
+      "lastSyncDaysAgo": "{{count}} 天前",
+      "drilldown": {
+        "loading": "正在載入詳細資訊…",
+        "error": "錯誤:{{message}}",
+        "empty": "沒有詳細資訊",
+        "missingLocally": "本機缺少",
+        "missingRemotely": "遠端缺少",
+        "divergent": "不一致",
+        "moreNotShown": "另有 {{count}} 項未顯示"
+      }
     },
     "gapless": {
       "title": "無縫播放",
