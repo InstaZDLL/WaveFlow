@@ -1481,6 +1481,36 @@
       "copied": "Logs copied",
       "copyFailed": "Unable to copy logs"
     },
+    "syncStatus": {
+      "title": "Sync status",
+      "loading": "Checking…",
+      "subtitleEmpty": "No entities to compare",
+      "subtitleAllInSync": "Everything is in sync",
+      "subtitleOutOfSync": "{{outOfSync}} of {{total}} out of sync",
+      "refresh": "Refresh",
+      "resyncNow": "Resync now",
+      "inSync": "In sync",
+      "outOfSync": "Out of sync",
+      "error": "Error: {{message}}",
+      "reasonGeneric": "Skipped ({{reason}})",
+      "reason": {
+        "offline": "Offline mode is active",
+        "sync_mode_local": "Profile is in Local mode",
+        "not_configured": "Server is not configured",
+        "profile_canonical_id_missing": "Initial sync pending"
+      },
+      "backfillAlreadyRunning": "A sync pass is already running",
+      "backfillSkipped": "Sync skipped ({{reason}})",
+      "backfillSummary": "{{pushed}} pushed · {{pulled}} pulled · {{lww}} merged · {{failed}} failed",
+      "col": {
+        "entity": "Entity",
+        "state": "State",
+        "missingLocally": "Missing locally",
+        "missingRemotely": "Missing remotely",
+        "divergent": "Divergent"
+      },
+      "backfillError": "Failed: {{message}}"
+    },
     "visualizer": {
       "title": "Audio visualizer",
       "subtitle": "Show a real-time spectrum in the immersive view (lightweight FFT on the decoder thread)"

@@ -1440,6 +1440,36 @@
       "copied": "ログをコピーしました",
       "copyFailed": "ログをコピーできませんでした"
     },
+    "syncStatus": {
+      "title": "同期ステータス",
+      "loading": "確認中…",
+      "subtitleEmpty": "比較するエンティティがありません",
+      "subtitleAllInSync": "すべて同期されています",
+      "subtitleOutOfSync": "{{total}} 件中 {{outOfSync}} 件が未同期",
+      "refresh": "更新",
+      "resyncNow": "今すぐ再同期",
+      "inSync": "同期済み",
+      "outOfSync": "差異あり",
+      "error": "エラー: {{message}}",
+      "reasonGeneric": "スキップ ({{reason}})",
+      "reason": {
+        "offline": "オフラインモードが有効です",
+        "sync_mode_local": "プロファイルがローカルモードです",
+        "not_configured": "サーバーが未設定です",
+        "profile_canonical_id_missing": "初回同期を待機中"
+      },
+      "backfillAlreadyRunning": "すでに同期が実行中です",
+      "backfillSkipped": "同期をスキップしました ({{reason}})",
+      "backfillSummary": "送信 {{pushed}} 件 · 受信 {{pulled}} 件 · 統合 {{lww}} 件 · 失敗 {{failed}} 件",
+      "col": {
+        "entity": "エンティティ",
+        "state": "状態",
+        "missingLocally": "ローカル欠落",
+        "missingRemotely": "リモート欠落",
+        "divergent": "差異"
+      },
+      "backfillError": "失敗: {{message}}"
+    },
     "gapless": {
       "title": "ギャップレス再生",
       "subtitle": "連続するトラックをマイクロサイレンスなしで繋ぎます（ライブやコンセプトアルバムに最適）"

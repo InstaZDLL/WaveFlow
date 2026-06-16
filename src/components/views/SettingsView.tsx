@@ -44,6 +44,7 @@ import {
   Puzzle,
 } from "lucide-react";
 import { ServerAccountCard } from "./settings/ServerAccountCard";
+import { SyncStatusCard } from "./settings/SyncStatusCard";
 import { PluginsCard } from "./settings/PluginsCard";
 import { useTheme } from "../../hooks/useTheme";
 import { THEME_PRESETS } from "../../lib/themes";
@@ -3132,6 +3133,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             {t("settings.sections.diagnostics")}
           </h2>
           <div className="space-y-1">
+            <SyncStatusCard />
             <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center space-x-4 min-w-0">
