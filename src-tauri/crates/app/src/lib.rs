@@ -632,6 +632,7 @@ pub fn run() {
             commands::sync::sync_set_mode,
             commands::sync::sync_drain_now,
             commands::sync::sync_digest_check,
+            commands::sync::sync_backfill_now,
             commands::offline::get_offline_mode,
             commands::offline::set_offline_mode,
             commands::preferences::get_minimize_to_tray,

@@ -49,6 +49,7 @@
 
 pub mod client;
 pub mod diff;
+pub mod entity_client;
 
 use serde::Serialize;
 use sqlx::SqlitePool;

@@ -55,6 +55,7 @@
 //!   1.f.desktop.4b). Closes the loop opened by [`drain`].
 
 pub mod apply;
+pub mod backfill;
 pub mod canonical;
 pub mod cursor;
 pub mod device;
