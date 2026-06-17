@@ -1,0 +1,103 @@
+/* ============================================================
+   Editorial skin
+   ============================================================
+   Reframes WaveFlow as a print/magazine experience. All rules
+   target STABLE SELECTORS — semantic landmarks (`aside`,
+   `header`, `footer`, `main`) or ARIA roles (`role="dialog"`,
+   `role="tooltip"`) — instead of substring-matching Tailwind
+   class names. That keeps the skin robust to component class
+   tweaks. */
+
+/* Display font + body font propagate via inheritance. */
+[data-skin="editorial"] body {
+  font-family: var(--skin-font-body);
+}
+
+/* Section labels — the all-caps `text-[10px] font-bold tracking-widest
+   uppercase` micro-labels become italic-serif magazine subheads. */
+[data-skin="editorial"] [class*="uppercase"][class*="font-bold"] {
+  font-family: var(--skin-font-display);
+  font-weight: var(--skin-heading-weight);
+  letter-spacing: 0.12em;
+  text-transform: none;
+  font-style: italic;
+  font-size: 0.75rem;
+  color: rgb(120 113 108); /* stone-500 */
+}
+:root.dark[data-skin="editorial"] [class*="uppercase"][class*="font-bold"] {
+  color: rgb(168 162 158); /* stone-400 */
+}
+
+/* Sidebar — warm off-white paper (light) / warm stone (dark) +
+   paper grain. */
+[data-skin="editorial"] aside {
+  background-color: rgb(250 247 240);
+  background-image: var(--skin-grain);
+  background-repeat: repeat;
+}
+:root.dark[data-skin="editorial"] aside {
+  background-color: rgb(28 25 23); /* stone-900 */
+  background-image: var(--skin-grain);
+}
+
+/* Active sidebar nav row — drop the accent pill background,
+   add an italic-serif treatment + inked left rule. */
+[data-skin="editorial"] aside button[class*="bg-emerald"][class*="rounded"] {
+  background-color: transparent !important;
+  border-left: 2px solid var(--accent-500);
+  padding-left: 0.625rem !important;
+  border-radius: 0 !important;
+  font-style: italic;
+}
+
+/* TopBar chrome — flatten + hairline divider. */
+[data-skin="editorial"] header {
+  border-bottom-color: var(--skin-divider);
+}
+
+/* View titles in main get an automatic magazine-chapter
+   hairline rule beneath. */
+[data-skin="editorial"] main :where(h1, h2):not([class*="border"]) {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--skin-divider);
+  margin-bottom: 1.25rem;
+}
+
+/* Cards inside the body that opted into a rounded utility get
+   the skin's tighter radius + flat shadow treatment. */
+[data-skin="editorial"] main [class*="rounded-xl"],
+[data-skin="editorial"] main [class*="rounded-2xl"],
+[data-skin="editorial"] main [class*="rounded-3xl"] {
+  border-radius: var(--skin-radius-card) !important;
+  box-shadow: var(--skin-shadow-card) !important;
+}
+
+/* Display surfaces (h1/h2/h3, larger title text) in the
+   display serif. */
+[data-skin="editorial"] :where(h1, h2, h3),
+[data-skin="editorial"] [class*="text-2xl"][class*="font-"],
+[data-skin="editorial"] [class*="text-3xl"][class*="font-"],
+[data-skin="editorial"] [class*="text-4xl"][class*="font-"] {
+  font-family: var(--skin-font-display);
+  font-weight: var(--skin-heading-weight);
+  letter-spacing: var(--skin-display-tracking);
+}
+
+/* Paper grain at the ambient body layer. */
+[data-skin="editorial"] body {
+  background-image: var(--skin-grain);
+  background-repeat: repeat;
+}
+
+/* Scrollbar — stone hairline that fits the paper aesthetic. */
+[data-skin="editorial"] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+[data-skin="editorial"] ::-webkit-scrollbar-thumb {
+  background-color: rgb(214 211 209); /* stone-300 */
+  border-radius: 1px;
+}
+:root.dark[data-skin="editorial"] ::-webkit-scrollbar-thumb {
+  background-color: rgb(68 64 60); /* stone-700 */
+}

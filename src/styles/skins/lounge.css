@@ -1,0 +1,77 @@
+/* ============================================================
+   Lounge skin — glass over album cover
+   ============================================================
+   Album cover bleeds through translucent chrome panels. All
+   rules target STABLE LANDMARKS (`aside`, `header`, `footer`,
+   `main`) plus a handful of ARIA roles (`role="tooltip"`,
+   `role="dialog"`). No substring-matching on Tailwind class
+   names — those proved fragile in earlier iterations (would
+   inadvertently catch `bg-zinc-900` inside a tooltip that uses
+   it for COLOUR INVERSION). */
+
+/* Body wrapper — make `bg-app-ambient` transparent so the
+   SkinAmbientBackdrop component bleeds through every layer
+   above it. Same reasoning for the document body. */
+:root[data-skin="lounge"] [class*="bg-app-ambient"] {
+  background-color: transparent !important;
+}
+:root[data-skin="lounge"] body {
+  color: rgb(244 244 245); /* zinc-100 — body text reads against the cover */
+}
+
+/* Sidebar — translucent slab over the cover, deep blur, faint
+   right-edge highlight. */
+:root[data-skin="lounge"] aside {
+  background-color: rgb(10 10 12 / 0.45) !important;
+  backdrop-filter: blur(40px) saturate(140%);
+  -webkit-backdrop-filter: blur(40px) saturate(140%);
+  border-right: 1px solid var(--skin-divider);
+}
+
+/* TopBar — very translucent so the cover (which is dim at the
+   top edge of the viewport because the cover image is centred)
+   still passes through, plus an accent-tinted radial highlight
+   so the topbar carries a hint of the active theme even when
+   the cover at the top is dark. */
+:root[data-skin="lounge"] header {
+  background-color: rgb(10 10 12 / 0.18) !important;
+  background-image: radial-gradient(
+    ellipse at 50% 0%,
+    color-mix(in oklch, var(--accent-500) 18%, transparent),
+    transparent 70%
+  ) !important;
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border-bottom: 1px solid var(--skin-divider);
+}
+
+/* PlayerBar — same glass treatment as the sidebar. Anchors
+   the chrome trio (sidebar + topbar + playerbar) as one
+   continuous glass surface around the body. */
+:root[data-skin="lounge"] footer {
+  background-color: rgb(10 10 12 / 0.45) !important;
+  backdrop-filter: blur(40px) saturate(140%);
+  -webkit-backdrop-filter: blur(40px) saturate(140%);
+  border-top: 1px solid var(--skin-divider) !important;
+}
+
+/* Body cards inside main — give the rounded card surfaces a
+   light glass treatment so they don't sit as solid dark
+   rectangles against the colourful cover. Using `:where()` to
+   keep specificity low so component-level styles (e.g. mood
+   tiles with explicit gradients) still win. */
+:root[data-skin="lounge"] main :where([class*="rounded-xl"], [class*="rounded-2xl"], [class*="rounded-3xl"]) {
+  background-color: rgb(10 10 12 / 0.32);
+  backdrop-filter: var(--skin-backdrop);
+  -webkit-backdrop-filter: var(--skin-backdrop);
+}
+
+/* Backdrop crossfade keyframe. */
+@keyframes loungeBackdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

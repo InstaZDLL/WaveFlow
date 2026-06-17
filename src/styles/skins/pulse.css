@@ -1,0 +1,75 @@
+/* ============================================================
+   Pulse skin — neon club
+   ============================================================
+   Dark OLED base + accent glow halos + pill chrome. Targets
+   STABLE LANDMARKS (`aside`, `header`, `footer`, `main`) so
+   the rules don't drift when component classes change. */
+
+:root[data-skin="pulse"] body {
+  color: rgb(244 244 245);
+  background-color: rgb(8 8 10); /* near-OLED */
+}
+
+:root[data-skin="pulse"] [class*="bg-app-ambient"] {
+  background-color: rgb(8 8 10) !important;
+  background-image: radial-gradient(
+    circle at 20% 20%,
+    color-mix(in oklch, var(--accent-500) 12%, transparent),
+    transparent 60%
+  );
+}
+
+/* Sidebar — accent-rimmed control surface lit from inside. */
+:root[data-skin="pulse"] aside {
+  background-color: rgb(8 8 10 / 0.85) !important;
+  border-right: 1px solid color-mix(in oklch, var(--accent-500) 35%, transparent);
+  box-shadow: 4px 0 32px -16px color-mix(in oklch, var(--accent-500) 60%, transparent);
+}
+
+/* TopBar — flat OLED with subtle accent tint at top centre,
+   matching the body radial gradient orientation. */
+:root[data-skin="pulse"] header {
+  background-color: rgb(8 8 10 / 0.85) !important;
+  background-image: radial-gradient(
+    ellipse at 50% 0%,
+    color-mix(in oklch, var(--accent-500) 22%, transparent),
+    transparent 65%
+  ) !important;
+  border-bottom: 1px solid color-mix(in oklch, var(--accent-500) 25%, transparent);
+}
+
+/* PlayerBar — same OLED treatment + accent rim on the top
+   edge so the bottom of the screen matches the top. */
+:root[data-skin="pulse"] footer {
+  background-color: rgb(8 8 10 / 0.85) !important;
+  border-top: 1px solid color-mix(in oklch, var(--accent-500) 25%, transparent) !important;
+  box-shadow: 0 -4px 32px -16px color-mix(in oklch, var(--accent-500) 60%, transparent);
+}
+
+/* Body cards inside main — OLED base + accent halo shadow.
+   The shadow IS the visual identity of Pulse. */
+:root[data-skin="pulse"] main :where([class*="rounded-xl"], [class*="rounded-2xl"], [class*="rounded-3xl"]) {
+  background-color: rgb(15 15 18);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06),
+    0 0 24px -4px color-mix(in oklch, var(--accent-500) 80%, transparent);
+}
+
+/* Buttons turn into pills. */
+:root[data-skin="pulse"] button[class*="rounded-lg"],
+:root[data-skin="pulse"] button[class*="rounded-md"],
+:root[data-skin="pulse"] a[class*="rounded-lg"],
+:root[data-skin="pulse"] a[class*="rounded-md"] {
+  border-radius: 9999px !important;
+}
+
+/* Display surfaces (h1/h2/h3, large title text) in monospace
+   with uppercase + extra tracking — tech-track aesthetic. */
+:root[data-skin="pulse"] :where(h1, h2, h3),
+:root[data-skin="pulse"] [class*="text-2xl"][class*="font-"],
+:root[data-skin="pulse"] [class*="text-3xl"][class*="font-"],
+:root[data-skin="pulse"] [class*="text-4xl"][class*="font-"] {
+  font-family: var(--skin-font-display);
+  font-weight: var(--skin-heading-weight);
+  letter-spacing: var(--skin-display-tracking);
+  text-transform: uppercase;
+}

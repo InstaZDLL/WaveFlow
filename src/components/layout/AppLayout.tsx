@@ -596,7 +596,7 @@ export function AppLayout() {
             />
 
             {/* Main Scrollable Content */}
-            <div
+            <main
               ref={pageScrollRef}
               className="flex-1 overflow-y-auto p-8 relative"
             >
@@ -620,7 +620,7 @@ export function AppLayout() {
                   </AnimatePresence>
                 </Suspense>
               </PageScrollContext.Provider>
-            </div>
+            </main>
 
             {/* Floating overlays anchored to the center column.
                 DeviceMenu = popup from the player bar's speaker icon;
