@@ -37,9 +37,9 @@
    / blues of the active album cover should be readable
    through the chrome. */
 :root[data-skin="lounge"] aside {
-  background-color: rgb(10 10 12 / 0.30) !important;
-  backdrop-filter: blur(40px) saturate(160%);
-  -webkit-backdrop-filter: blur(40px) saturate(160%);
+  background-color: rgb(10 10 12 / 0.18) !important;
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
   border-right: 1px solid var(--skin-divider);
 }
 
@@ -49,14 +49,14 @@
    so the topbar carries a hint of the active theme even when
    the cover at the top is dark. */
 :root[data-skin="lounge"] header {
-  background-color: rgb(10 10 12 / 0.18) !important;
+  background-color: rgb(10 10 12 / 0.10) !important;
   background-image: radial-gradient(
     ellipse at 50% 0%,
-    color-mix(in oklch, var(--accent-500) 18%, transparent),
+    color-mix(in oklch, var(--accent-500) 14%, transparent),
     transparent 70%
   ) !important;
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
   border-bottom: 1px solid var(--skin-divider);
 }
 
@@ -67,9 +67,9 @@
    small text (track title, time codes) that needs more bg
    to lift off the cover. */
 :root[data-skin="lounge"] footer {
-  background-color: rgb(10 10 12 / 0.40) !important;
-  backdrop-filter: blur(40px) saturate(160%);
-  -webkit-backdrop-filter: blur(40px) saturate(160%);
+  background-color: rgb(10 10 12 / 0.28) !important;
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
   border-top: 1px solid var(--skin-divider) !important;
 }
 
@@ -85,9 +85,9 @@
    colour bleed through and tint each card naturally — the
    point of the skin. */
 :root[data-skin="lounge"] main :where([class*="rounded-xl"], [class*="rounded-2xl"], [class*="rounded-3xl"]) {
-  background-color: rgb(10 10 12 / 0.22) !important;
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  background-color: rgb(10 10 12 / 0.12) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
 /* Backdrop crossfade keyframe. */
