@@ -182,12 +182,12 @@
    magazine. Targeted by structure (`aside` + flex-col w-72 ish)
    so the existing Tailwind utilities still apply, we just
    layer the editorial details on top. */
-[data-skin="editorial"] aside.w-72 {
+[data-skin="editorial"] aside {
   background-color: rgb(250 247 240); /* off-white paper */
   background-image: var(--skin-grain);
   background-repeat: repeat;
 }
-:root.dark[data-skin="editorial"] aside.w-72 {
+:root.dark[data-skin="editorial"] aside {
   background-color: rgb(28 25 23); /* stone-900 — warm dark */
   background-image: var(--skin-grain);
 }
@@ -197,8 +197,8 @@
    `rounded-lg` look (NavItem renders one). Editorial favours a
    subtle left rule on hover/active instead of a rounded bg
    pill — closer to a table-of-contents page. */
-[data-skin="editorial"] aside.w-72 button[class*="rounded"],
-[data-skin="editorial"] aside.w-72 a[class*="rounded"] {
+[data-skin="editorial"] aside button[class*="rounded"],
+[data-skin="editorial"] aside a[class*="rounded"] {
   border-radius: var(--skin-radius-button) !important;
 }
 
@@ -266,7 +266,7 @@
    with an inked left rule. The `aria-current`-style hack
    targets buttons whose tailwind classes include both
    `bg-emerald-` AND `rounded` — i.e. an active nav row. */
-[data-skin="editorial"] aside.w-72 button[class*="bg-emerald"][class*="rounded"] {
+[data-skin="editorial"] aside button[class*="bg-emerald"][class*="rounded"] {
   background-color: transparent !important;
   border-left: 2px solid var(--accent-500);
   padding-left: 0.625rem !important;
@@ -367,7 +367,7 @@
 /* Lounge sidebar — translucent slab over the cover. The
    border-right turns into a faint inner highlight so the
    sidebar reads as an upright glass pane. */
-:root[data-skin="lounge"] aside.w-72 {
+:root[data-skin="lounge"] aside {
   background-color: rgb(10 10 12 / 0.45) !important;
   backdrop-filter: blur(40px) saturate(140%);
   -webkit-backdrop-filter: blur(40px) saturate(140%);
@@ -459,7 +459,7 @@
 /* Pulse — sidebar gets a vibrant accent rim on the right
    edge so it reads as a control surface lit from inside,
    not a passive panel. */
-:root[data-skin="pulse"] aside.w-72 {
+:root[data-skin="pulse"] aside {
   background-color: rgb(8 8 10 / 0.85) !important;
   border-right: 1px solid color-mix(in oklch, var(--accent-500) 35%, transparent);
   box-shadow: 4px 0 32px -16px color-mix(in oklch, var(--accent-500) 60%, transparent);
