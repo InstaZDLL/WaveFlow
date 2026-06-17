@@ -20,11 +20,14 @@
 }
 
 /* Sidebar — translucent slab over the cover, deep blur, faint
-   right-edge highlight. */
+   right-edge highlight. Lower alpha (0.30) so the cover's
+   colour stains the sidebar visibly — the warm reds / pinks
+   / blues of the active album cover should be readable
+   through the chrome. */
 :root[data-skin="lounge"] aside {
-  background-color: rgb(10 10 12 / 0.45) !important;
-  backdrop-filter: blur(40px) saturate(140%);
-  -webkit-backdrop-filter: blur(40px) saturate(140%);
+  background-color: rgb(10 10 12 / 0.30) !important;
+  backdrop-filter: blur(40px) saturate(160%);
+  -webkit-backdrop-filter: blur(40px) saturate(160%);
   border-right: 1px solid var(--skin-divider);
 }
 
@@ -45,25 +48,29 @@
   border-bottom: 1px solid var(--skin-divider);
 }
 
-/* PlayerBar — same glass treatment as the sidebar. Anchors
-   the chrome trio (sidebar + topbar + playerbar) as one
-   continuous glass surface around the body. */
+/* PlayerBar — same recipe as the sidebar so the chrome trio
+   (sidebar + topbar + playerbar) frames the body as one
+   continuous translucent surface. Slightly higher alpha
+   (0.40) than the sidebar because the playerbar carries
+   small text (track title, time codes) that needs more bg
+   to lift off the cover. */
 :root[data-skin="lounge"] footer {
-  background-color: rgb(10 10 12 / 0.45) !important;
-  backdrop-filter: blur(40px) saturate(140%);
-  -webkit-backdrop-filter: blur(40px) saturate(140%);
+  background-color: rgb(10 10 12 / 0.40) !important;
+  backdrop-filter: blur(40px) saturate(160%);
+  -webkit-backdrop-filter: blur(40px) saturate(160%);
   border-top: 1px solid var(--skin-divider) !important;
 }
 
-/* Body cards inside main — give the rounded card surfaces a
-   light glass treatment so they don't sit as solid dark
-   rectangles against the colourful cover. Using `:where()` to
-   keep specificity low so component-level styles (e.g. mood
-   tiles with explicit gradients) still win. */
+/* Body cards inside main — translucent glass over the cover.
+   `:where()` keeps the specificity low so any component-level
+   gradient (mood tiles, banners with their own gradient bg,
+   etc.) still wins. Very low alpha (0.22) so the cover's
+   colour bleeds through and tints the card naturally — the
+   point of the skin. */
 :root[data-skin="lounge"] main :where([class*="rounded-xl"], [class*="rounded-2xl"], [class*="rounded-3xl"]) {
-  background-color: rgb(10 10 12 / 0.32);
-  backdrop-filter: var(--skin-backdrop);
-  -webkit-backdrop-filter: var(--skin-backdrop);
+  background-color: rgb(10 10 12 / 0.22);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
 }
 
 /* Backdrop crossfade keyframe. */

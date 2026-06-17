@@ -57,13 +57,13 @@ export function SkinAmbientBackdrop() {
           className="absolute inset-0 bg-center bg-cover"
           style={{
             backgroundImage: `url("${resolved}")`,
-            // Lighter dim than the original (brightness 0.6 was
-            // too aggressive — combined with the body glass
-            // overlay on top, the cover effectively vanished).
-            // 0.85 keeps the album's mood readable without
-            // fighting text contrast on the chrome.
-            filter: "blur(48px) saturate(150%) brightness(0.85)",
-            transform: "scale(1.2)",
+            // Vivid: brightness almost full + heavy saturation
+            // boost so the album's dominant colour (warm reds
+            // on the current track, etc.) reads as the
+            // ambient mood. Earlier `brightness(0.6)` washed
+            // every cover out to dim gray.
+            filter: "blur(56px) saturate(180%) brightness(0.95)",
+            transform: "scale(1.25)",
             // Skip the cross-fade keyframe when the user opted
             // out of motion — the cover swap becomes an instant
             // cut, which is the conventional reduced-motion
@@ -74,12 +74,12 @@ export function SkinAmbientBackdrop() {
           }}
         />
       )}
-      {/* Gentle vignette — lifted from the original 30-50 %
-          black overlay because that, combined with the body
-          glass on top of the chrome, ate the cover entirely.
-          Just enough darkening at the very top + bottom to
-          keep the topbar / playerbar text legible. */}
-      <div className="absolute inset-0 bg-linear-to-b from-black/15 via-transparent to-black/25" />
+      {/* Featherweight vignette — only darkens the very top +
+          bottom edges where the chrome (header + footer) sit,
+          so their text stays legible. The body section in the
+          middle stays untouched so the cover's colour can
+          dominate. */}
+      <div className="absolute inset-0 bg-linear-to-b from-black/10 via-transparent to-black/15" />
     </div>
   );
 }
