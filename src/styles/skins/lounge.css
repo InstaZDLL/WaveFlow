@@ -19,6 +19,18 @@
   color: rgb(244 244 245); /* zinc-100 — body text reads against the cover */
 }
 
+/* AppLayout's center-column wrapper paints `dark:bg-zinc-900/50`
+   so the body ambient bleeds through ~half on dark theme. Under
+   Lounge that wrapper sits BETWEEN the SkinAmbientBackdrop
+   (`z-index: -10`) and `main`, and the 50% gray fully washes the
+   album cover out to a uniform gray — defeating the whole point
+   of the skin. Match the wrapper structurally by its children
+   (TopBar `<header>` + view `<main>`) so we don't depend on
+   class-name substring matching. */
+:root[data-skin="lounge"] div:has(> header):has(> main) {
+  background-color: transparent !important;
+}
+
 /* Sidebar — translucent slab over the cover, deep blur, faint
    right-edge highlight. Lower alpha (0.30) so the cover's
    colour stains the sidebar visibly — the warm reds / pinks
