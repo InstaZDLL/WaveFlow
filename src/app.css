@@ -374,18 +374,30 @@
   border-right: 1px solid var(--skin-divider);
 }
 
-/* Lounge topbar — same glass treatment as the sidebar so the
-   chrome reads as one continuous surface above the cover
-   backdrop. The generic `bg-zinc-900` substring match in the
-   body override above would catch the topbar too, but with
-   shallower blur (`var(--skin-backdrop)` = 28 px) + 0.55
-   alpha. Promoting it here to the deeper sidebar-grade blur
-   + lower alpha lets the cover bleed through the top
-   evenly. */
+/* Lounge topbar — explicit glass treatment. Even with the
+   sidebar's blur + alpha values, the topbar visually reads as
+   solid dark because the album-cover backdrop is positioned
+   `bg-center bg-cover scale(1.2)`: the top strip of the
+   viewport gets the UPPER MARGIN of the scaled cover image,
+   which is the dimmest / least-colourful portion of most
+   album art. The sidebar spans the full viewport height and
+   intersects the cover's centre — where the saturated colours
+   live — so it looks alive while the topbar looks flat.
+   Compensating: very low alpha (0.18) so what little cover
+   is visible passes through, lighter blur (24 px) so the
+   underlying pixels stay legible, and an accent-tinted
+   radial highlight anchored to the centre so the topbar
+   carries a hint of the active theme's signature even when
+   the cover at the top is pitch black. */
 :root[data-skin="lounge"] header {
-  background-color: rgb(10 10 12 / 0.45) !important;
-  backdrop-filter: blur(40px) saturate(140%);
-  -webkit-backdrop-filter: blur(40px) saturate(140%);
+  background-color: rgb(10 10 12 / 0.18) !important;
+  background-image: radial-gradient(
+    ellipse at 50% 0%,
+    color-mix(in oklch, var(--accent-500) 18%, transparent),
+    transparent 70%
+  ) !important;
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
   border-bottom: 1px solid var(--skin-divider);
 }
 
