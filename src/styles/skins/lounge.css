@@ -74,13 +74,18 @@
 }
 
 /* Body cards inside main — translucent glass over the cover.
-   `:where()` keeps the specificity low so any component-level
-   gradient (mood tiles, banners with their own gradient bg,
-   etc.) still wins. Very low alpha (0.22) so the cover's
-   colour bleeds through and tints the card naturally — the
+   `!important` on `background-color` so we beat every per-card
+   `bg-zinc-900` / `dark:bg-zinc-900/X` Tailwind utility (each
+   wins at specificity (0,1,0) which a `:where()` selector
+   can never reach). Component-level GRADIENTS (Mood Radio
+   tiles, Welcome Banner) use `background-image:
+   linear-gradient(...)` — a different property entirely — so
+   they still paint on top of our translucent base and keep
+   their identity. Very low alpha (0.22) lets the cover's
+   colour bleed through and tint each card naturally — the
    point of the skin. */
 :root[data-skin="lounge"] main :where([class*="rounded-xl"], [class*="rounded-2xl"], [class*="rounded-3xl"]) {
-  background-color: rgb(10 10 12 / 0.22);
+  background-color: rgb(10 10 12 / 0.22) !important;
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
 }
