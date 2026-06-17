@@ -1658,6 +1658,14 @@
         "editorial": {
           "label": "Editorial",
           "description": "종이 매거진 — 에디토리얼 세리프, 가는 선, 은은한 그레인, 여유로운 여백."
+        },
+        "lounge": {
+          "label": "Lounge",
+          "description": "프리미엄 글래스 — 앨범 커버가 배경이 되고, 반투명 패널, 부드러운 전환."
+        },
+        "pulse": {
+          "label": "Pulse",
+          "description": "네온 클럽 — OLED 기반, 활성 요소 주변의 컬러 헤일로, 모노 알약, 탄력 있는 모션."
         }
       }
     },

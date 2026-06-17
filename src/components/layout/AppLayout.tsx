@@ -12,6 +12,8 @@ import { useProfile } from "../../hooks/useProfile";
 import { usePlayer } from "../../hooks/usePlayer";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
 import { Sidebar } from "./Sidebar";
+import { SkinAmbientBackdrop } from "./SkinAmbientBackdrop";
+import { SkinMotionWrapper } from "./SkinMotionWrapper";
 import { useDragDropImport } from "../../hooks/useDragDropImport";
 import { useGlobalShortcuts } from "../../hooks/useGlobalShortcuts";
 import { useUiZoom } from "../../hooks/useUiZoom";
@@ -508,7 +510,9 @@ export function AppLayout() {
   }
 
   return (
-    <div className="flex flex-col h-screen font-sans">
+    <SkinMotionWrapper>
+      <SkinAmbientBackdrop />
+      <div className="flex flex-col h-screen font-sans">
       <div className="flex flex-col h-screen bg-app-ambient text-zinc-600 dark:text-zinc-300 relative">
         {/* Drag-and-drop overlay — fades in while the user is dragging
             files over the window, and shows an "importing…" state while
@@ -657,5 +661,6 @@ export function AppLayout() {
       <ScanProgressToast />
       {showOnboarding && <OnboardingModal onSkip={dismissOnboarding} />}
     </div>
+    </SkinMotionWrapper>
   );
 }

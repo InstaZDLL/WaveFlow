@@ -1658,6 +1658,14 @@
         "editorial": {
           "label": "Editorial",
           "description": "Magazin auf Papier — Editorial-Serife, feine Linien, sanftes Korn, großzügiger Raum."
+        },
+        "lounge": {
+          "label": "Lounge",
+          "description": "Premium-Glas — das Album-Cover wird zum Hintergrund, durchscheinende Panels, langsame Übergänge."
+        },
+        "pulse": {
+          "label": "Pulse",
+          "description": "Neon-Club — OLED-Basis, farbige Halos um aktive Elemente, Mono-Pills, federnde Animationen."
         }
       }
     },

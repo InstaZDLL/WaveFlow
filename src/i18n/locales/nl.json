@@ -1658,6 +1658,14 @@
         "editorial": {
           "label": "Editorial",
           "description": "Tijdschrift op papier — editorial serif, fijne lijnen, zachte korrel, royale ruimte."
+        },
+        "lounge": {
+          "label": "Lounge",
+          "description": "Premium glas — de albumhoes wordt de achtergrond, doorschijnende panelen, zachte overgangen."
+        },
+        "pulse": {
+          "label": "Pulse",
+          "description": "Neonclub — OLED-basis, gekleurde halo's rond actieve items, mono-pills, veerkrachtige animaties."
         }
       }
     },

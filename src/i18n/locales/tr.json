@@ -1658,6 +1658,14 @@
         "editorial": {
           "label": "Editorial",
           "description": "Kağıt dergi — editoryal serif, ince çizgiler, yumuşak tane, geniş boşluk."
+        },
+        "lounge": {
+          "label": "Lounge",
+          "description": "Premium cam — albüm kapağı arka plan olur, yarı saydam paneller, yumuşak geçişler."
+        },
+        "pulse": {
+          "label": "Pulse",
+          "description": "Neon kulüp — OLED zemin, aktif öğeler etrafında renkli haleler, mono pill'ler, yaylı animasyonlar."
         }
       }
     },

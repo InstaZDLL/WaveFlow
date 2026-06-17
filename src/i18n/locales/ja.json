@@ -1605,6 +1605,14 @@
         "editorial": {
           "label": "Editorial",
           "description": "紙の雑誌 — エディトリアル・セリフ、極細の罫線、柔らかい紙目、ゆとりある余白。"
+        },
+        "lounge": {
+          "label": "Lounge",
+          "description": "プレミアム・グラス — アルバムカバーが背景になり、半透明パネル、滑らかな遷移。"
+        },
+        "pulse": {
+          "label": "Pulse",
+          "description": "ネオン・クラブ — OLED ベース、アクティブ項目を彩るハロー、モノ調のピル、スプリング感のあるモーション。"
         }
       }
     },
