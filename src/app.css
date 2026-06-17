@@ -316,14 +316,27 @@
 :root[data-skin="lounge"] [class*="bg-surface-dark"],
 :root[data-skin="lounge"] [class*="bg-zinc-900"],
 :root[data-skin="lounge"] [class*="bg-zinc-950"],
+:root[data-skin="lounge"] [class*="bg-zinc-800"],
+:root[data-skin="lounge"] [class*="bg-zinc-700"],
 :root[data-skin="lounge"] [class*="bg-black"] {
   background-color: rgb(10 10 12 / 0.55) !important;
   backdrop-filter: var(--skin-backdrop);
   -webkit-backdrop-filter: var(--skin-backdrop);
 }
+/* Cover the full light-zinc ladder too — without these, small
+   controls inside the sidebar / topbar that use `bg-zinc-50`
+   or `bg-zinc-100` (profile pill, segmented controls, etc.)
+   stay light while the body of the app goes dark glass, and
+   the Lounge text-color flip then prints zinc-300 ink on a
+   still-light surface = unreadable (the original bug behind
+   the user-reported "Lounge problème avec le blanc"). */
 :root[data-skin="lounge"] [class*="bg-surface-light"],
-:root[data-skin="lounge"] [class*="bg-white"] {
-  background-color: rgb(255 255 255 / 0.10) !important;
+:root[data-skin="lounge"] [class*="bg-white"],
+:root[data-skin="lounge"] [class*="bg-zinc-50"],
+:root[data-skin="lounge"] [class*="bg-zinc-100"],
+:root[data-skin="lounge"] [class*="bg-zinc-200"],
+:root[data-skin="lounge"] [class*="bg-zinc-300"] {
+  background-color: rgb(10 10 12 / 0.45) !important;
   backdrop-filter: var(--skin-backdrop);
   -webkit-backdrop-filter: var(--skin-backdrop);
 }
@@ -450,14 +463,26 @@
 
 /* Pulse — surfaces that opted into a zinc surface flip to
    the OLED base + a subtle inner rim. Keeps cards looking
-   "lit" rather than flat. */
+   "lit" rather than flat. Covers the full zinc ladder (light
+   AND dark tones) so small controls inside the chrome — the
+   sidebar profile pill (`bg-zinc-50 dark:bg-zinc-800/50`),
+   segmented controls, hover/active states — don't leak the
+   pre-skin grey palette through the OLED body. Without the
+   light-zinc entries, those controls stay light while the
+   text flips to zinc-300 = unreadable. */
 :root[data-skin="pulse"] [class*="bg-surface-dark"],
 :root[data-skin="pulse"] [class*="bg-zinc-900"],
-:root[data-skin="pulse"] [class*="bg-zinc-950"] {
+:root[data-skin="pulse"] [class*="bg-zinc-950"],
+:root[data-skin="pulse"] [class*="bg-zinc-800"],
+:root[data-skin="pulse"] [class*="bg-zinc-700"] {
   background-color: rgb(15 15 18) !important;
 }
 :root[data-skin="pulse"] [class*="bg-surface-light"],
-:root[data-skin="pulse"] [class*="bg-white"] {
+:root[data-skin="pulse"] [class*="bg-white"],
+:root[data-skin="pulse"] [class*="bg-zinc-50"],
+:root[data-skin="pulse"] [class*="bg-zinc-100"],
+:root[data-skin="pulse"] [class*="bg-zinc-200"],
+:root[data-skin="pulse"] [class*="bg-zinc-300"] {
   background-color: rgb(15 15 18) !important;
 }
 
@@ -493,6 +518,12 @@
    except its own `!important` parent rules, which it does via
    the explicit `revert !important`. */
 [data-skin-immune] :where([class*="bg-white"]),
+[data-skin-immune] :where([class*="bg-zinc-50"]),
+[data-skin-immune] :where([class*="bg-zinc-100"]),
+[data-skin-immune] :where([class*="bg-zinc-200"]),
+[data-skin-immune] :where([class*="bg-zinc-300"]),
+[data-skin-immune] :where([class*="bg-zinc-700"]),
+[data-skin-immune] :where([class*="bg-zinc-800"]),
 [data-skin-immune] :where([class*="bg-zinc-900"]),
 [data-skin-immune] :where([class*="bg-zinc-950"]),
 [data-skin-immune] :where([class*="bg-black"]),
