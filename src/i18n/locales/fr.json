@@ -1290,6 +1290,14 @@
         "editorial": {
           "label": "Editorial",
           "description": "Magazine sur papier — serif éditorial, filets fins, grain doux, espace généreux."
+        },
+        "lounge": {
+          "label": "Lounge",
+          "description": "Glass premium — la pochette de l'album devient l'arrière-plan, panneaux translucides, transitions douces."
+        },
+        "pulse": {
+          "label": "Pulse",
+          "description": "Club néon — base OLED, halos colorés autour des éléments actifs, pills mono, animations ressorts."
         }
       },
       "mode": {

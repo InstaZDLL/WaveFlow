@@ -1605,6 +1605,14 @@
         "editorial": {
           "label": "Editorial",
           "description": "纸质杂志 — 编辑衬线体、细发丝线、柔和纸纹、宽松留白。"
+        },
+        "lounge": {
+          "label": "Lounge",
+          "description": "高级玻璃 — 专辑封面成为背景,半透明面板,缓慢过渡。"
+        },
+        "pulse": {
+          "label": "Pulse",
+          "description": "霓虹俱乐部 — OLED 底色,活动元素周围的彩色光晕,等宽胶囊,弹性动效。"
         }
       }
     },

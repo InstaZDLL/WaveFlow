@@ -1658,6 +1658,14 @@
         "editorial": {
           "label": "Editorial",
           "description": "Revista en papel — serif editorial, filetes finos, grano suave, espacio generoso."
+        },
+        "lounge": {
+          "label": "Lounge",
+          "description": "Cristal premium — la carátula del álbum se convierte en el fondo, paneles translúcidos, transiciones suaves."
+        },
+        "pulse": {
+          "label": "Pulse",
+          "description": "Club neón — base OLED, halos de color en los elementos activos, pills mono, animaciones tipo resorte."
         }
       }
     },

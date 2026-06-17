@@ -1658,6 +1658,14 @@
         "editorial": {
           "label": "Editorial",
           "description": "Majalah di atas kertas — serif editorial, garis tipis, bintik halus, ruang lapang."
+        },
+        "lounge": {
+          "label": "Lounge",
+          "description": "Kaca premium — sampul album menjadi latar, panel tembus pandang, transisi halus."
+        },
+        "pulse": {
+          "label": "Pulse",
+          "description": "Klub neon — basis OLED, halo warna di sekitar elemen aktif, pill mono, animasi pegas."
         }
       }
     },

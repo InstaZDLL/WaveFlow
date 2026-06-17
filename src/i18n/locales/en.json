@@ -1658,6 +1658,14 @@
         "editorial": {
           "label": "Editorial",
           "description": "Magazine on paper — editorial serif, hairline rules, soft grain, generous space."
+        },
+        "lounge": {
+          "label": "Lounge",
+          "description": "Premium glass — the album cover becomes the backdrop, translucent panels, slow transitions."
+        },
+        "pulse": {
+          "label": "Pulse",
+          "description": "Neon club — OLED base, colored halos around active items, mono pills, springy motion."
         }
       }
     },

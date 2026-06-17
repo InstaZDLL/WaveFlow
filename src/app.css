@@ -239,6 +239,235 @@
   background-repeat: repeat;
 }
 
+/* Editorial — view titles get a hairline rule beneath, a
+   trick lifted straight from print layout: every chapter
+   begins with a "magazine title bar". Targets the most common
+   page-title pattern (h1 / h2 sitting first in a flex-col
+   header) by piling onto `:where()` so the cascade weight
+   stays low and downstream `class="text-emerald-500"` can
+   still re-tint the divider. */
+[data-skin="editorial"] :where(main, section) > :where(h1, h2):not([class*="border"]) {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--skin-divider);
+  margin-bottom: 1.25rem;
+}
+
+/* Editorial — pill-shaped active states get traded for
+   underline / left-rule treatments. NavItem renders
+   `bg-emerald-500/10 text-emerald-500 rounded-lg` when active;
+   Editorial drops the pill and gives it a serif italic feel
+   with an inked left rule. The `aria-current`-style hack
+   targets buttons whose tailwind classes include both
+   `bg-emerald-` AND `rounded` — i.e. an active nav row. */
+[data-skin="editorial"] aside.w-72 button[class*="bg-emerald"][class*="rounded"] {
+  background-color: transparent !important;
+  border-left: 2px solid var(--accent-500);
+  padding-left: 0.625rem !important;
+  border-radius: 0 !important;
+  font-style: italic;
+}
+
+/* Editorial — scrollbar styling. Replace the chrome-defaulty
+   scrollbar with a hairline that fits the paper aesthetic.
+   Webkit + Gecko both honour these. */
+[data-skin="editorial"] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+[data-skin="editorial"] ::-webkit-scrollbar-thumb {
+  background-color: rgb(214 211 209); /* stone-300 */
+  border-radius: 1px;
+}
+:root.dark[data-skin="editorial"] ::-webkit-scrollbar-thumb {
+  background-color: rgb(68 64 60); /* stone-700 */
+}
+
+/* ============================================================
+   Lounge skin overrides
+   ============================================================
+   Lounge frames every panel as a glass surface laid over the
+   currently-playing track's cover art (rendered fullscreen
+   blurred by `SkinAmbientBackdrop`). The chrome becomes
+   translucent, the sidebar dissolves into the ambient cover,
+   surfaces gain a thick backdrop blur, and the colour palette
+   leans onto whatever the album cover brings to the table. */
+
+/* Lounge runs dark-by-default — the cover backdrop needs a
+   dark vignette to keep text readable. Force the `dark` class
+   reliability check at the body level so the rest of the
+   cascade keeps working without forcing the theme system
+   to also flip. */
+:root[data-skin="lounge"] body {
+  color: rgb(244 244 245); /* zinc-100 */
+}
+
+/* Lounge ambient — the `bg-app-ambient` token resolves to
+   transparent so the backdrop component bleeds through.
+   Without this the AppLayout root would paint a solid panel
+   over the cover and we'd lose the whole effect. */
+:root[data-skin="lounge"] [class*="bg-app-ambient"] {
+  background-color: transparent !important;
+}
+
+/* Lounge — every panel that opted into a surface token goes
+   translucent over the cover. `bg-white` / `bg-zinc-900` /
+   `bg-surface-*` all collapse to one of two glass treatments
+   so the cover's colour seeps through naturally. */
+:root[data-skin="lounge"] [class*="bg-surface-dark"],
+:root[data-skin="lounge"] [class*="bg-zinc-900"],
+:root[data-skin="lounge"] [class*="bg-zinc-950"],
+:root[data-skin="lounge"] [class*="bg-black"] {
+  background-color: rgb(10 10 12 / 0.55) !important;
+  backdrop-filter: var(--skin-backdrop);
+  -webkit-backdrop-filter: var(--skin-backdrop);
+}
+:root[data-skin="lounge"] [class*="bg-surface-light"],
+:root[data-skin="lounge"] [class*="bg-white"] {
+  background-color: rgb(255 255 255 / 0.10) !important;
+  backdrop-filter: var(--skin-backdrop);
+  -webkit-backdrop-filter: var(--skin-backdrop);
+}
+
+/* Lounge sidebar — translucent slab over the cover. The
+   border-right turns into a faint inner highlight so the
+   sidebar reads as an upright glass pane. */
+:root[data-skin="lounge"] aside.w-72 {
+  background-color: rgb(10 10 12 / 0.45) !important;
+  backdrop-filter: blur(40px) saturate(140%);
+  -webkit-backdrop-filter: blur(40px) saturate(140%);
+  border-right: 1px solid var(--skin-divider);
+}
+
+/* Lounge cards — generous radius, glass shadow, soft inner
+   highlight. Every `rounded-{xl,2xl,3xl}` card stamps the
+   token. */
+:root[data-skin="lounge"] [class*="rounded-xl"],
+:root[data-skin="lounge"] [class*="rounded-2xl"],
+:root[data-skin="lounge"] [class*="rounded-3xl"] {
+  border-radius: var(--skin-radius-card) !important;
+  box-shadow: var(--skin-shadow-card) !important;
+}
+
+/* Lounge text contrast — most surfaces are dark-glass even
+   under light themes, so dial bodies up to zinc-100 and
+   secondary text to zinc-300. Skip the picker preview so the
+   Settings card doesn't go unreadable. */
+:root[data-skin="lounge"] [class*="text-zinc-900"]:not([id*="skin"]):not([id*="picker"]) {
+  color: rgb(244 244 245) !important; /* zinc-100 */
+}
+:root[data-skin="lounge"] [class*="text-zinc-700"]:not([id*="skin"]):not([id*="picker"]),
+:root[data-skin="lounge"] [class*="text-zinc-600"]:not([id*="skin"]):not([id*="picker"]) {
+  color: rgb(212 212 216) !important; /* zinc-300 */
+}
+
+/* Lounge — backdrop-fade keyframe used by `SkinAmbientBackdrop`
+   when it staggers in a new cover. Lives in the global stylesheet
+   so we don't have to inline the animation rules through the
+   `style` prop. */
+@keyframes loungeBackdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============================================================
+   Pulse skin overrides
+   ============================================================
+   Pulse leans full-club: dark OLED base, neon accent halos
+   around active cards, pill-everything chrome, mono display
+   for the heading surfaces. The accent variable (`--accent-500`)
+   is set by the theme system, so every theme produces a
+   different neon — Émeraude pulses green, Crimson pulses red,
+   Neon pulses pink. */
+
+:root[data-skin="pulse"] body {
+  color: rgb(244 244 245);
+  background-color: rgb(8 8 10); /* near-OLED */
+}
+
+:root[data-skin="pulse"] [class*="bg-app-ambient"] {
+  background-color: rgb(8 8 10) !important;
+  background-image: radial-gradient(
+    circle at 20% 20%,
+    color-mix(in oklch, var(--accent-500) 12%, transparent),
+    transparent 60%
+  );
+}
+
+/* Pulse — sidebar gets a vibrant accent rim on the right
+   edge so it reads as a control surface lit from inside,
+   not a passive panel. */
+:root[data-skin="pulse"] aside.w-72 {
+  background-color: rgb(8 8 10 / 0.85) !important;
+  border-right: 1px solid color-mix(in oklch, var(--accent-500) 35%, transparent);
+  box-shadow: 4px 0 32px -16px color-mix(in oklch, var(--accent-500) 60%, transparent);
+}
+
+/* Pulse cards — every rounded surface gets the neon halo. The
+   shadow IS the visual identity — it's what makes the skin
+   feel "alive". */
+:root[data-skin="pulse"] [class*="rounded-xl"],
+:root[data-skin="pulse"] [class*="rounded-2xl"],
+:root[data-skin="pulse"] [class*="rounded-3xl"] {
+  border-radius: var(--skin-radius-card) !important;
+  box-shadow: var(--skin-shadow-card) !important;
+}
+
+/* Pulse buttons turn into pills. Targets explicit
+   `rounded-{lg,md,full}` so the existing pill chips don't
+   double-radius. */
+:root[data-skin="pulse"] button[class*="rounded-lg"],
+:root[data-skin="pulse"] button[class*="rounded-md"],
+:root[data-skin="pulse"] a[class*="rounded-lg"],
+:root[data-skin="pulse"] a[class*="rounded-md"] {
+  border-radius: 9999px !important;
+}
+
+/* Pulse — display surfaces (h1/h2/h3, view titles) get the
+   mono display family + tracking so headings read as
+   tech-track titles, not editorial. */
+:root[data-skin="pulse"] :where(h1, h2, h3),
+:root[data-skin="pulse"] [class*="text-2xl"][class*="font-"],
+:root[data-skin="pulse"] [class*="text-3xl"][class*="font-"],
+:root[data-skin="pulse"] [class*="text-4xl"][class*="font-"] {
+  font-family: var(--skin-font-display);
+  font-weight: var(--skin-heading-weight);
+  letter-spacing: var(--skin-display-tracking);
+  text-transform: uppercase;
+}
+
+/* Pulse — surfaces that opted into a zinc surface flip to
+   the OLED base + a subtle inner rim. Keeps cards looking
+   "lit" rather than flat. */
+:root[data-skin="pulse"] [class*="bg-surface-dark"],
+:root[data-skin="pulse"] [class*="bg-zinc-900"],
+:root[data-skin="pulse"] [class*="bg-zinc-950"] {
+  background-color: rgb(15 15 18) !important;
+}
+:root[data-skin="pulse"] [class*="bg-surface-light"],
+:root[data-skin="pulse"] [class*="bg-white"] {
+  background-color: rgb(15 15 18) !important;
+}
+
+/* Pulse — Settings picker preview should not flip light cards
+   to OLED, so unread the override for the SkinPickerCard. */
+:root[data-skin="pulse"] [id*="skin-picker"] [class*="bg-white"],
+:root[data-skin="pulse"] [id*="skin-picker"] [class*="bg-zinc-900"] {
+  background-color: revert !important;
+}
+
+/* Pulse — text contrast flip on the body */
+:root[data-skin="pulse"] [class*="text-zinc-900"] {
+  color: rgb(244 244 245) !important;
+}
+:root[data-skin="pulse"] [class*="text-zinc-700"],
+:root[data-skin="pulse"] [class*="text-zinc-600"] {
+  color: rgb(212 212 216) !important;
+}
+
 /* Theme ambient background. AppLayout's outer wrapper uses
    `bg-app-ambient` (defined as a utility below) so themes can paint
    their signature tint without touching any JSX. */
