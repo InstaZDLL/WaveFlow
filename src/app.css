@@ -330,22 +330,26 @@
    tone, no manual override needed. Skipping the light-ladder
    here on purpose so glass surfaces stay distinct from the
    regular dark-tone surfaces underneath. */
-/* Lounge body glass — `:not([role="tooltip"])` filters out the
-   colour-inverting Tooltip component, which uses
-   `bg-zinc-900 dark:bg-zinc-100` for the dark-bubble-on-light /
-   light-bubble-on-dark inversion pattern. Without the
-   exclusion, the Lounge override matches the `bg-zinc-900`
-   substring on the tooltip + `!important` wins against the
-   `dark:bg-zinc-100` inversion, leaving a dark glass plate
-   with dark `dark:text-zinc-900` ink = invisible label (the
-   "Shuffle the playlist" hover bug). The previous attempt to
-   `background-color: revert !important` failed because
-   `revert` falls back to UA (transparent), skipping the
-   Tailwind utility origin entirely. */
-:root[data-skin="lounge"] [class*="bg-surface-dark"]:not([role="tooltip"]),
-:root[data-skin="lounge"] [class*="bg-zinc-900"]:not([role="tooltip"]),
-:root[data-skin="lounge"] [class*="bg-zinc-950"]:not([role="tooltip"]),
-:root[data-skin="lounge"] [class*="bg-black"]:not([role="tooltip"]) {
+/* Lounge body glass — exclusion list:
+   - `[role="tooltip"]` to preserve the Tooltip component's
+     colour inversion (`bg-zinc-900 dark:bg-zinc-100`); without
+     this, the Lounge override + `!important` would defeat the
+     inversion and the bubble label would render dark-on-dark.
+     Earlier attempt with `background-color: revert` failed
+     because `revert` falls back to UA (transparent) instead
+     of the Tailwind utility value.
+   - `header` so the dedicated topbar rule below
+     (`:root[data-skin="lounge"] header`) can win — without
+     the exclusion, this body override's specificity (0,4,0
+     via two attribute selectors) beats the header rule's
+     (0,1,1) and the topbar inherits the body's shallower
+     blur + higher alpha instead of the sidebar-grade glass.
+   - `aside` so the sidebar rule below wins for the same
+     specificity-arithmetic reason. */
+:root[data-skin="lounge"] [class*="bg-surface-dark"]:not([role="tooltip"]):not(header):not(aside),
+:root[data-skin="lounge"] [class*="bg-zinc-900"]:not([role="tooltip"]):not(header):not(aside),
+:root[data-skin="lounge"] [class*="bg-zinc-950"]:not([role="tooltip"]):not(header):not(aside),
+:root[data-skin="lounge"] [class*="bg-black"]:not([role="tooltip"]):not(header):not(aside) {
   background-color: rgb(10 10 12 / 0.55) !important;
   backdrop-filter: var(--skin-backdrop);
   -webkit-backdrop-filter: var(--skin-backdrop);
