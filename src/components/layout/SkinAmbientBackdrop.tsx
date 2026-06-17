@@ -34,6 +34,18 @@ export function SkinAmbientBackdrop() {
 
   if (!enabled) return null;
 
+  // Respect the OS-level reduced-motion preference (WCAG 2.3.3).
+  // The check is synchronous + non-reactive: the media query is
+  // sampled once per render, and switching the preference is
+  // rare enough that we don't need a `useEffect` + listener
+  // dance for the next cover swap to pick it up. `matchMedia`
+  // is missing in SSR/non-browser hosts (tests) — guard with
+  // `typeof`.
+  const reduceMotion =
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   return (
     <div
       aria-hidden="true"
@@ -47,14 +59,20 @@ export function SkinAmbientBackdrop() {
             backgroundImage: `url("${resolved}")`,
             filter: "blur(60px) saturate(140%) brightness(0.6)",
             transform: "scale(1.2)",
-            animation: `loungeBackdropFadeIn ${skin.motion.duration}s ${skin.motion.ease} forwards`,
+            // Skip the cross-fade keyframe when the user opted
+            // out of motion — the cover swap becomes an instant
+            // cut, which is the conventional reduced-motion
+            // affordance.
+            animation: reduceMotion
+              ? undefined
+              : `loungeBackdropFadeIn ${skin.motion.duration}s ${skin.motion.ease} forwards`,
           }}
         />
       )}
       {/* Vignette + readability tint over whatever cover is
           painted underneath. Without this the sidebar / topbar
           text would compete with the cover art for contrast. */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
+      <div className="absolute inset-0 bg-linear-to-b from-black/40 via-black/30 to-black/50" />
     </div>
   );
 }
