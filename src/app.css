@@ -1,6 +1,13 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
+/* Tailwind v4 `dark:*` variant. Extended to also activate when the
+   active skin is a dark-only skin (Lounge / Pulse) so the existing
+   `dark:bg-X` / `dark:text-Y` utilities every component ships with
+   light up automatically — no per-skin manual bg/text overrides
+   needed. Studio + Editorial stay theme-mode-driven (light or dark
+   theme decides). The `data-skin` attribute is on documentElement
+   so `[data-skin="lounge"] *` covers every element in the document. */
+@custom-variant dark (&:where(.dark, .dark *, :root[data-skin="lounge"] *, :root[data-skin="pulse"] *));
 
 /* Default accent palette = Tailwind's emerald, exposed as CSS
    variables so themes (see `src/lib/themes.ts`) can override every
@@ -313,29 +320,26 @@
    translucent over the cover. `bg-white` / `bg-zinc-900` /
    `bg-surface-*` all collapse to one of two glass treatments
    so the cover's colour seeps through naturally. */
+/* Lounge — the BIG surfaces (cards opting into `bg-zinc-900` /
+   `bg-white` / `bg-surface-*`) get glassed over with the
+   skin's backdrop blur. The fine-grained light-zinc ladder
+   (`bg-zinc-50/100/200/300` on small controls) handles itself
+   because the extended `dark` variant above lets the
+   `dark:bg-zinc-X` companion classes win — `bg-zinc-50
+   dark:bg-zinc-800/50` automatically renders the dark-side
+   tone, no manual override needed. Skipping the light-ladder
+   here on purpose so glass surfaces stay distinct from the
+   regular dark-tone surfaces underneath. */
 :root[data-skin="lounge"] [class*="bg-surface-dark"],
 :root[data-skin="lounge"] [class*="bg-zinc-900"],
 :root[data-skin="lounge"] [class*="bg-zinc-950"],
-:root[data-skin="lounge"] [class*="bg-zinc-800"],
-:root[data-skin="lounge"] [class*="bg-zinc-700"],
 :root[data-skin="lounge"] [class*="bg-black"] {
   background-color: rgb(10 10 12 / 0.55) !important;
   backdrop-filter: var(--skin-backdrop);
   -webkit-backdrop-filter: var(--skin-backdrop);
 }
-/* Cover the full light-zinc ladder too — without these, small
-   controls inside the sidebar / topbar that use `bg-zinc-50`
-   or `bg-zinc-100` (profile pill, segmented controls, etc.)
-   stay light while the body of the app goes dark glass, and
-   the Lounge text-color flip then prints zinc-300 ink on a
-   still-light surface = unreadable (the original bug behind
-   the user-reported "Lounge problème avec le blanc"). */
 :root[data-skin="lounge"] [class*="bg-surface-light"],
-:root[data-skin="lounge"] [class*="bg-white"],
-:root[data-skin="lounge"] [class*="bg-zinc-50"],
-:root[data-skin="lounge"] [class*="bg-zinc-100"],
-:root[data-skin="lounge"] [class*="bg-zinc-200"],
-:root[data-skin="lounge"] [class*="bg-zinc-300"] {
+:root[data-skin="lounge"] [class*="bg-white"] {
   background-color: rgb(10 10 12 / 0.45) !important;
   backdrop-filter: var(--skin-backdrop);
   -webkit-backdrop-filter: var(--skin-backdrop);
@@ -361,26 +365,13 @@
   box-shadow: var(--skin-shadow-card) !important;
 }
 
-/* Lounge text contrast — most surfaces are dark-glass even
-   under light themes, so every "ink" tone (zinc-500 → zinc-900)
-   needs to brighten up against the cover backdrop. Without the
-   zinc-800 entry the Settings theme-picker card titles (which
-   use `text-zinc-800 dark:text-zinc-100`) stayed invisible on
-   a Pulse-style flipped surface when the user picked Lounge on
-   top of a LIGHT theme — the `dark:` variant never kicked in
-   because there's no `.dark` class to match.
-   Picker preview cards opt out via `data-skin-immune` (added
-   below) — the `id*=`-based exclusion previously here was
-   fragile because the theme picker carried no stable id. */
-:root[data-skin="lounge"] [class*="text-zinc-900"],
-:root[data-skin="lounge"] [class*="text-zinc-800"] {
-  color: rgb(244 244 245) !important; /* zinc-100 */
-}
-:root[data-skin="lounge"] [class*="text-zinc-700"],
-:root[data-skin="lounge"] [class*="text-zinc-600"],
-:root[data-skin="lounge"] [class*="text-zinc-500"] {
-  color: rgb(212 212 216) !important; /* zinc-300 */
-}
+/* Lounge text contrast — handled by the extended `dark` variant
+   at the top of the file: any element with `dark:text-X` opts
+   into the dark colour automatically under Lounge. No manual
+   override needed and we avoid the previous bug where a force-
+   flipped `text-zinc-700 → zinc-300` printed light ink on
+   surfaces the skin hadn't darkened (welcome banner gradient,
+   etc.). */
 
 /* Lounge — backdrop-fade keyframe used by `SkinAmbientBackdrop`
    when it staggers in a new cover. Lives in the global stylesheet
@@ -461,87 +452,37 @@
   text-transform: uppercase;
 }
 
-/* Pulse — surfaces that opted into a zinc surface flip to
-   the OLED base + a subtle inner rim. Keeps cards looking
-   "lit" rather than flat. Covers the full zinc ladder (light
-   AND dark tones) so small controls inside the chrome — the
-   sidebar profile pill (`bg-zinc-50 dark:bg-zinc-800/50`),
-   segmented controls, hover/active states — don't leak the
-   pre-skin grey palette through the OLED body. Without the
-   light-zinc entries, those controls stay light while the
-   text flips to zinc-300 = unreadable. */
+/* Pulse — flatten the BIG body surfaces (`bg-zinc-900` /
+   `bg-white` / `bg-surface-*`) to OLED so the radial-accent
+   gradient at the body level reads as the dominant chrome.
+   Fine-grained light-zinc tones (`bg-zinc-50/100/200`) on
+   small controls are handled by the extended `dark` variant
+   above — `bg-zinc-50 dark:bg-zinc-800/50` naturally renders
+   the dark-side tone under Pulse, no manual override needed.
+   Text contrast is handled the same way: every component's
+   `dark:text-X` companion class wins under Pulse without
+   manually force-flipping zinc tones. The previous force-flip
+   was the root cause of light text on light pastel surfaces
+   the skin didn't darken (welcome banner gradient, etc.). */
 :root[data-skin="pulse"] [class*="bg-surface-dark"],
 :root[data-skin="pulse"] [class*="bg-zinc-900"],
-:root[data-skin="pulse"] [class*="bg-zinc-950"],
-:root[data-skin="pulse"] [class*="bg-zinc-800"],
-:root[data-skin="pulse"] [class*="bg-zinc-700"] {
+:root[data-skin="pulse"] [class*="bg-zinc-950"] {
   background-color: rgb(15 15 18) !important;
 }
 :root[data-skin="pulse"] [class*="bg-surface-light"],
-:root[data-skin="pulse"] [class*="bg-white"],
-:root[data-skin="pulse"] [class*="bg-zinc-50"],
-:root[data-skin="pulse"] [class*="bg-zinc-100"],
-:root[data-skin="pulse"] [class*="bg-zinc-200"],
-:root[data-skin="pulse"] [class*="bg-zinc-300"] {
+:root[data-skin="pulse"] [class*="bg-white"] {
   background-color: rgb(15 15 18) !important;
 }
 
-/* Pulse — text contrast flip on the body. Covers every
-   "ink" tone so a light theme + Pulse skin combo (where there's
-   no `.dark` class, so `dark:text-zinc-100` never triggers)
-   doesn't leave dark zinc-800 labels invisible on the OLED
-   surface. The Settings theme-picker card title (`text-zinc-800
-   dark:text-zinc-100`) was the original WCAG-failing surface. */
-:root[data-skin="pulse"] [class*="text-zinc-900"],
-:root[data-skin="pulse"] [class*="text-zinc-800"] {
-  color: rgb(244 244 245) !important;
-}
-:root[data-skin="pulse"] [class*="text-zinc-700"],
-:root[data-skin="pulse"] [class*="text-zinc-600"],
-:root[data-skin="pulse"] [class*="text-zinc-500"] {
-  color: rgb(212 212 216) !important;
-}
-
-/* ============================================================
-   data-skin-immune escape hatch
-   ============================================================
-   Picker previews + any other surface that needs to retain its
-   "natural" look across skin swaps wears `data-skin-immune` on
-   its root. Any descendant of that subtree gets every skin-
-   level bg/text/backdrop override reverted to the cascade
-   default. Used by the Settings theme + skin pickers so the
-   preview swatches keep representing the THEME / SKIN they
-   describe, not the active skin painting over them.
-
-   The selector uses `:where()` so it stays at the lowest
-   possible specificity — it doesn't need to outrank anything
-   except its own `!important` parent rules, which it does via
-   the explicit `revert !important`. */
-[data-skin-immune] :where([class*="bg-white"]),
-[data-skin-immune] :where([class*="bg-zinc-50"]),
-[data-skin-immune] :where([class*="bg-zinc-100"]),
-[data-skin-immune] :where([class*="bg-zinc-200"]),
-[data-skin-immune] :where([class*="bg-zinc-300"]),
-[data-skin-immune] :where([class*="bg-zinc-700"]),
-[data-skin-immune] :where([class*="bg-zinc-800"]),
-[data-skin-immune] :where([class*="bg-zinc-900"]),
-[data-skin-immune] :where([class*="bg-zinc-950"]),
-[data-skin-immune] :where([class*="bg-black"]),
-[data-skin-immune] :where([class*="bg-surface-light"]),
-[data-skin-immune] :where([class*="bg-surface-dark"]) {
-  background-color: revert !important;
-  backdrop-filter: revert !important;
-  -webkit-backdrop-filter: revert !important;
-}
-[data-skin-immune] :where([class*="text-zinc-"]) {
-  color: revert !important;
-}
-[data-skin-immune] :where([class*="rounded-xl"]),
-[data-skin-immune] :where([class*="rounded-2xl"]),
-[data-skin-immune] :where([class*="rounded-3xl"]) {
-  border-radius: revert !important;
-  box-shadow: revert !important;
-}
+/* Note: an earlier iteration shipped a `data-skin-immune`
+   escape hatch with `revert !important` to opt parts of the UI
+   out of skin overrides. Removed: with the extended `dark`
+   variant at the top of the file, every `dark:*` utility wins
+   under Lounge/Pulse naturally, and the only remaining skin
+   overrides are surface-specific (sidebar glass, body OLED).
+   Picker previews now follow the same rules as everything else,
+   which is the faithful preview of what the active skin does to
+   each theme/skin card anyway. */
 
 /* Theme ambient background. AppLayout's outer wrapper uses
    `bg-app-ambient` (defined as a utility below) so themes can paint

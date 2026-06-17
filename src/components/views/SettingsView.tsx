@@ -2550,10 +2550,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                   </div>
                 </div>
               </div>
-              <div
-                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3"
-                data-skin-immune
-              >
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                 {THEME_PRESETS.map((preset) => {
                   const isActive = preset.id === theme.id;
                   return (

@@ -85,13 +85,6 @@ export function SkinPickerCard() {
         className="grid grid-cols-2 gap-3"
         role="radiogroup"
         aria-labelledby="skin-picker-heading"
-        // Escape the active skin's bg/text overrides so each
-        // preview card keeps representing the SKIN it advertises,
-        // not the one currently painting over the app. Without
-        // this, Pulse would render every preview swatch with the
-        // OLED background it forces elsewhere, and Lounge would
-        // render them transparent over the cover backdrop.
-        data-skin-immune
       >
         {SKIN_PRESETS.map((preset, idx) => {
           const isActive = preset.id === skin.id;
