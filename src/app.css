@@ -338,12 +338,15 @@
   backdrop-filter: var(--skin-backdrop);
   -webkit-backdrop-filter: var(--skin-backdrop);
 }
-:root[data-skin="lounge"] [class*="bg-surface-light"],
-:root[data-skin="lounge"] [class*="bg-white"] {
-  background-color: rgb(10 10 12 / 0.45) !important;
-  backdrop-filter: var(--skin-backdrop);
-  -webkit-backdrop-filter: var(--skin-backdrop);
-}
+/* Note: `bg-white` / `bg-surface-light` are deliberately NOT
+   overridden here. They pair with `dark:bg-zinc-{800,900}` on
+   every well-behaved component, and the extended `dark` variant
+   at the top of the file makes the dark companion fire under
+   Lounge automatically — opaque enough to keep popovers /
+   dropdowns / modals readable above the cover backdrop. The
+   earlier `bg-white → translucent glass` rule overrode those
+   dark companions and turned the profile dropdown into an
+   illegible see-through floating menu. */
 
 /* Lounge sidebar — translucent slab over the cover. The
    border-right turns into a faint inner highlight so the
@@ -634,11 +637,23 @@
   background: transparent;
 }
 
-.dark ::-webkit-scrollbar-thumb {
+/* Dark-mode scrollbar tone — light thumb on dark surface.
+   Matches the same set of "dark-effective" roots as the
+   extended `@custom-variant dark` declaration at the top of
+   the file: explicit `.dark` class OR a dark-only skin
+   (`data-skin="lounge"` / `data-skin="pulse"`) on the
+   documentElement. Without the skin selectors, picking Lounge
+   on top of a LIGHT theme left the scrollbar in light-mode
+   tone (dark thumb on a dark glass body) = invisible. */
+.dark ::-webkit-scrollbar-thumb,
+:root[data-skin="lounge"] ::-webkit-scrollbar-thumb,
+:root[data-skin="pulse"] ::-webkit-scrollbar-thumb {
   background-color: rgba(244, 244, 245, 0.12);
 }
 
-.dark ::-webkit-scrollbar-thumb:hover {
+.dark ::-webkit-scrollbar-thumb:hover,
+:root[data-skin="lounge"] ::-webkit-scrollbar-thumb:hover,
+:root[data-skin="pulse"] ::-webkit-scrollbar-thumb:hover {
   background-color: rgba(244, 244, 245, 0.25);
 }
 
@@ -648,7 +663,9 @@
   scrollbar-color: rgba(24, 24, 27, 0.18) transparent;
 }
 
-.dark * {
+.dark *,
+:root[data-skin="lounge"] *,
+:root[data-skin="pulse"] * {
   scrollbar-color: rgba(244, 244, 245, 0.12) transparent;
 }
 
