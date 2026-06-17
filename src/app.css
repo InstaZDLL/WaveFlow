@@ -348,6 +348,21 @@
    dark companions and turned the profile dropdown into an
    illegible see-through floating menu. */
 
+/* Tooltips — invert their colours by design (`bg-zinc-900
+   text-white dark:bg-zinc-100 dark:text-zinc-900`) so the
+   bubble pops against whatever theme is active. The Lounge
+   `bg-zinc-900` glass override would otherwise win against
+   the `dark:bg-zinc-100` inversion (force + !important)
+   leaving a dark glass plate with dark `dark:text-zinc-900`
+   ink = invisible label. Revert the bg + backdrop on any
+   element with `role="tooltip"` so the original inversion
+   wins. */
+:root[data-skin="lounge"] [role="tooltip"] {
+  background-color: revert !important;
+  backdrop-filter: revert !important;
+  -webkit-backdrop-filter: revert !important;
+}
+
 /* Lounge sidebar — translucent slab over the cover. The
    border-right turns into a faint inner highlight so the
    sidebar reads as an upright glass pane. */
