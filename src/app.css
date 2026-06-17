@@ -370,6 +370,21 @@
   border-right: 1px solid var(--skin-divider);
 }
 
+/* Lounge topbar — same glass treatment as the sidebar so the
+   chrome reads as one continuous surface above the cover
+   backdrop. The generic `bg-zinc-900` substring match in the
+   body override above would catch the topbar too, but with
+   shallower blur (`var(--skin-backdrop)` = 28 px) + 0.55
+   alpha. Promoting it here to the deeper sidebar-grade blur
+   + lower alpha lets the cover bleed through the top
+   evenly. */
+:root[data-skin="lounge"] header {
+  background-color: rgb(10 10 12 / 0.45) !important;
+  backdrop-filter: blur(40px) saturate(140%);
+  -webkit-backdrop-filter: blur(40px) saturate(140%);
+  border-bottom: 1px solid var(--skin-divider);
+}
+
 /* Lounge cards — generous radius, glass shadow, soft inner
    highlight. Every `rounded-{xl,2xl,3xl}` card stamps the
    token. */

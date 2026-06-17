@@ -262,7 +262,7 @@ export function TopBar({
   };
 
   return (
-    <div className="h-16 flex items-center justify-between px-6 z-10 sticky top-0 bg-zinc-50/80 backdrop-blur-md dark:bg-zinc-900/80">
+    <header className="h-16 flex items-center justify-between px-6 z-10 sticky top-0 bg-zinc-50/80 backdrop-blur-md dark:bg-zinc-900/80">
       {/* Navigation Arrows + sidebar toggle (#167). The toggle sits
           left of the back/forward chevrons because that's where the
           sidebar's right edge would be when visible — keeps muscle
@@ -709,7 +709,7 @@ export function TopBar({
           </AnimatePresence>
         </div>
       </div>
-    </div>
+    </header>
   );
 }
 
