@@ -1645,6 +1645,20 @@
         "lavenderLight": "Lavendel Licht",
         "crimsonLight": "Karmijn Licht",
         "oceanLight": "Oceaan Licht"
+      },
+      "skin": {
+        "title": "Skin",
+        "subtitle": "Verandert dichtheid, oppervlaktematerialen, typografie en animatie — niet alleen kleuren."
+      },
+      "skins": {
+        "studio": {
+          "label": "Studio",
+          "description": "Apple Music-stijl — dichte interface, zachte schaduwen, strakke sans-serif."
+        },
+        "editorial": {
+          "label": "Editorial",
+          "description": "Tijdschrift op papier — editorial serif, fijne lijnen, zachte korrel, royale ruimte."
+        }
       }
     },
     "playerBarLayout": {

@@ -1645,6 +1645,20 @@
         "lavenderLight": "लैवेंडर हल्का",
         "crimsonLight": "किरमिजी हल्का",
         "oceanLight": "महासागर हल्का"
+      },
+      "skin": {
+        "title": "स्किन",
+        "subtitle": "केवल रंग ही नहीं, घनत्व, सतह की बनावट, टाइपोग्राफी और एनिमेशन भी बदलता है।"
+      },
+      "skins": {
+        "studio": {
+          "label": "Studio",
+          "description": "Apple Music जैसा — सघन इंटरफ़ेस, नरम छाया, साफ-सुथरी सैन्स-सेरिफ़।"
+        },
+        "editorial": {
+          "label": "Editorial",
+          "description": "कागज़ पर पत्रिका — संपादकीय सेरिफ़, बारीक रेखाएँ, हल्की दानेदार बनावट, खुली जगह।"
+        }
       }
     },
     "playerBarLayout": {

@@ -51,6 +51,191 @@
   --color-surface-light-elevated: #fafafa;
 }
 
+/* Skin tokens — fall-back defaults match the Studio (current
+   baseline) skin so components that opt into a skin utility behave
+   identically until the user picks a non-default skin. The actual
+   per-skin values are written to `documentElement.style` by
+   `applySkin()` (see `src/lib/skins.ts`); these `:root`
+   declarations are the safety net for the first paint before the
+   SkinProvider's effect runs, and for components rendered before
+   localStorage has been consulted. */
+:root {
+  --skin-density-nav: 1;
+  --skin-density-topbar: 1;
+  --skin-density-list: 1;
+  --skin-density-card: 1;
+
+  --skin-radius-card: 0.75rem;
+  --skin-radius-button: 0.75rem;
+  --skin-radius-input: 0.5rem;
+  --skin-radius-pill: 9999px;
+
+  --skin-shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --skin-shadow-elevated: 0 4px 12px -2px rgb(0 0 0 / 0.08);
+  --skin-backdrop: none;
+  --skin-divider: rgb(228 228 231); /* zinc-200 */
+  --skin-grain: none;
+
+  --skin-font-display: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --skin-font-body: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --skin-heading-weight: 600;
+  --skin-display-tracking: -0.011em;
+
+  --skin-motion-duration: 0.25s;
+  --skin-motion-spring-stiffness: 320;
+  --skin-motion-spring-damping: 28;
+  --skin-motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Skin-token utilities. Components opt in by using these instead
+   of the baseline equivalents; skins re-tint by overriding the
+   underlying CSS variable. Keeping the utility surface small on
+   purpose — every utility added here is a contract every skin
+   must honour. */
+@utility rounded-card {
+  border-radius: var(--skin-radius-card);
+}
+@utility rounded-button {
+  border-radius: var(--skin-radius-button);
+}
+@utility rounded-input {
+  border-radius: var(--skin-radius-input);
+}
+@utility rounded-pill {
+  border-radius: var(--skin-radius-pill);
+}
+@utility shadow-card {
+  box-shadow: var(--skin-shadow-card);
+}
+@utility shadow-elevated {
+  box-shadow: var(--skin-shadow-elevated);
+}
+@utility border-divider {
+  border-color: var(--skin-divider);
+}
+@utility font-display {
+  font-family: var(--skin-font-display);
+  font-weight: var(--skin-heading-weight);
+  letter-spacing: var(--skin-display-tracking);
+}
+@utility font-body {
+  font-family: var(--skin-font-body);
+}
+
+/* ============================================================
+   Editorial skin overrides
+   ============================================================
+   Deep skin doesn't just swap CSS vars — it changes how
+   high-visibility patterns *read*. The Editorial skin reframes
+   WaveFlow as a print/magazine experience: the sidebar section
+   headings stop being all-caps micro-labels and become
+   editorial subheads in the display serif; cards drop their
+   rounded corners and shadows for paper hairlines; the body
+   typography breathes wider.
+
+   Doing this with `[data-skin="editorial"]` attribute selectors
+   means components don't have to branch on a `useSkin()` hook
+   for every styling decision — the skin paints over them. Same
+   strategy real design systems use for "white-label" or "dark
+   theme" variants. */
+
+/* Apply the display font + body font through inheritance so
+   every text element picks them up unless explicitly overridden. */
+[data-skin="editorial"] body {
+  font-family: var(--skin-font-body);
+}
+
+/* Sidebar / TopBar section headings — the small ALL-CAPS
+   labels (text-[10px] font-bold tracking-widest uppercase) get
+   re-tuned into editorial subheads: larger, serif, light weight,
+   small-caps tracking instead of caps-lock typewriter. Magazine
+   masthead, not UI label. */
+[data-skin="editorial"] [class*="uppercase"][class*="font-bold"] {
+  font-family: var(--skin-font-display);
+  font-weight: var(--skin-heading-weight);
+  letter-spacing: 0.12em;
+  text-transform: none;
+  font-style: italic;
+  font-size: 0.75rem;
+  color: rgb(120 113 108); /* stone-500 */
+}
+:root.dark [data-skin="editorial"] [class*="uppercase"][class*="font-bold"],
+[data-skin="editorial"]:where(:root.dark, :root.dark *)
+  [class*="uppercase"][class*="font-bold"] {
+  color: rgb(168 162 158); /* stone-400 */
+}
+
+/* Sidebar root container — softer paper hue, no hard rounded
+   corners, wider padding to "breathe" more like a print
+   magazine. Targeted by structure (`aside` + flex-col w-72 ish)
+   so the existing Tailwind utilities still apply, we just
+   layer the editorial details on top. */
+[data-skin="editorial"] aside.w-72 {
+  background-color: rgb(250 247 240); /* off-white paper */
+  background-image: var(--skin-grain);
+  background-repeat: repeat;
+}
+:root.dark [data-skin="editorial"] aside.w-72 {
+  background-color: rgb(28 25 23); /* stone-900 — warm dark */
+  background-image: var(--skin-grain);
+}
+
+/* Sidebar nav rows — soften corners + flatten background.
+   Targets buttons / divs inside the sidebar that opted into a
+   `rounded-lg` look (NavItem renders one). Editorial favours a
+   subtle left rule on hover/active instead of a rounded bg
+   pill — closer to a table-of-contents page. */
+[data-skin="editorial"] aside.w-72 button[class*="rounded"],
+[data-skin="editorial"] aside.w-72 a[class*="rounded"] {
+  border-radius: var(--skin-radius-button) !important;
+}
+
+/* TopBar chrome — flatten + thicken */
+[data-skin="editorial"] header {
+  border-bottom-color: var(--skin-divider);
+}
+
+/* Generic cards that opted into rounded-xl / rounded-2xl in
+   their utility class — re-radius via the skin token. The
+   `!important` is needed because Tailwind's utility specificity
+   is normally enough to win over our attribute selector at
+   normal cascade weight; the marker reads as "skin wins over
+   default utility radius" which is the contract. */
+[data-skin="editorial"] [class*="rounded-xl"],
+[data-skin="editorial"] [class*="rounded-2xl"],
+[data-skin="editorial"] [class*="rounded-3xl"] {
+  border-radius: var(--skin-radius-card) !important;
+}
+
+/* Shadows off — paper sits flat. */
+[data-skin="editorial"] [class*="shadow"] {
+  box-shadow: var(--skin-shadow-card) !important;
+}
+
+/* View titles / headings — let them sing in the display serif
+   so the magazine feel lands on the actual content surfaces, not
+   just the chrome. Targets the typical `text-xl` / `text-2xl` /
+   `text-3xl` / `text-4xl` semibold pattern most views use. */
+[data-skin="editorial"] h1,
+[data-skin="editorial"] h2,
+[data-skin="editorial"] h3,
+[data-skin="editorial"] [class*="text-2xl"][class*="font-"],
+[data-skin="editorial"] [class*="text-3xl"][class*="font-"],
+[data-skin="editorial"] [class*="text-4xl"][class*="font-"] {
+  font-family: var(--skin-font-display);
+  font-weight: var(--skin-heading-weight);
+  letter-spacing: var(--skin-display-tracking);
+}
+
+/* Body min-h-screen wrapper — apply the paper grain at the
+   ambient layer so even un-skinned views still feel paper-y. */
+[data-skin="editorial"] body {
+  background-image: var(--skin-grain);
+  background-repeat: repeat;
+}
+
 /* Theme ambient background. AppLayout's outer wrapper uses
    `bg-app-ambient` (defined as a utility below) so themes can paint
    their signature tint without touching any JSX. */

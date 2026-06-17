@@ -1645,6 +1645,20 @@
         "lavenderLight": "Lavanta Açık",
         "crimsonLight": "Kızıl Açık",
         "oceanLight": "Okyanus Açık"
+      },
+      "skin": {
+        "title": "Skin",
+        "subtitle": "Yalnızca renkleri değil, yoğunluğu, yüzey malzemelerini, tipografiyi ve animasyonu değiştirir."
+      },
+      "skins": {
+        "studio": {
+          "label": "Studio",
+          "description": "Apple Music tarzı — yoğun arayüz, yumuşak gölgeler, temiz sans-serif."
+        },
+        "editorial": {
+          "label": "Editorial",
+          "description": "Kağıt dergi — editoryal serif, ince çizgiler, yumuşak tane, geniş boşluk."
+        }
       }
     },
     "playerBarLayout": {

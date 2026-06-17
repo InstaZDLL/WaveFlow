@@ -55,6 +55,18 @@
           root.setAttribute("data-theme", id);
           root.style.setProperty("--ambient-bg", ambient);
           if (!LIGHT_IDS[id]) root.classList.add("dark");
+          // Skin bootstrap — paint the right `data-skin` before
+          // React mounts so font / radius / density tokens used
+          // by the very first paint surfaces (sidebar, topbar)
+          // don't flicker from the default Studio metrics to
+          // Editorial on hydration. The full skin tokens are
+          // hydrated by `SkinProvider`'s effect a few ms later;
+          // only the attribute needs to be right on first paint
+          // because `@theme inline` in app.css resolves the
+          // attribute-selector overrides synchronously with the
+          // first CSS pass.
+          var skin = localStorage.getItem("waveflow.skin.id") || "studio";
+          root.setAttribute("data-skin", skin);
         } catch (_) {
           // localStorage unavailable — fall through to :root defaults.
         }

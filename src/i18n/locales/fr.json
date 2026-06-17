@@ -1278,6 +1278,20 @@
         "title": "Thème",
         "subtitle": "Choisissez l'ambiance qui vous correspond. Le changement re-teinte l'application entière."
       },
+      "skin": {
+        "title": "Skin",
+        "subtitle": "Change la densité, la matière des surfaces, la typographie et la motion — pas seulement les couleurs."
+      },
+      "skins": {
+        "studio": {
+          "label": "Studio",
+          "description": "Ambiance Apple Music — interface dense, ombres douces, sans-serif net."
+        },
+        "editorial": {
+          "label": "Editorial",
+          "description": "Magazine sur papier — serif éditorial, filets fins, grain doux, espace généreux."
+        }
+      },
       "mode": {
         "light": "Clair",
         "dark": "Sombre"

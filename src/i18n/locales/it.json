@@ -1645,6 +1645,20 @@
         "lavenderLight": "Lavanda Chiaro",
         "crimsonLight": "Cremisi Chiaro",
         "oceanLight": "Oceano Chiaro"
+      },
+      "skin": {
+        "title": "Skin",
+        "subtitle": "Modifica densità, materiali delle superfici, tipografia e animazioni, non solo i colori."
+      },
+      "skins": {
+        "studio": {
+          "label": "Studio",
+          "description": "Stile Apple Music — interfaccia densa, ombre morbide, sans-serif pulito."
+        },
+        "editorial": {
+          "label": "Editorial",
+          "description": "Rivista su carta — serif editoriale, filetti sottili, grana morbida, spazio generoso."
+        }
       }
     },
     "playerBarLayout": {

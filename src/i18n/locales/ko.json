@@ -1645,6 +1645,20 @@
         "lavenderLight": "라벤더 라이트",
         "crimsonLight": "크림슨 라이트",
         "oceanLight": "오션 라이트"
+      },
+      "skin": {
+        "title": "스킨",
+        "subtitle": "색상뿐 아니라 밀도, 표면 질감, 타이포그래피, 모션까지 바꿉니다."
+      },
+      "skins": {
+        "studio": {
+          "label": "Studio",
+          "description": "Apple Music 분위기 — 밀도 있는 인터페이스, 부드러운 그림자, 깔끔한 산세리프."
+        },
+        "editorial": {
+          "label": "Editorial",
+          "description": "종이 매거진 — 에디토리얼 세리프, 가는 선, 은은한 그레인, 여유로운 여백."
+        }
       }
     },
     "playerBarLayout": {

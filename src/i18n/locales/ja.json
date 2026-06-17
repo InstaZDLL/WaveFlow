@@ -1592,6 +1592,20 @@
         "lavenderLight": "ラベンダー ライト",
         "crimsonLight": "クリムゾン ライト",
         "oceanLight": "オーシャン ライト"
+      },
+      "skin": {
+        "title": "スキン",
+        "subtitle": "色だけでなく、密度・表面の質感・タイポグラフィ・アニメーションを変更します。"
+      },
+      "skins": {
+        "studio": {
+          "label": "Studio",
+          "description": "Apple Music 風 — 密度のある UI、柔らかい影、クリーンなサンセリフ。"
+        },
+        "editorial": {
+          "label": "Editorial",
+          "description": "紙の雑誌 — エディトリアル・セリフ、極細の罫線、柔らかい紙目、ゆとりある余白。"
+        }
       }
     },
     "shortcuts": {

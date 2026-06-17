@@ -1649,6 +1649,20 @@
         "lavenderLight": "خزامى فاتح",
         "crimsonLight": "قرمزي فاتح",
         "oceanLight": "محيط فاتح"
+      },
+      "skin": {
+        "title": "النمط",
+        "subtitle": "يغيّر الكثافة وخامات الأسطح والطباعة والحركة، وليس الألوان فقط."
+      },
+      "skins": {
+        "studio": {
+          "label": "Studio",
+          "description": "أجواء Apple Music — واجهة مكثّفة، ظلال ناعمة، خط سان-سيرف نظيف."
+        },
+        "editorial": {
+          "label": "Editorial",
+          "description": "مجلة على ورق — خط سيريف افتتاحي، خطوط شعرة دقيقة، حبيبات ناعمة، فسحة سخية."
+        }
       }
     },
     "playerBarLayout": {
