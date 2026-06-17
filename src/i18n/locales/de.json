@@ -1645,6 +1645,20 @@
         "lavenderLight": "Lavendel Hell",
         "crimsonLight": "Karmesin Hell",
         "oceanLight": "Ozean Hell"
+      },
+      "skin": {
+        "title": "Skin",
+        "subtitle": "Verändert Dichte, Oberflächenmaterialien, Typografie und Animation — nicht nur Farben."
+      },
+      "skins": {
+        "studio": {
+          "label": "Studio",
+          "description": "Apple-Music-Stil — dichte Oberfläche, weiche Schatten, klare Sans-Serif."
+        },
+        "editorial": {
+          "label": "Editorial",
+          "description": "Magazin auf Papier — Editorial-Serife, feine Linien, sanftes Korn, großzügiger Raum."
+        }
       }
     },
     "playerBarLayout": {

@@ -1645,6 +1645,20 @@
         "lavenderLight": "Lavender Terang",
         "crimsonLight": "Merah Tua Terang",
         "oceanLight": "Samudra Terang"
+      },
+      "skin": {
+        "title": "Skin",
+        "subtitle": "Mengubah kerapatan, material permukaan, tipografi, dan animasi — bukan hanya warna."
+      },
+      "skins": {
+        "studio": {
+          "label": "Studio",
+          "description": "Nuansa Apple Music — antarmuka padat, bayangan lembut, sans-serif bersih."
+        },
+        "editorial": {
+          "label": "Editorial",
+          "description": "Majalah di atas kertas — serif editorial, garis tipis, bintik halus, ruang lapang."
+        }
       }
     },
     "playerBarLayout": {

@@ -1645,6 +1645,20 @@
         "lavenderLight": "Lavender Light",
         "crimsonLight": "Crimson Light",
         "oceanLight": "Ocean Light"
+      },
+      "skin": {
+        "title": "Skin",
+        "subtitle": "Changes density, surface materials, typography and motion — not just colors."
+      },
+      "skins": {
+        "studio": {
+          "label": "Studio",
+          "description": "Apple Music vibe — dense interface, soft shadows, clean sans-serif."
+        },
+        "editorial": {
+          "label": "Editorial",
+          "description": "Magazine on paper — editorial serif, hairline rules, soft grain, generous space."
+        }
       }
     },
     "playerBarLayout": {

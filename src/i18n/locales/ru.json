@@ -1690,6 +1690,20 @@
         "lavenderLight": "Лаванда светлая",
         "crimsonLight": "Малиновый светлый",
         "oceanLight": "Океан светлый"
+      },
+      "skin": {
+        "title": "Скин",
+        "subtitle": "Меняет плотность, материалы поверхностей, типографику и анимацию — не только цвета."
+      },
+      "skins": {
+        "studio": {
+          "label": "Studio",
+          "description": "Стиль Apple Music — плотный интерфейс, мягкие тени, чистый sans-serif."
+        },
+        "editorial": {
+          "label": "Editorial",
+          "description": "Журнал на бумаге — редакционная антиква, тонкие линии, мягкое зерно, простор."
+        }
       }
     },
     "playerBarLayout": {

@@ -1592,6 +1592,20 @@
         "lavenderLight": "薰衣草淺色",
         "crimsonLight": "深紅淺色",
         "oceanLight": "海洋淺色"
+      },
+      "skin": {
+        "title": "外觀",
+        "subtitle": "改變密度、表面質感、字體與動效,不只是顏色。"
+      },
+      "skins": {
+        "studio": {
+          "label": "Studio",
+          "description": "Apple Music 風格 — 緊湊介面、柔和陰影、乾淨無襯線。"
+        },
+        "editorial": {
+          "label": "Editorial",
+          "description": "紙本雜誌 — 編輯襯線體、細髮絲線、柔和紙紋、寬鬆留白。"
+        }
       }
     },
     "shortcuts": {

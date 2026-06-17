@@ -138,6 +138,7 @@ import { PlayerBarLayoutCard } from "./settings/PlayerBarLayoutCard";
 import { ShortcutsCard } from "./settings/ShortcutsCard";
 import { WrappedBannerCard } from "./settings/WrappedBannerCard";
 import { HiResBadgeCard } from "./settings/HiResBadgeCard";
+import { SkinPickerCard } from "./settings/SkinPickerCard";
 import { FullscreenLyricsCenteringCard } from "./settings/FullscreenLyricsCenteringCard";
 
 interface SettingsViewProps {
@@ -2612,6 +2613,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               </div>
             </div>
           </div>
+
+          <SkinPickerCard />
 
           <PlayerBarLayoutCard />
 
