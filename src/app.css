@@ -349,14 +349,23 @@
 }
 
 /* Lounge text contrast — most surfaces are dark-glass even
-   under light themes, so dial bodies up to zinc-100 and
-   secondary text to zinc-300. Skip the picker preview so the
-   Settings card doesn't go unreadable. */
-:root[data-skin="lounge"] [class*="text-zinc-900"]:not([id*="skin"]):not([id*="picker"]) {
+   under light themes, so every "ink" tone (zinc-500 → zinc-900)
+   needs to brighten up against the cover backdrop. Without the
+   zinc-800 entry the Settings theme-picker card titles (which
+   use `text-zinc-800 dark:text-zinc-100`) stayed invisible on
+   a Pulse-style flipped surface when the user picked Lounge on
+   top of a LIGHT theme — the `dark:` variant never kicked in
+   because there's no `.dark` class to match.
+   Picker preview cards opt out via `data-skin-immune` (added
+   below) — the `id*=`-based exclusion previously here was
+   fragile because the theme picker carried no stable id. */
+:root[data-skin="lounge"] [class*="text-zinc-900"],
+:root[data-skin="lounge"] [class*="text-zinc-800"] {
   color: rgb(244 244 245) !important; /* zinc-100 */
 }
-:root[data-skin="lounge"] [class*="text-zinc-700"]:not([id*="skin"]):not([id*="picker"]),
-:root[data-skin="lounge"] [class*="text-zinc-600"]:not([id*="skin"]):not([id*="picker"]) {
+:root[data-skin="lounge"] [class*="text-zinc-700"],
+:root[data-skin="lounge"] [class*="text-zinc-600"],
+:root[data-skin="lounge"] [class*="text-zinc-500"] {
   color: rgb(212 212 216) !important; /* zinc-300 */
 }
 
@@ -452,20 +461,55 @@
   background-color: rgb(15 15 18) !important;
 }
 
-/* Pulse — Settings picker preview should not flip light cards
-   to OLED, so unread the override for the SkinPickerCard. */
-:root[data-skin="pulse"] [id*="skin-picker"] [class*="bg-white"],
-:root[data-skin="pulse"] [id*="skin-picker"] [class*="bg-zinc-900"] {
-  background-color: revert !important;
-}
-
-/* Pulse — text contrast flip on the body */
-:root[data-skin="pulse"] [class*="text-zinc-900"] {
+/* Pulse — text contrast flip on the body. Covers every
+   "ink" tone so a light theme + Pulse skin combo (where there's
+   no `.dark` class, so `dark:text-zinc-100` never triggers)
+   doesn't leave dark zinc-800 labels invisible on the OLED
+   surface. The Settings theme-picker card title (`text-zinc-800
+   dark:text-zinc-100`) was the original WCAG-failing surface. */
+:root[data-skin="pulse"] [class*="text-zinc-900"],
+:root[data-skin="pulse"] [class*="text-zinc-800"] {
   color: rgb(244 244 245) !important;
 }
 :root[data-skin="pulse"] [class*="text-zinc-700"],
-:root[data-skin="pulse"] [class*="text-zinc-600"] {
+:root[data-skin="pulse"] [class*="text-zinc-600"],
+:root[data-skin="pulse"] [class*="text-zinc-500"] {
   color: rgb(212 212 216) !important;
+}
+
+/* ============================================================
+   data-skin-immune escape hatch
+   ============================================================
+   Picker previews + any other surface that needs to retain its
+   "natural" look across skin swaps wears `data-skin-immune` on
+   its root. Any descendant of that subtree gets every skin-
+   level bg/text/backdrop override reverted to the cascade
+   default. Used by the Settings theme + skin pickers so the
+   preview swatches keep representing the THEME / SKIN they
+   describe, not the active skin painting over them.
+
+   The selector uses `:where()` so it stays at the lowest
+   possible specificity — it doesn't need to outrank anything
+   except its own `!important` parent rules, which it does via
+   the explicit `revert !important`. */
+[data-skin-immune] :where([class*="bg-white"]),
+[data-skin-immune] :where([class*="bg-zinc-900"]),
+[data-skin-immune] :where([class*="bg-zinc-950"]),
+[data-skin-immune] :where([class*="bg-black"]),
+[data-skin-immune] :where([class*="bg-surface-light"]),
+[data-skin-immune] :where([class*="bg-surface-dark"]) {
+  background-color: revert !important;
+  backdrop-filter: revert !important;
+  -webkit-backdrop-filter: revert !important;
+}
+[data-skin-immune] :where([class*="text-zinc-"]) {
+  color: revert !important;
+}
+[data-skin-immune] :where([class*="rounded-xl"]),
+[data-skin-immune] :where([class*="rounded-2xl"]),
+[data-skin-immune] :where([class*="rounded-3xl"]) {
+  border-radius: revert !important;
+  box-shadow: revert !important;
 }
 
 /* Theme ambient background. AppLayout's outer wrapper uses
