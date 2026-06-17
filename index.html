@@ -65,7 +65,14 @@
           // because `@theme inline` in app.css resolves the
           // attribute-selector overrides synchronously with the
           // first CSS pass.
-          var skin = localStorage.getItem("waveflow.skin.id") || "studio";
+          //
+          // Whitelist the stored id so an obsolete or garbage
+          // value can't land on `data-skin` and silently break
+          // every `[data-skin="<known>"]` rule. Must stay in
+          // sync with `SKIN_PRESETS` in `src/lib/skins.ts`.
+          var VALID_SKINS = { studio: 1, editorial: 1 };
+          var skin = localStorage.getItem("waveflow.skin.id");
+          if (!skin || !VALID_SKINS[skin]) skin = "studio";
           root.setAttribute("data-skin", skin);
         } catch (_) {
           // localStorage unavailable — fall through to :root defaults.

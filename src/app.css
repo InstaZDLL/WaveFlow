@@ -161,9 +161,12 @@
   font-size: 0.75rem;
   color: rgb(120 113 108); /* stone-500 */
 }
-:root.dark [data-skin="editorial"] [class*="uppercase"][class*="font-bold"],
-[data-skin="editorial"]:where(:root.dark, :root.dark *)
-  [class*="uppercase"][class*="font-bold"] {
+/* `:root.dark` and `[data-skin="editorial"]` are both attributes/
+   classes on the SAME element (the documentElement), so the
+   compound must NOT carry a descendant combinator between them.
+   The earlier `:root.dark [data-skin="…"]` shape never matched
+   because data-skin is on :root itself, not a descendant. */
+:root.dark[data-skin="editorial"] [class*="uppercase"][class*="font-bold"] {
   color: rgb(168 162 158); /* stone-400 */
 }
 
@@ -177,7 +180,7 @@
   background-image: var(--skin-grain);
   background-repeat: repeat;
 }
-:root.dark [data-skin="editorial"] aside.w-72 {
+:root.dark[data-skin="editorial"] aside.w-72 {
   background-color: rgb(28 25 23); /* stone-900 — warm dark */
   background-image: var(--skin-grain);
 }

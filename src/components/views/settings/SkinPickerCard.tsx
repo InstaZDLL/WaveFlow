@@ -1,3 +1,4 @@
+import { useRef, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Layers, Check } from "lucide-react";
 import { useSkin } from "../../../hooks/useSkin";
@@ -20,6 +21,42 @@ import { SKIN_PRESETS } from "../../../lib/skins";
 export function SkinPickerCard() {
   const { t } = useTranslation();
   const { skin, setSkinId } = useSkin();
+  // Refs to each radio button so the keyboard handler can move
+  // DOM focus to the newly-selected option (WAI-ARIA radiogroup
+  // pattern: arrow key changes selection AND focus, screen
+  // readers announce the new value because focus moves).
+  const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const handleKeyDown = (
+    e: KeyboardEvent<HTMLButtonElement>,
+    currentIdx: number,
+  ) => {
+    const len = SKIN_PRESETS.length;
+    let targetIdx: number;
+    switch (e.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        targetIdx = (currentIdx + 1) % len;
+        break;
+      case "ArrowLeft":
+      case "ArrowUp":
+        targetIdx = (currentIdx - 1 + len) % len;
+        break;
+      case "Home":
+        targetIdx = 0;
+        break;
+      case "End":
+        targetIdx = len - 1;
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    setSkinId(SKIN_PRESETS[targetIdx].id);
+    // Move focus too — radiogroup pattern moves selection AND
+    // focus on arrow key. Refs are populated by the JSX below.
+    buttonRefs.current[targetIdx]?.focus();
+  };
 
   return (
     <section
@@ -49,7 +86,7 @@ export function SkinPickerCard() {
         role="radiogroup"
         aria-labelledby="skin-picker-heading"
       >
-        {SKIN_PRESETS.map((preset) => {
+        {SKIN_PRESETS.map((preset, idx) => {
           const isActive = preset.id === skin.id;
           // Inline-style preview so the swatch always reflects the
           // skin's actual tokens, not the active skin's. Using inline
@@ -65,10 +102,18 @@ export function SkinPickerCard() {
           return (
             <button
               key={preset.id}
+              ref={(el) => {
+                buttonRefs.current[idx] = el;
+              }}
               type="button"
               role="radio"
               aria-checked={isActive}
+              // Roving tabindex: only the active option lives in
+              // the tab order; arrow keys cycle to the others.
+              // Standard WAI-ARIA radiogroup pattern.
+              tabIndex={isActive ? 0 : -1}
               onClick={() => setSkinId(preset.id)}
+              onKeyDown={(e) => handleKeyDown(e, idx)}
               className={`group relative text-left overflow-hidden transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                 isActive
                   ? "ring-2 ring-emerald-500/40"
