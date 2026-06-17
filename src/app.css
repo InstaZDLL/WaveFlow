@@ -350,7 +350,12 @@
 :root[data-skin="lounge"] [class*="bg-zinc-900"]:not([role="tooltip"]):not(header):not(aside),
 :root[data-skin="lounge"] [class*="bg-zinc-950"]:not([role="tooltip"]):not(header):not(aside),
 :root[data-skin="lounge"] [class*="bg-black"]:not([role="tooltip"]):not(header):not(aside) {
-  background-color: rgb(10 10 12 / 0.55) !important;
+  /* Previously 0.55 — way too opaque once the chrome (sidebar
+     + topbar + playerbar) all stacked their own glass on top
+     of body surfaces. 0.32 lets the cover read clearly behind
+     stat cards / mood-radio tiles / list rows without losing
+     the chrome's dark identity. */
+  background-color: rgb(10 10 12 / 0.32) !important;
   backdrop-filter: var(--skin-backdrop);
   -webkit-backdrop-filter: var(--skin-backdrop);
 }

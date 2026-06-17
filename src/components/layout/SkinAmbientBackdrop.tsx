@@ -57,7 +57,12 @@ export function SkinAmbientBackdrop() {
           className="absolute inset-0 bg-center bg-cover"
           style={{
             backgroundImage: `url("${resolved}")`,
-            filter: "blur(60px) saturate(140%) brightness(0.6)",
+            // Lighter dim than the original (brightness 0.6 was
+            // too aggressive — combined with the body glass
+            // overlay on top, the cover effectively vanished).
+            // 0.85 keeps the album's mood readable without
+            // fighting text contrast on the chrome.
+            filter: "blur(48px) saturate(150%) brightness(0.85)",
             transform: "scale(1.2)",
             // Skip the cross-fade keyframe when the user opted
             // out of motion — the cover swap becomes an instant
@@ -69,10 +74,12 @@ export function SkinAmbientBackdrop() {
           }}
         />
       )}
-      {/* Vignette + readability tint over whatever cover is
-          painted underneath. Without this the sidebar / topbar
-          text would compete with the cover art for contrast. */}
-      <div className="absolute inset-0 bg-linear-to-b from-black/40 via-black/30 to-black/50" />
+      {/* Gentle vignette — lifted from the original 30-50 %
+          black overlay because that, combined with the body
+          glass on top of the chrome, ate the cover entirely.
+          Just enough darkening at the very top + bottom to
+          keep the topbar / playerbar text legible. */}
+      <div className="absolute inset-0 bg-linear-to-b from-black/15 via-transparent to-black/25" />
     </div>
   );
 }
