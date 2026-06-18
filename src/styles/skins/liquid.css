@@ -678,7 +678,7 @@
   [class*="shadow-xl"],
   [class*="shadow-2xl"]
 ) {
-  color: var(--liq-ink);
+  color: var(--liq-ink) !important;
   background-color: color-mix(in srgb, var(--liq-glass-tint) 18%, transparent) !important;
   background-image: none !important;
   border: 0 !important;
@@ -686,6 +686,28 @@
   backdrop-filter: blur(40px) saturate(var(--liq-saturation));
   -webkit-backdrop-filter: blur(40px) saturate(var(--liq-saturation));
   box-shadow: var(--liquid-glass) !important;
+}
+
+/* Force readable text colour inside modals — the modal shell
+   sets `color` but inherited `text-zinc-X` classes on inner
+   wrappers still beat the inheritance. Catch every modal
+   descendant that isn't an explicitly-tinted accent (so the
+   AND/OR/NOT chips, the colored playlist preview tile, etc.
+   keep their identity) and force them to ink. */
+:root[data-skin="liquid"] :where(
+  [role="dialog"],
+  [class*="shadow-2xl"],
+  [class*="shadow-xl"]
+) :where(h1, h2, h3, h4, h5, h6, label, p, span):not([class*="bg-violet"]):not([class*="bg-indigo"]):not([class*="bg-blue-5"]):not([class*="bg-blue-6"]):not([class*="bg-purple"]):not([class*="bg-fuchsia"]):not([class*="bg-pink"]) {
+  color: var(--liq-ink) !important;
+}
+
+/* Placeholder text in modal inputs — invisible by default
+   because `placeholder:text-zinc-X` utilities cascade past
+   the modal's color override. */
+:root[data-skin="liquid"] :where(input, textarea)::placeholder {
+  color: var(--liq-faint) !important;
+  opacity: 1;
 }
 
 /* Type colour overrides. */
