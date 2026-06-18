@@ -4,6 +4,21 @@ import App from "./App";
 import { MiniPlayerApp } from "./MiniPlayerApp";
 import { ReadySignal } from "./components/common/ReadySignal";
 import "./app.css";
+// Self-hosted fonts for the Editorial skin (Playfair Display + Lora).
+// Imported here so the @font-face declarations land at the top of the
+// bundled CSS — they need to precede any rules that consume them, and
+// importing from inside `editorial.css` would leave them stranded
+// mid-bundle (illegal per spec, and PostCSS warns). Each fontsource
+// CSS embeds latin + latin-ext + cyrillic + vietnamese subsets with
+// `unicode-range`, so the browser only downloads the woff2 actually
+// needed for the current locale. Files are bundled into the app —
+// zero network at runtime, works offline.
+import "@fontsource/playfair-display/400-italic.css";
+import "@fontsource/playfair-display/900.css";
+import "@fontsource/lora/400.css";
+import "@fontsource/lora/400-italic.css";
+import "@fontsource/lora/500.css";
+import "@fontsource/lora/700.css";
 import { i18nReady } from "./i18n";
 
 // The mini-player runs in a second WebviewWindow that loads the same

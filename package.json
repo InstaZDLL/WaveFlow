@@ -21,6 +21,8 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@fontsource/lora": "^5.2.8",
+    "@fontsource/playfair-display": "^5.2.8",
     "@tailwindcss/vite": "^4.3.1",
     "@tanstack/react-virtual": "^3.14.2",
     "@tauri-apps/api": "^2.11.0",

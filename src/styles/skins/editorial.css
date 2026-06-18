@@ -21,7 +21,14 @@
    pattern was the source of every cascade fight in the v1+v2
    stack that lived here before. */
 
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,900&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap");
+/* Playfair Display + Lora are bundled via `@fontsource/*` in
+   `src/main.tsx` — no network @import here. Loading them from
+   the JS entrypoint keeps the @font-face declarations at the
+   top of the CSS bundle (CSS spec requires `@import` to precede
+   all other statements; declaring them mid-stream as we'd be
+   forced to here breaks the spec and triggers a PostCSS
+   warning). The bundled woff2 also makes the skin work fully
+   offline, which a Tauri desktop app needs. */
 
 :root[data-skin="editorial"] {
   --ed-paper: #f0ebd8;
