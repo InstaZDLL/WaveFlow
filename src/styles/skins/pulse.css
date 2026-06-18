@@ -643,12 +643,19 @@
   background-image: none !important;
   border-radius: 9999px !important;
   height: 100% !important;
-  box-shadow: 0 0 12px rgb(var(--pulse-cyan-rgb) / 0.6);
+  /* Outer glow kept very tight (6 px spread, no offset) so the
+     neon halo stays inside the floating pill's rounded edge.
+     The previous 12 px spread leaked past the pill's bottom-
+     right curve and read as a teal "border" outside the
+     capsule. `overflow: visible` on the footer is intentional
+     (DeviceMenu / SleepTimerMenu / MoreActions popovers need
+     to escape) so the glow has to clip itself. */
+  box-shadow: 0 0 6px rgb(var(--pulse-cyan-rgb) / 0.7);
 }
 
 :root[data-skin="pulse"] footer [role="slider"]:hover > div {
   background-color: var(--pulse-magenta) !important;
-  box-shadow: 0 0 14px rgb(var(--pulse-magenta-rgb) / 0.7);
+  box-shadow: 0 0 6px rgb(var(--pulse-magenta-rgb) / 0.8);
 }
 
 /* Time codes + audio meta — Space Mono. */
