@@ -27,6 +27,7 @@ import { regenerateAllSmartPlaylists } from "../../lib/tauri/smart_playlists";
 import { smartPlaylistKind } from "../../lib/tauri/playlist";
 import { availableWrappedYears } from "../../lib/tauri/wrapped";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
+import { useSkin } from "../../hooks/useSkin";
 import {
   getProfileStats,
   listAlbums,
@@ -36,6 +37,7 @@ import {
 } from "../../lib/tauri/browse";
 import type { Track } from "../../lib/tauri/track";
 import { MoodRadioGrid } from "./home/MoodRadioGrid";
+import { EditorialMasthead } from "./home/EditorialMasthead";
 
 interface HomeViewProps {
   onNavigate: (view: ViewId) => void;
@@ -107,6 +109,7 @@ export function HomeView({
   onNavigateToWrapped,
 }: HomeViewProps) {
   const { t } = useTranslation();
+  const { skin } = useSkin();
   const { activeProfile } = useProfile();
   const {
     libraries,
@@ -171,6 +174,8 @@ export function HomeView({
     [libraries],
   );
   const hasLibrary = libraries.length > 0;
+  const isLoungeSkin = skin.id === "lounge";
+  const isEditorialSkin = skin.id === "editorial";
 
   // Wrapped years — refresh whenever the profile changes; the list is
   // cheap (one DISTINCT over play_event) so we don't bother caching
@@ -275,84 +280,179 @@ export function HomeView({
     await playTracks(tracks, index, { type: "library", id: null });
   };
 
+  // Extracted from nested ternaries on the JSX — each branch is
+  // a per-skin layout token (Lounge widens columns, Editorial
+  // swaps in the front-page grid + hero modifier, baseline
+  // stacks vertically). Keeping them named here makes the
+  // matrix obvious instead of buried in three 4-level deep
+  // ternaries inside the JSX className= props.
+  let containerClasses: string;
+  if (isLoungeSkin) {
+    containerClasses = "lounge-home space-y-10 animate-fade-in pb-24";
+  } else if (isEditorialSkin) {
+    containerClasses = "editorial-home space-y-12 animate-fade-in pb-28";
+  } else {
+    containerClasses = "space-y-8 animate-fade-in pb-20";
+  }
+
+  let gridClasses: string;
+  if (isLoungeSkin) {
+    gridClasses =
+      "grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem] gap-5 items-stretch";
+  } else if (isEditorialSkin) {
+    gridClasses =
+      "editorial-front-page grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] gap-8 items-stretch";
+  } else {
+    gridClasses = "space-y-8";
+  }
+
+  let bannerSkinClasses: string;
+  if (isLoungeSkin) {
+    bannerSkinClasses = "min-h-80 p-10 xl:p-12 flex items-end";
+  } else if (isEditorialSkin) {
+    bannerSkinClasses =
+      "editorial-hero min-h-[23rem] p-8 sm:p-10 xl:p-12 flex items-end";
+  } else {
+    bannerSkinClasses = "p-10";
+  }
+  const bannerClasses = `relative overflow-hidden rounded-3xl bg-linear-to-br from-emerald-50 to-white shadow-sm border border-emerald-100/50 dark:from-emerald-900/40 dark:to-zinc-800/40 dark:border-zinc-800 dark:shadow-none ${bannerSkinClasses}`;
+
   return (
-    <div className="space-y-8 animate-fade-in pb-20">
-      {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-3xl p-10 bg-linear-to-br from-emerald-50 to-white shadow-sm border border-emerald-100/50 dark:from-emerald-900/40 dark:to-zinc-800/40 dark:border-zinc-800 dark:shadow-none">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-24 -left-16 w-80 h-80 rounded-full bg-emerald-300/30 dark:bg-emerald-400/25 blur-3xl"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-32 right-0 w-md h-112 rounded-full bg-emerald-400/20 dark:bg-emerald-500/20 blur-3xl"
-        />
+    <div className={containerClasses}>
+      {isEditorialSkin && <EditorialMasthead />}
+      <div className={gridClasses}>
+        {/* Welcome Banner */}
+        <div className={bannerClasses}>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-24 -left-16 w-80 h-80 rounded-full bg-emerald-300/30 dark:bg-emerald-400/25 blur-3xl"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-32 right-0 w-md h-112 rounded-full bg-emerald-400/20 dark:bg-emerald-500/20 blur-3xl"
+          />
 
-        <div className="relative">
-          <div className="inline-flex items-center space-x-2 bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 dark:border-emerald-400/40 px-3 py-1 rounded-full text-xs font-semibold mb-6 backdrop-blur-sm">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>{t("home.banner.badge")}</span>
-          </div>
+          <div className="relative max-w-3xl">
+            <div className="inline-flex items-center space-x-2 bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 dark:border-emerald-400/40 px-3 py-1 rounded-full text-xs font-semibold mb-6 backdrop-blur-sm">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>{t("home.banner.badge")}</span>
+            </div>
 
-          <h1 className="text-4xl font-bold mb-2 text-zinc-900 dark:text-white">
-            {t(`home.greeting.${getGreetingKey()}`)}
-            {greetingName && `, ${greetingName}`}
-          </h1>
-          <p className="text-zinc-500 dark:text-zinc-400 mb-8">
-            {t("home.banner.subtitle")}
-          </p>
-
-          <div className="flex flex-wrap gap-6">
-            <ActionLink
-              icon={<Folder size={16} />}
-              label={
-                isImporting
-                  ? t("library.actions.importing")
-                  : t("home.banner.importFolder")
-              }
-              highlight
-              onClick={handleImport}
-            />
-            {hasLibrary && (
-              <ActionLink
-                icon={<Library size={16} />}
-                label={t("home.banner.browseLibrary")}
-                onClick={() => onNavigate("library")}
-              />
+            <h1
+              className={`font-bold mb-2 text-zinc-900 dark:text-white ${
+                isLoungeSkin
+                  ? "text-5xl leading-tight"
+                  : isEditorialSkin
+                    ? "text-5xl md:text-6xl leading-[0.95]"
+                    : "text-4xl"
+              }`}
+            >
+              {t(`home.greeting.${getGreetingKey()}`)}
+              {greetingName && `, ${greetingName}`}
+            </h1>
+            {isEditorialSkin && (
+              <figure className="editorial-lead-art" aria-hidden="true">
+                <div className="editorial-lead-art__frame">
+                  {currentTrack ? (
+                    <Artwork
+                      path={currentTrack.artwork_path}
+                      path1x={currentTrack.artwork_path_1x}
+                      path2x={currentTrack.artwork_path_2x}
+                      size="full"
+                      alt=""
+                      className="w-full h-full"
+                      iconSize={42}
+                      rounded="md"
+                    />
+                  ) : (
+                    <div className="editorial-lead-art-fallback">
+                      <Music2 size={60} />
+                    </div>
+                  )}
+                </div>
+                <figcaption className="editorial-lead-art__caption">
+                  {currentTrack?.album_title && currentTrack?.artist_name
+                    ? t("editorial.lead.caption", {
+                        defaultValue:
+                          "Fig 1. — Tiré de « {{album}} » par {{artist}}.",
+                        album: currentTrack.album_title,
+                        artist: currentTrack.artist_name,
+                      })
+                    : currentTrack?.artist_name
+                      ? t("editorial.lead.captionArtistOnly", {
+                          defaultValue: "Fig 1. — Une création de {{artist}}.",
+                          artist: currentTrack.artist_name,
+                        })
+                      : t("editorial.lead.captionFallback", {
+                          defaultValue: "Fig 1. — Sélection du jour.",
+                        })}
+                </figcaption>
+              </figure>
             )}
+            <p className="text-zinc-500 dark:text-zinc-400 mb-8 max-w-2xl">
+              {t("home.banner.subtitle")}
+            </p>
+
+            <div className="flex flex-wrap gap-6">
+              <ActionLink
+                icon={<Folder size={16} />}
+                label={
+                  isImporting
+                    ? t("library.actions.importing")
+                    : t("home.banner.importFolder")
+                }
+                highlight
+                onClick={handleImport}
+              />
+              {hasLibrary && (
+                <ActionLink
+                  icon={<Library size={16} />}
+                  label={t("home.banner.browseLibrary")}
+                  onClick={() => onNavigate("library")}
+                />
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard
-          icon={<Library />}
-          accent="emerald"
-          count={totalTracks.toString()}
-          label={t("home.stats.library")}
-          onClick={() => onNavigate("library")}
-        />
-        <StatCard
-          icon={<Heart className="fill-current" />}
-          accent="pink"
-          count={likedCount.toString()}
-          label={t("home.stats.liked")}
-          onClick={() => onNavigate("liked")}
-        />
-        <StatCard
-          icon={<Clock />}
-          accent="blue"
-          count={recentCount.toString()}
-          label={t("home.stats.recent")}
-          onClick={() => onNavigate("recent")}
-        />
-        <StatCard
-          icon={<ListMusic />}
-          accent="purple"
-          count={playlists.length.toString()}
-          label={t("home.stats.playlists")}
-        />
+        {/* Stats Cards */}
+        <div
+          className={
+            isLoungeSkin
+              ? "grid grid-cols-2 xl:grid-cols-1 gap-4"
+              : isEditorialSkin
+                ? "editorial-stats grid grid-cols-2 xl:grid-cols-1 gap-0"
+                : "grid grid-cols-1 md:grid-cols-4 gap-4"
+          }
+        >
+          <StatCard
+            icon={<Library />}
+            accent="emerald"
+            count={totalTracks.toString()}
+            label={t("home.stats.library")}
+            onClick={() => onNavigate("library")}
+          />
+          <StatCard
+            icon={<Heart className="fill-current" />}
+            accent="pink"
+            count={likedCount.toString()}
+            label={t("home.stats.liked")}
+            onClick={() => onNavigate("liked")}
+          />
+          <StatCard
+            icon={<Clock />}
+            accent="blue"
+            count={recentCount.toString()}
+            label={t("home.stats.recent")}
+            onClick={() => onNavigate("recent")}
+          />
+          <StatCard
+            icon={<ListMusic />}
+            accent="purple"
+            count={playlists.length.toString()}
+            label={t("home.stats.playlists")}
+          />
+        </div>
       </div>
 
       {/* Wrapped year-in-review banner — gated by
@@ -424,212 +524,221 @@ export function HomeView({
           backend returns an empty list and skips re-generation in that
           case); the regen button stays available so the section
           re-appears as soon as enough listening data piles up. */}
-      <section>
-        <div className="flex items-end justify-between mb-6">
-          <h2 className="text-2xl font-bold inline-block border-b-4 border-violet-500 pb-1 text-zinc-900 dark:text-white">
-            {t("home.dailyMix.title", "Pour vous")}
-          </h2>
-          <button
-            type="button"
-            onClick={handleRegenerateMixes}
-            disabled={isRegenerating}
-            className="inline-flex items-center gap-2 text-sm font-medium text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <RefreshCw
-              size={14}
-              className={isRegenerating ? "animate-spin" : ""}
-            />
-            {isRegenerating
-              ? t("home.dailyMix.regenerating", "Génération…")
-              : t("home.dailyMix.regenerate", "Régénérer")}
-          </button>
-        </div>
-        {smartPlaylists.length === 0 && playlistsLoading ? (
-          <HomeBannerSkeleton label={t("home.dailyMix.title", "Pour vous")} />
-        ) : smartPlaylists.length === 0 ? (
-          <div className="relative overflow-hidden min-h-32 rounded-3xl border flex items-center justify-center p-8 border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/40 dark:shadow-none">
-            <EmptyState
-              icon={<Sparkles size={32} />}
-              title={t("home.dailyMix.emptyTitle", "Pas encore de Daily Mix")}
-              description={t(
-                "home.dailyMix.emptyDescription",
-                "Écoute quelques morceaux puis clique sur Régénérer pour créer tes mixes personnalisés.",
-              )}
-              size="sm"
-            />
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-4">
-            {smartPlaylists.map((pl) => {
-              const cover = resolveRemoteImage(pl.cover_path, null);
-              const kind = smartPlaylistKind(pl);
-              // Per-family styling so On Repeat reads as a distinct
-              // surface from Daily Mix — different eyebrow, gradient,
-              // and focus ring tint without needing a separate carousel.
-              const isOnRepeat = kind?.kind === "on_repeat";
-              const eyebrow = isOnRepeat
-                ? t("home.onRepeat.label", "On Repeat")
-                : t("home.dailyMix.label", "Daily Mix");
-              const fallbackGradient = isOnRepeat
-                ? "bg-linear-to-br from-emerald-400 to-emerald-700"
-                : "bg-linear-to-br from-violet-400 to-violet-700";
-              const ringTint = isOnRepeat
-                ? "focus-visible:ring-emerald-500"
-                : "focus-visible:ring-violet-500";
-              return (
-                <button
-                  key={`smart-${pl.id}`}
-                  type="button"
-                  onClick={() => onNavigateToPlaylist(pl.id)}
-                  className={`group relative overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-800 aspect-16/7 basis-70 grow max-w-100 text-left focus:outline-none focus-visible:ring-2 ${ringTint} transition-transform hover:-translate-y-0.5`}
-                >
-                  {cover ? (
-                    <img
-                      src={cover}
-                      alt=""
-                      className="absolute inset-0 w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className={`absolute inset-0 ${fallbackGradient}`} />
-                  )}
-                  <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/30 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-                    <div className="text-xs uppercase tracking-widest opacity-80">
-                      {eyebrow}
-                    </div>
-                    <div className="text-xl font-bold leading-tight mt-1 truncate">
-                      {pl.name}
-                    </div>
-                    <div className="text-xs opacity-75 mt-0.5">
-                      {t("home.dailyMix.trackCount", {
-                        defaultValue: "{{count}} morceaux",
-                        count: pl.track_count,
-                      })}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* Récemment joués */}
-      <section>
-        <div className="flex items-end justify-between mb-6">
-          <h2 className="text-2xl font-bold inline-block border-b-4 border-emerald-500 pb-1 text-zinc-900 dark:text-white">
-            {t("home.recentlyPlayed.title")}
-          </h2>
-          {recentPlays.length > 0 && (
+      <div
+        className={
+          isLoungeSkin
+            ? "grid grid-cols-1 xl:grid-cols-2 gap-8 items-start"
+            : isEditorialSkin
+              ? "editorial-feature-grid grid grid-cols-1 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] gap-10 items-start"
+              : "space-y-8"
+        }
+      >
+        <section>
+          <div className="flex items-end justify-between mb-6">
+            <h2 className="text-2xl font-bold inline-block border-b-4 border-violet-500 pb-1 text-zinc-900 dark:text-white">
+              {t("home.dailyMix.title", "Pour vous")}
+            </h2>
             <button
               type="button"
-              onClick={() => onNavigate("recent")}
-              className="text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors"
+              onClick={handleRegenerateMixes}
+              disabled={isRegenerating}
+              className="inline-flex items-center gap-2 text-sm font-medium text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {t("home.seeAll")}
+              <RefreshCw
+                size={14}
+                className={isRegenerating ? "animate-spin" : ""}
+              />
+              {isRegenerating
+                ? t("home.dailyMix.regenerating", "Génération…")
+                : t("home.dailyMix.regenerate", "Régénérer")}
             </button>
-          )}
-        </div>
-        {recentPlays.length === 0 && recentPlaysLoading ? (
-          <HomeCarouselSkeleton label={t("home.recentlyPlayed.title")} />
-        ) : recentPlays.length === 0 ? (
-          <div className="relative overflow-hidden min-h-80 rounded-3xl border flex items-center justify-center p-8 border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/40 dark:shadow-none">
-            <EmptyState
-              icon={<Clock size={32} />}
-              title={t("home.recentlyPlayed.emptyTitle")}
-              description={t("home.recentlyPlayed.emptyDescription")}
-              size="sm"
-            >
-              <svg
-                viewBox="0 0 400 40"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-                className="mt-8 w-96 h-10 text-emerald-400 dark:text-emerald-400/60"
-              >
-                {WAVEFORM_HEIGHTS.map((h, i) => {
-                  const barWidth = 2.5;
-                  const gap = 2.5;
-                  const totalWidth =
-                    WAVEFORM_BAR_COUNT * (barWidth + gap) - gap;
-                  const startX = (400 - totalWidth) / 2;
-                  const x = startX + i * (barWidth + gap);
-                  const barH = h * 36;
-                  const y = (40 - barH) / 2;
-                  return (
-                    <rect
-                      key={i}
-                      x={x}
-                      y={y}
-                      width={barWidth}
-                      height={barH}
-                      rx={1}
-                      fill="currentColor"
-                    />
-                  );
-                })}
-              </svg>
-            </EmptyState>
           </div>
-        ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
-            {recentPlays.map((play, idx) => {
-              const isCurrent = play.track_id === currentTrack?.id;
-              return (
-                <div
-                  key={`${play.track_id}-${play.played_at}`}
-                  role="button"
-                  tabIndex={0}
-                  onDoubleClick={() => handlePlayRecent(idx)}
-                  onClick={() => handlePlayRecent(idx)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handlePlayRecent(idx);
-                    }
-                  }}
-                  className="group flex flex-col items-stretch text-left rounded-2xl p-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
-                >
-                  <Artwork
-                    path={play.artwork_path}
-                    path1x={play.artwork_path_1x}
-                    path2x={play.artwork_path_2x}
-                    // Carousel tile renders at ~200 px wide; the 128 px
-                    // 2x thumbnail upscales to a visibly soft image on a
-                    // HiDPI display (effective 400 device px). Serve the
-                    // original artwork — typically 600-1500 px square,
-                    // small enough to decode instantly and crisp at any
-                    // card size.
-                    size="full"
-                    alt={play.album_title ?? play.title}
-                    className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
-                    iconSize={36}
-                    rounded="2xl"
-                  />
-                  <div className="mt-3 min-w-0">
-                    <div
-                      className={`text-sm font-semibold truncate ${
-                        isCurrent
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-zinc-800 dark:text-zinc-200"
-                      }`}
-                    >
-                      {play.title}
+          {smartPlaylists.length === 0 && playlistsLoading ? (
+            <HomeBannerSkeleton label={t("home.dailyMix.title", "Pour vous")} />
+          ) : smartPlaylists.length === 0 ? (
+            <div className="relative overflow-hidden min-h-32 rounded-3xl border flex items-center justify-center p-8 border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/40 dark:shadow-none">
+              <EmptyState
+                icon={<Sparkles size={32} />}
+                title={t("home.dailyMix.emptyTitle", "Pas encore de Daily Mix")}
+                description={t(
+                  "home.dailyMix.emptyDescription",
+                  "Écoute quelques morceaux puis clique sur Régénérer pour créer tes mixes personnalisés.",
+                )}
+                size="sm"
+              />
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-4">
+              {smartPlaylists.map((pl) => {
+                const cover = resolveRemoteImage(pl.cover_path, null);
+                const kind = smartPlaylistKind(pl);
+                // Per-family styling so On Repeat reads as a distinct
+                // surface from Daily Mix — different eyebrow, gradient,
+                // and focus ring tint without needing a separate carousel.
+                const isOnRepeat = kind?.kind === "on_repeat";
+                const eyebrow = isOnRepeat
+                  ? t("home.onRepeat.label", "On Repeat")
+                  : t("home.dailyMix.label", "Daily Mix");
+                const fallbackGradient = isOnRepeat
+                  ? "bg-linear-to-br from-emerald-400 to-emerald-700"
+                  : "bg-linear-to-br from-violet-400 to-violet-700";
+                const ringTint = isOnRepeat
+                  ? "focus-visible:ring-emerald-500"
+                  : "focus-visible:ring-violet-500";
+                return (
+                  <button
+                    key={`smart-${pl.id}`}
+                    type="button"
+                    onClick={() => onNavigateToPlaylist(pl.id)}
+                    className={`group relative overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-800 aspect-16/7 basis-70 grow max-w-100 text-left focus:outline-none focus-visible:ring-2 ${ringTint} transition-transform hover:-translate-y-0.5`}
+                  >
+                    {cover ? (
+                      <img
+                        src={cover}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className={`absolute inset-0 ${fallbackGradient}`} />
+                    )}
+                    <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/30 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-4 text-white">
+                      <div className="text-xs uppercase tracking-widest opacity-80">
+                        {eyebrow}
+                      </div>
+                      <div className="text-xl font-bold leading-tight mt-1 truncate">
+                        {pl.name}
+                      </div>
+                      <div className="text-xs opacity-75 mt-0.5">
+                        {t("home.dailyMix.trackCount", {
+                          defaultValue: "{{count}} morceaux",
+                          count: pl.track_count,
+                        })}
+                      </div>
                     </div>
-                    <ArtistLink
-                      name={play.artist_name}
-                      artistIds={play.artist_ids}
-                      onNavigate={onNavigateToArtist}
-                      fallback="—"
-                      className="text-xs text-zinc-500 truncate block"
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Récemment joués */}
+        <section>
+          <div className="flex items-end justify-between mb-6">
+            <h2 className="text-2xl font-bold inline-block border-b-4 border-emerald-500 pb-1 text-zinc-900 dark:text-white">
+              {t("home.recentlyPlayed.title")}
+            </h2>
+            {recentPlays.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onNavigate("recent")}
+                className="text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors"
+              >
+                {t("home.seeAll")}
+              </button>
+            )}
           </div>
-        )}
-      </section>
+          {recentPlays.length === 0 && recentPlaysLoading ? (
+            <HomeCarouselSkeleton label={t("home.recentlyPlayed.title")} />
+          ) : recentPlays.length === 0 ? (
+            <div className="relative overflow-hidden min-h-80 rounded-3xl border flex items-center justify-center p-8 border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-800/40 dark:shadow-none">
+              <EmptyState
+                icon={<Clock size={32} />}
+                title={t("home.recentlyPlayed.emptyTitle")}
+                description={t("home.recentlyPlayed.emptyDescription")}
+                size="sm"
+              >
+                <svg
+                  viewBox="0 0 400 40"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                  className="mt-8 w-96 h-10 text-emerald-400 dark:text-emerald-400/60"
+                >
+                  {WAVEFORM_HEIGHTS.map((h, i) => {
+                    const barWidth = 2.5;
+                    const gap = 2.5;
+                    const totalWidth =
+                      WAVEFORM_BAR_COUNT * (barWidth + gap) - gap;
+                    const startX = (400 - totalWidth) / 2;
+                    const x = startX + i * (barWidth + gap);
+                    const barH = h * 36;
+                    const y = (40 - barH) / 2;
+                    return (
+                      <rect
+                        key={i}
+                        x={x}
+                        y={y}
+                        width={barWidth}
+                        height={barH}
+                        rx={1}
+                        fill="currentColor"
+                      />
+                    );
+                  })}
+                </svg>
+              </EmptyState>
+            </div>
+          ) : (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+              {recentPlays.map((play, idx) => {
+                const isCurrent = play.track_id === currentTrack?.id;
+                return (
+                  <div
+                    key={`${play.track_id}-${play.played_at}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handlePlayRecent(idx)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handlePlayRecent(idx);
+                      }
+                    }}
+                    className="group flex flex-col items-stretch text-left rounded-2xl p-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
+                  >
+                    <Artwork
+                      path={play.artwork_path}
+                      path1x={play.artwork_path_1x}
+                      path2x={play.artwork_path_2x}
+                      // Carousel tile renders at ~200 px wide; the 128 px
+                      // 2x thumbnail upscales to a visibly soft image on a
+                      // HiDPI display (effective 400 device px). Serve the
+                      // original artwork — typically 600-1500 px square,
+                      // small enough to decode instantly and crisp at any
+                      // card size.
+                      size="full"
+                      alt={play.album_title ?? play.title}
+                      className="w-full aspect-square shadow-sm group-hover:shadow-md transition-shadow"
+                      iconSize={36}
+                      rounded="2xl"
+                    />
+                    <div className="mt-3 min-w-0">
+                      <div
+                        className={`text-sm font-semibold truncate ${
+                          isCurrent
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-zinc-800 dark:text-zinc-200"
+                        }`}
+                      >
+                        {play.title}
+                      </div>
+                      <ArtistLink
+                        name={play.artist_name}
+                        artistIds={play.artist_ids}
+                        onNavigate={onNavigateToArtist}
+                        fallback="—"
+                        className="text-xs text-zinc-500 truncate block"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      </div>
 
       {/* Récemment ajoutés — render while loading (skeleton) or once
           we have data; only suppress when the library is empty AND

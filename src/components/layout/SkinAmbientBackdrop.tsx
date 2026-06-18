@@ -57,8 +57,16 @@ export function SkinAmbientBackdrop() {
           className="absolute inset-0 bg-center bg-cover"
           style={{
             backgroundImage: `url("${resolved}")`,
-            filter: "blur(60px) saturate(140%) brightness(0.6)",
-            transform: "scale(1.2)",
+            // Pure colour-field treatment: blur high enough
+            // (140px) that no image structure survives — just
+            // smooth fields of the cover's dominant hues. The
+            // saturate(280%) pumps those hues; brightness is
+            // left at 1.0 because >1.0 clips highlights into
+            // washed-out cream that reads as gray. Detail
+            // belongs on the album thumbnail in the player
+            // bar; the backdrop's job is mood, not photo.
+            filter: "blur(140px) saturate(280%)",
+            transform: "scale(1.6)",
             // Skip the cross-fade keyframe when the user opted
             // out of motion — the cover swap becomes an instant
             // cut, which is the conventional reduced-motion
@@ -69,10 +77,12 @@ export function SkinAmbientBackdrop() {
           }}
         />
       )}
-      {/* Vignette + readability tint over whatever cover is
-          painted underneath. Without this the sidebar / topbar
-          text would compete with the cover art for contrast. */}
-      <div className="absolute inset-0 bg-linear-to-b from-black/40 via-black/30 to-black/50" />
+      {/* Featherweight vignette — only darkens the very top +
+          bottom edges where the chrome (header + footer) sit,
+          so their text stays legible. The body section in the
+          middle stays untouched so the cover's colour can
+          dominate. */}
+      <div className="absolute inset-0 bg-linear-to-b from-black/0 via-transparent to-black/5" />
     </div>
   );
 }

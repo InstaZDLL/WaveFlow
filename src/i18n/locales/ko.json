@@ -1230,6 +1230,18 @@
     "descending": "내림차순",
     "filename": "파일 이름"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "조간",
+      "price": "가격: 포함",
+      "subtitle": "「인쇄될 가치가 있는 모든 음악.」— 매일을 위한 당신만의 셀렉션."
+    },
+    "lead": {
+      "caption": "그림 1. — 「{{album}}」 중에서, {{artist}}.",
+      "captionArtistOnly": "그림 1. — {{artist}}의 작품.",
+      "captionFallback": "그림 1. — 오늘의 셀렉션."
+    }
+  },
   "settings": {
     "title": "설정",
     "sections": {
@@ -1666,6 +1678,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "네온 클럽 — OLED 기반, 활성 요소 주변의 컬러 헤일로, 모노 알약, 탄력 있는 모션."
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Apple 스타일 리퀴드 글래스 — 다층 반투명 소재, 오로라 배경, 알약 캡슐, 차분한 모션."
         }
       }
     },

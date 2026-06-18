@@ -9,6 +9,11 @@
         "@dnd-kit/modifiers": "^9.0.0",
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
+        "@fontsource-variable/dm-sans": "^5.2.8",
+        "@fontsource/lora": "^5.2.8",
+        "@fontsource/playfair-display": "^5.2.8",
+        "@fontsource/space-grotesk": "^5.2.10",
+        "@fontsource/space-mono": "^5.2.9",
         "@tailwindcss/vite": "^4.3.1",
         "@tanstack/react-virtual": "^3.14.2",
         "@tauri-apps/api": "^2.11.0",
@@ -150,6 +155,16 @@
     "@eslint/object-schema": ["@eslint/object-schema@3.0.5", "", {}, "sha512-vqTaUEgxzm+YDSdElad6PiRoX4t8VGDjCtt05zn4nU810UIx/uNEV7/lZJ6KwFThKZOzOxzXy48da+No7HZaMw=="],
 
     "@eslint/plugin-kit": ["@eslint/plugin-kit@0.7.2", "", { "dependencies": { "@eslint/core": "^1.2.1", "levn": "^0.4.1" } }, "sha512-+CNAzxglkrpNf/kKywqQfk74QjtceuOE7Qm+AF8miRvPF/wmmK5+OJOgVh3AVTT3RP2mH3+FOaxlE5v72owk0A=="],
+
+    "@fontsource-variable/dm-sans": ["@fontsource-variable/dm-sans@5.2.8", "", {}, "sha512-AxkvMTvNWgfrmlyjiV05vlHYJa+nRQCf1EfvIrQAPBpFJW0O9VTz7oAFr9S3lvbWdmnFoBk7yFqQL86u64nl2g=="],
+
+    "@fontsource/lora": ["@fontsource/lora@5.2.8", "", {}, "sha512-AQlfsHw4TP1x/eb2IZ6VjQ70ctKa39m9JN9A4zlvDOeKYLrCs+GaYIEQ86Y6YfSPGHn01bErXkRcyktOW0LOPQ=="],
+
+    "@fontsource/playfair-display": ["@fontsource/playfair-display@5.2.8", "", {}, "sha512-fUEhib70SszNhQVsGbUMSsWJhr7Je0rdeuZdtGpDNu0GKF1xJM8QhpI/y0pckU25GcChXm9TLOmeZupkvvZo2g=="],
+
+    "@fontsource/space-grotesk": ["@fontsource/space-grotesk@5.2.10", "", {}, "sha512-XNXEbT74OIITPqw2H6HXwPDp85fy43uxfBwFR5PU+9sLnjuLj12KlhVM9nZVN6q6dlKjkuN8JisW/OBxwxgUew=="],
+
+    "@fontsource/space-mono": ["@fontsource/space-mono@5.2.9", "", {}, "sha512-b61faFOHEISQ/pD25G+cfGY9o/WW6lRv6hBQQfpWvEJ4y1V+S4gmth95EVyBE2VL3qDYHeVQ8nBzrplzdXTDDg=="],
 
     "@humanfs/core": ["@humanfs/core@0.19.1", "", {}, "sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA=="],
 

@@ -4,6 +4,38 @@ import App from "./App";
 import { MiniPlayerApp } from "./MiniPlayerApp";
 import { ReadySignal } from "./components/common/ReadySignal";
 import "./app.css";
+// Self-hosted fonts for the Editorial skin (Playfair Display + Lora).
+// Imported here so the @font-face declarations land at the top of the
+// bundled CSS — they need to precede any rules that consume them, and
+// importing from inside `editorial.css` would leave them stranded
+// mid-bundle (illegal per spec, and PostCSS warns). Each fontsource
+// CSS embeds latin + latin-ext + cyrillic + vietnamese subsets with
+// `unicode-range`, so the browser only downloads the woff2 actually
+// needed for the current locale. Files are bundled into the app —
+// zero network at runtime, works offline.
+import "@fontsource/playfair-display/400-italic.css";
+import "@fontsource/playfair-display/900.css";
+import "@fontsource/lora/400.css";
+import "@fontsource/lora/400-italic.css";
+import "@fontsource/lora/500.css";
+import "@fontsource/lora/700.css";
+// Pulse skin — Space Grotesk for display + body, Space Mono for
+// the tech-track utility chrome (eyebrows, nav pills, time codes,
+// the `///` section markers). Loaded eagerly so the skin doesn't
+// FOUT when the user flips into it from Studio.
+import "@fontsource/space-grotesk/400.css";
+import "@fontsource/space-grotesk/700.css";
+import "@fontsource/space-mono/400.css";
+import "@fontsource/space-mono/700.css";
+// Liquid skin — DM Sans Variable (opsz axis). The variable
+// font carries both the weight axis (100-1000) and the optical-
+// sizing axis (9-40), so the same family scales from caption-
+// precise rendering at small sizes to display-generous
+// rendering at large sizes — the property the comment on
+// liquid.css promises. Single woff2 (~100-150 KB latin) instead
+// of four static weight files, plus zero glyph mismatch when
+// any new size shows up in the UI.
+import "@fontsource-variable/dm-sans/opsz.css";
 import { i18nReady } from "./i18n";
 
 // The mini-player runs in a second WebviewWindow that loads the same

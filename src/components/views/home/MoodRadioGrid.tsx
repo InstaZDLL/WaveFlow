@@ -8,6 +8,7 @@ import {
   type MoodCounts,
 } from "../../../lib/tauri/moodRadio";
 import { playerPlayTracks } from "../../../lib/tauri/player";
+import { useSkin } from "../../../hooks/useSkin";
 
 interface MoodTile {
   mood: Mood;
@@ -58,8 +59,13 @@ const TILES: MoodTile[] = [
 
 export function MoodRadioGrid() {
   const { t } = useTranslation();
+  const { skin } = useSkin();
   const [counts, setCounts] = useState<MoodCounts | null>(null);
   const [loadingMood, setLoadingMood] = useState<Mood | null>(null);
+  const isLoungeSkin = skin.id === "lounge";
+  const isEditorialSkin = skin.id === "editorial";
+  const isPulseSkin = skin.id === "pulse";
+  const isLiquidSkin = skin.id === "liquid";
 
   useEffect(() => {
     let cancelled = false;
@@ -97,8 +103,20 @@ export function MoodRadioGrid() {
   if (counts != null && totalAnalysed === 0) return null;
 
   return (
-    <section>
-      <div className="flex items-end justify-between mb-6">
+    <section
+      className={
+        isLoungeSkin
+          ? "lounge-mood-section"
+          : isEditorialSkin
+            ? "editorial-mood-section"
+            : isPulseSkin
+              ? "pulse-mood-section"
+              : isLiquidSkin
+                ? "liquid-mood-section"
+                : undefined
+      }
+    >
+      <div className="flex items-end justify-between gap-4 mb-6">
         <h2 className="text-2xl font-bold inline-block border-b-4 border-rose-500 pb-1 text-zinc-900 dark:text-white">
           {t("home.moodRadio.title")}
         </h2>
@@ -106,32 +124,84 @@ export function MoodRadioGrid() {
           {t("home.moodRadio.subtitle")}
         </span>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        {TILES.map(({ mood, icon: Icon, cardClass, iconClass }) => {
+      <div
+        className={
+          isLoungeSkin
+            ? "lounge-mood-grid grid grid-cols-1 sm:grid-cols-6 gap-4 auto-rows-[10.75rem]"
+            : isEditorialSkin
+              ? "editorial-mood-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-0 auto-rows-[9.75rem]"
+              : isPulseSkin
+                ? "pulse-mood-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-[10rem]"
+                : isLiquidSkin
+                  ? "liquid-mood-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 auto-rows-[10rem]"
+                  : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
+        }
+      >
+        {TILES.map(({ mood, icon: Icon, cardClass, iconClass }, index) => {
           const count = counts?.[mood] ?? 0;
           const disabled = counts != null && count === 0;
           const isLoading = loadingMood === mood;
+          const loungeSpan =
+            index === 0
+              ? "sm:col-span-2 sm:row-span-2"
+              : index === 4
+                ? "sm:col-span-2"
+                : "sm:col-span-2";
+          const editorialSpan =
+            index === 0 ? "md:col-span-2 xl:col-span-1" : "xl:col-span-1";
           return (
             <button
               key={mood}
               type="button"
               onClick={() => handleStart(mood)}
               disabled={disabled || isLoading}
-              className={`relative overflow-hidden rounded-2xl p-5 text-left text-white shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-sm ${cardClass}`}
+              className={`relative overflow-hidden rounded-2xl p-5 text-left text-white shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-sm ${
+                isLoungeSkin
+                  ? `lounge-mood-tile lounge-mood-${mood} flex flex-col ${loungeSpan}`
+                  : isEditorialSkin
+                    ? `editorial-mood-tile editorial-mood-${mood} flex flex-col ${editorialSpan}`
+                    : isPulseSkin
+                      ? `pulse-mood-tile pulse-mood-${mood} flex flex-col`
+                      : isLiquidSkin
+                        ? `liquid-mood-tile liquid-mood-${mood} flex flex-col`
+                        : cardClass
+              }`}
               aria-label={t(`home.moodRadio.${mood}.title`)}
             >
               <div
-                className={`inline-flex items-center justify-center w-10 h-10 rounded-xl mb-3 ${iconClass}`}
+                className={`inline-flex items-center justify-center w-10 h-10 rounded-xl mb-3 ${
+                  isLoungeSkin
+                    ? "bg-white/10 text-rose-100"
+                    : isEditorialSkin
+                      ? "editorial-mood-icon"
+                      : isPulseSkin
+                        ? "pulse-mood-icon"
+                        : isLiquidSkin
+                          ? "liquid-mood-icon"
+                          : iconClass
+                }`}
               >
                 <Icon size={20} />
               </div>
-              <div className="text-base font-semibold mb-1">
+              <div
+                className={`font-semibold mb-1 ${
+                  (isLoungeSkin || isEditorialSkin) && index === 0
+                    ? "text-xl"
+                    : "text-base"
+                } ${isPulseSkin || isLiquidSkin ? "text-xl" : ""}`}
+              >
                 {t(`home.moodRadio.${mood}.title`)}
               </div>
               <div className="text-xs text-white/80 line-clamp-2 min-h-8">
                 {t(`home.moodRadio.${mood}.subtitle`)}
               </div>
-              <div className="mt-3 text-[11px] font-medium text-white/70">
+              <div
+                className={`text-[11px] font-medium text-white/70 ${
+                  isLoungeSkin || isEditorialSkin || isPulseSkin || isLiquidSkin
+                    ? "mt-auto pt-4"
+                    : "mt-3"
+                }`}
+              >
                 {disabled
                   ? t("home.moodRadio.empty")
                   : isLoading

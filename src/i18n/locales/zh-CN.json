@@ -1230,6 +1230,18 @@
     "recentlyAdded": "最近添加",
     "menuTitle": "排序方式"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "晨刊",
+      "price": "价格：包含",
+      "subtitle": "「值得印刷的所有音乐。」— 您每日的专属精选。"
+    },
+    "lead": {
+      "caption": "图 1. — 摘自《{{album}}》，{{artist}}。",
+      "captionArtistOnly": "图 1. — {{artist}} 的作品。",
+      "captionFallback": "图 1. — 今日精选。"
+    }
+  },
   "settings": {
     "title": "设置",
     "sections": {
@@ -1613,6 +1625,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "霓虹俱乐部 — OLED 底色,活动元素周围的彩色光晕,等宽胶囊,弹性动效。"
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Apple 风格液态玻璃 — 多层半透明材质,极光背景,胶囊药丸,宁静动效。"
         }
       }
     },

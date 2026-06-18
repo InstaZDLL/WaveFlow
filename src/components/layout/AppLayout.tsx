@@ -13,6 +13,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
 import { Sidebar } from "./Sidebar";
 import { SkinAmbientBackdrop } from "./SkinAmbientBackdrop";
+import { SkinPlayingState } from "./SkinPlayingState";
 import { SkinMotionWrapper } from "./SkinMotionWrapper";
 import { useDragDropImport } from "../../hooks/useDragDropImport";
 import { useGlobalShortcuts } from "../../hooks/useGlobalShortcuts";
@@ -512,37 +513,41 @@ export function AppLayout() {
   return (
     <SkinMotionWrapper>
       <SkinAmbientBackdrop />
+      <SkinPlayingState />
       <div className="flex flex-col h-screen font-sans">
-      <div className="flex flex-col h-screen bg-app-ambient text-zinc-600 dark:text-zinc-300 relative">
-        {/* Drag-and-drop overlay — fades in while the user is dragging
+        <div className="flex flex-col h-screen bg-app-ambient text-zinc-600 dark:text-zinc-300 relative">
+          {/* Drag-and-drop overlay — fades in while the user is dragging
             files over the window, and shows an "importing…" state while
             the backend scan runs. Pointer-events disabled so the drop
             still hits Tauri's native handler underneath. */}
-        {(dragDrop.isDraggingOver || dragDrop.isImporting) && (
-          <div className="fixed inset-0 z-100 pointer-events-none flex items-center justify-center bg-emerald-500/10 backdrop-blur-sm border-4 border-dashed border-emerald-500/60 animate-fade-in">
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl px-8 py-6 flex items-center gap-4">
-              {dragDrop.isImporting ? (
-                <Loader2 size={28} className="text-emerald-500 animate-spin" />
-              ) : (
-                <Upload size={28} className="text-emerald-500" />
-              )}
-              <div>
-                <div className="text-base font-semibold text-zinc-900 dark:text-white">
-                  {dragDrop.isImporting
-                    ? t("dragDrop.importing")
-                    : t("dragDrop.dropHint")}
-                </div>
-                <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {t("dragDrop.subtitle")}
+          {(dragDrop.isDraggingOver || dragDrop.isImporting) && (
+            <div className="fixed inset-0 z-100 pointer-events-none flex items-center justify-center bg-emerald-500/10 backdrop-blur-sm border-4 border-dashed border-emerald-500/60 animate-fade-in">
+              <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl px-8 py-6 flex items-center gap-4">
+                {dragDrop.isImporting ? (
+                  <Loader2
+                    size={28}
+                    className="text-emerald-500 animate-spin"
+                  />
+                ) : (
+                  <Upload size={28} className="text-emerald-500" />
+                )}
+                <div>
+                  <div className="text-base font-semibold text-zinc-900 dark:text-white">
+                    {dragDrop.isImporting
+                      ? t("dragDrop.importing")
+                      : t("dragDrop.dropHint")}
+                  </div>
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {t("dragDrop.subtitle")}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Main Container */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar wrapper. Animates `width` between 0 and the
+          {/* Main Container */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Sidebar wrapper. Animates `width` between 0 and the
               Sidebar's intrinsic `w-64` (256 px) so the toggle
               actually frees the screen real estate instead of just
               hiding the content. The Sidebar itself stays mounted at
@@ -556,25 +561,32 @@ export function AppLayout() {
               cascade needed). `aria-hidden` is set in parallel for
               older screen-reader engines that don't follow `inert`
               yet. React 19 supports `inert` as a boolean prop. */}
-          <motion.aside
-            initial={false}
-            animate={{ width: isSidebarHidden ? 0 : 256 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-            className="shrink-0 overflow-hidden"
-            aria-hidden={isSidebarHidden}
-            inert={isSidebarHidden}
-          >
-            <Sidebar
-              activeView={activeView}
-              setActiveView={setActiveView}
-              libraryTab={libraryTab}
-              setLibraryTab={setLibraryTab}
-              activePlaylistId={activePlaylistId}
-              navigateToPlaylist={navigateToPlaylist}
-            />
-          </motion.aside>
+            {/* Was `<motion.aside>` — collapsed to `<motion.div>`
+                because the inner `<Sidebar>` already renders its own
+                `<aside>` landmark; nesting two created an invalid
+                duplicate-landmark for screen-reader landmark
+                navigation. The wrapper's only job is the
+                width-animation envelope, no landmark semantics
+                required. */}
+            <motion.div
+              initial={false}
+              animate={{ width: isSidebarHidden ? 0 : 256 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="skin-sidebar-shell lounge-sidebar-shell shrink-0 overflow-hidden"
+              aria-hidden={isSidebarHidden}
+              inert={isSidebarHidden}
+            >
+              <Sidebar
+                activeView={activeView}
+                setActiveView={setActiveView}
+                libraryTab={libraryTab}
+                setLibraryTab={setLibraryTab}
+                activePlaylistId={activePlaylistId}
+                navigateToPlaylist={navigateToPlaylist}
+              />
+            </motion.div>
 
-          {/* Center Content. `min-w-0` is required so a long playlist
+            {/* Center Content. `min-w-0` is required so a long playlist
               title or wide table doesn't blow the flex item's intrinsic
               width past `flex-1` and push the right panel off-screen.
               Background uses `/50` opacity so the theme ambient bleeds
@@ -582,85 +594,85 @@ export function AppLayout() {
               solid `bg-zinc-50` covered the ambient and themed light
               presets (Sunset Light / Lavender Light…) looked stark
               white in the main area. */}
-          <div className="flex flex-col flex-1 min-w-0 relative bg-zinc-50/50 dark:bg-zinc-900/50 overflow-hidden">
-            <TopBar
-              activeView={activeView}
-              setActiveView={setActiveView}
-              onOpenProfileSelector={() => setIsProfileModalOpen(true)}
-              canGoBack={canGoBack}
-              canGoForward={canGoForward}
-              onGoBack={goBack}
-              onGoForward={goForward}
-              isSidebarHidden={isSidebarHidden}
-              onToggleSidebar={toggleSidebar}
-            />
+            <div className="flex flex-col flex-1 min-w-0 relative bg-zinc-50/50 dark:bg-zinc-900/50 overflow-hidden">
+              <TopBar
+                activeView={activeView}
+                setActiveView={setActiveView}
+                onOpenProfileSelector={() => setIsProfileModalOpen(true)}
+                canGoBack={canGoBack}
+                canGoForward={canGoForward}
+                onGoBack={goBack}
+                onGoForward={goForward}
+                isSidebarHidden={isSidebarHidden}
+                onToggleSidebar={toggleSidebar}
+              />
 
-            {/* Main Scrollable Content */}
-            <div
-              ref={pageScrollRef}
-              className="flex-1 overflow-y-auto p-8 relative"
-            >
-              <PageScrollContext.Provider value={pageScrollRef}>
-                <Suspense fallback={<ViewSuspenseFallback />}>
-                  {/* Crossfade + slight slide between views. Keyed on
+              {/* Main Scrollable Content */}
+              <main
+                ref={pageScrollRef}
+                className="flex-1 overflow-y-auto p-8 relative"
+              >
+                <PageScrollContext.Provider value={pageScrollRef}>
+                  <Suspense fallback={<ViewSuspenseFallback />}>
+                    {/* Crossfade + slight slide between views. Keyed on
                       the structural view id (album/artist/genre/playlist
                       keep a single key so the inner view handles its own
                       internal navigation — re-keying on every payload
                       change would jank the transition). */}
-                  <AnimatePresence mode="wait" initial={false}>
-                    <motion.div
-                      key={activeView}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.18, ease: "easeOut" }}
-                    >
-                      {renderView()}
-                    </motion.div>
-                  </AnimatePresence>
-                </Suspense>
-              </PageScrollContext.Provider>
-            </div>
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.div
+                        key={activeView}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.18, ease: "easeOut" }}
+                      >
+                        {renderView()}
+                      </motion.div>
+                    </AnimatePresence>
+                  </Suspense>
+                </PageScrollContext.Provider>
+              </main>
 
-            {/* Floating overlays anchored to the center column.
+              {/* Floating overlays anchored to the center column.
                 DeviceMenu = popup from the player bar's speaker icon;
                 NowPlayingChevronTab = right-edge handle shown only when
                 no right panel is open. Both must stay inside the center
                 container so their `right-0` anchors to the content edge,
                 not to the right panel when one is mounted as a sibling. */}
-            <DeviceMenu />
-            <NowPlayingChevronTab />
-          </div>
+              <DeviceMenu />
+              <NowPlayingChevronTab />
+            </div>
 
-          {/* Right Panels — siblings of the center column so opening
+            {/* Right Panels — siblings of the center column so opening
               one shrinks the content area instead of overlapping it
               (Spotify-style responsive layout). Only one is mounted at
               a time; the conditional render is the structural mutex.
               Wrapped in AnimatePresence so width/opacity exit animations
               play before unmount. */}
-          <AnimatePresence initial={false}>
-            {activeRightPanel === "queue" && <QueuePanel />}
-            {activeRightPanel === "nowPlaying" && (
-              <NowPlayingPanel onNavigateToArtist={navigateToArtist} />
-            )}
-            {activeRightPanel === "lyrics" && <LyricsPanel />}
-          </AnimatePresence>
+            <AnimatePresence initial={false}>
+              {activeRightPanel === "queue" && <QueuePanel />}
+              {activeRightPanel === "nowPlaying" && (
+                <NowPlayingPanel onNavigateToArtist={navigateToArtist} />
+              )}
+              {activeRightPanel === "lyrics" && <LyricsPanel />}
+            </AnimatePresence>
+          </div>
+
+          {/* Bottom Player Bar */}
+          <PlayerBar onNavigateToArtist={navigateToArtist} />
         </div>
 
-        {/* Bottom Player Bar */}
-        <PlayerBar onNavigateToArtist={navigateToArtist} />
+        <ProfileSelectorModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+        />
+
+        <LastfmReauthBanner onGoToSettings={() => setActiveView("settings")} />
+        <UpdateBanner />
+        <ScanProgressToast />
+        {showOnboarding && <OnboardingModal onSkip={dismissOnboarding} />}
       </div>
-
-      <ProfileSelectorModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-      />
-
-      <LastfmReauthBanner onGoToSettings={() => setActiveView("settings")} />
-      <UpdateBanner />
-      <ScanProgressToast />
-      {showOnboarding && <OnboardingModal onSkip={dismissOnboarding} />}
-    </div>
     </SkinMotionWrapper>
   );
 }

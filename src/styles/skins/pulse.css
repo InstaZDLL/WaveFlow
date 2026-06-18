@@ -1,0 +1,856 @@
+/* ============================================================
+   Pulse skin — Club control panel
+   ============================================================
+   Direction: OLED minimalism with neon edge lighting. Three
+   strict chromatic states, never more than one on the same
+   element at a time:
+
+     idle   = white text on transparent / black, hairline white/10
+     hover  = cyan halo (#00f3ff)   — outline + glow + 4 px lift
+     active = magenta halo (#ff00ea) — outline + glow + 5 % fill
+
+   Pulse owns its palette outright: the magenta and cyan are
+   hard-coded, NOT pulled from `--accent-500`. The theme picker
+   keeps influencing Studio + Editorial + Lounge; Pulse is the
+   "neon skin" by design and the duality (cyan hover ⇄ magenta
+   active) only works with these two specific neons.
+
+   Signature element: spring motion. Every interactive surface
+   uses `cubic-bezier(0.34, 1.56, 0.64, 1)` — slightly past-end
+   bounce that lands as kinetic energy in every click.
+
+   Selectors target stable landmarks + ARIA roles + the
+   `.skin-sidebar-shell` opt-in that Lounge/Editorial also use.
+   Tailwind class substring matching is intentionally limited
+   to a small audit-able set. */
+
+:root[data-skin="pulse"] {
+  --pulse-bg: #000000;
+  --pulse-surface: #0a0a0a;
+  --pulse-surface-raised: #111114;
+  --pulse-ink: rgb(244 244 245);
+  --pulse-muted: rgb(160 160 160);
+  --pulse-faint: rgb(255 255 255 / 0.4);
+  --pulse-rail: rgb(255 255 255 / 0.10);
+  --pulse-rail-soft: rgb(255 255 255 / 0.06);
+  --pulse-rail-strong: rgb(255 255 255 / 0.18);
+
+  /* Pulse's two neons — hard-coded so the duality always
+     reads. Not theme-bound. */
+  --pulse-magenta: #ff00ea;
+  --pulse-magenta-rgb: 255 0 234;
+  --pulse-cyan: #00f3ff;
+  --pulse-cyan-rgb: 0 243 255;
+
+  /* Spring motion — the kinetic signature. */
+  --pulse-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --pulse-fast: 180ms;
+  --pulse-slow: 400ms;
+}
+
+:root[data-skin="pulse"],
+:root[data-skin="pulse"] body {
+  color: var(--pulse-ink);
+  background-color: var(--pulse-bg);
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-feature-settings: "ss01", "ss02";
+}
+
+/* Atmospheric corner blobs: a single fixed overlay paints two
+   huge soft neon ellipses at opposite corners. position:fixed
+   so they stick to the viewport instead of scrolling with main
+   content. Z-index below everything else, pointer-events off
+   so they never block interaction. The opacity stays low (8 %)
+   — they're ambient lighting, not the subject. */
+:root[data-skin="pulse"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    radial-gradient(
+      ellipse at top left,
+      rgb(var(--pulse-magenta-rgb) / 0.10),
+      transparent 38%
+    ),
+    radial-gradient(
+      ellipse at bottom right,
+      rgb(var(--pulse-cyan-rgb) / 0.10),
+      transparent 38%
+    );
+  pointer-events: none;
+}
+
+/* Center column + ambient wrapper neutralisation. The
+   `bg-zinc-900/50` slab would otherwise grey out the neon
+   blobs. */
+:root[data-skin="pulse"] [class*="bg-app-ambient"],
+:root[data-skin="pulse"] div:has(> header):has(> main) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* ============================================================
+   Chrome — sidebar, header, footer
+   ============================================================
+   All chrome reads as "absent": no fill, just a hairline rail
+   on the inside edge. The cover-corner blobs paint behind. */
+
+:root[data-skin="pulse"] .skin-sidebar-shell {
+  background-color: transparent !important;
+  border-right: 1px solid var(--pulse-rail);
+  box-shadow: none;
+}
+
+:root[data-skin="pulse"] .skin-sidebar-shell > aside {
+  margin: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 1.5rem 1rem;
+  color: var(--pulse-ink);
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Brand block: the WaveFlow logo gets a neon outline + glow.
+   The label stays uppercase Space Grotesk with tracking — the
+   monogram is the focal point, the wordmark is a caption. */
+:root[data-skin="pulse"] .skin-sidebar-shell > aside > div:first-child {
+  padding: 0.5rem 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--pulse-rail);
+}
+
+:root[data-skin="pulse"] .skin-sidebar-shell > aside > div:first-child > div:first-child {
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+}
+
+:root[data-skin="pulse"] .skin-sidebar-shell > aside > div:first-child > div:first-child > :first-child {
+  width: 2rem;
+  height: 2rem;
+  padding: 0.4rem;
+  color: var(--pulse-ink);
+  background-color: var(--pulse-bg);
+  border: 2px solid var(--pulse-ink);
+  border-radius: 9999px;
+  box-shadow: 0 0 18px -4px rgb(255 255 255 / 0.6);
+}
+
+/* Profile pill = magenta→cyan gradient avatar + transparent
+   capsule. */
+:root[data-skin="pulse"] .skin-sidebar-shell > aside > div:first-child button {
+  border: 1px solid var(--pulse-rail);
+  border-radius: 9999px !important;
+  background-color: transparent !important;
+  font-family: "Space Mono", ui-monospace, monospace !important;
+  font-size: 0.78rem;
+  transition: all var(--pulse-fast) var(--pulse-spring);
+}
+
+:root[data-skin="pulse"] .skin-sidebar-shell > aside > div:first-child button:hover {
+  border-color: var(--pulse-cyan);
+  color: var(--pulse-cyan);
+  box-shadow: 0 0 16px -6px rgb(var(--pulse-cyan-rgb) / 0.6);
+  transform: translateY(-1px);
+}
+
+:root[data-skin="pulse"] .skin-sidebar-shell > aside > div:first-child button > div:first-child > div:first-child {
+  background-image: linear-gradient(135deg, var(--pulse-magenta), var(--pulse-cyan)) !important;
+  background-color: transparent !important;
+  color: var(--pulse-bg) !important;
+  border-radius: 9999px;
+  box-shadow: 0 0 12px -2px rgb(var(--pulse-magenta-rgb) / 0.5);
+}
+
+/* Section eyebrows — "/// MY MUSIC", "/// PLAYLISTS". Mono
+   font, tracking-widest, with three slashes injected via
+   ::before so we don't have to touch every translation file. */
+:root[data-skin="pulse"] .skin-sidebar-shell > aside [class*="uppercase"][class*="tracking"] {
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.5rem !important;
+  color: var(--pulse-faint) !important;
+  font-family: "Space Mono", ui-monospace, monospace !important;
+  font-size: 0.65rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.28em !important;
+  text-transform: uppercase;
+}
+
+:root[data-skin="pulse"] .skin-sidebar-shell > aside [class*="uppercase"][class*="tracking"]::before {
+  content: "///";
+  color: var(--pulse-magenta);
+  font-weight: 700;
+}
+
+/* Mono pill nav items. Three states: idle (white text, white/10
+   border), hover (cyan halo + lift), active (magenta halo +
+   5 % magenta fill). */
+:root[data-skin="pulse"] .skin-sidebar-shell > aside button:where(:has(> div.flex.flex-col)) {
+  padding: 0.55rem 1rem !important;
+  margin: 0.25rem 0 !important;
+  color: var(--pulse-muted) !important;
+  background-color: transparent !important;
+  border: 1px solid var(--pulse-rail) !important;
+  border-radius: 9999px !important;
+  font-family: "Space Mono", ui-monospace, monospace !important;
+  font-size: 0.78rem !important;
+  letter-spacing: 0.02em;
+  transition:
+    color var(--pulse-fast) var(--pulse-spring),
+    border-color var(--pulse-fast) var(--pulse-spring),
+    background-color var(--pulse-fast) var(--pulse-spring),
+    box-shadow var(--pulse-fast) var(--pulse-spring),
+    transform var(--pulse-fast) var(--pulse-spring);
+}
+
+:root[data-skin="pulse"] .skin-sidebar-shell > aside button:where(:has(> div.flex.flex-col)):hover {
+  color: var(--pulse-cyan) !important;
+  border-color: var(--pulse-cyan) !important;
+  box-shadow: 0 0 18px -6px rgb(var(--pulse-cyan-rgb) / 0.5);
+  transform: translateY(-1px);
+}
+
+:root[data-skin="pulse"] .skin-sidebar-shell > aside button[class*="bg-emerald"],
+:root[data-skin="pulse"] .skin-sidebar-shell > aside button[aria-pressed="true"] {
+  color: var(--pulse-magenta) !important;
+  background-color: rgb(var(--pulse-magenta-rgb) / 0.05) !important;
+  border-color: var(--pulse-magenta) !important;
+  box-shadow:
+    0 0 20px -4px rgb(var(--pulse-magenta-rgb) / 0.5),
+    inset 0 0 10px -8px rgb(var(--pulse-magenta-rgb) / 0.4);
+  font-weight: 700;
+}
+
+/* SidebarRow + PlaylistSidebarRow — pinned items + real
+   playlists. Same pill treatment but no page-counter overhead. */
+:root[data-skin="pulse"] .skin-sidebar-shell > aside button:where(:not(:has(> div.flex.flex-col))):where(:not(:first-child)) {
+  border: 1px solid var(--pulse-rail) !important;
+  border-radius: 9999px !important;
+  background-color: transparent !important;
+  transition: all var(--pulse-fast) var(--pulse-spring);
+}
+
+:root[data-skin="pulse"] .skin-sidebar-shell > aside button:where(:not(:has(> div.flex.flex-col))):where(:not(:first-child)):hover {
+  border-color: var(--pulse-cyan) !important;
+  box-shadow: 0 0 16px -6px rgb(var(--pulse-cyan-rgb) / 0.5);
+  transform: translateY(-1px);
+}
+
+/* Playlist + Liked thumbnails get a hairline ring so they
+   read as inset capsules instead of floating squares. */
+:root[data-skin="pulse"] .skin-sidebar-shell > aside img {
+  border: 1px solid var(--pulse-rail);
+}
+
+/* ============================================================
+   TopBar
+   ============================================================ */
+:root[data-skin="pulse"] header[class*="sticky"] {
+  height: 3.5rem !important;
+  margin: 0;
+  padding: 0 1.5rem !important;
+  color: var(--pulse-ink);
+  background-color: transparent !important;
+  background-image: none !important;
+  border-bottom: 1px solid var(--pulse-rail);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+:root[data-skin="pulse"] header :where(button, [class*="rounded-full"]) {
+  border-radius: 9999px !important;
+  border: 1px solid var(--pulse-rail) !important;
+  background-color: transparent !important;
+  color: var(--pulse-ink) !important;
+  box-shadow: none !important;
+  transition: all var(--pulse-fast) var(--pulse-spring);
+}
+
+:root[data-skin="pulse"] header :where(button:hover, [class*="rounded-full"]:hover) {
+  color: var(--pulse-cyan) !important;
+  border-color: var(--pulse-cyan) !important;
+  box-shadow: 0 0 16px -6px rgb(var(--pulse-cyan-rgb) / 0.5);
+}
+
+:root[data-skin="pulse"] header [class*="rounded-full"]:has(input) {
+  border-color: var(--pulse-rail) !important;
+}
+
+:root[data-skin="pulse"] header [class*="rounded-full"]:focus-within {
+  border-color: var(--pulse-cyan) !important;
+  box-shadow: 0 0 20px -6px rgb(var(--pulse-cyan-rgb) / 0.5);
+}
+
+:root[data-skin="pulse"] header input {
+  color: var(--pulse-ink) !important;
+  background-color: transparent !important;
+  font-family: "Space Mono", ui-monospace, monospace !important;
+  font-size: 0.82rem;
+}
+
+:root[data-skin="pulse"] header input::placeholder {
+  color: var(--pulse-faint) !important;
+}
+
+/* ============================================================
+   Main + body cards
+   ============================================================ */
+:root[data-skin="pulse"] main {
+  position: relative;
+  z-index: 1;
+  padding: 1.5rem 2.5rem 8rem !important;
+}
+
+/* Root section spacing. HomeView's default branch uses
+   `space-y-8` (2 rem) between sections — that gap reads as
+   "breathing" when the headings are chunky `text-2xl font-bold`
+   blocks, but FLATTENS visually when the headings are the thin
+   monospace `///` eyebrows Pulse uses. Bump the gap to 4 rem
+   so each section block stands clearly apart. `!important`
+   because Tailwind's `.space-y-8 > :not([hidden]) ~
+   :not([hidden])` lands at (0,3,0) specificity — higher than
+   ours without it.
+
+   The same applies to the section's internal heading-to-content
+   gap (`mb-6` on the heading wrapper) — bump it so the eyebrow
+   doesn't sit right on top of its grid. */
+:root[data-skin="pulse"] main > div > * + * {
+  margin-top: 4rem !important;
+}
+
+:root[data-skin="pulse"] section > div:where([class*="flex"][class*="items-end"][class*="justify-between"]) {
+  margin-bottom: 2rem !important;
+}
+
+:root[data-skin="pulse"] main :where(
+  [class*="rounded-xl"],
+  [class*="rounded-2xl"],
+  [class*="rounded-3xl"]
+) {
+  border-radius: 1.75rem !important;
+  border: 1px solid var(--pulse-rail) !important;
+  background-color: var(--pulse-surface) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none;
+}
+
+:root[data-skin="pulse"] main :where(
+  [class*="rounded-xl"],
+  [class*="rounded-2xl"],
+  [class*="rounded-3xl"]
+):hover {
+  border-color: var(--pulse-cyan) !important;
+  box-shadow: 0 0 24px -8px rgb(var(--pulse-cyan-rgb) / 0.4);
+  transform: translateY(-2px);
+  transition: all var(--pulse-fast) var(--pulse-spring);
+}
+
+/* ============================================================
+   Section heading: "/// MOOD RADIOS" with trailing rail
+   ============================================================ */
+:root[data-skin="pulse"] section h2 {
+  display: flex !important;
+  align-items: center;
+  gap: 1rem;
+  color: var(--pulse-faint) !important;
+  font-family: "Space Mono", ui-monospace, monospace !important;
+  font-size: 0.78rem !important;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  border: 0 !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 1.5rem;
+}
+
+:root[data-skin="pulse"] section h2::before {
+  content: "///";
+  color: var(--pulse-magenta);
+}
+
+:root[data-skin="pulse"] section h2::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background-color: var(--pulse-rail);
+}
+
+/* ============================================================
+   Welcome banner hero — rounded-[2rem] image with magenta
+   pulse-dot eyebrow + big bold display headline
+   ============================================================ */
+:root[data-skin="pulse"] .editorial-hero,
+:root[data-skin="pulse"] .lounge-hero {
+  /* Already handled via component class; do nothing for now. */
+}
+
+/* Welcome banner generic — the home view default banner block. */
+:root[data-skin="pulse"] main > div > div > div[class*="overflow-hidden"][class*="rounded-3xl"]:first-of-type {
+  border-radius: 2rem !important;
+  background-color: var(--pulse-surface) !important;
+  background-image:
+    radial-gradient(
+      ellipse at top left,
+      rgb(var(--pulse-magenta-rgb) / 0.20),
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at bottom right,
+      rgb(var(--pulse-cyan-rgb) / 0.12),
+      transparent 50%
+    ) !important;
+  border: 1px solid var(--pulse-rail) !important;
+}
+
+/* Eyebrow pill ("Ready to listen") — magenta capsule. */
+:root[data-skin="pulse"] main .inline-flex[class*="rounded-full"][class*="bg-emerald-50"] {
+  background-color: rgb(var(--pulse-magenta-rgb) / 0.08) !important;
+  border-color: var(--pulse-magenta) !important;
+  color: var(--pulse-magenta) !important;
+  font-family: "Space Mono", ui-monospace, monospace !important;
+  font-size: 0.65rem !important;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  box-shadow: 0 0 14px -4px rgb(var(--pulse-magenta-rgb) / 0.5);
+}
+
+:root[data-skin="pulse"] main .inline-flex[class*="rounded-full"][class*="bg-emerald-50"] > div {
+  background-color: var(--pulse-magenta) !important;
+  box-shadow: 0 0 8px rgb(var(--pulse-magenta-rgb) / 0.8);
+}
+
+/* Display headlines in welcome banner / view titles. */
+:root[data-skin="pulse"] main h1,
+:root[data-skin="pulse"] main h2:not(section h2) {
+  font-family: "Space Grotesk", system-ui, sans-serif !important;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+/* Stat cards — pill capsules with magenta icon. */
+:root[data-skin="pulse"] main [class*="rounded-xl"]:has(> div[class*="w-12"]) {
+  border-radius: 1.5rem !important;
+  background-color: var(--pulse-surface) !important;
+}
+
+:root[data-skin="pulse"] main [class*="rounded-xl"] > div[class*="w-12"] {
+  border-radius: 9999px !important;
+  color: var(--pulse-magenta) !important;
+  background-color: rgb(var(--pulse-magenta-rgb) / 0.10) !important;
+  border: 1px solid var(--pulse-magenta) !important;
+  box-shadow: 0 0 12px -4px rgb(var(--pulse-magenta-rgb) / 0.5);
+}
+
+/* ============================================================
+   Mood Radio — per-tile colored halo
+   ============================================================ */
+:root[data-skin="pulse"] .pulse-mood-grid {
+  border: 0 !important;
+  gap: 1rem !important;
+}
+
+/* Per-tile colored halo: a soft blur disk in the top-right
+   corner, scaled + lit on hover. Each mood gets its own
+   accent. */
+:root[data-skin="pulse"] .pulse-mood-tile {
+  padding: 1.5rem !important;
+  color: var(--pulse-ink) !important;
+  background-color: var(--pulse-surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--pulse-rail) !important;
+  border-radius: 2rem !important;
+  box-shadow: none !important;
+  transition: all var(--pulse-fast) var(--pulse-spring);
+  position: relative;
+  overflow: hidden;
+}
+
+:root[data-skin="pulse"] .pulse-mood-tile::before {
+  content: "";
+  position: absolute;
+  top: -2rem;
+  right: -2rem;
+  width: 8rem;
+  height: 8rem;
+  border-radius: 9999px;
+  filter: blur(40px);
+  opacity: 0.25;
+  background-color: var(--pulse-cyan);
+  transition: opacity var(--pulse-slow) var(--pulse-spring),
+    transform var(--pulse-slow) var(--pulse-spring);
+  pointer-events: none;
+}
+
+/* Per-mood halo colour. */
+:root[data-skin="pulse"] .pulse-mood-focus::before { background-color: var(--pulse-cyan); }
+:root[data-skin="pulse"] .pulse-mood-chill::before { background-color: #bd00ff; }
+:root[data-skin="pulse"] .pulse-mood-workout::before { background-color: var(--pulse-magenta); }
+:root[data-skin="pulse"] .pulse-mood-party::before { background-color: #00ff66; }
+:root[data-skin="pulse"] .pulse-mood-sleep::before { background-color: #4d8dff; }
+
+:root[data-skin="pulse"] .pulse-mood-tile:hover {
+  border-color: var(--pulse-cyan) !important;
+  box-shadow: 0 0 28px -10px rgb(var(--pulse-cyan-rgb) / 0.6);
+  transform: translateY(-3px);
+}
+
+:root[data-skin="pulse"] .pulse-mood-tile:hover::before {
+  opacity: 0.55;
+  transform: scale(1.2);
+}
+
+/* Icon in mood tile — small mono pill. */
+:root[data-skin="pulse"] .pulse-mood-tile > div:first-child {
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  color: var(--pulse-ink) !important;
+  background-color: transparent !important;
+  border: 1px solid var(--pulse-rail) !important;
+  border-radius: 9999px !important;
+}
+
+:root[data-skin="pulse"] .pulse-mood-tile > div:nth-child(2) {
+  font-family: "Space Grotesk", system-ui, sans-serif !important;
+  font-size: 1.25rem !important;
+  font-weight: 700;
+}
+
+:root[data-skin="pulse"] .pulse-mood-tile > div:nth-child(3) {
+  color: var(--pulse-muted) !important;
+  font-family: "Space Mono", ui-monospace, monospace !important;
+  font-size: 0.78rem;
+  font-style: normal;
+}
+
+:root[data-skin="pulse"] .pulse-mood-tile > div:last-child {
+  margin-top: auto;
+  padding-top: 0;
+  border-top: 0 !important;
+  color: var(--pulse-faint) !important;
+  font-family: "Space Mono", ui-monospace, monospace !important;
+  font-size: 0.65rem !important;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   PlayerBar — floating pill capsule
+   ============================================================
+   The footer keeps its DOM position (above the AudioQualityFooter)
+   but visually pulls back into a centered floating pill with a
+   blurred glass treatment. Margin around it pushes the
+   AudioQualityFooter into a thin colophon below. */
+:root[data-skin="pulse"] footer {
+  margin: 0 1.25rem 0.75rem;
+  padding: 0.5rem 1.25rem;
+  color: var(--pulse-ink);
+  background-color: rgb(0 0 0 / 0.7) !important;
+  background-image: none !important;
+  border: 1px solid var(--pulse-rail) !important;
+  border-radius: 9999px !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.04) inset,
+    0 12px 36px -16px rgb(0 0 0 / 0.9);
+  overflow: visible;
+}
+
+:root[data-skin="pulse"] footer :where(button) {
+  border-radius: 9999px !important;
+  border: 0 !important;
+  background-color: transparent !important;
+  color: var(--pulse-ink) !important;
+  box-shadow: none !important;
+  transition: all var(--pulse-fast) var(--pulse-spring);
+}
+
+:root[data-skin="pulse"] footer :where(button:hover) {
+  color: var(--pulse-cyan) !important;
+  transform: scale(1.1);
+}
+
+/* The center play button — solid white circle. */
+:root[data-skin="pulse"] footer button:where([class*="bg-emerald-500"], [class*="bg-emerald-600"]) {
+  background-color: var(--pulse-ink) !important;
+  color: var(--pulse-bg) !important;
+  border: 0 !important;
+  box-shadow: 0 0 24px -6px rgb(255 255 255 / 0.5);
+}
+
+:root[data-skin="pulse"] footer button:where([class*="bg-emerald-500"], [class*="bg-emerald-600"]):hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 28px -4px rgb(255 255 255 / 0.7);
+}
+
+/* Cover thumbnail — spins like a vinyl when isPlaying. The
+   `data-is-playing` attribute is set by PulsePlaybackState (a
+   tiny effect component mounted by App) on the documentElement
+   so we don't have to thread per-component state. */
+:root[data-skin="pulse"] footer img {
+  border-radius: 9999px !important;
+  border: 1px solid var(--pulse-rail);
+  animation: pulse-vinyl 12s linear infinite;
+  animation-play-state: paused;
+}
+
+:root[data-skin="pulse"][data-is-playing="true"] footer img {
+  animation-play-state: running;
+}
+
+@keyframes pulse-vinyl {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-skin="pulse"] footer img {
+    animation: none !important;
+  }
+}
+
+/* Progress slider — OLED line: white/10 rail + cyan fill that
+   turns magenta on hover. Tabular mono time codes left and
+   right. */
+:root[data-skin="pulse"] footer [role="slider"] {
+  height: 4px !important;
+  background-color: rgb(255 255 255 / 0.1) !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 9999px !important;
+  overflow: visible;
+  transition: all var(--pulse-fast) var(--pulse-spring);
+}
+
+:root[data-skin="pulse"] footer [role="slider"]:hover {
+  height: 6px !important;
+}
+
+:root[data-skin="pulse"] footer [role="slider"] > div {
+  background-color: var(--pulse-cyan) !important;
+  background-image: none !important;
+  border-radius: 9999px !important;
+  height: 100% !important;
+  /* Outer glow kept very tight (6 px spread, no offset) so the
+     neon halo stays inside the floating pill's rounded edge.
+     The previous 12 px spread leaked past the pill's bottom-
+     right curve and read as a teal "border" outside the
+     capsule. `overflow: visible` on the footer is intentional
+     (DeviceMenu / SleepTimerMenu / MoreActions popovers need
+     to escape) so the glow has to clip itself. */
+  box-shadow: 0 0 6px rgb(var(--pulse-cyan-rgb) / 0.7);
+}
+
+:root[data-skin="pulse"] footer [role="slider"]:hover > div {
+  background-color: var(--pulse-magenta) !important;
+  box-shadow: 0 0 6px rgb(var(--pulse-magenta-rgb) / 0.8);
+}
+
+/* Time codes + audio meta — Space Mono. */
+:root[data-skin="pulse"] footer [class*="tabular"] {
+  font-family: "Space Mono", ui-monospace, monospace !important;
+  color: var(--pulse-muted) !important;
+}
+
+/* Hi-Res badge: cyan mono pill. */
+:root[data-skin="pulse"] footer [class*="text-[10px]"][class*="uppercase"] {
+  padding: 0.2rem 0.55rem !important;
+  border: 1px solid var(--pulse-cyan) !important;
+  border-radius: 9999px !important;
+  background-color: rgb(var(--pulse-cyan-rgb) / 0.08) !important;
+  color: var(--pulse-cyan) !important;
+  font-family: "Space Mono", ui-monospace, monospace !important;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  box-shadow: 0 0 12px -4px rgb(var(--pulse-cyan-rgb) / 0.4);
+}
+
+/* AudioQualityFooter — hidden under Pulse. It's a flat 20-px
+   strip that lives as the last child of `<footer>`, but the
+   pill capsule shape (border-radius: 9999px) needs a clean
+   bottom curve. The strip's bg gets caught by the global
+   surface neutralization rule below (paints opaque
+   `var(--pulse-surface)`) which then masks the pill's rounded
+   bottom edge — capsule turns into a half-rounded slab.
+   Hiding it keeps the pill clean; the same sample-rate /
+   bitrate / file-size info is still reachable on hover from
+   the Hi-Res chip in the player bar, which opens the
+   AudioPipelinePopover with the full breakdown. */
+:root[data-skin="pulse"] footer :where([class*="h-5"][class*="border-t"]) {
+  display: none !important;
+}
+
+/* ============================================================
+   Surface neutralization — kill white/grey utility bgs
+   ============================================================ */
+:root[data-skin="pulse"] :where(
+  [class*="bg-white"],
+  [class*="bg-zinc-50"],
+  [class*="bg-zinc-100"],
+  [class*="bg-zinc-200"],
+  [class*="bg-surface-light"]
+):not(header):not(footer):not([role="slider"]):not([role="slider"] *) {
+  background-color: var(--pulse-surface) !important;
+  background-image: none !important;
+}
+
+:root[data-skin="pulse"] :where(
+  [class*="dark:bg-zinc-700"],
+  [class*="dark:bg-zinc-800"],
+  [class*="dark:bg-zinc-900"],
+  [class*="dark:bg-surface-dark"]
+):not(header):not(footer):not([role="slider"]):not([role="slider"] *) {
+  background-color: var(--pulse-surface) !important;
+  background-image: none !important;
+}
+
+/* Sticky day-headers (HistoryView): black pill strip. */
+:root[data-skin="pulse"] [class*="sticky"]:where(
+  [class*="bg-white"],
+  [class*="bg-zinc"],
+  [class*="bg-surface"],
+  [class*="dark:bg-"]
+) {
+  background-color: var(--pulse-bg) !important;
+  border-bottom: 1px solid var(--pulse-rail) !important;
+}
+
+/* Dropdown rows: cyan hover instead of grey. */
+:root[data-skin="pulse"] :where(
+  [class*="hover:bg-zinc-50"],
+  [class*="hover:bg-zinc-100"],
+  [class*="dark:hover:bg-zinc-700"],
+  [class*="dark:hover:bg-zinc-800"]
+):hover {
+  color: var(--pulse-cyan) !important;
+  background-color: rgb(var(--pulse-cyan-rgb) / 0.08) !important;
+}
+
+/* Active row state (the bg-emerald-50 the rest of WaveFlow
+   uses) → magenta press. */
+:root[data-skin="pulse"] :where([class*="bg-emerald-50"]):not(.pulse-mood-tile *) {
+  background-color: rgb(var(--pulse-magenta-rgb) / 0.08) !important;
+  color: var(--pulse-magenta) !important;
+}
+
+/* Inputs — pill capsules. */
+:root[data-skin="pulse"] :where(input, textarea, select):not(header input) {
+  color: var(--pulse-ink);
+  background-color: var(--pulse-bg) !important;
+  border: 1px solid var(--pulse-rail) !important;
+  border-radius: 9999px !important;
+  font-family: "Space Mono", ui-monospace, monospace;
+  transition: all var(--pulse-fast) var(--pulse-spring);
+}
+
+:root[data-skin="pulse"] :where(input, textarea, select):not(header input):focus {
+  border-color: var(--pulse-cyan) !important;
+  box-shadow: 0 0 18px -6px rgb(var(--pulse-cyan-rgb) / 0.5);
+  outline: 0 !important;
+}
+
+/* Modals + tooltips: black pill containers. */
+:root[data-skin="pulse"] :where([role="dialog"], [role="tooltip"], [class*="shadow-lg"]) {
+  color: var(--pulse-ink);
+  background-color: var(--pulse-surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--pulse-rail) !important;
+  border-radius: 1.5rem !important;
+  box-shadow: 0 0 36px -8px rgb(var(--pulse-magenta-rgb) / 0.2) !important;
+}
+
+/* Type color overrides — ink for primary, muted for secondary. */
+:root[data-skin="pulse"] :where(
+  .text-zinc-900,
+  .text-zinc-800,
+  .dark\:text-white,
+  .dark\:text-zinc-100,
+  .dark\:text-zinc-200
+) {
+  color: var(--pulse-ink) !important;
+}
+
+:root[data-skin="pulse"] :where(
+  .text-zinc-700,
+  .text-zinc-600,
+  .dark\:text-zinc-300
+) {
+  color: var(--pulse-muted) !important;
+}
+
+:root[data-skin="pulse"] :where(
+  .text-zinc-500,
+  .text-zinc-400,
+  .dark\:text-zinc-400,
+  .dark\:text-zinc-600
+) {
+  color: var(--pulse-faint) !important;
+}
+
+:root[data-skin="pulse"] :where(
+  .text-emerald-400,
+  .text-emerald-500,
+  .text-emerald-600,
+  .dark\:text-emerald-400
+) {
+  color: var(--pulse-cyan) !important;
+}
+
+/* ============================================================
+   Scrollbar — thin black with magenta thumb on hover
+   ============================================================ */
+:root[data-skin="pulse"] ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+:root[data-skin="pulse"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:root[data-skin="pulse"] ::-webkit-scrollbar-thumb {
+  background-color: var(--pulse-rail-strong);
+  border-radius: 9999px;
+  transition: background-color var(--pulse-fast) var(--pulse-spring);
+}
+
+:root[data-skin="pulse"] ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--pulse-magenta);
+  box-shadow: 0 0 8px rgb(var(--pulse-magenta-rgb) / 0.6);
+}
+
+/* ============================================================
+   Page-load: spring rise + fade
+   ============================================================ */
+:root[data-skin="pulse"] main > * {
+  animation: pulse-rise 0.5s var(--pulse-spring) backwards;
+}
+
+@keyframes pulse-rise {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-skin="pulse"] main > * {
+    animation: none !important;
+  }
+}
+
+/* Selection */
+:root[data-skin="pulse"] ::selection {
+  background-color: var(--pulse-magenta);
+  color: var(--pulse-bg);
+}

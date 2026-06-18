@@ -1230,6 +1230,18 @@
     "recentlyAdded": "最近新增",
     "menuTitle": "排序方式"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "晨刊",
+      "price": "價格：包含",
+      "subtitle": "「值得印刷的所有音樂。」— 您每日的專屬精選。"
+    },
+    "lead": {
+      "caption": "圖 1. — 摘自《{{album}}》，{{artist}}。",
+      "captionArtistOnly": "圖 1. — {{artist}} 的作品。",
+      "captionFallback": "圖 1. — 今日精選。"
+    }
+  },
   "settings": {
     "title": "設定",
     "sections": {
@@ -1613,6 +1625,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "霓虹俱樂部 — OLED 底色,活躍元素周圍的彩色光暈,等寬膠囊,彈性動效。"
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Apple 風格液態玻璃 — 多層半透明材質,極光背景,膠囊藥丸,寧靜動效。"
         }
       }
     },

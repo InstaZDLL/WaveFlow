@@ -1230,6 +1230,18 @@
     "descending": "Aflopend",
     "filename": "Bestandsnaam"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "Ochtendeditie",
+      "price": "Prijs: Inbegrepen",
+      "subtitle": "„Alle muziek die het verdient om gedrukt te worden.” — Jouw dagelijkse selectie, op maat."
+    },
+    "lead": {
+      "caption": "Fig 1. — Uit „{{album}}” door {{artist}}.",
+      "captionArtistOnly": "Fig 1. — Een creatie van {{artist}}.",
+      "captionFallback": "Fig 1. — De selectie van vandaag."
+    }
+  },
   "settings": {
     "title": "Instellingen",
     "sections": {
@@ -1666,6 +1678,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "Neonclub — OLED-basis, gekleurde halo's rond actieve items, mono-pills, veerkrachtige animaties."
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Vloeibaar glas in Apple-stijl — meerlaags doorschijnend materiaal, aurora-achtergrond, pilcapsules, kalme beweging."
         }
       }
     },

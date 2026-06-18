@@ -262,7 +262,7 @@ export function TopBar({
   };
 
   return (
-    <div className="h-16 flex items-center justify-between px-6 z-10 sticky top-0 bg-zinc-50/80 backdrop-blur-md dark:bg-zinc-900/80">
+    <header className="h-16 flex items-center justify-between px-6 z-10 sticky top-0 bg-zinc-50/80 backdrop-blur-md dark:bg-zinc-900/80">
       {/* Navigation Arrows + sidebar toggle (#167). The toggle sits
           left of the back/forward chevrons because that's where the
           sidebar's right edge would be when visible — keeps muscle
@@ -580,14 +580,16 @@ export function TopBar({
           }
           aria-pressed={isDark}
           className={`relative w-14 h-8 rounded-full border transition-colors duration-500 ease-in-out ${
-            isDark ? "bg-zinc-800 border-zinc-700" : "bg-white border-zinc-300"
+            isDark
+              ? "bg-zinc-800 border-zinc-700"
+              : "bg-white border-zinc-300 dark:bg-zinc-800 dark:border-zinc-700"
           }`}
         >
           <div
             className={`absolute top-1 left-1 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ease-in-out ${
               isDark
                 ? "translate-x-6 bg-zinc-700 text-yellow-400"
-                : "translate-x-0 bg-zinc-100 text-amber-500"
+                : "translate-x-0 bg-zinc-100 text-amber-500 dark:bg-zinc-700 dark:text-amber-400"
             }`}
           >
             <Sun
@@ -709,7 +711,7 @@ export function TopBar({
           </AnimatePresence>
         </div>
       </div>
-    </div>
+    </header>
   );
 }
 

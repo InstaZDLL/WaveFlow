@@ -24,7 +24,7 @@
  * baseline equivalents.
  */
 
-export type SkinId = "studio" | "editorial" | "lounge" | "pulse";
+export type SkinId = "studio" | "editorial" | "lounge" | "pulse" | "liquid";
 
 export interface SkinPreset {
   /** Stable id used as the persisted value and the `data-skin` attribute. */
@@ -205,21 +205,25 @@ export const SKIN_PRESETS: SkinPreset[] = [
         "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.42 0 0 0 0 0.36 0 0 0 0.08 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>\")",
     },
     typography: {
-      // Serif display family — uses the OS-shipped serif stack
-      // (Georgia / Times) so we don't have to ship a webfont
-      // and incur a FOIT in the dev cycle. Future PR can wire
-      // a self-hosted Source Serif Pro / Spectral / Crimson
-      // for a more curated face without changing this
-      // skin shape.
+      // Playfair Display: a high-contrast didone with theatrical
+      // serifs — the canonical broadsheet masthead face. Lora as
+      // the body face: a robust serif with strong italic stroke
+      // for pull-quotes and figure captions. Both are bundled
+      // via `@fontsource/*` imports in `src/main.tsx` (the woff2
+      // files ship inside the Tauri bundle, so the skin works
+      // offline) — `editorial.css` does NOT pull them from the
+      // network, and v1's `@import url(google fonts)` was
+      // removed because it broke the offline-first contract.
       display:
-        '"Source Serif Pro", "Spectral", "Crimson Pro", Georgia, "Times New Roman", "Times", serif',
+        '"Playfair Display", "Source Serif Pro", Georgia, "Times New Roman", serif',
       body:
-        '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-      // Editorial wants the headings to whisper, not shout —
-      // light weight + wide tracking gives a magazine masthead
-      // feel rather than a UI button stack.
-      headingWeight: 400,
-      displayTracking: "0.005em",
+        '"Lora", Georgia, "Times New Roman", serif',
+      // Editorial mastheads carry weight in the GLYPH design,
+      // not in the font-weight token. Playfair at 900 reads as
+      // a thick wood-type poster headline, which is the look we
+      // want for "WAVEFLOW GAZETTE".
+      headingWeight: 900,
+      displayTracking: "-0.02em",
     },
     motion: {
       // Paper is slow. Reading is unhurried. A 300 ms ease-out
@@ -328,15 +332,22 @@ export const SKIN_PRESETS: SkinPreset[] = [
       grain: "",
     },
     typography: {
-      // Mono / tech display family. JetBrains Mono is in most
-      // dev fonts caches; falls back to ui-monospace on macOS
-      // and Consolas on Windows so no FOIT.
+      // Space Grotesk for the body / display — a geometric sans
+      // with mechanical character ticks that read as "tech /
+      // club". Space Mono ALSO ships in main.tsx for the utility
+      // chrome (eyebrows, nav pills, time codes, `///` markers),
+      // but it is NOT exposed via this preset — pulse.css
+      // references `"Space Mono"` directly in its selectors. The
+      // preset only carries the two roles the SkinPreset shape
+      // declares (display + body), so the mono family lives at
+      // the CSS layer where it's used. Both families bundled via
+      // `@fontsource/*` in main.tsx.
       display:
-        '"JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+        '"Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       body:
-        '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+        '"Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       headingWeight: 700,
-      displayTracking: "0.04em",
+      displayTracking: "-0.02em",
     },
     motion: {
       // Punchy spring — short duration, stiff spring,
@@ -346,6 +357,65 @@ export const SKIN_PRESETS: SkinPreset[] = [
       springStiffness: 480,
       springDamping: 22,
       ease: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+    },
+  },
+  {
+    id: "liquid",
+    labelKey: "settings.appearance.skins.liquid.label",
+    descriptionKey: "settings.appearance.skins.liquid.description",
+    density: {
+      // Apple Vibrancy density — open, breathable. Cards have
+      // room to refract; panels don't crowd the aurora bg.
+      navRow: 1.15,
+      topBar: 1.2,
+      listRow: 1.15,
+      cardPad: 1.3,
+    },
+    radius: {
+      // Soft pill-card territory. Buttons are full pills; cards
+      // use 2rem so the glass reads as continuous surface rather
+      // than chiselled rectangles.
+      card: "2rem",
+      button: "9999px",
+      input: "9999px",
+      pill: "9999px",
+    },
+    surface: {
+      // Multi-layer inset shadows are the SIGNATURE — they're
+      // the difference between "real glass with light catching
+      // its top edge" and "translucent rectangle". The recipe
+      // here lives in `liquid.css` because it depends on CSS
+      // variables (--c-light, --c-dark, --glass-reflex-*) that
+      // shift between light + dark theme; we point to them via
+      // var() so a theme swap re-tunes the highlights.
+      shadowCard:
+        "0 4px 24px -1px rgb(0 0 0 / 0.18)",
+      shadowElevated:
+        "0 12px 36px -4px rgb(0 0 0 / 0.32)",
+      backdrop: "blur(24px) saturate(150%)",
+      divider: "rgb(255 255 255 / 0.08)",
+      grain: "",
+    },
+    typography: {
+      // DM Sans variable — opsz axis (9..40) so the same family
+      // reads as caption-precise at small sizes and display-
+      // generous at large sizes. Sans-serif throughout —
+      // Apple's design language doesn't pair with a serif here.
+      display:
+        '"DM Sans Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      body:
+        '"DM Sans Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      headingWeight: 600,
+      displayTracking: "-0.022em",
+    },
+    motion: {
+      // Apple-ish ease-out. Not springy — Vibrancy reads as
+      // CALM, not kinetic. Slightly long duration so panel
+      // hovers feel like settling into place.
+      duration: 0.36,
+      springStiffness: 180,
+      springDamping: 26,
+      ease: "cubic-bezier(0.22, 1, 0.36, 1)",
     },
   },
 ];

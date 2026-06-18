@@ -1230,6 +1230,18 @@
     "descending": "Descending",
     "filename": "Filename"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "Morning Edition",
+      "price": "Price: Included",
+      "subtitle": "\"All the music that deserves to be printed.\" — Your daily selection, made for you."
+    },
+    "lead": {
+      "caption": "Fig 1. — From \"{{album}}\" by {{artist}}.",
+      "captionArtistOnly": "Fig 1. — A creation of {{artist}}.",
+      "captionFallback": "Fig 1. — Today's selection."
+    }
+  },
   "settings": {
     "title": "Settings",
     "sections": {
@@ -1666,6 +1678,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "Neon club — OLED base, colored halos around active items, mono pills, springy motion."
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Apple-style liquid glass — multi-layer translucent material, aurora backdrop, pill capsules, calm motion."
         }
       }
     },

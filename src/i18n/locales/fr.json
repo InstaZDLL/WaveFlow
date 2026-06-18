@@ -1230,6 +1230,18 @@
     "descending": "Décroissant",
     "filename": "Nom de fichier"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "Édition du Matin",
+      "price": "Prix : Inclus",
+      "subtitle": "« Toute la musique qui mérite d'être imprimée » — Votre sélection quotidienne, sur mesure."
+    },
+    "lead": {
+      "caption": "Fig 1. — Tiré de « {{album}} » par {{artist}}.",
+      "captionArtistOnly": "Fig 1. — Une création de {{artist}}.",
+      "captionFallback": "Fig 1. — Sélection du jour."
+    }
+  },
   "settings": {
     "title": "Paramètres",
     "sections": {
@@ -1298,6 +1310,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "Club néon — base OLED, halos colorés autour des éléments actifs, pills mono, animations ressorts."
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Verre liquide style Apple — matière translucide multi-couche, fond aurora, capsules pilules, motion calme."
         }
       },
       "mode": {

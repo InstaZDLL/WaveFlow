@@ -1230,6 +1230,18 @@
     "recentlyAdded": "最近追加",
     "menuTitle": "並び替え"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "朝刊",
+      "price": "価格：込み",
+      "subtitle": "「印刷に値するすべての音楽。」— あなただけの、毎日のセレクション。"
+    },
+    "lead": {
+      "caption": "図1. — 「{{album}}」より、{{artist}}。",
+      "captionArtistOnly": "図1. — {{artist}}による作品。",
+      "captionFallback": "図1. — 本日のセレクション。"
+    }
+  },
   "settings": {
     "title": "設定",
     "sections": {
@@ -1613,6 +1625,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "ネオン・クラブ — OLED ベース、アクティブ項目を彩るハロー、モノ調のピル、スプリング感のあるモーション。"
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Apple スタイルのリキッドガラス — 多層半透明素材、オーロラ背景、ピルカプセル、穏やかなモーション。"
         }
       }
     },

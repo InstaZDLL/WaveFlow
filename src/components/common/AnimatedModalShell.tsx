@@ -5,6 +5,7 @@ import {
   type Transition,
 } from "framer-motion";
 import { forwardRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 interface AnimatedModalShellProps {
   isOpen: boolean;
@@ -27,7 +28,7 @@ export function AnimatedModalShell({
   children,
   backdropClassName,
 }: AnimatedModalShellProps) {
-  return (
+  const content = (
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -46,6 +47,8 @@ export function AnimatedModalShell({
       )}
     </AnimatePresence>
   );
+
+  return createPortal(content, document.body);
 }
 
 type AnimatedModalContentProps = Omit<

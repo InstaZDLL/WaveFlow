@@ -1230,6 +1230,18 @@
     "descending": "Decrescente",
     "filename": "Nome do arquivo"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "Edição da Manhã",
+      "price": "Preço: Incluído",
+      "subtitle": "«Toda a música que merece ser impressa.» — Sua seleção diária, sob medida."
+    },
+    "lead": {
+      "caption": "Fig 1. — De «{{album}}» por {{artist}}.",
+      "captionArtistOnly": "Fig 1. — Uma criação de {{artist}}.",
+      "captionFallback": "Fig 1. — A seleção do dia."
+    }
+  },
   "settings": {
     "title": "Configurações",
     "sections": {
@@ -1666,6 +1678,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "Clube neon — base OLED, halos coloridos ao redor dos itens ativos, pills mono, animações com mola."
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Vidro líquido estilo Apple — material translúcido em multicamadas, fundo aurora, cápsulas em pílula, movimento calmo."
         }
       }
     },

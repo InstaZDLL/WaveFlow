@@ -1230,6 +1230,18 @@
     "descending": "Azalan",
     "filename": "Dosya adı"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "Sabah Baskısı",
+      "price": "Fiyat: Dahil",
+      "subtitle": "«Basılmayı hak eden tüm müzik.» — Size özel, günlük seçkiniz."
+    },
+    "lead": {
+      "caption": "Şek 1. — «{{album}}» albümünden, {{artist}} tarafından.",
+      "captionArtistOnly": "Şek 1. — {{artist}} eseri.",
+      "captionFallback": "Şek 1. — Günün seçkisi."
+    }
+  },
   "settings": {
     "title": "Ayarlar",
     "sections": {
@@ -1666,6 +1678,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "Neon kulüp — OLED zemin, aktif öğeler etrafında renkli haleler, mono pill'ler, yaylı animasyonlar."
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Apple tarzı sıvı cam — çok katmanlı yarı şeffaf malzeme, aurora arka plan, kapsül haplar, sakin hareket."
         }
       }
     },

@@ -1,0 +1,981 @@
+/* ============================================================
+   Editorial skin — WaveFlow Gazette
+   ============================================================
+   A real broadsheet, not a UI with a serif font glued on top.
+   Direction: warm cream paper, ink-black type, true Didone
+   masthead (Playfair Display 900), Lora body with drop caps,
+   double rules, dashed dividers, Fig captions, ruler-tick
+   progress bar. Print idiom throughout — no shadows, no
+   gradients on chrome, no rounded corners on cards.
+
+   The hero is the **masthead**: an actual newspaper top with
+   the date in column rules. The signature element is the
+   ruler-tick progress bar in the player — print engineers
+   measured galleys with picas, the player measures playback
+   with picas.
+
+   Selectors stay scoped to landmarks (`aside`, `header`,
+   `footer`, `main`) + explicit `editorial-*` classes mounted
+   by HomeView, MoodRadioGrid, and EditorialMasthead. No
+   substring matching on Tailwind utility classes — that
+   pattern was the source of every cascade fight in the v1+v2
+   stack that lived here before. */
+
+/* Playfair Display + Lora are bundled via `@fontsource/*` in
+   `src/main.tsx` — no network @import here. Loading them from
+   the JS entrypoint keeps the @font-face declarations at the
+   top of the CSS bundle (CSS spec requires `@import` to precede
+   all other statements; declaring them mid-stream as we'd be
+   forced to here breaks the spec and triggers a PostCSS
+   warning). The bundled woff2 also makes the skin work fully
+   offline, which a Tauri desktop app needs. */
+
+:root[data-skin="editorial"] {
+  --ed-paper: #f0ebd8;
+  --ed-paper-warm: #e8e2ce;
+  --ed-paper-deep: #ddd4b6;
+  --ed-ink: #1a1a1a;
+  --ed-ink-soft: #3a3530;
+  --ed-muted: #6a6258;
+  --ed-rule: rgb(26 26 26 / 0.28);
+  --ed-rule-soft: rgb(26 26 26 / 0.14);
+  --ed-rule-ink: rgb(26 26 26 / 0.78);
+  --ed-press: #b03020;
+  --ed-press-soft: rgb(176 48 32 / 0.10);
+  --ed-grain:
+    url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/></svg>");
+}
+
+/* Body sheet: cream paper with the SVG grain overlay tiled at
+   200×200. The vertical column rule the v1 stack overlaid is
+   gone — it conflicted with the masthead's columns. Print
+   pages don't have a constant column rule; the columns are
+   drawn locally. */
+:root[data-skin="editorial"],
+:root[data-skin="editorial"] body {
+  color: var(--ed-ink);
+  background-color: var(--ed-paper);
+  background-image: var(--ed-grain);
+  background-repeat: repeat;
+  font-family: "Lora", Georgia, serif;
+  font-feature-settings: "kern" 1, "liga" 1, "onum" 1;
+}
+
+/* Bleed the paper through every wrapper between the body and
+   `main`. The center-column wrapper (`<div bg-zinc-50/50
+   dark:bg-zinc-900/50>`) would otherwise paint a 50% slab over
+   the cream. Match it structurally by its children. */
+:root[data-skin="editorial"] [class*="bg-app-ambient"],
+:root[data-skin="editorial"] div:has(> header):has(> main) {
+  background-color: var(--ed-paper) !important;
+  background-image: var(--ed-grain) !important;
+}
+
+/* ============================================================
+   App TopBar — collapse to a thin "edition info" strip
+   ============================================================
+   The TopBar still carries nav + search + profile (the app
+   needs them) but its visual job becomes the "ÉDITION DU MATIN
+   | JEUDI 18 JUIN 2026 | PRIX : INCLUS" rule that sits above a
+   real broadsheet masthead. We don't add fake date text via
+   ::before — the date lives in `EditorialMasthead` so it can
+   format with the user's locale via `Intl.DateTimeFormat`. */
+:root[data-skin="editorial"] header[class*="sticky"] {
+  height: 3.25rem !important;
+  margin: 0;
+  padding: 0 1.5rem !important;
+  color: var(--ed-ink);
+  background-color: var(--ed-paper) !important;
+  background-image: none !important;
+  border-bottom: 2px solid var(--ed-ink) !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+:root[data-skin="editorial"] header :where(button, [class*="rounded-full"]) {
+  border-radius: 0 !important;
+  border: 1px solid var(--ed-ink) !important;
+  background-color: transparent !important;
+  color: var(--ed-ink) !important;
+  box-shadow: none !important;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+:root[data-skin="editorial"] header :where(button:hover, [class*="rounded-full"]:hover) {
+  color: var(--ed-paper) !important;
+  background-color: var(--ed-ink) !important;
+}
+
+:root[data-skin="editorial"] header input {
+  color: var(--ed-ink) !important;
+  background-color: transparent !important;
+  font-family: "Lora", Georgia, serif;
+  font-style: italic;
+}
+
+:root[data-skin="editorial"] header input::placeholder {
+  color: var(--ed-muted) !important;
+  font-style: italic;
+}
+
+/* The search "input shell" Tailwind container is a rounded
+   pill — flatten it to a print field with a 1px ink underline. */
+:root[data-skin="editorial"] header [class*="rounded-full"]:has(input) {
+  border-radius: 0 !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--ed-ink) !important;
+  background-color: transparent !important;
+}
+
+/* ============================================================
+   Sidebar — "Sommaire" column
+   ============================================================
+   Wraps the existing aside (kept structurally — Lounge uses the
+   same shell pattern) and reframes it as the newspaper's index
+   column. The brand block at the top gets replaced visually
+   with a SOMMAIRE label via ::before on the shell. */
+:root[data-skin="editorial"] .skin-sidebar-shell {
+  background-color: transparent !important;
+  border-right: 2px solid var(--ed-ink);
+  box-shadow: none;
+}
+
+:root[data-skin="editorial"] .skin-sidebar-shell > aside {
+  margin: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding-top: 1.25rem;
+  color: var(--ed-ink);
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  counter-reset: ed-nav 1;
+}
+
+/* Hide the brand row (WaveFlow logo + word) — the masthead
+   carries the brand below. Hide the profile pill too — it'll
+   re-emerge styled as a print byline. */
+:root[data-skin="editorial"] .skin-sidebar-shell > aside > div:first-child {
+  padding: 0 1.5rem 1rem !important;
+  border-bottom: 1px solid var(--ed-rule);
+  position: relative;
+}
+
+:root[data-skin="editorial"] .skin-sidebar-shell > aside > div:first-child::before {
+  content: "Sommaire";
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--ed-ink);
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* Brand block: hide the original logo+text row, keep the
+   profile pill but flatten it to print typography. */
+:root[data-skin="editorial"] .skin-sidebar-shell > aside > div:first-child > div:first-child {
+  display: none !important;
+}
+
+:root[data-skin="editorial"] .skin-sidebar-shell > aside > div:first-child button {
+  border: 1px solid var(--ed-ink) !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  font-family: "Lora", Georgia, serif !important;
+}
+
+/* Section group headings ("MY MUSIC", "PLAYLISTS"): print
+   eyebrow style. Reset the tiny tracking-widest stack to a
+   real masthead label. */
+:root[data-skin="editorial"] .skin-sidebar-shell > aside [class*="uppercase"][class*="tracking"] {
+  color: var(--ed-press) !important;
+  font-family: "Playfair Display", Georgia, serif !important;
+  font-size: 0.78rem !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.14em !important;
+  border-bottom: 1px solid var(--ed-ink);
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.5rem !important;
+}
+
+/* NavItem buttons: flat row + page-number on the right via
+   CSS counter. The counter resets at the aside root and
+   increments per button — same trick as printed indexes. */
+:root[data-skin="editorial"] .skin-sidebar-shell > aside button:where(:has(> div.flex.flex-col)) {
+  counter-increment: ed-nav;
+  padding: 0.55rem 0.75rem !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  color: var(--ed-ink-soft) !important;
+  font-family: "Lora", Georgia, serif !important;
+  font-weight: 500;
+  border-bottom: 1px dotted var(--ed-rule);
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+:root[data-skin="editorial"] .skin-sidebar-shell > aside button:where(:has(> div.flex.flex-col))::after {
+  content: "P. " counter(ed-nav);
+  margin-left: auto;
+  padding-left: 1rem;
+  color: var(--ed-muted);
+  font-family: "Lora", Georgia, serif;
+  font-style: italic;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+:root[data-skin="editorial"] .skin-sidebar-shell > aside button:where(:has(> div.flex.flex-col)):hover {
+  color: var(--ed-ink) !important;
+  background-color: var(--ed-press-soft) !important;
+}
+
+:root[data-skin="editorial"] .skin-sidebar-shell > aside button[class*="bg-emerald"],
+:root[data-skin="editorial"] .skin-sidebar-shell > aside button[aria-pressed="true"] {
+  color: var(--ed-press) !important;
+  background-color: transparent !important;
+  font-style: italic;
+  font-weight: 700;
+  border-left: 3px solid var(--ed-press);
+  padding-left: 0.5rem !important;
+}
+
+/* Nav icons: print line-art, no fill. */
+:root[data-skin="editorial"] .skin-sidebar-shell > aside button svg {
+  color: var(--ed-ink-soft);
+  stroke-width: 1.5;
+}
+
+/* Playlist cover thumbnails in the sidebar: grayscale +
+   contrast bump so they read as printed halftones. */
+:root[data-skin="editorial"] .skin-sidebar-shell > aside img {
+  filter: grayscale(1) contrast(1.2);
+  border: 1px solid var(--ed-rule);
+  border-radius: 0 !important;
+}
+
+/* ============================================================
+   Main + body cards
+   ============================================================ */
+:root[data-skin="editorial"] main {
+  padding: 1rem 2.5rem 3rem !important;
+}
+
+:root[data-skin="editorial"] main :where(
+  [class*="rounded-xl"],
+  [class*="rounded-2xl"],
+  [class*="rounded-3xl"]
+) {
+  border-radius: 0 !important;
+  border: 1px solid var(--ed-rule) !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none;
+}
+
+/* ============================================================
+   EditorialMasthead — mounted by HomeView
+   ============================================================
+   Real broadsheet top: edition info row, big Didone title,
+   subtitle quote between two rules. The component renders
+   the structure; the CSS gives it the print typography. */
+:root[data-skin="editorial"] .editorial-masthead {
+  margin-bottom: 2rem;
+  text-align: center;
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+:root[data-skin="editorial"] .editorial-masthead__strip {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--ed-ink);
+  color: var(--ed-ink);
+  font-family: "Lora", Georgia, serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+:root[data-skin="editorial"] .editorial-masthead__title {
+  margin: 1rem 0 0.25rem;
+  color: var(--ed-ink);
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(3.5rem, 7vw, 6.5rem);
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+}
+
+:root[data-skin="editorial"] .editorial-masthead__title-suffix {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.55em;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+:root[data-skin="editorial"] .editorial-masthead__rule {
+  margin: 0.5rem 0 0.75rem;
+  border: 0;
+  border-top: 4px solid var(--ed-ink);
+  border-bottom: 1px solid var(--ed-ink);
+  height: 6px;
+}
+
+:root[data-skin="editorial"] .editorial-masthead__subtitle {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--ed-ink);
+  border-bottom: 1px solid var(--ed-ink);
+  color: var(--ed-ink-soft);
+  font-family: "Lora", Georgia, serif;
+  font-size: 1.05rem;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   HomeView front-page layout
+   ============================================================ */
+:root[data-skin="editorial"] .editorial-home {
+  max-width: 80rem;
+  margin-inline: auto;
+}
+
+:root[data-skin="editorial"] .editorial-front-page {
+  padding: 0;
+  border-bottom: 4px solid var(--ed-ink);
+  /* Wipe the v1 ::before/::after that injected a fake masthead —
+     the real one comes from <EditorialMasthead> now. */
+}
+
+:root[data-skin="editorial"] .editorial-front-page::before,
+:root[data-skin="editorial"] .editorial-front-page::after {
+  display: none !important;
+}
+
+:root[data-skin="editorial"] .editorial-front-page > * {
+  margin-top: 0;
+}
+
+/* Hero column: a real article. Drop the rounded gradient card,
+   drop the emerald glow halos (they sit inside as div siblings),
+   keep the content. */
+:root[data-skin="editorial"] .editorial-hero {
+  display: block !important;
+  min-height: 0 !important;
+  padding: 1.5rem 2rem !important;
+  color: var(--ed-ink);
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-right: 1px solid var(--ed-ink) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 1279px) {
+  :root[data-skin="editorial"] .editorial-hero {
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--ed-ink) !important;
+  }
+}
+
+/* Kill the emerald glow halos. */
+:root[data-skin="editorial"] .editorial-hero > [aria-hidden="true"] {
+  display: none !important;
+}
+
+:root[data-skin="editorial"] .editorial-hero .inline-flex {
+  margin-bottom: 1rem;
+  padding: 0 !important;
+  color: var(--ed-press) !important;
+  /* `background: transparent` shorthand is enough — it resets
+     background-color + background-image + every other bg sub-
+     property in one go, so a separate `background-color:
+     transparent` was redundant. */
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  font-family: "Lora", Georgia, serif;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+:root[data-skin="editorial"] .editorial-hero .inline-flex > div {
+  display: none;
+}
+
+:root[data-skin="editorial"] .editorial-hero .inline-flex::before {
+  content: "●";
+  margin-right: 0.5rem;
+  color: var(--ed-press);
+  font-size: 0.6rem;
+  animation: ed-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ed-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+:root[data-skin="editorial"] .editorial-hero h1 {
+  max-width: 14ch;
+  margin-bottom: 1rem;
+  color: var(--ed-ink) !important;
+  font-family: "Playfair Display", Georgia, serif !important;
+  font-size: clamp(2.75rem, 4.5vw, 4.25rem) !important;
+  font-weight: 900;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+}
+
+/* Cover image fig block. The outer `<figure>` carries no
+   visual border — it's just the layout shell. The framed
+   halftone image lives in `__frame` (border + overflow:hidden
+   so the cover doesn't bleed past the inked rectangle), and
+   the dynamic `<figcaption>` sits as a sibling so it renders
+   OUTSIDE the frame's overflow box (which would otherwise
+   clip a pseudo-element caption — the bug in the previous
+   ::after implementation). */
+:root[data-skin="editorial"] .editorial-lead-art {
+  margin: 1rem 0 0.4rem;
+}
+
+:root[data-skin="editorial"] .editorial-lead-art__frame {
+  width: 100%;
+  height: clamp(11rem, 22vw, 17rem);
+  overflow: hidden;
+  border: 2px solid var(--ed-ink);
+  background-color: var(--ed-ink);
+}
+
+:root[data-skin="editorial"] .editorial-lead-art__frame :where(img, picture) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.3);
+  mix-blend-mode: luminosity;
+}
+
+:root[data-skin="editorial"] .editorial-lead-art-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle, rgb(240 235 216 / 0.16) 0 2px, transparent 2px) 0 0 / 14px 14px,
+    var(--ed-ink);
+  color: var(--ed-paper);
+}
+
+:root[data-skin="editorial"] .editorial-lead-art__caption {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--ed-muted);
+  font-family: "Lora", Georgia, serif;
+  font-size: 0.78rem;
+  font-style: italic;
+  text-align: right;
+}
+
+/* Lede paragraph with drop cap. The hero <p> Tailwind class
+   chain gets fully overridden. */
+:root[data-skin="editorial"] .editorial-hero p {
+  max-width: 38rem;
+  margin: 1.25rem 0 1.5rem;
+  color: var(--ed-ink-soft) !important;
+  font-family: "Lora", Georgia, serif !important;
+  font-size: 1.1rem;
+  line-height: 1.65;
+  text-align: justify;
+  hyphens: auto;
+}
+
+:root[data-skin="editorial"] .editorial-hero p::first-letter {
+  float: left;
+  margin: 0.3rem 0.55rem 0 0;
+  color: var(--ed-ink);
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 4.6rem;
+  font-weight: 900;
+  line-height: 0.8;
+}
+
+/* CTA row. */
+:root[data-skin="editorial"] .editorial-hero [class*="gap-6"] {
+  gap: 1.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--ed-rule);
+}
+
+:root[data-skin="editorial"] .editorial-hero [class*="gap-6"] button {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--ed-ink) !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  color: var(--ed-ink) !important;
+  font-family: "Lora", Georgia, serif !important;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+:root[data-skin="editorial"] .editorial-hero [class*="gap-6"] button:hover {
+  background-color: var(--ed-ink) !important;
+  color: var(--ed-paper) !important;
+}
+
+/* ============================================================
+   Stats column (right side of front-page grid)
+   ============================================================ */
+:root[data-skin="editorial"] .editorial-stats {
+  padding: 0;
+  border-top: 0;
+  border-bottom: 0;
+}
+
+:root[data-skin="editorial"] .editorial-stats > * {
+  min-height: 0 !important;
+  padding: 0.85rem 1rem !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--ed-rule) !important;
+  background-color: transparent !important;
+  border-radius: 0 !important;
+}
+
+:root[data-skin="editorial"] .editorial-stats > *:last-child {
+  border-bottom: 0 !important;
+}
+
+:root[data-skin="editorial"] .editorial-stats [class*="w-12"] {
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  color: var(--ed-press) !important;
+  background-color: var(--ed-press-soft) !important;
+  border: 1px solid var(--ed-press) !important;
+  border-radius: 0 !important;
+}
+
+:root[data-skin="editorial"] .editorial-stats [class*="text-xl"] {
+  color: var(--ed-ink) !important;
+  font-family: "Playfair Display", Georgia, serif !important;
+  font-size: 1.85rem !important;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* ============================================================
+   Section headings
+   ============================================================ */
+:root[data-skin="editorial"] section h2 {
+  color: var(--ed-ink) !important;
+  font-family: "Playfair Display", Georgia, serif !important;
+  font-size: 1.7rem !important;
+  font-weight: 900;
+  line-height: 1;
+  border: 0 !important;
+  border-bottom: 3px double var(--ed-ink) !important;
+  padding-bottom: 0.3rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ============================================================
+   Mood radio — newspaper rubric grid
+   ============================================================ */
+:root[data-skin="editorial"] .editorial-mood-section {
+  margin-top: 2rem;
+}
+
+:root[data-skin="editorial"] .editorial-mood-section > div:first-child span {
+  color: var(--ed-muted) !important;
+  font-family: "Lora", Georgia, serif;
+  font-style: italic;
+}
+
+:root[data-skin="editorial"] .editorial-mood-grid {
+  border-top: 2px solid var(--ed-ink);
+  border-left: 2px solid var(--ed-ink);
+}
+
+:root[data-skin="editorial"] .editorial-mood-tile {
+  min-height: 9rem;
+  padding: 1.2rem !important;
+  color: var(--ed-ink) !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-right: 2px solid var(--ed-ink) !important;
+  border-bottom: 2px solid var(--ed-ink) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+:root[data-skin="editorial"] .editorial-mood-tile:hover {
+  color: var(--ed-paper) !important;
+  background-color: var(--ed-ink) !important;
+  transform: none;
+}
+
+:root[data-skin="editorial"] .editorial-mood-tile:hover * {
+  color: var(--ed-paper) !important;
+  border-color: var(--ed-paper) !important;
+}
+
+:root[data-skin="editorial"] .editorial-mood-icon {
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  color: var(--ed-press) !important;
+  background-color: transparent !important;
+  border: 1px solid var(--ed-press) !important;
+  border-radius: 0 !important;
+}
+
+:root[data-skin="editorial"] .editorial-mood-tile > div:nth-child(2) {
+  font-family: "Playfair Display", Georgia, serif !important;
+  font-size: 1.25rem !important;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+:root[data-skin="editorial"] .editorial-mood-tile > div:nth-child(3) {
+  color: var(--ed-ink-soft) !important;
+  font-family: "Lora", Georgia, serif;
+  font-style: italic;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+:root[data-skin="editorial"] .editorial-mood-tile > div:last-child {
+  margin-top: auto;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--ed-ink);
+  color: var(--ed-ink) !important;
+  font-family: "Lora", Georgia, serif;
+  font-size: 0.72rem !important;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Hover overrides — placed AFTER the per-row rules so equal
+   specificity (`> div` matches the same shape as `> div:nth-
+   child(n)`) gets resolved by source order. The earlier
+   `:hover *` rule loses against `> div:nth-child(n)` because
+   the universal `*` counts 0 — a (0,3,0) hover beats nothing
+   against a (0,3,2) per-row rule. These restate the targets
+   with the same `> div` shape + the hover pseudo so the cream
+   colour wins on the title, subtitle, AND count row. */
+:root[data-skin="editorial"] .editorial-mood-tile:hover > div {
+  color: var(--ed-paper) !important;
+  border-color: var(--ed-paper) !important;
+}
+
+:root[data-skin="editorial"] .editorial-mood-tile:hover > div:last-child {
+  border-top-color: var(--ed-paper) !important;
+}
+
+/* ============================================================
+   PlayerBar — newspaper footer with ruler-tick progress bar
+   ============================================================ */
+:root[data-skin="editorial"] footer {
+  margin: 0;
+  padding: 0.5rem 1.5rem;
+  color: var(--ed-ink);
+  background-color: var(--ed-paper) !important;
+  background-image: var(--ed-grain) !important;
+  border-top: 4px solid var(--ed-ink) !important;
+  border-radius: 0 !important;
+  box-shadow: none;
+  overflow: visible;
+  position: relative;
+}
+
+/* The "rule below the masthead" trick — a 1px line just under
+   the 4px border, like newspaper top mastheads. */
+:root[data-skin="editorial"] footer::before {
+  content: "";
+  position: absolute;
+  inset: 6px 0 auto;
+  height: 1px;
+  background: var(--ed-ink);
+  pointer-events: none;
+}
+
+:root[data-skin="editorial"] footer :where(button) {
+  border: 1px solid var(--ed-ink) !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  color: var(--ed-ink) !important;
+  box-shadow: none !important;
+}
+
+:root[data-skin="editorial"] footer :where(button:hover) {
+  color: var(--ed-paper) !important;
+  background-color: var(--ed-ink) !important;
+}
+
+:root[data-skin="editorial"] footer img {
+  filter: grayscale(1) contrast(1.25);
+  border: 1px solid var(--ed-ink);
+  border-radius: 0 !important;
+}
+
+/* Signature element: ruler-tick progress bar. We paint two
+   layers behind the slider thumb — a 1-pixel tick every 5% as
+   the major rule and a thicker tick every 25%. The slider's
+   native track is overridden via the wrapper container so the
+   ticks live behind the filled portion. */
+:root[data-skin="editorial"] footer [role="slider"] {
+  --ed-progress: var(--ed-ink);
+  position: relative;
+  height: 0.875rem !important;
+  background-color: transparent !important;
+  background-image:
+    /* Major ticks every 25% (5% above baseline) */
+    repeating-linear-gradient(
+      90deg,
+      var(--ed-ink) 0 1px,
+      transparent 1px 25%
+    ),
+    /* Minor ticks every 5% */
+    repeating-linear-gradient(
+      90deg,
+      var(--ed-rule) 0 1px,
+      transparent 1px 5%
+    ) !important;
+  background-position: 0 bottom, 0 bottom;
+  background-size: 100% 0.4rem, 100% 0.25rem;
+  background-repeat: no-repeat;
+  border: 1px solid var(--ed-ink) !important;
+  border-radius: 0 !important;
+}
+
+/* The fill bar — child of the slider. Use the existing
+   nested div via aria role. */
+:root[data-skin="editorial"] footer [role="slider"] > div {
+  background-color: var(--ed-ink) !important;
+  background-image: none !important;
+  border-radius: 0 !important;
+  height: 0.4rem !important;
+  align-self: end !important;
+}
+
+/* Hi-Res badge: turn it into a print stamp. */
+:root[data-skin="editorial"] footer [class*="text-[10px]"][class*="uppercase"] {
+  padding: 0.15rem 0.4rem !important;
+  border: 1px solid var(--ed-ink) !important;
+  border-radius: 0 !important;
+  background-color: var(--ed-ink) !important;
+  color: var(--ed-paper) !important;
+  font-family: "Lora", Georgia, serif !important;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+/* Time codes: tabular figures, no fancy color. */
+:root[data-skin="editorial"] footer [class*="text-xs"][class*="tabular"] {
+  font-family: "Lora", Georgia, serif !important;
+  font-variant-numeric: tabular-nums;
+  color: var(--ed-ink) !important;
+}
+
+/* ============================================================
+   Modals + tooltips + popovers
+   ============================================================ */
+:root[data-skin="editorial"] :where([role="dialog"], [role="tooltip"], [class*="shadow-lg"]) {
+  color: var(--ed-ink);
+  background-color: var(--ed-paper) !important;
+  background-image: var(--ed-grain) !important;
+  border: 1px solid var(--ed-ink) !important;
+  border-radius: 0 !important;
+  box-shadow: 8px 8px 0 rgb(26 26 26 / 0.12) !important;
+}
+
+/* ============================================================
+   Type colour overrides — paint everything in ink
+   ============================================================ */
+:root[data-skin="editorial"] :where(
+  .text-zinc-900,
+  .text-zinc-800,
+  .dark\:text-white,
+  .dark\:text-zinc-100,
+  .dark\:text-zinc-200
+) {
+  color: var(--ed-ink) !important;
+}
+
+:root[data-skin="editorial"] :where(
+  .text-zinc-700,
+  .text-zinc-600,
+  .dark\:text-zinc-300
+) {
+  color: var(--ed-ink-soft) !important;
+}
+
+:root[data-skin="editorial"] :where(
+  .text-zinc-500,
+  .text-zinc-400,
+  .dark\:text-zinc-400,
+  .dark\:text-zinc-600
+) {
+  color: var(--ed-muted) !important;
+}
+
+:root[data-skin="editorial"] :where(
+  .text-emerald-400,
+  .text-emerald-500,
+  .text-emerald-600,
+  .dark\:text-emerald-400
+) {
+  color: var(--ed-press) !important;
+}
+
+/* Inputs + form fields. */
+:root[data-skin="editorial"] :where(input, textarea, select):not(header input) {
+  color: var(--ed-ink);
+  background-color: var(--ed-paper-warm) !important;
+  border: 1px solid var(--ed-ink) !important;
+  border-radius: 0 !important;
+  font-family: "Lora", Georgia, serif;
+}
+
+:root[data-skin="editorial"] :where(input, textarea)::placeholder {
+  color: var(--ed-muted);
+  font-style: italic;
+}
+
+/* ============================================================
+   Global surface neutralization
+   ============================================================
+   Tailwind bg utilities that paint stark-white or neutral-dark
+   sneak past every other rule because they don't go through
+   `rounded-xl` and don't live inside `main`. Catches:
+   - HistoryView day-section sticky headers (`bg-white dark:bg-
+     surface-dark`)
+   - Dropdown / popover bodies that aren't `shadow-lg`
+   - Modal preview cards (`bg-white border-zinc-200`)
+   - Onboarding + Settings sub-cards (`bg-zinc-50`)
+   `[class*="bg-X"]` is intentionally substring-broad — the
+   explicit `editorial-*` rules above carry `!important` so
+   they keep winning on their own elements. */
+:root[data-skin="editorial"] :where(
+  [class*="bg-white"],
+  [class*="bg-zinc-50"],
+  [class*="bg-zinc-100"],
+  [class*="bg-zinc-200"],
+  [class*="bg-surface-light"]
+):not(header):not(footer):not([role="slider"]):not([role="slider"] *) {
+  background-color: var(--ed-paper) !important;
+  background-image: var(--ed-grain) !important;
+}
+
+:root[data-skin="editorial"] :where(
+  [class*="dark:bg-zinc-700"],
+  [class*="dark:bg-zinc-800"],
+  [class*="dark:bg-zinc-900"],
+  [class*="dark:bg-surface-dark"]
+):not(header):not(footer):not([role="slider"]):not([role="slider"] *) {
+  background-color: var(--ed-paper) !important;
+  background-image: var(--ed-grain) !important;
+}
+
+/* Sticky day-section headers: paint warm paper + a 1-px ink
+   rule underneath so they read as section masthead, not "white
+   bar over content". `[class*="sticky"]` catches the HistoryView
+   header (and any future sticky chrome) without us hand-listing
+   every component. */
+:root[data-skin="editorial"] [class*="sticky"]:where(
+  [class*="bg-white"],
+  [class*="bg-zinc"],
+  [class*="bg-surface"],
+  [class*="dark:bg-"]
+) {
+  background-color: var(--ed-paper-warm) !important;
+  background-image: var(--ed-grain) !important;
+  border-bottom: 1px solid var(--ed-ink) !important;
+}
+
+/* Hover rows in menus + lists: stop flashing white-on-cream or
+   dark-on-cream. Soft press-tint matches the rest of the skin
+   and reads as "ink starts to settle here". */
+:root[data-skin="editorial"] :where(
+  [class*="hover:bg-zinc-50"],
+  [class*="hover:bg-zinc-100"],
+  [class*="dark:hover:bg-zinc-700"],
+  [class*="dark:hover:bg-zinc-800"]
+):hover {
+  color: var(--ed-ink) !important;
+  background-color: var(--ed-press-soft) !important;
+}
+
+/* Active row state on dropdown items + nav: solid ink press,
+   not the `bg-emerald-50` light tint that the rest of WaveFlow
+   uses. */
+:root[data-skin="editorial"] :where([class*="bg-emerald-50"]):not(.editorial-mood-tile *) {
+  background-color: var(--ed-press-soft) !important;
+  color: var(--ed-press) !important;
+}
+
+/* ============================================================
+   Page-load: ink-bloom reveal on the front page
+   ============================================================
+   Subtle: paper rises 6px and fades in over 360 ms. Print
+   doesn't bounce or spring — `ease-out` with paper timing. */
+:root[data-skin="editorial"] main > * {
+  animation: ed-rise 0.36s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+
+@keyframes ed-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-skin="editorial"] main > *,
+  :root[data-skin="editorial"] .editorial-hero .inline-flex::before {
+    animation: none !important;
+  }
+}
+
+/* ============================================================
+   Print-style scrollbars
+   ============================================================ */
+:root[data-skin="editorial"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+:root[data-skin="editorial"] ::-webkit-scrollbar-track {
+  background: var(--ed-paper);
+  border-left: 1px solid var(--ed-ink);
+}
+
+:root[data-skin="editorial"] ::-webkit-scrollbar-thumb {
+  background-color: var(--ed-ink);
+  border-radius: 0;
+}
+
+:root[data-skin="editorial"] ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--ed-press);
+}
