@@ -13,6 +13,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { getProfileSetting, setProfileSetting } from "../../lib/tauri/profile";
 import { Sidebar } from "./Sidebar";
 import { SkinAmbientBackdrop } from "./SkinAmbientBackdrop";
+import { SkinPlayingState } from "./SkinPlayingState";
 import { SkinMotionWrapper } from "./SkinMotionWrapper";
 import { useDragDropImport } from "../../hooks/useDragDropImport";
 import { useGlobalShortcuts } from "../../hooks/useGlobalShortcuts";
@@ -512,6 +513,7 @@ export function AppLayout() {
   return (
     <SkinMotionWrapper>
       <SkinAmbientBackdrop />
+      <SkinPlayingState />
       <div className="flex flex-col h-screen font-sans">
         <div className="flex flex-col h-screen bg-app-ambient text-zinc-600 dark:text-zinc-300 relative">
           {/* Drag-and-drop overlay — fades in while the user is dragging

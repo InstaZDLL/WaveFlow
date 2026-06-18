@@ -329,15 +329,18 @@ export const SKIN_PRESETS: SkinPreset[] = [
       grain: "",
     },
     typography: {
-      // Mono / tech display family. JetBrains Mono is in most
-      // dev fonts caches; falls back to ui-monospace on macOS
-      // and Consolas on Windows so no FOIT.
+      // Space Grotesk for the body / display — a geometric sans
+      // with mechanical character ticks that read as "tech /
+      // club". Space Mono for the utility chrome (eyebrows, nav
+      // pills, time codes, `///` markers) — the monospaced
+      // counterpart from the same designer. Both bundled via
+      // `@fontsource/*` in main.tsx.
       display:
-        '"JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+        '"Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       body:
-        '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+        '"Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       headingWeight: 700,
-      displayTracking: "0.04em",
+      displayTracking: "-0.02em",
     },
     motion: {
       // Punchy spring — short duration, stiff spring,
