@@ -856,7 +856,7 @@
   [class*="bg-zinc-100"],
   [class*="bg-zinc-200"],
   [class*="bg-surface-light"]
-):not(header):not(header *):not(footer):not(footer *):not([role="slider"]):not([role="slider"] *) {
+):not(header):not(footer):not([role="slider"]):not([role="slider"] *) {
   background-color: var(--ed-paper) !important;
   background-image: var(--ed-grain) !important;
 }
@@ -866,7 +866,7 @@
   [class*="dark:bg-zinc-800"],
   [class*="dark:bg-zinc-900"],
   [class*="dark:bg-surface-dark"]
-):not(header):not(header *):not(footer):not(footer *):not([role="slider"]):not([role="slider"] *) {
+):not(header):not(footer):not([role="slider"]):not([role="slider"] *) {
   background-color: var(--ed-paper) !important;
   background-image: var(--ed-grain) !important;
 }
