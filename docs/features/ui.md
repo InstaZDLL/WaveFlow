@@ -215,6 +215,33 @@ User overrides are stored per-profile in `profile_setting['ui.shortcuts']` as a 
 - **Dark mode** — animated radial transition via the [View Transitions API](https://developer.mozilla.org/en-US/docs/Web/API/View_Transitions_API). Falls back to an instant swap when unsupported.
 - **`prefers-reduced-motion`** respected for the radial transition and for animated SVGs.
 - **Single-click play** — optional Settings toggle; the default is double-click to mirror Apple Music / Finder.
+- **Framer Motion** — `motion/react` provides micro-interactions (sidebar nav reorder, modal open, view fade-in, queue drag). One global [`SkinMotionWrapper`](../../src/components/layout/SkinMotionWrapper.tsx) feeds skin-specific `transition` config to the `MotionConfig` provider so per-skin springs (Pulse uses `cubic-bezier(0.34, 1.56, 0.64, 1)`, Lounge stays tame, etc.) apply automatically without touching call sites.
+
+## Skins
+
+Skins are an **orthogonal axis to the 14 colour themes**: a skin re-skins surfaces, typography, motion and signature elements (e.g. Editorial's drop caps, Pulse's vinyl-spin cover); the theme picks the OKLCH accent. Every skin × theme combination is valid → **5 × 14 = 70 visual identities**.
+
+<!-- markdownlint-disable MD060 -->
+
+| Skin       | Direction                            | Signature                                                                                                                              |
+| ---------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `studio`   | Apple Music baseline                 | Inter / system-ui, soft shadows, rounded-12 — the calm default                                                                         |
+| `editorial`| Broadsheet "WaveFlow Gazette"        | Playfair Display 900 + Lora body, `<EditorialMasthead>` with locale-aware `Intl.DateTimeFormat`, `::first-letter` drop caps, halftone N&B covers via `mix-blend-luminosity`, ruler-tick progress bar via `repeating-linear-gradient`, `counter-reset` page numbering ("P. 1", "P. 2") |
+| `lounge`   | "Listening Room" warm-burgundy glass | Inter, [`SkinAmbientBackdrop`](../../src/components/layout/SkinAmbientBackdrop.tsx) blurs the cover (`filter: blur(140px) saturate(280%)`) into the body, white-overlay tint over the cover dominates the chrome |
+| `pulse`    | OLED "club control panel"            | Space Grotesk + Space Mono, dual-neon magenta/cyan aurora blobs, `///` mono pills, vinyl-spin cover via [`SkinPlayingState`](../../src/components/layout/SkinPlayingState.tsx) mirroring `usePlayer().isPlaying` to `[data-is-playing]`, floating pill PlayerBar |
+| `liquid`   | Apple Vibrancy material              | DM Sans Variable (`opsz` axis 9..40), 8-layer inset `box-shadow` recipe `--liquid-glass` for "real glass" surfaces, aurora drift `body::before` (28 s), theme-aware light/dark token swap via `:not(.dark)`, `--liq-action` cyan/blue swap for contrast |
+
+<!-- markdownlint-enable MD060 -->
+
+**Architecture** :
+
+- Token system + `SkinId` union live in [`src/lib/skins.ts`](../../src/lib/skins.ts); `applySkin()` writes `data-skin` on `<html>`.
+- Per-skin overrides live in `src/styles/skins/{editorial,lounge,pulse,liquid}.css` (Studio = no overrides, baseline). The four files are imported from `src/app.css`.
+- [`src/app.css`](../../src/app.css) extends the Tailwind `dark` variant via `@custom-variant dark (.dark, .dark *, :root[data-skin="lounge"] *, :root[data-skin="pulse"] *)` — Lounge/Pulse fire `dark:*` utilities automatically because they're always "dark" by design (Liquid stays theme-aware).
+- **Local-first typography** — all skin fonts are bundled via `@fontsource` / `@fontsource-variable` (Playfair Display, Lora, Space Grotesk, Space Mono, DM Sans Variable) and imported at the top of [`src/main.tsx`](../../src/main.tsx). Zero network at runtime — no Google Fonts request.
+- **Motion** — each skin declares its own `MotionConfig` spring in `SkinMotionWrapper`. Skins with strong identity (Pulse, Editorial) override the spring; calmer skins (Studio, Lounge, Liquid) inherit the soft default.
+
+The picker lives in Settings → Appearance via [`SkinPickerCard`](../../src/components/views/settings/SkinPickerCard.tsx), alongside the theme picker and `PlayerBarLayoutCard`. View-Transitions API also drives skin swaps (radial reveal on click), with the same try/catch fallback used by the theme picker for WebKitGTK builds.
 
 ## i18n
 

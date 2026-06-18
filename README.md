@@ -61,30 +61,41 @@ WaveFlow is a local music player desktop app with a Spotify-inspired 3-panel UI.
 
 ## Features
 
+<!-- markdownlint-disable MD060 -->
+
 | Area                | Highlights                                                                                                                                                                                                                                                                                                      | Deep dive                                |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
 | **Playback**        | Symphonia + cpal, lock-free 3-thread engine, real dual-decoder crossfade, ReplayGain, variable playback speed (0.5×–2×), output-device picker, OS media controls (SMTC / MPRIS / MediaRemote), persistent queue with shuffle / repeat / auto-advance                                                            | [docs](docs/features/playback.md)        |
 | **Library**         | Folder scanning + filesystem watcher, on-demand audio analysis (peak, loudness, ReplayGain, BPM), Hi-Res badges, multi-artist split, POPM 5-star ratings, A-Z navigator, multi-select action bar                                                                                                                | [docs](docs/features/library.md)         |
 | **Playlists**       | Drag-and-drop reorder (virtualised), bulk add from any source, M3U import / export with basename-fallback matching, likes, recently-played                                                                                                                                                                      | [docs](docs/features/playlists.md)       |
 | **Smart playlists** | Auto-generated **Daily Mix** family bucketed by tempo, with composite artist-photo covers rendered from your Deezer cache                                                                                                                                                                                       | [docs](docs/features/smart-playlists.md) |
-| **Integrations**    | Deezer (artwork + labels), Last.fm (bios + scrobbling with retry queue), LRCLIB + Musixmatch/NetEase/Megalobiz/Genius lyrics, Discord Rich Presence ("Listening to WaveFlow" with cover + progress bar) — all cached locally for offline use                                                                       | [docs](docs/features/integrations.md)    |
-| **UI & UX**         | Spotify-style 3-panel layout, system tray, statistics dashboard with JSON export, **WaveFlow Wrapped** year-in-review (story-style overlay), virtual scroll for 6000+ tracks, dark mode (View Transitions API), 17 locales (RTL-aware), per-profile isolated DB with scheduled auto-backup, signed auto-updater | [docs](docs/features/ui.md)              |
+| **Integrations**    | Deezer (artwork + labels), Last.fm (bios + scrobbling with retry queue), LRCLIB + Musixmatch (with translation language picker) / NetEase / Megalobiz / Genius lyrics, Discord Rich Presence ("Listening to WaveFlow" with cover + progress bar) — all cached locally for offline use                            | [docs](docs/features/integrations.md)    |
+| **Sync & sharing**  | Opt-in **multi-device sync** against a self-hosted [waveflow-server](https://github.com/InstaZDLL/waveflow-server) (playlists, library, likes, ratings — HLC + payload-hash digest, last-write-wins, OAuth-loopback browser handshake), **public playlist share** links, optional account-bound mode per profile | docs/features/sync.md *(WIP)*            |
+| **Plugins**         | RFC-002 **plugin SDK** — wasmtime sandbox with permission gates, manifest-declared host APIs, settings panel per plugin; ships the first official **Web Radio** plugin routing live streams through the cpal engine                                                                                              | docs/features/plugins.md *(WIP)*         |
+| **UI & UX**         | Spotify-style 3-panel layout with **5 skins** (Studio / Editorial broadsheet / Lounge listening-room / Pulse OLED-neon / Liquid Apple Vibrancy) × 14 OKLCH theme presets, Framer Motion micro-interactions, system tray, statistics dashboard with JSON export, **WaveFlow Wrapped** year-in-review, virtual scroll for 6000+ tracks, dark mode (View Transitions API), 17 locales (RTL-aware), per-profile isolated DB with scheduled auto-backup, signed auto-updater | [docs](docs/features/ui.md)              |
+
+<!-- markdownlint-enable MD060 -->
 
 ## Tech Stack
 
+<!-- markdownlint-disable MD060 -->
+
 | Layer                     | Technologies                                                                                                                       |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **Desktop shell**         | Tauri 2.11 (tray icon, opener, dialog, updater plugins)                                                                            |
+| **Desktop shell**         | Tauri 2.11 (tray icon, opener, dialog, updater, notification, single-instance plugins)                                             |
 | **OS media controls**     | souvlaki 0.8 (SMTC / MPRIS / MediaRemote bridge)                                                                                   |
 | **Discord Rich Presence** | discord-rich-presence 1.1 (local IPC named pipe, no auth)                                                                          |
-| **Frontend**              | React 19, TypeScript, Vite 8, Tailwind CSS 4, Lucide icons, `@dnd-kit` (drag-and-drop), `@tanstack/react-virtual` (virtualization) |
-| **Backend**               | Rust, SQLite (sqlx), FTS5 contentless full-text search                                                                             |
+| **Frontend**              | React 19, TypeScript, Vite 8, Tailwind CSS 4, framer-motion 12, Lucide icons, `@dnd-kit` (drag-and-drop), `@tanstack/react-virtual` (virtualization), `@fontsource` (bundled woff2 for skin typography — local-first, no Google Fonts at runtime) |
+| **Backend**               | Rust, SQLite (sqlx 0.9), FTS5 contentless full-text search, BLAKE3 hashing, tokio                                                  |
 | **Audio**                 | symphonia 0.6 (decode), cpal 0.17 (output), rubato 3.0 (resample), rtrb 0.3 (SPSC ring)                                            |
 | **Metadata extraction**   | lofty 0.24 (tags, embedded art, POPM, INITIALKEY)                                                                                  |
-| **Imaging**               | image 0.25 + fast_image_resize 6 (SIMD thumbnails)                                                                                 |
+| **Imaging**               | image 0.25 + fast_image_resize 6 (SIMD thumbnails) + resvg/usvg/tiny-skia (smart-playlist composite covers)                        |
 | **Filesystem watcher**    | notify 8 (debounced rescans of watched folders)                                                                                    |
-| **External APIs**         | Deezer public API (no auth) + Last.fm (read + signed methods via md-5 + reqwest 0.12 with rustls) + LRCLIB/Musixmatch/NetEase/Megalobiz/Genius lyrics |
+| **Plugin runtime**        | wasmtime + WASI p2 (RFC-002 plugin sandbox with permission gates)                                                                  |
+| **External APIs**         | Deezer public API (no auth) + Last.fm (read + signed methods via md-5 + reqwest 0.12 with rustls) + LRCLIB / Musixmatch / NetEase / Megalobiz / Genius lyrics + optional [waveflow-server](https://github.com/InstaZDLL/waveflow-server) for multi-device sync |
 | **Package manager**       | Bun                                                                                                                                |
+
+<!-- markdownlint-enable MD060 -->
 
 ## Getting Started
 
