@@ -1,88 +1,98 @@
 /* ============================================================
-   Lounge skin — glass over album cover
+   Lounge skin — Listening Room
    ============================================================
-   Album cover bleeds through translucent chrome panels. All
-   rules target STABLE LANDMARKS (`aside`, `header`, `footer`,
-   `main`) plus a handful of ARIA roles (`role="tooltip"`,
-   `role="dialog"`). No substring-matching on Tailwind class
-   names — those proved fragile in earlier iterations (would
-   inadvertently catch `bg-zinc-900` inside a tooltip that uses
-   it for COLOUR INVERSION). */
+   Mental model: you are IN a room lit by the album cover, not
+   looking at a photo through translucent UI. Warm light fills
+   a room — walls don't turn gray, they take on the light's
+   colour temperature. Every chrome surface here is a piece of
+   frosted glass tinted by ambient light.
+
+   The non-obvious choice that drives everything: chrome panels
+   use a WHITE alpha overlay, not the conventional dark-slab
+   glassmorphism. Dark overlay × warm cover = warm muted under
+   soot (subtractive — kills the very thing we want to show).
+   White overlay × warm cover = warm cover under thin fog
+   (additive — the cover's colour stays vivid, the white only
+   diffuses it like frosted glass). This is the reason previous
+   iterations always looked gray no matter how low the alpha
+   went: they were always subtracting.
+
+   Selectors target STABLE LANDMARKS (`aside`, `header`,
+   `footer`, `main`) plus a handful of ARIA roles
+   (`role="tooltip"`, `role="dialog"`). No class-name substring
+   matching — that proved fragile (would catch `bg-zinc-900`
+   inside an inverted-tooltip and turn it transparent). */
 
 /* Body wrapper — make `bg-app-ambient` transparent so the
    SkinAmbientBackdrop component bleeds through every layer
-   above it. Same reasoning for the document body. */
+   above it. Text reads white because the cover is always
+   dimmer than the chrome glass overlay can lift. */
 :root[data-skin="lounge"] [class*="bg-app-ambient"] {
   background-color: transparent !important;
 }
 :root[data-skin="lounge"] body {
-  color: rgb(244 244 245); /* zinc-100 — body text reads against the cover */
+  color: rgb(244 244 245);
 }
 
 /* AppLayout's center-column wrapper paints `dark:bg-zinc-900/50`
-   so the body ambient bleeds through ~half on dark theme. Under
-   Lounge that wrapper sits BETWEEN the SkinAmbientBackdrop
-   (`z-index: -10`) and `main`, and the 50% gray fully washes the
-   album cover out to a uniform gray — defeating the whole point
-   of the skin. Match the wrapper structurally by its children
-   (TopBar `<header>` + view `<main>`) so we don't depend on
-   class-name substring matching. */
+   which the extended `dark` variant activates under Lounge,
+   covering the SkinAmbientBackdrop with a uniform 50% gray
+   slab — defeats the whole skin. Match the wrapper structurally
+   by its children (TopBar `<header>` + view `<main>`) so we
+   don't depend on class-name substring matching. */
 :root[data-skin="lounge"] div:has(> header):has(> main) {
   background-color: transparent !important;
 }
 
-/* Sidebar — translucent slab over the cover, deep blur, faint
-   right-edge highlight. Lower alpha (0.30) so the cover's
-   colour stains the sidebar visibly — the warm reds / pinks
-   / blues of the active album cover should be readable
-   through the chrome. */
+/* Sidebar — frosted glass tinted by the room's ambient light.
+   White alpha 8% + saturate(180%) bumps the cover's hue passing
+   through. A 1px white hairline at the right edge gives the
+   "frost edge" that glass surfaces need to feel like glass and
+   not just transparency — the same trick Apple uses on
+   Vibrancy materials in macOS. */
 :root[data-skin="lounge"] aside {
-  background-color: rgb(10 10 12 / 0.10) !important;
-  backdrop-filter: blur(32px) saturate(280%);
-  -webkit-backdrop-filter: blur(32px) saturate(280%);
-  border-right: 1px solid var(--skin-divider);
+  background-color: rgb(255 255 255 / 0.08) !important;
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border-right: 1px solid rgb(255 255 255 / 0.08);
 }
 
-/* TopBar — very translucent so the cover (which is dim at the
-   top edge of the viewport because the cover image is centred)
-   still passes through, plus an accent-tinted radial highlight
-   so the topbar carries a hint of the active theme even when
-   the cover at the top is dark. */
+/* TopBar — thinnest glass in the trio so the cover's top edge
+   reads cleanly above the search bar. No accent radial gradient
+   here: layering an accent colour (Emerald, Crimson, etc.) on
+   top of a warm cover mixes into khaki/brown. The cover is the
+   only colour source — restraint. */
 :root[data-skin="lounge"] header {
-  background-color: rgb(10 10 12 / 0.05) !important;
-  backdrop-filter: blur(20px) saturate(280%);
-  -webkit-backdrop-filter: blur(20px) saturate(280%);
-  border-bottom: 1px solid var(--skin-divider);
+  background-color: rgb(255 255 255 / 0.05) !important;
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border-bottom: 1px solid rgb(255 255 255 / 0.06);
 }
 
-/* PlayerBar — same recipe as the sidebar so the chrome trio
-   (sidebar + topbar + playerbar) frames the body as one
-   continuous translucent surface. Slightly higher alpha
-   (0.40) than the sidebar because the playerbar carries
-   small text (track title, time codes) that needs more bg
-   to lift off the cover. */
+/* PlayerBar — thickest glass in the trio because it carries
+   the smallest text (time codes, track meta) and needs the
+   highest legibility floor. 10% white tint + a top hairline
+   so the bar feels seated against the body. */
 :root[data-skin="lounge"] footer {
-  background-color: rgb(10 10 12 / 0.18) !important;
-  backdrop-filter: blur(32px) saturate(280%);
-  -webkit-backdrop-filter: blur(32px) saturate(280%);
-  border-top: 1px solid var(--skin-divider) !important;
+  background-color: rgb(255 255 255 / 0.10) !important;
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border-top: 1px solid rgb(255 255 255 / 0.10) !important;
 }
 
-/* Body cards inside main — translucent glass over the cover.
-   `!important` on `background-color` so we beat every per-card
-   `bg-zinc-900` / `dark:bg-zinc-900/X` Tailwind utility (each
-   wins at specificity (0,1,0) which a `:where()` selector
-   can never reach). Component-level GRADIENTS (Mood Radio
-   tiles, Welcome Banner) use `background-image:
-   linear-gradient(...)` — a different property entirely — so
-   they still paint on top of our translucent base and keep
-   their identity. Very low alpha (0.22) lets the cover's
-   colour bleed through and tint each card naturally — the
-   point of the skin. */
+/* Body cards inside main — same recipe, slightly more white
+   so list rows + stat blocks stay readable when the cover
+   underneath is dark. `!important` on `background-color` so
+   we beat per-card `bg-zinc-900` / `dark:bg-zinc-900/X`
+   Tailwind utilities (specificity 0,1,0 — a `:where()` can
+   never reach it). Component GRADIENTS (Mood Radio tiles,
+   Welcome Banner) paint on `background-image:
+   linear-gradient(...)` — a different property — so they
+   keep their identity untouched. */
 :root[data-skin="lounge"] main :where([class*="rounded-xl"], [class*="rounded-2xl"], [class*="rounded-3xl"]) {
-  background-color: rgb(10 10 12 / 0.08) !important;
-  backdrop-filter: blur(16px) saturate(240%);
-  -webkit-backdrop-filter: blur(16px) saturate(240%);
+  background-color: rgb(255 255 255 / 0.07) !important;
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
 }
 
 /* Backdrop crossfade keyframe. */
