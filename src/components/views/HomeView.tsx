@@ -297,7 +297,7 @@ export function HomeView({
             ? "grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem] gap-5 items-stretch"
             : isEditorialSkin
               ? "editorial-front-page grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] gap-8 items-stretch"
-              : "contents"
+              : "space-y-8"
         }
       >
         {/* Welcome Banner */}
@@ -517,7 +517,7 @@ export function HomeView({
             ? "grid grid-cols-1 xl:grid-cols-2 gap-8 items-start"
             : isEditorialSkin
               ? "editorial-feature-grid grid grid-cols-1 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] gap-10 items-start"
-              : "contents"
+              : "space-y-8"
         }
       >
         <section>
