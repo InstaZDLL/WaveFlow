@@ -73,7 +73,16 @@
    under all 4 dark-only skins (Pulse, Lounge) but Liquid is
    theme-aware: it follows whichever theme (light or dark) is
    active so the light-mode bg + light-mode panels look like
-   Big Sur's white frosted glass. */
+   Big Sur's white frosted glass.
+
+   The `--liq-action` swap is what makes the skin readable on
+   both modes — pure cyan (#03d5ff) reads brilliantly on dark
+   glass but vanishes on the light-cream glass, where the badge
+   capsule + text both turn into a pale cyan wash with zero
+   contrast. The reference design (codepen.io/.../switcher)
+   ships a paired deep-blue (#0052f5) for the light variant for
+   exactly this reason — keep the same hue family but drop
+   lightness so the action chip survives on either surface. */
 :root[data-skin="liquid"]:not(.dark) {
   --liq-bg: #e8e8e9;
   --liq-ink: rgb(28 28 30);
@@ -81,6 +90,7 @@
   --liq-faint: rgb(60 60 67 / 0.6);
   --liq-rail: rgb(0 0 0 / 0.08);
   --liq-rail-soft: rgb(0 0 0 / 0.04);
+  --liq-action: #0052f5;
   --liq-reflex-light: 1;
   --liq-reflex-dark: 1;
 }
@@ -382,7 +392,7 @@
 
 :root[data-skin="liquid"] main .inline-flex[class*="rounded-full"][class*="bg-emerald-50"] > div {
   background-color: var(--liq-action) !important;
-  box-shadow: 0 0 8px rgb(3 213 255 / 0.8);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--liq-action) 80%, transparent);
 }
 
 /* Stats cards — soft glass capsules. */
@@ -553,7 +563,7 @@
   background-color: transparent !important;
   border-radius: 9999px !important;
   height: 100% !important;
-  box-shadow: 0 0 8px rgb(3 213 255 / 0.4);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--liq-action) 40%, transparent);
 }
 
 /* Time codes + audio meta. */
