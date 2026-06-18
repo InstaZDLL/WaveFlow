@@ -1235,6 +1235,11 @@
       "edition": "Édition du Matin",
       "price": "Prix : Inclus",
       "subtitle": "« Toute la musique qui mérite d'être imprimée » — Votre sélection quotidienne, sur mesure."
+    },
+    "lead": {
+      "caption": "Fig 1. — Tiré de « {{album}} » par {{artist}}.",
+      "captionArtistOnly": "Fig 1. — Une création de {{artist}}.",
+      "captionFallback": "Fig 1. — Sélection du jour."
     }
   },
   "settings": {

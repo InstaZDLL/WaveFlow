@@ -1235,6 +1235,11 @@
       "edition": "Morning Edition",
       "price": "Price: Included",
       "subtitle": "\"All the music that deserves to be printed.\" — Your daily selection, made for you."
+    },
+    "lead": {
+      "caption": "Fig 1. — From \"{{album}}\" by {{artist}}.",
+      "captionArtistOnly": "Fig 1. — A creation of {{artist}}.",
+      "captionFallback": "Fig 1. — Today's selection."
     }
   },
   "settings": {

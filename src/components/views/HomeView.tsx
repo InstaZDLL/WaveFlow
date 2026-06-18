@@ -338,24 +338,43 @@ export function HomeView({
               {greetingName && `, ${greetingName}`}
             </h1>
             {isEditorialSkin && (
-              <div className="editorial-lead-art" aria-hidden="true">
-                {currentTrack ? (
-                  <Artwork
-                    path={currentTrack.artwork_path}
-                    path1x={currentTrack.artwork_path_1x}
-                    path2x={currentTrack.artwork_path_2x}
-                    size="full"
-                    alt=""
-                    className="w-full h-full"
-                    iconSize={42}
-                    rounded="md"
-                  />
-                ) : (
-                  <div className="editorial-lead-art-fallback">
-                    <Music2 size={60} />
-                  </div>
-                )}
-              </div>
+              <figure className="editorial-lead-art" aria-hidden="true">
+                <div className="editorial-lead-art__frame">
+                  {currentTrack ? (
+                    <Artwork
+                      path={currentTrack.artwork_path}
+                      path1x={currentTrack.artwork_path_1x}
+                      path2x={currentTrack.artwork_path_2x}
+                      size="full"
+                      alt=""
+                      className="w-full h-full"
+                      iconSize={42}
+                      rounded="md"
+                    />
+                  ) : (
+                    <div className="editorial-lead-art-fallback">
+                      <Music2 size={60} />
+                    </div>
+                  )}
+                </div>
+                <figcaption className="editorial-lead-art__caption">
+                  {currentTrack?.album_title && currentTrack?.artist_name
+                    ? t("editorial.lead.caption", {
+                        defaultValue:
+                          "Fig 1. — Tiré de « {{album}} » par {{artist}}.",
+                        album: currentTrack.album_title,
+                        artist: currentTrack.artist_name,
+                      })
+                    : currentTrack?.artist_name
+                      ? t("editorial.lead.captionArtistOnly", {
+                          defaultValue: "Fig 1. — Une création de {{artist}}.",
+                          artist: currentTrack.artist_name,
+                        })
+                      : t("editorial.lead.captionFallback", {
+                          defaultValue: "Fig 1. — Sélection du jour.",
+                        })}
+                </figcaption>
+              </figure>
             )}
             <p className="text-zinc-500 dark:text-zinc-400 mb-8 max-w-2xl">
               {t("home.banner.subtitle")}
