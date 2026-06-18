@@ -604,7 +604,7 @@
   [class*="bg-zinc-100"],
   [class*="bg-zinc-200"],
   [class*="bg-surface-light"]
-):not(header):not(footer):not([role="slider"]):not([role="slider"] *) {
+):not(header):not(footer):not([role="slider"]):not([role="slider"] *):not([role="dialog"]):not([class*="shadow-2xl"]):not([class*="shadow-xl"]):not([class*="shadow-lg"]) {
   background-color: color-mix(in srgb, var(--liq-glass-tint) 8%, transparent) !important;
   background-image: none !important;
 }
@@ -614,7 +614,7 @@
   [class*="dark:bg-zinc-800"],
   [class*="dark:bg-zinc-900"],
   [class*="dark:bg-surface-dark"]
-):not(header):not(footer):not([role="slider"]):not([role="slider"] *) {
+):not(header):not(footer):not([role="slider"]):not([role="slider"] *):not([role="dialog"]):not([class*="shadow-2xl"]):not([class*="shadow-xl"]):not([class*="shadow-lg"]) {
   background-color: color-mix(in srgb, var(--liq-glass-tint) 10%, transparent) !important;
   background-image: none !important;
 }
