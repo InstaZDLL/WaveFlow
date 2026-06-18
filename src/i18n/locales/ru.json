@@ -1271,6 +1271,18 @@
     "descending": "По убыванию",
     "filename": "Имя файла"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "Утренний выпуск",
+      "price": "Цена: включено",
+      "subtitle": "«Вся музыка, заслуживающая печати.» — Ваша ежедневная подборка, на заказ."
+    },
+    "lead": {
+      "caption": "Рис. 1. — Из «{{album}}» от {{artist}}.",
+      "captionArtistOnly": "Рис. 1. — Произведение {{artist}}.",
+      "captionFallback": "Рис. 1. — Подборка дня."
+    }
+  },
   "settings": {
     "title": "Настройки",
     "sections": {

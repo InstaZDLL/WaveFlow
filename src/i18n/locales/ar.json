@@ -1234,6 +1234,18 @@
     "descending": "تنازلي",
     "filename": "اسم الملف"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "إصدار الصباح",
+      "price": "السعر: مشمول",
+      "subtitle": "«كل الموسيقى التي تستحق الطباعة.» — اختياركم اليومي، خصيصاً لكم."
+    },
+    "lead": {
+      "caption": "شكل 1. — من «{{album}}» لـ {{artist}}.",
+      "captionArtistOnly": "شكل 1. — من إبداع {{artist}}.",
+      "captionFallback": "شكل 1. — اختيار اليوم."
+    }
+  },
   "settings": {
     "title": "الإعدادات",
     "sections": {

@@ -280,36 +280,49 @@ export function HomeView({
     await playTracks(tracks, index, { type: "library", id: null });
   };
 
+  // Extracted from nested ternaries on the JSX — each branch is
+  // a per-skin layout token (Lounge widens columns, Editorial
+  // swaps in the front-page grid + hero modifier, baseline
+  // stacks vertically). Keeping them named here makes the
+  // matrix obvious instead of buried in three 4-level deep
+  // ternaries inside the JSX className= props.
+  let containerClasses: string;
+  if (isLoungeSkin) {
+    containerClasses = "lounge-home space-y-10 animate-fade-in pb-24";
+  } else if (isEditorialSkin) {
+    containerClasses = "editorial-home space-y-12 animate-fade-in pb-28";
+  } else {
+    containerClasses = "space-y-8 animate-fade-in pb-20";
+  }
+
+  let gridClasses: string;
+  if (isLoungeSkin) {
+    gridClasses =
+      "grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem] gap-5 items-stretch";
+  } else if (isEditorialSkin) {
+    gridClasses =
+      "editorial-front-page grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] gap-8 items-stretch";
+  } else {
+    gridClasses = "space-y-8";
+  }
+
+  let bannerSkinClasses: string;
+  if (isLoungeSkin) {
+    bannerSkinClasses = "min-h-80 p-10 xl:p-12 flex items-end";
+  } else if (isEditorialSkin) {
+    bannerSkinClasses =
+      "editorial-hero min-h-[23rem] p-8 sm:p-10 xl:p-12 flex items-end";
+  } else {
+    bannerSkinClasses = "p-10";
+  }
+  const bannerClasses = `relative overflow-hidden rounded-3xl bg-linear-to-br from-emerald-50 to-white shadow-sm border border-emerald-100/50 dark:from-emerald-900/40 dark:to-zinc-800/40 dark:border-zinc-800 dark:shadow-none ${bannerSkinClasses}`;
+
   return (
-    <div
-      className={
-        isLoungeSkin
-          ? "lounge-home space-y-10 animate-fade-in pb-24"
-          : isEditorialSkin
-            ? "editorial-home space-y-12 animate-fade-in pb-28"
-            : "space-y-8 animate-fade-in pb-20"
-      }
-    >
+    <div className={containerClasses}>
       {isEditorialSkin && <EditorialMasthead />}
-      <div
-        className={
-          isLoungeSkin
-            ? "grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem] gap-5 items-stretch"
-            : isEditorialSkin
-              ? "editorial-front-page grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] gap-8 items-stretch"
-              : "space-y-8"
-        }
-      >
+      <div className={gridClasses}>
         {/* Welcome Banner */}
-        <div
-          className={`relative overflow-hidden rounded-3xl bg-linear-to-br from-emerald-50 to-white shadow-sm border border-emerald-100/50 dark:from-emerald-900/40 dark:to-zinc-800/40 dark:border-zinc-800 dark:shadow-none ${
-            isLoungeSkin
-              ? "min-h-80 p-10 xl:p-12 flex items-end"
-              : isEditorialSkin
-                ? "editorial-hero min-h-[23rem] p-8 sm:p-10 xl:p-12 flex items-end"
-                : "p-10"
-          }`}
-        >
+        <div className={bannerClasses}>
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -top-24 -left-16 w-80 h-80 rounded-full bg-emerald-300/30 dark:bg-emerald-400/25 blur-3xl"

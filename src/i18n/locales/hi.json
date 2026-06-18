@@ -1230,6 +1230,18 @@
     "descending": "अवरोही",
     "filename": "फ़ाइल का नाम"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "प्रातः संस्करण",
+      "price": "मूल्य: सम्मिलित",
+      "subtitle": "«वह सारा संगीत जो छापे जाने योग्य है।» — आपका दैनिक चयन, खास आपके लिए।"
+    },
+    "lead": {
+      "caption": "चित्र 1. — «{{album}}» से, {{artist}} द्वारा।",
+      "captionArtistOnly": "चित्र 1. — {{artist}} की रचना।",
+      "captionFallback": "चित्र 1. — आज का चयन।"
+    }
+  },
   "settings": {
     "title": "सेटिंग्स",
     "sections": {

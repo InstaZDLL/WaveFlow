@@ -1230,6 +1230,18 @@
     "descending": "Aflopend",
     "filename": "Bestandsnaam"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "Ochtendeditie",
+      "price": "Prijs: Inbegrepen",
+      "subtitle": "„Alle muziek die het verdient om gedrukt te worden.” — Jouw dagelijkse selectie, op maat."
+    },
+    "lead": {
+      "caption": "Fig 1. — Uit „{{album}}” door {{artist}}.",
+      "captionArtistOnly": "Fig 1. — Een creatie van {{artist}}.",
+      "captionFallback": "Fig 1. — De selectie van vandaag."
+    }
+  },
   "settings": {
     "title": "Instellingen",
     "sections": {

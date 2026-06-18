@@ -1230,6 +1230,18 @@
     "descending": "Absteigend",
     "filename": "Dateiname"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "Morgenausgabe",
+      "price": "Preis: Inklusive",
+      "subtitle": "„Alle Musik, die gedruckt zu werden verdient.“ — Deine tägliche Auswahl, maßgeschneidert."
+    },
+    "lead": {
+      "caption": "Abb. 1. — Aus „{{album}}“ von {{artist}}.",
+      "captionArtistOnly": "Abb. 1. — Eine Kreation von {{artist}}.",
+      "captionFallback": "Abb. 1. — Die heutige Auswahl."
+    }
+  },
   "settings": {
     "title": "Einstellungen",
     "sections": {

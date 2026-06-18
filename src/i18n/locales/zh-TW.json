@@ -1230,6 +1230,18 @@
     "recentlyAdded": "最近新增",
     "menuTitle": "排序方式"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "晨刊",
+      "price": "價格：包含",
+      "subtitle": "「值得印刷的所有音樂。」— 您每日的專屬精選。"
+    },
+    "lead": {
+      "caption": "圖 1. — 摘自《{{album}}》，{{artist}}。",
+      "captionArtistOnly": "圖 1. — {{artist}} 的作品。",
+      "captionFallback": "圖 1. — 今日精選。"
+    }
+  },
   "settings": {
     "title": "設定",
     "sections": {

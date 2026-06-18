@@ -28,10 +28,15 @@ export function EditorialMasthead() {
         now.getDate() + 1,
         0,
         0,
-        5,
+        0,
       ).getTime() - now.getTime();
     const id = window.setTimeout(() => setToday(new Date()), msToMidnight);
     return () => window.clearTimeout(id);
+    // `today` is in the dep list on purpose — when the timer
+    // fires and `setToday` swaps the state, we want this effect
+    // to re-run so the NEXT midnight gets scheduled. This is the
+    // chain that keeps the masthead date current across day
+    // boundaries without a wall-clock interval.
   }, [today]);
 
   const dateLabel = new Intl.DateTimeFormat(i18n.language, {

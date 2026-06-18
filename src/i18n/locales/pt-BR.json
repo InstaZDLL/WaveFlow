@@ -1230,6 +1230,18 @@
     "descending": "Decrescente",
     "filename": "Nome do arquivo"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "Edição da Manhã",
+      "price": "Preço: Incluído",
+      "subtitle": "«Toda a música que merece ser impressa.» — Sua seleção diária, sob medida."
+    },
+    "lead": {
+      "caption": "Fig 1. — De «{{album}}» por {{artist}}.",
+      "captionArtistOnly": "Fig 1. — Uma criação de {{artist}}.",
+      "captionFallback": "Fig 1. — A seleção do dia."
+    }
+  },
   "settings": {
     "title": "Configurações",
     "sections": {
