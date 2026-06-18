@@ -35,10 +35,15 @@
   --liq-action: #03d5ff;
   --liq-saturation: 150%;
 
-  /* Light vs dark glass reflex strength. Pulse-style
-     hard-coded values — the skin owns its material rather
-     than reading from the theme accent. */
-  --liq-reflex-light: 2;
+  /* Light vs dark glass reflex strength. Mirrors the reference
+     switcher recipe: in dark mode the WHITE inset highlights
+     drop to 0.3 (they're plenty visible on the dark bg already
+     — pushing them louder turns every nested rounded child
+     into a stark pill outline, the Settings dropdown bug) and
+     the DARK insets double to amplify edge depth. Light theme
+     overrides both back to 1 so the recipe stays balanced on
+     a cream surface. */
+  --liq-reflex-light: 0.3;
   --liq-reflex-dark: 2;
 
   /* THE glass material — eight stacked shadows producing the
