@@ -7,15 +7,10 @@
    colour temperature. Every chrome surface here is a piece of
    frosted glass tinted by ambient light.
 
-   The non-obvious choice that drives everything: chrome panels
-   use a WHITE alpha overlay, not the conventional dark-slab
-   glassmorphism. Dark overlay × warm cover = warm muted under
-   soot (subtractive — kills the very thing we want to show).
-   White overlay × warm cover = warm cover under thin fog
-   (additive — the cover's colour stays vivid, the white only
-   diffuses it like frosted glass). This is the reason previous
-   iterations always looked gray no matter how low the alpha
-   went: they were always subtracting.
+   Chrome panels use a warm burgundy glass layer. A neutral white
+   wash reads gray over pale cover art and drops text contrast; a
+   wine-tinted material keeps the skin in a red/rose lounge register
+   while preserving the album-cover ambience underneath.
 
    Selectors target STABLE LANDMARKS (`aside`, `header`,
    `footer`, `main`) plus a handful of ARIA roles
@@ -23,15 +18,49 @@
    matching — that proved fragile (would catch `bg-zinc-900`
    inside an inverted-tooltip and turn it transparent). */
 
-/* Body wrapper — make `bg-app-ambient` transparent so the
-   SkinAmbientBackdrop component bleeds through every layer
-   above it. Text reads white because the cover is always
-   dimmer than the chrome glass overlay can lift. */
-:root[data-skin="lounge"] [class*="bg-app-ambient"] {
-  background-color: transparent !important;
+:root[data-skin="lounge"] {
+  --lounge-ink: rgb(255 248 250);
+  --lounge-muted: rgb(226 205 215);
+  --lounge-subtle: rgb(197 169 184);
+  --lounge-glass: rgb(34 7 17 / 0.62);
+  --lounge-glass-soft: rgb(56 13 27 / 0.48);
+  --lounge-glass-strong: rgb(28 5 14 / 0.76);
+  --lounge-canvas: rgb(24 4 12 / 0.46);
+  --lounge-border: rgb(255 156 188 / 0.22);
+  --lounge-border-soft: rgb(255 214 225 / 0.12);
+  --lounge-accent: rgb(255 45 121);
+  --lounge-shadow: 0 22px 60px -28px rgb(8 0 5 / 0.85);
 }
+
+/* Body wrapper — tint the album ambience instead of leaving a pale
+   gray fallback to show through when the cover blur is low-saturation. */
+:root[data-skin="lounge"] [class*="bg-app-ambient"] {
+  background-color: var(--lounge-canvas) !important;
+  background-image:
+    radial-gradient(
+      circle at 18% 12%,
+      rgb(159 28 68 / 0.26),
+      transparent 34rem
+    ),
+    radial-gradient(
+      circle at 78% 38%,
+      rgb(255 45 121 / 0.12),
+      transparent 36rem
+    ),
+    linear-gradient(135deg, rgb(28 5 14 / 0.58), rgb(16 5 11 / 0.4));
+}
+:root[data-skin="lounge"],
 :root[data-skin="lounge"] body {
-  color: rgb(244 244 245);
+  color: var(--lounge-ink);
+  background-color: rgb(18 4 10);
+  background:
+    radial-gradient(circle at 12% 8%, rgb(137 24 58 / 0.34), transparent 34rem),
+    radial-gradient(
+      circle at 88% 18%,
+      rgb(255 45 121 / 0.18),
+      transparent 32rem
+    ),
+    linear-gradient(135deg, rgb(31 5 14), rgb(12 6 11) 56%, rgb(36 7 18));
 }
 
 /* AppLayout's center-column wrapper paints `dark:bg-zinc-900/50`
@@ -41,43 +70,137 @@
    by its children (TopBar `<header>` + view `<main>`) so we
    don't depend on class-name substring matching. */
 :root[data-skin="lounge"] div:has(> header):has(> main) {
+  background-color: rgb(20 5 12 / 0.18) !important;
+  background-image:
+    radial-gradient(
+      circle at 46% 22%,
+      rgb(143 32 72 / 0.22),
+      transparent 28rem
+    ),
+    linear-gradient(180deg, rgb(24 5 13 / 0.2), rgb(10 4 8 / 0.34));
+}
+
+/* Sidebar — burgundy glass with enough density to keep labels
+   readable over light or low-saturation covers. */
+:root[data-skin="lounge"] .lounge-sidebar-shell {
+  color: var(--lounge-muted);
   background-color: transparent !important;
+  background-image: none;
+  backdrop-filter: blur(34px) saturate(145%);
+  -webkit-backdrop-filter: blur(34px) saturate(145%);
+  box-shadow: 18px 0 48px -34px rgb(255 45 121 / 0.55);
 }
 
-/* Sidebar — frosted glass tinted by the room's ambient light.
-   White alpha 8% + saturate(180%) bumps the cover's hue passing
-   through. A 1px white hairline at the right edge gives the
-   "frost edge" that glass surfaces need to feel like glass and
-   not just transparency — the same trick Apple uses on
-   Vibrancy materials in macOS. */
-:root[data-skin="lounge"] aside {
-  background-color: rgb(255 255 255 / 0.08) !important;
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  border-right: 1px solid rgb(255 255 255 / 0.08);
+:root[data-skin="lounge"] .lounge-sidebar-shell > aside {
+  width: calc(100% - 1.25rem) !important;
+  height: calc(100% - 1.5rem);
+  margin: 0.75rem 0.5rem 0.75rem 0.75rem;
+  color: var(--lounge-muted);
+  background-color: rgb(34 7 17 / 0.78) !important;
+  background-image:
+    radial-gradient(
+      circle at top left,
+      rgb(255 45 121 / 0.2),
+      transparent 18rem
+    ),
+    radial-gradient(circle at 80% 90%, rgb(123 24 58 / 0.2), transparent 16rem),
+    linear-gradient(180deg, rgb(62 11 29 / 0.78), rgb(18 5 12 / 0.88));
+  border: 1px solid var(--lounge-border);
+  border-radius: 1.5rem;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 24px 70px -42px rgb(255 45 121 / 0.72);
 }
 
-/* TopBar — thinnest glass in the trio so the cover's top edge
-   reads cleanly above the search bar. No accent radial gradient
-   here: layering an accent colour (Emerald, Crimson, etc.) on
-   top of a warm cover mixes into khaki/brown. The cover is the
-   only colour source — restraint. */
+:root[data-skin="lounge"]
+  .lounge-sidebar-shell
+  > aside
+  :where(button, [class*="bg-zinc"]) {
+  background-color: rgb(24 5 13 / 0.34) !important;
+}
+
+:root[data-skin="lounge"] .lounge-sidebar-shell > aside :where(button:hover) {
+  background-color: rgb(255 45 121 / 0.13) !important;
+}
+
+:root[data-skin="lounge"]
+  .lounge-sidebar-shell
+  > aside
+  :where(button[class*="bg-emerald"], button[aria-pressed="true"]) {
+  background-color: rgb(255 45 121 / 0.18) !important;
+}
+
+:root[data-skin="lounge"] main aside {
+  color: var(--lounge-muted);
+  background-color: transparent !important;
+  background-image: none !important;
+  border-right: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+:root[data-skin="lounge"] main aside > div {
+  color: var(--lounge-subtle) !important;
+}
+
+:root[data-skin="lounge"] main aside button {
+  background-color: rgb(52 10 25 / 0.48) !important;
+  border: 1px solid var(--lounge-border-soft);
+}
+
+:root[data-skin="lounge"] main aside button:hover {
+  background-color: rgb(255 45 121 / 0.16) !important;
+}
+
+/* TopBar — denser than before so search placeholder text and
+   icon buttons do not disappear on pale artwork. */
 :root[data-skin="lounge"] header {
-  background-color: rgb(255 255 255 / 0.05) !important;
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border-bottom: 1px solid rgb(255 255 255 / 0.06);
+  height: 3.75rem;
+  margin: 0.75rem 1.5rem 0;
+  border-radius: 9999px;
+  color: var(--lounge-muted);
+  background-color: rgb(19 5 12 / 0.72) !important;
+  background-image: linear-gradient(
+    90deg,
+    rgb(71 13 31 / 0.36),
+    rgb(14 7 12 / 0.64)
+  );
+  backdrop-filter: blur(30px) saturate(135%);
+  -webkit-backdrop-filter: blur(30px) saturate(135%);
+  border-bottom: 1px solid var(--lounge-border-soft);
+  box-shadow: 0 14px 40px -30px rgb(255 45 121 / 0.55);
+}
+
+:root[data-skin="lounge"] main {
+  padding-top: 1.25rem !important;
 }
 
 /* PlayerBar — thickest glass in the trio because it carries
    the smallest text (time codes, track meta) and needs the
-   highest legibility floor. 10% white tint + a top hairline
-   so the bar feels seated against the body. */
+   highest legibility floor. */
 :root[data-skin="lounge"] footer {
-  background-color: rgb(255 255 255 / 0.10) !important;
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  border-top: 1px solid rgb(255 255 255 / 0.10) !important;
+  margin: 0 0.75rem 0.75rem;
+  border-radius: 1.25rem;
+  overflow: visible;
+  color: var(--lounge-muted);
+  background-color: var(--lounge-glass-strong) !important;
+  background-image:
+    radial-gradient(
+      circle at 12% 0%,
+      rgb(255 45 121 / 0.18),
+      transparent 18rem
+    ),
+    linear-gradient(180deg, rgb(58 12 28 / 0.54), rgb(15 4 10 / 0.72));
+  backdrop-filter: blur(38px) saturate(145%);
+  -webkit-backdrop-filter: blur(38px) saturate(145%);
+  border-top: 1px solid var(--lounge-border) !important;
+  box-shadow: 0 -22px 56px -34px rgb(255 45 121 / 0.62);
+}
+
+:root[data-skin="lounge"] footer [role="dialog"] {
+  z-index: 120;
 }
 
 /* Body cards inside main — same recipe, slightly more white
@@ -89,10 +212,285 @@
    Welcome Banner) paint on `background-image:
    linear-gradient(...)` — a different property — so they
    keep their identity untouched. */
-:root[data-skin="lounge"] main :where([class*="rounded-xl"], [class*="rounded-2xl"], [class*="rounded-3xl"]) {
-  background-color: rgb(255 255 255 / 0.07) !important;
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+:root[data-skin="lounge"]
+  main
+  :where(
+    [class*="rounded-xl"],
+    [class*="rounded-2xl"],
+    [class*="rounded-3xl"]
+  ) {
+  background-color: var(--lounge-glass-soft) !important;
+  border-color: var(--lounge-border-soft) !important;
+  box-shadow: var(--lounge-shadow);
+  backdrop-filter: blur(22px) saturate(135%);
+  -webkit-backdrop-filter: blur(22px) saturate(135%);
+}
+
+:root[data-skin="lounge"] main > div {
+  text-shadow: 0 1px 18px rgb(0 0 0 / 0.22);
+}
+
+:root[data-skin="lounge"]
+  :where(
+    h1,
+    h2,
+    h3,
+    .text-zinc-900,
+    .dark\:text-white,
+    .dark\:text-zinc-100,
+    .dark\:text-zinc-200
+  ) {
+  color: var(--lounge-ink) !important;
+}
+
+:root[data-skin="lounge"]
+  :where(
+    .text-zinc-500,
+    .dark\:text-zinc-400,
+    .placeholder-zinc-400
+  )::placeholder {
+  color: var(--lounge-subtle) !important;
+}
+
+:root[data-skin="lounge"]
+  :where(
+    .text-zinc-500,
+    .text-zinc-400,
+    .dark\:text-zinc-400,
+    .dark\:text-zinc-600
+  ) {
+  color: var(--lounge-subtle) !important;
+}
+
+:root[data-skin="lounge"]
+  :where(.text-zinc-600, .text-zinc-700, .dark\:text-zinc-300) {
+  color: var(--lounge-muted) !important;
+}
+
+:root[data-skin="lounge"] :where(button, a, input) {
+  transition:
+    background-color 0.22s ease,
+    border-color 0.22s ease,
+    color 0.22s ease,
+    transform 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+:root[data-skin="lounge"] :where(button:hover, a:hover) {
+  color: var(--lounge-ink) !important;
+}
+
+:root[data-skin="lounge"] :where(button:active, a:active) {
+  transform: translateY(1px);
+}
+
+:root[data-skin="lounge"]
+  :where(
+    input,
+    [class*="bg-white"],
+    [class*="dark:bg-zinc-800"],
+    [class*="bg-zinc-50"],
+    [class*="bg-zinc-100"]
+  ) {
+  background-color: rgb(20 6 13 / 0.56) !important;
+  border-color: var(--lounge-border-soft) !important;
+}
+
+:root[data-skin="lounge"] header input {
+  background-color: transparent !important;
+}
+
+:root[data-skin="lounge"]
+  :where([class*="hover:bg-zinc"], [class*="dark:hover:bg-zinc"]):hover {
+  background-color: rgb(255 45 121 / 0.12) !important;
+}
+
+:root[data-skin="lounge"]
+  :where(
+    [class*="bg-emerald-50"],
+    [class*="dark:bg-zinc-800"],
+    [class*="dark:bg-emerald"]
+  ) {
+  background-color: rgb(255 45 121 / 0.14) !important;
+}
+
+:root[data-skin="lounge"]
+  :where(
+    .text-emerald-400,
+    .text-emerald-500,
+    .text-emerald-600,
+    .dark\:text-emerald-400
+  ) {
+  color: rgb(0 229 177) !important;
+}
+
+:root[data-skin="lounge"]
+  :where(
+    .border-emerald-100\/50,
+    .dark\:border-zinc-800,
+    .border-zinc-100,
+    .dark\:border-zinc-700\/50
+  ) {
+  border-color: var(--lounge-border-soft) !important;
+}
+
+:root[data-skin="lounge"] main :where(section h2) {
+  border-bottom-color: var(--lounge-accent) !important;
+}
+
+:root[data-skin="lounge"]
+  :where([role="dialog"], [role="tooltip"], [class*="shadow-lg"]) {
+  background-color: rgb(24 6 14 / 0.92) !important;
+  border-color: var(--lounge-border) !important;
+}
+
+:root[data-skin="lounge"] [role="tooltip"] {
+  color: var(--lounge-ink) !important;
+  background-color: rgb(28 5 14 / 0.96) !important;
+  border: 1px solid var(--lounge-border-soft);
+  box-shadow: 0 14px 36px -20px rgb(255 45 121 / 0.58);
+}
+
+:root[data-skin="lounge"] .lounge-home {
+  max-width: 92rem;
+  margin-inline: auto;
+}
+
+:root[data-skin="lounge"] .lounge-home > .grid:first-child {
+  align-items: stretch;
+}
+
+:root[data-skin="lounge"] .lounge-home > .grid:first-child > div:first-child {
+  background-color: rgb(61 14 30 / 0.74) !important;
+  background-image:
+    radial-gradient(
+      circle at 20% 28%,
+      rgb(255 45 121 / 0.22),
+      transparent 20rem
+    ),
+    radial-gradient(
+      circle at 82% 72%,
+      rgb(168 35 79 / 0.34),
+      transparent 26rem
+    ),
+    linear-gradient(145deg, rgb(78 18 39 / 0.84), rgb(30 8 18 / 0.92)) !important;
+}
+
+:root[data-skin="lounge"]
+  .lounge-home
+  > .grid:first-child
+  > div:last-child
+  > * {
+  background-color: rgb(83 24 47 / 0.72) !important;
+  background-image: linear-gradient(
+    135deg,
+    rgb(116 38 66 / 0.52),
+    rgb(48 12 28 / 0.68)
+  );
+}
+
+:root[data-skin="lounge"] .lounge-home h1 {
+  text-wrap: balance;
+}
+
+:root[data-skin="lounge"] .lounge-mood-section {
+  position: relative;
+}
+
+:root[data-skin="lounge"] .lounge-mood-grid {
+  isolation: isolate;
+}
+
+:root[data-skin="lounge"] .lounge-mood-tile {
+  min-height: 10.75rem;
+  border: 1px solid var(--lounge-border-soft);
+  background-color: rgb(40 8 20 / 0.74) !important;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 24px 60px -34px rgb(255 45 121 / 0.72);
+}
+
+:root[data-skin="lounge"] .lounge-mood-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(
+      circle at 18% 12%,
+      rgb(255 255 255 / 0.13),
+      transparent 8rem
+    ),
+    linear-gradient(145deg, rgb(95 16 42 / 0.86), rgb(20 5 13 / 0.94));
+}
+
+:root[data-skin="lounge"] .lounge-mood-tile::after {
+  content: "";
+  position: absolute;
+  inset: auto 1rem 1rem;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 158 190 / 0.45),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+:root[data-skin="lounge"] .lounge-mood-tile:hover::after {
+  opacity: 1;
+}
+
+:root[data-skin="lounge"] .lounge-mood-focus::before {
+  background:
+    radial-gradient(
+      circle at 24% 18%,
+      rgb(175 69 255 / 0.34),
+      transparent 10rem
+    ),
+    linear-gradient(145deg, rgb(76 18 73 / 0.94), rgb(24 5 16 / 0.96));
+}
+
+:root[data-skin="lounge"] .lounge-mood-chill::before {
+  background:
+    radial-gradient(
+      circle at 20% 15%,
+      rgb(255 176 75 / 0.36),
+      transparent 9rem
+    ),
+    linear-gradient(145deg, rgb(101 35 16 / 0.9), rgb(34 6 13 / 0.96));
+}
+
+:root[data-skin="lounge"] .lounge-mood-workout::before {
+  background:
+    radial-gradient(
+      circle at 20% 15%,
+      rgb(255 45 121 / 0.38),
+      transparent 9rem
+    ),
+    linear-gradient(145deg, rgb(118 11 46 / 0.94), rgb(31 5 14 / 0.96));
+}
+
+:root[data-skin="lounge"] .lounge-mood-party::before {
+  background:
+    radial-gradient(
+      circle at 20% 15%,
+      rgb(236 72 153 / 0.36),
+      transparent 9rem
+    ),
+    linear-gradient(145deg, rgb(90 20 86 / 0.94), rgb(28 5 20 / 0.96));
+}
+
+:root[data-skin="lounge"] .lounge-mood-sleep::before {
+  background:
+    radial-gradient(
+      circle at 20% 15%,
+      rgb(56 189 248 / 0.26),
+      transparent 9rem
+    ),
+    linear-gradient(145deg, rgb(14 50 76 / 0.88), rgb(10 8 19 / 0.96));
 }
 
 /* Backdrop crossfade keyframe. */
