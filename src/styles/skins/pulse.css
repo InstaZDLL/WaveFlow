@@ -311,6 +311,27 @@
   padding: 1.5rem 2.5rem 8rem !important;
 }
 
+/* Root section spacing. HomeView's default branch uses
+   `space-y-8` (2 rem) between sections — that gap reads as
+   "breathing" when the headings are chunky `text-2xl font-bold`
+   blocks, but FLATTENS visually when the headings are the thin
+   monospace `///` eyebrows Pulse uses. Bump the gap to 4 rem
+   so each section block stands clearly apart. `!important`
+   because Tailwind's `.space-y-8 > :not([hidden]) ~
+   :not([hidden])` lands at (0,3,0) specificity — higher than
+   ours without it.
+
+   The same applies to the section's internal heading-to-content
+   gap (`mb-6` on the heading wrapper) — bump it so the eyebrow
+   doesn't sit right on top of its grid. */
+:root[data-skin="pulse"] main > div > * + * {
+  margin-top: 4rem !important;
+}
+
+:root[data-skin="pulse"] section > div:where([class*="flex"][class*="items-end"][class*="justify-between"]) {
+  margin-bottom: 2rem !important;
+}
+
 :root[data-skin="pulse"] main :where(
   [class*="rounded-xl"],
   [class*="rounded-2xl"],
