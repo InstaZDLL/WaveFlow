@@ -80,7 +80,7 @@
    real broadsheet masthead. We don't add fake date text via
    ::before — the date lives in `EditorialMasthead` so it can
    format with the user's locale via `Intl.DateTimeFormat`. */
-:root[data-skin="editorial"] header {
+:root[data-skin="editorial"] header[class*="sticky"] {
   height: 3.25rem !important;
   margin: 0;
   padding: 0 1.5rem !important;

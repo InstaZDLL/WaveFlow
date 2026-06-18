@@ -255,7 +255,7 @@
 /* ============================================================
    TopBar
    ============================================================ */
-:root[data-skin="pulse"] header {
+:root[data-skin="pulse"] header[class*="sticky"] {
   height: 3.5rem !important;
   margin: 0;
   padding: 0 1.5rem !important;

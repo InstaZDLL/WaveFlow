@@ -288,8 +288,15 @@
 
 /* ============================================================
    TopBar — pill capsule with glass nav buttons
-   ============================================================ */
-:root[data-skin="liquid"] header {
+   ============================================================
+   Scope to `header[class*="sticky"]` so we hit ONLY the
+   AppLayout TopBar (which is `sticky top-0`) and not every
+   `<header>` deeper in the tree — PlayerBarLayoutCard,
+   WrappedBannerCard and most Settings cards use `<header>`
+   for their internal title block and were getting the
+   floating-pill treatment, which read as "section title is
+   crammed against the top rounded edge". */
+:root[data-skin="liquid"] header[class*="sticky"] {
   height: 4rem !important;
   margin: 0.75rem 1rem 0;
   padding: 0 1.25rem !important;
