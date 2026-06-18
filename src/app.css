@@ -140,6 +140,7 @@
 @import "./styles/skins/editorial.css";
 @import "./styles/skins/lounge.css";
 @import "./styles/skins/pulse.css";
+@import "./styles/skins/liquid.css";
 
 
 /* Theme ambient background. AppLayout's outer wrapper uses

@@ -1678,6 +1678,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "Neon club — OLED base, colored halos around active items, mono pills, springy motion."
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Apple-style liquid glass — multi-layer translucent material, aurora backdrop, pill capsules, calm motion."
         }
       }
     },

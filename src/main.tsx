@@ -27,6 +27,14 @@ import "@fontsource/space-grotesk/400.css";
 import "@fontsource/space-grotesk/700.css";
 import "@fontsource/space-mono/400.css";
 import "@fontsource/space-mono/700.css";
+// Liquid skin — DM Sans, a humanist sans with optical sizing
+// and the geometric precision Apple Vibrancy materials pair
+// with. Four weights to cover all the chrome (light eyebrows,
+// regular body, medium nav labels, semibold display).
+import "@fontsource/dm-sans/300.css";
+import "@fontsource/dm-sans/400.css";
+import "@fontsource/dm-sans/500.css";
+import "@fontsource/dm-sans/600.css";
 import { i18nReady } from "./i18n";
 
 // The mini-player runs in a second WebviewWindow that loads the same

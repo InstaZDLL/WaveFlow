@@ -65,6 +65,7 @@ export function MoodRadioGrid() {
   const isLoungeSkin = skin.id === "lounge";
   const isEditorialSkin = skin.id === "editorial";
   const isPulseSkin = skin.id === "pulse";
+  const isLiquidSkin = skin.id === "liquid";
 
   useEffect(() => {
     let cancelled = false;
@@ -110,7 +111,9 @@ export function MoodRadioGrid() {
             ? "editorial-mood-section"
             : isPulseSkin
               ? "pulse-mood-section"
-              : undefined
+              : isLiquidSkin
+                ? "liquid-mood-section"
+                : undefined
       }
     >
       <div className="flex items-end justify-between gap-4 mb-6">
@@ -129,7 +132,9 @@ export function MoodRadioGrid() {
               ? "editorial-mood-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-0 auto-rows-[9.75rem]"
               : isPulseSkin
                 ? "pulse-mood-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-[10rem]"
-                : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
+                : isLiquidSkin
+                  ? "liquid-mood-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 auto-rows-[10rem]"
+                  : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
         }
       >
         {TILES.map(({ mood, icon: Icon, cardClass, iconClass }, index) => {
@@ -157,7 +162,9 @@ export function MoodRadioGrid() {
                     ? `editorial-mood-tile editorial-mood-${mood} flex flex-col ${editorialSpan}`
                     : isPulseSkin
                       ? `pulse-mood-tile pulse-mood-${mood} flex flex-col`
-                      : cardClass
+                      : isLiquidSkin
+                        ? `liquid-mood-tile liquid-mood-${mood} flex flex-col`
+                        : cardClass
               }`}
               aria-label={t(`home.moodRadio.${mood}.title`)}
             >
@@ -169,7 +176,9 @@ export function MoodRadioGrid() {
                       ? "editorial-mood-icon"
                       : isPulseSkin
                         ? "pulse-mood-icon"
-                        : iconClass
+                        : isLiquidSkin
+                          ? "liquid-mood-icon"
+                          : iconClass
                 }`}
               >
                 <Icon size={20} />
@@ -179,7 +188,7 @@ export function MoodRadioGrid() {
                   (isLoungeSkin || isEditorialSkin) && index === 0
                     ? "text-xl"
                     : "text-base"
-                } ${isPulseSkin ? "text-xl" : ""}`}
+                } ${isPulseSkin || isLiquidSkin ? "text-xl" : ""}`}
               >
                 {t(`home.moodRadio.${mood}.title`)}
               </div>
@@ -188,7 +197,7 @@ export function MoodRadioGrid() {
               </div>
               <div
                 className={`text-[11px] font-medium text-white/70 ${
-                  isLoungeSkin || isEditorialSkin || isPulseSkin
+                  isLoungeSkin || isEditorialSkin || isPulseSkin || isLiquidSkin
                     ? "mt-auto pt-4"
                     : "mt-3"
                 }`}

@@ -24,7 +24,7 @@
  * baseline equivalents.
  */
 
-export type SkinId = "studio" | "editorial" | "lounge" | "pulse";
+export type SkinId = "studio" | "editorial" | "lounge" | "pulse" | "liquid";
 
 export interface SkinPreset {
   /** Stable id used as the persisted value and the `data-skin` attribute. */
@@ -350,6 +350,65 @@ export const SKIN_PRESETS: SkinPreset[] = [
       springStiffness: 480,
       springDamping: 22,
       ease: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+    },
+  },
+  {
+    id: "liquid",
+    labelKey: "settings.appearance.skins.liquid.label",
+    descriptionKey: "settings.appearance.skins.liquid.description",
+    density: {
+      // Apple Vibrancy density — open, breathable. Cards have
+      // room to refract; panels don't crowd the aurora bg.
+      navRow: 1.15,
+      topBar: 1.2,
+      listRow: 1.15,
+      cardPad: 1.3,
+    },
+    radius: {
+      // Soft pill-card territory. Buttons are full pills; cards
+      // use 2rem so the glass reads as continuous surface rather
+      // than chiselled rectangles.
+      card: "2rem",
+      button: "9999px",
+      input: "9999px",
+      pill: "9999px",
+    },
+    surface: {
+      // Multi-layer inset shadows are the SIGNATURE — they're
+      // the difference between "real glass with light catching
+      // its top edge" and "translucent rectangle". The recipe
+      // here lives in `liquid.css` because it depends on CSS
+      // variables (--c-light, --c-dark, --glass-reflex-*) that
+      // shift between light + dark theme; we point to them via
+      // var() so a theme swap re-tunes the highlights.
+      shadowCard:
+        "0 4px 24px -1px rgb(0 0 0 / 0.18)",
+      shadowElevated:
+        "0 12px 36px -4px rgb(0 0 0 / 0.32)",
+      backdrop: "blur(24px) saturate(150%)",
+      divider: "rgb(255 255 255 / 0.08)",
+      grain: "",
+    },
+    typography: {
+      // DM Sans variable — opsz axis (9..40) so the same family
+      // reads as caption-precise at small sizes and display-
+      // generous at large sizes. Sans-serif throughout —
+      // Apple's design language doesn't pair with a serif here.
+      display:
+        '"DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      body:
+        '"DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      headingWeight: 600,
+      displayTracking: "-0.022em",
+    },
+    motion: {
+      // Apple-ish ease-out. Not springy — Vibrancy reads as
+      // CALM, not kinetic. Slightly long duration so panel
+      // hovers feel like settling into place.
+      duration: 0.36,
+      springStiffness: 180,
+      springDamping: 26,
+      ease: "cubic-bezier(0.22, 1, 0.36, 1)",
     },
   },
 ];

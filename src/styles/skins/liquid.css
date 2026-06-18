@@ -1,0 +1,739 @@
+/* ============================================================
+   Liquid skin — Apple Vibrancy material
+   ============================================================
+   Mental model: macOS Big Sur / iOS Control Center materials.
+   Translucent panels with REAL glass refraction — light catches
+   the top edge, a soft shadow drops on the bottom, the interior
+   carries a faint inner highlight. This is the difference
+   between glass-the-material and glass-the-flat-rectangle that
+   most "glassmorphism" attempts produce.
+
+   The signature element: every chrome panel uses the same
+   multi-layer inset box-shadow recipe (`var(--liquid-glass)`).
+   Eight stacked shadows simulate light bouncing off four edges
+   plus the inner refraction. No backdrop-filter alone can
+   replicate this — it's the highlight stack that makes it read
+   as glass.
+
+   Behind the panels, an aurora layer drifts slowly: three large
+   blurred blobs (purple, cyan, pink) with `mix-blend-mode:
+   screen` painting the ambient mood. The aurora is what gives
+   each panel its colour — the panels themselves stay near
+   neutral and let the bg colour through. */
+
+:root[data-skin="liquid"] {
+  --liq-bg: #1b1b1d;
+  --liq-bg-light: #e8e8e9;
+  --liq-glass-tint: rgb(187 187 188);
+  --liq-light: 255 255 255;
+  --liq-dark: 0 0 0;
+  --liq-ink: rgb(245 245 247);
+  --liq-muted: rgb(185 185 190);
+  --liq-faint: rgb(255 255 255 / 0.5);
+  --liq-rail: rgb(255 255 255 / 0.10);
+  --liq-rail-soft: rgb(255 255 255 / 0.06);
+  --liq-action: #03d5ff;
+  --liq-saturation: 150%;
+
+  /* Light vs dark glass reflex strength. Pulse-style
+     hard-coded values — the skin owns its material rather
+     than reading from the theme accent. */
+  --liq-reflex-light: 2;
+  --liq-reflex-dark: 2;
+
+  /* THE glass material — eight stacked shadows producing the
+     refraction. Apply as `box-shadow` on any panel. Recipe
+     adapted from https://codepen.io/jh3y/pen/glassPill — the
+     top three layers are highlights (light bouncing off the
+     glass top), the next three are interior darkening (light
+     refracting through), the bottom two are external drop
+     shadows. */
+  --liquid-glass:
+    inset 0 0 0 1px rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.1)),
+    inset 1.8px 3px 0 -2px rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.9)),
+    inset -2px -2px 0 -2px rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.8)),
+    inset -3px -8px 1px -6px rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.6)),
+    inset -0.3px -1px 4px 0 rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.12)),
+    inset -1.5px 2.5px 0 -2px rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.2)),
+    inset 0 3px 4px -2px rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.2)),
+    inset 2px -6.5px 1px -4px rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.1)),
+    0 1px 5px 0 rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.1)),
+    0 6px 16px 0 rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.08));
+
+  /* Lighter variant for inner pills / nav items where the
+     full recipe would be too loud. */
+  --liquid-glass-soft:
+    inset 0 0 0 1px rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.06)),
+    inset 1px 1.5px 0 -1px rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.5)),
+    inset -1px -1px 0 -1px rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.4)),
+    inset 0 2px 3px -2px rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.12));
+}
+
+/* Light theme glass tones. The extended `dark` variant fires
+   under all 4 dark-only skins (Pulse, Lounge) but Liquid is
+   theme-aware: it follows whichever theme (light or dark) is
+   active so the light-mode bg + light-mode panels look like
+   Big Sur's white frosted glass. */
+:root[data-skin="liquid"]:not(.dark) {
+  --liq-bg: #e8e8e9;
+  --liq-ink: rgb(28 28 30);
+  --liq-muted: rgb(102 102 106);
+  --liq-faint: rgb(60 60 67 / 0.6);
+  --liq-rail: rgb(0 0 0 / 0.08);
+  --liq-rail-soft: rgb(0 0 0 / 0.04);
+  --liq-reflex-light: 1;
+  --liq-reflex-dark: 1;
+}
+
+:root[data-skin="liquid"],
+:root[data-skin="liquid"] body {
+  color: var(--liq-ink);
+  background-color: var(--liq-bg);
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-optical-sizing: auto;
+}
+
+/* Aurora background — three colour blobs that drift slowly,
+   painting the room with ambient light. `mix-blend-mode:
+   screen` lifts the dark bg under each blob without bleaching
+   anything that overlaps two blobs. Fixed position so they
+   stick to the viewport. */
+:root[data-skin="liquid"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    radial-gradient(
+      ellipse 40rem 40rem at 10% 10%,
+      rgb(147 51 234 / 0.30),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 48rem 48rem at 85% 25%,
+      rgb(6 182 212 / 0.28),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 56rem 56rem at 30% 110%,
+      rgb(236 72 153 / 0.30),
+      transparent 60%
+    );
+  pointer-events: none;
+  animation: liquid-aurora 28s ease-in-out infinite alternate;
+}
+
+@keyframes liquid-aurora {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(2%, -1%, 0) scale(1.05); }
+  to { transform: translate3d(-2%, 1.5%, 0) scale(0.98); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-skin="liquid"] body::before {
+    animation: none;
+  }
+}
+
+/* Neutralise the center-column slab so the aurora bleeds
+   through every layer of the layout. */
+:root[data-skin="liquid"] [class*="bg-app-ambient"],
+:root[data-skin="liquid"] div:has(> header):has(> main) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* ============================================================
+   Sidebar — single floating glass slab
+   ============================================================
+   The sidebar pulls inset from the viewport edge with margin,
+   becomes a tall rounded glass panel floating over the
+   aurora. The shell carries the multi-layer glass material;
+   inner nav items get the lighter `--liquid-glass-soft`
+   recipe so they don't compete. */
+:root[data-skin="liquid"] .skin-sidebar-shell {
+  background-color: transparent !important;
+  border: 0;
+  box-shadow: none;
+  padding: 0.75rem 0 0.75rem 0.75rem;
+}
+
+:root[data-skin="liquid"] .skin-sidebar-shell > aside {
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 1.25rem 1rem 1rem;
+  color: var(--liq-ink);
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 12%, transparent) !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 1.5rem !important;
+  backdrop-filter: blur(40px) saturate(var(--liq-saturation));
+  -webkit-backdrop-filter: blur(40px) saturate(var(--liq-saturation));
+  box-shadow: var(--liquid-glass) !important;
+}
+
+/* Brand block — gradient avatar + DM Sans wordmark. */
+:root[data-skin="liquid"] .skin-sidebar-shell > aside > div:first-child {
+  padding: 0 0.5rem 1rem !important;
+}
+
+:root[data-skin="liquid"] .skin-sidebar-shell > aside > div:first-child > div:first-child {
+  margin-bottom: 1rem !important;
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  font-size: 1rem;
+}
+
+:root[data-skin="liquid"] .skin-sidebar-shell > aside > div:first-child > div:first-child > :first-child {
+  width: 2rem;
+  height: 2rem;
+  color: white;
+  background: linear-gradient(135deg, #06b6d4 0%, #a855f7 100%) !important;
+  border-radius: 9999px !important;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.3),
+    0 4px 12px -2px rgb(6 182 212 / 0.4);
+}
+
+/* Profile pill — glass capsule. */
+:root[data-skin="liquid"] .skin-sidebar-shell > aside > div:first-child button {
+  border: 0 !important;
+  border-radius: 9999px !important;
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 8%, transparent) !important;
+  box-shadow: var(--liquid-glass-soft) !important;
+  font-family: "DM Sans", system-ui, sans-serif !important;
+  transition: background-color 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root[data-skin="liquid"] .skin-sidebar-shell > aside > div:first-child button:hover {
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 18%, transparent) !important;
+}
+
+/* Section eyebrows — DM Sans uppercase, soft. */
+:root[data-skin="liquid"] .skin-sidebar-shell > aside [class*="uppercase"][class*="tracking"] {
+  color: var(--liq-faint) !important;
+  font-family: "DM Sans", system-ui, sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 0.65rem !important;
+  letter-spacing: 0.12em !important;
+  padding: 0 0.75rem !important;
+  margin: 0.5rem 0 0.5rem !important;
+}
+
+/* NavItem rows — soft pill rectangles. Active state gets the
+   liquid-glass-soft recipe + cyan ink. */
+:root[data-skin="liquid"] .skin-sidebar-shell > aside button:where(:has(> div.flex.flex-col)) {
+  padding: 0.55rem 0.85rem !important;
+  margin: 0.15rem 0 !important;
+  color: var(--liq-muted) !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-radius: 0.75rem !important;
+  font-family: "DM Sans", system-ui, sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 0.88rem !important;
+  transition: all 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root[data-skin="liquid"] .skin-sidebar-shell > aside button:where(:has(> div.flex.flex-col)):hover {
+  color: var(--liq-ink) !important;
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 6%, transparent) !important;
+}
+
+:root[data-skin="liquid"] .skin-sidebar-shell > aside button[class*="bg-emerald"],
+:root[data-skin="liquid"] .skin-sidebar-shell > aside button[aria-pressed="true"] {
+  color: var(--liq-ink) !important;
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 14%, transparent) !important;
+  box-shadow: var(--liquid-glass-soft) !important;
+}
+
+:root[data-skin="liquid"] .skin-sidebar-shell > aside button[class*="bg-emerald"] svg,
+:root[data-skin="liquid"] .skin-sidebar-shell > aside button[aria-pressed="true"] svg {
+  color: var(--liq-action);
+}
+
+/* SidebarRow + PlaylistSidebarRow — same soft hover treatment. */
+:root[data-skin="liquid"] .skin-sidebar-shell > aside button:where(:not(:has(> div.flex.flex-col))):where(:not(:first-child)) {
+  border-radius: 0.75rem !important;
+  background-color: transparent !important;
+  transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root[data-skin="liquid"] .skin-sidebar-shell > aside button:where(:not(:has(> div.flex.flex-col))):where(:not(:first-child)):hover {
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 6%, transparent) !important;
+}
+
+/* Playlist thumbnails — rounded glass cover. */
+:root[data-skin="liquid"] .skin-sidebar-shell > aside img {
+  border-radius: 0.5rem !important;
+  box-shadow: 0 2px 6px -1px rgb(0 0 0 / 0.2);
+}
+
+/* ============================================================
+   TopBar — pill capsule with glass nav buttons
+   ============================================================ */
+:root[data-skin="liquid"] header {
+  height: 4rem !important;
+  margin: 0.75rem 1rem 0;
+  padding: 0 1.25rem !important;
+  color: var(--liq-ink);
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 10%, transparent) !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 9999px !important;
+  backdrop-filter: blur(32px) saturate(var(--liq-saturation));
+  -webkit-backdrop-filter: blur(32px) saturate(var(--liq-saturation));
+  box-shadow: var(--liquid-glass) !important;
+}
+
+:root[data-skin="liquid"] header :where(button, [class*="rounded-full"]) {
+  border-radius: 9999px !important;
+  border: 0 !important;
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 8%, transparent) !important;
+  color: var(--liq-ink) !important;
+  box-shadow: var(--liquid-glass-soft) !important;
+  transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root[data-skin="liquid"] header :where(button:hover, [class*="rounded-full"]:hover) {
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 18%, transparent) !important;
+}
+
+:root[data-skin="liquid"] header [class*="rounded-full"]:has(input) {
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 6%, transparent) !important;
+}
+
+:root[data-skin="liquid"] header input {
+  color: var(--liq-ink) !important;
+  background-color: transparent !important;
+  font-family: "DM Sans", system-ui, sans-serif !important;
+}
+
+:root[data-skin="liquid"] header input::placeholder {
+  color: var(--liq-faint) !important;
+}
+
+/* ============================================================
+   Main + body cards
+   ============================================================ */
+:root[data-skin="liquid"] main {
+  position: relative;
+  z-index: 1;
+  padding: 1.5rem 2rem 7rem !important;
+}
+
+:root[data-skin="liquid"] main :where(
+  [class*="rounded-xl"],
+  [class*="rounded-2xl"],
+  [class*="rounded-3xl"]
+) {
+  border-radius: 1.75rem !important;
+  border: 0 !important;
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 10%, transparent) !important;
+  background-image: none !important;
+  backdrop-filter: blur(28px) saturate(var(--liq-saturation));
+  -webkit-backdrop-filter: blur(28px) saturate(var(--liq-saturation));
+  box-shadow: var(--liquid-glass) !important;
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root[data-skin="liquid"] main :where(
+  [class*="rounded-xl"],
+  [class*="rounded-2xl"],
+  [class*="rounded-3xl"]
+):hover {
+  transform: translateY(-2px);
+}
+
+/* ============================================================
+   Section headings — DM Sans 600, soft hairline rail
+   ============================================================ */
+:root[data-skin="liquid"] section h2 {
+  display: flex !important;
+  align-items: center;
+  gap: 1rem;
+  color: var(--liq-ink) !important;
+  font-family: "DM Sans", system-ui, sans-serif !important;
+  font-size: 1.5rem !important;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  border: 0 !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 1.5rem;
+}
+
+:root[data-skin="liquid"] main h1,
+:root[data-skin="liquid"] main h2:not(section h2) {
+  font-family: "DM Sans", system-ui, sans-serif !important;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+/* Eyebrow pill ("Ready to listen") — cyan glass capsule. */
+:root[data-skin="liquid"] main .inline-flex[class*="rounded-full"][class*="bg-emerald-50"] {
+  background-color: color-mix(in srgb, var(--liq-action) 12%, transparent) !important;
+  border: 0 !important;
+  color: var(--liq-action) !important;
+  font-family: "DM Sans", system-ui, sans-serif !important;
+  box-shadow: var(--liquid-glass-soft) !important;
+}
+
+:root[data-skin="liquid"] main .inline-flex[class*="rounded-full"][class*="bg-emerald-50"] > div {
+  background-color: var(--liq-action) !important;
+  box-shadow: 0 0 8px rgb(3 213 255 / 0.8);
+}
+
+/* Stats cards — soft glass capsules. */
+:root[data-skin="liquid"] main [class*="rounded-xl"] > div[class*="w-12"] {
+  border-radius: 9999px !important;
+  color: var(--liq-ink) !important;
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 14%, transparent) !important;
+  box-shadow: var(--liquid-glass-soft) !important;
+}
+
+/* ============================================================
+   Mood Radio — glass tiles over aurora gradient backdrops
+   ============================================================ */
+:root[data-skin="liquid"] .liquid-mood-grid {
+  gap: 1rem !important;
+}
+
+:root[data-skin="liquid"] .liquid-mood-tile {
+  position: relative;
+  padding: 1.25rem !important;
+  color: var(--liq-ink) !important;
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 8%, transparent) !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 1.5rem !important;
+  box-shadow: var(--liquid-glass) !important;
+  backdrop-filter: blur(28px) saturate(var(--liq-saturation));
+  -webkit-backdrop-filter: blur(28px) saturate(var(--liq-saturation));
+  overflow: hidden;
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Each mood gets a soft colored gradient that shows through the
+   glass — the panel itself stays neutral; the colour comes
+   from the gradient behind. */
+:root[data-skin="liquid"] .liquid-mood-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.55;
+  transition: opacity 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root[data-skin="liquid"] .liquid-mood-focus::before {
+  background: linear-gradient(135deg, rgb(99 102 241 / 0.55), rgb(37 99 235 / 0.55));
+}
+:root[data-skin="liquid"] .liquid-mood-chill::before {
+  background: linear-gradient(135deg, rgb(245 158 11 / 0.55), rgb(217 119 6 / 0.55));
+}
+:root[data-skin="liquid"] .liquid-mood-workout::before {
+  background: linear-gradient(135deg, rgb(244 63 94 / 0.55), rgb(219 39 119 / 0.55));
+}
+:root[data-skin="liquid"] .liquid-mood-party::before {
+  background: linear-gradient(135deg, rgb(168 85 247 / 0.55), rgb(217 70 239 / 0.55));
+}
+:root[data-skin="liquid"] .liquid-mood-sleep::before {
+  background: linear-gradient(135deg, rgb(8 145 178 / 0.55), rgb(30 64 175 / 0.55));
+}
+
+:root[data-skin="liquid"] .liquid-mood-tile:hover {
+  transform: translateY(-3px);
+}
+
+:root[data-skin="liquid"] .liquid-mood-tile:hover::before {
+  opacity: 0.75;
+}
+
+:root[data-skin="liquid"] .liquid-mood-icon {
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  color: white !important;
+  background-color: rgb(255 255 255 / 0.18) !important;
+  border-radius: 9999px !important;
+  box-shadow: var(--liquid-glass-soft) !important;
+  backdrop-filter: blur(8px);
+}
+
+:root[data-skin="liquid"] .liquid-mood-tile > div:nth-child(2) {
+  color: white !important;
+  font-family: "DM Sans", system-ui, sans-serif !important;
+  font-size: 1.15rem !important;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+:root[data-skin="liquid"] .liquid-mood-tile > div:nth-child(3) {
+  color: rgb(255 255 255 / 0.7) !important;
+  font-family: "DM Sans", system-ui, sans-serif !important;
+  font-size: 0.82rem;
+}
+
+:root[data-skin="liquid"] .liquid-mood-tile > div:last-child {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  color: rgb(255 255 255 / 0.6) !important;
+  font-family: "DM Sans", system-ui, sans-serif !important;
+  font-size: 0.72rem !important;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+/* ============================================================
+   PlayerBar — floating glass slab
+   ============================================================ */
+:root[data-skin="liquid"] footer {
+  margin: 0 1rem 1rem;
+  padding: 0.5rem 1rem;
+  color: var(--liq-ink);
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 12%, transparent) !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 1.75rem !important;
+  backdrop-filter: blur(40px) saturate(var(--liq-saturation));
+  -webkit-backdrop-filter: blur(40px) saturate(var(--liq-saturation));
+  box-shadow: var(--liquid-glass) !important;
+}
+
+:root[data-skin="liquid"] footer :where(button) {
+  border-radius: 9999px !important;
+  border: 0 !important;
+  background-color: transparent !important;
+  color: var(--liq-ink) !important;
+  box-shadow: none !important;
+  transition: all 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root[data-skin="liquid"] footer :where(button:hover) {
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 14%, transparent) !important;
+  transform: scale(1.08);
+}
+
+/* The play button — white glass circle. */
+:root[data-skin="liquid"] footer button:where([class*="bg-emerald-500"], [class*="bg-emerald-600"]) {
+  background-color: rgb(255 255 255 / 0.95) !important;
+  color: var(--liq-bg) !important;
+  box-shadow: var(--liquid-glass-soft), 0 4px 16px -2px rgb(0 0 0 / 0.3) !important;
+}
+
+:root[data-skin="liquid"] footer button:where([class*="bg-emerald-500"], [class*="bg-emerald-600"]):hover {
+  background-color: white !important;
+  transform: scale(1.08);
+}
+
+/* Cover thumbnail — soft rounded card. */
+:root[data-skin="liquid"] footer img {
+  border-radius: 0.75rem !important;
+  box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.3);
+}
+
+/* Progress slider — thin glass line with cyan→purple fill. */
+:root[data-skin="liquid"] footer [role="slider"] {
+  height: 6px !important;
+  background-color: rgb(255 255 255 / 0.12) !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 9999px !important;
+  overflow: visible;
+  transition: height 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root[data-skin="liquid"] footer [role="slider"]:hover {
+  height: 8px !important;
+}
+
+:root[data-skin="liquid"] footer [role="slider"] > div {
+  background-image: linear-gradient(90deg, var(--liq-action), #a855f7) !important;
+  background-color: transparent !important;
+  border-radius: 9999px !important;
+  height: 100% !important;
+  box-shadow: 0 0 8px rgb(3 213 255 / 0.4);
+}
+
+/* Time codes + audio meta. */
+:root[data-skin="liquid"] footer [class*="tabular"] {
+  font-family: "DM Sans", system-ui, sans-serif !important;
+  color: var(--liq-muted) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hi-Res badge — glass capsule. */
+:root[data-skin="liquid"] footer [class*="text-[10px]"][class*="uppercase"] {
+  padding: 0.2rem 0.55rem !important;
+  border: 0 !important;
+  border-radius: 9999px !important;
+  background-color: color-mix(in srgb, var(--liq-action) 18%, transparent) !important;
+  color: var(--liq-action) !important;
+  font-family: "DM Sans", system-ui, sans-serif !important;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  box-shadow: var(--liquid-glass-soft) !important;
+}
+
+/* AudioQualityFooter — keep but match the glass aesthetic. */
+:root[data-skin="liquid"] footer :where([class*="h-5"][class*="border-t"]) {
+  background-color: transparent !important;
+  background-image: none !important;
+  border-top: 1px solid var(--liq-rail) !important;
+  color: var(--liq-faint) !important;
+  font-family: "DM Sans", system-ui, sans-serif !important;
+}
+
+/* ============================================================
+   Surface neutralization — paint utility bgs as glass
+   ============================================================ */
+:root[data-skin="liquid"] :where(
+  [class*="bg-white"],
+  [class*="bg-zinc-50"],
+  [class*="bg-zinc-100"],
+  [class*="bg-zinc-200"],
+  [class*="bg-surface-light"]
+):not(header):not(footer):not([role="slider"]):not([role="slider"] *) {
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 8%, transparent) !important;
+  background-image: none !important;
+}
+
+:root[data-skin="liquid"] :where(
+  [class*="dark:bg-zinc-700"],
+  [class*="dark:bg-zinc-800"],
+  [class*="dark:bg-zinc-900"],
+  [class*="dark:bg-surface-dark"]
+):not(header):not(footer):not([role="slider"]):not([role="slider"] *) {
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 10%, transparent) !important;
+  background-image: none !important;
+}
+
+/* Sticky day-headers (HistoryView). */
+:root[data-skin="liquid"] [class*="sticky"]:where(
+  [class*="bg-white"],
+  [class*="bg-zinc"],
+  [class*="bg-surface"],
+  [class*="dark:bg-"]
+) {
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 16%, transparent) !important;
+  backdrop-filter: blur(20px) saturate(var(--liq-saturation));
+  -webkit-backdrop-filter: blur(20px) saturate(var(--liq-saturation));
+  border-bottom: 1px solid var(--liq-rail) !important;
+}
+
+/* Hover rows. */
+:root[data-skin="liquid"] :where(
+  [class*="hover:bg-zinc-50"],
+  [class*="hover:bg-zinc-100"],
+  [class*="dark:hover:bg-zinc-700"],
+  [class*="dark:hover:bg-zinc-800"]
+):hover {
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 12%, transparent) !important;
+}
+
+/* Active row state. */
+:root[data-skin="liquid"] :where([class*="bg-emerald-50"]):not(.liquid-mood-tile *) {
+  background-color: color-mix(in srgb, var(--liq-action) 12%, transparent) !important;
+  color: var(--liq-action) !important;
+}
+
+/* Inputs — pill capsules. */
+:root[data-skin="liquid"] :where(input, textarea, select):not(header input) {
+  color: var(--liq-ink);
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 8%, transparent) !important;
+  border: 0 !important;
+  border-radius: 9999px !important;
+  box-shadow: var(--liquid-glass-soft) !important;
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+
+:root[data-skin="liquid"] :where(input, textarea, select):not(header input):focus {
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 14%, transparent) !important;
+  outline: 0 !important;
+}
+
+/* Modals + tooltips. */
+:root[data-skin="liquid"] :where([role="dialog"], [role="tooltip"], [class*="shadow-lg"]) {
+  color: var(--liq-ink);
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 18%, transparent) !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 1.5rem !important;
+  backdrop-filter: blur(40px) saturate(var(--liq-saturation));
+  -webkit-backdrop-filter: blur(40px) saturate(var(--liq-saturation));
+  box-shadow: var(--liquid-glass) !important;
+}
+
+/* Type colour overrides. */
+:root[data-skin="liquid"] :where(
+  .text-zinc-900,
+  .text-zinc-800,
+  .dark\:text-white,
+  .dark\:text-zinc-100,
+  .dark\:text-zinc-200
+) {
+  color: var(--liq-ink) !important;
+}
+
+:root[data-skin="liquid"] :where(
+  .text-zinc-700,
+  .text-zinc-600,
+  .dark\:text-zinc-300
+) {
+  color: var(--liq-muted) !important;
+}
+
+:root[data-skin="liquid"] :where(
+  .text-zinc-500,
+  .text-zinc-400,
+  .dark\:text-zinc-400,
+  .dark\:text-zinc-600
+) {
+  color: var(--liq-faint) !important;
+}
+
+:root[data-skin="liquid"] :where(
+  .text-emerald-400,
+  .text-emerald-500,
+  .text-emerald-600,
+  .dark\:text-emerald-400
+) {
+  color: var(--liq-action) !important;
+}
+
+/* ============================================================
+   Scrollbar — thin glass thumb
+   ============================================================ */
+:root[data-skin="liquid"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+:root[data-skin="liquid"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:root[data-skin="liquid"] ::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 24%, transparent);
+  border-radius: 9999px;
+  transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root[data-skin="liquid"] ::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 40%, transparent);
+}
+
+/* Selection. */
+:root[data-skin="liquid"] ::selection {
+  background-color: color-mix(in srgb, var(--liq-action) 32%, transparent);
+  color: var(--liq-ink);
+}
+
+/* ============================================================
+   Root section spacing — apply same rhythm fix as Pulse since
+   default `space-y-8` reads tight under glass eyebrows.
+   ============================================================ */
+:root[data-skin="liquid"] main > div > * + * {
+  margin-top: 2.5rem !important;
+}
