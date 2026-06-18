@@ -663,8 +663,21 @@
   outline: 0 !important;
 }
 
-/* Modals + tooltips. */
-:root[data-skin="liquid"] :where([role="dialog"], [role="tooltip"], [class*="shadow-lg"]) {
+/* Modals + tooltips + popovers + dropdowns. Substring matching
+   on three shadow utilities to cover every Tailwind escape
+   hatch the codebase uses (`shadow-lg` for popovers, `shadow-xl`
+   for some menus, `shadow-2xl` for big modals like
+   SmartPlaylistEditor). Without all three, the modal we miss
+   keeps its raw `bg-white dark:bg-surface-dark-elevated` and
+   reads as a flat dark slab instead of glass — every internal
+   text + tinted button then fights the wrong bg. */
+:root[data-skin="liquid"] :where(
+  [role="dialog"],
+  [role="tooltip"],
+  [class*="shadow-lg"],
+  [class*="shadow-xl"],
+  [class*="shadow-2xl"]
+) {
   color: var(--liq-ink);
   background-color: color-mix(in srgb, var(--liq-glass-tint) 18%, transparent) !important;
   background-image: none !important;
