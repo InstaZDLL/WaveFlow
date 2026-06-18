@@ -1,7 +1,7 @@
 # RFC-004 — Community-DB: opt-in shared metadata for tracks, artists, albums
 
 - **Status**: Draft
-- **Date**: 2026-06-07
+- **Date**: 2026-06-07 (last revised 2026-06-19 — open questions §10 locked, §5.7–§5.11 added)
 - **Authors**: @InstaZDLL
 - **Supersedes**: —
 - **Depends on**: [RFC-001](RFC-001-waveflow-server.md) — Community-DB runs on `waveflow-server` and reuses its auth, sync, and apply pipelines.
@@ -154,6 +154,44 @@ The combination "anonymous reads + JWT-authed writes + vote-moderated" is LRCLIB
 - **Rate-limit per user.** 30 contributions / hour / user across all `payload_kind`. Tracked at the server, not at the client. A botnet would have to provision N Better Auth accounts to scale past it, which is real friction.
 - **Same-content collapse.** Two contributions with the same `entity_key` + `payload_kind` + payload hash collapse to one row at insert time (`ON CONFLICT DO NOTHING`). Stops "submit the same thing 100 times to game vote count" — we vote on rows, not submissions.
 - **Mirror reputation, not user reputation.** When a server pulls from a mirror that turns out to be poisoned, the operator can blocklist the mirror. We don't try to reputation-rate individual contributors. Self-host means the operator decides who they trust.
+
+### 5.7 Language fallback for localised payloads
+
+`lyrics_plain`, `lyrics_synced`, and `artist_bio` carry an ISO-639-1 `language` field. The lookup endpoint applies a **language-then-score** ordering:
+
+1. Caller passes `?language=es` on `/lookup`.
+2. Server returns the highest-voted contribution **whose `language` matches**, then fills the remaining `limit` slots with the highest-voted contributions in any other language.
+3. Caller omitting `language` gets pure score ordering (no language filtering).
+
+The desktop reads `i18n.resolvedLanguage` at lookup time and passes it through. A French user pulling a Korean track gets Korean lyrics (no FR version exists) but a Korean user pulling the same track sees the KR version first — without the server having to know either user.
+
+This deliberately does **not** fall back through a language graph (`pt-BR → pt → es → empty`); the score-weighted "first non-match wins" ordering is simpler, doesn't require maintaining a language affinity table, and matches what LRCLIB does today.
+
+### 5.8 Audio-features validation
+
+The `audio_features` payload is **numeric only** — no time-domain summary, no PCM excerpt, no fingerprint. A client without local analysis cannot independently verify a contributed BPM is correct. v1 trusts the score-weighted majority: a single bad-BPM contribution gets out-voted by clients whose analyser disagrees, and the higher-scored one wins lookup. Publishing a per-track time-domain summary (chromaprint-style or aggregate spectral envelope) for cross-validation is deferred to a follow-up RFC if score-only proves insufficient in the wild.
+
+### 5.9 Federation read-merge (single-mirror in v1)
+
+v1 ships single-mirror — operators set one `community.mirror_url` and that's it. The federation question ("two mirrors disagree on `(entity_key, payload_hash)` score — whose tally wins?") is locked to a follow-up RFC because the right answer depends on operational data we don't have yet.
+
+The current best-guess design — for the follow-up RFC to confirm or revise — is: a local server treats every upstream mirror as a separate source. Pulled contributions are inserted with `source_mirror` preserved; collisions on `(entity_key, payload_kind, payload_hash)` collapse to the local row but the local `score` is the **sum of every mirror's reported score plus local votes**. A misbehaving mirror gets blocklisted by the operator; rebuilding the local score after a blocklist replays the trusted-mirror tallies.
+
+This means v1 schema does NOT need a `mirror_score` table — the simple sum is recoverable from `source_mirror` rows because every contribution that came through pull carries its origin. The follow-up RFC will revisit whether per-mirror score history needs to be denormalised.
+
+### 5.10 Mirror discovery (out of scope)
+
+Operators set `community.mirror_url` by hand. No central registry, no `/.well-known/waveflow-mirrors`, no DNS SRV records. The friction is intentional — a curated list is a single point of trust we don't want to maintain, and DNS-based discovery would let a network operator silently redirect traffic. A future "known-good mirrors" file shipped with the desktop UI (just a static suggestion list, no auto-resolve) is the most we'd ship without a real proposal.
+
+### 5.11 GDPR right-to-be-forgotten
+
+When a user account is deleted (Better Auth flow on the upstream):
+
+- `user_id` on every `community_contribution` they authored becomes `NULL` (`ON DELETE SET NULL` in the schema). The contribution itself stays live — it was submitted **as a community contribution**, not as personal data.
+- `community_vote` rows authored by the deleted user are dropped (`ON DELETE CASCADE`), and the `community_vote_score_sync` trigger decrements the affected contributions' scores back down accordingly.
+- A user who wants a SPECIFIC contribution they authored taken down (not the account, just one row) flags it through `POST /api/v1/community/moderate` with `reason = 'self_request'`; the moderator (server operator) actions it. This stays a human-in-the-loop path on purpose — automating self-takedowns would invite "submit deliberately bad data, then delete my account to wipe the proof" abuse.
+
+The privacy boundary (§9) holds either way: the contribution stream never carried listener identity, so unattributing a contribution doesn't unmask anything that was previously linked to the user.
 
 ## 6. Schema
 
@@ -374,11 +412,13 @@ For users running a server alone (LAN, family, school), this is a non-issue — 
 
 ## 10. Open questions
 
-- **Localisation of contributions.** A `lyrics_plain` row carries a `language` field, but how does the client filter "give me the Spanish version of this lyric, not the auto-translated English one"? Initial answer: the highest-voted contribution per `(entity_key, payload_kind, language)` wins; a missing language returns the highest-voted across all languages. Wire this up only when there's a real Spanish ↔ English conflict in the wild; until then, language is an advisory field.
-- **Audio features without local re-analysis.** A user with the existing analyser disabled can't pull `audio_features` from community DB and then re-derive BPM at playback time — the BPM is just a number, not the time-domain features. Open question: do we ALSO publish a per-track time-domain summary that lets a remote client validate the contribution? Probably no in v1, but worth thinking through before audio_features ships.
-- **Federation read-merge.** Two mirrors disagree on the score of the same `entity_key + payload_hash`. Whose wins on a pull? Probably "the local server treats every mirror as a separate source — the contribution is duplicated, scores are summed locally, the original mirror's ID is preserved in `source_mirror`". To be locked in a follow-up RFC.
-- **Mirror discovery.** Today the operator sets `community.mirror_url` by hand. A future "list of known mirrors" file pulled from a well-known location would lower the friction — but introduces a centralised list nobody wants to maintain. Out of v1 scope.
-- **GDPR right-to-be-forgotten.** A user who contributed and later deletes their account: do we strip `user_id` (`ON DELETE SET NULL` is already in the schema, so yes) AND invalidate every contribution they authored? Probably keep their contributions live but unattributed — they were submitted as "community" data, not personal data. To confirm with the project's privacy lead before 1.6.0.
+All five v1 open questions were locked during the 2026-06-19 revision pass — see §5.7 through §5.11. What remains genuinely open and gated to a follow-up RFC:
+
+- **Federation merge logic** (multi-mirror pull, per-mirror score history). v1 ships single-mirror. The follow-up RFC owns: read-merge ordering across N mirrors, blocklist propagation, whether `community_contribution.score` needs to denormalise per-mirror history, conflict resolution UI in the desktop client.
+- **Audio-features cross-validation.** If `audio_features` proves abuse-prone in production (score gaming, region-specific tempo conventions), the follow-up RFC may add a chromaprint-style validation payload. Held until production data justifies the schema cost.
+- **Known-good mirror suggestion list.** Optional curated suggestions in the desktop's Settings → Community panel (no auto-resolve, just human-readable URLs). Held until 2.d federation lands — there's no point suggesting mirrors before federation works.
+
+The five locked decisions stay in §5 (as §5.7–§5.11) so future readers see them as **decisions**, not lingering ambiguity.
 
 ## 11. Implementation phasing
 
@@ -399,9 +439,11 @@ Federation across multiple mirrors (the merge logic) gets its own RFC once 2.d l
 
 This RFC is "Accepted" when:
 
-- The schema in §6 passes a SQL review (cardinality, index coverage, FK behaviour) and the payload-kind JSON shapes in §5.4 round-trip cleanly through serde + a hand-rolled wire format test.
-- The API endpoints in §7 have been sketched as OpenAPI specs in `waveflow-server` (no implementation, just the spec). The spec compiles and lints clean.
-- The privacy boundary in §9 has been reviewed by at least one external contributor flagged as @InstaZDLL's reviewer-of-record for community features.
-- A short companion `docs/features/community.md` page has been opened against this RFC (placeholder content — fills in during Phase 2.a).
+- [x] **Open questions §10 locked** (2026-06-19). Five v1 ambiguities resolved into §5.7–§5.11; remaining items are explicitly punted to a follow-up RFC.
+- [x] **Companion `docs/features/community.md` placeholder opened** (2026-06-19). Fills in during Phase 2.a with the actual user-facing copy + Settings → Community walkthrough.
+- [ ] **SQL review on §6.** Cardinality, index coverage, FK behaviour, the `update_contribution_score()` trigger semantics under archival, `community_vote_archive` shape. Reviewer-of-record: TBD.
+- [ ] **OpenAPI sketches** for the four endpoints in §7 land in `waveflow-server` under `crates/server/openapi/community.yaml` (no implementation — just the spec, must compile + lint clean against the existing utoipa setup).
+- [ ] **Payload-kind round-trip test.** A serde + canonical-JSON test fixture exercising each of the five `payload_kind` shapes in §5.4 — including the BLAKE3 `payload_hash` recipe — lands in `waveflow-core` as a hand-rolled wire-format test so the on-the-wire shape is locked before any server code consumes it.
+- [ ] **Privacy review on §9** by at least one external contributor flagged as @InstaZDLL's reviewer-of-record for community features.
 
-Until then the status stays `Draft` and the implementation milestone stays unopened.
+Two of six met. Status stays `Draft` and the Phase 2 milestone stays unopened until the four code/review boxes flip.
