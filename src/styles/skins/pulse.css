@@ -670,16 +670,19 @@
   box-shadow: 0 0 12px -4px rgb(var(--pulse-cyan-rgb) / 0.4);
 }
 
-/* AudioQualityFooter as thin OLED colophon strip below the
-   pill. */
+/* AudioQualityFooter — hidden under Pulse. It's a flat 20-px
+   strip that lives as the last child of `<footer>`, but the
+   pill capsule shape (border-radius: 9999px) needs a clean
+   bottom curve. The strip's bg gets caught by the global
+   surface neutralization rule below (paints opaque
+   `var(--pulse-surface)`) which then masks the pill's rounded
+   bottom edge — capsule turns into a half-rounded slab.
+   Hiding it keeps the pill clean; the same sample-rate /
+   bitrate / file-size info is still reachable on hover from
+   the Hi-Res chip in the player bar, which opens the
+   AudioPipelinePopover with the full breakdown. */
 :root[data-skin="pulse"] footer :where([class*="h-5"][class*="border-t"]) {
-  background-color: transparent !important;
-  background-image: none !important;
-  border-top: 1px solid var(--pulse-rail) !important;
-  color: var(--pulse-faint) !important;
-  font-family: "Space Mono", ui-monospace, monospace !important;
-  font-size: 0.6rem;
-  letter-spacing: 0.08em;
+  display: none !important;
 }
 
 /* ============================================================
