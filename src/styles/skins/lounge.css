@@ -52,7 +52,12 @@
 :root[data-skin="lounge"],
 :root[data-skin="lounge"] body {
   color: var(--lounge-ink);
-  background-color: rgb(18 4 10);
+  /* No separate `background-color` fallback — the linear-gradient
+     stops below are all solid (`rgb(31 5 14)` → `rgb(12 6 11)` →
+     `rgb(36 7 18)`), and `background:` shorthand would zero-out a
+     prior `background-color` declaration anyway. Tauri WebView2/
+     WKWebView ship gradients support out of the box, so no IE
+     fallback to worry about. */
   background:
     radial-gradient(circle at 12% 8%, rgb(137 24 58 / 0.34), transparent 34rem),
     radial-gradient(
@@ -236,6 +241,7 @@
     h2,
     h3,
     .text-zinc-900,
+    .text-zinc-800,
     .dark\:text-white,
     .dark\:text-zinc-100,
     .dark\:text-zinc-200

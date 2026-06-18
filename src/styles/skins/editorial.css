@@ -403,7 +403,10 @@
   margin-bottom: 1rem;
   padding: 0 !important;
   color: var(--ed-press) !important;
-  background-color: transparent !important;
+  /* `background: transparent` shorthand is enough — it resets
+     background-color + background-image + every other bg sub-
+     property in one go, so a separate `background-color:
+     transparent` was redundant. */
   background: transparent !important;
   border: 0 !important;
   border-radius: 0 !important;

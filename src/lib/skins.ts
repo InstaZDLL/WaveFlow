@@ -334,9 +334,13 @@ export const SKIN_PRESETS: SkinPreset[] = [
     typography: {
       // Space Grotesk for the body / display — a geometric sans
       // with mechanical character ticks that read as "tech /
-      // club". Space Mono for the utility chrome (eyebrows, nav
-      // pills, time codes, `///` markers) — the monospaced
-      // counterpart from the same designer. Both bundled via
+      // club". Space Mono ALSO ships in main.tsx for the utility
+      // chrome (eyebrows, nav pills, time codes, `///` markers),
+      // but it is NOT exposed via this preset — pulse.css
+      // references `"Space Mono"` directly in its selectors. The
+      // preset only carries the two roles the SkinPreset shape
+      // declares (display + body), so the mono family lives at
+      // the CSS layer where it's used. Both families bundled via
       // `@fontsource/*` in main.tsx.
       display:
         '"Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',

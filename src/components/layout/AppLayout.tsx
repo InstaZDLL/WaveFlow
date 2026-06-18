@@ -561,7 +561,14 @@ export function AppLayout() {
               cascade needed). `aria-hidden` is set in parallel for
               older screen-reader engines that don't follow `inert`
               yet. React 19 supports `inert` as a boolean prop. */}
-            <motion.aside
+            {/* Was `<motion.aside>` — collapsed to `<motion.div>`
+                because the inner `<Sidebar>` already renders its own
+                `<aside>` landmark; nesting two created an invalid
+                duplicate-landmark for screen-reader landmark
+                navigation. The wrapper's only job is the
+                width-animation envelope, no landmark semantics
+                required. */}
+            <motion.div
               initial={false}
               animate={{ width: isSidebarHidden ? 0 : 256 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
@@ -577,7 +584,7 @@ export function AppLayout() {
                 activePlaylistId={activePlaylistId}
                 navigateToPlaylist={navigateToPlaylist}
               />
-            </motion.aside>
+            </motion.div>
 
             {/* Center Content. `min-w-0` is required so a long playlist
               title or wide table doesn't blow the flex item's intrinsic
