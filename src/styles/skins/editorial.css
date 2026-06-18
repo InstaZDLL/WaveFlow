@@ -837,6 +837,78 @@
 }
 
 /* ============================================================
+   Global surface neutralization
+   ============================================================
+   Tailwind bg utilities that paint stark-white or neutral-dark
+   sneak past every other rule because they don't go through
+   `rounded-xl` and don't live inside `main`. Catches:
+   - HistoryView day-section sticky headers (`bg-white dark:bg-
+     surface-dark`)
+   - Dropdown / popover bodies that aren't `shadow-lg`
+   - Modal preview cards (`bg-white border-zinc-200`)
+   - Onboarding + Settings sub-cards (`bg-zinc-50`)
+   `[class*="bg-X"]` is intentionally substring-broad — the
+   explicit `editorial-*` rules above carry `!important` so
+   they keep winning on their own elements. */
+:root[data-skin="editorial"] :where(
+  [class*="bg-white"],
+  [class*="bg-zinc-50"],
+  [class*="bg-zinc-100"],
+  [class*="bg-zinc-200"],
+  [class*="bg-surface-light"]
+):not(header):not(header *):not(footer):not(footer *):not([role="slider"]):not([role="slider"] *) {
+  background-color: var(--ed-paper) !important;
+  background-image: var(--ed-grain) !important;
+}
+
+:root[data-skin="editorial"] :where(
+  [class*="dark:bg-zinc-700"],
+  [class*="dark:bg-zinc-800"],
+  [class*="dark:bg-zinc-900"],
+  [class*="dark:bg-surface-dark"]
+):not(header):not(header *):not(footer):not(footer *):not([role="slider"]):not([role="slider"] *) {
+  background-color: var(--ed-paper) !important;
+  background-image: var(--ed-grain) !important;
+}
+
+/* Sticky day-section headers: paint warm paper + a 1-px ink
+   rule underneath so they read as section masthead, not "white
+   bar over content". `[class*="sticky"]` catches the HistoryView
+   header (and any future sticky chrome) without us hand-listing
+   every component. */
+:root[data-skin="editorial"] [class*="sticky"]:where(
+  [class*="bg-white"],
+  [class*="bg-zinc"],
+  [class*="bg-surface"],
+  [class*="dark:bg-"]
+) {
+  background-color: var(--ed-paper-warm) !important;
+  background-image: var(--ed-grain) !important;
+  border-bottom: 1px solid var(--ed-ink) !important;
+}
+
+/* Hover rows in menus + lists: stop flashing white-on-cream or
+   dark-on-cream. Soft press-tint matches the rest of the skin
+   and reads as "ink starts to settle here". */
+:root[data-skin="editorial"] :where(
+  [class*="hover:bg-zinc-50"],
+  [class*="hover:bg-zinc-100"],
+  [class*="dark:hover:bg-zinc-700"],
+  [class*="dark:hover:bg-zinc-800"]
+):hover {
+  color: var(--ed-ink) !important;
+  background-color: var(--ed-press-soft) !important;
+}
+
+/* Active row state on dropdown items + nav: solid ink press,
+   not the `bg-emerald-50` light tint that the rest of WaveFlow
+   uses. */
+:root[data-skin="editorial"] :where([class*="bg-emerald-50"]):not(.editorial-mood-tile *) {
+  background-color: var(--ed-press-soft) !important;
+  color: var(--ed-press) !important;
+}
+
+/* ============================================================
    Page-load: ink-bloom reveal on the front page
    ============================================================
    Subtle: paper rises 6px and fades in over 360 ms. Print
