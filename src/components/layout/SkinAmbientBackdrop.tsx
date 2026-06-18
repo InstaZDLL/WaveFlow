@@ -62,8 +62,8 @@ export function SkinAmbientBackdrop() {
             // on the current track, etc.) reads as the
             // ambient mood. Earlier `brightness(0.6)` washed
             // every cover out to dim gray.
-            filter: "blur(56px) saturate(240%) brightness(1.05)",
-            transform: "scale(1.25)",
+            filter: "blur(72px) saturate(320%) brightness(1.2)",
+            transform: "scale(1.6)",
             // Skip the cross-fade keyframe when the user opted
             // out of motion — the cover swap becomes an instant
             // cut, which is the conventional reduced-motion
