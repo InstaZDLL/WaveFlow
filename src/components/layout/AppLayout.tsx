@@ -563,7 +563,7 @@ export function AppLayout() {
               initial={false}
               animate={{ width: isSidebarHidden ? 0 : 256 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              className="lounge-sidebar-shell shrink-0 overflow-hidden"
+              className="skin-sidebar-shell lounge-sidebar-shell shrink-0 overflow-hidden"
               aria-hidden={isSidebarHidden}
               inert={isSidebarHidden}
             >

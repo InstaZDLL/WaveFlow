@@ -205,21 +205,22 @@ export const SKIN_PRESETS: SkinPreset[] = [
         "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.42 0 0 0 0 0.36 0 0 0 0.08 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>\")",
     },
     typography: {
-      // Serif display family — uses the OS-shipped serif stack
-      // (Georgia / Times) so we don't have to ship a webfont
-      // and incur a FOIT in the dev cycle. Future PR can wire
-      // a self-hosted Source Serif Pro / Spectral / Crimson
-      // for a more curated face without changing this
-      // skin shape.
+      // Playfair Display: a high-contrast didone with theatrical
+      // serifs — the canonical broadsheet masthead face. Lora as
+      // the body face: a robust serif with strong italic stroke
+      // for pull-quotes and figure captions. Both are loaded via
+      // a `@import` at the top of `editorial.css` so the FOIT is
+      // scoped to this skin (other skins don't pay).
       display:
-        '"Source Serif Pro", "Spectral", "Crimson Pro", Georgia, "Times New Roman", "Times", serif',
+        '"Playfair Display", "Source Serif Pro", Georgia, "Times New Roman", serif',
       body:
-        '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-      // Editorial wants the headings to whisper, not shout —
-      // light weight + wide tracking gives a magazine masthead
-      // feel rather than a UI button stack.
-      headingWeight: 400,
-      displayTracking: "0.005em",
+        '"Lora", Georgia, "Times New Roman", serif',
+      // Editorial mastheads carry weight in the GLYPH design,
+      // not in the font-weight token. Playfair at 900 reads as
+      // a thick wood-type poster headline, which is the look we
+      // want for "WAVEFLOW GAZETTE".
+      headingWeight: 900,
+      displayTracking: "-0.02em",
     },
     motion: {
       // Paper is slow. Reading is unhurried. A 300 ms ease-out

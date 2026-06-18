@@ -1230,6 +1230,13 @@
     "descending": "Décroissant",
     "filename": "Nom de fichier"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "Édition du Matin",
+      "price": "Prix : Inclus",
+      "subtitle": "« Toute la musique qui mérite d'être imprimée » — Votre sélection quotidienne, sur mesure."
+    }
+  },
   "settings": {
     "title": "Paramètres",
     "sections": {

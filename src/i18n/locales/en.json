@@ -1230,6 +1230,13 @@
     "descending": "Descending",
     "filename": "Filename"
   },
+  "editorial": {
+    "masthead": {
+      "edition": "Morning Edition",
+      "price": "Price: Included",
+      "subtitle": "\"All the music that deserves to be printed.\" — Your daily selection, made for you."
+    }
+  },
   "settings": {
     "title": "Settings",
     "sections": {

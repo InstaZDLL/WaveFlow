@@ -37,6 +37,7 @@ import {
 } from "../../lib/tauri/browse";
 import type { Track } from "../../lib/tauri/track";
 import { MoodRadioGrid } from "./home/MoodRadioGrid";
+import { EditorialMasthead } from "./home/EditorialMasthead";
 
 interface HomeViewProps {
   onNavigate: (view: ViewId) => void;
@@ -174,6 +175,7 @@ export function HomeView({
   );
   const hasLibrary = libraries.length > 0;
   const isLoungeSkin = skin.id === "lounge";
+  const isEditorialSkin = skin.id === "editorial";
 
   // Wrapped years — refresh whenever the profile changes; the list is
   // cheap (one DISTINCT over play_event) so we don't bother caching
@@ -283,20 +285,29 @@ export function HomeView({
       className={
         isLoungeSkin
           ? "lounge-home space-y-10 animate-fade-in pb-24"
-          : "space-y-8 animate-fade-in pb-20"
+          : isEditorialSkin
+            ? "editorial-home space-y-12 animate-fade-in pb-28"
+            : "space-y-8 animate-fade-in pb-20"
       }
     >
+      {isEditorialSkin && <EditorialMasthead />}
       <div
         className={
           isLoungeSkin
             ? "grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem] gap-5 items-stretch"
-            : "contents"
+            : isEditorialSkin
+              ? "editorial-front-page grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_20rem] gap-8 items-stretch"
+              : "contents"
         }
       >
         {/* Welcome Banner */}
         <div
           className={`relative overflow-hidden rounded-3xl bg-linear-to-br from-emerald-50 to-white shadow-sm border border-emerald-100/50 dark:from-emerald-900/40 dark:to-zinc-800/40 dark:border-zinc-800 dark:shadow-none ${
-            isLoungeSkin ? "min-h-80 p-10 xl:p-12 flex items-end" : "p-10"
+            isLoungeSkin
+              ? "min-h-80 p-10 xl:p-12 flex items-end"
+              : isEditorialSkin
+                ? "editorial-hero min-h-[23rem] p-8 sm:p-10 xl:p-12 flex items-end"
+                : "p-10"
           }`}
         >
           <div
@@ -316,12 +327,36 @@ export function HomeView({
 
             <h1
               className={`font-bold mb-2 text-zinc-900 dark:text-white ${
-                isLoungeSkin ? "text-5xl leading-tight" : "text-4xl"
+                isLoungeSkin
+                  ? "text-5xl leading-tight"
+                  : isEditorialSkin
+                    ? "text-5xl md:text-6xl leading-[0.95]"
+                    : "text-4xl"
               }`}
             >
               {t(`home.greeting.${getGreetingKey()}`)}
               {greetingName && `, ${greetingName}`}
             </h1>
+            {isEditorialSkin && (
+              <div className="editorial-lead-art" aria-hidden="true">
+                {currentTrack ? (
+                  <Artwork
+                    path={currentTrack.artwork_path}
+                    path1x={currentTrack.artwork_path_1x}
+                    path2x={currentTrack.artwork_path_2x}
+                    size="full"
+                    alt=""
+                    className="w-full h-full"
+                    iconSize={42}
+                    rounded="md"
+                  />
+                ) : (
+                  <div className="editorial-lead-art-fallback">
+                    <Music2 size={60} />
+                  </div>
+                )}
+              </div>
+            )}
             <p className="text-zinc-500 dark:text-zinc-400 mb-8 max-w-2xl">
               {t("home.banner.subtitle")}
             </p>
@@ -353,7 +388,9 @@ export function HomeView({
           className={
             isLoungeSkin
               ? "grid grid-cols-2 xl:grid-cols-1 gap-4"
-              : "grid grid-cols-1 md:grid-cols-4 gap-4"
+              : isEditorialSkin
+                ? "editorial-stats grid grid-cols-2 xl:grid-cols-1 gap-0"
+                : "grid grid-cols-1 md:grid-cols-4 gap-4"
           }
         >
           <StatCard
@@ -459,7 +496,9 @@ export function HomeView({
         className={
           isLoungeSkin
             ? "grid grid-cols-1 xl:grid-cols-2 gap-8 items-start"
-            : "contents"
+            : isEditorialSkin
+              ? "editorial-feature-grid grid grid-cols-1 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] gap-10 items-start"
+              : "contents"
         }
       >
         <section>
