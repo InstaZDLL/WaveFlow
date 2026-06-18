@@ -688,6 +688,23 @@
   box-shadow: var(--liquid-glass) !important;
 }
 
+/* Light-theme modal opacity. The 18% glass tint that reads as
+   a translucent panel over the aurora-lit body becomes a
+   transparent slab over `AnimatedModalShell`'s `bg-black/80`
+   overlay — light theme tokens (`--liq-ink` = near-black) then
+   land as dark text on a dark-tinted glass and disappear.
+   Override with an opaque-ish frosted-white material so the
+   modal stays Big-Sur-light regardless of the overlay
+   underneath. */
+:root[data-skin="liquid"]:not(.dark) :where(
+  [role="dialog"],
+  [class*="shadow-lg"],
+  [class*="shadow-xl"],
+  [class*="shadow-2xl"]
+) {
+  background-color: color-mix(in srgb, white 82%, transparent) !important;
+}
+
 /* Force readable text colour inside modals — the modal shell
    sets `color` but inherited `text-zinc-X` classes on inner
    wrappers still beat the inheritance. Catch every modal
