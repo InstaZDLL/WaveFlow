@@ -1678,6 +1678,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "Neonclub — OLED-basis, gekleurde halo's rond actieve items, mono-pills, veerkrachtige animaties."
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Vloeibaar glas in Apple-stijl — meerlaags doorschijnend materiaal, aurora-achtergrond, pilcapsules, kalme beweging."
         }
       }
     },

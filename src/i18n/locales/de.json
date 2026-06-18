@@ -1678,6 +1678,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "Neon-Club — OLED-Basis, farbige Halos um aktive Elemente, Mono-Pills, federnde Animationen."
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Liquid Glass im Apple-Stil — mehrschichtiges transluzentes Material, Aurora-Hintergrund, Pillen-Kapseln, ruhige Bewegung."
         }
       }
     },

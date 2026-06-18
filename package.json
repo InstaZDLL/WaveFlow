@@ -21,7 +21,7 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@fontsource/dm-sans": "^5.2.8",
+    "@fontsource-variable/dm-sans": "^5.2.8",
     "@fontsource/lora": "^5.2.8",
     "@fontsource/playfair-display": "^5.2.8",
     "@fontsource/space-grotesk": "^5.2.10",

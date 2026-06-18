@@ -1678,6 +1678,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "Klub neon — basis OLED, halo warna di sekitar elemen aktif, pill mono, animasi pegas."
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Kaca cair gaya Apple — material tembus pandang multilapis, latar aurora, kapsul pil, gerakan tenang."
         }
       }
     },

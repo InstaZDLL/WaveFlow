@@ -23,6 +23,16 @@ export function SkinPlayingState() {
     document.documentElement.dataset.isPlaying = isPlaying
       ? "true"
       : "false";
+    // Cleanup: drop the attribute entirely on unmount so a future
+    // refactor (test harness teardown, route-level remount, etc.)
+    // doesn't leave a stale `data-is-playing="true"` on the
+    // documentElement that a CSS animation would silently keep
+    // running for. In normal app life this component lives at
+    // AppLayout root and never unmounts; the cleanup is purely
+    // defensive.
+    return () => {
+      delete document.documentElement.dataset.isPlaying;
+    };
   }, [isPlaying]);
 
   return null;

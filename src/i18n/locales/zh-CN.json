@@ -1625,6 +1625,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "霓虹俱乐部 — OLED 底色,活动元素周围的彩色光晕,等宽胶囊,弹性动效。"
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Apple 风格液态玻璃 — 多层半透明材质,极光背景,胶囊药丸,宁静动效。"
         }
       }
     },

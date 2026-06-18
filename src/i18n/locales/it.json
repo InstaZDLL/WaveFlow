@@ -1678,6 +1678,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "Club neon — base OLED, aloni colorati attorno agli elementi attivi, pillole mono, animazioni a molla."
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Vetro liquido in stile Apple — materiale traslucido multistrato, sfondo aurora, capsule pillola, movimento calmo."
         }
       }
     },

@@ -689,7 +689,6 @@ export function HomeView({
                     key={`${play.track_id}-${play.played_at}`}
                     role="button"
                     tabIndex={0}
-                    onDoubleClick={() => handlePlayRecent(idx)}
                     onClick={() => handlePlayRecent(idx)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {

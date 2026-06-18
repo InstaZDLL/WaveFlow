@@ -27,14 +27,15 @@ import "@fontsource/space-grotesk/400.css";
 import "@fontsource/space-grotesk/700.css";
 import "@fontsource/space-mono/400.css";
 import "@fontsource/space-mono/700.css";
-// Liquid skin — DM Sans, a humanist sans with optical sizing
-// and the geometric precision Apple Vibrancy materials pair
-// with. Four weights to cover all the chrome (light eyebrows,
-// regular body, medium nav labels, semibold display).
-import "@fontsource/dm-sans/300.css";
-import "@fontsource/dm-sans/400.css";
-import "@fontsource/dm-sans/500.css";
-import "@fontsource/dm-sans/600.css";
+// Liquid skin — DM Sans Variable (opsz axis). The variable
+// font carries both the weight axis (100-1000) and the optical-
+// sizing axis (9-40), so the same family scales from caption-
+// precise rendering at small sizes to display-generous
+// rendering at large sizes — the property the comment on
+// liquid.css promises. Single woff2 (~100-150 KB latin) instead
+// of four static weight files, plus zero glyph mismatch when
+// any new size shows up in the UI.
+import "@fontsource-variable/dm-sans/opsz.css";
 import { i18nReady } from "./i18n";
 
 // The mini-player runs in a second WebviewWindow that loads the same

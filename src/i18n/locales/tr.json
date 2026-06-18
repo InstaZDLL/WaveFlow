@@ -1678,6 +1678,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "Neon kulüp — OLED zemin, aktif öğeler etrafında renkli haleler, mono pill'ler, yaylı animasyonlar."
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Apple tarzı sıvı cam — çok katmanlı yarı şeffaf malzeme, aurora arka plan, kapsül haplar, sakin hareket."
         }
       }
     },

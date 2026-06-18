@@ -208,9 +208,12 @@ export const SKIN_PRESETS: SkinPreset[] = [
       // Playfair Display: a high-contrast didone with theatrical
       // serifs — the canonical broadsheet masthead face. Lora as
       // the body face: a robust serif with strong italic stroke
-      // for pull-quotes and figure captions. Both are loaded via
-      // a `@import` at the top of `editorial.css` so the FOIT is
-      // scoped to this skin (other skins don't pay).
+      // for pull-quotes and figure captions. Both are bundled
+      // via `@fontsource/*` imports in `src/main.tsx` (the woff2
+      // files ship inside the Tauri bundle, so the skin works
+      // offline) — `editorial.css` does NOT pull them from the
+      // network, and v1's `@import url(google fonts)` was
+      // removed because it broke the offline-first contract.
       display:
         '"Playfair Display", "Source Serif Pro", Georgia, "Times New Roman", serif',
       body:
@@ -395,9 +398,9 @@ export const SKIN_PRESETS: SkinPreset[] = [
       // generous at large sizes. Sans-serif throughout —
       // Apple's design language doesn't pair with a serif here.
       display:
-        '"DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        '"DM Sans Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       body:
-        '"DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        '"DM Sans Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       headingWeight: 600,
       displayTracking: "-0.022em",
     },

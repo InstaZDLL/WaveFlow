@@ -1678,6 +1678,10 @@
         "pulse": {
           "label": "Pulse",
           "description": "네온 클럽 — OLED 기반, 활성 요소 주변의 컬러 헤일로, 모노 알약, 탄력 있는 모션."
+        },
+        "liquid": {
+          "label": "Liquid",
+          "description": "Apple 스타일 리퀴드 글래스 — 다층 반투명 소재, 오로라 배경, 알약 캡슐, 차분한 모션."
         }
       }
     },
