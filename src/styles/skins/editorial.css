@@ -675,6 +675,23 @@
   text-transform: uppercase;
 }
 
+/* Hover overrides — placed AFTER the per-row rules so equal
+   specificity (`> div` matches the same shape as `> div:nth-
+   child(n)`) gets resolved by source order. The earlier
+   `:hover *` rule loses against `> div:nth-child(n)` because
+   the universal `*` counts 0 — a (0,3,0) hover beats nothing
+   against a (0,3,2) per-row rule. These restate the targets
+   with the same `> div` shape + the hover pseudo so the cream
+   colour wins on the title, subtitle, AND count row. */
+:root[data-skin="editorial"] .editorial-mood-tile:hover > div {
+  color: var(--ed-paper) !important;
+  border-color: var(--ed-paper) !important;
+}
+
+:root[data-skin="editorial"] .editorial-mood-tile:hover > div:last-child {
+  border-top-color: var(--ed-paper) !important;
+}
+
 /* ============================================================
    PlayerBar — newspaper footer with ruler-tick progress bar
    ============================================================ */
