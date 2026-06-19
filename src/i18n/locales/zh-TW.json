@@ -17,7 +17,7 @@
   },
   "updater": {
     "available": {
-      "title": "有更新可用（版本{{version}}）",
+      "title": "有更新可用(版本{{version}})",
       "message": "WaveFlow 的新版本已準備就緒，可供安裝。",
       "action": "立即安裝",
       "later": "稍後"
@@ -43,7 +43,7 @@
       "title": "重要：僅限本地音樂",
       "description": "WaveFlow 不是串流服務，它播放裝置上已有的檔案。",
       "calloutTitle": "你需要知道",
-      "bulletOwn": "自帶音樂庫（MP3、FLAC、ALAC、OGG、DSD…）",
+      "bulletOwn": "自帶音樂庫(MP3、FLAC、ALAC、OGG、DSD…)",
       "bulletImport": "匯入資料夾或拖放檔案",
       "bulletScrobble": "連接 Last.fm，在背景 Scrobble 你的播放紀錄"
     },
@@ -132,8 +132,8 @@
       "unavailable": "設定檔暫時無法使用，請稍後再試。"
     },
     "lyrics": {
-      "title": "歌詞要儲存在哪裡?",
-      "description": "編輯歌詞時,它們應該儲存到何處?可在 設定 → 播放 中隨時變更。",
+      "title": "歌詞要儲存在哪裡？",
+      "description": "編輯歌詞時，它們應該儲存到何處？可在 設定 → 播放 中隨時變更。",
       "hint": "選擇「Sidecar 檔案」可讓音訊檔保持不變 — foobar2000 等播放器就是這樣做的。"
     }
   },
@@ -222,9 +222,9 @@
         "reset": "重設",
         "hiRes": "高解析度",
         "likedOnly": "僅顯示喜歡",
-        "year": "年份（從 → 至）",
-        "bpm": "BPM（從 → 至）",
-        "durationMin": "時長（分鐘）（從 → 至）",
+        "year": "年份(從 → 至)",
+        "bpm": "BPM(從 → 至)",
+        "durationMin": "時長（分鐘）(從 → 至)",
         "format": "格式",
         "genres": "類型"
       }
@@ -307,7 +307,7 @@
       "regenerate": "重新產生",
       "regenerating": "產生中…",
       "emptyTitle": "還沒有 Daily Mix",
-      "emptyDescription": "先聽幾首歌,然後點擊重新產生來建立你的個人化合輯。",
+      "emptyDescription": "先聽幾首歌，然後點擊重新產生來建立你的個人化合輯。",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} 首",
       "trackCount_other": "{{count}} 首"
@@ -390,7 +390,7 @@
     "searchDeezer": "搜尋Deezer",
     "localFile": "本機檔案",
     "fetchMissingCovers": "找回所有遺失的封套",
-    "fetchingCovers": "正在取得封面…（{{current}} / {{total}}）",
+    "fetchingCovers": "正在取得封面…({{current}} / {{total}})",
     "fetchCoversResult": "已取得 {{count}} 張封套",
     "fetchCoversFailed": "封套取得失敗",
     "table": {
@@ -639,7 +639,7 @@
     "sections": {
       "frameworkDesktop": "桌面框架",
       "frontend": "前端",
-      "backend": "後端（Rust）",
+      "backend": "後端(Rust)",
       "audio": "音訊",
       "shortcuts": "鍵盤快捷鍵",
       "credits": "版權聲明",
@@ -702,7 +702,7 @@
       "title": "播放速度",
       "slider": "速度滑桿",
       "custom": "自訂速度",
-      "pitchHint": "音高隨速度變化(無時間拉伸)。"
+      "pitchHint": "音高隨速度變化（無時間拉伸）。"
     },
     "seek": "播放位置"
   },
@@ -713,7 +713,7 @@
     "count_one": "{{count}} 首",
     "count_other": "{{count}} 首",
     "emptyTitle": "沒什麼可聽的",
-    "emptyDescription": "從你的音樂庫中選取一首歌,加入播放佇列。",
+    "emptyDescription": "從你的音樂庫中選取一首歌，加入播放佇列。",
     "nowPlaying": "正在播放",
     "upNext_zero": "接下來",
     "upNext_one": "接下來 · {{count}} 首",
@@ -852,7 +852,7 @@
     "title": "批次編輯標籤",
     "subtitle": "已選 {{count}} 首",
     "help": "勾選要套用到整個選取的欄位。未勾選的欄位保持每首曲目原值。",
-    "submit": "套用（{{count}} 個欄位）",
+    "submit": "套用({{count}} 個欄位)",
     "fields": {
       "artist": "藝人",
       "album": "專輯",
@@ -1089,7 +1089,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML 僅保留在快取中（未寫入音訊標籤）",
-      "sidecarWriteSkipped": "歌詞已儲存到資料庫,但 TTML 無法放入 .lrc/.txt 檔案。"
+      "sidecarWriteSkipped": "歌詞已儲存到資料庫，但 TTML 無法放入 .lrc/.txt 檔案。"
     }
   },
   "duplicates": {
@@ -1129,7 +1129,7 @@
       "album": "專輯包含",
       "year": "年份",
       "bpm": "BPM",
-      "durationMin": "時長(分鐘)",
+      "durationMin": "時長（分鐘）",
       "hiRes": "僅 Hi-Res",
       "liked": "僅已喜歡的曲目",
       "formats": "格式",
@@ -1152,8 +1152,8 @@
     "sortOptions": {
       "addedDesc": "最近新增",
       "addedAsc": "最早新增",
-      "yearDesc": "年份(由新到舊)",
-      "yearAsc": "年份(由舊到新)",
+      "yearDesc": "年份（由新到舊）",
+      "yearAsc": "年份（由舊到新）",
       "titleAsc": "標題(A → Z)",
       "artistAsc": "藝人(A → Z)",
       "random": "隨機"
@@ -1205,7 +1205,7 @@
     "plainPlaceholder": "逐行輸入歌詞…",
     "linePlaceholder": "行文字",
     "capture": "擷取",
-    "captureHint": "開始播放後按空白鍵(或擷取)將目前行錨定到播放點",
+    "captureHint": "開始播放後按空白鍵（或擷取）將目前行錨定到播放點",
     "captureNow": "立即擷取",
     "recapture": "重新錨定到目前位置",
     "seekToLine": "跳到此行",
@@ -1226,7 +1226,7 @@
     "captureHintWord": "空格鍵 = 下一個字 · Enter = 下一行 · Backspace = 取消最後一個字",
     "notCaptured": "未擷取",
     "exportToFile": "儲存到檔案…",
-    "exportToFileHint": "將歌詞匯出為 .lrc 或 .txt 檔案至您選擇的位置,不會更動音訊檔案",
+    "exportToFileHint": "將歌詞匯出為 .lrc 或 .txt 檔案至您選擇的位置，不會更動音訊檔案",
     "exportedToFile": "已匯出至 {{path}}",
     "destinationLabel": "歌詞預設儲存位置",
     "destination": {
@@ -1293,7 +1293,7 @@
       "subtitle": "管理為 WaveFlow 新增來源、中繼資料或檢視的擴充功能。",
       "loading": "載入中…",
       "emptyTitle": "未安裝任何外掛",
-      "emptyHint": "手動安裝:將資料夾放在 <data>/waveflow/plugins/ 下。官方商店即將推出。",
+      "emptyHint": "手動安裝：將資料夾放在 <data>/waveflow/plugins/ 下。官方商店即將推出。",
       "byAuthor": "作者:{{author}}",
       "enabled": "已啟用",
       "disabled": "已停用",
@@ -1362,7 +1362,7 @@
       },
       "notifications": {
         "title": "曲目變更通知",
-        "subtitle": "每首曲目開始時顯示系統通知(標題 + 演出者)。預設關閉。"
+        "subtitle": "每首曲目開始時顯示系統通知（標題 + 演出者）。預設關閉。"
       }
     },
     "crossfade": {
@@ -1371,7 +1371,7 @@
     },
     "dynamicCrossfade": {
       "title": "動態交叉淡化",
-      "subtitle": "依曲目間的速度差調整淡化時長（BPM 未知時回退至固定交叉淡化）"
+      "subtitle": "依曲目間的速度差調整淡化時長(BPM 未知時回退至固定交叉淡化)"
     },
     "normalize": {
       "title": "將音量調整至標準值",
@@ -1384,7 +1384,7 @@
     "exclusive": {
       "title": "WASAPI 獨佔模式(Windows)",
       "subtitle": "位元完美：繞過 Windows 混音器以提供無干擾輸出。如果裝置拒絕獨佔存取，則退回共用模式。",
-      "fallback": "裝置不接受獨佔模式,正在退回共享模式。"
+      "fallback": "裝置不接受獨佔模式，正在退回共享模式。"
     },
     "mono": {
       "title": "單聲道音訊",
@@ -1445,7 +1445,7 @@
     },
     "localArtistImages": {
       "title": "本地藝人圖片",
-      "subtitle": "在音樂旁尋找 artist.jpg（或 <名稱>.jpg）檔案，並將其用作藝人照片。",
+      "subtitle": "在音樂旁尋找 artist.jpg(或 <名稱>.jpg)檔案，並將其用作藝人照片。",
       "action": "掃描",
       "done": "已為 {{considered}} 位藝人中的 {{linked}} 位連結本地圖片"
     },
@@ -1500,7 +1500,7 @@
       "inSync": "已同步",
       "outOfSync": "存在差異",
       "error": "錯誤：{{message}}",
-      "reasonGeneric": "已略過（{{reason}}）",
+      "reasonGeneric": "已略過({{reason}})",
       "reason": {
         "offline": "離線模式已啟用",
         "sync_mode_local": "設定檔處於本機模式",
@@ -1508,7 +1508,7 @@
         "profile_canonical_id_missing": "等待首次同步"
       },
       "backfillAlreadyRunning": "已有同步正在執行",
-      "backfillSkipped": "已略過同步（{{reason}}）",
+      "backfillSkipped": "已略過同步({{reason}})",
       "backfillSummary": "{{pushed}} 已傳送 · {{pulled}} 已接收 · {{lww}} 已合併 · {{failed}} 失敗",
       "col": {
         "entity": "實體",
@@ -1611,7 +1611,7 @@
     },
     "showAudioQualityFooter": {
       "title": "顯示音訊品質列",
-      "subtitle": "在播放列下方顯示技術詳情（kHz、kbps、編解碼、位元深度）。為保持播放列輕巧，預設關閉。"
+      "subtitle": "在播放列下方顯示技術詳情(kHz、kbps、編解碼、位元深度)。為保持播放列輕巧，預設關閉。"
     },
     "categoryNavLabel": "設定分類",
     "appearance": {
@@ -1654,7 +1654,7 @@
         },
         "lounge": {
           "label": "Lounge",
-          "description": "高級玻璃 — 專輯封面成為背景,半透明面板,緩慢過渡。"
+          "description": "高級玻璃 — 專輯封面成為背景，半透明面板，緩慢過渡。"
         },
         "pulse": {
           "label": "Pulse",
@@ -1713,7 +1713,7 @@
     },
     "smartCrossfade": {
       "title": "智慧交叉淡化",
-      "subtitle": "自動跳過同一張專輯內兩首曲目間的淡化(適合概念專輯和現場錄音)"
+      "subtitle": "自動跳過同一張專輯內兩首曲目間的淡化（適合概念專輯和現場錄音）"
     },
     "showSpotify": {
       "title": "顯示 Spotify 入口",
@@ -1808,11 +1808,11 @@
     },
     "fullscreenLyricsCentering": {
       "title": "全螢幕中將同步歌詞置中",
-      "subtitle": "在全螢幕檢視中將帶時間戳的歌詞置中對齊,與純文字檢視保持一致。"
+      "subtitle": "在全螢幕檢視中將帶時間戳的歌詞置中對齊，與純文字檢視保持一致。"
     },
     "lyricsTranslation": {
       "title": "歌詞翻譯 (Musixmatch)",
-      "subtitle": "當 Musixmatch 有翻譯時,在每行 LRC 下方顯示翻譯",
+      "subtitle": "當 Musixmatch 有翻譯時，在每行 LRC 下方顯示翻譯",
       "off": "關閉"
     },
     "lyricsDestination": {
@@ -1843,11 +1843,11 @@
     "playlists": "播放清單",
     "emptyPlaylist": "此播放清單中沒有可用的曲目(Spotify 可能不會公開本機檔案或非你擁有的播放清單)。",
     "notConfiguredTitle": "註冊你的 Spotify 應用程式",
-    "notConfiguredMessage": "Spotify 要求每個第三方應用程式在播放前必須註冊一個免費的 Client ID。請在 Spotify Developer dashboard 建立一個,然後貼到 WaveFlow 的「設定 → 整合」。",
+    "notConfiguredMessage": "Spotify 要求每個第三方應用程式在播放前必須註冊一個免費的 Client ID。請在 Spotify Developer dashboard 建立一個，然後貼到 WaveFlow 的「設定 → 整合」。",
     "openDashboard": "開啟 Spotify Developer dashboard",
     "openSettings": "開啟設定",
     "notConnectedTitle": "Spotify 尚未連接",
-    "notConnectedMessage": "你的 Client ID 已設定。請至「設定」登入 Spotify Premium 帳號,以載入播放清單並開始播放。"
+    "notConnectedMessage": "你的 Client ID 已設定。請至「設定」登入 Spotify Premium 帳號，以載入播放清單並開始播放。"
   },
   "share": {
     "title": "分享播放清單",
