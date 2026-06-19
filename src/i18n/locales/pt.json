@@ -130,6 +130,11 @@
       "hint": "Podes criar mais perfis depois, se precisares.",
       "required": "O nome do perfil é obrigatório.",
       "unavailable": "Perfil indisponível — tenta de novo daqui a um instante."
+    },
+    "lyrics": {
+      "title": "Onde guardar as letras?",
+      "description": "Quando edita letras, para onde devem ir? Pode alterar em Definições → Reprodução.",
+      "hint": "Escolha \"Ficheiro sidecar\" para manter os seus ficheiros de áudio intactos — como o foobar2000."
     }
   },
   "sidebar": {
@@ -1083,7 +1088,8 @@
       "plain": "Não sincronizado"
     },
     "toast": {
-      "tagWriteSkipped": "TTML mantido apenas em cache (não escrito na etiqueta de áudio)"
+      "tagWriteSkipped": "TTML mantido apenas em cache (não escrito na etiqueta de áudio)",
+      "sidecarWriteSkipped": "Letras guardadas na base de dados, mas TTML não cabe num ficheiro .lrc/.txt."
     }
   },
   "duplicates": {
@@ -1221,7 +1227,22 @@
     "notCaptured": "Não capturado",
     "exportToFile": "Guardar em ficheiro…",
     "exportToFileHint": "Exporta a letra para um ficheiro .lrc ou .txt no local escolhido, sem alterar o ficheiro de áudio",
-    "exportedToFile": "Exportado para {{path}}"
+    "exportedToFile": "Exportado para {{path}}",
+    "destinationLabel": "Destino predefinido das letras",
+    "destination": {
+      "tag": {
+        "label": "Tag integrada",
+        "hint": "Escreve USLT/©lyr no ficheiro de áudio (compatível com foobar2000, iTunes…)."
+      },
+      "sidecar": {
+        "label": "Ficheiro sidecar",
+        "hint": "Escreve um .lrc / .txt junto do ficheiro de áudio. Tags intactas."
+      },
+      "db_only": {
+        "label": "Apenas base de dados WaveFlow",
+        "hint": "Permanece na cache da app. Nenhum ficheiro nem tag são tocados."
+      }
+    }
   },
   "sort": {
     "title": "Título",
@@ -1793,6 +1814,10 @@
       "title": "Tradução das letras (Musixmatch)",
       "subtitle": "Mostra uma tradução sob cada linha LRC quando o Musixmatch oferece uma",
       "off": "Desativada"
+    },
+    "lyricsDestination": {
+      "title": "Destino das letras guardadas",
+      "subtitle": "Para onde vão as letras escritas no editor. Pode ser substituído a cada edição."
     }
   },
   "spotify": {

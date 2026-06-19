@@ -130,6 +130,11 @@
       "hint": "Gerekirse daha sonra başka profiller oluşturabilirsin.",
       "required": "Profil adı zorunlu.",
       "unavailable": "Profil kullanılamıyor — biraz sonra tekrar dene."
+    },
+    "lyrics": {
+      "title": "Şarkı sözleri nereye gitsin?",
+      "description": "Şarkı sözlerini düzenlediğinizde nereye gitsinler? Ayarlar → Oynatma'dan değiştirebilirsiniz.",
+      "hint": "Ses dosyalarınızı bozulmadan tutmak için \"Sidecar dosyası\" seçin — foobar2000 ve benzerleri böyle yapar."
     }
   },
   "sidebar": {
@@ -1083,7 +1088,8 @@
       "plain": "Senkronize değil"
     },
     "toast": {
-      "tagWriteSkipped": "TTML yalnızca önbellekte tutuldu (ses etiketine yazılmadı)"
+      "tagWriteSkipped": "TTML yalnızca önbellekte tutuldu (ses etiketine yazılmadı)",
+      "sidecarWriteSkipped": "Şarkı sözleri veritabanına kaydedildi, ancak TTML bir .lrc/.txt dosyasına sığmaz."
     }
   },
   "duplicates": {
@@ -1221,7 +1227,22 @@
     "notCaptured": "Yakalanmadı",
     "exportToFile": "Dosyaya kaydet…",
     "exportToFileHint": "Sözleri seçtiğiniz konumda bir .lrc veya .txt dosyasına aktarır, ses dosyasını değiştirmez",
-    "exportedToFile": "{{path}} konumuna aktarıldı"
+    "exportedToFile": "{{path}} konumuna aktarıldı",
+    "destinationLabel": "Varsayılan şarkı sözü hedefi",
+    "destination": {
+      "tag": {
+        "label": "Gömülü etiket",
+        "hint": "Ses dosyasının USLT/©lyr alanına yazar (foobar2000, iTunes uyumlu)."
+      },
+      "sidecar": {
+        "label": "Sidecar dosyası",
+        "hint": "Ses dosyasının yanına .lrc / .txt yazar. Dosya etiketlerine dokunulmaz."
+      },
+      "db_only": {
+        "label": "Yalnızca WaveFlow veritabanı",
+        "hint": "Uygulama önbelleğinde kalır. Hiçbir dosya veya etikete dokunulmaz."
+      }
+    }
   },
   "sort": {
     "title": "Başlık",
@@ -1793,6 +1814,10 @@
       "title": "Şarkı sözü çevirisi (Musixmatch)",
       "subtitle": "Musixmatch çevirisi varsa her LRC satırının altında çeviriyi gösterir",
       "off": "Kapalı"
+    },
+    "lyricsDestination": {
+      "title": "Kayıtlı şarkı sözü hedefi",
+      "subtitle": "Düzenleyiciden gelen şarkı sözlerinin gideceği yer. Her düzenlemede geçersiz kılınabilir."
     }
   },
   "spotify": {

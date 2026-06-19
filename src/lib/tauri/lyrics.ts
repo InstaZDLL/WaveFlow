@@ -9,13 +9,21 @@ export interface LyricsPayload {
   format: LyricsFormat;
   source: LyricsSource;
   /**
-   * Set by `save_lyrics` when the user asked for `write_to_file` but
-   * the audio container can't carry the chosen format (currently TTML
-   * on MP3/ID3v2). The DB cache is still updated; the UI surfaces a
-   * toast so the user knows the file itself wasn't touched. Absent on
-   * every other return path.
+   * Set by `save_lyrics` when the user picked destination = `"tag"`
+   * but the audio container can't carry the chosen format (currently
+   * TTML on MP3/ID3v2). The DB cache is still updated; the UI
+   * surfaces a toast so the user knows the file itself wasn't
+   * touched. Absent on every other return path.
    */
   tag_write_skipped?: boolean;
+  /**
+   * Set by `save_lyrics` when the user picked destination = `"sidecar"`
+   * but the chosen format can't ride a `.lrc` / `.txt` companion
+   * (TTML — neither extension carries the XML markup the reader
+   * expects). DB cache is still updated. Absent on every other return
+   * path.
+   */
+  sidecar_write_skipped?: boolean;
 }
 
 /** Cache-only lookup. Returns null when no row exists yet. */
@@ -90,28 +98,58 @@ export function setLyricsTranslationLang(
   return invoke<string | null>("set_lyrics_translation_lang", { lang });
 }
 
+/**
+ * Where the user wants the editor's output to land. The frontend
+ * pre-fills the segmented control with the app-wide default
+ * (`getLyricsDefaultDestination`) and lets the user override
+ * per-save. Backend mirrors the enum in `LyricsDestination`.
+ */
+export type LyricsDestination = "tag" | "sidecar" | "db_only";
+
 export interface SaveLyricsPayload {
   content: string;
   format: "plain" | "lrc" | "enhanced_lrc" | "ttml";
   /**
-   * When true, the backend also writes the lyrics into the audio
-   * file's USLT/LYRICS/©lyr frame. Disabled writes are cache-only.
-   * TTML on MP3 is silently skipped (see `tag_write_skipped` on the
-   * returned payload).
+   * `tag` embeds in USLT/LYRICS/©lyr (current default, TTML silently
+   * skipped on MP3 — see `tag_write_skipped`). `sidecar` writes a
+   * sibling `.lrc` / `.txt` next to the audio file (issue #201).
+   * `db_only` updates the WaveFlow cache and leaves the filesystem
+   * untouched.
    */
-  write_to_file: boolean;
+  destination: LyricsDestination;
 }
 
 /**
  * Persist user-edited lyrics for a track. Always upserts the cache
- * row (source = manual); when `write_to_file` is true the backend
- * also writes the embedded tag and re-hashes the file.
+ * row (source = manual); the on-disk side-effect depends on
+ * `destination`.
  */
 export function saveLyrics(
   trackId: number,
   payload: SaveLyricsPayload,
 ): Promise<LyricsPayload> {
   return invoke<LyricsPayload>("save_lyrics", { trackId, payload });
+}
+
+/**
+ * Read the app-wide default destination the editor pre-fills with.
+ * Missing setting → `"tag"` so pre-#201 behaviour is preserved.
+ */
+export function getLyricsDefaultDestination(): Promise<LyricsDestination> {
+  return invoke<LyricsDestination>("get_lyrics_default_destination");
+}
+
+/**
+ * Persist the app-wide default destination. Backend rejects unknown
+ * values; the caller should pass one of the three enum variants
+ * literally.
+ */
+export function setLyricsDefaultDestination(
+  destination: LyricsDestination,
+): Promise<LyricsDestination> {
+  return invoke<LyricsDestination>("set_lyrics_default_destination", {
+    destination,
+  });
 }
 
 /**

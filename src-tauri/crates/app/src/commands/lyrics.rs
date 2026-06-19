@@ -118,14 +118,21 @@ pub struct LyricsPayload {
     pub content: String,
     pub format: LyricsFormat,
     pub source: LyricsSource,
-    /// Set by `save_lyrics` when `write_to_file` was requested but the
-    /// audio file's tag system can't carry the chosen format (e.g.
+    /// Set by `save_lyrics` when destination = `tag` was requested but
+    /// the audio file's tag system can't carry the chosen format (e.g.
     /// TTML in an MP3's ID3v2 where lofty has no mapping for the
     /// XML-friendly `ItemKey::Lyrics`). DB cache is still updated; the
     /// UI surfaces a toast so the user knows the file itself wasn't
     /// touched. Absent on every other return path.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tag_write_skipped: Option<bool>,
+    /// Set by `save_lyrics` when destination = `sidecar` was requested
+    /// but the chosen format can't ride a `.lrc` / `.txt` companion
+    /// (TTML today — neither extension carries the XML markup the
+    /// reader expects). DB cache is still updated. Absent on every
+    /// other return path.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sidecar_write_skipped: Option<bool>,
 }
 
 fn parse_format(s: &str) -> LyricsFormat {
@@ -413,6 +420,7 @@ async fn cache_external_lyrics(
         format,
         source,
         tag_write_skipped: None,
+        sidecar_write_skipped: None,
     })
 }
 
@@ -658,6 +666,7 @@ async fn read_cached(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option
         format: parse_format(&fmt),
         source: parse_source(&src),
         tag_write_skipped: None,
+        sidecar_write_skipped: None,
     }))
 }
 
@@ -750,6 +759,7 @@ pub async fn fetch_lyrics(
             format,
             source,
             tag_write_skipped: None,
+            sidecar_write_skipped: None,
         }));
     }
 
@@ -773,6 +783,7 @@ pub async fn fetch_lyrics(
             format,
             source,
             tag_write_skipped: None,
+            sidecar_write_skipped: None,
         }));
     }
 
@@ -786,7 +797,10 @@ pub async fn fetch_lyrics(
         // scanner paths stay `None` to avoid the extra Musixmatch
         // hop per track on bulk operations.
         let translation_lang = read_translation_lang(&pool).await.unwrap_or_else(|err| {
-            tracing::warn!(?err, "read_translation_lang failed; serving untranslated lyrics");
+            tracing::warn!(
+                ?err,
+                "read_translation_lang failed; serving untranslated lyrics"
+            );
             None
         });
         // A Musixmatch failure here is non-fatal: fall through to LRCLIB
@@ -872,6 +886,7 @@ pub async fn fetch_lyrics(
                 format: LyricsFormat::Plain,
                 source: LyricsSource::Api,
                 tag_write_skipped: None,
+                sidecar_write_skipped: None,
             }));
         }
         Err(err) => {
@@ -902,6 +917,7 @@ pub async fn fetch_lyrics(
             format: LyricsFormat::Plain,
             source: LyricsSource::Api,
             tag_write_skipped: None,
+            sidecar_write_skipped: None,
         }));
     }
 
@@ -942,6 +958,7 @@ pub async fn fetch_lyrics(
                 format: LyricsFormat::Plain,
                 source: LyricsSource::Api,
                 tag_write_skipped: None,
+                sidecar_write_skipped: None,
             }));
         }
     };
@@ -954,6 +971,7 @@ pub async fn fetch_lyrics(
         format,
         source,
         tag_write_skipped: None,
+        sidecar_write_skipped: None,
     }))
 }
 
@@ -991,6 +1009,7 @@ pub async fn import_lrc_file(
         format,
         source,
         tag_write_skipped: None,
+        sidecar_write_skipped: None,
     })
 }
 
@@ -1405,15 +1424,64 @@ pub enum LyricsSaveFormat {
     Ttml,
 }
 
+/// Where the user wants the editor's output to land.
+///
+/// Drives both the per-edit choice in [`save_lyrics`] and the global
+/// default the editor pre-fills the segmented control with (read
+/// from `app_setting['lyrics.default_destination']`). The setting is
+/// app-wide on purpose — a per-profile choice would create a false
+/// sense of isolation since two profiles scanning the same folder
+/// share the underlying files (a `Tag` write from profile A is
+/// immediately visible to profile B's `Sidecar`-preferring scan
+/// because the waterfall reads tag before sidecar).
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum LyricsDestination {
+    /// Embed in the audio file's USLT/SYLT/©lyr/LYRICS frame
+    /// (current default — keeps round-trip with foobar2000 / MusicBee
+    /// / iTunes).
+    Tag,
+    /// Write a sibling `.lrc` (synced) or `.txt` (plain) next to the
+    /// audio file. The waterfall reader picks it up at next play.
+    /// Audio file tags are left untouched — issue #201 use case.
+    Sidecar,
+    /// DB cache only. The audio file is untouched and no sidecar is
+    /// emitted; lyrics live inside WaveFlow's per-profile DB only.
+    /// Useful for privacy-conscious users and for one-shot tweaks.
+    DbOnly,
+}
+
+impl LyricsDestination {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Tag => "tag",
+            Self::Sidecar => "sidecar",
+            Self::DbOnly => "db_only",
+        }
+    }
+
+    fn parse(s: &str) -> Option<Self> {
+        match s {
+            "tag" => Some(Self::Tag),
+            "sidecar" => Some(Self::Sidecar),
+            "db_only" => Some(Self::DbOnly),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct SaveLyricsPayload {
     pub content: String,
     pub format: LyricsSaveFormat,
-    /// When `true`, also write the lyrics back into the audio file's
-    /// USLT/LYRICS frame. When `false`, only the DB cache is updated
-    /// (fastest, no file lock dance, no rescan churn).
-    #[serde(default)]
-    pub write_to_file: bool,
+    /// Per-edit choice; the frontend pre-fills it with the app-wide
+    /// default and lets the user override per save.
+    #[serde(default = "default_destination")]
+    pub destination: LyricsDestination,
+}
+
+fn default_destination() -> LyricsDestination {
+    LyricsDestination::Tag
 }
 
 /// Persist user-edited lyrics for a track. Always upserts the cache
@@ -1463,52 +1531,78 @@ pub async fn save_lyrics(
     };
 
     let mut tag_write_skipped = false;
-    if payload.write_to_file {
-        let active = engine
-            .shared()
-            .current_track_id
-            .load(std::sync::atomic::Ordering::Acquire);
-        if active == track_id {
-            let _ = engine.send(crate::audio::AudioCmd::Pause);
-            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let mut sidecar_write_skipped = false;
+    match payload.destination {
+        LyricsDestination::Tag => {
+            let active = engine
+                .shared()
+                .current_track_id
+                .load(std::sync::atomic::Ordering::Acquire);
+            if active == track_id {
+                let _ = engine.send(crate::audio::AudioCmd::Pause);
+                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            }
+
+            let path = std::path::PathBuf::from(&file_path);
+            let content_for_write = trimmed.clone();
+            let format_for_write = format.clone();
+            let written = tokio::task::spawn_blocking(move || {
+                write_lyrics_to_file(&path, &content_for_write, &format_for_write)
+            })
+            .await
+            .map_err(|e| AppError::Other(format!("lyrics write panicked: {e}")))?
+            .map_err(|e| AppError::Other(format!("lyrics tag write failed: {e}")))?;
+
+            if written {
+                // The file changed — recompute its blake3 hash so the
+                // cache row stays addressable. We update the track row +
+                // the lyrics row in the same transaction below.
+                let path_for_hash = file_path.clone();
+                let new_hash =
+                    tokio::task::spawn_blocking(move || hash_file_blake3(&path_for_hash))
+                        .await
+                        .map_err(|e| AppError::Other(format!("rehash panicked: {e}")))??;
+
+                let mut tx = pool.begin().await?;
+                sqlx::query("UPDATE track SET file_hash = ? WHERE id = ?")
+                    .bind(&new_hash)
+                    .bind(track_id)
+                    .execute(&mut *tx)
+                    .await?;
+                // Drop any cache row keyed on the old hash so we don't
+                // end up with a stale embedded payload pointing at the
+                // previous content.
+                sqlx::query("DELETE FROM app.lyrics WHERE file_hash = ?")
+                    .bind(&file_hash)
+                    .execute(&mut *tx)
+                    .await?;
+                tx.commit().await?;
+                file_hash = new_hash;
+            } else {
+                tag_write_skipped = true;
+            }
         }
-
-        let path = std::path::PathBuf::from(&file_path);
-        let content_for_write = trimmed.clone();
-        let format_for_write = format.clone();
-        let written = tokio::task::spawn_blocking(move || {
-            write_lyrics_to_file(&path, &content_for_write, &format_for_write)
-        })
-        .await
-        .map_err(|e| AppError::Other(format!("lyrics write panicked: {e}")))?
-        .map_err(|e| AppError::Other(format!("lyrics tag write failed: {e}")))?;
-
-        if written {
-            // The file changed — recompute its blake3 hash so the cache
-            // row stays addressable. We update the track row + the
-            // lyrics row in the same transaction below.
-            let path_for_hash = file_path.clone();
-            let new_hash = tokio::task::spawn_blocking(move || hash_file_blake3(&path_for_hash))
+        LyricsDestination::Sidecar => {
+            // The sidecar reader supports .lrc + .txt only — TTML's
+            // XML payload doesn't ride either extension cleanly, so we
+            // surface the skip the same way the tag path does and let
+            // the DB cache carry the edit forward.
+            if matches!(format, LyricsFormat::Ttml) {
+                sidecar_write_skipped = true;
+            } else {
+                let path = std::path::PathBuf::from(&file_path);
+                let content_for_write = trimmed.clone();
+                let plain = matches!(format, LyricsFormat::Plain);
+                tokio::task::spawn_blocking(move || {
+                    write_lyrics_sidecar(&path, &content_for_write, plain)
+                })
                 .await
-                .map_err(|e| AppError::Other(format!("rehash panicked: {e}")))??;
-
-            let mut tx = pool.begin().await?;
-            sqlx::query("UPDATE track SET file_hash = ? WHERE id = ?")
-                .bind(&new_hash)
-                .bind(track_id)
-                .execute(&mut *tx)
-                .await?;
-            // Drop any cache row keyed on the old hash so we don't end
-            // up with a stale embedded payload pointing at the previous
-            // content.
-            sqlx::query("DELETE FROM app.lyrics WHERE file_hash = ?")
-                .bind(&file_hash)
-                .execute(&mut *tx)
-                .await?;
-            tx.commit().await?;
-            file_hash = new_hash;
-        } else {
-            tag_write_skipped = true;
+                .map_err(|e| AppError::Other(format!("sidecar write panicked: {e}")))?
+                .map_err(|e| AppError::Other(format!("sidecar write failed: {e}")))?;
+            }
+        }
+        LyricsDestination::DbOnly => {
+            // Nothing on disk. The DB upsert below is the whole job.
         }
     }
 
@@ -1522,7 +1616,37 @@ pub async fn save_lyrics(
         format,
         source,
         tag_write_skipped: if tag_write_skipped { Some(true) } else { None },
+        sidecar_write_skipped: if sidecar_write_skipped {
+            Some(true)
+        } else {
+            None
+        },
     })
+}
+
+/// Write a sibling `.lrc` (synced output) or `.txt` (plain) next to
+/// the audio file, replacing any existing matching-extension sidecar.
+///
+/// We deliberately don't try to drop the OPPOSITE extension: if the
+/// user had a hand-rolled `Song.txt` and is now saving synced LRC,
+/// the `.txt` linger is intentional (the waterfall reader prefers
+/// `.lrc` over `.txt` so the new file wins anyway, and silently
+/// deleting an unrelated user-managed sidecar is more surprising
+/// than the lingering file). UTF-8 without BOM matches the format
+/// every LRC reader expects.
+fn write_lyrics_sidecar(audio_path: &Path, content: &str, plain: bool) -> AppResult<()> {
+    let stem = audio_path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .ok_or_else(|| AppError::Other("audio file has no stem".to_string()))?;
+    let parent = audio_path
+        .parent()
+        .ok_or_else(|| AppError::Other("audio file has no parent dir".to_string()))?;
+    let ext = if plain { "txt" } else { "lrc" };
+    let sidecar = parent.join(format!("{stem}.{ext}"));
+    std::fs::write(&sidecar, content)
+        .map_err(|e| AppError::Other(format!("write {}: {e}", sidecar.display())))?;
+    Ok(())
 }
 
 fn hash_file_blake3(path: &str) -> AppResult<String> {
@@ -1681,6 +1805,64 @@ pub async fn set_lyrics_translation_lang(
     Ok(normalized)
 }
 
+/// `app_setting` key holding the global default lyrics destination
+/// the editor pre-fills the segmented control with. App-wide rather
+/// than per-profile because the destination drives filesystem state
+/// (tag bytes, sidecar files) that is shared between profiles whose
+/// libraries touch the same audio files — a per-profile choice
+/// would create a false sense of isolation.
+pub const LYRICS_DEFAULT_DESTINATION_KEY: &str = "lyrics.default_destination";
+
+/// Read the app-wide default. Missing row falls back to `Tag` so
+/// existing installs keep the pre-#201 behaviour until the user opts
+/// into the new flow (either from the onboarding step or the
+/// Settings → Playback card).
+#[tauri::command]
+pub async fn get_lyrics_default_destination(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<String> {
+    let row: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(LYRICS_DEFAULT_DESTINATION_KEY)
+        .fetch_optional(&state.app_db)
+        .await?;
+    let resolved = row
+        .as_deref()
+        .and_then(LyricsDestination::parse)
+        .unwrap_or(LyricsDestination::Tag);
+    Ok(resolved.as_str().to_string())
+}
+
+/// Persist the user's pick. Rejects unknown values with an explicit
+/// error so a typo from the frontend doesn't silently land an
+/// unparseable row that the next read would discard back to default.
+#[tauri::command]
+pub async fn set_lyrics_default_destination(
+    state: tauri::State<'_, AppState>,
+    destination: String,
+) -> AppResult<String> {
+    let parsed = LyricsDestination::parse(&destination).ok_or_else(|| {
+        AppError::Other(format!(
+            "set_lyrics_default_destination: unsupported value '{destination}' (expected tag, sidecar, db_only)"
+        ))
+    })?;
+    let value = parsed.as_str();
+    let now = chrono::Utc::now().timestamp_millis();
+    sqlx::query(
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'string', ?)
+         ON CONFLICT(key) DO UPDATE SET
+            value = excluded.value,
+            value_type = excluded.value_type,
+            updated_at = excluded.updated_at",
+    )
+    .bind(LYRICS_DEFAULT_DESTINATION_KEY)
+    .bind(value)
+    .bind(now)
+    .execute(&state.app_db)
+    .await?;
+    Ok(value.to_string())
+}
+
 /// Write a lyrics payload to an arbitrary on-disk path. Used by the
 /// Lyrics Editor "Save to file…" affordance (issue #201) so the user
 /// can ship the LRC/TXT they just crafted as a sidecar next to the
@@ -1715,9 +1897,11 @@ pub async fn export_lyrics_to_path(
 ) -> AppResult<()> {
     let _pool = state.require_profile_pool().await?;
     let path = std::path::PathBuf::from(&target_path);
-    let parent = path
-        .parent()
-        .ok_or_else(|| AppError::Other(format!("export_lyrics_to_path: target has no parent: {target_path}")))?;
+    let parent = path.parent().ok_or_else(|| {
+        AppError::Other(format!(
+            "export_lyrics_to_path: target has no parent: {target_path}"
+        ))
+    })?;
     if !parent.as_os_str().is_empty() && !parent.exists() {
         return Err(AppError::Other(format!(
             "export_lyrics_to_path: parent directory does not exist: {}",

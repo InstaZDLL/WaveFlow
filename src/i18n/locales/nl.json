@@ -130,6 +130,11 @@
       "hint": "Je kunt later extra profielen aanmaken als dat nodig is.",
       "required": "Profielnaam is vereist.",
       "unavailable": "Profiel niet beschikbaar — probeer het over een ogenblik opnieuw."
+    },
+    "lyrics": {
+      "title": "Waar moeten songteksten heen?",
+      "description": "Waar moeten songteksten heen die je bewerkt? Aanpasbaar via Instellingen → Afspelen.",
+      "hint": "Kies \"Sidecar-bestand\" om je audiobestanden ongemoeid te laten — zoals foobar2000 & co."
     }
   },
   "sidebar": {
@@ -1083,7 +1088,8 @@
       "plain": "Niet gesynchroniseerd"
     },
     "toast": {
-      "tagWriteSkipped": "TTML alleen in de cache bewaard (niet naar de audiotag geschreven)"
+      "tagWriteSkipped": "TTML alleen in de cache bewaard (niet naar de audiotag geschreven)",
+      "sidecarWriteSkipped": "Songtekst opgeslagen in de database, maar TTML past niet in een .lrc/.txt-bestand."
     }
   },
   "duplicates": {
@@ -1221,7 +1227,22 @@
     "notCaptured": "Niet vastgelegd",
     "exportToFile": "Opslaan in bestand…",
     "exportToFileHint": "Exporteert de songtekst naar een .lrc- of .txt-bestand op de gekozen locatie, zonder het audiobestand aan te raken",
-    "exportedToFile": "Geëxporteerd naar {{path}}"
+    "exportedToFile": "Geëxporteerd naar {{path}}",
+    "destinationLabel": "Standaardbestemming voor songteksten",
+    "destination": {
+      "tag": {
+        "label": "Ingesloten tag",
+        "hint": "Schrijft USLT/©lyr in het audiobestand (compatibel met foobar2000, iTunes…)."
+      },
+      "sidecar": {
+        "label": "Sidecar-bestand",
+        "hint": "Schrijft een .lrc / .txt naast het audiobestand. Tags blijven onaangeroerd."
+      },
+      "db_only": {
+        "label": "Alleen WaveFlow-database",
+        "hint": "Blijft in de cache van de app. Geen bestanden of tags worden aangeraakt."
+      }
+    }
   },
   "sort": {
     "title": "Titel",
@@ -1793,6 +1814,10 @@
       "title": "Songtekstvertaling (Musixmatch)",
       "subtitle": "Toont onder elke LRC-regel een vertaling wanneer Musixmatch er een aanbiedt",
       "off": "Uit"
+    },
+    "lyricsDestination": {
+      "title": "Bestemming voor opgeslagen songteksten",
+      "subtitle": "Waar songteksten uit de editor heen gaan. Per bewerking te overschrijven."
     }
   },
   "spotify": {

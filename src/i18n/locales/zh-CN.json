@@ -130,6 +130,11 @@
       "hint": "之后如有需要，你可以再创建其他资料。",
       "required": "请填写资料名称。",
       "unavailable": "资料暂不可用，请稍后再试。"
+    },
+    "lyrics": {
+      "title": "歌词保存在哪里?",
+      "description": "编辑歌词时,它们应该保存到何处?可在 设置 → 播放 中随时更改。",
+      "hint": "选择「Sidecar 文件」可让音频文件保持不变 — foobar2000 等播放器就是这样做的。"
     }
   },
   "sidebar": {
@@ -1083,7 +1088,8 @@
       "plain": "未同步"
     },
     "toast": {
-      "tagWriteSkipped": "TTML 仅保留在缓存中（未写入音频标签）"
+      "tagWriteSkipped": "TTML 仅保留在缓存中（未写入音频标签）",
+      "sidecarWriteSkipped": "歌词已保存到数据库,但 TTML 无法放入 .lrc/.txt 文件。"
     }
   },
   "duplicates": {
@@ -1221,7 +1227,22 @@
     "notCaptured": "未捕获",
     "exportToFile": "保存到文件…",
     "exportToFileHint": "将歌词导出为 .lrc 或 .txt 文件到您选择的位置,不会修改音频文件",
-    "exportedToFile": "已导出到 {{path}}"
+    "exportedToFile": "已导出到 {{path}}",
+    "destinationLabel": "歌词默认保存位置",
+    "destination": {
+      "tag": {
+        "label": "嵌入标签",
+        "hint": "写入音频文件的 USLT/©lyr（兼容 foobar2000、iTunes…）。"
+      },
+      "sidecar": {
+        "label": "Sidecar 文件",
+        "hint": "在音频文件旁边写入 .lrc / .txt。文件标签不受影响。"
+      },
+      "db_only": {
+        "label": "仅 WaveFlow 数据库",
+        "hint": "保留在应用缓存中。不会触碰任何文件或标签。"
+      }
+    }
   },
   "sort": {
     "title": "标题",
@@ -1793,6 +1814,10 @@
       "title": "歌词翻译 (Musixmatch)",
       "subtitle": "当 Musixmatch 提供翻译时,在每行 LRC 下方显示翻译",
       "off": "关闭"
+    },
+    "lyricsDestination": {
+      "title": "已保存歌词的位置",
+      "subtitle": "编辑器中输入的歌词将保存到何处。可以在每次编辑时覆盖。"
     }
   },
   "scanProgress": {

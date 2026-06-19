@@ -130,6 +130,11 @@
       "hint": "必要に応じて、あとで別のプロフィールを作成できます。",
       "required": "プロフィール名は必須です。",
       "unavailable": "プロフィールを利用できません。少し待ってからもう一度お試しください。"
+    },
+    "lyrics": {
+      "title": "歌詞はどこに保存しますか？",
+      "description": "歌詞を編集したとき、どこに保存しますか？設定 → 再生 でいつでも変更できます。",
+      "hint": "オーディオファイルを変更したくない場合は「サイドカーファイル」を選択 — foobar2000などと同じ方式。"
     }
   },
   "sidebar": {
@@ -1083,7 +1088,8 @@
       "plain": "同期なし"
     },
     "toast": {
-      "tagWriteSkipped": "TTML はキャッシュにのみ保存されました（音声タグには書き込まれていません）"
+      "tagWriteSkipped": "TTML はキャッシュにのみ保存されました（音声タグには書き込まれていません）",
+      "sidecarWriteSkipped": "歌詞はデータベースに保存しましたが、TTMLは .lrc/.txt ファイルに収まりません。"
     }
   },
   "duplicates": {
@@ -1221,7 +1227,22 @@
     "notCaptured": "未キャプチャ",
     "exportToFile": "ファイルに保存…",
     "exportToFileHint": "音声ファイルを変更せずに、任意の場所へ .lrc または .txt として歌詞を書き出します",
-    "exportedToFile": "{{path}} に書き出しました"
+    "exportedToFile": "{{path}} に書き出しました",
+    "destinationLabel": "歌詞の既定の保存先",
+    "destination": {
+      "tag": {
+        "label": "埋め込みタグ",
+        "hint": "オーディオファイルのUSLT/©lyrに書き込みます（foobar2000、iTunesと互換）。"
+      },
+      "sidecar": {
+        "label": "サイドカーファイル",
+        "hint": "オーディオファイルの隣に .lrc / .txt を書き込みます。タグはそのまま。"
+      },
+      "db_only": {
+        "label": "WaveFlow のデータベースのみ",
+        "hint": "アプリのキャッシュに残ります。ファイルもタグも変更しません。"
+      }
+    }
   },
   "sort": {
     "title": "タイトル",
@@ -1793,6 +1814,10 @@
       "title": "歌詞の翻訳 (Musixmatch)",
       "subtitle": "Musixmatch に翻訳がある場合、各 LRC 行の下に翻訳を表示します",
       "off": "オフ"
+    },
+    "lyricsDestination": {
+      "title": "保存される歌詞の保存先",
+      "subtitle": "エディターで入力した歌詞の保存先。編集ごとに上書き可能。"
     }
   },
   "scanProgress": {

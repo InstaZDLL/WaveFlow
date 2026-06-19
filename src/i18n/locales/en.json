@@ -130,6 +130,11 @@
       "hint": "You can create additional profiles later if needed.",
       "required": "Profile name is required.",
       "unavailable": "Profile unavailable — please try again in a moment."
+    },
+    "lyrics": {
+      "title": "Where should lyrics live?",
+      "description": "When you edit lyrics, where should they go? You can change this anytime from Settings → Playback.",
+      "hint": "Pick \"Sidecar file\" to keep your audio files untouched — what foobar2000 and friends do."
     }
   },
   "sidebar": {
@@ -1083,7 +1088,8 @@
       "plain": "Unsynchronised"
     },
     "toast": {
-      "tagWriteSkipped": "TTML kept in cache only (not written to the audio tag)"
+      "tagWriteSkipped": "TTML kept in cache only (not written to the audio tag)",
+      "sidecarWriteSkipped": "Lyrics saved to the database, but TTML can't ride a .lrc/.txt sidecar."
     }
   },
   "duplicates": {
@@ -1221,7 +1227,22 @@
     "notCaptured": "Not captured",
     "exportToFile": "Save to file…",
     "exportToFileHint": "Export the lyrics to a .lrc or .txt file at the location of your choice, without touching the audio file",
-    "exportedToFile": "Exported to {{path}}"
+    "exportedToFile": "Exported to {{path}}",
+    "destinationLabel": "Default lyrics destination",
+    "destination": {
+      "tag": {
+        "label": "Embedded tag",
+        "hint": "Writes USLT/©lyr in the audio file (foobar2000, iTunes… compatible)."
+      },
+      "sidecar": {
+        "label": "Sidecar file",
+        "hint": "Writes a .lrc / .txt next to the audio file. Audio file tags untouched."
+      },
+      "db_only": {
+        "label": "WaveFlow database only",
+        "hint": "Stays in the app cache. No files or tags are touched."
+      }
+    }
   },
   "sort": {
     "title": "Title",
@@ -1793,6 +1814,10 @@
       "title": "Lyrics translation (Musixmatch)",
       "subtitle": "Displays a translation under each LRC line when Musixmatch has one",
       "off": "Off"
+    },
+    "lyricsDestination": {
+      "title": "Saved-lyrics destination",
+      "subtitle": "Where lyrics typed into the editor land. You can override this per-edit from the editor footer."
     }
   },
   "spotify": {
