@@ -688,9 +688,9 @@
       "next": "次へ",
       "shuffleOn": "シャッフルを無効にする",
       "shuffleOff": "シャッフルを有効にする",
-      "repeatOff": "リピートをオンにする",
-      "repeatAll": "1曲リピート",
-      "repeatOne": "リピートをオフにする"
+      "repeatOff": "リピート オフ",
+      "repeatAll": "すべてリピート",
+      "repeatOne": "1曲リピート"
     },
     "volume": {
       "label": "音量",

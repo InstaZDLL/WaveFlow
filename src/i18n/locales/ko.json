@@ -688,9 +688,9 @@
       "next": "다음",
       "shuffleOn": "셔플 비활성화",
       "shuffleOff": "셔플 활성화",
-      "repeatOff": "반복 활성화",
-      "repeatAll": "한 곡 반복",
-      "repeatOne": "반복 끄기"
+      "repeatOff": "반복 끔",
+      "repeatAll": "전체 반복",
+      "repeatOne": "한 곡 반복"
     },
     "volume": {
       "label": "볼륨",

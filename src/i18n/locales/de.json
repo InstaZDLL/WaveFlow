@@ -688,9 +688,9 @@
       "next": "Nächster",
       "shuffleOn": "Zufallswiedergabe deaktivieren",
       "shuffleOff": "Zufallswiedergabe aktivieren",
-      "repeatOff": "Wiederholung aktivieren",
-      "repeatAll": "Einen Titel wiederholen",
-      "repeatOne": "Wiederholung deaktivieren"
+      "repeatOff": "Wiederholung aus",
+      "repeatAll": "Alle wiederholen",
+      "repeatOne": "Einen Titel wiederholen"
     },
     "volume": {
       "label": "Lautstärke",
