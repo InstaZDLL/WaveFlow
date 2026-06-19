@@ -1703,7 +1703,7 @@
         },
         "editorial": {
           "label": "Editorial",
-          "description": "Revista em papel — serif editorial, filetes finos, grão suave, espaço generoso."
+          "description": "Revista em papel — tipografia serifada editorial, linhas finas, grão suave, espaço generoso."
         },
         "lounge": {
           "label": "Lounge",
@@ -1711,11 +1711,11 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Clube néon — base OLED, halos coloridos em torno dos itens ativos, pills mono, animações com mola."
+          "description": "Clube néon — base OLED, halos coloridos em torno dos itens ativos, cápsulas mono, animações elásticas."
         },
         "liquid": {
           "label": "Liquid",
-          "description": "Vidro líquido ao estilo Apple — material translúcido multicamada, fundo aurora, cápsulas pílula, movimento calmo."
+          "description": "Vidro líquido ao estilo Apple — material translúcido multicamada, fundo aurora, cápsulas, animações suaves."
         }
       }
     },

@@ -1711,11 +1711,11 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Club neón — base OLED, halos de color en los elementos activos, pills mono, animaciones tipo resorte."
+          "description": "Club neón — base OLED, halos de color en los elementos activos, cápsulas monocromáticas, animaciones con rebote."
         },
         "liquid": {
           "label": "Liquid",
-          "description": "Vidrio líquido al estilo Apple — material translúcido multicapa, fondo aurora, cápsulas pastilla, movimiento sereno."
+          "description": "Vidrio líquido al estilo Apple — material translúcido multicapa, fondo aurora, cápsulas, movimiento sereno."
         }
       }
     },
