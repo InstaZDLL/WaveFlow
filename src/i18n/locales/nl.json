@@ -47,6 +47,17 @@
       "bulletImport": "Importeer een map of sleep bestanden",
       "bulletScrobble": "Koppel Last.fm om je luistergeschiedenis op de achtergrond te scrobblen"
     },
+    "appearance": {
+      "title": "Kies je look",
+      "description": "Selecteer een kleurthema en een interfacestijl. Je kunt ze altijd wijzigen via Instellingen → Uiterlijk.",
+      "theme": {
+        "title": "Kleurthema"
+      },
+      "skin": {
+        "title": "Interfacestijl"
+      },
+      "hint": "Deze keuzes worden per profiel opgeslagen — elk profiel kan zijn eigen look hebben."
+    },
     "folder": {
       "title": "Kies je muziekmap",
       "description": "Vertel WaveFlow waar je muziek staat. De scanner organiseert je bibliotheek automatisch.",

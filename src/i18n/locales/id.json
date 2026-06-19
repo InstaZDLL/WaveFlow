@@ -47,6 +47,17 @@
       "bulletImport": "Impor folder atau tarik dan lepas berkas",
       "bulletScrobble": "Hubungkan Last.fm untuk men-scrobble pemutaran di latar belakang"
     },
+    "appearance": {
+      "title": "Pilih tampilan Anda",
+      "description": "Pilih tema warna dan gaya antarmuka. Anda dapat mengubahnya kapan saja melalui Pengaturan → Tampilan.",
+      "theme": {
+        "title": "Tema warna"
+      },
+      "skin": {
+        "title": "Gaya antarmuka"
+      },
+      "hint": "Pilihan ini disimpan per profil — setiap profil dapat memiliki tampilannya sendiri."
+    },
     "folder": {
       "title": "Pilih folder musikmu",
       "description": "Beri tahu WaveFlow tempat musikmu disimpan. Pemindai akan menata pustakamu secara otomatis.",

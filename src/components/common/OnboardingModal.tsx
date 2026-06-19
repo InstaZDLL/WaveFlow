@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
   AudioLines,
+  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -13,9 +14,11 @@ import {
   ExternalLink,
   FolderOpen,
   Globe,
+  Layers,
   Loader2,
   Mic2,
   Music,
+  Palette,
   Play,
   SkipForward,
   Sparkles,
@@ -26,6 +29,10 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { useLibrary } from "../../hooks/useLibrary";
 import { useProfile } from "../../hooks/useProfile";
+import { useTheme } from "../../hooks/useTheme";
+import { useSkin } from "../../hooks/useSkin";
+import { THEME_PRESETS } from "../../lib/themes";
+import { SKIN_PRESETS } from "../../lib/skins";
 import { pickFolder } from "../../lib/tauri/dialog";
 import type { ScanSummary } from "../../lib/tauri/library";
 import {
@@ -54,6 +61,7 @@ type StepId =
   | "language"
   | "profile"
   | "localOnly"
+  | "appearance"
   | "folder"
   | "lastfm"
   | "scan"
@@ -64,6 +72,7 @@ const STEPS: ReadonlyArray<StepId> = [
   "language",
   "profile",
   "localOnly",
+  "appearance",
   "folder",
   "lastfm",
   "scan",
@@ -85,6 +94,7 @@ const STEP_ICONS: Record<StepId, typeof Music> = {
   language: Globe,
   profile: UserRound,
   localOnly: AlertCircle,
+  appearance: Palette,
   folder: FolderOpen,
   lastfm: AudioLines,
   scan: Disc3,
@@ -150,6 +160,8 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
   const { t, i18n } = useTranslation();
   const { libraries, createLibrary, importFolder } = useLibrary();
   const { activeProfile, renameProfile } = useProfile();
+  const { theme, setThemeId } = useTheme();
+  const { skin, setSkinId } = useSkin();
 
   // Decide ONCE at mount whether to include the `profile` rename
   // step, then never recompute it. The parent gates this modal on a
@@ -576,6 +588,145 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
                 </div>
               )}
 
+              {stepId === "appearance" && (
+                <div className="mt-6 space-y-6">
+                  {/* Theme picker — same visual contract as Settings →
+                    Appearance but inline, no card wrapper. Each click
+                    fires `setThemeId` which writes to
+                    `profile_setting['appearance.theme.id']` so the
+                    choice survives the onboarding-then-quit edge case. */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Palette
+                        size={16}
+                        className="text-zinc-400 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
+                        {t("onboarding.appearance.theme.title")}
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                      {THEME_PRESETS.map((preset) => {
+                        const isActive = preset.id === theme.id;
+                        return (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={(event) => setThemeId(preset.id, event)}
+                            aria-pressed={isActive}
+                            aria-label={t(preset.labelKey)}
+                            className={`group relative rounded-lg border overflow-hidden transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+                              isActive
+                                ? "border-emerald-500 ring-2 ring-emerald-500/30"
+                                : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                            }`}
+                          >
+                            <div
+                              className="h-10 flex items-center justify-between px-2"
+                              style={{
+                                backgroundColor:
+                                  preset.ambient ??
+                                  (preset.mode === "dark"
+                                    ? "#121212"
+                                    : "#ffffff"),
+                              }}
+                            >
+                              <div className="flex space-x-0.5">
+                                <div
+                                  className="w-2 h-2 rounded-full"
+                                  style={{
+                                    backgroundColor: preset.accent[400],
+                                  }}
+                                />
+                                <div
+                                  className="w-2 h-2 rounded-full"
+                                  style={{
+                                    backgroundColor: preset.accent[500],
+                                  }}
+                                />
+                                <div
+                                  className="w-2 h-2 rounded-full"
+                                  style={{
+                                    backgroundColor: preset.accent[600],
+                                  }}
+                                />
+                              </div>
+                              {isActive && (
+                                <Check
+                                  size={11}
+                                  strokeWidth={3}
+                                  style={{ color: preset.accent[500] }}
+                                />
+                              )}
+                            </div>
+                            <div className="px-2 py-1 bg-white dark:bg-zinc-900 text-left">
+                              <div className="text-[10px] font-medium text-zinc-700 dark:text-zinc-200 truncate">
+                                {t(preset.labelKey)}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Skin picker — orthogonal axis to theme. Click
+                    fires `setSkinId` which writes
+                    `profile_setting['appearance.skin.id']`. */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Layers
+                        size={16}
+                        className="text-zinc-400 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
+                        {t("onboarding.appearance.skin.title")}
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {SKIN_PRESETS.map((preset) => {
+                        const isActive = preset.id === skin.id;
+                        return (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => setSkinId(preset.id)}
+                            aria-pressed={isActive}
+                            className={`group relative rounded-lg border px-3 py-2.5 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+                              isActive
+                                ? "border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10"
+                                : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 bg-white dark:bg-zinc-800/50"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-100 truncate">
+                                {t(preset.labelKey)}
+                              </span>
+                              {isActive && (
+                                <Check
+                                  size={12}
+                                  strokeWidth={3}
+                                  className="text-emerald-500 shrink-0"
+                                />
+                              )}
+                            </div>
+                            <span className="block text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
+                              {t(preset.descriptionKey)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-zinc-400 italic">
+                    {t("onboarding.appearance.hint")}
+                  </p>
+                </div>
+              )}
+
               {stepId === "folder" && (
                 <div className="mt-6 space-y-4">
                   <button
@@ -859,6 +1010,10 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
               nextLabel={t("onboarding.actions.understood")}
               t={t}
             />
+          )}
+
+          {stepId === "appearance" && (
+            <DefaultActions onBack={goBack} onNext={goNext} t={t} />
           )}
 
           {stepId === "folder" && (

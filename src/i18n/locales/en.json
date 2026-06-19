@@ -47,6 +47,17 @@
       "bulletImport": "Import a folder or drag-and-drop files",
       "bulletScrobble": "Connect Last.fm to scrobble plays in the background"
     },
+    "appearance": {
+      "title": "Choose your look",
+      "description": "Pick a colour theme and an interface style. You can change them anytime from Settings → Appearance.",
+      "theme": {
+        "title": "Colour theme"
+      },
+      "skin": {
+        "title": "Interface style"
+      },
+      "hint": "These choices are saved per profile — every profile can have its own look."
+    },
     "folder": {
       "title": "Pick your music folder",
       "description": "Tell WaveFlow where your music lives. The scanner will organise your library automatically.",
