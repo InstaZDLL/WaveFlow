@@ -123,10 +123,18 @@ def main() -> int:
     here = Path(__file__).resolve().parent.parent / "src" / "i18n" / "locales"
     changed: list[str] = []
     skipped: list[str] = []
+    # `missing` is the only failure mode we treat as fatal — a locale
+    # that the script expected to find but couldn't open means the
+    # caller's working copy is out of sync. `skipped` covers the
+    # benign no-op case where the locale is already at the target
+    # values; idempotent re-runs must keep returning 0 so CI / pre-
+    # commit hooks can call this script unconditionally. Mirrors the
+    # convention in `fix_repeat_aria_labels.py`.
+    missing: list[str] = []
     for code, patches in PATCHES.items():
         path = here / f"{code}.json"
         if not path.exists():
-            skipped.append(f"{code}(missing)")
+            missing.append(code)
             continue
         if patch_locale(path, patches):
             changed.append(code)
@@ -135,6 +143,13 @@ def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     print(f"changed ({len(changed)}): {', '.join(changed) or '(none)'}")
     print(f"skipped ({len(skipped)}): {', '.join(skipped) or '(none)'}")
+    if missing:
+        print(
+            f"missing ({len(missing)}): {', '.join(missing)} — "
+            "expected locale file(s) not found",
+            file=sys.stderr,
+        )
+        return 1
     return 0
 
 
