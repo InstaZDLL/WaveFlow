@@ -1334,7 +1334,9 @@
         "storageRead": "Чтение хранилища",
         "assets": "Ресурсы ({{count}})",
         "none": "Права не запрошены"
-      }
+      },
+      "bundled": "Встроенный",
+      "bundledHint": "Поставляется с WaveFlow — отключите, чтобы скрыть."
     },
     "shortcuts": {
       "subtitle": "Нажмите на сочетание клавиш, затем введите нужную комбинацию. Backspace — очистить, Esc — отменить.",
@@ -1890,6 +1892,8 @@
     "searchPlaceholder": "Поиск станции…",
     "backToCategories": "К категориям",
     "live": "ЭФИР",
-    "nowPlaying": "Сейчас играет"
+    "nowPlaying": "Сейчас играет",
+    "unavailableTitle": "Web Radio отключено",
+    "unavailableHint": "Включите плагин Web Radio в Настройки → Плагины, чтобы просматривать более 30 000 станций."
   }
 }

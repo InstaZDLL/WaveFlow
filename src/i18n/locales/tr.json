@@ -1293,7 +1293,9 @@
         "storageRead": "Depolama okuma",
         "assets": "Varlıklar ({{count}})",
         "none": "İstenen izin yok"
-      }
+      },
+      "bundled": "Yerleşik",
+      "bundledHint": "WaveFlow ile birlikte gelir — gizlemek için devre dışı bırakın."
     },
     "shortcuts": {
       "subtitle": "Bir kısayola tıkla ve ardından istediğin tuş kombinasyonuna bas. Silmek için Backspace, iptal için Esc.",
@@ -1845,6 +1847,8 @@
     "searchPlaceholder": "İstasyon ara…",
     "backToCategories": "Kategorilere dön",
     "live": "CANLI",
-    "nowPlaying": "Şimdi çalıyor"
+    "nowPlaying": "Şimdi çalıyor",
+    "unavailableTitle": "Web Radio devre dışı",
+    "unavailableHint": "30.000'den fazla istasyona göz atmak için Ayarlar → Plugin'ler bölümünden Web Radio plugin'ini etkinleştirin."
   }
 }

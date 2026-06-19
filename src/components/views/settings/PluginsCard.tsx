@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Puzzle, Trash2, Globe, Database, FileText } from "lucide-react";
+import { Puzzle, Trash2, Globe, Database, FileText, Package } from "lucide-react";
 
 import {
   listInstalledPlugins,
@@ -8,6 +8,15 @@ import {
   uninstallPlugin,
   type PluginInfo,
 } from "../../../lib/tauri/plugins";
+import { PLUGIN_AVAILABILITY_EVENT } from "../../../hooks/usePluginAvailability";
+
+/// Fire the cross-component "plugin availability changed" bus so
+/// Sidebar + WebRadioView refresh their conditional rendering.
+/// Standalone fn (not a useCallback closure) because the call sites
+/// already capture stable state via the optimistic setPlugins above.
+function notifyAvailabilityChanged() {
+  window.dispatchEvent(new CustomEvent(PLUGIN_AVAILABILITY_EVENT));
+}
 
 /**
  * Settings → Plugins panel (Phase 3.2). Lists every plugin
@@ -72,6 +81,7 @@ export function PluginsCard() {
       );
       try {
         await setPluginEnabled(plugin.id, !plugin.enabled);
+        notifyAvailabilityChanged();
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
         setPlugins((prev) =>
@@ -93,6 +103,7 @@ export function PluginsCard() {
         await uninstallPlugin(pluginId);
         setPlugins((prev) => prev.filter((p) => p.id !== pluginId));
         setConfirmingUninstall(null);
+        notifyAvailabilityChanged();
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -204,7 +215,19 @@ export function PluginsCard() {
                         })}
                       />
                     </label>
-                    {isConfirming ? (
+                    {plugin.bundled ? (
+                      // Bundled plugins re-seed at every boot, so an
+                      // uninstall is just a one-launch ghost state.
+                      // Surface a passive label so the user knows
+                      // "Disable" is the right knob, not Uninstall.
+                      <span
+                        className="flex items-center gap-1 text-[11px] text-zinc-500 dark:text-zinc-400 italic"
+                        title={t("settings.plugins.bundledHint")}
+                      >
+                        <Package size={12} aria-hidden="true" />
+                        <span>{t("settings.plugins.bundled")}</span>
+                      </span>
+                    ) : isConfirming ? (
                       <div
                         role="group"
                         aria-label={t("settings.plugins.confirmUninstall", {

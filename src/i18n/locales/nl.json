@@ -1293,7 +1293,9 @@
         "storageRead": "Opslag lezen",
         "assets": "Resources ({{count}})",
         "none": "Geen rechten gevraagd"
-      }
+      },
+      "bundled": "Ingebouwd",
+      "bundledHint": "Meegeleverd met WaveFlow — schakel het uit om het te verbergen."
     },
     "shortcuts": {
       "subtitle": "Klik op een sneltoets en druk vervolgens op de gewenste toetscombinatie. Backspace om te wissen, Esc om te annuleren.",
@@ -1845,6 +1847,8 @@
     "searchPlaceholder": "Zoek een station…",
     "backToCategories": "Terug naar categorieën",
     "live": "LIVE",
-    "nowPlaying": "Speelt nu"
+    "nowPlaying": "Speelt nu",
+    "unavailableTitle": "Web Radio is uitgeschakeld",
+    "unavailableHint": "Schakel de Web Radio-plugin in via Instellingen → Plugins om meer dan 30.000 stations te doorzoeken."
   }
 }

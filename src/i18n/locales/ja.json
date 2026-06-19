@@ -1293,7 +1293,9 @@
         "storageRead": "ストレージ読み取り",
         "assets": "アセット ({{count}})",
         "none": "要求された権限はありません"
-      }
+      },
+      "bundled": "組み込み",
+      "bundledHint": "WaveFlow に同梱されています — 非表示にするには無効にしてください。"
     },
     "integrations": {
       "lastfm": {
@@ -1845,6 +1847,8 @@
     "searchPlaceholder": "ステーションを検索…",
     "backToCategories": "カテゴリーに戻る",
     "live": "ライブ",
-    "nowPlaying": "再生中"
+    "nowPlaying": "再生中",
+    "unavailableTitle": "Web Radio は無効です",
+    "unavailableHint": "30,000 以上の放送局を閲覧するには、設定 → プラグイン で Web Radio プラグインを有効にしてください。"
   }
 }

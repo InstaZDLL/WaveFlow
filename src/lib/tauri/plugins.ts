@@ -24,6 +24,11 @@ export interface PluginInfo {
   /** Resolved from `app_setting['plugin.<id>.enabled']`. Defaults
    *  to `true` for a freshly-installed plugin (no setting row). */
   enabled: boolean;
+  /** `true` when the plugin ships inside the WaveFlow installer and
+   *  is re-seeded at every boot. The Settings UI hides "Uninstall"
+   *  for these rows; the backend mirrors this by refusing
+   *  `uninstall_plugin` on bundled ids. */
+  bundled: boolean;
 }
 
 export interface PluginPermissionsInfo {

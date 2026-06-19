@@ -1293,7 +1293,9 @@
         "storageRead": "Speicherlesen",
         "assets": "Ressourcen ({{count}})",
         "none": "Keine Berechtigungen angefordert"
-      }
+      },
+      "bundled": "Mitgeliefert",
+      "bundledHint": "Mit WaveFlow ausgeliefert — deaktivieren, um es auszublenden."
     },
     "shortcuts": {
       "subtitle": "Klicke auf ein Tastenkürzel und drücke dann die gewünschte Tastenkombination. Rücktaste zum Löschen, Esc zum Abbrechen.",
@@ -1845,6 +1847,8 @@
     "searchPlaceholder": "Sender suchen…",
     "backToCategories": "Zurück zu den Kategorien",
     "live": "LIVE",
-    "nowPlaying": "Läuft gerade"
+    "nowPlaying": "Läuft gerade",
+    "unavailableTitle": "Web Radio ist deaktiviert",
+    "unavailableHint": "Aktivieren Sie das Web Radio-Plugin in Einstellungen → Plugins, um über 30 000 Sender zu durchsuchen."
   }
 }

@@ -1293,7 +1293,9 @@
         "storageRead": "Baca penyimpanan",
         "assets": "Aset ({{count}})",
         "none": "Tidak ada izin diminta"
-      }
+      },
+      "bundled": "Bawaan",
+      "bundledHint": "Disertakan dengan WaveFlow — nonaktifkan untuk menyembunyikannya."
     },
     "shortcuts": {
       "subtitle": "Klik sebuah pintasan lalu tekan kombinasi tombol yang kamu inginkan. Backspace untuk menghapus, Esc untuk membatalkan.",
@@ -1845,6 +1847,8 @@
     "searchPlaceholder": "Cari stasiun…",
     "backToCategories": "Kembali ke kategori",
     "live": "LANGSUNG",
-    "nowPlaying": "Sedang diputar"
+    "nowPlaying": "Sedang diputar",
+    "unavailableTitle": "Web Radio dinonaktifkan",
+    "unavailableHint": "Aktifkan plugin Web Radio di Pengaturan → Plugin untuk menjelajahi lebih dari 30.000 stasiun."
   }
 }

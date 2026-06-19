@@ -24,6 +24,7 @@ import { SmartPlaylistEditorModal } from "../common/SmartPlaylistEditorModal";
 import { useProfile } from "../../hooks/useProfile";
 import { useLibrary } from "../../hooks/useLibrary";
 import { usePlaylist } from "../../hooks/usePlaylist";
+import { usePluginAvailability } from "../../hooks/usePluginAvailability";
 import { getProfileColor, profileInitial } from "../../lib/profileColors";
 import { pickFile, pickFolder } from "../../lib/tauri/dialog";
 import { importPlaylistM3u } from "../../lib/tauri/playlist";
@@ -74,6 +75,12 @@ export function Sidebar({
     liked_count: 0,
     recent_plays_count: 0,
   });
+  // Hide the Web Radio entry when the user has disabled or
+  // uninstalled the plugin in Settings. Keeping the entry visible on
+  // a click that fails with "plugin disabled" was a stale-UI bug
+  // (the user has no way back without going to Settings, and the
+  // raw error surfaced in the view).
+  const showWebRadio = usePluginAvailability("web-radio");
   // Per-profile toggle: hide the Spotify entry from the sidebar so
   // users who don't care about Spotify integration don't see it
   // every time. Default ON. Persisted in `ui.show_spotify`.
@@ -268,12 +275,14 @@ export function Sidebar({
           active={activeView === "home"}
           onClick={() => setActiveView("home")}
         />
-        <NavItem
-          icon={<Radio size={18} />}
-          label={t("sidebar.nav.webRadio")}
-          active={activeView === "web-radio"}
-          onClick={() => setActiveView("web-radio")}
-        />
+        {showWebRadio && (
+          <NavItem
+            icon={<Radio size={18} />}
+            label={t("sidebar.nav.webRadio")}
+            active={activeView === "web-radio"}
+            onClick={() => setActiveView("web-radio")}
+          />
+        )}
         {showSpotify && (
           <NavItem
             icon={<Headphones size={18} />}

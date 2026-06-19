@@ -1293,7 +1293,9 @@
         "storageRead": "Lecture du stockage",
         "assets": "Ressources ({{count}})",
         "none": "Aucune permission demandée"
-      }
+      },
+      "bundled": "Inclus",
+      "bundledHint": "Livré avec WaveFlow — désactivez-le pour le masquer."
     },
     "categoryNavLabel": "Catégories des paramètres",
     "appearance": {
@@ -1845,6 +1847,8 @@
     "searchPlaceholder": "Rechercher une station…",
     "backToCategories": "Retour aux catégories",
     "live": "LIVE",
-    "nowPlaying": "Lecture en cours"
+    "nowPlaying": "Lecture en cours",
+    "unavailableTitle": "Web Radio désactivée",
+    "unavailableHint": "Activez le plugin Web Radio dans Réglages → Plugins pour parcourir plus de 30 000 stations."
   }
 }

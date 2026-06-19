@@ -1297,7 +1297,9 @@
         "storageRead": "قراءة التخزين",
         "assets": "الموارد ({{count}})",
         "none": "لا توجد أذونات مطلوبة"
-      }
+      },
+      "bundled": "مدمج",
+      "bundledHint": "يأتي مع WaveFlow — قم بتعطيله لإخفائه."
     },
     "shortcuts": {
       "subtitle": "انقر على اختصار ثم اضغط على تركيبة المفاتيح المطلوبة. Backspace للمسح، Esc للإلغاء.",
@@ -1849,6 +1851,8 @@
     "searchPlaceholder": "ابحث عن محطة…",
     "backToCategories": "العودة إلى الفئات",
     "live": "مباشر",
-    "nowPlaying": "قيد التشغيل الآن"
+    "nowPlaying": "قيد التشغيل الآن",
+    "unavailableTitle": "Web Radio معطّل",
+    "unavailableHint": "فعّل إضافة Web Radio من الإعدادات → الإضافات لتصفح أكثر من 30,000 محطة."
   }
 }
