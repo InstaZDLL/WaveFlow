@@ -95,12 +95,15 @@ pub async fn read_auto_enabled(pool: &SqlitePool) -> AppResult<bool> {
 
 /// Persist the per-profile auto-backfill enabled flag.
 pub async fn write_auto_enabled(pool: &SqlitePool, enabled: bool) -> AppResult<()> {
+    let now = Utc::now().timestamp_millis();
     sqlx::query(
-        "INSERT INTO profile_setting (key, value) VALUES (?, ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'bool', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, value_type = excluded.value_type, updated_at = excluded.updated_at",
     )
     .bind(AUTO_BACKFILL_KEY)
     .bind(if enabled { "1" } else { "0" })
+    .bind(now)
     .execute(pool)
     .await?;
     Ok(())
@@ -125,11 +128,13 @@ pub async fn read_last_run_at(pool: &SqlitePool) -> AppResult<Option<i64>> {
 /// Stamp the per-profile last-successful-backfill timestamp.
 async fn write_last_run_at(pool: &SqlitePool, epoch_ms: i64) -> AppResult<()> {
     sqlx::query(
-        "INSERT INTO profile_setting (key, value) VALUES (?, ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'int', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, value_type = excluded.value_type, updated_at = excluded.updated_at",
     )
     .bind(LAST_RUN_AT_KEY)
     .bind(epoch_ms.to_string())
+    .bind(epoch_ms)
     .execute(pool)
     .await?;
     Ok(())
@@ -156,12 +161,15 @@ pub async fn read_heartbeat_interval_min(pool: &SqlitePool) -> AppResult<i64> {
 /// command clamps so a malformed JSON payload can't land an
 /// out-of-range row.
 pub async fn write_heartbeat_interval_min(pool: &SqlitePool, minutes: i64) -> AppResult<()> {
+    let now = Utc::now().timestamp_millis();
     sqlx::query(
-        "INSERT INTO profile_setting (key, value) VALUES (?, ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'int', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, value_type = excluded.value_type, updated_at = excluded.updated_at",
     )
     .bind(HEARTBEAT_INTERVAL_KEY)
     .bind(minutes.to_string())
+    .bind(now)
     .execute(pool)
     .await?;
     Ok(())

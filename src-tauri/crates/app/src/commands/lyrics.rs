@@ -1659,12 +1659,15 @@ pub async fn set_lyrics_translation_lang(
     };
     match &normalized {
         Some(code) => {
+            let now = chrono::Utc::now().timestamp_millis();
             sqlx::query(
-                "INSERT INTO profile_setting (key, value) VALUES (?, ?)
-                 ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                "INSERT INTO profile_setting (key, value, value_type, updated_at)
+                 VALUES (?, ?, 'string', ?)
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value, value_type = excluded.value_type, updated_at = excluded.updated_at",
             )
             .bind(TRANSLATION_LANG_KEY)
             .bind(code)
+            .bind(now)
             .execute(&pool)
             .await?;
         }

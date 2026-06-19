@@ -21,7 +21,7 @@ import {
   Download,
   ArrowUpDown,
   Check,
-  Share2,
+  // Share2, // re-enable when Share button restores in 1.6.0
 } from "lucide-react";
 import {
   DndContext,
@@ -50,7 +50,7 @@ import { ArtistLink } from "../common/ArtistLink";
 import { Tooltip } from "../common/Tooltip";
 import { EmptyState } from "../common/EmptyState";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
-import { ShareModal } from "../common/ShareModal";
+// import { ShareModal } from "../common/ShareModal"; // re-enable for 1.6.0
 import { HiResBadge } from "../common/HiResBadge";
 import { PlayingIndicator } from "../common/PlayingIndicator";
 import { SelectionActionBar } from "../common/SelectionActionBar";
@@ -176,19 +176,9 @@ export function PlaylistView({
     [playlistSort],
   );
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isShareOpen, setIsShareOpen] = useState(false);
-  // Close the share modal whenever the route swaps to another
-  // playlist — otherwise the modal would stay mounted against the
-  // new playlist's id but display the previously-opened share
-  // state. React-19 "adjust state during render in response to a
-  // prop change" pattern: the marker state catches the change,
-  // schedules the reset, and the render returns the post-reset
-  // value in the same pass (no extra commit, no effect).
-  const [shareOpenForId, setShareOpenForId] = useState(playlistId);
-  if (shareOpenForId !== playlistId) {
-    setShareOpenForId(playlistId);
-    setIsShareOpen(false);
-  }
+  // Share state + route-change reset removed alongside the share button
+  // mount (deferred to 1.6.0 with server account binding). Restore when
+  // ShareModal is re-introduced. See SettingsView ServerAccountCard comment.
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
@@ -665,7 +655,11 @@ export function PlaylistView({
                   </button>
                 </Tooltip>
 
-                <Tooltip label={t("playlistView.actions.share")}>
+                {/* Public playlist share — DEFERRED to 1.6.0 alongside the
+                  server account binding (Settings → Intégrations). Mounting
+                  the button without a configured server only paints a 503-style
+                  error. Restore when sync ships. */}
+                {/* <Tooltip label={t("playlistView.actions.share")}>
                   <button
                     type="button"
                     onClick={() => setIsShareOpen(true)}
@@ -674,7 +668,7 @@ export function PlaylistView({
                   >
                     <Share2 size={18} />
                   </button>
-                </Tooltip>
+                </Tooltip> */}
 
                 <Tooltip
                   label={
@@ -793,14 +787,10 @@ export function PlaylistView({
 
       {trackContextMenu.render()}
 
-      {playlistId != null && playlist && (
-        <ShareModal
-          playlistId={playlistId}
-          playlistName={playlist.name}
-          isOpen={isShareOpen}
-          onClose={() => setIsShareOpen(false)}
-        />
-      )}
+      {/* ShareModal deferred to 1.6.0 — see share button comment above.
+        <ShareModal playlistId={playlistId} playlistName={playlist.name}
+          isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} />
+      */}
 
       {playlistId != null && (
         <SelectionActionBar

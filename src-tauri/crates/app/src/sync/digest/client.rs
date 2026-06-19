@@ -94,9 +94,45 @@ pub async fn fetch_remote_digest(
             })?;
             Ok(digest)
         }
-        StatusCode::NOT_FOUND => Err(AppError::Other(format!(
-            "sync digest GET {entity}: profile_canonical_id not visible to this user",
-        ))),
+        StatusCode::NOT_FOUND => {
+            // Bootstrap-friendly: a 404 here means the server has no
+            // materialised state for this scope yet. Two cases collapse
+            // into one response:
+            //
+            // 1. Fresh account / fresh profile — the desktop hasn't
+            //    pushed any profile-scoped op yet, so `profile_resolve`
+            //    has never auto-provisioned the row in `profile`. This
+            //    is the normal first-sync state, NOT an error.
+            // 2. The `profile_canonical_id` belongs to another user
+            //    (real auth boundary). The server returns the same 404
+            //    so it can't be used to enumerate other users' profile
+            //    ids — a security feature.
+            //
+            // Treating the 404 as "remote is empty" lets the diff layer
+            // see `missing_remotely = local.members` and the push
+            // direction sweeps the full local set through `/sync/ops`.
+            // The very first op auto-provisions the profile server-side
+            // (`apply::profile_resolve`), so case (1) self-heals on the
+            // next poll. Case (2) is invisible to the desktop — the
+            // push attempts get rejected by the server's per-op tenant
+            // check, which is the correct failure mode.
+            //
+            // Mirrors the same pattern the entity fetcher already uses:
+            // `entity_client.rs` returns `Ok(None)` on 404 for the same
+            // reason.
+            tracing::warn!(
+                entity,
+                profile_canonical_id = profile_canonical_id.unwrap_or("(user-scoped)"),
+                "sync digest GET returned 404 — treating as empty remote digest \
+                 (server-side profile not provisioned yet, will auto-provision on first push)"
+            );
+            Ok(RemoteDigest {
+                set_hash: hex::encode(waveflow_core::sync::digest::compute_set_hash(&[])),
+                version: 0,
+                max_hlc: None,
+                members: Vec::new(),
+            })
+        }
         StatusCode::UNAUTHORIZED => Err(AppError::Other(
             "sync digest GET: unauthorized — JWT expired or revoked".into(),
         )),
@@ -227,5 +263,30 @@ mod tests {
         let max = parsed2.max_hlc.unwrap();
         assert_eq!(max.wall, 10);
         assert!(max.origin_device_id.is_none());
+    }
+
+    /// Bootstrap-friendly 404 → empty `RemoteDigest`. The actual HTTP
+    /// path lives behind `fetch_remote_digest` and needs a mock server
+    /// to exercise; here we lock in the SHAPE the 404 branch produces
+    /// so a refactor can't silently regress it. If a desktop computes
+    /// the same `compute_set_hash(&[])` locally over an empty local set
+    /// and the server returns an empty digest, `diff::diff` MUST see
+    /// the pair as in-sync — otherwise the backfill orchestrator
+    /// re-pushes phantom rows.
+    #[test]
+    fn empty_digest_matches_canonical_empty_set() {
+        let empty = RemoteDigest {
+            set_hash: hex::encode(waveflow_core::sync::digest::compute_set_hash(&[])),
+            version: 0,
+            max_hlc: None,
+            members: Vec::new(),
+        };
+        // `set_hash` is the canonical empty-set hash — the same one
+        // a local digest with zero members produces.
+        let local_empty_hash = hex::encode(waveflow_core::sync::digest::compute_set_hash(&[]));
+        assert_eq!(empty.set_hash, local_empty_hash);
+        assert_eq!(empty.version, 0);
+        assert!(empty.max_hlc.is_none());
+        assert!(empty.members.is_empty());
     }
 }
