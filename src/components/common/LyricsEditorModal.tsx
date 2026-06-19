@@ -312,7 +312,15 @@ export function LyricsEditorModal({
 
       const cursor = row.wordCursor ?? 0;
       if (cursor >= words.length) {
-        // Out of words on this row — let the caller advance lines.
+        // Already past the last word. Make the keystroke idempotent
+        // with the "just stamped the last word" branch below: jump
+        // to the next row if one exists so a user who hits Space one
+        // extra time at the end of a line still gets unstuck. Without
+        // this, an over-press would bail silently and the only way
+        // forward would be a manual row click.
+        if (idx + 1 < rows.length) {
+          shouldAdvanceToNext = true;
+        }
         return rows;
       }
       // Stamp the line's timeMs on the very first word capture if the
