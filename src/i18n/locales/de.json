@@ -47,6 +47,17 @@
       "bulletImport": "Importiere einen Ordner oder ziehe Dateien per Drag-and-Drop",
       "bulletScrobble": "Verbinde Last.fm, um deine Wiedergaben im Hintergrund zu scrobbeln"
     },
+    "appearance": {
+      "title": "Wählen Sie Ihren Look",
+      "description": "Wählen Sie ein Farbschema und einen Oberflächenstil. Sie können beides jederzeit unter Einstellungen → Erscheinungsbild ändern.",
+      "theme": {
+        "title": "Farbschema"
+      },
+      "skin": {
+        "title": "Oberflächenstil"
+      },
+      "hint": "Diese Auswahl wird pro Profil gespeichert — jedes Profil kann sein eigenes Aussehen haben."
+    },
     "folder": {
       "title": "Wähle deinen Musikordner",
       "description": "Sag WaveFlow, wo deine Musik liegt. Der Scanner organisiert deine Bibliothek automatisch.",

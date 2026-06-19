@@ -47,6 +47,17 @@
       "bulletImport": "导入文件夹或拖放文件",
       "bulletScrobble": "连接 Last.fm，在后台 Scrobble 你的播放记录"
     },
+    "appearance": {
+      "title": "选择您的外观",
+      "description": "选择一个颜色主题和界面风格。您可以随时在 设置 → 外观 中更改。",
+      "theme": {
+        "title": "颜色主题"
+      },
+      "skin": {
+        "title": "界面风格"
+      },
+      "hint": "这些选项按配置文件保存 — 每个配置文件都可以有自己的外观。"
+    },
     "folder": {
       "title": "选择你的音乐文件夹",
       "description": "告诉 WaveFlow 你的音乐在哪里。扫描器将自动整理你的音乐库。",

@@ -47,6 +47,17 @@
       "bulletImport": "Importa una carpeta o arrastra y suelta archivos",
       "bulletScrobble": "Conecta Last.fm para hacer scrobble de tus reproducciones en segundo plano"
     },
+    "appearance": {
+      "title": "Elige tu estilo",
+      "description": "Selecciona un tema de color y un estilo de interfaz. Puedes cambiarlos en cualquier momento desde Ajustes → Apariencia.",
+      "theme": {
+        "title": "Tema de color"
+      },
+      "skin": {
+        "title": "Estilo de interfaz"
+      },
+      "hint": "Estas opciones se guardan por perfil — cada perfil puede tener su propio estilo."
+    },
     "folder": {
       "title": "Elige tu carpeta de música",
       "description": "Indica a WaveFlow dónde está tu música. El escáner organizará tu biblioteca automáticamente.",

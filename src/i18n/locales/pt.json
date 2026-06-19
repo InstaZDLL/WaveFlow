@@ -47,6 +47,17 @@
       "bulletImport": "Importa uma pasta ou arrasta ficheiros",
       "bulletScrobble": "Liga o Last.fm para fazer scrobble das reproduções em segundo plano"
     },
+    "appearance": {
+      "title": "Escolha o seu look",
+      "description": "Selecione um tema de cor e um estilo de interface. Pode alterá-los a qualquer momento em Definições → Aparência.",
+      "theme": {
+        "title": "Tema de cor"
+      },
+      "skin": {
+        "title": "Estilo de interface"
+      },
+      "hint": "Estas escolhas são guardadas por perfil — cada perfil pode ter o seu próprio look."
+    },
     "folder": {
       "title": "Escolhe a tua pasta de música",
       "description": "Diz ao WaveFlow onde está a tua música. O scanner organiza a biblioteca automaticamente.",

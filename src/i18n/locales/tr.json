@@ -47,6 +47,17 @@
       "bulletImport": "Bir klasör içe aktar veya dosyaları sürükleyip bırak",
       "bulletScrobble": "Last.fm'i bağla ve dinlemeleri arka planda scrobble et"
     },
+    "appearance": {
+      "title": "Görünümünüzü seçin",
+      "description": "Bir renk teması ve arayüz stili seçin. Bunları istediğiniz zaman Ayarlar → Görünüm bölümünden değiştirebilirsiniz.",
+      "theme": {
+        "title": "Renk teması"
+      },
+      "skin": {
+        "title": "Arayüz stili"
+      },
+      "hint": "Bu seçimler her profil için kaydedilir — her profilin kendi görünümü olabilir."
+    },
     "folder": {
       "title": "Müzik klasörünü seç",
       "description": "WaveFlow'a müziğinin yerini söyle. Tarayıcı kütüphaneni otomatik olarak düzenler.",
