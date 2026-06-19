@@ -130,6 +130,11 @@
       "hint": "Potrai creare altri profili in seguito, se necessario.",
       "required": "Il nome del profilo è obbligatorio.",
       "unavailable": "Profilo non disponibile — riprova tra un istante."
+    },
+    "lyrics": {
+      "title": "Dove salvare i testi?",
+      "description": "Quando modifichi i testi, dove devono andare? Modificabile in Impostazioni → Riproduzione.",
+      "hint": "Scegli \"File sidecar\" per non toccare i file audio — come fanno foobar2000 e simili."
     }
   },
   "sidebar": {
@@ -1083,7 +1088,8 @@
       "plain": "Non sincronizzati"
     },
     "toast": {
-      "tagWriteSkipped": "TTML mantenuto solo nella cache (non scritto nel tag audio)"
+      "tagWriteSkipped": "TTML mantenuto solo nella cache (non scritto nel tag audio)",
+      "sidecarWriteSkipped": "Testi salvati nel database, ma TTML non entra in un file .lrc/.txt."
     }
   },
   "duplicates": {
@@ -1221,7 +1227,22 @@
     "notCaptured": "Non catturata",
     "exportToFile": "Salva su file…",
     "exportToFileHint": "Esporta il testo in un file .lrc o .txt nella posizione scelta, senza modificare il file audio",
-    "exportedToFile": "Esportato in {{path}}"
+    "exportedToFile": "Esportato in {{path}}",
+    "destinationLabel": "Destinazione predefinita dei testi",
+    "destination": {
+      "tag": {
+        "label": "Tag integrato",
+        "hint": "Scrive USLT/©lyr nel file audio (compatibile con foobar2000, iTunes…)."
+      },
+      "sidecar": {
+        "label": "File sidecar",
+        "hint": "Scrive un .lrc / .txt accanto al file audio. Tag intatti."
+      },
+      "db_only": {
+        "label": "Solo database WaveFlow",
+        "hint": "Rimane nella cache dell'app. Nessun file o tag toccato."
+      }
+    }
   },
   "sort": {
     "title": "Titolo",
@@ -1793,6 +1814,10 @@
       "title": "Traduzione dei testi (Musixmatch)",
       "subtitle": "Mostra una traduzione sotto ogni riga LRC quando Musixmatch ne fornisce una",
       "off": "Disattivata"
+    },
+    "lyricsDestination": {
+      "title": "Destinazione dei testi salvati",
+      "subtitle": "Dove vanno i testi scritti nell'editor. Puoi sovrascrivere a ogni modifica."
     }
   },
   "spotify": {

@@ -130,6 +130,11 @@
       "hint": "Podrás crear más perfiles más adelante si lo necesitas.",
       "required": "El nombre del perfil es obligatorio.",
       "unavailable": "Perfil no disponible — inténtalo de nuevo en un momento."
+    },
+    "lyrics": {
+      "title": "¿Dónde guardar las letras?",
+      "description": "Cuando editas letras, ¿dónde quieres que se guarden? Podrás cambiarlo en Ajustes → Reproducción.",
+      "hint": "Elige \"Archivo sidecar\" para mantener tus archivos de audio intactos (lo que hacen foobar2000 y compañía)."
     }
   },
   "sidebar": {
@@ -1083,7 +1088,8 @@
       "plain": "Sin sincronizar"
     },
     "toast": {
-      "tagWriteSkipped": "TTML guardado solo en caché (no se escribe en la etiqueta de audio)"
+      "tagWriteSkipped": "TTML guardado solo en caché (no se escribe en la etiqueta de audio)",
+      "sidecarWriteSkipped": "Letras guardadas en la base, pero TTML no cabe en un archivo .lrc/.txt."
     }
   },
   "duplicates": {
@@ -1221,7 +1227,22 @@
     "notCaptured": "No capturada",
     "exportToFile": "Guardar en archivo…",
     "exportToFileHint": "Exporta la letra a un archivo .lrc o .txt en la ubicación que elijas, sin modificar el archivo de audio",
-    "exportedToFile": "Exportado a {{path}}"
+    "exportedToFile": "Exportado a {{path}}",
+    "destinationLabel": "Destino predeterminado de las letras",
+    "destination": {
+      "tag": {
+        "label": "Etiqueta integrada",
+        "hint": "Escribe en USLT/©lyr del archivo de audio (compatible con foobar2000, iTunes…)."
+      },
+      "sidecar": {
+        "label": "Archivo sidecar",
+        "hint": "Escribe un .lrc / .txt junto al archivo de audio. Etiquetas intactas."
+      },
+      "db_only": {
+        "label": "Solo base de datos de WaveFlow",
+        "hint": "Se queda en la caché de la app. No se tocan archivos ni etiquetas."
+      }
+    }
   },
   "sort": {
     "title": "Título",
@@ -1793,6 +1814,10 @@
       "title": "Traducción de letras (Musixmatch)",
       "subtitle": "Muestra una traducción bajo cada línea LRC cuando Musixmatch la tiene",
       "off": "Desactivada"
+    },
+    "lyricsDestination": {
+      "title": "Destino de las letras guardadas",
+      "subtitle": "Dónde se guardan las letras que escribes en el editor. Puedes anularlo en cada edición."
     }
   },
   "spotify": {

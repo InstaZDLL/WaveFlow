@@ -22,11 +22,13 @@ import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 import {
   exportLyricsToPath,
   formatLrcTimestamp,
+  getLyricsDefaultDestination,
   parseLrc,
   parseLyrics,
   saveLyrics,
   serializeEnhancedLrc,
   serializeLrc,
+  type LyricsDestination,
   type LyricsLine,
   type LyricsPayload,
 } from "../../lib/tauri/lyrics";
@@ -99,7 +101,13 @@ export function LyricsEditorModal({
   const [plainText, setPlainText] = useState("");
   const [syncedRows, setSyncedRows] = useState<SyncedRow[]>([]);
   const [activeRow, setActiveRow] = useState(0);
-  const [writeToFile, setWriteToFile] = useState(true);
+  // Per-edit destination override. Initial value mirrors the app-wide
+  // default fetched once on mount; the user can flip it for the
+  // current save without touching the global setting (which lives in
+  // Settings → Playback). Defaults to `tag` for pre-init renders so a
+  // very fast save before the fetch lands behaves exactly like the
+  // legacy `write_to_file: true` flow.
+  const [destination, setDestination] = useState<LyricsDestination>("tag");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** Surfaced after save when the backend kept the lyrics in-DB but
@@ -136,6 +144,34 @@ export function LyricsEditorModal({
     }
     return out;
   };
+
+  // ── Pre-fill destination from the app-wide default ───────────────
+  //
+  // Runs once each time the modal opens so a user who flipped the
+  // setting in Settings → Playback while the modal was closed picks
+  // up the new value on next edit. A racy second open (rare — the
+  // editor is modal) is acceptable because the user can still
+  // override per-save via the segmented control below.
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    getLyricsDefaultDestination().then(
+      (def) => {
+        if (cancelled) return;
+        setDestination(def);
+      },
+      (err) => {
+        // Fall back to the legacy "tag" default and log; never block
+        // the editor from opening over a stale setting fetch.
+        if (cancelled) return;
+        console.warn("[LyricsEditor] default destination fetch failed", err);
+        setDestination("tag");
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   // ── Hydrate from initial payload ─────────────────────────────────
   useEffect(() => {
@@ -494,13 +530,18 @@ export function LyricsEditorModal({
       const next = await saveLyrics(trackId, {
         content,
         format: saveFormat,
-        write_to_file: writeToFile,
+        destination,
       });
       onSaved(next);
       if (next.tag_write_skipped) {
         // Keep the modal open with a warning so the user knows the
         // file itself wasn't touched — DB cache still updated.
         setWarning(t("lyrics.toast.tagWriteSkipped"));
+      } else if (next.sidecar_write_skipped) {
+        // Mirror the tag-skip pathway: TTML can't ride a .lrc/.txt
+        // sidecar, so the DB still saved but the sibling file did
+        // not appear. User gets to choose what to do next.
+        setWarning(t("lyrics.toast.sidecarWriteSkipped"));
       } else {
         onClose();
       }
@@ -800,15 +841,40 @@ export function LyricsEditorModal({
 
         {/* Footer */}
         <div className="flex items-center justify-between gap-4 px-6 py-4 border-t border-zinc-200 dark:border-zinc-800">
-          <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={writeToFile}
-              onChange={(e) => setWriteToFile(e.target.checked)}
-              className="rounded"
-            />
-            {t("lyricsEditor.writeToFile")}
-          </label>
+          {/* Destination segmented control. Replaces the previous
+              "Écrire dans le fichier" checkbox (issue #201): the
+              third option (Sidecar) writes a sibling .lrc / .txt
+              next to the audio file so users can keep the tag block
+              clean. The control starts on the app-wide default
+              fetched on open; a per-save override here is in-memory
+              only. */}
+          <div
+            role="radiogroup"
+            aria-label={t("lyricsEditor.destinationLabel")}
+            className="flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800 p-0.5 text-xs"
+          >
+            {(["tag", "sidecar", "db_only"] as const).map((value) => {
+              const checked = destination === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={checked}
+                  onClick={() => setDestination(value)}
+                  title={t(`lyricsEditor.destination.${value}.hint`) ?? undefined}
+                  className={[
+                    "px-3 py-1 rounded-full transition-colors font-medium",
+                    checked
+                      ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
+                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200",
+                  ].join(" ")}
+                >
+                  {t(`lyricsEditor.destination.${value}.label`)}
+                </button>
+              );
+            })}
+          </div>
           <div className="flex items-center gap-2">
             {warning && (
               <span className="text-xs text-amber-600 dark:text-amber-400 truncate max-w-xs">

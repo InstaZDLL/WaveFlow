@@ -130,6 +130,11 @@
       "hint": "Vous pourrez créer d'autres profils plus tard si nécessaire.",
       "required": "Le nom du profil est requis.",
       "unavailable": "Profil indisponible — réessayez dans un instant."
+    },
+    "lyrics": {
+      "title": "Où ranger les paroles ?",
+      "description": "Quand vous éditez des paroles, où voulez-vous qu'elles atterrissent ? Vous pourrez changer plus tard dans Réglages → Lecture.",
+      "hint": "Choisissez « Fichier sidecar » pour garder vos fichiers audio inchangés (ce que font foobar2000 et compagnie)."
     }
   },
   "sidebar": {
@@ -1083,7 +1088,8 @@
       "plain": "Non synchronisé"
     },
     "toast": {
-      "tagWriteSkipped": "TTML conservé en base (non écrit dans le tag audio)"
+      "tagWriteSkipped": "TTML conservé en base (non écrit dans le tag audio)",
+      "sidecarWriteSkipped": "Paroles enregistrées dans la base, mais le format TTML ne tient pas dans un fichier .lrc/.txt."
     }
   },
   "smartPlaylistEditor": {
@@ -1221,7 +1227,22 @@
       "word": "Mot par mot"
     },
     "captureHintWord": "Espace = mot suivant · Entrée = ligne suivante · Retour arrière = annuler le dernier mot",
-    "notCaptured": "Non calé"
+    "notCaptured": "Non calé",
+    "destinationLabel": "Destination par défaut des paroles",
+    "destination": {
+      "tag": {
+        "label": "Tag intégré",
+        "hint": "Écrit dans l'USLT/©lyr du fichier audio (compatible foobar2000, iTunes…)."
+      },
+      "sidecar": {
+        "label": "Fichier sidecar",
+        "hint": "Écrit un .lrc / .txt à côté du fichier audio. Tags du fichier intacts."
+      },
+      "db_only": {
+        "label": "Base WaveFlow uniquement",
+        "hint": "Reste dans le cache de l'app. Aucun fichier ni tag touché."
+      }
+    }
   },
   "sort": {
     "title": "Titre",
@@ -1793,6 +1814,10 @@
     "fullscreenLyricsCentering": {
       "title": "Centrer les paroles synchronisées en plein écran",
       "subtitle": "Aligne les paroles synchronisées au centre de l'aperçu plein écran, comme l'affichage du texte brut."
+    },
+    "lyricsDestination": {
+      "title": "Destination des paroles éditées",
+      "subtitle": "Où sauvegarder les paroles que vous saisissez dans l'éditeur. Vous pouvez surcharger ce choix à chaque édition."
     }
   },
   "spotify": {

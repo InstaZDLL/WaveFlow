@@ -130,6 +130,11 @@
       "hint": "Kamu bisa membuat profil lain nanti kalau perlu.",
       "required": "Nama profil wajib diisi.",
       "unavailable": "Profil belum tersedia — coba lagi sebentar."
+    },
+    "lyrics": {
+      "title": "Di mana menyimpan lirik?",
+      "description": "Ketika Anda mengedit lirik, ke mana mereka harus pergi? Dapat diubah di Pengaturan → Pemutaran.",
+      "hint": "Pilih \"File sidecar\" agar file audio Anda tetap utuh — seperti yang dilakukan foobar2000 dkk."
     }
   },
   "sidebar": {
@@ -1083,7 +1088,8 @@
       "plain": "Tidak tersinkronisasi"
     },
     "toast": {
-      "tagWriteSkipped": "TTML disimpan di cache saja (tidak ditulis ke tag audio)"
+      "tagWriteSkipped": "TTML disimpan di cache saja (tidak ditulis ke tag audio)",
+      "sidecarWriteSkipped": "Lirik disimpan ke database, tetapi TTML tidak muat di file .lrc/.txt."
     }
   },
   "duplicates": {
@@ -1221,7 +1227,22 @@
     "notCaptured": "Belum ditangkap",
     "exportToFile": "Simpan ke berkas…",
     "exportToFileHint": "Ekspor lirik ke berkas .lrc atau .txt di lokasi pilihan Anda, tanpa menyentuh berkas audio",
-    "exportedToFile": "Diekspor ke {{path}}"
+    "exportedToFile": "Diekspor ke {{path}}",
+    "destinationLabel": "Tujuan default lirik",
+    "destination": {
+      "tag": {
+        "label": "Tag tertanam",
+        "hint": "Menulis USLT/©lyr di file audio (kompatibel dengan foobar2000, iTunes…)."
+      },
+      "sidecar": {
+        "label": "File sidecar",
+        "hint": "Menulis .lrc / .txt di samping file audio. Tag file tidak disentuh."
+      },
+      "db_only": {
+        "label": "Hanya database WaveFlow",
+        "hint": "Tetap di cache app. Tidak ada file atau tag yang disentuh."
+      }
+    }
   },
   "sort": {
     "title": "Judul",
@@ -1793,6 +1814,10 @@
       "title": "Terjemahan lirik (Musixmatch)",
       "subtitle": "Menampilkan terjemahan di bawah setiap baris LRC saat Musixmatch menyediakannya",
       "off": "Nonaktif"
+    },
+    "lyricsDestination": {
+      "title": "Tujuan lirik tersimpan",
+      "subtitle": "Tempat lirik dari editor disimpan. Dapat di-override per pengeditan."
     }
   },
   "spotify": {

@@ -5,6 +5,9 @@ import {
   AlertCircle,
   AudioLines,
   Check,
+  Database,
+  FileText,
+  FileDown,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -41,6 +44,11 @@ import {
 } from "../../i18n";
 import { getAutoAnalyze, setAutoAnalyze } from "../../lib/tauri/analysis";
 import {
+  getLyricsDefaultDestination,
+  setLyricsDefaultDestination,
+  type LyricsDestination,
+} from "../../lib/tauri/lyrics";
+import {
   getLastfmApiKey,
   getLastfmApiSecret,
   lastfmGetStatus,
@@ -62,6 +70,7 @@ type StepId =
   | "profile"
   | "localOnly"
   | "appearance"
+  | "lyrics"
   | "folder"
   | "lastfm"
   | "scan"
@@ -73,6 +82,7 @@ const STEPS: ReadonlyArray<StepId> = [
   "profile",
   "localOnly",
   "appearance",
+  "lyrics",
   "folder",
   "lastfm",
   "scan",
@@ -95,6 +105,7 @@ const STEP_ICONS: Record<StepId, typeof Music> = {
   profile: UserRound,
   localOnly: AlertCircle,
   appearance: Palette,
+  lyrics: Mic2,
   folder: FolderOpen,
   lastfm: AudioLines,
   scan: Disc3,
@@ -214,6 +225,15 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
   // mount so toggles already reflect any preference set elsewhere
   // (rare on first run, but the wizard CAN be reopened in dev).
   const [autoAnalyze, setAutoAnalyzeState] = useState(true);
+  // Issue #201 — pre-flight the lyrics-write destination so users who
+  // want to keep their tag block clean don't have to discover the
+  // Settings card after first save. Initial render uses `tag` so the
+  // grid renders before the fetch lands; the effect below pulls the
+  // app-wide stored value, and a click here writes the setting
+  // immediately so a wizard cancel still persists the choice.
+  const [lyricsDestination, setLyricsDestinationState] =
+    useState<LyricsDestination>("tag");
+  const [lyricsBusy, setLyricsBusy] = useState(false);
 
   // Last.fm form state. The backend wants api key + secret + username
   // + password to mint a session via auth.getMobileSession; we mirror
@@ -254,6 +274,15 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
         if (!cancelled) setAutoAnalyzeState(value);
       } catch (err) {
         console.error("[Onboarding] read auto_analyze failed", err);
+      }
+      try {
+        const dest = await getLyricsDefaultDestination();
+        if (!cancelled) setLyricsDestinationState(dest);
+      } catch (err) {
+        console.error(
+          "[Onboarding] read lyrics default destination failed",
+          err,
+        );
       }
       try {
         const key = await getLastfmApiKey();
@@ -344,6 +373,22 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
       console.error("[Onboarding] set auto_analyze failed", err);
       // Roll back so the toggle reflects truth.
       setAutoAnalyzeState(!next);
+    }
+  };
+
+  const handlePickLyricsDestination = async (next: LyricsDestination) => {
+    if (next === lyricsDestination || lyricsBusy) return;
+    const previous = lyricsDestination;
+    setLyricsBusy(true);
+    setLyricsDestinationState(next);
+    try {
+      await setLyricsDefaultDestination(next);
+    } catch (err) {
+      console.error("[Onboarding] set lyrics default destination failed", err);
+      // Roll back so the grid reflects what's actually persisted.
+      setLyricsDestinationState(previous);
+    } finally {
+      setLyricsBusy(false);
     }
   };
 
@@ -727,6 +772,69 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
                 </div>
               )}
 
+              {stepId === "lyrics" && (
+                <div className="mt-6 space-y-4">
+                  <div
+                    role="radiogroup"
+                    aria-labelledby="onboarding-lyrics-title"
+                    className="grid grid-cols-1 sm:grid-cols-3 gap-2"
+                  >
+                    {(
+                      [
+                        { id: "tag", Icon: FileText },
+                        { id: "sidecar", Icon: FileDown },
+                        { id: "db_only", Icon: Database },
+                      ] as const
+                    ).map(({ id, Icon }) => {
+                      const isActive = lyricsDestination === id;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          role="radio"
+                          aria-checked={isActive}
+                          disabled={lyricsBusy}
+                          onClick={() => void handlePickLyricsDestination(id)}
+                          className={`group relative rounded-xl border p-3 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 ${
+                            isActive
+                              ? "border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10"
+                              : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 bg-white dark:bg-zinc-800/50"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <Icon
+                              size={18}
+                              className={
+                                isActive
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : "text-zinc-400"
+                              }
+                              aria-hidden="true"
+                            />
+                            {isActive && (
+                              <Check
+                                size={14}
+                                strokeWidth={3}
+                                className="text-emerald-500"
+                              />
+                            )}
+                          </div>
+                          <div className="mt-2 text-sm font-semibold text-zinc-900 dark:text-white">
+                            {t(`lyricsEditor.destination.${id}.label`)}
+                          </div>
+                          <div className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug">
+                            {t(`lyricsEditor.destination.${id}.hint`)}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-zinc-400 italic">
+                    {t("onboarding.lyrics.hint")}
+                  </p>
+                </div>
+              )}
+
               {stepId === "folder" && (
                 <div className="mt-6 space-y-4">
                   <button
@@ -1013,6 +1121,10 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
           )}
 
           {stepId === "appearance" && (
+            <DefaultActions onBack={goBack} onNext={goNext} t={t} />
+          )}
+
+          {stepId === "lyrics" && (
             <DefaultActions onBack={goBack} onNext={goNext} t={t} />
           )}
 

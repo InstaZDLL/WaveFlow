@@ -140,6 +140,7 @@ import { WrappedBannerCard } from "./settings/WrappedBannerCard";
 import { HiResBadgeCard } from "./settings/HiResBadgeCard";
 import { SkinPickerCard } from "./settings/SkinPickerCard";
 import { FullscreenLyricsCenteringCard } from "./settings/FullscreenLyricsCenteringCard";
+import { LyricsDestinationCard } from "./settings/LyricsDestinationCard";
 
 interface SettingsViewProps {
   onNavigate: (view: ViewId) => void;
@@ -1962,6 +1963,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 label={t("settings.mono.title")}
               />
             </div>
+
+            <LyricsDestinationCard />
           </div>
         </section>
       )}

@@ -733,6 +733,8 @@ pub fn run() {
             commands::lyrics::clear_lyrics,
             commands::lyrics::get_lyrics_translation_lang,
             commands::lyrics::set_lyrics_translation_lang,
+            commands::lyrics::get_lyrics_default_destination,
+            commands::lyrics::set_lyrics_default_destination,
             commands::lyrics::prefetch_library_lyrics,
             commands::lyrics::cancel_lyrics_prefetch,
             commands::player::player_get_state,

@@ -130,6 +130,11 @@
       "hint": "Du kannst später bei Bedarf weitere Profile erstellen.",
       "required": "Der Profilname ist erforderlich.",
       "unavailable": "Profil nicht verfügbar — bitte gleich erneut versuchen."
+    },
+    "lyrics": {
+      "title": "Wo sollen Liedtexte landen?",
+      "description": "Wenn Sie Liedtexte bearbeiten, wo sollen sie hin? Änderbar unter Einstellungen → Wiedergabe.",
+      "hint": "Wählen Sie \"Sidecar-Datei\", um Audiodateien unberührt zu lassen — wie foobar2000 & Co."
     }
   },
   "sidebar": {
@@ -1083,7 +1088,8 @@
       "plain": "Nicht synchronisiert"
     },
     "toast": {
-      "tagWriteSkipped": "TTML nur im Cache behalten (nicht in den Audio-Tag geschrieben)"
+      "tagWriteSkipped": "TTML nur im Cache behalten (nicht in den Audio-Tag geschrieben)",
+      "sidecarWriteSkipped": "Liedtext in der Datenbank gespeichert, aber TTML passt nicht in eine .lrc/.txt-Datei."
     }
   },
   "duplicates": {
@@ -1221,7 +1227,22 @@
     "notCaptured": "Nicht erfasst",
     "exportToFile": "In Datei speichern…",
     "exportToFileHint": "Exportiert den Text als .lrc oder .txt an einen frei gewählten Ort, ohne die Audiodatei zu verändern",
-    "exportedToFile": "Exportiert nach {{path}}"
+    "exportedToFile": "Exportiert nach {{path}}",
+    "destinationLabel": "Standard-Speicherort für Liedtexte",
+    "destination": {
+      "tag": {
+        "label": "Eingebettetes Tag",
+        "hint": "Schreibt USLT/©lyr in die Audiodatei (kompatibel mit foobar2000, iTunes…)."
+      },
+      "sidecar": {
+        "label": "Sidecar-Datei",
+        "hint": "Schreibt eine .lrc / .txt neben der Audiodatei. Tags bleiben unberührt."
+      },
+      "db_only": {
+        "label": "Nur WaveFlow-Datenbank",
+        "hint": "Bleibt im App-Cache. Keine Dateien oder Tags werden verändert."
+      }
+    }
   },
   "sort": {
     "title": "Titel",
@@ -1793,6 +1814,10 @@
       "title": "Liedtextübersetzung (Musixmatch)",
       "subtitle": "Zeigt unter jeder LRC-Zeile eine Übersetzung an, sofern Musixmatch eine bereitstellt",
       "off": "Aus"
+    },
+    "lyricsDestination": {
+      "title": "Speicherort für bearbeitete Liedtexte",
+      "subtitle": "Wo Liedtexte aus dem Editor landen. Bei jeder Bearbeitung überschreibbar."
     }
   },
   "spotify": {
