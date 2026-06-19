@@ -550,19 +550,39 @@ struct QueueResponse {
 }
 
 /// Fetch the user's playback queue via `GET /me/player/queue`.
+///
 /// Spotify returns `currently_playing` + an array of upcoming tracks
-/// (capped at ~20 items). Requires an active Connect device — when
-/// nothing is playing the response is `{"currently_playing": null,
-/// "queue": []}` which we surface as an empty snapshot.
+/// (capped at ~20 items). Behaviour by status:
+///
+/// - **200 with `currently_playing: null, queue: []`** — paused
+///   session on a known device; surfaces as an empty snapshot.
+/// - **204 No Content** — **no active Connect device at all**. The
+///   shared [`parse_spotify_response`] helper treats 204 as an
+///   error (Spotify quirks where empty bodies mean "API offline"),
+///   but for `/me/player/queue` specifically 204 is a documented
+///   normal state. Caught + downgraded to an empty snapshot here so
+///   the QueuePanel UI doesn't fire an error toast just because the
+///   user hasn't picked a Connect target.
 pub async fn queue(
     client: &reqwest::Client,
     access_token: &str,
 ) -> SpotifyResult<SpotifyQueueSnapshot> {
-    let res: QueueResponse =
-        get_json(client, access_token, &format!("{API_BASE}/me/player/queue")).await?;
+    let res = client
+        .get(format!("{API_BASE}/me/player/queue"))
+        .bearer_auth(access_token)
+        .send()
+        .await
+        .map_err(|e| SpotifyError::Other(format!("Spotify API request failed: {e}")))?;
+    if res.status() == StatusCode::NO_CONTENT {
+        return Ok(SpotifyQueueSnapshot {
+            current: None,
+            upcoming: Vec::new(),
+        });
+    }
+    let parsed: QueueResponse = parse_spotify_response(res).await?;
     Ok(SpotifyQueueSnapshot {
-        current: res.currently_playing.and_then(SpotifyTrackLite::from_track),
-        upcoming: res
+        current: parsed.currently_playing.and_then(SpotifyTrackLite::from_track),
+        upcoming: parsed
             .queue
             .into_iter()
             .filter_map(SpotifyTrackLite::from_track)
