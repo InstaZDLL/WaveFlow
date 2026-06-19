@@ -26,6 +26,16 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 # `cargo build --no-default-features`.
 default = ["updater"]
 updater = ["dep:tauri-plugin-updater"]
+# Multi-device sync + server account binding (Phase 1.f, RFC-003).
+# OFF for 1.5.0 — the bootstrap path has unresolved gaps (pre-v2
+# `payload_hash` not backfilled on upgrade, server-side track auto-
+# provision missing for legacy rows). When OFF, `mod sync` resolves
+# to a stub with no-op functions matching the real public API so the
+# ~70 emit call sites compile unchanged; the WS subscriber, drain
+# task, auto-backfill, HTTP client, digest computation and payload-
+# hash builder are all excluded from the binary. Re-enable in 1.6.0
+# once the heal migration + apply pipeline gaps close.
+sync_v1 = []
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

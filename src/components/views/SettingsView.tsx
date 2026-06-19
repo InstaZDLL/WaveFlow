@@ -43,8 +43,8 @@ import {
   Stethoscope,
   Puzzle,
 } from "lucide-react";
-import { ServerAccountCard } from "./settings/ServerAccountCard";
-import { SyncStatusCard } from "./settings/SyncStatusCard";
+// import { ServerAccountCard } from "./settings/ServerAccountCard"; // deferred to 1.6.0
+// import { SyncStatusCard } from "./settings/SyncStatusCard"; // deferred to 1.6.0
 import { PluginsCard } from "./settings/PluginsCard";
 import { useTheme } from "../../hooks/useTheme";
 import { THEME_PRESETS } from "../../lib/themes";
@@ -2007,12 +2007,15 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
               />
             </div>
 
-            {/* WaveFlow server account binding (Phase 1.f.desktop.1).
-              Sits at the top of Intégrations because every later
-              sync surface (Settings → Mode serveur, the sync queue,
-              the WS subscriber) reads from the URL + JWT this card
-              configures. */}
-            <ServerAccountCard />
+            {/* WaveFlow server account binding — DEFERRED to 1.6.0.
+              The 1.5.0 cut ships sync code but the onboarding has
+              gaps (payload_hash NULL on upgrade libraries, server-
+              side track auto-provision missing for legacy rows, no
+              heal migration for pre-v2 columns). Hiding the entry
+              point keeps users from hitting partial-sync corruption
+              while the full bootstrap + heal lands.
+              Uncomment when the 1.6.0 work closes. */}
+            {/* <ServerAccountCard /> */}
 
             <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
               <div className="flex items-start space-x-4">
@@ -3245,7 +3248,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             {t("settings.sections.diagnostics")}
           </h2>
           <div className="space-y-1">
-            <SyncStatusCard />
+            {/* Sync status card hidden alongside ServerAccountCard for 1.5.0 — see
+              the comment above the ServerAccountCard mount. Uncomment with it. */}
+            {/* <SyncStatusCard /> */}
             <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center space-x-4 min-w-0">

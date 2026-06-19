@@ -49,13 +49,18 @@ pub struct AppState {
     /// `sync_pending_op` rows and double-send — server absorbs the
     /// duplicates via the `operation_id` UNIQUE but the wasted
     /// round-trip + duplicated `total_sent` accounting is avoidable).
+    /// Held only by the gated `commands::sync` module — the stub
+    /// build never reads it, hence the `dead_code` allow.
+    #[allow(dead_code)]
     pub drain_lock: Arc<tokio::sync::Mutex<()>>,
     /// Mutual-exclusion lock around [`crate::sync::backfill::run_backfill`]
     /// (Phase B.2). Holds for the duration of a backfill pass so a
     /// concurrent Tauri command surfaces `AlreadyRunning` instead of
     /// firing a parallel sweep that would race the same digest +
     /// entity fetches. Independent of [`drain_lock`] — a backfill can
-    /// trigger drains internally without deadlocking.
+    /// trigger drains internally without deadlocking. Same dead-code
+    /// caveat as `drain_lock` in stub builds.
+    #[allow(dead_code)]
     pub backfill_lock: Arc<tokio::sync::Mutex<()>>,
     /// Wake handle for the sync WebSocket subscriber (Phase
     /// 1.f.desktop.4b). The `server_account` commands fire it after
@@ -63,6 +68,8 @@ pub struct AppState {
     /// subscriber doesn't sit on its idle gate while something has
     /// actually changed. Defaults to an unparked handle; the live
     /// task spawns in `lib.rs::run` once the AppHandle is available.
+    /// Wake() is no-op in stub builds.
+    #[allow(dead_code)]
     pub ws: Arc<crate::sync::ws::SubscribeHandle>,
     /// Plugin SDK runtime. One engine + one shared HTTP client per
     /// process; `Clone` is cheap (wraps the inner `Arc`). The offline
