@@ -688,9 +688,9 @@
       "next": "Volgende",
       "shuffleOn": "Willekeurig uitschakelen",
       "shuffleOff": "Willekeurig inschakelen",
-      "repeatOff": "Herhalen inschakelen",
-      "repeatAll": "Eén nummer herhalen",
-      "repeatOne": "Herhalen uitschakelen"
+      "repeatOff": "Herhalen uit",
+      "repeatAll": "Alles herhalen",
+      "repeatOne": "Eén nummer herhalen"
     },
     "volume": {
       "label": "Volume",

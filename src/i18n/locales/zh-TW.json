@@ -688,9 +688,9 @@
       "next": "下一首",
       "shuffleOn": "停用隨機播放",
       "shuffleOff": "啟用隨機播放",
-      "repeatOff": "啟用重複播放",
-      "repeatAll": "只重複一次",
-      "repeatOne": "關閉重複播放"
+      "repeatOff": "重複關閉",
+      "repeatAll": "全部重複",
+      "repeatOne": "單曲重複"
     },
     "volume": {
       "label": "音量",

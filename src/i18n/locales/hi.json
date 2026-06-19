@@ -688,9 +688,9 @@
       "next": "अगला",
       "shuffleOn": "शफल अक्षम करें",
       "shuffleOff": "शफल सक्षम करें",
-      "repeatOff": "दोहराएँ सक्षम करें",
-      "repeatAll": "एक बार दोहराएँ",
-      "repeatOne": "दोहराएँ बंद करें"
+      "repeatOff": "दोहराव बंद",
+      "repeatAll": "सभी दोहराएँ",
+      "repeatOne": "एक ट्रैक दोहराएँ"
     },
     "volume": {
       "label": "वॉल्यूम",

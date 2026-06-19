@@ -688,9 +688,9 @@
       "next": "Next",
       "shuffleOn": "Disable shuffle",
       "shuffleOff": "Enable shuffle",
-      "repeatOff": "Enable repeat",
-      "repeatAll": "Repeat one",
-      "repeatOne": "Disable repeat"
+      "repeatOff": "Repeat off",
+      "repeatAll": "Repeat all",
+      "repeatOne": "Repeat one"
     },
     "volume": {
       "label": "Volume",

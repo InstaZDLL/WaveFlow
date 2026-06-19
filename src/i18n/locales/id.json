@@ -688,9 +688,9 @@
       "next": "Berikutnya",
       "shuffleOn": "Matikan acak",
       "shuffleOff": "Aktifkan acak",
-      "repeatOff": "Aktifkan pengulangan",
-      "repeatAll": "Ulang satu lagu",
-      "repeatOne": "Matikan pengulangan"
+      "repeatOff": "Ulang dimatikan",
+      "repeatAll": "Ulang semua",
+      "repeatOne": "Ulang satu lagu"
     },
     "volume": {
       "label": "Volume",

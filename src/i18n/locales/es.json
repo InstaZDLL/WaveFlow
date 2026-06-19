@@ -688,9 +688,9 @@
       "next": "Siguiente",
       "shuffleOn": "Desactivar reproducción aleatoria",
       "shuffleOff": "Activar reproducción aleatoria",
-      "repeatOff": "Activar repetición",
-      "repeatAll": "Repetir una pista",
-      "repeatOne": "Desactivar repetición"
+      "repeatOff": "Repetición desactivada",
+      "repeatAll": "Repetir todo",
+      "repeatOne": "Repetir una pista"
     },
     "volume": {
       "label": "Volumen",

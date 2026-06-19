@@ -688,9 +688,9 @@
       "next": "Sonraki",
       "shuffleOn": "Karışık çalmayı kapat",
       "shuffleOff": "Karışık çalmayı aç",
-      "repeatOff": "Tekrarı aç",
-      "repeatAll": "Tek parçayı tekrarla",
-      "repeatOne": "Tekrarı kapat"
+      "repeatOff": "Tekrar kapalı",
+      "repeatAll": "Tümünü tekrarla",
+      "repeatOne": "Bir parçayı tekrarla"
     },
     "volume": {
       "label": "Ses düzeyi",
