@@ -49,7 +49,7 @@
     },
     "appearance": {
       "title": "Elige tu estilo",
-      "description": "Selecciona un tema de color y un estilo de interfaz. Puedes cambiarlos en cualquier momento desde Ajustes → Apariencia.",
+      "description": "Selecciona un tema de color y un estilo de interfaz. Puedes cambiarlos en cualquier momento desde Configuración → Apariencia.",
       "theme": {
         "title": "Tema de color"
       },
@@ -133,8 +133,8 @@
     },
     "lyrics": {
       "title": "¿Dónde guardar las letras?",
-      "description": "Cuando editas letras, ¿dónde quieres que se guarden? Podrás cambiarlo en Ajustes → Reproducción.",
-      "hint": "Elige \"Archivo sidecar\" para mantener tus archivos de audio intactos (lo que hacen foobar2000 y compañía)."
+      "description": "Cuando editas letras, ¿dónde quieres que se guarden? Podrás cambiarlo en Configuración → Reproducción.",
+      "hint": "Elige \"Archivo auxiliar\" para mantener tus archivos de audio intactos (lo que hacen foobar2000 y compañía)."
     }
   },
   "sidebar": {
@@ -380,7 +380,7 @@
       "share": "Compartir (próximamente)",
       "rescan": "Volver a escanear la biblioteca",
       "rescanning": "Reescaneo en curso…",
-      "changeArtwork": "Cambiar la imagen (próximamente)",
+      "changeArtwork": "Cambiar la portada (próximamente)",
       "edit": "Editar la biblioteca",
       "delete": "Eliminar la biblioteca",
       "deleteConfirm": "Haz clic de nuevo para confirmar",
@@ -702,7 +702,7 @@
       "title": "Velocidad de reproducción",
       "slider": "Control de velocidad",
       "custom": "Velocidad personalizada",
-      "pitchHint": "El tono sigue a la velocidad (sin estiramiento de tiempo)."
+      "pitchHint": "El tono varía con la velocidad (sin alterar la duración)."
     },
     "seek": "Posición"
   },
@@ -1089,7 +1089,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML guardado solo en caché (no se escribe en la etiqueta de audio)",
-      "sidecarWriteSkipped": "Letras guardadas en la base, pero TTML no cabe en un archivo .lrc/.txt."
+      "sidecarWriteSkipped": "Letras guardadas en la base de datos, pero el formato TTML no es compatible con archivos auxiliares .lrc/.txt."
     }
   },
   "duplicates": {
@@ -1235,7 +1235,7 @@
         "hint": "Escribe en USLT/©lyr del archivo de audio (compatible con foobar2000, iTunes…)."
       },
       "sidecar": {
-        "label": "Archivo sidecar",
+        "label": "Archivo auxiliar",
         "hint": "Escribe un .lrc / .txt junto al archivo de audio. Etiquetas intactas."
       },
       "db_only": {
@@ -1386,8 +1386,8 @@
         "connect": "Conectar Spotify"
       },
       "notifications": {
-        "title": "Notificaciones al cambiar de canción",
-        "subtitle": "Muestra una notificación del sistema al inicio de cada canción (título + artista). Desactivado por defecto."
+        "title": "Notificaciones al cambiar de pista",
+        "subtitle": "Muestra una notificación del sistema al inicio de cada pista (título + artista). Desactivado por defecto."
       }
     },
     "crossfade": {
@@ -1470,7 +1470,7 @@
     },
     "localArtistImages": {
       "title": "Imágenes locales de artistas",
-      "subtitle": "Busca una artist.jpg (o <name>.jpg) junto a tu música y la usa como foto del artista.",
+      "subtitle": "Busca un archivo artist.jpg (o <name>.jpg) junto a tu música y úsalo como foto del artista.",
       "action": "Escanear",
       "done": "{{linked}} de {{considered}} artistas vinculados a una imagen local"
     },
@@ -1515,7 +1515,7 @@
       "action": "Restablecer",
       "confirm": {
         "title": "¿Restablecer toda la aplicación?",
-        "warning": "Esto elimina todos los perfiles, bibliotecas, listas de reproducción, valoraciones, historial de escucha y portadas en caché. La aplicación se reiniciará con una configuración inicial limpia. Esta acción no se puede deshacer.",
+        "warning": "Esto elimina todos los perfiles, bibliotecas, listas de reproducción, valoraciones, historial de escucha y portadas en caché. La aplicación se reiniciará y mostrará la pantalla de bienvenida. Esta acción no se puede deshacer.",
         "typeToConfirm": "Escriba RESET para confirmar",
         "error": "Error al restablecer. Cierre cualquier programa externo que mantenga un archivo de WaveFlow (un reproductor de música abierto, el explorador en la carpeta de datos) e inténtelo de nuevo.",
         "cancel": "Cancelar",
@@ -1554,8 +1554,8 @@
       "col": {
         "entity": "Entidad",
         "state": "Estado",
-        "missingLocally": "Falta local",
-        "missingRemotely": "Falta remoto",
+        "missingLocally": "Falta en local",
+        "missingRemotely": "Falta en remoto",
         "divergent": "Divergente"
       },
       "backfillError": "Error: {{message}}",
@@ -1703,15 +1703,15 @@
         },
         "editorial": {
           "label": "Editorial",
-          "description": "Revista en papel — serif editorial, filetes finos, grano suave, espacio generoso."
+          "description": "Revista en papel — tipografía serif editorial, líneas finas, grano suave, espacio generoso."
         },
         "lounge": {
           "label": "Lounge",
-          "description": "Cristal premium — la carátula del álbum se convierte en el fondo, paneles translúcidos, transiciones suaves."
+          "description": "Cristal premium — la portada del álbum se convierte en el fondo, paneles translúcidos, transiciones suaves."
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Club neón — base OLED, halos de color en los elementos activos, cápsulas monocromáticas, animaciones con rebote."
+          "description": "Club neón — base OLED, halos de color en los elementos activos, píldoras monocromáticas, animaciones con rebote."
         },
         "liquid": {
           "label": "Liquid",
@@ -1723,7 +1723,7 @@
       "title": "Diseño de la barra de reproducción",
       "subtitle": "Elige qué botones aparecen en la barra y qué ocurre al hacer clic en la miniatura de la portada. La vista previa se actualiza al instante.",
       "preview": "Vista previa",
-      "previewEmpty": "Sin botones — la barra solo mostrará la carátula y los controles de reproducción.",
+      "previewEmpty": "Sin botones — la barra solo mostrará la portada y los controles de reproducción.",
       "buttons": {
         "abLoop": "Bucle A-B",
         "sleepTimer": "Temporizador de apagado",
@@ -1736,7 +1736,7 @@
         "audioQualityFooter": "Franja de calidad de audio"
       },
       "coverAction": {
-        "title": "Al hacer clic en la carátula",
+        "title": "Al hacer clic en la portada",
         "immersive": {
           "label": "Abrir la vista inmersiva",
           "description": "Predeterminado — abre la pantalla completa con la carátula ampliada."
@@ -1874,6 +1874,6 @@
     "live": "EN VIVO",
     "nowPlaying": "Reproduciendo ahora",
     "unavailableTitle": "Web Radio está desactivada",
-    "unavailableHint": "Activa el plugin de Web Radio en Ajustes → Plugins para explorar más de 30 000 estaciones."
+    "unavailableHint": "Activa el complemento de Radio Web en Configuración → Complementos para explorar más de 30 000 estaciones."
   }
 }

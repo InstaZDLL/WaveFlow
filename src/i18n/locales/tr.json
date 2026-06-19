@@ -48,8 +48,8 @@
       "bulletScrobble": "Last.fm'i bağla ve dinlemeleri arka planda scrobble et"
     },
     "appearance": {
-      "title": "Görünümünüzü seçin",
-      "description": "Bir renk teması ve arayüz stili seçin. Bunları istediğiniz zaman Ayarlar → Görünüm bölümünden değiştirebilirsiniz.",
+      "title": "Görünümünü seç",
+      "description": "Bir renk teması ve arayüz stili seç. Bunları istediğin zaman Ayarlar → Görünüm bölümünden değiştirebilirsin.",
       "theme": {
         "title": "Renk teması"
       },
@@ -133,8 +133,8 @@
     },
     "lyrics": {
       "title": "Şarkı sözleri nereye gitsin?",
-      "description": "Şarkı sözlerini düzenlediğinizde nereye gitsinler? Ayarlar → Oynatma'dan değiştirebilirsiniz.",
-      "hint": "Ses dosyalarınızı bozulmadan tutmak için \"Sidecar dosyası\" seçin — foobar2000 ve benzerleri böyle yapar."
+      "description": "Şarkı sözlerini düzenlediğinde nereye gitsinler? Ayarlar → Oynatma'dan değiştirebilirsin.",
+      "hint": "Ses dosyalarını bozulmadan tutmak için \"Yan dosya\" seç — foobar2000 ve benzerleri böyle yapar."
     }
   },
   "sidebar": {
@@ -755,9 +755,9 @@
       "toggle": "Yönet",
       "done": "Tamam",
       "title": "Profilleri yönet",
-      "subtitle": "Kaldırmak istediğiniz profili seçin. Etkin profil buradan silinemez.",
+      "subtitle": "Kaldırmak istediğin profili seç. Etkin profil buradan silinemez.",
       "activeLocked": "Etkin profil",
-      "deleteHint": "Silmek için dokunun",
+      "deleteHint": "Silmek için dokun",
       "deleteAria": "{{name}} profilini sil"
     },
     "delete": {
@@ -795,10 +795,10 @@
     "iconAria": "{{icon}} simgesi",
     "submit": "Oluştur",
     "editSubmit": "Kaydet",
-    "coverChoose": "Fotoğraf seç",
+    "coverChoose": "Kapak seç",
     "coverMenu": "Kapak seçenekleri",
-    "coverChange": "Fotoğrafı değiştir",
-    "coverRemove": "Fotoğrafı kaldır",
+    "coverChange": "Kapağı değiştir",
+    "coverRemove": "Kapağı kaldır",
     "coverAutoHint": "Otomatik kapak — içeriğe göre güncellenir",
     "coverManualHint": "Özel görsel"
   },
@@ -831,7 +831,7 @@
     "addToPlaylist": "Çalma listesine ekle",
     "noPlaylists": "Çalma listesi yok. Aşağıda yeni bir tane oluştur.",
     "createPlaylist": "Yeni çalma listesi",
-    "playNext": "Sıradakini oynat",
+    "playNext": "Sonraki olarak çal",
     "addToQueue": "Sıraya ekle",
     "like": "Beğenilere ekle",
     "unlike": "Beğenilerden çıkar",
@@ -921,7 +921,7 @@
     "count_other": "{{count}} seçildi",
     "play": "Çal",
     "addToQueue": "Sıraya ekle",
-    "playNext": "Sıradakini oynat",
+    "playNext": "Sonraki olarak çal",
     "addToPlaylist": "Çalma listesine ekle",
     "removeFromPlaylist": "Çalma listesinden çıkar",
     "clear": "Seçimi kaldır"
@@ -1089,7 +1089,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML yalnızca önbellekte tutuldu (ses etiketine yazılmadı)",
-      "sidecarWriteSkipped": "Şarkı sözleri veritabanına kaydedildi, ancak TTML bir .lrc/.txt dosyasına sığmaz."
+      "sidecarWriteSkipped": "Şarkı sözleri veritabanına kaydedildi, ancak TTML bir .lrc/.txt yan dosyasına yazılamaz."
     }
   },
   "duplicates": {
@@ -1226,7 +1226,7 @@
     "captureHintWord": "Boşluk = sonraki kelime · Enter = sonraki satır · Backspace = son kelimeyi geri al",
     "notCaptured": "Yakalanmadı",
     "exportToFile": "Dosyaya kaydet…",
-    "exportToFileHint": "Sözleri seçtiğiniz konumda bir .lrc veya .txt dosyasına aktarır, ses dosyasını değiştirmez",
+    "exportToFileHint": "Sözleri seçtiğin konumda bir .lrc veya .txt dosyasına aktarır, ses dosyasını değiştirmez",
     "exportedToFile": "{{path}} konumuna aktarıldı",
     "destinationLabel": "Varsayılan şarkı sözü hedefi",
     "destination": {
@@ -1290,10 +1290,10 @@
     },
     "plugins": {
       "title": "Yüklü eklentiler",
-      "subtitle": "WaveFlow'a kaynak, üst veri veya görünüm ekleyen uzantıları yönetin.",
+      "subtitle": "WaveFlow'a kaynak, üst veri veya görünüm ekleyen uzantıları yönet.",
       "loading": "Yükleniyor…",
       "emptyTitle": "Yüklü eklenti yok",
-      "emptyHint": "Manuel kurulum: <data>/waveflow/plugins/ altına bir klasör bırakın. Resmi mağaza yakında.",
+      "emptyHint": "Manuel kurulum: <data>/waveflow/plugins/ altına bir klasör bırak. Resmi mağaza yakında.",
       "byAuthor": "Yazan: {{author}}",
       "enabled": "Etkin",
       "disabled": "Devre dışı",
@@ -1316,7 +1316,7 @@
         "none": "İstenen izin yok"
       },
       "bundled": "Yerleşik",
-      "bundledHint": "WaveFlow ile birlikte gelir — gizlemek için devre dışı bırakın."
+      "bundledHint": "WaveFlow ile birlikte gelir — gizlemek için devre dışı bırak."
     },
     "shortcuts": {
       "subtitle": "Bir kısayola tıkla ve ardından istediğin tuş kombinasyonuna bas. Silmek için Backspace, iptal için Esc.",
@@ -1470,7 +1470,7 @@
     },
     "localArtistImages": {
       "title": "Yerel sanatçı görselleri",
-      "subtitle": "Müziğinin yanında bir artist.jpg (veya <ad>.jpg) arar ve sanatçı fotoğrafı olarak kullanır.",
+      "subtitle": "Müziğinin yanında bir artist.jpg (veya <isim>.jpg) arar ve sanatçı fotoğrafı olarak kullanır.",
       "action": "Tara",
       "done": "{{considered}} sanatçıdan {{linked}} tanesi yerel görsel ile eşleştirildi"
     },
@@ -1515,7 +1515,7 @@
       "action": "Sıfırla",
       "confirm": {
         "title": "Tüm uygulama sıfırlansın mı?",
-        "warning": "Bu işlem her profili, kitaplığı, çalma listesini, derecelendirmeyi, dinleme geçmişini ve önbelleğe alınmış kapakları siler. Uygulama temiz bir kurulum akışıyla yeniden başlatılır. Bu işlem geri alınamaz.",
+        "warning": "Bu işlem tüm profilleri, kütüphaneleri, çalma listelerini, puanları, dinleme geçmişini ve önbelleğe alınmış kapakları siler.",
         "typeToConfirm": "Onaylamak için RESET yazın",
         "error": "Sıfırlama başarısız oldu. WaveFlow dosyasını tutan harici bir programı (açık bir müzik çalar, veri klasöründeki dosya gezgini) kapatın ve tekrar deneyin.",
         "cancel": "İptal",
@@ -1550,7 +1550,7 @@
       },
       "backfillAlreadyRunning": "Bir senkronizasyon zaten çalışıyor",
       "backfillSkipped": "Senkronizasyon atlandı ({{reason}})",
-      "backfillSummary": "{{pushed}} gönderildi · {{pulled}} alındı · {{lww}} birleştirildi · {{failed}} başarısız",
+      "backfillSummary": "{{pushed}} gönderildi · {{pulled}} çekildi · {{lww}} birleştirildi · {{failed}} başarısız",
       "col": {
         "entity": "Öğe",
         "state": "Durum",
@@ -1703,7 +1703,7 @@
         },
         "editorial": {
           "label": "Editorial",
-          "description": "Kağıt dergi — editoryal serif, ince çizgiler, yumuşak tane, geniş boşluk."
+          "description": "Kağıt dergi — editoryal serif, ince çizgiler, yumuşak doku, geniş boşluk."
         },
         "lounge": {
           "label": "Lounge",
@@ -1778,21 +1778,21 @@
     },
     "serverAccount": {
       "title": "WaveFlow sunucu hesabı",
-      "subtitle": "Çoklu cihaz senkronizasyonunu ve tarayıcı oynatmayı etkinleştirmek için bu profili waveflow-server örneğinize bağlayın.",
+      "subtitle": "Çoklu cihaz senkronizasyonunu ve tarayıcı oynatmayı etkinleştirmek için bu profili waveflow-server örneğine bağla.",
       "signedIn": "Oturum açıldı",
       "urlLabel": "Sunucu URL'si",
       "urlPlaceholder": "https://api.waveflow.app",
       "urlSave": "Kaydet",
       "tokenLabel": "JWT belirteci",
-      "tokenHint": "Tarayıcıdan sunucuya giriş yapın, Better Auth tarafından verilen JWT'yi kopyalayın ve buraya yapıştırın.",
-      "tokenPlaceholder": "JWT'yi yapıştırın (noktayla ayrılmış üç segment)",
+      "tokenHint": "Tarayıcıdan sunucuya giriş yap, Better Auth tarafından verilen JWT'yi kopyala ve buraya yapıştır.",
+      "tokenPlaceholder": "JWT'yi yapıştır (noktayla ayrılmış üç segment)",
       "tokenSave": "Kaydet",
       "openLogin": "Girişi aç",
       "signOut": "Çıkış yap",
       "webUrlLabel": "WaveFlow Web URL'si",
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "Tarayıcı ile giriş yap",
-      "signInWithBrowserHint": "Tarayıcınızda WaveFlow Web'i açar; orada giriş yaparsınız ve uygulama yerel bir el sıkışma ile JWT'yi otomatik olarak yakalar.",
+      "signInWithBrowserHint": "Tarayıcında WaveFlow Web'i açar; orada giriş yaparsın ve uygulama yerel bir el sıkışma ile JWT'yi otomatik olarak yakalar.",
       "loginInProgress": "Tarayıcı bekleniyor…",
       "modeLabel": "Senkronizasyon modu",
       "modes": {
@@ -1851,17 +1851,17 @@
   },
   "share": {
     "title": "Çalma listesini paylaş",
-    "subtitle": "“{{name}}” için herkese açık bir bağlantı oluşturun. Herkes tarayıcıda açabilir.",
-    "idleHint": "Bağlantı, iptal edene kadar aktif kalır. Bu pencereden istediğiniz zaman devre dışı bırakabilirsiniz.",
+    "subtitle": "“{{name}}” için herkese açık bir bağlantı oluştur. Herkes tarayıcıda açabilir.",
+    "idleHint": "Bağlantı, iptal edene kadar aktif kalır. Bu pencereden istediğin zaman devre dışı bırakabilirsin.",
     "mint": "Bağlantı oluştur",
-    "activeHint": "Bağlantı tüm cihazlarınızda aktif.",
+    "activeHint": "Bağlantı tüm cihazlarında aktif.",
     "revoke": "Devre dışı bırak",
     "qrAlt": "Paylaşılan bağlantının QR kodu",
     "urlLabel": "Herkese açık URL",
     "copy": "Kopyala",
     "copied": "Kopyalandı",
     "close": "Kapat",
-    "errorClipboard": "Panoya erişilemiyor. URL'yi seçerek manuel olarak kopyalayın."
+    "errorClipboard": "Panoya erişilemiyor. URL'yi seçip manuel olarak kopyala."
   },
   "webRadio": {
     "title": "Web Radyo",
@@ -1874,6 +1874,6 @@
     "live": "CANLI",
     "nowPlaying": "Şimdi çalıyor",
     "unavailableTitle": "Web Radio devre dışı",
-    "unavailableHint": "30.000'den fazla istasyona göz atmak için Ayarlar → Plugin'ler bölümünden Web Radio plugin'ini etkinleştirin."
+    "unavailableHint": "30.000'den fazla istasyona göz atmak için Ayarlar → Eklentiler bölümünden Web Radyo eklentisini etkinleştir."
   }
 }

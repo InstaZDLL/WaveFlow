@@ -291,7 +291,7 @@
       },
       "sleep": {
         "title": "Dormir",
-        "subtitle": "Muito lento e discreto para dormir"
+        "subtitle": "Bem lento e suave para dormir"
       }
     },
     "recentlyPlayed": {
@@ -313,7 +313,7 @@
       "trackCount_other": "{{count}} faixas"
     },
     "onRepeat": {
-      "label": "Em repetição"
+      "label": "On Repeat"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
@@ -637,7 +637,7 @@
       "developedBy": "Desenvolvido por"
     },
     "sections": {
-      "frameworkDesktop": "Estrutura para desktop",
+      "frameworkDesktop": "Framework desktop",
       "frontend": "Front-end",
       "backend": "Backend (Rust)",
       "audio": "Áudio",
@@ -702,7 +702,7 @@
       "title": "Velocidade de reprodução",
       "slider": "Controle de velocidade",
       "custom": "Velocidade personalizada",
-      "pitchHint": "O tom acompanha a velocidade (sem alterar a duração)."
+      "pitchHint": "O tom acompanha a velocidade (sem time-stretching)."
     },
     "seek": "Posição"
   },
@@ -838,7 +838,7 @@
     "removeFromPlaylist": "Remover desta playlist",
     "goToAlbum": "Ir para o álbum",
     "goToArtist": "Ir para o artista",
-    "showInExplorer": "Exibir no explorador",
+    "showInExplorer": "Mostrar no Explorador de Arquivos",
     "copyPath": "Copiar o caminho do arquivo",
     "properties": "Propriedades",
     "startRadio": "Iniciar rádio",
@@ -897,7 +897,7 @@
     "fileSize": "Tamanho",
     "addedAt": "Adicionado em",
     "filePath": "Caminho",
-    "showInExplorer": "Exibir no explorador",
+    "showInExplorer": "Mostrar no Explorador de Arquivos",
     "mono": "Mono",
     "stereo": "Estéreo",
     "edit": "Editar",
@@ -916,7 +916,7 @@
   },
   "selection": {
     "toolbarLabel": "Ações de seleção",
-    "count_zero": "0 selecionado",
+    "count_zero": "0 selecionados",
     "count_one": "{{count}} selecionado",
     "count_other": "{{count}} selecionados",
     "play": "Reproduzir",
@@ -937,7 +937,7 @@
     "releaseDate": "Lançamento",
     "emptyTitle": "Álbum não encontrado",
     "emptyDescription": "Este álbum não está mais disponível no perfil ativo.",
-    "emptyTracksTitle": "Nenhuma música",
+    "emptyTracksTitle": "Nenhuma faixa",
     "emptyTracksDescription": "Este álbum não contém nenhuma faixa disponível."
   },
   "artistDetail": {
@@ -1089,7 +1089,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML mantido apenas em cache (não gravado na tag de áudio)",
-      "sidecarWriteSkipped": "Letras salvas no banco, mas TTML não cabe em um arquivo .lrc/.txt."
+      "sidecarWriteSkipped": "...mas o TTML não é compatível com sidecar .lrc/.txt."
     }
   },
   "duplicates": {
@@ -1170,7 +1170,7 @@
       "childCount_zero": "vazio",
       "childCount_one": "{{count}} condição",
       "childCount_other": "{{count}} condições",
-      "notHint": "Exclui tudo que corresponde ao filho",
+      "notHint": "Exclui tudo que corresponda à sub-regra",
       "deleteNode": "Excluir",
       "addCondition": "Condição",
       "addGroupAnd": "Grupo E",
@@ -1205,7 +1205,7 @@
     "plainPlaceholder": "Digite a letra linha por linha…",
     "linePlaceholder": "Texto da linha",
     "capture": "Capturar",
-    "captureHint": "Inicie a reprodução e pressione Espaço (ou Capturar) para fixar a linha atual ao tempo atual",
+    "captureHint": "Inicie a reprodução e pressione Espaço (ou Capturar) para fixar a linha atual à posição de reprodução",
     "captureNow": "Capturar agora",
     "recapture": "Refixar na posição atual",
     "seekToLine": "Ir para esta linha",
@@ -1566,8 +1566,8 @@
       "col": {
         "entity": "Entidade",
         "state": "Estado",
-        "missingLocally": "Faltando local",
-        "missingRemotely": "Faltando remoto",
+        "missingLocally": "Faltando localmente",
+        "missingRemotely": "Faltando remotamente",
         "divergent": "Divergente"
       },
       "backfillError": "Falhou: {{message}}",
@@ -1592,8 +1592,8 @@
         "loading": "Carregando detalhes…",
         "error": "Erro: {{message}}",
         "empty": "Sem detalhes",
-        "missingLocally": "Faltando local",
-        "missingRemotely": "Faltando remoto",
+        "missingLocally": "Faltando localmente",
+        "missingRemotely": "Faltando remotamente",
         "divergent": "Divergente",
         "moreNotShown": "+ {{count}} mais não exibidos"
       }
@@ -1626,7 +1626,7 @@
         "pop": "Pop",
         "rnb": "R&B",
         "rock": "Rock",
-        "small_speakers": "Caixas pequenas",
+        "small_speakers": "Caixas de som pequenas",
         "spoken_word": "Voz falada",
         "treble_booster": "Reforço de agudos"
       }
@@ -1663,7 +1663,7 @@
       "resetAria": "Redefinir para 100 %"
     },
     "showAudioQualityFooter": {
-      "title": "Mostrar faixa de qualidade de áudio",
+      "title": "Mostrar barra de qualidade de áudio",
       "subtitle": "Detalhes técnicos (kHz, kbps, codec, profundidade de bits) sob a barra do player. Desativado por padrão para uma barra mais fina."
     },
     "categoryNavLabel": "Categorias de configurações",
@@ -1733,7 +1733,7 @@
         "device": "Saída de áudio",
         "miniPlayer": "Mini-player",
         "immersive": "Modo imersivo",
-        "audioQualityFooter": "Faixa de qualidade do áudio"
+        "audioQualityFooter": "Barra de qualidade de áudio"
       },
       "coverAction": {
         "title": "Ao clicar na capa",
@@ -1873,7 +1873,7 @@
     "backToCategories": "Voltar para categorias",
     "live": "AO VIVO",
     "nowPlaying": "Tocando agora",
-    "unavailableTitle": "Web Radio está desativada",
+    "unavailableTitle": "A Rádio Web está desativada",
     "unavailableHint": "Ative o plugin Web Radio em Configurações → Plugins para explorar mais de 30 000 estações."
   }
 }

@@ -48,8 +48,8 @@
       "bulletScrobble": "Verbinde Last.fm, um deine Wiedergaben im Hintergrund zu scrobbeln"
     },
     "appearance": {
-      "title": "Wählen Sie Ihren Look",
-      "description": "Wählen Sie ein Farbschema und einen Oberflächenstil. Sie können beides jederzeit unter Einstellungen → Erscheinungsbild ändern.",
+      "title": "Wähle deinen Look",
+      "description": "Wähle ein Farbschema und einen Oberflächenstil. Du kannst beides jederzeit unter Einstellungen → Erscheinungsbild ändern.",
       "theme": {
         "title": "Farbschema"
       },
@@ -133,8 +133,8 @@
     },
     "lyrics": {
       "title": "Wo sollen Liedtexte landen?",
-      "description": "Wenn Sie Liedtexte bearbeiten, wo sollen sie hin? Änderbar unter Einstellungen → Wiedergabe.",
-      "hint": "Wählen Sie \"Sidecar-Datei\", um Audiodateien unberührt zu lassen — wie foobar2000 & Co."
+      "description": "Wenn du Liedtexte bearbeitest, wo sollen sie hin? Du kannst dies jederzeit unter Einstellungen → Wiedergabe ändern.",
+      "hint": "Wähle \"Sidecar-Datei\", um Audiodateien unberührt zu lassen — wie foobar2000 & Co."
     }
   },
   "sidebar": {
@@ -313,7 +313,7 @@
       "trackCount_other": "{{count}} Titel"
     },
     "onRepeat": {
-      "label": "Auf Wiederholung"
+      "label": "On Repeat"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
@@ -432,9 +432,9 @@
       "trackCount_other": "{{count}} Titel",
       "lastScanned": "Gescannt: {{date}}",
       "neverScanned": "nie",
-      "watched": "Überwacht",
-      "watchOn": "Änderungen automatisch überwachen",
-      "watchOff": "Überwachung beenden",
+      "watched": "Beobachtet",
+      "watchOn": "Änderungen automatisch beobachten",
+      "watchOff": "Beobachtung beenden",
       "remove": "Ordner aus Bibliothek entfernen",
       "removeConfirm": "Zur Bestätigung erneut klicken"
     },
@@ -704,7 +704,7 @@
       "custom": "Eigene Geschwindigkeit",
       "pitchHint": "Tonhöhe folgt der Geschwindigkeit (kein Time-Stretching)."
     },
-    "seek": "Position"
+    "seek": "Suchlauf"
   },
   "queue": {
     "title": "Warteschlange",
@@ -849,7 +849,7 @@
     "removeFromPlaylistNamed": "Aus „{{name}}“ entfernen"
   },
   "batchTagEdit": {
-    "title": "Tags in Stapelverarbeitung bearbeiten",
+    "title": "Tags stapelweise bearbeiten",
     "subtitle": "{{count}} Titel ausgewählt",
     "help": "Hake die Felder ab, die auf alle Titel angewendet werden sollen. Nicht angehakte Felder bleiben pro Titel unberührt.",
     "submit": "Anwenden ({{count}} Feld(er))",
@@ -1089,7 +1089,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML nur im Cache behalten (nicht in den Audio-Tag geschrieben)",
-      "sidecarWriteSkipped": "Liedtext in der Datenbank gespeichert, aber TTML passt nicht in eine .lrc/.txt-Datei."
+      "sidecarWriteSkipped": "Liedtext in der Datenbank gespeichert, aber TTML kann nicht in eine .lrc/.txt-Sidecar-Datei geschrieben werden."
     }
   },
   "duplicates": {
@@ -1170,7 +1170,7 @@
       "childCount_zero": "leer",
       "childCount_one": "{{count}} Bedingung",
       "childCount_other": "{{count}} Bedingungen",
-      "notHint": "Schließt alles aus, was auf den Kind-Knoten zutrifft",
+      "notHint": "Schließt alles aus, was auf die untergeordnete Bedingung zutrifft",
       "deleteNode": "Löschen",
       "addCondition": "Bedingung",
       "addGroupAnd": "UND-Gruppe",
@@ -1515,9 +1515,9 @@
       "action": "Zurücksetzen",
       "confirm": {
         "title": "Die gesamte App zurücksetzen?",
-        "warning": "Dies löscht jedes Profil, jede Bibliothek, Playlist, Bewertung, jeden Wiedergabeverlauf und das Cover-Cache. Die App startet neu mit einer sauberen Einrichtung. Dies kann nicht rückgängig gemacht werden.",
-        "typeToConfirm": "Geben Sie RESET ein, um zu bestätigen",
-        "error": "Zurücksetzen fehlgeschlagen. Schließen Sie ein externes Programm, das eine WaveFlow-Datei hält (geöffneter Musikplayer, Datei-Explorer im Datenordner), und versuchen Sie es erneut.",
+        "warning": "Dies löscht jedes Profil, jede Bibliothek, Playlist, Bewertung, jeden Wiedergabeverlauf und den Cover-Cache. Die App startet neu mit einer sauberen Einrichtung. Dies kann nicht rückgängig gemacht werden.",
+        "typeToConfirm": "Gib RESET ein, um zu bestätigen",
+        "error": "Zurücksetzen fehlgeschlagen. Schließe ein externes Programm, das eine WaveFlow-Datei blockiert (geöffneter Musikplayer, Datei-Explorer im Datenordner), und versuche es erneut.",
         "cancel": "Abbrechen",
         "confirmButton": "Zurücksetzen und neu starten"
       }
@@ -1609,7 +1609,7 @@
       "reset": "Zurücksetzen",
       "preset": {
         "custom": "Benutzerdefiniert",
-        "flat": "Flat",
+        "flat": "Neutral",
         "acoustic": "Acoustic",
         "bass_booster": "Bass-Booster",
         "bass_reducer": "Bass-Reduzierer",
@@ -1683,13 +1683,13 @@
         "midnight": "Mitternacht",
         "sunset": "Sonnenuntergang",
         "lavender": "Lavendel",
-        "crimson": "Karmesin",
+        "crimson": "Karmesinrot",
         "ocean": "Ozean",
         "neon": "Neon",
         "midnightLight": "Mitternacht Hell",
         "sunsetLight": "Sonnenuntergang Hell",
         "lavenderLight": "Lavendel Hell",
-        "crimsonLight": "Karmesin Hell",
+        "crimsonLight": "Karmesinrot Hell",
         "oceanLight": "Ozean Hell"
       },
       "skin": {
@@ -1822,7 +1822,7 @@
   },
   "spotify": {
     "notConfiguredTitle": "Registriere deine Spotify-App",
-    "notConfiguredMessage": "Spotify verlangt, dass jede Drittanbieter-App eine kostenlose Client-ID registriert, bevor irgendetwas abgespielt wird. Erstelle eine im Spotify Developer Dashboard und füge sie dann in WaveFlows Einstellungen → Integrationen ein.",
+    "notConfiguredMessage": "Spotify verlangt, dass jede Drittanbieter-App eine kostenlose Client-ID registriert, bevor eine Wiedergabe möglich ist. Erstelle eine im Spotify Developer Dashboard und füge sie dann in WaveFlows Einstellungen → Integrationen ein.",
     "openDashboard": "Spotify Developer Dashboard öffnen",
     "openSettings": "Einstellungen öffnen",
     "notConnectedTitle": "Spotify ist nicht verbunden",
@@ -1873,7 +1873,7 @@
     "backToCategories": "Zurück zu den Kategorien",
     "live": "LIVE",
     "nowPlaying": "Läuft gerade",
-    "unavailableTitle": "Web Radio ist deaktiviert",
-    "unavailableHint": "Aktivieren Sie das Web Radio-Plugin in Einstellungen → Plugins, um über 30 000 Sender zu durchsuchen."
+    "unavailableTitle": "Web-Radio ist deaktiviert",
+    "unavailableHint": "Aktiviere das Web-Radio-Plugin in Einstellungen → Plugins, um über 30.000 Sender zu durchsuchen."
   }
 }

@@ -220,7 +220,7 @@
         "title": "Filtri",
         "close": "Chiudi",
         "reset": "Ripristina",
-        "hiRes": "Alta risoluzione",
+        "hiRes": "Hi-Res",
         "likedOnly": "Solo preferiti",
         "year": "Anno (da → a)",
         "bpm": "BPM (da → a)",
@@ -313,7 +313,7 @@
       "trackCount_other": "{{count}} brani"
     },
     "onRepeat": {
-      "label": "In ripetizione"
+      "label": "On Repeat"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
@@ -702,7 +702,7 @@
       "title": "Velocità di riproduzione",
       "slider": "Cursore della velocità",
       "custom": "Velocità personalizzata",
-      "pitchHint": "La tonalità segue la velocità (nessun time-stretching)."
+      "pitchHint": "L'intonazione segue la velocità (nessun time-stretching)."
     },
     "seek": "Posizione"
   },
@@ -715,9 +715,9 @@
     "emptyTitle": "Niente da ascoltare",
     "emptyDescription": "Riproduci un brano dalla libreria per riempire la coda.",
     "nowPlaying": "In riproduzione",
-    "upNext_zero": "Successivo",
-    "upNext_one": "Successivo · {{count}} brano",
-    "upNext_other": "Successivo · {{count}} brani",
+    "upNext_zero": "Prossimi",
+    "upNext_one": "Prossimi · {{count}} brano",
+    "upNext_other": "Prossimi · {{count}} brani",
     "radio": {
       "label": "Radio",
       "basedOn": "Basata su «{{title}}»"
@@ -1554,8 +1554,8 @@
       "col": {
         "entity": "Entità",
         "state": "Stato",
-        "missingLocally": "Mancante locale",
-        "missingRemotely": "Mancante remoto",
+        "missingLocally": "Mancante in locale",
+        "missingRemotely": "Mancante in remoto",
         "divergent": "Divergente"
       },
       "backfillError": "Errore: {{message}}",

@@ -66,7 +66,7 @@
       "quickSettings": "إعدادات سريعة",
       "autoAnalyze": {
         "title": "تحليل المقاطع تلقائيًا",
-        "description": "اكتشاف BPM والمقام أثناء الفحص — يُستخدم لتشغيل Radio و Mood Radio."
+        "description": "اكتشاف BPM والسلم الموسيقي أثناء الفحص — يُستخدم لتشغيل الراديو وراديو المزاج."
       }
     },
     "lastfm": {
@@ -155,7 +155,7 @@
     "library": {
       "tracksCount_zero": "0 مقطع",
       "tracksCount_one": "{{count}} مقطع",
-      "tracksCount_other": "{{count}} مقطع",
+      "tracksCount_other": "{{count}} أغنية",
       "createLibraryAria": "إنشاء مكتبة جديدة",
       "none": "لا توجد مكتبات",
       "popover": {
@@ -445,7 +445,7 @@
     "title": "المقاطع المفضلة",
     "count_zero": "0 مقطع",
     "count_one": "{{count}} مقطع",
-    "count_other": "{{count}} مقطع",
+    "count_other": "{{count}} أغنية",
     "emptyTitle": "لا توجد مقاطع مفضلة",
     "emptyDescription": "ستظهر هنا المقاطع التي أعجبتك. تصفّح مكتبتك وأضف مقاطعك المفضلة.",
     "playAll": "تشغيل الكل",
@@ -479,7 +479,7 @@
     "title": "شُغّلت مؤخرًا",
     "count_zero": "0 مقطع",
     "count_one": "{{count}} مقطع",
-    "count_other": "{{count}} مقطع",
+    "count_other": "{{count}} أغنية",
     "emptyTitle": "لا توجد مقاطع حديثة",
     "emptyDescription": "ستظهر المقاطع التي تستمع إليها هنا تلقائيًا."
   },
@@ -702,7 +702,7 @@
       "title": "سرعة التشغيل",
       "slider": "شريط السرعة",
       "custom": "سرعة مخصصة",
-      "pitchHint": "الطبقة تتبع السرعة (دون تمديد الوقت)."
+      "pitchHint": "تتبع حدة الصوت السرعة (دون تغيير المدة)."
     },
     "seek": "الموضع"
   },
@@ -799,14 +799,14 @@
     "coverMenu": "خيارات الغلاف",
     "coverChange": "تغيير الصورة",
     "coverRemove": "إزالة الصورة",
-    "coverAutoHint": "غلاف تلقائي — يتحدث حسب المحتوى",
+    "coverAutoHint": "غلاف تلقائي — يتم تحديثه حسب المحتوى",
     "coverManualHint": "صورة مخصصة"
   },
   "playlistView": {
     "badge": "قائمة تشغيل",
     "trackCount_zero": "0 مقطع",
     "trackCount_one": "{{count}} مقطع",
-    "trackCount_other": "{{count}} مقطع",
+    "trackCount_other": "{{count}} أغنية",
     "actions": {
       "play": "تشغيل",
       "shuffle": "تشغيل عشوائي",
@@ -863,7 +863,7 @@
       "artist": "مثال: Daft Punk، Justice",
       "album": "اسم الألبوم",
       "year": "مثال: 2026",
-      "genre": "مثال: Electronic"
+      "genre": "مثال: إلكتروني"
     },
     "result": {
       "updated": "تم تحديث {{count}} مقطع",
@@ -910,7 +910,7 @@
       "trackNumber": "رقم المقطع",
       "discNumber": "رقم القرص",
       "genre": "النوع",
-      "genrePlaceholder": "Pop, Rock, Jazz…"
+      "genrePlaceholder": "بوب، روك، جاز…"
     },
     "changeCover": "تغيير الغلاف"
   },
@@ -932,7 +932,7 @@
     "shuffle": "تشغيل عشوائي",
     "trackCount_zero": "0 مقطع",
     "trackCount_one": "{{count}} مقطع",
-    "trackCount_other": "{{count}} مقطع",
+    "trackCount_other": "{{count}} أغنية",
     "discHeader": "القرص {{number}}",
     "releaseDate": "تاريخ الإصدار",
     "emptyTitle": "لم يتم العثور على الألبوم",
@@ -948,7 +948,7 @@
     "allTracks": "كل المقاطع",
     "trackCount_zero": "0 مقطع",
     "trackCount_one": "{{count}} مقطع",
-    "trackCount_other": "{{count}} مقطع",
+    "trackCount_other": "{{count}} أغنية",
     "albumCount_zero": "0 ألبوم",
     "albumCount_one": "{{count}} ألبوم",
     "albumCount_other": "{{count}} ألبوم",
@@ -1038,8 +1038,8 @@
       "loading": "جارٍ التحميل…",
       "chip": {
         "dsdToPcm": "DSD → PCM",
-        "resample": "إعادة تركيب",
-        "downmix": "تقليل القنوات",
+        "resample": "إعادة أخذ العينات",
+        "downmix": "دمج القنوات",
         "eq": "معادل الصوت",
         "replayGain": "ReplayGain",
         "normalize": "تسوية",
@@ -1736,13 +1736,13 @@
         "queue": "قائمة الانتظار",
         "device": "مخرج الصوت",
         "miniPlayer": "المشغل المصغر",
-        "immersive": "العرض الغامر",
+        "immersive": "العرض الانغماسي",
         "audioQualityFooter": "شريط جودة الصوت"
       },
       "coverAction": {
         "title": "عند النقر على الغلاف",
         "immersive": {
-          "label": "فتح العرض الغامر",
+          "label": "فتح العرض الانغماسي",
           "description": "افتراضي — يفتح شاشة «قيد التشغيل» الكاملة مع تكبير الغلاف."
         },
         "nowPlaying": {
