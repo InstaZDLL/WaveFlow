@@ -288,39 +288,55 @@ export function LyricsEditorModal({
   // stamped, the next press advances to the next line (and stamps the
   // line's own timeMs if it's still -1, like line mode).
   const captureWord = useCallback(() => {
-    // Signal lifted out of the state updater so the follow-up
-    // `setActiveRow` lands as a separate, idempotent state change.
-    // Set inside the updater is safe under strict-mode double-invoke
-    // because both passes write the same boolean. The follow-up
-    // setter is outside the updater so it fires exactly once per
-    // user keystroke.
-    let shouldAdvanceToNext = false;
+    if (syncedRows.length === 0) return;
+    const idx = Math.min(activeRow, syncedRows.length - 1);
+    const currentRow = syncedRows[idx];
+    const currentWords = currentRow.words ?? tokenize(currentRow.text);
+    const currentCursor = currentRow.wordCursor ?? 0;
+    const hasNextRow = idx + 1 < syncedRows.length;
+
+    // Decide auto-advance BEFORE mutating state. The previous version
+    // set a `shouldAdvance` flag inside the `setSyncedRows` updater
+    // and read it outside; in React 18 the updater can run in a
+    // separate microtask (and runs twice in strict-mode dev), so the
+    // outer check could read the flag before the updater had set it
+    // — the user ended up needing an extra click to fall through to
+    // the over-press branch. Reading state via closure here makes the
+    // decision deterministic against the live `syncedRows` snapshot.
+    //
+    // Two paths trigger advance:
+    //   1. This keystroke will stamp the LAST word of the current
+    //      row → advance after the stamp lands.
+    //   2. The cursor is ALREADY past the last word (over-press
+    //      after a complete row) → advance without re-stamping.
+    // Both require an existing next row; we never auto-append a
+    // blank line (Enter still owns that semantic explicitly).
+    const willStampLastWord =
+      currentWords.length > 0 && currentCursor === currentWords.length - 1;
+    const alreadyPastLastWord =
+      currentWords.length > 0 && currentCursor >= currentWords.length;
+    const shouldAdvance =
+      hasNextRow && (willStampLastWord || alreadyPastLastWord);
+
     setSyncedRows((rows) => {
       if (rows.length === 0) return rows;
-      const idx = Math.min(activeRow, rows.length - 1);
+      const i = Math.min(activeRow, rows.length - 1);
       const next = rows.slice();
-      const row = { ...next[idx] };
+      const row = { ...next[i] };
 
       // Seed words from row.text on first capture.
       let words = row.words ? row.words.slice() : tokenize(row.text);
       if (words.length === 0) {
         // Empty line — degrade to line capture so we don't get stuck.
         row.timeMs = Math.max(0, positionMs);
-        next[idx] = row;
+        next[i] = row;
         return next;
       }
 
       const cursor = row.wordCursor ?? 0;
       if (cursor >= words.length) {
-        // Already past the last word. Make the keystroke idempotent
-        // with the "just stamped the last word" branch below: jump
-        // to the next row if one exists so a user who hits Space one
-        // extra time at the end of a line still gets unstuck. Without
-        // this, an over-press would bail silently and the only way
-        // forward would be a manual row click.
-        if (idx + 1 < rows.length) {
-          shouldAdvanceToNext = true;
-        }
+        // Over-press on a complete row → nothing to stamp here.
+        // The outer advance still fires below.
         return rows;
       }
       // Stamp the line's timeMs on the very first word capture if the
@@ -332,22 +348,14 @@ export function LyricsEditorModal({
       words[cursor] = { ...words[cursor], timeMs: Math.max(0, positionMs) };
       row.words = words;
       row.wordCursor = cursor + 1;
-      next[idx] = row;
-      // Auto-advance when the user just stamped the LAST word of the
-      // current row AND there is an existing next row. We deliberately
-      // don't append a fresh empty row here (Enter still owns that
-      // explicit "add a new line" semantic) — the goal is to remove
-      // the manual click between rows of an already-complete lyric,
-      // not to silently grow the document.
-      if (row.wordCursor >= words.length && idx + 1 < rows.length) {
-        shouldAdvanceToNext = true;
-      }
+      next[i] = row;
       return next;
     });
-    if (shouldAdvanceToNext) {
+
+    if (shouldAdvance) {
       setActiveRow((i) => i + 1);
     }
-  }, [activeRow, positionMs]);
+  }, [activeRow, positionMs, syncedRows]);
 
   // Advance to the next line in word mode (Enter shortcut). Appends a
   // fresh empty row if we're at the end, mirroring line mode's UX.
