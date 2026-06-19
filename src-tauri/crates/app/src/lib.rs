@@ -23,7 +23,10 @@ mod scrobbler;
 #[cfg(feature = "sync_v1")]
 mod server_client;
 mod smart_playlists;
-mod spotify;
+// `mod spotify` was extracted to the `waveflow-spotify` workspace crate.
+// `crate::commands::spotify` now imports from `waveflow_spotify::*` and
+// passes raw `&SqlitePool` handles in lieu of `&AppState`. Same pattern
+// as `waveflow-syncedlyrics`.
 mod state;
 // Multi-device sync (Phase 1.f, RFC-003). When the `sync_v1` feature
 // is OFF (1.5.0 default), `mod sync` resolves to `sync_stub.rs` —

@@ -53,6 +53,14 @@ pub enum AppError {
     #[error("zip error: {0}")]
     Zip(#[from] zip::result::ZipError),
 
+    /// Errors bubbled from the `waveflow-spotify` crate. Wraps the
+    /// crate-local `SpotifyError` enum (network / DB / parse failures
+    /// for the Spotify Web API client). Same `transparent` shape as
+    /// `Core` — caller sees the original message without an extra
+    /// "spotify error: " prefix.
+    #[error(transparent)]
+    Spotify(#[from] waveflow_spotify::SpotifyError),
+
     #[error("{0}")]
     Other(String),
 }

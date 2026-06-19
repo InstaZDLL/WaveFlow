@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/core", "crates/app", "crates/plugin-sdk", "crates/syncedlyrics"]
+members = ["crates/core", "crates/app", "crates/plugin-sdk", "crates/spotify", "crates/syncedlyrics"]
 
 # The actual package definitions live in `crates/core/Cargo.toml` and
 # `crates/app/Cargo.toml`. The workspace root is virtual: it owns the

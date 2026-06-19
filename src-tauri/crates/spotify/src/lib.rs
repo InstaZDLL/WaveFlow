@@ -1,18 +1,35 @@
-//! Spotify Web API helpers for OAuth, token refresh, catalogue reads,
-//! and playback control. Actual audio playback is owned by Spotify's
-//! Web Playback SDK in the frontend; this module never receives raw
-//! audio bytes.
+//! Spotify Web API helpers for OAuth (PKCE), token refresh, catalogue
+//! reads, and playback control.
+//!
+//! Actual audio playback is owned by Spotify's Web Playback SDK in
+//! the frontend; this crate never receives raw audio bytes. The
+//! desktop's role is limited to bearer-token management + REST calls
+//! against [`https://api.spotify.com/v1`].
+//!
+//! # Decoupling from `AppState`
+//!
+//! Previously this module lived inside the app crate (`crate::spotify`)
+//! and threaded `&AppState` everywhere. The new shape takes raw
+//! `&SqlitePool` handles instead — one for the cross-profile
+//! `app.db` (Spotify Client ID lives there) and one for the active
+//! profile's `data.db` (`auth_credential` rows live there). The
+//! app crate owns the `AppState`-to-pool unwrap; this crate stays
+//! ignorant of that machinery so it can be reused outside Tauri (a
+//! future CLI / server / test harness).
+//!
+//! See [`waveflow-syncedlyrics`] for the same pattern applied to the
+//! lyrics provider chain.
+
+pub mod error;
+
+pub use error::{SpotifyError, SpotifyResult};
 
 use base64::Engine;
 use chrono::Utc;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-
-use crate::{
-    error::{AppError, AppResult},
-    state::AppState,
-};
+use sqlx::SqlitePool;
 
 pub const CLIENT_ID_KEY: &str = "app.spotify_client_id";
 pub const CALLBACK_ADDR: &str = "127.0.0.1:49387";
@@ -230,20 +247,20 @@ pub fn random_token() -> String {
     )
 }
 
-pub async fn read_client_id(state: &AppState) -> AppResult<Option<String>> {
+pub async fn read_client_id(app_db: &SqlitePool) -> SpotifyResult<Option<String>> {
     let value: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
         .bind(CLIENT_ID_KEY)
-        .fetch_optional(&state.app_db)
+        .fetch_optional(app_db)
         .await?;
     Ok(value.filter(|v| !v.trim().is_empty()))
 }
 
-pub async fn write_client_id(state: &AppState, client_id: &str) -> AppResult<()> {
+pub async fn write_client_id(app_db: &SqlitePool, client_id: &str) -> SpotifyResult<()> {
     let trimmed = client_id.trim();
     if trimmed.is_empty() {
         sqlx::query("DELETE FROM app_setting WHERE key = ?")
             .bind(CLIENT_ID_KEY)
-            .execute(&state.app_db)
+            .execute(app_db)
             .await?;
         return Ok(());
     }
@@ -251,32 +268,37 @@ pub async fn write_client_id(state: &AppState, client_id: &str) -> AppResult<()>
         "INSERT INTO app_setting (key, value, value_type, updated_at)
          VALUES (?, ?, 'string', ?)
          ON CONFLICT(key) DO UPDATE
-            SET value = excluded.value, updated_at = excluded.updated_at",
+            SET value = excluded.value, value_type = excluded.value_type, updated_at = excluded.updated_at",
     )
     .bind(CLIENT_ID_KEY)
     .bind(trimmed)
     .bind(now_ms())
-    .execute(&state.app_db)
+    .execute(app_db)
     .await?;
     Ok(())
 }
 
-pub async fn status(state: &AppState) -> AppResult<SpotifyStatus> {
-    let configured = read_client_id(state).await?.is_some();
-    let pool = match state.require_profile_pool().await {
-        Ok(p) => p,
-        Err(_) => {
-            return Ok(SpotifyStatus {
-                configured,
-                connected: false,
-                username: None,
-                product: None,
-            });
-        }
+/// Resolve the current Spotify integration status (configured? signed
+/// in? as whom?). The caller passes the active profile's pool when one
+/// is mounted, or `None` when no profile is active — the latter still
+/// reports `configured` correctly (read from `app_db`) but with
+/// `connected = false`.
+pub async fn status(
+    app_db: &SqlitePool,
+    profile_pool: Option<&SqlitePool>,
+) -> SpotifyResult<SpotifyStatus> {
+    let configured = read_client_id(app_db).await?.is_some();
+    let Some(pool) = profile_pool else {
+        return Ok(SpotifyStatus {
+            configured,
+            connected: false,
+            username: None,
+            product: None,
+        });
     };
     let row: Option<(Option<String>,)> =
         sqlx::query_as("SELECT username FROM auth_credential WHERE provider = 'spotify'")
-            .fetch_optional(&pool)
+            .fetch_optional(pool)
             .await?;
     let username = row.and_then(|r| r.0);
     Ok(SpotifyStatus {
@@ -292,7 +314,7 @@ pub async fn exchange_code(
     client_id: &str,
     code: &str,
     verifier: &str,
-) -> AppResult<TokenResponse> {
+) -> SpotifyResult<TokenResponse> {
     let res = client
         .post(format!("{ACCOUNTS_BASE}/api/token"))
         .form(&[
@@ -304,7 +326,7 @@ pub async fn exchange_code(
         ])
         .send()
         .await
-        .map_err(|e| AppError::Other(format!("Spotify token exchange failed: {e}")))?;
+        .map_err(|e| SpotifyError::Other(format!("Spotify token exchange failed: {e}")))?;
     parse_spotify_response(res).await
 }
 
@@ -312,7 +334,7 @@ pub async fn refresh_token(
     client: &reqwest::Client,
     client_id: &str,
     refresh_token: &str,
-) -> AppResult<TokenResponse> {
+) -> SpotifyResult<TokenResponse> {
     let res = client
         .post(format!("{ACCOUNTS_BASE}/api/token"))
         .form(&[
@@ -322,22 +344,21 @@ pub async fn refresh_token(
         ])
         .send()
         .await
-        .map_err(|e| AppError::Other(format!("Spotify refresh failed: {e}")))?;
+        .map_err(|e| SpotifyError::Other(format!("Spotify refresh failed: {e}")))?;
     parse_spotify_response(res).await
 }
 
 pub async fn store_tokens(
-    state: &AppState,
+    profile_pool: &SqlitePool,
     tokens: &TokenResponse,
     username: &str,
     refresh_override: Option<String>,
-) -> AppResult<()> {
+) -> SpotifyResult<()> {
     if !tokens.token_type.eq_ignore_ascii_case("bearer") {
-        return Err(AppError::Other(
+        return Err(SpotifyError::Other(
             "Spotify returned a non-bearer token".into(),
         ));
     }
-    let pool = state.require_profile_pool().await?;
     let now = now_ms();
     let expires_at = now + tokens.expires_in.saturating_mul(1000);
     let refresh = tokens
@@ -363,29 +384,36 @@ pub async fn store_tokens(
     .bind(expires_at)
     .bind(now)
     .bind(now)
-    .execute(&pool)
+    .execute(profile_pool)
     .await?;
     Ok(())
 }
 
-pub async fn access_token(state: &AppState) -> AppResult<SpotifyAccessToken> {
-    let client_id = read_client_id(state)
+/// Return a valid access token for the active Spotify session,
+/// transparently refreshing when the stored one is within
+/// `REFRESH_SKEW_MS` of expiry. Caller passes both pools because a
+/// refresh implicitly writes back to the profile pool via
+/// [`store_tokens`].
+pub async fn access_token(
+    app_db: &SqlitePool,
+    profile_pool: &SqlitePool,
+) -> SpotifyResult<SpotifyAccessToken> {
+    let client_id = read_client_id(app_db)
         .await?
-        .ok_or_else(|| AppError::Other("Spotify Client ID is not configured".into()))?;
-    let pool = state.require_profile_pool().await?;
+        .ok_or_else(|| SpotifyError::Other("Spotify Client ID is not configured".into()))?;
     #[allow(clippy::type_complexity)]
     let row: Option<(Vec<u8>, Option<Vec<u8>>, Option<i64>, Option<String>)> = sqlx::query_as(
         "SELECT token_encrypted, refresh_token_encrypted, expires_at, username
            FROM auth_credential
           WHERE provider = 'spotify'",
     )
-    .fetch_optional(&pool)
+    .fetch_optional(profile_pool)
     .await?;
     let Some((token_bytes, refresh_bytes, expires_at, username)) = row else {
-        return Err(AppError::Other("Spotify is not connected".into()));
+        return Err(SpotifyError::Other("Spotify is not connected".into()));
     };
     let access = String::from_utf8(token_bytes)
-        .map_err(|_| AppError::Other("Stored Spotify access token is invalid".into()))?;
+        .map_err(|_| SpotifyError::Other("Stored Spotify access token is invalid".into()))?;
     let expires_at = expires_at.unwrap_or(0);
     if expires_at > now_ms() + REFRESH_SKEW_MS {
         return Ok(SpotifyAccessToken {
@@ -396,11 +424,11 @@ pub async fn access_token(state: &AppState) -> AppResult<SpotifyAccessToken> {
     let refresh = refresh_bytes
         .and_then(|b| String::from_utf8(b).ok())
         .filter(|s| !s.is_empty())
-        .ok_or_else(|| AppError::Other("Spotify refresh token is missing".into()))?;
+        .ok_or_else(|| SpotifyError::Other("Spotify refresh token is missing".into()))?;
     let client = reqwest::Client::new();
     let refreshed = refresh_token(&client, &client_id, &refresh).await?;
     store_tokens(
-        state,
+        profile_pool,
         &refreshed,
         username.as_deref().unwrap_or("Spotify"),
         Some(refresh),
@@ -415,7 +443,7 @@ pub async fn access_token(state: &AppState) -> AppResult<SpotifyAccessToken> {
 pub async fn me(
     client: &reqwest::Client,
     access_token: &str,
-) -> AppResult<(String, Option<String>)> {
+) -> SpotifyResult<(String, Option<String>)> {
     let me: MeResponse = get_json(client, access_token, &format!("{API_BASE}/me")).await?;
     Ok((me.display_name.unwrap_or(me.id), me.product))
 }
@@ -423,7 +451,7 @@ pub async fn me(
 pub async fn list_playlists(
     client: &reqwest::Client,
     access_token: &str,
-) -> AppResult<Vec<SpotifyPlaylistLite>> {
+) -> SpotifyResult<Vec<SpotifyPlaylistLite>> {
     // Spotify can return `null` entries inside `items` for playlists
     // that were created by a now-removed 3rd-party app or otherwise
     // orphaned in the user's library. Wrapping the page items in
@@ -447,7 +475,7 @@ pub async fn playlist_tracks(
     client: &reqwest::Client,
     access_token: &str,
     playlist_id: &str,
-) -> AppResult<Vec<SpotifyTrackLite>> {
+) -> SpotifyResult<Vec<SpotifyTrackLite>> {
     // Dropped the `fields=` filter — since Spotify's Nov 2024 Web API
     // tightening, requesting nested fields (album images, artists,
     // ...) on certain playlists triggers a blanket 403 even when the
@@ -529,7 +557,7 @@ struct QueueResponse {
 pub async fn queue(
     client: &reqwest::Client,
     access_token: &str,
-) -> AppResult<SpotifyQueueSnapshot> {
+) -> SpotifyResult<SpotifyQueueSnapshot> {
     let res: QueueResponse =
         get_json(client, access_token, &format!("{API_BASE}/me/player/queue")).await?;
     Ok(SpotifyQueueSnapshot {
@@ -546,7 +574,7 @@ pub async fn search(
     client: &reqwest::Client,
     access_token: &str,
     query: &str,
-) -> AppResult<SpotifySearchResults> {
+) -> SpotifyResult<SpotifySearchResults> {
     let encoded = url_escape(query);
     let res: SearchResponse = get_json(
         client,
@@ -579,28 +607,30 @@ async fn get_json<T: for<'de> Deserialize<'de>>(
     client: &reqwest::Client,
     access_token: &str,
     url: &str,
-) -> AppResult<T> {
+) -> SpotifyResult<T> {
     let res = client
         .get(url)
         .bearer_auth(access_token)
         .send()
         .await
-        .map_err(|e| AppError::Other(format!("Spotify API request failed: {e}")))?;
+        .map_err(|e| SpotifyError::Other(format!("Spotify API request failed: {e}")))?;
     parse_spotify_response(res).await
 }
 
 async fn parse_spotify_response<T: for<'de> Deserialize<'de>>(
     res: reqwest::Response,
-) -> AppResult<T> {
+) -> SpotifyResult<T> {
     let status = res.status();
     if status == StatusCode::NO_CONTENT {
-        return Err(AppError::Other("Spotify returned an empty response".into()));
+        return Err(SpotifyError::Other(
+            "Spotify returned an empty response".into(),
+        ));
     }
     if status.is_success() {
         return res
             .json::<T>()
             .await
-            .map_err(|e| AppError::Other(format!("Spotify response parse failed: {e}")));
+            .map_err(|e| SpotifyError::Other(format!("Spotify response parse failed: {e}")));
     }
     let text = res.text().await.unwrap_or_default();
     let message = serde_json::from_str::<SpotifyErrorBody>(&text)
@@ -626,7 +656,7 @@ async fn parse_spotify_response<T: for<'de> Deserialize<'de>>(
         format!("Spotify API error {}: {}", status.as_u16(), message)
     };
     tracing::warn!(status = %status, body = %text, "spotify API error");
-    Err(AppError::Other(friendly))
+    Err(SpotifyError::Other(friendly))
 }
 
 fn best_image(images: Option<Vec<ImageResponse>>) -> Option<String> {

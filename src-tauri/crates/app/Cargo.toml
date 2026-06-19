@@ -52,6 +52,7 @@ serde_json = "1"
 # `commands/plugins.rs`; the server intentionally leaves this feature
 # off to keep its binary lean.
 waveflow-core = { path = "../core", features = ["sqlite", "plugins"] }
+waveflow-spotify = { path = "../spotify" }
 waveflow-syncedlyrics = { path = "../syncedlyrics" }
 
 tauri = { version = "2", features = ["protocol-asset", "tray-icon", "image-png"] }

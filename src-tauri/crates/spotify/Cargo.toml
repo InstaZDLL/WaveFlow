@@ -1,0 +1,47 @@
+[package]
+name = "waveflow-spotify"
+version = "1.4.0"
+edition = "2021"
+license = "GPL-3.0-only"
+repository = "https://github.com/InstaZDLL/WaveFlow"
+description = "Spotify Web API client + OAuth helpers extracted from the WaveFlow app crate."
+
+# Why a separate workspace crate?
+#
+# The Spotify integration is a third-party service binding — not core
+# playback logic — and was previously interleaved with the app crate's
+# domain code. Extracting it keeps the app crate focused on the local
+# audio engine + UI plumbing, and lets a future cargo feature toggle
+# the whole integration out without touching the player core. Pattern
+# mirrors `waveflow-syncedlyrics` (lyrics provider chain) — same
+# rationale, same workspace position.
+
+[dependencies]
+# HTTP client. `rustls-tls` matches the rest of the workspace so we
+# don't ship a second TLS stack.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+# DB access — the auth_credential + app_setting reads/writes happen
+# inside this crate (callers pass in the pools, so we never touch
+# `AppState`).
+sqlx = { version = "0.9", features = ["runtime-tokio", "sqlite", "chrono"] }
+
+# JSON + struct serialization. `Serialize` is needed for the public
+# types that flow back through the Tauri command boundary.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Wall-clock for token expiry (`expires_at = now + expires_in * 1000`).
+chrono = "0.4"
+
+# PKCE — random verifier + SHA-256 challenge + base64url-no-pad encoding.
+base64 = "0.22"
+sha2 = "0.11"
+uuid = { version = "1", features = ["v4"] }
+
+# URL-form encoding for `?q=` + path segment escapes.
+url = "2"
+
+# Error + log surface — same families used by the rest of the workspace.
+thiserror = "2"
+tracing = "0.1"

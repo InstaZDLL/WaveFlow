@@ -1,19 +1,24 @@
 //! Tauri commands for Spotify OAuth and Web API reads.
+//!
+//! Thin wrappers over the `waveflow-spotify` crate. The app crate owns
+//! `AppState` → pool unwrapping; the Spotify crate stays ignorant of
+//! Tauri / `AppState` so it can be reused outside the desktop.
 
 use std::time::Duration;
 
 use serde::Deserialize;
 use tauri::Manager;
 use tiny_http::Server;
+use waveflow_spotify as spotify;
+use waveflow_spotify::{
+    SpotifyAccessToken, SpotifyPlaylistLite, SpotifySearchResults, SpotifyStatus, SpotifyTrackLite,
+    CALLBACK_ADDR, CALLBACK_URL, SCOPES,
+};
 
 use crate::{
     audio::{engine::AudioCmd, AudioEngine},
     commands::loopback::html_response,
     error::{AppError, AppResult},
-    spotify::{
-        self, SpotifyAccessToken, SpotifyPlaylistLite, SpotifySearchResults, SpotifyStatus,
-        SpotifyTrackLite, CALLBACK_ADDR, CALLBACK_URL, SCOPES,
-    },
     state::AppState,
 };
 
@@ -26,7 +31,7 @@ struct CallbackQuery {
 
 #[tauri::command]
 pub async fn get_spotify_client_id(state: tauri::State<'_, AppState>) -> AppResult<Option<String>> {
-    spotify::read_client_id(&state).await
+    Ok(spotify::read_client_id(&state.app_db).await?)
 }
 
 #[tauri::command]
@@ -34,12 +39,18 @@ pub async fn set_spotify_client_id(
     state: tauri::State<'_, AppState>,
     client_id: String,
 ) -> AppResult<()> {
-    spotify::write_client_id(&state, &client_id).await
+    spotify::write_client_id(&state.app_db, &client_id).await?;
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn spotify_get_status(state: tauri::State<'_, AppState>) -> AppResult<SpotifyStatus> {
-    spotify::status(&state).await
+    // The Spotify crate accepts `Option<&SqlitePool>` for the profile
+    // pool so it can still report `configured` when no profile is
+    // mounted — match that contract here. `require_profile_pool`
+    // errors are downgraded to "no profile = not connected".
+    let profile_pool = state.require_profile_pool().await.ok();
+    Ok(spotify::status(&state.app_db, profile_pool.as_ref()).await?)
 }
 
 #[tauri::command]
@@ -56,7 +67,7 @@ pub async fn spotify_login(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> AppResult<SpotifyStatus> {
-    let client_id = spotify::read_client_id(&state)
+    let client_id = spotify::read_client_id(&state.app_db)
         .await?
         .ok_or_else(|| AppError::Other("Spotify Client ID is not configured".into()))?;
     let verifier = spotify::random_token();
@@ -88,29 +99,32 @@ pub async fn spotify_login(
     let client = reqwest::Client::new();
     let tokens = spotify::exchange_code(&client, &client_id, &code, &verifier).await?;
     let (username, _product) = spotify::me(&client, &tokens.access_token).await?;
-    spotify::store_tokens(&state, &tokens, &username, None).await?;
+    let profile_pool = state.require_profile_pool().await?;
+    spotify::store_tokens(&profile_pool, &tokens, &username, None).await?;
 
     if let Some(engine) = app.try_state::<std::sync::Arc<AudioEngine>>() {
         let _ = engine.send(AudioCmd::Pause);
     }
 
-    spotify::status(&state).await
+    Ok(spotify::status(&state.app_db, Some(&profile_pool)).await?)
 }
 
 #[tauri::command]
 pub async fn spotify_get_access_token(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<SpotifyAccessToken> {
-    spotify::access_token(&state).await
+    let profile_pool = state.require_profile_pool().await?;
+    Ok(spotify::access_token(&state.app_db, &profile_pool).await?)
 }
 
 #[tauri::command]
 pub async fn spotify_list_playlists(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<Vec<SpotifyPlaylistLite>> {
-    let token = spotify::access_token(&state).await?;
+    let profile_pool = state.require_profile_pool().await?;
+    let token = spotify::access_token(&state.app_db, &profile_pool).await?;
     let client = reqwest::Client::new();
-    spotify::list_playlists(&client, &token.access_token).await
+    Ok(spotify::list_playlists(&client, &token.access_token).await?)
 }
 
 #[tauri::command]
@@ -118,18 +132,20 @@ pub async fn spotify_get_playlist_tracks(
     state: tauri::State<'_, AppState>,
     playlist_id: String,
 ) -> AppResult<Vec<SpotifyTrackLite>> {
-    let token = spotify::access_token(&state).await?;
+    let profile_pool = state.require_profile_pool().await?;
+    let token = spotify::access_token(&state.app_db, &profile_pool).await?;
     let client = reqwest::Client::new();
-    spotify::playlist_tracks(&client, &token.access_token, &playlist_id).await
+    Ok(spotify::playlist_tracks(&client, &token.access_token, &playlist_id).await?)
 }
 
 #[tauri::command]
 pub async fn spotify_get_queue(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<spotify::SpotifyQueueSnapshot> {
-    let token = spotify::access_token(&state).await?;
+    let profile_pool = state.require_profile_pool().await?;
+    let token = spotify::access_token(&state.app_db, &profile_pool).await?;
     let client = reqwest::Client::new();
-    spotify::queue(&client, &token.access_token).await
+    Ok(spotify::queue(&client, &token.access_token).await?)
 }
 
 #[tauri::command]
@@ -144,9 +160,10 @@ pub async fn spotify_search(
             artists: Vec::new(),
         });
     }
-    let token = spotify::access_token(&state).await?;
+    let profile_pool = state.require_profile_pool().await?;
+    let token = spotify::access_token(&state.app_db, &profile_pool).await?;
     let client = reqwest::Client::new();
-    spotify::search(&client, &token.access_token, query.trim()).await
+    Ok(spotify::search(&client, &token.access_token, query.trim()).await?)
 }
 
 #[tauri::command]
