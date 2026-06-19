@@ -82,6 +82,14 @@ PATCHES = {
         # AI report flagged a half-width `,` mid-sentence; CJK
         # conventions use the full-width `，` between clauses.
         "settings.appearance.skin.subtitle": "改變密度、表面質感、字體與動效，不只是顏色。",
+        # CodeRabbit follow-up on #269: zh-TW pulse + liquid carried
+        # the same half-width comma + `pills`-as-medication issue as
+        # zh-CN, missed in the first pass because the AI report only
+        # flagged the subtitle. Convert to traditional characters of
+        # the zh-CN target so terminology stays consistent across the
+        # Chinese pair.
+        "settings.appearance.skins.pulse.description": "霓虹俱樂部 — OLED 底色，活躍元素周圍的彩色光暈，單色膠囊標籤，彈性動效。",
+        "settings.appearance.skins.liquid.description": "Apple 風格液態玻璃 — 多層半透明材質，極光背景，膠囊標籤，寧靜動效。",
     },
     "ar": {
         "settings.appearance.skins.editorial.description": "مجلة على ورق — خط سيريف افتتاحي، خطوط فاصلة رفيعة، حبيبات ناعمة، فسحة سخية.",
