@@ -759,7 +759,7 @@ pub async fn fetch_lyrics(
             format,
             source,
             tag_write_skipped: None,
-        sidecar_write_skipped: None,
+            sidecar_write_skipped: None,
         }));
     }
 
@@ -783,7 +783,7 @@ pub async fn fetch_lyrics(
             format,
             source,
             tag_write_skipped: None,
-        sidecar_write_skipped: None,
+            sidecar_write_skipped: None,
         }));
     }
 
@@ -797,7 +797,10 @@ pub async fn fetch_lyrics(
         // scanner paths stay `None` to avoid the extra Musixmatch
         // hop per track on bulk operations.
         let translation_lang = read_translation_lang(&pool).await.unwrap_or_else(|err| {
-            tracing::warn!(?err, "read_translation_lang failed; serving untranslated lyrics");
+            tracing::warn!(
+                ?err,
+                "read_translation_lang failed; serving untranslated lyrics"
+            );
             None
         });
         // A Musixmatch failure here is non-fatal: fall through to LRCLIB
@@ -883,7 +886,7 @@ pub async fn fetch_lyrics(
                 format: LyricsFormat::Plain,
                 source: LyricsSource::Api,
                 tag_write_skipped: None,
-        sidecar_write_skipped: None,
+                sidecar_write_skipped: None,
             }));
         }
         Err(err) => {
@@ -914,7 +917,7 @@ pub async fn fetch_lyrics(
             format: LyricsFormat::Plain,
             source: LyricsSource::Api,
             tag_write_skipped: None,
-        sidecar_write_skipped: None,
+            sidecar_write_skipped: None,
         }));
     }
 
@@ -955,7 +958,7 @@ pub async fn fetch_lyrics(
                 format: LyricsFormat::Plain,
                 source: LyricsSource::Api,
                 tag_write_skipped: None,
-        sidecar_write_skipped: None,
+                sidecar_write_skipped: None,
             }));
         }
     };
@@ -1555,9 +1558,10 @@ pub async fn save_lyrics(
                 // cache row stays addressable. We update the track row +
                 // the lyrics row in the same transaction below.
                 let path_for_hash = file_path.clone();
-                let new_hash = tokio::task::spawn_blocking(move || hash_file_blake3(&path_for_hash))
-                    .await
-                    .map_err(|e| AppError::Other(format!("rehash panicked: {e}")))??;
+                let new_hash =
+                    tokio::task::spawn_blocking(move || hash_file_blake3(&path_for_hash))
+                        .await
+                        .map_err(|e| AppError::Other(format!("rehash panicked: {e}")))??;
 
                 let mut tx = pool.begin().await?;
                 sqlx::query("UPDATE track SET file_hash = ? WHERE id = ?")
@@ -1612,7 +1616,11 @@ pub async fn save_lyrics(
         format,
         source,
         tag_write_skipped: if tag_write_skipped { Some(true) } else { None },
-        sidecar_write_skipped: if sidecar_write_skipped { Some(true) } else { None },
+        sidecar_write_skipped: if sidecar_write_skipped {
+            Some(true)
+        } else {
+            None
+        },
     })
 }
 
@@ -1813,11 +1821,10 @@ pub const LYRICS_DEFAULT_DESTINATION_KEY: &str = "lyrics.default_destination";
 pub async fn get_lyrics_default_destination(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<String> {
-    let row: Option<String> =
-        sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
-            .bind(LYRICS_DEFAULT_DESTINATION_KEY)
-            .fetch_optional(&state.app_db)
-            .await?;
+    let row: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(LYRICS_DEFAULT_DESTINATION_KEY)
+        .fetch_optional(&state.app_db)
+        .await?;
     let resolved = row
         .as_deref()
         .and_then(LyricsDestination::parse)
@@ -1890,9 +1897,11 @@ pub async fn export_lyrics_to_path(
 ) -> AppResult<()> {
     let _pool = state.require_profile_pool().await?;
     let path = std::path::PathBuf::from(&target_path);
-    let parent = path
-        .parent()
-        .ok_or_else(|| AppError::Other(format!("export_lyrics_to_path: target has no parent: {target_path}")))?;
+    let parent = path.parent().ok_or_else(|| {
+        AppError::Other(format!(
+            "export_lyrics_to_path: target has no parent: {target_path}"
+        ))
+    })?;
     if !parent.as_os_str().is_empty() && !parent.exists() {
         return Err(AppError::Other(format!(
             "export_lyrics_to_path: parent directory does not exist: {}",

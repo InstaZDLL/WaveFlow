@@ -107,7 +107,21 @@ export function LyricsEditorModal({
   // Settings → Playback). Defaults to `tag` for pre-init renders so a
   // very fast save before the fetch lands behaves exactly like the
   // legacy `write_to_file: true` flow.
-  const [destination, setDestination] = useState<LyricsDestination>("tag");
+  const [destination, setDestinationState] = useState<LyricsDestination>("tag");
+  // True once the user has touched the segmented control on the
+  // current modal open. Lets the async default fetch defer to a
+  // manual pick that landed first (rare but possible: the SQLite read
+  // can lose to a sub-10 ms double-click on the segmented control).
+  // Reset on every open so the next edit starts honouring the default
+  // again.
+  const destinationUserTouchedRef = useRef(false);
+  const setDestination = useCallback(
+    (next: LyricsDestination, fromUser: boolean = true) => {
+      if (fromUser) destinationUserTouchedRef.current = true;
+      setDestinationState(next);
+    },
+    [],
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** Surfaced after save when the backend kept the lyrics in-DB but
@@ -154,24 +168,29 @@ export function LyricsEditorModal({
   // override per-save via the segmented control below.
   useEffect(() => {
     if (!isOpen) return;
+    // Reset the touched flag for this open. Any setDestination call
+    // from the user (segmented control click) below will set it back
+    // to true so the async fetch's then-handler bails out instead of
+    // overwriting a deliberate pick that landed mid-fetch.
+    destinationUserTouchedRef.current = false;
     let cancelled = false;
     getLyricsDefaultDestination().then(
       (def) => {
-        if (cancelled) return;
-        setDestination(def);
+        if (cancelled || destinationUserTouchedRef.current) return;
+        setDestination(def, false);
       },
       (err) => {
         // Fall back to the legacy "tag" default and log; never block
         // the editor from opening over a stale setting fetch.
-        if (cancelled) return;
+        if (cancelled || destinationUserTouchedRef.current) return;
         console.warn("[LyricsEditor] default destination fetch failed", err);
-        setDestination("tag");
+        setDestination("tag", false);
       },
     );
     return () => {
       cancelled = true;
     };
-  }, [isOpen]);
+  }, [isOpen, setDestination]);
 
   // ── Hydrate from initial payload ─────────────────────────────────
   useEffect(() => {

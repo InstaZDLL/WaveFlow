@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FileText, FileDown, Database } from "lucide-react";
 
@@ -32,16 +32,21 @@ export function LyricsDestinationCard() {
   const [value, setValue] = useState<LyricsDestination>("tag");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // True once the user clicked a tile. Lets the initial fetch's
+  // then-handler defer to the manual pick if the user managed to
+  // click before the SQLite read resolves (sub-10 ms window — rare,
+  // not impossible).
+  const userTouchedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     getLyricsDefaultDestination().then(
       (v) => {
-        if (cancelled) return;
+        if (cancelled || userTouchedRef.current) return;
         setValue(v);
       },
       (err) => {
-        if (cancelled) return;
+        if (cancelled || userTouchedRef.current) return;
         console.warn(
           "[LyricsDestinationCard] read failed; keeping current default",
           err,
@@ -55,6 +60,7 @@ export function LyricsDestinationCard() {
 
   const onPick = async (next: LyricsDestination) => {
     if (next === value || busy) return;
+    userTouchedRef.current = true;
     setBusy(true);
     setError(null);
     const previous = value;

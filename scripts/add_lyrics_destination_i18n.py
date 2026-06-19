@@ -351,6 +351,7 @@ def main() -> int:
         path = here / f"{code}.json"
         if not path.exists():
             print(f"  skip {code} — file missing")
+            skipped.append(code)
             continue
         if patch_locale(path, tr):
             changed.append(code)

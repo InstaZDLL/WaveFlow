@@ -234,6 +234,12 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
   const [lyricsDestination, setLyricsDestinationState] =
     useState<LyricsDestination>("tag");
   const [lyricsBusy, setLyricsBusy] = useState(false);
+  // True once the user has clicked a tile in the lyrics step. Lets
+  // the initial fetch's then-handler defer to a manual pick that
+  // landed first — same race the LyricsEditorModal hits, only here
+  // the modal isn't reopened so we don't need to reset between
+  // steps.
+  const lyricsUserTouchedRef = useRef(false);
 
   // Last.fm form state. The backend wants api key + secret + username
   // + password to mint a session via auth.getMobileSession; we mirror
@@ -277,7 +283,8 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
       }
       try {
         const dest = await getLyricsDefaultDestination();
-        if (!cancelled) setLyricsDestinationState(dest);
+        if (cancelled || lyricsUserTouchedRef.current) return;
+        setLyricsDestinationState(dest);
       } catch (err) {
         console.error(
           "[Onboarding] read lyrics default destination failed",
@@ -378,6 +385,7 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
 
   const handlePickLyricsDestination = async (next: LyricsDestination) => {
     if (next === lyricsDestination || lyricsBusy) return;
+    lyricsUserTouchedRef.current = true;
     const previous = lyricsDestination;
     setLyricsBusy(true);
     setLyricsDestinationState(next);
@@ -776,7 +784,7 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
                 <div className="mt-6 space-y-4">
                   <div
                     role="radiogroup"
-                    aria-labelledby="onboarding-lyrics-title"
+                    aria-label={t("onboarding.lyrics.title")}
                     className="grid grid-cols-1 sm:grid-cols-3 gap-2"
                   >
                     {(
