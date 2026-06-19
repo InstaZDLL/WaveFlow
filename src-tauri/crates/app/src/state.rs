@@ -355,7 +355,17 @@ impl AppState {
 /// discovery (loop over `<resource_dir>/plugins/*/manifest.toml`)
 /// so adding a plugin to the bundle doesn't require touching app
 /// code; for v1.5.0 the static list keeps the diff focused.
-const BUNDLED_PLUGINS: &[&str] = &["web-radio"];
+pub(crate) const BUNDLED_PLUGINS: &[&str] = &["web-radio"];
+
+/// True when `plugin_id` is a first-party plugin shipped inside the
+/// installer (re-seeded at every boot by [`ensure_bundled_plugins`]).
+/// Used to surface a "bundled" badge and refuse `uninstall_plugin` —
+/// the uninstall would only persist until next launch, then the boot
+/// extractor would silently put the plugin back, which reads as a bug
+/// to the user.
+pub(crate) fn is_bundled_plugin(plugin_id: &str) -> bool {
+    BUNDLED_PLUGINS.iter().any(|id| *id == plugin_id)
+}
 
 /// Copy every entry in [`BUNDLED_PLUGINS`] from the installer's
 /// resource dir into `<plugins_root>/<id>/` when the install dir

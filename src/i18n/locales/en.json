@@ -1293,7 +1293,9 @@
         "storageRead": "Storage read",
         "assets": "Assets ({{count}})",
         "none": "No permission requested"
-      }
+      },
+      "bundled": "Built-in",
+      "bundledHint": "Ships with WaveFlow — disable it to hide it."
     },
     "shortcuts": {
       "subtitle": "Click a shortcut then press the key combination you want. Backspace to clear, Escape to cancel.",
@@ -1845,6 +1847,8 @@
     "searchPlaceholder": "Search a station…",
     "backToCategories": "Back to categories",
     "live": "LIVE",
-    "nowPlaying": "Now playing"
+    "nowPlaying": "Now playing",
+    "unavailableTitle": "Web Radio is disabled",
+    "unavailableHint": "Enable the Web Radio plugin in Settings → Plugins to browse 30,000+ stations."
   }
 }

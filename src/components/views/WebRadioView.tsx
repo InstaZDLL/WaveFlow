@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { Radio, Search, ChevronLeft, Play, Pause, Loader2 } from "lucide-react";
+import { Radio, Search, ChevronLeft, Play, Pause, Loader2, Puzzle } from "lucide-react";
 
 import { playerPlayUrl, playerStop } from "../../lib/tauri/player";
 import {
@@ -11,8 +11,23 @@ import {
   type PluginEntry,
   type PluginTrack,
 } from "../../lib/tauri/plugins";
+import { usePluginAvailability } from "../../hooks/usePluginAvailability";
 
 const PLUGIN_ID = "web-radio";
+
+/// Recognise the backend errors that mean "the plugin host refused
+/// to invoke web-radio" — disabled toggle, manifest missing after
+/// uninstall, runtime drift. Anything else is treated as a real
+/// runtime failure and surfaced verbatim so an upstream bug is
+/// debuggable, not hidden behind a friendly empty state.
+function isPluginUnavailableError(message: string | null): boolean {
+  if (!message) return false;
+  return (
+    message.includes("plugin disabled") ||
+    message.includes("plugin not installed") ||
+    message.includes("manifest id mismatch")
+  );
+}
 
 /**
  * Web Radio view (Phase 4.c — engine-integrated).
@@ -29,6 +44,7 @@ const PLUGIN_ID = "web-radio";
  */
 export function WebRadioView() {
   const { t } = useTranslation();
+  const pluginAvailable = usePluginAvailability(PLUGIN_ID);
   const [entries, setEntries] = useState<PluginEntry[]>([]);
   const [activeEntry, setActiveEntry] = useState<PluginEntry | null>(null);
   const [tracks, setTracks] = useState<PluginTrack[]>([]);
@@ -256,6 +272,20 @@ export function WebRadioView() {
 
   const showCategoryList = activeEntry === null && !searchActive;
 
+  // Two paths converge on "the plugin host won't honour our calls":
+  //   1. The user flipped the toggle off in Settings → Plugins
+  //      *while* this view was mounted. `pluginAvailable` flips first
+  //      because the Settings card dispatches the bus event.
+  //   2. The initial `pluginListEntries` call landed before the bus
+  //      event fired, returned `plugin disabled`, and parked the
+  //      error in `error`. We sniff for that wording too so the
+  //      same empty-state covers both races.
+  // We still leave generic backend errors visible (network blip,
+  // wasm trap) because hiding those behind a "disable me" pitch
+  // would mask real bugs.
+  const showUnavailableEmptyState =
+    !pluginAvailable || isPluginUnavailableError(error);
+
   return (
     <div className="flex flex-col h-full">
       <header className="px-6 py-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-3">
@@ -309,7 +339,11 @@ export function WebRadioView() {
         </div>
       </div>
 
-      {error && (
+      {/* Generic backend errors only — the plugin-unavailable case is
+          rendered as a full empty state below so the user gets a
+          single, actionable surface instead of a noisy red banner
+          stacked on top of a stale category grid. */}
+      {error && !showUnavailableEmptyState && (
         <div
           role="alert"
           className="mx-6 mt-3 px-3 py-2 bg-red-50 dark:bg-red-950/30 text-xs text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900 rounded"
@@ -319,7 +353,21 @@ export function WebRadioView() {
       )}
 
       <div className="flex-1 overflow-y-auto px-6 py-4">
-        {loading ? (
+        {showUnavailableEmptyState ? (
+          <div className="flex flex-col items-center justify-center text-center py-16 px-6">
+            <Puzzle
+              size={48}
+              className="text-zinc-300 dark:text-zinc-700 mb-3"
+              aria-hidden="true"
+            />
+            <h2 className="text-base font-medium text-zinc-700 dark:text-zinc-200">
+              {t("webRadio.unavailableTitle")}
+            </h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 max-w-md">
+              {t("webRadio.unavailableHint")}
+            </p>
+          </div>
+        ) : loading ? (
           <div className="text-center text-sm text-zinc-500 dark:text-zinc-400 py-12">
             {t("webRadio.loading")}
           </div>

@@ -1293,7 +1293,9 @@
         "storageRead": "讀取儲存",
         "assets": "資源 ({{count}})",
         "none": "未請求任何權限"
-      }
+      },
+      "bundled": "內建",
+      "bundledHint": "隨 WaveFlow 提供 — 停用以隱藏。"
     },
     "integrations": {
       "lastfm": {
@@ -1845,6 +1847,8 @@
     "searchPlaceholder": "搜尋電台…",
     "backToCategories": "返回分類",
     "live": "直播",
-    "nowPlaying": "正在播放"
+    "nowPlaying": "正在播放",
+    "unavailableTitle": "Web Radio 已停用",
+    "unavailableHint": "在 設定 → 外掛 中啟用 Web Radio 外掛以瀏覽超過 30,000 個電台。"
   }
 }

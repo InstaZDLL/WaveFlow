@@ -1293,7 +1293,9 @@
         "storageRead": "读取存储",
         "assets": "资源 ({{count}})",
         "none": "未请求任何权限"
-      }
+      },
+      "bundled": "内置",
+      "bundledHint": "随 WaveFlow 提供 — 禁用以隐藏。"
     },
     "integrations": {
       "lastfm": {
@@ -1845,6 +1847,8 @@
     "searchPlaceholder": "搜索电台…",
     "backToCategories": "返回分类",
     "live": "直播",
-    "nowPlaying": "正在播放"
+    "nowPlaying": "正在播放",
+    "unavailableTitle": "Web Radio 已禁用",
+    "unavailableHint": "在 设置 → 插件 中启用 Web Radio 插件以浏览超过 30,000 个电台。"
   }
 }

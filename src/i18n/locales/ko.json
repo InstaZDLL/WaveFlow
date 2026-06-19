@@ -1293,7 +1293,9 @@
         "storageRead": "스토리지 읽기",
         "assets": "자산 ({{count}})",
         "none": "요청된 권한 없음"
-      }
+      },
+      "bundled": "내장",
+      "bundledHint": "WaveFlow에 포함되어 있습니다 — 숨기려면 비활성화하세요."
     },
     "shortcuts": {
       "subtitle": "단축키를 클릭한 후 원하는 키 조합을 누르세요. 지우려면 Backspace, 취소하려면 Escape를 누르세요.",
@@ -1845,6 +1847,8 @@
     "searchPlaceholder": "방송국 검색…",
     "backToCategories": "카테고리로 돌아가기",
     "live": "라이브",
-    "nowPlaying": "재생 중"
+    "nowPlaying": "재생 중",
+    "unavailableTitle": "Web Radio가 비활성화됨",
+    "unavailableHint": "30,000개 이상의 방송국을 탐색하려면 설정 → 플러그인에서 Web Radio 플러그인을 활성화하세요."
   }
 }

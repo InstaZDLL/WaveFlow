@@ -1293,7 +1293,9 @@
         "storageRead": "संग्रहण पढ़ना",
         "assets": "संपत्तियाँ ({{count}})",
         "none": "कोई अनुमति अनुरोधित नहीं"
-      }
+      },
+      "bundled": "अंतर्निहित",
+      "bundledHint": "WaveFlow के साथ शामिल — छुपाने के लिए अक्षम करें।"
     },
     "shortcuts": {
       "subtitle": "किसी शॉर्टकट पर क्लिक करें फिर अपनी इच्छित कुंजी संयोजन दबाएँ। साफ़ करने के लिए Backspace, रद्द करने के लिए Escape।",
@@ -1845,6 +1847,8 @@
     "searchPlaceholder": "स्टेशन खोजें…",
     "backToCategories": "श्रेणियों पर वापस",
     "live": "लाइव",
-    "nowPlaying": "अभी चल रहा है"
+    "nowPlaying": "अभी चल रहा है",
+    "unavailableTitle": "Web Radio अक्षम है",
+    "unavailableHint": "30,000+ स्टेशन ब्राउज़ करने के लिए सेटिंग्स → प्लगइन्स में Web Radio प्लगइन सक्षम करें।"
   }
 }

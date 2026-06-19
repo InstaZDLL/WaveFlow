@@ -1293,7 +1293,9 @@
         "storageRead": "Leitura de armazenamento",
         "assets": "Recursos ({{count}})",
         "none": "Nenhuma permissão pedida"
-      }
+      },
+      "bundled": "Integrado",
+      "bundledHint": "Incluído no WaveFlow — desative-o para o ocultar."
     },
     "shortcuts": {
       "subtitle": "Clica num atalho e prime a combinação de teclas que desejas. Backspace para limpar, Escape para cancelar.",
@@ -1845,6 +1847,8 @@
     "searchPlaceholder": "Pesquisar uma estação…",
     "backToCategories": "Voltar às categorias",
     "live": "AO VIVO",
-    "nowPlaying": "A reproduzir agora"
+    "nowPlaying": "A reproduzir agora",
+    "unavailableTitle": "Web Radio está desativada",
+    "unavailableHint": "Ative o plugin Web Radio em Definições → Plugins para explorar mais de 30 000 estações."
   }
 }

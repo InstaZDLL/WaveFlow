@@ -13,6 +13,7 @@
 
 use std::fs;
 use std::sync::Arc;
+use std::sync::atomic::Ordering as AtomicOrdering;
 
 use serde::Serialize;
 use tauri::State;
@@ -20,8 +21,9 @@ use tokio::sync::{Mutex, OwnedMutexGuard};
 use waveflow_core::plugin::manifest::{Manifest, ManifestError};
 use waveflow_core::plugin::runtime::{source_list_entries, source_resolve, source_stream_url};
 
+use crate::audio::{AudioCmd, AudioEngine};
 use crate::error::{AppError, AppResult};
-use crate::state::AppState;
+use crate::state::{AppState, is_bundled_plugin};
 
 /// Acquire the per-plugin write lock. Inserts a fresh `Mutex<()>`
 /// into the runtime's map the first time we see this id; returns
@@ -66,6 +68,13 @@ pub struct PluginInfo {
     /// by `app_setting['plugin.<id>.enabled']`; missing key = on
     /// (an installed plugin is enabled by default).
     pub enabled: bool,
+    /// `true` when this plugin is shipped inside the installer and
+    /// re-seeded at every boot. The UI replaces "Uninstall" with a
+    /// disabled hint on bundled rows, and the backend refuses
+    /// [`uninstall_plugin`] for the same id so the FS-remove + boot
+    /// reseed cycle can't masquerade as an uninstall that "comes
+    /// back" on next launch.
+    pub bundled: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -84,6 +93,7 @@ pub struct PluginAssetInfo {
 }
 
 fn manifest_to_info(manifest: Manifest, enabled: bool) -> PluginInfo {
+    let bundled = is_bundled_plugin(&manifest.plugin.id);
     PluginInfo {
         id: manifest.plugin.id,
         name: manifest.plugin.name,
@@ -107,6 +117,7 @@ fn manifest_to_info(manifest: Manifest, enabled: bool) -> PluginInfo {
             })
             .collect(),
         enabled,
+        bundled,
     }
 }
 
@@ -346,18 +357,45 @@ pub async fn set_plugin_enabled(
 /// is also dropped so a future reinstall of the same id starts in
 /// its default state (enabled).
 ///
+/// Refuses bundled plugins ([`is_bundled_plugin`]) — the boot-time
+/// extractor would re-seed them on next launch, so an "uninstall"
+/// would silently roll itself back. Bundled plugins must be turned
+/// off via [`set_plugin_enabled`] instead; the frontend hides the
+/// uninstall button for these and points the user at the toggle.
+///
+/// When the audio engine is currently playing a non-library URL
+/// (sentinel `current_track_id < 0`, set by `player_play_url` for
+/// every plugin-minted stream), the engine is stopped before the
+/// install dir is wiped. The plugin id isn't currently round-tripped
+/// to the engine, so this stops any URL-based stream — accepted
+/// trade-off vs leaving an orphan stream playing whose source view
+/// has just been deleted.
+///
 /// Frontend must confirm with the user before invoking — the
 /// command itself takes no "are you sure" parameter, on the same
 /// principle as `delete_profile`.
 #[tauri::command]
 pub async fn uninstall_plugin(
     state: State<'_, AppState>,
+    engine: State<'_, Arc<AudioEngine>>,
     plugin_id: String,
 ) -> AppResult<()> {
     // Character-class gate FIRST: rejects case-variant input
     // before any lock entry is created. See doc on
     // `validate_plugin_id_chars`.
     validate_plugin_id_chars(&plugin_id)?;
+
+    // Bundled plugins live inside the installer and are re-seeded at
+    // every boot by `ensure_bundled_plugins`. Allowing the uninstall
+    // would create a one-launch ghost state — the user sees the
+    // plugin disappear, restarts the app, and it's back. Refuse so
+    // the contract is honest; the UI mirrors this by hiding the
+    // button entirely on bundled rows.
+    if is_bundled_plugin(&plugin_id) {
+        return Err(AppError::Other(format!(
+            "plugin {plugin_id} is bundled with WaveFlow and cannot be uninstalled (disable it instead)"
+        )));
+    }
 
     let paths = state.paths.plugin_paths();
     let install_dir = paths
@@ -402,6 +440,22 @@ pub async fn uninstall_plugin(
         return Err(AppError::Other(format!(
             "plugin manifest present but id mismatch (or corrupt): {plugin_id}"
         )));
+    }
+
+    // Stop any URL-based stream before we wipe the install dir.
+    // `player_play_url` mints a strictly-negative `track_id` for
+    // every HTTP stream it dispatches (radio + plugin-sourced),
+    // and that id is currently the only signal that the engine is
+    // serving something the local library can't anchor to. The
+    // plugin id isn't round-tripped to the engine, so we can't
+    // narrow this to "the URL was minted by THIS plugin" — accepted
+    // trade-off vs orphaning a stream whose owner has just been
+    // uninstalled. A library track is left alone.
+    if engine.shared().current_track_id.load(AtomicOrdering::Relaxed) < 0 {
+        tracing::info!(plugin_id, "stopping active URL stream before uninstall");
+        if let Err(e) = engine.send(AudioCmd::Stop) {
+            tracing::warn!(plugin_id, %e, "failed to stop engine; proceeding with uninstall");
+        }
     }
 
     // Remove install + state on a blocking thread — `remove_dir_all`
