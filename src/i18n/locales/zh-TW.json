@@ -1641,7 +1641,7 @@
       },
       "skin": {
         "title": "外觀",
-        "subtitle": "改變密度、表面質感、字體與動效,不只是顏色。"
+        "subtitle": "改變密度、表面質感、字體與動效，不只是顏色。"
       },
       "skins": {
         "studio": {
@@ -1658,11 +1658,11 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "霓虹俱樂部 — OLED 底色,活躍元素周圍的彩色光暈,等寬膠囊,彈性動效。"
+          "description": "霓虹俱樂部 — OLED 底色，活躍元素周圍的彩色光暈，單色膠囊標籤，彈性動效。"
         },
         "liquid": {
           "label": "Liquid",
-          "description": "Apple 風格液態玻璃 — 多層半透明材質,極光背景,膠囊藥丸,寧靜動效。"
+          "description": "Apple 風格液態玻璃 — 多層半透明材質，極光背景，膠囊標籤，寧靜動效。"
         }
       }
     },

@@ -1326,16 +1326,16 @@
       },
       "skin": {
         "title": "Skin",
-        "subtitle": "Change la densité, la matière des surfaces, la typographie et la motion — pas seulement les couleurs."
+        "subtitle": "Modifie la densité, les matériaux, la typographie et les animations — pas seulement les couleurs."
       },
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Ambiance Apple Music — interface dense, ombres douces, sans-serif net."
+          "description": "Ambiance Apple Music — interface dense, ombres douces, sans empattement épuré."
         },
         "editorial": {
           "label": "Editorial",
-          "description": "Magazine sur papier — serif éditorial, filets fins, grain doux, espace généreux."
+          "description": "Magazine sur papier — serif éditorial, fines lignes de séparation, grain doux, espace généreux."
         },
         "lounge": {
           "label": "Lounge",
@@ -1343,11 +1343,11 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Club néon — base OLED, halos colorés autour des éléments actifs, pills mono, animations ressorts."
+          "description": "Club néon — base OLED, halos colorés autour des éléments actifs, pastilles monochromes, animations élastiques."
         },
         "liquid": {
           "label": "Liquid",
-          "description": "Verre liquide style Apple — matière translucide multi-couche, fond aurora, capsules pilules, motion calme."
+          "description": "Verre liquide façon Apple — matière translucide multi-couches, fond aurora, pastilles, transitions calmes."
         }
       },
       "mode": {

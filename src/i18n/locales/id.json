@@ -1703,7 +1703,7 @@
         },
         "editorial": {
           "label": "Editorial",
-          "description": "Majalah di atas kertas — serif editorial, garis tipis, bintik halus, ruang lapang."
+          "description": "Majalah cetak — serif editorial, garis tipis, tekstur halus, ruang lapang."
         },
         "lounge": {
           "label": "Lounge",
@@ -1711,7 +1711,7 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Klub neon — basis OLED, halo warna di sekitar elemen aktif, pill mono, animasi pegas."
+          "description": "Klub neon — basis OLED, halo warna di sekitar elemen aktif, kapsul mono, animasi membal."
         },
         "liquid": {
           "label": "Liquid",
