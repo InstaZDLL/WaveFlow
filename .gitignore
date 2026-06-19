@@ -87,3 +87,4 @@ packaging/flatpak/.cache/
 # graphify knowledge-graph output (interactive HTML + GraphRAG JSON + per-file
 # extraction cache). Machine-specific, fully regenerable from the cache.
 graphify-out/
+scripts/__pycache__/*
