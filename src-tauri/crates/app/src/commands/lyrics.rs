@@ -1663,7 +1663,7 @@ pub async fn set_lyrics_translation_lang(
             sqlx::query(
                 "INSERT INTO profile_setting (key, value, value_type, updated_at)
                  VALUES (?, ?, 'string', ?)
-                 ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value, value_type = excluded.value_type, updated_at = excluded.updated_at",
             )
             .bind(TRANSLATION_LANG_KEY)
             .bind(code)

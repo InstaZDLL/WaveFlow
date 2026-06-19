@@ -99,7 +99,7 @@ pub async fn write_auto_enabled(pool: &SqlitePool, enabled: bool) -> AppResult<(
     sqlx::query(
         "INSERT INTO profile_setting (key, value, value_type, updated_at)
          VALUES (?, ?, 'bool', ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, value_type = excluded.value_type, updated_at = excluded.updated_at",
     )
     .bind(AUTO_BACKFILL_KEY)
     .bind(if enabled { "1" } else { "0" })
@@ -130,7 +130,7 @@ async fn write_last_run_at(pool: &SqlitePool, epoch_ms: i64) -> AppResult<()> {
     sqlx::query(
         "INSERT INTO profile_setting (key, value, value_type, updated_at)
          VALUES (?, ?, 'int', ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, value_type = excluded.value_type, updated_at = excluded.updated_at",
     )
     .bind(LAST_RUN_AT_KEY)
     .bind(epoch_ms.to_string())
@@ -165,7 +165,7 @@ pub async fn write_heartbeat_interval_min(pool: &SqlitePool, minutes: i64) -> Ap
     sqlx::query(
         "INSERT INTO profile_setting (key, value, value_type, updated_at)
          VALUES (?, ?, 'int', ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, value_type = excluded.value_type, updated_at = excluded.updated_at",
     )
     .bind(HEARTBEAT_INTERVAL_KEY)
     .bind(minutes.to_string())
