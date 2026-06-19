@@ -85,7 +85,7 @@
       "toggleSecret": "Secret ein-/ausblenden",
       "togglePassword": "Passwort ein-/ausblenden",
       "connect": "Last.fm verbinden",
-      "missingFields": "Bitte fülle API-Schlüssel, Secret, Benutzername und Passwort aus.",
+      "missingFields": "Bitte fülle API-Schlüssel, Secret, Benutzernamen und Passwort aus.",
       "connectedTitle": "Verbunden als {{user}}",
       "connectedSubtitle": "Scrobbling startet automatisch, sobald du einen Titel abspielst."
     },
@@ -101,7 +101,7 @@
       "title": "Alles bereit!",
       "description": "Deine Bibliothek wurde gescannt und ist startklar.",
       "nextSteps": "Nächste Schritte:",
-      "bulletExplore": "Erkunde deine Bibliothek über die Tabs Bibliothek, Alben und Künstler",
+      "bulletExplore": "Erkunde deine Bibliothek über die Tabs „Titel“, „Alben“ und „Künstler“",
       "bulletQueue": "Erstelle deine erste Warteschlange, indem du auf einen Titel klickst",
       "bulletSettings": "Justiere alles über die Seitenleiste (Aussehen, Integrationen…)"
     },
@@ -432,9 +432,9 @@
       "trackCount_other": "{{count}} Titel",
       "lastScanned": "Gescannt: {{date}}",
       "neverScanned": "nie",
-      "watched": "Beobachtet",
-      "watchOn": "Änderungen automatisch beobachten",
-      "watchOff": "Beobachtung beenden",
+      "watched": "Überwacht",
+      "watchOn": "Änderungen automatisch überwachen",
+      "watchOff": "Überwachung beenden",
       "remove": "Ordner aus Bibliothek entfernen",
       "removeConfirm": "Zur Bestätigung erneut klicken"
     },
@@ -449,8 +449,8 @@
     "emptyTitle": "Keine gelikten Titel",
     "emptyDescription": "Titel, die du likest, erscheinen hier. Stöbere in deiner Bibliothek und like deine Lieblingstitel.",
     "playAll": "Alle abspielen",
-    "unlike": "Aus gelikten Titeln entfernen",
-    "like": "Zu gelikten Titeln hinzufügen"
+    "unlike": "Aus Favoriten entfernen",
+    "like": "Zu Favoriten hinzufügen"
   },
   "history": {
     "badge": "Verlauf",
@@ -833,8 +833,8 @@
     "createPlaylist": "Neue Playlist",
     "playNext": "Als Nächstes spielen",
     "addToQueue": "Zur Warteschlange hinzufügen",
-    "like": "Zu gelikten Titeln hinzufügen",
-    "unlike": "Aus gelikten Titeln entfernen",
+    "like": "Zu Favoriten hinzufügen",
+    "unlike": "Aus Favoriten entfernen",
     "removeFromPlaylist": "Aus dieser Playlist entfernen",
     "goToAlbum": "Zum Album",
     "goToArtist": "Zum Künstler",
@@ -851,7 +851,7 @@
   "batchTagEdit": {
     "title": "Tags stapelweise bearbeiten",
     "subtitle": "{{count}} Titel ausgewählt",
-    "help": "Hake die Felder ab, die auf alle Titel angewendet werden sollen. Nicht angehakte Felder bleiben pro Titel unberührt.",
+    "help": "Markiere die Felder, die auf alle Titel angewendet werden sollen. Nicht markierte Felder bleiben pro Titel unberührt.",
     "submit": "Anwenden ({{count}} Feld(er))",
     "fields": {
       "artist": "Künstler",
@@ -1089,7 +1089,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML nur im Cache behalten (nicht in den Audio-Tag geschrieben)",
-      "sidecarWriteSkipped": "Liedtext in der Datenbank gespeichert, aber TTML kann nicht in eine .lrc/.txt-Sidecar-Datei geschrieben werden."
+      "sidecarWriteSkipped": "Songtext in der Datenbank gespeichert, aber TTML kann nicht in eine .lrc/.txt-Sidecar-Datei geschrieben werden."
     }
   },
   "duplicates": {
@@ -1192,7 +1192,7 @@
       "durationMaxMs": "Dauer (ms) ≤",
       "format": "Format =",
       "hiRes": "Hi-Res",
-      "liked": "Geliked",
+      "liked": "Favoriten",
       "ratingMin": "Bewertung ≥"
     }
   },
@@ -1228,7 +1228,7 @@
     "exportToFile": "In Datei speichern…",
     "exportToFileHint": "Exportiert den Text als .lrc oder .txt an einen frei gewählten Ort, ohne die Audiodatei zu verändern",
     "exportedToFile": "Exportiert nach {{path}}",
-    "destinationLabel": "Standard-Speicherort für Liedtexte",
+    "destinationLabel": "Standard-Speicherort für Songtexte",
     "destination": {
       "tag": {
         "label": "Eingebettetes Tag",
@@ -1311,7 +1311,7 @@
       "permissions": {
         "http": "HTTP ({{count}})",
         "storageState": "Nutzerspeicher",
-        "storageRead": "Speicherlesen",
+        "storageRead": "Lesezugriff auf Speicher",
         "assets": "Ressourcen ({{count}})",
         "none": "Keine Berechtigungen angefordert"
       },
@@ -1336,7 +1336,7 @@
         "toggleQueue": "Warteschlangen-Panel umschalten",
         "toggleNowPlaying": "„Wird gespielt“-Panel umschalten",
         "toggleLyrics": "Songtext-Panel umschalten",
-        "toggleLike": "Aktuellen Titel liken / unliken"
+        "toggleLike": "Aktuellen Titel zu Favoriten hinzufügen / entfernen"
       }
     },
     "offlineMode": {
@@ -1396,7 +1396,7 @@
     },
     "normalize": {
       "title": "Lautstärke normalisieren",
-      "subtitle": "Senkt zu laute Titel ab, um ein gleichmäßiges Niveau zu halten"
+      "subtitle": "Senkt die Lautstärke zu lauter Titel ab, um ein gleichmäßiges Niveau zu halten"
     },
     "replayGain": {
       "title": "ReplayGain anwenden",
@@ -1405,7 +1405,7 @@
     "exclusive": {
       "title": "WASAPI-Exklusivmodus (Windows)",
       "subtitle": "Bit-genau: umgeht den Windows-Mixer für störungsfreie Ausgabe. Fällt auf den Shared-Modus zurück, wenn das Gerät den Exklusivzugriff ablehnt.",
-      "fallback": "Das Gerät akzeptiert den Exklusivmodus nicht. Fallback auf den Shared-Modus."
+      "fallback": "Das Gerät akzeptiert den Exklusivmodus nicht. Es wird auf den Shared-Modus ausgewichen."
     },
     "mono": {
       "title": "Mono-Audio",
@@ -1458,7 +1458,7 @@
       "subtitle": "BPM, Lautheit und Peak für noch nicht analysierte Titel berechnen",
       "action": "Analysieren",
       "autoTitle": "Automatische Analyse",
-      "autoSubtitle": "Im Hintergrund analysieren, nachdem ein Scan neue Titel hinzugefügt hat",
+      "autoSubtitle": "Analyse im Hintergrund ausführen, nachdem ein Scan neue Titel hinzugefügt hat",
       "failed_one": "{{count}} Fehler",
       "failed_other": "{{count}} Fehler"
     },
@@ -1486,7 +1486,7 @@
       "import": {
         "action": "Importieren",
         "dialogTitle": "WaveFlow-Profil importieren",
-        "done": "Profil importiert (ID {{id}}). Wechsle über die Profilauswahl dorthin.",
+        "done": "Profil importiert (ID {{id}}). Wechsle über die Profilauswahl dazu.",
         "failed": "Import fehlgeschlagen. Die Datei könnte beschädigt oder inkompatibel sein."
       }
     },
@@ -1499,7 +1499,7 @@
     "lyricsPrefetch": {
       "title": "Songtexte vorab laden",
       "subtitle": "Lade Songtexte für die gesamte Bibliothek für die Offline-Nutzung herunter",
-      "result": "{{hits}} synchronisiert, {{misses}} nicht gefunden, {{failed}} fehlgeschlagen",
+      "result": "{{hits}} abgerufen, {{misses}} nicht gefunden, {{failed}} fehlgeschlagen",
       "offline": "Offline-Modus ist aktiviert",
       "failed": "Vorabladen fehlgeschlagen",
       "action": "Vorab laden",
@@ -1515,7 +1515,7 @@
       "action": "Zurücksetzen",
       "confirm": {
         "title": "Die gesamte App zurücksetzen?",
-        "warning": "Dies löscht jedes Profil, jede Bibliothek, Playlist, Bewertung, jeden Wiedergabeverlauf und den Cover-Cache. Die App startet neu mit einer sauberen Einrichtung. Dies kann nicht rückgängig gemacht werden.",
+        "warning": "Dies löscht jedes Profil, jede Bibliothek, Playlist, Bewertung, jeden Wiedergabeverlauf und den Cover-Cache. Die App startet neu in die Ersteinrichtung. Dies kann nicht rückgängig gemacht werden.",
         "typeToConfirm": "Gib RESET ein, um zu bestätigen",
         "error": "Zurücksetzen fehlgeschlagen. Schließe ein externes Programm, das eine WaveFlow-Datei blockiert (geöffneter Musikplayer, Datei-Explorer im Datenordner), und versuche es erneut.",
         "cancel": "Abbrechen",
@@ -1573,9 +1573,9 @@
       },
       "lastSyncNever": "Nie synchronisiert",
       "lastSyncJustNow": "Gerade eben",
-      "lastSyncMinutesAgo": "Vor {{count}} Min",
-      "lastSyncHoursAgo": "Vor {{count}} Std",
-      "lastSyncDaysAgo": "Vor {{count}} T",
+      "lastSyncMinutesAgo": "Vor {{count}} Min.",
+      "lastSyncHoursAgo": "Vor {{count}} Std.",
+      "lastSyncDaysAgo": "Vor {{count}} Tagen",
       "drilldown": {
         "loading": "Details werden geladen…",
         "error": "Fehler: {{message}}",
@@ -1703,7 +1703,7 @@
         },
         "editorial": {
           "label": "Editorial",
-          "description": "Magazin auf Papier — Editorial-Serife, feine Linien, sanftes Korn, großzügiger Raum."
+          "description": "Magazin auf Papier — Editorial-Serifen, haarfeine Linien, sanfte Körnung, großzügiger Raum."
         },
         "lounge": {
           "label": "Lounge",
@@ -1774,7 +1774,7 @@
     },
     "hiResBadge": {
       "title": "Hi-Res / DSD-Badge",
-      "subtitle": "Zeigt die Plakette „Hi-Res 24-bit“ oder „DSD128“ neben qualifizierenden Titeln und unter dem Künstlernamen in der Wiedergabeleiste. Standardmäßig aktiviert."
+      "subtitle": "Zeigt das Badge „Hi-Res 24-bit“ oder „DSD128“ neben qualifizierenden Titeln und unter dem Künstlernamen in der Wiedergabeleiste. Standardmäßig aktiviert."
     },
     "serverAccount": {
       "title": "WaveFlow-Server-Konto",
@@ -1784,7 +1784,7 @@
       "urlPlaceholder": "https://api.waveflow.app",
       "urlSave": "Speichern",
       "tokenLabel": "JWT-Token",
-      "tokenHint": "Melde dich im Browser am Server an, kopiere das von Better Auth ausgestellte JWT und füge es hier ein.",
+      "tokenHint": "Melde dich im Browser am Server an, kopiere das von Better Auth ausgestellte JWT-Token und füge es hier ein.",
       "tokenPlaceholder": "JWT einfügen (drei durch Punkte getrennte Segmente)",
       "tokenSave": "Speichern",
       "openLogin": "Anmeldung öffnen",

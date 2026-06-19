@@ -79,7 +79,7 @@
       "secretLabel": "共享密钥",
       "secretPlaceholder": "你的共享密钥",
       "userLabel": "Last.fm 用户名",
-      "userPlaceholder": "你的-用户名",
+      "userPlaceholder": "您的用户名",
       "passwordLabel": "密码",
       "passwordPlaceholder": "你的 Last.fm 密码",
       "toggleSecret": "显示/隐藏密钥",
@@ -253,7 +253,7 @@
     },
     "banner": {
       "badge": "准备好聆听了",
-      "subtitle": "发现您最爱的音乐，探索全新音效。",
+      "subtitle": "发现您最爱的音乐，探索全新声音。",
       "openFile": "打开文件",
       "openFolder": "打开文件夹",
       "importFiles": "导入文件",
@@ -380,7 +380,7 @@
       "share": "分享（即将推出）",
       "rescan": "重新扫描音乐库",
       "rescanning": "正在重新扫描音乐库…",
-      "changeArtwork": "更换图片（即将推出）",
+      "changeArtwork": "更换封面（即将推出）",
       "edit": "编辑音乐库",
       "delete": "删除音乐库",
       "deleteConfirm": "再次点击以确认",
@@ -391,7 +391,7 @@
     "localFile": "本地文件",
     "fetchMissingCovers": "获取所有缺失的封面",
     "fetchingCovers": "正在获取封面…({{current}} / {{total}})",
-    "fetchCoversResult": "已获取 {{count}} 张封套",
+    "fetchCoversResult": "已获取 {{count}} 张封面",
     "fetchCoversFailed": "封套获取失败",
     "table": {
       "number": "#",
@@ -464,8 +464,8 @@
     "emptyDescription": "播放一首曲目 — 计入后将立即出现在此。",
     "shownCount_one": "显示 {{count}} 次收听",
     "shownCount_other": "显示 {{count}} 次收听",
-    "plays_one": "{{count}} 次收听",
-    "plays_other": "{{count}} 次收听",
+    "plays_one": "{{count}} 次播放",
+    "plays_other": "{{count}} 次播放",
     "range": {
       "all": "全部",
       "7d": "7 天",
@@ -688,14 +688,14 @@
       "next": "下一首",
       "shuffleOn": "禁用随机播放",
       "shuffleOff": "启用随机播放",
-      "repeatOff": "重复关闭",
-      "repeatAll": "全部重复",
-      "repeatOne": "单曲重复"
+      "repeatOff": "关闭循环",
+      "repeatAll": "列表循环",
+      "repeatOne": "单曲循环"
     },
     "volume": {
       "label": "音量",
-      "mute": "关闭声音",
-      "unmute": "打开声音"
+      "mute": "静音",
+      "unmute": "取消静音"
     },
     "speed": {
       "label": "播放速度 ({{value}})",
@@ -704,7 +704,7 @@
       "custom": "自定义速度",
       "pitchHint": "音高随速度变化（无时间拉伸）。"
     },
-    "seek": "播放位置"
+    "seek": "跳转"
   },
   "queue": {
     "title": "播放队列",
@@ -1004,7 +1004,7 @@
       "save": "保存为 PNG",
       "copy": "复制图片",
       "eyebrow": "正在播放",
-      "on": "·"
+      "on": "收录于"
     }
   },
   "playerBar": {
@@ -1375,7 +1375,7 @@
     },
     "normalize": {
       "title": "标准化音量",
-      "subtitle": "将音量过大的片段调低，以保持音量一致"
+      "subtitle": "降低音量过大曲目的音量，以保持整体音量一致"
     },
     "replayGain": {
       "title": "应用 ReplayGain",
@@ -1430,7 +1430,7 @@
     },
     "analyze": {
       "title": "分析音乐库",
-      "subtitle": "计算未分析曲目的BPM、音量和峰值",
+      "subtitle": "计算未分析曲目的 BPM、响度和峰值",
       "action": "分析",
       "autoTitle": "自动分析",
       "autoSubtitle": "每次扫描并添加新曲目后，在后台运行分析",
@@ -1439,7 +1439,7 @@
     },
     "artistImages": {
       "title": "艺人图片",
-      "subtitle": "从 Deezer 下载艺人专辑封面",
+      "subtitle": "从 Deezer 下载艺人图片",
       "action": "获取",
       "progress": "已处理 {{current}}/{{total}}"
     },
@@ -1792,7 +1792,7 @@
       "webUrlLabel": "WaveFlow Web URL",
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "通过浏览器登录",
-      "signInWithBrowserHint": "在浏览器中打开 WaveFlow Web；您在那里登录，应用通过本地交换自动获取 JWT。",
+      "signInWithBrowserHint": "...应用通过本地握手自动获取 JWT。",
       "loginInProgress": "等待浏览器…",
       "modeLabel": "同步模式",
       "modes": {

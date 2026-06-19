@@ -45,7 +45,7 @@
       "calloutTitle": "जो आपको जानना चाहिए",
       "bulletOwn": "अपनी खुद की लाइब्रेरी लाएँ (MP3, FLAC, ALAC, OGG, DSD…)",
       "bulletImport": "एक फ़ोल्डर इम्पोर्ट करें या फ़ाइलें ड्रैग-एंड-ड्रॉप करें",
-      "bulletScrobble": "बैकग्राउंड में प्लेबैक स्क्रॉबल करने के लिए Last.fm कनेक्ट करें"
+      "bulletScrobble": "बैकग्राउंड में प्ले स्क्रॉबल करने के लिए Last.fm कनेक्ट करें"
     },
     "appearance": {
       "title": "अपना लुक चुनें",
@@ -71,7 +71,7 @@
     },
     "lastfm": {
       "title": "Last.fm कनेक्ट करें",
-      "description": "स्क्रॉबलिंग आपके प्ले को आपके Last.fm प्रोफ़ाइल पर भेजता है। बदले में आपको ऐप के अंदर ही आर्टिस्ट बायो और मिलते-जुलते आर्टिस्ट सुझाव मिलते हैं।",
+      "description": "स्क्रॉबलिंग आपके प्लेबैक को आपके Last.fm प्रोफ़ाइल पर भेजता है। बदले में आपको ऐप के अंदर ही आर्टिस्ट बायो और मिलते-जुलते आर्टिस्ट सुझाव मिलते हैं।",
       "recommendedBadge": "अनुशंसित",
       "keyHint": "Last.fm पर API कुंजी बनाएँ",
       "keyLabel": "API कुंजी",
@@ -172,7 +172,7 @@
         "new": "नया"
       },
       "nav": {
-        "tracks": "ट्रैक",
+        "tracks": "गाने",
         "albums": "एल्बम",
         "artists": "कलाकार",
         "genres": "शैलियाँ",
@@ -193,7 +193,7 @@
     "myMusic": {
       "title": "मेरा संगीत",
       "addFolderAria": "एक फ़ोल्डर आयात करें",
-      "tracks": "ट्रैक",
+      "tracks": "गाने",
       "albums": "एल्बम",
       "artists": "कलाकार",
       "genres": "शैलियाँ",
@@ -247,7 +247,7 @@
   },
   "home": {
     "greeting": {
-      "morning": "नमस्ते",
+      "morning": "शुभ प्रभात",
       "evening": "शुभ संध्या",
       "night": "शुभ रात्रि"
     },
@@ -389,7 +389,7 @@
     "changeCover": "कवर बदलें",
     "searchDeezer": "Deezer में खोजें",
     "localFile": "स्थानीय फ़ाइल",
-    "fetchMissingCovers": "सभी गायब कवर प्राप्त करें",
+    "fetchMissingCovers": "सभी अनुपलब्ध कवर प्राप्त करें",
     "fetchingCovers": "कवर डाउनलोड हो रहे हैं... ({{current}} / {{total}})",
     "fetchCoversResult": "{{count}} कवर प्राप्त हुए",
     "fetchCoversFailed": "कवर प्राप्त करने में विफल",
@@ -496,7 +496,7 @@
       "all": "सब कुछ"
     },
     "kpi": {
-      "totalPlays": "कुल प्लेबैक",
+      "totalPlays": "प्ले",
       "totalTime": "सुनने का समय",
       "uniqueTracks": "अनूठे ट्रैक",
       "uniqueArtists_zero": "0 कलाकार",
@@ -509,7 +509,7 @@
       "empty": "इस अवधि में कोई सुनने का रिकॉर्ड नहीं।"
     },
     "byHour": {
-      "title": "पसंदीदा समय",
+      "title": "पीक घंटे",
       "empty": "इस अवधि में कोई सुनने का रिकॉर्ड नहीं।",
       "tooltip": "{{hour}} बजे — {{plays}} प्ले"
     },
@@ -551,9 +551,9 @@
     "next": "अगली स्लाइड",
     "yearPicker": "साल चुनें",
     "backToHome": "होम पर वापस जाएँ",
-    "playsShort_zero": "0 बार बजाया गया",
-    "playsShort_one": "{{count}} बार बजाया गया",
-    "playsShort_other": "{{count}} बार बजाया गया",
+    "playsShort_zero": "0 प्ले",
+    "playsShort_one": "{{count}} प्ले",
+    "playsShort_other": "{{count}} प्ले",
     "empty": {
       "title": "अभी कोई इतिहास नहीं",
       "subtitle": "कुछ ट्रैक चलाएँ और बाद में आएँ — Wrapped आपके सुनने के साथ बनता है।"
@@ -587,7 +587,7 @@
       "subtitle": "{{duration}} सुना, {{count}} ट्रैक"
     },
     "mood": {
-      "eyebrow": "आपका औसत BPM",
+      "eyebrow": "आपका औसत टेम्पो",
       "subtitle": "साल भर साथ रही वो ताल",
       "loudness": "औसत लाउडनेस: {{lufs}} LUFS",
       "energy": {
@@ -763,7 +763,7 @@
     "delete": {
       "title": "{{name}} हटाएँ?",
       "subtitle": "यह प्रोफ़ाइल स्थायी रूप से हटा दी जाएगी।",
-      "warning": "इस प्रोफ़ाइल की सभी लाइब्रेरी, प्लेलिस्ट और सुनने का इतिहास खो जाएगा। यह कार्रवाई पूर्ववत नहीं की जा सकती।",
+      "warning": "इस प्रोफ़ाइल की सभी लाइब्रेरी, प्लेलिस्ट और सुनने का इतिहास खो जाएँगे। यह कार्रवाई पूर्ववत नहीं की जा सकती।",
       "submit": "प्रोफ़ाइल हटाएँ",
       "submitting": "हटाया जा रहा है…"
     }
@@ -893,7 +893,7 @@
     "sampleRate": "सैंपल रेट",
     "channels": "चैनल",
     "bitrate": "बिटरेट",
-    "key": "म्यूजिकल की",
+    "key": "की (Key)",
     "fileSize": "आकार",
     "addedAt": "जोड़ा गया",
     "filePath": "पथ",
@@ -1014,7 +1014,7 @@
     "miniPlayer": "मिनी-प्लेयर (हमेशा शीर्ष पर)",
     "previous": "पिछला ट्रैक",
     "next": "अगला ट्रैक",
-    "openFullscreen": "इमर्सिव व्यू",
+    "openFullscreen": "इमर्सिव दृश्य",
     "devices": "आउटपुट डिवाइस",
     "moreActions": "अधिक क्रियाएँ",
     "abLoop": "A-B लूप",
@@ -1180,9 +1180,9 @@
       "pickGenre": "शैली चुनें…"
     },
     "predicates": {
-      "titleContains": "शीर्षक शामिल",
-      "artistContains": "कलाकार शामिल",
-      "albumContains": "एल्बम शामिल",
+      "titleContains": "शीर्षक में शामिल है",
+      "artistContains": "कलाकार में शामिल है",
+      "albumContains": "एल्बम में शामिल है",
       "genreIs": "शैली =",
       "yearMin": "वर्ष ≥",
       "yearMax": "वर्ष ≤",
@@ -1566,8 +1566,8 @@
       "col": {
         "entity": "इकाई",
         "state": "स्थिति",
-        "missingLocally": "स्थानीय अनुपस्थित",
-        "missingRemotely": "दूरस्थ अनुपस्थित",
+        "missingLocally": "स्थानीय रूप से अनुपस्थित",
+        "missingRemotely": "सर्वर पर अनुपस्थित",
         "divergent": "अलग"
       },
       "backfillError": "विफल: {{message}}",

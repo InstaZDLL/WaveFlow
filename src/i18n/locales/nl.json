@@ -275,7 +275,7 @@
       "loading": "Starten…",
       "focus": {
         "title": "Focus",
-        "subtitle": "Rustige tempi om je te concentreren"
+        "subtitle": "Rustige tempo's om je te concentreren"
       },
       "chill": {
         "title": "Chill",
@@ -287,7 +287,7 @@
       },
       "party": {
         "title": "Feest",
-        "subtitle": "Dansbare tempi, hoge energie"
+        "subtitle": "Dansbare tempo's, hoge energie"
       },
       "sleep": {
         "title": "Slapen",
@@ -595,7 +595,7 @@
         "warm": "Warm",
         "groove": "Groove",
         "energetic": "Energiek",
-        "fire": "Heftig"
+        "fire": "Vurig"
       }
     },
     "clock": {
@@ -908,7 +908,7 @@
       "artist": "Artiest(en)",
       "album": "Album",
       "trackNumber": "Tracknr.",
-      "discNumber": "Schijfnr.",
+      "discNumber": "Discnr.",
       "genre": "Genre",
       "genrePlaceholder": "Pop, Rock, Jazz…"
     },
@@ -1034,7 +1034,7 @@
       "loading": "Laden…",
       "chip": {
         "dsdToPcm": "DSD → PCM",
-        "resample": "Resampling",
+        "resample": "Hersamplen",
         "downmix": "Downmix",
         "eq": "EQ",
         "replayGain": "ReplayGain",
@@ -1089,7 +1089,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML alleen in de cache bewaard (niet naar de audiotag geschreven)",
-      "sidecarWriteSkipped": "Songtekst opgeslagen in de database, maar TTML past niet in een .lrc/.txt-bestand."
+      "sidecarWriteSkipped": "Songtekst opgeslagen in de database, maar TTML kan niet worden opgeslagen als .lrc/.txt-sidecar."
     }
   },
   "duplicates": {
@@ -1205,7 +1205,7 @@
     "plainPlaceholder": "Typ de songtekst regel per regel…",
     "linePlaceholder": "Regeltekst",
     "capture": "Vastleggen",
-    "captureHint": "Start de weergave en druk dan op Spatie (of «Vastleggen») om de huidige regel te koppelen aan de afspeelpositie",
+    "captureHint": "Start het afspelen en druk dan op Spatie (of «Vastleggen») om de huidige regel te koppelen aan de afspeelpositie",
     "captureNow": "Nu vastleggen",
     "recapture": "Opnieuw koppelen aan huidige positie",
     "seekToLine": "Naar deze regel springen",
@@ -1459,8 +1459,8 @@
       "action": "Analyseren",
       "autoTitle": "Automatische analyse",
       "autoSubtitle": "Voer de analyse op de achtergrond uit na elke scan die nieuwe nummers toevoegt",
-      "failed_one": "{{count}} mislukt",
-      "failed_other": "{{count}} mislukt"
+      "failed_one": "{{count}} fout",
+      "failed_other": "{{count}} fouten"
     },
     "artistImages": {
       "title": "Artiestafbeeldingen",
@@ -1628,7 +1628,7 @@
         "rock": "Rock",
         "small_speakers": "Kleine luidsprekers",
         "spoken_word": "Gesproken woord",
-        "treble_booster": "Hoge-tonenversterker"
+        "treble_booster": "Treble-booster"
       }
     },
     "backup": {

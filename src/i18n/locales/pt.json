@@ -37,7 +37,7 @@
     "defaultLibraryName": "Música",
     "welcome": {
       "title": "Bem-vindo ao WaveFlow",
-      "description": "O teu leitor de música local-first. Desfruta de toda a tua biblioteca sem subscrição de streaming."
+      "description": "O teu leitor de música 100% local. Desfruta de toda a tua biblioteca sem subscrição de streaming."
     },
     "localOnly": {
       "title": "Importante: apenas música local",
@@ -49,24 +49,24 @@
     },
     "appearance": {
       "title": "Escolhe o teu visual",
-      "description": "Selecione um tema de cor e um estilo de interface. Pode alterá-los a qualquer momento em Definições → Aparência.",
+      "description": "Escolhe um tema de cor e um estilo de interface. Podes alterá-los a qualquer momento em Definições → Aparência.",
       "theme": {
         "title": "Tema de cor"
       },
       "skin": {
         "title": "Estilo de interface"
       },
-      "hint": "Estas escolhas são guardadas por perfil — cada perfil pode ter o seu próprio look."
+      "hint": "Estas escolhas são guardadas por perfil — cada perfil pode ter o seu próprio visual."
     },
     "folder": {
       "title": "Escolhe a tua pasta de música",
-      "description": "Diz ao WaveFlow onde está a tua música. O scanner organiza a biblioteca automaticamente.",
+      "description": "Diz ao WaveFlow onde está a tua música. A análise organiza a biblioteca automaticamente.",
       "placeholder": "Clica para escolher a tua pasta de música",
       "changeHint": "Clica para mudar de pasta",
       "quickSettings": "Definições rápidas",
       "autoAnalyze": {
         "title": "Análise automática de faixas",
-        "description": "Deteta BPM e tonalidade durante a análise — alimenta Radio e Mood Radio."
+        "description": "Deteta BPM e tonalidade durante a análise — alimenta a Rádio e a Rádio por Humor."
       }
     },
     "lastfm": {
@@ -133,8 +133,8 @@
     },
     "lyrics": {
       "title": "Onde guardar as letras?",
-      "description": "Quando edita letras, para onde devem ir? Pode alterar em Definições → Reprodução.",
-      "hint": "Escolha \"Ficheiro sidecar\" para manter os seus ficheiros de áudio intactos — como o foobar2000."
+      "description": "Quando editas letras, para onde devem ir? Podes alterar em Definições → Reprodução.",
+      "hint": "Escolhe \"Ficheiro auxiliar\" para manter os teus ficheiros de áudio intactos — como o foobar2000."
     }
   },
   "sidebar": {
@@ -307,7 +307,7 @@
       "regenerate": "Regenerar",
       "regenerating": "A gerar…",
       "emptyTitle": "Ainda sem Daily Mix",
-      "emptyDescription": "Ouve algumas faixas e depois clica em Regenerar para criar os teus mixes personalizados.",
+      "emptyDescription": "Ouve algumas faixas e depois clica em Regenerar para criar as tuas seleções personalizadas.",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} faixa",
       "trackCount_other": "{{count}} faixas"
@@ -528,7 +528,7 @@
     "heatmap": {
       "title": "Atividade do ano",
       "empty": "Ainda sem reproduções nos últimos 12 meses.",
-      "summary": "{{time}} ouvidos no ano — {{plays}} reproduções",
+      "summary": "{{time}} de audição no ano — {{plays}} reproduções",
       "less": "Menos",
       "more": "Mais"
     },
@@ -591,7 +591,7 @@
       "subtitle": "O ritmo do teu ano",
       "loudness": "Loudness médio: {{lufs}} LUFS",
       "energy": {
-        "chill": "Chill",
+        "chill": "Relaxante",
         "warm": "Quente",
         "groove": "Groove",
         "energetic": "Energético",
@@ -702,7 +702,7 @@
       "title": "Velocidade de reprodução",
       "slider": "Cursor de velocidade",
       "custom": "Velocidade personalizada",
-      "pitchHint": "O tom acompanha a velocidade (sem time-stretching)."
+      "pitchHint": "O tom acompanha a velocidade (sem alteração de tempo)."
     },
     "seek": "Posição"
   },
@@ -1088,8 +1088,8 @@
       "plain": "Não sincronizado"
     },
     "toast": {
-      "tagWriteSkipped": "TTML mantido apenas em cache (não escrito na etiqueta de áudio)",
-      "sidecarWriteSkipped": "Letras guardadas na base de dados, mas o TTML não pode ser guardado num ficheiro sidecar .lrc/.txt."
+      "tagWriteSkipped": "TTML mantido apenas em cache (não escrito nos metadados de áudio)",
+      "sidecarWriteSkipped": "Letras guardadas na base de dados, mas o TTML não pode ser guardado num ficheiro auxiliar .lrc/.txt."
     }
   },
   "duplicates": {
@@ -1231,11 +1231,11 @@
     "destinationLabel": "Destino predefinido das letras",
     "destination": {
       "tag": {
-        "label": "Tag integrada",
+        "label": "Metadados integrados",
         "hint": "Escreve USLT/©lyr no ficheiro de áudio (compatível com foobar2000, iTunes…)."
       },
       "sidecar": {
-        "label": "Ficheiro sidecar",
+        "label": "Ficheiro auxiliar",
         "hint": "Escreve um .lrc / .txt junto do ficheiro de áudio. Tags intactas."
       },
       "db_only": {
@@ -1293,7 +1293,7 @@
       "subtitle": "Gere as extensões que adicionam fontes, metadados ou vistas ao WaveFlow.",
       "loading": "A carregar…",
       "emptyTitle": "Nenhum plugin instalado",
-      "emptyHint": "Instalação manual: coloque uma pasta em <data>/waveflow/plugins/. Uma loja oficial está a caminho.",
+      "emptyHint": "Instalação manual: coloca uma pasta em <data>/waveflow/plugins/. Uma loja oficial está a caminho.",
       "byAuthor": "Por {{author}}",
       "enabled": "Ativado",
       "disabled": "Desativado",
@@ -1400,7 +1400,7 @@
     },
     "dynamicCrossfade": {
       "title": "Crossfade dinâmico",
-      "subtitle": "Ajusta a duração da transição ao desnível de tempo entre faixas (volta ao crossfade fixo se o BPM for desconhecido)"
+      "subtitle": "Ajusta a duração da transição à diferença de tempo entre faixas (volta ao crossfade fixo se o BPM for desconhecido)"
     },
     "normalize": {
       "title": "Normalizar o volume",
@@ -1428,8 +1428,8 @@
       "subtitle": "Iniciar automaticamente o WaveFlow quando o sistema arrancar"
     },
     "minimizeToTray": {
-      "title": "Minimizar para a bandeja do sistema",
-      "subtitle": "Fechar a janela minimiza a aplicação na bandeja do sistema"
+      "title": "Minimizar para a área de notificação",
+      "subtitle": "Fechar a janela minimiza a aplicação na área de notificação"
     },
     "scanOnStart": {
       "title": "Analisar no arranque",
@@ -1470,7 +1470,7 @@
       "subtitle": "Calcular BPM, loudness e pico para faixas ainda não analisadas",
       "action": "Analisar",
       "autoTitle": "Análise automática",
-      "autoSubtitle": "Executar a análise em segundo plano após cada scan que adicione novas faixas",
+      "autoSubtitle": "Executar a análise em segundo plano após cada análise que adicione novas faixas",
       "failed_one": "{{count}} falha",
       "failed_other": "{{count}} falhas"
     },
@@ -1527,9 +1527,9 @@
       "action": "Repor",
       "confirm": {
         "title": "Repor toda a aplicação?",
-        "warning": "Isto apaga todos os perfis, bibliotecas, playlists, classificações, histórico de audição e capas em cache. A aplicação reiniciará numa configuração inicial limpa. Esta ação não pode ser anulada.",
-        "typeToConfirm": "Escreva RESET para confirmar",
-        "error": "Falha ao repor. Feche qualquer programa externo que esteja a reter um ficheiro WaveFlow (um leitor de música aberto, explorador de ficheiros na pasta de dados) e tente novamente.",
+        "warning": "Isto apaga todos os perfis, bibliotecas, listas de reprodução, classificações, histórico de audição e capas em cache. A aplicação reiniciará numa configuração inicial limpa. Esta ação não pode ser anulada.",
+        "typeToConfirm": "Escreve RESET para confirmar",
+        "error": "Falha ao repor. Fecha qualquer programa externo que esteja a reter um ficheiro WaveFlow (um leitor de música aberto, explorador de ficheiros na pasta de dados) e tenta novamente.",
         "cancel": "Cancelar",
         "confirmButton": "Repor e reiniciar"
       }
@@ -1562,7 +1562,7 @@
       },
       "backfillAlreadyRunning": "Já existe uma sincronização em curso",
       "backfillSkipped": "Sincronização ignorada ({{reason}})",
-      "backfillSummary": "{{pushed}} enviados · {{pulled}} recebidos · {{lww}} mesclados · {{failed}} falhas",
+      "backfillSummary": "{{pushed}} enviados · {{pulled}} recebidos · {{lww}} fundidos · {{failed}} falhas",
       "col": {
         "entity": "Entidade",
         "state": "Estado",
@@ -1604,7 +1604,7 @@
     },
     "equalizer": {
       "title": "Equalizador",
-      "subtitle": "Seis bandas peaking, ±12 dB. Arrasta os pontos para ajustar.",
+      "subtitle": "Seis bandas de pico, ±12 dB. Arrasta os pontos para ajustar.",
       "presets": "Predefinições",
       "reset": "Repor",
       "preset": {
@@ -1747,7 +1747,7 @@
         },
         "none": {
           "label": "Não fazer nada",
-          "description": "Desativa o clique — útil se o accionares sem querer."
+          "description": "Desativa o clique — útil se o acionares sem querer."
         }
       }
     },
@@ -1778,31 +1778,31 @@
     },
     "serverAccount": {
       "title": "Conta do servidor WaveFlow",
-      "subtitle": "Associe este perfil à sua instância do waveflow-server para ativar a sincronização entre dispositivos e a reprodução no navegador.",
+      "subtitle": "Associa este perfil à tua instância do waveflow-server para ativar a sincronização entre dispositivos e a reprodução no navegador.",
       "signedIn": "Sessão iniciada",
       "urlLabel": "URL do servidor",
       "urlPlaceholder": "https://api.waveflow.app",
       "urlSave": "Guardar",
       "tokenLabel": "Token JWT",
-      "tokenHint": "Inicie sessão no servidor através do navegador, copie o JWT que o Better Auth emite e cole-o aqui.",
-      "tokenPlaceholder": "Cole o JWT (três segmentos separados por pontos)",
+      "tokenHint": "Inicia sessão no servidor através do navegador, copia o JWT que o Better Auth emite e cola-o aqui.",
+      "tokenPlaceholder": "Cola o JWT (três segmentos separados por pontos)",
       "tokenSave": "Guardar",
       "openLogin": "Abrir início de sessão",
       "signOut": "Terminar sessão",
       "webUrlLabel": "URL do WaveFlow Web",
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "Iniciar sessão no navegador",
-      "signInWithBrowserHint": "Abre o WaveFlow Web no seu navegador; inicia sessão aí e a app capta o JWT automaticamente através de uma troca local.",
+      "signInWithBrowserHint": "Abre o WaveFlow Web no teu navegador; inicia sessão aí e a app capta o JWT automaticamente através de uma troca local.",
       "loginInProgress": "À espera do navegador…",
       "modeLabel": "Modo de sincronização",
       "modes": {
         "hybrid": {
           "label": "Híbrido (predefinição)",
-          "description": "As suas alterações permanecem locais mas também são colocadas em fila para enviar ao servidor."
+          "description": "As tuas alterações permanecem locais mas também são colocadas em fila para enviar ao servidor."
         },
         "local": {
           "label": "Apenas local",
-          "description": "Nenhuma alteração é enviada ao servidor, mesmo com sessão iniciada. Útil para um perfil que quer manter privado."
+          "description": "Nenhuma alteração é enviada ao servidor, mesmo com sessão iniciada. Útil para um perfil que queres manter privado."
         }
       }
     },
@@ -1852,16 +1852,16 @@
   "share": {
     "title": "Partilhar a playlist",
     "subtitle": "Gere uma ligação pública para “{{name}}”. Qualquer pessoa poderá abri-la num navegador.",
-    "idleHint": "A ligação permanecerá ativa até a revogar. Pode desativá-la a qualquer momento nesta janela.",
+    "idleHint": "A ligação permanecerá ativa até a revogares. Podes desativá-la a qualquer momento nesta janela.",
     "mint": "Gerar ligação",
-    "activeHint": "Ligação ativa em todos os seus dispositivos.",
+    "activeHint": "Ligação ativa em todos os teus dispositivos.",
     "revoke": "Desativar",
     "qrAlt": "Código QR da ligação partilhada",
     "urlLabel": "URL pública",
     "copy": "Copiar",
     "copied": "Copiado",
     "close": "Fechar",
-    "errorClipboard": "Não foi possível aceder à área de transferência. Selecione o URL para o copiar manualmente."
+    "errorClipboard": "Não foi possível aceder à área de transferência. Seleciona o URL para o copiar manualmente."
   },
   "webRadio": {
     "title": "Rádio Web",
@@ -1874,6 +1874,6 @@
     "live": "AO VIVO",
     "nowPlaying": "A reproduzir agora",
     "unavailableTitle": "Web Radio está desativada",
-    "unavailableHint": "Ative o plugin Web Radio em Definições → Plugins para explorar mais de 30 000 estações."
+    "unavailableHint": "Ativa o plugin Web Radio em Definições → Plugins para explorar mais de 30 000 estações."
   }
 }

@@ -43,7 +43,7 @@
       "title": "Important : musique locale uniquement",
       "description": "WaveFlow n'est PAS un service de streaming. Il lit les fichiers déjà présents sur votre appareil.",
       "calloutTitle": "Ce que vous devez savoir",
-      "bulletOwn": "Apportez votre propre bibliothèque (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletOwn": "Utilisez votre propre bibliothèque (MP3, FLAC, ALAC, OGG, DSD…)",
       "bulletImport": "Importez un dossier ou glissez-déposez des fichiers",
       "bulletScrobble": "Connectez Last.fm pour scrobbler vos écoutes en arrière-plan"
     },
@@ -184,7 +184,7 @@
       "createSmartAria": "Créer une playlist intelligente",
       "importM3uAria": "Importer une playlist M3U",
       "importDialogTitle": "Importer une playlist M3U",
-      "liked": "Titres aimés",
+      "liked": "Coups de cœur",
       "recent": "Récemment joués",
       "emptySubtext_zero": "0 titres",
       "emptySubtext_one": "{{count}} titre",
@@ -262,7 +262,7 @@
     },
     "stats": {
       "library": "Bibliothèque",
-      "liked": "Titres aimés",
+      "liked": "Coups de cœur",
       "recent": "Joués récemment",
       "playlists": "Playlists"
     },
@@ -442,7 +442,7 @@
   },
   "liked": {
     "badge": "Collection",
-    "title": "Titres aimés",
+    "title": "Coups de cœur",
     "count_zero": "0 titres",
     "count_one": "{{count}} titre",
     "count_other": "{{count}} titres",
@@ -464,7 +464,7 @@
     "emptyDescription": "Lancez un titre — il apparaîtra ici dès qu'il sera comptabilisé.",
     "shownCount_one": "{{count}} écoute affichée",
     "shownCount_other": "{{count}} écoutes affichées",
-    "plays_one": "{{count}} écoute",
+    "plays_one": "{{count}} lecture",
     "plays_other": "{{count}} écoutes",
     "range": {
       "all": "Tout",
@@ -501,7 +501,7 @@
       "dialogTitle": "Exporter les statistiques en JSON"
     },
     "kpi": {
-      "totalPlays": "Écoutes",
+      "totalPlays": "Lectures",
       "totalTime": "Temps d'écoute",
       "uniqueTracks": "Titres uniques",
       "uniqueArtists_zero": "0 artistes",
@@ -690,7 +690,7 @@
       "shuffleOff": "Activer la lecture aléatoire",
       "repeatOff": "Répétition désactivée",
       "repeatAll": "Répéter tout",
-      "repeatOne": "Répéter une piste"
+      "repeatOne": "Répéter le titre"
     },
     "volume": {
       "label": "Volume",
@@ -708,7 +708,7 @@
   },
   "queue": {
     "title": "File d'attente",
-    "inactive": "INACTIF",
+    "inactive": "INACTIVE",
     "count_zero": "0 titres",
     "count_one": "{{count}} titre",
     "count_other": "{{count}} titres",
@@ -844,13 +844,13 @@
     "startRadio": "Démarrer la radio",
     "rating": "Note",
     "ratingNone": "Aucune note",
-    "batchEdit": "Modifier les tags de {{count}} morceaux…",
+    "batchEdit": "Modifier les tags de {{count}} titres…",
     "addToPlaylistNamed": "Ajouter à « {{name}} »",
     "removeFromPlaylistNamed": "Retirer de « {{name}} »"
   },
   "batchTagEdit": {
     "title": "Modifier les tags en lot",
-    "subtitle": "{{count}} morceaux sélectionnés",
+    "subtitle": "{{count}} titres sélectionnés",
     "help": "Cochez les champs à appliquer à toute la sélection. Les champs non cochés restent intacts par titre.",
     "submit": "Appliquer ({{count}} champ(s))",
     "fields": {
@@ -886,7 +886,7 @@
     "reanalyze": "Réanalyser",
     "analyzing": "Analyse…",
     "year": "Année",
-    "trackNumber": "Numéro de piste",
+    "trackNumber": "Numéro de titre",
     "duration": "Durée",
     "codec": "Codec",
     "bitDepth": "Profondeur de bits",
@@ -907,7 +907,7 @@
       "title": "Titre",
       "artist": "Artiste(s)",
       "album": "Album",
-      "trackNumber": "N° de piste",
+      "trackNumber": "N° de titre",
       "discNumber": "N° de disque",
       "genre": "Genre",
       "genrePlaceholder": "Pop, Rock, Jazz…"
@@ -1372,7 +1372,7 @@
       }
     },
     "shortcuts": {
-      "subtitle": "Cliquez sur un raccourci puis appuyez sur la combinaison souhaitée. Backspace pour effacer, Échap pour annuler.",
+      "subtitle": "Cliquez sur un raccourci puis appuyez sur la combinaison souhaitée. Retour arrière pour effacer, Échap pour annuler.",
       "captureHint": "Appuyez sur une touche…",
       "reset": "Tout réinitialiser",
       "unbind": "Désassigner",
@@ -1432,7 +1432,7 @@
         "title": "Spotify",
         "subtitle": "Connectez Spotify Premium avec votre propre Client ID Spotify Developer.",
         "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "Ajoutez cette Redirect URI dans le Spotify Developer Dashboard : http://127.0.0.1:49387/spotify/callback",
+        "redirectHint": "Ajoutez cette URI de redirection dans le tableau de bord Spotify Developer : http://127.0.0.1:49387/spotify/callback",
         "connectedAs": "Connecté en tant que",
         "disconnect": "Déconnecter",
         "connecting": "Connexion…",

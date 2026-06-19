@@ -528,7 +528,7 @@
     "heatmap": {
       "title": "Yıllık etkinlik",
       "empty": "Son 12 ayda henüz dinleme yok.",
-      "summary": "Yıl boyunca {{time}} dinleme — {{plays}} oynatma",
+      "summary": "Yıl boyunca {{time}} dinlendi — {{plays}} oynatma",
       "less": "Daha az",
       "more": "Daha fazla"
     },
@@ -704,7 +704,7 @@
       "custom": "Özel hız",
       "pitchHint": "Ton, hızı takip eder (zaman genişletme yok)."
     },
-    "seek": "Konum"
+    "seek": "İlerlet"
   },
   "queue": {
     "title": "Çalma sırası",
@@ -719,7 +719,7 @@
     "upNext_one": "Sıradaki · {{count}} parça",
     "upNext_other": "Sıradaki · {{count}} parça",
     "radio": {
-      "label": "Radio",
+      "label": "Radyo",
       "basedOn": "Şuna dayalı: «{{title}}»"
     }
   },
@@ -1004,7 +1004,7 @@
       "save": "PNG olarak kaydet",
       "copy": "Görseli kopyala",
       "eyebrow": "Şimdi çalıyor",
-      "on": "—"
+      "on": "içinde"
     }
   },
   "playerBar": {
@@ -1035,7 +1035,7 @@
       "chip": {
         "dsdToPcm": "DSD → PCM",
         "resample": "Yeniden örnekleme",
-        "downmix": "Downmix",
+        "downmix": "Kanal düşürme",
         "eq": "EQ",
         "replayGain": "ReplayGain",
         "normalize": "Normalleştirme",
@@ -1235,7 +1235,7 @@
         "hint": "Ses dosyasının USLT/©lyr alanına yazar (foobar2000, iTunes uyumlu)."
       },
       "sidecar": {
-        "label": "Sidecar dosyası",
+        "label": "Yan dosya",
         "hint": "Ses dosyasının yanına .lrc / .txt yazar. Dosya etiketlerine dokunulmaz."
       },
       "db_only": {
@@ -1515,7 +1515,7 @@
       "action": "Sıfırla",
       "confirm": {
         "title": "Tüm uygulama sıfırlansın mı?",
-        "warning": "Bu işlem tüm profilleri, kütüphaneleri, çalma listelerini, puanları, dinleme geçmişini ve önbelleğe alınmış kapakları siler.",
+        "warning": "Bu işlem tüm profilleri, kütüphaneleri, çalma listelerini, puanları, dinleme geçmişini ve önbelleğe alınmış kapakları siler. Uygulama temiz bir kurulum ekranıyla yeniden başlatılacak. Bu işlem geri alınamaz.",
         "typeToConfirm": "Onaylamak için RESET yazın",
         "error": "Sıfırlama başarısız oldu. WaveFlow dosyasını tutan harici bir programı (açık bir müzik çalar, veri klasöründeki dosya gezgini) kapatın ve tekrar deneyin.",
         "cancel": "İptal",
@@ -1604,7 +1604,7 @@
     },
     "equalizer": {
       "title": "Equalizer",
-      "subtitle": "Altı peaking bant, ±12 dB. Eğriyi şekillendirmek için noktaları sürükle.",
+      "subtitle": "Altı tepe bandı, ±12 dB. Eğriyi şekillendirmek için noktaları sürükle.",
       "presets": "Önayarlar",
       "reset": "Sıfırla",
       "preset": {
@@ -1693,7 +1693,7 @@
         "oceanLight": "Okyanus Açık"
       },
       "skin": {
-        "title": "Skin",
+        "title": "Arayüz stili",
         "subtitle": "Yalnızca renkleri değil, yoğunluğu, yüzey malzemelerini, tipografiyi ve animasyonu değiştirir."
       },
       "skins": {
@@ -1792,7 +1792,7 @@
       "webUrlLabel": "WaveFlow Web URL'si",
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "Tarayıcı ile giriş yap",
-      "signInWithBrowserHint": "Tarayıcında WaveFlow Web'i açar; orada giriş yaparsın ve uygulama yerel bir el sıkışma ile JWT'yi otomatik olarak yakalar.",
+      "signInWithBrowserHint": "Tarayıcında WaveFlow Web'i açar; orada giriş yaparsın ve uygulama yerel bir bağlantı ile JWT'yi otomatik olarak yakalar.",
       "loginInProgress": "Tarayıcı bekleniyor…",
       "modeLabel": "Senkronizasyon modu",
       "modes": {

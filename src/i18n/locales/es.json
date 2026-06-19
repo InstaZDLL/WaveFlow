@@ -43,7 +43,7 @@
       "title": "Importante: solo música local",
       "description": "WaveFlow NO es un servicio de streaming. Reproduce los archivos que ya tienes en tu dispositivo.",
       "calloutTitle": "Lo que debes saber",
-      "bulletOwn": "Trae tu propia biblioteca (MP3, FLAC, ALAC, OGG, DSD…)",
+      "bulletOwn": "Usa tu propia biblioteca (MP3, FLAC, ALAC, OGG, DSD…)",
       "bulletImport": "Importa una carpeta o arrastra y suelta archivos",
       "bulletScrobble": "Conecta Last.fm para hacer scrobble de tus reproducciones en segundo plano"
     },
@@ -432,9 +432,9 @@
       "trackCount_other": "{{count}} pistas",
       "lastScanned": "Escaneado: {{date}}",
       "neverScanned": "nunca",
-      "watched": "Monitorizado",
-      "watchOn": "Monitorizar cambios automáticamente",
-      "watchOff": "Dejar de monitorizar",
+      "watched": "Supervisado",
+      "watchOn": "Supervisar cambios automáticamente",
+      "watchOff": "Dejar de supervisar",
       "remove": "Quitar carpeta de la biblioteca",
       "removeConfirm": "Haz clic de nuevo para confirmar"
     },
@@ -1269,7 +1269,7 @@
       "subtitle": "«Toda la música que merece ser impresa.» — Tu selección diaria, hecha a medida."
     },
     "lead": {
-      "caption": "Fig 1. — De «{{album}}» por {{artist}}.",
+      "caption": "Fig 1. — De «{{album}}» de {{artist}}.",
       "captionArtistOnly": "Fig 1. — Una creación de {{artist}}.",
       "captionFallback": "Fig 1. — La selección del día."
     }
@@ -1405,7 +1405,7 @@
     "exclusive": {
       "title": "Modo exclusivo WASAPI (Windows)",
       "subtitle": "Bit-perfect: omite el mezclador de Windows para una salida sin interferencias. Recurre al modo compartido si el dispositivo rechaza el acceso exclusivo.",
-      "fallback": "El dispositivo no acepta el modo exclusivo. Recurriendo al modo compartido."
+      "fallback": "El dispositivo no acepta el modo exclusivo. Cambiando al modo compartido."
     },
     "mono": {
       "title": "Audio mono",
@@ -1580,8 +1580,8 @@
         "loading": "Cargando detalles…",
         "error": "Error: {{message}}",
         "empty": "Nada que mostrar",
-        "missingLocally": "Falta local",
-        "missingRemotely": "Falta remoto",
+        "missingLocally": "Falta en local",
+        "missingRemotely": "Falta en remoto",
         "divergent": "Divergente",
         "moreNotShown": "+ {{count}} más no mostrados"
       }
@@ -1711,7 +1711,7 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Club neón — base OLED, halos de color en los elementos activos, píldoras monocromáticas, animaciones con rebote."
+          "description": "Club neón — base OLED, halos de color en los elementos activos, cápsulas monocromáticas, animaciones con rebote."
         },
         "liquid": {
           "label": "Liquid",
@@ -1739,11 +1739,11 @@
         "title": "Al hacer clic en la portada",
         "immersive": {
           "label": "Abrir la vista inmersiva",
-          "description": "Predeterminado — abre la pantalla completa con la carátula ampliada."
+          "description": "Predeterminado — abre la pantalla completa con la portada ampliada."
         },
         "nowPlaying": {
           "label": "Mostrar el panel Reproduciendo",
-          "description": "Estilo Spotify — muestra u oculta el panel lateral derecho con la carátula y las letras."
+          "description": "Estilo Spotify — muestra u oculta el panel lateral derecho con la portada y las letras."
         },
         "none": {
           "label": "No hacer nada",

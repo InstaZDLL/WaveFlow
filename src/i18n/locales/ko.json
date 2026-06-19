@@ -118,7 +118,7 @@
     },
     "language": {
       "title": "언어 선택",
-      "description": "시스템 언어로 자동 설정되었습니다. 필요시 아래에서 변경해 주세요.",
+      "description": "WaveFlow는 17개 언어를 지원합니다. 시스템 언어로 자동 설정되었습니다. 필요시 아래에서 변경해 주세요.",
       "detected": "시스템에서 감지됨",
       "fallback": "시스템 언어를 감지하지 못해 영어로 기본 설정했습니다. 아래에서 선택하세요."
     },
@@ -955,7 +955,7 @@
     "albumTrackCount_zero": "0곡",
     "albumTrackCount_one": "{{count}}곡",
     "albumTrackCount_other": "{{count}}곡",
-    "emptyTitle": "아티스트를 찾을 수 없음",
+    "emptyTitle": "아티스트를 찾을 수 없습니다",
     "emptyDescription": "이 아티스트는 현재 활성 프로필에 더 이상 존재하지 않습니다.",
     "bio": {
       "title": "아티스트 소개"
@@ -980,7 +980,7 @@
     "trackCount_zero": "0곡",
     "trackCount_one": "{{count}}곡",
     "trackCount_other": "{{count}}곡",
-    "emptyTitle": "장르를 찾을 수 없음",
+    "emptyTitle": "장르를 찾을 수 없습니다",
     "emptyDescription": "이 장르는 활성 프로필에 더 이상 존재하지 않습니다.",
     "emptyTracksTitle": "곡 없음",
     "emptyTracksDescription": "이 장르에는 사용 가능한 곡이 없습니다."
@@ -1517,10 +1517,10 @@
       "action": "미리 가져오기",
       "progress": "{{current}}/{{total}} 처리됨 · {{hits}}곡 찾음"
     },
-    "regenerateThumbnails": "썸네일 새로 고침",
-    "regenerateThumbnailsSubtitle": "모든 커버에 대해 누락된 1x/2x 버전을 복원합니다",
+    "regenerateThumbnails": "썸네일 재생성",
+    "regenerateThumbnailsSubtitle": "모든 앨범 아트에 대해 누락된 1x/2x 버전을 재생성합니다",
     "regenerateThumbnailsAction": "재생성",
-    "regenerateThumbnailsDone": "썸네일 {{count}}개 새로 고침됨",
+    "regenerateThumbnailsDone": "썸네일 {{count}}개 재생성됨",
     "reset": {
       "title": "앱 초기화",
       "subtitle": "모든 데이터를 삭제하고 초기 상태로 복원",
@@ -1540,7 +1540,7 @@
       "openFolder": "폴더 열기",
       "copyLogs": "로그 복사",
       "copied": "로그가 복사되었습니다",
-      "copyFailed": "로그를 복사할 수 없음"
+      "copyFailed": "로그를 복사할 수 없습니다"
     },
     "syncStatus": {
       "title": "동기화 상태",
@@ -1739,7 +1739,7 @@
         "title": "커버를 클릭했을 때",
         "immersive": {
           "label": "몰입형 보기 열기",
-          "description": "기본값 — 커버를 크게 보여 주는 전체 화면 재생 중 화면을 엽니다."
+          "description": "기본값 — 앨범 아트를 크게 보여 주는 전체 화면 '지금 재생 중' 화면을 엽니다."
         },
         "nowPlaying": {
           "label": "재생 중 패널 표시",

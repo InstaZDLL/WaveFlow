@@ -191,7 +191,7 @@
       "createSmartAria": "スマートプレイリストを作成"
     },
     "myMusic": {
-      "title": "私の音楽",
+      "title": "マイミュージック",
       "addFolderAria": "フォルダをインポートする",
       "tracks": "曲",
       "albums": "アルバム",
@@ -247,9 +247,9 @@
   },
   "home": {
     "greeting": {
-      "morning": "こんにちは",
+      "morning": "おはようございます",
       "evening": "こんばんは",
-      "night": "おやすみなさい"
+      "night": "こんばんは"
     },
     "banner": {
       "badge": "聴く準備はできましたか",
@@ -391,7 +391,7 @@
     "localFile": "ローカルファイル",
     "fetchMissingCovers": "不足しているジャケットをすべて取得",
     "fetchingCovers": "ジャケットを取得中……({{current}} / {{total}})",
-    "fetchCoversResult": "{{count}} 件のジャケットを取得しました",
+    "fetchCoversResult": "{{count}}枚のジャケットを取得しました",
     "fetchCoversFailed": "ジャケットの取得に失敗しました",
     "table": {
       "number": "#",
@@ -871,7 +871,7 @@
     }
   },
   "trackProperties": {
-    "title": "トラックのプロパティ",
+    "title": "曲のプロパティ",
     "sections": {
       "metadata": "メタデータ",
       "audio": "音声",
@@ -912,7 +912,7 @@
       "genre": "ジャンル",
       "genrePlaceholder": "ポップ、ロック、ジャズ…"
     },
-    "changeCover": "カバーを変更"
+    "changeCover": "ジャケットを変更"
   },
   "selection": {
     "toolbarLabel": "選択中の操作",
@@ -987,7 +987,7 @@
   },
   "nowPlaying": {
     "title": "再生中",
-    "empty": "再生中のトラックはありません",
+    "empty": "再生中の曲はありません",
     "aboutArtist": "アーティストについて",
     "readMore": "もっと読む",
     "readLess": "折りたたむ",
@@ -1012,8 +1012,8 @@
     "nowPlaying": "再生中を表示",
     "queue": "キュー",
     "miniPlayer": "ミニプレーヤー（常に手前に表示）",
-    "previous": "前のトラック",
-    "next": "次のトラック",
+    "previous": "前の曲",
+    "next": "次の曲",
     "devices": "出力デバイス",
     "moreActions": "その他の操作",
     "abLoop": "A-Bループ",
@@ -1045,7 +1045,7 @@
     }
   },
   "miniPlayer": {
-    "idle": "再生中のトラックなし",
+    "idle": "再生中の曲なし",
     "maximize": "メインウィンドウを復元",
     "like": "お気に入り",
     "pin": "常に手前に表示",
@@ -1089,7 +1089,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML はキャッシュにのみ保存されました（音声タグには書き込まれていません）",
-      "sidecarWriteSkipped": "歌詞はデータベースに保存しましたが、TTMLは .lrc/.txt ファイルに収まりません。"
+      "sidecarWriteSkipped": "...TTMLは .lrc/.txt サイドカーファイルに保存できません。"
     }
   },
   "duplicates": {
@@ -1150,8 +1150,8 @@
       "output": "並び替えと制限"
     },
     "sortOptions": {
-      "addedDesc": "最近追加",
-      "addedAsc": "古い順に追加",
+      "addedDesc": "追加日が新しい順",
+      "addedAsc": "追加日が古い順",
       "yearDesc": "年 (新しい順)",
       "yearAsc": "年 (古い順)",
       "titleAsc": "タイトル (A → Z)",
@@ -1265,7 +1265,7 @@
   "editorial": {
     "masthead": {
       "edition": "朝刊",
-      "price": "価格：込み",
+      "price": "価格：無料",
       "subtitle": "「印刷に値するすべての音楽。」— あなただけの、毎日のセレクション。"
     },
     "lead": {
@@ -1374,11 +1374,11 @@
       "subtitle": "曲間のテンポ差に合わせてフェード時間を自動調整します（BPMが不明な場合は固定クロスフェードに戻ります）"
     },
     "normalize": {
-      "title": "音量を標準化する",
+      "title": "音量のノーマライズ",
       "subtitle": "音量が大きすぎる部分のボリュームを下げて、全体的な音量を均一にする"
     },
     "replayGain": {
-      "title": "ReplayGainを適用する",
+      "title": "ReplayGainの適用",
       "subtitle": "各トラックの分析されたゲインを使用して、知覚される音量のバランスを調整する"
     },
     "exclusive": {
@@ -1439,7 +1439,7 @@
     },
     "artistImages": {
       "title": "アーティストの画像",
-      "subtitle": "Deezerからアーティストのジャケット画像を取得する",
+      "subtitle": "Deezerからアーティスト画像を取得します",
       "action": "取得",
       "progress": "{{current}}/{{total}} 処理済み"
     },
@@ -1464,7 +1464,7 @@
       "action": "事前取得",
       "progress": "{{current}}/{{total}} 処理済み · {{hits}} 件取得"
     },
-    "regenerateThumbnails": "サムネイルを更新する",
+    "regenerateThumbnails": "サムネイルの再生成",
     "regenerateThumbnailsSubtitle": "すべてのジャケットについて、欠落している1x/2xバージョンを再構築する",
     "regenerateThumbnailsAction": "再生成",
     "regenerateThumbnailsDone": "{{count}} 件のサムネイルを再生成しました",
