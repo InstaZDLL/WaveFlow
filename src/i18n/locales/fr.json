@@ -7,7 +7,7 @@
     "confirm": "Confirmer",
     "open": "Ouvrir",
     "optional": "(optionnel)",
-    "viewArtwork": "Voir l'illustration",
+    "viewArtwork": "Voir la pochette",
     "loading": "Chargement…"
   },
   "lastfmReauth": {
@@ -49,7 +49,7 @@
     },
     "appearance": {
       "title": "Choisissez votre look",
-      "description": "Sélectionnez un thème et un style d'interface. Vous pouvez les changer à tout moment dans Réglages → Apparence.",
+      "description": "Sélectionnez un thème et un style d'interface. Vous pouvez les changer à tout moment dans Paramètres → Apparence.",
       "theme": {
         "title": "Thème de couleurs"
       },
@@ -66,7 +66,7 @@
       "quickSettings": "Réglages rapides",
       "autoAnalyze": {
         "title": "Auto-analyse des morceaux",
-        "description": "Détecte BPM et tonalité pendant le scan — alimente Radio et Mood Radio."
+        "description": "Détecte le BPM et la tonalité pendant l'analyse — alimente la Radio et la Radio par humeur."
       }
     },
     "lastfm": {
@@ -381,7 +381,7 @@
       "share": "Partager (bientôt)",
       "rescan": "Rescanner la bibliothèque",
       "rescanning": "Rescan en cours…",
-      "changeArtwork": "Changer l'image (bientôt)",
+      "changeArtwork": "Changer la pochette (bientôt)",
       "edit": "Modifier la bibliothèque",
       "delete": "Supprimer la bibliothèque",
       "deleteConfirm": "Cliquez à nouveau pour confirmer"
@@ -769,15 +769,15 @@
     }
   },
   "libraryModal": {
-    "title": "Créer une Bibliothèque",
-    "editTitle": "Modifier la Bibliothèque",
-    "previewDefault": "Créer une Bibliothèque",
+    "title": "Créer une bibliothèque",
+    "editTitle": "Modifier la bibliothèque",
+    "previewDefault": "Créer une bibliothèque",
     "previewSubtitle": "0 titre · Bibliothèque",
-    "nameLabel": "Nom de la Bibliothèque",
+    "nameLabel": "Nom de la bibliothèque",
     "namePlaceholder": "Ex : Rock, Jazz, Classique...",
     "descriptionLabel": "Description",
     "descriptionPlaceholder": "Une courte description...",
-    "submit": "Créer une Bibliothèque",
+    "submit": "Créer une bibliothèque",
     "submitEdit": "Enregistrer"
   },
   "playlistModal": {
@@ -831,7 +831,7 @@
     "addToPlaylist": "Ajouter à une playlist",
     "noPlaylists": "Aucune playlist. Créez-en une ci-dessous.",
     "createPlaylist": "Nouvelle playlist",
-    "playNext": "Lire la suite",
+    "playNext": "Lire ensuite",
     "addToQueue": "Ajouter à la file d'attente",
     "like": "Ajouter aux coups de cœur",
     "unlike": "Retirer des coups de cœur",
@@ -886,7 +886,7 @@
     "reanalyze": "Réanalyser",
     "analyzing": "Analyse…",
     "year": "Année",
-    "trackNumber": "Piste",
+    "trackNumber": "Numéro de piste",
     "duration": "Durée",
     "codec": "Codec",
     "bitDepth": "Profondeur de bits",
@@ -1148,7 +1148,7 @@
       "childCount_zero": "vide",
       "childCount_one": "{{count}} condition",
       "childCount_other": "{{count}} conditions",
-      "notHint": "Exclut tout ce qui matche l'enfant",
+      "notHint": "Exclut tout ce qui correspond au sous-groupe",
       "deleteNode": "Supprimer",
       "addCondition": "Condition",
       "addGroupAnd": "Groupe ET",
@@ -1282,7 +1282,7 @@
       "playback": "Lecture",
       "integrations": "Intégrations",
       "appearance": "Apparence",
-      "storage": "Stockage & Données",
+      "storage": "Stockage et données",
       "data": "Données",
       "plugins": "Plugins",
       "shortcuts": "Raccourcis clavier",
@@ -1331,11 +1331,11 @@
       "skins": {
         "studio": {
           "label": "Studio",
-          "description": "Ambiance Apple Music — interface dense, ombres douces, sans empattement épuré."
+          "description": "Ambiance Apple Music — interface dense, ombres douces, typographie sans empattement épurée."
         },
         "editorial": {
           "label": "Editorial",
-          "description": "Magazine sur papier — serif éditorial, fines lignes de séparation, grain doux, espace généreux."
+          "description": "Magazine papier — typographie avec empattement, fines lignes de séparation, grain doux, espace généreux."
         },
         "lounge": {
           "label": "Lounge",
@@ -1375,7 +1375,7 @@
       "subtitle": "Cliquez sur un raccourci puis appuyez sur la combinaison souhaitée. Backspace pour effacer, Échap pour annuler.",
       "captureHint": "Appuyez sur une touche…",
       "reset": "Tout réinitialiser",
-      "unbind": "Désactiver",
+      "unbind": "Désassigner",
       "unbound": "Aucun",
       "actions": {
         "togglePlayback": "Lecture / Pause",
@@ -1420,7 +1420,7 @@
       },
       "dlna": {
         "title": "Serveur DLNA / UPnP",
-        "subtitle": "Diffuser votre bibliothèque vers les amplis et appareils compatibles du réseau local",
+        "subtitle": "Diffuser votre bibliothèque vers les amplificateurs et appareils compatibles du réseau local",
         "serverName": "Nom",
         "port": "Port",
         "portHint": "0 = port automatique",
@@ -1508,7 +1508,7 @@
     },
     "analyze": {
       "title": "Analyser la bibliothèque",
-      "subtitle": "Calculer BPM, volume sonore et peak pour les titres non analysés",
+      "subtitle": "Calculer le BPM, le Loudness et la crête pour les titres non analysés",
       "action": "Analyser",
       "autoTitle": "Analyse automatique",
       "autoSubtitle": "Lancer l'analyse en arrière-plan après chaque scan qui ajoute de nouveaux titres",
@@ -1529,7 +1529,7 @@
     },
     "profileIo": {
       "title": "Sauvegarde du profil",
-      "subtitle": "Exporte ou importe un profil entier (playlists, j'aime, statistiques, EQ, raccourcis) sous forme d'un fichier .waveflow.",
+      "subtitle": "Exporte ou importe un profil entier (playlists, coups de cœur, statistiques, EQ, raccourcis) sous forme de fichier .waveflow.",
       "export": {
         "action": "Exporter",
         "dialogTitle": "Exporter le profil WaveFlow",
@@ -1597,7 +1597,7 @@
       "action": "Réinitialiser",
       "confirm": {
         "title": "Réinitialiser l'application ?",
-        "warning": "Cela supprime chaque profil, bibliothèque, playlist, note, historique d'écoute et pochette mise en cache. L'application redémarrera sur une configuration initiale propre. Cette action est irréversible.",
+        "warning": "Cela supprime chaque profil, bibliothèque, playlist, note, historique d'écoute et pochettes mises en cache. L'application redémarrera sur une configuration initiale propre. Cette action est irréversible.",
         "typeToConfirm": "Tapez RESET pour confirmer",
         "error": "Échec de la réinitialisation. Fermez tout programme externe qui retient un fichier WaveFlow (lecteur de musique ouvert, explorateur de fichiers dans le dossier de données) puis réessayez.",
         "cancel": "Annuler",
@@ -1636,8 +1636,8 @@
       "col": {
         "entity": "Entité",
         "state": "État",
-        "missingLocally": "Manquant local",
-        "missingRemotely": "Manquant distant",
+        "missingLocally": "Manquant localement",
+        "missingRemotely": "Manquant à distance",
         "divergent": "Divergent"
       },
       "backfillError": "Échec : {{message}}",
@@ -1662,8 +1662,8 @@
         "loading": "Chargement des détails…",
         "error": "Erreur : {{message}}",
         "empty": "Aucun détail à afficher",
-        "missingLocally": "Manquant local",
-        "missingRemotely": "Manquant distant",
+        "missingLocally": "Manquant localement",
+        "missingRemotely": "Manquant à distance",
         "divergent": "Divergent",
         "moreNotShown": "+ {{count}} de plus non affichés"
       }
@@ -1797,7 +1797,7 @@
       "webUrlLabel": "URL de WaveFlow Web",
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "Se connecter via le navigateur",
-      "signInWithBrowserHint": "Ouvre WaveFlow Web dans votre navigateur, vous y signez, et l'app récupère le JWT automatiquement via un échange local.",
+      "signInWithBrowserHint": "Ouvre WaveFlow Web dans votre navigateur, vous vous y connectez, et l'application récupère le JWT automatiquement via un échange local.",
       "loginInProgress": "En attente du navigateur…",
       "modeLabel": "Mode de synchronisation",
       "modes": {
@@ -1822,7 +1822,7 @@
   },
   "spotify": {
     "notConfiguredTitle": "Enregistrer votre app Spotify",
-    "notConfiguredMessage": "Spotify exige que toute app tierce déclare un Client ID gratuit avant la moindre lecture. Créez-le dans le tableau de bord Spotify Developer, puis collez-le dans Paramètres → Intégrations.",
+    "notConfiguredMessage": "Spotify exige que toute application tierce enregistre un Client ID gratuit avant la moindre lecture. Créez-le dans le tableau de bord Spotify Developer, puis collez-le dans Paramètres → Intégrations.",
     "openDashboard": "Ouvrir le tableau de bord Spotify Developer",
     "openSettings": "Ouvrir les paramètres",
     "notConnectedTitle": "Spotify n'est pas connecté",
@@ -1874,6 +1874,6 @@
     "live": "LIVE",
     "nowPlaying": "Lecture en cours",
     "unavailableTitle": "Web Radio désactivée",
-    "unavailableHint": "Activez le plugin Web Radio dans Réglages → Plugins pour parcourir plus de 30 000 stations."
+    "unavailableHint": "Activez le plugin Web Radio dans Paramètres → Plugins pour parcourir plus de 30 000 stations."
   }
 }

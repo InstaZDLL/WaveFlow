@@ -49,7 +49,7 @@
     },
     "appearance": {
       "title": "Pilih tampilan Anda",
-      "description": "Pilih tema warna dan gaya antarmuka. Anda dapat mengubahnya kapan saja melalui Pengaturan → Tampilan.",
+      "description": "Pilih tema warna dan gaya antarmuka. Kamu dapat mengubahnya kapan saja melalui Pengaturan → Tampilan.",
       "theme": {
         "title": "Tema warna"
       },
@@ -133,8 +133,8 @@
     },
     "lyrics": {
       "title": "Di mana menyimpan lirik?",
-      "description": "Ketika Anda mengedit lirik, ke mana mereka harus pergi? Dapat diubah di Pengaturan → Pemutaran.",
-      "hint": "Pilih \"File sidecar\" agar file audio Anda tetap utuh — seperti yang dilakukan foobar2000 dkk."
+      "description": "Saat kamu mengedit lirik, di mana liriknya harus disimpan? Kamu dapat mengubahnya kapan saja di Pengaturan → Pemutaran.",
+      "hint": "Pilih \"Berkas sidecar\" agar berkas audio kamu tetap utuh — seperti yang dilakukan foobar2000 dkk."
     }
   },
   "sidebar": {
@@ -502,7 +502,7 @@
       "uniqueArtists_zero": "0 artis",
       "uniqueArtists_one": "{{count}} artis",
       "uniqueArtists_other": "{{count}} artis",
-      "completionRate": "Tingkat mendengarkan utuh"
+      "completionRate": "Rasio didengarkan hingga selesai"
     },
     "byDay": {
       "title": "Aktivitas harian",
@@ -595,7 +595,7 @@
         "warm": "Hangat",
         "groove": "Groove",
         "energetic": "Energik",
-        "fire": "Membakar"
+        "fire": "Berapi-api"
       }
     },
     "clock": {
@@ -603,7 +603,7 @@
       "subtitle": "Puncak harimu"
     },
     "streak": {
-      "eyebrow": "Beruntun terpanjangmu",
+      "eyebrow": "Rentetan terpanjangmu",
       "daysLabel_zero": "0 hari berturut-turut",
       "daysLabel_one": "{{count}} hari berturut-turut",
       "daysLabel_other": "{{count}} hari berturut-turut",
@@ -763,7 +763,7 @@
     "delete": {
       "title": "Hapus {{name}}?",
       "subtitle": "Profil ini akan dihapus secara permanen.",
-      "warning": "Semua perpustakaan, daftar putar, dan riwayat dengar profil ini akan hilang. Tindakan ini tidak dapat dibatalkan.",
+      "warning": "Semua pustaka, daftar putar, dan riwayat dengar profil ini akan hilang. Tindakan ini tidak dapat dibatalkan.",
       "submit": "Hapus profil",
       "submitting": "Menghapus…"
     }
@@ -908,7 +908,7 @@
       "artist": "Artis",
       "album": "Album",
       "trackNumber": "No. lagu",
-      "discNumber": "No. cakram",
+      "discNumber": "No. disk",
       "genre": "Genre",
       "genrePlaceholder": "Pop, Rock, Jazz…"
     },
@@ -924,7 +924,7 @@
     "playNext": "Putar selanjutnya",
     "addToPlaylist": "Tambahkan ke daftar putar",
     "removeFromPlaylist": "Hapus dari daftar putar",
-    "clear": "Batal pilih"
+    "clear": "Hapus pilihan"
   },
   "albumDetail": {
     "badge": "Album",
@@ -933,7 +933,7 @@
     "trackCount_zero": "0 lagu",
     "trackCount_one": "{{count}} lagu",
     "trackCount_other": "{{count}} lagu",
-    "discHeader": "Cakram {{number}}",
+    "discHeader": "Disk {{number}}",
     "releaseDate": "Tanggal rilis",
     "emptyTitle": "Album tidak ditemukan",
     "emptyDescription": "Album ini tidak lagi tersedia di profil aktif.",
@@ -1089,7 +1089,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML disimpan di cache saja (tidak ditulis ke tag audio)",
-      "sidecarWriteSkipped": "Lirik disimpan ke database, tetapi TTML tidak muat di file .lrc/.txt."
+      "sidecarWriteSkipped": "Lirik disimpan ke database, tetapi TTML tidak dapat disimpan dalam berkas sidecar .lrc/.txt."
     }
   },
   "duplicates": {
@@ -1136,7 +1136,7 @@
       "genres": "Genre",
       "sort": "Urutkan berdasarkan",
       "limit": "Maks. lagu",
-      "minRating": "Peringkat minimum"
+      "minRating": "Penilaian minimum"
     },
     "placeholders": {
       "name": "Favoritku 2024",
@@ -1193,7 +1193,7 @@
       "format": "Format =",
       "hiRes": "Hi-Res",
       "liked": "Disukai",
-      "ratingMin": "Peringkat ≥"
+      "ratingMin": "Penilaian ≥"
     }
   },
   "lyricsEditor": {
@@ -1226,7 +1226,7 @@
     "captureHintWord": "Spasi = kata berikutnya · Enter = baris berikutnya · Backspace = batalkan kata terakhir",
     "notCaptured": "Belum ditangkap",
     "exportToFile": "Simpan ke berkas…",
-    "exportToFileHint": "Ekspor lirik ke berkas .lrc atau .txt di lokasi pilihan Anda, tanpa menyentuh berkas audio",
+    "exportToFileHint": "Ekspor lirik ke berkas .lrc atau .txt di lokasi pilihanmu, tanpa menyentuh berkas audio",
     "exportedToFile": "Diekspor ke {{path}}",
     "destinationLabel": "Tujuan default lirik",
     "destination": {
@@ -1251,7 +1251,7 @@
     "duration": "Durasi",
     "year": "Tahun",
     "addedAt": "Baru ditambahkan",
-    "rating": "Peringkat",
+    "rating": "Penilaian",
     "customOrder": "Urutan kustom",
     "recentlyAdded": "Baru ditambahkan",
     "menuTitle": "Urutkan berdasarkan",
@@ -1404,8 +1404,8 @@
     },
     "exclusive": {
       "title": "Mode eksklusif WASAPI (Windows)",
-      "subtitle": "Bit-perfect: melewati mixer Windows untuk output tanpa gangguan. Jatuh kembali ke mode bersama jika perangkat menolak akses eksklusif.",
-      "fallback": "Perangkat tidak menerima mode eksklusif. Beralih ke mode bersama."
+      "subtitle": "Bit-perfect: melewati mixer Windows untuk keluaran tanpa gangguan. Kembali ke mode bersama jika perangkat menolak akses eksklusif.",
+      "fallback": "Perangkat tidak menerima mode eksklusif. Kembali ke mode bersama."
     },
     "mono": {
       "title": "Audio mono",
@@ -1515,7 +1515,7 @@
       "action": "Atur ulang",
       "confirm": {
         "title": "Setel ulang seluruh aplikasi?",
-        "warning": "Ini menghapus setiap profil, perpustakaan, daftar putar, peringkat, riwayat pemutaran, dan sampul yang di-cache. Aplikasi akan memulai ulang ke onboarding bersih. Tindakan ini tidak dapat dibatalkan.",
+        "warning": "Tindakan ini akan menghapus semua profil, pustaka, daftar putar, penilaian, riwayat pemutaran, dan sampul yang di-cache. Aplikasi akan memulai ulang ke onboarding bersih. Tindakan ini tidak dapat dibatalkan.",
         "typeToConfirm": "Ketik RESET untuk konfirmasi",
         "error": "Gagal menyetel ulang. Tutup program eksternal apa pun yang menahan file WaveFlow (pemutar musik yang terbuka, penjelajah file di folder data) dan coba lagi.",
         "cancel": "Batal",
@@ -1539,7 +1539,7 @@
       "refresh": "Segarkan",
       "resyncNow": "Sinkronkan sekarang",
       "inSync": "Tersinkronisasi",
-      "outOfSync": "Berbeda",
+      "outOfSync": "Tidak sinkron",
       "error": "Galat: {{message}}",
       "reasonGeneric": "Dilewati ({{reason}})",
       "reason": {
@@ -1582,7 +1582,7 @@
         "empty": "Tidak ada detail",
         "missingLocally": "Hilang di lokal",
         "missingRemotely": "Hilang di server",
-        "divergent": "Divergen",
+        "divergent": "Menyimpang",
         "moreNotShown": "+ {{count}} lainnya tak ditampilkan"
       }
     },
@@ -1715,7 +1715,7 @@
         },
         "liquid": {
           "label": "Liquid",
-          "description": "Kaca cair gaya Apple — material tembus pandang multilapis, latar aurora, kapsul pil, gerakan tenang."
+          "description": "Kaca cair gaya Apple — material tembus pandang multilapis, latar aurora, kapsul, gerakan tenang."
         }
       }
     },
@@ -1778,13 +1778,13 @@
     },
     "serverAccount": {
       "title": "Akun server WaveFlow",
-      "subtitle": "Hubungkan profil ini ke instans waveflow-server Anda untuk mengaktifkan sinkronisasi multi-perangkat dan pemutaran di peramban.",
+      "subtitle": "Hubungkan profil ini ke instans waveflow-server kamu untuk mengaktifkan sinkronisasi multi-perangkat dan pemutaran di peramban.",
       "signedIn": "Masuk",
       "urlLabel": "URL server",
       "urlPlaceholder": "https://api.waveflow.app",
       "urlSave": "Simpan",
       "tokenLabel": "Token JWT",
-      "tokenHint": "Masuk ke server di peramban Anda, salin JWT yang dikeluarkan Better Auth, lalu tempel di sini.",
+      "tokenHint": "Masuk ke server di peramban kamu, salin JWT yang dikeluarkan Better Auth, lalu tempel di sini.",
       "tokenPlaceholder": "Tempel JWT (tiga segmen dipisahkan titik)",
       "tokenSave": "Simpan",
       "openLogin": "Buka login",
@@ -1792,17 +1792,17 @@
       "webUrlLabel": "URL WaveFlow Web",
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "Masuk lewat peramban",
-      "signInWithBrowserHint": "Membuka WaveFlow Web di peramban Anda; Anda masuk di sana dan aplikasi menangkap JWT secara otomatis lewat pertukaran lokal.",
+      "signInWithBrowserHint": "Membuka WaveFlow Web di peramban kamu; kamu masuk di sana dan aplikasi menangkap JWT secara otomatis lewat pertukaran lokal.",
       "loginInProgress": "Menunggu peramban…",
       "modeLabel": "Mode sinkronisasi",
       "modes": {
         "hybrid": {
           "label": "Hibrida (default)",
-          "description": "Perubahan Anda tetap lokal tetapi juga diantrekan untuk dikirim ke server."
+          "description": "Perubahan kamu tetap lokal tetapi juga diantrekan untuk dikirim ke server."
         },
         "local": {
           "label": "Hanya lokal",
-          "description": "Tidak ada perubahan yang dikirim ke server, bahkan saat masuk. Berguna untuk profil yang ingin Anda jaga privasinya."
+          "description": "Tidak ada perubahan yang dikirim ke server, bahkan saat masuk. Berguna untuk profil yang ingin kamu jaga privasinya."
         }
       }
     },
@@ -1852,9 +1852,9 @@
   "share": {
     "title": "Bagikan playlist",
     "subtitle": "Buat tautan publik untuk “{{name}}”. Siapa pun dapat membukanya di peramban.",
-    "idleHint": "Tautan tetap aktif sampai Anda mencabutnya. Anda dapat menonaktifkannya kapan saja dari jendela ini.",
+    "idleHint": "Tautan tetap aktif sampai kamu mencabutnya. Kamu dapat menonaktifkannya kapan saja dari jendela ini.",
     "mint": "Buat tautan",
-    "activeHint": "Tautan aktif di semua perangkat Anda.",
+    "activeHint": "Tautan aktif di semua perangkat kamu.",
     "revoke": "Nonaktifkan",
     "qrAlt": "Kode QR untuk tautan yang dibagikan",
     "urlLabel": "URL publik",

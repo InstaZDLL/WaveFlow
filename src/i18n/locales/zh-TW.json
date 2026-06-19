@@ -197,7 +197,7 @@
       "albums": "專輯",
       "artists": "藝人",
       "genres": "類型",
-      "folders": "檔案"
+      "folders": "資料夾"
     },
     "playlistSection": {
       "title": "播放清單"
@@ -350,12 +350,12 @@
       "albums": "專輯",
       "artistes": "藝人",
       "genres": "類型",
-      "dossiers": "檔案"
+      "dossiers": "資料夾"
     },
     "empty": {
       "morceaux": {
         "title": "音樂庫是空的",
-        "description": "匯入音訊檔案或資料夾，以充實您的媒體庫。"
+        "description": "匯入音訊檔案或資料夾，以充實您的音樂庫。"
       },
       "albums": {
         "title": "未找到任何專輯",
@@ -370,7 +370,7 @@
         "description": "匯入音訊檔案，探索各種音樂類型。"
       },
       "dossiers": {
-        "title": "未匯入任何檔案",
+        "title": "未匯入任何資料夾",
         "description": "從操作列匯入一個資料夾，以便在此處瀏覽。"
       }
     },
@@ -389,10 +389,10 @@
     "changeCover": "更換封面",
     "searchDeezer": "搜尋Deezer",
     "localFile": "本機檔案",
-    "fetchMissingCovers": "找回所有遺失的封套",
+    "fetchMissingCovers": "取得所有遺失的封面",
     "fetchingCovers": "正在取得封面…({{current}} / {{total}})",
-    "fetchCoversResult": "已取得 {{count}} 張封套",
-    "fetchCoversFailed": "封套取得失敗",
+    "fetchCoversResult": "已取得 {{count}} 張封面",
+    "fetchCoversFailed": "封面取得失敗",
     "table": {
       "number": "#",
       "title": "標題",
@@ -642,7 +642,7 @@
       "backend": "後端(Rust)",
       "audio": "音訊",
       "shortcuts": "鍵盤快捷鍵",
-      "credits": "版權聲明",
+      "credits": "致謝",
       "changelog": "更新記錄"
     },
     "shortcuts": {
@@ -736,7 +736,7 @@
   "profiles": {
     "select": {
       "title": "誰在聽？",
-      "subtitle": "選擇您的個人檔案，以查看您的資料庫和播放清單",
+      "subtitle": "選擇您的個人檔案，以查看您的音樂庫和播放清單",
       "add": "新增",
       "edit": "編輯",
       "active": "使用中的設定檔",
@@ -820,11 +820,11 @@
       "dialogTitle": "將播放清單匯出為 M3U 格式"
     },
     "emptyTitle": "此播放清單為空",
-    "emptyDescription": "透過每行中的「+」按鈕，從您的資料庫中新增曲目。",
+    "emptyDescription": "透過每行中的「+」按鈕，從您的音樂庫中新增曲目。",
     "noneTitle": "尚未選取任何播放清單",
     "noneDescription": "請在側邊欄中選擇一個播放清單，即可在此處查看。",
     "notFoundTitle": "找不到播放清單",
-    "notFoundDescription": "此播放清單在該活躍帳戶中已不存在。",
+    "notFoundDescription": "此播放清單在目前的個人檔案中已不存在。",
     "smartLabel": "Daily Mix"
   },
   "trackActions": {
@@ -962,8 +962,8 @@
     },
     "similar": {
       "title": "相似藝人",
-      "inLibrary": "在你的曲庫中",
-      "notInLibrary": "不在你的曲庫中"
+      "inLibrary": "在您的音樂庫中",
+      "notInLibrary": "不在您的音樂庫中"
     }
   },
   "artistImagePicker": {
@@ -1165,7 +1165,7 @@
       "or": "或",
       "not": "非",
       "toggleOpHint": "且 ↔ 或",
-      "matchAllEmpty": "(整個曲庫)",
+      "matchAllEmpty": "（整個音樂庫）",
       "matchNoneEmpty": "(無曲目)",
       "childCount_zero": "空",
       "childCount_one": "{{count}} 個條件",
@@ -1277,7 +1277,7 @@
   "settings": {
     "title": "設定",
     "sections": {
-      "general": "概述",
+      "general": "一般",
       "library": "音樂庫",
       "playback": "播放",
       "integrations": "整合",
@@ -1457,7 +1457,7 @@
     "openDataFolder": "開啟資料夾",
     "lyricsPrefetch": {
       "title": "預先擷取歌詞",
-      "subtitle": "為整個曲庫下載歌詞以供離線使用",
+      "subtitle": "為整個音樂庫下載歌詞以供離線使用",
       "result": "已同步 {{hits}}，找不到 {{misses}}，失敗 {{failed}}",
       "offline": "已啟用離線模式",
       "failed": "預先載入失敗",
@@ -1650,7 +1650,7 @@
         },
         "editorial": {
           "label": "Editorial",
-          "description": "紙本雜誌 — 編輯襯線體、細髮絲線、柔和紙紋、寬鬆留白。"
+          "description": "紙本雜誌 — 編輯襯線體、極細分隔線、柔和紙紋、寬鬆留白。"
         },
         "lounge": {
           "label": "Lounge",

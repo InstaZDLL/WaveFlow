@@ -134,7 +134,7 @@
     "lyrics": {
       "title": "歌词保存在哪里？",
       "description": "编辑歌词时，它们应该保存到何处？可在 设置 → 播放 中随时更改。",
-      "hint": "选择「Sidecar 文件」可让音频文件保持不变 — foobar2000 等播放器就是这样做的。"
+      "hint": "选择「伴生文件」可让音频文件保持不变 — foobar2000 等播放器就是这样做的。"
     }
   },
   "sidebar": {
@@ -258,7 +258,7 @@
       "openFolder": "打开文件夹",
       "importFiles": "导入文件",
       "importFolder": "导入文件夹",
-      "browseLibrary": "浏览我的资料库"
+      "browseLibrary": "浏览我的音乐库"
     },
     "stats": {
       "library": "音乐库",
@@ -338,7 +338,7 @@
         "artistes_one": "{{count}} 位艺人",
         "artistes_other": "{{count}} 位艺人",
         "genres_zero": "0 类型",
-        "genres_one": "{{count}} 类型",
+        "genres_one": "{{count}} 种流派",
         "genres_other": "{{count}} 类型",
         "dossiers_zero": "0 个文件夹",
         "dossiers_one": "{{count}} 个文件夹",
@@ -370,7 +370,7 @@
         "description": "导入音频文件，探索不同音乐流派。"
       },
       "dossiers": {
-        "title": "未导入任何文件",
+        "title": "未导入任何文件夹",
         "description": "从操作栏导入一个文件夹，以便在此处浏览。"
       }
     },
@@ -389,7 +389,7 @@
     "changeCover": "更换封面",
     "searchDeezer": "搜索Deezer",
     "localFile": "本地文件",
-    "fetchMissingCovers": "找回所有缺失的封套",
+    "fetchMissingCovers": "获取所有缺失的封面",
     "fetchingCovers": "正在获取封面…({{current}} / {{total}})",
     "fetchCoversResult": "已获取 {{count}} 张封套",
     "fetchCoversFailed": "封套获取失败",
@@ -459,7 +459,7 @@
     "yesterday": "昨天",
     "timeline": "时间线",
     "loadingMore": "加载中…",
-    "endReached": "历史的开始",
+    "endReached": "已到达记录开头",
     "emptyTitle": "暂无收听记录",
     "emptyDescription": "播放一首曲目 — 计入后将立即出现在此。",
     "shownCount_one": "显示 {{count}} 次收听",
@@ -605,7 +605,7 @@
     "streak": {
       "eyebrow": "最长连续记录",
       "daysLabel_zero": "0 天连续",
-      "daysLabel_one": "{{count}} 天连续",
+      "daysLabel_one": "连续 {{count}} 天",
       "daysLabel_other": "{{count}} 天连续",
       "range": "{{start}} 至 {{end}}",
       "daysShort": "天连续"
@@ -714,7 +714,7 @@
     "count_other": "{{count}} 首",
     "emptyTitle": "没什么可听的",
     "emptyDescription": "从你的音乐库选取一首歌，加入播放队列。",
-    "nowPlaying": "进行中",
+    "nowPlaying": "正在播放",
     "upNext_zero": "接下来",
     "upNext_one": "接下来 · {{count}} 首",
     "upNext_other": "接下来 · {{count}} 首",
@@ -746,7 +746,7 @@
       "title": "新个人资料",
       "subtitle": "创建个人资料，个性化你的体验",
       "nameLabel": "个人资料名称",
-      "namePlaceholder": "输入姓名...",
+      "namePlaceholder": "输入名称...",
       "colorLabel": "个人资料颜色",
       "colorAria": "颜色{{color}}",
       "submit": "创建个人资料"
@@ -884,7 +884,7 @@
     "peak": "峰值",
     "analyze": "分析",
     "reanalyze": "重新分析",
-    "analyzing": "分析……",
+    "analyzing": "分析中…",
     "year": "年份",
     "trackNumber": "曲目编号",
     "duration": "时长",
@@ -1177,7 +1177,7 @@
       "addGroupOr": "或 分组",
       "addNot": "非",
       "contains": "包含…",
-      "pickGenre": "选择风格…"
+      "pickGenre": "选择流派…"
     },
     "predicates": {
       "titleContains": "标题包含",
@@ -1277,7 +1277,7 @@
   "settings": {
     "title": "设置",
     "sections": {
-      "general": "概述",
+      "general": "常规",
       "library": "音乐库",
       "playback": "播放",
       "integrations": "集成",
@@ -1434,7 +1434,7 @@
       "action": "分析",
       "autoTitle": "自动分析",
       "autoSubtitle": "每次扫描并添加新曲目后，在后台运行分析",
-      "failed_one": "{{count}} 失败",
+      "failed_one": "{{count}} 个失败",
       "failed_other": "{{count}} 失败"
     },
     "artistImages": {

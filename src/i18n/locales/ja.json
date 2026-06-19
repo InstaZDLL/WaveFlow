@@ -309,8 +309,8 @@
       "emptyTitle": "Daily Mix はまだありません",
       "emptyDescription": "数曲再生してから「再生成」を押すと、あなた専用のミックスが作成されます。",
       "label": "Daily Mix",
-      "trackCount_one": "{{count}} 曲",
-      "trackCount_other": "{{count}} 曲"
+      "trackCount_one": "{{count}}曲",
+      "trackCount_other": "{{count}}曲"
     },
     "onRepeat": {
       "label": "ヘビーローテーション"
@@ -331,18 +331,18 @@
         "morceaux_zero": "0曲",
         "morceaux_one": "{{count}}曲",
         "morceaux_other": "{{count}}曲",
-        "albums_zero": "0アルバム",
-        "albums_one": "{{count}}アルバム",
-        "albums_other": "{{count}}アルバム",
+        "albums_zero": "0枚",
+        "albums_one": "{{count}}枚",
+        "albums_other": "{{count}}枚",
         "artistes_zero": "0組",
         "artistes_one": "{{count}}組",
         "artistes_other": "{{count}}組",
         "genres_zero": "0ジャンル",
         "genres_one": "{{count}}ジャンル",
         "genres_other": "{{count}}ジャンル",
-        "dossiers_zero": "0フォルダ",
-        "dossiers_one": "{{count}}フォルダ",
-        "dossiers_other": "{{count}}フォルダ"
+        "dossiers_zero": "0個",
+        "dossiers_one": "{{count}}個",
+        "dossiers_other": "{{count}}個"
       }
     },
     "tabs": {
@@ -417,9 +417,9 @@
       "trackCount_zero": "0曲",
       "trackCount_one": "{{count}}曲",
       "trackCount_other": "{{count}}曲",
-      "albumCount_zero": "0アルバム",
-      "albumCount_one": "{{count}}アルバム",
-      "albumCount_other": "{{count}}アルバム"
+      "albumCount_zero": "0枚",
+      "albumCount_one": "{{count}}枚",
+      "albumCount_other": "{{count}}枚"
     },
     "genreList": {
       "trackCount_zero": "0曲",
@@ -688,7 +688,7 @@
       "next": "次へ",
       "shuffleOn": "シャッフルを無効にする",
       "shuffleOff": "シャッフルを有効にする",
-      "repeatOff": "リピート オフ",
+      "repeatOff": "リピートオフ",
       "repeatAll": "すべてリピート",
       "repeatOne": "1曲リピート"
     },
@@ -735,7 +735,7 @@
   },
   "profiles": {
     "select": {
-      "title": "誰が聴きますか?",
+      "title": "誰が聴きますか？",
       "subtitle": "プロフィールを選択して、ライブラリやプレイリストを確認しましょう",
       "add": "追加",
       "edit": "編集",
@@ -949,9 +949,9 @@
     "trackCount_zero": "0曲",
     "trackCount_one": "{{count}}曲",
     "trackCount_other": "{{count}}曲",
-    "albumCount_zero": "0アルバム",
-    "albumCount_one": "{{count}}アルバム",
-    "albumCount_other": "{{count}}アルバム",
+    "albumCount_zero": "0枚",
+    "albumCount_one": "{{count}}枚",
+    "albumCount_other": "{{count}}枚",
     "albumTrackCount_zero": "0曲",
     "albumTrackCount_one": "{{count}}曲",
     "albumTrackCount_other": "{{count}}曲",
@@ -977,9 +977,9 @@
     "badge": "ジャンル",
     "playAll": "すべて再生",
     "shuffle": "シャッフル",
-    "trackCount_zero": "0 曲",
-    "trackCount_one": "{{count}} 曲",
-    "trackCount_other": "{{count}} 曲",
+    "trackCount_zero": "0曲",
+    "trackCount_one": "{{count}}曲",
+    "trackCount_other": "{{count}}曲",
     "emptyTitle": "ジャンルが見つかりません",
     "emptyDescription": "このジャンルはアクティブなプロファイルに存在しません。",
     "emptyTracksTitle": "曲がありません",
@@ -1004,7 +1004,7 @@
       "save": "PNGとして保存",
       "copy": "画像をコピー",
       "eyebrow": "再生中",
-      "on": "収録"
+      "on": "に収録"
     }
   },
   "playerBar": {
@@ -1059,8 +1059,8 @@
     "start": "OK",
     "customPlaceholder": "分",
     "customAriaLabel": "カスタム時間（分）",
-    "minutes_one": "{{count}} 分",
-    "minutes_other": "{{count}} 分"
+    "minutes_one": "{{count}}分",
+    "minutes_other": "{{count}}分"
   },
   "lyrics": {
     "title": "歌詞",
@@ -1362,7 +1362,7 @@
       },
       "notifications": {
         "title": "曲変更通知",
-        "subtitle": "曲が変わるたびにシステム通知を表示します(タイトル + アーティスト)。デフォルトはオフ。"
+        "subtitle": "曲が変わるたびにシステム通知を表示します（タイトル + アーティスト）。デフォルトはオフ。"
       }
     },
     "crossfade": {
@@ -1383,7 +1383,7 @@
     },
     "exclusive": {
       "title": "WASAPI 排他モード (Windows)",
-      "subtitle": "ビットパーフェクト:Windows ミキサーをバイパスし干渉のない出力を実現します。デバイスが排他アクセスを拒否した場合は共有モードに戻ります。",
+      "subtitle": "ビットパーフェクト：Windowsミキサーをバイパスし、干渉のない出力を実現します。デバイスが排他アクセスを拒否した場合は共有モードにフォールバックします。",
       "fallback": "デバイスが排他モードを受け付けません。共有モードに戻ります。"
     },
     "mono": {
@@ -1591,7 +1591,7 @@
       "includeMetadataArtworkHint": "バックアップは大きくなりますが、完全オフラインで復元できます。チェックを外すと軽量なアーカイブになります（必要に応じてキャッシュを再取得）。",
       "changeFolder": "フォルダを変更",
       "pickFolderTitle": "バックアップフォルダを選択",
-      "lastRun": "最終バックアップ:{{when}}",
+      "lastRun": "最終バックアップ: {{when}}",
       "neverRun": "なし",
       "runNow": "今すぐバックアップ",
       "runOk_one": "{{count}}件のアーカイブを保存しました。",

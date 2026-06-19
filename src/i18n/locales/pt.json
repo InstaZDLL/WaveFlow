@@ -48,7 +48,7 @@
       "bulletScrobble": "Liga o Last.fm para fazer scrobble das reproduções em segundo plano"
     },
     "appearance": {
-      "title": "Escolha o seu look",
+      "title": "Escolhe o teu visual",
       "description": "Selecione um tema de cor e um estilo de interface. Pode alterá-los a qualquer momento em Definições → Aparência.",
       "theme": {
         "title": "Tema de cor"
@@ -637,7 +637,7 @@
       "developedBy": "Desenvolvido por"
     },
     "sections": {
-      "frameworkDesktop": "Estrutura para ambiente de trabalho",
+      "frameworkDesktop": "Framework desktop",
       "frontend": "Front-end",
       "backend": "Backend (Rust)",
       "audio": "Áudio",
@@ -844,12 +844,12 @@
     "startRadio": "Iniciar rádio",
     "rating": "Classificação",
     "ratingNone": "Sem classificação",
-    "batchEdit": "Editar etiquetas de {{count}} faixas…",
+    "batchEdit": "Editar tags de {{count}} faixas…",
     "addToPlaylistNamed": "Adicionar a \"{{name}}\"",
     "removeFromPlaylistNamed": "Remover de \"{{name}}\""
   },
   "batchTagEdit": {
-    "title": "Editar etiquetas em lote",
+    "title": "Editar tags em lote",
     "subtitle": "{{count}} faixas selecionadas",
     "help": "Marca os campos a propagar a toda a seleção. Campos não marcados ficam intactos por faixa.",
     "submit": "Aplicar ({{count}} campo(s))",
@@ -1089,7 +1089,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML mantido apenas em cache (não escrito na etiqueta de áudio)",
-      "sidecarWriteSkipped": "Letras guardadas na base de dados, mas TTML não cabe num ficheiro .lrc/.txt."
+      "sidecarWriteSkipped": "Letras guardadas na base de dados, mas o TTML não pode ser guardado num ficheiro sidecar .lrc/.txt."
     }
   },
   "duplicates": {
@@ -1536,7 +1536,7 @@
     },
     "diagnostics": {
       "title": "Registo da aplicação",
-      "subtitle": "Para comunicar um erro, abre a pasta de registos ou copia os registos recentes para os colares num ticket.",
+      "subtitle": "Para comunicar um erro, abre a pasta de registos ou copia os registos recentes para os colar num ticket.",
       "openFolder": "Abrir pasta",
       "copyLogs": "Copiar registos",
       "copied": "Registos copiados",
@@ -1589,13 +1589,13 @@
       "lastSyncHoursAgo": "Há {{count}} h",
       "lastSyncDaysAgo": "Há {{count}} d",
       "drilldown": {
-        "loading": "Carregando detalhes…",
+        "loading": "A carregar detalhes…",
         "error": "Erro: {{message}}",
         "empty": "Sem detalhes",
-        "missingLocally": "Faltando localmente",
-        "missingRemotely": "Faltando no servidor",
+        "missingLocally": "Em falta localmente",
+        "missingRemotely": "Em falta remotamente",
         "divergent": "Divergente",
-        "moreNotShown": "+ {{count}} mais não exibidos"
+        "moreNotShown": "+ {{count}} mais não mostrados"
       }
     },
     "gapless": {

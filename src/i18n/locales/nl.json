@@ -432,7 +432,7 @@
       "trackCount_other": "{{count}} nummers",
       "lastScanned": "Gescand: {{date}}",
       "neverScanned": "nooit",
-      "watched": "In de gaten gehouden",
+      "watched": "Gemonitord",
       "watchOn": "Wijzigingen automatisch volgen",
       "watchOff": "Stoppen met volgen",
       "remove": "Map uit bibliotheek verwijderen",
@@ -660,7 +660,7 @@
       "empty": "Geen vermeldingen beschikbaar",
       "expand": "Toon {{count}} extra vermeldingen",
       "collapse": "Minder tonen",
-      "breaking": "Breaking"
+      "breaking": "Ingrijpend"
     },
     "credits": {
       "text": "Met passie ontworpen en ontwikkeld. Gebouwd met opensourcetechnologieën.",
@@ -704,7 +704,7 @@
       "custom": "Aangepaste snelheid",
       "pitchHint": "Toonhoogte volgt de snelheid (geen time-stretching)."
     },
-    "seek": "Positie"
+    "seek": "Spoelen"
   },
   "queue": {
     "title": "Afspeelwachtrij",
@@ -879,7 +879,7 @@
       "file": "Bestand"
     },
     "bpm": "BPM",
-    "loudness": "Loudness",
+    "loudness": "Luidheid",
     "replayGain": "ReplayGain",
     "peak": "Piek",
     "analyze": "Analyseren",
@@ -1515,7 +1515,7 @@
       "action": "Resetten",
       "confirm": {
         "title": "De hele app resetten?",
-        "warning": "Hiermee worden alle profielen, bibliotheken, afspeellijsten, beoordelingen, luistergeschiedenis en hoesjes in de cache verwijderd. De app start opnieuw op met een schone onboarding. Dit kan niet ongedaan worden gemaakt.",
+        "warning": "Hiermee worden alle profielen, bibliotheken, afspeellijsten, beoordelingen, luistergeschiedenis en albumhoezen in de cache verwijderd. De app start opnieuw op met een schone onboarding. Dit kan niet ongedaan worden gemaakt.",
         "typeToConfirm": "Typ RESET om te bevestigen",
         "error": "Reset mislukt. Sluit elk extern programma dat een WaveFlow-bestand vasthoudt (een geopende muziekspeler, verkenner in de gegevensmap) en probeer het opnieuw.",
         "cancel": "Annuleren",
@@ -1711,7 +1711,7 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Neonclub — OLED-basis, gekleurde halo's rond actieve items, mono-pills, veerkrachtige animaties."
+          "description": "Neonclub — OLED-basis, gekleurde halo's rond actieve items, mono-capsules, veerkrachtige animaties."
         },
         "liquid": {
           "label": "Liquid",
@@ -1739,7 +1739,7 @@
         "title": "Bij klik op de hoes",
         "immersive": {
           "label": "Open volledige weergave",
-          "description": "Standaard — opent de schermvullende Now Playing-weergave met grote hoes."
+          "description": "Standaard — opent de schermvullende Speelt nu-weergave met de albumhoes groot weergegeven."
         },
         "nowPlaying": {
           "label": "Toon paneel Speelt nu",

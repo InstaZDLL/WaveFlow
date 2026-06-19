@@ -37,7 +37,7 @@
     "defaultLibraryName": "음악",
     "welcome": {
       "title": "WaveFlow에 오신 것을 환영합니다",
-      "description": "당신만의 로컬 우선 음악 플레이어. 스트리밍 구독 없이 전체 라이브러리를 즐기세요."
+      "description": "나만의 로컬 우선 음악 플레이어. 스트리밍 구독 없이 전체 라이브러리를 즐기세요."
     },
     "localOnly": {
       "title": "중요: 로컬 음악 전용",
@@ -79,7 +79,7 @@
       "secretLabel": "공유 시크릿",
       "secretPlaceholder": "공유 시크릿",
       "userLabel": "Last.fm 사용자 이름",
-      "userPlaceholder": "사용자-핸들",
+      "userPlaceholder": "아이디",
       "passwordLabel": "비밀번호",
       "passwordPlaceholder": "Last.fm 비밀번호",
       "toggleSecret": "시크릿 표시/숨기기",
@@ -247,8 +247,8 @@
   },
   "home": {
     "greeting": {
-      "morning": "안녕하세요",
-      "evening": "안녕하세요",
+      "morning": "좋은 아침입니다",
+      "evening": "좋은 저녁입니다",
       "night": "안녕히 주무세요"
     },
     "banner": {
@@ -371,7 +371,7 @@
       },
       "dossiers": {
         "title": "가져온 폴더가 없습니다",
-        "description": "작업 표시줄에서 폴더를 가져와 이곳에서 내용을 살펴보세요."
+        "description": "도구 모음에서 폴더를 가져와 이곳에서 내용을 살펴보세요."
       }
     },
     "actions": {
@@ -624,7 +624,7 @@
       "title": "월별"
     },
     "outro": {
-      "title": "WaveFlow과 함께해 주셔서 감사합니다",
+      "title": "WaveFlow와 함께해 주셔서 감사합니다",
       "subtitle": "계속 탐험하세요 — Wrapped는 실시간으로 업데이트됩니다.",
       "cta": "홈으로 돌아가기"
     }
@@ -1089,7 +1089,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML은 캐시에만 저장되었습니다 (오디오 태그에는 기록되지 않음)",
-      "sidecarWriteSkipped": "가사를 데이터베이스에 저장했지만 TTML은 .lrc/.txt 파일에 맞지 않습니다."
+      "sidecarWriteSkipped": "...TTML은 .lrc/.txt 사이드카 파일로 내보낼 수 없습니다."
     }
   },
   "duplicates": {
@@ -1264,7 +1264,7 @@
   },
   "editorial": {
     "masthead": {
-      "edition": "조간",
+      "edition": "모닝 에디션",
       "price": "가격: 포함",
       "subtitle": "「인쇄될 가치가 있는 모든 음악.」— 매일을 위한 당신만의 셀렉션."
     },
@@ -1441,11 +1441,11 @@
     },
     "showSleepTimer": {
       "title": "수면 타이머를 바에 고정",
-      "subtitle": "꺼져 있어도 타이머는 「…」 메뉴에서 사용할 수 있습니다"
+      "subtitle": "비활성화 시 타이머는 '...' 메뉴에서 사용할 수 있습니다"
     },
     "showAbLoop": {
       "title": "A-B 루프를 바에 고정",
-      "subtitle": "꺼져 있어도 A-B 루프는 「…」 메뉴에서 사용할 수 있습니다"
+      "subtitle": "비활성화 시 A-B 루프는 '...' 메뉴에서 사용할 수 있습니다"
     },
     "showSpotify": {
       "title": "Spotify 항목 표시",
@@ -1711,7 +1711,7 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "네온 클럽 — OLED 기반, 활성 요소 주변의 컬러 헤일로, 단색 필, 탄력 있는 모션."
+          "description": "네온 클럽 — OLED 기반, 활성 요소 주변의 컬러 헤일로, 단색 캡슐, 탄력 있는 모션."
         },
         "liquid": {
           "label": "Liquid",
@@ -1865,7 +1865,7 @@
   },
   "webRadio": {
     "title": "웹 라디오",
-    "subtitle": "radio-browser.info을 통한 30 000개 이상의 온라인 라디오 방송국.",
+    "subtitle": "radio-browser.info를 통한 30,000개 이상의 온라인 라디오 방송국.",
     "loading": "카테고리 로딩 중…",
     "resolving": "방송국 검색 중…",
     "emptyResults": "방송국을 찾을 수 없습니다.",
