@@ -288,6 +288,13 @@ export function LyricsEditorModal({
   // stamped, the next press advances to the next line (and stamps the
   // line's own timeMs if it's still -1, like line mode).
   const captureWord = useCallback(() => {
+    // Signal lifted out of the state updater so the follow-up
+    // `setActiveRow` lands as a separate, idempotent state change.
+    // Set inside the updater is safe under strict-mode double-invoke
+    // because both passes write the same boolean. The follow-up
+    // setter is outside the updater so it fires exactly once per
+    // user keystroke.
+    let shouldAdvanceToNext = false;
     setSyncedRows((rows) => {
       if (rows.length === 0) return rows;
       const idx = Math.min(activeRow, rows.length - 1);
@@ -318,8 +325,20 @@ export function LyricsEditorModal({
       row.words = words;
       row.wordCursor = cursor + 1;
       next[idx] = row;
+      // Auto-advance when the user just stamped the LAST word of the
+      // current row AND there is an existing next row. We deliberately
+      // don't append a fresh empty row here (Enter still owns that
+      // explicit "add a new line" semantic) — the goal is to remove
+      // the manual click between rows of an already-complete lyric,
+      // not to silently grow the document.
+      if (row.wordCursor >= words.length && idx + 1 < rows.length) {
+        shouldAdvanceToNext = true;
+      }
       return next;
     });
+    if (shouldAdvanceToNext) {
+      setActiveRow((i) => i + 1);
+    }
   }, [activeRow, positionMs]);
 
   // Advance to the next line in word mode (Enter shortcut). Appends a
