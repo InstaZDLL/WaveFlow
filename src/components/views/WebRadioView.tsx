@@ -76,11 +76,34 @@ export function WebRadioView() {
   const resolveReqRef = useRef(0);
   const streamReqRef = useRef(0);
 
-  // Initial fetch of the category list (`.then`-style per the same
-  // `react-hooks/set-state-in-effect` constraint that drives
-  // PluginsCard.tsx — see that file for the rationale).
+  // Fetch the category list whenever the plugin becomes available.
+  //
+  // Re-running on `pluginAvailable` matters because a user can land
+  // on this view while the plugin is disabled (initial fetch fails
+  // with `"plugin disabled"` → error parked in `error`), then
+  // re-enable it from Settings → Plugins. With an empty deps array
+  // the view would silently leave the stale error + empty `entries`
+  // forever after re-enable. We also reset all fetched state when
+  // the plugin flips OFF so a re-enable doesn't briefly flash the
+  // previous category list / track view before the fresh fetch
+  // lands.
+  //
+  // `.then`-style per the same `react-hooks/set-state-in-effect`
+  // constraint that drives PluginsCard.tsx — see that file for the
+  // rationale.
   useEffect(() => {
+    if (!pluginAvailable) {
+      setEntries([]);
+      setTracks([]);
+      setActiveEntry(null);
+      setSearchActive(false);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
+    setLoading(true);
+    setError(null);
     pluginListEntries(PLUGIN_ID).then(
       (list) => {
         if (cancelled) return;
@@ -97,7 +120,7 @@ export function WebRadioView() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pluginAvailable]);
 
   // Track the engine's lifecycle so a stream that dies on its own
   // (server timeout, mid-stream 5xx, user hits Stop on the PlayerBar)

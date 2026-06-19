@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { listInstalledPlugins } from "../lib/tauri/plugins";
 
@@ -21,17 +21,27 @@ export const PLUGIN_AVAILABILITY_EVENT = "waveflow:plugin-availability-changed";
 /// consume this hook to gate their Web Radio surface.
 export function usePluginAvailability(pluginId: string): boolean {
   const [available, setAvailable] = useState(false);
+  // Per-effect token counter. A rapid disable → enable sequence
+  // dispatches two events and starts two `listInstalledPlugins`
+  // calls in parallel; the slower one would otherwise resolve last
+  // and overwrite the fresh value with stale data. Each refresh
+  // captures its token, the `.then` continuation bails when the
+  // ref has moved on. The existing `cancelled` flag still covers
+  // unmount, but it can't distinguish two in-flight refreshes
+  // inside the same effect lifetime — hence the token.
+  const reqRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
     const refresh = () => {
+      const token = ++reqRef.current;
       listInstalledPlugins().then(
         (plugins) => {
-          if (cancelled) return;
+          if (cancelled || token !== reqRef.current) return;
           setAvailable(plugins.some((p) => p.id === pluginId && p.enabled));
         },
         () => {
-          if (cancelled) return;
+          if (cancelled || token !== reqRef.current) return;
           setAvailable(false);
         },
       );
