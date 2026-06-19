@@ -1,21 +1,35 @@
 //! Tauri commands for Spotify OAuth and Web API reads.
+//!
+//! Thin wrappers over the `waveflow-spotify` crate. The app crate owns
+//! `AppState` → pool unwrapping; the Spotify crate stays ignorant of
+//! Tauri / `AppState` so it can be reused outside the desktop.
 
 use std::time::Duration;
 
 use serde::Deserialize;
 use tauri::Manager;
 use tiny_http::Server;
+use waveflow_spotify as spotify;
+use waveflow_spotify::{
+    SpotifyAccessToken, SpotifyPlaylistLite, SpotifySearchResults, SpotifyStatus, SpotifyTrackLite,
+    CALLBACK_ADDR, CALLBACK_URL, SCOPES,
+};
 
 use crate::{
     audio::{engine::AudioCmd, AudioEngine},
     commands::loopback::html_response,
     error::{AppError, AppResult},
-    spotify::{
-        self, SpotifyAccessToken, SpotifyPlaylistLite, SpotifySearchResults, SpotifyStatus,
-        SpotifyTrackLite, CALLBACK_ADDR, CALLBACK_URL, SCOPES,
-    },
+    offline,
     state::AppState,
 };
+
+/// Error message returned by every Spotify command that would touch
+/// the network while [`offline`] mode is on. Mirrors the Deezer /
+/// Last.fm / LRCLIB pattern — each outbound HTTP path gates on
+/// `is_offline()` per the CLAUDE.md cross-cutting rule. Caller
+/// surfaces this directly in toast / dialog UI, so the message is
+/// part of the contract.
+const OFFLINE_ERR: &str = "Spotify is unavailable while offline mode is on";
 
 #[derive(Debug, Deserialize)]
 struct CallbackQuery {
@@ -26,7 +40,7 @@ struct CallbackQuery {
 
 #[tauri::command]
 pub async fn get_spotify_client_id(state: tauri::State<'_, AppState>) -> AppResult<Option<String>> {
-    spotify::read_client_id(&state).await
+    Ok(spotify::read_client_id(&state.app_db).await?)
 }
 
 #[tauri::command]
@@ -34,12 +48,25 @@ pub async fn set_spotify_client_id(
     state: tauri::State<'_, AppState>,
     client_id: String,
 ) -> AppResult<()> {
-    spotify::write_client_id(&state, &client_id).await
+    spotify::write_client_id(&state.app_db, &client_id).await?;
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn spotify_get_status(state: tauri::State<'_, AppState>) -> AppResult<SpotifyStatus> {
-    spotify::status(&state).await
+    // The Spotify crate accepts `Option<&SqlitePool>` for the profile
+    // pool so it can still report `configured` when no profile is
+    // mounted. Match on the specific `NoActiveProfile` variant —
+    // a bare `.ok()` would swallow real DB / pool errors (e.g.
+    // SQLite file deleted under our feet) and silently report
+    // `connected: false`, which makes diagnosing a broken install
+    // harder. Anything else propagates through `?`.
+    let profile_pool = match state.require_profile_pool().await {
+        Ok(pool) => Some(pool),
+        Err(AppError::NoActiveProfile) => None,
+        Err(err) => return Err(err),
+    };
+    Ok(spotify::status(&state.app_db, profile_pool.as_ref()).await?)
 }
 
 #[tauri::command]
@@ -56,7 +83,10 @@ pub async fn spotify_login(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> AppResult<SpotifyStatus> {
-    let client_id = spotify::read_client_id(&state)
+    if offline::is_offline() {
+        return Err(AppError::Other(OFFLINE_ERR.into()));
+    }
+    let client_id = spotify::read_client_id(&state.app_db)
         .await?
         .ok_or_else(|| AppError::Other("Spotify Client ID is not configured".into()))?;
     let verifier = spotify::random_token();
@@ -88,29 +118,42 @@ pub async fn spotify_login(
     let client = reqwest::Client::new();
     let tokens = spotify::exchange_code(&client, &client_id, &code, &verifier).await?;
     let (username, _product) = spotify::me(&client, &tokens.access_token).await?;
-    spotify::store_tokens(&state, &tokens, &username, None).await?;
+    let profile_pool = state.require_profile_pool().await?;
+    spotify::store_tokens(&profile_pool, &tokens, &username, None).await?;
 
     if let Some(engine) = app.try_state::<std::sync::Arc<AudioEngine>>() {
         let _ = engine.send(AudioCmd::Pause);
     }
 
-    spotify::status(&state).await
+    Ok(spotify::status(&state.app_db, Some(&profile_pool)).await?)
 }
 
 #[tauri::command]
 pub async fn spotify_get_access_token(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<SpotifyAccessToken> {
-    spotify::access_token(&state).await
+    // No explicit `is_offline()` guard: `spotify::access_token`
+    // returns the cached bearer token unmodified when it's still
+    // within `REFRESH_SKEW_MS` of expiry, so a guard at the top
+    // would block the legitimate "return cached" path even when no
+    // network call is needed. When a refresh IS required and the
+    // app is offline, the inner `refresh_token()` reqwest call
+    // surfaces a clear network error.
+    let profile_pool = state.require_profile_pool().await?;
+    Ok(spotify::access_token(&state.app_db, &profile_pool).await?)
 }
 
 #[tauri::command]
 pub async fn spotify_list_playlists(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<Vec<SpotifyPlaylistLite>> {
-    let token = spotify::access_token(&state).await?;
+    if offline::is_offline() {
+        return Err(AppError::Other(OFFLINE_ERR.into()));
+    }
+    let profile_pool = state.require_profile_pool().await?;
+    let token = spotify::access_token(&state.app_db, &profile_pool).await?;
     let client = reqwest::Client::new();
-    spotify::list_playlists(&client, &token.access_token).await
+    Ok(spotify::list_playlists(&client, &token.access_token).await?)
 }
 
 #[tauri::command]
@@ -118,18 +161,26 @@ pub async fn spotify_get_playlist_tracks(
     state: tauri::State<'_, AppState>,
     playlist_id: String,
 ) -> AppResult<Vec<SpotifyTrackLite>> {
-    let token = spotify::access_token(&state).await?;
+    if offline::is_offline() {
+        return Err(AppError::Other(OFFLINE_ERR.into()));
+    }
+    let profile_pool = state.require_profile_pool().await?;
+    let token = spotify::access_token(&state.app_db, &profile_pool).await?;
     let client = reqwest::Client::new();
-    spotify::playlist_tracks(&client, &token.access_token, &playlist_id).await
+    Ok(spotify::playlist_tracks(&client, &token.access_token, &playlist_id).await?)
 }
 
 #[tauri::command]
 pub async fn spotify_get_queue(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<spotify::SpotifyQueueSnapshot> {
-    let token = spotify::access_token(&state).await?;
+    if offline::is_offline() {
+        return Err(AppError::Other(OFFLINE_ERR.into()));
+    }
+    let profile_pool = state.require_profile_pool().await?;
+    let token = spotify::access_token(&state.app_db, &profile_pool).await?;
     let client = reqwest::Client::new();
-    spotify::queue(&client, &token.access_token).await
+    Ok(spotify::queue(&client, &token.access_token).await?)
 }
 
 #[tauri::command]
@@ -144,9 +195,13 @@ pub async fn spotify_search(
             artists: Vec::new(),
         });
     }
-    let token = spotify::access_token(&state).await?;
+    if offline::is_offline() {
+        return Err(AppError::Other(OFFLINE_ERR.into()));
+    }
+    let profile_pool = state.require_profile_pool().await?;
+    let token = spotify::access_token(&state.app_db, &profile_pool).await?;
     let client = reqwest::Client::new();
-    spotify::search(&client, &token.access_token, query.trim()).await
+    Ok(spotify::search(&client, &token.access_token, query.trim()).await?)
 }
 
 #[tauri::command]

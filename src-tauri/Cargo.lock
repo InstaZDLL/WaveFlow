@@ -7688,6 +7688,7 @@ dependencies = [
  "walkdir",
  "wasapi",
  "waveflow-core",
+ "waveflow-spotify",
  "waveflow-syncedlyrics",
  "windows 0.62.2",
  "zip 8.6.0",
@@ -7733,6 +7734,23 @@ name = "waveflow-plugin-sdk"
 version = "0.1.0"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "waveflow-spotify"
+version = "1.4.0"
+dependencies = [
+ "base64 0.22.1",
+ "chrono",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "sqlx",
+ "thiserror 2.0.18",
+ "tracing",
+ "url",
+ "uuid 1.23.3",
 ]
 
 [[package]]
