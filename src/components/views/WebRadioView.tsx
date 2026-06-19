@@ -93,6 +93,16 @@ export function WebRadioView() {
   // rationale.
   useEffect(() => {
     if (!pluginAvailable) {
+      // React 19 batches these six setState calls into a single
+      // re-render, so the cascading-renders concern this rule
+      // guards against does not apply. The reset is the cheapest
+      // way to keep the view honest when the plugin flips OFF:
+      // a stale `activeEntry` / search result would otherwise
+      // flash for one tick on re-enable while the fresh fetch
+      // is in flight. A `useReducer` with a RESET action would
+      // sidestep the rule but adds more weight than this earns.
+      /* eslint-disable-next-line react-hooks/set-state-in-effect --
+         intentional batched reset on plugin-unavailability */
       setEntries([]);
       setTracks([]);
       setActiveEntry(null);
