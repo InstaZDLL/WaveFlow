@@ -17,7 +17,7 @@
   },
   "updater": {
     "available": {
-      "title": "有更新可用（版本{{version}}）",
+      "title": "有更新可用(版本{{version}})",
       "message": "WaveFlow 的新版本已準備就緒，可供安裝。",
       "action": "立即安裝",
       "later": "稍後"
@@ -43,7 +43,7 @@
       "title": "重要：僅限本地音樂",
       "description": "WaveFlow 不是串流服務，它播放裝置上已有的檔案。",
       "calloutTitle": "你需要知道",
-      "bulletOwn": "自帶音樂庫（MP3、FLAC、ALAC、OGG、DSD…）",
+      "bulletOwn": "自帶音樂庫(MP3、FLAC、ALAC、OGG、DSD…)",
       "bulletImport": "匯入資料夾或拖放檔案",
       "bulletScrobble": "連接 Last.fm，在背景 Scrobble 你的播放紀錄"
     },
@@ -222,9 +222,9 @@
         "reset": "重設",
         "hiRes": "高解析度",
         "likedOnly": "僅顯示喜歡",
-        "year": "年份（從 → 至）",
-        "bpm": "BPM（從 → 至）",
-        "durationMin": "時長（分鐘）（從 → 至）",
+        "year": "年份(從 → 至)",
+        "bpm": "BPM(從 → 至)",
+        "durationMin": "時長（分鐘）(從 → 至)",
         "format": "格式",
         "genres": "類型"
       }
@@ -390,7 +390,7 @@
     "searchDeezer": "搜尋Deezer",
     "localFile": "本機檔案",
     "fetchMissingCovers": "找回所有遺失的封套",
-    "fetchingCovers": "正在取得封面…（{{current}} / {{total}}）",
+    "fetchingCovers": "正在取得封面…({{current}} / {{total}})",
     "fetchCoversResult": "已取得 {{count}} 張封套",
     "fetchCoversFailed": "封套取得失敗",
     "table": {
@@ -639,7 +639,7 @@
     "sections": {
       "frameworkDesktop": "桌面框架",
       "frontend": "前端",
-      "backend": "後端（Rust）",
+      "backend": "後端(Rust)",
       "audio": "音訊",
       "shortcuts": "鍵盤快捷鍵",
       "credits": "版權聲明",
@@ -852,7 +852,7 @@
     "title": "批次編輯標籤",
     "subtitle": "已選 {{count}} 首",
     "help": "勾選要套用到整個選取的欄位。未勾選的欄位保持每首曲目原值。",
-    "submit": "套用（{{count}} 個欄位）",
+    "submit": "套用({{count}} 個欄位)",
     "fields": {
       "artist": "藝人",
       "album": "專輯",
@@ -1371,7 +1371,7 @@
     },
     "dynamicCrossfade": {
       "title": "動態交叉淡化",
-      "subtitle": "依曲目間的速度差調整淡化時長（BPM 未知時回退至固定交叉淡化）"
+      "subtitle": "依曲目間的速度差調整淡化時長(BPM 未知時回退至固定交叉淡化)"
     },
     "normalize": {
       "title": "將音量調整至標準值",
@@ -1445,7 +1445,7 @@
     },
     "localArtistImages": {
       "title": "本地藝人圖片",
-      "subtitle": "在音樂旁尋找 artist.jpg（或 <名稱>.jpg）檔案，並將其用作藝人照片。",
+      "subtitle": "在音樂旁尋找 artist.jpg(或 <名稱>.jpg)檔案，並將其用作藝人照片。",
       "action": "掃描",
       "done": "已為 {{considered}} 位藝人中的 {{linked}} 位連結本地圖片"
     },
@@ -1500,7 +1500,7 @@
       "inSync": "已同步",
       "outOfSync": "存在差異",
       "error": "錯誤：{{message}}",
-      "reasonGeneric": "已略過（{{reason}}）",
+      "reasonGeneric": "已略過({{reason}})",
       "reason": {
         "offline": "離線模式已啟用",
         "sync_mode_local": "設定檔處於本機模式",
@@ -1508,7 +1508,7 @@
         "profile_canonical_id_missing": "等待首次同步"
       },
       "backfillAlreadyRunning": "已有同步正在執行",
-      "backfillSkipped": "已略過同步（{{reason}}）",
+      "backfillSkipped": "已略過同步({{reason}})",
       "backfillSummary": "{{pushed}} 已傳送 · {{pulled}} 已接收 · {{lww}} 已合併 · {{failed}} 失敗",
       "col": {
         "entity": "實體",
@@ -1611,7 +1611,7 @@
     },
     "showAudioQualityFooter": {
       "title": "顯示音訊品質列",
-      "subtitle": "在播放列下方顯示技術詳情（kHz、kbps、編解碼、位元深度）。為保持播放列輕巧，預設關閉。"
+      "subtitle": "在播放列下方顯示技術詳情(kHz、kbps、編解碼、位元深度)。為保持播放列輕巧，預設關閉。"
     },
     "categoryNavLabel": "設定分類",
     "appearance": {

@@ -17,7 +17,7 @@
   },
   "updater": {
     "available": {
-      "title": "有更新可用（版本{{version}}）",
+      "title": "有更新可用(版本{{version}})",
       "message": "WaveFlow 的新版本已准备就绪，可以安装了。",
       "action": "立即安装",
       "later": "稍后"
@@ -43,7 +43,7 @@
       "title": "重要：仅限本地音乐",
       "description": "WaveFlow 不是流媒体服务，它播放你设备上已有的文件。",
       "calloutTitle": "你需要知道",
-      "bulletOwn": "自带音乐库（MP3、FLAC、ALAC、OGG、DSD…）",
+      "bulletOwn": "自带音乐库(MP3、FLAC、ALAC、OGG、DSD…)",
       "bulletImport": "导入文件夹或拖放文件",
       "bulletScrobble": "连接 Last.fm，在后台 Scrobble 你的播放记录"
     },
@@ -222,9 +222,9 @@
         "reset": "重置",
         "hiRes": "高解析度",
         "likedOnly": "仅显示喜欢",
-        "year": "年份（从 → 到）",
-        "bpm": "BPM（从 → 到）",
-        "durationMin": "时长（分钟）（从 → 到）",
+        "year": "年份(从 → 到)",
+        "bpm": "BPM(从 → 到)",
+        "durationMin": "时长（分钟）(从 → 到)",
         "format": "格式",
         "genres": "流派"
       }
@@ -390,7 +390,7 @@
     "searchDeezer": "搜索Deezer",
     "localFile": "本地文件",
     "fetchMissingCovers": "找回所有缺失的封套",
-    "fetchingCovers": "正在获取封面…（{{current}} / {{total}}）",
+    "fetchingCovers": "正在获取封面…({{current}} / {{total}})",
     "fetchCoversResult": "已获取 {{count}} 张封套",
     "fetchCoversFailed": "封套获取失败",
     "table": {
@@ -639,7 +639,7 @@
     "sections": {
       "frameworkDesktop": "桌面框架",
       "frontend": "前端",
-      "backend": "后端（Rust）",
+      "backend": "后端(Rust)",
       "audio": "音频",
       "shortcuts": "键盘快捷键",
       "credits": "鸣谢",
@@ -852,7 +852,7 @@
     "title": "批量编辑标签",
     "subtitle": "已选择 {{count}} 首",
     "help": "勾选要应用到整个选择的字段。未勾选的字段保持每首曲目原值。",
-    "submit": "应用（{{count}} 个字段）",
+    "submit": "应用({{count}} 个字段)",
     "fields": {
       "artist": "艺人",
       "album": "专辑",
@@ -1232,7 +1232,7 @@
     "destination": {
       "tag": {
         "label": "嵌入标签",
-        "hint": "写入音频文件的 USLT/©lyr（兼容 foobar2000、iTunes…）。"
+        "hint": "写入音频文件的 USLT/©lyr(兼容 foobar2000、iTunes…)。"
       },
       "sidecar": {
         "label": "Sidecar 文件",
@@ -1371,7 +1371,7 @@
     },
     "dynamicCrossfade": {
       "title": "动态交叉淡化",
-      "subtitle": "根据曲目间的速度差调整淡化时长（BPM 未知时回退至固定交叉淡化）"
+      "subtitle": "根据曲目间的速度差调整淡化时长(BPM 未知时回退至固定交叉淡化)"
     },
     "normalize": {
       "title": "标准化音量",
@@ -1500,7 +1500,7 @@
       "inSync": "已同步",
       "outOfSync": "存在差异",
       "error": "错误：{{message}}",
-      "reasonGeneric": "已跳过（{{reason}}）",
+      "reasonGeneric": "已跳过({{reason}})",
       "reason": {
         "offline": "离线模式已启用",
         "sync_mode_local": "配置文件处于本地模式",
@@ -1508,7 +1508,7 @@
         "profile_canonical_id_missing": "等待首次同步"
       },
       "backfillAlreadyRunning": "已有同步在运行",
-      "backfillSkipped": "已跳过同步（{{reason}}）",
+      "backfillSkipped": "已跳过同步({{reason}})",
       "backfillSummary": "{{pushed}} 已发送 · {{pulled}} 已接收 · {{lww}} 已合并 · {{failed}} 失败",
       "col": {
         "entity": "实体",
@@ -1611,7 +1611,7 @@
     },
     "showAudioQualityFooter": {
       "title": "显示音频质量条",
-      "subtitle": "在播放栏下方显示技术详情（kHz、kbps、编解码、位深）。为保持播放栏轻巧，默认关闭。"
+      "subtitle": "在播放栏下方显示技术详情(kHz、kbps、编解码、位深)。为保持播放栏轻巧，默认关闭。"
     },
     "categoryNavLabel": "设置分类",
     "appearance": {

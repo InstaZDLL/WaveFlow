@@ -97,21 +97,39 @@ _COLON_RE = re.compile(rf"(?<={CJK}):(?={CJK})")
 _QMARK_RE = re.compile(rf"(?<={CJK})\?(?={CJK}|$)")
 _BANG_RE = re.compile(rf"(?<={CJK})!(?={CJK}|$)")
 
-# Parentheses: only convert paired `(content)` when the LEFT outer
-# neighbour is CJK AND the content is purely CJK (no Latin, no digits,
-# no braces). That keeps `(A = {{a}})` and `(A → Z)` style annotations
-# at half-width — those are the CJK convention for Latin/expression
-# annotations.
-_PAREN_RE = re.compile(rf"({CJK})\(([^()]*)\)")
+# Parentheses run TWO directions to enforce the same convention:
+#
+# 1. Half-width → full-width when the paren follows CJK AND the
+#    content inside is purely CJK. Keeps `(A = {{a}})` and
+#    `(A → Z)` style annotations at half-width — that's the CJK
+#    convention for Latin/expression parentheticals.
+# 2. Full-width → half-width when the paren content carries any
+#    Latin / digit / template-variable character. Cleans up
+#    pre-existing strings like `（MP3、FLAC、ALAC、…）` or
+#    `（{{count}} 个字段）` where the original authoring pass used
+#    full-width parens around mixed content. Same rule as above,
+#    just applied in the opposite direction.
+_PAREN_HW_RE = re.compile(rf"({CJK})\(([^()]*)\)")
+_PAREN_FW_RE = re.compile(r"（([^（）]*)）")
+
+# Anything that disqualifies content from full-width parens.
+_PAREN_NON_CJK = re.compile(r"[A-Za-z0-9{}/=→]")
 
 
-def _paren_replace(match: re.Match) -> str:
+def _paren_hw_to_fw(match: re.Match) -> str:
     before = match.group(1)
     content = match.group(2)
     has_cjk = re.search(CJK, content) is not None
-    has_non_cjk = re.search(r"[A-Za-z0-9{}→]", content) is not None
+    has_non_cjk = _PAREN_NON_CJK.search(content) is not None
     if has_cjk and not has_non_cjk:
         return f"{before}（{content}）"
+    return match.group(0)
+
+
+def _paren_fw_to_hw(match: re.Match) -> str:
+    content = match.group(1)
+    if _PAREN_NON_CJK.search(content):
+        return f"({content})"
     return match.group(0)
 
 
@@ -125,7 +143,8 @@ def fix_cjk_punctuation(data) -> int:
         new_value = _COLON_RE.sub("：", new_value)
         new_value = _QMARK_RE.sub("？", new_value)
         new_value = _BANG_RE.sub("！", new_value)
-        new_value = _PAREN_RE.sub(_paren_replace, new_value)
+        new_value = _PAREN_HW_RE.sub(_paren_hw_to_fw, new_value)
+        new_value = _PAREN_FW_RE.sub(_paren_fw_to_hw, new_value)
         if new_value != value:
             set_path(data, path, new_value)
             touched += 1
@@ -136,10 +155,18 @@ def fix_cjk_punctuation(data) -> int:
 
 def patch_locale(path: Path, code: str) -> int:
     """Apply the appropriate fixer(s) for `code` to the file at
-    `path`. Returns the number of leaf strings mutated, or -1 if
-    `code` has no scheduled fixes."""
-    with path.open("r", encoding="utf-8") as fh:
-        data = json.load(fh)
+    `path`. Returns the number of leaf strings mutated, -1 if `code`
+    has no scheduled fixes, or -2 when the file failed to parse as
+    JSON (caller treats this as fatal alongside `missing`)."""
+    try:
+        with path.open("r", encoding="utf-8") as fh:
+            data = json.load(fh)
+    except json.JSONDecodeError as err:
+        print(
+            f"  parse error in {path}: line {err.lineno} col {err.colno}: {err.msg}",
+            file=sys.stderr,
+        )
+        return -2
     if code == "fr":
         touched = fix_fr_plurals(data)
     elif code in ("zh-CN", "zh-TW"):
@@ -160,13 +187,16 @@ def main() -> int:
     changed: list[tuple[str, int]] = []
     skipped: list[str] = []
     missing: list[str] = []
+    unparseable: list[str] = []
     for code in ("fr", "zh-CN", "zh-TW"):
         path = here / f"{code}.json"
         if not path.exists():
             missing.append(code)
             continue
         touched = patch_locale(path, code)
-        if touched > 0:
+        if touched == -2:
+            unparseable.append(code)
+        elif touched > 0:
             changed.append((code, touched))
         else:
             skipped.append(code)
@@ -181,8 +211,13 @@ def main() -> int:
             "expected locale file(s) not found",
             file=sys.stderr,
         )
-        return 1
-    return 0
+    if unparseable:
+        print(
+            f"unparseable ({len(unparseable)}): {', '.join(unparseable)} — "
+            "JSON parse failed (see lines above)",
+            file=sys.stderr,
+        )
+    return 1 if (missing or unparseable) else 0
 
 
 if __name__ == "__main__":
