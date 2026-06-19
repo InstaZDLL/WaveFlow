@@ -1089,7 +1089,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML はキャッシュにのみ保存されました（音声タグには書き込まれていません）",
-      "sidecarWriteSkipped": "...TTMLは .lrc/.txt サイドカーファイルに保存できません。"
+      "sidecarWriteSkipped": "TTMLは .lrc/.txt サイドカーファイルに保存できません。"
     }
   },
   "duplicates": {

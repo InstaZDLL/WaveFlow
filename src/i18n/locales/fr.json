@@ -886,7 +886,7 @@
     "reanalyze": "Réanalyser",
     "analyzing": "Analyse…",
     "year": "Année",
-    "trackNumber": "Numéro de titre",
+    "trackNumber": "Numéro de piste",
     "duration": "Durée",
     "codec": "Codec",
     "bitDepth": "Profondeur de bits",
@@ -907,7 +907,7 @@
       "title": "Titre",
       "artist": "Artiste(s)",
       "album": "Album",
-      "trackNumber": "N° de titre",
+      "trackNumber": "N° de piste",
       "discNumber": "N° de disque",
       "genre": "Genre",
       "genrePlaceholder": "Pop, Rock, Jazz…"
