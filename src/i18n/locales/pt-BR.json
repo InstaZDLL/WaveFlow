@@ -95,7 +95,7 @@
       "noFolder": "Nenhuma pasta selecionada",
       "readyHint": "Sua pasta está configurada. Inicie o escaneamento quando quiser.",
       "scanning": "Escaneando sua biblioteca…",
-      "errorTitle": "Escaneamento falhou"
+      "errorTitle": "Falha no escaneamento"
     },
     "done": {
       "title": "Tudo pronto!",
@@ -220,7 +220,7 @@
         "title": "Filtros",
         "close": "Fechar",
         "reset": "Redefinir",
-        "hiRes": "Alta resolução",
+        "hiRes": "Hi-Res",
         "likedOnly": "Apenas curtidas",
         "year": "Ano (de → a)",
         "bpm": "BPM (de → a)",
@@ -275,7 +275,7 @@
       "loading": "Iniciando…",
       "focus": {
         "title": "Foco",
-        "subtitle": "Tempos calmos para trabalho profundo"
+        "subtitle": "Andamentos calmos para trabalho profundo"
       },
       "chill": {
         "title": "Relax",
@@ -287,7 +287,7 @@
       },
       "party": {
         "title": "Festa",
-        "subtitle": "Tempo dançante, alta energia"
+        "subtitle": "Andamento dançante, alta energia"
       },
       "sleep": {
         "title": "Dormir",
@@ -509,7 +509,7 @@
       "empty": "Sem reproduções nesse período."
     },
     "byHour": {
-      "title": "Horários preferidos",
+      "title": "Horários de pico",
       "empty": "Sem reproduções nesse período.",
       "tooltip": "{{hour}}h — {{plays}} reproduções"
     },
@@ -831,7 +831,7 @@
     "addToPlaylist": "Adicionar a uma playlist",
     "noPlaylists": "Não há nenhuma playlist. Crie uma abaixo.",
     "createPlaylist": "Nova playlist",
-    "playNext": "Tocar a próxima",
+    "playNext": "Reproduzir a seguir",
     "addToQueue": "Adicionar à fila",
     "like": "Adicionar às curtidas",
     "unlike": "Remover das curtidas",
@@ -921,7 +921,7 @@
     "count_other": "{{count}} selecionados",
     "play": "Reproduzir",
     "addToQueue": "Adicionar à fila",
-    "playNext": "Tocar a próxima",
+    "playNext": "Reproduzir a seguir",
     "addToPlaylist": "Adicionar a uma playlist",
     "removeFromPlaylist": "Remover da playlist",
     "clear": "Desmarcar"
@@ -934,7 +934,7 @@
     "trackCount_one": "{{count}} faixa",
     "trackCount_other": "{{count}} faixas",
     "discHeader": "Disco {{number}}",
-    "releaseDate": "Lançamento",
+    "releaseDate": "Data de lançamento",
     "emptyTitle": "Álbum não encontrado",
     "emptyDescription": "Este álbum não está mais disponível no perfil ativo.",
     "emptyTracksTitle": "Nenhuma faixa",
@@ -1011,7 +1011,7 @@
     "lyrics": "Letra",
     "nowPlaying": "Mostrar reprodução atual",
     "queue": "Fila",
-    "miniPlayer": "Mini-player (sempre visível)",
+    "miniPlayer": "Mini-player (sempre no topo)",
     "previous": "Faixa anterior",
     "next": "Próxima faixa",
     "openFullscreen": "Visão imersiva",
@@ -1048,7 +1048,7 @@
     "idle": "Nenhuma faixa em reprodução",
     "maximize": "Restaurar janela principal",
     "like": "Curtir",
-    "pin": "Sempre visível",
+    "pin": "Sempre no topo",
     "close": "Fechar mini-player"
   },
   "sleepTimer": {
@@ -1089,7 +1089,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML mantido apenas em cache (não gravado na tag de áudio)",
-      "sidecarWriteSkipped": "...mas o TTML não é compatível com sidecar .lrc/.txt."
+      "sidecarWriteSkipped": "Letras salvas no banco de dados, mas o TTML não é compatível com sidecar .lrc/.txt."
     }
   },
   "duplicates": {
@@ -1325,7 +1325,7 @@
       "unbind": "Desvincular",
       "unbound": "Nenhum",
       "actions": {
-        "togglePlayback": "Tocar / Pausar",
+        "togglePlayback": "Reproduzir / Pausar",
         "next": "Próxima faixa",
         "previous": "Faixa anterior",
         "volumeUp": "Aumentar volume",
@@ -1371,7 +1371,7 @@
         "serverName": "Nome",
         "port": "Porta",
         "portHint": "0 = porta automática",
-        "statusRunning": "Ativo",
+        "statusRunning": "Em execução",
         "statusStopped": "Parado",
         "copyUrl": "Copiar URL"
       },
@@ -1441,11 +1441,11 @@
     },
     "showSleepTimer": {
       "title": "Fixar o temporizador na barra",
-      "subtitle": "Quando desativado, o temporizador continua disponível no menu '...'"
+      "subtitle": "Quando desativado, o temporizador continua disponível no menu « … »"
     },
     "showAbLoop": {
       "title": "Fixar o loop A-B na barra",
-      "subtitle": "Quando desativado, o loop A-B continua disponível no menu '...'"
+      "subtitle": "Quando desativado, o loop A-B continua disponível no menu « … »"
     },
     "showSpotify": {
       "title": "Mostrar entrada do Spotify",
@@ -1527,7 +1527,7 @@
       "action": "Redefinir",
       "confirm": {
         "title": "Redefinir todo o aplicativo?",
-        "warning": "Isso exclui todos os perfis, bibliotecas, playlists, avaliações, histórico de audição e capas em cache. O aplicativo reiniciará em uma configuração inicial limpa. Esta ação não pode ser desfeita.",
+        "warning": "Isso exclui todos os perfis, bibliotecas, playlists, avaliações, histórico de audição e capas em cache. O aplicativo reiniciará na tela de boas-vindas. Esta ação não pode ser desfeita.",
         "typeToConfirm": "Digite RESET para confirmar",
         "error": "Falha ao redefinir. Feche qualquer programa externo que esteja segurando um arquivo do WaveFlow (um reprodutor de música aberto, explorador de arquivos na pasta de dados) e tente novamente.",
         "cancel": "Cancelar",
@@ -1703,7 +1703,7 @@
         },
         "editorial": {
           "label": "Editorial",
-          "description": "Revista em papel — serif editorial, filetes finos, grão suave, espaço generoso."
+          "description": "Revista em papel — serifa editorial, linhas finas, granulação suave, espaço generoso."
         },
         "lounge": {
           "label": "Lounge",
@@ -1726,7 +1726,7 @@
       "previewEmpty": "Sem botões — a barra mostrará só a capa e os controles de reprodução.",
       "buttons": {
         "abLoop": "Loop A-B",
-        "sleepTimer": "Timer para dormir",
+        "sleepTimer": "Temporizador para dormir",
         "eqPreset": "Equalizador (presets)",
         "lyrics": "Letras",
         "queue": "Fila",
@@ -1817,7 +1817,7 @@
     },
     "lyricsDestination": {
       "title": "Destino das letras salvas",
-      "subtitle": "Para onde vão as letras digitadas no editor. Pode ser substituído por edição."
+      "subtitle": "Para onde vão as letras digitadas no editor. Você pode substituir isso em cada edição no rodapé do editor."
     }
   },
   "spotify": {
@@ -1874,6 +1874,6 @@
     "live": "AO VIVO",
     "nowPlaying": "Tocando agora",
     "unavailableTitle": "A Rádio Web está desativada",
-    "unavailableHint": "Ative o plugin Web Radio em Configurações → Plugins para explorar mais de 30 000 estações."
+    "unavailableHint": "Ative o plugin Rádio Web em Configurações → Plugins para explorar mais de 30 000 estações."
   }
 }

@@ -48,7 +48,7 @@
       "bulletScrobble": "Hubungkan Last.fm untuk men-scrobble pemutaran di latar belakang"
     },
     "appearance": {
-      "title": "Pilih tampilan Anda",
+      "title": "Pilih tampilanmu",
       "description": "Pilih tema warna dan gaya antarmuka. Kamu dapat mengubahnya kapan saja melalui Pengaturan → Tampilan.",
       "theme": {
         "title": "Tema warna"
@@ -134,7 +134,7 @@
     "lyrics": {
       "title": "Di mana menyimpan lirik?",
       "description": "Saat kamu mengedit lirik, di mana liriknya harus disimpan? Kamu dapat mengubahnya kapan saja di Pengaturan → Pemutaran.",
-      "hint": "Pilih \"Berkas sidecar\" agar berkas audio kamu tetap utuh — seperti yang dilakukan foobar2000 dkk."
+      "hint": "Pilih \"Berkas pendamping\" agar berkas audio kamu tetap utuh — seperti yang dilakukan foobar2000 dkk."
     }
   },
   "sidebar": {
@@ -307,7 +307,7 @@
       "regenerate": "Buat ulang",
       "regenerating": "Membuat…",
       "emptyTitle": "Belum ada Daily Mix",
-      "emptyDescription": "Dengarkan beberapa lagu lalu klik «Buat ulang» untuk membuat mix yang dipersonalisasi.",
+      "emptyDescription": "Dengarkan beberapa lagu lalu klik 'Buat ulang' untuk membuat campuran yang dipersonalisasi.",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} lagu",
       "trackCount_other": "{{count}} lagu"
@@ -449,8 +449,8 @@
     "emptyTitle": "Belum ada lagu yang disukai",
     "emptyDescription": "Lagu yang kamu sukai akan muncul di sini. Jelajahi pustakamu dan sukai lagu favoritmu.",
     "playAll": "Putar semua",
-    "unlike": "Hapus dari Suka",
-    "like": "Tambahkan ke Suka"
+    "unlike": "Hapus dari Disukai",
+    "like": "Tambahkan ke Disukai"
   },
   "history": {
     "badge": "Riwayat",
@@ -502,7 +502,7 @@
       "uniqueArtists_zero": "0 artis",
       "uniqueArtists_one": "{{count}} artis",
       "uniqueArtists_other": "{{count}} artis",
-      "completionRate": "Rasio didengarkan hingga selesai"
+      "completionRate": "Rasio didengar penuh"
     },
     "byDay": {
       "title": "Aktivitas harian",
@@ -688,14 +688,14 @@
       "next": "Berikutnya",
       "shuffleOn": "Matikan acak",
       "shuffleOff": "Aktifkan acak",
-      "repeatOff": "Ulang dimatikan",
+      "repeatOff": "Pengulangan mati",
       "repeatAll": "Ulang semua",
       "repeatOne": "Ulang satu lagu"
     },
     "volume": {
       "label": "Volume",
       "mute": "Bisukan",
-      "unmute": "Lepas bisu"
+      "unmute": "Aktifkan suara"
     },
     "speed": {
       "label": "Kecepatan pemutaran ({{value}})",
@@ -720,7 +720,7 @@
     "upNext_other": "Selanjutnya · {{count}} lagu",
     "radio": {
       "label": "Radio",
-      "basedOn": "Berdasarkan «{{title}}»"
+      "basedOn": "Berdasarkan \"{{title}}\""
     }
   },
   "spotifyQueue": {
@@ -833,8 +833,8 @@
     "createPlaylist": "Daftar putar baru",
     "playNext": "Putar selanjutnya",
     "addToQueue": "Tambahkan ke antrean",
-    "like": "Tambahkan ke Suka",
-    "unlike": "Hapus dari Suka",
+    "like": "Tambahkan ke Disukai",
+    "unlike": "Hapus dari Disukai",
     "removeFromPlaylist": "Hapus dari daftar putar ini",
     "goToAlbum": "Ke album",
     "goToArtist": "Ke artis",
@@ -845,8 +845,8 @@
     "rating": "Penilaian",
     "ratingNone": "Tanpa penilaian",
     "batchEdit": "Sunting tag untuk {{count}} lagu…",
-    "addToPlaylistNamed": "Tambahkan ke «{{name}}»",
-    "removeFromPlaylistNamed": "Hapus dari «{{name}}»"
+    "addToPlaylistNamed": "Tambahkan ke \"{{name}}\"",
+    "removeFromPlaylistNamed": "Hapus dari \"{{name}}\""
   },
   "batchTagEdit": {
     "title": "Sunting tag massal",
@@ -1054,7 +1054,7 @@
   "sleepTimer": {
     "title": "Pengatur waktu tidur",
     "endOfTrack": "Di akhir lagu saat ini",
-    "endOfTrackBadge": "Akhir",
+    "endOfTrackBadge": "Akhir Lagu",
     "cancel": "Batal",
     "start": "OK",
     "customPlaceholder": "Mnt",
@@ -1266,10 +1266,10 @@
     "masthead": {
       "edition": "Edisi Pagi",
       "price": "Harga: Termasuk",
-      "subtitle": "«Semua musik yang layak dicetak.» — Pilihan harianmu, dibuat untukmu."
+      "subtitle": "\"Semua musik yang layak dicetak.\" — Pilihan harianmu, dibuat untukmu."
     },
     "lead": {
-      "caption": "Gbr 1. — Dari «{{album}}» oleh {{artist}}.",
+      "caption": "Gbr 1. — Dari \"{{album}}\" oleh {{artist}}.",
       "captionArtistOnly": "Gbr 1. — Karya {{artist}}.",
       "captionFallback": "Gbr 1. — Pilihan hari ini."
     }
@@ -1433,11 +1433,11 @@
     },
     "showSleepTimer": {
       "title": "Sematkan pengatur waktu tidur di bilah",
-      "subtitle": "Jika dinonaktifkan, pengatur waktu tetap tersedia di menu «…»"
+      "subtitle": "Jika dinonaktifkan, pengatur waktu tetap tersedia di menu '...'"
     },
     "showAbLoop": {
       "title": "Sematkan loop A-B di bilah",
-      "subtitle": "Jika dinonaktifkan, loop A-B tetap tersedia di menu «…»"
+      "subtitle": "Jika dinonaktifkan, loop A-B tetap tersedia di menu '...'"
     },
     "showSpotify": {
       "title": "Tampilkan entri Spotify",
@@ -1554,8 +1554,8 @@
       "col": {
         "entity": "Entitas",
         "state": "Status",
-        "missingLocally": "Tidak ada lokal",
-        "missingRemotely": "Tidak ada remote",
+        "missingLocally": "Hilang di lokal",
+        "missingRemotely": "Hilang di server",
         "divergent": "Berbeda"
       },
       "backfillError": "Gagal: {{message}}",
@@ -1711,7 +1711,7 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Klub neon — basis OLED, halo warna di sekitar elemen aktif, kapsul mono, animasi membal."
+          "description": "Klub neon — basis OLED, halo warna di sekitar elemen aktif, kapsul mono, animasi lenting."
         },
         "liquid": {
           "label": "Liquid",

@@ -852,7 +852,7 @@
     "title": "Modifica i tag in batch",
     "subtitle": "{{count}} brani selezionati",
     "help": "Seleziona i campi da applicare a tutti i brani. I campi non selezionati restano intatti per ciascun brano.",
-    "submit": "Applica ({{count}} campo/i)",
+    "submit": "Applica ({{count}} campi)",
     "fields": {
       "artist": "Artista",
       "album": "Album",
@@ -1054,7 +1054,7 @@
   "sleepTimer": {
     "title": "Timer di spegnimento",
     "endOfTrack": "Al termine del brano corrente",
-    "endOfTrackBadge": "Fine",
+    "endOfTrackBadge": "Fine brano",
     "cancel": "Annulla",
     "start": "OK",
     "customPlaceholder": "Min.",
@@ -1747,7 +1747,7 @@
         },
         "none": {
           "label": "Non fare nulla",
-          "description": "Disattiva il clic — utile se lo attivi per sbaglio."
+          "description": "Disattiva completamente il clic — utile per evitare clic accidentali."
         }
       }
     },
@@ -1774,7 +1774,7 @@
     },
     "hiResBadge": {
       "title": "Badge Hi-Res / DSD",
-      "subtitle": "Mostra l'etichetta «Hi-Res 24-bit» o «DSD128» accanto ai brani idonei e sotto il nome dell'artista nella barra del riproduttore. Attivo di default."
+      "subtitle": "Mostra l'etichetta «Hi-Res 24-bit» o «DSD128» accanto ai brani idonei e sotto il nome dell'artista nella barra di riproduzione. Attivo di default."
     },
     "serverAccount": {
       "title": "Account server WaveFlow",

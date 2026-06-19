@@ -45,7 +45,7 @@
       "calloutTitle": "你需要知道",
       "bulletOwn": "自帶音樂庫(MP3、FLAC、ALAC、OGG、DSD…)",
       "bulletImport": "匯入資料夾或拖放檔案",
-      "bulletScrobble": "連接 Last.fm，在背景 Scrobble 你的播放紀錄"
+      "bulletScrobble": "連接 Last.fm 以在背景記錄播放歷史"
     },
     "appearance": {
       "title": "選擇您的外觀",
@@ -87,7 +87,7 @@
       "connect": "連接 Last.fm",
       "missingFields": "請填寫 API 金鑰、共用密鑰、使用者名稱與密碼。",
       "connectedTitle": "已連接為 {{user}}",
-      "connectedSubtitle": "播放曲目時 Scrobbling 會自動啟動。"
+      "connectedSubtitle": "開始播放曲目時，系統會自動記錄播放歷史。"
     },
     "scan": {
       "title": "掃描你的音樂庫",
@@ -154,8 +154,8 @@
     },
     "library": {
       "tracksCount_zero": "0 首曲目",
-      "tracksCount_one": "{{count}} 曲目",
-      "tracksCount_other": "{{count}} 曲目",
+      "tracksCount_one": "{{count}} 首曲目",
+      "tracksCount_other": "{{count}} 首曲目",
       "createLibraryAria": "建立新音樂庫",
       "none": "尚無音樂庫",
       "popover": {
@@ -318,7 +318,7 @@
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
       "title": "你的 {{year}} 年度回顧",
-      "subtitle": "你的藝人、分鐘數、一整年 — 透過幾張投影片講述。",
+      "subtitle": "您的藝人、聆聽分鐘數、一整年 — 透過幾張投影片為您呈現。",
       "cta": "開啟",
       "dismiss": "隱藏 Wrapped 橫幅"
     },
@@ -338,8 +338,8 @@
         "artistes_one": "{{count}} 位藝人",
         "artistes_other": "{{count}} 位藝人",
         "genres_zero": "0 類型",
-        "genres_one": "{{count}} 類型",
-        "genres_other": "{{count}} 類型",
+        "genres_one": "{{count}} 種類型",
+        "genres_other": "{{count}} 種類型",
         "dossiers_zero": "0 個資料夾",
         "dossiers_one": "{{count}} 個資料夾",
         "dossiers_other": "{{count}} 個資料夾"
@@ -500,8 +500,8 @@
       "totalTime": "收聽時間",
       "uniqueTracks": "獨立曲目",
       "uniqueArtists_zero": "0 位藝人",
-      "uniqueArtists_one": "{{count}} 藝人",
-      "uniqueArtists_other": "{{count}} 藝人",
+      "uniqueArtists_one": "{{count}} 位藝人",
+      "uniqueArtists_other": "{{count}} 位藝人",
       "completionRate": "完整收聽率"
     },
     "byDay": {
@@ -704,11 +704,11 @@
       "custom": "自訂速度",
       "pitchHint": "音高隨速度變化（無時間拉伸）。"
     },
-    "seek": "播放位置"
+    "seek": "跳轉"
   },
   "queue": {
     "title": "播放佇列",
-    "inactive": "已停用",
+    "inactive": "未啟用",
     "count_zero": "0 首曲目",
     "count_one": "{{count}} 首",
     "count_other": "{{count}} 首",
@@ -763,7 +763,7 @@
     "delete": {
       "title": "刪除 {{name}}?",
       "subtitle": "此個人檔案將被永久刪除。",
-      "warning": "此個人檔案的所有資料庫、播放清單與播放紀錄都會遺失。此操作無法復原。",
+      "warning": "此設定檔的所有音樂庫、播放清單與聆聽紀錄都會遺失。此操作無法復原。",
       "submit": "刪除個人檔案",
       "submitting": "刪除中…"
     }
@@ -893,7 +893,7 @@
     "sampleRate": "取樣率",
     "channels": "聲道",
     "bitrate": "位元率",
-    "key": "音調",
+    "key": "調性",
     "fileSize": "大小",
     "addedAt": "新增於",
     "filePath": "路徑",
@@ -916,7 +916,7 @@
   },
   "selection": {
     "toolbarLabel": "選取操作",
-    "count_zero": "未選取項目",
+    "count_zero": "已選取 0 項",
     "count_one": "已選取 {{count}} 項",
     "count_other": "已選取 {{count}} 項",
     "play": "播放",
@@ -1004,7 +1004,7 @@
       "save": "儲存為 PNG",
       "copy": "複製圖片",
       "eyebrow": "正在播放",
-      "on": "·"
+      "on": "收錄於"
     }
   },
   "playerBar": {
@@ -1054,7 +1054,7 @@
   "sleepTimer": {
     "title": "睡眠計時器",
     "endOfTrack": "當前曲目結束時",
-    "endOfTrackBadge": "完",
+    "endOfTrackBadge": "曲終",
     "cancel": "取消",
     "start": "確定",
     "customPlaceholder": "分鐘",
@@ -1089,7 +1089,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML 僅保留在快取中（未寫入音訊標籤）",
-      "sidecarWriteSkipped": "歌詞已儲存到資料庫，但 TTML 無法放入 .lrc/.txt 檔案。"
+      "sidecarWriteSkipped": "歌詞已儲存至資料庫，但 TTML 無法寫入 .lrc/.txt 外部檔案。"
     }
   },
   "duplicates": {
@@ -1294,7 +1294,7 @@
       "loading": "載入中…",
       "emptyTitle": "未安裝任何外掛",
       "emptyHint": "手動安裝：將資料夾放在 <data>/waveflow/plugins/ 下。官方商店即將推出。",
-      "byAuthor": "作者:{{author}}",
+      "byAuthor": "作者：{{author}}",
       "enabled": "已啟用",
       "disabled": "已停用",
       "toggleAria": "啟用或停用 {{name}}",
@@ -1325,7 +1325,7 @@
         "placeholder": "API 金鑰",
         "secretPlaceholder": "共用密鑰",
         "save": "儲存",
-        "saved": "已註冊 ✓",
+        "saved": "已儲存 ✓",
         "show": "顯示",
         "hide": "隱藏",
         "connectedAs": "已登入為",
@@ -1384,7 +1384,7 @@
     "exclusive": {
       "title": "WASAPI 獨佔模式(Windows)",
       "subtitle": "位元完美：繞過 Windows 混音器以提供無干擾輸出。如果裝置拒絕獨佔存取，則退回共用模式。",
-      "fallback": "裝置不接受獨佔模式，正在退回共享模式。"
+      "fallback": "裝置不接受獨佔模式，正在退回共用模式。"
     },
     "mono": {
       "title": "單聲道音訊",
@@ -1474,7 +1474,7 @@
       "action": "重設",
       "confirm": {
         "title": "重設整個應用程式？",
-        "warning": "此操作將刪除每個個人檔案、音樂庫、播放清單、評分、聆聽記錄和快取的封面。應用程式將重新啟動至全新的引導流程。此操作無法復原。",
+        "warning": "此操作將刪除每個設定檔、音樂庫、播放清單、評分、聆聽紀錄和快取封面。應用程式將重新啟動並進入初始設定畫面。此操作無法復原。",
         "typeToConfirm": "輸入 RESET 以確認",
         "error": "重設失敗。請關閉任何持有 WaveFlow 檔案的外部程式（已開啟的音樂播放器、資料夾中的檔案總管），然後重試。",
         "cancel": "取消",
@@ -1537,7 +1537,7 @@
       "lastSyncDaysAgo": "{{count}} 天前",
       "drilldown": {
         "loading": "正在載入詳細資訊…",
-        "error": "錯誤:{{message}}",
+        "error": "錯誤：{{message}}",
         "empty": "沒有詳細資訊",
         "missingLocally": "本機缺少",
         "missingRemotely": "遠端缺少",
@@ -1591,7 +1591,7 @@
       "includeMetadataArtworkHint": "備份較大，可完全離線還原。取消勾選可獲得精簡封存檔（快取將依需求重新下載）。",
       "changeFolder": "變更資料夾",
       "pickFolderTitle": "選擇備份資料夾",
-      "lastRun": "上次備份:{{when}}",
+      "lastRun": "上次備份：{{when}}",
       "neverRun": "從未",
       "runNow": "立即備份",
       "runOk_one": "已寫入 {{count}} 個封存。",
@@ -1650,7 +1650,7 @@
         },
         "editorial": {
           "label": "Editorial",
-          "description": "紙本雜誌 — 編輯襯線體、細髮絲線、柔和紙紋、寬鬆留白。"
+          "description": "紙本雜誌 — 編輯襯線體、極細線條、柔和紙紋、寬鬆留白。"
         },
         "lounge": {
           "label": "Lounge",
@@ -1689,11 +1689,11 @@
     },
     "offlineMode": {
       "title": "離線模式",
-      "subtitle": "停用 Last.fm、Deezer 和 LRCLIB,僅使用快取資料。"
+      "subtitle": "停用 Last.fm、Deezer 和 LRCLIB，僅使用快取資料。"
     },
     "profileIo": {
       "title": "個人檔案備份",
-      "subtitle": "將完整個人檔案(播放清單、喜歡、統計、EQ、快速鍵)匯出或匯入為單一 .waveflow 檔案。",
+      "subtitle": "將完整設定檔 (播放清單、喜歡、統計、EQ、快捷鍵) 匯出或匯入為單一 .waveflow 檔案。",
       "export": {
         "action": "匯出",
         "dialogTitle": "匯出 WaveFlow 個人檔案",
@@ -1753,7 +1753,7 @@
     },
     "wrappedBanner": {
       "title": "WaveFlow Wrapped 橫幅",
-      "subtitle": "首頁上的年度回顧橫幅。自動模式僅在 Wrapped 季(12 月 1 日 → 1 月 31 日)期間顯示。",
+      "subtitle": "首頁上的年度回顧橫幅。自動模式僅在 Wrapped 季 (12 月 1 日 → 1 月 31 日) 期間顯示。",
       "legend": "Wrapped 橫幅可見性",
       "seasonActive": "Wrapped 季進行中 — 橫幅已顯示。",
       "seasonIdle": "非季節期間 — 橫幅將於 12 月 1 日自動回歸。",
@@ -1792,7 +1792,7 @@
       "webUrlLabel": "WaveFlow Web URL",
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "透過瀏覽器登入",
-      "signInWithBrowserHint": "在瀏覽器中開啟 WaveFlow Web；您在那裡登入，應用程式透過本地交握自動取得 JWT。",
+      "signInWithBrowserHint": "在瀏覽器中開啟 WaveFlow Web；您在那裡登入，應用程式會透過本機握手自動取得 JWT。",
       "loginInProgress": "等待瀏覽器…",
       "modeLabel": "同步模式",
       "modes": {
