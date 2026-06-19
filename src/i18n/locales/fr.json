@@ -153,7 +153,7 @@
       "folder": "Dossier"
     },
     "library": {
-      "tracksCount_zero": "0 titre",
+      "tracksCount_zero": "0 titres",
       "tracksCount_one": "{{count}} titre",
       "tracksCount_other": "{{count}} titres",
       "createLibraryAria": "Créer une nouvelle bibliothèque",
@@ -162,10 +162,10 @@
         "label": "Sélection de la bibliothèque",
         "header": "Bibliothèques",
         "countLine": "{{tracks}} · {{albums}}",
-        "tracks_zero": "0 titre",
+        "tracks_zero": "0 titres",
         "tracks_one": "{{count}} titre",
         "tracks_other": "{{count}} titres",
-        "albums_zero": "0 album",
+        "albums_zero": "0 albums",
         "albums_one": "{{count}} album",
         "albums_other": "{{count}} albums",
         "see": "Voir",
@@ -186,7 +186,7 @@
       "importDialogTitle": "Importer une playlist M3U",
       "liked": "Titres aimés",
       "recent": "Récemment joués",
-      "emptySubtext_zero": "0 titre",
+      "emptySubtext_zero": "0 titres",
       "emptySubtext_one": "{{count}} titre",
       "emptySubtext_other": "{{count}} titres"
     },
@@ -203,7 +203,7 @@
       "title": "Playlists"
     },
     "myLibrary": {
-      "playlistSubtext_zero": "0 titre",
+      "playlistSubtext_zero": "0 titres",
       "playlistSubtext_one": "{{count}} titre",
       "playlistSubtext_other": "{{count}} titres"
     }
@@ -328,19 +328,19 @@
     "header": {
       "addFolder": "Ajouter un dossier",
       "subtext": {
-        "morceaux_zero": "0 titre",
+        "morceaux_zero": "0 titres",
         "morceaux_one": "{{count}} titre",
         "morceaux_other": "{{count}} titres",
-        "albums_zero": "0 album",
+        "albums_zero": "0 albums",
         "albums_one": "{{count}} album",
         "albums_other": "{{count}} albums",
-        "artistes_zero": "0 artiste",
+        "artistes_zero": "0 artistes",
         "artistes_one": "{{count}} artiste",
         "artistes_other": "{{count}} artistes",
-        "genres_zero": "0 genre",
+        "genres_zero": "0 genres",
         "genres_one": "{{count}} genre",
         "genres_other": "{{count}} genres",
-        "dossiers_zero": "0 dossier",
+        "dossiers_zero": "0 dossiers",
         "dossiers_one": "{{count}} dossier",
         "dossiers_other": "{{count}} dossiers"
       }
@@ -409,25 +409,25 @@
       "compact": "Compact"
     },
     "albumGrid": {
-      "trackCount_zero": "0 titre",
+      "trackCount_zero": "0 titres",
       "trackCount_one": "{{count}} titre",
       "trackCount_other": "{{count}} titres"
     },
     "artistList": {
-      "trackCount_zero": "0 titre",
+      "trackCount_zero": "0 titres",
       "trackCount_one": "{{count}} titre",
       "trackCount_other": "{{count}} titres",
-      "albumCount_zero": "0 album",
+      "albumCount_zero": "0 albums",
       "albumCount_one": "{{count}} album",
       "albumCount_other": "{{count}} albums"
     },
     "genreList": {
-      "trackCount_zero": "0 titre",
+      "trackCount_zero": "0 titres",
       "trackCount_one": "{{count}} titre",
       "trackCount_other": "{{count}} titres"
     },
     "folderList": {
-      "trackCount_zero": "0 titre",
+      "trackCount_zero": "0 titres",
       "trackCount_one": "{{count}} titre",
       "trackCount_other": "{{count}} titres",
       "lastScanned": "Scanné : {{date}}",
@@ -443,7 +443,7 @@
   "liked": {
     "badge": "Collection",
     "title": "Titres aimés",
-    "count_zero": "0 titre",
+    "count_zero": "0 titres",
     "count_one": "{{count}} titre",
     "count_other": "{{count}} titres",
     "emptyTitle": "Aucun titre aimé",
@@ -477,7 +477,7 @@
   "recent": {
     "badge": "Historique",
     "title": "Récemment joués",
-    "count_zero": "0 titre",
+    "count_zero": "0 titres",
     "count_one": "{{count}} titre",
     "count_other": "{{count}} titres",
     "emptyTitle": "Aucun titre récent",
@@ -504,7 +504,7 @@
       "totalPlays": "Écoutes",
       "totalTime": "Temps d'écoute",
       "uniqueTracks": "Titres uniques",
-      "uniqueArtists_zero": "0 artiste",
+      "uniqueArtists_zero": "0 artistes",
       "uniqueArtists_one": "{{count}} artiste",
       "uniqueArtists_other": "{{count}} artistes",
       "completionRate": "Taux d'écoute complète"
@@ -537,7 +537,7 @@
       "less": "Moins",
       "more": "Plus"
     },
-    "plays_zero": "0 écoute",
+    "plays_zero": "0 écoutes",
     "plays_one": "{{count}} écoute",
     "plays_other": "{{count}} écoutes"
   },
@@ -551,7 +551,7 @@
     "next": "Slide suivante",
     "yearPicker": "Choisir une année",
     "backToHome": "Retour à l'accueil",
-    "playsShort_zero": "0 écoute",
+    "playsShort_zero": "0 écoutes",
     "playsShort_one": "{{count}} écoute",
     "playsShort_other": "{{count}} écoutes",
     "empty": {
@@ -564,7 +564,7 @@
     },
     "minutes": {
       "eyebrow": "Vous avez écouté",
-      "subtitle_zero": "0 minute de musique",
+      "subtitle_zero": "0 minutes de musique",
       "subtitle_one": "{{count}} minute de musique",
       "subtitle_other": "{{count}} minutes de musique"
     },
@@ -604,7 +604,7 @@
     },
     "streak": {
       "eyebrow": "Votre plus longue série",
-      "daysLabel_zero": "0 jour d'affilée",
+      "daysLabel_zero": "0 jours d'affilée",
       "daysLabel_one": "{{count}} jour d'affilée",
       "daysLabel_other": "{{count}} jours d'affilée",
       "daysShort": "jours d'affilée",
@@ -709,7 +709,7 @@
   "queue": {
     "title": "File d'attente",
     "inactive": "INACTIF",
-    "count_zero": "0 titre",
+    "count_zero": "0 titres",
     "count_one": "{{count}} titre",
     "count_other": "{{count}} titres",
     "emptyTitle": "Rien à écouter",
@@ -804,7 +804,7 @@
   },
   "playlistView": {
     "badge": "Playlist",
-    "trackCount_zero": "0 titre",
+    "trackCount_zero": "0 titres",
     "trackCount_one": "{{count}} titre",
     "trackCount_other": "{{count}} titres",
     "actions": {
@@ -916,7 +916,7 @@
   },
   "selection": {
     "toolbarLabel": "Actions de sélection",
-    "count_zero": "0 sélectionné",
+    "count_zero": "0 sélectionnés",
     "count_one": "{{count}} sélectionné",
     "count_other": "{{count}} sélectionnés",
     "play": "Lecture",
@@ -930,7 +930,7 @@
     "badge": "Album",
     "playAll": "Tout lire",
     "shuffle": "Lecture aléatoire",
-    "trackCount_zero": "0 titre",
+    "trackCount_zero": "0 titres",
     "trackCount_one": "{{count}} titre",
     "trackCount_other": "{{count}} titres",
     "discHeader": "Disque {{number}}",
@@ -946,13 +946,13 @@
     "shuffle": "Lecture aléatoire",
     "discography": "Discographie",
     "allTracks": "Tous les titres",
-    "trackCount_zero": "0 titre",
+    "trackCount_zero": "0 titres",
     "trackCount_one": "{{count}} titre",
     "trackCount_other": "{{count}} titres",
-    "albumCount_zero": "0 album",
+    "albumCount_zero": "0 albums",
     "albumCount_one": "{{count}} album",
     "albumCount_other": "{{count}} albums",
-    "albumTrackCount_zero": "0 titre",
+    "albumTrackCount_zero": "0 titres",
     "albumTrackCount_one": "{{count}} titre",
     "albumTrackCount_other": "{{count}} titres",
     "emptyTitle": "Artiste introuvable",
@@ -977,7 +977,7 @@
     "badge": "Genre",
     "playAll": "Tout lire",
     "shuffle": "Lecture aléatoire",
-    "trackCount_zero": "0 titre",
+    "trackCount_zero": "0 titres",
     "trackCount_one": "{{count}} titre",
     "trackCount_other": "{{count}} titres",
     "emptyTitle": "Genre introuvable",

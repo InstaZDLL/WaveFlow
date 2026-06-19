@@ -132,8 +132,8 @@
       "unavailable": "资料暂不可用，请稍后再试。"
     },
     "lyrics": {
-      "title": "歌词保存在哪里?",
-      "description": "编辑歌词时,它们应该保存到何处?可在 设置 → 播放 中随时更改。",
+      "title": "歌词保存在哪里？",
+      "description": "编辑歌词时，它们应该保存到何处？可在 设置 → 播放 中随时更改。",
       "hint": "选择「Sidecar 文件」可让音频文件保持不变 — foobar2000 等播放器就是这样做的。"
     }
   },
@@ -307,7 +307,7 @@
       "regenerate": "重新生成",
       "regenerating": "生成中…",
       "emptyTitle": "暂无 Daily Mix",
-      "emptyDescription": "先听几首歌,然后点击重新生成以创建你的个性化合辑。",
+      "emptyDescription": "先听几首歌，然后点击重新生成以创建你的个性化合辑。",
       "label": "Daily Mix",
       "trackCount_one": "{{count}} 首",
       "trackCount_other": "{{count}} 首"
@@ -713,7 +713,7 @@
     "count_one": "{{count}} 首",
     "count_other": "{{count}} 首",
     "emptyTitle": "没什么可听的",
-    "emptyDescription": "从你的音乐库选取一首歌,加入播放队列。",
+    "emptyDescription": "从你的音乐库选取一首歌，加入播放队列。",
     "nowPlaying": "进行中",
     "upNext_zero": "接下来",
     "upNext_one": "接下来 · {{count}} 首",
@@ -1089,7 +1089,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML 仅保留在缓存中（未写入音频标签）",
-      "sidecarWriteSkipped": "歌词已保存到数据库,但 TTML 无法放入 .lrc/.txt 文件。"
+      "sidecarWriteSkipped": "歌词已保存到数据库，但 TTML 无法放入 .lrc/.txt 文件。"
     }
   },
   "duplicates": {
@@ -1129,7 +1129,7 @@
       "album": "专辑包含",
       "year": "年份",
       "bpm": "BPM",
-      "durationMin": "时长(分钟)",
+      "durationMin": "时长（分钟）",
       "hiRes": "仅 Hi-Res",
       "liked": "仅已喜欢的曲目",
       "formats": "格式",
@@ -1152,8 +1152,8 @@
     "sortOptions": {
       "addedDesc": "最近添加",
       "addedAsc": "最早添加",
-      "yearDesc": "年份(降序)",
-      "yearAsc": "年份(升序)",
+      "yearDesc": "年份（降序）",
+      "yearAsc": "年份（升序）",
       "titleAsc": "标题(A → Z)",
       "artistAsc": "艺人(A → Z)",
       "random": "随机"
@@ -1205,7 +1205,7 @@
     "plainPlaceholder": "逐行输入歌词…",
     "linePlaceholder": "行文本",
     "capture": "捕获",
-    "captureHint": "开始播放后按空格(或捕获)将当前行锚定到播放点",
+    "captureHint": "开始播放后按空格（或捕获）将当前行锚定到播放点",
     "captureNow": "立即捕获",
     "recapture": "重新锚定到当前位置",
     "seekToLine": "跳转到该行",
@@ -1226,7 +1226,7 @@
     "captureHintWord": "空格 = 下一个词 · 回车 = 下一行 · Backspace = 撤销最后一个词",
     "notCaptured": "未捕获",
     "exportToFile": "保存到文件…",
-    "exportToFileHint": "将歌词导出为 .lrc 或 .txt 文件到您选择的位置,不会修改音频文件",
+    "exportToFileHint": "将歌词导出为 .lrc 或 .txt 文件到您选择的位置，不会修改音频文件",
     "exportedToFile": "已导出到 {{path}}",
     "destinationLabel": "歌词默认保存位置",
     "destination": {
@@ -1362,7 +1362,7 @@
       },
       "notifications": {
         "title": "曲目变更通知",
-        "subtitle": "每首曲目开始时显示系统通知(标题 + 艺人)。默认关闭。"
+        "subtitle": "每首曲目开始时显示系统通知（标题 + 艺人）。默认关闭。"
       }
     },
     "crossfade": {
@@ -1383,8 +1383,8 @@
     },
     "exclusive": {
       "title": "WASAPI 独占模式(Windows)",
-      "subtitle": "比特完美:绕过 Windows 混音器以提供无干扰输出。如果设备拒绝独占访问,则回退到共享模式。",
-      "fallback": "设备不接受独占模式,正在回退到共享模式。"
+      "subtitle": "比特完美：绕过 Windows 混音器以提供无干扰输出。如果设备拒绝独占访问，则回退到共享模式。",
+      "fallback": "设备不接受独占模式，正在回退到共享模式。"
     },
     "mono": {
       "title": "单声道",
@@ -1445,7 +1445,7 @@
     },
     "localArtistImages": {
       "title": "本地艺人图片",
-      "subtitle": "在音乐旁查找 artist.jpg(或 <名称>.jpg)文件,并将其用作艺人头像。",
+      "subtitle": "在音乐旁查找 artist.jpg(或 <名称>.jpg)文件，并将其用作艺人头像。",
       "action": "扫描",
       "done": "已为 {{considered}} 位艺人中的 {{linked}} 位关联本地图片"
     },
@@ -1641,7 +1641,7 @@
       },
       "skin": {
         "title": "外观",
-        "subtitle": "改变密度、表面材质、字体与动效,不仅是颜色。"
+        "subtitle": "改变密度、表面材质、字体与动效，不仅是颜色。"
       },
       "skins": {
         "studio": {
@@ -1654,7 +1654,7 @@
         },
         "lounge": {
           "label": "Lounge",
-          "description": "高级玻璃 — 专辑封面成为背景,半透明面板,缓慢过渡。"
+          "description": "高级玻璃 — 专辑封面成为背景，半透明面板，缓慢过渡。"
         },
         "pulse": {
           "label": "Pulse",
@@ -1713,7 +1713,7 @@
     },
     "smartCrossfade": {
       "title": "智能交叉淡化",
-      "subtitle": "自动跳过同一专辑内两首曲目间的淡化(适合概念专辑和现场录音)"
+      "subtitle": "自动跳过同一专辑内两首曲目间的淡化（适合概念专辑和现场录音）"
     },
     "showSpotify": {
       "title": "显示 Spotify 入口",
@@ -1808,11 +1808,11 @@
     },
     "fullscreenLyricsCentering": {
       "title": "全屏中将同步歌词居中",
-      "subtitle": "在全屏视图中将带时间戳的歌词居中对齐,与纯文本视图保持一致。"
+      "subtitle": "在全屏视图中将带时间戳的歌词居中对齐，与纯文本视图保持一致。"
     },
     "lyricsTranslation": {
       "title": "歌词翻译 (Musixmatch)",
-      "subtitle": "当 Musixmatch 提供翻译时,在每行 LRC 下方显示翻译",
+      "subtitle": "当 Musixmatch 提供翻译时，在每行 LRC 下方显示翻译",
       "off": "关闭"
     },
     "lyricsDestination": {
@@ -1843,11 +1843,11 @@
     "playlists": "播放列表",
     "emptyPlaylist": "此播放列表中没有可用的曲目(Spotify 可能不会公开本地文件或非你拥有的播放列表)。",
     "notConfiguredTitle": "注册你的 Spotify 应用",
-    "notConfiguredMessage": "Spotify 要求每个第三方应用在播放前必须注册一个免费的 Client ID。请在 Spotify Developer dashboard 创建一个,然后粘贴到 WaveFlow 的「设置 → 集成」。",
+    "notConfiguredMessage": "Spotify 要求每个第三方应用在播放前必须注册一个免费的 Client ID。请在 Spotify Developer dashboard 创建一个，然后粘贴到 WaveFlow 的「设置 → 集成」。",
     "openDashboard": "打开 Spotify Developer dashboard",
     "openSettings": "打开设置",
     "notConnectedTitle": "Spotify 未连接",
-    "notConnectedMessage": "你的 Client ID 已配置。请到「设置」登录 Spotify Premium 账户,以加载播放列表并开始播放。"
+    "notConnectedMessage": "你的 Client ID 已配置。请到「设置」登录 Spotify Premium 账户，以加载播放列表并开始播放。"
   },
   "share": {
     "title": "分享播放列表",
