@@ -313,7 +313,7 @@
       "trackCount_other": "{{count}} Titel"
     },
     "onRepeat": {
-      "label": "Auf Repeat"
+      "label": "On Repeat"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",

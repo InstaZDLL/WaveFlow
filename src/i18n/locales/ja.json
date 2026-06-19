@@ -313,7 +313,7 @@
       "trackCount_other": "{{count}}曲"
     },
     "onRepeat": {
-      "label": "ヘビーローテーション"
+      "label": "On Repeat"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",

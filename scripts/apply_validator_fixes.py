@@ -62,10 +62,16 @@ BRAND_TOKENS = (
 )
 
 
-def parse_critical_fixes(md: str) -> list[tuple[str, str]]:
-    """Return the list of (json_path, suggested_target) rows in the
-    `### 2. Critical fixes` section. Empty list when the section is
-    missing or carries no table."""
+def parse_critical_fixes(md: str) -> list[tuple[str, str, str]]:
+    """Return the list of (json_path, english_source, suggested_target)
+    rows in the `### 2. Critical fixes` section. Empty list when the
+    section is missing or carries no table.
+
+    `english_source` powers the brand-token guard: when the EN cell
+    carries a CLAUDE.md brand token, the target must too. Using EN
+    as the reference catches the case where an earlier regression
+    already dropped the token from the current locale value (where
+    the "drop what current still has" check would miss it)."""
     # Slice from "### 2." to the next "### " header (or end-of-file).
     m = re.search(r"^### 2\..*?$", md, flags=re.MULTILINE)
     if not m:
@@ -74,7 +80,7 @@ def parse_critical_fixes(md: str) -> list[tuple[str, str]]:
     next_header = re.search(r"^### \d", md[start:], flags=re.MULTILINE)
     block = md[start : start + next_header.start()] if next_header else md[start:]
 
-    rows: list[tuple[str, str]] = []
+    rows: list[tuple[str, str, str]] = []
     for line in block.splitlines():
         line = line.strip()
         if not line.startswith("|") or not line.endswith("|"):
@@ -97,20 +103,24 @@ def parse_critical_fixes(md: str) -> list[tuple[str, str]]:
         if cells[0].lower() == "json path":
             continue
         path = cells[0]
+        en_source = cells[1]
         target = cells[-1]
-        # Strip surrounding double quotes from the suggested target.
-        if target.startswith('"') and target.endswith('"') and len(target) >= 2:
-            target = target[1:-1]
-        # Markdown escapes inside the value:
-        #   `\"` → `"`, `\\` → `\`, `\|` was already handled.
-        target = target.replace(r"\"", '"').replace(r"\\", "\\")
+
+        def unquote(value: str) -> str:
+            if value.startswith('"') and value.endswith('"') and len(value) >= 2:
+                value = value[1:-1]
+            return value.replace(r"\"", '"').replace(r"\\", "\\")
+
+        en_source = unquote(en_source)
+        target = unquote(target)
+
         if not path:
             continue
         # The AI sometimes emits "(no change)" or "—" when no fix is
         # actually proposed for a row; drop those.
         if target in ("(no change)", "—", "-", "n/a", "N/A", ""):
             continue
-        rows.append((path, target))
+        rows.append((path, en_source, target))
     return rows
 
 
@@ -160,23 +170,33 @@ def apply_locale(report_path: Path, locale_path: Path, dry_run: bool):
     missing = 0
     missing_paths: list[str] = []
     skipped_brand: list[str] = []
-    for path, target in rows:
+    skipped_nonstring: list[str] = []
+    for path, en_source, target in rows:
         current = get_path(data, path)
         if current is None:
             missing += 1
             missing_paths.append(path)
             continue
+        # A hallucinated path could land us on a dict / list / number
+        # leaf. Refuse to evaluate string ops or write a string into
+        # a structural node — the locale tree must keep its shape.
+        if not isinstance(current, str):
+            skipped_nonstring.append(f"{path} [{type(current).__name__}]")
+            continue
         if current == target:
             unchanged += 1
             continue
         # Brand-token guard: don't let the validator drop tokens
-        # CLAUDE.md keeps verbatim across locales. Skip the patch
-        # entirely so the current value (which still carries the
-        # token) stays put.
+        # CLAUDE.md keeps verbatim across locales. We key on the EN
+        # source (authoritative for whether a token belongs in this
+        # string) rather than the current locale value — earlier
+        # regressions may already have dropped the token from the
+        # current value, in which case keying on `current` would miss
+        # the leak and let the patch land.
         dropped = [
             token
             for token in BRAND_TOKENS
-            if token in current and token not in target
+            if token in en_source and token not in target
         ]
         if dropped:
             skipped_brand.append(f"{path} [{', '.join(dropped)}]")
@@ -196,6 +216,14 @@ def apply_locale(report_path: Path, locale_path: Path, dry_run: bool):
             file=sys.stderr,
         )
         for entry in skipped_brand[:5]:
+            print(f"    - {entry}", file=sys.stderr)
+    if skipped_nonstring:
+        print(
+            f"  {locale_path.stem}: {len(skipped_nonstring)} patch(es) "
+            "skipped (path points at a non-string leaf)",
+            file=sys.stderr,
+        )
+        for entry in skipped_nonstring[:5]:
             print(f"    - {entry}", file=sys.stderr)
         if len(skipped_brand) > 5:
             print(f"    … and {len(skipped_brand) - 5} more", file=sys.stderr)
@@ -239,6 +267,25 @@ def main() -> int:
         report_dir = reports_root / args.report
     else:
         report_dir = latest_report_dir(reports_root)
+
+    # Validate the resolved directory BEFORE walking it. The previous
+    # version glob()'d for `*.md` on a path that could be absent or
+    # empty (e.g. user passed `--report bogus`), found nothing, and
+    # reported exit 0 with zero changes — silent "success" on bogus
+    # input. Fail loud on both cases.
+    if not report_dir.is_dir():
+        print(
+            f"report directory not found: {report_dir}", file=sys.stderr
+        )
+        return 1
+    md_files = sorted(report_dir.glob("*.md"))
+    if not md_files:
+        print(
+            f"report directory carries no .md files: {report_dir}",
+            file=sys.stderr,
+        )
+        return 1
+
     locales_root = root / LOCALES_REL
 
     print(f"reading reports from {report_dir.relative_to(root)}")
@@ -250,7 +297,7 @@ def main() -> int:
     total_missing = 0
     per_locale: list[tuple[str, int, int, int]] = []
     failures: list[str] = []
-    for md_path in sorted(report_dir.glob("*.md")):
+    for md_path in md_files:
         code = md_path.stem
         locale_path = locales_root / f"{code}.json"
         if not locale_path.exists():

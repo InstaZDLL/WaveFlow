@@ -313,7 +313,7 @@
       "trackCount_other": "{{count}} faixas"
     },
     "onRepeat": {
-      "label": "Em repetição"
+      "label": "On Repeat"
     },
     "wrapped": {
       "eyebrow": "WaveFlow Wrapped",
