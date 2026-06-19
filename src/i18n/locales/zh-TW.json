@@ -1166,7 +1166,7 @@
       "not": "非",
       "toggleOpHint": "且 ↔ 或",
       "matchAllEmpty": "（整個音樂庫）",
-      "matchNoneEmpty": "(無曲目)",
+      "matchNoneEmpty": "（無曲目）",
       "childCount_zero": "空",
       "childCount_one": "{{count}} 個條件",
       "childCount_other": "{{count}} 個條件",
@@ -1650,7 +1650,7 @@
         },
         "editorial": {
           "label": "Editorial",
-          "description": "紙本雜誌 — 編輯襯線體、極細分隔線、柔和紙紋、寬鬆留白。"
+          "description": "紙本雜誌 — 編輯襯線體、細髮絲線、柔和紙紋、寬鬆留白。"
         },
         "lounge": {
           "label": "Lounge",

@@ -1205,7 +1205,7 @@
     "plainPlaceholder": "Digite a letra linha por linha…",
     "linePlaceholder": "Texto da linha",
     "capture": "Capturar",
-    "captureHint": "...para fixar a linha atual à posição de reprodução",
+    "captureHint": "Inicie a reprodução e pressione Espaço (ou Capturar) para fixar a linha atual à posição de reprodução",
     "captureNow": "Capturar agora",
     "recapture": "Refixar na posição atual",
     "seekToLine": "Ir para esta linha",

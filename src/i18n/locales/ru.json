@@ -1159,7 +1159,7 @@
     "editTitle": "Изменить умный плейлист",
     "create": "Создать",
     "preview": "Предпросмотр",
-    "previewCount": "Соответствует треков: {{count}}",
+    "previewCount": "Совпадений: {{count}}",
     "nameRequired": "Название обязательно",
     "fields": {
       "name": "Название",

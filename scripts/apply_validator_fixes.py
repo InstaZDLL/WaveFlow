@@ -37,6 +37,16 @@ REPORTS_ROOT_REL = Path("secrets") / "translation-validation-reports"
 LOCALES_REL = Path("src") / "i18n" / "locales"
 
 
+def _unquote(value: str) -> str:
+    """Unwrap a markdown table cell's surrounding double quotes and
+    resolve the two escape sequences the validator can emit (`\\"`,
+    `\\\\`). Lifted out of `parse_critical_fixes` so the table loop
+    isn't redefining a closure on every row."""
+    if value.startswith('"') and value.endswith('"') and len(value) >= 2:
+        value = value[1:-1]
+    return value.replace(r"\"", '"').replace(r"\\", "\\")
+
+
 def latest_report_dir(root: Path) -> Path:
     """Return the most recent ISO-8601 timestamp folder, or raise."""
     dirs = [p for p in root.iterdir() if p.is_dir()]
@@ -103,16 +113,8 @@ def parse_critical_fixes(md: str) -> list[tuple[str, str, str]]:
         if cells[0].lower() == "json path":
             continue
         path = cells[0]
-        en_source = cells[1]
-        target = cells[-1]
-
-        def unquote(value: str) -> str:
-            if value.startswith('"') and value.endswith('"') and len(value) >= 2:
-                value = value[1:-1]
-            return value.replace(r"\"", '"').replace(r"\\", "\\")
-
-        en_source = unquote(en_source)
-        target = unquote(target)
+        en_source = _unquote(cells[1])
+        target = _unquote(cells[-1])
 
         if not path:
             continue
@@ -225,8 +227,8 @@ def apply_locale(report_path: Path, locale_path: Path, dry_run: bool):
         )
         for entry in skipped_nonstring[:5]:
             print(f"    - {entry}", file=sys.stderr)
-        if len(skipped_brand) > 5:
-            print(f"    … and {len(skipped_brand) - 5} more", file=sys.stderr)
+        if len(skipped_nonstring) > 5:
+            print(f"    … and {len(skipped_nonstring) - 5} more", file=sys.stderr)
 
     if applied > 0 and not dry_run:
         with locale_path.open("w", encoding="utf-8") as fh:
