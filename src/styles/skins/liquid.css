@@ -704,26 +704,25 @@
   [class*="shadow-2xl"]
 ) {
   color: var(--liq-ink) !important;
-  /* Bleed-through suppression for content-heavy popovers (Audio
-     Pipeline, Now Playing share card, etc.). The first two
-     iterations (18% then 32% then 55% glass-tint) still let
-     recognisable album artwork through because `--liq-glass-tint`
-     is a LIGHT grey (rgb 187 187 188) — even 55% of light grey
-     mixed with transparent over a saturated cover keeps the
-     cover's chroma. The light branch below works exactly because
-     it uses pure `white 92%` (a dense opaque base), not the same
-     light-grey tint scaled up.
-     Mirror that pattern in dark: black at 88% gives a dense dark
-     base that holds the codec / sample-rate text contrast on
-     every cover. The Liquid material identity stays via the
-     8-layer inset `box-shadow` recipe — that's what reads as
-     glass, not the body transparency. */
-  background-color: color-mix(in srgb, black 88%, transparent) !important;
+  /* Content-heavy popovers (Audio Pipeline, share card, etc.) need
+     the cover artwork behind them to read as a neutral wash, not
+     recognisable imagery — but pushing the panel toward opaque
+     (black 88% iteration) killed the Liquid material identity:
+     a flat black slab is not glass. Right knob is BLUR radius,
+     not body opacity.
+     Keep the glass body translucent (32% light-grey tint = the
+     panel reads as a lifted material over the aurora) and crank
+     `backdrop-filter: blur()` to 160px so any saturated cover
+     behind it smears into a uniform wash long before its hue
+     reaches the panel edge. Same recipe in both modes via the
+     :not(.dark) override below (which keeps the white-frosted
+     base for light theme). */
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 32%, transparent) !important;
   background-image: none !important;
   border: 0 !important;
   border-radius: 1.5rem !important;
-  backdrop-filter: blur(80px) saturate(var(--liq-saturation));
-  -webkit-backdrop-filter: blur(80px) saturate(var(--liq-saturation));
+  backdrop-filter: blur(160px) saturate(var(--liq-saturation));
+  -webkit-backdrop-filter: blur(160px) saturate(var(--liq-saturation));
   box-shadow: var(--liquid-glass) !important;
 }
 
