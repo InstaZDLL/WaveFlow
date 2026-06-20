@@ -1470,6 +1470,7 @@
       "title": "라이브러리 분석하기",
       "subtitle": "분석되지 않은 트랙에 대한 BPM, 음량 및 피크 값 계산",
       "action": "분석",
+      "cancel": "분석 중지",
       "autoTitle": "자동 분석",
       "autoSubtitle": "새 트랙이 추가되는 각 스캔 후 백그라운드에서 분석 실행",
       "failed_one": "{{count}}건 실패",

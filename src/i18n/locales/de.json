@@ -1458,6 +1458,7 @@
       "title": "Bibliothek analysieren",
       "subtitle": "BPM, Lautheit und Peak für noch nicht analysierte Titel berechnen",
       "action": "Analysieren",
+      "cancel": "Analyse stoppen",
       "autoTitle": "Automatische Analyse",
       "autoSubtitle": "Analyse im Hintergrund ausführen, nachdem ein Scan neue Titel hinzugefügt hat",
       "failed_one": "{{count}} Fehler",

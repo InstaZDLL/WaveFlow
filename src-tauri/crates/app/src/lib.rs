@@ -575,6 +575,7 @@ pub fn run() {
             commands::duplicates::delete_tracks,
             commands::analysis::analyze_track,
             commands::analysis::analyze_library,
+            commands::analysis::cancel_library_analysis,
             commands::analysis::get_track_analysis,
             commands::analysis::get_auto_analyze,
             commands::analysis::set_auto_analyze,

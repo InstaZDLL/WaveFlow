@@ -1458,6 +1458,7 @@
       "title": "Analizar la biblioteca",
       "subtitle": "Calcular BPM, sonoridad y pico de las pistas no analizadas",
       "action": "Analizar",
+      "cancel": "Detener análisis",
       "autoTitle": "Análisis automático",
       "autoSubtitle": "Lanzar el análisis en segundo plano tras cada escaneo que añada pistas nuevas",
       "failed_one": "{{count}} fallo",

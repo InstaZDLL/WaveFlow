@@ -1470,6 +1470,7 @@
       "title": "Analisar a biblioteca",
       "subtitle": "Calcular BPM, loudness e pico para faixas ainda não analisadas",
       "action": "Analisar",
+      "cancel": "Parar análise",
       "autoTitle": "Análise automática",
       "autoSubtitle": "Executar a análise em segundo plano após cada análise que adicione novas faixas",
       "failed_one": "{{count}} falha",

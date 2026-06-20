@@ -1458,6 +1458,7 @@
       "title": "Analisis pustaka",
       "subtitle": "Hitung BPM, kelantangan, dan puncak untuk lagu yang belum dianalisis",
       "action": "Analisis",
+      "cancel": "Hentikan analisis",
       "autoTitle": "Analisis otomatis",
       "autoSubtitle": "Jalankan analisis di latar belakang setelah setiap pemindaian yang menambahkan lagu baru",
       "failed_one": "{{count}} kegagalan",
