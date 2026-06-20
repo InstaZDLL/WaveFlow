@@ -473,6 +473,19 @@
   opacity: 0.75;
 }
 
+/* Light mode needs the colored gradient at near-full opacity — the
+   tile body and the surrounding page are both pale, so a 55%-opacity
+   gradient blends into the background and the hardcoded white text
+   below (title/subtitle/count) dissolves into the card. Dark mode
+   stays at the original 0.55 → 0.75 because the dark page makes the
+   gradient pop on its own. */
+:root[data-skin="liquid"]:not(.dark) .liquid-mood-tile::before {
+  opacity: 0.95;
+}
+:root[data-skin="liquid"]:not(.dark) .liquid-mood-tile:hover::before {
+  opacity: 1;
+}
+
 :root[data-skin="liquid"] .liquid-mood-icon {
   width: 2.25rem !important;
   height: 2.25rem !important;
@@ -598,11 +611,17 @@
   box-shadow: var(--liquid-glass-soft) !important;
 }
 
-/* AudioQualityFooter — keep but match the glass aesthetic. */
+/* AudioQualityFooter — keep but match the glass aesthetic. The
+   strip is the last child of the rounded footer panel; without
+   matching bottom-corner rounding its `bg-white` body squares off
+   the bottom-left + bottom-right of the panel even though the
+   parent footer carries `border-radius: 1.75rem`. */
 :root[data-skin="liquid"] footer :where([class*="h-5"][class*="border-t"]) {
   background-color: transparent !important;
   background-image: none !important;
   border-top: 1px solid var(--liq-rail) !important;
+  border-bottom-left-radius: 1.75rem !important;
+  border-bottom-right-radius: 1.75rem !important;
   color: var(--liq-faint) !important;
   font-family: "DM Sans Variable", system-ui, sans-serif !important;
 }
@@ -691,12 +710,28 @@
   [class*="shadow-2xl"]
 ) {
   color: var(--liq-ink) !important;
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 18%, transparent) !important;
+  /* Mirror what Big Sur / iOS Control Center actually do for
+     content-heavy panels: a DENSE dark-tinted base (not pure
+     black, not the light-grey glass-tint scaled up) at high
+     opacity with moderate blur. Past iterations either kept
+     too much cover bleed (18% → 32% → 55% of LIGHT glass-tint),
+     killed the material identity (`black 88%`), or stayed
+     translucent and pushed blur to absurd values (32% + 160px,
+     covers still visible). The Apple solution is a near-opaque
+     cool-tinted slab — translucency comes from being VISIBLY
+     LIFTED above the page bg, not from being see-through.
+     `rgb(50 50 58) / 0.92` reads as a slightly cool grey panel
+     visibly raised from the `#1b1b1d` page bg, opaque enough to
+     hide cover chroma, blur smoothes the edges, the 8-layer
+     `box-shadow: var(--liquid-glass)` recipe carries the rim
+     highlight that makes it look like material. Light mode
+     follows its own white-92% recipe below. */
+  background-color: rgb(50 50 58 / 0.92) !important;
   background-image: none !important;
   border: 0 !important;
   border-radius: 1.5rem !important;
-  backdrop-filter: blur(40px) saturate(var(--liq-saturation));
-  -webkit-backdrop-filter: blur(40px) saturate(var(--liq-saturation));
+  backdrop-filter: blur(80px) saturate(var(--liq-saturation));
+  -webkit-backdrop-filter: blur(80px) saturate(var(--liq-saturation));
   box-shadow: var(--liquid-glass) !important;
 }
 
@@ -714,7 +749,12 @@
   [class*="shadow-xl"],
   [class*="shadow-2xl"]
 ) {
-  background-color: color-mix(in srgb, white 82%, transparent) !important;
+  /* 82% → 92% in light. Same Audio-Pipeline-popover bleed-through
+     fix as the dark branch above — content-heavy panels over a
+     saturated cover lose every line of text at 82% even with
+     40px+ blur. 92% reads as solid frosted white but the
+     surrounding aurora still peeks at the rounded edges. */
+  background-color: color-mix(in srgb, white 92%, transparent) !important;
 }
 
 /* Force readable text colour inside modals — the modal shell
