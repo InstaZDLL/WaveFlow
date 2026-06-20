@@ -256,37 +256,45 @@ export function AboutView({ onNavigate }: AboutViewProps) {
         </div>
       </div>
 
-      {/* Hero Card */}
-      <div className="relative overflow-hidden rounded-3xl p-10 bg-linear-to-br from-zinc-900 to-zinc-800 text-white">
-        <div className="absolute top-0 right-0 text-[120px] font-black text-white/5 leading-none pr-8 pt-4 select-none">
+      {/* Hero Card — theme-aware so the light variant stays readable.
+          The original hero hardcoded a dark gradient + white text;
+          that worked on Studio Dark and on Studio Light (where the
+          dark surface deliberately contrasted with the page), but
+          Liquid Light's universal `rounded-3xl` glass override
+          (liquid.css:349) strips `background-image` and leaves the
+          dark text classes stranded on pale glass. Pairing every
+          colour with a `dark:` variant lets the hero render
+          correctly on every (theme × skin) combo. */}
+      <div className="relative overflow-hidden rounded-3xl p-10 bg-linear-to-br from-zinc-100 to-zinc-200 dark:from-zinc-900 dark:to-zinc-800 text-zinc-900 dark:text-white">
+        <div className="absolute top-0 right-0 text-[120px] font-black text-zinc-900/5 dark:text-white/5 leading-none pr-8 pt-4 select-none">
           {version}
         </div>
         <div className="relative z-10">
           <div className="flex items-center space-x-2 mb-2">
             <WaveFlowLogo className="w-8 h-8" />
             <h2 className="text-3xl font-black">
-              Wave<span className="text-emerald-400">Flow</span>
+              Wave<span className="text-emerald-600 dark:text-emerald-400">Flow</span>
             </h2>
           </div>
-          <p className="text-zinc-400 mb-4">{t("about.hero.subtitle")}</p>
+          <p className="text-zinc-600 dark:text-zinc-400 mb-4">{t("about.hero.subtitle")}</p>
           <div className="flex items-center space-x-3 mb-4">
             <span className="bg-emerald-500 text-white text-xs px-2.5 py-1 rounded-full font-semibold">
               v{version}
             </span>
-            <span className="text-zinc-500 text-sm">2026</span>
-            <span className="text-zinc-600">·</span>
-            <span className="text-zinc-500 text-sm">GPL-3.0 License</span>
+            <span className="text-zinc-600 dark:text-zinc-500 text-sm">2026</span>
+            <span className="text-zinc-400 dark:text-zinc-600">·</span>
+            <span className="text-zinc-600 dark:text-zinc-500 text-sm">GPL-3.0 License</span>
           </div>
           <button
             type="button"
-            className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-700 bg-zinc-800 text-sm font-medium text-zinc-300 hover:bg-zinc-700 transition-colors"
+            className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
           >
             <ExternalLink size={14} aria-hidden="true" />
             <span>{t("about.hero.checkUpdates")}</span>
           </button>
-          <p className="text-xs text-zinc-500 mt-4">
+          <p className="text-xs text-zinc-600 dark:text-zinc-500 mt-4">
             {t("about.hero.developedBy")}{" "}
-            <span className="font-semibold text-zinc-300">WaveFlow Team</span>
+            <span className="font-semibold text-zinc-800 dark:text-zinc-300">WaveFlow Team</span>
           </p>
         </div>
       </div>
