@@ -403,6 +403,17 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
     } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       handleSelect(SUPPORTED_LANGUAGES[index].code);
+    } else if (event.key === "Tab") {
+      // Dismiss the listbox and let the browser's default Tab action
+      // continue from the trigger's position in tab order. Focus is
+      // moved synchronously to the trigger before this handler
+      // returns; the un-prevented Tab default then advances from
+      // there, so Tab lands on the next focusable element AFTER the
+      // trigger and Shift+Tab lands on the previous one. Without this
+      // shim, Tab from a portaled option escapes through document.body
+      // and the keyboard caret falls off the end of tab order.
+      setIsOpen(false);
+      triggerRef.current?.focus();
     }
   };
 
