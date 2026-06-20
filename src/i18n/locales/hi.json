@@ -1079,8 +1079,16 @@
     "source": {
       "embedded": "फ़ाइल में शामिल गीत",
       "lrc_file": "आयातित .lrc फ़ाइल",
-      "api": "LRCLIB",
-      "manual": "मैनुअल प्रविष्टि"
+      "api": "ऑनलाइन स्रोत",
+      "manual": "मैनुअल प्रविष्टि",
+      "pickerHint": "स्रोत बदलें"
+    },
+    "provider": {
+      "lrclib": "LRCLIB",
+      "genius": "Genius",
+      "net_ease": "NetEase",
+      "megalobiz": "Megalobiz",
+      "musixmatch": "Musixmatch"
     },
     "format": {
       "lrc": "सिंक्रनाइज़्ड",

@@ -1079,8 +1079,16 @@
     "source": {
       "embedded": "In Datei eingebetteter Songtext",
       "lrc_file": "Importierte .lrc-Datei",
-      "api": "LRCLIB",
-      "manual": "Manuelle Eingabe"
+      "api": "Online-Quelle",
+      "manual": "Manuelle Eingabe",
+      "pickerHint": "Quelle wechseln"
+    },
+    "provider": {
+      "lrclib": "LRCLIB",
+      "genius": "Genius",
+      "net_ease": "NetEase",
+      "megalobiz": "Megalobiz",
+      "musixmatch": "Musixmatch"
     },
     "format": {
       "lrc": "Synchronisiert",

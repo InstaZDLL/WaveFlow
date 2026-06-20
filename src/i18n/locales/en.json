@@ -1079,8 +1079,16 @@
     "source": {
       "embedded": "Lyrics embedded in file",
       "lrc_file": "Imported .lrc file",
-      "api": "LRCLIB",
-      "manual": "Manual entry"
+      "api": "Online source",
+      "manual": "Manual entry",
+      "pickerHint": "Switch source"
+    },
+    "provider": {
+      "lrclib": "LRCLIB",
+      "genius": "Genius",
+      "net_ease": "NetEase",
+      "megalobiz": "Megalobiz",
+      "musixmatch": "Musixmatch"
     },
     "format": {
       "lrc": "Synchronised",

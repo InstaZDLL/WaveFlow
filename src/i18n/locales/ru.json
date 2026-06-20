@@ -1118,8 +1118,16 @@
     "source": {
       "embedded": "Текст встроен в файл",
       "lrc_file": "Импортированный .lrc",
-      "api": "LRCLIB",
-      "manual": "Ручной ввод"
+      "api": "Онлайн-источник",
+      "manual": "Ручной ввод",
+      "pickerHint": "Сменить источник"
+    },
+    "provider": {
+      "lrclib": "LRCLIB",
+      "genius": "Genius",
+      "net_ease": "NetEase",
+      "megalobiz": "Megalobiz",
+      "musixmatch": "Musixmatch"
     },
     "format": {
       "lrc": "Синхронизированный",

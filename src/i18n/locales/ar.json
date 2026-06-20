@@ -1083,8 +1083,16 @@
     "source": {
       "embedded": "كلمات مدمجة في الملف",
       "lrc_file": "ملف .lrc مستورد",
-      "api": "LRCLIB",
-      "manual": "إدخال يدوي"
+      "api": "مصدر عبر الإنترنت",
+      "manual": "إدخال يدوي",
+      "pickerHint": "تبديل المصدر"
+    },
+    "provider": {
+      "lrclib": "LRCLIB",
+      "genius": "Genius",
+      "net_ease": "NetEase",
+      "megalobiz": "Megalobiz",
+      "musixmatch": "Musixmatch"
     },
     "format": {
       "lrc": "متزامن",

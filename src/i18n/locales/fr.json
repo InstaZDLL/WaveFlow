@@ -1079,8 +1079,16 @@
     "source": {
       "embedded": "Paroles intégrées au fichier",
       "lrc_file": "Fichier .lrc importé",
-      "api": "LRCLIB",
-      "manual": "Saisie manuelle"
+      "api": "Source en ligne",
+      "manual": "Saisie manuelle",
+      "pickerHint": "Changer de source"
+    },
+    "provider": {
+      "lrclib": "LRCLIB",
+      "genius": "Genius",
+      "net_ease": "NetEase",
+      "megalobiz": "Megalobiz",
+      "musixmatch": "Musixmatch"
     },
     "format": {
       "lrc": "Synchronisé",

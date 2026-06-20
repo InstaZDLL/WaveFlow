@@ -11,6 +11,8 @@ import {
   Maximize2,
   Pencil,
   AlertCircle,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { pickFile } from "../../lib/tauri/dialog";
@@ -20,9 +22,12 @@ import {
   findActiveLineIndex,
   findActiveWordIndex,
   importLrcFile,
+  LYRICS_PROVIDERS,
   parseLyrics,
+  refetchLyrics,
   type LyricsLine,
   type LyricsPayload,
+  type LyricsProvider,
 } from "../../lib/tauri/lyrics";
 import { FullscreenLyrics } from "../player/FullscreenLyrics";
 import { LyricsEditorModal } from "../common/LyricsEditorModal";
@@ -56,6 +61,14 @@ export function LyricsPanel() {
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  // Provider picker dropdown — opens on click of the source label so the
+  // user can re-query a specific source when the auto-waterfall cached a
+  // low-quality hit. Closed by an outside click + by `handleRefetch`
+  // itself after the new fetch lands. Anchored to the source-label
+  // button via a wrapper `<span class="relative">` so the menu floats
+  // above the footer instead of pushing the row.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement | null>(null);
 
   const trackId = currentTrack?.id ?? null;
 
@@ -151,13 +164,18 @@ export function LyricsPanel() {
     }
   };
 
-  const handleRefetch = async () => {
+  const handleRefetch = async (provider?: LyricsProvider) => {
     if (trackId == null) return;
     try {
-      // Drop the cache then re-run the waterfall.
-      await clearLyrics(trackId);
+      // `refetchLyrics` drops the cache row + re-queries in one Tauri
+      // call. With `provider = undefined` it re-runs the full waterfall
+      // (legacy behaviour). With `provider` set it queries ONLY that
+      // source, bypassing local tiers — the path the user takes when
+      // the auto-fetch cached a low-quality hit from one provider and
+      // they want to try a different one (issue #284).
       setIsFetching(true);
-      const next = await fetchLyrics(trackId);
+      setPickerOpen(false);
+      const next = await refetchLyrics(trackId, provider);
       setPayload(next);
       // Same as handleImport: clear any previous error so the refetched
       // payload actually paints instead of being shadowed by stale state.
@@ -183,6 +201,28 @@ export function LyricsPanel() {
   const handleSeekToLine = (line: LyricsLine) => {
     seek(line.timeMs).catch(() => {});
   };
+
+  // Close the provider picker on any click outside the menu (or its
+  // anchor button). The menu has no portal — it sits inside the panel
+  // root — so a single capture-phase mousedown listener on the document
+  // is enough; we just skip when the click landed inside the menu.
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        pickerRef.current &&
+        e.target instanceof Node &&
+        pickerRef.current.contains(e.target)
+      ) {
+        return;
+      }
+      setPickerOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+    };
+  }, [pickerOpen]);
 
   // ── Render ──────────────────────────────────────────────────────
   return (
@@ -380,8 +420,62 @@ export function LyricsPanel() {
         {currentTrack != null && (
           <div className="flex items-center justify-between p-4 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
             <span className="flex items-center gap-2 min-w-0">
-              <span className="truncate">
-                {payload ? sourceLabel(payload.source, t) : ""}
+              {/* Source label is a chip-button when API-sourced + an
+                  enabled track id is in scope, so the user can pop the
+                  provider picker and re-query a different source.
+                  Embedded / sidecar / manual rows render as static text
+                  — the picker would have nothing meaningful to do for
+                  a tag-embedded lyric. */}
+              <span ref={pickerRef} className="relative inline-flex">
+                {payload && payload.source === "api" ? (
+                  <button
+                    type="button"
+                    onClick={() => setPickerOpen((v) => !v)}
+                    disabled={isFetching}
+                    aria-haspopup="menu"
+                    aria-expanded={pickerOpen}
+                    title={t("lyrics.source.pickerHint")}
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 truncate"
+                  >
+                    <span className="truncate">
+                      {sourceLabel(payload, t)}
+                    </span>
+                    <ChevronDown size={11} className="shrink-0" />
+                  </button>
+                ) : (
+                  <span className="truncate">
+                    {payload ? sourceLabel(payload, t) : ""}
+                  </span>
+                )}
+                {pickerOpen && (
+                  <div
+                    role="menu"
+                    aria-label={t("lyrics.source.pickerHint")}
+                    className="absolute left-0 bottom-full mb-1 z-20 min-w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg p-1"
+                  >
+                    {LYRICS_PROVIDERS.map((p) => {
+                      const isActive = payload?.provider === p;
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={isActive}
+                          onClick={() => handleRefetch(p)}
+                          className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200"
+                        >
+                          <span>{t(`lyrics.provider.${p}`)}</span>
+                          {isActive && (
+                            <Check
+                              size={12}
+                              className="shrink-0 text-emerald-500"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </span>
               {payload &&
                 (payload.format === "enhanced_lrc" ||
@@ -406,7 +500,7 @@ export function LyricsPanel() {
               </button>
               <button
                 type="button"
-                onClick={handleRefetch}
+                onClick={() => handleRefetch()}
                 disabled={isFetching}
                 aria-label={t("lyrics.actions.refetch")}
                 title={t("lyrics.actions.refetch")}
@@ -446,16 +540,23 @@ function EmptyState({ icon, text }: { icon?: React.ReactNode; text: string }) {
 }
 
 function sourceLabel(
-  source: LyricsPayload["source"],
+  payload: LyricsPayload,
   t: (key: string) => string,
 ): string {
-  switch (source) {
+  switch (payload.source) {
     case "embedded":
       return t("lyrics.source.embedded");
     case "lrc_file":
       return t("lyrics.source.lrc_file");
     case "api":
-      return t("lyrics.source.api");
+      // Surface the actual provider when known (LRCLIB / Genius /
+      // NetEase / Megalobiz / Musixmatch). Pre-1.5.1 rows + the
+      // empty-miss rows still leave `provider` null — fall back to
+      // the generic "Online source" label so the badge stays
+      // informative without lying about which provider ran.
+      return payload.provider
+        ? t(`lyrics.provider.${payload.provider}`)
+        : t("lyrics.source.api");
     case "manual":
       return t("lyrics.source.manual");
   }
