@@ -478,12 +478,32 @@
    gradient blends into the background and the hardcoded white text
    below (title/subtitle/count) dissolves into the card. Dark mode
    stays at the original 0.55 → 0.75 because the dark page makes the
-   gradient pop on its own. */
+   gradient pop on its own.
+   We ALSO need to bump the gradient internal alphas from 0.55 → 1.0
+   in light mode — the ::before opacity bump alone wasn't enough
+   because the two alphas multiply (0.55 × 0.95 = 0.52, basically
+   unchanged from 0.55). Solid-alpha gradients give the saturated
+   cards that white text actually reads on. */
 :root[data-skin="liquid"]:not(.dark) .liquid-mood-tile::before {
   opacity: 0.95;
 }
 :root[data-skin="liquid"]:not(.dark) .liquid-mood-tile:hover::before {
   opacity: 1;
+}
+:root[data-skin="liquid"]:not(.dark) .liquid-mood-focus::before {
+  background: linear-gradient(135deg, rgb(99 102 241), rgb(37 99 235));
+}
+:root[data-skin="liquid"]:not(.dark) .liquid-mood-chill::before {
+  background: linear-gradient(135deg, rgb(245 158 11), rgb(217 119 6));
+}
+:root[data-skin="liquid"]:not(.dark) .liquid-mood-workout::before {
+  background: linear-gradient(135deg, rgb(244 63 94), rgb(219 39 119));
+}
+:root[data-skin="liquid"]:not(.dark) .liquid-mood-party::before {
+  background: linear-gradient(135deg, rgb(168 85 247), rgb(217 70 239));
+}
+:root[data-skin="liquid"]:not(.dark) .liquid-mood-sleep::before {
+  background: linear-gradient(135deg, rgb(8 145 178), rgb(30 64 175));
 }
 
 :root[data-skin="liquid"] .liquid-mood-icon {
@@ -786,6 +806,51 @@
   .dark\:text-white,
   .dark\:text-zinc-100,
   .dark\:text-zinc-200
+) {
+  color: var(--liq-ink) !important;
+}
+
+/* Light-mode `.text-white` neutralization. Components like AboutView's
+   hero ship `<div className="... bg-linear-to-br from-zinc-900 ...
+   text-white">` — the dark gradient body keeps white text readable
+   in Studio. Liquid light mode keeps the same `text-white` on those
+   elements while the surrounding aurora bleeds through, and the
+   inherited white propagates down to every text child → invisible.
+   Remap `.text-white` to `--liq-ink` (dark in light, near-white in
+   dark, so it stays white when it should). The `:not(...)` chain
+   excludes elements that ALSO carry a saturated colored background
+   (emerald pills, action buttons, mood tiles) where the white is
+   intentional. */
+:root[data-skin="liquid"]:not(.dark) :where(.text-white):not(
+  [class*="bg-emerald"]
+):not(
+  [class*="bg-violet"]
+):not(
+  [class*="bg-indigo"]
+):not(
+  [class*="bg-blue-5"]
+):not(
+  [class*="bg-blue-6"]
+):not(
+  [class*="bg-purple"]
+):not(
+  [class*="bg-fuchsia"]
+):not(
+  [class*="bg-pink"]
+):not(
+  [class*="bg-rose"]
+):not(
+  [class*="bg-amber"]
+):not(
+  [class*="bg-orange"]
+):not(
+  [class*="bg-sky"]
+):not(
+  [class*="bg-cyan"]
+):not(
+  .liquid-mood-tile
+):not(
+  .liquid-mood-tile *
 ) {
   color: var(--liq-ink) !important;
 }
