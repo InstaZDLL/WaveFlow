@@ -164,13 +164,27 @@ export function LyricsPanel() {
   // ── Actions ─────────────────────────────────────────────────────
   const handleImport = async () => {
     if (trackId == null) return;
+    // Capture the requested track at the call site for the same
+    // reason `handleRefetch` does — the user can switch tracks
+    // during the file picker (which can sit on screen for a while)
+    // and again during `importLrcFile`'s disk + DB work. Without
+    // the guard a stale import would clobber the new track's
+    // payload in the UI.
+    //
+    // We deliberately let `importLrcFile` itself run to completion
+    // even when the user has switched away: the user's intent was
+    // to attach this LRC to the captured track, and the call writes
+    // straight to that track's DB row, so cancelling the write
+    // would lose work. Only the UI updates skip when stale.
+    const requestedTrackId = trackId;
     try {
       const path = await pickFile(
         ["lrc", "elrc", "ttml", "xml", "txt"],
         t("lyrics.importTitle"),
       );
       if (!path) return;
-      const next = await importLrcFile(trackId, path);
+      const next = await importLrcFile(requestedTrackId, path);
+      if (requestedTrackId !== trackIdRef.current) return;
       setPayload(next);
       // Drop any error left from a prior failed fetch — otherwise the
       // error-vs-notFound conditional below would mask the freshly
@@ -178,6 +192,7 @@ export function LyricsPanel() {
       setError(null);
     } catch (err) {
       console.error("[LyricsPanel] import failed", err);
+      if (requestedTrackId !== trackIdRef.current) return;
       setError(String(err));
     }
   };
@@ -238,12 +253,17 @@ export function LyricsPanel() {
   };
 
   // Close the provider picker on any click outside the menu (or its
-  // anchor button). The menu has no portal — it sits inside the panel
-  // root — so a single capture-phase mousedown listener on the document
-  // is enough; we just skip when the click landed inside the menu.
+  // anchor button) AND on Escape — both gestures are part of the
+  // WAI-ARIA menu dismissal pattern. The mousedown handler skips
+  // when the click landed inside the menu wrapper; the keydown
+  // handler is unconditional so Escape closes the menu regardless
+  // of whether focus sits on the trigger button (post-click default)
+  // or on a menu item (after a Tab). The menu has no portal — it
+  // sits inside the panel root — so document-level listeners are
+  // enough.
   useEffect(() => {
     if (!pickerOpen) return;
-    const handler = (e: MouseEvent) => {
+    const handleMouseDown = (e: MouseEvent) => {
       if (
         pickerRef.current &&
         e.target instanceof Node &&
@@ -253,9 +273,16 @@ export function LyricsPanel() {
       }
       setPickerOpen(false);
     };
-    document.addEventListener("mousedown", handler);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setPickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [pickerOpen]);
 
@@ -486,6 +513,19 @@ export function LyricsPanel() {
                   <div
                     role="menu"
                     aria-label={t("lyrics.source.pickerHint")}
+                    onKeyDown={(e) => {
+                      // Local Escape handler in addition to the
+                      // document-level one in the picker useEffect.
+                      // Redundant in practice (both fire on the same
+                      // event) but keeps the WAI-ARIA menu pattern
+                      // self-contained on the element itself + stops
+                      // the event from bubbling further into ancestor
+                      // panels that might also listen for Escape.
+                      if (e.key === "Escape") {
+                        e.stopPropagation();
+                        setPickerOpen(false);
+                      }
+                    }}
                     className="absolute left-0 bottom-full mb-1 z-20 min-w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg p-1"
                   >
                     {LYRICS_PROVIDERS.map((p) => {
