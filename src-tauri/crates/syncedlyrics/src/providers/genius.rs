@@ -103,9 +103,15 @@ fn strip_genius_header(text: &str) -> String {
         return text.to_string();
     }
     let after_digits = &trimmed[digits_end..];
-    let Some(after_contrib) = after_digits.strip_prefix(" Contributors") else {
+    // Genius writes "1 Contributor" for a single transcriber and
+    // "N Contributors" for two or more — the plural-s is conditional
+    // on the badge count. Strip the singular core first; consume an
+    // optional trailing 's' to cover both shapes without two near-
+    // identical branches.
+    let Some(after_contrib) = after_digits.strip_prefix(" Contributor") else {
         return text.to_string();
     };
+    let after_contrib = after_contrib.strip_prefix('s').unwrap_or(after_contrib);
     // Find the " Lyrics" token that closes the header. Genius glues
     // the title onto a trailing " Lyrics" word with a single space
     // separator (e.g. "...Vez Lyrics") and immediately follows that
@@ -235,6 +241,20 @@ mod tests {
         assert_eq!(
             strip_genius_header(input),
             "[Verse 1]\nSome Lyrics line".to_string()
+        );
+    }
+
+    #[test]
+    fn strip_header_handles_singular_contributor_badge() {
+        // CodeRabbit-flagged edge case: Genius pluralises the badge
+        // conditionally — a song with a single transcriber renders
+        // "1 Contributor" (no trailing 's'). The strip MUST consume
+        // the singular form too, otherwise a 1-transcriber song
+        // ships the bare header to the user verbatim.
+        let input = "1 ContributorSomething Lyrics\n[Intro]\nReal body";
+        assert_eq!(
+            strip_genius_header(input),
+            "[Intro]\nReal body".to_string()
         );
     }
 }

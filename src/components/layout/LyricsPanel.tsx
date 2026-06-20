@@ -77,6 +77,19 @@ export function LyricsPanel() {
 
   const trackId = currentTrack?.id ?? null;
 
+  // Live mirror of `trackId` so async event handlers can detect
+  // when the user switched tracks during an `await` — without it the
+  // closure carries whatever `trackId` was current at click time and
+  // a stale `refetchLyrics` / `importLrcFile` response would happily
+  // overwrite the new track's payload after the user moved on. The
+  // initial-fetch useEffect already has its own per-render
+  // `cancelled` flag; this ref serves the user-triggered handlers
+  // below which can't rely on effect cleanup for the same job.
+  const trackIdRef = useRef<number | null>(trackId);
+  useEffect(() => {
+    trackIdRef.current = trackId;
+  }, [trackId]);
+
   // ── Fetch when the focused track changes (or panel opens) ───────
   useEffect(() => {
     if (trackId == null) {
@@ -171,6 +184,12 @@ export function LyricsPanel() {
 
   const handleRefetch = async (provider?: LyricsProvider) => {
     if (trackId == null) return;
+    // Capture the requested track at the call site so we can detect a
+    // mid-flight switch by comparing against the live `trackIdRef`
+    // when the await resolves. Without this guard a refetch on track
+    // A that takes longer than the user's switch to track B would
+    // land its result into B's payload (CodeRabbit-flagged race).
+    const requestedTrackId = trackId;
     try {
       // `refetchLyrics` drops the cache row + re-queries in one Tauri
       // call. With `provider = undefined` it re-runs the full waterfall
@@ -180,16 +199,27 @@ export function LyricsPanel() {
       // they want to try a different one (issue #284).
       setIsFetching(true);
       setPickerOpen(false);
-      const next = await refetchLyrics(trackId, provider);
+      const next = await refetchLyrics(requestedTrackId, provider);
+      if (requestedTrackId !== trackIdRef.current) return;
       setPayload(next);
       // Same as handleImport: clear any previous error so the refetched
       // payload actually paints instead of being shadowed by stale state.
       setError(null);
     } catch (err) {
       console.error("[LyricsPanel] refetch failed", err);
+      // Don't surface an error for a track the user no longer cares
+      // about — the new track's useEffect already handles its own
+      // error state.
+      if (requestedTrackId !== trackIdRef.current) return;
       setError(String(err));
     } finally {
-      setIsFetching(false);
+      // Only clear the spinner when we're still on the same track.
+      // After a switch, the new track's useEffect has already flipped
+      // `isFetching` to `true` for its own request and our clear
+      // would race that state.
+      if (requestedTrackId === trackIdRef.current) {
+        setIsFetching(false);
+      }
     }
   };
 
