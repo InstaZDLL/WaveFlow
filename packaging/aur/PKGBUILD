@@ -7,14 +7,18 @@ arch=('x86_64')
 url='https://github.com/InstaZDLL/WaveFlow'
 license=('GPL-3.0-only')
 # AUR keywords show up as blue chips on the package page and drive
-# search discovery on aur.archlinux.org. makepkg --printsrcinfo
-# emits each entry as a `keywords = ...` line in .SRCINFO, which
-# the AUR web ingests on push. Mix of category terms (music-player,
-# audio-player), comparatives that match what people search for
-# (spotify-alternative, apple-music-alternative), local-first
-# differentiators (local-music, offline-music) and audiophile-cluster
-# (hi-res, dsd, flac, bit-perfect, replaygain).
-_keywords=(
+# search discovery on aur.archlinux.org. The field name is bare
+# `keywords` (no leading underscore) — variables prefixed with `_`
+# are a PKGBUILD convention for PRIVATE values that makepkg ignores
+# during `--printsrcinfo`, so `_keywords=(...)` would silently
+# render zero chips. `keywords` is one of the recognised optional
+# .SRCINFO fields; each array entry comes out as a `keywords = ...`
+# line that the AUR web ingests on push. Mix of category terms
+# (music-player, audio-player), comparatives that match what people
+# search for (spotify-alternative, apple-music-alternative),
+# local-first differentiators (local-music, offline-music) and
+# audiophile-cluster (hi-res, dsd, flac, bit-perfect, replaygain).
+keywords=(
   'music-player'
   'music'
   'audio-player'
