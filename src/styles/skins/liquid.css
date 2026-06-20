@@ -473,6 +473,19 @@
   opacity: 0.75;
 }
 
+/* Light mode needs the colored gradient at near-full opacity — the
+   tile body and the surrounding page are both pale, so a 55%-opacity
+   gradient blends into the background and the hardcoded white text
+   below (title/subtitle/count) dissolves into the card. Dark mode
+   stays at the original 0.55 → 0.75 because the dark page makes the
+   gradient pop on its own. */
+:root[data-skin="liquid"]:not(.dark) .liquid-mood-tile::before {
+  opacity: 0.95;
+}
+:root[data-skin="liquid"]:not(.dark) .liquid-mood-tile:hover::before {
+  opacity: 1;
+}
+
 :root[data-skin="liquid"] .liquid-mood-icon {
   width: 2.25rem !important;
   height: 2.25rem !important;
@@ -691,12 +704,21 @@
   [class*="shadow-2xl"]
 ) {
   color: var(--liq-ink) !important;
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 18%, transparent) !important;
+  /* 18% → 32% in dark and 82% → 92% in light (see :not(.dark)
+     override below). The lower values look great over a calm
+     library row but content-heavy popovers like the Audio Pipeline
+     bleed too much when the user pauses on an album with a
+     saturated cover — text becomes unreadable. 32% / 92% keeps
+     the panel readable while still reading as glass over the
+     animated aurora body. Blur bumped 40px → 64px so whatever
+     does bleed through diffuses into a soft wash rather than
+     showing recognisable artwork. */
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 32%, transparent) !important;
   background-image: none !important;
   border: 0 !important;
   border-radius: 1.5rem !important;
-  backdrop-filter: blur(40px) saturate(var(--liq-saturation));
-  -webkit-backdrop-filter: blur(40px) saturate(var(--liq-saturation));
+  backdrop-filter: blur(64px) saturate(var(--liq-saturation));
+  -webkit-backdrop-filter: blur(64px) saturate(var(--liq-saturation));
   box-shadow: var(--liquid-glass) !important;
 }
 
@@ -714,7 +736,12 @@
   [class*="shadow-xl"],
   [class*="shadow-2xl"]
 ) {
-  background-color: color-mix(in srgb, white 82%, transparent) !important;
+  /* 82% → 92% in light. Same Audio-Pipeline-popover bleed-through
+     fix as the dark branch above — content-heavy panels over a
+     saturated cover lose every line of text at 82% even with
+     40px+ blur. 92% reads as solid frosted white but the
+     surrounding aurora still peeks at the rounded edges. */
+  background-color: color-mix(in srgb, white 92%, transparent) !important;
 }
 
 /* Force readable text colour inside modals — the modal shell
