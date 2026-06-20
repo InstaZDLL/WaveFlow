@@ -3,8 +3,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use sqlx::SqlitePool;
-use tauri::path::BaseDirectory;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 use tokio::sync::{Mutex, RwLock};
 use waveflow_core::plugin::runtime::{PluginRuntime, RuntimeConfig};
 
@@ -110,14 +109,23 @@ impl AppState {
         let paths = AppPaths::from_handle(handle)?;
         paths.ensure_dirs()?;
 
-        // First-launch + post-update extract of every plugin we ship
-        // bundled inside the app installer. Idempotent: only copies
-        // when the install dir is missing on disk, so a user who
-        // sideloaded a newer version of the same plugin doesn't see
-        // it clobbered on the next launch. Logged-only on failure
-        // — a corrupt bundle should not block the rest of startup.
-        if let Err(e) = ensure_bundled_plugins(handle, &paths).await {
-            tracing::warn!(%e, "bundled plugin extract failed");
+        // One-shot cleanup for the 1.5.0 → 1.5.1 transition: before
+        // this release, `ensure_bundled_plugins` copied every bundled
+        // plugin into `<app-data>/plugins/<id>/` at boot, wasting
+        // ~150 KB per id and confusing users who went folder
+        // spelunking (issue #280). The new model resolves bundled
+        // plugins directly from `BaseDirectory::Resource`, so any
+        // leftover writable copy under `<app-data>/plugins/` is dead
+        // weight that ALSO shadows the resource copy on case-
+        // insensitive filesystems if `list_installed_plugins` is
+        // ever extended to prefer sideloaded on a name collision.
+        // Drop them. Idempotent: re-running finds nothing to remove.
+        // Logged-only on failure — a stuck cleanup must not block
+        // the rest of startup.
+        if has_valid_bundled_plugins_dir(&paths) {
+            if let Err(e) = cleanup_bundled_plugin_leftovers(&paths).await {
+                tracing::warn!(%e, "bundled plugin leftover cleanup failed");
+            }
         }
 
         let app_db = db::app_db::open(&paths.app_db).await?;
@@ -350,72 +358,57 @@ impl AppState {
     }
 }
 
-/// Hardcoded list of plugins WaveFlow ships bundled in the
-/// installer. Phase 5 will replace this with a manifest-driven
-/// discovery (loop over `<resource_dir>/plugins/*/manifest.toml`)
-/// so adding a plugin to the bundle doesn't require touching app
-/// code; for v1.5.0 the static list keeps the diff focused.
-pub(crate) const BUNDLED_PLUGINS: &[&str] = &["web-radio"];
+// `BUNDLED_PLUGINS` + `is_bundled_plugin` moved to
+// `waveflow_core::plugin` so `PluginPaths` can route bundled ids to
+// the resource dir without re-importing app-layer state. Callers
+// inside `crate::commands::plugins` now `use waveflow_core::plugin::is_bundled_plugin;`.
 
-/// True when `plugin_id` is a first-party plugin shipped inside the
-/// installer (re-seeded at every boot by [`ensure_bundled_plugins`]).
-/// Used to surface a "bundled" badge and refuse `uninstall_plugin` —
-/// the uninstall would only persist until next launch, then the boot
-/// extractor would silently put the plugin back, which reads as a bug
-/// to the user.
-pub(crate) fn is_bundled_plugin(plugin_id: &str) -> bool {
-    BUNDLED_PLUGINS.iter().any(|id| *id == plugin_id)
+/// One-shot cleanup of pre-1.5.1 leftovers: drop any subdir of
+/// `<app-data>/plugins/` whose name is in
+/// [`waveflow_core::plugin::BUNDLED_PLUGINS`]. Before this release,
+/// `ensure_bundled_plugins` copied every bundled .wasm + manifest
+/// into the writable app-data tree at boot; the new model resolves
+/// them straight from `BaseDirectory::Resource` so those copies are
+/// dead weight (~150 KB per id) that ALSO confused users who went
+/// folder spelunking (issue #280). Idempotent: a 1.5.1 fresh install
+/// finds no leftovers and does nothing.
+///
+/// FS ops run on `spawn_blocking` — `remove_dir_all` on a multi-MB
+/// plugin tree (future bundled plugins with assets, or a Web Radio
+/// embedding a SQLite seed) can stretch into double-digit ms and
+/// we don't want to tie up a tokio worker during boot.
+fn has_valid_bundled_plugins_dir(paths: &AppPaths) -> bool {
+    matches!(
+        paths.bundled_plugins_dir.as_deref(),
+        Some(path) if path.exists() && path.is_dir()
+    )
 }
 
-/// Copy every entry in [`BUNDLED_PLUGINS`] from the installer's
-/// resource dir into `<plugins_root>/<id>/` when the install dir
-/// is missing. Idempotent on success — a user who sideloaded a
-/// newer version of the same plugin id keeps it.
-///
-/// File ops run on `spawn_blocking`: `fs::copy` of the ~140 KB
-/// .wasm is fast but every plugin call adds another set of
-/// syscalls, and we don't want them tying up an executor worker
-/// during boot.
-async fn ensure_bundled_plugins(handle: &AppHandle, paths: &AppPaths) -> AppResult<()> {
+async fn cleanup_bundled_plugin_leftovers(paths: &AppPaths) -> AppResult<()> {
+    let Some(bundled_root) = paths.bundled_plugins_dir.clone() else {
+        return Ok(());
+    };
     let plugins_root = paths.plugin_paths().plugins_root;
-    let mut resolved: Vec<(String, std::path::PathBuf, std::path::PathBuf)> =
-        Vec::with_capacity(BUNDLED_PLUGINS.len());
-    for id in BUNDLED_PLUGINS {
-        let wasm = handle.path().resolve(
-            format!("plugins/{id}/plugin.wasm"),
-            BaseDirectory::Resource,
-        );
-        let manifest = handle.path().resolve(
-            format!("plugins/{id}/manifest.toml"),
-            BaseDirectory::Resource,
-        );
-        match (wasm, manifest) {
-            (Ok(wasm), Ok(manifest)) => resolved.push(((*id).to_string(), wasm, manifest)),
-            (Err(e), _) => {
-                tracing::warn!(plugin_id = %id, %e, "bundled plugin wasm resource not resolvable, skipping");
-            }
-            (_, Err(e)) => {
-                tracing::warn!(plugin_id = %id, %e, "bundled plugin manifest resource not resolvable, skipping");
-            }
-        }
-    }
-
     tokio::task::spawn_blocking(move || -> AppResult<()> {
-        for (id, wasm, manifest) in resolved {
-            let install_dir = plugins_root.join(&id);
-            // Skip if there's already a manifest at the target —
-            // user might have sideloaded an updated version we
-            // don't want to overwrite.
-            if install_dir.join("manifest.toml").is_file() {
-                continue;
+        if !(bundled_root.exists() && bundled_root.is_dir()) {
+            tracing::warn!(
+                path = %bundled_root.display(),
+                "bundled plugins resource dir unavailable; preserving app-data bundled plugin fallback",
+            );
+            return Ok(());
+        }
+        for id in waveflow_core::plugin::BUNDLED_PLUGINS {
+            let leftover = plugins_root.join(id);
+            match std::fs::remove_dir_all(&leftover) {
+                Ok(()) => {
+                    tracing::info!(plugin_id = %id, "removed pre-1.5.1 bundled plugin leftover");
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => return Err(AppError::Io(e)),
             }
-            std::fs::create_dir_all(&install_dir)?;
-            std::fs::copy(&wasm, install_dir.join("plugin.wasm"))?;
-            std::fs::copy(&manifest, install_dir.join("manifest.toml"))?;
-            tracing::info!(plugin_id = %id, "extracted bundled plugin");
         }
         Ok(())
     })
     .await
-    .map_err(|e| AppError::Other(format!("bundled plugin extract join: {e}")))?
+    .map_err(|e| AppError::Other(format!("bundled plugin cleanup join: {e}")))?
 }
