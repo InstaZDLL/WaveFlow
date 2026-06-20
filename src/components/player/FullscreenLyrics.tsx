@@ -174,9 +174,7 @@ export function FullscreenLyrics({
           <div className="max-w-3xl mx-auto">
             {isFetching && !payload ? (
               <CenteredMessage text={t("lyrics.loading")} />
-            ) : error ? (
-              <CenteredMessage text={error} />
-            ) : !payload || payload.content.trim() === "" ? (
+            ) : error || !payload || payload.content.trim() === "" ? (
               <CenteredMessage
                 icon={<Music2 size={56} />}
                 text={t("lyrics.notFound")}

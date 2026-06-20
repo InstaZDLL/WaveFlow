@@ -240,9 +240,7 @@ export function LyricsPanel() {
             />
           ) : isFetching && !payload ? (
             <EmptyState text={t("lyrics.loading")} />
-          ) : error ? (
-            <EmptyState text={error} />
-          ) : !payload || payload.content.trim() === "" ? (
+          ) : error || !payload || payload.content.trim() === "" ? (
             <EmptyState
               icon={<Music2 size={40} />}
               text={t("lyrics.notFound")}
