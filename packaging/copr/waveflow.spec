@@ -63,6 +63,14 @@ rpm2cpio %{SOURCE0} | cpio -idmv
 %{_bindir}/waveflow
 %{_datadir}/applications/WaveFlow.desktop
 %{_datadir}/icons/hicolor/*/apps/waveflow.png
+# Bundled plugins layout — `/usr/lib/WaveFlow/plugins/<name>/`
+# carries each plugin's manifest.toml + plugin.wasm, planted by
+# tauri-bundler from `src-tauri/plugins/<name>/` during the .rpm
+# build. Listing the whole tree as a single entry keeps the spec
+# stable as more plugins are bundled in future releases without
+# touching this file — anything that lands under that prefix
+# gets owned by the package automatically.
+%{_prefix}/lib/WaveFlow
 
 %changelog
 * Wed May 13 2026 InstaZDLL <github.105mh@8shield.net> - 1.0.0-1
