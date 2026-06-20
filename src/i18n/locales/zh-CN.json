@@ -1079,8 +1079,16 @@
     "source": {
       "embedded": "歌词已嵌入文件中",
       "lrc_file": "已导入的 .lrc 文件",
-      "api": "LRCLIB",
-      "manual": "手动输入"
+      "api": "在线源",
+      "manual": "手动输入",
+      "pickerHint": "切换来源"
+    },
+    "provider": {
+      "lrclib": "LRCLIB",
+      "genius": "Genius",
+      "net_ease": "NetEase",
+      "megalobiz": "Megalobiz",
+      "musixmatch": "Musixmatch"
     },
     "format": {
       "lrc": "已同步",

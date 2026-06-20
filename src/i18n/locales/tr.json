@@ -1079,8 +1079,16 @@
     "source": {
       "embedded": "Dosyada gömülü sözler",
       "lrc_file": "İçe aktarılan .lrc dosyası",
-      "api": "LRCLIB",
-      "manual": "Manuel giriş"
+      "api": "Çevrimiçi kaynak",
+      "manual": "Manuel giriş",
+      "pickerHint": "Kaynağı değiştir"
+    },
+    "provider": {
+      "lrclib": "LRCLIB",
+      "genius": "Genius",
+      "net_ease": "NetEase",
+      "megalobiz": "Megalobiz",
+      "musixmatch": "Musixmatch"
     },
     "format": {
       "lrc": "Senkronize",

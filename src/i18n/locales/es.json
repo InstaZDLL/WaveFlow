@@ -1079,8 +1079,16 @@
     "source": {
       "embedded": "Letras incrustadas en el archivo",
       "lrc_file": "Archivo .lrc importado",
-      "api": "LRCLIB",
-      "manual": "Entrada manual"
+      "api": "Fuente en línea",
+      "manual": "Entrada manual",
+      "pickerHint": "Cambiar fuente"
+    },
+    "provider": {
+      "lrclib": "LRCLIB",
+      "genius": "Genius",
+      "net_ease": "NetEase",
+      "megalobiz": "Megalobiz",
+      "musixmatch": "Musixmatch"
     },
     "format": {
       "lrc": "Sincronizadas",

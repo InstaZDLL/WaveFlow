@@ -1079,8 +1079,16 @@
     "source": {
       "embedded": "파일에 가사가 포함되어 있음",
       "lrc_file": ".lrc 파일 가져오기",
-      "api": "LRCLIB",
-      "manual": "수동 입력"
+      "api": "온라인 소스",
+      "manual": "수동 입력",
+      "pickerHint": "소스 전환"
+    },
+    "provider": {
+      "lrclib": "LRCLIB",
+      "genius": "Genius",
+      "net_ease": "NetEase",
+      "megalobiz": "Megalobiz",
+      "musixmatch": "Musixmatch"
     },
     "format": {
       "lrc": "동기화됨",

@@ -3,11 +3,50 @@ import { invoke } from "@tauri-apps/api/core";
 export type LyricsFormat = "plain" | "lrc" | "enhanced_lrc" | "ttml";
 export type LyricsSource = "embedded" | "lrc_file" | "api" | "manual";
 
+/**
+ * Sub-provider identifier returned by the backend on API-sourced rows.
+ * Matches `waveflow_syncedlyrics::Provider::as_str()`. Pre-1.5.1 cached
+ * rows AND non-API tiers (embedded / sidecar / manual) leave the field
+ * `null` — the UI then renders the broad `source` label without a
+ * provider chip.
+ */
+export type LyricsProvider =
+  | "lrclib"
+  | "genius"
+  | "net_ease"
+  | "megalobiz"
+  | "musixmatch";
+
+/**
+ * Stable list of providers the picker UI cycles through. Mirrors
+ * `Provider::defaults()` order on the backend — Musixmatch first
+ * because it's the only word-timed source, then LRCLIB, then the
+ * query-based fallbacks. `refetchLyrics` accepts any of these
+ * strings as the override; an `undefined` override re-runs the full
+ * waterfall.
+ */
+export const LYRICS_PROVIDERS: LyricsProvider[] = [
+  "musixmatch",
+  "lrclib",
+  "net_ease",
+  "megalobiz",
+  "genius",
+];
+
 export interface LyricsPayload {
   track_id: number;
   content: string;
   format: LyricsFormat;
   source: LyricsSource;
+  /**
+   * Sub-provider that produced this row when `source === "api"`. One
+   * of `LYRICS_PROVIDERS`, or `null` / absent for embedded / sidecar
+   * / manual / pre-1.5.1 rows. The lyrics panel reads this to render
+   * an accurate badge (e.g. "Genius" instead of the hardcoded
+   * "LRCLIB" the panel previously always showed) and to drive the
+   * default selection of the provider picker.
+   */
+  provider?: LyricsProvider | null;
   /**
    * Set by `save_lyrics` when the user picked destination = `"tag"`
    * but the audio container can't carry the chosen format (currently
@@ -37,6 +76,29 @@ export function getLyrics(trackId: number): Promise<LyricsPayload | null> {
  */
 export function fetchLyrics(trackId: number): Promise<LyricsPayload | null> {
   return invoke<LyricsPayload | null>("fetch_lyrics", { trackId });
+}
+
+/**
+ * Force a re-fetch for a single track, dropping the cached row first
+ * so the waterfall (or single-provider query below) is guaranteed to
+ * re-query.
+ *
+ * - `provider = undefined` → re-runs the full waterfall identical to
+ *   the legacy "Clear + Refetch" gesture.
+ * - `provider = "<id>"` → bypasses local tiers (embedded / sidecar)
+ *   and queries ONLY the named provider. A miss caches an empty row
+ *   attributed to the requested provider so the badge reflects what
+ *   the user just tried — picking a different provider and trying
+ *   again is then the natural next step (issue #284).
+ */
+export function refetchLyrics(
+  trackId: number,
+  provider?: LyricsProvider,
+): Promise<LyricsPayload | null> {
+  return invoke<LyricsPayload | null>("refetch_lyrics", {
+    trackId,
+    provider: provider ?? null,
+  });
 }
 
 /**

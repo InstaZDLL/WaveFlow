@@ -1079,8 +1079,16 @@
     "source": {
       "embedded": "Lirik tertanam di berkas",
       "lrc_file": "Berkas .lrc yang diimpor",
-      "api": "LRCLIB",
-      "manual": "Masukan manual"
+      "api": "Sumber daring",
+      "manual": "Masukan manual",
+      "pickerHint": "Ganti sumber"
+    },
+    "provider": {
+      "lrclib": "LRCLIB",
+      "genius": "Genius",
+      "net_ease": "NetEase",
+      "megalobiz": "Megalobiz",
+      "musixmatch": "Musixmatch"
     },
     "format": {
       "lrc": "Tersinkronisasi",

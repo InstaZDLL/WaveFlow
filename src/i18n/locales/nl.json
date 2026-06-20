@@ -1079,8 +1079,16 @@
     "source": {
       "embedded": "Songtekst ingebed in het bestand",
       "lrc_file": "Geïmporteerd .lrc-bestand",
-      "api": "LRCLIB",
-      "manual": "Handmatige invoer"
+      "api": "Online bron",
+      "manual": "Handmatige invoer",
+      "pickerHint": "Bron wisselen"
+    },
+    "provider": {
+      "lrclib": "LRCLIB",
+      "genius": "Genius",
+      "net_ease": "NetEase",
+      "megalobiz": "Megalobiz",
+      "musixmatch": "Musixmatch"
     },
     "format": {
       "lrc": "Gesynchroniseerd",

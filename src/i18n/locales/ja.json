@@ -1079,8 +1079,16 @@
     "source": {
       "embedded": "歌詞がファイルに組み込まれている",
       "lrc_file": "インポートされた.lrcファイル",
-      "api": "LRCLIB",
-      "manual": "手動入力"
+      "api": "オンラインソース",
+      "manual": "手動入力",
+      "pickerHint": "ソースを切り替え"
+    },
+    "provider": {
+      "lrclib": "LRCLIB",
+      "genius": "Genius",
+      "net_ease": "NetEase",
+      "megalobiz": "Megalobiz",
+      "musixmatch": "Musixmatch"
     },
     "format": {
       "lrc": "同期済み",

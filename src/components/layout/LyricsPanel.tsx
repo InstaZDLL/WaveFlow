@@ -11,6 +11,8 @@ import {
   Maximize2,
   Pencil,
   AlertCircle,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { pickFile } from "../../lib/tauri/dialog";
@@ -20,9 +22,12 @@ import {
   findActiveLineIndex,
   findActiveWordIndex,
   importLrcFile,
+  LYRICS_PROVIDERS,
   parseLyrics,
+  refetchLyrics,
   type LyricsLine,
   type LyricsPayload,
+  type LyricsProvider,
 } from "../../lib/tauri/lyrics";
 import { FullscreenLyrics } from "../player/FullscreenLyrics";
 import { LyricsEditorModal } from "../common/LyricsEditorModal";
@@ -56,8 +61,34 @@ export function LyricsPanel() {
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  // Provider picker dropdown — opens on click of the source label so the
+  // user can re-query a specific source when the auto-waterfall cached a
+  // low-quality hit. Closed by an outside click + by `handleRefetch`
+  // itself after the new fetch lands. Anchored to the source-label
+  // button via a wrapper `<span class="relative">` so the menu floats
+  // above the footer instead of pushing the row.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  // Attached to the `<span class="relative inline-flex">` wrapper
+  // around the source label, so the type must match — using
+  // `HTMLDivElement` would compile under React's loose ref typing but
+  // any future code that read `pickerRef.current.classList` etc. would
+  // get a `DOMTokenList | undefined` mismatch with the actual span.
+  const pickerRef = useRef<HTMLSpanElement | null>(null);
 
   const trackId = currentTrack?.id ?? null;
+
+  // Live mirror of `trackId` so async event handlers can detect
+  // when the user switched tracks during an `await` — without it the
+  // closure carries whatever `trackId` was current at click time and
+  // a stale `refetchLyrics` / `importLrcFile` response would happily
+  // overwrite the new track's payload after the user moved on. The
+  // initial-fetch useEffect already has its own per-render
+  // `cancelled` flag; this ref serves the user-triggered handlers
+  // below which can't rely on effect cleanup for the same job.
+  const trackIdRef = useRef<number | null>(trackId);
+  useEffect(() => {
+    trackIdRef.current = trackId;
+  }, [trackId]);
 
   // ── Fetch when the focused track changes (or panel opens) ───────
   useEffect(() => {
@@ -133,13 +164,27 @@ export function LyricsPanel() {
   // ── Actions ─────────────────────────────────────────────────────
   const handleImport = async () => {
     if (trackId == null) return;
+    // Capture the requested track at the call site for the same
+    // reason `handleRefetch` does — the user can switch tracks
+    // during the file picker (which can sit on screen for a while)
+    // and again during `importLrcFile`'s disk + DB work. Without
+    // the guard a stale import would clobber the new track's
+    // payload in the UI.
+    //
+    // We deliberately let `importLrcFile` itself run to completion
+    // even when the user has switched away: the user's intent was
+    // to attach this LRC to the captured track, and the call writes
+    // straight to that track's DB row, so cancelling the write
+    // would lose work. Only the UI updates skip when stale.
+    const requestedTrackId = trackId;
     try {
       const path = await pickFile(
         ["lrc", "elrc", "ttml", "xml", "txt"],
         t("lyrics.importTitle"),
       );
       if (!path) return;
-      const next = await importLrcFile(trackId, path);
+      const next = await importLrcFile(requestedTrackId, path);
+      if (requestedTrackId !== trackIdRef.current) return;
       setPayload(next);
       // Drop any error left from a prior failed fetch — otherwise the
       // error-vs-notFound conditional below would mask the freshly
@@ -147,26 +192,49 @@ export function LyricsPanel() {
       setError(null);
     } catch (err) {
       console.error("[LyricsPanel] import failed", err);
+      if (requestedTrackId !== trackIdRef.current) return;
       setError(String(err));
     }
   };
 
-  const handleRefetch = async () => {
+  const handleRefetch = async (provider?: LyricsProvider) => {
     if (trackId == null) return;
+    // Capture the requested track at the call site so we can detect a
+    // mid-flight switch by comparing against the live `trackIdRef`
+    // when the await resolves. Without this guard a refetch on track
+    // A that takes longer than the user's switch to track B would
+    // land its result into B's payload (CodeRabbit-flagged race).
+    const requestedTrackId = trackId;
     try {
-      // Drop the cache then re-run the waterfall.
-      await clearLyrics(trackId);
+      // `refetchLyrics` drops the cache row + re-queries in one Tauri
+      // call. With `provider = undefined` it re-runs the full waterfall
+      // (legacy behaviour). With `provider` set it queries ONLY that
+      // source, bypassing local tiers — the path the user takes when
+      // the auto-fetch cached a low-quality hit from one provider and
+      // they want to try a different one (issue #284).
       setIsFetching(true);
-      const next = await fetchLyrics(trackId);
+      setPickerOpen(false);
+      const next = await refetchLyrics(requestedTrackId, provider);
+      if (requestedTrackId !== trackIdRef.current) return;
       setPayload(next);
       // Same as handleImport: clear any previous error so the refetched
       // payload actually paints instead of being shadowed by stale state.
       setError(null);
     } catch (err) {
       console.error("[LyricsPanel] refetch failed", err);
+      // Don't surface an error for a track the user no longer cares
+      // about — the new track's useEffect already handles its own
+      // error state.
+      if (requestedTrackId !== trackIdRef.current) return;
       setError(String(err));
     } finally {
-      setIsFetching(false);
+      // Only clear the spinner when we're still on the same track.
+      // After a switch, the new track's useEffect has already flipped
+      // `isFetching` to `true` for its own request and our clear
+      // would race that state.
+      if (requestedTrackId === trackIdRef.current) {
+        setIsFetching(false);
+      }
     }
   };
 
@@ -183,6 +251,40 @@ export function LyricsPanel() {
   const handleSeekToLine = (line: LyricsLine) => {
     seek(line.timeMs).catch(() => {});
   };
+
+  // Close the provider picker on any click outside the menu (or its
+  // anchor button) AND on Escape — both gestures are part of the
+  // WAI-ARIA menu dismissal pattern. The mousedown handler skips
+  // when the click landed inside the menu wrapper; the keydown
+  // handler is unconditional so Escape closes the menu regardless
+  // of whether focus sits on the trigger button (post-click default)
+  // or on a menu item (after a Tab). The menu has no portal — it
+  // sits inside the panel root — so document-level listeners are
+  // enough.
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      if (
+        pickerRef.current &&
+        e.target instanceof Node &&
+        pickerRef.current.contains(e.target)
+      ) {
+        return;
+      }
+      setPickerOpen(false);
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setPickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [pickerOpen]);
 
   // ── Render ──────────────────────────────────────────────────────
   return (
@@ -380,8 +482,75 @@ export function LyricsPanel() {
         {currentTrack != null && (
           <div className="flex items-center justify-between p-4 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
             <span className="flex items-center gap-2 min-w-0">
-              <span className="truncate">
-                {payload ? sourceLabel(payload.source, t) : ""}
+              {/* Source label is a chip-button when API-sourced + an
+                  enabled track id is in scope, so the user can pop the
+                  provider picker and re-query a different source.
+                  Embedded / sidecar / manual rows render as static text
+                  — the picker would have nothing meaningful to do for
+                  a tag-embedded lyric. */}
+              <span ref={pickerRef} className="relative inline-flex">
+                {payload && payload.source === "api" ? (
+                  <button
+                    type="button"
+                    onClick={() => setPickerOpen((v) => !v)}
+                    disabled={isFetching}
+                    aria-haspopup="menu"
+                    aria-expanded={pickerOpen}
+                    title={t("lyrics.source.pickerHint")}
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 truncate"
+                  >
+                    <span className="truncate">
+                      {sourceLabel(payload, t)}
+                    </span>
+                    <ChevronDown size={11} className="shrink-0" />
+                  </button>
+                ) : (
+                  <span className="truncate">
+                    {payload ? sourceLabel(payload, t) : ""}
+                  </span>
+                )}
+                {pickerOpen && (
+                  <div
+                    role="menu"
+                    aria-label={t("lyrics.source.pickerHint")}
+                    onKeyDown={(e) => {
+                      // Local Escape handler in addition to the
+                      // document-level one in the picker useEffect.
+                      // Redundant in practice (both fire on the same
+                      // event) but keeps the WAI-ARIA menu pattern
+                      // self-contained on the element itself + stops
+                      // the event from bubbling further into ancestor
+                      // panels that might also listen for Escape.
+                      if (e.key === "Escape") {
+                        e.stopPropagation();
+                        setPickerOpen(false);
+                      }
+                    }}
+                    className="absolute left-0 bottom-full mb-1 z-20 min-w-44 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg p-1"
+                  >
+                    {LYRICS_PROVIDERS.map((p) => {
+                      const isActive = payload?.provider === p;
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={isActive}
+                          onClick={() => handleRefetch(p)}
+                          className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-200"
+                        >
+                          <span>{t(`lyrics.provider.${p}`)}</span>
+                          {isActive && (
+                            <Check
+                              size={12}
+                              className="shrink-0 text-emerald-500"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </span>
               {payload &&
                 (payload.format === "enhanced_lrc" ||
@@ -406,7 +575,7 @@ export function LyricsPanel() {
               </button>
               <button
                 type="button"
-                onClick={handleRefetch}
+                onClick={() => handleRefetch()}
                 disabled={isFetching}
                 aria-label={t("lyrics.actions.refetch")}
                 title={t("lyrics.actions.refetch")}
@@ -446,16 +615,23 @@ function EmptyState({ icon, text }: { icon?: React.ReactNode; text: string }) {
 }
 
 function sourceLabel(
-  source: LyricsPayload["source"],
+  payload: LyricsPayload,
   t: (key: string) => string,
 ): string {
-  switch (source) {
+  switch (payload.source) {
     case "embedded":
       return t("lyrics.source.embedded");
     case "lrc_file":
       return t("lyrics.source.lrc_file");
     case "api":
-      return t("lyrics.source.api");
+      // Surface the actual provider when known (LRCLIB / Genius /
+      // NetEase / Megalobiz / Musixmatch). Pre-1.5.1 rows + the
+      // empty-miss rows still leave `provider` null — fall back to
+      // the generic "Online source" label so the badge stays
+      // informative without lying about which provider ran.
+      return payload.provider
+        ? t(`lyrics.provider.${payload.provider}`)
+        : t("lyrics.source.api");
     case "manual":
       return t("lyrics.source.manual");
   }
