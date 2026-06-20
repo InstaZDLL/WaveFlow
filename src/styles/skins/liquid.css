@@ -611,11 +611,17 @@
   box-shadow: var(--liquid-glass-soft) !important;
 }
 
-/* AudioQualityFooter — keep but match the glass aesthetic. */
+/* AudioQualityFooter — keep but match the glass aesthetic. The
+   strip is the last child of the rounded footer panel; without
+   matching bottom-corner rounding its `bg-white` body squares off
+   the bottom-left + bottom-right of the panel even though the
+   parent footer carries `border-radius: 1.75rem`. */
 :root[data-skin="liquid"] footer :where([class*="h-5"][class*="border-t"]) {
   background-color: transparent !important;
   background-image: none !important;
   border-top: 1px solid var(--liq-rail) !important;
+  border-bottom-left-radius: 1.75rem !important;
+  border-bottom-right-radius: 1.75rem !important;
   color: var(--liq-faint) !important;
   font-family: "DM Sans Variable", system-ui, sans-serif !important;
 }
