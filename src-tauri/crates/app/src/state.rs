@@ -122,8 +122,10 @@ impl AppState {
         // Drop them. Idempotent: re-running finds nothing to remove.
         // Logged-only on failure — a stuck cleanup must not block
         // the rest of startup.
-        if let Err(e) = cleanup_bundled_plugin_leftovers(&paths).await {
-            tracing::warn!(%e, "bundled plugin leftover cleanup failed");
+        if has_valid_bundled_plugins_dir(&paths) {
+            if let Err(e) = cleanup_bundled_plugin_leftovers(&paths).await {
+                tracing::warn!(%e, "bundled plugin leftover cleanup failed");
+            }
         }
 
         let app_db = db::app_db::open(&paths.app_db).await?;
@@ -375,9 +377,26 @@ impl AppState {
 /// plugin tree (future bundled plugins with assets, or a Web Radio
 /// embedding a SQLite seed) can stretch into double-digit ms and
 /// we don't want to tie up a tokio worker during boot.
+fn has_valid_bundled_plugins_dir(paths: &AppPaths) -> bool {
+    matches!(
+        paths.bundled_plugins_dir.as_deref(),
+        Some(path) if path.exists() && path.is_dir()
+    )
+}
+
 async fn cleanup_bundled_plugin_leftovers(paths: &AppPaths) -> AppResult<()> {
+    let Some(bundled_root) = paths.bundled_plugins_dir.clone() else {
+        return Ok(());
+    };
     let plugins_root = paths.plugin_paths().plugins_root;
     tokio::task::spawn_blocking(move || -> AppResult<()> {
+        if !(bundled_root.exists() && bundled_root.is_dir()) {
+            tracing::warn!(
+                path = %bundled_root.display(),
+                "bundled plugins resource dir unavailable; preserving app-data bundled plugin fallback",
+            );
+            return Ok(());
+        }
         for id in waveflow_core::plugin::BUNDLED_PLUGINS {
             let leftover = plugins_root.join(id);
             match std::fs::remove_dir_all(&leftover) {

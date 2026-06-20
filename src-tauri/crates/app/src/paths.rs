@@ -62,7 +62,14 @@ impl AppPaths {
         // (matching pre-1.5.1 behaviour). We log the failure so a
         // mispackaged installer surfaces visibly in tracing.
         let bundled_plugins_dir = match handle.path().resolve("plugins", BaseDirectory::Resource) {
-            Ok(path) => Some(path),
+            Ok(path) if path.exists() && path.is_dir() => Some(path),
+            Ok(path) => {
+                tracing::warn!(
+                    path = %path.display(),
+                    "bundled plugins resource dir not found; bundled plugins will fall back to app-data tree",
+                );
+                None
+            }
             Err(e) => {
                 tracing::warn!(
                     %e,
