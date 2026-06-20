@@ -1458,6 +1458,7 @@
       "title": "Bibliotheek analyseren",
       "subtitle": "Bereken BPM, loudness en piek voor niet-geanalyseerde nummers",
       "action": "Analyseren",
+      "cancel": "Analyse stoppen",
       "autoTitle": "Automatische analyse",
       "autoSubtitle": "Voer de analyse op de achtergrond uit na elke scan die nieuwe nummers toevoegt",
       "failed_one": "{{count}} fout",

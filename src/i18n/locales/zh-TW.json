@@ -1433,6 +1433,7 @@
       "title": "分析音樂庫",
       "subtitle": "計算未經分析曲目的 BPM、響度及峰值",
       "action": "分析",
+      "cancel": "停止分析",
       "autoTitle": "自動分析",
       "autoSubtitle": "每次掃描並新增曲目後，在背景執行分析",
       "failed_one": "{{count}} 失敗",

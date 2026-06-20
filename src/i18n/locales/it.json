@@ -1458,6 +1458,7 @@
       "title": "Analizza la libreria",
       "subtitle": "Calcola BPM, loudness e picco per i brani non ancora analizzati",
       "action": "Analizza",
+      "cancel": "Interrompi analisi",
       "autoTitle": "Analisi automatica",
       "autoSubtitle": "Esegui l'analisi in background dopo ogni scansione che aggiunge nuovi brani",
       "failed_one": "{{count}} errore",

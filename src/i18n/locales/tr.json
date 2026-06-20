@@ -1458,6 +1458,7 @@
       "title": "Kütüphaneyi analiz et",
       "subtitle": "Analiz edilmemiş parçalar için BPM, ses yüksekliği ve tepe hesapla",
       "action": "Analiz et",
+      "cancel": "Analizi durdur",
       "autoTitle": "Otomatik analiz",
       "autoSubtitle": "Yeni parça ekleyen her taramadan sonra arka planda analiz çalıştır",
       "failed_one": "{{count}} hata",

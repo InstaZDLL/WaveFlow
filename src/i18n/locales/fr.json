@@ -1511,6 +1511,7 @@
       "title": "Analyser la bibliothèque",
       "subtitle": "Calculer le BPM, le Loudness et la crête pour les titres non analysés",
       "action": "Analyser",
+      "cancel": "Arrêter l'analyse",
       "autoTitle": "Analyse automatique",
       "autoSubtitle": "Lancer l'analyse en arrière-plan après chaque scan qui ajoute de nouveaux titres",
       "failed_one": "{{count}} échec",

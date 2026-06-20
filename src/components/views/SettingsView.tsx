@@ -21,6 +21,7 @@ import {
   EyeOff,
   MousePointerClick,
   Sparkles,
+  Square,
   Bell,
   Gamepad2,
   FileText,
@@ -804,6 +805,24 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       // Clear the progress card after a short delay so the user
       // sees the final 100% state before it disappears.
       window.setTimeout(() => setAnalyzeProgress(null), 1500);
+    }
+  };
+
+  const handleCancelAnalyzeLibrary = async () => {
+    try {
+      const { cancelLibraryAnalysis } = await import(
+        "../../lib/tauri/analysis"
+      );
+      await cancelLibraryAnalysis();
+      // We deliberately DON'T flip `isAnalyzingLib` here — the
+      // backend exits at the next track boundary, and `analyzeLibrary`
+      // is still awaiting that exit. Its `finally` block clears the
+      // running flag once the awaited promise resolves with the
+      // cancelled summary, so the UI stays consistent with the
+      // worker's actual state without a tug-of-war between two
+      // sources of truth.
+    } catch (err) {
+      console.error("[SettingsView] cancel analyze library failed", err);
     }
   };
 
@@ -2792,19 +2811,36 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                     </div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleAnalyzeLibrary}
-                  disabled={isAnalyzingLib || libraries.length === 0}
-                  className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Sparkles
-                    size={14}
-                    aria-hidden="true"
-                    className={isAnalyzingLib ? "animate-pulse" : ""}
-                  />
-                  <span>{t("settings.analyze.action")}</span>
-                </button>
+                {isAnalyzingLib ? (
+                  // Mid-run: swap the Analyze button out for a Stop
+                  // button so the user can recover from a long-running
+                  // sweep that's saturating their CPU (issue #286).
+                  // The backend `cancel_library_analysis` flips a flag
+                  // the worker loop checks at every track boundary —
+                  // the click resolves quickly but the loop only exits
+                  // after the current decode finishes (single track
+                  // delay is acceptable; aborting mid-decode would
+                  // require restructuring `analyze_file` for cancel
+                  // tokens, deferred).
+                  <button
+                    type="button"
+                    onClick={handleCancelAnalyzeLibrary}
+                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 text-sm font-medium text-rose-700 hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-950/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                  >
+                    <Square size={14} aria-hidden="true" />
+                    <span>{t("settings.analyze.cancel")}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleAnalyzeLibrary}
+                    disabled={libraries.length === 0}
+                    className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Sparkles size={14} aria-hidden="true" />
+                    <span>{t("settings.analyze.action")}</span>
+                  </button>
+                )}
               </div>
               {/* Auto-analyze toggle: when on, every scan that
                 adds new tracks fires the analyzer in the
