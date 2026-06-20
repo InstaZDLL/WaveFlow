@@ -68,7 +68,12 @@ export function LyricsPanel() {
   // button via a wrapper `<span class="relative">` so the menu floats
   // above the footer instead of pushing the row.
   const [pickerOpen, setPickerOpen] = useState(false);
-  const pickerRef = useRef<HTMLDivElement | null>(null);
+  // Attached to the `<span class="relative inline-flex">` wrapper
+  // around the source label, so the type must match — using
+  // `HTMLDivElement` would compile under React's loose ref typing but
+  // any future code that read `pickerRef.current.classList` etc. would
+  // get a `DOMTokenList | undefined` mismatch with the actual span.
+  const pickerRef = useRef<HTMLSpanElement | null>(null);
 
   const trackId = currentTrack?.id ?? null;
 

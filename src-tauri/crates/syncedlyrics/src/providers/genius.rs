@@ -106,14 +106,33 @@ fn strip_genius_header(text: &str) -> String {
     let Some(after_contrib) = after_digits.strip_prefix(" Contributors") else {
         return text.to_string();
     };
-    // Find the first " Lyrics" token that closes the header — Genius
-    // glues the title onto the trailing " Lyrics" word with a single
-    // space separator (e.g. "...Vez Lyrics"). Anything before that is
-    // the title we want to drop along with the badge text.
-    let Some(lyrics_idx) = after_contrib.find(" Lyrics") else {
+    // Find the " Lyrics" token that closes the header. Genius glues
+    // the title onto a trailing " Lyrics" word with a single space
+    // separator (e.g. "...Vez Lyrics") and immediately follows that
+    // closer with either `\n` (when there's a body) or end-of-string
+    // (when the catalogue entry has no transcribed lyrics yet).
+    //
+    // Neither `find` nor `rfind` is correct here in general: a song
+    // titled "No Lyrics Needed" would put a " Lyrics" inside the
+    // title (`find` cuts too early), and a body line like "Some
+    // Lyrics" would do the same for `rfind` (cuts past the closer
+    // into the verses). The header closer is the FIRST " Lyrics"
+    // immediately followed by a newline or end-of-string, so we
+    // iterate forward and stop at that specific shape.
+    let lyrics_token = " Lyrics";
+    let lyrics_idx = after_contrib
+        .match_indices(lyrics_token)
+        .find(|(i, _)| {
+            let tail = &after_contrib[i + lyrics_token.len()..];
+            tail.is_empty()
+                || tail.starts_with('\n')
+                || tail.starts_with('\r')
+        })
+        .map(|(i, _)| i);
+    let Some(lyrics_idx) = lyrics_idx else {
         return text.to_string();
     };
-    after_contrib[lyrics_idx + " Lyrics".len()..]
+    after_contrib[lyrics_idx + lyrics_token.len()..]
         .trim_start()
         .to_string()
 }
@@ -181,11 +200,41 @@ mod tests {
     fn strip_header_handles_multibyte_title() {
         // Solamente Una Vez carries no multibyte chars but other Latin
         // titles do (Naïve, Déjà Vu). The strip walks bytes via
-        // `find(" Lyrics")` + `len()`, both byte-safe.
+        // `match_indices(" Lyrics")` + `len()`, both byte-safe.
         let input = "3 ContributorsDéjà Vu Lyrics\n[Verse]\nMidnight again";
         assert_eq!(
             strip_genius_header(input),
             "[Verse]\nMidnight again".to_string()
+        );
+    }
+
+    #[test]
+    fn strip_header_picks_closer_when_title_contains_lyrics_word() {
+        // CodeRabbit-flagged edge case (PR #287): a song titled
+        // "No Lyrics Needed" plants a " Lyrics" inside the title
+        // BEFORE the trailing closer. A naive `find(" Lyrics")` would
+        // cut at the title's occurrence and leave " Needed Lyrics\n…"
+        // in the output. The closer is the FIRST " Lyrics" followed
+        // by a newline or end-of-string — that's the shape we anchor
+        // on.
+        let input = "4 ContributorsNo Lyrics Needed Lyrics\n[Verse]\nReal body";
+        assert_eq!(
+            strip_genius_header(input),
+            "[Verse]\nReal body".to_string()
+        );
+    }
+
+    #[test]
+    fn strip_header_does_not_swallow_body_containing_lyrics_word() {
+        // Complementary to the above: if we'd swapped `find` for
+        // `rfind` (the original CodeRabbit suggestion) to handle the
+        // title case, a body line like "Some Lyrics" would now match
+        // LAST and the strip would eat half the verse. Newline-
+        // anchored matching keeps both shapes correct.
+        let input = "5 ContributorsSong Title Lyrics\n[Verse 1]\nSome Lyrics line";
+        assert_eq!(
+            strip_genius_header(input),
+            "[Verse 1]\nSome Lyrics line".to_string()
         );
     }
 }
