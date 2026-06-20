@@ -704,25 +704,28 @@
   [class*="shadow-2xl"]
 ) {
   color: var(--liq-ink) !important;
-  /* Content-heavy popovers (Audio Pipeline, share card, etc.) need
-     the cover artwork behind them to read as a neutral wash, not
-     recognisable imagery — but pushing the panel toward opaque
-     (black 88% iteration) killed the Liquid material identity:
-     a flat black slab is not glass. Right knob is BLUR radius,
-     not body opacity.
-     Keep the glass body translucent (32% light-grey tint = the
-     panel reads as a lifted material over the aurora) and crank
-     `backdrop-filter: blur()` to 160px so any saturated cover
-     behind it smears into a uniform wash long before its hue
-     reaches the panel edge. Same recipe in both modes via the
-     :not(.dark) override below (which keeps the white-frosted
-     base for light theme). */
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 32%, transparent) !important;
+  /* Mirror what Big Sur / iOS Control Center actually do for
+     content-heavy panels: a DENSE dark-tinted base (not pure
+     black, not the light-grey glass-tint scaled up) at high
+     opacity with moderate blur. Past iterations either kept
+     too much cover bleed (18% → 32% → 55% of LIGHT glass-tint),
+     killed the material identity (`black 88%`), or stayed
+     translucent and pushed blur to absurd values (32% + 160px,
+     covers still visible). The Apple solution is a near-opaque
+     cool-tinted slab — translucency comes from being VISIBLY
+     LIFTED above the page bg, not from being see-through.
+     `rgb(50 50 58) / 0.92` reads as a slightly cool grey panel
+     visibly raised from the `#1b1b1d` page bg, opaque enough to
+     hide cover chroma, blur smoothes the edges, the 8-layer
+     `box-shadow: var(--liquid-glass)` recipe carries the rim
+     highlight that makes it look like material. Light mode
+     follows its own white-92% recipe below. */
+  background-color: rgb(50 50 58 / 0.92) !important;
   background-image: none !important;
   border: 0 !important;
   border-radius: 1.5rem !important;
-  backdrop-filter: blur(160px) saturate(var(--liq-saturation));
-  -webkit-backdrop-filter: blur(160px) saturate(var(--liq-saturation));
+  backdrop-filter: blur(80px) saturate(var(--liq-saturation));
+  -webkit-backdrop-filter: blur(80px) saturate(var(--liq-saturation));
   box-shadow: var(--liquid-glass) !important;
 }
 
