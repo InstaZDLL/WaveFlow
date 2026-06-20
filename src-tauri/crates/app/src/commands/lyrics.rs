@@ -118,6 +118,19 @@ pub struct LyricsPayload {
     pub content: String,
     pub format: LyricsFormat,
     pub source: LyricsSource,
+    /// Sub-provider that produced this row when `source` is
+    /// `LyricsSource::Api`. Matches `Provider::as_str()` from
+    /// `waveflow_syncedlyrics` (snake_case identifier:
+    /// `"lrclib"` / `"genius"` / `"net_ease"` / `"megalobiz"` /
+    /// `"musixmatch"`). `None` for embedded / sidecar / manual rows
+    /// and for pre-1.5.1 cached entries that pre-date the
+    /// `lyrics.provider` column. The UI surfaces this in the source
+    /// badge so the user knows whether they're looking at LRCLIB-
+    /// curated lyrics or a Genius scrape — important when the latter
+    /// occasionally returns junk (issue #284) and the user wants to
+    /// re-fetch from a different provider.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
     /// Set by `save_lyrics` when destination = `tag` was requested but
     /// the audio file's tag system can't carry the chosen format (e.g.
     /// TTML in an MP3's ID3v2 where lofty has no mapping for the
@@ -413,12 +426,22 @@ async fn cache_external_lyrics(
 ) -> AppResult<LyricsPayload> {
     let format = external_format_to_app(result.format);
     let source = LyricsSource::Api;
-    upsert_lyrics(pool, file_hash, &result.content, &format, &source).await?;
+    let provider = result.provider.as_str();
+    upsert_lyrics(
+        pool,
+        file_hash,
+        &result.content,
+        &format,
+        &source,
+        Some(provider),
+    )
+    .await?;
     Ok(LyricsPayload {
         track_id,
         content: result.content,
         format,
         source,
+        provider: Some(provider.to_string()),
         tag_write_skipped: None,
         sidecar_write_skipped: None,
     })
@@ -462,7 +485,9 @@ async fn try_external_fallback_or_miss(
     // No provider had lyrics. Cache as an empty row so we don't re-hit
     // the network on every panel open. The user can force a re-search
     // by clicking "Refetch" in the lyrics panel (clears the row,
-    // re-runs the waterfall).
+    // re-runs the waterfall). `provider = None` for the miss row —
+    // attribution to a specific provider would be misleading when
+    // every provider returned nothing.
     let empty = String::new();
     upsert_lyrics(
         pool,
@@ -470,6 +495,7 @@ async fn try_external_fallback_or_miss(
         &empty,
         &LyricsFormat::Plain,
         &LyricsSource::Api,
+        None,
     )
     .await?;
     Ok(LyricsPayload {
@@ -477,6 +503,7 @@ async fn try_external_fallback_or_miss(
         content: empty,
         format: LyricsFormat::Plain,
         source: LyricsSource::Api,
+        provider: None,
         tag_write_skipped: None,
         sidecar_write_skipped: None,
     })
@@ -679,26 +706,35 @@ fn read_non_empty_file(path: &Path) -> Option<String> {
 
 /// Insert (or replace) the lyrics row, keyed by file content hash so the
 /// cache is shared across profiles that contain the same audio file.
+///
+/// `provider` carries the sub-source identifier when `source` is
+/// `LyricsSource::Api` (e.g. `"lrclib"`, `"genius"`) and `None` for
+/// embedded / sidecar / manual writes where the broad `source` is
+/// the only meaningful attribution. The DB column allows NULL so
+/// pre-1.5.1 rows + non-API tiers store cleanly.
 async fn upsert_lyrics(
     pool: &sqlx::SqlitePool,
     file_hash: &str,
     content: &str,
     format: &LyricsFormat,
     source: &LyricsSource,
+    provider: Option<&str>,
 ) -> AppResult<()> {
     sqlx::query(
-        "INSERT INTO app.lyrics (file_hash, content, format, source, language, fetched_at)
-         VALUES (?, ?, ?, ?, NULL, ?)
+        "INSERT INTO app.lyrics (file_hash, content, format, source, provider, language, fetched_at)
+         VALUES (?, ?, ?, ?, ?, NULL, ?)
          ON CONFLICT(file_hash) DO UPDATE SET
             content = excluded.content,
             format = excluded.format,
             source = excluded.source,
+            provider = excluded.provider,
             fetched_at = excluded.fetched_at",
     )
     .bind(file_hash)
     .bind(content)
     .bind(format_to_db(format))
     .bind(source_to_db(source))
+    .bind(provider)
     .bind(now_ms())
     .execute(pool)
     .await?;
@@ -709,8 +745,8 @@ async fn upsert_lyrics(
 /// numeric `track_id` so we look up the file hash first, then key into the
 /// shared `app.lyrics` cache.
 async fn read_cached(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option<LyricsPayload>> {
-    let row: Option<(String, String, String)> = sqlx::query_as(
-        "SELECT l.content, l.format, l.source
+    let row: Option<(String, String, String, Option<String>)> = sqlx::query_as(
+        "SELECT l.content, l.format, l.source, l.provider
            FROM track t
            JOIN app.lyrics l ON l.file_hash = t.file_hash
           WHERE t.id = ?",
@@ -718,11 +754,12 @@ async fn read_cached(pool: &sqlx::SqlitePool, track_id: i64) -> AppResult<Option
     .bind(track_id)
     .fetch_optional(pool)
     .await?;
-    Ok(row.map(|(content, fmt, src)| LyricsPayload {
+    Ok(row.map(|(content, fmt, src, provider)| LyricsPayload {
         track_id,
         content,
         format: parse_format(&fmt),
         source: parse_source(&src),
+        provider,
         tag_write_skipped: None,
         sidecar_write_skipped: None,
     }))
@@ -810,12 +847,13 @@ pub async fn fetch_lyrics(
     if let Some(content) = embedded {
         let format = detect_format(&content);
         let source = LyricsSource::Embedded;
-        upsert_lyrics(&pool, &meta.file_hash, &content, &format, &source).await?;
+        upsert_lyrics(&pool, &meta.file_hash, &content, &format, &source, None).await?;
         return Ok(Some(LyricsPayload {
             track_id,
             content,
             format,
             source,
+            provider: None,
             tag_write_skipped: None,
             sidecar_write_skipped: None,
         }));
@@ -834,12 +872,13 @@ pub async fn fetch_lyrics(
     if let Some(content) = sidecar {
         let format = detect_format(&content);
         let source = LyricsSource::LrcFile;
-        upsert_lyrics(&pool, &meta.file_hash, &content, &format, &source).await?;
+        upsert_lyrics(&pool, &meta.file_hash, &content, &format, &source, None).await?;
         return Ok(Some(LyricsPayload {
             track_id,
             content,
             format,
             source,
+            provider: None,
             tag_write_skipped: None,
             sidecar_write_skipped: None,
         }));
@@ -928,6 +967,9 @@ pub async fn fetch_lyrics(
 
     if resp.instrumental == Some(true) {
         // Instrumental: cache an empty plain entry so we don't refetch.
+        // Attribute the row to LRCLIB so the UI badge reflects who told
+        // us this track is instrumental — the user can still try a
+        // different provider via `refetch_lyrics` if they disagree.
         let empty = String::new();
         upsert_lyrics(
             &pool,
@@ -935,6 +977,7 @@ pub async fn fetch_lyrics(
             &empty,
             &LyricsFormat::Plain,
             &LyricsSource::Api,
+            Some(Provider::Lrclib.as_str()),
         )
         .await?;
         return Ok(Some(LyricsPayload {
@@ -942,6 +985,7 @@ pub async fn fetch_lyrics(
             content: empty,
             format: LyricsFormat::Plain,
             source: LyricsSource::Api,
+            provider: Some(Provider::Lrclib.as_str().to_string()),
             tag_write_skipped: None,
             sidecar_write_skipped: None,
         }));
@@ -965,15 +1009,136 @@ pub async fn fetch_lyrics(
     };
 
     let source = LyricsSource::Api;
-    upsert_lyrics(&pool, &meta.file_hash, &content, &format, &source).await?;
+    let provider = Provider::Lrclib.as_str();
+    upsert_lyrics(
+        &pool,
+        &meta.file_hash,
+        &content,
+        &format,
+        &source,
+        Some(provider),
+    )
+    .await?;
     Ok(Some(LyricsPayload {
         track_id,
         content,
         format,
         source,
+        provider: Some(provider.to_string()),
         tag_write_skipped: None,
         sidecar_write_skipped: None,
     }))
+}
+
+/// Force a re-fetch for a single track.
+///
+/// Drops the cached row first so the waterfall (or the single-provider
+/// query below) is guaranteed to re-query — without this every refetch
+/// would short-circuit on the cache hit. Two modes:
+///
+/// 1. `provider = None` → re-run the full [`fetch_lyrics`] waterfall:
+///    embedded tag → sidecar `.lrc` → Musixmatch (if opt-in) →
+///    LRCLIB → external fallback chain.
+/// 2. `provider = Some(id)` → bypass local tiers, query ONLY that
+///    provider (`"lrclib"` / `"genius"` / `"net_ease"` / `"megalobiz"`
+///    / `"musixmatch"`). Used by the lyrics panel's provider picker
+///    when the auto-waterfall cached a low-quality hit (e.g. Genius
+///    junk per issue #284) and the user wants to try a different
+///    source by name.
+///
+/// In single-provider mode, a miss is cached with the requested
+/// provider as the attribution so the UI badge reflects what the user
+/// last tried — picking a different provider and trying again is then
+/// the natural next step.
+#[tauri::command]
+pub async fn refetch_lyrics(
+    state: tauri::State<'_, AppState>,
+    track_id: i64,
+    provider: Option<String>,
+) -> AppResult<Option<LyricsPayload>> {
+    let pool = state.require_profile_pool().await?;
+
+    // Drop the cached row (if any) so the waterfall / single-provider
+    // path below is forced to re-query. Look up the file_hash first
+    // since `app.lyrics` is keyed by content hash, not track id.
+    let file_hash: Option<String> =
+        sqlx::query_scalar("SELECT file_hash FROM track WHERE id = ?")
+            .bind(track_id)
+            .fetch_optional(&pool)
+            .await?;
+    let Some(file_hash) = file_hash else {
+        return Ok(None);
+    };
+    sqlx::query("DELETE FROM app.lyrics WHERE file_hash = ?")
+        .bind(&file_hash)
+        .execute(&pool)
+        .await?;
+
+    // No provider pinned → identical to a fresh `fetch_lyrics` call,
+    // since the cache row is gone and the waterfall starts at the
+    // embedded tier.
+    let Some(provider_str) = provider.as_deref() else {
+        return fetch_lyrics(state, track_id).await;
+    };
+
+    let Some(provider) = Provider::from_str(provider_str) else {
+        return Err(AppError::Other(format!(
+            "unknown lyrics provider: {provider_str}"
+        )));
+    };
+
+    // Provider pinned: query that one only. Skip embedded / sidecar
+    // tiers — the user explicitly asked for a network source, and a
+    // local hit would just put us back where we started.
+    let meta = match read_track_meta(&pool, track_id).await? {
+        Some(m) => m,
+        None => return Ok(None),
+    };
+    if crate::offline::is_offline() {
+        return Ok(None);
+    }
+    // Honour the per-profile Musixmatch translation target if the user
+    // picked Musixmatch — same opt-in path the waterfall takes.
+    let lang = read_translation_lang(&pool).await.unwrap_or(None);
+    match external_lyrics_search(
+        &meta,
+        vec![provider],
+        SearchMode::PreferSynced,
+        true,
+        lang.as_deref(),
+    )
+    .await
+    {
+        Ok(Some(result)) => cache_external_lyrics(&pool, track_id, &meta.file_hash, result)
+            .await
+            .map(Some),
+        Ok(None) => {
+            // Pinned provider returned nothing. Cache an empty miss
+            // attributed to it so the badge reflects what the user
+            // just tried — they can pick a different provider and
+            // refetch without the cache shortcut blocking them.
+            let provider_id = provider.as_str();
+            upsert_lyrics(
+                &pool,
+                &meta.file_hash,
+                "",
+                &LyricsFormat::Plain,
+                &LyricsSource::Api,
+                Some(provider_id),
+            )
+            .await?;
+            Ok(Some(LyricsPayload {
+                track_id,
+                content: String::new(),
+                format: LyricsFormat::Plain,
+                source: LyricsSource::Api,
+                provider: Some(provider_id.to_string()),
+                tag_write_skipped: None,
+                sidecar_write_skipped: None,
+            }))
+        }
+        Err(err) => Err(err),
+    }
 }
 
 /// Read a `.lrc` (or any text) file from disk and store it as the
@@ -1003,12 +1168,13 @@ pub async fn import_lrc_file(
     }
     let format = detect_format(trimmed);
     let source = LyricsSource::LrcFile;
-    upsert_lyrics(&pool, &file_hash, trimmed, &format, &source).await?;
+    upsert_lyrics(&pool, &file_hash, trimmed, &format, &source, None).await?;
     Ok(LyricsPayload {
         track_id,
         content: trimmed.to_string(),
         format,
         source,
+        provider: None,
         tag_write_skipped: None,
         sidecar_write_skipped: None,
     })
@@ -1152,7 +1318,9 @@ async fn run_prefetch(
         if let Some(content) = embedded {
             let format = detect_format(&content);
             let source = LyricsSource::Embedded;
-            if let Err(e) = upsert_lyrics(&pool, &file_hash, &content, &format, &source).await {
+            if let Err(e) =
+                upsert_lyrics(&pool, &file_hash, &content, &format, &source, None).await
+            {
                 tracing::warn!(track_id, ?e, "persist embedded lyrics failed");
                 failed += 1;
             } else {
@@ -1174,7 +1342,9 @@ async fn run_prefetch(
         if let Some(content) = sidecar {
             let format = detect_format(&content);
             let source = LyricsSource::LrcFile;
-            if let Err(e) = upsert_lyrics(&pool, &file_hash, &content, &format, &source).await {
+            if let Err(e) =
+                upsert_lyrics(&pool, &file_hash, &content, &format, &source, None).await
+            {
                 tracing::warn!(track_id, ?e, "persist sidecar lyrics failed");
                 failed += 1;
             } else {
@@ -1261,6 +1431,7 @@ async fn run_prefetch(
                         "",
                         &LyricsFormat::Plain,
                         &LyricsSource::Api,
+                        Some(Provider::Lrclib.as_str()),
                     )
                     .await;
                     hits += 1;
@@ -1271,9 +1442,15 @@ async fn run_prefetch(
                         _ => None,
                     };
                     if let Some((content, format)) = pick {
-                        if let Err(e) =
-                            upsert_lyrics(&pool, &file_hash, &content, &format, &LyricsSource::Api)
-                                .await
+                        if let Err(e) = upsert_lyrics(
+                            &pool,
+                            &file_hash,
+                            &content,
+                            &format,
+                            &LyricsSource::Api,
+                            Some(Provider::Lrclib.as_str()),
+                        )
+                        .await
                         {
                             tracing::warn!(track_id, ?e, "persist LRCLIB lyrics failed");
                             failed += 1;
@@ -1310,6 +1487,7 @@ async fn run_prefetch(
                                     "",
                                     &LyricsFormat::Plain,
                                     &LyricsSource::Api,
+                                    None,
                                 )
                                 .await;
                                 misses += 1;
@@ -1355,6 +1533,7 @@ async fn run_prefetch(
                             "",
                             &LyricsFormat::Plain,
                             &LyricsSource::Api,
+                            None,
                         )
                         .await;
                         misses += 1;
@@ -1608,7 +1787,7 @@ pub async fn save_lyrics(
     }
 
     let source = LyricsSource::Manual;
-    upsert_lyrics(&pool, &file_hash, &trimmed, &format, &source).await?;
+    upsert_lyrics(&pool, &file_hash, &trimmed, &format, &source, None).await?;
 
     let _ = app.emit("lyrics:updated", track_id);
     Ok(LyricsPayload {
@@ -1616,6 +1795,7 @@ pub async fn save_lyrics(
         content: trimmed,
         format,
         source,
+        provider: None,
         tag_write_skipped: if tag_write_skipped { Some(true) } else { None },
         sidecar_write_skipped: if sidecar_write_skipped {
             Some(true)

@@ -1,0 +1,23 @@
+-- =============================================================================
+-- Track which external provider (LRCLIB / Genius / NetEase / Megalobiz /
+-- Musixmatch) returned the lyrics row, so the UI can show an accurate
+-- source badge AND let the user manually re-fetch from a different
+-- provider when the auto-waterfall caches garbage from one of them
+-- (issue #284).
+--
+-- NULL = unknown. Two cases:
+--   1. Embedded / sidecar / manual writes (the `source` column already
+--      tells the user "Embedded tag" / "Sidecar file" / "Saved by you" —
+--      a sub-provider is meaningless for these tiers).
+--   2. Pre-1.5.1 rows. The auto-waterfall didn't track which provider
+--      hit historically, and back-filling would require re-fetching
+--      every cached row from the network.
+--
+-- No CHECK constraint: provider strings come from
+-- `waveflow_syncedlyrics::Provider::as_str()` which is the only writer,
+-- and a CHECK that hard-codes the list here would force a migration
+-- every time a new provider lands. Validation lives in Rust at the
+-- single write site.
+-- =============================================================================
+
+ALTER TABLE lyrics ADD COLUMN provider TEXT NULL;
