@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/InstaZDLL/WaveFlow/compare/v1.5.0...v1.5.1) (2026-06-20)
+
+
+### Bug Fixes
+
+* **skins:** readable Mood Radio + About hero in Liquid light ([debc42f](https://github.com/InstaZDLL/WaveFlow/commit/debc42fc7bfe515b4e49a42623216c79b094abe1))
+
 ## [1.5.0](https://github.com/InstaZDLL/WaveFlow/compare/v1.4.0...v1.5.0) (2026-06-20)
 
 
