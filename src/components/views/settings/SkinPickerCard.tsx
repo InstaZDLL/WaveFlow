@@ -92,12 +92,20 @@ export function SkinPickerCard() {
           // skin's actual tokens, not the active skin's. Using inline
           // styles also sidesteps having to round-trip through
           // tailwind / data-skin attribute fiddling for the preview.
+          //
+          // `shadowCard` is intentionally NOT applied here: Pulse's
+          // neon halo (`0 0 24px -4px var(--accent-500)`) leaks
+          // visibly past the button's overflow-hidden clip, and at
+          // ~200×100 px the other skins' shadows are too subtle to
+          // read anyway. The skin's identity is already carried by
+          // the display font + heading weight + tracking + radius;
+          // chrome-scale shadows belong on real surfaces, not on
+          // thumbnail previews.
           const previewStyle: React.CSSProperties = {
             fontFamily: preset.typography.display,
             fontWeight: preset.typography.headingWeight,
             letterSpacing: preset.typography.displayTracking,
             borderRadius: preset.radius.card,
-            boxShadow: preset.surface.shadowCard,
           };
           return (
             <button

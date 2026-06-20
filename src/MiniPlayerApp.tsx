@@ -9,6 +9,12 @@ import { MiniPlayer } from "./components/views/MiniPlayer";
  * Library / Playlist contexts since the mini-player only displays
  * the current track + playback controls — no library browsing.
  *
+ * ProfileProvider sits OUTSIDE ThemeProvider because the per-profile
+ * theme work landed in #264 made `ThemeProvider` call `useProfile()`
+ * to scope theme choices per-profile. Without this nesting the
+ * mini boots into a white screen via the "must be used within
+ * ProfileProvider" throw — mirrors the main `App.tsx` nesting.
+ *
  * SpotifyProvider stays in because PlayerProvider calls useSpotify()
  * unconditionally (provider routing happens inside PlayerContext).
  * Without it the mini boots into a white screen via the "must be
@@ -20,14 +26,14 @@ import { MiniPlayer } from "./components/views/MiniPlayer";
  */
 export function MiniPlayerApp() {
   return (
-    <ThemeProvider>
-      <ProfileProvider>
+    <ProfileProvider>
+      <ThemeProvider>
         <SpotifyProvider>
           <PlayerProvider>
             <MiniPlayer />
           </PlayerProvider>
         </SpotifyProvider>
-      </ProfileProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </ProfileProvider>
   );
 }
