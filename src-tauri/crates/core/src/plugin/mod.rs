@@ -25,21 +25,56 @@ pub mod runtime;
 
 use std::path::{Component, Path, PathBuf};
 
-/// Two parallel roots under the host's app-data dir:
+/// Hardcoded list of plugins WaveFlow ships bundled in the
+/// installer. Lives in core so [`PluginPaths`] can route bundled
+/// ids to the resource dir without round-tripping back through the
+/// app layer.
 ///
-/// - `plugins_root` (`<app-data>/waveflow/plugins/`) — install
-///   directory, treated as read-only at runtime. One subdirectory
-///   per installed plugin holding `manifest.toml`, `plugin.wasm`,
-///   and the `assets/` subtree.
+/// Phase 5 will replace this with a manifest-driven discovery
+/// (loop over `<resource_dir>/plugins/*/manifest.toml`) so adding
+/// a plugin to the bundle doesn't require touching app code; for
+/// now the static list keeps the diff focused.
+pub const BUNDLED_PLUGINS: &[&str] = &["web-radio"];
+
+/// True when `plugin_id` is a first-party plugin shipped inside the
+/// installer. Used by [`PluginPaths`] to route path resolution to
+/// the resource dir, by the app to refuse `uninstall_plugin` (the
+/// installer would re-seed the tree on next launch so the uninstall
+/// reads as a bug), and by the UI to render a "bundled" badge.
+pub fn is_bundled_plugin(plugin_id: &str) -> bool {
+    BUNDLED_PLUGINS.iter().any(|id| *id == plugin_id)
+}
+
+/// Three parallel roots resolved by the host:
+///
+/// - `bundled_root` (optional, `<resource_dir>/plugins/`) — read-only
+///   install root for plugins shipped inside the application
+///   installer. Resolved from `BaseDirectory::Resource` on app side;
+///   `None` in core-only tests or when no bundled tree is present.
+///   When [`is_bundled_plugin`] returns true, path resolution
+///   targets this root instead of `plugins_root`.
+/// - `plugins_root` (`<app-data>/waveflow/plugins/`) — sideloaded
+///   install dir, writable. One subdirectory per sideloaded plugin
+///   holding `manifest.toml`, `plugin.wasm`, and the `assets/`
+///   subtree. Bundled plugins are NEVER copied here (was the case
+///   pre-1.5.1 via `ensure_bundled_plugins`; that path wasted
+///   ~150 KB per bundled plugin per install and confused users who
+///   went folder spelunking — see issue #280). The cleanup pass at
+///   boot drops any leftover bundled entry from a 1.5.0 → 1.5.1
+///   upgrade.
 /// - `data_root` (`<app-data>/waveflow/plugin-data/`) — per-user
 ///   scratch store the host hands to the plugin via
-///   `waveflow:host/storage.{read,write}-state`. Kept separate from
-///   the install dir so reinstalls / updates don't risk clobbering
-///   the user's plugin state and so a `plugin-data/` wipe doesn't
-///   require touching the install tree.
+///   `waveflow:host/storage.{read,write}-state`. Always in the
+///   writable app-data tree, regardless of where the .wasm itself
+///   lives — bundled plugins still write state to the user's data
+///   dir.
 #[derive(Debug, Clone)]
 pub struct PluginPaths {
-    /// `<app-data>/waveflow/plugins/` — install root, one dir per plugin.
+    /// Optional read-only install root for bundled plugins (resource
+    /// dir, e.g. `<install>/plugins/` on Windows NSIS, `/usr/lib/WaveFlow/plugins/`
+    /// on Linux). When `Some`, [`is_bundled_plugin`] ids resolve here.
+    pub bundled_root: Option<PathBuf>,
+    /// `<app-data>/waveflow/plugins/` — sideloaded install root.
     pub plugins_root: PathBuf,
     /// `<app-data>/waveflow/plugin-data/` — scratch root, one dir per plugin.
     pub data_root: PathBuf,
@@ -59,9 +94,36 @@ impl PluginPaths {
     /// subdirectories so every plugin shares one layout.
     pub fn from_app_data(app_data_dir: &Path) -> Self {
         Self {
+            bundled_root: None,
             plugins_root: app_data_dir.join("plugins"),
             data_root: app_data_dir.join("plugin-data"),
         }
+    }
+
+    /// Inject the resolved bundled plugins root (typically
+    /// `<resource_dir>/plugins/`). Consumed-then-returned builder
+    /// style so the app can chain it off `from_app_data` at startup
+    /// without rebuilding the struct. A `None` argument is accepted
+    /// and clears the field, which keeps the helper symmetric for
+    /// tests that want to opt-out.
+    pub fn with_bundled_root(mut self, bundled_root: Option<PathBuf>) -> Self {
+        self.bundled_root = bundled_root;
+        self
+    }
+
+    /// Pick the install root for `plugin_id`. Bundled ids resolve
+    /// against [`Self::bundled_root`] when present, sideloaded ids
+    /// against [`Self::plugins_root`]. The fallback (`bundled_root`
+    /// is `None`) lets a bundled id still resolve under
+    /// `plugins_root` so unit tests + core-only contexts keep
+    /// working without a resource tree on disk.
+    fn install_root_for(&self, plugin_id: &str) -> &Path {
+        if is_bundled_plugin(plugin_id) {
+            if let Some(root) = &self.bundled_root {
+                return root;
+            }
+        }
+        &self.plugins_root
     }
 
     /// Sanitise a plugin id so it can never escape `self.plugins_root`
@@ -92,12 +154,14 @@ impl PluginPaths {
         }
     }
 
-    /// Path of one plugin's install directory. Returns
-    /// [`InvalidPluginId`] when `plugin_id` would escape
-    /// `self.plugins_root` (absolute path, `..` segment, embedded
-    /// separator).
+    /// Path of one plugin's install directory. Bundled ids resolve
+    /// under [`Self::bundled_root`] (read-only, populated from the
+    /// resource dir), sideloaded ids under [`Self::plugins_root`]
+    /// (writable, in the app-data tree). Returns [`InvalidPluginId`]
+    /// when `plugin_id` would escape the chosen root (absolute path,
+    /// `..` segment, embedded separator).
     pub fn plugin_dir(&self, plugin_id: &str) -> Result<PathBuf, InvalidPluginId> {
-        Self::sanitise_id(plugin_id).map(|id| self.plugins_root.join(id))
+        Self::sanitise_id(plugin_id).map(|id| self.install_root_for(id).join(id))
     }
 
     /// Path of one plugin's per-user scratch directory under
@@ -167,6 +231,74 @@ mod tests {
         assert!(paths.state_dir("..").is_err());
         assert!(paths.state_dir("web-radio/subdir").is_err());
         assert!(paths.state_dir("").is_err());
+    }
+
+    #[test]
+    fn bundled_plugin_routes_to_bundled_root() {
+        // When `bundled_root` is set, a bundled id (`web-radio` per
+        // [`BUNDLED_PLUGINS`]) resolves under it for install + manifest
+        // + wasm + assets — but NOT for state_dir, which always stays
+        // in the writable app-data tree so user state survives an
+        // install dir refresh.
+        let paths = PluginPaths::from_app_data(Path::new("/tmp/waveflow"))
+            .with_bundled_root(Some(PathBuf::from("/opt/waveflow/resources/plugins")));
+        assert_eq!(
+            paths.plugin_dir("web-radio").unwrap(),
+            Path::new("/opt/waveflow/resources/plugins/web-radio")
+        );
+        assert_eq!(
+            paths.manifest_path("web-radio").unwrap(),
+            Path::new("/opt/waveflow/resources/plugins/web-radio/manifest.toml")
+        );
+        assert_eq!(
+            paths.wasm_path("web-radio").unwrap(),
+            Path::new("/opt/waveflow/resources/plugins/web-radio/plugin.wasm")
+        );
+        assert_eq!(
+            paths.assets_dir("web-radio").unwrap(),
+            Path::new("/opt/waveflow/resources/plugins/web-radio/assets")
+        );
+        // State lives in the writable tree even for bundled plugins.
+        assert_eq!(
+            paths.state_dir("web-radio").unwrap(),
+            Path::new("/tmp/waveflow/plugin-data/web-radio")
+        );
+    }
+
+    #[test]
+    fn sideloaded_plugin_stays_in_plugins_root_even_with_bundled_set() {
+        // Non-bundled ids always resolve under `plugins_root` (the
+        // sideloaded tree), regardless of whether a `bundled_root`
+        // was injected. This is what keeps user-installed plugins
+        // working alongside first-party bundled ones.
+        let paths = PluginPaths::from_app_data(Path::new("/tmp/waveflow"))
+            .with_bundled_root(Some(PathBuf::from("/opt/waveflow/resources/plugins")));
+        assert_eq!(
+            paths.plugin_dir("my-custom").unwrap(),
+            Path::new("/tmp/waveflow/plugins/my-custom")
+        );
+    }
+
+    #[test]
+    fn bundled_plugin_falls_back_to_plugins_root_without_bundled_set() {
+        // Tests + core-only contexts that never resolve a resource
+        // dir must still be able to call `plugin_dir("web-radio")`
+        // and get a deterministic path back — fall back to
+        // `plugins_root` so existing fixtures keep working.
+        let paths = PluginPaths::from_app_data(Path::new("/tmp/waveflow"));
+        assert!(paths.bundled_root.is_none());
+        assert_eq!(
+            paths.plugin_dir("web-radio").unwrap(),
+            Path::new("/tmp/waveflow/plugins/web-radio")
+        );
+    }
+
+    #[test]
+    fn is_bundled_plugin_only_matches_known_ids() {
+        assert!(is_bundled_plugin("web-radio"));
+        assert!(!is_bundled_plugin("web-Radio")); // case-sensitive
+        assert!(!is_bundled_plugin("not-bundled"));
+        assert!(!is_bundled_plugin(""));
     }
 
     #[test]

@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Manager};
 use waveflow_core::plugin::PluginPaths;
 
@@ -19,6 +20,16 @@ use crate::error::{AppError, AppResult};
 ///         ├── data.db           (per-profile database)
 ///         └── artwork/          (per-profile artwork cache)
 /// ```
+///
+/// `bundled_plugins_dir` is resolved separately against
+/// [`BaseDirectory::Resource`] and points at the installer-shipped
+/// plugin tree (e.g. `<install>/plugins/` on Windows NSIS,
+/// `/usr/lib/WaveFlow/plugins/` on Linux). It's optional because the
+/// resource resolver can legitimately fail in a few environments
+/// (dev mode without a bundle, packaging mishaps); when missing,
+/// bundled plugin resolution falls back to the writable app-data
+/// tree — the cleanup pass at boot removes any stale copies there
+/// so the fallback only matters for tests + dev builds.
 #[derive(Debug, Clone)]
 pub struct AppPaths {
     pub root: PathBuf,
@@ -26,6 +37,7 @@ pub struct AppPaths {
     pub avatars_dir: PathBuf,
     pub metadata_artwork_dir: PathBuf,
     pub profiles_dir: PathBuf,
+    pub bundled_plugins_dir: Option<PathBuf>,
 }
 
 impl AppPaths {
@@ -41,11 +53,31 @@ impl AppPaths {
 
         let root = data_dir.join("waveflow");
 
+        // Bundled plugin resources live next to the binary, resolved
+        // via Tauri's `BaseDirectory::Resource`. A failure here isn't
+        // fatal — `PluginPaths::install_root_for` falls back to the
+        // writable app-data tree when `bundled_root` is `None`, so
+        // the only consequence in dev builds or broken installs is
+        // that bundled plugins resolve under `<app-data>/plugins/`
+        // (matching pre-1.5.1 behaviour). We log the failure so a
+        // mispackaged installer surfaces visibly in tracing.
+        let bundled_plugins_dir = match handle.path().resolve("plugins", BaseDirectory::Resource) {
+            Ok(path) => Some(path),
+            Err(e) => {
+                tracing::warn!(
+                    %e,
+                    "bundled plugins resource dir not resolvable; bundled plugins will fall back to app-data tree",
+                );
+                None
+            }
+        };
+
         Ok(Self {
             app_db: root.join("app.db"),
             avatars_dir: root.join("avatars"),
             metadata_artwork_dir: root.join("metadata_artwork"),
             profiles_dir: root.join("profiles"),
+            bundled_plugins_dir,
             root,
         })
     }
@@ -100,10 +132,17 @@ impl AppPaths {
     /// and `new_store_for_plugin`. Layout:
     ///
     /// ```text
-    /// <root>/plugins/<plugin-id>/       (install dir, read-only at runtime)
+    /// <resource_dir>/plugins/<id>/      (bundled install dir, read-only — when resolvable)
+    /// <root>/plugins/<plugin-id>/       (sideloaded install dir, writable)
     /// <root>/plugin-data/<plugin-id>/   (per-user scratch, written by host imports)
     /// ```
+    ///
+    /// Bundled ids resolve under `<resource_dir>/plugins/` (the
+    /// installer's read-only payload), sideloaded ids under
+    /// `<root>/plugins/` (writable app-data). State writes always
+    /// land in `<root>/plugin-data/` regardless of where the .wasm
+    /// lives — bundled plugins still need a writable scratch dir.
     pub fn plugin_paths(&self) -> PluginPaths {
-        PluginPaths::from_app_data(&self.root)
+        PluginPaths::from_app_data(&self.root).with_bundled_root(self.bundled_plugins_dir.clone())
     }
 }
