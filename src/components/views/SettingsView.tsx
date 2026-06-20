@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
@@ -277,7 +278,16 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(0);
+  // Viewport-relative coordinates for the portaled listbox. Captured
+  // once per open from the trigger's bounding rect; closed on scroll
+  // or resize so a stale position never paints.
+  const [position, setPosition] = useState<{
+    top: number;
+    right: number;
+  } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const listboxRef = useRef<HTMLUListElement>(null);
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const normalizedCurrentCode = normalizeSupportedLanguageCode(currentCode);
 
@@ -285,15 +295,22 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
     SUPPORTED_LANGUAGES.find((lang) => lang.code === normalizedCurrentCode) ??
     SUPPORTED_LANGUAGES[0];
 
-  // Click-outside + Escape handling
+  // Click-outside + Escape handling. The listbox is portaled to
+  // document.body to escape the parent stacking context (the Lounge +
+  // Liquid skins paint Settings cards through `backdrop-filter`, which
+  // by spec creates a new stacking context and traps `z-index` of any
+  // descendant — so the dropdown rendered as an absolute child landed
+  // visually behind the cards below it). Click-outside therefore has
+  // to whitelist the portaled listbox too, otherwise clicking an
+  // option dismisses the menu before its onClick handler runs.
   useEffect(() => {
     if (!isOpen) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
+      const target = event.target as Node;
+      const inTrigger = containerRef.current?.contains(target);
+      const inListbox = listboxRef.current?.contains(target);
+      if (!inTrigger && !inListbox) {
         setIsOpen(false);
       }
     };
@@ -301,6 +318,10 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsOpen(false);
+        // Return focus to the trigger so keyboard users stay anchored
+        // to where they opened the listbox from. Matches WAI-ARIA APG
+        // for combobox/listbox dismissal via Escape.
+        triggerRef.current?.focus();
       }
     };
 
@@ -309,6 +330,21 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKey);
+    };
+  }, [isOpen]);
+
+  // Close on scroll/resize — the listbox uses fixed positioning derived
+  // from a snapshot of the trigger's rect, so any layout shift would
+  // leave it visually detached from the trigger. Closing is simpler
+  // (and matches native <select>) than re-measuring on every frame.
+  useEffect(() => {
+    if (!isOpen) return;
+    const close = () => setIsOpen(false);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
     };
   }, [isOpen]);
 
@@ -322,7 +358,18 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
   const handleTriggerClick = () => {
     setIsOpen((prev) => {
       if (!prev) {
-        // Opening: focus the currently selected option
+        // Opening: snapshot the trigger's viewport rect for the
+        // portaled listbox, then focus the currently selected option.
+        // `mt-2` (= 8px) keeps the visual gap the old absolute markup
+        // had; `right` is measured from the viewport edge to mirror
+        // the original `right-0` anchor.
+        const rect = triggerRef.current?.getBoundingClientRect();
+        if (rect) {
+          setPosition({
+            top: rect.bottom + 8,
+            right: window.innerWidth - rect.right,
+          });
+        }
         const initialIndex = Math.max(
           0,
           SUPPORTED_LANGUAGES.findIndex(
@@ -356,17 +403,36 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
     } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       handleSelect(SUPPORTED_LANGUAGES[index].code);
+    } else if (event.key === "Tab") {
+      // Dismiss the listbox and let the browser's default Tab action
+      // continue from the trigger's position in tab order. Focus is
+      // moved synchronously to the trigger before this handler
+      // returns; the un-prevented Tab default then advances from
+      // there, so Tab lands on the next focusable element AFTER the
+      // trigger and Shift+Tab lands on the previous one. Without this
+      // shim, Tab from a portaled option escapes through document.body
+      // and the keyboard caret falls off the end of tab order.
+      setIsOpen(false);
+      triggerRef.current?.focus();
     }
   };
 
   const handleSelect = (code: string) => {
     onSelect(code);
     setIsOpen(false);
+    // Same restoration as the Escape branch: a deliberate option pick
+    // (mouse click or Enter/Space) lands the keyboard caret back on
+    // the trigger so the user can keep tabbing forward from where
+    // they were. Click-outside is intentionally NOT mirrored here —
+    // there the user explicitly aimed at something else, and stealing
+    // focus back to the trigger would override that intent.
+    triggerRef.current?.focus();
   };
 
   return (
     <div className="relative" ref={containerRef}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={handleTriggerClick}
         aria-haspopup="listbox"
@@ -381,39 +447,48 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
         />
       </button>
 
-      {isOpen && (
-        <ul
-          role="listbox"
-          aria-label={t("settings.language.title")}
-          className="absolute top-full right-0 mt-2 min-w-48 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden z-50 animate-fade-in py-1"
-        >
-          {SUPPORTED_LANGUAGES.map((lang, index) => {
-            const isSelected = lang.code === normalizedCurrentCode;
-            return (
-              <li key={lang.code} role="presentation">
-                <button
-                  ref={(el) => {
-                    optionRefs.current[index] = el;
-                  }}
-                  type="button"
-                  role="option"
-                  aria-selected={isSelected}
-                  onClick={() => handleSelect(lang.code)}
-                  onKeyDown={(event) => handleOptionKeyDown(event, index)}
-                  className={`w-full flex items-center justify-between px-4 py-2 text-sm text-left transition-colors focus:outline-none ${
-                    isSelected
-                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
-                      : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 focus:bg-zinc-50 dark:focus:bg-zinc-700/30"
-                  }`}
-                >
-                  <span>{lang.nativeLabel}</span>
-                  {isSelected && <Check size={14} />}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      {isOpen &&
+        position &&
+        createPortal(
+          <ul
+            ref={listboxRef}
+            role="listbox"
+            aria-label={t("settings.language.title")}
+            style={{
+              position: "fixed",
+              top: position.top,
+              right: position.right,
+            }}
+            className="min-w-48 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden z-[100] animate-fade-in py-1"
+          >
+            {SUPPORTED_LANGUAGES.map((lang, index) => {
+              const isSelected = lang.code === normalizedCurrentCode;
+              return (
+                <li key={lang.code} role="presentation">
+                  <button
+                    ref={(el) => {
+                      optionRefs.current[index] = el;
+                    }}
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    onClick={() => handleSelect(lang.code)}
+                    onKeyDown={(event) => handleOptionKeyDown(event, index)}
+                    className={`w-full flex items-center justify-between px-4 py-2 text-sm text-left transition-colors focus:outline-none ${
+                      isSelected
+                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
+                        : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 focus:bg-zinc-50 dark:focus:bg-zinc-700/30"
+                    }`}
+                  >
+                    <span>{lang.nativeLabel}</span>
+                    {isSelected && <Check size={14} />}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>,
+          document.body,
+        )}
     </div>
   );
 }
