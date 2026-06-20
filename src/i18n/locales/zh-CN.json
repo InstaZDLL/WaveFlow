@@ -1067,6 +1067,7 @@
     "loading": "搜索歌词……",
     "noTrack": "没有正在播放的曲目",
     "notFound": "未找到此曲目的歌词。您可以导入 .lrc 文件。",
+    "fetchError": "无法连接歌词服务，请稍后重试。",
     "importTitle": "导入 .lrc 文件",
     "actions": {
       "import": "导入 .lrc 文件",

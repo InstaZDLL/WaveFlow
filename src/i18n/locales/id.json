@@ -1067,6 +1067,7 @@
     "loading": "Mencari lirik…",
     "noTrack": "Tidak ada lagu yang diputar",
     "notFound": "Tidak ada lirik untuk lagu ini. Kamu bisa mengimpor berkas .lrc.",
+    "fetchError": "Tidak dapat menghubungi penyedia lirik. Coba lagi nanti.",
     "importTitle": "Impor berkas .lrc",
     "actions": {
       "import": "Impor berkas .lrc",

@@ -1067,6 +1067,7 @@
     "loading": "Searching for lyrics…",
     "noTrack": "No track playing",
     "notFound": "No lyrics found for this track. You can import a .lrc file.",
+    "fetchError": "Couldn't reach lyrics providers. Try again later.",
     "importTitle": "Import an .lrc file",
     "actions": {
       "import": "Import an .lrc file",

@@ -1067,6 +1067,7 @@
     "loading": "A pesquisar letras…",
     "noTrack": "Nenhuma faixa em reprodução",
     "notFound": "Não foram encontradas letras para esta faixa. Podes importar um ficheiro .lrc.",
+    "fetchError": "Não foi possível contactar os fornecedores de letras. Tenta novamente mais tarde.",
     "importTitle": "Importar um ficheiro .lrc",
     "actions": {
       "import": "Importar um ficheiro .lrc",

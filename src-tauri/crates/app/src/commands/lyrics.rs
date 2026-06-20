@@ -424,6 +424,64 @@ async fn cache_external_lyrics(
     })
 }
 
+/// Walk the post-LRCLIB fallback chain (NetEase / Megalobiz / Genius)
+/// and persist whatever comes back. When every provider misses — or one
+/// errors and the rest miss — cache an empty row so the panel doesn't
+/// re-hit the network on every open. Always returns a `LyricsPayload`:
+/// either the freshly-cached external result or the empty miss.
+///
+/// Called from both `fetch_lyrics` LRCLIB branches (404 + empty-row).
+/// Keeping the chain in one place stops the two call sites from drifting
+/// on the error-handling contract — both must treat a provider Err as
+/// non-fatal (LRCLIB has already given a verdict, the fallback is best-
+/// effort enrichment), and a refactor of that policy now lives in one
+/// function instead of two.
+async fn try_external_fallback_or_miss(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+    meta: &TrackMeta,
+) -> AppResult<LyricsPayload> {
+    match external_lyrics_search(
+        meta,
+        external_fallback_providers(),
+        SearchMode::PreferSynced,
+        true,
+        // Fallback chain excludes Musixmatch — `external_lyrics_search`
+        // would drop the lang anyway. Keep it `None` to flag intent.
+        None,
+    )
+    .await
+    {
+        Ok(Some(result)) => {
+            return cache_external_lyrics(pool, track_id, &meta.file_hash, result).await;
+        }
+        Ok(None) => {}
+        Err(err) => tracing::debug!(?err, "external fallback chain failed"),
+    }
+
+    // No provider had lyrics. Cache as an empty row so we don't re-hit
+    // the network on every panel open. The user can force a re-search
+    // by clicking "Refetch" in the lyrics panel (clears the row,
+    // re-runs the waterfall).
+    let empty = String::new();
+    upsert_lyrics(
+        pool,
+        &meta.file_hash,
+        &empty,
+        &LyricsFormat::Plain,
+        &LyricsSource::Api,
+    )
+    .await?;
+    Ok(LyricsPayload {
+        track_id,
+        content: empty,
+        format: LyricsFormat::Plain,
+        source: LyricsSource::Api,
+        tag_write_skipped: None,
+        sidecar_write_skipped: None,
+    })
+}
+
 /// Re-open an MP3 as a typed `Id3v2Tag` and pull the lyrics out of any
 /// TXXX user-defined frame whose description matches one of the common
 /// lyric aliases (`LYRICS`, `UNSYNCEDLYRICS`, `LYRICS_UNSYNCED`, ...).
@@ -850,56 +908,12 @@ pub async fn fetch_lyrics(
             // LRCLIB 404 — try the broader provider chain before
             // caching a miss. These sources are query-based and less
             // strict than LRCLIB's metadata endpoint, so they only run
-            // after the exact lookup fails.
-            //
-            // A fallback-chain Err here is non-fatal: LRCLIB has already
-            // given us a definitive 404, so a downstream provider
-            // erroring (e.g. megalobiz returning HTTP 500 on a query
-            // with special chars) shouldn't poison the whole fetch.
-            // Log + treat as a clean miss + cache empty so the panel
-            // shows the friendly "no lyrics found" state instead of
-            // surfacing a raw `http request failed` to the user.
-            match external_lyrics_search(
-                &meta,
-                external_fallback_providers(),
-                SearchMode::PreferSynced,
-                true,
-                // Fallback chain excludes Musixmatch — `external_lyrics_search`
-                // would drop the lang anyway. Keep it `None` to flag intent.
-                None,
-            )
-            .await
-            {
-                Ok(Some(result)) => {
-                    return cache_external_lyrics(&pool, track_id, &meta.file_hash, result)
-                        .await
-                        .map(Some);
-                }
-                Ok(None) => {}
-                Err(err) => tracing::debug!(?err, "external fallback chain failed"),
-            }
-
-            // No provider had lyrics. Cache as an empty row so we
-            // don't re-hit the network on every panel open. The user
-            // can force a re-search by clicking "Refetch" in the
-            // lyrics panel (clears the row, re-runs the waterfall).
-            let empty = String::new();
-            upsert_lyrics(
-                &pool,
-                &meta.file_hash,
-                &empty,
-                &LyricsFormat::Plain,
-                &LyricsSource::Api,
-            )
-            .await?;
-            return Ok(Some(LyricsPayload {
-                track_id,
-                content: empty,
-                format: LyricsFormat::Plain,
-                source: LyricsSource::Api,
-                tag_write_skipped: None,
-                sidecar_write_skipped: None,
-            }));
+            // after the exact lookup fails. See
+            // `try_external_fallback_or_miss` for the error-handling
+            // contract (provider Err is non-fatal at this tier).
+            return try_external_fallback_or_miss(&pool, track_id, &meta)
+                .await
+                .map(Some);
         }
         Err(err) => {
             // Surface transient network failures (timeout, DNS, refused
@@ -941,45 +955,12 @@ pub async fn fetch_lyrics(
         (Some(s), _) if !s.trim().is_empty() => (s, LyricsFormat::Lrc),
         (_, Some(p)) if !p.trim().is_empty() => (p, LyricsFormat::Plain),
         _ => {
-            // Same graceful-degradation rule as the 404 branch above:
-            // LRCLIB definitively returned an entry but it was empty,
-            // so a downstream provider erroring is non-fatal — log and
-            // cache empty instead of propagating the raw error.
-            match external_lyrics_search(
-                &meta,
-                external_fallback_providers(),
-                SearchMode::PreferSynced,
-                true,
-                None,
-            )
-            .await
-            {
-                Ok(Some(result)) => {
-                    return cache_external_lyrics(&pool, track_id, &meta.file_hash, result)
-                        .await
-                        .map(Some);
-                }
-                Ok(None) => {}
-                Err(err) => tracing::debug!(?err, "external fallback chain failed"),
-            }
-
-            let empty = String::new();
-            upsert_lyrics(
-                &pool,
-                &meta.file_hash,
-                &empty,
-                &LyricsFormat::Plain,
-                &LyricsSource::Api,
-            )
-            .await?;
-            return Ok(Some(LyricsPayload {
-                track_id,
-                content: empty,
-                format: LyricsFormat::Plain,
-                source: LyricsSource::Api,
-                tag_write_skipped: None,
-                sidecar_write_skipped: None,
-            }));
+            // Same as the 404 branch above: LRCLIB returned an entry
+            // but it was empty, so fall through to the fallback chain
+            // via the shared helper.
+            return try_external_fallback_or_miss(&pool, track_id, &meta)
+                .await
+                .map(Some);
         }
     };
 

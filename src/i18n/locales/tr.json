@@ -1067,6 +1067,7 @@
     "loading": "Sözler aranıyor…",
     "noTrack": "Çalan parça yok",
     "notFound": "Bu parça için söz bulunamadı. Bir .lrc dosyası içe aktarabilirsin.",
+    "fetchError": "Şarkı sözü sağlayıcılarına ulaşılamadı. Daha sonra tekrar deneyin.",
     "importTitle": ".lrc dosyası içe aktar",
     "actions": {
       "import": ".lrc dosyası içe aktar",
