@@ -318,6 +318,10 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsOpen(false);
+        // Return focus to the trigger so keyboard users stay anchored
+        // to where they opened the listbox from. Matches WAI-ARIA APG
+        // for combobox/listbox dismissal via Escape.
+        triggerRef.current?.focus();
       }
     };
 
@@ -405,6 +409,13 @@ function LanguageDropdown({ currentCode, onSelect }: LanguageDropdownProps) {
   const handleSelect = (code: string) => {
     onSelect(code);
     setIsOpen(false);
+    // Same restoration as the Escape branch: a deliberate option pick
+    // (mouse click or Enter/Space) lands the keyboard caret back on
+    // the trigger so the user can keep tabbing forward from where
+    // they were. Click-outside is intentionally NOT mirrored here —
+    // there the user explicitly aimed at something else, and stealing
+    // focus back to the trigger would override that intent.
+    triggerRef.current?.focus();
   };
 
   return (
