@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.5.1](https://github.com/InstaZDLL/WaveFlow/compare/v1.5.0...v1.5.1) (2026-06-20)
+
+
+### Bug Fixes
+
+* **1.5.1:** mini-player white screen + Pulse halo leak in skin picker ([#282](https://github.com/InstaZDLL/WaveFlow/issues/282)) ([3d1c405](https://github.com/InstaZDLL/WaveFlow/commit/3d1c405e3f7eb838abce330edc1dab32be66619b))
+* **analysis:** make library analysis cancellable + cooperative ([150d28a](https://github.com/InstaZDLL/WaveFlow/commit/150d28a9681905beb4a6422a1bb47f1f04f6bc57))
+* **analysis:** make library analysis cancellable + cooperative (closes [#286](https://github.com/InstaZDLL/WaveFlow/issues/286)) ([8d9866e](https://github.com/InstaZDLL/WaveFlow/commit/8d9866ea07a8f258cabbfc47b75d0debcbbe22fc))
+* **lyrics:** address CodeRabbit review on Genius strip + picker ref ([c9c1b4c](https://github.com/InstaZDLL/WaveFlow/commit/c9c1b4cac5b2f1c9741619a90b18b1cc6c17014d))
+* **lyrics:** close picker on Escape + guard handleImport race ([ccf5379](https://github.com/InstaZDLL/WaveFlow/commit/ccf537996ea156dfc6f8b7221f4334277bd69681))
+* **lyrics:** expose real provider in source badge + add picker dropdown ([71b05ff](https://github.com/InstaZDLL/WaveFlow/commit/71b05fffaa1da56cb44143c6e57d73b1ded98d11))
+* **lyrics:** handle singular Contributor badge + handleRefetch race ([01eff6d](https://github.com/InstaZDLL/WaveFlow/commit/01eff6d9d7f35a1c62dab9e88d68b3a19c22b82e))
+* **lyrics:** strip Genius header + track real provider + user-driven refetch (closes [#284](https://github.com/InstaZDLL/WaveFlow/issues/284)) ([4a1f67f](https://github.com/InstaZDLL/WaveFlow/commit/4a1f67ffb0798f586cb5e8b0f30b6bbabd7b8fd7))
+* **lyrics:** strip Genius header artifact + treat stub pages as miss ([5e889c4](https://github.com/InstaZDLL/WaveFlow/commit/5e889c403ff71d5f2cf3ad6d154c6f8be4894672))
+* **lyrics:** track real provider per row + add user-driven refetch ([5e8f7c4](https://github.com/InstaZDLL/WaveFlow/commit/5e8f7c4945a69678b86a476b3605136b0db9e7fe))
+* **plugins:** preserve fallback without bundled resources ([f82ceaa](https://github.com/InstaZDLL/WaveFlow/commit/f82ceaacd1d4d4f28827a368e34b2f8ab28308f4))
+
 ## [1.5.0](https://github.com/InstaZDLL/WaveFlow/compare/v1.4.0...v1.5.0) (2026-06-20)
 
 
