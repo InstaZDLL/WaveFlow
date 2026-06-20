@@ -1067,6 +1067,7 @@
     "loading": "Songtext wird gesucht…",
     "noTrack": "Kein Titel wird gespielt",
     "notFound": "Kein Songtext für diesen Titel gefunden. Du kannst eine .lrc-Datei importieren.",
+    "fetchError": "Lyrics-Anbieter nicht erreichbar. Bitte später erneut versuchen.",
     "importTitle": ".lrc-Datei importieren",
     "actions": {
       "import": ".lrc-Datei importieren",

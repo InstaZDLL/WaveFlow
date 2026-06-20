@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Music2, Maximize2 } from "lucide-react";
+import { X, Music2, Maximize2, AlertCircle } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import type { Track } from "../../lib/tauri/track";
 import {
@@ -175,7 +175,13 @@ export function FullscreenLyrics({
             {isFetching && !payload ? (
               <CenteredMessage text={t("lyrics.loading")} />
             ) : error ? (
-              <CenteredMessage text={error} />
+              // Mirror the LyricsPanel split: transient error gets its
+              // own message + icon so the user knows to retry, while a
+              // clean miss keeps the existing notFound copy.
+              <CenteredMessage
+                icon={<AlertCircle size={56} />}
+                text={t("lyrics.fetchError")}
+              />
             ) : !payload || payload.content.trim() === "" ? (
               <CenteredMessage
                 icon={<Music2 size={56} />}

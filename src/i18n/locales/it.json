@@ -1067,6 +1067,7 @@
     "loading": "Ricerca dei testi…",
     "noTrack": "Nessun brano in riproduzione",
     "notFound": "Nessun testo trovato per questo brano. Puoi importare un file .lrc.",
+    "fetchError": "Impossibile contattare i fornitori dei testi. Riprova più tardi.",
     "importTitle": "Importa un file .lrc",
     "actions": {
       "import": "Importa un file .lrc",

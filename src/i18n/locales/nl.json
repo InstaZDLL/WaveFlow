@@ -1067,6 +1067,7 @@
     "loading": "Songtekst zoeken…",
     "noTrack": "Geen nummer wordt afgespeeld",
     "notFound": "Geen songtekst gevonden voor dit nummer. Je kunt een .lrc-bestand importeren.",
+    "fetchError": "Kan de tekstaanbieders niet bereiken. Probeer het later opnieuw.",
     "importTitle": "Een .lrc-bestand importeren",
     "actions": {
       "import": "Een .lrc-bestand importeren",

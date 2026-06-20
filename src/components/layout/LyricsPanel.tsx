@@ -10,6 +10,7 @@ import {
   Trash2,
   Maximize2,
   Pencil,
+  AlertCircle,
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
 import { pickFile } from "../../lib/tauri/dialog";
@@ -140,6 +141,10 @@ export function LyricsPanel() {
       if (!path) return;
       const next = await importLrcFile(trackId, path);
       setPayload(next);
+      // Drop any error left from a prior failed fetch — otherwise the
+      // error-vs-notFound conditional below would mask the freshly
+      // imported lyrics behind the stale error state.
+      setError(null);
     } catch (err) {
       console.error("[LyricsPanel] import failed", err);
       setError(String(err));
@@ -154,6 +159,9 @@ export function LyricsPanel() {
       setIsFetching(true);
       const next = await fetchLyrics(trackId);
       setPayload(next);
+      // Same as handleImport: clear any previous error so the refetched
+      // payload actually paints instead of being shadowed by stale state.
+      setError(null);
     } catch (err) {
       console.error("[LyricsPanel] refetch failed", err);
       setError(String(err));
@@ -241,7 +249,15 @@ export function LyricsPanel() {
           ) : isFetching && !payload ? (
             <EmptyState text={t("lyrics.loading")} />
           ) : error ? (
-            <EmptyState text={error} />
+            // Transient error (network, DB, profile pool) — distinct
+            // from a cached empty miss so the user knows to retry via
+            // the refetch button below rather than reaching for Import.
+            // The raw error stays in console.error; the panel surfaces
+            // a localized, action-oriented message.
+            <EmptyState
+              icon={<AlertCircle size={40} />}
+              text={t("lyrics.fetchError")}
+            />
           ) : !payload || payload.content.trim() === "" ? (
             <EmptyState
               icon={<Music2 size={40} />}

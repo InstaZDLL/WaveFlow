@@ -1067,6 +1067,7 @@
     "loading": "Recherche des paroles…",
     "noTrack": "Aucun titre en cours",
     "notFound": "Aucune parole trouvée pour ce titre. Vous pouvez importer un fichier .lrc.",
+    "fetchError": "Impossible de joindre les fournisseurs de paroles. Réessayez plus tard.",
     "importTitle": "Importer un fichier .lrc",
     "actions": {
       "import": "Importer un fichier .lrc",

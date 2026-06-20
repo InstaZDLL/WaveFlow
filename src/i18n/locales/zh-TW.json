@@ -1067,6 +1067,7 @@
     "loading": "搜尋歌詞……",
     "noTrack": "目前沒有正在播放的曲目",
     "notFound": "找不到此曲目的歌詞。您可以匯入 .lrc 檔案。",
+    "fetchError": "無法連線到歌詞服務，請稍後再試。",
     "importTitle": "匯入 .lrc 檔案",
     "actions": {
       "import": "匯入 .lrc 檔案",
