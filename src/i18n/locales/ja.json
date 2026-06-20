@@ -12,7 +12,7 @@
   },
   "lastfmReauth": {
     "title": "Last.fmのセッションが期限切れになりました",
-    "message": "スクロブル(再生履歴)の送信が停止しました。再開するには再度ログインしてください。",
+    "message": "スクロブル（再生履歴）の送信が停止しました。再開するには再度ログインしてください。",
     "action": "設定を開く"
   },
   "updater": {
@@ -267,7 +267,7 @@
       "playlists": "プレイリスト"
     },
     "moodRadio": {
-      "title": "気分ラジオ",
+      "title": "ムードラジオ",
       "subtitle": "テンポとエネルギーで絞り込み",
       "trackCount_one": "{{count}}曲",
       "trackCount_other": "{{count}}曲",
@@ -354,7 +354,7 @@
     },
     "empty": {
       "morceaux": {
-        "title": "空のライブラリ",
+        "title": "ライブラリは空です",
         "description": "オーディオファイルまたはフォルダをインポートして、ライブラリに追加してください。"
       },
       "albums": {
@@ -702,7 +702,7 @@
       "title": "再生速度",
       "slider": "速度スライダー",
       "custom": "カスタム速度",
-      "pitchHint": "ピッチは速度に追従します(タイムストレッチなし)。"
+      "pitchHint": "ピッチは速度に追従します（タイムストレッチなし）。"
     },
     "seek": "再生位置"
   },
@@ -1112,7 +1112,7 @@
   "abLoop": {
     "setA": "A-Bリピート: 現在位置にA点を設定",
     "setB": "A-Bリピート: B点を設定 (A = {{a}})",
-    "armed": "A-Bリピート有効: {{a}} → {{b}} (クリックで解除)"
+    "armed": "A-Bリピート有効: {{a}} → {{b}} （クリックで解除）"
   },
   "smartPlaylistEditor": {
     "createTitle": "新しいスマートプレイリスト",
@@ -1129,7 +1129,7 @@
       "album": "アルバムに含む",
       "year": "年",
       "bpm": "BPM",
-      "durationMin": "再生時間 (分)",
+      "durationMin": "再生時間 （分）",
       "hiRes": "ハイレゾのみ",
       "liked": "「いいね」した曲のみ",
       "formats": "フォーマット",
@@ -1152,8 +1152,8 @@
     "sortOptions": {
       "addedDesc": "追加日が新しい順",
       "addedAsc": "追加日が古い順",
-      "yearDesc": "年 (新しい順)",
-      "yearAsc": "年 (古い順)",
+      "yearDesc": "年 （新しい順）",
+      "yearAsc": "年 （古い順）",
       "titleAsc": "タイトル (A → Z)",
       "artistAsc": "アーティスト (A → Z)",
       "random": "ランダム"
@@ -1165,8 +1165,8 @@
       "or": "OR",
       "not": "NOT",
       "toggleOpHint": "AND ↔ OR",
-      "matchAllEmpty": "(ライブラリ全体)",
-      "matchNoneEmpty": "(該当なし)",
+      "matchAllEmpty": "（ライブラリ全体）",
+      "matchNoneEmpty": "（該当なし）",
       "childCount_zero": "空",
       "childCount_one": "{{count}}件の条件",
       "childCount_other": "{{count}}件の条件",
@@ -1547,7 +1547,7 @@
     },
     "gapless": {
       "title": "ギャップレス再生",
-      "subtitle": "連続するトラックをマイクロサイレンスなしで繋ぎます（ライブやコンセプトアルバムに最適）"
+      "subtitle": "連続する曲をマイクロサイレンスなしで繋ぎます（ライブやコンセプトアルバムに最適）"
     },
     "equalizer": {
       "title": "イコライザー",
@@ -1713,7 +1713,7 @@
     },
     "smartCrossfade": {
       "title": "スマートクロスフェード",
-      "subtitle": "同じアルバム内の連続する曲間のフェードを自動的にスキップします (コンセプトアルバムやライブ盤に最適)"
+      "subtitle": "同じアルバム内の連続する曲間のフェードを自動的にスキップします （コンセプトアルバムやライブ盤に最適）"
     },
     "showSpotify": {
       "title": "Spotify 入口を表示",
@@ -1727,7 +1727,7 @@
       "buttons": {
         "abLoop": "A-B ループ",
         "sleepTimer": "スリープタイマー",
-        "eqPreset": "イコライザ(プリセット)",
+        "eqPreset": "イコライザ（プリセット）",
         "lyrics": "歌詞",
         "queue": "キュー",
         "device": "音声出力",

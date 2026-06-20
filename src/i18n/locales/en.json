@@ -172,7 +172,7 @@
         "new": "New"
       },
       "nav": {
-        "tracks": "Songs",
+        "tracks": "Tracks",
         "albums": "Albums",
         "artists": "Artists",
         "genres": "Genres",
@@ -193,7 +193,7 @@
     "myMusic": {
       "title": "My music",
       "addFolderAria": "Import a folder",
-      "tracks": "Songs",
+      "tracks": "Tracks",
       "albums": "Albums",
       "artists": "Artists",
       "genres": "Genres",

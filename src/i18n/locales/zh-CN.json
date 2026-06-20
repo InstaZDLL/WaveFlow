@@ -431,7 +431,7 @@
       "trackCount_one": "{{count}} 曲目",
       "trackCount_other": "{{count}} 曲目",
       "lastScanned": "上次扫描：{{date}}",
-      "neverScanned": "从来没有",
+      "neverScanned": "从未扫描",
       "watched": "受监控",
       "watchOn": "自动监控更改",
       "watchOff": "停止监控",
@@ -459,7 +459,7 @@
     "yesterday": "昨天",
     "timeline": "时间线",
     "loadingMore": "加载中…",
-    "endReached": "已到达记录开头",
+    "endReached": "已到达历史记录起点",
     "emptyTitle": "暂无收听记录",
     "emptyDescription": "播放一首曲目 — 计入后将立即出现在此。",
     "shownCount_one": "显示 {{count}} 次收听",
@@ -509,7 +509,7 @@
       "empty": "该期间无收听记录。"
     },
     "byHour": {
-      "title": "最喜欢的时段",
+      "title": "收听高峰时段",
       "empty": "该期间无收听记录。",
       "tooltip": "{{hour}} 点 — {{plays}} 次播放"
     },
@@ -1054,7 +1054,7 @@
   "sleepTimer": {
     "title": "睡眠定时器",
     "endOfTrack": "当前曲目结束时",
-    "endOfTrackBadge": "完",
+    "endOfTrackBadge": "曲终",
     "cancel": "取消",
     "start": "确定",
     "customPlaceholder": "分钟",
@@ -1071,7 +1071,7 @@
     "actions": {
       "import": "导入 .lrc 文件",
       "refetch": "重新开始搜索",
-      "clear": "删除歌词",
+      "clear": "清除歌词",
       "fullscreen": "全屏",
       "edit": "编辑歌词"
     },
@@ -1105,7 +1105,7 @@
     "keepAria": "保留 {{title}}"
   },
   "dragDrop": {
-    "dropHint": "放下以导入",
+    "dropHint": "松开以导入",
     "importing": "正在导入…",
     "subtitle": "接受文件夹或音频文件"
   },
@@ -1160,7 +1160,7 @@
     },
     "tree": {
       "sectionTitle": "规则",
-      "sectionHint": "用 与 / 或 / 非 组合条件。点击 与 或 或 切换分组的操作符。",
+      "sectionHint": "用「与」/「或」/「非」组合条件。点击「与」或「或」来切换分组逻辑符。",
       "and": "与",
       "or": "或",
       "not": "非",
@@ -1236,7 +1236,7 @@
       },
       "sidecar": {
         "label": "Sidecar 文件",
-        "hint": "在音频文件旁边写入 .lrc / .txt。文件标签不受影响。"
+        "hint": "在音频文件同目录下生成 .lrc / .txt 文件。文件标签不受影响。"
       },
       "db_only": {
         "label": "仅 WaveFlow 数据库",
@@ -1321,7 +1321,7 @@
     "integrations": {
       "lastfm": {
         "title": "Last.fm",
-        "subtitle": "艺人简介和听歌记录。在 last.fm/api/account/create 创建密钥",
+        "subtitle": "艺人简介和播放记录。在 last.fm/api/account/create 创建密钥",
         "placeholder": "API密钥",
         "secretPlaceholder": "共享密钥",
         "save": "保存",
@@ -1354,7 +1354,7 @@
         "title": "Spotify",
         "subtitle": "使用你自己的 Spotify Developer Client ID 连接 Spotify Premium。",
         "clientIdPlaceholder": "Spotify Client ID",
-        "redirectHint": "在 Spotify Developer Dashboard 中添加此 Redirect URI:http://127.0.0.1:49387/spotify/callback",
+        "redirectHint": "在 Spotify Developer Dashboard 中添加此 Redirect URI: http://127.0.0.1:49387/spotify/callback",
         "connectedAs": "已连接为",
         "disconnect": "断开连接",
         "connecting": "正在连接…",
@@ -1515,7 +1515,7 @@
         "state": "状态",
         "missingLocally": "本地缺失",
         "missingRemotely": "远程缺失",
-        "divergent": "差异"
+        "divergent": "不一致"
       },
       "backfillError": "失败：{{message}}",
       "autoToggleTitle": "自动同步",

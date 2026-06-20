@@ -1089,7 +1089,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML은 캐시에만 저장되었습니다 (오디오 태그에는 기록되지 않음)",
-      "sidecarWriteSkipped": "...TTML은 .lrc/.txt 사이드카 파일로 내보낼 수 없습니다."
+      "sidecarWriteSkipped": "가사는 데이터베이스에 저장되었으나, TTML은 .lrc/.txt 사이드카 파일로 내보낼 수 없습니다."
     }
   },
   "duplicates": {

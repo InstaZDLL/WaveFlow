@@ -44,7 +44,7 @@
       "description": "WaveFlow ist KEIN Streaming-Dienst. Es spielt die Dateien, die bereits auf deinem Gerät liegen.",
       "calloutTitle": "Was du wissen solltest",
       "bulletOwn": "Bring deine eigene Bibliothek mit (MP3, FLAC, ALAC, OGG, DSD…)",
-      "bulletImport": "Importiere einen Ordner oder ziehe Dateien per Drag-and-Drop",
+      "bulletImport": "Importiere einen Ordner oder lege Dateien per Drag & Drop ab",
       "bulletScrobble": "Verbinde Last.fm, um deine Wiedergaben im Hintergrund zu scrobbeln"
     },
     "appearance": {
@@ -134,7 +134,7 @@
     "lyrics": {
       "title": "Wo sollen Liedtexte landen?",
       "description": "Wenn du Liedtexte bearbeitest, wo sollen sie hin? Du kannst dies jederzeit unter Einstellungen → Wiedergabe ändern.",
-      "hint": "Wähle \"Sidecar-Datei\", um Audiodateien unberührt zu lassen — wie foobar2000 & Co."
+      "hint": "Wähle „Sidecar-Datei\", um Audiodateien unberührt zu lassen — wie foobar2000 & Co."
     }
   },
   "sidebar": {

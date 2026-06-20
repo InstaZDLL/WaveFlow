@@ -1215,7 +1215,7 @@
     "writeToFile": "Escribir también en el archivo de audio (USLT/LYRICS)",
     "offset": {
       "label": "Desplazamiento global",
-      "help": "Desplaza todas las líneas capturadas el mismo delta — útil para arreglar archivos LRC importados que llegan uniformemente antes o después",
+      "help": "Desplaza todas las líneas capturadas el mismo delta — útil para corregir archivos LRC importados que están sistemáticamente adelantados o retrasados",
       "reset": "Restablecer desplazamiento"
     },
     "granularity": {

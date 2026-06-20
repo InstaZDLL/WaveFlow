@@ -445,7 +445,7 @@
     "title": "المقاطع المفضلة",
     "count_zero": "0 مقطع",
     "count_one": "{{count}} مقطع",
-    "count_other": "{{count}} أغنية",
+    "count_other": "{{count}} مقطع",
     "emptyTitle": "لا توجد مقاطع مفضلة",
     "emptyDescription": "ستظهر هنا المقاطع التي أعجبتك. تصفّح مكتبتك وأضف مقاطعك المفضلة.",
     "playAll": "تشغيل الكل",
@@ -479,7 +479,7 @@
     "title": "شُغّلت مؤخرًا",
     "count_zero": "0 مقطع",
     "count_one": "{{count}} مقطع",
-    "count_other": "{{count}} أغنية",
+    "count_other": "{{count}} مقطع",
     "emptyTitle": "لا توجد مقاطع حديثة",
     "emptyDescription": "ستظهر المقاطع التي تستمع إليها هنا تلقائيًا."
   },
@@ -806,7 +806,7 @@
     "badge": "قائمة تشغيل",
     "trackCount_zero": "0 مقطع",
     "trackCount_one": "{{count}} مقطع",
-    "trackCount_other": "{{count}} أغنية",
+    "trackCount_other": "{{count}} مقطع",
     "actions": {
       "play": "تشغيل",
       "shuffle": "تشغيل عشوائي",
@@ -932,7 +932,7 @@
     "shuffle": "تشغيل عشوائي",
     "trackCount_zero": "0 مقطع",
     "trackCount_one": "{{count}} مقطع",
-    "trackCount_other": "{{count}} أغنية",
+    "trackCount_other": "{{count}} مقطع",
     "discHeader": "القرص {{number}}",
     "releaseDate": "تاريخ الإصدار",
     "emptyTitle": "لم يتم العثور على الألبوم",
@@ -948,7 +948,7 @@
     "allTracks": "كل المقاطع",
     "trackCount_zero": "0 مقطع",
     "trackCount_one": "{{count}} مقطع",
-    "trackCount_other": "{{count}} أغنية",
+    "trackCount_other": "{{count}} مقطع",
     "albumCount_zero": "0 ألبوم",
     "albumCount_one": "{{count}} ألبوم",
     "albumCount_other": "{{count}} ألبوم",
@@ -1239,7 +1239,7 @@
         "hint": "تكتب USLT/©lyr في الملف الصوتي (متوافق مع foobar2000 وiTunes…)."
       },
       "sidecar": {
-        "label": "ملف Sidecar",
+        "label": "ملف مرافق (Sidecar)",
         "hint": "يكتب .lrc / .txt بجانب الملف الصوتي. لا تُمَس علامات الملف."
       },
       "db_only": {

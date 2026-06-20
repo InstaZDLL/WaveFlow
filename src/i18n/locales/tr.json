@@ -1011,7 +1011,7 @@
     "lyrics": "Sözler",
     "nowPlaying": "Çalan parçayı göster",
     "queue": "Sıra",
-    "miniPlayer": "Mini çalar (her zaman üstte)",
+    "miniPlayer": "Mini oynatıcı (her zaman üstte)",
     "previous": "Önceki parça",
     "next": "Sonraki parça",
     "openFullscreen": "Sürükleyici görünüm",
@@ -1049,7 +1049,7 @@
     "maximize": "Ana pencereyi geri yükle",
     "like": "Beğen",
     "pin": "Her zaman üstte",
-    "close": "Mini çaları kapat"
+    "close": "Mini oynatıcıyı kapat"
   },
   "sleepTimer": {
     "title": "Uyku zamanlayıcısı",
@@ -1603,7 +1603,7 @@
       "subtitle": "Ardışık parçaları mikro sessizlik olmadan birbirine bağlar (canlı ve konsept albümler için idealdir)"
     },
     "equalizer": {
-      "title": "Equalizer",
+      "title": "Ekolayzer",
       "subtitle": "Altı tepe bandı, ±12 dB. Eğriyi şekillendirmek için noktaları sürükle.",
       "presets": "Önayarlar",
       "reset": "Sıfırla",

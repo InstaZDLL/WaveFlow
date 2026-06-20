@@ -183,7 +183,7 @@
       "createPlaylistAria": "Criar uma nova lista de reprodução",
       "importM3uAria": "Importar uma lista de reprodução M3U",
       "importDialogTitle": "Importar uma lista de reprodução M3U",
-      "liked": "Faixas com Gosto",
+      "liked": "Faixas favoritas",
       "recent": "Reproduzidas recentemente",
       "emptySubtext_zero": "0 faixas",
       "emptySubtext_one": "{{count}} faixa",
@@ -262,7 +262,7 @@
     },
     "stats": {
       "library": "Biblioteca",
-      "liked": "Faixas com Gosto",
+      "liked": "Faixas favoritas",
       "recent": "Reproduzidas recentemente",
       "playlists": "Listas de reprodução"
     },
@@ -442,7 +442,7 @@
   },
   "liked": {
     "badge": "Coleção",
-    "title": "Faixas com Gosto",
+    "title": "Faixas favoritas",
     "count_zero": "0 faixas",
     "count_one": "{{count}} faixa",
     "count_other": "{{count}} faixas",
@@ -461,7 +461,7 @@
     "loadingMore": "A carregar…",
     "endReached": "Início do histórico",
     "emptyTitle": "Sem reproduções",
-    "emptyDescription": "Reproduz uma faixa — aparecerá aqui assim que contar.",
+    "emptyDescription": "Reproduz uma faixa — aparecerá aqui assim que for contabilizada.",
     "shownCount_one": "{{count}} reprodução mostrada",
     "shownCount_other": "{{count}} reproduções mostradas",
     "plays_one": "{{count}} reprodução",
@@ -502,7 +502,7 @@
       "uniqueArtists_zero": "0 artistas",
       "uniqueArtists_one": "{{count}} artista",
       "uniqueArtists_other": "{{count}} artistas",
-      "completionRate": "Taxa de audição completa"
+      "completionRate": "Taxa de reprodução integral"
     },
     "byDay": {
       "title": "Atividade diária",
@@ -595,7 +595,7 @@
         "warm": "Quente",
         "groove": "Groove",
         "energetic": "Energético",
-        "fire": "Fogo"
+        "fire": "Intenso"
       }
     },
     "clock": {
@@ -1641,7 +1641,7 @@
       "retentionKeep_one": "{{count}} arquivo por perfil",
       "retentionKeep_other": "{{count}} arquivos por perfil",
       "includeMetadataArtworkLabel": "Incluir cache de imagens Deezer",
-      "includeMetadataArtworkHint": "Cópia de segurança maior, restauro totalmente offline. Desmarca para arquivos leves (o cache será obtido novamente sob pedido).",
+      "includeMetadataArtworkHint": "Cópia de segurança maior, restauro totalmente offline. Desmarca para cópias leves (o cache será obtido novamente sob pedido).",
       "changeFolder": "Alterar pasta",
       "pickFolderTitle": "Escolher a pasta de cópias",
       "lastRun": "Última cópia: {{when}}",
@@ -1850,7 +1850,7 @@
     }
   },
   "share": {
-    "title": "Partilhar a playlist",
+    "title": "Partilhar a lista de reprodução",
     "subtitle": "Gere uma ligação pública para “{{name}}”. Qualquer pessoa poderá abri-la num navegador.",
     "idleHint": "A ligação permanecerá ativa até a revogares. Podes desativá-la a qualquer momento nesta janela.",
     "mint": "Gerar ligação",

@@ -1011,7 +1011,7 @@
     "lyrics": "Testi",
     "nowPlaying": "Mostra in riproduzione",
     "queue": "Coda",
-    "miniPlayer": "Mini player (sempre in primo piano)",
+    "miniPlayer": "Mini-player (sempre in primo piano)",
     "previous": "Brano precedente",
     "next": "Brano successivo",
     "openFullscreen": "Vista immersiva",
@@ -1049,7 +1049,7 @@
     "maximize": "Ripristina la finestra principale",
     "like": "Mi piace",
     "pin": "Sempre in primo piano",
-    "close": "Chiudi il mini player"
+    "close": "Chiudi il mini-player"
   },
   "sleepTimer": {
     "title": "Timer di spegnimento",

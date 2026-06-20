@@ -37,7 +37,7 @@
     "defaultLibraryName": "音樂",
     "welcome": {
       "title": "歡迎使用 WaveFlow",
-      "description": "你的個人本地優先音樂播放器。無需串流訂閱，盡情享受整個音樂庫。"
+      "description": "你的個人本機優先音樂播放器。無需串流訂閱，盡情享受整個音樂庫。"
     },
     "localOnly": {
       "title": "重要：僅限本地音樂",
@@ -226,7 +226,7 @@
         "bpm": "BPM(從 → 至)",
         "durationMin": "時長（分鐘）(從 → 至)",
         "format": "格式",
-        "genres": "類型"
+        "genres": "曲風"
       }
     },
     "theme": {
@@ -349,7 +349,7 @@
       "morceaux": "曲目",
       "albums": "專輯",
       "artistes": "藝人",
-      "genres": "類型",
+      "genres": "曲風",
       "dossiers": "資料夾"
     },
     "empty": {
@@ -1160,7 +1160,7 @@
     },
     "tree": {
       "sectionTitle": "規則",
-      "sectionHint": "以 且 / 或 / 非 組合條件。點按 且 或 或 來切換群組的運算子。",
+      "sectionHint": "以「且」/「或」/「非」組合條件。點擊「且」或「或」來切換群組的運算子。",
       "and": "且",
       "or": "或",
       "not": "非",
@@ -1177,7 +1177,7 @@
       "addGroupOr": "或 群組",
       "addNot": "非",
       "contains": "包含…",
-      "pickGenre": "選擇風格…"
+      "pickGenre": "選擇曲風…"
     },
     "predicates": {
       "titleContains": "標題包含",
@@ -1286,7 +1286,7 @@
       "data": "資料",
       "plugins": "外掛",
       "diagnostics": "診斷",
-      "shortcuts": "鍵盤快速鍵"
+      "shortcuts": "鍵盤快捷鍵"
     },
     "plugins": {
       "title": "已安裝的外掛",
