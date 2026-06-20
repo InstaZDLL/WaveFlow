@@ -484,26 +484,42 @@
    because the two alphas multiply (0.55 × 0.95 = 0.52, basically
    unchanged from 0.55). Solid-alpha gradients give the saturated
    cards that white text actually reads on. */
+/* Paint the gradient DIRECTLY on the tile element (not the ::before
+   pseudo) for the light variant. The pseudo route was fragile in
+   three ways:
+   - it sits behind the tile body at z-index -1 and depends on the
+     parent's stacking context staying as expected,
+   - the `opacity` transition (240ms) on the pseudo races with
+     theme/skin re-application during profile load — `.dark` can flip
+     on briefly while the DB row is being read by ThemeContext, and
+     the `:not(.dark)` rule stops matching → cards fade to the
+     0.55-alpha gradient and look white,
+   - view transitions snapshot the paint at the moment of click; if
+     the snapshot caught the wrong state the tile stays pale until
+     the transition tears down.
+   Painting on the element itself bypasses all three traps — the
+   tile renders as a saturated colored surface from the first paint,
+   and stays that way regardless of cascade ordering, .dark flips,
+   or view-transition snapshots. We also `display: none` the ::before
+   so the two layers don't double-stack and re-introduce the flicker
+   when the user picks an interactive state mid-transition. */
+:root[data-skin="liquid"]:not(.dark) .liquid-mood-focus {
+  background-image: linear-gradient(135deg, rgb(99 102 241), rgb(37 99 235)) !important;
+}
+:root[data-skin="liquid"]:not(.dark) .liquid-mood-chill {
+  background-image: linear-gradient(135deg, rgb(245 158 11), rgb(217 119 6)) !important;
+}
+:root[data-skin="liquid"]:not(.dark) .liquid-mood-workout {
+  background-image: linear-gradient(135deg, rgb(244 63 94), rgb(219 39 119)) !important;
+}
+:root[data-skin="liquid"]:not(.dark) .liquid-mood-party {
+  background-image: linear-gradient(135deg, rgb(168 85 247), rgb(217 70 239)) !important;
+}
+:root[data-skin="liquid"]:not(.dark) .liquid-mood-sleep {
+  background-image: linear-gradient(135deg, rgb(8 145 178), rgb(30 64 175)) !important;
+}
 :root[data-skin="liquid"]:not(.dark) .liquid-mood-tile::before {
-  opacity: 0.95;
-}
-:root[data-skin="liquid"]:not(.dark) .liquid-mood-tile:hover::before {
-  opacity: 1;
-}
-:root[data-skin="liquid"]:not(.dark) .liquid-mood-focus::before {
-  background: linear-gradient(135deg, rgb(99 102 241), rgb(37 99 235));
-}
-:root[data-skin="liquid"]:not(.dark) .liquid-mood-chill::before {
-  background: linear-gradient(135deg, rgb(245 158 11), rgb(217 119 6));
-}
-:root[data-skin="liquid"]:not(.dark) .liquid-mood-workout::before {
-  background: linear-gradient(135deg, rgb(244 63 94), rgb(219 39 119));
-}
-:root[data-skin="liquid"]:not(.dark) .liquid-mood-party::before {
-  background: linear-gradient(135deg, rgb(168 85 247), rgb(217 70 239));
-}
-:root[data-skin="liquid"]:not(.dark) .liquid-mood-sleep::before {
-  background: linear-gradient(135deg, rgb(8 145 178), rgb(30 64 175));
+  display: none;
 }
 
 :root[data-skin="liquid"] .liquid-mood-icon {
