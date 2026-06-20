@@ -705,16 +705,20 @@
 ) {
   color: var(--liq-ink) !important;
   /* Bleed-through suppression for content-heavy popovers (Audio
-     Pipeline, Now Playing share card, etc.) when the body
-     underneath is a saturated album cover. Iteration history:
-     - 18% glass-tint + 40px blur (original) — covers showed through
-       at full chroma, text unreadable
-     - 32% + 64px (first pass) — still rendered recognisable faces
-       in the album artwork behind the glass
-     - 55% + 80px (current) — covers diffuse into a neutral wash;
-       text contrast holds even on the highest-chroma covers
-     Light mode follows the same logic via :not(.dark) below. */
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 55%, transparent) !important;
+     Pipeline, Now Playing share card, etc.). The first two
+     iterations (18% then 32% then 55% glass-tint) still let
+     recognisable album artwork through because `--liq-glass-tint`
+     is a LIGHT grey (rgb 187 187 188) — even 55% of light grey
+     mixed with transparent over a saturated cover keeps the
+     cover's chroma. The light branch below works exactly because
+     it uses pure `white 92%` (a dense opaque base), not the same
+     light-grey tint scaled up.
+     Mirror that pattern in dark: black at 88% gives a dense dark
+     base that holds the codec / sample-rate text contrast on
+     every cover. The Liquid material identity stays via the
+     8-layer inset `box-shadow` recipe — that's what reads as
+     glass, not the body transparency. */
+  background-color: color-mix(in srgb, black 88%, transparent) !important;
   background-image: none !important;
   border: 0 !important;
   border-radius: 1.5rem !important;
