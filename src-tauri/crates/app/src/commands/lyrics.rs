@@ -851,7 +851,15 @@ pub async fn fetch_lyrics(
             // caching a miss. These sources are query-based and less
             // strict than LRCLIB's metadata endpoint, so they only run
             // after the exact lookup fails.
-            if let Some(result) = external_lyrics_search(
+            //
+            // A fallback-chain Err here is non-fatal: LRCLIB has already
+            // given us a definitive 404, so a downstream provider
+            // erroring (e.g. megalobiz returning HTTP 500 on a query
+            // with special chars) shouldn't poison the whole fetch.
+            // Log + treat as a clean miss + cache empty so the panel
+            // shows the friendly "no lyrics found" state instead of
+            // surfacing a raw `http request failed` to the user.
+            match external_lyrics_search(
                 &meta,
                 external_fallback_providers(),
                 SearchMode::PreferSynced,
@@ -860,11 +868,15 @@ pub async fn fetch_lyrics(
                 // would drop the lang anyway. Keep it `None` to flag intent.
                 None,
             )
-            .await?
+            .await
             {
-                return cache_external_lyrics(&pool, track_id, &meta.file_hash, result)
-                    .await
-                    .map(Some);
+                Ok(Some(result)) => {
+                    return cache_external_lyrics(&pool, track_id, &meta.file_hash, result)
+                        .await
+                        .map(Some);
+                }
+                Ok(None) => {}
+                Err(err) => tracing::debug!(?err, "external fallback chain failed"),
             }
 
             // No provider had lyrics. Cache as an empty row so we
@@ -929,18 +941,26 @@ pub async fn fetch_lyrics(
         (Some(s), _) if !s.trim().is_empty() => (s, LyricsFormat::Lrc),
         (_, Some(p)) if !p.trim().is_empty() => (p, LyricsFormat::Plain),
         _ => {
-            if let Some(result) = external_lyrics_search(
+            // Same graceful-degradation rule as the 404 branch above:
+            // LRCLIB definitively returned an entry but it was empty,
+            // so a downstream provider erroring is non-fatal — log and
+            // cache empty instead of propagating the raw error.
+            match external_lyrics_search(
                 &meta,
                 external_fallback_providers(),
                 SearchMode::PreferSynced,
                 true,
                 None,
             )
-            .await?
+            .await
             {
-                return cache_external_lyrics(&pool, track_id, &meta.file_hash, result)
-                    .await
-                    .map(Some);
+                Ok(Some(result)) => {
+                    return cache_external_lyrics(&pool, track_id, &meta.file_hash, result)
+                        .await
+                        .map(Some);
+                }
+                Ok(None) => {}
+                Err(err) => tracing::debug!(?err, "external fallback chain failed"),
             }
 
             let empty = String::new();
