@@ -23,7 +23,8 @@ use waveflow_core::plugin::runtime::{source_list_entries, source_resolve, source
 
 use crate::audio::{AudioCmd, AudioEngine};
 use crate::error::{AppError, AppResult};
-use crate::state::{AppState, is_bundled_plugin};
+use crate::state::AppState;
+use waveflow_core::plugin::is_bundled_plugin;
 
 /// Acquire the per-plugin write lock. Inserts a fresh `Mutex<()>`
 /// into the runtime's map the first time we see this id; returns
@@ -166,14 +167,66 @@ async fn read_enabled(app_db: &sqlx::SqlitePool, plugin_id: &str) -> AppResult<b
     Ok(row.map(|v| v == "true" || v == "1").unwrap_or(true))
 }
 
-/// List every plugin installed under `<app-data>/waveflow/plugins/`.
+/// Walk one install root and collect (id, manifest) pairs for every
+/// subdirectory whose `manifest.toml` parses cleanly and whose
+/// declared id matches the directory name. Missing dirs return an
+/// empty vec (a fresh install has no sideload tree). Other IO errors
+/// propagate.
 ///
-/// Iterates the install root, parses each subdirectory's
-/// `manifest.toml`, and returns a `PluginInfo` per valid plugin.
-/// Subdirectories with a missing or malformed manifest are silently
-/// skipped + logged at warn level — listing must never fail because
-/// one entry is corrupt; the user should still be able to see (and
-/// uninstall) their other plugins.
+/// Pure helper so [`list_installed_plugins`] can call it twice (once
+/// for `bundled_root`, once for `plugins_root`) and merge.
+fn walk_install_root(root: &std::path::Path) -> AppResult<Vec<(String, Manifest)>> {
+    let mut out = Vec::new();
+    let entries = match fs::read_dir(root) {
+        Ok(e) => e,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(out),
+        Err(e) => return Err(AppError::Io(e)),
+    };
+    for entry in entries.flatten() {
+        let dir = entry.path();
+        let Some(plugin_id) = dir.file_name().and_then(|n| n.to_str()).map(str::to_string) else {
+            continue;
+        };
+        let manifest_path = dir.join("manifest.toml");
+        match Manifest::load_from_path(&manifest_path) {
+            Ok(manifest) => {
+                // Pin: install dir name MUST match the manifest's
+                // declared id. The runtime refuses to load a
+                // mismatched plugin (Phase 2b's load-time guard),
+                // so skip it here too rather than surfacing a
+                // dangling row the user can't actually run.
+                if manifest.plugin.id != plugin_id {
+                    tracing::warn!(
+                        plugin_id,
+                        manifest_id = %manifest.plugin.id,
+                        "skipping plugin with id mismatch between dir and manifest"
+                    );
+                    continue;
+                }
+                out.push((plugin_id, manifest));
+            }
+            Err(err) => {
+                tracing::warn!(plugin_id, ?err, "skipping unreadable plugin manifest");
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// List every plugin the runtime can load. Walks two roots:
+///
+/// 1. `<resource_dir>/plugins/` — installer-bundled tree (read-only).
+///    Source of truth for first-party ids (currently `web-radio`).
+/// 2. `<app-data>/waveflow/plugins/` — sideloaded tree (writable).
+///    Holds anything the user installs themselves.
+///
+/// Bundled wins on collision: if a sideloaded dir somehow declares a
+/// bundled id (shouldn't happen post-cleanup, but defence-in-depth),
+/// the bundled copy is the one the runtime would actually load via
+/// [`PluginPaths::plugin_dir`], so we surface that one and drop the
+/// duplicate from the list. Sideloaded subdirectories with a missing
+/// or malformed manifest are silently skipped + logged at warn level
+/// — listing must never fail because one entry is corrupt.
 ///
 /// The FS walk + TOML parse run on a blocking thread (each manifest
 /// is a `read_to_string` + `toml::from_str`, both sync); the
@@ -183,40 +236,31 @@ async fn read_enabled(app_db: &sqlx::SqlitePool, plugin_id: &str) -> AppResult<b
 pub async fn list_installed_plugins(state: State<'_, AppState>) -> AppResult<Vec<PluginInfo>> {
     let paths = state.paths.plugin_paths();
     let manifests = tokio::task::spawn_blocking(move || -> AppResult<Vec<(String, Manifest)>> {
+        let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
         let mut out = Vec::new();
-        let entries = match fs::read_dir(&paths.plugins_root) {
-            Ok(e) => e,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(out),
-            Err(e) => return Err(AppError::Io(e)),
-        };
-        for entry in entries.flatten() {
-            let dir = entry.path();
-            let Some(plugin_id) = dir.file_name().and_then(|n| n.to_str()).map(str::to_string)
-            else {
-                continue;
-            };
-            let manifest_path = dir.join("manifest.toml");
-            match Manifest::load_from_path(&manifest_path) {
-                Ok(manifest) => {
-                    // Pin: install dir name MUST match the manifest's
-                    // declared id. The runtime refuses to load a
-                    // mismatched plugin (Phase 2b's load-time guard),
-                    // so skip it here too rather than surfacing a
-                    // dangling row the user can't actually run.
-                    if manifest.plugin.id != plugin_id {
-                        tracing::warn!(
-                            plugin_id,
-                            manifest_id = %manifest.plugin.id,
-                            "skipping plugin with id mismatch between dir and manifest"
-                        );
-                        continue;
-                    }
-                    out.push((plugin_id, manifest));
-                }
-                Err(err) => {
-                    tracing::warn!(plugin_id, ?err, "skipping unreadable plugin manifest");
-                }
+
+        // Bundled tree FIRST so its ids own the slot on any collision
+        // with a stray sideloaded entry. `bundled_root` is optional
+        // because dev builds without a bundle still need to list
+        // sideloaded plugins.
+        if let Some(bundled_root) = paths.bundled_root.as_deref() {
+            for (id, manifest) in walk_install_root(bundled_root)? {
+                seen.insert(id.clone());
+                out.push((id, manifest));
             }
+        }
+
+        // Sideloaded tree second; skip any id the bundled walk
+        // already claimed.
+        for (id, manifest) in walk_install_root(&paths.plugins_root)? {
+            if seen.contains(&id) {
+                tracing::warn!(
+                    plugin_id = %id,
+                    "sideloaded plugin shadows a bundled id; skipping the sideloaded copy"
+                );
+                continue;
+            }
+            out.push((id, manifest));
         }
         Ok(out)
     })
