@@ -704,21 +704,22 @@
   [class*="shadow-2xl"]
 ) {
   color: var(--liq-ink) !important;
-  /* 18% → 32% in dark and 82% → 92% in light (see :not(.dark)
-     override below). The lower values look great over a calm
-     library row but content-heavy popovers like the Audio Pipeline
-     bleed too much when the user pauses on an album with a
-     saturated cover — text becomes unreadable. 32% / 92% keeps
-     the panel readable while still reading as glass over the
-     animated aurora body. Blur bumped 40px → 64px so whatever
-     does bleed through diffuses into a soft wash rather than
-     showing recognisable artwork. */
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 32%, transparent) !important;
+  /* Bleed-through suppression for content-heavy popovers (Audio
+     Pipeline, Now Playing share card, etc.) when the body
+     underneath is a saturated album cover. Iteration history:
+     - 18% glass-tint + 40px blur (original) — covers showed through
+       at full chroma, text unreadable
+     - 32% + 64px (first pass) — still rendered recognisable faces
+       in the album artwork behind the glass
+     - 55% + 80px (current) — covers diffuse into a neutral wash;
+       text contrast holds even on the highest-chroma covers
+     Light mode follows the same logic via :not(.dark) below. */
+  background-color: color-mix(in srgb, var(--liq-glass-tint) 55%, transparent) !important;
   background-image: none !important;
   border: 0 !important;
   border-radius: 1.5rem !important;
-  backdrop-filter: blur(64px) saturate(var(--liq-saturation));
-  -webkit-backdrop-filter: blur(64px) saturate(var(--liq-saturation));
+  backdrop-filter: blur(80px) saturate(var(--liq-saturation));
+  -webkit-backdrop-filter: blur(80px) saturate(var(--liq-saturation));
   box-shadow: var(--liquid-glass) !important;
 }
 
