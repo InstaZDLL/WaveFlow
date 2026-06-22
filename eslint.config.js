@@ -16,6 +16,10 @@ export default tseslint.config(
       "scripts/**",
       "secrets/**",
       "packaging/**",
+      // AI agent skills / tooling — not application code (Node globals,
+      // hook-shaped helpers) and not ours to lint.
+      ".claude/**",
+      ".agents/**",
       "**/*.config.ts",
       "**/*.config.js",
       "**/.commitlintrc.cjs",
