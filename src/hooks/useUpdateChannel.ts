@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getUpdateChannel,
   setUpdateChannel,
@@ -41,10 +41,16 @@ export function useUpdateChannel(): UpdateChannelState {
     };
   }, []);
 
+  // Serialises writes: a rapid second toggle while one is in flight is
+  // ignored, so concurrent upserts can't land out of order and leave the
+  // backend misaligned with the in-memory channel.
+  const writing = useRef(false);
+
   const setChannel = useCallback(
     async (next: UpdateChannel) => {
       const previous = channel;
-      if (next === previous) return;
+      if (next === previous || writing.current) return;
+      writing.current = true;
       setChannelState(next); // optimistic
       try {
         await setUpdateChannel(next);
@@ -54,6 +60,8 @@ export function useUpdateChannel(): UpdateChannelState {
         // Re-throw so callers can skip post-success effects (e.g. the
         // Settings card's updater re-check) when the write didn't land.
         throw err;
+      } finally {
+        writing.current = false;
       }
     },
     [channel],
