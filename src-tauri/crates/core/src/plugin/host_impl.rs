@@ -237,6 +237,9 @@ impl StateStore {
             .write(true)
             .truncate(false)
             .open(&lock_path)?;
+        // `File::lock` is stable since Rust 1.89; clippy infers a lower MSRV
+        // from the edition since the workspace declares no `rust-version`.
+        #[allow(clippy::incompatible_msrv)]
         lock_file.lock()?;
 
         let existing_total = sum_state_dir_bytes(&self.dir, Some(&path), &lock_path)?;

@@ -46,7 +46,7 @@ impl Provider {
     /// frontend (e.g. user-picked provider in `refetch_lyrics`) maps
     /// back to the original variant. Returns `None` for any unknown
     /// id so the host can reject unknown values explicitly.
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn from_id(s: &str) -> Option<Self> {
         match s {
             "musixmatch" => Some(Provider::Musixmatch),
             "lrclib" => Some(Provider::Lrclib),

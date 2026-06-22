@@ -1081,7 +1081,7 @@ pub async fn refetch_lyrics(
         return fetch_lyrics(state, track_id).await;
     };
 
-    let Some(provider) = Provider::from_str(provider_str) else {
+    let Some(provider) = Provider::from_id(provider_str) else {
         return Err(AppError::Other(format!(
             "unknown lyrics provider: {provider_str}"
         )));

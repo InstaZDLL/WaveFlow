@@ -575,8 +575,8 @@ pub struct PluginTrack {
 /// `set_plugin_enabled` / `uninstall_plugin` can't race us mid-
 /// invocation), refuse if the user disabled the plugin in
 /// Settings.
-async fn source_preamble<'a>(
-    state: &'a AppState,
+async fn source_preamble(
+    state: &AppState,
     plugin_id: &str,
 ) -> AppResult<OwnedMutexGuard<()>> {
     validate_plugin_id_chars(plugin_id)?;

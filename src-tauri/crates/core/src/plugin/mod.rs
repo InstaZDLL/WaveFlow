@@ -42,7 +42,7 @@ pub const BUNDLED_PLUGINS: &[&str] = &["web-radio"];
 /// installer would re-seed the tree on next launch so the uninstall
 /// reads as a bug), and by the UI to render a "bundled" badge.
 pub fn is_bundled_plugin(plugin_id: &str) -> bool {
-    BUNDLED_PLUGINS.iter().any(|id| *id == plugin_id)
+    BUNDLED_PLUGINS.contains(&plugin_id)
 }
 
 /// Three parallel roots resolved by the host:
