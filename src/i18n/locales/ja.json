@@ -1828,6 +1828,10 @@
     "lyricsDestination": {
       "title": "保存される歌詞の保存先",
       "subtitle": "エディターで入力した歌詞の保存先。編集ごとに上書き可能。"
+    },
+    "updateChannel": {
+      "title": "ベータチャンネル",
+      "subtitle": "安定版より前にプレリリースビルドを受け取ります。ベータ版は不安定な場合があります。"
     }
   },
   "scanProgress": {

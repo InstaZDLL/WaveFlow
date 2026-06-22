@@ -1828,6 +1828,10 @@
     "lyricsDestination": {
       "title": "Speicherort für bearbeitete Liedtexte",
       "subtitle": "Wo Liedtexte aus dem Editor landen. Bei jeder Bearbeitung überschreibbar."
+    },
+    "updateChannel": {
+      "title": "Beta-Kanal",
+      "subtitle": "Erhalte Vorabversionen vor der stabilen Veröffentlichung. Betas können instabil sein."
     }
   },
   "spotify": {

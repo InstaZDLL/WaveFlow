@@ -1,0 +1,81 @@
+name: Cut beta
+
+# Manually cut a pre-release build without touching the release-please
+# stable flow. Computes the next `v<base>-beta.N` tag, pushes it, then
+# dispatches release.yml.
+#
+# Why dispatch instead of relying on the tag push: a tag pushed with the
+# default GITHUB_TOKEN does NOT trigger other workflows (GitHub's
+# anti-recursion safeguard — the same reason release.yml dispatches its
+# downstream workflows explicitly). So we push the tag (for the
+# checkout ref + record) and then kick release.yml via its
+# workflow_dispatch `tag_name` input.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_version:
+        description: "Base version for the beta, e.g. 1.5.2 (tag becomes v1.5.2-beta.N)"
+        required: true
+        type: string
+
+permissions:
+  contents: write # push the tag
+  actions: write # dispatch release.yml
+
+concurrency:
+  group: cut-beta
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Compute next beta tag, push, and dispatch release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE: ${{ github.event.inputs.base_version }}
+        run: |
+          set -euo pipefail
+          # Tolerate a leading "v" if the user typed one.
+          BASE="${BASE#v}"
+          if ! [[ "$BASE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::base_version must be MAJOR.MINOR.PATCH (got '$BASE')"
+            exit 1
+          fi
+
+          git fetch --tags --force
+
+          # Find the highest existing beta number for this base version.
+          MAX=0
+          while IFS= read -r t; do
+            [ -z "$t" ] && continue
+            N="${t##*.}"
+            if [[ "$N" =~ ^[0-9]+$ ]] && [ "$N" -gt "$MAX" ]; then
+              MAX="$N"
+            fi
+          done < <(git tag --list "v${BASE}-beta.*")
+
+          NEXT=$((MAX + 1))
+          TAG="v${BASE}-beta.${NEXT}"
+
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            echo "::error::Tag ${TAG} already exists"
+            exit 1
+          fi
+
+          echo "Cutting beta tag ${TAG} at $(git rev-parse --short HEAD)"
+          git tag "$TAG"
+          git push origin "$TAG"
+
+          # The push won't trigger release.yml (GITHUB_TOKEN safeguard),
+          # so dispatch it explicitly against the freshly-pushed tag.
+          gh workflow run release.yml -f tag_name="$TAG"
+          echo "Dispatched release.yml for ${TAG}"

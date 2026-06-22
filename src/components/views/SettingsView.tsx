@@ -143,6 +143,7 @@ import { HiResBadgeCard } from "./settings/HiResBadgeCard";
 import { SkinPickerCard } from "./settings/SkinPickerCard";
 import { FullscreenLyricsCenteringCard } from "./settings/FullscreenLyricsCenteringCard";
 import { LyricsDestinationCard } from "./settings/LyricsDestinationCard";
+import { UpdateChannelCard } from "./settings/UpdateChannelCard";
 
 interface SettingsViewProps {
   onNavigate: (view: ViewId) => void;
@@ -3416,6 +3417,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 </div>
               </div>
             </div>
+            <UpdateChannelCard />
           </div>
         </section>
       )}

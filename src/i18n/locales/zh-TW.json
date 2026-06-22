@@ -1828,6 +1828,10 @@
     "lyricsDestination": {
       "title": "已儲存歌詞的位置",
       "subtitle": "編輯器中輸入的歌詞會儲存到何處。可在每次編輯時覆寫。"
+    },
+    "updateChannel": {
+      "title": "測試版通道",
+      "subtitle": "在穩定版發布前接收預發布版本。測試版可能不穩定。"
     }
   },
   "scanProgress": {

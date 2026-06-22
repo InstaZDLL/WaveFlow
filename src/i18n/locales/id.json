@@ -1828,6 +1828,10 @@
     "lyricsDestination": {
       "title": "Tujuan lirik tersimpan",
       "subtitle": "Tempat lirik dari editor disimpan. Dapat di-override per pengeditan."
+    },
+    "updateChannel": {
+      "title": "Saluran beta",
+      "subtitle": "Terima versi pra-rilis sebelum rilis stabil. Versi beta mungkin tidak stabil."
     }
   },
   "spotify": {

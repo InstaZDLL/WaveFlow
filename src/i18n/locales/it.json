@@ -1828,6 +1828,10 @@
     "lyricsDestination": {
       "title": "Destinazione dei testi salvati",
       "subtitle": "Dove vanno i testi scritti nell'editor. Puoi sovrascrivere a ogni modifica."
+    },
+    "updateChannel": {
+      "title": "Canale beta",
+      "subtitle": "Ricevi le versioni in anteprima prima del rilascio stabile. Le beta possono essere instabili."
     }
   },
   "spotify": {
