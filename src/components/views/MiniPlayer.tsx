@@ -117,14 +117,20 @@ export function MiniPlayer() {
     if (isSpotify) return;
     fetchQueue();
     let unlisten: UnlistenFn | null = null;
+    let cancelled = false;
     (async () => {
       try {
-        unlisten = await listen("player:queue-changed", fetchQueue);
+        const fn = await listen("player:queue-changed", fetchQueue);
+        // Cleanup may have run before `listen()` resolved — tear the
+        // subscription down right away so it doesn't leak past unmount.
+        if (cancelled) fn();
+        else unlisten = fn;
       } catch (err) {
         console.error("[MiniPlayer] queue listen failed", err);
       }
     })();
     return () => {
+      cancelled = true;
       unlisten?.();
     };
   }, [isSpotify, fetchQueue]);
