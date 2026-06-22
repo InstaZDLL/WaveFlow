@@ -19,9 +19,11 @@ import {
   Repeat,
   Repeat1,
   Shuffle,
+  ListMusic,
 } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Window as TauriWindow } from "@tauri-apps/api/window";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
 import { Artwork } from "../common/Artwork";
 import { resolveArtwork } from "../../lib/tauri/artwork";
@@ -29,6 +31,11 @@ import { dominantColor, darken, rgb } from "../../lib/dominantColor";
 import { listLikedTrackIds, toggleLikeTrack } from "../../lib/tauri/track";
 import { formatDuration } from "../../lib/tauri/track";
 import { setMiniPlayerBounds } from "../../lib/tauri/preferences";
+import {
+  playerGetQueue,
+  playerJumpToIndex,
+  type PlayerQueueSnapshot,
+} from "../../lib/tauri/player";
 
 /**
  * Spotify-style always-on-top widget. Square cover floats centered
@@ -83,6 +90,58 @@ export function MiniPlayer() {
       console.error("[MiniPlayer] like failed", err);
     }
   };
+
+  // ── Up-next queue (own webview = own fetch + event subscription) ─
+  // Mirrors QueuePanel: load once, refetch on `player:queue-changed`,
+  // guarded by a seq counter so overlapping refetches (rapid Next)
+  // never resolve out of order. Spotify playback uses a different
+  // queue source, so the panel is local-library only — matching how
+  // the like button is gated above.
+  const [showQueue, setShowQueue] = useState(false);
+  const [queue, setQueue] = useState<PlayerQueueSnapshot | null>(null);
+  const queueSeqRef = useRef(0);
+
+  const fetchQueue = useCallback(() => {
+    const seq = ++queueSeqRef.current;
+    playerGetQueue()
+      .then((q) => {
+        if (seq === queueSeqRef.current) setQueue(q);
+      })
+      .catch((err) => {
+        console.error("[MiniPlayer] queue fetch failed", err);
+        if (seq === queueSeqRef.current) setQueue(null);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (isSpotify) return;
+    fetchQueue();
+    let unlisten: UnlistenFn | null = null;
+    (async () => {
+      try {
+        unlisten = await listen("player:queue-changed", fetchQueue);
+      } catch (err) {
+        console.error("[MiniPlayer] queue listen failed", err);
+      }
+    })();
+    return () => {
+      unlisten?.();
+    };
+  }, [isSpotify, fetchQueue]);
+
+  const currentIndex = queue?.current_index ?? -1;
+  const upNext = useMemo(() => {
+    if (!queue) return [];
+    return queue.items
+      .slice(Math.max(0, currentIndex + 1))
+      .map((item, i) => ({ item, absoluteIndex: currentIndex + 1 + i }));
+  }, [queue, currentIndex]);
+
+  const handleJump = useCallback((absoluteIndex: number) => {
+    playerJumpToIndex(absoluteIndex).catch((err) =>
+      console.error("[MiniPlayer] jump failed", err),
+    );
+  }, []);
 
   // ── Cover-derived background gradient ───────────────────────────
   const artworkUrl = useMemo(() => {
@@ -253,7 +312,7 @@ export function MiniPlayer() {
 
   return (
     <div
-      className="h-screen w-screen flex flex-col overflow-hidden text-white select-none"
+      className="relative h-screen w-screen flex flex-col overflow-hidden text-white select-none"
       style={{ background: gradient }}
     >
       {/* Top bar. The middle dot strip is the OS-level drag region;
@@ -301,6 +360,22 @@ export function MiniPlayer() {
           ))}
         </div>
         <div className="flex items-center gap-0.5">
+          {!isSpotify && (
+            <button
+              type="button"
+              onClick={() => setShowQueue((v) => !v)}
+              aria-label={t("miniPlayer.upNext.toggle")}
+              title={t("miniPlayer.upNext.toggle")}
+              aria-pressed={showQueue}
+              className={`p-1 rounded-full transition-colors ${
+                showQueue
+                  ? "text-emerald-400 hover:bg-white/10"
+                  : "text-white/60 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              <ListMusic size={12} />
+            </button>
+          )}
           <button
             type="button"
             onClick={handleMaximize}
@@ -422,6 +497,56 @@ export function MiniPlayer() {
           <span>{formatDuration(durationMs)}</span>
         </div>
       </div>
+
+      {/* Up-next overlay — slides over the content area below the top
+          bar (which stays reachable so the toggle/close still work).
+          Local-library only; gated with the toggle button above. */}
+      {showQueue && !isSpotify && (
+        <div className="absolute inset-x-0 bottom-0 top-7 z-20 flex flex-col bg-black/55 backdrop-blur-md animate-fade-in">
+          <div className="flex items-center justify-between px-3 py-2 shrink-0">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">
+              {t("miniPlayer.upNext.title", { count: upNext.length })}
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowQueue(false)}
+              aria-label={t("common.close")}
+              className="p-1 -mr-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <X size={13} />
+            </button>
+          </div>
+          {upNext.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center px-4 text-center text-[11px] text-white/50">
+              {t("miniPlayer.upNext.empty")}
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto scrollbar-hide px-2 pb-2 space-y-0.5">
+              {upNext.map(({ item, absoluteIndex }) => (
+                <button
+                  key={absoluteIndex}
+                  type="button"
+                  onClick={() => handleJump(absoluteIndex)}
+                  title={`${item.title} — ${item.artist_name ?? ""}`}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left hover:bg-white/10 transition-colors"
+                >
+                  <span className="w-4 shrink-0 text-right text-[10px] tabular-nums text-white/40">
+                    {absoluteIndex - currentIndex}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xs text-white">
+                      {item.title}
+                    </div>
+                    <div className="truncate text-[10px] text-white/60">
+                      {item.artist_name ?? "—"}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

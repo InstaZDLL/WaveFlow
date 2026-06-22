@@ -1049,7 +1049,12 @@
     "maximize": "Ana pencereyi geri yükle",
     "like": "Beğen",
     "pin": "Her zaman üstte",
-    "close": "Mini oynatıcıyı kapat"
+    "close": "Mini oynatıcıyı kapat",
+    "upNext": {
+      "toggle": "Sıradakiler",
+      "title": "Sıradaki · {{count}}",
+      "empty": "Sırada başka bir şey yok"
+    }
   },
   "sleepTimer": {
     "title": "Uyku zamanlayıcısı",

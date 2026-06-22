@@ -1049,7 +1049,12 @@
     "maximize": "Ripristina la finestra principale",
     "like": "Mi piace",
     "pin": "Sempre in primo piano",
-    "close": "Chiudi il mini-player"
+    "close": "Chiudi il mini-player",
+    "upNext": {
+      "toggle": "Coda di riproduzione",
+      "title": "In arrivo · {{count}}",
+      "empty": "Nient'altro in coda"
+    }
   },
   "sleepTimer": {
     "title": "Timer di spegnimento",

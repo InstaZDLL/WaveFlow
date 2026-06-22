@@ -1049,7 +1049,12 @@
     "maximize": "Restaurar janela principal",
     "like": "Curtir",
     "pin": "Sempre no topo",
-    "close": "Fechar mini-player"
+    "close": "Fechar mini-player",
+    "upNext": {
+      "toggle": "Fila de reprodução",
+      "title": "A seguir · {{count}}",
+      "empty": "Nada mais na fila"
+    }
   },
   "sleepTimer": {
     "title": "Temporizador para dormir",

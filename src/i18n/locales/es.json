@@ -1049,7 +1049,12 @@
     "maximize": "Restaurar ventana principal",
     "like": "Me gusta",
     "pin": "Siempre en primer plano",
-    "close": "Cerrar mini reproductor"
+    "close": "Cerrar mini reproductor",
+    "upNext": {
+      "toggle": "Cola de reproducción",
+      "title": "A continuación · {{count}}",
+      "empty": "Nada más en la cola"
+    }
   },
   "sleepTimer": {
     "title": "Temporizador",

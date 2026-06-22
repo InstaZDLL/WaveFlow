@@ -1049,7 +1049,12 @@
     "maximize": "Hauptfenster wiederherstellen",
     "like": "Liken",
     "pin": "Immer im Vordergrund",
-    "close": "Mini-Player schließen"
+    "close": "Mini-Player schließen",
+    "upNext": {
+      "toggle": "Warteschlange",
+      "title": "Als Nächstes · {{count}}",
+      "empty": "Nichts weiter in der Warteschlange"
+    }
   },
   "sleepTimer": {
     "title": "Sleep-Timer",
