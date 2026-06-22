@@ -1088,9 +1088,11 @@ pub async fn rescan_local_artist_images(
     // sentinel never appears in (it's an album artist) — resolve its
     // sidecar via the album relationship instead (issue #292). The
     // rows query above already excluded VA via `canonical_name != ?`.
-    if link_va_artist_image(&mut tx, &artwork_dir).await? {
+    if let Some(linked) = link_va_artist_image(&mut tx, &artwork_dir).await? {
         summary.considered += 1;
-        summary.linked += 1;
+        if linked {
+            summary.linked += 1;
+        }
     }
 
     tx.commit().await?;

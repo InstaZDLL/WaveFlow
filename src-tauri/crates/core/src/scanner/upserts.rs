@@ -372,12 +372,14 @@ pub async fn maybe_link_artist_images(
 /// a random album cover to VA. Idempotent: skips when no VA row exists and
 /// (via the `artwork_id IS NULL` filter + [`link_local_artist_image`]'s own
 /// guard) when VA already has artwork from a manual upload or earlier scan.
-/// Returns `true` when a sidecar image was found and linked, `false`
-/// otherwise (no VA row, VA already has artwork, or no sidecar present).
+/// Returns `None` when there's no eligible VA candidate (no VA row, or VA
+/// already has artwork), so callers don't count it as "considered". Returns
+/// `Some(true)` when an eligible VA was linked to a sidecar, `Some(false)`
+/// when an eligible VA had no sidecar to link.
 pub async fn link_va_artist_image(
     conn: &mut sqlx::SqliteConnection,
     artwork_dir: &Path,
-) -> CoreResult<bool> {
+) -> CoreResult<Option<bool>> {
     let va_canon = canonical_name(VARIOUS_ARTISTS_LABEL);
     let va_id: Option<i64> =
         sqlx::query_scalar("SELECT id FROM artist WHERE canonical_name = ? AND artwork_id IS NULL")
@@ -385,7 +387,7 @@ pub async fn link_va_artist_image(
             .fetch_optional(&mut *conn)
             .await?;
     let Some(va_id) = va_id else {
-        return Ok(false);
+        return Ok(None);
     };
 
     // VA tracks are linked through their album, not `track_artist`.
@@ -402,10 +404,10 @@ pub async fn link_va_artist_image(
     for (path,) in paths {
         if let Some(cover) = extract_artist_image(Path::new(&path), &va_canon, artwork_dir) {
             link_local_artist_image(&mut *conn, va_id, &cover).await?;
-            return Ok(true);
+            return Ok(Some(true));
         }
     }
-    Ok(false)
+    Ok(Some(false))
 }
 
 /// Post-scan pass that promotes "tagless" same-title album rows into a
