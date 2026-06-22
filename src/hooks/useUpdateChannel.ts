@@ -49,7 +49,14 @@ export function useUpdateChannel(): UpdateChannelState {
   const setChannel = useCallback(
     async (next: UpdateChannel) => {
       const previous = channel;
-      if (next === previous || writing.current) return;
+      // Already in the desired state — idempotent success, nothing to persist.
+      if (next === previous) return;
+      // A write is in flight: reject so the caller skips post-success
+      // effects (the updater re-check) for a change that didn't apply,
+      // rather than mistaking the busy-skip for a successful write.
+      if (writing.current) {
+        throw new Error("updater channel write already in progress");
+      }
       writing.current = true;
       setChannelState(next); // optimistic
       try {
