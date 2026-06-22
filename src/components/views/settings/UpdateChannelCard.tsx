@@ -16,7 +16,13 @@ export function UpdateChannelCard() {
   const { channel, loaded, setChannel } = useUpdateChannel();
 
   const onToggle = async (enabled: boolean) => {
-    await setChannel(enabled ? "beta" : "stable");
+    try {
+      await setChannel(enabled ? "beta" : "stable");
+    } catch {
+      // Write failed; the hook already rolled the state back. Skip the
+      // re-check so the banner doesn't probe a channel that didn't stick.
+      return;
+    }
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent(UPDATER_RECHECK_EVENT));
     }

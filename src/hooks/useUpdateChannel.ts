@@ -51,6 +51,9 @@ export function useUpdateChannel(): UpdateChannelState {
       } catch (err) {
         console.error("[useUpdateChannel] write failed", err);
         setChannelState(previous); // roll back on failure
+        // Re-throw so callers can skip post-success effects (e.g. the
+        // Settings card's updater re-check) when the write didn't land.
+        throw err;
       }
     },
     [channel],
