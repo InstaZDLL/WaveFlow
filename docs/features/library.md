@@ -79,9 +79,9 @@ Hash-addressed via BLAKE3 into the shared `artwork/<hash>.{jpg,png,webp,…}` ca
 
 Resolution priority in [`commands/browse.rs::get_artist_detail`](../../src-tauri/crates/app/src/commands/browse.rs) is now: **local sidecar → Deezer cache → live Deezer fetch** (last skipped when offline). [`ArtistDetailView`](../../src/components/views/ArtistDetailView.tsx) prefers `artwork_path` over `picture_path` and refuses to clobber a local image with a late-arriving Deezer response.
 
-The `"Various Artists"` sentinel is explicitly excluded so a compilation folder never inherits a stray album cover as an artist photo.
+The `"Various Artists"` sentinel is skipped by the per-track pass because it's an *album* artist — it's written to `album.artist_id` (never to `track_artist`), so the per-track join can't reach it. It's handled separately by [`scanner::link_va_artist_image`](../../src-tauri/crates/core/src/scanner/upserts.rs), which resolves a curated `Various Artists/artist.jpg` (or `Various Artists.jpg`) via the album relationship (issue #292). Because `extract_artist_image` only matches an explicit artist-named sidecar — never a generic `cover.jpg` / `folder.jpg` — VA still never inherits a stray album cover. The helper runs at the end of every scan (after `merge_implicit_compilations`) and inside the rescan below.
 
-For libraries scanned before the feature shipped, [`commands/scan.rs::rescan_local_artist_images`](../../src-tauri/crates/app/src/commands/scan.rs) (exposed as **Settings → Library → Local artist images**) walks every `artist WHERE artwork_id IS NULL` and probes up to 16 tracks per artist with `extract_artist_image`, stopping at the first hit. Already-linked rows are filtered out at the SQL level, so the rescan is cheap to re-run.
+For libraries scanned before the feature shipped, [`commands/scan.rs::rescan_local_artist_images`](../../src-tauri/crates/app/src/commands/scan.rs) (exposed as **Settings → Library → Local artist images**) walks every `artist WHERE artwork_id IS NULL` and probes up to 16 tracks per artist with `extract_artist_image`, stopping at the first hit (plus a dedicated VA pass via the album relationship). Already-linked rows are filtered out at the SQL level, so the rescan is cheap to re-run.
 
 ### Manual override
 

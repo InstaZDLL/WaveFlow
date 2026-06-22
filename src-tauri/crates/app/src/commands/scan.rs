@@ -14,7 +14,8 @@ use walkdir::WalkDir;
 use waveflow_core::scanner::{
     extract_album_artist, extract_artist_image, extract_compilation_flag, extract_cover,
     extract_folder_cover, extract_musical_key, extract_rating, file_type_label, hash_file,
-    link_local_artist_image, maybe_link_artist_images, merge_implicit_compilations, now_millis,
+    link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
+    merge_implicit_compilations, now_millis,
     split_artist_name, upsert_album, upsert_artist, upsert_artist_list, upsert_artwork,
     upsert_genre, ExtractedFile, AUDIO_EXTENSIONS, VARIOUS_ARTISTS_LABEL,
 };
@@ -958,6 +959,20 @@ pub(crate) async fn scan_folder_inner(
         tracing::warn!(?err, "merge_implicit_compilations failed (non-fatal)");
     }
 
+    // VA is an album artist (never in `track_artist`), so the per-track
+    // `maybe_link_artist_images` pass above can't reach it — resolve a
+    // curated `Various Artists/artist.jpg` via the album relationship here
+    // (issue #292). Runs after the merge so a freshly promoted VA row is
+    // covered. Non-fatal: a missing sidecar is the common case.
+    match pool.acquire().await {
+        Ok(mut conn) => {
+            if let Err(err) = link_va_artist_image(&mut conn, artwork_dir).await {
+                tracing::warn!(?err, "link_va_artist_image failed (non-fatal)");
+            }
+        }
+        Err(err) => tracing::warn!(?err, "link_va_artist_image: acquire failed (non-fatal)"),
+    }
+
     tracing::info!(
         folder_id,
         library_id,
@@ -1067,6 +1082,15 @@ pub async fn rescan_local_artist_images(
                 tx_count = 0;
             }
         }
+    }
+
+    // The main loop joins `track_artist`, which the "Various Artists"
+    // sentinel never appears in (it's an album artist) — resolve its
+    // sidecar via the album relationship instead (issue #292). The
+    // rows query above already excluded VA via `canonical_name != ?`.
+    if link_va_artist_image(&mut tx, &artwork_dir).await? {
+        summary.considered += 1;
+        summary.linked += 1;
     }
 
     tx.commit().await?;

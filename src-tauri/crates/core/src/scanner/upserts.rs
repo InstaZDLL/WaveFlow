@@ -318,8 +318,9 @@ pub async fn link_local_artist_image(
 /// artist image from `track_path`. Idempotent — artists that already have
 /// an `artwork_id` are skipped by [`link_local_artist_image`].
 ///
-/// Skips the "Various Artists" sentinel: a compilation folder never holds
-/// a meaningful artist photo and we'd just pin a random album cover to it.
+/// Skips the "Various Artists" sentinel here because VA is an *album*
+/// artist (it never appears in `track_artist`); its sidecar image is
+/// resolved separately via the album relationship in [`link_va_artist_image`].
 pub async fn maybe_link_artist_images(
     conn: &mut sqlx::SqliteConnection,
     artist_raw: Option<&str>,
@@ -352,6 +353,59 @@ pub async fn maybe_link_artist_images(
         }
     }
     Ok(())
+}
+
+/// Resolve a sidecar artist image for the "Various Artists" sentinel.
+///
+/// VA is an *album* artist — it's written to `album.artist_id` by
+/// [`upsert_album`] / [`merge_implicit_compilations`] and never appears in
+/// `track_artist` — so the per-track [`maybe_link_artist_images`] pass can't
+/// reach it. A user who curates a `Various Artists/` folder and drops an
+/// `artist.jpg` (or `Various Artists.jpg`) at its root legitimately wants
+/// that photo on the VA page (issue #292); we resolve it here via the album
+/// relationship instead.
+///
+/// Safe to run unconditionally: [`extract_artist_image`] only matches an
+/// explicit artist-named sidecar (an `artist` / `performer` / `band` stem,
+/// or a stem whose canonical form equals the artist name) — never a generic
+/// `cover` / `folder` / `front` album cover — so this can't accidentally pin
+/// a random album cover to VA. Idempotent: skips when no VA row exists and
+/// (via the `artwork_id IS NULL` filter + [`link_local_artist_image`]'s own
+/// guard) when VA already has artwork from a manual upload or earlier scan.
+/// Returns `true` when a sidecar image was found and linked, `false`
+/// otherwise (no VA row, VA already has artwork, or no sidecar present).
+pub async fn link_va_artist_image(
+    conn: &mut sqlx::SqliteConnection,
+    artwork_dir: &Path,
+) -> CoreResult<bool> {
+    let va_canon = canonical_name(VARIOUS_ARTISTS_LABEL);
+    let va_id: Option<i64> =
+        sqlx::query_scalar("SELECT id FROM artist WHERE canonical_name = ? AND artwork_id IS NULL")
+            .bind(&va_canon)
+            .fetch_optional(&mut *conn)
+            .await?;
+    let Some(va_id) = va_id else {
+        return Ok(false);
+    };
+
+    // VA tracks are linked through their album, not `track_artist`.
+    let paths: Vec<(String,)> = sqlx::query_as(
+        "SELECT t.file_path FROM track t
+           JOIN album a ON a.id = t.album_id
+          WHERE a.artist_id = ? AND t.is_available = 1
+          LIMIT 16",
+    )
+    .bind(va_id)
+    .fetch_all(&mut *conn)
+    .await?;
+
+    for (path,) in paths {
+        if let Some(cover) = extract_artist_image(Path::new(&path), &va_canon, artwork_dir) {
+            link_local_artist_image(&mut *conn, va_id, &cover).await?;
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 /// Post-scan pass that promotes "tagless" same-title album rows into a
