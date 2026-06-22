@@ -701,14 +701,29 @@
    SmartPlaylistEditor). Without all three, the modal we miss
    keeps its raw `bg-white dark:bg-surface-dark-elevated` and
    reads as a flat dark slab instead of glass — every internal
-   text + tinted button then fights the wrong bg. */
+   text + tinted button then fights the wrong bg.
+
+   `:not(.liquid-mood-tile)` excludes the Mood Radio tiles whose
+   button carries `hover:shadow-lg` — that substring matches
+   `[class*="shadow-lg"]` and would otherwise paint a near-opaque
+   white-92% (light) / cool-grey-92% (dark) slab over the
+   colored gradient `.liquid-mood-tile::before` paints, bleaching
+   every tile down to a faintly-tinted white card. The
+   `.liquid-mood-tile` rule above has the same specificity
+   (0,2,1) so source order would otherwise let this modal rule
+   win.
+
+   Studio / Editorial / Lounge / Pulse skin tiles don't need an
+   exclusion — none of them paint a base bg via a `.liquid-*`
+   class so the substring capture lands on a tile that already
+   carries its own gradient, with no conflict. */
 :root[data-skin="liquid"] :where(
   [role="dialog"],
   [role="tooltip"],
   [class*="shadow-lg"],
   [class*="shadow-xl"],
   [class*="shadow-2xl"]
-) {
+):not(.liquid-mood-tile) {
   color: var(--liq-ink) !important;
   /* Mirror what Big Sur / iOS Control Center actually do for
      content-heavy panels: a DENSE dark-tinted base (not pure
@@ -748,7 +763,7 @@
   [class*="shadow-lg"],
   [class*="shadow-xl"],
   [class*="shadow-2xl"]
-) {
+):not(.liquid-mood-tile) {
   /* 82% → 92% in light. Same Audio-Pipeline-popover bleed-through
      fix as the dark branch above — content-heavy panels over a
      saturated cover lose every line of text at 82% even with
