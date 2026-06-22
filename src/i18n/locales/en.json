@@ -1828,6 +1828,10 @@
     "lyricsDestination": {
       "title": "Saved-lyrics destination",
       "subtitle": "Where lyrics typed into the editor land. You can override this per-edit from the editor footer."
+    },
+    "updateChannel": {
+      "title": "Beta channel",
+      "subtitle": "Receive pre-release builds before the stable release. Betas may be unstable."
     }
   },
   "spotify": {

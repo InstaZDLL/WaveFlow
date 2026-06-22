@@ -75,6 +75,14 @@ jobs:
           VERSION="${TAG#v}"
           echo "TAG_NAME=$TAG" >> "$GITHUB_ENV"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          # A semver pre-release suffix (e.g. 1.5.2-beta.1) routes this
+          # build to the beta channel: marked --prerelease on GitHub and
+          # excluded from the stable updater + downstream package repos.
+          if [[ "$VERSION" == *-* ]]; then
+            echo "IS_PRERELEASE=true" >> "$GITHUB_ENV"
+          else
+            echo "IS_PRERELEASE=false" >> "$GITHUB_ENV"
+          fi
           echo "Building $TAG (version $VERSION)"
 
       - name: Checkout
@@ -522,8 +530,12 @@ jobs:
             echo "::error::No artefacts found in dist-release/"
             exit 1
           fi
+          PRERELEASE_FLAG=""
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
           if ! gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            gh release create "$TAG_NAME" --title "$TAG_NAME" --generate-notes
+            gh release create "$TAG_NAME" --title "$TAG_NAME" --generate-notes $PRERELEASE_FLAG
           fi
           for file in "${files[@]}"; do
             gh release upload "$TAG_NAME" "$file" --clobber
@@ -555,6 +567,14 @@ jobs:
             TAG="${GIT_REF#refs/tags/}"
           fi
           echo "TAG_NAME=$TAG" >> "$GITHUB_ENV"
+          # Mirror the desktop job's channel detection so the merged
+          # manifest lands on the right release (see Publish step).
+          VERSION="${TAG#v}"
+          if [[ "$VERSION" == *-* ]]; then
+            echo "IS_PRERELEASE=true" >> "$GITHUB_ENV"
+          else
+            echo "IS_PRERELEASE=false" >> "$GITHUB_ENV"
+          fi
 
       - name: Download per-platform updater manifests
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -612,7 +632,25 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-        run: gh release upload "$TAG_NAME" dist-release/latest.json --clobber
+        # Stable: latest.json on the version release — the updater's
+        # `/releases/latest/download/latest.json` endpoint resolves to it.
+        # Beta: latest-beta.json clobbered onto the fixed `beta-channel`
+        # release, which the opt-in beta endpoint pins by tag (GitHub has
+        # no "latest pre-release" alias). The version release still holds
+        # the per-platform installers the manifest URLs point at.
+        run: |
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            cp dist-release/latest.json dist-release/latest-beta.json
+            if ! gh release view beta-channel >/dev/null 2>&1; then
+              gh release create beta-channel \
+                --title "Beta channel (rolling)" \
+                --notes "Rolling updater manifest for WaveFlow beta builds. Managed by release.yml — do not delete." \
+                --prerelease
+            fi
+            gh release upload beta-channel dist-release/latest-beta.json --clobber
+          else
+            gh release upload "$TAG_NAME" dist-release/latest.json --clobber
+          fi
 
       - name: Trigger downstream distribution workflows
         # GitHub silently drops release.published events when the
@@ -626,6 +664,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
+          # Pre-releases stay on the in-app beta channel only — never
+          # pushed to AUR / Winget / COPR / apt (those are stable repos).
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            echo "Pre-release $TAG_NAME — skipping downstream package-manager dispatch (stable only)."
+            exit 0
+          fi
           gh workflow run aur.yml         -f tag_name="$TAG_NAME"
           gh workflow run winget.yml      -f tag_name="$TAG_NAME"
           gh workflow run copr.yml        -f tag_name="$TAG_NAME"

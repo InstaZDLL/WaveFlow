@@ -113,7 +113,12 @@ pub fn run() {
     // with their read-only install root.
     #[cfg(all(not(debug_assertions), feature = "updater"))]
     {
-        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+        builder = builder
+            .plugin(tauri_plugin_updater::Builder::new().build())
+            // Holds the verified Update between `check_for_update` and
+            // `install_update` (see commands/updater.rs). Gated on the
+            // same build conditions as the plugin itself.
+            .manage(commands::updater::PendingUpdate::default());
     }
 
     builder
@@ -725,6 +730,10 @@ pub fn run() {
             commands::preferences::set_ui_zoom,
             commands::preferences::get_mini_player_bounds,
             commands::preferences::set_mini_player_bounds,
+            commands::updater::get_update_channel,
+            commands::updater::set_update_channel,
+            commands::updater::check_for_update,
+            commands::updater::install_update,
             commands::tray::set_tray_labels,
             commands::lyrics::get_lyrics,
             commands::lyrics::fetch_lyrics,

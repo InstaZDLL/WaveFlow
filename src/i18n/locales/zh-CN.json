@@ -1828,6 +1828,10 @@
     "lyricsDestination": {
       "title": "已保存歌词的位置",
       "subtitle": "编辑器中输入的歌词将保存到何处。可以在每次编辑时覆盖。"
+    },
+    "updateChannel": {
+      "title": "测试版通道",
+      "subtitle": "在稳定版发布前接收预发布版本。测试版可能不稳定。"
     }
   },
   "scanProgress": {

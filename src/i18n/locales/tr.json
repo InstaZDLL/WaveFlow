@@ -1828,6 +1828,10 @@
     "lyricsDestination": {
       "title": "Kayıtlı şarkı sözü hedefi",
       "subtitle": "Düzenleyiciden gelen şarkı sözlerinin gideceği yer. Her düzenlemede geçersiz kılınabilir."
+    },
+    "updateChannel": {
+      "title": "Beta kanalı",
+      "subtitle": "Kararlı sürümden önce ön sürüm yapılarını alın. Beta sürümleri kararsız olabilir."
     }
   },
   "spotify": {

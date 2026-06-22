@@ -1828,6 +1828,10 @@
     "lyricsDestination": {
       "title": "Destination des paroles éditées",
       "subtitle": "Où sauvegarder les paroles que vous saisissez dans l'éditeur. Vous pouvez surcharger ce choix à chaque édition."
+    },
+    "updateChannel": {
+      "title": "Canal beta",
+      "subtitle": "Recevez les versions de pré-version avant la sortie stable. Les bêtas peuvent être instables."
     }
   },
   "spotify": {

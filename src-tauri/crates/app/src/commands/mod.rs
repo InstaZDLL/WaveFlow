@@ -51,4 +51,5 @@ pub mod stats;
 pub mod sync;
 pub mod track;
 pub mod tray;
+pub mod updater;
 pub mod wrapped;

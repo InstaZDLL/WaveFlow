@@ -1828,6 +1828,10 @@
     "lyricsDestination": {
       "title": "Bestemming voor opgeslagen songteksten",
       "subtitle": "Waar songteksten uit de editor heen gaan. Per bewerking te overschrijven."
+    },
+    "updateChannel": {
+      "title": "Bètakanaal",
+      "subtitle": "Ontvang voorlopige versies vóór de stabiele release. Bèta's kunnen instabiel zijn."
     }
   },
   "spotify": {

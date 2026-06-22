@@ -1828,6 +1828,10 @@
     "lyricsDestination": {
       "title": "Destino das letras salvas",
       "subtitle": "Para onde vão as letras digitadas no editor. Você pode substituir isso em cada edição no rodapé do editor."
+    },
+    "updateChannel": {
+      "title": "Canal beta",
+      "subtitle": "Receba versões de pré-lançamento antes da versão estável. As betas podem ser instáveis."
     }
   },
   "spotify": {

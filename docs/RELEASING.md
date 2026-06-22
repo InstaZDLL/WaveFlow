@@ -186,6 +186,62 @@ updater errors. Common causes: pubkey mismatch (private/public
 keys regenerated), endpoint 404, malformed `latest.json`,
 signature corrupted on upload.
 
+## Beta channel
+
+WaveFlow ships an **opt-in beta channel** so testers can run
+pre-release builds without affecting the stable population. Users
+enable it under **Settings → Diagnostics → Beta channel**; the choice
+persists in `app_setting['updater.channel']` (app-wide).
+
+### How isolation works
+
+The in-app updater is driven from Rust
+([`commands/updater.rs`](../src-tauri/crates/app/src/commands/updater.rs))
+rather than the JS `check()` so it can pick the endpoint matching the
+active channel at runtime (the JS API only reads the static config
+endpoints):
+
+- **stable** → `releases/latest/download/latest.json`. GitHub's
+  `/releases/latest` alias **excludes pre-releases**, so a stable user
+  is structurally incapable of seeing a beta — no flag, no opt-out
+  needed.
+- **beta** → `releases/download/beta-channel/latest-beta.json`. The
+  `beta-channel` release is a **fixed, rolling** release whose
+  `latest-beta.json` asset `release.yml` re-uploads (`--clobber`) on
+  every pre-release tag. A pinned tag is required because GitHub has no
+  "latest pre-release" URL alias.
+
+Toggling **off** returns the user to stable on the next check: a
+released `1.5.2` is semver-greater than their `1.5.2-beta.N`, so the
+stable endpoint serves it as an update.
+
+### Cutting a beta
+
+Run the **Cut beta** workflow
+([`cut-beta.yml`](../.github/workflows/cut-beta.yml)) from the Actions
+tab with a `base_version` input (e.g. `1.5.2`). It computes the next
+`v1.5.2-beta.N` tag, pushes it, and dispatches `release.yml` for it.
+release-please is untouched — it still owns stable versions only; betas
+live entirely outside its flow.
+
+When the tag carries a semver pre-release suffix (`-beta`, `-rc`, …),
+`release.yml`:
+
+- marks the GitHub release `--prerelease`;
+- publishes the merged manifest as `latest-beta.json` on the
+  `beta-channel` release (instead of `latest.json` on the version
+  release);
+- **skips** the downstream AUR / Winget / COPR / apt dispatch — those
+  are stable repositories only.
+
+The per-platform installers still land on the `v1.5.2-beta.N`
+pre-release; the beta manifest's payload URLs point there.
+
+> **Tagging note:** cutting a beta is the one sanctioned exception to
+> the "never hand-tag" rule — but it's still automated (the workflow
+> creates the tag, you don't). The rule's intent (don't bypass
+> release-please for _stable_ versions) is preserved.
+
 ## Notes
 
 - **Dev builds skip the updater entirely** (gated on
