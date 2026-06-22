@@ -230,7 +230,7 @@ tiny_http = "0.12"
 # - `tower-http` adds the `Range` request handling for /stream — the
 #   built-in axum body types don't ship Range support.
 axum = { version = "0.8", default-features = false, features = ["http1", "tokio", "json"] }
-tower-http = { version = "0.6", features = ["fs"] }
+tower-http = { version = "0.7", features = ["fs"] }
 # Adapter that wraps a tokio AsyncRead as a Stream<Bytes>, used to
 # pipe a fs::File limited to a Range window into axum::body::Body
 # without buffering the whole window in memory.
