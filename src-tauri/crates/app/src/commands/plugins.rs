@@ -275,7 +275,7 @@ pub async fn list_installed_plugins(state: State<'_, AppState>) -> AppResult<Vec
 
     // Stable order so the frontend gets the same list across calls
     // without sorting itself.
-    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    out.sort_by_key(|a| a.name.to_lowercase());
     Ok(out)
 }
 

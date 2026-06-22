@@ -196,10 +196,10 @@ impl AppState {
             // CRUD command sites can `notify()` against it harmlessly
             // before the task spawns (no waiter parked yet); the
             // first real tick will pick up any queued work.
-            drain: Arc::new(crate::sync::drain::DrainHandle::default()),
+            drain: Arc::new(crate::sync::drain::DrainHandle),
             drain_lock: Arc::new(tokio::sync::Mutex::new(())),
             backfill_lock: Arc::new(tokio::sync::Mutex::new(())),
-            ws: Arc::new(crate::sync::ws::SubscribeHandle::default()),
+            ws: Arc::new(crate::sync::ws::SubscribeHandle),
             plugins,
             plugin_locks: Arc::new(Mutex::new(HashMap::new())),
         };
