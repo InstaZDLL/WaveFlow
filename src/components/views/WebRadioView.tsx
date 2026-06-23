@@ -105,6 +105,11 @@ export function WebRadioView() {
   // previous write so the snapshots land in click order — a stale
   // (earlier) list can never resolve last and clobber a newer one.
   const writeChainRef = useRef<Promise<unknown>>(Promise.resolve());
+  // Monotonic toggle id. A failed write only re-syncs from the server
+  // when it's still the most-recent toggle — otherwise an earlier
+  // failure's authoritative re-fetch would clobber a newer optimistic
+  // state that a later (successful) write already persisted.
+  const favoriteSeqRef = useRef(0);
 
   // Fetch the category list whenever the plugin becomes available.
   //
@@ -238,6 +243,7 @@ export function WebRadioView() {
     const token = ++resolveReqRef.current;
     setActiveEntry(entry);
     setSearchActive(false);
+    setFavoritesActive(false);
     setResolving(true);
     setError(null);
     setTracks([]);
@@ -264,6 +270,10 @@ export function WebRadioView() {
     const token = ++resolveReqRef.current;
     setActiveEntry(null);
     setSearchActive(true);
+    // Leaving the Favorites view: `displayTracks` prioritises
+    // `favoritesActive`, so without this the search results in
+    // `tracks` would stay hidden behind the favorites list.
+    setFavoritesActive(false);
     setResolving(true);
     setError(null);
     setTracks([]);
@@ -296,6 +306,7 @@ export function WebRadioView() {
   // only honest source of "what's actually saved".
   const toggleFavorite = useCallback(
     (track: PluginTrack) => {
+      const seq = ++favoriteSeqRef.current;
       const current = favoritesRef.current;
       const next = current.some((f) => f.id === track.id)
         ? current.filter((f) => f.id !== track.id)
@@ -316,8 +327,15 @@ export function WebRadioView() {
         .then(() => setPluginFavorites(PLUGIN_ID, next))
         .catch(async (e) => {
           setError(e instanceof Error ? e.message : String(e));
+          // Only the latest toggle may overwrite the optimistic state
+          // with the server's authoritative list — an earlier write's
+          // re-fetch would otherwise clobber a newer optimistic state
+          // a later write already persisted. Re-check after the await
+          // too, since a fresh toggle can land mid-fetch.
+          if (favoriteSeqRef.current !== seq) return;
           try {
-            applyFavorites(await getPluginFavorites(PLUGIN_ID));
+            const fresh = await getPluginFavorites(PLUGIN_ID);
+            if (favoriteSeqRef.current === seq) applyFavorites(fresh);
           } catch {
             /* leave optimistic state; the next load re-syncs */
           }
