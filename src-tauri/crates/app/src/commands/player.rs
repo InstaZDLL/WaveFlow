@@ -537,6 +537,15 @@ pub async fn player_get_state(
                     }
                     _ => (None, engine.shared().current_position_ms()),
                 }
+            } else if active_id < 0 {
+                // A live Web Radio session owns the engine (negative
+                // sentinel id, no library row). Don't surface the
+                // persisted last-track here: a webview that mounts
+                // mid-stream (the mini-player) would otherwise show that
+                // stale library track instead of the radio. Returning
+                // `None` lets the frontend take the radio-hydration path
+                // via `get_current_radio_metadata`.
+                (None, engine.shared().current_position_ms())
             } else {
                 match queue::restore_state(&pool).await? {
                     Some((t, ms)) => (Some(t), ms),
