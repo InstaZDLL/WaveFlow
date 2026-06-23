@@ -1904,6 +1904,10 @@
     "live": "مباشر",
     "nowPlaying": "قيد التشغيل الآن",
     "unavailableTitle": "Web Radio معطّل",
-    "unavailableHint": "فعّل إضافة Web Radio من الإعدادات → الإضافات لتصفح أكثر من 30,000 محطة."
+    "unavailableHint": "فعّل إضافة Web Radio من الإعدادات → الإضافات لتصفح أكثر من 30,000 محطة.",
+    "favorites": "المفضلة",
+    "favoritesEmpty": "لا توجد محطات مفضلة بعد. اضغط على نجمة المحطة لحفظها.",
+    "addFavorite": "إضافة إلى المفضلة",
+    "removeFavorite": "إزالة من المفضلة"
   }
 }

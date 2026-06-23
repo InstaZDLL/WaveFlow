@@ -1900,6 +1900,10 @@
     "live": "LANGSUNG",
     "nowPlaying": "Sedang diputar",
     "unavailableTitle": "Web Radio dinonaktifkan",
-    "unavailableHint": "Aktifkan plugin Web Radio di Pengaturan → Plugin untuk menjelajahi lebih dari 30.000 stasiun."
+    "unavailableHint": "Aktifkan plugin Web Radio di Pengaturan → Plugin untuk menjelajahi lebih dari 30.000 stasiun.",
+    "favorites": "Favorit",
+    "favoritesEmpty": "Belum ada stasiun favorit. Ketuk bintang stasiun untuk menyimpannya.",
+    "addFavorite": "Tambahkan ke favorit",
+    "removeFavorite": "Hapus dari favorit"
   }
 }

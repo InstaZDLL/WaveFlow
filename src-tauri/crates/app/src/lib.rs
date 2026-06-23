@@ -658,6 +658,8 @@ pub fn run() {
             commands::plugins::plugin_list_entries,
             commands::plugins::plugin_resolve,
             commands::plugins::plugin_stream_url,
+            commands::plugins::get_plugin_favorites,
+            commands::plugins::set_plugin_favorites,
             commands::integration::get_lastfm_api_key,
             commands::integration::set_lastfm_api_key,
             commands::integration::get_bio_source,

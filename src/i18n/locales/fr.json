@@ -1900,6 +1900,10 @@
     "live": "LIVE",
     "nowPlaying": "Lecture en cours",
     "unavailableTitle": "Web Radio désactivée",
-    "unavailableHint": "Activez le plugin Web Radio dans Paramètres → Plugins pour parcourir plus de 30 000 stations."
+    "unavailableHint": "Activez le plugin Web Radio dans Paramètres → Plugins pour parcourir plus de 30 000 stations.",
+    "favorites": "Favoris",
+    "favoritesEmpty": "Aucune station en favori. Cliquez sur l'étoile d'une station pour l'ajouter.",
+    "addFavorite": "Ajouter aux favoris",
+    "removeFavorite": "Retirer des favoris"
   }
 }

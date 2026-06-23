@@ -1900,6 +1900,10 @@
     "live": "EN VIVO",
     "nowPlaying": "Reproduciendo ahora",
     "unavailableTitle": "Web Radio está desactivada",
-    "unavailableHint": "Activa el complemento de Radio Web en Configuración → Complementos para explorar más de 30 000 estaciones."
+    "unavailableHint": "Activa el complemento de Radio Web en Configuración → Complementos para explorar más de 30 000 estaciones.",
+    "favorites": "Favoritos",
+    "favoritesEmpty": "Aún no hay emisoras favoritas. Toca la estrella de una emisora para guardarla.",
+    "addFavorite": "Añadir a favoritos",
+    "removeFavorite": "Quitar de favoritos"
   }
 }

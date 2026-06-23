@@ -1900,6 +1900,10 @@
     "live": "AO VIVO",
     "nowPlaying": "Tocando agora",
     "unavailableTitle": "A Rádio Web está desativada",
-    "unavailableHint": "Ative o plugin Rádio Web em Configurações → Plugins para explorar mais de 30 000 estações."
+    "unavailableHint": "Ative o plugin Rádio Web em Configurações → Plugins para explorar mais de 30 000 estações.",
+    "favorites": "Favoritos",
+    "favoritesEmpty": "Ainda não há estações favoritas. Toque na estrela de uma estação para salvá-la.",
+    "addFavorite": "Adicionar aos favoritos",
+    "removeFavorite": "Remover dos favoritos"
   }
 }

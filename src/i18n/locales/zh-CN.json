@@ -1900,6 +1900,10 @@
     "live": "直播",
     "nowPlaying": "正在播放",
     "unavailableTitle": "Web Radio 已禁用",
-    "unavailableHint": "在 设置 → 插件 中启用 Web Radio 插件以浏览超过 30,000 个电台。"
+    "unavailableHint": "在 设置 → 插件 中启用 Web Radio 插件以浏览超过 30,000 个电台。",
+    "favorites": "收藏",
+    "favoritesEmpty": "还没有收藏的电台。点击电台的星标即可保存。",
+    "addFavorite": "添加到收藏",
+    "removeFavorite": "从收藏中移除"
   }
 }

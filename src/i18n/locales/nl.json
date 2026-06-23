@@ -1900,6 +1900,10 @@
     "live": "LIVE",
     "nowPlaying": "Speelt nu",
     "unavailableTitle": "Web Radio is uitgeschakeld",
-    "unavailableHint": "Schakel de Web Radio-plugin in via Instellingen → Plugins om meer dan 30.000 stations te doorzoeken."
+    "unavailableHint": "Schakel de Web Radio-plugin in via Instellingen → Plugins om meer dan 30.000 stations te doorzoeken.",
+    "favorites": "Favorieten",
+    "favoritesEmpty": "Nog geen favoriete zenders. Tik op de ster van een zender om hem op te slaan.",
+    "addFavorite": "Aan favorieten toevoegen",
+    "removeFavorite": "Uit favorieten verwijderen"
   }
 }

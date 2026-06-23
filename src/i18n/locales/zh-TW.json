@@ -1900,6 +1900,10 @@
     "live": "直播",
     "nowPlaying": "正在播放",
     "unavailableTitle": "Web Radio 已停用",
-    "unavailableHint": "在 設定 → 外掛 中啟用 Web Radio 外掛以瀏覽超過 30,000 個電台。"
+    "unavailableHint": "在 設定 → 外掛 中啟用 Web Radio 外掛以瀏覽超過 30,000 個電台。",
+    "favorites": "收藏",
+    "favoritesEmpty": "還沒有收藏的電台。點擊電台的星號即可儲存。",
+    "addFavorite": "加入收藏",
+    "removeFavorite": "從收藏中移除"
   }
 }
