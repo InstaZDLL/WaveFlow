@@ -21,6 +21,7 @@ import {
   Repeat1,
   Shuffle,
   ListMusic,
+  Radio,
 } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Window as TauriWindow } from "@tauri-apps/api/window";
@@ -525,6 +526,25 @@ export function MiniPlayer() {
               </button>
             ) : null}
           </div>
+          {/* Live radio: station identity under the now-playing ICY song
+              (title/artist rows above), matching the PlayerBar + immersive. */}
+          {currentRadioStation && (
+            <div
+              className="flex items-center gap-1 text-[10px] text-white/55 truncate mt-0.5"
+              title={
+                currentRadioStation.artist
+                  ? `${currentRadioStation.title} · ${currentRadioStation.artist}`
+                  : currentRadioStation.title
+              }
+            >
+              <Radio size={10} className="shrink-0" />
+              <span className="truncate">
+                {currentRadioStation.artist
+                  ? `${currentRadioStation.title} · ${currentRadioStation.artist}`
+                  : currentRadioStation.title}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Interactive seek bar — Spotify-style: thin idle, thicker
