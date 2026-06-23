@@ -104,15 +104,33 @@ export function LyricsPanel() {
     trackIdRef.current = trackId;
   }, [trackId]);
 
+  // Previous `isRadio` so the fetch effect can tell a context switch
+  // (library ↔ radio) from a same-context track change.
+  const prevIsRadioRef = useRef(isRadio);
+
   // ── Fetch when the focused track changes (or panel opens) ───────
   useEffect(() => {
     if (trackId == null) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setPayload(null);
       setError(null);
+      prevIsRadioRef.current = isRadio;
       return;
     }
     let cancelled = false;
+    // Drop the previous payload up front on any transition that involves
+    // radio — entering radio (library→radio), leaving it (radio→library),
+    // or a new song on the same station (radio→radio, where the sentinel
+    // trackId is unchanged so the swap-on-resolve below wouldn't fire).
+    // Without this the previous lyrics linger under the new identity for
+    // the duration of the fetch. Library→library is deliberately exempt:
+    // it keeps the swap-on-resolve so a fast cache hit doesn't flash an
+    // intermediate "loading" state.
+    const wasRadio = prevIsRadioRef.current;
+    prevIsRadioRef.current = isRadio;
+    if (isRadio || wasRadio) {
+      setPayload(null);
+    }
     setIsFetching(true);
     setError(null);
     // Radio: query by artist + title (no library row). A radio session
