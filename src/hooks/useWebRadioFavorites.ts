@@ -95,14 +95,16 @@ export function useWebRadioFavorites() {
           if (cancelled || gen !== loadGenRef.current) return;
           // Don't clobber fresher optimistic state with stale backend
           // data: when local writes are still in flight (a bus reload
-          // racing a pending toggle), skip the apply — the pending
-          // batch's own settle re-syncs. The initial / profile-switch
-          // load always passes this (toggles are blocked until
-          // `loadedRef`, so no writes are pending yet).
+          // racing a pending toggle, or a pre-switch write still
+          // settling), skip the apply AND stay "not loaded" so toggles
+          // remain blocked — marking loaded here with an unapplied
+          // (empty) ref would let a toggle compute from `[]` and wipe
+          // the list. The pending batch's settle re-dispatches, and that
+          // reload (pendingWrites back to 0) applies + marks loaded.
           if (pendingWritesRef.current === 0) {
             applyFavorites(list);
+            loadedRef.current = true;
           }
-          loadedRef.current = true;
         },
         (err: unknown) => {
           if (!cancelled && gen === loadGenRef.current) {
