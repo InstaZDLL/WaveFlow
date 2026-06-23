@@ -6,6 +6,15 @@
 //! cargo-component invocation, no wasm32 toolchain dependency at
 //! `cargo test` time). When the plugin code changes, rebuild the
 //! .wasm and refresh the fixture.
+//!
+//! The whole file is gated on the `plugins` feature — it references the
+//! feature-gated `waveflow_core::plugin` module, so without the gate a
+//! `cargo test -p waveflow-core` (no plugins feature, e.g. the Windows
+//! CI slot that excludes the desktop app crate) would fail to COMPILE
+//! this test. With the gate it compiles to nothing there; the desktop
+//! `--workspace` run (which turns `plugins` on transitively) still runs
+//! it.
+#![cfg(feature = "plugins")]
 
 use std::path::PathBuf;
 
