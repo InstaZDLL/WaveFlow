@@ -1904,6 +1904,8 @@
     "favorites": "Favorit",
     "favoritesEmpty": "Belum ada stasiun favorit. Ketuk bintang stasiun untuk menyimpannya.",
     "addFavorite": "Tambahkan ke favorit",
-    "removeFavorite": "Hapus dari favorit"
+    "removeFavorite": "Hapus dari favorit",
+    "localStations": "Stasiun lokal",
+    "browseByCountry": "Telusuri berdasarkan negara"
   }
 }

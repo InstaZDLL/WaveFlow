@@ -1908,6 +1908,8 @@
     "favorites": "المفضلة",
     "favoritesEmpty": "لا توجد محطات مفضلة بعد. اضغط على نجمة المحطة لحفظها.",
     "addFavorite": "إضافة إلى المفضلة",
-    "removeFavorite": "إزالة من المفضلة"
+    "removeFavorite": "إزالة من المفضلة",
+    "localStations": "المحطات المحلية",
+    "browseByCountry": "التصفح حسب البلد"
   }
 }

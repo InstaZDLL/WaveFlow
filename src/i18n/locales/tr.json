@@ -1904,6 +1904,8 @@
     "favorites": "Favoriler",
     "favoritesEmpty": "Henüz favori istasyon yok. Kaydetmek için bir istasyonun yıldızına dokunun.",
     "addFavorite": "Favorilere ekle",
-    "removeFavorite": "Favorilerden çıkar"
+    "removeFavorite": "Favorilerden çıkar",
+    "localStations": "Yerel istasyonlar",
+    "browseByCountry": "Ülkeye göre gözat"
   }
 }

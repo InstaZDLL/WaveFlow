@@ -1904,6 +1904,8 @@
     "favorites": "Preferiti",
     "favoritesEmpty": "Nessuna stazione preferita. Tocca la stella di una stazione per salvarla.",
     "addFavorite": "Aggiungi ai preferiti",
-    "removeFavorite": "Rimuovi dai preferiti"
+    "removeFavorite": "Rimuovi dai preferiti",
+    "localStations": "Stazioni locali",
+    "browseByCountry": "Esplora per paese"
   }
 }

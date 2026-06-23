@@ -1904,6 +1904,8 @@
     "favorites": "お気に入り",
     "favoritesEmpty": "お気に入りの局はまだありません。局の星をタップして保存できます。",
     "addFavorite": "お気に入りに追加",
-    "removeFavorite": "お気に入りから削除"
+    "removeFavorite": "お気に入りから削除",
+    "localStations": "地域の放送局",
+    "browseByCountry": "国別に見る"
   }
 }

@@ -1904,6 +1904,8 @@
     "favorites": "Favorites",
     "favoritesEmpty": "No favorite stations yet. Tap a station's star to save it.",
     "addFavorite": "Add to favorites",
-    "removeFavorite": "Remove from favorites"
+    "removeFavorite": "Remove from favorites",
+    "localStations": "Local stations",
+    "browseByCountry": "Browse by country"
   }
 }
