@@ -60,6 +60,11 @@ export function useWebRadioFavorites() {
   // load resolving late checks this and drops itself instead of applying
   // over the new profile's list.
   const loadGenRef = useRef(0);
+  // In-flight write count. The cross-instance reload event fires only
+  // when this drops back to 0 (the whole rapid-toggle batch settled),
+  // not once per write — an intermediate reload could otherwise read a
+  // mid-batch backend state and clobber `favoritesRef` out of order.
+  const pendingWritesRef = useRef(0);
 
   const applyFavorites = useCallback((list: PluginFavorite[]) => {
     favoritesRef.current = list;
@@ -125,6 +130,7 @@ export function useWebRadioFavorites() {
         : [...current, fav];
       applyFavorites(next);
       const profileAtToggle = profileIdRef.current;
+      pendingWritesRef.current += 1;
       writeChainRef.current = writeChainRef.current
         .catch(() => {})
         .then(() => {
@@ -132,11 +138,6 @@ export function useWebRadioFavorites() {
           // write this profile's list into the now-active profile).
           if (profileIdRef.current !== profileAtToggle) return;
           return setPluginFavorites(WEB_RADIO_PLUGIN_ID, next);
-        })
-        .then(() => {
-          // Notify sibling instances (PlayerBar ↔ WebRadioView) to
-          // re-read so the star and the list agree.
-          window.dispatchEvent(new Event(FAVORITES_CHANGED_EVENT));
         })
         .catch(async (e) => {
           if (favoriteSeqRef.current !== seq) return;
@@ -147,6 +148,15 @@ export function useWebRadioFavorites() {
             if (favoriteSeqRef.current === seq) applyFavorites(fresh);
           } catch {
             /* leave optimistic state; the next load re-syncs */
+          }
+        })
+        .finally(() => {
+          // Only the last write of a rapid batch notifies siblings
+          // (PlayerBar ↔ WebRadioView) to re-read, so an intermediate
+          // reload can't apply a mid-batch backend state out of order.
+          pendingWritesRef.current -= 1;
+          if (pendingWritesRef.current === 0) {
+            window.dispatchEvent(new Event(FAVORITES_CHANGED_EVENT));
           }
         });
     },

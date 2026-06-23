@@ -511,6 +511,7 @@ export function MiniPlayer() {
                 type="button"
                 onClick={handleLike}
                 aria-label={t("miniPlayer.like")}
+                aria-pressed={isLiked}
                 className="p-0.5 shrink-0"
               >
                 <Heart
