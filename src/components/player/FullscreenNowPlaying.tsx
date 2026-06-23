@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   X,
   Heart,
+  Star,
   Share2,
   Download,
   Copy,
@@ -17,6 +18,8 @@ import { PlaybackControls } from "./PlaybackControls";
 import { ProgressBar } from "./ProgressBar";
 import { VolumeControl } from "./VolumeControl";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
+import { isRadioTrack } from "../../lib/playerSources";
 import { SpectrumVisualizer } from "./SpectrumVisualizer";
 import { pickSaveFile } from "../../lib/tauri/dialog";
 import { saveShareImage } from "../../lib/tauri/share";
@@ -49,7 +52,14 @@ export function FullscreenNowPlaying({
   onToggleLike,
 }: FullscreenNowPlayingProps) {
   const { t } = useTranslation();
-  const { currentTrack } = usePlayer();
+  const { currentTrack, currentRadioStation } = usePlayer();
+  // Live radio: favorite the STATION (★) instead of liking a track
+  // (♥) — a radio session has a negative sentinel id with no library
+  // row to like. Mirrors the PlayerBar / mini-player treatment.
+  const radioFavorites = useWebRadioFavorites();
+  const stationFavorited =
+    currentRadioStation != null &&
+    radioFavorites.isFavorite(currentRadioStation.id);
   // Escape close + focus trap. The overlay is only mounted while
   // open, so passing `true` is correct — no isOpen prop needed.
   const dialogRef = useModalA11y<HTMLDivElement>(true, onClose);
@@ -286,11 +296,39 @@ export function FullscreenNowPlaying({
                   the hero) so the visualizer canvas above never sits
                   underneath an interactive control. */}
               <div className="flex-1 min-w-0 flex justify-start">
-                {currentTrack && (
+                {currentRadioStation ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      radioFavorites.toggleFavorite(currentRadioStation)
+                    }
+                    aria-label={
+                      stationFavorited
+                        ? t("webRadio.removeFavorite")
+                        : t("webRadio.addFavorite")
+                    }
+                    aria-pressed={stationFavorited}
+                    className={`p-2 rounded-full transition-colors ${
+                      stationFavorited
+                        ? "text-amber-400 hover:text-amber-300"
+                        : "text-white/60 hover:text-amber-400"
+                    }`}
+                  >
+                    <Star
+                      size={20}
+                      fill={stationFavorited ? "currentColor" : "none"}
+                    />
+                  </button>
+                ) : currentTrack && !isRadioTrack(currentTrack) ? (
+                  // `!isRadioTrack` guards the hydration race + idle tail:
+                  // a radio sentinel track (negative id) must never show a
+                  // ♥ like (no library row), even before
+                  // `currentRadioStation` arrives.
                   <button
                     type="button"
                     onClick={onToggleLike}
                     aria-label={isLiked ? t("liked.unlike") : t("liked.like")}
+                    aria-pressed={isLiked}
                     className={`p-2 rounded-full transition-colors ${
                       isLiked
                         ? "text-pink-400 hover:text-pink-300"
@@ -302,7 +340,7 @@ export function FullscreenNowPlaying({
                       className={isLiked ? "fill-current" : ""}
                     />
                   </button>
-                )}
+                ) : null}
               </div>
               <PlaybackControls />
               <div className="flex-1 min-w-0 flex justify-end">
