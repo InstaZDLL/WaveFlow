@@ -93,7 +93,15 @@ export function useWebRadioFavorites() {
         (list) => {
           // Drop a stale load that resolved after a newer profile switch.
           if (cancelled || gen !== loadGenRef.current) return;
-          applyFavorites(list);
+          // Don't clobber fresher optimistic state with stale backend
+          // data: when local writes are still in flight (a bus reload
+          // racing a pending toggle), skip the apply — the pending
+          // batch's own settle re-syncs. The initial / profile-switch
+          // load always passes this (toggles are blocked until
+          // `loadedRef`, so no writes are pending yet).
+          if (pendingWritesRef.current === 0) {
+            applyFavorites(list);
+          }
           loadedRef.current = true;
         },
         (err: unknown) => {
