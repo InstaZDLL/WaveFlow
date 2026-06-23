@@ -20,6 +20,10 @@ interface FullscreenLyricsProps {
   activeIndex: number;
   isFetching: boolean;
   error: string | null;
+  /** Overrides the text rendered in the non-synced branch. Used by
+   *  radio (timestamps stripped from synced LRC for a clean static
+   *  read); `null` falls back to the raw `payload.content`. */
+  staticText?: string | null;
   onClose: () => void;
   /** Clicking the header cover switches back to the immersive Now
    *  Playing overlay. The parent flips the fullscreen mutex so this
@@ -46,6 +50,7 @@ export function FullscreenLyrics({
   activeIndex,
   isFetching,
   error,
+  staticText,
   onClose,
   onOpenNowPlaying,
   onSeek,
@@ -276,7 +281,7 @@ export function FullscreenLyrics({
               </ul>
             ) : (
               <p className="text-2xl leading-relaxed text-white/90 whitespace-pre-line py-16 text-center">
-                {payload.content}
+                {staticText ?? payload.content}
               </p>
             )}
           </div>

@@ -744,6 +744,7 @@ pub fn run() {
             commands::tray::set_tray_labels,
             commands::lyrics::get_lyrics,
             commands::lyrics::fetch_lyrics,
+            commands::lyrics::fetch_radio_lyrics,
             commands::lyrics::refetch_lyrics,
             commands::lyrics::import_lrc_file,
             commands::lyrics::save_lyrics,
