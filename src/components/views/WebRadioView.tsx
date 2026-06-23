@@ -110,6 +110,11 @@ export function WebRadioView() {
   // failure's authoritative re-fetch would clobber a newer optimistic
   // state that a later (successful) write already persisted.
   const favoriteSeqRef = useRef(0);
+  // Always-current active profile id. A queued favorites write must
+  // NOT land after a profile switch — `set_plugin_favorites` resolves
+  // `require_profile_pool()` at execution time, so a stale write would
+  // persist the old profile's list into the newly-active profile.
+  const profileIdRef = useRef(activeProfile?.id);
 
   // Fetch the category list whenever the plugin becomes available.
   //
@@ -179,6 +184,12 @@ export function WebRadioView() {
     favoritesRef.current = list;
     setFavorites(list);
   }, []);
+
+  // Keep the profile-id ref in lockstep with the active profile so a
+  // write queued before a switch can detect that it's now stale.
+  useEffect(() => {
+    profileIdRef.current = activeProfile?.id;
+  }, [activeProfile?.id]);
 
   // Load the active profile's favorites. Re-runs on profile switch
   // (`activeProfile?.id`) so the saved-stations list follows the
@@ -321,18 +332,33 @@ export function WebRadioView() {
             },
           ];
       applyFavorites(next);
+      const profileAtToggle = profileIdRef.current;
       writeChainRef.current = writeChainRef.current
         // A prior failure must not break the chain for later writes.
         .catch(() => {})
-        .then(() => setPluginFavorites(PLUGIN_ID, next))
+        .then(() => {
+          // Profile switched while this write waited its turn: skip it.
+          // The backend writes to whatever profile is active NOW, so
+          // persisting here would corrupt the new profile with the old
+          // one's list. The switched-to profile already reloaded its
+          // own favorites; the trade-off is that this last toggle is
+          // not saved to the profile it was made in (a rare edge — the
+          // write is local-SQLite fast, the switch window tiny).
+          if (profileIdRef.current !== profileAtToggle) return;
+          return setPluginFavorites(PLUGIN_ID, next);
+        })
         .catch(async (e) => {
-          setError(e instanceof Error ? e.message : String(e));
-          // Only the latest toggle may overwrite the optimistic state
-          // with the server's authoritative list — an earlier write's
-          // re-fetch would otherwise clobber a newer optimistic state
-          // a later write already persisted. Re-check after the await
-          // too, since a fresh toggle can land mid-fetch.
+          // Only the latest toggle may surface an error / overwrite the
+          // optimistic state with the server's authoritative list — an
+          // earlier write's re-fetch (or error) would otherwise clobber
+          // a newer optimistic state a later write already persisted.
+          // Re-check after the await too, since a fresh toggle can land
+          // mid-fetch.
           if (favoriteSeqRef.current !== seq) return;
+          setError(e instanceof Error ? e.message : String(e));
+          // Don't re-fetch across a profile switch — that would pull the
+          // wrong profile's list into view.
+          if (profileIdRef.current !== profileAtToggle) return;
           try {
             const fresh = await getPluginFavorites(PLUGIN_ID);
             if (favoriteSeqRef.current === seq) applyFavorites(fresh);
