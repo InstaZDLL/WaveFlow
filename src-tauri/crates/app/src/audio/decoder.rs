@@ -147,6 +147,14 @@ fn transition_state(
     track_id: Option<i64>,
 ) {
     shared.set_state(state);
+    // Drop any cached radio metadata the moment playback goes idle —
+    // covers every stop path (user Stop, decode error, stream end,
+    // failed open) so `get_current_radio_metadata` never serves a
+    // phantom station after the engine has gone quiet. Idempotent for
+    // library playback (the cache is already cleared on LoadAndPlay).
+    if matches!(state, PlayerState::Idle) {
+        super::events::clear_radio_metadata();
+    }
     let _ = app.emit(
         EVENT_STATE,
         StatePayload {
@@ -399,29 +407,6 @@ fn decoder_loop(
                 shared.base_offset_ms.store(0, Ordering::Relaxed);
                 shared.current_track_id.store(track_id, Ordering::Release);
 
-                // Emit the radio metadata up front so the OS overlay /
-                // PlayerBar can paint the title + cover during the
-                // network handshake (the symphonia probe blocks for a
-                // few hundred ms on slow servers). The ICY de-interleaver
-                // in `http_source` re-emits the same event with the live
-                // song title once the stream's first metadata block lands.
-                emit_radio_metadata(
-                    &app,
-                    RadioMetadataPayload {
-                        track_id,
-                        title: title.clone(),
-                        artist: artist.clone(),
-                        artwork_url: artwork_url.clone(),
-                        // Station identity == the now-playing line on this
-                        // first emit; the ICY de-interleaver overwrites
-                        // title/artist with the live song but keeps these.
-                        station_url: Some(url.clone()),
-                        station_name: title.clone(),
-                        station_artist: artist.clone(),
-                        station_artwork: artwork_url.clone(),
-                    },
-                );
-
                 // Defence in depth: `player_play_url` already gates on
                 // `offline::is_offline()` before dispatching the
                 // command, but the decoder is the last hop before
@@ -440,6 +425,34 @@ fn decoder_loop(
                     transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                     continue;
                 }
+
+                // Emit the radio metadata up front so the OS overlay /
+                // PlayerBar can paint the title + cover during the
+                // network handshake (the symphonia probe blocks for a
+                // few hundred ms on slow servers). The ICY de-interleaver
+                // in `http_source` re-emits the same event with the live
+                // song title once the stream's first metadata block lands.
+                //
+                // Placed AFTER the offline guard so a short-circuited
+                // offline load never caches a phantom station; a later
+                // open/probe failure transitions to Idle, which clears
+                // the cache via `transition_state`.
+                emit_radio_metadata(
+                    &app,
+                    RadioMetadataPayload {
+                        track_id,
+                        title: title.clone(),
+                        artist: artist.clone(),
+                        artwork_url: artwork_url.clone(),
+                        // Station identity == the now-playing line on this
+                        // first emit; the ICY de-interleaver overwrites
+                        // title/artist with the live song but keeps these.
+                        station_url: Some(url.clone()),
+                        station_name: title.clone(),
+                        station_artist: artist.clone(),
+                        station_artwork: artwork_url.clone(),
+                    },
+                );
 
                 // Snapshot the redacted URL once for both log sites
                 // below + the outcome handler — `redact_url` is a

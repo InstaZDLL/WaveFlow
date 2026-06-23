@@ -12,10 +12,18 @@ export const WEB_RADIO_PLUGIN_ID = "web-radio";
 
 /// DOM event fired after a favorites write commits so every
 /// `useWebRadioFavorites` instance in the SAME webview (WebRadioView +
-/// PlayerBar) re-reads the list and stays in sync. Cross-webview (the
-/// mini-player is a separate webview) is eventually consistent — each
-/// reloads on its own mount / profile switch, which is enough for a
-/// rarely-changed list.
+/// PlayerBar) re-reads the list and stays in sync.
+///
+/// Scope, by design: same-webview only. The mini-player is a separate
+/// webview, so its writes aren't serialised against the main window's
+/// `writeChainRef` — two near-simultaneous toggles of *different*
+/// stations from the two webviews could last-write-wins one out. This
+/// is accepted for v1: it's a single-user, one-toggle-at-a-time surface,
+/// each write is an atomic single-row UPSERT (never torn), and each
+/// webview reconciles on its next mount / profile switch. A true
+/// cross-process guarantee (a backend add/remove merge instead of a
+/// full-array replace, or a Tauri-event write queue) is the proper fix
+/// if this ever bites — deliberately out of scope here.
 const FAVORITES_CHANGED_EVENT = "waveflow:web-radio-favorites-changed";
 
 /**
@@ -57,6 +65,13 @@ export function useWebRadioFavorites() {
   // instance in this webview commits a change (the DOM bus below).
   useEffect(() => {
     let cancelled = false;
+    // Clear the synchronous snapshot the instant the profile changes so
+    // a toggle fired before the new list lands can't compute from — and
+    // then persist — the PREVIOUS profile's favorites into the now-active
+    // profile. The async load below refills it.
+    favoritesRef.current = [];
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional reset before per-profile reload
+    setFavorites([]);
     const load = () => {
       getPluginFavorites(WEB_RADIO_PLUGIN_ID).then(
         (list) => {

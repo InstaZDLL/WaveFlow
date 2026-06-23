@@ -225,7 +225,11 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                   fill={stationFavorited ? "currentColor" : "none"}
                 />
               </button>
-            ) : currentTrack && !isSpotify ? (
+            ) : currentTrack && !isSpotify && !isRadioTrack(currentTrack) ? (
+              // `!isRadioTrack` guards the hydration race + the idle
+              // tail: a radio sentinel track (negative id) must never
+              // show a ♥ like (it has no library row), even in the brief
+              // window before `currentRadioStation` arrives.
               <button
                 type="button"
                 onClick={handleToggleLike}
