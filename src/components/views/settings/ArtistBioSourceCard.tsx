@@ -9,6 +9,7 @@ import {
   setBioLanguage,
   BIO_LANGUAGES,
   type BioSource,
+  type BioLanguage,
 } from "../../../lib/tauri/integration";
 
 const SOURCES: ReadonlyArray<{ id: BioSource; name: string; hintKey: string }> =
@@ -43,7 +44,7 @@ function languageLabel(uiLang: string, code: string): string {
 export function ArtistBioSourceCard() {
   const { t, i18n } = useTranslation();
   const [source, setSource] = useState<BioSource>("lastfm");
-  const [language, setLanguage] = useState<string>("en");
+  const [language, setLanguage] = useState<BioLanguage>("en");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const userTouchedRef = useRef(false);
@@ -76,13 +77,15 @@ export function ArtistBioSourceCard() {
       await setBioSource(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
-      setSource(previous);
+      // Re-sync from the source of truth rather than a possibly-stale
+      // local default (the click may have raced initial hydration).
+      getBioSource().then(setSource).catch(() => setSource(previous));
     } finally {
       setBusy(false);
     }
   };
 
-  const onPickLanguage = async (next: string) => {
+  const onPickLanguage = async (next: BioLanguage) => {
     if (next === language || busy) return;
     userTouchedRef.current = true;
     setBusy(true);
@@ -93,7 +96,7 @@ export function ArtistBioSourceCard() {
       await setBioLanguage(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
-      setLanguage(previous);
+      getBioLanguage().then(setLanguage).catch(() => setLanguage(previous));
     } finally {
       setBusy(false);
     }
@@ -165,7 +168,7 @@ export function ArtistBioSourceCard() {
           <select
             value={language}
             disabled={busy}
-            onChange={(e) => void onPickLanguage(e.target.value)}
+            onChange={(e) => void onPickLanguage(e.target.value as BioLanguage)}
             className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50"
           >
             {BIO_LANGUAGES.map((code) => (

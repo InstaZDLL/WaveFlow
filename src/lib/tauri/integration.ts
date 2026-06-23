@@ -44,11 +44,13 @@ export function setBioSource(source: BioSource): Promise<void> {
   return invoke<void>("set_bio_source", { source });
 }
 
-export function getBioLanguage(): Promise<string> {
-  return invoke<string>("get_bio_language");
+export function getBioLanguage(): Promise<BioLanguage> {
+  // The backend clamps to BIO_LANGUAGES (or "en"), so the value is
+  // always a valid BioLanguage at this boundary.
+  return invoke<BioLanguage>("get_bio_language");
 }
 
-export function setBioLanguage(language: string): Promise<void> {
+export function setBioLanguage(language: BioLanguage): Promise<void> {
   return invoke<void>("set_bio_language", { language });
 }
 

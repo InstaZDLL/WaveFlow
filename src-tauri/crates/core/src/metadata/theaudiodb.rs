@@ -134,6 +134,14 @@ impl TheAudioDbClient {
             return Ok(None);
         };
 
+        // Guard against homonyms / fuzzy hits: only trust the result when
+        // its name matches what we searched for (case-insensitive) — the
+        // same name-match the Deezer enrichment path applies before
+        // accepting a search hit.
+        if artist.name.as_deref().map(str::to_lowercase) != Some(name.to_lowercase()) {
+            return Ok(None);
+        }
+
         let Some(full) = artist.bio_for_lang(lang).map(clean_text) else {
             return Ok(None);
         };
