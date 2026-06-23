@@ -1904,6 +1904,8 @@
     "favorites": "Favorieten",
     "favoritesEmpty": "Nog geen favoriete zenders. Tik op de ster van een zender om hem op te slaan.",
     "addFavorite": "Aan favorieten toevoegen",
-    "removeFavorite": "Uit favorieten verwijderen"
+    "removeFavorite": "Uit favorieten verwijderen",
+    "localStations": "Lokale zenders",
+    "browseByCountry": "Bladeren per land"
   }
 }

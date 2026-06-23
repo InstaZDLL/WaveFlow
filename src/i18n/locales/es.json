@@ -1904,6 +1904,8 @@
     "favorites": "Favoritos",
     "favoritesEmpty": "Aún no hay emisoras favoritas. Toca la estrella de una emisora para guardarla.",
     "addFavorite": "Añadir a favoritos",
-    "removeFavorite": "Quitar de favoritos"
+    "removeFavorite": "Quitar de favoritos",
+    "localStations": "Emisoras locales",
+    "browseByCountry": "Explorar por país"
   }
 }

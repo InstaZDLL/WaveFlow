@@ -10,6 +10,8 @@ import {
   Loader2,
   Puzzle,
   Star,
+  Globe,
+  MapPin,
 } from "lucide-react";
 
 import { playerPlayUrl, playerStop } from "../../lib/tauri/player";
@@ -25,8 +27,37 @@ import {
 } from "../../lib/tauri/plugins";
 import { usePluginAvailability } from "../../hooks/usePluginAvailability";
 import { useProfile } from "../../hooks/useProfile";
+import { WEB_RADIO_COUNTRY_CODES } from "../../lib/webRadioCountries";
 
 const PLUGIN_ID = "web-radio";
+
+/** Localized country name for an ISO 3166-1 alpha-2 code, falling back
+ *  to the bare code when `Intl.DisplayNames` is unavailable / throws. */
+function countryLabel(uiLang: string, code: string): string {
+  try {
+    const name = new Intl.DisplayNames([uiLang], { type: "region" }).of(code);
+    if (name) return name;
+  } catch {
+    /* fall through */
+  }
+  return code;
+}
+
+/** Best-effort ISO 3166-1 alpha-2 region from the browser locale
+ *  ("fr-FR" → "FR"), or null when the locale carries no region (e.g.
+ *  a bare "en"). Computed once — the webview locale doesn't change at
+ *  runtime. Drives the "Local stations" shortcut. */
+function detectLocalRegion(): string | null {
+  try {
+    const region = new Intl.Locale(navigator.language).region;
+    return region && /^[A-Za-z]{2}$/.test(region)
+      ? region.toUpperCase()
+      : null;
+  } catch {
+    return null;
+  }
+}
+const LOCAL_REGION = detectLocalRegion();
 
 /// Recognise the backend errors that mean "the plugin host refused
 /// to invoke web-radio" — disabled toggle, manifest missing after
@@ -56,7 +87,7 @@ function isPluginUnavailableError(message: string | null): boolean {
  * one release window before being promoted.
  */
 export function WebRadioView() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const pluginAvailable = usePluginAvailability(PLUGIN_ID);
   const { activeProfile } = useProfile();
   const [entries, setEntries] = useState<PluginEntry[]>([]);
@@ -274,6 +305,30 @@ export function WebRadioView() {
       }
     }
   }, []);
+
+  // Country browsing reuses the entry-resolve machinery: a country is
+  // just a synthetic entry whose query is the `country:<ISO2>` token
+  // the plugin understands. Picking one from the dropdown / the local
+  // shortcut funnels through `openEntry`, so token invalidation, the
+  // resolving spinner, error handling + the back button all work
+  // unchanged.
+  const openCountry = useCallback(
+    (code: string, name: string) => {
+      void openEntry({ label: name, query: `country:${code}`, iconUrl: null });
+    },
+    [openEntry],
+  );
+
+  // Countries localized + sorted in the UI language. Recomputed only
+  // when the language changes.
+  const countries = useMemo(
+    () =>
+      WEB_RADIO_COUNTRY_CODES.map((code) => ({
+        code,
+        name: countryLabel(i18n.language, code),
+      })).sort((a, b) => a.name.localeCompare(b.name, i18n.language)),
+    [i18n.language],
+  );
 
   const runSearch = useCallback(async () => {
     const term = searchTerm.trim();
@@ -545,6 +600,35 @@ export function WebRadioView() {
           </button>
         )}
         <div className="flex-1" />
+        {/* Country picker — selecting one funnels through `openCountry`
+            → the plugin's `country:<ISO2>` token. Value is pinned to ""
+            so it acts as an action trigger and is reusable after a
+            pick (it doesn't track the active country). */}
+        <div className="relative">
+          <Globe
+            size={14}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
+            aria-hidden="true"
+          />
+          <select
+            value=""
+            onChange={(e) => {
+              const code = e.target.value;
+              if (!code) return;
+              const picked = countries.find((c) => c.code === code);
+              openCountry(code, picked?.name ?? code);
+            }}
+            aria-label={t("webRadio.browseByCountry")}
+            className="pl-8 pr-3 py-1.5 text-sm rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 max-w-40"
+          >
+            <option value="">{t("webRadio.browseByCountry")}</option>
+            {countries.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="relative">
           <Search
             size={14}
@@ -625,6 +709,36 @@ export function WebRadioView() {
                 )}
               </div>
             </button>
+            {/* Local stations — one-click shortcut to the user's own
+                country, detected from the webview locale. Hidden when
+                the locale carries no region (e.g. a bare "en"); the
+                country dropdown still covers every country. */}
+            {LOCAL_REGION && (
+              <button
+                type="button"
+                onClick={() =>
+                  openCountry(
+                    LOCAL_REGION,
+                    countryLabel(i18n.language, LOCAL_REGION),
+                  )
+                }
+                className="text-left px-4 py-6 rounded-xl bg-sky-50 dark:bg-sky-950/20 hover:bg-sky-100 dark:hover:bg-sky-950/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              >
+                <div className="flex items-center gap-2 text-base font-medium text-zinc-900 dark:text-white">
+                  <MapPin
+                    size={18}
+                    className="text-sky-500 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span className="min-w-0 truncate">
+                    {t("webRadio.localStations")}
+                  </span>
+                </div>
+                <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                  {countryLabel(i18n.language, LOCAL_REGION)}
+                </div>
+              </button>
+            )}
             {entries.map((entry) => (
               <button
                 key={entry.query}

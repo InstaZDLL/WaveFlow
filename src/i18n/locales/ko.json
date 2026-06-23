@@ -1904,6 +1904,8 @@
     "favorites": "즐겨찾기",
     "favoritesEmpty": "즐겨찾는 방송국이 아직 없습니다. 방송국의 별을 눌러 저장하세요.",
     "addFavorite": "즐겨찾기에 추가",
-    "removeFavorite": "즐겨찾기에서 제거"
+    "removeFavorite": "즐겨찾기에서 제거",
+    "localStations": "지역 방송국",
+    "browseByCountry": "국가별 보기"
   }
 }

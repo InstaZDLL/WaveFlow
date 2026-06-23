@@ -1904,6 +1904,8 @@
     "favorites": "Favoriten",
     "favoritesEmpty": "Noch keine Lieblingssender. Tippe auf den Stern eines Senders, um ihn zu speichern.",
     "addFavorite": "Zu Favoriten hinzufügen",
-    "removeFavorite": "Aus Favoriten entfernen"
+    "removeFavorite": "Aus Favoriten entfernen",
+    "localStations": "Lokale Sender",
+    "browseByCountry": "Nach Land durchsuchen"
   }
 }

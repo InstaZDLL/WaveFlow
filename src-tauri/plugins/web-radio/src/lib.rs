@@ -134,6 +134,23 @@ fn build_url(query: &str) -> Result<String, String> {
             "{MIRROR}/json/stations/bytag/{tag}?limit={PAGE_LIMIT}&order=votes&reverse=true&hidebroken=true"
         ));
     }
+    // `country:<ISO2>` → stations in one country, by ISO 3166-1
+    // alpha-2 code (e.g. `country:FR`). The host hands the code from
+    // its country picker / "local stations" shortcut. We validate the
+    // shape (exactly two ASCII letters) so a malformed token can't be
+    // smuggled into the path segment, and upper-case it because
+    // radio-browser's `bycountrycodeexact` is case-sensitive on the
+    // canonical upper form.
+    if let Some(code) = trimmed.strip_prefix("country:") {
+        let code = code.trim();
+        if code.len() != 2 || !code.bytes().all(|b| b.is_ascii_alphabetic()) {
+            return Err("country code must be ISO 3166-1 alpha-2".into());
+        }
+        let code = code.to_ascii_uppercase();
+        return Ok(format!(
+            "{MIRROR}/json/stations/bycountrycodeexact/{code}?limit={PAGE_LIMIT}&order=votes&reverse=true&hidebroken=true"
+        ));
+    }
     // Both the explicit `search:` form and the free-text fallback
     // hit the same endpoint. The prefix is kept as a hint for the
     // host UI to disambiguate "this was a search" from "this was a
