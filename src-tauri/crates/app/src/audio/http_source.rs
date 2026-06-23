@@ -169,6 +169,15 @@ impl HttpMediaSource {
     }
 
     fn open_inner(url: &str, icy: Option<IcyContext>) -> Result<Self, String> {
+        // Offline short-circuit at the HTTP boundary itself. The decoder
+        // already gates `LoadUrlAndPlay` on this before reaching here, but
+        // guarding the source too makes it self-honouring for any future
+        // caller — the project convention is that every outbound HTTP path
+        // checks `offline::is_offline()` first.
+        if crate::offline::is_offline() {
+            return Err("offline mode is enabled".to_string());
+        }
+
         let client = Client::builder()
             .user_agent(USER_AGENT)
             .connect_timeout(CONNECT_TIMEOUT)
