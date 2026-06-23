@@ -10,6 +10,7 @@ import {
   Loader2,
   Check,
   Mic2,
+  Radio,
 } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { Artwork } from "../common/Artwork";
@@ -276,6 +277,18 @@ export function FullscreenNowPlaying({
                 </>
               )}
             </div>
+            {/* Live radio: the station identity under the now-playing
+                song (title/artist above carry the ICY song). */}
+            {currentRadioStation && (
+              <div className="mt-3 flex items-center justify-center gap-2 text-sm text-white/60">
+                <Radio size={15} className="shrink-0" />
+                <span className="truncate">
+                  {currentRadioStation.artist
+                    ? `${currentRadioStation.title} · ${currentRadioStation.artist}`
+                    : currentRadioStation.title}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

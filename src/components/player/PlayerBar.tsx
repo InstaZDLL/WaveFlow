@@ -198,6 +198,20 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                   variant="text"
                 />
               )}
+              {/* Live radio: surface the station identity under the
+                  now-playing song (the title/artist rows above show the
+                  ICY song). HiResBadge renders null for radio so this
+                  reuses the freed third row. */}
+              {currentRadioStation && (
+                <span className="flex items-center gap-1 text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                  <Radio size={11} className="shrink-0" />
+                  <span className="truncate">
+                    {currentRadioStation.artist
+                      ? `${currentRadioStation.title} · ${currentRadioStation.artist}`
+                      : currentRadioStation.title}
+                  </span>
+                </span>
+              )}
             </div>
             {currentRadioStation ? (
               // Live radio: favorite the STATION, not the now-playing
