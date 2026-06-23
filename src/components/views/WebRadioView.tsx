@@ -19,17 +19,17 @@ import {
   pluginListEntries,
   pluginResolve,
   pluginStreamUrl,
-  getPluginFavorites,
-  setPluginFavorites,
   type PluginEntry,
   type PluginTrack,
-  type PluginFavorite,
 } from "../../lib/tauri/plugins";
 import { usePluginAvailability } from "../../hooks/usePluginAvailability";
-import { useProfile } from "../../hooks/useProfile";
+import {
+  useWebRadioFavorites,
+  WEB_RADIO_PLUGIN_ID,
+} from "../../hooks/useWebRadioFavorites";
 import { WEB_RADIO_COUNTRY_CODES } from "../../lib/webRadioCountries";
 
-const PLUGIN_ID = "web-radio";
+const PLUGIN_ID = WEB_RADIO_PLUGIN_ID;
 
 /** Localized country name for an ISO 3166-1 alpha-2 code, falling back
  *  to the bare code when `Intl.DisplayNames` is unavailable / throws. */
@@ -89,7 +89,6 @@ function isPluginUnavailableError(message: string | null): boolean {
 export function WebRadioView() {
   const { t, i18n } = useTranslation();
   const pluginAvailable = usePluginAvailability(PLUGIN_ID);
-  const { activeProfile } = useProfile();
   const [entries, setEntries] = useState<PluginEntry[]>([]);
   const [activeEntry, setActiveEntry] = useState<PluginEntry | null>(null);
   const [tracks, setTracks] = useState<PluginTrack[]>([]);
@@ -98,11 +97,11 @@ export function WebRadioView() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchActive, setSearchActive] = useState(false);
-  // Per-profile saved stations (issue #289). Loaded from the backend
-  // on mount + on profile switch; the "Favorites" pseudo-category
-  // replays them with zero network (the stream URL rides inside
-  // `track.id` as `url:<stream>`).
-  const [favorites, setFavorites] = useState<PluginFavorite[]>([]);
+  // Per-profile saved stations (issue #289) come from the shared hook
+  // so this view, the PlayerBar and the mini-player favorite-station
+  // star never drift. The "Favorites" pseudo-category replays them with
+  // zero network (the stream URL rides inside `track.id` as `url:…`).
+  const { favorites, isFavorite, toggleFavorite } = useWebRadioFavorites();
   const [favoritesActive, setFavoritesActive] = useState(false);
   // The PluginTrack.id of the currently-playing station, or null when
   // nothing in this view owns the engine. Driven by `playerPlayUrl`
@@ -126,26 +125,6 @@ export function WebRadioView() {
   // pending category fetch.
   const resolveReqRef = useRef(0);
   const streamReqRef = useRef(0);
-  // Synchronous mirror of `favorites` so back-to-back toggles compute
-  // their next list from the latest value even before React commits a
-  // re-render (a rapid double-click on two different stations would
-  // otherwise both read the same stale `favorites` and the second
-  // would drop the first's change).
-  const favoritesRef = useRef<PluginFavorite[]>([]);
-  // Serialises optimistic backend writes. Each toggle chains onto the
-  // previous write so the snapshots land in click order — a stale
-  // (earlier) list can never resolve last and clobber a newer one.
-  const writeChainRef = useRef<Promise<unknown>>(Promise.resolve());
-  // Monotonic toggle id. A failed write only re-syncs from the server
-  // when it's still the most-recent toggle — otherwise an earlier
-  // failure's authoritative re-fetch would clobber a newer optimistic
-  // state that a later (successful) write already persisted.
-  const favoriteSeqRef = useRef(0);
-  // Always-current active profile id. A queued favorites write must
-  // NOT land after a profile switch — `set_plugin_favorites` resolves
-  // `require_profile_pool()` at execution time, so a stale write would
-  // persist the old profile's list into the newly-active profile.
-  const profileIdRef = useRef(activeProfile?.id);
 
   // Fetch the category list whenever the plugin becomes available.
   //
@@ -179,8 +158,6 @@ export function WebRadioView() {
       setActiveEntry(null);
       setSearchActive(false);
       setFavoritesActive(false);
-      setFavorites([]);
-      favoritesRef.current = [];
       setError(null);
       setLoading(false);
       return;
@@ -205,53 +182,6 @@ export function WebRadioView() {
       cancelled = true;
     };
   }, [pluginAvailable]);
-
-  // Single writer for the favorites list: keeps the synchronous ref
-  // and the rendered state in lockstep so compute-from-ref and
-  // display-from-state never diverge. Declared above the load effect
-  // so that effect can list it as a dependency without tripping the
-  // const TDZ.
-  const applyFavorites = useCallback((list: PluginFavorite[]) => {
-    favoritesRef.current = list;
-    setFavorites(list);
-  }, []);
-
-  // Keep the profile-id ref in lockstep with the active profile so a
-  // write queued before a switch can detect that it's now stale.
-  useEffect(() => {
-    profileIdRef.current = activeProfile?.id;
-  }, [activeProfile?.id]);
-
-  // Load the active profile's favorites. Re-runs on profile switch
-  // (`activeProfile?.id`) so the saved-stations list follows the
-  // profile, like liked tracks. Failures are non-fatal — a profile
-  // with no favorites is the common case and a backend hiccup just
-  // leaves the list empty rather than blocking the whole view.
-  useEffect(() => {
-    if (!pluginAvailable) return;
-    let cancelled = false;
-    // Clear before the per-profile reload so a profile switch never
-    // flashes the previous profile's stars while the new list is in
-    // flight. On first mount the list is already empty so there's no
-    // flicker; React batches this with the async result anyway.
-    /* eslint-disable-next-line react-hooks/set-state-in-effect --
-       intentional reset before per-profile favorites reload */
-    setFavorites([]);
-    favoritesRef.current = [];
-    getPluginFavorites(PLUGIN_ID).then(
-      (list) => {
-        if (!cancelled) applyFavorites(list);
-      },
-      (err: unknown) => {
-        if (!cancelled) {
-          console.warn("[WebRadioView] favorites load failed", err);
-        }
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [pluginAvailable, activeProfile?.id, applyFavorites]);
 
   // Track the engine's lifecycle so a stream that dies on its own
   // (server timeout, mid-stream 5xx, user hits Stop on the PlayerBar)
@@ -357,72 +287,19 @@ export function WebRadioView() {
     }
   }, [searchTerm]);
 
-  const isFavorite = useCallback(
-    (id: string) => favorites.some((f) => f.id === id),
-    [favorites],
-  );
-
-  // Optimistic toggle. Computes `next` from the synchronous ref (not
-  // the possibly-stale `favorites` closure) and chains the backend
-  // write onto `writeChainRef` so concurrent toggles persist in order.
-  // The whole array is replaced server-side, so the host stays the
-  // single source of truth for ordering + dedup. On write failure we
-  // re-fetch the authoritative list rather than guess a rollback
-  // target — other writes may still be in flight, so the server is the
-  // only honest source of "what's actually saved".
-  const toggleFavorite = useCallback(
+  // Build the favorite record for a station row so the shared hook's
+  // toggle (which takes a `PluginFavorite`) can save it.
+  const toggleFavoriteTrack = useCallback(
     (track: PluginTrack) => {
-      const seq = ++favoriteSeqRef.current;
-      const current = favoritesRef.current;
-      const next = current.some((f) => f.id === track.id)
-        ? current.filter((f) => f.id !== track.id)
-        : [
-            ...current,
-            {
-              id: track.id,
-              title: track.title,
-              artist: track.artist,
-              album: track.album,
-              artworkUrl: track.artworkUrl,
-            },
-          ];
-      applyFavorites(next);
-      const profileAtToggle = profileIdRef.current;
-      writeChainRef.current = writeChainRef.current
-        // A prior failure must not break the chain for later writes.
-        .catch(() => {})
-        .then(() => {
-          // Profile switched while this write waited its turn: skip it.
-          // The backend writes to whatever profile is active NOW, so
-          // persisting here would corrupt the new profile with the old
-          // one's list. The switched-to profile already reloaded its
-          // own favorites; the trade-off is that this last toggle is
-          // not saved to the profile it was made in (a rare edge — the
-          // write is local-SQLite fast, the switch window tiny).
-          if (profileIdRef.current !== profileAtToggle) return;
-          return setPluginFavorites(PLUGIN_ID, next);
-        })
-        .catch(async (e) => {
-          // Only the latest toggle may surface an error / overwrite the
-          // optimistic state with the server's authoritative list — an
-          // earlier write's re-fetch (or error) would otherwise clobber
-          // a newer optimistic state a later write already persisted.
-          // Re-check after the await too, since a fresh toggle can land
-          // mid-fetch.
-          if (favoriteSeqRef.current !== seq) return;
-          setError(e instanceof Error ? e.message : String(e));
-          // Don't re-fetch across a profile switch — that would pull the
-          // wrong profile's list into view.
-          if (profileIdRef.current !== profileAtToggle) return;
-          try {
-            const fresh = await getPluginFavorites(PLUGIN_ID);
-            if (favoriteSeqRef.current === seq) applyFavorites(fresh);
-          } catch {
-            /* leave optimistic state; the next load re-syncs */
-          }
-        });
+      toggleFavorite({
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        album: track.album,
+        artworkUrl: track.artworkUrl,
+      });
     },
-    [applyFavorites],
+    [toggleFavorite],
   );
 
   const openFavorites = useCallback(() => {
@@ -823,7 +700,7 @@ export function WebRadioView() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => toggleFavorite(track)}
+                    onClick={() => toggleFavoriteTrack(track)}
                     aria-pressed={favorited}
                     aria-label={
                       favorited

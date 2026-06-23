@@ -1790,3 +1790,16 @@ pub async fn player_play_url(
 
     Ok(track_id)
 }
+
+/// Snapshot the current radio session's metadata, or `None` when no
+/// stream is playing. `player_get_state` can't carry this (radio has no
+/// library row), so a webview that mounts mid-stream — the mini-player
+/// opened after a station started — calls this to hydrate the PlayerBar
+/// + the station-favorite star instead of waiting for the next ICY
+/// `StreamTitle` change (minutes away). Reads the process-wide snapshot
+/// the engine keeps in [`crate::audio::events`].
+#[tauri::command]
+pub async fn get_current_radio_metadata(
+) -> AppResult<Option<crate::audio::events::RadioMetadataPayload>> {
+    Ok(crate::audio::events::last_radio_metadata())
+}

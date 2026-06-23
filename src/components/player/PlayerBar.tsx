@@ -4,6 +4,7 @@ import {
   Menu,
   MonitorSpeaker,
   Heart,
+  Star,
   Mic2,
   Maximize2,
   PictureInPicture2,
@@ -12,6 +13,7 @@ import {
 import { usePlayer } from "../../hooks/usePlayer";
 import { useSleepTimer } from "../../hooks/useSleepTimer";
 import { usePlayerBarLayout } from "../../hooks/usePlayerBarLayout";
+import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { HiResBadge } from "../common/HiResBadge";
@@ -41,6 +43,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
     isDeviceMenuOpen,
     toggleDeviceMenu,
     currentTrack,
+    currentRadioStation,
     volume,
     setVolume,
     activeProvider,
@@ -50,6 +53,10 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
     openFullscreenLyrics,
     toggleNowPlaying,
   } = usePlayer();
+
+  // Web Radio favorites — for a live stream the like ♥ is replaced by a
+  // station-favorite ★ (a radio track has no library row to "like").
+  const radioFavorites = useWebRadioFavorites();
 
   const sleepTimer = useSleepTimer({ currentVolume: volume, setVolume });
 
@@ -97,6 +104,9 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
   const isSpotify = activeProvider === "spotify";
   const isLiked =
     currentTrack != null && !isSpotify && likedIds.has(currentTrack.id);
+  const stationFavorited =
+    currentRadioStation != null &&
+    radioFavorites.isFavorite(currentRadioStation.id);
 
   const handleToggleLike = async () => {
     if (!currentTrack) return;
@@ -189,7 +199,33 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                 />
               )}
             </div>
-            {currentTrack && !isSpotify && (
+            {currentRadioStation ? (
+              // Live radio: favorite the STATION, not the now-playing
+              // song (whose id is a negative sentinel with no library
+              // row to like).
+              <button
+                type="button"
+                onClick={() =>
+                  radioFavorites.toggleFavorite(currentRadioStation)
+                }
+                aria-label={
+                  stationFavorited
+                    ? t("webRadio.removeFavorite")
+                    : t("webRadio.addFavorite")
+                }
+                aria-pressed={stationFavorited}
+                className={`p-2 rounded-full transition-colors shrink-0 ${
+                  stationFavorited
+                    ? "text-amber-500"
+                    : "text-zinc-300 dark:text-zinc-600 hover:text-amber-500"
+                }`}
+              >
+                <Star
+                  size={18}
+                  fill={stationFavorited ? "currentColor" : "none"}
+                />
+              </button>
+            ) : currentTrack && !isSpotify ? (
               <button
                 type="button"
                 onClick={handleToggleLike}
@@ -202,7 +238,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               >
                 <Heart size={18} className={isLiked ? "fill-current" : ""} />
               </button>
-            )}
+            ) : null}
           </div>
 
           {/* Center: Controls */}

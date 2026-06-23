@@ -289,6 +289,11 @@ fn decoder_loop(
                 // the previous track's loop endpoints.
                 shared.clear_ab_loop();
 
+                // A library track ends any radio session, so drop the
+                // stored radio metadata — a mini-player that mounts now
+                // must hydrate the library track, not a stale station.
+                super::events::clear_radio_metadata();
+
                 transition_state(&shared, &app, PlayerState::Loading, Some(track_id));
                 // Drain whatever's left of the previous track's
                 // samples from the rtrb ring so the new track doesn't
@@ -407,6 +412,13 @@ fn decoder_loop(
                         title: title.clone(),
                         artist: artist.clone(),
                         artwork_url: artwork_url.clone(),
+                        // Station identity == the now-playing line on this
+                        // first emit; the ICY de-interleaver overwrites
+                        // title/artist with the live song but keeps these.
+                        station_url: Some(url.clone()),
+                        station_name: title.clone(),
+                        station_artist: artist.clone(),
+                        station_artwork: artwork_url.clone(),
                     },
                 );
 
@@ -444,6 +456,8 @@ fn decoder_loop(
                 let icy_ctx = super::http_source::IcyContext {
                     app: app.clone(),
                     track_id,
+                    station_url: url.clone(),
+                    station_name: title.clone(),
                     station_artist: artist.clone(),
                     artwork_url: artwork_url.clone(),
                 };

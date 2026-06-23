@@ -13,6 +13,7 @@ import {
   SkipBack,
   SkipForward,
   Heart,
+  Star,
   Maximize2,
   X,
   Pin,
@@ -25,6 +26,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Window as TauriWindow } from "@tauri-apps/api/window";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
+import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
 import { Artwork } from "../common/Artwork";
 import { resolveArtwork } from "../../lib/tauri/artwork";
 import { dominantColor, darken, rgb } from "../../lib/dominantColor";
@@ -64,8 +66,15 @@ export function MiniPlayer() {
     seek,
     setSeeking,
     activeProvider,
+    currentRadioStation,
   } = usePlayer();
   const isSpotify = activeProvider === "spotify";
+
+  // Web Radio favorites — a live stream swaps the ♥ for a station ★.
+  const radioFavorites = useWebRadioFavorites();
+  const stationFavorited =
+    currentRadioStation != null &&
+    radioFavorites.isFavorite(currentRadioStation.id);
 
   // ── Like-state mirror (own webview = own React state) ───────────
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
@@ -465,10 +474,34 @@ export function MiniPlayer() {
             >
               {currentTrack?.artist_name ?? "—"}
             </div>
-            {/* Like button is local-library only — Spotify tracks
-              don't live in the WaveFlow DB so toggleLikeTrack would
-              fail silently on a missing row. */}
-            {!isSpotify && (
+            {/* Live radio: favorite the STATION (★). Otherwise the
+              local-library like (♥) — Spotify is excluded because its
+              tracks have no WaveFlow DB row to like. */}
+            {currentRadioStation ? (
+              <button
+                type="button"
+                onClick={() =>
+                  radioFavorites.toggleFavorite(currentRadioStation)
+                }
+                aria-label={
+                  stationFavorited
+                    ? t("webRadio.removeFavorite")
+                    : t("webRadio.addFavorite")
+                }
+                aria-pressed={stationFavorited}
+                className="p-0.5 shrink-0"
+              >
+                <Star
+                  size={14}
+                  fill={stationFavorited ? "currentColor" : "none"}
+                  className={
+                    stationFavorited
+                      ? "text-amber-400"
+                      : "text-white/60 hover:text-white"
+                  }
+                />
+              </button>
+            ) : !isSpotify ? (
               <button
                 type="button"
                 onClick={handleLike}
@@ -485,7 +518,7 @@ export function MiniPlayer() {
                   }
                 />
               </button>
-            )}
+            ) : null}
           </div>
         </div>
 

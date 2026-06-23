@@ -188,6 +188,37 @@ export function playerPlayUrl(args: PlayUrlArgs): Promise<number> {
   });
 }
 
+/**
+ * Wire shape of the `player:radio-metadata` event AND the
+ * `get_current_radio_metadata` snapshot. Two layers travel together:
+ * the live **now playing** song (`title`/`artist`/`artwork_url`, from
+ * ICY) and the stable **station identity** (`station_*`) the PlayerBar /
+ * mini-player keep so the favorite star can save the station even after
+ * a song title has overwritten the now-playing line. The favorite id is
+ * `url:<station_url>`.
+ */
+export interface RadioMetadata {
+  track_id: number;
+  title: string | null;
+  artist: string | null;
+  artwork_url: string | null;
+  station_url: string | null;
+  station_name: string | null;
+  station_artist: string | null;
+  station_artwork: string | null;
+}
+
+/**
+ * Snapshot the current radio session, or `null` when none is playing.
+ * `player_get_state` can't carry radio (no library row), so a webview
+ * that mounts mid-stream — the mini-player opened after a station
+ * started — calls this to hydrate instead of waiting for the next ICY
+ * `StreamTitle` change.
+ */
+export function getCurrentRadioMetadata(): Promise<RadioMetadata | null> {
+  return invoke<RadioMetadata | null>("get_current_radio_metadata");
+}
+
 export function playerNext(): Promise<void> {
   return invoke<void>("player_next");
 }
