@@ -105,6 +105,12 @@ const USER_AGENT: &str = concat!(
 pub struct IcyContext {
     pub app: AppHandle,
     pub track_id: i64,
+    /// Raw stream URL — the favorite id is `url:<station_url>`, so it
+    /// rides every emit to let the PlayerBar / mini-player star save the
+    /// station even after the now-playing line shows a song title.
+    pub station_url: String,
+    /// Station display name (kept stable across song changes).
+    pub station_name: Option<String>,
     /// Station name kept as the artist line when a `StreamTitle` has no
     /// `Artist - Title` split (e.g. a bare show name).
     pub station_artist: Option<String>,
@@ -371,6 +377,10 @@ impl HttpMediaSource {
                 title,
                 artist,
                 artwork_url: icy.artwork_url.clone(),
+                station_url: Some(icy.station_url.clone()),
+                station_name: icy.station_name.clone(),
+                station_artist: icy.station_artist.clone(),
+                station_artwork: icy.artwork_url.clone(),
             },
         );
     }

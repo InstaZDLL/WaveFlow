@@ -88,8 +88,23 @@ jobs:
           --no-default-features
           --features postgres
 
-      - name: cargo test
+      - name: cargo test (full workspace)
+        if: runner.os == 'Linux'
         run: cargo test --manifest-path src-tauri/Cargo.toml --workspace
+
+      - name: cargo test (Windows — exclude the Tauri app crate)
+        # The `waveflow` app-crate test binary links the Tauri / WebView2
+        # runtime and fails to START headless on windows-latest with
+        # STATUS_ENTRYPOINT_NOT_FOUND (exit 0xc0000139) — the loader
+        # can't resolve the webview DLL's imports next to a bare test
+        # exe. Its unit tests are pure logic and already run on Linux
+        # above; the portable crates (`waveflow-core`, …) still run here,
+        # and `cargo check --all-targets` above already exercises the app
+        # crate's Windows compilation. So skip only the app crate's test
+        # binary on Windows rather than losing the whole Windows matrix
+        # slot.
+        if: runner.os == 'Windows'
+        run: cargo test --manifest-path src-tauri/Cargo.toml --workspace --exclude waveflow
 
   frontend:
     name: Frontend

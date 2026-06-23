@@ -30,13 +30,16 @@ import {
   playerSetSpeed,
   playerSetVolume,
   playerToggleShuffle,
+  getCurrentRadioMetadata,
   type OutputDevice,
   type PlayerErrorPayload,
   type PlayerPositionPayload,
   type PlayerStatePayload,
   type QueueSource,
   type QueueTrackPayload,
+  type RadioMetadata,
 } from "../lib/tauri/player";
+import type { PluginFavorite } from "../lib/tauri/plugins";
 import { enrichArtistDeezer } from "../lib/tauri/detail";
 
 /**
@@ -76,19 +79,27 @@ function queuePayloadToTrack(payload: QueueTrackPayload): Track {
 }
 
 /**
- * Wire shape of the `player:radio-metadata` event emitted by the
- * audio engine on `LoadUrlAndPlay`. `track_id` is the negative
- * sentinel `player_play_url` returned to the caller — distinct from
- * any library row id.
+ * Build the stable station identity (favorite shape, id `url:<stream>`)
+ * from a radio-metadata snapshot. `null` when the payload carries no
+ * `station_url` (shouldn't happen for a live stream, but keeps the
+ * favorite star honest). The station fields are deliberately separate
+ * from the now-playing song so the star saves the station, not the
+ * current track.
  */
-interface RadioMetadataPayload {
-  track_id: number;
-  title: string | null;
-  artist: string | null;
-  artwork_url: string | null;
+function radioStationFromMetadata(m: RadioMetadata): PluginFavorite | null {
+  if (!m.station_url) return null;
+  return {
+    id: `url:${m.station_url}`,
+    title: m.station_name ?? "Live Radio",
+    // `PluginFavorite.artist` is non-null (radio-browser always ships a
+    // country / "Internet Radio"); fall back to empty when absent.
+    artist: m.station_artist ?? "",
+    album: null,
+    artworkUrl: m.station_artwork,
+  };
 }
 
-function radioMetadataToTrack(payload: RadioMetadataPayload): Track {
+function radioMetadataToTrack(payload: RadioMetadata): Track {
   return {
     id: payload.track_id,
     library_id: 0,
@@ -199,6 +210,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   );
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle");
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+  // Stable Web Radio station identity, separate from the now-playing
+  // song (which the ICY de-interleaver overwrites). Set from
+  // `player:radio-metadata`, hydrated on mount, cleared when a library
+  // track plays or playback goes idle.
+  const [currentRadioStation, setCurrentRadioStation] =
+    useState<PluginFavorite | null>(null);
   const [positionMs, setPositionMs] = useState(0);
   const [durationMs, setDurationMs] = useState(0);
 
@@ -246,6 +263,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPlaybackState("idle");
     setCurrentTrack(null);
+    setCurrentRadioStation(null);
     setPositionMs(0);
     setDurationMs(0);
 
@@ -269,6 +287,22 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         if (snap.current_track) {
           setCurrentTrack(queuePayloadToTrack(snap.current_track));
           setDurationMs(snap.current_track.duration_ms);
+        } else if (snap.state !== "idle") {
+          // No library row but something's playing → a Web Radio
+          // session. `player_get_state` can't carry it, so hydrate from
+          // the dedicated snapshot. Critical for the mini-player webview
+          // mounting mid-stream (it would otherwise show nothing until
+          // the next ICY title change, minutes away).
+          try {
+            const radio = await getCurrentRadioMetadata();
+            if (!cancelled && radio) {
+              setCurrentTrack(radioMetadataToTrack(radio));
+              setCurrentRadioStation(radioStationFromMetadata(radio));
+              setDurationMs(0);
+            }
+          } catch (err) {
+            console.error("[PlayerContext] hydrate radio failed", err);
+          }
         }
         // Hydrate playback speed in parallel — separate command
         // because it's not part of the main snapshot (the field
@@ -310,6 +344,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
               // Keep currentTrack in view so the PlayerBar still
               // shows metadata until auto-advance swaps it.
             }
+            if (e.payload.state === "idle") {
+              // Playback stopped — drop the radio station so the
+              // PlayerBar star doesn't linger on a dead session.
+              setCurrentRadioStation(null);
+            }
           }),
         );
         unlisten.push(
@@ -321,6 +360,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             // immediately — we can't wait for the first position
             // event because it carries no metadata.
             setCurrentTrack(queuePayloadToTrack(e.payload));
+            // A library track is now playing → no longer a radio
+            // session, so the favorite-station star disappears.
+            setCurrentRadioStation(null);
             setDurationMs(e.payload.duration_ms);
             setPositionMs(0);
             // Refresh the device-side fields from the engine: WASAPI
@@ -348,14 +390,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           }),
         );
         unlisten.push(
-          await listen<RadioMetadataPayload>(
+          await listen<RadioMetadata>(
             "player:radio-metadata",
             (e) => {
               // Web Radio (LoadUrlAndPlay) emits this in lieu of
               // `player:track-changed` — no library row to look up,
-              // metadata rides on the event payload directly.
+              // metadata rides on the event payload directly. The
+              // now-playing song drives `currentTrack`; the stable
+              // station identity drives the favorite-station star.
               setActiveProvider("local");
               setCurrentTrack(radioMetadataToTrack(e.payload));
+              setCurrentRadioStation(radioStationFromMetadata(e.payload));
               setDurationMs(0);
               setPositionMs(0);
             },
@@ -738,6 +783,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         playbackState: effectivePlaybackState,
         isPlaying,
         currentTrack,
+        currentRadioStation,
         positionMs,
         durationMs,
         volume,

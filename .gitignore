@@ -88,3 +88,6 @@ packaging/flatpak/.cache/
 # extraction cache). Machine-specific, fully regenerable from the cache.
 graphify-out/
 scripts/__pycache__/*
+
+# jscpd copy-paste detector output
+report/

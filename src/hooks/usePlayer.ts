@@ -2,6 +2,7 @@ import { createContext, useContext } from "react";
 import type { Track } from "../lib/tauri/track";
 import type { OutputDevice, QueueSource } from "../lib/tauri/player";
 import type { SpotifyTrackLite } from "../lib/tauri/spotify";
+import type { PluginFavorite } from "../lib/tauri/plugins";
 
 export type RepeatMode = "off" | "all" | "one";
 export type ActiveProvider = "local" | "spotify";
@@ -46,6 +47,12 @@ interface PlayerContextValue {
   playbackState: PlaybackState;
   isPlaying: boolean;
   currentTrack: Track | null;
+  /** Stable identity of the live Web Radio station currently playing
+   *  (id `url:<stream>` + name + favicon), kept separate from the
+   *  now-playing song so the PlayerBar / mini-player "favorite station"
+   *  star can save the station even after an ICY title overwrote the
+   *  track line. `null` when the current source isn't Web Radio. */
+  currentRadioStation: PluginFavorite | null;
   positionMs: number;
   durationMs: number;
 
