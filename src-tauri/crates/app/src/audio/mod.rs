@@ -17,6 +17,7 @@
 pub mod analytics;
 pub mod crossfade;
 pub mod decoder;
+pub mod events;
 pub mod engine;
 pub mod eq;
 pub mod http_source;
