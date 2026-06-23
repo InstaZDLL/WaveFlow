@@ -15,10 +15,12 @@ import {
   Check,
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
+import { isRadioTrack } from "../../lib/playerSources";
 import { pickFile } from "../../lib/tauri/dialog";
 import {
   clearLyrics,
   fetchLyrics,
+  fetchRadioLyrics,
   findActiveLineIndex,
   findActiveWordIndex,
   importLrcFile,
@@ -77,6 +79,18 @@ export function LyricsPanel() {
 
   const trackId = currentTrack?.id ?? null;
 
+  // Web Radio has no library row: its lyrics are fetched by (artist,
+  // title) parsed from the ICY title, not by track_id. The sentinel id
+  // stays constant for the whole stream session while the song changes,
+  // so the fetch effect keys on title + artist (not just trackId) to
+  // re-query on each new song. Synced lyrics are rendered statically for
+  // radio — the live stream position can't align to a song joined
+  // mid-play — and the library-row mutation actions (edit / import /
+  // refetch / clear) are hidden.
+  const isRadio = isRadioTrack(currentTrack);
+  const radioArtist = isRadio ? (currentTrack?.artist_name ?? null) : null;
+  const radioTitle = isRadio ? (currentTrack?.title ?? null) : null;
+
   // Live mirror of `trackId` so async event handlers can detect
   // when the user switched tracks during an `await` — without it the
   // closure carries whatever `trackId` was current at click time and
@@ -101,7 +115,16 @@ export function LyricsPanel() {
     let cancelled = false;
     setIsFetching(true);
     setError(null);
-    fetchLyrics(trackId)
+    // Radio: query by artist + title (no library row). A radio session
+    // with no parsed song yet (favicon-only, pre-ICY) has nothing to
+    // search — resolve to null so the panel shows "not found" instead of
+    // firing a blank query.
+    const request = isRadio
+      ? radioArtist && radioTitle
+        ? fetchRadioLyrics(radioArtist, radioTitle, trackId)
+        : Promise.resolve<LyricsPayload | null>(null)
+      : fetchLyrics(trackId);
+    request
       .then((p) => {
         if (cancelled) return;
         setPayload(p);
@@ -117,7 +140,7 @@ export function LyricsPanel() {
     return () => {
       cancelled = true;
     };
-  }, [trackId]);
+  }, [trackId, isRadio, radioArtist, radioTitle]);
 
   // ── Parse lyrics once per content change ─────────────────────────
   const lrcLines = useMemo<LyricsLine[]>(() => {
@@ -125,7 +148,20 @@ export function LyricsPanel() {
     return parseLyrics(payload.content, payload.format);
   }, [payload]);
 
-  const isSynced = lrcLines.length > 0;
+  // Radio is always rendered statically (no karaoke scroll), even when
+  // the fetched content is synced LRC — the stream position is "seconds
+  // since I tuned in", not "seconds into the song", so a highlight would
+  // be wrong.
+  const isSynced = !isRadio && lrcLines.length > 0;
+
+  // For radio, strip the LRC timestamps for a clean static read: reuse
+  // the parsed lines' text, or fall back to the raw content when it was
+  // already plain.
+  const radioPlainText = useMemo<string | null>(() => {
+    if (!isRadio || !payload) return null;
+    if (lrcLines.length > 0) return lrcLines.map((l) => l.text).join("\n");
+    return payload.content;
+  }, [isRadio, payload, lrcLines]);
 
   // ── Active-line tracking with auto-scroll ───────────────────────
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -315,7 +351,7 @@ export function LyricsPanel() {
               onClick={() => setIsEditing(true)}
               aria-label={t("lyrics.actions.edit")}
               title={t("lyrics.actions.edit")}
-              disabled={currentTrack == null}
+              disabled={currentTrack == null || isRadio}
               className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Pencil size={16} />
@@ -436,7 +472,7 @@ export function LyricsPanel() {
             </ul>
           ) : (
             <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-200 whitespace-pre-line">
-              {payload.content}
+              {isRadio ? radioPlainText : payload.content}
             </p>
           )}
         </div>
@@ -471,6 +507,7 @@ export function LyricsPanel() {
               activeIndex={activeIndex}
               isFetching={isFetching}
               error={error}
+              staticText={radioPlainText}
               onClose={closeFullscreenLyrics}
               onOpenNowPlaying={openFullscreenNowPlaying}
               onSeek={handleSeekToLine}
@@ -489,7 +526,7 @@ export function LyricsPanel() {
                   — the picker would have nothing meaningful to do for
                   a tag-embedded lyric. */}
               <span ref={pickerRef} className="relative inline-flex">
-                {payload && payload.source === "api" ? (
+                {payload && payload.source === "api" && !isRadio ? (
                   <button
                     type="button"
                     onClick={() => setPickerOpen((v) => !v)}
@@ -564,38 +601,47 @@ export function LyricsPanel() {
                 )}
             </span>
             <div className="flex items-center space-x-1 shrink-0">
-              <button
-                type="button"
-                onClick={handleImport}
-                aria-label={t("lyrics.actions.import")}
-                title={t("lyrics.actions.import")}
-                className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-              >
-                <Upload size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleRefetch()}
-                disabled={isFetching}
-                aria-label={t("lyrics.actions.refetch")}
-                title={t("lyrics.actions.refetch")}
-                className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
-              >
-                <RefreshCcw
-                  size={14}
-                  className={isFetching ? "animate-spin" : ""}
-                />
-              </button>
-              {payload && (
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  aria-label={t("lyrics.actions.clear")}
-                  title={t("lyrics.actions.clear")}
-                  className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-red-500"
-                >
-                  <Trash2 size={14} />
-                </button>
+              {/* Import / refetch / clear operate on a library row
+                  (track_id / file_hash); a radio session has neither, so
+                  they're hidden for radio — the lyrics auto-fetch by
+                  artist + title and there's nothing to import-to or
+                  clear-from. */}
+              {!isRadio && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleImport}
+                    aria-label={t("lyrics.actions.import")}
+                    title={t("lyrics.actions.import")}
+                    className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    <Upload size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRefetch()}
+                    disabled={isFetching}
+                    aria-label={t("lyrics.actions.refetch")}
+                    title={t("lyrics.actions.refetch")}
+                    className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCcw
+                      size={14}
+                      className={isFetching ? "animate-spin" : ""}
+                    />
+                  </button>
+                  {payload && (
+                    <button
+                      type="button"
+                      onClick={handleClear}
+                      aria-label={t("lyrics.actions.clear")}
+                      title={t("lyrics.actions.clear")}
+                      className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-red-500"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>

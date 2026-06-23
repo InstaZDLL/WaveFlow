@@ -79,6 +79,31 @@ export function fetchLyrics(trackId: number): Promise<LyricsPayload | null> {
 }
 
 /**
+ * Fetch + cache lyrics for a now-playing Web Radio song.
+ *
+ * Radio has no library row (negative sentinel id, live stream), so the
+ * regular `fetchLyrics` waterfall can't help — this keys a dedicated
+ * `radio_lyrics` cache by the (artist, title) parsed from the ICY title
+ * and queries the external providers. `trackId` is the radio sentinel id
+ * (echoed into the payload, never a cache key). Returns null when the
+ * song has no lyrics, when offline with nothing cached, or on a
+ * transient provider error. The lyrics may be synced (LRC) but the panel
+ * renders them statically — the live stream position can't align to a
+ * song the listener joined mid-play.
+ */
+export function fetchRadioLyrics(
+  artist: string,
+  title: string,
+  trackId: number,
+): Promise<LyricsPayload | null> {
+  return invoke<LyricsPayload | null>("fetch_radio_lyrics", {
+    artist,
+    title,
+    trackId,
+  });
+}
+
+/**
  * Force a re-fetch for a single track, dropping the cached row first
  * so the waterfall (or single-provider query below) is guaranteed to
  * re-query.
