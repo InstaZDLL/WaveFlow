@@ -1900,6 +1900,10 @@
     "live": "LIVE",
     "nowPlaying": "Läuft gerade",
     "unavailableTitle": "Web-Radio ist deaktiviert",
-    "unavailableHint": "Aktiviere das Web-Radio-Plugin in Einstellungen → Plugins, um über 30.000 Sender zu durchsuchen."
+    "unavailableHint": "Aktiviere das Web-Radio-Plugin in Einstellungen → Plugins, um über 30.000 Sender zu durchsuchen.",
+    "favorites": "Favoriten",
+    "favoritesEmpty": "Noch keine Lieblingssender. Tippe auf den Stern eines Senders, um ihn zu speichern.",
+    "addFavorite": "Zu Favoriten hinzufügen",
+    "removeFavorite": "Aus Favoriten entfernen"
   }
 }

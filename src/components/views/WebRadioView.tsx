@@ -1,17 +1,30 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { Radio, Search, ChevronLeft, Play, Pause, Loader2, Puzzle } from "lucide-react";
+import {
+  Radio,
+  Search,
+  ChevronLeft,
+  Play,
+  Pause,
+  Loader2,
+  Puzzle,
+  Star,
+} from "lucide-react";
 
 import { playerPlayUrl, playerStop } from "../../lib/tauri/player";
 import {
   pluginListEntries,
   pluginResolve,
   pluginStreamUrl,
+  getPluginFavorites,
+  setPluginFavorites,
   type PluginEntry,
   type PluginTrack,
+  type PluginFavorite,
 } from "../../lib/tauri/plugins";
 import { usePluginAvailability } from "../../hooks/usePluginAvailability";
+import { useProfile } from "../../hooks/useProfile";
 
 const PLUGIN_ID = "web-radio";
 
@@ -45,6 +58,7 @@ function isPluginUnavailableError(message: string | null): boolean {
 export function WebRadioView() {
   const { t } = useTranslation();
   const pluginAvailable = usePluginAvailability(PLUGIN_ID);
+  const { activeProfile } = useProfile();
   const [entries, setEntries] = useState<PluginEntry[]>([]);
   const [activeEntry, setActiveEntry] = useState<PluginEntry | null>(null);
   const [tracks, setTracks] = useState<PluginTrack[]>([]);
@@ -53,6 +67,12 @@ export function WebRadioView() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchActive, setSearchActive] = useState(false);
+  // Per-profile saved stations (issue #289). Loaded from the backend
+  // on mount + on profile switch; the "Favorites" pseudo-category
+  // replays them with zero network (the stream URL rides inside
+  // `track.id` as `url:<stream>`).
+  const [favorites, setFavorites] = useState<PluginFavorite[]>([]);
+  const [favoritesActive, setFavoritesActive] = useState(false);
   // The PluginTrack.id of the currently-playing station, or null when
   // nothing in this view owns the engine. Driven by `playerPlayUrl`
   // success AND by `player:state` events so an external stop
@@ -107,6 +127,7 @@ export function WebRadioView() {
       setTracks([]);
       setActiveEntry(null);
       setSearchActive(false);
+      setFavoritesActive(false);
       setError(null);
       setLoading(false);
       return;
@@ -131,6 +152,29 @@ export function WebRadioView() {
       cancelled = true;
     };
   }, [pluginAvailable]);
+
+  // Load the active profile's favorites. Re-runs on profile switch
+  // (`activeProfile?.id`) so the saved-stations list follows the
+  // profile, like liked tracks. Failures are non-fatal — a profile
+  // with no favorites is the common case and a backend hiccup just
+  // leaves the list empty rather than blocking the whole view.
+  useEffect(() => {
+    if (!pluginAvailable) return;
+    let cancelled = false;
+    getPluginFavorites(PLUGIN_ID).then(
+      (list) => {
+        if (!cancelled) setFavorites(list);
+      },
+      (err: unknown) => {
+        if (!cancelled) {
+          console.warn("[WebRadioView] favorites load failed", err);
+        }
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [pluginAvailable, activeProfile?.id]);
 
   // Track the engine's lifecycle so a stream that dies on its own
   // (server timeout, mid-stream 5xx, user hits Stop on the PlayerBar)
@@ -207,6 +251,60 @@ export function WebRadioView() {
     }
   }, [searchTerm]);
 
+  const isFavorite = useCallback(
+    (id: string) => favorites.some((f) => f.id === id),
+    [favorites],
+  );
+
+  // Write a new favorites list optimistically, rolling back to the
+  // previous list if the backend write fails. The whole array is
+  // replaced server-side, so the host stays the single source of
+  // truth for ordering + dedup.
+  const persistFavorites = useCallback(
+    async (next: PluginFavorite[], previous: PluginFavorite[]) => {
+      setFavorites(next);
+      try {
+        await setPluginFavorites(PLUGIN_ID, next);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+        setFavorites(previous);
+      }
+    },
+    [],
+  );
+
+  const toggleFavorite = useCallback(
+    (track: PluginTrack) => {
+      const previous = favorites;
+      const next = isFavorite(track.id)
+        ? previous.filter((f) => f.id !== track.id)
+        : [
+            ...previous,
+            {
+              id: track.id,
+              title: track.title,
+              artist: track.artist,
+              album: track.album,
+              artworkUrl: track.artworkUrl,
+            },
+          ];
+      void persistFavorites(next, previous);
+    },
+    [favorites, isFavorite, persistFavorites],
+  );
+
+  const openFavorites = useCallback(() => {
+    // Invalidate any in-flight category/search resolve so its
+    // continuation doesn't paint tracks on top of the favorites view.
+    resolveReqRef.current += 1;
+    setActiveEntry(null);
+    setSearchActive(false);
+    setFavoritesActive(true);
+    setResolving(false);
+    setError(null);
+    setTracks([]);
+  }, []);
+
   const backToCategories = useCallback(() => {
     // Invalidate every in-flight async on the way out:
     // - Bumping `resolveReqRef` makes a pending `pluginResolve`
@@ -233,6 +331,7 @@ export function WebRadioView() {
     streamReqRef.current += 1;
     setActiveEntry(null);
     setSearchActive(false);
+    setFavoritesActive(false);
     setTracks([]);
     setPlayingId(null);
     setLoadingId(null);
@@ -303,7 +402,26 @@ export function WebRadioView() {
     [playingId, loadingId],
   );
 
-  const showCategoryList = activeEntry === null && !searchActive;
+  const showCategoryList =
+    activeEntry === null && !searchActive && !favoritesActive;
+
+  // Favorites render through the exact same row component as resolved
+  // tracks. Radio favorites are always live (`durationMs: 0`) and
+  // carry no ICY hint — the host re-probes that on play.
+  const favoriteTracks = useMemo<PluginTrack[]>(
+    () =>
+      favorites.map((f) => ({
+        id: f.id,
+        title: f.title,
+        artist: f.artist,
+        album: f.album,
+        durationMs: 0,
+        artworkUrl: f.artworkUrl,
+        icyUrl: null,
+      })),
+    [favorites],
+  );
+  const displayTracks = favoritesActive ? favoriteTracks : tracks;
 
   // Two paths converge on "the plugin host won't honour our calls":
   //   1. The user flipped the toggle off in Settings → Plugins
@@ -406,6 +524,30 @@ export function WebRadioView() {
           </div>
         ) : showCategoryList ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {/* Favorites pseudo-category, pinned first so saved
+                stations are one click away (Receiver-style). Always
+                shown — an empty list teaches the star affordance via
+                its own empty state. */}
+            <button
+              type="button"
+              onClick={openFavorites}
+              className="text-left px-4 py-6 rounded-xl bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+            >
+              <div className="flex items-center gap-2 text-base font-medium text-zinc-900 dark:text-white">
+                <Star
+                  size={18}
+                  className="text-amber-500 shrink-0"
+                  fill="currentColor"
+                  aria-hidden="true"
+                />
+                <span>{t("webRadio.favorites")}</span>
+                {favorites.length > 0 && (
+                  <span className="ml-auto text-xs font-semibold text-amber-600 dark:text-amber-400">
+                    {favorites.length}
+                  </span>
+                )}
+              </div>
+            </button>
             {entries.map((entry) => (
               <button
                 key={entry.query}
@@ -425,15 +567,18 @@ export function WebRadioView() {
           <div className="text-center text-sm text-zinc-500 dark:text-zinc-400 py-12">
             {t("webRadio.resolving")}
           </div>
-        ) : tracks.length === 0 ? (
+        ) : displayTracks.length === 0 ? (
           <div className="text-center text-sm text-zinc-500 dark:text-zinc-400 py-12">
-            {t("webRadio.emptyResults")}
+            {favoritesActive
+              ? t("webRadio.favoritesEmpty")
+              : t("webRadio.emptyResults")}
           </div>
         ) : (
           <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {tracks.map((track, idx) => {
+            {displayTracks.map((track, idx) => {
               const isPlaying = playingId === track.id;
               const isLoading = loadingId === track.id;
+              const favorited = isFavorite(track.id);
               // The plugin encodes `track.id` as `url:<stream>` and
               // radio-browser sometimes returns multiple distinct
               // stations sharing the same stream URL. Without an
@@ -443,13 +588,16 @@ export function WebRadioView() {
               // for React; `track.id` stays as-is for `playingId`
               // comparison + `pluginStreamUrl` lookup.
               return (
-                <li key={`${idx}-${track.id}`} className="py-2">
+                <li
+                  key={`${idx}-${track.id}`}
+                  className="py-2 flex items-center gap-1"
+                >
                   <button
                     type="button"
                     onClick={() => {
                       void playTrack(track);
                     }}
-                    className="w-full text-left px-2 py-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                    className="flex-1 min-w-0 text-left px-2 py-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                   >
                     <span
                       className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${
@@ -481,6 +629,29 @@ export function WebRadioView() {
                         ? t("webRadio.live")
                         : `${Math.round(track.durationMs / 1000)}s`}
                     </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleFavorite(track)}
+                    aria-pressed={favorited}
+                    aria-label={
+                      favorited
+                        ? t("webRadio.removeFavorite")
+                        : t("webRadio.addFavorite")
+                    }
+                    title={
+                      favorited
+                        ? t("webRadio.removeFavorite")
+                        : t("webRadio.addFavorite")
+                    }
+                    className="shrink-0 w-9 h-9 rounded flex items-center justify-center text-zinc-400 hover:text-amber-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 transition-colors"
+                  >
+                    <Star
+                      size={16}
+                      className={favorited ? "text-amber-500" : ""}
+                      fill={favorited ? "currentColor" : "none"}
+                      aria-hidden="true"
+                    />
                   </button>
                 </li>
               );

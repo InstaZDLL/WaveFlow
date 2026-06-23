@@ -1900,6 +1900,10 @@
     "live": "ライブ",
     "nowPlaying": "再生中",
     "unavailableTitle": "Web Radio は無効です",
-    "unavailableHint": "30,000 以上の放送局を閲覧するには、設定 → プラグイン で Web Radio プラグインを有効にしてください。"
+    "unavailableHint": "30,000 以上の放送局を閲覧するには、設定 → プラグイン で Web Radio プラグインを有効にしてください。",
+    "favorites": "お気に入り",
+    "favoritesEmpty": "お気に入りの局はまだありません。局の星をタップして保存できます。",
+    "addFavorite": "お気に入りに追加",
+    "removeFavorite": "お気に入りから削除"
   }
 }

@@ -1900,6 +1900,10 @@
     "live": "LIVE",
     "nowPlaying": "Now playing",
     "unavailableTitle": "Web Radio is disabled",
-    "unavailableHint": "Enable the Web Radio plugin in Settings → Plugins to browse 30,000+ stations."
+    "unavailableHint": "Enable the Web Radio plugin in Settings → Plugins to browse 30,000+ stations.",
+    "favorites": "Favorites",
+    "favoritesEmpty": "No favorite stations yet. Tap a station's star to save it.",
+    "addFavorite": "Add to favorites",
+    "removeFavorite": "Remove from favorites"
   }
 }

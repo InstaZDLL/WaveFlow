@@ -1900,6 +1900,10 @@
     "live": "라이브",
     "nowPlaying": "재생 중",
     "unavailableTitle": "Web Radio가 비활성화됨",
-    "unavailableHint": "30,000개 이상의 방송국을 탐색하려면 설정 → 플러그인에서 Web Radio 플러그인을 활성화하세요."
+    "unavailableHint": "30,000개 이상의 방송국을 탐색하려면 설정 → 플러그인에서 Web Radio 플러그인을 활성화하세요.",
+    "favorites": "즐겨찾기",
+    "favoritesEmpty": "즐겨찾는 방송국이 아직 없습니다. 방송국의 별을 눌러 저장하세요.",
+    "addFavorite": "즐겨찾기에 추가",
+    "removeFavorite": "즐겨찾기에서 제거"
   }
 }

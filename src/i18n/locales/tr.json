@@ -1900,6 +1900,10 @@
     "live": "CANLI",
     "nowPlaying": "Şimdi çalıyor",
     "unavailableTitle": "Web Radio devre dışı",
-    "unavailableHint": "30.000'den fazla istasyona göz atmak için Ayarlar → Eklentiler bölümünden Web Radyo eklentisini etkinleştir."
+    "unavailableHint": "30.000'den fazla istasyona göz atmak için Ayarlar → Eklentiler bölümünden Web Radyo eklentisini etkinleştir.",
+    "favorites": "Favoriler",
+    "favoritesEmpty": "Henüz favori istasyon yok. Kaydetmek için bir istasyonun yıldızına dokunun.",
+    "addFavorite": "Favorilere ekle",
+    "removeFavorite": "Favorilerden çıkar"
   }
 }

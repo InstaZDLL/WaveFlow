@@ -138,3 +138,38 @@ export async function pluginStreamUrl(
 ): Promise<string> {
   return invoke<string>("plugin_stream_url", { pluginId, trackId });
 }
+
+// ----- source plugin favorites -------------------------------------------
+//
+// Per-profile saved items for a source plugin (issue #289). The
+// backend stores the array verbatim in
+// `profile_setting['plugin.<id>.favorites']`; the host owns ordering +
+// dedup. A favorite carries everything needed to re-render AND replay
+// the row offline — `id` is the plugin's playable token (`url:<stream>`
+// for Web Radio), so `pluginStreamUrl` resolves it without a network
+// hit.
+
+/** One saved station/track for a source plugin. Subset of
+ *  {@link PluginTrack} — the fields needed to list + replay it. */
+export interface PluginFavorite {
+  id: string;
+  title: string;
+  artist: string;
+  album: string | null;
+  artworkUrl: string | null;
+}
+
+/** Read the active profile's favorites for a plugin (empty when none). */
+export async function getPluginFavorites(
+  pluginId: string,
+): Promise<PluginFavorite[]> {
+  return invoke<PluginFavorite[]>("get_plugin_favorites", { pluginId });
+}
+
+/** Replace the active profile's favorites for a plugin. */
+export async function setPluginFavorites(
+  pluginId: string,
+  favorites: PluginFavorite[],
+): Promise<void> {
+  return invoke<void>("set_plugin_favorites", { pluginId, favorites });
+}
