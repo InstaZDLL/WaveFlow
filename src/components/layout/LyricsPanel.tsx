@@ -546,7 +546,7 @@ export function LyricsPanel() {
                     {payload ? sourceLabel(payload, t) : ""}
                   </span>
                 )}
-                {pickerOpen && (
+                {pickerOpen && !isRadio && (
                   <div
                     role="menu"
                     aria-label={t("lyrics.source.pickerHint")}
