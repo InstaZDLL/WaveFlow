@@ -354,6 +354,11 @@ impl HttpMediaSource {
     /// and falls back to the station name for the artist line.
     fn emit_now_playing(&self, raw: Option<&str>) {
         let Some(icy) = &self.icy else { return };
+        tracing::info!(
+            track_id = icy.track_id,
+            stream_title = ?raw,
+            "radio ICY now-playing"
+        );
         let (title, artist) = match raw {
             Some(raw) => {
                 let (title, artist) = split_artist_title(raw);
