@@ -454,8 +454,19 @@ fn decoder_loop(
                 // the rolling log file.
                 let redacted = super::http_source::redact_url(&url);
 
+                // Pass the station identity so the source can re-emit
+                // `player:radio-metadata` with the live `StreamTitle`
+                // while keeping the station's cover + name (ICY rarely
+                // carries per-song art). Falls back to passthrough when
+                // the server doesn't interleave metadata.
+                let icy_ctx = super::http_source::IcyContext {
+                    app: app.clone(),
+                    track_id,
+                    station_artist: artist.clone(),
+                    artwork_url: artwork_url.clone(),
+                };
                 let http_source =
-                    match super::http_source::HttpMediaSource::open(&url) {
+                    match super::http_source::HttpMediaSource::open_with_icy(&url, icy_ctx) {
                         Ok(s) => s,
                         Err(err) => {
                             tracing::warn!(?err, url = %redacted, "radio stream open failed");

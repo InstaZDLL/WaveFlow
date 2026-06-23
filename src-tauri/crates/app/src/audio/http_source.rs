@@ -41,7 +41,9 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use reqwest::blocking::{Client, Response};
+use serde::Serialize;
 use symphonia::core::io::MediaSource;
+use tauri::{AppHandle, Emitter};
 
 /// Strip credentials + query string from a URL before logging it.
 /// Radio mount URLs sometimes carry userinfo (`http://user:pwd@host`)
@@ -94,11 +96,48 @@ const USER_AGENT: &str = concat!(
     " (+https://waveflow.app)"
 );
 
+/// Event the engine emits when a station's live "now playing" title
+/// changes. Mirrors the wire shape of `player:radio-metadata` from
+/// [`super::decoder`] (snake_case, no `rename_all`) so the PlayerBar's
+/// existing listener updates without any frontend change.
+#[derive(Serialize, Clone)]
+struct RadioMetadataPayload {
+    track_id: i64,
+    title: Option<String>,
+    artist: Option<String>,
+    artwork_url: Option<String>,
+}
+
+/// Context the host hands to [`HttpMediaSource::open_with_icy`] so the
+/// source can re-emit `player:radio-metadata` whenever the stream's
+/// ICY `StreamTitle` changes. The station artwork + a fallback artist
+/// ride along so each "now playing" update keeps the station's cover +
+/// identity instead of blanking them.
+pub struct IcyContext {
+    pub app: AppHandle,
+    pub track_id: i64,
+    /// Station name kept as the artist line when a `StreamTitle` has no
+    /// `Artist - Title` split (e.g. a bare show name).
+    pub station_artist: Option<String>,
+    pub artwork_url: Option<String>,
+}
+
 /// MediaSource backed by a live HTTP response body.
 ///
 /// Construction is synchronous and blocks until the server has
 /// answered the HTTP handshake. Reads are buffered (8 KiB) to amortise
 /// per-read syscalls in the same way the file-backed path does.
+///
+/// ## ICY metadata
+///
+/// When opened via [`HttpMediaSource::open_with_icy`] and the server
+/// honours `Icy-MetaData: 1` (advertising an `icy-metaint` interval),
+/// the read path de-interleaves the periodic metadata blocks out of the
+/// audio stream — symphonia only ever sees pure audio — and parses the
+/// `StreamTitle`, re-emitting `player:radio-metadata` on change so the
+/// PlayerBar shows the live song. Streams that don't carry ICY (HLS,
+/// DASH, or servers that ignore the header) set `metaint = 0` and the
+/// read path is a plain passthrough.
 pub struct HttpMediaSource {
     /// Buffered reader over the response body. Wrapped in a `Mutex` to
     /// upgrade `reqwest::blocking::Response` from `Send` to `Send + Sync`
@@ -107,14 +146,40 @@ pub struct HttpMediaSource {
     /// Cached origin URL — only used in `Debug` impls / error messages
     /// so a logged "read failed" line points at the offending stream.
     url: String,
+    /// Bytes of audio between two ICY metadata blocks. `0` disables ICY
+    /// handling entirely (no metadata interleaved → plain passthrough).
+    metaint: usize,
+    /// Audio bytes still owed before the next metadata block. Starts at
+    /// `metaint`; decremented as audio is read, and when it hits `0` the
+    /// read path consumes one metadata block before resuming.
+    bytes_until_meta: usize,
+    /// `Some` only when ICY is active — carries the handle to emit on +
+    /// the station identity to keep across song changes.
+    icy: Option<IcyContext>,
+    /// Last `StreamTitle` we emitted, so an unchanged metadata block
+    /// (radio servers resend the same title every interval) doesn't
+    /// re-fire the event.
+    last_title: Option<String>,
 }
 
 impl HttpMediaSource {
-    /// Open a streaming HTTP GET on `url`. The response is checked for
-    /// success status before being wrapped; a 404 / 502 surfaces as
-    /// `Err` instead of producing a `MediaSource` that would only
-    /// fail at the first `probe()` call.
+    /// Open a streaming HTTP GET on `url` without ICY metadata. The
+    /// response is checked for success status before being wrapped; a
+    /// 404 / 502 surfaces as `Err` instead of producing a `MediaSource`
+    /// that would only fail at the first `probe()` call.
     pub fn open(url: &str) -> Result<Self, String> {
+        Self::open_inner(url, None)
+    }
+
+    /// Open a streaming HTTP GET that also requests + de-interleaves ICY
+    /// metadata, re-emitting `player:radio-metadata` through `icy.app`
+    /// whenever the live `StreamTitle` changes. Falls back transparently
+    /// to passthrough when the server ignores `Icy-MetaData: 1`.
+    pub fn open_with_icy(url: &str, icy: IcyContext) -> Result<Self, String> {
+        Self::open_inner(url, Some(icy))
+    }
+
+    fn open_inner(url: &str, icy: Option<IcyContext>) -> Result<Self, String> {
         let client = Client::builder()
             .user_agent(USER_AGENT)
             .connect_timeout(CONNECT_TIMEOUT)
@@ -123,14 +188,15 @@ impl HttpMediaSource {
             .build()
             .map_err(|e| format!("http client build: {e}"))?;
 
+        // Opt into metadata interleaving only when we have an ICY sink.
+        // Some Icecast mounts also mute the audio payload unless the
+        // header is present at all, so the passthrough path still sends
+        // an explicit "0".
+        let want_icy = icy.is_some();
         let response = client
             .get(url)
             .header(reqwest::header::ACCEPT, "audio/*,*/*;q=0.8")
-            // Some Icecast mounts mute the audio payload unless the
-            // client opts into metadata interleaving with this header
-            // set explicitly to "0" (we don't parse ICY metadata — the
-            // codec layer doesn't expect interleaved title frames).
-            .header("Icy-MetaData", "0")
+            .header("Icy-MetaData", if want_icy { "1" } else { "0" })
             .send()
             .map_err(|e| format!("http get: {e}"))?;
 
@@ -139,15 +205,95 @@ impl HttpMediaSource {
             return Err(format!("http status {status}"));
         }
 
+        // `icy-metaint` is the audio-byte interval between metadata
+        // blocks. Absent / unparsable / zero → the server isn't
+        // interleaving metadata, so we stay in passthrough even though
+        // we asked for it.
+        let metaint = if want_icy {
+            response
+                .headers()
+                .get("icy-metaint")
+                .and_then(|v| v.to_str().ok())
+                .and_then(|v| v.trim().parse::<usize>().ok())
+                .unwrap_or(0)
+        } else {
+            0
+        };
+
         Ok(Self {
             inner: Mutex::new(BufReader::with_capacity(8 * 1024, response)),
             url: url.to_string(),
+            metaint,
+            bytes_until_meta: metaint,
+            // Drop the sink when the server isn't interleaving — keeps
+            // the read path's `Some` check honest (ICY active iff we'll
+            // actually parse blocks).
+            icy: if metaint > 0 { icy } else { None },
+            last_title: None,
         })
     }
 
     /// Origin URL for diagnostics.
     pub fn url(&self) -> &str {
         &self.url
+    }
+}
+
+/// Read one ICY metadata block from `reader`: a single length byte `L`
+/// followed by `L * 16` bytes of (null-padded) metadata. `L == 0` means
+/// "no change this interval" and yields `None`. Returns the raw block
+/// bytes on success; an `UnexpectedEof` mid-block propagates as the
+/// stream ending.
+fn read_icy_block<R: Read>(reader: &mut R) -> io::Result<Option<Vec<u8>>> {
+    let mut len_byte = [0u8; 1];
+    reader.read_exact(&mut len_byte)?;
+    let len = len_byte[0] as usize * 16;
+    if len == 0 {
+        return Ok(None);
+    }
+    let mut block = vec![0u8; len];
+    reader.read_exact(&mut block)?;
+    Ok(Some(block))
+}
+
+/// Extract the `StreamTitle` value from a raw ICY metadata block. The
+/// block is a sequence of `key='value';` pairs in latin1/utf8; we pull
+/// the single field the PlayerBar cares about. Returns `None` when the
+/// field is absent or its value is blank (silence / station idents
+/// often send an empty title).
+fn parse_stream_title(block: &[u8]) -> Option<String> {
+    let text = String::from_utf8_lossy(block);
+    let start = text.find("StreamTitle='")? + "StreamTitle='".len();
+    let rest = &text[start..];
+    // Terminate at the closing `';` (the spec quotes values); fall back
+    // to the trailing NUL padding / end if a server omits the closer.
+    let end = rest.find("';").unwrap_or_else(|| {
+        rest.find('\0').unwrap_or(rest.len())
+    });
+    let title = rest[..end].trim().trim_matches('\0').trim();
+    if title.is_empty() {
+        None
+    } else {
+        Some(title.to_string())
+    }
+}
+
+/// Split a raw `StreamTitle` into (title, artist) for the PlayerBar.
+/// The near-universal radio convention is `Artist - Title`; when there's
+/// no ` - ` separator we keep the whole string as the title and let the
+/// caller supply the station name as the artist line.
+fn split_artist_title(raw: &str) -> (String, Option<String>) {
+    match raw.split_once(" - ") {
+        Some((artist, title)) => {
+            let artist = artist.trim();
+            let title = title.trim();
+            if artist.is_empty() || title.is_empty() {
+                (raw.to_string(), None)
+            } else {
+                (title.to_string(), Some(artist.to_string()))
+            }
+        }
+        None => (raw.to_string(), None),
     }
 }
 
@@ -160,7 +306,70 @@ impl Read for HttpMediaSource {
             .inner
             .lock()
             .map_err(|_| io::Error::other("http source mutex poisoned"))?;
-        guard.read(buf)
+
+        // Passthrough fast path: no ICY interleaving on this stream.
+        if self.metaint == 0 {
+            return guard.read(buf);
+        }
+        if buf.is_empty() {
+            return Ok(0);
+        }
+
+        // At a metadata boundary: consume exactly one block before
+        // returning any more audio, so symphonia never sees the
+        // interleaved bytes. Parsed under the lock, emitted after.
+        let mut new_title: Option<Option<String>> = None;
+        if self.bytes_until_meta == 0 {
+            match read_icy_block(&mut *guard)? {
+                Some(block) => new_title = Some(parse_stream_title(&block)),
+                None => { /* L==0: no change this interval */ }
+            }
+            self.bytes_until_meta = self.metaint;
+        }
+
+        // Read at most up to the next metadata boundary so we never copy
+        // a metadata byte into the audio buffer.
+        let want = buf.len().min(self.bytes_until_meta);
+        let n = guard.read(&mut buf[..want])?;
+        self.bytes_until_meta -= n;
+        drop(guard);
+
+        // Emit outside the lock. Only when the title actually changed —
+        // servers resend the same `StreamTitle` every interval.
+        if let Some(parsed) = new_title {
+            if parsed != self.last_title {
+                self.last_title = parsed.clone();
+                self.emit_now_playing(parsed.as_deref());
+            }
+        }
+
+        Ok(n)
+    }
+}
+
+impl HttpMediaSource {
+    /// Emit `player:radio-metadata` with the live song. `raw` is the
+    /// parsed `StreamTitle`, or `None` when the station cleared it (back
+    /// to "just the station"). Keeps the station artwork on every update
+    /// and falls back to the station name for the artist line.
+    fn emit_now_playing(&self, raw: Option<&str>) {
+        let Some(icy) = &self.icy else { return };
+        let (title, artist) = match raw {
+            Some(raw) => {
+                let (title, artist) = split_artist_title(raw);
+                (Some(title), artist.or_else(|| icy.station_artist.clone()))
+            }
+            None => (None, icy.station_artist.clone()),
+        };
+        let _ = icy.app.emit(
+            "player:radio-metadata",
+            RadioMetadataPayload {
+                track_id: icy.track_id,
+                title,
+                artist,
+                artwork_url: icy.artwork_url.clone(),
+            },
+        );
     }
 }
 
@@ -262,5 +471,63 @@ mod tests {
         // here instead of inside a confusing symphonia generic.
         fn assert_send_sync<T: Send + Sync>() {}
         assert_send_sync::<HttpMediaSource>();
+    }
+
+    #[test]
+    fn parse_stream_title_extracts_value() {
+        let block = b"StreamTitle='Daft Punk - Get Lucky';StreamUrl='http://x';\0\0";
+        assert_eq!(
+            parse_stream_title(block).as_deref(),
+            Some("Daft Punk - Get Lucky")
+        );
+    }
+
+    #[test]
+    fn parse_stream_title_handles_blank_and_missing() {
+        // Empty value (silence / ident) → None.
+        assert_eq!(parse_stream_title(b"StreamTitle='';\0\0"), None);
+        // Field absent entirely → None.
+        assert_eq!(parse_stream_title(b"StreamUrl='http://x';"), None);
+        // Missing closing `';` → falls back to NUL padding / end.
+        assert_eq!(
+            parse_stream_title(b"StreamTitle='No Closer\0\0\0").as_deref(),
+            Some("No Closer")
+        );
+    }
+
+    #[test]
+    fn split_artist_title_splits_on_separator() {
+        assert_eq!(
+            split_artist_title("Daft Punk - Get Lucky"),
+            ("Get Lucky".to_string(), Some("Daft Punk".to_string()))
+        );
+        // No separator → whole string is the title, no artist.
+        assert_eq!(
+            split_artist_title("Morning Show"),
+            ("Morning Show".to_string(), None)
+        );
+        // A dangling separator half keeps the raw string as the title.
+        assert_eq!(
+            split_artist_title("Artist - "),
+            ("Artist - ".to_string(), None)
+        );
+    }
+
+    #[test]
+    fn read_icy_block_reads_and_skips() {
+        use std::io::Cursor;
+        // L=2 → 32 metadata bytes, NUL-padded (one 16-byte unit can't
+        // hold the 17-char `StreamTitle='Hi';`).
+        let mut payload = vec![2u8];
+        let mut meta = b"StreamTitle='Hi';".to_vec();
+        meta.resize(32, 0);
+        payload.extend_from_slice(&meta);
+        let mut cur = Cursor::new(payload);
+        let block = read_icy_block(&mut cur).expect("read").expect("some");
+        assert_eq!(parse_stream_title(&block).as_deref(), Some("Hi"));
+
+        // L=0 → no metadata this interval.
+        let mut zero = Cursor::new(vec![0u8]);
+        assert!(read_icy_block(&mut zero).expect("read").is_none());
     }
 }
