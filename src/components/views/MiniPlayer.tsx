@@ -71,6 +71,9 @@ export function MiniPlayer() {
     currentRadioStation,
   } = usePlayer();
   const isSpotify = activeProvider === "spotify";
+  // Live radio has no seekable timeline — the seek bar + timestamps are
+  // hidden (matching the PlayerBar / immersive ProgressBar).
+  const isRadio = isRadioTrack(currentTrack);
 
   // Web Radio favorites — a live stream swaps the ♥ for a station ★.
   const radioFavorites = useWebRadioFavorites();
@@ -548,32 +551,35 @@ export function MiniPlayer() {
         </div>
 
         {/* Interactive seek bar — Spotify-style: thin idle, thicker
-          on hover with timestamps revealed at both ends. */}
-        <div className="mt-auto px-3 pb-2 group">
-          <div
-            ref={trackRef}
-            onPointerDown={handleSeekDown}
-            onPointerMove={handleSeekMove}
-            onPointerUp={handleSeekUp}
-            onPointerCancel={handleSeekUp}
-            className={`relative h-1 rounded-full bg-white/20 ${currentTrack && durationMs > 0 ? "cursor-pointer" : "cursor-default"}`}
-          >
+          on hover with timestamps revealed at both ends. Hidden for live
+          radio (no seekable timeline). */}
+        {!isRadio && (
+          <div className="mt-auto px-3 pb-2 group">
             <div
-              className="absolute inset-y-0 left-0 rounded-full bg-white"
-              style={{ width: `${Math.min(100, progressPct)}%` }}
-            />
-            {currentTrack && durationMs > 0 && (
+              ref={trackRef}
+              onPointerDown={handleSeekDown}
+              onPointerMove={handleSeekMove}
+              onPointerUp={handleSeekUp}
+              onPointerCancel={handleSeekUp}
+              className={`relative h-1 rounded-full bg-white/20 ${currentTrack && durationMs > 0 ? "cursor-pointer" : "cursor-default"}`}
+            >
               <div
-                className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white shadow opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ left: `calc(${Math.min(100, progressPct)}% - 5px)` }}
+                className="absolute inset-y-0 left-0 rounded-full bg-white"
+                style={{ width: `${Math.min(100, progressPct)}%` }}
               />
-            )}
+              {currentTrack && durationMs > 0 && (
+                <div
+                  className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ left: `calc(${Math.min(100, progressPct)}% - 5px)` }}
+                />
+              )}
+            </div>
+            <div className="flex justify-between text-[9px] text-white/60 tabular-nums mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <span>{formatDuration(displayMs)}</span>
+              <span>{formatDuration(durationMs)}</span>
+            </div>
           </div>
-          <div className="flex justify-between text-[9px] text-white/60 tabular-nums mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <span>{formatDuration(displayMs)}</span>
-            <span>{formatDuration(durationMs)}</span>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Up-next overlay — slides over the content area below the top

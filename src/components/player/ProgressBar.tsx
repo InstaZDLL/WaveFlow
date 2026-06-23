@@ -9,6 +9,7 @@ import {
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { usePlayer } from "../../hooks/usePlayer";
+import { isRadioTrack } from "../../lib/playerSources";
 import { formatDuration } from "../../lib/tauri/track";
 import { playerGetAbLoop, type AbLoopSnapshot } from "../../lib/tauri/player";
 
@@ -145,6 +146,12 @@ export function ProgressBar() {
     },
     [hasTrack, positionMs, durationMs, seek],
   );
+
+  // Live Web Radio has no seekable timeline (the stream started before we
+  // tuned in, position is "seconds since I connected"), so the scrubber +
+  // timestamps are meaningless — hide the whole row. Placed after all
+  // hooks so the Rules of Hooks hold.
+  if (isRadioTrack(currentTrack)) return null;
 
   return (
     <div className="w-full flex items-center space-x-3 text-xs text-zinc-400">
