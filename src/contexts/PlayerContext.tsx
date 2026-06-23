@@ -31,6 +31,7 @@ import {
   playerSetVolume,
   playerToggleShuffle,
   getCurrentRadioMetadata,
+  fetchRadioArtwork,
   type OutputDevice,
   type PlayerErrorPayload,
   type PlayerPositionPayload,
@@ -41,6 +42,7 @@ import {
 } from "../lib/tauri/player";
 import type { PluginFavorite } from "../lib/tauri/plugins";
 import { enrichArtistDeezer } from "../lib/tauri/detail";
+import { isRadioTrack } from "../lib/playerSources";
 
 /**
  * Minimal conversion from the thin `QueueTrackPayload` returned by
@@ -252,6 +254,44 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // progress bar, so the thumb doesn't fight the mouse.
   const isSeekingRef = useRef(false);
 
+  // Token guarding the async Deezer artwork fetch for the now-playing
+  // radio song. Each new ICY title (or a fresh hydration) bumps it so a
+  // slow fetch that resolves after the song already changed is dropped.
+  const radioArtworkTokenRef = useRef(0);
+
+  // Resolve album art for a now-playing radio song (ICY gives only the
+  // "Artist - Title" text) and swap it into `currentTrack` once it
+  // lands. The station favicon shows until the cover resolves; this is a
+  // no-op when title/artist are missing or the fetch fails / returns
+  // nothing. The `isRadioTrack` guard means a library track that started
+  // playing in the meantime is never clobbered with a stale radio cover,
+  // and the token guard drops a fetch superseded by a newer ICY title.
+  const fetchRadioArtworkInto = useCallback(
+    (title: string | null, artist: string | null) => {
+      if (!title || !artist) return;
+      const token = ++radioArtworkTokenRef.current;
+      void (async () => {
+        try {
+          const url = await fetchRadioArtwork(artist, title);
+          if (!url || token !== radioArtworkTokenRef.current) return;
+          setCurrentTrack((prev) =>
+            prev && isRadioTrack(prev)
+              ? {
+                  ...prev,
+                  artwork_path: url,
+                  artwork_path_1x: null,
+                  artwork_path_2x: null,
+                }
+              : prev,
+          );
+        } catch (err) {
+          console.error("[PlayerContext] fetch radio artwork failed", err);
+        }
+      })();
+    },
+    [],
+  );
+
   const effectivePlaybackState =
     activeProvider === "spotify" ? spotify.playbackState : playbackState;
   const isPlaying = effectivePlaybackState === "playing";
@@ -299,6 +339,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
               setCurrentTrack(radioMetadataToTrack(radio));
               setCurrentRadioStation(radioStationFromMetadata(radio));
               setDurationMs(0);
+              // Upgrade the station favicon to the song's album cover.
+              fetchRadioArtworkInto(radio.title, radio.artist);
             }
           } catch (err) {
             console.error("[PlayerContext] hydrate radio failed", err);
@@ -321,7 +363,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [activeProfile]);
+  }, [activeProfile, fetchRadioArtworkInto]);
 
   // --- Tauri event listeners ---
   useEffect(() => {
@@ -403,6 +445,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
               setCurrentRadioStation(radioStationFromMetadata(e.payload));
               setDurationMs(0);
               setPositionMs(0);
+              // The payload only carries the station favicon; fetch the
+              // song's real album cover from Deezer and swap it in async.
+              fetchRadioArtworkInto(e.payload.title, e.payload.artist);
             },
           ),
         );
@@ -421,7 +466,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       unlisten.forEach((u) => u());
     };
-  }, []);
+  }, [fetchRadioArtworkInto]);
 
   // --- Volume debounce ---
   const setVolume = useCallback(

@@ -644,6 +644,7 @@ pub fn run() {
             commands::deezer::set_album_artwork_from_file,
             commands::deezer::batch_fetch_missing_album_covers,
             commands::deezer::batch_fetch_missing_artist_pictures,
+            commands::deezer::fetch_radio_artwork,
             commands::similar::get_similar_artists,
             commands::radio::start_radio,
             commands::mood_radio::start_mood_radio,

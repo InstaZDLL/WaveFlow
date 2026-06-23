@@ -68,6 +68,30 @@ pub struct DeezerAlbumArtist {
     pub name: String,
 }
 
+// `/search/track` hits. We only consume the album cover downstream (to
+// resolve artwork for a now-playing Web Radio song parsed from ICY
+// `StreamTitle`) but keep the id/title/artist deserialized so the struct
+// mirrors the response.
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+pub struct DeezerTrackHit {
+    pub id: i64,
+    pub title: String,
+    pub artist: Option<DeezerAlbumArtist>,
+    pub album: Option<DeezerTrackAlbum>,
+}
+
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+pub struct DeezerTrackAlbum {
+    pub id: i64,
+    pub title: String,
+    pub cover_small: Option<String>,
+    pub cover_medium: Option<String>,
+    pub cover_big: Option<String>,
+    pub cover_xl: Option<String>,
+}
+
 // ── Client implementation ───────────────────────────────────────────
 
 impl Default for DeezerClient {
@@ -114,6 +138,21 @@ impl DeezerClient {
         let resp: DeezerSearchResponse<DeezerAlbumHit> = self
             .http
             .get(format!("{BASE_URL}/search/album"))
+            .query(&[("q", query)])
+            .send()
+            .await?
+            .json()
+            .await?;
+        Ok(resp.data)
+    }
+
+    /// Search tracks by a free-text query (typically "artist title").
+    /// Each hit carries its album cover URLs — used to resolve artwork
+    /// for a now-playing Web Radio song parsed from an ICY `StreamTitle`.
+    pub async fn search_track(&self, query: &str) -> reqwest::Result<Vec<DeezerTrackHit>> {
+        let resp: DeezerSearchResponse<DeezerTrackHit> = self
+            .http
+            .get(format!("{BASE_URL}/search/track"))
             .query(&[("q", query)])
             .send()
             .await?

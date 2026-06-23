@@ -621,6 +621,40 @@ pub async fn set_album_artwork_from_file(
     Ok(())
 }
 
+// ── Web Radio now-playing artwork ───────────────────────────────────
+
+/// Resolve cover art for a now-playing Web Radio song. The ICY
+/// `StreamTitle` only gives us "Artist - Title" text, so we search
+/// Deezer for the track and return its album cover URL. Unlike the
+/// library enrichment paths this does NOT cache to disk — a radio
+/// now-playing line is ephemeral (changes every song, no library row to
+/// link), so a remote CDN URL the `<img>` loads directly is enough.
+///
+/// Returns `None` when offline, on a network error, or when nothing
+/// matched — the frontend keeps the station favicon in that case.
+#[tauri::command]
+pub async fn fetch_radio_artwork(artist: String, title: String) -> AppResult<Option<String>> {
+    if crate::offline::is_offline() {
+        return Ok(None);
+    }
+    let query = format!("{artist} {title}");
+    let client = DeezerClient::new();
+    let hits = match client.search_track(&query).await {
+        Ok(hits) => hits,
+        Err(err) => {
+            tracing::warn!(?err, "Deezer search_track failed");
+            return Ok(None);
+        }
+    };
+    // First hit with an album cover wins — Deezer's relevance ranking
+    // already orders the best match first.
+    let cover = hits.into_iter().find_map(|h| {
+        h.album
+            .and_then(|a| a.cover_xl.or(a.cover_big).or(a.cover_medium))
+    });
+    Ok(cover)
+}
+
 // ── Artist image management ─────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize)]

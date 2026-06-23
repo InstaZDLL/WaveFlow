@@ -219,6 +219,20 @@ export function getCurrentRadioMetadata(): Promise<RadioMetadata | null> {
   return invoke<RadioMetadata | null>("get_current_radio_metadata");
 }
 
+/**
+ * Resolve album cover art for the currently-playing Web Radio song via
+ * Deezer. `artist` + `title` come from the ICY `StreamTitle` split. The
+ * backend returns a remote CDN URL (not cached to disk — the now-playing
+ * line is ephemeral), or `null` when offline / no match / network error,
+ * in which case the caller keeps the station favicon.
+ */
+export function fetchRadioArtwork(
+  artist: string,
+  title: string,
+): Promise<string | null> {
+  return invoke<string | null>("fetch_radio_artwork", { artist, title });
+}
+
 export function playerNext(): Promise<void> {
   return invoke<void>("player_next");
 }
