@@ -218,7 +218,10 @@ pub async fn set_plugin_favorites(
     sqlx::query(
         "INSERT INTO profile_setting (key, value, value_type, updated_at)
          VALUES (?, ?, 'json', ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+         ON CONFLICT(key) DO UPDATE SET
+            value = excluded.value,
+            value_type = excluded.value_type,
+            updated_at = excluded.updated_at",
     )
     .bind(favorites_key(&plugin_id))
     .bind(payload)

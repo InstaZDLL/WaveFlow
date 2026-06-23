@@ -95,6 +95,16 @@ export function WebRadioView() {
   // pending category fetch.
   const resolveReqRef = useRef(0);
   const streamReqRef = useRef(0);
+  // Synchronous mirror of `favorites` so back-to-back toggles compute
+  // their next list from the latest value even before React commits a
+  // re-render (a rapid double-click on two different stations would
+  // otherwise both read the same stale `favorites` and the second
+  // would drop the first's change).
+  const favoritesRef = useRef<PluginFavorite[]>([]);
+  // Serialises optimistic backend writes. Each toggle chains onto the
+  // previous write so the snapshots land in click order — a stale
+  // (earlier) list can never resolve last and clobber a newer one.
+  const writeChainRef = useRef<Promise<unknown>>(Promise.resolve());
 
   // Fetch the category list whenever the plugin becomes available.
   //
@@ -128,6 +138,8 @@ export function WebRadioView() {
       setActiveEntry(null);
       setSearchActive(false);
       setFavoritesActive(false);
+      setFavorites([]);
+      favoritesRef.current = [];
       setError(null);
       setLoading(false);
       return;
@@ -153,6 +165,16 @@ export function WebRadioView() {
     };
   }, [pluginAvailable]);
 
+  // Single writer for the favorites list: keeps the synchronous ref
+  // and the rendered state in lockstep so compute-from-ref and
+  // display-from-state never diverge. Declared above the load effect
+  // so that effect can list it as a dependency without tripping the
+  // const TDZ.
+  const applyFavorites = useCallback((list: PluginFavorite[]) => {
+    favoritesRef.current = list;
+    setFavorites(list);
+  }, []);
+
   // Load the active profile's favorites. Re-runs on profile switch
   // (`activeProfile?.id`) so the saved-stations list follows the
   // profile, like liked tracks. Failures are non-fatal — a profile
@@ -161,9 +183,17 @@ export function WebRadioView() {
   useEffect(() => {
     if (!pluginAvailable) return;
     let cancelled = false;
+    // Clear before the per-profile reload so a profile switch never
+    // flashes the previous profile's stars while the new list is in
+    // flight. On first mount the list is already empty so there's no
+    // flicker; React batches this with the async result anyway.
+    /* eslint-disable-next-line react-hooks/set-state-in-effect --
+       intentional reset before per-profile favorites reload */
+    setFavorites([]);
+    favoritesRef.current = [];
     getPluginFavorites(PLUGIN_ID).then(
       (list) => {
-        if (!cancelled) setFavorites(list);
+        if (!cancelled) applyFavorites(list);
       },
       (err: unknown) => {
         if (!cancelled) {
@@ -174,7 +204,7 @@ export function WebRadioView() {
     return () => {
       cancelled = true;
     };
-  }, [pluginAvailable, activeProfile?.id]);
+  }, [pluginAvailable, activeProfile?.id, applyFavorites]);
 
   // Track the engine's lifecycle so a stream that dies on its own
   // (server timeout, mid-stream 5xx, user hits Stop on the PlayerBar)
@@ -256,30 +286,21 @@ export function WebRadioView() {
     [favorites],
   );
 
-  // Write a new favorites list optimistically, rolling back to the
-  // previous list if the backend write fails. The whole array is
-  // replaced server-side, so the host stays the single source of
-  // truth for ordering + dedup.
-  const persistFavorites = useCallback(
-    async (next: PluginFavorite[], previous: PluginFavorite[]) => {
-      setFavorites(next);
-      try {
-        await setPluginFavorites(PLUGIN_ID, next);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-        setFavorites(previous);
-      }
-    },
-    [],
-  );
-
+  // Optimistic toggle. Computes `next` from the synchronous ref (not
+  // the possibly-stale `favorites` closure) and chains the backend
+  // write onto `writeChainRef` so concurrent toggles persist in order.
+  // The whole array is replaced server-side, so the host stays the
+  // single source of truth for ordering + dedup. On write failure we
+  // re-fetch the authoritative list rather than guess a rollback
+  // target — other writes may still be in flight, so the server is the
+  // only honest source of "what's actually saved".
   const toggleFavorite = useCallback(
     (track: PluginTrack) => {
-      const previous = favorites;
-      const next = isFavorite(track.id)
-        ? previous.filter((f) => f.id !== track.id)
+      const current = favoritesRef.current;
+      const next = current.some((f) => f.id === track.id)
+        ? current.filter((f) => f.id !== track.id)
         : [
-            ...previous,
+            ...current,
             {
               id: track.id,
               title: track.title,
@@ -288,9 +309,21 @@ export function WebRadioView() {
               artworkUrl: track.artworkUrl,
             },
           ];
-      void persistFavorites(next, previous);
+      applyFavorites(next);
+      writeChainRef.current = writeChainRef.current
+        // A prior failure must not break the chain for later writes.
+        .catch(() => {})
+        .then(() => setPluginFavorites(PLUGIN_ID, next))
+        .catch(async (e) => {
+          setError(e instanceof Error ? e.message : String(e));
+          try {
+            applyFavorites(await getPluginFavorites(PLUGIN_ID));
+          } catch {
+            /* leave optimistic state; the next load re-syncs */
+          }
+        });
     },
-    [favorites, isFavorite, persistFavorites],
+    [applyFavorites],
   );
 
   const openFavorites = useCallback(() => {
