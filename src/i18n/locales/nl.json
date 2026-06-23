@@ -1049,7 +1049,12 @@
     "maximize": "Hoofdvenster herstellen",
     "like": "Vind-ik-leuk",
     "pin": "Altijd boven",
-    "close": "Mini-speler sluiten"
+    "close": "Mini-speler sluiten",
+    "upNext": {
+      "toggle": "Wachtrij",
+      "title": "Volgende · {{count}}",
+      "empty": "Niets meer in de wachtrij"
+    }
   },
   "sleepTimer": {
     "title": "Slaaptimer",

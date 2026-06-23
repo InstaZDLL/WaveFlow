@@ -1049,7 +1049,12 @@
     "maximize": "Kembalikan jendela utama",
     "like": "Suka",
     "pin": "Selalu di atas",
-    "close": "Tutup mini-pemutar"
+    "close": "Tutup mini-pemutar",
+    "upNext": {
+      "toggle": "Antrean",
+      "title": "Berikutnya · {{count}}",
+      "empty": "Tidak ada lagi di antrean"
+    }
   },
   "sleepTimer": {
     "title": "Pengatur waktu tidur",

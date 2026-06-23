@@ -1049,7 +1049,12 @@
     "maximize": "Restore main window",
     "like": "Like",
     "pin": "Always on top",
-    "close": "Close mini-player"
+    "close": "Close mini-player",
+    "upNext": {
+      "toggle": "Up next queue",
+      "title": "Up next · {{count}}",
+      "empty": "Nothing else in the queue"
+    }
   },
   "sleepTimer": {
     "title": "Sleep timer",

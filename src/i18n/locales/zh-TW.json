@@ -1049,7 +1049,12 @@
     "maximize": "還原主視窗",
     "like": "喜歡",
     "pin": "永遠在最前",
-    "close": "關閉迷你播放器"
+    "close": "關閉迷你播放器",
+    "upNext": {
+      "toggle": "播放佇列",
+      "title": "即將播放 · {{count}}",
+      "empty": "佇列中沒有其他內容"
+    }
   },
   "sleepTimer": {
     "title": "睡眠計時器",

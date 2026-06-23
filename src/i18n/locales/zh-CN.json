@@ -1049,7 +1049,12 @@
     "maximize": "恢复主窗口",
     "like": "喜欢",
     "pin": "始终置顶",
-    "close": "关闭迷你播放器"
+    "close": "关闭迷你播放器",
+    "upNext": {
+      "toggle": "播放队列",
+      "title": "即将播放 · {{count}}",
+      "empty": "队列中没有其他内容"
+    }
   },
   "sleepTimer": {
     "title": "睡眠定时器",

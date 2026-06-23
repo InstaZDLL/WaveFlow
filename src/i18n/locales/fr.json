@@ -1049,7 +1049,12 @@
     "maximize": "Restaurer la fenêtre principale",
     "like": "J'aime",
     "pin": "Toujours au-dessus",
-    "close": "Fermer le mini-lecteur"
+    "close": "Fermer le mini-lecteur",
+    "upNext": {
+      "toggle": "File d'attente",
+      "title": "À suivre · {{count}}",
+      "empty": "Rien d'autre dans la file"
+    }
   },
   "sleepTimer": {
     "title": "Minuteur de sommeil",
