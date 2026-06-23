@@ -328,6 +328,7 @@ export function FullscreenNowPlaying({
                     type="button"
                     onClick={onToggleLike}
                     aria-label={isLiked ? t("liked.unlike") : t("liked.like")}
+                    aria-pressed={isLiked}
                     className={`p-2 rounded-full transition-colors ${
                       isLiked
                         ? "text-pink-400 hover:text-pink-300"
