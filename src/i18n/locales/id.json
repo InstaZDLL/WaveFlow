@@ -1837,6 +1837,13 @@
     "updateChannel": {
       "title": "Saluran beta",
       "subtitle": "Terima versi pra-rilis sebelum rilis stabil. Versi beta mungkin tidak stabil."
+    },
+    "artistBio": {
+      "title": "Sumber biografi",
+      "subtitle": "Layanan mana yang menyediakan biografi artis.",
+      "lastfmHint": "Biografi berbahasa Inggris. Memerlukan kunci API Last.fm Anda.",
+      "theaudiodbHint": "Biografi komunitas dalam beberapa bahasa. Tanpa kunci.",
+      "languageLabel": "Bahasa biografi"
     }
   },
   "spotify": {

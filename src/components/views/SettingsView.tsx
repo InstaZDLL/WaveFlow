@@ -144,6 +144,7 @@ import { SkinPickerCard } from "./settings/SkinPickerCard";
 import { FullscreenLyricsCenteringCard } from "./settings/FullscreenLyricsCenteringCard";
 import { LyricsDestinationCard } from "./settings/LyricsDestinationCard";
 import { UpdateChannelCard } from "./settings/UpdateChannelCard";
+import { ArtistBioSourceCard } from "./settings/ArtistBioSourceCard";
 
 interface SettingsViewProps {
   onNavigate: (view: ViewId) => void;
@@ -2302,6 +2303,10 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 </div>
               </div>
             </div>
+
+            {/* Artist-bio source (issue #295) — sits under Last.fm
+              because it's the alternative bio provider. */}
+            <ArtistBioSourceCard />
 
             <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
               <div className="flex items-start space-x-4">

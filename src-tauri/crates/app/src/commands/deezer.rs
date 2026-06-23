@@ -20,10 +20,14 @@ use serde::Serialize;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter};
 
-use waveflow_core::metadata::{deezer::DeezerClient, lastfm::LastfmClient};
+use waveflow_core::metadata::{
+    deezer::DeezerClient, lastfm::LastfmClient, theaudiodb::TheAudioDbClient,
+};
 
 use crate::{
-    commands::integration::read_lastfm_api_key,
+    commands::integration::{
+        read_bio_language, read_bio_source, read_lastfm_api_key, BioSource,
+    },
     error::{AppError, AppResult},
     metadata_artwork,
     state::AppState,
@@ -290,8 +294,13 @@ pub async fn enrich_artist_deezer(
         return Ok(DeezerArtistEnrichment::empty());
     };
 
-    // 2. Cache hit? (includes bio fields populated by Last.fm in a
-    //    previous enrichment pass)
+    // Active bio provider + language (issue #295). Read up-front so the
+    // cache check can invalidate a bio fetched under a different source
+    // / language even when the rest of the row is still fresh.
+    let active_source = read_bio_source(&state).await?;
+    let active_lang = read_bio_language(&state).await?;
+
+    // 2. Cache hit? (includes bio fields populated in a previous pass)
     if let Some(did) = existing_deezer_id {
         #[allow(clippy::type_complexity)]
         let cached: Option<(
@@ -300,19 +309,36 @@ pub async fn enrich_artist_deezer(
             Option<i64>,
             Option<String>,
             Option<String>,
+            Option<String>,
+            Option<String>,
             i64,
         )> = sqlx::query_as(
-            "SELECT picture_url, picture_hash, fans_count, bio_short, bio_full, expires_at
+            "SELECT picture_url, picture_hash, fans_count, bio_short, bio_full,
+                    bio_source, bio_language, expires_at
                FROM app.metadata_artist WHERE deezer_id = ?",
         )
         .bind(did)
         .fetch_optional(&pool)
         .await?;
 
-        if let Some((picture_url, picture_hash, fans_count, bio_short, bio_full, expires_at)) =
-            cached
+        if let Some((
+            picture_url,
+            picture_hash,
+            fans_count,
+            bio_short,
+            bio_full,
+            cached_bio_source,
+            cached_bio_language,
+            expires_at,
+        )) = cached
         {
-            if expires_at > now {
+            // The bio part is only reusable when it was fetched under the
+            // currently-selected source (and language, for TheAudioDB);
+            // otherwise we fall through and re-fetch it.
+            let bio_fresh = BioSource::parse(cached_bio_source.as_deref()) == active_source
+                && (active_source != BioSource::TheAudioDb
+                    || cached_bio_language.as_deref() == Some(active_lang.as_str()));
+            if expires_at > now && bio_fresh {
                 let picture_path = picture_hash
                     .as_deref()
                     .and_then(|h| metadata_artwork::existing_path(&artwork_dir, h));
@@ -373,23 +399,37 @@ pub async fn enrich_artist_deezer(
         return Ok(DeezerArtistEnrichment::empty());
     };
 
-    // 4. Fetch bio from Last.fm if an API key is configured. Network
+    // 4. Fetch the bio from the selected source (issue #295). Network
     //    failures and missing matches are non-fatal — we still persist
     //    the Deezer portion so the next refresh doesn't spam the
-    //    network.
-    let (bio_short, bio_full) = match read_lastfm_api_key(&state).await? {
-        Some(api_key) => {
-            let lastfm = LastfmClient::new();
-            match lastfm.artist_get_info(&artist_name, &api_key).await {
-                Ok(Some(info)) => (info.bio_summary, info.bio_full),
+    //    network. The source/language we used is stored alongside so a
+    //    later switch re-fetches instead of serving the wrong bio.
+    let (bio_short, bio_full) = match active_source {
+        BioSource::Lastfm => match read_lastfm_api_key(&state).await? {
+            Some(api_key) => {
+                let lastfm = LastfmClient::new();
+                match lastfm.artist_get_info(&artist_name, &api_key).await {
+                    Ok(Some(info)) => (info.bio_summary, info.bio_full),
+                    Ok(None) => (None, None),
+                    Err(err) => {
+                        tracing::warn!(?err, "Last.fm artist_get_info failed");
+                        (None, None)
+                    }
+                }
+            }
+            None => (None, None),
+        },
+        BioSource::TheAudioDb => {
+            let client = TheAudioDbClient::new();
+            match client.artist_bio(&artist_name, &active_lang).await {
+                Ok(Some(info)) => (info.bio_short, info.bio_full),
                 Ok(None) => (None, None),
                 Err(err) => {
-                    tracing::warn!(?err, "Last.fm artist_get_info failed");
+                    tracing::warn!(?err, "TheAudioDB artist_bio failed");
                     (None, None)
                 }
             }
         }
-        None => (None, None),
     };
 
     let picture_url = hit.picture_xl.clone().or_else(|| hit.picture_big.clone());
@@ -407,14 +447,20 @@ pub async fn enrich_artist_deezer(
         None => (None, None),
     };
 
-    // 6. Upsert into the metadata cache (both Deezer and Last.fm
-    //    fields land in the unified `metadata_artist` table, stored
-    //    in app.db so every profile shares the same cache).
+    // 6. Upsert into the metadata cache (Deezer + bio fields land in the
+    //    unified `metadata_artist` table in app.db so every profile
+    //    shares the same cache). `bio_source` / `bio_language` record
+    //    which provider produced the bio so a later switch invalidates
+    //    it (see the cache-hit check above). Language is only meaningful
+    //    for TheAudioDB, so Last.fm stores NULL.
     let expires = now + CACHE_TTL_MS;
+    let stored_lang: Option<&str> =
+        matches!(active_source, BioSource::TheAudioDb).then_some(active_lang.as_str());
     sqlx::query(
         "INSERT INTO app.metadata_artist
-            (deezer_id, name, picture_url, picture_hash, fans_count, bio_short, bio_full, fetched_at, expires_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (deezer_id, name, picture_url, picture_hash, fans_count, bio_short, bio_full,
+             bio_source, bio_language, fetched_at, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(deezer_id) DO UPDATE SET
            name = excluded.name,
            picture_url = excluded.picture_url,
@@ -422,6 +468,8 @@ pub async fn enrich_artist_deezer(
            fans_count = excluded.fans_count,
            bio_short = excluded.bio_short,
            bio_full = excluded.bio_full,
+           bio_source = excluded.bio_source,
+           bio_language = excluded.bio_language,
            fetched_at = excluded.fetched_at,
            expires_at = excluded.expires_at",
     )
@@ -432,6 +480,8 @@ pub async fn enrich_artist_deezer(
     .bind(hit.nb_fan)
     .bind(bio_short.as_deref())
     .bind(bio_full.as_deref())
+    .bind(active_source.as_str())
+    .bind(stored_lang)
     .bind(now)
     .bind(expires)
     .execute(&pool)

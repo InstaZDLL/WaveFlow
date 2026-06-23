@@ -30,7 +30,9 @@ The frontend helper `lib/tauri/artwork.ts::resolveRemoteImage` prefers the local
 
 ### Read-only (artist bios)
 
-`artist.getInfo` for biographies, called from `enrich_artist_deezer` after the Deezer pass. Cached in the same `deezer_artist` row (the table name is historical — it holds Last.fm bios too) with the same 30-day TTL. **Optional**: requires a user-supplied API key in `app_setting['lastfm_api_key']`. Without it, bios are skipped silently and the UI shows local data.
+`artist.getInfo` for biographies, called from `enrich_artist_deezer` after the Deezer pass. Cached in the same `metadata_artist` row with the same 30-day TTL. **Optional**: requires a user-supplied API key in `app_setting['lastfm_api_key']`. Without it, bios are skipped silently and the UI shows local data.
+
+**Bio source selector (issue #295).** The bio provider is switchable in Settings → Integrations between **Last.fm** (default — English, needs the key) and **TheAudioDB** ([`theaudiodb.rs`](../../src-tauri/crates/core/src/metadata/theaudiodb.rs) — community DB, multi-language, no key; free shared API key `123`, 30 req/min). The choice lives in `app_setting['metadata.bio_source']` and, for TheAudioDB, a language in `app_setting['metadata.bio_language']` (the client maps `strBiography{LANG}` and falls back to English). `enrich_artist_deezer` branches on the active source and stores `bio_source` / `bio_language` alongside the bio in `metadata_artist`; the cache check treats the bio as stale (re-fetches) when either differs from the active setting, so switching source or language refreshes on the next view. Like Last.fm, the bio still attaches to the Deezer-keyed cache row, so it only resolves for artists that match on Deezer.
 
 ### Read-only (similar artists)
 

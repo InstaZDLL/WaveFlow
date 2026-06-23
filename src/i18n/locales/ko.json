@@ -1837,6 +1837,13 @@
     "updateChannel": {
       "title": "베타 채널",
       "subtitle": "안정 버전 출시 전에 사전 출시 빌드를 받습니다. 베타 버전은 불안정할 수 있습니다."
+    },
+    "artistBio": {
+      "title": "바이오그래피 출처",
+      "subtitle": "아티스트 바이오그래피를 제공하는 서비스.",
+      "lastfmHint": "영어 바이오그래피. Last.fm API 키가 필요합니다.",
+      "theaudiodbHint": "여러 언어의 커뮤니티 바이오그래피. 키 불필요.",
+      "languageLabel": "바이오그래피 언어"
     }
   },
   "spotify": {
