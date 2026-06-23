@@ -51,6 +51,15 @@ export function useWebRadioFavorites() {
   const writeChainRef = useRef<Promise<unknown>>(Promise.resolve());
   const favoriteSeqRef = useRef(0);
   const profileIdRef = useRef(activeProfile?.id);
+  // `true` once the CURRENT profile's favorites have loaded. Toggles are
+  // ignored until then so a click in the load window can't compute from
+  // the just-cleared (empty) ref and persist a wiped list — a full-array
+  // replace would otherwise delete every existing favorite.
+  const loadedRef = useRef(false);
+  // Bumped each time the profile changes; a stale (previous-profile)
+  // load resolving late checks this and drops itself instead of applying
+  // over the new profile's list.
+  const loadGenRef = useRef(0);
 
   const applyFavorites = useCallback((list: PluginFavorite[]) => {
     favoritesRef.current = list;
@@ -65,20 +74,25 @@ export function useWebRadioFavorites() {
   // instance in this webview commits a change (the DOM bus below).
   useEffect(() => {
     let cancelled = false;
-    // Clear the synchronous snapshot the instant the profile changes so
-    // a toggle fired before the new list lands can't compute from — and
-    // then persist — the PREVIOUS profile's favorites into the now-active
-    // profile. The async load below refills it.
+    // New profile generation: clear the synchronous snapshot + mark the
+    // list "not loaded" so a toggle fired before the new list lands is
+    // ignored (rather than computing from — and persisting — an empty or
+    // previous-profile list). The async load below refills it.
+    const gen = ++loadGenRef.current;
+    loadedRef.current = false;
     favoritesRef.current = [];
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional reset before per-profile reload
     setFavorites([]);
     const load = () => {
       getPluginFavorites(WEB_RADIO_PLUGIN_ID).then(
         (list) => {
-          if (!cancelled) applyFavorites(list);
+          // Drop a stale load that resolved after a newer profile switch.
+          if (cancelled || gen !== loadGenRef.current) return;
+          applyFavorites(list);
+          loadedRef.current = true;
         },
         (err: unknown) => {
-          if (!cancelled) {
+          if (!cancelled && gen === loadGenRef.current) {
             console.warn("[useWebRadioFavorites] load failed", err);
           }
         },
@@ -99,6 +113,11 @@ export function useWebRadioFavorites() {
 
   const toggleFavorite = useCallback(
     (fav: PluginFavorite) => {
+      // Ignore toggles until the current profile's list has loaded — a
+      // full-array write computed from the not-yet-loaded (empty) ref
+      // would wipe the stored favorites. The window is sub-second (mount
+      // / profile switch); after that this is always true.
+      if (!loadedRef.current) return;
       const seq = ++favoriteSeqRef.current;
       const current = favoritesRef.current;
       const next = current.some((f) => f.id === fav.id)

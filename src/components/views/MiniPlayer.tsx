@@ -502,16 +502,16 @@ export function MiniPlayer() {
                   }
                 />
               </button>
-            ) : !isSpotify && !isRadioTrack(currentTrack) ? (
+            ) : currentTrack && !isSpotify && !isRadioTrack(currentTrack) ? (
               // Guard the radio sentinel track (negative id) during the
               // hydration race / idle tail — no ♥ like without a library
-              // row.
+              // row. `currentTrack &&` also drops the disabled ♥ when
+              // nothing is playing (idle), matching the PlayerBar.
               <button
                 type="button"
                 onClick={handleLike}
-                disabled={!currentTrack}
                 aria-label={t("miniPlayer.like")}
-                className="p-0.5 disabled:opacity-30 shrink-0"
+                className="p-0.5 shrink-0"
               >
                 <Heart
                   size={14}
