@@ -1837,6 +1837,13 @@
     "updateChannel": {
       "title": "Beta channel",
       "subtitle": "Receive pre-release builds before the stable release. Betas may be unstable."
+    },
+    "artistBio": {
+      "title": "Biography source",
+      "subtitle": "Which service provides artist biographies.",
+      "lastfmHint": "English biographies. Requires your Last.fm API key.",
+      "theaudiodbHint": "Community biographies in several languages. No key required.",
+      "languageLabel": "Biography language"
     }
   },
   "spotify": {

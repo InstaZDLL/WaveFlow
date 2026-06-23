@@ -91,6 +91,124 @@ pub async fn read_lastfm_api_secret(state: &AppState) -> AppResult<Option<String
     Ok(value.filter(|v| !v.trim().is_empty()))
 }
 
+// ── Artist bio source preference (issue #295) ──────────────────────
+//
+// `metadata.bio_source` selects which provider fills the artist bio:
+// Last.fm (default — English only, needs the user's API key) or
+// TheAudioDB (multi-language, no key). `metadata.bio_language` is the
+// TheAudioDB language code (ignored for Last.fm). Both are app-wide
+// like the Last.fm key — bios live in the shared `metadata_artist`
+// cache, keyed by deezer_id.
+const BIO_SOURCE_KEY: &str = "metadata.bio_source";
+const BIO_LANGUAGE_KEY: &str = "metadata.bio_language";
+const DEFAULT_BIO_LANGUAGE: &str = "en";
+/// Language codes TheAudioDB ships a biography for (others fall back to
+/// English inside the client). Also gates `set_bio_language` writes.
+pub const BIO_LANGUAGES: &[&str] = &[
+    "en", "fr", "de", "es", "it", "pt", "nl", "ru", "ja", "zh",
+];
+
+/// Provider used to fill artist biographies.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BioSource {
+    Lastfm,
+    TheAudioDb,
+}
+
+impl BioSource {
+    /// Parse a persisted / IPC value; anything but `"theaudiodb"` is
+    /// Last.fm so a stray value can't silently disable bios.
+    pub fn parse(value: Option<&str>) -> Self {
+        match value {
+            Some("theaudiodb") => BioSource::TheAudioDb,
+            _ => BioSource::Lastfm,
+        }
+    }
+    pub fn as_str(self) -> &'static str {
+        match self {
+            BioSource::Lastfm => "lastfm",
+            BioSource::TheAudioDb => "theaudiodb",
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn get_bio_source(state: tauri::State<'_, AppState>) -> AppResult<String> {
+    let value: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(BIO_SOURCE_KEY)
+        .fetch_optional(&state.app_db)
+        .await?;
+    Ok(BioSource::parse(value.as_deref()).as_str().to_string())
+}
+
+#[tauri::command]
+pub async fn set_bio_source(state: tauri::State<'_, AppState>, source: String) -> AppResult<()> {
+    let normalized = BioSource::parse(Some(source.as_str())).as_str();
+    sqlx::query(
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'string', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(BIO_SOURCE_KEY)
+    .bind(normalized)
+    .bind(now_ms())
+    .execute(&state.app_db)
+    .await?;
+    Ok(())
+}
+
+/// Internal helper: the active bio provider (defaults to Last.fm).
+pub async fn read_bio_source(state: &AppState) -> AppResult<BioSource> {
+    let value: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(BIO_SOURCE_KEY)
+        .fetch_optional(&state.app_db)
+        .await?;
+    Ok(BioSource::parse(value.as_deref()))
+}
+
+#[tauri::command]
+pub async fn get_bio_language(state: tauri::State<'_, AppState>) -> AppResult<String> {
+    read_bio_language(&state).await
+}
+
+#[tauri::command]
+pub async fn set_bio_language(
+    state: tauri::State<'_, AppState>,
+    language: String,
+) -> AppResult<()> {
+    // Clamp to a known TheAudioDB language so an arbitrary write can't
+    // strand the cache on a code the client never resolves.
+    let lang = if BIO_LANGUAGES.contains(&language.as_str()) {
+        language.as_str()
+    } else {
+        DEFAULT_BIO_LANGUAGE
+    };
+    sqlx::query(
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'string', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(BIO_LANGUAGE_KEY)
+    .bind(lang)
+    .bind(now_ms())
+    .execute(&state.app_db)
+    .await?;
+    Ok(())
+}
+
+/// Internal helper: TheAudioDB bio language (defaults to English).
+pub async fn read_bio_language(state: &AppState) -> AppResult<String> {
+    let value: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(BIO_LANGUAGE_KEY)
+        .fetch_optional(&state.app_db)
+        .await?;
+    Ok(value
+        .filter(|v| BIO_LANGUAGES.contains(&v.as_str()))
+        .unwrap_or_else(|| DEFAULT_BIO_LANGUAGE.to_string()))
+}
+
 /// Return the stored Last.fm API secret, mirrors [`get_lastfm_api_key`].
 #[tauri::command]
 pub async fn get_lastfm_api_secret(state: tauri::State<'_, AppState>) -> AppResult<Option<String>> {

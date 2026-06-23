@@ -16,6 +16,44 @@ export function setLastfmApiKey(apiKey: string): Promise<void> {
   return invoke<void>("set_lastfm_api_key", { apiKey });
 }
 
+/** Artist-bio provider: Last.fm (English, needs a key) or TheAudioDB
+ *  (multi-language, no key). Persisted app-wide. */
+export type BioSource = "lastfm" | "theaudiodb";
+
+/** TheAudioDB biography languages exposed in Settings (the client
+ *  falls back to English for any unmapped UI locale). */
+export const BIO_LANGUAGES = [
+  "en",
+  "fr",
+  "de",
+  "es",
+  "it",
+  "pt",
+  "nl",
+  "ru",
+  "ja",
+  "zh",
+] as const;
+export type BioLanguage = (typeof BIO_LANGUAGES)[number];
+
+export function getBioSource(): Promise<BioSource> {
+  return invoke<BioSource>("get_bio_source");
+}
+
+export function setBioSource(source: BioSource): Promise<void> {
+  return invoke<void>("set_bio_source", { source });
+}
+
+export function getBioLanguage(): Promise<BioLanguage> {
+  // The backend clamps to BIO_LANGUAGES (or "en"), so the value is
+  // always a valid BioLanguage at this boundary.
+  return invoke<BioLanguage>("get_bio_language");
+}
+
+export function setBioLanguage(language: BioLanguage): Promise<void> {
+  return invoke<void>("set_bio_language", { language });
+}
+
 export function getLastfmApiSecret(): Promise<string | null> {
   return invoke<string | null>("get_lastfm_api_secret");
 }

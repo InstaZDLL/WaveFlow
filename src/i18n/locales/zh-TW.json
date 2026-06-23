@@ -1837,6 +1837,13 @@
     "updateChannel": {
       "title": "測試版通道",
       "subtitle": "在穩定版發布前接收預發布版本。測試版可能不穩定。"
+    },
+    "artistBio": {
+      "title": "簡介來源",
+      "subtitle": "由哪個服務提供藝人簡介。",
+      "lastfmHint": "英文簡介。需要你的 Last.fm API 金鑰。",
+      "theaudiodbHint": "多語言社群簡介。無需金鑰。",
+      "languageLabel": "簡介語言"
     }
   },
   "scanProgress": {

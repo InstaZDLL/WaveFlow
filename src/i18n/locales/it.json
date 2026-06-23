@@ -1837,6 +1837,13 @@
     "updateChannel": {
       "title": "Canale beta",
       "subtitle": "Ricevi le versioni in anteprima prima del rilascio stabile. Le beta possono essere instabili."
+    },
+    "artistBio": {
+      "title": "Fonte della biografia",
+      "subtitle": "Quale servizio fornisce le biografie degli artisti.",
+      "lastfmHint": "Biografie in inglese. Richiede la tua chiave API Last.fm.",
+      "theaudiodbHint": "Biografie della community in più lingue. Nessuna chiave richiesta.",
+      "languageLabel": "Lingua della biografia"
     }
   },
   "spotify": {

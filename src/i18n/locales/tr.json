@@ -1837,6 +1837,13 @@
     "updateChannel": {
       "title": "Beta kanalı",
       "subtitle": "Kararlı sürümden önce ön sürüm yapılarını alın. Beta sürümleri kararsız olabilir."
+    },
+    "artistBio": {
+      "title": "Biyografi kaynağı",
+      "subtitle": "Sanatçı biyografilerini hangi servisin sağladığı.",
+      "lastfmHint": "İngilizce biyografiler. Last.fm API anahtarınızı gerektirir.",
+      "theaudiodbHint": "Birden çok dilde topluluk biyografileri. Anahtar gerekmez.",
+      "languageLabel": "Biyografi dili"
     }
   },
   "spotify": {

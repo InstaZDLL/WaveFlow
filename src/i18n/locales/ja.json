@@ -1837,6 +1837,13 @@
     "updateChannel": {
       "title": "ベータチャンネル",
       "subtitle": "安定版より前にプレリリースビルドを受け取ります。ベータ版は不安定な場合があります。"
+    },
+    "artistBio": {
+      "title": "経歴の取得元",
+      "subtitle": "アーティストの経歴を提供するサービス。",
+      "lastfmHint": "英語の経歴。Last.fm の API キーが必要です。",
+      "theaudiodbHint": "複数言語のコミュニティ経歴。キー不要。",
+      "languageLabel": "経歴の言語"
     }
   },
   "scanProgress": {

@@ -1837,6 +1837,13 @@
     "updateChannel": {
       "title": "Bètakanaal",
       "subtitle": "Ontvang voorlopige versies vóór de stabiele release. Bèta's kunnen instabiel zijn."
+    },
+    "artistBio": {
+      "title": "Biografiebron",
+      "subtitle": "Welke dienst de artiestbiografieën levert.",
+      "lastfmHint": "Engelse biografieën. Vereist je Last.fm-API-sleutel.",
+      "theaudiodbHint": "Community-biografieën in meerdere talen. Geen sleutel nodig.",
+      "languageLabel": "Taal van de biografie"
     }
   },
   "spotify": {
