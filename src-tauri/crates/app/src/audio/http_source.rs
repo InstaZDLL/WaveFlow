@@ -41,9 +41,10 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use reqwest::blocking::{Client, Response};
-use serde::Serialize;
 use symphonia::core::io::MediaSource;
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
+
+use super::events::{emit_radio_metadata, RadioMetadataPayload};
 
 /// Strip credentials + query string from a URL before logging it.
 /// Radio mount URLs sometimes carry userinfo (`http://user:pwd@host`)
@@ -95,18 +96,6 @@ const USER_AGENT: &str = concat!(
     env!("CARGO_PKG_VERSION"),
     " (+https://waveflow.app)"
 );
-
-/// Event the engine emits when a station's live "now playing" title
-/// changes. Mirrors the wire shape of `player:radio-metadata` from
-/// [`super::decoder`] (snake_case, no `rename_all`) so the PlayerBar's
-/// existing listener updates without any frontend change.
-#[derive(Serialize, Clone)]
-struct RadioMetadataPayload {
-    track_id: i64,
-    title: Option<String>,
-    artist: Option<String>,
-    artwork_url: Option<String>,
-}
 
 /// Context the host hands to [`HttpMediaSource::open_with_icy`] so the
 /// source can re-emit `player:radio-metadata` whenever the stream's
@@ -366,8 +355,8 @@ impl HttpMediaSource {
             }
             None => (None, icy.station_artist.clone()),
         };
-        let _ = icy.app.emit(
-            "player:radio-metadata",
+        emit_radio_metadata(
+            &icy.app,
             RadioMetadataPayload {
                 track_id: icy.track_id,
                 title,

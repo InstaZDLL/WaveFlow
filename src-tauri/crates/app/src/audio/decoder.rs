@@ -25,6 +25,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use super::analytics::AnalyticsMsg;
 use super::crossfade::{equal_power_gains, ActiveStream};
 use super::engine::AudioCmd;
+use super::events::{emit_radio_metadata, RadioMetadataPayload};
 use super::state::{PlayerState, SharedPlayback};
 
 /// Minimum interval between `player:position` events emitted during
@@ -61,35 +62,6 @@ struct ErrorPayload {
     message: String,
 }
 
-#[derive(Serialize, Clone)]
-struct RadioMetadataPayload {
-    track_id: i64,
-    title: Option<String>,
-    artist: Option<String>,
-    artwork_url: Option<String>,
-}
-
-/// Emit `player:radio-metadata` so the PlayerBar + OS overlay can
-/// paint the live-stream title / cover during the symphonia probe.
-/// No-op for non-radio loads — this event is purely additive on top
-/// of the existing `player:track-changed`.
-fn emit_radio_metadata(
-    app: &AppHandle,
-    track_id: i64,
-    title: &Option<String>,
-    artist: &Option<String>,
-    artwork_url: &Option<String>,
-) {
-    let _ = app.emit(
-        "player:radio-metadata",
-        RadioMetadataPayload {
-            track_id,
-            title: title.clone(),
-            artist: artist.clone(),
-            artwork_url: artwork_url.clone(),
-        },
-    );
-}
 
 /// Common path for `LoadAndPlay` / `LoadUrlAndPlay` — fire the right
 /// analytics message depending on how the stream finished. Live
@@ -425,8 +397,18 @@ fn decoder_loop(
                 // Emit the radio metadata up front so the OS overlay /
                 // PlayerBar can paint the title + cover during the
                 // network handshake (the symphonia probe blocks for a
-                // few hundred ms on slow servers).
-                emit_radio_metadata(&app, track_id, &title, &artist, &artwork_url);
+                // few hundred ms on slow servers). The ICY de-interleaver
+                // in `http_source` re-emits the same event with the live
+                // song title once the stream's first metadata block lands.
+                emit_radio_metadata(
+                    &app,
+                    RadioMetadataPayload {
+                        track_id,
+                        title: title.clone(),
+                        artist: artist.clone(),
+                        artwork_url: artwork_url.clone(),
+                    },
+                );
 
                 // Defence in depth: `player_play_url` already gates on
                 // `offline::is_offline()` before dispatching the
