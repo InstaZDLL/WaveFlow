@@ -957,6 +957,7 @@ fn play_track(
                     shared,
                     app,
                 );
+                clamp_to_unity(&mut mix_scratch);
                 match push_samples(
                     &mix_scratch,
                     producer,
@@ -1137,6 +1138,7 @@ fn play_track(
                 shared,
                 app,
             );
+            clamp_to_unity(&mut primary_resampled);
             match push_samples(
                 &primary_resampled,
                 producer,
@@ -1464,6 +1466,21 @@ fn apply_replay_gain(buf: &mut [f32], shared: &SharedPlayback, gain: f32) {
     }
     for s in buf.iter_mut() {
         *s *= gain;
+    }
+}
+
+/// Final safety clamp before samples reach the SPSC ring (and the cpal
+/// callback / WASAPI-exclusive thread that drain it). Decoded PCM is
+/// already within `[-1.0, 1.0]`, so for an untouched stream this is the
+/// identity and bit-perfect output is preserved — it only bites when a
+/// gain stage (ReplayGain, normalize, EQ peaking, or a speed-resample
+/// overshoot) pushes a peak past unity, where the un-clamped value would
+/// hard-clip and distort the DAC. Runs on the decoder thread, never in
+/// the hot callback.
+#[inline]
+fn clamp_to_unity(buf: &mut [f32]) {
+    for s in buf.iter_mut() {
+        *s = s.clamp(-1.0, 1.0);
     }
 }
 
