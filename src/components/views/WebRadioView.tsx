@@ -12,6 +12,7 @@ import {
   Star,
   Globe,
   MapPin,
+  Database,
 } from "lucide-react";
 
 import { playerPlayUrl, playerStop } from "../../lib/tauri/player";
@@ -28,6 +29,11 @@ import {
   WEB_RADIO_PLUGIN_ID,
 } from "../../hooks/useWebRadioFavorites";
 import { WEB_RADIO_COUNTRY_CODES } from "../../lib/webRadioCountries";
+import { getOfflineMode } from "../../lib/tauri/offline";
+import {
+  radioCatalogueStatus,
+  resolveRadioCatalogue,
+} from "../../lib/tauri/webRadioCatalogue";
 
 const PLUGIN_ID = WEB_RADIO_PLUGIN_ID;
 
@@ -103,6 +109,34 @@ export function WebRadioView() {
   // zero network (the stream URL rides inside `track.id` as `url:…`).
   const { favorites, isFavorite, toggleFavorite } = useWebRadioFavorites();
   const [favoritesActive, setFavoritesActive] = useState(false);
+  // Offline catalogue routing (#289 #4). `useLocal` flips browse + search
+  // from the live plugin to the downloaded local catalogue when offline mode
+  // is on, or when the user enabled "local-first" (Settings → Data) AND a
+  // catalogue is present. Resolved once on mount — navigating away unmounts
+  // the view, so a Settings change is picked up on the next visit.
+  const [useLocal, setUseLocal] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([getOfflineMode(), radioCatalogueStatus()]).then(
+      ([offline, status]) => {
+        if (cancelled) return;
+        setUseLocal(offline || (status.localFirst && status.count > 0));
+      },
+      () => {
+        /* status unavailable → stay on the live plugin */
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  // One resolver for both browse (openEntry) and search: the local catalogue
+  // answers the SAME query tokens as the plugin and returns the SAME shape.
+  const resolveStations = useCallback(
+    (query: string): Promise<PluginTrack[]> =>
+      useLocal ? resolveRadioCatalogue(query) : pluginResolve(PLUGIN_ID, query),
+    [useLocal],
+  );
   // The PluginTrack.id of the currently-playing station, or null when
   // nothing in this view owns the engine. Driven by `playerPlayUrl`
   // success AND by `player:state` events so an external stop
@@ -220,7 +254,7 @@ export function WebRadioView() {
     setError(null);
     setTracks([]);
     try {
-      const list = await pluginResolve(PLUGIN_ID, entry.query);
+      const list = await resolveStations(entry.query);
       // A later openEntry / runSearch ran while we were awaiting —
       // drop this stale list silently so the user's most-recent
       // click wins.
@@ -234,7 +268,7 @@ export function WebRadioView() {
         setResolving(false);
       }
     }
-  }, []);
+  }, [resolveStations]);
 
   // Country browsing reuses the entry-resolve machinery: a country is
   // just a synthetic entry whose query is the `country:<ISO2>` token
@@ -274,7 +308,7 @@ export function WebRadioView() {
     setError(null);
     setTracks([]);
     try {
-      const list = await pluginResolve(PLUGIN_ID, term);
+      const list = await resolveStations(term);
       if (resolveReqRef.current !== token) return;
       setTracks(list);
     } catch (e) {
@@ -285,7 +319,7 @@ export function WebRadioView() {
         setResolving(false);
       }
     }
-  }, [searchTerm]);
+  }, [searchTerm, resolveStations]);
 
   // Build the favorite record for a station row so the shared hook's
   // toggle (which takes a `PluginFavorite`) can save it.
@@ -462,6 +496,17 @@ export function WebRadioView() {
             {t("webRadio.subtitle")}
           </p>
         </div>
+        {/* Local-catalogue indicator: browse + search are answered from the
+            downloaded snapshot, not the live radio-browser API. */}
+        {useLocal && (
+          <span
+            className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300"
+            title={t("webRadio.localCatalogueHint")}
+          >
+            <Database size={12} aria-hidden="true" />
+            {t("webRadio.localCatalogue")}
+          </span>
+        )}
       </header>
 
       <div className="px-6 py-3 flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-800">

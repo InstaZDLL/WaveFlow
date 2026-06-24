@@ -1844,6 +1844,26 @@
       "lastfmHint": "Biographies en anglais. Nécessite votre clé API Last.fm.",
       "theaudiodbHint": "Biographies communautaires en plusieurs langues. Aucune clé requise.",
       "languageLabel": "Langue de la biographie"
+    },
+    "radioCatalogue": {
+      "title": "Catalogue de stations hors-ligne",
+      "subtitle": "Téléchargez l'annuaire radio-browser pour parcourir et rechercher les stations sans connexion.",
+      "stored_one": "{{count}} station · mis à jour le {{date}}",
+      "stored_other": "{{count}} stations · mis à jour le {{date}}",
+      "download": "Télécharger",
+      "refresh": "Mettre à jour",
+      "downloading": "Téléchargement…",
+      "downloadingPct": "Import… {{pct}} %",
+      "clear": "Supprimer le catalogue",
+      "neverSynced": "jamais",
+      "localFirst": "Privilégier le catalogue local",
+      "localFirstHint": "Rechercher et parcourir en local même en ligne (instantané, sans réseau).",
+      "offlineHint": "Désactivez le mode hors-ligne pour télécharger le catalogue.",
+      "errors": {
+        "loadFailed": "Échec du chargement du statut du catalogue.",
+        "downloadFailed": "Échec du téléchargement du catalogue.",
+        "clearFailed": "Échec de la suppression du catalogue."
+      }
     }
   },
   "spotify": {
@@ -1906,6 +1926,8 @@
     "addFavorite": "Ajouter aux favoris",
     "removeFavorite": "Retirer des favoris",
     "localStations": "Stations locales",
-    "browseByCountry": "Parcourir par pays"
+    "browseByCountry": "Parcourir par pays",
+    "localCatalogue": "Catalogue local",
+    "localCatalogueHint": "Navigation et recherche depuis le catalogue téléchargé."
   }
 }

@@ -134,6 +134,7 @@ import { applyUiZoom } from "../../hooks/useUiZoom";
 import { DuplicatesModal } from "../common/DuplicatesModal";
 import { ResetAppModal } from "../common/ResetAppModal";
 import { BackupCard } from "./settings/BackupCard";
+import { RadioCatalogueCard } from "./settings/RadioCatalogueCard";
 import { EqualizerCard } from "./settings/EqualizerCard";
 import { ExclusiveModeCard } from "./settings/ExclusiveModeCard";
 import { PlayerBarLayoutCard } from "./settings/PlayerBarLayoutCard";
@@ -3257,6 +3258,12 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             {/* Auto-backup card — sits right after the manual export/import
               so users see the two profile-IO features together. */}
             <BackupCard language={i18n.resolvedLanguage ?? i18n.language} />
+
+            {/* Offline Web Radio catalogue — download the station directory
+              for offline browse + search (#289). */}
+            <RadioCatalogueCard
+              language={i18n.resolvedLanguage ?? i18n.language}
+            />
 
             <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
               <div className="flex items-center space-x-4">

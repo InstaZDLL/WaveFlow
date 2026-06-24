@@ -1844,6 +1844,26 @@
       "lastfmHint": "Biografi berbahasa Inggris. Memerlukan kunci API Last.fm Anda.",
       "theaudiodbHint": "Biografi komunitas dalam beberapa bahasa. Tanpa kunci.",
       "languageLabel": "Bahasa biografi"
+    },
+    "radioCatalogue": {
+      "title": "Offline station catalogue",
+      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
+      "stored_one": "{{count}} station · updated {{date}}",
+      "stored_other": "{{count}} stations · updated {{date}}",
+      "download": "Download",
+      "refresh": "Update",
+      "downloading": "Downloading…",
+      "downloadingPct": "Importing… {{pct}}%",
+      "clear": "Delete catalogue",
+      "neverSynced": "never",
+      "localFirst": "Prefer local catalogue",
+      "localFirstHint": "Search and browse locally even when online (instant, no network).",
+      "offlineHint": "Disable offline mode to download the catalogue.",
+      "errors": {
+        "loadFailed": "Failed to load catalogue status.",
+        "downloadFailed": "Failed to download the catalogue.",
+        "clearFailed": "Failed to delete the catalogue."
+      }
     }
   },
   "spotify": {
@@ -1906,6 +1926,8 @@
     "addFavorite": "Tambahkan ke favorit",
     "removeFavorite": "Hapus dari favorit",
     "localStations": "Stasiun lokal",
-    "browseByCountry": "Telusuri berdasarkan negara"
+    "browseByCountry": "Telusuri berdasarkan negara",
+    "localCatalogue": "Local catalogue",
+    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
   }
 }
