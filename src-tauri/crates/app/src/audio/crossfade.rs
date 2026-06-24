@@ -107,8 +107,15 @@ const MAX_PRELOAD_BYTES: u64 = 512 * 1024 * 1024;
 /// be unit-tested: Windows UNC (`\\server\share`) and the gvfs / gio
 /// FUSE mount prefixes Linux desktops expose for SMB / SFTP / WebDAV.
 fn path_str_is_network(s: &str) -> bool {
-    if s.starts_with(r"\\") {
-        return true; // Windows UNC
+    if let Some(rest) = s.strip_prefix(r"\\") {
+        // `\\?\` and `\\.\` are Win32 namespace prefixes for *local*
+        // access (extended-length / device paths) — NOT network. The one
+        // exception is the extended-UNC form `\\?\UNC\server\share`.
+        // A plain `\\server\share` is a genuine UNC network path.
+        if let Some(ext) = rest.strip_prefix(r"?\").or_else(|| rest.strip_prefix(r".\")) {
+            return ext.to_ascii_uppercase().starts_with("UNC\\");
+        }
+        return true;
     }
     let lower = s.to_ascii_lowercase();
     lower.contains("/gvfs/") || lower.contains("/.gvfs/") || lower.contains("smb-share")
@@ -157,22 +164,37 @@ fn is_network_path(path: &Path) -> bool {
 /// [`MediaSource`]. Returns `None` (→ caller streams instead) when the
 /// file is missing, unreadable, or larger than [`MAX_PRELOAD_BYTES`].
 fn read_into_memory(path: &Path) -> Option<Box<dyn MediaSource>> {
-    let len = std::fs::metadata(path).ok()?.len();
-    if len > MAX_PRELOAD_BYTES {
+    use std::io::Read;
+
+    let file = match std::fs::File::open(path) {
+        Ok(f) => f,
+        Err(e) => {
+            tracing::warn!(path = %path.display(), error = %e, "network pre-load open failed");
+            return None;
+        }
+    };
+    // Best-effort capacity hint (clamped) — purely to avoid reallocs; the
+    // cap is enforced below by the read itself, not by this stat, so a
+    // file that grows after the hint can't escape the limit (no TOCTOU).
+    let hint = file
+        .metadata()
+        .map(|m| m.len().min(MAX_PRELOAD_BYTES))
+        .unwrap_or(0);
+    let mut buf = Vec::with_capacity(hint as usize);
+    // Read at most CAP + 1 bytes: if we actually pull that many, the file
+    // is over the cap regardless of what any earlier stat claimed.
+    if let Err(e) = file.take(MAX_PRELOAD_BYTES + 1).read_to_end(&mut buf) {
+        tracing::warn!(path = %path.display(), error = %e, "network pre-load read failed");
+        return None;
+    }
+    if buf.len() as u64 > MAX_PRELOAD_BYTES {
         tracing::debug!(
             path = %path.display(),
-            bytes = len,
             "network file exceeds pre-load cap — streaming instead"
         );
         return None;
     }
-    match std::fs::read(path) {
-        Ok(bytes) => Some(Box::new(std::io::Cursor::new(bytes))),
-        Err(e) => {
-            tracing::warn!(path = %path.display(), error = %e, "network pre-load read failed");
-            None
-        }
-    }
+    Some(Box::new(std::io::Cursor::new(buf)))
 }
 
 impl ActiveStream {
@@ -712,9 +734,14 @@ mod tests {
         assert!(path_str_is_network(
             "/run/user/1000/gvfs/smb-share:server=nas,share=music/track.flac"
         ));
+        // Extended-UNC is still network.
+        assert!(path_str_is_network(r"\\?\UNC\nas\music\track.flac"));
         // Plain local paths are not.
         assert!(!path_str_is_network("/home/user/Music/track.flac"));
         assert!(!path_str_is_network(r"C:\Users\me\Music\track.flac"));
+        // \\?\ and \\.\ namespace prefixes are local, not network.
+        assert!(!path_str_is_network(r"\\?\C:\Users\me\Music\track.flac"));
+        assert!(!path_str_is_network(r"\\.\C:\Users\me\Music\track.flac"));
     }
 
     #[test]
