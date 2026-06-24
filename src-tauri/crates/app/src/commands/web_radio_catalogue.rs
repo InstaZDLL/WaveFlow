@@ -238,6 +238,13 @@ pub async fn download_radio_catalogue(
     sqlx::query("INSERT INTO radio_station_fts(radio_station_fts) VALUES('delete-all')")
         .execute(&mut *tx)
         .await?;
+    // Invalidate the sync marker up front: because the import commits in
+    // batches, a mid-import failure would otherwise leave partial rows under
+    // a *stale* `last_synced_at` (from a prior successful run), and
+    // `resolve_radio_catalogue` would serve that incomplete catalogue. With
+    // the marker cleared here and only re-stamped in the final tx, an
+    // interrupted rebuild reads as "no valid catalogue" until it completes.
+    write_setting(&mut *tx, KEY_LAST_SYNCED, "").await?;
 
     let mut id: i64 = 0;
     let mut in_batch: usize = 0;
@@ -364,6 +371,19 @@ pub async fn resolve_radio_catalogue(
     limit: Option<u32>,
 ) -> AppResult<Vec<PluginTrack>> {
     let pool = &state.app_db;
+
+    // Only serve a catalogue that finished syncing. The marker is cleared at
+    // the head of a download and re-stamped in the final batch's tx, so an
+    // absent / empty / unparseable value means "never synced" or "rebuild in
+    // progress / interrupted" — return nothing rather than partial rows.
+    let synced = read_setting(pool, KEY_LAST_SYNCED)
+        .await?
+        .and_then(|v| v.parse::<i64>().ok())
+        .is_some();
+    if !synced {
+        return Ok(Vec::new());
+    }
+
     let limit = limit.unwrap_or(DEFAULT_LIMIT).clamp(1, MAX_LIMIT) as i64;
     let q = query.trim();
 

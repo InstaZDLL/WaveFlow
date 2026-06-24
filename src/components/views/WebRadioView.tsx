@@ -124,7 +124,12 @@ export function WebRadioView() {
           radioCatalogueStatus(),
         ]);
         if (cancelled) return;
-        setUseLocal(offline || (status.localFirst && status.count > 0));
+        // Gate local-first on a *completed* sync (`lastSyncedAt`), not a bare
+        // row count — a partial/interrupted import has rows but no marker, and
+        // the backend resolve serves it nothing anyway.
+        setUseLocal(
+          offline || (status.localFirst && status.lastSyncedAt != null),
+        );
       } catch {
         /* status unavailable → stay on the live plugin */
       }
