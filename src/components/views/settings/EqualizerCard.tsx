@@ -6,6 +6,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ChevronDown } from "lucide-react";
 import {
@@ -39,7 +40,39 @@ export function EqualizerCard() {
   const [maxGain, setMaxGain] = useState(12);
   const [presets, setPresets] = useState<EqPresetEntry[]>([]);
   const [presetOpen, setPresetOpen] = useState(false);
+  // Viewport coords of the portaled preset menu (null until opened).
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
+    null,
+  );
   const presetRef = useRef<HTMLDivElement>(null);
+  const presetBtnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Dimensions of the portaled menu (keep in sync with the `w-44` /
+  // `max-h-72` classes below) so we can clamp it inside the viewport.
+  const MENU_WIDTH = 176;
+  const MENU_MAX_HEIGHT = 288;
+
+  // Open the menu, pinning it to the trigger's current viewport rect.
+  // The menu is portaled to <body> (below) so a skin's backdrop-filter
+  // card can't trap it in a clipped / mis-stacked containing block.
+  const openPreset = useCallback(() => {
+    const rect = presetBtnRef.current?.getBoundingClientRect();
+    if (rect) {
+      const left = Math.max(
+        8,
+        Math.min(rect.left, window.innerWidth - MENU_WIDTH - 8),
+      );
+      // Clamp vertically too — a trigger near the viewport bottom would
+      // otherwise push the menu off-screen below.
+      const top = Math.max(
+        8,
+        Math.min(rect.bottom + 8, window.innerHeight - MENU_MAX_HEIGHT - 8),
+      );
+      setMenuPos({ top, left });
+    }
+    setPresetOpen(true);
+  }, []);
 
   // Hydrate from backend at mount, then keep in sync via `player:eq`
   // broadcasts so a mutation from the player-bar popup (or any other
@@ -90,22 +123,41 @@ export function EqualizerCard() {
     return match?.key ?? "custom";
   }, [presets, bands]);
 
-  // Close the preset menu on outside click / Escape.
+  // Close the preset menu on outside click / Escape. The menu is
+  // portaled out of `presetRef`, so an outside click must miss BOTH the
+  // trigger wrapper and the menu itself. Scrolling / resizing detaches
+  // the fixed menu from the trigger, so close on those too.
   useEffect(() => {
     if (!presetOpen) return;
     const onClick = (e: MouseEvent) => {
-      if (presetRef.current && !presetRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        !presetRef.current?.contains(target) &&
+        !menuRef.current?.contains(target)
+      ) {
         setPresetOpen(false);
       }
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setPresetOpen(false);
     };
+    // Capture-phase scroll catches scrolls anywhere — but the menu's own
+    // overflow-y-auto list scrolling must NOT close it; only an outside
+    // (page / panel) scroll detaches the fixed menu from its trigger.
+    const onScroll = (e: Event) => {
+      if (menuRef.current?.contains(e.target as Node)) return;
+      setPresetOpen(false);
+    };
+    const onResize = () => setPresetOpen(false);
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
     return () => {
       document.removeEventListener("mousedown", onClick);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
     };
   }, [presetOpen]);
 
@@ -181,8 +233,12 @@ export function EqualizerCard() {
               {t("settings.equalizer.presets")}
             </span>
             <button
+              ref={presetBtnRef}
               type="button"
-              onClick={() => setPresetOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={presetOpen}
+              aria-controls={presetOpen ? "eq-preset-menu" : undefined}
+              onClick={() => (presetOpen ? setPresetOpen(false) : openPreset())}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 text-sm text-zinc-800 dark:text-zinc-200 transition-colors"
             >
               {t(`settings.equalizer.preset.${activePresetKey}`, {
@@ -193,26 +249,40 @@ export function EqualizerCard() {
               })}
               <ChevronDown size={14} className="text-zinc-400" />
             </button>
-            {presetOpen && (
-              <div className="absolute top-full left-22 mt-2 z-20 w-44 max-h-72 overflow-y-auto rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-lg">
-                {presets.map((p) => (
-                  <button
-                    key={p.key}
-                    type="button"
-                    onClick={() => handlePickPreset(p.key)}
-                    className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                      p.key === activePresetKey
-                        ? "bg-emerald-500 text-white"
-                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200"
-                    }`}
-                  >
-                    {t(`settings.equalizer.preset.${p.key}`, {
-                      defaultValue: p.key,
-                    })}
-                  </button>
-                ))}
-              </div>
-            )}
+            {presetOpen &&
+              menuPos &&
+              createPortal(
+                <div
+                  ref={menuRef}
+                  id="eq-preset-menu"
+                  role="menu"
+                  style={{
+                    position: "fixed",
+                    top: menuPos.top,
+                    left: menuPos.left,
+                  }}
+                  className="z-100 w-44 max-h-72 overflow-y-auto rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-lg"
+                >
+                  {presets.map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => handlePickPreset(p.key)}
+                      className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                        p.key === activePresetKey
+                          ? "bg-emerald-500 text-white"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200"
+                      }`}
+                    >
+                      {t(`settings.equalizer.preset.${p.key}`, {
+                        defaultValue: p.key,
+                      })}
+                    </button>
+                  ))}
+                </div>,
+                document.body,
+              )}
           </div>
           <button
             type="button"

@@ -1856,28 +1856,34 @@ function AlbumGrid({
           );
         })}
       </div>
-      {contextMenu && (
-        <div
-          role="menu"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-          className="fixed z-100 min-w-48 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden animate-fade-in py-1"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              const id = contextMenu.albumId;
-              setContextMenu(null);
-              onChangeCover(id);
-            }}
-            className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
+      {contextMenu &&
+        createPortal(
+          // Portaled to <body>: the menu uses viewport `fixed` coords,
+          // but an ancestor album card gets a `backdrop-filter` under
+          // the Lounge / Liquid skins, which would otherwise become the
+          // containing block and trap / mis-stack the menu.
+          <div
+            role="menu"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+            className="fixed z-100 min-w-48 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden animate-fade-in py-1"
+            onClick={(e) => e.stopPropagation()}
           >
-            <ImageIcon size={14} />
-            <span>{t("library.changeCover")}</span>
-          </button>
-        </div>
-      )}
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                const id = contextMenu.albumId;
+                setContextMenu(null);
+                onChangeCover(id);
+              }}
+              className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
+            >
+              <ImageIcon size={14} />
+              <span>{t("library.changeCover")}</span>
+            </button>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
