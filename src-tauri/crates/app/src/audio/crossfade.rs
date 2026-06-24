@@ -110,10 +110,14 @@ fn path_str_is_network(s: &str) -> bool {
     if let Some(rest) = s.strip_prefix(r"\\") {
         // `\\?\` and `\\.\` are Win32 namespace prefixes for *local*
         // access (extended-length / device paths) — NOT network. The one
-        // exception is the extended-UNC form `\\?\UNC\server\share`.
-        // A plain `\\server\share` is a genuine UNC network path.
-        if let Some(ext) = rest.strip_prefix(r"?\").or_else(|| rest.strip_prefix(r".\")) {
+        // exception is the extended-UNC form `\\?\UNC\server\share`
+        // (only valid under `\\?\`, never `\\.\`). A plain
+        // `\\server\share` is a genuine UNC network path.
+        if let Some(ext) = rest.strip_prefix(r"?\") {
             return ext.to_ascii_uppercase().starts_with("UNC\\");
+        }
+        if rest.starts_with(r".\") {
+            return false; // \\.\ device namespace — always local
         }
         return true;
     }
@@ -173,16 +177,21 @@ fn read_into_memory(path: &Path) -> Option<Box<dyn MediaSource>> {
             return None;
         }
     };
-    // Best-effort capacity hint (clamped) — purely to avoid reallocs; the
-    // cap is enforced below by the read itself, not by this stat, so a
-    // file that grows after the hint can't escape the limit (no TOCTOU).
-    let hint = file
-        .metadata()
-        .map(|m| m.len().min(MAX_PRELOAD_BYTES))
-        .unwrap_or(0);
-    let mut buf = Vec::with_capacity(hint as usize);
-    // Read at most CAP + 1 bytes: if we actually pull that many, the file
-    // is over the cap regardless of what any earlier stat claimed.
+    let known_len = file.metadata().ok().map(|m| m.len());
+    // Early exit when the file is already known to exceed the cap — avoids
+    // pulling CAP + 1 bytes off the network just to reject it.
+    if known_len.is_some_and(|len| len > MAX_PRELOAD_BYTES) {
+        tracing::debug!(
+            path = %path.display(),
+            "network file exceeds pre-load cap — streaming instead"
+        );
+        return None;
+    }
+    // Reserve only when we trust the size; the bounded read below remains
+    // the real cap, covering an unknown or post-stat-grown size (no
+    // TOCTOU). Read at most CAP + 1 bytes — pulling that many means the
+    // file is over the cap regardless of what the stat claimed.
+    let mut buf = Vec::with_capacity(known_len.unwrap_or(0) as usize);
     if let Err(e) = file.take(MAX_PRELOAD_BYTES + 1).read_to_end(&mut buf) {
         tracing::warn!(path = %path.display(), error = %e, "network pre-load read failed");
         return None;
@@ -742,6 +751,8 @@ mod tests {
         // \\?\ and \\.\ namespace prefixes are local, not network.
         assert!(!path_str_is_network(r"\\?\C:\Users\me\Music\track.flac"));
         assert!(!path_str_is_network(r"\\.\C:\Users\me\Music\track.flac"));
+        // The UNC exception is \\?\ only — \\.\UNC\ stays local (device).
+        assert!(!path_str_is_network(r"\\.\UNC\nas\music\track.flac"));
     }
 
     #[test]
