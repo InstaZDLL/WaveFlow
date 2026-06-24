@@ -1695,11 +1695,24 @@ fn downmix_frame_to_stereo(frame: &[f32]) -> (f32, f32) {
                 r + K * frame[2] + K * frame[5] + bc,
             )
         }
-        // 7.1 and beyond — FL FR FC LFE BL BR SL SR (extras folded by side)
-        _ => (
-            l + K * frame[2] + K * frame[4] + K * frame[6],
-            r + K * frame[2] + K * frame[5] + K * frame[7],
-        ),
+        // 7.1 and beyond — FL FR FC LFE BL BR SL SR (… plus any further
+        // surround / height channels). The centre (idx 2) sums into
+        // both, the LFE (idx 3) is dropped, and every channel from idx 4
+        // on folds alternately left / right by parity so no channel is
+        // ever discarded — matching the explicit 7.1 result and
+        // extending it to wider Atmos-style beds.
+        _ => {
+            let mut lo = l + K * frame[2];
+            let mut ro = r + K * frame[2];
+            for (i, &s) in frame.iter().enumerate().skip(4) {
+                if i % 2 == 0 {
+                    lo += K * s;
+                } else {
+                    ro += K * s;
+                }
+            }
+            (lo, ro)
+        }
     }
 }
 
@@ -1768,11 +1781,30 @@ mod tests {
     }
 
     #[test]
+    fn six_one_folds_rear_centre_into_both() {
+        // FL FR FC LFE BL BR BC — LFE (9.9) dropped, BC summed into L+R.
+        let (lo, ro) = downmix_frame_to_stereo(&[1.0, 2.0, 0.4, 9.9, 0.6, 0.8, 0.3]);
+        approx(lo, 1.0 + K * 0.4 + K * 0.6 + K * 0.3);
+        approx(ro, 2.0 + K * 0.4 + K * 0.8 + K * 0.3);
+    }
+
+    #[test]
     fn seven_one_folds_all_surrounds() {
         // FL FR FC LFE BL BR SL SR
         let (lo, ro) =
             downmix_frame_to_stereo(&[1.0, 2.0, 0.4, 9.9, 0.6, 0.8, 0.1, 0.2]);
         approx(lo, 1.0 + K * 0.4 + K * 0.6 + K * 0.1);
         approx(ro, 2.0 + K * 0.4 + K * 0.8 + K * 0.2);
+    }
+
+    #[test]
+    fn beyond_seven_one_drops_no_channel() {
+        // 10 channels: idx ≥ 8 must still fold in (parity left/right),
+        // not be silently dropped.
+        let (lo, ro) = downmix_frame_to_stereo(&[
+            1.0, 2.0, 0.4, 9.9, 0.6, 0.8, 0.1, 0.2, 0.05, 0.07,
+        ]);
+        approx(lo, 1.0 + K * (0.4 + 0.6 + 0.1 + 0.05));
+        approx(ro, 2.0 + K * (0.4 + 0.8 + 0.2 + 0.07));
     }
 }
