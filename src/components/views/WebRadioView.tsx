@@ -119,17 +119,23 @@ export function WebRadioView() {
     let cancelled = false;
     (async () => {
       try {
-        const [offline, status] = await Promise.all([
-          getOfflineMode(),
-          radioCatalogueStatus(),
-        ]);
+        // Offline mode is evaluated first and wins on its own: when offline we
+        // must route to the local catalogue regardless of whether the status
+        // call below succeeds (a failed status must not drop us back to the
+        // live plugin, which can't reach the network anyway).
+        const offline = await getOfflineMode();
         if (cancelled) return;
-        // Gate local-first on a *completed* sync (`lastSyncedAt`), not a bare
-        // row count — a partial/interrupted import has rows but no marker, and
-        // the backend resolve serves it nothing anyway.
-        setUseLocal(
-          offline || (status.localFirst && status.lastSyncedAt != null),
-        );
+        if (offline) {
+          setUseLocal(true);
+          return;
+        }
+        // Online: prefer the local catalogue only when local-first is on AND a
+        // *completed* sync exists (`lastSyncedAt`, not a bare row count — a
+        // partial/interrupted import has rows but no marker, and the backend
+        // resolve serves it nothing anyway).
+        const status = await radioCatalogueStatus();
+        if (cancelled) return;
+        setUseLocal(status.localFirst && status.lastSyncedAt != null);
       } catch {
         /* status unavailable → stay on the live plugin */
       }
