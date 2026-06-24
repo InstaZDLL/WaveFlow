@@ -30,10 +30,18 @@ use std::f32::consts::PI;
 
 use super::parser::DsdLayout;
 
-/// FIR filter length. 256 taps gives ~92 dB stop-band with a
+/// Default FIR filter length. 256 taps gives ~92 dB stop-band with a
 /// Blackman-Harris window, which is enough to keep the DSD shaping
-/// noise inaudible after decimation.
+/// noise inaudible after decimation. Callers that want a sharper
+/// transition band (audiophile DSD playback on capable hardware) pass
+/// a larger value to [`DsdToPcm::new_with_taps`]; the per-sample
+/// convolution cost scales linearly with the tap count.
 const FILTER_TAPS: usize = 256;
+
+/// Floor for a caller-supplied tap count. Below this the stop-band
+/// collapses and DSD shaping noise leaks into the audible band, so we
+/// clamp rather than honour a nonsensical request.
+const MIN_FILTER_TAPS: usize = 64;
 
 /// Decimation factor applied to the DSD bit rate. 64 is the canonical
 /// "halve the rate twice and again" choice that lands DSD64 on
@@ -68,12 +76,26 @@ pub struct DsdToPcm {
     /// Resulting PCM sample rate. Caller stamps it on the
     /// `ActiveStream` so the resampler knows what to convert from.
     pub output_rate_hz: u32,
+    /// FIR length actually in use (after clamping the requested value
+    /// to [`MIN_FILTER_TAPS`]). Drives the ring-buffer modulo, the
+    /// priming loop and the convolution window.
+    taps: usize,
     layout_lsb_first: bool,
     layout_block_interleave: Option<u32>,
 }
 
 impl DsdToPcm {
+    /// Build a converter with the default [`FILTER_TAPS`] filter.
     pub fn new(layout: &DsdLayout) -> Self {
+        Self::new_with_taps(layout, FILTER_TAPS)
+    }
+
+    /// Build a converter with an explicit FIR length. `taps` is clamped
+    /// up to [`MIN_FILTER_TAPS`] so a bogus value can't disarm the
+    /// anti-alias filter. More taps = sharper transition band + better
+    /// stop-band at the same cutoff, at a linear convolution cost.
+    pub fn new_with_taps(layout: &DsdLayout, taps: usize) -> Self {
+        let taps = taps.max(MIN_FILTER_TAPS);
         let channels = layout.channels.count() as usize;
         // Anti-aliasing cutoff. For decimation by N, the filter must
         // pass nothing above Fs / (2 × N) — Nyquist of the output
@@ -85,20 +107,21 @@ impl DsdToPcm {
         // sigma-delta noise shaping deliberately pushes huge amounts
         // of energy up there. Audible as ~1 s of grit on every
         // track start, masked once the music came in at full level.
-        let coeffs = build_blackman_harris_lowpass(FILTER_TAPS, 0.5 / DECIMATION as f32);
-        // Discard the first FILTER_TAPS / DECIMATION outputs per
-        // channel. After that many emissions the FIR window has
-        // been fully overwritten with real audio bits and any bias
-        // from the neutral priming is gone.
-        let discard = FILTER_TAPS / DECIMATION;
+        let coeffs = build_blackman_harris_lowpass(taps, 0.5 / DECIMATION as f32);
+        // Discard the first taps / DECIMATION outputs per channel.
+        // After that many emissions the FIR window has been fully
+        // overwritten with real audio bits and any bias from the
+        // neutral priming is gone.
+        let discard = taps / DECIMATION;
         let mut me = Self {
             coeffs,
             channels,
-            history: vec![vec![0.0; FILTER_TAPS]; channels],
+            history: vec![vec![0.0; taps]; channels],
             head: vec![0; channels],
             counter: vec![0; channels],
             discard_outputs_remaining: vec![discard; channels],
             output_rate_hz: layout.sample_rate_hz / DECIMATION as u32,
+            taps,
             layout_lsb_first: layout.lsb_first,
             layout_block_interleave: layout.block_interleave,
         };
@@ -118,7 +141,7 @@ impl DsdToPcm {
     /// outgoing stream is at full level.
     fn prime_neutral(&mut self) {
         for ch in 0..self.channels {
-            for i in 0..FILTER_TAPS {
+            for i in 0..self.taps {
                 self.history[ch][i] = if i & 1 == 0 { 1.0 } else { -1.0 };
             }
             // Head stays at 0 — the ring is conceptually full and
@@ -137,7 +160,7 @@ impl DsdToPcm {
         let sample = if bit == 0 { -1.0 } else { 1.0 };
         let head = self.head[ch];
         self.history[ch][head] = sample;
-        self.head[ch] = (head + 1) % FILTER_TAPS;
+        self.head[ch] = (head + 1) % self.taps;
         self.counter[ch] += 1;
         if self.counter[ch] >= DECIMATION {
             self.counter[ch] = 0;
@@ -165,7 +188,7 @@ impl DsdToPcm {
         for (i, &c) in self.coeffs.iter().enumerate() {
             // `head` points at the next write slot, so it's also the
             // oldest sample. Walk forward modulo the ring length.
-            let idx = (head + i) % FILTER_TAPS;
+            let idx = (head + i) % self.taps;
             acc += c * history[idx];
         }
         acc
@@ -378,6 +401,38 @@ mod tests {
         pcm.decode_block(&bytes, &mut out);
         assert!(!out.is_empty(), "should emit some PCM");
         assert_eq!(out.len() % 2, 0, "must produce whole stereo frames");
+    }
+
+    #[test]
+    fn new_with_taps_clamps_below_floor() {
+        // A bogus low tap count must not disarm the anti-alias filter —
+        // it's clamped up to MIN_FILTER_TAPS.
+        let layout = dsd64_stereo(None, false);
+        let pcm = DsdToPcm::new_with_taps(&layout, 8);
+        assert_eq!(pcm.taps, MIN_FILTER_TAPS);
+        assert_eq!(pcm.coeffs.len(), MIN_FILTER_TAPS);
+    }
+
+    #[test]
+    fn high_tap_filter_still_attenuates_nyquist() {
+        // The audiophile 2048-tap path must keep the same guarantee as
+        // the default: a Nyquist-frequency square wave is crushed.
+        let layout = dsd64_stereo(None, false);
+        let mut pcm = DsdToPcm::new_with_taps(&layout, 2048);
+        assert_eq!(pcm.taps, 2048);
+        // 128 KiB of Nyquist square wave — enough stereo PCM frames to
+        // run well past the longer 2048-tap prime window.
+        let bytes = vec![0x55u8; 128 * 1024];
+        let mut out = Vec::new();
+        pcm.decode_block(&bytes, &mut out);
+        // primed_start is in PCM samples; with more taps the FIR takes
+        // longer to fill, so key off the actual tap count.
+        let primed_start = pcm.taps;
+        assert!(out.len() > primed_start, "expected output past the prime");
+        for &s in &out[primed_start..] {
+            assert!(s.abs() < 0.5, "Nyquist input should be attenuated, got {s}");
+            assert!(s.is_finite());
+        }
     }
 
     #[test]

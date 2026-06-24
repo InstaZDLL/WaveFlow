@@ -43,7 +43,10 @@ pub enum StreamBackend {
     Dsd {
         file: File,
         layout: DsdLayout,
-        converter: DsdToPcm,
+        // Boxed to keep this variant from dwarfing the (already
+        // all-boxed) Symphonia one — the FIR converter holds several
+        // per-channel history buffers that grow with the tap count.
+        converter: Box<DsdToPcm>,
         /// Bytes consumed from the data chunk so far. Used to detect
         /// EOF and to compute the byte offset for a seek.
         bytes_read: u64,
@@ -53,6 +56,11 @@ pub enum StreamBackend {
         /// converter, before channel conversion. Held here so we can
         /// reuse the allocation across decode calls.
         pcm_src_scratch: Vec<f32>,
+        /// FIR tap count this converter was built with. Cached so
+        /// `reset_decoder` (post-seek) rebuilds at the same precision
+        /// the stream was opened with instead of falling back to the
+        /// default.
+        taps: usize,
     },
 }
 
@@ -101,6 +109,7 @@ impl ActiveStream {
         source_type: String,
         source_id: Option<i64>,
         replay_gain_db: Option<f64>,
+        dsd_taps: usize,
     ) -> Result<Self, String> {
         let ext = path
             .extension()
@@ -120,6 +129,7 @@ impl ActiveStream {
                 source_type,
                 source_id,
                 replay_gain_db,
+                dsd_taps,
             );
         }
 
@@ -217,6 +227,7 @@ impl ActiveStream {
         source_type: String,
         source_id: Option<i64>,
         replay_gain_db: Option<f64>,
+        dsd_taps: usize,
     ) -> Result<Self, String> {
         let mut file = File::open(path).map_err(|e| format!("open: {e}"))?;
         let layout = match ext {
@@ -228,7 +239,7 @@ impl ActiveStream {
         // the first decode_next call streams from the right offset.
         file.seek(SeekFrom::Start(layout.data_offset))
             .map_err(|e| format!("dsd seek to data: {e}"))?;
-        let converter = DsdToPcm::new(&layout);
+        let converter = Box::new(DsdToPcm::new_with_taps(&layout, dsd_taps));
         let src_channels = layout.channels.count() as usize;
         Ok(Self {
             backend: StreamBackend::Dsd {
@@ -238,6 +249,7 @@ impl ActiveStream {
                 bytes_read: 0,
                 dsd_scratch: Vec::with_capacity(DSD_READ_CHUNK),
                 pcm_src_scratch: Vec::with_capacity(DSD_READ_CHUNK),
+                taps: dsd_taps,
             },
             // Resampler from DSD output rate (44.1 kHz for DSD64,
             // 88.2 for DSD128, …) to dst is built lazily on the first
@@ -311,9 +323,12 @@ impl ActiveStream {
         match &mut self.backend {
             StreamBackend::Symphonia { decoder, .. } => decoder.reset(),
             StreamBackend::Dsd {
-                layout, converter, ..
+                layout,
+                converter,
+                taps,
+                ..
             } => {
-                *converter = DsdToPcm::new(layout);
+                **converter = DsdToPcm::new_with_taps(layout, *taps);
             }
         }
     }
@@ -456,6 +471,9 @@ impl ActiveStream {
                 bytes_read,
                 dsd_scratch,
                 pcm_src_scratch,
+                // taps is only needed to rebuild the converter on reset;
+                // the decode loop reuses the existing one.
+                taps: _,
             } => {
                 if *bytes_read >= layout.data_len_bytes {
                     return Ok(true);

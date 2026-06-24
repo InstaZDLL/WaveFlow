@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Check,
   Volume2,
+  AudioWaveform,
   Headphones,
   Shuffle,
   Radio,
@@ -63,6 +64,9 @@ import {
   playerSetCrossfade,
   playerSetGapless,
   playerSetReplayGain,
+  playerSetDsdPrecision,
+  DSD_PRECISION_TAPS,
+  type DsdPrecisionTaps,
 } from "../../lib/tauri/player";
 import {
   getDiscordRpcEnabled,
@@ -1098,6 +1102,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const [crossfadeSec, setCrossfadeSec] = useState(0);
   const [replayGain, setReplayGain] = useState(false);
   const [gapless, setGapless] = useState(true);
+  const [dsdTaps, setDsdTaps] = useState<DsdPrecisionTaps>(256);
 
   // Integrations
   const [lastfmKey, setLastfmKey] = useState("");
@@ -1431,6 +1436,12 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
         setCrossfadeSec(Math.round(s.crossfade_ms / 1000));
         setReplayGain(s.replaygain);
         setGapless(s.gapless);
+        // Guard against a stale / out-of-set value from the backend.
+        setDsdTaps(
+          (DSD_PRECISION_TAPS as readonly number[]).includes(s.dsd_taps)
+            ? (s.dsd_taps as DsdPrecisionTaps)
+            : 256,
+        );
       })
       .catch((err) =>
         console.error("[Settings] audio settings load failed", err),
@@ -1454,6 +1465,20 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       setReplayGain(!next); // rollback
     });
   }, [replayGain]);
+
+  const handleSetDsdPrecision = useCallback(
+    (next: DsdPrecisionTaps) => {
+      setDsdTaps((prev) => {
+        if (prev === next) return prev;
+        playerSetDsdPrecision(next).catch((err) => {
+          console.error("[Settings] set DSD precision failed", err);
+          setDsdTaps(prev); // rollback
+        });
+        return next;
+      });
+    },
+    [],
+  );
 
   // Smart crossfade — skip the fade between two tracks of the same
   // album so concept records / live sets hand off naturally. Persisted
@@ -1978,6 +2003,60 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 onToggle={handleToggleGapless}
                 label={t("settings.gapless.title")}
               />
+            </div>
+
+            {/* DSD → PCM precision (FIR taps). DSD-only, off by default. */}
+            <div className="py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center space-x-4 min-w-0">
+                  <AudioWaveform
+                    size={20}
+                    className="text-zinc-400 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                      {t("settings.dsdPrecision.title")}
+                    </div>
+                    <div className="text-xs text-zinc-400">
+                      {t("settings.dsdPrecision.subtitle")}
+                    </div>
+                  </div>
+                </div>
+                <div
+                  className="flex items-center rounded-lg bg-zinc-100 dark:bg-zinc-800 p-0.5 shrink-0"
+                  role="group"
+                  aria-label={t("settings.dsdPrecision.title")}
+                >
+                  {DSD_PRECISION_TAPS.map((taps) => {
+                    const active = dsdTaps === taps;
+                    const label =
+                      taps === 256
+                        ? t("settings.dsdPrecision.standard")
+                        : taps === 1024
+                          ? t("settings.dsdPrecision.high")
+                          : t("settings.dsdPrecision.max");
+                    return (
+                      <button
+                        key={taps}
+                        type="button"
+                        onClick={() => handleSetDsdPrecision(taps)}
+                        aria-pressed={active}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                          active
+                            ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                        }`}
+                      >
+                        {label}
+                        <span className="ml-1 text-[10px] tabular-nums opacity-60">
+                          {taps}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
 
             {/* Normaliser le volume */}

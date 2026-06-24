@@ -307,7 +307,13 @@ export interface AudioSettingsSnapshot {
   crossfade_ms: number;
   replaygain: boolean;
   gapless: boolean;
+  /** Active DSD → PCM FIR tap count (256 / 1024 / 2048). */
+  dsd_taps: number;
 }
+
+/** Allowed DSD → PCM precision tiers (FIR tap counts). */
+export const DSD_PRECISION_TAPS = [256, 1024, 2048] as const;
+export type DsdPrecisionTaps = (typeof DSD_PRECISION_TAPS)[number];
 
 export function playerGetAudioSettings(): Promise<AudioSettingsSnapshot> {
   return invoke<AudioSettingsSnapshot>("player_get_audio_settings");
@@ -331,6 +337,16 @@ export function playerSetReplayGain(enabled: boolean): Promise<void> {
 
 export function playerSetGapless(enabled: boolean): Promise<void> {
   return invoke<void>("player_set_gapless", { enabled });
+}
+
+/**
+ * Set the DSD → PCM converter precision (FIR tap count). Only affects
+ * `.dsf` / `.dff` playback; symphonia formats ignore it. Takes effect on
+ * the next track open. An out-of-set value is coerced to 256 by the
+ * backend. Persisted in `profile_setting['audio.dsd_precision']`.
+ */
+export function playerSetDsdPrecision(taps: DsdPrecisionTaps): Promise<void> {
+  return invoke<void>("player_set_dsd_precision", { taps });
 }
 
 /**

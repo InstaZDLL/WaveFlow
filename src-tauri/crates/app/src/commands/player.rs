@@ -411,6 +411,24 @@ pub async fn player_get_state(
                         .store(ms, std::sync::atomic::Ordering::Release);
                 }
             }
+            // DSD converter precision. Only honour a value from the
+            // allowed set; anything else (corruption, a stale row) falls
+            // back to the 256-tap default the atomic was born with.
+            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
+                "SELECT value FROM profile_setting WHERE key = 'audio.dsd_precision'",
+            )
+            .fetch_optional(&pool)
+            .await
+            {
+                if let Ok(taps) = v.parse::<u32>() {
+                    if DSD_TAPS_ALLOWED.contains(&taps) {
+                        engine
+                            .shared()
+                            .dsd_taps
+                            .store(taps, std::sync::atomic::Ordering::Release);
+                    }
+                }
+            }
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.replaygain'",
             )
@@ -899,6 +917,48 @@ pub async fn player_set_normalize(
     Ok(())
 }
 
+/// Allowed DSD → PCM FIR tap counts. 256 is the historical default
+/// (~92 dB stop-band); 1024 / 2048 give a sharper transition band for
+/// audiophile DSD playback at a linear convolution cost. The decoder
+/// clamps anything else up to 64, but the command only persists a value
+/// from this set so the UI and the engine never disagree.
+const DSD_TAPS_ALLOWED: [u32; 3] = [256, 1024, 2048];
+
+/// Set the DSD → PCM converter precision (FIR tap count). Only affects
+/// `.dsf` / `.dff` playback — symphonia formats ignore it. Takes effect
+/// on the next track open. Persisted in `profile_setting['audio.dsd_precision']`.
+#[tauri::command]
+pub async fn player_set_dsd_precision(
+    state: tauri::State<'_, AppState>,
+    engine: tauri::State<'_, Arc<AudioEngine>>,
+    taps: u32,
+) -> AppResult<()> {
+    // Reject an out-of-set value rather than silently clamping — keeps
+    // the persisted row in lockstep with the three UI options.
+    let taps = if DSD_TAPS_ALLOWED.contains(&taps) {
+        taps
+    } else {
+        256
+    };
+    engine
+        .shared()
+        .dsd_taps
+        .store(taps, std::sync::atomic::Ordering::Release);
+    if let Ok(pool) = state.require_profile_pool().await {
+        let now = chrono::Utc::now().timestamp_millis();
+        let _ = sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES ('audio.dsd_precision', ?, 'int', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+        )
+        .bind(taps.to_string())
+        .bind(now)
+        .execute(&pool)
+        .await;
+    }
+    Ok(())
+}
+
 /// Toggle ReplayGain — multiply each track by its analyzed gain to
 /// even out perceived loudness across the library.
 /// Persisted in `profile_setting['audio.replaygain']`.
@@ -1315,6 +1375,7 @@ pub async fn player_get_audio_settings(
     let gapless = shared
         .gapless_enabled
         .load(std::sync::atomic::Ordering::Relaxed);
+    let dsd_taps = shared.dsd_taps.load(std::sync::atomic::Ordering::Relaxed);
 
     let mut crossfade_ms: i64 = 0;
     if let Ok(pool) = state.require_profile_pool().await {
@@ -1334,6 +1395,7 @@ pub async fn player_get_audio_settings(
         crossfade_ms,
         replaygain,
         gapless,
+        dsd_taps,
     })
 }
 
@@ -1344,6 +1406,8 @@ pub struct AudioSettingsSnapshot {
     pub crossfade_ms: i64,
     pub replaygain: bool,
     pub gapless: bool,
+    /// Active DSD → PCM FIR tap count (256 / 1024 / 2048).
+    pub dsd_taps: u32,
 }
 
 /// One row in the output-device picker that powers the PlayerBar

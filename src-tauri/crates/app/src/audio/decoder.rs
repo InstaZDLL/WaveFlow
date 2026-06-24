@@ -343,6 +343,7 @@ fn decoder_loop(
                     source_type.clone(),
                     source_id,
                     replay_gain_db,
+                    shared.dsd_taps.load(Ordering::Acquire) as usize,
                 ) {
                     Ok(s) => s,
                     Err(err) => {
@@ -1354,6 +1355,7 @@ fn drain_commands(
                     source_id,
                     replay_gain_db,
                     shared.playback_speed(),
+                    shared.dsd_taps.load(Ordering::Acquire) as usize,
                 );
             }
             Ok(AudioCmd::SetReplayGain(on)) => {
@@ -1404,6 +1406,7 @@ fn drain_commands(
                             source_id,
                             replay_gain_db,
                             shared.playback_speed(),
+                            shared.dsd_taps.load(Ordering::Acquire) as usize,
                         ),
                         Ok(AudioCmd::SetReplayGain(on)) => {
                             shared.replaygain_enabled.store(on, Ordering::Release)
@@ -1467,6 +1470,7 @@ fn apply_replay_gain(buf: &mut [f32], shared: &SharedPlayback, gain: f32) {
 /// Open the supplied next-track file into an [`ActiveStream`] and
 /// stash it for the crossfade pipeline. Failures are logged but
 /// non-fatal — playback continues without crossfade.
+#[allow(clippy::too_many_arguments)]
 fn store_next(
     pending_next: &mut Option<ActiveStream>,
     path: std::path::PathBuf,
@@ -1476,6 +1480,7 @@ fn store_next(
     source_id: Option<i64>,
     replay_gain_db: Option<f64>,
     speed: f32,
+    dsd_taps: usize,
 ) {
     match ActiveStream::open(
         &path,
@@ -1484,6 +1489,7 @@ fn store_next(
         source_type,
         source_id,
         replay_gain_db,
+        dsd_taps,
     ) {
         Ok(mut s) => {
             // Prefetched stream needs the active speed too so its
