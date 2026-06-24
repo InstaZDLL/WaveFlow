@@ -1600,7 +1600,7 @@ fn push_samples(
 /// - Equal counts: copy verbatim
 /// - mono (1) → stereo (2): duplicate
 /// - stereo (2) → mono (1): average
-/// - ≥3 → 2: Lo/Ro downmix on the first 6 channels (ITU BS.775)
+/// - ≥3 → 2: ITU-R BS.775 Lo/Ro downmix ([`downmix_frame_to_stereo`])
 /// - anything else: take the first `min(src, dst)` channels, pad zeros
 pub(super) fn convert_channels(
     input: &[f32],
@@ -1630,20 +1630,17 @@ pub(super) fn convert_channels(
                 out.push(0.5 * (input[f * 2] + input[f * 2 + 1]));
             }
         }
-        // 5.1 → stereo Lo/Ro (ITU-R BS.775): L' = L + 0.707*C + 0.707*Ls
-        (s, 2) if s >= 6 => {
-            const K: f32 = 0.707;
+        // Any multichannel source → stereo Lo/Ro (ITU-R BS.775).
+        // Per-frame fold so 3.0 / quad / 5.0 / 5.1 / 6.1 / 7.1 each
+        // keep their centre + surrounds instead of being truncated to
+        // the front pair.
+        (s, 2) if s >= 3 => {
             out.reserve(frames * 2);
             for f in 0..frames {
-                let base = f * s;
-                let l = input[base];
-                let r = input[base + 1];
-                let c = input[base + 2];
-                // LFE (base+3) skipped; Ls/Rs at base+4/5
-                let ls = input[base + 4];
-                let rs = input[base + 5];
-                out.push(l + K * c + K * ls);
-                out.push(r + K * c + K * rs);
+                let frame = &input[f * s..f * s + s];
+                let (lo, ro) = downmix_frame_to_stereo(frame);
+                out.push(lo);
+                out.push(ro);
             }
         }
         _ => {
@@ -1660,5 +1657,122 @@ pub(super) fn convert_channels(
                 }
             }
         }
+    }
+}
+
+/// Fold one interleaved multichannel frame down to a stereo (Lo, Ro)
+/// pair following ITU-R BS.775. The centre and every surround are
+/// summed in at −3 dB (×0.707); the LFE is discarded, as is standard
+/// for a stereo fold-down.
+///
+/// Speaker positions are inferred from the channel **count** because
+/// neither the FLAC path nor the DSD parser surfaces explicit channel
+/// labels — `frame` is assumed to be in the WAVE/SMPTE order shared by
+/// both (`FL FR FC LFE BL BR …`). The 4-channel case is treated as
+/// quadraphonic (`FL FR BL BR`), the common 4-ch music layout; a rare
+/// 3.1 source would fold its C/LFE as surrounds instead, which is still
+/// preferable to dropping them. Summed peaks can exceed unity — the
+/// decoder's final [`clamp_to_unity`] is the backstop before the DAC.
+#[inline]
+fn downmix_frame_to_stereo(frame: &[f32]) -> (f32, f32) {
+    const K: f32 = 0.707; // −3 dB
+    let l = frame[0];
+    let r = frame[1];
+    match frame.len() {
+        // 3.0 — FL FR FC
+        3 => (l + K * frame[2], r + K * frame[2]),
+        // quad 4.0 — FL FR BL BR (no centre)
+        4 => (l + K * frame[2], r + K * frame[3]),
+        // 5.0 — FL FR FC BL BR
+        5 => (l + K * frame[2] + K * frame[3], r + K * frame[2] + K * frame[4]),
+        // 5.1 — FL FR FC LFE BL BR (LFE dropped)
+        6 => (l + K * frame[2] + K * frame[4], r + K * frame[2] + K * frame[5]),
+        // 6.1 — FL FR FC LFE BL BR BC (rear-centre folded into both)
+        7 => {
+            let bc = K * frame[6];
+            (
+                l + K * frame[2] + K * frame[4] + bc,
+                r + K * frame[2] + K * frame[5] + bc,
+            )
+        }
+        // 7.1 and beyond — FL FR FC LFE BL BR SL SR (extras folded by side)
+        _ => (
+            l + K * frame[2] + K * frame[4] + K * frame[6],
+            r + K * frame[2] + K * frame[5] + K * frame[7],
+        ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{convert_channels, downmix_frame_to_stereo};
+
+    const K: f32 = 0.707;
+
+    fn approx(a: f32, b: f32) {
+        assert!((a - b).abs() < 1e-6, "expected {b}, got {a}");
+    }
+
+    #[test]
+    fn equal_channels_pass_through() {
+        let mut out = Vec::new();
+        convert_channels(&[0.1, -0.2, 0.3, -0.4], 2, 2, &mut out);
+        assert_eq!(out, vec![0.1, -0.2, 0.3, -0.4]);
+    }
+
+    #[test]
+    fn mono_to_stereo_duplicates() {
+        let mut out = Vec::new();
+        convert_channels(&[0.5, -0.5], 1, 2, &mut out);
+        assert_eq!(out, vec![0.5, 0.5, -0.5, -0.5]);
+    }
+
+    #[test]
+    fn stereo_to_mono_averages() {
+        let mut out = Vec::new();
+        convert_channels(&[1.0, 0.0], 2, 1, &mut out);
+        approx(out[0], 0.5);
+    }
+
+    #[test]
+    fn five_one_uses_bs775_and_drops_lfe() {
+        // FL FR FC LFE BL BR
+        let (lo, ro) = downmix_frame_to_stereo(&[1.0, 2.0, 0.4, 9.9, 0.6, 0.8]);
+        approx(lo, 1.0 + K * 0.4 + K * 0.6);
+        approx(ro, 2.0 + K * 0.4 + K * 0.8);
+    }
+
+    #[test]
+    fn five_zero_keeps_centre_and_surrounds() {
+        // The regression this fix targets: 5.0 (FL FR FC BL BR) must
+        // NOT be truncated to the front pair.
+        let mut out = Vec::new();
+        convert_channels(&[1.0, 2.0, 0.4, 0.6, 0.8], 5, 2, &mut out);
+        approx(out[0], 1.0 + K * 0.4 + K * 0.6);
+        approx(out[1], 2.0 + K * 0.4 + K * 0.8);
+    }
+
+    #[test]
+    fn three_zero_keeps_centre() {
+        let (lo, ro) = downmix_frame_to_stereo(&[1.0, 2.0, 0.4]);
+        approx(lo, 1.0 + K * 0.4);
+        approx(ro, 2.0 + K * 0.4);
+    }
+
+    #[test]
+    fn quad_maps_surrounds_by_side() {
+        // FL FR BL BR — no centre.
+        let (lo, ro) = downmix_frame_to_stereo(&[1.0, 2.0, 0.6, 0.8]);
+        approx(lo, 1.0 + K * 0.6);
+        approx(ro, 2.0 + K * 0.8);
+    }
+
+    #[test]
+    fn seven_one_folds_all_surrounds() {
+        // FL FR FC LFE BL BR SL SR
+        let (lo, ro) =
+            downmix_frame_to_stereo(&[1.0, 2.0, 0.4, 9.9, 0.6, 0.8, 0.1, 0.2]);
+        approx(lo, 1.0 + K * 0.4 + K * 0.6 + K * 0.1);
+        approx(ro, 2.0 + K * 0.4 + K * 0.8 + K * 0.2);
     }
 }
