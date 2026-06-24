@@ -52,4 +52,5 @@ pub mod sync;
 pub mod track;
 pub mod tray;
 pub mod updater;
+pub mod web_radio_catalogue;
 pub mod wrapped;
