@@ -1866,11 +1866,11 @@
       }
     },
     "dsdPrecision": {
-      "title": "DSD precision",
-      "subtitle": "Sharpness of the DSD → PCM conversion filter. Only affects DSD files (.dsf / .dff); more taps = sharper transition band at a higher CPU cost.",
-      "standard": "Standard",
-      "high": "High",
-      "max": "Maximum"
+      "title": "DSD-precisie",
+      "subtitle": "Scherpte van het DSD → PCM-conversiefilter. Heeft alleen invloed op DSD-bestanden (.dsf / .dff); meer coëfficiënten = scherpere overgangsband bij hoger CPU-gebruik.",
+      "standard": "Standaard",
+      "high": "Hoog",
+      "max": "Maximaal"
     }
   },
   "spotify": {

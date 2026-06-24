@@ -1866,11 +1866,11 @@
       }
     },
     "dsdPrecision": {
-      "title": "DSD precision",
-      "subtitle": "Sharpness of the DSD → PCM conversion filter. Only affects DSD files (.dsf / .dff); more taps = sharper transition band at a higher CPU cost.",
-      "standard": "Standard",
-      "high": "High",
-      "max": "Maximum"
+      "title": "DSD 精度",
+      "subtitle": "DSD → PCM 轉換濾波器的銳利度。僅影響 DSD 檔案（.dsf / .dff）；抽頭越多，過渡帶越銳利，但 CPU 開銷更高。",
+      "standard": "標準",
+      "high": "高",
+      "max": "最高"
     }
   },
   "scanProgress": {

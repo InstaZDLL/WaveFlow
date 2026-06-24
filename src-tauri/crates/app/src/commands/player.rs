@@ -411,24 +411,25 @@ pub async fn player_get_state(
                         .store(ms, std::sync::atomic::Ordering::Release);
                 }
             }
-            // DSD converter precision. Only honour a value from the
-            // allowed set; anything else (corruption, a stale row) falls
-            // back to the 256-tap default the atomic was born with.
-            if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
+            // DSD converter precision. `player_get_state` re-runs on
+            // every hydration (incl. after a profile switch), so resolve
+            // to a definite value every time: a missing / corrupt / out-
+            // of-set row must reset the atomic to 256 rather than leak
+            // the previous profile's choice.
+            let dsd_taps = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.dsd_precision'",
             )
             .fetch_optional(&pool)
             .await
-            {
-                if let Ok(taps) = v.parse::<u32>() {
-                    if DSD_TAPS_ALLOWED.contains(&taps) {
-                        engine
-                            .shared()
-                            .dsd_taps
-                            .store(taps, std::sync::atomic::Ordering::Release);
-                    }
-                }
-            }
+            .ok()
+            .flatten()
+            .and_then(|v| v.parse::<u32>().ok())
+            .filter(|t| DSD_TAPS_ALLOWED.contains(t))
+            .unwrap_or(256);
+            engine
+                .shared()
+                .dsd_taps
+                .store(dsd_taps, std::sync::atomic::Ordering::Release);
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.replaygain'",
             )

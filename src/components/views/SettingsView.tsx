@@ -1468,16 +1468,17 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
 
   const handleSetDsdPrecision = useCallback(
     (next: DsdPrecisionTaps) => {
-      setDsdTaps((prev) => {
-        if (prev === next) return prev;
-        playerSetDsdPrecision(next).catch((err) => {
-          console.error("[Settings] set DSD precision failed", err);
-          setDsdTaps(prev); // rollback
-        });
-        return next;
+      const prev = dsdTaps;
+      if (prev === next) return;
+      setDsdTaps(next); // optimistic
+      playerSetDsdPrecision(next).catch((err) => {
+        console.error("[Settings] set DSD precision failed", err);
+        // Only roll back if no newer selection superseded this one —
+        // a stale failure must not clobber a later successful click.
+        setDsdTaps((cur) => (cur === next ? prev : cur));
       });
     },
-    [],
+    [dsdTaps],
   );
 
   // Smart crossfade — skip the fade between two tracks of the same
