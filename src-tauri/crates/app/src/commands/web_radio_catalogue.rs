@@ -116,7 +116,13 @@ async fn read_setting(pool: &SqlitePool, key: &str) -> AppResult<Option<String>>
     )
 }
 
-async fn write_setting(pool: &SqlitePool, key: &str, value: &str) -> AppResult<()> {
+/// Upsert an app-setting row. Generic over the executor so it can run on the
+/// pool directly OR inside an open transaction (the catalogue mutations fold
+/// the `last_synced_at` write into the same tx as the data for atomicity).
+async fn write_setting<'e, E>(executor: E, key: &str, value: &str) -> AppResult<()>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Sqlite>,
+{
     sqlx::query(
         "INSERT INTO app_setting (key, value, value_type, updated_at)
          VALUES (?, ?, 'string', ?)
@@ -125,7 +131,7 @@ async fn write_setting(pool: &SqlitePool, key: &str, value: &str) -> AppResult<(
     .bind(key)
     .bind(value)
     .bind(now_ms())
-    .execute(pool)
+    .execute(executor)
     .await?;
     Ok(())
 }
@@ -174,8 +180,10 @@ pub async fn clear_radio_catalogue(state: tauri::State<'_, AppState>) -> AppResu
     sqlx::query("INSERT INTO radio_station_fts(radio_station_fts) VALUES('delete-all')")
         .execute(&mut *tx)
         .await?;
+    // Clear the sync marker in the same tx so the row count and the
+    // "last synced" state can't disagree on a partial failure.
+    write_setting(&mut *tx, KEY_LAST_SYNCED, "").await?;
     tx.commit().await?;
-    write_setting(pool, KEY_LAST_SYNCED, "").await?;
     Ok(())
 }
 
@@ -183,7 +191,7 @@ pub async fn clear_radio_catalogue(state: tauri::State<'_, AppState>) -> AppResu
 
 /// Download the full radio-browser station directory and rebuild the local
 /// catalogue. Returns the number of stations stored. Emits
-/// `radio_catalogue:progress` `{ phase, current, total }` events so the
+/// `radio-catalogue:progress` `{ phase, current, total }` events so the
 /// Settings card can render a progress bar (`phase`: `download` → `insert`).
 #[tauri::command]
 pub async fn download_radio_catalogue(
@@ -199,7 +207,7 @@ pub async fn download_radio_catalogue(
     }
 
     let _ = app.emit(
-        "radio_catalogue:progress",
+        "radio-catalogue:progress",
         serde_json::json!({ "phase": "download", "current": 0, "total": 0 }),
     );
 
@@ -215,6 +223,13 @@ pub async fn download_radio_catalogue(
         .map_err(|e| AppError::Other(format!("parse station dump: {e}")))?;
     let total = stations.len();
 
+    // Commit in batches so the import doesn't hold one multi-second write
+    // lock over the whole ~35k-row directory — the single-writer convention
+    // big import paths (scanner, tag editor) follow. The old catalogue is
+    // wiped at the head of the first batch; a mid-import failure leaves a
+    // partial catalogue with no sync marker, which the next download
+    // replaces wholesale.
+    const BATCH: usize = 200;
     let pool = &state.app_db;
     let mut tx = pool.begin().await?;
     sqlx::query("DELETE FROM radio_station")
@@ -225,6 +240,7 @@ pub async fn download_radio_catalogue(
         .await?;
 
     let mut id: i64 = 0;
+    let mut in_batch: usize = 0;
     for (i, s) in stations.iter().enumerate() {
         let Some(stream) = stream_url_of(s) else {
             continue;
@@ -264,21 +280,30 @@ pub async fn download_radio_catalogue(
         .execute(&mut *tx)
         .await?;
 
+        in_batch += 1;
+        if in_batch >= BATCH {
+            tx.commit().await?;
+            tx = pool.begin().await?;
+            in_batch = 0;
+        }
+
         // Throttle progress emits — one per ~2000 rows keeps the event
         // channel quiet while still animating the bar.
         if i % 2000 == 0 {
             let _ = app.emit(
-                "radio_catalogue:progress",
+                "radio-catalogue:progress",
                 serde_json::json!({ "phase": "insert", "current": i, "total": total }),
             );
         }
     }
 
+    // Stamp the sync marker inside the final tx so the data and its
+    // "last synced" timestamp commit atomically together.
+    write_setting(&mut *tx, KEY_LAST_SYNCED, &now_ms().to_string()).await?;
     tx.commit().await?;
-    write_setting(pool, KEY_LAST_SYNCED, &now_ms().to_string()).await?;
 
     let _ = app.emit(
-        "radio_catalogue:progress",
+        "radio-catalogue:progress",
         serde_json::json!({ "phase": "insert", "current": total, "total": total }),
     );
     Ok(id)

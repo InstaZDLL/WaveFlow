@@ -117,15 +117,18 @@ export function WebRadioView() {
   const [useLocal, setUseLocal] = useState(false);
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getOfflineMode(), radioCatalogueStatus()]).then(
-      ([offline, status]) => {
+    (async () => {
+      try {
+        const [offline, status] = await Promise.all([
+          getOfflineMode(),
+          radioCatalogueStatus(),
+        ]);
         if (cancelled) return;
         setUseLocal(offline || (status.localFirst && status.count > 0));
-      },
-      () => {
+      } catch {
         /* status unavailable → stay on the live plugin */
-      },
-    );
+      }
+    })();
     return () => {
       cancelled = true;
     };

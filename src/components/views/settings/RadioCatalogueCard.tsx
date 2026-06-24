@@ -36,22 +36,36 @@ export function RadioCatalogueCard({ language }: RadioCatalogueCardProps) {
   const downloadSeqRef = useRef(0);
 
   useEffect(() => {
-    Promise.all([radioCatalogueStatus(), getOfflineMode()])
-      .then(([s, o]) => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [s, o] = await Promise.all([
+          radioCatalogueStatus(),
+          getOfflineMode(),
+        ]);
+        if (cancelled) return;
         setStatus(s);
         setOffline(o);
-      })
-      .catch((err) => {
+      } catch (err) {
+        if (cancelled) return;
         console.error("[RadioCatalogueCard] load failed", err);
+        // Fall back to an empty status so the card still renders (with the
+        // error) instead of vanishing on the `if (!status) return null`
+        // guard — the user can then read the message and retry.
+        setStatus({ count: 0, lastSyncedAt: null, localFirst: false });
         setError(t("settings.radioCatalogue.errors.loadFailed"));
-      });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [t]);
 
   // Progress events fire on the backend's emit channel — subscribe once.
   useEffect(() => {
     let unlisten: UnlistenFn | null = null;
     let cancelled = false;
-    listen<RadioCatalogueProgress>("radio_catalogue:progress", (e) => {
+    listen<RadioCatalogueProgress>("radio-catalogue:progress", (e) => {
       setProgress(e.payload);
     })
       .then((fn) => {
