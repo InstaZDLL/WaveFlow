@@ -141,16 +141,23 @@ export function EqualizerCard() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setPresetOpen(false);
     };
-    const close = () => setPresetOpen(false);
+    // Capture-phase scroll catches scrolls anywhere — but the menu's own
+    // overflow-y-auto list scrolling must NOT close it; only an outside
+    // (page / panel) scroll detaches the fixed menu from its trigger.
+    const onScroll = (e: Event) => {
+      if (menuRef.current?.contains(e.target as Node)) return;
+      setPresetOpen(false);
+    };
+    const onResize = () => setPresetOpen(false);
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
-    window.addEventListener("scroll", close, true);
-    window.addEventListener("resize", close);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
     return () => {
       document.removeEventListener("mousedown", onClick);
       document.removeEventListener("keydown", onKey);
-      window.removeEventListener("scroll", close, true);
-      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
     };
   }, [presetOpen]);
 
@@ -228,6 +235,9 @@ export function EqualizerCard() {
             <button
               ref={presetBtnRef}
               type="button"
+              aria-haspopup="menu"
+              aria-expanded={presetOpen}
+              aria-controls={presetOpen ? "eq-preset-menu" : undefined}
               onClick={() => (presetOpen ? setPresetOpen(false) : openPreset())}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 text-sm text-zinc-800 dark:text-zinc-200 transition-colors"
             >
@@ -244,6 +254,7 @@ export function EqualizerCard() {
               createPortal(
                 <div
                   ref={menuRef}
+                  id="eq-preset-menu"
                   role="menu"
                   style={{
                     position: "fixed",
