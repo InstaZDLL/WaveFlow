@@ -97,6 +97,84 @@ pub struct ActiveStream {
 /// capacity but large enough to amortise the FIR convolution cost.
 const DSD_READ_CHUNK: usize = 64 * 1024;
 
+/// Upper bound on a network file we'll pull fully into RAM. A single
+/// hi-res FLAC track tops out well under this; the cap is a guard
+/// against accidentally loading a multi-GB file (e.g. a whole-album
+/// rip) into memory — those fall back to streaming.
+const MAX_PRELOAD_BYTES: u64 = 512 * 1024 * 1024;
+
+/// String-level network-path heuristic, platform-independent so it can
+/// be unit-tested: Windows UNC (`\\server\share`) and the gvfs / gio
+/// FUSE mount prefixes Linux desktops expose for SMB / SFTP / WebDAV.
+fn path_str_is_network(s: &str) -> bool {
+    if s.starts_with(r"\\") {
+        return true; // Windows UNC
+    }
+    let lower = s.to_ascii_lowercase();
+    lower.contains("/gvfs/") || lower.contains("/.gvfs/") || lower.contains("smb-share")
+}
+
+/// Heuristic: does `path` live on a network filesystem where streaming
+/// many small reads during playback risks stutter? Drives the decision
+/// to pre-load the file into RAM before decoding.
+///
+/// Covers UNC + gvfs (via [`path_str_is_network`]) and, on Windows,
+/// mapped network drives (`GetDriveTypeW == DRIVE_REMOTE`). Detection is
+/// best-effort — an NFS/SMB share mounted at a plain local-looking path
+/// (e.g. `/mnt/nas`) is treated as local and just streams.
+fn is_network_path(path: &Path) -> bool {
+    if path_str_is_network(&path.to_string_lossy()) {
+        return true;
+    }
+    #[cfg(windows)]
+    {
+        use windows::core::PCWSTR;
+        use windows::Win32::Storage::FileSystem::GetDriveTypeW;
+
+        // `DRIVE_REMOTE` from winbase.h — the windows 0.62 crate doesn't
+        // re-export the constant at a stable path, but `GetDriveTypeW`'s
+        // numeric contract is fixed.
+        const DRIVE_REMOTE: u32 = 4;
+
+        let s = path.to_string_lossy();
+        let bytes = s.as_bytes();
+        // A drive-letter path (`Z:\…`) → query the volume root's type.
+        if bytes.len() >= 2 && bytes[1] == b':' && bytes[0].is_ascii_alphabetic() {
+            let root = format!("{}:\\", bytes[0] as char);
+            let wide: Vec<u16> = root.encode_utf16().chain(std::iter::once(0)).collect();
+            // SAFETY: `wide` is a NUL-terminated UTF-16 string that
+            // outlives the call.
+            let kind = unsafe { GetDriveTypeW(PCWSTR(wide.as_ptr())) };
+            if kind == DRIVE_REMOTE {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Read the whole file into RAM and wrap it in a seekable in-memory
+/// [`MediaSource`]. Returns `None` (→ caller streams instead) when the
+/// file is missing, unreadable, or larger than [`MAX_PRELOAD_BYTES`].
+fn read_into_memory(path: &Path) -> Option<Box<dyn MediaSource>> {
+    let len = std::fs::metadata(path).ok()?.len();
+    if len > MAX_PRELOAD_BYTES {
+        tracing::debug!(
+            path = %path.display(),
+            bytes = len,
+            "network file exceeds pre-load cap — streaming instead"
+        );
+        return None;
+    }
+    match std::fs::read(path) {
+        Ok(bytes) => Some(Box::new(std::io::Cursor::new(bytes))),
+        Err(e) => {
+            tracing::warn!(path = %path.display(), error = %e, "network pre-load read failed");
+            None
+        }
+    }
+}
+
 impl ActiveStream {
     /// Open `path`, probe + build the codec, and stash everything
     /// needed to feed the resample/channel-convert pipeline. The
@@ -131,6 +209,27 @@ impl ActiveStream {
                 replay_gain_db,
                 dsd_taps,
             );
+        }
+
+        // Files on a network share (SMB / NFS / mapped drive / gvfs)
+        // stutter when symphonia issues many small reads + seeks over a
+        // high-latency link mid-playback. Pre-load the whole file into
+        // RAM once (under a size cap) and decode from an in-memory
+        // cursor instead. Best-effort: any failure / oversize falls
+        // through to ordinary streaming.
+        if is_network_path(path) {
+            if let Some(source) = read_into_memory(path) {
+                tracing::debug!(path = %path.display(), "network path — pre-loaded into RAM");
+                return Self::open_from_source(
+                    source,
+                    ext.as_deref(),
+                    track_id,
+                    duration_ms,
+                    source_type,
+                    source_id,
+                    replay_gain_db,
+                );
+            }
         }
 
         let file = File::open(path).map_err(|e| format!("open: {e}"))?;
@@ -604,6 +703,18 @@ mod tests {
 
     fn approx_eq(a: f32, b: f32, tol: f32) -> bool {
         (a - b).abs() <= tol
+    }
+
+    #[test]
+    fn network_path_heuristic() {
+        // Windows UNC + Linux gvfs mounts are network.
+        assert!(path_str_is_network(r"\\nas\music\track.flac"));
+        assert!(path_str_is_network(
+            "/run/user/1000/gvfs/smb-share:server=nas,share=music/track.flac"
+        ));
+        // Plain local paths are not.
+        assert!(!path_str_is_network("/home/user/Music/track.flac"));
+        assert!(!path_str_is_network(r"C:\Users\me\Music\track.flac"));
     }
 
     #[test]
