@@ -6,6 +6,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ChevronDown } from "lucide-react";
 import {
@@ -39,7 +40,29 @@ export function EqualizerCard() {
   const [maxGain, setMaxGain] = useState(12);
   const [presets, setPresets] = useState<EqPresetEntry[]>([]);
   const [presetOpen, setPresetOpen] = useState(false);
+  // Viewport coords of the portaled preset menu (null until opened).
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
+    null,
+  );
   const presetRef = useRef<HTMLDivElement>(null);
+  const presetBtnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Width of the portaled menu (keep in sync with the `w-44` class
+  // below) so we can clamp it inside the viewport.
+  const MENU_WIDTH = 176;
+
+  // Open the menu, pinning it to the trigger's current viewport rect.
+  // The menu is portaled to <body> (below) so a skin's backdrop-filter
+  // card can't trap it in a clipped / mis-stacked containing block.
+  const openPreset = useCallback(() => {
+    const rect = presetBtnRef.current?.getBoundingClientRect();
+    if (rect) {
+      const left = Math.min(rect.left, window.innerWidth - MENU_WIDTH - 8);
+      setMenuPos({ top: rect.bottom + 8, left: Math.max(8, left) });
+    }
+    setPresetOpen(true);
+  }, []);
 
   // Hydrate from backend at mount, then keep in sync via `player:eq`
   // broadcasts so a mutation from the player-bar popup (or any other
@@ -90,22 +113,34 @@ export function EqualizerCard() {
     return match?.key ?? "custom";
   }, [presets, bands]);
 
-  // Close the preset menu on outside click / Escape.
+  // Close the preset menu on outside click / Escape. The menu is
+  // portaled out of `presetRef`, so an outside click must miss BOTH the
+  // trigger wrapper and the menu itself. Scrolling / resizing detaches
+  // the fixed menu from the trigger, so close on those too.
   useEffect(() => {
     if (!presetOpen) return;
     const onClick = (e: MouseEvent) => {
-      if (presetRef.current && !presetRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        !presetRef.current?.contains(target) &&
+        !menuRef.current?.contains(target)
+      ) {
         setPresetOpen(false);
       }
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setPresetOpen(false);
     };
+    const close = () => setPresetOpen(false);
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
     return () => {
       document.removeEventListener("mousedown", onClick);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
     };
   }, [presetOpen]);
 
@@ -181,8 +216,9 @@ export function EqualizerCard() {
               {t("settings.equalizer.presets")}
             </span>
             <button
+              ref={presetBtnRef}
               type="button"
-              onClick={() => setPresetOpen((v) => !v)}
+              onClick={() => (presetOpen ? setPresetOpen(false) : openPreset())}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 text-sm text-zinc-800 dark:text-zinc-200 transition-colors"
             >
               {t(`settings.equalizer.preset.${activePresetKey}`, {
@@ -193,26 +229,39 @@ export function EqualizerCard() {
               })}
               <ChevronDown size={14} className="text-zinc-400" />
             </button>
-            {presetOpen && (
-              <div className="absolute top-full left-22 mt-2 z-20 w-44 max-h-72 overflow-y-auto rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-lg">
-                {presets.map((p) => (
-                  <button
-                    key={p.key}
-                    type="button"
-                    onClick={() => handlePickPreset(p.key)}
-                    className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                      p.key === activePresetKey
-                        ? "bg-emerald-500 text-white"
-                        : "hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200"
-                    }`}
-                  >
-                    {t(`settings.equalizer.preset.${p.key}`, {
-                      defaultValue: p.key,
-                    })}
-                  </button>
-                ))}
-              </div>
-            )}
+            {presetOpen &&
+              menuPos &&
+              createPortal(
+                <div
+                  ref={menuRef}
+                  role="menu"
+                  style={{
+                    position: "fixed",
+                    top: menuPos.top,
+                    left: menuPos.left,
+                  }}
+                  className="z-100 w-44 max-h-72 overflow-y-auto rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-lg"
+                >
+                  {presets.map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => handlePickPreset(p.key)}
+                      className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                        p.key === activePresetKey
+                          ? "bg-emerald-500 text-white"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200"
+                      }`}
+                    >
+                      {t(`settings.equalizer.preset.${p.key}`, {
+                        defaultValue: p.key,
+                      })}
+                    </button>
+                  ))}
+                </div>,
+                document.body,
+              )}
           </div>
           <button
             type="button"
