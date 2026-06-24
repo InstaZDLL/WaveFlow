@@ -63,7 +63,9 @@
     "licenseFile": "../../../LICENSE",
     "resources": {
       "../../resources/plugins/web-radio/plugin.wasm": "plugins/web-radio/plugin.wasm",
-      "../../resources/plugins/web-radio/manifest.toml": "plugins/web-radio/manifest.toml"
+      "../../resources/plugins/web-radio/manifest.toml": "plugins/web-radio/manifest.toml",
+      "../../resources/plugins/release-radar/plugin.wasm": "plugins/release-radar/plugin.wasm",
+      "../../resources/plugins/release-radar/manifest.toml": "plugins/release-radar/manifest.toml"
     },
     "icon": [
       "icons/32x32.png",

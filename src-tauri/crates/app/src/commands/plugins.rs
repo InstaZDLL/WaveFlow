@@ -19,7 +19,10 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 use tokio::sync::{Mutex, OwnedMutexGuard};
 use waveflow_core::plugin::manifest::{Manifest, ManifestError};
-use waveflow_core::plugin::runtime::{source_list_entries, source_resolve, source_stream_url};
+use waveflow_core::plugin::runtime::{
+    source_list_entries, source_resolve, source_stream_url, ui_event, ui_manifest, ui_render,
+    LibraryArtist,
+};
 
 use crate::audio::{AudioCmd, AudioEngine};
 use crate::error::{AppError, AppResult};
@@ -84,6 +87,7 @@ pub struct PluginPermissionsInfo {
     pub http: Vec<String>,
     pub storage_read: bool,
     pub storage_state: bool,
+    pub library_read_artists: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -108,6 +112,7 @@ fn manifest_to_info(manifest: Manifest, enabled: bool) -> PluginInfo {
             http: manifest.permissions.http,
             storage_read: manifest.permissions.storage_read,
             storage_state: manifest.permissions.storage_state,
+            library_read_artists: manifest.permissions.library_read_artists,
         },
         assets: manifest
             .assets
@@ -690,6 +695,121 @@ async fn source_preamble(
     Ok(guard)
 }
 
+async fn ui_preamble(state: &AppState, plugin_id: &str) -> AppResult<OwnedMutexGuard<()>> {
+    source_preamble(state, plugin_id).await
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct PluginArtistSnapshotRow {
+    id: i64,
+    name: String,
+    track_count: i64,
+}
+
+async fn load_library_artist_snapshot(
+    state: &AppState,
+    limit: i64,
+) -> AppResult<Vec<LibraryArtist>> {
+    let pool = state.require_profile_pool().await?;
+    let limit = limit.clamp(1, 200);
+    let rows = sqlx::query_as::<_, PluginArtistSnapshotRow>(
+        r#"
+        SELECT ar.id AS id,
+               ar.name AS name,
+               COUNT(DISTINCT t.id) AS track_count
+          FROM artist ar
+          JOIN track_artist ta ON ta.artist_id = ar.id
+          JOIN track t ON t.id = ta.track_id
+         WHERE t.available = 1
+         GROUP BY ar.id, ar.name
+         ORDER BY track_count DESC, ar.canonical_name COLLATE NOCASE ASC
+         LIMIT ?
+        "#,
+    )
+    .bind(limit)
+    .fetch_all(&pool)
+    .await?;
+    Ok(rows
+        .into_iter()
+        .filter_map(|row| {
+            Some(LibraryArtist {
+                id: u64::try_from(row.id).ok()?,
+                name: row.name,
+                track_count: u32::try_from(row.track_count).unwrap_or(u32::MAX),
+            })
+        })
+        .collect())
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginUiMountPoint {
+    pub sidebar_label: String,
+    pub sidebar_icon: Option<String>,
+    pub initial_path: String,
+}
+
+#[tauri::command]
+pub async fn plugin_ui_manifest(
+    state: State<'_, AppState>,
+    plugin_id: String,
+) -> AppResult<PluginUiMountPoint> {
+    let _guard = ui_preamble(&state, &plugin_id).await?;
+    let runtime = state.plugins.clone();
+    let paths = state.paths.plugin_paths();
+    let id_owned = plugin_id.clone();
+    let mount = tokio::task::spawn_blocking(move || {
+        ui_manifest(&runtime, &paths, &id_owned)
+            .map_err(|e| AppError::Other(format!("plugin {plugin_id}: {e}")))
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
+    Ok(PluginUiMountPoint {
+        sidebar_label: mount.sidebar_label,
+        sidebar_icon: mount.sidebar_icon,
+        initial_path: mount.initial_path,
+    })
+}
+
+#[tauri::command]
+pub async fn plugin_ui_render(
+    state: State<'_, AppState>,
+    plugin_id: String,
+    path: String,
+) -> AppResult<String> {
+    let _guard = ui_preamble(&state, &plugin_id).await?;
+    let artists = load_library_artist_snapshot(&state, 200).await?;
+    let runtime = state.plugins.clone();
+    let paths = state.paths.plugin_paths();
+    let id_owned = plugin_id.clone();
+    tokio::task::spawn_blocking(move || {
+        ui_render(&runtime, &paths, &id_owned, &path, artists)
+            .map_err(|e| AppError::Other(format!("plugin {plugin_id}: {e}")))
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?
+}
+
+#[tauri::command]
+pub async fn plugin_ui_event(
+    state: State<'_, AppState>,
+    plugin_id: String,
+    event: String,
+    payload: String,
+) -> AppResult<String> {
+    let _guard = ui_preamble(&state, &plugin_id).await?;
+    let artists = load_library_artist_snapshot(&state, 200).await?;
+    let runtime = state.plugins.clone();
+    let paths = state.paths.plugin_paths();
+    let id_owned = plugin_id.clone();
+    tokio::task::spawn_blocking(move || {
+        ui_event(&runtime, &paths, &id_owned, &event, &payload, artists)
+            .map_err(|e| AppError::Other(format!("plugin {plugin_id}: {e}")))
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?
+}
+
 /// List the top-level categories the plugin exposes. Backs the
 /// Web Radio sidebar entry — the host renders one row per entry,
 /// clicks call `plugin_resolve` with the entry's `query`.
@@ -771,4 +891,3 @@ pub async fn plugin_stream_url(
     .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
     Ok(url)
 }
-

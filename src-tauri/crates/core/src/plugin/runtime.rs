@@ -31,6 +31,15 @@ use crate::plugin::host_impl::{HostError, HostPermissions, StateStore, STATE_QUO
 use crate::plugin::manifest::{Manifest, ManifestError};
 use crate::plugin::{InvalidPluginId, PluginPaths};
 
+/// Redacted artist row exposed to UI plugins through
+/// `waveflow:host/library.list-artists`.
+#[derive(Debug, Clone)]
+pub struct LibraryArtist {
+    pub id: u64,
+    pub name: String,
+    pub track_count: u32,
+}
+
 /// Process-wide "offline mode" probe. Returns `true` when the host
 /// has flipped offline mode (`app_setting['network.offline_mode']`
 /// on the desktop side, equivalent gate on the server side). Every
@@ -323,6 +332,18 @@ impl PluginRuntime {
         loaded: &LoadedPlugin,
         paths: &PluginPaths,
     ) -> Result<Store<HostCtx>, RuntimeError> {
+        self.new_store_for_plugin_with_library_artists(loaded, paths, Vec::new())
+    }
+
+    /// Same as [`Self::new_store_for_plugin`] but supplies a redacted
+    /// active-profile artist snapshot for UI plugins that requested
+    /// `library.read_artists`.
+    pub fn new_store_for_plugin_with_library_artists(
+        &self,
+        loaded: &LoadedPlugin,
+        paths: &PluginPaths,
+        library_artists: Vec<LibraryArtist>,
+    ) -> Result<Store<HostCtx>, RuntimeError> {
         let plugin_id = loaded.manifest.plugin.id.as_str();
         let plugin_dir = paths.plugin_dir(plugin_id)?;
         let state_dir = paths.state_dir(plugin_id)?;
@@ -352,6 +373,7 @@ impl PluginRuntime {
             state,
             http_client,
             offline_probe,
+            library_artists,
         };
         let mut store = Store::new(&self.inner.engine, ctx);
 
@@ -421,6 +443,93 @@ pub enum SourceError {
     Trap(String),
     #[error("plugin: {0}")]
     Plugin(String),
+}
+
+/// Owned mirror of `waveflow:ui/extension.mount-point`.
+#[derive(Debug, Clone)]
+pub struct UiMountPoint {
+    pub sidebar_label: String,
+    pub sidebar_icon: Option<String>,
+    pub initial_path: String,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum UiError {
+    #[error("runtime: {0}")]
+    Runtime(#[from] RuntimeError),
+    #[error("instantiate: {0}")]
+    Instantiate(String),
+    #[error("trap: {0}")]
+    Trap(String),
+    #[error("plugin: {0}")]
+    Plugin(String),
+}
+
+fn instantiate_ui(
+    runtime: &PluginRuntime,
+    paths: &PluginPaths,
+    plugin_id: &str,
+    library_artists: Vec<LibraryArtist>,
+) -> Result<(Store<HostCtx>, crate::plugin::bindings::ui::Plugin), UiError> {
+    let loaded = runtime.load_plugin(paths, plugin_id)?;
+    let linker = runtime.build_linker()?;
+    let mut store =
+        runtime.new_store_for_plugin_with_library_artists(&loaded, paths, library_artists)?;
+    let plugin = crate::plugin::bindings::ui::Plugin::instantiate(
+        &mut store,
+        &loaded.component,
+        &linker,
+    )
+    .map_err(|e| UiError::Instantiate(e.to_string()))?;
+    Ok((store, plugin))
+}
+
+pub fn ui_manifest(
+    runtime: &PluginRuntime,
+    paths: &PluginPaths,
+    plugin_id: &str,
+) -> Result<UiMountPoint, UiError> {
+    let (mut store, plugin) = instantiate_ui(runtime, paths, plugin_id, Vec::new())?;
+    let mount = plugin
+        .waveflow_ui_extension()
+        .call_manifest(&mut store)
+        .map_err(|e| UiError::Trap(e.to_string()))?;
+    Ok(UiMountPoint {
+        sidebar_label: mount.sidebar_label,
+        sidebar_icon: mount.sidebar_icon,
+        initial_path: mount.initial_path,
+    })
+}
+
+pub fn ui_render(
+    runtime: &PluginRuntime,
+    paths: &PluginPaths,
+    plugin_id: &str,
+    path: &str,
+    library_artists: Vec<LibraryArtist>,
+) -> Result<String, UiError> {
+    let (mut store, plugin) = instantiate_ui(runtime, paths, plugin_id, library_artists)?;
+    let result = plugin
+        .waveflow_ui_extension()
+        .call_render(&mut store, path)
+        .map_err(|e| UiError::Trap(e.to_string()))?;
+    result.map_err(UiError::Plugin)
+}
+
+pub fn ui_event(
+    runtime: &PluginRuntime,
+    paths: &PluginPaths,
+    plugin_id: &str,
+    event: &str,
+    payload: &str,
+    library_artists: Vec<LibraryArtist>,
+) -> Result<String, UiError> {
+    let (mut store, plugin) = instantiate_ui(runtime, paths, plugin_id, library_artists)?;
+    let result = plugin
+        .waveflow_ui_extension()
+        .call_on_event(&mut store, event, payload)
+        .map_err(|e| UiError::Trap(e.to_string()))?;
+    result.map_err(UiError::Plugin)
 }
 
 fn instantiate_source(
@@ -609,6 +718,8 @@ pub struct HostCtx {
     /// workspace follows. `pub(crate)` so a caller can't pin the
     /// probe to a constant and bypass the host's offline switch.
     pub(crate) offline_probe: OfflineProbe,
+    /// Redacted active-profile artist snapshot for UI plugins.
+    pub(crate) library_artists: Vec<LibraryArtist>,
 }
 
 impl HostCtx {
@@ -639,6 +750,7 @@ impl HostCtx {
                 .build()
                 .expect("redirect-disabled client builds"),
             offline_probe: always_online(),
+            library_artists: Vec::new(),
         }
     }
 }

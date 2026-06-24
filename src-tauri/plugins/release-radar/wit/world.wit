@@ -1,9 +1,3 @@
-// WaveFlow UI extension world — v1.
-//
-// UI plugins describe views as JSON descriptors that the host renders
-// with WaveFlow-native React components. Plugins never inject HTML,
-// CSS, JavaScript, or React code into the host.
-
 package waveflow:ui@1.0.0;
 
 interface extension {
@@ -13,14 +7,8 @@ interface extension {
     initial-path: string,
   }
 
-  /// Sidebar registration metadata.
   manifest: func() -> mount-point;
-
-  /// Render the view for an internal plugin path. Return value is a
-  /// JSON-encoded descriptor owned by the plugin protocol.
   render: func(path: string) -> result<string, string>;
-
-  /// React to a host-rendered action and return the next descriptor.
   on-event: func(event: string, payload: string) -> result<string, string>;
 }
 

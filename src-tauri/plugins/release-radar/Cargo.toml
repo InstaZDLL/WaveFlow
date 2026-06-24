@@ -1,0 +1,37 @@
+# Empty workspace marker: this plugin builds as a wasm component and is
+# intentionally independent from the host workspace.
+[workspace]
+
+[package]
+name = "waveflow-plugin-release-radar"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+description = "WaveFlow plugin — new releases for local-library artists"
+authors = ["InstaZDLL <github.105mh@8shield.net>"]
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = "0.44"
+wit-bindgen-rt = { version = "0.44", features = ["bitflags"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[package.metadata.component]
+package = "waveflow:release-radar"
+
+[package.metadata.component.target]
+path = "wit"
+world = "plugin"
+
+[package.metadata.component.target.dependencies]
+"waveflow:host" = { path = "wit/deps/waveflow-host" }
+
+[profile.release]
+opt-level = "s"
+strip = true
+lto = true
+codegen-units = 1
