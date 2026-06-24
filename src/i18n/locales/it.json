@@ -1864,6 +1864,13 @@
         "downloadFailed": "Failed to download the catalogue.",
         "clearFailed": "Failed to delete the catalogue."
       }
+    },
+    "dsdPrecision": {
+      "title": "Precisione DSD",
+      "subtitle": "Nitidezza del filtro di conversione DSD → PCM. Interessa solo i file DSD (.dsf / .dff); più coefficienti = banda di transizione più nitida con un maggiore costo per la CPU.",
+      "standard": "Standard",
+      "high": "Alta",
+      "max": "Massima"
     }
   },
   "spotify": {

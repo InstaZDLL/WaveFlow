@@ -1864,6 +1864,13 @@
         "downloadFailed": "Failed to download the catalogue.",
         "clearFailed": "Failed to delete the catalogue."
       }
+    },
+    "dsdPrecision": {
+      "title": "DSD-precisie",
+      "subtitle": "Scherpte van het DSD → PCM-conversiefilter. Heeft alleen invloed op DSD-bestanden (.dsf / .dff); meer coëfficiënten = scherpere overgangsband bij hoger CPU-gebruik.",
+      "standard": "Standaard",
+      "high": "Hoog",
+      "max": "Maximaal"
     }
   },
   "spotify": {

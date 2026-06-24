@@ -1864,6 +1864,13 @@
         "downloadFailed": "Échec du téléchargement du catalogue.",
         "clearFailed": "Échec de la suppression du catalogue."
       }
+    },
+    "dsdPrecision": {
+      "title": "Précision DSD",
+      "subtitle": "Finesse du filtre de conversion DSD → PCM. N'affecte que les fichiers DSD (.dsf / .dff) ; davantage de coefficients = bande de transition plus nette, coût CPU plus élevé.",
+      "standard": "Standard",
+      "high": "Haute",
+      "max": "Maximale"
     }
   },
   "spotify": {

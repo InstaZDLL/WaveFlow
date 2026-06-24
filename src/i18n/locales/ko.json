@@ -1864,6 +1864,13 @@
         "downloadFailed": "Failed to download the catalogue.",
         "clearFailed": "Failed to delete the catalogue."
       }
+    },
+    "dsdPrecision": {
+      "title": "DSD 정밀도",
+      "subtitle": "DSD → PCM 변환 필터의 선명도. DSD 파일(.dsf / .dff)에만 적용됩니다. 탭이 많을수록 전이 대역이 선명해지지만 CPU 부하가 커집니다.",
+      "standard": "표준",
+      "high": "높음",
+      "max": "최대"
     }
   },
   "spotify": {

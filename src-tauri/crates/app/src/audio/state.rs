@@ -172,6 +172,13 @@ pub struct SharedPlayback {
     /// every stream's resampler at the new speed on the next decode
     /// cycle. Cleared by the decoder once consumed.
     pub speed_dirty: AtomicBool,
+    /// FIR tap count for the DSD → PCM converter. Read by the decoder
+    /// when it opens a `.dsf` / `.dff` stream (not in the hot path).
+    /// Default 256 (the historical fixed value); the user can raise it
+    /// to 1024 / 2048 for a sharper anti-alias filter on capable
+    /// hardware. Only affects DSD playback — symphonia formats ignore
+    /// it. Takes effect on the next track open.
+    pub dsd_taps: AtomicU32,
 }
 
 impl SharedPlayback {
@@ -203,6 +210,7 @@ impl SharedPlayback {
             pending_next_crossfade_ms: AtomicU32::new(0),
             playback_speed_bits: AtomicU32::new(1.0_f32.to_bits()),
             speed_dirty: AtomicBool::new(false),
+            dsd_taps: AtomicU32::new(256),
         }
     }
 

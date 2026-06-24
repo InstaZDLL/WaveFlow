@@ -1868,6 +1868,13 @@
         "downloadFailed": "Failed to download the catalogue.",
         "clearFailed": "Failed to delete the catalogue."
       }
+    },
+    "dsdPrecision": {
+      "title": "دقة DSD",
+      "subtitle": "حدّة مرشّح تحويل DSD → PCM. يؤثّر فقط على ملفات DSD (.dsf / .dff)؛ عدد معاملات أكبر = نطاق انتقالي أحدّ مقابل استهلاك أعلى للمعالج.",
+      "standard": "قياسي",
+      "high": "عالية",
+      "max": "قصوى"
     }
   },
   "spotify": {

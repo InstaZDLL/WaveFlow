@@ -1864,6 +1864,13 @@
         "downloadFailed": "Failed to download the catalogue.",
         "clearFailed": "Failed to delete the catalogue."
       }
+    },
+    "dsdPrecision": {
+      "title": "DSD परिशुद्धता",
+      "subtitle": "DSD → PCM रूपांतरण फ़िल्टर की तीक्ष्णता। केवल DSD फ़ाइलों (.dsf / .dff) को प्रभावित करता है; अधिक टैप = अधिक CPU लागत पर तीक्ष्ण संक्रमण बैंड।",
+      "standard": "मानक",
+      "high": "उच्च",
+      "max": "अधिकतम"
     }
   },
   "spotify": {

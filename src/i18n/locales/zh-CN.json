@@ -1864,6 +1864,13 @@
         "downloadFailed": "Failed to download the catalogue.",
         "clearFailed": "Failed to delete the catalogue."
       }
+    },
+    "dsdPrecision": {
+      "title": "DSD 精度",
+      "subtitle": "DSD → PCM 转换滤波器的锐度。仅影响 DSD 文件（.dsf / .dff）；抽头越多，过渡带越锐利，但 CPU 开销更高。",
+      "standard": "标准",
+      "high": "高",
+      "max": "最高"
     }
   },
   "scanProgress": {

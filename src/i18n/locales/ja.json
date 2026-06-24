@@ -1864,6 +1864,13 @@
         "downloadFailed": "Failed to download the catalogue.",
         "clearFailed": "Failed to delete the catalogue."
       }
+    },
+    "dsdPrecision": {
+      "title": "DSD 精度",
+      "subtitle": "DSD → PCM 変換フィルターの鋭さ。DSD ファイル（.dsf / .dff）のみに影響します。タップ数が多いほど遷移帯域は鋭くなりますが、CPU 負荷が高くなります。",
+      "standard": "標準",
+      "high": "高",
+      "max": "最大"
     }
   },
   "scanProgress": {

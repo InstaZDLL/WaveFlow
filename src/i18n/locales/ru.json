@@ -1909,6 +1909,13 @@
         "downloadFailed": "Failed to download the catalogue.",
         "clearFailed": "Failed to delete the catalogue."
       }
+    },
+    "dsdPrecision": {
+      "title": "Точность DSD",
+      "subtitle": "Резкость фильтра преобразования DSD → PCM. Влияет только на файлы DSD (.dsf / .dff); больше коэффициентов = более резкая переходная полоса при большей нагрузке на ЦП.",
+      "standard": "Стандарт",
+      "high": "Высокая",
+      "max": "Максимальная"
     }
   },
   "spotify": {

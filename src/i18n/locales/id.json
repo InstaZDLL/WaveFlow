@@ -1864,6 +1864,13 @@
         "downloadFailed": "Failed to download the catalogue.",
         "clearFailed": "Failed to delete the catalogue."
       }
+    },
+    "dsdPrecision": {
+      "title": "Presisi DSD",
+      "subtitle": "Ketajaman filter konversi DSD → PCM. Hanya memengaruhi berkas DSD (.dsf / .dff); lebih banyak koefisien = pita transisi lebih tajam dengan biaya CPU lebih tinggi.",
+      "standard": "Standar",
+      "high": "Tinggi",
+      "max": "Maksimum"
     }
   },
   "spotify": {
