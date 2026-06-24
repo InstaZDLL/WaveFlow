@@ -1844,6 +1844,26 @@
       "lastfmHint": "अंग्रेज़ी जीवनियाँ। आपकी Last.fm API कुंजी आवश्यक है।",
       "theaudiodbHint": "कई भाषाओं में सामुदायिक जीवनियाँ। कुंजी आवश्यक नहीं।",
       "languageLabel": "जीवनी की भाषा"
+    },
+    "radioCatalogue": {
+      "title": "Offline station catalogue",
+      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
+      "stored_one": "{{count}} station · updated {{date}}",
+      "stored_other": "{{count}} stations · updated {{date}}",
+      "download": "Download",
+      "refresh": "Update",
+      "downloading": "Downloading…",
+      "downloadingPct": "Importing… {{pct}}%",
+      "clear": "Delete catalogue",
+      "neverSynced": "never",
+      "localFirst": "Prefer local catalogue",
+      "localFirstHint": "Search and browse locally even when online (instant, no network).",
+      "offlineHint": "Disable offline mode to download the catalogue.",
+      "errors": {
+        "loadFailed": "Failed to load catalogue status.",
+        "downloadFailed": "Failed to download the catalogue.",
+        "clearFailed": "Failed to delete the catalogue."
+      }
     }
   },
   "spotify": {
@@ -1906,6 +1926,8 @@
     "addFavorite": "पसंदीदा में जोड़ें",
     "removeFavorite": "पसंदीदा से हटाएं",
     "localStations": "स्थानीय स्टेशन",
-    "browseByCountry": "देश के अनुसार ब्राउज़ करें"
+    "browseByCountry": "देश के अनुसार ब्राउज़ करें",
+    "localCatalogue": "Local catalogue",
+    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
   }
 }

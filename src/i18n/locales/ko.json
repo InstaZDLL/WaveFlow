@@ -1844,6 +1844,26 @@
       "lastfmHint": "영어 바이오그래피. Last.fm API 키가 필요합니다.",
       "theaudiodbHint": "여러 언어의 커뮤니티 바이오그래피. 키 불필요.",
       "languageLabel": "바이오그래피 언어"
+    },
+    "radioCatalogue": {
+      "title": "Offline station catalogue",
+      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
+      "stored_one": "{{count}} station · updated {{date}}",
+      "stored_other": "{{count}} stations · updated {{date}}",
+      "download": "Download",
+      "refresh": "Update",
+      "downloading": "Downloading…",
+      "downloadingPct": "Importing… {{pct}}%",
+      "clear": "Delete catalogue",
+      "neverSynced": "never",
+      "localFirst": "Prefer local catalogue",
+      "localFirstHint": "Search and browse locally even when online (instant, no network).",
+      "offlineHint": "Disable offline mode to download the catalogue.",
+      "errors": {
+        "loadFailed": "Failed to load catalogue status.",
+        "downloadFailed": "Failed to download the catalogue.",
+        "clearFailed": "Failed to delete the catalogue."
+      }
     }
   },
   "spotify": {
@@ -1906,6 +1926,8 @@
     "addFavorite": "즐겨찾기에 추가",
     "removeFavorite": "즐겨찾기에서 제거",
     "localStations": "지역 방송국",
-    "browseByCountry": "국가별 보기"
+    "browseByCountry": "국가별 보기",
+    "localCatalogue": "Local catalogue",
+    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
   }
 }

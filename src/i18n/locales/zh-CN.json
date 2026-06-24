@@ -1844,6 +1844,26 @@
       "lastfmHint": "英文简介。需要你的 Last.fm API 密钥。",
       "theaudiodbHint": "多语言社区简介。无需密钥。",
       "languageLabel": "简介语言"
+    },
+    "radioCatalogue": {
+      "title": "Offline station catalogue",
+      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
+      "stored_one": "{{count}} station · updated {{date}}",
+      "stored_other": "{{count}} stations · updated {{date}}",
+      "download": "Download",
+      "refresh": "Update",
+      "downloading": "Downloading…",
+      "downloadingPct": "Importing… {{pct}}%",
+      "clear": "Delete catalogue",
+      "neverSynced": "never",
+      "localFirst": "Prefer local catalogue",
+      "localFirstHint": "Search and browse locally even when online (instant, no network).",
+      "offlineHint": "Disable offline mode to download the catalogue.",
+      "errors": {
+        "loadFailed": "Failed to load catalogue status.",
+        "downloadFailed": "Failed to download the catalogue.",
+        "clearFailed": "Failed to delete the catalogue."
+      }
     }
   },
   "scanProgress": {
@@ -1906,6 +1926,8 @@
     "addFavorite": "添加到收藏",
     "removeFavorite": "从收藏中移除",
     "localStations": "本地电台",
-    "browseByCountry": "按国家/地区浏览"
+    "browseByCountry": "按国家/地区浏览",
+    "localCatalogue": "Local catalogue",
+    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
   }
 }
