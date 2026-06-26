@@ -86,6 +86,27 @@ pub fn hash_file(path: &Path) -> std::io::Result<String> {
     Ok(hasher.finalize().to_hex().to_string())
 }
 
+/// Full-content BLAKE3 hash — every byte. Slower than [`hash_file`]
+/// (which reads only the head + tail of large files), so it's NOT used
+/// on the hot scan path. The duplicate-detection flow calls it to
+/// confirm that tracks sharing the cheap partial digest are *really*
+/// byte-identical before offering to delete one — closing the partial
+/// hash's middle-byte blind spot for that destructive path.
+pub fn hash_file_full(path: &Path) -> std::io::Result<String> {
+    let file = fs::File::open(path)?;
+    let mut reader = std::io::BufReader::new(file);
+    let mut hasher = blake3::Hasher::new();
+    let mut buf = [0u8; 64 * 1024];
+    loop {
+        let n = reader.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
+    Ok(hasher.finalize().to_hex().to_string())
+}
+
 /// Everything the scanner reads off disk for a single audio file. Populated
 /// inside `spawn_blocking` so the tokio reactor never stalls on I/O.
 pub struct ExtractedFile {
@@ -692,9 +713,17 @@ mod tests {
         write_bytes(&path, &data);
         assert_ne!(base, hash_file(&path).unwrap());
 
+        // A change inside the tail window flips the hash too (guards the
+        // seek-to-end + read_exact of the tail chunk).
+        data[10] = 7; // restore head
+        let last = data.len() - 10;
+        data[last] = 42;
+        write_bytes(&path, &data);
+        assert_ne!(base, hash_file(&path).unwrap());
+
         // A size change flips the hash even with otherwise-identical
         // head + tail (the length is folded into the digest).
-        data[10] = 7; // restore head
+        data[last] = 7; // restore tail
         data.push(7); // grow by one byte
         write_bytes(&path, &data);
         assert_ne!(base, hash_file(&path).unwrap());

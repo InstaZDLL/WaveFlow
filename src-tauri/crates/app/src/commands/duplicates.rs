@@ -1,13 +1,15 @@
 //! Duplicate-track detection.
 //!
-//! Groups tracks by their `file_hash` (blake3 of the audio bytes,
-//! computed at scan time) so visually identical files in different
-//! folders fall into the same group regardless of metadata. The hash
-//! is content-only, so renames / re-tags after the initial scan
-//! still group correctly — but two re-encodes of the same source
-//! (e.g. CBR vs VBR rips of the same track) won't match because the
-//! bytes differ. That's a fingerprinting problem and out of scope
-//! for this MVP.
+//! Groups tracks by their `file_hash` so visually identical files in
+//! different folders fall into the same group regardless of metadata.
+//! The stored hash is a *partial* blake3 (size + head + tail, computed
+//! at scan time for speed), so a SQL group is only a candidate — the
+//! command re-verifies each with a full-content hash before returning,
+//! since the UI lets the user delete from a group. The hash is
+//! content-only, so renames / re-tags after the initial scan still
+//! group correctly — but two re-encodes of the same source (e.g. CBR vs
+//! VBR rips of the same track) won't match because the bytes differ.
+//! That's a fingerprinting problem and out of scope for this MVP.
 
 use serde::Serialize;
 
@@ -129,7 +131,51 @@ pub async fn find_duplicates(state: tauri::State<'_, AppState>) -> AppResult<Vec
             }),
         }
     }
-    Ok(groups)
+
+    // The stored `file_hash` is a *partial* digest (size + head + tail)
+    // chosen for scan speed, so a group is only a *candidate*: two
+    // distinct files could in theory share it while differing in their
+    // middle bytes. A delete follows, so confirm byte-identity with a
+    // full-content hash — computed off-thread and only on these few
+    // candidate files. Splits any collision into separate groups and
+    // drops the singletons that fall out.
+    let refined = tokio::task::spawn_blocking(move || verify_groups_full_content(groups))
+        .await
+        .map_err(|e| AppError::Other(format!("dedup verify task failed: {e}")))?;
+    Ok(refined)
+}
+
+/// Re-bucket each partial-hash candidate group by a full-content hash so
+/// only genuinely byte-identical files stay grouped. A file that can't
+/// be read is dropped (we won't offer to delete what we can't verify).
+fn verify_groups_full_content(groups: Vec<DuplicateGroup>) -> Vec<DuplicateGroup> {
+    use std::collections::HashMap;
+
+    let mut out: Vec<DuplicateGroup> = Vec::new();
+    for group in groups {
+        let mut by_full: HashMap<String, Vec<DuplicateTrack>> = HashMap::new();
+        for track in group.tracks {
+            match waveflow_core::scanner::hash_file_full(std::path::Path::new(&track.file_path)) {
+                Ok(full) => by_full.entry(full).or_default().push(track),
+                Err(err) => tracing::warn!(
+                    path = %track.file_path,
+                    error = %err,
+                    "dedup full-content hash failed; excluding track from its group"
+                ),
+            }
+        }
+        for (full_hash, mut tracks) in by_full {
+            if tracks.len() > 1 {
+                // Keep the oldest-first ordering the SQL query established.
+                tracks.sort_by_key(|t| t.added_at);
+                out.push(DuplicateGroup {
+                    file_hash: full_hash,
+                    tracks,
+                });
+            }
+        }
+    }
+    out
 }
 
 /// Remove a list of tracks from the database. The audio files on

@@ -25,8 +25,8 @@ pub use canonical::canonical_name;
 pub use extract::{
     extension_for_mime, extract_artist_image, extract_compilation_flag, extract_cover,
     extract_folder_cover, extract_musical_key, extract_rating, file_type_label,
-    find_artist_image_in_dir, hash_file, write_artist_image, ExtractedCover, ExtractedFile,
-    AUDIO_EXTENSIONS,
+    find_artist_image_in_dir, hash_file, hash_file_full, write_artist_image, ExtractedCover,
+    ExtractedFile, AUDIO_EXTENSIONS,
 };
 #[cfg(feature = "sqlite")]
 pub use upserts::{
