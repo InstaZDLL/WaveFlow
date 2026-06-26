@@ -70,6 +70,20 @@ static ANALYSIS_CANCEL: AtomicBool = AtomicBool::new(false);
 /// analyze) progress between tracks.
 const ANALYSIS_PER_TRACK_PAUSE: Duration = Duration::from_millis(25);
 
+/// How many decoded results to buffer before flushing them to
+/// `track_analysis` in one transaction. Batching collapses N separate
+/// write-lock acquisitions into one — on a single-writer WAL database
+/// that's the difference between fighting a concurrent writer N times
+/// and fighting it once. 16 keeps the crash-loss window small (≈ two
+/// minutes of decode at ~8 s/track) while still cutting lock churn 16×.
+const ANALYSIS_BATCH_SIZE: usize = 16;
+
+/// Poll interval used by [`wait_out_active_scan`] while parking the
+/// analyzer behind an in-flight library scan. Coarse on purpose — a
+/// scan runs for tens of seconds, so a quarter-second granularity on
+/// noticing it finished is invisible and keeps the wait near-idle.
+const SCAN_WAIT_POLL: Duration = Duration::from_millis(250);
+
 /// Row shape returned by `get_track_analysis` and `analyze_track`.
 /// Mirrors the columns of `track_analysis` but exposes the fields
 /// the UI cares about — `analyzed_at` so a stale-warning ribbon can
@@ -274,11 +288,24 @@ pub async fn run_analyze_library(
     let mut processed = 0u32;
     let mut failed = 0u32;
     let mut cancelled = false;
+    // Decoded results buffered until `ANALYSIS_BATCH_SIZE`, then
+    // flushed in one transaction (see `flush_analysis_batch`).
+    let mut batch: Vec<PendingAnalysis> = Vec::with_capacity(ANALYSIS_BATCH_SIZE);
 
     for (track_id, file_path) in pending {
         // Cancellation gate at the TOP of the loop so a user click
         // that lands between two decodes is honoured without burning
         // one extra ~8-second decode.
+        if ANALYSIS_CANCEL.load(Ordering::Relaxed) {
+            cancelled = true;
+            tracing::info!(processed, total, "library analysis cancelled by user");
+            break;
+        }
+
+        // Yield to any in-flight foreground scan before the CPU-heavy
+        // decode + DB write. `wait_out_active_scan` also returns early
+        // on cancel, so re-check before doing real work.
+        wait_out_active_scan().await;
         if ANALYSIS_CANCEL.load(Ordering::Relaxed) {
             cancelled = true;
             tracing::info!(processed, total, "library analysis cancelled by user");
@@ -299,30 +326,13 @@ pub async fn run_analyze_library(
         let join = tokio::task::spawn_blocking(move || analyze_file(&path_buf)).await;
         match join {
             Ok(Ok(result)) => {
-                let now = Utc::now().timestamp_millis();
-                if let Err(e) = sqlx::query(
-                    "INSERT INTO track_analysis
-                        (track_id, bpm, musical_key, loudness_lufs,
-                         replay_gain_db, peak, analyzed_at)
-                     VALUES (?, ?, NULL, ?, ?, ?, ?)
-                     ON CONFLICT(track_id) DO UPDATE SET
-                        bpm = excluded.bpm,
-                        loudness_lufs = excluded.loudness_lufs,
-                        replay_gain_db = excluded.replay_gain_db,
-                        peak = excluded.peak,
-                        analyzed_at = excluded.analyzed_at",
-                )
-                .bind(track_id)
-                .bind(result.bpm)
-                .bind(result.loudness_db)
-                .bind(result.replay_gain_db)
-                .bind(result.peak)
-                .bind(now)
-                .execute(pool)
-                .await
-                {
-                    tracing::warn!(?e, track_id, "persist analysis failed");
-                    failed += 1;
+                batch.push(PendingAnalysis {
+                    track_id,
+                    result,
+                    analyzed_at: Utc::now().timestamp_millis(),
+                });
+                if batch.len() >= ANALYSIS_BATCH_SIZE {
+                    failed += flush_analysis_batch(pool, &mut batch).await;
                 }
             }
             Ok(Err(err)) => {
@@ -346,6 +356,11 @@ pub async fn run_analyze_library(
         tokio::task::yield_now().await;
         tokio::time::sleep(ANALYSIS_PER_TRACK_PAUSE).await;
     }
+
+    // Persist whatever's left in the buffer — both the normal end of
+    // the run and the cancel `break` above land here, so a cancelled
+    // run still saves every track it had already decoded.
+    failed += flush_analysis_batch(pool, &mut batch).await;
 
     let summary = LibraryAnalysisSummary {
         processed,
@@ -380,6 +395,132 @@ struct RunningGuard;
 impl Drop for RunningGuard {
     fn drop(&mut self) {
         ANALYSIS_RUNNING.store(false, Ordering::SeqCst);
+    }
+}
+
+/// One decoded-but-not-yet-persisted analysis result, buffered until
+/// the batch reaches [`ANALYSIS_BATCH_SIZE`] (or the run ends).
+struct PendingAnalysis {
+    track_id: i64,
+    result: AnalysisResult,
+    analyzed_at: i64,
+}
+
+/// `true` when a sqlx error is a SQLite busy/locked contention — i.e.
+/// the single-writer WAL lock was held by another writer (a concurrent
+/// scan, a `play_event` insert) — rather than a real schema/constraint
+/// fault. Only the former is worth retrying.
+fn is_busy(err: &sqlx::Error) -> bool {
+    if let sqlx::Error::Database(db) = err {
+        if let Some(code) = db.code() {
+            return code_is_busy(&code);
+        }
+    }
+    false
+}
+
+/// Pure classifier for a SQLite result code string (as surfaced by
+/// `DatabaseError::code`). SQLite's primary result code lives in the
+/// low 8 bits; the high bits carry the extended detail (e.g. BUSY = 5,
+/// BUSY_SNAPSHOT = 517, LOCKED = 6, LOCKED_SHAREDCACHE = 262). We mask
+/// to the primary so every flavour of busy/locked is caught.
+fn code_is_busy(code: &str) -> bool {
+    code.parse::<i32>()
+        .map(|n| matches!(n & 0xff, 5 | 6))
+        .unwrap_or(false)
+}
+
+/// Persist one buffered batch inside a single transaction.
+async fn persist_batch_once(
+    pool: &SqlitePool,
+    batch: &[PendingAnalysis],
+) -> Result<(), sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    for p in batch {
+        sqlx::query(
+            "INSERT INTO track_analysis
+                (track_id, bpm, musical_key, loudness_lufs,
+                 replay_gain_db, peak, analyzed_at)
+             VALUES (?, ?, NULL, ?, ?, ?, ?)
+             ON CONFLICT(track_id) DO UPDATE SET
+                bpm = excluded.bpm,
+                loudness_lufs = excluded.loudness_lufs,
+                replay_gain_db = excluded.replay_gain_db,
+                peak = excluded.peak,
+                analyzed_at = excluded.analyzed_at",
+        )
+        .bind(p.track_id)
+        .bind(p.result.bpm)
+        .bind(p.result.loudness_db)
+        .bind(p.result.replay_gain_db)
+        .bind(p.result.peak)
+        .bind(p.analyzed_at)
+        .execute(&mut *tx)
+        .await?;
+    }
+    tx.commit().await
+}
+
+/// Flush a batch of analysis results, retrying the whole batch on a
+/// `SQLITE_BUSY` / `SQLITE_LOCKED` collision with exponential backoff
+/// so a transient lock (a concurrent scan write, a `play_event`
+/// insert) never silently drops freshly-computed BPM / loudness — the
+/// pre-fix bug where a per-row `INSERT` hit `database is locked` after
+/// the 5 s busy-timeout and the result was lost (issue: analysis vs
+/// scan contention). Returns the number of rows that could NOT be
+/// persisted after exhausting the retry budget, for the caller's
+/// `failed` tally. Always empties `batch` so the buffer is reusable.
+async fn flush_analysis_batch(pool: &SqlitePool, batch: &mut Vec<PendingAnalysis>) -> u32 {
+    if batch.is_empty() {
+        return 0;
+    }
+    const MAX_ATTEMPTS: usize = 6;
+    let mut backoff = Duration::from_millis(50);
+    for attempt in 1..=MAX_ATTEMPTS {
+        match persist_batch_once(pool, batch).await {
+            Ok(()) => {
+                batch.clear();
+                return 0;
+            }
+            Err(e) if is_busy(&e) && attempt < MAX_ATTEMPTS => {
+                tracing::debug!(attempt, rows = batch.len(), "analysis batch busy; retrying");
+                tokio::time::sleep(backoff).await;
+                backoff = (backoff * 2).min(Duration::from_secs(2));
+            }
+            Err(e) => {
+                let dropped = batch.len() as u32;
+                tracing::warn!(
+                    ?e,
+                    rows = dropped,
+                    "persist analysis batch failed; dropping"
+                );
+                batch.clear();
+                return dropped;
+            }
+        }
+    }
+    // Unreachable: the final attempt either commits or falls into the
+    // catch-all `Err` arm above (its guard requires `attempt <
+    // MAX_ATTEMPTS`). Kept for the type-checker.
+    let dropped = batch.len() as u32;
+    batch.clear();
+    dropped
+}
+
+/// Park the analyzer while a library scan is walking + writing. The
+/// scan is foreground work the user is watching; it pins every CPU
+/// core through the parallel extraction pipeline and holds the single
+/// SQLite writer in bursts. Decoding + writing through it inflates the
+/// scan's wall-clock and loses analysis rows to lock contention, so we
+/// wait the scan out entirely — auto-analyze is best-effort background
+/// work and a scan is always bounded by the library size. Stays
+/// cancel-aware so a "Stop" click lands without waiting on the scan.
+async fn wait_out_active_scan() {
+    while crate::commands::scan::scan_in_flight() {
+        if ANALYSIS_CANCEL.load(Ordering::Relaxed) {
+            return;
+        }
+        tokio::time::sleep(SCAN_WAIT_POLL).await;
     }
 }
 
@@ -463,4 +604,34 @@ pub fn maybe_auto_analyze(app: &AppHandle) {
             tracing::warn!(%err, "auto analyze run failed");
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::code_is_busy;
+
+    #[test]
+    fn busy_and_locked_primary_codes_match() {
+        // Primary BUSY / LOCKED.
+        assert!(code_is_busy("5"));
+        assert!(code_is_busy("6"));
+        // Extended flavours fold to the same primary in the low byte:
+        // BUSY_SNAPSHOT = 517 (5 | 2<<8), BUSY_RECOVERY = 261,
+        // LOCKED_SHAREDCACHE = 262.
+        assert!(code_is_busy("517"));
+        assert!(code_is_busy("261"));
+        assert!(code_is_busy("262"));
+    }
+
+    #[test]
+    fn non_contention_codes_do_not_match() {
+        // CONSTRAINT = 19, READONLY = 8, CANTOPEN = 14, OK = 0.
+        assert!(!code_is_busy("19"));
+        assert!(!code_is_busy("8"));
+        assert!(!code_is_busy("14"));
+        assert!(!code_is_busy("0"));
+        // Garbage / non-numeric never counts as retryable.
+        assert!(!code_is_busy(""));
+        assert!(!code_is_busy("locked"));
+    }
 }
