@@ -8,7 +8,7 @@
 
 use std::collections::HashMap;
 use std::fs;
-use std::io::Read;
+use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
 use lofty::file::FileType;
@@ -30,20 +30,59 @@ pub const AUDIO_EXTENSIONS: &[&str] = &[
     "dsf", "dff",
 ];
 
-/// Stream the file through blake3 in 64 KiB chunks. Full-file hash — slower
-/// than a prefix hash but gives us reliable dedup across moved/renamed files.
+/// Bytes hashed from each of the file's head and tail in the partial
+/// path. 1 MiB each — large enough that distinct tracks differ inside
+/// the window (leading frames) and that tag rewrites land in it (ID3v2
+/// at the head, ID3v1 / APE / Lyrics3 at the tail), small enough that a
+/// multi-MB track reads ~2 MiB instead of its whole length.
+const HASH_CHUNK_BYTES: u64 = 1024 * 1024;
+
+/// Content hash used for dedup + tag-edit detection.
+///
+/// Files larger than `2 * HASH_CHUNK_BYTES` are hashed over their size +
+/// first chunk + last chunk only, instead of every byte. For a typical
+/// audio library this cuts the scan's disk I/O several-fold (full-file
+/// hashing was the dominant cost — reading ~9 GB to scan 900 tracks)
+/// while staying a strong identity:
+/// - moved / renamed files keep the same bytes → same hash (dedup holds),
+/// - a tag rewrite shifts bytes in the head/tail window → hash changes,
+///   so the scanner still re-extracts edited files,
+/// - the file length is folded in, so two files sharing head+tail but
+///   differing in size never collide.
+///
+/// Blind spot: two *distinct* files with identical size, head and tail
+/// but different middle bytes would collide. For real music that does
+/// not occur. Smaller files (≤ `2 * HASH_CHUNK_BYTES`) are hashed whole.
 pub fn hash_file(path: &Path) -> std::io::Result<String> {
+    let mut file = fs::File::open(path)?;
+    let len = file.metadata()?.len();
     let mut hasher = blake3::Hasher::new();
-    let file = fs::File::open(path)?;
-    let mut reader = std::io::BufReader::new(file);
-    let mut buf = [0u8; 64 * 1024];
-    loop {
-        let n = reader.read(&mut buf)?;
-        if n == 0 {
-            break;
+    hasher.update(&len.to_le_bytes());
+
+    if len <= 2 * HASH_CHUNK_BYTES {
+        // Small enough to read fully — also the path most callers and
+        // unit tests exercise.
+        let mut reader = std::io::BufReader::new(file);
+        let mut buf = [0u8; 64 * 1024];
+        loop {
+            let n = reader.read(&mut buf)?;
+            if n == 0 {
+                break;
+            }
+            hasher.update(&buf[..n]);
         }
-        hasher.update(&buf[..n]);
+    } else {
+        let chunk = HASH_CHUNK_BYTES as usize;
+        let mut head = vec![0u8; chunk];
+        file.read_exact(&mut head)?;
+        hasher.update(&head);
+
+        let mut tail = vec![0u8; chunk];
+        file.seek(SeekFrom::End(-(HASH_CHUNK_BYTES as i64)))?;
+        file.read_exact(&mut tail)?;
+        hasher.update(&tail);
     }
+
     Ok(hasher.finalize().to_hex().to_string())
 }
 
@@ -626,5 +665,54 @@ mod tests {
         let cover = extract_folder_cover(&track, &artwork_dir).expect("cover");
         let on_disk = artwork_dir.join(format!("{}.{}", cover.hash, cover.format));
         assert!(on_disk.exists(), "hash-addressed file must be written");
+    }
+
+    #[test]
+    fn hash_file_small_is_content_sensitive() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = dir.path().join("a.bin");
+        let b = dir.path().join("b.bin");
+        write_bytes(&a, b"hello world");
+        write_bytes(&b, b"hello world");
+        assert_eq!(hash_file(&a).unwrap(), hash_file(&b).unwrap());
+        write_bytes(&b, b"hello WORLD");
+        assert_ne!(hash_file(&a).unwrap(), hash_file(&b).unwrap());
+    }
+
+    #[test]
+    fn hash_file_large_detects_head_and_size_changes() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("big.bin");
+        let mut data = vec![7u8; 3 * 1024 * 1024];
+        write_bytes(&path, &data);
+        let base = hash_file(&path).unwrap();
+
+        // A change inside the head window flips the hash.
+        data[10] = 42;
+        write_bytes(&path, &data);
+        assert_ne!(base, hash_file(&path).unwrap());
+
+        // A size change flips the hash even with otherwise-identical
+        // head + tail (the length is folded into the digest).
+        data[10] = 7; // restore head
+        data.push(7); // grow by one byte
+        write_bytes(&path, &data);
+        assert_ne!(base, hash_file(&path).unwrap());
+    }
+
+    #[test]
+    fn hash_file_large_blind_to_middle() {
+        // Documents the partial-hash tradeoff: a byte strictly between
+        // the head and tail windows doesn't change the digest. Distinct
+        // real tracks never hit this — their head and/or size differ.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("big.bin");
+        let mut data = vec![7u8; 3 * 1024 * 1024];
+        write_bytes(&path, &data);
+        let base = hash_file(&path).unwrap();
+
+        data[1_500_000] = 99; // > 1 MiB (head end), < 2 MiB (tail start)
+        write_bytes(&path, &data);
+        assert_eq!(base, hash_file(&path).unwrap());
     }
 }
