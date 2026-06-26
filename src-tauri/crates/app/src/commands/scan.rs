@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::UNIX_EPOCH;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+use std::time::{Instant, UNIX_EPOCH};
 
 use futures::StreamExt;
 use lofty::file::TaggedFileExt;
@@ -184,7 +186,22 @@ fn extract_dsd_file(
 /// Single-file extraction dispatcher: branches DSF/DFF onto the
 /// in-tree `audio::dsd` pipeline (symphonia/lofty don't read DSD) and
 /// everything else through lofty.
-fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String> {
+/// Cumulative per-phase timing for one scan, summed across all the
+/// parallel extraction tasks (so totals can exceed the wall-clock — the
+/// scan summary divides by the parallelism to gauge saturation). Pure
+/// diagnostics: lets us see whether a slow scan is hash-bound (BLAKE3
+/// full-file read) or tag-bound (lofty) before choosing a fix.
+#[derive(Default)]
+struct ScanTimings {
+    hash_us: AtomicU64,
+    tag_us: AtomicU64,
+}
+
+fn extract_file(
+    path: &Path,
+    artwork_dir: &Path,
+    timings: &ScanTimings,
+) -> Result<ExtractedFile, String> {
     let metadata = fs::metadata(path).map_err(|e| format!("metadata: {e}"))?;
     let size = metadata.len() as i64;
     let modified_ms = metadata
@@ -194,7 +211,11 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
         .map(|d| d.as_millis() as i64)
         .unwrap_or(0);
 
+    let t_hash = Instant::now();
     let hash = hash_file(path).map_err(|e| format!("hash: {e}"))?;
+    timings
+        .hash_us
+        .fetch_add(t_hash.elapsed().as_micros() as u64, Ordering::Relaxed);
 
     // DSD has its own pipeline — symphonia/lofty don't read DSF/DFF.
     // Branch up-front so the rest of the function can keep using
@@ -206,7 +227,11 @@ fn extract_file(path: &Path, artwork_dir: &Path) -> Result<ExtractedFile, String
         }
     }
 
+    let t_tag = Instant::now();
     let tagged = lofty::read_from_path(path).map_err(|e| format!("lofty: {e}"))?;
+    timings
+        .tag_us
+        .fetch_add(t_tag.elapsed().as_micros() as u64, Ordering::Relaxed);
     let props = tagged.properties();
     let duration_ms = props.duration().as_millis() as i64;
     let bitrate = props.audio_bitrate().map(|b| b as i64);
@@ -354,6 +379,10 @@ pub(crate) async fn scan_folder_inner(
         return Err(AppError::Other(format!("folder {folder_id} not found")));
     };
 
+    // Phase timers (diagnostics — logged once at the end so a slow scan
+    // on a big library tells us which phase to optimise).
+    let t_scan = Instant::now();
+
     // Walk the directory off-thread — walkdir is blocking and a deep tree can
     // take a noticeable fraction of a second to enumerate.
     let folder_path_owned = folder_path.clone();
@@ -376,6 +405,7 @@ pub(crate) async fn scan_folder_inner(
     })
     .await
     .map_err(|e| AppError::Other(format!("walk task failed: {e}")))?;
+    let walk_ms = t_scan.elapsed().as_millis();
 
     let mut summary = ScanSummary {
         folder_id,
@@ -409,6 +439,7 @@ pub(crate) async fn scan_folder_inner(
         .into_iter()
         .map(|(p, mtime, size)| (p, (mtime, size)))
         .collect();
+    let meta_load_ms = t_scan.elapsed().as_millis();
 
     let total_files = audio_files.len();
 
@@ -459,6 +490,8 @@ pub(crate) async fn scan_folder_inner(
         }
         to_extract.push(path);
     }
+    let stat_ms = t_scan.elapsed().as_millis();
+    let to_extract_count = to_extract.len();
 
     // ─── Phase 2: Parallel extract + transactional DB writes ──────
     //
@@ -478,12 +511,16 @@ pub(crate) async fn scan_folder_inner(
         .unwrap_or(4);
     const TX_BATCH: usize = 200;
 
+    let timings = Arc::new(ScanTimings::default());
     let extraction_stream = futures::stream::iter(to_extract)
         .map(|path: PathBuf| {
             let artwork_dir = artwork_dir.to_path_buf();
+            let timings = Arc::clone(&timings);
             let p = path.clone();
             async move {
-                let res = tokio::task::spawn_blocking(move || extract_file(&p, &artwork_dir)).await;
+                let res =
+                    tokio::task::spawn_blocking(move || extract_file(&p, &artwork_dir, &timings))
+                        .await;
                 (path, res)
             }
         })
@@ -917,6 +954,7 @@ pub(crate) async fn scan_folder_inner(
     }
 
     tx.commit().await?;
+    let extract_db_ms = t_scan.elapsed().as_millis();
 
     // Anything still in the map was on disk last time but isn't now.
     // Mark it unavailable rather than deleting — preserves play_event
@@ -973,6 +1011,11 @@ pub(crate) async fn scan_folder_inner(
         Err(err) => tracing::warn!(?err, "link_va_artist_image: acquire failed (non-fatal)"),
     }
 
+    // Per-phase breakdown so a slow scan on a big library is diagnosable
+    // from the log alone. `*_ms` are wall-clock deltas between phases;
+    // `hash_cpu_ms_total` / `tag_cpu_ms_total` are summed across the
+    // `parallelism` extraction threads, so compare them to
+    // `extract_db_ms * parallelism` to tell hash-bound from tag-bound.
     tracing::info!(
         folder_id,
         library_id,
@@ -982,6 +1025,16 @@ pub(crate) async fn scan_folder_inner(
         skipped = summary.skipped,
         removed = summary.removed,
         errors = summary.errors,
+        extracted = to_extract_count,
+        parallelism,
+        walk_ms,
+        meta_load_ms = meta_load_ms.saturating_sub(walk_ms),
+        stat_ms = stat_ms.saturating_sub(meta_load_ms),
+        extract_db_ms = extract_db_ms.saturating_sub(stat_ms),
+        post_ms = t_scan.elapsed().as_millis().saturating_sub(extract_db_ms),
+        total_ms = t_scan.elapsed().as_millis(),
+        hash_cpu_ms_total = timings.hash_us.load(Ordering::Relaxed) / 1000,
+        tag_cpu_ms_total = timings.tag_us.load(Ordering::Relaxed) / 1000,
         "scan complete"
     );
 
