@@ -1,15 +1,16 @@
 //! Duplicate-track detection.
 //!
-//! Groups tracks by their `file_hash` so visually identical files in
-//! different folders fall into the same group regardless of metadata.
-//! The stored hash is a *partial* blake3 (size + head + tail, computed
-//! at scan time for speed), so a SQL group is only a candidate — the
-//! command re-verifies each with a full-content hash before returning,
-//! since the UI lets the user delete from a group. The hash is
-//! content-only, so renames / re-tags after the initial scan still
-//! group correctly — but two re-encodes of the same source (e.g. CBR vs
-//! VBR rips of the same track) won't match because the bytes differ.
-//! That's a fingerprinting problem and out of scope for this MVP.
+//! Groups byte-identical files (in different folders, regardless of
+//! metadata) so the user can prune copies. The scan-time `file_hash` is
+//! a *partial* blake3 (size + head + tail, for speed) and isn't
+//! distinguishable from a legacy full digest, so the command prefilters
+//! candidates by byte SIZE — a format-stable field every duplicate
+//! shares — then re-verifies each candidate with a full-content hash
+//! before returning, since the UI lets the user delete from a group.
+//! Identity is content-only, so renames / re-tags still group correctly
+//! — but two re-encodes of the same source (e.g. CBR vs VBR rips) won't
+//! match because the bytes differ. That's a fingerprinting problem and
+//! out of scope for this MVP.
 
 use serde::Serialize;
 
@@ -45,11 +46,14 @@ pub struct DuplicateGroup {
 pub async fn find_duplicates(state: tauri::State<'_, AppState>) -> AppResult<Vec<DuplicateGroup>> {
     let pool = state.require_profile_pool().await?;
 
-    // Pull every duplicated row in one round-trip — joining on the
-    // hash subquery is cheaper than running N+1 queries.
+    // Pull every candidate row in one round-trip. Candidates are tracks
+    // that share their byte SIZE with another — a format-stable
+    // prefilter that catches duplicates whether their stored hash is a
+    // legacy full digest or a newer partial one (both are 64-char blake3
+    // hex, indistinguishable). The full-content verification below forms
+    // the real groups.
     #[allow(clippy::type_complexity)]
     let rows: Vec<(
-        String,
         i64,
         String,
         Option<String>,
@@ -62,8 +66,7 @@ pub async fn find_duplicates(state: tauri::State<'_, AppState>) -> AppResult<Vec
         i64,
     )> = sqlx::query_as(
         r#"
-        SELECT t.file_hash,
-               t.id,
+        SELECT t.id,
                t.title,
                (SELECT GROUP_CONCAT(name, ', ') FROM (
                    SELECT ar.name FROM track_artist ta
@@ -80,101 +83,93 @@ pub async fn find_duplicates(state: tauri::State<'_, AppState>) -> AppResult<Vec
                t.added_at
           FROM track t
           LEFT JOIN album al ON al.id = t.album_id
-         WHERE t.file_hash IN (
-             SELECT file_hash FROM track
+         WHERE t.file_size IN (
+             SELECT file_size FROM track
               WHERE is_available = 1
-              GROUP BY file_hash
+              GROUP BY file_size
               HAVING COUNT(*) > 1
          )
            AND t.is_available = 1
-         ORDER BY t.file_hash, t.added_at ASC
+         ORDER BY t.file_size, t.added_at ASC
         "#,
     )
     .fetch_all(&pool)
     .await?;
 
-    // Bucket by hash. The ORDER BY above guarantees consecutive rows
-    // with the same hash, so a one-pass group is enough — no HashMap
-    // needed.
-    let mut groups: Vec<DuplicateGroup> = Vec::new();
-    for (
-        hash,
-        id,
-        title,
-        artist_name,
-        album_title,
-        file_path,
-        file_size,
-        bitrate,
-        sample_rate,
-        duration_ms,
-        added_at,
-    ) in rows
-    {
-        let track = DuplicateTrack {
-            id,
-            title,
-            artist_name,
-            album_title,
-            file_path,
-            file_size,
-            bitrate,
-            sample_rate,
-            duration_ms,
-            added_at,
-        };
-        match groups.last_mut() {
-            Some(g) if g.file_hash == hash => g.tracks.push(track),
-            _ => groups.push(DuplicateGroup {
-                file_hash: hash,
-                tracks: vec![track],
-            }),
-        }
-    }
+    let candidates: Vec<DuplicateTrack> = rows
+        .into_iter()
+        .map(
+            |(
+                id,
+                title,
+                artist_name,
+                album_title,
+                file_path,
+                file_size,
+                bitrate,
+                sample_rate,
+                duration_ms,
+                added_at,
+            )| DuplicateTrack {
+                id,
+                title,
+                artist_name,
+                album_title,
+                file_path,
+                file_size,
+                bitrate,
+                sample_rate,
+                duration_ms,
+                added_at,
+            },
+        )
+        .collect();
 
-    // The stored `file_hash` is a *partial* digest (size + head + tail)
-    // chosen for scan speed, so a group is only a *candidate*: two
-    // distinct files could in theory share it while differing in their
-    // middle bytes. A delete follows, so confirm byte-identity with a
-    // full-content hash — computed off-thread and only on these few
-    // candidate files. Splits any collision into separate groups and
-    // drops the singletons that fall out.
-    let refined = tokio::task::spawn_blocking(move || verify_groups_full_content(groups))
+    // The size prefilter is only a *candidate* set, and a delete follows,
+    // so confirm byte-identity with a full-content hash — computed
+    // off-thread and only on these few candidate files. This both forms
+    // the real groups and closes the partial-hash middle-byte blind spot.
+    let groups = tokio::task::spawn_blocking(move || verify_groups_full_content(candidates))
         .await
         .map_err(|e| AppError::Other(format!("dedup verify task failed: {e}")))?;
-    Ok(refined)
+    Ok(groups)
 }
 
-/// Re-bucket each partial-hash candidate group by a full-content hash so
-/// only genuinely byte-identical files stay grouped. A file that can't
-/// be read is dropped (we won't offer to delete what we can't verify).
-fn verify_groups_full_content(groups: Vec<DuplicateGroup>) -> Vec<DuplicateGroup> {
+/// Bucket the size-prefiltered candidates by a full-content hash so only
+/// genuinely byte-identical files stay grouped — independent of whatever
+/// (legacy full / new partial) digest is stored on each row. A file that
+/// can't be read is dropped (we won't offer to delete what we can't
+/// verify); buckets that collapse to a single track are not duplicates.
+fn verify_groups_full_content(candidates: Vec<DuplicateTrack>) -> Vec<DuplicateGroup> {
     use std::collections::HashMap;
 
-    let mut out: Vec<DuplicateGroup> = Vec::new();
-    for group in groups {
-        let mut by_full: HashMap<String, Vec<DuplicateTrack>> = HashMap::new();
-        for track in group.tracks {
-            match waveflow_core::scanner::hash_file_full(std::path::Path::new(&track.file_path)) {
-                Ok(full) => by_full.entry(full).or_default().push(track),
-                Err(err) => tracing::warn!(
-                    path = %track.file_path,
-                    error = %err,
-                    "dedup full-content hash failed; excluding track from its group"
-                ),
-            }
-        }
-        for (full_hash, mut tracks) in by_full {
-            if tracks.len() > 1 {
-                // Keep the oldest-first ordering the SQL query established.
-                tracks.sort_by_key(|t| t.added_at);
-                out.push(DuplicateGroup {
-                    file_hash: full_hash,
-                    tracks,
-                });
-            }
+    let mut by_full: HashMap<String, Vec<DuplicateTrack>> = HashMap::new();
+    for track in candidates {
+        match waveflow_core::scanner::hash_file_full(std::path::Path::new(&track.file_path)) {
+            Ok(full) => by_full.entry(full).or_default().push(track),
+            Err(err) => tracing::warn!(
+                path = %track.file_path,
+                error = %err,
+                "dedup full-content hash failed; excluding track"
+            ),
         }
     }
+
+    let mut out: Vec<DuplicateGroup> = by_full
+        .into_iter()
+        .filter(|(_, tracks)| tracks.len() > 1)
+        .map(|(full_hash, mut tracks)| {
+            // Oldest copy first — usually the one the user keeps.
+            tracks.sort_by_key(|t| t.added_at);
+            DuplicateGroup {
+                file_hash: full_hash,
+                tracks,
+            }
+        })
+        .collect();
+    // HashMap iteration order is non-deterministic; sort groups so the UI
+    // renders the same order across calls.
+    out.sort_by_key(|g| g.tracks.first().map(|t| t.added_at).unwrap_or(0));
     out
 }
 
@@ -234,4 +229,60 @@ pub async fn delete_tracks(
 
     let _ = app.emit("library:rescanned", ());
     Ok(deleted)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{verify_groups_full_content, DuplicateTrack};
+
+    fn track(path: String, added_at: i64) -> DuplicateTrack {
+        DuplicateTrack {
+            id: added_at,
+            title: "t".into(),
+            artist_name: None,
+            album_title: None,
+            file_path: path,
+            file_size: 0,
+            bitrate: None,
+            sample_rate: None,
+            duration_ms: 0,
+            added_at,
+        }
+    }
+
+    #[test]
+    fn groups_identical_files_by_content_not_stored_hash() {
+        // Two byte-identical files + one different. In a mixed library
+        // the identical pair could carry a legacy full hash on one row
+        // and a new partial hash on the other; verify reads the bytes,
+        // so they still group. `DuplicateTrack` carries no stored hash —
+        // that's the point: identity is content-derived here.
+        let dir = tempfile::tempdir().unwrap();
+        let a = dir.path().join("a.bin");
+        let b = dir.path().join("b.bin");
+        let c = dir.path().join("c.bin");
+        std::fs::write(&a, b"same bytes").unwrap();
+        std::fs::write(&b, b"same bytes").unwrap();
+        std::fs::write(&c, b"different bytes").unwrap();
+
+        let groups = verify_groups_full_content(vec![
+            track(a.to_string_lossy().into_owned(), 1),
+            track(b.to_string_lossy().into_owned(), 2),
+            track(c.to_string_lossy().into_owned(), 3),
+        ]);
+
+        assert_eq!(groups.len(), 1, "only the identical pair forms a group");
+        let mut ids: Vec<i64> = groups[0].tracks.iter().map(|t| t.id).collect();
+        ids.sort();
+        assert_eq!(ids, vec![1, 2]);
+    }
+
+    #[test]
+    fn unreadable_files_are_excluded() {
+        let groups = verify_groups_full_content(vec![
+            track("/no/such/file/x.bin".into(), 1),
+            track("/no/such/file/y.bin".into(), 2),
+        ]);
+        assert!(groups.is_empty());
+    }
 }
