@@ -474,6 +474,14 @@ async fn flush_analysis_batch(pool: &SqlitePool, batch: &mut Vec<PendingAnalysis
     if batch.is_empty() {
         return 0;
     }
+    // Park the write itself behind any in-flight scan, not just the
+    // decode that fed this batch — a scan can start during the ~8 s
+    // decode of the track that tipped the buffer over the batch size,
+    // and the end-of-run flush has no decode gate at all. Gating here
+    // centralises the "yield to the foreground scanner" invariant on
+    // every flush path. Cancel-aware (via `wait_out_active_scan`), so
+    // a "Stop" still lets the decoded results land.
+    wait_out_active_scan().await;
     const MAX_ATTEMPTS: usize = 6;
     let mut backoff = Duration::from_millis(50);
     for attempt in 1..=MAX_ATTEMPTS {
