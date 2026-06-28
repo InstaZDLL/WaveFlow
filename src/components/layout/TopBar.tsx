@@ -244,6 +244,10 @@ export function TopBar({
   const resetFilters = () => setFilters({});
 
   const closeSearch = () => {
+    // Invalidate any in-flight request so a slow response can't reopen
+    // the dropdown after the user navigated away (e.g. clicked an album
+    // row while the fan-out was still resolving).
+    searchSeqRef.current += 1;
     setIsSearchOpen(false);
     setSearchQuery("");
     setSearchResults([]);
