@@ -6,6 +6,7 @@ import { EmptyState } from "../common/EmptyState";
 import { DetailViewSkeleton } from "../common/DetailViewSkeleton";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { ArtistImagePickerModal } from "../common/ArtistImagePickerModal";
+import { ArtistMetadataEditorModal } from "../common/ArtistMetadataEditorModal";
 import { HiResBadge } from "../common/HiResBadge";
 import { PlayingIndicator } from "../common/PlayingIndicator";
 import { Lightbox } from "../common/Lightbox";
@@ -57,6 +58,10 @@ export function ArtistDetailView({
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
   const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
+  const [isMetadataEditorOpen, setIsMetadataEditorOpen] = useState(false);
+  // Bumped after a bio/similar override save so the enrichment +
+  // similar effects re-run and pick up the new local values.
+  const [overrideRefetch, setOverrideRefetch] = useState(0);
 
   const trackContextMenu = useTrackContextMenu({
     likedIds,
@@ -174,7 +179,7 @@ export function ArtistDetailView({
     return () => {
       cancelled = true;
     };
-  }, [artistId]);
+  }, [artistId, overrideRefetch]);
 
   // Deezer enrichment. Gated on `artist` being loaded so the
   // "local-wins-over-Deezer" guard below can read `artwork_path` from a
@@ -204,7 +209,7 @@ export function ArtistDetailView({
     return () => {
       cancelled = true;
     };
-  }, [artistId, hasLocalArtistImage, artist]);
+  }, [artistId, hasLocalArtistImage, artist, overrideRefetch]);
 
   const handleToggleLike = async (trackId: number) => {
     const nowLiked = await toggleLikeTrack(trackId);
@@ -342,6 +347,14 @@ export function ArtistDetailView({
             >
               <Shuffle size={16} />
               <span>{t("artistDetail.shuffle")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsMetadataEditorOpen(true)}
+              className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm"
+            >
+              <Pencil size={16} />
+              <span>{t("artistDetail.editMetadata")}</span>
             </button>
           </div>
         </div>
@@ -531,6 +544,22 @@ export function ArtistDetailView({
         isOpen={isImagePickerOpen}
         onClose={() => setIsImagePickerOpen(false)}
         onSuccess={() => setEditRefetch((k) => k + 1)}
+      />
+
+      <ArtistMetadataEditorModal
+        artistId={artist.id}
+        artistName={artist.name}
+        isOpen={isMetadataEditorOpen}
+        onClose={() => setIsMetadataEditorOpen(false)}
+        onSuccess={() => {
+          // Reset bio so the enrichment effect repopulates from the new
+          // source — clearing an override must drop the stale text, and
+          // the effect only ever *sets* bio (never nulls it).
+          setBioShort(null);
+          setBioFull(null);
+          setBioExpanded(false);
+          setOverrideRefetch((k) => k + 1);
+        }}
       />
     </div>
   );

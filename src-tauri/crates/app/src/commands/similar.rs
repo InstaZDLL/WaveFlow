@@ -68,6 +68,16 @@ pub async fn get_similar_artists(
 ) -> AppResult<Vec<SimilarArtistDto>> {
     let pool = state.require_profile_pool().await?;
     let artwork_dir = state.paths.metadata_artwork_dir.clone();
+
+    // 0. Per-profile curated override (issue #323) wins over every
+    //    online source and works offline. When the user has pinned a
+    //    similar list it's library-scoped by construction, so we return
+    //    it verbatim — no cache, no network.
+    let custom = fetch_custom_similar(&pool, &artwork_dir, artist_id).await?;
+    if !custom.is_empty() {
+        return Ok(custom);
+    }
+
     let api_key = read_lastfm_api_key(&state).await?;
 
     // 1. Resolve the source artist's name + Deezer ID (used by the
@@ -191,6 +201,51 @@ pub async fn get_similar_artists(
                 library_artist_id: local.map(|(id, _)| *id),
                 source: r.source,
             }
+        })
+        .collect();
+    Ok(out)
+}
+
+/// Read the user's curated similar list (issue #323) for `artist_id`,
+/// resolved into display DTOs. Returns an empty vec when no override is
+/// set — the caller then falls through to the online cascade. Every
+/// entry is in the library by construction, so `library_artist_id` is
+/// always populated and `picture_path` comes straight from the shared
+/// Deezer cache (works offline).
+async fn fetch_custom_similar(
+    pool: &SqlitePool,
+    artwork_dir: &std::path::Path,
+    artist_id: i64,
+) -> AppResult<Vec<SimilarArtistDto>> {
+    let rows: Vec<(i64, String, Option<String>, Option<String>)> = sqlx::query_as(
+        r#"
+        SELECT a.id, a.name, ma.picture_url, ma.picture_hash
+          FROM artist_similar_custom sc
+          JOIN artist a ON a.id = sc.similar_artist_id
+          LEFT JOIN app.metadata_artist ma ON ma.deezer_id = a.deezer_id
+         WHERE sc.artist_id = ?
+         ORDER BY sc.position
+        "#,
+    )
+    .bind(artist_id)
+    .fetch_all(pool)
+    .await?;
+
+    let n = rows.len().max(1) as f32;
+    let out = rows
+        .into_iter()
+        .enumerate()
+        .map(|(i, (id, name, picture_url, picture_hash))| SimilarArtistDto {
+            name,
+            // Synthesize a decreasing score from the curated order so
+            // the UI sorts these the same way it sorts online results.
+            match_score: 1.0 - (i as f32) / n,
+            picture_path: picture_hash
+                .as_deref()
+                .and_then(|h| metadata_artwork::existing_path(artwork_dir, h)),
+            picture_url,
+            library_artist_id: Some(id),
+            source: "custom".into(),
         })
         .collect();
     Ok(out)

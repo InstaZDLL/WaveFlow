@@ -971,7 +971,8 @@
       "title": "相似藝人",
       "inLibrary": "在您的音樂庫中",
       "notInLibrary": "不在您的音樂庫中"
-    }
+    },
+    "editMetadata": "編輯資訊"
   },
   "artistImagePicker": {
     "title": "更改藝人圖片",
@@ -1948,5 +1949,21 @@
     "browseByCountry": "依國家/地區瀏覽",
     "localCatalogue": "Local catalogue",
     "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+  },
+  "artistMetadataEditor": {
+    "title": "編輯中繼資料",
+    "subtitle": "為 {{name}} 自訂簡介與相似藝人。",
+    "bio": {
+      "label": "自訂簡介",
+      "reset": "還原為線上",
+      "placeholder": "輸入簡介。留空則使用線上取得的簡介。",
+      "help": "取代 Last.fm / TheAudioDB 簡介。可離線使用。"
+    },
+    "similar": {
+      "label": "自訂相似藝人",
+      "placeholder": "從你的音樂庫搜尋藝人…",
+      "remove": "移除 {{name}}",
+      "help": "從你的音樂庫選擇藝人。留空＝線上清單。"
+    }
   }
 }

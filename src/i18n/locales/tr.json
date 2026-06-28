@@ -971,7 +971,8 @@
       "title": "Benzer sanatçılar",
       "inLibrary": "Kütüphanende",
       "notInLibrary": "Kütüphanende yok"
-    }
+    },
+    "editMetadata": "Bilgileri düzenle"
   },
   "artistImagePicker": {
     "title": "Sanatçı görselini değiştir",
@@ -1948,5 +1949,21 @@
     "browseByCountry": "Ülkeye göre gözat",
     "localCatalogue": "Local catalogue",
     "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+  },
+  "artistMetadataEditor": {
+    "title": "Meta verileri düzenle",
+    "subtitle": "{{name}} için özel biyografi ve benzer sanatçılar.",
+    "bio": {
+      "label": "Özel biyografi",
+      "reset": "Çevrimiçine sıfırla",
+      "placeholder": "Bir biyografi yazın. Çevrimiçi alınanı kullanmak için boş bırakın.",
+      "help": "Last.fm / TheAudioDB biyografisinin yerini alır. Çevrimdışı çalışır."
+    },
+    "similar": {
+      "label": "Özel benzer sanatçılar",
+      "placeholder": "Kitaplığınızdan bir sanatçı arayın…",
+      "remove": "{{name}} sanatçısını kaldır",
+      "help": "Kitaplığınızdan sanatçı seçin. Boş = çevrimiçi liste."
+    }
   }
 }

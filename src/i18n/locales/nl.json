@@ -971,7 +971,8 @@
       "title": "Vergelijkbare artiesten",
       "inLibrary": "In je bibliotheek",
       "notInLibrary": "Niet in je bibliotheek"
-    }
+    },
+    "editMetadata": "Info bewerken"
   },
   "artistImagePicker": {
     "title": "Artiestafbeelding wijzigen",
@@ -1948,5 +1949,21 @@
     "browseByCountry": "Bladeren per land",
     "localCatalogue": "Local catalogue",
     "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+  },
+  "artistMetadataEditor": {
+    "title": "Metadata bewerken",
+    "subtitle": "Aangepaste bio en vergelijkbare artiesten voor {{name}}.",
+    "bio": {
+      "label": "Aangepaste biografie",
+      "reset": "Terug naar online",
+      "placeholder": "Typ een bio. Laat leeg om de online opgehaalde te gebruiken.",
+      "help": "Vervangt de Last.fm-/TheAudioDB-bio. Werkt offline."
+    },
+    "similar": {
+      "label": "Aangepaste vergelijkbare artiesten",
+      "placeholder": "Zoek een artiest uit je bibliotheek…",
+      "remove": "{{name}} verwijderen",
+      "help": "Kies artiesten uit je bibliotheek. Leeg = online lijst."
+    }
   }
 }
