@@ -72,10 +72,14 @@ export function useHiddenKpis(): HiddenKpis {
 
   useEffect(() => {
     let cancelled = false;
-    // Reset readiness on profile switch — the previous profile's
-    // values are stale until the new read lands.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // Start each profile from a clean slate: clear the previous
+    // profile's hidden set and readiness immediately, so a stale set
+    // can never leak into the Settings checkboxes (which read
+    // `isHidden` ungated) before — or if — the new read lands.
+    /* eslint-disable react-hooks/set-state-in-effect */
     setReady(false);
+    setHidden(new Set());
+    /* eslint-enable react-hooks/set-state-in-effect */
     const refresh = async () => {
       try {
         const raw = await getProfileSetting(KEY);
@@ -95,23 +99,29 @@ export function useHiddenKpis(): HiddenKpis {
     };
   }, [activeProfile?.id]);
 
-  const toggle = useCallback(async (id: StatsKpiId) => {
-    let nextArray: StatsKpiId[] = [];
-    setHidden((prev) => {
-      const next = new Set(prev);
+  const toggle = useCallback(
+    async (id: StatsKpiId) => {
+      // Snapshot the pre-toggle state so we can roll back if the write
+      // fails. `[hidden]` in the deps keeps this closure fresh.
+      const previous = hidden;
+      const next = new Set(previous);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      setHidden(next); // optimistic
       // Persist in declaration order for a stable, diff-friendly blob.
-      nextArray = STATS_KPI_IDS.filter((k) => next.has(k));
-      return next;
-    });
-    try {
-      await setProfileSetting(KEY, JSON.stringify(nextArray), "json");
-      window.dispatchEvent(new CustomEvent(HIDDEN_KPIS_EVENT));
-    } catch (err) {
-      console.error("[useHiddenKpis] write failed", err);
-    }
-  }, []);
+      const nextArray = STATS_KPI_IDS.filter((k) => next.has(k));
+      try {
+        await setProfileSetting(KEY, JSON.stringify(nextArray), "json");
+        window.dispatchEvent(new CustomEvent(HIDDEN_KPIS_EVENT));
+      } catch (err) {
+        console.error("[useHiddenKpis] write failed", err);
+        // Roll back so the UI stays consistent with what's persisted;
+        // skip the broadcast since nothing actually changed.
+        setHidden(previous);
+      }
+    },
+    [hidden],
+  );
 
   const isHidden = useCallback((id: StatsKpiId) => hidden.has(id), [hidden]);
 

@@ -128,7 +128,12 @@ export function StatisticsView({
       statsTopTracks(range, TOP_LIMIT),
       statsTopArtists(range, TOP_LIMIT),
       statsTopAlbums(range, TOP_LIMIT),
-      statsTopGenres(range, TOP_LIMIT),
+      // Genres degrade to an empty list on error so a genre-query
+      // failure never blocks the rest of the dashboard from loading.
+      statsTopGenres(range, TOP_LIMIT).catch((err) => {
+        console.error("[StatisticsView] top genres load failed", err);
+        return [] as TopGenreRow[];
+      }),
     ])
       .then(([ov, day, hour, tracks, artists, albums, genres]) => {
         if (cancelled) return;
