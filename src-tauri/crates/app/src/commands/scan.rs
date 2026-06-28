@@ -242,6 +242,16 @@ struct ScanTimings {
     /// `extract_db_ms` is the single-writer DB path vs the parallel
     /// extraction feeding it. Diagnostics only.
     db_us: AtomicU64,
+    /// Subset of `db_us` spent inside `maybe_link_artist_images` — the
+    /// per-track sidecar-artist-image walk (`fs::read_dir` of up to 3
+    /// ancestor dirs + a `canonical_name` per directory entry). On a
+    /// library with no local artist images this re-walks the same
+    /// folders for the same artists on every track, so it's the prime
+    /// suspect for the chunk of `db_ms_total` that the upsert
+    /// memoisation did NOT move. Diagnostics only — split out to
+    /// confirm before optimising (the SQL-lookup memo was measured to
+    /// barely dent `db_ms_total`, so guessing isn't enough).
+    link_us: AtomicU64,
 }
 
 /// Scan-scoped memo for the `artist` / `genre` lookups that otherwise
@@ -839,6 +849,7 @@ pub(crate) async fn scan_folder_inner(
                     .bind(existing_track_id)
                     .fetch_all(&mut *tx)
                     .await?;
+                    let t_link = Instant::now();
                     maybe_link_artist_images(
                         &mut tx,
                         Some(raw),
@@ -847,6 +858,9 @@ pub(crate) async fn scan_folder_inner(
                         artwork_dir,
                     )
                     .await?;
+                    timings
+                        .link_us
+                        .fetch_add(t_link.elapsed().as_micros() as u64, Ordering::Relaxed);
                 }
 
                 // Phase 4.d.0.3: emit a sync op ONLY when the skip
@@ -907,6 +921,7 @@ pub(crate) async fn scan_folder_inner(
                     .await?;
                 }
 
+                let t_link = Instant::now();
                 maybe_link_artist_images(
                     &mut tx,
                     extracted.artist.as_deref(),
@@ -915,6 +930,9 @@ pub(crate) async fn scan_folder_inner(
                     artwork_dir,
                 )
                 .await?;
+                timings
+                    .link_us
+                    .fetch_add(t_link.elapsed().as_micros() as u64, Ordering::Relaxed);
 
                 sqlx::query(
                     "UPDATE track SET
@@ -1033,6 +1051,7 @@ pub(crate) async fn scan_folder_inner(
                     .await?;
             }
 
+            let t_link = Instant::now();
             maybe_link_artist_images(
                 &mut tx,
                 extracted.artist.as_deref(),
@@ -1041,6 +1060,9 @@ pub(crate) async fn scan_folder_inner(
                 artwork_dir,
             )
             .await?;
+            timings
+                .link_us
+                .fetch_add(t_link.elapsed().as_micros() as u64, Ordering::Relaxed);
 
             let insert = sqlx::query(
                 "INSERT INTO track (
@@ -1212,6 +1234,8 @@ pub(crate) async fn scan_folder_inner(
         // this is the parallel extraction (hash + cover) the consumer
         // waited on.
         db_ms_total = timings.db_us.load(Ordering::Relaxed) / 1000,
+        // Subset of db_ms_total spent in the sidecar-artist-image walk.
+        link_ms_total = timings.link_us.load(Ordering::Relaxed) / 1000,
         "scan complete"
     );
 
