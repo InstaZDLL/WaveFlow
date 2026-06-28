@@ -8,7 +8,8 @@
 //! breaking the single-writer discipline (see CLAUDE.md "Single writer
 //! to SQLite").
 
-use std::path::Path;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 
 use chrono::Utc;
 use sqlx::SqlitePool;
@@ -321,19 +322,44 @@ pub async fn link_local_artist_image(
 /// Skips the "Various Artists" sentinel here because VA is an *album*
 /// artist (it never appears in `track_artist`); its sidecar image is
 /// resolved separately via the album relationship in [`link_va_artist_image`].
+/// `seen` memoises the `(artist_id, track parent dir)` pairs already
+/// run through the sidecar walk **this scan**. The walk is by far the
+/// hottest part of a first scan — `fs::read_dir` of up to 3 ancestor
+/// dirs + a `canonical_name` per image entry, per artist, per track,
+/// nearly all of it wasted on libraries without local artist images
+/// (measured at ~98 % of the scan's DB time). The result for a given
+/// `(artist, track-parent)` is deterministic, so once seen we skip it.
+///
+/// The skip is **per artist**, not per track: a track that adds a new
+/// featured artist to an already-walked album artist only walks for the
+/// newcomer. The parent dir is in the key, so a different folder of the
+/// same artist still walks — no per-album sidecar is missed. Callers
+/// thread one `seen` set across the whole scan; a one-off lookup can
+/// pass a throwaway `&mut HashSet::new()`.
 pub async fn maybe_link_artist_images(
     conn: &mut sqlx::SqliteConnection,
     artist_raw: Option<&str>,
     artist_ids: &[i64],
     track_path: &Path,
     artwork_dir: &Path,
+    seen: &mut HashSet<(i64, PathBuf)>,
 ) -> CoreResult<()> {
     let Some(raw) = artist_raw else {
         return Ok(());
     };
     let names = split_artist_name(raw);
     let va_canon = canonical_name(VARIOUS_ARTISTS_LABEL);
+    let parent = track_path.parent();
     for (name, id) in names.iter().zip(artist_ids.iter()) {
+        // Per-(artist, folder) skip. `insert` returns false when the
+        // pair was already attempted this scan — the walk + the
+        // has-artwork probe below are deterministic for it, so there's
+        // nothing new to find.
+        if let Some(p) = parent {
+            if !seen.insert((*id, p.to_path_buf())) {
+                continue;
+            }
+        }
         let canon = canonical_name(name);
         if canon.is_empty() || canon == va_canon {
             continue;

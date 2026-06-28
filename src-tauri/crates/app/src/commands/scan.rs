@@ -338,53 +338,6 @@ impl UpsertCache {
     }
 }
 
-/// Cached wrapper over [`maybe_link_artist_images`], keyed on
-/// `(artist_id, track parent dir)`.
-///
-/// The sidecar-artist-image walk (`fs::read_dir` of up to 3 ancestor
-/// dirs + a `canonical_name` per entry) is deterministic for a given
-/// `(artist, track-parent)` — every track in the same album folder
-/// walks the identical ancestors and gets the identical result. On a
-/// library with no local artist images that walk finds nothing yet
-/// re-runs for all ~18 tracks of every folder, and it was measured at
-/// ~98 % of the whole scan's DB time (`link_ms_total`). Skipping the
-/// re-walk once `(artist_id, parent)` has been seen collapses it to one
-/// walk per folder per artist.
-///
-/// Behaviour-preserving: the key includes the parent dir, so a
-/// different folder of the same artist still walks (a per-album sidecar
-/// is never missed). The first track of a folder still runs the full
-/// helper, so the `has_artwork` short-circuit + the actual link for
-/// artists that DO have a sidecar are unchanged.
-async fn link_artist_images_cached(
-    conn: &mut sqlx::SqliteConnection,
-    seen: &mut HashSet<(i64, PathBuf)>,
-    artist_raw: Option<&str>,
-    artist_ids: &[i64],
-    track_path: &Path,
-    artwork_dir: &Path,
-) -> AppResult<()> {
-    let parent = track_path.parent();
-    // Skip only when every artist of this track has already been walked
-    // for THIS folder. An empty id list has nothing to resolve.
-    let all_seen = !artist_ids.is_empty()
-        && parent.is_some_and(|p| {
-            artist_ids
-                .iter()
-                .all(|id| seen.contains(&(*id, p.to_path_buf())))
-        });
-    if all_seen {
-        return Ok(());
-    }
-    maybe_link_artist_images(conn, artist_raw, artist_ids, track_path, artwork_dir).await?;
-    if let Some(p) = parent {
-        for id in artist_ids {
-            seen.insert((*id, p.to_path_buf()));
-        }
-    }
-    Ok(())
-}
-
 fn extract_file(
     path: &Path,
     artwork_dir: &Path,
@@ -755,8 +708,8 @@ pub(crate) async fn scan_folder_inner(
     // the same album / by the same artist reuses the first resolution.
     let mut upsert_cache = UpsertCache::default();
     // `(artist_id, parent dir)` pairs already run through the
-    // sidecar-artist-image walk — see `link_artist_images_cached`. The
-    // single biggest scan cost, so this is the one that matters.
+    // sidecar-artist-image walk — threaded into `maybe_link_artist_images`
+    // so it skips a repeat walk per artist (the single biggest scan cost).
     let mut linked_artist_dirs: HashSet<(i64, PathBuf)> = HashSet::new();
 
     while let Some((path, result)) = extraction_stream.next().await {
@@ -901,13 +854,13 @@ pub(crate) async fn scan_folder_inner(
                     .fetch_all(&mut *tx)
                     .await?;
                     let t_link = Instant::now();
-                    link_artist_images_cached(
+                    maybe_link_artist_images(
                         &mut tx,
-                        &mut linked_artist_dirs,
                         Some(raw),
                         &current_ids,
                         track_path,
                         artwork_dir,
+                        &mut linked_artist_dirs,
                     )
                     .await?;
                     timings
@@ -974,13 +927,13 @@ pub(crate) async fn scan_folder_inner(
                 }
 
                 let t_link = Instant::now();
-                link_artist_images_cached(
+                maybe_link_artist_images(
                     &mut tx,
-                    &mut linked_artist_dirs,
                     extracted.artist.as_deref(),
                     &artist_ids,
                     Path::new(&extracted.abs_path),
                     artwork_dir,
+                    &mut linked_artist_dirs,
                 )
                 .await?;
                 timings
@@ -1105,13 +1058,13 @@ pub(crate) async fn scan_folder_inner(
             }
 
             let t_link = Instant::now();
-            link_artist_images_cached(
+            maybe_link_artist_images(
                 &mut tx,
-                &mut linked_artist_dirs,
                 extracted.artist.as_deref(),
                 &artist_ids,
                 Path::new(&extracted.abs_path),
                 artwork_dir,
+                &mut linked_artist_dirs,
             )
             .await?;
             timings
