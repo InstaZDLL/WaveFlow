@@ -82,6 +82,12 @@ export function useHiddenKpis(): HiddenKpis {
     setHiddenState(next);
   }, []);
 
+  // Last value confirmed in the DB — updated only after a successful
+  // load or write. The rollback target: restoring the *optimistic*
+  // pre-toggle snapshot would be wrong after a run of failed toggles
+  // (it was never persisted), so failures revert to confirmed truth.
+  const persistedHiddenRef = useRef<Set<StatsKpiId>>(new Set());
+
   // Serializes persistence: each write runs only after the previous
   // one settles, so two rapid toggles can't complete out of order and
   // the last user action always wins the final DB state.
@@ -112,11 +118,14 @@ export function useHiddenKpis(): HiddenKpis {
     setReady(false);
     setHidden(new Set<StatsKpiId>());
     /* eslint-enable react-hooks/set-state-in-effect */
+    persistedHiddenRef.current = new Set();
     const refresh = async () => {
       try {
         const raw = await getProfileSetting(KEY);
         if (cancelled) return;
-        setHidden(new Set(parseHidden(raw)));
+        const loaded = new Set(parseHidden(raw));
+        setHidden(loaded);
+        persistedHiddenRef.current = loaded;
       } catch (err) {
         console.error("[useHiddenKpis] read failed", err);
       } finally {
@@ -153,6 +162,7 @@ export function useHiddenKpis(): HiddenKpis {
           // a toggle never lands in another profile's settings.
           if (activeProfileIdRef.current !== profileAtToggle) return;
           await setProfileSetting(KEY, JSON.stringify(nextArray), "json");
+          persistedHiddenRef.current = next; // confirmed in the DB
           // Only the latest enqueued toggle broadcasts, so an older
           // write's completion can't refresh over a newer state.
           if (seq === seqRef.current) {
@@ -165,7 +175,10 @@ export function useHiddenKpis(): HiddenKpis {
           // otherwise we'd clobber a newer, still-unpersisted state.
           // `next` is the exact Set we installed; a later toggle would
           // have replaced `hiddenRef.current` with a different object.
-          if (hiddenRef.current === next) setHidden(previous);
+          // Revert to the last DB-confirmed value, not the optimistic
+          // `previous`, which may itself be unpersisted after a run of
+          // failed toggles.
+          if (hiddenRef.current === next) setHidden(persistedHiddenRef.current);
         });
     },
     [setHidden],
