@@ -234,6 +234,15 @@ fn extract_dsd_file(
 struct ScanTimings {
     hash_us: AtomicU64,
     tag_us: AtomicU64,
+    /// Wall time spent on the SERIAL per-track DB work in the consumer
+    /// loop (the `SELECT existing` probe + every `upsert_*` + the row
+    /// INSERT/UPDATE + the periodic `TX_BATCH` commit). Unlike
+    /// `hash_us` / `tag_us` — summed across the parallel extraction
+    /// tasks — this accrues on the single consumer task, so the total
+    /// is already wall-clock: it tells us directly how much of
+    /// `extract_db_ms` is the single-writer DB path vs the parallel
+    /// extraction feeding it. Diagnostics only.
+    db_us: AtomicU64,
 }
 
 fn extract_file(
@@ -593,6 +602,13 @@ pub(crate) async fn scan_folder_inner(
 
         // File is on disk → keep it out of the deletion sweep below.
         existing_meta.remove(&extracted.abs_path);
+
+        // Time the serial DB work for this track (probe + upserts +
+        // INSERT/UPDATE + the periodic commit). `existing_meta.remove`
+        // above is an in-memory HashMap op, negligible. No `continue`
+        // sits between here and the accumulate below, so one delta
+        // covers the whole iteration's DB cost.
+        let t_db = Instant::now();
 
         // Pulls `added_at` so we can preserve the row's original
         // "first import" timestamp on the wire — re-emits must NOT
@@ -994,6 +1010,10 @@ pub(crate) async fn scan_folder_inner(
             tx_count = 0;
         }
 
+        timings
+            .db_us
+            .fetch_add(t_db.elapsed().as_micros() as u64, Ordering::Relaxed);
+
         maybe_emit_progress(app_handle, folder_id, processed, total_files, &summary);
     }
 
@@ -1079,6 +1099,11 @@ pub(crate) async fn scan_folder_inner(
         total_ms = t_scan.elapsed().as_millis(),
         hash_cpu_ms_total = timings.hash_us.load(Ordering::Relaxed) / 1000,
         tag_cpu_ms_total = timings.tag_us.load(Ordering::Relaxed) / 1000,
+        // Serial single-writer DB time — already wall-clock (one
+        // consumer task). The slice of `extract_db_ms` NOT covered by
+        // this is the parallel extraction (hash + cover) the consumer
+        // waited on.
+        db_ms_total = timings.db_us.load(Ordering::Relaxed) / 1000,
         "scan complete"
     );
 
