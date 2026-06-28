@@ -129,8 +129,7 @@ pub async fn stats_top_tracks(
     range: String,
     limit: i64,
 ) -> AppResult<Vec<TopTrackRow>> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     stats_top_tracks_inner(&pool, &artwork_dir, &range, limit).await
 }
@@ -335,8 +334,7 @@ pub async fn stats_top_albums(
     range: String,
     limit: i64,
 ) -> AppResult<Vec<TopAlbumRow>> {
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     stats_top_albums_inner(&pool, &artwork_dir, &range, limit).await
 }
@@ -585,8 +583,7 @@ pub async fn export_stats_json(
     // profiles' data into one file. Limit `100` matches the upper
     // bound of the on-screen selectors so the export is "what you saw
     // plus a bit more".
-    let pool = state.require_profile_pool().await?;
-    let profile_id = state.require_profile_id().await?;
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let metadata_dir = &state.paths.metadata_artwork_dir;
 

@@ -356,6 +356,20 @@ impl AppState {
             .map(|p| p.profile_id)
             .ok_or(AppError::NoActiveProfile)
     }
+
+    /// Atomic snapshot of the active profile's `(pool, profile_id)` under
+    /// a single lock acquisition. Prefer this over separate
+    /// `require_profile_pool` + `require_profile_id` calls when a command
+    /// needs both: two separate awaits can straddle a `switch_profile`
+    /// and pair one profile's pool with another profile's id (and any
+    /// path derived from it, e.g. `profile_artwork_dir`).
+    pub async fn require_profile_snapshot(&self) -> AppResult<(SqlitePool, i64)> {
+        let guard = self.profile.read().await;
+        guard
+            .as_ref()
+            .map(|p| (p.pool.clone(), p.profile_id))
+            .ok_or(AppError::NoActiveProfile)
+    }
 }
 
 // `BUNDLED_PLUGINS` + `is_bundled_plugin` moved to
