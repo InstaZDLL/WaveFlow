@@ -97,9 +97,14 @@ export function ArtistMetadataEditorModal({
     [selected],
   );
 
+  // Single source of truth for "don't touch state right now": the
+  // initial read is in flight (would clobber local edits) or a save is
+  // running (would submit stale state).
+  const isBusy = isLoading || isSaving;
+
   // Debounced library search for the similar-artist autocomplete.
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || isBusy) return;
     if (debounceRef.current != null) window.clearTimeout(debounceRef.current);
     const trimmed = query.trim();
     if (trimmed.length < 2) {
@@ -135,12 +140,13 @@ export function ArtistMetadataEditorModal({
     return () => {
       if (debounceRef.current != null) window.clearTimeout(debounceRef.current);
     };
-  }, [query, isOpen, artistId, selectedIds]);
+  }, [query, isOpen, isBusy, artistId, selectedIds]);
 
   const atLimit = selected.length >= MAX_SIMILAR;
 
   const addArtist = (row: ArtistRow) => {
-    if (selected.length >= MAX_SIMILAR) return; // UI-side cap, mirrors backend
+    // UI-side cap mirrors backend; also blocked while busy.
+    if (isBusy || selected.length >= MAX_SIMILAR) return;
     setSelected((prev) => [
       ...prev,
       {
@@ -155,6 +161,7 @@ export function ArtistMetadataEditorModal({
   };
 
   const removeArtist = (id: number) => {
+    if (isBusy) return;
     setSelected((prev) => prev.filter((s) => s.artist_id !== id));
   };
 
@@ -211,7 +218,7 @@ export function ArtistMetadataEditorModal({
               >
                 {t("artistMetadataEditor.bio.label")}
               </label>
-              {bio.trim().length > 0 && (
+              {bio.trim().length > 0 && !isBusy && (
                 <button
                   type="button"
                   onClick={() => setBio("")}
@@ -226,7 +233,7 @@ export function ArtistMetadataEditorModal({
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               rows={5}
-              disabled={isLoading}
+              disabled={isBusy}
               placeholder={t("artistMetadataEditor.bio.placeholder")}
               className="w-full px-3 py-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-y disabled:opacity-50"
             />
@@ -267,10 +274,11 @@ export function ArtistMetadataEditorModal({
                         <button
                           type="button"
                           onClick={() => removeArtist(s.artist_id)}
+                          disabled={isBusy}
                           aria-label={t("artistMetadataEditor.similar.remove", {
                             name: s.name,
                           })}
-                          className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                          className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-50"
                         >
                           <X size={14} />
                         </button>
@@ -292,7 +300,7 @@ export function ArtistMetadataEditorModal({
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                disabled={atLimit}
+                disabled={isBusy || atLimit}
                 placeholder={t("artistMetadataEditor.similar.placeholder")}
                 className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
               />
@@ -314,7 +322,7 @@ export function ArtistMetadataEditorModal({
 
             {/* Results — plain list of action buttons (not a listbox: no
                 roving focus / active-option semantics implemented). */}
-            {!atLimit && results.length > 0 && (
+            {!isBusy && !atLimit && results.length > 0 && (
               <ul className="max-h-56 overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700 divide-y divide-zinc-100 dark:divide-zinc-800">
                 {results.map((r) => {
                   const img = resolveRemoteImage(r.picture_path, r.picture_url);
