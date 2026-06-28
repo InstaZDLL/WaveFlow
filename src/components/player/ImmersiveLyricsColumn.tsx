@@ -85,8 +85,8 @@ export function ImmersiveLyricsColumn({
             <button
               type="button"
               onClick={onCoverClick}
-              aria-label={t("playerBar.openFullscreen")}
-              title={t("playerBar.openFullscreen")}
+              aria-label={t("playerBar.nowPlaying")}
+              title={t("playerBar.nowPlaying")}
               className="shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             >
               <Artwork
