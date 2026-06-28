@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
@@ -18,7 +18,8 @@ use waveflow_core::scanner::{
     extract_folder_cover, extract_musical_key, extract_rating, file_type_label, hash_file,
     link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
     merge_implicit_compilations, now_millis, split_artist_name, upsert_album, upsert_artist,
-    upsert_artwork, upsert_genre, ExtractedFile, AUDIO_EXTENSIONS, VARIOUS_ARTISTS_LABEL,
+    upsert_artwork, upsert_genre, ArtistImageScanCache, ExtractedFile, AUDIO_EXTENSIONS,
+    VARIOUS_ARTISTS_LABEL,
 };
 
 use crate::{
@@ -707,10 +708,11 @@ pub(crate) async fn scan_folder_inner(
     // `UpsertCache`. Lives for the loop's duration so every track on
     // the same album / by the same artist reuses the first resolution.
     let mut upsert_cache = UpsertCache::default();
-    // `(artist_id, parent dir)` pairs already run through the
-    // sidecar-artist-image walk — threaded into `maybe_link_artist_images`
-    // so it skips a repeat walk per artist (the single biggest scan cost).
-    let mut linked_artist_dirs: HashSet<(i64, PathBuf)> = HashSet::new();
+    // Per-scan memo for the sidecar-artist-image walk (the single
+    // biggest scan cost) — threaded into `maybe_link_artist_images`.
+    // Skips repeat `(artist, folder)` pairs AND caches each directory's
+    // `read_dir` so shared ancestor folders are read once.
+    let mut artist_image_cache = ArtistImageScanCache::default();
 
     while let Some((path, result)) = extraction_stream.next().await {
         processed += 1;
@@ -860,7 +862,7 @@ pub(crate) async fn scan_folder_inner(
                         &current_ids,
                         track_path,
                         artwork_dir,
-                        &mut linked_artist_dirs,
+                        &mut artist_image_cache,
                     )
                     .await?;
                     timings
@@ -933,7 +935,7 @@ pub(crate) async fn scan_folder_inner(
                     &artist_ids,
                     Path::new(&extracted.abs_path),
                     artwork_dir,
-                    &mut linked_artist_dirs,
+                    &mut artist_image_cache,
                 )
                 .await?;
                 timings
@@ -1064,7 +1066,7 @@ pub(crate) async fn scan_folder_inner(
                 &artist_ids,
                 Path::new(&extracted.abs_path),
                 artwork_dir,
-                &mut linked_artist_dirs,
+                &mut artist_image_cache,
             )
             .await?;
             timings

@@ -364,31 +364,49 @@ pub fn extract_artist_image(
     artist_canonical: &str,
     artwork_dir: &Path,
 ) -> Option<ExtractedCover> {
-    if artist_canonical.is_empty() {
-        return None;
-    }
-
-    let mut current = track_path.parent();
-    for _ in 0..ARTIST_IMAGE_MAX_DEPTH {
-        let Some(dir) = current else { break };
-        if let Some(found) = find_artist_image_in_dir(dir, artist_canonical) {
-            return write_artist_image(&found, artwork_dir);
-        }
-        current = dir.parent();
-    }
-    None
+    // One-shot callers (VA linking, the rescan command) pay a throwaway
+    // cache; the per-scan hot path uses `extract_artist_image_cached`
+    // with a shared one.
+    let mut cache = ArtistImageDirCache::new();
+    extract_artist_image_cached(track_path, artist_canonical, artwork_dir, &mut cache)
 }
 
-pub fn find_artist_image_in_dir(dir: &Path, artist_canonical: &str) -> Option<PathBuf> {
-    let entries = fs::read_dir(dir).ok()?;
-    let mut named_match: Option<PathBuf> = None;
-    let mut stem_match: Option<(usize, PathBuf)> = None;
+/// An image file in a directory, pre-parsed for artist matching. Built
+/// once per directory by [`read_dir_artist_images`] and cached so the
+/// `fs::read_dir` + per-entry work isn't repeated for every artist /
+/// track that walks through the same folder.
+#[derive(Clone)]
+pub struct DirImageCandidate {
+    /// `canonical_name(stem)` — matched against an artist's canonical
+    /// name for the `<Artist>.jpg` convention.
+    canon_stem: String,
+    /// Lowercased stem — matched against [`ARTIST_IMAGE_STEMS`]
+    /// (`artist` / `performer` / `band`).
+    stem_lower: String,
+    path: PathBuf,
+}
 
+/// Per-scan memo of each directory's image candidates. Keyed on the
+/// directory path; the sidecar-artist-image walk reuses it across every
+/// artist and track that shares an ancestor folder — the `read_dir`
+/// (+ a `file_type` per entry + a `canonical_name` per image) is the
+/// dominant first-scan cost, and it's identical for a given directory
+/// regardless of which artist is being resolved.
+pub type ArtistImageDirCache = HashMap<PathBuf, Vec<DirImageCandidate>>;
+
+/// Read a directory's image-file candidates once. Artist-independent.
+/// Uses `entry.file_type()` (populated by `read_dir` on Windows/Linux)
+/// instead of `Path::is_file` so there's no extra `stat` per entry.
+fn read_dir_artist_images(dir: &Path) -> Vec<DirImageCandidate> {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
     for entry in entries.flatten() {
-        let path = entry.path();
-        if !path.is_file() {
+        if !entry.file_type().map(|t| t.is_file()).unwrap_or(false) {
             continue;
         }
+        let path = entry.path();
         let stem = path
             .file_stem()
             .and_then(|s| s.to_str())
@@ -403,19 +421,68 @@ pub fn find_artist_image_in_dir(dir: &Path, artist_canonical: &str) -> Option<Pa
         if !FOLDER_COVER_EXTENSIONS.contains(&ext.as_str()) {
             continue;
         }
-        if canonical_name(&stem) == artist_canonical {
-            named_match.get_or_insert(path);
+        out.push(DirImageCandidate {
+            canon_stem: canonical_name(&stem),
+            stem_lower: stem,
+            path,
+        });
+    }
+    out
+}
+
+/// Match cached directory candidates against one artist. Mirrors the
+/// old `find_artist_image_in_dir` precedence: an exact `<Artist>.jpg`
+/// (canonical) match wins over a generic `artist`/`performer`/`band`
+/// stem, and among generic stems the earliest in [`ARTIST_IMAGE_STEMS`]
+/// wins.
+fn match_artist_image(candidates: &[DirImageCandidate], artist_canonical: &str) -> Option<PathBuf> {
+    let mut named_match: Option<&PathBuf> = None;
+    let mut stem_match: Option<(usize, &PathBuf)> = None;
+    for c in candidates {
+        if c.canon_stem == artist_canonical {
+            named_match.get_or_insert(&c.path);
             continue;
         }
-        if let Some(rank) = ARTIST_IMAGE_STEMS.iter().position(|s| *s == stem) {
+        if let Some(rank) = ARTIST_IMAGE_STEMS.iter().position(|s| *s == c.stem_lower) {
             match &stem_match {
                 Some((current_rank, _)) if *current_rank <= rank => {}
-                _ => stem_match = Some((rank, path)),
+                _ => stem_match = Some((rank, &c.path)),
             }
         }
     }
+    named_match.or(stem_match.map(|(_, p)| p)).cloned()
+}
 
-    named_match.or(stem_match.map(|(_, p)| p))
+/// Cache-backed variant of [`extract_artist_image`]. Walks the same up
+/// to [`ARTIST_IMAGE_MAX_DEPTH`] ancestor dirs, but each directory's
+/// candidate list is read once via the shared `cache` and reused for
+/// every artist / track that passes through it.
+pub fn extract_artist_image_cached(
+    track_path: &Path,
+    artist_canonical: &str,
+    artwork_dir: &Path,
+    cache: &mut ArtistImageDirCache,
+) -> Option<ExtractedCover> {
+    if artist_canonical.is_empty() {
+        return None;
+    }
+
+    let mut current = track_path.parent();
+    for _ in 0..ARTIST_IMAGE_MAX_DEPTH {
+        let Some(dir) = current else { break };
+        let candidates = cache
+            .entry(dir.to_path_buf())
+            .or_insert_with(|| read_dir_artist_images(dir));
+        if let Some(found) = match_artist_image(candidates, artist_canonical) {
+            return write_artist_image(&found, artwork_dir);
+        }
+        current = dir.parent();
+    }
+    None
+}
+
+pub fn find_artist_image_in_dir(dir: &Path, artist_canonical: &str) -> Option<PathBuf> {
+    match_artist_image(&read_dir_artist_images(dir), artist_canonical)
 }
 
 pub fn write_artist_image(picked: &Path, artwork_dir: &Path) -> Option<ExtractedCover> {

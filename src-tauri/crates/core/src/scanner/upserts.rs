@@ -16,7 +16,27 @@ use sqlx::SqlitePool;
 
 use crate::error::CoreResult;
 
-use super::extract::{extract_artist_image, ExtractedCover};
+use super::extract::{
+    extract_artist_image, extract_artist_image_cached, ArtistImageDirCache, ExtractedCover,
+};
+
+/// Per-scan cache threaded through [`maybe_link_artist_images`]. Bundles
+/// the two independent memos that make the sidecar-artist-image walk —
+/// otherwise ~98 % of a first scan's DB time — cheap:
+///
+/// - `seen`: `(artist_id, parent dir)` pairs already attempted, so a
+///   repeat artist in the same folder skips the match + has-artwork
+///   probe entirely.
+/// - `dirs`: each directory's image-candidate list, read once via
+///   `read_dir` and reused across every artist that walks through it —
+///   the lever for the common "shared folder, many distinct per-track
+///   artists" layout (OST / compilation rips) where `seen` can't help
+///   because every `(artist, folder)` pair is unique.
+#[derive(Default)]
+pub struct ArtistImageScanCache {
+    seen: HashSet<(i64, PathBuf)>,
+    dirs: ArtistImageDirCache,
+}
 
 /// Sentinel album-artist row used when an album is tagged as a
 /// compilation but has no explicit Album Artist. Resolved to a real
@@ -322,27 +342,26 @@ pub async fn link_local_artist_image(
 /// Skips the "Various Artists" sentinel here because VA is an *album*
 /// artist (it never appears in `track_artist`); its sidecar image is
 /// resolved separately via the album relationship in [`link_va_artist_image`].
-/// `seen` memoises the `(artist_id, track parent dir)` pairs already
-/// run through the sidecar walk **this scan**. The walk is by far the
-/// hottest part of a first scan — `fs::read_dir` of up to 3 ancestor
-/// dirs + a `canonical_name` per image entry, per artist, per track,
-/// nearly all of it wasted on libraries without local artist images
-/// (measured at ~98 % of the scan's DB time). The result for a given
-/// `(artist, track-parent)` is deterministic, so once seen we skip it.
+/// `cache` memoises this scan's sidecar-artist-image work — see
+/// [`ArtistImageScanCache`]. The walk is by far the hottest part of a
+/// first scan (`fs::read_dir` of up to 3 ancestor dirs + a
+/// `canonical_name` per image entry, per artist, per track), nearly all
+/// of it wasted on libraries with no local artist images. The cache
+/// makes both axes cheap: a repeat `(artist, folder)` skips entirely,
+/// and a never-seen `(artist, folder)` still reuses the cached
+/// `read_dir` for any ancestor a sibling track already visited.
 ///
-/// The skip is **per artist**, not per track: a track that adds a new
-/// featured artist to an already-walked album artist only walks for the
-/// newcomer. The parent dir is in the key, so a different folder of the
-/// same artist still walks — no per-album sidecar is missed. Callers
-/// thread one `seen` set across the whole scan; a one-off lookup can
-/// pass a throwaway `&mut HashSet::new()`.
+/// The `seen` skip is **per artist**, not per track, and keyed on the
+/// parent dir, so a different folder of the same artist still resolves —
+/// no per-album sidecar is missed. Callers thread one cache across the
+/// whole scan; a one-off lookup can pass `&mut Default::default()`.
 pub async fn maybe_link_artist_images(
     conn: &mut sqlx::SqliteConnection,
     artist_raw: Option<&str>,
     artist_ids: &[i64],
     track_path: &Path,
     artwork_dir: &Path,
-    seen: &mut HashSet<(i64, PathBuf)>,
+    cache: &mut ArtistImageScanCache,
 ) -> CoreResult<()> {
     let Some(raw) = artist_raw else {
         return Ok(());
@@ -352,11 +371,11 @@ pub async fn maybe_link_artist_images(
     let parent = track_path.parent();
     for (name, id) in names.iter().zip(artist_ids.iter()) {
         // Per-(artist, folder) skip. `insert` returns false when the
-        // pair was already attempted this scan — the walk + the
+        // pair was already attempted this scan — the match + the
         // has-artwork probe below are deterministic for it, so there's
         // nothing new to find.
         if let Some(p) = parent {
-            if !seen.insert((*id, p.to_path_buf())) {
+            if !cache.seen.insert((*id, p.to_path_buf())) {
                 continue;
             }
         }
@@ -374,7 +393,9 @@ pub async fn maybe_link_artist_images(
         if has_artwork.is_some() {
             continue;
         }
-        if let Some(cover) = extract_artist_image(track_path, &canon, artwork_dir) {
+        if let Some(cover) =
+            extract_artist_image_cached(track_path, &canon, artwork_dir, &mut cache.dirs)
+        {
             link_local_artist_image(&mut *conn, *id, &cover).await?;
         }
     }
