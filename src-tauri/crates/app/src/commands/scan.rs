@@ -18,7 +18,7 @@ use waveflow_core::scanner::{
     extract_folder_cover, extract_musical_key, extract_rating, file_type_label, hash_file,
     link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
     merge_implicit_compilations, now_millis, split_artist_name, upsert_album, upsert_artist,
-    upsert_artist_list, upsert_artwork, upsert_genre, ExtractedFile, AUDIO_EXTENSIONS,
+    upsert_artwork, ArtistImageScanCache, ExtractedFile, UpsertCache, AUDIO_EXTENSIONS,
     VARIOUS_ARTISTS_LABEL,
 };
 
@@ -234,6 +234,25 @@ fn extract_dsd_file(
 struct ScanTimings {
     hash_us: AtomicU64,
     tag_us: AtomicU64,
+    /// Wall time spent on the SERIAL per-track DB work in the consumer
+    /// loop (the `SELECT existing` probe + every `upsert_*` + the row
+    /// INSERT/UPDATE + the periodic `TX_BATCH` commit). Unlike
+    /// `hash_us` / `tag_us` — summed across the parallel extraction
+    /// tasks — this accrues on the single consumer task, so the total
+    /// is already wall-clock: it tells us directly how much of
+    /// `extract_db_ms` is the single-writer DB path vs the parallel
+    /// extraction feeding it. Diagnostics only.
+    db_us: AtomicU64,
+    /// Subset of `db_us` spent inside `maybe_link_artist_images` — the
+    /// per-track sidecar-artist-image walk (`fs::read_dir` of up to 3
+    /// ancestor dirs + a `canonical_name` per directory entry). On a
+    /// library with no local artist images this re-walks the same
+    /// folders for the same artists on every track, so it's the prime
+    /// suspect for the chunk of `db_ms_total` that the upsert
+    /// memoisation did NOT move. Diagnostics only — split out to
+    /// confirm before optimising (the SQL-lookup memo was measured to
+    /// barely dent `db_ms_total`, so guessing isn't enough).
+    link_us: AtomicU64,
 }
 
 fn extract_file(
@@ -483,6 +502,7 @@ pub(crate) async fn scan_folder_inner(
         .into_iter()
         .map(|(p, mtime, size)| (p, (mtime, size)))
         .collect();
+
     let meta_load_ms = t_scan.elapsed().as_millis();
 
     let total_files = audio_files.len();
@@ -537,6 +557,58 @@ pub(crate) async fn scan_folder_inner(
     let stat_ms = t_scan.elapsed().as_millis();
     let to_extract_count = to_extract.len();
 
+    // Created here (before the probe) so the probe SELECT below is
+    // counted in `db_us` like every other DB access.
+    let timings = Arc::new(ScanTimings::default());
+
+    // Probe map for the insert-vs-update decision in the consumer loop,
+    // pre-loaded in one pass instead of a `SELECT … WHERE library_id = ?
+    // AND file_path = ?` per extracted track. Scoped to exactly the
+    // `to_extract` paths via an `IN (…)` list — NOT a full library-wide
+    // load: an fs-watcher rescan of a single changed file in a
+    // 4000-track library must not drag in every row. SQLite caps bound
+    // params at 999 and `library_id` takes one slot, so the path list is
+    // chunked well under that. Scoped by `library_id` (not folder), so a
+    // file already known under another folder of the same library still
+    // resolves and the loop UPDATEs (reassigning `folder_id`) instead of
+    // hitting the `UNIQUE(library_id, file_path)` constraint. No
+    // `is_available` filter — matches the old probe, so a vanished-then-
+    // restored track is found and flipped back to available. Snapshot-
+    // before-loop is safe: the walk yields distinct paths, so no row
+    // inserted earlier in THIS scan is ever probed later.
+    const PROBE_CHUNK: usize = 900;
+    let existing_probe: HashMap<String, (i64, i64, String, i64)> = if to_extract.is_empty() {
+        HashMap::new()
+    } else {
+        let t_db = Instant::now();
+        let paths: Vec<String> = to_extract
+            .iter()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect();
+        let mut probe = HashMap::with_capacity(paths.len());
+        for chunk in paths.chunks(PROBE_CHUNK) {
+            let placeholders = chunk.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+            let sql = format!(
+                "SELECT file_path, id, file_modified, file_hash, added_at
+                   FROM track
+                  WHERE library_id = ? AND file_path IN ({placeholders})"
+            );
+            let mut q =
+                sqlx::query_as::<_, (String, i64, i64, String, i64)>(sqlx::AssertSqlSafe(sql))
+                    .bind(library_id);
+            for p in chunk {
+                q = q.bind(p);
+            }
+            for (path, id, mtime, hash, added_at) in q.fetch_all(pool).await? {
+                probe.insert(path, (id, mtime, hash, added_at));
+            }
+        }
+        timings
+            .db_us
+            .fetch_add(t_db.elapsed().as_micros() as u64, Ordering::Relaxed);
+        probe
+    };
+
     // ─── Phase 2: Parallel extract + transactional DB writes ──────
     //
     // `extract_file` is CPU-bound (BLAKE3 hash + lofty tag read) and
@@ -555,7 +627,6 @@ pub(crate) async fn scan_folder_inner(
         .unwrap_or(4);
     const TX_BATCH: usize = 200;
 
-    let timings = Arc::new(ScanTimings::default());
     let extraction_stream = futures::stream::iter(to_extract)
         .map(|path: PathBuf| {
             let artwork_dir = artwork_dir.to_path_buf();
@@ -574,6 +645,15 @@ pub(crate) async fn scan_folder_inner(
     let mut tx = pool.begin().await?;
     let mut tx_count: usize = 0;
     let mut processed: usize = summary.skipped as usize;
+    // Memo for artist / genre id lookups across the whole scan — see
+    // `UpsertCache`. Lives for the loop's duration so every track on
+    // the same album / by the same artist reuses the first resolution.
+    let mut upsert_cache = UpsertCache::default();
+    // Per-scan memo for the sidecar-artist-image walk (the single
+    // biggest scan cost) — threaded into `maybe_link_artist_images`.
+    // Skips repeat `(artist, folder)` pairs AND caches each directory's
+    // `read_dir` so shared ancestor folders are read once.
+    let mut artist_image_cache = ArtistImageScanCache::default();
 
     while let Some((path, result)) = extraction_stream.next().await {
         processed += 1;
@@ -594,20 +674,21 @@ pub(crate) async fn scan_folder_inner(
         // File is on disk → keep it out of the deletion sweep below.
         existing_meta.remove(&extracted.abs_path);
 
-        // Pulls `added_at` so we can preserve the row's original
-        // "first import" timestamp on the wire — re-emits must NOT
-        // bump it (a peer device receiving a re-emit op for an
-        // existing track would otherwise see the file as "just
-        // added" in its `Recently added` view). Brand-new track
-        // path keeps using `now`.
-        let existing: Option<(i64, i64, String, i64)> = sqlx::query_as(
-            "SELECT id, file_modified, file_hash, added_at \
-               FROM track WHERE library_id = ? AND file_path = ?",
-        )
-        .bind(library_id)
-        .bind(&extracted.abs_path)
-        .fetch_optional(&mut *tx)
-        .await?;
+        // Time the serial DB work for this track (probe + upserts +
+        // INSERT/UPDATE + the periodic commit). `existing_meta.remove`
+        // above is an in-memory HashMap op, negligible. No `continue`
+        // sits between here and the accumulate below, so one delta
+        // covers the whole iteration's DB cost.
+        let t_db = Instant::now();
+
+        // Insert-vs-update probe, served from the pre-loaded
+        // `existing_probe` map instead of a per-track SELECT. Carries
+        // `added_at` so we preserve the row's original "first import"
+        // timestamp on the wire — re-emits must NOT bump it (a peer
+        // device receiving a re-emit op for an existing track would
+        // otherwise see the file as "just added" in its `Recently
+        // added` view). Brand-new track path keeps using `now`.
+        let existing = existing_probe.get(&extracted.abs_path).cloned();
 
         if let Some((existing_track_id, mtime, ref hash, existing_added_at)) = existing {
             if mtime == extracted.modified_ms && hash == &extracted.hash {
@@ -715,14 +796,19 @@ pub(crate) async fn scan_folder_inner(
                     .bind(existing_track_id)
                     .fetch_all(&mut *tx)
                     .await?;
+                    let t_link = Instant::now();
                     maybe_link_artist_images(
                         &mut tx,
                         Some(raw),
                         &current_ids,
                         track_path,
                         artwork_dir,
+                        &mut artist_image_cache,
                     )
                     .await?;
+                    timings
+                        .link_us
+                        .fetch_add(t_link.elapsed().as_micros() as u64, Ordering::Relaxed);
                 }
 
                 // Phase 4.d.0.3: emit a sync op ONLY when the skip
@@ -751,7 +837,7 @@ pub(crate) async fn scan_folder_inner(
                 // Hash or mtime changed → full re-write of the track row
                 // and its many-to-many links. Falls through to the
                 // shared insert/update path below.
-                let artist_ids = upsert_artist_list(&mut tx, &extracted.artist).await?;
+                let artist_ids = upsert_cache.artist_list(&mut tx, &extracted.artist).await?;
                 let artist_id = artist_ids.first().copied();
                 let album_id = match &extracted.album {
                     Some(a) => {
@@ -768,7 +854,7 @@ pub(crate) async fn scan_folder_inner(
                     None => None,
                 };
                 let genre_id = match &extracted.genre {
-                    Some(g) => upsert_genre(&mut tx, g).await?,
+                    Some(g) => upsert_cache.genre(&mut tx, g).await?,
                     None => None,
                 };
                 if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
@@ -783,14 +869,19 @@ pub(crate) async fn scan_folder_inner(
                     .await?;
                 }
 
+                let t_link = Instant::now();
                 maybe_link_artist_images(
                     &mut tx,
                     extracted.artist.as_deref(),
                     &artist_ids,
                     Path::new(&extracted.abs_path),
                     artwork_dir,
+                    &mut artist_image_cache,
                 )
                 .await?;
+                timings
+                    .link_us
+                    .fetch_add(t_link.elapsed().as_micros() as u64, Ordering::Relaxed);
 
                 sqlx::query(
                     "UPDATE track SET
@@ -879,7 +970,7 @@ pub(crate) async fn scan_folder_inner(
             }
         } else {
             // Brand-new track — insert with all related upserts.
-            let artist_ids = upsert_artist_list(&mut tx, &extracted.artist).await?;
+            let artist_ids = upsert_cache.artist_list(&mut tx, &extracted.artist).await?;
             let artist_id = artist_ids.first().copied();
             let album_id = match &extracted.album {
                 Some(a) => {
@@ -896,7 +987,7 @@ pub(crate) async fn scan_folder_inner(
                 None => None,
             };
             let genre_id = match &extracted.genre {
-                Some(g) => upsert_genre(&mut tx, g).await?,
+                Some(g) => upsert_cache.genre(&mut tx, g).await?,
                 None => None,
             };
             if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
@@ -909,14 +1000,19 @@ pub(crate) async fn scan_folder_inner(
                     .await?;
             }
 
+            let t_link = Instant::now();
             maybe_link_artist_images(
                 &mut tx,
                 extracted.artist.as_deref(),
                 &artist_ids,
                 Path::new(&extracted.abs_path),
                 artwork_dir,
+                &mut artist_image_cache,
             )
             .await?;
+            timings
+                .link_us
+                .fetch_add(t_link.elapsed().as_micros() as u64, Ordering::Relaxed);
 
             let insert = sqlx::query(
                 "INSERT INTO track (
@@ -994,10 +1090,23 @@ pub(crate) async fn scan_folder_inner(
             tx_count = 0;
         }
 
+        timings
+            .db_us
+            .fetch_add(t_db.elapsed().as_micros() as u64, Ordering::Relaxed);
+
         maybe_emit_progress(app_handle, folder_id, processed, total_files, &summary);
     }
 
+    // Time the final commit into `db_us` too — the periodic TX_BATCH
+    // commits are already counted inside the loop, so without this the
+    // last batch's commit (which can carry up to TX_BATCH rows of fsync)
+    // would be the one slice of DB cost `db_ms_total` silently omits.
+    let t_final_commit = Instant::now();
     tx.commit().await?;
+    timings.db_us.fetch_add(
+        t_final_commit.elapsed().as_micros() as u64,
+        Ordering::Relaxed,
+    );
     let extract_db_ms = t_scan.elapsed().as_millis();
 
     // Anything still in the map was on disk last time but isn't now.
@@ -1079,6 +1188,13 @@ pub(crate) async fn scan_folder_inner(
         total_ms = t_scan.elapsed().as_millis(),
         hash_cpu_ms_total = timings.hash_us.load(Ordering::Relaxed) / 1000,
         tag_cpu_ms_total = timings.tag_us.load(Ordering::Relaxed) / 1000,
+        // Serial single-writer DB time — already wall-clock (one
+        // consumer task). The slice of `extract_db_ms` NOT covered by
+        // this is the parallel extraction (hash + cover) the consumer
+        // waited on.
+        db_ms_total = timings.db_us.load(Ordering::Relaxed) / 1000,
+        // Subset of db_ms_total spent in the sidecar-artist-image walk.
+        link_ms_total = timings.link_us.load(Ordering::Relaxed) / 1000,
         "scan complete"
     );
 
