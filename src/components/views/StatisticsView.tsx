@@ -72,7 +72,7 @@ export function StatisticsView({
   const [heatmapData, setHeatmapData] = useState<ListeningByDayRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
-  const { isHidden } = useHiddenKpis();
+  const { isHidden, ready: kpiPrefsReady } = useHiddenKpis();
 
   // Export the on-screen stats (top 100 each, listening by day/hour,
   // overview) as a pretty-printed JSON file. The backend already
@@ -227,6 +227,10 @@ export function StatisticsView({
               it from Settings → Appearance (`stats.hidden_kpis`). A
               fully-hidden grid is intentional: it renders nothing. */}
           {(() => {
+            // Hold the KPI grid back until the hidden-cards preference
+            // has loaded, otherwise a hidden card flashes visible for
+            // one frame before the read lands.
+            if (!kpiPrefsReady) return null;
             const kpis: Array<{ id: StatsKpiId; node: React.ReactNode }> = [
               {
                 id: "total_plays",

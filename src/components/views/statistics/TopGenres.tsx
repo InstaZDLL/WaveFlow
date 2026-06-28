@@ -56,7 +56,7 @@ export function TopGenres({ data }: TopGenresProps) {
                 >
                   <div
                     className="h-full rounded-full bg-emerald-500/80"
-                    style={{ width: `${Math.max(2, pct)}%` }}
+                    style={{ width: `${pct > 0 ? Math.max(2, pct) : 0}%` }}
                   />
                 </div>
               </li>

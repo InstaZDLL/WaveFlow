@@ -51,6 +51,12 @@ export interface HiddenKpis {
   hidden: Set<StatsKpiId>;
   isHidden: (id: StatsKpiId) => boolean;
   toggle: (id: StatsKpiId) => Promise<void>;
+  /**
+   * `false` until the first per-profile read resolves. Consumers that
+   * render conditionally on `isHidden` should wait for this so hidden
+   * cards never flash visible before the preference loads.
+   */
+  ready: boolean;
 }
 
 /**
@@ -62,9 +68,14 @@ export interface HiddenKpis {
 export function useHiddenKpis(): HiddenKpis {
   const { activeProfile } = useProfile();
   const [hidden, setHidden] = useState<Set<StatsKpiId>>(new Set());
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    // Reset readiness on profile switch — the previous profile's
+    // values are stale until the new read lands.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setReady(false);
     const refresh = async () => {
       try {
         const raw = await getProfileSetting(KEY);
@@ -72,6 +83,8 @@ export function useHiddenKpis(): HiddenKpis {
         setHidden(new Set(parseHidden(raw)));
       } catch (err) {
         console.error("[useHiddenKpis] read failed", err);
+      } finally {
+        if (!cancelled) setReady(true);
       }
     };
     void refresh();
@@ -93,7 +106,7 @@ export function useHiddenKpis(): HiddenKpis {
       return next;
     });
     try {
-      await setProfileSetting(KEY, JSON.stringify(nextArray), "string");
+      await setProfileSetting(KEY, JSON.stringify(nextArray), "json");
       window.dispatchEvent(new CustomEvent(HIDDEN_KPIS_EVENT));
     } catch (err) {
       console.error("[useHiddenKpis] write failed", err);
@@ -102,5 +115,5 @@ export function useHiddenKpis(): HiddenKpis {
 
   const isHidden = useCallback((id: StatsKpiId) => hidden.has(id), [hidden]);
 
-  return { hidden, isHidden, toggle };
+  return { hidden, isHidden, toggle, ready };
 }

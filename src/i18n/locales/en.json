@@ -545,7 +545,7 @@
     },
     "topGenres": {
       "title": "Top genres",
-      "empty": "No genre listened in this period."
+      "empty": "No genres listened to in this period."
     }
   },
   "wrapped": {
