@@ -42,9 +42,17 @@ export function useScrollLongTitles(): ScrollLongTitles {
   const confirmedEnabledRef = useRef(enabled);
   const writeChainRef = useRef<Promise<void>>(Promise.resolve());
   const writeSeqRef = useRef(0);
+  // Active profile id at dispatch time. `setProfileSetting` writes to
+  // whatever profile is active when it runs (no explicit id), so a queued
+  // write must abort if the profile switched while it waited in the chain
+  // — otherwise it would persist profile A's toggle onto profile B.
+  const activeProfileIdRef = useRef<number | null>(activeProfile?.id ?? null);
   useEffect(() => {
     enabledRef.current = enabled;
   }, [enabled]);
+  useEffect(() => {
+    activeProfileIdRef.current = activeProfile?.id ?? null;
+  }, [activeProfile?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,6 +78,7 @@ export function useScrollLongTitles(): ScrollLongTitles {
 
   const setEnabled = useCallback(async (next: boolean) => {
     const seq = ++writeSeqRef.current;
+    const profileId = activeProfileIdRef.current;
     enabledRef.current = next;
     setEnabledState(next);
     // Serialise on the write chain so the backend applies toggles in the
@@ -77,6 +86,9 @@ export function useScrollLongTitles(): ScrollLongTitles {
     // intent. `.catch` keeps the chain alive so one failed write doesn't
     // stall every later toggle.
     const write = writeChainRef.current.then(async () => {
+      // Drop this write if the active profile changed while it waited —
+      // persisting now would write onto the wrong profile.
+      if (activeProfileIdRef.current !== profileId) return;
       await setProfileSetting(KEY, next ? "true" : "false", "bool");
       confirmedEnabledRef.current = next;
     });
