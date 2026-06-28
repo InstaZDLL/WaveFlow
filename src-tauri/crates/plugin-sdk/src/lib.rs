@@ -103,12 +103,20 @@ pub mod permissions {
     /// over-quota writes fail.
     pub const STORAGE_STATE: &str = "storage.state";
 
+    /// Read-only access to a redacted snapshot of the active profile's
+    /// library artists. Plugins receive names and aggregate counts only,
+    /// never filesystem paths or raw database access.
+    pub const LIBRARY_READ_ARTISTS: &str = "library.read_artists";
+
     /// Returns `true` if the string names a permission this SDK
     /// version recognises. Unknown permissions in a manifest are
     /// surfaced as a load-time error so a future-permission plugin
     /// doesn't silently get NO access.
     pub fn is_known(perm: &str) -> bool {
-        matches!(perm, HTTP | STORAGE_READ | STORAGE_STATE)
+        matches!(
+            perm,
+            HTTP | STORAGE_READ | STORAGE_STATE | LIBRARY_READ_ARTISTS
+        )
     }
 }
 
@@ -129,6 +137,7 @@ mod tests {
         assert!(permissions::is_known(permissions::HTTP));
         assert!(permissions::is_known(permissions::STORAGE_READ));
         assert!(permissions::is_known(permissions::STORAGE_STATE));
+        assert!(permissions::is_known(permissions::LIBRARY_READ_ARTISTS));
         assert!(!permissions::is_known("network.tcp"));
     }
 }

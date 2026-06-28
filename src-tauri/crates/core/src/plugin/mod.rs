@@ -34,7 +34,7 @@ use std::path::{Component, Path, PathBuf};
 /// (loop over `<resource_dir>/plugins/*/manifest.toml`) so adding
 /// a plugin to the bundle doesn't require touching app code; for
 /// now the static list keeps the diff focused.
-pub const BUNDLED_PLUGINS: &[&str] = &["web-radio"];
+pub const BUNDLED_PLUGINS: &[&str] = &["web-radio", "release-radar"];
 
 /// True when `plugin_id` is a first-party plugin shipped inside the
 /// installer. Used by [`PluginPaths`] to route path resolution to

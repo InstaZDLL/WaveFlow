@@ -15,6 +15,7 @@ import {
   Sparkles,
   Headphones,
   Radio,
+  Radar,
 } from "lucide-react";
 import type { ViewId, LibraryTab } from "../../types";
 import { NavItem } from "../common/NavItem";
@@ -81,6 +82,7 @@ export function Sidebar({
   // (the user has no way back without going to Settings, and the
   // raw error surfaced in the view).
   const showWebRadio = usePluginAvailability("web-radio");
+  const showReleaseRadar = usePluginAvailability("release-radar");
   // Per-profile toggle: hide the Spotify entry from the sidebar so
   // users who don't care about Spotify integration don't see it
   // every time. Default ON. Persisted in `ui.show_spotify`.
@@ -281,6 +283,14 @@ export function Sidebar({
             label={t("sidebar.nav.webRadio")}
             active={activeView === "web-radio"}
             onClick={() => setActiveView("web-radio")}
+          />
+        )}
+        {showReleaseRadar && (
+          <NavItem
+            icon={<Radar size={18} />}
+            label={t("sidebar.nav.releaseRadar", "Release Radar")}
+            active={activeView === "release-radar"}
+            onClick={() => setActiveView("release-radar")}
           />
         )}
         {showSpotify && (

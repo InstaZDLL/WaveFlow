@@ -41,3 +41,12 @@ pub mod source {
         imports: { default: trappable },
     });
 }
+
+/// `waveflow:ui/plugin@1.0.0` — JSON-descriptor UI extension world.
+pub mod ui {
+    wasmtime::component::bindgen!({
+        world: "waveflow:ui/plugin",
+        path: "../plugin-sdk/wit/ui",
+        imports: { default: trappable },
+    });
+}

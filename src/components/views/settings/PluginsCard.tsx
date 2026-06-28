@@ -321,6 +321,16 @@ function PermissionsRow({
       label: t("settings.plugins.permissions.storageState"),
     });
   }
+  if (permissions.libraryReadArtists) {
+    chips.push({
+      key: "libraryReadArtists",
+      icon: Database,
+      label: t(
+        "settings.plugins.permissions.libraryReadArtists",
+        "Library artists",
+      ),
+    });
+  }
   // `storage.read` (permission to read bundled assets) and the
   // declared asset count are independent surfaces — a plugin can
   // request the permission without shipping assets (forward-compat)

@@ -22,7 +22,8 @@ use std::path::{Path, PathBuf};
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use sha2::{Digest, Sha256};
 
-use crate::plugin::bindings::source::waveflow::host as wit_host;
+use crate::plugin::bindings::source::waveflow::host as source_wit_host;
+use crate::plugin::bindings::ui::waveflow::host as ui_wit_host;
 use crate::plugin::manifest::Manifest;
 use crate::plugin::runtime::HostCtx;
 
@@ -71,6 +72,9 @@ pub struct HostPermissions {
     /// for the rationale (a plugin that can write but not read is
     /// the same as one that can write into a key it then re-reads).
     pub storage_state: bool,
+
+    /// `true` if `waveflow:host/library.list-artists` is allowed.
+    pub library_read_artists: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -115,6 +119,7 @@ impl HostPermissions {
             http,
             storage_read: manifest.permissions.storage_read,
             storage_state: manifest.permissions.storage_state,
+            library_read_artists: manifest.permissions.library_read_artists,
         })
     }
 
@@ -126,6 +131,7 @@ impl HostPermissions {
             http: None,
             storage_read: false,
             storage_state: false,
+            library_read_artists: false,
         }
     }
 
@@ -322,11 +328,11 @@ fn sum_state_dir_bytes(
 
 // ----- waveflow:host/http -------------------------------------------------
 
-impl wit_host::http::Host for HostCtx {
+impl source_wit_host::http::Host for HostCtx {
     fn send(
         &mut self,
-        req: wit_host::http::Request,
-    ) -> wasmtime::Result<Result<wit_host::http::Response, String>> {
+        req: source_wit_host::http::Request,
+    ) -> wasmtime::Result<Result<source_wit_host::http::Response, String>> {
         // ORDERING INVARIANT — DO NOT REORDER WITHOUT READING THIS.
         //
         // 1. Offline short-circuit FIRST. CLAUDE.md is explicit:
@@ -353,7 +359,7 @@ impl wit_host::http::Host for HostCtx {
         // probe is the host's offline flag, which is user-visible
         // anyway.
         if (self.offline_probe)() {
-            return Ok(Ok(wit_host::http::Response {
+            return Ok(Ok(source_wit_host::http::Response {
                 status: 503,
                 headers: Vec::new(),
                 body: Vec::new(),
@@ -403,7 +409,7 @@ impl wit_host::http::Host for HostCtx {
         if read > MAX_BODY_BYTES {
             return Ok(Err("response body too large".to_string()));
         }
-        Ok(Ok(wit_host::http::Response {
+        Ok(Ok(source_wit_host::http::Response {
             status,
             headers,
             body,
@@ -413,18 +419,18 @@ impl wit_host::http::Host for HostCtx {
 
 // ----- waveflow:host/log --------------------------------------------------
 
-impl wit_host::log::Host for HostCtx {
-    fn emit(&mut self, level: wit_host::log::Level, message: String) -> wasmtime::Result<()> {
+impl source_wit_host::log::Host for HostCtx {
+    fn emit(&mut self, level: source_wit_host::log::Level, message: String) -> wasmtime::Result<()> {
         let plugin = self.plugin_id.as_str();
         // tracing's level macros are compile-time selected; one
         // match arm per level is the only shape that lets the
         // host's subscriber filter on the right severity.
         match level {
-            wit_host::log::Level::Trace => tracing::trace!(plugin, "{}", message),
-            wit_host::log::Level::Debug => tracing::debug!(plugin, "{}", message),
-            wit_host::log::Level::Info => tracing::info!(plugin, "{}", message),
-            wit_host::log::Level::Warn => tracing::warn!(plugin, "{}", message),
-            wit_host::log::Level::Error => tracing::error!(plugin, "{}", message),
+            source_wit_host::log::Level::Trace => tracing::trace!(plugin, "{}", message),
+            source_wit_host::log::Level::Debug => tracing::debug!(plugin, "{}", message),
+            source_wit_host::log::Level::Info => tracing::info!(plugin, "{}", message),
+            source_wit_host::log::Level::Warn => tracing::warn!(plugin, "{}", message),
+            source_wit_host::log::Level::Error => tracing::error!(plugin, "{}", message),
         }
         Ok(())
     }
@@ -432,7 +438,7 @@ impl wit_host::log::Host for HostCtx {
 
 // ----- waveflow:host/storage ----------------------------------------------
 
-impl wit_host::storage::Host for HostCtx {
+impl source_wit_host::storage::Host for HostCtx {
     fn read_asset(&mut self, path: String) -> wasmtime::Result<Result<Vec<u8>, String>> {
         if !self.permissions.storage_read {
             return Ok(Err("permission denied: storage.read".into()));
@@ -471,6 +477,140 @@ impl wit_host::storage::Host for HostCtx {
     }
 }
 
+// ----- waveflow:host/* for waveflow:ui -----------------------------------
+
+impl ui_wit_host::http::Host for HostCtx {
+    fn send(
+        &mut self,
+        req: ui_wit_host::http::Request,
+    ) -> wasmtime::Result<Result<ui_wit_host::http::Response, String>> {
+        if (self.offline_probe)() {
+            return Ok(Ok(ui_wit_host::http::Response {
+                status: 503,
+                headers: Vec::new(),
+                body: Vec::new(),
+            }));
+        }
+        if !self.permissions.http_allowed(&req.url) {
+            return Ok(Err(format!("permission denied: {}", req.url)));
+        }
+        let method = match req.method.parse::<reqwest::Method>() {
+            Ok(m) => m,
+            Err(_) => return Ok(Err(format!("invalid http method: {}", req.method))),
+        };
+        let mut builder = self.http_client.request(method, &req.url);
+        for (k, v) in &req.headers {
+            builder = builder.header(k.as_str(), v.as_str());
+        }
+        if let Some(body) = req.body {
+            builder = builder.body(body);
+        }
+        let resp = match builder.send() {
+            Ok(r) => r,
+            Err(e) => return Ok(Err(e.to_string())),
+        };
+        let status = resp.status().as_u16();
+        let headers = resp
+            .headers()
+            .iter()
+            .map(|(k, v)| {
+                (
+                    k.as_str().to_string(),
+                    v.to_str().unwrap_or_default().to_string(),
+                )
+            })
+            .collect();
+        let mut body = Vec::new();
+        let read = match resp.take(MAX_BODY_BYTES + 1).read_to_end(&mut body) {
+            Ok(n) => n as u64,
+            Err(e) => return Ok(Err(e.to_string())),
+        };
+        if read > MAX_BODY_BYTES {
+            return Ok(Err("response body too large".to_string()));
+        }
+        Ok(Ok(ui_wit_host::http::Response {
+            status,
+            headers,
+            body,
+        }))
+    }
+}
+
+impl ui_wit_host::log::Host for HostCtx {
+    fn emit(&mut self, level: ui_wit_host::log::Level, message: String) -> wasmtime::Result<()> {
+        let plugin = self.plugin_id.as_str();
+        match level {
+            ui_wit_host::log::Level::Trace => tracing::trace!(plugin, "{}", message),
+            ui_wit_host::log::Level::Debug => tracing::debug!(plugin, "{}", message),
+            ui_wit_host::log::Level::Info => tracing::info!(plugin, "{}", message),
+            ui_wit_host::log::Level::Warn => tracing::warn!(plugin, "{}", message),
+            ui_wit_host::log::Level::Error => tracing::error!(plugin, "{}", message),
+        }
+        Ok(())
+    }
+}
+
+impl ui_wit_host::storage::Host for HostCtx {
+    fn read_asset(&mut self, path: String) -> wasmtime::Result<Result<Vec<u8>, String>> {
+        if !self.permissions.storage_read {
+            return Ok(Err("permission denied: storage.read".into()));
+        }
+        let Some(assets) = &self.assets else {
+            return Ok(Err("plugin has no bundled assets".into()));
+        };
+        match assets.read(&path) {
+            Ok(b) => Ok(Ok(b)),
+            Err(e) => Ok(Err(e.to_string())),
+        }
+    }
+
+    fn read_state(&mut self, key: String) -> wasmtime::Result<Result<Option<Vec<u8>>, String>> {
+        if !self.permissions.storage_state {
+            return Ok(Err("permission denied: storage.state".into()));
+        }
+        match self.state.read(&key) {
+            Ok(v) => Ok(Ok(v)),
+            Err(e) => Ok(Err(e.to_string())),
+        }
+    }
+
+    fn write_state(
+        &mut self,
+        key: String,
+        value: Vec<u8>,
+    ) -> wasmtime::Result<Result<(), String>> {
+        if !self.permissions.storage_state {
+            return Ok(Err("permission denied: storage.state".into()));
+        }
+        match self.state.write(&key, &value) {
+            Ok(()) => Ok(Ok(())),
+            Err(e) => Ok(Err(e.to_string())),
+        }
+    }
+}
+
+impl ui_wit_host::library::Host for HostCtx {
+    fn list_artists(
+        &mut self,
+        limit: u32,
+    ) -> wasmtime::Result<Result<Vec<ui_wit_host::library::Artist>, String>> {
+        if !self.permissions.library_read_artists {
+            return Ok(Err("permission denied: library.read_artists".into()));
+        }
+        let limit = limit.min(200) as usize;
+        Ok(Ok(self
+            .library_artists
+            .iter()
+            .take(limit)
+            .map(|a| ui_wit_host::library::Artist {
+                id: a.id,
+                name: a.name.clone(),
+                track_count: a.track_count,
+            })
+            .collect()))
+    }
+}
+
 /// Register every `waveflow:host/*` import on the given linker.
 /// Called once by [`crate::plugin::runtime::PluginRuntime::build_linker`].
 /// Adding a new host interface = one new line here.
@@ -486,9 +626,10 @@ pub fn add_to_linker(
     linker: &mut wasmtime::component::Linker<HostCtx>,
 ) -> wasmtime::Result<()> {
     use wasmtime::component::HasSelf;
-    wit_host::http::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
-    wit_host::log::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
-    wit_host::storage::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
+    source_wit_host::http::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
+    source_wit_host::log::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
+    source_wit_host::storage::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
+    ui_wit_host::library::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
     Ok(())
 }
 
@@ -528,6 +669,7 @@ mod tests {
             http: vec!["https://*.radio-browser.info/**".into()],
             storage_read: false,
             storage_state: false,
+            library_read_artists: false,
         });
         let p = HostPermissions::from_manifest(&m).expect("compile glob");
         assert!(p.http_allowed("https://de1.api.radio-browser.info/json/stations"));
@@ -542,6 +684,7 @@ mod tests {
             http: vec!["[".into()],
             storage_read: false,
             storage_state: false,
+            library_read_artists: false,
         });
         match HostPermissions::from_manifest(&m) {
             Ok(_) => panic!("expected glob compile error, got Ok"),
@@ -652,6 +795,7 @@ mod tests {
                 http: vec!["https://example.com/*".into()],
                 storage_read: false,
                 storage_state: false,
+                library_read_artists: false,
             },
         ))
         .expect("compile allowlist");

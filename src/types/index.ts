@@ -12,6 +12,7 @@ export type ViewId =
   | "recent"
   | "spotify"
   | "wrapped"
+  | "release-radar"
   | "album-detail"
   | "artist-detail"
   | "genre-detail"

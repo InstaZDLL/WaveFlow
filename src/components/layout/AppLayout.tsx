@@ -59,6 +59,11 @@ const WebRadioView = lazy(() =>
     default: module.WebRadioView,
   })),
 );
+const PluginUIView = lazy(() =>
+  import("../views/PluginUIView").then((module) => ({
+    default: module.PluginUIView,
+  })),
+);
 const AboutView = lazy(() =>
   import("../views/AboutView").then((module) => ({
     default: module.AboutView,
@@ -121,6 +126,7 @@ type HistoryEntry =
   | { id: "settings" }
   | { id: "spotify" }
   | { id: "web-radio" }
+  | { id: "release-radar" }
   | { id: "about" }
   | { id: "feedback" }
   | { id: "statistics" }
@@ -449,6 +455,8 @@ export function AppLayout() {
         return <SpotifyView onNavigate={setActiveView} />;
       case "web-radio":
         return <WebRadioView />;
+      case "release-radar":
+        return <PluginUIView pluginId="release-radar" />;
       case "about":
         return <AboutView onNavigate={setActiveView} />;
       case "feedback":

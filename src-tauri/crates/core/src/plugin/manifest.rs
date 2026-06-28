@@ -81,6 +81,10 @@ pub struct Permissions {
     /// security boundary. Subject to a 10 MB quota.
     #[serde(default)]
     pub storage_state: bool,
+    /// Whether the plugin can read a redacted artist snapshot from the
+    /// active profile. The host exposes names and aggregate counts only.
+    #[serde(default)]
+    pub library_read_artists: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -193,6 +197,13 @@ impl Manifest {
         {
             return Err(ManifestError::UnknownPermission(
                 permissions::STORAGE_STATE.into(),
+            ));
+        }
+        if self.permissions.library_read_artists
+            && !permissions::is_known(permissions::LIBRARY_READ_ARTISTS)
+        {
+            return Err(ManifestError::UnknownPermission(
+                permissions::LIBRARY_READ_ARTISTS.into(),
             ));
         }
 

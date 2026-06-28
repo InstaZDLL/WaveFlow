@@ -1,0 +1,20 @@
+schema_version = 1
+
+[plugin]
+id = "release-radar"
+name = "Release Radar"
+version = "0.1.0"
+author = "InstaZDLL"
+description = "New albums, EPs, and singles from artists in your local library, powered by MusicBrainz and Cover Art Archive."
+homepage = "https://github.com/InstaZDLL/WaveFlow"
+license = "GPL-3.0-only"
+world = "waveflow:ui/v1"
+
+[permissions]
+http = [
+    "https://musicbrainz.org/ws/2/**",
+    "https://coverartarchive.org/**",
+]
+storage_read = false
+storage_state = true
+library_read_artists = true

@@ -36,6 +36,7 @@ export interface PluginPermissionsInfo {
   http: string[];
   storageRead: boolean;
   storageState: boolean;
+  libraryReadArtists: boolean;
 }
 
 export interface PluginAssetInfo {
@@ -137,6 +138,80 @@ export async function pluginStreamUrl(
   trackId: string,
 ): Promise<string> {
   return invoke<string>("plugin_stream_url", { pluginId, trackId });
+}
+
+// ----- waveflow:ui/extension invocation surface --------------------------
+
+export interface PluginUiMountPoint {
+  sidebarLabel: string;
+  sidebarIcon: string | null;
+  initialPath: string;
+}
+
+export interface PluginUiDescriptor {
+  schemaVersion: number;
+  title: string;
+  subtitle?: string;
+  status?: string;
+  lastUpdatedAt?: number;
+  actions?: PluginUiAction[];
+  sections?: PluginUiSection[];
+  emptyTitle?: string;
+  emptyHint?: string;
+}
+
+export interface PluginUiSection {
+  title: string;
+  items: PluginUiItem[];
+}
+
+export interface PluginUiItem {
+  id: string;
+  title: string;
+  subtitle?: string;
+  detail?: string;
+  imageUrl?: string | null;
+  badges?: string[];
+  actions?: PluginUiAction[];
+}
+
+export interface PluginUiAction {
+  kind: "event" | "open-url";
+  label: string;
+  event?: string | null;
+  payload?: string | null;
+  url?: string | null;
+}
+
+function parsePluginUiDescriptor(raw: string): PluginUiDescriptor {
+  return JSON.parse(raw) as PluginUiDescriptor;
+}
+
+export async function pluginUiManifest(
+  pluginId: string,
+): Promise<PluginUiMountPoint> {
+  return invoke<PluginUiMountPoint>("plugin_ui_manifest", { pluginId });
+}
+
+export async function pluginUiRender(
+  pluginId: string,
+  path: string,
+): Promise<PluginUiDescriptor> {
+  const raw = await invoke<string>("plugin_ui_render", { pluginId, path });
+  return parsePluginUiDescriptor(raw);
+}
+
+export async function pluginUiEvent(
+  pluginId: string,
+  event: string,
+  payload: string,
+): Promise<PluginUiDescriptor> {
+  const raw = await invoke<string>("plugin_ui_event", {
+    pluginId,
+    event,
+    payload,
+  });
+  return parsePluginUiDescriptor(raw);
 }
 
 // ----- source plugin favorites -------------------------------------------

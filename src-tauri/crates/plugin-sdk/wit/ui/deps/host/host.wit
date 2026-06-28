@@ -71,3 +71,16 @@ interface storage {
   /// `read-state` for why read + write share one toggle.
   write-state: func(key: string, value: list<u8>) -> result<_, string>;
 }
+
+interface library {
+  record artist {
+    id: u64,
+    name: string,
+    track-count: u32,
+  }
+
+  /// Redacted active-profile artist snapshot. The host sorts by
+  /// track-count descending and clamps the result to a safe maximum.
+  /// Gated by manifest permission `library.read_artists`.
+  list-artists: func(limit: u32) -> result<list<artist>, string>;
+}
