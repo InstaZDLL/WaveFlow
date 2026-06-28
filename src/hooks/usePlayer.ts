@@ -24,12 +24,17 @@ interface PlayerContextValue {
   isDeviceMenuOpen: boolean;
   toggleDeviceMenu: () => void;
 
-  // Fullscreen overlays (immersive Now Playing + karaoke Lyrics) share
-  // a single mutex so the two never paint on top of each other. Opening
-  // the lyrics overlay also flips the right-edge panel to "lyrics" so
-  // the LyricsPanel mounts and feeds the overlay its parsed state.
-  isFullscreenNowPlayingOpen: boolean;
-  isFullscreenLyricsOpen: boolean;
+  // Immersive view (issue #328) — the now-playing + lyrics overlays
+  // merged into one two-column fullscreen view. `immersiveInitialTab`
+  // records which entry point opened it (cover / now-playing button vs
+  // the lyrics button); only the narrow-window single-column fallback
+  // uses it to pick the first column. `openImmersive`/`closeImmersive`
+  // are the canonical actions; the four `*Fullscreen*` names are kept
+  // as back-compat aliases for existing callsites.
+  immersiveOpen: boolean;
+  immersiveInitialTab: "nowPlaying" | "lyrics";
+  openImmersive: (tab: "nowPlaying" | "lyrics") => void;
+  closeImmersive: () => void;
   openFullscreenNowPlaying: () => void;
   closeFullscreenNowPlaying: () => void;
   openFullscreenLyrics: () => void;

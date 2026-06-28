@@ -1,5 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
@@ -15,23 +14,13 @@ import {
   Check,
 } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
-import { isRadioTrack } from "../../lib/playerSources";
-import { pickFile } from "../../lib/tauri/dialog";
+import { useTrackLyrics } from "../../hooks/useTrackLyrics";
 import {
-  clearLyrics,
-  fetchLyrics,
-  fetchRadioLyrics,
-  findActiveLineIndex,
-  findActiveWordIndex,
-  importLrcFile,
   LYRICS_PROVIDERS,
-  parseLyrics,
-  refetchLyrics,
   type LyricsLine,
   type LyricsPayload,
   type LyricsProvider,
 } from "../../lib/tauri/lyrics";
-import { FullscreenLyrics } from "../player/FullscreenLyrics";
 import { LyricsEditorModal } from "../common/LyricsEditorModal";
 
 /**
@@ -47,21 +36,30 @@ import { LyricsEditorModal } from "../common/LyricsEditorModal";
  */
 export function LyricsPanel() {
   const { t } = useTranslation();
-  const {
-    isLyricsOpen,
-    toggleLyrics,
-    currentTrack,
-    positionMs,
-    seek,
-    isFullscreenLyricsOpen,
-    openFullscreenLyrics,
-    closeFullscreenLyrics,
-    openFullscreenNowPlaying,
-  } = usePlayer();
+  const { isLyricsOpen, toggleLyrics, currentTrack, openFullscreenLyrics } =
+    usePlayer();
 
-  const [payload, setPayload] = useState<LyricsPayload | null>(null);
-  const [isFetching, setIsFetching] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // All lyrics fetch / parse / active-line state + the import / refetch /
+  // clear mutations live in the shared hook so the immersive view reuses
+  // the exact same logic (and staleness guards) without a second fetch
+  // path. Auto-scroll stays here — it's view-local (own ref array).
+  const {
+    payload,
+    isFetching,
+    error,
+    lrcLines,
+    isSynced,
+    radioPlainText,
+    isRadio,
+    activeIndex,
+    activeWordIndex,
+    importLyrics,
+    refetch,
+    clear,
+    seekToLine,
+    applyPayload,
+  } = useTrackLyrics();
+
   const [isEditing, setIsEditing] = useState(false);
   // Provider picker dropdown — opens on click of the source label so the
   // user can re-query a specific source when the auto-waterfall cached a
@@ -79,125 +77,12 @@ export function LyricsPanel() {
 
   const trackId = currentTrack?.id ?? null;
 
-  // Web Radio has no library row: its lyrics are fetched by (artist,
-  // title) parsed from the ICY title, not by track_id. The sentinel id
-  // stays constant for the whole stream session while the song changes,
-  // so the fetch effect keys on title + artist (not just trackId) to
-  // re-query on each new song. Synced lyrics are rendered statically for
-  // radio — the live stream position can't align to a song joined
-  // mid-play — and the library-row mutation actions (edit / import /
-  // refetch / clear) are hidden.
-  const isRadio = isRadioTrack(currentTrack);
-  const radioArtist = isRadio ? (currentTrack?.artist_name ?? null) : null;
-  const radioTitle = isRadio ? (currentTrack?.title ?? null) : null;
-
-  // Live mirror of `trackId` so async event handlers can detect
-  // when the user switched tracks during an `await` — without it the
-  // closure carries whatever `trackId` was current at click time and
-  // a stale `refetchLyrics` / `importLrcFile` response would happily
-  // overwrite the new track's payload after the user moved on. The
-  // initial-fetch useEffect already has its own per-render
-  // `cancelled` flag; this ref serves the user-triggered handlers
-  // below which can't rely on effect cleanup for the same job.
-  const trackIdRef = useRef<number | null>(trackId);
-  useEffect(() => {
-    trackIdRef.current = trackId;
-  }, [trackId]);
-
-  // Previous `isRadio` so the fetch effect can tell a context switch
-  // (library ↔ radio) from a same-context track change.
-  const prevIsRadioRef = useRef(isRadio);
-
-  // ── Fetch when the focused track changes (or panel opens) ───────
-  useEffect(() => {
-    if (trackId == null) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPayload(null);
-      setError(null);
-      prevIsRadioRef.current = isRadio;
-      return;
-    }
-    let cancelled = false;
-    // Drop the previous payload up front on any transition that involves
-    // radio — entering radio (library→radio), leaving it (radio→library),
-    // or a new song on the same station (radio→radio, where the sentinel
-    // trackId is unchanged so the swap-on-resolve below wouldn't fire).
-    // Without this the previous lyrics linger under the new identity for
-    // the duration of the fetch. Library→library is deliberately exempt:
-    // it keeps the swap-on-resolve so a fast cache hit doesn't flash an
-    // intermediate "loading" state.
-    const wasRadio = prevIsRadioRef.current;
-    prevIsRadioRef.current = isRadio;
-    if (isRadio || wasRadio) {
-      setPayload(null);
-    }
-    setIsFetching(true);
-    setError(null);
-    // Radio: query by artist + title (no library row). A radio session
-    // with no parsed song yet (favicon-only, pre-ICY) has nothing to
-    // search — resolve to null so the panel shows "not found" instead of
-    // firing a blank query.
-    const request = isRadio
-      ? radioArtist && radioTitle
-        ? fetchRadioLyrics(radioArtist, radioTitle, trackId)
-        : Promise.resolve<LyricsPayload | null>(null)
-      : fetchLyrics(trackId);
-    request
-      .then((p) => {
-        if (cancelled) return;
-        setPayload(p);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.error("[LyricsPanel] fetch failed", err);
-        setError(String(err));
-      })
-      .finally(() => {
-        if (!cancelled) setIsFetching(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [trackId, isRadio, radioArtist, radioTitle]);
-
-  // ── Parse lyrics once per content change ─────────────────────────
-  const lrcLines = useMemo<LyricsLine[]>(() => {
-    if (!payload) return [];
-    return parseLyrics(payload.content, payload.format);
-  }, [payload]);
-
-  // Radio is always rendered statically (no karaoke scroll), even when
-  // the fetched content is synced LRC — the stream position is "seconds
-  // since I tuned in", not "seconds into the song", so a highlight would
-  // be wrong.
-  const isSynced = !isRadio && lrcLines.length > 0;
-
-  // For radio, strip the LRC timestamps for a clean static read: reuse
-  // the parsed lines' text, or fall back to the raw content when it was
-  // already plain.
-  const radioPlainText = useMemo<string | null>(() => {
-    if (!isRadio || !payload) return null;
-    if (lrcLines.length > 0) return lrcLines.map((l) => l.text).join("\n");
-    return payload.content;
-  }, [isRadio, payload, lrcLines]);
-
-  // ── Active-line tracking with auto-scroll ───────────────────────
-  const [activeIndex, setActiveIndex] = useState(-1);
+  // ── Active-line auto-scroll (view-local) ─────────────────────────
+  // The active index itself comes from the shared hook; only the
+  // scroll-into-view (which targets *this* panel's line nodes) lives
+  // here. The immersive view keeps its own ref array + scroll effect.
   const lineRefs = useRef<Array<HTMLLIElement | null>>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!isSynced) return;
-    const idx = findActiveLineIndex(
-      lrcLines,
-      positionMs,
-      Math.max(activeIndex, 0),
-    );
-    if (idx !== activeIndex) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setActiveIndex(idx);
-    }
-  }, [positionMs, lrcLines, isSynced, activeIndex]);
 
   useEffect(() => {
     if (!isLyricsOpen || !isSynced || activeIndex < 0) return;
@@ -207,103 +92,18 @@ export function LyricsPanel() {
     }
   }, [activeIndex, isLyricsOpen, isSynced]);
 
-  // Active word inside the active line — only computed when the line
-  // carries `words[]` so plain LRC stays cheap.
-  const activeLine = activeIndex >= 0 ? lrcLines[activeIndex] : undefined;
-  const activeWordIndex = useMemo(() => {
-    if (!activeLine?.words || activeLine.words.length === 0) return -1;
-    return findActiveWordIndex(activeLine.words, positionMs);
-  }, [activeLine, positionMs]);
-
-  // ── Actions ─────────────────────────────────────────────────────
-  const handleImport = async () => {
-    if (trackId == null) return;
-    // Capture the requested track at the call site for the same
-    // reason `handleRefetch` does — the user can switch tracks
-    // during the file picker (which can sit on screen for a while)
-    // and again during `importLrcFile`'s disk + DB work. Without
-    // the guard a stale import would clobber the new track's
-    // payload in the UI.
-    //
-    // We deliberately let `importLrcFile` itself run to completion
-    // even when the user has switched away: the user's intent was
-    // to attach this LRC to the captured track, and the call writes
-    // straight to that track's DB row, so cancelling the write
-    // would lose work. Only the UI updates skip when stale.
-    const requestedTrackId = trackId;
-    try {
-      const path = await pickFile(
-        ["lrc", "elrc", "ttml", "xml", "txt"],
-        t("lyrics.importTitle"),
-      );
-      if (!path) return;
-      const next = await importLrcFile(requestedTrackId, path);
-      if (requestedTrackId !== trackIdRef.current) return;
-      setPayload(next);
-      // Drop any error left from a prior failed fetch — otherwise the
-      // error-vs-notFound conditional below would mask the freshly
-      // imported lyrics behind the stale error state.
-      setError(null);
-    } catch (err) {
-      console.error("[LyricsPanel] import failed", err);
-      if (requestedTrackId !== trackIdRef.current) return;
-      setError(String(err));
-    }
-  };
-
+  // Provider picker closes itself, then the shared refetch runs.
   const handleRefetch = async (provider?: LyricsProvider) => {
-    if (trackId == null) return;
-    // Capture the requested track at the call site so we can detect a
-    // mid-flight switch by comparing against the live `trackIdRef`
-    // when the await resolves. Without this guard a refetch on track
-    // A that takes longer than the user's switch to track B would
-    // land its result into B's payload (CodeRabbit-flagged race).
-    const requestedTrackId = trackId;
-    try {
-      // `refetchLyrics` drops the cache row + re-queries in one Tauri
-      // call. With `provider = undefined` it re-runs the full waterfall
-      // (legacy behaviour). With `provider` set it queries ONLY that
-      // source, bypassing local tiers — the path the user takes when
-      // the auto-fetch cached a low-quality hit from one provider and
-      // they want to try a different one (issue #284).
-      setIsFetching(true);
-      setPickerOpen(false);
-      const next = await refetchLyrics(requestedTrackId, provider);
-      if (requestedTrackId !== trackIdRef.current) return;
-      setPayload(next);
-      // Same as handleImport: clear any previous error so the refetched
-      // payload actually paints instead of being shadowed by stale state.
-      setError(null);
-    } catch (err) {
-      console.error("[LyricsPanel] refetch failed", err);
-      // Don't surface an error for a track the user no longer cares
-      // about — the new track's useEffect already handles its own
-      // error state.
-      if (requestedTrackId !== trackIdRef.current) return;
-      setError(String(err));
-    } finally {
-      // Only clear the spinner when we're still on the same track.
-      // After a switch, the new track's useEffect has already flipped
-      // `isFetching` to `true` for its own request and our clear
-      // would race that state.
-      if (requestedTrackId === trackIdRef.current) {
-        setIsFetching(false);
-      }
-    }
+    setPickerOpen(false);
+    await refetch(provider);
   };
 
-  const handleClear = async () => {
-    if (trackId == null) return;
-    try {
-      await clearLyrics(trackId);
-      setPayload(null);
-    } catch (err) {
-      console.error("[LyricsPanel] clear failed", err);
-    }
+  const handleClear = () => {
+    void clear();
   };
 
   const handleSeekToLine = (line: LyricsLine) => {
-    seek(line.timeMs).catch(() => {});
+    seekToLine(line);
   };
 
   // Close the provider picker on any click outside the menu (or its
@@ -503,35 +303,8 @@ export function LyricsPanel() {
           trackTitle={currentTrack?.title ?? null}
           trackFilePath={currentTrack?.file_path ?? null}
           initial={payload}
-          onSaved={(next) => setPayload(next)}
+          onSaved={(next) => applyPayload(next)}
         />
-
-        {/* Fullscreen overlay — portalled to `document.body` so it
-            escapes the `motion.aside`'s opacity/width animation; without
-            the portal the overlay inherits the parent's `opacity: 0`
-            tween at mount and the app background flashes through during
-            the immersive→lyrics transition (the reverse direction is
-            unaffected because LyricsPanel is already fully opaque by
-            then). Mounted as a portal sibling at the document root keeps
-            the panel as the owner of the lyrics fetch / parse state. */}
-        {isFullscreenLyricsOpen &&
-          currentTrack &&
-          createPortal(
-            <FullscreenLyrics
-              track={currentTrack}
-              payload={payload}
-              lrcLines={lrcLines}
-              isSynced={isSynced}
-              activeIndex={activeIndex}
-              isFetching={isFetching}
-              error={error}
-              staticText={radioPlainText}
-              onClose={closeFullscreenLyrics}
-              onOpenNowPlaying={openFullscreenNowPlaying}
-              onSeek={handleSeekToLine}
-            />,
-            document.body,
-          )}
 
         {/* Footer actions */}
         {currentTrack != null && (
@@ -628,7 +401,7 @@ export function LyricsPanel() {
                 <>
                   <button
                     type="button"
-                    onClick={handleImport}
+                    onClick={() => void importLyrics()}
                     aria-label={t("lyrics.actions.import")}
                     title={t("lyrics.actions.import")}
                     className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"

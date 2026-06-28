@@ -103,7 +103,9 @@
       "nextSteps": "Volgende stappen:",
       "bulletExplore": "Verken je bibliotheek via de tabs Bibliotheek, Albums en Artiesten",
       "bulletQueue": "Maak je eerste wachtrij door op een nummer te klikken",
-      "bulletSettings": "Verfijn alles via de zijbalk (Weergave, Integraties…)"
+      "bulletSettings": "Verfijn alles via de zijbalk (Weergave, Integraties…)",
+      "tipImmersiveTitle": "Tip: meeslepende weergave",
+      "tipImmersiveBody": "Klik op de hoes in de speler om de volledig-schermweergave te openen met hoes en songtekst naast elkaar."
     },
     "actions": {
       "skipSetup": "Configuratie overslaan",
@@ -1884,6 +1886,17 @@
       "title": "Statistiek-indicatoren",
       "subtitle": "Kies welke indicatoren op de pagina Statistieken verschijnen. Vink de indicatoren uit die je liever verbergt, zoals het volledig-beluisterd-percentage.",
       "legend": "Zichtbaarheid van statistiek-indicatoren"
+    },
+    "immersiveView": {
+      "title": "Meeslepende weergave",
+      "mergedLyrics": {
+        "title": "Songtekst naast cover",
+        "subtitle": "Toont de songtekst naast de hoes zodat je nummers kunt wisselen terwijl je leest. Valt terug op één kolom bij smalle vensters."
+      },
+      "nativeFullscreen": {
+        "title": "Native volledig scherm",
+        "subtitle": "Vult het hele scherm bij openen en herstelt je venster bij sluiten. Schakel uit om een overlay in het venster te houden (handig bij meerdere monitoren)."
+      }
     }
   },
   "spotify": {
@@ -1966,5 +1979,9 @@
       "help": "Kies artiesten uit je bibliotheek. Leeg = online lijst.",
       "limitReached": "Limiet bereikt ({{max}} artiesten)."
     }
+  },
+  "immersive": {
+    "togglePanel": "Paneel tonen / verbergen",
+    "panelTabs": "Paneeltabbladen"
   }
 }

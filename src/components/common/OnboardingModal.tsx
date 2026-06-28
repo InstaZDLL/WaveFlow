@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Columns2,
   Disc3,
   Eye,
   EyeOff,
@@ -1056,6 +1057,24 @@ export function OnboardingModal({ onSkip }: OnboardingModalProps) {
                       <li>{t("onboarding.done.bulletQueue")}</li>
                       <li>{t("onboarding.done.bulletSettings")}</li>
                     </ul>
+                  </div>
+                  {/* Discreet feature tip — surfaces the immersive view
+                      so new users discover it without a dedicated step.
+                      A reusable callout slot for future tips. */}
+                  <div className="flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                    <Columns2
+                      size={18}
+                      className="text-emerald-500 mt-0.5 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">
+                        {t("onboarding.done.tipImmersiveTitle")}
+                      </p>
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                        {t("onboarding.done.tipImmersiveBody")}
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}

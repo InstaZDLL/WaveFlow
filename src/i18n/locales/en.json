@@ -103,7 +103,9 @@
       "nextSteps": "Next steps:",
       "bulletExplore": "Explore your library via the Library, Albums and Artists tabs",
       "bulletQueue": "Build your first queue by clicking on a track",
-      "bulletSettings": "Fine-tune things from the sidebar (Appearance, Integrations…)"
+      "bulletSettings": "Fine-tune things from the sidebar (Appearance, Integrations…)",
+      "tipImmersiveTitle": "Tip: immersive view",
+      "tipImmersiveBody": "Click the player cover to open the fullscreen view with the cover and lyrics side by side."
     },
     "actions": {
       "skipSetup": "Skip setup",
@@ -1884,6 +1886,17 @@
       "title": "Statistics indicators",
       "subtitle": "Choose which indicators appear on the Statistics page. Uncheck any you'd rather hide — like the full-listen rate.",
       "legend": "Statistics indicators visibility"
+    },
+    "immersiveView": {
+      "title": "Immersive view",
+      "mergedLyrics": {
+        "title": "Lyrics side column",
+        "subtitle": "Show lyrics next to the cover so you can switch tracks while reading. Falls back to a single column on narrow windows."
+      },
+      "nativeFullscreen": {
+        "title": "Native fullscreen",
+        "subtitle": "Fill the whole screen on open and restore your window on close. Turn off to keep an in-window overlay (useful on multi-monitor setups)."
+      }
     }
   },
   "spotify": {
@@ -1966,5 +1979,9 @@
       "help": "Pick artists from your library. Empty = online list.",
       "limitReached": "Limit reached ({{max}} artists)."
     }
+  },
+  "immersive": {
+    "togglePanel": "Show / hide panel",
+    "panelTabs": "Panel tabs"
   }
 }
