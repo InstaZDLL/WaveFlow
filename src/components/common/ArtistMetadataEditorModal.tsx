@@ -106,9 +106,13 @@ export function ArtistMetadataEditorModal({
   useEffect(() => {
     if (!isOpen || isBusy) return;
     if (debounceRef.current != null) window.clearTimeout(debounceRef.current);
+    // Invalidate any in-flight request the instant the query changes —
+    // bumping here (not inside the timeout) means a response that lands
+    // during the debounce window fails the `requestId` check and can't
+    // apply stale hits.
+    const requestId = ++requestIdRef.current;
     const trimmed = query.trim();
     if (trimmed.length < 2) {
-      requestIdRef.current++;
       /* eslint-disable react-hooks/set-state-in-effect */
       setResults([]);
       setIsSearching(false);
@@ -116,7 +120,6 @@ export function ArtistMetadataEditorModal({
       return;
     }
     debounceRef.current = window.setTimeout(() => {
-      const requestId = ++requestIdRef.current;
       setIsSearching(true);
       // Drop the previous query's hits immediately so stale entries
       // aren't shown (or clickable) while the new request is in flight.
