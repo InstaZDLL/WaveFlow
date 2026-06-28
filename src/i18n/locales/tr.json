@@ -227,7 +227,10 @@
         "durationMin": "Dakika cinsinden süre (başlangıç → bitiş)",
         "format": "Format",
         "genres": "Türler"
-      }
+      },
+      "artists": "Sanatçılar",
+      "albums": "Albümler",
+      "titles": "Parçalar"
     },
     "theme": {
       "enableLight": "Aydınlık modu aç",

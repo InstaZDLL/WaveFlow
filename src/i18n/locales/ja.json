@@ -227,7 +227,10 @@
         "durationMin": "再生時間（分）(から → まで)",
         "format": "フォーマット",
         "genres": "ジャンル"
-      }
+      },
+      "artists": "アーティスト",
+      "albums": "アルバム",
+      "titles": "曲"
     },
     "theme": {
       "enableLight": "ライトモードに切り替え",

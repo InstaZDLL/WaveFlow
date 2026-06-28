@@ -628,6 +628,8 @@ pub fn run() {
             commands::track::set_track_rating,
             commands::browse::list_albums,
             commands::browse::list_artists,
+            commands::browse::search_albums,
+            commands::browse::search_artists,
             commands::browse::list_genres,
             commands::browse::list_folders,
             commands::browse::list_recent_plays,

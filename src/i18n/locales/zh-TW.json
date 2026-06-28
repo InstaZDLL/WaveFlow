@@ -227,7 +227,10 @@
         "durationMin": "時長（分鐘）(從 → 至)",
         "format": "格式",
         "genres": "曲風"
-      }
+      },
+      "artists": "演出者",
+      "albums": "專輯",
+      "titles": "歌曲"
     },
     "theme": {
       "enableLight": "啟用淺色模式",

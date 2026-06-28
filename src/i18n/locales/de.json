@@ -227,7 +227,10 @@
         "durationMin": "Dauer in Minuten (von → bis)",
         "format": "Format",
         "genres": "Genres"
-      }
+      },
+      "artists": "Künstler",
+      "albums": "Alben",
+      "titles": "Titel"
     },
     "theme": {
       "enableLight": "Helles Design aktivieren",

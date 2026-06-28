@@ -227,7 +227,10 @@
         "durationMin": "时长（分钟）(从 → 到)",
         "format": "格式",
         "genres": "流派"
-      }
+      },
+      "artists": "艺人",
+      "albums": "专辑",
+      "titles": "歌曲"
     },
     "theme": {
       "enableLight": "启用浅色模式",

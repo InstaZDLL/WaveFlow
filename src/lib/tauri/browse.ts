@@ -228,6 +228,48 @@ export async function listArtists(
   );
 }
 
+/** Search albums by name for the global top-bar search. Same slim
+ *  wire shape as `list_albums`, so the rows expand to the full
+ *  `AlbumRow`. `limit` is clamped server-side (default 8). */
+export async function searchAlbums(
+  query: string,
+  libraryId: number | null,
+  limit?: number,
+): Promise<AlbumRow[]> {
+  const resp = await invoke<ListAlbumsResponse>("search_albums", {
+    query,
+    libraryId,
+    limit: limit ?? null,
+  });
+  const sep = pathSep(resp.artwork_base);
+  return resp.items.map((item) => expandAlbumRow(item, resp.artwork_base, sep));
+}
+
+/** Search artists by name for the global top-bar search. Mirror of
+ *  `searchAlbums` over `list_artists`'s shape. */
+export async function searchArtists(
+  query: string,
+  libraryId: number | null,
+  limit?: number,
+): Promise<ArtistRow[]> {
+  const resp = await invoke<ListArtistsResponse>("search_artists", {
+    query,
+    libraryId,
+    limit: limit ?? null,
+  });
+  const artSep = pathSep(resp.artwork_base);
+  const metaSep = pathSep(resp.metadata_artwork_base);
+  return resp.items.map((item) =>
+    expandArtistRow(
+      item,
+      resp.artwork_base,
+      resp.metadata_artwork_base,
+      artSep,
+      metaSep,
+    ),
+  );
+}
+
 export function listGenres(libraryId: number | null): Promise<GenreRow[]> {
   return invoke<GenreRow[]>("list_genres", { libraryId });
 }

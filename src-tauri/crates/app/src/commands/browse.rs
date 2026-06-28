@@ -6,10 +6,15 @@
 //! `album`, `artist` and `genre` are profile-wide tables shared across
 //! libraries.
 
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-use crate::{error::AppResult, state::AppState};
+use crate::{
+    error::{AppError, AppResult},
+    state::AppState,
+};
 
 /// Slim album row shipped by `list_albums` — artwork is represented by
 /// `(hash, format, has_1x, has_2x)` so the response-level
@@ -302,19 +307,29 @@ pub async fn list_albums(
         .fetch_all(&pool)
         .await?;
 
-    // Per-row mapping does N synchronous `Path::exists` probes against
-    // the artwork dir (via `thumbnail_paths_for`). At 850+ albums × 2
-    // checks that's enough sustained syscalls to noticeably stall the
-    // tokio runtime, so we hand the whole batch off to the blocking
-    // pool in one shot — single hop, no per-row overhead.
-    let artwork_dir_for_blocking = artwork_dir.clone();
-    let items = tokio::task::spawn_blocking(move || {
+    let items = expand_album_rows(raw, artwork_dir.clone()).await?;
+
+    Ok(ListAlbumsResponse {
+        artwork_base: artwork_dir.to_string_lossy().into_owned(),
+        items,
+    })
+}
+
+/// Stitch the thumbnail-existence flags onto a batch of raw album rows.
+///
+/// Per-row mapping does N synchronous `Path::exists` probes against the
+/// artwork dir (via `thumbnail_paths_for`). At 850+ albums × 2 checks
+/// that's enough sustained syscalls to noticeably stall the tokio
+/// runtime, so we hand the whole batch off to the blocking pool in one
+/// shot — single hop, no per-row overhead. Shared by `list_albums` and
+/// `search_albums`.
+async fn expand_album_rows(raw: Vec<AlbumRawRow>, artwork_dir: PathBuf) -> AppResult<Vec<AlbumRow>> {
+    tokio::task::spawn_blocking(move || {
         raw.into_iter()
             .map(|row| {
                 let (artwork_has_1x, artwork_has_2x) = match row.artwork_hash.as_deref() {
                     Some(hash) => {
-                        let (p1, p2) =
-                            crate::thumbnails::thumbnail_paths_for(&artwork_dir_for_blocking, hash);
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
                         (p1.is_some(), p2.is_some())
                     }
                     None => (false, false),
@@ -337,12 +352,7 @@ pub async fn list_albums(
             .collect()
     })
     .await
-    .map_err(|e| crate::error::AppError::Other(format!("list_albums join: {e}")))?;
-
-    Ok(ListAlbumsResponse {
-        artwork_base: artwork_dir.to_string_lossy().into_owned(),
-        items,
-    })
+    .map_err(|e| AppError::Other(format!("album row expand join: {e}")))
 }
 
 /// List every primary artist that has at least one available track in the
@@ -388,20 +398,33 @@ pub async fn list_artists(
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
     let metadata_dir = state.paths.metadata_artwork_dir.clone();
-    // Same blocking-pool offload as `list_albums`: each row triggers up
-    // to 5 `Path::exists` probes (1 Deezer-full + 2 local thumbs + 2
-    // Deezer thumbs) — at 900 artists that's ~4 500 syscalls in a
-    // tight loop, well past the threshold where stalling the tokio
-    // runtime starts to matter.
-    let artwork_dir_for_blocking = artwork_dir.clone();
-    let metadata_dir_for_blocking = metadata_dir.clone();
-    let items = tokio::task::spawn_blocking(move || {
+    let items = expand_artist_rows(raw, artwork_dir.clone(), metadata_dir.clone()).await?;
+
+    Ok(ListArtistsResponse {
+        artwork_base: artwork_dir.to_string_lossy().into_owned(),
+        metadata_artwork_base: metadata_dir.to_string_lossy().into_owned(),
+        items,
+    })
+}
+
+/// Stitch local + Deezer thumbnail-existence flags onto a batch of raw
+/// artist rows. Same blocking-pool offload as [`expand_album_rows`]:
+/// each row triggers up to 5 `Path::exists` probes (1 Deezer-full + 2
+/// local thumbs + 2 Deezer thumbs) — at 900 artists that's ~4 500
+/// syscalls in a tight loop, well past the threshold where stalling the
+/// tokio runtime starts to matter. Shared by `list_artists` and
+/// `search_artists`.
+async fn expand_artist_rows(
+    raw: Vec<ArtistRowRaw>,
+    artwork_dir: PathBuf,
+    metadata_dir: PathBuf,
+) -> AppResult<Vec<ArtistRow>> {
+    tokio::task::spawn_blocking(move || {
         raw.into_iter()
             .map(|r| {
                 let (artwork_has_1x, artwork_has_2x) = match r.artwork_hash.as_deref() {
                     Some(hash) => {
-                        let (p1, p2) =
-                            crate::thumbnails::thumbnail_paths_for(&artwork_dir_for_blocking, hash);
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
                         (p1.is_some(), p2.is_some())
                     }
                     None => (false, false),
@@ -411,9 +434,7 @@ pub async fn list_artists(
                 // when the source file is missing — the frontend won't have
                 // anything to point a thumbnail variant at either.
                 let picture_hash = r.picture_hash.and_then(|h| {
-                    if crate::metadata_artwork::existing_path(&metadata_dir_for_blocking, &h)
-                        .is_some()
-                    {
+                    if crate::metadata_artwork::existing_path(&metadata_dir, &h).is_some() {
                         Some(h)
                     } else {
                         None
@@ -421,8 +442,7 @@ pub async fn list_artists(
                 });
                 let (picture_has_1x, picture_has_2x) = match picture_hash.as_deref() {
                     Some(h) => {
-                        let (p1, p2) =
-                            crate::thumbnails::thumbnail_paths_for(&metadata_dir_for_blocking, h);
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&metadata_dir, h);
                         (p1.is_some(), p2.is_some())
                     }
                     None => (false, false),
@@ -445,7 +465,137 @@ pub async fn list_artists(
             .collect()
     })
     .await
-    .map_err(|e| crate::error::AppError::Other(format!("list_artists join: {e}")))?;
+    .map_err(|e| AppError::Other(format!("artist row expand join: {e}")))
+}
+
+/// Search albums by name for the global top-bar search. Matches the
+/// query's [`canonical_name`](waveflow_core::scanner::canonical_name)
+/// form as a substring of `album.canonical_title` (case / accent
+/// insensitive via the canonical column, no FTS — `track_fts` is
+/// track-scoped). Prefix matches rank first. Returns the same slim
+/// `{ artwork_base, items }` shape as [`list_albums`] so the frontend
+/// reuses `expandAlbumRow`.
+#[tauri::command]
+pub async fn search_albums(
+    state: tauri::State<'_, AppState>,
+    query: String,
+    library_id: Option<i64>,
+    limit: Option<i64>,
+) -> AppResult<ListAlbumsResponse> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+
+    let canon = waveflow_core::scanner::canonical_name(query.trim());
+    if canon.is_empty() {
+        return Ok(ListAlbumsResponse {
+            artwork_base: artwork_dir.to_string_lossy().into_owned(),
+            items: Vec::new(),
+        });
+    }
+    // Small dropdown sections — clamp to keep the payload + the
+    // per-row thumbnail probes bounded.
+    let limit = limit.unwrap_or(8).clamp(1, 50);
+
+    let raw = sqlx::query_as::<_, AlbumRawRow>(
+        r#"
+        SELECT al.id,
+               al.title,
+               COALESCE(ar.name, al.album_artist) AS artist_name,
+               al.year,
+               COUNT(t.id)                     AS track_count,
+               COALESCE(SUM(t.duration_ms), 0) AS total_duration_ms,
+               aw.hash                         AS artwork_hash,
+               aw.format                       AS artwork_format,
+               MAX(t.bit_depth)                AS max_bit_depth,
+               MAX(t.sample_rate)              AS max_sample_rate
+          FROM album al
+          JOIN track t        ON t.album_id = al.id
+          LEFT JOIN artist ar ON ar.id = al.artist_id
+          LEFT JOIN artwork aw ON aw.id = al.artwork_id
+         WHERE (? IS NULL OR t.library_id = ?)
+           AND t.is_available = 1
+           AND instr(al.canonical_title, ?) > 0
+         GROUP BY al.id
+         ORDER BY (instr(al.canonical_title, ?) = 1) DESC,
+                  al.canonical_title COLLATE NOCASE
+         LIMIT ?
+        "#,
+    )
+    .bind(library_id)
+    .bind(library_id)
+    .bind(&canon)
+    .bind(&canon)
+    .bind(limit)
+    .fetch_all(&pool)
+    .await?;
+
+    let items = expand_album_rows(raw, artwork_dir.clone()).await?;
+
+    Ok(ListAlbumsResponse {
+        artwork_base: artwork_dir.to_string_lossy().into_owned(),
+        items,
+    })
+}
+
+/// Search artists by name for the global top-bar search. Mirror of
+/// [`search_albums`] over `artist.canonical_name`; returns the same slim
+/// shape as [`list_artists`] so the frontend reuses `expandArtistRow`.
+#[tauri::command]
+pub async fn search_artists(
+    state: tauri::State<'_, AppState>,
+    query: String,
+    library_id: Option<i64>,
+    limit: Option<i64>,
+) -> AppResult<ListArtistsResponse> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    let metadata_dir = state.paths.metadata_artwork_dir.clone();
+
+    let canon = waveflow_core::scanner::canonical_name(query.trim());
+    if canon.is_empty() {
+        return Ok(ListArtistsResponse {
+            artwork_base: artwork_dir.to_string_lossy().into_owned(),
+            metadata_artwork_base: metadata_dir.to_string_lossy().into_owned(),
+            items: Vec::new(),
+        });
+    }
+    let limit = limit.unwrap_or(8).clamp(1, 50);
+
+    let raw = sqlx::query_as::<_, ArtistRowRaw>(
+        r#"
+        SELECT ar.id,
+               ar.name,
+               COUNT(DISTINCT t.id)       AS track_count,
+               COUNT(DISTINCT t.album_id) AS album_count,
+               aw.hash                    AS artwork_hash,
+               aw.format                  AS artwork_format,
+               da.picture_url             AS picture_url,
+               da.picture_hash            AS picture_hash
+          FROM artist ar
+          JOIN track_artist ta ON ta.artist_id = ar.id
+          JOIN track t ON t.id = ta.track_id
+          LEFT JOIN artwork aw ON aw.id = ar.artwork_id
+          LEFT JOIN app.metadata_artist da ON da.deezer_id = ar.deezer_id
+         WHERE (? IS NULL OR t.library_id = ?)
+           AND t.is_available = 1
+           AND instr(ar.canonical_name, ?) > 0
+         GROUP BY ar.id
+         ORDER BY (instr(ar.canonical_name, ?) = 1) DESC,
+                  ar.canonical_name COLLATE NOCASE
+         LIMIT ?
+        "#,
+    )
+    .bind(library_id)
+    .bind(library_id)
+    .bind(&canon)
+    .bind(&canon)
+    .bind(limit)
+    .fetch_all(&pool)
+    .await?;
+
+    let items = expand_artist_rows(raw, artwork_dir.clone(), metadata_dir.clone()).await?;
 
     Ok(ListArtistsResponse {
         artwork_base: artwork_dir.to_string_lossy().into_owned(),

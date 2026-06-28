@@ -227,7 +227,10 @@
         "durationMin": "재생 시간(분) (부터 → 까지)",
         "format": "포맷",
         "genres": "장르"
-      }
+      },
+      "artists": "아티스트",
+      "albums": "앨범",
+      "titles": "곡"
     },
     "theme": {
       "enableLight": "밝은 모드 켜기",

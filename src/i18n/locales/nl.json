@@ -227,7 +227,10 @@
         "durationMin": "Duur in minuten (van → tot)",
         "format": "Formaat",
         "genres": "Genres"
-      }
+      },
+      "artists": "Artiesten",
+      "albums": "Albums",
+      "titles": "Nummers"
     },
     "theme": {
       "enableLight": "Lichte modus inschakelen",

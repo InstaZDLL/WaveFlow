@@ -34,12 +34,21 @@ import {
   type SearchFilters,
   type Track,
 } from "../../lib/tauri/track";
-import { listGenres, type GenreRow } from "../../lib/tauri/browse";
+import {
+  listGenres,
+  searchAlbums,
+  searchArtists,
+  type GenreRow,
+  type AlbumRow,
+  type ArtistRow,
+} from "../../lib/tauri/browse";
 
 interface TopBarProps {
   activeView: ViewId;
   setActiveView: (view: ViewId) => void;
   onOpenProfileSelector: () => void;
+  onNavigateToAlbum: (id: number) => void;
+  onNavigateToArtist: (id: number) => void;
   canGoBack: boolean;
   canGoForward: boolean;
   onGoBack: () => void;
@@ -51,6 +60,8 @@ interface TopBarProps {
 export function TopBar({
   setActiveView,
   onOpenProfileSelector,
+  onNavigateToAlbum,
+  onNavigateToArtist,
   canGoBack,
   canGoForward,
   onGoBack,
@@ -68,9 +79,13 @@ export function TopBar({
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Search state
+  // Search state. Tracks come from FTS; albums + artists from the
+  // dedicated `search_albums` / `search_artists` commands (FTS is
+  // track-scoped). Only tracks honour the advanced filter panel.
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Track[]>([]);
+  const [albumResults, setAlbumResults] = useState<AlbumRow[]>([]);
+  const [artistResults, setArtistResults] = useState<ArtistRow[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchTimerRef = useRef<number | null>(null);
@@ -127,20 +142,36 @@ export function TopBar({
 
       if (trimmed.length === 0 && !anyFilter) {
         setSearchResults([]);
+        setAlbumResults([]);
+        setArtistResults([]);
         setIsSearchOpen(false);
         return;
       }
 
-      const promise = anyFilter
+      // Advanced filters are track-only — when any is set we run the
+      // advanced track search and drop the album/artist sections (those
+      // entities don't carry BPM / format / year constraints). A plain
+      // text query fans out across all three entities in parallel.
+      const tracksPromise = anyFilter
         ? searchTracksAdvanced({
             ...currentFilters,
             query: trimmed.length > 0 ? trimmed : null,
           })
         : searchTracks(trimmed);
+      const albumsPromise =
+        !anyFilter && trimmed.length > 0
+          ? searchAlbums(trimmed, null)
+          : Promise.resolve<AlbumRow[]>([]);
+      const artistsPromise =
+        !anyFilter && trimmed.length > 0
+          ? searchArtists(trimmed, null)
+          : Promise.resolve<ArtistRow[]>([]);
 
-      promise
-        .then((results) => {
-          setSearchResults(results);
+      Promise.all([tracksPromise, albumsPromise, artistsPromise])
+        .then(([tracks, albums, artists]) => {
+          setSearchResults(tracks);
+          setAlbumResults(albums);
+          setArtistResults(artists);
           setIsSearchOpen(true);
         })
         .catch((err) => console.error("[TopBar] search failed", err));
@@ -202,11 +233,27 @@ export function TopBar({
 
   const resetFilters = () => setFilters({});
 
-  const handleSearchResultClick = (tracks: Track[], index: number) => {
-    playTracks(tracks, index, { type: "library", id: null });
+  const closeSearch = () => {
     setIsSearchOpen(false);
     setSearchQuery("");
     setSearchResults([]);
+    setAlbumResults([]);
+    setArtistResults([]);
+  };
+
+  const handleSearchResultClick = (tracks: Track[], index: number) => {
+    playTracks(tracks, index, { type: "library", id: null });
+    closeSearch();
+  };
+
+  const handleAlbumResultClick = (id: number) => {
+    onNavigateToAlbum(id);
+    closeSearch();
+  };
+
+  const handleArtistResultClick = (id: number) => {
+    onNavigateToArtist(id);
+    closeSearch();
   };
 
   // Close search dropdown / filter panel on click outside.
@@ -522,45 +569,102 @@ export function TopBar({
               style={{ transformOrigin: "top center" }}
               className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-surface-dark-elevated dark:shadow-black/40 overflow-hidden"
             >
-              <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-4 pt-3 pb-2">
-                {t("topbar.search.results", { count: searchResults.length })}
-              </div>
-              {searchResults.length === 0 ? (
+              {searchResults.length +
+                albumResults.length +
+                artistResults.length ===
+              0 ? (
                 <div className="px-4 py-6 text-center text-sm text-zinc-500">
                   {t("topbar.search.empty")}
                 </div>
               ) : (
-                <ul className="max-h-80 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800/60">
-                  {searchResults.map((track, index) => (
-                    <li
-                      key={track.id}
-                      onClick={() =>
-                        handleSearchResultClick(searchResults, index)
-                      }
-                      className="flex items-center space-x-3 px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
-                    >
-                      <Artwork
-                        path={track.artwork_path}
-                        className="w-10 h-10"
-                        iconSize={16}
-                        alt={track.title}
-                        rounded="md"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
-                          {track.title}
-                        </div>
-                        <div className="text-xs text-zinc-500 truncate">
-                          {track.artist_name ?? "—"} ·{" "}
-                          {track.album_title ?? "—"}
-                        </div>
-                      </div>
-                      <span className="text-xs text-zinc-400 tabular-nums shrink-0">
-                        {formatDuration(track.duration_ms)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="max-h-96 overflow-y-auto">
+                  {artistResults.length > 0 && (
+                    <SearchSection label={t("topbar.search.artists")}>
+                      {artistResults.map((artist) => (
+                        <li
+                          key={`artist-${artist.id}`}
+                          onClick={() => handleArtistResultClick(artist.id)}
+                          className="flex items-center space-x-3 px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
+                        >
+                          <Artwork
+                            path={artist.artwork_path ?? artist.picture_path}
+                            remoteUrl={artist.picture_url}
+                            className="w-10 h-10"
+                            iconSize={16}
+                            alt={artist.name}
+                            placeholderIcon={Users}
+                          />
+                          <div className="flex-1 min-w-0 text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                            {artist.name}
+                          </div>
+                        </li>
+                      ))}
+                    </SearchSection>
+                  )}
+
+                  {albumResults.length > 0 && (
+                    <SearchSection label={t("topbar.search.albums")}>
+                      {albumResults.map((album) => (
+                        <li
+                          key={`album-${album.id}`}
+                          onClick={() => handleAlbumResultClick(album.id)}
+                          className="flex items-center space-x-3 px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
+                        >
+                          <Artwork
+                            path={album.artwork_path}
+                            className="w-10 h-10"
+                            iconSize={16}
+                            alt={album.title}
+                            rounded="md"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                              {album.title}
+                            </div>
+                            <div className="text-xs text-zinc-500 truncate">
+                              {album.artist_name ?? "—"}
+                              {album.year != null ? ` · ${album.year}` : ""}
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </SearchSection>
+                  )}
+
+                  {searchResults.length > 0 && (
+                    <SearchSection label={t("topbar.search.titles")}>
+                      {searchResults.map((track, index) => (
+                        <li
+                          key={`track-${track.id}`}
+                          onClick={() =>
+                            handleSearchResultClick(searchResults, index)
+                          }
+                          className="flex items-center space-x-3 px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
+                        >
+                          <Artwork
+                            path={track.artwork_path}
+                            className="w-10 h-10"
+                            iconSize={16}
+                            alt={track.title}
+                            rounded="md"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                              {track.title}
+                            </div>
+                            <div className="text-xs text-zinc-500 truncate">
+                              {track.artist_name ?? "—"} ·{" "}
+                              {track.album_title ?? "—"}
+                            </div>
+                          </div>
+                          <span className="text-xs text-zinc-400 tabular-nums shrink-0">
+                            {formatDuration(track.duration_ms)}
+                          </span>
+                        </li>
+                      ))}
+                    </SearchSection>
+                  )}
+                </div>
               )}
             </motion.div>
           )}
@@ -712,6 +816,28 @@ export function TopBar({
         </div>
       </div>
     </header>
+  );
+}
+
+/** One labelled section of the global-search dropdown (Artists /
+ *  Albums / Titles). Renders a sticky-ish uppercase header above its
+ *  rows so the three entity groups stay visually distinct. */
+function SearchSection({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="not-first:border-t not-first:border-zinc-100 dark:not-first:border-zinc-800/60">
+      <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-4 pt-3 pb-1">
+        {label}
+      </div>
+      <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
+        {children}
+      </ul>
+    </div>
   );
 }
 
