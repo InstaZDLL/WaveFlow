@@ -89,6 +89,11 @@ export function TopBar({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchTimerRef = useRef<number | null>(null);
+  // Monotonic id of the latest issued search. Each `runSearch` bumps it
+  // and captures its value; the async `Promise.all` callback only writes
+  // state when its id is still current, so a slow older request can't
+  // clobber the results of a newer one.
+  const searchSeqRef = useRef(0);
 
   // Advanced filters state. Empty/null fields mean "no constraint".
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -126,6 +131,9 @@ export function TopBar({
   const runSearch = useCallback(
     (query: string, currentFilters: SearchFilters) => {
       const trimmed = query.trim();
+      // Invalidate any in-flight older request up-front — covers both
+      // the empty-query clear below and the fan-out further down.
+      const seq = ++searchSeqRef.current;
       const anyFilter =
         (currentFilters.genre_ids?.length ?? 0) > 0 ||
         currentFilters.year_min != null ||
@@ -169,6 +177,8 @@ export function TopBar({
 
       Promise.all([tracksPromise, albumsPromise, artistsPromise])
         .then(([tracks, albums, artists]) => {
+          // Drop the response if a newer search has been issued since.
+          if (seq !== searchSeqRef.current) return;
           setSearchResults(tracks);
           setAlbumResults(albums);
           setArtistResults(artists);
@@ -365,7 +375,13 @@ export function TopBar({
             value={searchQuery}
             onChange={(e) => handleSearchInput(e.target.value)}
             onFocus={() => {
-              if (searchResults.length > 0) setIsSearchOpen(true);
+              if (
+                searchResults.length +
+                  albumResults.length +
+                  artistResults.length >
+                0
+              )
+                setIsSearchOpen(true);
             }}
             placeholder={t("topbar.search.placeholder")}
             className="bg-transparent border-none outline-none w-full text-sm placeholder-zinc-400"
@@ -581,22 +597,24 @@ export function TopBar({
                   {artistResults.length > 0 && (
                     <SearchSection label={t("topbar.search.artists")}>
                       {artistResults.map((artist) => (
-                        <li
-                          key={`artist-${artist.id}`}
-                          onClick={() => handleArtistResultClick(artist.id)}
-                          className="flex items-center space-x-3 px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
-                        >
-                          <Artwork
-                            path={artist.artwork_path ?? artist.picture_path}
-                            remoteUrl={artist.picture_url}
-                            className="w-10 h-10"
-                            iconSize={16}
-                            alt={artist.name}
-                            placeholderIcon={Users}
-                          />
-                          <div className="flex-1 min-w-0 text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
-                            {artist.name}
-                          </div>
+                        <li key={`artist-${artist.id}`}>
+                          <button
+                            type="button"
+                            onClick={() => handleArtistResultClick(artist.id)}
+                            className="flex w-full items-center space-x-3 px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
+                          >
+                            <Artwork
+                              path={artist.artwork_path ?? artist.picture_path}
+                              remoteUrl={artist.picture_url}
+                              className="w-10 h-10"
+                              iconSize={16}
+                              alt={artist.name}
+                              placeholderIcon={Users}
+                            />
+                            <div className="flex-1 min-w-0 text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                              {artist.name}
+                            </div>
+                          </button>
                         </li>
                       ))}
                     </SearchSection>
@@ -605,27 +623,29 @@ export function TopBar({
                   {albumResults.length > 0 && (
                     <SearchSection label={t("topbar.search.albums")}>
                       {albumResults.map((album) => (
-                        <li
-                          key={`album-${album.id}`}
-                          onClick={() => handleAlbumResultClick(album.id)}
-                          className="flex items-center space-x-3 px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
-                        >
-                          <Artwork
-                            path={album.artwork_path}
-                            className="w-10 h-10"
-                            iconSize={16}
-                            alt={album.title}
-                            rounded="md"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
-                              {album.title}
+                        <li key={`album-${album.id}`}>
+                          <button
+                            type="button"
+                            onClick={() => handleAlbumResultClick(album.id)}
+                            className="flex w-full items-center space-x-3 px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
+                          >
+                            <Artwork
+                              path={album.artwork_path}
+                              className="w-10 h-10"
+                              iconSize={16}
+                              alt={album.title}
+                              rounded="md"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                                {album.title}
+                              </div>
+                              <div className="text-xs text-zinc-500 truncate">
+                                {album.artist_name ?? "—"}
+                                {album.year != null ? ` · ${album.year}` : ""}
+                              </div>
                             </div>
-                            <div className="text-xs text-zinc-500 truncate">
-                              {album.artist_name ?? "—"}
-                              {album.year != null ? ` · ${album.year}` : ""}
-                            </div>
-                          </div>
+                          </button>
                         </li>
                       ))}
                     </SearchSection>
@@ -634,32 +654,34 @@ export function TopBar({
                   {searchResults.length > 0 && (
                     <SearchSection label={t("topbar.search.titles")}>
                       {searchResults.map((track, index) => (
-                        <li
-                          key={`track-${track.id}`}
-                          onClick={() =>
-                            handleSearchResultClick(searchResults, index)
-                          }
-                          className="flex items-center space-x-3 px-4 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
-                        >
-                          <Artwork
-                            path={track.artwork_path}
-                            className="w-10 h-10"
-                            iconSize={16}
-                            alt={track.title}
-                            rounded="md"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
-                              {track.title}
+                        <li key={`track-${track.id}`}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleSearchResultClick(searchResults, index)
+                            }
+                            className="flex w-full items-center space-x-3 px-4 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
+                          >
+                            <Artwork
+                              path={track.artwork_path}
+                              className="w-10 h-10"
+                              iconSize={16}
+                              alt={track.title}
+                              rounded="md"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                                {track.title}
+                              </div>
+                              <div className="text-xs text-zinc-500 truncate">
+                                {track.artist_name ?? "—"} ·{" "}
+                                {track.album_title ?? "—"}
+                              </div>
                             </div>
-                            <div className="text-xs text-zinc-500 truncate">
-                              {track.artist_name ?? "—"} ·{" "}
-                              {track.album_title ?? "—"}
-                            </div>
-                          </div>
-                          <span className="text-xs text-zinc-400 tabular-nums shrink-0">
-                            {formatDuration(track.duration_ms)}
-                          </span>
+                            <span className="text-xs text-zinc-400 tabular-nums shrink-0">
+                              {formatDuration(track.duration_ms)}
+                            </span>
+                          </button>
                         </li>
                       ))}
                     </SearchSection>
