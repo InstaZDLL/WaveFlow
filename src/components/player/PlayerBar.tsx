@@ -26,7 +26,7 @@ import { VolumeControl } from "./VolumeControl";
 import { EqPresetButton } from "./EqPresetButton";
 import { MoreActionsMenu } from "./MoreActionsMenu";
 import { AudioQualityFooter } from "./AudioQualityFooter";
-import { FullscreenNowPlaying } from "./FullscreenNowPlaying";
+import { ImmersiveView } from "./ImmersiveView";
 import { toggleLikeTrack, listLikedTrackIds } from "../../lib/tauri/track";
 
 interface PlayerBarProps {
@@ -47,10 +47,10 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
     volume,
     setVolume,
     activeProvider,
-    isFullscreenNowPlayingOpen,
+    immersiveOpen,
+    immersiveInitialTab,
     openFullscreenNowPlaying,
-    closeFullscreenNowPlaying,
-    openFullscreenLyrics,
+    closeImmersive,
     toggleNowPlaying,
   } = usePlayer();
 
@@ -406,10 +406,10 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
           />
         )}
       </footer>
-      {isFullscreenNowPlayingOpen && currentTrack && (
-        <FullscreenNowPlaying
-          onClose={closeFullscreenNowPlaying}
-          onOpenLyrics={openFullscreenLyrics}
+      {immersiveOpen && (
+        <ImmersiveView
+          initialTab={immersiveInitialTab}
+          onClose={closeImmersive}
           onNavigateToArtist={onNavigateToArtist}
           isLiked={isLiked}
           onToggleLike={handleToggleLike}

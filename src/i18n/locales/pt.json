@@ -103,7 +103,9 @@
       "nextSteps": "Próximos passos:",
       "bulletExplore": "Explora a tua biblioteca pelos separadores Biblioteca, Álbuns e Artistas",
       "bulletQueue": "Cria a tua primeira fila clicando numa faixa",
-      "bulletSettings": "Afina as definições na barra lateral (Aparência, Integrações…)"
+      "bulletSettings": "Afina as definições na barra lateral (Aparência, Integrações…)",
+      "tipImmersiveTitle": "Dica: vista imersiva",
+      "tipImmersiveBody": "Clique na capa do leitor para abrir a vista de ecrã inteiro com a capa e a letra lado a lado."
     },
     "actions": {
       "skipSetup": "Saltar configuração",
@@ -1884,6 +1886,17 @@
       "title": "Indicadores de estatísticas",
       "subtitle": "Escolha quais indicadores aparecem na página de Estatísticas. Desmarque os que prefere ocultar, como a taxa de escuta completa.",
       "legend": "Visibilidade dos indicadores de estatísticas"
+    },
+    "immersiveView": {
+      "title": "Vista imersiva",
+      "mergedLyrics": {
+        "title": "Letras em coluna",
+        "subtitle": "Mostra a letra ao lado da capa para mudar de faixa enquanto lê. Volta a uma única coluna em janelas estreitas."
+      },
+      "nativeFullscreen": {
+        "title": "Ecrã inteiro nativo",
+        "subtitle": "Preenche todo o ecrã ao abrir e restaura a janela ao fechar. Desative para manter uma sobreposição na janela (útil em vários monitores)."
+      }
     }
   },
   "spotify": {
@@ -1966,5 +1979,9 @@
       "help": "Escolha artistas da sua biblioteca. Vazio = lista online.",
       "limitReached": "Limite atingido ({{max}} artistas)."
     }
+  },
+  "immersive": {
+    "togglePanel": "Mostrar / ocultar painel",
+    "panelTabs": "Separadores do painel"
   }
 }

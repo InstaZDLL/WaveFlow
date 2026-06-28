@@ -103,7 +103,9 @@
       "nextSteps": "다음 단계:",
       "bulletExplore": "라이브러리, 앨범, 아티스트 탭에서 라이브러리를 탐색하세요",
       "bulletQueue": "트랙을 클릭하여 첫 대기열을 만드세요",
-      "bulletSettings": "사이드바에서 세부 설정을 조정하세요 (외관, 통합…)"
+      "bulletSettings": "사이드바에서 세부 설정을 조정하세요 (외관, 통합…)",
+      "tipImmersiveTitle": "팁: 몰입형 보기",
+      "tipImmersiveBody": "플레이어의 커버를 클릭하면 커버와 가사가 나란히 있는 전체 화면 보기가 열립니다."
     },
     "actions": {
       "skipSetup": "설정 건너뛰기",
@@ -1884,6 +1886,17 @@
       "title": "통계 지표",
       "subtitle": "통계 페이지에 표시할 지표를 선택하세요. 숨기고 싶은 지표의 체크를 해제하세요 — 예: 완전 재생률.",
       "legend": "통계 지표 표시 여부"
+    },
+    "immersiveView": {
+      "title": "몰입형 보기",
+      "mergedLyrics": {
+        "title": "가사 측면 표시",
+        "subtitle": "커버 옆에 가사를 표시해 읽으면서 곡을 바꿀 수 있습니다. 좁은 창에서는 단일 열로 돌아갑니다."
+      },
+      "nativeFullscreen": {
+        "title": "네이티브 전체 화면",
+        "subtitle": "열 때 화면 전체를 채우고 닫을 때 창을 복원합니다. 끄면 창 내 오버레이로 유지됩니다(멀티 모니터에 유용)."
+      }
     }
   },
   "spotify": {
@@ -1966,5 +1979,9 @@
       "help": "보관함에서 아티스트를 선택하세요. 비어 있으면 온라인 목록.",
       "limitReached": "최대 {{max}}명에 도달했습니다."
     }
+  },
+  "immersive": {
+    "togglePanel": "패널 표시 / 숨기기",
+    "panelTabs": "패널 탭"
   }
 }

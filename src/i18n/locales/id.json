@@ -103,7 +103,9 @@
       "nextSteps": "Langkah selanjutnya:",
       "bulletExplore": "Jelajahi pustakamu lewat tab Pustaka, Album, dan Artis",
       "bulletQueue": "Buat antrean pertamamu dengan mengklik sebuah lagu",
-      "bulletSettings": "Sesuaikan detail lewat bilah samping (Tampilan, Integrasi…)"
+      "bulletSettings": "Sesuaikan detail lewat bilah samping (Tampilan, Integrasi…)",
+      "tipImmersiveTitle": "Tips: tampilan imersif",
+      "tipImmersiveBody": "Klik sampul di pemutar untuk membuka tampilan layar penuh dengan sampul dan lirik berdampingan."
     },
     "actions": {
       "skipSetup": "Lewati pengaturan",
@@ -1884,6 +1886,17 @@
       "title": "Indikator statistik",
       "subtitle": "Pilih indikator yang tampil di halaman Statistik. Hapus centang yang ingin Anda sembunyikan — misalnya tingkat dengar penuh.",
       "legend": "Visibilitas indikator statistik"
+    },
+    "immersiveView": {
+      "title": "Tampilan imersif",
+      "mergedLyrics": {
+        "title": "Lirik di samping",
+        "subtitle": "Menampilkan lirik di samping sampul agar Anda bisa ganti lagu sambil membaca. Kembali ke satu kolom pada jendela sempit."
+      },
+      "nativeFullscreen": {
+        "title": "Layar penuh native",
+        "subtitle": "Memenuhi seluruh layar saat dibuka dan memulihkan jendela saat ditutup. Matikan untuk mempertahankan lapisan dalam jendela (berguna pada banyak monitor)."
+      }
     }
   },
   "spotify": {
@@ -1966,5 +1979,9 @@
       "help": "Pilih artis dari pustaka Anda. Kosong = daftar online.",
       "limitReached": "Batas tercapai ({{max}} artis)."
     }
+  },
+  "immersive": {
+    "togglePanel": "Tampilkan / sembunyikan panel",
+    "panelTabs": "Tab panel"
   }
 }

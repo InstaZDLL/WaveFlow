@@ -103,7 +103,9 @@
       "nextSteps": "下一步：",
       "bulletExplore": "通过音乐库、专辑、艺人标签页探索你的音乐库",
       "bulletQueue": "点击曲目创建你的第一个播放队列",
-      "bulletSettings": "在侧边栏精细调节设置（外观、集成…）"
+      "bulletSettings": "在侧边栏精细调节设置（外观、集成…）",
+      "tipImmersiveTitle": "提示：沉浸式视图",
+      "tipImmersiveBody": "点击播放器封面，打开封面与歌词并排的全屏视图。"
     },
     "actions": {
       "skipSetup": "跳过设置",
@@ -1884,6 +1886,17 @@
       "title": "统计指标",
       "subtitle": "选择在统计页面显示哪些指标。取消勾选你不想看到的指标——例如完整播放率。",
       "legend": "统计指标可见性"
+    },
+    "immersiveView": {
+      "title": "沉浸式视图",
+      "mergedLyrics": {
+        "title": "歌词侧栏",
+        "subtitle": "在封面旁显示歌词，便于一边阅读一边切歌。窗口较窄时回退为单列。"
+      },
+      "nativeFullscreen": {
+        "title": "原生全屏",
+        "subtitle": "打开时占满整个屏幕，关闭时恢复窗口。关闭后保留窗口内浮层（多显示器时有用）。"
+      }
     }
   },
   "scanProgress": {
@@ -1966,5 +1979,9 @@
       "help": "从你的音乐库选择艺术家。留空＝在线列表。",
       "limitReached": "已达上限（{{max}} 位艺术家）。"
     }
+  },
+  "immersive": {
+    "togglePanel": "显示 / 隐藏面板",
+    "panelTabs": "面板标签"
   }
 }

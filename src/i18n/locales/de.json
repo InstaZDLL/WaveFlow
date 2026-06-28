@@ -103,7 +103,9 @@
       "nextSteps": "Nächste Schritte:",
       "bulletExplore": "Erkunde deine Bibliothek über die Tabs „Titel“, „Alben“ und „Künstler“",
       "bulletQueue": "Erstelle deine erste Warteschlange, indem du auf einen Titel klickst",
-      "bulletSettings": "Justiere alles über die Seitenleiste (Aussehen, Integrationen…)"
+      "bulletSettings": "Justiere alles über die Seitenleiste (Aussehen, Integrationen…)",
+      "tipImmersiveTitle": "Tipp: immersive Ansicht",
+      "tipImmersiveBody": "Klicke auf das Cover im Player, um die Vollbildansicht mit Cover und Songtext nebeneinander zu öffnen."
     },
     "actions": {
       "skipSetup": "Einrichtung überspringen",
@@ -1884,6 +1886,17 @@
       "title": "Statistik-Kennzahlen",
       "subtitle": "Wähle, welche Kennzahlen auf der Statistikseite erscheinen. Deaktiviere jene, die du lieber ausblendest – etwa die Vollständig-gehört-Rate.",
       "legend": "Sichtbarkeit der Statistik-Kennzahlen"
+    },
+    "immersiveView": {
+      "title": "Immersive Ansicht",
+      "mergedLyrics": {
+        "title": "Songtext-Spalte",
+        "subtitle": "Zeigt den Songtext neben dem Cover, sodass du beim Lesen Titel wechseln kannst. Bei schmalen Fenstern fällt die Ansicht auf eine Spalte zurück."
+      },
+      "nativeFullscreen": {
+        "title": "Nativer Vollbildmodus",
+        "subtitle": "Füllt beim Öffnen den ganzen Bildschirm und stellt dein Fenster beim Schließen wieder her. Deaktivieren, um eine Overlay-Ansicht im Fenster zu behalten (nützlich bei mehreren Monitoren)."
+      }
     }
   },
   "spotify": {
@@ -1966,5 +1979,9 @@
       "help": "Wähle Künstler aus deiner Bibliothek. Leer = Online-Liste.",
       "limitReached": "Limit erreicht ({{max}} Künstler)."
     }
+  },
+  "immersive": {
+    "togglePanel": "Panel ein-/ausblenden",
+    "panelTabs": "Panel-Tabs"
   }
 }

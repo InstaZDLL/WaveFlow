@@ -103,7 +103,9 @@
       "nextSteps": "Pour aller plus loin :",
       "bulletExplore": "Explorez votre bibliothèque via les onglets Bibliothèque, Albums et Artistes",
       "bulletQueue": "Créez votre première file d'attente en cliquant sur un morceau",
-      "bulletSettings": "Affinez les réglages dans la barre latérale (Apparence, Intégrations…)"
+      "bulletSettings": "Affinez les réglages dans la barre latérale (Apparence, Intégrations…)",
+      "tipImmersiveTitle": "Astuce : vue immersive",
+      "tipImmersiveBody": "Cliquez sur la pochette du lecteur pour ouvrir la vue plein écran avec la pochette et les paroles côte à côte."
     },
     "actions": {
       "skipSetup": "Passer la configuration",
@@ -1884,6 +1886,17 @@
       "title": "Indicateurs des statistiques",
       "subtitle": "Choisissez les indicateurs affichés sur la page Statistiques. Décochez ceux que vous préférez masquer — par exemple le taux d'écoute complète.",
       "legend": "Visibilité des indicateurs de statistiques"
+    },
+    "immersiveView": {
+      "title": "Vue immersive",
+      "mergedLyrics": {
+        "title": "Paroles en colonne",
+        "subtitle": "Affiche les paroles à côté de la pochette pour changer de morceau tout en lisant. Repasse en colonne unique sur les fenêtres étroites."
+      },
+      "nativeFullscreen": {
+        "title": "Plein écran natif",
+        "subtitle": "Remplit tout l'écran à l'ouverture et restaure votre fenêtre à la fermeture. Désactivez pour garder une surcouche fenêtrée (utile en multi-écran)."
+      }
     }
   },
   "spotify": {
@@ -1966,5 +1979,9 @@
       "help": "Choisissez des artistes de votre bibliothèque. Vide = liste en ligne.",
       "limitReached": "Maximum atteint ({{max}} artistes)."
     }
+  },
+  "immersive": {
+    "togglePanel": "Afficher / masquer le panneau",
+    "panelTabs": "Onglets du panneau"
   }
 }

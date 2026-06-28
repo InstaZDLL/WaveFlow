@@ -191,14 +191,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const isLyricsOpen = activeRightPanel === "lyrics";
   const [isDeviceMenuOpen, setIsDeviceMenuOpen] = useState(false);
 
-  // Fullscreen overlays. Single nullable enum so the two are mutually
-  // exclusive by construction — switching from immersive to karaoke
-  // (or back) is just a single setter call.
-  const [fullscreenOverlay, setFullscreenOverlay] = useState<
-    "nowPlaying" | "lyrics" | null
-  >(null);
-  const isFullscreenNowPlayingOpen = fullscreenOverlay === "nowPlaying";
-  const isFullscreenLyricsOpen = fullscreenOverlay === "lyrics";
+  // Immersive view (issue #328). The now-playing + lyrics overlays
+  // merged into a single two-column view, so this is one boolean
+  // instead of the old mutually-exclusive enum. `immersiveInitialTab`
+  // remembers which entry point opened it — used only by the narrow-
+  // window single-column fallback to pick which column shows first;
+  // at desktop widths both columns render side by side.
+  const [immersiveOpen, setImmersiveOpen] = useState(false);
+  const [immersiveInitialTab, setImmersiveInitialTab] = useState<
+    "nowPlaying" | "lyrics"
+  >("nowPlaying");
 
   // Cached output device list. Populated at boot + after every device
   // switch so the menu opens instantly with the up-to-date list — the
@@ -306,6 +308,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setCurrentRadioStation(null);
     setPositionMs(0);
     setDurationMs(0);
+    // Close the immersive view on profile switch — otherwise `immersiveOpen`
+    // would linger true through the `currentTrack` null window and reopen
+    // the view once the new profile's first track lands.
+    setImmersiveOpen(false);
 
     let cancelled = false;
     (async () => {
@@ -717,42 +723,32 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const openFullscreenNowPlaying = useCallback(() => {
-    setFullscreenOverlay("nowPlaying");
+  // Open the immersive view, remembering which entry point triggered
+  // it (cover thumbnail / now-playing button vs the lyrics button). The
+  // merged two-column ImmersiveView is self-contained — it fetches its
+  // own lyrics via `useTrackLyrics` — so opening it no longer needs to
+  // force the right-edge LyricsPanel open the way the old karaoke
+  // overlay did.
+  const openImmersive = useCallback((tab: "nowPlaying" | "lyrics") => {
+    setImmersiveInitialTab(tab);
+    setImmersiveOpen(true);
   }, []);
-  const closeFullscreenNowPlaying = useCallback(() => {
-    setFullscreenOverlay((o) => (o === "nowPlaying" ? null : o));
+  const closeImmersive = useCallback(() => {
+    setImmersiveOpen(false);
   }, []);
-  // Opening the lyrics overlay forces the right-edge panel onto
-  // "lyrics" so the LyricsPanel mounts: the karaoke overlay reuses the
-  // panel's parsed lyrics + active-line tracking instead of running a
-  // second fetch. We snapshot the previous panel so closing the overlay
-  // can restore it — otherwise opening lyrics from the immersive view
-  // would silently flip the user's queue/now-playing panel to lyrics.
-  // `undefined` = no snapshot to restore (either we never forced a
-  // change, or fullscreen lyrics was opened from the panel's Maximize
-  // button while the lyrics panel was already active). `null` is a
-  // valid restore target meaning "no panel was open beforehand".
-  const rightPanelBeforeFullscreenLyricsRef = useRef<
-    "queue" | "nowPlaying" | "lyrics" | null | undefined
-  >(undefined);
-  const openFullscreenLyrics = useCallback(() => {
-    setActiveRightPanel((prev) => {
-      if (prev !== "lyrics") {
-        rightPanelBeforeFullscreenLyricsRef.current = prev;
-      }
-      return "lyrics";
-    });
-    setFullscreenOverlay("lyrics");
-  }, []);
-  const closeFullscreenLyrics = useCallback(() => {
-    setFullscreenOverlay((o) => (o === "lyrics" ? null : o));
-    const previous = rightPanelBeforeFullscreenLyricsRef.current;
-    if (previous !== undefined) {
-      setActiveRightPanel(previous);
-      rightPanelBeforeFullscreenLyricsRef.current = undefined;
-    }
-  }, []);
+  // Back-compat aliases — callsites (PlayerBar cover action, LyricsPanel
+  // maximize button) keep their existing names; both now open/close the
+  // one merged immersive view.
+  const openFullscreenNowPlaying = useCallback(
+    () => openImmersive("nowPlaying"),
+    [openImmersive],
+  );
+  const openFullscreenLyrics = useCallback(
+    () => openImmersive("lyrics"),
+    [openImmersive],
+  );
+  const closeFullscreenNowPlaying = closeImmersive;
+  const closeFullscreenLyrics = closeImmersive;
 
   const refreshOutputDevices = useCallback(async () => {
     try {
@@ -816,8 +812,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         toggleLyrics,
         isDeviceMenuOpen,
         toggleDeviceMenu,
-        isFullscreenNowPlayingOpen,
-        isFullscreenLyricsOpen,
+        immersiveOpen,
+        immersiveInitialTab,
+        openImmersive,
+        closeImmersive,
         openFullscreenNowPlaying,
         closeFullscreenNowPlaying,
         openFullscreenLyrics,

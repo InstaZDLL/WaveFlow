@@ -103,7 +103,9 @@
       "nextSteps": "Sonraki adımlar:",
       "bulletExplore": "Kütüphane, Albümler ve Sanatçılar sekmelerinden kütüphaneni keşfet",
       "bulletQueue": "Bir parçaya tıklayarak ilk sıranı oluştur",
-      "bulletSettings": "Yan kenar çubuğundan detayları ayarla (Görünüm, Entegrasyonlar…)"
+      "bulletSettings": "Yan kenar çubuğundan detayları ayarla (Görünüm, Entegrasyonlar…)",
+      "tipImmersiveTitle": "İpucu: sürükleyici görünüm",
+      "tipImmersiveBody": "Kapak ile şarkı sözlerini yan yana gösteren tam ekran görünümü açmak için oynatıcıdaki kapağa tıklayın."
     },
     "actions": {
       "skipSetup": "Kurulumu atla",
@@ -1884,6 +1886,17 @@
       "title": "İstatistik göstergeleri",
       "subtitle": "İstatistikler sayfasında hangi göstergelerin görüneceğini seçin. Gizlemek istediklerinizin işaretini kaldırın — örneğin tam dinleme oranı.",
       "legend": "İstatistik göstergelerinin görünürlüğü"
+    },
+    "immersiveView": {
+      "title": "Sürükleyici görünüm",
+      "mergedLyrics": {
+        "title": "Yan sütunda şarkı sözleri",
+        "subtitle": "Okurken parça değiştirebilmeniz için şarkı sözlerini kapağın yanında gösterir. Dar pencerelerde tek sütuna döner."
+      },
+      "nativeFullscreen": {
+        "title": "Yerel tam ekran",
+        "subtitle": "Açılışta tüm ekranı kaplar ve kapanışta pencerenizi geri yükler. Pencere içi katmanı korumak için kapatın (çoklu monitörde kullanışlı)."
+      }
     }
   },
   "spotify": {
@@ -1966,5 +1979,9 @@
       "help": "Kitaplığınızdan sanatçı seçin. Boş = çevrimiçi liste.",
       "limitReached": "Sınıra ulaşıldı ({{max}} sanatçı)."
     }
+  },
+  "immersive": {
+    "togglePanel": "Paneli göster / gizle",
+    "panelTabs": "Panel sekmeleri"
   }
 }

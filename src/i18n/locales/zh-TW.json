@@ -103,7 +103,9 @@
       "nextSteps": "下一步：",
       "bulletExplore": "透過音樂庫、專輯、藝人分頁探索你的音樂庫",
       "bulletQueue": "點擊曲目以建立你的第一個播放佇列",
-      "bulletSettings": "在側邊欄微調設定（外觀、整合…）"
+      "bulletSettings": "在側邊欄微調設定（外觀、整合…）",
+      "tipImmersiveTitle": "提示：沉浸式檢視",
+      "tipImmersiveBody": "點擊播放器封面，開啟封面與歌詞並排的全螢幕檢視。"
     },
     "actions": {
       "skipSetup": "略過設定",
@@ -1884,6 +1886,17 @@
       "title": "統計指標",
       "subtitle": "選擇要在統計頁面顯示哪些指標。取消勾選你不想看到的指標——例如完整播放率。",
       "legend": "統計指標顯示"
+    },
+    "immersiveView": {
+      "title": "沉浸式檢視",
+      "mergedLyrics": {
+        "title": "歌詞側欄",
+        "subtitle": "在封面旁顯示歌詞，方便一邊閱讀一邊切歌。視窗較窄時回到單欄。"
+      },
+      "nativeFullscreen": {
+        "title": "原生全螢幕",
+        "subtitle": "開啟時占滿整個螢幕，關閉時還原視窗。關閉後保留視窗內浮層（多螢幕時實用）。"
+      }
     }
   },
   "scanProgress": {
@@ -1966,5 +1979,9 @@
       "help": "從你的音樂庫選擇藝人。留空＝線上清單。",
       "limitReached": "已達上限（{{max}} 位藝人）。"
     }
+  },
+  "immersive": {
+    "togglePanel": "顯示 / 隱藏面板",
+    "panelTabs": "面板分頁"
   }
 }
