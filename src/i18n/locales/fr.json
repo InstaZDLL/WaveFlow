@@ -971,7 +971,8 @@
       "title": "Artistes similaires",
       "inLibrary": "Dans votre bibliothèque",
       "notInLibrary": "Pas dans votre bibliothèque"
-    }
+    },
+    "editMetadata": "Modifier les infos"
   },
   "artistImagePicker": {
     "title": "Modifier l'image de l'artiste",
@@ -1948,5 +1949,22 @@
     "browseByCountry": "Parcourir par pays",
     "localCatalogue": "Catalogue local",
     "localCatalogueHint": "Navigation et recherche depuis le catalogue téléchargé."
+  },
+  "artistMetadataEditor": {
+    "title": "Modifier les métadonnées",
+    "subtitle": "Bio et artistes similaires personnalisés pour {{name}}.",
+    "bio": {
+      "label": "Biographie personnalisée",
+      "reset": "Rétablir en ligne",
+      "placeholder": "Saisissez une bio. Laissez vide pour utiliser celle récupérée en ligne.",
+      "help": "Remplace la bio Last.fm / TheAudioDB. Disponible hors-ligne."
+    },
+    "similar": {
+      "label": "Artistes similaires personnalisés",
+      "placeholder": "Rechercher un artiste de votre bibliothèque…",
+      "remove": "Retirer {{name}}",
+      "help": "Choisissez des artistes de votre bibliothèque. Vide = liste en ligne.",
+      "limitReached": "Maximum atteint ({{max}} artistes)."
+    }
   }
 }

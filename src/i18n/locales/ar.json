@@ -971,7 +971,8 @@
       "title": "فنانون مشابهون",
       "inLibrary": "في مكتبتك",
       "notInLibrary": "ليس في مكتبتك"
-    }
+    },
+    "editMetadata": "تعديل المعلومات"
   },
   "artistImagePicker": {
     "title": "تغيير صورة الفنان",
@@ -1952,5 +1953,22 @@
     "browseByCountry": "التصفح حسب البلد",
     "localCatalogue": "Local catalogue",
     "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+  },
+  "artistMetadataEditor": {
+    "title": "تعديل البيانات الوصفية",
+    "subtitle": "سيرة ذاتية وفنانون مشابهون مخصّصون لـ {{name}}.",
+    "bio": {
+      "label": "سيرة ذاتية مخصّصة",
+      "reset": "العودة إلى الإنترنت",
+      "placeholder": "اكتب سيرة ذاتية. اتركها فارغة لاستخدام التي تُجلب عبر الإنترنت.",
+      "help": "تحل محل سيرة Last.fm / TheAudioDB. تعمل دون اتصال."
+    },
+    "similar": {
+      "label": "فنانون مشابهون مخصّصون",
+      "placeholder": "ابحث عن فنان من مكتبتك…",
+      "remove": "إزالة {{name}}",
+      "help": "اختر فنانين من مكتبتك. فارغ = القائمة عبر الإنترنت.",
+      "limitReached": "تم بلوغ الحد الأقصى ({{max}} فنانًا)."
+    }
   }
 }

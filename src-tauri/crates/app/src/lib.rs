@@ -641,6 +641,8 @@ pub fn run() {
             commands::browse::get_genre_detail,
             commands::deezer::enrich_album_deezer,
             commands::deezer::enrich_artist_deezer,
+            commands::artist_overrides::get_artist_overrides,
+            commands::artist_overrides::set_artist_metadata_overrides,
             commands::deezer::search_albums_deezer,
             commands::deezer::set_album_artwork_from_deezer,
             commands::deezer::set_album_artwork_from_file,

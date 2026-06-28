@@ -971,7 +971,8 @@
       "title": "似ているアーティスト",
       "inLibrary": "ライブラリにあり",
       "notInLibrary": "ライブラリにない"
-    }
+    },
+    "editMetadata": "情報を編集"
   },
   "artistImagePicker": {
     "title": "アーティスト画像を変更",
@@ -1948,5 +1949,22 @@
     "browseByCountry": "国別に見る",
     "localCatalogue": "Local catalogue",
     "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+  },
+  "artistMetadataEditor": {
+    "title": "メタデータを編集",
+    "subtitle": "{{name}} のカスタム経歴と関連アーティスト。",
+    "bio": {
+      "label": "カスタム経歴",
+      "reset": "オンラインに戻す",
+      "placeholder": "経歴を入力します。空欄にするとオンラインで取得したものを使います。",
+      "help": "Last.fm / TheAudioDB の経歴を置き換えます。オフラインでも動作します。"
+    },
+    "similar": {
+      "label": "カスタム関連アーティスト",
+      "placeholder": "ライブラリからアーティストを検索…",
+      "remove": "{{name}} を削除",
+      "help": "ライブラリからアーティストを選びます。空欄＝オンラインの一覧。",
+      "limitReached": "上限に達しました（{{max}}組）。"
+    }
   }
 }

@@ -1006,7 +1006,8 @@
       "title": "Похожие исполнители",
       "inLibrary": "В вашей библиотеке",
       "notInLibrary": "Нет в вашей библиотеке"
-    }
+    },
+    "editMetadata": "Изменить данные"
   },
   "artistImagePicker": {
     "title": "Сменить фото исполнителя",
@@ -1993,5 +1994,22 @@
     "browseByCountry": "Поиск по стране",
     "localCatalogue": "Local catalogue",
     "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+  },
+  "artistMetadataEditor": {
+    "title": "Изменить метаданные",
+    "subtitle": "Своя биография и похожие исполнители для {{name}}.",
+    "bio": {
+      "label": "Своя биография",
+      "reset": "Вернуть онлайн-версию",
+      "placeholder": "Введите биографию. Оставьте пустым, чтобы использовать загруженную онлайн.",
+      "help": "Заменяет биографию Last.fm / TheAudioDB. Работает офлайн."
+    },
+    "similar": {
+      "label": "Свои похожие исполнители",
+      "placeholder": "Найти исполнителя из вашей библиотеки…",
+      "remove": "Убрать {{name}}",
+      "help": "Выберите исполнителей из библиотеки. Пусто = онлайн-список.",
+      "limitReached": "Достигнут предел ({{max}} исполнителей)."
+    }
   }
 }

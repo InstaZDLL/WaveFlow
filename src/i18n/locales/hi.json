@@ -971,7 +971,8 @@
       "title": "समान कलाकार",
       "inLibrary": "आपकी लाइब्रेरी में",
       "notInLibrary": "आपकी लाइब्रेरी में नहीं"
-    }
+    },
+    "editMetadata": "जानकारी संपादित करें"
   },
   "artistImagePicker": {
     "title": "कलाकार की छवि बदलें",
@@ -1948,5 +1949,22 @@
     "browseByCountry": "देश के अनुसार ब्राउज़ करें",
     "localCatalogue": "Local catalogue",
     "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+  },
+  "artistMetadataEditor": {
+    "title": "मेटाडेटा संपादित करें",
+    "subtitle": "{{name}} के लिए कस्टम बायो और समान कलाकार।",
+    "bio": {
+      "label": "कस्टम बायोग्राफ़ी",
+      "reset": "ऑनलाइन पर रीसेट करें",
+      "placeholder": "बायो लिखें। ऑनलाइन प्राप्त बायो उपयोग करने के लिए खाली छोड़ें।",
+      "help": "Last.fm / TheAudioDB बायो की जगह लेता है। ऑफ़लाइन काम करता है।"
+    },
+    "similar": {
+      "label": "कस्टम समान कलाकार",
+      "placeholder": "अपनी लाइब्रेरी से कलाकार खोजें…",
+      "remove": "{{name}} हटाएँ",
+      "help": "अपनी लाइब्रेरी से कलाकार चुनें। खाली = ऑनलाइन सूची।",
+      "limitReached": "सीमा पूरी ({{max}} कलाकार)।"
+    }
   }
 }

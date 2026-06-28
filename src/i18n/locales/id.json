@@ -971,7 +971,8 @@
       "title": "Artis serupa",
       "inLibrary": "Di pustakamu",
       "notInLibrary": "Tidak ada di pustakamu"
-    }
+    },
+    "editMetadata": "Sunting info"
   },
   "artistImagePicker": {
     "title": "Ganti gambar artis",
@@ -1948,5 +1949,22 @@
     "browseByCountry": "Telusuri berdasarkan negara",
     "localCatalogue": "Local catalogue",
     "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+  },
+  "artistMetadataEditor": {
+    "title": "Sunting metadata",
+    "subtitle": "Bio dan artis serupa kustom untuk {{name}}.",
+    "bio": {
+      "label": "Biografi kustom",
+      "reset": "Atur ulang ke online",
+      "placeholder": "Ketik bio. Biarkan kosong untuk memakai yang diambil online.",
+      "help": "Menggantikan bio Last.fm / TheAudioDB. Berfungsi offline."
+    },
+    "similar": {
+      "label": "Artis serupa kustom",
+      "placeholder": "Cari artis dari pustaka Anda…",
+      "remove": "Hapus {{name}}",
+      "help": "Pilih artis dari pustaka Anda. Kosong = daftar online.",
+      "limitReached": "Batas tercapai ({{max}} artis)."
+    }
   }
 }

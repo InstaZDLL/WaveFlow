@@ -971,7 +971,8 @@
       "title": "相似艺人",
       "inLibrary": "在你的曲库中",
       "notInLibrary": "不在你的曲库中"
-    }
+    },
+    "editMetadata": "编辑信息"
   },
   "artistImagePicker": {
     "title": "更改艺人图片",
@@ -1948,5 +1949,22 @@
     "browseByCountry": "按国家/地区浏览",
     "localCatalogue": "Local catalogue",
     "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+  },
+  "artistMetadataEditor": {
+    "title": "编辑元数据",
+    "subtitle": "为 {{name}} 自定义简介和相似艺术家。",
+    "bio": {
+      "label": "自定义简介",
+      "reset": "恢复为在线",
+      "placeholder": "输入简介。留空则使用在线获取的简介。",
+      "help": "替换 Last.fm / TheAudioDB 简介。可离线使用。"
+    },
+    "similar": {
+      "label": "自定义相似艺术家",
+      "placeholder": "从你的音乐库搜索艺术家…",
+      "remove": "移除 {{name}}",
+      "help": "从你的音乐库选择艺术家。留空＝在线列表。",
+      "limitReached": "已达上限（{{max}} 位艺术家）。"
+    }
   }
 }

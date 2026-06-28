@@ -280,6 +280,39 @@ pub async fn enrich_artist_deezer(
     artist_id: i64,
 ) -> AppResult<DeezerArtistEnrichment> {
     let pool = state.require_profile_pool().await?;
+
+    // Per-profile bio override (issue #323) wins over any fetched bio
+    // and works offline. We still let the inner path fetch + cache the
+    // online bio (keeping the shared cross-profile `metadata_artist`
+    // cache correct for profiles WITHOUT an override) and just swap the
+    // returned bio here. Offline mode short-circuits before the network
+    // inside, so the override is the only bio offline users ever see.
+    let custom_bio: Option<String> =
+        sqlx::query_scalar("SELECT custom_bio FROM artist WHERE id = ?")
+            .bind(artist_id)
+            .fetch_optional(&pool)
+            .await?
+            .flatten()
+            .map(|b: String| b.trim().to_string())
+            .filter(|b| !b.is_empty());
+
+    // Pass the SAME pool into the inner so the custom_bio lookup and the
+    // enrichment stay scoped to one profile — re-resolving inside could
+    // straddle a switch_profile and apply one profile's override to
+    // another's artist.
+    let mut enrichment = enrich_artist_deezer_inner(state, pool, artist_id).await?;
+    if let Some(bio) = custom_bio {
+        enrichment.bio_full = Some(bio.clone());
+        enrichment.bio_short = Some(bio);
+    }
+    Ok(enrichment)
+}
+
+async fn enrich_artist_deezer_inner(
+    state: tauri::State<'_, AppState>,
+    pool: sqlx::SqlitePool,
+    artist_id: i64,
+) -> AppResult<DeezerArtistEnrichment> {
     let artwork_dir = state.paths.metadata_artwork_dir.clone();
     let now = now_ms();
 
