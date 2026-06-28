@@ -557,6 +557,10 @@ pub(crate) async fn scan_folder_inner(
     let stat_ms = t_scan.elapsed().as_millis();
     let to_extract_count = to_extract.len();
 
+    // Created here (before the probe) so the probe SELECT below is
+    // counted in `db_us` like every other DB access.
+    let timings = Arc::new(ScanTimings::default());
+
     // Probe map for the insert-vs-update decision in the consumer loop,
     // pre-loaded ONCE instead of a `SELECT … WHERE library_id = ? AND
     // file_path = ?` per extracted track (the per-track probe was a
@@ -575,6 +579,7 @@ pub(crate) async fn scan_folder_inner(
     let existing_probe: HashMap<String, (i64, i64, String, i64)> = if to_extract.is_empty() {
         HashMap::new()
     } else {
+        let t_db = Instant::now();
         let probe_rows: Vec<(String, i64, i64, String, i64)> = sqlx::query_as(
             "SELECT file_path, id, file_modified, file_hash, added_at
                FROM track
@@ -583,6 +588,9 @@ pub(crate) async fn scan_folder_inner(
         .bind(library_id)
         .fetch_all(pool)
         .await?;
+        timings
+            .db_us
+            .fetch_add(t_db.elapsed().as_micros() as u64, Ordering::Relaxed);
         probe_rows
             .into_iter()
             .map(|(path, id, mtime, hash, added_at)| (path, (id, mtime, hash, added_at)))
@@ -607,7 +615,6 @@ pub(crate) async fn scan_folder_inner(
         .unwrap_or(4);
     const TX_BATCH: usize = 200;
 
-    let timings = Arc::new(ScanTimings::default());
     let extraction_stream = futures::stream::iter(to_extract)
         .map(|path: PathBuf| {
             let artwork_dir = artwork_dir.to_path_buf();
