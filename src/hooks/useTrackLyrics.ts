@@ -283,9 +283,11 @@ export function useTrackLyrics(): TrackLyrics {
     // during the await would otherwise wipe the NEW track's payload.
     const requestedTrackId = trackId;
     try {
-      await clearLyrics(trackId);
+      await clearLyrics(requestedTrackId);
       if (requestedTrackId !== trackIdRef.current) return;
       setPayload(null);
+      // Drop any stale error too so the empty state isn't masked.
+      setError(null);
     } catch (err) {
       console.error("[useTrackLyrics] clear failed", err);
     }

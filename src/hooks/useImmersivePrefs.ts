@@ -80,6 +80,14 @@ export function useImmersivePrefs(): ImmersivePrefs {
 
   useEffect(() => {
     let cancelled = false;
+    // Reset to defaults (loaded:false) up front so a profile switch never
+    // surfaces the previous profile's prefs during the async re-read, and
+    // consumers gated on `loaded` (ImmersiveView's native-fullscreen
+    // effect) don't act on stale values. No-op on first mount (already
+    // DEFAULTS). Not run on the custom event (that calls `refresh`
+    // directly), so toggling a setting won't flash the card to defaults.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPrefs({ ...DEFAULTS, loaded: false });
     const refresh = async () => {
       const seq = ++seqRef.current;
       try {
