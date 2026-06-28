@@ -78,11 +78,12 @@ Quick playback controls (Play/Pause, Previous, Next, Quitter). Close-to-tray is 
 
 [`StatisticsView.tsx`](../../src/components/views/StatisticsView.tsx) projects from `play_event`:
 
-- KPIs (total listening time, distinct tracks/artists/albums, completion rate)
+- KPIs (total listening time, distinct tracks/artists/albums, completion rate). Each card carries a stable id and the user can hide any of them from **Settings → Appearance** ([`StatsKpiVisibilityCard`](../../src/components/views/settings/StatsKpiVisibilityCard.tsx)) — persisted per-profile in `profile_setting['stats.hidden_kpis']` as a JSON array of ids, read via [`useHiddenKpis`](../../src/hooks/useHiddenKpis.ts) (window-event broadcast so the view re-reads without a remount). Default = nothing hidden. Motivated by the "Full-listen rate" KPI feeling judgemental, but applies uniformly to every KPI.
 - GitHub-contributions-style yearly heatmap ([`Heatmap.tsx`](../../src/components/views/statistics/Heatmap.tsx)) — 53×7 grid pinned to the past 12 months regardless of the period selector, intensity bucketed in quartiles against the local max so the gradient stays meaningful for both light and heavy listeners. Reuses `stats_listening_by_day` with `range="1y"`; no new backend command.
 - Listening-by-day and listening-by-hour bar charts
+- Per-genre breakdown ([`TopGenres.tsx`](../../src/components/views/statistics/TopGenres.tsx)) — horizontal bars sized by `SUM(listened_ms)`, backed by `stats_top_genres(range, limit)` joining `play_event → track_genre → genre`. A multi-genre track credits every genre attached to it (intentional: a "Rock; Indie" play counts toward both).
 - Top tracks / artists / albums for the selected window (7d / 30d / 90d / 1y / all)
-- **JSON export** — `export_stats_json(range, target_path)` ([`commands/stats.rs`](../../src-tauri/crates/app/src/commands/stats.rs)) bundles the active range's overview + top 100 tracks/artists/albums + listening-by-day + listening-by-hour into a versioned (`schema_version: 1`) pretty-printed JSON file. The Rust side writes the file directly via `spawn_blocking` so we don't depend on `tauri-plugin-fs` just to round-trip a string. Frontend trigger is the Download button next to the range selector in the header.
+- **JSON export** — `export_stats_json(range, target_path)` ([`commands/stats.rs`](../../src-tauri/crates/app/src/commands/stats.rs)) bundles the active range's overview + top 100 tracks/artists/albums/genres + listening-by-day + listening-by-hour into a versioned (`schema_version: 2` — v2 added `top_genres`) pretty-printed JSON file. The Rust side writes the file directly via `spawn_blocking` so we don't depend on `tauri-plugin-fs` just to round-trip a string. Frontend trigger is the Download button next to the range selector in the header.
 
 ## WaveFlow Wrapped
 

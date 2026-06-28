@@ -542,6 +542,10 @@
       "label": "統計をエクスポート",
       "action": "エクスポート",
       "dialogTitle": "統計をJSONでエクスポート"
+    },
+    "topGenres": {
+      "title": "トップジャンル",
+      "empty": "再生されたジャンルがありません。"
     }
   },
   "wrapped": {
@@ -1874,6 +1878,11 @@
       "standard": "標準",
       "high": "高",
       "max": "最大"
+    },
+    "statsKpis": {
+      "title": "統計指標",
+      "subtitle": "統計ページに表示する指標を選びます。非表示にしたい指標のチェックを外してください（例：完全再生率）。",
+      "legend": "統計指標の表示"
     }
   },
   "scanProgress": {

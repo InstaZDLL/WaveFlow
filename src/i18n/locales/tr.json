@@ -542,6 +542,10 @@
       "label": "İstatistikleri dışa aktar",
       "action": "Dışa aktar",
       "dialogTitle": "İstatistikleri JSON olarak dışa aktar"
+    },
+    "topGenres": {
+      "title": "En çok dinlenen türler",
+      "empty": "Bu dönemde tür dinlenmedi."
     }
   },
   "wrapped": {
@@ -1874,6 +1878,11 @@
       "standard": "Standart",
       "high": "Yüksek",
       "max": "Maksimum"
+    },
+    "statsKpis": {
+      "title": "İstatistik göstergeleri",
+      "subtitle": "İstatistikler sayfasında hangi göstergelerin görüneceğini seçin. Gizlemek istediklerinizin işaretini kaldırın — örneğin tam dinleme oranı.",
+      "legend": "İstatistik göstergelerinin görünürlüğü"
     }
   },
   "spotify": {

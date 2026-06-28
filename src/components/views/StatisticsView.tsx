@@ -19,20 +19,24 @@ import {
   statsOverview,
   statsTopAlbums,
   statsTopArtists,
+  statsTopGenres,
   statsTopTracks,
   type ListeningByDayRow,
   type StatsOverview,
   type StatsRange,
   type TopAlbumRow,
   type TopArtistRow,
+  type TopGenreRow,
   type TopTrackRow,
 } from "../../lib/tauri/stats";
 import { pickSaveFile } from "../../lib/tauri/dialog";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
+import { useHiddenKpis, type StatsKpiId } from "../../hooks/useHiddenKpis";
 import { RangeSelector } from "./statistics/RangeSelector";
 import { KpiCard } from "./statistics/KpiCard";
 import { BarChart } from "./statistics/BarChart";
 import { Heatmap } from "./statistics/Heatmap";
+import { TopGenres } from "./statistics/TopGenres";
 import { TopList, TopRow } from "./statistics/TopList";
 import {
   formatCount,
@@ -64,9 +68,11 @@ export function StatisticsView({
   const [topTracks, setTopTracks] = useState<TopTrackRow[]>([]);
   const [topArtists, setTopArtists] = useState<TopArtistRow[]>([]);
   const [topAlbums, setTopAlbums] = useState<TopAlbumRow[]>([]);
+  const [topGenres, setTopGenres] = useState<TopGenreRow[]>([]);
   const [heatmapData, setHeatmapData] = useState<ListeningByDayRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const { isHidden, ready: kpiPrefsReady } = useHiddenKpis();
 
   // Export the on-screen stats (top 100 each, listening by day/hour,
   // overview) as a pretty-printed JSON file. The backend already
@@ -122,8 +128,14 @@ export function StatisticsView({
       statsTopTracks(range, TOP_LIMIT),
       statsTopArtists(range, TOP_LIMIT),
       statsTopAlbums(range, TOP_LIMIT),
+      // Genres degrade to an empty list on error so a genre-query
+      // failure never blocks the rest of the dashboard from loading.
+      statsTopGenres(range, TOP_LIMIT).catch((err) => {
+        console.error("[StatisticsView] top genres load failed", err);
+        return [] as TopGenreRow[];
+      }),
     ])
-      .then(([ov, day, hour, tracks, artists, albums]) => {
+      .then(([ov, day, hour, tracks, artists, albums, genres]) => {
         if (cancelled) return;
         setOverview(ov);
         setByDay(day);
@@ -131,6 +143,7 @@ export function StatisticsView({
         setTopTracks(tracks);
         setTopArtists(artists);
         setTopAlbums(albums);
+        setTopGenres(genres);
       })
       .catch((err) => {
         console.error("[StatisticsView] load failed", err);
@@ -215,40 +228,83 @@ export function StatisticsView({
         />
       ) : (
         <>
-          {/* KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <KpiCard
-              icon={<PlayCircle size={18} />}
-              label={t("statistics.kpi.totalPlays")}
-              value={overview ? formatCount(overview.total_plays, locale) : "—"}
-            />
-            <KpiCard
-              icon={<Clock size={18} />}
-              label={t("statistics.kpi.totalTime")}
-              value={overview ? formatListenTime(overview.total_ms) : "—"}
-            />
-            <KpiCard
-              icon={<Music2 size={18} />}
-              label={t("statistics.kpi.uniqueTracks")}
-              value={
-                overview ? formatCount(overview.unique_tracks, locale) : "—"
-              }
-              hint={
-                overview
-                  ? t("statistics.kpi.uniqueArtists", {
-                      count: overview.unique_artists,
-                    })
-                  : undefined
-              }
-            />
-            <KpiCard
-              icon={<Disc3 size={18} />}
-              label={t("statistics.kpi.completionRate")}
-              value={
-                overview ? formatPercent(overview.completion_rate, locale) : "—"
-              }
-            />
-          </div>
+          {/* KPIs — each card declares a stable id so the user can hide
+              it from Settings → Appearance (`stats.hidden_kpis`). A
+              fully-hidden grid is intentional: it renders nothing. */}
+          {(() => {
+            // Hold the KPI grid back until the hidden-cards preference
+            // has loaded, otherwise a hidden card flashes visible for
+            // one frame before the read lands.
+            if (!kpiPrefsReady) return null;
+            const kpis: Array<{ id: StatsKpiId; node: React.ReactNode }> = [
+              {
+                id: "total_plays",
+                node: (
+                  <KpiCard
+                    icon={<PlayCircle size={18} />}
+                    label={t("statistics.kpi.totalPlays")}
+                    value={
+                      overview ? formatCount(overview.total_plays, locale) : "—"
+                    }
+                  />
+                ),
+              },
+              {
+                id: "total_time",
+                node: (
+                  <KpiCard
+                    icon={<Clock size={18} />}
+                    label={t("statistics.kpi.totalTime")}
+                    value={overview ? formatListenTime(overview.total_ms) : "—"}
+                  />
+                ),
+              },
+              {
+                id: "unique_tracks",
+                node: (
+                  <KpiCard
+                    icon={<Music2 size={18} />}
+                    label={t("statistics.kpi.uniqueTracks")}
+                    value={
+                      overview
+                        ? formatCount(overview.unique_tracks, locale)
+                        : "—"
+                    }
+                    hint={
+                      overview
+                        ? t("statistics.kpi.uniqueArtists", {
+                            count: overview.unique_artists,
+                          })
+                        : undefined
+                    }
+                  />
+                ),
+              },
+              {
+                id: "completion_rate",
+                node: (
+                  <KpiCard
+                    icon={<Disc3 size={18} />}
+                    label={t("statistics.kpi.completionRate")}
+                    value={
+                      overview
+                        ? formatPercent(overview.completion_rate, locale)
+                        : "—"
+                    }
+                  />
+                ),
+              },
+            ];
+            const visible = kpis.filter((k) => !isHidden(k.id));
+            if (visible.length === 0) return null;
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {visible.map((k) => (
+                  <div key={k.id}>{k.node}</div>
+                ))}
+              </div>
+            );
+          })()}
 
           {/* Yearly heatmap (GitHub-contributions style) */}
           <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5">
@@ -285,6 +341,9 @@ export function StatisticsView({
               />
             </section>
           </div>
+
+          {/* Per-genre listening breakdown */}
+          <TopGenres data={topGenres} />
 
           {/* Tops */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

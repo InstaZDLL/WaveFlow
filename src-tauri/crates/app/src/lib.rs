@@ -813,6 +813,7 @@ pub fn run() {
             commands::stats::stats_top_tracks,
             commands::stats::stats_top_artists,
             commands::stats::stats_top_albums,
+            commands::stats::stats_top_genres,
             commands::stats::stats_listening_by_day,
             commands::stats::stats_listening_by_hour,
             commands::maintenance::regenerate_thumbnails,

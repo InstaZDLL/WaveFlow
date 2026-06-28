@@ -542,6 +542,10 @@
       "label": "导出统计",
       "action": "导出",
       "dialogTitle": "将统计导出为 JSON"
+    },
+    "topGenres": {
+      "title": "热门风格",
+      "empty": "暂无已播放的风格。"
     }
   },
   "wrapped": {
@@ -1874,6 +1878,11 @@
       "standard": "标准",
       "high": "高",
       "max": "最高"
+    },
+    "statsKpis": {
+      "title": "统计指标",
+      "subtitle": "选择在统计页面显示哪些指标。取消勾选你不想看到的指标——例如完整播放率。",
+      "legend": "统计指标可见性"
     }
   },
   "scanProgress": {

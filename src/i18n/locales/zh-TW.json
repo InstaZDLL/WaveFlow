@@ -542,6 +542,10 @@
       "label": "匯出統計",
       "action": "匯出",
       "dialogTitle": "將統計匯出為 JSON"
+    },
+    "topGenres": {
+      "title": "熱門曲風",
+      "empty": "尚未播放任何曲風。"
     }
   },
   "wrapped": {
@@ -1874,6 +1878,11 @@
       "standard": "標準",
       "high": "高",
       "max": "最高"
+    },
+    "statsKpis": {
+      "title": "統計指標",
+      "subtitle": "選擇要在統計頁面顯示哪些指標。取消勾選你不想看到的指標——例如完整播放率。",
+      "legend": "統計指標顯示"
     }
   },
   "scanProgress": {
