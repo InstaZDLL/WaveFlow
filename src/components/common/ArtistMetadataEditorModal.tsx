@@ -118,6 +118,9 @@ export function ArtistMetadataEditorModal({
     debounceRef.current = window.setTimeout(() => {
       const requestId = ++requestIdRef.current;
       setIsSearching(true);
+      // Drop the previous query's hits immediately so stale entries
+      // aren't shown (or clickable) while the new request is in flight.
+      setResults([]);
       searchArtists(trimmed, null, 8)
         .then((res) => {
           if (requestId !== requestIdRef.current) return;
@@ -131,6 +134,7 @@ export function ArtistMetadataEditorModal({
         .catch((err) => {
           if (requestId !== requestIdRef.current) return;
           console.error("[ArtistMetadataEditorModal] search failed", err);
+          setResults([]);
         })
         .finally(() => {
           if (requestId !== requestIdRef.current) return;
@@ -145,17 +149,26 @@ export function ArtistMetadataEditorModal({
   const atLimit = selected.length >= MAX_SIMILAR;
 
   const addArtist = (row: ArtistRow) => {
-    // UI-side cap mirrors backend; also blocked while busy.
-    if (isBusy || selected.length >= MAX_SIMILAR) return;
-    setSelected((prev) => [
-      ...prev,
-      {
-        artist_id: row.id,
-        name: row.name,
-        picture_url: row.picture_url,
-        picture_path: row.picture_path,
-      },
-    ]);
+    if (isBusy) return;
+    // Enforce the cap + dedup inside the updater so rapid clicks
+    // validate against the latest `prev`, not a render-stale snapshot.
+    setSelected((prev) => {
+      if (
+        prev.length >= MAX_SIMILAR ||
+        prev.some((s) => s.artist_id === row.id)
+      ) {
+        return prev;
+      }
+      return [
+        ...prev,
+        {
+          artist_id: row.id,
+          name: row.name,
+          picture_url: row.picture_url,
+          picture_path: row.picture_path,
+        },
+      ];
+    });
     setQuery("");
     setResults([]);
   };
