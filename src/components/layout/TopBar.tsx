@@ -244,6 +244,13 @@ export function TopBar({
   const resetFilters = () => setFilters({});
 
   const closeSearch = () => {
+    // Cancel the pending debounce so a keystroke from just before the
+    // navigation doesn't fire `runSearch` afterward and reopen the
+    // dropdown (the timer closure captured the old query value).
+    if (searchTimerRef.current != null) {
+      window.clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = null;
+    }
     // Invalidate any in-flight request so a slow response can't reopen
     // the dropdown after the user navigated away (e.g. clicked an album
     // row while the fan-out was still resolving).
