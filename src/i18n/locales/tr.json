@@ -1963,7 +1963,8 @@
       "label": "Özel benzer sanatçılar",
       "placeholder": "Kitaplığınızdan bir sanatçı arayın…",
       "remove": "{{name}} sanatçısını kaldır",
-      "help": "Kitaplığınızdan sanatçı seçin. Boş = çevrimiçi liste."
+      "help": "Kitaplığınızdan sanatçı seçin. Boş = çevrimiçi liste.",
+      "limitReached": "Sınıra ulaşıldı ({{max}} sanatçı)."
     }
   }
 }

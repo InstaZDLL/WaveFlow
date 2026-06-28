@@ -231,9 +231,13 @@ async fn fetch_custom_similar(
     .fetch_all(pool)
     .await?;
 
-    let n = rows.len().max(1) as f32;
+    // Apply the same display cap as the online path so a long curated
+    // list (stored up to 50) can't render more cards than `RESULT_LIMIT`.
+    let take_n = rows.len().min(RESULT_LIMIT);
+    let n = take_n.max(1) as f32;
     let out = rows
         .into_iter()
+        .take(RESULT_LIMIT)
         .enumerate()
         .map(|(i, (id, name, picture_url, picture_hash))| SimilarArtistDto {
             name,

@@ -1963,7 +1963,8 @@
       "label": "Artistas semelhantes personalizados",
       "placeholder": "Pesquisar um artista da sua biblioteca…",
       "remove": "Remover {{name}}",
-      "help": "Escolha artistas da sua biblioteca. Vazio = lista online."
+      "help": "Escolha artistas da sua biblioteca. Vazio = lista online.",
+      "limitReached": "Limite atingido ({{max}} artistas)."
     }
   }
 }

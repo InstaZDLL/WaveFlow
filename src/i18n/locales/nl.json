@@ -1963,7 +1963,8 @@
       "label": "Aangepaste vergelijkbare artiesten",
       "placeholder": "Zoek een artiest uit je bibliotheek…",
       "remove": "{{name}} verwijderen",
-      "help": "Kies artiesten uit je bibliotheek. Leeg = online lijst."
+      "help": "Kies artiesten uit je bibliotheek. Leeg = online lijst.",
+      "limitReached": "Limiet bereikt ({{max}} artiesten)."
     }
   }
 }

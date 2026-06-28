@@ -296,7 +296,11 @@ pub async fn enrich_artist_deezer(
             .map(|b: String| b.trim().to_string())
             .filter(|b| !b.is_empty());
 
-    let mut enrichment = enrich_artist_deezer_inner(state, artist_id).await?;
+    // Pass the SAME pool into the inner so the custom_bio lookup and the
+    // enrichment stay scoped to one profile — re-resolving inside could
+    // straddle a switch_profile and apply one profile's override to
+    // another's artist.
+    let mut enrichment = enrich_artist_deezer_inner(state, pool, artist_id).await?;
     if let Some(bio) = custom_bio {
         enrichment.bio_full = Some(bio.clone());
         enrichment.bio_short = Some(bio);
@@ -306,9 +310,9 @@ pub async fn enrich_artist_deezer(
 
 async fn enrich_artist_deezer_inner(
     state: tauri::State<'_, AppState>,
+    pool: sqlx::SqlitePool,
     artist_id: i64,
 ) -> AppResult<DeezerArtistEnrichment> {
-    let pool = state.require_profile_pool().await?;
     let artwork_dir = state.paths.metadata_artwork_dir.clone();
     let now = now_ms();
 

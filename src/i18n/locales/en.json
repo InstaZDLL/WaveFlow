@@ -1963,7 +1963,8 @@
       "label": "Custom similar artists",
       "placeholder": "Search an artist from your library…",
       "remove": "Remove {{name}}",
-      "help": "Pick artists from your library. Empty = online list."
+      "help": "Pick artists from your library. Empty = online list.",
+      "limitReached": "Limit reached ({{max}} artists)."
     }
   }
 }

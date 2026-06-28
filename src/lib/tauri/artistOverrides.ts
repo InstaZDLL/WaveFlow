@@ -22,24 +22,20 @@ export function getArtistOverrides(artistId: number): Promise<ArtistOverrides> {
 }
 
 /**
- * Set or clear the biography override. Pass `null` (or a blank string)
- * to drop the override and fall back to the fetched bio.
+ * Set or clear **both** overrides in a single backend transaction so a
+ * failure can't leave a half-applied state. Pass `null`/blank `bio` to
+ * drop the bio override; pass `null`/empty `similarIds` to drop the
+ * similar override. Similar order is preserved; self-references and
+ * duplicates are dropped server-side.
  */
-export function setArtistBioOverride(
+export function setArtistMetadataOverrides(
   artistId: number,
   bio: string | null,
-): Promise<void> {
-  return invoke<void>("set_artist_bio_override", { artistId, bio });
-}
-
-/**
- * Replace the curated similar-artist list. Pass `null` or an empty
- * array to drop the override (the online list takes over). Order is
- * preserved; self-references and duplicates are dropped server-side.
- */
-export function setArtistSimilarOverride(
-  artistId: number,
   similarIds: number[] | null,
 ): Promise<void> {
-  return invoke<void>("set_artist_similar_override", { artistId, similarIds });
+  return invoke<void>("set_artist_metadata_overrides", {
+    artistId,
+    bio,
+    similarIds,
+  });
 }

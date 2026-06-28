@@ -5,12 +5,15 @@ import { useModalA11y } from "../../hooks/useModalA11y";
 import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 import {
   getArtistOverrides,
-  setArtistBioOverride,
-  setArtistSimilarOverride,
+  setArtistMetadataOverrides,
   type ArtistOverrideSimilar,
 } from "../../lib/tauri/artistOverrides";
 import { searchArtists, type ArtistRow } from "../../lib/tauri/browse";
 import { resolveRemoteImage } from "../../lib/tauri/artwork";
+
+/** Mirror of the backend `MAX_SIMILAR` cap so the UI blocks before the
+ *  server would silently truncate. */
+const MAX_SIMILAR = 50;
 
 interface ArtistMetadataEditorModalProps {
   artistId: number;
@@ -59,11 +62,16 @@ export function ArtistMetadataEditorModal({
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
+    // Clear EVERYTHING up-front — including bio + chips — so a different
+    // artist never flashes the previous one's data while the async read
+    // is in flight.
     /* eslint-disable react-hooks/set-state-in-effect */
     setIsLoading(true);
     setError(null);
     setQuery("");
     setResults([]);
+    setBio("");
+    setSelected([]);
     /* eslint-enable react-hooks/set-state-in-effect */
     getArtistOverrides(artistId)
       .then((ov) => {
@@ -129,7 +137,10 @@ export function ArtistMetadataEditorModal({
     };
   }, [query, isOpen, artistId, selectedIds]);
 
+  const atLimit = selected.length >= MAX_SIMILAR;
+
   const addArtist = (row: ArtistRow) => {
+    if (selected.length >= MAX_SIMILAR) return; // UI-side cap, mirrors backend
     setSelected((prev) => [
       ...prev,
       {
@@ -153,9 +164,10 @@ export function ArtistMetadataEditorModal({
     setError(null);
     try {
       const trimmedBio = bio.trim();
-      await setArtistBioOverride(artistId, trimmedBio.length ? trimmedBio : null);
-      await setArtistSimilarOverride(
+      // One transactional write so bio + similar can't half-apply.
+      await setArtistMetadataOverrides(
         artistId,
+        trimmedBio.length ? trimmedBio : null,
         selected.length ? selected.map((s) => s.artist_id) : null,
       );
       onSuccess();
@@ -280,8 +292,9 @@ export function ArtistMetadataEditorModal({
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                disabled={atLimit}
                 placeholder={t("artistMetadataEditor.similar.placeholder")}
-                className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
               />
               {isSearching && (
                 <Loader2
@@ -291,21 +304,24 @@ export function ArtistMetadataEditorModal({
               )}
             </div>
 
-            {/* Results listbox */}
-            {results.length > 0 && (
-              <ul
-                className="max-h-56 overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700 divide-y divide-zinc-100 dark:divide-zinc-800"
-                role="listbox"
-                aria-label={t("artistMetadataEditor.similar.label")}
-              >
+            {atLimit && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                {t("artistMetadataEditor.similar.limitReached", {
+                  max: MAX_SIMILAR,
+                })}
+              </p>
+            )}
+
+            {/* Results — plain list of action buttons (not a listbox: no
+                roving focus / active-option semantics implemented). */}
+            {!atLimit && results.length > 0 && (
+              <ul className="max-h-56 overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700 divide-y divide-zinc-100 dark:divide-zinc-800">
                 {results.map((r) => {
                   const img = resolveRemoteImage(r.picture_path, r.picture_url);
                   return (
                     <li key={r.id}>
                       <button
                         type="button"
-                        role="option"
-                        aria-selected={false}
                         onClick={() => addArtist(r)}
                         className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
                       >

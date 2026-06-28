@@ -972,7 +972,7 @@
       "inLibrary": "Di pustakamu",
       "notInLibrary": "Tidak ada di pustakamu"
     },
-    "editMetadata": "Edit info"
+    "editMetadata": "Sunting info"
   },
   "artistImagePicker": {
     "title": "Ganti gambar artis",
@@ -1951,7 +1951,7 @@
     "localCatalogueHint": "Browsing and searching the downloaded catalogue."
   },
   "artistMetadataEditor": {
-    "title": "Edit metadata",
+    "title": "Sunting metadata",
     "subtitle": "Bio dan artis serupa kustom untuk {{name}}.",
     "bio": {
       "label": "Biografi kustom",
@@ -1963,7 +1963,8 @@
       "label": "Artis serupa kustom",
       "placeholder": "Cari artis dari pustaka Anda…",
       "remove": "Hapus {{name}}",
-      "help": "Pilih artis dari pustaka Anda. Kosong = daftar online."
+      "help": "Pilih artis dari pustaka Anda. Kosong = daftar online.",
+      "limitReached": "Batas tercapai ({{max}} artis)."
     }
   }
 }

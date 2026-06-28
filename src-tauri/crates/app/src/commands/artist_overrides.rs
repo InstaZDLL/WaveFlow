@@ -86,38 +86,25 @@ pub async fn get_artist_overrides(
     })
 }
 
-/// Set (or clear) the biography override for one artist. Pass `null`
-/// or a blank string to drop the override and fall back to the fetched
-/// bio. Whitespace-only input is treated as a clear.
+/// Set (or clear) **both** overrides for one artist in a single
+/// transaction so a failure can't leave a half-applied state (e.g. the
+/// bio saved but the similar list not). Pass `null`/blank `bio` to drop
+/// the bio override; pass `null`/empty `similar_ids` to drop the similar
+/// override. For similar, self-references and duplicates are dropped,
+/// first-seen order is preserved and becomes the stored `position`, and
+/// the list is capped at [`MAX_SIMILAR`].
 #[tauri::command]
-pub async fn set_artist_bio_override(
+pub async fn set_artist_metadata_overrides(
     state: tauri::State<'_, AppState>,
     artist_id: i64,
     bio: Option<String>,
-) -> AppResult<()> {
-    let pool = state.require_profile_pool().await?;
-    let trimmed = bio.map(|b| b.trim().to_string()).filter(|b| !b.is_empty());
-    sqlx::query("UPDATE artist SET custom_bio = ? WHERE id = ?")
-        .bind(trimmed)
-        .bind(artist_id)
-        .execute(&pool)
-        .await?;
-    Ok(())
-}
-
-/// Replace the curated similar-artist list for one artist. Pass `null`
-/// or an empty list to drop the override (the online list takes over).
-/// Self-references and duplicates are dropped; order is preserved and
-/// becomes the stored `position`.
-#[tauri::command]
-pub async fn set_artist_similar_override(
-    state: tauri::State<'_, AppState>,
-    artist_id: i64,
     similar_ids: Option<Vec<i64>>,
 ) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
 
-    // Normalise: drop self + duplicates, keep first-seen order, cap.
+    let trimmed_bio = bio.map(|b| b.trim().to_string()).filter(|b| !b.is_empty());
+
+    // Normalise similar: drop self + duplicates, keep first-seen order, cap.
     let mut seen = std::collections::HashSet::new();
     let cleaned: Vec<i64> = similar_ids
         .unwrap_or_default()
@@ -127,6 +114,11 @@ pub async fn set_artist_similar_override(
         .collect();
 
     let mut tx = pool.begin().await?;
+    sqlx::query("UPDATE artist SET custom_bio = ? WHERE id = ?")
+        .bind(trimmed_bio)
+        .bind(artist_id)
+        .execute(&mut *tx)
+        .await?;
     sqlx::query("DELETE FROM artist_similar_custom WHERE artist_id = ?")
         .bind(artist_id)
         .execute(&mut *tx)
