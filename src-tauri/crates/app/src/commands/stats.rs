@@ -9,8 +9,10 @@
 //! filter is needed here. Multi-artist tops join via `track_artist`
 //! so featured artists appear in their own right.
 
+use std::path::Path;
+
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
+use sqlx::{FromRow, SqlitePool};
 
 use crate::{error::AppResult, state::AppState};
 
@@ -46,7 +48,11 @@ pub async fn stats_overview(
     range: String,
 ) -> AppResult<StatsOverview> {
     let pool = state.require_profile_pool().await?;
-    let since = range_to_since_ms(&range);
+    stats_overview_inner(&pool, &range).await
+}
+
+async fn stats_overview_inner(pool: &SqlitePool, range: &str) -> AppResult<StatsOverview> {
+    let since = range_to_since_ms(range);
 
     let row: (i64, i64, i64, Option<f64>) = sqlx::query_as(
         r#"
@@ -59,7 +65,7 @@ pub async fn stats_overview(
         "#,
     )
     .bind(since)
-    .fetch_one(&pool)
+    .fetch_one(pool)
     .await?;
 
     // Distinct artists requires a join through `track_artist`, so it
@@ -73,7 +79,7 @@ pub async fn stats_overview(
         "#,
     )
     .bind(since)
-    .fetch_one(&pool)
+    .fetch_one(pool)
     .await
     .unwrap_or(0);
 
@@ -126,7 +132,16 @@ pub async fn stats_top_tracks(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
-    let since = range_to_since_ms(&range);
+    stats_top_tracks_inner(&pool, &artwork_dir, &range, limit).await
+}
+
+async fn stats_top_tracks_inner(
+    pool: &SqlitePool,
+    artwork_dir: &Path,
+    range: &str,
+    limit: i64,
+) -> AppResult<Vec<TopTrackRow>> {
+    let since = range_to_since_ms(range);
 
     let raw = sqlx::query_as::<_, TopTrackRaw>(
         r#"
@@ -162,7 +177,7 @@ pub async fn stats_top_tracks(
     )
     .bind(since)
     .bind(limit)
-    .fetch_all(&pool)
+    .fetch_all(pool)
     .await?;
 
     let rows = raw
@@ -175,7 +190,7 @@ pub async fn stats_top_tracks(
                             .join(format!("{hash}.{fmt}"))
                             .to_string_lossy()
                             .to_string();
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(artwork_dir, hash);
                         (Some(full), p1, p2)
                     }
                     _ => (None, None, None),
@@ -229,7 +244,16 @@ pub async fn stats_top_artists(
     limit: i64,
 ) -> AppResult<Vec<TopArtistRow>> {
     let pool = state.require_profile_pool().await?;
-    let since = range_to_since_ms(&range);
+    stats_top_artists_inner(&pool, &state.paths.metadata_artwork_dir, &range, limit).await
+}
+
+async fn stats_top_artists_inner(
+    pool: &SqlitePool,
+    metadata_dir: &Path,
+    range: &str,
+    limit: i64,
+) -> AppResult<Vec<TopArtistRow>> {
+    let since = range_to_since_ms(range);
 
     let raw = sqlx::query_as::<_, TopArtistRaw>(
         r#"
@@ -251,10 +275,9 @@ pub async fn stats_top_artists(
     )
     .bind(since)
     .bind(limit)
-    .fetch_all(&pool)
+    .fetch_all(pool)
     .await?;
 
-    let metadata_dir = &state.paths.metadata_artwork_dir;
     let rows = raw
         .into_iter()
         .map(|r| {
@@ -315,7 +338,16 @@ pub async fn stats_top_albums(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
-    let since = range_to_since_ms(&range);
+    stats_top_albums_inner(&pool, &artwork_dir, &range, limit).await
+}
+
+async fn stats_top_albums_inner(
+    pool: &SqlitePool,
+    artwork_dir: &Path,
+    range: &str,
+    limit: i64,
+) -> AppResult<Vec<TopAlbumRow>> {
+    let since = range_to_since_ms(range);
 
     let raw = sqlx::query_as::<_, TopAlbumRaw>(
         r#"
@@ -340,7 +372,7 @@ pub async fn stats_top_albums(
     )
     .bind(since)
     .bind(limit)
-    .fetch_all(&pool)
+    .fetch_all(pool)
     .await?;
 
     let rows = raw
@@ -353,7 +385,7 @@ pub async fn stats_top_albums(
                             .join(format!("{hash}.{fmt}"))
                             .to_string_lossy()
                             .to_string();
-                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(&artwork_dir, hash);
+                        let (p1, p2) = crate::thumbnails::thumbnail_paths_for(artwork_dir, hash);
                         (Some(full), p1, p2)
                     }
                     _ => (None, None, None),
@@ -398,7 +430,15 @@ pub async fn stats_top_genres(
     limit: i64,
 ) -> AppResult<Vec<TopGenreRow>> {
     let pool = state.require_profile_pool().await?;
-    let since = range_to_since_ms(&range);
+    stats_top_genres_inner(&pool, &range, limit).await
+}
+
+async fn stats_top_genres_inner(
+    pool: &SqlitePool,
+    range: &str,
+    limit: i64,
+) -> AppResult<Vec<TopGenreRow>> {
+    let since = range_to_since_ms(range);
 
     let rows = sqlx::query_as::<_, TopGenreRow>(
         r#"
@@ -417,7 +457,7 @@ pub async fn stats_top_genres(
     )
     .bind(since)
     .bind(limit)
-    .fetch_all(&pool)
+    .fetch_all(pool)
     .await?;
 
     Ok(rows)
@@ -436,7 +476,14 @@ pub async fn stats_listening_by_day(
     range: String,
 ) -> AppResult<Vec<ListeningByDayRow>> {
     let pool = state.require_profile_pool().await?;
-    let since = range_to_since_ms(&range);
+    stats_listening_by_day_inner(&pool, &range).await
+}
+
+async fn stats_listening_by_day_inner(
+    pool: &SqlitePool,
+    range: &str,
+) -> AppResult<Vec<ListeningByDayRow>> {
+    let since = range_to_since_ms(range);
 
     let rows = sqlx::query_as::<_, ListeningByDayRow>(
         r#"
@@ -450,7 +497,7 @@ pub async fn stats_listening_by_day(
         "#,
     )
     .bind(since)
-    .fetch_all(&pool)
+    .fetch_all(pool)
     .await?;
 
     Ok(rows)
@@ -466,7 +513,11 @@ pub async fn stats_listening_by_hour(
     range: String,
 ) -> AppResult<Vec<i64>> {
     let pool = state.require_profile_pool().await?;
-    let since = range_to_since_ms(&range);
+    stats_listening_by_hour_inner(&pool, &range).await
+}
+
+async fn stats_listening_by_hour_inner(pool: &SqlitePool, range: &str) -> AppResult<Vec<i64>> {
+    let since = range_to_since_ms(range);
 
     let rows: Vec<(String, i64)> = sqlx::query_as(
         r#"
@@ -478,7 +529,7 @@ pub async fn stats_listening_by_hour(
         "#,
     )
     .bind(since)
-    .fetch_all(&pool)
+    .fetch_all(pool)
     .await?;
 
     let mut buckets = vec![0_i64; 24];
@@ -527,19 +578,25 @@ pub async fn export_stats_json(
     range: String,
     target_path: String,
 ) -> AppResult<()> {
-    // Delegate to the existing per-stat Tauri commands so the export
-    // is guaranteed to match what the frontend sees on screen. Each
-    // call reaches the same pool / paths via its own
-    // `state.require_profile_pool` — no shared state to thread by
-    // hand. Limit `100` matches the upper bound of the on-screen
-    // selectors so the export is "what you saw plus a bit more".
-    let overview = stats_overview(state.clone(), range.clone()).await?;
-    let top_tracks = stats_top_tracks(state.clone(), range.clone(), 100).await?;
-    let top_artists = stats_top_artists(state.clone(), range.clone(), 100).await?;
-    let top_albums = stats_top_albums(state.clone(), range.clone(), 100).await?;
-    let top_genres = stats_top_genres(state.clone(), range.clone(), 100).await?;
-    let listening_by_day = stats_listening_by_day(state.clone(), range.clone()).await?;
-    let listening_by_hour = stats_listening_by_hour(state.clone(), range.clone()).await?;
+    // Resolve the profile pool + paths ONCE and thread the same
+    // snapshot through every aggregate, instead of letting each
+    // delegate re-resolve `require_profile_pool` independently. A
+    // profile switch landing mid-export would otherwise mix two
+    // profiles' data into one file. Limit `100` matches the upper
+    // bound of the on-screen selectors so the export is "what you saw
+    // plus a bit more".
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    let metadata_dir = &state.paths.metadata_artwork_dir;
+
+    let overview = stats_overview_inner(&pool, &range).await?;
+    let top_tracks = stats_top_tracks_inner(&pool, &artwork_dir, &range, 100).await?;
+    let top_artists = stats_top_artists_inner(&pool, metadata_dir, &range, 100).await?;
+    let top_albums = stats_top_albums_inner(&pool, &artwork_dir, &range, 100).await?;
+    let top_genres = stats_top_genres_inner(&pool, &range, 100).await?;
+    let listening_by_day = stats_listening_by_day_inner(&pool, &range).await?;
+    let listening_by_hour = stats_listening_by_hour_inner(&pool, &range).await?;
 
     #[derive(Serialize)]
     struct Bundle<'a> {
