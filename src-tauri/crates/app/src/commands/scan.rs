@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Instant, UNIX_EPOCH};
 
@@ -17,9 +17,9 @@ use waveflow_core::scanner::{
     extract_album_artist, extract_artist_image, extract_compilation_flag, extract_cover,
     extract_folder_cover, extract_musical_key, extract_rating, file_type_label, hash_file,
     link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
-    merge_implicit_compilations, now_millis,
-    split_artist_name, upsert_album, upsert_artist, upsert_artist_list, upsert_artwork,
-    upsert_genre, ExtractedFile, AUDIO_EXTENSIONS, VARIOUS_ARTISTS_LABEL,
+    merge_implicit_compilations, now_millis, split_artist_name, upsert_album, upsert_artist,
+    upsert_artist_list, upsert_artwork, upsert_genre, ExtractedFile, AUDIO_EXTENSIONS,
+    VARIOUS_ARTISTS_LABEL,
 };
 
 use crate::{
@@ -32,6 +32,45 @@ use crate::{
 // `commands/similar.rs`) keep resolving after the helper moved to
 // `waveflow_core::scanner` in step 6.d.
 pub use waveflow_core::scanner::canonical_name;
+
+/// Process-wide count of in-flight library scans. Bumped for the whole
+/// body of [`scan_folder_inner`] — which every scan entry point routes
+/// through (`scan_folder`, `rescan_library`, `import_paths`, the
+/// fs-watcher, the startup rescan in `lib.rs`).
+///
+/// The background library analyzer reads this via [`scan_in_flight`]
+/// and parks itself while a scan is running: a scan is foreground (the
+/// user watches its progress toast), saturates every CPU core through
+/// the parallel extraction pipeline, and hammers the single SQLite
+/// writer. Letting the analyzer's CPU-heavy decode + per-track writes
+/// run through it both inflates the scan's wall-clock (a clean ~34 s
+/// AAC scan ballooned past a minute under a concurrent analysis pass —
+/// measured) and loses analysis rows to lock contention. See
+/// [`crate::commands::analysis::run_analyze_library`].
+static SCANS_IN_FLIGHT: AtomicU32 = AtomicU32::new(0);
+
+/// `true` while at least one library scan is walking + writing.
+pub(crate) fn scan_in_flight() -> bool {
+    SCANS_IN_FLIGHT.load(Ordering::Acquire) > 0
+}
+
+/// RAII guard that bumps [`SCANS_IN_FLIGHT`] for the lifetime of a scan
+/// and decrements it on every exit path (early `?` return, error,
+/// panic). One is held at the top of [`scan_folder_inner`].
+struct ScanInFlightGuard;
+
+impl ScanInFlightGuard {
+    fn new() -> Self {
+        SCANS_IN_FLIGHT.fetch_add(1, Ordering::AcqRel);
+        Self
+    }
+}
+
+impl Drop for ScanInFlightGuard {
+    fn drop(&mut self) {
+        SCANS_IN_FLIGHT.fetch_sub(1, Ordering::AcqRel);
+    }
+}
 
 /// Payload of the `scan:progress` Tauri event. Emitted by
 /// `scan_folder_inner` every ~25 processed files (and once at the end)
@@ -366,6 +405,11 @@ pub(crate) async fn scan_folder_inner(
     folder_id: i64,
     app_handle: Option<&tauri::AppHandle>,
 ) -> AppResult<ScanSummary> {
+    // Mark a scan in flight for the whole body so the background
+    // analyzer parks itself instead of contending on CPU + the single
+    // SQLite writer. Dropped on every exit path (RAII).
+    let _scan_guard = ScanInFlightGuard::new();
+
     // Belt-and-braces: the directory is created at profile bootstrap, but a
     // user fiddling with the data folder could have deleted it.
     std::fs::create_dir_all(artwork_dir)?;
