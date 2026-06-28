@@ -403,10 +403,22 @@ fn read_dir_artist_images(dir: &Path) -> Vec<DirImageCandidate> {
     };
     let mut out = Vec::new();
     for entry in entries.flatten() {
-        if !entry.file_type().map(|t| t.is_file()).unwrap_or(false) {
+        let path = entry.path();
+        // Fast path: `read_dir`'s file_type avoids a `stat` for regular
+        // files. But it does NOT follow symlinks (a symlinked image
+        // reports `is_symlink()`, not `is_file()`), so fall back to the
+        // link-following `Path::is_file` for those — preserving the
+        // pre-cache behaviour for symlinked sidecars while still paying
+        // the extra syscall only on the rare symlink.
+        let is_file = match entry.file_type() {
+            Ok(t) if t.is_file() => true,
+            Ok(t) if t.is_symlink() => path.is_file(),
+            Ok(_) => false,
+            Err(_) => path.is_file(),
+        };
+        if !is_file {
             continue;
         }
-        let path = entry.path();
         let stem = path
             .file_stem()
             .and_then(|s| s.to_str())

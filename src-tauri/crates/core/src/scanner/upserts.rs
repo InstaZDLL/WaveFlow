@@ -8,7 +8,7 @@
 //! breaking the single-writer discipline (see CLAUDE.md "Single writer
 //! to SQLite").
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use chrono::Utc;
@@ -36,6 +36,88 @@ use super::extract::{
 pub struct ArtistImageScanCache {
     seen: HashSet<(i64, PathBuf)>,
     dirs: ArtistImageDirCache,
+}
+
+/// Scan-scoped memo for the `artist` / `genre` lookups that otherwise
+/// fire one `SELECT … WHERE canonical_name = ?` per track. A 900-track
+/// library typically resolves to ~100 distinct artists and ~20 genres,
+/// so without this the scanner's consumer loop pays thousands of
+/// redundant single-writer round-trips.
+///
+/// Keyed on [`canonical_name`] exactly like [`upsert_artist`] /
+/// [`upsert_genre`] so a cache hit returns the same id the SELECT
+/// would. Ids stay valid across the scanner's periodic commits (the
+/// rows they point at are committed, never rolled back — any error
+/// aborts the whole scan and drops the cache with it). `album` is
+/// deliberately NOT memoised: [`upsert_album`] carries sticky
+/// compilation / album-artist backfill logic that must run per track.
+#[derive(Default)]
+pub struct UpsertCache {
+    artists: HashMap<String, i64>,
+    genres: HashMap<String, i64>,
+}
+
+impl UpsertCache {
+    /// Cached [`upsert_artist`]. Mirrors its trim → `canonical_name` →
+    /// empty-guard so the cache key matches the DB lookup key.
+    pub async fn artist(
+        &mut self,
+        conn: &mut sqlx::SqliteConnection,
+        raw_name: &str,
+    ) -> CoreResult<Option<i64>> {
+        let canon = canonical_name(raw_name.trim());
+        if canon.is_empty() {
+            return Ok(None);
+        }
+        if let Some(&id) = self.artists.get(&canon) {
+            return Ok(Some(id));
+        }
+        let id = upsert_artist(conn, raw_name).await?;
+        if let Some(id) = id {
+            self.artists.insert(canon, id);
+        }
+        Ok(id)
+    }
+
+    /// Cached equivalent of [`upsert_artist_list`] — splits the raw
+    /// multi-artist string the same way, then resolves each through
+    /// [`Self::artist`].
+    pub async fn artist_list(
+        &mut self,
+        conn: &mut sqlx::SqliteConnection,
+        raw: &Option<String>,
+    ) -> CoreResult<Vec<i64>> {
+        let Some(raw) = raw else {
+            return Ok(Vec::new());
+        };
+        let mut ids = Vec::new();
+        for name in split_artist_name(raw) {
+            if let Some(id) = self.artist(&mut *conn, &name).await? {
+                ids.push(id);
+            }
+        }
+        Ok(ids)
+    }
+
+    /// Cached [`upsert_genre`].
+    pub async fn genre(
+        &mut self,
+        conn: &mut sqlx::SqliteConnection,
+        raw_name: &str,
+    ) -> CoreResult<Option<i64>> {
+        let canon = canonical_name(raw_name.trim());
+        if canon.is_empty() {
+            return Ok(None);
+        }
+        if let Some(&id) = self.genres.get(&canon) {
+            return Ok(Some(id));
+        }
+        let id = upsert_genre(conn, raw_name).await?;
+        if let Some(id) = id {
+            self.genres.insert(canon, id);
+        }
+        Ok(id)
+    }
 }
 
 /// Sentinel album-artist row used when an album is tagged as a

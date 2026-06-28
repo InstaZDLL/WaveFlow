@@ -18,7 +18,7 @@ use waveflow_core::scanner::{
     extract_folder_cover, extract_musical_key, extract_rating, file_type_label, hash_file,
     link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
     merge_implicit_compilations, now_millis, split_artist_name, upsert_album, upsert_artist,
-    upsert_artwork, upsert_genre, ArtistImageScanCache, ExtractedFile, AUDIO_EXTENSIONS,
+    upsert_artwork, ArtistImageScanCache, ExtractedFile, UpsertCache, AUDIO_EXTENSIONS,
     VARIOUS_ARTISTS_LABEL,
 };
 
@@ -253,90 +253,6 @@ struct ScanTimings {
     /// confirm before optimising (the SQL-lookup memo was measured to
     /// barely dent `db_ms_total`, so guessing isn't enough).
     link_us: AtomicU64,
-}
-
-/// Scan-scoped memo for the `artist` / `genre` lookups that otherwise
-/// fire one `SELECT … WHERE canonical_name = ?` per track. A 900-track
-/// library typically resolves to ~100 distinct artists and ~20 genres,
-/// so without this the consumer loop pays thousands of redundant
-/// single-writer round-trips — the dominant cost once the partial hash
-/// took hashing off the critical path (`db_ms_total` ≈ 99 % of
-/// `extract_db_ms`, measured).
-///
-/// Keyed on [`canonical_name`] exactly like [`upsert_artist`] /
-/// [`upsert_genre`] so a cache hit returns the same id the SELECT
-/// would. Ids stay valid across the loop's periodic `TX_BATCH` commits
-/// (the rows they point at are committed, never rolled back — any error
-/// aborts the whole scan and drops the cache with it). `album` is
-/// deliberately NOT memoised: [`upsert_album`] carries sticky
-/// compilation / album-artist backfill logic that must run per track.
-#[derive(Default)]
-struct UpsertCache {
-    artists: HashMap<String, i64>,
-    genres: HashMap<String, i64>,
-}
-
-impl UpsertCache {
-    /// Cached [`upsert_artist`]. Mirrors its trim → `canonical_name` →
-    /// empty-guard so the cache key matches the DB lookup key.
-    async fn artist(
-        &mut self,
-        conn: &mut sqlx::SqliteConnection,
-        raw_name: &str,
-    ) -> AppResult<Option<i64>> {
-        let canon = canonical_name(raw_name.trim());
-        if canon.is_empty() {
-            return Ok(None);
-        }
-        if let Some(&id) = self.artists.get(&canon) {
-            return Ok(Some(id));
-        }
-        let id = upsert_artist(conn, raw_name).await?;
-        if let Some(id) = id {
-            self.artists.insert(canon, id);
-        }
-        Ok(id)
-    }
-
-    /// Cached equivalent of [`upsert_artist_list`] — splits the raw
-    /// multi-artist string the same way, then resolves each through
-    /// [`Self::artist`].
-    async fn artist_list(
-        &mut self,
-        conn: &mut sqlx::SqliteConnection,
-        raw: &Option<String>,
-    ) -> AppResult<Vec<i64>> {
-        let Some(raw) = raw else {
-            return Ok(Vec::new());
-        };
-        let mut ids = Vec::new();
-        for name in split_artist_name(raw) {
-            if let Some(id) = self.artist(&mut *conn, &name).await? {
-                ids.push(id);
-            }
-        }
-        Ok(ids)
-    }
-
-    /// Cached [`upsert_genre`].
-    async fn genre(
-        &mut self,
-        conn: &mut sqlx::SqliteConnection,
-        raw_name: &str,
-    ) -> AppResult<Option<i64>> {
-        let canon = canonical_name(raw_name.trim());
-        if canon.is_empty() {
-            return Ok(None);
-        }
-        if let Some(&id) = self.genres.get(&canon) {
-            return Ok(Some(id));
-        }
-        let id = upsert_genre(conn, raw_name).await?;
-        if let Some(id) = id {
-            self.genres.insert(canon, id);
-        }
-        Ok(id)
-    }
 }
 
 fn extract_file(
@@ -587,32 +503,6 @@ pub(crate) async fn scan_folder_inner(
         .map(|(p, mtime, size)| (p, (mtime, size)))
         .collect();
 
-    // Probe map for the insert-vs-update decision in the consumer loop,
-    // pre-loaded ONCE instead of a `SELECT … WHERE library_id = ? AND
-    // file_path = ?` per extracted track (the per-track probe was a
-    // wasted round-trip on every brand-new file — always a miss — and
-    // those dominate a first scan). Keyed library-wide, NOT folder-
-    // scoped like `existing_meta`: a file already known under another
-    // folder of the same library must still resolve so the loop UPDATEs
-    // (and reassigns `folder_id`) instead of hitting the
-    // `UNIQUE(library_id, file_path)` constraint. No `is_available`
-    // filter — matches the old probe, so a vanished-then-restored track
-    // is found and flipped back to available. Snapshot-before-loop is
-    // safe: the walk yields distinct paths, so no row inserted earlier
-    // in THIS scan is ever probed later.
-    let probe_rows: Vec<(String, i64, i64, String, i64)> = sqlx::query_as(
-        "SELECT file_path, id, file_modified, file_hash, added_at
-           FROM track
-          WHERE library_id = ?",
-    )
-    .bind(library_id)
-    .fetch_all(pool)
-    .await?;
-    let existing_probe: HashMap<String, (i64, i64, String, i64)> = probe_rows
-        .into_iter()
-        .map(|(path, id, mtime, hash, added_at)| (path, (id, mtime, hash, added_at)))
-        .collect();
-
     let meta_load_ms = t_scan.elapsed().as_millis();
 
     let total_files = audio_files.len();
@@ -666,6 +556,38 @@ pub(crate) async fn scan_folder_inner(
     }
     let stat_ms = t_scan.elapsed().as_millis();
     let to_extract_count = to_extract.len();
+
+    // Probe map for the insert-vs-update decision in the consumer loop,
+    // pre-loaded ONCE instead of a `SELECT … WHERE library_id = ? AND
+    // file_path = ?` per extracted track (the per-track probe was a
+    // wasted round-trip on every brand-new file — always a miss — and
+    // those dominate a first scan). Built only when there's actually
+    // something to extract: a stat-skip rescan (everything unchanged)
+    // would otherwise pay a full library-wide load for nothing. Keyed
+    // library-wide, NOT folder-scoped like `existing_meta`: a file
+    // already known under another folder of the same library must still
+    // resolve so the loop UPDATEs (and reassigns `folder_id`) instead of
+    // hitting the `UNIQUE(library_id, file_path)` constraint. No
+    // `is_available` filter — matches the old probe, so a vanished-then-
+    // restored track is found and flipped back to available. Snapshot-
+    // before-loop is safe: the walk yields distinct paths, so no row
+    // inserted earlier in THIS scan is ever probed later.
+    let existing_probe: HashMap<String, (i64, i64, String, i64)> = if to_extract.is_empty() {
+        HashMap::new()
+    } else {
+        let probe_rows: Vec<(String, i64, i64, String, i64)> = sqlx::query_as(
+            "SELECT file_path, id, file_modified, file_hash, added_at
+               FROM track
+              WHERE library_id = ?",
+        )
+        .bind(library_id)
+        .fetch_all(pool)
+        .await?;
+        probe_rows
+            .into_iter()
+            .map(|(path, id, mtime, hash, added_at)| (path, (id, mtime, hash, added_at)))
+            .collect()
+    };
 
     // ─── Phase 2: Parallel extract + transactional DB writes ──────
     //
@@ -1156,7 +1078,16 @@ pub(crate) async fn scan_folder_inner(
         maybe_emit_progress(app_handle, folder_id, processed, total_files, &summary);
     }
 
+    // Time the final commit into `db_us` too — the periodic TX_BATCH
+    // commits are already counted inside the loop, so without this the
+    // last batch's commit (which can carry up to TX_BATCH rows of fsync)
+    // would be the one slice of DB cost `db_ms_total` silently omits.
+    let t_final_commit = Instant::now();
     tx.commit().await?;
+    timings.db_us.fetch_add(
+        t_final_commit.elapsed().as_micros() as u64,
+        Ordering::Relaxed,
+    );
     let extract_db_ms = t_scan.elapsed().as_millis();
 
     // Anything still in the map was on disk last time but isn't now.
