@@ -120,9 +120,14 @@ export function useHiddenKpis(): HiddenKpis {
     /* eslint-enable react-hooks/set-state-in-effect */
     persistedHiddenRef.current = new Set();
     const refresh = async () => {
+      // Marker captured before the async read. If a local toggle bumps
+      // `seqRef` while we're awaiting, this read is stale — its newer
+      // optimistic state (plus that toggle's own write + refresh)
+      // supersedes it, so we drop the result instead of clobbering it.
+      const reqSeq = seqRef.current;
       try {
         const raw = await getProfileSetting(KEY);
-        if (cancelled) return;
+        if (cancelled || seqRef.current !== reqSeq) return;
         const loaded = new Set(parseHidden(raw));
         setHidden(loaded);
         persistedHiddenRef.current = loaded;
