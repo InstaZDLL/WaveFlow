@@ -86,6 +86,21 @@ export function useHiddenKpis(): HiddenKpis {
   // one settles, so two rapid toggles can't complete out of order and
   // the last user action always wins the final DB state.
   const writeChainRef = useRef<Promise<unknown>>(Promise.resolve());
+  // Monotonic token: only the most recently enqueued write broadcasts
+  // the refresh event, so a stale queued write can't trigger a re-read
+  // that reverts a newer optimistic state.
+  const seqRef = useRef(0);
+
+  // Latest active profile id, mirrored into a ref so a queued write can
+  // check — at the moment it actually runs — whether the profile is
+  // still the one the user toggled, and skip persisting otherwise
+  // (`set_profile_setting` is scoped to whatever profile is active when
+  // it runs, so a mid-flight switch would write to the wrong profile).
+  const activeProfileId = activeProfile?.id;
+  const activeProfileIdRef = useRef(activeProfileId);
+  useEffect(() => {
+    activeProfileIdRef.current = activeProfileId;
+  }, [activeProfileId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -127,13 +142,22 @@ export function useHiddenKpis(): HiddenKpis {
       setHidden(next); // optimistic; advances `hiddenRef` too
       // Persist in declaration order for a stable, diff-friendly blob.
       const nextArray = STATS_KPI_IDS.filter((k) => next.has(k));
+      const profileAtToggle = activeProfileIdRef.current;
+      const seq = ++seqRef.current;
       // Queue behind any in-flight write. A leading no-op catch keeps a
       // prior failure from breaking the chain for later toggles.
       writeChainRef.current = writeChainRef.current
         .catch(() => {})
         .then(async () => {
+          // Profile switched out from under this queued write — skip so
+          // a toggle never lands in another profile's settings.
+          if (activeProfileIdRef.current !== profileAtToggle) return;
           await setProfileSetting(KEY, JSON.stringify(nextArray), "json");
-          window.dispatchEvent(new CustomEvent(HIDDEN_KPIS_EVENT));
+          // Only the latest enqueued toggle broadcasts, so an older
+          // write's completion can't refresh over a newer state.
+          if (seq === seqRef.current) {
+            window.dispatchEvent(new CustomEvent(HIDDEN_KPIS_EVENT));
+          }
         })
         .catch((err: unknown) => {
           console.error("[useHiddenKpis] write failed", err);
