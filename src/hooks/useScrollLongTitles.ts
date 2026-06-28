@@ -34,6 +34,13 @@ export function useScrollLongTitles(): ScrollLongTitles {
   // every state change. Monotonic token so only the latest write applies
   // its success / failure side effects (rapid toggles overlap otherwise).
   const enabledRef = useRef(enabled);
+  // Last value the backend actually confirmed — the rollback target on a
+  // failed write (the optimistic `enabledRef` may already hold a newer,
+  // unconfirmed toggle). `writeChainRef` serialises the Tauri writes so
+  // a slow `true` write can't land after a later `false` and leave the
+  // profile persisted to the wrong value.
+  const confirmedEnabledRef = useRef(enabled);
+  const writeChainRef = useRef<Promise<void>>(Promise.resolve());
   const writeSeqRef = useRef(0);
   useEffect(() => {
     enabledRef.current = enabled;
@@ -45,7 +52,10 @@ export function useScrollLongTitles(): ScrollLongTitles {
       try {
         const raw = await getProfileSetting(KEY);
         if (cancelled) return;
-        setEnabledState(parseEnabled(raw));
+        const parsed = parseEnabled(raw);
+        enabledRef.current = parsed;
+        confirmedEnabledRef.current = parsed;
+        setEnabledState(parsed);
       } catch (err) {
         console.error("[useScrollLongTitles] read failed", err);
       }
@@ -60,11 +70,19 @@ export function useScrollLongTitles(): ScrollLongTitles {
 
   const setEnabled = useCallback(async (next: boolean) => {
     const seq = ++writeSeqRef.current;
-    const previous = enabledRef.current;
     enabledRef.current = next;
     setEnabledState(next);
-    try {
+    // Serialise on the write chain so the backend applies toggles in the
+    // order they were issued — the last write wins = the user's last
+    // intent. `.catch` keeps the chain alive so one failed write doesn't
+    // stall every later toggle.
+    const write = writeChainRef.current.then(async () => {
       await setProfileSetting(KEY, next ? "true" : "false", "bool");
+      confirmedEnabledRef.current = next;
+    });
+    writeChainRef.current = write.catch(() => undefined);
+    try {
+      await write;
       // A newer toggle superseded this one mid-write — let it own the
       // outcome so an older response can't clobber the latest intent.
       if (seq !== writeSeqRef.current) return;
@@ -72,8 +90,11 @@ export function useScrollLongTitles(): ScrollLongTitles {
     } catch (err) {
       console.error("[useScrollLongTitles] write failed", err);
       if (seq !== writeSeqRef.current) return;
-      enabledRef.current = previous;
-      setEnabledState(previous);
+      // Roll back to the last backend-confirmed value, not the optimistic
+      // one (which may hold this very failed toggle).
+      const rollback = confirmedEnabledRef.current;
+      enabledRef.current = rollback;
+      setEnabledState(rollback);
     }
   }, []);
 
