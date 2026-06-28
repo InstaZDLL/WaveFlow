@@ -49,6 +49,13 @@ export interface TopAlbumRow {
   artwork_path_2x: string | null;
 }
 
+export interface TopGenreRow {
+  genre_id: number;
+  name: string;
+  plays: number;
+  listened_ms: number;
+}
+
 export interface ListeningByDayRow {
   /** "YYYY-MM-DD" in local timezone. */
   day: string;
@@ -79,6 +86,13 @@ export function statsTopAlbums(
   limit: number,
 ): Promise<TopAlbumRow[]> {
   return invoke<TopAlbumRow[]>("stats_top_albums", { range, limit });
+}
+
+export function statsTopGenres(
+  range: StatsRange,
+  limit: number,
+): Promise<TopGenreRow[]> {
+  return invoke<TopGenreRow[]>("stats_top_genres", { range, limit });
 }
 
 export function statsListeningByDay(

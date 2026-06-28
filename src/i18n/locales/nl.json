@@ -542,6 +542,10 @@
       "label": "Statistieken exporteren",
       "action": "Exporteren",
       "dialogTitle": "Statistieken als JSON exporteren"
+    },
+    "topGenres": {
+      "title": "Topgenres",
+      "empty": "Geen genre beluisterd."
     }
   },
   "wrapped": {
@@ -1874,6 +1878,11 @@
       "standard": "Standaard",
       "high": "Hoog",
       "max": "Maximaal"
+    },
+    "statsKpis": {
+      "title": "Statistiek-indicatoren",
+      "subtitle": "Kies welke indicatoren op de pagina Statistieken verschijnen. Vink de indicatoren uit die je liever verbergt, zoals het volledig-beluisterd-percentage.",
+      "legend": "Zichtbaarheid van statistiek-indicatoren"
     }
   },
   "spotify": {

@@ -376,6 +376,54 @@ pub async fn stats_top_albums(
 }
 
 #[derive(Debug, Clone, Serialize, FromRow)]
+pub struct TopGenreRow {
+    pub genre_id: i64,
+    pub name: String,
+    pub plays: i64,
+    pub listened_ms: i64,
+}
+
+/// Top genres by listening time over `range`.
+///
+/// Joins `play_event` → `track_genre` → `genre`. A track can carry
+/// several genres, so a single play credits every genre attached to
+/// the track — that's intentional: a play of a "Rock; Indie" track
+/// counts toward both buckets, matching how the user tagged it.
+/// Ordered by `listened_ms` first (the user frames this as "hours of
+/// rock vs jazz"), `plays` as the tiebreaker.
+#[tauri::command]
+pub async fn stats_top_genres(
+    state: tauri::State<'_, AppState>,
+    range: String,
+    limit: i64,
+) -> AppResult<Vec<TopGenreRow>> {
+    let pool = state.require_profile_pool().await?;
+    let since = range_to_since_ms(&range);
+
+    let rows = sqlx::query_as::<_, TopGenreRow>(
+        r#"
+        SELECT g.id                          AS genre_id,
+               g.name                        AS name,
+               COUNT(*)                      AS plays,
+               COALESCE(SUM(pe.listened_ms), 0) AS listened_ms
+          FROM play_event pe
+          JOIN track_genre tg ON tg.track_id = pe.track_id
+          JOIN genre g        ON g.id = tg.genre_id
+         WHERE (?1 IS NULL OR pe.played_at >= ?1)
+         GROUP BY g.id
+         ORDER BY listened_ms DESC, plays DESC
+         LIMIT ?2
+        "#,
+    )
+    .bind(since)
+    .bind(limit)
+    .fetch_all(&pool)
+    .await?;
+
+    Ok(rows)
+}
+
+#[derive(Debug, Clone, Serialize, FromRow)]
 pub struct ListeningByDayRow {
     pub day: String,
     pub plays: i64,
@@ -453,13 +501,14 @@ pub async fn stats_listening_by_hour(
 ///
 /// ```json
 /// {
-///   "schema_version": 1,
+///   "schema_version": 2,
 ///   "exported_at": "...",   // RFC3339
 ///   "range": "30d",
 ///   "overview": { ... },
 ///   "top_tracks":  [ ... ],   // up to 100
 ///   "top_artists": [ ... ],
 ///   "top_albums":  [ ... ],
+///   "top_genres":  [ ... ],
 ///   "listening_by_day":  [ ... ],
 ///   "listening_by_hour": [ ... ]  // 24 buckets
 /// }
@@ -488,6 +537,7 @@ pub async fn export_stats_json(
     let top_tracks = stats_top_tracks(state.clone(), range.clone(), 100).await?;
     let top_artists = stats_top_artists(state.clone(), range.clone(), 100).await?;
     let top_albums = stats_top_albums(state.clone(), range.clone(), 100).await?;
+    let top_genres = stats_top_genres(state.clone(), range.clone(), 100).await?;
     let listening_by_day = stats_listening_by_day(state.clone(), range.clone()).await?;
     let listening_by_hour = stats_listening_by_hour(state.clone(), range.clone()).await?;
 
@@ -500,18 +550,23 @@ pub async fn export_stats_json(
         top_tracks: &'a [TopTrackRow],
         top_artists: &'a [TopArtistRow],
         top_albums: &'a [TopAlbumRow],
+        top_genres: &'a [TopGenreRow],
         listening_by_day: &'a [ListeningByDayRow],
         listening_by_hour: &'a [i64],
     }
 
     let bundle = Bundle {
-        schema_version: 1,
+        // v2 adds `top_genres`. Purely additive — existing readers
+        // that ignore unknown keys stay compatible, but the bump lets
+        // stricter tooling detect the new field.
+        schema_version: 2,
         exported_at: chrono::Utc::now().to_rfc3339(),
         range: &range,
         overview: &overview,
         top_tracks: &top_tracks,
         top_artists: &top_artists,
         top_albums: &top_albums,
+        top_genres: &top_genres,
         listening_by_day: &listening_by_day,
         listening_by_hour: &listening_by_hour,
     };

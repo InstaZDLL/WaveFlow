@@ -542,6 +542,10 @@
       "label": "Statistiken exportieren",
       "action": "Exportieren",
       "dialogTitle": "Statistiken als JSON exportieren"
+    },
+    "topGenres": {
+      "title": "Top-Genres",
+      "empty": "Kein Genre gehört."
     }
   },
   "wrapped": {
@@ -1874,6 +1878,11 @@
       "standard": "Standard",
       "high": "Hoch",
       "max": "Maximal"
+    },
+    "statsKpis": {
+      "title": "Statistik-Kennzahlen",
+      "subtitle": "Wähle, welche Kennzahlen auf der Statistikseite erscheinen. Deaktiviere jene, die du lieber ausblendest – etwa die Vollständig-gehört-Rate.",
+      "legend": "Sichtbarkeit der Statistik-Kennzahlen"
     }
   },
   "spotify": {

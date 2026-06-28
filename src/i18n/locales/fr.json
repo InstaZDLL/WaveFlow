@@ -542,7 +542,11 @@
     },
     "plays_zero": "0 écoutes",
     "plays_one": "{{count}} écoute",
-    "plays_other": "{{count}} écoutes"
+    "plays_other": "{{count}} écoutes",
+    "topGenres": {
+      "title": "Top genres",
+      "empty": "Aucun genre écouté."
+    }
   },
   "wrapped": {
     "loading": "On compile votre année…",
@@ -1874,6 +1878,11 @@
       "standard": "Standard",
       "high": "Haute",
       "max": "Maximale"
+    },
+    "statsKpis": {
+      "title": "Indicateurs des statistiques",
+      "subtitle": "Choisissez les indicateurs affichés sur la page Statistiques. Décochez ceux que vous préférez masquer — par exemple le taux d'écoute complète.",
+      "legend": "Visibilité des indicateurs de statistiques"
     }
   },
   "spotify": {

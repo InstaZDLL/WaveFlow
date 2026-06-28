@@ -542,6 +542,10 @@
       "label": "Export statistics",
       "action": "Export",
       "dialogTitle": "Export statistics as JSON"
+    },
+    "topGenres": {
+      "title": "Top genres",
+      "empty": "No genre listened in this period."
     }
   },
   "wrapped": {
@@ -1874,6 +1878,11 @@
       "standard": "Standard",
       "high": "High",
       "max": "Maximum"
+    },
+    "statsKpis": {
+      "title": "Statistics indicators",
+      "subtitle": "Choose which indicators appear on the Statistics page. Uncheck any you'd rather hide — like the full-listen rate.",
+      "legend": "Statistics indicators visibility"
     }
   },
   "spotify": {

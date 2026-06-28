@@ -542,6 +542,10 @@
       "label": "Ekspor statistik",
       "action": "Ekspor",
       "dialogTitle": "Ekspor statistik sebagai JSON"
+    },
+    "topGenres": {
+      "title": "Genre teratas",
+      "empty": "Belum ada genre yang didengarkan."
     }
   },
   "wrapped": {
@@ -1874,6 +1878,11 @@
       "standard": "Standar",
       "high": "Tinggi",
       "max": "Maksimum"
+    },
+    "statsKpis": {
+      "title": "Indikator statistik",
+      "subtitle": "Pilih indikator yang tampil di halaman Statistik. Hapus centang yang ingin Anda sembunyikan — misalnya tingkat dengar penuh.",
+      "legend": "Visibilitas indikator statistik"
     }
   },
   "spotify": {

@@ -542,6 +542,10 @@
       "label": "통계 내보내기",
       "action": "내보내기",
       "dialogTitle": "통계를 JSON으로 내보내기"
+    },
+    "topGenres": {
+      "title": "인기 장르",
+      "empty": "재생된 장르가 없습니다."
     }
   },
   "wrapped": {
@@ -1874,6 +1878,11 @@
       "standard": "표준",
       "high": "높음",
       "max": "최대"
+    },
+    "statsKpis": {
+      "title": "통계 지표",
+      "subtitle": "통계 페이지에 표시할 지표를 선택하세요. 숨기고 싶은 지표의 체크를 해제하세요 — 예: 완전 재생률.",
+      "legend": "통계 지표 표시 여부"
     }
   },
   "spotify": {

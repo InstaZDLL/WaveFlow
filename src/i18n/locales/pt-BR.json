@@ -542,6 +542,10 @@
       "label": "Exportar estatísticas",
       "action": "Exportar",
       "dialogTitle": "Exportar estatísticas em JSON"
+    },
+    "topGenres": {
+      "title": "Gêneros principais",
+      "empty": "Nenhum gênero ouvido."
     }
   },
   "wrapped": {
@@ -1874,6 +1878,11 @@
       "standard": "Padrão",
       "high": "Alta",
       "max": "Máxima"
+    },
+    "statsKpis": {
+      "title": "Indicadores de estatísticas",
+      "subtitle": "Escolha quais indicadores aparecem na página de Estatísticas. Desmarque os que prefere ocultar, como a taxa de escuta completa.",
+      "legend": "Visibilidade dos indicadores de estatísticas"
     }
   },
   "spotify": {
