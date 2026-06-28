@@ -110,6 +110,10 @@ export function useImmersivePrefs(): ImmersivePrefs {
         setPrefs(next);
       } catch (err) {
         console.error("[useImmersivePrefs] read failed", err);
+        // Still publish a final state so consumers gated on `loaded`
+        // aren't stuck after the pre-read reset — fall back to defaults.
+        if (cancelled || seq !== seqRef.current) return;
+        setPrefs({ ...DEFAULTS, loaded: true });
       }
     };
     void refresh();
