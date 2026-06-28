@@ -1897,6 +1897,10 @@
         "title": "Ecrã inteiro nativo",
         "subtitle": "Preenche todo o ecrã ao abrir e restaura a janela ao fechar. Desative para manter uma sobreposição na janela (útil em vários monitores)."
       }
+    },
+    "scrollTitles": {
+      "title": "Deslocar títulos longos",
+      "subtitle": "Os títulos longos deslocam-se em vez de serem truncados (barra do leitor + vista imersiva)."
     }
   },
   "spotify": {

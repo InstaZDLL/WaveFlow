@@ -17,6 +17,7 @@ import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { HiResBadge } from "../common/HiResBadge";
+import { MarqueeText } from "../common/MarqueeText";
 import { isRadioTrack } from "../../lib/playerSources";
 import { PlaybackControls } from "./PlaybackControls";
 import { ProgressBar } from "./ProgressBar";
@@ -171,9 +172,10 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
               />
             </button>
             <div className="flex flex-col min-w-0">
-              <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                {title}
-              </span>
+              <MarqueeText
+                text={title}
+                className="text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+              />
               <span className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
                 {currentTrack?.artist_name ? (
                   <ArtistLink

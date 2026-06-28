@@ -1897,6 +1897,10 @@
         "title": "Plein écran natif",
         "subtitle": "Remplit tout l'écran à l'ouverture et restaure votre fenêtre à la fermeture. Désactivez pour garder une surcouche fenêtrée (utile en multi-écran)."
       }
+    },
+    "scrollTitles": {
+      "title": "Faire défiler les titres longs",
+      "subtitle": "Les titres trop longs défilent au lieu d'être tronqués (barre de lecture + vue immersive)."
     }
   },
   "spotify": {

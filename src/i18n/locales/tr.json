@@ -1897,6 +1897,10 @@
         "title": "Yerel tam ekran",
         "subtitle": "Açılışta tüm ekranı kaplar ve kapanışta pencerenizi geri yükler. Pencere içi katmanı korumak için kapatın (çoklu monitörde kullanışlı)."
       }
+    },
+    "scrollTitles": {
+      "title": "Uzun başlıkları kaydır",
+      "subtitle": "Uzun başlıklar kesilmek yerine kayar (oynatıcı çubuğu + sürükleyici görünüm)."
     }
   },
   "spotify": {

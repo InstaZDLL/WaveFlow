@@ -1897,6 +1897,10 @@
         "title": "Layar penuh native",
         "subtitle": "Memenuhi seluruh layar saat dibuka dan memulihkan jendela saat ditutup. Matikan untuk mempertahankan lapisan dalam jendela (berguna pada banyak monitor)."
       }
+    },
+    "scrollTitles": {
+      "title": "Gulirkan judul panjang",
+      "subtitle": "Judul panjang bergulir alih-alih dipotong (bilah pemutar + tampilan imersif)."
     }
   },
   "spotify": {

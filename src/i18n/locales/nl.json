@@ -1897,6 +1897,10 @@
         "title": "Native volledig scherm",
         "subtitle": "Vult het hele scherm bij openen en herstelt je venster bij sluiten. Schakel uit om een overlay in het venster te houden (handig bij meerdere monitoren)."
       }
+    },
+    "scrollTitles": {
+      "title": "Lange titels laten scrollen",
+      "subtitle": "Lange titels scrollen in plaats van afgekapt te worden (spelerbalk + meeslepende weergave)."
     }
   },
   "spotify": {
