@@ -599,6 +599,8 @@ export function AppLayout() {
                 activeView={activeView}
                 setActiveView={setActiveView}
                 onOpenProfileSelector={() => setIsProfileModalOpen(true)}
+                onNavigateToAlbum={navigateToAlbum}
+                onNavigateToArtist={navigateToArtist}
                 canGoBack={canGoBack}
                 canGoForward={canGoForward}
                 onGoBack={goBack}

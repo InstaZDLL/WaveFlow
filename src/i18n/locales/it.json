@@ -227,7 +227,10 @@
         "durationMin": "Durata in minuti (da → a)",
         "format": "Formato",
         "genres": "Generi"
-      }
+      },
+      "artists": "Artisti",
+      "albums": "Album",
+      "titles": "Brani"
     },
     "theme": {
       "enableLight": "Attiva il tema chiaro",

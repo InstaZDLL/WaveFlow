@@ -227,7 +227,10 @@
         "durationMin": "Durasi dalam menit (dari → sampai)",
         "format": "Format",
         "genres": "Genre"
-      }
+      },
+      "artists": "Artis",
+      "albums": "Album",
+      "titles": "Lagu"
     },
     "theme": {
       "enableLight": "Aktifkan mode terang",
