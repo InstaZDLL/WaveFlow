@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useReducedMotion } from "framer-motion";
 import { useScrollLongTitles } from "../../hooks/useScrollLongTitles";
 
 interface MarqueeTextProps {
@@ -25,14 +26,20 @@ interface MarqueeTextProps {
  */
 export function MarqueeText({ text, className, threshold = 4 }: MarqueeTextProps) {
   const { enabled } = useScrollLongTitles();
+  // `prefers-reduced-motion` disables the CSS keyframe — without also
+  // gating `animate` here, the scrolling LAYOUT would still render
+  // (left-aligned nowrap clipped with no ellipsis) instead of the static
+  // truncate path. Treat reduced motion as "scrolling off".
+  const reduceMotion = useReducedMotion();
+  const scroll = enabled && !reduceMotion;
   const containerRef = useRef<HTMLSpanElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
   const [shift, setShift] = useState(0);
 
   useEffect(() => {
-    // Skip measuring entirely when the user disabled scrolling — the
-    // static truncate branch renders regardless of overflow.
-    if (!enabled) {
+    // Skip measuring entirely when scrolling is off (user pref or reduced
+    // motion) — the static truncate branch renders regardless of overflow.
+    if (!scroll) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setShift(0);
       return;
@@ -49,9 +56,9 @@ export function MarqueeText({ text, className, threshold = 4 }: MarqueeTextProps
     if (containerRef.current) ro.observe(containerRef.current);
     if (textRef.current) ro.observe(textRef.current);
     return () => ro.disconnect();
-  }, [text, threshold, enabled]);
+  }, [text, threshold, scroll]);
 
-  const animate = enabled && shift > 0;
+  const animate = scroll && shift > 0;
 
   return (
     <span

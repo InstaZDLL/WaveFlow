@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getProfileSetting, setProfileSetting } from "../lib/tauri/profile";
 import { useProfile } from "./useProfile";
 
@@ -29,6 +29,15 @@ export interface ScrollLongTitles {
 export function useScrollLongTitles(): ScrollLongTitles {
   const { activeProfile } = useProfile();
   const [enabled, setEnabledState] = useState<boolean>(DEFAULT_ENABLED);
+  // Live mirror of the displayed value so a write can roll back to what
+  // the user was actually seeing without re-creating `setEnabled` on
+  // every state change. Monotonic token so only the latest write applies
+  // its success / failure side effects (rapid toggles overlap otherwise).
+  const enabledRef = useRef(enabled);
+  const writeSeqRef = useRef(0);
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,20 +58,24 @@ export function useScrollLongTitles(): ScrollLongTitles {
     };
   }, [activeProfile?.id]);
 
-  const setEnabled = useCallback(
-    async (next: boolean) => {
-      const previous = enabled;
-      setEnabledState(next);
-      try {
-        await setProfileSetting(KEY, next ? "true" : "false", "bool");
-        window.dispatchEvent(new CustomEvent(SCROLL_LONG_TITLES_EVENT));
-      } catch (err) {
-        console.error("[useScrollLongTitles] write failed", err);
-        setEnabledState(previous);
-      }
-    },
-    [enabled],
-  );
+  const setEnabled = useCallback(async (next: boolean) => {
+    const seq = ++writeSeqRef.current;
+    const previous = enabledRef.current;
+    enabledRef.current = next;
+    setEnabledState(next);
+    try {
+      await setProfileSetting(KEY, next ? "true" : "false", "bool");
+      // A newer toggle superseded this one mid-write — let it own the
+      // outcome so an older response can't clobber the latest intent.
+      if (seq !== writeSeqRef.current) return;
+      window.dispatchEvent(new CustomEvent(SCROLL_LONG_TITLES_EVENT));
+    } catch (err) {
+      console.error("[useScrollLongTitles] write failed", err);
+      if (seq !== writeSeqRef.current) return;
+      enabledRef.current = previous;
+      setEnabledState(previous);
+    }
+  }, []);
 
   return { enabled, setEnabled };
 }
