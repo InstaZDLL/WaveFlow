@@ -60,7 +60,7 @@ export function StatsKpiVisibilityCard() {
                   type="checkbox"
                   checked={checked}
                   onChange={() => {
-                    void toggle(id);
+                    toggle(id);
                   }}
                   className="w-4 h-4 accent-emerald-500 cursor-pointer"
                 />

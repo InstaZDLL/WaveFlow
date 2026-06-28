@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getProfileSetting, setProfileSetting } from "../lib/tauri/profile";
 import { useProfile } from "./useProfile";
 
@@ -50,7 +50,9 @@ function parseHidden(raw: string | null): StatsKpiId[] {
 export interface HiddenKpis {
   hidden: Set<StatsKpiId>;
   isHidden: (id: StatsKpiId) => boolean;
-  toggle: (id: StatsKpiId) => Promise<void>;
+  /** Fire-and-forget: optimistic UI update, persistence is serialized
+   *  internally and rolls back on failure. */
+  toggle: (id: StatsKpiId) => void;
   /**
    * `false` until the first per-profile read resolves. Consumers that
    * render conditionally on `isHidden` should wait for this so hidden
@@ -67,8 +69,23 @@ export interface HiddenKpis {
  */
 export function useHiddenKpis(): HiddenKpis {
   const { activeProfile } = useProfile();
-  const [hidden, setHidden] = useState<Set<StatsKpiId>>(new Set());
+  const [hidden, setHiddenState] = useState<Set<StatsKpiId>>(new Set());
   const [ready, setReady] = useState(false);
+
+  // Authoritative copy read synchronously by `toggle` — React state
+  // lags a render behind, so two rapid clicks would otherwise both
+  // branch off the same stale snapshot and the second would clobber
+  // the first. `setHidden` keeps the ref and the render state in lockstep.
+  const hiddenRef = useRef<Set<StatsKpiId>>(hidden);
+  const setHidden = useCallback((next: Set<StatsKpiId>) => {
+    hiddenRef.current = next;
+    setHiddenState(next);
+  }, []);
+
+  // Serializes persistence: each write runs only after the previous
+  // one settles, so two rapid toggles can't complete out of order and
+  // the last user action always wins the final DB state.
+  const writeChainRef = useRef<Promise<unknown>>(Promise.resolve());
 
   useEffect(() => {
     let cancelled = false;
@@ -78,7 +95,7 @@ export function useHiddenKpis(): HiddenKpis {
     // `isHidden` ungated) before — or if — the new read lands.
     /* eslint-disable react-hooks/set-state-in-effect */
     setReady(false);
-    setHidden(new Set());
+    setHidden(new Set<StatsKpiId>());
     /* eslint-enable react-hooks/set-state-in-effect */
     const refresh = async () => {
       try {
@@ -97,30 +114,35 @@ export function useHiddenKpis(): HiddenKpis {
       cancelled = true;
       window.removeEventListener(HIDDEN_KPIS_EVENT, refresh);
     };
-  }, [activeProfile?.id]);
+  }, [activeProfile?.id, setHidden]);
 
   const toggle = useCallback(
-    async (id: StatsKpiId) => {
-      // Snapshot the pre-toggle state so we can roll back if the write
-      // fails. `[hidden]` in the deps keeps this closure fresh.
-      const previous = hidden;
+    (id: StatsKpiId) => {
+      // Read the authoritative ref (not React state) so back-to-back
+      // toggles each build on the previous one's result.
+      const previous = hiddenRef.current;
       const next = new Set(previous);
       if (next.has(id)) next.delete(id);
       else next.add(id);
-      setHidden(next); // optimistic
+      setHidden(next); // optimistic; advances `hiddenRef` too
       // Persist in declaration order for a stable, diff-friendly blob.
       const nextArray = STATS_KPI_IDS.filter((k) => next.has(k));
-      try {
-        await setProfileSetting(KEY, JSON.stringify(nextArray), "json");
-        window.dispatchEvent(new CustomEvent(HIDDEN_KPIS_EVENT));
-      } catch (err) {
-        console.error("[useHiddenKpis] write failed", err);
-        // Roll back so the UI stays consistent with what's persisted;
-        // skip the broadcast since nothing actually changed.
-        setHidden(previous);
-      }
+      // Queue behind any in-flight write. A leading no-op catch keeps a
+      // prior failure from breaking the chain for later toggles.
+      writeChainRef.current = writeChainRef.current
+        .catch(() => {})
+        .then(async () => {
+          await setProfileSetting(KEY, JSON.stringify(nextArray), "json");
+          window.dispatchEvent(new CustomEvent(HIDDEN_KPIS_EVENT));
+        })
+        .catch((err: unknown) => {
+          console.error("[useHiddenKpis] write failed", err);
+          // Roll back to this toggle's pre-state; skip the broadcast
+          // since nothing was actually persisted.
+          setHidden(previous);
+        });
     },
-    [hidden],
+    [setHidden],
   );
 
   const isHidden = useCallback((id: StatsKpiId) => hidden.has(id), [hidden]);
