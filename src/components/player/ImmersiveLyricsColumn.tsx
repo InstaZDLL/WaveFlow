@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Music2, AlertCircle, Upload, RefreshCcw } from "lucide-react";
+import { Artwork } from "../common/Artwork";
 import type { Track } from "../../lib/tauri/track";
 import type { LyricsLine, LyricsPayload } from "../../lib/tauri/lyrics";
 import { useFullscreenLyricsCentering } from "../../hooks/useFullscreenLyricsCentering";
@@ -23,9 +24,13 @@ interface ImmersiveLyricsColumnProps {
   onSeek: (line: LyricsLine) => void;
   onImport: () => void;
   onRefetch: () => void;
-  /** Compact header eyebrow (shown in the dual-column layout where the
-   *  now-playing column already carries the big title). */
+  /** Header with cover + title (shown in the classic lyrics-only
+   *  fullscreen; hidden in the dual-column layout where the now-playing
+   *  column already carries the cover + big title). */
   showHeader?: boolean;
+  /** When set, the header cover becomes a button (classic mode uses it to
+   *  flip back to the now-playing fullscreen, like the old overlay). */
+  onCoverClick?: () => void;
 }
 
 /**
@@ -55,6 +60,7 @@ export function ImmersiveLyricsColumn({
   onImport,
   onRefetch,
   showHeader = true,
+  onCoverClick,
 }: ImmersiveLyricsColumnProps) {
   const { t } = useTranslation();
   // Per-profile opt-in (#168). Default OFF — see the hook.
@@ -74,12 +80,48 @@ export function ImmersiveLyricsColumn({
   return (
     <div className="h-full flex flex-col text-white">
       {showHeader && (
-        <div className="px-8 pt-8 pb-3 shrink-0">
-          <div className="text-xs uppercase tracking-[0.2em] text-white/40">
-            {t("lyrics.title")}
-          </div>
-          <div className="text-sm text-white/30 mt-0.5 truncate">
-            {track.artist_name ? `${track.title} — ${track.artist_name}` : track.title}
+        <div className="px-8 pt-8 pb-4 shrink-0 flex items-center gap-4">
+          {onCoverClick ? (
+            <button
+              type="button"
+              onClick={onCoverClick}
+              aria-label={t("playerBar.openFullscreen")}
+              title={t("playerBar.openFullscreen")}
+              className="shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            >
+              <Artwork
+                path={track.artwork_path}
+                path1x={track.artwork_path_1x}
+                path2x={track.artwork_path_2x}
+                size="1x"
+                className="w-14 h-14 shadow-lg"
+                iconSize={20}
+                alt={track.title}
+                rounded="lg"
+              />
+            </button>
+          ) : (
+            <Artwork
+              path={track.artwork_path}
+              path1x={track.artwork_path_1x}
+              path2x={track.artwork_path_2x}
+              size="1x"
+              className="w-14 h-14 shadow-lg shrink-0"
+              iconSize={20}
+              alt={track.title}
+              rounded="lg"
+            />
+          )}
+          <div className="min-w-0">
+            <div className="text-xs uppercase tracking-[0.2em] text-white/40">
+              {t("lyrics.title")}
+            </div>
+            <div className="text-base font-bold text-white truncate">
+              {track.title}
+            </div>
+            <div className="text-sm text-white/50 truncate">
+              {track.artist_name ?? "—"}
+            </div>
           </div>
         </div>
       )}

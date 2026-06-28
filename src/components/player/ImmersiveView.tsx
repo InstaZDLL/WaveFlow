@@ -274,6 +274,7 @@ export function ImmersiveView({
                 onSeek={lyrics.seekToLine}
                 onImport={() => void lyrics.importLyrics()}
                 onRefetch={() => void lyrics.refetch()}
+                onCoverClick={toggleClassicLyrics}
               />
             </div>
           )}
