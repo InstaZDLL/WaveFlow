@@ -562,39 +562,51 @@ pub(crate) async fn scan_folder_inner(
     let timings = Arc::new(ScanTimings::default());
 
     // Probe map for the insert-vs-update decision in the consumer loop,
-    // pre-loaded ONCE instead of a `SELECT … WHERE library_id = ? AND
-    // file_path = ?` per extracted track (the per-track probe was a
-    // wasted round-trip on every brand-new file — always a miss — and
-    // those dominate a first scan). Built only when there's actually
-    // something to extract: a stat-skip rescan (everything unchanged)
-    // would otherwise pay a full library-wide load for nothing. Keyed
-    // library-wide, NOT folder-scoped like `existing_meta`: a file
-    // already known under another folder of the same library must still
-    // resolve so the loop UPDATEs (and reassigns `folder_id`) instead of
+    // pre-loaded in one pass instead of a `SELECT … WHERE library_id = ?
+    // AND file_path = ?` per extracted track. Scoped to exactly the
+    // `to_extract` paths via an `IN (…)` list — NOT a full library-wide
+    // load: an fs-watcher rescan of a single changed file in a
+    // 4000-track library must not drag in every row. SQLite caps bound
+    // params at 999 and `library_id` takes one slot, so the path list is
+    // chunked well under that. Scoped by `library_id` (not folder), so a
+    // file already known under another folder of the same library still
+    // resolves and the loop UPDATEs (reassigning `folder_id`) instead of
     // hitting the `UNIQUE(library_id, file_path)` constraint. No
     // `is_available` filter — matches the old probe, so a vanished-then-
     // restored track is found and flipped back to available. Snapshot-
     // before-loop is safe: the walk yields distinct paths, so no row
     // inserted earlier in THIS scan is ever probed later.
+    const PROBE_CHUNK: usize = 900;
     let existing_probe: HashMap<String, (i64, i64, String, i64)> = if to_extract.is_empty() {
         HashMap::new()
     } else {
         let t_db = Instant::now();
-        let probe_rows: Vec<(String, i64, i64, String, i64)> = sqlx::query_as(
-            "SELECT file_path, id, file_modified, file_hash, added_at
-               FROM track
-              WHERE library_id = ?",
-        )
-        .bind(library_id)
-        .fetch_all(pool)
-        .await?;
+        let paths: Vec<String> = to_extract
+            .iter()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect();
+        let mut probe = HashMap::with_capacity(paths.len());
+        for chunk in paths.chunks(PROBE_CHUNK) {
+            let placeholders = chunk.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+            let sql = format!(
+                "SELECT file_path, id, file_modified, file_hash, added_at
+                   FROM track
+                  WHERE library_id = ? AND file_path IN ({placeholders})"
+            );
+            let mut q =
+                sqlx::query_as::<_, (String, i64, i64, String, i64)>(sqlx::AssertSqlSafe(sql))
+                    .bind(library_id);
+            for p in chunk {
+                q = q.bind(p);
+            }
+            for (path, id, mtime, hash, added_at) in q.fetch_all(pool).await? {
+                probe.insert(path, (id, mtime, hash, added_at));
+            }
+        }
         timings
             .db_us
             .fetch_add(t_db.elapsed().as_micros() as u64, Ordering::Relaxed);
-        probe_rows
-            .into_iter()
-            .map(|(path, id, mtime, hash, added_at)| (path, (id, mtime, hash, added_at)))
-            .collect()
+        probe
     };
 
     // ─── Phase 2: Parallel extract + transactional DB writes ──────
