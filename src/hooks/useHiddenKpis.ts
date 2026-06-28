@@ -137,9 +137,11 @@ export function useHiddenKpis(): HiddenKpis {
         })
         .catch((err: unknown) => {
           console.error("[useHiddenKpis] write failed", err);
-          // Roll back to this toggle's pre-state; skip the broadcast
-          // since nothing was actually persisted.
-          setHidden(previous);
+          // Only roll back if no later toggle superseded this one —
+          // otherwise we'd clobber a newer, still-unpersisted state.
+          // `next` is the exact Set we installed; a later toggle would
+          // have replaced `hiddenRef.current` with a different object.
+          if (hiddenRef.current === next) setHidden(previous);
         });
     },
     [setHidden],

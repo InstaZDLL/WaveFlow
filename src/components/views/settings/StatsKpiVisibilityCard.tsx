@@ -23,7 +23,7 @@ const KPI_LABEL_KEYS: Record<StatsKpiId, string> = {
  */
 export function StatsKpiVisibilityCard() {
   const { t } = useTranslation();
-  const { isHidden, toggle } = useHiddenKpis();
+  const { isHidden, toggle, ready } = useHiddenKpis();
 
   return (
     <section
@@ -54,15 +54,23 @@ export function StatsKpiVisibilityCard() {
             return (
               <label
                 key={id}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors"
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                  ready
+                    ? "cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/30"
+                    : "cursor-not-allowed opacity-50"
+                }`}
               >
                 <input
                   type="checkbox"
                   checked={checked}
+                  // Block toggles until the per-profile preference has
+                  // loaded — `hidden` is momentarily empty during the
+                  // read, so a click here would persist a wrong state.
+                  disabled={!ready}
                   onChange={() => {
                     toggle(id);
                   }}
-                  className="w-4 h-4 accent-emerald-500 cursor-pointer"
+                  className="w-4 h-4 accent-emerald-500 cursor-pointer disabled:cursor-not-allowed"
                 />
                 <span className="text-sm text-zinc-800 dark:text-zinc-200">
                   {t(KPI_LABEL_KEYS[id])}
