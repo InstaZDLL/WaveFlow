@@ -33,22 +33,31 @@ export function ImmersiveQueueTab() {
         if (seq === fetchSeqRef.current) setSnapshot(q);
       })
       .catch((err) => {
+        // A transient refetch failure shouldn't blank the last known
+        // queue — just log and keep the previous snapshot on screen.
         console.error("[ImmersiveQueueTab] fetch failed", err);
-        if (seq === fetchSeqRef.current) setSnapshot(null);
       });
   }, []);
 
   useEffect(() => {
     doFetch();
     let unlisten: UnlistenFn | null = null;
+    // Guard against the component unmounting before `listen` resolves —
+    // otherwise `unlisten` is still null when cleanup runs and the
+    // subscription leaks. If disposed by the time it resolves, tear it
+    // down immediately.
+    let disposed = false;
     (async () => {
       try {
-        unlisten = await listen("player:queue-changed", doFetch);
+        const fn = await listen("player:queue-changed", doFetch);
+        if (disposed) fn();
+        else unlisten = fn;
       } catch (err) {
         console.error("[ImmersiveQueueTab] listen failed", err);
       }
     })();
     return () => {
+      disposed = true;
       if (unlisten) unlisten();
     };
   }, [doFetch]);

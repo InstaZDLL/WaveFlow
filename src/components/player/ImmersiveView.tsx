@@ -121,6 +121,16 @@ export function ImmersiveView({
         priorMaximizedRef.current = await win.isMaximized();
         if (cancelled) return;
         await win.setFullscreen(true);
+        // The cleanup may have fired while `setFullscreen(true)` was in
+        // flight (fast open→close). It skips restoration because
+        // `enteredFullscreenRef` was still false, so undo here and don't
+        // claim ownership — otherwise the window stays fullscreen after
+        // unmount.
+        if (cancelled) {
+          await win.setFullscreen(false);
+          if (priorMaximizedRef.current) await win.maximize();
+          return;
+        }
         enteredFullscreenRef.current = true;
       } catch (err) {
         console.error("[ImmersiveView] enter fullscreen failed", err);

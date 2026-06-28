@@ -162,7 +162,7 @@ The **cover thumbnail** at the bottom-left of the player bar carries its own act
 
 | Value         | Behaviour                                                                                       |
 | ------------- | ----------------------------------------------------------------------------------------------- |
-| `immersive`   | Open the merged immersive view — cover + lyrics column + native fullscreen (default)            |
+| `immersive`   | Open the immersive view — classic by default; merged columns + native fullscreen opt-in         |
 | `now_playing` | Toggle the right-edge Now Playing panel — Spotify-style "click cover, see lyrics + cover wall". |
 | `none`        | No-op. Useful for users who keep mis-triggering it.                                             |
 

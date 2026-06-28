@@ -308,6 +308,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setCurrentRadioStation(null);
     setPositionMs(0);
     setDurationMs(0);
+    // Close the immersive view on profile switch — otherwise `immersiveOpen`
+    // would linger true through the `currentTrack` null window and reopen
+    // the view once the new profile's first track lands.
+    setImmersiveOpen(false);
 
     let cancelled = false;
     (async () => {

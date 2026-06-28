@@ -406,7 +406,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
           />
         )}
       </footer>
-      {immersiveOpen && currentTrack && (
+      {immersiveOpen && (
         <ImmersiveView
           initialTab={immersiveInitialTab}
           onClose={closeImmersive}

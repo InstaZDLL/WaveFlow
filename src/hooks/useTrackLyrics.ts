@@ -110,6 +110,9 @@ export function useTrackLyrics(): TrackLyrics {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setPayload(null);
       setError(null);
+      // Clear the spinner too — without this a fetch in flight when the
+      // track drops to null leaves `isFetching` stuck true.
+      setIsFetching(false);
       prevIsRadioRef.current = isRadio;
       return;
     }
@@ -276,8 +279,12 @@ export function useTrackLyrics(): TrackLyrics {
 
   const clear = useCallback(async () => {
     if (trackId == null) return;
+    // Same staleness guard as importLyrics / refetch: a track switch
+    // during the await would otherwise wipe the NEW track's payload.
+    const requestedTrackId = trackId;
     try {
       await clearLyrics(trackId);
+      if (requestedTrackId !== trackIdRef.current) return;
       setPayload(null);
     } catch (err) {
       console.error("[useTrackLyrics] clear failed", err);
@@ -293,6 +300,10 @@ export function useTrackLyrics(): TrackLyrics {
 
   const applyPayload = useCallback((next: LyricsPayload | null) => {
     setPayload(next);
+    // Clear any stale error so freshly applied external lyrics (e.g. from
+    // the editor) aren't masked behind a prior fetch error — mirrors the
+    // cleanup in importLyrics / refetch.
+    if (next != null) setError(null);
   }, []);
 
   return {

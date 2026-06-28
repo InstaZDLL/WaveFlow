@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getProfileSetting } from "../lib/tauri/profile";
+import { useProfile } from "./useProfile";
 
 /**
  * Per-profile preferences for the immersive view (issue #328).
@@ -64,16 +65,23 @@ function parseBool(raw: string | null, fallback: boolean): boolean {
 
 /**
  * React hook returning the resolved immersive prefs for the active
- * profile. Re-reads on `waveflow:immersive-prefs-changed`. Read
- * failures are swallowed (console error) so a backend hiccup keeps the
- * last good value instead of forcing defaults mid-session.
+ * profile. Re-reads on `waveflow:immersive-prefs-changed` AND when the
+ * active profile changes (the prefs are per-profile, so a switch must
+ * re-read against the new pool). A monotonic sequence token drops any
+ * out-of-order async read so a slow earlier fetch can't clobber a newer
+ * one. Read failures are swallowed (console error) so a backend hiccup
+ * keeps the last good value instead of forcing defaults mid-session.
  */
 export function useImmersivePrefs(): ImmersivePrefs {
+  const { activeProfile } = useProfile();
+  const activeProfileId = activeProfile?.id ?? null;
   const [prefs, setPrefs] = useState<ImmersivePrefs>(DEFAULTS);
+  const seqRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
     const refresh = async () => {
+      const seq = ++seqRef.current;
       try {
         const entries = Object.entries(IMMERSIVE_PREF_KEYS) as Array<
           [keyof StoredPrefs, string]
@@ -84,7 +92,9 @@ export function useImmersivePrefs(): ImmersivePrefs {
             return [prop, parseBool(v, STORED_DEFAULTS[prop])] as const;
           }),
         );
-        if (cancelled) return;
+        // Drop this read if cancelled OR a newer refresh already started
+        // (event + profile-switch can overlap → out-of-order resolves).
+        if (cancelled || seq !== seqRef.current) return;
         const next: ImmersivePrefs = { ...DEFAULTS, loaded: true };
         for (const [prop, value] of results) {
           next[prop] = value;
@@ -101,7 +111,8 @@ export function useImmersivePrefs(): ImmersivePrefs {
       cancelled = true;
       window.removeEventListener(IMMERSIVE_PREFS_EVENT, refresh);
     };
-  }, []);
+    // Re-read when the active profile changes — the prefs are per-profile.
+  }, [activeProfileId]);
 
   return prefs;
 }

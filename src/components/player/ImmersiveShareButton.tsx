@@ -100,6 +100,7 @@ export function ImmersiveShareButton({ track }: ImmersiveShareButtonProps) {
       {shareOpen && (
         <div className="absolute right-0 top-full mt-2 min-w-56 rounded-2xl bg-zinc-900/95 backdrop-blur-md border border-white/10 shadow-2xl overflow-hidden z-10">
           <button
+            type="button"
             onClick={async () => {
               setShareOpen(false);
               await handleSave();
@@ -110,6 +111,7 @@ export function ImmersiveShareButton({ track }: ImmersiveShareButtonProps) {
             {t("nowPlaying.share.save")}
           </button>
           <button
+            type="button"
             onClick={async () => {
               setShareOpen(false);
               await handleCopy();
