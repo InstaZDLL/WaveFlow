@@ -18,8 +18,7 @@ use waveflow_core::scanner::{
     extract_folder_cover, extract_musical_key, extract_rating, file_type_label, hash_file,
     link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
     merge_implicit_compilations, now_millis, split_artist_name, upsert_album, upsert_artist,
-    upsert_artist_list, upsert_artwork, upsert_genre, ExtractedFile, AUDIO_EXTENSIONS,
-    VARIOUS_ARTISTS_LABEL,
+    upsert_artwork, upsert_genre, ExtractedFile, AUDIO_EXTENSIONS, VARIOUS_ARTISTS_LABEL,
 };
 
 use crate::{
@@ -243,6 +242,90 @@ struct ScanTimings {
     /// `extract_db_ms` is the single-writer DB path vs the parallel
     /// extraction feeding it. Diagnostics only.
     db_us: AtomicU64,
+}
+
+/// Scan-scoped memo for the `artist` / `genre` lookups that otherwise
+/// fire one `SELECT … WHERE canonical_name = ?` per track. A 900-track
+/// library typically resolves to ~100 distinct artists and ~20 genres,
+/// so without this the consumer loop pays thousands of redundant
+/// single-writer round-trips — the dominant cost once the partial hash
+/// took hashing off the critical path (`db_ms_total` ≈ 99 % of
+/// `extract_db_ms`, measured).
+///
+/// Keyed on [`canonical_name`] exactly like [`upsert_artist`] /
+/// [`upsert_genre`] so a cache hit returns the same id the SELECT
+/// would. Ids stay valid across the loop's periodic `TX_BATCH` commits
+/// (the rows they point at are committed, never rolled back — any error
+/// aborts the whole scan and drops the cache with it). `album` is
+/// deliberately NOT memoised: [`upsert_album`] carries sticky
+/// compilation / album-artist backfill logic that must run per track.
+#[derive(Default)]
+struct UpsertCache {
+    artists: HashMap<String, i64>,
+    genres: HashMap<String, i64>,
+}
+
+impl UpsertCache {
+    /// Cached [`upsert_artist`]. Mirrors its trim → `canonical_name` →
+    /// empty-guard so the cache key matches the DB lookup key.
+    async fn artist(
+        &mut self,
+        conn: &mut sqlx::SqliteConnection,
+        raw_name: &str,
+    ) -> AppResult<Option<i64>> {
+        let canon = canonical_name(raw_name.trim());
+        if canon.is_empty() {
+            return Ok(None);
+        }
+        if let Some(&id) = self.artists.get(&canon) {
+            return Ok(Some(id));
+        }
+        let id = upsert_artist(conn, raw_name).await?;
+        if let Some(id) = id {
+            self.artists.insert(canon, id);
+        }
+        Ok(id)
+    }
+
+    /// Cached equivalent of [`upsert_artist_list`] — splits the raw
+    /// multi-artist string the same way, then resolves each through
+    /// [`Self::artist`].
+    async fn artist_list(
+        &mut self,
+        conn: &mut sqlx::SqliteConnection,
+        raw: &Option<String>,
+    ) -> AppResult<Vec<i64>> {
+        let Some(raw) = raw else {
+            return Ok(Vec::new());
+        };
+        let mut ids = Vec::new();
+        for name in split_artist_name(raw) {
+            if let Some(id) = self.artist(&mut *conn, &name).await? {
+                ids.push(id);
+            }
+        }
+        Ok(ids)
+    }
+
+    /// Cached [`upsert_genre`].
+    async fn genre(
+        &mut self,
+        conn: &mut sqlx::SqliteConnection,
+        raw_name: &str,
+    ) -> AppResult<Option<i64>> {
+        let canon = canonical_name(raw_name.trim());
+        if canon.is_empty() {
+            return Ok(None);
+        }
+        if let Some(&id) = self.genres.get(&canon) {
+            return Ok(Some(id));
+        }
+        let id = upsert_genre(conn, raw_name).await?;
+        if let Some(id) = id {
+            self.genres.insert(canon, id);
+        }
+        Ok(id)
+    }
 }
 
 fn extract_file(
@@ -492,6 +575,33 @@ pub(crate) async fn scan_folder_inner(
         .into_iter()
         .map(|(p, mtime, size)| (p, (mtime, size)))
         .collect();
+
+    // Probe map for the insert-vs-update decision in the consumer loop,
+    // pre-loaded ONCE instead of a `SELECT … WHERE library_id = ? AND
+    // file_path = ?` per extracted track (the per-track probe was a
+    // wasted round-trip on every brand-new file — always a miss — and
+    // those dominate a first scan). Keyed library-wide, NOT folder-
+    // scoped like `existing_meta`: a file already known under another
+    // folder of the same library must still resolve so the loop UPDATEs
+    // (and reassigns `folder_id`) instead of hitting the
+    // `UNIQUE(library_id, file_path)` constraint. No `is_available`
+    // filter — matches the old probe, so a vanished-then-restored track
+    // is found and flipped back to available. Snapshot-before-loop is
+    // safe: the walk yields distinct paths, so no row inserted earlier
+    // in THIS scan is ever probed later.
+    let probe_rows: Vec<(String, i64, i64, String, i64)> = sqlx::query_as(
+        "SELECT file_path, id, file_modified, file_hash, added_at
+           FROM track
+          WHERE library_id = ?",
+    )
+    .bind(library_id)
+    .fetch_all(pool)
+    .await?;
+    let existing_probe: HashMap<String, (i64, i64, String, i64)> = probe_rows
+        .into_iter()
+        .map(|(path, id, mtime, hash, added_at)| (path, (id, mtime, hash, added_at)))
+        .collect();
+
     let meta_load_ms = t_scan.elapsed().as_millis();
 
     let total_files = audio_files.len();
@@ -583,6 +693,10 @@ pub(crate) async fn scan_folder_inner(
     let mut tx = pool.begin().await?;
     let mut tx_count: usize = 0;
     let mut processed: usize = summary.skipped as usize;
+    // Memo for artist / genre id lookups across the whole scan — see
+    // `UpsertCache`. Lives for the loop's duration so every track on
+    // the same album / by the same artist reuses the first resolution.
+    let mut upsert_cache = UpsertCache::default();
 
     while let Some((path, result)) = extraction_stream.next().await {
         processed += 1;
@@ -610,20 +724,14 @@ pub(crate) async fn scan_folder_inner(
         // covers the whole iteration's DB cost.
         let t_db = Instant::now();
 
-        // Pulls `added_at` so we can preserve the row's original
-        // "first import" timestamp on the wire — re-emits must NOT
-        // bump it (a peer device receiving a re-emit op for an
-        // existing track would otherwise see the file as "just
-        // added" in its `Recently added` view). Brand-new track
-        // path keeps using `now`.
-        let existing: Option<(i64, i64, String, i64)> = sqlx::query_as(
-            "SELECT id, file_modified, file_hash, added_at \
-               FROM track WHERE library_id = ? AND file_path = ?",
-        )
-        .bind(library_id)
-        .bind(&extracted.abs_path)
-        .fetch_optional(&mut *tx)
-        .await?;
+        // Insert-vs-update probe, served from the pre-loaded
+        // `existing_probe` map instead of a per-track SELECT. Carries
+        // `added_at` so we preserve the row's original "first import"
+        // timestamp on the wire — re-emits must NOT bump it (a peer
+        // device receiving a re-emit op for an existing track would
+        // otherwise see the file as "just added" in its `Recently
+        // added` view). Brand-new track path keeps using `now`.
+        let existing = existing_probe.get(&extracted.abs_path).cloned();
 
         if let Some((existing_track_id, mtime, ref hash, existing_added_at)) = existing {
             if mtime == extracted.modified_ms && hash == &extracted.hash {
@@ -767,7 +875,7 @@ pub(crate) async fn scan_folder_inner(
                 // Hash or mtime changed → full re-write of the track row
                 // and its many-to-many links. Falls through to the
                 // shared insert/update path below.
-                let artist_ids = upsert_artist_list(&mut tx, &extracted.artist).await?;
+                let artist_ids = upsert_cache.artist_list(&mut tx, &extracted.artist).await?;
                 let artist_id = artist_ids.first().copied();
                 let album_id = match &extracted.album {
                     Some(a) => {
@@ -784,7 +892,7 @@ pub(crate) async fn scan_folder_inner(
                     None => None,
                 };
                 let genre_id = match &extracted.genre {
-                    Some(g) => upsert_genre(&mut tx, g).await?,
+                    Some(g) => upsert_cache.genre(&mut tx, g).await?,
                     None => None,
                 };
                 if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
@@ -895,7 +1003,7 @@ pub(crate) async fn scan_folder_inner(
             }
         } else {
             // Brand-new track — insert with all related upserts.
-            let artist_ids = upsert_artist_list(&mut tx, &extracted.artist).await?;
+            let artist_ids = upsert_cache.artist_list(&mut tx, &extracted.artist).await?;
             let artist_id = artist_ids.first().copied();
             let album_id = match &extracted.album {
                 Some(a) => {
@@ -912,7 +1020,7 @@ pub(crate) async fn scan_folder_inner(
                 None => None,
             };
             let genre_id = match &extracted.genre {
-                Some(g) => upsert_genre(&mut tx, g).await?,
+                Some(g) => upsert_cache.genre(&mut tx, g).await?,
                 None => None,
             };
             if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
