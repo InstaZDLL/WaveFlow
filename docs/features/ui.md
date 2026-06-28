@@ -56,6 +56,10 @@ Entry points in the [`PlayerBar`](../../src/components/player/PlayerBar.tsx): cl
 
 **Transition hygiene** — the view paints a solid `bg-zinc-950` on the outer wrapper from the first frame; the `animate-fade-in` keyframe lives on the inner backdrop + foreground layers, not the wrapper. Without that opaque base the wrapper's own opacity ramp (0 → 1 over 300 ms) would let the page underneath bleed through during the transition.
 
+**Skin neutrality** — the immersive view carries `role="dialog"` + a `shadow-2xl` cover, which the skins' modal / surface / text-colour chrome would otherwise capture (Liquid-light + Editorial repainted it as a light glass slab with dark, invisible text + washed-out controls; Lounge / Pulse flattened the cover backdrop). The root is tagged `data-immersive` + a nested `dark` context (so the shared `PlaybackControls` / `VolumeControl` / `ProgressBar` render their dark-theme variants over the always-dark backdrop), and every skin's relevant rules carry `:not([data-immersive]):not([data-immersive] *)` so the view renders identically across skins.
+
+**Long titles scroll** — the now-playing title and the bottom `PlayerBar` title use [`MarqueeText`](../../src/components/common/MarqueeText.tsx): it measures overflow via a `ResizeObserver` and, only when the text actually overflows, glides it end-to-end and back (ping-pong with a pause at each extremity, `prefers-reduced-motion` respected) instead of truncating. Toggleable per-profile via [`ScrollTitlesCard`](../../src/components/views/settings/ScrollTitlesCard.tsx) under Settings → Appearance ([`useScrollLongTitles`](../../src/hooks/useScrollLongTitles.ts), `ui.scroll_long_titles`, default ON — off falls back to ellipsis truncation).
+
 ## Mini-player
 
 [`MiniPlayerApp`](../../src/MiniPlayerApp.tsx) + [`MiniPlayer`](../../src/components/views/MiniPlayer.tsx) ship a Spotify-style always-on-top widget. Launched from the picture-in-picture button in the PlayerBar via [`lib/miniPlayer.ts::openMiniPlayer`](../../src/lib/miniPlayer.ts).
