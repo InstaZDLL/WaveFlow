@@ -174,7 +174,7 @@
         "new": "नया"
       },
       "nav": {
-        "tracks": "गाने",
+        "tracks": "ट्रैक",
         "albums": "एल्बम",
         "artists": "कलाकार",
         "genres": "शैलियाँ",
@@ -195,7 +195,7 @@
     "myMusic": {
       "title": "मेरा संगीत",
       "addFolderAria": "एक फ़ोल्डर आयात करें",
-      "tracks": "गाने",
+      "tracks": "ट्रैक",
       "albums": "एल्बम",
       "artists": "कलाकार",
       "genres": "शैलियाँ",
@@ -1024,7 +1024,7 @@
     "miniPlayer": "मिनी-प्लेयर (हमेशा शीर्ष पर)",
     "previous": "पिछला ट्रैक",
     "next": "अगला ट्रैक",
-    "openFullscreen": "इमर्सिव दृश्य",
+    "openFullscreen": "इमर्सिव व्यू",
     "devices": "आउटपुट डिवाइस",
     "moreActions": "अधिक क्रियाएँ",
     "abLoop": "A-B लूप",
@@ -1757,13 +1757,13 @@
         "queue": "क्यू",
         "device": "ऑडियो आउटपुट",
         "miniPlayer": "मिनी-प्लेयर",
-        "immersive": "इमर्सिव दृश्य",
+        "immersive": "इमर्सिव व्यू",
         "audioQualityFooter": "ऑडियो गुणवत्ता पट्टी"
       },
       "coverAction": {
         "title": "कवर पर क्लिक करने पर",
         "immersive": {
-          "label": "इमर्सिव दृश्य खोलें",
+          "label": "इमर्सिव व्यू खोलें",
           "description": "डिफ़ॉल्ट — बड़े कवर के साथ फ़ुलस्क्रीन ‘अभी चल रहा है’ खुलता है।"
         },
         "nowPlaying": {
@@ -1856,23 +1856,23 @@
       "languageLabel": "जीवनी की भाषा"
     },
     "radioCatalogue": {
-      "title": "Offline station catalogue",
-      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
-      "stored_one": "{{count}} station · updated {{date}}",
-      "stored_other": "{{count}} stations · updated {{date}}",
-      "download": "Download",
-      "refresh": "Update",
-      "downloading": "Downloading…",
-      "downloadingPct": "Importing… {{pct}}%",
-      "clear": "Delete catalogue",
-      "neverSynced": "never",
-      "localFirst": "Prefer local catalogue",
-      "localFirstHint": "Search and browse locally even when online (instant, no network).",
-      "offlineHint": "Disable offline mode to download the catalogue.",
+      "title": "ऑफ़लाइन स्टेशन कैटलॉग",
+      "subtitle": "बिना कनेक्शन के स्टेशन ब्राउज़ और खोजने के लिए radio-browser निर्देशिका डाउनलोड करें।",
+      "stored_one": "{{count}} स्टेशन · {{date}} को अपडेट किया गया",
+      "stored_other": "{{count}} स्टेशन · {{date}} को अपडेट किया गया",
+      "download": "डाउनलोड करें",
+      "refresh": "अपडेट करें",
+      "downloading": "डाउनलोड हो रहा है…",
+      "downloadingPct": "इंपोर्ट हो रहा है… {{pct}}%",
+      "clear": "कैटलॉग हटाएँ",
+      "neverSynced": "कभी नहीं",
+      "localFirst": "स्थानीय कैटलॉग को प्राथमिकता दें",
+      "localFirstHint": "ऑनलाइन रहते हुए भी स्थानीय रूप से खोजें और ब्राउज़ करें (तुरंत, बिना नेटवर्क)।",
+      "offlineHint": "कैटलॉग डाउनलोड करने के लिए ऑफ़लाइन मोड बंद करें।",
       "errors": {
-        "loadFailed": "Failed to load catalogue status.",
-        "downloadFailed": "Failed to download the catalogue.",
-        "clearFailed": "Failed to delete the catalogue."
+        "loadFailed": "कैटलॉग स्थिति लोड करने में विफल।",
+        "downloadFailed": "कैटलॉग डाउनलोड करने में विफल।",
+        "clearFailed": "कैटलॉग हटाने में विफल।"
       }
     },
     "dsdPrecision": {
@@ -1964,8 +1964,8 @@
     "removeFavorite": "पसंदीदा से हटाएं",
     "localStations": "स्थानीय स्टेशन",
     "browseByCountry": "देश के अनुसार ब्राउज़ करें",
-    "localCatalogue": "Local catalogue",
-    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+    "localCatalogue": "स्थानीय कैटलॉग",
+    "localCatalogueHint": "डाउनलोड किया गया कैटलॉग ब्राउज़ और खोजा जा रहा है।"
   },
   "artistMetadataEditor": {
     "title": "मेटाडेटा संपादित करें",

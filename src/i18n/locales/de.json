@@ -136,7 +136,7 @@
     "lyrics": {
       "title": "Wo sollen Liedtexte landen?",
       "description": "Wenn du Liedtexte bearbeitest, wo sollen sie hin? Du kannst dies jederzeit unter Einstellungen → Wiedergabe ändern.",
-      "hint": "Wähle „Sidecar-Datei\", um Audiodateien unberührt zu lassen — wie foobar2000 & Co."
+      "hint": "Wähle „Sidecar-Datei“, um Audiodateien unberührt zu lassen — wie foobar2000 & Co."
     }
   },
   "sidebar": {
@@ -1778,10 +1778,10 @@
     },
     "wrappedBanner": {
       "title": "WaveFlow Wrapped-Banner",
-      "subtitle": "Das Jahresrückblick-Banner auf dem Startbildschirm. Der Automatik-Modus zeigt ihn während der Wrapped-Saison (1. Dezember → 31. Januar).",
+      "subtitle": "Das Jahresrückblick-Banner auf dem Startbildschirm. Der Automatik-Modus zeigt es während der Wrapped-Saison (1. Dezember → 31. Januar).",
       "legend": "Sichtbarkeit des Wrapped-Banners",
-      "seasonActive": "Wrapped-Saison läuft — der Banner wird angezeigt.",
-      "seasonIdle": "Außerhalb der Saison — der Banner kehrt am 1. Dezember automatisch zurück.",
+      "seasonActive": "Wrapped-Saison läuft — das Banner wird angezeigt.",
+      "seasonIdle": "Außerhalb der Saison — das Banner kehrt am 1. Dezember automatisch zurück.",
       "modes": {
         "auto": {
           "label": "Automatisch",
@@ -1856,23 +1856,23 @@
       "languageLabel": "Sprache der Biografie"
     },
     "radioCatalogue": {
-      "title": "Offline station catalogue",
-      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
-      "stored_one": "{{count}} station · updated {{date}}",
-      "stored_other": "{{count}} stations · updated {{date}}",
-      "download": "Download",
-      "refresh": "Update",
-      "downloading": "Downloading…",
-      "downloadingPct": "Importing… {{pct}}%",
-      "clear": "Delete catalogue",
-      "neverSynced": "never",
-      "localFirst": "Prefer local catalogue",
-      "localFirstHint": "Search and browse locally even when online (instant, no network).",
-      "offlineHint": "Disable offline mode to download the catalogue.",
+      "title": "Offline-Senderkatalog",
+      "subtitle": "Lade das radio-browser-Verzeichnis herunter, um Sender ohne Verbindung zu durchsuchen.",
+      "stored_one": "{{count}} Sender · aktualisiert {{date}}",
+      "stored_other": "{{count}} Sender · aktualisiert {{date}}",
+      "download": "Herunterladen",
+      "refresh": "Aktualisieren",
+      "downloading": "Wird heruntergeladen…",
+      "downloadingPct": "Wird importiert… {{pct}} %",
+      "clear": "Katalog löschen",
+      "neverSynced": "nie",
+      "localFirst": "Lokalen Katalog bevorzugen",
+      "localFirstHint": "Auch online lokal suchen und stöbern (sofort, kein Netzwerk).",
+      "offlineHint": "Deaktiviere den Offline-Modus, um den Katalog herunterzuladen.",
       "errors": {
-        "loadFailed": "Failed to load catalogue status.",
-        "downloadFailed": "Failed to download the catalogue.",
-        "clearFailed": "Failed to delete the catalogue."
+        "loadFailed": "Katalogstatus konnte nicht geladen werden.",
+        "downloadFailed": "Katalog konnte nicht heruntergeladen werden.",
+        "clearFailed": "Katalog konnte nicht gelöscht werden."
       }
     },
     "dsdPrecision": {
@@ -1964,8 +1964,8 @@
     "removeFavorite": "Aus Favoriten entfernen",
     "localStations": "Lokale Sender",
     "browseByCountry": "Nach Land durchsuchen",
-    "localCatalogue": "Local catalogue",
-    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+    "localCatalogue": "Lokaler Katalog",
+    "localCatalogueHint": "Durchsuchen des heruntergeladenen Katalogs."
   },
   "artistMetadataEditor": {
     "title": "Metadaten bearbeiten",

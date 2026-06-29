@@ -71,7 +71,7 @@
     },
     "lastfm": {
       "title": "ربط Last.fm",
-      "description": "السكروبلينج يرسل عمليات تشغيلك إلى ملفك الشخصي على Last.fm. وفي المقابل تحصل على سِيَر للفنانين واقتراحات لفنانين مشابهين داخل التطبيق مباشرة.",
+      "description": "تسجيل الاستماع (Scrobbling) يرسل عمليات تشغيلك إلى ملفك الشخصي على Last.fm. وفي المقابل تحصل على سِيَر للفنانين واقتراحات لفنانين مشابهين داخل التطبيق مباشرة.",
       "recommendedBadge": "مستحسن",
       "keyHint": "أنشئ مفتاح API على Last.fm",
       "keyLabel": "مفتاح API",
@@ -136,7 +136,7 @@
     "lyrics": {
       "title": "أين تُحفظ الكلمات؟",
       "description": "عند تعديل الكلمات، أين يجب أن تذهب؟ يمكن تغيير ذلك من الإعدادات → التشغيل.",
-      "hint": "اختر \"ملف مرافق\" للحفاظ على ملفاتك الصوتية كما هي — هذا ما يفعله foobar2000 وأمثاله."
+      "hint": "اختر «ملف مرافق» للحفاظ على ملفاتك الصوتية كما هي — هذا ما يفعله foobar2000 وأمثاله."
     }
   },
   "sidebar": {
@@ -155,9 +155,9 @@
       "folder": "مجلد"
     },
     "library": {
-      "tracksCount_zero": "0 أغنية",
-      "tracksCount_one": "{{count}} أغنية",
-      "tracksCount_other": "{{count}} أغنية",
+      "tracksCount_zero": "0 مقطع",
+      "tracksCount_one": "مقطع واحد",
+      "tracksCount_other": "{{count}} مقطع",
       "createLibraryAria": "إنشاء مكتبة جديدة",
       "none": "لا توجد مكتبات",
       "popover": {
@@ -165,21 +165,30 @@
         "header": "المكتبات",
         "countLine": "{{tracks}} · {{albums}}",
         "tracks_zero": "0 مقطع",
-        "tracks_one": "{{count}} مقطع",
+        "tracks_one": "مقطع واحد",
         "tracks_other": "{{count}} مقطع",
         "albums_zero": "0 ألبوم",
-        "albums_one": "{{count}} ألبوم",
+        "albums_one": "ألبوم واحد",
         "albums_other": "{{count}} ألبوم",
         "see": "عرض",
-        "new": "جديد"
+        "new": "جديد",
+        "albums_two": "ألبومان",
+        "albums_few": "{{count}} ألبومات",
+        "albums_many": "{{count}} ألبومًا",
+        "tracks_two": "مقطعان",
+        "tracks_few": "{{count}} مقاطع",
+        "tracks_many": "{{count}} مقطعًا"
       },
       "nav": {
-        "tracks": "الأغاني",
+        "tracks": "المقاطع",
         "albums": "الألبومات",
         "artists": "الفنانون",
         "genres": "الأنواع",
         "explorer": "المستكشف"
-      }
+      },
+      "tracksCount_two": "مقطعان",
+      "tracksCount_few": "{{count}} مقاطع",
+      "tracksCount_many": "{{count}} مقطعًا"
     },
     "playlists": {
       "createPlaylistAria": "إنشاء قائمة تشغيل جديدة",
@@ -188,9 +197,12 @@
       "liked": "المقاطع المفضلة",
       "recent": "شُغّلت مؤخرًا",
       "emptySubtext_zero": "0 مقطع",
-      "emptySubtext_one": "{{count}} مقطع",
+      "emptySubtext_one": "مقطع واحد",
       "emptySubtext_other": "{{count}} مقطع",
-      "createSmartAria": "إنشاء قائمة تشغيل ذكية"
+      "createSmartAria": "إنشاء قائمة تشغيل ذكية",
+      "emptySubtext_two": "مقطعان",
+      "emptySubtext_few": "{{count}} مقاطع",
+      "emptySubtext_many": "{{count}} مقطعًا"
     },
     "myMusic": {
       "title": "موسيقاي",
@@ -206,15 +218,18 @@
     },
     "myLibrary": {
       "playlistSubtext_zero": "0 مقطع",
-      "playlistSubtext_one": "{{count}} مقطع",
-      "playlistSubtext_other": "{{count}} مقطع"
+      "playlistSubtext_one": "مقطع واحد",
+      "playlistSubtext_other": "{{count}} مقطع",
+      "playlistSubtext_two": "مقطعان",
+      "playlistSubtext_few": "{{count}} مقاطع",
+      "playlistSubtext_many": "{{count}} مقطعًا"
     }
   },
   "topbar": {
     "search": {
       "placeholder": "ابحث عن مقطع أو فنان أو ألبوم…",
       "results_zero": "لا توجد نتائج",
-      "results_one": "{{count}} نتيجة",
+      "results_one": "نتيجة واحدة",
       "results_other": "{{count}} نتيجة",
       "empty": "لا توجد نتائج تطابق بحثك",
       "filters": {
@@ -232,7 +247,10 @@
       },
       "artists": "الفنانون",
       "albums": "الألبومات",
-      "titles": "الأغاني"
+      "titles": "الأغاني",
+      "results_two": "نتيجتان",
+      "results_few": "{{count}} نتائج",
+      "results_many": "{{count}} نتيجة"
     },
     "theme": {
       "enableLight": "تفعيل الوضع الفاتح",
@@ -274,7 +292,7 @@
     "moodRadio": {
       "title": "راديو المزاج",
       "subtitle": "مصفّاة حسب الإيقاع والطاقة",
-      "trackCount_one": "{{count}} مقطع",
+      "trackCount_one": "مقطع واحد",
       "trackCount_other": "{{count}} مقطع",
       "empty": "لا توجد مقاطع محللة كافية",
       "loading": "جارٍ التشغيل…",
@@ -297,7 +315,11 @@
       "sleep": {
         "title": "نوم",
         "subtitle": "إيقاع بطيء وهادئ للنوم"
-      }
+      },
+      "trackCount_zero": "0 مقطع",
+      "trackCount_two": "مقطعان",
+      "trackCount_few": "{{count}} مقاطع",
+      "trackCount_many": "{{count}} مقطعًا"
     },
     "recentlyPlayed": {
       "title": "شُغّلت مؤخرًا",
@@ -314,8 +336,12 @@
       "emptyTitle": "لا يوجد Daily Mix بعد",
       "emptyDescription": "استمع إلى بضع مقاطع ثم انقر على «إعادة التوليد» لإنشاء قوائم مخصصة لك.",
       "label": "Daily Mix",
-      "trackCount_one": "{{count}} مقطع",
-      "trackCount_other": "{{count}} مقطع"
+      "trackCount_one": "مقطع واحد",
+      "trackCount_other": "{{count}} مقطع",
+      "trackCount_zero": "0 مقطع",
+      "trackCount_two": "مقطعان",
+      "trackCount_few": "{{count}} مقاطع",
+      "trackCount_many": "{{count}} مقطعًا"
     },
     "onRepeat": {
       "label": "On Repeat"
@@ -334,20 +360,35 @@
       "addFolder": "إضافة مجلد",
       "subtext": {
         "morceaux_zero": "0 مقطع",
-        "morceaux_one": "{{count}} مقطع",
+        "morceaux_one": "مقطع واحد",
         "morceaux_other": "{{count}} مقطع",
         "albums_zero": "0 ألبوم",
-        "albums_one": "{{count}} ألبوم",
+        "albums_one": "ألبوم واحد",
         "albums_other": "{{count}} ألبوم",
         "artistes_zero": "0 فنان",
-        "artistes_one": "{{count}} فنان",
+        "artistes_one": "فنان واحد",
         "artistes_other": "{{count}} فنان",
         "genres_zero": "0 نوع",
-        "genres_one": "{{count}} نوع",
+        "genres_one": "نوع واحد",
         "genres_other": "{{count}} نوع",
         "dossiers_zero": "0 مجلد",
-        "dossiers_one": "{{count}} مجلد",
-        "dossiers_other": "{{count}} مجلد"
+        "dossiers_one": "مجلد واحد",
+        "dossiers_other": "{{count}} مجلد",
+        "albums_two": "ألبومان",
+        "albums_few": "{{count}} ألبومات",
+        "albums_many": "{{count}} ألبومًا",
+        "artistes_two": "فنانان",
+        "artistes_few": "{{count}} فنانين",
+        "artistes_many": "{{count}} فنانًا",
+        "dossiers_two": "مجلدان",
+        "dossiers_few": "{{count}} مجلدات",
+        "dossiers_many": "{{count}} مجلدًا",
+        "genres_two": "نوعان",
+        "genres_few": "{{count}} أنواع",
+        "genres_many": "{{count}} نوعًا",
+        "morceaux_two": "مقطعان",
+        "morceaux_few": "{{count}} مقاطع",
+        "morceaux_many": "{{count}} مقطعًا"
       }
     },
     "tabs": {
@@ -415,25 +456,37 @@
     },
     "albumGrid": {
       "trackCount_zero": "0 مقطع",
-      "trackCount_one": "{{count}} مقطع",
-      "trackCount_other": "{{count}} مقطع"
+      "trackCount_one": "مقطع واحد",
+      "trackCount_other": "{{count}} مقطع",
+      "trackCount_two": "مقطعان",
+      "trackCount_few": "{{count}} مقاطع",
+      "trackCount_many": "{{count}} مقطعًا"
     },
     "artistList": {
       "trackCount_zero": "0 مقطع",
-      "trackCount_one": "{{count}} مقطع",
+      "trackCount_one": "مقطع واحد",
       "trackCount_other": "{{count}} مقطع",
       "albumCount_zero": "0 ألبوم",
-      "albumCount_one": "{{count}} ألبوم",
-      "albumCount_other": "{{count}} ألبوم"
+      "albumCount_one": "ألبوم واحد",
+      "albumCount_other": "{{count}} ألبوم",
+      "albumCount_two": "ألبومان",
+      "albumCount_few": "{{count}} ألبومات",
+      "albumCount_many": "{{count}} ألبومًا",
+      "trackCount_two": "مقطعان",
+      "trackCount_few": "{{count}} مقاطع",
+      "trackCount_many": "{{count}} مقطعًا"
     },
     "genreList": {
       "trackCount_zero": "0 مقطع",
-      "trackCount_one": "{{count}} مقطع",
-      "trackCount_other": "{{count}} مقطع"
+      "trackCount_one": "مقطع واحد",
+      "trackCount_other": "{{count}} مقطع",
+      "trackCount_two": "مقطعان",
+      "trackCount_few": "{{count}} مقاطع",
+      "trackCount_many": "{{count}} مقطعًا"
     },
     "folderList": {
       "trackCount_zero": "0 مقطع",
-      "trackCount_one": "{{count}} مقطع",
+      "trackCount_one": "مقطع واحد",
       "trackCount_other": "{{count}} مقطع",
       "lastScanned": "تاريخ الفحص: {{date}}",
       "neverScanned": "لم يحدث أبدًا",
@@ -441,7 +494,10 @@
       "watchOn": "مراقبة التغييرات تلقائيًا",
       "watchOff": "إيقاف المراقبة",
       "remove": "إزالة المجلد من المكتبة",
-      "removeConfirm": "انقر مرة أخرى للتأكيد"
+      "removeConfirm": "انقر مرة أخرى للتأكيد",
+      "trackCount_two": "مقطعان",
+      "trackCount_few": "{{count}} مقاطع",
+      "trackCount_many": "{{count}} مقطعًا"
     },
     "skeletonAriaLabel": "جارٍ تحميل {{name}}…"
   },
@@ -449,13 +505,16 @@
     "badge": "المجموعة",
     "title": "المقاطع المفضلة",
     "count_zero": "0 مقطع",
-    "count_one": "{{count}} مقطع",
+    "count_one": "مقطع واحد",
     "count_other": "{{count}} مقطع",
     "emptyTitle": "لا توجد مقاطع مفضلة",
     "emptyDescription": "ستظهر هنا المقاطع التي أعجبتك. تصفّح مكتبتك وأضف مقاطعك المفضلة.",
     "playAll": "تشغيل الكل",
     "unlike": "إزالة من المفضلة",
-    "like": "إضافة إلى المفضلة"
+    "like": "إضافة إلى المفضلة",
+    "count_two": "مقطعان",
+    "count_few": "{{count}} مقاطع",
+    "count_many": "{{count}} مقطعًا"
   },
   "history": {
     "badge": "السجل",
@@ -467,9 +526,9 @@
     "endReached": "بداية السجل",
     "emptyTitle": "لا توجد تشغيلات بعد",
     "emptyDescription": "شغّل مقطعًا — سيظهر هنا فور احتسابه.",
-    "shownCount_one": "{{count}} تشغيل معروض",
+    "shownCount_one": "تشغيل واحد معروض",
     "shownCount_other": "{{count}} تشغيل معروض",
-    "plays_one": "{{count}} تشغيل",
+    "plays_one": "تشغيل واحد",
     "plays_other": "{{count}} تشغيل",
     "range": {
       "all": "الكل",
@@ -477,16 +536,27 @@
       "30d": "30 يومًا",
       "90d": "90 يومًا",
       "1y": "سنة واحدة"
-    }
+    },
+    "plays_zero": "0 تشغيل",
+    "plays_two": "تشغيلان",
+    "plays_few": "{{count}} تشغيلات",
+    "plays_many": "{{count}} تشغيلًا",
+    "shownCount_zero": "0 تشغيل معروض",
+    "shownCount_two": "تشغيلان معروضان",
+    "shownCount_few": "{{count}} تشغيلات معروضة",
+    "shownCount_many": "{{count}} تشغيلًا معروضًا"
   },
   "recent": {
     "badge": "السجل",
     "title": "شُغّلت مؤخرًا",
     "count_zero": "0 مقطع",
-    "count_one": "{{count}} مقطع",
+    "count_one": "مقطع واحد",
     "count_other": "{{count}} مقطع",
     "emptyTitle": "لا توجد مقاطع حديثة",
-    "emptyDescription": "ستظهر المقاطع التي تستمع إليها هنا تلقائيًا."
+    "emptyDescription": "ستظهر المقاطع التي تستمع إليها هنا تلقائيًا.",
+    "count_two": "مقطعان",
+    "count_few": "{{count}} مقاطع",
+    "count_many": "{{count}} مقطعًا"
   },
   "statistics": {
     "title": "الإحصائيات",
@@ -505,9 +575,12 @@
       "totalTime": "مدة الاستماع",
       "uniqueTracks": "المقاطع الفريدة",
       "uniqueArtists_zero": "0 فنان",
-      "uniqueArtists_one": "{{count}} فنان",
+      "uniqueArtists_one": "فنان واحد",
       "uniqueArtists_other": "{{count}} فنان",
-      "completionRate": "نسبة الاستماع الكامل"
+      "completionRate": "نسبة الاستماع الكامل",
+      "uniqueArtists_two": "فنانان",
+      "uniqueArtists_few": "{{count}} فنانين",
+      "uniqueArtists_many": "{{count}} فنانًا"
     },
     "byDay": {
       "title": "النشاط اليومي",
@@ -538,7 +611,7 @@
       "more": "أكثر"
     },
     "plays_zero": "0 تشغيل",
-    "plays_one": "{{count}} تشغيل",
+    "plays_one": "تشغيل واحد",
     "plays_other": "{{count}} تشغيل",
     "export": {
       "label": "تصدير الإحصائيات",
@@ -548,7 +621,10 @@
     "topGenres": {
       "title": "أبرز الأنواع",
       "empty": "لم يُستمَع إلى أي نوع."
-    }
+    },
+    "plays_two": "تشغيلان",
+    "plays_few": "{{count}} تشغيلات",
+    "plays_many": "{{count}} تشغيلًا"
   },
   "wrapped": {
     "loading": "جارٍ تجميع سنتك…",
@@ -561,7 +637,7 @@
     "yearPicker": "اختر سنة",
     "backToHome": "العودة إلى الرئيسية",
     "playsShort_zero": "0 تشغيل",
-    "playsShort_one": "{{count}} تشغيل",
+    "playsShort_one": "تشغيل واحد",
     "playsShort_other": "{{count}} تشغيل",
     "empty": {
       "title": "لا يوجد سجل استماع بعد",
@@ -573,9 +649,12 @@
     },
     "minutes": {
       "eyebrow": "استمعت إلى",
-      "subtitle_zero": "0 دقيقة من الموسيقى",
+      "subtitle_zero": "لم تستمع إلى أي موسيقى",
       "subtitle_one": "{{count}} دقيقة من الموسيقى",
-      "subtitle_other": "{{count}} دقيقة من الموسيقى"
+      "subtitle_other": "{{count}} دقيقة من الموسيقى",
+      "subtitle_two": "دقيقتان من الموسيقى",
+      "subtitle_few": "{{count}} دقائق من الموسيقى",
+      "subtitle_many": "{{count}} دقيقة من الموسيقى"
     },
     "stats": {
       "plays": "مرات التشغيل",
@@ -614,10 +693,13 @@
     "streak": {
       "eyebrow": "أطول سلسلة لك",
       "daysLabel_zero": "0 يوم متتالٍ",
-      "daysLabel_one": "{{count}} يوم متتالٍ",
+      "daysLabel_one": "يوم واحد متتالٍ",
       "daysLabel_other": "{{count}} يوم متتالٍ",
       "range": "من {{start}} إلى {{end}}",
-      "daysShort": "أيام متتالية"
+      "daysShort": "أيام متتالية",
+      "daysLabel_two": "يومان متتاليان",
+      "daysLabel_few": "{{count}} أيام متتالية",
+      "daysLabel_many": "{{count}} يومًا متتاليًا"
     },
     "share": {
       "open": "مشاركة",
@@ -636,7 +718,10 @@
       "title": "شكرًا لاستماعك مع WaveFlow",
       "subtitle": "واصل الاستكشاف — يتم تحديث ملخصك السنوي في الوقت الفعلي.",
       "cta": "العودة إلى الرئيسية"
-    }
+    },
+    "playsShort_two": "تشغيلان",
+    "playsShort_few": "{{count}} تشغيلات",
+    "playsShort_many": "{{count}} تشغيلًا"
   },
   "about": {
     "title": "حول",
@@ -718,19 +803,25 @@
   "queue": {
     "title": "قائمة الانتظار",
     "inactive": "غير نشطة",
-    "count_zero": "0 أغنية",
-    "count_one": "{{count}} أغنية",
-    "count_other": "{{count}} أغنية",
+    "count_zero": "0 مقطع",
+    "count_one": "مقطع واحد",
+    "count_other": "{{count}} مقطع",
     "emptyTitle": "لا شيء للاستماع إليه",
     "emptyDescription": "شغّل أغنية من مكتبتك لملء قائمة الانتظار.",
     "nowPlaying": "قيد التشغيل",
     "upNext_zero": "التالي",
-    "upNext_one": "التالي · {{count}} أغنية",
-    "upNext_other": "التالي · {{count}} أغنية",
+    "upNext_one": "التالي · مقطع واحد",
+    "upNext_other": "التالي · {{count}} مقطع",
     "radio": {
       "label": "الراديو",
       "basedOn": "استنادًا إلى «{{title}}»"
-    }
+    },
+    "count_two": "مقطعان",
+    "count_few": "{{count}} مقاطع",
+    "count_many": "{{count}} مقطعًا",
+    "upNext_two": "التالي · مقطعان",
+    "upNext_few": "التالي · {{count}} مقاطع",
+    "upNext_many": "التالي · {{count}} مقطعًا"
   },
   "spotifyQueue": {
     "emptyHint": "لا يوجد شيء في قائمة Spotify حاليًا.",
@@ -814,7 +905,7 @@
   "playlistView": {
     "badge": "قائمة تشغيل",
     "trackCount_zero": "0 مقطع",
-    "trackCount_one": "{{count}} مقطع",
+    "trackCount_one": "مقطع واحد",
     "trackCount_other": "{{count}} مقطع",
     "actions": {
       "play": "تشغيل",
@@ -834,7 +925,10 @@
     "noneDescription": "اختر قائمة تشغيل من الشريط الجانبي لعرضها هنا.",
     "notFoundTitle": "لم يتم العثور على قائمة التشغيل",
     "notFoundDescription": "لم تعد قائمة التشغيل هذه موجودة في الملف الشخصي النشط.",
-    "smartLabel": "Daily Mix"
+    "smartLabel": "Daily Mix",
+    "trackCount_two": "مقطعان",
+    "trackCount_few": "{{count}} مقاطع",
+    "trackCount_many": "{{count}} مقطعًا"
   },
   "trackActions": {
     "addToPlaylist": "إضافة إلى قائمة تشغيل",
@@ -925,7 +1019,7 @@
   },
   "selection": {
     "toolbarLabel": "إجراءات التحديد",
-    "count_zero": "0 محدد",
+    "count_zero": "لا شيء محدد",
     "count_one": "{{count}} محدد",
     "count_other": "{{count}} محدد",
     "play": "تشغيل",
@@ -933,21 +1027,27 @@
     "playNext": "تشغيل التالي",
     "addToPlaylist": "إضافة إلى قائمة تشغيل",
     "removeFromPlaylist": "إزالة من قائمة التشغيل",
-    "clear": "إلغاء التحديد"
+    "clear": "إلغاء التحديد",
+    "count_two": "محددان",
+    "count_few": "{{count}} محددة",
+    "count_many": "{{count}} محددًا"
   },
   "albumDetail": {
     "badge": "الألبوم",
     "playAll": "تشغيل الكل",
     "shuffle": "تشغيل عشوائي",
     "trackCount_zero": "0 مقطع",
-    "trackCount_one": "{{count}} مقطع",
+    "trackCount_one": "مقطع واحد",
     "trackCount_other": "{{count}} مقطع",
     "discHeader": "القرص {{number}}",
     "releaseDate": "تاريخ الإصدار",
     "emptyTitle": "لم يتم العثور على الألبوم",
     "emptyDescription": "لم يعد هذا الألبوم متاحًا في الملف الشخصي النشط.",
     "emptyTracksTitle": "لا توجد مقاطع",
-    "emptyTracksDescription": "لا يحتوي هذا الألبوم على أي مقطع متاح."
+    "emptyTracksDescription": "لا يحتوي هذا الألبوم على أي مقطع متاح.",
+    "trackCount_two": "مقطعان",
+    "trackCount_few": "{{count}} مقاطع",
+    "trackCount_many": "{{count}} مقطعًا"
   },
   "artistDetail": {
     "badge": "الفنان",
@@ -956,13 +1056,13 @@
     "discography": "قائمة الإصدارات",
     "allTracks": "كل المقاطع",
     "trackCount_zero": "0 مقطع",
-    "trackCount_one": "{{count}} مقطع",
+    "trackCount_one": "مقطع واحد",
     "trackCount_other": "{{count}} مقطع",
     "albumCount_zero": "0 ألبوم",
-    "albumCount_one": "{{count}} ألبوم",
+    "albumCount_one": "ألبوم واحد",
     "albumCount_other": "{{count}} ألبوم",
     "albumTrackCount_zero": "0 مقطع",
-    "albumTrackCount_one": "{{count}} مقطع",
+    "albumTrackCount_one": "مقطع واحد",
     "albumTrackCount_other": "{{count}} مقطع",
     "emptyTitle": "لم يتم العثور على الفنان",
     "emptyDescription": "لم يعد هذا الفنان مدرجًا في الملف الشخصي النشط.",
@@ -974,7 +1074,16 @@
       "inLibrary": "في مكتبتك",
       "notInLibrary": "ليس في مكتبتك"
     },
-    "editMetadata": "تعديل المعلومات"
+    "editMetadata": "تعديل المعلومات",
+    "albumCount_two": "ألبومان",
+    "albumCount_few": "{{count}} ألبومات",
+    "albumCount_many": "{{count}} ألبومًا",
+    "albumTrackCount_two": "مقطعان",
+    "albumTrackCount_few": "{{count}} مقاطع",
+    "albumTrackCount_many": "{{count}} مقطعًا",
+    "trackCount_two": "مقطعان",
+    "trackCount_few": "{{count}} مقاطع",
+    "trackCount_many": "{{count}} مقطعًا"
   },
   "artistImagePicker": {
     "title": "تغيير صورة الفنان",
@@ -992,12 +1101,15 @@
     "playAll": "تشغيل الكل",
     "shuffle": "تشغيل عشوائي",
     "trackCount_zero": "0 مقطع",
-    "trackCount_one": "{{count}} مقطع",
+    "trackCount_one": "مقطع واحد",
     "trackCount_other": "{{count}} مقطع",
     "emptyTitle": "لم يتم العثور على النوع",
     "emptyDescription": "لم يعد هذا النوع موجودًا في الملف الشخصي النشط.",
     "emptyTracksTitle": "لا توجد مقاطع",
-    "emptyTracksDescription": "لا يحتوي هذا النوع على أي مقطع متاح."
+    "emptyTracksDescription": "لا يحتوي هذا النوع على أي مقطع متاح.",
+    "trackCount_two": "مقطعان",
+    "trackCount_few": "{{count}} مقاطع",
+    "trackCount_many": "{{count}} مقطعًا"
   },
   "nowPlaying": {
     "title": "قيد التشغيل",
@@ -1078,8 +1190,12 @@
     "start": "موافق",
     "customPlaceholder": "دقيقة",
     "customAriaLabel": "مدة مخصصة بالدقائق",
-    "minutes_one": "{{count}} دقيقة",
-    "minutes_other": "{{count}} دقيقة"
+    "minutes_one": "دقيقة واحدة",
+    "minutes_other": "{{count}} دقيقة",
+    "minutes_zero": "0 دقيقة",
+    "minutes_two": "دقيقتان",
+    "minutes_few": "{{count}} دقائق",
+    "minutes_many": "{{count}} دقيقة"
   },
   "lyrics": {
     "title": "الكلمات",
@@ -1128,9 +1244,12 @@
     "emptyHint": "مكتبتك نظيفة.",
     "rescan": "إعادة الفحص",
     "deleteOthers_zero": "لا شيء للحذف",
-    "deleteOthers_one": "حذف {{count}} نسخة مكررة",
+    "deleteOthers_one": "حذف نسخة مكررة واحدة",
     "deleteOthers_other": "حذف {{count}} نسخة مكررة",
-    "keepAria": "الاحتفاظ بـ {{title}}"
+    "keepAria": "الاحتفاظ بـ {{title}}",
+    "deleteOthers_two": "حذف نسختين مكررتين",
+    "deleteOthers_few": "حذف {{count}} نسخ مكررة",
+    "deleteOthers_many": "حذف {{count}} نسخة مكررة"
   },
   "dragDrop": {
     "dropHint": "أفلت للاستيراد",
@@ -1196,7 +1315,7 @@
       "matchAllEmpty": "(المكتبة بأكملها)",
       "matchNoneEmpty": "(لا توجد مقاطع)",
       "childCount_zero": "فارغ",
-      "childCount_one": "{{count}} شرط",
+      "childCount_one": "شرط واحد",
       "childCount_other": "{{count}} شرط",
       "notHint": "يستبعد كل ما يطابق العنصر التابع",
       "deleteNode": "حذف",
@@ -1205,7 +1324,10 @@
       "addGroupOr": "مجموعة أو",
       "addNot": "ليس",
       "contains": "يحتوي على…",
-      "pickGenre": "اختر نوعًا…"
+      "pickGenre": "اختر نوعًا…",
+      "childCount_two": "شرطان",
+      "childCount_few": "{{count}} شروط",
+      "childCount_many": "{{count}} شرطًا"
     },
     "predicates": {
       "titleContains": "العنوان يحتوي على",
@@ -1264,7 +1386,7 @@
       },
       "sidecar": {
         "label": "ملف مرافق (Sidecar)",
-        "hint": "يكتب .lrc / .txt بجانب الملف الصوتي. لا تُمَس علامات الملف."
+        "hint": "يكتب .lrc / .txt بجانب الملف الصوتي دون المساس بعلامات (Tags) الملف."
       },
       "db_only": {
         "label": "قاعدة بيانات WaveFlow فقط",
@@ -1374,7 +1496,7 @@
     "integrations": {
       "lastfm": {
         "title": "Last.fm",
-        "subtitle": "سِيَر الفنانين والسكروبلينج. أنشئ مفتاحًا على last.fm/api/account/create",
+        "subtitle": "سِيَر الفنانين وتسجيل الاستماع (Scrobbling). أنشئ مفتاحًا على last.fm/api/account/create",
         "placeholder": "مفتاح API",
         "secretPlaceholder": "السر المشترك",
         "save": "حفظ",
@@ -1483,13 +1605,17 @@
     },
     "analyze": {
       "title": "تحليل المكتبة",
-      "subtitle": "حساب BPM والجهارة والذروة للمقاطع غير المحللة",
+      "subtitle": "حساب الـ BPM والجهارة والذروة للمقاطع التي لم تُحلَّل بعد.",
       "action": "تحليل",
       "cancel": "إيقاف التحليل",
       "autoTitle": "التحليل التلقائي",
       "autoSubtitle": "تشغيل التحليل في الخلفية بعد كل فحص يضيف مقاطع جديدة",
-      "failed_one": "{{count}} فشل",
-      "failed_other": "{{count}} فشل"
+      "failed_one": "فشل واحد",
+      "failed_other": "{{count}} فشل",
+      "failed_zero": "0 فشل",
+      "failed_two": "فشلان",
+      "failed_few": "{{count}} حالات فشل",
+      "failed_many": "{{count}} فشلًا"
     },
     "artistImages": {
       "title": "صور الفنانين",
@@ -1665,9 +1791,9 @@
       "subtitle": "ينشئ بشكل دوري أرشيف .waveflow لكل ملف شخصي في المجلد المختار.",
       "intervalLabel": "التكرار",
       "intervalDays_one": "كل يوم",
-      "intervalDays_other": "كل {{count}} يومًا",
+      "intervalDays_other": "كل {{count}} يوم",
       "retentionLabel": "الأرشيفات المحتفظ بها",
-      "retentionKeep_one": "{{count}} أرشيف لكل ملف شخصي",
+      "retentionKeep_one": "أرشيف واحد لكل ملف شخصي",
       "retentionKeep_other": "{{count}} أرشيف لكل ملف شخصي",
       "includeMetadataArtworkLabel": "تضمين ذاكرة أغلفة Deezer",
       "includeMetadataArtworkHint": "نسخة أكبر مع استعادة دون اتصال كاملة. ألغِ التحديد للحصول على أرشيفات أخف (يُعاد جلب الذاكرة عند الطلب).",
@@ -1676,13 +1802,25 @@
       "lastRun": "آخر نسخة احتياطية: {{when}}",
       "neverRun": "لم تحدث أبدًا",
       "runNow": "إنشاء نسخة احتياطية الآن",
-      "runOk_one": "تمت كتابة {{count}} أرشيف.",
+      "runOk_one": "تمت كتابة أرشيف واحد.",
       "runOk_other": "تمت كتابة {{count}} أرشيف.",
       "errors": {
         "loadFailed": "تعذّر تحميل إعدادات النسخ الاحتياطي.",
         "saveFailed": "فشل الحفظ. حاول مجددًا.",
         "runFailed": "فشل النسخ الاحتياطي. راجع السجلات."
-      }
+      },
+      "intervalDays_zero": "لا شيء",
+      "intervalDays_two": "كل يومين",
+      "intervalDays_few": "كل {{count}} أيام",
+      "intervalDays_many": "كل {{count}} يومًا",
+      "retentionKeep_zero": "0 أرشيف لكل ملف شخصي",
+      "retentionKeep_two": "أرشيفان لكل ملف شخصي",
+      "retentionKeep_few": "{{count}} أرشيفات لكل ملف شخصي",
+      "retentionKeep_many": "{{count}} أرشيفًا لكل ملف شخصي",
+      "runOk_zero": "لم تُكتب أي أرشيفات.",
+      "runOk_two": "تمت كتابة أرشيفين.",
+      "runOk_few": "تمت كتابة {{count}} أرشيفات.",
+      "runOk_many": "تمت كتابة {{count}} أرشيفًا."
     },
     "uiZoom": {
       "title": "تكبير الواجهة",
@@ -1860,24 +1998,28 @@
       "languageLabel": "لغة السيرة الذاتية"
     },
     "radioCatalogue": {
-      "title": "Offline station catalogue",
-      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
-      "stored_one": "{{count}} station · updated {{date}}",
-      "stored_other": "{{count}} stations · updated {{date}}",
-      "download": "Download",
-      "refresh": "Update",
-      "downloading": "Downloading…",
-      "downloadingPct": "Importing… {{pct}}%",
-      "clear": "Delete catalogue",
-      "neverSynced": "never",
-      "localFirst": "Prefer local catalogue",
-      "localFirstHint": "Search and browse locally even when online (instant, no network).",
-      "offlineHint": "Disable offline mode to download the catalogue.",
+      "title": "كتالوج المحطات دون اتصال",
+      "subtitle": "نزّل دليل radio-browser لتصفح المحطات والبحث فيها دون اتصال.",
+      "stored_one": "محطة واحدة · حُدِّث في {{date}}",
+      "stored_other": "{{count}} محطة · حُدِّث في {{date}}",
+      "download": "تنزيل",
+      "refresh": "تحديث",
+      "downloading": "جارٍ التنزيل…",
+      "downloadingPct": "جارٍ الاستيراد… {{pct}}%",
+      "clear": "حذف الكتالوج",
+      "neverSynced": "أبدًا",
+      "localFirst": "تفضيل الكتالوج المحلي",
+      "localFirstHint": "ابحث وتصفح محليًا حتى أثناء الاتصال (فوري، دون شبكة).",
+      "offlineHint": "عطّل وضع عدم الاتصال لتنزيل الكتالوج.",
       "errors": {
-        "loadFailed": "Failed to load catalogue status.",
-        "downloadFailed": "Failed to download the catalogue.",
-        "clearFailed": "Failed to delete the catalogue."
-      }
+        "loadFailed": "تعذّر تحميل حالة الكتالوج.",
+        "downloadFailed": "تعذّر تنزيل الكتالوج.",
+        "clearFailed": "تعذّر حذف الكتالوج."
+      },
+      "stored_zero": "0 محطة",
+      "stored_two": "محطتان · حُدِّث في {{date}}",
+      "stored_few": "{{count}} محطات · حُدِّث في {{date}}",
+      "stored_many": "{{count}} محطة · حُدِّث في {{date}}"
     },
     "dsdPrecision": {
       "title": "دقة DSD",
@@ -1968,8 +2110,8 @@
     "removeFavorite": "إزالة من المفضلة",
     "localStations": "المحطات المحلية",
     "browseByCountry": "التصفح حسب البلد",
-    "localCatalogue": "Local catalogue",
-    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+    "localCatalogue": "الكتالوج المحلي",
+    "localCatalogueHint": "تصفح الكتالوج الذي تم تنزيله والبحث فيه."
   },
   "artistMetadataEditor": {
     "title": "تعديل البيانات الوصفية",

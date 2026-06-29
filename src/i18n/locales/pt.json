@@ -1290,7 +1290,7 @@
     "masthead": {
       "edition": "Edição da Manhã",
       "price": "Preço: Incluído",
-      "subtitle": "«Toda a música que merece ser impressa.» — A sua seleção diária, à medida."
+      "subtitle": "«Toda a música que merece ser impressa.» — A tua seleção diária, à medida."
     },
     "lead": {
       "caption": "Fig 1. — De «{{album}}» por {{artist}}.",
@@ -1666,7 +1666,7 @@
       "retentionKeep_one": "{{count}} arquivo por perfil",
       "retentionKeep_other": "{{count}} arquivos por perfil",
       "includeMetadataArtworkLabel": "Incluir cache de imagens Deezer",
-      "includeMetadataArtworkHint": "Cópia de segurança maior, restauro totalmente offline. Desmarca para cópias leves (o cache será obtido novamente sob pedido).",
+      "includeMetadataArtworkHint": "Cópia de segurança maior, restauro totalmente offline. Desmarca para cópias leves (a cache será obtida novamente sob pedido).",
       "changeFolder": "Alterar pasta",
       "pickFolderTitle": "Escolher a pasta de cópias",
       "lastRun": "Última cópia: {{when}}",
@@ -1846,33 +1846,33 @@
     },
     "updateChannel": {
       "title": "Canal beta",
-      "subtitle": "Receba versões de pré-lançamento antes da versão estável. As betas podem ser instáveis."
+      "subtitle": "Recebe versões de pré-lançamento antes da versão estável. As betas podem ser instáveis."
     },
     "artistBio": {
       "title": "Fonte da biografia",
       "subtitle": "Qual serviço fornece as biografias dos artistas.",
-      "lastfmHint": "Biografias em inglês. Requer a sua chave de API do Last.fm.",
+      "lastfmHint": "Biografias em inglês. Requer a tua chave de API do Last.fm.",
       "theaudiodbHint": "Biografias da comunidade em vários idiomas. Não requer chave.",
       "languageLabel": "Idioma da biografia"
     },
     "radioCatalogue": {
-      "title": "Offline station catalogue",
-      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
-      "stored_one": "{{count}} station · updated {{date}}",
-      "stored_other": "{{count}} stations · updated {{date}}",
-      "download": "Download",
-      "refresh": "Update",
-      "downloading": "Downloading…",
-      "downloadingPct": "Importing… {{pct}}%",
-      "clear": "Delete catalogue",
-      "neverSynced": "never",
-      "localFirst": "Prefer local catalogue",
-      "localFirstHint": "Search and browse locally even when online (instant, no network).",
-      "offlineHint": "Disable offline mode to download the catalogue.",
+      "title": "Catálogo de estações offline",
+      "subtitle": "Transfere o diretório radio-browser para explorar e pesquisar estações sem ligação.",
+      "stored_one": "{{count}} estação · atualizado a {{date}}",
+      "stored_other": "{{count}} estações · atualizado a {{date}}",
+      "download": "Transferir",
+      "refresh": "Atualizar",
+      "downloading": "A transferir…",
+      "downloadingPct": "A importar… {{pct}} %",
+      "clear": "Eliminar catálogo",
+      "neverSynced": "nunca",
+      "localFirst": "Preferir catálogo local",
+      "localFirstHint": "Pesquisa e explora localmente mesmo online (instantâneo, sem rede).",
+      "offlineHint": "Desative o modo offline para transferir o catálogo.",
       "errors": {
-        "loadFailed": "Failed to load catalogue status.",
-        "downloadFailed": "Failed to download the catalogue.",
-        "clearFailed": "Failed to delete the catalogue."
+        "loadFailed": "Falha ao carregar o estado do catálogo.",
+        "downloadFailed": "Falha ao transferir o catálogo.",
+        "clearFailed": "Falha ao eliminar o catálogo."
       }
     },
     "dsdPrecision": {
@@ -1884,7 +1884,7 @@
     },
     "statsKpis": {
       "title": "Indicadores de estatísticas",
-      "subtitle": "Escolha quais indicadores aparecem na página de Estatísticas. Desmarque os que prefere ocultar, como a taxa de escuta completa.",
+      "subtitle": "Escolhe quais indicadores aparecem na página de Estatísticas. Desmarca os que preferes ocultar, como a taxa de escuta completa.",
       "legend": "Visibilidade dos indicadores de estatísticas"
     },
     "immersiveView": {
@@ -1964,8 +1964,8 @@
     "removeFavorite": "Remover dos favoritos",
     "localStations": "Estações locais",
     "browseByCountry": "Explorar por país",
-    "localCatalogue": "Local catalogue",
-    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+    "localCatalogue": "Catálogo local",
+    "localCatalogueHint": "A explorar e a pesquisar no catálogo transferido."
   },
   "artistMetadataEditor": {
     "title": "Editar metadados",
@@ -1973,14 +1973,14 @@
     "bio": {
       "label": "Biografia personalizada",
       "reset": "Repor online",
-      "placeholder": "Escreva uma biografia. Deixe vazio para usar a obtida online.",
+      "placeholder": "Escreve uma biografia. Deixa vazio para usar a obtida online.",
       "help": "Substitui a bio do Last.fm / TheAudioDB. Funciona offline."
     },
     "similar": {
       "label": "Artistas semelhantes personalizados",
       "placeholder": "Procurar um artista da sua biblioteca…",
       "remove": "Remover {{name}}",
-      "help": "Escolha artistas da sua biblioteca. Vazio = lista online.",
+      "help": "Escolhe artistas da tua biblioteca. Vazio = lista online.",
       "limitReached": "Limite atingido ({{max}} artistas)."
     }
   },

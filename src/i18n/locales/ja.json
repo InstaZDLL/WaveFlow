@@ -1027,7 +1027,7 @@
     "devices": "出力デバイス",
     "moreActions": "その他の操作",
     "abLoop": "A-Bループ",
-    "openFullscreen": "イマーシブビュー",
+    "openFullscreen": "没入ビュー",
     "eqPreset": "イコライザ",
     "eq": {
       "bypass": "EQ を有効にする"
@@ -1113,7 +1113,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML はキャッシュにのみ保存されました（音声タグには書き込まれていません）",
-      "sidecarWriteSkipped": "TTMLは .lrc/.txt サイドカーファイルに保存できません。"
+      "sidecarWriteSkipped": "データベースには保存されましたが、TTMLは .lrc/.txt サイドカーファイルに書き込めません。"
     }
   },
   "duplicates": {
@@ -1194,7 +1194,7 @@
       "childCount_zero": "空",
       "childCount_one": "{{count}}件の条件",
       "childCount_other": "{{count}}件の条件",
-      "notHint": "子に一致するものを除外します",
+      "notHint": "配下の条件に一致するものを除外します",
       "deleteNode": "削除",
       "addCondition": "条件",
       "addGroupAnd": "ANDグループ",
@@ -1683,7 +1683,7 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "ネオン・クラブ — OLED ベース、アクティブ項目を彩るハロー、モノ調のピル、スプリング感のあるモーション。"
+          "description": "ネオン・クラブ — OLED ベース、アクティブ項目を彩るハロー、モノクロのピル、スプリング感のあるモーション。"
         },
         "liquid": {
           "label": "Liquid",
@@ -1734,7 +1734,7 @@
     },
     "visualizer": {
       "title": "オーディオビジュアライザー",
-      "subtitle": "イマーシブビューでリアルタイムのスペクトラムを表示 (デコーダースレッド上の軽量 FFT)"
+      "subtitle": "没入ビューでリアルタイムのスペクトラムを表示 (デコーダースレッド上の軽量 FFT)"
     },
     "smartCrossfade": {
       "title": "スマートクロスフェード",
@@ -1757,13 +1757,13 @@
         "queue": "キュー",
         "device": "音声出力",
         "miniPlayer": "ミニプレイヤー",
-        "immersive": "イマーシブ表示",
+        "immersive": "没入ビュー",
         "audioQualityFooter": "音質情報バー"
       },
       "coverAction": {
         "title": "ジャケットをクリックしたとき",
         "immersive": {
-          "label": "イマーシブ表示を開く",
+          "label": "没入ビューを開く",
           "description": "既定 — ジャケットを大きく表示するフルスクリーンの再生中ビューを開きます。"
         },
         "nowPlaying": {
@@ -1856,23 +1856,23 @@
       "languageLabel": "経歴の言語"
     },
     "radioCatalogue": {
-      "title": "Offline station catalogue",
-      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
-      "stored_one": "{{count}} station · updated {{date}}",
-      "stored_other": "{{count}} stations · updated {{date}}",
-      "download": "Download",
-      "refresh": "Update",
-      "downloading": "Downloading…",
-      "downloadingPct": "Importing… {{pct}}%",
-      "clear": "Delete catalogue",
-      "neverSynced": "never",
-      "localFirst": "Prefer local catalogue",
-      "localFirstHint": "Search and browse locally even when online (instant, no network).",
-      "offlineHint": "Disable offline mode to download the catalogue.",
+      "title": "オフライン局カタログ",
+      "subtitle": "接続なしで局を閲覧・検索するには、radio-browser のディレクトリをダウンロードします。",
+      "stored_one": "{{count}} 局 · {{date}} に更新",
+      "stored_other": "{{count}} 局 · {{date}} に更新",
+      "download": "ダウンロード",
+      "refresh": "更新",
+      "downloading": "ダウンロード中…",
+      "downloadingPct": "インポート中… {{pct}}%",
+      "clear": "カタログを削除",
+      "neverSynced": "なし",
+      "localFirst": "ローカルカタログを優先",
+      "localFirstHint": "オンラインでもローカルで検索・閲覧します（瞬時、ネットワーク不要）。",
+      "offlineHint": "カタログをダウンロードするにはオフラインモードを無効にしてください。",
       "errors": {
-        "loadFailed": "Failed to load catalogue status.",
-        "downloadFailed": "Failed to download the catalogue.",
-        "clearFailed": "Failed to delete the catalogue."
+        "loadFailed": "カタログの状態を読み込めませんでした。",
+        "downloadFailed": "カタログをダウンロードできませんでした。",
+        "clearFailed": "カタログを削除できませんでした。"
       }
     },
     "dsdPrecision": {
@@ -1964,8 +1964,8 @@
     "removeFavorite": "お気に入りから削除",
     "localStations": "地域の放送局",
     "browseByCountry": "国別に見る",
-    "localCatalogue": "Local catalogue",
-    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+    "localCatalogue": "ローカルカタログ",
+    "localCatalogueHint": "ダウンロードしたカタログを閲覧・検索しています。"
   },
   "artistMetadataEditor": {
     "title": "メタデータを編集",

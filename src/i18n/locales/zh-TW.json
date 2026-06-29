@@ -43,7 +43,7 @@
       "title": "重要：僅限本地音樂",
       "description": "WaveFlow 不是串流服務，它播放裝置上已有的檔案。",
       "calloutTitle": "你需要知道",
-      "bulletOwn": "自帶音樂庫(MP3、FLAC、ALAC、OGG、DSD…)",
+      "bulletOwn": "自備音樂庫(MP3、FLAC、ALAC、OGG、DSD…)",
       "bulletImport": "匯入資料夾或拖放檔案",
       "bulletScrobble": "連接 Last.fm 以在背景記錄播放歷史"
     },
@@ -56,7 +56,7 @@
       "skin": {
         "title": "介面風格"
       },
-      "hint": "這些選項依設定檔儲存 — 每個設定檔都可以擁有自己的外觀。"
+      "hint": "這些選項依個人檔案儲存 — 每個個人檔案都可以擁有自己的外觀。"
     },
     "folder": {
       "title": "選擇你的音樂資料夾",
@@ -71,7 +71,7 @@
     },
     "lastfm": {
       "title": "連接 Last.fm",
-      "description": "Scrobbling 會將播放紀錄傳送到你的 Last.fm 個人檔案。作為回報，應用內可取得藝人簡介和相似藝人推薦。",
+      "description": "Scrobbling 會將播放紀錄傳送到你的 Last.fm 個人檔案。同時，你也能在應用程式內取得藝人簡介和相似藝人推薦。",
       "recommendedBadge": "推薦",
       "keyHint": "在 Last.fm 上建立 API 金鑰",
       "keyLabel": "API 金鑰",
@@ -125,13 +125,13 @@
       "fallback": "我們無法偵測到您的系統語言，已預設使用英文。請在下方選擇您的語言。"
     },
     "profile": {
-      "title": "為你的設定檔取名",
-      "description": "WaveFlow 透過不同的設定檔來區隔音樂庫。請取一個之後能輕易辨認的名稱。",
-      "nameLabel": "設定檔名稱",
+      "title": "為你的個人檔案取名",
+      "description": "WaveFlow 透過不同的個人檔案來區隔音樂庫。請取一個之後能輕易辨認的名稱。",
+      "nameLabel": "個人檔案名稱",
       "namePlaceholder": "例如：Daisy",
-      "hint": "之後若有需要，可以再建立其他設定檔。",
-      "required": "請輸入設定檔名稱。",
-      "unavailable": "設定檔暫時無法使用，請稍後再試。"
+      "hint": "之後若有需要，可以再建立其他個人檔案。",
+      "required": "請輸入個人檔案名稱。",
+      "unavailable": "個人檔案暫時無法使用，請稍後再試。"
     },
     "lyrics": {
       "title": "歌詞要儲存在哪裡？",
@@ -177,7 +177,7 @@
         "tracks": "曲目",
         "albums": "專輯",
         "artists": "藝人",
-        "genres": "類型",
+        "genres": "曲風",
         "explorer": "檔案總管"
       }
     },
@@ -198,7 +198,7 @@
       "tracks": "曲目",
       "albums": "專輯",
       "artists": "藝人",
-      "genres": "類型",
+      "genres": "曲風",
       "folders": "資料夾"
     },
     "playlistSection": {
@@ -230,7 +230,7 @@
         "format": "格式",
         "genres": "曲風"
       },
-      "artists": "演出者",
+      "artists": "藝人",
       "albums": "專輯",
       "titles": "歌曲"
     },
@@ -342,9 +342,9 @@
         "artistes_zero": "0 位藝人",
         "artistes_one": "{{count}} 位藝人",
         "artistes_other": "{{count}} 位藝人",
-        "genres_zero": "0 類型",
-        "genres_one": "{{count}} 種類型",
-        "genres_other": "{{count}} 種類型",
+        "genres_zero": "0 曲風",
+        "genres_one": "{{count}} 種曲風",
+        "genres_other": "{{count}} 種曲風",
         "dossiers_zero": "0 個資料夾",
         "dossiers_one": "{{count}} 個資料夾",
         "dossiers_other": "{{count}} 個資料夾"
@@ -371,8 +371,8 @@
         "description": "請先匯入音訊檔案。"
       },
       "genres": {
-        "title": "未找到任何類型",
-        "description": "匯入音訊檔案，探索各種音樂類型。"
+        "title": "未找到任何曲風",
+        "description": "匯入音訊檔案，探索各種曲風。"
       },
       "dossiers": {
         "title": "未匯入任何資料夾",
@@ -524,7 +524,7 @@
     },
     "topArtists": {
       "title": "熱門藝人",
-      "empty": "沒有聆聽任何藝術家。"
+      "empty": "沒有聆聽任何藝人。"
     },
     "topAlbums": {
       "title": "熱門專輯",
@@ -748,7 +748,7 @@
       "subtitle": "選擇您的個人檔案，以查看您的音樂庫和播放清單",
       "add": "新增",
       "edit": "編輯",
-      "active": "使用中的設定檔",
+      "active": "使用中的個人檔案",
       "switchTo": "切換"
     },
     "create": {
@@ -772,7 +772,7 @@
     "delete": {
       "title": "刪除 {{name}}?",
       "subtitle": "此個人檔案將被永久刪除。",
-      "warning": "此設定檔的所有音樂庫、播放清單與聆聽紀錄都會遺失。此操作無法復原。",
+      "warning": "此個人檔案的所有音樂庫、播放清單與聆聽紀錄都會遺失。此操作無法復原。",
       "submit": "刪除個人檔案",
       "submitting": "刪除中…"
     }
@@ -918,7 +918,7 @@
       "album": "專輯",
       "trackNumber": "曲目號",
       "discNumber": "碟片號",
-      "genre": "類型",
+      "genre": "曲風",
       "genrePlaceholder": "流行、搖滾、爵士…"
     },
     "changeCover": "更換封面"
@@ -991,7 +991,7 @@
     "trackCount_one": "{{count}} 首",
     "trackCount_other": "{{count}} 首",
     "emptyTitle": "找不到曲風",
-    "emptyDescription": "此曲風在目前的設定檔中已不存在。",
+    "emptyDescription": "此曲風在目前的個人檔案中已不存在。",
     "emptyTracksTitle": "無曲目",
     "emptyTracksDescription": "此曲風沒有可用的曲目。"
   },
@@ -1345,7 +1345,7 @@
     "integrations": {
       "lastfm": {
         "title": "Last.fm",
-        "subtitle": "藝術家簡介與播放記錄追蹤。請至 last.fm/api/account/create 建立金鑰",
+        "subtitle": "藝人簡介與播放記錄追蹤。請至 last.fm/api/account/create 建立金鑰",
         "placeholder": "API 金鑰",
         "secretPlaceholder": "共用密鑰",
         "save": "儲存",
@@ -1386,7 +1386,7 @@
       },
       "notifications": {
         "title": "曲目變更通知",
-        "subtitle": "每首曲目開始時顯示系統通知（標題 + 演出者）。預設關閉。"
+        "subtitle": "每首曲目開始時顯示系統通知（標題 + 藝人）。預設關閉。"
       }
     },
     "crossfade": {
@@ -1499,7 +1499,7 @@
       "action": "重設",
       "confirm": {
         "title": "重設整個應用程式？",
-        "warning": "此操作將刪除每個設定檔、音樂庫、播放清單、評分、聆聽紀錄和快取封面。應用程式將重新啟動並進入初始設定畫面。此操作無法復原。",
+        "warning": "此操作將刪除每個個人檔案、音樂庫、播放清單、評分、聆聽紀錄和快取封面。應用程式將重新啟動並進入初始設定畫面。此操作無法復原。",
         "typeToConfirm": "輸入 RESET 以確認",
         "error": "重設失敗。請關閉任何持有 WaveFlow 檔案的外部程式（已開啟的音樂播放器、資料夾中的檔案總管），然後重試。",
         "cancel": "取消",
@@ -1508,7 +1508,7 @@
     },
     "diagnostics": {
       "title": "應用程式日誌",
-      "subtitle": "若要報告錯誤，請開啟日誌資料夾，或複製最近的日誌貼到票單。",
+      "subtitle": "若要報告錯誤，請開啟日誌資料夾，或複製最近的日誌貼到問題回報單。",
       "openFolder": "開啟資料夾",
       "copyLogs": "複製日誌",
       "copied": "已複製",
@@ -1528,7 +1528,7 @@
       "reasonGeneric": "已略過({{reason}})",
       "reason": {
         "offline": "離線模式已啟用",
-        "sync_mode_local": "設定檔處於本機模式",
+        "sync_mode_local": "個人檔案處於本機模式",
         "not_configured": "伺服器未設定",
         "profile_canonical_id_missing": "等待首次同步"
       },
@@ -1605,13 +1605,13 @@
     },
     "backup": {
       "title": "自動備份",
-      "subtitle": "定期在所選資料夾中建立每個設定檔的 .waveflow 封存。",
+      "subtitle": "定期在所選資料夾中建立每個個人檔案的 .waveflow 封存。",
       "intervalLabel": "頻率",
       "intervalDays_one": "每天",
       "intervalDays_other": "每 {{count}} 天",
       "retentionLabel": "保留封存",
-      "retentionKeep_one": "每個設定檔 {{count}} 個",
-      "retentionKeep_other": "每個設定檔 {{count}} 個",
+      "retentionKeep_one": "每個個人檔案 {{count}} 個",
+      "retentionKeep_other": "每個個人檔案 {{count}} 個",
       "includeMetadataArtworkLabel": "包含 Deezer 封面快取",
       "includeMetadataArtworkHint": "備份較大，可完全離線還原。取消勾選可獲得精簡封存檔（快取將依需求重新下載）。",
       "changeFolder": "變更資料夾",
@@ -1665,7 +1665,7 @@
         "oceanLight": "海洋淺色"
       },
       "skin": {
-        "title": "外觀",
+        "title": "介面風格",
         "subtitle": "改變密度、表面質感、字體與動效，不只是顏色。"
       },
       "skins": {
@@ -1718,7 +1718,7 @@
     },
     "profileIo": {
       "title": "個人檔案備份",
-      "subtitle": "將完整設定檔 (播放清單、喜歡、統計、EQ、快捷鍵) 匯出或匯入為單一 .waveflow 檔案。",
+      "subtitle": "將完整個人檔案 (播放清單、收藏、統計、EQ、快捷鍵) 匯出或匯入為單一 .waveflow 檔案。",
       "export": {
         "action": "匯出",
         "dialogTitle": "匯出 WaveFlow 個人檔案",
@@ -1799,11 +1799,11 @@
     },
     "hiResBadge": {
       "title": "Hi-Res / DSD 標籤",
-      "subtitle": "在符合條件的曲目旁以及播放列的演出者名稱下方顯示「Hi-Res 24-bit」或「DSD128」標籤。預設開啟。"
+      "subtitle": "在符合條件的曲目旁以及播放列的藝人名稱下方顯示「Hi-Res 24-bit」或「DSD128」標籤。預設開啟。"
     },
     "serverAccount": {
       "title": "WaveFlow 伺服器帳號",
-      "subtitle": "將此設定檔關聯到您的 waveflow-server 執行個體，以啟用多裝置同步與瀏覽器播放。",
+      "subtitle": "將此個人檔案關聯到您的 waveflow-server 執行個體，以啟用多裝置同步與瀏覽器播放。",
       "signedIn": "已登入",
       "urlLabel": "伺服器 URL",
       "urlPlaceholder": "https://api.waveflow.app",
@@ -1827,7 +1827,7 @@
         },
         "local": {
           "label": "僅本機",
-          "description": "即使已登入，也不會向伺服器傳送任何變更。適合您想保持私人的設定檔。"
+          "description": "即使已登入，也不會向伺服器傳送任何變更。適合您想保持私人的個人檔案。"
         }
       }
     },
@@ -1856,23 +1856,23 @@
       "languageLabel": "簡介語言"
     },
     "radioCatalogue": {
-      "title": "Offline station catalogue",
-      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
-      "stored_one": "{{count}} station · updated {{date}}",
-      "stored_other": "{{count}} stations · updated {{date}}",
-      "download": "Download",
-      "refresh": "Update",
-      "downloading": "Downloading…",
-      "downloadingPct": "Importing… {{pct}}%",
-      "clear": "Delete catalogue",
-      "neverSynced": "never",
-      "localFirst": "Prefer local catalogue",
-      "localFirstHint": "Search and browse locally even when online (instant, no network).",
-      "offlineHint": "Disable offline mode to download the catalogue.",
+      "title": "離線電台目錄",
+      "subtitle": "下載 radio-browser 目錄，即可在無網路連線時瀏覽和搜尋電台。",
+      "stored_one": "{{count}} 個電台 · {{date}} 更新",
+      "stored_other": "{{count}} 個電台 · {{date}} 更新",
+      "download": "下載",
+      "refresh": "更新",
+      "downloading": "正在下載…",
+      "downloadingPct": "正在匯入… {{pct}}%",
+      "clear": "刪除目錄",
+      "neverSynced": "從不",
+      "localFirst": "優先使用本機目錄",
+      "localFirstHint": "即使在線上也在本機搜尋和瀏覽（即時，無需網路）。",
+      "offlineHint": "請關閉離線模式以下載目錄。",
       "errors": {
-        "loadFailed": "Failed to load catalogue status.",
-        "downloadFailed": "Failed to download the catalogue.",
-        "clearFailed": "Failed to delete the catalogue."
+        "loadFailed": "無法載入目錄狀態。",
+        "downloadFailed": "無法下載目錄。",
+        "clearFailed": "無法刪除目錄。"
       }
     },
     "dsdPrecision": {
@@ -1964,8 +1964,8 @@
     "removeFavorite": "從收藏中移除",
     "localStations": "本地電台",
     "browseByCountry": "依國家/地區瀏覽",
-    "localCatalogue": "Local catalogue",
-    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+    "localCatalogue": "本機目錄",
+    "localCatalogueHint": "正在瀏覽和搜尋已下載的目錄。"
   },
   "artistMetadataEditor": {
     "title": "編輯中繼資料",

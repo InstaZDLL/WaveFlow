@@ -174,7 +174,9 @@
         "albums_few": "{{count}} альбома",
         "albums_other": "{{count}} альбомов",
         "see": "Открыть",
-        "new": "Новая"
+        "new": "Новая",
+        "tracks_many": "{{count}} треков",
+        "albums_many": "{{count}} альбомов"
       },
       "nav": {
         "tracks": "Треки",
@@ -182,7 +184,8 @@
         "artists": "Исполнители",
         "genres": "Жанры",
         "explorer": "Проводник"
-      }
+      },
+      "tracksCount_many": "{{count}} треков"
     },
     "playlists": {
       "createPlaylistAria": "Создать новый плейлист",
@@ -194,7 +197,8 @@
       "emptySubtext_one": "{{count}} трек",
       "emptySubtext_few": "{{count}} трека",
       "emptySubtext_other": "{{count}} треков",
-      "createSmartAria": "Создать умный плейлист"
+      "createSmartAria": "Создать умный плейлист",
+      "emptySubtext_many": "{{count}} треков"
     },
     "myMusic": {
       "title": "Моя музыка",
@@ -212,7 +216,8 @@
       "playlistSubtext_zero": "0 треков",
       "playlistSubtext_one": "{{count}} трек",
       "playlistSubtext_few": "{{count}} трека",
-      "playlistSubtext_other": "{{count}} треков"
+      "playlistSubtext_other": "{{count}} треков",
+      "playlistSubtext_many": "{{count}} треков"
     }
   },
   "topbar": {
@@ -238,7 +243,8 @@
       },
       "artists": "Исполнители",
       "albums": "Альбомы",
-      "titles": "Треки"
+      "titles": "Треки",
+      "results_many": "{{count}} результатов"
     },
     "theme": {
       "enableLight": "Включить светлую тему",
@@ -304,7 +310,8 @@
       "sleep": {
         "title": "Сон",
         "subtitle": "Очень медленные и тихие треки для сна"
-      }
+      },
+      "trackCount_many": "{{count}} треков"
     },
     "recentlyPlayed": {
       "title": "Недавно проигранные",
@@ -323,7 +330,8 @@
       "label": "Daily Mix",
       "trackCount_one": "{{count}} трек",
       "trackCount_few": "{{count}} трека",
-      "trackCount_other": "{{count}} треков"
+      "trackCount_other": "{{count}} треков",
+      "trackCount_many": "{{count}} треков"
     },
     "onRepeat": {
       "label": "On Repeat"
@@ -360,7 +368,12 @@
         "dossiers_zero": "0 папок",
         "dossiers_one": "{{count}} папка",
         "dossiers_few": "{{count}} папки",
-        "dossiers_other": "{{count}} папок"
+        "dossiers_other": "{{count}} папок",
+        "morceaux_many": "{{count}} треков",
+        "albums_many": "{{count}} альбомов",
+        "artistes_many": "{{count}} исполнителей",
+        "genres_many": "{{count}} жанров",
+        "dossiers_many": "{{count}} папок"
       }
     },
     "tabs": {
@@ -430,7 +443,8 @@
       "trackCount_zero": "0 треков",
       "trackCount_one": "{{count}} трек",
       "trackCount_few": "{{count}} трека",
-      "trackCount_other": "{{count}} треков"
+      "trackCount_other": "{{count}} треков",
+      "trackCount_many": "{{count}} треков"
     },
     "artistList": {
       "trackCount_zero": "0 треков",
@@ -440,13 +454,16 @@
       "albumCount_zero": "0 альбомов",
       "albumCount_one": "{{count}} альбом",
       "albumCount_few": "{{count}} альбома",
-      "albumCount_other": "{{count}} альбомов"
+      "albumCount_other": "{{count}} альбомов",
+      "trackCount_many": "{{count}} треков",
+      "albumCount_many": "{{count}} альбомов"
     },
     "genreList": {
       "trackCount_zero": "0 треков",
       "trackCount_one": "{{count}} трек",
       "trackCount_few": "{{count}} трека",
-      "trackCount_other": "{{count}} треков"
+      "trackCount_other": "{{count}} треков",
+      "trackCount_many": "{{count}} треков"
     },
     "folderList": {
       "trackCount_zero": "0 треков",
@@ -459,7 +476,8 @@
       "watchOn": "Автоматически отслеживать изменения",
       "watchOff": "Прекратить отслеживание",
       "remove": "Удалить папку из библиотеки",
-      "removeConfirm": "Нажмите ещё раз для подтверждения"
+      "removeConfirm": "Нажмите ещё раз для подтверждения",
+      "trackCount_many": "{{count}} треков"
     },
     "skeletonAriaLabel": "Загрузка {{name}}…"
   },
@@ -474,7 +492,8 @@
     "emptyDescription": "Треки, которые вы лайкнете, появятся здесь. Откройте библиотеку и добавьте в любимое те, что нравятся.",
     "playAll": "Воспроизвести всё",
     "unlike": "Убрать из любимого",
-    "like": "Добавить в любимое"
+    "like": "Добавить в любимое",
+    "count_many": "{{count}} треков"
   },
   "history": {
     "badge": "История",
@@ -498,7 +517,9 @@
       "30d": "30 дней",
       "90d": "90 дней",
       "1y": "1 год"
-    }
+    },
+    "shownCount_many": "Показано {{count}} прослушиваний",
+    "plays_many": "{{count}} прослушиваний"
   },
   "recent": {
     "badge": "История",
@@ -508,7 +529,8 @@
     "count_few": "{{count}} трека",
     "count_other": "{{count}} треков",
     "emptyTitle": "Нет недавних треков",
-    "emptyDescription": "Треки, которые вы слушаете, появятся здесь автоматически."
+    "emptyDescription": "Треки, которые вы слушаете, появятся здесь автоматически.",
+    "count_many": "{{count}} треков"
   },
   "statistics": {
     "title": "Статистика",
@@ -530,7 +552,8 @@
       "uniqueArtists_one": "{{count}} исполнитель",
       "uniqueArtists_few": "{{count}} исполнителя",
       "uniqueArtists_other": "{{count}} исполнителей",
-      "completionRate": "Доля полностью прослушанных"
+      "completionRate": "Доля полностью прослушанных",
+      "uniqueArtists_many": "{{count}} исполнителей"
     },
     "byDay": {
       "title": "Ежедневная активность",
@@ -572,7 +595,8 @@
     "topGenres": {
       "title": "Топ жанров",
       "empty": "Жанры ещё не прослушаны."
-    }
+    },
+    "plays_many": "{{count}} прослушиваний"
   },
   "wrapped": {
     "loading": "Собираем ваш год…",
@@ -601,7 +625,8 @@
       "subtitle_zero": "0 минут музыки",
       "subtitle_one": "{{count}} минута музыки",
       "subtitle_few": "{{count}} минуты музыки",
-      "subtitle_other": "{{count}} минут музыки"
+      "subtitle_other": "{{count}} минут музыки",
+      "subtitle_many": "{{count}} минут музыки"
     },
     "stats": {
       "plays": "Прослушивания",
@@ -644,7 +669,8 @@
       "daysLabel_few": "{{count}} дня подряд",
       "daysLabel_other": "{{count}} дней подряд",
       "range": "С {{start}} по {{end}}",
-      "daysShort": "дней подряд"
+      "daysShort": "дней подряд",
+      "daysLabel_many": "{{count}} дней подряд"
     },
     "share": {
       "open": "Поделиться",
@@ -663,7 +689,8 @@
       "title": "Спасибо, что слушаете с WaveFlow",
       "subtitle": "Продолжайте открывать новое — Wrapped обновляется в реальном времени.",
       "cta": "На главную"
-    }
+    },
+    "playsShort_many": "{{count}} прослушиваний"
   },
   "about": {
     "title": "О программе",
@@ -759,7 +786,9 @@
     "radio": {
       "label": "Радио",
       "basedOn": "На основе «{{title}}»"
-    }
+    },
+    "count_many": "{{count}} треков",
+    "upNext_many": "Далее · {{count}} треков"
   },
   "spotifyQueue": {
     "emptyHint": "В очереди Spotify сейчас ничего нет.",
@@ -864,7 +893,8 @@
     "noneDescription": "Выберите плейлист в боковой панели, чтобы открыть его здесь.",
     "notFoundTitle": "Плейлист не найден",
     "notFoundDescription": "Этого плейлиста больше нет в активном профиле.",
-    "smartLabel": "Daily Mix"
+    "smartLabel": "Daily Mix",
+    "trackCount_many": "{{count}} треков"
   },
   "trackActions": {
     "addToPlaylist": "Добавить в плейлист",
@@ -964,7 +994,8 @@
     "playNext": "Воспроизвести следующим",
     "addToPlaylist": "Добавить в плейлист",
     "removeFromPlaylist": "Удалить из плейлиста",
-    "clear": "Снять выделение"
+    "clear": "Снять выделение",
+    "count_many": "{{count}} выбрано"
   },
   "albumDetail": {
     "badge": "Альбом",
@@ -979,7 +1010,8 @@
     "emptyTitle": "Альбом не найден",
     "emptyDescription": "Этого альбома больше нет в активном профиле.",
     "emptyTracksTitle": "Нет треков",
-    "emptyTracksDescription": "В этом альбоме нет доступных треков."
+    "emptyTracksDescription": "В этом альбоме нет доступных треков.",
+    "trackCount_many": "{{count}} треков"
   },
   "artistDetail": {
     "badge": "Исполнитель",
@@ -1009,7 +1041,10 @@
       "inLibrary": "В вашей библиотеке",
       "notInLibrary": "Нет в вашей библиотеке"
     },
-    "editMetadata": "Изменить данные"
+    "editMetadata": "Изменить данные",
+    "trackCount_many": "{{count}} треков",
+    "albumCount_many": "{{count}} альбомов",
+    "albumTrackCount_many": "{{count}} треков"
   },
   "artistImagePicker": {
     "title": "Сменить фото исполнителя",
@@ -1031,7 +1066,8 @@
     "emptyTitle": "Жанр не найден",
     "emptyDescription": "Этого жанра больше нет в активном профиле.",
     "emptyTracksTitle": "Нет треков",
-    "emptyTracksDescription": "В этом жанре нет доступных треков."
+    "emptyTracksDescription": "В этом жанре нет доступных треков.",
+    "trackCount_many": "{{count}} треков"
   },
   "nowPlaying": {
     "title": "Сейчас играет",
@@ -1114,7 +1150,8 @@
     "customAriaLabel": "Своя длительность в минутах",
     "minutes_one": "{{count}} мин",
     "minutes_few": "{{count}} мин",
-    "minutes_other": "{{count}} мин"
+    "minutes_other": "{{count}} мин",
+    "minutes_many": "{{count}} мин"
   },
   "lyrics": {
     "title": "Текст песни",
@@ -1166,7 +1203,8 @@
     "deleteOthers_one": "Удалить {{count}} дубликат",
     "deleteOthers_few": "Удалить {{count}} дубликата",
     "deleteOthers_other": "Удалить {{count}} дубликатов",
-    "keepAria": "Сохранить {{title}}"
+    "keepAria": "Сохранить {{title}}",
+    "deleteOthers_many": "Удалить {{count}} дубликатов"
   },
   "dragDrop": {
     "dropHint": "Отпустите, чтобы импортировать",
@@ -1211,7 +1249,7 @@
       "match": "Совпадение",
       "ranges": "Диапазоны",
       "attributes": "Атрибуты",
-      "output": "Сортировка и лимит"
+      "output": "Сортировка и ограничения"
     },
     "sortOptions": {
       "addedDesc": "Недавно добавленные",
@@ -1242,7 +1280,8 @@
       "addGroupOr": "Группа ИЛИ",
       "addNot": "НЕ",
       "contains": "Содержит…",
-      "pickGenre": "Выберите жанр…"
+      "pickGenre": "Выберите жанр…",
+      "childCount_many": "{{count}} условий"
     },
     "predicates": {
       "titleContains": "Название содержит",
@@ -1331,7 +1370,7 @@
     "masthead": {
       "edition": "Утренний выпуск",
       "price": "Цена: включено",
-      "subtitle": "«Вся музыка, заслуживающая печати.» — Ваша ежедневная подборка, на заказ."
+      "subtitle": "«Вся музыка, заслуживающая печати.» — Ваша ежедневная подборка, созданная специально для вас."
     },
     "lead": {
       "caption": "Рис. 1. — Из «{{album}}» от {{artist}}.",
@@ -1527,7 +1566,8 @@
       "autoSubtitle": "Запускать анализ в фоне после каждого сканирования, которое добавляет новые треки",
       "failed_one": "{{count}} ошибка",
       "failed_few": "{{count}} ошибки",
-      "failed_other": "{{count}} ошибок"
+      "failed_other": "{{count}} ошибок",
+      "failed_many": "{{count}} ошибок"
     },
     "artistImages": {
       "title": "Фото исполнителей",
@@ -1723,7 +1763,10 @@
         "loadFailed": "Не удалось загрузить настройки резервного копирования.",
         "saveFailed": "Не удалось сохранить. Попробуйте снова.",
         "runFailed": "Резервное копирование не удалось. Проверьте логи."
-      }
+      },
+      "intervalDays_many": "Каждые {{count}} дней",
+      "retentionKeep_many": "{{count}} архивов на профиль",
+      "runOk_many": "Записано архивов: {{count}}."
     },
     "uiZoom": {
       "title": "Масштаб интерфейса",
@@ -1785,7 +1828,7 @@
         },
         "liquid": {
           "label": "Liquid",
-          "description": "Жидкое стекло в стиле Apple — многослойный полупрозрачный материал, фон-аврора, капсулы-таблетки, спокойное движение."
+          "description": "Жидкое стекло в стиле Apple — многослойный полупрозрачный материал, фон-аврора, капсулы, спокойное движение."
         }
       }
     },
@@ -1901,28 +1944,30 @@
       "languageLabel": "Язык биографии"
     },
     "radioCatalogue": {
-      "title": "Offline station catalogue",
-      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
-      "stored_one": "{{count}} station · updated {{date}}",
-      "stored_other": "{{count}} stations · updated {{date}}",
-      "download": "Download",
-      "refresh": "Update",
-      "downloading": "Downloading…",
-      "downloadingPct": "Importing… {{pct}}%",
-      "clear": "Delete catalogue",
-      "neverSynced": "never",
-      "localFirst": "Prefer local catalogue",
-      "localFirstHint": "Search and browse locally even when online (instant, no network).",
-      "offlineHint": "Disable offline mode to download the catalogue.",
+      "title": "Офлайн-каталог станций",
+      "subtitle": "Загрузите каталог radio-browser, чтобы просматривать и искать станции без подключения.",
+      "stored_one": "{{count}} станция · обновлено {{date}}",
+      "stored_other": "{{count}} станций · обновлено {{date}}",
+      "download": "Загрузить",
+      "refresh": "Обновить",
+      "downloading": "Загрузка…",
+      "downloadingPct": "Импорт… {{pct}} %",
+      "clear": "Удалить каталог",
+      "neverSynced": "никогда",
+      "localFirst": "Предпочитать локальный каталог",
+      "localFirstHint": "Поиск и просмотр локально даже онлайн (мгновенно, без сети).",
+      "offlineHint": "Отключите офлайн-режим, чтобы загрузить каталог.",
       "errors": {
-        "loadFailed": "Failed to load catalogue status.",
-        "downloadFailed": "Failed to download the catalogue.",
-        "clearFailed": "Failed to delete the catalogue."
-      }
+        "loadFailed": "Не удалось загрузить состояние каталога.",
+        "downloadFailed": "Не удалось загрузить каталог.",
+        "clearFailed": "Не удалось удалить каталог."
+      },
+      "stored_many": "{{count}} станций · обновлено {{date}}",
+      "stored_few": "{{count}} станции · обновлено {{date}}"
     },
     "dsdPrecision": {
       "title": "Точность DSD",
-      "subtitle": "Резкость фильтра преобразования DSD → PCM. Влияет только на файлы DSD (.dsf / .dff); больше коэффициентов = более резкая переходная полоса при большей нагрузке на ЦП.",
+      "subtitle": "Резкость фильтра преобразования DSD → PCM. Влияет только на файлы DSD (.dsf / .dff); больше отводов = более резкая переходная полоса при большей нагрузке на ЦП.",
       "standard": "Стандарт",
       "high": "Высокая",
       "max": "Максимальная"
@@ -2009,8 +2054,8 @@
     "removeFavorite": "Удалить из избранного",
     "localStations": "Местные станции",
     "browseByCountry": "Поиск по стране",
-    "localCatalogue": "Local catalogue",
-    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+    "localCatalogue": "Локальный каталог",
+    "localCatalogueHint": "Просмотр и поиск в загруженном каталоге."
   },
   "artistMetadataEditor": {
     "title": "Изменить метаданные",

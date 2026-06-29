@@ -861,7 +861,7 @@
     "title": "Modifier les tags en lot",
     "subtitle": "{{count}} titres sélectionnés",
     "help": "Cochez les champs à appliquer à toute la sélection. Les champs non cochés restent intacts par titre.",
-    "submit": "Appliquer ({{count}} champ(s))",
+    "submit": "Appliquer aux {{count}} champs",
     "fields": {
       "artist": "Artiste",
       "album": "Album",
@@ -875,7 +875,7 @@
       "genre": "ex. Electronic"
     },
     "result": {
-      "updated": "{{count}} morceau(x) mis à jour",
+      "updated": "{{count}} titre(s) mis à jour",
       "failed": "{{count}} échec(s) :"
     }
   },
@@ -1121,7 +1121,7 @@
     "editTitle": "Modifier la playlist intelligente",
     "create": "Créer",
     "preview": "Aperçu",
-    "previewCount": "{{count}} morceaux correspondent",
+    "previewCount": "{{count}} titres correspondent",
     "nameRequired": "Le nom est obligatoire",
     "fields": {
       "name": "Nom",
@@ -1346,7 +1346,7 @@
     "appearance": {
       "theme": {
         "title": "Thème",
-        "subtitle": "Choisissez l'ambiance qui vous correspond. Le changement re-teinte l'application entière."
+        "subtitle": "Choisissez l'ambiance qui vous correspond. Le changement recolore instantanément toute l'application."
       },
       "skin": {
         "title": "Skin",
@@ -1367,11 +1367,11 @@
         },
         "pulse": {
           "label": "Pulse",
-          "description": "Club néon — base OLED, halos colorés autour des éléments actifs, pastilles monochromes, animations élastiques."
+          "description": "Club néon — base OLED, halos colorés autour des éléments actifs, capsules monochromes, animations élastiques."
         },
         "liquid": {
           "label": "Liquid",
-          "description": "Verre liquide façon Apple — matière translucide multi-couches, fond aurora, pastilles, transitions calmes."
+          "description": "Verre liquide façon Apple — matière translucide multi-couches, fond aurora, capsules, transitions calmes."
         }
       },
       "mode": {

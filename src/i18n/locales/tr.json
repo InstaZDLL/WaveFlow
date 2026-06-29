@@ -1541,8 +1541,8 @@
       "confirm": {
         "title": "Tüm uygulama sıfırlansın mı?",
         "warning": "Bu işlem tüm profilleri, kütüphaneleri, çalma listelerini, puanları, dinleme geçmişini ve önbelleğe alınmış kapakları siler. Uygulama temiz bir kurulum ekranıyla yeniden başlatılacak. Bu işlem geri alınamaz.",
-        "typeToConfirm": "Onaylamak için RESET yazın",
-        "error": "Sıfırlama başarısız oldu. WaveFlow dosyasını tutan harici bir programı (açık bir müzik çalar, veri klasöründeki dosya gezgini) kapatın ve tekrar deneyin.",
+        "typeToConfirm": "Onaylamak için RESET yaz",
+        "error": "Sıfırlama başarısız oldu. WaveFlow dosyasını tutan harici bir programı (açık bir müzik çalar, veri klasöründeki dosya gezgini) kapat ve tekrar dene.",
         "cancel": "İptal",
         "confirmButton": "Sıfırla ve yeniden başlat"
       }
@@ -1856,23 +1856,23 @@
       "languageLabel": "Biyografi dili"
     },
     "radioCatalogue": {
-      "title": "Offline station catalogue",
-      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
-      "stored_one": "{{count}} station · updated {{date}}",
-      "stored_other": "{{count}} stations · updated {{date}}",
-      "download": "Download",
-      "refresh": "Update",
-      "downloading": "Downloading…",
-      "downloadingPct": "Importing… {{pct}}%",
-      "clear": "Delete catalogue",
-      "neverSynced": "never",
-      "localFirst": "Prefer local catalogue",
-      "localFirstHint": "Search and browse locally even when online (instant, no network).",
-      "offlineHint": "Disable offline mode to download the catalogue.",
+      "title": "Çevrimdışı istasyon kataloğu",
+      "subtitle": "İstasyonları bağlantı olmadan taramak ve aramak için radio-browser dizinini indirin.",
+      "stored_one": "{{count}} istasyon · {{date}} tarihinde güncellendi",
+      "stored_other": "{{count}} istasyon · {{date}} tarihinde güncellendi",
+      "download": "İndir",
+      "refresh": "Güncelle",
+      "downloading": "İndiriliyor…",
+      "downloadingPct": "İçe aktarılıyor… %{{pct}}",
+      "clear": "Kataloğu sil",
+      "neverSynced": "hiçbir zaman",
+      "localFirst": "Yerel kataloğu tercih et",
+      "localFirstHint": "Çevrimiçiyken bile yerel olarak arayın ve göz atın (anında, ağ yok).",
+      "offlineHint": "Kataloğu indirmek için çevrimdışı modu kapatın.",
       "errors": {
-        "loadFailed": "Failed to load catalogue status.",
-        "downloadFailed": "Failed to download the catalogue.",
-        "clearFailed": "Failed to delete the catalogue."
+        "loadFailed": "Katalog durumu yüklenemedi.",
+        "downloadFailed": "Katalog indirilemedi.",
+        "clearFailed": "Katalog silinemedi."
       }
     },
     "dsdPrecision": {
@@ -1964,8 +1964,8 @@
     "removeFavorite": "Favorilerden çıkar",
     "localStations": "Yerel istasyonlar",
     "browseByCountry": "Ülkeye göre gözat",
-    "localCatalogue": "Local catalogue",
-    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+    "localCatalogue": "Yerel katalog",
+    "localCatalogueHint": "İndirilen katalogda göz atma ve arama."
   },
   "artistMetadataEditor": {
     "title": "Meta verileri düzenle",
@@ -1973,14 +1973,14 @@
     "bio": {
       "label": "Özel biyografi",
       "reset": "Çevrimiçine sıfırla",
-      "placeholder": "Bir biyografi yazın. Çevrimiçi alınanı kullanmak için boş bırakın.",
+      "placeholder": "Bir biyografi yaz. Çevrimiçi alınanı kullanmak için boş bırak.",
       "help": "Last.fm / TheAudioDB biyografisinin yerini alır. Çevrimdışı çalışır."
     },
     "similar": {
       "label": "Özel benzer sanatçılar",
-      "placeholder": "Kitaplığınızdan bir sanatçı arayın…",
+      "placeholder": "Kütüphanenden bir sanatçı ara…",
       "remove": "{{name}} sanatçısını kaldır",
-      "help": "Kitaplığınızdan sanatçı seçin. Boş = çevrimiçi liste.",
+      "help": "Kütüphanenden sanatçı seç. Boş = çevrimiçi liste.",
       "limitReached": "Sınıra ulaşıldı ({{max}} sanatçı)."
     }
   },

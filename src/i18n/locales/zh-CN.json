@@ -56,7 +56,7 @@
       "skin": {
         "title": "界面风格"
       },
-      "hint": "这些选项按配置文件保存 — 每个配置文件都可以有自己的外观。"
+      "hint": "这些选项按个人资料保存 — 每个个人资料都可以有自己的外观。"
     },
     "folder": {
       "title": "选择你的音乐文件夹",
@@ -125,7 +125,7 @@
       "fallback": "我们无法检测到你的系统语言，已默认使用英语。请在下方选择你的语言。"
     },
     "profile": {
-      "title": "为你的资料起个名字",
+      "title": "为你的个人资料起个名字",
       "description": "WaveFlow 通过不同的资料来区分音乐库。请取一个你以后能认出的名字。",
       "nameLabel": "资料名称",
       "namePlaceholder": "例如：Daisy",
@@ -136,7 +136,7 @@
     "lyrics": {
       "title": "歌词保存在哪里？",
       "description": "编辑歌词时，它们应该保存到何处？可在 设置 → 播放 中随时更改。",
-      "hint": "选择「伴生文件」可让音频文件保持不变 — foobar2000 等播放器就是这样做的。"
+      "hint": "选择「外挂歌词文件」可让音频文件保持不变 — foobar2000 等播放器就是这样做的。"
     }
   },
   "sidebar": {
@@ -156,8 +156,8 @@
     },
     "library": {
       "tracksCount_zero": "0 首曲目",
-      "tracksCount_one": "{{count}} 曲目",
-      "tracksCount_other": "{{count}} 曲目",
+      "tracksCount_one": "{{count}} 首曲目",
+      "tracksCount_other": "{{count}} 首曲目",
       "createLibraryAria": "新建音乐库",
       "none": "暂无音乐库",
       "popover": {
@@ -165,11 +165,11 @@
         "header": "音乐库",
         "countLine": "{{tracks}} · {{albums}}",
         "tracks_zero": "0 首曲目",
-        "tracks_one": "{{count}} 曲目",
-        "tracks_other": "{{count}} 曲目",
+        "tracks_one": "{{count}} 首曲目",
+        "tracks_other": "{{count}} 首曲目",
         "albums_zero": "0 张专辑",
-        "albums_one": "{{count}} 专辑",
-        "albums_other": "{{count}} 专辑",
+        "albums_one": "{{count}} 张专辑",
+        "albums_other": "{{count}} 张专辑",
         "see": "查看",
         "new": "新建"
       },
@@ -188,8 +188,8 @@
       "liked": "已喜欢的曲目",
       "recent": "最近播放的",
       "emptySubtext_zero": "0 首曲目",
-      "emptySubtext_one": "{{count}} 曲目",
-      "emptySubtext_other": "{{count}} 曲目",
+      "emptySubtext_one": "{{count}} 首曲目",
+      "emptySubtext_other": "{{count}} 首曲目",
       "createSmartAria": "创建智能播放列表"
     },
     "myMusic": {
@@ -206,8 +206,8 @@
     },
     "myLibrary": {
       "playlistSubtext_zero": "0 首曲目",
-      "playlistSubtext_one": "{{count}} 曲目",
-      "playlistSubtext_other": "{{count}} 曲目"
+      "playlistSubtext_one": "{{count}} 首曲目",
+      "playlistSubtext_other": "{{count}} 首曲目"
     }
   },
   "topbar": {
@@ -302,7 +302,7 @@
     "recentlyPlayed": {
       "title": "最近播放的",
       "emptyTitle": "尚未收听任何歌曲",
-      "emptyDescription": "播放一首歌曲后它会出现在这里。随着你不断探索，收听记录会逐渐累积。"
+      "emptyDescription": "播放一首曲目后它会出现在这里。随着你不断探索，收听记录会逐渐累积。"
     },
     "recentlyAdded": {
       "title": "最近添加"
@@ -334,11 +334,11 @@
       "addFolder": "添加文件夹",
       "subtext": {
         "morceaux_zero": "0 首",
-        "morceaux_one": "{{count}} 曲目",
-        "morceaux_other": "{{count}} 曲目",
+        "morceaux_one": "{{count}} 首曲目",
+        "morceaux_other": "{{count}} 首曲目",
         "albums_zero": "0 张专辑",
-        "albums_one": "{{count}} 专辑",
-        "albums_other": "{{count}} 专辑",
+        "albums_one": "{{count}} 张专辑",
+        "albums_other": "{{count}} 张专辑",
         "artistes_zero": "0 位艺人",
         "artistes_one": "{{count}} 位艺人",
         "artistes_other": "{{count}} 位艺人",
@@ -415,26 +415,26 @@
     },
     "albumGrid": {
       "trackCount_zero": "0 首曲目",
-      "trackCount_one": "{{count}} 曲目",
-      "trackCount_other": "{{count}} 曲目"
+      "trackCount_one": "{{count}} 首曲目",
+      "trackCount_other": "{{count}} 首曲目"
     },
     "artistList": {
       "trackCount_zero": "0 首曲目",
-      "trackCount_one": "{{count}} 曲目",
-      "trackCount_other": "{{count}} 曲目",
+      "trackCount_one": "{{count}} 首曲目",
+      "trackCount_other": "{{count}} 首曲目",
       "albumCount_zero": "0 张专辑",
       "albumCount_one": "{{count}} 张专辑",
       "albumCount_other": "{{count}} 张专辑"
     },
     "genreList": {
       "trackCount_zero": "0 首曲目",
-      "trackCount_one": "{{count}} 曲目",
-      "trackCount_other": "{{count}} 曲目"
+      "trackCount_one": "{{count}} 首曲目",
+      "trackCount_other": "{{count}} 首曲目"
     },
     "folderList": {
       "trackCount_zero": "0 首曲目",
-      "trackCount_one": "{{count}} 曲目",
-      "trackCount_other": "{{count}} 曲目",
+      "trackCount_one": "{{count}} 首曲目",
+      "trackCount_other": "{{count}} 首曲目",
       "lastScanned": "上次扫描：{{date}}",
       "neverScanned": "从未扫描",
       "watched": "受监控",
@@ -449,8 +449,8 @@
     "badge": "收藏",
     "title": "已喜欢的曲目",
     "count_zero": "0 首曲目",
-    "count_one": "{{count}} 曲目",
-    "count_other": "{{count}} 曲目",
+    "count_one": "{{count}} 首曲目",
+    "count_other": "{{count}} 首曲目",
     "emptyTitle": "没有收藏的曲目",
     "emptyDescription": "你喜欢的歌曲将显示在这里。浏览你的音乐库，将喜欢的曲目加入收藏。",
     "playAll": "全部播放",
@@ -464,7 +464,7 @@
     "yesterday": "昨天",
     "timeline": "时间线",
     "loadingMore": "加载中…",
-    "endReached": "已到达历史记录起点",
+    "endReached": "没有更多历史记录了",
     "emptyTitle": "暂无收听记录",
     "emptyDescription": "播放一首曲目 — 计入后将立即出现在此。",
     "shownCount_one": "显示 {{count}} 次收听",
@@ -483,8 +483,8 @@
     "badge": "历史",
     "title": "最近播放的",
     "count_zero": "0 首曲目",
-    "count_one": "{{count}} 曲目",
-    "count_other": "{{count}} 曲目",
+    "count_one": "{{count}} 首曲目",
+    "count_other": "{{count}} 首曲目",
     "emptyTitle": "没有最近播放的曲目",
     "emptyDescription": "您正在收听的歌曲会自动显示在此处。"
   },
@@ -505,8 +505,8 @@
       "totalTime": "收听时长",
       "uniqueTracks": "独立曲目",
       "uniqueArtists_zero": "0 位艺人",
-      "uniqueArtists_one": "{{count}} 艺人",
-      "uniqueArtists_other": "{{count}} 艺人",
+      "uniqueArtists_one": "{{count}} 位艺人",
+      "uniqueArtists_other": "{{count}} 位艺人",
       "completionRate": "完整收听率"
     },
     "byDay": {
@@ -565,7 +565,7 @@
     "playsShort_other": "{{count}} 次播放",
     "empty": {
       "title": "暂无收听记录",
-      "subtitle": "播放几首歌曲后再回来 — 你的 Wrapped 会随收听构建。"
+      "subtitle": "播放几首曲目后再回来 — 你的 Wrapped 会随着你的收听自动累积生成。"
     },
     "intro": {
       "eyebrow": "WaveFlow Wrapped",
@@ -772,7 +772,7 @@
     "delete": {
       "title": "删除 {{name}}?",
       "subtitle": "此个人资料将被永久删除。",
-      "warning": "此个人资料的所有资料库、播放列表和播放记录都会丢失。此操作无法撤销。",
+      "warning": "此个人资料的所有音乐库、播放列表和播放记录都会丢失。此操作无法撤销。",
       "submit": "删除个人资料",
       "submitting": "正在删除…"
     }
@@ -814,8 +814,8 @@
   "playlistView": {
     "badge": "播放列表",
     "trackCount_zero": "0 首曲目",
-    "trackCount_one": "{{count}} 曲目",
-    "trackCount_other": "{{count}} 曲目",
+    "trackCount_one": "{{count}} 首曲目",
+    "trackCount_other": "{{count}} 首曲目",
     "actions": {
       "play": "播放",
       "shuffle": "随机播放",
@@ -940,8 +940,8 @@
     "playAll": "全部播放",
     "shuffle": "随机播放",
     "trackCount_zero": "0 首曲目",
-    "trackCount_one": "{{count}} 曲目",
-    "trackCount_other": "{{count}} 曲目",
+    "trackCount_one": "{{count}} 首曲目",
+    "trackCount_other": "{{count}} 首曲目",
     "discHeader": "第 {{number}} 张",
     "releaseDate": "发行日期",
     "emptyTitle": "找不到该专辑",
@@ -956,14 +956,14 @@
     "discography": "专辑列表",
     "allTracks": "所有曲目",
     "trackCount_zero": "0 首曲目",
-    "trackCount_one": "{{count}} 曲目",
-    "trackCount_other": "{{count}} 曲目",
+    "trackCount_one": "{{count}} 首曲目",
+    "trackCount_other": "{{count}} 首曲目",
     "albumCount_zero": "0 张专辑",
     "albumCount_one": "{{count}} 张专辑",
     "albumCount_other": "{{count}} 张专辑",
     "albumTrackCount_zero": "0 首曲目",
-    "albumTrackCount_one": "{{count}} 曲目",
-    "albumTrackCount_other": "{{count}} 曲目",
+    "albumTrackCount_one": "{{count}} 首曲目",
+    "albumTrackCount_other": "{{count}} 首曲目",
     "emptyTitle": "未找到该艺人",
     "emptyDescription": "该艺人已不在当前的个人资料中。",
     "bio": {
@@ -971,8 +971,8 @@
     },
     "similar": {
       "title": "相似艺人",
-      "inLibrary": "在你的曲库中",
-      "notInLibrary": "不在你的曲库中"
+      "inLibrary": "在你的音乐库中",
+      "notInLibrary": "不在你的音乐库中"
     },
     "editMetadata": "编辑信息"
   },
@@ -991,7 +991,7 @@
     "trackCount_one": "{{count}} 首",
     "trackCount_other": "{{count}} 首",
     "emptyTitle": "未找到流派",
-    "emptyDescription": "此流派在当前配置文件中已不存在。",
+    "emptyDescription": "此流派在当前个人资料中已不存在。",
     "emptyTracksTitle": "无曲目",
     "emptyTracksDescription": "此流派没有可用曲目。"
   },
@@ -1189,7 +1189,7 @@
       "or": "或",
       "not": "非",
       "toggleOpHint": "与 ↔ 或",
-      "matchAllEmpty": "(全部曲库)",
+      "matchAllEmpty": "(全部音乐库)",
       "matchNoneEmpty": "(无曲目)",
       "childCount_zero": "空",
       "childCount_one": "{{count}} 个条件",
@@ -1259,7 +1259,7 @@
         "hint": "写入音频文件的 USLT/©lyr(兼容 foobar2000、iTunes…)。"
       },
       "sidecar": {
-        "label": "Sidecar 文件",
+        "label": "外挂歌词文件",
         "hint": "在音频文件同目录下生成 .lrc / .txt 文件。文件标签不受影响。"
       },
       "db_only": {
@@ -1345,7 +1345,7 @@
     "integrations": {
       "lastfm": {
         "title": "Last.fm",
-        "subtitle": "艺人简介和播放记录。在 last.fm/api/account/create 创建密钥",
+        "subtitle": "艺人简介和播放追踪。在 last.fm/api/account/create 创建密钥",
         "placeholder": "API密钥",
         "secretPlaceholder": "共享密钥",
         "save": "保存",
@@ -1366,7 +1366,7 @@
       },
       "dlna": {
         "title": "DLNA / UPnP 服务器",
-        "subtitle": "将曲库串流到局域网中兼容的功放和设备",
+        "subtitle": "将音乐库串流到局域网中兼容的功放和设备",
         "serverName": "名称",
         "port": "端口",
         "portHint": "0 = 自动选择端口",
@@ -1459,8 +1459,8 @@
       "cancel": "停止分析",
       "autoTitle": "自动分析",
       "autoSubtitle": "每次扫描并添加新曲目后，在后台运行分析",
-      "failed_one": "{{count}} 个失败",
-      "failed_other": "{{count}} 失败"
+      "failed_one": "{{count}} 首分析失败",
+      "failed_other": "{{count}} 首分析失败"
     },
     "artistImages": {
       "title": "艺人图片",
@@ -1470,7 +1470,7 @@
     },
     "localArtistImages": {
       "title": "本地艺人图片",
-      "subtitle": "在音乐旁查找 artist.jpg(或 <名称>.jpg)文件，并将其用作艺人头像。",
+      "subtitle": "在音乐文件所在目录查找 artist.jpg(或 <名称>.jpg)文件，并将其用作艺人头像。",
       "action": "扫描",
       "done": "已为 {{considered}} 位艺人中的 {{linked}} 位关联本地图片"
     },
@@ -1482,7 +1482,7 @@
     "openDataFolder": "打开数据文件夹",
     "lyricsPrefetch": {
       "title": "预取歌词",
-      "subtitle": "为整个曲库下载歌词以供离线使用",
+      "subtitle": "为整个音乐库下载歌词以供离线使用",
       "result": "已同步 {{hits}}，未找到 {{misses}}，失败 {{failed}}",
       "offline": "已启用离线模式",
       "failed": "预加载失败",
@@ -1499,7 +1499,7 @@
       "action": "重置",
       "confirm": {
         "title": "重置整个应用？",
-        "warning": "此操作将删除每个个人资料、音乐库、播放列表、评分、收听历史和缓存的封面。应用将重新启动到全新的引导流程。此操作无法撤销。",
+        "warning": "此操作将删除每个个人资料、音乐库、播放列表、评分、收听历史和缓存的封面。应用将重启并进入初始设置。此操作无法撤销。",
         "typeToConfirm": "输入 RESET 以确认",
         "error": "重置失败。请关闭任何持有 WaveFlow 文件的外部程序（已打开的音乐播放器、数据文件夹中的文件资源管理器），然后重试。",
         "cancel": "取消",
@@ -1528,7 +1528,7 @@
       "reasonGeneric": "已跳过({{reason}})",
       "reason": {
         "offline": "离线模式已启用",
-        "sync_mode_local": "配置文件处于本地模式",
+        "sync_mode_local": "个人资料处于本地模式",
         "not_configured": "服务器未配置",
         "profile_canonical_id_missing": "等待首次同步"
       },
@@ -1605,13 +1605,13 @@
     },
     "backup": {
       "title": "自动备份",
-      "subtitle": "定期在所选文件夹中创建每个配置文件的 .waveflow 存档。",
+      "subtitle": "定期在所选文件夹中创建每个个人资料的 .waveflow 存档。",
       "intervalLabel": "频率",
       "intervalDays_one": "每天",
       "intervalDays_other": "每 {{count}} 天",
       "retentionLabel": "保留存档",
-      "retentionKeep_one": "每个配置文件 {{count}} 个",
-      "retentionKeep_other": "每个配置文件 {{count}} 个",
+      "retentionKeep_one": "每个个人资料 {{count}} 个",
+      "retentionKeep_other": "每个个人资料 {{count}} 个",
       "includeMetadataArtworkLabel": "包含 Deezer 封面缓存",
       "includeMetadataArtworkHint": "备份更大，可完全离线还原。取消勾选可获得精简归档（缓存将按需重新下载）。",
       "changeFolder": "更改文件夹",
@@ -1803,7 +1803,7 @@
     },
     "serverAccount": {
       "title": "WaveFlow 服务器账户",
-      "subtitle": "将此配置文件关联到您的 waveflow-server 实例，以启用多设备同步和浏览器播放。",
+      "subtitle": "将此个人资料关联到您的 waveflow-server 实例，以启用多设备同步和浏览器播放。",
       "signedIn": "已登录",
       "urlLabel": "服务器 URL",
       "urlPlaceholder": "https://api.waveflow.app",
@@ -1817,7 +1817,7 @@
       "webUrlLabel": "WaveFlow Web URL",
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "通过浏览器登录",
-      "signInWithBrowserHint": "...应用通过本地握手自动获取 JWT。",
+      "signInWithBrowserHint": "在浏览器中打开 WaveFlow Web 并登录，应用会通过本地握手自动获取 JWT。",
       "loginInProgress": "等待浏览器…",
       "modeLabel": "同步模式",
       "modes": {
@@ -1827,7 +1827,7 @@
         },
         "local": {
           "label": "仅本地",
-          "description": "即使已登录，也不会向服务器发送任何更改。适用于希望保持隐私的配置文件。"
+          "description": "即使已登录，也不会向服务器发送任何更改。适用于希望保持隐私的个人资料。"
         }
       }
     },
@@ -1856,23 +1856,23 @@
       "languageLabel": "简介语言"
     },
     "radioCatalogue": {
-      "title": "Offline station catalogue",
-      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
-      "stored_one": "{{count}} station · updated {{date}}",
-      "stored_other": "{{count}} stations · updated {{date}}",
-      "download": "Download",
-      "refresh": "Update",
-      "downloading": "Downloading…",
-      "downloadingPct": "Importing… {{pct}}%",
-      "clear": "Delete catalogue",
-      "neverSynced": "never",
-      "localFirst": "Prefer local catalogue",
-      "localFirstHint": "Search and browse locally even when online (instant, no network).",
-      "offlineHint": "Disable offline mode to download the catalogue.",
+      "title": "离线电台目录",
+      "subtitle": "下载 radio-browser 目录，即可在无网络连接时浏览和搜索电台。",
+      "stored_one": "{{count}} 个电台 · {{date}} 更新",
+      "stored_other": "{{count}} 个电台 · {{date}} 更新",
+      "download": "下载",
+      "refresh": "更新",
+      "downloading": "正在下载…",
+      "downloadingPct": "正在导入… {{pct}}%",
+      "clear": "删除目录",
+      "neverSynced": "从不",
+      "localFirst": "优先使用本地目录",
+      "localFirstHint": "即使在线也在本地搜索和浏览（即时，无需网络）。",
+      "offlineHint": "请关闭离线模式以下载目录。",
       "errors": {
-        "loadFailed": "Failed to load catalogue status.",
-        "downloadFailed": "Failed to download the catalogue.",
-        "clearFailed": "Failed to delete the catalogue."
+        "loadFailed": "无法加载目录状态。",
+        "downloadFailed": "无法下载目录。",
+        "clearFailed": "无法删除目录。"
       }
     },
     "dsdPrecision": {
@@ -1964,8 +1964,8 @@
     "removeFavorite": "从收藏中移除",
     "localStations": "本地电台",
     "browseByCountry": "按国家/地区浏览",
-    "localCatalogue": "Local catalogue",
-    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+    "localCatalogue": "本地目录",
+    "localCatalogueHint": "正在浏览和搜索已下载的目录。"
   },
   "artistMetadataEditor": {
     "title": "编辑元数据",

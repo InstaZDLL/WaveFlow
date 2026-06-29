@@ -1856,23 +1856,23 @@
       "languageLabel": "Idioma da biografia"
     },
     "radioCatalogue": {
-      "title": "Offline station catalogue",
-      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
-      "stored_one": "{{count}} station · updated {{date}}",
-      "stored_other": "{{count}} stations · updated {{date}}",
-      "download": "Download",
-      "refresh": "Update",
-      "downloading": "Downloading…",
-      "downloadingPct": "Importing… {{pct}}%",
-      "clear": "Delete catalogue",
-      "neverSynced": "never",
-      "localFirst": "Prefer local catalogue",
-      "localFirstHint": "Search and browse locally even when online (instant, no network).",
-      "offlineHint": "Disable offline mode to download the catalogue.",
+      "title": "Catálogo de estações offline",
+      "subtitle": "Baixe o diretório radio-browser para navegar e pesquisar estações sem conexão.",
+      "stored_one": "{{count}} estação · atualizado em {{date}}",
+      "stored_other": "{{count}} estações · atualizado em {{date}}",
+      "download": "Baixar",
+      "refresh": "Atualizar",
+      "downloading": "Baixando…",
+      "downloadingPct": "Importando… {{pct}} %",
+      "clear": "Excluir catálogo",
+      "neverSynced": "nunca",
+      "localFirst": "Preferir catálogo local",
+      "localFirstHint": "Pesquise e navegue localmente mesmo online (instantâneo, sem rede).",
+      "offlineHint": "Desative o modo offline para baixar o catálogo.",
       "errors": {
-        "loadFailed": "Failed to load catalogue status.",
-        "downloadFailed": "Failed to download the catalogue.",
-        "clearFailed": "Failed to delete the catalogue."
+        "loadFailed": "Falha ao carregar o status do catálogo.",
+        "downloadFailed": "Falha ao baixar o catálogo.",
+        "clearFailed": "Falha ao excluir o catálogo."
       }
     },
     "dsdPrecision": {
@@ -1964,8 +1964,8 @@
     "removeFavorite": "Remover dos favoritos",
     "localStations": "Estações locais",
     "browseByCountry": "Explorar por país",
-    "localCatalogue": "Local catalogue",
-    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+    "localCatalogue": "Catálogo local",
+    "localCatalogueHint": "Navegando e pesquisando no catálogo baixado."
   },
   "artistMetadataEditor": {
     "title": "Editar metadados",

@@ -254,7 +254,7 @@
     "greeting": {
       "morning": "좋은 아침입니다",
       "evening": "좋은 저녁입니다",
-      "night": "안녕히 주무세요"
+      "night": "좋은 밤입니다"
     },
     "banner": {
       "badge": "감상 준비 완료",
@@ -1194,7 +1194,7 @@
       "childCount_zero": "비어 있음",
       "childCount_one": "{{count}}개의 조건",
       "childCount_other": "{{count}}개의 조건",
-      "notHint": "자식과 일치하는 모든 항목을 제외",
+      "notHint": "하위 조건과 일치하는 모든 항목 제외",
       "deleteNode": "삭제",
       "addCondition": "조건",
       "addGroupAnd": "AND 그룹",
@@ -1239,7 +1239,7 @@
     "writeToFile": "오디오 파일에도 기록 (USLT/LYRICS)",
     "offset": {
       "label": "전체 오프셋",
-      "help": "캡처된 모든 줄을 같은 양만큼 이동합니다 — 일정하게 빠르거나 느린 가져온 LRC 파일을 보정할 때 유용합니다",
+      "help": "캡처된 모든 줄을 동일한 시간만큼 이동합니다 — 전체적으로 빠르거나 느리게 가져온 LRC 파일의 싱크를 보정할 때 유용합니다.",
       "reset": "오프셋 초기화"
     },
     "granularity": {
@@ -1856,23 +1856,23 @@
       "languageLabel": "바이오그래피 언어"
     },
     "radioCatalogue": {
-      "title": "Offline station catalogue",
-      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
-      "stored_one": "{{count}} station · updated {{date}}",
-      "stored_other": "{{count}} stations · updated {{date}}",
-      "download": "Download",
-      "refresh": "Update",
-      "downloading": "Downloading…",
-      "downloadingPct": "Importing… {{pct}}%",
-      "clear": "Delete catalogue",
-      "neverSynced": "never",
-      "localFirst": "Prefer local catalogue",
-      "localFirstHint": "Search and browse locally even when online (instant, no network).",
-      "offlineHint": "Disable offline mode to download the catalogue.",
+      "title": "오프라인 방송국 카탈로그",
+      "subtitle": "연결 없이 방송국을 탐색하고 검색하려면 radio-browser 디렉터리를 다운로드하세요.",
+      "stored_one": "방송국 {{count}}개 · {{date}} 업데이트됨",
+      "stored_other": "방송국 {{count}}개 · {{date}} 업데이트됨",
+      "download": "다운로드",
+      "refresh": "업데이트",
+      "downloading": "다운로드 중…",
+      "downloadingPct": "가져오는 중… {{pct}}%",
+      "clear": "카탈로그 삭제",
+      "neverSynced": "없음",
+      "localFirst": "로컬 카탈로그 우선",
+      "localFirstHint": "온라인 상태에서도 로컬에서 검색하고 탐색합니다(즉시, 네트워크 불필요).",
+      "offlineHint": "카탈로그를 다운로드하려면 오프라인 모드를 끄세요.",
       "errors": {
-        "loadFailed": "Failed to load catalogue status.",
-        "downloadFailed": "Failed to download the catalogue.",
-        "clearFailed": "Failed to delete the catalogue."
+        "loadFailed": "카탈로그 상태를 불러오지 못했습니다.",
+        "downloadFailed": "카탈로그를 다운로드하지 못했습니다.",
+        "clearFailed": "카탈로그를 삭제하지 못했습니다."
       }
     },
     "dsdPrecision": {
@@ -1964,8 +1964,8 @@
     "removeFavorite": "즐겨찾기에서 제거",
     "localStations": "지역 방송국",
     "browseByCountry": "국가별 보기",
-    "localCatalogue": "Local catalogue",
-    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+    "localCatalogue": "로컬 카탈로그",
+    "localCatalogueHint": "다운로드한 카탈로그를 탐색하고 검색합니다."
   },
   "artistMetadataEditor": {
     "title": "메타데이터 편집",

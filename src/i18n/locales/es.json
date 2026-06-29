@@ -37,7 +37,7 @@
     "defaultLibraryName": "Música",
     "welcome": {
       "title": "Te damos la bienvenida a WaveFlow",
-      "description": "Tu reproductor de música de prioridad local. Disfruta de toda tu biblioteca sin suscripción de streaming."
+      "description": "Tu reproductor de música centrado en lo local. Disfruta de toda tu biblioteca sin suscripción de streaming."
     },
     "localOnly": {
       "title": "Importante: solo música local",
@@ -466,7 +466,7 @@
     "loadingMore": "Cargando…",
     "endReached": "Inicio del historial",
     "emptyTitle": "Aún no hay reproducciones",
-    "emptyDescription": "Reproduce una pista — aparecerá aquí en cuanto cuente.",
+    "emptyDescription": "Reproduce una pista — aparecerá aquí en cuanto se registre.",
     "shownCount_one": "{{count}} reproducción mostrada",
     "shownCount_other": "{{count}} reproducciones mostradas",
     "plays_one": "{{count}} reproducción",
@@ -1856,23 +1856,23 @@
       "languageLabel": "Idioma de la biografía"
     },
     "radioCatalogue": {
-      "title": "Offline station catalogue",
-      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
-      "stored_one": "{{count}} station · updated {{date}}",
-      "stored_other": "{{count}} stations · updated {{date}}",
-      "download": "Download",
-      "refresh": "Update",
-      "downloading": "Downloading…",
-      "downloadingPct": "Importing… {{pct}}%",
-      "clear": "Delete catalogue",
-      "neverSynced": "never",
-      "localFirst": "Prefer local catalogue",
-      "localFirstHint": "Search and browse locally even when online (instant, no network).",
-      "offlineHint": "Disable offline mode to download the catalogue.",
+      "title": "Catálogo de emisoras sin conexión",
+      "subtitle": "Descarga el directorio de radio-browser para explorar y buscar emisoras sin conexión.",
+      "stored_one": "{{count}} emisora · actualizado el {{date}}",
+      "stored_other": "{{count}} emisoras · actualizado el {{date}}",
+      "download": "Descargar",
+      "refresh": "Actualizar",
+      "downloading": "Descargando…",
+      "downloadingPct": "Importando… {{pct}} %",
+      "clear": "Eliminar catálogo",
+      "neverSynced": "nunca",
+      "localFirst": "Preferir catálogo local",
+      "localFirstHint": "Busca y explora localmente incluso con conexión (instantáneo, sin red).",
+      "offlineHint": "Desactiva el modo sin conexión para descargar el catálogo.",
       "errors": {
-        "loadFailed": "Failed to load catalogue status.",
-        "downloadFailed": "Failed to download the catalogue.",
-        "clearFailed": "Failed to delete the catalogue."
+        "loadFailed": "Error al cargar el estado del catálogo.",
+        "downloadFailed": "Error al descargar el catálogo.",
+        "clearFailed": "Error al eliminar el catálogo."
       }
     },
     "dsdPrecision": {
@@ -1964,8 +1964,8 @@
     "removeFavorite": "Quitar de favoritos",
     "localStations": "Emisoras locales",
     "browseByCountry": "Explorar por país",
-    "localCatalogue": "Local catalogue",
-    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+    "localCatalogue": "Catálogo local",
+    "localCatalogueHint": "Explorando y buscando en el catálogo descargado."
   },
   "artistMetadataEditor": {
     "title": "Editar metadatos",

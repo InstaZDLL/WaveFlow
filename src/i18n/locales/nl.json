@@ -1024,7 +1024,7 @@
     "miniPlayer": "Mini-speler (altijd boven)",
     "previous": "Vorig nummer",
     "next": "Volgend nummer",
-    "openFullscreen": "Immersieve weergave",
+    "openFullscreen": "Meeslepende weergave",
     "devices": "Uitvoerapparaten",
     "moreActions": "Meer acties",
     "abLoop": "A-B-loop",
@@ -1613,7 +1613,7 @@
     },
     "visualizer": {
       "title": "Audio-visualizer",
-      "subtitle": "Toont een real-time spectrum in de immersieve weergave (lichte FFT op de decoderthread)"
+      "subtitle": "Toont een real-time spectrum in de meeslepende weergave (lichte FFT op de decoderthread)"
     },
     "smartCrossfade": {
       "title": "Slimme crossfade",
@@ -1757,13 +1757,13 @@
         "queue": "Wachtrij",
         "device": "Audio-uitvoer",
         "miniPlayer": "Mini-speler",
-        "immersive": "Volledige weergave",
+        "immersive": "Meeslepende weergave",
         "audioQualityFooter": "Audio-kwaliteitsbalk"
       },
       "coverAction": {
         "title": "Bij klik op de hoes",
         "immersive": {
-          "label": "Open volledige weergave",
+          "label": "Open meeslepende weergave",
           "description": "Standaard — opent de schermvullende Speelt nu-weergave met de albumhoes groot weergegeven."
         },
         "nowPlaying": {
@@ -1856,23 +1856,23 @@
       "languageLabel": "Taal van de biografie"
     },
     "radioCatalogue": {
-      "title": "Offline station catalogue",
-      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
-      "stored_one": "{{count}} station · updated {{date}}",
-      "stored_other": "{{count}} stations · updated {{date}}",
-      "download": "Download",
-      "refresh": "Update",
-      "downloading": "Downloading…",
-      "downloadingPct": "Importing… {{pct}}%",
-      "clear": "Delete catalogue",
-      "neverSynced": "never",
-      "localFirst": "Prefer local catalogue",
-      "localFirstHint": "Search and browse locally even when online (instant, no network).",
-      "offlineHint": "Disable offline mode to download the catalogue.",
+      "title": "Offline zenderscatalogus",
+      "subtitle": "Download de radio-browser-directory om zenders zonder verbinding te doorzoeken.",
+      "stored_one": "{{count}} zender · bijgewerkt op {{date}}",
+      "stored_other": "{{count}} zenders · bijgewerkt op {{date}}",
+      "download": "Downloaden",
+      "refresh": "Bijwerken",
+      "downloading": "Bezig met downloaden…",
+      "downloadingPct": "Bezig met importeren… {{pct}} %",
+      "clear": "Catalogus verwijderen",
+      "neverSynced": "nooit",
+      "localFirst": "Lokale catalogus verkiezen",
+      "localFirstHint": "Zoek en blader lokaal, ook online (direct, geen netwerk).",
+      "offlineHint": "Schakel de offline modus uit om de catalogus te downloaden.",
       "errors": {
-        "loadFailed": "Failed to load catalogue status.",
-        "downloadFailed": "Failed to download the catalogue.",
-        "clearFailed": "Failed to delete the catalogue."
+        "loadFailed": "Kan catalogusstatus niet laden.",
+        "downloadFailed": "Kan de catalogus niet downloaden.",
+        "clearFailed": "Kan de catalogus niet verwijderen."
       }
     },
     "dsdPrecision": {
@@ -1964,8 +1964,8 @@
     "removeFavorite": "Uit favorieten verwijderen",
     "localStations": "Lokale zenders",
     "browseByCountry": "Bladeren per land",
-    "localCatalogue": "Local catalogue",
-    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+    "localCatalogue": "Lokale catalogus",
+    "localCatalogueHint": "Bladeren en zoeken in de gedownloade catalogus."
   },
   "artistMetadataEditor": {
     "title": "Metadata bewerken",

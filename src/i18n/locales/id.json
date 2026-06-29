@@ -1256,15 +1256,15 @@
     "destination": {
       "tag": {
         "label": "Tag tertanam",
-        "hint": "Menulis USLT/©lyr di file audio (kompatibel dengan foobar2000, iTunes…)."
+        "hint": "Menulis USLT/©lyr di berkas audio (kompatibel dengan foobar2000, iTunes…)."
       },
       "sidecar": {
-        "label": "File sidecar",
-        "hint": "Menulis .lrc / .txt di samping file audio. Tag file tidak disentuh."
+        "label": "Berkas pendamping",
+        "hint": "Menulis .lrc / .txt di samping berkas audio. Tag berkas tidak disentuh."
       },
       "db_only": {
         "label": "Hanya database WaveFlow",
-        "hint": "Tetap di cache app. Tidak ada file atau tag yang disentuh."
+        "hint": "Tetap di cache app. Tidak ada berkas atau tag yang disentuh."
       }
     }
   },
@@ -1542,7 +1542,7 @@
         "title": "Setel ulang seluruh aplikasi?",
         "warning": "Tindakan ini akan menghapus semua profil, pustaka, daftar putar, penilaian, riwayat pemutaran, dan sampul yang di-cache. Aplikasi akan memulai ulang ke onboarding bersih. Tindakan ini tidak dapat dibatalkan.",
         "typeToConfirm": "Ketik RESET untuk konfirmasi",
-        "error": "Gagal menyetel ulang. Tutup program eksternal apa pun yang menahan file WaveFlow (pemutar musik yang terbuka, penjelajah file di folder data) dan coba lagi.",
+        "error": "Gagal menyetel ulang. Tutup program eksternal apa pun yang menahan berkas WaveFlow (pemutar musik yang terbuka, penjelajah berkas di folder data) dan coba lagi.",
         "cancel": "Batal",
         "confirmButton": "Setel ulang dan mulai ulang"
       }
@@ -1856,23 +1856,23 @@
       "languageLabel": "Bahasa biografi"
     },
     "radioCatalogue": {
-      "title": "Offline station catalogue",
-      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
-      "stored_one": "{{count}} station · updated {{date}}",
-      "stored_other": "{{count}} stations · updated {{date}}",
-      "download": "Download",
-      "refresh": "Update",
-      "downloading": "Downloading…",
-      "downloadingPct": "Importing… {{pct}}%",
-      "clear": "Delete catalogue",
-      "neverSynced": "never",
-      "localFirst": "Prefer local catalogue",
-      "localFirstHint": "Search and browse locally even when online (instant, no network).",
-      "offlineHint": "Disable offline mode to download the catalogue.",
+      "title": "Katalog stasiun offline",
+      "subtitle": "Unduh direktori radio-browser untuk menjelajahi dan mencari stasiun tanpa koneksi.",
+      "stored_one": "{{count}} stasiun · diperbarui {{date}}",
+      "stored_other": "{{count}} stasiun · diperbarui {{date}}",
+      "download": "Unduh",
+      "refresh": "Perbarui",
+      "downloading": "Mengunduh…",
+      "downloadingPct": "Mengimpor… {{pct}}%",
+      "clear": "Hapus katalog",
+      "neverSynced": "tidak pernah",
+      "localFirst": "Utamakan katalog lokal",
+      "localFirstHint": "Cari dan jelajahi secara lokal bahkan saat online (instan, tanpa jaringan).",
+      "offlineHint": "Nonaktifkan mode offline untuk mengunduh katalog.",
       "errors": {
-        "loadFailed": "Failed to load catalogue status.",
-        "downloadFailed": "Failed to download the catalogue.",
-        "clearFailed": "Failed to delete the catalogue."
+        "loadFailed": "Gagal memuat status katalog.",
+        "downloadFailed": "Gagal mengunduh katalog.",
+        "clearFailed": "Gagal menghapus katalog."
       }
     },
     "dsdPrecision": {
@@ -1964,8 +1964,8 @@
     "removeFavorite": "Hapus dari favorit",
     "localStations": "Stasiun lokal",
     "browseByCountry": "Telusuri berdasarkan negara",
-    "localCatalogue": "Local catalogue",
-    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+    "localCatalogue": "Katalog lokal",
+    "localCatalogueHint": "Menjelajahi dan mencari katalog yang diunduh."
   },
   "artistMetadataEditor": {
     "title": "Sunting metadata",

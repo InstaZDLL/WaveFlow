@@ -136,7 +136,7 @@
     "lyrics": {
       "title": "Dove salvare i testi?",
       "description": "Quando modifichi i testi, dove devono andare? Modificabile in Impostazioni → Riproduzione.",
-      "hint": "Scegli \"File sidecar\" per non toccare i file audio — come fanno foobar2000 e simili."
+      "hint": "Scegli «File sidecar» per non toccare i file audio — come fanno foobar2000 e simili."
     }
   },
   "sidebar": {
@@ -376,7 +376,7 @@
       },
       "dossiers": {
         "title": "Nessuna cartella importata",
-        "description": "Importa una cartella dalla barra delle azioni per sfogliarla qui."
+        "description": "Importa una cartella dalla barra degli strumenti per sfogliarla qui."
       }
     },
     "actions": {
@@ -1113,7 +1113,7 @@
     },
     "toast": {
       "tagWriteSkipped": "TTML mantenuto solo nella cache (non scritto nel tag audio)",
-      "sidecarWriteSkipped": "Testi salvati nel database, ma TTML non entra in un file .lrc/.txt."
+      "sidecarWriteSkipped": "Testi salvati nel database, ma il formato TTML non è supportato nei file sidecar .lrc/.txt."
     }
   },
   "duplicates": {
@@ -1856,23 +1856,23 @@
       "languageLabel": "Lingua della biografia"
     },
     "radioCatalogue": {
-      "title": "Offline station catalogue",
-      "subtitle": "Download the radio-browser directory to browse and search stations without a connection.",
-      "stored_one": "{{count}} station · updated {{date}}",
-      "stored_other": "{{count}} stations · updated {{date}}",
-      "download": "Download",
-      "refresh": "Update",
-      "downloading": "Downloading…",
-      "downloadingPct": "Importing… {{pct}}%",
-      "clear": "Delete catalogue",
-      "neverSynced": "never",
-      "localFirst": "Prefer local catalogue",
-      "localFirstHint": "Search and browse locally even when online (instant, no network).",
-      "offlineHint": "Disable offline mode to download the catalogue.",
+      "title": "Catalogo stazioni offline",
+      "subtitle": "Scarica la directory di radio-browser per sfogliare e cercare le stazioni senza connessione.",
+      "stored_one": "{{count}} stazione · aggiornato il {{date}}",
+      "stored_other": "{{count}} stazioni · aggiornato il {{date}}",
+      "download": "Scarica",
+      "refresh": "Aggiorna",
+      "downloading": "Download in corso…",
+      "downloadingPct": "Importazione… {{pct}} %",
+      "clear": "Elimina catalogo",
+      "neverSynced": "mai",
+      "localFirst": "Preferisci il catalogo locale",
+      "localFirstHint": "Cerca e sfoglia in locale anche online (istantaneo, senza rete).",
+      "offlineHint": "Disattiva la modalità offline per scaricare il catalogo.",
       "errors": {
-        "loadFailed": "Failed to load catalogue status.",
-        "downloadFailed": "Failed to download the catalogue.",
-        "clearFailed": "Failed to delete the catalogue."
+        "loadFailed": "Impossibile caricare lo stato del catalogo.",
+        "downloadFailed": "Impossibile scaricare il catalogo.",
+        "clearFailed": "Impossibile eliminare il catalogo."
       }
     },
     "dsdPrecision": {
@@ -1964,8 +1964,8 @@
     "removeFavorite": "Rimuovi dai preferiti",
     "localStations": "Stazioni locali",
     "browseByCountry": "Esplora per paese",
-    "localCatalogue": "Local catalogue",
-    "localCatalogueHint": "Browsing and searching the downloaded catalogue."
+    "localCatalogue": "Catalogo locale",
+    "localCatalogueHint": "Esplorazione e ricerca nel catalogo scaricato."
   },
   "artistMetadataEditor": {
     "title": "Modifica metadati",
