@@ -90,17 +90,25 @@ export function useScrollLongTitles(): ScrollLongTitles {
       // persisting now would write onto the wrong profile.
       if (activeProfileIdRef.current !== profileId) return;
       await setProfileSetting(KEY, next ? "true" : "false", "bool");
+      // Re-check after the await: the profile may have switched mid-write,
+      // in which case this value belongs to the old profile — don't
+      // confirm it as the new profile's.
+      if (activeProfileIdRef.current !== profileId) return;
       confirmedEnabledRef.current = next;
     });
     writeChainRef.current = write.catch(() => undefined);
     try {
       await write;
+      // Ignore all side effects if we're no longer on the profile this
+      // toggle was issued for.
+      if (activeProfileIdRef.current !== profileId) return;
       // A newer toggle superseded this one mid-write — let it own the
       // outcome so an older response can't clobber the latest intent.
       if (seq !== writeSeqRef.current) return;
       window.dispatchEvent(new CustomEvent(SCROLL_LONG_TITLES_EVENT));
     } catch (err) {
       console.error("[useScrollLongTitles] write failed", err);
+      if (activeProfileIdRef.current !== profileId) return;
       if (seq !== writeSeqRef.current) return;
       // Roll back to the last backend-confirmed value, not the optimistic
       // one (which may hold this very failed toggle).
