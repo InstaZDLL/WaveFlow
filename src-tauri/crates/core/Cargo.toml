@@ -164,7 +164,7 @@ waveflow-plugin-sdk = { path = "../plugin-sdk", optional = true }
 # them in `plugin::host_impl`. Defaults trimmed: we don't need the
 # pooling allocator, async API, coredump, or addr2line debug-info paths
 # in v1 — sync API + cranelift JIT keeps the bundle bump near 5 MB.
-wasmtime = { version = "45", default-features = false, features = [
+wasmtime = { version = "46", default-features = false, features = [
     "runtime",
     "cranelift",
     "component-model",
