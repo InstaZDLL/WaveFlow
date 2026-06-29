@@ -186,7 +186,7 @@ wasmtime = { version = "45", default-features = false, features = [
 # path we actually expose to plugins, the result is "no host
 # resources reachable unless the manifest explicitly asked for
 # them".
-wasmtime-wasi = { version = "45", default-features = false, optional = true }
+wasmtime-wasi = { version = "46", default-features = false, optional = true }
 
 [dev-dependencies]
 # Sandboxed scratch directories for the smart-playlist cover render
