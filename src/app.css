@@ -169,6 +169,37 @@
   animation: breathing 4.5s ease-in-out infinite;
 }
 
+/* Marquee — gently scrolls an overflowing single-line label end-to-end
+   and back so long titles stay fully readable. `--marquee-shift` (the
+   negative overflow width) + `animation-duration` are set inline by
+   `MarqueeText`, which only mounts the animated branch when the text
+   actually overflows. The pauses at 0/100 % (start) and 45–55 % (end)
+   let the user read each extremity. */
+@utility animate-marquee {
+  animation: marquee 12s ease-in-out infinite;
+}
+
+@keyframes marquee {
+  0%,
+  12% {
+    transform: translateX(0);
+  }
+  45%,
+  55% {
+    transform: translateX(var(--marquee-shift, 0px));
+  }
+  88%,
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+}
+
 /* WaveFlow Wrapped — story-style slide animations. The segment fill
    width drives the per-slide progress indicator at the top of the
    overlay; duration is overridden inline so the bar matches whatever

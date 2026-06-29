@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Heart, Star, Radio } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
+import { MarqueeText } from "../common/MarqueeText";
 import { PlaybackControls } from "./PlaybackControls";
 import { ProgressBar } from "./ProgressBar";
 import { VolumeControl } from "./VolumeControl";
@@ -69,7 +70,16 @@ export function ImmersiveNowPlaying({
 
       {/* Track info — title + clickable artist + album. */}
       <div className="text-center max-w-2xl w-full shrink-0">
-        <h1 className="text-3xl md:text-4xl font-bold truncate">{title}</h1>
+        {/* Long titles scroll instead of being cut by an ellipsis. The
+            `pb-1` + `leading-tight` on the marquee container give
+            descenders (g / y / p) room so the `overflow: hidden` (needed
+            for both truncate + the marquee) doesn't clip them. */}
+        <h1 className="text-3xl md:text-4xl font-bold">
+          <MarqueeText
+            text={title}
+            className="leading-tight pb-1"
+          />
+        </h1>
         <div className="mt-2 text-lg text-white/80 flex items-center justify-center gap-3 flex-wrap">
           {currentTrack?.artist_name && (
             <ArtistLink

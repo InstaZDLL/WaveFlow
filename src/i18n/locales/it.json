@@ -1897,6 +1897,10 @@
         "title": "Schermo intero nativo",
         "subtitle": "Riempie tutto lo schermo all'apertura e ripristina la finestra alla chiusura. Disattiva per mantenere un overlay nella finestra (utile con più monitor)."
       }
+    },
+    "scrollTitles": {
+      "title": "Scorri i titoli lunghi",
+      "subtitle": "I titoli lunghi scorrono invece di essere troncati (barra del player + vista immersiva)."
     }
   },
   "spotify": {

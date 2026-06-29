@@ -1897,6 +1897,10 @@
         "title": "Native fullscreen",
         "subtitle": "Fill the whole screen on open and restore your window on close. Turn off to keep an in-window overlay (useful on multi-monitor setups)."
       }
+    },
+    "scrollTitles": {
+      "title": "Scroll long titles",
+      "subtitle": "Long titles scroll instead of being truncated (player bar + immersive view)."
     }
   },
   "spotify": {

@@ -762,7 +762,7 @@
 }
 
 /* Modals + tooltips: black pill containers. */
-:root[data-skin="pulse"] :where([role="dialog"], [role="tooltip"], [class*="shadow-lg"]) {
+:root[data-skin="pulse"] :where([role="dialog"], [role="tooltip"], [class*="shadow-lg"]):not([data-immersive]):not([data-immersive] *) {
   color: var(--pulse-ink);
   background-color: var(--pulse-surface) !important;
   background-image: none !important;

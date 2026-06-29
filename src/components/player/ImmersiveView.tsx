@@ -164,7 +164,16 @@ export function ImmersiveView({
       role="dialog"
       aria-modal="true"
       aria-label={t("playerBar.openFullscreen")}
-      className="fixed inset-0 z-100 bg-zinc-950"
+      // Marker so skins exclude the immersive view from their modal /
+      // surface chrome overrides — it's a full-screen takeover with its
+      // own always-dark styling and must look identical across skins
+      // (without this, Liquid repaints it as a light glass modal).
+      data-immersive="true"
+      // `dark` establishes an always-dark context so the shared player
+      // controls (PlaybackControls / VolumeControl / ProgressBar) render
+      // their dark-theme variants (hover / track) over the dark backdrop,
+      // even when the app theme is light.
+      className="dark fixed inset-0 z-100 bg-zinc-950"
     >
       {/* Blurred artwork background — flat dark gradient fallback. Same
           recipe as the old overlays. `animate-fade-in` lives here so the

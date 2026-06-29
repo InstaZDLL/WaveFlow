@@ -1897,6 +1897,10 @@
         "title": "Tela cheia nativa",
         "subtitle": "Preenche a tela inteira ao abrir e restaura sua janela ao fechar. Desative para manter uma sobreposição na janela (útil em vários monitores)."
       }
+    },
+    "scrollTitles": {
+      "title": "Rolar títulos longos",
+      "subtitle": "Títulos longos rolam em vez de serem truncados (barra do player + visualização imersiva)."
     }
   },
   "spotify": {

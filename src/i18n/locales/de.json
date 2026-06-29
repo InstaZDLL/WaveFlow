@@ -1897,6 +1897,10 @@
         "title": "Nativer Vollbildmodus",
         "subtitle": "Füllt beim Öffnen den ganzen Bildschirm und stellt dein Fenster beim Schließen wieder her. Deaktivieren, um eine Overlay-Ansicht im Fenster zu behalten (nützlich bei mehreren Monitoren)."
       }
+    },
+    "scrollTitles": {
+      "title": "Lange Titel scrollen",
+      "subtitle": "Lange Titel laufen durch, statt abgeschnitten zu werden (Player-Leiste + immersive Ansicht)."
     }
   },
   "spotify": {
