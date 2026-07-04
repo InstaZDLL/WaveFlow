@@ -105,6 +105,10 @@ jobs:
         # would desync Cargo.lock and break the `--locked` build. Node is
         # pre-installed on every GitHub runner, so no setup is needed yet.
         run: |
+          if [ -z "$VERSION" ]; then
+            echo "::error::VERSION is empty — refusing to patch tauri.conf.json"
+            exit 1
+          fi
           node -e "const fs=require('fs'),p='src-tauri/crates/app/tauri.conf.json',c=JSON.parse(fs.readFileSync(p,'utf8'));c.version=process.env.VERSION;fs.writeFileSync(p,JSON.stringify(c,null,2)+'\n');console.log('Patched app version -> '+c.version);"
 
       - name: Install Linux system dependencies
