@@ -8,7 +8,7 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crossbeam_channel::{unbounded, Sender};
 use rtrb::Producer;
@@ -149,6 +149,43 @@ impl std::fmt::Debug for AudioCmd {
     }
 }
 
+/// A WASAPI-exclusive "flap storm" (#322) is this many `DeviceNotAvailable`
+/// rebuilds within [`EXCLUSIVE_FLAP_WINDOW`]. Some onboard codecs (Realtek)
+/// reset the device right after an exclusive grab, so every re-engage
+/// re-triggers the reset and the engine thrashes forever.
+const EXCLUSIVE_FLAP_THRESHOLD: u32 = 3;
+/// Time window over which [`EXCLUSIVE_FLAP_THRESHOLD`] flaps trip the
+/// session-level exclusive suppression.
+const EXCLUSIVE_FLAP_WINDOW: Duration = Duration::from_secs(12);
+
+/// Rolling counter of exclusive-mode device flaps, behind
+/// [`AudioEngine::try_rebuild_after_device_error`].
+#[derive(Default)]
+struct FlapWindow {
+    count: u32,
+    window_start: Option<Instant>,
+}
+
+impl FlapWindow {
+    /// Record one flap at `now` and report whether it trips the storm
+    /// threshold ([`EXCLUSIVE_FLAP_THRESHOLD`] flaps within
+    /// [`EXCLUSIVE_FLAP_WINDOW`]). A flap outside the current window
+    /// restarts the count at 1. Clock is injected so the logic is
+    /// deterministic under test.
+    fn record(&mut self, now: Instant) -> bool {
+        let within_window = self
+            .window_start
+            .is_some_and(|start| now.duration_since(start) <= EXCLUSIVE_FLAP_WINDOW);
+        if within_window {
+            self.count += 1;
+        } else {
+            self.window_start = Some(now);
+            self.count = 1;
+        }
+        self.count >= EXCLUSIVE_FLAP_THRESHOLD
+    }
+}
+
 /// Handle stored in Tauri state. Cloning an `Arc<AudioEngine>` is cheap.
 ///
 /// The cpal `Stream` is NOT stored here — it lives on a dedicated output
@@ -182,6 +219,16 @@ pub struct AudioEngine {
     /// flap would otherwise queue two concurrent rebuilds that
     /// each interrupt the same track.
     rebuild_in_progress: std::sync::atomic::AtomicBool,
+    /// Session-only kill switch for WASAPI Exclusive after a flap storm
+    /// (#322). Once tripped, every rebuild / hot-swap stays on cpal
+    /// shared regardless of the `wasapi_exclusive` preference, so a
+    /// device that resets on every exclusive grab (Realtek onboard)
+    /// stops thrashing and playback survives. Reset when the user
+    /// re-toggles exclusive or picks a device. Does NOT touch the
+    /// persisted preference — a fresh launch tries exclusive again.
+    exclusive_suppressed: std::sync::atomic::AtomicBool,
+    /// Rolling flap counter feeding [`Self::try_rebuild_after_device_error`].
+    exclusive_flaps: Mutex<FlapWindow>,
     /// Last Web Radio session captured at the boundary of
     /// [`Self::send`] (#230). The three output-rebuild paths
     /// ([`Self::set_output_device`], [`Self::set_wasapi_exclusive`],
@@ -294,6 +341,8 @@ impl AudioEngine {
             wasapi_exclusive: std::sync::atomic::AtomicBool::new(wasapi_exclusive),
             wasapi_exclusive_active: std::sync::atomic::AtomicBool::new(wasapi_exclusive_active),
             rebuild_in_progress: std::sync::atomic::AtomicBool::new(false),
+            exclusive_suppressed: std::sync::atomic::AtomicBool::new(false),
+            exclusive_flaps: Mutex::new(FlapWindow::default()),
             radio_resume: Mutex::new(None),
         })
     }
@@ -442,7 +491,30 @@ impl AudioEngine {
         let _guard = ResetGuard(&self.rebuild_in_progress);
 
         let pinned = self.current_output_device();
-        let exclusive = self.wasapi_exclusive.load(Ordering::Relaxed);
+        let pref_exclusive = self.wasapi_exclusive.load(Ordering::Relaxed);
+
+        // #322: an exclusive-mode flap storm. A device that resets on every
+        // exclusive grab fires DeviceNotAvailable ~300 ms after each
+        // re-engage, so re-opening exclusive here just re-arms the loop.
+        // Count flaps and, past the threshold, give up on exclusive for the
+        // rest of the session so the device settles on shared mode.
+        let mut exclusive =
+            pref_exclusive && !self.exclusive_suppressed.load(Ordering::Relaxed);
+        if exclusive {
+            let tripped = self
+                .exclusive_flaps
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .record(Instant::now());
+            if tripped {
+                self.exclusive_suppressed.store(true, Ordering::Relaxed);
+                exclusive = false;
+                tracing::warn!(
+                    "WASAPI exclusive disabled for this session after repeated device \
+                     flaps; staying on shared mode. Re-enable it in Settings to retry."
+                );
+            }
+        }
 
         tracing::info!(
             device = pinned.as_deref().unwrap_or("<os-default>"),
@@ -454,6 +526,18 @@ impl AudioEngine {
         // shortcut for "same device" because the device is the
         // same — we just need a fresh stream after the OS reset.
         self.force_rebuild_output(pinned, exclusive)
+    }
+
+    /// Clear the #322 session-level exclusive suppression and its flap
+    /// counter. Called when the user explicitly re-toggles WASAPI exclusive
+    /// or switches output device — both are a fresh chance for exclusive to
+    /// work, so a prior flap storm shouldn't keep it pinned to shared.
+    fn reset_exclusive_suppression(&self) {
+        self.exclusive_suppressed
+            .store(false, std::sync::atomic::Ordering::Relaxed);
+        if let Ok(mut flaps) = self.exclusive_flaps.lock() {
+            *flaps = FlapWindow::default();
+        }
     }
 
     /// Internal helper: rebuild the output stream against the given
@@ -481,6 +565,29 @@ impl AudioEngine {
             .load(std::sync::atomic::Ordering::Acquire);
         let position_ms = self.shared.current_position_ms();
 
+        // #322: a WASAPI *exclusive* client locks the device entirely — no
+        // other client, exclusive OR shared, can open it until that client
+        // is released. So when the OLD stream is exclusive, spawning the new
+        // one first fails: a new exclusive open hits AUDCLNT_E_DEVICE_IN_USE
+        // (0x8889000A), and even the shared fallback hits "device no longer
+        // available" (both lines seen in the #322 report). Release the old
+        // exclusive stream FIRST, whatever mode we're rebuilding into. This
+        // path only runs after a DeviceNotAvailable error, so the old stream
+        // is already dead — there's no working state to roll back to. When
+        // the old stream is shared we keep the spawn-first order so a failed
+        // spawn can still roll back.
+        let pre_release = guard.as_ref().is_some_and(|h| h.wasapi_exclusive);
+        if pre_release {
+            if was_playing {
+                self.cmd_tx
+                    .send(AudioCmd::Stop)
+                    .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
+            }
+            if let Some(old) = guard.take() {
+                old.stop();
+            }
+        }
+
         let (producer, handle) =
             spawn_output_with_mode(self.shared.clone(), self.app.clone(), device_name, exclusive)?;
 
@@ -492,11 +599,12 @@ impl AudioEngine {
         // leak the thread until process exit. Same pattern as
         // `set_output_device`'s error rollback.
         let send_result = (|| {
-            if was_playing {
+            if was_playing && !pre_release {
                 self.cmd_tx
                     .send(AudioCmd::Stop)
                     .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
             }
+            // No-op when `pre_release` already took the old handle above.
             if let Some(old) = guard.take() {
                 old.stop();
             }
@@ -605,6 +713,10 @@ impl AudioEngine {
         if current == requested {
             return Ok(());
         }
+
+        // A different device may support exclusive fine — clear any #322
+        // flap-storm suppression tied to the previous device.
+        self.reset_exclusive_suppression();
 
         // Snapshot what's playing so we can resume on the new device.
         let was_playing = matches!(
@@ -740,6 +852,10 @@ impl AudioEngine {
         if previous == enabled {
             return Ok(());
         }
+        // An explicit user toggle clears any #322 flap-storm suppression so
+        // re-enabling exclusive actually retries it (and disabling resets
+        // the counter for next time).
+        self.reset_exclusive_suppression();
         // Reuse `set_output_device` with the active device name — the
         // current/requested equality check inside it would short-circuit
         // a same-device call, so go straight to the rebuild path by
@@ -885,6 +1001,47 @@ fn apply_radio_resume_update(
             }
         }
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod flap_window_tests {
+    use super::*;
+
+    // Threshold is 3 within a 12 s window — see the consts under test.
+
+    #[test]
+    fn trips_on_the_threshold_flap_within_window() {
+        let mut w = FlapWindow::default();
+        let t = Instant::now();
+        assert!(!w.record(t)); // 1
+        assert!(!w.record(t + Duration::from_secs(2))); // 2
+        assert!(w.record(t + Duration::from_secs(4))); // 3 → trip
+    }
+
+    #[test]
+    fn resets_when_a_flap_lands_outside_the_window() {
+        let mut w = FlapWindow::default();
+        let t = Instant::now();
+        assert!(!w.record(t)); // 1
+        assert!(!w.record(t + Duration::from_secs(1))); // 2
+        // Past the window → counter restarts, so this does NOT trip.
+        let after = t + EXCLUSIVE_FLAP_WINDOW + Duration::from_secs(1);
+        assert!(!w.record(after)); // 1 (fresh window)
+        assert!(!w.record(after + Duration::from_secs(1))); // 2
+        assert!(w.record(after + Duration::from_secs(2))); // 3 → trip
+    }
+
+    #[test]
+    fn never_trips_for_spaced_out_flaps() {
+        let mut w = FlapWindow::default();
+        let mut t = Instant::now();
+        // Each flap sits just past the previous window, so the count keeps
+        // restarting at 1 and never reaches the threshold.
+        for _ in 0..6 {
+            assert!(!w.record(t));
+            t += EXCLUSIVE_FLAP_WINDOW + Duration::from_secs(1);
+        }
     }
 }
 
