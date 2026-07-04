@@ -90,6 +90,23 @@ jobs:
         with:
           ref: ${{ env.TAG_NAME }}
 
+      - name: Sync app version to the release tag
+        shell: bash
+        env:
+          VERSION: ${{ env.VERSION }}
+        # `cut-beta` tags main's HEAD without bumping the manifests, so a beta
+        # build would otherwise report the base stable version (e.g. 1.6.0)
+        # while the published manifest says 1.6.1-beta.1 — the updater would
+        # then re-offer the beta on every check because the installed build
+        # never reaches the manifest version. Patch the app version in
+        # tauri.conf.json (what `package_info().version` / the updater read)
+        # to the tag version. Idempotent for stable releases (release-please
+        # already set it). ONLY tauri.conf.json — bumping Cargo.toml here
+        # would desync Cargo.lock and break the `--locked` build. Node is
+        # pre-installed on every GitHub runner, so no setup is needed yet.
+        run: |
+          node -e "const fs=require('fs'),p='src-tauri/crates/app/tauri.conf.json',c=JSON.parse(fs.readFileSync(p,'utf8'));c.version=process.env.VERSION;fs.writeFileSync(p,JSON.stringify(c,null,2)+'\n');console.log('Patched app version -> '+c.version);"
+
       - name: Install Linux system dependencies
         if: matrix.platform == 'linux'
         run: |
