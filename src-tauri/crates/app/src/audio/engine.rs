@@ -166,6 +166,26 @@ struct FlapWindow {
     window_start: Option<Instant>,
 }
 
+impl FlapWindow {
+    /// Record one flap at `now` and report whether it trips the storm
+    /// threshold ([`EXCLUSIVE_FLAP_THRESHOLD`] flaps within
+    /// [`EXCLUSIVE_FLAP_WINDOW`]). A flap outside the current window
+    /// restarts the count at 1. Clock is injected so the logic is
+    /// deterministic under test.
+    fn record(&mut self, now: Instant) -> bool {
+        let within_window = self
+            .window_start
+            .is_some_and(|start| now.duration_since(start) <= EXCLUSIVE_FLAP_WINDOW);
+        if within_window {
+            self.count += 1;
+        } else {
+            self.window_start = Some(now);
+            self.count = 1;
+        }
+        self.count >= EXCLUSIVE_FLAP_THRESHOLD
+    }
+}
+
 /// Handle stored in Tauri state. Cloning an `Arc<AudioEngine>` is cheap.
 ///
 /// The cpal `Stream` is NOT stored here — it lives on a dedicated output
@@ -481,25 +501,15 @@ impl AudioEngine {
         let mut exclusive =
             pref_exclusive && !self.exclusive_suppressed.load(Ordering::Relaxed);
         if exclusive {
-            let mut flaps = self
+            let tripped = self
                 .exclusive_flaps
                 .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            let now = Instant::now();
-            let within_window = flaps
-                .window_start
-                .is_some_and(|start| now.duration_since(start) <= EXCLUSIVE_FLAP_WINDOW);
-            if within_window {
-                flaps.count += 1;
-            } else {
-                flaps.window_start = Some(now);
-                flaps.count = 1;
-            }
-            if flaps.count >= EXCLUSIVE_FLAP_THRESHOLD {
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .record(Instant::now());
+            if tripped {
                 self.exclusive_suppressed.store(true, Ordering::Relaxed);
                 exclusive = false;
                 tracing::warn!(
-                    flaps = flaps.count,
                     "WASAPI exclusive disabled for this session after repeated device \
                      flaps; staying on shared mode. Re-enable it in Settings to retry."
                 );
@@ -991,6 +1001,47 @@ fn apply_radio_resume_update(
             }
         }
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod flap_window_tests {
+    use super::*;
+
+    // Threshold is 3 within a 12 s window — see the consts under test.
+
+    #[test]
+    fn trips_on_the_threshold_flap_within_window() {
+        let mut w = FlapWindow::default();
+        let t = Instant::now();
+        assert!(!w.record(t)); // 1
+        assert!(!w.record(t + Duration::from_secs(2))); // 2
+        assert!(w.record(t + Duration::from_secs(4))); // 3 → trip
+    }
+
+    #[test]
+    fn resets_when_a_flap_lands_outside_the_window() {
+        let mut w = FlapWindow::default();
+        let t = Instant::now();
+        assert!(!w.record(t)); // 1
+        assert!(!w.record(t + Duration::from_secs(1))); // 2
+        // Past the window → counter restarts, so this does NOT trip.
+        let after = t + EXCLUSIVE_FLAP_WINDOW + Duration::from_secs(1);
+        assert!(!w.record(after)); // 1 (fresh window)
+        assert!(!w.record(after + Duration::from_secs(1))); // 2
+        assert!(w.record(after + Duration::from_secs(2))); // 3 → trip
+    }
+
+    #[test]
+    fn never_trips_for_spaced_out_flaps() {
+        let mut w = FlapWindow::default();
+        let mut t = Instant::now();
+        // Each flap sits just past the previous window, so the count keeps
+        // restarting at 1 and never reaches the threshold.
+        for _ in 0..6 {
+            assert!(!w.record(t));
+            t += EXCLUSIVE_FLAP_WINDOW + Duration::from_secs(1);
+        }
     }
 }
 
