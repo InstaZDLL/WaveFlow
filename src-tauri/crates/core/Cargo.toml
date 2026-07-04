@@ -164,7 +164,7 @@ waveflow-plugin-sdk = { path = "../plugin-sdk", optional = true }
 # them in `plugin::host_impl`. Defaults trimmed: we don't need the
 # pooling allocator, async API, coredump, or addr2line debug-info paths
 # in v1 — sync API + cranelift JIT keeps the bundle bump near 5 MB.
-wasmtime = { version = "45", default-features = false, features = [
+wasmtime = { version = "46", default-features = false, features = [
     "runtime",
     "cranelift",
     "component-model",
@@ -186,7 +186,7 @@ wasmtime = { version = "45", default-features = false, features = [
 # path we actually expose to plugins, the result is "no host
 # resources reachable unless the manifest explicitly asked for
 # them".
-wasmtime-wasi = { version = "45", default-features = false, optional = true }
+wasmtime-wasi = { version = "46", default-features = false, optional = true }
 
 [dev-dependencies]
 # Sandboxed scratch directories for the smart-playlist cover render
