@@ -239,7 +239,18 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           BUNDLES: ${{ matrix.tauri_bundles }}
           TARGET: ${{ matrix.tauri_target }}
+          PLATFORM: ${{ matrix.platform }}
         run: |
+          # WiX/MSI rejects a non-numeric semver pre-release identifier
+          # ("optional pre-release identifier ... must be numeric-only" —
+          # e.g. 1.6.1-beta.1). So beta Windows builds ship the NSIS
+          # installer only: NSIS *is* the updater payload, and the MSI is the
+          # system-wide/corporate installer that the beta channel doesn't
+          # need. Stable releases (numeric version) still build nsis + msi.
+          if [ "$IS_PRERELEASE" = "true" ] && [ "$PLATFORM" = "windows" ]; then
+            BUNDLES="nsis"
+            echo "Pre-release Windows build — NSIS only (MSI/WiX rejects non-numeric pre-release versions)."
+          fi
           # `bun run tauri` routes through `scripts/tauri.mjs`, the
           # wrapper that injects `--config src-tauri/crates/app/tauri.conf.json`
           # after the subcommand. The Tauri CLI can't auto-discover the
@@ -415,13 +426,20 @@ jobs:
           sig_renamed = f"{renamed}.sig"
           shutil.copy2(updater_sig, dist_release / sig_renamed)
 
+          # Beta builds ship NSIS only — WiX/MSI can't take a non-numeric
+          # pre-release version, so the MSI is expected to be absent there.
+          is_prerelease = os.environ.get("IS_PRERELEASE") == "true"
           msi_dir = root / "msi"
           msi_files = sorted(msi_dir.glob("*.msi")) if msi_dir.exists() else []
-          if not msi_files:
+          msi_renamed = None
+          if msi_files:
+              msi_renamed = f"WaveFlow_{version}_windows-x86_64.msi"
+              shutil.copy2(msi_files[0], dist_release / msi_renamed)
+          elif is_prerelease:
+              print("No MSI on the beta channel (NSIS-only Windows build) — skipping.")
+          else:
               print("::error::No MSI produced under bundle/msi/", file=sys.stderr)
               sys.exit(1)
-          msi_renamed = f"WaveFlow_{version}_windows-x86_64.msi"
-          shutil.copy2(msi_files[0], dist_release / msi_renamed)
 
           signature = updater_sig.read_text(encoding="utf-8").strip()
           download_url = f"https://github.com/{repo}/releases/download/{tag_name}/{renamed}"
@@ -442,7 +460,7 @@ jobs:
           )
           print(json.dumps({
               "nsis_setup": renamed,
-              "msi": f"WaveFlow_{version}_windows-x86_64.msi",
+              "msi": msi_renamed,
               "updater_sig": sig_renamed,
           }, indent=2))
           PY
