@@ -72,9 +72,9 @@ function MotionCacheOption() {
   }, []);
 
   const onToggle = useCallback(async () => {
-    // Serialise writes: ignore clicks while a set is in flight so two rapid
-    // toggles can't race into out-of-order backend writes.
-    if (saving) return;
+    // Serialise against BOTH the toggle write and the clear op — ignore clicks
+    // while either is in flight so a set + clear (or two sets) can't overlap.
+    if (saving || busy) return;
     const next = !enabled;
     setSaving(true);
     setEnabled(next); // optimistic
@@ -87,9 +87,11 @@ function MotionCacheOption() {
     } finally {
       setSaving(false);
     }
-  }, [enabled, saving]);
+  }, [enabled, saving, busy]);
 
   const onClear = useCallback(async () => {
+    // Don't start a clear while a toggle write (or another clear) is pending.
+    if (saving || busy) return;
     if (!confirmingClear) {
       setConfirmingClear(true);
       return;
@@ -107,7 +109,7 @@ function MotionCacheOption() {
       setBusy(false);
       setConfirmingClear(false);
     }
-  }, [confirmingClear]);
+  }, [confirmingClear, saving, busy]);
 
   return (
     <div>
@@ -137,7 +139,7 @@ function MotionCacheOption() {
           type="button"
           role="switch"
           aria-checked={enabled}
-          disabled={loading || saving}
+          disabled={loading || saving || busy}
           onClick={onToggle}
           className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:opacity-50 ${
             enabled ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700"
@@ -161,7 +163,7 @@ function MotionCacheOption() {
         <button
           type="button"
           onClick={onClear}
-          disabled={busy || (fileCount === 0 && !confirmingClear)}
+          disabled={saving || busy || (fileCount === 0 && !confirmingClear)}
           className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded disabled:opacity-40 disabled:hover:bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
         >
           <Trash2 size={14} aria-hidden="true" />

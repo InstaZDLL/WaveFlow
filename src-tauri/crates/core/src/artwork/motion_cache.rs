@@ -75,14 +75,15 @@ fn is_internal_ip(ip: IpAddr) -> bool {
     match ip {
         IpAddr::V4(v4) => is_internal_v4(v4),
         IpAddr::V6(v6) => {
-            // An IPv4-mapped address (`::ffff:127.0.0.1`) reaches the same v4
-            // host, so run the v4 checks on the mapped form first — otherwise
-            // the prefix logic below would wave it through.
-            if let Some(v4) = v6.to_ipv4_mapped() {
-                return is_internal_v4(v4);
-            }
             if v6.is_loopback() || v6.is_unspecified() {
                 return true;
+            }
+            // Both IPv4-mapped (`::ffff:a.b.c.d`) and the deprecated
+            // IPv4-compatible (`::a.b.c.d`) forms reach the same v4 host, so
+            // classify via the v4 rules — `to_ipv4()` covers both (unlike
+            // `to_ipv4_mapped()`, which only handles the mapped form).
+            if let Some(v4) = v6.to_ipv4() {
+                return is_internal_v4(v4);
             }
             let seg = v6.segments()[0];
             // fc00::/7 unique-local, fe80::/10 link-local (is_unique_local /
@@ -293,18 +294,30 @@ mod tests {
         assert!(!is_safe_motion_url("https://172.16.0.1/a.mp4"));
         assert!(!is_safe_motion_url("https://169.254.169.254/latest/meta-data"));
         assert!(!is_safe_motion_url("https://[fd00::1]/a.mp4"));
-        // IPv4-mapped IPv6 must not slip past the v6 branch.
+        // IPv4-mapped (`::ffff:a.b.c.d`) + IPv4-compatible (`::a.b.c.d`) IPv6
+        // must not slip past the v6 branch.
         assert!(!is_safe_motion_url("https://[::ffff:127.0.0.1]/a.mp4"));
         assert!(!is_safe_motion_url("https://[::ffff:10.0.0.1]/a.mp4"));
         assert!(!is_safe_motion_url("https://[::ffff:169.254.169.254]/a.mp4"));
+        assert!(!is_safe_motion_url("https://[::127.0.0.1]/a.mp4"));
+        assert!(!is_safe_motion_url("https://[::192.168.0.1]/a.mp4"));
     }
 
     #[test]
-    fn ipv4_mapped_loopback_is_internal() {
+    fn ipv4_embedded_loopback_is_internal() {
         use std::net::Ipv6Addr;
-        // `::ffff:127.0.0.1` and `::ffff:192.168.0.1` reach internal v4 hosts.
-        assert!(is_internal_ip("::ffff:127.0.0.1".parse::<Ipv6Addr>().unwrap().into()));
-        assert!(is_internal_ip("::ffff:192.168.0.1".parse::<Ipv6Addr>().unwrap().into()));
+        let internal = [
+            "::ffff:127.0.0.1", // mapped loopback
+            "::ffff:192.168.0.1", // mapped private
+            "::127.0.0.1",      // compatible loopback
+            "::192.168.0.1",    // compatible private
+        ];
+        for s in internal {
+            assert!(
+                is_internal_ip(s.parse::<Ipv6Addr>().unwrap().into()),
+                "{s} should be classified internal"
+            );
+        }
         // A genuine global v6 address is not internal.
         assert!(!is_internal_ip("2606:4700:4700::1111".parse::<Ipv6Addr>().unwrap().into()));
     }
