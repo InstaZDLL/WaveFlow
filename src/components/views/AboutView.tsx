@@ -273,17 +273,26 @@ export function AboutView({ onNavigate }: AboutViewProps) {
           <div className="flex items-center space-x-2 mb-2">
             <WaveFlowLogo className="w-8 h-8" />
             <h2 className="text-3xl font-black">
-              Wave<span className="text-emerald-600 dark:text-emerald-400">Flow</span>
+              Wave
+              <span className="text-emerald-600 dark:text-emerald-400">
+                Flow
+              </span>
             </h2>
           </div>
-          <p className="text-zinc-600 dark:text-zinc-400 mb-4">{t("about.hero.subtitle")}</p>
+          <p className="text-zinc-600 dark:text-zinc-400 mb-4">
+            {t("about.hero.subtitle")}
+          </p>
           <div className="flex items-center space-x-3 mb-4">
             <span className="bg-emerald-500 text-white text-xs px-2.5 py-1 rounded-full font-semibold">
               v{version}
             </span>
-            <span className="text-zinc-600 dark:text-zinc-500 text-sm">2026</span>
+            <span className="text-zinc-600 dark:text-zinc-500 text-sm">
+              2026
+            </span>
             <span className="text-zinc-400 dark:text-zinc-600">·</span>
-            <span className="text-zinc-600 dark:text-zinc-500 text-sm">GPL-3.0 License</span>
+            <span className="text-zinc-600 dark:text-zinc-500 text-sm">
+              GPL-3.0 License
+            </span>
           </div>
           <button
             type="button"
@@ -294,7 +303,9 @@ export function AboutView({ onNavigate }: AboutViewProps) {
           </button>
           <p className="text-xs text-zinc-600 dark:text-zinc-500 mt-4">
             {t("about.hero.developedBy")}{" "}
-            <span className="font-semibold text-zinc-800 dark:text-zinc-300">WaveFlow Team</span>
+            <span className="font-semibold text-zinc-800 dark:text-zinc-300">
+              WaveFlow Team
+            </span>
           </p>
         </div>
       </div>

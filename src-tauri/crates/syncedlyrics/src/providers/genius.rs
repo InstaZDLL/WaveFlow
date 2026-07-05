@@ -19,8 +19,7 @@ pub async fn search(
     if let Some(cookie) = cookie {
         req = req.header(reqwest::header::COOKIE, cookie);
     }
-    let response: Value =
-        safe_json(req.send().await?.error_for_status()?).await?;
+    let response: Value = safe_json(req.send().await?.error_for_status()?).await?;
     // The multi-search response groups results into sections (song, lyric,
     // artist, album…) and the order is not contractual, so we can't index a
     // fixed slot. Prefer the dedicated "song" section, then fall back to the
@@ -130,9 +129,7 @@ fn strip_genius_header(text: &str) -> String {
         .match_indices(lyrics_token)
         .find(|(i, _)| {
             let tail = &after_contrib[i + lyrics_token.len()..];
-            tail.is_empty()
-                || tail.starts_with('\n')
-                || tail.starts_with('\r')
+            tail.is_empty() || tail.starts_with('\n') || tail.starts_with('\r')
         })
         .map(|(i, _)| i);
     let Some(lyrics_idx) = lyrics_idx else {
@@ -224,10 +221,7 @@ mod tests {
         // by a newline or end-of-string — that's the shape we anchor
         // on.
         let input = "4 ContributorsNo Lyrics Needed Lyrics\n[Verse]\nReal body";
-        assert_eq!(
-            strip_genius_header(input),
-            "[Verse]\nReal body".to_string()
-        );
+        assert_eq!(strip_genius_header(input), "[Verse]\nReal body".to_string());
     }
 
     #[test]
@@ -252,9 +246,6 @@ mod tests {
         // the singular form too, otherwise a 1-transcriber song
         // ships the bare header to the user verbatim.
         let input = "1 ContributorSomething Lyrics\n[Intro]\nReal body";
-        assert_eq!(
-            strip_genius_header(input),
-            "[Intro]\nReal body".to_string()
-        );
+        assert_eq!(strip_genius_header(input), "[Intro]\nReal body".to_string());
     }
 }

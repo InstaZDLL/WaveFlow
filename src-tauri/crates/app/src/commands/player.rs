@@ -1811,8 +1811,7 @@ pub async fn player_play_url(
         "player_play_url invoked"
     );
 
-    let parsed = url::Url::parse(&url)
-        .map_err(|e| AppError::Other(format!("invalid url: {e}")))?;
+    let parsed = url::Url::parse(&url).map_err(|e| AppError::Other(format!("invalid url: {e}")))?;
     match parsed.scheme() {
         "http" | "https" => {}
         other => return Err(AppError::Other(format!("unsupported scheme: {other}"))),

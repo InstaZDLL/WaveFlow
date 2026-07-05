@@ -105,10 +105,12 @@ impl HostPermissions {
                 })?;
                 builder.add(glob);
             }
-            let set = builder.build().map_err(|source| HostError::InvalidPattern {
-                pattern: "<set>".into(),
-                source,
-            })?;
+            let set = builder
+                .build()
+                .map_err(|source| HostError::InvalidPattern {
+                    pattern: "<set>".into(),
+                    source,
+                })?;
             Some(set)
         };
         Ok(Self {
@@ -456,11 +458,7 @@ impl wit_host::storage::Host for HostCtx {
         }
     }
 
-    fn write_state(
-        &mut self,
-        key: String,
-        value: Vec<u8>,
-    ) -> wasmtime::Result<Result<(), String>> {
+    fn write_state(&mut self, key: String, value: Vec<u8>) -> wasmtime::Result<Result<(), String>> {
         if !self.permissions.storage_state {
             return Ok(Err("permission denied: storage.state".into()));
         }
@@ -482,9 +480,7 @@ impl wit_host::storage::Host for HostCtx {
 /// CAN split the import state across multiple types; we don't need
 /// that flexibility and `HasSelf` is the canonical "everything lives
 /// on the Store data" knob.
-pub fn add_to_linker(
-    linker: &mut wasmtime::component::Linker<HostCtx>,
-) -> wasmtime::Result<()> {
+pub fn add_to_linker(linker: &mut wasmtime::component::Linker<HostCtx>) -> wasmtime::Result<()> {
     use wasmtime::component::HasSelf;
     wit_host::http::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
     wit_host::log::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
@@ -495,7 +491,7 @@ pub fn add_to_linker(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::plugin::manifest::{PluginMetadata, Permissions};
+    use crate::plugin::manifest::{Permissions, PluginMetadata};
 
     fn manifest_with_permissions(permissions: Permissions) -> Manifest {
         Manifest {
@@ -564,9 +560,7 @@ mod tests {
     fn state_store_rejects_quota_overflow() {
         let tmp = tempfile::tempdir().expect("tempdir");
         let store = StateStore::new(tmp.path().join("plugin-x"), 1024);
-        store
-            .write("a", &vec![0u8; 600])
-            .expect("first write fits");
+        store.write("a", &vec![0u8; 600]).expect("first write fits");
         match store.write("b", &vec![0u8; 600]) {
             Ok(()) => panic!("expected quota error"),
             Err(HostError::QuotaExceeded { would_use, cap }) => {
@@ -589,9 +583,7 @@ mod tests {
         // Overwriting `one` with another 800-byte payload should
         // leave usage at 800, not 1600 — the quota check must
         // exclude the file being replaced.
-        store
-            .write("one", &vec![1u8; 800])
-            .expect("overwrite fits");
+        store.write("one", &vec![1u8; 800]).expect("overwrite fits");
         assert_eq!(store.used_bytes().expect("usage"), 800);
     }
 
@@ -604,8 +596,8 @@ mod tests {
         // gets. The WIT contract pins permission ahead of the
         // network dispatch, not ahead of host-state short-circuits
         // — both gates still fire before any actual `builder.send()`.
-        use crate::plugin::runtime::HostCtx;
         use crate::plugin::bindings::source::waveflow::host::http::{Host, Request};
+        use crate::plugin::runtime::HostCtx;
         use std::sync::Arc;
 
         let tmp = tempfile::tempdir().expect("tempdir");
@@ -639,8 +631,8 @@ mod tests {
         // empty 503 response synthesised by the offline branch,
         // verifiable by `Vec::is_empty()` on the body without
         // depending on what `example.com` would actually serve.
-        use crate::plugin::runtime::HostCtx;
         use crate::plugin::bindings::source::waveflow::host::http::{Host, Request};
+        use crate::plugin::runtime::HostCtx;
         use std::sync::Arc;
 
         let tmp = tempfile::tempdir().expect("tempdir");

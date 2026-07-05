@@ -97,17 +97,17 @@ We diverge from LRCLIB in three respects:
 
 - **Multi-entity, not lyrics-only.** Schema accommodates lyrics, bios, covers, BPM, key, year. Same vote primitive, same lookup primitive, different `payload_kind`.
 - **Federated mirrors.** LRCLIB is one canonical server. We let any operator run one. v1 ships single-mirror; v2 lets you point at multiple and merge.
-- **Self-host first.** LRCLIB users hit lrclib.net by default. WaveFlow users hit *their* `waveflow-server`, which may or may not have a public mirror configured.
+- **Self-host first.** LRCLIB users hit lrclib.net by default. WaveFlow users hit _their_ `waveflow-server`, which may or may not have a public mirror configured.
 
 ### 5.2 Opt-in granularity
 
 A single `app_setting['community.contribute']` boolean is too coarse. We use three knobs:
 
-| Setting key                              | Default | Effect                                                                                       |
-| ---------------------------------------- | ------- | -------------------------------------------------------------------------------------------- |
-| `app_setting['community.lookup_enabled']`   | `true`  | Whether to consult community DB in the fallback chain. Read-only access, no identity leaked. |
-| `app_setting['community.contribute_enabled']` | `false` | Whether to push corrections + new entries upstream. Default off — explicit opt-in.            |
-| `app_setting['community.mirror_url']`     | `null`  | The URL of the public mirror to pull from. `null` = no upstream (private pool only).         |
+| Setting key                                   | Default | Effect                                                                                       |
+| --------------------------------------------- | ------- | -------------------------------------------------------------------------------------------- |
+| `app_setting['community.lookup_enabled']`     | `true`  | Whether to consult community DB in the fallback chain. Read-only access, no identity leaked. |
+| `app_setting['community.contribute_enabled']` | `false` | Whether to push corrections + new entries upstream. Default off — explicit opt-in.           |
+| `app_setting['community.mirror_url']`         | `null`  | The URL of the public mirror to pull from. `null` = no upstream (private pool only).         |
 
 The desktop UI surfaces the three as a Settings → Community section. The default deployment is **lookup enabled, contribute disabled, mirror unset** — i.e. nothing changes for a user who doesn't touch the settings, and the community DB simply has no data to return.
 
@@ -129,13 +129,13 @@ Lowercase before hashing because case is a font choice, not a music-identity cho
 
 Each contribution declares its `payload_kind`. v1 ships five kinds:
 
-| `payload_kind`     | Entity key kind | Payload shape                                                                                                  |
-| ------------------ | --------------- | -------------------------------------------------------------------------------------------------------------- |
-| `lyrics_plain`     | track           | `{ text: string, language?: ISO-639-1 }`                                                                       |
-| `lyrics_synced`    | track           | `{ format: 'lrc' \| 'enhanced_lrc' \| 'ttml', content: string, language?: ISO-639-1 }`                          |
-| `artist_bio`       | artist          | `{ language: ISO-639-1, short: string (≤ 280 chars), long?: string (≤ 4000 chars) }`                          |
-| `album_metadata`   | album           | `{ release_date?: 'YYYY-MM-DD', label?: string, genre?: string, total_tracks?: int }` (each field independently votable) |
-| `audio_features`   | track           | `{ bpm?: number, musical_key?: string (Camelot), tempo_confidence?: number, energy?: number, valence?: number }` (numeric, same shape the local analyser emits) |
+| `payload_kind`   | Entity key kind | Payload shape                                                                                                                                                   |
+| ---------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lyrics_plain`   | track           | `{ text: string, language?: ISO-639-1 }`                                                                                                                        |
+| `lyrics_synced`  | track           | `{ format: 'lrc' \| 'enhanced_lrc' \| 'ttml', content: string, language?: ISO-639-1 }`                                                                          |
+| `artist_bio`     | artist          | `{ language: ISO-639-1, short: string (≤ 280 chars), long?: string (≤ 4000 chars) }`                                                                            |
+| `album_metadata` | album           | `{ release_date?: 'YYYY-MM-DD', label?: string, genre?: string, total_tracks?: int }` (each field independently votable)                                        |
+| `audio_features` | track           | `{ bpm?: number, musical_key?: string (Camelot), tempo_confidence?: number, energy?: number, valence?: number }` (numeric, same shape the local analyser emits) |
 
 **`cover_art` is a product goal but out of scope for v1 (planned v2).** It lands as a sixth `payload_kind` (upload-via-artwork-pipeline as a separate hash, with the contribution pointing at the artwork hash so we reuse RFC-001's existing pipeline). Deferred so the moderation surface stays small for the first ship — community-contributed bitmap content needs its own review pass (legal review for embedded photos, takedown flow) that the text-only kinds don't.
 
@@ -424,12 +424,12 @@ The five locked decisions stay in §5 (as §5.7–§5.11) so future readers see 
 
 Implementation is gated by 1.5.0 cut (per the post-1.g sprint plan). Once 1.5.0 lands, three sub-phases:
 
-| Phase    | Scope                                                                                                                |
-| -------- | -------------------------------------------------------------------------------------------------------------------- |
-| **2.a**  | Server schema + endpoints (`/lookup`, `/contribute`, `/vote`). No moderation queue yet, no client integration.        |
-| **2.b**  | Desktop integration: add community DB to the fallback chain for lyrics + artist bios. Settings → Community panel.    |
-| **2.c**  | Moderation queue + moderator role + invalidation flow. Audio features + album metadata payload kinds.                 |
-| **2.d**  | Federated pulls (one mirror at a time). Cover-art payload kind via the artwork pipeline. UI for switching versions. |
+| Phase   | Scope                                                                                                               |
+| ------- | ------------------------------------------------------------------------------------------------------------------- |
+| **2.a** | Server schema + endpoints (`/lookup`, `/contribute`, `/vote`). No moderation queue yet, no client integration.      |
+| **2.b** | Desktop integration: add community DB to the fallback chain for lyrics + artist bios. Settings → Community panel.   |
+| **2.c** | Moderation queue + moderator role + invalidation flow. Audio features + album metadata payload kinds.               |
+| **2.d** | Federated pulls (one mirror at a time). Cover-art payload kind via the artwork pipeline. UI for switching versions. |
 
 Each is its own PR series; no big bang. Phase 2.a is the smallest viable thing (read + write + vote, lyrics only) that LRCLIB-style services have shown sufficient.
 

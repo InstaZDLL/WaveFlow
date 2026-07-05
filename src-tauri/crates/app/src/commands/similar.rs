@@ -239,18 +239,20 @@ async fn fetch_custom_similar(
         .into_iter()
         .take(RESULT_LIMIT)
         .enumerate()
-        .map(|(i, (id, name, picture_url, picture_hash))| SimilarArtistDto {
-            name,
-            // Synthesize a decreasing score from the curated order so
-            // the UI sorts these the same way it sorts online results.
-            match_score: 1.0 - (i as f32) / n,
-            picture_path: picture_hash
-                .as_deref()
-                .and_then(|h| metadata_artwork::existing_path(artwork_dir, h)),
-            picture_url,
-            library_artist_id: Some(id),
-            source: "custom".into(),
-        })
+        .map(
+            |(i, (id, name, picture_url, picture_hash))| SimilarArtistDto {
+                name,
+                // Synthesize a decreasing score from the curated order so
+                // the UI sorts these the same way it sorts online results.
+                match_score: 1.0 - (i as f32) / n,
+                picture_path: picture_hash
+                    .as_deref()
+                    .and_then(|h| metadata_artwork::existing_path(artwork_dir, h)),
+                picture_url,
+                library_artist_id: Some(id),
+                source: "custom".into(),
+            },
+        )
         .collect();
     Ok(out)
 }

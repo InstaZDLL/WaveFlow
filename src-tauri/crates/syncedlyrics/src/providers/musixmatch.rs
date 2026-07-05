@@ -600,14 +600,9 @@ mod redact_tests {
         // use `Debug` rather than `Display`. The `without_url()`
         // strip must hold there too.
         let url = "https://musixmatch-token-redact-test.invalid/track.search".to_string();
-        let err = redacted_get(
-            &client(),
-            url,
-            &[("usertoken", SECRET)],
-            "test endpoint",
-        )
-        .await
-        .expect_err("DNS for .invalid must fail");
+        let err = redacted_get(&client(), url, &[("usertoken", SECRET)], "test endpoint")
+            .await
+            .expect_err("DNS for .invalid must fail");
         let rendered = format!("{err:?}");
         assert!(
             !rendered.contains(SECRET),

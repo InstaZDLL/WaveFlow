@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Puzzle, Trash2, Globe, Database, FileText, Package } from "lucide-react";
+import {
+  Puzzle,
+  Trash2,
+  Globe,
+  Database,
+  FileText,
+  Package,
+} from "lucide-react";
 
 import {
   listInstalledPlugins,
@@ -70,48 +77,40 @@ export function PluginsCard() {
     };
   }, []);
 
-  const onToggle = useCallback(
-    async (plugin: PluginInfo) => {
-      setBusyId(plugin.id);
-      // Optimistic flip — revert on backend error.
+  const onToggle = useCallback(async (plugin: PluginInfo) => {
+    setBusyId(plugin.id);
+    // Optimistic flip — revert on backend error.
+    setPlugins((prev) =>
+      prev.map((p) => (p.id === plugin.id ? { ...p, enabled: !p.enabled } : p)),
+    );
+    try {
+      await setPluginEnabled(plugin.id, !plugin.enabled);
+      notifyAvailabilityChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
       setPlugins((prev) =>
         prev.map((p) =>
-          p.id === plugin.id ? { ...p, enabled: !p.enabled } : p,
+          p.id === plugin.id ? { ...p, enabled: plugin.enabled } : p,
         ),
       );
-      try {
-        await setPluginEnabled(plugin.id, !plugin.enabled);
-        notifyAvailabilityChanged();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-        setPlugins((prev) =>
-          prev.map((p) =>
-            p.id === plugin.id ? { ...p, enabled: plugin.enabled } : p,
-          ),
-        );
-      } finally {
-        setBusyId(null);
-      }
-    },
-    [],
-  );
+    } finally {
+      setBusyId(null);
+    }
+  }, []);
 
-  const onUninstall = useCallback(
-    async (pluginId: string) => {
-      setBusyId(pluginId);
-      try {
-        await uninstallPlugin(pluginId);
-        setPlugins((prev) => prev.filter((p) => p.id !== pluginId));
-        setConfirmingUninstall(null);
-        notifyAvailabilityChanged();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-      } finally {
-        setBusyId(null);
-      }
-    },
-    [],
-  );
+  const onUninstall = useCallback(async (pluginId: string) => {
+    setBusyId(pluginId);
+    try {
+      await uninstallPlugin(pluginId);
+      setPlugins((prev) => prev.filter((p) => p.id !== pluginId));
+      setConfirmingUninstall(null);
+      notifyAvailabilityChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusyId(null);
+    }
+  }, []);
 
   return (
     <section
@@ -183,7 +182,9 @@ export function PluginsCard() {
                       <WorldBadge world={plugin.world} />
                     </div>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
-                      {t("settings.plugins.byAuthor", { author: plugin.author })}
+                      {t("settings.plugins.byAuthor", {
+                        author: plugin.author,
+                      })}
                     </div>
                     {plugin.description && (
                       <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 leading-relaxed">

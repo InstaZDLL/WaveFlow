@@ -97,7 +97,10 @@ pub struct HlcPair {
 }
 
 impl HlcPair {
-    pub const ZERO: Self = Self { wall: 0, logical: 0 };
+    pub const ZERO: Self = Self {
+        wall: 0,
+        logical: 0,
+    };
 }
 
 /// Draw the next `(wall, logical)` pair on a fresh pool connection.
@@ -207,11 +210,7 @@ async fn read_pair_conn(conn: &mut SqliteConnection) -> AppResult<HlcPair> {
     Ok(HlcPair { wall, logical })
 }
 
-async fn write_pair_conn(
-    conn: &mut SqliteConnection,
-    wall: i64,
-    logical: i32,
-) -> AppResult<()> {
+async fn write_pair_conn(conn: &mut SqliteConnection, wall: i64, logical: i32) -> AppResult<()> {
     // RFC-003 §2 requires the pair to be observed as a unit by any
     // reader. Two bare UPSERTs auto-commit independently in
     // autocommit mode — a concurrent reader on a sibling
@@ -367,7 +366,9 @@ mod tests {
         // Plant a future wall so `now_ms()` can't overtake it and
         // force the draw down the "bump logical" branch.
         let future_wall = now_ms() + 10_000;
-        write_pair_conn(&mut conn, future_wall, i32::MAX).await.unwrap();
+        write_pair_conn(&mut conn, future_wall, i32::MAX)
+            .await
+            .unwrap();
         let err = next_conn(&mut conn).await.unwrap_err();
         let s = format!("{err}");
         assert!(
@@ -401,7 +402,10 @@ mod tests {
         let pool = pool().await;
         let mut conn = pool.acquire().await.unwrap();
         let local = next_conn(&mut conn).await.unwrap();
-        let stale = HlcPair { wall: 1, logical: 0 };
+        let stale = HlcPair {
+            wall: 1,
+            logical: 0,
+        };
         observe_remote_conn(&mut conn, stale).await.unwrap();
         let after = read_pair_conn(&mut conn).await.unwrap();
         // Local stays put.

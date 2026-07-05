@@ -327,9 +327,7 @@ export function LyricsPanel() {
                     title={t("lyrics.source.pickerHint")}
                     className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 truncate"
                   >
-                    <span className="truncate">
-                      {sourceLabel(payload, t)}
-                    </span>
+                    <span className="truncate">{sourceLabel(payload, t)}</span>
                     <ChevronDown size={11} className="shrink-0" />
                   </button>
                 ) : (

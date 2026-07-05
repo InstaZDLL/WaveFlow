@@ -221,7 +221,9 @@ pub async fn update_library(
         let fields = crate::sync::payload::library::fields_from_row(&mut tx, library_id)
             .await?
             .ok_or_else(|| {
-                AppError::Other(format!("library {library_id} vanished mid-update transaction"))
+                AppError::Other(format!(
+                    "library {library_id} vanished mid-update transaction"
+                ))
             })?;
         crate::sync::payload::library::stamp_in_tx(&mut tx, library_id, fields, stamp).await?;
     }

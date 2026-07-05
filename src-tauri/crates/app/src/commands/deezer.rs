@@ -25,9 +25,7 @@ use waveflow_core::metadata::{
 };
 
 use crate::{
-    commands::integration::{
-        read_bio_language, read_bio_source, read_lastfm_api_key, BioSource,
-    },
+    commands::integration::{read_bio_language, read_bio_source, read_lastfm_api_key, BioSource},
     error::{AppError, AppResult},
     metadata_artwork,
     state::AppState,

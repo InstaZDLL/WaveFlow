@@ -30,7 +30,11 @@ export function SkinMotionWrapper({ children }: { children: ReactNode }) {
       damping: skin.motion.springDamping,
       duration: skin.motion.duration,
     }),
-    [skin.motion.springStiffness, skin.motion.springDamping, skin.motion.duration],
+    [
+      skin.motion.springStiffness,
+      skin.motion.springDamping,
+      skin.motion.duration,
+    ],
   );
   return <MotionConfig transition={transition}>{children}</MotionConfig>;
 }

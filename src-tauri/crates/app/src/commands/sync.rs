@@ -315,9 +315,7 @@ pub async fn sync_digest_check(
 /// Read the per-profile auto-backfill enabled flag. Settings UI
 /// reads this to render the toggle state on mount.
 #[tauri::command]
-pub async fn sync_backfill_get_enabled(
-    state: tauri::State<'_, AppState>,
-) -> AppResult<bool> {
+pub async fn sync_backfill_get_enabled(state: tauri::State<'_, AppState>) -> AppResult<bool> {
     let pool = state.require_profile_pool().await?;
     backfill::read_auto_enabled(&pool).await
 }

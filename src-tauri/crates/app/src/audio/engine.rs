@@ -137,12 +137,9 @@ impl std::fmt::Debug for AudioCmd {
             AudioCmd::SetNextTrack { track_id, .. } => {
                 write!(f, "SetNextTrack {{ track_id: {track_id} }}")
             }
-            AudioCmd::LoadUrlAndPlay {
-                url, track_id, ..
-            } => write!(
-                f,
-                "LoadUrlAndPlay {{ track_id: {track_id}, url: {url} }}"
-            ),
+            AudioCmd::LoadUrlAndPlay { url, track_id, .. } => {
+                write!(f, "LoadUrlAndPlay {{ track_id: {track_id}, url: {url} }}")
+            }
             AudioCmd::SwapProducer(_) => write!(f, "SwapProducer(<producer>)"),
             AudioCmd::Shutdown => write!(f, "Shutdown"),
         }
@@ -473,9 +470,7 @@ impl AudioEngine {
         // previous value, so a `true` here means somebody else is
         // already rebuilding — bail without disturbing them.
         if self.rebuild_in_progress.swap(true, Ordering::AcqRel) {
-            tracing::debug!(
-                "device-error rebuild already in flight; skipping concurrent trigger"
-            );
+            tracing::debug!("device-error rebuild already in flight; skipping concurrent trigger");
             return Ok(());
         }
 
@@ -498,8 +493,7 @@ impl AudioEngine {
         // re-engage, so re-opening exclusive here just re-arms the loop.
         // Count flaps and, past the threshold, give up on exclusive for the
         // rest of the session so the device settles on shared mode.
-        let mut exclusive =
-            pref_exclusive && !self.exclusive_suppressed.load(Ordering::Relaxed);
+        let mut exclusive = pref_exclusive && !self.exclusive_suppressed.load(Ordering::Relaxed);
         if exclusive {
             let tripped = self
                 .exclusive_flaps
@@ -545,11 +539,7 @@ impl AudioEngine {
     /// no-op check. Shared by [`Self::try_rebuild_after_device_error`]
     /// and (in the future) any other "rebuild without changing the
     /// user preference" path.
-    fn force_rebuild_output(
-        &self,
-        device_name: Option<String>,
-        exclusive: bool,
-    ) -> AppResult<()> {
+    fn force_rebuild_output(&self, device_name: Option<String>, exclusive: bool) -> AppResult<()> {
         let mut guard = self
             .output
             .lock()
@@ -588,8 +578,12 @@ impl AudioEngine {
             }
         }
 
-        let (producer, handle) =
-            spawn_output_with_mode(self.shared.clone(), self.app.clone(), device_name, exclusive)?;
+        let (producer, handle) = spawn_output_with_mode(
+            self.shared.clone(),
+            self.app.clone(),
+            device_name,
+            exclusive,
+        )?;
 
         // The freshly-spawned `handle` owns a live cpal output
         // thread. If either send below fails (decoder dead, channel
@@ -632,16 +626,14 @@ impl AudioEngine {
         if was_playing {
             if track_id < 0 {
                 if let Some(state) = self.snapshot_radio_resume() {
-                    let _ = self
-                        .cmd_tx
-                        .send(AudioCmd::LoadUrlAndPlay {
-                            url: state.url,
-                            ext_hint: state.ext_hint,
-                            track_id: state.track_id,
-                            title: state.title,
-                            artist: state.artist,
-                            artwork_url: state.artwork_url,
-                        });
+                    let _ = self.cmd_tx.send(AudioCmd::LoadUrlAndPlay {
+                        url: state.url,
+                        ext_hint: state.ext_hint,
+                        track_id: state.track_id,
+                        title: state.title,
+                        artist: state.artist,
+                        artwork_url: state.artwork_url,
+                    });
                 }
             } else if track_id > 0 {
                 let app = self.app.clone();
@@ -788,16 +780,14 @@ impl AudioEngine {
         if was_playing {
             if track_id < 0 {
                 if let Some(state) = self.snapshot_radio_resume() {
-                    let _ = self
-                        .cmd_tx
-                        .send(AudioCmd::LoadUrlAndPlay {
-                            url: state.url,
-                            ext_hint: state.ext_hint,
-                            track_id: state.track_id,
-                            title: state.title,
-                            artist: state.artist,
-                            artwork_url: state.artwork_url,
-                        });
+                    let _ = self.cmd_tx.send(AudioCmd::LoadUrlAndPlay {
+                        url: state.url,
+                        ext_hint: state.ext_hint,
+                        track_id: state.track_id,
+                        title: state.title,
+                        artist: state.artist,
+                        artwork_url: state.artwork_url,
+                    });
                 }
             } else if track_id > 0 {
                 // Best-effort: pull file path + RG from the active profile
@@ -905,16 +895,14 @@ impl AudioEngine {
         if was_playing {
             if track_id < 0 {
                 if let Some(state) = self.snapshot_radio_resume() {
-                    let _ = self
-                        .cmd_tx
-                        .send(AudioCmd::LoadUrlAndPlay {
-                            url: state.url,
-                            ext_hint: state.ext_hint,
-                            track_id: state.track_id,
-                            title: state.title,
-                            artist: state.artist,
-                            artwork_url: state.artwork_url,
-                        });
+                    let _ = self.cmd_tx.send(AudioCmd::LoadUrlAndPlay {
+                        url: state.url,
+                        ext_hint: state.ext_hint,
+                        track_id: state.track_id,
+                        title: state.title,
+                        artist: state.artist,
+                        artwork_url: state.artwork_url,
+                    });
                 }
             } else if track_id > 0 {
                 let app = self.app.clone();
@@ -971,10 +959,7 @@ impl AudioEngine {
 /// `send` method as a free function so the lifecycle invariant
 /// can be unit-tested without standing up a Tauri [`AppHandle`]
 /// (which the engine itself owns).
-fn apply_radio_resume_update(
-    snapshot: &Mutex<Option<RadioResumeState>>,
-    cmd: &AudioCmd,
-) {
+fn apply_radio_resume_update(snapshot: &Mutex<Option<RadioResumeState>>, cmd: &AudioCmd) {
     match cmd {
         AudioCmd::LoadUrlAndPlay {
             url,
@@ -1025,7 +1010,7 @@ mod flap_window_tests {
         let t = Instant::now();
         assert!(!w.record(t)); // 1
         assert!(!w.record(t + Duration::from_secs(1))); // 2
-        // Past the window → counter restarts, so this does NOT trip.
+                                                        // Past the window → counter restarts, so this does NOT trip.
         let after = t + EXCLUSIVE_FLAP_WINDOW + Duration::from_secs(1);
         assert!(!w.record(after)); // 1 (fresh window)
         assert!(!w.record(after + Duration::from_secs(1))); // 2

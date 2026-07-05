@@ -58,8 +58,11 @@ export function ImmersiveView({
 }: ImmersiveViewProps) {
   const { t } = useTranslation();
   const { currentTrack } = usePlayer();
-  const { mergedLyrics, useNativeFullscreen, loaded: prefsLoaded } =
-    useImmersivePrefs();
+  const {
+    mergedLyrics,
+    useNativeFullscreen,
+    loaded: prefsLoaded,
+  } = useImmersivePrefs();
   const lyrics = useTrackLyrics();
 
   // Escape close + focus trap. Only mounted while open → pass `true`.

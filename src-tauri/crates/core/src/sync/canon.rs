@@ -52,7 +52,10 @@ pub fn i64(map: &mut Map<String, Value>, key: &str, value: i64) {
 
 /// Insert `key → Value::Number(value) | Value::Null`.
 pub fn opt_i64(map: &mut Map<String, Value>, key: &str, value: Option<i64>) {
-    map.insert(key.to_string(), value.map(Value::from).unwrap_or(Value::Null));
+    map.insert(
+        key.to_string(),
+        value.map(Value::from).unwrap_or(Value::Null),
+    );
 }
 
 /// Insert `key → Value::Bool(value)`.
@@ -123,11 +126,7 @@ mod tests {
     #[test]
     fn strings_inserts_array_preserving_order() {
         let mut m = Map::new();
-        strings(
-            &mut m,
-            "artists",
-            &["Tyler".into(), "Earl".into()],
-        );
+        strings(&mut m, "artists", &["Tyler".into(), "Earl".into()]);
         assert_eq!(m.get("artists").unwrap(), &json!(["Tyler", "Earl"]));
         // Distinct from the swap.
         assert_ne!(m.get("artists").unwrap(), &json!(["Earl", "Tyler"]));

@@ -176,10 +176,7 @@ pub mod payload {
     /// No-op — the real impl bumps `metadata_digest_version` so the
     /// digest endpoint observes a state change. With sync off no
     /// digest endpoint reads the table.
-    pub async fn bump_digest_in_tx(
-        _conn: &mut SqliteConnection,
-        _entity: &str,
-    ) -> AppResult<()> {
+    pub async fn bump_digest_in_tx(_conn: &mut SqliteConnection, _entity: &str) -> AppResult<()> {
         Ok(())
     }
 

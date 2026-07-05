@@ -110,74 +110,70 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeProfile?.id]);
 
-  const setThemeId = useCallback(
-    (id: string, event?: ReactMouseEvent) => {
-      const next = findTheme(id);
+  const setThemeId = useCallback((id: string, event?: ReactMouseEvent) => {
+    const next = findTheme(id);
 
-      // Persist BEFORE triggering any animation. Some Linux WebKitGTK
-      // builds crash the webview during startViewTransition on certain
-      // GPU/Wayland stacks (issue #34) — writing first guarantees the
-      // next launch picks up the new theme even if this transition kills
-      // the process.
-      writeCachedTheme(next.id);
-      // DB write is best-effort: a failure logs but doesn't block the
-      // visual swap. localStorage still carries the choice forward.
-      void setProfileSetting(PROFILE_SETTING_KEY, next.id, "string").catch(
-        (err) =>
-          console.warn("[ThemeContext] profile-setting write failed", err),
+    // Persist BEFORE triggering any animation. Some Linux WebKitGTK
+    // builds crash the webview during startViewTransition on certain
+    // GPU/Wayland stacks (issue #34) — writing first guarantees the
+    // next launch picks up the new theme even if this transition kills
+    // the process.
+    writeCachedTheme(next.id);
+    // DB write is best-effort: a failure logs but doesn't block the
+    // visual swap. localStorage still carries the choice forward.
+    void setProfileSetting(PROFILE_SETTING_KEY, next.id, "string").catch(
+      (err) => console.warn("[ThemeContext] profile-setting write failed", err),
+    );
+
+    // Fallback: no View Transitions API support → instant swap.
+    if (typeof document === "undefined" || !document.startViewTransition) {
+      setTheme(next);
+      return;
+    }
+
+    // `startViewTransition` itself can throw synchronously on some
+    // WebKitGTK builds (same family of bugs as the comment above). If
+    // it does, swap the theme without animation so we don't leave the
+    // app desynced (theme id persisted but `setTheme` never called).
+    let transition: ViewTransition;
+    try {
+      transition = document.startViewTransition(() => setTheme(next));
+    } catch {
+      setTheme(next);
+      return;
+    }
+
+    // Radial reveal from the click point if a mouse event was provided
+    // (e.g. clicking a theme card in Settings). Falls back to the
+    // default cross-fade if no event is available.
+    if (event) {
+      const x = event.clientX;
+      const y = event.clientY;
+      const endRadius = Math.hypot(
+        Math.max(x, window.innerWidth - x),
+        Math.max(y, window.innerHeight - y),
       );
-
-      // Fallback: no View Transitions API support → instant swap.
-      if (typeof document === "undefined" || !document.startViewTransition) {
-        setTheme(next);
-        return;
-      }
-
-      // `startViewTransition` itself can throw synchronously on some
-      // WebKitGTK builds (same family of bugs as the comment above). If
-      // it does, swap the theme without animation so we don't leave the
-      // app desynced (theme id persisted but `setTheme` never called).
-      let transition: ViewTransition;
-      try {
-        transition = document.startViewTransition(() => setTheme(next));
-      } catch {
-        setTheme(next);
-        return;
-      }
-
-      // Radial reveal from the click point if a mouse event was provided
-      // (e.g. clicking a theme card in Settings). Falls back to the
-      // default cross-fade if no event is available.
-      if (event) {
-        const x = event.clientX;
-        const y = event.clientY;
-        const endRadius = Math.hypot(
-          Math.max(x, window.innerWidth - x),
-          Math.max(y, window.innerHeight - y),
-        );
-        transition.ready
-          .then(() => {
-            document.documentElement.animate(
-              {
-                clipPath: [
-                  `circle(0px at ${x}px ${y}px)`,
-                  `circle(${endRadius}px at ${x}px ${y}px)`,
-                ],
-              },
-              {
-                duration: 600,
-                easing: "ease-in-out",
-                pseudoElement: "::view-transition-new(root)",
-              },
-            );
-          })
-          .catch(() => {
-            // Animation failed — theme has still swapped via setTheme()
-          });
-      }
-    },
-    [],
-  );
+      transition.ready
+        .then(() => {
+          document.documentElement.animate(
+            {
+              clipPath: [
+                `circle(0px at ${x}px ${y}px)`,
+                `circle(${endRadius}px at ${x}px ${y}px)`,
+              ],
+            },
+            {
+              duration: 600,
+              easing: "ease-in-out",
+              pseudoElement: "::view-transition-new(root)",
+            },
+          );
+        })
+        .catch(() => {
+          // Animation failed — theme has still swapped via setTheme()
+        });
+    }
+  }, []);
 
   const toggleTheme = useCallback(
     (event?: ReactMouseEvent) => {

@@ -83,10 +83,12 @@
   --skin-divider: rgb(228 228 231); /* zinc-200 */
   --skin-grain: none;
 
-  --skin-font-display: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --skin-font-body: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --skin-font-display:
+    "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --skin-font-body:
+    "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
   --skin-heading-weight: 600;
   --skin-display-tracking: -0.011em;
 
@@ -141,7 +143,6 @@
 @import "./styles/skins/lounge.css";
 @import "./styles/skins/pulse.css";
 @import "./styles/skins/liquid.css";
-
 
 /* Theme ambient background. AppLayout's outer wrapper uses
    `bg-app-ambient` (defined as a utility below) so themes can paint

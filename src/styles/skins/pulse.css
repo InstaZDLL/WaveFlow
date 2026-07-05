@@ -31,7 +31,7 @@
   --pulse-ink: rgb(244 244 245);
   --pulse-muted: rgb(160 160 160);
   --pulse-faint: rgb(255 255 255 / 0.4);
-  --pulse-rail: rgb(255 255 255 / 0.10);
+  --pulse-rail: rgb(255 255 255 / 0.1);
   --pulse-rail-soft: rgb(255 255 255 / 0.06);
   --pulse-rail-strong: rgb(255 255 255 / 0.18);
 
@@ -70,12 +70,12 @@
   background-image:
     radial-gradient(
       ellipse at top left,
-      rgb(var(--pulse-magenta-rgb) / 0.10),
+      rgb(var(--pulse-magenta-rgb) / 0.1),
       transparent 38%
     ),
     radial-gradient(
       ellipse at bottom right,
-      rgb(var(--pulse-cyan-rgb) / 0.10),
+      rgb(var(--pulse-cyan-rgb) / 0.1),
       transparent 38%
     );
   pointer-events: none;
@@ -123,7 +123,11 @@
   border-bottom: 1px solid var(--pulse-rail);
 }
 
-:root[data-skin="pulse"] .skin-sidebar-shell > aside > div:first-child > div:first-child {
+:root[data-skin="pulse"]
+  .skin-sidebar-shell
+  > aside
+  > div:first-child
+  > div:first-child {
   gap: 0.75rem;
   margin-bottom: 1.5rem;
   font-family: "Space Grotesk", system-ui, sans-serif;
@@ -133,7 +137,12 @@
   font-size: 0.95rem;
 }
 
-:root[data-skin="pulse"] .skin-sidebar-shell > aside > div:first-child > div:first-child > :first-child {
+:root[data-skin="pulse"]
+  .skin-sidebar-shell
+  > aside
+  > div:first-child
+  > div:first-child
+  > :first-child {
   width: 2rem;
   height: 2rem;
   padding: 0.4rem;
@@ -155,15 +164,29 @@
   transition: all var(--pulse-fast) var(--pulse-spring);
 }
 
-:root[data-skin="pulse"] .skin-sidebar-shell > aside > div:first-child button:hover {
+:root[data-skin="pulse"]
+  .skin-sidebar-shell
+  > aside
+  > div:first-child
+  button:hover {
   border-color: var(--pulse-cyan);
   color: var(--pulse-cyan);
   box-shadow: 0 0 16px -6px rgb(var(--pulse-cyan-rgb) / 0.6);
   transform: translateY(-1px);
 }
 
-:root[data-skin="pulse"] .skin-sidebar-shell > aside > div:first-child button > div:first-child > div:first-child {
-  background-image: linear-gradient(135deg, var(--pulse-magenta), var(--pulse-cyan)) !important;
+:root[data-skin="pulse"]
+  .skin-sidebar-shell
+  > aside
+  > div:first-child
+  button
+  > div:first-child
+  > div:first-child {
+  background-image: linear-gradient(
+    135deg,
+    var(--pulse-magenta),
+    var(--pulse-cyan)
+  ) !important;
   background-color: transparent !important;
   color: var(--pulse-bg) !important;
   border-radius: 9999px;
@@ -173,7 +196,10 @@
 /* Section eyebrows — "/// MY MUSIC", "/// PLAYLISTS". Mono
    font, tracking-widest, with three slashes injected via
    ::before so we don't have to touch every translation file. */
-:root[data-skin="pulse"] .skin-sidebar-shell > aside [class*="uppercase"][class*="tracking"] {
+:root[data-skin="pulse"]
+  .skin-sidebar-shell
+  > aside
+  [class*="uppercase"][class*="tracking"] {
   display: flex !important;
   align-items: center;
   gap: 0.5rem;
@@ -186,7 +212,10 @@
   text-transform: uppercase;
 }
 
-:root[data-skin="pulse"] .skin-sidebar-shell > aside [class*="uppercase"][class*="tracking"]::before {
+:root[data-skin="pulse"]
+  .skin-sidebar-shell
+  > aside
+  [class*="uppercase"][class*="tracking"]::before {
   content: "///";
   color: var(--pulse-magenta);
   font-weight: 700;
@@ -195,7 +224,10 @@
 /* Mono pill nav items. Three states: idle (white text, white/10
    border), hover (cyan halo + lift), active (magenta halo +
    5 % magenta fill). */
-:root[data-skin="pulse"] .skin-sidebar-shell > aside button:where(:has(> div.flex.flex-col)) {
+:root[data-skin="pulse"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:has(> div.flex.flex-col)) {
   padding: 0.55rem 1rem !important;
   margin: 0.25rem 0 !important;
   color: var(--pulse-muted) !important;
@@ -213,15 +245,24 @@
     transform var(--pulse-fast) var(--pulse-spring);
 }
 
-:root[data-skin="pulse"] .skin-sidebar-shell > aside button:where(:has(> div.flex.flex-col)):hover {
+:root[data-skin="pulse"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:has(> div.flex.flex-col)):hover {
   color: var(--pulse-cyan) !important;
   border-color: var(--pulse-cyan) !important;
   box-shadow: 0 0 18px -6px rgb(var(--pulse-cyan-rgb) / 0.5);
   transform: translateY(-1px);
 }
 
-:root[data-skin="pulse"] .skin-sidebar-shell > aside button[class*="bg-emerald"],
-:root[data-skin="pulse"] .skin-sidebar-shell > aside button[aria-pressed="true"] {
+:root[data-skin="pulse"]
+  .skin-sidebar-shell
+  > aside
+  button[class*="bg-emerald"],
+:root[data-skin="pulse"]
+  .skin-sidebar-shell
+  > aside
+  button[aria-pressed="true"] {
   color: var(--pulse-magenta) !important;
   background-color: rgb(var(--pulse-magenta-rgb) / 0.05) !important;
   border-color: var(--pulse-magenta) !important;
@@ -233,14 +274,22 @@
 
 /* SidebarRow + PlaylistSidebarRow — pinned items + real
    playlists. Same pill treatment but no page-counter overhead. */
-:root[data-skin="pulse"] .skin-sidebar-shell > aside button:where(:not(:has(> div.flex.flex-col))):where(:not(:first-child)) {
+:root[data-skin="pulse"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:not(:has(> div.flex.flex-col))):where(:not(:first-child)) {
   border: 1px solid var(--pulse-rail) !important;
   border-radius: 9999px !important;
   background-color: transparent !important;
   transition: all var(--pulse-fast) var(--pulse-spring);
 }
 
-:root[data-skin="pulse"] .skin-sidebar-shell > aside button:where(:not(:has(> div.flex.flex-col))):where(:not(:first-child)):hover {
+:root[data-skin="pulse"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:not(:has(> div.flex.flex-col))):where(
+    :not(:first-child)
+  ):hover {
   border-color: var(--pulse-cyan) !important;
   box-shadow: 0 0 16px -6px rgb(var(--pulse-cyan-rgb) / 0.5);
   transform: translateY(-1px);
@@ -276,7 +325,9 @@
   transition: all var(--pulse-fast) var(--pulse-spring);
 }
 
-:root[data-skin="pulse"] header :where(button:hover, [class*="rounded-full"]:hover) {
+:root[data-skin="pulse"]
+  header
+  :where(button:hover, [class*="rounded-full"]:hover) {
   color: var(--pulse-cyan) !important;
   border-color: var(--pulse-cyan) !important;
   box-shadow: 0 0 16px -6px rgb(var(--pulse-cyan-rgb) / 0.5);
@@ -328,15 +379,19 @@
   margin-top: 4rem !important;
 }
 
-:root[data-skin="pulse"] section > div:where([class*="flex"][class*="items-end"][class*="justify-between"]) {
+:root[data-skin="pulse"]
+  section
+  > div:where([class*="flex"][class*="items-end"][class*="justify-between"]) {
   margin-bottom: 2rem !important;
 }
 
-:root[data-skin="pulse"] main :where(
-  [class*="rounded-xl"],
-  [class*="rounded-2xl"],
-  [class*="rounded-3xl"]
-) {
+:root[data-skin="pulse"]
+  main
+  :where(
+    [class*="rounded-xl"],
+    [class*="rounded-2xl"],
+    [class*="rounded-3xl"]
+  ) {
   border-radius: 1.75rem !important;
   border: 1px solid var(--pulse-rail) !important;
   background-color: var(--pulse-surface) !important;
@@ -345,11 +400,13 @@
   backdrop-filter: none;
 }
 
-:root[data-skin="pulse"] main :where(
-  [class*="rounded-xl"],
-  [class*="rounded-2xl"],
-  [class*="rounded-3xl"]
-):hover {
+:root[data-skin="pulse"]
+  main
+  :where(
+    [class*="rounded-xl"],
+    [class*="rounded-2xl"],
+    [class*="rounded-3xl"]
+  ):hover {
   border-color: var(--pulse-cyan) !important;
   box-shadow: 0 0 24px -8px rgb(var(--pulse-cyan-rgb) / 0.4);
   transform: translateY(-2px);
@@ -396,13 +453,17 @@
 }
 
 /* Welcome banner generic — the home view default banner block. */
-:root[data-skin="pulse"] main > div > div > div[class*="overflow-hidden"][class*="rounded-3xl"]:first-of-type {
+:root[data-skin="pulse"]
+  main
+  > div
+  > div
+  > div[class*="overflow-hidden"][class*="rounded-3xl"]:first-of-type {
   border-radius: 2rem !important;
   background-color: var(--pulse-surface) !important;
   background-image:
     radial-gradient(
       ellipse at top left,
-      rgb(var(--pulse-magenta-rgb) / 0.20),
+      rgb(var(--pulse-magenta-rgb) / 0.2),
       transparent 50%
     ),
     radial-gradient(
@@ -414,7 +475,9 @@
 }
 
 /* Eyebrow pill ("Ready to listen") — magenta capsule. */
-:root[data-skin="pulse"] main .inline-flex[class*="rounded-full"][class*="bg-emerald-50"] {
+:root[data-skin="pulse"]
+  main
+  .inline-flex[class*="rounded-full"][class*="bg-emerald-50"] {
   background-color: rgb(var(--pulse-magenta-rgb) / 0.08) !important;
   border-color: var(--pulse-magenta) !important;
   color: var(--pulse-magenta) !important;
@@ -426,7 +489,10 @@
   box-shadow: 0 0 14px -4px rgb(var(--pulse-magenta-rgb) / 0.5);
 }
 
-:root[data-skin="pulse"] main .inline-flex[class*="rounded-full"][class*="bg-emerald-50"] > div {
+:root[data-skin="pulse"]
+  main
+  .inline-flex[class*="rounded-full"][class*="bg-emerald-50"]
+  > div {
   background-color: var(--pulse-magenta) !important;
   box-shadow: 0 0 8px rgb(var(--pulse-magenta-rgb) / 0.8);
 }
@@ -448,7 +514,7 @@
 :root[data-skin="pulse"] main [class*="rounded-xl"] > div[class*="w-12"] {
   border-radius: 9999px !important;
   color: var(--pulse-magenta) !important;
-  background-color: rgb(var(--pulse-magenta-rgb) / 0.10) !important;
+  background-color: rgb(var(--pulse-magenta-rgb) / 0.1) !important;
   border: 1px solid var(--pulse-magenta) !important;
   box-shadow: 0 0 12px -4px rgb(var(--pulse-magenta-rgb) / 0.5);
 }
@@ -488,17 +554,28 @@
   filter: blur(40px);
   opacity: 0.25;
   background-color: var(--pulse-cyan);
-  transition: opacity var(--pulse-slow) var(--pulse-spring),
+  transition:
+    opacity var(--pulse-slow) var(--pulse-spring),
     transform var(--pulse-slow) var(--pulse-spring);
   pointer-events: none;
 }
 
 /* Per-mood halo colour. */
-:root[data-skin="pulse"] .pulse-mood-focus::before { background-color: var(--pulse-cyan); }
-:root[data-skin="pulse"] .pulse-mood-chill::before { background-color: #bd00ff; }
-:root[data-skin="pulse"] .pulse-mood-workout::before { background-color: var(--pulse-magenta); }
-:root[data-skin="pulse"] .pulse-mood-party::before { background-color: #00ff66; }
-:root[data-skin="pulse"] .pulse-mood-sleep::before { background-color: #4d8dff; }
+:root[data-skin="pulse"] .pulse-mood-focus::before {
+  background-color: var(--pulse-cyan);
+}
+:root[data-skin="pulse"] .pulse-mood-chill::before {
+  background-color: #bd00ff;
+}
+:root[data-skin="pulse"] .pulse-mood-workout::before {
+  background-color: var(--pulse-magenta);
+}
+:root[data-skin="pulse"] .pulse-mood-party::before {
+  background-color: #00ff66;
+}
+:root[data-skin="pulse"] .pulse-mood-sleep::before {
+  background-color: #4d8dff;
+}
 
 :root[data-skin="pulse"] .pulse-mood-tile:hover {
   border-color: var(--pulse-cyan) !important;
@@ -584,14 +661,18 @@
 }
 
 /* The center play button — solid white circle. */
-:root[data-skin="pulse"] footer button:where([class*="bg-emerald-500"], [class*="bg-emerald-600"]) {
+:root[data-skin="pulse"]
+  footer
+  button:where([class*="bg-emerald-500"], [class*="bg-emerald-600"]) {
   background-color: var(--pulse-ink) !important;
   color: var(--pulse-bg) !important;
   border: 0 !important;
   box-shadow: 0 0 24px -6px rgb(255 255 255 / 0.5);
 }
 
-:root[data-skin="pulse"] footer button:where([class*="bg-emerald-500"], [class*="bg-emerald-600"]):hover {
+:root[data-skin="pulse"]
+  footer
+  button:where([class*="bg-emerald-500"], [class*="bg-emerald-600"]):hover {
   transform: scale(1.1);
   box-shadow: 0 0 28px -4px rgb(255 255 255 / 0.7);
 }
@@ -612,7 +693,9 @@
 }
 
 @keyframes pulse-vinyl {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -695,52 +778,57 @@
 /* ============================================================
    Surface neutralization — kill white/grey utility bgs
    ============================================================ */
-:root[data-skin="pulse"] :where(
-  [class*="bg-white"],
-  [class*="bg-zinc-50"],
-  [class*="bg-zinc-100"],
-  [class*="bg-zinc-200"],
-  [class*="bg-surface-light"]
-):not(header):not(footer):not([role="slider"]):not([role="slider"] *) {
+:root[data-skin="pulse"]
+  :where(
+    [class*="bg-white"],
+    [class*="bg-zinc-50"],
+    [class*="bg-zinc-100"],
+    [class*="bg-zinc-200"],
+    [class*="bg-surface-light"]
+  ):not(header):not(footer):not([role="slider"]):not([role="slider"] *) {
   background-color: var(--pulse-surface) !important;
   background-image: none !important;
 }
 
-:root[data-skin="pulse"] :where(
-  [class*="dark:bg-zinc-700"],
-  [class*="dark:bg-zinc-800"],
-  [class*="dark:bg-zinc-900"],
-  [class*="dark:bg-surface-dark"]
-):not(header):not(footer):not([role="slider"]):not([role="slider"] *) {
+:root[data-skin="pulse"]
+  :where(
+    [class*="dark:bg-zinc-700"],
+    [class*="dark:bg-zinc-800"],
+    [class*="dark:bg-zinc-900"],
+    [class*="dark:bg-surface-dark"]
+  ):not(header):not(footer):not([role="slider"]):not([role="slider"] *) {
   background-color: var(--pulse-surface) !important;
   background-image: none !important;
 }
 
 /* Sticky day-headers (HistoryView): black pill strip. */
-:root[data-skin="pulse"] [class*="sticky"]:where(
-  [class*="bg-white"],
-  [class*="bg-zinc"],
-  [class*="bg-surface"],
-  [class*="dark:bg-"]
-) {
+:root[data-skin="pulse"]
+  [class*="sticky"]:where(
+    [class*="bg-white"],
+    [class*="bg-zinc"],
+    [class*="bg-surface"],
+    [class*="dark:bg-"]
+  ) {
   background-color: var(--pulse-bg) !important;
   border-bottom: 1px solid var(--pulse-rail) !important;
 }
 
 /* Dropdown rows: cyan hover instead of grey. */
-:root[data-skin="pulse"] :where(
-  [class*="hover:bg-zinc-50"],
-  [class*="hover:bg-zinc-100"],
-  [class*="dark:hover:bg-zinc-700"],
-  [class*="dark:hover:bg-zinc-800"]
-):hover {
+:root[data-skin="pulse"]
+  :where(
+    [class*="hover:bg-zinc-50"],
+    [class*="hover:bg-zinc-100"],
+    [class*="dark:hover:bg-zinc-700"],
+    [class*="dark:hover:bg-zinc-800"]
+  ):hover {
   color: var(--pulse-cyan) !important;
   background-color: rgb(var(--pulse-cyan-rgb) / 0.08) !important;
 }
 
 /* Active row state (the bg-emerald-50 the rest of WaveFlow
    uses) → magenta press. */
-:root[data-skin="pulse"] :where([class*="bg-emerald-50"]):not(.pulse-mood-tile *) {
+:root[data-skin="pulse"]
+  :where([class*="bg-emerald-50"]):not(.pulse-mood-tile *) {
   background-color: rgb(var(--pulse-magenta-rgb) / 0.08) !important;
   color: var(--pulse-magenta) !important;
 }
@@ -755,14 +843,18 @@
   transition: all var(--pulse-fast) var(--pulse-spring);
 }
 
-:root[data-skin="pulse"] :where(input, textarea, select):not(header input):focus {
+:root[data-skin="pulse"]
+  :where(input, textarea, select):not(header input):focus {
   border-color: var(--pulse-cyan) !important;
   box-shadow: 0 0 18px -6px rgb(var(--pulse-cyan-rgb) / 0.5);
   outline: 0 !important;
 }
 
 /* Modals + tooltips: black pill containers. */
-:root[data-skin="pulse"] :where([role="dialog"], [role="tooltip"], [class*="shadow-lg"]):not([data-immersive]):not([data-immersive] *) {
+:root[data-skin="pulse"]
+  :where([role="dialog"], [role="tooltip"], [class*="shadow-lg"]):not(
+    [data-immersive]
+  ):not([data-immersive] *) {
   color: var(--pulse-ink);
   background-color: var(--pulse-surface) !important;
   background-image: none !important;
@@ -772,39 +864,39 @@
 }
 
 /* Type color overrides — ink for primary, muted for secondary. */
-:root[data-skin="pulse"] :where(
-  .text-zinc-900,
-  .text-zinc-800,
-  .dark\:text-white,
-  .dark\:text-zinc-100,
-  .dark\:text-zinc-200
-) {
+:root[data-skin="pulse"]
+  :where(
+    .text-zinc-900,
+    .text-zinc-800,
+    .dark\:text-white,
+    .dark\:text-zinc-100,
+    .dark\:text-zinc-200
+  ) {
   color: var(--pulse-ink) !important;
 }
 
-:root[data-skin="pulse"] :where(
-  .text-zinc-700,
-  .text-zinc-600,
-  .dark\:text-zinc-300
-) {
+:root[data-skin="pulse"]
+  :where(.text-zinc-700, .text-zinc-600, .dark\:text-zinc-300) {
   color: var(--pulse-muted) !important;
 }
 
-:root[data-skin="pulse"] :where(
-  .text-zinc-500,
-  .text-zinc-400,
-  .dark\:text-zinc-400,
-  .dark\:text-zinc-600
-) {
+:root[data-skin="pulse"]
+  :where(
+    .text-zinc-500,
+    .text-zinc-400,
+    .dark\:text-zinc-400,
+    .dark\:text-zinc-600
+  ) {
   color: var(--pulse-faint) !important;
 }
 
-:root[data-skin="pulse"] :where(
-  .text-emerald-400,
-  .text-emerald-500,
-  .text-emerald-600,
-  .dark\:text-emerald-400
-) {
+:root[data-skin="pulse"]
+  :where(
+    .text-emerald-400,
+    .text-emerald-500,
+    .text-emerald-600,
+    .dark\:text-emerald-400
+  ) {
   color: var(--pulse-cyan) !important;
 }
 
@@ -839,8 +931,14 @@
 }
 
 @keyframes pulse-rise {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

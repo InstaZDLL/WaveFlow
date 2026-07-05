@@ -87,11 +87,10 @@ pub async fn read(app_db: &SqlitePool) -> AppResult<Option<String>> {
 /// (that's [`ensure`]'s job). Named `read_conn` to mirror the
 /// `read` / `ensure` pair already in this module.
 pub async fn read_conn(conn: &mut sqlx::SqliteConnection) -> AppResult<Option<String>> {
-    let raw: Option<String> =
-        sqlx::query_scalar("SELECT value FROM app.app_setting WHERE key = ?")
-            .bind(KEY)
-            .fetch_optional(conn)
-            .await?;
+    let raw: Option<String> = sqlx::query_scalar("SELECT value FROM app.app_setting WHERE key = ?")
+        .bind(KEY)
+        .fetch_optional(conn)
+        .await?;
     Ok(raw.map(|s| s.trim().to_string()).filter(|s| !s.is_empty()))
 }
 

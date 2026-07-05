@@ -56,9 +56,7 @@ function countryLabel(uiLang: string, code: string): string {
 function detectLocalRegion(): string | null {
   try {
     const region = new Intl.Locale(navigator.language).region;
-    return region && /^[A-Za-z]{2}$/.test(region)
-      ? region.toUpperCase()
-      : null;
+    return region && /^[A-Za-z]{2}$/.test(region) ? region.toUpperCase() : null;
   } catch {
     return null;
   }
@@ -259,30 +257,33 @@ export function WebRadioView() {
     };
   }, []);
 
-  const openEntry = useCallback(async (entry: PluginEntry) => {
-    const token = ++resolveReqRef.current;
-    setActiveEntry(entry);
-    setSearchActive(false);
-    setFavoritesActive(false);
-    setResolving(true);
-    setError(null);
-    setTracks([]);
-    try {
-      const list = await resolveStations(entry.query);
-      // A later openEntry / runSearch ran while we were awaiting —
-      // drop this stale list silently so the user's most-recent
-      // click wins.
-      if (resolveReqRef.current !== token) return;
-      setTracks(list);
-    } catch (e) {
-      if (resolveReqRef.current !== token) return;
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      if (resolveReqRef.current === token) {
-        setResolving(false);
+  const openEntry = useCallback(
+    async (entry: PluginEntry) => {
+      const token = ++resolveReqRef.current;
+      setActiveEntry(entry);
+      setSearchActive(false);
+      setFavoritesActive(false);
+      setResolving(true);
+      setError(null);
+      setTracks([]);
+      try {
+        const list = await resolveStations(entry.query);
+        // A later openEntry / runSearch ran while we were awaiting —
+        // drop this stale list silently so the user's most-recent
+        // click wins.
+        if (resolveReqRef.current !== token) return;
+        setTracks(list);
+      } catch (e) {
+        if (resolveReqRef.current !== token) return;
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        if (resolveReqRef.current === token) {
+          setResolving(false);
+        }
       }
-    }
-  }, [resolveStations]);
+    },
+    [resolveStations],
+  );
 
   // Country browsing reuses the entry-resolve machinery: a country is
   // just a synthetic entry whose query is the `country:<ISO2>` token

@@ -65,7 +65,9 @@ pub fn last_radio_metadata() -> Option<RadioMetadataPayload> {
 /// or playback stops so a later mini-player hydration doesn't resurrect
 /// a stale station.
 pub fn clear_radio_metadata() {
-    *LAST_RADIO_METADATA.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    *LAST_RADIO_METADATA
+        .lock()
+        .unwrap_or_else(|e| e.into_inner()) = None;
 }
 
 /// Emit `player:radio-metadata` AND stash it for late-mounting webviews.
@@ -73,6 +75,8 @@ pub fn clear_radio_metadata() {
 /// PlayerBar keeps the prior title) and never worth interrupting
 /// playback for.
 pub fn emit_radio_metadata(app: &AppHandle, payload: RadioMetadataPayload) {
-    *LAST_RADIO_METADATA.lock().unwrap_or_else(|e| e.into_inner()) = Some(payload.clone());
+    *LAST_RADIO_METADATA
+        .lock()
+        .unwrap_or_else(|e| e.into_inner()) = Some(payload.clone());
     let _ = app.emit(EVENT_RADIO_METADATA, payload);
 }

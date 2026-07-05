@@ -502,7 +502,10 @@ export function LyricsEditorModal({
   // consume. Extracted from `handleSave` so the export-to-disk
   // affordance (issue #201) doesn't have to re-implement the
   // word/line/plain dispatch.
-  const buildPayload = (): { content: string; format: "plain" | "lrc" | "enhanced_lrc" } => {
+  const buildPayload = (): {
+    content: string;
+    format: "plain" | "lrc" | "enhanced_lrc";
+  } => {
     const isSyncedMode = mode === "synced";
     const isWordMode = isSyncedMode && granularity === "word";
 
@@ -623,11 +626,17 @@ export function LyricsEditorModal({
         defaultPath,
         filters: [
           {
-            name: defaultExt === "lrc" ? "Synced lyrics (.lrc)" : "Plain lyrics (.txt)",
+            name:
+              defaultExt === "lrc"
+                ? "Synced lyrics (.lrc)"
+                : "Plain lyrics (.txt)",
             extensions: [defaultExt],
           },
           {
-            name: defaultExt === "lrc" ? "Plain lyrics (.txt)" : "Synced lyrics (.lrc)",
+            name:
+              defaultExt === "lrc"
+                ? "Plain lyrics (.txt)"
+                : "Synced lyrics (.lrc)",
             extensions: [defaultExt === "lrc" ? "txt" : "lrc"],
           },
         ],
@@ -916,7 +925,9 @@ export function LyricsEditorModal({
                   role="radio"
                   aria-checked={checked}
                   onClick={() => setDestination(value)}
-                  title={t(`lyricsEditor.destination.${value}.hint`) ?? undefined}
+                  title={
+                    t(`lyricsEditor.destination.${value}.hint`) ?? undefined
+                  }
                   className={[
                     "px-3 py-1 rounded-full transition-colors font-medium",
                     checked
@@ -1207,7 +1218,10 @@ function defaultExportPath(
   // Preserve OS-native separators so the dialog re-renders the path
   // correctly on Windows + macOS + Linux. Splitting on both is fine
   // because Windows accepts both `\` and `/` in API paths.
-  const sepIdx = Math.max(filePath.lastIndexOf("/"), filePath.lastIndexOf("\\"));
+  const sepIdx = Math.max(
+    filePath.lastIndexOf("/"),
+    filePath.lastIndexOf("\\"),
+  );
   if (sepIdx < 0) return `${stem}.${ext}`;
   const sep = filePath[sepIdx];
   return `${filePath.substring(0, sepIdx)}${sep}${stem}.${ext}`;

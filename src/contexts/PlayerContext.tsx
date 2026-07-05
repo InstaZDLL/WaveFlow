@@ -438,24 +438,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           }),
         );
         unlisten.push(
-          await listen<RadioMetadata>(
-            "player:radio-metadata",
-            (e) => {
-              // Web Radio (LoadUrlAndPlay) emits this in lieu of
-              // `player:track-changed` — no library row to look up,
-              // metadata rides on the event payload directly. The
-              // now-playing song drives `currentTrack`; the stable
-              // station identity drives the favorite-station star.
-              setActiveProvider("local");
-              setCurrentTrack(radioMetadataToTrack(e.payload));
-              setCurrentRadioStation(radioStationFromMetadata(e.payload));
-              setDurationMs(0);
-              setPositionMs(0);
-              // The payload only carries the station favicon; fetch the
-              // song's real album cover from Deezer and swap it in async.
-              fetchRadioArtworkInto(e.payload.title, e.payload.artist);
-            },
-          ),
+          await listen<RadioMetadata>("player:radio-metadata", (e) => {
+            // Web Radio (LoadUrlAndPlay) emits this in lieu of
+            // `player:track-changed` — no library row to look up,
+            // metadata rides on the event payload directly. The
+            // now-playing song drives `currentTrack`; the stable
+            // station identity drives the favorite-station star.
+            setActiveProvider("local");
+            setCurrentTrack(radioMetadataToTrack(e.payload));
+            setCurrentRadioStation(radioStationFromMetadata(e.payload));
+            setDurationMs(0);
+            setPositionMs(0);
+            // The payload only carries the station favicon; fetch the
+            // song's real album cover from Deezer and swap it in async.
+            fetchRadioArtworkInto(e.payload.title, e.payload.artist);
+          }),
         );
         unlisten.push(
           await listen<PlayerErrorPayload>("player:error", (e) => {

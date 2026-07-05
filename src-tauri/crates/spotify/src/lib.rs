@@ -581,7 +581,9 @@ pub async fn queue(
     }
     let parsed: QueueResponse = parse_spotify_response(res).await?;
     Ok(SpotifyQueueSnapshot {
-        current: parsed.currently_playing.and_then(SpotifyTrackLite::from_track),
+        current: parsed
+            .currently_playing
+            .and_then(SpotifyTrackLite::from_track),
         upcoming: parsed
             .queue
             .into_iter()

@@ -89,9 +89,10 @@ pub async fn fetch_remote_digest(
     let status = response.status();
     match status {
         StatusCode::OK => {
-            let digest: RemoteDigest = response.json().await.map_err(|err| {
-                AppError::Other(format!("sync digest deserialise: {err}"))
-            })?;
+            let digest: RemoteDigest = response
+                .json()
+                .await
+                .map_err(|err| AppError::Other(format!("sync digest deserialise: {err}")))?;
             Ok(digest)
         }
         StatusCode::NOT_FOUND => {
@@ -140,19 +141,13 @@ pub async fn fetch_remote_digest(
             // Server's body is plain text for the 400 path; surface
             // it verbatim so a wrong-scope call (caught locally now,
             // but defence-in-depth) yields a readable error.
-            let body = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "<no body>".into());
+            let body = response.text().await.unwrap_or_else(|_| "<no body>".into());
             Err(AppError::Other(format!(
                 "sync digest GET {entity}: bad request — {body}",
             )))
         }
         other => {
-            let body = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "<no body>".into());
+            let body = response.text().await.unwrap_or_else(|_| "<no body>".into());
             Err(AppError::Other(format!(
                 "sync digest GET {entity}: unexpected status {other} — {body}",
             )))

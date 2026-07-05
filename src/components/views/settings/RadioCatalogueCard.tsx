@@ -182,7 +182,9 @@ export function RadioCatalogueCard({ language }: RadioCatalogueCardProps) {
             type="button"
             onClick={handleDownload}
             disabled={downloading || offline}
-            title={offline ? t("settings.radioCatalogue.offlineHint") : undefined}
+            title={
+              offline ? t("settings.radioCatalogue.offlineHint") : undefined
+            }
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {downloading ? (

@@ -109,10 +109,7 @@ pub async fn reset_app(
     state: tauri::State<'_, AppState>,
     engine: tauri::State<'_, Arc<AudioEngine>>,
 ) -> AppResult<()> {
-    engine
-        .shared()
-        .paused_output
-        .store(true, Ordering::Release);
+    engine.shared().paused_output.store(true, Ordering::Release);
 
     if let Err(err) = engine.stop_and_wait(Duration::from_secs(2)).await {
         tracing::warn!(

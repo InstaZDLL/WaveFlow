@@ -82,10 +82,7 @@ export function ImmersiveNowPlaying({
             descenders (g / y / p) room so the `overflow: hidden` (needed
             for both truncate + the marquee) doesn't clip them. */}
         <h1 className="text-3xl md:text-4xl font-bold">
-          <MarqueeText
-            text={title}
-            className="leading-tight pb-1"
-          />
+          <MarqueeText text={title} className="leading-tight pb-1" />
         </h1>
         <div className="mt-2 text-lg text-white/80 flex items-center justify-center gap-3 flex-wrap">
           {currentTrack?.artist_name && (

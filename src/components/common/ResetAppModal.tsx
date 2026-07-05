@@ -39,7 +39,8 @@ export function ResetAppModal({ isOpen, onClose }: ResetAppModalProps) {
     }
   }
 
-  const canConfirm = typed.trim().toUpperCase() === CONFIRM_TOKEN && !submitting;
+  const canConfirm =
+    typed.trim().toUpperCase() === CONFIRM_TOKEN && !submitting;
 
   const handleConfirm = async () => {
     if (!canConfirm) return;

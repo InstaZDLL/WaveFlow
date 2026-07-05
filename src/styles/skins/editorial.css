@@ -41,9 +41,8 @@
   --ed-rule-soft: rgb(26 26 26 / 0.14);
   --ed-rule-ink: rgb(26 26 26 / 0.78);
   --ed-press: #b03020;
-  --ed-press-soft: rgb(176 48 32 / 0.10);
-  --ed-grain:
-    url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/></svg>");
+  --ed-press-soft: rgb(176 48 32 / 0.1);
+  --ed-grain: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/></svg>");
 }
 
 /* Body sheet: cream paper with the SVG grain overlay tiled at
@@ -58,7 +57,10 @@
   background-image: var(--ed-grain);
   background-repeat: repeat;
   font-family: "Lora", Georgia, serif;
-  font-feature-settings: "kern" 1, "liga" 1, "onum" 1;
+  font-feature-settings:
+    "kern" 1,
+    "liga" 1,
+    "onum" 1;
 }
 
 /* Bleed the paper through every wrapper between the body and
@@ -99,10 +101,14 @@
   background-color: transparent !important;
   color: var(--ed-ink) !important;
   box-shadow: none !important;
-  transition: background-color 160ms ease, color 160ms ease;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
 }
 
-:root[data-skin="editorial"] header :where(button:hover, [class*="rounded-full"]:hover) {
+:root[data-skin="editorial"]
+  header
+  :where(button:hover, [class*="rounded-full"]:hover) {
   color: var(--ed-paper) !important;
   background-color: var(--ed-ink) !important;
 }
@@ -164,7 +170,10 @@
   position: relative;
 }
 
-:root[data-skin="editorial"] .skin-sidebar-shell > aside > div:first-child::before {
+:root[data-skin="editorial"]
+  .skin-sidebar-shell
+  > aside
+  > div:first-child::before {
   content: "Sommaire";
   display: block;
   margin-bottom: 0.5rem;
@@ -178,11 +187,19 @@
 
 /* Brand block: hide the original logo+text row, keep the
    profile pill but flatten it to print typography. */
-:root[data-skin="editorial"] .skin-sidebar-shell > aside > div:first-child > div:first-child {
+:root[data-skin="editorial"]
+  .skin-sidebar-shell
+  > aside
+  > div:first-child
+  > div:first-child {
   display: none !important;
 }
 
-:root[data-skin="editorial"] .skin-sidebar-shell > aside > div:first-child button {
+:root[data-skin="editorial"]
+  .skin-sidebar-shell
+  > aside
+  > div:first-child
+  button {
   border: 1px solid var(--ed-ink) !important;
   border-radius: 0 !important;
   background-color: transparent !important;
@@ -192,7 +209,10 @@
 /* Section group headings ("MY MUSIC", "PLAYLISTS"): print
    eyebrow style. Reset the tiny tracking-widest stack to a
    real masthead label. */
-:root[data-skin="editorial"] .skin-sidebar-shell > aside [class*="uppercase"][class*="tracking"] {
+:root[data-skin="editorial"]
+  .skin-sidebar-shell
+  > aside
+  [class*="uppercase"][class*="tracking"] {
   color: var(--ed-press) !important;
   font-family: "Playfair Display", Georgia, serif !important;
   font-size: 0.78rem !important;
@@ -206,7 +226,10 @@
 /* NavItem buttons: flat row + page-number on the right via
    CSS counter. The counter resets at the aside root and
    increments per button — same trick as printed indexes. */
-:root[data-skin="editorial"] .skin-sidebar-shell > aside button:where(:has(> div.flex.flex-col)) {
+:root[data-skin="editorial"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:has(> div.flex.flex-col)) {
   counter-increment: ed-nav;
   padding: 0.55rem 0.75rem !important;
   margin: 0 !important;
@@ -216,10 +239,15 @@
   font-family: "Lora", Georgia, serif !important;
   font-weight: 500;
   border-bottom: 1px dotted var(--ed-rule);
-  transition: background-color 160ms ease, color 160ms ease;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
 }
 
-:root[data-skin="editorial"] .skin-sidebar-shell > aside button:where(:has(> div.flex.flex-col))::after {
+:root[data-skin="editorial"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:has(> div.flex.flex-col))::after {
   content: "P. " counter(ed-nav);
   margin-left: auto;
   padding-left: 1rem;
@@ -230,13 +258,22 @@
   font-variant-numeric: tabular-nums;
 }
 
-:root[data-skin="editorial"] .skin-sidebar-shell > aside button:where(:has(> div.flex.flex-col)):hover {
+:root[data-skin="editorial"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:has(> div.flex.flex-col)):hover {
   color: var(--ed-ink) !important;
   background-color: var(--ed-press-soft) !important;
 }
 
-:root[data-skin="editorial"] .skin-sidebar-shell > aside button[class*="bg-emerald"],
-:root[data-skin="editorial"] .skin-sidebar-shell > aside button[aria-pressed="true"] {
+:root[data-skin="editorial"]
+  .skin-sidebar-shell
+  > aside
+  button[class*="bg-emerald"],
+:root[data-skin="editorial"]
+  .skin-sidebar-shell
+  > aside
+  button[aria-pressed="true"] {
   color: var(--ed-press) !important;
   background-color: transparent !important;
   font-style: italic;
@@ -266,11 +303,13 @@
   padding: 1rem 2.5rem 3rem !important;
 }
 
-:root[data-skin="editorial"] main :where(
-  [class*="rounded-xl"],
-  [class*="rounded-2xl"],
-  [class*="rounded-3xl"]
-) {
+:root[data-skin="editorial"]
+  main
+  :where(
+    [class*="rounded-xl"],
+    [class*="rounded-2xl"],
+    [class*="rounded-3xl"]
+  ) {
   border-radius: 0 !important;
   border: 1px solid var(--ed-rule) !important;
   background-color: transparent !important;
@@ -431,8 +470,13 @@
 }
 
 @keyframes ed-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 :root[data-skin="editorial"] .editorial-hero h1 {
@@ -480,7 +524,8 @@
   width: 100%;
   height: 100%;
   background:
-    radial-gradient(circle, rgb(240 235 216 / 0.16) 0 2px, transparent 2px) 0 0 / 14px 14px,
+    radial-gradient(circle, rgb(240 235 216 / 0.16) 0 2px, transparent 2px) 0
+      0 / 14px 14px,
     var(--ed-ink);
   color: var(--ed-paper);
 }
@@ -536,7 +581,9 @@
   font-size: 0.85rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transition: background-color 160ms ease, color 160ms ease;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
 }
 
 :root[data-skin="editorial"] .editorial-hero [class*="gap-6"] button:hover {
@@ -628,7 +675,9 @@
   border-bottom: 2px solid var(--ed-ink) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  transition: background-color 200ms ease, color 200ms ease;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
 }
 
 :root[data-skin="editorial"] .editorial-mood-tile:hover {
@@ -753,19 +802,15 @@
   background-color: transparent !important;
   background-image:
     /* Major ticks every 25% (5% above baseline) */
-    repeating-linear-gradient(
-      90deg,
-      var(--ed-ink) 0 1px,
-      transparent 1px 25%
-    ),
+    repeating-linear-gradient(90deg, var(--ed-ink) 0 1px, transparent 1px 25%),
     /* Minor ticks every 5% */
-    repeating-linear-gradient(
-      90deg,
-      var(--ed-rule) 0 1px,
-      transparent 1px 5%
-    ) !important;
-  background-position: 0 bottom, 0 bottom;
-  background-size: 100% 0.4rem, 100% 0.25rem;
+    repeating-linear-gradient(90deg, var(--ed-rule) 0 1px, transparent 1px 5%) !important;
+  background-position:
+    0 bottom,
+    0 bottom;
+  background-size:
+    100% 0.4rem,
+    100% 0.25rem;
   background-repeat: no-repeat;
   border: 1px solid var(--ed-ink) !important;
   border-radius: 0 !important;
@@ -803,7 +848,10 @@
 /* ============================================================
    Modals + tooltips + popovers
    ============================================================ */
-:root[data-skin="editorial"] :where([role="dialog"], [role="tooltip"], [class*="shadow-lg"]):not([data-immersive]):not([data-immersive] *) {
+:root[data-skin="editorial"]
+  :where([role="dialog"], [role="tooltip"], [class*="shadow-lg"]):not(
+    [data-immersive]
+  ):not([data-immersive] *) {
   color: var(--ed-ink);
   background-color: var(--ed-paper) !important;
   background-image: var(--ed-grain) !important;
@@ -815,39 +863,41 @@
 /* ============================================================
    Type colour overrides — paint everything in ink
    ============================================================ */
-:root[data-skin="editorial"] :where(
-  .text-zinc-900,
-  .text-zinc-800,
-  .dark\:text-white,
-  .dark\:text-zinc-100,
-  .dark\:text-zinc-200
-):not([data-immersive] *) {
+:root[data-skin="editorial"]
+  :where(
+    .text-zinc-900,
+    .text-zinc-800,
+    .dark\:text-white,
+    .dark\:text-zinc-100,
+    .dark\:text-zinc-200
+  ):not([data-immersive] *) {
   color: var(--ed-ink) !important;
 }
 
-:root[data-skin="editorial"] :where(
-  .text-zinc-700,
-  .text-zinc-600,
-  .dark\:text-zinc-300
-):not([data-immersive] *) {
+:root[data-skin="editorial"]
+  :where(.text-zinc-700, .text-zinc-600, .dark\:text-zinc-300):not(
+    [data-immersive] *
+  ) {
   color: var(--ed-ink-soft) !important;
 }
 
-:root[data-skin="editorial"] :where(
-  .text-zinc-500,
-  .text-zinc-400,
-  .dark\:text-zinc-400,
-  .dark\:text-zinc-600
-):not([data-immersive] *) {
+:root[data-skin="editorial"]
+  :where(
+    .text-zinc-500,
+    .text-zinc-400,
+    .dark\:text-zinc-400,
+    .dark\:text-zinc-600
+  ):not([data-immersive] *) {
   color: var(--ed-muted) !important;
 }
 
-:root[data-skin="editorial"] :where(
-  .text-emerald-400,
-  .text-emerald-500,
-  .text-emerald-600,
-  .dark\:text-emerald-400
-):not([data-immersive] *) {
+:root[data-skin="editorial"]
+  :where(
+    .text-emerald-400,
+    .text-emerald-500,
+    .text-emerald-600,
+    .dark\:text-emerald-400
+  ):not([data-immersive] *) {
   color: var(--ed-press) !important;
 }
 
@@ -879,23 +929,29 @@
    `[class*="bg-X"]` is intentionally substring-broad — the
    explicit `editorial-*` rules above carry `!important` so
    they keep winning on their own elements. */
-:root[data-skin="editorial"] :where(
-  [class*="bg-white"],
-  [class*="bg-zinc-50"],
-  [class*="bg-zinc-100"],
-  [class*="bg-zinc-200"],
-  [class*="bg-surface-light"]
-):not(header):not(footer):not([role="slider"]):not([role="slider"] *):not([data-immersive]):not([data-immersive] *) {
+:root[data-skin="editorial"]
+  :where(
+    [class*="bg-white"],
+    [class*="bg-zinc-50"],
+    [class*="bg-zinc-100"],
+    [class*="bg-zinc-200"],
+    [class*="bg-surface-light"]
+  ):not(header):not(footer):not([role="slider"]):not([role="slider"] *):not(
+    [data-immersive]
+  ):not([data-immersive] *) {
   background-color: var(--ed-paper) !important;
   background-image: var(--ed-grain) !important;
 }
 
-:root[data-skin="editorial"] :where(
-  [class*="dark:bg-zinc-700"],
-  [class*="dark:bg-zinc-800"],
-  [class*="dark:bg-zinc-900"],
-  [class*="dark:bg-surface-dark"]
-):not(header):not(footer):not([role="slider"]):not([role="slider"] *):not([data-immersive]):not([data-immersive] *) {
+:root[data-skin="editorial"]
+  :where(
+    [class*="dark:bg-zinc-700"],
+    [class*="dark:bg-zinc-800"],
+    [class*="dark:bg-zinc-900"],
+    [class*="dark:bg-surface-dark"]
+  ):not(header):not(footer):not([role="slider"]):not([role="slider"] *):not(
+    [data-immersive]
+  ):not([data-immersive] *) {
   background-color: var(--ed-paper) !important;
   background-image: var(--ed-grain) !important;
 }
@@ -905,12 +961,13 @@
    bar over content". `[class*="sticky"]` catches the HistoryView
    header (and any future sticky chrome) without us hand-listing
    every component. */
-:root[data-skin="editorial"] [class*="sticky"]:where(
-  [class*="bg-white"],
-  [class*="bg-zinc"],
-  [class*="bg-surface"],
-  [class*="dark:bg-"]
-) {
+:root[data-skin="editorial"]
+  [class*="sticky"]:where(
+    [class*="bg-white"],
+    [class*="bg-zinc"],
+    [class*="bg-surface"],
+    [class*="dark:bg-"]
+  ) {
   background-color: var(--ed-paper-warm) !important;
   background-image: var(--ed-grain) !important;
   border-bottom: 1px solid var(--ed-ink) !important;
@@ -919,12 +976,13 @@
 /* Hover rows in menus + lists: stop flashing white-on-cream or
    dark-on-cream. Soft press-tint matches the rest of the skin
    and reads as "ink starts to settle here". */
-:root[data-skin="editorial"] :where(
-  [class*="hover:bg-zinc-50"],
-  [class*="hover:bg-zinc-100"],
-  [class*="dark:hover:bg-zinc-700"],
-  [class*="dark:hover:bg-zinc-800"]
-):hover {
+:root[data-skin="editorial"]
+  :where(
+    [class*="hover:bg-zinc-50"],
+    [class*="hover:bg-zinc-100"],
+    [class*="dark:hover:bg-zinc-700"],
+    [class*="dark:hover:bg-zinc-800"]
+  ):hover {
   color: var(--ed-ink) !important;
   background-color: var(--ed-press-soft) !important;
 }
@@ -932,7 +990,8 @@
 /* Active row state on dropdown items + nav: solid ink press,
    not the `bg-emerald-50` light tint that the rest of WaveFlow
    uses. */
-:root[data-skin="editorial"] :where([class*="bg-emerald-50"]):not(.editorial-mood-tile *) {
+:root[data-skin="editorial"]
+  :where([class*="bg-emerald-50"]):not(.editorial-mood-tile *) {
   background-color: var(--ed-press-soft) !important;
   color: var(--ed-press) !important;
 }
@@ -947,8 +1006,14 @@
 }
 
 @keyframes ed-rise {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

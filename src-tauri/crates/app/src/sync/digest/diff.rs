@@ -256,7 +256,12 @@ mod tests {
         );
         let r = remote(
             "ffff",
-            vec![("beta", "0b"), ("gamma", "0c"), ("mike", "03"), ("zulu", "0d")],
+            vec![
+                ("beta", "0b"),
+                ("gamma", "0c"),
+                ("mike", "03"),
+                ("zulu", "0d"),
+            ],
             7,
         );
         let d = diff(&l, &r);

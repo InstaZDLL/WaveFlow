@@ -50,8 +50,15 @@ pub async fn pull_missing_locally(
 ) -> AppResult<PullStats> {
     let mut stats = PullStats::default();
     for member in missing {
-        let outcome =
-            pull_one(state, client, pool, entity, profile_canonical_id, &member.canonical_id).await;
+        let outcome = pull_one(
+            state,
+            client,
+            pool,
+            entity,
+            profile_canonical_id,
+            &member.canonical_id,
+        )
+        .await;
         match outcome {
             Ok(true) => stats.pulled += 1,
             Ok(false) => {
@@ -123,7 +130,10 @@ fn now_ms() -> i64 {
 }
 
 fn opt_str(row: &RemoteEntityRow, key: &str) -> Option<String> {
-    row.fields.get(key).and_then(|v| v.as_str()).map(str::to_string)
+    row.fields
+        .get(key)
+        .and_then(|v| v.as_str())
+        .map(str::to_string)
 }
 
 fn str_required(row: &RemoteEntityRow, key: &str) -> AppResult<String> {
@@ -601,4 +611,3 @@ async fn bump_digest(conn: &mut SqliteConnection, entity: &str) -> AppResult<()>
     .await?;
     Ok(())
 }
-

@@ -79,7 +79,9 @@ export function ArtistBioSourceCard() {
       setError(err instanceof Error ? err.message : String(err));
       // Re-sync from the source of truth rather than a possibly-stale
       // local default (the click may have raced initial hydration).
-      getBioSource().then(setSource).catch(() => setSource(previous));
+      getBioSource()
+        .then(setSource)
+        .catch(() => setSource(previous));
     } finally {
       setBusy(false);
     }
@@ -96,7 +98,9 @@ export function ArtistBioSourceCard() {
       await setBioLanguage(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
-      getBioLanguage().then(setLanguage).catch(() => setLanguage(previous));
+      getBioLanguage()
+        .then(setLanguage)
+        .catch(() => setLanguage(previous));
     } finally {
       setBusy(false);
     }
@@ -162,7 +166,11 @@ export function ArtistBioSourceCard() {
       {source === "theaudiodb" && (
         <label className="mt-3 flex items-center justify-between gap-3">
           <span className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-            <Globe size={16} className="text-zinc-400 shrink-0" aria-hidden="true" />
+            <Globe
+              size={16}
+              className="text-zinc-400 shrink-0"
+              aria-hidden="true"
+            />
             {t("settings.artistBio.languageLabel")}
           </span>
           <select

@@ -68,7 +68,9 @@ export function useFullscreenLyricsCentering(): FullscreenLyricsCentering {
         // Only broadcast on success — other consumers re-reading
         // from the backend after a failed write would just confirm
         // the rolled-back value and the event would be misleading.
-        window.dispatchEvent(new CustomEvent(FULLSCREEN_LYRICS_CENTERING_EVENT));
+        window.dispatchEvent(
+          new CustomEvent(FULLSCREEN_LYRICS_CENTERING_EVENT),
+        );
       } catch (err) {
         console.error("[useFullscreenLyricsCentering] write failed", err);
         setCenteredState(previous);

@@ -74,14 +74,14 @@ Every syncable thing carries:
 
 Six top-level entities:
 
-| Entity | Scope | Conflict model | Notes |
-| --- | --- | --- | --- |
-| `profile` | user | LWW on scalar fields | name, color, settings JSON. Sticky `is_active` flag is local-only. |
-| `library` | profile | LWW on scalar fields, OR-Set on `folders` | Adds `library_folder` as a sub-entity (no more cascade ambiguity). |
-| `track` | library | LWW with `file_hash` tiebreaker | `file_path` keying preserved; tag-editor re-emit still uses path identity. |
-| `playlist` | profile | LWW name, Fractional-Index `tracks` | Solves the position-collision problem. |
-| `liked_track` | user | OR-Set on `(user_id, file_hash)` | Already commutative today; we just make it explicit. |
-| `track_rating` | user | LWW on `(user_id, file_hash) → 1-10` | Half-step UI preserved. |
+| Entity         | Scope   | Conflict model                            | Notes                                                                      |
+| -------------- | ------- | ----------------------------------------- | -------------------------------------------------------------------------- |
+| `profile`      | user    | LWW on scalar fields                      | name, color, settings JSON. Sticky `is_active` flag is local-only.         |
+| `library`      | profile | LWW on scalar fields, OR-Set on `folders` | Adds `library_folder` as a sub-entity (no more cascade ambiguity).         |
+| `track`        | library | LWW with `file_hash` tiebreaker           | `file_path` keying preserved; tag-editor re-emit still uses path identity. |
+| `playlist`     | profile | LWW name, Fractional-Index `tracks`       | Solves the position-collision problem.                                     |
+| `liked_track`  | user    | OR-Set on `(user_id, file_hash)`          | Already commutative today; we just make it explicit.                       |
+| `track_rating` | user    | LWW on `(user_id, file_hash) → 1-10`      | Half-step UI preserved.                                                    |
 
 `library_folder` is a sub-entity of `library`, not a top-level. It carries its own `canonical_id` so insert / delete are commutative.
 
@@ -282,10 +282,10 @@ When a device reconnects after a long offline window, instead of pulling every o
 
 The client carries **two** independent cursors, both persisted in `profile_setting`:
 
-| Cursor | Endpoint | Type | What it answers |
-| --- | --- | --- | --- |
-| `sync.last_seen_id` | `GET /api/v1/sync/ops?since=<id>` | `BIGINT` (server-assigned `sync_op.id`) | "Replay every op that landed after this point in the global server log." Inherited unchanged from RFC-001 §1.f. |
-| `sync.max_hlc[entity]` | `GET /api/v1/sync/digest?since_max_hlc=<max_hlc>` | `(wall, logical, origin_device_id)` triple per entity | "Is my materialised entity state aligned with the server's?" New in this RFC. |
+| Cursor                 | Endpoint                                          | Type                                                  | What it answers                                                                                                 |
+| ---------------------- | ------------------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `sync.last_seen_id`    | `GET /api/v1/sync/ops?since=<id>`                 | `BIGINT` (server-assigned `sync_op.id`)               | "Replay every op that landed after this point in the global server log." Inherited unchanged from RFC-001 §1.f. |
+| `sync.max_hlc[entity]` | `GET /api/v1/sync/digest?since_max_hlc=<max_hlc>` | `(wall, logical, origin_device_id)` triple per entity | "Is my materialised entity state aligned with the server's?" New in this RFC.                                   |
 
 They're complementary, not redundant. `last_seen_id` is "where am I in the firehose" — append-only, monotone, server-assigned, the right shape for replay. `max_hlc` is "is my materialised state convergent" — per-entity, client-assigned (HLC), the right shape for digest-based convergence checks. A device can be caught up on the op log (`last_seen_id == server's max id`) AND still diverge in materialised state because of an apply-pipeline retry storm; a device can be behind on the op log (`last_seen_id < server's max id`) AND already convergent because the missing ops are commutative no-ops. Both signals are needed.
 
@@ -478,13 +478,13 @@ Each phase is one or two PRs, gated by a feature flag, individually revertable.
 
 ## Estimated effort
 
-| Phase | Effort | Risk |
-| --- | --- | --- |
-| A — wire-shape additive | 1 week, 1 PR per repo | Low (additive) |
-| B — backfill + status UI | 2 weeks, 4-5 PRs | Medium (UX) |
-| C — per-entity conflict resolution | 2-3 weeks, 6-8 PRs | High (schema change on position + OR-Set semantics + dogfooding) |
-| D — Lamport retirement | 1 week, 2 PRs | Low (cleanup) |
-| E — clean-up | 1 week, 1 PR | Low |
+| Phase                              | Effort                | Risk                                                             |
+| ---------------------------------- | --------------------- | ---------------------------------------------------------------- |
+| A — wire-shape additive            | 1 week, 1 PR per repo | Low (additive)                                                   |
+| B — backfill + status UI           | 2 weeks, 4-5 PRs      | Medium (UX)                                                      |
+| C — per-entity conflict resolution | 2-3 weeks, 6-8 PRs    | High (schema change on position + OR-Set semantics + dogfooding) |
+| D — Lamport retirement             | 1 week, 2 PRs         | Low (cleanup)                                                    |
+| E — clean-up                       | 1 week, 1 PR          | Low                                                              |
 
 Total: **7-8 weeks of focused work**, but pipelinable. Phase B can start before phase A merges as long as the backfill code is gated by the same feature flag.
 

@@ -219,7 +219,10 @@ const SETTINGS_CATEGORY_IDS = new Set<SettingsCategory>(
  * backend rejects unknown codes) and this list. The empty `value`
  * entry is the "off" sentinel — the dropdown's default state.
  */
-const TRANSLATION_LANG_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+const TRANSLATION_LANG_OPTIONS: ReadonlyArray<{
+  value: string;
+  label: string;
+}> = [
   { value: "", label: "Off" },
   { value: "en", label: "English" },
   { value: "es", label: "Español" },
@@ -821,9 +824,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
 
   const handleCancelAnalyzeLibrary = async () => {
     try {
-      const { cancelLibraryAnalysis } = await import(
-        "../../lib/tauri/analysis"
-      );
+      const { cancelLibraryAnalysis } =
+        await import("../../lib/tauri/analysis");
       await cancelLibraryAnalysis();
       // We deliberately DON'T flip `isAnalyzingLib` here — the
       // backend exits at the next track boundary, and `analyzeLibrary`
@@ -969,9 +971,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     let cancelled = false;
     (async () => {
       try {
-        const { getLyricsTranslationLang } = await import(
-          "../../lib/tauri/lyrics"
-        );
+        const { getLyricsTranslationLang } =
+          await import("../../lib/tauri/lyrics");
         const stored = await getLyricsTranslationLang();
         if (!cancelled) setTranslationLang(stored);
       } catch (err) {
@@ -986,9 +987,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
   const handleTranslationLangChange = async (next: string) => {
     setTranslationLangBusy(true);
     try {
-      const { setLyricsTranslationLang } = await import(
-        "../../lib/tauri/lyrics"
-      );
+      const { setLyricsTranslationLang } =
+        await import("../../lib/tauri/lyrics");
       const stored = await setLyricsTranslationLang(next === "" ? null : next);
       setTranslationLang(stored);
     } catch (err) {
@@ -3224,7 +3224,9 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                 id="lyrics-translation-lang-select"
                 value={translationLang ?? ""}
                 disabled={translationLangBusy}
-                onChange={(e) => void handleTranslationLangChange(e.target.value)}
+                onChange={(e) =>
+                  void handleTranslationLangChange(e.target.value)
+                }
                 className="shrink-0 px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {TRANSLATION_LANG_OPTIONS.map((opt) =>

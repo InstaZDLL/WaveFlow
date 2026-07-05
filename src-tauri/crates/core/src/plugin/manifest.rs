@@ -181,16 +181,12 @@ impl Manifest {
         if !self.permissions.http.is_empty() && !permissions::is_known(permissions::HTTP) {
             return Err(ManifestError::UnknownPermission(permissions::HTTP.into()));
         }
-        if self.permissions.storage_read
-            && !permissions::is_known(permissions::STORAGE_READ)
-        {
+        if self.permissions.storage_read && !permissions::is_known(permissions::STORAGE_READ) {
             return Err(ManifestError::UnknownPermission(
                 permissions::STORAGE_READ.into(),
             ));
         }
-        if self.permissions.storage_state
-            && !permissions::is_known(permissions::STORAGE_STATE)
-        {
+        if self.permissions.storage_state && !permissions::is_known(permissions::STORAGE_STATE) {
             return Err(ManifestError::UnknownPermission(
                 permissions::STORAGE_STATE.into(),
             ));

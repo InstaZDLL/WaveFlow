@@ -101,12 +101,11 @@ pub async fn fields_from_row(
     conn: &mut SqliteConnection,
     local_id: i64,
 ) -> AppResult<Option<Map<String, Value>>> {
-    let row: Option<(String, Option<String>, String, String)> = sqlx::query_as(
-        "SELECT name, description, color_id, icon_id FROM library WHERE id = ?",
-    )
-    .bind(local_id)
-    .fetch_optional(&mut *conn)
-    .await?;
+    let row: Option<(String, Option<String>, String, String)> =
+        sqlx::query_as("SELECT name, description, color_id, icon_id FROM library WHERE id = ?")
+            .bind(local_id)
+            .fetch_optional(&mut *conn)
+            .await?;
     Ok(row.map(|(name, description, color_id, icon_id)| {
         canonical_fields(&name, description.as_deref(), &color_id, &icon_id)
     }))
@@ -234,7 +233,9 @@ mod tests {
             origin_device_id: None,
         };
         let fields = canonical_fields("Ghost", None, "emerald", "library");
-        let err = stamp_in_tx(&mut conn, 999, fields, stamp).await.unwrap_err();
+        let err = stamp_in_tx(&mut conn, 999, fields, stamp)
+            .await
+            .unwrap_err();
         assert!(format!("{err}").contains("no library row matched id 999"));
 
         // The digest counter must NOT have been bumped.
@@ -271,7 +272,10 @@ mod tests {
         .await
         .unwrap();
         let fields = fields_from_row(&mut conn, 1).await.unwrap().unwrap();
-        assert_eq!(fields, canonical_fields("Mix", Some("desc"), "violet", "music"));
+        assert_eq!(
+            fields,
+            canonical_fields("Mix", Some("desc"), "violet", "music")
+        );
     }
 
     #[tokio::test]

@@ -20,9 +20,9 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use tauri::State;
-use waveflow_core::plugin::PluginPaths;
 use waveflow_core::plugin::is_bundled_plugin;
 use waveflow_core::plugin::manifest::Manifest;
+use waveflow_core::plugin::PluginPaths;
 
 use crate::error::{AppError, AppResult};
 use crate::offline;
@@ -264,8 +264,8 @@ fn install_from_zip_bytes(
     //    so a mislabelled release can't masquerade as another plugin.
     let manifest_str = std::str::from_utf8(&manifest_bytes)
         .map_err(|e| AppError::Other(format!("manifest.toml is not utf-8: {e}")))?;
-    let manifest =
-        Manifest::parse(manifest_str).map_err(|e| AppError::Other(format!("parse manifest: {e}")))?;
+    let manifest = Manifest::parse(manifest_str)
+        .map_err(|e| AppError::Other(format!("parse manifest: {e}")))?;
     if manifest.plugin.id != plugin_id {
         return Err(AppError::Other(format!(
             "manifest id {:?} does not match requested {plugin_id}",
@@ -357,7 +357,9 @@ fn install_from_zip_bytes(
 /// Fetch the curated catalogue and resolve each entry against what's
 /// installed locally + this build's version, for the in-app store list.
 #[tauri::command]
-pub async fn list_plugin_marketplace(state: State<'_, AppState>) -> AppResult<Vec<MarketplaceEntry>> {
+pub async fn list_plugin_marketplace(
+    state: State<'_, AppState>,
+) -> AppResult<Vec<MarketplaceEntry>> {
     let registry = fetch_registry().await?;
     let paths = state.paths.plugin_paths();
 

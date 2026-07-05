@@ -129,9 +129,7 @@ export function ArtistMetadataEditorModal({
           if (requestId !== requestIdRef.current) return;
           // Drop the artist itself + anyone already picked.
           setResults(
-            res.filter(
-              (r) => r.id !== artistId && !selectedIds.has(r.id),
-            ),
+            res.filter((r) => r.id !== artistId && !selectedIds.has(r.id)),
           );
         })
         .catch((err) => {

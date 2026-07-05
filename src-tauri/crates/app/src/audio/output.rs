@@ -516,9 +516,7 @@ where
             let app_clone = err_app.clone();
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-                if let Some(engine) =
-                    app_clone.try_state::<std::sync::Arc<super::AudioEngine>>()
-                {
+                if let Some(engine) = app_clone.try_state::<std::sync::Arc<super::AudioEngine>>() {
                     if let Err(err) = engine.try_rebuild_after_device_error() {
                         tracing::warn!(
                             %err,

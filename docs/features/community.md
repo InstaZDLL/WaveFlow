@@ -8,11 +8,11 @@ An **opt-in, federated** pool of crowdsourced metadata — lyrics, artist bios, 
 
 The three knobs that ship in Settings → Community :
 
-| Knob                          | Default | Effect                                                              |
-| ----------------------------- | ------- | ------------------------------------------------------------------- |
-| **Look up community DB**      | `on`    | Consult community DB in the metadata fallback chain. No identity leaks. |
-| **Contribute corrections**    | `off`   | Push lyric / bio / metadata corrections upstream (requires JWT).    |
-| **Mirror URL**                | unset   | Which public mirror to pull from. Unset = private pool only.        |
+| Knob                       | Default | Effect                                                                  |
+| -------------------------- | ------- | ----------------------------------------------------------------------- |
+| **Look up community DB**   | `on`    | Consult community DB in the metadata fallback chain. No identity leaks. |
+| **Contribute corrections** | `off`   | Push lyric / bio / metadata corrections upstream (requires JWT).        |
+| **Mirror URL**             | unset   | Which public mirror to pull from. Unset = private pool only.            |
 
 Default deployment = lookup enabled, contribute disabled, mirror unset → behaviour is **identical to today's build** until the user opts in.
 

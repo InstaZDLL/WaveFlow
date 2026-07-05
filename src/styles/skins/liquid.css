@@ -30,7 +30,7 @@
   --liq-ink: rgb(245 245 247);
   --liq-muted: rgb(185 185 190);
   --liq-faint: rgb(255 255 255 / 0.5);
-  --liq-rail: rgb(255 255 255 / 0.10);
+  --liq-rail: rgb(255 255 255 / 0.1);
   --liq-rail-soft: rgb(255 255 255 / 0.06);
   --liq-action: #03d5ff;
   --liq-saturation: 150%;
@@ -55,13 +55,20 @@
      shadows. */
   --liquid-glass:
     inset 0 0 0 1px rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.1)),
-    inset 1.8px 3px 0 -2px rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.9)),
-    inset -2px -2px 0 -2px rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.8)),
-    inset -3px -8px 1px -6px rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.6)),
-    inset -0.3px -1px 4px 0 rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.12)),
-    inset -1.5px 2.5px 0 -2px rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.2)),
-    inset 0 3px 4px -2px rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.2)),
-    inset 2px -6.5px 1px -4px rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.1)),
+    inset 1.8px 3px 0 -2px
+      rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.9)),
+    inset -2px -2px 0 -2px
+      rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.8)),
+    inset -3px -8px 1px -6px
+      rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.6)),
+    inset -0.3px -1px 4px 0
+      rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.12)),
+    inset -1.5px 2.5px 0 -2px
+      rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.2)),
+    inset 0 3px 4px -2px
+      rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.2)),
+    inset 2px -6.5px 1px -4px
+      rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.1)),
     0 1px 5px 0 rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.1)),
     0 6px 16px 0 rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.08));
 
@@ -69,9 +76,12 @@
      full recipe would be too loud. */
   --liquid-glass-soft:
     inset 0 0 0 1px rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.06)),
-    inset 1px 1.5px 0 -1px rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.5)),
-    inset -1px -1px 0 -1px rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.4)),
-    inset 0 2px 3px -2px rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.12));
+    inset 1px 1.5px 0 -1px
+      rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.5)),
+    inset -1px -1px 0 -1px
+      rgb(var(--liq-light) / calc(var(--liq-reflex-light) * 0.4)),
+    inset 0 2px 3px -2px
+      rgb(var(--liq-dark) / calc(var(--liq-reflex-dark) * 0.12));
 }
 
 /* Light theme glass tones. The extended `dark` variant fires
@@ -121,7 +131,7 @@
   background-image:
     radial-gradient(
       ellipse 40rem 40rem at 10% 10%,
-      rgb(147 51 234 / 0.30),
+      rgb(147 51 234 / 0.3),
       transparent 60%
     ),
     radial-gradient(
@@ -131,7 +141,7 @@
     ),
     radial-gradient(
       ellipse 56rem 56rem at 30% 110%,
-      rgb(236 72 153 / 0.30),
+      rgb(236 72 153 / 0.3),
       transparent 60%
     );
   pointer-events: none;
@@ -139,9 +149,15 @@
 }
 
 @keyframes liquid-aurora {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(2%, -1%, 0) scale(1.05); }
-  to { transform: translate3d(-2%, 1.5%, 0) scale(0.98); }
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(2%, -1%, 0) scale(1.05);
+  }
+  to {
+    transform: translate3d(-2%, 1.5%, 0) scale(0.98);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -179,7 +195,11 @@
   margin: 0 !important;
   padding: 1.25rem 1rem 1rem;
   color: var(--liq-ink);
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 12%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 12%,
+    transparent
+  ) !important;
   background-image: none !important;
   border: 0 !important;
   border-radius: 1.5rem !important;
@@ -193,7 +213,11 @@
   padding: 0 0.5rem 1rem !important;
 }
 
-:root[data-skin="liquid"] .skin-sidebar-shell > aside > div:first-child > div:first-child {
+:root[data-skin="liquid"]
+  .skin-sidebar-shell
+  > aside
+  > div:first-child
+  > div:first-child {
   margin-bottom: 1rem !important;
   font-family: "DM Sans Variable", system-ui, sans-serif;
   font-weight: 500;
@@ -201,7 +225,12 @@
   font-size: 1rem;
 }
 
-:root[data-skin="liquid"] .skin-sidebar-shell > aside > div:first-child > div:first-child > :first-child {
+:root[data-skin="liquid"]
+  .skin-sidebar-shell
+  > aside
+  > div:first-child
+  > div:first-child
+  > :first-child {
   width: 2rem;
   height: 2rem;
   color: white;
@@ -216,18 +245,33 @@
 :root[data-skin="liquid"] .skin-sidebar-shell > aside > div:first-child button {
   border: 0 !important;
   border-radius: 9999px !important;
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 8%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 8%,
+    transparent
+  ) !important;
   box-shadow: var(--liquid-glass-soft) !important;
   font-family: "DM Sans Variable", system-ui, sans-serif !important;
   transition: background-color 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-:root[data-skin="liquid"] .skin-sidebar-shell > aside > div:first-child button:hover {
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 18%, transparent) !important;
+:root[data-skin="liquid"]
+  .skin-sidebar-shell
+  > aside
+  > div:first-child
+  button:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 18%,
+    transparent
+  ) !important;
 }
 
 /* Section eyebrows — DM Sans uppercase, soft. */
-:root[data-skin="liquid"] .skin-sidebar-shell > aside [class*="uppercase"][class*="tracking"] {
+:root[data-skin="liquid"]
+  .skin-sidebar-shell
+  > aside
+  [class*="uppercase"][class*="tracking"] {
   color: var(--liq-faint) !important;
   font-family: "DM Sans Variable", system-ui, sans-serif !important;
   font-weight: 600 !important;
@@ -239,7 +283,10 @@
 
 /* NavItem rows — soft pill rectangles. Active state gets the
    liquid-glass-soft recipe + cyan ink. */
-:root[data-skin="liquid"] .skin-sidebar-shell > aside button:where(:has(> div.flex.flex-col)) {
+:root[data-skin="liquid"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:has(> div.flex.flex-col)) {
   padding: 0.55rem 0.85rem !important;
   margin: 0.15rem 0 !important;
   color: var(--liq-muted) !important;
@@ -252,32 +299,69 @@
   transition: all 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-:root[data-skin="liquid"] .skin-sidebar-shell > aside button:where(:has(> div.flex.flex-col)):hover {
+:root[data-skin="liquid"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:has(> div.flex.flex-col)):hover {
   color: var(--liq-ink) !important;
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 6%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 6%,
+    transparent
+  ) !important;
 }
 
-:root[data-skin="liquid"] .skin-sidebar-shell > aside button[class*="bg-emerald"],
-:root[data-skin="liquid"] .skin-sidebar-shell > aside button[aria-pressed="true"] {
+:root[data-skin="liquid"]
+  .skin-sidebar-shell
+  > aside
+  button[class*="bg-emerald"],
+:root[data-skin="liquid"]
+  .skin-sidebar-shell
+  > aside
+  button[aria-pressed="true"] {
   color: var(--liq-ink) !important;
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 14%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 14%,
+    transparent
+  ) !important;
   box-shadow: var(--liquid-glass-soft) !important;
 }
 
-:root[data-skin="liquid"] .skin-sidebar-shell > aside button[class*="bg-emerald"] svg,
-:root[data-skin="liquid"] .skin-sidebar-shell > aside button[aria-pressed="true"] svg {
+:root[data-skin="liquid"]
+  .skin-sidebar-shell
+  > aside
+  button[class*="bg-emerald"]
+  svg,
+:root[data-skin="liquid"]
+  .skin-sidebar-shell
+  > aside
+  button[aria-pressed="true"]
+  svg {
   color: var(--liq-action);
 }
 
 /* SidebarRow + PlaylistSidebarRow — same soft hover treatment. */
-:root[data-skin="liquid"] .skin-sidebar-shell > aside button:where(:not(:has(> div.flex.flex-col))):where(:not(:first-child)) {
+:root[data-skin="liquid"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:not(:has(> div.flex.flex-col))):where(:not(:first-child)) {
   border-radius: 0.75rem !important;
   background-color: transparent !important;
   transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-:root[data-skin="liquid"] .skin-sidebar-shell > aside button:where(:not(:has(> div.flex.flex-col))):where(:not(:first-child)):hover {
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 6%, transparent) !important;
+:root[data-skin="liquid"]
+  .skin-sidebar-shell
+  > aside
+  button:where(:not(:has(> div.flex.flex-col))):where(
+    :not(:first-child)
+  ):hover {
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 6%,
+    transparent
+  ) !important;
 }
 
 /* Playlist thumbnails — rounded glass cover. */
@@ -301,7 +385,11 @@
   margin: 0.75rem 1rem 0;
   padding: 0 1.25rem !important;
   color: var(--liq-ink);
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 10%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 10%,
+    transparent
+  ) !important;
   background-image: none !important;
   border: 0 !important;
   border-radius: 9999px !important;
@@ -313,18 +401,32 @@
 :root[data-skin="liquid"] header :where(button, [class*="rounded-full"]) {
   border-radius: 9999px !important;
   border: 0 !important;
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 8%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 8%,
+    transparent
+  ) !important;
   color: var(--liq-ink) !important;
   box-shadow: var(--liquid-glass-soft) !important;
   transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-:root[data-skin="liquid"] header :where(button:hover, [class*="rounded-full"]:hover) {
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 18%, transparent) !important;
+:root[data-skin="liquid"]
+  header
+  :where(button:hover, [class*="rounded-full"]:hover) {
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 18%,
+    transparent
+  ) !important;
 }
 
 :root[data-skin="liquid"] header [class*="rounded-full"]:has(input) {
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 6%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 6%,
+    transparent
+  ) !important;
 }
 
 :root[data-skin="liquid"] header input {
@@ -346,14 +448,20 @@
   padding: 1.5rem 2rem 7rem !important;
 }
 
-:root[data-skin="liquid"] main :where(
-  [class*="rounded-xl"],
-  [class*="rounded-2xl"],
-  [class*="rounded-3xl"]
-) {
+:root[data-skin="liquid"]
+  main
+  :where(
+    [class*="rounded-xl"],
+    [class*="rounded-2xl"],
+    [class*="rounded-3xl"]
+  ) {
   border-radius: 1.75rem !important;
   border: 0 !important;
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 10%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 10%,
+    transparent
+  ) !important;
   background-image: none !important;
   backdrop-filter: blur(28px) saturate(var(--liq-saturation));
   -webkit-backdrop-filter: blur(28px) saturate(var(--liq-saturation));
@@ -361,11 +469,13 @@
   transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-:root[data-skin="liquid"] main :where(
-  [class*="rounded-xl"],
-  [class*="rounded-2xl"],
-  [class*="rounded-3xl"]
-):hover {
+:root[data-skin="liquid"]
+  main
+  :where(
+    [class*="rounded-xl"],
+    [class*="rounded-2xl"],
+    [class*="rounded-3xl"]
+  ):hover {
   transform: translateY(-2px);
 }
 
@@ -394,15 +504,24 @@
 }
 
 /* Eyebrow pill ("Ready to listen") — cyan glass capsule. */
-:root[data-skin="liquid"] main .inline-flex[class*="rounded-full"][class*="bg-emerald-50"] {
-  background-color: color-mix(in srgb, var(--liq-action) 12%, transparent) !important;
+:root[data-skin="liquid"]
+  main
+  .inline-flex[class*="rounded-full"][class*="bg-emerald-50"] {
+  background-color: color-mix(
+    in srgb,
+    var(--liq-action) 12%,
+    transparent
+  ) !important;
   border: 0 !important;
   color: var(--liq-action) !important;
   font-family: "DM Sans Variable", system-ui, sans-serif !important;
   box-shadow: var(--liquid-glass-soft) !important;
 }
 
-:root[data-skin="liquid"] main .inline-flex[class*="rounded-full"][class*="bg-emerald-50"] > div {
+:root[data-skin="liquid"]
+  main
+  .inline-flex[class*="rounded-full"][class*="bg-emerald-50"]
+  > div {
   background-color: var(--liq-action) !important;
   box-shadow: 0 0 8px color-mix(in srgb, var(--liq-action) 80%, transparent);
 }
@@ -411,7 +530,11 @@
 :root[data-skin="liquid"] main [class*="rounded-xl"] > div[class*="w-12"] {
   border-radius: 9999px !important;
   color: var(--liq-ink) !important;
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 14%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 14%,
+    transparent
+  ) !important;
   box-shadow: var(--liquid-glass-soft) !important;
 }
 
@@ -426,7 +549,11 @@
   position: relative;
   padding: 1.25rem !important;
   color: var(--liq-ink) !important;
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 8%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 8%,
+    transparent
+  ) !important;
   background-image: none !important;
   border: 0 !important;
   border-radius: 1.5rem !important;
@@ -450,19 +577,39 @@
 }
 
 :root[data-skin="liquid"] .liquid-mood-focus::before {
-  background: linear-gradient(135deg, rgb(99 102 241 / 0.55), rgb(37 99 235 / 0.55));
+  background: linear-gradient(
+    135deg,
+    rgb(99 102 241 / 0.55),
+    rgb(37 99 235 / 0.55)
+  );
 }
 :root[data-skin="liquid"] .liquid-mood-chill::before {
-  background: linear-gradient(135deg, rgb(245 158 11 / 0.55), rgb(217 119 6 / 0.55));
+  background: linear-gradient(
+    135deg,
+    rgb(245 158 11 / 0.55),
+    rgb(217 119 6 / 0.55)
+  );
 }
 :root[data-skin="liquid"] .liquid-mood-workout::before {
-  background: linear-gradient(135deg, rgb(244 63 94 / 0.55), rgb(219 39 119 / 0.55));
+  background: linear-gradient(
+    135deg,
+    rgb(244 63 94 / 0.55),
+    rgb(219 39 119 / 0.55)
+  );
 }
 :root[data-skin="liquid"] .liquid-mood-party::before {
-  background: linear-gradient(135deg, rgb(168 85 247 / 0.55), rgb(217 70 239 / 0.55));
+  background: linear-gradient(
+    135deg,
+    rgb(168 85 247 / 0.55),
+    rgb(217 70 239 / 0.55)
+  );
 }
 :root[data-skin="liquid"] .liquid-mood-sleep::before {
-  background: linear-gradient(135deg, rgb(8 145 178 / 0.55), rgb(30 64 175 / 0.55));
+  background: linear-gradient(
+    135deg,
+    rgb(8 145 178 / 0.55),
+    rgb(30 64 175 / 0.55)
+  );
 }
 
 :root[data-skin="liquid"] .liquid-mood-tile:hover {
@@ -527,7 +674,11 @@
   margin: 0 1rem 1rem;
   padding: 0.5rem 1rem;
   color: var(--liq-ink);
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 12%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 12%,
+    transparent
+  ) !important;
   background-image: none !important;
   border: 0 !important;
   border-radius: 1.75rem !important;
@@ -546,18 +697,28 @@
 }
 
 :root[data-skin="liquid"] footer :where(button:hover) {
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 14%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 14%,
+    transparent
+  ) !important;
   transform: scale(1.08);
 }
 
 /* The play button — white glass circle. */
-:root[data-skin="liquid"] footer button:where([class*="bg-emerald-500"], [class*="bg-emerald-600"]) {
+:root[data-skin="liquid"]
+  footer
+  button:where([class*="bg-emerald-500"], [class*="bg-emerald-600"]) {
   background-color: rgb(255 255 255 / 0.95) !important;
   color: var(--liq-bg) !important;
-  box-shadow: var(--liquid-glass-soft), 0 4px 16px -2px rgb(0 0 0 / 0.3) !important;
+  box-shadow:
+    var(--liquid-glass-soft),
+    0 4px 16px -2px rgb(0 0 0 / 0.3) !important;
 }
 
-:root[data-skin="liquid"] footer button:where([class*="bg-emerald-500"], [class*="bg-emerald-600"]):hover {
+:root[data-skin="liquid"]
+  footer
+  button:where([class*="bg-emerald-500"], [class*="bg-emerald-600"]):hover {
   background-color: white !important;
   transform: scale(1.08);
 }
@@ -584,7 +745,11 @@
 }
 
 :root[data-skin="liquid"] footer [role="slider"] > div {
-  background-image: linear-gradient(90deg, var(--liq-action), #a855f7) !important;
+  background-image: linear-gradient(
+    90deg,
+    var(--liq-action),
+    #a855f7
+  ) !important;
   background-color: transparent !important;
   border-radius: 9999px !important;
   height: 100% !important;
@@ -603,7 +768,11 @@
   padding: 0.2rem 0.55rem !important;
   border: 0 !important;
   border-radius: 9999px !important;
-  background-color: color-mix(in srgb, var(--liq-action) 18%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--liq-action) 18%,
+    transparent
+  ) !important;
   color: var(--liq-action) !important;
   font-family: "DM Sans Variable", system-ui, sans-serif !important;
   font-weight: 600;
@@ -629,68 +798,110 @@
 /* ============================================================
    Surface neutralization — paint utility bgs as glass
    ============================================================ */
-:root[data-skin="liquid"] :where(
-  [class*="bg-white"],
-  [class*="bg-zinc-50"],
-  [class*="bg-zinc-100"],
-  [class*="bg-zinc-200"],
-  [class*="bg-surface-light"]
-):not(header):not(footer):not([role="slider"]):not([role="slider"] *):not([role="dialog"]):not([data-immersive]):not([data-immersive] *):not([class*="shadow-2xl"]):not([class*="shadow-xl"]):not([class*="shadow-lg"]) {
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 8%, transparent) !important;
+:root[data-skin="liquid"]
+  :where(
+    [class*="bg-white"],
+    [class*="bg-zinc-50"],
+    [class*="bg-zinc-100"],
+    [class*="bg-zinc-200"],
+    [class*="bg-surface-light"]
+  ):not(header):not(footer):not([role="slider"]):not([role="slider"] *):not(
+    [role="dialog"]
+  ):not([data-immersive]):not([data-immersive] *):not(
+    [class*="shadow-2xl"]
+  ):not([class*="shadow-xl"]):not([class*="shadow-lg"]) {
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 8%,
+    transparent
+  ) !important;
   background-image: none !important;
 }
 
-:root[data-skin="liquid"] :where(
-  [class*="dark:bg-zinc-700"],
-  [class*="dark:bg-zinc-800"],
-  [class*="dark:bg-zinc-900"],
-  [class*="dark:bg-surface-dark"]
-):not(header):not(footer):not([role="slider"]):not([role="slider"] *):not([role="dialog"]):not([data-immersive]):not([data-immersive] *):not([class*="shadow-2xl"]):not([class*="shadow-xl"]):not([class*="shadow-lg"]) {
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 10%, transparent) !important;
+:root[data-skin="liquid"]
+  :where(
+    [class*="dark:bg-zinc-700"],
+    [class*="dark:bg-zinc-800"],
+    [class*="dark:bg-zinc-900"],
+    [class*="dark:bg-surface-dark"]
+  ):not(header):not(footer):not([role="slider"]):not([role="slider"] *):not(
+    [role="dialog"]
+  ):not([data-immersive]):not([data-immersive] *):not(
+    [class*="shadow-2xl"]
+  ):not([class*="shadow-xl"]):not([class*="shadow-lg"]) {
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 10%,
+    transparent
+  ) !important;
   background-image: none !important;
 }
 
 /* Sticky day-headers (HistoryView). */
-:root[data-skin="liquid"] [class*="sticky"]:where(
-  [class*="bg-white"],
-  [class*="bg-zinc"],
-  [class*="bg-surface"],
-  [class*="dark:bg-"]
-) {
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 16%, transparent) !important;
+:root[data-skin="liquid"]
+  [class*="sticky"]:where(
+    [class*="bg-white"],
+    [class*="bg-zinc"],
+    [class*="bg-surface"],
+    [class*="dark:bg-"]
+  ) {
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 16%,
+    transparent
+  ) !important;
   backdrop-filter: blur(20px) saturate(var(--liq-saturation));
   -webkit-backdrop-filter: blur(20px) saturate(var(--liq-saturation));
   border-bottom: 1px solid var(--liq-rail) !important;
 }
 
 /* Hover rows. */
-:root[data-skin="liquid"] :where(
-  [class*="hover:bg-zinc-50"],
-  [class*="hover:bg-zinc-100"],
-  [class*="dark:hover:bg-zinc-700"],
-  [class*="dark:hover:bg-zinc-800"]
-):hover {
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 12%, transparent) !important;
+:root[data-skin="liquid"]
+  :where(
+    [class*="hover:bg-zinc-50"],
+    [class*="hover:bg-zinc-100"],
+    [class*="dark:hover:bg-zinc-700"],
+    [class*="dark:hover:bg-zinc-800"]
+  ):hover {
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 12%,
+    transparent
+  ) !important;
 }
 
 /* Active row state. */
-:root[data-skin="liquid"] :where([class*="bg-emerald-50"]):not(.liquid-mood-tile *) {
-  background-color: color-mix(in srgb, var(--liq-action) 12%, transparent) !important;
+:root[data-skin="liquid"]
+  :where([class*="bg-emerald-50"]):not(.liquid-mood-tile *) {
+  background-color: color-mix(
+    in srgb,
+    var(--liq-action) 12%,
+    transparent
+  ) !important;
   color: var(--liq-action) !important;
 }
 
 /* Inputs — pill capsules. */
 :root[data-skin="liquid"] :where(input, textarea, select):not(header input) {
   color: var(--liq-ink);
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 8%, transparent) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 8%,
+    transparent
+  ) !important;
   border: 0 !important;
   border-radius: 9999px !important;
   box-shadow: var(--liquid-glass-soft) !important;
   font-family: "DM Sans Variable", system-ui, sans-serif;
 }
 
-:root[data-skin="liquid"] :where(input, textarea, select):not(header input):focus {
-  background-color: color-mix(in srgb, var(--liq-glass-tint) 14%, transparent) !important;
+:root[data-skin="liquid"]
+  :where(input, textarea, select):not(header input):focus {
+  background-color: color-mix(
+    in srgb,
+    var(--liq-glass-tint) 14%,
+    transparent
+  ) !important;
   outline: 0 !important;
 }
 
@@ -717,13 +928,14 @@
    exclusion — none of them paint a base bg via a `.liquid-*`
    class so the substring capture lands on a tile that already
    carries its own gradient, with no conflict. */
-:root[data-skin="liquid"] :where(
-  [role="dialog"],
-  [role="tooltip"],
-  [class*="shadow-lg"],
-  [class*="shadow-xl"],
-  [class*="shadow-2xl"]
-):not(.liquid-mood-tile):not([data-immersive]):not([data-immersive] *) {
+:root[data-skin="liquid"]
+  :where(
+    [role="dialog"],
+    [role="tooltip"],
+    [class*="shadow-lg"],
+    [class*="shadow-xl"],
+    [class*="shadow-2xl"]
+  ):not(.liquid-mood-tile):not([data-immersive]):not([data-immersive] *) {
   color: var(--liq-ink) !important;
   /* Mirror what Big Sur / iOS Control Center actually do for
      content-heavy panels: a DENSE dark-tinted base (not pure
@@ -758,12 +970,13 @@
    Override with an opaque-ish frosted-white material so the
    modal stays Big-Sur-light regardless of the overlay
    underneath. */
-:root[data-skin="liquid"]:not(.dark) :where(
-  [role="dialog"],
-  [class*="shadow-lg"],
-  [class*="shadow-xl"],
-  [class*="shadow-2xl"]
-):not(.liquid-mood-tile):not([data-immersive]):not([data-immersive] *) {
+:root[data-skin="liquid"]:not(.dark)
+  :where(
+    [role="dialog"],
+    [class*="shadow-lg"],
+    [class*="shadow-xl"],
+    [class*="shadow-2xl"]
+  ):not(.liquid-mood-tile):not([data-immersive]):not([data-immersive] *) {
   /* 82% → 92% in light. Same Audio-Pipeline-popover bleed-through
      fix as the dark branch above — content-heavy panels over a
      saturated cover lose every line of text at 82% even with
@@ -778,11 +991,19 @@
    descendant that isn't an explicitly-tinted accent (so the
    AND/OR/NOT chips, the colored playlist preview tile, etc.
    keep their identity) and force them to ink. */
-:root[data-skin="liquid"] :where(
-  [role="dialog"]:not([data-immersive]),
-  [class*="shadow-2xl"]:not([data-immersive] *),
-  [class*="shadow-xl"]:not([data-immersive] *)
-) :where(h1, h2, h3, h4, h5, h6, label, p, span):not([data-immersive] *):not([class*="bg-violet"]):not([class*="bg-indigo"]):not([class*="bg-blue-5"]):not([class*="bg-blue-6"]):not([class*="bg-purple"]):not([class*="bg-fuchsia"]):not([class*="bg-pink"]) {
+:root[data-skin="liquid"]
+  :where(
+    [role="dialog"]:not([data-immersive]),
+    [class*="shadow-2xl"]:not([data-immersive] *),
+    [class*="shadow-xl"]:not([data-immersive] *)
+  )
+  :where(h1, h2, h3, h4, h5, h6, label, p, span):not([data-immersive] *):not(
+    [class*="bg-violet"]
+  ):not([class*="bg-indigo"]):not([class*="bg-blue-5"]):not(
+    [class*="bg-blue-6"]
+  ):not([class*="bg-purple"]):not([class*="bg-fuchsia"]):not(
+    [class*="bg-pink"]
+  ) {
   color: var(--liq-ink) !important;
 }
 
@@ -795,39 +1016,41 @@
 }
 
 /* Type colour overrides. */
-:root[data-skin="liquid"] :where(
-  .text-zinc-900,
-  .text-zinc-800,
-  .dark\:text-white,
-  .dark\:text-zinc-100,
-  .dark\:text-zinc-200
-):not([data-immersive] *) {
+:root[data-skin="liquid"]
+  :where(
+    .text-zinc-900,
+    .text-zinc-800,
+    .dark\:text-white,
+    .dark\:text-zinc-100,
+    .dark\:text-zinc-200
+  ):not([data-immersive] *) {
   color: var(--liq-ink) !important;
 }
 
-:root[data-skin="liquid"] :where(
-  .text-zinc-700,
-  .text-zinc-600,
-  .dark\:text-zinc-300
-):not([data-immersive] *) {
+:root[data-skin="liquid"]
+  :where(.text-zinc-700, .text-zinc-600, .dark\:text-zinc-300):not(
+    [data-immersive] *
+  ) {
   color: var(--liq-muted) !important;
 }
 
-:root[data-skin="liquid"] :where(
-  .text-zinc-500,
-  .text-zinc-400,
-  .dark\:text-zinc-400,
-  .dark\:text-zinc-600
-):not([data-immersive] *) {
+:root[data-skin="liquid"]
+  :where(
+    .text-zinc-500,
+    .text-zinc-400,
+    .dark\:text-zinc-400,
+    .dark\:text-zinc-600
+  ):not([data-immersive] *) {
   color: var(--liq-faint) !important;
 }
 
-:root[data-skin="liquid"] :where(
-  .text-emerald-400,
-  .text-emerald-500,
-  .text-emerald-600,
-  .dark\:text-emerald-400
-):not([data-immersive] *) {
+:root[data-skin="liquid"]
+  :where(
+    .text-emerald-400,
+    .text-emerald-500,
+    .text-emerald-600,
+    .dark\:text-emerald-400
+  ):not([data-immersive] *) {
   color: var(--liq-action) !important;
 }
 

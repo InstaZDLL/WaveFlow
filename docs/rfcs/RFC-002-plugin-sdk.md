@@ -21,8 +21,9 @@
 > and stage-swapping it into the writable sideload root for the runtime to
 > load. Sideload-by-hand still works; the store is the ergonomic path on
 > top. See [`commands/plugin_store.rs`](../../src-tauri/crates/app/src/commands/plugin_store.rs)
-> + the `settings.pluginStore` UI. Everything else in this RFC (WASM
-> Component Model, WIT worlds, sandbox, permission enforcement) stands.
+>
+> - the `settings.pluginStore` UI. Everything else in this RFC (WASM
+>   Component Model, WIT worlds, sandbox, permission enforcement) stands.
 
 ---
 

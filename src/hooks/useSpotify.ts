@@ -6,11 +6,7 @@ import type {
 } from "../lib/tauri/spotify";
 
 export type SpotifyPlaybackState =
-  | "idle"
-  | "loading"
-  | "playing"
-  | "paused"
-  | "ended";
+  "idle" | "loading" | "playing" | "paused" | "ended";
 
 interface SpotifyContextValue {
   status: SpotifyStatus | null;

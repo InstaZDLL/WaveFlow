@@ -24,7 +24,11 @@ interface MarqueeTextProps {
  * via a `ResizeObserver` so it reacts to both track changes and the
  * container resizing (panel open, window resize).
  */
-export function MarqueeText({ text, className, threshold = 4 }: MarqueeTextProps) {
+export function MarqueeText({
+  text,
+  className,
+  threshold = 4,
+}: MarqueeTextProps) {
   const { enabled } = useScrollLongTitles();
   // `prefers-reduced-motion` disables the CSS keyframe — without also
   // gating `animate` here, the scrolling LAYOUT would still render

@@ -12,7 +12,7 @@ User-facing references and per-feature deep dives. The top-level [README](../REA
 | [Smart playlists](features/smart-playlists.md) | Daily Mix auto-generation + user-defined rule editor: algorithm, cover compositor, regen flow                                                                                            |
 | [Integrations](features/integrations.md)       | Deezer / Last.fm / lyrics providers, metadata cache, scrobble worker, similar-artists discovery, in-app lyrics editor                                                                    |
 | [DLNA / UPnP server](features/dlna.md)         | Built-in MediaServer: SSDP discovery, ContentDirectory Browse, Range streaming to LAN amplifiers                                                                                         |
-| [Community-DB](features/community.md)          | *Placeholder.* Opt-in shared metadata pool — companion page to [RFC-004](rfcs/RFC-004-community-database.md). Real copy fills in during Phase 2.a.                                       |
+| [Community-DB](features/community.md)          | _Placeholder._ Opt-in shared metadata pool — companion page to [RFC-004](rfcs/RFC-004-community-database.md). Real copy fills in during Phase 2.a.                                       |
 | [UI & UX](features/ui.md)                      | Layout, panels, skins, mini-player widget, tray, statistics, dark mode, i18n, profiles, onboarding, auto-updater                                                                         |
 
 ## Architecture

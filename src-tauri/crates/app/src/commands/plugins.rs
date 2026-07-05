@@ -12,8 +12,8 @@
 //! warm across the session.
 
 use std::fs;
-use std::sync::Arc;
 use std::sync::atomic::Ordering as AtomicOrdering;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -185,11 +185,10 @@ pub async fn get_plugin_favorites(
 ) -> AppResult<Vec<PluginFavorite>> {
     validate_plugin_id_chars(&plugin_id)?;
     let pool = state.require_profile_pool().await?;
-    let raw: Option<String> =
-        sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = ?")
-            .bind(favorites_key(&plugin_id))
-            .fetch_optional(&pool)
-            .await?;
+    let raw: Option<String> = sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = ?")
+        .bind(favorites_key(&plugin_id))
+        .fetch_optional(&pool)
+        .await?;
     let Some(raw) = raw else {
         return Ok(Vec::new());
     };
@@ -269,12 +268,10 @@ async fn read_enabled(app_db: &sqlx::SqlitePool, plugin_id: &str) -> AppResult<b
     // Missing row = enabled. We don't pre-populate on install so a
     // brand-new plugin always starts on; the user has to flip the
     // toggle to opt-out.
-    let row: Option<String> = sqlx::query_scalar(
-        "SELECT value FROM app_setting WHERE key = ?",
-    )
-    .bind(enabled_key(plugin_id))
-    .fetch_optional(app_db)
-    .await?;
+    let row: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(enabled_key(plugin_id))
+        .fetch_optional(app_db)
+        .await?;
     Ok(row.map(|v| v == "true" || v == "1").unwrap_or(true))
 }
 
@@ -646,7 +643,12 @@ pub async fn uninstall_plugin(
     // narrow this to "the URL was minted by THIS plugin" — accepted
     // trade-off vs orphaning a stream whose owner has just been
     // uninstalled. A library track is left alone.
-    if engine.shared().current_track_id.load(AtomicOrdering::Relaxed) < 0 {
+    if engine
+        .shared()
+        .current_track_id
+        .load(AtomicOrdering::Relaxed)
+        < 0
+    {
         tracing::info!(plugin_id, "stopping active URL stream before uninstall");
         if let Err(e) = engine.send(AudioCmd::Stop) {
             tracing::warn!(plugin_id, %e, "failed to stop engine; proceeding with uninstall");
@@ -726,10 +728,7 @@ pub struct PluginTrack {
 /// `set_plugin_enabled` / `uninstall_plugin` can't race us mid-
 /// invocation), refuse if the user disabled the plugin in
 /// Settings.
-async fn source_preamble(
-    state: &AppState,
-    plugin_id: &str,
-) -> AppResult<OwnedMutexGuard<()>> {
+async fn source_preamble(state: &AppState, plugin_id: &str) -> AppResult<OwnedMutexGuard<()>> {
     validate_plugin_id_chars(plugin_id)?;
     let guard = lock_plugin(state, plugin_id).await;
     if !read_enabled(&state.app_db, plugin_id).await? {
@@ -819,4 +818,3 @@ pub async fn plugin_stream_url(
     .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
     Ok(url)
 }
-

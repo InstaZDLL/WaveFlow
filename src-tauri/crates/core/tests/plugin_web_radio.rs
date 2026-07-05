@@ -31,14 +31,9 @@ fn stage_fixture() -> (tempfile::TempDir, PluginPaths) {
     let plugin_dir = paths.plugin_dir("web-radio").expect("dir");
     std::fs::create_dir_all(&plugin_dir).expect("mkdir");
 
-    let fixture_root: PathBuf = [
-        env!("CARGO_MANIFEST_DIR"),
-        "tests",
-        "fixtures",
-        "web-radio",
-    ]
-    .iter()
-    .collect();
+    let fixture_root: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "fixtures", "web-radio"]
+        .iter()
+        .collect();
     std::fs::copy(
         fixture_root.join("manifest.toml"),
         plugin_dir.join("manifest.toml"),
@@ -66,8 +61,7 @@ fn web_radio_plugin_loads_and_lists_categories() {
 
     // Instantiate the component against the SDK's source-v1 world
     // bindings (the bindgen! macro lives in `plugin::bindings`).
-    let plugin =
-        Plugin::instantiate(&mut store, &loaded.component, &linker).expect("instantiate");
+    let plugin = Plugin::instantiate(&mut store, &loaded.component, &linker).expect("instantiate");
 
     // Call the guest's `list-entries` and verify the catalogue
     // matches what `web-radio/src/lib.rs` ships exactly. A

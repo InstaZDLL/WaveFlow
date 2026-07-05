@@ -87,9 +87,8 @@ export function SyncStatusCard() {
   const [backfilling, setBackfilling] = useState(false);
   const [autoEnabled, setAutoEnabled] = useState<boolean | null>(null);
   const [autoToggleBusy, setAutoToggleBusy] = useState(false);
-  const [backfillOutcome, setBackfillOutcome] = useState<BackfillOutcome | null>(
-    null,
-  );
+  const [backfillOutcome, setBackfillOutcome] =
+    useState<BackfillOutcome | null>(null);
   // Runtime errors from `syncBackfillNow` (network, deserialize,
   // unexpected status) are tracked separately from the backend's
   // `BackfillOutcome` wire shape: mapping them onto `Skipped { reason }`
@@ -424,9 +423,7 @@ export function SyncStatusCard() {
         <select
           id="sync-cadence-select"
           value={cadence ?? 60}
-          disabled={
-            cadence === null || cadenceBusy || autoEnabled !== true
-          }
+          disabled={cadence === null || cadenceBusy || autoEnabled !== true}
           onChange={(e) => void handleCadenceChange(Number(e.target.value))}
           className="shrink-0 px-3 py-1.5 rounded-lg border border-zinc-200 bg-white text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -496,7 +493,10 @@ function useOverallStatus(
               />
             ),
             subtitle: (t) =>
-              joinSubtitle(t("settings.syncStatus.subtitleAllInSync"), lastSyncSuffix(t)),
+              joinSubtitle(
+                t("settings.syncStatus.subtitleAllInSync"),
+                lastSyncSuffix(t),
+              ),
           };
         }
         return {
@@ -818,7 +818,11 @@ function DrilldownBucket({
   total,
 }: {
   title: string;
-  rows: Array<{ canonical_id: string; local_hash: string; remote_hash: string }>;
+  rows: Array<{
+    canonical_id: string;
+    local_hash: string;
+    remote_hash: string;
+  }>;
   total: number;
 }) {
   const { t } = useTranslation();
@@ -827,8 +831,7 @@ function DrilldownBucket({
   return (
     <div>
       <div className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 mb-1">
-        {title}{" "}
-        <span className="font-normal text-zinc-400">({total})</span>
+        {title} <span className="font-normal text-zinc-400">({total})</span>
       </div>
       <ul className="space-y-0.5 text-[11px] font-mono text-zinc-600 dark:text-zinc-400">
         {shown.map((row, idx) => (

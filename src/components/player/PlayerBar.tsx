@@ -166,9 +166,7 @@ export function PlayerBar({ onNavigateToArtist }: PlayerBarProps) {
                 // Web Radio streams that ship no cover URL fall back
                 // to a radio icon instead of the generic CD disc so
                 // the source type is recognisable at a glance.
-                placeholderIcon={
-                  isRadioTrack(currentTrack) ? Radio : undefined
-                }
+                placeholderIcon={isRadioTrack(currentTrack) ? Radio : undefined}
               />
             </button>
             <div className="flex flex-col min-w-0">

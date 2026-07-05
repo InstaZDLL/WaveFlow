@@ -269,12 +269,11 @@ mod tests {
         let fields = canonical_fields_from_wire(&sample_wire(&artists));
         stamp_in_tx(&mut conn, 1, fields, stamp).await.unwrap();
 
-        let row: (i64, i32, Option<Vec<u8>>) = sqlx::query_as(
-            "SELECT hlc_wall, hlc_logical, payload_hash FROM track WHERE id = 1",
-        )
-        .fetch_one(&mut *conn)
-        .await
-        .unwrap();
+        let row: (i64, i32, Option<Vec<u8>>) =
+            sqlx::query_as("SELECT hlc_wall, hlc_logical, payload_hash FROM track WHERE id = 1")
+                .fetch_one(&mut *conn)
+                .await
+                .unwrap();
         assert_eq!(row.0, 1_700_000_000_001);
         assert_eq!(row.1, 9);
         assert_eq!(row.2.as_deref().map(|b| b.len()), Some(32));
@@ -299,7 +298,9 @@ mod tests {
         };
         let artists: Vec<String> = vec![];
         let fields = canonical_fields_from_wire(&sample_wire(&artists));
-        let err = stamp_in_tx(&mut conn, 999, fields, stamp).await.unwrap_err();
+        let err = stamp_in_tx(&mut conn, 999, fields, stamp)
+            .await
+            .unwrap_err();
         assert!(format!("{err}").contains("no track row matched id 999"));
 
         let v: i64 = sqlx::query_scalar(

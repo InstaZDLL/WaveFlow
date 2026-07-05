@@ -26,8 +26,8 @@
 //! column / id shape differs.
 
 use sqlx::SqliteConnection;
-use waveflow_core::sync::Hlc;
 use waveflow_core::sync::payload_hash::compute_payload_hash;
+use waveflow_core::sync::Hlc;
 
 use crate::error::AppResult;
 use crate::sync::hooks::EnqueuedStamp;

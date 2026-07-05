@@ -62,7 +62,6 @@ struct ErrorPayload {
     message: String,
 }
 
-
 /// Common path for `LoadAndPlay` / `LoadUrlAndPlay` — fire the right
 /// analytics message depending on how the stream finished. Live
 /// radio (`finished.track_id < 0`, `finished.source_type == "radio"`)
@@ -77,8 +76,7 @@ fn handle_playback_outcome(
 ) {
     match outcome {
         Ok((PlaybackEnd::Natural, listened_ms, finished)) => {
-            let completed =
-                listened_ms + 2000 >= finished.duration_ms && finished.duration_ms > 0;
+            let completed = listened_ms + 2000 >= finished.duration_ms && finished.duration_ms > 0;
             tracing::info!(
                 finished_track_id = finished.track_id,
                 listened_ms,
@@ -348,10 +346,7 @@ fn decoder_loop(
                     Ok(s) => s,
                     Err(err) => {
                         tracing::warn!(?err, path = %path.display(), "open failed");
-                        let _ = app.emit(
-                            EVENT_ERROR,
-                            ErrorPayload { message: err },
-                        );
+                        let _ = app.emit(EVENT_ERROR, ErrorPayload { message: err });
                         transition_state(&shared, &app, PlayerState::Idle, Some(track_id));
                         continue;
                     }
@@ -527,13 +522,7 @@ fn decoder_loop(
                     &mut pending_cmd,
                     analytics_tx,
                 );
-                handle_playback_outcome(
-                    outcome,
-                    &shared,
-                    &app,
-                    analytics_tx,
-                    Some(redacted),
-                );
+                handle_playback_outcome(outcome, &shared, &app, analytics_tx, Some(redacted));
             }
             AudioCmd::SwapProducer(new_producer) => {
                 // The output thread was rebuilt on a different cpal
@@ -1272,7 +1261,10 @@ fn reset_resampler_for_seek(
 ) {
     let speed = shared.playback_speed();
     if let Err(err) = stream.rebuild_resampler(speed, dst_sample_rate, dst_channels) {
-        tracing::warn!(?err, "resampler rebuild on seek failed; falling back to flush");
+        tracing::warn!(
+            ?err,
+            "resampler rebuild on seek failed; falling back to flush"
+        );
         stream.resampler.flush();
     }
 }
@@ -1684,9 +1676,15 @@ fn downmix_frame_to_stereo(frame: &[f32]) -> (f32, f32) {
         // quad 4.0 — FL FR BL BR (no centre)
         4 => (l + K * frame[2], r + K * frame[3]),
         // 5.0 — FL FR FC BL BR
-        5 => (l + K * frame[2] + K * frame[3], r + K * frame[2] + K * frame[4]),
+        5 => (
+            l + K * frame[2] + K * frame[3],
+            r + K * frame[2] + K * frame[4],
+        ),
         // 5.1 — FL FR FC LFE BL BR (LFE dropped)
-        6 => (l + K * frame[2] + K * frame[4], r + K * frame[2] + K * frame[5]),
+        6 => (
+            l + K * frame[2] + K * frame[4],
+            r + K * frame[2] + K * frame[5],
+        ),
         // 6.1 — FL FR FC LFE BL BR BC (rear-centre folded into both)
         7 => {
             let bc = K * frame[6];
@@ -1791,8 +1789,7 @@ mod tests {
     #[test]
     fn seven_one_folds_all_surrounds() {
         // FL FR FC LFE BL BR SL SR
-        let (lo, ro) =
-            downmix_frame_to_stereo(&[1.0, 2.0, 0.4, 9.9, 0.6, 0.8, 0.1, 0.2]);
+        let (lo, ro) = downmix_frame_to_stereo(&[1.0, 2.0, 0.4, 9.9, 0.6, 0.8, 0.1, 0.2]);
         approx(lo, 1.0 + K * 0.4 + K * 0.6 + K * 0.1);
         approx(ro, 2.0 + K * 0.4 + K * 0.8 + K * 0.2);
     }
@@ -1801,9 +1798,8 @@ mod tests {
     fn beyond_seven_one_drops_no_channel() {
         // 10 channels: idx ≥ 8 must still fold in (parity left/right),
         // not be silently dropped.
-        let (lo, ro) = downmix_frame_to_stereo(&[
-            1.0, 2.0, 0.4, 9.9, 0.6, 0.8, 0.1, 0.2, 0.05, 0.07,
-        ]);
+        let (lo, ro) =
+            downmix_frame_to_stereo(&[1.0, 2.0, 0.4, 9.9, 0.6, 0.8, 0.1, 0.2, 0.05, 0.07]);
         approx(lo, 1.0 + K * (0.4 + 0.6 + 0.1 + 0.05));
         approx(ro, 2.0 + K * (0.4 + 0.8 + 0.2 + 0.07));
     }

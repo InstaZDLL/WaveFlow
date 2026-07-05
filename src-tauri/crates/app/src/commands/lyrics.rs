@@ -1061,11 +1061,10 @@ pub async fn refetch_lyrics(
     // Drop the cached row (if any) so the waterfall / single-provider
     // path below is forced to re-query. Look up the file_hash first
     // since `app.lyrics` is keyed by content hash, not track id.
-    let file_hash: Option<String> =
-        sqlx::query_scalar("SELECT file_hash FROM track WHERE id = ?")
-            .bind(track_id)
-            .fetch_optional(&pool)
-            .await?;
+    let file_hash: Option<String> = sqlx::query_scalar("SELECT file_hash FROM track WHERE id = ?")
+        .bind(track_id)
+        .fetch_optional(&pool)
+        .await?;
     let Some(file_hash) = file_hash else {
         return Ok(None);
     };
@@ -1318,8 +1317,7 @@ async fn run_prefetch(
         if let Some(content) = embedded {
             let format = detect_format(&content);
             let source = LyricsSource::Embedded;
-            if let Err(e) =
-                upsert_lyrics(&pool, &file_hash, &content, &format, &source, None).await
+            if let Err(e) = upsert_lyrics(&pool, &file_hash, &content, &format, &source, None).await
             {
                 tracing::warn!(track_id, ?e, "persist embedded lyrics failed");
                 failed += 1;
@@ -1342,8 +1340,7 @@ async fn run_prefetch(
         if let Some(content) = sidecar {
             let format = detect_format(&content);
             let source = LyricsSource::LrcFile;
-            if let Err(e) =
-                upsert_lyrics(&pool, &file_hash, &content, &format, &source, None).await
+            if let Err(e) = upsert_lyrics(&pool, &file_hash, &content, &format, &source, None).await
             {
                 tracing::warn!(track_id, ?e, "persist sidecar lyrics failed");
                 failed += 1;
@@ -2066,8 +2063,16 @@ pub async fn fetch_radio_lyrics(
         Some(r) => {
             let format = external_format_to_app(r.format);
             let provider = r.provider.as_str();
-            upsert_radio_lyrics(&pool, &key, artist, title, &r.content, &format, Some(provider))
-                .await?;
+            upsert_radio_lyrics(
+                &pool,
+                &key,
+                artist,
+                title,
+                &r.content,
+                &format,
+                Some(provider),
+            )
+            .await?;
             Ok(Some(LyricsPayload {
                 track_id,
                 content: r.content,

@@ -20,9 +20,7 @@ export function SkinPlayingState() {
   const { isPlaying } = usePlayer();
 
   useEffect(() => {
-    document.documentElement.dataset.isPlaying = isPlaying
-      ? "true"
-      : "false";
+    document.documentElement.dataset.isPlaying = isPlaying ? "true" : "false";
     // Cleanup: drop the attribute entirely on unmount so a future
     // refactor (test harness teardown, route-level remount, etc.)
     // doesn't leave a stale `data-is-playing="true"` on the

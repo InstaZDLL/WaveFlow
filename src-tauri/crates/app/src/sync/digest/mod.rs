@@ -95,17 +95,11 @@ pub struct LocalDigest {
     pub members: Vec<LocalMember>,
 }
 
-fn serialize_bytes_hex<S: serde::Serializer>(
-    bytes: &Vec<u8>,
-    s: S,
-) -> Result<S::Ok, S::Error> {
+fn serialize_bytes_hex<S: serde::Serializer>(bytes: &Vec<u8>, s: S) -> Result<S::Ok, S::Error> {
     s.serialize_str(&hex::encode(bytes))
 }
 
-fn serialize_array_hex<S: serde::Serializer>(
-    bytes: &[u8; 32],
-    s: S,
-) -> Result<S::Ok, S::Error> {
+fn serialize_array_hex<S: serde::Serializer>(bytes: &[u8; 32], s: S) -> Result<S::Ok, S::Error> {
     s.serialize_str(&hex::encode(bytes))
 }
 
@@ -635,7 +629,9 @@ mod tests {
     #[tokio::test]
     async fn unknown_entity_errors_with_typo_friendly_message() {
         let pool = pool().await;
-        let err = read_local_digest(&pool, "playlist_track").await.unwrap_err();
+        let err = read_local_digest(&pool, "playlist_track")
+            .await
+            .unwrap_err();
         assert!(format!("{err}").contains("unknown entity 'playlist_track'"));
     }
 

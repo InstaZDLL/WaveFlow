@@ -142,9 +142,7 @@ pub async fn create_playlist(
     // gate / SyncMode::Local short-circuits return `None`); the row
     // INSERT itself proceeds either way.
     if let Some(stamp) = stamp {
-        if let Some(fields) =
-            crate::sync::payload::playlist::fields_from_row(&mut tx, id).await?
-        {
+        if let Some(fields) = crate::sync::payload::playlist::fields_from_row(&mut tx, id).await? {
             crate::sync::payload::playlist::stamp_in_tx(&mut tx, id, fields, stamp).await?;
         }
     }

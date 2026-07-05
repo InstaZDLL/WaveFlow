@@ -11,11 +11,7 @@ export type LyricsSource = "embedded" | "lrc_file" | "api" | "manual";
  * provider chip.
  */
 export type LyricsProvider =
-  | "lrclib"
-  | "genius"
-  | "net_ease"
-  | "megalobiz"
-  | "musixmatch";
+  "lrclib" | "genius" | "net_ease" | "megalobiz" | "musixmatch";
 
 /**
  * Stable list of providers the picker UI cycles through. Mirrors

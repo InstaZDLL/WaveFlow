@@ -81,25 +81,22 @@ export function PluginStoreCard() {
     };
   }, []);
 
-  const onInstall = useCallback(
-    async (entry: MarketplaceEntry) => {
-      setBusyId(entry.id);
-      setError(null);
-      try {
-        await installPluginFromRegistry(entry.id);
-        // Reflect the new on-disk state (installed / version / no-update)
-        // and let the sidebar + source views re-evaluate availability.
-        window.dispatchEvent(new CustomEvent(PLUGIN_AVAILABILITY_EVENT));
-        const list = await listPluginMarketplace();
-        setEntries(list);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-      } finally {
-        setBusyId(null);
-      }
-    },
-    [],
-  );
+  const onInstall = useCallback(async (entry: MarketplaceEntry) => {
+    setBusyId(entry.id);
+    setError(null);
+    try {
+      await installPluginFromRegistry(entry.id);
+      // Reflect the new on-disk state (installed / version / no-update)
+      // and let the sidebar + source views re-evaluate availability.
+      window.dispatchEvent(new CustomEvent(PLUGIN_AVAILABILITY_EVENT));
+      const list = await listPluginMarketplace();
+      setEntries(list);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusyId(null);
+    }
+  }, []);
 
   return (
     <section

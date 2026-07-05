@@ -345,7 +345,9 @@
 }
 
 :root[data-skin="lounge"]
-  :where([role="dialog"], [role="tooltip"], [class*="shadow-lg"]):not([data-immersive]):not([data-immersive] *) {
+  :where([role="dialog"], [role="tooltip"], [class*="shadow-lg"]):not(
+    [data-immersive]
+  ):not([data-immersive] *) {
   background-color: rgb(24 6 14 / 0.92) !important;
   border-color: var(--lounge-border) !important;
 }

@@ -121,7 +121,15 @@ async fn resolve_one(
     let Some(local) = local else {
         // Local row vanished after the digest read — treat as
         // missing_locally now.
-        pull::pull_one(state, client, pool, entity, profile_canonical_id, canonical_id).await?;
+        pull::pull_one(
+            state,
+            client,
+            pool,
+            entity,
+            profile_canonical_id,
+            canonical_id,
+        )
+        .await?;
         return Ok(Decision::RemoteWins);
     };
 
@@ -275,4 +283,3 @@ async fn push_one(
 ) -> AppResult<bool> {
     push::push_one_by_canonical(state, pool, entity, canonical_id).await
 }
-

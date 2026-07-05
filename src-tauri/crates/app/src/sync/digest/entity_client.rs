@@ -81,10 +81,7 @@ pub async fn fetch_remote_entity(
 ) -> AppResult<Option<RemoteEntityRow>> {
     validate_scope(entity, profile_canonical_id)?;
 
-    let mut query: Vec<(&str, &str)> = vec![
-        ("entity", entity),
-        ("canonical_id", canonical_id),
-    ];
+    let mut query: Vec<(&str, &str)> = vec![("entity", entity), ("canonical_id", canonical_id)];
     if let Some(canon) = profile_canonical_id {
         query.push(("profile_canonical_id", canon));
     }
@@ -110,19 +107,13 @@ pub async fn fetch_remote_entity(
             "sync entity GET: unauthorized — JWT expired or revoked".into(),
         )),
         StatusCode::BAD_REQUEST => {
-            let body = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "<no body>".into());
+            let body = response.text().await.unwrap_or_else(|_| "<no body>".into());
             Err(AppError::Other(format!(
                 "sync entity GET {entity}: bad request — {body}",
             )))
         }
         other => {
-            let body = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "<no body>".into());
+            let body = response.text().await.unwrap_or_else(|_| "<no body>".into());
             Err(AppError::Other(format!(
                 "sync entity GET {entity}: unexpected status {other} — {body}",
             )))

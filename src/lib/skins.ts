@@ -159,8 +159,7 @@ export const SKIN_PRESETS: SkinPreset[] = [
     typography: {
       display:
         '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-      body:
-        '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+      body: '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
       headingWeight: 600,
       displayTracking: "-0.011em",
     },
@@ -216,8 +215,7 @@ export const SKIN_PRESETS: SkinPreset[] = [
       // removed because it broke the offline-first contract.
       display:
         '"Playfair Display", "Source Serif Pro", Georgia, "Times New Roman", serif',
-      body:
-        '"Lora", Georgia, "Times New Roman", serif',
+      body: '"Lora", Georgia, "Times New Roman", serif',
       // Editorial mastheads carry weight in the GLYPH design,
       // not in the font-weight token. Playfair at 900 reads as
       // a thick wood-type poster headline, which is the look we
@@ -279,8 +277,7 @@ export const SKIN_PRESETS: SkinPreset[] = [
       // "premium hi-fi" feel.
       display:
         '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-      body:
-        '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+      body: '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
       headingWeight: 500,
       displayTracking: "-0.02em",
     },
@@ -344,8 +341,7 @@ export const SKIN_PRESETS: SkinPreset[] = [
       // `@fontsource/*` in main.tsx.
       display:
         '"Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-      body:
-        '"Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      body: '"Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       headingWeight: 700,
       displayTracking: "-0.02em",
     },
@@ -388,10 +384,8 @@ export const SKIN_PRESETS: SkinPreset[] = [
       // variables (--c-light, --c-dark, --glass-reflex-*) that
       // shift between light + dark theme; we point to them via
       // var() so a theme swap re-tunes the highlights.
-      shadowCard:
-        "0 4px 24px -1px rgb(0 0 0 / 0.18)",
-      shadowElevated:
-        "0 12px 36px -4px rgb(0 0 0 / 0.32)",
+      shadowCard: "0 4px 24px -1px rgb(0 0 0 / 0.18)",
+      shadowElevated: "0 12px 36px -4px rgb(0 0 0 / 0.32)",
       backdrop: "blur(24px) saturate(150%)",
       divider: "rgb(255 255 255 / 0.08)",
       grain: "",
@@ -403,8 +397,7 @@ export const SKIN_PRESETS: SkinPreset[] = [
       // Apple's design language doesn't pair with a serif here.
       display:
         '"DM Sans Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-      body:
-        '"DM Sans Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      body: '"DM Sans Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       headingWeight: 600,
       displayTracking: "-0.022em",
     },

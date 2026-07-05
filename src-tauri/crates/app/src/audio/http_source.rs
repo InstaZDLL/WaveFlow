@@ -271,9 +271,9 @@ fn parse_stream_title(block: &[u8]) -> Option<String> {
     let rest = &text[start..];
     // Terminate at the closing `';` (the spec quotes values); fall back
     // to the trailing NUL padding / end if a server omits the closer.
-    let end = rest.find("';").unwrap_or_else(|| {
-        rest.find('\0').unwrap_or(rest.len())
-    });
+    let end = rest
+        .find("';")
+        .unwrap_or_else(|| rest.find('\0').unwrap_or(rest.len()));
     let title = rest[..end].trim().trim_matches('\0').trim();
     if title.is_empty() {
         None
@@ -417,9 +417,7 @@ mod tests {
         // impl Debug (wraps a `reqwest::blocking::Response` which
         // doesn't either), so destructure by hand instead of
         // `expect_err`.
-        match HttpMediaSource::open(
-            "http://this-domain-definitely-does-not-exist.invalid/stream",
-        ) {
+        match HttpMediaSource::open("http://this-domain-definitely-does-not-exist.invalid/stream") {
             Ok(_) => panic!("expected DNS error"),
             Err(err) => assert!(
                 err.contains("http get") || err.contains("dns"),

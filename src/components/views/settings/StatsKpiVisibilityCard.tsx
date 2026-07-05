@@ -26,10 +26,7 @@ export function StatsKpiVisibilityCard() {
   const { isHidden, toggle, ready } = useHiddenKpis();
 
   return (
-    <section
-      aria-label={t("settings.statsKpis.title")}
-      className="space-y-3"
-    >
+    <section aria-label={t("settings.statsKpis.title")} className="space-y-3">
       <header className="px-4 flex items-start gap-3">
         <BarChart2
           size={20}

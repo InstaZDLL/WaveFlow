@@ -208,12 +208,11 @@ mod tests {
         };
         stamp_delete_in_tx(&mut conn, 7, stamp).await.unwrap();
 
-        let row: (i64, Option<Vec<u8>>) = sqlx::query_as(
-            "SELECT rating_hlc_wall, rating_payload_hash FROM track WHERE id = 7",
-        )
-        .fetch_one(&mut *conn)
-        .await
-        .unwrap();
+        let row: (i64, Option<Vec<u8>>) =
+            sqlx::query_as("SELECT rating_hlc_wall, rating_payload_hash FROM track WHERE id = 7")
+                .fetch_one(&mut *conn)
+                .await
+                .unwrap();
         assert_eq!(row.0, 1_700_000_000_002);
         assert!(row.1.is_none(), "rating_payload_hash cleared on delete");
 
@@ -235,7 +234,9 @@ mod tests {
             hlc_logical: 0,
             origin_device_id: None,
         };
-        let err = stamp_set_in_tx(&mut conn, 999, 50, stamp).await.unwrap_err();
+        let err = stamp_set_in_tx(&mut conn, 999, 50, stamp)
+            .await
+            .unwrap_err();
         assert!(format!("{err}").contains("no track row matched id 999"));
 
         let v: i64 = sqlx::query_scalar(

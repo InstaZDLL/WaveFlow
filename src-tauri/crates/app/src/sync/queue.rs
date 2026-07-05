@@ -364,7 +364,9 @@ mod tests {
     #[tokio::test]
     async fn enqueue_writes_row_and_returns_ids() {
         let pool = pool().await;
-        let (id, operation_id) = enqueue_t(&pool, &draft("1", Some("name")), 1).await.unwrap();
+        let (id, operation_id) = enqueue_t(&pool, &draft("1", Some("name")), 1)
+            .await
+            .unwrap();
         assert!(id > 0);
         Uuid::parse_str(&operation_id).expect("operation_id is a UUID");
 
@@ -563,6 +565,9 @@ mod tests {
         .await
         .unwrap_err();
         let s = format!("{err}").to_lowercase();
-        assert!(s.contains("check"), "expected CHECK constraint failure: {s}");
+        assert!(
+            s.contains("check"),
+            "expected CHECK constraint failure: {s}"
+        );
     }
 }

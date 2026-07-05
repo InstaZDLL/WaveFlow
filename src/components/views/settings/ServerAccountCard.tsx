@@ -369,7 +369,9 @@ export function ServerAccountCard() {
                           {t(`settings.serverAccount.modes.${value}.label`)}
                         </span>
                         <span className="block text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                          {t(`settings.serverAccount.modes.${value}.description`)}
+                          {t(
+                            `settings.serverAccount.modes.${value}.description`,
+                          )}
                         </span>
                       </span>
                     </label>

@@ -306,9 +306,7 @@ fn open_exclusive_session(
     }
 
     Err(last_err.unwrap_or_else(|| {
-        AppError::Audio(
-            "wasapi exclusive: every format in the fallback chain was rejected".into(),
-        )
+        AppError::Audio("wasapi exclusive: every format in the fallback chain was rejected".into())
     }))
 }
 
@@ -329,12 +327,14 @@ fn try_open_with_format(
 
     let wave = format.to_wave_format(sample_rate, channels);
 
-    client.is_supported(&wave, &ShareMode::Exclusive).map_err(|e| {
-        AppError::Audio(format!(
-            "is_supported rejected {} in exclusive mode: {e:?}",
-            format.label()
-        ))
-    })?;
+    client
+        .is_supported(&wave, &ShareMode::Exclusive)
+        .map_err(|e| {
+            AppError::Audio(format!(
+                "is_supported rejected {} in exclusive mode: {e:?}",
+                format.label()
+            ))
+        })?;
 
     let (default_period, min_period) = client
         .get_device_period()
@@ -363,8 +363,7 @@ fn try_open_with_format(
         .get_audiorenderclient()
         .map_err(|e| AppError::Audio(format!("get_audiorenderclient: {e:?}")))?;
 
-    let silent_bytes =
-        vec![0u8; (buffer_frames as usize) * channels * format.bytes_per_sample()];
+    let silent_bytes = vec![0u8; (buffer_frames as usize) * channels * format.bytes_per_sample()];
     render
         .write_to_device(buffer_frames as usize, &silent_bytes, None)
         .map_err(|e| AppError::Audio(format!("prefill render buffer: {e:?}")))?;

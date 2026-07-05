@@ -104,9 +104,7 @@ const BIO_LANGUAGE_KEY: &str = "metadata.bio_language";
 const DEFAULT_BIO_LANGUAGE: &str = "en";
 /// Language codes TheAudioDB ships a biography for (others fall back to
 /// English inside the client). Also gates `set_bio_language` writes.
-pub const BIO_LANGUAGES: &[&str] = &[
-    "en", "fr", "de", "es", "it", "pt", "nl", "ru", "ja", "zh",
-];
+pub const BIO_LANGUAGES: &[&str] = &["en", "fr", "de", "es", "it", "pt", "nl", "ru", "ja", "zh"];
 
 /// Provider used to fill artist biographies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

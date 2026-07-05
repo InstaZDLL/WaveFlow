@@ -397,7 +397,13 @@ mod tests {
         // Catch the in-process variant here so an integration bug
         // can't ship a self-consistent-but-wrong hash. Release builds
         // strip the assert; the wire guards still hold.
-        let _ = HlcTriple::new(Hlc { wall: 1, logical: -1 }, None);
+        let _ = HlcTriple::new(
+            Hlc {
+                wall: 1,
+                logical: -1,
+            },
+            None,
+        );
     }
 
     #[test]
@@ -405,7 +411,14 @@ mod tests {
     #[should_panic(expected = "HLC logical counter must be non-negative")]
     fn canonical_serialize_rejects_negative_logical_in_debug() {
         let f = fields(json!({ "name": "A" }));
-        let _ = canonical_serialize(&f, Hlc { wall: 1, logical: -1 }, None);
+        let _ = canonical_serialize(
+            &f,
+            Hlc {
+                wall: 1,
+                logical: -1,
+            },
+            None,
+        );
     }
 
     #[test]

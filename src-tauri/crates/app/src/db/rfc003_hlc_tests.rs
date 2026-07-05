@@ -218,7 +218,10 @@ async fn sync_pending_op_check_rejects_logical_outside_i32_range() {
     .await
     .unwrap_err();
     let s = format!("{err}").to_lowercase();
-    assert!(s.contains("check"), "expected CHECK constraint failure: {s}");
+    assert!(
+        s.contains("check"),
+        "expected CHECK constraint failure: {s}"
+    );
 
     // Negative values get caught too.
     let err = sqlx::query(
@@ -231,7 +234,10 @@ async fn sync_pending_op_check_rejects_logical_outside_i32_range() {
     .await
     .unwrap_err();
     let s = format!("{err}").to_lowercase();
-    assert!(s.contains("check"), "expected CHECK constraint failure: {s}");
+    assert!(
+        s.contains("check"),
+        "expected CHECK constraint failure: {s}"
+    );
 }
 
 #[tokio::test]

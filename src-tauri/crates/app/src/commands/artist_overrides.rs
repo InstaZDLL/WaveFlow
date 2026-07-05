@@ -70,14 +70,16 @@ pub async fn get_artist_overrides(
 
     let similar = rows
         .into_iter()
-        .map(|(id, name, picture_url, picture_hash)| ArtistOverrideSimilar {
-            artist_id: id,
-            name,
-            picture_path: picture_hash
-                .as_deref()
-                .and_then(|h| metadata_artwork::existing_path(artwork_dir, h)),
-            picture_url,
-        })
+        .map(
+            |(id, name, picture_url, picture_hash)| ArtistOverrideSimilar {
+                artist_id: id,
+                name,
+                picture_path: picture_hash
+                    .as_deref()
+                    .and_then(|h| metadata_artwork::existing_path(artwork_dir, h)),
+                picture_url,
+            },
+        )
         .collect();
 
     Ok(ArtistOverrides {

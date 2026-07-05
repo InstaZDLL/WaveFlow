@@ -8,10 +8,7 @@ import { useProfile } from "./useProfile";
  * add a checkbox row in the Settings card — visibility comes for free.
  */
 export type StatsKpiId =
-  | "total_plays"
-  | "total_time"
-  | "unique_tracks"
-  | "completion_rate";
+  "total_plays" | "total_time" | "unique_tracks" | "completion_rate";
 
 export const STATS_KPI_IDS: readonly StatsKpiId[] = [
   "total_plays",

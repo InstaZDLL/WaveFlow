@@ -323,7 +323,10 @@ pub async fn list_albums(
 /// runtime, so we hand the whole batch off to the blocking pool in one
 /// shot — single hop, no per-row overhead. Shared by `list_albums` and
 /// `search_albums`.
-async fn expand_album_rows(raw: Vec<AlbumRawRow>, artwork_dir: PathBuf) -> AppResult<Vec<AlbumRow>> {
+async fn expand_album_rows(
+    raw: Vec<AlbumRawRow>,
+    artwork_dir: PathBuf,
+) -> AppResult<Vec<AlbumRow>> {
     tokio::task::spawn_blocking(move || {
         raw.into_iter()
             .map(|row| {

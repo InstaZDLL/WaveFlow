@@ -152,12 +152,13 @@ impl AppState {
         // not authorised by their ToS). Users who want it enable via
         // `app_setting['lyrics.musixmatch_enabled'] = 'true'` until the
         // v1.6 Settings toggle ships.
-        let musixmatch_initial: Option<String> =
-            sqlx::query_scalar("SELECT value FROM app_setting WHERE key = 'lyrics.musixmatch_enabled'")
-                .fetch_optional(&app_db)
-                .await
-                .ok()
-                .flatten();
+        let musixmatch_initial: Option<String> = sqlx::query_scalar(
+            "SELECT value FROM app_setting WHERE key = 'lyrics.musixmatch_enabled'",
+        )
+        .fetch_optional(&app_db)
+        .await
+        .ok()
+        .flatten();
         crate::commands::lyrics::set_musixmatch_enabled(
             musixmatch_initial
                 .map(|v| v == "true" || v == "1")

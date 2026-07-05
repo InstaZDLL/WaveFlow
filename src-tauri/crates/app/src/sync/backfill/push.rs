@@ -102,11 +102,10 @@ pub(super) async fn push_one_by_canonical(
 /// `Ok(false)` when the local row is gone.
 async fn push_library(state: &AppState, pool: &SqlitePool, canonical_id: &str) -> AppResult<bool> {
     let mut tx = pool.begin().await?;
-    let local_id: Option<i64> =
-        sqlx::query_scalar("SELECT id FROM library WHERE canonical_id = ?")
-            .bind(canonical_id)
-            .fetch_optional(&mut *tx)
-            .await?;
+    let local_id: Option<i64> = sqlx::query_scalar("SELECT id FROM library WHERE canonical_id = ?")
+        .bind(canonical_id)
+        .fetch_optional(&mut *tx)
+        .await?;
     let Some(local_id) = local_id else {
         return Ok(false);
     };
@@ -156,11 +155,7 @@ async fn push_playlist(state: &AppState, pool: &SqlitePool, canonical_id: &str) 
 
 /// `liked_track` canonical is the file_hash. The wire payload is
 /// the empty map `{}`; the canonical_fields hash agrees.
-async fn push_liked_track(
-    state: &AppState,
-    pool: &SqlitePool,
-    file_hash: &str,
-) -> AppResult<bool> {
+async fn push_liked_track(state: &AppState, pool: &SqlitePool, file_hash: &str) -> AppResult<bool> {
     let mut tx = pool.begin().await?;
     let track_id: Option<i64> = sqlx::query_scalar(
         "SELECT t.id FROM liked_track lt

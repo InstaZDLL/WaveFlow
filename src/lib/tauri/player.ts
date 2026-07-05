@@ -59,13 +59,7 @@ export interface PlayerErrorPayload {
 
 /** `queue_item.source_type` values the backend accepts. */
 export type QueueSource =
-  | "album"
-  | "playlist"
-  | "artist"
-  | "library"
-  | "liked"
-  | "manual"
-  | "radio";
+  "album" | "playlist" | "artist" | "library" | "liked" | "manual" | "radio";
 
 export function playerGetState(): Promise<PlayerStateSnapshot> {
   return invoke<PlayerStateSnapshot>("player_get_state");

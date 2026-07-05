@@ -59,10 +59,7 @@ export function SkinPickerCard() {
   };
 
   return (
-    <section
-      aria-labelledby="skin-picker-heading"
-      className="px-4 py-3"
-    >
+    <section aria-labelledby="skin-picker-heading" className="px-4 py-3">
       <div className="flex items-center space-x-4 mb-4">
         <Layers
           size={20}

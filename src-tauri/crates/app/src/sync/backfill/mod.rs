@@ -241,10 +241,7 @@ pub async fn maybe_auto_backfill(state: &AppState) -> AppResult<()> {
                 .iter()
                 .filter(|r| r.pushed + r.pulled + r.lww_local_wins + r.lww_remote_wins > 0)
                 .count();
-            tracing::info!(
-                entities_with_action,
-                "auto-backfill pass completed",
-            );
+            tracing::info!(entities_with_action, "auto-backfill pass completed",);
             // Successful top-level pass — stamp regardless of
             // per-entity row counters. The Settings card surfaces
             // row-level failures separately via the live outcome.
@@ -388,14 +385,9 @@ pub async fn run_backfill(
         let remote_max_hlc = remote.max_hlc;
 
         // ── push direction ───────────────────────────────────
-        let push_res = push::push_missing_remotely(
-            state,
-            pool,
-            entity,
-            &d.missing_remotely,
-            remote_max_hlc,
-        )
-        .await;
+        let push_res =
+            push::push_missing_remotely(state, pool, entity, &d.missing_remotely, remote_max_hlc)
+                .await;
         match push_res {
             Ok(stats) => {
                 report.pushed = stats.pushed;
@@ -432,15 +424,8 @@ pub async fn run_backfill(
         }
 
         // ── LWW resolution ───────────────────────────────────
-        let lww_res = lww::resolve_divergent(
-            state,
-            client,
-            pool,
-            entity,
-            canonical_arg,
-            &d.divergent,
-        )
-        .await;
+        let lww_res =
+            lww::resolve_divergent(state, client, pool, entity, canonical_arg, &d.divergent).await;
         match lww_res {
             Ok(stats) => {
                 report.lww_local_wins = stats.local_wins;
