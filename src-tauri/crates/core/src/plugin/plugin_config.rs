@@ -1,7 +1,7 @@
 //! Per-plugin option values — the on-disk backing for
 //! `waveflow:host/config.get-option`.
 //!
-//! Options are DECLARED in a plugin's `manifest.toml` (`[[option]]`) and SET
+//! Options are DECLARED in a plugin's `manifest.toml` (`[[options]]`) and SET
 //! by the user in the app's per-plugin settings. The chosen values live in a
 //! single JSON file inside the plugin's state directory; the runtime reads it
 //! at instantiate time into [`HostCtx::config`](crate::plugin::runtime), and

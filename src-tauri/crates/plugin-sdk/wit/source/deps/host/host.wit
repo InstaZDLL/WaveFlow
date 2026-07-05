@@ -74,7 +74,7 @@ interface storage {
 
 interface config {
   /// Read a host-managed configuration option for this plugin by key.
-  /// Options are DECLARED in the plugin's `manifest.toml` (`[[option]]`
+  /// Options are DECLARED in the plugin's `manifest.toml` (`[[options]]`
   /// table) and SET by the user in the app's per-plugin settings; the
   /// value is a string (the plugin parses `"true"`/`"false"`, an enum
   /// choice, or free text as declared). Read-only from the guest — a
