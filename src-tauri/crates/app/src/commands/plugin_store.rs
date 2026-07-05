@@ -55,6 +55,11 @@ const MAX_DOWNLOAD_BYTES: u64 = 64 * 1024 * 1024;
 /// anyway, but failing here keeps a hostile release off disk entirely.
 const MAX_WASM_SIZE: u64 = 50 * 1024 * 1024;
 
+/// Cap on the manifest.toml read. A manifest is a handful of TOML lines;
+/// anything near this is corrupt or hostile. Bounds the `read_zip_file`
+/// allocation so a lying zip header can't force a large buffer.
+const MAX_MANIFEST_SIZE: u64 = 256 * 1024;
+
 // ----- registry wire types -------------------------------------------------
 
 #[derive(Debug, Clone, Deserialize)]
@@ -196,16 +201,27 @@ fn installed_version(paths: &PluginPaths, id: &str) -> Option<String> {
     (manifest.plugin.id == id).then_some(manifest.plugin.version)
 }
 
-/// Read one named member fully out of a zip archive. `Ok(None)` when the
-/// member is absent so the caller can distinguish "missing" from "error".
+/// Read one named member out of a zip archive, bounded at `max_bytes`.
+/// `Ok(None)` when the member is absent so the caller can distinguish
+/// "missing" from "error". The read is `take`-capped and the capacity hint
+/// is clamped, so a lying header or a decompression bomb can't force a
+/// large allocation or materialise an oversized payload before the size
+/// check — the member is rejected as it streams past the cap.
 fn read_zip_file<R: Read + Seek>(
     archive: &mut zip::ZipArchive<R>,
     name: &str,
+    max_bytes: u64,
 ) -> AppResult<Option<Vec<u8>>> {
     match archive.by_name(name) {
-        Ok(mut f) => {
-            let mut buf = Vec::with_capacity(f.size() as usize);
-            f.read_to_end(&mut buf)?;
+        Ok(f) => {
+            let cap = f.size().min(max_bytes) as usize;
+            let mut buf = Vec::with_capacity(cap);
+            let read = f.take(max_bytes + 1).read_to_end(&mut buf)? as u64;
+            if read > max_bytes {
+                return Err(AppError::Other(format!(
+                    "{name} exceeds {max_bytes} bytes — refusing"
+                )));
+            }
             Ok(Some(buf))
         }
         Err(zip::result::ZipError::FileNotFound) => Ok(None),
@@ -228,18 +244,15 @@ fn install_from_zip_bytes(
     let mut archive = zip::ZipArchive::new(Cursor::new(zip_bytes))
         .map_err(|e| AppError::Other(format!("open plugin zip: {e}")))?;
 
-    let wasm = read_zip_file(&mut archive, "plugin.wasm")?
+    // `read_zip_file` bounds each member at its cap (plugin.wasm at
+    // MAX_WASM_SIZE, manifest at MAX_MANIFEST_SIZE) so an oversized member
+    // is refused as it streams, never fully buffered first.
+    let wasm = read_zip_file(&mut archive, "plugin.wasm", MAX_WASM_SIZE)?
         .ok_or_else(|| AppError::Other("plugin zip missing plugin.wasm".into()))?;
-    let manifest_bytes = read_zip_file(&mut archive, "manifest.toml")?
+    let manifest_bytes = read_zip_file(&mut archive, "manifest.toml", MAX_MANIFEST_SIZE)?
         .ok_or_else(|| AppError::Other("plugin zip missing manifest.toml".into()))?;
 
     // 1. Hash gate — the registry, not the release, is the trusted pin.
-    if wasm.len() as u64 > MAX_WASM_SIZE {
-        return Err(AppError::Other(format!(
-            "plugin.wasm too large: {} bytes (max {MAX_WASM_SIZE})",
-            wasm.len()
-        )));
-    }
     let actual = blake3::hash(&wasm).to_hex().to_string();
     if actual != expected_blake3 {
         return Err(AppError::Other(format!(
@@ -283,7 +296,11 @@ fn install_from_zip_bytes(
     std::fs::write(staging.join("manifest.toml"), &manifest_bytes)?;
     std::fs::write(staging.join("plugin.wasm"), &wasm)?;
 
-    // Optional assets/ tree — zip-slip guarded via `enclosed_name`.
+    // Optional assets/ tree — zip-slip guarded via `enclosed_name`, and
+    // bounded cumulatively so a decompression bomb in assets/ can't fill
+    // the disk. Each file is `take`-capped by the remaining budget, and the
+    // running total is checked after every copy.
+    let mut assets_total: u64 = 0;
     for i in 0..archive.len() {
         let mut entry = archive
             .by_index(i)
@@ -303,8 +320,16 @@ fn install_from_zip_bytes(
             if let Some(parent) = dest.parent() {
                 std::fs::create_dir_all(parent)?;
             }
+            let remaining = MAX_DOWNLOAD_BYTES.saturating_sub(assets_total);
             let mut out = std::fs::File::create(&dest)?;
-            std::io::copy(&mut entry, &mut out)?;
+            let written = std::io::copy(&mut (&mut entry).take(remaining + 1), &mut out)?;
+            assets_total += written;
+            if assets_total > MAX_DOWNLOAD_BYTES {
+                let _ = std::fs::remove_dir_all(&staging);
+                return Err(AppError::Other(format!(
+                    "plugin assets exceed {MAX_DOWNLOAD_BYTES} bytes — refusing"
+                )));
+            }
         }
     }
 
@@ -427,7 +452,7 @@ pub async fn install_plugin_from_registry(
         .timeout(Duration::from_secs(60))
         .build()
         .map_err(|e| AppError::Other(format!("http client: {e}")))?;
-    let resp = client
+    let mut resp = client
         .get(&url)
         .send()
         .await
@@ -438,6 +463,8 @@ pub async fn install_plugin_from_registry(
             resp.status()
         )));
     }
+    // content-length is an early-reject optimisation only — it can be
+    // absent or lie, so the real bound is enforced while streaming below.
     if let Some(len) = resp.content_length() {
         if len > MAX_DOWNLOAD_BYTES {
             return Err(AppError::Other(format!(
@@ -445,16 +472,20 @@ pub async fn install_plugin_from_registry(
             )));
         }
     }
-    let bytes = resp
-        .bytes()
+    // Stream the body, capping cumulative size so an absent/lying
+    // content-length can't force an oversized buffer into memory.
+    let mut bytes: Vec<u8> = Vec::new();
+    while let Some(chunk) = resp
+        .chunk()
         .await
         .map_err(|e| AppError::Other(format!("read release body: {e}")))?
-        .to_vec();
-    if bytes.len() as u64 > MAX_DOWNLOAD_BYTES {
-        return Err(AppError::Other(format!(
-            "release asset too large: {} bytes (max {MAX_DOWNLOAD_BYTES})",
-            bytes.len()
-        )));
+    {
+        if bytes.len() as u64 + chunk.len() as u64 > MAX_DOWNLOAD_BYTES {
+            return Err(AppError::Other(format!(
+                "release asset exceeds {MAX_DOWNLOAD_BYTES} bytes — refusing"
+            )));
+        }
+        bytes.extend_from_slice(&chunk);
     }
 
     let paths = state.paths.plugin_paths();

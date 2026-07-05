@@ -4,6 +4,7 @@ import {
   Store,
   Globe,
   Database,
+  FileText,
   Download,
   RefreshCw,
   Check,
@@ -333,7 +334,7 @@ function WorldBadge({ world }: { world: string }) {
  */
 function PermissionsPreview({ entry }: { entry: MarketplaceEntry }) {
   const { t } = useTranslation();
-  if (entry.http.length === 0 && !entry.storageState) {
+  if (entry.http.length === 0 && !entry.storageState && !entry.storageRead) {
     return (
       <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1.5 italic">
         {t("settings.plugins.permissions.none")}
@@ -370,6 +371,12 @@ function PermissionsPreview({ entry }: { entry: MarketplaceEntry }) {
         <div className="flex items-center gap-1 mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">
           <Database size={11} aria-hidden="true" />
           <span>{t("settings.plugins.permissions.storageState")}</span>
+        </div>
+      )}
+      {entry.storageRead && (
+        <div className="flex items-center gap-1 mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">
+          <FileText size={11} aria-hidden="true" />
+          <span>{t("settings.plugins.permissions.storageRead")}</span>
         </div>
       )}
     </div>
