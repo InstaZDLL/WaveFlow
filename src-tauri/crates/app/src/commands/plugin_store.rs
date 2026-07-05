@@ -182,14 +182,26 @@ fn parse_semver(v: &str) -> (u32, u32, u32) {
     )
 }
 
-fn app_version() -> &'static str {
-    env!("CARGO_PKG_VERSION")
-}
-
-fn is_compatible(min_app_version: Option<&str>) -> bool {
+/// True when the `running_version` (as reported by Tauri's `PackageInfo`)
+/// satisfies the registry entry's `min_app_version` pin. Pre-release
+/// suffixes on both sides are stripped by [`parse_semver`], so a
+/// `1.6.2-beta.1` build satisfies `min_app_version = "1.6.2"` — the beta
+/// channel's whole purpose is to test features destined for that stable.
+///
+/// **Why not `env!("CARGO_PKG_VERSION")`?** On the beta channel the
+/// [release workflow](../../../.github/workflows/release.yml) deliberately
+/// patches ONLY `tauri.conf.json` — bumping `Cargo.toml` would desync
+/// `Cargo.lock` and break the `--locked` build — so a binary tagged
+/// `v1.6.2-beta.1` still has `Cargo.toml = 1.6.0` compiled in. Reading the
+/// compile-time Cargo env would compare every beta user against the stale
+/// stable version and wrongly mark any plugin whose `min_app_version`
+/// exceeds it as "Update required" (issue #356). Tauri's `PackageInfo`
+/// version comes from `tauri.conf.json` via `generate_context!`, so the
+/// AppHandle route sees the real runtime version.
+fn is_compatible_versions(running_version: &str, min_app_version: Option<&str>) -> bool {
     match min_app_version {
         None => true,
-        Some(min) => parse_semver(app_version()) >= parse_semver(min),
+        Some(min) => parse_semver(running_version) >= parse_semver(min),
     }
 }
 
@@ -358,10 +370,16 @@ fn install_from_zip_bytes(
 /// installed locally + this build's version, for the in-app store list.
 #[tauri::command]
 pub async fn list_plugin_marketplace(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> AppResult<Vec<MarketplaceEntry>> {
     let registry = fetch_registry().await?;
     let paths = state.paths.plugin_paths();
+    // Snapshot the runtime version off the AppHandle here — `spawn_blocking`
+    // takes an owned `move` closure and `AppHandle` isn't `Send` across every
+    // Tauri config, whereas a `String` always is. The check itself is a byte
+    // compare against the registry-declared `min_app_version`.
+    let running_version = app.package_info().version.to_string();
 
     let entries = tokio::task::spawn_blocking(move || {
         registry
@@ -371,7 +389,7 @@ pub async fn list_plugin_marketplace(
                 let inst = installed_version(&paths, &e.id);
                 let update_available = matches!(&inst, Some(v) if *v != e.version);
                 MarketplaceEntry {
-                    compatible: is_compatible(e.min_app_version.as_deref()),
+                    compatible: is_compatible_versions(&running_version, e.min_app_version.as_deref()),
                     update_available,
                     installed: inst.is_some(),
                     installed_version: inst,
@@ -405,6 +423,7 @@ pub async fn list_plugin_marketplace(
 /// both a fresh install and an update; the on-disk swap is idempotent.
 #[tauri::command]
 pub async fn install_plugin_from_registry(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     plugin_id: String,
 ) -> AppResult<()> {
@@ -431,12 +450,13 @@ pub async fn install_plugin_from_registry(
         .find(|e| e.id == plugin_id)
         .ok_or_else(|| AppError::Other(format!("plugin not in registry: {plugin_id}")))?;
 
-    if !is_compatible(entry.min_app_version.as_deref()) {
+    let running_version = app.package_info().version.to_string();
+    if !is_compatible_versions(&running_version, entry.min_app_version.as_deref()) {
         return Err(AppError::Other(format!(
             "{} requires WaveFlow {} or newer (you have {})",
             entry.name,
             entry.min_app_version.as_deref().unwrap_or("?"),
-            app_version()
+            running_version
         )));
     }
 
@@ -514,4 +534,38 @@ pub async fn install_plugin_from_registry(
 
     tracing::info!(plugin_id, version = %entry.version, "plugin installed from registry");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Beta-channel regression (#356): a build tagged v1.6.2-beta.1 must
+    // satisfy a `min_app_version = "1.6.2"` pin. The pre-release suffix on
+    // both sides is stripped by `parse_semver` so the two compare equal;
+    // this covers the actual failure path where beta users were seeing
+    // "Update required" for compatible plugins because `app_version()`
+    // read the stale `Cargo.toml = 1.6.0` instead of the running version.
+    #[test]
+    fn beta_running_version_satisfies_matching_stable_min() {
+        assert!(is_compatible_versions("1.6.2-beta.1", Some("1.6.2")));
+        assert!(is_compatible_versions("1.6.2-beta.3", Some("1.6.2")));
+    }
+
+    #[test]
+    fn older_stable_is_incompatible_with_higher_pin() {
+        assert!(!is_compatible_versions("1.6.0", Some("1.6.2")));
+        assert!(!is_compatible_versions("1.5.9", Some("1.6.0")));
+    }
+
+    #[test]
+    fn absent_pin_is_always_compatible() {
+        assert!(is_compatible_versions("1.6.0", None));
+    }
+
+    #[test]
+    fn newer_running_is_compatible() {
+        assert!(is_compatible_versions("2.0.0", Some("1.6.2")));
+        assert!(is_compatible_versions("1.7.0-beta.1", Some("1.6.2")));
+    }
 }
