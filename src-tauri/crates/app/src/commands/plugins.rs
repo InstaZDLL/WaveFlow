@@ -382,6 +382,46 @@ pub async fn list_installed_plugins(state: State<'_, AppState>) -> AppResult<Vec
     Ok(out)
 }
 
+/// Ids of installed + enabled plugins whose declared world starts with
+/// `world_prefix` (e.g. `"waveflow:metadata"`). Used by cross-world
+/// dispatchers that fan a request out to every plugin of a kind — the
+/// motion-artwork command asks every enabled metadata plugin. Bundled
+/// ids win on collision, same as [`list_installed_plugins`].
+pub(crate) async fn enabled_plugin_ids_for_world(
+    state: &AppState,
+    world_prefix: &str,
+) -> AppResult<Vec<String>> {
+    let paths = state.paths.plugin_paths();
+    let prefix = world_prefix.to_string();
+    let ids = tokio::task::spawn_blocking(move || -> AppResult<Vec<String>> {
+        let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut out = Vec::new();
+        if let Some(bundled_root) = paths.bundled_root.as_deref() {
+            for (id, m) in walk_install_root(bundled_root)? {
+                if seen.insert(id.clone()) && m.plugin.world.starts_with(&prefix) {
+                    out.push(id);
+                }
+            }
+        }
+        for (id, m) in walk_install_root(&paths.plugins_root)? {
+            if !seen.contains(&id) && m.plugin.world.starts_with(&prefix) {
+                out.push(id);
+            }
+        }
+        Ok(out)
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
+
+    let mut enabled = Vec::with_capacity(ids.len());
+    for id in ids {
+        if read_enabled(&state.app_db, &id).await? {
+            enabled.push(id);
+        }
+    }
+    Ok(enabled)
+}
+
 /// Return a single plugin's manifest info. Useful for the Settings
 /// detail page that opens when the user clicks a list row — avoids
 /// re-fetching the whole list to surface one card.

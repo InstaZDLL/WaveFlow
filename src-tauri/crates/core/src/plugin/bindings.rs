@@ -41,3 +41,27 @@ pub mod source {
         imports: { default: trappable },
     });
 }
+
+/// `waveflow:metadata/plugin@1.1.0` — the world metadata-enricher
+/// plugins export (bios, similar artists, lyrics, animated artwork).
+/// Exported interface `enricher` with `artist-info`, `album-info`,
+/// `lyrics`. Bound Phase 3 for the first metadata plugin (Apple motion
+/// artwork).
+///
+/// `with:` remaps the three `waveflow:host/*` imports onto the types
+/// [`source`] already generated, so the host-import traits + their
+/// `host_impl` impls + the linker registration are SHARED across both
+/// worlds — no parallel copy, no second set of `Host for HostCtx`
+/// impls. Only the world's EXPORT surface (`enricher`) is fresh here.
+pub mod metadata {
+    wasmtime::component::bindgen!({
+        world: "waveflow:metadata/plugin",
+        path: "../plugin-sdk/wit/metadata",
+        imports: { default: trappable },
+        with: {
+            "waveflow:host/http": crate::plugin::bindings::source::waveflow::host::http,
+            "waveflow:host/log": crate::plugin::bindings::source::waveflow::host::log,
+            "waveflow:host/storage": crate::plugin::bindings::source::waveflow::host::storage,
+        },
+    });
+}

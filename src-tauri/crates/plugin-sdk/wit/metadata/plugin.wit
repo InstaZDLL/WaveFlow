@@ -1,23 +1,39 @@
 // WaveFlow metadata enricher world — v1.
 //
 // Plugins exporting this world enrich existing library rows: artist
-// biographies, similar-artist suggestions, lyrics. They don't yield
-// new tracks; the engine fans calls out to every metadata plugin in
+// biographies, similar-artist suggestions, lyrics, artwork. They don't
+// yield new tracks; the engine fans calls out to every metadata plugin in
 // parallel and merges the results behind a fallback chain.
+//
+// 1.1.0 (minor, backwards-compatible with the `waveflow:metadata/v1`
+// manifest label): `album-details` gains optional `motion-cover-url` /
+// `motion-cover-tall-url` for animated album artwork (Apple Music-style
+// motion covers). The result records were also renamed off the function
+// names (`artist-info`/`album-info` are the funcs; `artist-details`/
+// `album-details` the records) — WIT forbids a record and a function
+// sharing a name in one interface. No metadata plugin existed at 1.0.0,
+// so nothing depends on the old record names.
 
-package waveflow:metadata@1.0.0;
+package waveflow:metadata@1.1.0;
 
 interface enricher {
-  record artist-info {
+  record artist-details {
     bio: option<string>,
     image-url: option<string>,
     similar: list<string>,
   }
 
-  record album-info {
+  record album-details {
     description: option<string>,
     cover-url: option<string>,
     track-count: option<u32>,
+    /// Looping video URL (HLS `.m3u8` or `.mp4`) for the square
+    /// animated cover, rendered behind the now-playing view. `none`
+    /// when the plugin has no motion artwork for this album.
+    motion-cover-url: option<string>,
+    /// Optional taller variant (lock-screen / expanded artwork
+    /// aspect). `none` falls back to `motion-cover-url`.
+    motion-cover-tall-url: option<string>,
   }
 
   record lyrics-line {
@@ -30,11 +46,11 @@ interface enricher {
   /// Free-form artist info lookup by name. Plugins normalise the
   /// name themselves (case, diacritics) — the host hands what the
   /// user has, verbatim.
-  artist-info: func(name: string) -> result<artist-info, string>;
+  artist-info: func(name: string) -> result<artist-details, string>;
 
   /// Album lookup. Some plugins key on `(artist, title)` pairs;
   /// pass both even if your DB only uses one.
-  album-info: func(artist: string, title: string) -> result<album-info, string>;
+  album-info: func(artist: string, title: string) -> result<album-details, string>;
 
   /// Lyrics lookup. Plugins return a list of lines (possibly
   /// time-coded) so the host doesn't need to parse multiple text

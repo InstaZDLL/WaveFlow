@@ -508,6 +508,67 @@ pub fn source_stream_url(
     result.map_err(SourceError::Plugin)
 }
 
+// ----- metadata-v1 invocation helpers -------------------------------------
+//
+// Instantiates + calls the `waveflow:metadata/enricher` exports. Phase 3
+// wires only `album-info` (the motion-artwork path needs it); `artist-info`
+// + `lyrics` get helpers when a plugin consumes them. Reuses [`SourceError`]
+// — its Instantiate / Trap / Plugin variants are world-agnostic.
+
+/// Owned mirror of `waveflow:metadata/enricher/album-info` (1.1.0).
+#[derive(Debug, Clone, Default)]
+pub struct AlbumInfo {
+    pub description: Option<String>,
+    pub cover_url: Option<String>,
+    pub track_count: Option<u32>,
+    /// Looping video URL for the square animated cover (HLS/mp4).
+    pub motion_cover_url: Option<String>,
+    /// Taller lock-screen variant; `None` falls back to the square.
+    pub motion_cover_tall_url: Option<String>,
+}
+
+fn instantiate_metadata(
+    runtime: &PluginRuntime,
+    paths: &PluginPaths,
+    plugin_id: &str,
+) -> Result<(Store<HostCtx>, crate::plugin::bindings::metadata::Plugin), SourceError> {
+    let loaded = runtime.load_plugin(paths, plugin_id)?;
+    let linker = runtime.build_linker()?;
+    let mut store = runtime.new_store_for_plugin(&loaded, paths)?;
+    let plugin = crate::plugin::bindings::metadata::Plugin::instantiate(
+        &mut store,
+        &loaded.component,
+        &linker,
+    )
+    .map_err(|e| SourceError::Instantiate(e.to_string()))?;
+    Ok((store, plugin))
+}
+
+/// Call the guest's `album-info(artist, title)`.
+pub fn metadata_album_info(
+    runtime: &PluginRuntime,
+    paths: &PluginPaths,
+    plugin_id: &str,
+    artist: &str,
+    title: &str,
+) -> Result<AlbumInfo, SourceError> {
+    let (mut store, plugin) = instantiate_metadata(runtime, paths, plugin_id)?;
+    let result = plugin
+        .waveflow_metadata_enricher()
+        .call_album_info(&mut store, artist, title)
+        .map_err(|e| SourceError::Trap(e.to_string()))?;
+    match result {
+        Ok(info) => Ok(AlbumInfo {
+            description: info.description,
+            cover_url: info.cover_url,
+            track_count: info.track_count,
+            motion_cover_url: info.motion_cover_url,
+            motion_cover_tall_url: info.motion_cover_tall_url,
+        }),
+        Err(msg) => Err(SourceError::Plugin(msg)),
+    }
+}
+
 // ----- wasmtime_wasi WasiView wiring --------------------------------------
 
 impl WasiView for HostCtx {

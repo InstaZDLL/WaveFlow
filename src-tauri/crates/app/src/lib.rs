@@ -672,6 +672,7 @@ pub fn run() {
             commands::plugins::set_plugin_favorites,
             commands::plugin_store::list_plugin_marketplace,
             commands::plugin_store::install_plugin_from_registry,
+            commands::motion_artwork::fetch_album_motion_artwork,
             commands::integration::get_lastfm_api_key,
             commands::integration::set_lastfm_api_key,
             commands::integration::get_bio_source,
