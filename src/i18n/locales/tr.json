@@ -1317,7 +1317,7 @@
       "subtitle": "WaveFlow'a kaynak, üst veri veya görünüm ekleyen uzantıları yönet.",
       "loading": "Yükleniyor…",
       "emptyTitle": "Yüklü eklenti yok",
-      "emptyHint": "Manuel kurulum: <data>/waveflow/plugins/ altına bir klasör bırak. Resmi mağaza yakında.",
+      "emptyHint": "Yukarıdaki mağazadan bir tane yükle veya <data>/waveflow/plugins/ altına bir klasör bırak.",
       "byAuthor": "Yazan: {{author}}",
       "enabled": "Etkin",
       "disabled": "Devre dışı",
@@ -1901,6 +1901,25 @@
     "scrollTitles": {
       "title": "Uzun başlıkları kaydır",
       "subtitle": "Uzun başlıklar kesilmek yerine kayar (oynatıcı çubuğu + sürükleyici görünüm)."
+    },
+    "pluginStore": {
+      "title": "Eklenti mağazası",
+      "subtitle": "WaveFlow kayıt defterinden yalıtılmış eklentilere göz at ve yükle.",
+      "loading": "Mağaza yükleniyor…",
+      "emptyTitle": "Henüz eklenti yok",
+      "emptyHint": "Kayıt defteri şimdilik boş — yakında tekrar bak.",
+      "refresh": "Mağazayı yenile",
+      "retry": "Yeniden dene",
+      "install": "Yükle",
+      "installing": "Yükleniyor…",
+      "update": "Güncelle",
+      "installed": "Yüklendi",
+      "incompatible": "Güncelleme gerekli",
+      "incompatibleHint": "Daha yeni bir WaveFlow sürümü gerektirir",
+      "official": "Resmî",
+      "canReach": "Erişebileceği adresler:",
+      "installAria": "{{name}} yükle",
+      "updateAria": "{{name}} güncelle"
     }
   },
   "spotify": {

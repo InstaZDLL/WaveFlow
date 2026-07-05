@@ -1317,7 +1317,7 @@
       "subtitle": "管理向 WaveFlow 添加来源、元数据或视图的扩展。",
       "loading": "加载中…",
       "emptyTitle": "未安装插件",
-      "emptyHint": "手动安装：将文件夹放在 <data>/waveflow/plugins/ 下。官方商店即将推出。",
+      "emptyHint": "从上方商店安装，或将文件夹放入 <data>/waveflow/plugins/。",
       "byAuthor": "作者：{{author}}",
       "enabled": "已启用",
       "disabled": "已禁用",
@@ -1901,6 +1901,25 @@
     "scrollTitles": {
       "title": "滚动显示长标题",
       "subtitle": "过长的标题滚动显示而非截断（播放栏 + 沉浸式视图）。"
+    },
+    "pluginStore": {
+      "title": "插件商店",
+      "subtitle": "从 WaveFlow 注册表浏览并安装沙盒化插件。",
+      "loading": "正在加载商店…",
+      "emptyTitle": "暂无可用插件",
+      "emptyHint": "注册表暂时为空，请稍后再来。",
+      "refresh": "刷新商店",
+      "retry": "重试",
+      "install": "安装",
+      "installing": "正在安装…",
+      "update": "更新",
+      "installed": "已安装",
+      "incompatible": "需要更新",
+      "incompatibleHint": "需要更新版本的 WaveFlow",
+      "official": "官方",
+      "canReach": "可访问：",
+      "installAria": "安装 {{name}}",
+      "updateAria": "更新 {{name}}"
     }
   },
   "scanProgress": {

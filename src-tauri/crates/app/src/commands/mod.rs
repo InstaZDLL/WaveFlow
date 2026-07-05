@@ -27,6 +27,7 @@ pub mod mood_radio;
 pub mod offline;
 pub mod player;
 pub mod playlist;
+pub mod plugin_store;
 pub mod plugins;
 pub mod playlist_cover;
 pub mod preferences;

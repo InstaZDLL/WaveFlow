@@ -1317,7 +1317,7 @@
       "subtitle": "Manage extensions that add sources, metadata, or views to WaveFlow.",
       "loading": "Loading…",
       "emptyTitle": "No plugins installed",
-      "emptyHint": "Manual install: drop a directory under <data>/waveflow/plugins/. An official store is coming.",
+      "emptyHint": "Install one from the store above, or drop a folder under <data>/waveflow/plugins/.",
       "byAuthor": "By {{author}}",
       "enabled": "Enabled",
       "disabled": "Disabled",
@@ -1901,6 +1901,25 @@
     "scrollTitles": {
       "title": "Scroll long titles",
       "subtitle": "Long titles scroll instead of being truncated (player bar + immersive view)."
+    },
+    "pluginStore": {
+      "title": "Plugin store",
+      "subtitle": "Browse and install sandboxed plugins from the WaveFlow registry.",
+      "loading": "Loading store…",
+      "emptyTitle": "No plugins available yet",
+      "emptyHint": "The registry is empty for now — check back soon.",
+      "refresh": "Refresh the store",
+      "retry": "Retry",
+      "install": "Install",
+      "installing": "Installing…",
+      "update": "Update",
+      "installed": "Installed",
+      "incompatible": "Update required",
+      "incompatibleHint": "Requires a newer version of WaveFlow",
+      "official": "Official",
+      "canReach": "Can reach:",
+      "installAria": "Install {{name}}",
+      "updateAria": "Update {{name}}"
     }
   },
   "spotify": {

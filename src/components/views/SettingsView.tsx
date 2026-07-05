@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 // import { ServerAccountCard } from "./settings/ServerAccountCard"; // deferred to 1.6.0
 // import { SyncStatusCard } from "./settings/SyncStatusCard"; // deferred to 1.6.0
+import { PluginStoreCard } from "./settings/PluginStoreCard";
 import { PluginsCard } from "./settings/PluginsCard";
 import { useTheme } from "../../hooks/useTheme";
 import { THEME_PRESETS } from "../../lib/themes";
@@ -3426,6 +3427,7 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
             {t("settings.sections.plugins")}
           </h2>
           <div className="px-4">
+            <PluginStoreCard />
             <PluginsCard />
           </div>
         </section>

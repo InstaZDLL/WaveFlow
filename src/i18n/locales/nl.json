@@ -1317,7 +1317,7 @@
       "subtitle": "Beheer uitbreidingen die bronnen, metadata of weergaven aan WaveFlow toevoegen.",
       "loading": "Laden…",
       "emptyTitle": "Geen plug-ins geïnstalleerd",
-      "emptyHint": "Handmatige installatie: plaats een map in <data>/waveflow/plugins/. Een officiële store komt eraan.",
+      "emptyHint": "Installeer er een uit de winkel hierboven, of plaats een map onder <data>/waveflow/plugins/.",
       "byAuthor": "Door {{author}}",
       "enabled": "Ingeschakeld",
       "disabled": "Uitgeschakeld",
@@ -1901,6 +1901,25 @@
     "scrollTitles": {
       "title": "Lange titels laten scrollen",
       "subtitle": "Lange titels scrollen in plaats van afgekapt te worden (spelerbalk + meeslepende weergave)."
+    },
+    "pluginStore": {
+      "title": "Plug-in-winkel",
+      "subtitle": "Blader en installeer plug-ins in een sandbox uit het WaveFlow-register.",
+      "loading": "Winkel laden…",
+      "emptyTitle": "Nog geen plug-ins beschikbaar",
+      "emptyHint": "Het register is voorlopig leeg — kom binnenkort terug.",
+      "refresh": "Winkel vernieuwen",
+      "retry": "Opnieuw proberen",
+      "install": "Installeren",
+      "installing": "Bezig met installeren…",
+      "update": "Bijwerken",
+      "installed": "Geïnstalleerd",
+      "incompatible": "Update vereist",
+      "incompatibleHint": "Vereist een nieuwere versie van WaveFlow",
+      "official": "Officieel",
+      "canReach": "Heeft toegang tot:",
+      "installAria": "{{name}} installeren",
+      "updateAria": "{{name}} bijwerken"
     }
   },
   "spotify": {

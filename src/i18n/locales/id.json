@@ -1317,7 +1317,7 @@
       "subtitle": "Kelola ekstensi yang menambahkan sumber, metadata, atau tampilan ke WaveFlow.",
       "loading": "Memuat…",
       "emptyTitle": "Tidak ada plugin terpasang",
-      "emptyHint": "Pemasangan manual: letakkan folder di <data>/waveflow/plugins/. Toko resmi segera hadir.",
+      "emptyHint": "Pasang satu dari toko di atas, atau letakkan folder di <data>/waveflow/plugins/.",
       "byAuthor": "Oleh {{author}}",
       "enabled": "Aktif",
       "disabled": "Nonaktif",
@@ -1901,6 +1901,25 @@
     "scrollTitles": {
       "title": "Gulirkan judul panjang",
       "subtitle": "Judul panjang bergulir alih-alih dipotong (bilah pemutar + tampilan imersif)."
+    },
+    "pluginStore": {
+      "title": "Toko plugin",
+      "subtitle": "Jelajahi dan pasang plugin tersandbox dari registri WaveFlow.",
+      "loading": "Memuat toko…",
+      "emptyTitle": "Belum ada plugin tersedia",
+      "emptyHint": "Registri masih kosong — periksa lagi nanti.",
+      "refresh": "Segarkan toko",
+      "retry": "Coba lagi",
+      "install": "Pasang",
+      "installing": "Memasang…",
+      "update": "Perbarui",
+      "installed": "Terpasang",
+      "incompatible": "Perlu pembaruan",
+      "incompatibleHint": "Memerlukan versi WaveFlow yang lebih baru",
+      "official": "Resmi",
+      "canReach": "Dapat mengakses:",
+      "installAria": "Pasang {{name}}",
+      "updateAria": "Perbarui {{name}}"
     }
   },
   "spotify": {

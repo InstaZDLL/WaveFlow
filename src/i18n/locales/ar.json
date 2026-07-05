@@ -1443,7 +1443,7 @@
       "subtitle": "أدر الامتدادات التي تضيف مصادر أو بيانات وصفية أو طرق عرض إلى WaveFlow.",
       "loading": "جارٍ التحميل…",
       "emptyTitle": "لا توجد إضافات مثبتة",
-      "emptyHint": "التثبيت اليدوي: ضع مجلدًا تحت <data>/waveflow/plugins/. سيتوفر متجر رسمي قريبًا.",
+      "emptyHint": "ثبّت واحدة من المتجر أعلاه، أو ضَع مجلدًا في <data>/waveflow/plugins/.",
       "byAuthor": "بواسطة {{author}}",
       "enabled": "مفعّل",
       "disabled": "معطّل",
@@ -2047,6 +2047,25 @@
     "scrollTitles": {
       "title": "تمرير العناوين الطويلة",
       "subtitle": "تتحرك العناوين الطويلة بدلاً من اقتطاعها (شريط المشغّل + العرض الغامر)."
+    },
+    "pluginStore": {
+      "title": "متجر الإضافات",
+      "subtitle": "تصفّح وثبّت إضافات معزولة من سجلّ WaveFlow.",
+      "loading": "جارٍ تحميل المتجر…",
+      "emptyTitle": "لا توجد إضافات متاحة بعد",
+      "emptyHint": "السجلّ فارغ حاليًا — عُد قريبًا.",
+      "refresh": "تحديث المتجر",
+      "retry": "إعادة المحاولة",
+      "install": "تثبيت",
+      "installing": "جارٍ التثبيت…",
+      "update": "تحديث",
+      "installed": "مثبّت",
+      "incompatible": "التحديث مطلوب",
+      "incompatibleHint": "يتطلّب إصدارًا أحدث من WaveFlow",
+      "official": "رسمي",
+      "canReach": "يمكنه الوصول إلى:",
+      "installAria": "تثبيت {{name}}",
+      "updateAria": "تحديث {{name}}"
     }
   },
   "spotify": {

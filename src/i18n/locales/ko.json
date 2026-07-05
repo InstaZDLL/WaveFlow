@@ -1317,7 +1317,7 @@
       "subtitle": "WaveFlow에 소스, 메타데이터 또는 뷰를 추가하는 확장 기능을 관리합니다.",
       "loading": "로드 중…",
       "emptyTitle": "설치된 플러그인이 없습니다",
-      "emptyHint": "수동 설치: <data>/waveflow/plugins/에 폴더를 넣으세요. 공식 스토어가 곧 출시됩니다.",
+      "emptyHint": "위 스토어에서 설치하거나 <data>/waveflow/plugins/ 아래에 폴더를 넣으세요.",
       "byAuthor": "{{author}} 작성",
       "enabled": "활성화됨",
       "disabled": "비활성화됨",
@@ -1901,6 +1901,25 @@
     "scrollTitles": {
       "title": "긴 제목 스크롤",
       "subtitle": "긴 제목을 잘라내지 않고 스크롤합니다(플레이어 바 + 몰입형 보기)."
+    },
+    "pluginStore": {
+      "title": "플러그인 스토어",
+      "subtitle": "WaveFlow 레지스트리에서 샌드박스된 플러그인을 둘러보고 설치하세요.",
+      "loading": "스토어 불러오는 중…",
+      "emptyTitle": "아직 사용할 수 있는 플러그인이 없습니다",
+      "emptyHint": "레지스트리가 아직 비어 있습니다 — 나중에 다시 확인하세요.",
+      "refresh": "스토어 새로고침",
+      "retry": "다시 시도",
+      "install": "설치",
+      "installing": "설치 중…",
+      "update": "업데이트",
+      "installed": "설치됨",
+      "incompatible": "업데이트 필요",
+      "incompatibleHint": "더 최신 버전의 WaveFlow가 필요합니다",
+      "official": "공식",
+      "canReach": "접근 가능:",
+      "installAria": "{{name}} 설치",
+      "updateAria": "{{name}} 업데이트"
     }
   },
   "spotify": {
