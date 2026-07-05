@@ -24,20 +24,18 @@ export function useAlbumMotionArtwork(
 
   useEffect(() => {
     let cancelled = false;
-    // Missing key → resolve null async so the clear still goes through the
-    // promise path (no synchronous setState in the effect body).
-    const lookup =
-      artist && album
-        ? fetchAlbumMotionArtwork(artist, album)
-        : Promise.resolve<MotionArtwork | null>(null);
-    lookup.then(
-      (m) => {
-        if (!cancelled) setMotion(m);
-      },
-      () => {
-        if (!cancelled) setMotion(null);
-      },
-    );
+    const apply = (m: MotionArtwork | null) => {
+      if (!cancelled) setMotion(m);
+    };
+    // Clear the previous track's artwork right away so a stale overlay
+    // never lingers over the new cover. Goes through a resolved promise
+    // (not a synchronous setState in the effect body) to satisfy
+    // `react-hooks/set-state-in-effect`, and runs before any fetch
+    // resolves, so the new artwork only ever replaces `null`.
+    Promise.resolve<MotionArtwork | null>(null).then(apply);
+    if (artist && album) {
+      fetchAlbumMotionArtwork(artist, album).then(apply, () => apply(null));
+    }
     return () => {
       cancelled = true;
     };

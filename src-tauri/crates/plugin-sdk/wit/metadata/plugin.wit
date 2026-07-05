@@ -27,12 +27,17 @@ interface enricher {
     description: option<string>,
     cover-url: option<string>,
     track-count: option<u32>,
-    /// Looping video URL (HLS `.m3u8` or `.mp4`) for the square
-    /// animated cover, rendered behind the now-playing view. `none`
-    /// when the plugin has no motion artwork for this album.
+    /// Looping video URL for the square animated cover, rendered
+    /// behind the now-playing view. MUST be a directly-playable
+    /// progressive file (`.mp4`) — the host renders it in a native
+    /// `<video>` element with no HLS.js, so a bare HLS `.m3u8` will
+    /// NOT play on all platforms (WebView2 has no native HLS). A
+    /// plugin whose source is HLS resolves it to an mp4 rendition
+    /// before returning. `none` = no motion artwork for this album.
     motion-cover-url: option<string>,
     /// Optional taller variant (lock-screen / expanded artwork
-    /// aspect). `none` falls back to `motion-cover-url`.
+    /// aspect), same mp4 constraint. `none` falls back to
+    /// `motion-cover-url`.
     motion-cover-tall-url: option<string>,
   }
 
