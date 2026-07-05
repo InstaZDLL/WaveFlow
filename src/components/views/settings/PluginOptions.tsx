@@ -45,6 +45,7 @@ function MotionCacheOption() {
   const [sizeBytes, setSizeBytes] = useState(0);
   const [fileCount, setFileCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [confirmingClear, setConfirmingClear] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +72,11 @@ function MotionCacheOption() {
   }, []);
 
   const onToggle = useCallback(async () => {
+    // Serialise writes: ignore clicks while a set is in flight so two rapid
+    // toggles can't race into out-of-order backend writes.
+    if (saving) return;
     const next = !enabled;
+    setSaving(true);
     setEnabled(next); // optimistic
     setError(null);
     try {
@@ -79,8 +84,10 @@ function MotionCacheOption() {
     } catch (e) {
       setEnabled(!next); // revert
       setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
     }
-  }, [enabled]);
+  }, [enabled, saving]);
 
   const onClear = useCallback(async () => {
     if (!confirmingClear) {
@@ -130,7 +137,7 @@ function MotionCacheOption() {
           type="button"
           role="switch"
           aria-checked={enabled}
-          disabled={loading}
+          disabled={loading || saving}
           onClick={onToggle}
           className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:opacity-50 ${
             enabled ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700"

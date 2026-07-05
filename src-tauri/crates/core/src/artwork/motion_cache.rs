@@ -73,10 +73,14 @@ pub fn is_safe_motion_url(url: &str) -> bool {
 
 fn is_internal_ip(ip: IpAddr) -> bool {
     match ip {
-        IpAddr::V4(v4) => {
-            v4.is_loopback() || v4.is_private() || v4.is_link_local() || v4.is_unspecified()
-        }
+        IpAddr::V4(v4) => is_internal_v4(v4),
         IpAddr::V6(v6) => {
+            // An IPv4-mapped address (`::ffff:127.0.0.1`) reaches the same v4
+            // host, so run the v4 checks on the mapped form first — otherwise
+            // the prefix logic below would wave it through.
+            if let Some(v4) = v6.to_ipv4_mapped() {
+                return is_internal_v4(v4);
+            }
             if v6.is_loopback() || v6.is_unspecified() {
                 return true;
             }
@@ -86,6 +90,10 @@ fn is_internal_ip(ip: IpAddr) -> bool {
             (seg & 0xfe00) == 0xfc00 || (seg & 0xffc0) == 0xfe80
         }
     }
+}
+
+fn is_internal_v4(v4: std::net::Ipv4Addr) -> bool {
+    v4.is_loopback() || v4.is_private() || v4.is_link_local() || v4.is_unspecified()
 }
 
 /// Return the local path of `url`'s cached mp4, downloading it first if absent.
@@ -285,5 +293,19 @@ mod tests {
         assert!(!is_safe_motion_url("https://172.16.0.1/a.mp4"));
         assert!(!is_safe_motion_url("https://169.254.169.254/latest/meta-data"));
         assert!(!is_safe_motion_url("https://[fd00::1]/a.mp4"));
+        // IPv4-mapped IPv6 must not slip past the v6 branch.
+        assert!(!is_safe_motion_url("https://[::ffff:127.0.0.1]/a.mp4"));
+        assert!(!is_safe_motion_url("https://[::ffff:10.0.0.1]/a.mp4"));
+        assert!(!is_safe_motion_url("https://[::ffff:169.254.169.254]/a.mp4"));
+    }
+
+    #[test]
+    fn ipv4_mapped_loopback_is_internal() {
+        use std::net::Ipv6Addr;
+        // `::ffff:127.0.0.1` and `::ffff:192.168.0.1` reach internal v4 hosts.
+        assert!(is_internal_ip("::ffff:127.0.0.1".parse::<Ipv6Addr>().unwrap().into()));
+        assert!(is_internal_ip("::ffff:192.168.0.1".parse::<Ipv6Addr>().unwrap().into()));
+        // A genuine global v6 address is not internal.
+        assert!(!is_internal_ip("2606:4700:4700::1111".parse::<Ipv6Addr>().unwrap().into()));
     }
 }

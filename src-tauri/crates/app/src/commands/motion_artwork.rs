@@ -169,6 +169,12 @@ pub async fn fetch_album_motion_artwork(
                     } else {
                         remote_square
                     };
+                    // Tall variant rides remote (the overlay renders `square`),
+                    // but the webview could still be pointed at it, so apply the
+                    // same SSRF guard — drop it if unsafe rather than exposing it.
+                    let tall_url = info
+                        .motion_cover_tall_url
+                        .filter(|u| motion_cache::is_safe_motion_url(u));
                     tracing::info!(
                         plugin_id,
                         %artist,
@@ -178,7 +184,7 @@ pub async fn fetch_album_motion_artwork(
                     );
                     return Ok(Some(MotionArtwork {
                         square_url,
-                        tall_url: info.motion_cover_tall_url,
+                        tall_url,
                         plugin_id,
                     }));
                 }
