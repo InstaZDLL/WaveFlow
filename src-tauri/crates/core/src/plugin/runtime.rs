@@ -521,7 +521,9 @@ pub struct AlbumInfo {
     pub description: Option<String>,
     pub cover_url: Option<String>,
     pub track_count: Option<u32>,
-    /// Looping video URL for the square animated cover (HLS/mp4).
+    /// Looping video URL for the square animated cover — a directly-
+    /// playable progressive `.mp4` (rendered in a native `<video>`, no
+    /// HLS.js; an HLS source is resolved to an mp4 rendition first).
     pub motion_cover_url: Option<String>,
     /// Taller lock-screen variant; `None` falls back to the square.
     pub motion_cover_tall_url: Option<String>,

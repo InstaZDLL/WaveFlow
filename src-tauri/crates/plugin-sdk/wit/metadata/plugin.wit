@@ -5,14 +5,21 @@
 // yield new tracks; the engine fans calls out to every metadata plugin in
 // parallel and merges the results behind a fallback chain.
 //
-// 1.1.0 (minor, backwards-compatible with the `waveflow:metadata/v1`
-// manifest label): `album-details` gains optional `motion-cover-url` /
-// `motion-cover-tall-url` for animated album artwork (Apple Music-style
-// motion covers). The result records were also renamed off the function
-// names (`artist-info`/`album-info` are the funcs; `artist-details`/
-// `album-details` the records) — WIT forbids a record and a function
-// sharing a name in one interface. No metadata plugin existed at 1.0.0,
-// so nothing depends on the old record names.
+// 1.1.0: `album-details` gains `motion-cover-url` / `motion-cover-tall-url`
+// for animated album artwork (Apple Music-style motion covers), and the
+// result records are renamed off the function names (`artist-info` /
+// `album-info` are the funcs; `artist-details` / `album-details` the
+// records — WIT forbids a record and a function sharing a name in one
+// interface).
+//
+// NOT an ABI-compatible bump: adding a field to a record changes its
+// Component Model type, and the record rename changes it further. This is
+// safe ONLY because there were zero `waveflow:metadata@1.0.0` consumers —
+// the world was defined but never bound or shipped (in fact it never even
+// compiled, because of the record/func name clash above). A real 1.0.0
+// consumer would have required a fresh interface version instead. The
+// manifest label stays `waveflow:metadata/v1` regardless: the host's
+// `worlds` catalog keys on the `/vN` label, not the WIT semver.
 
 package waveflow:metadata@1.1.0;
 

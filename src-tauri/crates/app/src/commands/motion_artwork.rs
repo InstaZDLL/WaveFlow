@@ -22,7 +22,10 @@ use crate::state::AppState;
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MotionArtwork {
-    /// Square animated cover (HLS `.m3u8` or `.mp4`).
+    /// Square animated cover — a directly-playable progressive `.mp4`.
+    /// The host renders it in a native `<video>` with no HLS.js, so a
+    /// plugin with an HLS source resolves it to an mp4 rendition before
+    /// returning (a bare `.m3u8` won't play on WebView2).
     pub square_url: String,
     /// Taller lock-screen variant, when the plugin offers one.
     pub tall_url: Option<String>,
