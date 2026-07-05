@@ -1340,7 +1340,8 @@
         "none": "No permission requested"
       },
       "bundled": "Built-in",
-      "bundledHint": "Ships with WaveFlow — disable it to hide it."
+      "bundledHint": "Ships with WaveFlow — disable it to hide it.",
+      "optionsAria": "Options for {{name}}"
     },
     "shortcuts": {
       "subtitle": "Click a shortcut then press the key combination you want. Backspace to clear, Escape to cancel.",
@@ -1920,6 +1921,14 @@
       "canReach": "Can reach:",
       "installAria": "Install {{name}}",
       "updateAria": "Update {{name}}"
+    },
+    "motionArtwork": {
+      "title": "Animated artwork",
+      "subtitle": "Motion covers from metadata plugins (e.g. Apple Motion Artwork) play behind the now-playing view.",
+      "cacheLabel": "Save animated artwork locally",
+      "usage": "{{size}} used · {{files}} covers cached",
+      "clear": "Clear cache",
+      "clearConfirm": "Confirm?"
     }
   },
   "spotify": {

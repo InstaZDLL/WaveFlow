@@ -1340,7 +1340,8 @@
         "none": "İstenen izin yok"
       },
       "bundled": "Yerleşik",
-      "bundledHint": "WaveFlow ile birlikte gelir — gizlemek için devre dışı bırak."
+      "bundledHint": "WaveFlow ile birlikte gelir — gizlemek için devre dışı bırak.",
+      "optionsAria": "{{name}} seçenekleri"
     },
     "shortcuts": {
       "subtitle": "Bir kısayola tıkla ve ardından istediğin tuş kombinasyonuna bas. Silmek için Backspace, iptal için Esc.",
@@ -1920,6 +1921,14 @@
       "canReach": "Erişebileceği adresler:",
       "installAria": "{{name}} yükle",
       "updateAria": "{{name}} güncelle"
+    },
+    "motionArtwork": {
+      "title": "Animasyonlu kapaklar",
+      "subtitle": "Meta veri eklentilerinden (ör. Apple Motion Artwork) gelen animasyonlu kapaklar, çalan içeriğin arkasında oynatılır.",
+      "cacheLabel": "Animasyonlu kapakları yerel olarak kaydet",
+      "usage": "{{size}} kullanıldı · önbellekte {{files}} kapak",
+      "clear": "Önbelleği temizle",
+      "clearConfirm": "Onaylıyor musunuz?"
     }
   },
   "spotify": {

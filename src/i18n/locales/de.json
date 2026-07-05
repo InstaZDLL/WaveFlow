@@ -1340,7 +1340,8 @@
         "none": "Keine Berechtigungen angefordert"
       },
       "bundled": "Mitgeliefert",
-      "bundledHint": "Mit WaveFlow ausgeliefert — deaktivieren, um es auszublenden."
+      "bundledHint": "Mit WaveFlow ausgeliefert — deaktivieren, um es auszublenden.",
+      "optionsAria": "Optionen für {{name}}"
     },
     "shortcuts": {
       "subtitle": "Klicke auf ein Tastenkürzel und drücke dann die gewünschte Tastenkombination. Rücktaste zum Löschen, Esc zum Abbrechen.",
@@ -1920,6 +1921,14 @@
       "canReach": "Kann zugreifen auf:",
       "installAria": "{{name}} installieren",
       "updateAria": "{{name}} aktualisieren"
+    },
+    "motionArtwork": {
+      "title": "Animierte Cover",
+      "subtitle": "Bewegte Cover von Metadaten-Plugins (z. B. Apple Motion Artwork) laufen hinter der Wiedergabeansicht.",
+      "cacheLabel": "Animierte Cover lokal speichern",
+      "usage": "{{size}} belegt · {{files}} Cover im Cache",
+      "clear": "Cache leeren",
+      "clearConfirm": "Bestätigen?"
     }
   },
   "spotify": {

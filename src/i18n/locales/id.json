@@ -1340,7 +1340,8 @@
         "none": "Tidak ada izin diminta"
       },
       "bundled": "Bawaan",
-      "bundledHint": "Disertakan dengan WaveFlow — nonaktifkan untuk menyembunyikannya."
+      "bundledHint": "Disertakan dengan WaveFlow — nonaktifkan untuk menyembunyikannya.",
+      "optionsAria": "Opsi untuk {{name}}"
     },
     "shortcuts": {
       "subtitle": "Klik sebuah pintasan lalu tekan kombinasi tombol yang kamu inginkan. Backspace untuk menghapus, Esc untuk membatalkan.",
@@ -1920,6 +1921,14 @@
       "canReach": "Dapat mengakses:",
       "installAria": "Pasang {{name}}",
       "updateAria": "Perbarui {{name}}"
+    },
+    "motionArtwork": {
+      "title": "Sampul animasi",
+      "subtitle": "Sampul animasi dari plugin metadata (mis. Apple Motion Artwork) diputar di belakang tampilan yang sedang diputar.",
+      "cacheLabel": "Simpan sampul animasi secara lokal",
+      "usage": "{{size}} terpakai · {{files}} sampul di cache",
+      "clear": "Bersihkan cache",
+      "clearConfirm": "Konfirmasi?"
     }
   },
   "spotify": {

@@ -1340,7 +1340,8 @@
         "none": "要求された権限はありません"
       },
       "bundled": "組み込み",
-      "bundledHint": "WaveFlow に同梱されています — 非表示にするには無効にしてください。"
+      "bundledHint": "WaveFlow に同梱されています — 非表示にするには無効にしてください。",
+      "optionsAria": "{{name}} のオプション"
     },
     "integrations": {
       "lastfm": {
@@ -1920,6 +1921,14 @@
       "canReach": "アクセス先:",
       "installAria": "{{name}} をインストール",
       "updateAria": "{{name}} を更新"
+    },
+    "motionArtwork": {
+      "title": "アニメーションアートワーク",
+      "subtitle": "メタデータプラグイン（例：Apple Motion Artwork）のアニメーションカバーが再生画面の背景に表示されます。",
+      "cacheLabel": "アニメーションアートワークをローカルに保存",
+      "usage": "{{size}} 使用中 · キャッシュ {{files}} 件",
+      "clear": "キャッシュを消去",
+      "clearConfirm": "確認しますか？"
     }
   },
   "scanProgress": {

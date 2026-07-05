@@ -1340,7 +1340,8 @@
         "none": "Nenhuma permissão solicitada"
       },
       "bundled": "Integrado",
-      "bundledHint": "Incluído com o WaveFlow — desative para ocultá-lo."
+      "bundledHint": "Incluído com o WaveFlow — desative para ocultá-lo.",
+      "optionsAria": "Opções de {{name}}"
     },
     "shortcuts": {
       "subtitle": "Clique em um atalho e pressione a combinação de teclas que você quer. Backspace para limpar, Esc para cancelar.",
@@ -1920,6 +1921,14 @@
       "canReach": "Pode acessar:",
       "installAria": "Instalar {{name}}",
       "updateAria": "Atualizar {{name}}"
+    },
+    "motionArtwork": {
+      "title": "Capas animadas",
+      "subtitle": "As capas animadas dos plugins de metadados (ex.: Apple Motion Artwork) aparecem atrás da reprodução atual.",
+      "cacheLabel": "Salvar as capas animadas localmente",
+      "usage": "{{size}} usados · {{files}} capas em cache",
+      "clear": "Limpar cache",
+      "clearConfirm": "Confirmar?"
     }
   },
   "spotify": {

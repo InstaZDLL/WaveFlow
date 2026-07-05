@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+import { convertFileSrc } from "@tauri-apps/api/core";
+
 import { useAlbumMotionArtwork } from "../../hooks/useAlbumMotionArtwork";
 
 const ROUND: Record<"md" | "lg" | "xl" | "2xl", string> = {
@@ -59,9 +61,14 @@ function MotionVideo({
 
   if (failed) return null;
 
+  // A remote mp4 (cache off) loads by URL as-is; a locally-cached mp4 (cache
+  // on) is an absolute file path the webview can only reach through the asset
+  // protocol, so convert it. `MotionArtwork.squareUrl` is one or the other.
+  const src = /^https?:\/\//i.test(url) ? url : convertFileSrc(url);
+
   return (
     <video
-      src={url}
+      src={src}
       autoPlay
       loop
       muted

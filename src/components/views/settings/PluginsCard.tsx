@@ -7,6 +7,7 @@ import {
   Database,
   FileText,
   Package,
+  Settings2,
 } from "lucide-react";
 
 import {
@@ -16,6 +17,16 @@ import {
   type PluginInfo,
 } from "../../../lib/tauri/plugins";
 import { PLUGIN_AVAILABILITY_EVENT } from "../../../hooks/usePluginAvailability";
+import { PluginOptions } from "./PluginOptions";
+
+/**
+ * Whether a plugin exposes a ⚙️ options panel. Today that's metadata-world
+ * plugins (the host-provided motion-artwork local-cache applies to what they
+ * produce). Phase 2 (manifest-declared options) will widen this.
+ */
+function pluginHasOptions(plugin: PluginInfo): boolean {
+  return plugin.world.startsWith("waveflow:metadata");
+}
 
 /// Fire the cross-component "plugin availability changed" bus so
 /// Sidebar + WebRadioView refresh their conditional rendering.
@@ -50,6 +61,9 @@ export function PluginsCard() {
     null,
   );
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Which plugin's inline options panel is open (only one at a time keeps the
+  // list short no matter how many plugins are installed).
+  const [optionsFor, setOptionsFor] = useState<string | null>(null);
 
   useEffect(() => {
     // `.then`-style instead of an `await` inside an IIFE because
@@ -197,25 +211,48 @@ export function PluginsCard() {
                     />
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                        {plugin.enabled
-                          ? t("settings.plugins.enabled")
-                          : t("settings.plugins.disabled")}
-                      </span>
-                      <input
-                        type="checkbox"
-                        checked={plugin.enabled}
-                        disabled={isBusy}
-                        onChange={() => {
-                          void onToggle(plugin);
-                        }}
-                        className="w-4 h-4 accent-emerald-500 cursor-pointer disabled:opacity-50"
-                        aria-label={t("settings.plugins.toggleAria", {
-                          name: plugin.name,
-                        })}
-                      />
-                    </label>
+                    <div className="flex items-center gap-2">
+                      {pluginHasOptions(plugin) && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOptionsFor((cur) =>
+                              cur === plugin.id ? null : plugin.id,
+                            )
+                          }
+                          aria-expanded={optionsFor === plugin.id}
+                          aria-label={t("settings.plugins.optionsAria", {
+                            name: plugin.name,
+                          })}
+                          className={`p-1 rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+                            optionsFor === plugin.id
+                              ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
+                              : "text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600 dark:hover:text-zinc-300"
+                          }`}
+                        >
+                          <Settings2 size={16} aria-hidden="true" />
+                        </button>
+                      )}
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {plugin.enabled
+                            ? t("settings.plugins.enabled")
+                            : t("settings.plugins.disabled")}
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={plugin.enabled}
+                          disabled={isBusy}
+                          onChange={() => {
+                            void onToggle(plugin);
+                          }}
+                          className="w-4 h-4 accent-emerald-500 cursor-pointer disabled:opacity-50"
+                          aria-label={t("settings.plugins.toggleAria", {
+                            name: plugin.name,
+                          })}
+                        />
+                      </label>
+                    </div>
                     {plugin.bundled ? (
                       // Bundled plugins re-seed at every boot, so an
                       // uninstall is just a one-launch ghost state.
@@ -271,6 +308,9 @@ export function PluginsCard() {
                     )}
                   </div>
                 </div>
+                {optionsFor === plugin.id && (
+                  <PluginOptions plugin={plugin} />
+                )}
               </li>
             );
           })}

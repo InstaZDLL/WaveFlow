@@ -1340,7 +1340,8 @@
         "none": "요청된 권한 없음"
       },
       "bundled": "내장",
-      "bundledHint": "WaveFlow에 포함되어 있습니다 — 숨기려면 비활성화하세요."
+      "bundledHint": "WaveFlow에 포함되어 있습니다 — 숨기려면 비활성화하세요.",
+      "optionsAria": "{{name}} 옵션"
     },
     "shortcuts": {
       "subtitle": "단축키를 클릭한 후 원하는 키 조합을 누르세요. 지우려면 Backspace, 취소하려면 Escape를 누르세요.",
@@ -1920,6 +1921,14 @@
       "canReach": "접근 가능:",
       "installAria": "{{name}} 설치",
       "updateAria": "{{name}} 업데이트"
+    },
+    "motionArtwork": {
+      "title": "애니메이션 아트워크",
+      "subtitle": "메타데이터 플러그인(예: Apple Motion Artwork)의 움직이는 커버가 재생 화면 뒤에 표시됩니다.",
+      "cacheLabel": "애니메이션 아트워크를 로컬에 저장",
+      "usage": "{{size}} 사용 중 · 캐시 {{files}}개",
+      "clear": "캐시 지우기",
+      "clearConfirm": "확인할까요?"
     }
   },
   "spotify": {

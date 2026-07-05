@@ -1340,7 +1340,8 @@
         "none": "Aucune permission demandée"
       },
       "bundled": "Inclus",
-      "bundledHint": "Livré avec WaveFlow — désactivez-le pour le masquer."
+      "bundledHint": "Livré avec WaveFlow — désactivez-le pour le masquer.",
+      "optionsAria": "Options de {{name}}"
     },
     "categoryNavLabel": "Catégories des paramètres",
     "appearance": {
@@ -1920,6 +1921,14 @@
       "canReach": "Peut accéder à :",
       "installAria": "Installer {{name}}",
       "updateAria": "Mettre à jour {{name}}"
+    },
+    "motionArtwork": {
+      "title": "Pochettes animées",
+      "subtitle": "Les pochettes animées des plugins de métadonnées (ex. Apple Motion Artwork) s'affichent derrière la lecture en cours.",
+      "cacheLabel": "Sauvegarder les pochettes animées en local",
+      "usage": "{{size}} utilisés · {{files}} pochettes en cache",
+      "clear": "Vider le cache",
+      "clearConfirm": "Confirmer ?"
     }
   },
   "spotify": {
