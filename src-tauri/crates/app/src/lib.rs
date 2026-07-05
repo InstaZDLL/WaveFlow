@@ -670,6 +670,8 @@ pub fn run() {
             commands::plugins::plugin_stream_url,
             commands::plugins::get_plugin_favorites,
             commands::plugins::set_plugin_favorites,
+            commands::plugins::get_plugin_options,
+            commands::plugins::set_plugin_option,
             commands::plugin_store::list_plugin_marketplace,
             commands::plugin_store::install_plugin_from_registry,
             commands::motion_artwork::fetch_album_motion_artwork,

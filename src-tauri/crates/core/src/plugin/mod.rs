@@ -21,6 +21,7 @@ pub mod assets;
 pub mod bindings;
 pub mod host_impl;
 pub mod manifest;
+pub mod plugin_config;
 pub mod runtime;
 
 use std::path::{Component, Path, PathBuf};

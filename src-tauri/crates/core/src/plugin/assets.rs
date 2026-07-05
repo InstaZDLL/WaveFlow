@@ -159,6 +159,7 @@ mod tests {
             },
             permissions: Default::default(),
             assets,
+            options: Vec::new(),
         }
     }
 

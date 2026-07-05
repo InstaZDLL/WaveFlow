@@ -332,6 +332,9 @@ impl PluginRuntime {
             Some(AssetResolver::new(&plugin_dir, &loaded.manifest))
         };
         let permissions = HostPermissions::from_manifest(&loaded.manifest)?;
+        // Resolve the user's option values before `state_dir` is consumed by
+        // the scratch store — served to the guest via `config.get-option`.
+        let config = crate::plugin::plugin_config::read(&state_dir);
         let state = StateStore::new(state_dir, STATE_QUOTA_BYTES);
         // Clone the runtime's redirect-disabled client (cheap — the
         // connection pool sits behind an internal Arc, so per-Store
@@ -352,6 +355,7 @@ impl PluginRuntime {
             state,
             http_client,
             offline_probe,
+            config,
         };
         let mut store = Store::new(&self.inner.engine, ctx);
 
@@ -672,6 +676,12 @@ pub struct HostCtx {
     /// workspace follows. `pub(crate)` so a caller can't pin the
     /// probe to a constant and bypass the host's offline switch.
     pub(crate) offline_probe: OfflineProbe,
+    /// Resolved per-plugin option values (`key` → string), read from the
+    /// plugin's on-disk config file at instantiate time and served to the
+    /// guest through `waveflow:host/config.get-option`. Empty when the
+    /// user hasn't set any option. `pub(crate)` so the guest can only
+    /// observe (never mutate) its own config.
+    pub(crate) config: std::collections::HashMap<String, String>,
 }
 
 impl HostCtx {
@@ -702,6 +712,7 @@ impl HostCtx {
                 .build()
                 .expect("redirect-disabled client builds"),
             offline_probe: always_online(),
+            config: std::collections::HashMap::new(),
         }
     }
 }

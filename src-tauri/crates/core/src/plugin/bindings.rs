@@ -62,6 +62,7 @@ pub mod metadata {
             "waveflow:host/http": crate::plugin::bindings::source::waveflow::host::http,
             "waveflow:host/log": crate::plugin::bindings::source::waveflow::host::log,
             "waveflow:host/storage": crate::plugin::bindings::source::waveflow::host::storage,
+            "waveflow:host/config": crate::plugin::bindings::source::waveflow::host::config,
         },
     });
 }

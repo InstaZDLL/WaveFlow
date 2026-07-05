@@ -61,5 +61,6 @@ world plugin {
   import waveflow:host/http@1.0.0;
   import waveflow:host/log@1.0.0;
   import waveflow:host/storage@1.0.0;
+  import waveflow:host/config@1.0.0;
   export provider;
 }
