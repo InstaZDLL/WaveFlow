@@ -1317,7 +1317,7 @@
       "subtitle": "Gérez les extensions qui ajoutent des sources, des métadonnées ou des vues à WaveFlow.",
       "loading": "Chargement…",
       "emptyTitle": "Aucun plugin installé",
-      "emptyHint": "L'installation manuelle se fait en déposant un dossier sous <data>/waveflow/plugins/. Un magasin officiel suivra.",
+      "emptyHint": "Installez-en un depuis le magasin ci-dessus, ou déposez un dossier sous <data>/waveflow/plugins/.",
       "byAuthor": "Par {{author}}",
       "enabled": "Activé",
       "disabled": "Désactivé",
@@ -1901,6 +1901,25 @@
     "scrollTitles": {
       "title": "Faire défiler les titres longs",
       "subtitle": "Les titres trop longs défilent au lieu d'être tronqués (barre de lecture + vue immersive)."
+    },
+    "pluginStore": {
+      "title": "Magasin de plugins",
+      "subtitle": "Parcourez et installez des plugins sandboxés depuis le registre WaveFlow.",
+      "loading": "Chargement du magasin…",
+      "emptyTitle": "Aucun plugin disponible pour l’instant",
+      "emptyHint": "Le registre est vide pour le moment — revenez bientôt.",
+      "refresh": "Actualiser le magasin",
+      "retry": "Réessayer",
+      "install": "Installer",
+      "installing": "Installation…",
+      "update": "Mettre à jour",
+      "installed": "Installé",
+      "incompatible": "Mise à jour requise",
+      "incompatibleHint": "Nécessite une version plus récente de WaveFlow",
+      "official": "Officiel",
+      "canReach": "Peut accéder à :",
+      "installAria": "Installer {{name}}",
+      "updateAria": "Mettre à jour {{name}}"
     }
   },
   "spotify": {

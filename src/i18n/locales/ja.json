@@ -1317,7 +1317,7 @@
       "subtitle": "WaveFlow にソース、メタデータ、ビューを追加する拡張機能を管理します。",
       "loading": "読み込み中…",
       "emptyTitle": "プラグインがインストールされていません",
-      "emptyHint": "手動インストール: <data>/waveflow/plugins/ 内にフォルダを置きます。公式ストアは近日公開予定です。",
+      "emptyHint": "上のストアからインストールするか、<data>/waveflow/plugins/ にフォルダーを配置してください。",
       "byAuthor": "作者: {{author}}",
       "enabled": "有効",
       "disabled": "無効",
@@ -1901,6 +1901,25 @@
     "scrollTitles": {
       "title": "長いタイトルをスクロール",
       "subtitle": "長いタイトルを省略せずにスクロール表示します（プレーヤーバー＋没入ビュー）。"
+    },
+    "pluginStore": {
+      "title": "プラグインストア",
+      "subtitle": "WaveFlow レジストリからサンドボックス化されたプラグインを閲覧・インストールできます。",
+      "loading": "ストアを読み込み中…",
+      "emptyTitle": "利用可能なプラグインはまだありません",
+      "emptyHint": "レジストリは現在空です。しばらくしてからご確認ください。",
+      "refresh": "ストアを更新",
+      "retry": "再試行",
+      "install": "インストール",
+      "installing": "インストール中…",
+      "update": "更新",
+      "installed": "インストール済み",
+      "incompatible": "更新が必要",
+      "incompatibleHint": "より新しいバージョンの WaveFlow が必要です",
+      "official": "公式",
+      "canReach": "アクセス先:",
+      "installAria": "{{name}} をインストール",
+      "updateAria": "{{name}} を更新"
     }
   },
   "scanProgress": {

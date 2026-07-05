@@ -9,6 +9,23 @@
 
 ---
 
+> **Status update (2026-07): plugin store shipped.** §2's "sideload-first
+> distribution" and the §3 non-goal "a plugin marketplace / a registry is
+> a Phase 4+ conversation" are **superseded**. A curated store now ships:
+> a git-versioned registry repo ([`InstaZDLL/waveflow-plugins`](https://github.com/InstaZDLL/waveflow-plugins))
+> holds a `registry.json` catalogue; the desktop app fetches it through an
+> ordered source cascade (`waveflow.app/api/plugins/registry` →
+> `raw.githubusercontent` → jsDelivr) and installs a plugin by downloading
+> its pinned release, **verifying the `plugin.wasm` blake3 against the
+> registry entry** (the registry, not the release, is the trusted pin),
+> and stage-swapping it into the writable sideload root for the runtime to
+> load. Sideload-by-hand still works; the store is the ergonomic path on
+> top. See [`commands/plugin_store.rs`](../../src-tauri/crates/app/src/commands/plugin_store.rs)
+> + the `settings.pluginStore` UI. Everything else in this RFC (WASM
+> Component Model, WIT worlds, sandbox, permission enforcement) stands.
+
+---
+
 ## 1. Context
 
 Phase 1 (RFC-001) splits WaveFlow into `waveflow-core` + `waveflow` (Tauri app) and prepares `waveflow-server` to consume the same business logic. With that infrastructure in place, the next bottleneck is **what we ship as core**: Web Radio (#171), alternative metadata providers (MusicBrainz, Discogs, Genius), specialized views for niche music collections (DJ sets, classical, audiobooks) are all features users will ask for, and every one of them in core means lock-in to one vendor's API quirks plus an explosion of the maintenance surface.

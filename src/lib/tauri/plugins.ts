@@ -173,3 +173,62 @@ export async function setPluginFavorites(
 ): Promise<void> {
   return invoke<void>("set_plugin_favorites", { pluginId, favorites });
 }
+
+// ----- plugin store / marketplace (Phase 2) ------------------------------
+//
+// The curated registry (InstaZDLL/waveflow-plugins) surfaced in-app.
+// Mirrors `commands::plugin_store::MarketplaceEntry` (camelCase). The
+// backend fetches the catalogue (app endpoint → raw GitHub → jsDelivr
+// fallbacks), verifies each download's blake3 against the registry, and
+// stage-swaps the plugin into the sideload root for the runtime to load.
+
+/** One store row: registry fields + install/update/compat state
+ *  resolved against what's on disk and this build's version. */
+export interface MarketplaceEntry {
+  id: string;
+  name: string;
+  description: string;
+  author: string;
+  /** GitHub `owner/name` hosting the plugin's releases. */
+  repo: string;
+  homepage: string | null;
+  /** WIT world, e.g. `waveflow:source@1.0.0`. */
+  world: string;
+  /** Registry-pinned version (what installing would land). */
+  version: string;
+  /** Allowlisted outbound hosts — shown before install, enforced at runtime. */
+  http: string[];
+  storageRead: boolean;
+  storageState: boolean;
+  tags: string[];
+  /** First-party plugin maintained by the WaveFlow team. */
+  official: boolean;
+  installed: boolean;
+  /** Version on disk (`null` when not installed). */
+  installedVersion: string | null;
+  /** Registry version differs from the installed one. */
+  updateAvailable: boolean;
+  /** This build satisfies the entry's `min_app_version`. */
+  compatible: boolean;
+}
+
+/**
+ * Fetch the curated catalogue, resolved against locally-installed
+ * plugins. Rejects when offline mode is on or no registry source is
+ * reachable — the caller surfaces the error rather than an empty store.
+ */
+export async function listPluginMarketplace(): Promise<MarketplaceEntry[]> {
+  return invoke<MarketplaceEntry[]>("list_plugin_marketplace");
+}
+
+/**
+ * Install (or update — same path, overwrites) a plugin by id. Downloads
+ * the registry-pinned release, verifies its blake3, and hot-loads it.
+ * Throws on a hash/manifest mismatch, an incompatible app version, or a
+ * bundled id. Re-fetch {@link listInstalledPlugins} after resolve.
+ */
+export async function installPluginFromRegistry(
+  pluginId: string,
+): Promise<void> {
+  return invoke<void>("install_plugin_from_registry", { pluginId });
+}

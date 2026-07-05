@@ -37,7 +37,7 @@ use waveflow_core::plugin::is_bundled_plugin;
 /// `uninstall_plugin`. Releasing only at function end (guard
 /// drop) keeps the manifest probe + the SQL UPSERT atomic against
 /// a racing uninstall.
-async fn lock_plugin(state: &AppState, plugin_id: &str) -> OwnedMutexGuard<()> {
+pub(crate) async fn lock_plugin(state: &AppState, plugin_id: &str) -> OwnedMutexGuard<()> {
     let arc_mutex: Arc<Mutex<()>> = {
         let mut map = state.plugin_locks.lock().await;
         map.entry(plugin_id.to_string())
@@ -242,7 +242,7 @@ pub async fn set_plugin_favorites(
 /// the frontend a single, unambiguous failure mode instead of the
 /// downstream "manifest id mismatch" which reads like a sandbox
 /// breach.
-fn validate_plugin_id_chars(plugin_id: &str) -> AppResult<()> {
+pub(crate) fn validate_plugin_id_chars(plugin_id: &str) -> AppResult<()> {
     if plugin_id.is_empty() {
         return Err(AppError::Other("plugin id is empty".into()));
     }

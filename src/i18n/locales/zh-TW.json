@@ -1317,7 +1317,7 @@
       "subtitle": "管理為 WaveFlow 新增來源、中繼資料或檢視的擴充功能。",
       "loading": "載入中…",
       "emptyTitle": "未安裝任何外掛",
-      "emptyHint": "手動安裝：將資料夾放在 <data>/waveflow/plugins/ 下。官方商店即將推出。",
+      "emptyHint": "從上方商店安裝，或將資料夾放入 <data>/waveflow/plugins/。",
       "byAuthor": "作者：{{author}}",
       "enabled": "已啟用",
       "disabled": "已停用",
@@ -1901,6 +1901,25 @@
     "scrollTitles": {
       "title": "捲動顯示長標題",
       "subtitle": "過長的標題捲動顯示而非截斷（播放列 + 沉浸式檢視）。"
+    },
+    "pluginStore": {
+      "title": "外掛商店",
+      "subtitle": "從 WaveFlow 登錄檔瀏覽並安裝沙箱化外掛。",
+      "loading": "正在載入商店…",
+      "emptyTitle": "尚無可用外掛",
+      "emptyHint": "登錄檔目前為空，請稍後再來。",
+      "refresh": "重新整理商店",
+      "retry": "重試",
+      "install": "安裝",
+      "installing": "正在安裝…",
+      "update": "更新",
+      "installed": "已安裝",
+      "incompatible": "需要更新",
+      "incompatibleHint": "需要較新版本的 WaveFlow",
+      "official": "官方",
+      "canReach": "可存取：",
+      "installAria": "安裝 {{name}}",
+      "updateAria": "更新 {{name}}"
     }
   },
   "scanProgress": {

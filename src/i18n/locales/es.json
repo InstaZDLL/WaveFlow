@@ -1317,7 +1317,7 @@
       "subtitle": "Gestiona las extensiones que añaden fuentes, metadatos o vistas a WaveFlow.",
       "loading": "Cargando…",
       "emptyTitle": "No hay complementos instalados",
-      "emptyHint": "Instalación manual: deja una carpeta en <data>/waveflow/plugins/. Próximamente una tienda oficial.",
+      "emptyHint": "Instala uno desde la tienda de arriba o coloca una carpeta en <data>/waveflow/plugins/.",
       "byAuthor": "Por {{author}}",
       "enabled": "Activado",
       "disabled": "Desactivado",
@@ -1901,6 +1901,25 @@
     "scrollTitles": {
       "title": "Desplazar títulos largos",
       "subtitle": "Los títulos largos se desplazan en lugar de truncarse (barra de reproducción + vista inmersiva)."
+    },
+    "pluginStore": {
+      "title": "Tienda de plugins",
+      "subtitle": "Explora e instala plugins aislados desde el registro de WaveFlow.",
+      "loading": "Cargando la tienda…",
+      "emptyTitle": "Aún no hay plugins disponibles",
+      "emptyHint": "El registro está vacío por ahora, vuelve pronto.",
+      "refresh": "Actualizar la tienda",
+      "retry": "Reintentar",
+      "install": "Instalar",
+      "installing": "Instalando…",
+      "update": "Actualizar",
+      "installed": "Instalado",
+      "incompatible": "Actualización necesaria",
+      "incompatibleHint": "Requiere una versión más reciente de WaveFlow",
+      "official": "Oficial",
+      "canReach": "Puede acceder a:",
+      "installAria": "Instalar {{name}}",
+      "updateAria": "Actualizar {{name}}"
     }
   },
   "spotify": {
