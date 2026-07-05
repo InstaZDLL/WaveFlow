@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Puzzle,
@@ -56,32 +56,41 @@ export function PluginsCard() {
   // Which plugin's inline options panel is open (only one at a time keeps the
   // list short no matter how many plugins are installed).
   const [optionsFor, setOptionsFor] = useState<string | null>(null);
+  // Per-refresh token. A rapid install → toggle sequence dispatches two
+  // events and starts two `listInstalledPlugins` calls in parallel; the
+  // slower one would otherwise resolve last and clobber the fresh value
+  // with stale data. Each refresh captures its token, the `.then`
+  // continuation bails when the ref has moved on.
+  const reqRef = useRef(0);
 
-  useEffect(() => {
-    // `.then`-style instead of an `await` inside an IIFE because
-    // `react-hooks/set-state-in-effect` traces synchronous
-    // setState calls through awaits + IIFEs, and reads `.then`
-    // callbacks as the external-subscription shape the rule
-    // accepts. `cancelled` guards against a stale callback
-    // landing setState after the component unmounted.
-    let cancelled = false;
+  const refresh = useCallback(() => {
+    const token = ++reqRef.current;
     listInstalledPlugins().then(
       (list) => {
-        if (cancelled) return;
+        if (token !== reqRef.current) return;
         setPlugins(list);
         setError(null);
         setLoading(false);
       },
       (e: unknown) => {
-        if (cancelled) return;
+        if (token !== reqRef.current) return;
         setError(e instanceof Error ? e.message : String(e));
         setLoading(false);
       },
     );
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useEffect(() => {
+    // Same shape as usePluginAvailability: initial fetch + subscribe to
+    // the shared availability bus so an install from the store above
+    // makes the plugin appear here without a Settings remount, and an
+    // uninstall/toggle from anywhere else stays in sync.
+    refresh();
+    window.addEventListener(PLUGIN_AVAILABILITY_EVENT, refresh);
+    return () => {
+      window.removeEventListener(PLUGIN_AVAILABILITY_EVENT, refresh);
+    };
+  }, [refresh]);
 
   const onToggle = useCallback(async (plugin: PluginInfo) => {
     setBusyId(plugin.id);
