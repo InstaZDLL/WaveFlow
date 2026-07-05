@@ -1466,7 +1466,8 @@
         "none": "لا توجد أذونات مطلوبة"
       },
       "bundled": "مدمج",
-      "bundledHint": "يأتي مع WaveFlow — قم بتعطيله لإخفائه."
+      "bundledHint": "يأتي مع WaveFlow — قم بتعطيله لإخفائه.",
+      "optionsAria": "خيارات {{name}}"
     },
     "shortcuts": {
       "subtitle": "انقر على اختصار ثم اضغط على تركيبة المفاتيح المطلوبة. Backspace للمسح، Esc للإلغاء.",
@@ -2066,6 +2067,14 @@
       "canReach": "يمكنه الوصول إلى:",
       "installAria": "تثبيت {{name}}",
       "updateAria": "تحديث {{name}}"
+    },
+    "motionArtwork": {
+      "title": "الأغلفة المتحركة",
+      "subtitle": "تظهر الأغلفة المتحركة من إضافات البيانات الوصفية (مثل Apple Motion Artwork) خلف واجهة التشغيل الحالي.",
+      "cacheLabel": "حفظ الأغلفة المتحركة محليًا",
+      "usage": "{{size}} مستخدمة · {{files}} غلاف في الذاكرة المؤقتة",
+      "clear": "مسح الذاكرة المؤقتة",
+      "clearConfirm": "تأكيد؟"
     }
   },
   "spotify": {

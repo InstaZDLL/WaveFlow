@@ -262,3 +262,41 @@ export async function fetchAlbumMotionArtwork(
     album,
   });
 }
+
+/**
+ * Opt-in local motion-artwork cache state (Phase 1). When `enabled`, the
+ * backend downloads each resolved mp4 into an app-wide LRU cache (1 GB) under
+ * `<app-data>/waveflow/motion_cache/` and serves the local copy — offline and
+ * with no re-download on the next play. Mirrors
+ * `commands::motion_artwork::MotionCacheInfo` (camelCase).
+ */
+export interface MotionCacheInfo {
+  enabled: boolean;
+  sizeBytes: number;
+  fileCount: number;
+}
+
+/** Read the cache toggle + current on-disk footprint. */
+export async function getMotionCacheInfo(): Promise<MotionCacheInfo> {
+  return invoke<MotionCacheInfo>("get_motion_cache_info");
+}
+
+/** Toggle the local cache. Turning it off does NOT purge existing files. */
+export async function setMotionCacheEnabled(enabled: boolean): Promise<void> {
+  return invoke<void>("set_motion_cache_enabled", { enabled });
+}
+
+/** Delete every cached motion mp4. */
+export async function clearMotionCache(): Promise<void> {
+  return invoke<void>("clear_motion_cache");
+}
+
+/**
+ * Metadata-world plugins can supply motion covers, so they get the host's
+ * local motion-cache option (and thus the ⚙️ options panel). Shared predicate
+ * so the gear-visibility check (PluginsCard) and the panel body (PluginOptions)
+ * never drift apart. Widen this when manifest-declared plugin options land.
+ */
+export function isMetadataPlugin(plugin: Pick<PluginInfo, "world">): boolean {
+  return plugin.world.startsWith("waveflow:metadata");
+}

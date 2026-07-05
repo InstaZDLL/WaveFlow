@@ -1340,7 +1340,8 @@
         "none": "未請求任何權限"
       },
       "bundled": "內建",
-      "bundledHint": "隨 WaveFlow 提供 — 停用以隱藏。"
+      "bundledHint": "隨 WaveFlow 提供 — 停用以隱藏。",
+      "optionsAria": "{{name}} 的選項"
     },
     "integrations": {
       "lastfm": {
@@ -1920,6 +1921,14 @@
       "canReach": "可存取：",
       "installAria": "安裝 {{name}}",
       "updateAria": "更新 {{name}}"
+    },
+    "motionArtwork": {
+      "title": "動態封面",
+      "subtitle": "來自中繼資料外掛（如 Apple Motion Artwork）的動態封面會顯示在正在播放畫面的背景中。",
+      "cacheLabel": "在本機儲存動態封面",
+      "usage": "已用 {{size}} · 快取 {{files}} 個封面",
+      "clear": "清除快取",
+      "clearConfirm": "確認？"
     }
   },
   "scanProgress": {

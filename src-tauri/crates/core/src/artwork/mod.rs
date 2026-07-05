@@ -4,4 +4,5 @@
 //! future `waveflow-server` axum handlers as well.
 
 pub mod metadata;
+pub mod motion_cache;
 pub mod thumbnails;

@@ -1340,7 +1340,8 @@
         "none": "Geen rechten gevraagd"
       },
       "bundled": "Ingebouwd",
-      "bundledHint": "Meegeleverd met WaveFlow — schakel het uit om het te verbergen."
+      "bundledHint": "Meegeleverd met WaveFlow — schakel het uit om het te verbergen.",
+      "optionsAria": "Opties voor {{name}}"
     },
     "shortcuts": {
       "subtitle": "Klik op een sneltoets en druk vervolgens op de gewenste toetscombinatie. Backspace om te wissen, Esc om te annuleren.",
@@ -1920,6 +1921,14 @@
       "canReach": "Heeft toegang tot:",
       "installAria": "{{name}} installeren",
       "updateAria": "{{name}} bijwerken"
+    },
+    "motionArtwork": {
+      "title": "Bewegende hoezen",
+      "subtitle": "Bewegende hoezen van metadata-plugins (bijv. Apple Motion Artwork) spelen achter de weergave van wat er nu speelt.",
+      "cacheLabel": "Bewegende hoezen lokaal opslaan",
+      "usage": "{{size}} gebruikt · {{files}} hoezen in cache",
+      "clear": "Cache wissen",
+      "clearConfirm": "Bevestigen?"
     }
   },
   "spotify": {

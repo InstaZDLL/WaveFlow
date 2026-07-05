@@ -1340,7 +1340,8 @@
         "none": "Sin permisos solicitados"
       },
       "bundled": "Integrado",
-      "bundledHint": "Incluido con WaveFlow — desactívalo para ocultarlo."
+      "bundledHint": "Incluido con WaveFlow — desactívalo para ocultarlo.",
+      "optionsAria": "Opciones de {{name}}"
     },
     "shortcuts": {
       "subtitle": "Haz clic en un atajo y pulsa la combinación de teclas que quieras. Retroceso para borrar, Esc para cancelar.",
@@ -1920,6 +1921,14 @@
       "canReach": "Puede acceder a:",
       "installAria": "Instalar {{name}}",
       "updateAria": "Actualizar {{name}}"
+    },
+    "motionArtwork": {
+      "title": "Portadas animadas",
+      "subtitle": "Las portadas animadas de los plugins de metadatos (p. ej. Apple Motion Artwork) se muestran detrás de la reproducción actual.",
+      "cacheLabel": "Guardar las portadas animadas localmente",
+      "usage": "{{size}} usados · {{files}} portadas en caché",
+      "clear": "Vaciar caché",
+      "clearConfirm": "¿Confirmar?"
     }
   },
   "spotify": {

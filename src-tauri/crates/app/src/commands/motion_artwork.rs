@@ -14,10 +14,14 @@ use serde::Serialize;
 use std::time::Duration;
 
 use tauri::State;
+use waveflow_core::artwork::motion_cache;
 
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 use crate::offline;
 use crate::state::AppState;
+
+/// `app_setting` key for the opt-in local motion-artwork cache (default off).
+const CACHE_ENABLED_KEY: &str = "motion_artwork.cache_enabled";
 
 /// Per-plugin wall-clock bound on one `album-info` lookup. A cold Apple
 /// resolve is a handful of sequential host HTTP GETs (each already capped
@@ -67,8 +71,22 @@ pub async fn fetch_album_motion_artwork(
         return Ok(None);
     }
 
+    // Read the opt-in local-cache flag once up front. When on, the resolved
+    // remote mp4 is downloaded into the shared LRU cache and the overlay is
+    // pointed at the local file (offline + no re-download on the next play).
+    let cache_locally = motion_cache_enabled(&state).await;
+    let cache_dir = state.paths.motion_cache_dir.clone();
+
     let plugin_ids =
         super::plugins::enabled_plugin_ids_for_world(&state, "waveflow:metadata").await?;
+
+    tracing::debug!(
+        %artist,
+        %album,
+        plugins = plugin_ids.len(),
+        cache = cache_locally,
+        "resolving motion artwork"
+    );
 
     let mut set = tokio::task::JoinSet::new();
     for plugin_id in plugin_ids {
@@ -119,10 +137,54 @@ pub async fn fetch_album_motion_artwork(
         };
         match outcome {
             Ok(Ok(Ok(info))) => {
-                if let Some(square_url) = info.motion_cover_url {
+                if let Some(remote_square) = info.motion_cover_url {
+                    // SSRF guard: a plugin's own HTTP is allowlisted, but the
+                    // cache download runs in-process AND the URL is handed to
+                    // the webview <video>, so reject a non-https / internal /
+                    // loopback target here before either touches it.
+                    if !motion_cache::is_safe_motion_url(&remote_square) {
+                        tracing::warn!(
+                            plugin_id,
+                            "plugin returned an unsafe motion url; skipping"
+                        );
+                        continue;
+                    }
+                    // When the local cache is on, download the mp4 and point the
+                    // overlay at the on-disk copy; fall back to the remote URL if
+                    // the download fails so the feature degrades gracefully.
+                    let square_url = if cache_locally {
+                        match motion_cache::cache_mp4(
+                            &cache_dir,
+                            &remote_square,
+                            motion_cache::DEFAULT_MAX_CACHE_BYTES,
+                        )
+                        .await
+                        {
+                            Ok(path) => path.to_string_lossy().into_owned(),
+                            Err(e) => {
+                                tracing::warn!(%e, "motion cache download failed; serving remote url");
+                                remote_square
+                            }
+                        }
+                    } else {
+                        remote_square
+                    };
+                    // Tall variant rides remote (the overlay renders `square`),
+                    // but the webview could still be pointed at it, so apply the
+                    // same SSRF guard — drop it if unsafe rather than exposing it.
+                    let tall_url = info
+                        .motion_cover_tall_url
+                        .filter(|u| motion_cache::is_safe_motion_url(u));
+                    tracing::info!(
+                        plugin_id,
+                        %artist,
+                        %album,
+                        cached = cache_locally,
+                        "motion artwork resolved"
+                    );
                     return Ok(Some(MotionArtwork {
                         square_url,
-                        tall_url: info.motion_cover_tall_url,
+                        tall_url,
                         plugin_id,
                     }));
                 }
@@ -140,5 +202,79 @@ pub async fn fetch_album_motion_artwork(
         }
     }
 
+    tracing::debug!(%artist, %album, "no motion artwork from any metadata plugin");
     Ok(None)
+}
+
+// ----- local motion cache --------------------------------------------------
+
+/// Read the opt-in local-cache flag from the shared `app.db`. Defaults to
+/// `false` (off) — same bool parse convention as every other `app_setting`.
+async fn motion_cache_enabled(state: &AppState) -> bool {
+    sqlx::query_scalar::<_, String>(
+        "SELECT value FROM app_setting WHERE key = ?",
+    )
+    .bind(CACHE_ENABLED_KEY)
+    .fetch_optional(&state.app_db)
+    .await
+    .ok()
+    .flatten()
+    .map(|v| v == "true" || v == "1")
+    .unwrap_or(false)
+}
+
+/// The motion-cache toggle state + current on-disk footprint, for the
+/// Settings → Plugins card.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MotionCacheInfo {
+    pub enabled: bool,
+    pub size_bytes: u64,
+    pub file_count: u64,
+}
+
+/// Read the toggle + cache footprint for the settings UI.
+#[tauri::command]
+pub async fn get_motion_cache_info(state: State<'_, AppState>) -> AppResult<MotionCacheInfo> {
+    let enabled = motion_cache_enabled(&state).await;
+    let dir = state.paths.motion_cache_dir.clone();
+    let (size_bytes, file_count) = tokio::task::spawn_blocking(move || motion_cache::stats(&dir))
+        .await
+        .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?;
+    Ok(MotionCacheInfo {
+        enabled,
+        size_bytes,
+        file_count,
+    })
+}
+
+/// Toggle the opt-in local motion cache. Turning it OFF does not purge the
+/// existing files — that's the explicit "Clear cache" action below.
+#[tauri::command]
+pub async fn set_motion_cache_enabled(
+    state: State<'_, AppState>,
+    enabled: bool,
+) -> AppResult<()> {
+    sqlx::query(
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'bool', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(CACHE_ENABLED_KEY)
+    .bind(if enabled { "true" } else { "false" })
+    .bind(chrono::Utc::now().timestamp_millis())
+    .execute(&state.app_db)
+    .await?;
+    Ok(())
+}
+
+/// Delete every cached motion mp4 (and any leftover `.part` temporaries).
+#[tauri::command]
+pub async fn clear_motion_cache(state: State<'_, AppState>) -> AppResult<()> {
+    let dir = state.paths.motion_cache_dir.clone();
+    tokio::task::spawn_blocking(move || motion_cache::clear(&dir))
+        .await
+        .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?;
+    Ok(())
 }
