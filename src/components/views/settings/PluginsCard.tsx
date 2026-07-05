@@ -14,19 +14,11 @@ import {
   listInstalledPlugins,
   setPluginEnabled,
   uninstallPlugin,
+  isMetadataPlugin,
   type PluginInfo,
 } from "../../../lib/tauri/plugins";
 import { PLUGIN_AVAILABILITY_EVENT } from "../../../hooks/usePluginAvailability";
 import { PluginOptions } from "./PluginOptions";
-
-/**
- * Whether a plugin exposes a ⚙️ options panel. Today that's metadata-world
- * plugins (the host-provided motion-artwork local-cache applies to what they
- * produce). Phase 2 (manifest-declared options) will widen this.
- */
-function pluginHasOptions(plugin: PluginInfo): boolean {
-  return plugin.world.startsWith("waveflow:metadata");
-}
 
 /// Fire the cross-component "plugin availability changed" bus so
 /// Sidebar + WebRadioView refresh their conditional rendering.
@@ -212,7 +204,7 @@ export function PluginsCard() {
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <div className="flex items-center gap-2">
-                      {pluginHasOptions(plugin) && (
+                      {isMetadataPlugin(plugin) && (
                         <button
                           type="button"
                           onClick={() =>

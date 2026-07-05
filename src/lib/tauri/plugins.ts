@@ -290,3 +290,13 @@ export async function setMotionCacheEnabled(enabled: boolean): Promise<void> {
 export async function clearMotionCache(): Promise<void> {
   return invoke<void>("clear_motion_cache");
 }
+
+/**
+ * Metadata-world plugins can supply motion covers, so they get the host's
+ * local motion-cache option (and thus the ⚙️ options panel). Shared predicate
+ * so the gear-visibility check (PluginsCard) and the panel body (PluginOptions)
+ * never drift apart. Widen this when manifest-declared plugin options land.
+ */
+export function isMetadataPlugin(plugin: Pick<PluginInfo, "world">): boolean {
+  return plugin.world.startsWith("waveflow:metadata");
+}

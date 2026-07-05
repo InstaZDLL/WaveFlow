@@ -6,6 +6,7 @@ import {
   getMotionCacheInfo,
   setMotionCacheEnabled,
   clearMotionCache,
+  isMetadataPlugin,
   type PluginInfo,
 } from "../../../lib/tauri/plugins";
 
@@ -31,11 +32,9 @@ function formatBytes(bytes: number): string {
  * plugins produce.
  */
 export function PluginOptions({ plugin }: { plugin: PluginInfo }) {
-  const isMetadata = plugin.world.startsWith("waveflow:metadata");
-
   return (
     <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800 space-y-3">
-      {isMetadata && <MotionCacheOption />}
+      {isMetadataPlugin(plugin) && <MotionCacheOption />}
     </div>
   );
 }

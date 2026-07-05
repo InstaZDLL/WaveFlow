@@ -11,10 +11,10 @@
 //! all when the network is off.
 
 use serde::Serialize;
-use std::path::{Path, PathBuf};
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 use tauri::State;
+use waveflow_core::artwork::motion_cache;
 
 use crate::error::{AppError, AppResult};
 use crate::offline;
@@ -22,15 +22,6 @@ use crate::state::AppState;
 
 /// `app_setting` key for the opt-in local motion-artwork cache (default off).
 const CACHE_ENABLED_KEY: &str = "motion_artwork.cache_enabled";
-
-/// Hard ceiling on the on-disk motion cache (LRU-evicted down to this). 1 GiB
-/// ≈ 350-500 animated covers at the ~2-3 MB H.264 1080 renditions we resolve.
-const MOTION_CACHE_MAX_BYTES: u64 = 1024 * 1024 * 1024;
-
-/// Per-file cap on a downloaded motion mp4 — refuses a hostile/oversized body
-/// before it reaches disk. Apple's 1080 H.264 renditions are a few MB; 64 MB
-/// is generous headroom that still rejects anything absurd.
-const MAX_MP4_BYTES: u64 = 64 * 1024 * 1024;
 
 /// Per-plugin wall-clock bound on one `album-info` lookup. A cold Apple
 /// resolve is a handful of sequential host HTTP GETs (each already capped
@@ -147,11 +138,28 @@ pub async fn fetch_album_motion_artwork(
         match outcome {
             Ok(Ok(Ok(info))) => {
                 if let Some(remote_square) = info.motion_cover_url {
+                    // SSRF guard: a plugin's own HTTP is allowlisted, but the
+                    // cache download runs in-process AND the URL is handed to
+                    // the webview <video>, so reject a non-https / internal /
+                    // loopback target here before either touches it.
+                    if !motion_cache::is_safe_motion_url(&remote_square) {
+                        tracing::warn!(
+                            plugin_id,
+                            "plugin returned an unsafe motion url; skipping"
+                        );
+                        continue;
+                    }
                     // When the local cache is on, download the mp4 and point the
                     // overlay at the on-disk copy; fall back to the remote URL if
                     // the download fails so the feature degrades gracefully.
                     let square_url = if cache_locally {
-                        match cache_motion_mp4(&cache_dir, &remote_square).await {
+                        match motion_cache::cache_mp4(
+                            &cache_dir,
+                            &remote_square,
+                            motion_cache::DEFAULT_MAX_CACHE_BYTES,
+                        )
+                        .await
+                        {
                             Ok(path) => path.to_string_lossy().into_owned(),
                             Err(e) => {
                                 tracing::warn!(%e, "motion cache download failed; serving remote url");
@@ -209,131 +217,6 @@ async fn motion_cache_enabled(state: &AppState) -> bool {
     .unwrap_or(false)
 }
 
-/// Return the local path of `url`'s cached mp4, downloading it first if absent.
-/// The file is hash-addressed by the (stable, per-album) source URL so the same
-/// album always maps to the same file. On a hit the mtime is bumped so the LRU
-/// eviction treats it as recently used; on a miss the body is streamed under
-/// [`MAX_MP4_BYTES`], written atomically (`.part` → rename), and the cache is
-/// evicted back under [`MOTION_CACHE_MAX_BYTES`].
-async fn cache_motion_mp4(dir: &Path, url: &str) -> AppResult<PathBuf> {
-    let hash = blake3::hash(url.as_bytes()).to_hex().to_string();
-    let path = dir.join(format!("{hash}.mp4"));
-
-    if path.exists() {
-        // Best-effort access-LRU bump; a Windows share lock (webview reading
-        // the file) just leaves the mtime at download time, which is fine.
-        let _ = std::fs::OpenOptions::new()
-            .write(true)
-            .open(&path)
-            .and_then(|f| f.set_modified(SystemTime::now()));
-        return Ok(path);
-    }
-
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .map_err(|e| AppError::Other(format!("http client: {e}")))?;
-    let mut resp = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| AppError::Other(format!("download {url}: {e}")))?;
-    if !resp.status().is_success() {
-        return Err(AppError::Other(format!(
-            "download {url}: HTTP {}",
-            resp.status()
-        )));
-    }
-    if let Some(len) = resp.content_length() {
-        if len > MAX_MP4_BYTES {
-            return Err(AppError::Other(format!(
-                "motion mp4 too large: {len} bytes (max {MAX_MP4_BYTES})"
-            )));
-        }
-    }
-    let mut bytes: Vec<u8> = Vec::new();
-    while let Some(chunk) = resp
-        .chunk()
-        .await
-        .map_err(|e| AppError::Other(format!("read motion mp4 body: {e}")))?
-    {
-        if bytes.len() as u64 + chunk.len() as u64 > MAX_MP4_BYTES {
-            return Err(AppError::Other(format!(
-                "motion mp4 exceeds {MAX_MP4_BYTES} bytes — refusing"
-            )));
-        }
-        bytes.extend_from_slice(&chunk);
-    }
-
-    let dir = dir.to_path_buf();
-    tokio::task::spawn_blocking(move || -> AppResult<PathBuf> {
-        std::fs::create_dir_all(&dir)?;
-        // Atomic publish: write to a temp sibling then rename over the final
-        // name, so a crash mid-write never leaves a truncated `.mp4` that a
-        // later hit would treat as complete.
-        let tmp = dir.join(format!(".{hash}.mp4.part"));
-        std::fs::write(&tmp, &bytes)?;
-        match std::fs::rename(&tmp, &path) {
-            Ok(()) => {}
-            Err(e) => {
-                let _ = std::fs::remove_file(&tmp);
-                return Err(AppError::Io(e));
-            }
-        }
-        evict_motion_cache_lru(&dir, MOTION_CACHE_MAX_BYTES);
-        Ok(path)
-    })
-    .await
-    .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?
-}
-
-/// Collect `(path, size, mtime)` for every `.mp4` in `dir`. Ignores the
-/// `.part` temporaries and any non-mp4 stragglers.
-fn motion_cache_entries(dir: &Path) -> Vec<(PathBuf, u64, SystemTime)> {
-    let mut out = Vec::new();
-    let Ok(rd) = std::fs::read_dir(dir) else {
-        return out;
-    };
-    for entry in rd.flatten() {
-        let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("mp4") {
-            continue;
-        }
-        if let Ok(meta) = entry.metadata() {
-            let mtime = meta.modified().unwrap_or(SystemTime::UNIX_EPOCH);
-            out.push((path, meta.len(), mtime));
-        }
-    }
-    out
-}
-
-/// Delete the oldest cached mp4s (by mtime) until the total is at or under
-/// `cap`. Best-effort — a file that fails to delete is left counted so a
-/// locked entry can't spin the loop.
-fn evict_motion_cache_lru(dir: &Path, cap: u64) {
-    let mut entries = motion_cache_entries(dir);
-    let mut total: u64 = entries.iter().map(|(_, size, _)| *size).sum();
-    if total <= cap {
-        return;
-    }
-    entries.sort_by_key(|(_, _, mtime)| *mtime); // oldest first
-    for (path, size, _) in entries {
-        if total <= cap {
-            break;
-        }
-        if std::fs::remove_file(&path).is_ok() {
-            total = total.saturating_sub(size);
-        }
-    }
-}
-
-/// Total on-disk size + file count of the motion cache.
-fn motion_cache_stats(dir: &Path) -> (u64, u64) {
-    let entries = motion_cache_entries(dir);
-    let size = entries.iter().map(|(_, s, _)| *s).sum();
-    (size, entries.len() as u64)
-}
-
 /// The motion-cache toggle state + current on-disk footprint, for the
 /// Settings → Plugins card.
 #[derive(Debug, Serialize)]
@@ -349,7 +232,7 @@ pub struct MotionCacheInfo {
 pub async fn get_motion_cache_info(state: State<'_, AppState>) -> AppResult<MotionCacheInfo> {
     let enabled = motion_cache_enabled(&state).await;
     let dir = state.paths.motion_cache_dir.clone();
-    let (size_bytes, file_count) = tokio::task::spawn_blocking(move || motion_cache_stats(&dir))
+    let (size_bytes, file_count) = tokio::task::spawn_blocking(move || motion_cache::stats(&dir))
         .await
         .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?;
     Ok(MotionCacheInfo {
@@ -384,21 +267,8 @@ pub async fn set_motion_cache_enabled(
 #[tauri::command]
 pub async fn clear_motion_cache(state: State<'_, AppState>) -> AppResult<()> {
     let dir = state.paths.motion_cache_dir.clone();
-    tokio::task::spawn_blocking(move || {
-        if let Ok(rd) = std::fs::read_dir(&dir) {
-            for entry in rd.flatten() {
-                let path = entry.path();
-                let is_cache_file = path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .is_some_and(|n| n.ends_with(".mp4") || n.ends_with(".mp4.part"));
-                if is_cache_file {
-                    let _ = std::fs::remove_file(&path);
-                }
-            }
-        }
-    })
-    .await
-    .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?;
+    tokio::task::spawn_blocking(move || motion_cache::clear(&dir))
+        .await
+        .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))?;
     Ok(())
 }
