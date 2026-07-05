@@ -50,9 +50,13 @@ pub struct MotionArtwork {
 /// The lookups fan out (each on its own blocking task) and the first hit
 /// wins; the rest are dropped. Every lookup is bounded by [`PLUGIN_TIMEOUT`],
 /// so one slow or hung plugin can't stall the others or the now-playing
-/// path. Per-plugin locks (serialising against enable/uninstall) are
-/// acquired up front — a fast per-id op — then the wasm work runs in
-/// parallel. A plugin that errors, panics, or times out is logged + skipped.
+/// path. The pre-spawn loop only grabs each plugin's lock HANDLE (a fast
+/// map op, never blocking on a contended plugin); the guard itself is taken
+/// INSIDE the blocking task (`blocking_lock_owned`) so it spans the actual,
+/// uncancellable work — the timeout unblocks the caller, but the guard is
+/// only released when the work truly finishes, so an enable/uninstall can't
+/// race an in-flight lookup. A plugin that errors, panics, or times out is
+/// logged + skipped.
 #[tauri::command]
 pub async fn fetch_album_motion_artwork(
     state: State<'_, AppState>,
@@ -68,10 +72,10 @@ pub async fn fetch_album_motion_artwork(
 
     let mut set = tokio::task::JoinSet::new();
     for plugin_id in plugin_ids {
-        // Acquire the per-plugin lock here (serialises against
-        // enable/uninstall/install) and move the guard into the task so it's
-        // held for the call's duration without serialising the actual work.
-        let guard = super::plugins::lock_plugin(&state, &plugin_id).await;
+        // Grab the per-plugin lock HANDLE only (fast map op) — the loop must
+        // not block on a contended plugin. The guard is acquired inside the
+        // blocking task below so it spans the real work.
+        let lock_arc = super::plugins::plugin_lock_arc(&state, &plugin_id).await;
         let runtime = state.plugins.clone();
         let paths = state.paths.plugin_paths();
         let id_owned = plugin_id.clone();
@@ -79,10 +83,16 @@ pub async fn fetch_album_motion_artwork(
         let album_owned = album.clone();
 
         set.spawn(async move {
-            let _guard = guard;
             let outcome = tokio::time::timeout(
                 PLUGIN_TIMEOUT,
                 tokio::task::spawn_blocking(move || {
+                    // Acquire + hold the per-plugin lock for the ACTUAL
+                    // duration of the (uncancellable) call. Because it lives
+                    // inside the blocking closure, the guard is released only
+                    // when `metadata_album_info` returns — even if the outer
+                    // async timeout already fired — so an enable/uninstall
+                    // can't race an in-flight lookup after an early drop.
+                    let _guard = lock_arc.blocking_lock_owned();
                     waveflow_core::plugin::runtime::metadata_album_info(
                         &runtime,
                         &paths,

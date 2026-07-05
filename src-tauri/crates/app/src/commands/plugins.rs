@@ -38,13 +38,21 @@ use waveflow_core::plugin::is_bundled_plugin;
 /// drop) keeps the manifest probe + the SQL UPSERT atomic against
 /// a racing uninstall.
 pub(crate) async fn lock_plugin(state: &AppState, plugin_id: &str) -> OwnedMutexGuard<()> {
-    let arc_mutex: Arc<Mutex<()>> = {
-        let mut map = state.plugin_locks.lock().await;
-        map.entry(plugin_id.to_string())
-            .or_insert_with(|| Arc::new(Mutex::new(())))
-            .clone()
-    };
-    arc_mutex.lock_owned().await
+    plugin_lock_arc(state, plugin_id).await.lock_owned().await
+}
+
+/// Get (or create) the per-plugin lock HANDLE without acquiring it. Only
+/// the `plugin_locks` map is briefly locked — the per-plugin mutex itself
+/// is left for the caller to acquire. Lets a fan-out grab handles without
+/// blocking the loop on a contended plugin, then acquire the guard where it
+/// belongs — e.g. `blocking_lock_owned()` inside a `spawn_blocking` task, so
+/// the guard spans the actual (uncancellable) work instead of being dropped
+/// when an outer async timeout fires.
+pub(crate) async fn plugin_lock_arc(state: &AppState, plugin_id: &str) -> Arc<Mutex<()>> {
+    let mut map = state.plugin_locks.lock().await;
+    map.entry(plugin_id.to_string())
+        .or_insert_with(|| Arc::new(Mutex::new(())))
+        .clone()
 }
 
 /// Frontend-facing summary of one installed plugin. Mirrors the
