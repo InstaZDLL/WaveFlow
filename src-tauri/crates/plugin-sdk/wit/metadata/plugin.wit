@@ -1,23 +1,51 @@
 // WaveFlow metadata enricher world — v1.
 //
 // Plugins exporting this world enrich existing library rows: artist
-// biographies, similar-artist suggestions, lyrics. They don't yield
-// new tracks; the engine fans calls out to every metadata plugin in
+// biographies, similar-artist suggestions, lyrics, artwork. They don't
+// yield new tracks; the engine fans calls out to every metadata plugin in
 // parallel and merges the results behind a fallback chain.
+//
+// 1.1.0: `album-details` gains `motion-cover-url` / `motion-cover-tall-url`
+// for animated album artwork (Apple Music-style motion covers), and the
+// result records are renamed off the function names (`artist-info` /
+// `album-info` are the funcs; `artist-details` / `album-details` the
+// records — WIT forbids a record and a function sharing a name in one
+// interface).
+//
+// NOT an ABI-compatible bump: adding a field to a record changes its
+// Component Model type, and the record rename changes it further. This is
+// safe ONLY because there were zero `waveflow:metadata@1.0.0` consumers —
+// the world was defined but never bound or shipped (in fact it never even
+// compiled, because of the record/func name clash above). A real 1.0.0
+// consumer would have required a fresh interface version instead. The
+// manifest label stays `waveflow:metadata/v1` regardless: the host's
+// `worlds` catalog keys on the `/vN` label, not the WIT semver.
 
-package waveflow:metadata@1.0.0;
+package waveflow:metadata@1.1.0;
 
 interface enricher {
-  record artist-info {
+  record artist-details {
     bio: option<string>,
     image-url: option<string>,
     similar: list<string>,
   }
 
-  record album-info {
+  record album-details {
     description: option<string>,
     cover-url: option<string>,
     track-count: option<u32>,
+    /// Looping video URL for the square animated cover, rendered
+    /// behind the now-playing view. MUST be a directly-playable
+    /// progressive file (`.mp4`) — the host renders it in a native
+    /// `<video>` element with no HLS.js, so a bare HLS `.m3u8` will
+    /// NOT play on all platforms (WebView2 has no native HLS). A
+    /// plugin whose source is HLS resolves it to an mp4 rendition
+    /// before returning. `none` = no motion artwork for this album.
+    motion-cover-url: option<string>,
+    /// Optional taller variant (lock-screen / expanded artwork
+    /// aspect), same mp4 constraint. `none` falls back to
+    /// `motion-cover-url`.
+    motion-cover-tall-url: option<string>,
   }
 
   record lyrics-line {
@@ -30,11 +58,11 @@ interface enricher {
   /// Free-form artist info lookup by name. Plugins normalise the
   /// name themselves (case, diacritics) — the host hands what the
   /// user has, verbatim.
-  artist-info: func(name: string) -> result<artist-info, string>;
+  artist-info: func(name: string) -> result<artist-details, string>;
 
   /// Album lookup. Some plugins key on `(artist, title)` pairs;
   /// pass both even if your DB only uses one.
-  album-info: func(artist: string, title: string) -> result<album-info, string>;
+  album-info: func(artist: string, title: string) -> result<album-details, string>;
 
   /// Lyrics lookup. Plugins return a list of lines (possibly
   /// time-coded) so the host doesn't need to parse multiple text

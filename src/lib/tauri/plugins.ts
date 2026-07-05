@@ -232,3 +232,33 @@ export async function installPluginFromRegistry(
 ): Promise<void> {
   return invoke<void>("install_plugin_from_registry", { pluginId });
 }
+
+// ----- animated album artwork (Phase 3) ----------------------------------
+//
+// Motion covers (Apple Music-style looping video) resolved via enabled
+// `waveflow:metadata` plugins. Mirrors `commands::motion_artwork::MotionArtwork`.
+
+/** A resolved motion cover for an album. `squareUrl` / `tallUrl` are
+ *  directly-playable video URLs (mp4 for cross-webview compatibility —
+ *  the desktop webview has no HLS.js). */
+export interface MotionArtwork {
+  squareUrl: string;
+  tallUrl: string | null;
+  /** Which plugin produced it. */
+  pluginId: string;
+}
+
+/**
+ * Ask enabled metadata plugins for an album's motion artwork. Resolves
+ * `null` when offline, when no metadata plugin is installed, or when none
+ * has motion for this album — callers fall back to the static cover.
+ */
+export async function fetchAlbumMotionArtwork(
+  artist: string,
+  album: string,
+): Promise<MotionArtwork | null> {
+  return invoke<MotionArtwork | null>("fetch_album_motion_artwork", {
+    artist,
+    album,
+  });
+}

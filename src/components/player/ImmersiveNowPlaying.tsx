@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Heart, Star, Radio } from "lucide-react";
 import { Artwork } from "../common/Artwork";
+import { MotionCoverOverlay } from "./MotionCoverOverlay";
 import { ArtistLink } from "../common/ArtistLink";
 import { MarqueeText } from "../common/MarqueeText";
 import { PlaybackControls } from "./PlaybackControls";
@@ -55,7 +56,7 @@ export function ImmersiveNowPlaying({
     // controls stranded at the bottom". The cover is sized so the full
     // stack still fits a 1080p viewport at 125 % DPI (see #54).
     <div className="h-full flex flex-col items-center justify-center text-white px-8 py-10 gap-7 min-h-0">
-      <div className="w-full max-w-[min(42vh,24rem)] aspect-square shrink-0">
+      <div className="relative w-full max-w-[min(42vh,24rem)] aspect-square shrink-0">
         <Artwork
           path={currentTrack?.artwork_path ?? null}
           path1x={currentTrack?.artwork_path_1x ?? null}
@@ -65,6 +66,12 @@ export function ImmersiveNowPlaying({
           iconSize={96}
           alt={title}
           rounded="2xl"
+        />
+        <MotionCoverOverlay
+          artist={currentTrack?.artist_name}
+          album={currentTrack?.album_title}
+          rounded="2xl"
+          className="shadow-2xl"
         />
       </div>
 

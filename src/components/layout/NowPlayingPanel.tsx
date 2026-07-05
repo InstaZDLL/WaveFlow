@@ -6,6 +6,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { usePlayer } from "../../hooks/usePlayer";
 import { Artwork } from "../common/Artwork";
+import { MotionCoverOverlay } from "../player/MotionCoverOverlay";
 import { ArtistLink } from "../common/ArtistLink";
 import { Lightbox } from "../common/Lightbox";
 import { enrichArtistDeezer } from "../../lib/tauri/detail";
@@ -152,7 +153,7 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
                 type="button"
                 onClick={() => setIsLightboxOpen(true)}
                 aria-label={t("common.viewArtwork")}
-                className="cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-2xl block w-full"
+                className="relative cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-2xl block w-full"
               >
                 <Artwork
                   path={currentTrack.artwork_path}
@@ -163,6 +164,12 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
                   className="w-full aspect-square shadow-lg"
                   iconSize={80}
                   rounded="2xl"
+                />
+                <MotionCoverOverlay
+                  artist={currentTrack.artist_name}
+                  album={currentTrack.album_title}
+                  rounded="2xl"
+                  className="shadow-lg"
                 />
               </button>
             ) : (

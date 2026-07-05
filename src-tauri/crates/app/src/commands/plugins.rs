@@ -38,13 +38,21 @@ use waveflow_core::plugin::is_bundled_plugin;
 /// drop) keeps the manifest probe + the SQL UPSERT atomic against
 /// a racing uninstall.
 pub(crate) async fn lock_plugin(state: &AppState, plugin_id: &str) -> OwnedMutexGuard<()> {
-    let arc_mutex: Arc<Mutex<()>> = {
-        let mut map = state.plugin_locks.lock().await;
-        map.entry(plugin_id.to_string())
-            .or_insert_with(|| Arc::new(Mutex::new(())))
-            .clone()
-    };
-    arc_mutex.lock_owned().await
+    plugin_lock_arc(state, plugin_id).await.lock_owned().await
+}
+
+/// Get (or create) the per-plugin lock HANDLE without acquiring it. Only
+/// the `plugin_locks` map is briefly locked — the per-plugin mutex itself
+/// is left for the caller to acquire. Lets a fan-out grab handles without
+/// blocking the loop on a contended plugin, then acquire the guard where it
+/// belongs — e.g. `blocking_lock_owned()` inside a `spawn_blocking` task, so
+/// the guard spans the actual (uncancellable) work instead of being dropped
+/// when an outer async timeout fires.
+pub(crate) async fn plugin_lock_arc(state: &AppState, plugin_id: &str) -> Arc<Mutex<()>> {
+    let mut map = state.plugin_locks.lock().await;
+    map.entry(plugin_id.to_string())
+        .or_insert_with(|| Arc::new(Mutex::new(())))
+        .clone()
 }
 
 /// Frontend-facing summary of one installed plugin. Mirrors the
@@ -380,6 +388,46 @@ pub async fn list_installed_plugins(state: State<'_, AppState>) -> AppResult<Vec
     // without sorting itself.
     out.sort_by_key(|a| a.name.to_lowercase());
     Ok(out)
+}
+
+/// Ids of installed + enabled plugins whose declared world starts with
+/// `world_prefix` (e.g. `"waveflow:metadata"`). Used by cross-world
+/// dispatchers that fan a request out to every plugin of a kind — the
+/// motion-artwork command asks every enabled metadata plugin. Bundled
+/// ids win on collision, same as [`list_installed_plugins`].
+pub(crate) async fn enabled_plugin_ids_for_world(
+    state: &AppState,
+    world_prefix: &str,
+) -> AppResult<Vec<String>> {
+    let paths = state.paths.plugin_paths();
+    let prefix = world_prefix.to_string();
+    let ids = tokio::task::spawn_blocking(move || -> AppResult<Vec<String>> {
+        let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut out = Vec::new();
+        if let Some(bundled_root) = paths.bundled_root.as_deref() {
+            for (id, m) in walk_install_root(bundled_root)? {
+                if seen.insert(id.clone()) && m.plugin.world.starts_with(&prefix) {
+                    out.push(id);
+                }
+            }
+        }
+        for (id, m) in walk_install_root(&paths.plugins_root)? {
+            if !seen.contains(&id) && m.plugin.world.starts_with(&prefix) {
+                out.push(id);
+            }
+        }
+        Ok(out)
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("spawn_blocking: {e}")))??;
+
+    let mut enabled = Vec::with_capacity(ids.len());
+    for id in ids {
+        if read_enabled(&state.app_db, &id).await? {
+            enabled.push(id);
+        }
+    }
+    Ok(enabled)
 }
 
 /// Return a single plugin's manifest info. Useful for the Settings
