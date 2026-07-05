@@ -71,3 +71,17 @@ interface storage {
   /// `read-state` for why read + write share one toggle.
   write-state: func(key: string, value: list<u8>) -> result<_, string>;
 }
+
+interface config {
+  /// Read a host-managed configuration option for this plugin by key.
+  /// Options are DECLARED in the plugin's `manifest.toml` (`[[options]]`
+  /// table) and SET by the user in the app's per-plugin settings; the
+  /// value is a string (the plugin parses `"true"`/`"false"`, an enum
+  /// choice, or free text as declared). Read-only from the guest — a
+  /// plugin can't write its own config, only observe what the user chose.
+  ///
+  /// Returns `none` for a key the user never set (or that the manifest
+  /// doesn't declare); the plugin should fall back to its own default in
+  /// that case, so a missing config file never breaks it.
+  get-option: func(key: string) -> option<string>;
+}

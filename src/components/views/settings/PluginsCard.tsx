@@ -204,7 +204,7 @@ export function PluginsCard() {
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <div className="flex items-center gap-2">
-                      {isMetadataPlugin(plugin) && (
+                      {(plugin.hasOptions || isMetadataPlugin(plugin)) && (
                         <button
                           type="button"
                           onClick={() =>

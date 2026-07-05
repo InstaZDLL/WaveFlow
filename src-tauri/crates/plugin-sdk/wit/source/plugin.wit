@@ -8,7 +8,8 @@
 // `stream-url` returns the actual stream URL lazily at play time so
 // short-lived tokens don't expire between resolve and playback.
 //
-// Hosts: `waveflow:host/http`, `waveflow:host/log`, `waveflow:host/storage`.
+// Hosts: `waveflow:host/http`, `waveflow:host/log`, `waveflow:host/storage`,
+// `waveflow:host/config`.
 
 package waveflow:source@1.0.0;
 
@@ -61,5 +62,6 @@ world plugin {
   import waveflow:host/http@1.0.0;
   import waveflow:host/log@1.0.0;
   import waveflow:host/storage@1.0.0;
+  import waveflow:host/config@1.0.0;
   export provider;
 }

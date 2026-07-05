@@ -315,6 +315,14 @@ fn sum_state_dir_bytes(
         if entry_path.extension().and_then(|e| e.to_str()) == Some("tmp") {
             continue;
         }
+        // Host-managed option file (`waveflow:host/config`) — not the
+        // plugin's scratch, so it's outside the quota. The guest can't
+        // address it either (scratch writes are hash-named).
+        if entry_path.file_name().and_then(|n| n.to_str())
+            == Some(crate::plugin::plugin_config::CONFIG_FILE)
+        {
+            continue;
+        }
         if entry.file_type()?.is_file() {
             total = total.saturating_add(entry.metadata()?.len() as usize);
         }
@@ -469,6 +477,17 @@ impl wit_host::storage::Host for HostCtx {
     }
 }
 
+impl wit_host::config::Host for HostCtx {
+    /// Return the user-set value for `key`, or `none` if unset. No
+    /// permission gate — config is host-managed, read-only, and carries
+    /// only what the user chose in the plugin's settings. The resolved
+    /// map is pinned into [`HostCtx::config`] at instantiate time (read
+    /// from the plugin's on-disk config file), so this is a pure lookup.
+    fn get_option(&mut self, key: String) -> wasmtime::Result<Option<String>> {
+        Ok(self.config.get(&key).cloned())
+    }
+}
+
 /// Register every `waveflow:host/*` import on the given linker.
 /// Called once by [`crate::plugin::runtime::PluginRuntime::build_linker`].
 /// Adding a new host interface = one new line here.
@@ -485,6 +504,7 @@ pub fn add_to_linker(linker: &mut wasmtime::component::Linker<HostCtx>) -> wasmt
     wit_host::http::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
     wit_host::log::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
     wit_host::storage::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
+    wit_host::config::add_to_linker::<_, HasSelf<HostCtx>>(linker, |ctx| ctx)?;
     Ok(())
 }
 
@@ -508,6 +528,7 @@ mod tests {
             },
             permissions,
             assets: vec![],
+            options: vec![],
         }
     }
 

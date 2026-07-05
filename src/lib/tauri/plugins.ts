@@ -29,6 +29,9 @@ export interface PluginInfo {
    *  for these rows; the backend mirrors this by refusing
    *  `uninstall_plugin` on bundled ids. */
   bundled: boolean;
+  /** `true` when the manifest declares `[[options]]` — the ⚙️ gear +
+   *  options panel are shown for these. */
+  hasOptions: boolean;
 }
 
 export interface PluginPermissionsInfo {
@@ -299,4 +302,41 @@ export async function clearMotionCache(): Promise<void> {
  */
 export function isMetadataPlugin(plugin: Pick<PluginInfo, "world">): boolean {
   return plugin.world.startsWith("waveflow:metadata");
+}
+
+// ----- manifest-declared plugin options (Phase 2) ------------------------
+//
+// A plugin declares `[[options]]` in its manifest; the user sets them in the
+// ⚙️ panel and the values reach the guest via `waveflow:host/config`. Mirrors
+// `commands::plugins::PluginOption` (camelCase).
+
+/** One configurable option: manifest declaration + current stored value. */
+export interface PluginOption {
+  key: string;
+  /** Control type: `"bool"` | `"enum"` | `"text"`. */
+  type: string;
+  label: string;
+  /** Manifest default (string form); `null` = none. */
+  default: string | null;
+  /** Allowed values for an `enum` option. */
+  choices: string[];
+  description: string | null;
+  /** Current stored value; `null` = unset (the plugin uses `default`). */
+  value: string | null;
+}
+
+/** List a plugin's declared options merged with the user's current values. */
+export async function getPluginOptions(
+  pluginId: string,
+): Promise<PluginOption[]> {
+  return invoke<PluginOption[]>("get_plugin_options", { pluginId });
+}
+
+/** Set (or reset with `value = null`) one option. Validated backend-side. */
+export async function setPluginOption(
+  pluginId: string,
+  key: string,
+  value: string | null,
+): Promise<void> {
+  return invoke<void>("set_plugin_option", { pluginId, key, value });
 }

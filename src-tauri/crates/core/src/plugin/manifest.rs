@@ -40,6 +40,11 @@ pub struct Manifest {
     pub permissions: Permissions,
     #[serde(default)]
     pub assets: Vec<AssetDecl>,
+    /// User-configurable options declared as `[[options]]` tables. Surfaced
+    /// in the app's per-plugin settings; the chosen values reach the guest
+    /// through `waveflow:host/config.get-option`.
+    #[serde(default)]
+    pub options: Vec<OptionDecl>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -99,6 +104,37 @@ pub struct AssetDecl {
     pub sha256: Option<String>,
 }
 
+/// Control types a `[[options]]` entry can declare. The value is always
+/// stored + transported as a string; the plugin parses it per this type.
+pub mod option_types {
+    pub const BOOL: &str = "bool";
+    pub const ENUM: &str = "enum";
+    pub const TEXT: &str = "text";
+    pub const ALL: &[&str] = &[BOOL, ENUM, TEXT];
+}
+
+/// One user-configurable option declared in the manifest.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OptionDecl {
+    /// Stable key the plugin reads via `config.get-option`. `[a-z0-9_-]+`.
+    pub key: String,
+    /// Control type — one of [`option_types::ALL`].
+    #[serde(rename = "type")]
+    pub option_type: String,
+    /// Human-readable label for the settings control.
+    pub label: String,
+    /// Default value in string form (`"true"`/`"false"` for bool, one of
+    /// `choices` for enum). `None` = no default (control starts empty/off).
+    #[serde(default)]
+    pub default: Option<String>,
+    /// Allowed values — required + only meaningful for `type = "enum"`.
+    #[serde(default)]
+    pub choices: Vec<String>,
+    /// Optional hint rendered under the control.
+    #[serde(default)]
+    pub description: Option<String>,
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum ManifestError {
     #[error("manifest io: {0}")]
@@ -121,6 +157,14 @@ pub enum ManifestError {
     EmptyAssetFilename,
     #[error("manifest asset sha256 must be 64 hex chars: {0:?}")]
     InvalidAssetHash(String),
+    #[error("manifest option key is empty")]
+    EmptyOptionKey,
+    #[error("manifest option key {0:?} has invalid chars (allowed: a-z 0-9 _ -)")]
+    InvalidOptionKey(String),
+    #[error("manifest option {0:?} has unknown type {1:?}")]
+    UnknownOptionType(String, String),
+    #[error("manifest enum option {0:?} declares no choices")]
+    EnumOptionWithoutChoices(String),
 }
 
 impl Manifest {
@@ -215,6 +259,27 @@ impl Manifest {
             }
         }
 
+        for opt in &self.options {
+            if opt.key.is_empty() {
+                return Err(ManifestError::EmptyOptionKey);
+            }
+            let key_ok = opt.key.chars().all(|c| {
+                c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-'
+            });
+            if !key_ok {
+                return Err(ManifestError::InvalidOptionKey(opt.key.clone()));
+            }
+            if !option_types::ALL.contains(&opt.option_type.as_str()) {
+                return Err(ManifestError::UnknownOptionType(
+                    opt.key.clone(),
+                    opt.option_type.clone(),
+                ));
+            }
+            if opt.option_type == option_types::ENUM && opt.choices.is_empty() {
+                return Err(ManifestError::EnumOptionWithoutChoices(opt.key.clone()));
+            }
+        }
+
         Ok(())
     }
 }
@@ -265,6 +330,44 @@ storage_read = true
         let raw = fixture("waveflow:bogus/v1", &[]);
         let err = Manifest::parse(&raw).unwrap_err();
         assert!(matches!(err, ManifestError::UnknownWorld(_)));
+    }
+
+    #[test]
+    fn parses_valid_options() {
+        let raw = format!(
+            "{}\n[[options]]\nkey = \"quality\"\ntype = \"enum\"\nlabel = \"Quality\"\ndefault = \"1080\"\nchoices = [\"720\", \"1080\"]\n\n[[options]]\nkey = \"hevc\"\ntype = \"bool\"\nlabel = \"Allow HEVC\"\ndefault = \"false\"\n",
+            fixture(worlds::SOURCE_V1, &[])
+        );
+        let m = Manifest::parse(&raw).expect("valid options");
+        assert_eq!(m.options.len(), 2);
+        assert_eq!(m.options[0].key, "quality");
+        assert_eq!(m.options[0].option_type, "enum");
+        assert_eq!(m.options[0].choices, vec!["720", "1080"]);
+        assert_eq!(m.options[1].option_type, "bool");
+    }
+
+    #[test]
+    fn rejects_enum_option_without_choices() {
+        let raw = format!(
+            "{}\n[[options]]\nkey = \"q\"\ntype = \"enum\"\nlabel = \"Q\"\n",
+            fixture(worlds::SOURCE_V1, &[])
+        );
+        assert!(matches!(
+            Manifest::parse(&raw).unwrap_err(),
+            ManifestError::EnumOptionWithoutChoices(_)
+        ));
+    }
+
+    #[test]
+    fn rejects_unknown_option_type() {
+        let raw = format!(
+            "{}\n[[options]]\nkey = \"q\"\ntype = \"slider\"\nlabel = \"Q\"\n",
+            fixture(worlds::SOURCE_V1, &[])
+        );
+        assert!(matches!(
+            Manifest::parse(&raw).unwrap_err(),
+            ManifestError::UnknownOptionType(_, _)
+        ));
     }
 
     #[test]
