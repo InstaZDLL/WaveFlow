@@ -28,7 +28,7 @@ jobs:
         # entirely to save Actions minutes (the windows matrix slot is 2× per
         # minute). The workflow file itself is part of the filter so CI tweaks
         # still re-run the job.
-        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         with:
           filters: |
             rust:
@@ -61,7 +61,7 @@ jobs:
             libssl-dev pkg-config
           version: v1
 
-      - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537 # stable
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # stable
         with:
           toolchain: stable
 
