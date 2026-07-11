@@ -21,7 +21,8 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter};
 
 use waveflow_core::metadata::{
-    deezer::DeezerClient, lastfm::LastfmClient, theaudiodb::TheAudioDbClient,
+    deezer::DeezerClient, lastfm::LastfmClient,
+    theaudiodb::{make_summary, TheAudioDbClient},
 };
 
 use crate::{
@@ -300,8 +301,11 @@ pub async fn enrich_artist_deezer(
     // another's artist.
     let mut enrichment = enrich_artist_deezer_inner(state, pool, artist_id).await?;
     if let Some(bio) = custom_bio {
-        enrichment.bio_full = Some(bio.clone());
-        enrichment.bio_short = Some(bio);
+        // Synthesize a truncated lead-in the same way the online sources
+        // do (issue #343) — without it bio_short == bio_full verbatim and
+        // the frontend's length-based "Read more" toggle never appears.
+        enrichment.bio_short = Some(make_summary(&bio));
+        enrichment.bio_full = Some(bio);
     }
     Ok(enrichment)
 }

@@ -38,6 +38,32 @@ pub fn existing_path(dir: &Path, hash: &str) -> Option<String> {
     }
 }
 
+/// Resolve an artist/album picture path preferring a local profile-artwork
+/// sidecar (`<local_dir>/<local_hash>.<local_format>`, e.g. `artist.jpg`
+/// imported into the profile) over the shared Deezer metadata cache
+/// ([`existing_path`]). Each candidate is returned only when the file
+/// actually exists on disk, so a stale DB reference to a wiped file falls
+/// through to the next source instead of yielding a broken path (#350).
+///
+/// The local sidecar carries its own `format` column (jpg/png/webp) so we
+/// take it explicitly; the metadata cache is always `.jpg`, so `cache_hash`
+/// goes through [`existing_path`] which knows the extension.
+pub fn resolve_local_or_cached_path(
+    local_dir: &Path,
+    local_hash: Option<&str>,
+    local_format: Option<&str>,
+    cache_dir: &Path,
+    cache_hash: Option<&str>,
+) -> Option<String> {
+    if let (Some(hash), Some(format)) = (local_hash, local_format) {
+        let p = local_dir.join(format!("{hash}.{format}"));
+        if p.exists() {
+            return Some(p.to_string_lossy().into_owned());
+        }
+    }
+    cache_hash.and_then(|h| existing_path(cache_dir, h))
+}
+
 /// Download `url`, blake3-hash the bytes and write the file to
 /// `<dir>/<hash>.jpg` if missing. Returns the hex hash on success.
 ///
@@ -84,4 +110,93 @@ pub async fn download_and_cache(url: &str, dir: &Path) -> Option<String> {
     }
     crate::artwork::thumbnails::spawn_thumbnail_job(out, dir.to_path_buf(), hash.clone());
     Some(hash)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    fn touch(dir: &Path, name: &str) {
+        fs::write(dir.join(name), b"x").unwrap();
+    }
+
+    #[test]
+    fn prefers_existing_local_over_cache() {
+        let local = tempfile::tempdir().unwrap();
+        let cache = tempfile::tempdir().unwrap();
+        touch(local.path(), "abc.png");
+        touch(cache.path(), "def.jpg"); // cache also present
+
+        let got = resolve_local_or_cached_path(
+            local.path(),
+            Some("abc"),
+            Some("png"),
+            cache.path(),
+            Some("def"),
+        )
+        .unwrap();
+        assert_eq!(got, local.path().join("abc.png").to_string_lossy());
+    }
+
+    #[test]
+    fn falls_back_to_cache_when_local_file_missing() {
+        let local = tempfile::tempdir().unwrap();
+        let cache = tempfile::tempdir().unwrap();
+        // Local hash/format point at a file that was wiped; only the cache exists.
+        touch(cache.path(), "def.jpg");
+
+        let got = resolve_local_or_cached_path(
+            local.path(),
+            Some("abc"),
+            Some("png"),
+            cache.path(),
+            Some("def"),
+        )
+        .unwrap();
+        assert_eq!(got, cache.path().join("def.jpg").to_string_lossy());
+    }
+
+    #[test]
+    fn incomplete_local_skips_to_cache() {
+        let local = tempfile::tempdir().unwrap();
+        let cache = tempfile::tempdir().unwrap();
+        touch(cache.path(), "def.jpg");
+
+        // hash without format → local candidate is not even attempted.
+        let got = resolve_local_or_cached_path(
+            local.path(),
+            Some("abc"),
+            None,
+            cache.path(),
+            Some("def"),
+        );
+        assert_eq!(got.unwrap(), cache.path().join("def.jpg").to_string_lossy());
+    }
+
+    #[test]
+    fn none_when_nothing_resolves() {
+        let local = tempfile::tempdir().unwrap();
+        let cache = tempfile::tempdir().unwrap();
+
+        // Local file missing, no cache hash at all.
+        assert!(resolve_local_or_cached_path(
+            local.path(),
+            Some("abc"),
+            Some("png"),
+            cache.path(),
+            None,
+        )
+        .is_none());
+
+        // Cache hash given but the file doesn't exist on disk either.
+        assert!(resolve_local_or_cached_path(
+            local.path(),
+            None,
+            None,
+            cache.path(),
+            Some("ghost"),
+        )
+        .is_none());
+    }
 }
