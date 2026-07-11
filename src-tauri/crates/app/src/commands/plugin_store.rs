@@ -182,14 +182,20 @@ fn parse_semver(v: &str) -> (u32, u32, u32) {
     )
 }
 
-fn app_version() -> &'static str {
-    env!("CARGO_PKG_VERSION")
+/// Resolved from the Tauri runtime (`tauri.conf.json`'s `version`, patched by
+/// CI to the release tag) rather than `env!("CARGO_PKG_VERSION")` — the CI
+/// version-sync step deliberately leaves `Cargo.toml` untouched (patching it
+/// would desync `Cargo.lock` under a `--locked` build), so the compile-time
+/// macro stays pinned at whatever version was last committed there and would
+/// wrongly gate every beta/RC build behind `min_app_version`.
+fn app_version(app: &tauri::AppHandle) -> String {
+    app.package_info().version.to_string()
 }
 
-fn is_compatible(min_app_version: Option<&str>) -> bool {
+fn is_compatible(app: &tauri::AppHandle, min_app_version: Option<&str>) -> bool {
     match min_app_version {
         None => true,
-        Some(min) => parse_semver(app_version()) >= parse_semver(min),
+        Some(min) => parse_semver(&app_version(app)) >= parse_semver(min),
     }
 }
 
@@ -358,6 +364,7 @@ fn install_from_zip_bytes(
 /// installed locally + this build's version, for the in-app store list.
 #[tauri::command]
 pub async fn list_plugin_marketplace(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> AppResult<Vec<MarketplaceEntry>> {
     let registry = fetch_registry().await?;
@@ -371,7 +378,7 @@ pub async fn list_plugin_marketplace(
                 let inst = installed_version(&paths, &e.id);
                 let update_available = matches!(&inst, Some(v) if *v != e.version);
                 MarketplaceEntry {
-                    compatible: is_compatible(e.min_app_version.as_deref()),
+                    compatible: is_compatible(&app, e.min_app_version.as_deref()),
                     update_available,
                     installed: inst.is_some(),
                     installed_version: inst,
@@ -405,6 +412,7 @@ pub async fn list_plugin_marketplace(
 /// both a fresh install and an update; the on-disk swap is idempotent.
 #[tauri::command]
 pub async fn install_plugin_from_registry(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     plugin_id: String,
 ) -> AppResult<()> {
@@ -431,12 +439,12 @@ pub async fn install_plugin_from_registry(
         .find(|e| e.id == plugin_id)
         .ok_or_else(|| AppError::Other(format!("plugin not in registry: {plugin_id}")))?;
 
-    if !is_compatible(entry.min_app_version.as_deref()) {
+    if !is_compatible(&app, entry.min_app_version.as_deref()) {
         return Err(AppError::Other(format!(
             "{} requires WaveFlow {} or newer (you have {})",
             entry.name,
             entry.min_app_version.as_deref().unwrap_or("?"),
-            app_version()
+            app_version(&app)
         )));
     }
 
