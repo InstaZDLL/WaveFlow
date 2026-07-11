@@ -115,10 +115,13 @@ export function WebRadioView() {
   const [localRegion, setLocalRegion] = useState<string | null>(
     detectLocalRegion,
   );
+  // Guards against the mount effect's async callback overwriting a country
+  // the user has already picked before the promise resolved.
+  const localRegionSelectedRef = useRef(false);
   useEffect(() => {
     getRadioPreferredCountry()
       .then((code) => {
-        if (code) setLocalRegion(code);
+        if (code && !localRegionSelectedRef.current) setLocalRegion(code);
       })
       .catch(() => {});
   }, []);
@@ -570,7 +573,10 @@ export function WebRadioView() {
               const picked = countries.find((c) => c.code === code);
               // Persist so "Local stations" shortcut uses this country from
               // now on (fixes the EN-US Windows / non-US location mismatch).
-              void setRadioPreferredCountry(code).catch(() => {});
+              localRegionSelectedRef.current = true;
+              void setRadioPreferredCountry(code).catch((e: unknown) => {
+                setError(e instanceof Error ? e.message : String(e));
+              });
               setLocalRegion(code);
               openCountry(code, picked?.name ?? code);
             }}

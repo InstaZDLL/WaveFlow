@@ -505,29 +505,10 @@ pub fn run() {
                 if handoff_done_for_event.swap(true, Ordering::SeqCst) {
                     return;
                 }
-                // Restore the persisted main-window size + position before
-                // revealing so the window appears at the saved bounds with no
-                // visible jump. Failures (first launch, missing row, parse
-                // error) are non-fatal — the default window size is fine.
-                let app_for_bounds = handoff_handle.clone();
+                let app_for_reveal = handoff_handle.clone();
                 let done_flag = handoff_done_for_event.clone();
                 tauri::async_runtime::spawn(async move {
-                    let state = app_for_bounds.state::<AppState>();
-                    if let Some(bounds) =
-                        commands::preferences::load_main_window_bounds(&state.app_db).await
-                    {
-                        if let Some(window) = app_for_bounds.get_webview_window("main") {
-                            let _ = window.set_size(tauri::LogicalSize::new(
-                                bounds.width,
-                                bounds.height,
-                            ));
-                            let _ = window.set_position(tauri::LogicalPosition::new(
-                                bounds.x,
-                                bounds.y,
-                            ));
-                        }
-                    }
-                    if !reveal_main_close_splash(&app_for_bounds) {
+                    if !restore_bounds_and_reveal(app_for_reveal).await {
                         done_flag.store(false, Ordering::SeqCst);
                     }
                 });
@@ -553,7 +534,7 @@ pub fn run() {
                         attempt,
                         "splash handoff fallback: `app://ready` never fired in time, force-revealing main window"
                     );
-                    if reveal_main_close_splash(&fallback_handle) {
+                    if restore_bounds_and_reveal(fallback_handle.clone()).await {
                         return;
                     }
                     fallback_done.store(false, Ordering::SeqCst);
@@ -944,6 +925,27 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Restore the persisted main-window size + position (if any) and then
+/// reveal the window + close the splash. Shared between the `app://ready`
+/// event handler and the 15-second fallback timer so both paths present
+/// the window at the saved bounds with no visible jump.
+///
+/// Returns `true` only when the reveal succeeds (same contract as
+/// `reveal_main_close_splash`). The caller should reset its `done` flag
+/// to `false` on a `false` return so the partner path can retry.
+async fn restore_bounds_and_reveal(app: AppHandle) -> bool {
+    let state = app.state::<AppState>();
+    if let Some(bounds) =
+        commands::preferences::load_main_window_bounds(&state.app_db).await
+    {
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.set_size(tauri::LogicalSize::new(bounds.width, bounds.height));
+            let _ = window.set_position(tauri::LogicalPosition::new(bounds.x, bounds.y));
+        }
+    }
+    reveal_main_close_splash(&app)
 }
 
 /// Bring the main window back to the front (used by the tray's left

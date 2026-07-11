@@ -17,8 +17,10 @@ export function useMainWindowBounds(): void {
   useEffect(() => {
     const win = getCurrentWindow();
     let timer: number | null = null;
+    let disposed = false;
 
     const scheduleSave = () => {
+      if (disposed) return;
       if (timer != null) window.clearTimeout(timer);
       timer = window.setTimeout(async () => {
         try {
@@ -43,7 +45,11 @@ export function useMainWindowBounds(): void {
     win
       .onMoved(scheduleSave)
       .then((fn) => {
-        unlistenMoved = fn;
+        if (disposed) {
+          fn(); // already unmounted — unlisten immediately
+        } else {
+          unlistenMoved = fn;
+        }
       })
       .catch((err) =>
         console.error("[useMainWindowBounds] onMoved listen failed", err),
@@ -51,13 +57,18 @@ export function useMainWindowBounds(): void {
     win
       .onResized(scheduleSave)
       .then((fn) => {
-        unlistenResized = fn;
+        if (disposed) {
+          fn();
+        } else {
+          unlistenResized = fn;
+        }
       })
       .catch((err) =>
         console.error("[useMainWindowBounds] onResized listen failed", err),
       );
 
     return () => {
+      disposed = true;
       if (timer != null) window.clearTimeout(timer);
       unlistenMoved?.();
       unlistenResized?.();

@@ -194,6 +194,18 @@ pub struct MiniPlayerBounds {
     pub height: f64,
 }
 
+/// Shared validity predicate for persisted bounds. Mirrors the guard in
+/// `set_main_window_bounds` / `set_mini_player_bounds` so corrupted or
+/// default-zero rows stored by a previous build are never applied.
+fn bounds_are_valid(b: &MiniPlayerBounds) -> bool {
+    b.x.is_finite()
+        && b.y.is_finite()
+        && b.width.is_finite()
+        && b.height.is_finite()
+        && b.width > 0.0
+        && b.height > 0.0
+}
+
 /// Non-command helper used by the `app://ready` boot path (lib.rs) to read
 /// the persisted main-window bounds before the window is made visible, so
 /// the window appears at the saved size/position with no jump.
@@ -205,6 +217,7 @@ pub async fn load_main_window_bounds(app_db: &SqlitePool) -> Option<MiniPlayerBo
         .ok()
         .flatten();
     raw.and_then(|s| serde_json::from_str::<MiniPlayerBounds>(&s).ok())
+        .filter(bounds_are_valid)
 }
 
 #[tauri::command]
@@ -215,7 +228,9 @@ pub async fn get_main_window_bounds(
         .bind(KEY_MAIN_WINDOW_BOUNDS)
         .fetch_optional(&state.app_db)
         .await?;
-    Ok(raw.and_then(|s| serde_json::from_str::<MiniPlayerBounds>(&s).ok()))
+    Ok(raw
+        .and_then(|s| serde_json::from_str::<MiniPlayerBounds>(&s).ok())
+        .filter(bounds_are_valid))
 }
 
 #[tauri::command]
