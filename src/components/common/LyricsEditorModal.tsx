@@ -914,7 +914,7 @@ export function LyricsEditorModal({
           <div
             role="radiogroup"
             aria-label={t("lyricsEditor.destinationLabel")}
-            className="flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800 p-0.5 text-xs"
+            className="flex items-center shrink-0 whitespace-nowrap rounded-full bg-zinc-100 dark:bg-zinc-800 p-0.5 text-xs"
           >
             {(["tag", "sidecar", "db_only"] as const).map((value) => {
               const checked = destination === value;
@@ -940,47 +940,54 @@ export function LyricsEditorModal({
               );
             })}
           </div>
-          <div className="flex items-center gap-2">
+          {/* min-w-0 lets the warning/error text truncate to whatever
+              space is left instead of forcing the row to overflow —
+              without it, a long "Exported to <path>" message pushed the
+              destination pills into wrapping their labels and squeezed
+              the Save button out of view (issue #341). */}
+          <div className="flex items-center gap-2 min-w-0 justify-end">
             {warning && (
-              <span className="text-xs text-amber-600 dark:text-amber-400 truncate max-w-xs">
+              <span className="text-xs text-amber-600 dark:text-amber-400 truncate min-w-0">
                 {warning}
               </span>
             )}
             {error && (
-              <span className="text-xs text-red-500 truncate max-w-xs">
+              <span className="text-xs text-red-500 truncate min-w-0">
                 {error}
               </span>
             )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-full text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-            >
-              {t("common.cancel")}
-            </button>
-            <button
-              type="button"
-              onClick={handleExportToFile}
-              disabled={isSaving}
-              className="px-4 py-2 rounded-full text-sm border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 flex items-center gap-2"
-              title={t("lyricsEditor.exportToFileHint") ?? undefined}
-            >
-              <FileDown size={14} />
-              {t("lyricsEditor.exportToFile")}
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={isSaving || trackId == null}
-              className="px-5 py-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-2"
-            >
-              {isSaving ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Save size={14} />
-              )}
-              {t("common.save")}
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-full text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={handleExportToFile}
+                disabled={isSaving}
+                className="px-4 py-2 rounded-full text-sm border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                title={t("lyricsEditor.exportToFileHint") ?? undefined}
+              >
+                <FileDown size={14} />
+                {t("lyricsEditor.exportToFile")}
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={isSaving || trackId == null}
+                className="px-5 py-2 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-2 whitespace-nowrap"
+              >
+                {isSaving ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Save size={14} />
+                )}
+                {t("common.save")}
+              </button>
+            </div>
           </div>
         </div>
       </AnimatedModalContent>
