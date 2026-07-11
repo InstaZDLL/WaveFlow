@@ -937,9 +937,7 @@ pub fn run() {
 /// to `false` on a `false` return so the partner path can retry.
 async fn restore_bounds_and_reveal(app: AppHandle) -> bool {
     let state = app.state::<AppState>();
-    if let Some(bounds) =
-        commands::preferences::load_main_window_bounds(&state.app_db).await
-    {
+    if let Some(bounds) = commands::preferences::load_main_window_bounds(&state.app_db).await {
         if let Some(window) = app.get_webview_window("main") {
             let _ = window.set_size(tauri::LogicalSize::new(bounds.width, bounds.height));
             let _ = window.set_position(tauri::LogicalPosition::new(bounds.x, bounds.y));
