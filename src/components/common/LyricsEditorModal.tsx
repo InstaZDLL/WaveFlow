@@ -948,7 +948,7 @@ export function LyricsEditorModal({
               without it, a long "Exported to <path>" message pushed the
               destination pills into wrapping their labels and squeezed
               the Save button out of view (issue #341). */}
-          <div className="flex flex-1 items-center gap-2 min-w-0 justify-end">
+          <div className="flex basis-full md:flex-1 items-center gap-2 min-w-0 justify-end">
             {warning && (
               <span className="text-xs text-amber-600 dark:text-amber-400 truncate min-w-0">
                 {warning}
