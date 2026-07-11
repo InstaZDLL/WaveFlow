@@ -192,10 +192,10 @@ fn app_version(app: &tauri::AppHandle) -> String {
     app.package_info().version.to_string()
 }
 
-fn is_compatible(app: &tauri::AppHandle, min_app_version: Option<&str>) -> bool {
+fn is_compatible(app_version: &str, min_app_version: Option<&str>) -> bool {
     match min_app_version {
         None => true,
-        Some(min) => parse_semver(&app_version(app)) >= parse_semver(min),
+        Some(min) => parse_semver(app_version) >= parse_semver(min),
     }
 }
 
@@ -369,6 +369,7 @@ pub async fn list_plugin_marketplace(
 ) -> AppResult<Vec<MarketplaceEntry>> {
     let registry = fetch_registry().await?;
     let paths = state.paths.plugin_paths();
+    let version = app_version(&app);
 
     let entries = tokio::task::spawn_blocking(move || {
         registry
@@ -378,7 +379,7 @@ pub async fn list_plugin_marketplace(
                 let inst = installed_version(&paths, &e.id);
                 let update_available = matches!(&inst, Some(v) if *v != e.version);
                 MarketplaceEntry {
-                    compatible: is_compatible(&app, e.min_app_version.as_deref()),
+                    compatible: is_compatible(&version, e.min_app_version.as_deref()),
                     update_available,
                     installed: inst.is_some(),
                     installed_version: inst,
@@ -439,12 +440,13 @@ pub async fn install_plugin_from_registry(
         .find(|e| e.id == plugin_id)
         .ok_or_else(|| AppError::Other(format!("plugin not in registry: {plugin_id}")))?;
 
-    if !is_compatible(&app, entry.min_app_version.as_deref()) {
+    let version = app_version(&app);
+    if !is_compatible(&version, entry.min_app_version.as_deref()) {
         return Err(AppError::Other(format!(
             "{} requires WaveFlow {} or newer (you have {})",
             entry.name,
             entry.min_app_version.as_deref().unwrap_or("?"),
-            app_version(&app)
+            version
         )));
     }
 
