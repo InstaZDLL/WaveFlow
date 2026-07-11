@@ -50,6 +50,28 @@ const KEY_LOCAL_FIRST: &str = "radio.catalogue.local_first";
 /// picking it once from the country picker.
 const KEY_PREFERRED_COUNTRY: &str = "radio.preferred_country";
 
+/// Sorted list of ISO 3166-1 alpha-2 codes accepted by the Web Radio country
+/// picker. Kept in sync with `src/lib/webRadioCountries.ts`. Using a sorted
+/// slice + `binary_search` avoids any additional dependency (e.g. `phf`).
+const SUPPORTED_COUNTRY_CODES: &[&str] = &[
+    "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AR", "AT", "AU", "AW", "AX", "AZ", "BA",
+    "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BM", "BN", "BO", "BQ", "BR", "BS", "BT",
+    "BW", "BY", "BZ", "CA", "CD", "CG", "CH", "CI", "CK", "CL", "CM", "CN", "CO", "CR", "CU",
+    "CV", "CW", "CY", "CZ", "DE", "DJ", "DK", "DM", "DO", "DZ", "EC", "EE", "EG", "ER", "ES",
+    "ET", "FI", "FJ", "FK", "FM", "FO", "FR", "GA", "GB", "GD", "GE", "GF", "GG", "GH", "GI",
+    "GL", "GM", "GN", "GP", "GQ", "GR", "GT", "GU", "GW", "GY", "HK", "HN", "HR", "HT", "HU",
+    "ID", "IE", "IL", "IM", "IN", "IQ", "IR", "IS", "IT", "JE", "JM", "JO", "JP", "KE", "KG",
+    "KH", "KI", "KM", "KN", "KP", "KR", "KW", "KY", "KZ", "LA", "LB", "LC", "LI", "LK", "LR",
+    "LS", "LT", "LU", "LV", "LY", "MA", "MC", "MD", "ME", "MG", "MH", "MK", "ML", "MM", "MN",
+    "MO", "MP", "MQ", "MR", "MS", "MT", "MU", "MV", "MW", "MX", "MY", "MZ", "NA", "NC", "NE",
+    "NG", "NI", "NL", "NO", "NP", "NR", "NU", "NZ", "OM", "PA", "PE", "PF", "PG", "PH", "PK",
+    "PL", "PM", "PR", "PS", "PT", "PW", "PY", "QA", "RE", "RO", "RS", "RU", "RW", "SA", "SB",
+    "SC", "SD", "SE", "SG", "SI", "SK", "SL", "SM", "SN", "SO", "SR", "SS", "ST", "SV", "SX",
+    "SY", "SZ", "TC", "TD", "TG", "TH", "TJ", "TL", "TM", "TN", "TO", "TR", "TT", "TV", "TW",
+    "TZ", "UA", "UG", "US", "UY", "UZ", "VA", "VC", "VE", "VG", "VI", "VN", "VU", "WS", "YE",
+    "ZA", "ZM", "ZW",
+];
+
 fn now_ms() -> i64 {
     Utc::now().timestamp_millis()
 }
@@ -179,9 +201,9 @@ pub async fn set_radio_preferred_country(
     code: String,
 ) -> AppResult<()> {
     let code = code.trim().to_uppercase();
-    if !code.is_empty() && (code.len() != 2 || !code.bytes().all(|b| b.is_ascii_alphabetic())) {
+    if !code.is_empty() && SUPPORTED_COUNTRY_CODES.binary_search(&code.as_str()).is_err() {
         return Err(AppError::Other(
-            "country code must be ISO 3166-1 alpha-2".into(),
+            "country code must be one of the supported ISO 3166-1 alpha-2 codes".into(),
         ));
     }
     write_setting(&state.app_db, KEY_PREFERRED_COUNTRY, &code).await

@@ -18,15 +18,24 @@ export function useMainWindowBounds(): void {
     const win = getCurrentWindow();
     let timer: number | null = null;
     let disposed = false;
+    // Incremented on every new scheduled save and on cleanup. Any in-flight
+    // async save whose generation doesn't match the current value is stale
+    // (either superseded by a newer gesture or invalidated by unmount) and
+    // must not call setMainWindowBounds.
+    let saveGeneration = 0;
 
     const scheduleSave = () => {
       if (disposed) return;
+      const generation = ++saveGeneration;
       if (timer != null) window.clearTimeout(timer);
       timer = window.setTimeout(async () => {
         try {
           const scale = await win.scaleFactor();
           const pos = await win.outerPosition();
           const size = await win.outerSize();
+          // Re-check after awaits: unmount or a later gesture may have
+          // invalidated this save while the async calls were in flight.
+          if (disposed || generation !== saveGeneration) return;
           await setMainWindowBounds({
             x: pos.x / scale,
             y: pos.y / scale,
@@ -69,6 +78,7 @@ export function useMainWindowBounds(): void {
 
     return () => {
       disposed = true;
+      saveGeneration += 1; // invalidate any in-flight save
       if (timer != null) window.clearTimeout(timer);
       unlistenMoved?.();
       unlistenResized?.();
