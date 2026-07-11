@@ -46,6 +46,8 @@ pub async fn get_artist_overrides(
 ) -> AppResult<ArtistOverrides> {
     let pool = state.require_profile_pool().await?;
     let artwork_dir = &state.paths.metadata_artwork_dir;
+    let profile_id = state.require_profile_id().await?;
+    let local_artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let custom_bio: Option<String> =
         sqlx::query_scalar("SELECT custom_bio FROM artist WHERE id = ?")
@@ -54,12 +56,24 @@ pub async fn get_artist_overrides(
             .await?
             .flatten();
 
-    let rows: Vec<(i64, String, Option<String>, Option<String>)> = sqlx::query_as(
+    // Picture resolution mirrors `browse::get_artist_detail` (issue
+    // #350): prefer the artist's own local `artwork` sidecar before the
+    // shared Deezer cache, so a curated chip for an artist with only a
+    // local `artist.jpg` and no Deezer enrichment doesn't render blank.
+    let rows: Vec<(
+        i64,
+        String,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    )> = sqlx::query_as(
         r#"
-        SELECT a.id, a.name, ma.picture_url, ma.picture_hash
+        SELECT a.id, a.name, ma.picture_url, ma.picture_hash, aw.hash, aw.format
           FROM artist_similar_custom sc
           JOIN artist a ON a.id = sc.similar_artist_id
           LEFT JOIN app.metadata_artist ma ON ma.deezer_id = a.deezer_id
+          LEFT JOIN artwork aw ON aw.id = a.artwork_id
          WHERE sc.artist_id = ?
          ORDER BY sc.position
         "#,
@@ -71,13 +85,27 @@ pub async fn get_artist_overrides(
     let similar = rows
         .into_iter()
         .map(
-            |(id, name, picture_url, picture_hash)| ArtistOverrideSimilar {
-                artist_id: id,
-                name,
-                picture_path: picture_hash
-                    .as_deref()
-                    .and_then(|h| metadata_artwork::existing_path(artwork_dir, h)),
-                picture_url,
+            |(id, name, picture_url, picture_hash, local_hash, local_format)| {
+                let local_picture_path = match (local_hash.as_deref(), local_format.as_deref()) {
+                    (Some(hash), Some(format)) => Some(
+                        local_artwork_dir
+                            .join(format!("{hash}.{format}"))
+                            .to_string_lossy()
+                            .into_owned(),
+                    ),
+                    _ => None,
+                };
+                let picture_path = local_picture_path.or_else(|| {
+                    picture_hash
+                        .as_deref()
+                        .and_then(|h| metadata_artwork::existing_path(artwork_dir, h))
+                });
+                ArtistOverrideSimilar {
+                    artist_id: id,
+                    name,
+                    picture_path,
+                    picture_url,
+                }
             },
         )
         .collect();
