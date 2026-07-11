@@ -52,7 +52,9 @@ export function useMainWindowBounds(): void {
             .catch(() => {})
             .then(() => {
               if (disposed || generation !== saveGeneration) return;
-              return setMainWindowBounds(bounds);
+              return setMainWindowBounds(bounds).catch((err: unknown) => {
+                console.error("[useMainWindowBounds] persist bounds failed", err);
+              });
             });
         } catch (err) {
           console.error("[useMainWindowBounds] persist bounds failed", err);
