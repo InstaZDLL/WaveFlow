@@ -177,7 +177,13 @@ const SUMMARY_MAX: usize = 280;
 /// Derive a short lead-in from the full bio: stop at the first blank
 /// line (paragraph break) when that's already short enough, otherwise
 /// truncate at a word boundary near `SUMMARY_MAX` and append an ellipsis.
-fn make_summary(full: &str) -> String {
+///
+/// `pub` so `commands::deezer::enrich_artist_deezer` (issue #343) can
+/// reuse it to synthesize a `bio_short` for a manually-edited
+/// `custom_bio` override — without it, the override set `bio_short ==
+/// bio_full` verbatim and the frontend's "Read more" toggle (which
+/// triggers on `bio_full.length > bio_short.length`) never appeared.
+pub fn make_summary(full: &str) -> String {
     let first_para = full.split("\n\n").next().unwrap_or(full).trim();
     let collapsed = first_para.split_whitespace().collect::<Vec<_>>().join(" ");
     if collapsed.chars().count() <= SUMMARY_MAX {
