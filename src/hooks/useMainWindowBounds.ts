@@ -23,6 +23,9 @@ export function useMainWindowBounds(): void {
     // (either superseded by a newer gesture or invalidated by unmount) and
     // must not call setMainWindowBounds.
     let saveGeneration = 0;
+    // Promise chain that serializes writes so a slow preceding IPC call
+    // cannot overwrite a newer one that already completed.
+    let writeChain: Promise<void> = Promise.resolve();
 
     const scheduleSave = () => {
       if (disposed) return;
@@ -36,12 +39,21 @@ export function useMainWindowBounds(): void {
           // Re-check after awaits: unmount or a later gesture may have
           // invalidated this save while the async calls were in flight.
           if (disposed || generation !== saveGeneration) return;
-          await setMainWindowBounds({
+          const bounds = {
             x: pos.x / scale,
             y: pos.y / scale,
             width: size.width / scale,
             height: size.height / scale,
-          });
+          };
+          // Enqueue the write so concurrent saves cannot complete out of
+          // order and persist stale bounds (single-threaded JS allows two
+          // in-flight IPC calls to resolve in unpredictable order).
+          writeChain = writeChain
+            .catch(() => {})
+            .then(() => {
+              if (disposed || generation !== saveGeneration) return;
+              return setMainWindowBounds(bounds);
+            });
         } catch (err) {
           console.error("[useMainWindowBounds] persist bounds failed", err);
         }
@@ -79,6 +91,7 @@ export function useMainWindowBounds(): void {
     return () => {
       disposed = true;
       saveGeneration += 1; // invalidate any in-flight save
+      writeChain = Promise.resolve(); // reset chain so no queued write can fire
       if (timer != null) window.clearTimeout(timer);
       unlistenMoved?.();
       unlistenResized?.();
