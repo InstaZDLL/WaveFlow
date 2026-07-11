@@ -54,3 +54,11 @@ export function getMiniPlayerBounds(): Promise<MiniPlayerBounds | null> {
 export function setMiniPlayerBounds(bounds: MiniPlayerBounds): Promise<void> {
   return invoke<void>("set_mini_player_bounds", { bounds });
 }
+
+export function getMainWindowBounds(): Promise<MiniPlayerBounds | null> {
+  return invoke<MiniPlayerBounds | null>("get_main_window_bounds");
+}
+
+export function setMainWindowBounds(bounds: MiniPlayerBounds): Promise<void> {
+  return invoke<void>("set_main_window_bounds", { bounds });
+}

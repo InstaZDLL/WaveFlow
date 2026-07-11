@@ -505,14 +505,32 @@ pub fn run() {
                 if handoff_done_for_event.swap(true, Ordering::SeqCst) {
                     return;
                 }
-                // Reset the flag if the reveal fails so the fallback
-                // timer (or a subsequent `app://ready` re-emission) can
-                // retry — otherwise a transient main.show() / splash.close()
-                // failure would leave the user stuck on an eternal splash
-                // with no recovery path.
-                if !reveal_main_close_splash(&handoff_handle) {
-                    handoff_done_for_event.store(false, Ordering::SeqCst);
-                }
+                // Restore the persisted main-window size + position before
+                // revealing so the window appears at the saved bounds with no
+                // visible jump. Failures (first launch, missing row, parse
+                // error) are non-fatal — the default window size is fine.
+                let app_for_bounds = handoff_handle.clone();
+                let done_flag = handoff_done_for_event.clone();
+                tauri::async_runtime::spawn(async move {
+                    let state = app_for_bounds.state::<AppState>();
+                    if let Some(bounds) =
+                        commands::preferences::load_main_window_bounds(&state.app_db).await
+                    {
+                        if let Some(window) = app_for_bounds.get_webview_window("main") {
+                            let _ = window.set_size(tauri::LogicalSize::new(
+                                bounds.width,
+                                bounds.height,
+                            ));
+                            let _ = window.set_position(tauri::LogicalPosition::new(
+                                bounds.x,
+                                bounds.y,
+                            ));
+                        }
+                    }
+                    if !reveal_main_close_splash(&app_for_bounds) {
+                        done_flag.store(false, Ordering::SeqCst);
+                    }
+                });
             });
 
             let fallback_handle = app.handle().clone();
@@ -656,6 +674,8 @@ pub fn run() {
             commands::web_radio_catalogue::clear_radio_catalogue,
             commands::web_radio_catalogue::download_radio_catalogue,
             commands::web_radio_catalogue::resolve_radio_catalogue,
+            commands::web_radio_catalogue::get_radio_preferred_country,
+            commands::web_radio_catalogue::set_radio_preferred_country,
             commands::mood_radio::start_mood_radio,
             commands::mood_radio::mood_radio_counts,
             commands::dlna::dlna_get_config,
@@ -754,6 +774,8 @@ pub fn run() {
             commands::preferences::set_ui_zoom,
             commands::preferences::get_mini_player_bounds,
             commands::preferences::set_mini_player_bounds,
+            commands::preferences::get_main_window_bounds,
+            commands::preferences::set_main_window_bounds,
             commands::updater::get_update_channel,
             commands::updater::set_update_channel,
             commands::updater::check_for_update,

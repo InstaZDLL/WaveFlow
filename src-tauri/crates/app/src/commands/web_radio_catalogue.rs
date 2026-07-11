@@ -44,6 +44,11 @@ const MAX_LIMIT: u32 = 500;
 
 const KEY_LAST_SYNCED: &str = "radio.catalogue.last_synced_at";
 const KEY_LOCAL_FIRST: &str = "radio.catalogue.local_first";
+/// User-pinned ISO 3166-1 alpha-2 country code for the "Local stations"
+/// shortcut. When set, overrides the webview-locale detection so users on
+/// an EN-US Windows who are not in the US get the right country after
+/// picking it once from the country picker.
+const KEY_PREFERRED_COUNTRY: &str = "radio.preferred_country";
 
 fn now_ms() -> i64 {
     Utc::now().timestamp_millis()
@@ -153,6 +158,33 @@ pub async fn radio_catalogue_status(
         last_synced_at,
         local_first,
     })
+}
+/// Returns the user-pinned ISO 3166-1 alpha-2 country code, or `None` when
+/// the user has not picked a country yet and locale-detection should be used.
+#[tauri::command]
+pub async fn get_radio_preferred_country(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Option<String>> {
+    Ok(read_setting(&state.app_db, KEY_PREFERRED_COUNTRY)
+        .await?
+        .filter(|s| !s.is_empty()))
+}
+
+/// Persist the user's chosen ISO 3166-1 alpha-2 country code so the "Local
+/// stations" shortcut remembers it across sessions. An empty string clears
+/// the preference (resets to locale detection).
+#[tauri::command]
+pub async fn set_radio_preferred_country(
+    state: tauri::State<'_, AppState>,
+    code: String,
+) -> AppResult<()> {
+    let code = code.trim().to_uppercase();
+    if !code.is_empty() && (code.len() != 2 || !code.bytes().all(|b| b.is_ascii_alphabetic())) {
+        return Err(AppError::Other(
+            "country code must be ISO 3166-1 alpha-2".into(),
+        ));
+    }
+    write_setting(&state.app_db, KEY_PREFERRED_COUNTRY, &code).await
 }
 
 #[tauri::command]

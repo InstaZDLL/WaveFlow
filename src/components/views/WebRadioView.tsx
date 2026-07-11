@@ -33,6 +33,8 @@ import { getOfflineMode } from "../../lib/tauri/offline";
 import {
   radioCatalogueStatus,
   resolveRadioCatalogue,
+  getRadioPreferredCountry,
+  setRadioPreferredCountry,
 } from "../../lib/tauri/webRadioCatalogue";
 
 const PLUGIN_ID = WEB_RADIO_PLUGIN_ID;
@@ -51,8 +53,8 @@ function countryLabel(uiLang: string, code: string): string {
 
 /** Best-effort ISO 3166-1 alpha-2 region from the browser locale
  *  ("fr-FR" → "FR"), or null when the locale carries no region (e.g.
- *  a bare "en"). Computed once — the webview locale doesn't change at
- *  runtime. Drives the "Local stations" shortcut. */
+ *  a bare "en"). Used as the initial fallback; overridden by the
+ *  user's pinned preference loaded from the backend on mount. */
 function detectLocalRegion(): string | null {
   try {
     const region = new Intl.Locale(navigator.language).region;
@@ -61,7 +63,6 @@ function detectLocalRegion(): string | null {
     return null;
   }
 }
-const LOCAL_REGION = detectLocalRegion();
 
 /// Recognise the backend errors that mean "the plugin host refused
 /// to invoke web-radio" — disabled toggle, manifest missing after
@@ -107,6 +108,20 @@ export function WebRadioView() {
   // zero network (the stream URL rides inside `track.id` as `url:…`).
   const { favorites, isFavorite, toggleFavorite } = useWebRadioFavorites();
   const [favoritesActive, setFavoritesActive] = useState(false);
+  // "Local stations" shortcut country. Seeded from the webview locale on
+  // first load and overridden by the user's saved preference, so someone
+  // on an EN-US Windows who is not in the US only has to pick their country
+  // once from the dropdown — the shortcut remembers it from then on.
+  const [localRegion, setLocalRegion] = useState<string | null>(
+    detectLocalRegion,
+  );
+  useEffect(() => {
+    getRadioPreferredCountry()
+      .then((code) => {
+        if (code) setLocalRegion(code);
+      })
+      .catch(() => {});
+  }, []);
   // Offline catalogue routing (#289 #4). `useLocal` flips browse + search
   // from the live plugin to the downloaded local catalogue when offline mode
   // is on, or when the user enabled "local-first" (Settings → Data) AND a
@@ -553,6 +568,10 @@ export function WebRadioView() {
               const code = e.target.value;
               if (!code) return;
               const picked = countries.find((c) => c.code === code);
+              // Persist so "Local stations" shortcut uses this country from
+              // now on (fixes the EN-US Windows / non-US location mismatch).
+              void setRadioPreferredCountry(code).catch(() => {});
+              setLocalRegion(code);
               openCountry(code, picked?.name ?? code);
             }}
             aria-label={t("webRadio.browseByCountry")}
@@ -650,13 +669,13 @@ export function WebRadioView() {
                 country, detected from the webview locale. Hidden when
                 the locale carries no region (e.g. a bare "en"); the
                 country dropdown still covers every country. */}
-            {LOCAL_REGION && (
+            {localRegion && (
               <button
                 type="button"
                 onClick={() =>
                   openCountry(
-                    LOCAL_REGION,
-                    countryLabel(i18n.language, LOCAL_REGION),
+                    localRegion,
+                    countryLabel(i18n.language, localRegion),
                   )
                 }
                 className="text-left px-4 py-6 rounded-xl bg-sky-50 dark:bg-sky-950/20 hover:bg-sky-100 dark:hover:bg-sky-950/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
@@ -672,7 +691,7 @@ export function WebRadioView() {
                   </span>
                 </div>
                 <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 truncate">
-                  {countryLabel(i18n.language, LOCAL_REGION)}
+                  {countryLabel(i18n.language, localRegion)}
                 </div>
               </button>
             )}
