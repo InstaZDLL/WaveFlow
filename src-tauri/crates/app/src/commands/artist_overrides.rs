@@ -44,9 +44,10 @@ pub async fn get_artist_overrides(
     state: tauri::State<'_, AppState>,
     artist_id: i64,
 ) -> AppResult<ArtistOverrides> {
-    let pool = state.require_profile_pool().await?;
+    // Atomic (pool, profile_id) so a concurrent switch_profile can't pair
+    // one profile's pool with another's artwork dir.
+    let (pool, profile_id) = state.require_profile_snapshot().await?;
     let artwork_dir = &state.paths.metadata_artwork_dir;
-    let profile_id = state.require_profile_id().await?;
     let local_artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
     let custom_bio: Option<String> =
@@ -60,6 +61,7 @@ pub async fn get_artist_overrides(
     // #350): prefer the artist's own local `artwork` sidecar before the
     // shared Deezer cache, so a curated chip for an artist with only a
     // local `artist.jpg` and no Deezer enrichment doesn't render blank.
+    #[allow(clippy::type_complexity)]
     let rows: Vec<(
         i64,
         String,
@@ -86,20 +88,13 @@ pub async fn get_artist_overrides(
         .into_iter()
         .map(
             |(id, name, picture_url, picture_hash, local_hash, local_format)| {
-                let local_picture_path = match (local_hash.as_deref(), local_format.as_deref()) {
-                    (Some(hash), Some(format)) => Some(
-                        local_artwork_dir
-                            .join(format!("{hash}.{format}"))
-                            .to_string_lossy()
-                            .into_owned(),
-                    ),
-                    _ => None,
-                };
-                let picture_path = local_picture_path.or_else(|| {
-                    picture_hash
-                        .as_deref()
-                        .and_then(|h| metadata_artwork::existing_path(artwork_dir, h))
-                });
+                let picture_path = metadata_artwork::resolve_local_or_cached_path(
+                    &local_artwork_dir,
+                    local_hash.as_deref(),
+                    local_format.as_deref(),
+                    artwork_dir,
+                    picture_hash.as_deref(),
+                );
                 ArtistOverrideSimilar {
                     artist_id: id,
                     name,

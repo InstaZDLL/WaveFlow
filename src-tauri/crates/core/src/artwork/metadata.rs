@@ -38,6 +38,32 @@ pub fn existing_path(dir: &Path, hash: &str) -> Option<String> {
     }
 }
 
+/// Resolve an artist/album picture path preferring a local profile-artwork
+/// sidecar (`<local_dir>/<local_hash>.<local_format>`, e.g. `artist.jpg`
+/// imported into the profile) over the shared Deezer metadata cache
+/// ([`existing_path`]). Each candidate is returned only when the file
+/// actually exists on disk, so a stale DB reference to a wiped file falls
+/// through to the next source instead of yielding a broken path (#350).
+///
+/// The local sidecar carries its own `format` column (jpg/png/webp) so we
+/// take it explicitly; the metadata cache is always `.jpg`, so `cache_hash`
+/// goes through [`existing_path`] which knows the extension.
+pub fn resolve_local_or_cached_path(
+    local_dir: &Path,
+    local_hash: Option<&str>,
+    local_format: Option<&str>,
+    cache_dir: &Path,
+    cache_hash: Option<&str>,
+) -> Option<String> {
+    if let (Some(hash), Some(format)) = (local_hash, local_format) {
+        let p = local_dir.join(format!("{hash}.{format}"));
+        if p.exists() {
+            return Some(p.to_string_lossy().into_owned());
+        }
+    }
+    cache_hash.and_then(|h| existing_path(cache_dir, h))
+}
+
 /// Download `url`, blake3-hash the bytes and write the file to
 /// `<dir>/<hash>.jpg` if missing. Returns the hex hash on success.
 ///

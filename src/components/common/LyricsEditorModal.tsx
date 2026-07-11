@@ -902,8 +902,11 @@ export function LyricsEditorModal({
           </div>
         )}
 
-        {/* Footer */}
-        <div className="flex items-center justify-between gap-4 px-6 py-4 border-t border-zinc-200 dark:border-zinc-800">
+        {/* Footer — flex-wrap so on a narrow modal (viewport < max-w-3xl)
+            the destination pills and the action group stack onto two
+            rows instead of overflowing horizontally and pushing the Save
+            button off-screen (issue #341). */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 py-4 border-t border-zinc-200 dark:border-zinc-800">
           {/* Destination segmented control. Replaces the previous
               "Écrire dans le fichier" checkbox (issue #201): the
               third option (Sidecar) writes a sibling .lrc / .txt
@@ -945,7 +948,7 @@ export function LyricsEditorModal({
               without it, a long "Exported to <path>" message pushed the
               destination pills into wrapping their labels and squeezed
               the Save button out of view (issue #341). */}
-          <div className="flex items-center gap-2 min-w-0 justify-end">
+          <div className="flex flex-1 items-center gap-2 min-w-0 justify-end">
             {warning && (
               <span className="text-xs text-amber-600 dark:text-amber-400 truncate min-w-0">
                 {warning}
