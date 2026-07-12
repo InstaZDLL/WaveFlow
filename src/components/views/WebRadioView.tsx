@@ -571,14 +571,18 @@ export function WebRadioView() {
               const code = e.target.value;
               if (!code) return;
               const picked = countries.find((c) => c.code === code);
-              // Persist so "Local stations" shortcut uses this country from
-              // now on (fixes the EN-US Windows / non-US location mismatch).
-              localRegionSelectedRef.current = true;
-              void setRadioPreferredCountry(code).catch((e: unknown) => {
-                setError(e instanceof Error ? e.message : String(e));
-              });
-              setLocalRegion(code);
-              openCountry(code, picked?.name ?? code);
+              // Persist first — navigate and update the shortcut only after
+              // persistence succeeds so a rejected write cannot leave the
+              // session showing an unpersisted country.
+              void setRadioPreferredCountry(code)
+                .then(() => {
+                  localRegionSelectedRef.current = true;
+                  setLocalRegion(code);
+                  openCountry(code, picked?.name ?? code);
+                })
+                .catch((e: unknown) => {
+                  setError(e instanceof Error ? e.message : String(e));
+                });
             }}
             aria-label={t("webRadio.browseByCountry")}
             className="pl-8 pr-3 py-1.5 text-sm rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 max-w-40"

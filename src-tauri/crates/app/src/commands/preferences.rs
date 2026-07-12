@@ -238,13 +238,7 @@ pub async fn set_main_window_bounds(
     state: tauri::State<'_, AppState>,
     bounds: MiniPlayerBounds,
 ) -> AppResult<()> {
-    if !bounds.x.is_finite()
-        || !bounds.y.is_finite()
-        || !bounds.width.is_finite()
-        || !bounds.height.is_finite()
-        || bounds.width <= 0.0
-        || bounds.height <= 0.0
-    {
+    if !bounds_are_valid(&bounds) {
         return Ok(());
     }
     let json = serde_json::to_string(&bounds)

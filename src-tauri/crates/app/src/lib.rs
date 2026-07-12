@@ -927,6 +927,33 @@ pub fn run() {
         .expect("error while running tauri application");
 }
 
+/// Minimum logical-pixel overlap for a saved window position to be considered
+/// on-screen. Mirrors `MIN_VISIBLE_OVERLAP` in `miniPlayer.ts`.
+const MIN_VISIBLE_OVERLAP: f64 = 80.0;
+
+/// Returns `true` when the saved logical bounds overlap at least
+/// [`MIN_VISIBLE_OVERLAP`] logical pixels with at least one available monitor.
+/// Falls back to `true` (optimistic restore) when the monitor list cannot be
+/// queried. Mirrors the frontend `boundsAreVisible` check in `miniPlayer.ts`.
+fn bounds_on_screen(
+    window: &tauri::WebviewWindow,
+    b: &commands::preferences::MiniPlayerBounds,
+) -> bool {
+    let Ok(monitors) = window.available_monitors() else {
+        return true; // can't query — optimistically restore the saved position
+    };
+    monitors.iter().any(|m| {
+        let scale = m.scale_factor();
+        let mx = m.position().x as f64 / scale;
+        let my = m.position().y as f64 / scale;
+        let mw = m.size().width as f64 / scale;
+        let mh = m.size().height as f64 / scale;
+        let overlap_x = (b.x + b.width).min(mx + mw) - b.x.max(mx);
+        let overlap_y = (b.y + b.height).min(my + mh) - b.y.max(my);
+        overlap_x >= MIN_VISIBLE_OVERLAP && overlap_y >= MIN_VISIBLE_OVERLAP
+    })
+}
+
 /// Restore the persisted main-window size + position (if any) and then
 /// reveal the window + close the splash. Shared between the `app://ready`
 /// event handler and the 15-second fallback timer so both paths present
@@ -940,7 +967,13 @@ async fn restore_bounds_and_reveal(app: AppHandle) -> bool {
     if let Some(bounds) = commands::preferences::load_main_window_bounds(&state.app_db).await {
         if let Some(window) = app.get_webview_window("main") {
             let _ = window.set_size(tauri::LogicalSize::new(bounds.width, bounds.height));
-            let _ = window.set_position(tauri::LogicalPosition::new(bounds.x, bounds.y));
+            // Only restore the saved position when it still overlaps a real
+            // monitor — a disconnected display would otherwise place the
+            // window fully off-screen with no easy way to drag it back.
+            if bounds_on_screen(&window, &bounds) {
+                let _ =
+                    window.set_position(tauri::LogicalPosition::new(bounds.x, bounds.y));
+            }
         }
     }
     reveal_main_close_splash(&app)
