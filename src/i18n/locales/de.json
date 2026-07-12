@@ -1929,6 +1929,12 @@
       "usage": "{{size}} belegt · {{files}} Cover im Cache",
       "clear": "Cache leeren",
       "clearConfirm": "Bestätigen?"
+    },
+    "windowBounds": {
+      "title": "Fensterposition",
+      "subtitle": "Gespeicherte Fenstergröße und -position verwerfen. Beim nächsten Start öffnet sich das Fenster mit den Standardwerten.",
+      "reset": "Zurücksetzen",
+      "done": "Zurückgesetzt"
     }
   },
   "spotify": {

@@ -1929,6 +1929,12 @@
       "usage": "{{size}} 使用中 · キャッシュ {{files}} 件",
       "clear": "キャッシュを消去",
       "clearConfirm": "確認しますか？"
+    },
+    "windowBounds": {
+      "title": "ウィンドウの位置",
+      "subtitle": "保存されたウィンドウのサイズと位置を破棄します。次回起動時は既定値で開きます。",
+      "reset": "リセット",
+      "done": "リセット完了"
     }
   },
   "scanProgress": {

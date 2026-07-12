@@ -1929,6 +1929,12 @@
       "usage": "{{size}} gebruikt · {{files}} hoezen in cache",
       "clear": "Cache wissen",
       "clearConfirm": "Bevestigen?"
+    },
+    "windowBounds": {
+      "title": "Vensterpositie",
+      "subtitle": "Vergeet de opgeslagen venstergrootte en -positie. Bij de volgende start wordt het standaardformaat gebruikt.",
+      "reset": "Herstellen",
+      "done": "Hersteld"
     }
   },
   "spotify": {

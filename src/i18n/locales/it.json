@@ -1929,6 +1929,12 @@
       "usage": "{{size}} usati · {{files}} copertine in cache",
       "clear": "Svuota cache",
       "clearConfirm": "Confermare?"
+    },
+    "windowBounds": {
+      "title": "Posizione della finestra",
+      "subtitle": "Dimentica dimensioni e posizione salvate della finestra. Al prossimo avvio si aprirà con i valori predefiniti.",
+      "reset": "Reimposta",
+      "done": "Reimpostato"
     }
   },
   "spotify": {

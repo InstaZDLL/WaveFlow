@@ -1929,6 +1929,12 @@
       "usage": "{{size}} usados · {{files}} capas em cache",
       "clear": "Limpar cache",
       "clearConfirm": "Confirmar?"
+    },
+    "windowBounds": {
+      "title": "Posição da janela",
+      "subtitle": "Esquecer o tamanho e a posição salvos da janela. Na próxima abertura, usa os valores padrão.",
+      "reset": "Redefinir",
+      "done": "Redefinido"
     }
   },
   "spotify": {

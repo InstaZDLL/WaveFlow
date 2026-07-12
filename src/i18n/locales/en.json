@@ -1929,6 +1929,12 @@
       "usage": "{{size}} used · {{files}} covers cached",
       "clear": "Clear cache",
       "clearConfirm": "Confirm?"
+    },
+    "windowBounds": {
+      "title": "Window position",
+      "subtitle": "Forget the saved window size and position. The next launch opens at the default.",
+      "reset": "Reset",
+      "done": "Reset done"
     }
   },
   "spotify": {
