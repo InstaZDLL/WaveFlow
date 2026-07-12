@@ -1929,6 +1929,13 @@
       "usage": "{{size}} 사용 중 · 캐시 {{files}}개",
       "clear": "캐시 지우기",
       "clearConfirm": "확인할까요?"
+    },
+    "windowBounds": {
+      "title": "창 위치",
+      "subtitle": "저장된 창 크기와 위치를 지웁니다. 다음 실행 시 기본값으로 열립니다.",
+      "reset": "초기화",
+      "done": "초기화됨",
+      "error": "초기화에 실패했습니다. 다시 시도하세요."
     }
   },
   "spotify": {

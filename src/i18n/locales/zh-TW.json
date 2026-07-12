@@ -1929,6 +1929,13 @@
       "usage": "已用 {{size}} · 快取 {{files}} 個封面",
       "clear": "清除快取",
       "clearConfirm": "確認？"
+    },
+    "windowBounds": {
+      "title": "視窗位置",
+      "subtitle": "忘記已儲存的視窗大小和位置。下次啟動時將使用預設值。",
+      "reset": "重設",
+      "done": "已重設",
+      "error": "重設失敗，請重試。"
     }
   },
   "scanProgress": {

@@ -1929,6 +1929,13 @@
       "usage": "{{size}} kullanıldı · önbellekte {{files}} kapak",
       "clear": "Önbelleği temizle",
       "clearConfirm": "Onaylıyor musunuz?"
+    },
+    "windowBounds": {
+      "title": "Pencere konumu",
+      "subtitle": "Kaydedilen pencere boyutunu ve konumunu unut. Sonraki açılışta varsayılan değerlerle açılır.",
+      "reset": "Sıfırla",
+      "done": "Sıfırlandı",
+      "error": "Sıfırlama başarısız. Lütfen tekrar deneyin."
     }
   },
   "spotify": {

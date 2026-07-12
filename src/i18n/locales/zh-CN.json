@@ -1929,6 +1929,13 @@
       "usage": "已用 {{size}} · 缓存 {{files}} 个封面",
       "clear": "清除缓存",
       "clearConfirm": "确认？"
+    },
+    "windowBounds": {
+      "title": "窗口位置",
+      "subtitle": "忘记已保存的窗口大小和位置。下次启动时将使用默认值。",
+      "reset": "重置",
+      "done": "已重置",
+      "error": "重置失败，请重试。"
     }
   },
   "scanProgress": {

@@ -183,12 +183,105 @@ pub async fn set_ui_zoom(state: tauri::State<'_, AppState>, zoom: f64) -> AppRes
 /// a 4K and a 1080p monitor would never share a sensible corner.
 const KEY_MINI_PLAYER_BOUNDS: &str = "mini_player.bounds";
 
+/// Main window bounds, same shape and persistence contract as the mini-player.
+const KEY_MAIN_WINDOW_BOUNDS: &str = "main_window.bounds";
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MiniPlayerBounds {
     pub x: f64,
     pub y: f64,
     pub width: f64,
     pub height: f64,
+}
+
+/// Shared validity predicate for persisted bounds. Mirrors the guard in
+/// `set_main_window_bounds` / `set_mini_player_bounds` so corrupted or
+/// default-zero rows stored by a previous build are never applied.
+fn bounds_are_valid(b: &MiniPlayerBounds) -> bool {
+    b.x.is_finite()
+        && b.y.is_finite()
+        && b.width.is_finite()
+        && b.height.is_finite()
+        && b.width > 0.0
+        && b.height > 0.0
+}
+
+/// Non-command helper used by the `app://ready` boot path (lib.rs) to read
+/// the persisted main-window bounds before the window is made visible, so
+/// the window appears at the saved size/position with no jump.
+pub async fn load_main_window_bounds(app_db: &SqlitePool) -> Option<MiniPlayerBounds> {
+    let raw: Option<String> = match sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(KEY_MAIN_WINDOW_BOUNDS)
+        .fetch_optional(app_db)
+        .await
+    {
+        Ok(v) => v,
+        Err(err) => {
+            // A query failure (e.g. a transient SQLITE_BUSY at boot) is NOT the
+            // same as "no saved bounds": log it so the read error is
+            // diagnosable instead of silently masquerading as a first-run
+            // default. We still fall back to `None` — the splash handoff must
+            // reveal the window at default bounds rather than block on a
+            // cosmetic bounds read (see `restore_bounds_and_reveal` in lib.rs).
+            tracing::warn!(?err, "failed to read persisted main-window bounds");
+            None
+        }
+    };
+    raw.and_then(|s| serde_json::from_str::<MiniPlayerBounds>(&s).ok())
+        .filter(bounds_are_valid)
+}
+
+#[tauri::command]
+pub async fn get_main_window_bounds(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Option<MiniPlayerBounds>> {
+    let raw: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+        .bind(KEY_MAIN_WINDOW_BOUNDS)
+        .fetch_optional(&state.app_db)
+        .await?;
+    Ok(raw
+        .and_then(|s| serde_json::from_str::<MiniPlayerBounds>(&s).ok())
+        .filter(bounds_are_valid))
+}
+
+#[tauri::command]
+pub async fn set_main_window_bounds(
+    state: tauri::State<'_, AppState>,
+    bounds: MiniPlayerBounds,
+) -> AppResult<()> {
+    if !bounds_are_valid(&bounds) {
+        return Ok(());
+    }
+    let json = serde_json::to_string(&bounds)
+        .map_err(|err| crate::error::AppError::Other(format!("main_window bounds: {err}")))?;
+    sqlx::query(
+        "INSERT INTO app_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'json', ?)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(KEY_MAIN_WINDOW_BOUNDS)
+    .bind(json)
+    .bind(Utc::now().timestamp_millis())
+    .execute(&state.app_db)
+    .await?;
+    Ok(())
+}
+
+/// Forget the persisted main-window size + position. The next launch
+/// falls back to the default bounds from `tauri.conf.json`. Exposed as a
+/// Settings → Appearance "Reset window position" action for users whose
+/// window ended up somewhere awkward (or who just want the default size
+/// back). Deleting the row rather than writing a default keeps the
+/// "no saved bounds → use the manifest default" path as the single
+/// source of truth.
+#[tauri::command]
+pub async fn clear_main_window_bounds(state: tauri::State<'_, AppState>) -> AppResult<()> {
+    sqlx::query("DELETE FROM app_setting WHERE key = ?")
+        .bind(KEY_MAIN_WINDOW_BOUNDS)
+        .execute(&state.app_db)
+        .await?;
+    Ok(())
 }
 
 #[tauri::command]

@@ -54,3 +54,15 @@ export function resolveRadioCatalogue(
 ): Promise<PluginTrack[]> {
   return invoke<PluginTrack[]>("resolve_radio_catalogue", { query, limit });
 }
+
+/** Returns the user-pinned ISO 3166-1 alpha-2 country code, or null when
+ *  not set (locale detection is used as fallback). */
+export function getRadioPreferredCountry(): Promise<string | null> {
+  return invoke<string | null>("get_radio_preferred_country");
+}
+
+/** Persist the user's chosen country code so the "Local stations" shortcut
+ *  uses it across sessions instead of deriving it from the webview locale. */
+export function setRadioPreferredCountry(code: string): Promise<void> {
+  return invoke<void>("set_radio_preferred_country", { code });
+}

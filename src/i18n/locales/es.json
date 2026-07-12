@@ -1929,6 +1929,13 @@
       "usage": "{{size}} usados · {{files}} portadas en caché",
       "clear": "Vaciar caché",
       "clearConfirm": "¿Confirmar?"
+    },
+    "windowBounds": {
+      "title": "Posición de la ventana",
+      "subtitle": "Olvidar el tamaño y la posición guardados de la ventana. El próximo inicio se abrirá con los valores predeterminados.",
+      "reset": "Restablecer",
+      "done": "Restablecido",
+      "error": "No se pudo restablecer. Inténtalo de nuevo."
     }
   },
   "spotify": {

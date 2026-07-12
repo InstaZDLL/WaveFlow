@@ -18,6 +18,7 @@ import { SkinMotionWrapper } from "./SkinMotionWrapper";
 import { useDragDropImport } from "../../hooks/useDragDropImport";
 import { useGlobalShortcuts } from "../../hooks/useGlobalShortcuts";
 import { useUiZoom } from "../../hooks/useUiZoom";
+import { useMainWindowBounds } from "../../hooks/useMainWindowBounds";
 import { useTranslation } from "react-i18next";
 import { Loader2, Upload } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -144,6 +145,10 @@ export function AppLayout() {
   // Tauri's WebView `setZoom`, and listen for Ctrl+= / Ctrl+- /
   // Ctrl+0 so users can tune density without diving into Settings.
   useUiZoom();
+  // Main-window size + position persistence. Saves on every move/resize
+  // (debounced 300 ms); restoration is done by the Rust boot path before
+  // the window is revealed so there is no visible jump.
+  useMainWindowBounds();
   // History entries carry their payload (album/artist/genre/playlist id,
   // wrapped year) directly so back/forward restore the exact target the
   // user visited — not whatever target was set most recently. Without

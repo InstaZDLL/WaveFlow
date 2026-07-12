@@ -44,6 +44,32 @@ const MAX_LIMIT: u32 = 500;
 
 const KEY_LAST_SYNCED: &str = "radio.catalogue.last_synced_at";
 const KEY_LOCAL_FIRST: &str = "radio.catalogue.local_first";
+/// User-pinned ISO 3166-1 alpha-2 country code for the "Local stations"
+/// shortcut. When set, overrides the webview-locale detection so users on
+/// an EN-US Windows who are not in the US get the right country after
+/// picking it once from the country picker.
+const KEY_PREFERRED_COUNTRY: &str = "radio.preferred_country";
+
+/// Sorted list of ISO 3166-1 alpha-2 codes accepted by the Web Radio country
+/// picker. Kept in sync with `src/lib/webRadioCountries.ts`. Using a sorted
+/// slice + `binary_search` avoids any additional dependency (e.g. `phf`).
+const SUPPORTED_COUNTRY_CODES: &[&str] = &[
+    "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AR", "AT", "AU", "AW", "AX", "AZ", "BA", "BB",
+    "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BM", "BN", "BO", "BQ", "BR", "BS", "BT", "BW", "BY",
+    "BZ", "CA", "CD", "CG", "CH", "CI", "CK", "CL", "CM", "CN", "CO", "CR", "CU", "CV", "CW", "CY",
+    "CZ", "DE", "DJ", "DK", "DM", "DO", "DZ", "EC", "EE", "EG", "ER", "ES", "ET", "FI", "FJ", "FK",
+    "FM", "FO", "FR", "GA", "GB", "GD", "GE", "GF", "GG", "GH", "GI", "GL", "GM", "GN", "GP", "GQ",
+    "GR", "GT", "GU", "GW", "GY", "HK", "HN", "HR", "HT", "HU", "ID", "IE", "IL", "IM", "IN", "IQ",
+    "IR", "IS", "IT", "JE", "JM", "JO", "JP", "KE", "KG", "KH", "KI", "KM", "KN", "KP", "KR", "KW",
+    "KY", "KZ", "LA", "LB", "LC", "LI", "LK", "LR", "LS", "LT", "LU", "LV", "LY", "MA", "MC", "MD",
+    "ME", "MG", "MH", "MK", "ML", "MM", "MN", "MO", "MP", "MQ", "MR", "MS", "MT", "MU", "MV", "MW",
+    "MX", "MY", "MZ", "NA", "NC", "NE", "NG", "NI", "NL", "NO", "NP", "NR", "NU", "NZ", "OM", "PA",
+    "PE", "PF", "PG", "PH", "PK", "PL", "PM", "PR", "PS", "PT", "PW", "PY", "QA", "RE", "RO", "RS",
+    "RU", "RW", "SA", "SB", "SC", "SD", "SE", "SG", "SI", "SK", "SL", "SM", "SN", "SO", "SR", "SS",
+    "ST", "SV", "SX", "SY", "SZ", "TC", "TD", "TG", "TH", "TJ", "TL", "TM", "TN", "TO", "TR", "TT",
+    "TV", "TW", "TZ", "UA", "UG", "US", "UY", "UZ", "VA", "VC", "VE", "VG", "VI", "VN", "VU", "WS",
+    "YE", "ZA", "ZM", "ZW",
+];
 
 fn now_ms() -> i64 {
     Utc::now().timestamp_millis()
@@ -153,6 +179,53 @@ pub async fn radio_catalogue_status(
         last_synced_at,
         local_first,
     })
+}
+/// Returns the user-pinned ISO 3166-1 alpha-2 country code, or `None` when
+/// the user has not picked a country yet and locale-detection should be used.
+/// Stored in `profile_setting` so each profile can have its own preference.
+#[tauri::command]
+pub async fn get_radio_preferred_country(
+    state: tauri::State<'_, AppState>,
+) -> AppResult<Option<String>> {
+    let pool = state.require_profile_pool().await?;
+    let value: Option<String> =
+        sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = ?")
+            .bind(KEY_PREFERRED_COUNTRY)
+            .fetch_optional(&pool)
+            .await?;
+    Ok(value.filter(|s| !s.is_empty()))
+}
+
+/// Persist the user's chosen ISO 3166-1 alpha-2 country code so the "Local
+/// stations" shortcut remembers it across sessions. An empty string clears
+/// the preference (resets to locale detection). Stored per-profile.
+#[tauri::command]
+pub async fn set_radio_preferred_country(
+    state: tauri::State<'_, AppState>,
+    code: String,
+) -> AppResult<()> {
+    let code = code.trim().to_uppercase();
+    if !code.is_empty()
+        && SUPPORTED_COUNTRY_CODES
+            .binary_search(&code.as_str())
+            .is_err()
+    {
+        return Err(AppError::Other(
+            "country code must be one of the supported ISO 3166-1 alpha-2 codes".into(),
+        ));
+    }
+    let pool = state.require_profile_pool().await?;
+    sqlx::query(
+        "INSERT INTO profile_setting (key, value, value_type, updated_at)
+         VALUES (?, ?, 'string', strftime('%s','now')*1000)
+         ON CONFLICT(key) DO UPDATE
+            SET value = excluded.value, updated_at = excluded.updated_at",
+    )
+    .bind(KEY_PREFERRED_COUNTRY)
+    .bind(&code)
+    .execute(&pool)
+    .await?;
+    Ok(())
 }
 
 #[tauri::command]

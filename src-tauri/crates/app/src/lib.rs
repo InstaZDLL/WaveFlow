@@ -505,14 +505,13 @@ pub fn run() {
                 if handoff_done_for_event.swap(true, Ordering::SeqCst) {
                     return;
                 }
-                // Reset the flag if the reveal fails so the fallback
-                // timer (or a subsequent `app://ready` re-emission) can
-                // retry — otherwise a transient main.show() / splash.close()
-                // failure would leave the user stuck on an eternal splash
-                // with no recovery path.
-                if !reveal_main_close_splash(&handoff_handle) {
-                    handoff_done_for_event.store(false, Ordering::SeqCst);
-                }
+                let app_for_reveal = handoff_handle.clone();
+                let done_flag = handoff_done_for_event.clone();
+                tauri::async_runtime::spawn(async move {
+                    if !restore_bounds_and_reveal(app_for_reveal).await {
+                        done_flag.store(false, Ordering::SeqCst);
+                    }
+                });
             });
 
             let fallback_handle = app.handle().clone();
@@ -535,7 +534,7 @@ pub fn run() {
                         attempt,
                         "splash handoff fallback: `app://ready` never fired in time, force-revealing main window"
                     );
-                    if reveal_main_close_splash(&fallback_handle) {
+                    if restore_bounds_and_reveal(fallback_handle.clone()).await {
                         return;
                     }
                     fallback_done.store(false, Ordering::SeqCst);
@@ -656,6 +655,8 @@ pub fn run() {
             commands::web_radio_catalogue::clear_radio_catalogue,
             commands::web_radio_catalogue::download_radio_catalogue,
             commands::web_radio_catalogue::resolve_radio_catalogue,
+            commands::web_radio_catalogue::get_radio_preferred_country,
+            commands::web_radio_catalogue::set_radio_preferred_country,
             commands::mood_radio::start_mood_radio,
             commands::mood_radio::mood_radio_counts,
             commands::dlna::dlna_get_config,
@@ -754,6 +755,9 @@ pub fn run() {
             commands::preferences::set_ui_zoom,
             commands::preferences::get_mini_player_bounds,
             commands::preferences::set_mini_player_bounds,
+            commands::preferences::get_main_window_bounds,
+            commands::preferences::set_main_window_bounds,
+            commands::preferences::clear_main_window_bounds,
             commands::updater::get_update_channel,
             commands::updater::set_update_channel,
             commands::updater::check_for_update,
@@ -922,6 +926,71 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Minimum logical-pixel overlap for a saved window position to be considered
+/// on-screen. Mirrors `MIN_VISIBLE_OVERLAP` in `miniPlayer.ts`.
+const MIN_VISIBLE_OVERLAP: f64 = 80.0;
+
+/// Returns `true` when the saved logical bounds overlap at least
+/// [`MIN_VISIBLE_OVERLAP`] logical pixels with at least one available monitor.
+/// Falls back to `true` (optimistic restore) when the monitor list cannot be
+/// queried. Mirrors the frontend `boundsAreVisible` check in `miniPlayer.ts`.
+fn bounds_on_screen(
+    window: &tauri::WebviewWindow,
+    b: &commands::preferences::MiniPlayerBounds,
+) -> bool {
+    let Ok(monitors) = window.available_monitors() else {
+        return true; // can't query — optimistically restore the saved position
+    };
+    monitors.iter().any(|m| {
+        let scale = m.scale_factor();
+        let mx = m.position().x as f64 / scale;
+        let my = m.position().y as f64 / scale;
+        let mw = m.size().width as f64 / scale;
+        let mh = m.size().height as f64 / scale;
+        let overlap_x = (b.x + b.width).min(mx + mw) - b.x.max(mx);
+        let overlap_y = (b.y + b.height).min(my + mh) - b.y.max(my);
+        overlap_x >= MIN_VISIBLE_OVERLAP && overlap_y >= MIN_VISIBLE_OVERLAP
+    })
+}
+
+/// Restore the persisted main-window size + position (if any) and then
+/// reveal the window + close the splash. Shared between the `app://ready`
+/// event handler and the 15-second fallback timer so both paths present
+/// the window at the saved bounds with no visible jump.
+///
+/// Returns `true` only when the reveal succeeds (same contract as
+/// `reveal_main_close_splash`). The caller should reset its `done` flag
+/// to `false` on a `false` return so the partner path can retry.
+///
+/// Bounds restoration is deliberately **best-effort**: a `set_size` /
+/// `set_position` failure is logged but never blocks the reveal. The
+/// splash handoff's job is to guarantee the window becomes visible, and
+/// the fallback retry loop is bounded (10 attempts) before it gives up on
+/// the splash — so gating the reveal on a *cosmetic* bounds failure could
+/// trap the user on the splash when `set_size` fails persistently. The
+/// saved size/position is a nice-to-have; escaping the splash is not.
+async fn restore_bounds_and_reveal(app: AppHandle) -> bool {
+    let state = app.state::<AppState>();
+    if let Some(bounds) = commands::preferences::load_main_window_bounds(&state.app_db).await {
+        if let Some(window) = app.get_webview_window("main") {
+            if let Err(err) = window.set_size(tauri::LogicalSize::new(bounds.width, bounds.height)) {
+                tracing::warn!(?err, "failed to restore main-window size");
+            }
+            // Only restore the saved position when it still overlaps a real
+            // monitor — a disconnected display would otherwise place the
+            // window fully off-screen with no easy way to drag it back.
+            if bounds_on_screen(&window, &bounds) {
+                if let Err(err) =
+                    window.set_position(tauri::LogicalPosition::new(bounds.x, bounds.y))
+                {
+                    tracing::warn!(?err, "failed to restore main-window position");
+                }
+            }
+        }
+    }
+    reveal_main_close_splash(&app)
 }
 
 /// Bring the main window back to the front (used by the tray's left

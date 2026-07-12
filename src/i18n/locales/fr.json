@@ -1929,6 +1929,13 @@
       "usage": "{{size}} utilisés · {{files}} pochettes en cache",
       "clear": "Vider le cache",
       "clearConfirm": "Confirmer ?"
+    },
+    "windowBounds": {
+      "title": "Position de la fenêtre",
+      "subtitle": "Oublier la taille et la position enregistrées de la fenêtre. Au prochain démarrage, elle s'ouvrira aux valeurs par défaut.",
+      "reset": "Réinitialiser",
+      "done": "Réinitialisé",
+      "error": "La réinitialisation a échoué. Réessayez."
     }
   },
   "spotify": {
