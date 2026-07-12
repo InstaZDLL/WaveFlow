@@ -367,7 +367,7 @@ export function ArtistDetailView({
             {t("artistDetail.bio.title")}
           </h2>
           <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-800/40">
-            <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-300 whitespace-pre-line">
+            <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-300 whitespace-pre-line break-words hyphens-auto">
               {bioExpanded ? (bioFull ?? bioShort) : bioShort}
             </p>
             {bioFull && bioFull.length > bioShort.length && (
