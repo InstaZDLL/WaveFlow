@@ -210,12 +210,23 @@ fn bounds_are_valid(b: &MiniPlayerBounds) -> bool {
 /// the persisted main-window bounds before the window is made visible, so
 /// the window appears at the saved size/position with no jump.
 pub async fn load_main_window_bounds(app_db: &SqlitePool) -> Option<MiniPlayerBounds> {
-    let raw: Option<String> = sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
+    let raw: Option<String> = match sqlx::query_scalar("SELECT value FROM app_setting WHERE key = ?")
         .bind(KEY_MAIN_WINDOW_BOUNDS)
         .fetch_optional(app_db)
         .await
-        .ok()
-        .flatten();
+    {
+        Ok(v) => v,
+        Err(err) => {
+            // A query failure (e.g. a transient SQLITE_BUSY at boot) is NOT the
+            // same as "no saved bounds": log it so the read error is
+            // diagnosable instead of silently masquerading as a first-run
+            // default. We still fall back to `None` — the splash handoff must
+            // reveal the window at default bounds rather than block on a
+            // cosmetic bounds read (see `restore_bounds_and_reveal` in lib.rs).
+            tracing::warn!(?err, "failed to read persisted main-window bounds");
+            None
+        }
+    };
     raw.and_then(|s| serde_json::from_str::<MiniPlayerBounds>(&s).ok())
         .filter(bounds_are_valid)
 }
@@ -254,6 +265,22 @@ pub async fn set_main_window_bounds(
     .bind(Utc::now().timestamp_millis())
     .execute(&state.app_db)
     .await?;
+    Ok(())
+}
+
+/// Forget the persisted main-window size + position. The next launch
+/// falls back to the default bounds from `tauri.conf.json`. Exposed as a
+/// Settings → Appearance "Reset window position" action for users whose
+/// window ended up somewhere awkward (or who just want the default size
+/// back). Deleting the row rather than writing a default keeps the
+/// "no saved bounds → use the manifest default" path as the single
+/// source of truth.
+#[tauri::command]
+pub async fn clear_main_window_bounds(state: tauri::State<'_, AppState>) -> AppResult<()> {
+    sqlx::query("DELETE FROM app_setting WHERE key = ?")
+        .bind(KEY_MAIN_WINDOW_BOUNDS)
+        .execute(&state.app_db)
+        .await?;
     Ok(())
 }
 

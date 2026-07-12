@@ -757,6 +757,7 @@ pub fn run() {
             commands::preferences::set_mini_player_bounds,
             commands::preferences::get_main_window_bounds,
             commands::preferences::set_main_window_bounds,
+            commands::preferences::clear_main_window_bounds,
             commands::updater::get_update_channel,
             commands::updater::set_update_channel,
             commands::updater::check_for_update,
@@ -962,17 +963,30 @@ fn bounds_on_screen(
 /// Returns `true` only when the reveal succeeds (same contract as
 /// `reveal_main_close_splash`). The caller should reset its `done` flag
 /// to `false` on a `false` return so the partner path can retry.
+///
+/// Bounds restoration is deliberately **best-effort**: a `set_size` /
+/// `set_position` failure is logged but never blocks the reveal. The
+/// splash handoff's job is to guarantee the window becomes visible, and
+/// the fallback retry loop is bounded (10 attempts) before it gives up on
+/// the splash — so gating the reveal on a *cosmetic* bounds failure could
+/// trap the user on the splash when `set_size` fails persistently. The
+/// saved size/position is a nice-to-have; escaping the splash is not.
 async fn restore_bounds_and_reveal(app: AppHandle) -> bool {
     let state = app.state::<AppState>();
     if let Some(bounds) = commands::preferences::load_main_window_bounds(&state.app_db).await {
         if let Some(window) = app.get_webview_window("main") {
-            let _ = window.set_size(tauri::LogicalSize::new(bounds.width, bounds.height));
+            if let Err(err) = window.set_size(tauri::LogicalSize::new(bounds.width, bounds.height)) {
+                tracing::warn!(?err, "failed to restore main-window size");
+            }
             // Only restore the saved position when it still overlaps a real
             // monitor — a disconnected display would otherwise place the
             // window fully off-screen with no easy way to drag it back.
             if bounds_on_screen(&window, &bounds) {
-                let _ =
-                    window.set_position(tauri::LogicalPosition::new(bounds.x, bounds.y));
+                if let Err(err) =
+                    window.set_position(tauri::LogicalPosition::new(bounds.x, bounds.y))
+                {
+                    tracing::warn!(?err, "failed to restore main-window position");
+                }
             }
         }
     }
