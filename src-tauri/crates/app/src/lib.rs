@@ -975,7 +975,8 @@ async fn restore_bounds_and_reveal(app: AppHandle) -> bool {
     let state = app.state::<AppState>();
     if let Some(bounds) = commands::preferences::load_main_window_bounds(&state.app_db).await {
         if let Some(window) = app.get_webview_window("main") {
-            if let Err(err) = window.set_size(tauri::LogicalSize::new(bounds.width, bounds.height)) {
+            if let Err(err) = window.set_size(tauri::LogicalSize::new(bounds.width, bounds.height))
+            {
                 tracing::warn!(?err, "failed to restore main-window size");
             }
             // Only restore the saved position when it still overlaps a real

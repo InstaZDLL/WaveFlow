@@ -300,9 +300,7 @@ export function PluginsCard() {
                     )}
                   </div>
                 </div>
-                {optionsFor === plugin.id && (
-                  <PluginOptions plugin={plugin} />
-                )}
+                {optionsFor === plugin.id && <PluginOptions plugin={plugin} />}
               </li>
             );
           })}

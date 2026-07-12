@@ -153,7 +153,9 @@ function OptionControl({
           disabled={disabled}
           onClick={() => onChange(effective === "true" ? "false" : "true")}
           className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:opacity-50 ${
-            effective === "true" ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700"
+            effective === "true"
+              ? "bg-emerald-500"
+              : "bg-zinc-300 dark:bg-zinc-700"
           }`}
         >
           <span

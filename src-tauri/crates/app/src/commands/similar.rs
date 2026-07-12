@@ -76,8 +76,7 @@ pub async fn get_similar_artists(
     //    online source and works offline. When the user has pinned a
     //    similar list it's library-scoped by construction, so we return
     //    it verbatim — no cache, no network.
-    let custom =
-        fetch_custom_similar(&pool, &artwork_dir, &local_artwork_dir, artist_id).await?;
+    let custom = fetch_custom_similar(&pool, &artwork_dir, &local_artwork_dir, artist_id).await?;
     if !custom.is_empty() {
         return Ok(custom);
     }

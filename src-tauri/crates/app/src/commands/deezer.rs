@@ -21,7 +21,8 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter};
 
 use waveflow_core::metadata::{
-    deezer::DeezerClient, lastfm::LastfmClient,
+    deezer::DeezerClient,
+    lastfm::LastfmClient,
     theaudiodb::{make_summary, TheAudioDbClient},
 };
 

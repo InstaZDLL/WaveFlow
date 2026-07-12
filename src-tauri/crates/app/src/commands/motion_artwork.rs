@@ -143,10 +143,7 @@ pub async fn fetch_album_motion_artwork(
                     // the webview <video>, so reject a non-https / internal /
                     // loopback target here before either touches it.
                     if !motion_cache::is_safe_motion_url(&remote_square) {
-                        tracing::warn!(
-                            plugin_id,
-                            "plugin returned an unsafe motion url; skipping"
-                        );
+                        tracing::warn!(plugin_id, "plugin returned an unsafe motion url; skipping");
                         continue;
                     }
                     // When the local cache is on, download the mp4 and point the
@@ -211,16 +208,14 @@ pub async fn fetch_album_motion_artwork(
 /// Read the opt-in local-cache flag from the shared `app.db`. Defaults to
 /// `false` (off) — same bool parse convention as every other `app_setting`.
 async fn motion_cache_enabled(state: &AppState) -> bool {
-    sqlx::query_scalar::<_, String>(
-        "SELECT value FROM app_setting WHERE key = ?",
-    )
-    .bind(CACHE_ENABLED_KEY)
-    .fetch_optional(&state.app_db)
-    .await
-    .ok()
-    .flatten()
-    .map(|v| v == "true" || v == "1")
-    .unwrap_or(false)
+    sqlx::query_scalar::<_, String>("SELECT value FROM app_setting WHERE key = ?")
+        .bind(CACHE_ENABLED_KEY)
+        .fetch_optional(&state.app_db)
+        .await
+        .ok()
+        .flatten()
+        .map(|v| v == "true" || v == "1")
+        .unwrap_or(false)
 }
 
 /// The motion-cache toggle state + current on-disk footprint, for the
@@ -251,10 +246,7 @@ pub async fn get_motion_cache_info(state: State<'_, AppState>) -> AppResult<Moti
 /// Toggle the opt-in local motion cache. Turning it OFF does not purge the
 /// existing files — that's the explicit "Clear cache" action below.
 #[tauri::command]
-pub async fn set_motion_cache_enabled(
-    state: State<'_, AppState>,
-    enabled: bool,
-) -> AppResult<()> {
+pub async fn set_motion_cache_enabled(state: State<'_, AppState>, enabled: bool) -> AppResult<()> {
     sqlx::query(
         "INSERT INTO app_setting (key, value, value_type, updated_at)
          VALUES (?, ?, 'bool', ?)

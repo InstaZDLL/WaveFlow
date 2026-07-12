@@ -263,9 +263,10 @@ impl Manifest {
             if opt.key.is_empty() {
                 return Err(ManifestError::EmptyOptionKey);
             }
-            let key_ok = opt.key.chars().all(|c| {
-                c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-'
-            });
+            let key_ok = opt
+                .key
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-');
             if !key_ok {
                 return Err(ManifestError::InvalidOptionKey(opt.key.clone()));
             }

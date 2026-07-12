@@ -45,10 +45,7 @@ pub fn is_safe_motion_url(url: &str) -> bool {
         _ => return false,
     };
     // Authority runs up to the first `/`, `?` or `#`.
-    let authority = rest
-        .split(['/', '?', '#'])
-        .next()
-        .unwrap_or(rest);
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or(rest);
     // Drop any userinfo, then the port.
     let host_port = authority.rsplit('@').next().unwrap_or(authority);
     let host = if let Some(stripped) = host_port.strip_prefix('[') {
@@ -131,7 +128,9 @@ pub async fn cache_mp4(dir: &Path, url: &str, max_cache_bytes: u64) -> Result<Pa
     }
     if let Some(len) = resp.content_length() {
         if len > MAX_MP4_BYTES {
-            return Err(format!("motion mp4 too large: {len} bytes (max {MAX_MP4_BYTES})"));
+            return Err(format!(
+                "motion mp4 too large: {len} bytes (max {MAX_MP4_BYTES})"
+            ));
         }
     }
     let mut bytes: Vec<u8> = Vec::new();
@@ -141,7 +140,9 @@ pub async fn cache_mp4(dir: &Path, url: &str, max_cache_bytes: u64) -> Result<Pa
         .map_err(|e| format!("read motion mp4 body: {e}"))?
     {
         if bytes.len() as u64 + chunk.len() as u64 > MAX_MP4_BYTES {
-            return Err(format!("motion mp4 exceeds {MAX_MP4_BYTES} bytes — refusing"));
+            return Err(format!(
+                "motion mp4 exceeds {MAX_MP4_BYTES} bytes — refusing"
+            ));
         }
         bytes.extend_from_slice(&chunk);
     }
@@ -292,13 +293,17 @@ mod tests {
         assert!(!is_safe_motion_url("https://10.0.0.5/a.mp4"));
         assert!(!is_safe_motion_url("https://192.168.1.1/a.mp4"));
         assert!(!is_safe_motion_url("https://172.16.0.1/a.mp4"));
-        assert!(!is_safe_motion_url("https://169.254.169.254/latest/meta-data"));
+        assert!(!is_safe_motion_url(
+            "https://169.254.169.254/latest/meta-data"
+        ));
         assert!(!is_safe_motion_url("https://[fd00::1]/a.mp4"));
         // IPv4-mapped (`::ffff:a.b.c.d`) + IPv4-compatible (`::a.b.c.d`) IPv6
         // must not slip past the v6 branch.
         assert!(!is_safe_motion_url("https://[::ffff:127.0.0.1]/a.mp4"));
         assert!(!is_safe_motion_url("https://[::ffff:10.0.0.1]/a.mp4"));
-        assert!(!is_safe_motion_url("https://[::ffff:169.254.169.254]/a.mp4"));
+        assert!(!is_safe_motion_url(
+            "https://[::ffff:169.254.169.254]/a.mp4"
+        ));
         assert!(!is_safe_motion_url("https://[::127.0.0.1]/a.mp4"));
         assert!(!is_safe_motion_url("https://[::192.168.0.1]/a.mp4"));
     }
@@ -307,10 +312,10 @@ mod tests {
     fn ipv4_embedded_loopback_is_internal() {
         use std::net::Ipv6Addr;
         let internal = [
-            "::ffff:127.0.0.1", // mapped loopback
+            "::ffff:127.0.0.1",   // mapped loopback
             "::ffff:192.168.0.1", // mapped private
-            "::127.0.0.1",      // compatible loopback
-            "::192.168.0.1",    // compatible private
+            "::127.0.0.1",        // compatible loopback
+            "::192.168.0.1",      // compatible private
         ];
         for s in internal {
             assert!(
@@ -319,6 +324,8 @@ mod tests {
             );
         }
         // A genuine global v6 address is not internal.
-        assert!(!is_internal_ip("2606:4700:4700::1111".parse::<Ipv6Addr>().unwrap().into()));
+        assert!(!is_internal_ip(
+            "2606:4700:4700::1111".parse::<Ipv6Addr>().unwrap().into()
+        ));
     }
 }

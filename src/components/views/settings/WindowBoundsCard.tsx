@@ -40,7 +40,10 @@ export function WindowBoundsCard() {
   };
 
   return (
-    <section aria-label={t("settings.windowBounds.title")} className="px-4 py-3">
+    <section
+      aria-label={t("settings.windowBounds.title")}
+      className="px-4 py-3"
+    >
       <div className="flex items-start justify-between gap-3">
         <span className="flex items-start gap-3 min-w-0">
           <Maximize2
@@ -73,7 +76,11 @@ export function WindowBoundsCard() {
         >
           {done ? (
             <>
-              <Check size={14} className="text-emerald-500" aria-hidden="true" />
+              <Check
+                size={14}
+                className="text-emerald-500"
+                aria-hidden="true"
+              />
               {t("settings.windowBounds.done")}
             </>
           ) : (

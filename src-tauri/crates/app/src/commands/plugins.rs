@@ -849,9 +849,10 @@ fn validate_option_value(
 ) -> AppResult<()> {
     use waveflow_core::plugin::manifest::option_types;
     match decl.option_type.as_str() {
-        option_types::BOOL if value != "true" && value != "false" => Err(AppError::Other(
-            format!("option {} expects \"true\" or \"false\"", decl.key),
-        )),
+        option_types::BOOL if value != "true" && value != "false" => Err(AppError::Other(format!(
+            "option {} expects \"true\" or \"false\"",
+            decl.key
+        ))),
         option_types::ENUM if !decl.choices.iter().any(|c| c == value) => Err(AppError::Other(
             format!("option {} value not in declared choices", decl.key),
         )),
@@ -879,7 +880,9 @@ pub async fn get_plugin_options(
         let manifest = Manifest::load_from_path(&manifest_path)
             .map_err(|e| AppError::Other(format!("load manifest: {e}")))?;
         if manifest.plugin.id != id_for_blocking {
-            return Err(AppError::Other("manifest id does not match plugin dir".into()));
+            return Err(AppError::Other(
+                "manifest id does not match plugin dir".into(),
+            ));
         }
         let values = waveflow_core::plugin::plugin_config::read(&state_dir);
         Ok(manifest
@@ -927,7 +930,9 @@ pub async fn set_plugin_option(
         let manifest = Manifest::load_from_path(&manifest_path)
             .map_err(|e| AppError::Other(format!("load manifest: {e}")))?;
         if manifest.plugin.id != id_for_blocking {
-            return Err(AppError::Other("manifest id does not match plugin dir".into()));
+            return Err(AppError::Other(
+                "manifest id does not match plugin dir".into(),
+            ));
         }
         let decl = manifest
             .options
