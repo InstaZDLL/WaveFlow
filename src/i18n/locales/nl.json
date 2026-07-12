@@ -1934,7 +1934,8 @@
       "title": "Vensterpositie",
       "subtitle": "Vergeet de opgeslagen venstergrootte en -positie. Bij de volgende start wordt het standaardformaat gebruikt.",
       "reset": "Herstellen",
-      "done": "Hersteld"
+      "done": "Hersteld",
+      "error": "Herstellen mislukt. Probeer het opnieuw."
     }
   },
   "spotify": {

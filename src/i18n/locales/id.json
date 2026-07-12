@@ -1934,7 +1934,8 @@
       "title": "Posisi jendela",
       "subtitle": "Lupakan ukuran dan posisi jendela yang tersimpan. Peluncuran berikutnya terbuka pada nilai bawaan.",
       "reset": "Atur ulang",
-      "done": "Diatur ulang"
+      "done": "Diatur ulang",
+      "error": "Gagal mengatur ulang. Silakan coba lagi."
     }
   },
   "spotify": {

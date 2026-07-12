@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, Maximize2 } from "lucide-react";
 import { clearMainWindowBounds } from "../../../lib/tauri/preferences";
+import { suppressMainWindowBoundsWrites } from "../../../lib/mainWindowBoundsGuard";
 
 /**
  * Settings → Appearance action that forgets the persisted main-window
@@ -15,16 +16,24 @@ export function WindowBoundsCard() {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState(false);
 
   const handleReset = async () => {
     if (busy) return;
     setBusy(true);
+    setDone(false);
+    setError(false);
     try {
+      // Suppress the debounced bounds writer *before* deleting the row so a
+      // save scheduled by a just-completed move/resize can't recreate it
+      // after the delete (#362).
+      suppressMainWindowBoundsWrites();
       await clearMainWindowBounds();
       setDone(true);
       window.setTimeout(() => setDone(false), 2500);
     } catch (err) {
       console.error("[WindowBoundsCard] reset failed", err);
+      setError(true);
     } finally {
       setBusy(false);
     }
@@ -46,6 +55,14 @@ export function WindowBoundsCard() {
             <span className="block text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed mt-0.5">
               {t("settings.windowBounds.subtitle")}
             </span>
+            {error && (
+              <span
+                role="alert"
+                className="block text-xs text-red-500 leading-relaxed mt-1"
+              >
+                {t("settings.windowBounds.error")}
+              </span>
+            )}
           </span>
         </span>
         <button

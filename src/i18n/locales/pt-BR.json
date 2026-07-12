@@ -1934,7 +1934,8 @@
       "title": "Posição da janela",
       "subtitle": "Esquecer o tamanho e a posição salvos da janela. Na próxima abertura, usa os valores padrão.",
       "reset": "Redefinir",
-      "done": "Redefinido"
+      "done": "Redefinido",
+      "error": "Falha ao redefinir. Tente novamente."
     }
   },
   "spotify": {

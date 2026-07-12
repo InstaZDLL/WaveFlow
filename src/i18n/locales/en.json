@@ -1934,7 +1934,8 @@
       "title": "Window position",
       "subtitle": "Forget the saved window size and position. The next launch opens at the default.",
       "reset": "Reset",
-      "done": "Reset done"
+      "done": "Reset done",
+      "error": "Reset failed. Please try again."
     }
   },
   "spotify": {

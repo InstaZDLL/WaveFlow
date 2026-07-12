@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { setMainWindowBounds } from "../lib/tauri/preferences";
+import { mainWindowBoundsWritesSuppressed } from "../lib/mainWindowBoundsGuard";
 
 /**
  * Persist the main window's size and position across sessions.
@@ -52,8 +53,15 @@ export function useMainWindowBounds(): void {
             .catch(() => {})
             .then(() => {
               if (disposed || generation !== saveGeneration) return;
+              // A manual "Reset window position" opens a short suppression
+              // window before deleting the row; drop the write so this
+              // pending debounced save can't resurrect the reset bounds.
+              if (mainWindowBoundsWritesSuppressed()) return;
               return setMainWindowBounds(bounds).catch((err: unknown) => {
-                console.error("[useMainWindowBounds] persist bounds failed", err);
+                console.error(
+                  "[useMainWindowBounds] persist bounds failed",
+                  err,
+                );
               });
             });
         } catch (err) {

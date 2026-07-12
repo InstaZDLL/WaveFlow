@@ -1934,7 +1934,8 @@
       "title": "Fensterposition",
       "subtitle": "Gespeicherte Fenstergröße und -position verwerfen. Beim nächsten Start öffnet sich das Fenster mit den Standardwerten.",
       "reset": "Zurücksetzen",
-      "done": "Zurückgesetzt"
+      "done": "Zurückgesetzt",
+      "error": "Zurücksetzen fehlgeschlagen. Bitte erneut versuchen."
     }
   },
   "spotify": {
