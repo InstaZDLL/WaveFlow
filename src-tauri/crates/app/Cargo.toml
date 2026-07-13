@@ -156,7 +156,7 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 # unified; `connect-with-request` lets us attach the Bearer JWT to the
 # WS upgrade headers (the server's middleware extracts it before
 # routing to the upgrade handler).
-tokio-tungstenite = { version = "0.29", default-features = false, features = [
+tokio-tungstenite = { version = "0.30", default-features = false, features = [
     "connect",
     "rustls-tls-native-roots",
 ] }
