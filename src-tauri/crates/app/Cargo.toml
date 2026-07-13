@@ -135,7 +135,7 @@ symphonia = { version = "0.6", default-features = false, features = [
     "all-meta",
 ] }
 cpal = "0.17"
-rubato = "3.0"
+rubato = "4.0"
 rtrb = "0.3"
 crossbeam-channel = "0.5"
 # FFT for the spectrum visualizer. realfft is a thin wrapper over
