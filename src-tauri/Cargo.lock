@@ -725,7 +725,7 @@ checksum = "d38f2da7a0a2c4ccf0065be06397cc26a81f4e528be095826eee9d4adbb8c60f"
 dependencies = [
  "byteorder",
  "fnv",
- "uuid 1.23.4",
+ "uuid 1.23.5",
 ]
 
 [[package]]
@@ -3263,7 +3263,7 @@ dependencies = [
  "objc2",
  "objc2-foundation",
  "time",
- "uuid 1.23.4",
+ "uuid 1.23.5",
 ]
 
 [[package]]
@@ -4928,7 +4928,7 @@ dependencies = [
  "serde",
  "serde_json",
  "url",
- "uuid 1.23.4",
+ "uuid 1.23.5",
 ]
 
 [[package]]
@@ -6074,7 +6074,7 @@ dependencies = [
  "thiserror 2.0.18",
  "time",
  "url",
- "uuid 1.23.4",
+ "uuid 1.23.5",
  "walkdir",
 ]
 
@@ -6338,7 +6338,7 @@ dependencies = [
  "toml 1.1.2+spec-1.1.0",
  "url",
  "urlpattern",
- "uuid 1.23.4",
+ "uuid 1.23.5",
  "walkdir",
 ]
 
@@ -7136,9 +7136,9 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "1.23.4"
+version = "1.23.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf80a72845275afea99e7f2b434723d3bc7e38470fcd1c7ed39a599c73319a53"
+checksum = "ea5fab0d6c3c01ae70085a09cb03d4c7a1d6314e2b3e075392783396d724ca0a"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
@@ -7661,7 +7661,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "usvg",
- "uuid 1.23.4",
+ "uuid 1.23.5",
  "walkdir",
  "wasapi",
  "waveflow-core",
@@ -7700,7 +7700,7 @@ dependencies = [
  "toml 1.1.2+spec-1.1.0",
  "tracing",
  "usvg",
- "uuid 1.23.4",
+ "uuid 1.23.5",
  "wasmtime",
  "wasmtime-wasi",
  "waveflow-plugin-sdk",
@@ -7727,7 +7727,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tracing",
  "url",
- "uuid 1.23.4",
+ "uuid 1.23.5",
 ]
 
 [[package]]
@@ -8603,7 +8603,7 @@ dependencies = [
  "serde_repr",
  "tracing",
  "uds_windows",
- "uuid 1.23.4",
+ "uuid 1.23.5",
  "windows-sys 0.61.2",
  "winnow 1.0.3",
  "zbus_macros",
