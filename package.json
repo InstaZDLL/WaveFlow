@@ -59,7 +59,7 @@
     "husky": "^9.1.7",
     "prettier": "^3.9.5",
     "sharp": "^0.35.3",
-    "typescript": "~6.0.3",
+    "typescript": "~7.0.2",
     "typescript-eslint": "^8.63.0",
     "vite": "^8.1.4"
   }
