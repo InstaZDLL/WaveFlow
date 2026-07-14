@@ -12,7 +12,7 @@
 //! where the user's tracks already match the device rate.
 
 use rubato::audioadapter_buffers::direct::InterleavedSlice;
-use rubato::{Fft, FixedSync, Resampler as _};
+use rubato::{Fft, FixedSync, Resampler as _, WindowFunction};
 
 use crate::error::{AppError, AppResult};
 
@@ -57,12 +57,18 @@ impl Resampler {
             return Ok(Self::Passthrough);
         }
 
-        let inner = Fft::<f32>::new(
+        // rubato 4.0 dropped `sub_chunks` from `Fft::new` (it now
+        // auto-picks ~256-frame sub-chunks); `new_custom` keeps our
+        // deliberate SUB_CHUNKS=2 baseline and pins BlackmanHarris2 —
+        // the exact window `Fft::new` used internally in 3.0 — so the
+        // anti-aliasing response is unchanged across the bump.
+        let inner = Fft::<f32>::new_custom(
             src_rate as usize,
             dst_rate as usize,
             CHUNK_SIZE,
             SUB_CHUNKS,
             channels,
+            WindowFunction::BlackmanHarris2,
             FixedSync::Input,
         )
         .map_err(|e| AppError::Audio(format!("rubato init: {e}")))?;
