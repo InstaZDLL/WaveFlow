@@ -124,23 +124,11 @@ impl TheAudioDbClient {
             .json()
             .await?;
 
-        let Some(artist) = resp.artists.and_then(|mut a| {
-            if a.is_empty() {
-                None
-            } else {
-                Some(a.swap_remove(0))
-            }
-        }) else {
+        let Some(artist) =
+            resp.artists.and_then(|artists| pick_artist(artists, &normalize_name(name)))
+        else {
             return Ok(None);
         };
-
-        // Guard against homonyms / fuzzy hits: only trust the result when
-        // its name matches what we searched for (case-insensitive) — the
-        // same name-match the Deezer enrichment path applies before
-        // accepting a search hit.
-        if artist.name.as_deref().map(str::to_lowercase) != Some(name.to_lowercase()) {
-            return Ok(None);
-        }
 
         let Some(full) = artist.bio_for_lang(lang).map(clean_text) else {
             return Ok(None);
@@ -163,6 +151,101 @@ fn non_blank(value: &Option<String>) -> Option<String> {
         .map(str::trim)
         .filter(|s| !s.is_empty())
         .map(str::to_string)
+}
+
+/// Pick the artist entry that best matches the normalized search term.
+///
+/// TheAudioDB's `search.php?s=<name>` returns a *relevance-ranked* array,
+/// but the top hit is often a canonical superset ("Bob Marley & The
+/// Wailers" for a library tagged "Bob Marley"). The old code took index 0
+/// and demanded an exact case-insensitive name equality, so any such
+/// superset — or a mere punctuation difference like "Boney M." vs
+/// "Boney M" — silently dropped the bio (issue #342).
+///
+/// Now we scan the whole list: an exact normalized match wins wherever it
+/// sits, and failing that we accept the first word-boundary prefix match
+/// in either direction (subset ↔ superset). Normalization folds case,
+/// common Latin diacritics, `&`/"and", punctuation and whitespace, so
+/// homonym protection is preserved (unrelated names still don't match)
+/// while trivial spelling variance no longer blocks a hit.
+fn pick_artist(artists: Vec<ArtistPayload>, searched: &str) -> Option<ArtistPayload> {
+    if searched.is_empty() {
+        return None;
+    }
+    let mut prefix_match: Option<ArtistPayload> = None;
+    for artist in artists {
+        let Some(candidate) = artist.name.as_deref().map(normalize_name) else {
+            continue;
+        };
+        if candidate == searched {
+            return Some(artist);
+        }
+        if prefix_match.is_none() && names_prefix_compatible(searched, &candidate) {
+            prefix_match = Some(artist);
+        }
+    }
+    prefix_match
+}
+
+/// Normalise an artist name for fuzzy comparison: lowercase, fold common
+/// Latin diacritics, expand `&` to "and", drop punctuation and collapse
+/// whitespace to single spaces. "Boney M." and "Boney M" both become
+/// "boney m"; "Bob Marley & The Wailers" becomes "bob marley and the
+/// wailers"; "Beyoncé" becomes "beyonce". Non-Latin scripts (CJK, …) are
+/// preserved verbatim minus punctuation.
+fn normalize_name(name: &str) -> String {
+    let lowered = name.to_lowercase().replace('&', " and ");
+    let mut out = String::with_capacity(lowered.len());
+    let mut pending_space = false;
+    for ch in lowered.chars() {
+        let folded = fold_diacritic(ch);
+        if folded.is_alphanumeric() {
+            if pending_space && !out.is_empty() {
+                out.push(' ');
+            }
+            pending_space = false;
+            out.push(folded);
+        } else {
+            // Punctuation or whitespace → a single word boundary.
+            pending_space = true;
+        }
+    }
+    out
+}
+
+/// Map a lowercase accented Latin char to its base letter; pass anything
+/// else through unchanged. Covers the accents common in Western artist
+/// names without pulling in a Unicode-normalization dependency.
+fn fold_diacritic(ch: char) -> char {
+    match ch {
+        'á' | 'à' | 'â' | 'ä' | 'ã' | 'å' | 'ā' | 'ą' => 'a',
+        'ç' | 'ć' | 'č' => 'c',
+        'é' | 'è' | 'ê' | 'ë' | 'ē' | 'ę' | 'ě' => 'e',
+        'í' | 'ì' | 'î' | 'ï' | 'ī' => 'i',
+        'ñ' | 'ń' => 'n',
+        'ó' | 'ò' | 'ô' | 'ö' | 'õ' | 'ø' | 'ō' => 'o',
+        'ś' | 'š' => 's',
+        'ú' | 'ù' | 'û' | 'ü' | 'ū' => 'u',
+        'ý' | 'ÿ' => 'y',
+        'ź' | 'ż' | 'ž' => 'z',
+        other => other,
+    }
+}
+
+/// True when one normalized name is a word-boundary prefix of the other
+/// (or they're equal). Both inputs are single-space-joined with no
+/// leading/trailing space, so requiring the remainder to start with a
+/// space keeps the match anchored to a whole word — "bob marley" matches
+/// "bob marley and the wailers" but not "bob marleyx".
+fn names_prefix_compatible(a: &str, b: &str) -> bool {
+    let (short, long) = if a.len() <= b.len() { (a, b) } else { (b, a) };
+    if short.is_empty() {
+        return false;
+    }
+    match long.strip_prefix(short) {
+        Some(rest) => rest.is_empty() || rest.starts_with(' '),
+        None => false,
+    }
 }
 
 /// Normalise line endings and trim. TheAudioDB bios are plain text
@@ -240,5 +323,82 @@ mod tests {
         };
         assert_eq!(payload.bio_for_lang("fr").as_deref(), Some("English bio"));
         assert_eq!(payload.bio_for_lang("de").as_deref(), Some("English bio"));
+    }
+
+    /// Build a payload with only a name + an English bio derived from it,
+    /// so tests can assert *which* entry `pick_artist` selected.
+    fn named(name: &str) -> ArtistPayload {
+        ArtistPayload {
+            name: Some(name.into()),
+            bio_en: Some(format!("bio of {name}")),
+            bio_fr: None,
+            bio_de: None,
+            bio_es: None,
+            bio_it: None,
+            bio_pt: None,
+            bio_nl: None,
+            bio_ru: None,
+            bio_jp: None,
+            bio_cn: None,
+        }
+    }
+
+    #[test]
+    fn normalize_folds_punctuation_case_and_diacritics() {
+        assert_eq!(normalize_name("Boney M."), "boney m");
+        assert_eq!(normalize_name("Boney M"), "boney m");
+        assert_eq!(
+            normalize_name("Bob Marley & The Wailers"),
+            "bob marley and the wailers"
+        );
+        assert_eq!(normalize_name("Beyoncé"), "beyonce");
+        assert_eq!(normalize_name("Guns N' Roses"), "guns n roses");
+        // Non-Latin script survives (minus punctuation).
+        assert_eq!(normalize_name("宇多田ヒカル"), "宇多田ヒカル");
+    }
+
+    #[test]
+    fn pick_exact_match_wins_regardless_of_position() {
+        // The relevant entry sits after a homonym; exact match must still win.
+        let artists = vec![named("Nirvana (60s band)"), named("Nirvana")];
+        let picked = pick_artist(artists, &normalize_name("Nirvana")).unwrap();
+        assert_eq!(picked.name.as_deref(), Some("Nirvana"));
+    }
+
+    #[test]
+    fn pick_punctuation_only_difference_matches() {
+        // "Boney M." (search) vs "Boney M" (DB) — issue #342.
+        let artists = vec![named("Boney M")];
+        let picked = pick_artist(artists, &normalize_name("Boney M.")).unwrap();
+        assert_eq!(picked.name.as_deref(), Some("Boney M"));
+    }
+
+    #[test]
+    fn pick_superset_name_matches_via_prefix() {
+        // Library tagged "Bob Marley", TheAudioDB canonical is the band — #342.
+        let artists = vec![named("Bob Marley & The Wailers")];
+        let picked = pick_artist(artists, &normalize_name("Bob Marley")).unwrap();
+        assert_eq!(picked.name.as_deref(), Some("Bob Marley & The Wailers"));
+    }
+
+    #[test]
+    fn pick_prefers_exact_over_prefix() {
+        let artists = vec![named("Bob Marley & The Wailers"), named("Bob Marley")];
+        let picked = pick_artist(artists, &normalize_name("Bob Marley")).unwrap();
+        assert_eq!(picked.name.as_deref(), Some("Bob Marley"));
+    }
+
+    #[test]
+    fn pick_rejects_unrelated_homonym() {
+        // "Bob Dylan" must not satisfy a "Bob Marley" search.
+        let artists = vec![named("Bob Dylan")];
+        assert!(pick_artist(artists, &normalize_name("Bob Marley")).is_none());
+        // A shared first word alone is not a word-boundary prefix match.
+        assert!(!names_prefix_compatible("bob marley", "bob dylan"));
+    }
+
+    #[test]
+    fn pick_empty_search_is_none() {
+        assert!(pick_artist(vec![named("Anything")], "").is_none());
     }
 }
