@@ -198,6 +198,14 @@ fn normalize_name(name: &str) -> String {
     let mut out = String::with_capacity(lowered.len());
     let mut pending_space = false;
     for ch in lowered.chars() {
+        // Drop NFD combining marks (the accent half of a decomposed
+        // character) so "Bjo\u{308}rk" folds to the same "bjork" as its
+        // precomposed NFC form — without this they'd act as a boundary
+        // and split the word. NOT a word boundary, so we `continue`
+        // rather than fall into the punctuation branch below.
+        if is_combining_mark(ch) {
+            continue;
+        }
         let folded = fold_diacritic(ch);
         if folded.is_alphanumeric() {
             if pending_space && !out.is_empty() {
@@ -211,6 +219,20 @@ fn normalize_name(name: &str) -> String {
         }
     }
     out
+}
+
+/// True for Unicode nonspacing combining marks — the accent halves left
+/// standing in an NFD-decomposed string. Covers the standard combining
+/// blocks; dependency-free stand-in for the `Mn` general category so we
+/// don't pull in `unicode-normalization` just to fold accents.
+fn is_combining_mark(ch: char) -> bool {
+    matches!(ch as u32,
+        0x0300..=0x036F | // Combining Diacritical Marks
+        0x1AB0..=0x1AFF | // Combining Diacritical Marks Extended
+        0x1DC0..=0x1DFF | // Combining Diacritical Marks Supplement
+        0x20D0..=0x20FF | // Combining Diacritical Marks for Symbols
+        0xFE20..=0xFE2F,  // Combining Half Marks
+    )
 }
 
 /// Map a lowercase accented Latin char to its base letter; pass anything
@@ -355,6 +377,22 @@ mod tests {
         assert_eq!(normalize_name("Guns N' Roses"), "guns n roses");
         // Non-Latin script survives (minus punctuation).
         assert_eq!(normalize_name("宇多田ヒカル"), "宇多田ヒカル");
+    }
+
+    #[test]
+    fn normalize_is_stable_across_nfc_and_nfd_forms() {
+        // "Björk": precomposed ö (NFC) vs o + combining diaeresis (NFD).
+        let bjork_nfc = "Bj\u{00F6}rk";
+        let bjork_nfd = "Bjo\u{0308}rk";
+        assert_eq!(normalize_name(bjork_nfc), "bjork");
+        assert_eq!(normalize_name(bjork_nfd), "bjork");
+        assert_eq!(normalize_name(bjork_nfc), normalize_name(bjork_nfd));
+
+        // "Beyoncé": precomposed é (NFC) vs e + combining acute (NFD).
+        let beyonce_nfc = "Beyonc\u{00E9}";
+        let beyonce_nfd = "Beyonce\u{0301}";
+        assert_eq!(normalize_name(beyonce_nfd), "beyonce");
+        assert_eq!(normalize_name(beyonce_nfc), normalize_name(beyonce_nfd));
     }
 
     #[test]
