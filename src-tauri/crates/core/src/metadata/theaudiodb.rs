@@ -421,6 +421,18 @@ mod tests {
     }
 
     #[test]
+    fn pick_matches_accentless_library_name_to_accented_entry() {
+        // TheAudioDB's search is accent-insensitive, so a library artist
+        // tagged "Celine Dion" (no accent) still gets "Céline Dion" back;
+        // the client match must then survive the accent difference —
+        // exactly jo-el414's report on #342. Both forms normalize to
+        // "celine dion", so it's an exact match, not a fuzzy fallback.
+        let artists = vec![named("Céline Dion")];
+        let picked = pick_artist(artists, &normalize_name("Celine Dion")).unwrap();
+        assert_eq!(picked.name.as_deref(), Some("Céline Dion"));
+    }
+
+    #[test]
     fn pick_punctuation_only_difference_matches() {
         // "Boney M." (search) vs "Boney M" (DB) — issue #342.
         let artists = vec![named("Boney M")];
