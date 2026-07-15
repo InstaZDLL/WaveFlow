@@ -12,7 +12,11 @@ import { mainWindowBoundsWritesSuppressed } from "../lib/mainWindowBoundsGuard";
  * `onMoved` and `onResized` events and debounces saves at 300 ms so rapid
  * drag/resize gestures do not hammer SQLite at 60 Hz.
  *
- * Mirrors the mini-player's bounds-persistence logic in MiniPlayer.tsx.
+ * Structurally close to the mini-player's bounds persistence
+ * (MiniPlayer.tsx), but deliberately saves `innerSize` rather than
+ * `outerSize`: the main window carries OS decorations while the mini is
+ * `decorations: false` (inner === outer), so only this window needs the
+ * inner/outer distinction to round-trip through `set_size`. See #379.
  */
 export function useMainWindowBounds(): void {
   useEffect(() => {
@@ -36,7 +40,15 @@ export function useMainWindowBounds(): void {
         try {
           const scale = await win.scaleFactor();
           const pos = await win.outerPosition();
-          const size = await win.outerSize();
+          // Save the INNER (client-area) size, not the outer size. The
+          // Rust restore path uses `window.set_size(LogicalSize)`, which
+          // in Tauri 2 sets the inner size. The main window has OS
+          // decorations (title bar + borders), so persisting `outerSize`
+          // here and restoring it as the inner size grew the window by
+          // one title-bar height (down) + border width (right) on every
+          // launch (issue #379). Position stays on `outerPosition` /
+          // `set_position`, which are already an outer↔outer pair.
+          const size = await win.innerSize();
           // Re-check after awaits: unmount or a later gesture may have
           // invalidated this save while the async calls were in flight.
           if (disposed || generation !== saveGeneration) return;
