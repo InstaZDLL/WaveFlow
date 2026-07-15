@@ -23,6 +23,7 @@ use tauri::{AppHandle, Emitter};
 use waveflow_core::metadata::{
     deezer::DeezerClient,
     lastfm::LastfmClient,
+    name_match::{normalize_name, select_by_name},
     theaudiodb::{make_summary, TheAudioDbClient},
 };
 
@@ -420,9 +421,11 @@ async fn enrich_artist_deezer_inner(
     } else {
         match client.search_artist(&artist_name).await {
             Ok(hits) => {
-                let canonical = artist_name.to_lowercase();
-                hits.into_iter()
-                    .find(|h| h.name.to_lowercase() == canonical)
+                // Share TheAudioDB's fuzzy matcher (#342): Deezer's search
+                // is accent-insensitive too, so an exact-equality filter
+                // dropped the picture/cover for "Celine Dion" ↔ "Céline
+                // Dion" and superset names like "Bob Marley & The Wailers".
+                select_by_name(hits, &normalize_name(&artist_name), |h| Some(h.name.as_str()))
             }
             Err(err) => {
                 tracing::warn!(?err, "Deezer search_artist failed");
