@@ -210,6 +210,18 @@ mod tests {
     }
 
     #[test]
+    fn superset_search_matches_subset_candidate() {
+        // Reverse of `superset_name_matches_via_connector`: the *search*
+        // is the long canonical name and the catalogue only carries the
+        // short one. Exercises the (short, long) swap in
+        // `names_prefix_compatible` from the other side.
+        assert_eq!(
+            pick(&["Bob Marley"], "Bob Marley & The Wailers"),
+            Some("Bob Marley")
+        );
+    }
+
+    #[test]
     fn prefers_exact_over_prefix() {
         assert_eq!(
             pick(&["Bob Marley & The Wailers", "Bob Marley"], "Bob Marley"),
