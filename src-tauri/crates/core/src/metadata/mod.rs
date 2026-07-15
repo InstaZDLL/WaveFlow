@@ -9,4 +9,5 @@
 pub mod deezer;
 pub mod lastfm;
 pub mod lrclib;
+pub mod name_match;
 pub mod theaudiodb;
