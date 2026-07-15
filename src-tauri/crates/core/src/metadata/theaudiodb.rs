@@ -254,20 +254,37 @@ fn fold_diacritic(ch: char) -> char {
     }
 }
 
-/// True when one normalized name is a word-boundary prefix of the other
-/// (or they're equal). Both inputs are single-space-joined with no
-/// leading/trailing space, so requiring the remainder to start with a
-/// space keeps the match anchored to a whole word — "bob marley" matches
-/// "bob marley and the wailers" but not "bob marleyx".
+/// Connectors that open a canonical "backing band" / collaboration
+/// extension after normalization (`&` is already folded to "and"). Only a
+/// suffix starting with one of these promotes a prefix into a match.
+const CANONICAL_CONNECTORS: [&str; 5] = ["and", "with", "feat", "featuring", "ft"];
+
+/// True when the two normalized names denote the same artist under a
+/// canonical extension: one is the other followed by a recognized
+/// connector — "bob marley" ↔ "bob marley and the wailers".
+///
+/// A bare word-boundary prefix is deliberately NOT enough. A
+/// parenthetical disambiguator like "nirvana 60s band" (from "Nirvana
+/// (60s band)") is a *different* artist that happens to share a leading
+/// word, so the extension's first token must be an actual connector or we
+/// reject it. Both inputs are single-space-joined with no leading/trailing
+/// space, so the connector always sits right after the shared prefix.
 fn names_prefix_compatible(a: &str, b: &str) -> bool {
     let (short, long) = if a.len() <= b.len() { (a, b) } else { (b, a) };
     if short.is_empty() {
         return false;
     }
-    match long.strip_prefix(short) {
-        Some(rest) => rest.is_empty() || rest.starts_with(' '),
-        None => false,
-    }
+    let Some(rest) = long.strip_prefix(short) else {
+        return false;
+    };
+    // Word-boundary split, then require a known connector as the first
+    // token of the extension.
+    let Some(tail) = rest.strip_prefix(' ') else {
+        return false;
+    };
+    tail.split(' ')
+        .next()
+        .is_some_and(|token| CANONICAL_CONNECTORS.contains(&token))
 }
 
 /// Normalise line endings and trim. TheAudioDB bios are plain text
@@ -433,6 +450,25 @@ mod tests {
         assert!(pick_artist(artists, &normalize_name("Bob Marley")).is_none());
         // A shared first word alone is not a word-boundary prefix match.
         assert!(!names_prefix_compatible("bob marley", "bob dylan"));
+    }
+
+    #[test]
+    fn pick_rejects_parenthetical_homonym_when_alone() {
+        // "Nirvana (60s band)" as the ONLY result must NOT satisfy a
+        // "Nirvana" search — the " 60s band" suffix is a disambiguator,
+        // not a canonical backing-band connector. Isolated from any exact
+        // match so the fallback is what's under test.
+        let artists = vec![named("Nirvana (60s band)")];
+        assert!(pick_artist(artists, &normalize_name("Nirvana")).is_none());
+        assert!(!names_prefix_compatible(
+            "nirvana",
+            &normalize_name("Nirvana (60s band)")
+        ));
+        // But a real connector suffix still matches.
+        assert!(names_prefix_compatible(
+            "nirvana",
+            "nirvana and the deep sea"
+        ));
     }
 
     #[test]
