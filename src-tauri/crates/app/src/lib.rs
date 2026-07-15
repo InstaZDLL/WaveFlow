@@ -498,50 +498,49 @@ pub fn run() {
             // A 15 s safety-net timer force-reveals the main window if
             // `app://ready` never fires — guards against a frontend
             // crash leaving the user stuck on an eternal splash.
-            let handoff_done = Arc::new(AtomicBool::new(false));
-            let handoff_handle = app.handle().clone();
-            let handoff_done_for_event = handoff_done.clone();
+            // Driven by a single reveal task so there is exactly one
+            // owner of the handoff. `app://ready` merely *notifies* it;
+            // the task waits for that signal OR the 15 s deadline
+            // (whichever comes first), then reveals the main window,
+            // retrying until a reveal actually succeeds. The previous
+            // shared-`AtomicBool` coordination let the fallback observe
+            // the flag the event handler had already set and `return`
+            // before the event's own reveal task finished — so if that
+            // task then failed, nobody retried and the user was stuck on
+            // the splash (issue #363). One owner + retry-until-success
+            // removes both the race and the double-reveal window.
+            let ready = Arc::new(tokio::sync::Notify::new());
+            let ready_for_event = ready.clone();
             app.listen("app://ready", move |_event| {
-                if handoff_done_for_event.swap(true, Ordering::SeqCst) {
-                    return;
-                }
-                let app_for_reveal = handoff_handle.clone();
-                let done_flag = handoff_done_for_event.clone();
-                tauri::async_runtime::spawn(async move {
-                    if !restore_bounds_and_reveal(app_for_reveal).await {
-                        done_flag.store(false, Ordering::SeqCst);
-                    }
-                });
+                ready_for_event.notify_one();
             });
 
-            let fallback_handle = app.handle().clone();
-            let fallback_done = handoff_done.clone();
+            let reveal_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                // First attempt after 15 s; subsequent retries every
-                // 250 ms up to 10 total attempts. Bounded so a
-                // permanently missing main window doesn't spin forever
-                // (the warn! log surfaces it instead). The retry exists
-                // because `ReadySignal` only emits `app://ready` once
-                // at mount — if we lost the race with that single
-                // event AND the first reveal failed, without a retry
-                // the user would be stuck on the splash.
-                tokio::time::sleep(Duration::from_secs(15)).await;
+                // `notify_one` stores a permit even when it fires before
+                // we reach this await, so an early `app://ready` (racing
+                // the heavy first-launch init) is never lost.
+                tokio::select! {
+                    _ = ready.notified() => {}
+                    _ = tokio::time::sleep(Duration::from_secs(15)) => {
+                        tracing::warn!(
+                            "splash handoff: `app://ready` never fired in 15s, force-revealing main window"
+                        );
+                    }
+                }
+                // Retry until a reveal actually succeeds. Bounded (10 ×
+                // 250 ms) so a permanently missing main window logs an
+                // error instead of spinning forever; each attempt re-runs
+                // the full reveal (show main + close splash).
                 for attempt in 0..10 {
-                    if fallback_done.swap(true, Ordering::SeqCst) {
+                    if restore_bounds_and_reveal(reveal_handle.clone()).await {
                         return;
                     }
-                    tracing::warn!(
-                        attempt,
-                        "splash handoff fallback: `app://ready` never fired in time, force-revealing main window"
-                    );
-                    if restore_bounds_and_reveal(fallback_handle.clone()).await {
-                        return;
-                    }
-                    fallback_done.store(false, Ordering::SeqCst);
+                    tracing::warn!(attempt, "splash handoff: reveal attempt failed, retrying");
                     tokio::time::sleep(Duration::from_millis(250)).await;
                 }
                 tracing::error!(
-                    "splash handoff fallback: exhausted 10 reveal attempts, user is likely stuck on splash"
+                    "splash handoff: exhausted 10 reveal attempts, user is likely stuck on splash"
                 );
             });
 
