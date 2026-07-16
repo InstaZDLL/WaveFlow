@@ -204,12 +204,19 @@ async fn safety_backup_all_profiles(state: &AppState) -> Option<PathBuf> {
             }
         };
 
-    // Fold the active profile's pending WAL pages back into its main file
-    // so the copied `data.db` is a complete snapshot. Inactive profiles
-    // were already checkpointed when they were deactivated.
+    // Fold each profile's pending WAL pages into its main file so the
+    // raw `data.db` copy is a complete, consistent snapshot. The active
+    // profile goes through its live pool; inactive profiles have no open
+    // pool, so their WAL is checkpointed per-file below (a closed pool
+    // isn't guaranteed to have TRUNCATE-checkpointed on close, so copying
+    // data.db alone could otherwise miss their newest committed writes).
+    let active_id = {
+        let guard = state.profile.read().await;
+        guard.as_ref().map(|p| p.profile_id)
+    };
     if let Ok(pool) = state.require_profile_pool().await {
         if let Err(err) = checkpoint_wal(&pool).await {
-            tracing::warn!(?err, "pre-reset safety backup: WAL checkpoint failed; snapshot may miss the newest writes");
+            tracing::warn!(?err, "pre-reset safety backup: active WAL checkpoint failed; snapshot may miss the newest writes");
         }
     }
 
@@ -225,6 +232,12 @@ async fn safety_backup_all_profiles(state: &AppState) -> Option<PathBuf> {
         let artwork_dir = state.paths.profile_artwork_dir(profile_id);
         let metadata_artwork_dir = include_meta.then(|| state.paths.metadata_artwork_dir.clone());
 
+        if Some(profile_id) != active_id {
+            if let Err(err) = checkpoint_db_file(&db_path).await {
+                tracing::warn!(?err, profile_id, "pre-reset safety backup: inactive-profile WAL checkpoint failed; its snapshot may miss the newest writes");
+            }
+        }
+
         let manifest = ArchiveManifest {
             archive_version: ARCHIVE_VERSION,
             app_version: env!("CARGO_PKG_VERSION").to_string(),
@@ -233,34 +246,76 @@ async fn safety_backup_all_profiles(state: &AppState) -> Option<PathBuf> {
             exported_at: Utc::now().to_rfc3339(),
         };
 
-        let target = target_dir.join(format!(
+        let final_target = target_dir.join(format!(
             "pre-reset-{}-{profile_id}-{stamp}.waveflow",
             sanitize_filename(&profile_name)
         ));
+        // Write to a temp sibling and rename on success so a failed or
+        // interrupted archive never leaves a truncated `.waveflow` that
+        // looks like a valid backup. Same directory → the rename is an
+        // atomic same-filesystem move.
+        let tmp_target = final_target.with_extension("part");
 
-        let res = tokio::task::spawn_blocking(move || {
-            write_archive(
-                &target,
-                &profile_dir,
-                &db_path,
-                &artwork_dir,
-                metadata_artwork_dir.as_deref(),
-                &manifest,
-            )
+        let write_res = tokio::task::spawn_blocking({
+            let tmp_target = tmp_target.clone();
+            move || {
+                write_archive(
+                    &tmp_target,
+                    &profile_dir,
+                    &db_path,
+                    &artwork_dir,
+                    metadata_artwork_dir.as_deref(),
+                    &manifest,
+                )
+            }
         })
         .await;
-        match res {
-            Ok(Ok(())) => written += 1,
+        match write_res {
+            Ok(Ok(())) => match std::fs::rename(&tmp_target, &final_target) {
+                Ok(()) => written += 1,
+                Err(err) => {
+                    tracing::warn!(?err, profile_id, "pre-reset safety backup: could not finalize archive; discarding partial");
+                    let _ = std::fs::remove_file(&tmp_target);
+                }
+            },
             Ok(Err(err)) => {
-                tracing::warn!(?err, profile_id, "pre-reset safety backup: archive failed for profile")
+                tracing::warn!(?err, profile_id, "pre-reset safety backup: archive failed for profile");
+                let _ = std::fs::remove_file(&tmp_target);
             }
             Err(err) => {
-                tracing::warn!(?err, profile_id, "pre-reset safety backup: task join failed for profile")
+                tracing::warn!(?err, profile_id, "pre-reset safety backup: task join failed for profile");
+                let _ = std::fs::remove_file(&tmp_target);
             }
         }
     }
 
     (written > 0).then_some(target_dir)
+}
+
+/// Checkpoint an on-disk profile database that has no open pool, folding
+/// its WAL back into the main file so a raw copy of `data.db` is a
+/// complete snapshot. Opens a short-lived connection — safe because an
+/// inactive profile holds no other connection — and TRUNCATE-checkpoints.
+async fn checkpoint_db_file(db_path: &Path) -> AppResult<()> {
+    use sqlx::sqlite::SqliteConnectOptions;
+    use sqlx::{ConnectOptions, Connection};
+
+    if !db_path.exists() {
+        return Ok(());
+    }
+    let mut conn = SqliteConnectOptions::new()
+        .filename(db_path)
+        .create_if_missing(false)
+        .connect()
+        .await?;
+    let checkpoint = sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+        .execute(&mut conn)
+        .await;
+    // Close regardless of the checkpoint result so we never leak the
+    // connection (which would itself leave a WAL behind).
+    let _ = conn.close().await;
+    checkpoint?;
+    Ok(())
 }
 
 /// Strip characters that are hostile in a filename down to `_`, so a
