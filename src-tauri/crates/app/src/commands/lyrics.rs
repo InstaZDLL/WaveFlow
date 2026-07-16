@@ -2,7 +2,8 @@
 //!
 //! Lazy multi-tier lookup, in order:
 //!   1. Local DB cache (`lyrics` table, keyed by `track_id`)
-//!   2. Embedded `USLT` / lyrics tag inside the audio file (via lofty)
+//!   2. Embedded lyrics tag inside the audio file (via lofty), preferring
+//!      a synced `SYNCEDLYRICS` tag over the plain `USLT` / `LYRICS` ones
 //!   3. Local sidecar file — `{stem}.lrc` / `{stem}.txt` next to the
 //!      audio file, or inside a `Lyrics/` (case-insensitive) subfolder
 //!      next to it. `.lrc` wins over `.txt` (timing info).
@@ -509,13 +510,30 @@ async fn try_external_fallback_or_miss(
     })
 }
 
-/// Re-open an MP3 as a typed `Id3v2Tag` and pull the lyrics out of any
-/// TXXX user-defined frame whose description matches one of the common
-/// lyric aliases (`LYRICS`, `UNSYNCEDLYRICS`, `LYRICS_UNSYNCED`, ...).
+/// TXXX (ID3v2) / Vorbis-comment descriptions carrying **synced** lyrics,
+/// most-preferred first. Antra and similar rips ship a timestamped LRC
+/// body under `SYNCEDLYRICS` alongside a plain `LYRICS`/`UNSYNCEDLYRICS`
+/// tag; we want the synced one to win (issue #378).
+const SYNCED_LYRICS_KEYS: &[&str] =
+    &["SYNCEDLYRICS", "SYNCED LYRICS", "SYNCED_LYRICS", "LYRICS_SYNCED"];
+
+/// TXXX (ID3v2) / Vorbis-comment descriptions carrying plain / unsynced
+/// lyrics — the fallback once no synced tag is present.
+const UNSYNCED_LYRICS_KEYS: &[&str] = &[
+    "UNSYNCEDLYRICS",
+    "UNSYNCED LYRICS",
+    "UNSYNCED_LYRICS",
+    "LYRICS_UNSYNCED",
+    "LYRICS",
+];
+
+/// Re-open an MP3 as a typed `Id3v2Tag` and pull the lyrics out of the
+/// first TXXX user-defined frame whose description matches one of
+/// `descriptions` (in order).
 ///
 /// Required because the generic `Tag` interface returned by
 /// `read_from_path` doesn't expose unmapped TXXX frames.
-fn read_id3v2_txxx_lyrics(path: &Path) -> Option<String> {
+fn read_id3v2_txxx(path: &Path, descriptions: &[&str]) -> Option<String> {
     use lofty::config::ParseOptions;
     use lofty::id3::v2::Id3v2Tag;
     use lofty::mpeg::MpegFile;
@@ -525,15 +543,8 @@ fn read_id3v2_txxx_lyrics(path: &Path) -> Option<String> {
         <MpegFile as lofty::file::AudioFile>::read_from(&mut file, ParseOptions::new()).ok()?;
     let tag: &Id3v2Tag = mpeg.id3v2()?;
 
-    const ALIASES: &[&str] = &[
-        "UNSYNCEDLYRICS",
-        "UNSYNCED LYRICS",
-        "UNSYNCED_LYRICS",
-        "LYRICS_UNSYNCED",
-        "LYRICS",
-    ];
-    for alias in ALIASES {
-        if let Some(s) = tag.get_user_text(alias) {
+    for description in descriptions {
+        if let Some(s) = tag.get_user_text(description) {
             let trimmed = s.trim();
             if !trimmed.is_empty() {
                 return Some(trimmed.to_string());
@@ -543,19 +554,87 @@ fn read_id3v2_txxx_lyrics(path: &Path) -> Option<String> {
     None
 }
 
+/// Pull lyrics from a Vorbis-comment field (`SYNCEDLYRICS`, …) on the
+/// container types that use them — FLAC, Ogg Vorbis, Opus, Speex.
+/// `VorbisComments::get` matches keys case-insensitively. The generic
+/// `Tag` drops these because lofty has no `ItemKey` for them, so we read
+/// the concrete tag directly, mirroring the ID3v2 TXXX path.
+fn read_vorbis_comment(path: &Path, file_type: FileType, keys: &[&str]) -> Option<String> {
+    use lofty::config::ParseOptions;
+    use lofty::file::AudioFile;
+
+    fn pick(comments: &lofty::ogg::VorbisComments, keys: &[&str]) -> Option<String> {
+        for key in keys {
+            if let Some(s) = comments.get(key) {
+                let trimmed = s.trim();
+                if !trimmed.is_empty() {
+                    return Some(trimmed.to_string());
+                }
+            }
+        }
+        None
+    }
+
+    let mut file = std::fs::File::open(path).ok()?;
+    match file_type {
+        FileType::Flac => {
+            use lofty::flac::FlacFile;
+            let f = FlacFile::read_from(&mut file, ParseOptions::new()).ok()?;
+            pick(f.vorbis_comments()?, keys)
+        }
+        FileType::Vorbis => {
+            use lofty::ogg::VorbisFile;
+            let f = VorbisFile::read_from(&mut file, ParseOptions::new()).ok()?;
+            pick(f.vorbis_comments(), keys)
+        }
+        FileType::Opus => {
+            use lofty::ogg::OpusFile;
+            let f = OpusFile::read_from(&mut file, ParseOptions::new()).ok()?;
+            pick(f.vorbis_comments(), keys)
+        }
+        FileType::Speex => {
+            use lofty::ogg::SpeexFile;
+            let f = SpeexFile::read_from(&mut file, ParseOptions::new()).ok()?;
+            pick(f.vorbis_comments(), keys)
+        }
+        _ => None,
+    }
+}
+
+/// Read a custom (non-`ItemKey`) lyrics tag by `keys` across every
+/// container we support: ID3v2 TXXX for MP3, Vorbis comments for
+/// FLAC/Ogg/Opus/Speex. Used for the `SYNCEDLYRICS` priority tag and the
+/// TXXX unsynced fallback.
+fn read_custom_lyrics_tag(path: &Path, file_type: Option<FileType>, keys: &[&str]) -> Option<String> {
+    match file_type {
+        Some(FileType::Mpeg) => read_id3v2_txxx(path, keys),
+        Some(ft @ (FileType::Flac | FileType::Vorbis | FileType::Opus | FileType::Speex)) => {
+            read_vorbis_comment(path, ft, keys)
+        }
+        _ => None,
+    }
+}
+
 /// Read the embedded lyrics tag. Lookup order:
-///   1. `ItemKey::UnsyncLyrics` — `USLT` (ID3v2), `UNSYNCEDLYRICS`
+///   1. `SYNCEDLYRICS` custom tag — TXXX (ID3v2) / Vorbis comment. Timed
+///      LRC body written by Antra & similar; wins because it carries the
+///      timestamps a plain lyrics tag doesn't (issue #378).
+///   2. `ItemKey::UnsyncLyrics` — `USLT` (ID3v2), `UNSYNCEDLYRICS`
 ///      (Vorbis), `©lyr` (MP4)
-///   2. `ItemKey::Lyrics` — `LYRICS` (Vorbis), `©lyr` (MP4). Not
+///   3. `ItemKey::Lyrics` — `LYRICS` (Vorbis), `©lyr` (MP4). Not
 ///      supported by ID3v2 in lofty.
-///   3. ID3v2 TXXX user-defined frames named `LYRICS` or
-///      `UNSYNCEDLYRICS` (legacy Mp3tag / foobar2000 / lame --tg
-///      output common on K-Pop / J-Pop rips).
-///   4. Generic `Description` field as last resort.
+///   4. TXXX / Vorbis custom `LYRICS` / `UNSYNCEDLYRICS` frames (legacy
+///      Mp3tag / foobar2000 / lame --tg output common on K-Pop / J-Pop
+///      rips) that the generic tag doesn't surface.
+///   5. Generic `Description` field as last resort.
 fn read_embedded_lyrics(path: &Path) -> Option<String> {
     let probe = Probe::open(path).ok()?.guess_file_type().ok()?;
     let file_type = probe.file_type();
     let tagged = probe.read().ok()?;
+
+    // Synced tag takes priority over every plain-lyrics source, including
+    // the standard USLT/Lyrics keys.
+    let from_synced = read_custom_lyrics_tag(path, file_type, SYNCED_LYRICS_KEYS);
 
     let from_known_key = tagged
         .primary_tag()
@@ -567,11 +646,12 @@ fn read_embedded_lyrics(path: &Path) -> Option<String> {
         });
 
     // Generic Tag wraps the underlying Id3v2Tag for MP3s, but the
-    // SplitAndMergeTag conversion drops unknown TXXX frames. Re-read
-    // the file as Id3v2Tag specifically when the standard frames came
-    // up empty so we can scan for `TXXX:LYRICS` / `TXXX:UNSYNCEDLYRICS`.
-    let from_id3v2_txxx = if file_type == Some(FileType::Mpeg) && from_known_key.is_none() {
-        read_id3v2_txxx_lyrics(path)
+    // SplitAndMergeTag conversion drops unknown TXXX frames (and lofty
+    // has no `ItemKey` for these Vorbis keys either). Re-read the concrete
+    // tag for `TXXX:LYRICS` / `TXXX:UNSYNCEDLYRICS` only when the standard
+    // frames came up empty.
+    let from_custom_unsynced = if from_synced.is_none() && from_known_key.is_none() {
+        read_custom_lyrics_tag(path, file_type, UNSYNCED_LYRICS_KEYS)
     } else {
         None
     };
@@ -586,7 +666,10 @@ fn read_embedded_lyrics(path: &Path) -> Option<String> {
                 .map(|s| s.to_string())
         });
 
-    let raw = from_known_key.or(from_id3v2_txxx).or(from_description)?;
+    let raw = from_synced
+        .or(from_known_key)
+        .or(from_custom_unsynced)
+        .or(from_description)?;
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         None
@@ -2278,6 +2361,36 @@ pub async fn export_lyrics_to_path(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn synced_keys_win_over_unsynced_in_vorbis_comments() {
+        use lofty::ogg::VorbisComments;
+
+        // A file carrying both tags (the Antra case, #378): the synced key
+        // must resolve, case-insensitively, before we ever consult the
+        // plain lyrics key.
+        let mut both = VorbisComments::default();
+        both.push("LYRICS".to_string(), "plain body".to_string());
+        both.push("SyncedLyrics".to_string(), "[00:01.00]timed".to_string());
+        assert_eq!(
+            SYNCED_LYRICS_KEYS.iter().find_map(|k| both.get(k)),
+            Some("[00:01.00]timed"),
+            "synced key should match regardless of stored case"
+        );
+
+        // A plain-only file yields nothing for the synced keys and falls
+        // through to the unsynced set.
+        let mut plain = VorbisComments::default();
+        plain.push("UNSYNCEDLYRICS".to_string(), "just words".to_string());
+        assert!(SYNCED_LYRICS_KEYS.iter().find_map(|k| plain.get(k)).is_none());
+        assert_eq!(
+            UNSYNCED_LYRICS_KEYS.iter().find_map(|k| plain.get(k)),
+            Some("just words")
+        );
+
+        // A synced LRC body is detected as timed lyrics downstream.
+        assert_eq!(detect_format("[00:01.00]timed"), LyricsFormat::Lrc);
+    }
 
     #[test]
     fn detect_format_plain() {
