@@ -636,6 +636,9 @@ fn read_embedded_lyrics(path: &Path) -> Option<String> {
     // the standard USLT/Lyrics keys.
     let from_synced = read_custom_lyrics_tag(path, file_type, SYNCED_LYRICS_KEYS);
 
+    // `filter` treats a whitespace-only standard tag as absent: an empty
+    // USLT/LYRICS frame must not mask a valid `TXXX:LYRICS` / Description
+    // fallback (nor short-circuit the custom-tag read below).
     let from_known_key = tagged
         .primary_tag()
         .or_else(|| tagged.first_tag())
@@ -643,7 +646,8 @@ fn read_embedded_lyrics(path: &Path) -> Option<String> {
             tag.get_string(ItemKey::UnsyncLyrics)
                 .or_else(|| tag.get_string(ItemKey::Lyrics))
                 .map(|s| s.to_string())
-        });
+        })
+        .filter(|s| !s.trim().is_empty());
 
     // Generic Tag wraps the underlying Id3v2Tag for MP3s, but the
     // SplitAndMergeTag conversion drops unknown TXXX frames (and lofty
@@ -666,16 +670,24 @@ fn read_embedded_lyrics(path: &Path) -> Option<String> {
                 .map(|s| s.to_string())
         });
 
-    let raw = from_synced
-        .or(from_known_key)
-        .or(from_custom_unsynced)
-        .or(from_description)?;
-    let trimmed = raw.trim();
-    if trimmed.is_empty() {
-        None
-    } else {
-        Some(trimmed.to_string())
-    }
+    resolve_embedded_lyrics([
+        from_synced,
+        from_known_key,
+        from_custom_unsynced,
+        from_description,
+    ])
+}
+
+/// Choose the embedded lyrics body from the candidate sources in priority
+/// order (synced → standard USLT/Lyrics → custom TXXX/Vorbis → Description),
+/// trimming each and treating blank/whitespace-only values as absent so a
+/// stale empty tag can never win over a later valid one.
+fn resolve_embedded_lyrics(candidates: [Option<String>; 4]) -> Option<String> {
+    candidates
+        .into_iter()
+        .flatten()
+        .map(|s| s.trim().to_string())
+        .find(|s| !s.is_empty())
 }
 
 /// Match a sidecar lyrics file on disk for an audio track.
@@ -2363,23 +2375,46 @@ mod tests {
     use super::*;
 
     #[test]
-    fn synced_keys_win_over_unsynced_in_vorbis_comments() {
+    fn embedded_lyrics_resolution_prioritizes_synced_and_skips_blanks() {
+        let s = |x: &str| Some(x.to_string());
+
+        // Synced wins over an unsynced standard tag (the Antra case, #378).
+        assert_eq!(
+            resolve_embedded_lyrics([s("[00:01.00]timed"), s("plain body"), None, None]),
+            Some("[00:01.00]timed".to_string())
+        );
+        // A whitespace-only standard tag is treated as absent, so a valid
+        // custom TXXX/Vorbis value is selected instead of returning nothing
+        // (the whitespace-masks-fallback bug from the CR).
+        assert_eq!(
+            resolve_embedded_lyrics([None, s("   \n\t  "), s("from txxx"), None]),
+            Some("from txxx".to_string())
+        );
+        // Unsynced-only falls back to the standard key.
+        assert_eq!(
+            resolve_embedded_lyrics([None, s("just words"), None, None]),
+            Some("just words".to_string())
+        );
+        // Every candidate blank/absent → None.
+        assert_eq!(resolve_embedded_lyrics([None, s("  "), None, s("\t")]), None);
+        // The synced body is detected as timed LRC downstream.
+        assert_eq!(detect_format("[00:01.00]timed"), LyricsFormat::Lrc);
+    }
+
+    #[test]
+    fn synced_keys_match_vorbis_comments_case_insensitively() {
         use lofty::ogg::VorbisComments;
 
-        // A file carrying both tags (the Antra case, #378): the synced key
-        // must resolve, case-insensitively, before we ever consult the
-        // plain lyrics key.
-        let mut both = VorbisComments::default();
-        both.push("LYRICS".to_string(), "plain body".to_string());
-        both.push("SyncedLyrics".to_string(), "[00:01.00]timed".to_string());
+        // Validates the reader mechanism: our key constants resolve a real
+        // VorbisComments case-insensitively, and a plain-only file yields
+        // nothing for the synced keys but hits the unsynced set.
+        let mut synced = VorbisComments::default();
+        synced.push("SyncedLyrics".to_string(), "[00:01.00]timed".to_string());
         assert_eq!(
-            SYNCED_LYRICS_KEYS.iter().find_map(|k| both.get(k)),
-            Some("[00:01.00]timed"),
-            "synced key should match regardless of stored case"
+            SYNCED_LYRICS_KEYS.iter().find_map(|k| synced.get(k)),
+            Some("[00:01.00]timed")
         );
 
-        // A plain-only file yields nothing for the synced keys and falls
-        // through to the unsynced set.
         let mut plain = VorbisComments::default();
         plain.push("UNSYNCEDLYRICS".to_string(), "just words".to_string());
         assert!(SYNCED_LYRICS_KEYS.iter().find_map(|k| plain.get(k)).is_none());
@@ -2387,9 +2422,6 @@ mod tests {
             UNSYNCED_LYRICS_KEYS.iter().find_map(|k| plain.get(k)),
             Some("just words")
         );
-
-        // A synced LRC body is detected as timed lyrics downstream.
-        assert_eq!(detect_format("[00:01.00]timed"), LyricsFormat::Lrc);
     }
 
     #[test]
