@@ -636,18 +636,13 @@ fn read_embedded_lyrics(path: &Path) -> Option<String> {
     // the standard USLT/Lyrics keys.
     let from_synced = read_custom_lyrics_tag(path, file_type, SYNCED_LYRICS_KEYS);
 
-    // `filter` treats a whitespace-only standard tag as absent: an empty
-    // USLT/LYRICS frame must not mask a valid `TXXX:LYRICS` / Description
-    // fallback (nor short-circuit the custom-tag read below).
+    // Each standard key is validated non-blank at its source so a
+    // whitespace-only USLT falls through to a valid LYRICS (and, when both
+    // are blank, doesn't mask the custom-tag / Description fallback below).
     let from_known_key = tagged
         .primary_tag()
         .or_else(|| tagged.first_tag())
-        .and_then(|tag| {
-            tag.get_string(ItemKey::UnsyncLyrics)
-                .or_else(|| tag.get_string(ItemKey::Lyrics))
-                .map(|s| s.to_string())
-        })
-        .filter(|s| !s.trim().is_empty());
+        .and_then(known_key_lyrics);
 
     // Generic Tag wraps the underlying Id3v2Tag for MP3s, but the
     // SplitAndMergeTag conversion drops unknown TXXX frames (and lofty
@@ -676,6 +671,17 @@ fn read_embedded_lyrics(path: &Path) -> Option<String> {
         from_custom_unsynced,
         from_description,
     ])
+}
+
+/// Pick the first non-blank value among the standard lyric keys on a tag:
+/// `UnsyncLyrics` (USLT), then `Lyrics`. Each is validated at its source
+/// so a whitespace-only `UnsyncLyrics` falls through to a valid `Lyrics`
+/// rather than winning and collapsing to nothing.
+fn known_key_lyrics(tag: &lofty::tag::Tag) -> Option<String> {
+    tag.get_string(ItemKey::UnsyncLyrics)
+        .filter(|s| !s.trim().is_empty())
+        .or_else(|| tag.get_string(ItemKey::Lyrics).filter(|s| !s.trim().is_empty()))
+        .map(|s| s.to_string())
 }
 
 /// Choose the embedded lyrics body from the candidate sources in priority
@@ -2399,6 +2405,30 @@ mod tests {
         assert_eq!(resolve_embedded_lyrics([None, s("  "), None, s("\t")]), None);
         // The synced body is detected as timed LRC downstream.
         assert_eq!(detect_format("[00:01.00]timed"), LyricsFormat::Lrc);
+    }
+
+    #[test]
+    fn known_key_lyrics_falls_through_blank_uslt_to_lyrics() {
+        use lofty::tag::{Tag, TagType};
+
+        // A whitespace-only USLT must not mask a valid LYRICS on the same
+        // tag (the deeper case of the blank-tag bug).
+        let mut tag = Tag::new(TagType::VorbisComments);
+        tag.insert_text(ItemKey::UnsyncLyrics, "   \n\t ".to_string());
+        tag.insert_text(ItemKey::Lyrics, "real body".to_string());
+        assert_eq!(known_key_lyrics(&tag), Some("real body".to_string()));
+
+        // USLT present and non-blank wins over LYRICS.
+        let mut primary = Tag::new(TagType::VorbisComments);
+        primary.insert_text(ItemKey::UnsyncLyrics, "from uslt".to_string());
+        primary.insert_text(ItemKey::Lyrics, "from lyrics".to_string());
+        assert_eq!(known_key_lyrics(&primary), Some("from uslt".to_string()));
+
+        // Both blank → None.
+        let mut blank = Tag::new(TagType::VorbisComments);
+        blank.insert_text(ItemKey::UnsyncLyrics, "  ".to_string());
+        blank.insert_text(ItemKey::Lyrics, "\t".to_string());
+        assert_eq!(known_key_lyrics(&blank), None);
     }
 
     #[test]
