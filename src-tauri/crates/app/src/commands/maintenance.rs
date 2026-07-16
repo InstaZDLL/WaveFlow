@@ -1,15 +1,20 @@
 //! Maintenance commands. Bulk operations a user can trigger from the
 //! Settings screen (regenerate thumbnails, prune orphan covers, …).
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 
+use chrono::Utc;
 use tauri::AppHandle;
 
 use crate::{
     audio::AudioEngine,
+    commands::profile_io::{
+        checkpoint_wal, read_include_metadata_artwork, write_archive, ArchiveManifest,
+        ARCHIVE_VERSION,
+    },
     error::{AppError, AppResult},
     state::AppState,
 };
@@ -118,6 +123,20 @@ pub async fn reset_app(
         );
     }
 
+    // Guard against irreversible data loss (issue #367): snapshot every
+    // profile to a wipe-surviving folder BEFORE tearing anything down, so
+    // a user who resets can re-import their playlists + listening history
+    // (`play_event`) afterwards. Runs while the active pool is still open
+    // so the WAL checkpoint captures a complete `data.db`. Best-effort —
+    // it must never block the reset (a backup error is not a reason to
+    // trap the user in a broken install).
+    if let Some(dir) = safety_backup_all_profiles(&state).await {
+        tracing::info!(
+            dir = %dir.display(),
+            "reset_app: pre-reset safety backup written; re-importable via the profile importer"
+        );
+    }
+
     let root = state.paths.root.clone();
 
     state.deactivate_profile().await;
@@ -146,6 +165,123 @@ pub async fn reset_app(
     }
 
     app.restart();
+}
+
+/// Write a complete `.waveflow` archive of every profile to a location
+/// that survives the `reset_app` wipe. The configured backup folder
+/// defaults to `<data-root>/backups`, which lives *inside* the directory
+/// the reset removes — so it can never be the safety target. We use the
+/// OS documents dir (`<documents>/WaveFlow Backups`, falling back to the
+/// home dir) instead: outside the wiped root and easy for the user to
+/// find afterwards.
+///
+/// Best-effort throughout — a failure on any single profile is logged and
+/// skipped, and a total failure returns `None` without aborting the
+/// caller. Returns the directory the archives landed in when at least one
+/// was written. Guard for issue #367.
+async fn safety_backup_all_profiles(state: &AppState) -> Option<PathBuf> {
+    let target_dir = dirs::document_dir()
+        .or_else(dirs::home_dir)
+        .map(|base| base.join("WaveFlow Backups"))?;
+    if let Err(err) = std::fs::create_dir_all(&target_dir) {
+        tracing::warn!(
+            ?err,
+            dir = %target_dir.display(),
+            "pre-reset safety backup: could not create target dir; skipping"
+        );
+        return None;
+    }
+
+    let profiles: Vec<(i64, String)> =
+        match sqlx::query_as::<_, (i64, String)>("SELECT id, name FROM profile ORDER BY id")
+            .fetch_all(&state.app_db)
+            .await
+        {
+            Ok(rows) => rows,
+            Err(err) => {
+                tracing::warn!(?err, "pre-reset safety backup: could not list profiles; skipping");
+                return None;
+            }
+        };
+
+    // Fold the active profile's pending WAL pages back into its main file
+    // so the copied `data.db` is a complete snapshot. Inactive profiles
+    // were already checkpointed when they were deactivated.
+    if let Ok(pool) = state.require_profile_pool().await {
+        if let Err(err) = checkpoint_wal(&pool).await {
+            tracing::warn!(?err, "pre-reset safety backup: WAL checkpoint failed; snapshot may miss the newest writes");
+        }
+    }
+
+    let include_meta = read_include_metadata_artwork(&state.app_db)
+        .await
+        .unwrap_or(true);
+    let stamp = Utc::now().format("%Y%m%d-%H%M%S").to_string();
+
+    let mut written = 0usize;
+    for (profile_id, profile_name) in profiles {
+        let profile_dir = state.paths.profile_dir(profile_id);
+        let db_path = state.paths.profile_db(profile_id);
+        let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+        let metadata_artwork_dir = include_meta.then(|| state.paths.metadata_artwork_dir.clone());
+
+        let manifest = ArchiveManifest {
+            archive_version: ARCHIVE_VERSION,
+            app_version: env!("CARGO_PKG_VERSION").to_string(),
+            profile_name: profile_name.clone(),
+            source_profile_id: profile_id,
+            exported_at: Utc::now().to_rfc3339(),
+        };
+
+        let target = target_dir.join(format!(
+            "pre-reset-{}-{profile_id}-{stamp}.waveflow",
+            sanitize_filename(&profile_name)
+        ));
+
+        let res = tokio::task::spawn_blocking(move || {
+            write_archive(
+                &target,
+                &profile_dir,
+                &db_path,
+                &artwork_dir,
+                metadata_artwork_dir.as_deref(),
+                &manifest,
+            )
+        })
+        .await;
+        match res {
+            Ok(Ok(())) => written += 1,
+            Ok(Err(err)) => {
+                tracing::warn!(?err, profile_id, "pre-reset safety backup: archive failed for profile")
+            }
+            Err(err) => {
+                tracing::warn!(?err, profile_id, "pre-reset safety backup: task join failed for profile")
+            }
+        }
+    }
+
+    (written > 0).then_some(target_dir)
+}
+
+/// Strip characters that are hostile in a filename down to `_`, so a
+/// profile name like `Léa / Work` yields a portable archive name.
+fn sanitize_filename(name: &str) -> String {
+    let cleaned: String = name
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || matches!(c, '-' | '_' | ' ') {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    let trimmed = cleaned.trim();
+    if trimmed.is_empty() {
+        "profile".to_string()
+    } else {
+        trimmed.to_string()
+    }
 }
 
 fn regen_in_dir(dir: &Path) -> AppResult<u32> {
