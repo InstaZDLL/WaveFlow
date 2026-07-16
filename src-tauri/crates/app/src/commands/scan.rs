@@ -719,11 +719,19 @@ pub(crate) async fn scan_folder_inner(
                     }
                 }
 
+                // `is_available = 1` resurfaces a track whose file had
+                // vanished (marked `is_available = 0` by a prior scan)
+                // and has now reappeared BYTE-IDENTICAL. This skip branch
+                // is the only path that handles an unchanged re-add — the
+                // full-rewrite `else` branch also sets it, but a same
+                // mtime+hash file never reaches there — so without this
+                // the row stays hidden forever (issue #366, symptom B).
                 sqlx::query(
                     "UPDATE track
-                        SET bit_depth   = COALESCE(bit_depth, ?),
-                            codec       = COALESCE(codec, ?),
-                            musical_key = COALESCE(musical_key, ?)
+                        SET bit_depth    = COALESCE(bit_depth, ?),
+                            codec        = COALESCE(codec, ?),
+                            musical_key  = COALESCE(musical_key, ?),
+                            is_available = 1
                       WHERE id = ?",
                 )
                 .bind(extracted.bit_depth)
