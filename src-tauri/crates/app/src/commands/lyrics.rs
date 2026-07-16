@@ -1936,8 +1936,10 @@ fn hash_file_blake3(path: &str) -> AppResult<String> {
 /// Write the lyrics back into the audio file's tag.
 ///
 /// - Plain / LRC / Enhanced LRC → `ItemKey::UnsyncLyrics` (USLT for
-///   ID3v2, UNSYNCEDLYRICS for Vorbis, `©lyr` for MP4). All three are
-///   plain ASCII-safe text formats.
+///   ID3v2, UNSYNCEDLYRICS for Vorbis, `©lyr` for MP4), for cross-player
+///   compatibility. LRC / Enhanced LRC additionally re-stamp the canonical
+///   `SYNCEDLYRICS` custom tag (issue #378) so a synced edit round-trips
+///   into the tag the reader prefers instead of being silently downgraded.
 /// - TTML → `ItemKey::Lyrics` for tag systems that accept arbitrary
 ///   strings (Vorbis comments, MP4 `©lyr`). ID3v2 has no clean mapping
 ///   for XML lyrics in lofty, so for MP3 we skip the file write and
@@ -1994,7 +1996,91 @@ fn write_lyrics_to_file(
     }
 
     tagged.save_to_path(path, lofty::config::WriteOptions::default())?;
+
+    // Round-trip synced edits into the canonical `SYNCEDLYRICS` tag that
+    // `read_embedded_lyrics` now prefers (issue #378). The generic
+    // `save_to_path` above can't carry it — lofty drops unmapped frames on
+    // read, so an original `SYNCEDLYRICS` (e.g. an Antra rip) is wiped on
+    // every edit — so we re-stamp it via the concrete tag. Only for synced
+    // formats: a plain/TTML save intentionally leaves none behind. Best-
+    // effort — the USLT write already landed, so a failure here still
+    // leaves the lyrics readable, just not under the synced key.
+    if matches!(format, LyricsFormat::Lrc | LyricsFormat::EnhancedLrc)
+        && !content.trim().is_empty()
+    {
+        if let Err(err) = write_synced_lyrics_tag(path, file_type, content) {
+            tracing::warn!(
+                ?err,
+                "failed to write SYNCEDLYRICS tag; lyrics still saved under the standard key"
+            );
+        }
+    }
+
     Ok(true)
+}
+
+/// Stamp `content` into the canonical `SYNCEDLYRICS` custom tag (TXXX for
+/// MP3, Vorbis comment for FLAC/Ogg/Opus/Speex), replacing any existing
+/// value. Run after the generic USLT write, which leaves the concrete tag
+/// in place, so the mutable accessor is present. `insert_user_text` /
+/// `VorbisComments::insert` both replace by key, so no explicit remove is
+/// needed. MP4 and other containers have no comparable key — skipped.
+fn write_synced_lyrics_tag(
+    path: &Path,
+    file_type: FileType,
+    content: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    use lofty::config::{ParseOptions, WriteOptions};
+    use lofty::file::AudioFile;
+
+    let key = SYNCED_LYRICS_KEYS[0]; // canonical "SYNCEDLYRICS"
+
+    match file_type {
+        FileType::Mpeg => {
+            use lofty::mpeg::MpegFile;
+            let mut file = std::fs::File::open(path)?;
+            let mut mpeg = MpegFile::read_from(&mut file, ParseOptions::new())?;
+            if let Some(tag) = mpeg.id3v2_mut() {
+                tag.insert_user_text(key.to_string(), content.to_string());
+                mpeg.save_to_path(path, WriteOptions::default())?;
+            }
+        }
+        FileType::Flac => {
+            use lofty::flac::FlacFile;
+            let mut file = std::fs::File::open(path)?;
+            let mut flac = FlacFile::read_from(&mut file, ParseOptions::new())?;
+            if let Some(vc) = flac.vorbis_comments_mut() {
+                vc.insert(key.to_string(), content.to_string());
+                flac.save_to_path(path, WriteOptions::default())?;
+            }
+        }
+        FileType::Vorbis => {
+            use lofty::ogg::VorbisFile;
+            let mut file = std::fs::File::open(path)?;
+            let mut vf = VorbisFile::read_from(&mut file, ParseOptions::new())?;
+            vf.vorbis_comments_mut()
+                .insert(key.to_string(), content.to_string());
+            vf.save_to_path(path, WriteOptions::default())?;
+        }
+        FileType::Opus => {
+            use lofty::ogg::OpusFile;
+            let mut file = std::fs::File::open(path)?;
+            let mut of = OpusFile::read_from(&mut file, ParseOptions::new())?;
+            of.vorbis_comments_mut()
+                .insert(key.to_string(), content.to_string());
+            of.save_to_path(path, WriteOptions::default())?;
+        }
+        FileType::Speex => {
+            use lofty::ogg::SpeexFile;
+            let mut file = std::fs::File::open(path)?;
+            let mut sf = SpeexFile::read_from(&mut file, ParseOptions::new())?;
+            sf.vorbis_comments_mut()
+                .insert(key.to_string(), content.to_string());
+            sf.save_to_path(path, WriteOptions::default())?;
+        }
+        _ => {}
+    }
+    Ok(())
 }
 
 /// Drop the cached lyrics row so the next fetch re-runs the waterfall.
