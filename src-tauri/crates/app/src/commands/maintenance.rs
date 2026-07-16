@@ -12,8 +12,7 @@ use tauri::AppHandle;
 use crate::{
     audio::AudioEngine,
     commands::profile_io::{
-        checkpoint_wal, read_include_metadata_artwork, write_archive, ArchiveManifest,
-        ARCHIVE_VERSION,
+        read_include_metadata_artwork, write_archive, ArchiveManifest, ARCHIVE_VERSION,
     },
     error::{AppError, AppResult},
     state::AppState,
@@ -127,9 +126,9 @@ pub async fn reset_app(
     // profile to a wipe-surviving folder BEFORE tearing anything down, so
     // a user who resets can re-import their playlists + listening history
     // (`play_event`) afterwards. Runs while the active pool is still open
-    // so the WAL checkpoint captures a complete `data.db`. Best-effort —
-    // it must never block the reset (a backup error is not a reason to
-    // trap the user in a broken install).
+    // so the `VACUUM INTO` snapshot sees a consistent, complete `data.db`.
+    // Best-effort — it must never block the reset (a backup error is not a
+    // reason to trap the user in a broken install).
     if let Some(dir) = safety_backup_all_profiles(&state).await {
         tracing::info!(
             dir = %dir.display(),
@@ -204,22 +203,10 @@ async fn safety_backup_all_profiles(state: &AppState) -> Option<PathBuf> {
             }
         };
 
-    // Fold each profile's pending WAL pages into its main file so the
-    // raw `data.db` copy is a complete, consistent snapshot. The active
-    // profile goes through its live pool; inactive profiles have no open
-    // pool, so their WAL is checkpointed per-file below (a closed pool
-    // isn't guaranteed to have TRUNCATE-checkpointed on close, so copying
-    // data.db alone could otherwise miss their newest committed writes).
     let active_id = {
         let guard = state.profile.read().await;
         guard.as_ref().map(|p| p.profile_id)
     };
-    if let Ok(pool) = state.require_profile_pool().await {
-        if let Err(err) = checkpoint_wal(&pool).await {
-            tracing::warn!(?err, "pre-reset safety backup: active WAL checkpoint failed; snapshot may miss the newest writes");
-        }
-    }
-
     let include_meta = read_include_metadata_artwork(&state.app_db)
         .await
         .unwrap_or(true);
@@ -232,10 +219,33 @@ async fn safety_backup_all_profiles(state: &AppState) -> Option<PathBuf> {
         let artwork_dir = state.paths.profile_artwork_dir(profile_id);
         let metadata_artwork_dir = include_meta.then(|| state.paths.metadata_artwork_dir.clone());
 
-        if Some(profile_id) != active_id {
-            if let Err(err) = checkpoint_db_file(&db_path).await {
-                tracing::warn!(?err, profile_id, "pre-reset safety backup: inactive-profile WAL checkpoint failed; its snapshot may miss the newest writes");
+        let final_target = target_dir.join(format!(
+            "pre-reset-{}-{profile_id}-{stamp}.waveflow",
+            sanitize_filename(&profile_name)
+        ));
+        let tmp_target = final_target.with_extension("part");
+        let snapshot_db = final_target.with_extension("dbtmp");
+
+        // 1. Snapshot the db with `VACUUM INTO` instead of raw-copying the
+        //    live `data.db`. `reset_app` stops the audio engine but does
+        //    not freeze the background analyzer / scanner / sync writers,
+        //    and the active pool stays open — so a raw copy could capture
+        //    a torn db if a writer commits or a WAL checkpoint fires mid
+        //    copy. VACUUM INTO reads a single committed point-in-time view
+        //    even under concurrent writes. On failure we skip the profile:
+        //    a corrupt archive is a worse safety net than none.
+        let snapshot_res = if Some(profile_id) == active_id {
+            match state.require_profile_pool().await {
+                Ok(pool) => vacuum_into(&pool, &snapshot_db).await,
+                Err(err) => Err(err),
             }
+        } else {
+            vacuum_into_file(&db_path, &snapshot_db).await
+        };
+        if let Err(err) = snapshot_res {
+            tracing::warn!(?err, profile_id, "pre-reset safety backup: db snapshot failed; skipping this profile");
+            let _ = std::fs::remove_file(&snapshot_db);
+            continue;
         }
 
         let manifest = ArchiveManifest {
@@ -246,23 +256,18 @@ async fn safety_backup_all_profiles(state: &AppState) -> Option<PathBuf> {
             exported_at: Utc::now().to_rfc3339(),
         };
 
-        let final_target = target_dir.join(format!(
-            "pre-reset-{}-{profile_id}-{stamp}.waveflow",
-            sanitize_filename(&profile_name)
-        ));
-        // Write to a temp sibling and rename on success so a failed or
-        // interrupted archive never leaves a truncated `.waveflow` that
-        // looks like a valid backup. Same directory → the rename is an
-        // atomic same-filesystem move.
-        let tmp_target = final_target.with_extension("part");
-
+        // 2. Archive the SNAPSHOT (not the live db) + artwork into a temp
+        //    `.part` sibling, renamed to the final name only on success so
+        //    a failed/interrupted write never leaves a truncated file that
+        //    looks like a valid backup (same dir → atomic rename).
         let write_res = tokio::task::spawn_blocking({
             let tmp_target = tmp_target.clone();
+            let snapshot_db = snapshot_db.clone();
             move || {
                 write_archive(
                     &tmp_target,
                     &profile_dir,
-                    &db_path,
+                    &snapshot_db,
                     &artwork_dir,
                     metadata_artwork_dir.as_deref(),
                     &manifest,
@@ -270,6 +275,10 @@ async fn safety_backup_all_profiles(state: &AppState) -> Option<PathBuf> {
             }
         })
         .await;
+        // The snapshot has been folded into the archive (or the write
+        // failed) — drop it either way.
+        let _ = std::fs::remove_file(&snapshot_db);
+
         match write_res {
             Ok(Ok(())) => match std::fs::rename(&tmp_target, &final_target) {
                 Ok(()) => written += 1,
@@ -292,29 +301,46 @@ async fn safety_backup_all_profiles(state: &AppState) -> Option<PathBuf> {
     (written > 0).then_some(target_dir)
 }
 
-/// Checkpoint an on-disk profile database that has no open pool, folding
-/// its WAL back into the main file so a raw copy of `data.db` is a
-/// complete snapshot. Opens a short-lived connection — safe because an
-/// inactive profile holds no other connection — and TRUNCATE-checkpoints.
-async fn checkpoint_db_file(db_path: &Path) -> AppResult<()> {
+/// Write a transactionally-consistent snapshot of the database behind
+/// `pool` to `snapshot_path` via `VACUUM INTO`. Consistent even while
+/// other pool connections keep writing — the snapshot is a single
+/// committed point in time — so the subsequent raw copy into the archive
+/// can't capture a torn db.
+async fn vacuum_into(pool: &sqlx::SqlitePool, snapshot_path: &Path) -> AppResult<()> {
+    // VACUUM INTO refuses to overwrite an existing file.
+    let _ = std::fs::remove_file(snapshot_path);
+    sqlx::query("VACUUM INTO ?")
+        .bind(snapshot_path.to_string_lossy().as_ref())
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+/// Like [`vacuum_into`] for a profile database with no open pool: opens a
+/// short-lived connection (safe — an inactive profile holds no other
+/// connection) and snapshots it.
+async fn vacuum_into_file(db_path: &Path, snapshot_path: &Path) -> AppResult<()> {
     use sqlx::sqlite::SqliteConnectOptions;
     use sqlx::{ConnectOptions, Connection};
 
     if !db_path.exists() {
-        return Ok(());
+        return Err(AppError::Other(format!(
+            "profile database not found: {}",
+            db_path.display()
+        )));
     }
     let mut conn = SqliteConnectOptions::new()
         .filename(db_path)
         .create_if_missing(false)
         .connect()
         .await?;
-    let checkpoint = sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+    let _ = std::fs::remove_file(snapshot_path);
+    let res = sqlx::query("VACUUM INTO ?")
+        .bind(snapshot_path.to_string_lossy().as_ref())
         .execute(&mut conn)
         .await;
-    // Close regardless of the checkpoint result so we never leak the
-    // connection (which would itself leave a WAL behind).
     let _ = conn.close().await;
-    checkpoint?;
+    res?;
     Ok(())
 }
 
@@ -377,4 +403,71 @@ fn regen_in_dir(dir: &Path) -> AppResult<u32> {
         }
     }
     Ok(count)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// End-to-end check that the `VACUUM INTO ?` bound-parameter form
+    /// actually runs, creates the snapshot file, and yields a consistent
+    /// copy of the committed data — the crux of the pre-reset safety
+    /// backup's snapshot path.
+    #[tokio::test]
+    async fn vacuum_into_file_snapshots_committed_rows() {
+        use sqlx::sqlite::SqliteConnectOptions;
+        use sqlx::{ConnectOptions, Connection};
+
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("data.db");
+        let snap_path = dir.path().join("snap.dbtmp");
+
+        {
+            let mut conn = SqliteConnectOptions::new()
+                .filename(&db_path)
+                .create_if_missing(true)
+                .connect()
+                .await
+                .unwrap();
+            sqlx::query("CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT)")
+                .execute(&mut conn)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO t (v) VALUES ('hello')")
+                .execute(&mut conn)
+                .await
+                .unwrap();
+            conn.close().await.unwrap();
+        }
+
+        vacuum_into_file(&db_path, &snap_path).await.unwrap();
+        assert!(snap_path.exists(), "snapshot file should be created");
+
+        let mut snap = SqliteConnectOptions::new()
+            .filename(&snap_path)
+            .create_if_missing(false)
+            .connect()
+            .await
+            .unwrap();
+        let v: String = sqlx::query_scalar("SELECT v FROM t WHERE id = 1")
+            .fetch_one(&mut snap)
+            .await
+            .unwrap();
+        assert_eq!(v, "hello");
+        snap.close().await.unwrap();
+
+        // VACUUM INTO refuses to overwrite; the helper removes a stale
+        // snapshot first, so a second run must also succeed.
+        vacuum_into_file(&db_path, &snap_path).await.unwrap();
+    }
+
+    /// A missing profile database is a skip (Err), not a silent success —
+    /// the caller drops the profile rather than archiving an empty db.
+    #[tokio::test]
+    async fn vacuum_into_file_missing_db_errors() {
+        let dir = tempfile::tempdir().unwrap();
+        let missing = dir.path().join("nope.db");
+        let snap = dir.path().join("snap.dbtmp");
+        assert!(vacuum_into_file(&missing, &snap).await.is_err());
+    }
 }
