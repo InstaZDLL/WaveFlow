@@ -1841,6 +1841,10 @@
       "subtitle": "当 Musixmatch 提供翻译时，在每行 LRC 下方显示翻译",
       "off": "关闭"
     },
+    "lyricsPreferLrclib": {
+      "title": "优先使用 LRCLIB 而非内嵌歌词",
+      "subtitle": "先在线查找歌词；若未找到则回退到文件自带的歌词"
+    },
     "lyricsDestination": {
       "title": "已保存歌词的位置",
       "subtitle": "编辑器中输入的歌词将保存到何处。可以在每次编辑时覆盖。"

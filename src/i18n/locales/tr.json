@@ -1841,6 +1841,10 @@
       "subtitle": "Musixmatch çevirisi varsa her LRC satırının altında çeviriyi gösterir",
       "off": "Kapalı"
     },
+    "lyricsPreferLrclib": {
+      "title": "Gömülü sözler yerine LRCLIB'i tercih et",
+      "subtitle": "Sözleri önce çevrimiçi arar; bulunamazsa dosyadaki sözlere geri döner"
+    },
     "lyricsDestination": {
       "title": "Kayıtlı şarkı sözü hedefi",
       "subtitle": "Düzenleyiciden gelen şarkı sözlerinin gideceği yer. Her düzenlemede geçersiz kılınabilir."

@@ -1841,6 +1841,10 @@
       "subtitle": "Mostra uma tradução abaixo de cada linha LRC quando o Musixmatch oferece uma",
       "off": "Desativada"
     },
+    "lyricsPreferLrclib": {
+      "title": "Preferir o LRCLIB às letras incorporadas",
+      "subtitle": "Busca as letras online primeiro; recorre às do arquivo se não encontrar nenhuma"
+    },
     "lyricsDestination": {
       "title": "Destino das letras salvas",
       "subtitle": "Para onde vão as letras digitadas no editor. Você pode substituir isso em cada edição no rodapé do editor."

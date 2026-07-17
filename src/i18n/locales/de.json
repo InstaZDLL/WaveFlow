@@ -1841,6 +1841,10 @@
       "subtitle": "Zeigt unter jeder LRC-Zeile eine Übersetzung an, sofern Musixmatch eine bereitstellt",
       "off": "Aus"
     },
+    "lyricsPreferLrclib": {
+      "title": "LRCLIB gegenüber eingebetteten Texten bevorzugen",
+      "subtitle": "Sucht Songtexte zuerst online; greift auf die in der Datei gespeicherten zurück, wenn keine gefunden werden"
+    },
     "lyricsDestination": {
       "title": "Speicherort für bearbeitete Liedtexte",
       "subtitle": "Wo Liedtexte aus dem Editor landen. Bei jeder Bearbeitung überschreibbar."

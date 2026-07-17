@@ -999,6 +999,42 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     }
   };
 
+  // Prefer LRCLIB / online providers over the track's embedded + sidecar
+  // lyrics — issue #378. `false` = local-first (default).
+  const [preferLrclib, setPreferLrclib] = useState(false);
+  const [preferLrclibBusy, setPreferLrclibBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getPreferLrclib } = await import("../../lib/tauri/lyrics");
+        const stored = await getPreferLrclib();
+        if (!cancelled) setPreferLrclib(stored);
+      } catch (err) {
+        console.error("[SettingsView] getPreferLrclib failed", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handlePreferLrclibToggle = async () => {
+    const next = !preferLrclib;
+    setPreferLrclib(next); // optimistic
+    setPreferLrclibBusy(true);
+    try {
+      const { setPreferLrclib: persist } = await import("../../lib/tauri/lyrics");
+      await persist(next);
+    } catch (err) {
+      console.error("[SettingsView] setPreferLrclib failed", err);
+      setPreferLrclib(!next); // revert on failure
+    } finally {
+      setPreferLrclibBusy(false);
+    }
+  };
+
   // Lyrics library prefetch
   const [isPrefetchingLyrics, setIsPrefetchingLyrics] = useState(false);
   const [lyricsPrefetchProgress, setLyricsPrefetchProgress] = useState<{
@@ -3244,6 +3280,33 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                   ),
                 )}
               </select>
+            </div>
+
+            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <div className="flex items-center space-x-4 flex-1 min-w-0">
+                <Globe
+                  size={20}
+                  className="text-zinc-400 shrink-0"
+                  aria-hidden="true"
+                />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                    {t("settings.lyricsPreferLrclib.title")}
+                  </div>
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.lyricsPreferLrclib.subtitle")}
+                  </div>
+                </div>
+              </div>
+              <div
+                className={preferLrclibBusy ? "opacity-50 pointer-events-none" : ""}
+              >
+                <ToggleSwitch
+                  enabled={preferLrclib}
+                  onToggle={() => void handlePreferLrclibToggle()}
+                  label={t("settings.lyricsPreferLrclib.title")}
+                />
+              </div>
             </div>
 
             <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">

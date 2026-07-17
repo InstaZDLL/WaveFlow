@@ -1841,6 +1841,10 @@
       "subtitle": "Displays a translation under each LRC line when Musixmatch has one",
       "off": "Off"
     },
+    "lyricsPreferLrclib": {
+      "title": "Prefer LRCLIB over embedded lyrics",
+      "subtitle": "Look up lyrics online first; fall back to the file's own lyrics when none are found"
+    },
     "lyricsDestination": {
       "title": "Saved-lyrics destination",
       "subtitle": "Where lyrics typed into the editor land. You can override this per-edit from the editor footer."

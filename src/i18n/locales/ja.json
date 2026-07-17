@@ -1841,6 +1841,10 @@
       "subtitle": "Musixmatch に翻訳がある場合、各 LRC 行の下に翻訳を表示します",
       "off": "オフ"
     },
+    "lyricsPreferLrclib": {
+      "title": "埋め込み歌詞より LRCLIB を優先",
+      "subtitle": "先にオンラインで歌詞を検索し、見つからない場合はファイル内の歌詞を使用します"
+    },
     "lyricsDestination": {
       "title": "保存される歌詞の保存先",
       "subtitle": "エディターで入力した歌詞の保存先。編集ごとに上書き可能。"

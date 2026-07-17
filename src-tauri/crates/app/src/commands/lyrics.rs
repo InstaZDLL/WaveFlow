@@ -14,6 +14,15 @@
 //! Whichever tier hits first becomes the cached entry. We never refetch
 //! once a row exists — the user can manually overwrite by importing a
 //! `.lrc` file via [`import_lrc_file`].
+//!
+//! **Prefer-LRCLIB toggle** (`profile_setting['lyrics.prefer_lrclib']`,
+//! issue #378): when on, [`fetch_lyrics`] flips tiers 2–3 (embedded +
+//! sidecar) to run *after* the online providers — LRCLIB / Musixmatch /
+//! the fallback chain win, and the local tiers become the fallback used
+//! only when the network has nothing (so a track LRCLIB doesn't carry
+//! still shows its own embedded lyrics rather than nothing). Default off
+//! (local wins). Applies to on-demand fetch + refetch; the bulk
+//! [`run_prefetch`] path stays local-first (a cheap gap-filler).
 
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -449,22 +458,18 @@ async fn cache_external_lyrics(
 }
 
 /// Walk the post-LRCLIB fallback chain (NetEase / Megalobiz / Genius)
-/// and persist whatever comes back. When every provider misses — or one
-/// errors and the rest miss — cache an empty row so the panel doesn't
-/// re-hit the network on every open. Always returns a `LyricsPayload`:
-/// either the freshly-cached external result or the empty miss.
-///
-/// Called from both `fetch_lyrics` LRCLIB branches (404 + empty-row).
-/// Keeping the chain in one place stops the two call sites from drifting
-/// on the error-handling contract — both must treat a provider Err as
-/// non-fatal (LRCLIB has already given a verdict, the fallback is best-
-/// effort enrichment), and a refactor of that policy now lives in one
-/// function instead of two.
-async fn try_external_fallback_or_miss(
+/// and persist the first hit. Returns `Some(payload)` on a hit (already
+/// cached), or `None` when every provider misses — or one errors and the
+/// rest miss. A provider `Err` is non-fatal here (LRCLIB has already
+/// given a verdict, this chain is best-effort enrichment): it's logged
+/// and treated like a miss, so the caller decides what to do with `None`
+/// (cache an empty miss, or fall back to another tier under
+/// `lyrics.prefer_lrclib`).
+async fn try_external_fallback(
     pool: &sqlx::SqlitePool,
     track_id: i64,
     meta: &TrackMeta,
-) -> AppResult<LyricsPayload> {
+) -> AppResult<Option<LyricsPayload>> {
     match external_lyrics_search(
         meta,
         external_fallback_providers(),
@@ -476,19 +481,27 @@ async fn try_external_fallback_or_miss(
     )
     .await
     {
-        Ok(Some(result)) => {
-            return cache_external_lyrics(pool, track_id, &meta.file_hash, result).await;
+        Ok(Some(result)) => Ok(Some(
+            cache_external_lyrics(pool, track_id, &meta.file_hash, result).await?,
+        )),
+        Ok(None) => Ok(None),
+        Err(err) => {
+            tracing::debug!(?err, "external fallback chain failed");
+            Ok(None)
         }
-        Ok(None) => {}
-        Err(err) => tracing::debug!(?err, "external fallback chain failed"),
     }
+}
 
-    // No provider had lyrics. Cache as an empty row so we don't re-hit
-    // the network on every panel open. The user can force a re-search
-    // by clicking "Refetch" in the lyrics panel (clears the row,
-    // re-runs the waterfall). `provider = None` for the miss row —
-    // attribution to a specific provider would be misleading when
-    // every provider returned nothing.
+/// Cache an empty "miss" row so the panel doesn't re-hit the network on
+/// every open, and return it as a payload. The user can force a
+/// re-search via "Refetch" in the lyrics panel (clears the row, re-runs
+/// the waterfall). `provider = None` — attribution to a specific provider
+/// would be misleading when every provider returned nothing.
+async fn cache_lyrics_miss(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+    meta: &TrackMeta,
+) -> AppResult<LyricsPayload> {
     let empty = String::new();
     upsert_lyrics(
         pool,
@@ -508,6 +521,106 @@ async fn try_external_fallback_or_miss(
         tag_write_skipped: None,
         sidecar_write_skipped: None,
     })
+}
+
+/// Resolve a track once LRCLIB has given no usable lyrics (404 or an
+/// empty row). Tries the external provider chain first; then, under
+/// `lyrics.prefer_lrclib` (where the local tiers haven't run yet), the
+/// embedded + sidecar tiers; and finally caches an empty miss. Always
+/// returns a `LyricsPayload`. With `prefer_lrclib = false` this is the
+/// original "external chain, else miss" behaviour — the two `fetch_lyrics`
+/// LRCLIB call sites share it so they can't drift on the contract.
+async fn resolve_after_lrclib_miss(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+    meta: &TrackMeta,
+    prefer_lrclib: bool,
+) -> AppResult<LyricsPayload> {
+    if let Some(payload) = try_external_fallback(pool, track_id, meta).await? {
+        return Ok(payload);
+    }
+    if prefer_lrclib {
+        if let Some(payload) = try_local_lyrics(pool, track_id, meta).await? {
+            return Ok(payload);
+        }
+    }
+    cache_lyrics_miss(pool, track_id, meta).await
+}
+
+/// `profile_setting` key: prefer the online providers (LRCLIB / Musixmatch
+/// / fallback chain) over the track's own embedded + sidecar lyrics.
+/// Default off — the local tiers win, as they historically have.
+pub const PREFER_LRCLIB_KEY: &str = "lyrics.prefer_lrclib";
+
+/// Read the per-profile prefer-LRCLIB flag. Absent / blank / anything but
+/// a truthy value → `false` (local-first, the historical default).
+async fn read_prefer_lrclib(pool: &sqlx::SqlitePool) -> bool {
+    sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
+        .bind(PREFER_LRCLIB_KEY)
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .flatten()
+        .map(|v| v == "true" || v == "1")
+        .unwrap_or(false)
+}
+
+/// Local tiers (embedded tag → sidecar `.lrc`/`.txt`). Returns the first
+/// hit, already cached, or `None` when neither is present. Shared by the
+/// default (local-first) order and the `lyrics.prefer_lrclib`
+/// (local-as-fallback) order so the two never drift on how a local hit is
+/// read + persisted.
+async fn try_local_lyrics(
+    pool: &sqlx::SqlitePool,
+    track_id: i64,
+    meta: &TrackMeta,
+) -> AppResult<Option<LyricsPayload>> {
+    // Embedded tag. Lofty I/O is blocking — push to spawn_blocking.
+    let path_clone = meta.file_path.clone();
+    let embedded =
+        tokio::task::spawn_blocking(move || read_embedded_lyrics(Path::new(&path_clone)))
+            .await
+            .ok()
+            .flatten();
+    if let Some(content) = embedded {
+        let format = detect_format(&content);
+        let source = LyricsSource::Embedded;
+        upsert_lyrics(pool, &meta.file_hash, &content, &format, &source, None).await?;
+        return Ok(Some(LyricsPayload {
+            track_id,
+            content,
+            format,
+            source,
+            provider: None,
+            tag_write_skipped: None,
+            sidecar_write_skipped: None,
+        }));
+    }
+
+    // Local sidecar `.lrc` / `.txt`. Cheap (a couple of stat calls + at
+    // most two `read_dir` scans).
+    let path_for_sidecar = meta.file_path.clone();
+    let sidecar =
+        tokio::task::spawn_blocking(move || read_sidecar_lyrics(Path::new(&path_for_sidecar)))
+            .await
+            .ok()
+            .flatten();
+    if let Some(content) = sidecar {
+        let format = detect_format(&content);
+        let source = LyricsSource::LrcFile;
+        upsert_lyrics(pool, &meta.file_hash, &content, &format, &source, None).await?;
+        return Ok(Some(LyricsPayload {
+            track_id,
+            content,
+            format,
+            source,
+            provider: None,
+            tag_write_skipped: None,
+            sidecar_write_skipped: None,
+        }));
+    }
+
+    Ok(None)
 }
 
 /// TXXX (ID3v2) / Vorbis-comment descriptions carrying **synced** lyrics,
@@ -932,57 +1045,23 @@ pub async fn fetch_lyrics(
         return Ok(Some(cached));
     }
 
-    // 2. Embedded tag. Lofty I/O is blocking — push to spawn_blocking.
+    // Track metadata drives every tier below (file path for the local
+    // tiers, artist/title/album for the network match).
     let meta = match read_track_meta(&pool, track_id).await? {
         Some(m) => m,
         None => return Ok(None),
     };
 
-    let path_clone = meta.file_path.clone();
-    let embedded =
-        tokio::task::spawn_blocking(move || read_embedded_lyrics(Path::new(&path_clone)))
-            .await
-            .ok()
-            .flatten();
-
-    if let Some(content) = embedded {
-        let format = detect_format(&content);
-        let source = LyricsSource::Embedded;
-        upsert_lyrics(&pool, &meta.file_hash, &content, &format, &source, None).await?;
-        return Ok(Some(LyricsPayload {
-            track_id,
-            content,
-            format,
-            source,
-            provider: None,
-            tag_write_skipped: None,
-            sidecar_write_skipped: None,
-        }));
-    }
-
-    // 3. Local sidecar `.lrc` / `.txt`. Cheap (a couple of stat calls
-    //    + at most two `read_dir` scans), runs before the network so
-    //    a user with bundled lyrics never pays the LRCLIB latency.
-    let path_for_sidecar = meta.file_path.clone();
-    let sidecar =
-        tokio::task::spawn_blocking(move || read_sidecar_lyrics(Path::new(&path_for_sidecar)))
-            .await
-            .ok()
-            .flatten();
-
-    if let Some(content) = sidecar {
-        let format = detect_format(&content);
-        let source = LyricsSource::LrcFile;
-        upsert_lyrics(&pool, &meta.file_hash, &content, &format, &source, None).await?;
-        return Ok(Some(LyricsPayload {
-            track_id,
-            content,
-            format,
-            source,
-            provider: None,
-            tag_write_skipped: None,
-            sidecar_write_skipped: None,
-        }));
+    // 2–3. Local tiers (embedded tag → sidecar). Local-first by default;
+    //       under `lyrics.prefer_lrclib` they're deferred and run only as
+    //       the fallback after the online providers miss (issue #378), so
+    //       the network gets first crack while a track absent from LRCLIB
+    //       still shows its own embedded lyrics instead of nothing.
+    let prefer_lrclib = read_prefer_lrclib(&pool).await;
+    if !prefer_lrclib {
+        if let Some(payload) = try_local_lyrics(&pool, track_id, &meta).await? {
+            return Ok(Some(payload));
+        }
     }
 
     // 4. Musixmatch enhanced fallback. This runs before LRCLIB only
@@ -1023,13 +1102,23 @@ pub async fn fetch_lyrics(
     }
 
     // 5. LRCLIB fallback. Skip if we have no artist (matching is
-    //    useless without one) or if offline mode is on (the cache +
-    //    embedded tiers above already ran).
+    //    useless without one) or if offline mode is on. In both cases,
+    //    under prefer-LRCLIB the local tiers were deferred and haven't run
+    //    yet — fall back to them here so the toggle never *loses* lyrics
+    //    the file already carries.
     if crate::offline::is_offline() {
-        return Ok(None);
+        return if prefer_lrclib {
+            try_local_lyrics(&pool, track_id, &meta).await
+        } else {
+            Ok(None)
+        };
     }
     let Some(artist_name) = meta.artist_name.as_deref() else {
-        return Ok(None);
+        return if prefer_lrclib {
+            try_local_lyrics(&pool, track_id, &meta).await
+        } else {
+            Ok(None)
+        };
     };
     let primary_artist = artist_name.split("; ").next().unwrap_or(artist_name);
     let duration_seconds = (meta.duration_ms.max(0) as u64).div_ceil(1000);
@@ -1045,13 +1134,13 @@ pub async fn fetch_lyrics(
     {
         Ok(Some(r)) => r,
         Ok(None) => {
-            // LRCLIB 404 — try the broader provider chain before
-            // caching a miss. These sources are query-based and less
-            // strict than LRCLIB's metadata endpoint, so they only run
-            // after the exact lookup fails. See
-            // `try_external_fallback_or_miss` for the error-handling
-            // contract (provider Err is non-fatal at this tier).
-            return try_external_fallback_or_miss(&pool, track_id, &meta)
+            // LRCLIB 404 — try the broader provider chain (and, under
+            // prefer-LRCLIB, the deferred local tiers) before caching a
+            // miss. These sources are query-based and less strict than
+            // LRCLIB's metadata endpoint, so they only run after the exact
+            // lookup fails. See `resolve_after_lrclib_miss` for the
+            // error-handling contract (provider Err is non-fatal here).
+            return resolve_after_lrclib_miss(&pool, track_id, &meta, prefer_lrclib)
                 .await
                 .map(Some);
         }
@@ -1067,6 +1156,15 @@ pub async fn fetch_lyrics(
     };
 
     if resp.instrumental == Some(true) {
+        // Under prefer-LRCLIB, a user's own embedded/sidecar lyrics beat
+        // an empty "instrumental" verdict — try the deferred local tiers
+        // before caching the miss, so the toggle never hides lyrics the
+        // file actually carries.
+        if prefer_lrclib {
+            if let Some(payload) = try_local_lyrics(&pool, track_id, &meta).await? {
+                return Ok(Some(payload));
+            }
+        }
         // Instrumental: cache an empty plain entry so we don't refetch.
         // Attribute the row to LRCLIB so the UI badge reflects who told
         // us this track is instrumental — the user can still try a
@@ -1102,8 +1200,8 @@ pub async fn fetch_lyrics(
         _ => {
             // Same as the 404 branch above: LRCLIB returned an entry
             // but it was empty, so fall through to the fallback chain
-            // via the shared helper.
-            return try_external_fallback_or_miss(&pool, track_id, &meta)
+            // (and the deferred local tiers under prefer-LRCLIB).
+            return resolve_after_lrclib_miss(&pool, track_id, &meta, prefer_lrclib)
                 .await
                 .map(Some);
         }
@@ -2350,6 +2448,44 @@ pub async fn set_lyrics_translation_lang(
         }
     }
     Ok(normalized)
+}
+
+/// Read the per-profile prefer-LRCLIB flag for the Settings toggle.
+/// Absent / blank → `false` (local lyrics win, the historical default).
+#[tauri::command]
+pub async fn get_prefer_lrclib(state: tauri::State<'_, AppState>) -> AppResult<bool> {
+    let pool = state.require_profile_pool().await?;
+    Ok(read_prefer_lrclib(&pool).await)
+}
+
+/// Persist the per-profile prefer-LRCLIB flag. `true` makes the on-demand
+/// lyrics waterfall try the online providers before the track's own
+/// embedded + sidecar lyrics (issue #378); `false` clears the row and
+/// restores the local-first default.
+#[tauri::command]
+pub async fn set_prefer_lrclib(
+    state: tauri::State<'_, AppState>,
+    enabled: bool,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    if enabled {
+        let now = chrono::Utc::now().timestamp_millis();
+        sqlx::query(
+            "INSERT INTO profile_setting (key, value, value_type, updated_at)
+             VALUES (?, 'true', 'bool', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, value_type = excluded.value_type, updated_at = excluded.updated_at",
+        )
+        .bind(PREFER_LRCLIB_KEY)
+        .bind(now)
+        .execute(&pool)
+        .await?;
+    } else {
+        sqlx::query("DELETE FROM profile_setting WHERE key = ?")
+            .bind(PREFER_LRCLIB_KEY)
+            .execute(&pool)
+            .await?;
+    }
+    Ok(())
 }
 
 /// `app_setting` key holding the global default lyrics destination
