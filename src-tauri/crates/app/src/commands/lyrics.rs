@@ -367,18 +367,35 @@ fn shared_external_client() -> AppResult<&'static SyncedLyricsClient> {
     }
 }
 
+/// Outcome of one external provider query (#391).
+///
+/// `Miss` and `Unavailable` are kept apart **here**, at the source, rather
+/// than reconstructed by callers: only this function knows whether any
+/// request was actually issued. A caller that tried to infer it afterwards
+/// — say by re-reading the offline flag — would be guessing against state
+/// that can change between the call and the check, and a wrong guess
+/// caches a permanent "no lyrics".
+enum SearchOutcome {
+    Found(ExternalLyricsResult),
+    /// Providers were queried and none had lyrics. A real negative.
+    Miss,
+    /// Nothing was queried at all — offline mode, or the provider list was
+    /// empty once the Musixmatch opt-in filter ran. Never a negative.
+    Unavailable,
+}
+
 async fn external_lyrics_search(
     meta: &TrackMeta,
     providers: Vec<Provider>,
     mode: SearchMode,
     enhanced: bool,
     lang: Option<&str>,
-) -> AppResult<Option<ExternalLyricsResult>> {
+) -> AppResult<SearchOutcome> {
     // Defense in depth: every outbound HTTP path must honour offline mode
-    // regardless of caller. Returning Ok(None) short-circuits before any
-    // request is issued (see the process-wide offline contract).
+    // regardless of caller. Short-circuit before any request is issued
+    // (see the process-wide offline contract).
     if crate::offline::is_offline() {
-        return Ok(None);
+        return Ok(SearchOutcome::Unavailable);
     }
     // Apply the Musixmatch opt-in here — at a single chokepoint — so
     // call sites don't have to know whether Musixmatch is in their
@@ -386,7 +403,7 @@ async fn external_lyrics_search(
     // to query": short-circuit instead of building a no-op client.
     let providers = filter_providers(providers);
     if providers.is_empty() {
-        return Ok(None);
+        return Ok(SearchOutcome::Unavailable);
     }
     // The syncedlyrics client treats `lang = Some(_)` as a hard
     // filter for Musixmatch-only — passing it to a fallback chain
@@ -401,9 +418,9 @@ async fn external_lyrics_search(
     };
     let query = external_query(&meta.title, meta.artist_name.as_deref());
     let client = shared_external_client()?;
-    // A transient provider error surfaces as Err here (not Ok(None)) so
-    // callers don't cache an empty "miss" on a network blip.
-    client
+    // A transient provider error surfaces as Err here (never as a miss) so
+    // callers don't cache an empty row on a network blip.
+    let found = client
         .search(SearchOptions {
             query,
             mode,
@@ -414,7 +431,12 @@ async fn external_lyrics_search(
             netease_cookie: std::env::var("SYNCEDLYRICS_NETEASE_COOKIE").ok(),
         })
         .await
-        .map_err(|err| AppError::Other(format!("external lyrics search failed: {err}")))
+        .map_err(|err| AppError::Other(format!("external lyrics search failed: {err}")))?;
+    // We got here only by actually querying, so `None` is a real negative.
+    Ok(match found {
+        Some(result) => SearchOutcome::Found(result),
+        None => SearchOutcome::Miss,
+    })
 }
 
 /// `profile_setting` key for the user-picked Musixmatch translation
@@ -505,20 +527,13 @@ async fn try_external_fallback(
     )
     .await
     {
-        Ok(Some(result)) => Ok(FallbackOutcome::Found(
+        Ok(SearchOutcome::Found(result)) => Ok(FallbackOutcome::Found(
             cache_external_lyrics(pool, track_id, &meta.file_hash, result).await?,
         )),
-        Ok(None) => {
-            // `external_lyrics_search` also short-circuits to `Ok(None)`
-            // when offline mode is on. `fetch_lyrics` checks offline before
-            // reaching this tier, but the flag can flip mid-waterfall — and
-            // "couldn't ask" must never be recorded as "nobody has it".
-            if crate::offline::is_offline() {
-                Ok(FallbackOutcome::Unavailable)
-            } else {
-                Ok(FallbackOutcome::Miss)
-            }
-        }
+        // Propagated straight through: only the search itself knows whether
+        // a request was issued, so nothing here re-derives it.
+        Ok(SearchOutcome::Miss) => Ok(FallbackOutcome::Miss),
+        Ok(SearchOutcome::Unavailable) => Ok(FallbackOutcome::Unavailable),
         Err(err) => {
             tracing::debug!(?err, "external fallback chain failed; not caching a miss");
             Ok(FallbackOutcome::Unavailable)
@@ -1141,11 +1156,15 @@ pub async fn fetch_lyrics(
         )
         .await
         {
-            Ok(Some(result)) if matches!(result.format, ExternalLyricsFormat::EnhancedLrc) => {
+            Ok(SearchOutcome::Found(result))
+                if matches!(result.format, ExternalLyricsFormat::EnhancedLrc) =>
+            {
                 return cache_external_lyrics(&pool, track_id, &meta.file_hash, result)
                     .await
                     .map(Some);
             }
+            // Anything else (line-level hit, miss, or Musixmatch not opted
+            // in) just falls through to LRCLIB — nothing is cached here.
             Ok(_) => {}
             Err(err) => tracing::debug!(?err, "Musixmatch enhanced lookup failed"),
         }
@@ -1353,10 +1372,17 @@ pub async fn refetch_lyrics(
     )
     .await
     {
-        Ok(Some(result)) => cache_external_lyrics(&pool, track_id, &meta.file_hash, result)
-            .await
-            .map(Some),
-        Ok(None) => {
+        Ok(SearchOutcome::Found(result)) => {
+            cache_external_lyrics(&pool, track_id, &meta.file_hash, result)
+                .await
+                .map(Some)
+        }
+        // The provider was never queried (offline, or the user pinned
+        // Musixmatch without the opt-in). Caching a miss attributed to it
+        // would blame a provider that never answered, so persist nothing
+        // and let the next attempt through.
+        Ok(SearchOutcome::Unavailable) => Ok(None),
+        Ok(SearchOutcome::Miss) => {
             // Pinned provider returned nothing. Cache an empty miss
             // attributed to it so the badge reflects what the user
             // just tried — they can pick a different provider and
@@ -1619,7 +1645,9 @@ async fn run_prefetch(
         )
         .await
         {
-            Ok(Some(result)) if matches!(result.format, ExternalLyricsFormat::EnhancedLrc) => {
+            Ok(SearchOutcome::Found(result))
+                if matches!(result.format, ExternalLyricsFormat::EnhancedLrc) =>
+            {
                 if let Err(e) = cache_external_lyrics(&pool, track_id, &file_hash, result).await {
                     tracing::warn!(track_id, ?e, "persist Musixmatch enhanced lyrics failed");
                     failed += 1;
@@ -1712,7 +1740,7 @@ async fn run_prefetch(
                         )
                         .await
                         {
-                            Ok(Some(result)) => {
+                            Ok(SearchOutcome::Found(result)) => {
                                 if let Err(e) =
                                     cache_external_lyrics(&pool, track_id, &file_hash, result).await
                                 {
@@ -1722,7 +1750,7 @@ async fn run_prefetch(
                                     hits += 1;
                                 }
                             }
-                            Ok(None) => {
+                            Ok(SearchOutcome::Miss) => {
                                 let _ = upsert_lyrics(
                                     &pool,
                                     &file_hash,
@@ -1733,6 +1761,11 @@ async fn run_prefetch(
                                 )
                                 .await;
                                 misses += 1;
+                            }
+                            // Nothing was queried — don't record a negative
+                            // for a track we never actually asked about.
+                            Ok(SearchOutcome::Unavailable) => {
+                                failed += 1;
                             }
                             Err(err) => {
                                 tracing::warn!(track_id, ?err, "external lyrics prefetch failed");
@@ -1754,7 +1787,7 @@ async fn run_prefetch(
                 )
                 .await
                 {
-                    Ok(Some(result)) => {
+                    Ok(SearchOutcome::Found(result)) => {
                         if let Err(e) =
                             cache_external_lyrics(&pool, track_id, &file_hash, result).await
                         {
@@ -1764,7 +1797,7 @@ async fn run_prefetch(
                             hits += 1;
                         }
                     }
-                    Ok(None) => {
+                    Ok(SearchOutcome::Miss) => {
                         // No provider had lyrics. Cache as empty so re-runs
                         // of the prefetch and re-opens of the lyrics panel
                         // skip this track. User can force a re-search
@@ -1779,6 +1812,11 @@ async fn run_prefetch(
                         )
                         .await;
                         misses += 1;
+                    }
+                    // Nothing was queried — don't record a negative for a
+                    // track we never actually asked about.
+                    Ok(SearchOutcome::Unavailable) => {
+                        failed += 1;
                     }
                     Err(err) => {
                         tracing::warn!(track_id, ?err, "external lyrics prefetch failed");
@@ -2391,7 +2429,7 @@ pub async fn fetch_radio_lyrics(
         };
 
     match result {
-        Some(r) => {
+        SearchOutcome::Found(r) => {
             let format = external_format_to_app(r.format);
             let provider = r.provider.as_str();
             upsert_radio_lyrics(
@@ -2414,12 +2452,15 @@ pub async fn fetch_radio_lyrics(
                 sidecar_write_skipped: None,
             }))
         }
-        None => {
+        SearchOutcome::Miss => {
             // Cache the miss (empty content) so a recurring song on the
             // station's rotation doesn't re-hit the network every time.
             upsert_radio_lyrics(&pool, &key, artist, title, "", &LyricsFormat::Plain, None).await?;
             Ok(None)
         }
+        // Nothing was queried, so there is no verdict to remember — leave
+        // the cache untouched and let the next spin of this song retry.
+        SearchOutcome::Unavailable => Ok(None),
     }
 }
 
