@@ -23,6 +23,8 @@ Three deliberate restrictions:
 
 Directory resolution (`read_dir` + read + blake3 per directory, potentially hundreds of megabytes) runs in a single `spawn_blocking` batch rather than on the async runtime, and the writes land in one transaction — the scanner is the single writer, so per-album autocommits would serialise N round-trips through WAL for no benefit.
 
+Because that walk can take seconds, the candidate list is a snapshot that may be stale by the time it is written. The update is therefore a compare-and-swap that also re-asserts the source allowlist (`link_folder_cover_if_eligible`): an album whose cover changed mid-walk — the user uploaded one, or a concurrent scan resolved a fresher sidecar — is left alone, and the count of refreshed covers comes from `rows_affected` so a skipped album never inflates the scan summary.
+
 A tag edit that rewrites the audio file *is* already detected, since it moves that file's mtime — this pass is specifically about the sidecar case.
 
 ## Audio analysis

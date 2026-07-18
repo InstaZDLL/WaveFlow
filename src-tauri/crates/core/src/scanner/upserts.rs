@@ -643,29 +643,53 @@ pub async fn merge_implicit_compilations(pool: &SqlitePool) -> CoreResult<()> {
     Ok(())
 }
 
-/// Point an album at `artwork_id`, but only while its current artwork is
-/// still sidecar-sourced (or absent). Returns whether the row changed.
+/// One album due for a cover refresh, as observed before the filesystem
+/// walk. `observed_artwork_id` / `observed_hash` are what the album
+/// pointed at when the candidate list was built, and are re-checked at
+/// write time — see [`link_folder_cover_if_eligible`].
+struct CoverCandidate {
+    album_id: i64,
+    dir: PathBuf,
+    observed_artwork_id: Option<i64>,
+    observed_hash: Option<String>,
+}
+
+/// Point an album at `artwork_id`, but only if it still holds the artwork
+/// the caller saw and that artwork is still sidecar-sourced (or absent).
+/// Returns whether the row changed.
 ///
-/// [`refresh_folder_covers`] already filters on the same rule when it
+/// [`refresh_folder_covers`] already filters on the source rule when it
 /// builds its candidate list, but that read happens *before* the blocking
 /// directory walk, which can run for seconds on a large library — long
-/// enough for the user to upload a cover for this very album in the
-/// meantime. Re-checking as part of the write closes that window: the
-/// condition and the update are one statement, so nothing can slip
-/// between them.
+/// enough for the album's cover to change underneath. Re-checking as part
+/// of the write closes that window: the conditions and the update are one
+/// statement, so nothing can slip between them.
+///
+/// Two distinct hazards, hence two conditions:
+///
+/// - `expected_artwork_id` makes this a compare-and-swap, so a *newer*
+///   sidecar resolved by a concurrent scan of the same album isn't rolled
+///   back to the one this pass computed from a staler read. Bound with
+///   `IS` rather than `=` because the observed value is legitimately NULL
+///   for an album that had no artwork, and SQLite's `=` never matches
+///   NULL.
+/// - The source allowlist stops a cover the user uploaded (or an
+///   enrichment fetched) mid-walk from being overwritten by a sidecar.
 ///
 /// The boolean comes from `rows_affected`, i.e. what the database
 /// actually changed rather than what the caller intended, so an album
-/// that slipped out of the allowlist cannot inflate the scan summary.
+/// that moved on cannot inflate the scan summary.
 async fn link_folder_cover_if_eligible(
     conn: &mut sqlx::SqliteConnection,
     album_id: i64,
+    expected_artwork_id: Option<i64>,
     artwork_id: i64,
 ) -> CoreResult<bool> {
     let result = sqlx::query(
         "UPDATE album
             SET artwork_id = ?
           WHERE id = ?
+            AND artwork_id IS ?
             AND (
                 artwork_id IS NULL
                 OR EXISTS (
@@ -677,6 +701,7 @@ async fn link_folder_cover_if_eligible(
     )
     .bind(artwork_id)
     .bind(album_id)
+    .bind(expected_artwork_id)
     .execute(&mut *conn)
     .await?;
     Ok(result.rows_affected() > 0)
@@ -729,8 +754,8 @@ pub async fn refresh_folder_covers(
     // touched; the outer query then takes *every* available track of
     // those albums, so directory selection sees the album's full extent
     // no matter which folder triggered the scan.
-    let rows: Vec<(i64, String, Option<String>, Option<String>)> = sqlx::query_as(
-        "SELECT t.album_id, t.file_path, aw.hash, aw.source
+    let rows: Vec<(i64, String, Option<i64>, Option<String>, Option<String>)> = sqlx::query_as(
+        "SELECT t.album_id, t.file_path, al.artwork_id, aw.hash, aw.source
            FROM track t
            JOIN album al ON al.id = t.album_id
            LEFT JOIN artwork aw ON aw.id = al.artwork_id
@@ -747,12 +772,13 @@ pub async fn refresh_folder_covers(
     .fetch_all(pool)
     .await?;
 
-    // album_id → (winning directory, current artwork hash, current source).
-    // The directory is kept as a running minimum instead of collecting
-    // every path and sorting at the end — same answer, no allocation
-    // proportional to track count.
-    let mut albums: HashMap<i64, (PathBuf, Option<String>, Option<String>)> = HashMap::new();
-    for (album_id, file_path, hash, source) in rows {
+    // album_id → (winning directory, artwork id, hash, source) as
+    // observed now. The directory is kept as a running minimum instead of
+    // collecting every path and sorting at the end — same answer, no
+    // allocation proportional to track count.
+    let mut albums: HashMap<i64, (PathBuf, Option<i64>, Option<String>, Option<String>)> =
+        HashMap::new();
+    for (album_id, file_path, artwork_id, hash, source) in rows {
         let Some(dir) = Path::new(&file_path).parent().map(Path::to_path_buf) else {
             continue;
         };
@@ -763,17 +789,22 @@ pub async fn refresh_folder_covers(
                     entry.0 = dir.clone();
                 }
             })
-            .or_insert((dir, hash, source));
+            .or_insert((dir, artwork_id, hash, source));
     }
 
     // Drop the albums this pass must not touch before doing any
     // filesystem work, so an untouchable album never costs a read.
-    let candidates: Vec<(i64, PathBuf, Option<String>)> = albums
+    let candidates: Vec<CoverCandidate> = albums
         .into_iter()
-        .filter(|(_, (_, _, source))| {
-            matches!(source.as_deref(), None | Some("folder"))
-        })
-        .map(|(album_id, (dir, hash, _))| (album_id, dir, hash))
+        .filter(|(_, (_, _, _, source))| matches!(source.as_deref(), None | Some("folder")))
+        .map(
+            |(album_id, (dir, observed_artwork_id, observed_hash, _))| CoverCandidate {
+                album_id,
+                dir,
+                observed_artwork_id,
+                observed_hash,
+            },
+        )
         .collect();
     if candidates.is_empty() {
         return Ok(0);
@@ -788,7 +819,7 @@ pub async fn refresh_folder_covers(
     // Several albums commonly share one directory (a compilation split
     // across album rows, or singles dumped together), hence the dedup:
     // that's the read + hash we're trying not to repeat.
-    let mut wanted: Vec<PathBuf> = candidates.iter().map(|(_, dir, _)| dir.clone()).collect();
+    let mut wanted: Vec<PathBuf> = candidates.iter().map(|c| c.dir.clone()).collect();
     wanted.sort();
     wanted.dedup();
 
@@ -816,16 +847,24 @@ pub async fn refresh_folder_covers(
     let mut tx = pool.begin().await?;
     let mut updated: u32 = 0;
 
-    for (album_id, dir, current_hash) in candidates {
-        let Some((hash, format)) = covers.get(&dir).cloned().flatten() else {
+    for candidate in candidates {
+        let Some((hash, format)) = covers.get(&candidate.dir).cloned().flatten() else {
             continue;
         };
-        if current_hash.as_deref() == Some(hash.as_str()) {
+        if candidate.observed_hash.as_deref() == Some(hash.as_str()) {
             continue;
         }
 
+        let album_id = candidate.album_id;
         let artwork_id = upsert_artwork(&mut tx, &hash, &format, "folder").await?;
-        if !link_folder_cover_if_eligible(&mut tx, album_id, artwork_id).await? {
+        if !link_folder_cover_if_eligible(
+            &mut tx,
+            album_id,
+            candidate.observed_artwork_id,
+            artwork_id,
+        )
+        .await?
+        {
             tracing::debug!(album_id, "album cover changed under us; leaving it alone");
             continue;
         }
@@ -1170,7 +1209,7 @@ mod folder_cover_tests {
             .unwrap();
 
         let mut conn = pool.acquire().await.unwrap();
-        let changed = link_folder_cover_if_eligible(&mut conn, 10, 2)
+        let changed = link_folder_cover_if_eligible(&mut conn, 10, Some(1), 2)
             .await
             .unwrap();
         drop(conn);
@@ -1191,8 +1230,10 @@ mod folder_cover_tests {
             .await
             .unwrap();
 
+        // Observed as NULL — the CAS binds with `IS`, which matches NULL
+        // where `=` would not.
         let mut conn = pool.acquire().await.unwrap();
-        let changed = link_folder_cover_if_eligible(&mut conn, 10, 2)
+        let changed = link_folder_cover_if_eligible(&mut conn, 10, None, 2)
             .await
             .unwrap();
         drop(conn);
@@ -1219,7 +1260,7 @@ mod folder_cover_tests {
                 .unwrap();
 
             let mut conn = pool.acquire().await.unwrap();
-            let changed = link_folder_cover_if_eligible(&mut conn, 10, 2)
+            let changed = link_folder_cover_if_eligible(&mut conn, 10, Some(1), 2)
                 .await
                 .unwrap();
             drop(conn);
@@ -1231,5 +1272,41 @@ mod folder_cover_tests {
                 "source {source} must survive",
             );
         }
+    }
+
+    /// Compare-and-swap, the hazard the source allowlist alone cannot
+    /// catch: both the old and the new cover are `folder`-sourced, so
+    /// every source check passes and only the observed identity
+    /// distinguishes them.
+    ///
+    /// A concurrent scan of the same album resolved a fresher sidecar
+    /// while this pass was walking directories. Writing our value would
+    /// roll that back to what a staler read computed — last writer wins,
+    /// with no signal that anything was lost.
+    #[tokio::test]
+    async fn the_write_guard_refuses_to_roll_back_a_newer_folder_cover() {
+        let pool = fixture_pool().await;
+        seed_artwork(&pool, 1, "cover-we-observed", "folder").await;
+        seed_artwork(&pool, 2, "cover-we-resolved", "folder").await;
+        seed_artwork(&pool, 3, "cover-a-concurrent-scan-landed", "folder").await;
+        // The album moved on to artwork 3 after our candidate list was
+        // built, so our observation of artwork 1 is stale.
+        sqlx::query("INSERT INTO album (id, artwork_id) VALUES (10, 3)")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let mut conn = pool.acquire().await.unwrap();
+        let changed = link_folder_cover_if_eligible(&mut conn, 10, Some(1), 2)
+            .await
+            .unwrap();
+        drop(conn);
+
+        assert!(!changed, "a stale write must not report success");
+        assert_eq!(
+            album_artwork_hash(&pool, 10).await,
+            Some("cover-a-concurrent-scan-landed".to_string()),
+            "the newer cover must survive",
+        );
     }
 }
