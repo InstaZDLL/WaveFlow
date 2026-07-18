@@ -66,14 +66,14 @@ pub async fn spotify_get_status(state: tauri::State<'_, AppState>) -> AppResult<
         Err(AppError::NoActiveProfile) => None,
         Err(err) => return Err(err),
     };
-    Ok(spotify::status(&state.app_db, profile_pool.as_ref()).await?)
+    Ok(spotify::status(&state.app_db, profile_pool.as_deref()).await?)
 }
 
 #[tauri::command]
 pub async fn spotify_logout(state: tauri::State<'_, AppState>) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     sqlx::query("DELETE FROM auth_credential WHERE provider = 'spotify'")
-        .execute(&pool)
+        .execute(&*pool)
         .await?;
     Ok(())
 }

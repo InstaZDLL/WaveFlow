@@ -42,7 +42,11 @@ pub async fn dlna_get_status(state: tauri::State<'_, AppState>) -> AppResult<Dln
 /// the worker thread can hold across requests. Re-call on every
 /// start so a profile switch picks up the new pool.
 pub async fn build_resources(state: &AppState) -> AppResult<DlnaResources> {
-    let pool = state.require_profile_pool().await?;
+    // Deliberately unleashed: the worker thread holds this pool across
+    // requests for the whole lifetime of the server, so a lease would
+    // stall every profile switch until the drain timeout. `build_resources`
+    // is re-called on switch instead, which is the intended lifecycle.
+    let pool = state.require_profile_pool().await?.into_unleashed();
     let profile_id = state.require_profile_id().await?;
     Ok(DlnaResources {
         pool,

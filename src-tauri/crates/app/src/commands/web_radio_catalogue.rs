@@ -191,7 +191,7 @@ pub async fn get_radio_preferred_country(
     let value: Option<String> =
         sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = ?")
             .bind(KEY_PREFERRED_COUNTRY)
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await?;
     Ok(value.filter(|s| !s.is_empty()))
 }
@@ -223,7 +223,7 @@ pub async fn set_radio_preferred_country(
     )
     .bind(KEY_PREFERRED_COUNTRY)
     .bind(&code)
-    .execute(&pool)
+    .execute(&*pool)
     .await?;
     Ok(())
 }

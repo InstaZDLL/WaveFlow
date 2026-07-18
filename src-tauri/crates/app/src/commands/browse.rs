@@ -144,7 +144,7 @@ pub async fn get_profile_stats(state: tauri::State<'_, AppState>) -> AppResult<P
     let pool = state.require_profile_pool().await?;
 
     let liked_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM liked_track")
-        .fetch_one(&pool)
+        .fetch_one(&*pool)
         .await
         .unwrap_or(0);
 
@@ -152,7 +152,7 @@ pub async fn get_profile_stats(state: tauri::State<'_, AppState>) -> AppResult<P
         "SELECT COUNT(DISTINCT track_id) FROM play_event
           WHERE completed = 1 OR listened_ms >= 15000",
     )
-    .fetch_one(&pool)
+    .fetch_one(&*pool)
     .await
     .unwrap_or(0);
 
@@ -304,7 +304,7 @@ pub async fn list_albums(
     let raw = sqlx::query_as::<_, AlbumRawRow>(sqlx::AssertSqlSafe(sql))
         .bind(library_id)
         .bind(library_id)
-        .fetch_all(&pool)
+        .fetch_all(&*pool)
         .await?;
 
     let items = expand_album_rows(raw, artwork_dir.clone()).await?;
@@ -395,7 +395,7 @@ pub async fn list_artists(
     let raw = sqlx::query_as::<_, ArtistRowRaw>(sqlx::AssertSqlSafe(sql))
         .bind(library_id)
         .bind(library_id)
-        .fetch_all(&pool)
+        .fetch_all(&*pool)
         .await?;
 
     let profile_id = state.require_profile_id().await?;
@@ -530,7 +530,7 @@ pub async fn search_albums(
     .bind(&canon)
     .bind(&canon)
     .bind(limit)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     let items = expand_album_rows(raw, artwork_dir.clone()).await?;
@@ -595,7 +595,7 @@ pub async fn search_artists(
     .bind(&canon)
     .bind(&canon)
     .bind(limit)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     let items = expand_artist_rows(raw, artwork_dir.clone(), metadata_dir.clone()).await?;
@@ -631,7 +631,7 @@ pub async fn list_genres(
     )
     .bind(library_id)
     .bind(library_id)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     Ok(rows)
@@ -690,7 +690,7 @@ pub async fn list_recent_plays(
     .bind(library_id)
     .bind(library_id)
     .bind(limit)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     let rows = raw
@@ -758,7 +758,7 @@ pub async fn list_folders(
     )
     .bind(library_id)
     .bind(library_id)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     Ok(rows)
@@ -866,7 +866,7 @@ pub async fn get_album_detail(
         "#,
     )
     .bind(album_id)
-    .fetch_optional(&pool)
+    .fetch_optional(&*pool)
     .await?
     .ok_or_else(|| crate::error::AppError::Other("album not found".into()))?;
 
@@ -896,7 +896,7 @@ pub async fn get_album_detail(
         "#,
     )
     .bind(album_id)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     // Collapse duplicate files (same album/disc/track_number) — e.g. when the
@@ -954,7 +954,7 @@ pub async fn get_album_detail(
         "#,
     )
     .bind(album_id)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     let tracks: Vec<AlbumTrack> = tracks_raw
@@ -1103,7 +1103,7 @@ pub async fn get_artist_detail(
         "#,
     )
     .bind(artist_id)
-    .fetch_optional(&pool)
+    .fetch_optional(&*pool)
     .await?
     .ok_or_else(|| crate::error::AppError::Other("artist not found".into()))?;
 
@@ -1138,7 +1138,7 @@ pub async fn get_artist_detail(
         "#,
     )
     .bind(artist_id)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     let albums = albums_raw
@@ -1257,7 +1257,7 @@ pub async fn get_genre_detail(
 
     let header = sqlx::query_as::<_, GenreHeaderRaw>(r#"SELECT id, name FROM genre WHERE id = ?"#)
         .bind(genre_id)
-        .fetch_optional(&pool)
+        .fetch_optional(&*pool)
         .await?
         .ok_or_else(|| crate::error::AppError::Other("genre not found".into()))?;
 
@@ -1299,7 +1299,7 @@ pub async fn get_genre_detail(
         "#,
     )
     .bind(genre_id)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     let tracks: Vec<crate::commands::track::Track> = rows
@@ -1462,7 +1462,7 @@ pub async fn list_play_history(
     .bind(before_ms)
     .bind(after_ms)
     .bind(limit)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     let rows = raw
@@ -1541,7 +1541,7 @@ pub async fn play_history_months(
          ORDER BY bucket ASC
         "#,
     )
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     let mut out = Vec::with_capacity(raw.len());

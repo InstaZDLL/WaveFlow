@@ -118,7 +118,7 @@ pub async fn available_wrapped_years(state: tauri::State<'_, AppState>) -> AppRe
          ORDER BY y DESC
         "#,
     )
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
     Ok(rows
         .into_iter()
@@ -152,7 +152,7 @@ pub async fn get_wrapped(
         )
         .bind(since)
         .bind(until)
-        .fetch_one(&pool)
+        .fetch_one(&*pool)
         .await?;
 
     let unique_artists: i64 = sqlx::query_scalar(
@@ -165,7 +165,7 @@ pub async fn get_wrapped(
     )
     .bind(since)
     .bind(until)
-    .fetch_one(&pool)
+    .fetch_one(&*pool)
     .await
     .unwrap_or(0);
 
@@ -188,7 +188,7 @@ pub async fn get_wrapped(
     )
     .bind(since)
     .bind(until)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
     let mut by_month: [MonthBucket; 12] = Default::default();
     for (m, plays, ms) in month_rows {
@@ -214,7 +214,7 @@ pub async fn get_wrapped(
     )
     .bind(since)
     .bind(until)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
     let mut by_hour = [0_i64; 24];
     for (h, plays) in hour_rows {
@@ -240,7 +240,7 @@ pub async fn get_wrapped(
     )
     .bind(since)
     .bind(until)
-    .fetch_optional(&pool)
+    .fetch_optional(&*pool)
     .await?
     .map(|(day, plays, ms)| ActiveDay {
         day,
@@ -272,7 +272,7 @@ pub async fn get_wrapped(
     )
     .bind(since)
     .bind(until)
-    .fetch_one(&pool)
+    .fetch_one(&*pool)
     .await
     .unwrap_or(MoodRaw {
         weighted_bpm: None,
@@ -316,7 +316,7 @@ pub async fn get_wrapped(
         )
         .bind(since)
         .bind(until)
-        .fetch_optional(&pool)
+        .fetch_optional(&*pool)
         .await?
         .map(|(track_id, title, artist_name, played_at)| FirstListen {
             track_id,
@@ -341,7 +341,7 @@ pub async fn get_wrapped(
     )
     .bind(since)
     .bind(until)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
     let streak = compute_longest_streak(day_strs.into_iter().map(|(s,)| s));
 

@@ -129,7 +129,7 @@ pub async fn create_custom_smart_playlist(
     .bind(&rules_json)
     .bind(now)
     .bind(now)
-    .execute(&pool)
+    .execute(&*pool)
     .await?;
     let playlist_id = insert.last_insert_rowid();
 
@@ -157,7 +157,7 @@ pub async fn update_custom_smart_playlist(
     let row: Option<(i64, Option<String>)> =
         sqlx::query_as("SELECT is_smart, smart_rules FROM playlist WHERE id = ?")
             .bind(playlist_id)
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await?;
     let (is_smart, existing_rules) =
         row.ok_or_else(|| AppError::Other(format!("playlist {playlist_id} not found")))?;
@@ -196,7 +196,7 @@ pub async fn update_custom_smart_playlist(
     .bind(&rules_json)
     .bind(now)
     .bind(playlist_id)
-    .execute(&pool)
+    .execute(&*pool)
     .await?;
 
     let track_count = custom::materialize(&pool, playlist_id, &input.rules).await?;
@@ -222,7 +222,7 @@ pub async fn regenerate_custom_smart_playlist(
     let row: Option<(i64, Option<String>)> =
         sqlx::query_as("SELECT is_smart, smart_rules FROM playlist WHERE id = ?")
             .bind(playlist_id)
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await?;
     let (is_smart, raw) =
         row.ok_or_else(|| AppError::Other(format!("playlist {playlist_id} not found")))?;
@@ -249,7 +249,7 @@ pub async fn get_custom_smart_playlist_rules(
     let raw: Option<Option<String>> =
         sqlx::query_scalar("SELECT smart_rules FROM playlist WHERE id = ? AND is_smart = 1")
             .bind(playlist_id)
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await?;
     let raw = raw
         .flatten()

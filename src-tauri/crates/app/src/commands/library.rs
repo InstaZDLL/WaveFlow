@@ -12,7 +12,7 @@ use waveflow_core::repository::{
 use crate::{
     commands::scan::{scan_folder_inner, ScanSummary},
     error::{AppError, AppResult},
-    state::AppState,
+    state::{AppState, Leased},
     watcher::{apply_toggle, WatcherManager},
 };
 // `Library` + input DTOs moved to `waveflow_core::domain::library` in the
@@ -41,10 +41,15 @@ fn now_millis() -> i64 {
     Utc::now().timestamp_millis()
 }
 
-async fn library_repo(state: &AppState) -> AppResult<SqliteLibraryRepository> {
-    Ok(SqliteLibraryRepository::new(
-        state.require_profile_pool().await?,
-    ))
+/// Build a library repository over the active profile's pool.
+///
+/// The repository is wrapped in [`Leased`] so the profile pool stays
+/// open for as long as the caller holds it (issue #332) — a repo built
+/// from a bare `SqlitePool` clone would let a concurrent profile switch
+/// close the pool mid-command.
+async fn library_repo(state: &AppState) -> AppResult<Leased<SqliteLibraryRepository>> {
+    let (pool, lease) = state.require_profile_pool().await?.into_parts();
+    Ok(Leased::new(SqliteLibraryRepository::new(pool), lease))
 }
 
 /// List every library in the active profile's database, most-recently-updated

@@ -1327,14 +1327,14 @@ pub async fn refetch_lyrics(
     // since `app.lyrics` is keyed by content hash, not track id.
     let file_hash: Option<String> = sqlx::query_scalar("SELECT file_hash FROM track WHERE id = ?")
         .bind(track_id)
-        .fetch_optional(&pool)
+        .fetch_optional(&*pool)
         .await?;
     let Some(file_hash) = file_hash else {
         return Ok(None);
     };
     sqlx::query("DELETE FROM app.lyrics WHERE file_hash = ?")
         .bind(&file_hash)
-        .execute(&pool)
+        .execute(&*pool)
         .await?;
 
     // No provider pinned → identical to a fresh `fetch_lyrics` call,
@@ -1423,7 +1423,7 @@ pub async fn import_lrc_file(
     let pool = state.require_profile_pool().await?;
     let file_hash: String = sqlx::query_scalar("SELECT file_hash FROM track WHERE id = ?")
         .bind(track_id)
-        .fetch_optional(&pool)
+        .fetch_optional(&*pool)
         .await?
         .ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
 
@@ -1532,7 +1532,7 @@ async fn run_prefetch(
               GROUP BY t.file_hash
               ORDER BY t.id",
     )
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     let total = pending.len() as u32;
@@ -1966,7 +1966,7 @@ pub async fn save_lyrics(
     let row: Option<(String, String)> =
         sqlx::query_as("SELECT file_path, file_hash FROM track WHERE id = ?")
             .bind(track_id)
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await?;
     let (file_path, mut file_hash) =
         row.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
@@ -2274,7 +2274,7 @@ pub async fn clear_lyrics(state: tauri::State<'_, AppState>, track_id: i64) -> A
           WHERE file_hash = (SELECT file_hash FROM track WHERE id = ?)",
     )
     .bind(track_id)
-    .execute(&pool)
+    .execute(&*pool)
     .await?;
     Ok(())
 }
@@ -2524,13 +2524,13 @@ pub async fn set_lyrics_translation_lang(
             .bind(TRANSLATION_LANG_KEY)
             .bind(code)
             .bind(now)
-            .execute(&pool)
+            .execute(&*pool)
             .await?;
         }
         None => {
             sqlx::query("DELETE FROM profile_setting WHERE key = ?")
                 .bind(TRANSLATION_LANG_KEY)
-                .execute(&pool)
+                .execute(&*pool)
                 .await?;
         }
     }
@@ -2564,12 +2564,12 @@ pub async fn set_prefer_lrclib(
         )
         .bind(PREFER_LRCLIB_KEY)
         .bind(now)
-        .execute(&pool)
+        .execute(&*pool)
         .await?;
     } else {
         sqlx::query("DELETE FROM profile_setting WHERE key = ?")
             .bind(PREFER_LRCLIB_KEY)
-            .execute(&pool)
+            .execute(&*pool)
             .await?;
     }
     Ok(())

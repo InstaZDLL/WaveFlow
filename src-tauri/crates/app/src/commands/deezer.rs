@@ -291,7 +291,7 @@ pub async fn enrich_artist_deezer(
     let custom_bio: Option<String> =
         sqlx::query_scalar("SELECT custom_bio FROM artist WHERE id = ?")
             .bind(artist_id)
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await?
             .flatten()
             .map(|b: String| b.trim().to_string())
@@ -301,7 +301,7 @@ pub async fn enrich_artist_deezer(
     // enrichment stay scoped to one profile — re-resolving inside could
     // straddle a switch_profile and apply one profile's override to
     // another's artist.
-    let mut enrichment = enrich_artist_deezer_inner(state, pool, artist_id).await?;
+    let mut enrichment = enrich_artist_deezer_inner(state, (*pool).clone(), artist_id).await?;
     if let Some(bio) = custom_bio {
         // Synthesize a truncated lead-in the same way the online sources
         // do (issue #343) — without it bio_short == bio_full verbatim and
@@ -621,7 +621,7 @@ pub async fn set_album_artwork_from_deezer(
     sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
         .bind(artwork_id)
         .bind(album_id)
-        .execute(&pool)
+        .execute(&*pool)
         .await?;
 
     Ok(())
@@ -654,7 +654,7 @@ pub async fn set_album_artwork_from_file(
     sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
         .bind(artwork_id)
         .bind(album_id)
-        .execute(&pool)
+        .execute(&*pool)
         .await?;
 
     Ok(())
@@ -773,7 +773,7 @@ pub async fn set_artist_artwork_from_deezer(
     let res = sqlx::query("UPDATE artist SET artwork_id = ? WHERE id = ?")
         .bind(artwork_id)
         .bind(artist_id)
-        .execute(&pool)
+        .execute(&*pool)
         .await?;
     if res.rows_affected() == 0 {
         return Err(AppError::Other(format!("artist {artist_id} not found")));
@@ -811,7 +811,7 @@ pub async fn set_artist_artwork_from_file(
     let res = sqlx::query("UPDATE artist SET artwork_id = ? WHERE id = ?")
         .bind(artwork_id)
         .bind(artist_id)
-        .execute(&pool)
+        .execute(&*pool)
         .await?;
     if res.rows_affected() == 0 {
         return Err(AppError::Other(format!("artist {artist_id} not found")));
@@ -831,7 +831,7 @@ pub async fn clear_artist_artwork(
     let pool = state.require_profile_pool().await?;
     let res = sqlx::query("UPDATE artist SET artwork_id = NULL WHERE id = ?")
         .bind(artist_id)
-        .execute(&pool)
+        .execute(&*pool)
         .await?;
     if res.rows_affected() == 0 {
         return Err(AppError::Other(format!("artist {artist_id} not found")));
@@ -868,7 +868,7 @@ pub async fn batch_fetch_missing_artist_pictures(
           ORDER BY a.name COLLATE NOCASE",
     )
     .bind(now)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     let total = rows.len();
@@ -914,7 +914,7 @@ pub async fn batch_fetch_missing_album_covers(
 
     let rows: Vec<(i64, String)> =
         sqlx::query_as("SELECT a.id, a.title FROM album a WHERE a.artwork_id IS NULL")
-            .fetch_all(&pool)
+            .fetch_all(&*pool)
             .await?;
 
     let total = rows.len();

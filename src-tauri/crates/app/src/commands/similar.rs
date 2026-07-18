@@ -88,7 +88,7 @@ pub async fn get_similar_artists(
     let local: Option<(String, Option<i64>)> =
         sqlx::query_as("SELECT name, deezer_id FROM artist WHERE id = ?")
             .bind(artist_id)
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await?;
     let Some((source_name, source_deezer_id)) = local else {
         return Ok(Vec::new());
@@ -105,7 +105,7 @@ pub async fn get_similar_artists(
           WHERE name_canonical = ?",
     )
     .bind(&source_canonical)
-    .fetch_optional(&pool)
+    .fetch_optional(&*pool)
     .await?;
 
     // Offline mode: hand back whatever the cache holds (even if
@@ -163,7 +163,7 @@ pub async fn get_similar_artists(
         for c in &canonicals {
             q = q.bind(c);
         }
-        for (id, canon, hash) in q.fetch_all(&pool).await? {
+        for (id, canon, hash) in q.fetch_all(&*pool).await? {
             local_map.insert(canon, (id, hash));
         }
     }
@@ -484,7 +484,7 @@ pub async fn ensure_similar_cached(state: &AppState, artist_id: i64) -> AppResul
     let local: Option<(String, Option<i64>)> =
         sqlx::query_as("SELECT name, deezer_id FROM artist WHERE id = ?")
             .bind(artist_id)
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await?;
     let Some((name, deezer_id)) = local else {
         return Ok(());
@@ -498,7 +498,7 @@ pub async fn ensure_similar_cached(state: &AppState, artist_id: i64) -> AppResul
     let cached: Option<(i64,)> =
         sqlx::query_as("SELECT expires_at FROM app.lastfm_similar WHERE name_canonical = ?")
             .bind(&canonical)
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await?;
     if cached.map(|(exp,)| exp > now).unwrap_or(false) {
         return Ok(());

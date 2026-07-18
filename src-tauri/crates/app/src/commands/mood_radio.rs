@@ -140,7 +140,7 @@ pub async fn start_mood_radio(
     .bind(f.bpm_max)
     .bind(f.lufs_max)
     .bind(POOL_SIZE)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     if rows.is_empty() {

@@ -53,7 +53,7 @@ pub async fn get_artist_overrides(
     let custom_bio: Option<String> =
         sqlx::query_scalar("SELECT custom_bio FROM artist WHERE id = ?")
             .bind(artist_id)
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await?
             .flatten();
 
@@ -81,7 +81,7 @@ pub async fn get_artist_overrides(
         "#,
     )
     .bind(artist_id)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     let similar = rows
