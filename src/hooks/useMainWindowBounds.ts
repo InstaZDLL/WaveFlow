@@ -17,6 +17,10 @@ import { mainWindowBoundsWritesSuppressed } from "../lib/mainWindowBoundsGuard";
  * `outerSize`: the main window carries OS decorations while the mini is
  * `decorations: false` (inner === outer), so only this window needs the
  * inner/outer distinction to round-trip through `set_size`. See #379.
+ *
+ * Only a window in the NORMAL state is persisted — maximized, minimized
+ * and fullscreen geometries are skipped, so what comes back on the next
+ * launch is always the last real user-sized window.
  */
 export function useMainWindowBounds(): void {
   useEffect(() => {
@@ -38,6 +42,23 @@ export function useMainWindowBounds(): void {
       if (timer != null) window.clearTimeout(timer);
       timer = window.setTimeout(async () => {
         try {
+          // Only persist a NORMAL-state window. While maximized the
+          // geometry describes the full work area, so restoring it on the
+          // next launch reopens the window at maximized *size* without the
+          // maximized *state* — a window that looks maximized but isn't,
+          // and that can no longer be restored to its previous size.
+          // Minimized is worse: Windows reports an off-screen position
+          // (typically -32000), which would park the window outside every
+          // monitor. Fullscreen has the same problem as maximized.
+          // Skipping the write keeps the last known normal geometry, which
+          // is what the user gets back.
+          const [maximized, minimized, fullscreen] = await Promise.all([
+            win.isMaximized(),
+            win.isMinimized(),
+            win.isFullscreen(),
+          ]);
+          if (maximized || minimized || fullscreen) return;
+
           const scale = await win.scaleFactor();
           const pos = await win.outerPosition();
           // Save the INNER (client-area) size, not the outer size. The
