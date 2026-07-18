@@ -9,6 +9,38 @@
    so `[data-skin="lounge"] *` covers every element in the document. */
 @custom-variant dark (&:where(.dark, .dark *, :root[data-skin="lounge"] *, :root[data-skin="pulse"] *));
 
+/* ============================================================
+   Layer scale (issue #390)
+   ============================================================
+
+   A `z-index` is only compared against siblings inside the same
+   stacking context. `position: fixed` escapes layout flow but NOT a
+   stacking context — any ancestor carrying `backdrop-filter`,
+   `transform`, `opacity < 1`, `filter` or `will-change` creates one and
+   clamps everything inside it to that ancestor's own z-index.
+
+   WaveFlow hits this constantly because the chrome is glassy: the TopBar
+   has `backdrop-blur-md`, and the Pulse / Liquid skins add
+   `backdrop-filter` to the PlayerBar and other containers. So the rule
+   is not "pick a bigger number" — it's "know which context you're in".
+
+     z-10   in-panel sticky headers (NowPlayingPanel)
+     z-20   content-level sticky group headers (HistoryView date header)
+     z-30   TopBar — a stacking context; its dropdowns are clamped here,
+            so it must outrank content chrome (z-20)
+     z-50   PlayerBar (`footer`) — a stacking context under Pulse/Liquid
+     z-100  overlays: context menus, dropdown popovers
+     z-101  nested submenus
+
+   Anything at z-100+ MUST be rendered through a portal into
+   `document.body` (see `ContextMenu`, `AnimatedModalShell`), otherwise
+   an ancestor's stacking context silently caps it and a lower-numbered
+   sibling of that ancestor paints on top.
+
+   Portalling is safe for skin styling: every skin rule is rooted at
+   `:root[data-skin="…"] :where(…)`, and `body` is still a descendant of
+   `:root`, so a portalled subtree keeps matching. */
+
 /* Default accent palette = Tailwind's emerald, exposed as CSS
    variables so themes (see `src/lib/themes.ts`) can override every
    shade at runtime. Components keep using `bg-emerald-*` /
