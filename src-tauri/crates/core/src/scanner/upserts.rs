@@ -643,6 +643,45 @@ pub async fn merge_implicit_compilations(pool: &SqlitePool) -> CoreResult<()> {
     Ok(())
 }
 
+/// Point an album at `artwork_id`, but only while its current artwork is
+/// still sidecar-sourced (or absent). Returns whether the row changed.
+///
+/// [`refresh_folder_covers`] already filters on the same rule when it
+/// builds its candidate list, but that read happens *before* the blocking
+/// directory walk, which can run for seconds on a large library — long
+/// enough for the user to upload a cover for this very album in the
+/// meantime. Re-checking as part of the write closes that window: the
+/// condition and the update are one statement, so nothing can slip
+/// between them.
+///
+/// The boolean comes from `rows_affected`, i.e. what the database
+/// actually changed rather than what the caller intended, so an album
+/// that slipped out of the allowlist cannot inflate the scan summary.
+async fn link_folder_cover_if_eligible(
+    conn: &mut sqlx::SqliteConnection,
+    album_id: i64,
+    artwork_id: i64,
+) -> CoreResult<bool> {
+    let result = sqlx::query(
+        "UPDATE album
+            SET artwork_id = ?
+          WHERE id = ?
+            AND (
+                artwork_id IS NULL
+                OR EXISTS (
+                    SELECT 1 FROM artwork aw
+                     WHERE aw.id = album.artwork_id
+                       AND aw.source = 'folder'
+                )
+            )",
+    )
+    .bind(artwork_id)
+    .bind(album_id)
+    .execute(&mut *conn)
+    .await?;
+    Ok(result.rows_affected() > 0)
+}
+
 /// Reconcile sidecar cover art against the albums that live next to it.
 ///
 /// The scanner's fast path keys on the **audio** files' `(mtime, size)`,
@@ -666,7 +705,12 @@ pub async fn merge_implicit_compilations(pool: &SqlitePool) -> CoreResult<()> {
 ///   *fallback* for tracks whose tag carries no picture), `user` (a
 ///   manual upload), `deezer` (an enrichment fetch). The guard is an
 ///   allowlist — `folder` or no artwork at all — so a source added later
-///   is preserved by default rather than silently clobbered.
+///   is preserved by default rather than silently clobbered. Caveat:
+///   `artwork` rows are deduped on hash alone, so `source` records who
+///   inserted the bytes first, not where this album got them. An image
+///   that is embedded in one album and a sidecar next to another is
+///   labelled `embedded` for both, and the sidecar one then stops being
+///   refreshable here. See issue #401.
 /// - **A deleted sidecar does not blank the album.** A vanished cover is
 ///   far more likely to be a transient state (files being reorganised)
 ///   than a request for a blank album.
@@ -781,11 +825,10 @@ pub async fn refresh_folder_covers(
         }
 
         let artwork_id = upsert_artwork(&mut tx, &hash, &format, "folder").await?;
-        sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
-            .bind(artwork_id)
-            .bind(album_id)
-            .execute(&mut *tx)
-            .await?;
+        if !link_folder_cover_if_eligible(&mut tx, album_id, artwork_id).await? {
+            tracing::debug!(album_id, "album cover changed under us; leaving it alone");
+            continue;
+        }
         updated += 1;
         tracing::debug!(album_id, %hash, "refreshed album cover from folder sidecar");
     }
@@ -1102,6 +1145,82 @@ mod folder_cover_tests {
                 album_artwork_hash(&pool, 10).await,
                 Some(disc1_hash.clone()),
                 "scanning folder {scanned_folder} must pick the first directory",
+            );
+        }
+    }
+
+    /// The write-time half of the allowlist. `refresh_folder_covers`
+    /// filters candidates from a read taken before the blocking directory
+    /// walk, so these cases cover what happens when the album's artwork
+    /// changes during that window — a race a full-pass test cannot stage
+    /// deterministically, which is why the guard is exercised directly.
+    #[tokio::test]
+    async fn the_write_guard_replaces_a_sidecar_cover() {
+        let pool = fixture_pool().await;
+        seed_artwork(&pool, 1, "old-sidecar", "folder").await;
+        seed_artwork(&pool, 2, "new-sidecar", "folder").await;
+        sqlx::query("INSERT INTO album (id, artwork_id) VALUES (10, 1)")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let mut conn = pool.acquire().await.unwrap();
+        let changed = link_folder_cover_if_eligible(&mut conn, 10, 2)
+            .await
+            .unwrap();
+
+        assert!(changed);
+        assert_eq!(
+            album_artwork_hash(&pool, 10).await,
+            Some("new-sidecar".to_string())
+        );
+    }
+
+    #[tokio::test]
+    async fn the_write_guard_adopts_a_cover_when_the_album_has_none() {
+        let pool = fixture_pool().await;
+        seed_artwork(&pool, 2, "new-sidecar", "folder").await;
+        sqlx::query("INSERT INTO album (id, artwork_id) VALUES (10, NULL)")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let mut conn = pool.acquire().await.unwrap();
+        let changed = link_folder_cover_if_eligible(&mut conn, 10, 2)
+            .await
+            .unwrap();
+
+        assert!(changed);
+        assert_eq!(
+            album_artwork_hash(&pool, 10).await,
+            Some("new-sidecar".to_string())
+        );
+    }
+
+    /// The race this guard exists for: the user uploaded a cover after the
+    /// candidate list was built. The update must match no row, and must
+    /// report that it changed nothing so the summary stays honest.
+    #[tokio::test]
+    async fn the_write_guard_refuses_a_cover_that_became_user_owned() {
+        for source in ["user", "deezer", "embedded"] {
+            let pool = fixture_pool().await;
+            seed_artwork(&pool, 1, "chosen-mid-scan", source).await;
+            seed_artwork(&pool, 2, "new-sidecar", "folder").await;
+            sqlx::query("INSERT INTO album (id, artwork_id) VALUES (10, 1)")
+                .execute(&pool)
+                .await
+                .unwrap();
+
+            let mut conn = pool.acquire().await.unwrap();
+            let changed = link_folder_cover_if_eligible(&mut conn, 10, 2)
+                .await
+                .unwrap();
+
+            assert!(!changed, "source {source} must not be replaced");
+            assert_eq!(
+                album_artwork_hash(&pool, 10).await,
+                Some("chosen-mid-scan".to_string()),
+                "source {source} must survive",
             );
         }
     }
