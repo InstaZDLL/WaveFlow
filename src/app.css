@@ -404,6 +404,38 @@
   z-index: 2;
 }
 
+/* Truncated headings must not lose their descenders.
+ *
+ * `truncate` is only ever applied to clip a long title HORIZONTALLY and
+ * add the ellipsis — but it expands to `overflow: hidden`, which clips
+ * BOTH axes. The vertical clipping is collateral damage: Tailwind pairs
+ * `text-4xl` with a line-height of just 1.11x the font size, while most
+ * fonts need ~1.2x for their full ascent + descent, so the tails of
+ * g / j / p / q / y get shaved by a pixel or two.
+ *
+ * CSS offers no way to say "clip x, leave y alone" — the moment one axis
+ * is `hidden`, the other can no longer be `visible`. `overflow-clip-margin`
+ * is the way out: it widens the clip region WITHOUT reserving space, so
+ * the descender is allowed to paint outside the box and no layout shifts.
+ * Padding would work too, but it compensates for a symptom by pushing
+ * everything below the heading down.
+ *
+ * Progressive enhancement: an engine without `overflow-clip-margin` (older
+ * WebKitGTK) simply falls back to a plain clip — i.e. exactly today's
+ * behaviour, never worse. `text-overflow: ellipsis` keeps working, since it
+ * applies to any `overflow` other than `visible`.
+ *
+ * `:where()` keeps specificity at 0 so a component can still override.
+ * Scoped to headings on purpose: the clipping is only perceptible at large
+ * sizes, and blanket-applying it to every `.truncate` would touch hundreds
+ * of small labels for no visible gain. Non-heading titles that are big
+ * enough to show it (a `text-xl` card title, say) should opt in with the
+ * same two declarations. */
+:where(h1, h2, h3).truncate {
+  overflow: clip;
+  overflow-clip-margin: 0.125rem;
+}
+
 /* Global focus-visible fallback for keyboard users.
  *
  * Many components rely on Tailwind's `focus-visible:ring-*` per-button,
