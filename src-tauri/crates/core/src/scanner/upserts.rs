@@ -1154,6 +1154,11 @@ mod folder_cover_tests {
     /// walk, so these cases cover what happens when the album's artwork
     /// changes during that window — a race a full-pass test cannot stage
     /// deterministically, which is why the guard is exercised directly.
+    ///
+    /// Each case releases its connection before reading back through the
+    /// pool. Not strictly required today — sqlx shares one in-memory
+    /// database across a pool's connections — but the assertions should
+    /// not quietly depend on that.
     #[tokio::test]
     async fn the_write_guard_replaces_a_sidecar_cover() {
         let pool = fixture_pool().await;
@@ -1168,6 +1173,7 @@ mod folder_cover_tests {
         let changed = link_folder_cover_if_eligible(&mut conn, 10, 2)
             .await
             .unwrap();
+        drop(conn);
 
         assert!(changed);
         assert_eq!(
@@ -1189,6 +1195,7 @@ mod folder_cover_tests {
         let changed = link_folder_cover_if_eligible(&mut conn, 10, 2)
             .await
             .unwrap();
+        drop(conn);
 
         assert!(changed);
         assert_eq!(
@@ -1215,6 +1222,7 @@ mod folder_cover_tests {
             let changed = link_folder_cover_if_eligible(&mut conn, 10, 2)
                 .await
                 .unwrap();
+            drop(conn);
 
             assert!(!changed, "source {source} must not be replaced");
             assert_eq!(
