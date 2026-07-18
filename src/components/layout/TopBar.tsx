@@ -330,7 +330,15 @@ export function TopBar({
   };
 
   return (
-    <header className="h-16 flex items-center justify-between px-6 z-10 sticky top-0 bg-zinc-50/80 backdrop-blur-md dark:bg-zinc-900/80">
+    // `backdrop-blur-md` makes this header its own stacking context, so
+    // every dropdown inside it (profile menu, notifications, search
+    // results) is clamped to the header's own z-index no matter how high
+    // their own is. At `z-10` that put them *below* content-level sticky
+    // group headers (`z-20`, e.g. the date header in Recently Played),
+    // which painted over the open profile menu (issue #390). `z-30` keeps
+    // the header — and everything it contains — above content chrome while
+    // staying below the PlayerBar (`z-50`); see the layer scale in app.css.
+    <header className="h-16 flex items-center justify-between px-6 z-30 sticky top-0 bg-zinc-50/80 backdrop-blur-md dark:bg-zinc-900/80">
       {/* Navigation Arrows + sidebar toggle (#167). The toggle sits
           left of the back/forward chevrons because that's where the
           sidebar's right edge would be when visible — keeps muscle

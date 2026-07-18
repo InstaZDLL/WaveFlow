@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 
@@ -39,6 +40,20 @@ const MENU_HORIZONTAL_MARGIN = 8;
  * Positioning is computed after first render so we can read the actual
  * rendered size — the menu height varies with the number of items and
  * any submenu indicators.
+ *
+ * **Rendered through a portal into `document.body`** (issue #390). The
+ * menu is `position: fixed`, but `fixed` only escapes layout flow — not
+ * a stacking context. Any ancestor with `backdrop-filter` / `transform`
+ * / `opacity` creates one, and the menu's `z-index` then only competes
+ * *inside* it, so a lower-`z-index` sibling of that ancestor still paints
+ * on top. The Pulse and Liquid skins put `backdrop-filter` on chrome
+ * containers, which trapped the menu under the PlayerBar (`footer`,
+ * `z-50`) and made the bottom items unreachable. Portalling to `body`
+ * removes the dependency on ancestors entirely.
+ *
+ * Skin CSS still applies: every skin rule is rooted at
+ * `:root[data-skin="…"] :where(…)`, and `body` is still a descendant of
+ * `:root`, so the portalled subtree keeps matching.
  */
 export function ContextMenu({
   point,
@@ -108,7 +123,7 @@ export function ContextMenu({
     };
   }, [onClose]);
 
-  return (
+  return createPortal(
     <motion.div
       ref={ref}
       data-context-menu
@@ -121,7 +136,8 @@ export function ContextMenu({
       onContextMenu={(e) => e.preventDefault()}
     >
       {children}
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }
 
