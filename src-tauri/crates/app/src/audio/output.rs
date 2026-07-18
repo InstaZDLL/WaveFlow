@@ -514,16 +514,49 @@ where
 
         if matches!(err, cpal::StreamError::DeviceNotAvailable) {
             let app_clone = err_app.clone();
+            // Everything below runs off this callback, on the tokio task:
+            // the engine lookup, the #365 gate, the rebuild and its logs.
+            // The engine is resolved AFTER the delay on purpose — an error
+            // can fire while `AudioEngine::new` is still running, i.e.
+            // before the engine has been registered in Tauri's managed
+            // state, and looking it up eagerly here would silently drop
+            // the recovery for that window.
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-                if let Some(engine) = app_clone.try_state::<std::sync::Arc<super::AudioEngine>>() {
-                    if let Err(err) = engine.try_rebuild_after_device_error() {
-                        tracing::warn!(
-                            %err,
-                            "auto-rebuild after DeviceNotAvailable failed"
-                        );
-                    }
+                let Some(engine) = app_clone.try_state::<std::sync::Arc<super::AudioEngine>>()
+                else {
+                    return;
+                };
+                // #365: one rebuild per burst of device errors. A DAC that
+                // resets on every exclusive grab makes our own re-open
+                // trigger the next error, so without a gate the passes
+                // chase each other until one opens exclusive while the
+                // previous stream is still settling and collides with
+                // AUDCLNT_E_DEVICE_IN_USE. Gating here (rather than before
+                // the sleep) still collapses the burst: whichever task
+                // wakes first arms, and the others hit either `armed` or
+                // the settle window.
+                if !engine.try_arm_device_rebuild() {
+                    tracing::debug!(
+                        "device rebuild already armed or within the settle window; \
+                         ignoring this DeviceNotAvailable"
+                    );
+                    return;
                 }
+                // The rebuild is synchronous and genuinely slow: it joins
+                // the old output thread — which, in WASAPI exclusive mode,
+                // can sit in `wait_for_event` up to its 2 s timeout — and
+                // then opens the device inline (COM init + the #174 format
+                // negotiation ladder). Running that directly on a tokio
+                // worker would park the worker for the whole duration, so
+                // hand it to the blocking pool.
+                let engine = engine.inner().clone();
+                let _ = tokio::task::spawn_blocking(move || {
+                    if let Err(err) = engine.try_rebuild_after_device_error() {
+                        tracing::warn!(%err, "auto-rebuild after DeviceNotAvailable failed");
+                    }
+                })
+                .await;
             });
         }
     };
