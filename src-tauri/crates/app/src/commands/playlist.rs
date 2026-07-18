@@ -25,7 +25,7 @@ use waveflow_core::repository::{
 
 use crate::{
     error::{AppError, AppResult},
-    state::AppState,
+    state::{AppState, Leased},
 };
 // `Playlist` + input DTOs moved to `waveflow_core::domain::playlist` in
 // the Phase 1.a refactor. Re-exported so existing call sites
@@ -36,10 +36,12 @@ fn now_millis() -> i64 {
     Utc::now().timestamp_millis()
 }
 
-async fn playlist_repo(state: &AppState) -> AppResult<SqlitePlaylistRepository> {
-    Ok(SqlitePlaylistRepository::new(
-        state.require_profile_pool().await?,
-    ))
+/// Build a playlist repository over the active profile's pool. Wrapped
+/// in [`Leased`] for the same reason as `library::library_repo` — the
+/// lease must outlive the repository (issue #332).
+async fn playlist_repo(state: &AppState) -> AppResult<Leased<SqlitePlaylistRepository>> {
+    let (pool, lease) = state.require_profile_pool().await?.into_parts();
+    Ok(Leased::new(SqlitePlaylistRepository::new(pool), lease))
 }
 
 /// Resolve `cover_hash` to an absolute on-disk path if (and only if) the
@@ -337,7 +339,7 @@ pub async fn list_playlist_tracks(
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
-    let rows = SqliteTrackRepository::new(pool)
+    let rows = SqliteTrackRepository::new((*pool).clone())
         .list_in_playlist(playlist_id)
         .await?;
 
@@ -761,7 +763,7 @@ pub async fn export_playlist_m3u(
         "#,
     )
     .bind(playlist_id)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     let mut out = String::with_capacity(rows.len() * 200 + 64);
@@ -851,7 +853,7 @@ pub async fn import_playlist_m3u(
     }
     let all =
         sqlx::query_as::<_, PathRow>("SELECT id, file_path FROM track WHERE is_available = 1")
-            .fetch_all(&pool)
+            .fetch_all(&*pool)
             .await?;
     let mut by_canonical: std::collections::HashMap<String, i64> =
         std::collections::HashMap::with_capacity(all.len());

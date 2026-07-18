@@ -258,7 +258,7 @@ pub fn run() {
                     let device: Option<String> = sqlx::query_scalar(
                         "SELECT value FROM profile_setting WHERE key = 'audio.output_device'",
                     )
-                    .fetch_optional(&pool)
+                    .fetch_optional(&*pool)
                     .await
                     .ok()
                     .flatten()
@@ -266,7 +266,7 @@ pub fn run() {
                     let exclusive: bool = sqlx::query_scalar::<_, String>(
                         "SELECT value FROM profile_setting WHERE key = 'audio.wasapi_exclusive'",
                     )
-                    .fetch_optional(&pool)
+                    .fetch_optional(&*pool)
                     .await
                     .ok()
                     .flatten()
@@ -315,7 +315,7 @@ pub fn run() {
                 let enabled: bool = sqlx::query_scalar::<_, String>(
                     "SELECT value FROM profile_setting WHERE key = 'library.scan_on_start'",
                 )
-                .fetch_optional(&pool)
+                .fetch_optional(&*pool)
                 .await
                 .ok()
                 .flatten()
@@ -330,7 +330,7 @@ pub fn run() {
                 let artwork_dir = state.paths.profile_artwork_dir(profile_id);
                 let folder_ids: Vec<i64> =
                     match sqlx::query_scalar("SELECT id FROM library_folder ORDER BY id")
-                        .fetch_all(&pool)
+                        .fetch_all(&*pool)
                         .await
                     {
                         Ok(rows) => rows,

@@ -93,7 +93,7 @@ pub async fn find_duplicates(state: tauri::State<'_, AppState>) -> AppResult<Vec
          ORDER BY t.file_size, t.added_at ASC
         "#,
     )
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     let candidates: Vec<DuplicateTrack> = rows

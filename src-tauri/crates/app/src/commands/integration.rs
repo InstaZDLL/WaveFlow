@@ -270,7 +270,7 @@ pub async fn lastfm_get_status(state: tauri::State<'_, AppState>) -> AppResult<L
         Ok(pool) => sqlx::query_scalar::<_, Option<String>>(
             "SELECT username FROM auth_credential WHERE provider = 'lastfm'",
         )
-        .fetch_optional(&pool)
+        .fetch_optional(&*pool)
         .await?
         .flatten(),
         Err(_) => None,
@@ -335,7 +335,7 @@ pub async fn lastfm_login(
     .bind(session.session_key.as_bytes())
     .bind(now)
     .bind(now)
-    .execute(&pool)
+    .execute(&*pool)
     .await?;
 
     Ok(LastfmStatus {
@@ -352,12 +352,12 @@ pub async fn lastfm_login(
 pub async fn lastfm_logout(state: tauri::State<'_, AppState>) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     sqlx::query("DELETE FROM auth_credential WHERE provider = 'lastfm'")
-        .execute(&pool)
+        .execute(&*pool)
         .await?;
     // Drop any pending scrobbles too — they would just fail with an
     // "invalid session" error against a future re-login anyway.
     sqlx::query("DELETE FROM scrobble_queue WHERE provider = 'lastfm'")
-        .execute(&pool)
+        .execute(&*pool)
         .await?;
     Ok(())
 }
@@ -448,7 +448,7 @@ pub async fn read_lastfm_credentials(
     let row: Option<(Option<String>, Vec<u8>)> = sqlx::query_as(
         "SELECT username, token_encrypted FROM auth_credential WHERE provider = 'lastfm'",
     )
-    .fetch_optional(&pool)
+    .fetch_optional(&*pool)
     .await?;
     let Some((username, token_bytes)) = row else {
         return Ok(None);

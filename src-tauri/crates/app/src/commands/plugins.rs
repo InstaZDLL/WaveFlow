@@ -192,7 +192,7 @@ pub async fn get_plugin_favorites(
     let pool = state.require_profile_pool().await?;
     let raw: Option<String> = sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = ?")
         .bind(favorites_key(&plugin_id))
-        .fetch_optional(&pool)
+        .fetch_optional(&*pool)
         .await?;
     let Some(raw) = raw else {
         return Ok(Vec::new());
@@ -238,7 +238,7 @@ pub async fn set_plugin_favorites(
     .bind(favorites_key(&plugin_id))
     .bind(payload)
     .bind(now)
-    .execute(&pool)
+    .execute(&*pool)
     .await?;
     Ok(())
 }

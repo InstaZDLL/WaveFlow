@@ -379,7 +379,7 @@ pub async fn player_get_state(
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.normalize'",
             )
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await
             {
                 engine
@@ -390,7 +390,7 @@ pub async fn player_get_state(
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.mono'",
             )
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await
             {
                 engine
@@ -401,7 +401,7 @@ pub async fn player_get_state(
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.crossfade_ms'",
             )
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await
             {
                 if let Ok(ms) = v.parse::<u32>() {
@@ -419,7 +419,7 @@ pub async fn player_get_state(
             let dsd_taps = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.dsd_precision'",
             )
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await
             .ok()
             .flatten()
@@ -433,7 +433,7 @@ pub async fn player_get_state(
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.replaygain'",
             )
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await
             {
                 engine
@@ -446,7 +446,7 @@ pub async fn player_get_state(
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.gapless'",
             )
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await
             {
                 engine
@@ -461,7 +461,7 @@ pub async fn player_get_state(
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.playback_speed'",
             )
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await
             {
                 if let Ok(speed) = v.parse::<f32>() {
@@ -485,7 +485,7 @@ pub async fn player_get_state(
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.eq_enabled'",
             )
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await
             {
                 engine.shared().eq.set_enabled(v == "true");
@@ -493,7 +493,7 @@ pub async fn player_get_state(
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.eq_bands'",
             )
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await
             {
                 if let Ok(bands) = serde_json::from_str::<Vec<f32>>(&v) {
@@ -505,7 +505,7 @@ pub async fn player_get_state(
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.smart_crossfade'",
             )
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await
             {
                 engine
@@ -517,7 +517,7 @@ pub async fn player_get_state(
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'audio.dynamic_crossfade'",
             )
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await
             {
                 engine
@@ -531,7 +531,7 @@ pub async fn player_get_state(
             if let Ok(Some(v)) = sqlx::query_scalar::<_, String>(
                 "SELECT value FROM profile_setting WHERE key = 'ui.visualizer'",
             )
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await
             {
                 engine
@@ -642,7 +642,7 @@ pub async fn player_get_queue(state: tauri::State<'_, AppState>) -> AppResult<Pl
     let current_index: i64 = sqlx::query_scalar::<_, Option<String>>(
         "SELECT value FROM profile_setting WHERE key = 'queue.current_index'",
     )
-    .fetch_optional(&pool)
+    .fetch_optional(&*pool)
     .await?
     .flatten()
     .and_then(|s| s.parse::<i64>().ok())
@@ -659,7 +659,7 @@ pub async fn player_get_queue(state: tauri::State<'_, AppState>) -> AppResult<Pl
     // the frontend treats the same as no-source.
     let source_type: Option<String> =
         sqlx::query_scalar("SELECT source_type FROM queue_item WHERE position = 0 LIMIT 1")
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await?;
 
     Ok(PlayerQueueSnapshot {
@@ -887,7 +887,7 @@ pub async fn player_set_volume(
         )
         .bind(as_int.to_string())
         .bind(now)
-        .execute(&pool)
+        .execute(&*pool)
         .await;
     }
 
@@ -912,7 +912,7 @@ pub async fn player_set_normalize(
         )
         .bind(if enabled { "true" } else { "false" })
         .bind(now)
-        .execute(&pool)
+        .execute(&*pool)
         .await;
     }
     Ok(())
@@ -954,7 +954,7 @@ pub async fn player_set_dsd_precision(
         )
         .bind(taps.to_string())
         .bind(now)
-        .execute(&pool)
+        .execute(&*pool)
         .await;
     }
     Ok(())
@@ -979,7 +979,7 @@ pub async fn player_set_replaygain(
         )
         .bind(if enabled { "true" } else { "false" })
         .bind(now)
-        .execute(&pool)
+        .execute(&*pool)
         .await;
     }
     Ok(())
@@ -1003,7 +1003,7 @@ pub async fn player_set_mono(
         )
         .bind(if enabled { "true" } else { "false" })
         .bind(now)
-        .execute(&pool)
+        .execute(&*pool)
         .await;
     }
     Ok(())
@@ -1033,7 +1033,7 @@ pub async fn player_set_smart_crossfade(
         )
         .bind(if enabled { "true" } else { "false" })
         .bind(now)
-        .execute(&pool)
+        .execute(&*pool)
         .await;
     }
     Ok(())
@@ -1083,7 +1083,7 @@ pub async fn player_set_dynamic_crossfade(
         )
         .bind(if enabled { "true" } else { "false" })
         .bind(now)
-        .execute(&pool)
+        .execute(&*pool)
         .await;
     }
     Ok(())
@@ -1122,7 +1122,7 @@ pub async fn player_set_visualizer(
         )
         .bind(if enabled { "true" } else { "false" })
         .bind(now)
-        .execute(&pool)
+        .execute(&*pool)
         .await;
     }
     Ok(())
@@ -1164,7 +1164,7 @@ pub async fn player_set_speed(
         )
         .bind(clamped.to_string())
         .bind(now)
-        .execute(&pool)
+        .execute(&*pool)
         .await;
     }
     Ok(())
@@ -1193,7 +1193,7 @@ pub async fn player_set_gapless(
         )
         .bind(if enabled { "true" } else { "false" })
         .bind(now)
-        .execute(&pool)
+        .execute(&*pool)
         .await;
     }
     Ok(())
@@ -1318,7 +1318,7 @@ async fn persist_eq(state: &AppState, shared: &crate::audio::state::SharedPlayba
     )
     .bind(if enabled { "true" } else { "false" })
     .bind(now)
-    .execute(&pool)
+    .execute(&*pool)
     .await;
     let _ = sqlx::query(
         "INSERT INTO profile_setting (key, value, value_type, updated_at)
@@ -1327,7 +1327,7 @@ async fn persist_eq(state: &AppState, shared: &crate::audio::state::SharedPlayba
     )
     .bind(&bands_json)
     .bind(now)
-    .execute(&pool)
+    .execute(&*pool)
     .await;
 }
 
@@ -1351,7 +1351,7 @@ pub async fn player_set_crossfade(
         )
         .bind(ms.to_string())
         .bind(now)
-        .execute(&pool)
+        .execute(&*pool)
         .await;
     }
     Ok(())
@@ -1383,7 +1383,7 @@ pub async fn player_get_audio_settings(
         if let Ok(Some(val)) = sqlx::query_scalar::<_, String>(
             "SELECT value FROM profile_setting WHERE key = 'audio.crossfade_ms'",
         )
-        .fetch_optional(&pool)
+        .fetch_optional(&*pool)
         .await
         {
             crossfade_ms = val.parse().unwrap_or(0);
@@ -1508,7 +1508,7 @@ pub async fn player_set_output_device(
         )
         .bind(stored)
         .bind(now)
-        .execute(&pool)
+        .execute(&*pool)
         .await;
     }
     Ok(())
@@ -1549,7 +1549,7 @@ pub async fn player_set_wasapi_exclusive(
         )
         .bind(stored)
         .bind(now)
-        .execute(&pool)
+        .execute(&*pool)
         .await;
     }
     Ok(())

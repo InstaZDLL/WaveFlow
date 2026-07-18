@@ -97,7 +97,7 @@ pub async fn update_track_tags(
         "SELECT id, file_path, primary_artist, album_id FROM track WHERE id = ?",
     )
     .bind(track_id)
-    .fetch_optional(&pool)
+    .fetch_optional(&*pool)
     .await?;
     let row = row.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
     let path = std::path::PathBuf::from(&row.file_path);
@@ -211,7 +211,7 @@ pub async fn update_tracks_batch(
             "SELECT id, file_path, primary_artist, album_id FROM track WHERE id = ?",
         )
         .bind(track_id)
-        .fetch_optional(&pool)
+        .fetch_optional(&*pool)
         .await?;
         let Some(row) = row else {
             summary.errors.push((*track_id, "track not found".into()));
@@ -572,7 +572,7 @@ pub async fn update_track_cover(
     let row: Option<(String, Option<i64>)> =
         sqlx::query_as("SELECT file_path, album_id FROM track WHERE id = ?")
             .bind(track_id)
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await?;
     let (file_path, album_id) =
         row.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
@@ -623,7 +623,7 @@ pub async fn update_track_cover(
         sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
             .bind(artwork_id)
             .bind(aid)
-            .execute(&pool)
+            .execute(&*pool)
             .await?;
     }
 

@@ -39,6 +39,24 @@ Migrations: [`src-tauri/migrations/app/`](../../src-tauri/migrations/app).
 
 Migrations: [`src-tauri/migrations/profile/`](../../src-tauri/migrations/profile). Applied via `sqlx::migrate!()` at boot for each opened pool.
 
+#### Pool lifecycle across a profile switch
+
+`activate_profile` swaps the active [`ActiveProfile`](../../src-tauri/crates/app/src/state.rs) under the write lock, then closes the previous pool. Closing it *immediately* used to race any command that had already cloned it, surfacing as `PoolClosed` mid-command (issue #332).
+
+The pool is therefore handed out **leased**. `require_profile_pool` / `require_profile_snapshot` return a `ProfilePool` that holds a refcount on the epoch it came from; the close path (`ActiveProfile::close_when_idle`) waits for that count to reach zero before calling `pool.close()`. Because the swap happens first, no new lease can be issued against the outgoing epoch, so the drain always terminates.
+
+Three properties worth keeping in mind when writing commands:
+
+- **The lease releases on drop**, including via `?`. Keep the handle bound for as long as you query — `let _ = state.require_profile_pool().await?;` releases it on the spot.
+- **`ProfilePool` derefs to `SqlitePool`**, so it passes anywhere a concrete `&SqlitePool` is expected. sqlx's query methods are generic over `E: Executor` and deref coercion does not fire against a type variable, hence the explicit `&*pool` at query sites.
+- **The wait is bounded** by `LEASE_DRAIN_TIMEOUT` (5 s), so the guarantee is time-bounded rather than absolute. A library scan legitimately holds its pool for minutes, and a leaked lease would otherwise wedge profile switching outright — so the timeout degrades to the pre-#332 behaviour (close anyway, race whatever remains) and logs at WARN rather than blocking forever. A command that can outlive the timeout must still tolerate `PoolClosed`; what the lease buys is that ordinary multi-step commands no longer race the close at all.
+
+Holding a lease is not on its own enough for a **batch**: re-resolving the active pool inside the loop reintroduces the same straddle at a different layer, since the work list came from one profile and the remaining writes would land in whichever profile is active by then. Read the list and do the work against the same pool — [`enrich_artist_deezer_with_pool`](../../src-tauri/crates/app/src/commands/deezer.rs) exists for exactly that reason.
+
+To give an owned pool to a `waveflow-core` type that knows nothing about leases, split it with `into_parts()` and park the lease alongside the value in `state::Leased<T>` — see the repository helpers in [`commands/library.rs`](../../src-tauri/crates/app/src/commands/library.rs) and [`commands/playlist.rs`](../../src-tauri/crates/app/src/commands/playlist.rs).
+
+`into_unleashed()` deliberately opts out, for handles a worker holds for the life of the process rather than for the span of a command. Its only caller is the DLNA server: leasing there would stall every profile switch for the drain timeout without making the worker any more correct, because it does not re-resolve its pool on switch at all — a running server keeps serving the profile it was started with, and its pool is closed underneath it. That gap predates the lease work and is tracked in issue #399.
+
 ## Settings
 
 Two flavours, two stores:

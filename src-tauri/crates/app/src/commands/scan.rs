@@ -1258,7 +1258,7 @@ pub async fn rescan_local_artist_images(
             AND canonical_name != ?",
     )
     .bind(&va_canon)
-    .fetch_all(&pool)
+    .fetch_all(&*pool)
     .await?;
 
     let mut summary = ArtistImageScanSummary {
@@ -1283,7 +1283,7 @@ pub async fn rescan_local_artist_images(
               LIMIT 16",
         )
         .bind(artist_id)
-        .fetch_all(&pool)
+        .fetch_all(&*pool)
         .await?;
 
         let mut linked = false;

@@ -210,14 +210,14 @@ async fn handle_message(
                     let current_album: Option<i64> =
                         sqlx::query_scalar("SELECT album_id FROM track WHERE id = ?")
                             .bind(current_id)
-                            .fetch_optional(&pool)
+                            .fetch_optional(&*pool)
                             .await
                             .ok()
                             .flatten();
                     let next_album: Option<i64> =
                         sqlx::query_scalar("SELECT album_id FROM track WHERE id = ?")
                             .bind(track.id)
-                            .fetch_optional(&pool)
+                            .fetch_optional(&*pool)
                             .await
                             .ok()
                             .flatten();
@@ -246,14 +246,14 @@ async fn handle_message(
                         let curr_bpm: Option<f64> =
                             sqlx::query_scalar("SELECT bpm FROM track_analysis WHERE track_id = ?")
                                 .bind(current_id)
-                                .fetch_optional(&pool)
+                                .fetch_optional(&*pool)
                                 .await
                                 .ok()
                                 .flatten();
                         let next_bpm: Option<f64> =
                             sqlx::query_scalar("SELECT bpm FROM track_analysis WHERE track_id = ?")
                                 .bind(track.id)
-                                .fetch_optional(&pool)
+                                .fetch_optional(&*pool)
                                 .await
                                 .ok()
                                 .flatten();

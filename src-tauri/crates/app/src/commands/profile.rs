@@ -315,7 +315,7 @@ pub async fn get_profile_setting(
     let value: Option<(String,)> =
         sqlx::query_as("SELECT value FROM profile_setting WHERE key = ?")
             .bind(&key)
-            .fetch_optional(&pool)
+            .fetch_optional(&*pool)
             .await?;
     Ok(value.map(|(v,)| v))
 }
@@ -343,7 +343,7 @@ pub async fn set_profile_setting(
     .bind(&key)
     .bind(&value)
     .bind(&value_type)
-    .execute(&pool)
+    .execute(&*pool)
     .await?;
     Ok(())
 }

@@ -87,7 +87,7 @@ pub async fn start_radio(
         "#,
     )
     .bind(seed_track_id)
-    .fetch_optional(&pool)
+    .fetch_optional(&*pool)
     .await?;
     let (seed_artist_id, seed_bpm) =
         row.ok_or_else(|| AppError::Other(format!("seed track {seed_track_id} not found")))?;

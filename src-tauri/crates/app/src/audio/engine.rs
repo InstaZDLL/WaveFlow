@@ -769,7 +769,7 @@ impl AudioEngine {
                     let row: Option<(String, i64)> =
                         sqlx::query_as("SELECT file_path, duration_ms FROM track WHERE id = ?")
                             .bind(track_id)
-                            .fetch_optional(&pool)
+                            .fetch_optional(&*pool)
                             .await
                             .ok()
                             .flatten();
@@ -925,7 +925,7 @@ impl AudioEngine {
                     let row: Option<(String, i64)> =
                         sqlx::query_as("SELECT file_path, duration_ms FROM track WHERE id = ?")
                             .bind(track_id)
-                            .fetch_optional(&pool)
+                            .fetch_optional(&*pool)
                             .await
                             .ok()
                             .flatten();
@@ -1038,7 +1038,7 @@ impl AudioEngine {
                     let row: Option<(String, i64)> =
                         sqlx::query_as("SELECT file_path, duration_ms FROM track WHERE id = ?")
                             .bind(track_id)
-                            .fetch_optional(&pool)
+                            .fetch_optional(&*pool)
                             .await
                             .ok()
                             .flatten();

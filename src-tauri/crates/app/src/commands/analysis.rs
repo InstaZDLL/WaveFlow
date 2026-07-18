@@ -148,7 +148,7 @@ pub async fn get_track_analysis(
           WHERE track_id = ?",
     )
     .bind(track_id)
-    .fetch_optional(&pool)
+    .fetch_optional(&*pool)
     .await?;
     Ok(row.map(
         |(track_id, bpm, key, loudness, replay, peak, analyzed_at)| TrackAnalysisRow {
@@ -174,7 +174,7 @@ pub async fn analyze_track(
     let pool = state.require_profile_pool().await?;
     let path: Option<String> = sqlx::query_scalar("SELECT file_path FROM track WHERE id = ?")
         .bind(track_id)
-        .fetch_optional(&pool)
+        .fetch_optional(&*pool)
         .await?;
     let path = path.ok_or_else(|| AppError::Other(format!("track {track_id} not found")))?;
     let path_buf = PathBuf::from(path);
@@ -204,7 +204,7 @@ pub async fn analyze_track(
     .bind(result.replay_gain_db)
     .bind(result.peak)
     .bind(now)
-    .execute(&pool)
+    .execute(&*pool)
     .await?;
 
     Ok(TrackAnalysisRow {
@@ -579,7 +579,7 @@ pub async fn set_auto_analyze(state: tauri::State<'_, AppState>, enable: bool) -
     .bind(AUTO_ANALYZE_KEY)
     .bind(if enable { "true" } else { "false" })
     .bind(now)
-    .execute(&pool)
+    .execute(&*pool)
     .await?;
     Ok(())
 }
