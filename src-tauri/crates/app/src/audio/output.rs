@@ -543,9 +543,20 @@ where
                     );
                     return;
                 }
-                if let Err(err) = engine.try_rebuild_after_device_error() {
-                    tracing::warn!(%err, "auto-rebuild after DeviceNotAvailable failed");
-                }
+                // The rebuild is synchronous and genuinely slow: it joins
+                // the old output thread — which, in WASAPI exclusive mode,
+                // can sit in `wait_for_event` up to its 2 s timeout — and
+                // then opens the device inline (COM init + the #174 format
+                // negotiation ladder). Running that directly on a tokio
+                // worker would park the worker for the whole duration, so
+                // hand it to the blocking pool.
+                let engine = engine.inner().clone();
+                let _ = tokio::task::spawn_blocking(move || {
+                    if let Err(err) = engine.try_rebuild_after_device_error() {
+                        tracing::warn!(%err, "auto-rebuild after DeviceNotAvailable failed");
+                    }
+                })
+                .await;
             });
         }
     };
