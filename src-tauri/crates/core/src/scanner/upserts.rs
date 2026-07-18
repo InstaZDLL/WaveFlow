@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use chrono::Utc;
 use sqlx::SqlitePool;
 
-use crate::error::CoreResult;
+use crate::error::{CoreError, CoreResult};
 
 use super::extract::{
     extract_artist_image, extract_artist_image_cached, extract_folder_cover, ArtistImageDirCache,
@@ -658,100 +658,139 @@ pub async fn merge_implicit_compilations(pool: &SqlitePool) -> CoreResult<()> {
 /// is already the blake3 of the picture bytes, so the stored row is its
 /// own baseline for comparison.
 ///
-/// Two deliberate restrictions:
+/// Three deliberate restrictions:
 ///
-/// - **Embedded artwork is never overridden.** `extract_file` treats the
-///   sidecar as a *fallback* for tracks whose tag carries no picture, so
-///   replacing an `embedded` row here would silently invert that
-///   precedence. Only `folder`-sourced (or absent) artwork is touched.
+/// - **Only sidecar-sourced artwork is replaced.** A row whose `source`
+///   is anything other than `folder` was put there by something that
+///   outranks a sidecar: `embedded` (extraction treats the sidecar as a
+///   *fallback* for tracks whose tag carries no picture), `user` (a
+///   manual upload), `deezer` (an enrichment fetch). The guard is an
+///   allowlist — `folder` or no artwork at all — so a source added later
+///   is preserved by default rather than silently clobbered.
+/// - **A deleted sidecar does not blank the album.** A vanished cover is
+///   far more likely to be a transient state (files being reorganised)
+///   than a request for a blank album.
 /// - **A multi-directory album resolves against its first directory**
-///   in sorted order. Per-disc subfolder covers would otherwise make the
-///   album's picture depend on directory iteration order, i.e. flip on
-///   every scan.
+///   in sorted order, evaluated over *all* of the album's tracks rather
+///   than only those under the scanned folder. Restricting it to the
+///   scanned folder would make the winning directory depend on which
+///   folder was scanned, i.e. flip the picture back and forth — exactly
+///   the non-determinism this rule exists to prevent.
 pub async fn refresh_folder_covers(
     pool: &SqlitePool,
     artwork_dir: &Path,
     folder_id: i64,
 ) -> CoreResult<u32> {
-    // One row per (album, track path). Grouping by directory has to
-    // happen in Rust — SQLite has no portable dirname().
+    // The subquery scopes the work to albums this scan could have
+    // touched; the outer query then takes *every* available track of
+    // those albums, so directory selection sees the album's full extent
+    // no matter which folder triggered the scan.
     let rows: Vec<(i64, String, Option<String>, Option<String>)> = sqlx::query_as(
         "SELECT t.album_id, t.file_path, aw.hash, aw.source
            FROM track t
            JOIN album al ON al.id = t.album_id
            LEFT JOIN artwork aw ON aw.id = al.artwork_id
-          WHERE t.folder_id = ?
-            AND t.album_id IS NOT NULL
-            AND t.is_available = 1",
+          WHERE t.is_available = 1
+            AND t.album_id IN (
+                SELECT DISTINCT album_id
+                  FROM track
+                 WHERE folder_id = ?
+                   AND album_id IS NOT NULL
+                   AND is_available = 1
+            )",
     )
     .bind(folder_id)
     .fetch_all(pool)
     .await?;
 
-    // album_id → (its directories, current artwork hash, current source)
-    let mut albums: HashMap<i64, (Vec<PathBuf>, Option<String>, Option<String>)> = HashMap::new();
+    // album_id → (winning directory, current artwork hash, current source).
+    // The directory is kept as a running minimum instead of collecting
+    // every path and sorting at the end — same answer, no allocation
+    // proportional to track count.
+    let mut albums: HashMap<i64, (PathBuf, Option<String>, Option<String>)> = HashMap::new();
     for (album_id, file_path, hash, source) in rows {
         let Some(dir) = Path::new(&file_path).parent().map(Path::to_path_buf) else {
             continue;
         };
-        let entry = albums.entry(album_id).or_insert((Vec::new(), hash, source));
-        if !entry.0.contains(&dir) {
-            entry.0.push(dir);
-        }
+        albums
+            .entry(album_id)
+            .and_modify(|entry| {
+                if dir < entry.0 {
+                    entry.0 = dir.clone();
+                }
+            })
+            .or_insert((dir, hash, source));
     }
 
+    // Drop the albums this pass must not touch before doing any
+    // filesystem work, so an untouchable album never costs a read.
+    let candidates: Vec<(i64, PathBuf, Option<String>)> = albums
+        .into_iter()
+        .filter(|(_, (_, _, source))| {
+            matches!(source.as_deref(), None | Some("folder"))
+        })
+        .map(|(album_id, (dir, hash, _))| (album_id, dir, hash))
+        .collect();
+    if candidates.is_empty() {
+        return Ok(0);
+    }
+
+    // Resolve every distinct directory in one blocking batch. This is
+    // `read_dir` + a full read + a blake3 per directory — hundreds of
+    // megabytes on a large library — and must not run on the async
+    // runtime, which would stall unrelated tasks (IPC replies, the
+    // progress emitter) for seconds at the tail of every scan.
+    //
     // Several albums commonly share one directory (a compilation split
-    // across album rows, or singles dumped together), so resolving the
-    // sidecar is memoised per directory — that's the read + hash we're
-    // trying not to repeat.
-    let mut covers: HashMap<PathBuf, Option<(String, String)>> = HashMap::new();
+    // across album rows, or singles dumped together), hence the dedup:
+    // that's the read + hash we're trying not to repeat.
+    let mut wanted: Vec<PathBuf> = candidates.iter().map(|(_, dir, _)| dir.clone()).collect();
+    wanted.sort();
+    wanted.dedup();
+
+    let artwork_dir = artwork_dir.to_path_buf();
+    let covers: HashMap<PathBuf, Option<(String, String)>> =
+        tokio::task::spawn_blocking(move || {
+            wanted
+                .into_iter()
+                .map(|dir| {
+                    // `extract_folder_cover` takes a file path and looks
+                    // at its parent, so hand it a synthetic child.
+                    let found = extract_folder_cover(&dir.join("_"), &artwork_dir)
+                        .map(|cover| (cover.hash, cover.format));
+                    (dir, found)
+                })
+                .collect()
+        })
+        .await
+        .map_err(|e| CoreError::Other(format!("folder cover resolution join: {e}")))?;
+
+    // One transaction for the whole batch — the scanner is the single
+    // writer and a per-album autocommit would serialise N round-trips
+    // through WAL for no benefit. Also makes each artwork insert and the
+    // album row that points at it land together.
+    let mut tx = pool.begin().await?;
     let mut updated: u32 = 0;
 
-    for (album_id, (mut dirs, current_hash, current_source)) in albums {
-        // An `embedded` picture outranks any sidecar — leave it alone.
-        if current_source.as_deref() == Some("embedded") {
-            continue;
-        }
-        dirs.sort();
-        let Some(dir) = dirs.into_iter().next() else {
-            continue;
-        };
-
-        let resolved = match covers.get(&dir) {
-            Some(cached) => cached.clone(),
-            None => {
-                // `extract_folder_cover` takes a file path and looks at
-                // its parent, so hand it a synthetic child of the dir.
-                let probe = dir.join("_");
-                let found = extract_folder_cover(&probe, artwork_dir)
-                    .map(|cover| (cover.hash, cover.format));
-                covers.insert(dir.clone(), found.clone());
-                found
-            }
-        };
-
-        let Some((hash, format)) = resolved else {
-            // No sidecar in this directory. Deliberately NOT clearing an
-            // existing picture: a cover the user deleted is far more
-            // likely to be a temporary state (moving files around) than
-            // a request to go back to a blank album.
+    for (album_id, dir, current_hash) in candidates {
+        let Some((hash, format)) = covers.get(&dir).cloned().flatten() else {
             continue;
         };
         if current_hash.as_deref() == Some(hash.as_str()) {
             continue;
         }
 
-        let mut conn = pool.acquire().await?;
-        let artwork_id = upsert_artwork(&mut conn, &hash, &format, "folder").await?;
+        let artwork_id = upsert_artwork(&mut tx, &hash, &format, "folder").await?;
         sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
             .bind(artwork_id)
             .bind(album_id)
-            .execute(&mut *conn)
+            .execute(&mut *tx)
             .await?;
         updated += 1;
         tracing::debug!(album_id, %hash, "refreshed album cover from folder sidecar");
     }
 
+    tx.commit().await?;
     Ok(updated)
 }
 
@@ -944,9 +983,12 @@ mod folder_cover_tests {
         assert_eq!(album_artwork_hash(&pool, 10).await, Some(hash));
     }
 
-    /// Tracks belonging to another library folder must not be dragged in.
+    /// Scoping is by *album touched by the scanned folder*, not by track
+    /// folder — a multi-folder album deliberately pulls in its other
+    /// directories (see `a_multi_folder_album_resolves_consistently`).
+    /// What must stay out is an album with no track in this folder at all.
     #[tokio::test]
-    async fn only_the_scanned_folder_is_reconciled() {
+    async fn an_album_outside_the_scanned_folder_is_untouched() {
         let music = tempfile::tempdir().unwrap();
         let art = tempfile::tempdir().unwrap();
         let pool = fixture_pool().await;
@@ -972,5 +1014,95 @@ mod folder_cover_tests {
 
         assert_eq!(updated, 0);
         assert_eq!(album_artwork_hash(&pool, 10).await, Some(hash));
+    }
+
+    /// A manually uploaded cover must survive a sidecar sitting next to
+    /// the files — the user picked it deliberately. Same for a Deezer
+    /// enrichment result below; the guard is an allowlist, so any source
+    /// other than `folder` is left alone.
+    #[tokio::test]
+    async fn a_user_uploaded_cover_is_not_replaced_by_a_sidecar() {
+        let music = tempfile::tempdir().unwrap();
+        let art = tempfile::tempdir().unwrap();
+        let pool = fixture_pool().await;
+
+        let chosen = blake3::hash(b"the cover the user picked")
+            .to_hex()
+            .to_string();
+        seed_artwork(&pool, 1, &chosen, "user").await;
+        seed_album(&pool, 10, music.path(), Some(1)).await;
+        write_cover(music.path(), b"a sidecar that must not win");
+
+        let updated = refresh_folder_covers(&pool, art.path(), 1).await.unwrap();
+
+        assert_eq!(updated, 0);
+        assert_eq!(album_artwork_hash(&pool, 10).await, Some(chosen));
+    }
+
+    #[tokio::test]
+    async fn a_deezer_cover_is_not_replaced_by_a_sidecar() {
+        let music = tempfile::tempdir().unwrap();
+        let art = tempfile::tempdir().unwrap();
+        let pool = fixture_pool().await;
+
+        let fetched = blake3::hash(b"fetched from deezer").to_hex().to_string();
+        seed_artwork(&pool, 1, &fetched, "deezer").await;
+        seed_album(&pool, 10, music.path(), Some(1)).await;
+        write_cover(music.path(), b"a sidecar that must not win");
+
+        let updated = refresh_folder_covers(&pool, art.path(), 1).await.unwrap();
+
+        assert_eq!(updated, 0);
+        assert_eq!(album_artwork_hash(&pool, 10).await, Some(fetched));
+    }
+
+    /// An album split across two library folders must resolve to the same
+    /// directory whichever folder triggered the scan. Scoping the track
+    /// query to the scanned folder would make disc 1 win when folder 1 is
+    /// scanned and disc 2 win when folder 2 is, flipping the album's
+    /// picture back and forth on every pass.
+    #[tokio::test]
+    async fn a_multi_folder_album_resolves_consistently() {
+        let root = tempfile::tempdir().unwrap();
+        let art = tempfile::tempdir().unwrap();
+        // "disc-1" sorts before "disc-2", so disc 1's cover must win in
+        // both directions.
+        let disc1 = root.path().join("disc-1");
+        let disc2 = root.path().join("disc-2");
+        fs::create_dir_all(&disc1).unwrap();
+        fs::create_dir_all(&disc2).unwrap();
+        write_cover(&disc1, b"disc one cover");
+        write_cover(&disc2, b"disc two cover");
+        let disc1_hash = blake3::hash(b"disc one cover").to_hex().to_string();
+
+        for scanned_folder in [1_i64, 2] {
+            let pool = fixture_pool().await;
+            sqlx::query("INSERT INTO album (id, artwork_id) VALUES (10, NULL)")
+                .execute(&pool)
+                .await
+                .unwrap();
+            for (folder_id, dir) in [(1_i64, &disc1), (2_i64, &disc2)] {
+                sqlx::query(
+                    "INSERT INTO track (album_id, folder_id, file_path, is_available)
+                     VALUES (10, ?, ?, 1)",
+                )
+                .bind(folder_id)
+                .bind(dir.join("01.flac").to_string_lossy().to_string())
+                .execute(&pool)
+                .await
+                .unwrap();
+            }
+
+            let updated = refresh_folder_covers(&pool, art.path(), scanned_folder)
+                .await
+                .unwrap();
+
+            assert_eq!(updated, 1, "scanning folder {scanned_folder}");
+            assert_eq!(
+                album_artwork_hash(&pool, 10).await,
+                Some(disc1_hash.clone()),
+                "scanning folder {scanned_folder} must pick the first directory",
+            );
+        }
     }
 }

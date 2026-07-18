@@ -18,7 +18,12 @@ default = []
 # `waveflow-server` (RFC-001 §6.5). The two features are mutually
 # compatible — Cargo's feature unification means a workspace that
 # happens to depend on both backends still gets a single build.
-sqlite = ["sqlx/sqlite", "sqlx/runtime-tokio"]
+# `dep:tokio` is for `spawn_blocking`: the sqlite-only scanner passes
+# do filesystem work (read_dir + read + blake3 of cover sidecars) that
+# must stay off the async runtime. Optional + feature-gated so the
+# postgres-only server build, which skips those modules entirely, does
+# not pick up a tokio dependency it has no use for.
+sqlite = ["sqlx/sqlite", "sqlx/runtime-tokio", "dep:tokio"]
 postgres = ["sqlx/postgres", "sqlx/runtime-tokio"]
 # Opt in to the WebAssembly Component Model plugin host. Pulls in
 # wasmtime + Cranelift + wasmtime-wasi + the WIT-generated bindings
@@ -91,6 +96,9 @@ serde_json = "1"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "bmp", "gif", "tiff"] }
 fast_image_resize = "6"
 blake3 = "1"
+# Optional: pulled in by the `sqlite` feature for `spawn_blocking` in the
+# scanner passes that touch the filesystem. See the feature comment above.
+tokio = { version = "1", default-features = false, features = ["rt"], optional = true }
 anyhow = "1"
 
 # RFC-003 sync protocol — `origin_device_id` rides as a UUIDv4 in the
