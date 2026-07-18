@@ -281,7 +281,21 @@ pub async fn enrich_artist_deezer(
     artist_id: i64,
 ) -> AppResult<DeezerArtistEnrichment> {
     let pool = state.require_profile_pool().await?;
+    enrich_artist_deezer_with_pool(state, &pool, artist_id).await
+}
 
+/// Enrichment body, pinned to a caller-supplied pool.
+///
+/// Split out of [`enrich_artist_deezer`] so the batch path can enrich a
+/// whole artist list against the pool it read that list from. Going
+/// through the command wrapper instead would re-resolve the active
+/// profile once per artist, and a `switch_profile` mid-batch would then
+/// write the remaining artists into the *new* profile.
+async fn enrich_artist_deezer_with_pool(
+    state: tauri::State<'_, AppState>,
+    pool: &sqlx::SqlitePool,
+    artist_id: i64,
+) -> AppResult<DeezerArtistEnrichment> {
     // Per-profile bio override (issue #323) wins over any fetched bio
     // and works offline. We still let the inner path fetch + cache the
     // online bio (keeping the shared cross-profile `metadata_artist`
@@ -291,7 +305,7 @@ pub async fn enrich_artist_deezer(
     let custom_bio: Option<String> =
         sqlx::query_scalar("SELECT custom_bio FROM artist WHERE id = ?")
             .bind(artist_id)
-            .fetch_optional(&*pool)
+            .fetch_optional(pool)
             .await?
             .flatten()
             .map(|b: String| b.trim().to_string())
@@ -301,7 +315,7 @@ pub async fn enrich_artist_deezer(
     // enrichment stay scoped to one profile — re-resolving inside could
     // straddle a switch_profile and apply one profile's override to
     // another's artist.
-    let mut enrichment = enrich_artist_deezer_inner(state, (*pool).clone(), artist_id).await?;
+    let mut enrichment = enrich_artist_deezer_inner(state, pool.clone(), artist_id).await?;
     if let Some(bio) = custom_bio {
         // Synthesize a truncated lead-in the same way the online sources
         // do (issue #343) — without it bio_short == bio_full verbatim and
@@ -882,7 +896,9 @@ pub async fn batch_fetch_missing_artist_pictures(
                 "artist_name": name,
             }),
         );
-        match enrich_artist_deezer(state.clone(), artist_id).await {
+        // Same pool the artist list was read from — see
+        // `enrich_artist_deezer_with_pool`.
+        match enrich_artist_deezer_with_pool(state.clone(), &pool, artist_id).await {
             Ok(e) => {
                 if e.picture_path.is_some() {
                     success += 1;

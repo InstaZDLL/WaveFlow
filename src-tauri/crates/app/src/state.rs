@@ -126,11 +126,16 @@ impl ProfilePool {
 
     /// Give up lease tracking and keep only the pool.
     ///
-    /// Reserved for handles that deliberately outlive a profile switch
-    /// (the DLNA worker holds its pool across requests and is rebuilt
-    /// on switch). Holding a lease there would stall every switch until
-    /// [`LEASE_DRAIN_TIMEOUT`]. Such a handle is back to the pre-#332
-    /// exposure and must tolerate `PoolClosed`.
+    /// Reserved for long-lived handles held by a worker for the life of
+    /// the process rather than for the span of one command — leasing
+    /// those would stall every profile switch until
+    /// [`LEASE_DRAIN_TIMEOUT`] for no benefit. Such a handle is back to
+    /// the pre-#332 exposure and must tolerate `PoolClosed`.
+    ///
+    /// The only caller is the DLNA worker, which today keeps serving
+    /// from the *previous* profile's (now closed) pool after a switch —
+    /// a pre-existing gap, not something the lease changes either way.
+    /// See issue #399.
     pub fn into_unleashed(self) -> SqlitePool {
         self.pool
     }
@@ -534,10 +539,17 @@ impl AppState {
     /// internally).
     ///
     /// The returned [`ProfilePool`] holds a lease: a concurrent profile
-    /// switch will not close this pool until the handle is dropped, so
-    /// a multi-step command that keeps it across awaits cannot hit
-    /// `PoolClosed` mid-flight (issue #332). Keep it alive for as long
-    /// as you query — binding it to `_` releases it immediately.
+    /// switch will not close this pool while the handle is alive (issue
+    /// #332). Keep it alive for as long as you query — binding it to `_`
+    /// releases it immediately.
+    ///
+    /// **The guarantee is time-bounded, not absolute.** The drain gives
+    /// up after [`LEASE_DRAIN_TIMEOUT`] and closes the pool anyway, so a
+    /// command that holds a lease longer than that across a switch can
+    /// still hit `PoolClosed` — it just logs a WARN first. Commands
+    /// running well past that (a full library scan) must keep tolerating
+    /// the error; what the lease buys is that ordinary multi-step
+    /// commands no longer race the close at all.
     #[allow(dead_code)]
     pub async fn require_profile_pool(&self) -> AppResult<ProfilePool> {
         let guard = self.profile.read().await;
