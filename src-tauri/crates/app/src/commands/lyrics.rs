@@ -15,6 +15,12 @@
 //! once a row exists — the user can manually overwrite by importing a
 //! `.lrc` file via [`import_lrc_file`].
 //!
+//! Because of that cache-first rule, **only a confirmed negative may be
+//! cached** (#391). A provider outage is `Unavailable`, not a miss: it
+//! persists nothing, so the next panel open retries. Caching it would
+//! freeze a one-off network blip into a permanent "no lyrics" that only a
+//! manual refetch could clear.
+//!
 //! **Prefer-LRCLIB toggle** (`profile_setting['lyrics.prefer_lrclib']`,
 //! issue #378): when on, [`fetch_lyrics`] flips tiers 2–3 (embedded +
 //! sidecar) to run *after* the online providers — LRCLIB / Musixmatch /
@@ -457,19 +463,37 @@ async fn cache_external_lyrics(
     })
 }
 
-/// Walk the post-LRCLIB fallback chain (NetEase / Megalobiz / Genius)
-/// and persist the first hit. Returns `Some(payload)` on a hit (already
-/// cached), or `None` when every provider misses — or one errors and the
-/// rest miss. A provider `Err` is non-fatal here (LRCLIB has already
-/// given a verdict, this chain is best-effort enrichment): it's logged
-/// and treated like a miss, so the caller decides what to do with `None`
-/// (cache an empty miss, or fall back to another tier under
-/// `lyrics.prefer_lrclib`).
+/// What the post-LRCLIB fallback chain concluded (#391).
+///
+/// The distinction that matters is `Miss` vs `Unavailable`. Collapsing
+/// both into "no lyrics" is what let a one-off provider outage be written
+/// as an empty row — and because the waterfall is cache-first and never
+/// re-fetches once a row exists, that transient blip marked the track as
+/// permanently lyric-less until the user hit Refetch by hand.
+enum FallbackOutcome {
+    /// A provider had lyrics — already cached.
+    Found(LyricsPayload),
+    /// Every provider answered and none had lyrics. A real negative, safe
+    /// to remember so the panel stops re-hitting the network on each open.
+    Miss,
+    /// The chain could not be consulted at all. NOT a negative — nothing
+    /// may be cached, so the next attempt retries.
+    Unavailable,
+}
+
+/// Walk the post-LRCLIB fallback chain (NetEase / Megalobiz / Genius) and
+/// persist the first hit.
+///
+/// A provider `Err` stays non-fatal for the waterfall — LRCLIB has already
+/// given its verdict and this chain is best-effort enrichment, so we don't
+/// fail the whole lookup. But it now surfaces as [`FallbackOutcome::Unavailable`]
+/// rather than masquerading as a miss, so the caller knows not to persist
+/// anything.
 async fn try_external_fallback(
     pool: &sqlx::SqlitePool,
     track_id: i64,
     meta: &TrackMeta,
-) -> AppResult<Option<LyricsPayload>> {
+) -> AppResult<FallbackOutcome> {
     match external_lyrics_search(
         meta,
         external_fallback_providers(),
@@ -481,13 +505,23 @@ async fn try_external_fallback(
     )
     .await
     {
-        Ok(Some(result)) => Ok(Some(
+        Ok(Some(result)) => Ok(FallbackOutcome::Found(
             cache_external_lyrics(pool, track_id, &meta.file_hash, result).await?,
         )),
-        Ok(None) => Ok(None),
+        Ok(None) => {
+            // `external_lyrics_search` also short-circuits to `Ok(None)`
+            // when offline mode is on. `fetch_lyrics` checks offline before
+            // reaching this tier, but the flag can flip mid-waterfall — and
+            // "couldn't ask" must never be recorded as "nobody has it".
+            if crate::offline::is_offline() {
+                Ok(FallbackOutcome::Unavailable)
+            } else {
+                Ok(FallbackOutcome::Miss)
+            }
+        }
         Err(err) => {
-            tracing::debug!(?err, "external fallback chain failed");
-            Ok(None)
+            tracing::debug!(?err, "external fallback chain failed; not caching a miss");
+            Ok(FallbackOutcome::Unavailable)
         }
     }
 }
@@ -526,25 +560,41 @@ async fn cache_lyrics_miss(
 /// Resolve a track once LRCLIB has given no usable lyrics (404 or an
 /// empty row). Tries the external provider chain first; then, under
 /// `lyrics.prefer_lrclib` (where the local tiers haven't run yet), the
-/// embedded + sidecar tiers; and finally caches an empty miss. Always
-/// returns a `LyricsPayload`. With `prefer_lrclib = false` this is the
-/// original "external chain, else miss" behaviour — the two `fetch_lyrics`
-/// LRCLIB call sites share it so they can't drift on the contract.
+/// embedded + sidecar tiers.
+///
+/// Returns `None` when the chain was [`FallbackOutcome::Unavailable`] and
+/// no local tier covered for it: nothing is cached in that case, so the
+/// next panel open retries instead of being served a miss that was really
+/// just a network blip (#391). A confirmed [`FallbackOutcome::Miss`] still
+/// caches the empty row, preserving the "don't re-hit the network on every
+/// open" property. The two `fetch_lyrics` LRCLIB call sites share this so
+/// they can't drift on the contract.
 async fn resolve_after_lrclib_miss(
     pool: &sqlx::SqlitePool,
     track_id: i64,
     meta: &TrackMeta,
     prefer_lrclib: bool,
-) -> AppResult<LyricsPayload> {
-    if let Some(payload) = try_external_fallback(pool, track_id, meta).await? {
-        return Ok(payload);
+) -> AppResult<Option<LyricsPayload>> {
+    let outcome = try_external_fallback(pool, track_id, meta).await?;
+    if let FallbackOutcome::Found(payload) = outcome {
+        return Ok(Some(payload));
     }
+
+    // Under prefer-LRCLIB the local tiers were deferred, so they still owe
+    // us an answer — whether the chain missed or was unreachable.
     if prefer_lrclib {
         if let Some(payload) = try_local_lyrics(pool, track_id, meta).await? {
-            return Ok(payload);
+            return Ok(Some(payload));
         }
     }
-    cache_lyrics_miss(pool, track_id, meta).await
+
+    match outcome {
+        FallbackOutcome::Miss => cache_lyrics_miss(pool, track_id, meta).await.map(Some),
+        // Transient: persist nothing so the next attempt can retry.
+        FallbackOutcome::Unavailable => Ok(None),
+        // Handled above.
+        FallbackOutcome::Found(_) => unreachable!("Found returns early"),
+    }
 }
 
 /// `profile_setting` key: prefer the online providers (LRCLIB / Musixmatch
@@ -1140,9 +1190,7 @@ pub async fn fetch_lyrics(
             // LRCLIB's metadata endpoint, so they only run after the exact
             // lookup fails. See `resolve_after_lrclib_miss` for the
             // error-handling contract (provider Err is non-fatal here).
-            return resolve_after_lrclib_miss(&pool, track_id, &meta, prefer_lrclib)
-                .await
-                .map(Some);
+            return resolve_after_lrclib_miss(&pool, track_id, &meta, prefer_lrclib).await;
         }
         Err(err) => {
             // Surface transient network failures (timeout, DNS, refused
@@ -1201,9 +1249,7 @@ pub async fn fetch_lyrics(
             // Same as the 404 branch above: LRCLIB returned an entry
             // but it was empty, so fall through to the fallback chain
             // (and the deferred local tiers under prefer-LRCLIB).
-            return resolve_after_lrclib_miss(&pool, track_id, &meta, prefer_lrclib)
-                .await
-                .map(Some);
+            return resolve_after_lrclib_miss(&pool, track_id, &meta, prefer_lrclib).await;
         }
     };
 
