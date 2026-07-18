@@ -514,38 +514,39 @@ where
 
         if matches!(err, cpal::StreamError::DeviceNotAvailable) {
             let app_clone = err_app.clone();
-            // #365: arm the recovery BEFORE the delay, not inside it.
-            // Scheduling unconditionally queued one task per error, and
-            // since each task runs 300 ms later they never overlap — so
-            // the engine's in-flight debounce always found a free slot and
-            // every error got its own rebuild. On a DAC that resets on
-            // each exclusive grab, our own re-open triggers the next
-            // error, so the passes chase each other until one opens
-            // exclusive while the previous stream is still settling and
-            // collides with AUDCLNT_E_DEVICE_IN_USE. The gate lets exactly
-            // one rebuild through per burst.
-            let armed = app_clone
-                .try_state::<std::sync::Arc<super::AudioEngine>>()
-                .is_some_and(|engine| engine.try_arm_device_rebuild());
-            if armed {
-                tauri::async_runtime::spawn(async move {
-                    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-                    if let Some(engine) = app_clone.try_state::<std::sync::Arc<super::AudioEngine>>()
-                    {
-                        if let Err(err) = engine.try_rebuild_after_device_error() {
-                            tracing::warn!(
-                                %err,
-                                "auto-rebuild after DeviceNotAvailable failed"
-                            );
-                        }
-                    }
-                });
-            } else {
-                tracing::debug!(
-                    "device rebuild already armed or within the settle window; \
-                     ignoring this DeviceNotAvailable"
-                );
-            }
+            // Everything below runs off this callback, on the tokio task:
+            // the engine lookup, the #365 gate, the rebuild and its logs.
+            // The engine is resolved AFTER the delay on purpose — an error
+            // can fire while `AudioEngine::new` is still running, i.e.
+            // before the engine has been registered in Tauri's managed
+            // state, and looking it up eagerly here would silently drop
+            // the recovery for that window.
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+                let Some(engine) = app_clone.try_state::<std::sync::Arc<super::AudioEngine>>()
+                else {
+                    return;
+                };
+                // #365: one rebuild per burst of device errors. A DAC that
+                // resets on every exclusive grab makes our own re-open
+                // trigger the next error, so without a gate the passes
+                // chase each other until one opens exclusive while the
+                // previous stream is still settling and collides with
+                // AUDCLNT_E_DEVICE_IN_USE. Gating here (rather than before
+                // the sleep) still collapses the burst: whichever task
+                // wakes first arms, and the others hit either `armed` or
+                // the settle window.
+                if !engine.try_arm_device_rebuild() {
+                    tracing::debug!(
+                        "device rebuild already armed or within the settle window; \
+                         ignoring this DeviceNotAvailable"
+                    );
+                    return;
+                }
+                if let Err(err) = engine.try_rebuild_after_device_error() {
+                    tracing::warn!(%err, "auto-rebuild after DeviceNotAvailable failed");
+                }
+            });
         }
     };
 

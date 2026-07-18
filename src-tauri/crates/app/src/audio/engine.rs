@@ -618,13 +618,17 @@ impl AudioEngine {
     /// `DeviceNotAvailable` (#365). Returns `true` for the caller that
     /// should own the recovery, `false` for everyone else.
     ///
-    /// Called from the cpal error callback BEFORE the 300 ms delay, so a
-    /// burst of errors arms exactly one rebuild instead of queueing one
-    /// task per error. A `false` here means either a rebuild is already
-    /// armed / running, or we're inside [`REBUILD_SETTLE_WINDOW`] after
-    /// the last one — on a DAC that resets on every exclusive grab, that
-    /// second case is our own re-open echoing back, and reacting to it is
-    /// exactly what re-arms the cascade.
+    /// Called from the deferred recovery task (after its 300 ms backoff),
+    /// not from the cpal error callback itself — the engine may not be
+    /// registered in Tauri state yet at error time. A burst of errors
+    /// therefore queues several tasks, but only the first to wake arms;
+    /// the rest bail here, so the burst still collapses to one rebuild.
+    ///
+    /// A `false` means either a rebuild is already armed / running, or
+    /// we're inside [`REBUILD_SETTLE_WINDOW`] after the last one — on a
+    /// DAC that resets on every exclusive grab, that second case is our
+    /// own re-open echoing back, and reacting to it is exactly what
+    /// re-arms the cascade.
     ///
     /// The matching release lives in `try_rebuild_after_device_error`'s
     /// RAII guard, so a scheduled-but-failed rebuild still reopens the
@@ -1205,16 +1209,19 @@ mod rebuild_gate_tests {
     #[test]
     fn collapses_a_full_cascade_into_a_single_rebuild() {
         // Replays the reporter's pattern: an error every ~300 ms, each one
-        // previously queueing its own deferred rebuild.
+        // queueing its own deferred recovery task. Mirrors the real call
+        // order — a task arms only after its 300 ms backoff, so the gate
+        // is consulted at `error + 300 ms`, not at error time.
         let mut g = RebuildGate::default();
         let start = Instant::now();
         let mut armed = 0;
         for i in 0..10 {
-            let now = start + Duration::from_millis(300 * i);
-            if g.try_arm(now, SETTLE) {
+            let error_at = start + Duration::from_millis(300 * i);
+            let arms_at = error_at + Duration::from_millis(300);
+            if g.try_arm(arms_at, SETTLE) {
                 armed += 1;
-                // The rebuild lands ~300 ms after it was armed.
-                g.finish(now + Duration::from_millis(300));
+                // The rebuild itself takes a few tens of ms.
+                g.finish(arms_at + Duration::from_millis(40));
             }
         }
         // 10 errors over 2.7 s collapse to the initial rebuild plus one
