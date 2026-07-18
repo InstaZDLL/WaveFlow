@@ -1613,6 +1613,10 @@
       "subtitle": "Affiche une traduction sous chaque ligne LRC quand Musixmatch en propose une",
       "off": "Désactivée"
     },
+    "lyricsPreferLrclib": {
+      "title": "Privilégier LRCLIB aux paroles intégrées",
+      "subtitle": "Cherche les paroles en ligne d'abord ; se rabat sur celles du fichier si aucune n'est trouvée"
+    },
     "regenerateThumbnails": "Régénérer les vignettes",
     "regenerateThumbnailsSubtitle": "Reconstruire les variantes 1x/2x manquantes pour toutes les pochettes",
     "regenerateThumbnailsAction": "Régénérer",

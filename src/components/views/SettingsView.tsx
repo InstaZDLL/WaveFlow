@@ -260,19 +260,22 @@ function ToggleSwitch({
   enabled,
   onToggle,
   label,
+  disabled = false,
 }: {
   enabled: boolean;
   onToggle: () => void;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onToggle}
+      disabled={disabled}
       role="switch"
       aria-checked={enabled}
       aria-label={label}
-      className={`relative w-12 h-7 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900 ${
+      className={`relative w-12 h-7 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed ${
         enabled ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-600"
       }`}
     >
@@ -996,6 +999,53 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
       console.error("[SettingsView] setLyricsTranslationLang failed", err);
     } finally {
       setTranslationLangBusy(false);
+    }
+  };
+
+  // Prefer LRCLIB / online providers over the track's embedded + sidecar
+  // lyrics — issue #378. `false` = local-first (default). The flag is
+  // per-profile, so the loader re-runs on profile switch and the toggle
+  // stays busy (disabled) until the new profile's value has hydrated.
+  const [preferLrclib, setPreferLrclib] = useState(false);
+  const [preferLrclibBusy, setPreferLrclibBusy] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      // Reset to a neutral, disabled state while the new profile's flag
+      // loads so a stale value never shows and can't be toggled
+      // mid-hydration. Inside the async IIFE (not the effect body) to
+      // satisfy `react-hooks/set-state-in-effect`.
+      setPreferLrclib(false);
+      setPreferLrclibBusy(true);
+      try {
+        const { getPreferLrclib } = await import("../../lib/tauri/lyrics");
+        const stored = await getPreferLrclib();
+        if (!cancelled) setPreferLrclib(stored);
+      } catch (err) {
+        console.error("[SettingsView] getPreferLrclib failed", err);
+      } finally {
+        if (!cancelled) setPreferLrclibBusy(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProfile?.id]);
+
+  const handlePreferLrclibToggle = async () => {
+    if (preferLrclibBusy) return; // guard re-entrancy (pointer + keyboard)
+    const next = !preferLrclib;
+    setPreferLrclib(next); // optimistic
+    setPreferLrclibBusy(true);
+    try {
+      const { setPreferLrclib: persist } = await import("../../lib/tauri/lyrics");
+      await persist(next);
+    } catch (err) {
+      console.error("[SettingsView] setPreferLrclib failed", err);
+      setPreferLrclib(!next); // revert on failure
+    } finally {
+      setPreferLrclibBusy(false);
     }
   };
 
@@ -3244,6 +3294,30 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
                   ),
                 )}
               </select>
+            </div>
+
+            <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+              <div className="flex items-center space-x-4 flex-1 min-w-0">
+                <Globe
+                  size={20}
+                  className="text-zinc-400 shrink-0"
+                  aria-hidden="true"
+                />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                    {t("settings.lyricsPreferLrclib.title")}
+                  </div>
+                  <div className="text-xs text-zinc-400">
+                    {t("settings.lyricsPreferLrclib.subtitle")}
+                  </div>
+                </div>
+              </div>
+              <ToggleSwitch
+                enabled={preferLrclib}
+                onToggle={() => void handlePreferLrclibToggle()}
+                disabled={preferLrclibBusy}
+                label={t("settings.lyricsPreferLrclib.title")}
+              />
             </div>
 
             <div className="flex items-center justify-between py-5 px-4 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">

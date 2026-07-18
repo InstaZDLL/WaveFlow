@@ -1841,6 +1841,10 @@
       "subtitle": "Menampilkan terjemahan di bawah setiap baris LRC saat Musixmatch menyediakannya",
       "off": "Nonaktif"
     },
+    "lyricsPreferLrclib": {
+      "title": "Utamakan LRCLIB daripada lirik tertanam",
+      "subtitle": "Mencari lirik online dulu; kembali ke lirik file jika tidak ada yang ditemukan"
+    },
     "lyricsDestination": {
       "title": "Tujuan lirik tersimpan",
       "subtitle": "Tempat lirik dari editor disimpan. Dapat di-override per pengeditan."

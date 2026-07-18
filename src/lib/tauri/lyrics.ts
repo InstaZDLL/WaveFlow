@@ -182,6 +182,24 @@ export function setLyricsTranslationLang(
 }
 
 /**
+ * Read the per-profile "prefer LRCLIB" flag. `true` makes the on-demand
+ * lyrics waterfall try the online providers (LRCLIB / Musixmatch / the
+ * fallback chain) before the track's own embedded + sidecar lyrics
+ * (issue #378). Default `false` — local lyrics win.
+ */
+export function getPreferLrclib(): Promise<boolean> {
+  return invoke<boolean>("get_prefer_lrclib");
+}
+
+/**
+ * Persist the per-profile "prefer LRCLIB" flag. `false` clears the row
+ * and restores the local-first default.
+ */
+export function setPreferLrclib(enabled: boolean): Promise<void> {
+  return invoke<void>("set_prefer_lrclib", { enabled });
+}
+
+/**
  * Where the user wants the editor's output to land. The frontend
  * pre-fills the segmented control with the app-wide default
  * (`getLyricsDefaultDestination`) and lets the user override

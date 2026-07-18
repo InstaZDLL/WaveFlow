@@ -1841,6 +1841,10 @@
       "subtitle": "Muestra una traducción bajo cada línea LRC cuando Musixmatch la tiene",
       "off": "Desactivada"
     },
+    "lyricsPreferLrclib": {
+      "title": "Priorizar LRCLIB sobre las letras integradas",
+      "subtitle": "Busca las letras en línea primero; recurre a las del archivo si no encuentra ninguna"
+    },
     "lyricsDestination": {
       "title": "Destino de las letras guardadas",
       "subtitle": "Dónde se guardan las letras que escribes en el editor. Puedes anularlo en cada edición."

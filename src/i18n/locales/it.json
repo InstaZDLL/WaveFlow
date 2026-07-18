@@ -1841,6 +1841,10 @@
       "subtitle": "Mostra una traduzione sotto ogni riga LRC quando Musixmatch ne fornisce una",
       "off": "Disattivata"
     },
+    "lyricsPreferLrclib": {
+      "title": "Preferisci LRCLIB ai testi incorporati",
+      "subtitle": "Cerca prima i testi online; usa quelli del file se non ne trova nessuno"
+    },
     "lyricsDestination": {
       "title": "Destinazione dei testi salvati",
       "subtitle": "Dove vanno i testi scritti nell'editor. Puoi sovrascrivere a ogni modifica."

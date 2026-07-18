@@ -1841,6 +1841,10 @@
       "subtitle": "Toont onder elke LRC-regel een vertaling wanneer Musixmatch er een aanbiedt",
       "off": "Uit"
     },
+    "lyricsPreferLrclib": {
+      "title": "LRCLIB verkiezen boven ingesloten songteksten",
+      "subtitle": "Zoekt songteksten eerst online; valt terug op die van het bestand als er geen worden gevonden"
+    },
     "lyricsDestination": {
       "title": "Bestemming voor opgeslagen songteksten",
       "subtitle": "Waar songteksten uit de editor heen gaan. Per bewerking te overschrijven."

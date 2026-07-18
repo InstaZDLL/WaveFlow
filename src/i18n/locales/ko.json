@@ -1841,6 +1841,10 @@
       "subtitle": "Musixmatch에 번역이 있을 때 각 LRC 줄 아래에 번역을 표시합니다",
       "off": "사용 안 함"
     },
+    "lyricsPreferLrclib": {
+      "title": "내장 가사보다 LRCLIB 우선",
+      "subtitle": "먼저 온라인에서 가사를 검색하고, 없으면 파일의 가사를 사용합니다"
+    },
     "lyricsDestination": {
       "title": "저장되는 가사의 위치",
       "subtitle": "에디터에서 입력한 가사가 저장되는 위치. 편집할 때마다 재정의 가능."
