@@ -552,17 +552,17 @@ async fn resolve_after_lrclib_miss(
 /// Default off — the local tiers win, as they historically have.
 pub const PREFER_LRCLIB_KEY: &str = "lyrics.prefer_lrclib";
 
-/// Read the per-profile prefer-LRCLIB flag. Absent / blank / anything but
-/// a truthy value → `false` (local-first, the historical default).
-async fn read_prefer_lrclib(pool: &sqlx::SqlitePool) -> bool {
-    sqlx::query_scalar::<_, String>("SELECT value FROM profile_setting WHERE key = ?")
-        .bind(PREFER_LRCLIB_KEY)
-        .fetch_optional(pool)
-        .await
-        .ok()
-        .flatten()
-        .map(|v| v == "true" || v == "1")
-        .unwrap_or(false)
+/// Read the per-profile prefer-LRCLIB flag. A missing row / blank / any
+/// non-truthy value → `false` (local-first, the historical default). A
+/// SQL error propagates rather than masquerading as "disabled" so the
+/// caller (and the Settings toggle) sees a real read failure.
+async fn read_prefer_lrclib(pool: &sqlx::SqlitePool) -> AppResult<bool> {
+    let value: Option<String> =
+        sqlx::query_scalar("SELECT value FROM profile_setting WHERE key = ?")
+            .bind(PREFER_LRCLIB_KEY)
+            .fetch_optional(pool)
+            .await?;
+    Ok(value.map(|v| v == "true" || v == "1").unwrap_or(false))
 }
 
 /// Local tiers (embedded tag → sidecar `.lrc`/`.txt`). Returns the first
@@ -1057,7 +1057,7 @@ pub async fn fetch_lyrics(
     //       the fallback after the online providers miss (issue #378), so
     //       the network gets first crack while a track absent from LRCLIB
     //       still shows its own embedded lyrics instead of nothing.
-    let prefer_lrclib = read_prefer_lrclib(&pool).await;
+    let prefer_lrclib = read_prefer_lrclib(&pool).await?;
     if !prefer_lrclib {
         if let Some(payload) = try_local_lyrics(&pool, track_id, &meta).await? {
             return Ok(Some(payload));
@@ -2455,7 +2455,7 @@ pub async fn set_lyrics_translation_lang(
 #[tauri::command]
 pub async fn get_prefer_lrclib(state: tauri::State<'_, AppState>) -> AppResult<bool> {
     let pool = state.require_profile_pool().await?;
-    Ok(read_prefer_lrclib(&pool).await)
+    read_prefer_lrclib(&pool).await
 }
 
 /// Persist the per-profile prefer-LRCLIB flag. `true` makes the on-demand
