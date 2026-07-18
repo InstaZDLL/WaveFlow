@@ -192,3 +192,7 @@ wasmtime-wasi = { version = "46", default-features = false, optional = true }
 # Sandboxed scratch directories for the smart-playlist cover render
 # tests. Same usage shape as the app crate's existing dev-dep.
 tempfile = "3"
+# Async test harness for the scanner passes that talk to SQLite
+# (`refresh_folder_covers`). Only the attribute macro + a current-thread
+# runtime are needed, so no "full".
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

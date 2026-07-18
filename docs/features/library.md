@@ -9,6 +9,20 @@ The library is a per-profile SQLite database (`<root>/profiles/<id>/data.db`) ke
 - **Audio quality** — sample rate, bitrate, channel count, bit depth and codec are captured at scan time. Hi-Res badges (≥ 24-bit, ≥ 44.1 kHz) light up automatically on covers and rows.
 - **Watch folders** — [`notify 8`](https://crates.io/crates/notify) drives a per-folder filesystem watcher with debounced rescans so files dropped into a watched directory appear without a manual refresh. Deletions flag rows `is_available = 0` rather than purging them, so play history, ratings and playlist memberships survive a reorganisation.
 
+### Folder-cover reconciliation
+
+The scan fast path keys on each **audio** file's `(mtime, size)`. Replacing a sidecar `cover.jpg` next to those files changes nothing it looks at: the tracks are skipped, `extract_folder_cover` never runs, and the album keeps its old picture indefinitely. The file that changed simply isn't one the scanner watches (issue #366).
+
+[`refresh_folder_covers`](../../src-tauri/crates/core/src/scanner/upserts.rs) closes that gap as a post-scan pass. It works per **directory** rather than per file — one `read_dir` + one hash for a whole album instead of one per track — and updates any album whose sidecar no longer matches. No extra bookkeeping is required: `artwork.hash` is already the blake3 of the picture bytes, so the stored row is its own baseline for comparison, and no migration was needed.
+
+Three deliberate restrictions:
+
+- **Embedded artwork is never overridden.** Extraction treats the sidecar as a fallback for tracks whose tag carries no picture, so replacing an `embedded` row here would silently invert that precedence. Only `folder`-sourced (or absent) artwork is touched.
+- **A deleted sidecar does not blank the album.** A vanished cover is far more likely to be a transient state (files being reorganised) than a request for a blank album.
+- **A multi-directory album resolves against its first directory** in sorted order, so per-disc subfolder covers can't make the album's picture depend on directory iteration order and flip on every scan.
+
+A tag edit that rewrites the audio file *is* already detected, since it moves that file's mtime — this pass is specifically about the sidecar case.
+
 ## Audio analysis
 
 [`analysis.rs`](../../src-tauri/crates/core/src/analysis.rs) computes peak, integrated loudness (dB), ReplayGain (–18 LUFS reference) and BPM (autocorrelation). Runs on demand (per track) or as a background sweep (whole library), gated by a Settings toggle. Results land in `track_analysis` and feed:

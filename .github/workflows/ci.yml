@@ -106,6 +106,21 @@ jobs:
         if: runner.os == 'Windows'
         run: cargo test --manifest-path src-tauri/Cargo.toml --workspace --exclude waveflow
 
+      - name: cargo test (waveflow-core, sqlite backend)
+        # `sqlite` is NOT a default feature of waveflow-core, so the
+        # module tree behind it — including the scanner passes that talk
+        # to SQLite and their tests — only compiles when something in the
+        # build graph turns it on. The Linux `--workspace` run gets that
+        # for free via feature unification with the app crate, but the
+        # Windows run excludes exactly that crate, so those tests would
+        # silently not exist there. Ask for the feature explicitly rather
+        # than relying on unification, on both runners.
+        run: >
+          cargo test
+          --manifest-path src-tauri/Cargo.toml
+          -p waveflow-core
+          --features sqlite
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest

@@ -17,9 +17,9 @@ use waveflow_core::scanner::{
     extract_album_artist, extract_artist_image, extract_compilation_flag, extract_cover,
     extract_folder_cover, extract_musical_key, extract_rating, file_type_label, hash_file,
     link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
-    merge_implicit_compilations, now_millis, split_artist_name, upsert_album, upsert_artist,
-    upsert_artwork, ArtistImageScanCache, ExtractedFile, UpsertCache, AUDIO_EXTENSIONS,
-    VARIOUS_ARTISTS_LABEL,
+    merge_implicit_compilations, now_millis, refresh_folder_covers, split_artist_name, upsert_album,
+    upsert_artist, upsert_artwork, ArtistImageScanCache, ExtractedFile, UpsertCache,
+    AUDIO_EXTENSIONS, VARIOUS_ARTISTS_LABEL,
 };
 
 use crate::{
@@ -1172,6 +1172,18 @@ pub(crate) async fn scan_folder_inner(
         Err(err) => tracing::warn!(?err, "link_va_artist_image: acquire failed (non-fatal)"),
     }
 
+    // Pick up sidecar cover art that changed since the last scan. The
+    // per-file fast path can't see this on its own (issue #366) — see
+    // `refresh_folder_covers`. Non-fatal: a scan that indexed every
+    // track correctly must not fail because one cover couldn't be read.
+    let refreshed_covers = match refresh_folder_covers(pool, artwork_dir, folder_id).await {
+        Ok(n) => n,
+        Err(err) => {
+            tracing::warn!(?err, "refresh_folder_covers failed (non-fatal)");
+            0
+        }
+    };
+
     // Per-phase breakdown so a slow scan on a big library is diagnosable
     // from the log alone. `*_ms` are wall-clock deltas between phases;
     // `hash_cpu_ms_total` / `tag_cpu_ms_total` are summed across the
@@ -1186,6 +1198,7 @@ pub(crate) async fn scan_folder_inner(
         skipped = summary.skipped,
         removed = summary.removed,
         errors = summary.errors,
+        refreshed_covers,
         extracted = to_extract_count,
         parallelism,
         walk_ms,

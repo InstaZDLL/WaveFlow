@@ -7687,6 +7687,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "tiny-skia",
+ "tokio",
  "toml 1.1.3+spec-1.1.0",
  "tracing",
  "usvg",
