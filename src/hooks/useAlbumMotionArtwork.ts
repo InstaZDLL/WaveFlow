@@ -6,6 +6,66 @@ import {
 } from "../lib/tauri/plugins";
 
 /**
+ * Process-wide dedupe for motion-artwork lookups.
+ *
+ * The hook is mounted by several surfaces at once (ImmersiveNowPlaying +
+ * NowPlayingPanel), so a single track change fired three to four identical
+ * `fetch_album_motion_artwork` calls for the same album — each one a full
+ * fan-out to every enabled metadata plugin, taking that plugin's lock and
+ * (cold) hitting Apple's API. `inFlight` collapses concurrent callers onto
+ * one promise; `resolved` keeps the answer so remounting a panel, or
+ * flipping back to a recent album, costs nothing.
+ *
+ * `resolved` is capped and evicted oldest-first: a long listening session
+ * would otherwise retain an entry per album played. The backend has its own
+ * caches, so a rare re-fetch after eviction is cheap.
+ */
+const MAX_RESOLVED = 64;
+const inFlight = new Map<string, Promise<MotionArtwork | null>>();
+const resolved = new Map<string, MotionArtwork | null>();
+
+/** `\0` can't appear in a tag value, so it can't forge a collision. */
+function cacheKey(artist: string, album: string): string {
+  return `${artist}\0${album}`;
+}
+
+function rememberResolved(key: string, value: MotionArtwork | null): void {
+  // Re-insert to refresh insertion order, then evict from the front.
+  resolved.delete(key);
+  resolved.set(key, value);
+  while (resolved.size > MAX_RESOLVED) {
+    const oldest = resolved.keys().next();
+    if (oldest.done) break;
+    resolved.delete(oldest.value);
+  }
+}
+
+function lookup(artist: string, album: string): Promise<MotionArtwork | null> {
+  const key = cacheKey(artist, album);
+  if (resolved.has(key)) {
+    return Promise.resolve(resolved.get(key) ?? null);
+  }
+  const pending = inFlight.get(key);
+  if (pending) return pending;
+
+  const request = fetchAlbumMotionArtwork(artist, album)
+    .then((motion) => {
+      rememberResolved(key, motion);
+      return motion;
+    })
+    // A failed lookup is NOT remembered: it's usually transient (offline,
+    // rate limit), and caching it would suppress retries for the rest of
+    // the session.
+    .catch(() => null)
+    .finally(() => {
+      inFlight.delete(key);
+    });
+
+  inFlight.set(key, request);
+  return request;
+}
+
+/**
  * Resolve animated album artwork for `(artist, album)` via enabled
  * metadata plugins (Phase 3). Returns `null` when the inputs are missing
  * (e.g. a radio stream with no album), when offline, when no metadata
@@ -34,7 +94,7 @@ export function useAlbumMotionArtwork(
     // resolves, so the new artwork only ever replaces `null`.
     Promise.resolve<MotionArtwork | null>(null).then(apply);
     if (artist && album) {
-      fetchAlbumMotionArtwork(artist, album).then(apply, () => apply(null));
+      lookup(artist, album).then(apply, () => apply(null));
     }
     return () => {
       cancelled = true;
