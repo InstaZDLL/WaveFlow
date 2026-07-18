@@ -183,6 +183,72 @@ impl FlapWindow {
     }
 }
 
+/// Quiet period after a rebuild attempt finishes during which a fresh
+/// `DeviceNotAvailable` does NOT arm another rebuild (#365).
+///
+/// On a DAC that resets its audio session every time a client grabs it in
+/// exclusive mode, our own re-open is what produces the next error — so
+/// reacting to it re-arms the loop. Each pass would then open exclusive
+/// while the previous pass's stream was still settling, and the second
+/// open collides with `AUDCLNT_E_DEVICE_IN_USE (0x8889000A)`, whose shared
+/// fallback then fails too, leaving the engine and the Settings toggle
+/// inconsistent (the #355 report).
+///
+/// 2 s is long enough to cover such a self-inflicted reset and short
+/// enough that a genuine unplug still recovers promptly.
+const REBUILD_SETTLE_WINDOW: Duration = Duration::from_secs(2);
+
+/// Single-owner gate for the automatic post-`DeviceNotAvailable` rebuild
+/// (#365).
+///
+/// The `rebuild_in_progress` debounce only covers a rebuild *call that is
+/// currently executing*. It cannot coalesce the real-world pattern, because
+/// the recovery is **deferred**: the cpal error callback schedules the
+/// rebuild 300 ms later, so consecutive errors each queue their own task
+/// and the passes never overlap — one finishes before the next begins, so
+/// every one of them sees a free debounce slot.
+///
+/// This gate closes that hole by tracking the whole arm → delay → run
+/// lifecycle plus a settle window afterwards, so exactly one rebuild runs
+/// per burst of device errors.
+///
+/// Clock is injected so the logic is deterministic under test, same as
+/// [`FlapWindow`].
+#[derive(Default)]
+struct RebuildGate {
+    /// A deferred rebuild has been scheduled and hasn't finished yet.
+    armed: bool,
+    /// When the last rebuild attempt finished, successful or not.
+    last_finished: Option<Instant>,
+}
+
+impl RebuildGate {
+    /// Decide whether a `DeviceNotAvailable` should schedule a rebuild.
+    /// Returns `true` at most once per burst: `false` while one is already
+    /// armed, and `false` inside the settle window after the last one.
+    fn try_arm(&mut self, now: Instant, settle: Duration) -> bool {
+        if self.armed {
+            return false;
+        }
+        if self
+            .last_finished
+            .is_some_and(|t| now.duration_since(t) < settle)
+        {
+            return false;
+        }
+        self.armed = true;
+        true
+    }
+
+    /// Mark the armed rebuild as finished and start the settle window.
+    /// Must run on EVERY exit path of the rebuild, otherwise `armed`
+    /// stays latched and no later device error can ever recover.
+    fn finish(&mut self, now: Instant) {
+        self.armed = false;
+        self.last_finished = Some(now);
+    }
+}
+
 /// Handle stored in Tauri state. Cloning an `Arc<AudioEngine>` is cheap.
 ///
 /// The cpal `Stream` is NOT stored here — it lives on a dedicated output
@@ -226,6 +292,14 @@ pub struct AudioEngine {
     exclusive_suppressed: std::sync::atomic::AtomicBool,
     /// Rolling flap counter feeding [`Self::try_rebuild_after_device_error`].
     exclusive_flaps: Mutex<FlapWindow>,
+    /// Single-owner gate for the deferred post-`DeviceNotAvailable`
+    /// rebuild (#365). `rebuild_in_progress` above only guards a rebuild
+    /// that is *currently executing*; because the recovery is scheduled
+    /// 300 ms after the error, consecutive errors queue separate tasks
+    /// that never overlap, so each one finds the debounce slot free.
+    /// This gate spans the whole arm → delay → run lifecycle plus a
+    /// settle window, so one burst of device errors yields one rebuild.
+    rebuild_gate: Mutex<RebuildGate>,
     /// Last Web Radio session captured at the boundary of
     /// [`Self::send`] (#230). The three output-rebuild paths
     /// ([`Self::set_output_device`], [`Self::set_wasapi_exclusive`],
@@ -340,6 +414,7 @@ impl AudioEngine {
             rebuild_in_progress: std::sync::atomic::AtomicBool::new(false),
             exclusive_suppressed: std::sync::atomic::AtomicBool::new(false),
             exclusive_flaps: Mutex::new(FlapWindow::default()),
+            rebuild_gate: Mutex::new(RebuildGate::default()),
             radio_resume: Mutex::new(None),
         })
     }
@@ -466,6 +541,23 @@ impl AudioEngine {
     pub fn try_rebuild_after_device_error(&self) -> AppResult<()> {
         use std::sync::atomic::Ordering;
 
+        // Release the #365 gate on EVERY exit path below (including the
+        // early `return`s and any panic), otherwise `armed` stays latched
+        // and no later device error could ever schedule a recovery again.
+        // Declared first so it drops last, after `force_rebuild_output`
+        // has released the `output` lock — the settle window should start
+        // when the rebuild is really over.
+        struct GateGuard<'a>(&'a Mutex<RebuildGate>);
+        impl Drop for GateGuard<'_> {
+            fn drop(&mut self) {
+                self.0
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner())
+                    .finish(Instant::now());
+            }
+        }
+        let _gate = GateGuard(&self.rebuild_gate);
+
         // Acquire the debounce slot. `swap(true)` returns the
         // previous value, so a `true` here means somebody else is
         // already rebuilding — bail without disturbing them.
@@ -520,6 +612,28 @@ impl AudioEngine {
         // shortcut for "same device" because the device is the
         // same — we just need a fresh stream after the OS reset.
         self.force_rebuild_output(pinned, exclusive)
+    }
+
+    /// Ask permission to schedule a deferred rebuild after a cpal
+    /// `DeviceNotAvailable` (#365). Returns `true` for the caller that
+    /// should own the recovery, `false` for everyone else.
+    ///
+    /// Called from the cpal error callback BEFORE the 300 ms delay, so a
+    /// burst of errors arms exactly one rebuild instead of queueing one
+    /// task per error. A `false` here means either a rebuild is already
+    /// armed / running, or we're inside [`REBUILD_SETTLE_WINDOW`] after
+    /// the last one — on a DAC that resets on every exclusive grab, that
+    /// second case is our own re-open echoing back, and reacting to it is
+    /// exactly what re-arms the cascade.
+    ///
+    /// The matching release lives in `try_rebuild_after_device_error`'s
+    /// RAII guard, so a scheduled-but-failed rebuild still reopens the
+    /// gate.
+    pub fn try_arm_device_rebuild(&self) -> bool {
+        self.rebuild_gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .try_arm(Instant::now(), REBUILD_SETTLE_WINDOW)
     }
 
     /// Clear the #322 session-level exclusive suppression and its flap
@@ -1027,6 +1141,85 @@ mod flap_window_tests {
             assert!(!w.record(t));
             t += EXCLUSIVE_FLAP_WINDOW + Duration::from_secs(1);
         }
+    }
+}
+
+#[cfg(test)]
+mod rebuild_gate_tests {
+    use super::*;
+
+    const SETTLE: Duration = REBUILD_SETTLE_WINDOW;
+
+    #[test]
+    fn arms_the_first_device_error() {
+        let mut g = RebuildGate::default();
+        assert!(g.try_arm(Instant::now(), SETTLE));
+    }
+
+    #[test]
+    fn refuses_a_second_arm_while_one_is_still_armed() {
+        let mut g = RebuildGate::default();
+        let t = Instant::now();
+        assert!(g.try_arm(t, SETTLE));
+        // The deferred rebuild hasn't run yet: every further error in the
+        // burst must be swallowed, however far apart they land.
+        assert!(!g.try_arm(t + Duration::from_millis(10), SETTLE));
+        assert!(!g.try_arm(t + Duration::from_secs(30), SETTLE));
+    }
+
+    #[test]
+    fn refuses_a_rearm_inside_the_settle_window() {
+        let mut g = RebuildGate::default();
+        let t = Instant::now();
+        assert!(g.try_arm(t, SETTLE));
+        g.finish(t + Duration::from_millis(300));
+        // This is the #365 cascade: our own exclusive re-open makes the
+        // DAC reset, and the resulting error must NOT arm another pass.
+        assert!(!g.try_arm(t + Duration::from_millis(340), SETTLE));
+    }
+
+    #[test]
+    fn arms_again_once_the_settle_window_has_passed() {
+        let mut g = RebuildGate::default();
+        let t = Instant::now();
+        assert!(g.try_arm(t, SETTLE));
+        let finished = t + Duration::from_millis(300);
+        g.finish(finished);
+        assert!(!g.try_arm(finished + SETTLE - Duration::from_millis(1), SETTLE));
+        // A genuine later failure (real unplug) still recovers.
+        assert!(g.try_arm(finished + SETTLE, SETTLE));
+    }
+
+    #[test]
+    fn finish_reopens_the_gate_even_when_the_rebuild_failed() {
+        let mut g = RebuildGate::default();
+        let t = Instant::now();
+        assert!(g.try_arm(t, SETTLE));
+        // `finish` runs from the RAII guard on every exit path, including
+        // the error ones — otherwise `armed` would latch forever and the
+        // engine could never recover from a later device loss.
+        g.finish(t);
+        assert!(g.try_arm(t + SETTLE, SETTLE));
+    }
+
+    #[test]
+    fn collapses_a_full_cascade_into_a_single_rebuild() {
+        // Replays the reporter's pattern: an error every ~300 ms, each one
+        // previously queueing its own deferred rebuild.
+        let mut g = RebuildGate::default();
+        let start = Instant::now();
+        let mut armed = 0;
+        for i in 0..10 {
+            let now = start + Duration::from_millis(300 * i);
+            if g.try_arm(now, SETTLE) {
+                armed += 1;
+                // The rebuild lands ~300 ms after it was armed.
+                g.finish(now + Duration::from_millis(300));
+            }
+        }
+        // 10 errors over 2.7 s collapse to the initial rebuild plus one
+        // retry after the settle window — not one per error.
+        assert_eq!(armed, 2);
     }
 }
 
