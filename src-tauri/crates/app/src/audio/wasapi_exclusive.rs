@@ -477,6 +477,14 @@ fn run_event_loop(
             let mono = shared.mono_enabled.load(Ordering::Relaxed);
             let norm_gain: f32 = if normalize { 0.707 } else { 1.0 };
 
+            // Samples actually pulled from the ring this period. Drives
+            // `SharedPlayback::samples_played`, which is the only source
+            // the progress bar, lyrics sync and play-event crediting have
+            // for "where are we in the track" — see the counting note in
+            // `state.rs`. Silence written on an underrun is deliberately
+            // NOT counted, matching the cpal callback.
+            let mut written: u64 = 0;
+
             if mono && channels >= 2 {
                 // Mono downmix: average all channels per frame.
                 let mut i = 0;
@@ -494,6 +502,7 @@ fn run_event_loop(
                         }
                     }
                     let v = if got > 0 {
+                        written += got as u64;
                         (sum / channels as f32) * volume * norm_gain
                     } else {
                         0.0
@@ -507,7 +516,10 @@ fn run_event_loop(
                 // Normal multi-channel path.
                 for slot in samples.iter_mut() {
                     *slot = match consumer.pop() {
-                        Ok(s) => s * volume * norm_gain,
+                        Ok(s) => {
+                            written += 1;
+                            s * volume * norm_gain
+                        }
                         Err(_) => 0.0,
                     };
                 }
@@ -518,6 +530,11 @@ fn run_event_loop(
             // allocations, no branches inside the inner loop
             // beyond the format dispatch above.
             pack_samples(format, &samples, &mut bytes_scratch);
+            if written > 0 {
+                shared
+                    .samples_played
+                    .fetch_add(written, std::sync::atomic::Ordering::Relaxed);
+            }
             &bytes_scratch
         };
 
