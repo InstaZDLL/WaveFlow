@@ -63,7 +63,14 @@ The endpoint format leads on purpose (#409). The mix format describes the pipe i
 
 **Sample format** — `FORMAT_FALLBACK_CHAIN`, tried in order: `F32` → `S24_3LE` → `S24_4LE` → `S16_LE`. Float32 leads because it costs no conversion at the boundary and most audiophile DACs take it natively; Realtek ALC and many integrated codecs reject it outright but accept PCM, so the two 24-bit PCM representations follow (packed 3-byte, then 24 valid bits in a 4-byte container — the same precision, different wire layout), with `S16_LE` as the universal last resort. Note this is a format sequence, not a monotonic walk down bit depth: `S24_4LE` uses a 32-bit container.
 
-Each rejection logs the full `(rate, channels, format, layout-origin)` at `debug`, and the success logs the same at `info` — a rejection blamed on the bit depth is very often the channel count instead.
+**Representation** — each `(layout, format)` pair is probed through `AudioClient::is_supported_exclusive_with_quirks`, not a bare `is_supported`. Two driver quirks hide behind an `AUDCLNT_E_UNSUPPORTED_FORMAT` that looks like a rate/depth problem but isn't:
+
+- **Channel mask.** `WaveFormat::new(.., None)` guesses one, and a multi-channel endpoint typically accepts exactly one specific mask. The helper re-probes against each recommended `ksmedia.h` mask. *This is the one that bit in practice* (#405): a 7.1-configured endpoint rejected every rate × depth combination purely on the mask.
+- **Structure shape.** `WaveFormat::new` always builds a `WAVEFORMATEXTENSIBLE`; some drivers refuse it while accepting the same PCM layout as a plain `WAVEFORMATEX`. The helper retries that form for mono/stereo only.
+
+Init then uses the shape the probe accepted, falling back to the requested shape when the two differ (wasapi's docs note some drivers validate the simplified form but want the original at init time).
+
+Each rejection logs the full `(rate, channels, format, layout-origin)` at `debug`, the success logs the same at `info`, and a total failure logs **every** attempt in one `warn` line — release builds log at `info`, so without that summary a user report only ever surfaced the last attempt of eight.
 
 Trade-offs:
 
