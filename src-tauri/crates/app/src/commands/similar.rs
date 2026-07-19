@@ -8,11 +8,15 @@
 //!      ordered by Deezer's own ranking) so we synthesize a decreasing
 //!      `match_score` from the position.
 //!
-//! Both sources are cached in `app.lastfm_similar` (despite the name)
-//! for 30 days, keyed by the source artist's canonical name. Each
-//! entry returned to the UI is augmented with a `library_artist_id`
-//! when a name match exists in the active profile — enables a "in your
-//! library" badge and a click-to-navigate behaviour.
+//! A provider result — including a genuine empty list — is cached in
+//! `app.lastfm_similar` (despite the name) for 30 days, keyed by the
+//! source artist's canonical name. A fetch *failure* (network error, or
+//! Deezer couldn't resolve the artist by name) is NOT cached, so the
+//! next request retries instead of being stuck on an empty result for
+//! the full TTL (#406). Each entry returned to the UI is augmented with
+//! a `library_artist_id` when a name match exists in the active profile
+//! — enables a "in your library" badge and a click-to-navigate
+//! behaviour.
 
 use std::collections::HashMap;
 
@@ -20,7 +24,11 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
-use waveflow_core::metadata::{deezer::DeezerClient, lastfm::LastfmClient};
+use waveflow_core::metadata::{
+    deezer::DeezerClient,
+    lastfm::LastfmClient,
+    name_match::{normalize_name, select_by_name},
+};
 
 use crate::{
     commands::{integration::read_lastfm_api_key, scan::canonical_name},
@@ -520,6 +528,15 @@ struct RawSimilar {
 /// Query the upstream provider(s) and persist the result. Last.fm wins
 /// when an API key is configured AND it returns at least one entry —
 /// otherwise we fall through to Deezer's `/artist/{id}/related`.
+///
+/// Only a provider that actually *answered* — even with zero results —
+/// gets cached. When both providers come back `None` (network error, or
+/// Deezer couldn't resolve the artist by name) this is a fetch failure,
+/// not a genuine "no similar artists" answer, so nothing is written:
+/// caching it under the same `CACHE_TTL_MS` as a real result used to
+/// lock an artist to an empty list for 30 days over a single hiccup
+/// (#406). Same non-caching-of-failures shape as
+/// `deezer.rs::enrich_artist_deezer`.
 async fn fetch_and_cache(
     pool: &SqlitePool,
     api_key: Option<&str>,
@@ -528,12 +545,15 @@ async fn fetch_and_cache(
     source_deezer_id: Option<i64>,
     now: i64,
 ) -> AppResult<Vec<RawSimilar>> {
-    let (raw, source_label) = match try_lastfm(api_key, source_name).await {
-        Some(list) if !list.is_empty() => (list, "lastfm"),
-        _ => match try_deezer(source_deezer_id, source_name).await {
-            Some(list) => (list, "deezer"),
-            None => (Vec::new(), "deezer"),
-        },
+    let outcome = match try_lastfm(api_key, source_name).await {
+        Some(list) if !list.is_empty() => Some((list, "lastfm")),
+        _ => try_deezer(source_deezer_id, source_name)
+            .await
+            .map(|list| (list, "deezer")),
+    };
+
+    let Some((raw, source_label)) = outcome else {
+        return Ok(Vec::new());
     };
 
     let payload = serde_json::to_string(&raw).unwrap_or_else(|_| "[]".into());
@@ -588,10 +608,14 @@ async fn try_deezer(deezer_id: Option<i64>, source_name: &str) -> Option<Vec<Raw
         Some(id) => id,
         None => match client.search_artist(source_name).await {
             Ok(hits) => {
-                let canon = canonical_name(source_name);
-                hits.into_iter()
-                    .find(|h| canonical_name(&h.name) == canon)?
-                    .id
+                // Fuzzy match (#406): an exact `canonical_name` compare
+                // doesn't fold diacritics or expand `&`, unlike the
+                // shared matcher — same fix as
+                // deezer.rs::enrich_artist_deezer (#342/#383).
+                select_by_name(hits, &normalize_name(source_name), |h| {
+                    Some(h.name.as_str())
+                })?
+                .id
             }
             Err(err) => {
                 tracing::warn!(?err, "Deezer search_artist failed");
