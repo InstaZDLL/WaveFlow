@@ -1516,8 +1516,10 @@ pub async fn player_set_output_device(
 
 /// Toggle WASAPI Exclusive Mode (Windows-only audiophile path).
 ///
-/// Re-opens the active output stream in exclusive event-driven mode
-/// at the device's mix-format sample rate. Bypasses the Windows audio
+/// Re-opens the active output stream in exclusive event-driven mode,
+/// negotiating the layout from the endpoint's own format
+/// (`PKEY_AudioEngine_DeviceFormat`) first and only then the
+/// shared-mode mix format (#409). Bypasses the Windows audio
 /// engine so no other app can mix in / DSP / resample our audio.
 /// Falls back silently to cpal shared mode if init fails (device
 /// busy, unsupported format, no exclusive support on the driver) —

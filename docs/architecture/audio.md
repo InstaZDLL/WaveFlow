@@ -44,15 +44,34 @@
 [`audio/wasapi_exclusive.rs`](../../src-tauri/crates/app/src/audio/wasapi_exclusive.rs) is a parallel output backend to the cpal shared-mode default. Engaged via the `audio.wasapi_exclusive` profile setting (toggle in Settings → Audio). When on:
 
 1. `output::spawn_output_with_mode` tries the exclusive backend first via the [`wasapi` crate](https://crates.io/crates/wasapi).
-2. The backend opens the device in **event-driven exclusive mode** at the device's mix-format sample rate (whatever the user picked in the Windows Sound control panel). 32-bit float stereo, anchored on `KSDATAFORMAT_SUBTYPE_IEEE_FLOAT`.
-3. If init fails (device busy with another exclusive app, no float-32 support, COM apartment conflict), the engine logs a warning and falls back transparently to the cpal shared backend so the user keeps hearing audio.
+2. The backend opens the device in **event-driven exclusive mode**, negotiating over two axes (see below).
+3. If every candidate fails (device busy with another exclusive app, no supported format, COM apartment conflict), the engine logs a warning and falls back transparently to the cpal shared backend so the user keeps hearing audio.
+
+### Format negotiation (two axes)
+
+`open_exclusive_session` walks **layout × bit depth** and takes the first pair the driver accepts.
+
+**Layout** — `(sample rate, channel count)`, from `build_layout_candidates`, in order:
+
+| # | Origin     | Source                                                                                           |
+|---|------------|--------------------------------------------------------------------------------------------------|
+| 1 | `endpoint` | `PKEY_AudioEngine_DeviceFormat` — the "Default Format" picked in the Windows Sound control panel |
+| 2 | `mix`      | `IAudioClient::GetMixFormat` — the shared-mode mix format                                        |
+| 3 | `stereo`   | 2 channels at each of the rates above                                                            |
+
+The endpoint format leads on purpose (#409). The mix format describes the pipe into the Windows audio engine **after** its own processing, so with Audio Enhancements, Spatial Sound or a virtual-surround driver active it reports e.g. 8 channels for a plain stereo jack. Negotiating exclusive mode against that asks the hardware for a layout it has never supported: every format is rejected with `AUDCLNT_E_UNSUPPORTED_FORMAT` (`0x88890008`) and the user silently lands back in shared mode. `PKEY_AudioEngine_DeviceFormat` describes the endpoint itself, which is what exclusive mode wants. The two agree on most machines, so candidate 2 is deduped away.
+
+**Sample format** — `FORMAT_FALLBACK_CHAIN`, tried in order: `F32` → `S24_3LE` → `S24_4LE` → `S16_LE`. Float32 leads because it costs no conversion at the boundary and most audiophile DACs take it natively; Realtek ALC and many integrated codecs reject it outright but accept PCM, so the two 24-bit PCM representations follow (packed 3-byte, then 24 valid bits in a 4-byte container — the same precision, different wire layout), with `S16_LE` as the universal last resort. Note this is a format sequence, not a monotonic walk down bit depth: `S24_4LE` uses a 32-bit container.
+
+Each rejection logs the full `(rate, channels, format, layout-origin)` at `debug`, and the success logs the same at `info` — a rejection blamed on the bit depth is very often the channel count instead.
 
 Trade-offs:
 
 - **Bit-perfect to the DAC at the chosen rate.** No Windows mixer between us and the hardware — no automatic resampling, no system-sound mixing, no per-app volume DSP.
 - **One app at a time.** While exclusive is engaged, system sounds (notifications, Discord, browser audio) are silenced. By design.
 - **Mode survives device hot-swaps.** `engine::set_output_device` reuses the same `spawn_output_with_mode` dispatch so picking a new output keeps the chosen mode.
-- **No per-track rate switching yet.** The decoder's rubato resampler still converts every source to the device's mix rate. True bit-perfect at the source rate is a future phase (would require reinitialising the WASAPI client on every rate change).
+- **No per-track rate switching yet.** The decoder's rubato resampler still converts every source to the negotiated rate. True bit-perfect at the source rate is a future phase (would require reinitialising the WASAPI client on every rate change).
+- **The negotiated layout is authoritative downstream.** `open_exclusive_session` stores it into `SharedPlayback.{sample_rate,channels}` before init is reported to the caller, so the decoder thread — spawned only after that — resamples and downmixes to what the device actually accepted, not to what the mix format claimed.
 
 Dependency footprint: the `wasapi` crate + a slim slice of `windows-rs` features (`Win32_Foundation`, `Win32_System_Com`, `Win32_System_Threading`) target-gated to `cfg(target_os = "windows")`. Adds ~5-10 MB to the NSIS / MSI Windows binary; the Linux + macOS bundles are untouched.
 
