@@ -55,6 +55,16 @@ Each step only claims what the previous one left, so a strong match is never ove
 
 This gives stats a coherent split, worth knowing before writing a new query: **aggregate totals** (play count, listening time, the monthly histogram) read `play_event` directly and therefore survive a library delete — which is the whole point. **Per-item breakdowns** (top tracks, top artists) join `track` and so exclude orphans, because a row you can't name can't be rendered; they come back when the files are re-scanned.
 
+#### Cover provenance lives on the album, not the artwork row
+
+`artwork` rows are deduped on the content hash alone and `source` is only written on INSERT, so that column records **whoever put those bytes in the library first** — not where a given album got its cover. An image embedded in one album's tags and shipped as a `cover.jpg` beside another is a single row labelled `embedded`, which used to make the sidecar album look untouchable to [`refresh_folder_covers`](../../src-tauri/crates/core/src/scanner/upserts.rs) and freeze its cover permanently (issue #401).
+
+Provenance is a property of the **link**, not of the bytes, so `album.artwork_source` carries it. Every site that writes `album.artwork_id` writes it too — the scanner, the tag editor, Deezer enrichment, manual upload, and the sidecar pass. `artwork.source` stays as a rough origin label for the bytes; do not read it to decide what may be overwritten.
+
+`artist` deliberately has no such column: its guard is `artwork_id IS NULL` ([`link_local_artist_image`](../../src-tauri/crates/core/src/scanner/upserts.rs)), which never consults a source.
+
+> **Never `DROP TABLE` a parent in a migration.** Widening `artwork`'s uniqueness to `(hash, source)` was the other candidate fix and needs the create-copy-drop-rename rebuild. The profile pool opens connections with `foreign_keys = ON`, and SQLite's `DROP TABLE` performs an implicit `DELETE` that **fires foreign-key actions** — verified against a real database, inside a transaction and out: rebuilding `artwork` blanks `album.artwork_id` and `artist.artwork_id` across the whole library, and `PRAGMA foreign_keys` cannot be toggled from inside the transaction sqlx wraps migrations in. Prefer `ALTER TABLE … ADD COLUMN`.
+
 #### Pool lifecycle across a profile switch
 
 `activate_profile` swaps the active [`ActiveProfile`](../../src-tauri/crates/app/src/state.rs) under the write lock, then closes the previous pool. Closing it *immediately* used to race any command that had already cloned it, surfacing as `PoolClosed` mid-command (issue #332).

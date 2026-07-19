@@ -26,6 +26,11 @@ use waveflow_core::metadata::{
     name_match::{normalize_name, select_by_name},
     theaudiodb::{make_summary, TheAudioDbClient},
 };
+// Shared with the scanner: takes a connection so the caller controls
+// the transaction (see CLAUDE.md, "Single writer to SQLite"). This
+// module used to carry a pool-taking copy of it, which is what kept
+// these paths non-transactional.
+use waveflow_core::scanner::upsert_artwork;
 
 use crate::{
     commands::integration::{read_bio_language, read_bio_source, read_lastfm_api_key, BioSource},
@@ -631,12 +636,16 @@ pub async fn set_album_artwork_from_deezer(
     }
     crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
 
-    let artwork_id = upsert_artwork_row(&pool, &hash, format, "deezer").await?;
-    sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
+    // One transaction so the artwork row and the album link land
+    // together — see `upsert_artwork`'s contract in CLAUDE.md.
+    let mut tx = pool.begin().await?;
+    let artwork_id = upsert_artwork(&mut tx, &hash, format, "deezer").await?;
+    sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'deezer' WHERE id = ?")
         .bind(artwork_id)
         .bind(album_id)
-        .execute(&*pool)
+        .execute(&mut *tx)
         .await?;
+    tx.commit().await?;
 
     Ok(())
 }
@@ -664,12 +673,16 @@ pub async fn set_album_artwork_from_file(
     }
     crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
 
-    let artwork_id = upsert_artwork_row(&pool, &hash, format, "manual").await?;
-    sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
+    // One transaction so the artwork row and the album link land
+    // together — see `upsert_artwork`'s contract in CLAUDE.md.
+    let mut tx = pool.begin().await?;
+    let artwork_id = upsert_artwork(&mut tx, &hash, format, "manual").await?;
+    sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'manual' WHERE id = ?")
         .bind(artwork_id)
         .bind(album_id)
-        .execute(&*pool)
+        .execute(&mut *tx)
         .await?;
+    tx.commit().await?;
 
     Ok(())
 }
@@ -783,15 +796,20 @@ pub async fn set_artist_artwork_from_deezer(
     }
     crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
 
-    let artwork_id = upsert_artwork_row(&pool, &hash, format, "deezer").await?;
+    // Same transaction discipline as the album paths above. The
+    // early return below leaves `tx` un-committed, so a missing artist
+    // rolls the artwork insert back rather than orphaning it.
+    let mut tx = pool.begin().await?;
+    let artwork_id = upsert_artwork(&mut tx, &hash, format, "deezer").await?;
     let res = sqlx::query("UPDATE artist SET artwork_id = ? WHERE id = ?")
         .bind(artwork_id)
         .bind(artist_id)
-        .execute(&*pool)
+        .execute(&mut *tx)
         .await?;
     if res.rows_affected() == 0 {
         return Err(AppError::Other(format!("artist {artist_id} not found")));
     }
+    tx.commit().await?;
 
     Ok(())
 }
@@ -821,15 +839,20 @@ pub async fn set_artist_artwork_from_file(
     }
     crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
 
-    let artwork_id = upsert_artwork_row(&pool, &hash, format, "manual").await?;
+    // Same transaction discipline as the album paths above. The
+    // early return below leaves `tx` un-committed, so a missing artist
+    // rolls the artwork insert back rather than orphaning it.
+    let mut tx = pool.begin().await?;
+    let artwork_id = upsert_artwork(&mut tx, &hash, format, "manual").await?;
     let res = sqlx::query("UPDATE artist SET artwork_id = ? WHERE id = ?")
         .bind(artwork_id)
         .bind(artist_id)
-        .execute(&*pool)
+        .execute(&mut *tx)
         .await?;
     if res.rows_affected() == 0 {
         return Err(AppError::Other(format!("artist {artist_id} not found")));
     }
+    tx.commit().await?;
 
     Ok(())
 }
@@ -968,31 +991,6 @@ pub async fn batch_fetch_missing_album_covers(
     }
 
     Ok(success)
-}
-
-async fn upsert_artwork_row(
-    pool: &SqlitePool,
-    hash: &str,
-    format: &str,
-    source: &str,
-) -> AppResult<i64> {
-    let existing: Option<i64> = sqlx::query_scalar("SELECT id FROM artwork WHERE hash = ?")
-        .bind(hash)
-        .fetch_optional(pool)
-        .await?;
-    if let Some(id) = existing {
-        return Ok(id);
-    }
-
-    let result =
-        sqlx::query("INSERT INTO artwork (hash, format, source, created_at) VALUES (?, ?, ?, ?)")
-            .bind(hash)
-            .bind(format)
-            .bind(source)
-            .bind(now_ms())
-            .execute(pool)
-            .await?;
-    Ok(result.last_insert_rowid())
 }
 
 fn detect_image_format(bytes: &[u8]) -> Option<&'static str> {
