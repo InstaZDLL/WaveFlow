@@ -640,11 +640,18 @@ pub async fn set_album_artwork_from_deezer(
     // together — see `upsert_artwork`'s contract in CLAUDE.md.
     let mut tx = pool.begin().await?;
     let artwork_id = upsert_artwork(&mut tx, &hash, format, "deezer").await?;
-    sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'deezer' WHERE id = ?")
+    let res = sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'deezer' WHERE id = ?")
         .bind(artwork_id)
         .bind(album_id)
         .execute(&mut *tx)
         .await?;
+    // Matching no row means the album is gone (stale UI, concurrent
+    // delete). Returning early leaves `tx` un-committed, so the artwork
+    // insert rolls back instead of landing with nothing pointing at it —
+    // and the caller hears about it rather than getting a silent success.
+    if res.rows_affected() == 0 {
+        return Err(AppError::Other(format!("album {album_id} not found")));
+    }
     tx.commit().await?;
 
     Ok(())
@@ -677,11 +684,18 @@ pub async fn set_album_artwork_from_file(
     // together — see `upsert_artwork`'s contract in CLAUDE.md.
     let mut tx = pool.begin().await?;
     let artwork_id = upsert_artwork(&mut tx, &hash, format, "manual").await?;
-    sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'manual' WHERE id = ?")
+    let res = sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'manual' WHERE id = ?")
         .bind(artwork_id)
         .bind(album_id)
         .execute(&mut *tx)
         .await?;
+    // Matching no row means the album is gone (stale UI, concurrent
+    // delete). Returning early leaves `tx` un-committed, so the artwork
+    // insert rolls back instead of landing with nothing pointing at it —
+    // and the caller hears about it rather than getting a silent success.
+    if res.rows_affected() == 0 {
+        return Err(AppError::Other(format!("album {album_id} not found")));
+    }
     tx.commit().await?;
 
     Ok(())

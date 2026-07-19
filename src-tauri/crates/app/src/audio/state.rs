@@ -46,11 +46,22 @@ impl PlayerState {
 /// Lock-free state block shared between threads.
 ///
 /// Layout invariants:
-/// - `samples_played` is advanced only by the cpal callback, only reset by
-///   the decoder thread (on load/seek). Reset must bump `seek_generation`
-///   to invalidate any in-flight consumer reads.
-/// - `sample_rate` / `channels` are written once when the cpal stream opens
-///   and never mutated again.
+/// - `samples_played` is advanced by **whichever output is driving the
+///   ring** — the cpal callback, or the WASAPI Exclusive render thread
+///   when that mode is engaged. Both count only samples actually popped,
+///   never the silence written on an underrun. Only the decoder thread
+///   resets it (on load/seek), and a reset must bump `seek_generation` to
+///   invalidate any in-flight consumer reads.
+///
+///   This is the single source of truth for playback position:
+///   `current_position_ms` and `session_listened_ms` both derive from it,
+///   so an output path that forgets to advance it leaves the progress bar
+///   and lyrics frozen and credits every play as 0 ms. That is exactly
+///   what the exclusive path did until #405 — this comment used to say
+///   "only by the cpal callback", which was true when written and stopped
+///   being true when the second output landed.
+/// - `sample_rate` / `channels` are written once when the output stream
+///   opens and never mutated again.
 /// - `volume_bits` holds an `f32` in `[0.0, 1.0]` via `to_bits` / `from_bits`.
 /// - `base_offset_ms` holds the playback position at the last seek target or
 ///   track load start, so `current_position_ms()` can add it to the delta

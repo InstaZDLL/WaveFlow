@@ -91,3 +91,4 @@ scripts/__pycache__/*
 
 # jscpd copy-paste detector output
 report/
+temp.md
