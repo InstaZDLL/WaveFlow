@@ -17,10 +17,11 @@
 //!   error, we surface it through `player:error` so the user can
 //!   toggle the feature off without restarting.
 //!
-//! Scope: we initialize exclusive at the device's **mix-format
-//! sample rate** (i.e. the default rate Windows reports for the
-//! device, typically the rate the audiophile picked in the Windows
-//! Sound control panel). The decoder's existing rubato resampler
+//! Scope: we initialize exclusive at the device's **endpoint format**
+//! (`PKEY_AudioEngine_DeviceFormat`, i.e. the "Default Format" the
+//! audiophile picked in the Windows Sound control panel), falling
+//! back to the shared-mode mix format and then to plain stereo — see
+//! [`collect_layout_candidates`]. The decoder's existing rubato resampler
 //! still converts every source track to that rate — so this is
 //! "bypass the OS mixer" rather than "honor the source rate
 //! exactly". Per-track sample-rate switching is a future phase.
@@ -221,6 +222,129 @@ const FORMAT_FALLBACK_CHAIN: [ExclusiveSampleFormat; 4] = [
     ExclusiveSampleFormat::Pcm16,
 ];
 
+/// A (sample rate, channel count) pair to try in exclusive mode,
+/// tagged with where it came from so the log says which source
+/// actually got the device open (#409).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct LayoutCandidate {
+    sample_rate: usize,
+    channels: usize,
+    origin: &'static str,
+}
+
+/// Build the layout candidates in priority order (#409).
+///
+/// The order matters, and the first entry is the whole point of this
+/// function. `get_mixformat` returns the **shared-mode mix format** —
+/// the shape of the pipe into the Windows audio engine, *after* the
+/// engine has applied whatever it wants. With "Audio Enhancements",
+/// Spatial Sound or a virtual-surround driver in the way, that comes
+/// back as 8 channels even though the endpoint is a plain stereo jack.
+/// Negotiating exclusive mode against it asks the hardware for a
+/// layout it has never supported, so every format in the chain is
+/// rejected with `AUDCLNT_E_UNSUPPORTED_FORMAT` (0x88890008) and the
+/// user silently drops to shared mode.
+///
+/// `get_device_format` reads `PKEY_AudioEngine_DeviceFormat` instead —
+/// the "Default Format" the user picked in the Windows Sound control
+/// panel, which describes the endpoint itself rather than the engine
+/// in front of it. That is the layout exclusive mode actually wants.
+///
+/// The mix format stays as the second candidate (it's correct on the
+/// majority of machines, where the two agree anyway), and a plain
+/// stereo entry closes the list for drivers that report a
+/// multi-channel default no application can open.
+fn collect_layout_candidates(device: &Device) -> Vec<LayoutCandidate> {
+    // A device with no property store, or a driver that doesn't
+    // publish the key, is a soft failure — the mix format still gets
+    // its turn, which is exactly the pre-#409 behaviour.
+    let endpoint = match device.get_device_format() {
+        Ok(fmt) => Some((
+            fmt.get_samplespersec() as usize,
+            fmt.get_nchannels() as usize,
+        )),
+        Err(err) => {
+            tracing::debug!(
+                %err,
+                "wasapi exclusive: endpoint device format unavailable, falling back to mix format"
+            );
+            None
+        }
+    };
+
+    let mix = match device
+        .get_iaudioclient()
+        .and_then(|client| client.get_mixformat())
+    {
+        Ok(fmt) => Some((
+            fmt.get_samplespersec() as usize,
+            fmt.get_nchannels() as usize,
+        )),
+        Err(err) => {
+            tracing::debug!(%err, "wasapi exclusive: mix format unavailable");
+            None
+        }
+    };
+
+    build_layout_candidates(endpoint, mix)
+}
+
+/// Ordering + dedupe half of [`collect_layout_candidates`], split out
+/// so it can be unit-tested without a COM apartment or real hardware.
+///
+/// Both inputs are `(sample_rate, channels)`, and either may be absent
+/// when the corresponding query failed.
+fn build_layout_candidates(
+    endpoint: Option<(usize, usize)>,
+    mix: Option<(usize, usize)>,
+) -> Vec<LayoutCandidate> {
+    // Dedupe on the layout, not the origin: the endpoint format and
+    // the mix format agree on most machines, and probing the same
+    // pair twice would just double the failure log. A zero in either
+    // field means the driver handed back a malformed format — skip it
+    // rather than ask WASAPI for a 0-channel stream.
+    fn push(
+        candidates: &mut Vec<LayoutCandidate>,
+        sample_rate: usize,
+        channels: usize,
+        origin: &'static str,
+    ) {
+        if channels > 0
+            && sample_rate > 0
+            && !candidates
+                .iter()
+                .any(|c| c.sample_rate == sample_rate && c.channels == channels)
+        {
+            candidates.push(LayoutCandidate {
+                sample_rate,
+                channels,
+                origin,
+            });
+        }
+    }
+
+    let mut candidates: Vec<LayoutCandidate> = Vec::new();
+
+    if let Some((rate, channels)) = endpoint {
+        push(&mut candidates, rate, channels, "endpoint");
+    }
+
+    if let Some((rate, channels)) = mix {
+        push(&mut candidates, rate, channels, "mix");
+        // Channel-axis fallback: same rate, plain stereo. Catches the
+        // case where both reported layouts are inflated.
+        push(&mut candidates, rate, 2, "stereo");
+    }
+
+    // Stereo at the endpoint rate too, in case the endpoint and the
+    // engine disagree on the rate as well as the channel count.
+    if let Some((rate, _)) = endpoint {
+        push(&mut candidates, rate, 2, "stereo");
+    }
+
+    candidates
+}
+
 /// Bundle of everything the event loop needs after a successful init.
 /// Kept private so callers can't misuse the wasapi handles outside
 /// the thread that owns the COM apartment.
@@ -236,8 +360,11 @@ struct ExclusiveSession {
     format: ExclusiveSampleFormat,
 }
 
-/// Resolve the device, then walk the format fallback chain
-/// (#174). For each candidate we acquire a fresh `IAudioClient`,
+/// Resolve the device, then walk every (layout × bit depth) candidate
+/// (#174, #409). Layouts come from [`collect_layout_candidates`] —
+/// endpoint format first, then the mix format, then plain stereo —
+/// and each one is probed against the full format chain before moving
+/// on. For each candidate we acquire a fresh `IAudioClient`,
 /// check the format is supported in exclusive mode, and try to
 /// initialize. Many consumer DACs (Realtek ALC, Conexant CX, some
 /// USB codecs) reject `IEEE_FLOAT` outright with
@@ -257,53 +384,63 @@ fn open_exclusive_session(
 ) -> AppResult<ExclusiveSession> {
     let device = pick_device(device_name)?;
 
-    // Mix format gives us the device's native (sample rate,
-    // channel count). It doesn't tell us the supported bit depth
-    // in exclusive mode — that's what the chain below probes.
-    let probe_client = device
-        .get_iaudioclient()
-        .map_err(|e| AppError::Audio(format!("get IAudioClient (probe): {e:?}")))?;
-    let mix_format = probe_client
-        .get_mixformat()
-        .map_err(|e| AppError::Audio(format!("get_mixformat: {e:?}")))?;
-    let sample_rate = mix_format.get_samplespersec() as usize;
-    let channels = mix_format.get_nchannels() as usize;
-    drop(probe_client);
+    let layouts = collect_layout_candidates(&device);
+    if layouts.is_empty() {
+        return Err(AppError::Audio(
+            "wasapi exclusive: device reported no usable sample rate / channel layout".into(),
+        ));
+    }
 
     let mut last_err: Option<AppError> = None;
-    for &format in FORMAT_FALLBACK_CHAIN.iter() {
-        match try_open_with_format(&device, format, sample_rate, channels) {
-            Ok((client, render, event, buffer_frames)) => {
-                tracing::info!(
-                    sample_rate = sample_rate as u32,
-                    channels = channels as u16,
-                    format = format.label(),
-                    "wasapi exclusive negotiation succeeded"
-                );
-                shared
-                    .sample_rate
-                    .store(sample_rate as u32, Ordering::Release);
-                shared.channels.store(channels as u16, Ordering::Release);
-                return Ok(ExclusiveSession {
-                    client,
-                    render,
-                    event,
-                    sample_rate: sample_rate as u32,
-                    channels: channels as u16,
-                    buffer_frames,
-                    format,
-                });
-            }
-            Err(err) => {
-                tracing::debug!(
-                    format = format.label(),
-                    %err,
-                    "wasapi exclusive format rejected; trying next in chain"
-                );
-                last_err = Some(err);
+    for layout in &layouts {
+        for &format in FORMAT_FALLBACK_CHAIN.iter() {
+            match try_open_with_format(&device, format, layout.sample_rate, layout.channels) {
+                Ok((client, render, event, buffer_frames)) => {
+                    tracing::info!(
+                        sample_rate = layout.sample_rate as u32,
+                        channels = layout.channels as u16,
+                        format = format.label(),
+                        layout = layout.origin,
+                        "wasapi exclusive negotiation succeeded"
+                    );
+                    shared
+                        .sample_rate
+                        .store(layout.sample_rate as u32, Ordering::Release);
+                    shared.channels.store(layout.channels as u16, Ordering::Release);
+                    return Ok(ExclusiveSession {
+                        client,
+                        render,
+                        event,
+                        sample_rate: layout.sample_rate as u32,
+                        channels: layout.channels as u16,
+                        buffer_frames,
+                        format,
+                    });
+                }
+                Err(err) => {
+                    // Log the full triple, not just the bit depth: a
+                    // rejection blamed on the format is very often the
+                    // channel count instead, and the pre-#409 log made
+                    // that impossible to tell apart from a diagnostics
+                    // dump.
+                    tracing::debug!(
+                        sample_rate = layout.sample_rate as u32,
+                        channels = layout.channels as u16,
+                        format = format.label(),
+                        layout = layout.origin,
+                        %err,
+                        "wasapi exclusive candidate rejected; trying next"
+                    );
+                    last_err = Some(err);
+                }
             }
         }
     }
+
+    tracing::warn!(
+        candidates = ?layouts,
+        "wasapi exclusive: no (rate, channels, format) combination was accepted"
+    );
 
     Err(last_err.unwrap_or_else(|| {
         AppError::Audio("wasapi exclusive: every format in the fallback chain was rejected".into())
@@ -620,6 +757,92 @@ fn pack_samples(format: ExclusiveSampleFormat, samples: &[f32], bytes: &mut [u8]
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn layouts(candidates: &[LayoutCandidate]) -> Vec<(usize, usize, &'static str)> {
+        candidates
+            .iter()
+            .map(|c| (c.sample_rate, c.channels, c.origin))
+            .collect()
+    }
+
+    /// The #409 report: Windows shows the endpoint as stereo 44.1 kHz,
+    /// but the mix format comes back as 8 channels because the audio
+    /// engine has a virtual-surround effect in front of it. Probing
+    /// the mix format first is what made every format fail.
+    #[test]
+    fn endpoint_layout_is_tried_before_an_inflated_mix_format() {
+        let candidates = build_layout_candidates(Some((44_100, 2)), Some((48_000, 8)));
+        assert_eq!(
+            layouts(&candidates),
+            vec![
+                (44_100, 2, "endpoint"),
+                (48_000, 8, "mix"),
+                (48_000, 2, "stereo"),
+            ],
+            "the endpoint's own format must be candidate #1"
+        );
+    }
+
+    /// The common case: nothing is intercepting the stream, both
+    /// queries agree. One probe, not two identical ones.
+    #[test]
+    fn agreeing_endpoint_and_mix_collapse_to_one_candidate() {
+        let candidates = build_layout_candidates(Some((48_000, 2)), Some((48_000, 2)));
+        assert_eq!(layouts(&candidates), vec![(48_000, 2, "endpoint")]);
+    }
+
+    /// Both sources inflated: the stereo entry is the only way out.
+    #[test]
+    fn stereo_closes_the_list_when_every_reported_layout_is_multichannel() {
+        let candidates = build_layout_candidates(Some((48_000, 6)), Some((48_000, 8)));
+        assert_eq!(
+            layouts(&candidates),
+            vec![
+                (48_000, 6, "endpoint"),
+                (48_000, 8, "mix"),
+                (48_000, 2, "stereo"),
+            ]
+        );
+    }
+
+    /// Endpoint and mix disagree on the rate as well — stereo is
+    /// offered at both rates, endpoint's first.
+    #[test]
+    fn stereo_fallback_covers_both_reported_rates() {
+        let candidates = build_layout_candidates(Some((96_000, 8)), Some((48_000, 8)));
+        assert_eq!(
+            layouts(&candidates),
+            vec![
+                (96_000, 8, "endpoint"),
+                (48_000, 8, "mix"),
+                (48_000, 2, "stereo"),
+                (96_000, 2, "stereo"),
+            ]
+        );
+    }
+
+    /// A driver that doesn't publish `PKEY_AudioEngine_DeviceFormat`
+    /// must still get the pre-#409 behaviour rather than no candidate.
+    #[test]
+    fn missing_endpoint_format_falls_back_to_the_mix_format() {
+        let candidates = build_layout_candidates(None, Some((44_100, 2)));
+        assert_eq!(layouts(&candidates), vec![(44_100, 2, "mix")]);
+    }
+
+    #[test]
+    fn no_usable_format_yields_no_candidates() {
+        assert!(build_layout_candidates(None, None).is_empty());
+    }
+
+    /// A malformed format must not reach WASAPI as a 0-channel or
+    /// 0 Hz stream request. A usable rate carried alongside a bogus
+    /// channel count still earns a stereo probe — that is the whole
+    /// point of the channel-axis fallback.
+    #[test]
+    fn degenerate_formats_are_discarded() {
+        let candidates = build_layout_candidates(Some((0, 2)), Some((48_000, 0)));
+        assert_eq!(layouts(&candidates), vec![(48_000, 2, "stereo")]);
+    }
 
     #[test]
     fn pack_samples_float32_round_trips() {
