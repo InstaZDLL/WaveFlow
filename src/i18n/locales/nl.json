@@ -441,7 +441,9 @@
       "watchOn": "Wijzigingen automatisch volgen",
       "watchOff": "Stoppen met volgen",
       "remove": "Map uit bibliotheek verwijderen",
-      "removeConfirm": "Klik nogmaals om te bevestigen"
+      "removeConfirm": "Klik nogmaals om te bevestigen",
+      "removeConfirmWithPlays_one": "Klik nogmaals om te bevestigen. {{count}} weergave blijft bewaard en wordt bij de volgende scan opnieuw gekoppeld.",
+      "removeConfirmWithPlays_other": "Klik nogmaals om te bevestigen. {{count}} weergaven blijven bewaard en worden bij de volgende scan opnieuw gekoppeld."
     },
     "skeletonAriaLabel": "{{name}} laden…"
   },

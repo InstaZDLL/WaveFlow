@@ -441,7 +441,9 @@
       "watchOn": "Değişiklikleri otomatik takip et",
       "watchOff": "Takibi durdur",
       "remove": "Klasörü kütüphaneden çıkar",
-      "removeConfirm": "Onaylamak için tekrar tıkla"
+      "removeConfirm": "Onaylamak için tekrar tıkla",
+      "removeConfirmWithPlays_one": "Onaylamak için tekrar tıklayın. {{count}} dinleme korunacak ve sonraki taramada yeniden bağlanacak.",
+      "removeConfirmWithPlays_other": "Onaylamak için tekrar tıklayın. {{count}} dinleme korunacak ve sonraki taramada yeniden bağlanacak."
     },
     "skeletonAriaLabel": "{{name}} yükleniyor…"
   },

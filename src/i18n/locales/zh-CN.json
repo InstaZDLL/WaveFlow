@@ -441,7 +441,9 @@
       "watchOn": "自动监控更改",
       "watchOff": "停止监控",
       "remove": "从音乐库中移除文件夹",
-      "removeConfirm": "再次点击确认"
+      "removeConfirm": "再次点击确认",
+      "removeConfirmWithPlays_one": "再次点击以确认。{{count}} 条播放记录将被保留，并在下次扫描时重新关联。",
+      "removeConfirmWithPlays_other": "再次点击以确认。{{count}} 条播放记录将被保留，并在下次扫描时重新关联。"
     },
     "skeletonAriaLabel": "正在加载{{name}}…"
   },

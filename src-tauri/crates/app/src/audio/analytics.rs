@@ -353,11 +353,21 @@ async fn insert_play_event(
         source_id,
         "insert play_event"
     );
+    // The snapshot columns are filled from the track itself, in the same
+    // statement, so the history can find its way home if the track row is
+    // later deleted (issue #367). Taking them here rather than at delete
+    // time is what makes it work: by the time a folder is removed, the
+    // row we would have read is already gone.
     if let Err(e) = sqlx::query(
         "INSERT INTO play_event
             (track_id, played_at, listened_ms, completed, skipped,
-             source_type, source_id)
-         VALUES (?, ?, ?, ?, 0, ?, ?)",
+             source_type, source_id,
+             snapshot_hash, snapshot_path, snapshot_artist, snapshot_title)
+         SELECT ?, ?, ?, ?, 0, ?, ?,
+                t.file_hash, t.file_path, ar.name, t.title
+           FROM track t
+           LEFT JOIN artist ar ON ar.id = t.primary_artist
+          WHERE t.id = ?",
     )
     .bind(track_id)
     .bind(now)
@@ -365,6 +375,7 @@ async fn insert_play_event(
     .bind(if completed { 1 } else { 0 })
     .bind(source_type)
     .bind(source_id)
+    .bind(track_id)
     .execute(pool)
     .await
     {

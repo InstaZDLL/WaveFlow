@@ -156,6 +156,17 @@ export function removeFolderFromLibrary(folderId: number): Promise<void> {
 }
 
 /**
+ * Number of listening events attached to the tracks in a folder.
+ *
+ * Shown in the folder delete confirmation. The history survives the
+ * delete and is re-attached on the next scan (issue #367), so this is
+ * information, not a warning that data is about to vanish.
+ */
+export function countFolderPlayEvents(folderId: number): Promise<number> {
+  return invoke<number>("count_folder_play_events", { folderId });
+}
+
+/**
  * Import a list of arbitrary filesystem paths into a library. Used
  * by the drag-and-drop handler — accepts a mix of folders and audio
  * files (files contribute their parent directory). Adds each as a

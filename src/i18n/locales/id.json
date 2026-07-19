@@ -441,7 +441,9 @@
       "watchOn": "Pantau perubahan secara otomatis",
       "watchOff": "Berhenti memantau",
       "remove": "Keluarkan folder dari pustaka",
-      "removeConfirm": "Klik lagi untuk konfirmasi"
+      "removeConfirm": "Klik lagi untuk konfirmasi",
+      "removeConfirmWithPlays_one": "Klik lagi untuk mengonfirmasi. {{count}} pemutaran akan disimpan dan dihubungkan kembali pada pemindaian berikutnya.",
+      "removeConfirmWithPlays_other": "Klik lagi untuk mengonfirmasi. {{count}} pemutaran akan disimpan dan dihubungkan kembali pada pemindaian berikutnya."
     },
     "skeletonAriaLabel": "Memuat {{name}}…"
   },

@@ -441,7 +441,9 @@
       "watchOn": "Monitora automaticamente le modifiche",
       "watchOff": "Smetti di monitorare",
       "remove": "Rimuovi la cartella dalla libreria",
-      "removeConfirm": "Clicca di nuovo per confermare"
+      "removeConfirm": "Clicca di nuovo per confermare",
+      "removeConfirmWithPlays_one": "Fai di nuovo clic per confermare. {{count}} ascolto verrà conservato e ricollegato alla prossima scansione.",
+      "removeConfirmWithPlays_other": "Fai di nuovo clic per confermare. {{count}} ascolti verranno conservati e ricollegati alla prossima scansione."
     },
     "skeletonAriaLabel": "Caricamento {{name}}…"
   },

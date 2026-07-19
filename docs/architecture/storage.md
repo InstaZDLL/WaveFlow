@@ -39,6 +39,22 @@ Migrations: [`src-tauri/migrations/app/`](../../src-tauri/migrations/app).
 
 Migrations: [`src-tauri/migrations/profile/`](../../src-tauri/migrations/profile). Applied via `sqlx::migrate!()` at boot for each opened pool.
 
+#### Listening history outlives its tracks
+
+`play_event.track_id` used to be `NOT NULL … ON DELETE CASCADE`, so removing a folder (`DELETE FROM track WHERE folder_id = ?`) or a library silently erased the matching history. One beta tester lost their stats five times that way, and no backup helps: the archive restores the *old* library, not the history plus a fresh scan (issue #367).
+
+`track_id` is now nullable with `ON DELETE SET NULL` — deleting a track **orphans** its history instead of destroying it — and every event carries a snapshot of how to find its track again: `snapshot_hash`, `snapshot_path`, `snapshot_artist`, `snapshot_title`. The snapshot is written at insert time by `record_play_event`, which is the only moment that information is guaranteed to still exist; by the time a folder is deleted, the row it would have been read from is already gone.
+
+[`reattach_orphaned_play_events`](../../src-tauri/crates/core/src/scanner/upserts.rs) runs after every scan and gives orphans their track back, strongest key first:
+
+1. **`file_hash`** — same bytes, moved or re-added. Exact, but a tag edit rewrites the file through lofty, so the blake3 changes even though the music didn't.
+2. **`file_path`** — catches exactly that case: same file, different hash. Fails if the user reorganised their folders.
+3. **artist + title** — a re-rip or a different encoding. Loosest, deliberately last: it can't tell a live version from the studio one.
+
+Each step only claims what the previous one left, so a strong match is never overwritten by a weak one, and only `is_available = 1` tracks are matched (attaching to a vanished file would just re-orphan on the next pass).
+
+This gives stats a coherent split, worth knowing before writing a new query: **aggregate totals** (play count, listening time, the monthly histogram) read `play_event` directly and therefore survive a library delete — which is the whole point. **Per-item breakdowns** (top tracks, top artists) join `track` and so exclude orphans, because a row you can't name can't be rendered; they come back when the files are re-scanned.
+
 #### Pool lifecycle across a profile switch
 
 `activate_profile` swaps the active [`ActiveProfile`](../../src-tauri/crates/app/src/state.rs) under the write lock, then closes the previous pool. Closing it *immediately* used to race any command that had already cloned it, surfacing as `PoolClosed` mid-command (issue #332).
