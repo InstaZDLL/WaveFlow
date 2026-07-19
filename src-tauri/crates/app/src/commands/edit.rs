@@ -616,16 +616,19 @@ pub async fn update_track_cover(
     }
     crate::thumbnails::spawn_thumbnail_job(out_path.clone(), artwork_dir.clone(), hash.clone());
 
-    let mut conn = pool.acquire().await?;
-    let artwork_id = upsert_artwork(&mut conn, &hash, ext, "manual").await?;
-    drop(conn);
+    // One transaction rather than two pooled connections: the artwork
+    // row and the album link belong together, and the previous shape
+    // could leave the row behind if the update failed.
+    let mut tx = pool.begin().await?;
+    let artwork_id = upsert_artwork(&mut tx, &hash, ext, "manual").await?;
     if let Some(aid) = album_id {
         sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'manual' WHERE id = ?")
             .bind(artwork_id)
             .bind(aid)
-            .execute(&*pool)
+            .execute(&mut *tx)
             .await?;
     }
+    tx.commit().await?;
 
     let _ = app.emit("track:updated", track_id);
     let _ = app.emit("library:rescanned", ());
