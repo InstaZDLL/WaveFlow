@@ -59,6 +59,29 @@ pub async fn list_libraries(state: tauri::State<'_, AppState>) -> AppResult<Vec<
     Ok(library_repo(&state).await?.list_all_with_counts().await?)
 }
 
+/// How many listening events are attached to the tracks in a folder.
+///
+/// Feeds the delete confirmation so removing a folder isn't a blind
+/// action (issue #367). Since the history now survives the delete and is
+/// re-attached on the next scan, the number is there to inform rather
+/// than to frighten — the copy that renders it says as much.
+#[tauri::command]
+pub async fn count_folder_play_events(
+    state: tauri::State<'_, AppState>,
+    folder_id: i64,
+) -> AppResult<i64> {
+    let pool = state.require_profile_pool().await?;
+    let count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM play_event pe
+           JOIN track t ON t.id = pe.track_id
+          WHERE t.folder_id = ?",
+    )
+    .bind(folder_id)
+    .fetch_one(&*pool)
+    .await?;
+    Ok(count)
+}
+
 /// Create a new library in the active profile. The UI is expected to follow
 /// this call with [`add_folder_to_library`] + scan to actually populate it.
 #[tauri::command]

@@ -441,7 +441,9 @@
       "watchOn": "Surveiller automatiquement les changements",
       "watchOff": "Arrêter la surveillance",
       "remove": "Retirer le dossier de la bibliothèque",
-      "removeConfirm": "Cliquez à nouveau pour confirmer"
+      "removeConfirm": "Cliquez à nouveau pour confirmer",
+      "removeConfirmWithPlays_one": "Cliquez à nouveau pour confirmer. {{count}} écoute sera conservée et rattachée au prochain scan.",
+      "removeConfirmWithPlays_other": "Cliquez à nouveau pour confirmer. {{count}} écoutes seront conservées et rattachées au prochain scan."
     },
     "skeletonAriaLabel": "Chargement de {{name}}…"
   },

@@ -63,6 +63,7 @@ import {
 import { pickFolder } from "../../lib/tauri/dialog";
 import {
   removeFolderFromLibrary,
+  countFolderPlayEvents,
   setFolderWatched,
 } from "../../lib/tauri/library";
 import {
@@ -2220,10 +2221,40 @@ function FolderList({
   // commits. Auto-clears after 3 s so the button doesn't stay armed
   // forever after the user wandered off.
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  // Listening events attached to the armed folder. Fetched on arm rather
+  // than up-front so listing folders stays one query. Keyed by folder id
+  // so a result for a folder that is no longer armed is simply ignored at
+  // render — no reset pass, and nothing to clear when disarming.
+  const [confirmPlayCount, setConfirmPlayCount] = useState<{
+    folderId: number;
+    count: number;
+  } | null>(null);
   useEffect(() => {
     if (confirmDeleteId == null) return;
     const timer = setTimeout(() => setConfirmDeleteId(null), 3_000);
     return () => clearTimeout(timer);
+  }, [confirmDeleteId]);
+
+  // Resolve how much history the armed folder carries. The cancel flag
+  // drops a response whose folder was disarmed mid-flight; the folder id
+  // travels with the result so a late one can never be shown against a
+  // different folder either.
+  useEffect(() => {
+    if (confirmDeleteId == null) return;
+    const folderId = confirmDeleteId;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const count = await countFolderPlayEvents(folderId);
+        if (!cancelled) setConfirmPlayCount({ folderId, count });
+      } catch (err) {
+        // Non-fatal: the confirm falls back to its plain copy.
+        console.error("[LibraryView] count folder play events failed", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [confirmDeleteId]);
 
   useEffect(() => {
@@ -2315,7 +2346,12 @@ function FolderList({
             <Tooltip
               label={
                 confirmDeleteId === folder.id
-                  ? t("library.folderList.removeConfirm")
+                  ? confirmPlayCount?.folderId === folder.id &&
+                    confirmPlayCount.count > 0
+                    ? t("library.folderList.removeConfirmWithPlays", {
+                        count: confirmPlayCount.count,
+                      })
+                    : t("library.folderList.removeConfirm")
                   : t("library.folderList.remove")
               }
             >

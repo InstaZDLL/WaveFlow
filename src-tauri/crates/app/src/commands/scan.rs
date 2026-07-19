@@ -17,7 +17,8 @@ use waveflow_core::scanner::{
     extract_album_artist, extract_artist_image, extract_compilation_flag, extract_cover,
     extract_folder_cover, extract_musical_key, extract_rating, file_type_label, hash_file,
     link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
-    merge_implicit_compilations, now_millis, refresh_folder_covers, split_artist_name, upsert_album,
+    merge_implicit_compilations, now_millis, reattach_orphaned_play_events, refresh_folder_covers,
+    split_artist_name, upsert_album,
     upsert_artist, upsert_artwork, ArtistImageScanCache, ExtractedFile, UpsertCache,
     AUDIO_EXTENSIONS, VARIOUS_ARTISTS_LABEL,
 };
@@ -1184,6 +1185,18 @@ pub(crate) async fn scan_folder_inner(
         }
     };
 
+    // Give listening history back to tracks that were deleted and have
+    // now been re-scanned (issue #367). Runs library-wide rather than
+    // per-folder: an orphaned event has no folder any more, that's what
+    // being orphaned means. Non-fatal for the same reason as above.
+    let reattached_plays = match reattach_orphaned_play_events(pool).await {
+        Ok(n) => n,
+        Err(err) => {
+            tracing::warn!(?err, "reattach_orphaned_play_events failed (non-fatal)");
+            0
+        }
+    };
+
     // Per-phase breakdown so a slow scan on a big library is diagnosable
     // from the log alone. `*_ms` are wall-clock deltas between phases;
     // `hash_cpu_ms_total` / `tag_cpu_ms_total` are summed across the
@@ -1199,6 +1212,7 @@ pub(crate) async fn scan_folder_inner(
         removed = summary.removed,
         errors = summary.errors,
         refreshed_covers,
+        reattached_plays,
         extracted = to_extract_count,
         parallelism,
         walk_ms,

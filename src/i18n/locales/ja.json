@@ -441,7 +441,9 @@
       "watchOn": "変更を自動的に監視する",
       "watchOff": "監視を停止する",
       "remove": "ライブラリからフォルダを削除",
-      "removeConfirm": "もう一度クリックで確定"
+      "removeConfirm": "もう一度クリックで確定",
+      "removeConfirmWithPlays_one": "もう一度クリックして確認します。{{count}} 件の再生履歴は保持され、次回のスキャンで再び関連付けられます。",
+      "removeConfirmWithPlays_other": "もう一度クリックして確認します。{{count}} 件の再生履歴は保持され、次回のスキャンで再び関連付けられます。"
     },
     "skeletonAriaLabel": "{{name}}を読み込み中…"
   },

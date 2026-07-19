@@ -497,7 +497,12 @@
       "removeConfirm": "انقر مرة أخرى للتأكيد",
       "trackCount_two": "مقطعان",
       "trackCount_few": "{{count}} مقاطع",
-      "trackCount_many": "{{count}} مقطعًا"
+      "trackCount_many": "{{count}} مقطعًا",
+      "removeConfirmWithPlays_one": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ باستماع واحد وإعادة ربطه في الفحص التالي.",
+      "removeConfirmWithPlays_two": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ باستماعين وإعادة ربطهما في الفحص التالي.",
+      "removeConfirmWithPlays_few": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ بـ {{count}} استماعات وإعادة ربطها في الفحص التالي.",
+      "removeConfirmWithPlays_many": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ بـ {{count}} استماعًا وإعادة ربطها في الفحص التالي.",
+      "removeConfirmWithPlays_other": "انقر مرة أخرى للتأكيد. سيتم الاحتفاظ بـ {{count}} استماع وإعادة ربطها في الفحص التالي."
     },
     "skeletonAriaLabel": "جارٍ تحميل {{name}}…"
   },

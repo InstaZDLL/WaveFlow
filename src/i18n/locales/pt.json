@@ -441,7 +441,9 @@
       "watchOn": "Monitorizar automaticamente as alterações",
       "watchOff": "Deixar de monitorizar",
       "remove": "Remover pasta da biblioteca",
-      "removeConfirm": "Clica novamente para confirmar"
+      "removeConfirm": "Clica novamente para confirmar",
+      "removeConfirmWithPlays_one": "Clique novamente para confirmar. {{count}} reprodução será mantida e reassociada na próxima análise.",
+      "removeConfirmWithPlays_other": "Clique novamente para confirmar. {{count}} reproduções serão mantidas e reassociadas na próxima análise."
     },
     "skeletonAriaLabel": "A carregar {{name}}…"
   },

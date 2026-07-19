@@ -441,7 +441,9 @@
       "watchOn": "Automatically monitor changes",
       "watchOff": "Stop monitoring",
       "remove": "Remove folder from library",
-      "removeConfirm": "Click again to confirm"
+      "removeConfirm": "Click again to confirm",
+      "removeConfirmWithPlays_one": "Click again to confirm. {{count}} play will be kept and re-attached on the next scan.",
+      "removeConfirmWithPlays_other": "Click again to confirm. {{count}} plays will be kept and re-attached on the next scan."
     },
     "skeletonAriaLabel": "Loading {{name}}…"
   },
