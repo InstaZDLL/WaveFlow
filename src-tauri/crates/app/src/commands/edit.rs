@@ -621,12 +621,21 @@ pub async fn update_track_cover(
     // could leave the row behind if the update failed.
     let mut tx = pool.begin().await?;
     let artwork_id = upsert_artwork(&mut tx, &hash, ext, "manual").await?;
+    // Only guarded when a track actually belongs to an album: `album_id`
+    // is legitimately `None` for a loose track, and that case must still
+    // commit — the cover has already been written into the audio file
+    // itself, which is the point of this command.
     if let Some(aid) = album_id {
-        sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'manual' WHERE id = ?")
-            .bind(artwork_id)
-            .bind(aid)
-            .execute(&mut *tx)
-            .await?;
+        let res = sqlx::query(
+            "UPDATE album SET artwork_id = ?, artwork_source = 'manual' WHERE id = ?",
+        )
+        .bind(artwork_id)
+        .bind(aid)
+        .execute(&mut *tx)
+        .await?;
+        if res.rows_affected() == 0 {
+            return Err(AppError::Other(format!("album {aid} not found")));
+        }
     }
     tx.commit().await?;
 
