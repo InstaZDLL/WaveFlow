@@ -468,6 +468,12 @@ fn open_exclusive_session(
 ///
 /// Used only to skip a redundant second init attempt, never to decide
 /// whether a format is acceptable.
+///
+/// Deliberately does **not** compare the subformat GUID (Int vs Float):
+/// both operands always come from the same [`ExclusiveSampleFormat`],
+/// and the quirk probe only ever changes the channel mask or the
+/// `WAVEFORMATEX`/`WAVEFORMATEXTENSIBLE` shape. Don't reuse this as a
+/// general format equality without adding that field.
 fn same_wave_format(a: &WaveFormat, b: &WaveFormat) -> bool {
     a.wave_fmt.Format.cbSize == b.wave_fmt.Format.cbSize
         && a.get_nchannels() == b.get_nchannels()
@@ -518,13 +524,22 @@ fn try_open_with_format(
     // retry is a guaranteed repeat of the same failure.
     match init_stream(device, format, channels, &accepted) {
         Ok(session) => Ok(session),
-        Err(err) if !same_wave_format(&accepted, &requested) => {
+        Err(accepted_err) if !same_wave_format(&accepted, &requested) => {
             tracing::debug!(
                 format = format.label(),
-                %err,
+                err = %accepted_err,
                 "wasapi exclusive: init with the probe-accepted shape failed, retrying as requested"
             );
-            init_stream(device, format, channels, &requested)
+            // Carry both failures. The first one only ever went to
+            // `debug`, which release builds don't emit — the same blind
+            // spot that made this bug take three passes to find. When
+            // both shapes are refused, the caller's summary must say so.
+            init_stream(device, format, channels, &requested).map_err(|requested_err| {
+                AppError::Audio(format!(
+                    "{} refused in both shapes — probe-accepted: {accepted_err}; as requested: {requested_err}",
+                    format.label()
+                ))
+            })
         }
         Err(err) => Err(err),
     }
@@ -916,6 +931,80 @@ mod tests {
     fn degenerate_formats_are_discarded() {
         let candidates = build_layout_candidates(Some((0, 2)), Some((48_000, 0)));
         assert_eq!(layouts(&candidates), vec![(48_000, 2, "stereo")]);
+    }
+
+    // ── same_wave_format ─────────────────────────────────────────────
+    //
+    // This decides whether the init retry runs at all: two shapes that
+    // compare equal skip the second attempt. A field the driver cares
+    // about but this comparison misses would silently swallow the
+    // retry, so each one gets its own case with a single field moved.
+
+    #[test]
+    fn same_wave_format_accepts_identical_formats() {
+        let a = ExclusiveSampleFormat::Pcm16.to_wave_format(48_000, 2);
+        let b = ExclusiveSampleFormat::Pcm16.to_wave_format(48_000, 2);
+        assert!(same_wave_format(&a, &b));
+    }
+
+    /// The quirk that actually fixed #405: the probe only accepts the
+    /// format once a different `ksmedia.h` mask is swapped in. If that
+    /// difference were invisible here the retry would be skipped and
+    /// the fix would silently do nothing.
+    #[test]
+    fn same_wave_format_rejects_a_different_channel_mask() {
+        let a = ExclusiveSampleFormat::Pcm16.to_wave_format(48_000, 8);
+        let mut b = ExclusiveSampleFormat::Pcm16.to_wave_format(48_000, 8);
+        b.wave_fmt.dwChannelMask ^= 0x1;
+        assert!(!same_wave_format(&a, &b));
+    }
+
+    /// The other quirk: `WAVEFORMATEX` (`cbSize` 0) vs
+    /// `WAVEFORMATEXTENSIBLE` (`cbSize` 22), which the probe swaps for
+    /// mono/stereo. Same numbers, different structure — and drivers
+    /// genuinely accept one and refuse the other.
+    #[test]
+    fn same_wave_format_rejects_a_different_structure_size() {
+        let a = ExclusiveSampleFormat::Pcm16.to_wave_format(44_100, 2);
+        let mut b = ExclusiveSampleFormat::Pcm16.to_wave_format(44_100, 2);
+        b.wave_fmt.Format.cbSize = 0;
+        assert!(!same_wave_format(&a, &b));
+    }
+
+    #[test]
+    fn same_wave_format_rejects_a_different_channel_count() {
+        let a = ExclusiveSampleFormat::Pcm16.to_wave_format(48_000, 2);
+        let b = ExclusiveSampleFormat::Pcm16.to_wave_format(48_000, 8);
+        assert!(!same_wave_format(&a, &b));
+    }
+
+    #[test]
+    fn same_wave_format_rejects_a_different_sample_rate() {
+        let a = ExclusiveSampleFormat::Pcm16.to_wave_format(44_100, 2);
+        let b = ExclusiveSampleFormat::Pcm16.to_wave_format(48_000, 2);
+        assert!(!same_wave_format(&a, &b));
+    }
+
+    #[test]
+    fn same_wave_format_rejects_a_different_bit_depth() {
+        let a = ExclusiveSampleFormat::Pcm16.to_wave_format(48_000, 2);
+        let b = ExclusiveSampleFormat::Pcm24Packed.to_wave_format(48_000, 2);
+        assert!(!same_wave_format(&a, &b));
+    }
+
+    /// `S24_4LE` and `F32` share a 32-bit container and differ only in
+    /// the valid-bit count — the one field a container-size comparison
+    /// alone would miss.
+    #[test]
+    fn same_wave_format_rejects_a_different_valid_bit_count() {
+        let padded = ExclusiveSampleFormat::Pcm24Padded.to_wave_format(48_000, 2);
+        let float = ExclusiveSampleFormat::Float32.to_wave_format(48_000, 2);
+        assert_eq!(
+            padded.get_bitspersample(),
+            float.get_bitspersample(),
+            "precondition: both must use a 32-bit container"
+        );
+        assert!(!same_wave_format(&padded, &float));
     }
 
     #[test]
