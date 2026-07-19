@@ -61,7 +61,7 @@
 
 The endpoint format leads on purpose (#409). The mix format describes the pipe into the Windows audio engine **after** its own processing, so with Audio Enhancements, Spatial Sound or a virtual-surround driver active it reports e.g. 8 channels for a plain stereo jack. Negotiating exclusive mode against that asks the hardware for a layout it has never supported: every format is rejected with `AUDCLNT_E_UNSUPPORTED_FORMAT` (`0x88890008`) and the user silently lands back in shared mode. `PKEY_AudioEngine_DeviceFormat` describes the endpoint itself, which is what exclusive mode wants. The two agree on most machines, so candidate 2 is deduped away.
 
-**Bit depth** — `FORMAT_FALLBACK_CHAIN`, high to low: `F32` → `S24_3LE` → `S24_4LE` → `S16_LE`. Most audiophile DACs take Float32 natively; Realtek ALC and many integrated codecs reject it outright but accept PCM.
+**Sample format** — `FORMAT_FALLBACK_CHAIN`, tried in order: `F32` → `S24_3LE` → `S24_4LE` → `S16_LE`. Float32 leads because it costs no conversion at the boundary and most audiophile DACs take it natively; Realtek ALC and many integrated codecs reject it outright but accept PCM, so the two 24-bit PCM representations follow (packed 3-byte, then 24 valid bits in a 4-byte container — the same precision, different wire layout), with `S16_LE` as the universal last resort. Note this is a format sequence, not a monotonic walk down bit depth: `S24_4LE` uses a 32-bit container.
 
 Each rejection logs the full `(rate, channels, format, layout-origin)` at `debug`, and the success logs the same at `info` — a rejection blamed on the bit depth is very often the channel count instead.
 
