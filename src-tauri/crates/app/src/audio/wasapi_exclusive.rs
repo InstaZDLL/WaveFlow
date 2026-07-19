@@ -40,7 +40,7 @@ use rtrb::{Consumer, Producer, RingBuffer};
 use tauri::AppHandle;
 use wasapi::{
     AudioClient, AudioRenderClient, Device, DeviceEnumerator, Direction, Handle, SampleType,
-    ShareMode, StreamMode, WaveFormat,
+    StreamMode, WaveFormat,
 };
 
 use super::output::{OutputHandle, RING_CAPACITY};
@@ -392,6 +392,11 @@ fn open_exclusive_session(
     }
 
     let mut last_err: Option<AppError> = None;
+    // Every rejection, kept for the summary below. `debug` alone was
+    // not enough: release logs run at `info`, so a user reporting a
+    // failure only ever showed us the last attempt of eight and the
+    // other seven had to be guessed at.
+    let mut failures: Vec<String> = Vec::new();
     for layout in &layouts {
         for &format in FORMAT_FALLBACK_CHAIN.iter() {
             match try_open_with_format(&device, format, layout.sample_rate, layout.channels) {
@@ -431,6 +436,13 @@ fn open_exclusive_session(
                         %err,
                         "wasapi exclusive candidate rejected; trying next"
                     );
+                    failures.push(format!(
+                        "{}@{}Hz/{}ch[{}]: {err}",
+                        format.label(),
+                        layout.sample_rate,
+                        layout.channels,
+                        layout.origin
+                    ));
                     last_err = Some(err);
                 }
             }
@@ -439,6 +451,8 @@ fn open_exclusive_session(
 
     tracing::warn!(
         candidates = ?layouts,
+        attempts = failures.len(),
+        failures = %failures.join(" | "),
         "wasapi exclusive: no (rate, channels, format) combination was accepted"
     );
 
@@ -447,31 +461,106 @@ fn open_exclusive_session(
     }))
 }
 
-/// Single attempt with one bit-depth format. Builds a fresh
-/// `IAudioClient`, asks WASAPI to validate the WaveFormat, then
-/// initializes + starts the stream. Pre-fills with silence sized to
-/// the negotiated format so the first device event lands on clean
-/// state.
+/// Do two `WaveFormat`s describe the same stream? Compares every
+/// field that matters to the driver, including the container tag
+/// (`cbSize` distinguishes `WAVEFORMATEX` from `WAVEFORMATEXTENSIBLE`)
+/// and the channel mask.
+///
+/// Used only to skip a redundant second init attempt, never to decide
+/// whether a format is acceptable.
+///
+/// Deliberately does **not** compare the subformat GUID (Int vs Float):
+/// both operands always come from the same [`ExclusiveSampleFormat`],
+/// and the quirk probe only ever changes the channel mask or the
+/// `WAVEFORMATEX`/`WAVEFORMATEXTENSIBLE` shape. Don't reuse this as a
+/// general format equality without adding that field.
+fn same_wave_format(a: &WaveFormat, b: &WaveFormat) -> bool {
+    a.wave_fmt.Format.cbSize == b.wave_fmt.Format.cbSize
+        && a.get_nchannels() == b.get_nchannels()
+        && a.get_samplespersec() == b.get_samplespersec()
+        && a.get_bitspersample() == b.get_bitspersample()
+        && a.get_validbitspersample() == b.get_validbitspersample()
+        && a.get_dwchannelmask() == b.get_dwchannelmask()
+}
+
+/// Single attempt with one bit-depth format. Probes the format, then
+/// initializes + starts the stream on a fresh `IAudioClient`.
+///
+/// The probe goes through `is_supported_exclusive_with_quirks` rather
+/// than a bare `is_supported` (#405). `WaveFormat::new` always builds a
+/// `WAVEFORMATEXTENSIBLE`, and a good number of drivers reject that
+/// representation outright with `AUDCLNT_E_UNSUPPORTED_FORMAT` while
+/// happily accepting the *same* PCM layout described as a plain
+/// `WAVEFORMATEX` — which is why a device can turn down 16-bit stereo
+/// at its own reported rate, the most universally supported format
+/// there is. The helper also re-probes against each recommended
+/// `ksmedia.h` channel mask, since a multi-channel endpoint typically
+/// accepts exactly one and `WaveFormat::new(.., None)` guesses.
 fn try_open_with_format(
     device: &Device,
     format: ExclusiveSampleFormat,
     sample_rate: usize,
     channels: usize,
 ) -> AppResult<(AudioClient, AudioRenderClient, Handle, u32)> {
-    let mut client = device
+    let requested = format.to_wave_format(sample_rate, channels);
+
+    let probe_client = device
         .get_iaudioclient()
         .map_err(|e| AppError::Audio(format!("get IAudioClient ({}): {e:?}", format.label())))?;
-
-    let wave = format.to_wave_format(sample_rate, channels);
-
-    client
-        .is_supported(&wave, &ShareMode::Exclusive)
+    let accepted = probe_client
+        .is_supported_exclusive_with_quirks(&requested)
         .map_err(|e| {
             AppError::Audio(format!(
                 "is_supported rejected {} in exclusive mode: {e:?}",
                 format.label()
             ))
         })?;
+    drop(probe_client);
+
+    // wasapi's own docs warn that some drivers validate the simplified
+    // representation but want the original one at init time. So try
+    // the shape the probe accepted first, then fall back to the shape
+    // we asked for — but only when they actually differ, otherwise the
+    // retry is a guaranteed repeat of the same failure.
+    match init_stream(device, format, channels, &accepted) {
+        Ok(session) => Ok(session),
+        Err(accepted_err) if !same_wave_format(&accepted, &requested) => {
+            tracing::debug!(
+                format = format.label(),
+                err = %accepted_err,
+                "wasapi exclusive: init with the probe-accepted shape failed, retrying as requested"
+            );
+            // Carry both failures. The first one only ever went to
+            // `debug`, which release builds don't emit — the same blind
+            // spot that made this bug take three passes to find. When
+            // both shapes are refused, the caller's summary must say so.
+            init_stream(device, format, channels, &requested).map_err(|requested_err| {
+                AppError::Audio(format!(
+                    "{} refused in both shapes — probe-accepted: {accepted_err}; as requested: {requested_err}",
+                    format.label()
+                ))
+            })
+        }
+        Err(err) => Err(err),
+    }
+}
+
+/// Initialize + start an exclusive stream with one concrete
+/// `WaveFormat`. Pre-fills with silence sized to that format so the
+/// first device event lands on clean state.
+///
+/// Always takes a fresh `IAudioClient`: once initialized (or once an
+/// init has been refused) a client can't be reused, and some drivers
+/// leave a rejected one in an unusable state.
+fn init_stream(
+    device: &Device,
+    format: ExclusiveSampleFormat,
+    channels: usize,
+    wave: &WaveFormat,
+) -> AppResult<(AudioClient, AudioRenderClient, Handle, u32)> {
+    let mut client = device
+        .get_iaudioclient()
+        .map_err(|e| AppError::Audio(format!("get IAudioClient ({}): {e:?}", format.label())))?;
 
     let (default_period, min_period) = client
         .get_device_period()
@@ -480,7 +569,7 @@ fn try_open_with_format(
     let mode = StreamMode::EventsExclusive { period_hns };
 
     client
-        .initialize_client(&wave, &Direction::Render, &mode)
+        .initialize_client(wave, &Direction::Render, &mode)
         .map_err(|e| {
             AppError::Audio(format!(
                 "initialize_client {} exclusive: {e:?}",
@@ -842,6 +931,80 @@ mod tests {
     fn degenerate_formats_are_discarded() {
         let candidates = build_layout_candidates(Some((0, 2)), Some((48_000, 0)));
         assert_eq!(layouts(&candidates), vec![(48_000, 2, "stereo")]);
+    }
+
+    // ── same_wave_format ─────────────────────────────────────────────
+    //
+    // This decides whether the init retry runs at all: two shapes that
+    // compare equal skip the second attempt. A field the driver cares
+    // about but this comparison misses would silently swallow the
+    // retry, so each one gets its own case with a single field moved.
+
+    #[test]
+    fn same_wave_format_accepts_identical_formats() {
+        let a = ExclusiveSampleFormat::Pcm16.to_wave_format(48_000, 2);
+        let b = ExclusiveSampleFormat::Pcm16.to_wave_format(48_000, 2);
+        assert!(same_wave_format(&a, &b));
+    }
+
+    /// The quirk that actually fixed #405: the probe only accepts the
+    /// format once a different `ksmedia.h` mask is swapped in. If that
+    /// difference were invisible here the retry would be skipped and
+    /// the fix would silently do nothing.
+    #[test]
+    fn same_wave_format_rejects_a_different_channel_mask() {
+        let a = ExclusiveSampleFormat::Pcm16.to_wave_format(48_000, 8);
+        let mut b = ExclusiveSampleFormat::Pcm16.to_wave_format(48_000, 8);
+        b.wave_fmt.dwChannelMask ^= 0x1;
+        assert!(!same_wave_format(&a, &b));
+    }
+
+    /// The other quirk: `WAVEFORMATEX` (`cbSize` 0) vs
+    /// `WAVEFORMATEXTENSIBLE` (`cbSize` 22), which the probe swaps for
+    /// mono/stereo. Same numbers, different structure — and drivers
+    /// genuinely accept one and refuse the other.
+    #[test]
+    fn same_wave_format_rejects_a_different_structure_size() {
+        let a = ExclusiveSampleFormat::Pcm16.to_wave_format(44_100, 2);
+        let mut b = ExclusiveSampleFormat::Pcm16.to_wave_format(44_100, 2);
+        b.wave_fmt.Format.cbSize = 0;
+        assert!(!same_wave_format(&a, &b));
+    }
+
+    #[test]
+    fn same_wave_format_rejects_a_different_channel_count() {
+        let a = ExclusiveSampleFormat::Pcm16.to_wave_format(48_000, 2);
+        let b = ExclusiveSampleFormat::Pcm16.to_wave_format(48_000, 8);
+        assert!(!same_wave_format(&a, &b));
+    }
+
+    #[test]
+    fn same_wave_format_rejects_a_different_sample_rate() {
+        let a = ExclusiveSampleFormat::Pcm16.to_wave_format(44_100, 2);
+        let b = ExclusiveSampleFormat::Pcm16.to_wave_format(48_000, 2);
+        assert!(!same_wave_format(&a, &b));
+    }
+
+    #[test]
+    fn same_wave_format_rejects_a_different_bit_depth() {
+        let a = ExclusiveSampleFormat::Pcm16.to_wave_format(48_000, 2);
+        let b = ExclusiveSampleFormat::Pcm24Packed.to_wave_format(48_000, 2);
+        assert!(!same_wave_format(&a, &b));
+    }
+
+    /// `S24_4LE` and `F32` share a 32-bit container and differ only in
+    /// the valid-bit count — the one field a container-size comparison
+    /// alone would miss.
+    #[test]
+    fn same_wave_format_rejects_a_different_valid_bit_count() {
+        let padded = ExclusiveSampleFormat::Pcm24Padded.to_wave_format(48_000, 2);
+        let float = ExclusiveSampleFormat::Float32.to_wave_format(48_000, 2);
+        assert_eq!(
+            padded.get_bitspersample(),
+            float.get_bitspersample(),
+            "precondition: both must use a 32-bit container"
+        );
+        assert!(!same_wave_format(&padded, &float));
     }
 
     #[test]
