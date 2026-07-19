@@ -163,6 +163,30 @@ pub async fn switch_profile(
 
     state.activate_profile(profile_id).await?;
 
+    // Refresh the DLNA worker for the new profile if it's currently
+    // serving — otherwise it keeps exposing the previous profile's
+    // library over the LAN, and its pool becomes closed out from
+    // under it moments later when `activate_profile` above drops the
+    // old one (issue #399). `status().running` reflects the worker's
+    // actual state rather than the persisted `dlna.enabled` flag, so
+    // this can't accidentally start a server the user turned off.
+    // `DlnaServer::start` restarts the whole worker (new listener,
+    // new SSDP announce) — there's no lighter "just swap the pool"
+    // path, see `dlna::mod`'s `WorkerState::start`.
+    if state.dlna.status().await.running {
+        match crate::commands::dlna::build_resources(&state).await {
+            Ok(resources) => {
+                let cfg = crate::dlna::config::load(&state.app_db)
+                    .await
+                    .unwrap_or_default();
+                state.dlna.start(cfg, resources);
+            }
+            Err(err) => {
+                tracing::warn!(%err, "DLNA resource refresh after profile switch failed");
+            }
+        }
+    }
+
     // Re-arm watchers from the new profile's library_folder rows.
     if let Ok(pool) = state.require_profile_pool().await {
         if let Err(err) = watcher.restore_from_db(&pool).await {
