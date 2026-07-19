@@ -712,8 +712,11 @@ pub(crate) async fn scan_folder_inner(
                         let artwork_id =
                             upsert_artwork(&mut tx, &cover.hash, &cover.format, cover.source)
                                 .await?;
-                        sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
+                        sqlx::query(
+                            "UPDATE album SET artwork_id = ?, artwork_source = ? WHERE id = ?",
+                        )
                             .bind(artwork_id)
+                            .bind(cover.source)
                             .bind(aid)
                             .execute(&mut *tx)
                             .await?;
@@ -870,9 +873,11 @@ pub(crate) async fn scan_folder_inner(
                     let artwork_id =
                         upsert_artwork(&mut tx, &cover.hash, &cover.format, cover.source).await?;
                     sqlx::query(
-                        "UPDATE album SET artwork_id = ? WHERE id = ? AND artwork_id IS NULL",
+                        "UPDATE album SET artwork_id = ?, artwork_source = ?
+                          WHERE id = ? AND artwork_id IS NULL",
                     )
                     .bind(artwork_id)
+                    .bind(cover.source)
                     .bind(aid)
                     .execute(&mut *tx)
                     .await?;
@@ -1002,8 +1007,12 @@ pub(crate) async fn scan_folder_inner(
             if let (Some(cover), Some(aid)) = (&extracted.cover_art, album_id) {
                 let artwork_id =
                     upsert_artwork(&mut tx, &cover.hash, &cover.format, cover.source).await?;
-                sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ? AND artwork_id IS NULL")
+                sqlx::query(
+                    "UPDATE album SET artwork_id = ?, artwork_source = ?
+                      WHERE id = ? AND artwork_id IS NULL",
+                )
                     .bind(artwork_id)
+                    .bind(cover.source)
                     .bind(aid)
                     .execute(&mut *tx)
                     .await?;

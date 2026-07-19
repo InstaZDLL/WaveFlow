@@ -620,7 +620,7 @@ pub async fn update_track_cover(
     let artwork_id = upsert_artwork(&mut conn, &hash, ext, "manual").await?;
     drop(conn);
     if let Some(aid) = album_id {
-        sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
+        sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'manual' WHERE id = ?")
             .bind(artwork_id)
             .bind(aid)
             .execute(&*pool)

@@ -687,17 +687,10 @@ async fn link_folder_cover_if_eligible(
 ) -> CoreResult<bool> {
     let result = sqlx::query(
         "UPDATE album
-            SET artwork_id = ?
+            SET artwork_id = ?, artwork_source = 'folder'
           WHERE id = ?
             AND artwork_id IS ?
-            AND (
-                artwork_id IS NULL
-                OR EXISTS (
-                    SELECT 1 FROM artwork aw
-                     WHERE aw.id = album.artwork_id
-                       AND aw.source = 'folder'
-                )
-            )",
+            AND (artwork_id IS NULL OR artwork_source = 'folder')",
     )
     .bind(artwork_id)
     .bind(album_id)
@@ -755,7 +748,7 @@ pub async fn refresh_folder_covers(
     // those albums, so directory selection sees the album's full extent
     // no matter which folder triggered the scan.
     let rows: Vec<(i64, String, Option<i64>, Option<String>, Option<String>)> = sqlx::query_as(
-        "SELECT t.album_id, t.file_path, al.artwork_id, aw.hash, aw.source
+        "SELECT t.album_id, t.file_path, al.artwork_id, aw.hash, al.artwork_source
            FROM track t
            JOIN album al ON al.id = t.album_id
            LEFT JOIN artwork aw ON aw.id = al.artwork_id
@@ -1005,12 +998,14 @@ mod folder_cover_tests {
                  id INTEGER PRIMARY KEY,
                  hash TEXT NOT NULL UNIQUE,
                  format TEXT NOT NULL,
-                 source TEXT NOT NULL,
+                 source TEXT NOT NULL
+                     CHECK (source IN ('embedded','folder','deezer','manual')),
                  created_at INTEGER NOT NULL
              );
              CREATE TABLE album (
                  id INTEGER PRIMARY KEY,
-                 artwork_id INTEGER
+                 artwork_id INTEGER,
+                 artwork_source TEXT
              );
              CREATE TABLE track (
                  id INTEGER PRIMARY KEY,
@@ -1033,12 +1028,16 @@ mod folder_cover_tests {
     }
 
     async fn seed_album(pool: &SqlitePool, album_id: i64, dir: &Path, artwork_id: Option<i64>) {
-        sqlx::query("INSERT INTO album (id, artwork_id) VALUES (?, ?)")
-            .bind(album_id)
-            .bind(artwork_id)
-            .execute(pool)
-            .await
-            .unwrap();
+        sqlx::query(
+            "INSERT INTO album (id, artwork_id, artwork_source)
+             VALUES (?, ?, (SELECT source FROM artwork WHERE id = ?))",
+        )
+        .bind(album_id)
+        .bind(artwork_id)
+        .bind(artwork_id)
+        .execute(pool)
+        .await
+        .unwrap();
         sqlx::query(
             "INSERT INTO track (album_id, folder_id, file_path, is_available)
              VALUES (?, 1, ?, 1)",
@@ -1189,7 +1188,10 @@ mod folder_cover_tests {
 
         let hash = blake3::hash(b"untouched").to_hex().to_string();
         seed_artwork(&pool, 1, &hash, "folder").await;
-        sqlx::query("INSERT INTO album (id, artwork_id) VALUES (10, 1)")
+        sqlx::query(
+            "INSERT INTO album (id, artwork_id, artwork_source)
+             VALUES (10, 1, (SELECT source FROM artwork WHERE id = 1))",
+        )
             .execute(&pool)
             .await
             .unwrap();
@@ -1215,7 +1217,7 @@ mod folder_cover_tests {
     /// enrichment result below; the guard is an allowlist, so any source
     /// other than `folder` is left alone.
     #[tokio::test]
-    async fn a_user_uploaded_cover_is_not_replaced_by_a_sidecar() {
+    async fn a_manually_uploaded_cover_is_not_replaced_by_a_sidecar() {
         let music = tempfile::tempdir().unwrap();
         let art = tempfile::tempdir().unwrap();
         let pool = fixture_pool().await;
@@ -1223,7 +1225,7 @@ mod folder_cover_tests {
         let chosen = blake3::hash(b"the cover the user picked")
             .to_hex()
             .to_string();
-        seed_artwork(&pool, 1, &chosen, "user").await;
+        seed_artwork(&pool, 1, &chosen, "manual").await;
         seed_album(&pool, 10, music.path(), Some(1)).await;
         write_cover(music.path(), b"a sidecar that must not win");
 
@@ -1315,7 +1317,10 @@ mod folder_cover_tests {
         let pool = fixture_pool().await;
         seed_artwork(&pool, 1, "old-sidecar", "folder").await;
         seed_artwork(&pool, 2, "new-sidecar", "folder").await;
-        sqlx::query("INSERT INTO album (id, artwork_id) VALUES (10, 1)")
+        sqlx::query(
+            "INSERT INTO album (id, artwork_id, artwork_source)
+             VALUES (10, 1, (SELECT source FROM artwork WHERE id = 1))",
+        )
             .execute(&pool)
             .await
             .unwrap();
@@ -1362,11 +1367,14 @@ mod folder_cover_tests {
     /// report that it changed nothing so the summary stays honest.
     #[tokio::test]
     async fn the_write_guard_refuses_a_cover_that_became_user_owned() {
-        for source in ["user", "deezer", "embedded"] {
+        for source in ["manual", "deezer", "embedded"] {
             let pool = fixture_pool().await;
             seed_artwork(&pool, 1, "chosen-mid-scan", source).await;
             seed_artwork(&pool, 2, "new-sidecar", "folder").await;
-            sqlx::query("INSERT INTO album (id, artwork_id) VALUES (10, 1)")
+            sqlx::query(
+            "INSERT INTO album (id, artwork_id, artwork_source)
+             VALUES (10, 1, (SELECT source FROM artwork WHERE id = 1))",
+        )
                 .execute(&pool)
                 .await
                 .unwrap();
@@ -1403,7 +1411,10 @@ mod folder_cover_tests {
         seed_artwork(&pool, 3, "cover-a-concurrent-scan-landed", "folder").await;
         // The album moved on to artwork 3 after our candidate list was
         // built, so our observation of artwork 1 is stale.
-        sqlx::query("INSERT INTO album (id, artwork_id) VALUES (10, 3)")
+        sqlx::query(
+            "INSERT INTO album (id, artwork_id, artwork_source)
+             VALUES (10, 3, (SELECT source FROM artwork WHERE id = 3))",
+        )
             .execute(&pool)
             .await
             .unwrap();
@@ -1420,6 +1431,92 @@ mod folder_cover_tests {
             Some("cover-a-concurrent-scan-landed".to_string()),
             "the newer cover must survive",
         );
+    }
+
+    /// Issue #401: `artwork` rows dedup on the content hash alone and
+    /// `source` is only written on INSERT, so it records whoever put the
+    /// bytes in the library first — not where *this* album got them.
+    ///
+    /// The setup below is the one that used to freeze an album's cover
+    /// forever: the same image is embedded in one album's tags and sits
+    /// as a `cover.jpg` beside another, so there is a single `artwork`
+    /// row labelled `embedded`. Reading provenance off that row made the
+    /// sidecar album look untouchable. Reading it off the album's own
+    /// `artwork_source` gets it right.
+    #[tokio::test]
+    async fn a_sidecar_album_stays_refreshable_when_another_album_embeds_the_same_image() {
+        let music = tempfile::tempdir().unwrap();
+        let art = tempfile::tempdir().unwrap();
+        let pool = fixture_pool().await;
+
+        // Album A embedded these bytes first, so the shared row says
+        // `embedded` and there is no second row to disambiguate.
+        write_cover(music.path(), b"an image two albums share");
+        let shared = blake3::hash(b"an image two albums share").to_hex().to_string();
+        seed_artwork(&pool, 1, &shared, "embedded").await;
+
+        // Album B got the very same bytes from a sidecar.
+        sqlx::query(
+            "INSERT INTO album (id, artwork_id, artwork_source) VALUES (10, 1, 'folder')",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO track (album_id, folder_id, file_path, is_available)
+             VALUES (10, 1, ?, 1)",
+        )
+        .bind(music.path().join("01.flac").to_string_lossy().to_string())
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // The user replaces album B's sidecar.
+        write_cover(music.path(), b"album B gets its own cover at last");
+        let replacement = blake3::hash(b"album B gets its own cover at last")
+            .to_hex()
+            .to_string();
+
+        let updated = refresh_folder_covers(&pool, art.path(), 1).await.unwrap();
+
+        assert_eq!(updated, 1, "the sidecar album must still be refreshable");
+        assert_eq!(album_artwork_hash(&pool, 10).await, Some(replacement));
+    }
+
+    /// The mirror image: an album that really did take its cover from a
+    /// tag is still protected, even when some *other* album later brings
+    /// the same bytes in from a sidecar and flips nothing about the
+    /// shared `artwork` row.
+    #[tokio::test]
+    async fn an_embedded_album_stays_protected_regardless_of_the_shared_row() {
+        let music = tempfile::tempdir().unwrap();
+        let art = tempfile::tempdir().unwrap();
+        let pool = fixture_pool().await;
+
+        let from_tag = blake3::hash(b"lifted from the tag").to_hex().to_string();
+        // The shared row happens to say `folder` — inserted first by some
+        // other album's sidecar. The album's own provenance is what counts.
+        seed_artwork(&pool, 1, &from_tag, "folder").await;
+        sqlx::query(
+            "INSERT INTO album (id, artwork_id, artwork_source) VALUES (10, 1, 'embedded')",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO track (album_id, folder_id, file_path, is_available)
+             VALUES (10, 1, ?, 1)",
+        )
+        .bind(music.path().join("01.flac").to_string_lossy().to_string())
+        .execute(&pool)
+        .await
+        .unwrap();
+        write_cover(music.path(), b"a sidecar that must lose to the tag");
+
+        let updated = refresh_folder_covers(&pool, art.path(), 1).await.unwrap();
+
+        assert_eq!(updated, 0);
+        assert_eq!(album_artwork_hash(&pool, 10).await, Some(from_tag));
     }
 }
 

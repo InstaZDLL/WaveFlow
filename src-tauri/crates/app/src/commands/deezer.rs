@@ -632,7 +632,7 @@ pub async fn set_album_artwork_from_deezer(
     crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
 
     let artwork_id = upsert_artwork_row(&pool, &hash, format, "deezer").await?;
-    sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
+    sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'deezer' WHERE id = ?")
         .bind(artwork_id)
         .bind(album_id)
         .execute(&*pool)
@@ -665,7 +665,7 @@ pub async fn set_album_artwork_from_file(
     crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
 
     let artwork_id = upsert_artwork_row(&pool, &hash, format, "manual").await?;
-    sqlx::query("UPDATE album SET artwork_id = ? WHERE id = ?")
+    sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'manual' WHERE id = ?")
         .bind(artwork_id)
         .bind(album_id)
         .execute(&*pool)
