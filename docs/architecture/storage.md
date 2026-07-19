@@ -43,7 +43,7 @@ Migrations: [`src-tauri/migrations/profile/`](../../src-tauri/migrations/profile
 
 `play_event.track_id` used to be `NOT NULL … ON DELETE CASCADE`, so removing a folder (`DELETE FROM track WHERE folder_id = ?`) or a library silently erased the matching history. One beta tester lost their stats five times that way, and no backup helps: the archive restores the *old* library, not the history plus a fresh scan (issue #367).
 
-`track_id` is now nullable with `ON DELETE SET NULL` — deleting a track **orphans** its history instead of destroying it — and every event carries a snapshot of how to find its track again: `snapshot_hash`, `snapshot_path`, `snapshot_artist`, `snapshot_title`. The snapshot is written at insert time by `record_play_event`, which is the only moment that information is guaranteed to still exist; by the time a folder is deleted, the row it would have been read from is already gone.
+`track_id` is now nullable with `ON DELETE SET NULL` — deleting a track **orphans** its history instead of destroying it — and every event carries a snapshot of how to find its track again: `snapshot_hash`, `snapshot_path`, `snapshot_artist`, `snapshot_title`. The snapshot is written at insert time by `insert_play_event`, which is the only moment that information is guaranteed to still exist; by the time a folder is deleted, the row it would have been read from is already gone.
 
 [`reattach_orphaned_play_events`](../../src-tauri/crates/core/src/scanner/upserts.rs) runs after every scan and gives orphans their track back, strongest key first:
 
