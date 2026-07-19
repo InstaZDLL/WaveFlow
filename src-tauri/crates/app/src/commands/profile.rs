@@ -182,6 +182,13 @@ pub async fn switch_profile(
                 state.dlna.start(cfg, resources);
             }
             Err(err) => {
+                // The worker is still holding the OLD profile's
+                // `DlnaResources`, whose pool `activate_profile` above
+                // already closed — left running, it would silently
+                // fail every `/stream` and `/art` request instead of
+                // picking up the new profile. Stop it rather than
+                // leave a broken server behind.
+                state.dlna.stop();
                 tracing::warn!(%err, "DLNA resource refresh after profile switch failed");
             }
         }
