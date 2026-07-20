@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   Folder,
@@ -316,13 +322,23 @@ export function HomeView({
     bannerSkinClasses = "p-10";
   }
   const bannerClasses = `relative overflow-hidden rounded-3xl bg-linear-to-br from-emerald-50 to-white shadow-sm border border-emerald-100/50 dark:from-emerald-900/40 dark:to-zinc-800/40 dark:border-zinc-800 dark:shadow-none ${bannerSkinClasses}`;
+  // Safari (issue #414) fails to clip a `filter: blur()` child to its
+  // `overflow-hidden` + `rounded-3xl` parent's corners — the blur's
+  // expanded paint bounds leak past the rounded edge as square glow
+  // patches. `overflow: hidden` alone doesn't trigger Safari's correct
+  // clip path there; a mask does. Applied to every banner below that
+  // has an absolutely-positioned `blur-3xl` decorative orb.
+  const roundedClipMaskStyle: CSSProperties = {
+    WebkitMaskImage: "-webkit-radial-gradient(white, black)",
+    maskImage: "radial-gradient(white, black)",
+  };
 
   return (
     <div className={containerClasses}>
       {isEditorialSkin && <EditorialMasthead />}
       <div className={gridClasses}>
         {/* Welcome Banner */}
-        <div className={bannerClasses}>
+        <div className={bannerClasses} style={roundedClipMaskStyle}>
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -top-24 -left-16 w-80 h-80 rounded-full bg-emerald-300/30 dark:bg-emerald-400/25 blur-3xl"
@@ -466,6 +482,7 @@ export function HomeView({
           style={{
             background:
               "linear-gradient(135deg,#1d0e3a 0%,#3a1052 50%,#7c2d12 100%)",
+            ...roundedClipMaskStyle,
           }}
         >
           <div
