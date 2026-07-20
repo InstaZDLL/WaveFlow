@@ -57,20 +57,32 @@ export function ExclusiveModeCard() {
   useEffect(() => {
     if (!isWindows) return;
     let unlisten: UnlistenFn | null = null;
+    // `listen()` is async, so the effect can unmount before it resolves.
+    // Without this flag the cleanup below runs while `unlisten` is still
+    // null, does nothing, and the handle assigned afterward is never
+    // released — a live listener leaks for the rest of the app's life
+    // every time this card mounts and unmounts (opening/closing Settings).
+    let cancelled = false;
     (async () => {
       try {
-        unlisten = await listen("player:audio-mode-changed", () => {
+        const stop = await listen("player:audio-mode-changed", () => {
           playerGetWasapiExclusive()
             .then(setEnabled)
             .catch((err) => {
               console.error("[ExclusiveModeCard] refresh after rebuild failed", err);
             });
         });
+        if (cancelled) {
+          stop();
+        } else {
+          unlisten = stop;
+        }
       } catch (err) {
         console.error("[ExclusiveModeCard] listen failed", err);
       }
     })();
     return () => {
+      cancelled = true;
       if (unlisten) unlisten();
     };
   }, [isWindows]);
