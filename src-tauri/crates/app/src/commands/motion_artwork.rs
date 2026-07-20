@@ -282,9 +282,14 @@ pub async fn set_album_motion_artwork_from_file(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let motion_dir = state.paths.profile_motion_dir(profile_id);
-    std::fs::create_dir_all(&motion_dir)?;
+    tokio::fs::create_dir_all(&motion_dir).await?;
 
-    let bytes = std::fs::read(&file_path)?;
+    // A motion cover can be up to MAX_MANUAL_MP4_BYTES (64 MiB) — an order
+    // of magnitude past the static-cover uploads this command's shape is
+    // otherwise modelled on, so the blocking read/write is routed through
+    // `tokio::fs` (spawn_blocking under the hood) instead of `std::fs`
+    // directly, unlike those smaller precedents.
+    let bytes = tokio::fs::read(&file_path).await?;
     if bytes.len() as u64 > MAX_MANUAL_MP4_BYTES {
         return Err(AppError::Other(format!(
             "file too large: {} bytes (max {MAX_MANUAL_MP4_BYTES})",
@@ -297,8 +302,8 @@ pub async fn set_album_motion_artwork_from_file(
 
     let hash = blake3::hash(&bytes).to_hex().to_string();
     let target = motion_dir.join(format!("{hash}.mp4"));
-    if !target.exists() {
-        std::fs::write(&target, &bytes)?;
+    if !tokio::fs::try_exists(&target).await? {
+        tokio::fs::write(&target, &bytes).await?;
     }
 
     sqlx::query(
