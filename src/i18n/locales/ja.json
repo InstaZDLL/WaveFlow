@@ -440,6 +440,7 @@
       "watched": "監視中",
       "watchOn": "変更を自動的に監視する",
       "watchOff": "監視を停止する",
+      "deepRescan": "ディープ再スキャン（すべてのファイルを再読み込み、低速）",
       "remove": "ライブラリからフォルダを削除",
       "removeConfirm": "もう一度クリックで確定",
       "removeConfirmWithPlays_one": "もう一度クリックして確認します。{{count}} 件の再生履歴は保持され、次回のスキャンで再び関連付けられます。",

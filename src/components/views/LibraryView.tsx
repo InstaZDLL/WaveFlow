@@ -65,6 +65,7 @@ import {
   removeFolderFromLibrary,
   countFolderPlayEvents,
   setFolderWatched,
+  scanFolder,
 } from "../../lib/tauri/library";
 import {
   formatDuration,
@@ -148,6 +149,12 @@ export function LibraryView({
   } = usePlaylist();
   const [isImporting, setIsImporting] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
+  // Which folder a deep rescan (issue #366) is currently running against,
+  // if any — drives the spinner on that row's action only, since it's a
+  // per-folder action rather than the global "Rescan" button above.
+  const [deepRescanFolderId, setDeepRescanFolderId] = useState<number | null>(
+    null,
+  );
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
   // When the create-playlist modal is opened from a popover's "+ New
@@ -435,6 +442,24 @@ export function LibraryView({
       console.error("[LibraryView] rescan failed", err);
     } finally {
       setIsRescanning(false);
+    }
+  };
+
+  const handleDeepRescanFolder = async (folderId: number) => {
+    if (deepRescanFolderId != null) return;
+    setDeepRescanFolderId(folderId);
+    try {
+      await scanFolder(folderId, true);
+      // scan_folder doesn't emit `library:rescanned` (only folder
+      // removal / tag edits do), so the row's last-scan date and track
+      // count would otherwise stay stale until some unrelated refresh —
+      // same refetch the mount effect above uses.
+      const list = await listFolders(null);
+      setFolders(list);
+    } catch (err) {
+      console.error("[LibraryView] deep rescan failed", err);
+    } finally {
+      setDeepRescanFolderId(null);
     }
   };
 
@@ -737,6 +762,8 @@ export function LibraryView({
                   console.error("[LibraryView] remove folder failed", err);
                 });
               }}
+              onDeepRescan={handleDeepRescanFolder}
+              deepRescanFolderId={deepRescanFolderId}
               onToggleWatched={(folderId, enable) => {
                 // Optimistic flip — the watcher hookup is fire-and-
                 // forget on the backend so the UI shouldn't block on it.
@@ -2204,6 +2231,11 @@ interface FolderListProps {
   onCreatePlaylist: (folderId: number) => void;
   onToggleWatched: (folderId: number, enable: boolean) => void;
   onRemove: (folderId: number) => void;
+  /** Issue #366 — force a full re-hash/re-read of every file in the
+   *  folder, bypassing the normal (mtime, size) fast path. */
+  onDeepRescan: (folderId: number) => void;
+  /** The folder a deep rescan is currently running against, if any. */
+  deepRescanFolderId: number | null;
 }
 
 function FolderList({
@@ -2215,6 +2247,8 @@ function FolderList({
   onCreatePlaylist,
   onToggleWatched,
   onRemove,
+  onDeepRescan,
+  deepRescanFolderId,
 }: FolderListProps) {
   const [openMenuFolderId, setOpenMenuFolderId] = useState<number | null>(null);
   // Two-step delete: first click arms the confirm state, second click
@@ -2341,6 +2375,30 @@ function FolderList({
                 ) : (
                   <EyeOff size={16} />
                 )}
+              </button>
+            </Tooltip>
+            <Tooltip label={t("library.folderList.deepRescan")}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeepRescan(folder.id);
+                }}
+                disabled={deepRescanFolderId != null}
+                aria-label={t("library.folderList.deepRescan")}
+                aria-busy={deepRescanFolderId === folder.id}
+                className={`p-1.5 rounded-full transition-colors text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50 ${
+                  deepRescanFolderId === folder.id
+                    ? "opacity-100"
+                    : "opacity-0 group-hover:opacity-100"
+                }`}
+              >
+                <RefreshCcw
+                  size={16}
+                  className={
+                    deepRescanFolderId === folder.id ? "animate-spin" : ""
+                  }
+                />
               </button>
             </Tooltip>
             <Tooltip

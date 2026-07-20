@@ -440,6 +440,7 @@
       "watched": "Dipantau",
       "watchOn": "Pantau perubahan secara otomatis",
       "watchOff": "Berhenti memantau",
+      "deepRescan": "Pemindaian ulang mendalam (membaca ulang semua berkas, lebih lambat)",
       "remove": "Keluarkan folder dari pustaka",
       "removeConfirm": "Klik lagi untuk konfirmasi",
       "removeConfirmWithPlays_one": "Klik lagi untuk mengonfirmasi. {{count}} pemutaran akan disimpan dan dihubungkan kembali pada pemindaian berikutnya.",

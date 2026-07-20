@@ -258,7 +258,7 @@ async fn run_scan(app: &AppHandle, folder_id: i64, library_id: i64) {
     // Pass the AppHandle so scan progress events still flow to any
     // open frontend window — fs-watcher rescans can be just as long as
     // a manual rescan when a big folder is touched.
-    match scan_folder_inner(&pool, &artwork_dir, folder_id, Some(app)).await {
+    match scan_folder_inner(&pool, &artwork_dir, folder_id, Some(app), false).await {
         Ok(summary) => {
             let changed = summary.added > 0 || summary.updated > 0 || summary.removed > 0;
             tracing::info!(

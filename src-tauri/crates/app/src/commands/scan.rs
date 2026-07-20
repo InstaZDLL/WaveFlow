@@ -383,7 +383,10 @@ fn extract_file(
 /// New files are inserted, existing rows are updated in place (keying on
 /// `(library_id, file_path)`), and files that haven't changed since the last
 /// scan — matched on `(file_modified, file_hash)` — are skipped to keep the
-/// loop fast on re-scans.
+/// loop fast on re-scans. Pass `deep: true` to bypass that fast path and
+/// force a full re-hash + re-read of every file in the folder (issue #366)
+/// — the only way to notice a tag/embedded-picture edit made by an
+/// external tool that preserved the file's mtime.
 ///
 /// Failures on individual files are logged but never abort the scan: the
 /// summary counter `errors` surfaces them to the UI so the user can tell how
@@ -393,11 +396,20 @@ pub async fn scan_folder(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     folder_id: i64,
+    // Issue #366, symptom A remainder: an external tool can rewrite a
+    // tag or an embedded picture while preserving the file's mtime
+    // (e.g. Mp3tag's "preserve modification time" option), which the
+    // normal fast-path scan below never notices. `deep` bypasses it so
+    // every file gets a full re-hash + re-read, at the cost of scan
+    // time — an explicit, occasional user action, not the default.
+    deep: Option<bool>,
 ) -> AppResult<ScanSummary> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
-    let summary = scan_folder_inner(&pool, &artwork_dir, folder_id, Some(&app)).await?;
+    let summary =
+        scan_folder_inner(&pool, &artwork_dir, folder_id, Some(&app), deep.unwrap_or(false))
+            .await?;
     // Phase 4.d.0.3: wake the sync drain so the freshly enqueued
     // track ops ship immediately instead of waiting on the
     // drain's idle poll. Matches the convention every other
@@ -419,11 +431,17 @@ pub async fn scan_folder(
 /// Takes the resolved database pool + artwork directory directly so it can
 /// run in contexts where a `tauri::State` isn't available (e.g. called in a
 /// loop from another command).
+///
+/// `deep` disables the Phase 1 `(mtime, size)` fast path below so every
+/// file is re-hashed and re-read regardless — every caller except
+/// `scan_folder` (issue #366's deep-rescan action) passes `false` to keep
+/// the normal fast re-scan behaviour.
 pub(crate) async fn scan_folder_inner(
     pool: &SqlitePool,
     artwork_dir: &Path,
     folder_id: i64,
     app_handle: Option<&tauri::AppHandle>,
+    deep: bool,
 ) -> AppResult<ScanSummary> {
     // Mark a scan in flight for the whole body so the background
     // analyzer parks itself instead of contending on CPU + the single
@@ -532,24 +550,44 @@ pub(crate) async fn scan_folder_inner(
     // Cheap fs::metadata (one syscall per file) lets us short-circuit
     // re-scans where nothing changed. Files that survive are pushed
     // to `to_extract` for the parallel extraction phase.
+    //
+    // `deep` skips the mtime/size comparison entirely (issue #366) —
+    // every file goes to `to_extract` and gets a full re-hash + re-read,
+    // the only way to catch a tag/embedded-picture edit that didn't move
+    // the file's mtime.
+    //
+    // Every path the walk actually found is removed from `existing_meta`
+    // right here, unconditionally — before the `deep` check and before
+    // knowing whether extraction will succeed. The disappearance sweep at
+    // the end of this function treats anything still left in
+    // `existing_meta` as gone from disk; a file that's merely queued for
+    // (re-)extraction is not gone, and if that extraction later fails
+    // (a lock, a transient I/O error, a malformed rewrite mid-scan), it
+    // must not be swept into `is_available = 0` just because the
+    // consumer loop's own `existing_meta.remove` — reached only on a
+    // successful extraction — never ran for it. Deep mode makes this
+    // matter far more: every file in the folder is now on the failure-
+    // exposed path, not just the ones that happened to change.
     let mut to_extract: Vec<PathBuf> = Vec::with_capacity(audio_files.len());
     for (idx, path) in audio_files.into_iter().enumerate() {
         summary.scanned += 1;
         let path_str = path.to_string_lossy().into_owned();
-        if let Some((stored_mtime, stored_size)) = existing_meta.get(&path_str) {
-            if let Ok(metadata) = std::fs::metadata(&path) {
-                let disk_size = metadata.len() as i64;
-                let disk_mtime_ms = metadata
-                    .modified()
-                    .ok()
-                    .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-                    .map(|d| d.as_millis() as i64)
-                    .unwrap_or(0);
-                if disk_size == *stored_size && disk_mtime_ms == *stored_mtime {
-                    existing_meta.remove(&path_str);
-                    summary.skipped += 1;
-                    maybe_emit_progress(app_handle, folder_id, idx + 1, total_files, &summary);
-                    continue;
+        let stored = existing_meta.remove(&path_str);
+        if !deep {
+            if let Some((stored_mtime, stored_size)) = stored {
+                if let Ok(metadata) = std::fs::metadata(&path) {
+                    let disk_size = metadata.len() as i64;
+                    let disk_mtime_ms = metadata
+                        .modified()
+                        .ok()
+                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                        .map(|d| d.as_millis() as i64)
+                        .unwrap_or(0);
+                    if disk_size == stored_size && disk_mtime_ms == stored_mtime {
+                        summary.skipped += 1;
+                        maybe_emit_progress(app_handle, folder_id, idx + 1, total_files, &summary);
+                        continue;
+                    }
                 }
             }
         }
@@ -672,7 +710,10 @@ pub(crate) async fn scan_folder_inner(
             }
         };
 
-        // File is on disk → keep it out of the deletion sweep below.
+        // Redundant with Phase 1's unconditional removal above (every
+        // walked path is already gone from `existing_meta` by this
+        // point) — left as a harmless no-op safety net rather than
+        // relied upon.
         existing_meta.remove(&extracted.abs_path);
 
         // Time the serial DB work for this track (probe + upserts +

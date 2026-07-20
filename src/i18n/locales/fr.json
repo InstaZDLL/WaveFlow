@@ -440,6 +440,7 @@
       "watched": "Surveillé",
       "watchOn": "Surveiller automatiquement les changements",
       "watchOff": "Arrêter la surveillance",
+      "deepRescan": "Rescan approfondi (relit tous les fichiers, plus lent)",
       "remove": "Retirer le dossier de la bibliothèque",
       "removeConfirm": "Cliquez à nouveau pour confirmer",
       "removeConfirmWithPlays_one": "Cliquez à nouveau pour confirmer. {{count}} écoute sera conservée et rattachée au prochain scan.",

@@ -440,6 +440,7 @@
       "watched": "Monitored",
       "watchOn": "Automatically monitor changes",
       "watchOff": "Stop monitoring",
+      "deepRescan": "Deep rescan (re-reads every file, slower)",
       "remove": "Remove folder from library",
       "removeConfirm": "Click again to confirm",
       "removeConfirmWithPlays_one": "Click again to confirm. {{count}} play will be kept and re-attached on the next scan.",

@@ -440,6 +440,7 @@
       "watched": "受監控",
       "watchOn": "自動監控變更",
       "watchOff": "停止監控",
+      "deepRescan": "深度重新掃描（重新讀取所有檔案，速度較慢）",
       "remove": "從音樂庫中移除資料夾",
       "removeConfirm": "再次點擊確認",
       "removeConfirmWithPlays_one": "再次點擊以確認。{{count}} 筆播放記錄將被保留，並在下次掃描時重新關聯。",
