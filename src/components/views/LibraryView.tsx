@@ -450,6 +450,12 @@ export function LibraryView({
     setDeepRescanFolderId(folderId);
     try {
       await scanFolder(folderId, true);
+      // scan_folder doesn't emit `library:rescanned` (only folder
+      // removal / tag edits do), so the row's last-scan date and track
+      // count would otherwise stay stale until some unrelated refresh —
+      // same refetch the mount effect above uses.
+      const list = await listFolders(null);
+      setFolders(list);
     } catch (err) {
       console.error("[LibraryView] deep rescan failed", err);
     } finally {
@@ -2381,7 +2387,11 @@ function FolderList({
                 disabled={deepRescanFolderId != null}
                 aria-label={t("library.folderList.deepRescan")}
                 aria-busy={deepRescanFolderId === folder.id}
-                className="p-1.5 rounded-full transition-colors opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50"
+                className={`p-1.5 rounded-full transition-colors text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50 ${
+                  deepRescanFolderId === folder.id
+                    ? "opacity-100"
+                    : "opacity-0 group-hover:opacity-100"
+                }`}
               >
                 <RefreshCcw
                   size={16}

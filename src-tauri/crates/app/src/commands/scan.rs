@@ -551,18 +551,30 @@ pub(crate) async fn scan_folder_inner(
     // re-scans where nothing changed. Files that survive are pushed
     // to `to_extract` for the parallel extraction phase.
     //
-    // `deep` skips this filter entirely (issue #366) — every file goes
-    // to `to_extract` and gets a full re-hash + re-read, the only way
-    // to catch a tag/embedded-picture edit that didn't move the file's
-    // mtime. `existing_meta` is left untouched in that case; the
-    // consumer loop below still removes each processed path from it
-    // (see its own comment), so the disappearance sweep is unaffected.
+    // `deep` skips the mtime/size comparison entirely (issue #366) —
+    // every file goes to `to_extract` and gets a full re-hash + re-read,
+    // the only way to catch a tag/embedded-picture edit that didn't move
+    // the file's mtime.
+    //
+    // Every path the walk actually found is removed from `existing_meta`
+    // right here, unconditionally — before the `deep` check and before
+    // knowing whether extraction will succeed. The disappearance sweep at
+    // the end of this function treats anything still left in
+    // `existing_meta` as gone from disk; a file that's merely queued for
+    // (re-)extraction is not gone, and if that extraction later fails
+    // (a lock, a transient I/O error, a malformed rewrite mid-scan), it
+    // must not be swept into `is_available = 0` just because the
+    // consumer loop's own `existing_meta.remove` — reached only on a
+    // successful extraction — never ran for it. Deep mode makes this
+    // matter far more: every file in the folder is now on the failure-
+    // exposed path, not just the ones that happened to change.
     let mut to_extract: Vec<PathBuf> = Vec::with_capacity(audio_files.len());
     for (idx, path) in audio_files.into_iter().enumerate() {
         summary.scanned += 1;
+        let path_str = path.to_string_lossy().into_owned();
+        let stored = existing_meta.remove(&path_str);
         if !deep {
-            let path_str = path.to_string_lossy().into_owned();
-            if let Some((stored_mtime, stored_size)) = existing_meta.get(&path_str) {
+            if let Some((stored_mtime, stored_size)) = stored {
                 if let Ok(metadata) = std::fs::metadata(&path) {
                     let disk_size = metadata.len() as i64;
                     let disk_mtime_ms = metadata
@@ -571,8 +583,7 @@ pub(crate) async fn scan_folder_inner(
                         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
                         .map(|d| d.as_millis() as i64)
                         .unwrap_or(0);
-                    if disk_size == *stored_size && disk_mtime_ms == *stored_mtime {
-                        existing_meta.remove(&path_str);
+                    if disk_size == stored_size && disk_mtime_ms == stored_mtime {
                         summary.skipped += 1;
                         maybe_emit_progress(app_handle, folder_id, idx + 1, total_files, &summary);
                         continue;
@@ -699,7 +710,10 @@ pub(crate) async fn scan_folder_inner(
             }
         };
 
-        // File is on disk → keep it out of the deletion sweep below.
+        // Redundant with Phase 1's unconditional removal above (every
+        // walked path is already gone from `existing_meta` by this
+        // point) — left as a harmless no-op safety net rather than
+        // relied upon.
         existing_meta.remove(&extracted.abs_path);
 
         // Time the serial DB work for this track (probe + upserts +
