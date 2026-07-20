@@ -949,7 +949,8 @@
     "emptyTitle": "एल्बम नहीं मिला",
     "emptyDescription": "यह एल्बम अब सक्रिय प्रोफ़ाइल में उपलब्ध नहीं है।",
     "emptyTracksTitle": "कोई ट्रैक नहीं",
-    "emptyTracksDescription": "इस एल्बम में कोई ट्रैक नहीं हैं।"
+    "emptyTracksDescription": "इस एल्बम में कोई ट्रैक नहीं हैं।",
+    "setMotionCover": "मोशन कवर"
   },
   "artistDetail": {
     "badge": "कलाकार",
@@ -984,6 +985,12 @@
     "removeAction": "छवि हटाएँ",
     "fansCount_one": "{{display}} प्रशंसक",
     "fansCount_other": "{{display}} प्रशंसक"
+  },
+  "motionCoverPicker": {
+    "title": "मैन्युअल मोशन कवर",
+    "subtitle": "एक लोकल MP4 फ़ाइल चुनें। यह प्लगइन द्वारा दिए गए मोशन कवर की जगह लेता है और रीफ़्रेश से कभी ओवरराइट नहीं होता।",
+    "pickFile": "MP4 फ़ाइल चुनें",
+    "removeAction": "मोशन कवर हटाएं"
   },
   "genreDetail": {
     "badge": "शैली",

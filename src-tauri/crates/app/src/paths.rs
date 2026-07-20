@@ -18,7 +18,8 @@ use crate::error::{AppError, AppResult};
 /// └── profiles/
 ///     └── <profile_id>/
 ///         ├── data.db           (per-profile database)
-///         └── artwork/          (per-profile artwork cache)
+///         ├── artwork/          (per-profile artwork cache)
+///         └── motion/           (per-profile manual motion covers, never evicted)
 /// ```
 ///
 /// `bundled_plugins_dir` is resolved separately against
@@ -126,10 +127,19 @@ impl AppPaths {
         self.profile_dir(profile_id).join("artwork")
     }
 
+    /// Per-profile directory for user-supplied animated album covers
+    /// (issue #408). Unlike [`Self::motion_cache_dir`] — a 1 GB LRU that
+    /// evicts plugin-downloaded mp4s by mtime — a file here was chosen
+    /// deliberately by the user and must never be evicted.
+    pub fn profile_motion_dir(&self, profile_id: i64) -> PathBuf {
+        self.profile_dir(profile_id).join("motion")
+    }
+
     /// Create the directory layout required for a brand-new profile.
     pub fn ensure_profile_dirs(&self, profile_id: i64) -> AppResult<()> {
         std::fs::create_dir_all(self.profile_dir(profile_id))?;
         std::fs::create_dir_all(self.profile_artwork_dir(profile_id))?;
+        std::fs::create_dir_all(self.profile_motion_dir(profile_id))?;
         Ok(())
     }
 

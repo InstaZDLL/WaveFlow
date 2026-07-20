@@ -949,7 +949,8 @@
     "emptyTitle": "Álbum no encontrado",
     "emptyDescription": "Este álbum ya no está disponible en el perfil activo.",
     "emptyTracksTitle": "Sin pistas",
-    "emptyTracksDescription": "Este álbum no contiene pistas disponibles."
+    "emptyTracksDescription": "Este álbum no contiene pistas disponibles.",
+    "setMotionCover": "Portada animada"
   },
   "artistDetail": {
     "badge": "Artista",
@@ -984,6 +985,12 @@
     "removeAction": "Quitar imagen",
     "fansCount_one": "{{display}} fan",
     "fansCount_other": "{{display}} fans"
+  },
+  "motionCoverPicker": {
+    "title": "Portada animada manual",
+    "subtitle": "Elige un archivo MP4 local. Sustituye a la portada animada del plugin y nunca se sobrescribe con una actualización.",
+    "pickFile": "Elegir un archivo MP4",
+    "removeAction": "Quitar la portada animada"
   },
   "genreDetail": {
     "badge": "Género",

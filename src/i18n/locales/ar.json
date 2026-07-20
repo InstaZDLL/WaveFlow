@@ -1050,6 +1050,7 @@
     "emptyDescription": "لم يعد هذا الألبوم متاحًا في الملف الشخصي النشط.",
     "emptyTracksTitle": "لا توجد مقاطع",
     "emptyTracksDescription": "لا يحتوي هذا الألبوم على أي مقطع متاح.",
+    "setMotionCover": "غلاف متحرك",
     "trackCount_two": "مقطعان",
     "trackCount_few": "{{count}} مقاطع",
     "trackCount_many": "{{count}} مقطعًا"
@@ -1100,6 +1101,12 @@
     "fansCount_few": "{{display}} معجب",
     "fansCount_many": "{{display}} معجب",
     "fansCount_other": "{{display}} معجب"
+  },
+  "motionCoverPicker": {
+    "title": "غلاف متحرك يدوي",
+    "subtitle": "اختر ملف MP4 محليًا. يحل محل الغلاف المتحرك الذي يوفره الإضافة ولا يُستبدل أبدًا عند التحديث.",
+    "pickFile": "اختيار ملف MP4",
+    "removeAction": "إزالة الغلاف المتحرك"
   },
   "genreDetail": {
     "badge": "النوع",

@@ -949,7 +949,8 @@
     "emptyTitle": "Álbum não encontrado",
     "emptyDescription": "Este álbum já não existe no perfil ativo.",
     "emptyTracksTitle": "Nenhuma música",
-    "emptyTracksDescription": "Este álbum não contém nenhuma faixa disponível."
+    "emptyTracksDescription": "Este álbum não contém nenhuma faixa disponível.",
+    "setMotionCover": "Capa animada"
   },
   "artistDetail": {
     "badge": "Artista",
@@ -984,6 +985,12 @@
     "removeAction": "Remover imagem",
     "fansCount_one": "{{display}} fã",
     "fansCount_other": "{{display}} fãs"
+  },
+  "motionCoverPicker": {
+    "title": "Capa animada manual",
+    "subtitle": "Escolha um ficheiro MP4 local. Substitui a capa animada fornecida pelo plugin e nunca é substituída por uma atualização.",
+    "pickFile": "Escolher um ficheiro MP4",
+    "removeAction": "Remover capa animada"
   },
   "genreDetail": {
     "badge": "Género",

@@ -949,7 +949,8 @@
     "emptyTitle": "Album nicht gefunden",
     "emptyDescription": "Dieses Album ist im aktiven Profil nicht mehr verfügbar.",
     "emptyTracksTitle": "Keine Titel",
-    "emptyTracksDescription": "Dieses Album enthält keine verfügbaren Titel."
+    "emptyTracksDescription": "Dieses Album enthält keine verfügbaren Titel.",
+    "setMotionCover": "Animiertes Cover"
   },
   "artistDetail": {
     "badge": "Künstler",
@@ -984,6 +985,12 @@
     "removeAction": "Bild entfernen",
     "fansCount_one": "{{display}} Fan",
     "fansCount_other": "{{display}} Fans"
+  },
+  "motionCoverPicker": {
+    "title": "Manuelles animiertes Cover",
+    "subtitle": "Wähle eine lokale MP4-Datei. Sie ersetzt das vom Plugin bereitgestellte animierte Cover und wird nie durch eine Aktualisierung überschrieben.",
+    "pickFile": "MP4-Datei auswählen",
+    "removeAction": "Animiertes Cover entfernen"
   },
   "genreDetail": {
     "badge": "Genre",

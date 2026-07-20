@@ -949,7 +949,8 @@
     "emptyTitle": "找不到该专辑",
     "emptyDescription": "此专辑已不在当前的个人资料中。",
     "emptyTracksTitle": "没有歌曲",
-    "emptyTracksDescription": "该专辑中没有可播放的歌曲。"
+    "emptyTracksDescription": "该专辑中没有可播放的歌曲。",
+    "setMotionCover": "动态封面"
   },
   "artistDetail": {
     "badge": "艺人",
@@ -984,6 +985,12 @@
     "removeAction": "移除图片",
     "fansCount_other": "{{display}} 位粉丝",
     "fansCount_one": "{{display}} 位粉丝"
+  },
+  "motionCoverPicker": {
+    "title": "手动动态封面",
+    "subtitle": "选择本地 MP4 文件。它将替代插件提供的动态封面，且不会被刷新覆盖。",
+    "pickFile": "选择 MP4 文件",
+    "removeAction": "移除动态封面"
   },
   "genreDetail": {
     "badge": "流派",

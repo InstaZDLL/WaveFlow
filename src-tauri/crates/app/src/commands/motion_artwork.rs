@@ -51,6 +51,13 @@ pub struct MotionArtwork {
 /// `motion-cover-url`. Returns `None` when offline, when no metadata plugin
 /// is installed, or when none has motion artwork for the album.
 ///
+/// When `album_id` resolves a row in `album_motion_artwork` (issue #408),
+/// that user-supplied file wins outright and the plugin fan-out below never
+/// runs — same precedence a manual static cover already gets. `album_id` is
+/// `Option` because a couple of call sites (radio, any future text-only
+/// lookup) don't always have one; they simply lose the manual-override path
+/// and behave exactly as before this field existed.
+///
 /// The lookups fan out (each on its own blocking task) and the first hit
 /// wins; the rest are dropped. Every lookup is bounded by [`PLUGIN_TIMEOUT`],
 /// so one slow or hung plugin can't stall the others or the now-playing
@@ -66,7 +73,14 @@ pub async fn fetch_album_motion_artwork(
     state: State<'_, AppState>,
     artist: String,
     album: String,
+    album_id: Option<i64>,
 ) -> AppResult<Option<MotionArtwork>> {
+    if let Some(id) = album_id {
+        if let Some(manual) = manual_motion_artwork(&state, id).await? {
+            return Ok(Some(manual));
+        }
+    }
+
     if offline::is_offline() {
         return Ok(None);
     }
@@ -201,6 +215,127 @@ pub async fn fetch_album_motion_artwork(
 
     tracing::debug!(%artist, %album, "no motion artwork from any metadata plugin");
     Ok(None)
+}
+
+// ----- manual motion cover (issue #408) ------------------------------------
+
+/// Hard cap on a user-supplied motion cover, independent of
+/// [`motion_cache::MAX_MP4_BYTES`] (the plugin-download cap) — a
+/// deliberately-chosen file deserves a more generous limit than an
+/// automated fetch, but still needs *a* ceiling since this directory is
+/// never evicted.
+const MAX_MANUAL_MP4_BYTES: u64 = 64 * 1024 * 1024;
+
+/// Look up `album_id`'s manual motion cover, if one was set via
+/// [`set_album_motion_artwork_from_file`]. `plugin_id` is the sentinel
+/// `"manual"` — nothing installed produced it, but the field must still
+/// carry something for the frontend's attribution display.
+async fn manual_motion_artwork(
+    state: &AppState,
+    album_id: i64,
+) -> AppResult<Option<MotionArtwork>> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let row: Option<(String, String)> = sqlx::query_as(
+        "SELECT hash, format FROM album_motion_artwork WHERE album_id = ?",
+    )
+    .bind(album_id)
+    .fetch_optional(&*pool)
+    .await?;
+    let Some((hash, format)) = row else {
+        return Ok(None);
+    };
+    let path = state
+        .paths
+        .profile_motion_dir(profile_id)
+        .join(format!("{hash}.{format}"));
+    Ok(Some(MotionArtwork {
+        square_url: path.to_string_lossy().into_owned(),
+        tall_url: None,
+        plugin_id: "manual".into(),
+    }))
+}
+
+/// First box of an ISO base media file (mp4/mov) is required to be `ftyp`
+/// when present, which in practice means always for a real-world mp4 —
+/// the same "check the magic bytes, don't fully parse" approach
+/// `detect_image_format` (`deezer.rs`) uses for jpg/png/webp.
+fn is_mp4(bytes: &[u8]) -> bool {
+    bytes.len() >= 8 && &bytes[4..8] == b"ftyp"
+}
+
+/// Set `album_id`'s manual motion cover from a local mp4 file, replacing
+/// any previous one. Validated by magic bytes (rejecting at pick time
+/// beats rendering a black rectangle) and size-capped, then hash-addressed
+/// into the never-evicted [`AppPaths::profile_motion_dir`] — deliberately
+/// NOT [`AppPaths::motion_cache_dir`], which is a 1 GB LRU that would
+/// eventually evict a user's own choice (see that field's doc comment).
+///
+/// Takes precedence over the plugin automatically: [`fetch_album_motion_artwork`]
+/// checks this table before ever fanning out to a plugin.
+#[tauri::command]
+pub async fn set_album_motion_artwork_from_file(
+    state: State<'_, AppState>,
+    album_id: i64,
+    file_path: String,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    let profile_id = state.require_profile_id().await?;
+    let motion_dir = state.paths.profile_motion_dir(profile_id);
+    tokio::fs::create_dir_all(&motion_dir).await?;
+
+    // A motion cover can be up to MAX_MANUAL_MP4_BYTES (64 MiB) — an order
+    // of magnitude past the static-cover uploads this command's shape is
+    // otherwise modelled on, so the blocking read/write is routed through
+    // `tokio::fs` (spawn_blocking under the hood) instead of `std::fs`
+    // directly, unlike those smaller precedents.
+    let bytes = tokio::fs::read(&file_path).await?;
+    if bytes.len() as u64 > MAX_MANUAL_MP4_BYTES {
+        return Err(AppError::Other(format!(
+            "file too large: {} bytes (max {MAX_MANUAL_MP4_BYTES})",
+            bytes.len()
+        )));
+    }
+    if !is_mp4(&bytes) {
+        return Err(AppError::Other("unsupported format (expected mp4)".into()));
+    }
+
+    let hash = blake3::hash(&bytes).to_hex().to_string();
+    let target = motion_dir.join(format!("{hash}.mp4"));
+    if !tokio::fs::try_exists(&target).await? {
+        tokio::fs::write(&target, &bytes).await?;
+    }
+
+    sqlx::query(
+        "INSERT INTO album_motion_artwork (album_id, hash, format, created_at)
+         VALUES (?, ?, 'mp4', ?)
+         ON CONFLICT(album_id) DO UPDATE SET
+            hash = excluded.hash, format = excluded.format, created_at = excluded.created_at",
+    )
+    .bind(album_id)
+    .bind(&hash)
+    .bind(chrono::Utc::now().timestamp_millis())
+    .execute(&*pool)
+    .await?;
+
+    Ok(())
+}
+
+/// Clear `album_id`'s manual motion cover, if any — the resolution chain
+/// falls back to the plugin result on the next lookup. The old file is
+/// left on disk (same "future GC pass" tradeoff as `clear_artist_artwork`);
+/// a no-op when there was nothing to clear.
+#[tauri::command]
+pub async fn clear_album_motion_artwork(
+    state: State<'_, AppState>,
+    album_id: i64,
+) -> AppResult<()> {
+    let pool = state.require_profile_pool().await?;
+    sqlx::query("DELETE FROM album_motion_artwork WHERE album_id = ?")
+        .bind(album_id)
+        .execute(&*pool)
+        .await?;
+    Ok(())
 }
 
 // ----- local motion cache --------------------------------------------------

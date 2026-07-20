@@ -949,7 +949,8 @@
     "emptyTitle": "Album introuvable",
     "emptyDescription": "Cet album n'existe plus dans le profil actif.",
     "emptyTracksTitle": "Aucun titre",
-    "emptyTracksDescription": "Cet album ne contient aucun titre disponible."
+    "emptyTracksDescription": "Cet album ne contient aucun titre disponible.",
+    "setMotionCover": "Pochette animée"
   },
   "artistDetail": {
     "badge": "Artiste",
@@ -984,6 +985,12 @@
     "removeAction": "Supprimer l'image",
     "fansCount_one": "{{display}} fan",
     "fansCount_other": "{{display}} fans"
+  },
+  "motionCoverPicker": {
+    "title": "Pochette animée manuelle",
+    "subtitle": "Choisissez un fichier MP4 local. Il remplace la pochette animée fournie par un plugin et n'est jamais écrasé par une actualisation.",
+    "pickFile": "Choisir un fichier MP4",
+    "removeAction": "Retirer la pochette animée"
   },
   "genreDetail": {
     "badge": "Genre",
