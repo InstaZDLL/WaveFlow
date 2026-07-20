@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Lock } from "lucide-react";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import {
   playerGetWasapiExclusive,
@@ -43,6 +44,35 @@ export function ExclusiveModeCard() {
         console.error("[ExclusiveModeCard] get failed", err);
         setEnabled(false);
       });
+  }, [isWindows]);
+
+  // The engine can rebuild the output stream on its own — a device
+  // flap (issue #405), a device switch from the output-device picker —
+  // without the user ever touching this toggle. Without this listener
+  // `enabled` only ever reflected the mount-time read or the last
+  // manual click, so it could show "on" while a fallback had silently
+  // dropped the engine to shared mode. `player:audio-mode-changed`
+  // carries no payload; a re-fetch here mirrors the one `toggle()`
+  // already does after a manual click.
+  useEffect(() => {
+    if (!isWindows) return;
+    let unlisten: UnlistenFn | null = null;
+    (async () => {
+      try {
+        unlisten = await listen("player:audio-mode-changed", () => {
+          playerGetWasapiExclusive()
+            .then(setEnabled)
+            .catch((err) => {
+              console.error("[ExclusiveModeCard] refresh after rebuild failed", err);
+            });
+        });
+      } catch (err) {
+        console.error("[ExclusiveModeCard] listen failed", err);
+      }
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
   }, [isWindows]);
 
   if (!isWindows) return null;
