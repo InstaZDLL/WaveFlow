@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 
 use crossbeam_channel::{unbounded, Sender};
 use rtrb::Producer;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc::unbounded_channel;
 
 use crate::error::{AppError, AppResult};
@@ -734,6 +734,11 @@ impl AudioEngine {
             guard.as_ref().map(|h| h.wasapi_exclusive).unwrap_or(false),
             std::sync::atomic::Ordering::Release,
         );
+        // Settings' exclusive-mode toggle only re-reads its state on
+        // mount and after a manual click (issue #405) — this is the
+        // one signal that tells it a rebuild just happened behind its
+        // back, whether that landed in exclusive or fell back to shared.
+        let _ = self.app.emit("player:audio-mode-changed", ());
 
         // Resume best-effort. Same async pattern as
         // `set_output_device` and `set_wasapi_exclusive` — pull the
@@ -890,6 +895,9 @@ impl AudioEngine {
             guard.as_ref().map(|h| h.wasapi_exclusive).unwrap_or(false),
             std::sync::atomic::Ordering::Release,
         );
+        // See force_rebuild_output's comment (issue #405) — a device
+        // switch can also flip the actually-engaged exclusive mode.
+        let _ = self.app.emit("player:audio-mode-changed", ());
 
         // Step 6 — resume the previous track if we were playing one.
         // Radio (negative sentinel id) re-dispatches the cached
@@ -1006,6 +1014,11 @@ impl AudioEngine {
         *guard = Some(handle);
         self.wasapi_exclusive_active
             .store(active_mode, std::sync::atomic::Ordering::Release);
+        // Redundant with the caller's own re-read after a manual toggle
+        // (ExclusiveModeCard.tsx), but kept for consistency with the
+        // other two write sites (issue #405) in case this is ever
+        // called from somewhere that doesn't already refresh itself.
+        let _ = self.app.emit("player:audio-mode-changed", ());
 
         // Radio sessions re-dispatch `LoadUrlAndPlay` directly so
         // the WASAPI flip doesn't drop the user off the stream.
