@@ -24,9 +24,16 @@ const MAX_RESOLVED = 64;
 const inFlight = new Map<string, Promise<MotionArtwork | null>>();
 const resolved = new Map<string, MotionArtwork | null>();
 
-/** `\0` can't appear in a tag value, so it can't forge a collision. */
-function cacheKey(artist: string, album: string): string {
-  return `${artist}\0${album}`;
+/** `\0` can't appear in a tag value, so it can't forge a collision.
+ *  `albumId` rides along so a manual override (issue #408) — which is
+ *  resolved by id, not text — gets its own cache entry rather than
+ *  reusing one keyed only by a name that could collide across albums. */
+function cacheKey(
+  artist: string,
+  album: string,
+  albumId: number | null | undefined,
+): string {
+  return `${artist}\0${album}\0${albumId ?? ""}`;
 }
 
 function rememberResolved(key: string, value: MotionArtwork | null): void {
@@ -40,15 +47,19 @@ function rememberResolved(key: string, value: MotionArtwork | null): void {
   }
 }
 
-function lookup(artist: string, album: string): Promise<MotionArtwork | null> {
-  const key = cacheKey(artist, album);
+function lookup(
+  artist: string,
+  album: string,
+  albumId: number | null | undefined,
+): Promise<MotionArtwork | null> {
+  const key = cacheKey(artist, album, albumId);
   if (resolved.has(key)) {
     return Promise.resolve(resolved.get(key) ?? null);
   }
   const pending = inFlight.get(key);
   if (pending) return pending;
 
-  const request = fetchAlbumMotionArtwork(artist, album)
+  const request = fetchAlbumMotionArtwork(artist, album, albumId ?? null)
     .then((motion) => {
       rememberResolved(key, motion);
       return motion;
@@ -79,6 +90,7 @@ function lookup(artist: string, album: string): Promise<MotionArtwork | null> {
 export function useAlbumMotionArtwork(
   artist: string | null | undefined,
   album: string | null | undefined,
+  albumId?: number | null,
 ): MotionArtwork | null {
   const [motion, setMotion] = useState<MotionArtwork | null>(null);
 
@@ -94,12 +106,12 @@ export function useAlbumMotionArtwork(
     // resolves, so the new artwork only ever replaces `null`.
     Promise.resolve<MotionArtwork | null>(null).then(apply);
     if (artist && album) {
-      lookup(artist, album).then(apply, () => apply(null));
+      lookup(artist, album, albumId).then(apply, () => apply(null));
     }
     return () => {
       cancelled = true;
     };
-  }, [artist, album]);
+  }, [artist, album, albumId]);
 
   return motion;
 }

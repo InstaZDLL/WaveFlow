@@ -949,7 +949,8 @@
     "emptyTitle": "Album not found",
     "emptyDescription": "This album is no longer available in the active profile.",
     "emptyTracksTitle": "No tracks",
-    "emptyTracksDescription": "This album does not contain any available tracks."
+    "emptyTracksDescription": "This album does not contain any available tracks.",
+    "setMotionCover": "Motion cover"
   },
   "artistDetail": {
     "badge": "Artist",
@@ -984,6 +985,12 @@
     "removeAction": "Remove image",
     "fansCount_one": "{{display}} fan",
     "fansCount_other": "{{display}} fans"
+  },
+  "motionCoverPicker": {
+    "title": "Manual motion cover",
+    "subtitle": "Choose a local MP4 file. It replaces the plugin-supplied motion cover and is never overwritten by a refresh.",
+    "pickFile": "Choose an MP4 file",
+    "removeAction": "Remove motion cover"
   },
   "genreDetail": {
     "badge": "Genre",

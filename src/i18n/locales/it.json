@@ -949,7 +949,8 @@
     "emptyTitle": "Album non trovato",
     "emptyDescription": "Questo album non è più disponibile nel profilo attivo.",
     "emptyTracksTitle": "Nessun brano",
-    "emptyTracksDescription": "Questo album non contiene brani disponibili."
+    "emptyTracksDescription": "Questo album non contiene brani disponibili.",
+    "setMotionCover": "Copertina animata"
   },
   "artistDetail": {
     "badge": "Artista",
@@ -984,6 +985,12 @@
     "removeAction": "Rimuovi immagine",
     "fansCount_one": "{{display}} fan",
     "fansCount_other": "{{display}} fan"
+  },
+  "motionCoverPicker": {
+    "title": "Copertina animata manuale",
+    "subtitle": "Scegli un file MP4 locale. Sostituisce la copertina animata fornita dal plugin e non viene mai sovrascritta da un aggiornamento.",
+    "pickFile": "Scegli un file MP4",
+    "removeAction": "Rimuovi copertina animata"
   },
   "genreDetail": {
     "badge": "Genere",

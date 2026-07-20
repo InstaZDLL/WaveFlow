@@ -679,6 +679,8 @@ pub fn run() {
             commands::motion_artwork::get_motion_cache_info,
             commands::motion_artwork::set_motion_cache_enabled,
             commands::motion_artwork::clear_motion_cache,
+            commands::motion_artwork::set_album_motion_artwork_from_file,
+            commands::motion_artwork::clear_album_motion_artwork,
             commands::integration::get_lastfm_api_key,
             commands::integration::set_lastfm_api_key,
             commands::integration::get_bio_source,

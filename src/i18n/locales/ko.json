@@ -949,7 +949,8 @@
     "emptyTitle": "앨범을 찾을 수 없습니다",
     "emptyDescription": "이 앨범은 현재 프로필에서 더 이상 존재하지 않습니다.",
     "emptyTracksTitle": "곡 없음",
-    "emptyTracksDescription": "이 앨범에는 수록된 곡이 없습니다."
+    "emptyTracksDescription": "이 앨범에는 수록된 곡이 없습니다.",
+    "setMotionCover": "모션 커버"
   },
   "artistDetail": {
     "badge": "아티스트",
@@ -984,6 +985,12 @@
     "removeAction": "이미지 제거",
     "fansCount_one": "팬 {{display}}명",
     "fansCount_other": "팬 {{display}}명"
+  },
+  "motionCoverPicker": {
+    "title": "수동 모션 커버",
+    "subtitle": "로컬 MP4 파일을 선택하세요. 플러그인이 제공하는 모션 커버를 대체하며 새로고침으로 덮어써지지 않습니다.",
+    "pickFile": "MP4 파일 선택",
+    "removeAction": "모션 커버 제거"
   },
   "genreDetail": {
     "badge": "장르",

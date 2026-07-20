@@ -949,7 +949,8 @@
     "emptyTitle": "Album tidak ditemukan",
     "emptyDescription": "Album ini tidak lagi tersedia di profil aktif.",
     "emptyTracksTitle": "Tidak ada lagu",
-    "emptyTracksDescription": "Album ini tidak berisi lagu yang tersedia."
+    "emptyTracksDescription": "Album ini tidak berisi lagu yang tersedia.",
+    "setMotionCover": "Sampul animasi"
   },
   "artistDetail": {
     "badge": "Artis",
@@ -984,6 +985,12 @@
     "removeAction": "Hapus gambar",
     "fansCount_one": "{{display}} penggemar",
     "fansCount_other": "{{display}} penggemar"
+  },
+  "motionCoverPicker": {
+    "title": "Sampul animasi manual",
+    "subtitle": "Pilih berkas MP4 lokal. Berkas ini menggantikan sampul animasi dari plugin dan tidak akan pernah ditimpa oleh pembaruan.",
+    "pickFile": "Pilih berkas MP4",
+    "removeAction": "Hapus sampul animasi"
   },
   "genreDetail": {
     "badge": "Genre",

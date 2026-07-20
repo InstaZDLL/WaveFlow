@@ -949,7 +949,8 @@
     "emptyTitle": "Album niet gevonden",
     "emptyDescription": "Dit album is niet meer beschikbaar in het actieve profiel.",
     "emptyTracksTitle": "Geen nummers",
-    "emptyTracksDescription": "Dit album bevat geen beschikbare nummers."
+    "emptyTracksDescription": "Dit album bevat geen beschikbare nummers.",
+    "setMotionCover": "Bewegende hoes"
   },
   "artistDetail": {
     "badge": "Artiest",
@@ -984,6 +985,12 @@
     "removeAction": "Afbeelding verwijderen",
     "fansCount_one": "{{display}} fan",
     "fansCount_other": "{{display}} fans"
+  },
+  "motionCoverPicker": {
+    "title": "Handmatige bewegende hoes",
+    "subtitle": "Kies een lokaal MP4-bestand. Het vervangt de door de plugin geleverde bewegende hoes en wordt nooit overschreven door een vernieuwing.",
+    "pickFile": "MP4-bestand kiezen",
+    "removeAction": "Bewegende hoes verwijderen"
   },
   "genreDetail": {
     "badge": "Genre",

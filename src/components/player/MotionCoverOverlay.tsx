@@ -25,15 +25,19 @@ const ROUND: Record<"md" | "lg" | "xl" | "2xl", string> = {
 export function MotionCoverOverlay({
   artist,
   album,
+  albumId,
   rounded = "2xl",
   className,
 }: {
   artist: string | null | undefined;
   album: string | null | undefined;
+  /** Enables the manual-override lookup (issue #408) — omit for surfaces
+   *  with no album row to key off (e.g. Web Radio). */
+  albumId?: number | null;
   rounded?: "md" | "lg" | "xl" | "2xl";
   className?: string;
 }) {
-  const motion = useAlbumMotionArtwork(artist, album);
+  const motion = useAlbumMotionArtwork(artist, album, albumId);
   if (!motion) return null;
   // Key on the URL so switching album remounts the video and resets the
   // ready/failed state below.

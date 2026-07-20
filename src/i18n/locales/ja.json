@@ -949,7 +949,8 @@
     "emptyTitle": "アルバムが見つかりません",
     "emptyDescription": "このアルバムは、現在のプロフィールには存在しません。",
     "emptyTracksTitle": "曲なし",
-    "emptyTracksDescription": "このアルバムには収録曲が1曲もありません。"
+    "emptyTracksDescription": "このアルバムには収録曲が1曲もありません。",
+    "setMotionCover": "モーションカバー"
   },
   "artistDetail": {
     "badge": "アーティスト",
@@ -984,6 +985,12 @@
     "removeAction": "画像を削除",
     "fansCount_other": "{{display}} 人のファン",
     "fansCount_one": "{{display}} 人のファン"
+  },
+  "motionCoverPicker": {
+    "title": "手動モーションカバー",
+    "subtitle": "ローカルのMP4ファイルを選択してください。プラグインが提供するモーションカバーを置き換え、更新で上書きされることはありません。",
+    "pickFile": "MP4ファイルを選択",
+    "removeAction": "モーションカバーを削除"
   },
   "genreDetail": {
     "badge": "ジャンル",

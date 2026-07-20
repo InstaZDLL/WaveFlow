@@ -949,7 +949,8 @@
     "emptyTitle": "Albüm bulunamadı",
     "emptyDescription": "Bu albüm etkin profilde artık yok.",
     "emptyTracksTitle": "Parça yok",
-    "emptyTracksDescription": "Bu albümde kullanılabilir parça yok."
+    "emptyTracksDescription": "Bu albümde kullanılabilir parça yok.",
+    "setMotionCover": "Hareketli kapak"
   },
   "artistDetail": {
     "badge": "Sanatçı",
@@ -984,6 +985,12 @@
     "removeAction": "Görseli kaldır",
     "fansCount_one": "{{display}} hayran",
     "fansCount_other": "{{display}} hayran"
+  },
+  "motionCoverPicker": {
+    "title": "Manuel hareketli kapak",
+    "subtitle": "Yerel bir MP4 dosyası seçin. Eklentinin sağladığı hareketli kapağın yerini alır ve yenilemeyle asla üzerine yazılmaz.",
+    "pickFile": "Bir MP4 dosyası seç",
+    "removeAction": "Hareketli kapağı kaldır"
   },
   "genreDetail": {
     "badge": "Tür",

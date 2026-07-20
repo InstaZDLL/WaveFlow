@@ -949,7 +949,8 @@
     "emptyTitle": "找不到專輯",
     "emptyDescription": "此專輯已不在目前的個人檔案中。",
     "emptyTracksTitle": "沒有任何曲目",
-    "emptyTracksDescription": "這張專輯中沒有任何可供聆聽的曲目。"
+    "emptyTracksDescription": "這張專輯中沒有任何可供聆聽的曲目。",
+    "setMotionCover": "動態封面"
   },
   "artistDetail": {
     "badge": "藝人",
@@ -984,6 +985,12 @@
     "removeAction": "移除圖片",
     "fansCount_other": "{{display}} 位粉絲",
     "fansCount_one": "{{display}} 位粉絲"
+  },
+  "motionCoverPicker": {
+    "title": "手動動態封面",
+    "subtitle": "選擇本機 MP4 檔案。它會取代外掛提供的動態封面，且不會被重新整理覆蓋。",
+    "pickFile": "選擇 MP4 檔案",
+    "removeAction": "移除動態封面"
   },
   "genreDetail": {
     "badge": "曲風",

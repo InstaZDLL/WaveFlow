@@ -168,6 +168,7 @@ export function NowPlayingPanel({ onNavigateToArtist }: NowPlayingPanelProps) {
                 <MotionCoverOverlay
                   artist={currentTrack.artist_name}
                   album={currentTrack.album_title}
+                  albumId={currentTrack.album_id}
                   rounded="2xl"
                   className="shadow-lg"
                 />

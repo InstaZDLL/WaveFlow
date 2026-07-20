@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Play, Shuffle, Clock, Music2, Heart, ImageIcon } from "lucide-react";
+import { Play, Shuffle, Clock, Music2, Heart, ImageIcon, Film } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { EmptyState } from "../common/EmptyState";
 import { DetailViewSkeleton } from "../common/DetailViewSkeleton";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
 import { CoverPickerModal } from "../common/CoverPickerModal";
+import { MotionCoverPickerModal } from "../common/MotionCoverPickerModal";
 import { HiResBadge } from "../common/HiResBadge";
 import { PlayingIndicator } from "../common/PlayingIndicator";
 import { SelectionActionBar } from "../common/SelectionActionBar";
@@ -53,6 +54,7 @@ export function AlbumDetailView({
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
   const [isCoverPickerOpen, setIsCoverPickerOpen] = useState(false);
+  const [isMotionCoverPickerOpen, setIsMotionCoverPickerOpen] = useState(false);
   const [coverReloadKey, setCoverReloadKey] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const selection = useMultiSelect<Track>();
@@ -332,6 +334,14 @@ export function AlbumDetailView({
               <ImageIcon size={16} />
               <span>{t("library.changeCover")}</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setIsMotionCoverPickerOpen(true)}
+              className="border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm"
+            >
+              <Film size={16} />
+              <span>{t("albumDetail.setMotionCover")}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -403,6 +413,13 @@ export function AlbumDetailView({
         }
         isOpen={isCoverPickerOpen}
         onClose={() => setIsCoverPickerOpen(false)}
+        onSuccess={() => setCoverReloadKey((k) => k + 1)}
+      />
+
+      <MotionCoverPickerModal
+        albumId={album.id}
+        isOpen={isMotionCoverPickerOpen}
+        onClose={() => setIsMotionCoverPickerOpen(false)}
         onSuccess={() => setCoverReloadKey((k) => k + 1)}
       />
 

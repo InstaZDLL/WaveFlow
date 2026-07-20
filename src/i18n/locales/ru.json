@@ -1015,6 +1015,7 @@
     "emptyDescription": "Этого альбома больше нет в активном профиле.",
     "emptyTracksTitle": "Нет треков",
     "emptyTracksDescription": "В этом альбоме нет доступных треков.",
+    "setMotionCover": "Анимированная обложка",
     "trackCount_many": "{{count}} треков"
   },
   "artistDetail": {
@@ -1058,6 +1059,12 @@
     "fansCount_few": "{{display}} поклонника",
     "fansCount_many": "{{display}} поклонников",
     "fansCount_other": "{{display}} поклонников"
+  },
+  "motionCoverPicker": {
+    "title": "Анимированная обложка вручную",
+    "subtitle": "Выберите локальный файл MP4. Он заменяет анимированную обложку, предоставленную плагином, и никогда не перезаписывается при обновлении.",
+    "pickFile": "Выбрать файл MP4",
+    "removeAction": "Удалить анимированную обложку"
   },
   "genreDetail": {
     "badge": "Жанр",

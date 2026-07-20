@@ -255,15 +255,45 @@ export interface MotionArtwork {
  * Ask enabled metadata plugins for an album's motion artwork. Resolves
  * `null` when offline, when no metadata plugin is installed, or when none
  * has motion for this album — callers fall back to the static cover.
+ *
+ * `albumId`, when given, is checked first against a manual override
+ * (issue #408) — see `setAlbumMotionArtworkFromFile` — before any plugin
+ * runs. Omit it for surfaces with no album row (e.g. Web Radio).
  */
 export async function fetchAlbumMotionArtwork(
   artist: string,
   album: string,
+  albumId?: number | null,
 ): Promise<MotionArtwork | null> {
   return invoke<MotionArtwork | null>("fetch_album_motion_artwork", {
     artist,
     album,
+    albumId: albumId ?? null,
   });
+}
+
+/**
+ * Set `albumId`'s animated cover from a local mp4 file (issue #408). Wins
+ * over any plugin-resolved motion cover and survives plugin re-fetches —
+ * same precedence rule as a manual static cover. Rejects non-mp4 files
+ * (validated by magic bytes) and files above the backend's size cap.
+ */
+export function setAlbumMotionArtworkFromFile(
+  albumId: number,
+  filePath: string,
+): Promise<void> {
+  return invoke<void>("set_album_motion_artwork_from_file", {
+    albumId,
+    filePath,
+  });
+}
+
+/**
+ * Clear `albumId`'s manual motion cover, if any — the next lookup falls
+ * back to the plugin result. A no-op when there was nothing to clear.
+ */
+export function clearAlbumMotionArtwork(albumId: number): Promise<void> {
+  return invoke<void>("clear_album_motion_artwork", { albumId });
 }
 
 /**
