@@ -345,6 +345,7 @@ pub fn run() {
                         &artwork_dir,
                         folder_id,
                         Some(&scan_handle),
+                        false,
                     )
                     .await
                     {

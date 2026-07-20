@@ -440,6 +440,7 @@
       "watched": "Monitorada",
       "watchOn": "Monitorar automaticamente as alterações",
       "watchOff": "Parar o monitoramento",
+      "deepRescan": "Nova varredura profunda (relê todos os arquivos, mais lenta)",
       "remove": "Remover pasta da biblioteca",
       "removeConfirm": "Clique novamente para confirmar",
       "removeConfirmWithPlays_one": "Clique novamente para confirmar. {{count}} reprodução será mantida e reassociada na próxima análise.",

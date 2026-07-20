@@ -92,8 +92,18 @@ export function addFolderToLibrary(
   return invoke<number>("add_folder_to_library", { libraryId, path });
 }
 
-export function scanFolder(folderId: number): Promise<ScanSummary> {
-  return invoke<ScanSummary>("scan_folder", { folderId });
+/**
+ * `deep: true` bypasses the scanner's `(mtime, size)` fast path so every
+ * file in the folder is fully re-hashed and re-read (issue #366) — the
+ * only way to catch a tag or embedded-picture edit made by an external
+ * tool that preserved the file's modification time. Slower than a
+ * normal rescan; meant as an occasional, explicit user action.
+ */
+export function scanFolder(
+  folderId: number,
+  deep?: boolean,
+): Promise<ScanSummary> {
+  return invoke<ScanSummary>("scan_folder", { folderId, deep });
 }
 
 /** Outcome of {@link rescanLocalArtistImages}. */
