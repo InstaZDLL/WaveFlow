@@ -1005,6 +1005,13 @@
     "emptyTracksTitle": "Sem faixas",
     "emptyTracksDescription": "Este gênero não contém faixas disponíveis."
   },
+  "genreImagePicker": {
+    "title": "Alterar imagem do gênero",
+    "subtitle": "Escolha um arquivo de imagem local (JPG, PNG ou WEBP) para usar como imagem deste gênero.",
+    "editAria": "Alterar imagem do gênero",
+    "pickFile": "Escolher um arquivo de imagem",
+    "removeAction": "Remover imagem"
+  },
   "nowPlaying": {
     "title": "Tocando agora",
     "empty": "Nenhuma faixa em reprodução",

@@ -1005,6 +1005,13 @@
     "emptyTracksTitle": "Sin pistas",
     "emptyTracksDescription": "Este género no contiene pistas disponibles."
   },
+  "genreImagePicker": {
+    "title": "Cambiar imagen del género",
+    "subtitle": "Elige un archivo de imagen local (JPG, PNG o WEBP) para usar como imagen de este género.",
+    "editAria": "Cambiar imagen del género",
+    "pickFile": "Elegir un archivo de imagen",
+    "removeAction": "Quitar imagen"
+  },
   "nowPlaying": {
     "title": "Reproduciendo ahora",
     "empty": "Ninguna pista en reproducción",

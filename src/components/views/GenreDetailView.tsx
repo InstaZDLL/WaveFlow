@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Play, Shuffle, Clock, Music2, Heart, Tags } from "lucide-react";
+import { Play, Shuffle, Clock, Music2, Heart, Tags, Pencil } from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { EmptyState } from "../common/EmptyState";
 import { DetailViewSkeleton } from "../common/DetailViewSkeleton";
 import { CreatePlaylistModal } from "../common/CreatePlaylistModal";
+import { GenreImagePickerModal } from "../common/GenreImagePickerModal";
 import { HiResBadge } from "../common/HiResBadge";
 import { PlayingIndicator } from "../common/PlayingIndicator";
 import { usePlayer } from "../../hooks/usePlayer";
@@ -44,6 +45,7 @@ export function GenreDetailView({
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] =
     useState(false);
+  const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
 
   const trackContextMenu = useTrackContextMenu({
     likedIds,
@@ -134,8 +136,29 @@ export function GenreDetailView({
     <div className="space-y-8 animate-fade-in pb-20">
       {/* Header */}
       <div className="flex items-center space-x-8">
-        <div className="w-48 h-48 rounded-2xl bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400 flex items-center justify-center shadow-lg shrink-0">
-          <Tags size={72} />
+        <div className="relative shrink-0 group">
+          <Artwork
+            path={genre.artwork_path}
+            path1x={genre.artwork_path_1x}
+            path2x={genre.artwork_path_2x}
+            size="full"
+            className="w-48 h-48"
+            rounded="2xl"
+            iconSize={72}
+            placeholderIcon={Tags}
+            alt={genre.name}
+          />
+          <div className="absolute right-2 bottom-2 pointer-events-none">
+            <button
+              type="button"
+              onClick={() => setIsImagePickerOpen(true)}
+              aria-label={t("genreImagePicker.editAria")}
+              title={t("genreImagePicker.title")}
+              className="pointer-events-auto w-10 h-10 rounded-full bg-zinc-900/80 hover:bg-zinc-900 text-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 transition-opacity"
+            >
+              <Pencil size={16} />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 min-w-0 pt-2">
@@ -202,6 +225,14 @@ export function GenreDetailView({
           className="py-20"
         />
       )}
+
+      <GenreImagePickerModal
+        genreId={genre.id}
+        hasArtwork={!!genre.artwork_path}
+        isOpen={isImagePickerOpen}
+        onClose={() => setIsImagePickerOpen(false)}
+        onSuccess={() => setEditRefetch((k) => k + 1)}
+      />
 
       <CreatePlaylistModal
         isOpen={isCreatePlaylistModalOpen}

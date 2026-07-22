@@ -1124,6 +1124,13 @@
     "trackCount_few": "{{count}} مقاطع",
     "trackCount_many": "{{count}} مقطعًا"
   },
+  "genreImagePicker": {
+    "title": "تغيير صورة النوع",
+    "subtitle": "اختر ملف صورة محلي (JPG أو PNG أو WEBP) لاستخدامه كصورة لهذا النوع.",
+    "editAria": "تغيير صورة النوع",
+    "pickFile": "اختيار ملف صورة",
+    "removeAction": "إزالة الصورة"
+  },
   "nowPlaying": {
     "title": "قيد التشغيل",
     "empty": "لا يوجد مقطع قيد التشغيل",

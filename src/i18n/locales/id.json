@@ -1005,6 +1005,13 @@
     "emptyTracksTitle": "Tidak ada lagu",
     "emptyTracksDescription": "Genre ini tidak berisi lagu yang tersedia."
   },
+  "genreImagePicker": {
+    "title": "Ubah gambar genre",
+    "subtitle": "Pilih file gambar lokal (JPG, PNG, atau WEBP) untuk digunakan sebagai gambar genre ini.",
+    "editAria": "Ubah gambar genre",
+    "pickFile": "Pilih file gambar",
+    "removeAction": "Hapus gambar"
+  },
   "nowPlaying": {
     "title": "Sedang diputar",
     "empty": "Tidak ada lagu yang diputar",

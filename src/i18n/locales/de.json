@@ -1005,6 +1005,13 @@
     "emptyTracksTitle": "Keine Titel",
     "emptyTracksDescription": "Dieses Genre enthält keine verfügbaren Titel."
   },
+  "genreImagePicker": {
+    "title": "Genre-Bild ändern",
+    "subtitle": "Wähle eine lokale Bilddatei (JPG, PNG oder WEBP) als Bild für dieses Genre.",
+    "editAria": "Genre-Bild ändern",
+    "pickFile": "Bilddatei auswählen",
+    "removeAction": "Bild entfernen"
+  },
   "nowPlaying": {
     "title": "Wird gespielt",
     "empty": "Kein Titel wird gespielt",

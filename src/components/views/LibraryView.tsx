@@ -2205,9 +2205,17 @@ function GenreList({ genres, isLoading, t, onSelect }: GenreListProps) {
           onClick={() => onSelect(genre.id)}
           className="flex items-center space-x-3 p-4 rounded-2xl border border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-800/40 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
         >
-          <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400 flex items-center justify-center shrink-0">
-            <Tags size={22} />
-          </div>
+          <Artwork
+            path={genre.artwork_path}
+            path1x={genre.artwork_path_1x}
+            path2x={genre.artwork_path_2x}
+            size="1x"
+            className="w-12 h-12"
+            rounded="xl"
+            iconSize={22}
+            placeholderIcon={Tags}
+            alt=""
+          />
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
               {genre.name}

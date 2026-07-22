@@ -1005,6 +1005,13 @@
     "emptyTracksTitle": "无曲目",
     "emptyTracksDescription": "此流派没有可用曲目。"
   },
+  "genreImagePicker": {
+    "title": "更改流派图片",
+    "subtitle": "选择一个本地图片文件（JPG、PNG 或 WEBP）作为该流派的图片。",
+    "editAria": "更改流派图片",
+    "pickFile": "选择图片文件",
+    "removeAction": "移除图片"
+  },
   "nowPlaying": {
     "title": "正在播放",
     "empty": "没有正在播放的曲目",

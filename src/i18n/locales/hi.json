@@ -1005,6 +1005,13 @@
     "emptyTracksTitle": "कोई ट्रैक नहीं",
     "emptyTracksDescription": "इस शैली में कोई उपलब्ध ट्रैक नहीं है।"
   },
+  "genreImagePicker": {
+    "title": "शैली की छवि बदलें",
+    "subtitle": "इस शैली की छवि के रूप में उपयोग करने के लिए एक स्थानीय छवि फ़ाइल (JPG, PNG या WEBP) चुनें।",
+    "editAria": "शैली की छवि बदलें",
+    "pickFile": "छवि फ़ाइल चुनें",
+    "removeAction": "छवि हटाएं"
+  },
   "nowPlaying": {
     "title": "अब चल रहा है",
     "empty": "कोई ट्रैक नहीं चल रहा है",

@@ -1005,6 +1005,13 @@
     "emptyTracksTitle": "Aucun titre",
     "emptyTracksDescription": "Ce genre ne contient aucun titre disponible."
   },
+  "genreImagePicker": {
+    "title": "Modifier l'image du genre",
+    "subtitle": "Choisissez un fichier image local (JPG, PNG ou WEBP) à utiliser comme illustration de ce genre.",
+    "editAria": "Modifier l'image du genre",
+    "pickFile": "Choisir un fichier image",
+    "removeAction": "Supprimer l'image"
+  },
   "nowPlaying": {
     "title": "En cours de lecture",
     "empty": "Aucun titre en cours",
