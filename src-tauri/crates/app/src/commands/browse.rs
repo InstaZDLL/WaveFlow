@@ -6,6 +6,7 @@
 //! `album`, `artist` and `genre` are profile-wide tables shared across
 //! libraries.
 
+use std::io::Read;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -714,25 +715,41 @@ pub async fn set_genre_artwork_from_file(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let profile_artwork_dir = state.paths.profile_artwork_dir(profile_id);
-    std::fs::create_dir_all(&profile_artwork_dir)?;
 
-    let bytes = std::fs::read(&file_path)?;
-    if bytes.len() > crate::commands::deezer::MAX_IMAGE_BYTES {
-        return Err(AppError::Other(format!(
-            "file too large: {} bytes (max {})",
-            bytes.len(),
-            crate::commands::deezer::MAX_IMAGE_BYTES
-        )));
-    }
-    let format = crate::commands::deezer::detect_image_format(&bytes).ok_or_else(|| {
-        AppError::Other("unsupported image format (expected jpg/png/webp)".into())
-    })?;
+    // Off the async runtime: create_dir_all/read/write are all blocking
+    // syscalls, and the read is bounded to MAX_IMAGE_BYTES + 1 so an
+    // oversized file is rejected without first loading the whole thing
+    // into memory.
+    let dir_for_blocking = profile_artwork_dir.clone();
+    let (hash, format): (String, &'static str) = tokio::task::spawn_blocking(move || {
+        std::fs::create_dir_all(&dir_for_blocking)?;
 
-    let hash = blake3::hash(&bytes).to_hex().to_string();
+        let mut file = std::fs::File::open(&file_path)?;
+        let mut bytes = Vec::new();
+        file.by_ref()
+            .take(crate::commands::deezer::MAX_IMAGE_BYTES as u64 + 1)
+            .read_to_end(&mut bytes)?;
+        if bytes.len() > crate::commands::deezer::MAX_IMAGE_BYTES {
+            return Err(AppError::Other(format!(
+                "file too large (max {} bytes)",
+                crate::commands::deezer::MAX_IMAGE_BYTES
+            )));
+        }
+        let format = crate::commands::deezer::detect_image_format(&bytes).ok_or_else(|| {
+            AppError::Other("unsupported image format (expected jpg/png/webp)".into())
+        })?;
+
+        let hash = blake3::hash(&bytes).to_hex().to_string();
+        let target = dir_for_blocking.join(format!("{hash}.{format}"));
+        if !target.exists() {
+            std::fs::write(&target, &bytes)?;
+        }
+        Ok::<_, AppError>((hash, format))
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("genre artwork blocking task join: {e}")))??;
+
     let target = profile_artwork_dir.join(format!("{hash}.{format}"));
-    if !target.exists() {
-        std::fs::write(&target, &bytes)?;
-    }
     crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
 
     let mut tx = pool.begin().await?;

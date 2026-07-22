@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Tags, FolderOpen, Trash2 } from "lucide-react";
 
@@ -32,6 +32,13 @@ export function GenreImagePickerModal({
   const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
+
+  useEffect(() => {
+    if (!isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setError(null);
+    }
+  }, [isOpen]);
 
   const handlePickFile = async () => {
     if (isApplying) return;

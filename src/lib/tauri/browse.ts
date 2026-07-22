@@ -323,11 +323,11 @@ export function setGenreArtworkFromFile(
   genreId: number,
   filePath: string,
 ): Promise<void> {
-  return invoke("set_genre_artwork_from_file", { genreId, filePath });
+  return invoke<void>("set_genre_artwork_from_file", { genreId, filePath });
 }
 
 export function clearGenreArtwork(genreId: number): Promise<void> {
-  return invoke("clear_genre_artwork", { genreId });
+  return invoke<void>("clear_genre_artwork", { genreId });
 }
 
 export function listFolders(libraryId: number | null): Promise<FolderRow[]> {

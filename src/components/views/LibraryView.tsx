@@ -2214,7 +2214,7 @@ function GenreList({ genres, isLoading, t, onSelect }: GenreListProps) {
             rounded="xl"
             iconSize={22}
             placeholderIcon={Tags}
-            alt={genre.name}
+            alt=""
           />
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 truncate">
