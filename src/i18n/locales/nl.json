@@ -1005,6 +1005,13 @@
     "emptyTracksTitle": "Geen nummers",
     "emptyTracksDescription": "Dit genre bevat geen beschikbare nummers."
   },
+  "genreImagePicker": {
+    "title": "Genre-afbeelding wijzigen",
+    "subtitle": "Kies een lokaal afbeeldingsbestand (JPG, PNG of WEBP) als afbeelding voor dit genre.",
+    "editAria": "Genre-afbeelding wijzigen",
+    "pickFile": "Afbeeldingsbestand kiezen",
+    "removeAction": "Afbeelding verwijderen"
+  },
   "nowPlaying": {
     "title": "Speelt nu",
     "empty": "Geen nummer wordt afgespeeld",

@@ -1005,6 +1005,13 @@
     "emptyTracksTitle": "曲がありません",
     "emptyTracksDescription": "このジャンルには利用可能な曲がありません。"
   },
+  "genreImagePicker": {
+    "title": "ジャンル画像を変更",
+    "subtitle": "このジャンルの画像として使用するローカルの画像ファイル（JPG、PNG、WEBP）を選択してください。",
+    "editAria": "ジャンル画像を変更",
+    "pickFile": "画像ファイルを選択",
+    "removeAction": "画像を削除"
+  },
   "nowPlaying": {
     "title": "再生中",
     "empty": "再生中の曲はありません",

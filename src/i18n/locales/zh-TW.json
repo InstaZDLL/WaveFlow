@@ -1005,6 +1005,13 @@
     "emptyTracksTitle": "無曲目",
     "emptyTracksDescription": "此曲風沒有可用的曲目。"
   },
+  "genreImagePicker": {
+    "title": "更改曲風圖片",
+    "subtitle": "選擇一個本機圖片檔案（JPG、PNG 或 WEBP）作為此曲風的圖片。",
+    "editAria": "更改曲風圖片",
+    "pickFile": "選擇圖片檔案",
+    "removeAction": "移除圖片"
+  },
   "nowPlaying": {
     "title": "現在播放",
     "empty": "目前沒有正在播放的曲目",

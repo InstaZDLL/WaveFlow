@@ -1007,7 +1007,7 @@ pub async fn batch_fetch_missing_album_covers(
     Ok(success)
 }
 
-fn detect_image_format(bytes: &[u8]) -> Option<&'static str> {
+pub(crate) fn detect_image_format(bytes: &[u8]) -> Option<&'static str> {
     if bytes.len() >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF {
         return Some("jpg");
     }
@@ -1033,7 +1033,7 @@ fn detect_image_format(bytes: &[u8]) -> Option<&'static str> {
 /// `cover_xl` payloads top out around 200 KB; 10 MiB is generous
 /// headroom while still guarding against a hostile (or compromised)
 /// remote that streams unbounded data into our process memory.
-const MAX_IMAGE_BYTES: usize = 10 * 1024 * 1024;
+pub(crate) const MAX_IMAGE_BYTES: usize = 10 * 1024 * 1024;
 
 async fn download_image_bytes(url: &str) -> AppResult<Vec<u8>> {
     let client = reqwest::Client::builder()

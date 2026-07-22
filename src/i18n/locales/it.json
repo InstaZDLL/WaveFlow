@@ -1005,6 +1005,13 @@
     "emptyTracksTitle": "Nessun brano",
     "emptyTracksDescription": "Questo genere non contiene brani disponibili."
   },
+  "genreImagePicker": {
+    "title": "Cambia immagine del genere",
+    "subtitle": "Scegli un file immagine locale (JPG, PNG o WEBP) da usare come immagine di questo genere.",
+    "editAria": "Cambia immagine del genere",
+    "pickFile": "Scegli un file immagine",
+    "removeAction": "Rimuovi immagine"
+  },
   "nowPlaying": {
     "title": "In riproduzione",
     "empty": "Nessun brano in riproduzione",

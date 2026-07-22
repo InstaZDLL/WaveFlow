@@ -1005,6 +1005,13 @@
     "emptyTracksTitle": "No tracks",
     "emptyTracksDescription": "This genre contains no available tracks."
   },
+  "genreImagePicker": {
+    "title": "Change genre image",
+    "subtitle": "Choose a local image file (JPG, PNG or WEBP) to use as this genre's picture.",
+    "editAria": "Change genre image",
+    "pickFile": "Choose an image file",
+    "removeAction": "Remove image"
+  },
   "nowPlaying": {
     "title": "Now playing",
     "empty": "No track playing",

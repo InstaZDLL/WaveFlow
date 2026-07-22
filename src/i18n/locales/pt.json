@@ -1005,6 +1005,13 @@
     "emptyTracksTitle": "Sem faixas",
     "emptyTracksDescription": "Este género não contém faixas disponíveis."
   },
+  "genreImagePicker": {
+    "title": "Alterar imagem do género",
+    "subtitle": "Escolha um ficheiro de imagem local (JPG, PNG ou WEBP) para usar como imagem deste género.",
+    "editAria": "Alterar imagem do género",
+    "pickFile": "Escolher um ficheiro de imagem",
+    "removeAction": "Remover imagem"
+  },
   "nowPlaying": {
     "title": "Agora a reproduzir",
     "empty": "Nenhuma faixa em reprodução",

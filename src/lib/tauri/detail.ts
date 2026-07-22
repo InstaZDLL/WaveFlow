@@ -84,6 +84,9 @@ export interface GenreDetail {
   name: string;
   track_count: number;
   total_duration_ms: number;
+  artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
   tracks: Track[];
 }
 

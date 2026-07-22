@@ -1005,6 +1005,13 @@
     "emptyTracksTitle": "Parça yok",
     "emptyTracksDescription": "Bu tür kullanılabilir parça içermiyor."
   },
+  "genreImagePicker": {
+    "title": "Tür resmini değiştir",
+    "subtitle": "Bu türün resmi olarak kullanmak için yerel bir resim dosyası (JPG, PNG veya WEBP) seçin.",
+    "editAria": "Tür resmini değiştir",
+    "pickFile": "Resim dosyası seç",
+    "removeAction": "Resmi kaldır"
+  },
   "nowPlaying": {
     "title": "Şimdi çalıyor",
     "empty": "Çalan parça yok",

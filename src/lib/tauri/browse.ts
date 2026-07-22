@@ -174,11 +174,54 @@ function expandArtistRow(
   };
 }
 
-/** Genre row returned by `list_genres`. */
+/** Genre row returned by `list_genres`. UI-facing shape — paths are
+ *  reconstructed by the wrapper from the wire-format slim row. */
 export interface GenreRow {
   id: number;
   name: string;
   track_count: number;
+  /** Absolute filesystem path to a manually-set genre picture, if any. */
+  artwork_path: string | null;
+  artwork_path_1x: string | null;
+  artwork_path_2x: string | null;
+}
+
+interface GenreRowSlim {
+  id: number;
+  name: string;
+  track_count: number;
+  artwork_hash: string | null;
+  artwork_format: string | null;
+  artwork_has_1x: boolean;
+  artwork_has_2x: boolean;
+}
+
+interface ListGenresResponse {
+  artwork_base: string;
+  items: GenreRowSlim[];
+}
+
+function expandGenreRow(item: GenreRowSlim, base: string, sep: string): GenreRow {
+  const artwork_path =
+    item.artwork_hash && item.artwork_format
+      ? `${base}${sep}${item.artwork_hash}.${item.artwork_format}`
+      : null;
+  const artwork_path_1x =
+    item.artwork_hash && item.artwork_has_1x
+      ? `${base}${sep}${item.artwork_hash}_1x.jpg`
+      : null;
+  const artwork_path_2x =
+    item.artwork_hash && item.artwork_has_2x
+      ? `${base}${sep}${item.artwork_hash}_2x.jpg`
+      : null;
+  return {
+    id: item.id,
+    name: item.name,
+    track_count: item.track_count,
+    artwork_path,
+    artwork_path_1x,
+    artwork_path_2x,
+  };
 }
 
 /** Folder row returned by `list_folders`. */
@@ -270,8 +313,21 @@ export async function searchArtists(
   );
 }
 
-export function listGenres(libraryId: number | null): Promise<GenreRow[]> {
-  return invoke<GenreRow[]>("list_genres", { libraryId });
+export async function listGenres(libraryId: number | null): Promise<GenreRow[]> {
+  const resp = await invoke<ListGenresResponse>("list_genres", { libraryId });
+  const sep = pathSep(resp.artwork_base);
+  return resp.items.map((item) => expandGenreRow(item, resp.artwork_base, sep));
+}
+
+export function setGenreArtworkFromFile(
+  genreId: number,
+  filePath: string,
+): Promise<void> {
+  return invoke("set_genre_artwork_from_file", { genreId, filePath });
+}
+
+export function clearGenreArtwork(genreId: number): Promise<void> {
+  return invoke("clear_genre_artwork", { genreId });
 }
 
 export function listFolders(libraryId: number | null): Promise<FolderRow[]> {
