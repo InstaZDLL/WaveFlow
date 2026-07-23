@@ -20,3 +20,14 @@ members = ["crates/core", "crates/app", "crates/plugin-sdk", "crates/spotify", "
 # Patch entries MUST live at the workspace root — Cargo silently ignores
 # `[patch.crates-io]` declared in a workspace member crate.
 glib = { path = "vendor/glib-0.18.5" }
+
+# GNOME/Wayland title bar buttons (minimize/maximize/close) are
+# unresponsive without the CSD fix in tauri-apps/tao#1218 — merged to
+# tao's main branch 2026-06-29 but not yet published as a crates.io
+# release (still 0.35.3 as of this patch, see the covector-planned
+# "next: 0.36.0" that hasn't shipped). Pin straight to the merge commit
+# so the fix ships now instead of waiting on an unscheduled tao release
+# (issue #427). Remove this entry once tao >= 0.36.0 lands on
+# crates.io — `tauri`'s existing "^2.11.4" tauri-runtime-wry range
+# already accepts it, no version bump needed on our side.
+tao = { git = "https://github.com/tauri-apps/tao", rev = "07f3742b1833b64be27b1ef991e38d557d4276c9" }
