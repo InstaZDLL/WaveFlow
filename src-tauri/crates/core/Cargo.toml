@@ -1,6 +1,6 @@
 [package]
 name = "waveflow-core"
-version = "1.6.0"
+version = "1.7.0"
 description = "Business logic shared between the WaveFlow desktop app and the future waveflow-server: scanning, metadata enrichment, DSD conversion, smart-playlist algorithms, repository traits."
 authors = ["InstaZDLL <github.105mh@8shield.net>"]
 edition = "2021"
