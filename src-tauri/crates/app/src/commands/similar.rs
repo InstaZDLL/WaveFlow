@@ -217,13 +217,14 @@ pub async fn get_similar_artists(
             // Only when the artist was never enriched (`meta` is `None`) do
             // we surface the upstream URL as a best-effort remote fallback.
             // A never-enriched entry (`meta` is `None`) falls back to the
-            // upstream URL — but for a Last.fm-sourced result that is the
-            // generic grey star, so drop it and let the UI show the
-            // initial-letter avatar (#406). A genuine upstream picture
+            // upstream URL — but that can be a "no real photo" sentinel
+            // (Last.fm's grey star, or Deezer's empty-hash silhouette in a
+            // payload cached before #406), so drop those and let the UI
+            // show the initial-letter avatar. A genuine upstream picture
             // still passes through.
             let picture_url = match meta {
                 Some((url, _)) => url.clone(),
-                None => r.picture_url.filter(|u| !is_lastfm_star_placeholder(u)),
+                None => unenriched_fallback_picture(r.picture_url),
             };
             SimilarArtistDto {
                 name: r.name,
@@ -562,6 +563,15 @@ struct RawSimilar {
     source: String,
 }
 
+/// Best-effort remote picture for a similar artist we never enriched
+/// (`meta` was `None`). Both providers embed a "no real photo" sentinel —
+/// Last.fm's md5 star and Deezer's empty-hash silhouette — and a payload
+/// cached before #406 can still carry either, so reject both before
+/// surfacing the URL. A genuine picture passes through unchanged.
+fn unenriched_fallback_picture(url: Option<String>) -> Option<String> {
+    url.filter(|u| !is_lastfm_star_placeholder(u) && !is_placeholder_artist_picture(u))
+}
+
 /// Query the upstream provider(s) and persist the result. Last.fm wins
 /// when an API key is configured AND it returns at least one entry —
 /// otherwise we fall through to Deezer's `/artist/{id}/related`.
@@ -687,5 +697,37 @@ async fn try_deezer(deezer_id: Option<i64>, source_name: &str) -> Option<Vec<Raw
             tracing::warn!(?err, "Deezer get_related_artists failed");
             None
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unenriched_fallback_filters_a_cached_deezer_placeholder() {
+        // Regression (#406): an offline/cache payload written before the
+        // fix still carries Deezer's empty-hash silhouette. The None-branch
+        // fallback must drop it, not surface a grey placeholder.
+        let placeholder = Some(
+            "https://e-cdns-images.dzcdn.net/images/artist//500x500-000000-80-0-0.jpg".to_string(),
+        );
+        assert_eq!(unenriched_fallback_picture(placeholder), None);
+    }
+
+    #[test]
+    fn unenriched_fallback_filters_the_lastfm_star() {
+        let star = Some(
+            "https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png"
+                .to_string(),
+        );
+        assert_eq!(unenriched_fallback_picture(star), None);
+    }
+
+    #[test]
+    fn unenriched_fallback_keeps_a_real_url() {
+        let real =
+            Some("https://e-cdns-images.dzcdn.net/images/artist/abc123/500x500.jpg".to_string());
+        assert_eq!(unenriched_fallback_picture(real.clone()), real);
     }
 }
