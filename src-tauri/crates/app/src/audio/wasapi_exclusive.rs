@@ -144,9 +144,50 @@ fn output_thread_main(
         "wasapi exclusive stream opened"
     );
 
-    run_event_loop(session, consumer, shutdown_rx, &shared, &app);
+    let exit = run_event_loop(session, consumer, shutdown_rx, &shared);
 
-    tracing::debug!("wasapi exclusive output thread exiting");
+    match exit {
+        ExitReason::Shutdown => {
+            tracing::debug!("wasapi exclusive output thread exiting");
+        }
+        // #405: the exclusive backend runs its own event loop, entirely
+        // separate from cpal's error callback — so when the device goes
+        // away here (`wait_for_event` / `write_to_device` failing), the
+        // thread used to just return and nobody ever heard about it. The
+        // engine kept its `wasapi_exclusive = true` handle for a thread
+        // that no longer exists, `wasapi_exclusive_active` stayed latched
+        // on, and the Settings toggle was stuck showing "on" until the
+        // app restarted. Report the loss down the same two paths the cpal
+        // callback uses: tell the UI, then schedule a rebuild (which is
+        // what re-syncs the toggle, via `player:audio-mode-changed`).
+        ExitReason::DeviceLost(reason) => {
+            tracing::warn!(
+                %reason,
+                "wasapi exclusive output thread lost the device; requesting rebuild"
+            );
+            super::output::notify_device_lost(
+                &app,
+                &shared,
+                format!("audio device error: {reason}"),
+            );
+            // The dead handle is still parked in the engine's
+            // `self.output`, so the rebuild can self-resolve its device.
+            super::output::schedule_device_rebuild(&app, super::output::RebuildTarget::Resolve);
+        }
+    }
+}
+
+/// Why [`run_event_loop`] returned.
+///
+/// The distinction matters: a clean shutdown is the engine tearing this
+/// thread down on purpose (device switch, mode toggle, app exit) and
+/// must NOT trigger a recovery, whereas a device loss must (#405).
+enum ExitReason {
+    /// The engine asked us to stop via the shutdown channel.
+    Shutdown,
+    /// The device stopped accepting buffers. Carries the failure for
+    /// the user-facing `player:error` message.
+    DeviceLost(String),
 }
 
 /// Bit depth + container layout actually accepted by the device in
@@ -634,13 +675,15 @@ fn pick_device(device_name: &Option<String>) -> AppResult<Device> {
 /// Mirrors the cpal callback's logic for `paused_output`,
 /// `drain_silent`, `volume`, `normalize_enabled`, and `mono_enabled`
 /// so the user-facing behaviour is identical regardless of backend.
+///
+/// Returns why the loop stopped so the caller can decide whether a
+/// recovery is warranted — see [`ExitReason`].
 fn run_event_loop(
     session: ExclusiveSession,
     mut consumer: Consumer<f32>,
     shutdown_rx: Receiver<()>,
     shared: &Arc<SharedPlayback>,
-    _app: &AppHandle,
-) {
+) -> ExitReason {
     let ExclusiveSession {
         client,
         render,
@@ -672,16 +715,25 @@ fn run_event_loop(
     // whether to re-init or fall back.
     const EVENT_TIMEOUT_MS: u32 = 2000;
 
-    loop {
+    let exit = loop {
         if shutdown_rx.try_recv().is_ok() {
-            break;
+            break ExitReason::Shutdown;
         }
 
         match event.wait_for_event(EVENT_TIMEOUT_MS) {
             Ok(()) => {}
             Err(err) => {
+                // A teardown racing the failure: the engine sent the
+                // shutdown while we were parked in `wait_for_event`, and
+                // releasing the device is what made the wait fail. That's
+                // a clean stop, not a device loss — reporting it as one
+                // would schedule a rebuild against a stream the engine is
+                // deliberately replacing.
+                if shutdown_rx.try_recv().is_ok() {
+                    break ExitReason::Shutdown;
+                }
                 tracing::warn!(?err, "wasapi exclusive wait_for_event failed");
-                break;
+                break ExitReason::DeviceLost(format!("wasapi wait_for_event failed: {err:?}"));
             }
         }
 
@@ -765,17 +817,21 @@ fn run_event_loop(
         };
 
         if let Err(err) = render.write_to_device(need_frames, bytes, None) {
+            // Same teardown race as the `wait_for_event` arm above.
+            if shutdown_rx.try_recv().is_ok() {
+                break ExitReason::Shutdown;
+            }
             tracing::warn!(?err, "wasapi write_to_device failed");
-            break;
+            break ExitReason::DeviceLost(format!("wasapi write_to_device failed: {err:?}"));
         }
 
         // Quick non-blocking shutdown check after every buffer so a
         // user-initiated stop takes effect within one device period
         // (~10 ms) rather than waiting up to EVENT_TIMEOUT_MS.
         if shutdown_rx.try_recv().is_ok() {
-            break;
+            break ExitReason::Shutdown;
         }
-    }
+    };
 
     // Stop the stream so the next exclusive opener doesn't fight us
     // for the device. Errors are non-fatal — we're tearing down anyway.
@@ -785,6 +841,8 @@ fn run_event_loop(
                    // uninit; not strictly required, but tidier under tracing.
     std::thread::sleep(Duration::from_millis(5));
     wasapi::deinitialize();
+
+    exit
 }
 
 /// Pack the decoded `f32` sample buffer into the little-endian byte

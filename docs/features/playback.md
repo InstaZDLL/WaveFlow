@@ -56,6 +56,32 @@ The chosen device's name is persisted in `profile_setting['audio.output_device']
 
 On Linux, enumeration uses ALSA's hint database (`snd_device_name_hint("pcm")`) instead of cpal's `output_devices()` to avoid a 1-2 s freeze + `pcm_dmix` / `pcm_route` stderr spam from probing every PCM card.
 
+## Output-stream lifecycle & recovery
+
+Three paths replace the output stream, and they must all end in the same place: `wasapi_exclusive_active` updated and a `player:audio-mode-changed` event emitted, because that event is the only thing that keeps Settings' Exclusive-mode toggle honest ([`ExclusiveModeCard`](../../src/components/views/settings/ExclusiveModeCard.tsx) re-reads on it).
+
+| Path | Trigger | Order |
+| --- | --- | --- |
+| `set_output_device` | user picks another endpoint | spawn first, then release — the two streams target different devices, so a failed spawn can roll back to the working one |
+| `set_wasapi_exclusive` | user toggles the mode | **release first when the old stream is exclusive**, then spawn |
+| `force_rebuild_output` | automatic recovery after a device error | **release first when the old stream is exclusive**, then spawn |
+
+The release-first rule is the #322 / #405 lesson: a WASAPI exclusive client owns its endpoint outright, so no other client — shared *or* exclusive — can open it until that client is released. Re-opening the **same** endpoint while an exclusive stream still holds it always fails, and when it failed inside `set_wasapi_exclusive` the command returned `Err` before persisting anything, leaving the toggle latched on the mode the user was trying to leave (#405).
+
+Device loss reaches the recovery path from two independent places, since the two backends have separate failure surfaces:
+
+- **cpal shared** — the stream's `err_fn` callback fires on an arbitrary thread.
+- **WASAPI exclusive** — [`wasapi_exclusive::run_event_loop`](../../src-tauri/crates/app/src/audio/wasapi_exclusive.rs) returns an `ExitReason`; `DeviceLost` covers a failed `wait_for_event` / `write_to_device`. Each is re-checked against the shutdown channel first so a deliberate teardown isn't mistaken for a failure.
+
+Both then call the shared [`output::notify_device_lost`](../../src-tauri/crates/app/src/audio/output.rs) (park the player, emit `player:state` + `player:error`, sync the OS media controls) and [`output::schedule_device_rebuild`](../../src-tauri/crates/app/src/audio/output.rs) (300 ms backoff, then a same-device rebuild).
+
+Two gates keep the recovery from thrashing:
+
+- **`RebuildGate`** (`REBUILD_SETTLE_WINDOW`, 2 s) — one rebuild per burst of device errors. `begin_deliberate_output_change()` opens the same window around a mode toggle, because seizing the endpoint exclusively kicks the outgoing shared client off it and that self-inflicted `DeviceNotAvailable` would otherwise schedule a rebuild that undoes the switch.
+- **`FlapWindow`** (`EXCLUSIVE_FLAP_THRESHOLD` / `EXCLUSIVE_FLAP_WINDOW`) — a device that resets on every exclusive grab gives up on exclusive for the rest of the session. Cleared by an explicit toggle or device switch.
+
+Every failure path that ends with no output thread at all publishes `wasapi_exclusive_active = false` + the event before returning the error — a toggle describing a stream that no longer exists is the exact shape of #405.
+
 ## OS media controls
 
 [`media_controls.rs`](../../src-tauri/crates/app/src/media_controls.rs) bridges the engine to [`souvlaki 0.8`](https://crates.io/crates/souvlaki):

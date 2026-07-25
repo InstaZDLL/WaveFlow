@@ -262,6 +262,98 @@ pub fn spawn_output_with_mode(
     spawn_output_thread(shared, app, device_name)
 }
 
+/// Surface a lost audio device to the user: park the player, tell the
+/// UI, and keep the OS media controls in sync.
+///
+/// Shared by the cpal error callback and the WASAPI-exclusive event
+/// loop ([`super::wasapi_exclusive`]) so both backends report a device
+/// loss identically — the exclusive thread used to just exit, leaving
+/// the UI convinced playback was still running.
+pub(super) fn notify_device_lost(app: &AppHandle, shared: &Arc<SharedPlayback>, message: String) {
+    shared.set_state(PlayerState::Paused);
+    let _ = app.emit(
+        "player:state",
+        json!({ "state": "paused", "track_id": null }),
+    );
+    let _ = app.emit("player:error", json!({ "message": message }));
+    if let Some(controls) = app.try_state::<crate::media_controls::MediaControlsHandle>() {
+        controls.update_playback(PlayerState::Paused, shared.current_position_ms());
+    }
+}
+
+/// Which device a scheduled rebuild should reopen.
+///
+/// The two callers differ in whether the engine can still resolve the
+/// device from its live handle at rebuild time:
+/// - the cpal error callback and the WASAPI-exclusive `DeviceLost` exit
+///   both fire while the (now-dead) handle is still parked in
+///   `self.output`, so its `device_name` is still readable → [`Resolve`];
+/// - the `set_wasapi_exclusive` failure path has already `take()`n the
+///   old handle, emptying `self.output`, so a self-resolve would return
+///   `None` and reopen the OS default instead of the user's pick (#405)
+///   → [`Device`] carries the device captured before the teardown.
+///
+/// [`Resolve`]: RebuildTarget::Resolve
+/// [`Device`]: RebuildTarget::Device
+pub(super) enum RebuildTarget {
+    /// Resolve the device from the engine's live handle at rebuild time.
+    Resolve,
+    /// Reopen this specific device (`None` = OS default).
+    Device(Option<String>),
+}
+
+/// Schedule a same-device rebuild of the output stream after a device
+/// loss (#175). Returns immediately — the work happens on a tokio task.
+///
+/// 300 ms backoff first (covers the OS settling a USB replug / driver
+/// restart / Windows session reset), then a SAME-DEVICE rebuild through
+/// the engine. Re-querying the OS default here would land the user on a
+/// different output every time their pinned device flapped.
+///
+/// The engine is resolved AFTER the delay on purpose — an error can fire
+/// while `AudioEngine::new` is still running, i.e. before the engine has
+/// been registered in Tauri's managed state, and looking it up eagerly
+/// would silently drop the recovery for that window.
+pub(super) fn schedule_device_rebuild(app: &AppHandle, target: RebuildTarget) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+        let Some(engine) = app.try_state::<std::sync::Arc<super::AudioEngine>>() else {
+            return;
+        };
+        // #365: one rebuild per burst of device errors. A DAC that
+        // resets on every exclusive grab makes our own re-open
+        // trigger the next error, so without a gate the passes
+        // chase each other until one opens exclusive while the
+        // previous stream is still settling and collides with
+        // AUDCLNT_E_DEVICE_IN_USE. Gating here (rather than before
+        // the sleep) still collapses the burst: whichever task
+        // wakes first arms, and the others hit either `armed` or
+        // the settle window.
+        if !engine.try_arm_device_rebuild() {
+            tracing::debug!(
+                "device rebuild already armed or within the settle window; \
+                 ignoring this device loss"
+            );
+            return;
+        }
+        // The rebuild is synchronous and genuinely slow: it joins
+        // the old output thread — which, in WASAPI exclusive mode,
+        // can sit in `wait_for_event` up to its 2 s timeout — and
+        // then opens the device inline (COM init + the #174 format
+        // negotiation ladder). Running that directly on a tokio
+        // worker would park the worker for the whole duration, so
+        // hand it to the blocking pool.
+        let engine = engine.inner().clone();
+        let _ = tokio::task::spawn_blocking(move || {
+            if let Err(err) = engine.try_rebuild_after_device_error(target) {
+                tracing::warn!(%err, "auto-rebuild after device loss failed");
+            }
+        })
+        .await;
+    });
+}
+
 /// Handle retained by the engine so it can tear the output thread down
 /// cleanly on shutdown or device switch. Separate from the decoder-side
 /// `Producer` which is handed off independently — see the tuple returned
@@ -488,76 +580,19 @@ where
     // to be dropped by cpal anyway.
     //
     // On `DeviceNotAvailable` (#175) we additionally schedule an
-    // auto-rebuild via tokio: 300 ms backoff (covers the OS settling
-    // a USB replug / driver restart / Windows session reset), then a
-    // SAME-DEVICE rebuild through the engine. Re-querying the OS
-    // default here would land the user on a different output every
-    // time their pinned device flapped — the engine's debounce guard
-    // also coalesces a quick double-flap into a single rebuild
-    // attempt.
+    // auto-rebuild — see [`schedule_device_rebuild`]. The engine's
+    // debounce guard coalesces a quick double-flap into a single
+    // rebuild attempt.
     let err_shared = shared.clone();
     let err_app = app.clone();
     let err_fn = move |err: cpal::StreamError| {
         tracing::warn!(?err, "cpal stream error");
-        err_shared.set_state(PlayerState::Paused);
-        let _ = err_app.emit(
-            "player:state",
-            json!({ "state": "paused", "track_id": null }),
-        );
-        let _ = err_app.emit(
-            "player:error",
-            json!({ "message": format!("audio device error: {err}") }),
-        );
-        if let Some(controls) = err_app.try_state::<crate::media_controls::MediaControlsHandle>() {
-            controls.update_playback(PlayerState::Paused, err_shared.current_position_ms());
-        }
+        notify_device_lost(&err_app, &err_shared, format!("audio device error: {err}"));
 
         if matches!(err, cpal::StreamError::DeviceNotAvailable) {
-            let app_clone = err_app.clone();
-            // Everything below runs off this callback, on the tokio task:
-            // the engine lookup, the #365 gate, the rebuild and its logs.
-            // The engine is resolved AFTER the delay on purpose — an error
-            // can fire while `AudioEngine::new` is still running, i.e.
-            // before the engine has been registered in Tauri's managed
-            // state, and looking it up eagerly here would silently drop
-            // the recovery for that window.
-            tauri::async_runtime::spawn(async move {
-                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-                let Some(engine) = app_clone.try_state::<std::sync::Arc<super::AudioEngine>>()
-                else {
-                    return;
-                };
-                // #365: one rebuild per burst of device errors. A DAC that
-                // resets on every exclusive grab makes our own re-open
-                // trigger the next error, so without a gate the passes
-                // chase each other until one opens exclusive while the
-                // previous stream is still settling and collides with
-                // AUDCLNT_E_DEVICE_IN_USE. Gating here (rather than before
-                // the sleep) still collapses the burst: whichever task
-                // wakes first arms, and the others hit either `armed` or
-                // the settle window.
-                if !engine.try_arm_device_rebuild() {
-                    tracing::debug!(
-                        "device rebuild already armed or within the settle window; \
-                         ignoring this DeviceNotAvailable"
-                    );
-                    return;
-                }
-                // The rebuild is synchronous and genuinely slow: it joins
-                // the old output thread — which, in WASAPI exclusive mode,
-                // can sit in `wait_for_event` up to its 2 s timeout — and
-                // then opens the device inline (COM init + the #174 format
-                // negotiation ladder). Running that directly on a tokio
-                // worker would park the worker for the whole duration, so
-                // hand it to the blocking pool.
-                let engine = engine.inner().clone();
-                let _ = tokio::task::spawn_blocking(move || {
-                    if let Err(err) = engine.try_rebuild_after_device_error() {
-                        tracing::warn!(%err, "auto-rebuild after DeviceNotAvailable failed");
-                    }
-                })
-                .await;
-            });
+            // The erroring handle is still parked in the engine's
+            // `self.output`, so the rebuild can self-resolve its device.
+            schedule_device_rebuild(&err_app, RebuildTarget::Resolve);
         }
     };
 

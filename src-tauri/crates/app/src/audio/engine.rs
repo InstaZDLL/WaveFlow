@@ -247,6 +247,17 @@ impl RebuildGate {
         self.armed = false;
         self.last_finished = Some(now);
     }
+
+    /// Drop the settle window entirely so the very next [`try_arm`]
+    /// succeeds. Used when a deliberate output change we suppressed for
+    /// (via [`AudioEngine::begin_deliberate_output_change`]) turns out
+    /// to have installed no stream at all: the recovery we then schedule
+    /// must not be swallowed by the window we opened for a swap that
+    /// never happened (#405).
+    fn reopen(&mut self) {
+        self.armed = false;
+        self.last_finished = None;
+    }
 }
 
 /// Handle stored in Tauri state. Cloning an `Arc<AudioEngine>` is cheap.
@@ -538,7 +549,10 @@ impl AudioEngine {
     /// cycles in 14 seconds) only triggers one rebuild attempt
     /// instead of stacking three concurrent SwapProducer cmds onto
     /// the decoder.
-    pub fn try_rebuild_after_device_error(&self) -> AppResult<()> {
+    pub(super) fn try_rebuild_after_device_error(
+        &self,
+        target: super::output::RebuildTarget,
+    ) -> AppResult<()> {
         use std::sync::atomic::Ordering;
 
         // Release the #365 gate on EVERY exit path below (including the
@@ -577,7 +591,15 @@ impl AudioEngine {
         }
         let _guard = ResetGuard(&self.rebuild_in_progress);
 
-        let pinned = self.current_output_device();
+        // `Resolve` reads the device off the live (dead) handle still
+        // parked in `self.output` — right for the cpal / exclusive
+        // device-loss callers. `Device` is passed when the caller already
+        // released the handle, so a self-resolve would see `None` and
+        // reopen the OS default instead of the user's pick (#405).
+        let pinned = match target {
+            super::output::RebuildTarget::Resolve => self.current_output_device(),
+            super::output::RebuildTarget::Device(device) => device,
+        };
         let pref_exclusive = self.wasapi_exclusive.load(Ordering::Relaxed);
 
         // #322: an exclusive-mode flap storm. A device that resets on every
@@ -640,6 +662,55 @@ impl AudioEngine {
             .try_arm(Instant::now(), REBUILD_SETTLE_WINDOW)
     }
 
+    /// Publish "no output thread at all" when a rebuild bailed out after
+    /// the old handle was already released.
+    ///
+    /// The exclusive flag must not keep claiming a stream that no longer
+    /// exists — a toggle describing one is the exact shape of #405 — and
+    /// the event is what makes Settings re-read. No-ops when `guard`
+    /// still holds a handle, i.e. the failure happened before the old
+    /// stream was given up and the flag is still accurate.
+    fn publish_output_lost_if_gone(&self, guard: &Option<OutputHandle>) {
+        if guard.is_none() {
+            self.wasapi_exclusive_active
+                .store(false, std::sync::atomic::Ordering::Release);
+            let _ = self.app.emit("player:audio-mode-changed", ());
+        }
+    }
+
+    /// Open the #365 settle window around an output change WE are making
+    /// on purpose (a mode toggle, a device switch).
+    ///
+    /// Replacing a stream makes the outgoing one fire
+    /// `DeviceNotAvailable` — seizing the endpoint in exclusive mode
+    /// kicks the shared client off it, and tearing a stream down can do
+    /// the same. That error is a consequence of the change, not a device
+    /// failure, but the cpal callback can't tell the difference and
+    /// schedules a recovery rebuild that fights the mode the user just
+    /// picked (visible in the #405 report as a second exclusive open
+    /// ~300 ms after the first). Marking the gate finished starts the
+    /// same quiet period a real rebuild would, so those echoes are
+    /// ignored.
+    fn begin_deliberate_output_change(&self) {
+        self.rebuild_gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .finish(Instant::now());
+    }
+
+    /// Undo a [`begin_deliberate_output_change`] when the change ended up
+    /// installing no stream (the spawn failed after the old handle was
+    /// already released). The settle window was there to absorb the echo
+    /// error from a successful swap; with no swap there is no echo, and
+    /// leaving the window open would suppress the recovery rebuild we're
+    /// about to schedule — the exact silent-no-output tail of #405.
+    fn cancel_deliberate_output_change(&self) {
+        self.rebuild_gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .reopen();
+    }
+
     /// Clear the #322 session-level exclusive suppression and its flap
     /// counter. Called when the user explicitly re-toggles WASAPI exclusive
     /// or switches output device — both are a fresh chance for exclusive to
@@ -696,12 +767,20 @@ impl AudioEngine {
             }
         }
 
-        let (producer, handle) = spawn_output_with_mode(
+        let (producer, handle) = match spawn_output_with_mode(
             self.shared.clone(),
             self.app.clone(),
             device_name,
             exclusive,
-        )?;
+        ) {
+            Ok(pair) => pair,
+            Err(err) => {
+                // `pre_release` (an old exclusive stream) already took the
+                // handle above, so this is the no-output-at-all case.
+                self.publish_output_lost_if_gone(&guard);
+                return Err(err);
+            }
+        };
 
         // The freshly-spawned `handle` owns a live cpal output
         // thread. If either send below fails (decoder dead, channel
@@ -727,6 +806,7 @@ impl AudioEngine {
         })();
         if let Err(err) = send_result {
             handle.stop();
+            self.publish_output_lost_if_gone(&guard);
             return Err(err);
         }
         *guard = Some(handle);
@@ -887,6 +967,13 @@ impl AudioEngine {
         })();
         if let Err(err) = send_result {
             handle.stop();
+            // Mirror force_rebuild_output / set_wasapi_exclusive: if the
+            // SwapProducer send failed the closure had already run
+            // `guard.take()`, so no output thread remains — the exclusive
+            // flag must stop claiming one and Settings must re-read (#405).
+            // No-ops when an earlier Stop send failed before guard.take(),
+            // where the old stream is still installed and the flag accurate.
+            self.publish_output_lost_if_gone(&guard);
             return Err(err);
         }
 
@@ -968,10 +1055,6 @@ impl AudioEngine {
         if previous == enabled {
             return Ok(());
         }
-        // An explicit user toggle clears any #322 flap-storm suppression so
-        // re-enabling exclusive actually retries it (and disabling resets
-        // the counter for next time).
-        self.reset_exclusive_suppression();
         // Reuse `set_output_device` with the active device name — the
         // current/requested equality check inside it would short-circuit
         // a same-device call, so go straight to the rebuild path by
@@ -996,21 +1079,131 @@ impl AudioEngine {
             .load(std::sync::atomic::Ordering::Acquire);
         let position_ms = self.shared.current_position_ms();
 
-        let (producer, handle) =
-            spawn_output_with_mode(self.shared.clone(), self.app.clone(), active, enabled)?;
+        // #405 — the stuck Settings toggle. Leaving exclusive mode re-opens
+        // the SAME endpoint in shared mode, and a WASAPI exclusive client
+        // owns its endpoint outright: no other client, shared OR exclusive,
+        // can open it until that client is released (the #322 lesson, which
+        // `force_rebuild_output` already applies). Spawning first — the
+        // order that's correct for a device *switch*, where the two streams
+        // target different endpoints — therefore fails every time here. The
+        // command returned `Err`, so the preference was never persisted and
+        // `wasapi_exclusive_active` kept reporting the old mode: the toggle
+        // sat latched on the very mode the user was trying to leave, with a
+        // restart as the only way out. Release the old exclusive stream
+        // FIRST so the new open finds a free device.
+        let pre_release = guard.as_ref().is_some_and(|h| h.wasapi_exclusive);
+        if pre_release {
+            if was_playing {
+                if let Err(e) = self.cmd_tx.send(AudioCmd::Stop) {
+                    // Nothing has been torn down yet — the old exclusive
+                    // stream is still installed and running. Roll the
+                    // preference swap back so the in-memory pref keeps
+                    // matching the live stream; without this a later
+                    // device-error rebuild would read the new pref and
+                    // silently flip to the mode this toggle failed to
+                    // apply. (The spawn / send_result failure paths below
+                    // deliberately keep the new pref instead, because by
+                    // then the old stream is already gone.)
+                    self.wasapi_exclusive
+                        .store(previous, std::sync::atomic::Ordering::Relaxed);
+                    return Err(AppError::Audio(format!(
+                        "audio command channel closed: {e}"
+                    )));
+                }
+            }
+            if let Some(old) = guard.take() {
+                old.stop();
+            }
+        }
+
+        // An explicit user toggle clears any #322 flap-storm suppression so
+        // re-enabling exclusive actually retries it (and disabling resets
+        // the counter for next time). Deferred until after the pre-release
+        // teardown so a failed Stop send above — which leaves the old stream
+        // intact and rolls the preference back — doesn't also wipe the
+        // suppression state that still describes that surviving stream.
+        self.reset_exclusive_suppression();
+
+        // Both directions of this toggle disturb the outgoing stream on
+        // purpose — don't let the resulting device error trigger a
+        // recovery rebuild that undoes the switch.
+        self.begin_deliberate_output_change();
+
+        let (producer, handle) = match spawn_output_with_mode(
+            self.shared.clone(),
+            self.app.clone(),
+            active.clone(),
+            enabled,
+        ) {
+            Ok(pair) => pair,
+            Err(err) => {
+                // No replacement stream was installed, so the settle
+                // window we opened has no swap-echo to absorb. Reopen the
+                // gate either way, so it can't suppress a genuine device
+                // error — on the surviving old stream (shared → exclusive
+                // where even the shared fallback failed, `guard` still
+                // holds it) or on the recovery we schedule below.
+                self.cancel_deliberate_output_change();
+                if guard.is_none() {
+                    // `pre_release` already released the old exclusive
+                    // handle, so there is no output thread at all. Tell
+                    // Settings the flag is stale (#405), then schedule a
+                    // rebuild that re-opens in the mode now recorded in
+                    // `wasapi_exclusive`. Pass `active` explicitly: the
+                    // teardown emptied `self.output`, so a self-resolve
+                    // would reopen the OS default instead of the user's
+                    // device.
+                    self.publish_output_lost_if_gone(&guard);
+                    super::output::schedule_device_rebuild(
+                        &self.app,
+                        super::output::RebuildTarget::Device(active),
+                    );
+                } else {
+                    // shared → exclusive where even the shared fallback
+                    // failed: the old shared stream is untouched and still
+                    // running. Roll the preference back to match it — same
+                    // as the failed-Stop path — otherwise a later
+                    // device-error rebuild would read the new pref and flip
+                    // to the exclusive mode this toggle never applied.
+                    self.wasapi_exclusive
+                        .store(previous, std::sync::atomic::Ordering::Relaxed);
+                }
+                return Err(err);
+            }
+        };
         let active_mode = handle.wasapi_exclusive;
 
-        if was_playing {
+        // Group the whole hand-off so ANY failing step still runs the
+        // `handle.stop()` below. `handle` owns a live output thread on a
+        // `!Send` thread that can't be reaped from Drop, so an early
+        // return here would leak it until process exit — and when the new
+        // stream is the exclusive one, that leaked thread keeps the device
+        // locked while `guard` still points at the old stream. Same shape
+        // as `force_rebuild_output`.
+        let send_result = (|| {
+            if was_playing && !pre_release {
+                self.cmd_tx
+                    .send(AudioCmd::Stop)
+                    .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
+            }
+            // No-op when `pre_release` already took the old handle above.
+            if let Some(old) = guard.take() {
+                old.stop();
+            }
             self.cmd_tx
-                .send(AudioCmd::Stop)
+                .send(AudioCmd::SwapProducer(producer))
                 .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
+            Ok::<(), AppError>(())
+        })();
+        if let Err(err) = send_result {
+            handle.stop();
+            // A failing `Stop` send bails before the old handle is taken,
+            // so `guard` still describes a live stream and the flag stays
+            // accurate; the later steps leave no output at all. The helper
+            // tells those two apart and only publishes for the second.
+            self.publish_output_lost_if_gone(&guard);
+            return Err(err);
         }
-        if let Some(old) = guard.take() {
-            old.stop();
-        }
-        self.cmd_tx
-            .send(AudioCmd::SwapProducer(producer))
-            .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
         *guard = Some(handle);
         self.wasapi_exclusive_active
             .store(active_mode, std::sync::atomic::Ordering::Release);
@@ -1217,6 +1410,20 @@ mod rebuild_gate_tests {
         // engine could never recover from a later device loss.
         g.finish(t);
         assert!(g.try_arm(t + SETTLE, SETTLE));
+    }
+
+    #[test]
+    fn reopen_lets_a_rebuild_arm_inside_the_settle_window() {
+        let mut g = RebuildGate::default();
+        let t = Instant::now();
+        // A deliberate output change opens the settle window...
+        g.finish(t);
+        // ...but the spawn failed and installed nothing, so we reopen.
+        g.reopen();
+        // The scheduled recovery lands 300 ms later — well inside what
+        // would have been the 2 s window — and MUST now arm, otherwise
+        // the engine is left with no output thread at all (#405).
+        assert!(g.try_arm(t + Duration::from_millis(300), SETTLE));
     }
 
     #[test]

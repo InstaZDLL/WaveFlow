@@ -48,18 +48,29 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
-      - name: Cache APT packages
+      - name: Install Linux build dependencies
         if: runner.os == 'Linux'
         # Tauri 2 on Linux still uses GTK 3 + WebKitGTK; cpal needs ALSA
         # development headers; the rest mirrors what `cargo check` will
         # link against transitively from the Tauri runtime.
-        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
-        with:
-          packages: >-
-            libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev
-            libayatana-appindicator3-dev librsvg2-dev libasound2-dev
+        #
+        # Installed directly rather than via cache-apt-pkgs-action on
+        # purpose: the runner image's pre-baked apt index pins package
+        # versions (e.g. gstreamer1.0-plugins-good, a libwebkit2gtk dep)
+        # that the Ubuntu mirror rotates out, so a cached install with no
+        # `apt-get update` 404s. The action also keys its cache purely on
+        # the package list, so a failed run saves an empty cache that
+        # poisons every later run under the same immutable key. `apt-get
+        # update` first refreshes the index to whatever the mirror
+        # currently serves; skipping the apt cache removes the poison
+        # trap. The expensive cache — compiled Rust artifacts — stays on
+        # Swatinem/rust-cache below.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-3-dev libwebkit2gtk-4.1-dev libsoup-3.0-dev \
+            libayatana-appindicator3-dev librsvg2-dev libasound2-dev \
             libssl-dev pkg-config
-          version: v1
 
       - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # stable
         with:
