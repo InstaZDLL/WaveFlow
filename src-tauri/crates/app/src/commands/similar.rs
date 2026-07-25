@@ -25,8 +25,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
 use waveflow_core::metadata::{
-    deezer::DeezerClient,
-    lastfm::LastfmClient,
+    deezer::{is_placeholder_artist_picture, DeezerClient},
+    lastfm::{is_lastfm_star_placeholder, LastfmClient},
     name_match::{normalize_name, select_by_name},
 };
 
@@ -162,16 +162,26 @@ pub async fn get_similar_artists(
     let mut local_map: HashMap<String, (i64, Option<String>)> = HashMap::new();
     if !canonicals.is_empty() {
         let sql = format!(
-            "SELECT a.id, a.canonical_name, ma.picture_hash
+            "SELECT a.id, a.canonical_name, ma.picture_url, ma.picture_hash
                FROM artist a
                LEFT JOIN app.metadata_artist ma ON ma.deezer_id = a.deezer_id
               WHERE a.canonical_name IN ({placeholders})"
         );
-        let mut q = sqlx::query_as::<_, (i64, String, Option<String>)>(sqlx::AssertSqlSafe(sql));
+        let mut q = sqlx::query_as::<_, (i64, String, Option<String>, Option<String>)>(
+            sqlx::AssertSqlSafe(sql),
+        );
         for c in &canonicals {
             q = q.bind(c);
         }
-        for (id, canon, hash) in q.fetch_all(&*pool).await? {
+        for (id, canon, url, hash) in q.fetch_all(&*pool).await? {
+            // A placeholder cached before the #406 fix still carries a real
+            // hash pointing at the grey-silhouette blob on disk. Drop it so
+            // `picture_path` doesn't resurface it for library artists — the
+            // metadata_map filter only covers the cross-profile `meta` path.
+            let hash = match url.as_deref() {
+                Some(u) if is_placeholder_artist_picture(u) => None,
+                _ => hash,
+            };
             local_map.insert(canon, (id, hash));
         }
     }
@@ -199,11 +209,23 @@ pub async fn get_similar_artists(
                 .and_then(|(_, hash)| hash.as_deref())
                 .or_else(|| meta.and_then(|(_, hash)| hash.as_deref()))
                 .and_then(|h| metadata_artwork::existing_path(&artwork_dir, h));
-            // Prefer the Deezer URL over Last.fm's placeholder when
-            // both are present. Falls back to whatever the upstream
-            // gave us so a Deezer-fetch failure still surfaces *some*
-            // remote URL (good enough for the in-library badge case).
-            let picture_url = meta.and_then(|(url, _)| url.clone()).or(r.picture_url);
+            // When we have a metadata_artist entry it is authoritative:
+            // its URL (real Deezer picture, or `None` for a genuinely
+            // absent / filtered-placeholder one, #406) wins and must NOT
+            // fall back to `r.picture_url` — that would resurrect Last.fm's
+            // generic star for an artist we already know has no real photo.
+            // Only when the artist was never enriched (`meta` is `None`) do
+            // we surface the upstream URL as a best-effort remote fallback.
+            // A never-enriched entry (`meta` is `None`) falls back to the
+            // upstream URL — but that can be a "no real photo" sentinel
+            // (Last.fm's grey star, or Deezer's empty-hash silhouette in a
+            // payload cached before #406), so drop those and let the UI
+            // show the initial-letter avatar. A genuine upstream picture
+            // still passes through.
+            let picture_url = match meta {
+                Some((url, _)) => url.clone(),
+                None => unenriched_fallback_picture(r.picture_url),
+            };
             SimilarArtistDto {
                 name: r.name,
                 match_score: r.match_score,
@@ -267,12 +289,21 @@ async fn fetch_custom_similar(
         .enumerate()
         .map(
             |(i, (id, name, picture_url, picture_hash, local_hash, local_format))| {
+                // A pre-#406 metadata_artist row may hold a Deezer
+                // placeholder URL (+ grey-blob hash); ignore both so the
+                // local sidecar or the initial-letter avatar wins instead
+                // of a grey box. The local picture is resolved separately
+                // and is unaffected.
+                let (picture_url, cached_hash) = match picture_url {
+                    Some(u) if is_placeholder_artist_picture(&u) => (None, None),
+                    other => (other, picture_hash),
+                };
                 let picture_path = metadata_artwork::resolve_local_or_cached_path(
                     local_artwork_dir,
                     local_hash.as_deref(),
                     local_format.as_deref(),
                     artwork_dir,
-                    picture_hash.as_deref(),
+                    cached_hash.as_deref(),
                 );
                 SimilarArtistDto {
                     name,
@@ -366,7 +397,14 @@ async fn enrich_with_deezer_pictures(
             for (name, picture_url, picture_hash) in rows {
                 let canon = canonical_name(&name);
                 if canon_targets.contains(&canon) {
-                    map.insert(canon, (picture_url, picture_hash));
+                    // A row cached before #406 may hold a Deezer placeholder
+                    // URL + grey-blob hash — drop both so it doesn't re-enter
+                    // the map as a grey box (fresh fetches already filter it).
+                    let entry = match picture_url.as_deref() {
+                        Some(u) if is_placeholder_artist_picture(u) => (None, None),
+                        _ => (picture_url, picture_hash),
+                    };
+                    map.insert(canon, entry);
                 }
             }
         }
@@ -434,7 +472,7 @@ async fn enrich_with_deezer_pictures(
 
     for (canon, hit) in fetched {
         let Some(hit) = hit else { continue };
-        let picture_url = hit.picture_xl.clone().or_else(|| hit.picture_big.clone());
+        let picture_url = hit.best_picture();
         let picture_hash = match picture_url.as_deref() {
             Some(url) => metadata_artwork::download_and_cache(url, artwork_dir).await,
             None => None,
@@ -523,6 +561,15 @@ struct RawSimilar {
     match_score: f32,
     picture_url: Option<String>,
     source: String,
+}
+
+/// Best-effort remote picture for a similar artist we never enriched
+/// (`meta` was `None`). Both providers embed a "no real photo" sentinel —
+/// Last.fm's md5 star and Deezer's empty-hash silhouette — and a payload
+/// cached before #406 can still carry either, so reject both before
+/// surfacing the URL. A genuine picture passes through unchanged.
+fn unenriched_fallback_picture(url: Option<String>) -> Option<String> {
+    url.filter(|u| !is_lastfm_star_placeholder(u) && !is_placeholder_artist_picture(u))
 }
 
 /// Query the upstream provider(s) and persist the result. Last.fm wins
@@ -629,14 +676,19 @@ async fn try_deezer(deezer_id: Option<i64>, source_name: &str) -> Option<Vec<Raw
             Some(
                 list.into_iter()
                     .enumerate()
-                    .map(|(i, h)| RawSimilar {
-                        name: h.name,
-                        // Synthesize a decreasing 1.0 → ~0 score from
-                        // the Deezer ranking so the UI can sort
-                        // uniformly with Last.fm output.
-                        match_score: 1.0 - (i as f32) / n,
-                        picture_url: h.picture_big.or(h.picture_medium),
-                        source: "deezer".into(),
+                    .map(|(i, h)| {
+                        // Skip Deezer's empty-hash placeholder (#406) —
+                        // borrow before `h.name` moves into the struct.
+                        let picture_url = h.best_picture();
+                        RawSimilar {
+                            name: h.name,
+                            // Synthesize a decreasing 1.0 → ~0 score from
+                            // the Deezer ranking so the UI can sort
+                            // uniformly with Last.fm output.
+                            match_score: 1.0 - (i as f32) / n,
+                            picture_url,
+                            source: "deezer".into(),
+                        }
                     })
                     .collect(),
             )
@@ -645,5 +697,37 @@ async fn try_deezer(deezer_id: Option<i64>, source_name: &str) -> Option<Vec<Raw
             tracing::warn!(?err, "Deezer get_related_artists failed");
             None
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unenriched_fallback_filters_a_cached_deezer_placeholder() {
+        // Regression (#406): an offline/cache payload written before the
+        // fix still carries Deezer's empty-hash silhouette. The None-branch
+        // fallback must drop it, not surface a grey placeholder.
+        let placeholder = Some(
+            "https://e-cdns-images.dzcdn.net/images/artist//500x500-000000-80-0-0.jpg".to_string(),
+        );
+        assert_eq!(unenriched_fallback_picture(placeholder), None);
+    }
+
+    #[test]
+    fn unenriched_fallback_filters_the_lastfm_star() {
+        let star = Some(
+            "https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png"
+                .to_string(),
+        );
+        assert_eq!(unenriched_fallback_picture(star), None);
+    }
+
+    #[test]
+    fn unenriched_fallback_keeps_a_real_url() {
+        let real =
+            Some("https://e-cdns-images.dzcdn.net/images/artist/abc123/500x500.jpg".to_string());
+        assert_eq!(unenriched_fallback_picture(real.clone()), real);
     }
 }

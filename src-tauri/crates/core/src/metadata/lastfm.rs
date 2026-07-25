@@ -250,6 +250,16 @@ fn pick_largest_image(images: &[LastfmImage]) -> Option<String> {
     None
 }
 
+/// Last.fm serves one md5-named star asset for every artist without an
+/// uploaded picture (their artist-image API was retired in 2019). The CDN
+/// host has changed over the years but the asset hash is stable, so a
+/// substring match on it is the reliable "no real photo" test. Callers
+/// that fall back to a raw Last.fm URL filter it out so the UI shows its
+/// initial-letter avatar instead of the grey star (#406).
+pub fn is_lastfm_star_placeholder(url: &str) -> bool {
+    url.contains("2a96cbd8b46e442fc41c2b86b821562f")
+}
+
 // ── Signed authentication ───────────────────────────────────────────
 
 /// Errors that can come out of the signed-method surface. Network +
@@ -503,4 +513,26 @@ fn strip_html_tags(input: &str) -> String {
         .join(" ")
         .trim()
         .to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detects_the_star_placeholder_across_cdn_hosts() {
+        assert!(is_lastfm_star_placeholder(
+            "https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png"
+        ));
+        assert!(is_lastfm_star_placeholder(
+            "https://lastfm-img2.akamaized.net/i/u/174s/2a96cbd8b46e442fc41c2b86b821562f.png"
+        ));
+    }
+
+    #[test]
+    fn accepts_a_real_lastfm_picture() {
+        assert!(!is_lastfm_star_placeholder(
+            "https://lastfm.freetls.fastly.net/i/u/300x300/abc123def456abc123def456abc12345.png"
+        ));
+    }
 }

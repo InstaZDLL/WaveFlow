@@ -47,6 +47,35 @@ pub struct DeezerArtistHit {
     pub nb_fan: Option<i64>,
 }
 
+/// Deezer serves a grey-silhouette placeholder when an artist has no real
+/// picture: every size resolves to the same CDN path but with an *empty*
+/// image hash — `…/images/artist//500x500…` (double slash) — or the md5
+/// of the empty string. Caching one of those as a real image is the
+/// "similar artist shows no photo" half of #406, so callers filter them
+/// out at every point a Deezer picture URL is accepted.
+pub fn is_placeholder_artist_picture(url: &str) -> bool {
+    url.contains("/artist//") || url.contains("/artist/d41d8cd98f00b204e9800998ecf8427e/")
+}
+
+impl DeezerArtistHit {
+    /// Highest-quality *real* picture URL, largest first, skipping
+    /// Deezer's empty-hash placeholder (#406). `None` when the artist has
+    /// no genuine image — every size shares the one hash, so a placeholder
+    /// in `picture_xl` means all the others are placeholders too.
+    pub fn best_picture(&self) -> Option<String> {
+        [
+            &self.picture_xl,
+            &self.picture_big,
+            &self.picture_medium,
+            &self.picture_small,
+        ]
+        .into_iter()
+        .flatten()
+        .find(|u| !is_placeholder_artist_picture(u))
+        .cloned()
+    }
+}
+
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
 pub struct DeezerAlbumHit {
@@ -188,5 +217,81 @@ impl DeezerClient {
             .json()
             .await?;
         Ok(resp.data)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn hit(xl: Option<&str>, big: Option<&str>) -> DeezerArtistHit {
+        DeezerArtistHit {
+            id: 1,
+            name: "Test".into(),
+            picture_small: None,
+            picture_medium: None,
+            picture_big: big.map(str::to_string),
+            picture_xl: xl.map(str::to_string),
+            nb_album: None,
+            nb_fan: None,
+        }
+    }
+
+    #[test]
+    fn detects_empty_hash_placeholder() {
+        assert!(is_placeholder_artist_picture(
+            "https://e-cdns-images.dzcdn.net/images/artist//500x500-000000-80-0-0.jpg"
+        ));
+        assert!(is_placeholder_artist_picture(
+            "https://e-cdns-images.dzcdn.net/images/artist/d41d8cd98f00b204e9800998ecf8427e/500x500.jpg"
+        ));
+    }
+
+    #[test]
+    fn accepts_a_real_hash() {
+        assert!(!is_placeholder_artist_picture(
+            "https://e-cdns-images.dzcdn.net/images/artist/f2bc007e9133c946ac3c3907ddc5d2ea/500x500.jpg"
+        ));
+    }
+
+    #[test]
+    fn best_picture_skips_a_placeholder_and_takes_the_next_real_size() {
+        // Exercises the `.find()` skip: a placeholder in the largest slot
+        // must not short-circuit — the next real size wins.
+        let h = hit(
+            Some("https://e-cdns-images.dzcdn.net/images/artist//1000x1000.jpg"),
+            Some("https://e-cdns-images.dzcdn.net/images/artist/abc123/500x500.jpg"),
+        );
+        assert_eq!(
+            h.best_picture().as_deref(),
+            Some("https://e-cdns-images.dzcdn.net/images/artist/abc123/500x500.jpg")
+        );
+    }
+
+    #[test]
+    fn best_picture_is_none_when_every_size_is_a_placeholder() {
+        // The real-world shape: all sizes share the one empty hash.
+        let ph = hit(
+            Some("https://e-cdns-images.dzcdn.net/images/artist//1000x1000.jpg"),
+            Some("https://e-cdns-images.dzcdn.net/images/artist//500x500.jpg"),
+        );
+        assert_eq!(ph.best_picture(), None);
+    }
+
+    #[test]
+    fn best_picture_prefers_the_largest_real_size() {
+        let h = hit(
+            Some("https://e-cdns-images.dzcdn.net/images/artist/abc123/1000x1000.jpg"),
+            Some("https://e-cdns-images.dzcdn.net/images/artist/abc123/500x500.jpg"),
+        );
+        assert_eq!(
+            h.best_picture().as_deref(),
+            Some("https://e-cdns-images.dzcdn.net/images/artist/abc123/1000x1000.jpg")
+        );
+    }
+
+    #[test]
+    fn best_picture_is_none_when_no_sizes_present() {
+        assert_eq!(hit(None, None).best_picture(), None);
     }
 }

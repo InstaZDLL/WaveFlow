@@ -21,7 +21,7 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter};
 
 use waveflow_core::metadata::{
-    deezer::DeezerClient,
+    deezer::{is_placeholder_artist_picture, DeezerClient},
     lastfm::LastfmClient,
     name_match::{normalize_name, select_by_name},
     theaudiodb::{make_summary, TheAudioDbClient},
@@ -395,6 +395,19 @@ async fn enrich_artist_deezer_inner(
                 && (active_source != BioSource::TheAudioDb
                     || cached_bio_language.as_deref() == Some(active_lang.as_str()));
             if expires_at > now && bio_fresh {
+                // A row cached before #406 may hold a Deezer placeholder
+                // URL (and a grey-blob hash). Drop both so we surface the
+                // initial-letter avatar instead of the grey box; the row's
+                // own TTL refresh re-fetches through `best_picture`, and a
+                // placeholder means the artist has no real Deezer photo to
+                // heal to anyway.
+                let placeholder =
+                    picture_url.as_deref().is_some_and(is_placeholder_artist_picture);
+                let (picture_url, picture_hash) = if placeholder {
+                    (None, None)
+                } else {
+                    (picture_url, picture_hash)
+                };
                 let picture_path = picture_hash
                     .as_deref()
                     .and_then(|h| metadata_artwork::existing_path(&artwork_dir, h));
@@ -490,7 +503,7 @@ async fn enrich_artist_deezer_inner(
         }
     };
 
-    let picture_url = hit.picture_xl.clone().or_else(|| hit.picture_big.clone());
+    let picture_url = hit.best_picture();
 
     // 5. Download artwork into the shared cache (best-effort).
     let picture_hash = match picture_url.as_deref() {
@@ -761,11 +774,16 @@ pub async fn search_artists_deezer(query: String) -> AppResult<Vec<DeezerArtistL
     Ok(hits
         .into_iter()
         .take(20)
-        .map(|h| DeezerArtistLite {
-            deezer_id: h.id,
-            name: h.name,
-            picture_url: h.picture_xl.or(h.picture_big).or(h.picture_medium),
-            nb_fan: h.nb_fan,
+        .map(|h| {
+            // Skip Deezer's empty-hash placeholder (#406) — borrow before
+            // `h.name` moves into the struct.
+            let picture_url = h.best_picture();
+            DeezerArtistLite {
+                deezer_id: h.id,
+                name: h.name,
+                picture_url,
+                nb_fan: h.nb_fan,
+            }
         })
         .collect())
 }
@@ -795,10 +813,7 @@ pub async fn set_artist_artwork_from_deezer(
         .map_err(|err| AppError::Other(format!("deezer get_artist failed: {err}")))?;
 
     let picture_url = hit
-        .picture_xl
-        .clone()
-        .or_else(|| hit.picture_big.clone())
-        .or_else(|| hit.picture_medium.clone())
+        .best_picture()
         .ok_or_else(|| AppError::Other("deezer artist has no picture".into()))?;
 
     let bytes = download_image_bytes(&picture_url).await?;
