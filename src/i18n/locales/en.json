@@ -2039,6 +2039,11 @@
       "remove": "Remove {{name}}",
       "help": "Pick artists from your library. Empty = online list.",
       "limitReached": "Limit reached ({{max}} artists)."
+    },
+    "split": {
+      "label": "Split this artist",
+      "help": "This name looks like several artists joined by commas. Split it to link the tracks to the individual artists — existing entries are reused.",
+      "action": "Split into separate artists"
     }
   },
   "immersive": {

@@ -2039,6 +2039,11 @@
       "remove": "Rimuovi {{name}}",
       "help": "Scegli artisti dalla tua libreria. Vuoto = elenco online.",
       "limitReached": "Limite raggiunto ({{max}} artisti)."
+    },
+    "split": {
+      "label": "Dividi questo artista",
+      "help": "Questo nome sembra più artisti uniti da virgole. Dividilo per collegare i brani ai singoli artisti (le schede esistenti vengono riutilizzate).",
+      "action": "Dividi negli artisti separati"
     }
   },
   "immersive": {

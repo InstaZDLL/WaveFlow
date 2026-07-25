@@ -2039,6 +2039,11 @@
       "remove": "{{name}} verwijderen",
       "help": "Kies artiesten uit je bibliotheek. Leeg = online lijst.",
       "limitReached": "Limiet bereikt ({{max}} artiesten)."
+    },
+    "split": {
+      "label": "Deze artiest splitsen",
+      "help": "Deze naam lijkt op meerdere artiesten die met komma's zijn samengevoegd. Splits hem om de nummers aan de afzonderlijke artiesten te koppelen (bestaande vermeldingen worden hergebruikt).",
+      "action": "In afzonderlijke artiesten splitsen"
     }
   },
   "immersive": {

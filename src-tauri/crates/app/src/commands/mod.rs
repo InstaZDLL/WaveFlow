@@ -6,6 +6,7 @@
 pub mod analysis;
 pub mod app_info;
 pub mod artist_overrides;
+pub mod artist_split;
 pub mod backup;
 pub mod browse;
 pub mod changelog;

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Search, User, X } from "lucide-react";
+import { Loader2, Search, User, X, Split } from "lucide-react";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
 import {
   getArtistOverrides,
   setArtistMetadataOverrides,
+  splitArtist,
   type ArtistOverrideSimilar,
 } from "../../lib/tauri/artistOverrides";
 import { searchArtists, type ArtistRow } from "../../lib/tauri/browse";
@@ -23,6 +24,12 @@ interface ArtistMetadataEditorModalProps {
   /** Fired after a successful save so the detail view re-reads the
    *  (now overridden) bio + similar list. */
   onSuccess: () => void;
+  /** Fired after a successful comma-split (issue #396). The phantom
+   *  artist page this modal was opened from no longer exists, so the
+   *  caller should navigate to the new primary artist (or away).
+   *  `primaryArtistId` is `null` only in the degenerate case where the
+   *  split resolved no distinct artist. */
+  onSplit?: (primaryArtistId: number | null) => void;
 }
 
 /**
@@ -40,6 +47,7 @@ export function ArtistMetadataEditorModal({
   isOpen,
   onClose,
   onSuccess,
+  onSplit,
 }: ArtistMetadataEditorModalProps) {
   const { t } = useTranslation();
   const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
@@ -51,7 +59,22 @@ export function ArtistMetadataEditorModal({
   const [isSearching, setIsSearching] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSplitting, setIsSplitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // A comma in the name flags a likely phantom artist (issue #396): a
+  // comma-joined `ARTIST` tag the scanner didn't split. The preview
+  // fragments let the user confirm this really is several artists and not
+  // one name that contains a comma ("Tyler, The Creator") before acting.
+  const splitFragments = useMemo(
+    () =>
+      artistName
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0),
+    [artistName],
+  );
+  const isSplittable = splitFragments.length >= 2;
 
   const debounceRef = useRef<number | null>(null);
   // Monotonic counter so a slow earlier response can't overwrite a
@@ -98,9 +121,9 @@ export function ArtistMetadataEditorModal({
   );
 
   // Single source of truth for "don't touch state right now": the
-  // initial read is in flight (would clobber local edits) or a save is
-  // running (would submit stale state).
-  const isBusy = isLoading || isSaving;
+  // initial read is in flight (would clobber local edits), or a save /
+  // split is running (would submit stale state / race the relink).
+  const isBusy = isLoading || isSaving || isSplitting;
 
   // Debounced library search for the similar-artist autocomplete.
   useEffect(() => {
@@ -179,6 +202,24 @@ export function ArtistMetadataEditorModal({
     setSelected((prev) => prev.filter((s) => s.artist_id !== id));
   };
 
+  const handleSplit = async () => {
+    if (isBusy) return;
+    setIsSplitting(true);
+    setError(null);
+    try {
+      const res = await splitArtist(artistId);
+      // The phantom page is gone; hand the caller the new primary so it
+      // can navigate there instead of rendering a dead artist id.
+      onSplit?.(res.artists[0]?.id ?? null);
+      onClose();
+    } catch (err) {
+      console.error("[ArtistMetadataEditorModal] split failed", err);
+      setError(String(err));
+    } finally {
+      setIsSplitting(false);
+    }
+  };
+
   const handleSave = async () => {
     if (isSaving) return;
     setIsSaving(true);
@@ -223,6 +264,43 @@ export function ArtistMetadataEditorModal({
         {error && <div className="mb-3 text-xs text-red-500 px-1">{error}</div>}
 
         <div className="flex-1 overflow-y-auto space-y-6 pr-1">
+          {/* Split phantom artist (issue #396) — only when the name looks
+              comma-joined. User confirms via the fragment preview. */}
+          {isSplittable && (
+            <section className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/40 dark:bg-amber-900/10">
+              <div className="flex items-center gap-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
+                <Split size={15} />
+                {t("artistMetadataEditor.split.label")}
+              </div>
+              <p className="text-xs text-amber-700/90 dark:text-amber-200/70">
+                {t("artistMetadataEditor.split.help")}
+              </p>
+              <ul className="flex flex-wrap gap-1.5">
+                {splitFragments.map((frag, i) => (
+                  <li
+                    key={`${frag}-${i}`}
+                    className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 shadow-sm dark:bg-zinc-800 dark:text-zinc-200"
+                  >
+                    {frag}
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={handleSplit}
+                disabled={isBusy}
+                className="mt-1 inline-flex items-center gap-2 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isSplitting ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Split size={13} />
+                )}
+                <span>{t("artistMetadataEditor.split.action")}</span>
+              </button>
+            </section>
+          )}
+
           {/* Bio override */}
           <section className="space-y-2">
             <div className="flex items-center justify-between">

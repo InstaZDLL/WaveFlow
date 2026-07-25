@@ -21,6 +21,31 @@ export function getArtistOverrides(artistId: number): Promise<ArtistOverrides> {
   return invoke<ArtistOverrides>("get_artist_overrides", { artistId });
 }
 
+/** One artist produced by a split, in tag order. */
+export interface SplitArtist {
+  id: number;
+  name: string;
+}
+
+/** Outcome of `splitArtist` — the individual artists (first = new
+ *  primary), how many tracks were re-linked, and whether the phantom row
+ *  was removed. */
+export interface SplitArtistResult {
+  artists: SplitArtist[];
+  tracks_relinked: number;
+  phantom_deleted: boolean;
+}
+
+/**
+ * Split a comma-joined phantom artist (issue #396) into its individual
+ * artists, re-linking every track that credits it and reusing existing
+ * enriched rows by canonical name. No file is re-tagged; the scanner has
+ * a matching guard so an unchanged-file rescan won't undo the split.
+ */
+export function splitArtist(artistId: number): Promise<SplitArtistResult> {
+  return invoke<SplitArtistResult>("split_artist", { artistId });
+}
+
 /**
  * Set or clear **both** overrides in a single backend transaction so a
  * failure can't leave a half-applied state. Pass `null`/blank `bio` to

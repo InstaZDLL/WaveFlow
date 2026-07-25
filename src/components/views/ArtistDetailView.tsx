@@ -560,6 +560,12 @@ export function ArtistDetailView({
           setBioExpanded(false);
           setOverrideRefetch((k) => k + 1);
         }}
+        onSplit={(primaryArtistId) => {
+          // The phantom artist we're viewing was just dissolved (issue
+          // #396); jump to the new primary so we don't render a dead id.
+          setIsMetadataEditorOpen(false);
+          if (primaryArtistId != null) onNavigateToArtist(primaryArtistId);
+        }}
       />
     </div>
   );

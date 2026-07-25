@@ -824,7 +824,15 @@ pub(crate) async fn scan_folder_inner(
                             .bind(existing_track_id)
                             .fetch_one(&mut *tx)
                             .await?;
-                    if current_count as usize != splits.len() {
+                    // A comma-joined tag (`split_artist_name` yields one
+                    // name) whose track already credits several artists is
+                    // a deliberate user split (issue #396) — don't collapse
+                    // it back into the phantom on an unchanged-file rescan.
+                    // A brand-new scan never lands here (it starts at one
+                    // phantom row), so this only ever protects a split the
+                    // user (or the split_artist command) already made.
+                    let user_split = splits.len() == 1 && current_count > 1;
+                    if !user_split && current_count as usize != splits.len() {
                         multi_artist_renormalised = true;
                         let mut ids = Vec::new();
                         for name in splits {
