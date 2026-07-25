@@ -170,7 +170,9 @@ fn output_thread_main(
                 &shared,
                 format!("audio device error: {reason}"),
             );
-            super::output::schedule_device_rebuild(&app);
+            // The dead handle is still parked in the engine's
+            // `self.output`, so the rebuild can self-resolve its device.
+            super::output::schedule_device_rebuild(&app, super::output::RebuildTarget::Resolve);
         }
     }
 }

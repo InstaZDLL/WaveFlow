@@ -549,7 +549,10 @@ impl AudioEngine {
     /// cycles in 14 seconds) only triggers one rebuild attempt
     /// instead of stacking three concurrent SwapProducer cmds onto
     /// the decoder.
-    pub fn try_rebuild_after_device_error(&self) -> AppResult<()> {
+    pub(super) fn try_rebuild_after_device_error(
+        &self,
+        target: super::output::RebuildTarget,
+    ) -> AppResult<()> {
         use std::sync::atomic::Ordering;
 
         // Release the #365 gate on EVERY exit path below (including the
@@ -588,7 +591,15 @@ impl AudioEngine {
         }
         let _guard = ResetGuard(&self.rebuild_in_progress);
 
-        let pinned = self.current_output_device();
+        // `Resolve` reads the device off the live (dead) handle still
+        // parked in `self.output` — right for the cpal / exclusive
+        // device-loss callers. `Device` is passed when the caller already
+        // released the handle, so a self-resolve would see `None` and
+        // reopen the OS default instead of the user's pick (#405).
+        let pinned = match target {
+            super::output::RebuildTarget::Resolve => self.current_output_device(),
+            super::output::RebuildTarget::Device(device) => device,
+        };
         let pref_exclusive = self.wasapi_exclusive.load(Ordering::Relaxed);
 
         // #322: an exclusive-mode flap storm. A device that resets on every
@@ -1104,28 +1115,32 @@ impl AudioEngine {
         let (producer, handle) = match spawn_output_with_mode(
             self.shared.clone(),
             self.app.clone(),
-            active,
+            active.clone(),
             enabled,
         ) {
             Ok(pair) => pair,
             Err(err) => {
-                // Only reachable with `pre_release` (going exclusive falls
-                // back to shared internally rather than failing), so the
-                // engine is left with no output thread at all. Report that
-                // honestly — a toggle showing the mode of a stream that no
-                // longer exists is the bug we're fixing — and let the
-                // device-recovery path re-open in the mode the user just
-                // asked for, which is now recorded in `wasapi_exclusive`.
+                // No replacement stream was installed, so the settle
+                // window we opened has no swap-echo to absorb. Reopen the
+                // gate either way, so it can't suppress a genuine device
+                // error — on the surviving old stream (shared → exclusive
+                // where even the shared fallback failed, `guard` still
+                // holds it) or on the recovery we schedule below.
+                self.cancel_deliberate_output_change();
                 if guard.is_none() {
+                    // `pre_release` already released the old exclusive
+                    // handle, so there is no output thread at all. Tell
+                    // Settings the flag is stale (#405), then schedule a
+                    // rebuild that re-opens in the mode now recorded in
+                    // `wasapi_exclusive`. Pass `active` explicitly: the
+                    // teardown emptied `self.output`, so a self-resolve
+                    // would reopen the OS default instead of the user's
+                    // device.
                     self.publish_output_lost_if_gone(&guard);
-                    // The settle window we just opened at
-                    // `begin_deliberate_output_change` would swallow this
-                    // very rebuild (its 300 ms defer lands well inside the
-                    // 2 s window), leaving the engine with no output thread
-                    // and no way back — reopen the gate first so the
-                    // recovery can actually arm (#405).
-                    self.cancel_deliberate_output_change();
-                    super::output::schedule_device_rebuild(&self.app);
+                    super::output::schedule_device_rebuild(
+                        &self.app,
+                        super::output::RebuildTarget::Device(active),
+                    );
                 }
                 return Err(err);
             }

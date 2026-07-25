@@ -281,6 +281,27 @@ pub(super) fn notify_device_lost(app: &AppHandle, shared: &Arc<SharedPlayback>, 
     }
 }
 
+/// Which device a scheduled rebuild should reopen.
+///
+/// The two callers differ in whether the engine can still resolve the
+/// device from its live handle at rebuild time:
+/// - the cpal error callback and the WASAPI-exclusive `DeviceLost` exit
+///   both fire while the (now-dead) handle is still parked in
+///   `self.output`, so its `device_name` is still readable → [`Resolve`];
+/// - the `set_wasapi_exclusive` failure path has already `take()`n the
+///   old handle, emptying `self.output`, so a self-resolve would return
+///   `None` and reopen the OS default instead of the user's pick (#405)
+///   → [`Device`] carries the device captured before the teardown.
+///
+/// [`Resolve`]: RebuildTarget::Resolve
+/// [`Device`]: RebuildTarget::Device
+pub(super) enum RebuildTarget {
+    /// Resolve the device from the engine's live handle at rebuild time.
+    Resolve,
+    /// Reopen this specific device (`None` = OS default).
+    Device(Option<String>),
+}
+
 /// Schedule a same-device rebuild of the output stream after a device
 /// loss (#175). Returns immediately — the work happens on a tokio task.
 ///
@@ -293,7 +314,7 @@ pub(super) fn notify_device_lost(app: &AppHandle, shared: &Arc<SharedPlayback>, 
 /// while `AudioEngine::new` is still running, i.e. before the engine has
 /// been registered in Tauri's managed state, and looking it up eagerly
 /// would silently drop the recovery for that window.
-pub(super) fn schedule_device_rebuild(app: &AppHandle) {
+pub(super) fn schedule_device_rebuild(app: &AppHandle, target: RebuildTarget) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_millis(300)).await;
@@ -325,7 +346,7 @@ pub(super) fn schedule_device_rebuild(app: &AppHandle) {
         // hand it to the blocking pool.
         let engine = engine.inner().clone();
         let _ = tokio::task::spawn_blocking(move || {
-            if let Err(err) = engine.try_rebuild_after_device_error() {
+            if let Err(err) = engine.try_rebuild_after_device_error(target) {
                 tracing::warn!(%err, "auto-rebuild after device loss failed");
             }
         })
@@ -569,7 +590,9 @@ where
         notify_device_lost(&err_app, &err_shared, format!("audio device error: {err}"));
 
         if matches!(err, cpal::StreamError::DeviceNotAvailable) {
-            schedule_device_rebuild(&err_app);
+            // The erroring handle is still parked in the engine's
+            // `self.output`, so the rebuild can self-resolve its device.
+            schedule_device_rebuild(&err_app, RebuildTarget::Resolve);
         }
     };
 
