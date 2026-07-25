@@ -1977,7 +1977,8 @@
     "runningTitle": "Scansione della libreria…",
     "runningSubtitle": "{{current}} / {{total}} file",
     "doneTitle": "Scansione completata",
-    "doneSubtitle": "{{added}} aggiunti · {{updated}} aggiornati · {{skipped}} saltati"
+    "doneSubtitle": "{{added}} aggiunti · {{updated}} aggiornati · {{skipped}} saltati",
+    "scanningIn": "Scansione di {{dir}}"
   },
   "system": {
     "tray": {

@@ -12,6 +12,7 @@ interface ScanProgress {
   skipped: number;
   errors: number;
   done: boolean;
+  current_dir?: string | null;
 }
 
 /**
@@ -63,9 +64,16 @@ export function ScanProgressToast() {
 
   if (progress == null || dismissed) return null;
 
-  const { current, total, added, updated, skipped, done } = progress;
+  const { current, total, added, updated, skipped, done, current_dir } =
+    progress;
   const percent =
     total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+  // Show the last two path segments (…/Parent/Album) so the user sees the
+  // scan walking through folders without the toast overflowing on a deep
+  // absolute path; the full path rides in the title tooltip. (#430)
+  const dirLabel = current_dir
+    ? current_dir.split(/[\\/]/).filter(Boolean).slice(-2).join("/")
+    : null;
 
   return (
     <div
@@ -107,6 +115,14 @@ export function ScanProgressToast() {
                 className="h-full bg-emerald-500 transition-[width] duration-200"
                 style={{ width: `${percent}%` }}
               />
+            </div>
+          )}
+          {!done && dirLabel && (
+            <div
+              className="mt-1.5 text-[11px] text-zinc-400 dark:text-zinc-500 truncate"
+              title={current_dir ?? undefined}
+            >
+              {t("scanProgress.scanningIn", { dir: dirLabel })}
             </div>
           )}
         </div>

@@ -1977,7 +1977,8 @@
     "runningTitle": "Analyse en cours…",
     "runningSubtitle": "{{current}} / {{total}} fichiers",
     "doneTitle": "Analyse terminée",
-    "doneSubtitle": "{{added}} ajoutés · {{updated}} mis à jour · {{skipped}} ignorés"
+    "doneSubtitle": "{{added}} ajoutés · {{updated}} mis à jour · {{skipped}} ignorés",
+    "scanningIn": "Analyse de {{dir}}"
   },
   "system": {
     "tray": {

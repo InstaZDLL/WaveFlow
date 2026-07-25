@@ -1977,7 +1977,8 @@
     "runningTitle": "Bibliothek wird gescannt…",
     "runningSubtitle": "{{current}} / {{total}} Dateien",
     "doneTitle": "Scan abgeschlossen",
-    "doneSubtitle": "{{added}} hinzugefügt · {{updated}} aktualisiert · {{skipped}} übersprungen"
+    "doneSubtitle": "{{added}} hinzugefügt · {{updated}} aktualisiert · {{skipped}} übersprungen",
+    "scanningIn": "Durchsuche {{dir}}"
   },
   "system": {
     "tray": {

@@ -1977,7 +1977,8 @@
     "runningTitle": "Bibliotheek wordt gescand…",
     "runningSubtitle": "{{current}} / {{total}} bestanden",
     "doneTitle": "Scan voltooid",
-    "doneSubtitle": "{{added}} toegevoegd · {{updated}} bijgewerkt · {{skipped}} overgeslagen"
+    "doneSubtitle": "{{added}} toegevoegd · {{updated}} bijgewerkt · {{skipped}} overgeslagen",
+    "scanningIn": "Bezig met {{dir}}"
   },
   "system": {
     "tray": {

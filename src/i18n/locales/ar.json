@@ -2126,7 +2126,8 @@
     "runningTitle": "جارٍ فحص المكتبة…",
     "runningSubtitle": "{{current}} / {{total}} ملف",
     "doneTitle": "اكتمل الفحص",
-    "doneSubtitle": "{{added}} مضاف · {{updated}} محدّث · {{skipped}} متخطّى"
+    "doneSubtitle": "{{added}} مضاف · {{updated}} محدّث · {{skipped}} متخطّى",
+    "scanningIn": "جارٍ فحص {{dir}}"
   },
   "system": {
     "tray": {

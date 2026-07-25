@@ -1977,7 +1977,8 @@
     "runningTitle": "Kütüphane taranıyor…",
     "runningSubtitle": "{{current}} / {{total}} dosya",
     "doneTitle": "Tarama tamamlandı",
-    "doneSubtitle": "{{added}} eklendi · {{updated}} güncellendi · {{skipped}} atlandı"
+    "doneSubtitle": "{{added}} eklendi · {{updated}} güncellendi · {{skipped}} atlandı",
+    "scanningIn": "Taranıyor: {{dir}}"
   },
   "system": {
     "tray": {

@@ -2069,7 +2069,8 @@
     "runningTitle": "Сканирование библиотеки…",
     "runningSubtitle": "{{current}} / {{total}} файлов",
     "doneTitle": "Сканирование завершено",
-    "doneSubtitle": "Добавлено: {{added}} · Обновлено: {{updated}} · Пропущено: {{skipped}}"
+    "doneSubtitle": "Добавлено: {{added}} · Обновлено: {{updated}} · Пропущено: {{skipped}}",
+    "scanningIn": "Сканирование {{dir}}"
   },
   "system": {
     "tray": {
