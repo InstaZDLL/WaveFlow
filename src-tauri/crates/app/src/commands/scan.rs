@@ -714,6 +714,14 @@ pub(crate) async fn scan_folder_inner(
     // `read_dir` so shared ancestor folders are read once.
     let mut artist_image_cache = ArtistImageScanCache::default();
 
+    // Shared progress tick for both the error arms and the success path,
+    // so a run of failed extractions still advances the toast instead of
+    // freezing the counter until the next success (#430). Captures only
+    // Copy handles, so it stays a plain `Fn` and never touches `summary`.
+    let emit_tick = |current: usize, summary: &ScanSummary, path: &Path| {
+        maybe_emit_progress(app_handle, folder_id, current, total_files, summary, Some(path));
+    };
+
     while let Some((path, result)) = extraction_stream.next().await {
         processed += 1;
         let extracted = match result {
@@ -721,11 +729,13 @@ pub(crate) async fn scan_folder_inner(
             Ok(Err(err)) => {
                 tracing::warn!(path = %path.display(), error = %err, "extraction failed");
                 summary.errors += 1;
+                emit_tick(processed, &summary, &path);
                 continue;
             }
             Err(err) => {
                 tracing::warn!(path = %path.display(), error = %err, "extraction panicked");
                 summary.errors += 1;
+                emit_tick(processed, &summary, &path);
                 continue;
             }
         };
@@ -1173,14 +1183,7 @@ pub(crate) async fn scan_folder_inner(
             .db_us
             .fetch_add(t_db.elapsed().as_micros() as u64, Ordering::Relaxed);
 
-        maybe_emit_progress(
-            app_handle,
-            folder_id,
-            processed,
-            total_files,
-            &summary,
-            Some(&path),
-        );
+        emit_tick(processed, &summary, &path);
     }
 
     // Time the final commit into `db_us` too — the periodic TX_BATCH
