@@ -1055,10 +1055,6 @@ impl AudioEngine {
         if previous == enabled {
             return Ok(());
         }
-        // An explicit user toggle clears any #322 flap-storm suppression so
-        // re-enabling exclusive actually retries it (and disabling resets
-        // the counter for next time).
-        self.reset_exclusive_suppression();
         // Reuse `set_output_device` with the active device name — the
         // current/requested equality check inside it would short-circuit
         // a same-device call, so go straight to the rebuild path by
@@ -1098,14 +1094,35 @@ impl AudioEngine {
         let pre_release = guard.as_ref().is_some_and(|h| h.wasapi_exclusive);
         if pre_release {
             if was_playing {
-                self.cmd_tx
-                    .send(AudioCmd::Stop)
-                    .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
+                if let Err(e) = self.cmd_tx.send(AudioCmd::Stop) {
+                    // Nothing has been torn down yet — the old exclusive
+                    // stream is still installed and running. Roll the
+                    // preference swap back so the in-memory pref keeps
+                    // matching the live stream; without this a later
+                    // device-error rebuild would read the new pref and
+                    // silently flip to the mode this toggle failed to
+                    // apply. (The spawn / send_result failure paths below
+                    // deliberately keep the new pref instead, because by
+                    // then the old stream is already gone.)
+                    self.wasapi_exclusive
+                        .store(previous, std::sync::atomic::Ordering::Relaxed);
+                    return Err(AppError::Audio(format!(
+                        "audio command channel closed: {e}"
+                    )));
+                }
             }
             if let Some(old) = guard.take() {
                 old.stop();
             }
         }
+
+        // An explicit user toggle clears any #322 flap-storm suppression so
+        // re-enabling exclusive actually retries it (and disabling resets
+        // the counter for next time). Deferred until after the pre-release
+        // teardown so a failed Stop send above — which leaves the old stream
+        // intact and rolls the preference back — doesn't also wipe the
+        // suppression state that still describes that surviving stream.
+        self.reset_exclusive_suppression();
 
         // Both directions of this toggle disturb the outgoing stream on
         // purpose — don't let the resulting device error trigger a
