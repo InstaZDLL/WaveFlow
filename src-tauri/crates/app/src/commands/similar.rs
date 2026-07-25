@@ -434,7 +434,7 @@ async fn enrich_with_deezer_pictures(
 
     for (canon, hit) in fetched {
         let Some(hit) = hit else { continue };
-        let picture_url = hit.picture_xl.clone().or_else(|| hit.picture_big.clone());
+        let picture_url = hit.best_picture();
         let picture_hash = match picture_url.as_deref() {
             Some(url) => metadata_artwork::download_and_cache(url, artwork_dir).await,
             None => None,
@@ -629,14 +629,19 @@ async fn try_deezer(deezer_id: Option<i64>, source_name: &str) -> Option<Vec<Raw
             Some(
                 list.into_iter()
                     .enumerate()
-                    .map(|(i, h)| RawSimilar {
-                        name: h.name,
-                        // Synthesize a decreasing 1.0 → ~0 score from
-                        // the Deezer ranking so the UI can sort
-                        // uniformly with Last.fm output.
-                        match_score: 1.0 - (i as f32) / n,
-                        picture_url: h.picture_big.or(h.picture_medium),
-                        source: "deezer".into(),
+                    .map(|(i, h)| {
+                        // Skip Deezer's empty-hash placeholder (#406) —
+                        // borrow before `h.name` moves into the struct.
+                        let picture_url = h.best_picture();
+                        RawSimilar {
+                            name: h.name,
+                            // Synthesize a decreasing 1.0 → ~0 score from
+                            // the Deezer ranking so the UI can sort
+                            // uniformly with Last.fm output.
+                            match_score: 1.0 - (i as f32) / n,
+                            picture_url,
+                            source: "deezer".into(),
+                        }
                     })
                     .collect(),
             )

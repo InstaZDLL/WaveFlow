@@ -490,7 +490,7 @@ async fn enrich_artist_deezer_inner(
         }
     };
 
-    let picture_url = hit.picture_xl.clone().or_else(|| hit.picture_big.clone());
+    let picture_url = hit.best_picture();
 
     // 5. Download artwork into the shared cache (best-effort).
     let picture_hash = match picture_url.as_deref() {
@@ -761,11 +761,16 @@ pub async fn search_artists_deezer(query: String) -> AppResult<Vec<DeezerArtistL
     Ok(hits
         .into_iter()
         .take(20)
-        .map(|h| DeezerArtistLite {
-            deezer_id: h.id,
-            name: h.name,
-            picture_url: h.picture_xl.or(h.picture_big).or(h.picture_medium),
-            nb_fan: h.nb_fan,
+        .map(|h| {
+            // Skip Deezer's empty-hash placeholder (#406) — borrow before
+            // `h.name` moves into the struct.
+            let picture_url = h.best_picture();
+            DeezerArtistLite {
+                deezer_id: h.id,
+                name: h.name,
+                picture_url,
+                nb_fan: h.nb_fan,
+            }
         })
         .collect())
 }
@@ -795,10 +800,7 @@ pub async fn set_artist_artwork_from_deezer(
         .map_err(|err| AppError::Other(format!("deezer get_artist failed: {err}")))?;
 
     let picture_url = hit
-        .picture_xl
-        .clone()
-        .or_else(|| hit.picture_big.clone())
-        .or_else(|| hit.picture_medium.clone())
+        .best_picture()
         .ok_or_else(|| AppError::Other("deezer artist has no picture".into()))?;
 
     let bytes = download_image_bytes(&picture_url).await?;
