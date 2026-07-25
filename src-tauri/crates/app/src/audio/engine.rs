@@ -956,6 +956,13 @@ impl AudioEngine {
         })();
         if let Err(err) = send_result {
             handle.stop();
+            // Mirror force_rebuild_output / set_wasapi_exclusive: if the
+            // SwapProducer send failed the closure had already run
+            // `guard.take()`, so no output thread remains — the exclusive
+            // flag must stop claiming one and Settings must re-read (#405).
+            // No-ops when an earlier Stop send failed before guard.take(),
+            // where the old stream is still installed and the flag accurate.
+            self.publish_output_lost_if_gone(&guard);
             return Err(err);
         }
 
