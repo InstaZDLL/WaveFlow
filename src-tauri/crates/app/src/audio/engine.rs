@@ -640,6 +640,26 @@ impl AudioEngine {
             .try_arm(Instant::now(), REBUILD_SETTLE_WINDOW)
     }
 
+    /// Open the #365 settle window around an output change WE are making
+    /// on purpose (a mode toggle, a device switch).
+    ///
+    /// Replacing a stream makes the outgoing one fire
+    /// `DeviceNotAvailable` — seizing the endpoint in exclusive mode
+    /// kicks the shared client off it, and tearing a stream down can do
+    /// the same. That error is a consequence of the change, not a device
+    /// failure, but the cpal callback can't tell the difference and
+    /// schedules a recovery rebuild that fights the mode the user just
+    /// picked (visible in the #405 report as a second exclusive open
+    /// ~300 ms after the first). Marking the gate finished starts the
+    /// same quiet period a real rebuild would, so those echoes are
+    /// ignored.
+    fn begin_deliberate_output_change(&self) {
+        self.rebuild_gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .finish(Instant::now());
+    }
+
     /// Clear the #322 session-level exclusive suppression and its flap
     /// counter. Called when the user explicitly re-toggles WASAPI exclusive
     /// or switches output device — both are a fresh chance for exclusive to
@@ -696,12 +716,34 @@ impl AudioEngine {
             }
         }
 
-        let (producer, handle) = spawn_output_with_mode(
+        // A rebuild that bails out after the old handle is already gone
+        // leaves the engine with NO output thread — so the exclusive flag
+        // must not keep claiming otherwise. Publishing `false` + the event
+        // here is what keeps the Settings toggle honest on a failed
+        // recovery (#405); without it the toggle stays latched on for a
+        // mode that isn't running anymore.
+        let publish_lost_output = |guard: &Option<OutputHandle>| {
+            if guard.is_none() {
+                self.wasapi_exclusive_active
+                    .store(false, std::sync::atomic::Ordering::Release);
+                let _ = self.app.emit("player:audio-mode-changed", ());
+            }
+        };
+
+        let (producer, handle) = match spawn_output_with_mode(
             self.shared.clone(),
             self.app.clone(),
             device_name,
             exclusive,
-        )?;
+        ) {
+            Ok(pair) => pair,
+            Err(err) => {
+                // `pre_release` (an old exclusive stream) already took the
+                // handle above, so this is the no-output-at-all case.
+                publish_lost_output(&guard);
+                return Err(err);
+            }
+        };
 
         // The freshly-spawned `handle` owns a live cpal output
         // thread. If either send below fails (decoder dead, channel
@@ -727,6 +769,7 @@ impl AudioEngine {
         })();
         if let Err(err) = send_result {
             handle.stop();
+            publish_lost_output(&guard);
             return Err(err);
         }
         *guard = Some(handle);
@@ -996,21 +1039,85 @@ impl AudioEngine {
             .load(std::sync::atomic::Ordering::Acquire);
         let position_ms = self.shared.current_position_ms();
 
-        let (producer, handle) =
-            spawn_output_with_mode(self.shared.clone(), self.app.clone(), active, enabled)?;
+        // #405 — the stuck Settings toggle. Leaving exclusive mode re-opens
+        // the SAME endpoint in shared mode, and a WASAPI exclusive client
+        // owns its endpoint outright: no other client, shared OR exclusive,
+        // can open it until that client is released (the #322 lesson, which
+        // `force_rebuild_output` already applies). Spawning first — the
+        // order that's correct for a device *switch*, where the two streams
+        // target different endpoints — therefore fails every time here. The
+        // command returned `Err`, so the preference was never persisted and
+        // `wasapi_exclusive_active` kept reporting the old mode: the toggle
+        // sat latched on the very mode the user was trying to leave, with a
+        // restart as the only way out. Release the old exclusive stream
+        // FIRST so the new open finds a free device.
+        let pre_release = guard.as_ref().is_some_and(|h| h.wasapi_exclusive);
+        if pre_release {
+            if was_playing {
+                self.cmd_tx
+                    .send(AudioCmd::Stop)
+                    .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
+            }
+            if let Some(old) = guard.take() {
+                old.stop();
+            }
+        }
+
+        // Both directions of this toggle disturb the outgoing stream on
+        // purpose — don't let the resulting device error trigger a
+        // recovery rebuild that undoes the switch.
+        self.begin_deliberate_output_change();
+
+        let (producer, handle) = match spawn_output_with_mode(
+            self.shared.clone(),
+            self.app.clone(),
+            active,
+            enabled,
+        ) {
+            Ok(pair) => pair,
+            Err(err) => {
+                // Only reachable with `pre_release` (going exclusive falls
+                // back to shared internally rather than failing), so the
+                // engine is left with no output thread at all. Report that
+                // honestly — a toggle showing the mode of a stream that no
+                // longer exists is the bug we're fixing — and let the
+                // device-recovery path re-open in the mode the user just
+                // asked for, which is now recorded in `wasapi_exclusive`.
+                if guard.is_none() {
+                    self.wasapi_exclusive_active
+                        .store(false, std::sync::atomic::Ordering::Release);
+                    let _ = self.app.emit("player:audio-mode-changed", ());
+                    super::output::schedule_device_rebuild(&self.app);
+                }
+                return Err(err);
+            }
+        };
         let active_mode = handle.wasapi_exclusive;
 
-        if was_playing {
+        if was_playing && !pre_release {
             self.cmd_tx
                 .send(AudioCmd::Stop)
                 .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
         }
+        // No-op when `pre_release` already took the old handle above.
         if let Some(old) = guard.take() {
             old.stop();
         }
-        self.cmd_tx
+        // A failed hand-off would otherwise drop `handle` without
+        // `stop()` — the output thread would leak until process exit —
+        // and leave the toggle describing a stream nobody is feeding.
+        // Same rollback shape as `force_rebuild_output`.
+        if let Err(err) = self
+            .cmd_tx
             .send(AudioCmd::SwapProducer(producer))
-            .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
+            .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))
+        {
+            handle.stop();
+            self.wasapi_exclusive_active
+                .store(false, std::sync::atomic::Ordering::Release);
+            let _ = self.app.emit("player:audio-mode-changed", ());
+            return Err(err);
+        }
         *guard = Some(handle);
         self.wasapi_exclusive_active
             .store(active_mode, std::sync::atomic::Ordering::Release);

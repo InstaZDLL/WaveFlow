@@ -104,6 +104,16 @@ export function ExclusiveModeCard() {
     } catch (err) {
       console.error("[ExclusiveModeCard] toggle failed", err);
       setError(String(err));
+      // A failed toggle still moves the engine (issue #405): it may have
+      // torn the old stream down before failing to open the new one. The
+      // success path re-reads for exactly this reason — do it here too,
+      // otherwise the switch keeps showing the mode the user just tried
+      // to leave and looks stuck.
+      try {
+        setEnabled(await playerGetWasapiExclusive());
+      } catch (refreshErr) {
+        console.error("[ExclusiveModeCard] refresh after failed toggle", refreshErr);
+      }
     } finally {
       setBusy(false);
     }
