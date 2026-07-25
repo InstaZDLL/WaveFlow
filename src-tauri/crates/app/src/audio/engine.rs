@@ -247,6 +247,17 @@ impl RebuildGate {
         self.armed = false;
         self.last_finished = Some(now);
     }
+
+    /// Drop the settle window entirely so the very next [`try_arm`]
+    /// succeeds. Used when a deliberate output change we suppressed for
+    /// (via [`AudioEngine::begin_deliberate_output_change`]) turns out
+    /// to have installed no stream at all: the recovery we then schedule
+    /// must not be swallowed by the window we opened for a swap that
+    /// never happened (#405).
+    fn reopen(&mut self) {
+        self.armed = false;
+        self.last_finished = None;
+    }
 }
 
 /// Handle stored in Tauri state. Cloning an `Arc<AudioEngine>` is cheap.
@@ -676,6 +687,19 @@ impl AudioEngine {
             .finish(Instant::now());
     }
 
+    /// Undo a [`begin_deliberate_output_change`] when the change ended up
+    /// installing no stream (the spawn failed after the old handle was
+    /// already released). The settle window was there to absorb the echo
+    /// error from a successful swap; with no swap there is no echo, and
+    /// leaving the window open would suppress the recovery rebuild we're
+    /// about to schedule — the exact silent-no-output tail of #405.
+    fn cancel_deliberate_output_change(&self) {
+        self.rebuild_gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .reopen();
+    }
+
     /// Clear the #322 session-level exclusive suppression and its flap
     /// counter. Called when the user explicitly re-toggles WASAPI exclusive
     /// or switches output device — both are a fresh chance for exclusive to
@@ -1087,6 +1111,13 @@ impl AudioEngine {
                 // asked for, which is now recorded in `wasapi_exclusive`.
                 if guard.is_none() {
                     self.publish_output_lost_if_gone(&guard);
+                    // The settle window we just opened at
+                    // `begin_deliberate_output_change` would swallow this
+                    // very rebuild (its 300 ms defer lands well inside the
+                    // 2 s window), leaving the engine with no output thread
+                    // and no way back — reopen the gate first so the
+                    // recovery can actually arm (#405).
+                    self.cancel_deliberate_output_change();
                     super::output::schedule_device_rebuild(&self.app);
                 }
                 return Err(err);
@@ -1331,6 +1362,20 @@ mod rebuild_gate_tests {
         // engine could never recover from a later device loss.
         g.finish(t);
         assert!(g.try_arm(t + SETTLE, SETTLE));
+    }
+
+    #[test]
+    fn reopen_lets_a_rebuild_arm_inside_the_settle_window() {
+        let mut g = RebuildGate::default();
+        let t = Instant::now();
+        // A deliberate output change opens the settle window...
+        g.finish(t);
+        // ...but the spawn failed and installed nothing, so we reopen.
+        g.reopen();
+        // The scheduled recovery lands 300 ms later — well inside what
+        // would have been the 2 s window — and MUST now arm, otherwise
+        // the engine is left with no output thread at all (#405).
+        assert!(g.try_arm(t + Duration::from_millis(300), SETTLE));
     }
 
     #[test]
