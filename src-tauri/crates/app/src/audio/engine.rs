@@ -1158,6 +1158,15 @@ impl AudioEngine {
                         &self.app,
                         super::output::RebuildTarget::Device(active),
                     );
+                } else {
+                    // shared → exclusive where even the shared fallback
+                    // failed: the old shared stream is untouched and still
+                    // running. Roll the preference back to match it — same
+                    // as the failed-Stop path — otherwise a later
+                    // device-error rebuild would read the new pref and flip
+                    // to the exclusive mode this toggle never applied.
+                    self.wasapi_exclusive
+                        .store(previous, std::sync::atomic::Ordering::Relaxed);
                 }
                 return Err(err);
             }
