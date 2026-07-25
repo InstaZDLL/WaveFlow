@@ -199,11 +199,17 @@ pub async fn get_similar_artists(
                 .and_then(|(_, hash)| hash.as_deref())
                 .or_else(|| meta.and_then(|(_, hash)| hash.as_deref()))
                 .and_then(|h| metadata_artwork::existing_path(&artwork_dir, h));
-            // Prefer the Deezer URL over Last.fm's placeholder when
-            // both are present. Falls back to whatever the upstream
-            // gave us so a Deezer-fetch failure still surfaces *some*
-            // remote URL (good enough for the in-library badge case).
-            let picture_url = meta.and_then(|(url, _)| url.clone()).or(r.picture_url);
+            // When we have a metadata_artist entry it is authoritative:
+            // its URL (real Deezer picture, or `None` for a genuinely
+            // absent / filtered-placeholder one, #406) wins and must NOT
+            // fall back to `r.picture_url` — that would resurrect Last.fm's
+            // generic star for an artist we already know has no real photo.
+            // Only when the artist was never enriched (`meta` is `None`) do
+            // we surface the upstream URL as a best-effort remote fallback.
+            let picture_url = match meta {
+                Some((url, _)) => url.clone(),
+                None => r.picture_url,
+            };
             SimilarArtistDto {
                 name: r.name,
                 match_score: r.match_score,
@@ -267,12 +273,21 @@ async fn fetch_custom_similar(
         .enumerate()
         .map(
             |(i, (id, name, picture_url, picture_hash, local_hash, local_format))| {
+                // A pre-#406 metadata_artist row may hold a Deezer
+                // placeholder URL (+ grey-blob hash); ignore both so the
+                // local sidecar or the initial-letter avatar wins instead
+                // of a grey box. The local picture is resolved separately
+                // and is unaffected.
+                let (picture_url, cached_hash) = match picture_url {
+                    Some(u) if is_placeholder_artist_picture(&u) => (None, None),
+                    other => (other, picture_hash),
+                };
                 let picture_path = metadata_artwork::resolve_local_or_cached_path(
                     local_artwork_dir,
                     local_hash.as_deref(),
                     local_format.as_deref(),
                     artwork_dir,
-                    picture_hash.as_deref(),
+                    cached_hash.as_deref(),
                 );
                 SimilarArtistDto {
                     name,
