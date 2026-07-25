@@ -26,7 +26,7 @@ use sqlx::SqlitePool;
 
 use waveflow_core::metadata::{
     deezer::{is_placeholder_artist_picture, DeezerClient},
-    lastfm::LastfmClient,
+    lastfm::{is_lastfm_star_placeholder, LastfmClient},
     name_match::{normalize_name, select_by_name},
 };
 
@@ -216,9 +216,14 @@ pub async fn get_similar_artists(
             // generic star for an artist we already know has no real photo.
             // Only when the artist was never enriched (`meta` is `None`) do
             // we surface the upstream URL as a best-effort remote fallback.
+            // A never-enriched entry (`meta` is `None`) falls back to the
+            // upstream URL — but for a Last.fm-sourced result that is the
+            // generic grey star, so drop it and let the UI show the
+            // initial-letter avatar (#406). A genuine upstream picture
+            // still passes through.
             let picture_url = match meta {
                 Some((url, _)) => url.clone(),
-                None => r.picture_url,
+                None => r.picture_url.filter(|u| !is_lastfm_star_placeholder(u)),
             };
             SimilarArtistDto {
                 name: r.name,
