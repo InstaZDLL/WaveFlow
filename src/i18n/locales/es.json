@@ -1977,7 +1977,8 @@
     "runningTitle": "Escaneando biblioteca…",
     "runningSubtitle": "{{current}} / {{total}} archivos",
     "doneTitle": "Escaneo completado",
-    "doneSubtitle": "{{added}} añadidos · {{updated}} actualizados · {{skipped}} omitidos"
+    "doneSubtitle": "{{added}} añadidos · {{updated}} actualizados · {{skipped}} omitidos",
+    "scanningIn": "Analizando {{dir}}"
   },
   "system": {
     "tray": {

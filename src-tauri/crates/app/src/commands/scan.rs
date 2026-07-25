@@ -88,16 +88,24 @@ pub struct ScanProgress {
     pub skipped: u32,
     pub errors: u32,
     pub done: bool,
+    /// Absolute path of the directory the scan is currently in — the
+    /// parent of the file just processed. Lets the toast show a live
+    /// "scanning …/Album" line instead of a bare counter (#430). `None`
+    /// on the initial + final ticks, which carry no specific file.
+    pub current_dir: Option<String>,
 }
 
 /// Emit a progress tick — best-effort, errors are swallowed because
-/// progress feedback should never abort a scan.
+/// progress feedback should never abort a scan. `current_path` is the
+/// file that was just processed; its parent directory rides along so the
+/// UI can name the folder being scanned.
 fn maybe_emit_progress(
     app: Option<&tauri::AppHandle>,
     folder_id: i64,
     current: usize,
     total: usize,
     summary: &ScanSummary,
+    current_path: Option<&Path>,
 ) {
     let Some(app) = app else { return };
     // Ticks every 25 files cap the event volume at ~40 events/s on a
@@ -105,6 +113,9 @@ fn maybe_emit_progress(
     if current != total && current % 25 != 0 {
         return;
     }
+    let current_dir = current_path
+        .and_then(Path::parent)
+        .map(|d| d.to_string_lossy().into_owned());
     let _ = app.emit(
         "scan:progress",
         ScanProgress {
@@ -116,6 +127,7 @@ fn maybe_emit_progress(
             skipped: summary.skipped,
             errors: summary.errors,
             done: false,
+            current_dir,
         },
     );
 }
@@ -542,6 +554,7 @@ pub(crate) async fn scan_folder_inner(
                 skipped: 0,
                 errors: 0,
                 done: false,
+                current_dir: None,
             },
         );
     }
@@ -585,7 +598,14 @@ pub(crate) async fn scan_folder_inner(
                         .unwrap_or(0);
                     if disk_size == stored_size && disk_mtime_ms == stored_mtime {
                         summary.skipped += 1;
-                        maybe_emit_progress(app_handle, folder_id, idx + 1, total_files, &summary);
+                        maybe_emit_progress(
+                            app_handle,
+                            folder_id,
+                            idx + 1,
+                            total_files,
+                            &summary,
+                            Some(&path),
+                        );
                         continue;
                     }
                 }
@@ -694,6 +714,14 @@ pub(crate) async fn scan_folder_inner(
     // `read_dir` so shared ancestor folders are read once.
     let mut artist_image_cache = ArtistImageScanCache::default();
 
+    // Shared progress tick for both the error arms and the success path,
+    // so a run of failed extractions still advances the toast instead of
+    // freezing the counter until the next success (#430). Captures only
+    // Copy handles, so it stays a plain `Fn` and never touches `summary`.
+    let emit_tick = |current: usize, summary: &ScanSummary, path: &Path| {
+        maybe_emit_progress(app_handle, folder_id, current, total_files, summary, Some(path));
+    };
+
     while let Some((path, result)) = extraction_stream.next().await {
         processed += 1;
         let extracted = match result {
@@ -701,11 +729,13 @@ pub(crate) async fn scan_folder_inner(
             Ok(Err(err)) => {
                 tracing::warn!(path = %path.display(), error = %err, "extraction failed");
                 summary.errors += 1;
+                emit_tick(processed, &summary, &path);
                 continue;
             }
             Err(err) => {
                 tracing::warn!(path = %path.display(), error = %err, "extraction panicked");
                 summary.errors += 1;
+                emit_tick(processed, &summary, &path);
                 continue;
             }
         };
@@ -1153,7 +1183,7 @@ pub(crate) async fn scan_folder_inner(
             .db_us
             .fetch_add(t_db.elapsed().as_micros() as u64, Ordering::Relaxed);
 
-        maybe_emit_progress(app_handle, folder_id, processed, total_files, &summary);
+        emit_tick(processed, &summary, &path);
     }
 
     // Time the final commit into `db_us` too — the periodic TX_BATCH
@@ -1295,6 +1325,7 @@ pub(crate) async fn scan_folder_inner(
                 skipped: summary.skipped,
                 errors: summary.errors,
                 done: true,
+                current_dir: None,
             },
         );
     }

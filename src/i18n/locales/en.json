@@ -1977,7 +1977,8 @@
     "runningTitle": "Scanning library…",
     "runningSubtitle": "{{current}} / {{total}} files",
     "doneTitle": "Scan complete",
-    "doneSubtitle": "{{added}} added · {{updated}} updated · {{skipped}} skipped"
+    "doneSubtitle": "{{added}} added · {{updated}} updated · {{skipped}} skipped",
+    "scanningIn": "Scanning {{dir}}"
   },
   "system": {
     "tray": {
