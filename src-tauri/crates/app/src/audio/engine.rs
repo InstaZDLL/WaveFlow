@@ -640,6 +640,22 @@ impl AudioEngine {
             .try_arm(Instant::now(), REBUILD_SETTLE_WINDOW)
     }
 
+    /// Publish "no output thread at all" when a rebuild bailed out after
+    /// the old handle was already released.
+    ///
+    /// The exclusive flag must not keep claiming a stream that no longer
+    /// exists — a toggle describing one is the exact shape of #405 — and
+    /// the event is what makes Settings re-read. No-ops when `guard`
+    /// still holds a handle, i.e. the failure happened before the old
+    /// stream was given up and the flag is still accurate.
+    fn publish_output_lost_if_gone(&self, guard: &Option<OutputHandle>) {
+        if guard.is_none() {
+            self.wasapi_exclusive_active
+                .store(false, std::sync::atomic::Ordering::Release);
+            let _ = self.app.emit("player:audio-mode-changed", ());
+        }
+    }
+
     /// Open the #365 settle window around an output change WE are making
     /// on purpose (a mode toggle, a device switch).
     ///
@@ -716,20 +732,6 @@ impl AudioEngine {
             }
         }
 
-        // A rebuild that bails out after the old handle is already gone
-        // leaves the engine with NO output thread — so the exclusive flag
-        // must not keep claiming otherwise. Publishing `false` + the event
-        // here is what keeps the Settings toggle honest on a failed
-        // recovery (#405); without it the toggle stays latched on for a
-        // mode that isn't running anymore.
-        let publish_lost_output = |guard: &Option<OutputHandle>| {
-            if guard.is_none() {
-                self.wasapi_exclusive_active
-                    .store(false, std::sync::atomic::Ordering::Release);
-                let _ = self.app.emit("player:audio-mode-changed", ());
-            }
-        };
-
         let (producer, handle) = match spawn_output_with_mode(
             self.shared.clone(),
             self.app.clone(),
@@ -740,7 +742,7 @@ impl AudioEngine {
             Err(err) => {
                 // `pre_release` (an old exclusive stream) already took the
                 // handle above, so this is the no-output-at-all case.
-                publish_lost_output(&guard);
+                self.publish_output_lost_if_gone(&guard);
                 return Err(err);
             }
         };
@@ -769,7 +771,7 @@ impl AudioEngine {
         })();
         if let Err(err) = send_result {
             handle.stop();
-            publish_lost_output(&guard);
+            self.publish_output_lost_if_gone(&guard);
             return Err(err);
         }
         *guard = Some(handle);
@@ -1084,9 +1086,7 @@ impl AudioEngine {
                 // device-recovery path re-open in the mode the user just
                 // asked for, which is now recorded in `wasapi_exclusive`.
                 if guard.is_none() {
-                    self.wasapi_exclusive_active
-                        .store(false, std::sync::atomic::Ordering::Release);
-                    let _ = self.app.emit("player:audio-mode-changed", ());
+                    self.publish_output_lost_if_gone(&guard);
                     super::output::schedule_device_rebuild(&self.app);
                 }
                 return Err(err);
@@ -1094,28 +1094,35 @@ impl AudioEngine {
         };
         let active_mode = handle.wasapi_exclusive;
 
-        if was_playing && !pre_release {
+        // Group the whole hand-off so ANY failing step still runs the
+        // `handle.stop()` below. `handle` owns a live output thread on a
+        // `!Send` thread that can't be reaped from Drop, so an early
+        // return here would leak it until process exit — and when the new
+        // stream is the exclusive one, that leaked thread keeps the device
+        // locked while `guard` still points at the old stream. Same shape
+        // as `force_rebuild_output`.
+        let send_result = (|| {
+            if was_playing && !pre_release {
+                self.cmd_tx
+                    .send(AudioCmd::Stop)
+                    .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
+            }
+            // No-op when `pre_release` already took the old handle above.
+            if let Some(old) = guard.take() {
+                old.stop();
+            }
             self.cmd_tx
-                .send(AudioCmd::Stop)
+                .send(AudioCmd::SwapProducer(producer))
                 .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))?;
-        }
-        // No-op when `pre_release` already took the old handle above.
-        if let Some(old) = guard.take() {
-            old.stop();
-        }
-        // A failed hand-off would otherwise drop `handle` without
-        // `stop()` — the output thread would leak until process exit —
-        // and leave the toggle describing a stream nobody is feeding.
-        // Same rollback shape as `force_rebuild_output`.
-        if let Err(err) = self
-            .cmd_tx
-            .send(AudioCmd::SwapProducer(producer))
-            .map_err(|e| AppError::Audio(format!("audio command channel closed: {e}")))
-        {
+            Ok::<(), AppError>(())
+        })();
+        if let Err(err) = send_result {
             handle.stop();
-            self.wasapi_exclusive_active
-                .store(false, std::sync::atomic::Ordering::Release);
-            let _ = self.app.emit("player:audio-mode-changed", ());
+            // A failing `Stop` send bails before the old handle is taken,
+            // so `guard` still describes a live stream and the flag stays
+            // accurate; the later steps leave no output at all. The helper
+            // tells those two apart and only publishes for the second.
+            self.publish_output_lost_if_gone(&guard);
             return Err(err);
         }
         *guard = Some(handle);
