@@ -21,7 +21,7 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter};
 
 use waveflow_core::metadata::{
-    deezer::DeezerClient,
+    deezer::{is_placeholder_artist_picture, DeezerClient},
     lastfm::LastfmClient,
     name_match::{normalize_name, select_by_name},
     theaudiodb::{make_summary, TheAudioDbClient},
@@ -395,6 +395,19 @@ async fn enrich_artist_deezer_inner(
                 && (active_source != BioSource::TheAudioDb
                     || cached_bio_language.as_deref() == Some(active_lang.as_str()));
             if expires_at > now && bio_fresh {
+                // A row cached before #406 may hold a Deezer placeholder
+                // URL (and a grey-blob hash). Drop both so we surface the
+                // initial-letter avatar instead of the grey box; the row's
+                // own TTL refresh re-fetches through `best_picture`, and a
+                // placeholder means the artist has no real Deezer photo to
+                // heal to anyway.
+                let placeholder =
+                    picture_url.as_deref().is_some_and(is_placeholder_artist_picture);
+                let (picture_url, picture_hash) = if placeholder {
+                    (None, None)
+                } else {
+                    (picture_url, picture_hash)
+                };
                 let picture_path = picture_hash
                     .as_deref()
                     .and_then(|h| metadata_artwork::existing_path(&artwork_dir, h));

@@ -256,8 +256,21 @@ mod tests {
 
     #[test]
     fn best_picture_skips_a_placeholder_and_takes_the_next_real_size() {
-        // Real world: all sizes share the hash, so a placeholder xl means
-        // every size is a placeholder → None.
+        // Exercises the `.find()` skip: a placeholder in the largest slot
+        // must not short-circuit — the next real size wins.
+        let h = hit(
+            Some("https://e-cdns-images.dzcdn.net/images/artist//1000x1000.jpg"),
+            Some("https://e-cdns-images.dzcdn.net/images/artist/abc123/500x500.jpg"),
+        );
+        assert_eq!(
+            h.best_picture().as_deref(),
+            Some("https://e-cdns-images.dzcdn.net/images/artist/abc123/500x500.jpg")
+        );
+    }
+
+    #[test]
+    fn best_picture_is_none_when_every_size_is_a_placeholder() {
+        // The real-world shape: all sizes share the one empty hash.
         let ph = hit(
             Some("https://e-cdns-images.dzcdn.net/images/artist//1000x1000.jpg"),
             Some("https://e-cdns-images.dzcdn.net/images/artist//500x500.jpg"),

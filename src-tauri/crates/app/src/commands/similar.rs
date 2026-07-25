@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
 use waveflow_core::metadata::{
-    deezer::DeezerClient,
+    deezer::{is_placeholder_artist_picture, DeezerClient},
     lastfm::LastfmClient,
     name_match::{normalize_name, select_by_name},
 };
@@ -366,7 +366,14 @@ async fn enrich_with_deezer_pictures(
             for (name, picture_url, picture_hash) in rows {
                 let canon = canonical_name(&name);
                 if canon_targets.contains(&canon) {
-                    map.insert(canon, (picture_url, picture_hash));
+                    // A row cached before #406 may hold a Deezer placeholder
+                    // URL + grey-blob hash — drop both so it doesn't re-enter
+                    // the map as a grey box (fresh fetches already filter it).
+                    let entry = match picture_url.as_deref() {
+                        Some(u) if is_placeholder_artist_picture(u) => (None, None),
+                        _ => (picture_url, picture_hash),
+                    };
+                    map.insert(canon, entry);
                 }
             }
         }
