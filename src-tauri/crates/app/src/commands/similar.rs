@@ -162,16 +162,26 @@ pub async fn get_similar_artists(
     let mut local_map: HashMap<String, (i64, Option<String>)> = HashMap::new();
     if !canonicals.is_empty() {
         let sql = format!(
-            "SELECT a.id, a.canonical_name, ma.picture_hash
+            "SELECT a.id, a.canonical_name, ma.picture_url, ma.picture_hash
                FROM artist a
                LEFT JOIN app.metadata_artist ma ON ma.deezer_id = a.deezer_id
               WHERE a.canonical_name IN ({placeholders})"
         );
-        let mut q = sqlx::query_as::<_, (i64, String, Option<String>)>(sqlx::AssertSqlSafe(sql));
+        let mut q = sqlx::query_as::<_, (i64, String, Option<String>, Option<String>)>(
+            sqlx::AssertSqlSafe(sql),
+        );
         for c in &canonicals {
             q = q.bind(c);
         }
-        for (id, canon, hash) in q.fetch_all(&*pool).await? {
+        for (id, canon, url, hash) in q.fetch_all(&*pool).await? {
+            // A placeholder cached before the #406 fix still carries a real
+            // hash pointing at the grey-silhouette blob on disk. Drop it so
+            // `picture_path` doesn't resurface it for library artists — the
+            // metadata_map filter only covers the cross-profile `meta` path.
+            let hash = match url.as_deref() {
+                Some(u) if is_placeholder_artist_picture(u) => None,
+                _ => hash,
+            };
             local_map.insert(canon, (id, hash));
         }
     }
