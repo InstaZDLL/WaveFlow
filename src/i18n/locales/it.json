@@ -971,7 +971,9 @@
     "emptyTitle": "Artista non trovato",
     "emptyDescription": "Questo artista non è più presente nel profilo attivo.",
     "bio": {
-      "title": "Biografia"
+      "title": "Biografia",
+      "show": "Mostra",
+      "hide": "Nascondi"
     },
     "similar": {
       "title": "Artisti simili",

@@ -971,7 +971,9 @@
     "emptyTitle": "Artiste introuvable",
     "emptyDescription": "Cet artiste n'existe plus dans le profil actif.",
     "bio": {
-      "title": "Biographie"
+      "title": "Biographie",
+      "show": "Afficher",
+      "hide": "Masquer"
     },
     "similar": {
       "title": "Artistes similaires",

@@ -971,7 +971,9 @@
     "emptyTitle": "アーティストが見つかりません",
     "emptyDescription": "このアーティストは、アクティブなプロフィールには存在しません。",
     "bio": {
-      "title": "略歴"
+      "title": "略歴",
+      "show": "表示",
+      "hide": "非表示"
     },
     "similar": {
       "title": "似ているアーティスト",

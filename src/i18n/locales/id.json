@@ -971,7 +971,9 @@
     "emptyTitle": "Artis tidak ditemukan",
     "emptyDescription": "Artis ini tidak lagi tercantum di profil aktif.",
     "bio": {
-      "title": "Biografi"
+      "title": "Biografi",
+      "show": "Tampilkan",
+      "hide": "Sembunyikan"
     },
     "similar": {
       "title": "Artis serupa",

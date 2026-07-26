@@ -971,7 +971,9 @@
     "emptyTitle": "找不到該藝人",
     "emptyDescription": "該藝人已不在目前的個人檔案中。",
     "bio": {
-      "title": "傳記"
+      "title": "傳記",
+      "show": "顯示",
+      "hide": "隱藏"
     },
     "similar": {
       "title": "相似藝人",

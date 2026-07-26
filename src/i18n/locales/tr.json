@@ -971,7 +971,9 @@
     "emptyTitle": "Sanatçı bulunamadı",
     "emptyDescription": "Bu sanatçı etkin profilde artık listelenmiyor.",
     "bio": {
-      "title": "Biyografi"
+      "title": "Biyografi",
+      "show": "Göster",
+      "hide": "Gizle"
     },
     "similar": {
       "title": "Benzer sanatçılar",
