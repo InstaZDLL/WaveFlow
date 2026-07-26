@@ -16,6 +16,11 @@
  */
 export type LocalizedText = string | Record<string, string>;
 
+/** A translation slot only counts if it holds something to render. */
+function usable(text: string | null | undefined): string | null {
+  return text != null && text.trim() !== "" ? text : null;
+}
+
 /**
  * Best text for `lang`, following the format's documented chain:
  *
@@ -25,9 +30,17 @@ export type LocalizedText = string | Record<string, string>;
  * 4. any entry, lowest key first, so a manifest shipping only e.g.
  *    `de` still renders something instead of a blank row.
  *
- * Returns `null` only for a nullish input or an empty map. The
- * manifest validator refuses an empty map at parse time, but a
- * registry entry comes off the network, so callers must handle it.
+ * **Blank entries are skipped at every step**, not treated as a hit —
+ * `{ fr: "", en: "…" }` renders the English rather than nothing. An
+ * untranslated slot left empty is a common authoring accident, and
+ * letting it win would blank a store card or, worse, leave an option
+ * control with no accessible name (callers fall back to the option
+ * key on `null`, which an empty string would defeat).
+ *
+ * Returns `null` for a nullish input, an empty map, or a map with
+ * nothing renderable in it. The manifest validator refuses an empty
+ * map at parse time, but a registry entry comes off the network, so
+ * callers must handle it.
  *
  * The `typeof` guard is what keeps every pre-existing plugin working:
  * a plain `description = "…"` arrives as a string and short-circuits
@@ -38,14 +51,17 @@ export function resolveLocalizedText(
   lang: string,
 ): string | null {
   if (value == null) return null;
-  if (typeof value === "string") return value;
+  if (typeof value === "string") return usable(value);
 
   const base = lang.split("-")[0];
-  const exact = value[lang] ?? value[base] ?? value.en;
-  if (exact != null) return exact;
+  const hit = usable(value[lang]) ?? usable(value[base]) ?? usable(value.en);
+  if (hit != null) return hit;
 
   // Last resort: sort so the pick is deterministic and matches the
   // Rust side's BTreeMap ordering rather than JSON key order.
-  const keys = Object.keys(value).sort();
-  return keys.length > 0 ? value[keys[0]] : null;
+  for (const key of Object.keys(value).sort()) {
+    const candidate = usable(value[key]);
+    if (candidate != null) return candidate;
+  }
+  return null;
 }

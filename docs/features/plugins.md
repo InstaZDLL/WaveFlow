@@ -90,7 +90,9 @@ So: inline for local experiments, `*_i18n` for anything published.
 
 Key on the app's canonical locale codes (the 17 in [`src/i18n/index.ts`](../../src/i18n/index.ts)); brand tokens (`WaveFlow`, `Apple Music`, `Last.fm`, `HEVC`…) stay verbatim in every language.
 
-The host hands the merged value through untouched and the UI resolves it against the active i18next language via [`useLocalizedText`](../../src/hooks/useLocalizedText.ts), so a language switch re-renders instantly with no backend round-trip. The fallback chain — exact code → base language (`pt-BR` → `pt`) → `en` → any entry — is implemented twice, in [`LocalizedString::resolve`](../../src-tauri/crates/core/src/plugin/manifest.rs) and [`resolveLocalizedText`](../../src/lib/localizedText.ts); **change them together**. A localized field that ends up declaring zero languages is refused at parse time rather than rendering blank.
+The host hands the merged value through untouched and the UI resolves it against the active i18next language via [`useLocalizedText`](../../src/hooks/useLocalizedText.ts), so a language switch re-renders instantly with no backend round-trip. The fallback chain — exact code → base language (`pt-BR` → `pt`) → `en` → any entry — is implemented twice, in [`LocalizedString::resolve`](../../src-tauri/crates/core/src/plugin/manifest.rs) and [`resolveLocalizedText`](../../src/lib/localizedText.ts); **change them together**.
+
+Blank entries are skipped at every step instead of counting as a hit, so `fr = ""` next to an English string renders the English — an empty slot is an authoring accident, and letting it win would blank a store card or leave an option control with no accessible name (the UI substitutes the option key only on a `None`). A localized field that ends up declaring zero languages is refused outright at parse time.
 
 ## Official plugins
 

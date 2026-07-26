@@ -101,20 +101,30 @@ impl LocalizedString {
     /// 4. any entry, lowest key first, so a manifest that ships only
     ///    e.g. `de` still renders something instead of a blank row.
     ///
-    /// `None` only when the map is empty, which
-    /// [`Manifest::validate`] refuses for manifests — a registry
-    /// entry from a hostile source can still hit it, so callers must
-    /// handle it rather than unwrap.
+    /// **Blank entries are skipped at every step** rather than
+    /// counting as a hit: `{ fr: "", en: "…" }` resolves to the
+    /// English. A translator leaving a slot empty is a common
+    /// authoring accident, and letting it win would blank the row —
+    /// or leave an option control with no accessible name, since the
+    /// UI only falls back to the option key on a `None`.
+    ///
+    /// `None` when the map is empty or holds nothing renderable.
+    /// [`Manifest::validate`] refuses an empty map for manifests, but
+    /// a registry entry comes off the network, so callers must handle
+    /// it rather than unwrap.
     pub fn resolve(&self, lang: &str) -> Option<&str> {
+        /// A translation slot only counts if it holds something to render.
+        fn usable(text: Option<&String>) -> Option<&str> {
+            text.map(String::as_str).filter(|s| !s.trim().is_empty())
+        }
         match self {
-            Self::Plain(s) => Some(s.as_str()),
+            Self::Plain(s) => usable(Some(s)),
             Self::Localized(map) => {
                 let base = lang.split('-').next().unwrap_or(lang);
-                map.get(lang)
-                    .or_else(|| map.get(base))
-                    .or_else(|| map.get("en"))
-                    .or_else(|| map.values().next())
-                    .map(String::as_str)
+                usable(map.get(lang))
+                    .or_else(|| usable(map.get(base)))
+                    .or_else(|| usable(map.get("en")))
+                    .or_else(|| map.values().find_map(|v| usable(Some(v))))
             }
         }
     }
@@ -671,6 +681,29 @@ en = "Bigger files."
             LocalizedString::Localized(only_de).resolve("fr"),
             Some("deutsch")
         );
+    }
+
+    /// An empty slot is an authoring accident, not a translation:
+    /// letting it win blanks the row (and strips an option control of
+    /// its accessible name, since the UI only falls back on `None`).
+    #[test]
+    fn resolve_skips_blank_entries() {
+        let s = LocalizedString::Localized(BTreeMap::from([
+            ("fr".to_string(), String::new()),
+            ("de".to_string(), "   ".to_string()),
+            ("en".to_string(), "english".to_string()),
+        ]));
+        assert_eq!(s.resolve("fr"), Some("english"), "empty falls through to en");
+        assert_eq!(s.resolve("de"), Some("english"), "whitespace-only too");
+
+        // Nothing renderable anywhere: report None so the caller can
+        // substitute its own label rather than render an empty string.
+        let blank = LocalizedString::Localized(BTreeMap::from([
+            ("en".to_string(), String::new()),
+            ("fr".to_string(), "  ".to_string()),
+        ]));
+        assert_eq!(blank.resolve("fr"), None);
+        assert_eq!(LocalizedString::Plain(String::new()).resolve("en"), None);
     }
 
     /// The publish-safe shape: a plain string an older host still
