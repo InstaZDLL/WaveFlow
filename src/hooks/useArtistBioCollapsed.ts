@@ -20,7 +20,10 @@ function parseCollapsed(raw: string | null): boolean {
 
 export interface ArtistBioCollapsed {
   collapsed: boolean;
-  setCollapsed: (next: boolean) => Promise<void>;
+  /** Fire-and-forget: optimistic UI update, persistence is serialized
+   *  internally, guarded against a mid-flight profile switch, and rolls
+   *  back to the last DB-confirmed value on failure. */
+  setCollapsed: (next: boolean) => void;
 }
 
 /**
@@ -35,13 +38,29 @@ export interface ArtistBioCollapsed {
 export function useArtistBioCollapsed(): ArtistBioCollapsed {
   const { activeProfile } = useProfile();
   const [collapsed, setCollapsedState] = useState<boolean>(DEFAULT_COLLAPSED);
-  // Monotonic write id: a slow earlier write that fails/settles after a
-  // newer one must not roll back or broadcast over the newer intent.
-  const writeSeqRef = useRef(0);
-  // Serializes the writes themselves so they land in click order — a
-  // later click can't be persisted before an earlier one and leave the
-  // DB holding stale intent.
-  const writeChainRef = useRef<Promise<void>>(Promise.resolve());
+
+  // Monotonic token shared by reads and writes: a write bumps it to
+  // invalidate any in-flight refresh (so a stale read can't clobber the
+  // newer optimistic state), and only the latest write broadcasts /
+  // rolls back.
+  const seqRef = useRef(0);
+  // Serializes writes so they land in click order — a later click can't
+  // be persisted before an earlier one and leave the DB holding stale
+  // intent.
+  const writeChainRef = useRef<Promise<unknown>>(Promise.resolve());
+  // Last DB-confirmed value — the rollback target. After a run of failed
+  // writes the optimistic pre-toggle value was never persisted, so a
+  // failure reverts to confirmed truth, not the optimistic snapshot.
+  const persistedRef = useRef<boolean>(DEFAULT_COLLAPSED);
+  // Active profile id mirrored into a ref so a queued write can check —
+  // at the moment it runs — that the profile is still the one the user
+  // toggled (`set_profile_setting` targets whatever profile is active
+  // when it runs, so a mid-flight switch would write to the wrong one).
+  const activeProfileId = activeProfile?.id;
+  const activeProfileIdRef = useRef(activeProfileId);
+  useEffect(() => {
+    activeProfileIdRef.current = activeProfileId;
+  }, [activeProfileId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,11 +69,19 @@ export function useArtistBioCollapsed(): ArtistBioCollapsed {
     // value loads. The `getProfileSetting` below then replaces it.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCollapsedState(DEFAULT_COLLAPSED);
+    persistedRef.current = DEFAULT_COLLAPSED;
     const refresh = async () => {
+      // Marker captured before the async read. If a local write bumps
+      // `seqRef` while we're awaiting, this read is stale — its newer
+      // optimistic state (plus that write's own refresh) supersedes it,
+      // so we drop the result instead of clobbering it.
+      const reqSeq = seqRef.current;
       try {
         const raw = await getProfileSetting(KEY);
-        if (cancelled) return;
-        setCollapsedState(parseCollapsed(raw));
+        if (cancelled || seqRef.current !== reqSeq) return;
+        const loaded = parseCollapsed(raw);
+        setCollapsedState(loaded);
+        persistedRef.current = loaded;
       } catch (err) {
         console.error("[useArtistBioCollapsed] read failed", err);
       }
@@ -65,33 +92,35 @@ export function useArtistBioCollapsed(): ArtistBioCollapsed {
       cancelled = true;
       window.removeEventListener(ARTIST_BIO_COLLAPSED_EVENT, refresh);
     };
-  }, [activeProfile?.id]);
+  }, [activeProfileId]);
 
-  const setCollapsed = useCallback(
-    (next: boolean) => {
-      // Snapshot the current value so a persistence failure rolls back
-      // instead of leaving the UI ahead of what the backend recorded.
-      const previous = collapsed;
-      const seq = ++writeSeqRef.current;
-      setCollapsedState(next);
-      const run = async () => {
-        try {
-          await setProfileSetting(KEY, next ? "true" : "false", "bool");
-          // Only the latest request broadcasts / rolls back, so a stale
-          // completion or failure can't clobber a newer click's state.
-          if (seq === writeSeqRef.current) {
-            window.dispatchEvent(new CustomEvent(ARTIST_BIO_COLLAPSED_EVENT));
-          }
-        } catch (err) {
-          console.error("[useArtistBioCollapsed] write failed", err);
-          if (seq === writeSeqRef.current) setCollapsedState(previous);
+  const setCollapsed = useCallback((next: boolean) => {
+    setCollapsedState(next); // optimistic; bumping seqRef invalidates reads
+    const profileAtClick = activeProfileIdRef.current;
+    const seq = ++seqRef.current;
+    // Queue behind any in-flight write. A leading no-op catch keeps a
+    // prior failure from breaking the chain for later writes.
+    writeChainRef.current = writeChainRef.current
+      .catch(() => {})
+      .then(async () => {
+        // Profile switched out from under this queued write — skip so a
+        // toggle never lands in another profile's settings.
+        if (activeProfileIdRef.current !== profileAtClick) return;
+        await setProfileSetting(KEY, next ? "true" : "false", "bool");
+        persistedRef.current = next; // confirmed in the DB
+        // Only the latest enqueued write broadcasts, so an older write's
+        // completion can't refresh over a newer state.
+        if (seq === seqRef.current) {
+          window.dispatchEvent(new CustomEvent(ARTIST_BIO_COLLAPSED_EVENT));
         }
-      };
-      writeChainRef.current = writeChainRef.current.then(run, run);
-      return writeChainRef.current;
-    },
-    [collapsed],
-  );
+      })
+      .catch((err: unknown) => {
+        console.error("[useArtistBioCollapsed] write failed", err);
+        // Only roll back if no later write superseded this one, reverting
+        // to the last DB-confirmed value rather than the optimistic one.
+        if (seq === seqRef.current) setCollapsedState(persistedRef.current);
+      });
+  }, []);
 
   return { collapsed, setCollapsed };
 }
