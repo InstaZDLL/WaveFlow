@@ -4,7 +4,10 @@ import { Tags, FolderOpen, Trash2 } from "lucide-react";
 
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { AnimatedModalContent, AnimatedModalShell } from "./AnimatedModalShell";
-import { clearGenreArtwork, setGenreArtworkFromFile } from "../../lib/tauri/browse";
+import {
+  clearGenreArtwork,
+  setGenreArtworkFromFile,
+} from "../../lib/tauri/browse";
 import { pickFile } from "../../lib/tauri/dialog";
 
 interface GenreImagePickerModalProps {
@@ -96,9 +99,7 @@ export function GenreImagePickerModal({
           {t("genreImagePicker.subtitle")}
         </p>
 
-        {error && (
-          <div className="mb-3 text-xs text-red-500 px-2">{error}</div>
-        )}
+        {error && <div className="mb-3 text-xs text-red-500 px-2">{error}</div>}
 
         <div className="flex flex-col items-center justify-center py-8 space-y-4">
           <div className="w-16 h-16 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">

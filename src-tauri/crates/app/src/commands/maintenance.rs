@@ -198,7 +198,10 @@ async fn safety_backup_all_profiles(state: &AppState) -> Option<PathBuf> {
         {
             Ok(rows) => rows,
             Err(err) => {
-                tracing::warn!(?err, "pre-reset safety backup: could not list profiles; skipping");
+                tracing::warn!(
+                    ?err,
+                    "pre-reset safety backup: could not list profiles; skipping"
+                );
                 return None;
             }
         };
@@ -243,7 +246,11 @@ async fn safety_backup_all_profiles(state: &AppState) -> Option<PathBuf> {
             vacuum_into_file(&db_path, &snapshot_db).await
         };
         if let Err(err) = snapshot_res {
-            tracing::warn!(?err, profile_id, "pre-reset safety backup: db snapshot failed; skipping this profile");
+            tracing::warn!(
+                ?err,
+                profile_id,
+                "pre-reset safety backup: db snapshot failed; skipping this profile"
+            );
             let _ = std::fs::remove_file(&snapshot_db);
             continue;
         }
@@ -280,19 +287,29 @@ async fn safety_backup_all_profiles(state: &AppState) -> Option<PathBuf> {
         let _ = std::fs::remove_file(&snapshot_db);
 
         match write_res {
-            Ok(Ok(())) => match std::fs::rename(&tmp_target, &final_target) {
-                Ok(()) => written += 1,
-                Err(err) => {
-                    tracing::warn!(?err, profile_id, "pre-reset safety backup: could not finalize archive; discarding partial");
-                    let _ = std::fs::remove_file(&tmp_target);
+            Ok(Ok(())) => {
+                match std::fs::rename(&tmp_target, &final_target) {
+                    Ok(()) => written += 1,
+                    Err(err) => {
+                        tracing::warn!(?err, profile_id, "pre-reset safety backup: could not finalize archive; discarding partial");
+                        let _ = std::fs::remove_file(&tmp_target);
+                    }
                 }
-            },
+            }
             Ok(Err(err)) => {
-                tracing::warn!(?err, profile_id, "pre-reset safety backup: archive failed for profile");
+                tracing::warn!(
+                    ?err,
+                    profile_id,
+                    "pre-reset safety backup: archive failed for profile"
+                );
                 let _ = std::fs::remove_file(&tmp_target);
             }
             Err(err) => {
-                tracing::warn!(?err, profile_id, "pre-reset safety backup: task join failed for profile");
+                tracing::warn!(
+                    ?err,
+                    profile_id,
+                    "pre-reset safety backup: task join failed for profile"
+                );
                 let _ = std::fs::remove_file(&tmp_target);
             }
         }

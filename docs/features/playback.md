@@ -60,13 +60,13 @@ On Linux, enumeration uses ALSA's hint database (`snd_device_name_hint("pcm")`) 
 
 Three paths replace the output stream, and they must all end in the same place: `wasapi_exclusive_active` updated and a `player:audio-mode-changed` event emitted, because that event is the only thing that keeps Settings' Exclusive-mode toggle honest ([`ExclusiveModeCard`](../../src/components/views/settings/ExclusiveModeCard.tsx) re-reads on it).
 
-| Path | Trigger | Order |
-| --- | --- | --- |
-| `set_output_device` | user picks another endpoint | spawn first, then release — the two streams target different devices, so a failed spawn can roll back to the working one |
-| `set_wasapi_exclusive` | user toggles the mode | **release first when the old stream is exclusive**, then spawn |
-| `force_rebuild_output` | automatic recovery after a device error | **release first when the old stream is exclusive**, then spawn |
+| Path                   | Trigger                                 | Order                                                                                                                    |
+| ---------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `set_output_device`    | user picks another endpoint             | spawn first, then release — the two streams target different devices, so a failed spawn can roll back to the working one |
+| `set_wasapi_exclusive` | user toggles the mode                   | **release first when the old stream is exclusive**, then spawn                                                           |
+| `force_rebuild_output` | automatic recovery after a device error | **release first when the old stream is exclusive**, then spawn                                                           |
 
-The release-first rule is the #322 / #405 lesson: a WASAPI exclusive client owns its endpoint outright, so no other client — shared *or* exclusive — can open it until that client is released. Re-opening the **same** endpoint while an exclusive stream still holds it always fails, and when it failed inside `set_wasapi_exclusive` the command returned `Err` before persisting anything, leaving the toggle latched on the mode the user was trying to leave (#405).
+The release-first rule is the #322 / #405 lesson: a WASAPI exclusive client owns its endpoint outright, so no other client — shared _or_ exclusive — can open it until that client is released. Re-opening the **same** endpoint while an exclusive stream still holds it always fails, and when it failed inside `set_wasapi_exclusive` the command returned `Err` before persisting anything, leaving the toggle latched on the mode the user was trying to leave (#405).
 
 Device loss reaches the recovery path from two independent places, since the two backends have separate failure surfaces:
 

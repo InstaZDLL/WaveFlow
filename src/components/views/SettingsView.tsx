@@ -1039,7 +1039,8 @@ export function SettingsView({ onNavigate }: SettingsViewProps) {
     setPreferLrclib(next); // optimistic
     setPreferLrclibBusy(true);
     try {
-      const { setPreferLrclib: persist } = await import("../../lib/tauri/lyrics");
+      const { setPreferLrclib: persist } =
+        await import("../../lib/tauri/lyrics");
       await persist(next);
     } catch (err) {
       console.error("[SettingsView] setPreferLrclib failed", err);

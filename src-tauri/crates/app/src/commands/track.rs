@@ -183,7 +183,9 @@ pub async fn get_track(
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
-    let row = SqliteTrackRepository::new((*pool).clone()).get(track_id).await?;
+    let row = SqliteTrackRepository::new((*pool).clone())
+        .get(track_id)
+        .await?;
     Ok(row.map(|row| track_from_row(row, &artwork_dir)))
 }
 
@@ -707,7 +709,9 @@ pub async fn toggle_like_track(
 #[tauri::command]
 pub async fn list_liked_track_ids(state: tauri::State<'_, AppState>) -> AppResult<Vec<i64>> {
     let pool = state.require_profile_pool().await?;
-    Ok(SqliteTrackRepository::new((*pool).clone()).liked_ids().await?)
+    Ok(SqliteTrackRepository::new((*pool).clone())
+        .liked_ids()
+        .await?)
 }
 
 /// List every liked track with full metadata, ordered by most recently
@@ -718,7 +722,9 @@ pub async fn list_liked_tracks(state: tauri::State<'_, AppState>) -> AppResult<L
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
 
-    let rows = SqliteTrackRepository::new((*pool).clone()).list_liked().await?;
+    let rows = SqliteTrackRepository::new((*pool).clone())
+        .list_liked()
+        .await?;
 
     // Same blocking-pool offload as `list_tracks`.
     let artwork_dir_for_blocking = artwork_dir.clone();

@@ -69,7 +69,10 @@ export function ExclusiveModeCard() {
           playerGetWasapiExclusive()
             .then(setEnabled)
             .catch((err) => {
-              console.error("[ExclusiveModeCard] refresh after rebuild failed", err);
+              console.error(
+                "[ExclusiveModeCard] refresh after rebuild failed",
+                err,
+              );
             });
         });
         if (cancelled) {
@@ -112,7 +115,10 @@ export function ExclusiveModeCard() {
       try {
         setEnabled(await playerGetWasapiExclusive());
       } catch (refreshErr) {
-        console.error("[ExclusiveModeCard] refresh after failed toggle", refreshErr);
+        console.error(
+          "[ExclusiveModeCard] refresh after failed toggle",
+          refreshErr,
+        );
       }
     } finally {
       setBusy(false);

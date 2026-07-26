@@ -401,8 +401,9 @@ async fn enrich_artist_deezer_inner(
                 // own TTL refresh re-fetches through `best_picture`, and a
                 // placeholder means the artist has no real Deezer photo to
                 // heal to anyway.
-                let placeholder =
-                    picture_url.as_deref().is_some_and(is_placeholder_artist_picture);
+                let placeholder = picture_url
+                    .as_deref()
+                    .is_some_and(is_placeholder_artist_picture);
                 let (picture_url, picture_hash) = if placeholder {
                     (None, None)
                 } else {
@@ -457,7 +458,9 @@ async fn enrich_artist_deezer_inner(
                 // is accent-insensitive too, so an exact-equality filter
                 // dropped the picture/cover for "Celine Dion" ↔ "Céline
                 // Dion" and superset names like "Bob Marley & The Wailers".
-                select_by_name(hits, &normalize_name(&artist_name), |h| Some(h.name.as_str()))
+                select_by_name(hits, &normalize_name(&artist_name), |h| {
+                    Some(h.name.as_str())
+                })
             }
             Err(err) => {
                 tracing::warn!(?err, "Deezer search_artist failed");
@@ -653,11 +656,12 @@ pub async fn set_album_artwork_from_deezer(
     // together — see `upsert_artwork`'s contract in CLAUDE.md.
     let mut tx = pool.begin().await?;
     let artwork_id = upsert_artwork(&mut tx, &hash, format, "deezer").await?;
-    let res = sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'deezer' WHERE id = ?")
-        .bind(artwork_id)
-        .bind(album_id)
-        .execute(&mut *tx)
-        .await?;
+    let res =
+        sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'deezer' WHERE id = ?")
+            .bind(artwork_id)
+            .bind(album_id)
+            .execute(&mut *tx)
+            .await?;
     // Matching no row means the album is gone (stale UI, concurrent
     // delete). Returning early leaves `tx` un-committed, so the artwork
     // insert rolls back instead of landing with nothing pointing at it —
@@ -697,11 +701,12 @@ pub async fn set_album_artwork_from_file(
     // together — see `upsert_artwork`'s contract in CLAUDE.md.
     let mut tx = pool.begin().await?;
     let artwork_id = upsert_artwork(&mut tx, &hash, format, "manual").await?;
-    let res = sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'manual' WHERE id = ?")
-        .bind(artwork_id)
-        .bind(album_id)
-        .execute(&mut *tx)
-        .await?;
+    let res =
+        sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'manual' WHERE id = ?")
+            .bind(artwork_id)
+            .bind(album_id)
+            .execute(&mut *tx)
+            .await?;
     // Matching no row means the album is gone (stale UI, concurrent
     // delete). Returning early leaves `tx` un-committed, so the artwork
     // insert rolls back instead of landing with nothing pointing at it —

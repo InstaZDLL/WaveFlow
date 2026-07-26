@@ -452,7 +452,9 @@ fn open_exclusive_session(
                     shared
                         .sample_rate
                         .store(layout.sample_rate as u32, Ordering::Release);
-                    shared.channels.store(layout.channels as u16, Ordering::Release);
+                    shared
+                        .channels
+                        .store(layout.channels as u16, Ordering::Release);
                     return Ok(ExclusiveSession {
                         client,
                         render,

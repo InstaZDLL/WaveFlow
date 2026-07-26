@@ -41,7 +41,7 @@ Migrations: [`src-tauri/migrations/profile/`](../../src-tauri/migrations/profile
 
 #### Listening history outlives its tracks
 
-`play_event.track_id` used to be `NOT NULL … ON DELETE CASCADE`, so removing a folder (`DELETE FROM track WHERE folder_id = ?`) or a library silently erased the matching history. One beta tester lost their stats five times that way, and no backup helps: the archive restores the *old* library, not the history plus a fresh scan (issue #367).
+`play_event.track_id` used to be `NOT NULL … ON DELETE CASCADE`, so removing a folder (`DELETE FROM track WHERE folder_id = ?`) or a library silently erased the matching history. One beta tester lost their stats five times that way, and no backup helps: the archive restores the _old_ library, not the history plus a fresh scan (issue #367).
 
 `track_id` is now nullable with `ON DELETE SET NULL` — deleting a track **orphans** its history instead of destroying it — and every event carries a snapshot of how to find its track again: `snapshot_hash`, `snapshot_path`, `snapshot_artist`, `snapshot_title`. The snapshot is written at insert time by `insert_play_event`, which is the only moment that information is guaranteed to still exist; by the time a folder is deleted, the row it would have been read from is already gone.
 
@@ -67,7 +67,7 @@ Provenance is a property of the **link**, not of the bytes, so `album.artwork_so
 
 #### Pool lifecycle across a profile switch
 
-`activate_profile` swaps the active [`ActiveProfile`](../../src-tauri/crates/app/src/state.rs) under the write lock, then closes the previous pool. Closing it *immediately* used to race any command that had already cloned it, surfacing as `PoolClosed` mid-command (issue #332).
+`activate_profile` swaps the active [`ActiveProfile`](../../src-tauri/crates/app/src/state.rs) under the write lock, then closes the previous pool. Closing it _immediately_ used to race any command that had already cloned it, surfacing as `PoolClosed` mid-command (issue #332).
 
 The pool is therefore handed out **leased**. `require_profile_pool` / `require_profile_snapshot` return a `ProfilePool` that holds a refcount on the epoch it came from; the close path (`ActiveProfile::close_when_idle`) waits for that count to reach zero before calling `pool.close()`. Because the swap happens first, no new lease can be issued against the outgoing epoch, so the drain always terminates.
 

@@ -626,13 +626,12 @@ pub async fn update_track_cover(
     // commit — the cover has already been written into the audio file
     // itself, which is the point of this command.
     if let Some(aid) = album_id {
-        let res = sqlx::query(
-            "UPDATE album SET artwork_id = ?, artwork_source = 'manual' WHERE id = ?",
-        )
-        .bind(artwork_id)
-        .bind(aid)
-        .execute(&mut *tx)
-        .await?;
+        let res =
+            sqlx::query("UPDATE album SET artwork_id = ?, artwork_source = 'manual' WHERE id = ?")
+                .bind(artwork_id)
+                .bind(aid)
+                .execute(&mut *tx)
+                .await?;
         if res.rows_affected() == 0 {
             return Err(AppError::Other(format!("album {aid} not found")));
         }

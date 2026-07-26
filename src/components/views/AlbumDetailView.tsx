@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Play, Shuffle, Clock, Music2, Heart, ImageIcon, Film } from "lucide-react";
+import {
+  Play,
+  Shuffle,
+  Clock,
+  Music2,
+  Heart,
+  ImageIcon,
+  Film,
+} from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { ArtistLink } from "../common/ArtistLink";
 import { EmptyState } from "../common/EmptyState";

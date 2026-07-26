@@ -18,9 +18,8 @@ use waveflow_core::scanner::{
     extract_folder_cover, extract_musical_key, extract_rating, file_type_label, hash_file,
     link_local_artist_image, link_va_artist_image, maybe_link_artist_images,
     merge_implicit_compilations, now_millis, reattach_orphaned_play_events, refresh_folder_covers,
-    split_artist_name, upsert_album,
-    upsert_artist, upsert_artwork, ArtistImageScanCache, ExtractedFile, UpsertCache,
-    AUDIO_EXTENSIONS, VARIOUS_ARTISTS_LABEL,
+    split_artist_name, upsert_album, upsert_artist, upsert_artwork, ArtistImageScanCache,
+    ExtractedFile, UpsertCache, AUDIO_EXTENSIONS, VARIOUS_ARTISTS_LABEL,
 };
 
 use crate::{
@@ -419,9 +418,14 @@ pub async fn scan_folder(
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
     let artwork_dir = state.paths.profile_artwork_dir(profile_id);
-    let summary =
-        scan_folder_inner(&pool, &artwork_dir, folder_id, Some(&app), deep.unwrap_or(false))
-            .await?;
+    let summary = scan_folder_inner(
+        &pool,
+        &artwork_dir,
+        folder_id,
+        Some(&app),
+        deep.unwrap_or(false),
+    )
+    .await?;
     // Phase 4.d.0.3: wake the sync drain so the freshly enqueued
     // track ops ship immediately instead of waiting on the
     // drain's idle poll. Matches the convention every other
@@ -719,7 +723,14 @@ pub(crate) async fn scan_folder_inner(
     // freezing the counter until the next success (#430). Captures only
     // Copy handles, so it stays a plain `Fn` and never touches `summary`.
     let emit_tick = |current: usize, summary: &ScanSummary, path: &Path| {
-        maybe_emit_progress(app_handle, folder_id, current, total_files, summary, Some(path));
+        maybe_emit_progress(
+            app_handle,
+            folder_id,
+            current,
+            total_files,
+            summary,
+            Some(path),
+        );
     };
 
     while let Some((path, result)) = extraction_stream.next().await {
@@ -786,11 +797,11 @@ pub(crate) async fn scan_folder_inner(
                         sqlx::query(
                             "UPDATE album SET artwork_id = ?, artwork_source = ? WHERE id = ?",
                         )
-                            .bind(artwork_id)
-                            .bind(cover.source)
-                            .bind(aid)
-                            .execute(&mut *tx)
-                            .await?;
+                        .bind(artwork_id)
+                        .bind(cover.source)
+                        .bind(aid)
+                        .execute(&mut *tx)
+                        .await?;
                     }
                 }
 
@@ -1090,11 +1101,11 @@ pub(crate) async fn scan_folder_inner(
                     "UPDATE album SET artwork_id = ?, artwork_source = ?
                       WHERE id = ? AND artwork_id IS NULL",
                 )
-                    .bind(artwork_id)
-                    .bind(cover.source)
-                    .bind(aid)
-                    .execute(&mut *tx)
-                    .await?;
+                .bind(artwork_id)
+                .bind(cover.source)
+                .bind(aid)
+                .execute(&mut *tx)
+                .await?;
             }
 
             let t_link = Instant::now();

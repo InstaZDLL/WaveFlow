@@ -387,7 +387,9 @@ export function ArtistDetailView({
               onClick={() => void setBioCollapsed(!bioCollapsed)}
               aria-expanded={!bioCollapsed}
               aria-label={t(
-                bioCollapsed ? "artistDetail.bio.show" : "artistDetail.bio.hide",
+                bioCollapsed
+                  ? "artistDetail.bio.show"
+                  : "artistDetail.bio.hide",
               )}
               className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
             >

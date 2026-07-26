@@ -692,8 +692,12 @@ async fn try_local_lyrics(
 /// most-preferred first. Antra and similar rips ship a timestamped LRC
 /// body under `SYNCEDLYRICS` alongside a plain `LYRICS`/`UNSYNCEDLYRICS`
 /// tag; we want the synced one to win (issue #378).
-const SYNCED_LYRICS_KEYS: &[&str] =
-    &["SYNCEDLYRICS", "SYNCED LYRICS", "SYNCED_LYRICS", "LYRICS_SYNCED"];
+const SYNCED_LYRICS_KEYS: &[&str] = &[
+    "SYNCEDLYRICS",
+    "SYNCED LYRICS",
+    "SYNCED_LYRICS",
+    "LYRICS_SYNCED",
+];
 
 /// TXXX (ID3v2) / Vorbis-comment descriptions carrying plain / unsynced
 /// lyrics — the fallback once no synced tag is present.
@@ -783,7 +787,11 @@ fn read_vorbis_comment(path: &Path, file_type: FileType, keys: &[&str]) -> Optio
 /// container we support: ID3v2 TXXX for MP3, Vorbis comments for
 /// FLAC/Ogg/Opus/Speex. Used for the `SYNCEDLYRICS` priority tag and the
 /// TXXX unsynced fallback.
-fn read_custom_lyrics_tag(path: &Path, file_type: Option<FileType>, keys: &[&str]) -> Option<String> {
+fn read_custom_lyrics_tag(
+    path: &Path,
+    file_type: Option<FileType>,
+    keys: &[&str],
+) -> Option<String> {
     match file_type {
         Some(FileType::Mpeg) => read_id3v2_txxx(path, keys),
         Some(ft @ (FileType::Flac | FileType::Vorbis | FileType::Opus | FileType::Speex)) => {
@@ -858,7 +866,10 @@ fn read_embedded_lyrics(path: &Path) -> Option<String> {
 fn known_key_lyrics(tag: &lofty::tag::Tag) -> Option<String> {
     tag.get_string(ItemKey::UnsyncLyrics)
         .filter(|s| !s.trim().is_empty())
-        .or_else(|| tag.get_string(ItemKey::Lyrics).filter(|s| !s.trim().is_empty()))
+        .or_else(|| {
+            tag.get_string(ItemKey::Lyrics)
+                .filter(|s| !s.trim().is_empty())
+        })
         .map(|s| s.to_string())
 }
 
@@ -2187,8 +2198,7 @@ fn write_lyrics_to_file(
     // formats: a plain/TTML save intentionally leaves none behind. Best-
     // effort — the USLT write already landed, so a failure here still
     // leaves the lyrics readable, just not under the synced key.
-    if matches!(format, LyricsFormat::Lrc | LyricsFormat::EnhancedLrc)
-        && !content.trim().is_empty()
+    if matches!(format, LyricsFormat::Lrc | LyricsFormat::EnhancedLrc) && !content.trim().is_empty()
     {
         if let Err(err) = write_synced_lyrics_tag(path, file_type, content) {
             tracing::warn!(
@@ -2550,10 +2560,7 @@ pub async fn get_prefer_lrclib(state: tauri::State<'_, AppState>) -> AppResult<b
 /// embedded + sidecar lyrics (issue #378); `false` clears the row and
 /// restores the local-first default.
 #[tauri::command]
-pub async fn set_prefer_lrclib(
-    state: tauri::State<'_, AppState>,
-    enabled: bool,
-) -> AppResult<()> {
+pub async fn set_prefer_lrclib(state: tauri::State<'_, AppState>, enabled: bool) -> AppResult<()> {
     let pool = state.require_profile_pool().await?;
     if enabled {
         let now = chrono::Utc::now().timestamp_millis();
@@ -2711,7 +2718,10 @@ mod tests {
             Some("just words".to_string())
         );
         // Every candidate blank/absent → None.
-        assert_eq!(resolve_embedded_lyrics([None, s("  "), None, s("\t")]), None);
+        assert_eq!(
+            resolve_embedded_lyrics([None, s("  "), None, s("\t")]),
+            None
+        );
         // The synced body is detected as timed LRC downstream.
         assert_eq!(detect_format("[00:01.00]timed"), LyricsFormat::Lrc);
     }
@@ -2756,7 +2766,10 @@ mod tests {
 
         let mut plain = VorbisComments::default();
         plain.push("UNSYNCEDLYRICS".to_string(), "just words".to_string());
-        assert!(SYNCED_LYRICS_KEYS.iter().find_map(|k| plain.get(k)).is_none());
+        assert!(SYNCED_LYRICS_KEYS
+            .iter()
+            .find_map(|k| plain.get(k))
+            .is_none());
         assert_eq!(
             UNSYNCED_LYRICS_KEYS.iter().find_map(|k| plain.get(k)),
             Some("just words")

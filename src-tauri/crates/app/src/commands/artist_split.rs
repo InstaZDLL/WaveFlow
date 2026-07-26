@@ -197,8 +197,10 @@ pub(crate) async fn split_artist_inner(
     .bind(artist_id)
     .fetch_one(&mut *tx)
     .await?;
-    let phantom_deleted =
-        remaining_ta == 0 && remaining_album == 0 && remaining_primary == 0 && remaining_curated == 0;
+    let phantom_deleted = remaining_ta == 0
+        && remaining_album == 0
+        && remaining_primary == 0
+        && remaining_curated == 0;
     if phantom_deleted {
         sqlx::query("DELETE FROM artist WHERE id = ?")
             .bind(artist_id)

@@ -753,7 +753,8 @@ pub async fn set_genre_artwork_from_file(
     crate::thumbnails::spawn_thumbnail_job(target, profile_artwork_dir.clone(), hash.clone());
 
     let mut tx = pool.begin().await?;
-    let artwork_id = waveflow_core::scanner::upsert_artwork(&mut tx, &hash, format, "manual").await?;
+    let artwork_id =
+        waveflow_core::scanner::upsert_artwork(&mut tx, &hash, format, "manual").await?;
     let res = sqlx::query("UPDATE genre SET artwork_id = ? WHERE id = ?")
         .bind(artwork_id)
         .bind(genre_id)

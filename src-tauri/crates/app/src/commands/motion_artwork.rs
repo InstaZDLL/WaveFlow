@@ -236,12 +236,11 @@ async fn manual_motion_artwork(
 ) -> AppResult<Option<MotionArtwork>> {
     let pool = state.require_profile_pool().await?;
     let profile_id = state.require_profile_id().await?;
-    let row: Option<(String, String)> = sqlx::query_as(
-        "SELECT hash, format FROM album_motion_artwork WHERE album_id = ?",
-    )
-    .bind(album_id)
-    .fetch_optional(&*pool)
-    .await?;
+    let row: Option<(String, String)> =
+        sqlx::query_as("SELECT hash, format FROM album_motion_artwork WHERE album_id = ?")
+            .bind(album_id)
+            .fetch_optional(&*pool)
+            .await?;
     let Some((hash, format)) = row else {
         return Ok(None);
     };

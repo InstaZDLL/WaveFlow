@@ -129,7 +129,10 @@ export function useArtistBioCollapsed(): ArtistBioCollapsed {
         console.error("[useArtistBioCollapsed] write failed", err);
         // Roll back only for the still-current profile, and only if no
         // later write superseded this one.
-        if (activeProfileIdRef.current !== profileAtClick || seq !== seqRef.current)
+        if (
+          activeProfileIdRef.current !== profileAtClick ||
+          seq !== seqRef.current
+        )
           return;
         const confirmed = persistedRef.current;
         if (confirmed !== null) {

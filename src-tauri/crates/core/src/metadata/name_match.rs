@@ -245,7 +245,10 @@ mod tests {
             &normalize_name("Nirvana (60s band)")
         ));
         // But a real connector suffix still matches.
-        assert!(names_prefix_compatible("nirvana", "nirvana and the deep sea"));
+        assert!(names_prefix_compatible(
+            "nirvana",
+            "nirvana and the deep sea"
+        ));
     }
 
     #[test]

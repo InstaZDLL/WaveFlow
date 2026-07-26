@@ -23,7 +23,7 @@ The install path is [`commands/plugin_store.rs`](../../src-tauri/crates/app/src/
 
 Installing an entry downloads that plugin's **pinned GitHub release**, then:
 
-- **verifies `plugin.wasm`'s blake3 against the registry entry** — the *registry* is the trusted pin, not the release, so a compromised release fails the hash and is rejected;
+- **verifies `plugin.wasm`'s blake3 against the registry entry** — the _registry_ is the trusted pin, not the release, so a compromised release fails the hash and is rejected;
 - sanity-checks the manifest (`id` / `version` / `world`);
 - **stage-swaps** the verified artifact into the sideload root (so a failed download never corrupts an installed plugin).
 

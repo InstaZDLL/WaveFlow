@@ -53,11 +53,11 @@
 
 **Layout** — `(sample rate, channel count)`, from `build_layout_candidates`, in order:
 
-| # | Origin     | Source                                                                                           |
-|---|------------|--------------------------------------------------------------------------------------------------|
-| 1 | `endpoint` | `PKEY_AudioEngine_DeviceFormat` — the "Default Format" picked in the Windows Sound control panel |
-| 2 | `mix`      | `IAudioClient::GetMixFormat` — the shared-mode mix format                                        |
-| 3 | `stereo`   | 2 channels at each of the rates above                                                            |
+| #   | Origin     | Source                                                                                           |
+| --- | ---------- | ------------------------------------------------------------------------------------------------ |
+| 1   | `endpoint` | `PKEY_AudioEngine_DeviceFormat` — the "Default Format" picked in the Windows Sound control panel |
+| 2   | `mix`      | `IAudioClient::GetMixFormat` — the shared-mode mix format                                        |
+| 3   | `stereo`   | 2 channels at each of the rates above                                                            |
 
 The endpoint format leads on purpose (#409). The mix format describes the pipe into the Windows audio engine **after** its own processing, so with Audio Enhancements, Spatial Sound or a virtual-surround driver active it reports e.g. 8 channels for a plain stereo jack. Negotiating exclusive mode against that asks the hardware for a layout it has never supported: every format is rejected with `AUDCLNT_E_UNSUPPORTED_FORMAT` (`0x88890008`) and the user silently lands back in shared mode. `PKEY_AudioEngine_DeviceFormat` describes the endpoint itself, which is what exclusive mode wants. The two agree on most machines, so candidate 2 is deduped away.
 
@@ -65,7 +65,7 @@ The endpoint format leads on purpose (#409). The mix format describes the pipe i
 
 **Representation** — each `(layout, format)` pair is probed through `AudioClient::is_supported_exclusive_with_quirks`, not a bare `is_supported`. Two driver quirks hide behind an `AUDCLNT_E_UNSUPPORTED_FORMAT` that looks like a rate/depth problem but isn't:
 
-- **Channel mask.** `WaveFormat::new(.., None)` guesses one, and a multi-channel endpoint typically accepts exactly one specific mask. The helper re-probes against each recommended `ksmedia.h` mask. *This is the one that bit in practice* (#405): a 7.1-configured endpoint rejected every rate × depth combination purely on the mask.
+- **Channel mask.** `WaveFormat::new(.., None)` guesses one, and a multi-channel endpoint typically accepts exactly one specific mask. The helper re-probes against each recommended `ksmedia.h` mask. _This is the one that bit in practice_ (#405): a 7.1-configured endpoint rejected every rate × depth combination purely on the mask.
 - **Structure shape.** `WaveFormat::new` always builds a `WAVEFORMATEXTENSIBLE`; some drivers refuse it while accepting the same PCM layout as a plain `WAVEFORMATEX`. The helper retries that form for mono/stereo only.
 
 Init then uses the shape the probe accepted, falling back to the requested shape when the two differ (wasapi's docs note some drivers validate the simplified form but want the original at init time).

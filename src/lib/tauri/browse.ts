@@ -201,7 +201,11 @@ interface ListGenresResponse {
   items: GenreRowSlim[];
 }
 
-function expandGenreRow(item: GenreRowSlim, base: string, sep: string): GenreRow {
+function expandGenreRow(
+  item: GenreRowSlim,
+  base: string,
+  sep: string,
+): GenreRow {
   const artwork_path =
     item.artwork_hash && item.artwork_format
       ? `${base}${sep}${item.artwork_hash}.${item.artwork_format}`
@@ -313,7 +317,9 @@ export async function searchArtists(
   );
 }
 
-export async function listGenres(libraryId: number | null): Promise<GenreRow[]> {
+export async function listGenres(
+  libraryId: number | null,
+): Promise<GenreRow[]> {
   const resp = await invoke<ListGenresResponse>("list_genres", { libraryId });
   const sep = pathSep(resp.artwork_base);
   return resp.items.map((item) => expandGenreRow(item, resp.artwork_base, sep));

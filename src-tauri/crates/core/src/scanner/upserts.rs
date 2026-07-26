@@ -898,10 +898,9 @@ pub async fn reattach_orphaned_play_events(pool: &SqlitePool) -> CoreResult<u32>
     // Cheap probe first: on a healthy library there are no orphans at all,
     // and this keeps the common case to one indexed lookup instead of
     // three correlated UPDATEs.
-    let orphans: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM play_event WHERE track_id IS NULL")
-            .fetch_one(pool)
-            .await?;
+    let orphans: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM play_event WHERE track_id IS NULL")
+        .fetch_one(pool)
+        .await?;
     if orphans == 0 {
         return Ok(0);
     }
@@ -1192,9 +1191,9 @@ mod folder_cover_tests {
             "INSERT INTO album (id, artwork_id, artwork_source)
              VALUES (10, 1, (SELECT source FROM artwork WHERE id = 1))",
         )
-            .execute(&pool)
-            .await
-            .unwrap();
+        .execute(&pool)
+        .await
+        .unwrap();
         sqlx::query(
             "INSERT INTO track (album_id, folder_id, file_path, is_available)
              VALUES (10, 2, ?, 1)",
@@ -1321,9 +1320,9 @@ mod folder_cover_tests {
             "INSERT INTO album (id, artwork_id, artwork_source)
              VALUES (10, 1, (SELECT source FROM artwork WHERE id = 1))",
         )
-            .execute(&pool)
-            .await
-            .unwrap();
+        .execute(&pool)
+        .await
+        .unwrap();
 
         let mut conn = pool.acquire().await.unwrap();
         let changed = link_folder_cover_if_eligible(&mut conn, 10, Some(1), 2)
@@ -1372,12 +1371,12 @@ mod folder_cover_tests {
             seed_artwork(&pool, 1, "chosen-mid-scan", source).await;
             seed_artwork(&pool, 2, "new-sidecar", "folder").await;
             sqlx::query(
-            "INSERT INTO album (id, artwork_id, artwork_source)
+                "INSERT INTO album (id, artwork_id, artwork_source)
              VALUES (10, 1, (SELECT source FROM artwork WHERE id = 1))",
-        )
-                .execute(&pool)
-                .await
-                .unwrap();
+            )
+            .execute(&pool)
+            .await
+            .unwrap();
 
             let mut conn = pool.acquire().await.unwrap();
             let changed = link_folder_cover_if_eligible(&mut conn, 10, Some(1), 2)
@@ -1415,9 +1414,9 @@ mod folder_cover_tests {
             "INSERT INTO album (id, artwork_id, artwork_source)
              VALUES (10, 3, (SELECT source FROM artwork WHERE id = 3))",
         )
-            .execute(&pool)
-            .await
-            .unwrap();
+        .execute(&pool)
+        .await
+        .unwrap();
 
         let mut conn = pool.acquire().await.unwrap();
         let changed = link_folder_cover_if_eligible(&mut conn, 10, Some(1), 2)
@@ -1452,16 +1451,16 @@ mod folder_cover_tests {
         // Album A embedded these bytes first, so the shared row says
         // `embedded` and there is no second row to disambiguate.
         write_cover(music.path(), b"an image two albums share");
-        let shared = blake3::hash(b"an image two albums share").to_hex().to_string();
+        let shared = blake3::hash(b"an image two albums share")
+            .to_hex()
+            .to_string();
         seed_artwork(&pool, 1, &shared, "embedded").await;
 
         // Album B got the very same bytes from a sidecar.
-        sqlx::query(
-            "INSERT INTO album (id, artwork_id, artwork_source) VALUES (10, 1, 'folder')",
-        )
-        .execute(&pool)
-        .await
-        .unwrap();
+        sqlx::query("INSERT INTO album (id, artwork_id, artwork_source) VALUES (10, 1, 'folder')")
+            .execute(&pool)
+            .await
+            .unwrap();
         sqlx::query(
             "INSERT INTO track (album_id, folder_id, file_path, is_available)
              VALUES (10, 1, ?, 1)",
@@ -1674,7 +1673,15 @@ mod play_event_tests {
     async fn an_orphan_is_reattached_by_path_when_the_hash_changed() {
         let pool = fixture_pool().await;
         seed_orphan_event(&pool, Some("old-hash"), Some("/music/a.flac"), None, None).await;
-        seed_track(&pool, 7, "/music/a.flac", "rewritten-hash", "Song", "Artist").await;
+        seed_track(
+            &pool,
+            7,
+            "/music/a.flac",
+            "rewritten-hash",
+            "Song",
+            "Artist",
+        )
+        .await;
 
         let n = reattach_orphaned_play_events(&pool).await.unwrap();
 
