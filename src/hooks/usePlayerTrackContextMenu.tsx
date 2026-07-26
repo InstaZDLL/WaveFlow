@@ -41,6 +41,12 @@ export function usePlayerTrackContextMenu() {
     let cancelled = false;
     // Fresh profile → the pending deltas belonged to the old one.
     likedDeltasRef.current = new Map();
+    // Drop the previous profile's liked set so its likes can't bleed into
+    // this profile's menu during the load window below. A default-unliked
+    // display self-corrects: the like action always toggles against real
+    // DB state via `toggleLikeTrack`.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLikedIds(new Set());
     // `listLikedTrackIds` is scoped to the active profile pool, so a
     // profile switch must reload; the cancel guard drops a stale
     // profile's response.
