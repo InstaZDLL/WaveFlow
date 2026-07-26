@@ -221,7 +221,9 @@ export function ArtistMetadataEditorModal({
   };
 
   const handleSave = async () => {
-    if (isSaving) return;
+    // Block while loading / saving / splitting — a save mid-split would
+    // race the relink transaction and submit against stale state.
+    if (isBusy) return;
     setIsSaving(true);
     setError(null);
     try {
@@ -470,7 +472,7 @@ export function ArtistMetadataEditorModal({
           <button
             type="button"
             onClick={handleSave}
-            disabled={isSaving || isLoading}
+            disabled={isBusy}
             className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving && <Loader2 size={14} className="animate-spin" />}
