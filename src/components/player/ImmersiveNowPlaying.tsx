@@ -42,11 +42,15 @@ export function ImmersiveNowPlaying({
   const { currentTrack, currentRadioStation, activeProvider } = usePlayer();
   // Right-click the title to reach the same track menu the list views have
   // (Show in Explorer, Properties, queue ops…) — mail reporter request.
-  // Only for a real library track: radio (negative sentinel id) and
-  // Spotify playback have no local file / library row to act on.
+  // Only for a real library track: radio (negative sentinel id), Spotify
+  // playback, and any streamed track with no local file have nothing the
+  // file-oriented actions can act on, so require a real `file_path`.
   const trackMenu = usePlayerTrackContextMenu();
   const menuTrack =
-    currentTrack && activeProvider !== "spotify" && !isRadioTrack(currentTrack)
+    currentTrack &&
+    activeProvider !== "spotify" &&
+    !isRadioTrack(currentTrack) &&
+    !!currentTrack.file_path
       ? currentTrack
       : null;
   // Live radio: favorite the STATION (★) instead of liking a track (♥) —
