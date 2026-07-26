@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import type { LocalizedText } from "../localizedText";
+
 /**
  * Plugin information exposed by the Plugin SDK backend (Phase 3.1).
  *
@@ -16,7 +18,9 @@ export interface PluginInfo {
   /** Manifest world label — one of `waveflow:source/v1`,
    *  `waveflow:metadata/v1`, `waveflow:ui/v1`. */
   world: string;
-  description: string | null;
+  /** Manifest-authored: a plain string, or a `{ lang: text }` map.
+   *  Resolve with `useLocalizedText()` before rendering. */
+  description: LocalizedText | null;
   homepage: string | null;
   license: string | null;
   permissions: PluginPermissionsInfo;
@@ -190,7 +194,9 @@ export async function setPluginFavorites(
 export interface MarketplaceEntry {
   id: string;
   name: string;
-  description: string;
+  /** Registry-authored: a plain string, or a `{ lang: text }` map.
+   *  Resolve with `useLocalizedText()` before rendering. */
+  description: LocalizedText;
   author: string;
   /** GitHub `owner/name` hosting the plugin's releases. */
   repo: string;
@@ -345,12 +351,15 @@ export interface PluginOption {
   key: string;
   /** Control type: `"bool"` | `"enum"` | `"text"`. */
   type: string;
-  label: string;
+  /** Manifest-authored: a plain string, or a `{ lang: text }` map.
+   *  Resolve with `useLocalizedText()` before rendering. */
+  label: LocalizedText;
   /** Manifest default (string form); `null` = none. */
   default: string | null;
   /** Allowed values for an `enum` option. */
   choices: string[];
-  description: string | null;
+  /** Manifest-authored: a plain string, or a `{ lang: text }` map. */
+  description: LocalizedText | null;
   /** Current stored value; `null` = unset (the plugin uses `default`). */
   value: string | null;
 }

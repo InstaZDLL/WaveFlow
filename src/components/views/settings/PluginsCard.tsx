@@ -18,6 +18,7 @@ import {
   type PluginInfo,
 } from "../../../lib/tauri/plugins";
 import { PLUGIN_AVAILABILITY_EVENT } from "../../../hooks/usePluginAvailability";
+import { useLocalizedText } from "../../../hooks/useLocalizedText";
 import { PluginOptions } from "./PluginOptions";
 
 /// Fire the cross-component "plugin availability changed" bus so
@@ -46,6 +47,9 @@ function notifyAvailabilityChanged() {
  */
 export function PluginsCard() {
   const { t } = useTranslation();
+  // Plugin descriptions are authored in each plugin's manifest, not in
+  // our i18next files — they carry their own language map.
+  const localized = useLocalizedText();
   const [plugins, setPlugins] = useState<PluginInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -174,6 +178,7 @@ export function PluginsCard() {
           {plugins.map((plugin) => {
             const isBusy = busyId === plugin.id;
             const isConfirming = confirmingUninstall === plugin.id;
+            const description = localized(plugin.description);
             return (
               <li key={plugin.id} className="px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
@@ -192,9 +197,9 @@ export function PluginsCard() {
                         author: plugin.author,
                       })}
                     </div>
-                    {plugin.description && (
+                    {description && (
                       <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 leading-relaxed">
-                        {plugin.description}
+                        {description}
                       </p>
                     )}
                     <PermissionsRow

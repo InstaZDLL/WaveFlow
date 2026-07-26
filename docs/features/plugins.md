@@ -37,7 +37,34 @@ A plugin can declare `[[options]]` in its `manifest.toml` (`key` / `type` = `boo
 
 Values persist in `<state_dir>/.plugin-config.json` ([`plugin_config`](../../src-tauri/crates/core/src/plugin/plugin_config.rs)) — the single source of truth, with no `app_setting` row and excluded from the scratch quota. They reach the guest through the read-only `waveflow:host/config.get-option` import, pinned at instantiate time. The import is additive: a plugin built before it still instantiates.
 
-> **Note:** plugin **names, descriptions and option labels** come straight from each plugin's `manifest.toml` (and store descriptions from `registry.json`), so they are English-only today — they live in the plugin repos, outside the app's i18next files. Localizing them is tracked in [#440](https://github.com/InstaZDLL/WaveFlow/issues/440).
+## Localized manifest strings
+
+Plugin descriptions and option labels are authored in each plugin's `manifest.toml` (store descriptions in `registry.json`), outside the app's i18next files — so `t()` can never reach them. Instead the **format itself carries the translations**: `plugin.description`, each option's `label` / `description`, and a registry entry's `description` accept **either** a plain string **or** a `{ lang -> text }` map ([`LocalizedString`](../../src-tauri/crates/core/src/plugin/manifest.rs)).
+
+```toml
+# historical form — still valid, unchanged behaviour
+description = "Animated album covers from Apple Music."
+
+# localized form
+[plugin.description]
+en = "Animated album covers from Apple Music."
+fr = "Pochettes animées depuis Apple Music."
+
+[[options]]
+key = "prefer_hevc"
+type = "bool"
+default = "false"
+
+[options.label]
+en = "Prefer 4K HEVC covers"
+fr = "Préférer les pochettes 4K HEVC"
+```
+
+The same two shapes work in `registry.json` (`"description": "…"` or `"description": { "en": "…", "fr": "…" }`). Key on the app's canonical locale codes (the 17 in [`src/i18n/index.ts`](../../src/i18n/index.ts)); brand tokens (`WaveFlow`, `Apple Music`, `Last.fm`, `HEVC`…) stay verbatim in every language.
+
+**Resolution is frontend-side.** The host hands the whole value through untouched and the UI resolves it against the active i18next language via [`useLocalizedText`](../../src/hooks/useLocalizedText.ts), so a language switch re-renders instantly with no backend round-trip. The fallback chain — exact code → base language (`pt-BR` → `pt`) → `en` → any entry — is implemented twice, in [`LocalizedString::resolve`](../../src-tauri/crates/core/src/plugin/manifest.rs) and [`resolveLocalizedText`](../../src/lib/localizedText.ts); **change them together**. A localized field declaring zero languages is refused at parse time rather than rendering blank.
+
+> **Compatibility.** Plain strings keep working verbatim — no published plugin needs a change. The reverse doesn't hold: a WaveFlow older than v1.8.0 parses `[plugin.description]` as a type error and skips the plugin entirely, so a plugin adopting the localized form must raise its registry entry's `min_app_version`.
 
 ## Official plugins
 

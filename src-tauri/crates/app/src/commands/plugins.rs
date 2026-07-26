@@ -18,7 +18,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 use tokio::sync::{Mutex, OwnedMutexGuard};
-use waveflow_core::plugin::manifest::{Manifest, ManifestError};
+use waveflow_core::plugin::manifest::{LocalizedString, Manifest, ManifestError};
 use waveflow_core::plugin::runtime::{source_list_entries, source_resolve, source_stream_url};
 
 use crate::audio::{AudioCmd, AudioEngine};
@@ -68,7 +68,9 @@ pub struct PluginInfo {
     pub version: String,
     pub author: String,
     pub world: String,
-    pub description: Option<String>,
+    /// Plain string or `{ lang -> text }` — the frontend resolves it
+    /// against the active i18next language (see `LocalizedString`).
+    pub description: Option<LocalizedString>,
     pub homepage: Option<String>,
     pub license: Option<String>,
     pub permissions: PluginPermissionsInfo,
@@ -834,10 +836,12 @@ pub struct PluginOption {
     pub key: String,
     #[serde(rename = "type")]
     pub option_type: String,
-    pub label: String,
+    /// Plain string or `{ lang -> text }`, resolved frontend-side.
+    pub label: LocalizedString,
     pub default: Option<String>,
     pub choices: Vec<String>,
-    pub description: Option<String>,
+    /// Plain string or `{ lang -> text }`, resolved frontend-side.
+    pub description: Option<LocalizedString>,
     /// Current stored value; `None` = unset (the plugin uses `default`).
     pub value: Option<String>,
 }

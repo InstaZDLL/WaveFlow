@@ -21,7 +21,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 use waveflow_core::plugin::is_bundled_plugin;
-use waveflow_core::plugin::manifest::Manifest;
+use waveflow_core::plugin::manifest::{LocalizedString, Manifest};
 use waveflow_core::plugin::PluginPaths;
 
 use crate::error::{AppError, AppResult};
@@ -76,7 +76,9 @@ struct RegistryPermissions {
 struct RegistryEntry {
     id: String,
     name: String,
-    description: String,
+    /// Plain string or `{ lang -> text }` — same two shapes the
+    /// plugin manifest accepts, resolved frontend-side.
+    description: LocalizedString,
     author: String,
     repo: String,
     #[serde(default)]
@@ -110,7 +112,9 @@ struct Registry {
 pub struct MarketplaceEntry {
     pub id: String,
     pub name: String,
-    pub description: String,
+    /// Echoed verbatim from the registry; the store card resolves it
+    /// against the active i18next language.
+    pub description: LocalizedString,
     pub author: String,
     pub repo: String,
     pub homepage: Option<String>,

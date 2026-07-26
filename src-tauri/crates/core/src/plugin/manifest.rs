@@ -23,11 +23,93 @@
 //!   because Phase 1 ships without `wasmtime` and avoiding a
 //!   pattern-matching dep keeps the bundle slim.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
 use waveflow_plugin_sdk::{permissions, worlds, MANIFEST_SCHEMA_VERSION};
+
+/// A user-facing manifest string that MAY carry per-language variants.
+///
+/// Two shapes are accepted, and both round-trip through serde
+/// untagged — so this type is a drop-in replacement for a plain
+/// `String` field without breaking a single existing manifest:
+///
+/// ```toml
+/// # historical form — still valid, treated as one anonymous language
+/// description = "Animated album covers from Apple Music."
+///
+/// # localized form
+/// [description]
+/// en = "Animated album covers from Apple Music."
+/// fr = "Pochettes animées depuis Apple Music."
+/// ```
+///
+/// The same two shapes work in the store's `registry.json`
+/// (`"description": "…"` or `"description": { "en": "…", … }`).
+///
+/// **Where resolution happens.** The host hands the whole value to
+/// the frontend and the UI resolves it against `i18next.language`,
+/// so switching the app language re-renders instantly without a
+/// backend round-trip. [`Self::resolve`] is the reference
+/// implementation of that fallback chain; its mirror lives in
+/// `src/lib/localizedText.ts` and the two MUST agree.
+///
+/// **Forward compatibility.** A WaveFlow older than the release that
+/// introduced this type rejects the localized form outright (its
+/// parser expects a TOML string and gets a table). A plugin adopting
+/// localized descriptions must therefore raise its registry entry's
+/// `min_app_version`, exactly like any other manifest feature bump.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum LocalizedString {
+    /// One language, no code attached. Historically English.
+    Plain(String),
+    /// `lang code -> text`. `BTreeMap` so serialization order (and
+    /// therefore the last-resort fallback below) is deterministic.
+    Localized(BTreeMap<String, String>),
+}
+
+impl LocalizedString {
+    /// Best text for `lang`, following the fallback chain:
+    ///
+    /// 1. exact match (`pt-BR`),
+    /// 2. the base language (`pt-BR` → `pt`),
+    /// 3. `en` — the format's documented default,
+    /// 4. any entry, lowest key first, so a manifest that ships only
+    ///    e.g. `de` still renders something instead of a blank row.
+    ///
+    /// `None` only when the map is empty, which
+    /// [`Manifest::validate`] refuses for manifests — a registry
+    /// entry from a hostile source can still hit it, so callers must
+    /// handle it rather than unwrap.
+    pub fn resolve(&self, lang: &str) -> Option<&str> {
+        match self {
+            Self::Plain(s) => Some(s.as_str()),
+            Self::Localized(map) => {
+                let base = lang.split('-').next().unwrap_or(lang);
+                map.get(lang)
+                    .or_else(|| map.get(base))
+                    .or_else(|| map.get("en"))
+                    .or_else(|| map.values().next())
+                    .map(String::as_str)
+            }
+        }
+    }
+
+    /// `true` when the localized form carries no entry at all — a
+    /// row the UI could only ever render blank.
+    fn is_empty_map(&self) -> bool {
+        matches!(self, Self::Localized(map) if map.is_empty())
+    }
+}
+
+impl From<String> for LocalizedString {
+    fn from(s: String) -> Self {
+        Self::Plain(s)
+    }
+}
 
 /// Parsed manifest. Public so commands / Tauri handlers can return
 /// it verbatim to the frontend without redefining the shape.
@@ -58,7 +140,8 @@ pub struct PluginMetadata {
     pub author: String,
     /// One of the labels in [`worlds`].
     pub world: String,
-    pub description: Option<String>,
+    /// Plain string or `{ lang -> text }` — see [`LocalizedString`].
+    pub description: Option<LocalizedString>,
     pub homepage: Option<String>,
     pub license: Option<String>,
 }
@@ -121,8 +204,9 @@ pub struct OptionDecl {
     /// Control type — one of [`option_types::ALL`].
     #[serde(rename = "type")]
     pub option_type: String,
-    /// Human-readable label for the settings control.
-    pub label: String,
+    /// Human-readable label for the settings control. Plain string
+    /// or `{ lang -> text }` — see [`LocalizedString`].
+    pub label: LocalizedString,
     /// Default value in string form (`"true"`/`"false"` for bool, one of
     /// `choices` for enum). `None` = no default (control starts empty/off).
     #[serde(default)]
@@ -130,9 +214,10 @@ pub struct OptionDecl {
     /// Allowed values — required + only meaningful for `type = "enum"`.
     #[serde(default)]
     pub choices: Vec<String>,
-    /// Optional hint rendered under the control.
+    /// Optional hint rendered under the control. Plain string or
+    /// `{ lang -> text }` — see [`LocalizedString`].
     #[serde(default)]
-    pub description: Option<String>,
+    pub description: Option<LocalizedString>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -165,6 +250,8 @@ pub enum ManifestError {
     UnknownOptionType(String, String),
     #[error("manifest enum option {0:?} declares no choices")]
     EnumOptionWithoutChoices(String),
+    #[error("manifest localized field {0} declares no language at all")]
+    EmptyLocalizedMap(String),
 }
 
 impl Manifest {
@@ -236,6 +323,17 @@ impl Manifest {
             ));
         }
 
+        // A localized field that declares zero languages can only ever
+        // render blank, and no fallback can rescue it. Refuse at parse
+        // time so the author sees the typo instead of an empty row in
+        // Settings. The plain-string form is untouched by this check,
+        // so every pre-existing manifest still validates.
+        if let Some(desc) = &self.plugin.description {
+            if desc.is_empty_map() {
+                return Err(ManifestError::EmptyLocalizedMap("plugin.description".into()));
+            }
+        }
+
         for asset in &self.assets {
             if asset.filename.is_empty() {
                 return Err(ManifestError::EmptyAssetFilename);
@@ -278,6 +376,20 @@ impl Manifest {
             }
             if opt.option_type == option_types::ENUM && opt.choices.is_empty() {
                 return Err(ManifestError::EnumOptionWithoutChoices(opt.key.clone()));
+            }
+            if opt.label.is_empty_map() {
+                return Err(ManifestError::EmptyLocalizedMap(format!(
+                    "options.{}.label",
+                    opt.key
+                )));
+            }
+            if let Some(desc) = &opt.description {
+                if desc.is_empty_map() {
+                    return Err(ManifestError::EmptyLocalizedMap(format!(
+                        "options.{}.description",
+                        opt.key
+                    )));
+                }
             }
         }
 
@@ -369,6 +481,114 @@ storage_read = true
             Manifest::parse(&raw).unwrap_err(),
             ManifestError::UnknownOptionType(_, _)
         ));
+    }
+
+    // ----- localized strings ------------------------------------------
+
+    /// The historical `description = "…"` / `label = "…"` shape must keep
+    /// parsing byte-identically — every published plugin uses it.
+    #[test]
+    fn plain_strings_stay_valid() {
+        // The fixture ends inside [permissions], so plugin.description
+        // is injected into the [plugin] table rather than appended.
+        let raw = format!(
+            "{}\n[[options]]\nkey = \"hevc\"\ntype = \"bool\"\nlabel = \"Prefer HEVC\"\ndescription = \"4K covers\"\n",
+            fixture(worlds::SOURCE_V1, &[]).replace(
+                "world = \"waveflow:source/v1\"\n",
+                "world = \"waveflow:source/v1\"\ndescription = \"Play internet radio\"\n",
+            )
+        );
+        let m = Manifest::parse(&raw).expect("plain strings still parse");
+        assert_eq!(
+            m.plugin.description.as_ref().unwrap().resolve("fr"),
+            Some("Play internet radio"),
+            "a plain string resolves for every language"
+        );
+        assert_eq!(m.options[0].label.resolve("ja"), Some("Prefer HEVC"));
+        assert_eq!(
+            m.options[0].description.as_ref().unwrap().resolve("de"),
+            Some("4K covers")
+        );
+    }
+
+    #[test]
+    fn parses_localized_description_and_option_label() {
+        let raw = r#"
+schema_version = 1
+
+[plugin]
+id = "apple-artwork"
+name = "Apple Motion Artwork"
+version = "0.3.0"
+author = "InstaZDLL"
+world = "waveflow:metadata/v1"
+
+[plugin.description]
+en = "Animated album covers."
+fr = "Pochettes animées."
+
+[[options]]
+key = "prefer_hevc"
+type = "bool"
+default = "false"
+
+[options.label]
+en = "Prefer 4K HEVC covers"
+fr = "Préférer les pochettes 4K HEVC"
+
+[options.description]
+en = "Bigger files."
+"#;
+        let m = Manifest::parse(raw).expect("localized manifest");
+        let desc = m.plugin.description.as_ref().unwrap();
+        assert_eq!(desc.resolve("fr"), Some("Pochettes animées."));
+        assert_eq!(desc.resolve("en"), Some("Animated album covers."));
+        assert_eq!(m.options[0].label.resolve("fr"), Some("Préférer les pochettes 4K HEVC"));
+        // Missing locale on an option description falls back to `en`.
+        assert_eq!(
+            m.options[0].description.as_ref().unwrap().resolve("ja"),
+            Some("Bigger files.")
+        );
+    }
+
+    #[test]
+    fn resolve_follows_the_documented_fallback_chain() {
+        let mut map = BTreeMap::new();
+        map.insert("en".to_string(), "english".to_string());
+        map.insert("pt".to_string(), "português".to_string());
+        map.insert("pt-BR".to_string(), "português do Brasil".to_string());
+        let s = LocalizedString::Localized(map);
+
+        assert_eq!(s.resolve("pt-BR"), Some("português do Brasil"), "exact wins");
+        assert_eq!(s.resolve("pt"), Some("português"), "exact base code wins");
+        assert_eq!(
+            s.resolve("fr-CA"),
+            Some("english"),
+            "unknown regional code falls through base to en"
+        );
+        assert_eq!(s.resolve("ja"), Some("english"), "unknown code falls back to en");
+
+        // No `en` at all: any entry beats rendering nothing. BTreeMap
+        // ordering makes the pick deterministic.
+        let mut only_de = BTreeMap::new();
+        only_de.insert("de".to_string(), "deutsch".to_string());
+        assert_eq!(
+            LocalizedString::Localized(only_de).resolve("fr"),
+            Some("deutsch")
+        );
+    }
+
+    #[test]
+    fn rejects_localized_field_without_any_language() {
+        let raw = format!(
+            "{}\n[[options]]\nkey = \"q\"\ntype = \"bool\"\n\n[options.label]\n",
+            fixture(worlds::SOURCE_V1, &[])
+        );
+        let err = Manifest::parse(&raw).unwrap_err();
+        assert!(
+            matches!(&err, ManifestError::EmptyLocalizedMap(f) if f == "options.q.label"),
+            "got {err:?}"
+        );
     }
 
     #[test]
