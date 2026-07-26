@@ -15,6 +15,7 @@
 //! Every outbound fetch honours [`offline::is_offline`] like every other
 //! HTTP path in the workspace.
 
+use std::collections::BTreeMap;
 use std::io::{Cursor, Read, Seek};
 use std::time::Duration;
 
@@ -78,7 +79,19 @@ struct RegistryEntry {
     name: String,
     /// Plain string or `{ lang -> text }` — same two shapes the
     /// plugin manifest accepts, resolved frontend-side.
+    ///
+    /// **Publishing the map form here breaks every older client.**
+    /// `registry.json` is ONE document fetched by every WaveFlow ever
+    /// installed, and a build predating `LocalizedString` fails to
+    /// decode the whole catalogue from all three sources — its store
+    /// goes dark, and `min_app_version` can't help because it is read
+    /// after this decode. Translations therefore ride in the sibling
+    /// `description_i18n` below, which older clients simply ignore.
     description: LocalizedString,
+    /// Publish-safe translations for `description`, folded into it
+    /// before the entry reaches the frontend.
+    #[serde(default)]
+    description_i18n: Option<BTreeMap<String, String>>,
     author: String,
     repo: String,
     #[serde(default)]
@@ -389,7 +402,7 @@ pub async fn list_plugin_marketplace(
                     installed_version: inst,
                     id: e.id,
                     name: e.name,
-                    description: e.description,
+                    description: e.description.merged_with(e.description_i18n),
                     author: e.author,
                     repo: e.repo,
                     homepage: e.homepage,

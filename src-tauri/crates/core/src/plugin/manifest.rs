@@ -40,7 +40,7 @@ use waveflow_plugin_sdk::{permissions, worlds, MANIFEST_SCHEMA_VERSION};
 /// # historical form — still valid, treated as one anonymous language
 /// description = "Animated album covers from Apple Music."
 ///
-/// # localized form
+/// # inline localized form
 /// [description]
 /// en = "Animated album covers from Apple Music."
 /// fr = "Pochettes animées depuis Apple Music."
@@ -56,11 +56,32 @@ use waveflow_plugin_sdk::{permissions, worlds, MANIFEST_SCHEMA_VERSION};
 /// implementation of that fallback chain; its mirror lives in
 /// `src/lib/localizedText.ts` and the two MUST agree.
 ///
-/// **Forward compatibility.** A WaveFlow older than the release that
-/// introduced this type rejects the localized form outright (its
-/// parser expects a TOML string and gets a table). A plugin adopting
-/// localized descriptions must therefore raise its registry entry's
-/// `min_app_version`, exactly like any other manifest feature bump.
+/// # The inline form is NOT safe to publish
+///
+/// A WaveFlow older than the release that introduced this type
+/// expects a string and hard-errors on the table: it drops the whole
+/// plugin (unreadable manifest), and for `registry.json` — a single
+/// document every installed version fetches — it fails to decode the
+/// catalogue from all three sources, leaving the store **entirely
+/// broken** on that build. `min_app_version` can't rescue that: it is
+/// read after the parse that already failed.
+///
+/// So anything published to users carries the translations in the
+/// **sibling `*_i18n` field** instead ([`merge_localized_siblings`]):
+///
+/// ```toml
+/// description = "Animated album covers from Apple Music."
+///
+/// [plugin.description_i18n]
+/// fr = "Pochettes animées depuis Apple Music."
+/// ```
+///
+/// An older host ignores the unknown sibling and keeps rendering the
+/// plain string; a current one merges the two before anything else
+/// sees the value. No version bump, no broken store. The inline form
+/// stays supported for manifests that never ship to older hosts.
+///
+/// [`merge_localized_siblings`]: Manifest::merge_localized_siblings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum LocalizedString {
@@ -103,6 +124,45 @@ impl LocalizedString {
     fn is_empty_map(&self) -> bool {
         matches!(self, Self::Localized(map) if map.is_empty())
     }
+
+    /// Fold a sibling `*_i18n` map into `base`, returning the value
+    /// every downstream consumer sees.
+    ///
+    /// The sibling wins per key, so a translation can override an
+    /// inline entry. A plain base is promoted to the `en` slot —
+    /// which is what the format documents a bare string to mean —
+    /// unless the sibling already spells `en` out.
+    ///
+    /// `None` sibling is the overwhelmingly common case (every
+    /// manifest written before this existed) and returns `self`
+    /// untouched — not even a reallocation.
+    pub fn merged_with(self, sibling: Option<BTreeMap<String, String>>) -> Self {
+        let Some(sibling) = sibling else {
+            return self;
+        };
+        let (mut merged, plain) = match self {
+            Self::Localized(map) => (map, None),
+            Self::Plain(s) => (BTreeMap::new(), Some(s)),
+        };
+        merged.extend(sibling);
+        if let Some(plain) = plain {
+            merged.entry("en".to_string()).or_insert(plain);
+        }
+        Self::Localized(merged)
+    }
+
+    /// [`Self::merged_with`] for an optional field: a sibling with no
+    /// base of its own still produces a value.
+    pub fn merge_optional(
+        base: Option<Self>,
+        sibling: Option<BTreeMap<String, String>>,
+    ) -> Option<Self> {
+        match (base, sibling) {
+            (base, None) => base,
+            (Some(base), sibling) => Some(base.merged_with(sibling)),
+            (None, Some(sibling)) => Some(Self::Localized(sibling)),
+        }
+    }
 }
 
 impl From<String> for LocalizedString {
@@ -142,6 +202,11 @@ pub struct PluginMetadata {
     pub world: String,
     /// Plain string or `{ lang -> text }` — see [`LocalizedString`].
     pub description: Option<LocalizedString>,
+    /// Publish-safe translations for [`Self::description`], folded
+    /// into it at parse time. See [`LocalizedString`] for why this
+    /// sibling exists rather than only the inline table form.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description_i18n: Option<BTreeMap<String, String>>,
     pub homepage: Option<String>,
     pub license: Option<String>,
 }
@@ -207,6 +272,10 @@ pub struct OptionDecl {
     /// Human-readable label for the settings control. Plain string
     /// or `{ lang -> text }` — see [`LocalizedString`].
     pub label: LocalizedString,
+    /// Publish-safe translations for [`Self::label`], folded into it
+    /// at parse time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_i18n: Option<BTreeMap<String, String>>,
     /// Default value in string form (`"true"`/`"false"` for bool, one of
     /// `choices` for enum). `None` = no default (control starts empty/off).
     #[serde(default)]
@@ -218,6 +287,10 @@ pub struct OptionDecl {
     /// `{ lang -> text }` — see [`LocalizedString`].
     #[serde(default)]
     pub description: Option<LocalizedString>,
+    /// Publish-safe translations for [`Self::description`], folded
+    /// into it at parse time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description_i18n: Option<BTreeMap<String, String>>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -268,6 +341,10 @@ impl Manifest {
     /// touching the filesystem.
     pub fn parse(raw: &str) -> Result<Self, ManifestError> {
         let mut parsed: Self = toml::from_str(raw)?;
+        // Fold the publish-safe `*_i18n` siblings in BEFORE validating,
+        // so validation judges the value the app will actually render
+        // and every consumer downstream sees one merged field.
+        parsed.merge_localized_siblings();
         parsed.validate()?;
         // Lower-case every asset hash post-validation so the
         // downstream `AssetResolver::read` byte-equality compare
@@ -280,6 +357,24 @@ impl Manifest {
             }
         }
         Ok(parsed)
+    }
+
+    /// Fold every `*_i18n` sibling into the field it translates. See
+    /// [`LocalizedString`] for why publishable manifests carry their
+    /// translations this way instead of as an inline table.
+    fn merge_localized_siblings(&mut self) {
+        self.plugin.description = LocalizedString::merge_optional(
+            self.plugin.description.take(),
+            self.plugin.description_i18n.take(),
+        );
+        for opt in &mut self.options {
+            if opt.label_i18n.is_some() {
+                let base = std::mem::replace(&mut opt.label, LocalizedString::Plain(String::new()));
+                opt.label = base.merged_with(opt.label_i18n.take());
+            }
+            opt.description =
+                LocalizedString::merge_optional(opt.description.take(), opt.description_i18n.take());
+        }
     }
 
     /// Run all the validation rules described in the module docs.
@@ -576,6 +671,77 @@ en = "Bigger files."
             LocalizedString::Localized(only_de).resolve("fr"),
             Some("deutsch")
         );
+    }
+
+    /// The publish-safe shape: a plain string an older host still
+    /// renders, plus a sibling map it doesn't know about. Both must
+    /// land in one merged value here, with the plain string taking
+    /// the `en` slot.
+    #[test]
+    fn folds_i18n_siblings_into_their_field() {
+        let raw = r#"
+schema_version = 1
+
+[plugin]
+id = "apple-artwork"
+name = "Apple Motion Artwork"
+version = "0.4.0"
+author = "InstaZDLL"
+world = "waveflow:metadata/v1"
+description = "Animated album covers."
+
+[plugin.description_i18n]
+fr = "Pochettes animées."
+
+[[options]]
+key = "prefer_hevc"
+type = "bool"
+label = "Prefer 4K HEVC covers"
+description = "Bigger files."
+
+[options.label_i18n]
+fr = "Préférer les pochettes 4K HEVC"
+
+[options.description_i18n]
+fr = "Fichiers plus lourds."
+"#;
+        let m = Manifest::parse(raw).expect("sibling form parses");
+        let desc = m.plugin.description.as_ref().unwrap();
+        assert_eq!(desc.resolve("fr"), Some("Pochettes animées."));
+        assert_eq!(
+            desc.resolve("en"),
+            Some("Animated album covers."),
+            "the plain string becomes the en entry"
+        );
+        assert_eq!(desc.resolve("ja"), Some("Animated album covers."));
+        assert_eq!(
+            m.options[0].label.resolve("fr"),
+            Some("Préférer les pochettes 4K HEVC")
+        );
+        assert_eq!(m.options[0].label.resolve("de"), Some("Prefer 4K HEVC covers"));
+        assert_eq!(
+            m.options[0].description.as_ref().unwrap().resolve("fr"),
+            Some("Fichiers plus lourds.")
+        );
+        // The siblings are consumed by the merge, not echoed onward.
+        assert!(m.plugin.description_i18n.is_none());
+        assert!(m.options[0].label_i18n.is_none());
+    }
+
+    /// A sibling entry overrides the same language spelled inline —
+    /// the sibling is the newer, translator-maintained source.
+    #[test]
+    fn sibling_wins_over_an_inline_entry_for_the_same_language() {
+        let s = LocalizedString::Localized(BTreeMap::from([
+            ("en".to_string(), "inline english".to_string()),
+            ("fr".to_string(), "français inline".to_string()),
+        ]));
+        let merged = s.merged_with(Some(BTreeMap::from([(
+            "fr".to_string(),
+            "français traduit".to_string(),
+        )])));
+        assert_eq!(merged.resolve("fr"), Some("français traduit"));
+        assert_eq!(merged.resolve("en"), Some("inline english"));
     }
 
     #[test]

@@ -39,32 +39,58 @@ Values persist in `<state_dir>/.plugin-config.json` ([`plugin_config`](../../src
 
 ## Localized manifest strings
 
-Plugin descriptions and option labels are authored in each plugin's `manifest.toml` (store descriptions in `registry.json`), outside the app's i18next files — so `t()` can never reach them. Instead the **format itself carries the translations**: `plugin.description`, each option's `label` / `description`, and a registry entry's `description` accept **either** a plain string **or** a `{ lang -> text }` map ([`LocalizedString`](../../src-tauri/crates/core/src/plugin/manifest.rs)).
+Plugin descriptions and option labels are authored in each plugin's `manifest.toml` (store descriptions in `registry.json`), outside the app's i18next files — so `t()` can never reach them. Instead the **format itself carries the translations**, for `plugin.description`, each option's `label` / `description`, and a registry entry's `description`.
+
+### The publishable form: `*_i18n` siblings
+
+**This is the one to use for anything users install.** Keep the plain string exactly where it is and add a sibling map next to it:
 
 ```toml
-# historical form — still valid, unchanged behaviour
 description = "Animated album covers from Apple Music."
 
-# localized form
-[plugin.description]
-en = "Animated album covers from Apple Music."
+[plugin.description_i18n]
 fr = "Pochettes animées depuis Apple Music."
+de = "Animierte Albumcover aus Apple Music."
 
 [[options]]
 key = "prefer_hevc"
 type = "bool"
-default = "false"
+label = "Prefer 4K HEVC covers"
 
-[options.label]
-en = "Prefer 4K HEVC covers"
+[options.label_i18n]
 fr = "Préférer les pochettes 4K HEVC"
 ```
 
-The same two shapes work in `registry.json` (`"description": "…"` or `"description": { "en": "…", "fr": "…" }`). Key on the app's canonical locale codes (the 17 in [`src/i18n/index.ts`](../../src/i18n/index.ts)); brand tokens (`WaveFlow`, `Apple Music`, `Last.fm`, `HEVC`…) stay verbatim in every language.
+```jsonc
+// registry.json — same idea
+"description": "Animated album covers from Apple Music.",
+"description_i18n": { "fr": "Pochettes animées depuis Apple Music." }
+```
 
-**Resolution is frontend-side.** The host hands the whole value through untouched and the UI resolves it against the active i18next language via [`useLocalizedText`](../../src/hooks/useLocalizedText.ts), so a language switch re-renders instantly with no backend round-trip. The fallback chain — exact code → base language (`pt-BR` → `pt`) → `en` → any entry — is implemented twice, in [`LocalizedString::resolve`](../../src-tauri/crates/core/src/plugin/manifest.rs) and [`resolveLocalizedText`](../../src/lib/localizedText.ts); **change them together**. A localized field declaring zero languages is refused at parse time rather than rendering blank.
+An older WaveFlow ignores the field it doesn't know and renders the plain English string; a current one folds the two into one value at parse time ([`merge_localized_siblings`](../../src-tauri/crates/core/src/plugin/manifest.rs)), the plain string taking the `en` slot. **No `min_app_version` bump, no broken store, nobody loses access to the plugin.**
 
-> **Compatibility.** Plain strings keep working verbatim — no published plugin needs a change. The reverse doesn't hold: a WaveFlow older than v1.8.0 parses `[plugin.description]` as a type error and skips the plugin entirely, so a plugin adopting the localized form must raise its registry entry's `min_app_version`.
+### The inline form, and why it is not publishable
+
+`plugin.description` / `label` / `description` also accept a `{ lang -> text }` table directly ([`LocalizedString`](../../src-tauri/crates/core/src/plugin/manifest.rs)):
+
+```toml
+[plugin.description]
+en = "Animated album covers from Apple Music."
+fr = "Pochettes animées depuis Apple Music."
+```
+
+It reads better, and it is fine for a manifest that never reaches an older host. But a WaveFlow predating this feature expects a string and hard-errors on the table:
+
+- in a **manifest**, the plugin is dropped wholesale (unreadable manifest) — recoverable only by raising the registry entry's `min_app_version`, which also cuts those users off from the version they can still run;
+- in **`registry.json`**, which is a single document every installed version fetches, the catalogue fails to decode from all three sources and **the store goes dark on that build**. `min_app_version` cannot save it: it is read after the decode that already failed.
+
+So: inline for local experiments, `*_i18n` for anything published.
+
+### Resolution
+
+Key on the app's canonical locale codes (the 17 in [`src/i18n/index.ts`](../../src/i18n/index.ts)); brand tokens (`WaveFlow`, `Apple Music`, `Last.fm`, `HEVC`…) stay verbatim in every language.
+
+The host hands the merged value through untouched and the UI resolves it against the active i18next language via [`useLocalizedText`](../../src/hooks/useLocalizedText.ts), so a language switch re-renders instantly with no backend round-trip. The fallback chain — exact code → base language (`pt-BR` → `pt`) → `en` → any entry — is implemented twice, in [`LocalizedString::resolve`](../../src-tauri/crates/core/src/plugin/manifest.rs) and [`resolveLocalizedText`](../../src/lib/localizedText.ts); **change them together**. A localized field that ends up declaring zero languages is refused at parse time rather than rendering blank.
 
 ## Official plugins
 
