@@ -107,6 +107,12 @@ export function useArtistBioCollapsed(): ArtistBioCollapsed {
         // toggle never lands in another profile's settings.
         if (activeProfileIdRef.current !== profileAtClick) return;
         await setProfileSetting(KEY, next ? "true" : "false", "bool");
+        // The switch effect reset persistedRef / state to the new profile's
+        // default while we were awaiting. Stamping `next` (the old profile's
+        // value) onto persistedRef or broadcasting a refresh now would
+        // corrupt the current profile's confirmed truth, so skip all
+        // post-write bookkeeping once the profile has changed.
+        if (activeProfileIdRef.current !== profileAtClick) return;
         persistedRef.current = next; // confirmed in the DB
         // Only the latest enqueued write broadcasts, so an older write's
         // completion can't refresh over a newer state.
@@ -116,9 +122,11 @@ export function useArtistBioCollapsed(): ArtistBioCollapsed {
       })
       .catch((err: unknown) => {
         console.error("[useArtistBioCollapsed] write failed", err);
-        // Only roll back if no later write superseded this one, reverting
-        // to the last DB-confirmed value rather than the optimistic one.
-        if (seq === seqRef.current) setCollapsedState(persistedRef.current);
+        // Roll back only for the still-current profile, and only if no
+        // later write superseded this one — reverting to the last
+        // DB-confirmed value rather than the optimistic one.
+        if (activeProfileIdRef.current === profileAtClick && seq === seqRef.current)
+          setCollapsedState(persistedRef.current);
       });
   }, []);
 
