@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Play, Shuffle, Music2, Clock, Heart, Pencil } from "lucide-react";
+import {
+  Play,
+  Shuffle,
+  Music2,
+  Clock,
+  Heart,
+  Pencil,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { Artwork } from "../common/Artwork";
 import { EmptyState } from "../common/EmptyState";
 import { DetailViewSkeleton } from "../common/DetailViewSkeleton";
@@ -14,6 +23,7 @@ import { usePlayer } from "../../hooks/usePlayer";
 import { usePlaylist } from "../../hooks/usePlaylist";
 import { useTrackContextMenu } from "../../hooks/useTrackContextMenu";
 import { useTrackUpdated } from "../../hooks/useTrackUpdated";
+import { useArtistBioCollapsed } from "../../hooks/useArtistBioCollapsed";
 import {
   getArtistDetail,
   enrichArtistDeezer,
@@ -86,6 +96,11 @@ export function ArtistDetailView({
   const [bioShort, setBioShort] = useState<string | null>(null);
   const [bioFull, setBioFull] = useState<string | null>(null);
   const [bioExpanded, setBioExpanded] = useState(false);
+  // Global (per-profile) "hide the bio block" preference — issue #422. A
+  // long bio otherwise pushes the discography off-screen; the toggle
+  // lives on the bio block itself, not in Settings.
+  const { collapsed: bioCollapsed, setCollapsed: setBioCollapsed } =
+    useArtistBioCollapsed();
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [similar, setSimilar] = useState<SimilarArtist[]>([]);
 
@@ -363,25 +378,51 @@ export function ArtistDetailView({
       {/* Bio */}
       {bioShort && (
         <div className="space-y-3">
-          <h2 className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase px-1">
-            {t("artistDetail.bio.title")}
-          </h2>
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-800/40">
-            <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-300 whitespace-pre-line break-words hyphens-auto">
-              {bioExpanded ? (bioFull ?? bioShort) : bioShort}
-            </p>
-            {bioFull && bioFull.length > bioShort.length && (
-              <button
-                type="button"
-                onClick={() => setBioExpanded((p) => !p)}
-                className="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
-              >
-                {bioExpanded
-                  ? t("nowPlaying.readLess")
-                  : t("nowPlaying.readMore")}
-              </button>
-            )}
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase">
+              {t("artistDetail.bio.title")}
+            </h2>
+            <button
+              type="button"
+              onClick={() => void setBioCollapsed(!bioCollapsed)}
+              aria-expanded={!bioCollapsed}
+              aria-label={t(
+                bioCollapsed ? "artistDetail.bio.show" : "artistDetail.bio.hide",
+              )}
+              className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+            >
+              <span>
+                {t(
+                  bioCollapsed
+                    ? "artistDetail.bio.show"
+                    : "artistDetail.bio.hide",
+                )}
+              </span>
+              {bioCollapsed ? (
+                <ChevronDown size={14} />
+              ) : (
+                <ChevronUp size={14} />
+              )}
+            </button>
           </div>
+          {!bioCollapsed && (
+            <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-800/40">
+              <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-300 whitespace-pre-line break-words hyphens-auto">
+                {bioExpanded ? (bioFull ?? bioShort) : bioShort}
+              </p>
+              {bioFull && bioFull.length > bioShort.length && (
+                <button
+                  type="button"
+                  onClick={() => setBioExpanded((p) => !p)}
+                  className="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
+                >
+                  {bioExpanded
+                    ? t("nowPlaying.readLess")
+                    : t("nowPlaying.readMore")}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 

@@ -971,7 +971,9 @@
     "emptyTitle": "未找到该艺人",
     "emptyDescription": "该艺人已不在当前的个人资料中。",
     "bio": {
-      "title": "个人简介"
+      "title": "个人简介",
+      "show": "显示",
+      "hide": "隐藏"
     },
     "similar": {
       "title": "相似艺人",

@@ -971,7 +971,9 @@
     "emptyTitle": "Artiest niet gevonden",
     "emptyDescription": "Deze artiest staat niet meer in het actieve profiel.",
     "bio": {
-      "title": "Biografie"
+      "title": "Biografie",
+      "show": "Tonen",
+      "hide": "Verbergen"
     },
     "similar": {
       "title": "Vergelijkbare artiesten",

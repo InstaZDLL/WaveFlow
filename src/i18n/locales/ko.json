@@ -971,7 +971,9 @@
     "emptyTitle": "아티스트를 찾을 수 없습니다",
     "emptyDescription": "이 아티스트는 현재 활성 프로필에 더 이상 존재하지 않습니다.",
     "bio": {
-      "title": "아티스트 소개"
+      "title": "아티스트 소개",
+      "show": "표시",
+      "hide": "숨기기"
     },
     "similar": {
       "title": "비슷한 아티스트",

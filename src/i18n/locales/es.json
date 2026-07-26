@@ -971,7 +971,9 @@
     "emptyTitle": "Artista no encontrado",
     "emptyDescription": "Este artista ya no figura en el perfil activo.",
     "bio": {
-      "title": "Biografía"
+      "title": "Biografía",
+      "show": "Mostrar",
+      "hide": "Ocultar"
     },
     "similar": {
       "title": "Artistas similares",
