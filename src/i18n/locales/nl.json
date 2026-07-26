@@ -443,8 +443,8 @@
       "deepRescan": "Diepe herscan (leest elk bestand opnieuw, trager)",
       "remove": "Map uit bibliotheek verwijderen",
       "removeConfirm": "Klik nogmaals om te bevestigen",
-      "removeConfirmWithPlays_one": "Klik nogmaals om te bevestigen. {{count}} weergave blijft bewaard en wordt bij de volgende scan opnieuw gekoppeld.",
-      "removeConfirmWithPlays_other": "Klik nogmaals om te bevestigen. {{count}} weergaven blijven bewaard en worden bij de volgende scan opnieuw gekoppeld."
+      "removeConfirmWithPlays_one": "Klik nogmaals om te bevestigen. {{count}} luisterbeurt blijft bewaard en wordt bij de volgende scan opnieuw gekoppeld.",
+      "removeConfirmWithPlays_other": "Klik nogmaals om te bevestigen. {{count}} luisterbeurten blijven bewaard en worden bij de volgende scan opnieuw gekoppeld."
     },
     "skeletonAriaLabel": "{{name}} laden…"
   },

@@ -1419,7 +1419,7 @@
     },
     "normalize": {
       "title": "將音量調整至標準值",
-      "subtitle": "將音量過大的片段調低，以保持整體音量一致"
+      "subtitle": "將音量過大的曲目調低，以保持整體音量一致"
     },
     "replayGain": {
       "title": "套用 ReplayGain",
@@ -1686,7 +1686,7 @@
       },
       "skin": {
         "title": "介面風格",
-        "subtitle": "改變密度、表面質感、字體與動效，不只是顏色。"
+        "subtitle": "改變密度、表面質感、字型與動效，不只是顏色。"
       },
       "skins": {
         "studio": {
@@ -1837,7 +1837,7 @@
       "webUrlLabel": "WaveFlow Web URL",
       "webUrlPlaceholder": "https://waveflow.app",
       "signInWithBrowser": "透過瀏覽器登入",
-      "signInWithBrowserHint": "在瀏覽器中開啟 WaveFlow Web；您在那裡登入，應用程式會透過本機握手自動取得 JWT。",
+      "signInWithBrowserHint": "在瀏覽器中開啟 WaveFlow Web；您在那裡登入，應用程式會透過本機交握自動取得 JWT。",
       "loginInProgress": "等待瀏覽器…",
       "modeLabel": "同步模式",
       "modes": {
