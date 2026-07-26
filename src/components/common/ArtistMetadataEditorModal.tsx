@@ -50,7 +50,6 @@ export function ArtistMetadataEditorModal({
   onSplit,
 }: ArtistMetadataEditorModalProps) {
   const { t } = useTranslation();
-  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
 
   const [bio, setBio] = useState("");
   const [selected, setSelected] = useState<ArtistOverrideSimilar[]>([]);
@@ -61,6 +60,15 @@ export function ArtistMetadataEditorModal({
   const [isSaving, setIsSaving] = useState(false);
   const [isSplitting, setIsSplitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Ignore user-initiated close (Escape / backdrop / Cancel) while a split
+  // is running so the relink + navigation can't be interrupted halfway.
+  // handleSplit calls onClose() directly once it's done.
+  const guardedClose = () => {
+    if (isSplitting) return;
+    onClose();
+  };
+  const dialogRef = useModalA11y<HTMLDivElement>(isOpen, guardedClose);
 
   // A comma in the name flags a likely phantom artist (issue #396): a
   // comma-joined `ARTIST` tag the scanner didn't split. The preview
@@ -245,7 +253,7 @@ export function ArtistMetadataEditorModal({
   };
 
   return (
-    <AnimatedModalShell isOpen={isOpen} onBackdropClick={onClose}>
+    <AnimatedModalShell isOpen={isOpen} onBackdropClick={guardedClose}>
       <AnimatedModalContent
         ref={dialogRef}
         role="dialog"
@@ -464,8 +472,9 @@ export function ArtistMetadataEditorModal({
         <div className="mt-4 flex items-center justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
           <button
             type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl text-sm font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+            onClick={guardedClose}
+            disabled={isSplitting}
+            className="px-4 py-2 rounded-xl text-sm font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors disabled:opacity-50"
           >
             {t("common.cancel")}
           </button>

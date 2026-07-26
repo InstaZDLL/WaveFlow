@@ -132,8 +132,10 @@ pub(crate) async fn split_artist_inner(
         let mut seen: std::collections::HashSet<(i64, String)> = std::collections::HashSet::new();
         for (aid, role) in rows {
             if aid == artist_id {
+                // Inherit the phantom's own role (a phantom credited as a
+                // `feature` splits into featured artists, not main ones).
                 for &nid in &new_ids {
-                    let key = (nid, "main".to_string());
+                    let key = (nid, role.clone());
                     if seen.insert(key.clone()) {
                         rebuilt.push(key);
                     }
@@ -430,6 +432,31 @@ mod tests {
         // other references → deleted.
         assert_eq!(primary_of(&pool, t).await, Some(x));
         assert!(res.phantom_deleted);
+    }
+
+    #[tokio::test]
+    async fn inherits_the_phantoms_role_when_not_main() {
+        let pool = pool().await;
+        let x = seed_artist(&pool, "X").await;
+        let phantom = seed_artist(&pool, "A, B").await;
+        let t = seed_track(&pool, 1, Some(x)).await;
+        // X is the main artist; the phantom is credited as a `feature`.
+        link(&pool, t, x, "main", 0).await;
+        link(&pool, t, phantom, "feature", 1).await;
+
+        let res = split_artist_inner(&pool, phantom).await.unwrap();
+        let a = res.artists[0].id;
+        let b = res.artists[1].id;
+
+        // Both fragments inherit the phantom's `feature` role, not `main`.
+        assert_eq!(
+            credits(&pool, t).await,
+            vec![
+                (x, "main".into(), 0),
+                (a, "feature".into(), 1),
+                (b, "feature".into(), 2),
+            ]
+        );
     }
 
     #[tokio::test]
