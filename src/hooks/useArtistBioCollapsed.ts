@@ -51,7 +51,10 @@ export function useArtistBioCollapsed(): ArtistBioCollapsed {
   // Last DB-confirmed value — the rollback target. After a run of failed
   // writes the optimistic pre-toggle value was never persisted, so a
   // failure reverts to confirmed truth, not the optimistic snapshot.
-  const persistedRef = useRef<boolean>(DEFAULT_COLLAPSED);
+  // `null` = nothing confirmed yet for this profile (a fresh mount/switch
+  // whose initial read hasn't landed, or was invalidated by a write) — the
+  // rollback must NOT treat the reset default as a confirmed value.
+  const persistedRef = useRef<boolean | null>(DEFAULT_COLLAPSED);
   // Active profile id mirrored into a ref so a queued write can check —
   // at the moment it runs — that the profile is still the one the user
   // toggled (`set_profile_setting` targets whatever profile is active
@@ -69,7 +72,9 @@ export function useArtistBioCollapsed(): ArtistBioCollapsed {
     // value loads. The `getProfileSetting` below then replaces it.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCollapsedState(DEFAULT_COLLAPSED);
-    persistedRef.current = DEFAULT_COLLAPSED;
+    // Mark unconfirmed until the read below (or a successful write) lands —
+    // the reset default is a display placeholder, not a rollback target.
+    persistedRef.current = null;
     const refresh = async () => {
       // Marker captured before the async read. If a local write bumps
       // `seqRef` while we're awaiting, this read is stale — its newer
@@ -123,10 +128,36 @@ export function useArtistBioCollapsed(): ArtistBioCollapsed {
       .catch((err: unknown) => {
         console.error("[useArtistBioCollapsed] write failed", err);
         // Roll back only for the still-current profile, and only if no
-        // later write superseded this one — reverting to the last
-        // DB-confirmed value rather than the optimistic one.
-        if (activeProfileIdRef.current === profileAtClick && seq === seqRef.current)
-          setCollapsedState(persistedRef.current);
+        // later write superseded this one.
+        if (activeProfileIdRef.current !== profileAtClick || seq !== seqRef.current)
+          return;
+        const confirmed = persistedRef.current;
+        if (confirmed !== null) {
+          // Revert to the last DB-confirmed value, not the optimistic one.
+          setCollapsedState(confirmed);
+          return;
+        }
+        // No confirmed value yet — this profile's initial read was
+        // invalidated by this very write, so persistedRef would wrongly
+        // report the reset default. Re-read the DB truth (a failed write
+        // left it unchanged) rather than rolling back to a guessed `false`.
+        getProfileSetting(KEY)
+          .then((raw) => {
+            if (
+              activeProfileIdRef.current !== profileAtClick ||
+              seq !== seqRef.current
+            )
+              return;
+            const loaded = parseCollapsed(raw);
+            persistedRef.current = loaded;
+            setCollapsedState(loaded);
+          })
+          .catch((readErr: unknown) => {
+            console.error(
+              "[useArtistBioCollapsed] rollback read failed",
+              readErr,
+            );
+          });
       });
   }, []);
 
