@@ -249,7 +249,7 @@ export function ImmersiveLyricsColumn({
               })}
             </ul>
           ) : (
-            <p className="text-2xl leading-relaxed text-white/90 whitespace-pre-line py-16 text-center">
+            <p className="text-2xl leading-relaxed text-white/90 whitespace-pre-line pt-16 pb-[40vh] text-center">
               {staticText ?? payload.content}
             </p>
           )}
