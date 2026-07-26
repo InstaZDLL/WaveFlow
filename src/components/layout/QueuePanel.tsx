@@ -1,4 +1,12 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -25,6 +33,8 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { usePlayer } from "../../hooks/usePlayer";
+import { usePlayerTrackContextMenu } from "../../hooks/usePlayerTrackContextMenu";
+import { queuePayloadToTrack } from "../../lib/queueTrack";
 import { Artwork } from "../common/Artwork";
 import {
   playerGetQueue,
@@ -163,6 +173,20 @@ export function QueuePanel() {
 
   const isActive = playbackState === "playing" || playbackState === "paused";
 
+  // Right-click a queue row for the same track menu the list views have
+  // (Show in Explorer, Properties, queue ops…) — mail reporter request.
+  // Radio / stream rows (negative sentinel id, no local file) are skipped
+  // but still swallow the native menu so the gesture reads consistently.
+  const trackMenu = usePlayerTrackContextMenu();
+  const handleRowContextMenu = useCallback(
+    (event: ReactMouseEvent, item: QueueTrackPayload) => {
+      event.preventDefault();
+      if (item.id < 0 || !item.file_path) return;
+      trackMenu.open(event, queuePayloadToTrack(item));
+    },
+    [trackMenu],
+  );
+
   return (
     <motion.aside
       key="queue"
@@ -173,6 +197,7 @@ export function QueuePanel() {
       className="h-full shrink-0 overflow-hidden border-l bg-surface-light border-zinc-200 text-zinc-800 dark:bg-surface-dark dark:border-zinc-800 dark:text-zinc-100"
     >
       <div className="p-6 flex flex-col h-full w-80">
+        {trackMenu.render()}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold">{t("queue.title")}</h2>
@@ -233,7 +258,11 @@ export function QueuePanel() {
                 <div className="text-[10px] font-bold tracking-widest text-zinc-400 uppercase mb-2 px-1">
                   {t("queue.nowPlaying")}
                 </div>
-                <QueueRow item={nowPlaying} isCurrent />
+                <QueueRow
+                  item={nowPlaying}
+                  isCurrent
+                  onContextMenu={(e) => handleRowContextMenu(e, nowPlaying)}
+                />
               </section>
             )}
             {upNext.length > 0 && (
@@ -246,6 +275,7 @@ export function QueuePanel() {
                   startIndex={currentIndex + 1}
                   onJump={handleJump}
                   onReorder={handleReorder}
+                  onContextMenu={handleRowContextMenu}
                 />
               </section>
             )}
@@ -259,12 +289,15 @@ export function QueuePanel() {
 function QueueRow({
   item,
   isCurrent = false,
+  onContextMenu,
 }: {
   item: QueueTrackPayload;
   isCurrent?: boolean;
+  onContextMenu?: (e: ReactMouseEvent) => void;
 }) {
   return (
     <div
+      onContextMenu={onContextMenu}
       className={`flex items-center space-x-3 p-2 rounded-lg transition-colors select-none ${
         isCurrent
           ? "bg-emerald-50 dark:bg-emerald-900/20"
@@ -305,6 +338,7 @@ interface SortableUpNextProps {
   startIndex: number;
   onJump: (absoluteIndex: number) => void;
   onReorder: (fromAbsolute: number, toAbsolute: number) => void;
+  onContextMenu: (e: ReactMouseEvent, item: QueueTrackPayload) => void;
 }
 
 /**
@@ -324,6 +358,7 @@ function SortableUpNext({
   startIndex,
   onJump,
   onReorder,
+  onContextMenu,
 }: SortableUpNextProps) {
   "use no memo";
   const sensors = useSensors(
@@ -416,6 +451,7 @@ function SortableUpNext({
                   top={virtualRow.start}
                   rowHeight={QUEUE_ROW_HEIGHT}
                   onJump={onJump}
+                  onContextMenu={onContextMenu}
                 />
               );
             })}
@@ -489,6 +525,7 @@ const SortableQueueRow = memo(function SortableQueueRow({
   top,
   rowHeight,
   onJump,
+  onContextMenu,
 }: {
   id: string;
   absoluteIndex: number;
@@ -496,6 +533,7 @@ const SortableQueueRow = memo(function SortableQueueRow({
   top: number;
   rowHeight: number;
   onJump: (absoluteIndex: number) => void;
+  onContextMenu: (e: ReactMouseEvent, item: QueueTrackPayload) => void;
 }) {
   // `animateLayoutChanges: () => false` disables the CSS transition
   // dnd-kit applies to every neighbour as the drag crosses them — on
@@ -538,6 +576,7 @@ const SortableQueueRow = memo(function SortableQueueRow({
           tabIndex + role + onKeyDown wiring. */}
       <div
         onDoubleClick={() => onJump(absoluteIndex)}
+        onContextMenu={(e) => onContextMenu(e, item)}
         tabIndex={0}
         role="button"
         onKeyDown={(e) => {

@@ -10,6 +10,7 @@ import { VolumeControl } from "./VolumeControl";
 import { SpectrumVisualizer } from "./SpectrumVisualizer";
 import { usePlayer } from "../../hooks/usePlayer";
 import { useWebRadioFavorites } from "../../hooks/useWebRadioFavorites";
+import { usePlayerTrackContextMenu } from "../../hooks/usePlayerTrackContextMenu";
 import { isRadioTrack } from "../../lib/playerSources";
 
 interface ImmersiveNowPlayingProps {
@@ -38,7 +39,16 @@ export function ImmersiveNowPlaying({
   onToggleLike,
 }: ImmersiveNowPlayingProps) {
   const { t } = useTranslation();
-  const { currentTrack, currentRadioStation } = usePlayer();
+  const { currentTrack, currentRadioStation, activeProvider } = usePlayer();
+  // Right-click the title to reach the same track menu the list views have
+  // (Show in Explorer, Properties, queue ops…) — mail reporter request.
+  // Only for a real library track: radio (negative sentinel id) and
+  // Spotify playback have no local file / library row to act on.
+  const trackMenu = usePlayerTrackContextMenu();
+  const menuTrack =
+    currentTrack && activeProvider !== "spotify" && !isRadioTrack(currentTrack)
+      ? currentTrack
+      : null;
   // Live radio: favorite the STATION (★) instead of liking a track (♥) —
   // a radio session has a negative sentinel id with no library row to
   // like. Mirrors the PlayerBar / mini-player treatment.
@@ -56,6 +66,7 @@ export function ImmersiveNowPlaying({
     // controls stranded at the bottom". The cover is sized so the full
     // stack still fits a 1080p viewport at 125 % DPI (see #54).
     <div className="h-full flex flex-col items-center justify-center text-white px-8 py-10 gap-7 min-h-0">
+      {trackMenu.render()}
       <div className="relative w-full max-w-[min(42vh,24rem)] aspect-square shrink-0">
         <Artwork
           path={currentTrack?.artwork_path ?? null}
@@ -82,7 +93,12 @@ export function ImmersiveNowPlaying({
             `pb-1` + `leading-tight` on the marquee container give
             descenders (g / y / p) room so the `overflow: hidden` (needed
             for both truncate + the marquee) doesn't clip them. */}
-        <h1 className="text-3xl md:text-4xl font-bold">
+        <h1
+          className="text-3xl md:text-4xl font-bold"
+          onContextMenu={
+            menuTrack ? (e) => trackMenu.open(e, menuTrack) : undefined
+          }
+        >
           <MarqueeText text={title} className="leading-tight pb-1" />
         </h1>
         <div className="mt-2 text-lg text-white/80 flex items-center justify-center gap-3 flex-wrap">
