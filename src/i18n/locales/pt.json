@@ -27,7 +27,7 @@
     },
     "installed": {
       "title": "Atualização instalada",
-      "message": "Reinicie o WaveFlow para aplicar a nova versão."
+      "message": "Reinicia o WaveFlow para aplicar a nova versão."
     },
     "error": {
       "title": "Falha na atualização"
@@ -105,7 +105,7 @@
       "bulletQueue": "Cria a tua primeira fila clicando numa faixa",
       "bulletSettings": "Afina as definições na barra lateral (Aparência, Integrações…)",
       "tipImmersiveTitle": "Dica: vista imersiva",
-      "tipImmersiveBody": "Clique na capa do leitor para abrir a vista de ecrã inteiro com a capa e a letra lado a lado."
+      "tipImmersiveBody": "Clica na capa do leitor para abrir a vista de ecrã inteiro com a capa e a letra lado a lado."
     },
     "actions": {
       "skipSetup": "Saltar configuração",
@@ -443,8 +443,8 @@
       "deepRescan": "Reanálise profunda (relê todos os ficheiros, mais lenta)",
       "remove": "Remover pasta da biblioteca",
       "removeConfirm": "Clica novamente para confirmar",
-      "removeConfirmWithPlays_one": "Clique novamente para confirmar. {{count}} reprodução será mantida e reassociada na próxima análise.",
-      "removeConfirmWithPlays_other": "Clique novamente para confirmar. {{count}} reproduções serão mantidas e reassociadas na próxima análise."
+      "removeConfirmWithPlays_one": "Clica novamente para confirmar. {{count}} reprodução será mantida e reassociada na próxima análise.",
+      "removeConfirmWithPlays_other": "Clica novamente para confirmar. {{count}} reproduções serão mantidas e reassociadas na próxima análise."
     },
     "skeletonAriaLabel": "A carregar {{name}}…"
   },
@@ -991,7 +991,7 @@
   },
   "motionCoverPicker": {
     "title": "Capa animada manual",
-    "subtitle": "Escolha um ficheiro MP4 local. Substitui a capa animada fornecida pelo plugin e nunca é substituída por uma atualização.",
+    "subtitle": "Escolhe um ficheiro MP4 local. Substitui a capa animada fornecida pelo plugin e nunca é substituída por uma atualização.",
     "pickFile": "Escolher um ficheiro MP4",
     "removeAction": "Remover capa animada"
   },
@@ -1009,7 +1009,7 @@
   },
   "genreImagePicker": {
     "title": "Alterar imagem do género",
-    "subtitle": "Escolha um ficheiro de imagem local (JPG, PNG ou WEBP) para usar como imagem deste género.",
+    "subtitle": "Escolhe um ficheiro de imagem local (JPG, PNG ou WEBP) para usar como imagem deste género.",
     "editAria": "Alterar imagem do género",
     "pickFile": "Escolher um ficheiro de imagem",
     "removeAction": "Remover imagem"
@@ -2037,14 +2037,14 @@
     },
     "similar": {
       "label": "Artistas semelhantes personalizados",
-      "placeholder": "Procurar um artista da sua biblioteca…",
+      "placeholder": "Procurar um artista da tua biblioteca…",
       "remove": "Remover {{name}}",
       "help": "Escolhe artistas da tua biblioteca. Vazio = lista online.",
       "limitReached": "Limite atingido ({{max}} artistas)."
     },
     "split": {
       "label": "Separar este artista",
-      "help": "Este nome parece vários artistas unidos por vírgulas. Separe-o para ligar as faixas aos artistas individuais (as fichas existentes são reutilizadas).",
+      "help": "Este nome parece vários artistas unidos por vírgulas. Separa-o para ligar as faixas aos artistas individuais (os registos existentes são reutilizados).",
       "action": "Separar os artistas"
     }
   },

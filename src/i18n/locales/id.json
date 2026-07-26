@@ -1875,7 +1875,7 @@
     "artistBio": {
       "title": "Sumber biografi",
       "subtitle": "Layanan mana yang menyediakan biografi artis.",
-      "lastfmHint": "Biografi berbahasa Inggris. Memerlukan kunci API Last.fm Anda.",
+      "lastfmHint": "Biografi berbahasa Inggris. Memerlukan kunci API Last.fm kamu.",
       "theaudiodbHint": "Biografi komunitas dalam beberapa bahasa. Tanpa kunci.",
       "languageLabel": "Bahasa biografi"
     },
@@ -1908,14 +1908,14 @@
     },
     "statsKpis": {
       "title": "Indikator statistik",
-      "subtitle": "Pilih indikator yang tampil di halaman Statistik. Hapus centang yang ingin Anda sembunyikan — misalnya tingkat dengar penuh.",
+      "subtitle": "Pilih indikator yang tampil di halaman Statistik. Hapus centang yang ingin kamu sembunyikan — misalnya tingkat dengar penuh.",
       "legend": "Visibilitas indikator statistik"
     },
     "immersiveView": {
       "title": "Tampilan imersif",
       "mergedLyrics": {
         "title": "Lirik di samping",
-        "subtitle": "Menampilkan lirik di samping sampul agar Anda bisa ganti lagu sambil membaca. Kembali ke satu kolom pada jendela sempit."
+        "subtitle": "Menampilkan lirik di samping sampul agar kamu bisa ganti lagu sambil membaca. Kembali ke satu kolom pada jendela sempit."
       },
       "nativeFullscreen": {
         "title": "Layar penuh native",
@@ -2037,9 +2037,9 @@
     },
     "similar": {
       "label": "Artis serupa kustom",
-      "placeholder": "Cari artis dari pustaka Anda…",
+      "placeholder": "Cari artis dari pustaka kamu…",
       "remove": "Hapus {{name}}",
-      "help": "Pilih artis dari pustaka Anda. Kosong = daftar online.",
+      "help": "Pilih artis dari pustaka kamu. Kosong = daftar online.",
       "limitReached": "Batas tercapai ({{max}} artis)."
     },
     "split": {

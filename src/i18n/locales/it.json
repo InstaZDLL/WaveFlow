@@ -296,7 +296,7 @@
       },
       "sleep": {
         "title": "Sonno",
-        "subtitle": "Molto lento e tranquillo per addormentarsi"
+        "subtitle": "Molto lento e silenzioso per addormentarsi"
       }
     },
     "recentlyPlayed": {
@@ -1421,7 +1421,7 @@
       },
       "spotify": {
         "title": "Spotify",
-        "subtitle": "Collega Spotify Premium con il tuo Client ID di Spotify Developer.",
+        "subtitle": "Collega Spotify Premium con il tuo Client ID Spotify Developer.",
         "clientIdPlaceholder": "Client ID di Spotify",
         "redirectHint": "Aggiungi questa Redirect URI in Spotify Developer Dashboard: http://127.0.0.1:49387/spotify/callback",
         "connectedAs": "Connesso come",

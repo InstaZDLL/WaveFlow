@@ -71,7 +71,7 @@
     },
     "lastfm": {
       "title": "Connectez-vous à Last.fm",
-      "description": "Le scrobbling envoie vos écoutes à votre profil Last.fm. Vous recevez en retour des bios d'artistes et des suggestions similaires directement dans l'app.",
+      "description": "Le scrobbling envoie vos écoutes à votre profil Last.fm. Vous recevez en retour des bios d'artistes et des suggestions d'artistes similaires directement dans l'app.",
       "recommendedBadge": "Recommandé",
       "keyHint": "Créez une clé API sur Last.fm",
       "keyLabel": "Clé API",

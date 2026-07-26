@@ -104,7 +104,7 @@
       "bulletExplore": "Erkunde deine Bibliothek über die Tabs „Titel“, „Alben“ und „Künstler“",
       "bulletQueue": "Erstelle deine erste Warteschlange, indem du auf einen Titel klickst",
       "bulletSettings": "Justiere alles über die Seitenleiste (Aussehen, Integrationen…)",
-      "tipImmersiveTitle": "Tipp: immersive Ansicht",
+      "tipImmersiveTitle": "Tipp: Immersive Ansicht",
       "tipImmersiveBody": "Klicke auf das Cover im Player, um die Vollbildansicht mit Cover und Songtext nebeneinander zu öffnen."
     },
     "actions": {
@@ -443,8 +443,8 @@
       "deepRescan": "Tiefenscan (liest jede Datei neu ein, langsamer)",
       "remove": "Ordner aus Bibliothek entfernen",
       "removeConfirm": "Zur Bestätigung erneut klicken",
-      "removeConfirmWithPlays_one": "Zum Bestätigen erneut klicken. {{count}} Wiedergabe bleibt erhalten und wird beim nächsten Scan neu zugeordnet.",
-      "removeConfirmWithPlays_other": "Zum Bestätigen erneut klicken. {{count}} Wiedergaben bleiben erhalten und werden beim nächsten Scan neu zugeordnet."
+      "removeConfirmWithPlays_one": "Zur Bestätigung erneut klicken. {{count}} Wiedergabe bleibt erhalten und wird beim nächsten Scan neu zugeordnet.",
+      "removeConfirmWithPlays_other": "Zur Bestätigung erneut klicken. {{count}} Wiedergaben bleiben erhalten und werden beim nächsten Scan neu zugeordnet."
     },
     "skeletonAriaLabel": "{{name}} werden geladen…"
   },
@@ -1924,7 +1924,7 @@
     },
     "scrollTitles": {
       "title": "Lange Titel scrollen",
-      "subtitle": "Lange Titel laufen durch, statt abgeschnitten zu werden (Player-Leiste + immersive Ansicht)."
+      "subtitle": "Lange Titel laufen durch, statt abgeschnitten zu werden (Player-Leiste + Immersive Ansicht)."
     },
     "pluginStore": {
       "title": "Plugin-Store",
