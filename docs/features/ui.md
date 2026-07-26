@@ -33,7 +33,7 @@ Per-view data fetches initialise their `isLoading` state to `true` (not `false`)
 ## Panels
 
 - [`NowPlayingPanel`](../../src/components/layout/NowPlayingPanel.tsx) — large artwork, clickable artists, "About the artist" section populated from the Deezer + Last.fm caches, and a "Next in queue" teaser with an "Open queue" link that hands the right slot off to `QueuePanel`. Lightbox on cover click.
-- [`QueuePanel`](../../src/components/layout/QueuePanel.tsx) — current queue with drag reorder, jump-to-track, clear queue.
+- [`QueuePanel`](../../src/components/layout/QueuePanel.tsx) — current queue with drag reorder, jump-to-track, clear queue. Right-clicking a queue row opens the same track context menu the list views have (Show in Explorer, Properties, play-next / add-to-queue, like, rating…) via [`usePlayerTrackContextMenu`](../../src/hooks/usePlayerTrackContextMenu.tsx) — the player-surface wrapper that supplies the liked-ids lookup + create-playlist modal the base [`useTrackContextMenu`](../../src/hooks/useTrackContextMenu.tsx) needs. Radio/stream rows (negative sentinel id, no local file) are skipped. Payload→`Track` widening is the shared [`queuePayloadToTrack`](../../src/lib/queueTrack.ts). Same menu is reachable by right-clicking the title in [`ImmersiveNowPlaying`](../../src/components/player/ImmersiveNowPlaying.tsx) (library tracks only). Reporter request.
 - [`LyricsPanel`](../../src/components/layout/LyricsPanel.tsx) — synced or static lyrics with auto-scroll.
 - [`NowPlayingChevronTab`](../../src/components/layout/NowPlayingChevronTab.tsx) — right-edge floating tab visible only when no panel is open.
 

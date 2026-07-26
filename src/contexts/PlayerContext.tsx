@@ -14,6 +14,7 @@ import {
 import { useProfile } from "../hooks/useProfile";
 import { useSpotify } from "../hooks/useSpotify";
 import type { Track } from "../lib/tauri/track";
+import { queuePayloadToTrack } from "../lib/queueTrack";
 import type { SpotifyTrackLite } from "../lib/tauri/spotify";
 import {
   playerCycleRepeat,
@@ -43,42 +44,6 @@ import {
 import type { PluginFavorite } from "../lib/tauri/plugins";
 import { enrichArtistDeezer } from "../lib/tauri/detail";
 import { isRadioTrack } from "../lib/playerSources";
-
-/**
- * Minimal conversion from the thin `QueueTrackPayload` returned by
- * `player_get_state` to the full `Track` shape the rest of the UI
- * consumes. Fields we don't carry (bitrate, sample rate, file size,
- * year, …) are nulled out — they're not needed for the PlayerBar.
- */
-function queuePayloadToTrack(payload: QueueTrackPayload): Track {
-  return {
-    id: payload.id,
-    library_id: 0,
-    title: payload.title,
-    album_id: null,
-    album_title: payload.album_title,
-    artist_id: payload.artist_id,
-    artist_name: payload.artist_name,
-    artist_ids: payload.artist_ids,
-    duration_ms: payload.duration_ms,
-    track_number: null,
-    disc_number: null,
-    year: null,
-    bitrate: payload.bitrate,
-    sample_rate: payload.sample_rate,
-    channels: payload.channels,
-    bit_depth: payload.bit_depth,
-    codec: payload.codec,
-    musical_key: null,
-    file_path: payload.file_path,
-    file_size: payload.file_size,
-    added_at: 0,
-    artwork_path: payload.artwork_path,
-    artwork_path_1x: payload.artwork_path_1x,
-    artwork_path_2x: payload.artwork_path_2x,
-    rating: null,
-  };
-}
 
 /**
  * Build the stable station identity (favorite shape, id `url:<stream>`)

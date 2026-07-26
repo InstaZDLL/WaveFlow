@@ -39,6 +39,12 @@ interface UseTrackContextMenuArgs {
    * a "Edit tags for N tracks…" item appears that opens the batch
    * editor. Omit on views without multi-select. */
   selectedTrackIds?: number[];
+  /** Whether the rating submenu is shown. Defaults to `true`. Set
+   * `false` on surfaces whose `Track` doesn't carry a real `rating`
+   * (e.g. the queue-payload-derived tracks in the player surfaces),
+   * where the submenu would misreport an already-rated track as
+   * unrated. */
+  enableRating?: boolean;
 }
 
 /**
@@ -60,6 +66,7 @@ export function useTrackContextMenu({
   currentPlaylistId,
   onRemoveFromPlaylist,
   selectedTrackIds,
+  enableRating = true,
 }: UseTrackContextMenuArgs) {
   const { playlists, addTracksToPlaylist } = usePlaylist();
   const [state, setState] = useState<{
@@ -176,7 +183,7 @@ export function useTrackContextMenu({
             onAddToPlaylist={handleAddToPlaylist}
             onCreatePlaylist={onCreatePlaylist}
             onToggleLike={handleToggleLike}
-            onSetRating={handleSetRating}
+            onSetRating={enableRating ? handleSetRating : undefined}
             onRemoveFromPlaylist={onRemoveFromPlaylist}
             onNavigateToAlbum={onNavigateToAlbum}
             onNavigateToArtist={onNavigateToArtist}
@@ -206,6 +213,7 @@ export function useTrackContextMenu({
     onCreatePlaylist,
     handleToggleLike,
     handleSetRating,
+    enableRating,
     onRemoveFromPlaylist,
     onNavigateToAlbum,
     onNavigateToArtist,
