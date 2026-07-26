@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getProfileSetting, setProfileSetting } from "../lib/tauri/profile";
 import { useProfile } from "./useProfile";
 
@@ -35,9 +35,21 @@ export interface ArtistBioCollapsed {
 export function useArtistBioCollapsed(): ArtistBioCollapsed {
   const { activeProfile } = useProfile();
   const [collapsed, setCollapsedState] = useState<boolean>(DEFAULT_COLLAPSED);
+  // Monotonic write id: a slow earlier write that fails/settles after a
+  // newer one must not roll back or broadcast over the newer intent.
+  const writeSeqRef = useRef(0);
+  // Serializes the writes themselves so they land in click order — a
+  // later click can't be persisted before an earlier one and leave the
+  // DB holding stale intent.
+  const writeChainRef = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     let cancelled = false;
+    // Reset to the default the instant the profile changes so a switch
+    // never briefly shows the previous profile's choice while the new
+    // value loads. The `getProfileSetting` below then replaces it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCollapsedState(DEFAULT_COLLAPSED);
     const refresh = async () => {
       try {
         const raw = await getProfileSetting(KEY);
@@ -56,18 +68,27 @@ export function useArtistBioCollapsed(): ArtistBioCollapsed {
   }, [activeProfile?.id]);
 
   const setCollapsed = useCallback(
-    async (next: boolean) => {
+    (next: boolean) => {
       // Snapshot the current value so a persistence failure rolls back
       // instead of leaving the UI ahead of what the backend recorded.
       const previous = collapsed;
+      const seq = ++writeSeqRef.current;
       setCollapsedState(next);
-      try {
-        await setProfileSetting(KEY, next ? "true" : "false", "bool");
-        window.dispatchEvent(new CustomEvent(ARTIST_BIO_COLLAPSED_EVENT));
-      } catch (err) {
-        console.error("[useArtistBioCollapsed] write failed", err);
-        setCollapsedState(previous);
-      }
+      const run = async () => {
+        try {
+          await setProfileSetting(KEY, next ? "true" : "false", "bool");
+          // Only the latest request broadcasts / rolls back, so a stale
+          // completion or failure can't clobber a newer click's state.
+          if (seq === writeSeqRef.current) {
+            window.dispatchEvent(new CustomEvent(ARTIST_BIO_COLLAPSED_EVENT));
+          }
+        } catch (err) {
+          console.error("[useArtistBioCollapsed] write failed", err);
+          if (seq === writeSeqRef.current) setCollapsedState(previous);
+        }
+      };
+      writeChainRef.current = writeChainRef.current.then(run, run);
+      return writeChainRef.current;
     },
     [collapsed],
   );
