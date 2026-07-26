@@ -2039,6 +2039,11 @@
       "remove": "Hapus {{name}}",
       "help": "Pilih artis dari pustaka Anda. Kosong = daftar online.",
       "limitReached": "Batas tercapai ({{max}} artis)."
+    },
+    "split": {
+      "label": "Pisahkan artis ini",
+      "help": "Nama ini tampak seperti beberapa artis yang digabung dengan koma. Pisahkan untuk menautkan lagu ke masing-masing artis (entri yang ada digunakan kembali).",
+      "action": "Pisahkan menjadi artis terpisah"
     }
   },
   "immersive": {

@@ -2039,6 +2039,11 @@
       "remove": "Remover {{name}}",
       "help": "Escolha artistas da sua biblioteca. Vazio = lista online.",
       "limitReached": "Limite atingido ({{max}} artistas)."
+    },
+    "split": {
+      "label": "Separar este artista",
+      "help": "Este nome parece vários artistas unidos por vírgulas. Separe-o para vincular as faixas aos artistas individuais (as fichas existentes são reutilizadas).",
+      "action": "Separar os artistas"
     }
   },
   "immersive": {

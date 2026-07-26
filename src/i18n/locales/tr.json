@@ -2039,6 +2039,11 @@
       "remove": "{{name}} sanatçısını kaldır",
       "help": "Kütüphanenden sanatçı seç. Boş = çevrimiçi liste.",
       "limitReached": "Sınıra ulaşıldı ({{max}} sanatçı)."
+    },
+    "split": {
+      "label": "Bu sanatçıyı ayır",
+      "help": "Bu ad, virgülle birleştirilmiş birkaç sanatçı gibi görünüyor. Parçaları tek tek sanatçılara bağlamak için ayırın (mevcut kayıtlar yeniden kullanılır).",
+      "action": "Ayrı sanatçılara ayır"
     }
   },
   "immersive": {
