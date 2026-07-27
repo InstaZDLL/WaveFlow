@@ -23,11 +23,163 @@
 //!   because Phase 1 ships without `wasmtime` and avoiding a
 //!   pattern-matching dep keeps the bundle slim.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
 use waveflow_plugin_sdk::{permissions, worlds, MANIFEST_SCHEMA_VERSION};
+
+/// A user-facing manifest string that MAY carry per-language variants.
+///
+/// Two shapes are accepted, and both round-trip through serde
+/// untagged — so this type is a drop-in replacement for a plain
+/// `String` field without breaking a single existing manifest:
+///
+/// ```toml
+/// # historical form — still valid, treated as one anonymous language
+/// description = "Animated album covers from Apple Music."
+///
+/// # inline localized form
+/// [description]
+/// en = "Animated album covers from Apple Music."
+/// fr = "Pochettes animées depuis Apple Music."
+/// ```
+///
+/// The same two shapes work in the store's `registry.json`
+/// (`"description": "…"` or `"description": { "en": "…", … }`).
+///
+/// **Where resolution happens.** The host hands the whole value to
+/// the frontend and the UI resolves it against `i18next.language`,
+/// so switching the app language re-renders instantly without a
+/// backend round-trip. [`Self::resolve`] is the reference
+/// implementation of that fallback chain; its mirror lives in
+/// `src/lib/localizedText.ts` and the two MUST agree.
+///
+/// # The inline form is NOT safe to publish
+///
+/// A WaveFlow older than the release that introduced this type
+/// expects a string and hard-errors on the table: it drops the whole
+/// plugin (unreadable manifest), and for `registry.json` — a single
+/// document every installed version fetches — it fails to decode the
+/// catalogue from all three sources, leaving the store **entirely
+/// broken** on that build. `min_app_version` can't rescue that: it is
+/// read after the parse that already failed.
+///
+/// So anything published to users carries the translations in the
+/// **sibling `*_i18n` field** instead ([`merge_localized_siblings`]):
+///
+/// ```toml
+/// description = "Animated album covers from Apple Music."
+///
+/// [plugin.description_i18n]
+/// fr = "Pochettes animées depuis Apple Music."
+/// ```
+///
+/// An older host ignores the unknown sibling and keeps rendering the
+/// plain string; a current one merges the two before anything else
+/// sees the value. No version bump, no broken store. The inline form
+/// stays supported for manifests that never ship to older hosts.
+///
+/// [`merge_localized_siblings`]: Manifest::merge_localized_siblings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum LocalizedString {
+    /// One language, no code attached. Historically English.
+    Plain(String),
+    /// `lang code -> text`. `BTreeMap` so serialization order (and
+    /// therefore the last-resort fallback below) is deterministic.
+    Localized(BTreeMap<String, String>),
+}
+
+impl LocalizedString {
+    /// Best text for `lang`, following the fallback chain:
+    ///
+    /// 1. exact match (`pt-BR`),
+    /// 2. the base language (`pt-BR` → `pt`),
+    /// 3. `en` — the format's documented default,
+    /// 4. any entry, lowest key first, so a manifest that ships only
+    ///    e.g. `de` still renders something instead of a blank row.
+    ///
+    /// **Blank entries are skipped at every step** rather than
+    /// counting as a hit: `{ fr: "", en: "…" }` resolves to the
+    /// English. A translator leaving a slot empty is a common
+    /// authoring accident, and letting it win would blank the row —
+    /// or leave an option control with no accessible name, since the
+    /// UI only falls back to the option key on a `None`.
+    ///
+    /// `None` when the map is empty or holds nothing renderable.
+    /// [`Manifest::validate`] refuses an empty map for manifests, but
+    /// a registry entry comes off the network, so callers must handle
+    /// it rather than unwrap.
+    pub fn resolve(&self, lang: &str) -> Option<&str> {
+        /// A translation slot only counts if it holds something to render.
+        fn usable(text: Option<&String>) -> Option<&str> {
+            text.map(String::as_str).filter(|s| !s.trim().is_empty())
+        }
+        match self {
+            Self::Plain(s) => usable(Some(s)),
+            Self::Localized(map) => {
+                let base = lang.split('-').next().unwrap_or(lang);
+                usable(map.get(lang))
+                    .or_else(|| usable(map.get(base)))
+                    .or_else(|| usable(map.get("en")))
+                    .or_else(|| map.values().find_map(|v| usable(Some(v))))
+            }
+        }
+    }
+
+    /// `true` when the localized form carries no entry at all — a
+    /// row the UI could only ever render blank.
+    fn is_empty_map(&self) -> bool {
+        matches!(self, Self::Localized(map) if map.is_empty())
+    }
+
+    /// Fold a sibling `*_i18n` map into `base`, returning the value
+    /// every downstream consumer sees.
+    ///
+    /// The sibling wins per key, so a translation can override an
+    /// inline entry. A plain base is promoted to the `en` slot —
+    /// which is what the format documents a bare string to mean —
+    /// unless the sibling already spells `en` out.
+    ///
+    /// `None` sibling is the overwhelmingly common case (every
+    /// manifest written before this existed) and returns `self`
+    /// untouched — not even a reallocation.
+    pub fn merged_with(self, sibling: Option<BTreeMap<String, String>>) -> Self {
+        let Some(sibling) = sibling else {
+            return self;
+        };
+        let (mut merged, plain) = match self {
+            Self::Localized(map) => (map, None),
+            Self::Plain(s) => (BTreeMap::new(), Some(s)),
+        };
+        merged.extend(sibling);
+        if let Some(plain) = plain {
+            merged.entry("en".to_string()).or_insert(plain);
+        }
+        Self::Localized(merged)
+    }
+
+    /// [`Self::merged_with`] for an optional field: a sibling with no
+    /// base of its own still produces a value.
+    pub fn merge_optional(
+        base: Option<Self>,
+        sibling: Option<BTreeMap<String, String>>,
+    ) -> Option<Self> {
+        match (base, sibling) {
+            (base, None) => base,
+            (Some(base), sibling) => Some(base.merged_with(sibling)),
+            (None, Some(sibling)) => Some(Self::Localized(sibling)),
+        }
+    }
+}
+
+impl From<String> for LocalizedString {
+    fn from(s: String) -> Self {
+        Self::Plain(s)
+    }
+}
 
 /// Parsed manifest. Public so commands / Tauri handlers can return
 /// it verbatim to the frontend without redefining the shape.
@@ -58,7 +210,13 @@ pub struct PluginMetadata {
     pub author: String,
     /// One of the labels in [`worlds`].
     pub world: String,
-    pub description: Option<String>,
+    /// Plain string or `{ lang -> text }` — see [`LocalizedString`].
+    pub description: Option<LocalizedString>,
+    /// Publish-safe translations for [`Self::description`], folded
+    /// into it at parse time. See [`LocalizedString`] for why this
+    /// sibling exists rather than only the inline table form.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description_i18n: Option<BTreeMap<String, String>>,
     pub homepage: Option<String>,
     pub license: Option<String>,
 }
@@ -121,8 +279,13 @@ pub struct OptionDecl {
     /// Control type — one of [`option_types::ALL`].
     #[serde(rename = "type")]
     pub option_type: String,
-    /// Human-readable label for the settings control.
-    pub label: String,
+    /// Human-readable label for the settings control. Plain string
+    /// or `{ lang -> text }` — see [`LocalizedString`].
+    pub label: LocalizedString,
+    /// Publish-safe translations for [`Self::label`], folded into it
+    /// at parse time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_i18n: Option<BTreeMap<String, String>>,
     /// Default value in string form (`"true"`/`"false"` for bool, one of
     /// `choices` for enum). `None` = no default (control starts empty/off).
     #[serde(default)]
@@ -130,9 +293,14 @@ pub struct OptionDecl {
     /// Allowed values — required + only meaningful for `type = "enum"`.
     #[serde(default)]
     pub choices: Vec<String>,
-    /// Optional hint rendered under the control.
+    /// Optional hint rendered under the control. Plain string or
+    /// `{ lang -> text }` — see [`LocalizedString`].
     #[serde(default)]
-    pub description: Option<String>,
+    pub description: Option<LocalizedString>,
+    /// Publish-safe translations for [`Self::description`], folded
+    /// into it at parse time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description_i18n: Option<BTreeMap<String, String>>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -165,6 +333,8 @@ pub enum ManifestError {
     UnknownOptionType(String, String),
     #[error("manifest enum option {0:?} declares no choices")]
     EnumOptionWithoutChoices(String),
+    #[error("manifest localized field {0} declares no language at all")]
+    EmptyLocalizedMap(String),
 }
 
 impl Manifest {
@@ -181,6 +351,10 @@ impl Manifest {
     /// touching the filesystem.
     pub fn parse(raw: &str) -> Result<Self, ManifestError> {
         let mut parsed: Self = toml::from_str(raw)?;
+        // Fold the publish-safe `*_i18n` siblings in BEFORE validating,
+        // so validation judges the value the app will actually render
+        // and every consumer downstream sees one merged field.
+        parsed.merge_localized_siblings();
         parsed.validate()?;
         // Lower-case every asset hash post-validation so the
         // downstream `AssetResolver::read` byte-equality compare
@@ -193,6 +367,24 @@ impl Manifest {
             }
         }
         Ok(parsed)
+    }
+
+    /// Fold every `*_i18n` sibling into the field it translates. See
+    /// [`LocalizedString`] for why publishable manifests carry their
+    /// translations this way instead of as an inline table.
+    fn merge_localized_siblings(&mut self) {
+        self.plugin.description = LocalizedString::merge_optional(
+            self.plugin.description.take(),
+            self.plugin.description_i18n.take(),
+        );
+        for opt in &mut self.options {
+            if opt.label_i18n.is_some() {
+                let base = std::mem::replace(&mut opt.label, LocalizedString::Plain(String::new()));
+                opt.label = base.merged_with(opt.label_i18n.take());
+            }
+            opt.description =
+                LocalizedString::merge_optional(opt.description.take(), opt.description_i18n.take());
+        }
     }
 
     /// Run all the validation rules described in the module docs.
@@ -234,6 +426,17 @@ impl Manifest {
             return Err(ManifestError::UnknownPermission(
                 permissions::STORAGE_STATE.into(),
             ));
+        }
+
+        // A localized field that declares zero languages can only ever
+        // render blank, and no fallback can rescue it. Refuse at parse
+        // time so the author sees the typo instead of an empty row in
+        // Settings. The plain-string form is untouched by this check,
+        // so every pre-existing manifest still validates.
+        if let Some(desc) = &self.plugin.description {
+            if desc.is_empty_map() {
+                return Err(ManifestError::EmptyLocalizedMap("plugin.description".into()));
+            }
         }
 
         for asset in &self.assets {
@@ -278,6 +481,20 @@ impl Manifest {
             }
             if opt.option_type == option_types::ENUM && opt.choices.is_empty() {
                 return Err(ManifestError::EnumOptionWithoutChoices(opt.key.clone()));
+            }
+            if opt.label.is_empty_map() {
+                return Err(ManifestError::EmptyLocalizedMap(format!(
+                    "options.{}.label",
+                    opt.key
+                )));
+            }
+            if let Some(desc) = &opt.description {
+                if desc.is_empty_map() {
+                    return Err(ManifestError::EmptyLocalizedMap(format!(
+                        "options.{}.description",
+                        opt.key
+                    )));
+                }
             }
         }
 
@@ -369,6 +586,208 @@ storage_read = true
             Manifest::parse(&raw).unwrap_err(),
             ManifestError::UnknownOptionType(_, _)
         ));
+    }
+
+    // ----- localized strings ------------------------------------------
+
+    /// The historical `description = "…"` / `label = "…"` shape must keep
+    /// parsing byte-identically — every published plugin uses it.
+    #[test]
+    fn plain_strings_stay_valid() {
+        // The fixture ends inside [permissions], so plugin.description
+        // is injected into the [plugin] table rather than appended.
+        let raw = format!(
+            "{}\n[[options]]\nkey = \"hevc\"\ntype = \"bool\"\nlabel = \"Prefer HEVC\"\ndescription = \"4K covers\"\n",
+            fixture(worlds::SOURCE_V1, &[]).replace(
+                "world = \"waveflow:source/v1\"\n",
+                "world = \"waveflow:source/v1\"\ndescription = \"Play internet radio\"\n",
+            )
+        );
+        let m = Manifest::parse(&raw).expect("plain strings still parse");
+        assert_eq!(
+            m.plugin.description.as_ref().unwrap().resolve("fr"),
+            Some("Play internet radio"),
+            "a plain string resolves for every language"
+        );
+        assert_eq!(m.options[0].label.resolve("ja"), Some("Prefer HEVC"));
+        assert_eq!(
+            m.options[0].description.as_ref().unwrap().resolve("de"),
+            Some("4K covers")
+        );
+    }
+
+    #[test]
+    fn parses_localized_description_and_option_label() {
+        let raw = r#"
+schema_version = 1
+
+[plugin]
+id = "apple-artwork"
+name = "Apple Motion Artwork"
+version = "0.3.0"
+author = "InstaZDLL"
+world = "waveflow:metadata/v1"
+
+[plugin.description]
+en = "Animated album covers."
+fr = "Pochettes animées."
+
+[[options]]
+key = "prefer_hevc"
+type = "bool"
+default = "false"
+
+[options.label]
+en = "Prefer 4K HEVC covers"
+fr = "Préférer les pochettes 4K HEVC"
+
+[options.description]
+en = "Bigger files."
+"#;
+        let m = Manifest::parse(raw).expect("localized manifest");
+        let desc = m.plugin.description.as_ref().unwrap();
+        assert_eq!(desc.resolve("fr"), Some("Pochettes animées."));
+        assert_eq!(desc.resolve("en"), Some("Animated album covers."));
+        assert_eq!(m.options[0].label.resolve("fr"), Some("Préférer les pochettes 4K HEVC"));
+        // Missing locale on an option description falls back to `en`.
+        assert_eq!(
+            m.options[0].description.as_ref().unwrap().resolve("ja"),
+            Some("Bigger files.")
+        );
+    }
+
+    #[test]
+    fn resolve_follows_the_documented_fallback_chain() {
+        let mut map = BTreeMap::new();
+        map.insert("en".to_string(), "english".to_string());
+        map.insert("pt".to_string(), "português".to_string());
+        map.insert("pt-BR".to_string(), "português do Brasil".to_string());
+        let s = LocalizedString::Localized(map);
+
+        assert_eq!(s.resolve("pt-BR"), Some("português do Brasil"), "exact wins");
+        assert_eq!(s.resolve("pt"), Some("português"), "exact base code wins");
+        assert_eq!(
+            s.resolve("fr-CA"),
+            Some("english"),
+            "unknown regional code falls through base to en"
+        );
+        assert_eq!(s.resolve("ja"), Some("english"), "unknown code falls back to en");
+
+        // No `en` at all: any entry beats rendering nothing. BTreeMap
+        // ordering makes the pick deterministic.
+        let mut only_de = BTreeMap::new();
+        only_de.insert("de".to_string(), "deutsch".to_string());
+        assert_eq!(
+            LocalizedString::Localized(only_de).resolve("fr"),
+            Some("deutsch")
+        );
+    }
+
+    /// An empty slot is an authoring accident, not a translation:
+    /// letting it win blanks the row (and strips an option control of
+    /// its accessible name, since the UI only falls back on `None`).
+    #[test]
+    fn resolve_skips_blank_entries() {
+        let s = LocalizedString::Localized(BTreeMap::from([
+            ("fr".to_string(), String::new()),
+            ("de".to_string(), "   ".to_string()),
+            ("en".to_string(), "english".to_string()),
+        ]));
+        assert_eq!(s.resolve("fr"), Some("english"), "empty falls through to en");
+        assert_eq!(s.resolve("de"), Some("english"), "whitespace-only too");
+
+        // Nothing renderable anywhere: report None so the caller can
+        // substitute its own label rather than render an empty string.
+        let blank = LocalizedString::Localized(BTreeMap::from([
+            ("en".to_string(), String::new()),
+            ("fr".to_string(), "  ".to_string()),
+        ]));
+        assert_eq!(blank.resolve("fr"), None);
+        assert_eq!(LocalizedString::Plain(String::new()).resolve("en"), None);
+    }
+
+    /// The publish-safe shape: a plain string an older host still
+    /// renders, plus a sibling map it doesn't know about. Both must
+    /// land in one merged value here, with the plain string taking
+    /// the `en` slot.
+    #[test]
+    fn folds_i18n_siblings_into_their_field() {
+        let raw = r#"
+schema_version = 1
+
+[plugin]
+id = "apple-artwork"
+name = "Apple Motion Artwork"
+version = "0.4.0"
+author = "InstaZDLL"
+world = "waveflow:metadata/v1"
+description = "Animated album covers."
+
+[plugin.description_i18n]
+fr = "Pochettes animées."
+
+[[options]]
+key = "prefer_hevc"
+type = "bool"
+label = "Prefer 4K HEVC covers"
+description = "Bigger files."
+
+[options.label_i18n]
+fr = "Préférer les pochettes 4K HEVC"
+
+[options.description_i18n]
+fr = "Fichiers plus lourds."
+"#;
+        let m = Manifest::parse(raw).expect("sibling form parses");
+        let desc = m.plugin.description.as_ref().unwrap();
+        assert_eq!(desc.resolve("fr"), Some("Pochettes animées."));
+        assert_eq!(
+            desc.resolve("en"),
+            Some("Animated album covers."),
+            "the plain string becomes the en entry"
+        );
+        assert_eq!(desc.resolve("ja"), Some("Animated album covers."));
+        assert_eq!(
+            m.options[0].label.resolve("fr"),
+            Some("Préférer les pochettes 4K HEVC")
+        );
+        assert_eq!(m.options[0].label.resolve("de"), Some("Prefer 4K HEVC covers"));
+        assert_eq!(
+            m.options[0].description.as_ref().unwrap().resolve("fr"),
+            Some("Fichiers plus lourds.")
+        );
+        // The siblings are consumed by the merge, not echoed onward.
+        assert!(m.plugin.description_i18n.is_none());
+        assert!(m.options[0].label_i18n.is_none());
+    }
+
+    /// A sibling entry overrides the same language spelled inline —
+    /// the sibling is the newer, translator-maintained source.
+    #[test]
+    fn sibling_wins_over_an_inline_entry_for_the_same_language() {
+        let s = LocalizedString::Localized(BTreeMap::from([
+            ("en".to_string(), "inline english".to_string()),
+            ("fr".to_string(), "français inline".to_string()),
+        ]));
+        let merged = s.merged_with(Some(BTreeMap::from([(
+            "fr".to_string(),
+            "français traduit".to_string(),
+        )])));
+        assert_eq!(merged.resolve("fr"), Some("français traduit"));
+        assert_eq!(merged.resolve("en"), Some("inline english"));
+    }
+
+    #[test]
+    fn rejects_localized_field_without_any_language() {
+        let raw = format!(
+            "{}\n[[options]]\nkey = \"q\"\ntype = \"bool\"\n\n[options.label]\n",
+            fixture(worlds::SOURCE_V1, &[])
+        );
+        let err = Manifest::parse(&raw).unwrap_err();
+        assert!(
+            matches!(&err, ManifestError::EmptyLocalizedMap(f) if f == "options.q.label"),
+            "got {err:?}"
+        );
     }
 
     #[test]

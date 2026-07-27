@@ -17,6 +17,7 @@ import {
   type MarketplaceEntry,
 } from "../../../lib/tauri/plugins";
 import { PLUGIN_AVAILABILITY_EVENT } from "../../../hooks/usePluginAvailability";
+import { useLocalizedText } from "../../../hooks/useLocalizedText";
 
 /**
  * Settings → Plugins → Store (Phase 2). Browses the curated registry
@@ -198,6 +199,11 @@ function StoreRow({
   onInstall: () => void;
 }) {
   const { t } = useTranslation();
+  // Registry descriptions are authored in the catalogue, not in our
+  // i18next files — they carry their own language map. A registry comes
+  // off the network, so an unusable value degrades to no paragraph
+  // rather than an empty one holding its margin.
+  const description = useLocalizedText()(entry.description);
   return (
     <li className="px-4 py-3">
       <div className="flex items-start justify-between gap-3">
@@ -220,9 +226,11 @@ function StoreRow({
           <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
             {t("settings.plugins.byAuthor", { author: entry.author })}
           </div>
-          <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 leading-relaxed">
-            {entry.description}
-          </p>
+          {description && (
+            <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 leading-relaxed">
+              {description}
+            </p>
+          )}
           <PermissionsPreview entry={entry} />
         </div>
         <div className="shrink-0 pt-0.5">

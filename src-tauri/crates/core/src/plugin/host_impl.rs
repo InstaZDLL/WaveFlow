@@ -523,6 +523,7 @@ mod tests {
                 author: "x".into(),
                 world: waveflow_plugin_sdk::worlds::SOURCE_V1.into(),
                 description: None,
+                description_i18n: None,
                 homepage: None,
                 license: None,
             },

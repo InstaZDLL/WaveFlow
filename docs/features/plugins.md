@@ -37,7 +37,62 @@ A plugin can declare `[[options]]` in its `manifest.toml` (`key` / `type` = `boo
 
 Values persist in `<state_dir>/.plugin-config.json` ([`plugin_config`](../../src-tauri/crates/core/src/plugin/plugin_config.rs)) — the single source of truth, with no `app_setting` row and excluded from the scratch quota. They reach the guest through the read-only `waveflow:host/config.get-option` import, pinned at instantiate time. The import is additive: a plugin built before it still instantiates.
 
-> **Note:** plugin **names, descriptions and option labels** come straight from each plugin's `manifest.toml` (and store descriptions from `registry.json`), so they are English-only today — they live in the plugin repos, outside the app's i18next files. Localizing them is tracked in [#440](https://github.com/InstaZDLL/WaveFlow/issues/440).
+## Localized manifest strings
+
+Plugin descriptions and option labels are authored in each plugin's `manifest.toml` (store descriptions in `registry.json`), outside the app's i18next files — so `t()` can never reach them. Instead the **format itself carries the translations**, for `plugin.description`, each option's `label` / `description`, and a registry entry's `description`.
+
+### The publishable form: `*_i18n` siblings
+
+**This is the one to use for anything users install.** Keep the plain string exactly where it is and add a sibling map next to it:
+
+```toml
+description = "Animated album covers from Apple Music."
+
+[plugin.description_i18n]
+fr = "Pochettes animées depuis Apple Music."
+de = "Animierte Albumcover aus Apple Music."
+
+[[options]]
+key = "prefer_hevc"
+type = "bool"
+label = "Prefer 4K HEVC covers"
+
+[options.label_i18n]
+fr = "Préférer les pochettes 4K HEVC"
+```
+
+```jsonc
+// registry.json — same idea
+"description": "Animated album covers from Apple Music.",
+"description_i18n": { "fr": "Pochettes animées depuis Apple Music." }
+```
+
+An older WaveFlow ignores the field it doesn't know and renders the plain English string; a current one folds the two into one value at parse time ([`merge_localized_siblings`](../../src-tauri/crates/core/src/plugin/manifest.rs)), the plain string taking the `en` slot. **No `min_app_version` bump, no broken store, nobody loses access to the plugin.**
+
+### The inline form, and why it is not publishable
+
+`plugin.description` / `label` / `description` also accept a `{ lang -> text }` table directly ([`LocalizedString`](../../src-tauri/crates/core/src/plugin/manifest.rs)):
+
+```toml
+[plugin.description]
+en = "Animated album covers from Apple Music."
+fr = "Pochettes animées depuis Apple Music."
+```
+
+It reads better, and it is fine for a manifest that never reaches an older host. But a WaveFlow predating this feature expects a string and hard-errors on the table:
+
+- in a **manifest**, the plugin is dropped wholesale (unreadable manifest) — recoverable only by raising the registry entry's `min_app_version`, which also cuts those users off from the version they can still run;
+- in **`registry.json`**, which is a single document every installed version fetches, the catalogue fails to decode from all three sources and **the store goes dark on that build**. `min_app_version` cannot save it: it is read after the decode that already failed.
+
+So: inline for local experiments, `*_i18n` for anything published.
+
+### Resolution
+
+Key on the app's canonical locale codes (the 17 in [`src/i18n/index.ts`](../../src/i18n/index.ts)); brand tokens (`WaveFlow`, `Apple Music`, `Last.fm`, `HEVC`…) stay verbatim in every language.
+
+The host hands the merged value through untouched and the UI resolves it against the active i18next language via [`useLocalizedText`](../../src/hooks/useLocalizedText.ts), so a language switch re-renders instantly with no backend round-trip. The fallback chain — exact code → base language (`pt-BR` → `pt`) → `en` → any entry — is implemented twice, in [`LocalizedString::resolve`](../../src-tauri/crates/core/src/plugin/manifest.rs) and [`resolveLocalizedText`](../../src/lib/localizedText.ts); **change them together**.
+
+Blank entries are skipped at every step instead of counting as a hit, so `fr = ""` next to an English string renders the English — an empty slot is an authoring accident, and letting it win would blank a store card or leave an option control with no accessible name (the UI substitutes the option key only on a `None`). A localized field that ends up declaring zero languages is refused outright at parse time.
 
 ## Official plugins
 

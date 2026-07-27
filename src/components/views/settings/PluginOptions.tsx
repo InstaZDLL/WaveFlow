@@ -12,6 +12,7 @@ import {
   type PluginInfo,
   type PluginOption,
 } from "../../../lib/tauri/plugins";
+import { useLocalizedText } from "../../../hooks/useLocalizedText";
 
 /** Human-readable byte size (locale-agnostic, 1 decimal for MB/GB). */
 function formatBytes(bytes: number): string {
@@ -46,8 +47,10 @@ export function PluginOptions({ plugin }: { plugin: PluginInfo }) {
 /**
  * Renders a plugin's manifest-declared `[[options]]` as controls (switch for
  * `bool`, dropdown for `enum`, text field for `text`). Labels come from the
- * manifest (plugin-authored), so they're NOT run through i18n. Each change is
- * optimistic and reverts by re-fetch on error; writes serialise per panel.
+ * manifest (plugin-authored), so they never go through `t()` — a manifest can
+ * instead ship its own `{ lang: text }` map, resolved here against the active
+ * language (see `useLocalizedText`). Each change is optimistic and reverts by
+ * re-fetch on error; writes serialise per panel.
  */
 function ManifestOptions({ pluginId }: { pluginId: string }) {
   const [options, setOptions] = useState<PluginOption[]>([]);
@@ -129,18 +132,21 @@ function OptionControl({
   disabled: boolean;
   onChange: (value: string | null) => void;
 }) {
+  const localized = useLocalizedText();
   // Effective value = user override, else the manifest default.
   const effective = option.value ?? option.default ?? "";
+  // `key` is the last-resort label: a manifest whose label map has no
+  // usable entry must still leave the control with an accessible name.
+  const label = localized(option.label) ?? option.key;
+  const description = localized(option.description);
 
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="min-w-0">
-        <div className="text-sm text-zinc-700 dark:text-zinc-200">
-          {option.label}
-        </div>
-        {option.description && (
+        <div className="text-sm text-zinc-700 dark:text-zinc-200">{label}</div>
+        {description && (
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            {option.description}
+            {description}
           </p>
         )}
       </div>
@@ -149,7 +155,7 @@ function OptionControl({
           type="button"
           role="switch"
           aria-checked={effective === "true"}
-          aria-label={option.label}
+          aria-label={label}
           disabled={disabled}
           onClick={() => onChange(effective === "true" ? "false" : "true")}
           className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:opacity-50 ${
@@ -168,7 +174,7 @@ function OptionControl({
         <select
           value={effective}
           disabled={disabled}
-          aria-label={option.label}
+          aria-label={label}
           onChange={(e) => onChange(e.target.value)}
           className="shrink-0 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 px-2 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50"
         >
@@ -183,7 +189,7 @@ function OptionControl({
           type="text"
           defaultValue={effective}
           disabled={disabled}
-          aria-label={option.label}
+          aria-label={label}
           onBlur={(e) => {
             if (e.target.value !== effective) onChange(e.target.value);
           }}
