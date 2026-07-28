@@ -97,11 +97,25 @@ export function BarChart({
           );
         })}
       </svg>
+      {/*
+        Labels sit in one cell per bar. At 24 bars in a third-width
+        column (the "by hour" chart on a 1080p screen with the sidebar
+        open) a cell is narrower than "00", so clipping it to the cell
+        chopped the hour in half — issue #453.
+
+        When `thinLabels` thins the row out, the neighbouring cells are
+        empty strings, so a rendered label can safely overflow into
+        them: `overflow-visible` + `whitespace-nowrap` lets it stay
+        centred and complete. With every cell filled (labelStep === 1)
+        that would overlap real text, so clipping stays on there.
+      */}
       <div className="flex mt-2 text-[10px] text-zinc-500 dark:text-zinc-400 tabular-nums">
         {data.map((d, i) => (
           <div
             key={d.key}
-            className="text-center truncate"
+            className={`text-center ${
+              labelStep > 1 ? "overflow-visible whitespace-nowrap" : "truncate"
+            }`}
             style={{ width: `${barWidthPct}%` }}
           >
             {i % labelStep === 0 ? d.label : ""}
