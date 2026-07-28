@@ -234,6 +234,11 @@ struct TopArtistRaw {
     listened_ms: i64,
     picture_url: Option<String>,
     picture_hash: Option<String>,
+    /// Local sidecar image (`artist.jpg` / `<name>.jpg`), via
+    /// `artist.artwork_id`. Independent of the Deezer cache below —
+    /// an artist can have one, both, or neither.
+    artwork_hash: Option<String>,
+    artwork_format: Option<String>,
 }
 
 #[tauri::command]
@@ -243,11 +248,21 @@ pub async fn stats_top_artists(
     limit: i64,
 ) -> AppResult<Vec<TopArtistRow>> {
     let pool = state.require_profile_pool().await?;
-    stats_top_artists_inner(&pool, &state.paths.metadata_artwork_dir, &range, limit).await
+    let profile_id = state.require_profile_id().await?;
+    let artwork_dir = state.paths.profile_artwork_dir(profile_id);
+    stats_top_artists_inner(
+        &pool,
+        &artwork_dir,
+        &state.paths.metadata_artwork_dir,
+        &range,
+        limit,
+    )
+    .await
 }
 
 async fn stats_top_artists_inner(
     pool: &SqlitePool,
+    artwork_dir: &Path,
     metadata_dir: &Path,
     range: &str,
     limit: i64,
@@ -261,10 +276,13 @@ async fn stats_top_artists_inner(
                COUNT(*)                      AS plays,
                COALESCE(SUM(pe.listened_ms), 0) AS listened_ms,
                da.picture_url                AS picture_url,
-               da.picture_hash               AS picture_hash
+               da.picture_hash               AS picture_hash,
+               aw.hash                       AS artwork_hash,
+               aw.format                     AS artwork_format
           FROM play_event pe
           JOIN track_artist ta ON ta.track_id = pe.track_id
           JOIN artist ar       ON ar.id = ta.artist_id
+          LEFT JOIN artwork aw ON aw.id = ar.artwork_id
           LEFT JOIN app.metadata_artist da ON da.deezer_id = ar.deezer_id
          WHERE (?1 IS NULL OR pe.played_at >= ?1)
          GROUP BY ar.id
@@ -280,20 +298,50 @@ async fn stats_top_artists_inner(
     let rows = raw
         .into_iter()
         .map(|r| {
-            let (picture_path_1x, picture_path_2x) = match r.picture_hash.as_deref() {
-                Some(h) => crate::thumbnails::thumbnail_paths_for(metadata_dir, h),
-                None => (None, None),
+            // A user-supplied sidecar image wins over the Deezer cache,
+            // matching how the artist list + artist page resolve it
+            // (`list_artists` / `expand_artist_rows`). Before this join
+            // existed, an artist with only a local image resolved to
+            // nothing here and the row fell back to its initial —
+            // while the very same artist showed a picture elsewhere
+            // in the app (issue #453).
+            let local = r.artwork_hash.as_deref().zip(r.artwork_format.as_deref());
+            let local_full = local
+                .map(|(hash, format)| artwork_dir.join(format!("{hash}.{format}")))
+                .filter(|p| p.exists())
+                .map(|p| p.to_string_lossy().into_owned());
+
+            let (picture_path, picture_path_1x, picture_path_2x) = match (&local_full, local) {
+                (Some(full), Some((hash, _))) => {
+                    let (p1, p2) = crate::thumbnails::thumbnail_paths_for(artwork_dir, hash);
+                    (Some(full.clone()), p1, p2)
+                }
+                _ => {
+                    let (p1, p2) = match r.picture_hash.as_deref() {
+                        Some(h) => crate::thumbnails::thumbnail_paths_for(metadata_dir, h),
+                        None => (None, None),
+                    };
+                    let full = r
+                        .picture_hash
+                        .as_deref()
+                        .and_then(|h| crate::metadata_artwork::existing_path(metadata_dir, h));
+                    (full, p1, p2)
+                }
             };
+
             TopArtistRow {
                 artist_id: r.artist_id,
                 name: r.name,
                 plays: r.plays,
                 listened_ms: r.listened_ms,
-                picture_path: r
-                    .picture_hash
-                    .as_deref()
-                    .and_then(|h| crate::metadata_artwork::existing_path(metadata_dir, h)),
-                picture_url: r.picture_url,
+                picture_path,
+                // Only meaningful as a Deezer remote fallback; a local
+                // image is served from disk, never over the network.
+                picture_url: if local_full.is_some() {
+                    None
+                } else {
+                    r.picture_url
+                },
                 picture_path_1x,
                 picture_path_2x,
             }
@@ -589,7 +637,7 @@ pub async fn export_stats_json(
 
     let overview = stats_overview_inner(&pool, &range).await?;
     let top_tracks = stats_top_tracks_inner(&pool, &artwork_dir, &range, 100).await?;
-    let top_artists = stats_top_artists_inner(&pool, metadata_dir, &range, 100).await?;
+    let top_artists = stats_top_artists_inner(&pool, &artwork_dir, metadata_dir, &range, 100).await?;
     let top_albums = stats_top_albums_inner(&pool, &artwork_dir, &range, 100).await?;
     let top_genres = stats_top_genres_inner(&pool, &range, 100).await?;
     let listening_by_day = stats_listening_by_day_inner(&pool, &range).await?;

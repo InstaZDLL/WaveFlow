@@ -9,7 +9,12 @@ interface KpiCardProps {
 
 export function KpiCard({ icon, label, value, hint }: KpiCardProps) {
   return (
-    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5 flex flex-col gap-3">
+    // `h-full` so a card with a `hint` (a third line — only "unique
+    // tracks" has one today) doesn't stand taller than its neighbours:
+    // the grid stretches the wrapper, but the card inside would
+    // otherwise keep its content height and leave the row ragged
+    // along the bottom edge (issue #453).
+    <div className="h-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-5 flex flex-col gap-3">
       <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
         {icon}
         <span className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
