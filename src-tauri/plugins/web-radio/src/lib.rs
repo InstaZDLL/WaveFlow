@@ -20,12 +20,30 @@ use bindings::waveflow::host::log::{self, Level};
 
 use serde::Deserialize;
 
-/// Default federated mirror. radio-browser.info uses round-robin
-/// DNS across regional mirrors (`de1`, `at1`, `us1`, …); the
-/// chosen prefix doesn't matter — any of them serves the same
-/// catalogue. We pin one rather than resolving via
-/// `/json/servers` to avoid an extra round-trip per session.
-const MIRROR: &str = "https://de1.api.radio-browser.info";
+/// radio-browser.info hosts, tried in order until one answers.
+///
+/// `all.` is the project's official **round-robin DNS** entry: it
+/// resolves to whichever nodes are alive right now, so a node that
+/// goes down is dropped from rotation without anyone editing this
+/// list. That matters more than it sounds — this plugin used to pin
+/// `de1.` alone, on the assumption that "any regional prefix serves
+/// the same catalogue". Several of the prefixes that assumption named
+/// (`at1.`, `nl1.`, `fi1.`) no longer resolve at all today, so a
+/// hard-coded node list rots on its own; only `all.` tracks reality.
+///
+/// `de1.` stays as an explicit second attempt: it's a node that does
+/// answer, and having a second entry means a failed first request is
+/// retried at all — which is what the user-visible bug in issue #452
+/// came down to (the first call of a session failed, and simply
+/// leaving the page and coming back made it work).
+///
+/// Both hosts are already covered by the manifest allowlist
+/// (`https://*.api.radio-browser.info/**`), so this needs no
+/// permission change.
+const HOSTS: &[&str] = &[
+    "https://all.api.radio-browser.info",
+    "https://de1.api.radio-browser.info",
+];
 
 /// `User-Agent` radio-browser.info asks for in their API
 /// guidelines. Bumped automatically with the crate version so
@@ -69,8 +87,8 @@ impl Guest for WebRadio {
     /// [`PAGE_LIMIT`] per call — the UI paginates from there.
     fn resolve(query: String) -> Result<Vec<Track>, String> {
         log::emit(Level::Debug, &format!("web-radio resolve: {query}"));
-        let url = build_url(&query)?;
-        let body = fetch_json(&url)?;
+        let path = build_path(&query)?;
+        let body = fetch_json(&path)?;
         let stations: Vec<RbStation> = serde_json::from_slice(&body)
             .map_err(|e| format!("radio-browser response parse: {e}"))?;
         Ok(stations.into_iter().filter_map(to_track).collect())
@@ -100,7 +118,9 @@ fn entry(label: &str, query: &str) -> Entry {
     }
 }
 
-/// Decode the entry / search token into a radio-browser API URL.
+/// Decode the entry / search token into a **host-relative**
+/// radio-browser API path — [`fetch_json`] prefixes whichever host in
+/// [`HOSTS`] answers, so the path must not carry one.
 /// Tokens we understand:
 ///
 /// - `top` → top-voted stations
@@ -110,19 +130,19 @@ fn entry(label: &str, query: &str) -> Entry {
 /// - anything else non-empty → treated as a free-text search term
 ///   (the host's search box hands its raw input here and expects
 ///   matches against station names)
-fn build_url(query: &str) -> Result<String, String> {
+fn build_path(query: &str) -> Result<String, String> {
     let trimmed = query.trim();
     if trimmed.is_empty() {
         return Err("empty query".into());
     }
     if trimmed.eq_ignore_ascii_case("top") {
         return Ok(format!(
-            "{MIRROR}/json/stations/topvote/{PAGE_LIMIT}?hidebroken=true"
+            "/json/stations/topvote/{PAGE_LIMIT}?hidebroken=true"
         ));
     }
     if trimmed.eq_ignore_ascii_case("trending") {
         return Ok(format!(
-            "{MIRROR}/json/stations/lastchange/{PAGE_LIMIT}?hidebroken=true"
+            "/json/stations/lastchange/{PAGE_LIMIT}?hidebroken=true"
         ));
     }
     if let Some(tag) = trimmed.strip_prefix("tag:") {
@@ -131,7 +151,7 @@ fn build_url(query: &str) -> Result<String, String> {
             return Err("empty tag".into());
         }
         return Ok(format!(
-            "{MIRROR}/json/stations/bytag/{tag}?limit={PAGE_LIMIT}&order=votes&reverse=true&hidebroken=true"
+            "/json/stations/bytag/{tag}?limit={PAGE_LIMIT}&order=votes&reverse=true&hidebroken=true"
         ));
     }
     // `country:<ISO2>` → stations in one country, by ISO 3166-1
@@ -148,7 +168,7 @@ fn build_url(query: &str) -> Result<String, String> {
         }
         let code = code.to_ascii_uppercase();
         return Ok(format!(
-            "{MIRROR}/json/stations/bycountrycodeexact/{code}?limit={PAGE_LIMIT}&order=votes&reverse=true&hidebroken=true"
+            "/json/stations/bycountrycodeexact/{code}?limit={PAGE_LIMIT}&order=votes&reverse=true&hidebroken=true"
         ));
     }
     // Both the explicit `search:` form and the free-text fallback
@@ -161,29 +181,58 @@ fn build_url(query: &str) -> Result<String, String> {
         return Err("empty search term".into());
     }
     Ok(format!(
-        "{MIRROR}/json/stations/search?name={term}&limit={PAGE_LIMIT}&order=votes&reverse=true&hidebroken=true"
+        "/json/stations/search?name={term}&limit={PAGE_LIMIT}&order=votes&reverse=true&hidebroken=true"
     ))
 }
 
-/// Issue a GET, surface the body bytes. The host enforces the
-/// manifest's HTTP allowlist + the 10 MB response cap + the offline
-/// short-circuit, so failure modes here are limited to network
-/// errors and non-2xx HTTP statuses (which we propagate verbatim).
-fn fetch_json(url: &str) -> Result<Vec<u8>, String> {
-    let req = Request {
-        method: "GET".into(),
-        url: url.into(),
-        headers: vec![
-            ("User-Agent".into(), USER_AGENT.into()),
-            ("Accept".into(), "application/json".into()),
-        ],
-        body: None,
-    };
-    let resp = http::send(&req).map_err(|e| format!("http: {e}"))?;
-    if !(200..300).contains(&resp.status) {
-        return Err(format!("http status {}", resp.status));
+/// Issue a GET for `path` against each host in [`HOSTS`] until one
+/// answers, and surface the body bytes.
+///
+/// The host enforces the manifest's HTTP allowlist + the 10 MB
+/// response cap + the offline short-circuit, so failure modes here
+/// are limited to network errors and non-2xx HTTP statuses.
+///
+/// **What is and isn't retried.** A transport failure or a 5xx means
+/// "this node couldn't serve it" — worth asking the next one. A 4xx
+/// is the API rejecting the request itself (bad tag, malformed
+/// query); every node would answer the same way, so it returns
+/// immediately rather than burning a second round-trip to be told
+/// the same thing twice.
+///
+/// Offline mode surfaces as the host's `503` sentinel. It is left in
+/// the retry path deliberately: it costs one extra no-op call (the
+/// host short-circuits before touching the network), and special-
+/// casing the value here would couple the guest to a host
+/// implementation detail it has no contract for.
+fn fetch_json(path: &str) -> Result<Vec<u8>, String> {
+    let mut last_err = String::from("no radio-browser host reachable");
+    for host in HOSTS {
+        let req = Request {
+            method: "GET".into(),
+            url: format!("{host}{path}"),
+            headers: vec![
+                ("User-Agent".into(), USER_AGENT.into()),
+                ("Accept".into(), "application/json".into()),
+            ],
+            body: None,
+        };
+        match http::send(&req) {
+            Ok(resp) if (200..300).contains(&resp.status) => return Ok(resp.body),
+            Ok(resp) if resp.status < 500 => {
+                // Client-side rejection: the next node says the same.
+                return Err(format!("http status {}", resp.status));
+            }
+            Ok(resp) => {
+                last_err = format!("{host}: http status {}", resp.status);
+                log::emit(Level::Warn, &format!("radio-browser {last_err}"));
+            }
+            Err(e) => {
+                last_err = format!("{host}: {e}");
+                log::emit(Level::Warn, &format!("radio-browser {last_err}"));
+            }
+        }
     }
-    Ok(resp.body)
+    Err(format!("http: {last_err}"))
 }
 
 /// Minimal `application/x-www-form-urlencoded`-style encoder for

@@ -9,7 +9,7 @@ schema_version = 1
 [plugin]
 id = "web-radio"
 name = "Web Radio"
-version = "0.1.0"
+version = "0.1.1"
 author = "InstaZDLL"
 description = "Internet radio backed by radio-browser.info — 30 000+ stations searchable by country, language, tag, or codec."
 homepage = "https://github.com/InstaZDLL/WaveFlow"
