@@ -347,6 +347,12 @@ fn sum_state_dir_bytes(
 fn describe_error(err: &dyn std::error::Error) -> String {
     const MAX_DEPTH: usize = 8;
     let mut out = err.to_string();
+    // The last message actually appended, tracked separately from
+    // `out`: testing against the accumulated string would compare a
+    // cause to the tail of *everything* written so far, so a distinct
+    // cause that happens to end the buffer ("failed to connect" then
+    // "connect") would be dropped as a repeat.
+    let mut last = out.clone();
     let mut source = err.source();
     let mut depth = 0;
     while let Some(cause) = source {
@@ -356,11 +362,13 @@ fn describe_error(err: &dyn std::error::Error) -> String {
         }
         // Skip a layer that just restates its parent — `reqwest` and
         // `hyper` both do this, and "timed out: timed out" reads
-        // worse than the single line it repeats.
+        // worse than the single line it repeats. Only an exact repeat
+        // of the previous layer counts.
         let text = cause.to_string();
-        if !out.ends_with(&text) {
+        if text != last {
             out.push_str(": ");
             out.push_str(&text);
+            last = text;
         }
         source = cause.source();
         depth += 1;
@@ -890,6 +898,17 @@ mod tests {
     fn describe_error_skips_a_layer_that_restates_its_parent() {
         let err = chain(&["timed out", "timed out"]);
         assert_eq!(super::describe_error(&err), "timed out");
+    }
+
+    /// The dedup must fire on an exact repeat of the previous layer
+    /// and nothing else. Comparing against the accumulated buffer
+    /// instead would drop a distinct cause that merely happens to end
+    /// it — here "connect" is a suffix of "failed to connect", but it
+    /// is its own layer and has to survive.
+    #[test]
+    fn describe_error_only_dedups_an_exact_repeat_of_the_previous_layer() {
+        let err = chain(&["failed to connect", "connect"]);
+        assert_eq!(super::describe_error(&err), "failed to connect: connect");
     }
 
     /// `source()` is author-controlled — a pathological chain must not
