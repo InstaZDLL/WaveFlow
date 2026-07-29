@@ -218,8 +218,15 @@ fn fetch_json(path: &str) -> Result<Vec<u8>, String> {
         };
         match http::send(&req) {
             Ok(resp) if (200..300).contains(&resp.status) => return Ok(resp.body),
-            Ok(resp) if resp.status < 500 => {
-                // Client-side rejection: the next node says the same.
+            // Client-side rejection: the request itself is wrong (bad
+            // tag, malformed query), so the next node answers the same
+            // and asking it again just wastes a round-trip.
+            //
+            // 429 is the exception: a rate limit is per-node state, not
+            // a verdict on the request, and the whole point of having a
+            // second host is to route around a node that won't serve us
+            // right now.
+            Ok(resp) if (400..500).contains(&resp.status) && resp.status != 429 => {
                 return Err(format!("http status {}", resp.status));
             }
             Ok(resp) => {
