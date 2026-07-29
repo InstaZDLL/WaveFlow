@@ -970,6 +970,23 @@ pub struct AlbumTrack {
     /// for DSF/DFF tracks where bit_depth=1 would otherwise look
     /// like junk to the badge logic.
     pub codec: Option<String>,
+    // The remaining fields exist so the Properties modal opened from
+    // this view shows the same Audio / File sections it shows
+    // everywhere else. AlbumDetailView has to synthesise a full
+    // `Track` for the context menu, and anything missing here became
+    // a hard-coded null there — which is exactly what left those
+    // sections blank on the album page only (issue #458).
+    pub year: Option<i64>,
+    pub bitrate: Option<i64>,
+    pub channels: Option<i64>,
+    pub musical_key: Option<String>,
+    pub file_size: i64,
+    pub added_at: i64,
+    /// Half-star rating (POPM round-trip). Selected so the context
+    /// menu's rating submenu reflects reality here: it is enabled by
+    /// default, so a hard-coded `null` made an already-rated track
+    /// read as unrated on this view.
+    pub rating: Option<i64>,
 }
 
 #[derive(FromRow)]
@@ -988,6 +1005,13 @@ struct AlbumTrackRaw {
     bit_depth: Option<i64>,
     sample_rate: Option<i64>,
     codec: Option<String>,
+    year: Option<i64>,
+    bitrate: Option<i64>,
+    channels: Option<i64>,
+    musical_key: Option<String>,
+    file_size: i64,
+    added_at: i64,
+    rating: Option<i64>,
 }
 
 /// Return full album detail: header (with Deezer-cached label), genres,
@@ -1094,6 +1118,8 @@ pub async fn get_album_detail(
                t.duration_ms, t.track_number, t.disc_number,
                t.file_path,
                t.bit_depth, t.sample_rate, t.codec,
+               t.year, t.bitrate, t.channels, t.musical_key,
+               t.file_size, t.added_at, t.rating,
                aw.hash AS artwork_hash, aw.format AS artwork_format
           FROM ranked r
           JOIN track t ON t.id = r.id
@@ -1138,6 +1164,13 @@ pub async fn get_album_detail(
                 bit_depth: row.bit_depth,
                 sample_rate: row.sample_rate,
                 codec: row.codec,
+                year: row.year,
+                bitrate: row.bitrate,
+                channels: row.channels,
+                musical_key: row.musical_key,
+                file_size: row.file_size,
+                added_at: row.added_at,
+                rating: row.rating,
             }
         })
         .collect();

@@ -169,7 +169,16 @@ export function AlbumDetailView({
 
   if (!album) return <DetailViewSkeleton ariaLabel={t("albumDetail.badge")} />; // loading
 
-  // Build playable Track[] from AlbumTrack[] for the player
+  // Build playable Track[] from AlbumTrack[] for the player AND for the
+  // track context menu — which is what feeds the Properties modal. Every
+  // field the modal reads must come from the row rather than a
+  // placeholder: hard-coded nulls here are what left the Audio and File
+  // sections blank on this view alone (issue #458).
+  //
+  // That includes `rating`: the context menu's rating submenu is on by
+  // default here, so the previous placeholder made an already-rated
+  // track show up as unrated — the exact misreport `enableRating:
+  // false` exists to prevent on surfaces that genuinely lack it.
   const playableTracks = album.tracks.map((at) => ({
     id: at.id,
     library_id: 0,
@@ -182,20 +191,22 @@ export function AlbumDetailView({
     duration_ms: at.duration_ms,
     track_number: at.track_number,
     disc_number: at.disc_number,
-    year: album.year,
-    bitrate: null,
+    // The track's own year, falling back to the album's — a
+    // compilation can carry a per-track year the album header doesn't.
+    year: at.year ?? album.year,
+    bitrate: at.bitrate,
     sample_rate: at.sample_rate,
-    channels: null,
+    channels: at.channels,
     bit_depth: at.bit_depth,
-    codec: null,
-    musical_key: null,
+    codec: at.codec,
+    musical_key: at.musical_key,
     file_path: at.file_path,
-    file_size: 0,
-    added_at: 0,
+    file_size: at.file_size,
+    added_at: at.added_at,
     artwork_path: at.artwork_path,
     artwork_path_1x: at.artwork_path_1x,
     artwork_path_2x: at.artwork_path_2x,
-    rating: null,
+    rating: at.rating,
   }));
 
   const handlePlayAll = async () => {
